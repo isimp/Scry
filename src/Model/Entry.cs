@@ -29,6 +29,18 @@ namespace Scry
         /// <summary>Names of the prefabs whose effect lists point at this one.</summary>
         public List<string> UsedBy = new List<string>();
 
+        /// <summary>Registered with the scene, so the game's own spawn command knows it.</summary>
+        public bool Registered;
+
+        /// <summary>The type names of the components on the prefab, each once.</summary>
+        public string[] Components = new string[0];
+
+        /// <summary>The biomes it spawns or grows in, as the game names them.</summary>
+        public string[] Biomes = new string[0];
+
+        /// <summary>The mod that added it, when that could be told. Empty otherwise.</summary>
+        public string ModName = "";
+
         /// <summary>The prefab (a GameObject) or status effect behind this entry.</summary>
         public object Source;
 

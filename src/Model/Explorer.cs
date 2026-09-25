@@ -66,6 +66,27 @@ namespace Scry
             }
         }
 
+        /// <summary>How many recently looked-at entries are remembered.</summary>
+        public const int RecentLimit = 30;
+
+        private readonly List<string> _recent = new List<string>();
+        private bool _recentOnly;
+
+        /// <summary>Only what was looked at recently, newest first.</summary>
+        public bool RecentOnly
+        {
+            get => _recentOnly;
+            set
+            {
+                if (value == _recentOnly) return;
+                _recentOnly = value;
+                Refresh();
+            }
+        }
+
+        /// <summary>The keys of recently looked-at entries, newest first.</summary>
+        public IReadOnlyList<string> RecentKeys => _recent;
+
         public OriginFilter Origin
         {
             get => _query.Origin;
@@ -102,6 +123,12 @@ namespace Scry
             _selectedIndex = entry == null ? -1 : _results.IndexOf(entry);
             _selectionVersion++;
             _modifiers.ResetFor(entry);
+
+            // The recent list is not reordered under the cursor; it catches up on the next refresh.
+            if (entry == null) return;
+            _recent.Remove(entry.Key);
+            _recent.Insert(0, entry.Key);
+            if (_recent.Count > RecentLimit) _recent.RemoveRange(RecentLimit, _recent.Count - RecentLimit);
         }
 
         /// <summary>Moves the selection up or down the list, stopping at either end.</summary>
@@ -125,15 +152,26 @@ namespace Scry
         {
             _results = Search.Run(_catalog, _query, _favourites.Keys);
 
+            if (_recentOnly)
+            {
+                // Newest first, whatever the search ranking would be.
+                var order = new Dictionary<string, int>();
+                for (var i = 0; i < _recent.Count; i++) order[_recent[i]] = i;
+                _results = _results.FindAll(e => order.ContainsKey(e.Key));
+                _results.Sort((a, b) => order[a.Key].CompareTo(order[b.Key]));
+            }
+
             // The chips count across every kind, so picking one still shows what the others hold.
             Array.Clear(_counts, 0, _counts.Length);
             _countAll = 0;
-            var words = Search.Words(_query.Text);
+            var search = Search.Parse(_query.Text);
             var anyKind = new Query { Text = _query.Text, FavouritesOnly = _query.FavouritesOnly, Origin = _query.Origin };
+            var recent = _recentOnly ? new HashSet<string>(_recent) : null;
             foreach (var entry in _catalog)
             {
                 if (!Search.Passes(entry, anyKind, _favourites.Keys)) continue;
-                if (words.Length > 0 && !Search.Matches(entry, _query.Text)) continue;
+                if (recent != null && !recent.Contains(entry.Key)) continue;
+                if (!search.IsEmpty && !Search.Matches(entry, search)) continue;
                 _counts[(int)entry.Kind]++;
                 _countAll++;
             }

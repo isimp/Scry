@@ -16,6 +16,16 @@ namespace Scry.Tests
         }
 
         [Theory]
+        [InlineData("m_staminaRegenMultiplier", "Stamina regen multiplier")]
+        [InlineData("m_addMaxCarryWeight", "Add max carry weight")]
+        [InlineData("m_speed", "Speed")]
+        [InlineData("m_raiseSkill", "Raise skill")]
+        public void AFieldIsShownUnderAPlainName(string field, string shown)
+        {
+            Assert.Equal(shown, Naming.FieldLabel(field));
+        }
+
+        [Theory]
         [InlineData("m_effects")]
         [InlineData("")]
         [InlineData(null)]

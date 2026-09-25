@@ -23,8 +23,30 @@ namespace Scry
         public OriginFilter Origin = OriginFilter.All;
     }
 
+    /// <summary>
+    /// The typed search, taken apart. Plain words are matched against both names and rank the
+    /// results. A word with a known key and a colon narrows the list by something else:
+    /// <c>kind:</c>, <c>has:</c> (a component), <c>biome:</c>, <c>mod:</c> and <c>used:</c> (the prefabs
+    /// that play an effect). A minus in front of a word or a term leaves out what matches it.
+    /// </summary>
+    public sealed class ParsedSearch
+    {
+        public readonly List<string> Words = new List<string>();
+        public readonly List<string> NotWords = new List<string>();
+        public readonly List<KeyValuePair<string, string>> Terms = new List<KeyValuePair<string, string>>();
+        public readonly List<KeyValuePair<string, string>> NotTerms = new List<KeyValuePair<string, string>>();
+
+        /// <summary>A term with nothing after its colon, which nothing can match.</summary>
+        public bool Unanswerable;
+
+        public bool IsEmpty => Words.Count == 0 && NotWords.Count == 0 && Terms.Count == 0 && NotTerms.Count == 0 && !Unanswerable;
+    }
+
     public static class Search
     {
+        /// <summary>The keys a term can have, as typed before the colon.</summary>
+        public static readonly string[] Keys = { "kind", "has", "biome", "mod", "used" };
+
         private static readonly char[] Separators = { ' ', '\t' };
 
         // How well one word matches one name, best first.
@@ -34,34 +56,69 @@ namespace Scry
         private const int Inside = 3;
         private const int Miss = int.MaxValue;
 
-        /// <summary>Whether an entry matches the typed text, looking at both its names.</summary>
+        public static ParsedSearch Parse(string text)
+        {
+            var parsed = new ParsedSearch();
+            foreach (var raw in Words(text))
+            {
+                var word = raw;
+                var not = word.Length > 1 && word[0] == '-';
+                if (not) word = word.Substring(1);
+                if (word == "-") continue;
+
+                var colon = word.IndexOf(':');
+                var key = colon > 0 ? word.Substring(0, colon).ToLowerInvariant() : null;
+                if (key != null && Array.IndexOf(Keys, key) >= 0)
+                {
+                    var value = word.Substring(colon + 1);
+                    if (value.Length == 0)
+                    {
+                        if (!not) parsed.Unanswerable = true;
+                        continue;
+                    }
+                    (not ? parsed.NotTerms : parsed.Terms).Add(new KeyValuePair<string, string>(key, value));
+                    continue;
+                }
+
+                (not ? parsed.NotWords : parsed.Words).Add(word);
+            }
+            return parsed;
+        }
+
+        /// <summary>Whether an entry matches the typed text, words and terms alike.</summary>
         public static bool Matches(Entry entry, string text)
         {
-            return Score(entry, Words(text)) != Miss;
+            return Matches(entry, Parse(text));
+        }
+
+        public static bool Matches(Entry entry, ParsedSearch search)
+        {
+            return Score(entry, search) != Miss;
         }
 
         /// <summary>The entries that match, best match first.</summary>
         public static List<Entry> Run(IReadOnlyList<Entry> all, Query query, ICollection<string> favourites)
         {
-            var words = Words(query.Text);
+            var search = Parse(query.Text);
             var found = new List<KeyValuePair<int, Entry>>();
 
             foreach (var entry in all)
             {
                 if (!Passes(entry, query, favourites)) continue;
 
-                var score = Score(entry, words);
+                var score = Score(entry, search);
                 if (score != Miss) found.Add(new KeyValuePair<int, Entry>(score, entry));
             }
 
+            var ranked = search.Words.Count > 0;
             found.Sort((a, b) =>
             {
                 var byScore = a.Key.CompareTo(b.Key);
                 if (byScore != 0) return byScore;
 
                 // Among equal matches the shorter name is the closer one: "Troll" before
-                // "Troll_Summoned". With nothing typed every score is equal and this is name order.
-                if (words.Length > 0)
+                // "Troll_Summoned". With no words typed every score is equal and this is name order.
+                if (ranked)
                 {
                     var byLength = a.Value.Name.Length.CompareTo(b.Value.Name.Length);
                     if (byLength != 0) return byLength;
@@ -94,18 +151,63 @@ namespace Scry
 
         /// <summary>
         /// The sum of each word's best match over both names, or <see cref="Miss"/> when any word
-        /// matches neither. Lower is better.
+        /// matches neither, a term fails, or something left out matches. Lower is better.
         /// </summary>
-        private static int Score(Entry entry, string[] words)
+        private static int Score(Entry entry, ParsedSearch search)
         {
+            if (search.Unanswerable) return Miss;
+
+            foreach (var term in search.Terms) if (!TermMatches(entry, term.Key, term.Value)) return Miss;
+            foreach (var term in search.NotTerms) if (TermMatches(entry, term.Key, term.Value)) return Miss;
+            foreach (var word in search.NotWords)
+            {
+                if (Rank(entry.Name, word) != Miss || Rank(entry.DisplayName, word) != Miss) return Miss;
+            }
+
             var total = 0;
-            foreach (var word in words)
+            foreach (var word in search.Words)
             {
                 var best = Math.Min(Rank(entry.Name, word), Rank(entry.DisplayName, word));
                 if (best == Miss) return Miss;
                 total += best;
             }
             return total;
+        }
+
+        private static bool TermMatches(Entry entry, string key, string value)
+        {
+            switch (key)
+            {
+                case "kind": return KindMatches(entry.Kind, value);
+                case "has": return AnyContains(entry.Components, value);
+                case "biome": return AnyContains(entry.Biomes, value);
+                case "mod": return Contains(entry.ModName, value);
+                case "used": return AnyContains(entry.UsedBy, value);
+                default: return false;
+            }
+        }
+
+        /// <summary>A kind by its name or the start of it, singular or plural; "se" is a status effect.</summary>
+        public static bool KindMatches(Kind kind, string value)
+        {
+            var typed = value.Replace(" ", "").ToLowerInvariant();
+            if (typed == "se") return kind == Kind.StatusEffect;
+
+            var label = Kinds.Label(kind).Replace(" ", "").ToLowerInvariant();
+            var name = kind.ToString().ToLowerInvariant();
+            return label.StartsWith(typed, StringComparison.Ordinal) || name.StartsWith(typed, StringComparison.Ordinal);
+        }
+
+        private static bool AnyContains(IEnumerable<string> values, string value)
+        {
+            if (values == null) return false;
+            foreach (var candidate in values) if (Contains(candidate, value)) return true;
+            return false;
+        }
+
+        private static bool Contains(string text, string value)
+        {
+            return !string.IsNullOrEmpty(text) && text.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static int Rank(string name, string word)
