@@ -675,6 +675,7 @@ namespace Scry
             y = Title(explorer, entry, cw, y);
             if (!withStage && (entry.Kind == Kind.Sound || entry.Kind == Kind.StatusEffect)) y = CompactCard(entry, cw, y);
             y = Actions(entry, cw, y);
+            if (entry.Kind == Kind.Sound) y = Variants(entry, cw, y);
             y = Adjust(explorer, entry, cw, y, withStage);
             y = Details(entry, cw, y);
             if (Event.current.type == EventType.Repaint) _sideHeight = y + U(8f);
@@ -961,7 +962,7 @@ namespace Scry
             switch (entry.Kind)
             {
                 case Kind.Sound:
-                    if (Button("Play", Skin.Primary)) Previews.PlaySound(entry);
+                    if (Button(Variants(entry).Count > 1 ? "Play a random one" : "Play", Skin.Primary)) Previews.PlaySound(entry);
                     if (Previews.SoundPlaying && Button("Stop", Skin.Button)) Previews.StopSound();
                     if (Button(Previews.LoopSounds ? "Repeat on" : "Repeat off", Previews.LoopSounds ? Skin.On : Skin.Button)) Previews.LoopSounds = !Previews.LoopSounds;
                     break;
@@ -1049,6 +1050,57 @@ namespace Scry
             }
 
             return "Only the look. The effect itself is never applied to you.";
+        }
+
+        // ----- Sound variants -----
+
+        private static readonly Dictionary<Entry, List<AudioClip>> VariantCache = new Dictionary<Entry, List<AudioClip>>();
+
+        private static List<AudioClip> Variants(Entry entry)
+        {
+            if (!VariantCache.TryGetValue(entry, out var clips))
+            {
+                clips = Previews.SoundVariants(entry.Source as GameObject);
+                VariantCache[entry] = clips;
+            }
+            return clips;
+        }
+
+        /// <summary>
+        /// Every clip the sound can play. The game picks one at random each time; here each can be
+        /// played on its own, and the one heard last, chosen or picked, is lit.
+        /// </summary>
+        private static float Variants(Entry entry, float width, float y)
+        {
+            var clips = Variants(entry);
+            if (clips.Count < 2) return y;
+
+            y = SectionHeading($"VARIANTS  {clips.Count}", width, y, null);
+            var now = Previews.SoundClipNow();
+            var x = 0f;
+            var rowH = U(28f);
+
+            for (var i = 0; i < clips.Count; i++)
+            {
+                var clip = clips[i];
+                var text = $"{i + 1}   {clip.name}";
+                var style = clip == now ? Skin.ChipOn : Skin.Chip;
+                var w = Mathf.Min(width, style.CalcSize(new GUIContent(text)).x + U(8f));
+                if (x + w > width && x > 0f)
+                {
+                    x = 0f;
+                    y += rowH + U(5f);
+                }
+                var chip = new Rect(x, y, w, rowH);
+                if (GUI.Button(chip, text, style)) Previews.PlaySound(entry, clip);
+                if (chip.Contains(Event.current.mousePosition))
+                {
+                    AskTip("variant:" + clip.name, $"{clip.name}\n{clip.length.ToString("0.00", CultureInfo.InvariantCulture)} s");
+                }
+                x += w + U(5f);
+            }
+
+            return y + rowH + U(16f);
         }
 
         // ----- Modifiers -----

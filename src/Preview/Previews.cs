@@ -149,7 +149,8 @@ namespace Scry
             }
 
             // A sound stopped by hand is not replayed; one that ran out is.
-            if (LoopSounds && _entry.Kind == Kind.Sound && _soundEntry == _entry && _sound == null) PlaySound(_entry);
+            // A chosen variant repeats as itself; a random play picks again each time, as in the game.
+            if (LoopSounds && _entry.Kind == Kind.Sound && _soundEntry == _entry && _sound == null) PlaySound(_entry, _soundChosen);
         }
 
         // ----- The copy in the world -----
@@ -259,8 +260,12 @@ namespace Scry
 
         // ----- Sounds -----
 
-        /// <summary>Plays a sound at your ears. It follows the camera, so it stays with you.</summary>
-        public static void PlaySound(Entry entry)
+        /// <summary>
+        /// Plays a sound at your ears. It follows the camera, so it stays with you. Without a clip
+        /// the game picks one of the sound's variants at random, as it does in play; with one,
+        /// exactly that variant plays, still with the sound's own volume, pitch and mix.
+        /// </summary>
+        public static void PlaySound(Entry entry, AudioClip only = null)
         {
             StopSound();
             if (!(entry?.Source is GameObject prefab)) return;
@@ -269,14 +274,91 @@ namespace Scry
             if (ears == null) return;
 
             _sound = Ghost.Make(prefab, ears, ears.position, ears.rotation);
+            if (_sound == null) return;
+
             _soundEntry = entry;
-            _soundUntil = Time.unscaledTime + SoundLength(prefab);
+            _soundChosen = only;
+            _soundUntil = Time.unscaledTime + (only != null ? Mathf.Clamp(only.length + MaxDelay(prefab) + 0.25f, 0.5f, MaxSoundSeconds) : SoundLength(prefab));
+            if (only != null) Narrow(_sound, only);
+        }
+
+        /// <summary>
+        /// Leaves the copy only the chosen clip to pick from. The game's sound script picks its clip
+        /// when it starts, a frame after the copy wakes, so narrowing its list here is enough. A
+        /// plain audio source has already started, so it is restarted with the clip.
+        /// </summary>
+        private static void Narrow(GameObject copy, AudioClip clip)
+        {
+            var scripted = false;
+            foreach (var sfx in copy.GetComponentsInChildren<ZSFX>(true))
+            {
+                if (sfx.m_audioClips == null || System.Array.IndexOf(sfx.m_audioClips, clip) < 0)
+                {
+                    // Another part of the same sound; left quiet so only the chosen variant is heard.
+                    sfx.m_playOnAwake = false;
+                    continue;
+                }
+                sfx.m_audioClips = new[] { clip };
+                scripted = true;
+            }
+            if (scripted) return;
+
+            foreach (var source in copy.GetComponentsInChildren<AudioSource>(true))
+            {
+                if (source.clip != clip) continue;
+                source.Stop();
+                source.clip = clip;
+                source.Play();
+                return;
+            }
+        }
+
+        private static float MaxDelay(GameObject prefab)
+        {
+            var delay = 0f;
+            foreach (var sfx in prefab.GetComponentsInChildren<ZSFX>(true)) delay = Mathf.Max(delay, sfx.m_maxDelay);
+            return delay;
         }
 
         public static void StopSound()
         {
             _soundEntry = null;
+            _soundChosen = null;
             Destroy(ref _sound);
+        }
+
+        private static AudioClip _soundChosen;
+
+        /// <summary>
+        /// The clip the playing sound is actually playing, whether chosen or picked at random, so
+        /// the panel can show which variant was heard. Null when nothing plays.
+        /// </summary>
+        public static AudioClip SoundClipNow()
+        {
+            if (_sound == null) return null;
+            foreach (var source in _sound.GetComponentsInChildren<AudioSource>())
+            {
+                if (source.isPlaying && source.clip != null) return source.clip;
+            }
+            return _soundChosen;
+        }
+
+        /// <summary>Every clip a sound can play, each once, in the order the sound lists them.</summary>
+        public static List<AudioClip> SoundVariants(GameObject prefab)
+        {
+            var clips = new List<AudioClip>();
+            if (prefab == null) return clips;
+
+            foreach (var sfx in prefab.GetComponentsInChildren<ZSFX>(true))
+            {
+                if (sfx.m_audioClips == null) continue;
+                foreach (var clip in sfx.m_audioClips) if (clip != null && !clips.Contains(clip)) clips.Add(clip);
+            }
+            foreach (var source in prefab.GetComponentsInChildren<AudioSource>(true))
+            {
+                if (source.clip != null && !clips.Contains(source.clip)) clips.Add(source.clip);
+            }
+            return clips;
         }
 
         /// <summary>How long a sound runs: its longest clip and delay, or a minute for a looping one.</summary>
