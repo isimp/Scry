@@ -336,7 +336,6 @@ namespace Scry
 
             var header = new Rect(0f, 0f, clearRect.x - U(8f), U(52f));
             GUI.Label(new Rect(pad, U(10f), U(90f), U(34f)), "Scry", Skin.Title);
-            if (!_compact) GUI.Label(new Rect(pad + U(86f), U(16f), U(300f), U(26f)), Session.CatalogSummary, Skin.Subtitle);
 
             var enabled = GUI.enabled;
             GUI.enabled = outCount > 0;
@@ -444,6 +443,24 @@ namespace Scry
 
         private static void Search(Explorer explorer, Rect rect)
         {
+            var e = Event.current;
+            var hasText = !string.IsNullOrEmpty(explorer.Text);
+            var clear = new Rect(rect.xMax - U(32f), rect.y + (rect.height - U(24f)) / 2f, U(24f), U(24f));
+
+            // The text field takes every click inside it, so the clear button is handled before it.
+            if (hasText && e.type == EventType.MouseDown && e.button == 0 && clear.Contains(e.mousePosition))
+            {
+                explorer.Text = "";
+                _listScroll = Vector2.zero;
+                _reveal = true;
+
+                // A focused field keeps showing its own copy of the text until it lets go of the keyboard.
+                GUIUtility.keyboardControl = 0;
+                _focusSearch = true;
+                hasText = false;
+                e.Use();
+            }
+
             GUI.SetNextControlName(SearchControl);
             var text = GUI.TextField(rect, explorer.Text, 80, Skin.Field);
             if (text != explorer.Text)
@@ -451,16 +468,23 @@ namespace Scry
                 explorer.Text = text;
                 _listScroll = Vector2.zero;
                 _reveal = true;
+                hasText = !string.IsNullOrEmpty(text);
             }
 
-            if (string.IsNullOrEmpty(explorer.Text))
+            if (!hasText)
             {
                 GUI.Label(rect, "Search by name", Skin.Placeholder);
             }
-            else if (GUI.Button(new Rect(rect.xMax - U(30f), rect.y + U(5f), U(26f), rect.height - U(10f)), "×", Skin.Close))
+            else
             {
-                explorer.Text = "";
-                _focusSearch = true;
+                var hover = clear.Contains(e.mousePosition);
+                if (hover) Skin.Icon(clear, Skin.Circle, new Color(1f, 1f, 1f, 0.12f));
+                var style = Skin.Close;
+                var was = style.normal.textColor;
+                style.normal.textColor = hover ? Skin.Text : Skin.Dim;
+                GUI.Label(new Rect(clear.x, clear.y - U(1f), clear.width, clear.height), "×", style);
+                style.normal.textColor = was;
+                if (hover) AskTip("clear-search", "Clear the search");
             }
 
             if (_focusSearch && Event.current.type == EventType.Repaint)
@@ -521,7 +545,14 @@ namespace Scry
             var text = note ?? (_compact
                 ? "Hold right mouse outside the panel to look around. Esc closes."
                 : "Arrows move, Enter plays or shows, Ctrl+F searches. Hold right mouse outside the panel to look around. Esc closes.");
-            GUI.Label(new Rect(rect.x, rect.y, rect.width - U(30f), rect.height), text, note != null ? Skin.DimLabel : Skin.FaintLabel);
+            // The catalog's size sits at the far right, clear of the resize grip.
+            var summary = Session.CatalogSummary;
+            var summaryW = _compact ? 0f : Skin.FaintLabel.CalcSize(new GUIContent(summary)).x;
+            if (summaryW > 0f)
+            {
+                GUI.Label(new Rect(rect.xMax - U(26f) - summaryW, rect.y, summaryW, rect.height), summary, Skin.FaintLabel);
+            }
+            GUI.Label(new Rect(rect.x, rect.y, rect.width - U(40f) - summaryW, rect.height), text, note != null ? Skin.DimLabel : Skin.FaintLabel);
         }
 
         // ----- The list -----
