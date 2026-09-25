@@ -85,6 +85,7 @@ namespace Scry
             _scale = modifiers.Scale;
             _subject.transform.localScale = _baseScale * modifiers.Scale;
             foreach (var animator in _subject.GetComponentsInChildren<Animator>(true)) animator.speed = modifiers.AnimationSpeed;
+            ClipPlayer.SetSpeed(_subject, modifiers.AnimationSpeed);
         }
 
         /// <summary>

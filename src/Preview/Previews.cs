@@ -227,6 +227,7 @@ namespace Scry
             var keep = copy.GetComponent<Keep>();
             if (keep != null) copy.transform.localScale = keep.BaseScale * modifiers.Scale;
             foreach (var animator in copy.GetComponentsInChildren<Animator>(true)) animator.speed = modifiers.AnimationSpeed;
+            ClipPlayer.SetSpeed(copy, modifiers.AnimationSpeed);
         }
 
         /// <summary>
@@ -366,14 +367,69 @@ namespace Scry
         {
             StopStatus(false);
             if (!(entry?.Source is StatusEffect effect)) return;
-            var player = Player.m_localPlayer;
-            if (player == null) return;
+            if (Player.m_localPlayer == null) return;
 
             _status = effect;
-            var list = effect.m_startEffects?.m_effectPrefabs;
-            if (list == null) return;
+            StatusVisuals.AddRange(OnYou(effect.m_startEffects));
+        }
 
-            foreach (var data in list)
+        /// <summary>Takes a status effect's visuals off you, playing its stop effects if asked.</summary>
+        public static void StopStatus(bool playStop)
+        {
+            foreach (var visual in StatusVisuals) if (visual != null) Object.Destroy(visual);
+            StatusVisuals.Clear();
+
+            if (playStop && _status != null && Player.m_localPlayer != null)
+            {
+                foreach (var copy in OnYou(_status.m_stopEffects)) Remember(copy, EffectSeconds);
+            }
+            _status = null;
+        }
+
+        /// <summary>
+        /// Every effect list a status effect carries that has something in it, by a plain name:
+        /// its start and stop, and whatever else its kind adds, such as a tick or a break.
+        /// </summary>
+        public static List<KeyValuePair<string, EffectList>> StatusLists(StatusEffect effect)
+        {
+            var lists = new List<KeyValuePair<string, EffectList>>();
+            if (effect == null) return lists;
+
+            foreach (var field in CatalogBuilder.EffectFields(effect.GetType()))
+            {
+                if (!(field.GetValue(effect) is EffectList list) || !HasAny(list)) continue;
+                lists.Add(new KeyValuePair<string, EffectList>(Naming.EffectListLabel(field.Name), list));
+            }
+            return lists;
+        }
+
+        /// <summary>Plays one of a status effect's lists on you once.</summary>
+        public static void PlayOnYou(EffectList list)
+        {
+            foreach (var copy in OnYou(list)) Remember(copy, EffectSeconds);
+        }
+
+        private static bool HasAny(EffectList list)
+        {
+            if (list?.m_effectPrefabs == null) return false;
+            foreach (var data in list.m_effectPrefabs)
+            {
+                if (data != null && data.m_enabled && data.m_prefab != null) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Copies of an effect list's prefabs placed on you the way the game places them: on the
+        /// named part of the body when there is one, and attached when the list says so.
+        /// </summary>
+        private static List<GameObject> OnYou(EffectList list)
+        {
+            var made = new List<GameObject>();
+            var player = Player.m_localPlayer;
+            if (player == null || list?.m_effectPrefabs == null) return made;
+
+            foreach (var data in list.m_effectPrefabs)
             {
                 if (data == null || !data.m_enabled || data.m_prefab == null) continue;
 
@@ -386,53 +442,57 @@ namespace Scry
 
                 var parent = data.m_attach || data.m_follow ? anchor : null;
                 var copy = Ghost.Make(data.m_prefab, parent, anchor.position, anchor.rotation);
-                if (copy != null) StatusVisuals.Add(copy);
+                if (copy != null) made.Add(copy);
             }
-        }
-
-        /// <summary>Takes a status effect's visuals off you, playing its stop effects if asked.</summary>
-        public static void StopStatus(bool playStop)
-        {
-            foreach (var visual in StatusVisuals) if (visual != null) Object.Destroy(visual);
-            StatusVisuals.Clear();
-
-            var player = Player.m_localPlayer;
-            if (playStop && _status != null && player != null)
-            {
-                PlayList(_status.m_stopEffects, player.transform.position, player.transform.rotation);
-            }
-            _status = null;
+            return made;
         }
 
         // ----- Animation -----
 
-        /// <summary>The animator on the stage copy, for listing what it can play.</summary>
-        public static Animator StageAnimator()
-        {
-            var subject = Stage.Subject;
-            if (subject == null) return null;
+        /// <summary>Plays the clip again as soon as it ends.</summary>
+        public static bool LoopClips;
 
-            foreach (var animator in subject.GetComponentsInChildren<Animator>(true))
+        /// <summary>The animation clips the stage copy's animator has, by name.</summary>
+        public static List<AnimationClip> Clips()
+        {
+            var clips = new List<AnimationClip>();
+            var animator = ClipPlayer.AnimatorOf(Stage.Subject);
+            if (animator == null) return clips;
+
+            var seen = new HashSet<string>();
+            foreach (var clip in animator.runtimeAnimatorController.animationClips)
             {
-                if (animator.runtimeAnimatorController != null) return animator;
+                if (clip != null && seen.Add(clip.name)) clips.Add(clip);
             }
-            return null;
+            clips.Sort((a, b) => string.Compare(a.name, b.name, System.StringComparison.OrdinalIgnoreCase));
+            return clips;
         }
 
-        public static void Trigger(string name) => ForEachAnimator(a => a.SetTrigger(name));
-        public static void SetBool(string name, bool value) => ForEachAnimator(a => a.SetBool(name, value));
-        public static void SetFloat(string name, float value) => ForEachAnimator(a => a.SetFloat(name, value));
-
-        private static void ForEachAnimator(System.Action<Animator> act)
+        /// <summary>The clip playing on the stage copy, or null.</summary>
+        public static AnimationClip PlayingClip()
         {
-            foreach (var copy in new[] { Stage.Subject, _world })
-            {
-                if (copy == null) continue;
-                foreach (var animator in copy.GetComponentsInChildren<Animator>(true))
-                {
-                    if (animator.runtimeAnimatorController != null) act(animator);
-                }
-            }
+            var player = Stage.Subject != null ? Stage.Subject.GetComponent<ClipPlayer>() : null;
+            return player != null ? player.Clip : null;
+        }
+
+        public static void PlayClip(AnimationClip clip)
+        {
+            var speed = _explorer != null ? _explorer.Modifiers.AnimationSpeed : 1f;
+            ClipPlayer.Play(Stage.Subject, clip, LoopClips, speed);
+            ClipPlayer.Play(_world, clip, LoopClips, speed);
+        }
+
+        public static void StopClip()
+        {
+            ClipPlayer.Stop(Stage.Subject);
+            ClipPlayer.Stop(_world);
+        }
+
+        public static void ToggleLoopClips()
+        {
+            LoopClips = !LoopClips;
+            ClipPlayer.SetLoop(Stage.Subject, LoopClips);
+            ClipPlayer.SetLoop(_world, LoopClips);
         }
 
         /// <summary>Restarts what is on the stage, for effects that have played out.</summary>

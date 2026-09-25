@@ -21,6 +21,32 @@ namespace Scry
     }
 
     /// <summary>
+    /// Holding the right mouse button outside the panel turns the camera. The game asks for mouse
+    /// look separately (<c>TakeInput(look: true)</c>) from movement and actions, so only that one
+    /// question is answered yes; walking, blocking and attacking stay off.
+    /// </summary>
+    [HarmonyPatch(typeof(PlayerController), "TakeInput")]
+    internal static class LookThrough
+    {
+        private static void Postfix(bool look, ref bool __result)
+        {
+            if (look && Session.Looking) __result = true;
+        }
+    }
+
+    /// <summary>While looking around, the cursor is captured as in normal play.</summary>
+    [HarmonyPatch(typeof(GameCamera), nameof(GameCamera.UpdateMouseCapture))]
+    internal static class LookCapture
+    {
+        private static void Postfix()
+        {
+            if (!Session.Looking) return;
+            ZCursor.LockState = UnityEngine.CursorLockMode.Locked;
+            ZCursor.Hide();
+        }
+    }
+
+    /// <summary>
     /// The mouse wheel is not covered by the text box check: the camera zoom reads it regardless.
     /// Every wheel read in the game goes through this one method, so while the panel is open it
     /// answers nothing, and the wheel only scrolls the panel.

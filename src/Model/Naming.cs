@@ -1,0 +1,29 @@
+using System.Text;
+
+namespace Scry
+{
+    /// <summary>Plain names for things the game only names in code.</summary>
+    public static class Naming
+    {
+        /// <summary>The name an effect list field goes by on a button, e.g. "m_startEffects" as "Start".</summary>
+        public static string EffectListLabel(string field)
+        {
+            var name = field ?? "";
+            if (name.StartsWith("m_")) name = name.Substring(2);
+            if (name.EndsWith("Effects")) name = name.Substring(0, name.Length - "Effects".Length);
+            else if (name.EndsWith("Effect")) name = name.Substring(0, name.Length - "Effect".Length);
+            if (name.Length == 0 || name == "effects" || name == "effect") return "Effect";
+
+            // "healthUpgrade" reads as "Health upgrade".
+            var words = new StringBuilder();
+            for (var i = 0; i < name.Length; i++)
+            {
+                var c = name[i];
+                if (i == 0) words.Append(char.ToUpperInvariant(c));
+                else if (char.IsUpper(c)) words.Append(' ').Append(char.ToLowerInvariant(c));
+                else words.Append(c);
+            }
+            return words.ToString();
+        }
+    }
+}

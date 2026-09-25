@@ -8,8 +8,10 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// The panel: search and kind chips across the top, the list on the left, the preview and
-    /// everything that can be done with the selection on the right.
+    /// The panel. In full view: search, favourites and origin across the top, the kind tabs under
+    /// them, the list on the left and the preview with everything that can be done with the
+    /// selection on the right. In compact view it is a slim column at the side of the screen with
+    /// no turntable, which leaves the middle free for watching a preview in the world.
     ///
     /// Drawn with IMGUI in plain rectangles rather than automatic layout, which keeps a list of
     /// thousands of rows cheap: only the rows in view are drawn. Sizes are in design units scaled
@@ -18,35 +20,60 @@ namespace Scry
     internal static class ScryPanel
     {
         private const string SearchControl = "scry-search";
-        private const string ParamControl = "scry-param-filter";
+        private const string ClipControl = "scry-clip-filter";
+        private const float TipDelay = 0.35f;
 
-        private static Rect _win;
+        private static Rect _full;
+        private static Rect _compactRect;
+        private static bool _compact;
         private static bool _placed;
         private static float _s = 1f;
 
         private static Vector2 _listScroll;
         private static Vector2 _sideScroll;
         private static float _sideHeight;
-        private static float _listHeight;
         private static int _rowsInView = 10;
 
         private static bool _focusSearch;
         private static bool _reveal;
         private static bool _details;
-        private static string _paramFilter = "";
+        private static string _clipFilter = "";
 
         private enum Drag { None, Move, Resize, Orbit }
         private static Drag _drag;
         private static bool _failed;
 
+        // A tooltip asked for during this repaint, and the one showing.
+        private static string _askedTipKey;
+        private static string _askedTipText;
+        private static Vector2 _askedTipAt;
+        private static string _tipKey;
+        private static float _tipSince;
+
         /// <summary>Whether the search box has the keyboard, so a letter key does not close the panel.</summary>
         public static bool SearchFocused { get; private set; }
+
+        private static Rect Win
+        {
+            get => _compact ? _compactRect : _full;
+            set
+            {
+                if (_compact) _compactRect = value;
+                else _full = value;
+            }
+        }
 
         public static void Opened()
         {
             Skin.LookForFontsAgain();
             _focusSearch = true;
             _reveal = true;
+        }
+
+        /// <summary>Whether a mouse position (in Unity's bottom-up screen coordinates) is over the panel.</summary>
+        public static bool Covers(Vector3 mouse)
+        {
+            return Session.IsOpen && Win.Contains(new Vector2(mouse.x, Screen.height - mouse.y));
         }
 
         private static float U(float v) => Mathf.Round(v * _s);
@@ -69,6 +96,7 @@ namespace Scry
                 Skin.Ensure(scale);
                 _s = scale;
                 GUI.skin = Skin.Gui;
+                if (Event.current.type == EventType.Repaint) _askedTipKey = null;
 
                 Place();
                 var explorer = Session.Explorer;
@@ -77,10 +105,11 @@ namespace Scry
 
                 Draw(explorer);
                 Drags();
+                Tooltip();
 
                 // The panel is solid: clicks and the wheel over it stop here.
                 var e = Event.current;
-                if (_win.Contains(e.mousePosition) && (e.isMouse || e.type == EventType.ScrollWheel)) e.Use();
+                if (Win.Contains(e.mousePosition) && (e.isMouse || e.type == EventType.ScrollWheel)) e.Use();
 
                 SearchFocused = GUI.GetNameOfFocusedControl() == SearchControl;
             }
@@ -178,20 +207,30 @@ namespace Scry
             if (!_placed)
             {
                 _placed = true;
-                if (!LoadRect())
-                {
-                    var w = Mathf.Min(U(1180f), Screen.width - U(40f));
-                    var h = Mathf.Min(U(740f), Screen.height - U(40f));
-                    _win = new Rect((Screen.width - w) / 2f, (Screen.height - h) / 2f, w, h);
-                }
+                var w = Mathf.Min(U(1180f), Screen.width - U(40f));
+                var h = Mathf.Min(U(760f), Screen.height - U(40f));
+                _full = new Rect((Screen.width - w) / 2f, (Screen.height - h) / 2f, w, h);
+                var cw = Mathf.Min(U(430f), Screen.width - U(40f));
+                _compactRect = new Rect(Screen.width - cw - U(20f), U(40f), cw, Screen.height - U(80f));
+                LoadRects();
             }
 
-            var minW = Mathf.Min(U(820f), Screen.width);
-            var minH = Mathf.Min(U(520f), Screen.height);
-            _win.width = Mathf.Clamp(_win.width, minW, Screen.width);
-            _win.height = Mathf.Clamp(_win.height, minH, Screen.height);
-            _win.x = Mathf.Clamp(_win.x, 0f, Screen.width - _win.width);
-            _win.y = Mathf.Clamp(_win.y, 0f, Screen.height - _win.height);
+            var win = Win;
+            var minW = Mathf.Min(U(_compact ? 360f : 820f), Screen.width);
+            var minH = Mathf.Min(U(_compact ? 440f : 540f), Screen.height);
+            win.width = Mathf.Clamp(win.width, minW, Screen.width);
+            win.height = Mathf.Clamp(win.height, minH, Screen.height);
+            win.x = Mathf.Clamp(win.x, 0f, Screen.width - win.width);
+            win.y = Mathf.Clamp(win.y, 0f, Screen.height - win.height);
+            Win = win;
+        }
+
+        private static void ToggleCompact()
+        {
+            _compact = !_compact;
+            _sideScroll = Vector2.zero;
+            _reveal = true;
+            SaveRects();
         }
 
         private static void Drags()
@@ -201,7 +240,7 @@ namespace Scry
 
             if (e.rawType == EventType.MouseUp)
             {
-                if (_drag == Drag.Move || _drag == Drag.Resize) SaveRect();
+                if (_drag == Drag.Move || _drag == Drag.Resize) SaveRects();
                 _drag = Drag.None;
                 Stage.Dragging = false;
                 return;
@@ -209,48 +248,62 @@ namespace Scry
 
             if (e.type != EventType.MouseDrag) return;
 
+            var win = Win;
             switch (_drag)
             {
                 case Drag.Move:
-                    _win.position += e.delta;
+                    win.position += e.delta;
                     break;
                 case Drag.Resize:
-                    _win.width += e.delta.x;
-                    _win.height += e.delta.y;
+                    win.width += e.delta.x;
+                    win.height += e.delta.y;
                     break;
                 case Drag.Orbit:
                     Stage.Orbit(e.delta);
                     break;
             }
+            Win = win;
             e.Use();
         }
 
         private static string RectFile => Path.Combine(Plugin.DataFolder, "panel.txt");
 
-        private static bool LoadRect()
+        /// <summary>
+        /// Where the panel was, in both views, and which view was in use. One line each:
+        /// "full x y w h", "compact x y w h" and "view full|compact".
+        /// </summary>
+        private static void LoadRects()
         {
             try
             {
-                if (!File.Exists(RectFile)) return false;
-                var parts = File.ReadAllText(RectFile).Split(' ');
-                if (parts.Length != 4) return false;
-                var v = parts.Select(p => float.Parse(p, CultureInfo.InvariantCulture)).ToArray();
-                _win = new Rect(v[0], v[1], v[2], v[3]);
-                return true;
+                if (!File.Exists(RectFile)) return;
+                foreach (var line in File.ReadAllLines(RectFile))
+                {
+                    var parts = line.Split(' ');
+                    if (parts.Length == 2 && parts[0] == "view") _compact = parts[1] == "compact";
+                    if (parts.Length != 5) continue;
+
+                    var v = parts.Skip(1).Select(p => float.Parse(p, CultureInfo.InvariantCulture)).ToArray();
+                    var rect = new Rect(v[0], v[1], v[2], v[3]);
+                    if (parts[0] == "full") _full = rect;
+                    else if (parts[0] == "compact") _compactRect = rect;
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                return false;
+                Plugin.Log.LogDebug($"Scry could not read where the panel was: {ex.Message}");
             }
         }
 
-        private static void SaveRect()
+        private static void SaveRects()
         {
             try
             {
+                string Line(string name, Rect r) => name + " " + string.Join(" ", new[] { r.x, r.y, r.width, r.height }
+                    .Select(v => Mathf.Round(v).ToString(CultureInfo.InvariantCulture)));
+
                 Directory.CreateDirectory(Plugin.DataFolder);
-                File.WriteAllText(RectFile, string.Join(" ", new[] { _win.x, _win.y, _win.width, _win.height }
-                    .Select(v => Mathf.Round(v).ToString(CultureInfo.InvariantCulture))));
+                File.WriteAllLines(RectFile, new[] { Line("full", _full), Line("compact", _compactRect), "view " + (_compact ? "compact" : "full") });
             }
             catch (Exception ex)
             {
@@ -262,18 +315,22 @@ namespace Scry
 
         private static void Draw(Explorer explorer)
         {
-            Skin.Box(_win, Skin.Backdrop, Skin.Outline);
+            var win = Win;
+            Skin.Box(win, Skin.Backdrop, Skin.Outline);
 
-            GUI.BeginGroup(_win);
-            var w = _win.width;
-            var h = _win.height;
+            GUI.BeginGroup(win);
+            var w = win.width;
+            var h = win.height;
             var pad = U(16f);
             var e = Event.current;
 
-            // Header: the name, the catalog size, and a close button. The header drags the panel.
-            var header = new Rect(0f, 0f, w - U(56f), U(52f));
+            // Header: the name, the catalog size, the view switch and a close button. It drags the panel.
+            var viewText = _compact ? "Full view" : "Compact";
+            var viewW = Skin.Button.CalcSize(new GUIContent(viewText)).x + U(10f);
+            var header = new Rect(0f, 0f, w - U(56f) - viewW, U(52f));
             GUI.Label(new Rect(pad, U(10f), U(90f), U(34f)), "Scry", Skin.Title);
-            GUI.Label(new Rect(pad + U(86f), U(16f), U(300f), U(26f)), Session.CatalogSummary, Skin.Subtitle);
+            if (!_compact) GUI.Label(new Rect(pad + U(86f), U(16f), U(300f), U(26f)), Session.CatalogSummary, Skin.Subtitle);
+            if (GUI.Button(new Rect(w - pad - U(40f) - viewW, U(15f), viewW, U(28f)), viewText, Skin.Button)) ToggleCompact();
             if (GUI.Button(new Rect(w - pad - U(32f), U(12f), U(32f), U(32f)), "×", Skin.Close)) Session.Hide();
             if (e.type == EventType.MouseDown && e.button == 0 && header.Contains(e.mousePosition))
             {
@@ -281,23 +338,28 @@ namespace Scry
                 e.Use();
             }
 
-            var leftW = Mathf.Round((w - pad * 3f) * 0.40f);
-            var rightX = pad * 2f + leftW;
-            var rightW = w - rightX - pad;
+            // Search, favourites and origin, then the kind tabs, across the whole width.
+            var y = Controls(explorer, new Rect(pad, U(56f), w - pad * 2f, U(36f)));
+            y = Tabs(explorer, new Rect(pad, y + U(10f), w - pad * 2f, U(30f)));
 
-            // Search.
-            var y = U(56f);
-            var search = new Rect(pad, y, leftW, U(36f));
-            Search(explorer, search);
-
-            // Chips: every kind with its count, then favourites and origin.
-            var chipsBottom = Chips(explorer, new Rect(rightX, y, rightW, U(36f)));
-
-            var bodyTop = Mathf.Max(search.yMax, chipsBottom) + U(12f);
+            var bodyTop = y + U(12f);
             var footerH = U(28f);
             var bodyBottom = h - pad - footerH;
-            List(explorer, new Rect(pad, bodyTop, leftW, bodyBottom - bodyTop));
-            Side(explorer, new Rect(rightX, bodyTop, rightW, bodyBottom - bodyTop));
+            var bodyH = bodyBottom - bodyTop;
+
+            if (_compact)
+            {
+                var listH = Mathf.Round(bodyH * 0.46f);
+                List(explorer, new Rect(pad, bodyTop, w - pad * 2f, listH));
+                Side(explorer, new Rect(pad, bodyTop + listH + U(12f), w - pad * 2f, bodyH - listH - U(12f)), withStage: false);
+            }
+            else
+            {
+                var leftW = Mathf.Round((w - pad * 3f) * 0.40f);
+                var rightX = pad * 2f + leftW;
+                List(explorer, new Rect(pad, bodyTop, leftW, bodyH));
+                Side(explorer, new Rect(rightX, bodyTop, w - rightX - pad, bodyH), withStage: true);
+            }
 
             Footer(new Rect(pad, h - pad - footerH + U(6f), w - pad * 2f, footerH));
 
@@ -306,8 +368,8 @@ namespace Scry
             for (var i = 0; i < 3; i++)
             {
                 var d = U(4f) * i;
-                Skin.Box(new Rect(grip.xMax - U(6f) - d, grip.yMax - U(6f), U(3f), U(3f)), Skin.Faint);
-                Skin.Box(new Rect(grip.xMax - U(6f), grip.yMax - U(6f) - d, U(3f), U(3f)), Skin.Faint);
+                Skin.Fill(new Rect(grip.xMax - U(6f) - d, grip.yMax - U(6f), U(2f), U(2f)), Skin.Faint);
+                Skin.Fill(new Rect(grip.xMax - U(6f), grip.yMax - U(6f) - d, U(2f), U(2f)), Skin.Faint);
             }
             if (e.type == EventType.MouseDown && e.button == 0 && grip.Contains(e.mousePosition))
             {
@@ -316,6 +378,45 @@ namespace Scry
             }
 
             GUI.EndGroup();
+        }
+
+        /// <summary>The search box, the favourites star and the origin switch, on one row.</summary>
+        private static float Controls(Explorer explorer, Rect rect)
+        {
+            var names = new[] { "All", "Game", "Mods" };
+            var widths = names.Select(n => Skin.Segment.CalcSize(new GUIContent(n)).x + U(6f)).ToArray();
+            var originW = widths.Sum() + U(4f) * (names.Length - 1);
+            var starW = rect.height;
+            var gap = U(8f);
+
+            var search = new Rect(rect.x, rect.y, rect.width - originW - starW - gap * 2f, rect.height);
+            Search(explorer, search);
+
+            var star = new Rect(search.xMax + gap, rect.y, starW, rect.height);
+            if (GUI.Button(star, GUIContent.none, explorer.FavouritesOnly ? Skin.On : Skin.IconButton))
+            {
+                explorer.FavouritesOnly = !explorer.FavouritesOnly;
+                _listScroll = Vector2.zero;
+            }
+            var icon = new Rect(star.x + star.width * 0.22f, star.y + star.height * 0.22f, star.width * 0.56f, star.height * 0.56f);
+            Skin.Icon(icon, explorer.FavouritesOnly ? Skin.Star : Skin.StarHollow, explorer.FavouritesOnly ? Skin.Accent : Skin.Dim);
+            if (star.Contains(Event.current.mousePosition)) AskTip("fav", explorer.FavouritesOnly ? "Showing only favourites" : "Show only favourites");
+
+            var x = star.xMax + gap;
+            for (var i = 0; i < names.Length; i++)
+            {
+                var on = (int)explorer.Origin == i;
+                if (GUI.Button(new Rect(x, rect.y, widths[i], rect.height), names[i], on ? Skin.SegmentOn : Skin.Segment))
+                {
+                    explorer.Origin = (OriginFilter)i;
+                    _listScroll = Vector2.zero;
+                }
+                x += widths[i] + U(4f);
+            }
+            var originRect = new Rect(star.xMax + gap, rect.y, originW, rect.height);
+            if (originRect.Contains(Event.current.mousePosition)) AskTip("origin", "Everything, only the game's own, or only what mods added");
+
+            return rect.yMax;
         }
 
         private static void Search(Explorer explorer, Rect rect)
@@ -346,45 +447,42 @@ namespace Scry
             }
         }
 
-        private static float Chips(Explorer explorer, Rect rect)
+        /// <summary>One tab per kind with what the search holds of it, wrapping when the row is full.</summary>
+        private static float Tabs(Explorer explorer, Rect rect)
         {
             var x = rect.x;
-            var y = rect.y + U(3f);
-            var chipH = U(30f);
-            var gap = U(6f);
+            var y = rect.y;
+            var tabH = rect.height;
+            var gap = U(4f);
 
-            void Chip(string text, bool on, Action act)
+            void Tab(string label, int count, Color dot, bool on, Action act)
             {
-                var width = Skin.Chip.CalcSize(new GUIContent(text)).x + U(8f);
+                var style = on ? Skin.TabOn : Skin.Tab;
+                var countColor = on ? "5a4526" : "8f929c";
+                var text = $"{label}  <color=#{countColor}>{count:N0}</color>";
+                var width = style.CalcSize(new GUIContent(text)).x + U(2f);
                 if (x + width > rect.xMax && x > rect.x)
                 {
                     x = rect.x;
-                    y += chipH + gap;
+                    y += tabH + gap;
                 }
-                if (GUI.Button(new Rect(x, y, width, chipH), text, on ? Skin.ChipOn : Skin.Chip)) act();
+                var tab = new Rect(x, y, width, tabH);
+                if (GUI.Button(tab, text, style)) act();
+                var size = U(8f);
+                Skin.Icon(new Rect(tab.x + U(10f), tab.y + (tabH - size) / 2f, size, size), Skin.Circle, on ? Skin.OnAccent : dot);
                 x += width + gap;
             }
 
-            Chip($"All  {explorer.CountAll:N0}", explorer.KindFilter == null, () => Filter(explorer, null));
+            Tab("All", explorer.CountAll, Skin.Text, explorer.KindFilter == null, () => Filter(explorer, null));
             foreach (Kind kind in Enum.GetValues(typeof(Kind)))
             {
                 var count = explorer.CountOf(kind);
                 if (count == 0 && explorer.KindFilter != kind) continue;
                 var k = kind;
-                Chip($"{Kinds.Label(kind)}  {count:N0}", explorer.KindFilter == kind, () => Filter(explorer, k));
+                Tab(Kinds.Label(kind), count, Skin.KindColor(kind), explorer.KindFilter == kind, () => Filter(explorer, k));
             }
 
-            Chip(explorer.FavouritesOnly ? "Favourites only" : "Favourites", explorer.FavouritesOnly,
-                () => { explorer.FavouritesOnly = !explorer.FavouritesOnly; _listScroll = Vector2.zero; });
-
-            var origin = explorer.Origin == OriginFilter.Vanilla ? "Game only" : explorer.Origin == OriginFilter.Mods ? "Mods only" : "Game and mods";
-            Chip(origin, explorer.Origin != OriginFilter.All, () =>
-            {
-                explorer.Origin = (OriginFilter)(((int)explorer.Origin + 1) % 3);
-                _listScroll = Vector2.zero;
-            });
-
-            return y + chipH;
+            return y + tabH;
         }
 
         private static void Filter(Explorer explorer, Kind? kind)
@@ -397,7 +495,9 @@ namespace Scry
         private static void Footer(Rect rect)
         {
             var note = Session.Note;
-            var text = note ?? "Arrows move through the list, Enter plays or shows, Ctrl+F searches, Esc closes.";
+            var text = note ?? (_compact
+                ? "Hold right mouse outside the panel to look around. Esc closes."
+                : "Arrows move, Enter plays or shows, Ctrl+F searches. Hold right mouse outside the panel to look around. Esc closes.");
             GUI.Label(new Rect(rect.x, rect.y, rect.width - U(30f), rect.height), text, note != null ? Skin.DimLabel : Skin.FaintLabel);
         }
 
@@ -410,7 +510,6 @@ namespace Scry
             var results = explorer.Results;
             var rowH = U(34f);
             _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
-            _listHeight = inner.height;
 
             if (results.Count == 0)
             {
@@ -438,23 +537,24 @@ namespace Scry
 
             var first = Mathf.Max(0, Mathf.FloorToInt(_listScroll.y / rowH));
             var last = Mathf.Min(results.Count - 1, first + _rowsInView + 1);
+            var visible = new Rect(0f, _listScroll.y, view.width, inner.height);
             for (var i = first; i <= last; i++)
             {
-                Row(explorer, results[i], new Rect(0f, i * rowH, view.width, rowH), i == explorer.SelectedIndex);
+                Row(explorer, results[i], new Rect(0f, i * rowH, view.width, rowH), i == explorer.SelectedIndex, visible);
             }
 
             GUI.EndScrollView();
         }
 
-        private static void Row(Explorer explorer, Entry entry, Rect rect, bool selected)
+        private static void Row(Explorer explorer, Entry entry, Rect rect, bool selected, Rect visible)
         {
             var e = Event.current;
-            var hover = rect.Contains(e.mousePosition) && _drag == Drag.None;
+            var hover = rect.Contains(e.mousePosition) && visible.Contains(e.mousePosition) && _drag == Drag.None;
             var inner = new Rect(rect.x + U(2f), rect.y + U(1f), rect.width - U(4f), rect.height - U(2f));
 
             if (selected) Skin.Box(inner, Skin.AccentSoft);
             else if (hover) Skin.Box(inner, Skin.Hover);
-            if (selected) Skin.Box(new Rect(inner.x, inner.y + U(8f), U(3f), inner.height - U(16f)), Skin.Accent);
+            if (selected) Skin.Fill(new Rect(inner.x, inner.y + U(8f), U(3f), inner.height - U(16f)), Skin.Accent);
 
             var icon = new Rect(inner.x + U(10f), inner.y + (inner.height - U(24f)) / 2f, U(24f), U(24f));
             DrawIcon(entry, icon);
@@ -472,16 +572,32 @@ namespace Scry
             var nameStyle = Skin.RowName;
             var was = nameStyle.normal.textColor;
             if (entry.Empty) nameStyle.normal.textColor = Skin.Faint;
-            var nameW = Mathf.Min(textW, nameStyle.CalcSize(new GUIContent(primary)).x);
+            var fullW = nameStyle.CalcSize(new GUIContent(primary)).x;
+            var nameW = Mathf.Min(textW, fullW);
             GUI.Label(new Rect(textX, inner.y, nameW, inner.height), primary, nameStyle);
             nameStyle.normal.textColor = was;
 
-            if (secondary.Length > 0 && textW - nameW > U(40f))
+            var cut = fullW > textW;
+            if (secondary.Length > 0)
             {
-                GUI.Label(new Rect(textX + nameW + U(8f), inner.y + U(1f), textW - nameW - U(8f), inner.height), secondary, Skin.RowSub);
+                var room = textW - nameW - U(8f);
+                if (room > U(40f))
+                {
+                    GUI.Label(new Rect(textX + nameW + U(8f), inner.y + U(1f), room, inner.height), secondary, Skin.RowSub);
+                    cut |= Skin.RowSub.CalcSize(new GUIContent(secondary)).x > room;
+                }
+                else
+                {
+                    cut = true;
+                }
             }
 
-            if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
+            if (hover && cut && !star.Contains(e.mousePosition))
+            {
+                AskTip(entry.Key, secondary.Length > 0 ? primary + "\n" + secondary : primary);
+            }
+
+            if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition) && visible.Contains(e.mousePosition))
             {
                 if (star.Contains(e.mousePosition))
                 {
@@ -519,7 +635,7 @@ namespace Scry
             }
 
             var color = Skin.KindColor(entry.Kind);
-            Skin.Box(rect, new Color(color.r, color.g, color.b, 0.18f));
+            Skin.Box(rect, new Color(color.r, color.g, color.b, 0.20f));
             var style = Skin.Glyph;
             var was = style.normal.textColor;
             style.normal.textColor = color;
@@ -529,31 +645,37 @@ namespace Scry
 
         // ----- The selection -----
 
-        private static void Side(Explorer explorer, Rect rect)
+        private static void Side(Explorer explorer, Rect rect, bool withStage)
         {
             var entry = explorer.Selected;
             if (entry == null)
             {
                 Skin.Box(rect, Skin.Panel);
-                var middle = new Rect(rect.x + U(40f), rect.y + rect.height / 2f - U(40f), rect.width - U(80f), U(80f));
+                var middle = new Rect(rect.x + U(30f), rect.y + rect.height / 2f - U(40f), rect.width - U(60f), U(80f));
                 GUI.Label(new Rect(middle.x, middle.y, middle.width, U(30f)), "Pick something from the list", Skin.Center);
                 GUI.Label(new Rect(middle.x, middle.y + U(32f), middle.width, U(44f)),
                     "Type to search, use the arrow keys to move, and Enter to play or show it.", Skin.CenterDim);
                 return;
             }
 
-            var stageH = Mathf.Round(Mathf.Min(rect.width * 0.60f, rect.height * 0.52f));
-            StageArea(entry, new Rect(rect.x, rect.y, rect.width, stageH));
+            var top = rect.y;
+            if (withStage)
+            {
+                var stageH = Mathf.Round(Mathf.Min(rect.width * 0.60f, rect.height * 0.50f));
+                StageArea(entry, new Rect(rect.x, rect.y, rect.width, stageH));
+                top += stageH + U(12f);
+            }
 
-            var below = new Rect(rect.x, rect.y + stageH + U(12f), rect.width, rect.height - stageH - U(12f));
+            var below = new Rect(rect.x, top, rect.width, rect.yMax - top);
             var content = new Rect(0f, 0f, below.width - U(14f), Mathf.Max(_sideHeight, below.height));
             _sideScroll = GUI.BeginScrollView(below, _sideScroll, content, false, false, GUIStyle.none, Skin.Gui.verticalScrollbar);
 
             var cw = content.width;
             var y = 0f;
             y = Title(explorer, entry, cw, y);
+            if (!withStage && (entry.Kind == Kind.Sound || entry.Kind == Kind.StatusEffect)) y = CompactCard(entry, cw, y);
             y = Actions(entry, cw, y);
-            y = Adjust(explorer, entry, cw, y);
+            y = Adjust(explorer, entry, cw, y, withStage);
             y = Details(entry, cw, y);
             if (Event.current.type == EventType.Repaint) _sideHeight = y + U(8f);
 
@@ -614,20 +736,57 @@ namespace Scry
                     "It has no model, particles, light or sound. Often a spawner or a controller.", Skin.CenterDim);
             }
 
-            // The kind, in its colour, in the corner.
+            KindBadge(entry, new Vector2(rect.x + U(10f), rect.y + U(10f)));
+        }
+
+        /// <summary>The kind, in its colour, as a small pill.</summary>
+        private static float KindBadge(Entry entry, Vector2 at)
+        {
             var color = Skin.KindColor(entry.Kind);
             var label = entry.Kind == Kind.StatusEffect ? "Status effect" : Kinds.Label(entry.Kind).TrimEnd('s');
             var width = Skin.Glyph.CalcSize(new GUIContent(label)).x + U(20f);
-            var badge = new Rect(rect.x + U(10f), rect.y + U(10f), width, U(22f));
-            Skin.PillBox(badge, new Color(color.r * 0.3f, color.g * 0.3f, color.b * 0.3f, 0.85f));
+            var badge = new Rect(at.x, at.y, width, U(22f));
+            Skin.PillBox(badge, new Color(color.r * 0.28f, color.g * 0.28f, color.b * 0.28f, 0.95f));
             var style = Skin.Glyph;
             var was = style.normal.textColor;
-            style.normal.textColor = color;
+            style.normal.textColor = Color.Lerp(color, Color.white, 0.25f);
             GUI.Label(badge, label, style);
             style.normal.textColor = was;
+            return badge.xMax;
         }
 
-        private static readonly Dictionary<Entry, string> SoundFacts = new Dictionary<Entry, string>();
+        /// <summary>In compact view, the facts the stage card would show, as lines of text.</summary>
+        private static float CompactCard(Entry entry, float width, float y)
+        {
+            string text;
+            if (entry.Kind == Kind.Sound)
+            {
+                text = SoundFacts(entry);
+            }
+            else
+            {
+                var effect = entry.Source as StatusEffect;
+                if (effect == null) return y;
+                var tooltip = CatalogBuilder.Localize(effect.m_tooltip);
+                text = StatusFacts(effect) + (tooltip.Length > 0 ? "\n" + tooltip : "");
+            }
+
+            var height = Skin.DimWrap.CalcHeight(new GUIContent(text), width);
+            GUI.Label(new Rect(0f, y, width, height), text, Skin.DimWrap);
+            return y + height + U(12f);
+        }
+
+        private static readonly Dictionary<Entry, string> SoundFactCache = new Dictionary<Entry, string>();
+
+        private static string SoundFacts(Entry entry)
+        {
+            if (!SoundFactCache.TryGetValue(entry, out var facts))
+            {
+                facts = DescribeSound(entry.Source as GameObject);
+                SoundFactCache[entry] = facts;
+            }
+            return facts;
+        }
 
         private static void SoundCard(Entry entry, Rect rect)
         {
@@ -650,13 +809,7 @@ namespace Scry
                 Skin.PillBox(bar, playing ? accent : new Color(accent.r, accent.g, accent.b, 0.35f));
             }
 
-            if (!SoundFacts.TryGetValue(entry, out var facts))
-            {
-                facts = DescribeSound(entry.Source as GameObject);
-                SoundFacts[entry] = facts;
-            }
-
-            GUI.Label(new Rect(rect.x + U(20f), mid + U(64f), rect.width - U(40f), U(26f)), facts, Skin.CenterDim);
+            GUI.Label(new Rect(rect.x + U(20f), mid + U(64f), rect.width - U(40f), U(26f)), SoundFacts(entry), Skin.CenterDim);
         }
 
         private static string DescribeSound(GameObject prefab)
@@ -681,6 +834,27 @@ namespace Scry
             return $"{what}, {longest.ToString("0.0", CultureInfo.InvariantCulture)} s{(loops ? ", loops" : "")}";
         }
 
+        private static readonly Dictionary<Entry, List<KeyValuePair<string, EffectList>>> StatusListCache =
+            new Dictionary<Entry, List<KeyValuePair<string, EffectList>>>();
+
+        private static List<KeyValuePair<string, EffectList>> StatusLists(Entry entry)
+        {
+            if (!StatusListCache.TryGetValue(entry, out var lists))
+            {
+                lists = Previews.StatusLists(entry.Source as StatusEffect);
+                StatusListCache[entry] = lists;
+            }
+            return lists;
+        }
+
+        private static string StatusFacts(StatusEffect effect)
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrEmpty(effect.m_category)) parts.Add("Category: " + effect.m_category);
+            parts.Add(effect.m_ttl > 0f ? "Lasts " + Duration(effect.m_ttl) : "No time limit of its own");
+            return string.Join("    ", parts);
+        }
+
         private static void StatusCard(Entry entry, Rect rect)
         {
             var effect = entry.Source as StatusEffect;
@@ -689,13 +863,9 @@ namespace Scry
             if (effect != null && effect.m_icon != null) DrawIcon(entry, icon);
             else DrawIcon(new Entry { Kind = Kind.StatusEffect }, icon);
 
-            var y = icon.yMax + U(12f);
             if (effect == null) return;
-
-            var lines = new List<string>();
-            if (!string.IsNullOrEmpty(effect.m_category)) lines.Add("Category: " + effect.m_category);
-            lines.Add(effect.m_ttl > 0f ? "Lasts " + Duration(effect.m_ttl) : "No time limit of its own");
-            GUI.Label(new Rect(rect.x + U(20f), y, rect.width - U(40f), U(22f)), string.Join("    ", lines), Skin.CenterDim);
+            var y = icon.yMax + U(12f);
+            GUI.Label(new Rect(rect.x + U(20f), y, rect.width - U(40f), U(22f)), StatusFacts(effect), Skin.CenterDim);
 
             var tooltip = CatalogBuilder.Localize(effect.m_tooltip);
             if (tooltip.Length > 0)
@@ -713,29 +883,56 @@ namespace Scry
         private static float Title(Explorer explorer, Entry entry, float width, float y)
         {
             var primary = string.IsNullOrEmpty(entry.DisplayName) ? entry.Name : entry.DisplayName;
-            GUI.Label(new Rect(0f, y, width - U(150f), U(30f)), primary, Skin.Big);
+            var copyW = U(104f);
+            var nameRect = new Rect(0f, y, width - copyW - U(46f), U(30f));
+            var fits = FitLabel(nameRect, primary, Skin.Big, 13f);
+            if (!fits && nameRect.Contains(Event.current.mousePosition)) AskTip("title", primary);
 
             var favourite = explorer.Favourites.Contains(entry);
             var starRect = new Rect(width - U(28f), y + U(4f), U(22f), U(22f));
             Skin.Icon(starRect, favourite ? Skin.Star : Skin.StarHollow, favourite ? Skin.Accent : Skin.Dim);
             if (GUI.Button(starRect, GUIContent.none, GUIStyle.none)) explorer.ToggleFavourite(entry);
+            if (starRect.Contains(Event.current.mousePosition)) AskTip("star", favourite ? "Remove from favourites" : "Add to favourites");
 
-            if (GUI.Button(new Rect(width - U(142f), y + U(2f), U(104f), U(26f)), "Copy name", Skin.Button))
+            if (GUI.Button(new Rect(width - copyW - U(38f), y + U(2f), copyW, U(26f)), "Copy name", Skin.Button))
             {
                 GUIUtility.systemCopyBuffer = entry.Name;
                 Session.Say($"Copied \"{entry.Name}\".");
             }
-            y += U(32f);
+            y += U(34f);
 
+            // Kind in colour, then the prefab name (when the game shows another) and where it comes from.
+            var x = _compact ? KindBadge(entry, new Vector2(0f, y)) + U(10f) : 0f;
             var origin = entry.Origin == Origin.Vanilla ? "from the game" : entry.Origin == Origin.Mod ? "added by a mod" : "";
             var sub = entry.Name == primary ? origin : entry.Name + (origin.Length > 0 ? "   ·   " + origin : "");
-            if (sub.Length > 0)
+            if (sub.Length > 0 || _compact)
             {
-                GUI.Label(new Rect(0f, y, width, U(20f)), sub, Skin.DimLabel);
-                y += U(24f);
+                var subRect = new Rect(x, y, width - x, U(22f));
+                if (!FitLabel(subRect, sub, Skin.DimLabel, 10f) && subRect.Contains(Event.current.mousePosition)) AskTip("sub", sub);
+                y += U(26f);
             }
 
             return y + U(8f);
+        }
+
+        /// <summary>
+        /// Draws a label, shrinking its text step by step until it fits, down to a smallest size.
+        /// Returns false when even that was too wide and the text is cut.
+        /// </summary>
+        private static bool FitLabel(Rect rect, string text, GUIStyle style, float smallest)
+        {
+            var original = style.fontSize;
+            var content = new GUIContent(text);
+            var floor = Mathf.Max(1, Mathf.RoundToInt(smallest * _s));
+            var fits = style.CalcSize(content).x <= rect.width;
+            while (!fits && style.fontSize > floor)
+            {
+                style.fontSize -= 1;
+                fits = style.CalcSize(content).x <= rect.width;
+            }
+            GUI.Label(rect, text, style);
+            style.fontSize = original;
+            return fits;
         }
 
         // ----- Actions -----
@@ -744,9 +941,11 @@ namespace Scry
         {
             var x = 0f;
             var rowH = U(32f);
+            var any = false;
 
             bool Button(string text, GUIStyle style)
             {
+                any = true;
                 var w = style.CalcSize(new GUIContent(text)).x + U(12f);
                 if (x + w > width && x > 0f)
                 {
@@ -758,6 +957,7 @@ namespace Scry
                 return clicked;
             }
 
+            string note = null;
             switch (entry.Kind)
             {
                 case Kind.Sound:
@@ -769,20 +969,15 @@ namespace Scry
                 case Kind.Effect:
                     if (Button("Play where you look", Skin.Primary)) Previews.PlayEffect(entry, onYou: false);
                     if (Button("Play on you", Skin.Button)) Previews.PlayEffect(entry, onYou: true);
-                    if (Button("Replay", Skin.Button)) Previews.Replay();
-                    if (Button(Previews.LoopEffects ? "Repeat on" : "Repeat off", Previews.LoopEffects ? Skin.On : Skin.Button)) Previews.LoopEffects = !Previews.LoopEffects;
+                    if (!_compact)
+                    {
+                        if (Button("Replay", Skin.Button)) Previews.Replay();
+                        if (Button(Previews.LoopEffects ? "Repeat on" : "Repeat off", Previews.LoopEffects ? Skin.On : Skin.Button)) Previews.LoopEffects = !Previews.LoopEffects;
+                    }
                     break;
 
                 case Kind.StatusEffect:
-                    if (Previews.StatusShowing)
-                    {
-                        if (Button("Take it off you", Skin.Primary)) Previews.StopStatus(true);
-                    }
-                    else if (Button("Show it on you", Skin.Primary))
-                    {
-                        Previews.ShowStatus(entry);
-                        if (!Previews.StatusShowing) Session.Say("This status effect has no visuals of its own.");
-                    }
+                    note = StatusActions(entry, Button);
                     break;
 
                 default:
@@ -808,33 +1003,70 @@ namespace Scry
                 Previews.ClearWorld();
             }
 
-            y += rowH;
+            if (any) y += rowH;
 
-            string note = null;
-            if (entry.Kind == Kind.StatusEffect) note = "Only the look. The effect itself is never applied to you.";
-            else if (Previews.InWorld) note = "Only you can see it, and it is gone when you leave the world. Close the panel to walk around it.";
+            if (note == null && (Previews.InWorld || Previews.PinnedCount > 0))
+            {
+                note = "Only you see it, and it is gone when you leave the world. Hold the right mouse button outside the panel to look around, or close the panel with F7: previews stay until you clear them.";
+            }
             if (note != null)
             {
-                GUI.Label(new Rect(0f, y + U(6f), width, U(20f)), note, Skin.FaintLabel);
-                y += U(26f);
+                var height = Skin.DimWrap.CalcHeight(new GUIContent(note), width);
+                GUI.Label(new Rect(0f, y + U(8f), width, height), note, Skin.DimWrap);
+                y += height + U(8f);
             }
 
             return y + U(14f);
         }
 
+        /// <summary>
+        /// A status effect's buttons: show its start visuals on you and take them off again, and
+        /// play any other list it has once. Returns the note to show under them.
+        /// </summary>
+        private static string StatusActions(Entry entry, Func<string, GUIStyle, bool> button)
+        {
+            var effect = entry.Source as StatusEffect;
+            var lists = StatusLists(entry);
+            if (effect == null || lists.Count == 0) return "It has no visuals or sounds of its own.";
+
+            var hasStart = lists.Any(l => l.Value == effect.m_startEffects);
+            if (hasStart)
+            {
+                if (Previews.StatusShowing)
+                {
+                    if (button("Take it off you", Skin.Primary)) Previews.StopStatus(true);
+                }
+                else if (button("Show it on you", Skin.Primary))
+                {
+                    Previews.ShowStatus(entry);
+                }
+            }
+
+            foreach (var list in lists)
+            {
+                if (list.Value == effect.m_startEffects) continue;
+                if (button("Play " + list.Key.ToLowerInvariant(), hasStart ? Skin.Button : Skin.Primary)) Previews.PlayOnYou(list.Value);
+            }
+
+            return "Only the look. The effect itself is never applied to you.";
+        }
+
         // ----- Modifiers -----
 
-        private static float Adjust(Explorer explorer, Entry entry, float width, float y)
+        private static float Adjust(Explorer explorer, Entry entry, float width, float y, bool withStage)
         {
             var modifiers = explorer.Modifiers;
             var staged = Stage.IsStaged(entry);
             var projectile = entry.Kind == Kind.Projectile;
-            var animator = staged ? Previews.StageAnimator() : null;
+            var modelInWorld = Previews.InWorld && Previews.IsModel(entry);
+            var clips = staged ? Previews.Clips() : new List<AnimationClip>();
 
+            // Without the stage there is nothing to adjust unless the copy is in the world.
+            if (!withStage && !modelInWorld && !projectile) return y;
             if (!staged && !projectile) return y;
 
             y = SectionHeading("ADJUST", width, y, () => modifiers.Reset());
-            var labelW = U(120f);
+            var labelW = U(_compact ? 100f : 120f);
 
             if (staged)
             {
@@ -860,15 +1092,14 @@ namespace Scry
 
             if (projectile)
             {
-                var speed = SliderRow("Speed", $"{Mathf.RoundToInt(Previews.ProjectileSpeed)} m/s", Previews.ProjectileSpeed, 5f, 120f, width, labelW, ref y);
-                Previews.ProjectileSpeed = speed;
+                Previews.ProjectileSpeed = SliderRow("Speed", $"{Mathf.RoundToInt(Previews.ProjectileSpeed)} m/s", Previews.ProjectileSpeed, 5f, 120f, width, labelW, ref y);
             }
 
-            if (animator != null)
+            if (clips.Count > 0)
             {
                 var speed = SliderRow("Animation speed", $"×{modifiers.AnimationSpeed.ToString("0.0", CultureInfo.InvariantCulture)}", modifiers.AnimationSpeed, 0f, Modifiers.MaxAnimationSpeed, width, labelW, ref y);
                 if (!Mathf.Approximately(speed, modifiers.AnimationSpeed)) modifiers.AnimationSpeed = speed;
-                y = Parameters(animator, width, y);
+                y = Clips(clips, width, y);
             }
 
             return y + U(10f);
@@ -876,18 +1107,19 @@ namespace Scry
 
         private static float SectionHeading(string text, float width, float y, Action reset)
         {
-            Skin.Box(new Rect(0f, y + U(10f), width, U(1f)), Skin.Outline);
             var textW = Skin.Heading.CalcSize(new GUIContent(text)).x;
-            GUI.Label(new Rect(0f, y, textW + U(10f), U(20f)), text, Skin.Heading);
+            GUI.Label(new Rect(0f, y, textW + U(4f), U(20f)), text, Skin.Heading);
+            var lineEnd = reset != null ? width - U(74f) : width;
+            Skin.Fill(new Rect(textW + U(12f), y + U(10f), Mathf.Max(0f, lineEnd - textW - U(12f)), U(1f)), Skin.Outline);
             if (reset != null && GUI.Button(new Rect(width - U(64f), y - U(2f), U(64f), U(24f)), "Reset", Skin.Chip)) reset();
-            return y + U(28f);
+            return y + U(30f);
         }
 
         private static float SliderRow(string label, string value, float current, float min, float max, float width, float labelW, ref float y)
         {
             var rowH = U(26f);
             GUI.Label(new Rect(0f, y, labelW, rowH), label, Skin.DimLabel);
-            var valueW = U(72f);
+            var valueW = U(64f);
             var slider = new Rect(labelW, y + (rowH - U(14f)) / 2f, width - labelW - valueW - U(10f), U(14f));
             var result = GUI.HorizontalSlider(slider, current, min, max);
             GUI.Label(new Rect(width - valueW, y, valueW, rowH), value, Skin.Label);
@@ -905,6 +1137,11 @@ namespace Scry
             {
                 var style = i == selected ? Skin.SegmentOn : Skin.Segment;
                 var w = style.CalcSize(new GUIContent(names[i])).x + U(10f);
+                if (x + w > width && x > labelW)
+                {
+                    x = labelW;
+                    y += rowH + U(4f);
+                }
                 if (GUI.Button(new Rect(x, y, w, rowH), names[i], style)) chosen = i;
                 x += w + U(4f);
             }
@@ -912,82 +1149,56 @@ namespace Scry
             return chosen;
         }
 
-        private static Animator _paramsFor;
-        private static AnimatorControllerParameter[] _params = new AnimatorControllerParameter[0];
-
         /// <summary>
-        /// What the creature's animator can be told: triggers play once (attacks, hits, emotes),
-        /// switches hold a state (blocking, sleeping), and numbers blend (walking and running speed).
+        /// Every animation clip the creature has, each played directly on the copy. The one playing
+        /// is lit; Stop hands the copy back to its own animations.
         /// </summary>
-        private static float Parameters(Animator animator, float width, float y)
+        private static float Clips(List<AnimationClip> clips, float width, float y)
         {
-            if (animator != _paramsFor)
-            {
-                _paramsFor = animator;
-                try
-                {
-                    _params = animator.parameters;
-                }
-                catch
-                {
-                    _params = new AnimatorControllerParameter[0];
-                }
-            }
-
-            if (_params.Length == 0) return y;
-
+            var playing = Previews.PlayingClip();
             y = SectionHeading("ANIMATIONS", width, y, null);
-
-            if (_params.Length > 12)
-            {
-                var field = new Rect(0f, y, Mathf.Min(width, U(280f)), U(28f));
-                GUI.SetNextControlName(ParamControl);
-                _paramFilter = GUI.TextField(field, _paramFilter, 40, Skin.Field);
-                if (string.IsNullOrEmpty(_paramFilter)) GUI.Label(field, "Filter animations", Skin.Placeholder);
-                y += U(36f);
-            }
-
-            var shown = _params.Where(p => _paramFilter.Length == 0 || p.name.IndexOf(_paramFilter, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
 
             var x = 0f;
             var rowH = U(26f);
-            foreach (var p in shown.Where(p => p.type == AnimatorControllerParameterType.Trigger))
+
+            if (GUI.Button(new Rect(x, y, U(84f), rowH), Previews.LoopClips ? "Repeat on" : "Repeat off", Previews.LoopClips ? Skin.ChipOn : Skin.Chip)) Previews.ToggleLoopClips();
+            x += U(90f);
+            if (playing != null && GUI.Button(new Rect(x, y, U(60f), rowH), "Stop", Skin.Chip)) Previews.StopClip();
+            x += U(66f);
+
+            if (clips.Count > 12)
             {
-                var w = Skin.Chip.CalcSize(new GUIContent(p.name)).x + U(8f);
-                if (x + w > width && x > 0f)
-                {
-                    x = 0f;
-                    y += rowH + U(5f);
-                }
-                if (GUI.Button(new Rect(x, y, w, rowH), p.name, Skin.Chip)) Previews.Trigger(p.name);
-                x += w + U(5f);
+                var field = new Rect(x, y - U(1f), Mathf.Max(U(120f), Mathf.Min(width - x, U(260f))), U(28f));
+                GUI.SetNextControlName(ClipControl);
+                _clipFilter = GUI.TextField(field, _clipFilter, 40, Skin.Field);
+                if (string.IsNullOrEmpty(_clipFilter)) GUI.Label(field, "Filter", Skin.Placeholder);
             }
-            if (x > 0f) y += rowH + U(10f);
+            y += rowH + U(10f);
 
             x = 0f;
-            foreach (var p in shown.Where(p => p.type == AnimatorControllerParameterType.Bool))
+            foreach (var clip in clips)
             {
-                var on = animator.GetBool(p.name);
-                var w = Skin.Chip.CalcSize(new GUIContent(p.name)).x + U(8f);
+                if (_clipFilter.Length > 0 && clip.name.IndexOf(_clipFilter, StringComparison.OrdinalIgnoreCase) < 0) continue;
+
+                var on = playing == clip;
+                var style = on ? Skin.ChipOn : Skin.Chip;
+                var w = Mathf.Min(width, style.CalcSize(new GUIContent(clip.name)).x + U(8f));
                 if (x + w > width && x > 0f)
                 {
                     x = 0f;
                     y += rowH + U(5f);
                 }
-                if (GUI.Button(new Rect(x, y, w, rowH), p.name, on ? Skin.ChipOn : Skin.Chip)) Previews.SetBool(p.name, !on);
+                var chip = new Rect(x, y, w, rowH);
+                if (GUI.Button(chip, clip.name, style)) Previews.PlayClip(clip);
+                if (chip.Contains(Event.current.mousePosition))
+                {
+                    AskTip("clip:" + clip.name, $"{clip.name}\n{clip.length.ToString("0.0", CultureInfo.InvariantCulture)} s{(clip.isLooping ? ", loops" : "")}");
+                }
                 x += w + U(5f);
             }
-            if (x > 0f) y += rowH + U(10f);
+            if (x > 0f) y += rowH;
 
-            var labelW = U(160f);
-            foreach (var p in shown.Where(p => p.type == AnimatorControllerParameterType.Float))
-            {
-                var current = animator.GetFloat(p.name);
-                var value = SliderRow(p.name, current.ToString("0.0", CultureInfo.InvariantCulture), current, 0f, 10f, width, labelW, ref y);
-                if (!Mathf.Approximately(value, current)) Previews.SetFloat(p.name, value);
-            }
-
-            return y;
+            return y + U(10f);
         }
 
         // ----- Details -----
@@ -996,8 +1207,10 @@ namespace Scry
 
         private static float Details(Entry entry, float width, float y)
         {
-            Skin.Box(new Rect(0f, y + U(10f), width, U(1f)), Skin.Outline);
-            if (GUI.Button(new Rect(0f, y, U(130f), U(22f)), _details ? "HIDE DETAILS" : "SHOW DETAILS", Skin.Heading)) _details = !_details;
+            var label = _details ? "HIDE DETAILS" : "SHOW DETAILS";
+            var labelW = Skin.Heading.CalcSize(new GUIContent(label)).x;
+            if (GUI.Button(new Rect(0f, y, labelW + U(4f), U(20f)), label, Skin.Heading)) _details = !_details;
+            Skin.Fill(new Rect(labelW + U(12f), y + U(10f), Mathf.Max(0f, width - labelW - U(12f)), U(1f)), Skin.Outline);
             y += U(28f);
             if (!_details) return y;
 
@@ -1043,6 +1256,44 @@ namespace Scry
                 counts[name] = n + 1;
             }
             return string.Join(", ", counts.Select(p => p.Value > 1 ? $"{p.Key} ×{p.Value}" : p.Key));
+        }
+
+        // ----- Tooltips -----
+
+        /// <summary>Asks for a tooltip at the mouse, shown once the mouse has rested on the same thing for a moment.</summary>
+        private static void AskTip(string key, string text)
+        {
+            if (Event.current.type != EventType.Repaint || _drag != Drag.None || string.IsNullOrEmpty(text)) return;
+            _askedTipKey = key;
+            _askedTipText = text;
+            _askedTipAt = GUIUtility.GUIToScreenPoint(Event.current.mousePosition);
+        }
+
+        private static void Tooltip()
+        {
+            if (Event.current.type != EventType.Repaint) return;
+
+            if (_askedTipKey == null)
+            {
+                _tipKey = null;
+                return;
+            }
+
+            if (_askedTipKey != _tipKey)
+            {
+                _tipKey = _askedTipKey;
+                _tipSince = Time.unscaledTime;
+            }
+            if (Time.unscaledTime - _tipSince < TipDelay) return;
+
+            var content = new GUIContent(_askedTipText);
+            var maxW = U(420f);
+            var width = Mathf.Min(maxW, Skin.Tip.CalcSize(content).x + U(2f));
+            var height = Skin.Tip.CalcHeight(content, width);
+            var x = Mathf.Min(_askedTipAt.x + U(16f), Screen.width - width - U(4f));
+            var y = _askedTipAt.y + U(20f);
+            if (y + height > Screen.height - U(4f)) y = _askedTipAt.y - height - U(8f);
+            Skin.Tip.Draw(new Rect(x, y, width, height), content, false, false, false, false);
         }
     }
 }

@@ -63,9 +63,25 @@ namespace Scry
         {
             if (!IsOpen) return;
             IsOpen = false;
+            Looking = false;
             _closedFrame = Time.frameCount;
             Previews.Suspend();
+
+            if (Previews.AnythingInWorld && !_toldPreviewsStay)
+            {
+                _toldPreviewsStay = true;
+                MessageHud.instance?.ShowMessage(MessageHud.MessageType.TopLeft,
+                    "Scry's previews stay in the world until you clear them in the panel or with /scry clear.");
+            }
         }
+
+        /// <summary>
+        /// Whether the right mouse button is held to look around while the panel is open. Only the
+        /// camera is freed; moving, blocking and attacking stay off.
+        /// </summary>
+        public static bool Looking { get; private set; }
+
+        private static bool _toldPreviewsStay;
 
         public static void Update()
         {
@@ -75,6 +91,10 @@ namespace Scry
             if (IsOpen && Player.m_localPlayer == null) Hide();
 
             if (Input.GetKeyDown(Plugin.OpenKey) && CanToggle() && !TypingIt(Plugin.OpenKey)) Toggle();
+
+            // Looking starts only from a press outside the panel, so a right click on it stays a click.
+            if (!IsOpen || !Input.GetMouseButton(1)) Looking = false;
+            else if (Input.GetMouseButtonDown(1) && !ScryPanel.Covers(Input.mousePosition)) Looking = true;
 
             Previews.Update(IsOpen ? Explorer : null);
         }

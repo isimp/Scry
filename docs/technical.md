@@ -14,6 +14,10 @@ Every preview is a copy of the prefab made under an inactive holder, so none of 
 
 Star levels and wear are switched by scripts the copy no longer has, so their settings are read from the untouched prefab and applied to the matching parts of the copy, found by their position in the hierarchy.
 
+Animations are played clip by clip rather than through the animator's switches. The switches only move the animator between states under conditions the game sets together (waking only while asleep, jumping only in the air), and those conditions cannot be read at run time, so a switch pulled on its own often does nothing. Each clip in the animator's controller is instead played directly on the copy through a playable graph; when it ends or is stopped the graph is destroyed and the animator carries on as before.
+
+A status effect offers every effect list it carries that has something in it: its start effects are shown on you until taken off, and the others, such as stop, tick or break, play once. One with none says so.
+
 ## The stage
 
 The turntable is a copy far above the world on a layer the game does not name or use. It has its own camera, which renders into a texture the panel draws, and its own lights. The world's sun and the main camera are told to ignore that layer, and fog and ambient light are set for the stage only while its camera renders, then restored. The camera frames the copy from the size of what it draws, with particles left out when there is anything else. Effects on the stage are heard as if beside you; anything else on the stage is muted. The stage copy is taken down while the panel is closed.
@@ -25,6 +29,10 @@ A model shown in the world stands where the camera was looking when it was place
 ## Input
 
 While the panel is open, `TextInput.IsVisible` answers yes. The game already stops moving, looking, attacking and opening its menu while a text box is up, and frees the cursor, so that covers all of it. The camera zoom reads the wheel regardless, so the one method all of the game's wheel reads go through, `ZInput.Internal_GetMouseScrollWheel`, answers nothing while the panel is open. The block lasts one frame past closing, so the Escape that closed the panel does not also open the game's menu.
+
+Holding the right mouse button, pressed outside the panel, looks around. The game asks for mouse look separately from movement and actions (`PlayerController.TakeInput(look: true)`), so only that question is answered yes while the button is held, and the cursor is captured as in normal play. Walking, blocking and attacking stay off.
+
+The compact view is a slim column at the side of the screen without the turntable, which is not rendered while it is in use. Both views remember their own place and size.
 
 ## Files
 

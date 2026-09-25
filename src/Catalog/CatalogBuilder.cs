@@ -286,7 +286,7 @@ namespace Scry
         }
 
         /// <summary>The EffectList fields on a type and its bases, remembered per type.</summary>
-        private static FieldInfo[] EffectFields(Type type)
+        internal static FieldInfo[] EffectFields(Type type)
         {
             if (EffectFieldsByType.TryGetValue(type, out var known)) return known;
 

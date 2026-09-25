@@ -19,8 +19,8 @@ namespace Scry
         public static readonly Color Hover = new Color(1f, 1f, 1f, 0.045f);
         public static readonly Color Outline = new Color(1f, 1f, 1f, 0.08f);
         public static readonly Color Text = new Color(0.930f, 0.910f, 0.870f, 1f);
-        public static readonly Color Dim = new Color(0.640f, 0.640f, 0.670f, 1f);
-        public static readonly Color Faint = new Color(0.460f, 0.470f, 0.510f, 1f);
+        public static readonly Color Dim = new Color(0.760f, 0.755f, 0.775f, 1f);
+        public static readonly Color Faint = new Color(0.600f, 0.605f, 0.640f, 1f);
         public static readonly Color Accent = new Color(0.960f, 0.720f, 0.340f, 1f);
         public static readonly Color AccentSoft = new Color(0.960f, 0.720f, 0.340f, 0.16f);
         public static readonly Color OnAccent = new Color(0.110f, 0.080f, 0.040f, 1f);
@@ -29,7 +29,7 @@ namespace Scry
         public static GUIStyle Title, Subtitle, Label, Small, DimLabel, FaintLabel, Heading, Big, Wrap, DimWrap;
         public static GUIStyle RowName, RowSub, Glyph, Center, CenterDim;
         public static GUIStyle Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close;
-        public static GUIStyle Field, Placeholder;
+        public static GUIStyle Field, Placeholder, Tab, TabOn, Tip, IconButton;
         public static Texture2D Rounded, Pill, Circle, Star, StarHollow;
 
         private static float _builtScale = -1f;
@@ -86,7 +86,7 @@ namespace Scry
                 for (var c = ' '; c <= '~'; c++) every.Append(c);
                 var sample = new GUIContent(every.ToString());
 
-                foreach (var style in new[] { Title, Subtitle, Label, Small, Heading, Big, RowName, RowSub, Glyph, Button, Chip, Field })
+                foreach (var style in new[] { Title, Subtitle, Label, Small, Heading, Big, RowName, RowSub, Glyph, Button, Chip, Field, Tab, TabOn, Tip })
                 {
                     style.CalcSize(sample);
                 }
@@ -171,6 +171,23 @@ namespace Scry
             SegmentOn = Boxed(Style(12f, OnAccent, FontStyle.Bold, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Rounded, scale);
             Close = Boxed(Style(20f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), new Color(0, 0, 0, 0), RaisedHover, Shade(RaisedHover, 1.3f), Rounded, scale);
             Close.hover.textColor = Skin.Text;
+            IconButton = Boxed(Style(13f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Rounded, scale);
+            IconButton.padding = new RectOffset(0, 0, 0, 0);
+
+            // Kind tabs: flat until hovered, filled when chosen. The left padding leaves room for the kind's dot.
+            Tab = Boxed(Style(13f, Dim, FontStyle.Normal, TextAnchor.MiddleLeft), new Color(0, 0, 0, 0), RaisedHover, Shade(RaisedHover, 1.3f), Pill, scale);
+            Tab.padding = new RectOffset(Px(24f), Px(12f), 0, 0);
+            Tab.hover.textColor = Skin.Text;
+            TabOn = Boxed(Style(13f, OnAccent, FontStyle.Bold, TextAnchor.MiddleLeft), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Pill, scale);
+            TabOn.padding = Tab.padding;
+            Tab.richText = true;
+            TabOn.richText = true;
+
+            Tip = Boxed(Style(13f, Skin.Text), new Color(0.13f, 0.14f, 0.17f, 0.98f), new Color(0.13f, 0.14f, 0.17f, 0.98f), new Color(0.13f, 0.14f, 0.17f, 0.98f), Rounded, scale);
+            Tip.normal.background = Tint(Rounded, new Color(0.13f, 0.14f, 0.17f, 0.98f), new Color(1f, 1f, 1f, 0.16f));
+            Tip.wordWrap = true;
+            Tip.alignment = TextAnchor.UpperLeft;
+            Tip.padding = new RectOffset(Px(10f), Px(10f), Px(7f), Px(7f));
 
             Field = new GUIStyle(Gui.textField)
             {
@@ -228,6 +245,19 @@ namespace Scry
             Gui.horizontalSliderThumb.active.background = Tint(Circle, Color.white, null);
 
             _warmed = false;
+        }
+
+        /// <summary>
+        /// A flat fill, for lines and small marks. Rounded boxes keep their corners at full size,
+        /// so anything thinner than the corners has to be drawn this way.
+        /// </summary>
+        public static void Fill(Rect rect, Color color)
+        {
+            if (Event.current.type != EventType.Repaint) return;
+            var was = GUI.color;
+            GUI.color = color;
+            GUI.DrawTexture(rect, Texture2D.whiteTexture);
+            GUI.color = was;
         }
 
         /// <summary>A rounded box filled with a colour.</summary>
