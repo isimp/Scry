@@ -29,6 +29,7 @@ namespace Scry
         private static Entry _entry;
         private static int _builtLevel = 1;
         private static Wear _builtWear;
+        private static int _builtLook;
         private static float _replayAt = -1f;
         private static bool _stageStale;
 
@@ -114,6 +115,7 @@ namespace Scry
             _entry = entry;
             _builtLevel = modifiers.Level;
             _builtWear = modifiers.Wear;
+            _builtLook = modifiers.Look;
             _replayAt = -1f;
 
             StopSound();
@@ -125,10 +127,11 @@ namespace Scry
 
         private static void Modified(Modifiers modifiers)
         {
-            if (modifiers.Level != _builtLevel || modifiers.Wear != _builtWear)
+            if (modifiers.Level != _builtLevel || modifiers.Wear != _builtWear || modifiers.Look != _builtLook)
             {
                 _builtLevel = modifiers.Level;
                 _builtWear = modifiers.Wear;
+            _builtLook = modifiers.Look;
                 Stage.Show(_entry, modifiers);
                 if (InWorld) RebuildWorld(modifiers);
                 return;
@@ -217,12 +220,9 @@ namespace Scry
             Destroy(ref _world);
             if (!IsModel(_entry)) return;
 
-            var prefab = (GameObject)_entry.Source;
-            _world = Ghost.Make(prefab, null, _spot, _facing);
+            _world = Looks.Copy(_entry, modifiers, null, _spot, _facing);
             if (_world == null) return;
 
-            if (_entry.Kind == Kind.Creature) Looks.ApplyLevel(prefab, _world, modifiers.Level);
-            if (modifiers.WearAvailable) Looks.ApplyWear(prefab, _world, modifiers.Wear);
             _world.AddComponent<Keep>().BaseScale = _world.transform.localScale;
             ApplyLive(_world, modifiers);
         }
@@ -599,6 +599,53 @@ namespace Scry
                 lists.Add(new KeyValuePair<string, EffectList>(Naming.EffectListLabel(field.Name), list));
             }
             return lists;
+        }
+
+        /// <summary>
+        /// Every effect list anywhere on a prefab that has something in it, each once, named after
+        /// the part it belongs to: a creature's hits and death, a piece's placing and breaking, an
+        /// item's attacks.
+        /// </summary>
+        public static List<KeyValuePair<string, EffectList>> PrefabLists(GameObject prefab)
+        {
+            var lists = new List<KeyValuePair<string, EffectList>>();
+            if (prefab == null) return lists;
+            var seen = new HashSet<EffectList>();
+
+            void Collect(object owner, string part)
+            {
+                foreach (var field in CatalogBuilder.EffectFields(owner.GetType()))
+                {
+                    if (!(field.GetValue(owner) is EffectList list) || !HasAny(list) || !seen.Add(list)) continue;
+                    lists.Add(new KeyValuePair<string, EffectList>($"{part}: {Naming.EffectListLabel(field.Name)}", list));
+                }
+            }
+
+            foreach (var component in prefab.GetComponentsInChildren<Component>(true))
+            {
+                if (component == null) continue;
+                try
+                {
+                    Collect(component, component.GetType().Name);
+                    var shared = (component as ItemDrop)?.m_itemData?.m_shared;
+                    if (shared == null) continue;
+                    Collect(shared, "Item");
+                    if (shared.m_attack != null) Collect(shared.m_attack, "Attack");
+                    if (shared.m_secondaryAttack != null) Collect(shared.m_secondaryAttack, "Second attack");
+                }
+                catch (System.Exception ex)
+                {
+                    Plugin.Log.LogDebug($"Scry could not read the effects on {prefab.name}: {ex.Message}");
+                }
+            }
+            return lists;
+        }
+
+        /// <summary>Plays an effect list on the stage copy, and on the copy in the world when there is one.</summary>
+        public static void PlayEffectList(EffectList list)
+        {
+            Stage.PlayList(list);
+            if (_world != null) PlayList(list, _world.transform.position + Vector3.up * 0.5f, _world.transform.rotation);
         }
 
         /// <summary>Plays one of a status effect's lists on you once.</summary>

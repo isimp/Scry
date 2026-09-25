@@ -60,6 +60,22 @@ namespace Scry
 
         public bool WearAvailable => _wearAvailable;
 
+        private string[] _lookNames = new string[0];
+        private int _defaultLook;
+        private int _look;
+
+        /// <summary>The look the prefab is shown in, one of <see cref="LookNames"/>.</summary>
+        public int Look
+        {
+            get => _look;
+            set => Set(ref _look, _lookNames.Length == 0 ? 0 : Math.Max(0, Math.Min(_lookNames.Length - 1, value)));
+        }
+
+        public string[] LookNames => _lookNames;
+
+        /// <summary>Only offered when there is more than one look to choose from.</summary>
+        public bool LookAvailable => _lookNames.Length > 1;
+
         public float AnimationSpeed
         {
             get => _animationSpeed;
@@ -71,6 +87,8 @@ namespace Scry
         {
             _maxLevel = 1 + Math.Max(0, entry?.ExtraLevels ?? 0);
             _wearAvailable = entry != null && entry.HasWear;
+            _lookNames = entry?.Looks ?? new string[0];
+            _defaultLook = _lookNames.Length == 0 ? 0 : Math.Max(0, Math.Min(_lookNames.Length - 1, entry.DefaultLook));
             Reset();
         }
 
@@ -81,6 +99,7 @@ namespace Scry
             _level = 1;
             _wear = Wear.New;
             _animationSpeed = 1f;
+            _look = _defaultLook;
             Version++;
         }
 

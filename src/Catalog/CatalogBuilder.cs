@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
@@ -28,6 +29,7 @@ namespace Scry
             public bool HasWear;
             public readonly HashSet<string> Users = new HashSet<string>(StringComparer.Ordinal);
             public readonly List<Origin> UserOrigins = new List<Origin>();
+            public readonly HashSet<string> Components = new HashSet<string>(StringComparer.Ordinal);
         }
 
         private static readonly Dictionary<Type, FieldInfo[]> EffectFieldsByType = new Dictionary<Type, FieldInfo[]>();
@@ -52,6 +54,9 @@ namespace Scry
                 Describe(pair.Value, pair.Key, Origins.Prefabs.Of(pair.Key), effects);
             }
 
+            // Where things live and which mod added them, before any entry is made.
+            Knowledge.Gather(registered.Values.Select(f => f.Prefab));
+
             var entries = new List<Entry>();
 
             var db = ObjectDB.instance;
@@ -71,6 +76,8 @@ namespace Scry
                         Origin = origin,
                         Source = effect,
                         Icon = effect.m_icon,
+                        Components = new[] { effect.GetType().Name },
+                        ModName = Knowledge.ModName(effect.name),
                     });
                 }
             }
@@ -119,7 +126,17 @@ namespace Scry
                 Source = found.Prefab,
                 Icon = found.Icon,
                 Origin = registeredOrigin ? Origins.Prefabs.Of(name) : Provenance.Combine(found.UserOrigins),
+                Registered = registeredOrigin,
+                Components = found.Components.ToArray(),
+                Biomes = Knowledge.Biomes(name),
+                ModName = Knowledge.ModName(name),
             };
+
+            if (found.Prefab != null)
+            {
+                entry.Looks = Variants.Of(found.Prefab, out var look);
+                entry.DefaultLook = look;
+            }
 
             if (asEffect != null)
             {
@@ -155,6 +172,7 @@ namespace Scry
                 try
                 {
                     Note(component, found, traits);
+                    found.Components.Add(component.GetType().Name);
                     Gather(component, owner, ownerOrigin, effects);
 
                     if (component is ItemDrop drop && drop.m_itemData?.m_shared != null)

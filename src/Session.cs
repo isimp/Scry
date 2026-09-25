@@ -174,6 +174,7 @@ namespace Scry
             Previews.ClearWorld();
             Stage.Clear();
             _scene = null;
+            Facts.Forget();
 
             // The search and filters carry over to the next world; the entries cannot.
             if (Explorer != null) Explorer.Select(null);

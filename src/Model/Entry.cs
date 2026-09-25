@@ -41,6 +41,15 @@ namespace Scry
         /// <summary>The mod that added it, when that could be told. Empty otherwise.</summary>
         public string ModName = "";
 
+        /// <summary>
+        /// The looks it can be shown in, when the game switches between several by script: a
+        /// creature with or without its gear, a fire lit or not, a plant growing or grown.
+        /// </summary>
+        public string[] Looks = new string[0];
+
+        /// <summary>The look it is shown in at first.</summary>
+        public int DefaultLook;
+
         /// <summary>The prefab (a GameObject) or status effect behind this entry.</summary>
         public object Source;
 

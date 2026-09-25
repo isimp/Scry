@@ -21,6 +21,7 @@ namespace Scry
     {
         private const string SearchControl = "scry-search";
         private const string ClipControl = "scry-clip-filter";
+        private const string EffectControl = "scry-effect-filter";
         private const float TipDelay = 0.35f;
 
         private static Rect _full;
@@ -38,6 +39,8 @@ namespace Scry
         private static bool _reveal;
         private static bool _details;
         private static string _clipFilter = "";
+        private static bool _help;
+        private static string _effectFilter = "";
 
         private enum Drag { None, Move, Resize, Orbit }
         private static Drag _drag;
@@ -127,7 +130,7 @@ namespace Scry
 
                 var focused = GUI.GetNameOfFocusedControl();
                 SearchFocused = focused == SearchControl;
-                Typing = focused == SearchControl || focused == ClipControl;
+                Typing = focused == SearchControl || focused == ClipControl || focused == EffectControl;
             }
             catch (Exception ex)
             {
@@ -297,6 +300,9 @@ namespace Scry
                 {
                     var parts = line.Split(' ');
                     if (parts.Length == 2 && parts[0] == "view") _compact = parts[1] == "compact";
+                    if (parts.Length == 2 && parts[0] == "light" && int.TryParse(parts[1], out var light)) Stage.LightingIndex = light;
+                    if (parts.Length == 2 && parts[0] == "backdrop" && int.TryParse(parts[1], out var backdrop)) Stage.BackdropIndex = backdrop;
+                    if (parts.Length == 2 && parts[0] == "person") Stage.ShowPerson = parts[1] == "1";
                     if (parts.Length != 5) continue;
 
                     var v = parts.Skip(1).Select(p => float.Parse(p, CultureInfo.InvariantCulture)).ToArray();
@@ -319,7 +325,8 @@ namespace Scry
                     .Select(v => Mathf.Round(v).ToString(CultureInfo.InvariantCulture)));
 
                 Directory.CreateDirectory(Plugin.DataFolder);
-                File.WriteAllLines(RectFile, new[] { Line("full", _full), Line("compact", _compactRect), "view " + (_compact ? "compact" : "full") });
+                File.WriteAllLines(RectFile, new[] { Line("full", _full), Line("compact", _compactRect), "view " + (_compact ? "compact" : "full"),
+                    "light " + Stage.LightingIndex, "backdrop " + Stage.BackdropIndex, "person " + (Stage.ShowPerson ? "1" : "0") });
             }
             catch (Exception ex)
             {
@@ -426,11 +433,18 @@ namespace Scry
             var originW = widths.Sum() + U(4f) * (names.Length - 1);
             var starW = rect.height;
             var gap = U(8f);
+            var recentText = "Recent";
+            var recentW = Skin.Segment.CalcSize(new GUIContent(recentText)).x + U(6f);
 
-            var search = new Rect(rect.x, rect.y, rect.width - originW - starW - gap * 2f, rect.height);
+            var search = new Rect(rect.x, rect.y, rect.width - originW - starW * 2f - recentW - gap * 4f, rect.height);
             Search(explorer, search);
 
-            var star = new Rect(search.xMax + gap, rect.y, starW, rect.height);
+            // Help for the search terms.
+            var help = new Rect(search.xMax + gap, rect.y, starW, rect.height);
+            if (GUI.Button(help, "?", _help ? Skin.On : Skin.IconButton)) _help = !_help;
+            if (help.Contains(Event.current.mousePosition)) AskTip("help", "How to search");
+
+            var star = new Rect(help.xMax + gap, rect.y, starW, rect.height);
             if (GUI.Button(star, GUIContent.none, explorer.FavouritesOnly ? Skin.On : Skin.IconButton))
             {
                 explorer.FavouritesOnly = !explorer.FavouritesOnly;
@@ -440,7 +454,15 @@ namespace Scry
             Skin.Icon(icon, explorer.FavouritesOnly ? Skin.Star : Skin.StarHollow, explorer.FavouritesOnly ? Skin.Accent : Skin.Dim);
             if (star.Contains(Event.current.mousePosition)) AskTip("fav", explorer.FavouritesOnly ? "Showing only favourites" : "Show only favourites");
 
-            var x = star.xMax + gap;
+            var recent = new Rect(star.xMax + gap, rect.y, recentW, rect.height);
+            if (GUI.Button(recent, recentText, explorer.RecentOnly ? Skin.SegmentOn : Skin.Segment))
+            {
+                explorer.RecentOnly = !explorer.RecentOnly;
+                _listScroll = Vector2.zero;
+            }
+            if (recent.Contains(Event.current.mousePosition)) AskTip("recent", "What you looked at last, newest first");
+
+            var x = recent.xMax + gap;
             for (var i = 0; i < names.Length; i++)
             {
                 var on = (int)explorer.Origin == i;
@@ -451,7 +473,7 @@ namespace Scry
                 }
                 x += widths[i] + U(4f);
             }
-            var originRect = new Rect(star.xMax + gap, rect.y, originW, rect.height);
+            var originRect = new Rect(recent.xMax + gap, rect.y, originW, rect.height);
             if (originRect.Contains(Event.current.mousePosition)) AskTip("origin", "Everything, only the game's own, or only what mods added");
 
             return rect.yMax;
@@ -573,8 +595,55 @@ namespace Scry
 
         // ----- The list -----
 
+        private static readonly string[][] HelpLines =
+        {
+            new[] { "troll", "Names containing it, in the game's words or the prefab's. Best matches first." },
+            new[] { "troll hat", "Every word has to match." },
+            new[] { "-ragdoll", "A minus leaves out whatever matches." },
+            new[] { "kind:creature", "Only one kind: creature, item, piece, projectile, effect, sound, se (status effect), other." },
+            new[] { "has:aoe", "Prefabs with a part of that type, such as has:light, has:pickable, has:fireplace." },
+            new[] { "biome:swamp", "What spawns or grows in that biome." },
+            new[] { "mod:epic", "What a mod added, by the start or any part of its name." },
+            new[] { "used:troll", "The sounds and effects a prefab plays." },
+            new[] { "-has:ragdoll kind:c", "Terms combine, can be left out with a minus, and can be shortened." },
+        };
+
+        /// <summary>How to search, shown in place of the list while the ? button is on.</summary>
+        private static void HelpCard(Rect rect)
+        {
+            Skin.Box(rect, Skin.Panel);
+            var x = rect.x + U(18f);
+            var width = rect.width - U(36f);
+            var y = rect.y + U(16f);
+
+            GUI.Label(new Rect(x, y, width, U(26f)), "How to search", Skin.Big);
+            y += U(34f);
+
+            var keyW = Mathf.Min(U(170f), width * 0.42f);
+            foreach (var line in HelpLines)
+            {
+                var height = Mathf.Max(U(22f), Skin.DimWrap.CalcHeight(new GUIContent(line[1]), width - keyW - U(10f)));
+                Skin.Box(new Rect(x - U(4f), y - U(1f), keyW, U(24f)), Skin.Raised);
+                GUI.Label(new Rect(x + U(4f), y, keyW - U(8f), U(22f)), line[0], Skin.Label);
+                GUI.Label(new Rect(x + keyW + U(10f), y + U(2f), width - keyW - U(10f), height), line[1], Skin.DimWrap);
+                y += height + U(10f);
+            }
+
+            y += U(6f);
+            const string more = "The star shows only favourites, Recent what you looked at last. The kind tabs, Game or Mods, and all of the above work together.";
+            GUI.Label(new Rect(x, y, width, Skin.DimWrap.CalcHeight(new GUIContent(more), width)), more, Skin.DimWrap);
+
+            if (GUI.Button(new Rect(rect.xMax - U(96f), rect.yMax - U(42f), U(80f), U(30f)), "Close", Skin.Button)) _help = false;
+        }
+
         private static void List(Explorer explorer, Rect rect)
         {
+            if (_help)
+            {
+                HelpCard(rect);
+                return;
+            }
+
             Skin.Box(rect, Skin.Panel);
             var inner = new Rect(rect.x + U(4f), rect.y + U(6f), rect.width - U(8f), rect.height - U(12f));
             var results = explorer.Results;
@@ -751,6 +820,9 @@ namespace Scry
                 y = Variants(entry, cw, y);
             }
             y = Adjust(explorer, entry, cw, y, withStage);
+            y = Effects(entry, cw, y, withStage);
+            y = FactsSection(entry, cw, y);
+            y = Command(explorer, entry, cw, y);
             y = Details(entry, cw, y);
             if (Event.current.type == EventType.Repaint) _sideHeight = y + U(8f);
 
@@ -812,6 +884,7 @@ namespace Scry
             }
 
             KindBadge(entry, new Vector2(rect.x + U(10f), rect.y + U(10f)));
+            if (Stage.IsStaged(entry)) StageButtons(rect);
         }
 
         /// <summary>The kind, in its colour, as a small pill.</summary>
@@ -978,7 +1051,7 @@ namespace Scry
 
             // Kind in colour, then the prefab name (when the game shows another) and where it comes from.
             var x = _compact ? KindBadge(entry, new Vector2(0f, y)) + U(10f) : 0f;
-            var origin = entry.Origin == Origin.Vanilla ? "from the game" : entry.Origin == Origin.Mod ? "added by a mod" : "";
+            var origin = OriginText(entry);
             var sub = entry.Name == primary ? origin : entry.Name + (origin.Length > 0 ? "   ·   " + origin : "");
             if (sub.Length > 0 || _compact)
             {
@@ -1252,6 +1325,12 @@ namespace Scry
                 if (chosen >= 0) modifiers.Wear = (Wear)chosen;
             }
 
+            if (modifiers.LookAvailable)
+            {
+                var chosen = Segments("Look", new List<string>(modifiers.LookNames), modifiers.Look, width, labelW, ref y);
+                if (chosen >= 0) modifiers.Look = chosen;
+            }
+
             if (projectile)
             {
                 Previews.ProjectileSpeed = SliderRow("Speed", $"{Mathf.RoundToInt(Previews.ProjectileSpeed)} m/s", Previews.ProjectileSpeed, 5f, 120f, width, labelW, ref y);
@@ -1363,6 +1442,250 @@ namespace Scry
             return y + U(10f);
         }
 
+        private static string OriginText(Entry entry)
+        {
+            if (entry.Origin == Origin.Vanilla) return "from the game";
+            if (entry.Origin != Origin.Mod) return "";
+            return entry.ModName.Length > 0 ? "added by " + entry.ModName : "added by a mod";
+        }
+
+        // ----- Stage buttons -----
+
+        /// <summary>The person for size, the lighting and the backdrop, in the stage's top right corner.</summary>
+        private static void StageButtons(Rect rect)
+        {
+            var h = U(24f);
+            var y = rect.y + U(10f);
+            var x = rect.xMax - U(10f);
+
+            bool Chip(string text, bool on, string tip)
+            {
+                var style = on ? Skin.ChipOn : Skin.Chip;
+                var w = style.CalcSize(new GUIContent(text)).x + U(4f);
+                x -= w;
+                var chip = new Rect(x, y, w, h);
+                x -= U(6f);
+                if (chip.Contains(Event.current.mousePosition)) AskTip("stage:" + tip, tip);
+                return GUI.Button(chip, text, style);
+            }
+
+            if (Chip(Stage.BackdropNames[Stage.BackdropIndex], false, "Backdrop: click for the next"))
+            {
+                Stage.BackdropIndex = (Stage.BackdropIndex + 1) % Stage.BackdropNames.Length;
+                SaveRects();
+            }
+            if (Chip(Stage.LightingNames[Stage.LightingIndex], false, "Lighting: click for the next"))
+            {
+                Stage.LightingIndex = (Stage.LightingIndex + 1) % Stage.LightingNames.Length;
+                SaveRects();
+            }
+            if (Chip("Person", Stage.ShowPerson, "A person beside it, to judge its size"))
+            {
+                Stage.ShowPerson = !Stage.ShowPerson;
+                SaveRects();
+            }
+        }
+
+        // ----- Effects -----
+
+        private static readonly Dictionary<Entry, List<KeyValuePair<string, EffectList>>> EffectCache =
+            new Dictionary<Entry, List<KeyValuePair<string, EffectList>>>();
+
+        /// <summary>
+        /// Every effect list the prefab carries, played on the stage copy and on the copy in the
+        /// world: a creature's hits and death, a piece's placing and breaking, an item's swings.
+        /// </summary>
+        private static float Effects(Entry entry, float width, float y, bool withStage)
+        {
+            if (!(entry.Source is GameObject prefab) || entry.Kind == Kind.Sound || entry.Kind == Kind.Effect) return y;
+            if (!withStage && !(Previews.InWorld && Previews.IsModel(entry))) return y;
+
+            if (!EffectCache.TryGetValue(entry, out var lists))
+            {
+                lists = Previews.PrefabLists(prefab);
+                EffectCache[entry] = lists;
+            }
+            if (lists.Count == 0) return y;
+
+            y = SectionHeading($"EFFECTS  {lists.Count}", width, y, null);
+            var rowH = U(26f);
+
+            if (lists.Count > 12)
+            {
+                var field = new Rect(0f, y, Mathf.Min(width, U(260f)), U(28f));
+                GUI.SetNextControlName(EffectControl);
+                _effectFilter = GUI.TextField(field, _effectFilter, 40, Skin.Field);
+                if (string.IsNullOrEmpty(_effectFilter)) GUI.Label(field, "Filter", Skin.Placeholder);
+                y += U(36f);
+            }
+
+            var x = 0f;
+            foreach (var pair in lists)
+            {
+                if (_effectFilter.Length > 0 && pair.Key.IndexOf(_effectFilter, StringComparison.OrdinalIgnoreCase) < 0) continue;
+
+                var w = Mathf.Min(width, Skin.Chip.CalcSize(new GUIContent(pair.Key)).x + U(8f));
+                if (x + w > width && x > 0f)
+                {
+                    x = 0f;
+                    y += rowH + U(5f);
+                }
+                var chip = new Rect(x, y, w, rowH);
+                if (GUI.Button(chip, pair.Key, Skin.Chip)) Previews.PlayEffectList(pair.Value);
+                if (chip.Contains(Event.current.mousePosition))
+                {
+                    var names = pair.Value.m_effectPrefabs.Where(d => d?.m_prefab != null).Select(d => d.m_prefab.name);
+                    AskTip("fx:" + pair.Key, string.Join("\n", names));
+                }
+                x += w + U(5f);
+            }
+            if (x > 0f) y += rowH;
+
+            return y + U(14f);
+        }
+
+        // ----- Facts -----
+
+        private static float FactsSection(Entry entry, float width, float y)
+        {
+            var facts = Facts.For(entry);
+            if (facts.IsEmpty) return y;
+
+            y = SectionHeading("FACTS", width, y, null);
+
+            foreach (var line in facts.Lines)
+            {
+                var height = Skin.Wrap.CalcHeight(new GUIContent(line), width);
+                GUI.Label(new Rect(0f, y, width, height), line, Skin.Wrap);
+                y += height + U(5f);
+            }
+
+            foreach (var row in facts.Rows)
+            {
+                y += U(4f);
+                GUI.Label(new Rect(0f, y, width, U(20f)), row.Title, Skin.DimLabel);
+                y += U(24f);
+
+                var x = 0f;
+                var chipH = U(30f);
+                foreach (var item in row.Items)
+                {
+                    var text = $"{item.Amount}  {item.Name}";
+                    var w = Mathf.Min(width, Skin.Chip.CalcSize(new GUIContent(text)).x + U(30f));
+                    if (x + w > width && x > 0f)
+                    {
+                        x = 0f;
+                        y += chipH + U(5f);
+                    }
+                    var chip = new Rect(x, y, w, chipH);
+                    Skin.PillBox(chip, Skin.Raised);
+                    if (item.Icon != null) DrawSprite(item.Icon, new Rect(chip.x + U(6f), chip.y + U(4f), U(22f), U(22f)));
+                    GUI.Label(new Rect(chip.x + U(32f), chip.y, chip.width - U(36f), chip.height), text, Skin.Small);
+                    x += w + U(6f);
+                }
+                y += chipH + U(6f);
+            }
+
+            if (facts.Where.Count > 0)
+            {
+                y += U(4f);
+                foreach (var line in facts.Where)
+                {
+                    var height = Skin.DimWrap.CalcHeight(new GUIContent(line), width);
+                    GUI.Label(new Rect(0f, y, width, height), line, Skin.DimWrap);
+                    y += height + U(3f);
+                }
+            }
+
+            return y + U(14f);
+        }
+
+        private static void DrawSprite(Sprite sprite, Rect rect)
+        {
+            if (sprite == null || sprite.texture == null || Event.current.type != EventType.Repaint) return;
+            try
+            {
+                var t = sprite.texture;
+                var r = sprite.textureRect;
+                GUI.DrawTextureWithTexCoords(rect, t, new Rect(r.x / t.width, r.y / t.height, r.width / t.width, r.height / t.height), true);
+            }
+            catch
+            {
+                // Some sprites have no simple rectangle; the chip shows without its icon.
+            }
+        }
+
+        // ----- Command -----
+
+        private static int _commandAmount = 1;
+        private static int _commandQuality = 1;
+        private static Entry _commandFor;
+
+        /// <summary>
+        /// The game's own spawn command for the selection, ready to paste into the console: a
+        /// creature at the level set above, an item given straight into the inventory.
+        /// </summary>
+        private static float Command(Explorer explorer, Entry entry, float width, float y)
+        {
+            if (entry != _commandFor)
+            {
+                _commandFor = entry;
+                _commandAmount = 1;
+                _commandQuality = 1;
+            }
+
+            var isItem = entry.Kind == Kind.Item;
+            var level = isItem ? _commandQuality : entry.Kind == Kind.Creature ? explorer.Modifiers.Level : 1;
+            var command = SpawnCommand.For(entry, _commandAmount, level, give: isItem);
+            if (command == null) return y;
+
+            y = SectionHeading(isItem ? "GIVE COMMAND" : "SPAWN COMMAND", width, y, null);
+            var rowH = U(28f);
+
+            if (isItem)
+            {
+                GUI.Label(new Rect(0f, y, U(80f), rowH), "Amount", Skin.DimLabel);
+                var x = U(80f);
+                foreach (var step in new[] { -10, -1, 1, 10 })
+                {
+                    var text = step > 0 ? "+" + step : step.ToString(CultureInfo.InvariantCulture);
+                    if (step == 1)
+                    {
+                        GUI.Label(new Rect(x, y, U(48f), rowH), _commandAmount.ToString(CultureInfo.InvariantCulture), Skin.Center);
+                        x += U(52f);
+                    }
+                    if (GUI.Button(new Rect(x, y, U(40f), rowH), text, Skin.Segment)) _commandAmount = Mathf.Clamp(_commandAmount + step, 1, 999);
+                    x += U(44f);
+                }
+                y += rowH + U(8f);
+
+                var drop = (entry.Source as GameObject)?.GetComponent<ItemDrop>();
+                var maxQuality = Mathf.Min(SpawnCommand.MaxItemQuality, drop?.m_itemData?.m_shared?.m_maxQuality ?? 1);
+                if (maxQuality > 1)
+                {
+                    var names = Enumerable.Range(1, maxQuality).Select(q => q.ToString(CultureInfo.InvariantCulture)).ToList();
+                    var chosen = Segments("Quality", names, _commandQuality - 1, width, U(80f), ref y);
+                    if (chosen >= 0) _commandQuality = chosen + 1;
+                }
+            }
+
+            var copyW = U(70f);
+            var box = new Rect(0f, y, width - copyW - U(8f), U(30f));
+            Skin.Box(box, new Color(0.055f, 0.060f, 0.073f, 1f), Skin.Outline);
+            GUI.Label(new Rect(box.x + U(10f), box.y, box.width - U(14f), box.height), command, Skin.Label);
+            if (GUI.Button(new Rect(box.xMax + U(8f), y, copyW, U(30f)), "Copy", Skin.Button))
+            {
+                GUIUtility.systemCopyBuffer = command;
+                Session.Say($"Copied \"{command}\". Paste it into the console (F5).");
+            }
+            y += U(36f);
+
+            const string note = "Runs in the console with devcommands on, which the game only allows the host or a single-player world.";
+            var height = Skin.DimWrap.CalcHeight(new GUIContent(note), width);
+            GUI.Label(new Rect(0f, y, width, height), note, Skin.DimWrap);
+            return y + height + U(14f);
+        }
+
         // ----- Details -----
 
         private static readonly Dictionary<Entry, string> ComponentLists = new Dictionary<Entry, string>();
@@ -1377,7 +1700,8 @@ namespace Scry
             if (!_details) return y;
 
             var lines = new List<string> { "Prefab name: " + entry.Name };
-            lines.Add("Origin: " + (entry.Origin == Origin.Vanilla ? "the game" : entry.Origin == Origin.Mod ? "added by a mod" : "unknown"));
+            lines.Add("Origin: " + (entry.Origin == Origin.Vanilla ? "the game" : entry.Origin == Origin.Mod ? (entry.ModName.Length > 0 ? entry.ModName : "a mod, not named") : "unknown"));
+            if (entry.Biomes.Length > 0) lines.Add("Biomes: " + string.Join(", ", entry.Biomes));
             if (entry.ExtraLevels > 0) lines.Add($"Star looks: {entry.ExtraLevels}");
 
             if (entry.UsedBy.Count > 0)

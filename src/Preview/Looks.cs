@@ -13,6 +13,25 @@ namespace Scry
     {
         private static readonly Dictionary<string, Material> LevelMaterials = new Dictionary<string, Material>();
 
+        /// <summary>
+        /// A copy of an entry in the look its modifiers ask for: grown or not, its body, its
+        /// level, its wear, and its fire, picked state, gear or style.
+        /// </summary>
+        public static GameObject Copy(Entry entry, Modifiers modifiers, Transform parent, Vector3 position, Quaternion rotation, int layer = -1)
+        {
+            if (!(entry?.Source is GameObject prefab)) return null;
+
+            var source = Variants.SourceFor(prefab, modifiers.Look);
+            var copy = Ghost.Make(source, parent, position, rotation, layer);
+            if (copy == null) return null;
+
+            Gear.Body(source, copy);
+            if (entry.Kind == Kind.Creature) ApplyLevel(source, copy, modifiers.Level);
+            if (modifiers.WearAvailable) ApplyWear(source, copy, modifiers.Wear);
+            if (source == prefab) Variants.Apply(prefab, copy, modifiers.Look);
+            return copy;
+        }
+
         /// <summary>Gives a creature copy the look of a level, as <c>LevelEffects</c> would.</summary>
         public static void ApplyLevel(GameObject prefab, GameObject copy, int level)
         {

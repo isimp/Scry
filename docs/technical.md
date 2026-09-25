@@ -18,6 +18,20 @@ Animations are played clip by clip rather than through the animator's switches. 
 
 A status effect offers every effect list it carries that has something in it: its start effects are shown on you until taken off, and the others, such as stop, tick or break, play once. One with none says so.
 
+## Looks and gear
+
+Some prefabs have several looks that the game switches by script, and one kind is offered per prefab, in this order: a plant's growth (the grown plant is a prefab of its own, so it is copied instead), a fire's state (the enabled, low, high, full, half and empty objects of `Fireplace`, set as `Fireplace.UpdateState` sets them), a pickable's picked state (its hidden-when-picked object), a humanoid's gear, and an item's style (set through the game's material manager as `ItemStyle.Setup` does).
+
+Gear is put on as `VisEquipment.AttachItem` puts it on: each item's `attach` part hangs on the matching hand or head bone, and an `attach_skin` part is bound to the body's bones. A creature always carrying the same things offers one gear look with its default items and the first of each random weapon, armour and shield; one given one of several sets offers each set. A prefab whose body mesh is chosen at run time, such as the player, gets the first of its models.
+
+## Knowledge
+
+With the catalog, Scry reads where things live and where they come from: the world spawn lists of the running spawn systems (biome, time of day, levels, group size, required key), raids, nests and spawn points among the registered prefabs, and the world's vegetation (biome and altitude). Items learn what drops them from creatures' drop lists, what they are picked from, and every drop table on any prefab. Biomes found this way are searchable with biome:.
+
+Which mod added a prefab is read from Jotunn's registry when Jotunn is installed, by reflection, so Scry does not depend on it. For the rest, the loaded asset bundle holding an asset of the prefab's name is found, and the mod shipping a bundle of that name, as a file in its folder or embedded in its assembly, is named. A prefab made in code, or a bundle named unlike anything its mod ships, stays unnamed.
+
+What a status effect changes is every number, switch or choice on it that differs from a fresh status effect of the same kind, plus its damage modifiers, so status effects from mods show too.
+
 ## The stage
 
 The turntable is a copy far above the world on a layer the game does not name or use. It has its own camera, which renders into a texture the panel draws, and its own lights. The world's sun and the main camera are told to ignore that layer, and fog and ambient light are set for the stage only while its camera renders, then restored. The camera frames the copy from the size of what it draws, with particles left out when there is anything else. Effects on the stage are heard as if beside you; anything else on the stage is muted. The stage copy is taken down while the panel is closed.
