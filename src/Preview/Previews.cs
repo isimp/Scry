@@ -1,3 +1,4 @@
+using HarmonyLib;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -283,8 +284,30 @@ namespace Scry
             _soundEntry = entry;
             _soundChosen = only;
             _soundPaused = false;
+            _soundTakenOver = false;
             _soundWaitUntil = Time.unscaledTime + MaxDelay(prefab) + 0.5f;
             if (only != null) Narrow(_sound, only);
+            StartUnscripted(_sound, prefab);
+        }
+
+        /// <summary>
+        /// Starts audio that the game would start from a script the copy no longer has. Location
+        /// music is the main case: its source does not play on its own, and <c>MusicLocation</c>
+        /// starts it when you come near, at your music volume. Sounds the game's sound script plays
+        /// are left to it.
+        /// </summary>
+        private static void StartUnscripted(GameObject copy, GameObject prefab)
+        {
+            if (copy.GetComponentInChildren<ZSFX>(true) != null) return;
+
+            var music = prefab.GetComponentInChildren<MusicLocation>(true) != null;
+            foreach (var source in copy.GetComponentsInChildren<AudioSource>(true))
+            {
+                if (source.clip == null || source.isPlaying) continue;
+                if (music) source.volume *= MusicMan.m_masterMusicVolume;
+                source.time = 0f;
+                source.Play();
+            }
         }
 
         /// <summary>
@@ -413,6 +436,7 @@ namespace Scry
         {
             var source = SoundSource();
             if (source == null || source.clip == null) return;
+            TakeOverSound();
             source.time = Mathf.Clamp(time, 0f, Mathf.Max(0f, source.clip.length - 0.05f));
         }
 
@@ -422,9 +446,52 @@ namespace Scry
         {
             var source = SoundSource();
             if (source == null) return;
+            TakeOverSound();
             if (pause) source.Pause();
             else source.UnPause();
             _soundPaused = pause;
+        }
+
+        private static bool _soundTakenOver;
+        private static AccessTools.FieldRef<ZSFX, float> _fadeOutTimer;
+        private static bool _fadeOutTimerTried;
+
+        /// <summary>
+        /// Once the sound is skipped through or paused, its end is Scry's to decide. The game ends
+        /// sounds by time played rather than by where the clip is: a timed destruction on the
+        /// prefab removes the copy after a fixed while, and the sound script can fade out and stop
+        /// after a delay. Both are called off, so the sound runs until its clip really ends, is
+        /// stopped, or is cleared.
+        /// </summary>
+        private static void TakeOverSound()
+        {
+            if (_sound == null || _soundTakenOver) return;
+            _soundTakenOver = true;
+
+            foreach (var timer in _sound.GetComponentsInChildren<TimedDestruction>(true))
+            {
+                timer.CancelInvoke();
+                Object.Destroy(timer);
+            }
+
+            if (!_fadeOutTimerTried)
+            {
+                _fadeOutTimerTried = true;
+                try
+                {
+                    _fadeOutTimer = AccessTools.FieldRefAccess<ZSFX, float>("m_fadeOutTimer");
+                }
+                catch (System.Exception ex)
+                {
+                    Plugin.Log.LogDebug($"Scry cannot reach the sound fade timer: {ex.Message}");
+                }
+            }
+
+            foreach (var sfx in _sound.GetComponentsInChildren<ZSFX>(true))
+            {
+                sfx.m_fadeOutOnAwake = false;
+                if (_fadeOutTimer != null) _fadeOutTimer(sfx) = -1f;
+            }
         }
 
         // ----- Effects -----

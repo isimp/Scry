@@ -14,7 +14,7 @@ Most of Scry was written by Claude Code (Anthropic), which did the heavy lifting
 
 The arrow keys move through the list, Enter plays or shows the selection, Ctrl+F jumps to the search and Escape closes the panel. Drag the preview to turn it and scroll to zoom. Star an entry to keep it in your favourites, and use Copy name to paste a prefab name into another mod's settings. Hover a name that does not fit to read all of it.
 
-To watch a preview in the world, switch the panel to its compact view, which moves it to the side of the screen, and hold the right mouse button outside the panel to look around. Closing the panel leaves every preview where it is until you press Clear. A playing sound shows where it is in its clip, and the bar can be dragged to skip through long ones such as music. /scry followed by some text opens the panel searching for it, and /scry clear removes every preview from the world.
+To watch a preview in the world, switch the panel to its compact view, which moves it to the side of the screen. There you can walk around while the panel stays open, as long as you are not typing in its search, and hold the right mouse button outside the panel to look around. Attacking and blocking stay off while the panel is open. Closing the panel leaves every preview where it is until you press Clear. A playing sound shows where it is in its clip, and the bar can be dragged to skip through long ones such as music. /scry followed by some text opens the panel searching for it, and /scry clear removes every preview from the world.
 
 ## Multiplayer
 

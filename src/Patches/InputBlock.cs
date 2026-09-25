@@ -30,7 +30,24 @@ namespace Scry
     {
         private static void Postfix(bool look, ref bool __result)
         {
-            if (look && Session.Looking) __result = true;
+            if (look ? Session.Looking : Session.Walking) __result = true;
+        }
+    }
+
+    /// <summary>
+    /// While the panel is open and walking is allowed, the character gets its movement but never
+    /// its combat: a click on the panel must not swing a weapon, and the right mouse button used
+    /// for looking around must not raise a shield.
+    /// </summary>
+    [HarmonyPatch(typeof(Player), nameof(Player.SetControls))]
+    internal static class NoCombatWhileOpen
+    {
+        private static void Prefix(ref bool attack, ref bool attackHold, ref bool secondaryAttack, ref bool secondaryAttackHold,
+            ref bool block, ref bool blockHold, ref bool dodge)
+        {
+            if (!Session.IsOpen) return;
+            attack = attackHold = secondaryAttack = secondaryAttackHold = false;
+            block = blockHold = dodge = false;
         }
     }
 

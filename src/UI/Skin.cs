@@ -29,7 +29,7 @@ namespace Scry
         public static GUIStyle Title, Subtitle, Label, Small, DimLabel, FaintLabel, Heading, Big, Wrap, DimWrap;
         public static GUIStyle RowName, RowSub, Glyph, Center, CenterDim;
         public static GUIStyle Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close;
-        public static GUIStyle Field, Placeholder, Tab, TabOn, Tip, IconButton;
+        public static GUIStyle Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross;
         public static Texture2D Rounded, Pill, Circle, Star, StarHollow;
 
         private static float _builtScale = -1f;
@@ -171,6 +171,11 @@ namespace Scry
             SegmentOn = Boxed(Style(12f, OnAccent, FontStyle.Bold, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Rounded, scale);
             Close = Boxed(Style(20f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), new Color(0, 0, 0, 0), RaisedHover, Shade(RaisedHover, 1.3f), Rounded, scale);
             Close.hover.textColor = Skin.Text;
+            Close.padding = new RectOffset(0, 0, 0, 0);
+
+            // A bare × for small spots such as inside the search box, with no padding to squeeze it out.
+            Cross = Style(19f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
+            Cross.clipping = TextClipping.Overflow;
             IconButton = Boxed(Style(13f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Rounded, scale);
             IconButton.padding = new RectOffset(0, 0, 0, 0);
 

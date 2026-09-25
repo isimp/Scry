@@ -53,6 +53,12 @@ namespace Scry
         /// <summary>Whether the search box has the keyboard, so a letter key does not close the panel.</summary>
         public static bool SearchFocused { get; private set; }
 
+        /// <summary>Whether any of the panel's text boxes has the keyboard.</summary>
+        public static bool Typing { get; private set; }
+
+        /// <summary>Whether the panel is in its compact view, where the character can walk.</summary>
+        public static bool Compact => _compact;
+
         private static Rect Win
         {
             get => _compact ? _compactRect : _full;
@@ -66,7 +72,9 @@ namespace Scry
         public static void Opened()
         {
             Skin.LookForFontsAgain();
-            _focusSearch = true;
+
+            // In the compact view the keys walk until the search is clicked, so it is not focused on opening.
+            _focusSearch = !_compact;
             _reveal = true;
         }
 
@@ -86,6 +94,7 @@ namespace Scry
             if (!Session.IsOpen || Session.Explorer == null)
             {
                 SearchFocused = false;
+                Typing = false;
                 Skin.Warm(scale);
                 return;
             }
@@ -100,6 +109,11 @@ namespace Scry
 
                 Place();
                 var explorer = Session.Explorer;
+
+                // A click anywhere lets go of the keyboard; a click on a text box takes it straight
+                // back. So clicking the list or a button after typing hands the keys back to walking.
+                if (Event.current.type == EventType.MouseDown) GUIUtility.keyboardControl = 0;
+
                 Keys(explorer);
                 if (!Session.IsOpen) return;
 
@@ -111,7 +125,9 @@ namespace Scry
                 var e = Event.current;
                 if (Win.Contains(e.mousePosition) && (e.isMouse || e.type == EventType.ScrollWheel)) e.Use();
 
-                SearchFocused = GUI.GetNameOfFocusedControl() == SearchControl;
+                var focused = GUI.GetNameOfFocusedControl();
+                SearchFocused = focused == SearchControl;
+                Typing = focused == SearchControl || focused == ClipControl;
             }
             catch (Exception ex)
             {
@@ -479,7 +495,7 @@ namespace Scry
             {
                 var hover = clear.Contains(e.mousePosition);
                 if (hover) Skin.Icon(clear, Skin.Circle, new Color(1f, 1f, 1f, 0.12f));
-                var style = Skin.Close;
+                var style = Skin.Cross;
                 var was = style.normal.textColor;
                 style.normal.textColor = hover ? Skin.Text : Skin.Dim;
                 GUI.Label(new Rect(clear.x, clear.y - U(1f), clear.width, clear.height), "×", style);
