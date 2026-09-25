@@ -303,6 +303,7 @@ namespace Scry
                     if (parts.Length == 2 && parts[0] == "light" && int.TryParse(parts[1], out var light)) Stage.LightingIndex = light;
                     if (parts.Length == 2 && parts[0] == "backdrop" && int.TryParse(parts[1], out var backdrop)) Stage.BackdropIndex = backdrop;
                     if (parts.Length == 2 && parts[0] == "person") Stage.ShowPerson = parts[1] == "1";
+                    if (parts.Length == 2 && parts[0] == "worn") Looks.OnPerson = parts[1] == "1";
                     if (parts.Length != 5) continue;
 
                     var v = parts.Skip(1).Select(p => float.Parse(p, CultureInfo.InvariantCulture)).ToArray();
@@ -326,7 +327,7 @@ namespace Scry
 
                 Directory.CreateDirectory(Plugin.DataFolder);
                 File.WriteAllLines(RectFile, new[] { Line("full", _full), Line("compact", _compactRect), "view " + (_compact ? "compact" : "full"),
-                    "light " + Stage.LightingIndex, "backdrop " + Stage.BackdropIndex, "person " + (Stage.ShowPerson ? "1" : "0") });
+                    "light " + Stage.LightingIndex, "backdrop " + Stage.BackdropIndex, "person " + (Stage.ShowPerson ? "1" : "0"), "worn " + (Looks.OnPerson ? "1" : "0") });
             }
             catch (Exception ex)
             {
@@ -1546,7 +1547,14 @@ namespace Scry
                 Stage.LightingIndex = (Stage.LightingIndex + 1) % Stage.LightingNames.Length;
                 SaveRects();
             }
-            if (Chip("Person", Stage.ShowPerson, "A person beside it, to judge its size"))
+            if (entry.Kind == Kind.Item && entry.Source is GameObject item && Gear.IsWearable(item)
+                && Chip("Worn", Looks.OnPerson, "Show it worn by a person"))
+            {
+                Looks.OnPerson = !Looks.OnPerson;
+                Previews.Rebuild();
+                SaveRects();
+            }
+            if (!Looks.IsWorn(entry) && Chip("Person", Stage.ShowPerson, "A person beside it, to judge its size"))
             {
                 Stage.ShowPerson = !Stage.ShowPerson;
                 SaveRects();

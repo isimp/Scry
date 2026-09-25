@@ -740,6 +740,14 @@ namespace Scry
             ClipPlayer.SetLoop(_world, LoopClips);
         }
 
+        /// <summary>Makes the stage copy and the copy in the world again, after a switch that changes what they are.</summary>
+        public static void Rebuild()
+        {
+            if (_explorer == null) return;
+            Stage.Show(_entry, _explorer.Modifiers);
+            if (InWorld) RebuildWorld(_explorer.Modifiers);
+        }
+
         /// <summary>Restarts what is on the stage, for effects that have played out.</summary>
         public static void Replay()
         {

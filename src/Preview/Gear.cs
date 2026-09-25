@@ -68,6 +68,38 @@ namespace Scry
                 AddFirst(items, humanoid.m_randomShield);
             }
 
+            Wear(prefab, copy, items);
+        }
+
+        private static readonly int ChestTex = Shader.PropertyToID("_ChestTex");
+        private static readonly int ChestBumpMap = Shader.PropertyToID("_ChestBumpMap");
+        private static readonly int ChestMetal = Shader.PropertyToID("_ChestMetal");
+        private static readonly int LegsTex = Shader.PropertyToID("_LegsTex");
+        private static readonly int LegsBumpMap = Shader.PropertyToID("_LegsBumpMap");
+        private static readonly int LegsMetal = Shader.PropertyToID("_LegsMetal");
+
+        /// <summary>Whether an item can be shown worn: something held, worn on the head or the body.</summary>
+        public static bool IsWearable(GameObject item)
+        {
+            var shared = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared : null;
+            if (shared == null) return false;
+            if (AttachPart(item, out _) != null) return true;
+            var type = shared.m_itemType;
+            return shared.m_armorMaterial != null
+                   && (type == ItemDrop.ItemData.ItemType.Chest || type == ItemDrop.ItemData.ItemType.Legs);
+        }
+
+        /// <summary>
+        /// Puts items on a copy of a character, as <c>VisEquipment</c> does: held and head items
+        /// on their bones, body items bound to the skeleton, and chest and leg armour also
+        /// painted onto the body the way the game swaps its textures. A style, when given, is
+        /// set on each worn part as <c>ItemStyle</c> sets it.
+        /// </summary>
+        public static void Wear(GameObject prefab, GameObject copy, IList<GameObject> items, int style = -1)
+        {
+            var vis = prefab.GetComponentInChildren<VisEquipment>(true);
+            if (vis == null) return;
+
             var root = prefab.transform;
             var right = vis.m_rightHand != null ? Looks.Twin(root, copy.transform, vis.m_rightHand) : null;
             var left = vis.m_leftHand != null ? Looks.Twin(root, copy.transform, vis.m_leftHand) : null;
@@ -82,40 +114,72 @@ namespace Scry
                 var shared = drop?.m_itemData?.m_shared;
                 if (shared == null) continue;
 
+                if (body != null && shared.m_armorMaterial != null) Paint(body, shared);
+
                 var part = AttachPart(item, out var skin);
                 if (part == null) continue;
 
+                GameObject worn = null;
                 if (skin)
                 {
-                    if (body != null) Skin(part, body, copy.layer);
-                    continue;
+                    if (body != null) worn = Skin(part, body, copy.layer);
                 }
-
-                Transform joint = null;
-                switch (shared.m_itemType)
+                else
                 {
-                    case ItemDrop.ItemData.ItemType.Shield:
-                    case ItemDrop.ItemData.ItemType.Bow:
-                    case ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft:
-                        if (!usedLeft) { joint = left; usedLeft = true; }
-                        break;
-                    case ItemDrop.ItemData.ItemType.Helmet:
-                        joint = head;
-                        break;
-                    case ItemDrop.ItemData.ItemType.OneHandedWeapon:
-                    case ItemDrop.ItemData.ItemType.TwoHandedWeapon:
-                    case ItemDrop.ItemData.ItemType.Torch:
-                    case ItemDrop.ItemData.ItemType.Tool:
-                        if (!usedRight) { joint = right; usedRight = true; }
-                        break;
-                }
-                if (joint == null) continue;
+                    Transform joint = null;
+                    switch (shared.m_itemType)
+                    {
+                        case ItemDrop.ItemData.ItemType.Shield:
+                        case ItemDrop.ItemData.ItemType.Bow:
+                        case ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft:
+                            if (!usedLeft) { joint = left; usedLeft = true; }
+                            break;
+                        case ItemDrop.ItemData.ItemType.Helmet:
+                            joint = head;
+                            break;
+                        case ItemDrop.ItemData.ItemType.OneHandedWeapon:
+                        case ItemDrop.ItemData.ItemType.TwoHandedWeapon:
+                        case ItemDrop.ItemData.ItemType.Torch:
+                        case ItemDrop.ItemData.ItemType.Tool:
+                            if (!usedRight) { joint = right; usedRight = true; }
+                            break;
+                    }
+                    if (joint == null) continue;
 
-                var worn = Ghost.Make(part, joint, joint.position, joint.rotation, copy.layer);
-                if (worn == null) continue;
-                worn.SetActive(true);
-                worn.transform.localPosition = Vector3.zero;
-                worn.transform.localRotation = Quaternion.identity;
+                    worn = Ghost.Make(part, joint, joint.position, joint.rotation, copy.layer);
+                    if (worn == null) continue;
+                    worn.SetActive(true);
+                    worn.transform.localPosition = Vector3.zero;
+                    worn.transform.localRotation = Quaternion.identity;
+                }
+
+                if (worn != null && style >= 0 && MaterialMan.instance != null)
+                {
+                    foreach (var styled in part.GetComponentsInChildren<ItemStyle>(true))
+                    {
+                        var twin = Looks.Twin(part.transform, worn.transform, styled.transform);
+                        if (twin != null) MaterialMan.instance.SetValue(twin.gameObject, ShaderProps._Style, style, true);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Chest and leg armour change the body's own textures as well, as the game does.</summary>
+        private static void Paint(SkinnedMeshRenderer body, ItemDrop.ItemData.SharedData shared)
+        {
+            var armour = shared.m_armorMaterial;
+            var material = body.material;
+            if (shared.m_itemType == ItemDrop.ItemData.ItemType.Chest)
+            {
+                if (armour.HasProperty(ChestTex)) material.SetTexture(ChestTex, armour.GetTexture(ChestTex));
+                if (armour.HasProperty(ChestBumpMap)) material.SetTexture(ChestBumpMap, armour.GetTexture(ChestBumpMap));
+                if (armour.HasProperty(ChestMetal)) material.SetTexture(ChestMetal, armour.GetTexture(ChestMetal));
+            }
+            else if (shared.m_itemType == ItemDrop.ItemData.ItemType.Legs)
+            {
+                if (armour.HasProperty(LegsTex)) material.SetTexture(LegsTex, armour.GetTexture(LegsTex));
+                if (armour.HasProperty(LegsBumpMap)) material.SetTexture(LegsBumpMap, armour.GetTexture(LegsBumpMap));
+                if (armour.HasProperty(LegsMetal)) material.SetTexture(LegsMetal, armour.GetTexture(LegsMetal));
             }
         }
 
@@ -137,11 +201,11 @@ namespace Scry
         }
 
         /// <summary>Hangs a skinned part (armour, cape) on the body's own bones.</summary>
-        private static void Skin(GameObject part, SkinnedMeshRenderer body, int layer)
+        private static GameObject Skin(GameObject part, SkinnedMeshRenderer body, int layer)
         {
             var parent = body.transform.parent;
             var worn = Ghost.Make(part, parent, parent.position, parent.rotation, layer);
-            if (worn == null) return;
+            if (worn == null) return null;
             worn.SetActive(true);
             worn.transform.localPosition = Vector3.zero;
             worn.transform.localRotation = Quaternion.identity;
@@ -163,6 +227,7 @@ namespace Scry
                 renderer.bones = bones;
                 renderer.updateWhenOffscreen = true;
             }
+            return worn;
         }
 
         /// <summary>The part of an item worn on the body, found as <c>VisEquipment.AttachItem</c> finds it.</summary>

@@ -81,6 +81,7 @@ namespace Scry
 
         private static GameObject _subject;
         private static GameObject _person;
+        private static bool _subjectIsPerson;
         private static Bounds _personBounds;
         private static Bounds _personLocal;
         private static Vector3 _baseScale = Vector3.one;
@@ -152,6 +153,7 @@ namespace Scry
             if (!IsStaged(entry) || !(entry.Source is GameObject)) return;
             if (!Ensure()) return;
 
+            _subjectIsPerson = Looks.IsWorn(entry);
             _subject = Looks.Copy(entry, modifiers, _root.transform, Origin, Quaternion.identity, _layer);
             if (_subject == null) return;
 
@@ -407,7 +409,8 @@ namespace Scry
         {
             if (_root == null) return;
 
-            if (!_showPerson || _subject == null)
+            // An item worn by a person already has one to judge it by.
+            if (!_showPerson || _subject == null || _subjectIsPerson)
             {
                 if (_person != null) _person.SetActive(false);
                 return;

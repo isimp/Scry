@@ -21,6 +21,8 @@ namespace Scry
         {
             if (!(entry?.Source is GameObject prefab)) return null;
 
+            if (IsWorn(entry)) return Worn(prefab, modifiers, parent, position, rotation, layer);
+
             var source = Variants.SourceFor(prefab, modifiers.Look);
             var copy = Ghost.Make(source, parent, position, rotation, layer);
             if (copy == null) return null;
@@ -29,6 +31,29 @@ namespace Scry
             if (entry.Kind == Kind.Creature) ApplyLevel(source, copy, modifiers.Level);
             if (modifiers.WearAvailable) ApplyWear(source, copy, modifiers.Wear);
             if (source == prefab) Variants.Apply(prefab, copy, modifiers.Look);
+            return copy;
+        }
+
+        /// <summary>Show wearable items worn by a person rather than on their own.</summary>
+        public static bool OnPerson;
+
+        /// <summary>Whether this entry is shown worn by a person right now.</summary>
+        public static bool IsWorn(Entry entry)
+        {
+            return OnPerson && entry != null && entry.Kind == Kind.Item && entry.Source is GameObject prefab && Gear.IsWearable(prefab);
+        }
+
+        /// <summary>A person, the game's own player model, wearing the item in its chosen style.</summary>
+        private static GameObject Worn(GameObject item, Modifiers modifiers, Transform parent, Vector3 position, Quaternion rotation, int layer)
+        {
+            var person = ZNetScene.instance != null ? ZNetScene.instance.GetPrefab("Player") : null;
+            if (person == null) return null;
+
+            var copy = Ghost.Make(person, parent, position, rotation, layer);
+            if (copy == null) return null;
+
+            Gear.Body(person, copy);
+            Gear.Wear(person, copy, new[] { item }, modifiers.LookAvailable ? modifiers.Look : -1);
             return copy;
         }
 

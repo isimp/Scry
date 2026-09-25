@@ -55,14 +55,35 @@ namespace Scry
         }
 
         /// <summary>
-        /// Whether a prefab an effect list points at is a whole model rather than an effect: a
-        /// ragdoll that takes a creature's place when it dies, a creature, or an item. Without its
-        /// physics such a copy only stands there as a second model, so effects leave it out.
+        /// Whether a prefab an effect list points at is a model rather than an effect: a ragdoll
+        /// that takes a creature's place when it dies, a creature it splits into, an item, a
+        /// skinned body, or pieces that fly apart under physics. A copy keeps none of its physics,
+        /// so such a thing would only stand frozen beside the preview, and effects leave it out.
         /// </summary>
         public static bool IsWholeModel(GameObject prefab)
         {
-            return prefab != null && (prefab.GetComponentInChildren<Ragdoll>(true) != null
-                || prefab.GetComponentInChildren<Character>(true) != null || prefab.GetComponent<ItemDrop>() != null);
+            if (prefab == null) return false;
+            if (!Known.TryGetValue(prefab, out var model))
+            {
+                model = prefab.GetComponentInChildren<Ragdoll>(true) != null
+                        || prefab.GetComponentInChildren<Character>(true) != null
+                        || prefab.GetComponent<ItemDrop>() != null
+                        || prefab.GetComponentInChildren<SkinnedMeshRenderer>(true) != null
+                        || HasFreeBody(prefab);
+                Known[prefab] = model;
+            }
+            return model;
+        }
+
+        private static readonly Dictionary<GameObject, bool> Known = new Dictionary<GameObject, bool>();
+
+        private static bool HasFreeBody(GameObject prefab)
+        {
+            foreach (var body in prefab.GetComponentsInChildren<Rigidbody>(true))
+            {
+                if (!body.isKinematic) return true;
+            }
+            return false;
         }
 
         public static void SetLayer(Transform t, int layer)
