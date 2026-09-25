@@ -46,8 +46,11 @@ namespace Scry
         /// <summary>Whether the selected model is also shown in the world, where you were looking.</summary>
         public static bool InWorld { get; private set; }
 
-        /// <summary>Plays effects on the stage and sounds again as soon as they end.</summary>
-        public static bool Loop = true;
+        /// <summary>Plays an effect on the stage again as soon as it ends.</summary>
+        public static bool LoopEffects = true;
+
+        /// <summary>Plays a sound again as soon as it ends.</summary>
+        public static bool LoopSounds;
 
         public static float ProjectileSpeed = 40f;
 
@@ -133,9 +136,9 @@ namespace Scry
         /// <summary>Loops a finished effect on the stage, and a finished sound, while the panel is open.</summary>
         private static void Repeat(Modifiers modifiers)
         {
-            if (!Loop || _entry == null) return;
+            if (_entry == null) return;
 
-            if (_entry.Kind == Kind.Effect && Stage.Finished)
+            if (LoopEffects && _entry.Kind == Kind.Effect && Stage.Finished)
             {
                 if (_replayAt < 0f) _replayAt = Time.unscaledTime + 0.4f;
                 else if (Time.unscaledTime >= _replayAt)
@@ -146,7 +149,7 @@ namespace Scry
             }
 
             // A sound stopped by hand is not replayed; one that ran out is.
-            if (_entry.Kind == Kind.Sound && _soundEntry == _entry && _sound == null) PlaySound(_entry);
+            if (LoopSounds && _entry.Kind == Kind.Sound && _soundEntry == _entry && _sound == null) PlaySound(_entry);
         }
 
         // ----- The copy in the world -----

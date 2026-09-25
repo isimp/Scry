@@ -763,14 +763,14 @@ namespace Scry
                 case Kind.Sound:
                     if (Button("Play", Skin.Primary)) Previews.PlaySound(entry);
                     if (Previews.SoundPlaying && Button("Stop", Skin.Button)) Previews.StopSound();
-                    if (Button(Previews.Loop ? "Repeat on" : "Repeat off", Previews.Loop ? Skin.On : Skin.Button)) Previews.Loop = !Previews.Loop;
+                    if (Button(Previews.LoopSounds ? "Repeat on" : "Repeat off", Previews.LoopSounds ? Skin.On : Skin.Button)) Previews.LoopSounds = !Previews.LoopSounds;
                     break;
 
                 case Kind.Effect:
                     if (Button("Play where you look", Skin.Primary)) Previews.PlayEffect(entry, onYou: false);
                     if (Button("Play on you", Skin.Button)) Previews.PlayEffect(entry, onYou: true);
                     if (Button("Replay", Skin.Button)) Previews.Replay();
-                    if (Button(Previews.Loop ? "Repeat on" : "Repeat off", Previews.Loop ? Skin.On : Skin.Button)) Previews.Loop = !Previews.Loop;
+                    if (Button(Previews.LoopEffects ? "Repeat on" : "Repeat off", Previews.LoopEffects ? Skin.On : Skin.Button)) Previews.LoopEffects = !Previews.LoopEffects;
                     break;
 
                 case Kind.StatusEffect:
