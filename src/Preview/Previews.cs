@@ -611,13 +611,18 @@ namespace Scry
             var lists = new List<KeyValuePair<string, EffectList>>();
             if (prefab == null) return lists;
             var seen = new HashSet<EffectList>();
+            var found = new List<KeyValuePair<string, KeyValuePair<string, EffectList>>>();
 
-            void Collect(object owner, string part)
+            // Named by what they are for ("Death", "Hit"); the part they belong to is only added
+            // where two would read the same. An item's attacks always say which attack.
+            void Collect(object owner, string part, bool alwaysSayPart)
             {
                 foreach (var field in CatalogBuilder.EffectFields(owner.GetType()))
                 {
                     if (!(field.GetValue(owner) is EffectList list) || !HasAny(list) || !seen.Add(list)) continue;
-                    lists.Add(new KeyValuePair<string, EffectList>($"{part}: {Naming.EffectListLabel(field.Name)}", list));
+                    var label = Naming.EffectListLabel(field.Name);
+                    if (alwaysSayPart) label = part + ": " + label.ToLowerInvariant();
+                    found.Add(new KeyValuePair<string, KeyValuePair<string, EffectList>>(part, new KeyValuePair<string, EffectList>(label, list)));
                 }
             }
 
@@ -626,17 +631,25 @@ namespace Scry
                 if (component == null) continue;
                 try
                 {
-                    Collect(component, component.GetType().Name);
+                    Collect(component, component.GetType().Name, false);
                     var shared = (component as ItemDrop)?.m_itemData?.m_shared;
                     if (shared == null) continue;
-                    Collect(shared, "Item");
-                    if (shared.m_attack != null) Collect(shared.m_attack, "Attack");
-                    if (shared.m_secondaryAttack != null) Collect(shared.m_secondaryAttack, "Second attack");
+                    Collect(shared, "Item", false);
+                    if (shared.m_attack != null) Collect(shared.m_attack, "Attack", true);
+                    if (shared.m_secondaryAttack != null) Collect(shared.m_secondaryAttack, "Second attack", true);
                 }
                 catch (System.Exception ex)
                 {
                     Plugin.Log.LogDebug($"Scry could not read the effects on {prefab.name}: {ex.Message}");
                 }
+            }
+
+            var counts = new Dictionary<string, int>();
+            foreach (var item in found) counts[item.Value.Key] = counts.TryGetValue(item.Value.Key, out var n) ? n + 1 : 1;
+            foreach (var item in found)
+            {
+                var label = counts[item.Value.Key] > 1 ? $"{item.Value.Key} ({Naming.FieldLabel(item.Key).ToLowerInvariant()})" : item.Value.Key;
+                lists.Add(new KeyValuePair<string, EffectList>(label, item.Value.Value));
             }
             return lists;
         }
