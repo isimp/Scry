@@ -1,0 +1,326 @@
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using UnityEngine;
+
+namespace Scry
+{
+    /// <summary>
+    /// Reads every prefab and status effect the game has into the catalog.
+    ///
+    /// The scene's registered prefabs are only part of it. Most sounds and many visual effects are
+    /// never registered: they hang off the effect lists of the items, pieces, creatures, status
+    /// effects and interface that play them, so those lists are followed as well, and whatever
+    /// they reach is catalogued with the names of the prefabs that use it.
+    ///
+    /// Effects that belong only to locations, such as boss altars and runestones, stay out:
+    /// locations are loaded from their bundles on demand, and walking them would force the loads.
+    /// </summary>
+    internal static class CatalogBuilder
+    {
+        private sealed class Found
+        {
+            public GameObject Prefab;
+            public PrefabTraits Traits;
+            public string Token;
+            public object Icon;
+            public int ExtraLevels;
+            public bool HasWear;
+            public readonly HashSet<string> Users = new HashSet<string>(StringComparer.Ordinal);
+            public readonly List<Origin> UserOrigins = new List<Origin>();
+        }
+
+        private static readonly Dictionary<Type, FieldInfo[]> EffectFieldsByType = new Dictionary<Type, FieldInfo[]>();
+
+        public static List<Entry> Build()
+        {
+            var scene = ZNetScene.instance;
+            var registered = new Dictionary<string, Found>(StringComparer.Ordinal);
+            var effects = new Dictionary<string, Found>(StringComparer.Ordinal);
+
+            foreach (var list in new[] { scene.m_prefabs, scene.m_nonNetViewPrefabs })
+            {
+                foreach (var prefab in list)
+                {
+                    if (prefab == null || registered.ContainsKey(prefab.name)) continue;
+                    registered[prefab.name] = new Found { Prefab = prefab };
+                }
+            }
+
+            foreach (var pair in registered)
+            {
+                Describe(pair.Value, pair.Key, Origins.Prefabs.Of(pair.Key), effects);
+            }
+
+            var entries = new List<Entry>();
+
+            var db = ObjectDB.instance;
+            if (db != null)
+            {
+                foreach (var effect in db.m_StatusEffects)
+                {
+                    if (effect == null) continue;
+                    var origin = Origins.StatusEffects.Of(effect.name);
+                    Gather(effect, "status effect " + effect.name, origin, effects);
+
+                    entries.Add(new Entry
+                    {
+                        Name = effect.name,
+                        DisplayName = Localize(effect.m_name),
+                        Kind = Kind.StatusEffect,
+                        Origin = origin,
+                        Source = effect,
+                        Icon = effect.m_icon,
+                    });
+                }
+            }
+
+            GatherInterface(effects);
+
+            // Effects can point at further effects (a hit effect with an area of its own), so the
+            // walk continues until nothing new turns up.
+            var described = new HashSet<string>(StringComparer.Ordinal);
+            bool grew;
+            do
+            {
+                grew = false;
+                foreach (var found in new List<Found>(effects.Values))
+                {
+                    var name = found.Prefab.name;
+                    if (registered.ContainsKey(name) || !described.Add(name)) continue;
+                    Describe(found, name, Provenance.Combine(found.UserOrigins), effects);
+                    grew = true;
+                }
+            }
+            while (grew);
+
+            foreach (var pair in registered) entries.Add(ToEntry(pair.Key, pair.Value, effects, registeredOrigin: true));
+            foreach (var pair in effects)
+            {
+                if (!registered.ContainsKey(pair.Key)) entries.Add(ToEntry(pair.Key, pair.Value, effects, registeredOrigin: false));
+            }
+
+            return entries;
+        }
+
+        private static Entry ToEntry(string name, Found found, Dictionary<string, Found> effects, bool registeredOrigin)
+        {
+            effects.TryGetValue(name, out var asEffect);
+            if (asEffect != null) found.Traits.FromEffectList = true;
+
+            var entry = new Entry
+            {
+                Name = name,
+                DisplayName = Localize(found.Token),
+                Kind = Kinds.Of(found.Traits),
+                Empty = Kinds.IsEmpty(found.Traits),
+                ExtraLevels = found.ExtraLevels,
+                HasWear = found.HasWear,
+                Source = found.Prefab,
+                Icon = found.Icon,
+                Origin = registeredOrigin ? Origins.Prefabs.Of(name) : Provenance.Combine(found.UserOrigins),
+            };
+
+            if (asEffect != null)
+            {
+                entry.UsedBy.AddRange(asEffect.Users);
+                entry.UsedBy.Sort(StringComparer.OrdinalIgnoreCase);
+            }
+
+            return entry;
+        }
+
+        /// <summary>Reads a prefab's components into its traits, and follows its effect lists.</summary>
+        private static void Describe(Found found, string owner, Origin ownerOrigin, Dictionary<string, Found> effects)
+        {
+            var traits = new PrefabTraits();
+            found.Traits = traits;
+
+            Component[] components;
+            try
+            {
+                components = found.Prefab.GetComponentsInChildren<Component>(true);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogDebug($"Scry could not read {owner}: {ex.Message}");
+                return;
+            }
+
+            foreach (var component in components)
+            {
+                // A missing script shows up as a null component.
+                if (component == null) continue;
+
+                try
+                {
+                    Note(component, found, traits);
+                    Gather(component, owner, ownerOrigin, effects);
+
+                    if (component is ItemDrop drop && drop.m_itemData?.m_shared != null)
+                    {
+                        var shared = drop.m_itemData.m_shared;
+                        Gather(shared, owner, ownerOrigin, effects);
+                        if (shared.m_attack != null) Gather(shared.m_attack, owner, ownerOrigin, effects);
+                        if (shared.m_secondaryAttack != null) Gather(shared.m_secondaryAttack, owner, ownerOrigin, effects);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogDebug($"Scry skipped a part of {owner}: {ex.Message}");
+                }
+            }
+        }
+
+        private static void Note(Component component, Found found, PrefabTraits traits)
+        {
+            switch (component)
+            {
+                case Character character:
+                    traits.HasCharacter = true;
+                    found.Token = found.Token ?? character.m_name;
+                    break;
+                case ItemDrop drop:
+                    traits.HasItemDrop = true;
+                    var shared = drop.m_itemData?.m_shared;
+                    if (shared != null)
+                    {
+                        found.Token = found.Token ?? shared.m_name;
+                        if (found.Icon == null && shared.m_icons != null && shared.m_icons.Length > 0) found.Icon = shared.m_icons[0];
+                    }
+                    break;
+                case Piece piece:
+                    traits.HasPiece = true;
+                    found.Token = found.Token ?? piece.m_name;
+                    found.Icon = found.Icon ?? piece.m_icon;
+                    break;
+                case Projectile _:
+                    traits.HasProjectile = true;
+                    break;
+                case ParticleSystem _:
+                    traits.HasParticles = true;
+                    break;
+                case ParticleSystemRenderer _:
+                    break;
+                case Renderer _:
+                    traits.HasRenderer = true;
+                    break;
+                case Light _:
+                    traits.HasLight = true;
+                    break;
+                case AudioSource _:
+                case ZSFX _:
+                    traits.HasAudio = true;
+                    break;
+                case Collider collider:
+                    if (!collider.isTrigger) traits.HasSolidCollider = true;
+                    break;
+                case LevelEffects levels:
+                    found.ExtraLevels = Math.Max(found.ExtraLevels, levels.m_levelSetups?.Count ?? 0);
+                    break;
+                case WearNTear wear:
+                    found.HasWear |= (wear.m_worn != null && wear.m_worn != wear.m_new)
+                                     || (wear.m_broken != null && wear.m_broken != wear.m_new);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// The interface is part of the scene rather than a prefab, so its sounds are only
+        /// reachable through the live objects. Walking from each one's root covers the whole of it.
+        /// </summary>
+        private static void GatherInterface(Dictionary<string, Found> effects)
+        {
+            var roots = new HashSet<Transform>();
+            AddRoot(InventoryGui.instance, roots);
+            AddRoot(Hud.instance, roots);
+            AddRoot(StoreGui.instance, roots);
+            AddRoot(Minimap.instance, roots);
+            AddRoot(MessageHud.instance, roots);
+            AddRoot(Menu.instance, roots);
+            AddRoot(Chat.instance, roots);
+
+            foreach (var root in roots)
+            {
+                foreach (var component in root.GetComponentsInChildren<Component>(true))
+                {
+                    if (component == null) continue;
+                    try
+                    {
+                        Gather(component, Provenance.Interface, Origin.Vanilla, effects);
+                    }
+                    catch (Exception ex)
+                    {
+                        Plugin.Log.LogDebug($"Scry skipped part of the interface: {ex.Message}");
+                    }
+                }
+            }
+        }
+
+        private static void AddRoot(Component part, HashSet<Transform> roots)
+        {
+            if (part != null) roots.Add(part.transform.root);
+        }
+
+        /// <summary>Records whatever the effect lists on one object point at, and who uses it.</summary>
+        private static void Gather(object owner, string ownerName, Origin ownerOrigin, Dictionary<string, Found> effects)
+        {
+            foreach (var field in EffectFields(owner.GetType()))
+            {
+                if (!(field.GetValue(owner) is EffectList list) || list.m_effectPrefabs == null) continue;
+
+                foreach (var data in list.m_effectPrefabs)
+                {
+                    var prefab = data?.m_prefab;
+                    if (prefab == null) continue;
+
+                    if (!effects.TryGetValue(prefab.name, out var found))
+                    {
+                        found = new Found { Prefab = prefab };
+                        effects[prefab.name] = found;
+                    }
+
+                    if (found.Users.Add(ownerName)) found.UserOrigins.Add(ownerOrigin);
+                }
+            }
+        }
+
+        /// <summary>The EffectList fields on a type and its bases, remembered per type.</summary>
+        private static FieldInfo[] EffectFields(Type type)
+        {
+            if (EffectFieldsByType.TryGetValue(type, out var known)) return known;
+
+            var found = new List<FieldInfo>();
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+
+            for (var t = type; t != null && t != typeof(object); t = t.BaseType)
+            {
+                foreach (var field in t.GetFields(flags))
+                {
+                    if (field.FieldType == typeof(EffectList)) found.Add(field);
+                }
+            }
+
+            known = found.ToArray();
+            EffectFieldsByType[type] = known;
+            return known;
+        }
+
+        /// <summary>The game's text for a name token, or nothing when it has none.</summary>
+        public static string Localize(string token)
+        {
+            if (string.IsNullOrEmpty(token)) return "";
+
+            try
+            {
+                var text = Localization.instance != null ? Localization.instance.Localize(token) : token;
+                if (string.IsNullOrEmpty(text) || text.StartsWith("[", StringComparison.Ordinal) || text.StartsWith("$", StringComparison.Ordinal)) return "";
+                return text;
+            }
+            catch
+            {
+                return "";
+            }
+        }
+    }
+}

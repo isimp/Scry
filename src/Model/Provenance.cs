@@ -32,15 +32,26 @@ namespace Scry
         /// <summary>The origin of an effect, from the prefabs that use it.</summary>
         public Origin OfEffect(IEnumerable<string> usedBy)
         {
-            if (_original == null) return Origin.Unknown;
+            var origins = new List<Origin>();
+            foreach (var user in usedBy) origins.Add(user == Interface ? Origin.Vanilla : Of(user));
+            return Combine(origins);
+        }
 
+        /// <summary>
+        /// The origin of something from the origins of what uses it: the game's when any user is
+        /// the game's, a mod's when every user is known and none is, otherwise not claimed.
+        /// </summary>
+        public static Origin Combine(IEnumerable<Origin> users)
+        {
             var any = false;
-            foreach (var user in usedBy)
+            var unknown = false;
+            foreach (var origin in users)
             {
+                if (origin == Origin.Vanilla) return Origin.Vanilla;
+                if (origin == Origin.Unknown) unknown = true;
                 any = true;
-                if (user == Interface || _original.Contains(user)) return Origin.Vanilla;
             }
-            return any ? Origin.Mod : Origin.Unknown;
+            return any && !unknown ? Origin.Mod : Origin.Unknown;
         }
     }
 }

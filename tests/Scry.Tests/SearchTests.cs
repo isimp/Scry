@@ -40,6 +40,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AWordAfterAnUnderscoreBeatsAMatchInsideAWord()
+        {
+            var catalog = new List<Entry> { E("Stroller", Kind.Other), E("vfx_troll_death", Kind.Effect) };
+
+            var found = Search.Run(catalog, new Query { Text = "troll" }, new List<string>());
+
+            Assert.Equal("vfx_troll_death", found[0].Name);
+        }
+
+        [Fact]
         public void SearchMatchesTheNameShownInGameNotOnlyThePrefabName()
         {
             Assert.Equal(new[] { "Bow" }, Find("crude"));
