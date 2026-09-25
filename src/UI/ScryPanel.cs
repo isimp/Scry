@@ -436,29 +436,43 @@ namespace Scry
             var recentText = "Recent";
             var recentW = Skin.Segment.CalcSize(new GUIContent(recentText)).x + U(6f);
 
-            var search = new Rect(rect.x, rect.y, rect.width - originW - starW * 2f - recentW - gap * 4f, rect.height);
+            // In the compact view the search has the whole first row and the buttons go below it.
+            var row = rect.y;
+            Rect search;
+            if (_compact)
+            {
+                search = new Rect(rect.x, rect.y, rect.width, rect.height);
+                row = rect.yMax + U(8f);
+            }
+            else
+            {
+                search = new Rect(rect.x, rect.y, rect.width - originW - starW * 2f - recentW - gap * 4f, rect.height);
+            }
             Search(explorer, search);
+            var startX = _compact ? rect.x - gap : search.xMax;
 
             // Help for the search terms.
-            var help = new Rect(search.xMax + gap, rect.y, starW, rect.height);
+            var help = new Rect(startX + gap, row, starW, rect.height);
             if (GUI.Button(help, "?", _help ? Skin.On : Skin.IconButton)) _help = !_help;
             if (help.Contains(Event.current.mousePosition)) AskTip("help", "How to search");
 
-            var star = new Rect(help.xMax + gap, rect.y, starW, rect.height);
+            var star = new Rect(help.xMax + gap, row, starW, rect.height);
             if (GUI.Button(star, GUIContent.none, explorer.FavouritesOnly ? Skin.On : Skin.IconButton))
             {
                 explorer.FavouritesOnly = !explorer.FavouritesOnly;
                 _listScroll = Vector2.zero;
+                _help = false;
             }
             var icon = new Rect(star.x + star.width * 0.22f, star.y + star.height * 0.22f, star.width * 0.56f, star.height * 0.56f);
             Skin.Icon(icon, explorer.FavouritesOnly ? Skin.Star : Skin.StarHollow, explorer.FavouritesOnly ? Skin.Accent : Skin.Dim);
             if (star.Contains(Event.current.mousePosition)) AskTip("fav", explorer.FavouritesOnly ? "Showing only favourites" : "Show only favourites");
 
-            var recent = new Rect(star.xMax + gap, rect.y, recentW, rect.height);
+            var recent = new Rect(star.xMax + gap, row, recentW, rect.height);
             if (GUI.Button(recent, recentText, explorer.RecentOnly ? Skin.SegmentOn : Skin.Segment))
             {
                 explorer.RecentOnly = !explorer.RecentOnly;
                 _listScroll = Vector2.zero;
+                _help = false;
             }
             if (recent.Contains(Event.current.mousePosition)) AskTip("recent", "What you looked at last, newest first");
 
@@ -466,17 +480,18 @@ namespace Scry
             for (var i = 0; i < names.Length; i++)
             {
                 var on = (int)explorer.Origin == i;
-                if (GUI.Button(new Rect(x, rect.y, widths[i], rect.height), names[i], on ? Skin.SegmentOn : Skin.Segment))
+                if (GUI.Button(new Rect(x, row, widths[i], rect.height), names[i], on ? Skin.SegmentOn : Skin.Segment))
                 {
                     explorer.Origin = (OriginFilter)i;
                     _listScroll = Vector2.zero;
+                    _help = false;
                 }
                 x += widths[i] + U(4f);
             }
-            var originRect = new Rect(recent.xMax + gap, rect.y, originW, rect.height);
+            var originRect = new Rect(recent.xMax + gap, row, originW, rect.height);
             if (originRect.Contains(Event.current.mousePosition)) AskTip("origin", "Everything, only the game's own, or only what mods added");
 
-            return rect.yMax;
+            return row + rect.height;
         }
 
         private static void Search(Explorer explorer, Rect rect)
@@ -506,6 +521,7 @@ namespace Scry
                 explorer.Text = text;
                 _listScroll = Vector2.zero;
                 _reveal = true;
+                _help = false;
                 hasText = !string.IsNullOrEmpty(text);
             }
 
@@ -574,6 +590,7 @@ namespace Scry
         {
             explorer.KindFilter = kind;
             _listScroll = Vector2.zero;
+            _help = false;
             _reveal = true;
         }
 
@@ -590,7 +607,36 @@ namespace Scry
             {
                 GUI.Label(new Rect(rect.xMax - U(26f) - summaryW, rect.y, summaryW, rect.height), summary, Skin.FaintLabel);
             }
-            GUI.Label(new Rect(rect.x, rect.y, rect.width - U(40f) - summaryW, rect.height), text, note != null ? Skin.DimLabel : Skin.FaintLabel);
+            Ticker(new Rect(rect.x, rect.y, rect.width - U(40f) - summaryW, rect.height), text, note != null ? Skin.DimLabel : Skin.FaintLabel);
+        }
+
+        /// <summary>
+        /// One line of text that does not wrap. When it is longer than its room it slides slowly
+        /// to its end and back, resting a moment at each end, so all of it can be read.
+        /// </summary>
+        private static void Ticker(Rect rect, string text, GUIStyle style)
+        {
+            var width = style.CalcSize(new GUIContent(text)).x;
+            var overflow = width - rect.width;
+            if (overflow <= 0f)
+            {
+                GUI.Label(rect, text, style);
+                return;
+            }
+
+            const float rest = 1.6f;
+            var slide = overflow / Mathf.Max(1f, U(40f));
+            var cycle = 2f * (rest + slide);
+            var phase = Time.unscaledTime % cycle;
+            float along;
+            if (phase < rest) along = 0f;
+            else if (phase < rest + slide) along = (phase - rest) / slide;
+            else if (phase < rest * 2f + slide) along = 1f;
+            else along = 1f - (phase - rest * 2f - slide) / slide;
+
+            GUI.BeginGroup(rect);
+            GUI.Label(new Rect(-overflow * along, 0f, width + U(4f), rect.height), text, style);
+            GUI.EndGroup();
         }
 
         // ----- The list -----
@@ -609,31 +655,50 @@ namespace Scry
         };
 
         /// <summary>How to search, shown in place of the list while the ? button is on.</summary>
+        private static Vector2 _helpScroll;
+        private static float _helpHeight;
+
         private static void HelpCard(Rect rect)
         {
             Skin.Box(rect, Skin.Panel);
-            var x = rect.x + U(18f);
-            var width = rect.width - U(36f);
-            var y = rect.y + U(16f);
+            var closeH = U(30f);
+            var area = new Rect(rect.x + U(4f), rect.y + U(6f), rect.width - U(8f), rect.height - closeH - U(20f));
+            var view = new Rect(0f, 0f, area.width - U(14f), Mathf.Max(_helpHeight, area.height));
+            _helpScroll = GUI.BeginScrollView(area, _helpScroll, view, false, false, GUIStyle.none, Skin.Gui.verticalScrollbar);
+
+            var x = U(14f);
+            var width = view.width - U(24f);
+            var y = U(10f);
 
             GUI.Label(new Rect(x, y, width, U(26f)), "How to search", Skin.Big);
             y += U(34f);
 
-            var keyW = Mathf.Min(U(170f), width * 0.42f);
+            // Side by side when there is room, the example above its meaning when not.
+            var stacked = width < U(420f);
+            var keyW = stacked ? width : Mathf.Min(U(190f), width * 0.42f);
             foreach (var line in HelpLines)
             {
-                var height = Mathf.Max(U(22f), Skin.DimWrap.CalcHeight(new GUIContent(line[1]), width - keyW - U(10f)));
-                Skin.Box(new Rect(x - U(4f), y - U(1f), keyW, U(24f)), Skin.Raised);
-                GUI.Label(new Rect(x + U(4f), y, keyW - U(8f), U(22f)), line[0], Skin.Label);
-                GUI.Label(new Rect(x + keyW + U(10f), y + U(2f), width - keyW - U(10f), height), line[1], Skin.DimWrap);
-                y += height + U(10f);
+                var keyText = new GUIContent(line[0]);
+                var boxW = Mathf.Min(keyW, Skin.Label.CalcSize(keyText).x + U(16f));
+                Skin.Box(new Rect(x - U(4f), y - U(1f), boxW, U(24f)), Skin.Raised);
+                GUI.Label(new Rect(x + U(4f), y, boxW - U(8f), U(22f)), line[0], Skin.Label);
+
+                var textX = stacked ? x : x + keyW + U(10f);
+                var textY = stacked ? y + U(28f) : y + U(2f);
+                var textW = stacked ? width : width - keyW - U(10f);
+                var height = Skin.DimWrap.CalcHeight(new GUIContent(line[1]), textW);
+                GUI.Label(new Rect(textX, textY, textW, height), line[1], Skin.DimWrap);
+                y = Mathf.Max(y + U(24f), textY + height) + U(12f);
             }
 
-            y += U(6f);
             const string more = "The star shows only favourites, Recent what you looked at last. The kind tabs, Game or Mods, and all of the above work together.";
-            GUI.Label(new Rect(x, y, width, Skin.DimWrap.CalcHeight(new GUIContent(more), width)), more, Skin.DimWrap);
+            var moreH = Skin.DimWrap.CalcHeight(new GUIContent(more), width);
+            GUI.Label(new Rect(x, y, width, moreH), more, Skin.DimWrap);
+            if (Event.current.type == EventType.Repaint) _helpHeight = y + moreH + U(12f);
 
-            if (GUI.Button(new Rect(rect.xMax - U(96f), rect.yMax - U(42f), U(80f), U(30f)), "Close", Skin.Button)) _help = false;
+            GUI.EndScrollView();
+
+            if (GUI.Button(new Rect(rect.xMax - U(96f), rect.yMax - closeH - U(10f), U(80f), closeH), "Close", Skin.Button)) _help = false;
         }
 
         private static void List(Explorer explorer, Rect rect)
@@ -821,7 +886,7 @@ namespace Scry
             }
             y = Adjust(explorer, entry, cw, y, withStage);
             y = Effects(entry, cw, y, withStage);
-            y = FactsSection(entry, cw, y);
+            y = FactsSection(explorer, entry, cw, y);
             y = Command(explorer, entry, cw, y);
             y = Details(entry, cw, y);
             if (Event.current.type == EventType.Repaint) _sideHeight = y + U(8f);
@@ -854,6 +919,9 @@ namespace Scry
                         "Drag to turn, scroll to zoom, double-click to reset", Skin.FaintLabel);
                 }
 
+                // The stage's own buttons come before its dragging, which would otherwise take their clicks.
+                StageButtons(entry, rect);
+
                 if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
                 {
                     if (e.clickCount == 2) Stage.ResetView();
@@ -884,7 +952,6 @@ namespace Scry
             }
 
             KindBadge(entry, new Vector2(rect.x + U(10f), rect.y + U(10f)));
-            if (Stage.IsStaged(entry)) StageButtons(rect);
         }
 
         /// <summary>The kind, in its colour, as a small pill.</summary>
@@ -1452,7 +1519,7 @@ namespace Scry
         // ----- Stage buttons -----
 
         /// <summary>The person for size, the lighting and the backdrop, in the stage's top right corner.</summary>
-        private static void StageButtons(Rect rect)
+        private static void StageButtons(Entry entry, Rect rect)
         {
             var h = U(24f);
             var y = rect.y + U(10f);
@@ -1546,23 +1613,34 @@ namespace Scry
 
         // ----- Facts -----
 
-        private static float FactsSection(Entry entry, float width, float y)
+        private static float FactsSection(Explorer explorer, Entry entry, float width, float y)
         {
             var facts = Facts.For(entry);
             if (facts.IsEmpty) return y;
 
-            y = SectionHeading("FACTS", width, y, null);
+            y = SectionHeading("IN THE GAME", width, y, null);
 
-            foreach (var line in facts.Lines)
+            if (facts.Description.Length > 0)
             {
-                var height = Skin.Wrap.CalcHeight(new GUIContent(line), width);
-                GUI.Label(new Rect(0f, y, width, height), line, Skin.Wrap);
+                var height = Skin.Wrap.CalcHeight(new GUIContent(facts.Description), width);
+                GUI.Label(new Rect(0f, y, width, height), facts.Description, Skin.Wrap);
+                y += height + U(10f);
+            }
+
+            // A two-column table: what it is on the left, its value on the right.
+            var labelW = Mathf.Min(U(130f), width * 0.36f);
+            foreach (var pair in facts.Pairs)
+            {
+                var valueW = width - labelW - U(10f);
+                var height = Mathf.Max(U(20f), Skin.Wrap.CalcHeight(new GUIContent(pair.Value), valueW));
+                GUI.Label(new Rect(0f, y, labelW, U(20f)), pair.Key, Skin.DimLabel);
+                GUI.Label(new Rect(labelW + U(10f), y + U(1f), valueW, height), pair.Value, Skin.Wrap);
                 y += height + U(5f);
             }
 
             foreach (var row in facts.Rows)
             {
-                y += U(4f);
+                y += U(6f);
                 GUI.Label(new Rect(0f, y, width, U(20f)), row.Title, Skin.DimLabel);
                 y += U(24f);
 
@@ -1578,9 +1656,22 @@ namespace Scry
                         y += chipH + U(5f);
                     }
                     var chip = new Rect(x, y, w, chipH);
-                    Skin.PillBox(chip, Skin.Raised);
+                    var hover = chip.Contains(Event.current.mousePosition);
+                    Skin.PillBox(chip, hover ? Skin.RaisedHover : Skin.Raised);
                     if (item.Icon != null) DrawSprite(item.Icon, new Rect(chip.x + U(6f), chip.y + U(4f), U(22f), U(22f)));
                     GUI.Label(new Rect(chip.x + U(32f), chip.y, chip.width - U(36f), chip.height), text, Skin.Small);
+
+                    // Clicking an ingredient or a drop goes to it.
+                    if (!string.IsNullOrEmpty(item.Prefab))
+                    {
+                        if (hover) AskTip("goto:" + item.Prefab, $"Go to {item.Name}");
+                        if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(item.Prefab))
+                        {
+                            _reveal = true;
+                            _sideScroll = Vector2.zero;
+                            _help = false;
+                        }
+                    }
                     x += w + U(6f);
                 }
                 y += chipH + U(6f);
@@ -1588,11 +1679,13 @@ namespace Scry
 
             if (facts.Where.Count > 0)
             {
-                y += U(4f);
+                y += U(6f);
+                GUI.Label(new Rect(0f, y, width, U(20f)), facts.WhereTitle, Skin.DimLabel);
+                y += U(24f);
                 foreach (var line in facts.Where)
                 {
-                    var height = Skin.DimWrap.CalcHeight(new GUIContent(line), width);
-                    GUI.Label(new Rect(0f, y, width, height), line, Skin.DimWrap);
+                    var height = Skin.Wrap.CalcHeight(new GUIContent(line), width);
+                    GUI.Label(new Rect(0f, y, width, height), line, Skin.Wrap);
                     y += height + U(3f);
                 }
             }

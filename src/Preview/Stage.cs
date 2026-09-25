@@ -220,7 +220,7 @@ namespace Scry
             var center = Origin + (_bounds.center - Origin) * _scale;
             foreach (var data in list.m_effectPrefabs)
             {
-                if (data == null || !data.m_enabled || data.m_prefab == null) continue;
+                if (data == null || !data.m_enabled || data.m_prefab == null || Ghost.IsWholeModel(data.m_prefab)) continue;
 
                 var anchor = _subject.transform;
                 var at = center;
@@ -303,6 +303,37 @@ namespace Scry
                 RenderSettings.ambientGroundColor = ground;
                 if (sun != null) sun.cullingMask = sunMask;
             }
+        }
+
+        /// <summary>
+        /// Writes every renderer on the stage copy to the log: where it sits, whether it is on,
+        /// what it draws and how big it is. For finding out why part of a model does not show.
+        /// </summary>
+        public static string Dump()
+        {
+            if (_subject == null) return "Nothing is on the stage.";
+
+            var lines = new List<string> { $"Scry stage copy {_subject.name}, layer {_layer}, scale {_scale}:" };
+            foreach (var renderer in _subject.GetComponentsInChildren<Renderer>(true))
+            {
+                var path = renderer.transform == _subject.transform ? renderer.name : Path(renderer.transform);
+                var mesh = renderer is SkinnedMeshRenderer skinned ? skinned.sharedMesh
+                    : renderer.GetComponent<MeshFilter>()?.sharedMesh;
+                var bones = renderer is SkinnedMeshRenderer s ? $", bones {s.bones.Length}, bindposes {(s.sharedMesh != null ? s.sharedMesh.bindposes.Length : 0)}, root {(s.rootBone != null ? s.rootBone.name : "none")}" : "";
+                var material = renderer.sharedMaterial != null ? renderer.sharedMaterial.name + " / " + (renderer.sharedMaterial.shader != null ? renderer.sharedMaterial.shader.name : "no shader") : "no material";
+                lines.Add($"  {path}: {renderer.GetType().Name}, active {renderer.gameObject.activeInHierarchy}, enabled {renderer.enabled}, layer {renderer.gameObject.layer}, mesh {(mesh != null ? mesh.name : "none")}{bones}, {material}, bounds {renderer.bounds.center} size {renderer.bounds.size}");
+            }
+
+            foreach (var line in lines) Plugin.Log.LogInfo(line);
+            return $"Wrote {lines.Count - 1} renderers of {_subject.name} to the log.";
+        }
+
+        private static string Path(Transform t)
+        {
+            var parts = new List<string>();
+            for (; t != null && t != _subject.transform; t = t.parent) parts.Add(t.name);
+            parts.Reverse();
+            return string.Join("/", parts);
         }
 
         public static void ClearSubject()

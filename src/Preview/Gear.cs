@@ -146,10 +146,21 @@ namespace Scry
             worn.transform.localPosition = Vector3.zero;
             worn.transform.localRotation = Quaternion.identity;
 
+            var bones = body.bones;
             foreach (var renderer in worn.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
+                // Armour made for another skeleton cannot be bound to this one; it is left off
+                // rather than drawn twisted.
+                var mesh = renderer.sharedMesh;
+                if (mesh != null && mesh.bindposes.Length != bones.Length)
+                {
+                    Plugin.Log.LogDebug($"Scry left {part.name} off: made for {mesh.bindposes.Length} bones, the body has {bones.Length}.");
+                    renderer.enabled = false;
+                    continue;
+                }
+
                 renderer.rootBone = body.rootBone;
-                renderer.bones = body.bones;
+                renderer.bones = bones;
                 renderer.updateWhenOffscreen = true;
             }
         }

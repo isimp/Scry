@@ -21,6 +21,12 @@ namespace Scry
                         return;
                     }
 
+                    if (rest.Equals("dump", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        args.Context?.AddString("Scry: " + Stage.Dump());
+                        return;
+                    }
+
                     if (rest.Length > 0) Session.Show(rest);
                     else Session.Toggle();
                 });

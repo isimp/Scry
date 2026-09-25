@@ -142,6 +142,37 @@ namespace Scry
             Select(_results[index]);
         }
 
+        /// <summary>
+        /// Selects the prefab of that name, as when an ingredient or a drop is clicked. When the
+        /// search or the filters hide it, they are cleared so it shows. False when there is none.
+        /// </summary>
+        public bool Jump(string prefabName)
+        {
+            Entry target = null;
+            foreach (var entry in _catalog)
+            {
+                if (entry.Kind != Kind.StatusEffect && entry.Name == prefabName)
+                {
+                    target = entry;
+                    break;
+                }
+            }
+            if (target == null) return false;
+
+            if (!_results.Contains(target))
+            {
+                _query.Text = "";
+                _query.Kind = null;
+                _query.FavouritesOnly = false;
+                _query.Origin = OriginFilter.All;
+                _recentOnly = false;
+                Refresh();
+            }
+
+            Select(target);
+            return true;
+        }
+
         public void ToggleFavourite(Entry entry)
         {
             _favourites.Toggle(entry);

@@ -522,7 +522,7 @@ namespace Scry
             if (list?.m_effectPrefabs == null) return;
             foreach (var data in list.m_effectPrefabs)
             {
-                if (data == null || !data.m_enabled || data.m_prefab == null) continue;
+                if (data == null || !data.m_enabled || data.m_prefab == null || Ghost.IsWholeModel(data.m_prefab)) continue;
                 Remember(Ghost.Make(data.m_prefab, null, position, rotation), EffectSeconds);
             }
         }
@@ -659,7 +659,7 @@ namespace Scry
             if (list?.m_effectPrefabs == null) return false;
             foreach (var data in list.m_effectPrefabs)
             {
-                if (data != null && data.m_enabled && data.m_prefab != null) return true;
+                if (data != null && data.m_enabled && data.m_prefab != null && !Ghost.IsWholeModel(data.m_prefab)) return true;
             }
             return false;
         }
@@ -676,7 +676,7 @@ namespace Scry
 
             foreach (var data in list.m_effectPrefabs)
             {
-                if (data == null || !data.m_enabled || data.m_prefab == null) continue;
+                if (data == null || !data.m_enabled || data.m_prefab == null || Ghost.IsWholeModel(data.m_prefab)) continue;
 
                 var anchor = player.transform;
                 if (!string.IsNullOrEmpty(data.m_childTransform))

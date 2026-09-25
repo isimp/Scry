@@ -331,7 +331,7 @@ namespace Scry
 
             try
             {
-                var text = Localization.instance != null ? Localization.instance.Localize(token) : token;
+                var text = Naming.Plain(Localization.instance != null ? Localization.instance.Localize(token) : token).Trim();
                 if (string.IsNullOrEmpty(text) || text.StartsWith("[", StringComparison.Ordinal) || text.StartsWith("$", StringComparison.Ordinal)) return "";
                 return text;
             }

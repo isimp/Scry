@@ -26,13 +26,29 @@ namespace Scry
             public Sprite Icon;
             public string Name;
             public string Amount;
+
+            /// <summary>The prefab, so the panel can jump to it.</summary>
+            public string Prefab;
         }
 
-        public readonly List<string> Lines = new List<string>();
-        public readonly List<Row> Rows = new List<Row>();
-        public readonly List<string> Where = new List<string>();
+        /// <summary>The text the game describes it with, if any.</summary>
+        public string Description = "";
 
-        public bool IsEmpty => Lines.Count == 0 && Rows.Count == 0 && Where.Count == 0;
+        /// <summary>Named values, shown as a two-column table.</summary>
+        public readonly List<KeyValuePair<string, string>> Pairs = new List<KeyValuePair<string, string>>();
+
+        public readonly List<Row> Rows = new List<Row>();
+
+        /// <summary>Where it lives, comes from, or what gives it, under <see cref="WhereTitle"/>.</summary>
+        public readonly List<string> Where = new List<string>();
+        public string WhereTitle = "Where it comes from";
+
+        public bool IsEmpty => Description.Length == 0 && Pairs.Count == 0 && Rows.Count == 0 && Where.Count == 0;
+
+        private void Add(string label, string value)
+        {
+            if (!string.IsNullOrEmpty(value)) Pairs.Add(new KeyValuePair<string, string>(label, value));
+        }
 
         private static readonly Dictionary<Entry, Facts> Cache = new Dictionary<Entry, Facts>();
 
@@ -44,11 +60,25 @@ namespace Scry
             var facts = new Facts();
             try
             {
-                if (entry.Source is StatusEffect effect) facts.StatusEffect(effect);
-                else if (entry.Source is GameObject prefab) facts.Prefab(prefab);
+                if (entry.Source is StatusEffect effect)
+                {
+                    facts.StatusEffect(effect);
+                    facts.WhereTitle = "What gives it";
+                    facts.Where.AddRange(Knowledge.GiverLines(effect.name));
+                }
+                else if (entry.Source is GameObject prefab)
+                {
+                    facts.Prefab(prefab);
+                    if (entry.Kind == Kind.Creature) facts.WhereTitle = "Where it lives";
+                    facts.Where.AddRange(Knowledge.WhereLines(entry.Name));
+                    facts.Where.AddRange(Knowledge.SourceLines(entry.Name));
 
-                facts.Where.AddRange(Knowledge.WhereLines(entry.Name));
-                facts.Where.AddRange(Knowledge.SourceLines(entry.Name));
+                    // An item nothing makes, drops or sells here comes from somewhere Scry cannot see.
+                    if (entry.Kind == Kind.Item && facts.Where.Count == 0 && !facts.Rows.Any(r => r.Title.StartsWith("Made")))
+                    {
+                        facts.Where.Add("Nothing loaded makes, drops or sells it. It may come from a location, a dungeon, an event or a mod.");
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -78,29 +108,27 @@ namespace Scry
 
         private void Item(GameObject prefab, ItemDrop.ItemData.SharedData shared)
         {
-            var description = CatalogBuilder.Localize(shared.m_description);
-            if (description.Length > 0) Lines.Add(description);
+            Description = CatalogBuilder.Localize(shared.m_description);
 
-            var basics = new List<string> { Naming.FieldLabel(shared.m_itemType.ToString()) };
-            basics.Add("weight " + Number(shared.m_weight));
-            if (shared.m_value > 0) basics.Add($"worth {shared.m_value}");
-            if (shared.m_maxStackSize > 1) basics.Add($"stacks to {shared.m_maxStackSize}");
-            if (shared.m_maxQuality > 1) basics.Add($"quality up to {shared.m_maxQuality}");
-            if (!shared.m_teleportable) basics.Add("cannot go through portals");
-            Lines.Add(string.Join(", ", basics));
+            Add("Type", Word(shared.m_itemType));
+            Add("Weight", Number(shared.m_weight));
+            if (shared.m_value > 0) Add("Worth", $"{shared.m_value} coins");
+            if (shared.m_maxStackSize > 1) Add("Stacks to", shared.m_maxStackSize.ToString(CultureInfo.InvariantCulture));
+            if (shared.m_maxQuality > 1) Add("Quality", $"up to {shared.m_maxQuality}");
+            if (!shared.m_teleportable) Add("Portals", "cannot go through");
 
             var damage = Damages(shared.m_damages);
             if (damage.Length > 0)
             {
-                var more = Damages(shared.m_damagesPerLevel);
-                Lines.Add("Damage: " + damage + (more.Length > 0 ? $" (per quality: {more})" : ""));
+                Add("Damage", damage);
+                Add("Per quality", Damages(shared.m_damagesPerLevel));
             }
 
             var type = shared.m_itemType;
             var worn = type == ItemDrop.ItemData.ItemType.Helmet || type == ItemDrop.ItemData.ItemType.Chest
                        || type == ItemDrop.ItemData.ItemType.Legs || type == ItemDrop.ItemData.ItemType.Shoulder;
-            if (worn && shared.m_armor > 0f) Lines.Add($"Armour {Number(shared.m_armor)} (per quality {Number(shared.m_armorPerLevel)})");
-            if (type == ItemDrop.ItemData.ItemType.Shield && shared.m_blockPower > 0f) Lines.Add($"Block {Number(shared.m_blockPower)} (per quality {Number(shared.m_blockPowerPerLevel)})");
+            if (worn && shared.m_armor > 0f) Add("Armour", $"{Number(shared.m_armor)}, +{Number(shared.m_armorPerLevel)} per quality");
+            if (type == ItemDrop.ItemData.ItemType.Shield && shared.m_blockPower > 0f) Add("Block", $"{Number(shared.m_blockPower)}, +{Number(shared.m_blockPowerPerLevel)} per quality");
 
             if (shared.m_food > 0f || shared.m_foodStamina > 0f || shared.m_foodEitr > 0f)
             {
@@ -108,19 +136,17 @@ namespace Scry
                 if (shared.m_food > 0f) food.Add($"{Number(shared.m_food)} health");
                 if (shared.m_foodStamina > 0f) food.Add($"{Number(shared.m_foodStamina)} stamina");
                 if (shared.m_foodEitr > 0f) food.Add($"{Number(shared.m_foodEitr)} eitr");
-                if (shared.m_foodRegen > 0f) food.Add($"heals {Number(shared.m_foodRegen)} a tick");
-                if (shared.m_foodBurnTime > 0f) food.Add($"lasts {Minutes(shared.m_foodBurnTime)}");
-                Lines.Add("Food: " + string.Join(", ", food));
+                Add("Food", string.Join(", ", food));
+                if (shared.m_foodRegen > 0f) Add("Heals", $"{Number(shared.m_foodRegen)} a tick");
+                if (shared.m_foodBurnTime > 0f) Add("Lasts", Minutes(shared.m_foodBurnTime));
             }
 
-            if (shared.m_toolTier > 0) Lines.Add($"Tool tier {shared.m_toolTier}");
-            if (Math.Abs(shared.m_movementModifier) > 0.001f) Lines.Add($"Movement {Percent(shared.m_movementModifier)}");
-            if (!string.IsNullOrEmpty(shared.m_setName)) Lines.Add("Part of the set " + shared.m_setName);
-            if (shared.m_equipStatusEffect != null)
-            {
-                var effect = CatalogBuilder.Localize(shared.m_equipStatusEffect.m_name);
-                Lines.Add("When worn: " + (effect.Length > 0 ? effect : shared.m_equipStatusEffect.name));
-            }
+            if (shared.m_toolTier > 0) Add("Tool tier", shared.m_toolTier.ToString(CultureInfo.InvariantCulture));
+            if (Math.Abs(shared.m_movementModifier) > 0.001f) Add("Movement", Percent(shared.m_movementModifier));
+            if (!string.IsNullOrEmpty(shared.m_setName)) Add("Set", shared.m_setName);
+            if (shared.m_equipStatusEffect != null) Add("When worn", EffectName(shared.m_equipStatusEffect));
+            if (shared.m_consumeStatusEffect != null) Add("When used", EffectName(shared.m_consumeStatusEffect));
+            if (shared.m_attackStatusEffect != null) Add("On hit", EffectName(shared.m_attackStatusEffect));
 
             var db = ObjectDB.instance;
             if (db == null) return;
@@ -153,10 +179,9 @@ namespace Scry
 
         private void Creature(GameObject prefab, Character character)
         {
-            var basics = new List<string> { $"Health {Number(character.m_health)}" };
-            basics.Add(Naming.FieldLabel(character.m_faction.ToString()).ToLowerInvariant());
-            if (character.m_boss) basics.Add("a boss");
-            Lines.Add(string.Join(", ", basics));
+            Add("Health", Number(character.m_health));
+            Add("Faction", Word(character.m_faction));
+            if (character.m_boss) Add("Boss", "yes");
 
             var groups = new SortedDictionary<string, List<string>>();
             var mods = character.m_damageModifiers;
@@ -170,13 +195,13 @@ namespace Scry
                 if (!groups.TryGetValue(group, out var list)) groups[group] = list = new List<string>();
                 list.Add(Naming.FieldLabel(field.Name).ToLowerInvariant());
             }
-            foreach (var group in groups) Lines.Add($"{group.Key} {string.Join(", ", group.Value)}");
+            foreach (var group in groups) Add(group.Key, string.Join(", ", group.Value));
 
             if (prefab.GetComponent<Tameable>() != null)
             {
                 var ai = prefab.GetComponent<MonsterAI>();
                 var food = ai?.m_consumeItems?.Where(i => i != null).Select(i => ItemName(i.gameObject)).ToList() ?? new List<string>();
-                Lines.Add(food.Count > 0 ? "Can be tamed, eats " + string.Join(", ", food) : "Can be tamed");
+                Add("Tameable", food.Count > 0 ? "yes, eats " + string.Join(", ", food) : "yes");
             }
 
             var drops = prefab.GetComponent<CharacterDrop>();
@@ -188,12 +213,13 @@ namespace Scry
                     if (drop?.m_prefab == null) continue;
                     var amount = drop.m_amountMin == drop.m_amountMax ? $"{drop.m_amountMin}" : $"{drop.m_amountMin}-{drop.m_amountMax}";
                     if (drop.m_chance < 1f) amount += $" ({Mathf.RoundToInt(drop.m_chance * 100f)}%)";
-                    row.Items.Add(new Ingredient { Icon = Icon(drop.m_prefab), Name = ItemName(drop.m_prefab), Amount = amount });
+                    row.Items.Add(new Ingredient { Icon = Icon(drop.m_prefab), Name = ItemName(drop.m_prefab), Amount = amount, Prefab = drop.m_prefab.name });
                 }
                 if (row.Items.Count > 0) Rows.Add(row);
             }
         }
 
+        /// <summary>How a damage modifier reads as a label, e.g. "Weak to".</summary>
         private static string ModifierWords(HitData.DamageModifier modifier)
         {
             switch (modifier)
@@ -201,12 +227,12 @@ namespace Scry
                 case HitData.DamageModifier.VeryWeak: return "Very weak to";
                 case HitData.DamageModifier.Weak: return "Weak to";
                 case HitData.DamageModifier.SlightlyWeak: return "Slightly weak to";
-                case HitData.DamageModifier.SlightlyResistant: return "Slightly resistant to";
-                case HitData.DamageModifier.Resistant: return "Resistant to";
-                case HitData.DamageModifier.VeryResistant: return "Very resistant to";
+                case HitData.DamageModifier.SlightlyResistant: return "Slightly resists";
+                case HitData.DamageModifier.Resistant: return "Resists";
+                case HitData.DamageModifier.VeryResistant: return "Strongly resists";
                 case HitData.DamageModifier.Immune: return "Immune to";
                 case HitData.DamageModifier.Ignore: return "Unaffected by";
-                default: return modifier.ToString();
+                default: return Naming.FieldLabel(modifier.ToString());
             }
         }
 
@@ -214,14 +240,14 @@ namespace Scry
 
         private void Piece(Piece piece, WearNTear wear)
         {
-            var basics = new List<string> { Naming.FieldLabel(piece.m_category.ToString()) };
-            if (piece.m_comfort > 0) basics.Add($"comfort {piece.m_comfort}");
+            Description = CatalogBuilder.Localize(piece.m_description);
+            Add("Category", Word(piece.m_category));
+            if (piece.m_comfort > 0) Add("Comfort", piece.m_comfort.ToString(CultureInfo.InvariantCulture));
             if (wear != null)
             {
-                basics.Add($"health {Number(wear.m_health)}");
-                basics.Add(Naming.FieldLabel(wear.m_materialType.ToString()).ToLowerInvariant());
+                Add("Health", Number(wear.m_health));
+                Add("Material", Word(wear.m_materialType));
             }
-            Lines.Add(string.Join(", ", basics));
 
             if (piece.m_resources != null && piece.m_resources.Length > 0)
             {
@@ -239,7 +265,10 @@ namespace Scry
                 if (need?.m_resItem == null) continue;
                 var amount = need.m_amount.ToString(CultureInfo.InvariantCulture);
                 if (need.m_amountPerLevel > 0) amount += $" (+{need.m_amountPerLevel})";
-                row.Items.Add(new Ingredient { Icon = Icon(need.m_resItem.gameObject), Name = ItemName(need.m_resItem.gameObject), Amount = amount });
+                row.Items.Add(new Ingredient
+                {
+                    Icon = Icon(need.m_resItem.gameObject), Name = ItemName(need.m_resItem.gameObject), Amount = amount, Prefab = need.m_resItem.gameObject.name,
+                });
             }
             return row;
         }
@@ -252,6 +281,7 @@ namespace Scry
         /// </summary>
         private void StatusEffect(StatusEffect effect)
         {
+            Description = CatalogBuilder.Localize(effect.m_tooltip);
             ScriptableObject blank = null;
             try
             {
@@ -265,14 +295,16 @@ namespace Scry
 
                     var value = field.GetValue(effect);
                     if (Equals(value, field.GetValue(blank))) continue;
-                    Lines.Add($"{Naming.FieldLabel(field.Name)}: {Shown(value)}");
+                    var shown = Shown(value);
+                    if (shown != null) Add(Naming.FieldLabel(field.Name), shown);
                 }
 
                 if (effect is SE_Stats stats && stats.m_mods != null)
                 {
                     foreach (var pair in stats.m_mods)
                     {
-                        Lines.Add($"{ModifierWords(pair.m_modifier)} {pair.m_type.ToString().ToLowerInvariant()}");
+                        var damage = Word(pair.m_type);
+                        if (damage != null) Add(ModifierWords(pair.m_modifier), damage.ToLowerInvariant());
                     }
                 }
             }
@@ -305,12 +337,31 @@ namespace Scry
             return icons != null && icons.Length > 0 ? icons[0] : null;
         }
 
+        /// <summary>A value as text, or null for a choice the game has no name for (a mod's own numbered one).</summary>
         private static string Shown(object value)
         {
             if (value is float f) return Number(f);
             if (value is bool b) return b ? "yes" : "no";
-            if (value != null && value.GetType().IsEnum) return Naming.FieldLabel(value.ToString()).ToLowerInvariant();
+            if (value is Enum e) return Word(e)?.ToLowerInvariant();
             return Convert.ToString(value, CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// A choice by its name, "OneHandedWeapon" as "One handed weapon". Null when the value has
+        /// no name, which is how a mod's own categories and factions show up, as bare numbers.
+        /// Flags that combine several names are joined.
+        /// </summary>
+        private static string Word(Enum value)
+        {
+            var text = value.ToString();
+            if (text.Length > 0 && (char.IsDigit(text[0]) || text[0] == '-')) return null;
+            return string.Join(", ", text.Split(new[] { ", " }, StringSplitOptions.None).Select(Naming.FieldLabel));
+        }
+
+        private static string EffectName(StatusEffect effect)
+        {
+            var name = CatalogBuilder.Localize(effect.m_name);
+            return name.Length > 0 ? name : effect.name;
         }
 
         private static string Number(float value)

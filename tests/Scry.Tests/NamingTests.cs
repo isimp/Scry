@@ -26,6 +26,17 @@ namespace Scry.Tests
         }
 
         [Theory]
+        [InlineData("<color=orange>Lord Reto</color>", "Lord Reto")]
+        [InlineData("<b>Bold</b> and <i>plain</i>", "Bold and plain")]
+        [InlineData("<size=20><color=#ff0000>Big</color></size>", "Big")]
+        [InlineData("Less < more > still", "Less < more > still")]
+        [InlineData("Troll", "Troll")]
+        public void ANameIsShownWithoutTheMarkupAModPutInIt(string raw, string shown)
+        {
+            Assert.Equal(shown, Naming.Plain(raw));
+        }
+
+        [Theory]
         [InlineData("m_effects")]
         [InlineData("")]
         [InlineData(null)]

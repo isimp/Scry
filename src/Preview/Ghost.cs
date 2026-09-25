@@ -54,6 +54,17 @@ namespace Scry
             }
         }
 
+        /// <summary>
+        /// Whether a prefab an effect list points at is a whole model rather than an effect: a
+        /// ragdoll that takes a creature's place when it dies, a creature, or an item. Without its
+        /// physics such a copy only stands there as a second model, so effects leave it out.
+        /// </summary>
+        public static bool IsWholeModel(GameObject prefab)
+        {
+            return prefab != null && (prefab.GetComponentInChildren<Ragdoll>(true) != null
+                || prefab.GetComponentInChildren<Character>(true) != null || prefab.GetComponent<ItemDrop>() != null);
+        }
+
         public static void SetLayer(Transform t, int layer)
         {
             t.gameObject.layer = layer;

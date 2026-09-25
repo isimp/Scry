@@ -57,6 +57,8 @@ namespace Scry
             Try("nests and spawn points", () => Spawners(prefabs));
             Try("vegetation", Vegetation);
             Try("drops", () => Drops(prefabs));
+            Try("makers and traders", () => Makers(prefabs));
+            Try("status effect givers", () => Givers(prefabs));
             Try("Jotunn's registry", JotunnMods);
             Try("asset bundles", () => BundleMods(prefabs));
         }
@@ -189,7 +191,7 @@ namespace Scry
                 foreach (var point in prefab.GetComponentsInChildren<CreatureSpawner>(true))
                 {
                     if (point.m_creaturePrefab == null) continue;
-                    Add(point.m_creaturePrefab.name, $"Placed by the spawn point {prefab.name}");
+                    Add(point.m_creaturePrefab.name, $"In dungeons or locations, from the spawn point {prefab.name}");
                 }
             }
         }
@@ -260,6 +262,162 @@ namespace Scry
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// What else makes an item: every list on a prefab whose entries turn one item into
+        /// another (smelters, kilns, fermenters, cooking stations, and any mod's that works the
+        /// same way), and what traders sell. Traders stand in locations, so only those loaded are
+        /// found.
+        /// </summary>
+        private static void Makers(List<GameObject> prefabs)
+        {
+            void From(GameObject item, string line)
+            {
+                if (item == null) return;
+                if (!ComesFrom.TryGetValue(item.name, out var lines)) ComesFrom[item.name] = lines = new List<string>();
+                if (!lines.Contains(line) && lines.Count < 40) lines.Add(line);
+            }
+
+            foreach (var prefab in prefabs)
+            {
+                foreach (var component in prefab.GetComponentsInChildren<Component>(true))
+                {
+                    if (component == null) continue;
+                    foreach (var field in Conversions(component.GetType()))
+                    {
+                        if (!(field.GetValue(component) is System.Collections.IEnumerable list)) continue;
+                        foreach (var conversion in list)
+                        {
+                            if (conversion == null) continue;
+                            var type = conversion.GetType();
+                            var from = type.GetField("m_from")?.GetValue(conversion) as ItemDrop;
+                            var to = type.GetField("m_to")?.GetValue(conversion) as ItemDrop;
+                            if (from == null || to == null) continue;
+                            From(to.gameObject, $"Made from {ItemName(from.gameObject)} in {Shown(prefab)}");
+                        }
+                    }
+                }
+            }
+
+            foreach (var trader in Resources.FindObjectsOfTypeAll<Trader>())
+            {
+                if (trader == null || trader.m_items == null) continue;
+                var name = CatalogBuilder.Localize(trader.m_name);
+                if (name.Length == 0) name = trader.gameObject.name;
+                foreach (var trade in trader.m_items)
+                {
+                    if (trade?.m_prefab == null) continue;
+                    var stack = trade.m_stack > 1 ? $"{trade.m_stack} for " : "";
+                    From(trade.m_prefab.gameObject, $"Sold by {name}, {stack}{trade.m_price} coins");
+                }
+            }
+        }
+
+        private static readonly Dictionary<Type, FieldInfo[]> ConversionFields = new Dictionary<Type, FieldInfo[]>();
+
+        /// <summary>Fields holding a list or array of entries with an m_from and an m_to item.</summary>
+        private static FieldInfo[] Conversions(Type type)
+        {
+            if (ConversionFields.TryGetValue(type, out var known)) return known;
+            var found = new List<FieldInfo>();
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+            for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour); t = t.BaseType)
+            {
+                foreach (var field in t.GetFields(flags))
+                {
+                    var element = field.FieldType.IsArray ? field.FieldType.GetElementType()
+                        : field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(List<>) ? field.FieldType.GetGenericArguments()[0] : null;
+                    if (element == null) continue;
+                    if (element.GetField("m_from")?.FieldType == typeof(ItemDrop) && element.GetField("m_to")?.FieldType == typeof(ItemDrop)) found.Add(field);
+                }
+            }
+            known = found.ToArray();
+            ConversionFields[type] = known;
+            return known;
+        }
+
+        private static readonly Dictionary<string, List<string>> GivenBy = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        private static readonly Dictionary<Type, FieldInfo[]> EffectRefFields = new Dictionary<Type, FieldInfo[]>();
+
+        /// <summary>Lines saying what gives a status effect, or none.</summary>
+        public static IReadOnlyList<string> GiverLines(string statusEffect)
+        {
+            return GivenBy.TryGetValue(statusEffect, out var lines) ? lines : (IReadOnlyList<string>)Array.Empty<string>();
+        }
+
+        /// <summary>
+        /// What gives each status effect: any item, attack or part of a prefab that names it,
+        /// whether by reference (eating, wearing, a set, an attack, a guardian power) or by name
+        /// (areas of effect, and the like).
+        /// </summary>
+        private static void Givers(List<GameObject> prefabs)
+        {
+            GivenBy.Clear();
+
+            void Note(object owner, GameObject prefab)
+            {
+                foreach (var field in EffectRefs(owner.GetType()))
+                {
+                    string name = null;
+                    var value = field.GetValue(owner);
+                    if (value is StatusEffect effect && effect != null) name = effect.name;
+                    else if (value is string text && text.Length > 0) name = text;
+                    if (name == null) continue;
+
+                    var how = Naming.FieldLabel(field.Name).ToLowerInvariant()
+                        .Replace("status effect", "").Replace(" se", "").Trim();
+                    var line = how.Length > 0 ? $"From {ItemOrPrefab(prefab)} ({how})" : $"From {ItemOrPrefab(prefab)}";
+                    if (!GivenBy.TryGetValue(name, out var lines)) GivenBy[name] = lines = new List<string>();
+                    if (!lines.Contains(line) && lines.Count < 40) lines.Add(line);
+                }
+            }
+
+            foreach (var prefab in prefabs)
+            {
+                foreach (var component in prefab.GetComponentsInChildren<Component>(true))
+                {
+                    if (component == null) continue;
+                    Note(component, prefab);
+                    var shared = (component as ItemDrop)?.m_itemData?.m_shared;
+                    if (shared == null) continue;
+                    Note(shared, prefab);
+                    if (shared.m_attack != null) Note(shared.m_attack, prefab);
+                    if (shared.m_secondaryAttack != null) Note(shared.m_secondaryAttack, prefab);
+                }
+            }
+        }
+
+        /// <summary>Fields holding a status effect, or a status effect's name.</summary>
+        private static FieldInfo[] EffectRefs(Type type)
+        {
+            if (EffectRefFields.TryGetValue(type, out var known)) return known;
+            var found = new List<FieldInfo>();
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+            for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour) && t != typeof(ScriptableObject); t = t.BaseType)
+            {
+                foreach (var field in t.GetFields(flags))
+                {
+                    if (typeof(StatusEffect).IsAssignableFrom(field.FieldType)) found.Add(field);
+                    else if (field.FieldType == typeof(string) && field.Name.IndexOf("statuseffect", StringComparison.OrdinalIgnoreCase) >= 0) found.Add(field);
+                }
+            }
+            known = found.ToArray();
+            EffectRefFields[type] = known;
+            return known;
+        }
+
+        private static string ItemOrPrefab(GameObject prefab)
+        {
+            var name = ItemName(prefab);
+            return name != prefab.name ? $"{name} ({prefab.name})" : Shown(prefab);
+        }
+
+        private static string ItemName(GameObject item)
+        {
+            var shared = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared : null;
+            var name = shared != null ? CatalogBuilder.Localize(shared.m_name) : "";
+            return name.Length > 0 ? name : item != null ? item.name : "";
         }
 
         private static FieldInfo[] DropTables(Type type)

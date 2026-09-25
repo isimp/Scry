@@ -24,6 +24,16 @@ namespace Scry
             return Words(name);
         }
 
+        private static readonly System.Text.RegularExpressions.Regex Markup = new System.Text.RegularExpressions.Regex(
+            @"</?(color|b|i|size|material|quad|sprite|u|s|sup|sub|mark|font|align|alpha|cspace|indent|line-height|lowercase|uppercase|smallcaps|noparse|nobr|space|voffset|width|link|style|rotate|pos)(=[^>]*)?>",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        /// <summary>A name without the rich-text tags some mods colour or size their names with.</summary>
+        public static string Plain(string text)
+        {
+            return string.IsNullOrEmpty(text) ? text ?? "" : Markup.Replace(text, "");
+        }
+
         /// <summary>"healthUpgrade" as "Health upgrade".</summary>
         private static string Words(string name)
         {
