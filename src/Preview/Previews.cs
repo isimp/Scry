@@ -654,6 +654,17 @@ namespace Scry
             return lists;
         }
 
+        /// <summary>
+        /// Plays an effect list on one copy: on the stage when it is the stage copy, heard as if
+        /// beside you, otherwise where the copy stands in the world. At a part of it when given.
+        /// </summary>
+        public static void PlayOnCopy(GameObject copy, EffectList list, Transform at)
+        {
+            if (copy == null || list == null) return;
+            if (copy == Stage.Subject) Stage.PlayList(list, at);
+            else PlayList(list, at != null ? at.position : copy.transform.position + Vector3.up * 0.5f, copy.transform.rotation);
+        }
+
         /// <summary>Plays an effect list on the stage copy, and on the copy in the world when there is one.</summary>
         public static void PlayEffectList(EffectList list)
         {

@@ -215,11 +215,11 @@ namespace Scry
         /// named part of its body when there is one, attached when the list says so. Heard as if
         /// beside you.
         /// </summary>
-        public static void PlayList(EffectList list)
+        public static void PlayList(EffectList list, Transform part = null)
         {
             if (_subject == null || list?.m_effectPrefabs == null) return;
 
-            var center = Origin + (_bounds.center - Origin) * _scale;
+            var center = part != null ? part.position : Origin + (_bounds.center - Origin) * _scale;
             foreach (var data in list.m_effectPrefabs)
             {
                 if (data == null || !data.m_enabled || data.m_prefab == null || Ghost.IsWholeModel(data.m_prefab)) continue;

@@ -31,6 +31,7 @@ namespace Scry
             if (entry.Kind == Kind.Creature) ApplyLevel(source, copy, modifiers.Level);
             if (modifiers.WearAvailable) ApplyWear(source, copy, modifiers.Wear);
             if (source == prefab) Variants.Apply(prefab, copy, modifiers.Look);
+            AnimationEars.Attach(source, copy);
             return copy;
         }
 
@@ -54,6 +55,7 @@ namespace Scry
 
             Gear.Body(person, copy);
             Gear.Wear(person, copy, new[] { item }, modifiers.LookAvailable ? modifiers.Look : -1);
+            AnimationEars.Attach(person, copy);
             return copy;
         }
 

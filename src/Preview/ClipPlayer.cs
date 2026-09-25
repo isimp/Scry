@@ -69,6 +69,7 @@ namespace Scry
             _loop = loop;
             _playable = AnimationPlayableUtilities.PlayClip(animator, clip, out _graph);
             _playable.SetSpeed(speed);
+            animator.GetComponent<AnimationEars>()?.ClipStarted(clip);
         }
 
         private void End()
