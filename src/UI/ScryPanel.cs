@@ -40,6 +40,7 @@ namespace Scry
         private static bool _details;
         private static string _clipFilter = "";
         private static bool _help;
+        private static float _badgeWidth;
         private static string _effectFilter = "";
 
         private enum Drag { None, Move, Resize, Orbit }
@@ -229,13 +230,13 @@ namespace Scry
                 var w = Mathf.Min(U(1180f), Screen.width - U(40f));
                 var h = Mathf.Min(U(760f), Screen.height - U(40f));
                 _full = new Rect((Screen.width - w) / 2f, (Screen.height - h) / 2f, w, h);
-                var cw = Mathf.Min(U(430f), Screen.width - U(40f));
+                var cw = Mathf.Min(U(500f), Screen.width - U(40f));
                 _compactRect = new Rect(Screen.width - cw - U(20f), U(40f), cw, Screen.height - U(80f));
                 LoadRects();
             }
 
             var win = Win;
-            var minW = Mathf.Min(U(_compact ? 360f : 820f), Screen.width);
+            var minW = Mathf.Min(U(_compact ? 420f : 820f), Screen.width);
             var minH = Mathf.Min(U(_compact ? 440f : 540f), Screen.height);
             win.width = Mathf.Clamp(win.width, minW, Screen.width);
             win.height = Mathf.Clamp(win.height, minH, Screen.height);
@@ -477,11 +478,19 @@ namespace Scry
             }
             if (recent.Contains(Event.current.mousePosition)) AskTip("recent", "What you looked at last, newest first");
 
-            var x = recent.xMax + gap;
+            var originX = recent.xMax + gap;
+            var originRow = row;
+            if (originX + originW > rect.xMax)
+            {
+                originX = rect.x;
+                originRow = row + rect.height + U(6f);
+            }
+
+            var x = originX;
             for (var i = 0; i < names.Length; i++)
             {
                 var on = (int)explorer.Origin == i;
-                if (GUI.Button(new Rect(x, row, widths[i], rect.height), names[i], on ? Skin.SegmentOn : Skin.Segment))
+                if (GUI.Button(new Rect(x, originRow, widths[i], rect.height), names[i], on ? Skin.SegmentOn : Skin.Segment))
                 {
                     explorer.Origin = (OriginFilter)i;
                     _listScroll = Vector2.zero;
@@ -489,10 +498,10 @@ namespace Scry
                 }
                 x += widths[i] + U(4f);
             }
-            var originRect = new Rect(recent.xMax + gap, row, originW, rect.height);
+            var originRect = new Rect(originX, originRow, originW, rect.height);
             if (originRect.Contains(Event.current.mousePosition)) AskTip("origin", "Everything, only the game's own, or only what mods added");
 
-            return row + rect.height;
+            return originRow + rect.height;
         }
 
         private static void Search(Explorer explorer, Rect rect)
@@ -916,8 +925,8 @@ namespace Scry
 
                 if (rect.Contains(e.mousePosition) || _drag == Drag.Orbit)
                 {
-                    GUI.Label(new Rect(inner.x + U(12f), inner.yMax - U(28f), inner.width - U(24f), U(22f)),
-                        "Drag to turn, scroll to zoom, double-click to reset", Skin.FaintLabel);
+                    FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), inner.width - U(24f), U(22f)),
+                        "Drag to turn, scroll to zoom, double-click to reset", Skin.FaintLabel, 9f);
                 }
 
                 // The stage's own buttons come before its dragging, which would otherwise take their clicks.
@@ -962,6 +971,7 @@ namespace Scry
             var label = entry.Kind == Kind.StatusEffect ? "Status effect" : Kinds.Label(entry.Kind).TrimEnd('s');
             var width = Skin.Glyph.CalcSize(new GUIContent(label)).x + U(20f);
             var badge = new Rect(at.x, at.y, width, U(22f));
+            _badgeWidth = width;
             Skin.PillBox(badge, new Color(color.r * 0.28f, color.g * 0.28f, color.b * 0.28f, 0.95f));
             var style = Skin.Glyph;
             var was = style.normal.textColor;
@@ -1202,6 +1212,13 @@ namespace Scry
 
                 default:
                     if (entry.Kind == Kind.Projectile && Button("Fire where you look", Skin.Primary)) Previews.Fire(entry);
+                    if (_compact && entry.Kind == Kind.Item && entry.Source is GameObject wearable && Gear.IsWearable(wearable)
+                        && Button(Looks.OnPerson ? "Worn by a person" : "Wear it", Looks.OnPerson ? Skin.On : Skin.Button))
+                    {
+                        Looks.OnPerson = !Looks.OnPerson;
+                        Previews.Rebuild();
+                        SaveRects();
+                    }
                     if (Previews.IsModel(entry))
                     {
                         if (Button(Previews.InWorld ? "Showing in the world" : "Show in the world", Previews.InWorld ? Skin.On : (entry.Kind == Kind.Projectile ? Skin.Button : Skin.Primary))) Previews.ToggleWorld();
@@ -1427,7 +1444,7 @@ namespace Scry
         private static float SliderRow(string label, string value, float current, float min, float max, float width, float labelW, ref float y)
         {
             var rowH = U(26f);
-            GUI.Label(new Rect(0f, y, labelW, rowH), label, Skin.DimLabel);
+            FitLabel(new Rect(0f, y, labelW - U(6f), rowH), label, Skin.DimLabel, 10f);
             var valueW = U(64f);
             var slider = new Rect(labelW, y + (rowH - U(14f)) / 2f, width - labelW - valueW - U(10f), U(14f));
             var result = GUI.HorizontalSlider(slider, current, min, max);
@@ -1439,7 +1456,7 @@ namespace Scry
         private static int Segments(string label, List<string> names, int selected, float width, float labelW, ref float y)
         {
             var rowH = U(28f);
-            GUI.Label(new Rect(0f, y, labelW, rowH), label, Skin.DimLabel);
+            FitLabel(new Rect(0f, y, labelW - U(6f), rowH), label, Skin.DimLabel, 10f);
             var x = labelW;
             var chosen = -1;
             for (var i = 0; i < names.Count; i++)
@@ -1477,7 +1494,12 @@ namespace Scry
 
             if (clips.Count > 12)
             {
-                var field = new Rect(x, y - U(1f), Mathf.Max(U(120f), Mathf.Min(width - x, U(260f))), U(28f));
+                if (width - x < U(150f))
+                {
+                    x = 0f;
+                    y += rowH + U(6f);
+                }
+                var field = new Rect(x, y - U(1f), Mathf.Min(width - x, U(260f)), U(28f));
                 GUI.SetNextControlName(ClipControl);
                 _clipFilter = GUI.TextField(field, _clipFilter, 40, Skin.Field);
                 if (string.IsNullOrEmpty(_clipFilter)) GUI.Label(field, "Filter", Skin.Placeholder);
@@ -1526,6 +1548,14 @@ namespace Scry
             var y = rect.y + U(10f);
             var x = rect.xMax - U(10f);
 
+            // Everything the row will hold, measured first, so it can move clear of the kind badge.
+            var wearable = entry.Kind == Kind.Item && entry.Source is GameObject wornItem && Gear.IsWearable(wornItem);
+            var texts = new List<string> { Stage.BackdropNames[Stage.BackdropIndex], Stage.LightingNames[Stage.LightingIndex] };
+            if (wearable) texts.Add("Worn");
+            if (!Looks.IsWorn(entry)) texts.Add("Person");
+            var total = texts.Sum(t => Skin.Chip.CalcSize(new GUIContent(t)).x + U(10f));
+            if (x - total < rect.x + U(10f) + _badgeWidth + U(10f)) y += h + U(8f);
+
             bool Chip(string text, bool on, string tip)
             {
                 var style = on ? Skin.ChipOn : Skin.Chip;
@@ -1547,8 +1577,7 @@ namespace Scry
                 Stage.LightingIndex = (Stage.LightingIndex + 1) % Stage.LightingNames.Length;
                 SaveRects();
             }
-            if (entry.Kind == Kind.Item && entry.Source is GameObject item && Gear.IsWearable(item)
-                && Chip("Worn", Looks.OnPerson, "Show it worn by a person"))
+            if (wearable && Chip("Worn", Looks.OnPerson, "Show it worn by a person"))
             {
                 Looks.OnPerson = !Looks.OnPerson;
                 Previews.Rebuild();
@@ -1640,10 +1669,11 @@ namespace Scry
             foreach (var pair in facts.Pairs)
             {
                 var valueW = width - labelW - U(10f);
-                var height = Mathf.Max(U(20f), Skin.Wrap.CalcHeight(new GUIContent(pair.Value), valueW));
-                GUI.Label(new Rect(0f, y, labelW, U(20f)), pair.Key, Skin.DimLabel);
-                GUI.Label(new Rect(labelW + U(10f), y + U(1f), valueW, height), pair.Value, Skin.Wrap);
-                y += height + U(5f);
+                var labelH = Skin.DimWrap.CalcHeight(new GUIContent(pair.Key), labelW);
+                var height = Mathf.Max(U(20f), Mathf.Max(labelH, Skin.Wrap.CalcHeight(new GUIContent(pair.Value), valueW)));
+                GUI.Label(new Rect(0f, y, labelW, labelH), pair.Key, Skin.DimWrap);
+                GUI.Label(new Rect(labelW + U(10f), y, valueW, height), pair.Value, Skin.Wrap);
+                y += height + U(6f);
             }
 
             foreach (var row in facts.Rows)
@@ -1773,7 +1803,8 @@ namespace Scry
             var copyW = U(70f);
             var box = new Rect(0f, y, width - copyW - U(8f), U(30f));
             Skin.Box(box, new Color(0.055f, 0.060f, 0.073f, 1f), Skin.Outline);
-            GUI.Label(new Rect(box.x + U(10f), box.y, box.width - U(14f), box.height), command, Skin.Label);
+            var commandRect = new Rect(box.x + U(10f), box.y, box.width - U(14f), box.height);
+            if (!FitLabel(commandRect, command, Skin.Label, 10f) && commandRect.Contains(Event.current.mousePosition)) AskTip("command", command);
             if (GUI.Button(new Rect(box.xMax + U(8f), y, copyW, U(30f)), "Copy", Skin.Button))
             {
                 GUIUtility.systemCopyBuffer = command;
