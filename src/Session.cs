@@ -82,10 +82,10 @@ namespace Scry
         public static bool Looking { get; private set; }
 
         /// <summary>
-        /// Whether the character can walk while the panel is open: in the compact view, whenever
-        /// no text box has the keyboard, so typing a search never moves anyone.
+        /// Whether the character can walk while the panel is open: whenever none of its text boxes
+        /// has the keyboard, so typing a search never moves anyone.
         /// </summary>
-        public static bool Walking => IsOpen && ScryPanel.Compact && !ScryPanel.Typing;
+        public static bool Walking => IsOpen && !ScryPanel.Typing;
 
         private static bool _toldPreviewsStay;
 

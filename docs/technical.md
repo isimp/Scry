@@ -32,7 +32,7 @@ While the panel is open, `TextInput.IsVisible` answers yes. The game already sto
 
 Holding the right mouse button, pressed outside the panel, looks around. The game asks for mouse look separately from movement and actions (`PlayerController.TakeInput(look: true)`), so only that question is answered yes while the button is held, and the cursor is captured as in normal play. Walking, blocking and attacking stay off.
 
-The compact view is a slim column at the side of the screen without the turntable, which is not rendered while it is in use. Both views remember their own place and size. In the compact view the character can also walk: the movement half of `TakeInput` is answered yes whenever none of the panel's text boxes has the keyboard, and any click lets go of the keyboard unless it lands on a text box. The search is not focused on opening in this view. While the panel is open, `Player.SetControls` never receives attack, block or dodge, so clicks on the panel and the look button stay harmless.
+The compact view is a slim column at the side of the screen without the turntable, which is not rendered while it is in use. Both views remember their own place and size. The character can walk while the panel is open: the movement half of `TakeInput` is answered yes whenever none of the panel's text boxes has the keyboard, and any click lets go of the keyboard unless it lands on a text box. The full view opens with the search focused, the compact view does not. While the panel is open, `Player.SetControls` never receives attack, block or dodge, so clicks on the panel and the look button stay harmless.
 
 ## Files
 

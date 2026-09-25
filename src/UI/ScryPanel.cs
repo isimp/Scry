@@ -56,7 +56,7 @@ namespace Scry
         /// <summary>Whether any of the panel's text boxes has the keyboard.</summary>
         public static bool Typing { get; private set; }
 
-        /// <summary>Whether the panel is in its compact view, where the character can walk.</summary>
+        /// <summary>Whether the panel is in its compact view.</summary>
         public static bool Compact => _compact;
 
         private static Rect Win
@@ -559,8 +559,8 @@ namespace Scry
         {
             var note = Session.Note;
             var text = note ?? (_compact
-                ? "Hold right mouse outside the panel to look around. Esc closes."
-                : "Arrows move, Enter plays or shows, Ctrl+F searches. Hold right mouse outside the panel to look around. Esc closes.");
+                ? "Walk with your keys when not typing. Hold right mouse outside the panel to look around."
+                : "Arrows move, Enter plays or shows, Ctrl+F searches. Click away from the search to walk, hold right mouse outside the panel to look.");
             // The catalog's size sits at the far right, clear of the resize grip.
             var summary = Session.CatalogSummary;
             var summaryW = _compact ? 0f : Skin.FaintLabel.CalcSize(new GUIContent(summary)).x;
