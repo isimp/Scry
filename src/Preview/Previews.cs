@@ -14,7 +14,7 @@ namespace Scry
     internal static class Previews
     {
         private const float EffectSeconds = 10f;
-        private const float MaxSoundSeconds = 60f;
+
 
         private struct Timed
         {
@@ -38,7 +38,8 @@ namespace Scry
 
         private static readonly List<Timed> Played = new List<Timed>();
         private static GameObject _sound;
-        private static float _soundUntil;
+        private static float _soundWaitUntil;
+        private static bool _soundPaused;
         private static Entry _soundEntry;
         private static readonly List<GameObject> StatusVisuals = new List<GameObject>();
         private static StatusEffect _status;
@@ -58,6 +59,9 @@ namespace Scry
         public static bool StatusShowing => _status != null && StatusVisuals.Count > 0;
         public static int PinnedCount => Pinned.Count;
         public static bool AnythingInWorld => _world != null || Pinned.Count > 0 || Played.Count > 0 || _sound != null || StatusVisuals.Count > 0;
+
+        /// <summary>How many things Scry has out in the world or playing, for the Clear button.</summary>
+        public static int OutCount => (_world != null ? 1 : 0) + Pinned.Count + Played.Count + (_sound != null ? 1 : 0) + StatusVisuals.Count;
 
         public static void Update(Explorer explorer)
         {
@@ -278,7 +282,8 @@ namespace Scry
 
             _soundEntry = entry;
             _soundChosen = only;
-            _soundUntil = Time.unscaledTime + (only != null ? Mathf.Clamp(only.length + MaxDelay(prefab) + 0.25f, 0.5f, MaxSoundSeconds) : SoundLength(prefab));
+            _soundPaused = false;
+            _soundWaitUntil = Time.unscaledTime + MaxDelay(prefab) + 0.5f;
             if (only != null) Narrow(_sound, only);
         }
 
@@ -323,6 +328,7 @@ namespace Scry
         public static void StopSound()
         {
             _soundEntry = null;
+            _soundPaused = false;
             _soundChosen = null;
             Destroy(ref _sound);
         }
@@ -361,21 +367,64 @@ namespace Scry
             return clips;
         }
 
-        /// <summary>How long a sound runs: its longest clip and delay, or a minute for a looping one.</summary>
-        public static float SoundLength(GameObject prefab)
+        /// <summary>
+        /// Whether the sound copy is still worth keeping: something on it plays or is paused, or it
+        /// is still inside the random delay some sounds wait before starting.
+        /// </summary>
+        private static bool SoundAlive(float now)
         {
-            var longest = 0f;
-            foreach (var sfx in prefab.GetComponentsInChildren<ZSFX>(true))
+            if (_sound == null) return false;
+            if (_soundPaused) return true;
+            foreach (var source in _sound.GetComponentsInChildren<AudioSource>())
             {
-                if (sfx.m_audioClips == null) continue;
-                foreach (var clip in sfx.m_audioClips) if (clip != null) longest = Mathf.Max(longest, clip.length + sfx.m_maxDelay);
+                if (source.isPlaying) return true;
             }
-            foreach (var source in prefab.GetComponentsInChildren<AudioSource>(true))
+            return now < _soundWaitUntil;
+        }
+
+        /// <summary>The audio source on the playing sound that holds its clip.</summary>
+        private static AudioSource SoundSource()
+        {
+            if (_sound == null) return null;
+            AudioSource holding = null;
+            foreach (var source in _sound.GetComponentsInChildren<AudioSource>())
             {
-                if (source.loop) return MaxSoundSeconds;
-                if (source.clip != null) longest = Mathf.Max(longest, source.clip.length);
+                if (source.clip == null) continue;
+                if (source.isPlaying) return source;
+                if (holding == null) holding = source;
             }
-            return Mathf.Clamp(longest + 0.25f, 0.5f, MaxSoundSeconds);
+            return holding;
+        }
+
+        /// <summary>Where the playing sound is and how long its clip is, for the panel's timeline.</summary>
+        public static bool SoundPosition(out float time, out float length)
+        {
+            time = 0f;
+            length = 0f;
+            var source = SoundSource();
+            if (source == null || source.clip == null || (!source.isPlaying && !_soundPaused)) return false;
+            time = source.time;
+            length = source.clip.length;
+            return length > 0f;
+        }
+
+        /// <summary>Jumps the playing sound to a point in its clip.</summary>
+        public static void SeekSound(float time)
+        {
+            var source = SoundSource();
+            if (source == null || source.clip == null) return;
+            source.time = Mathf.Clamp(time, 0f, Mathf.Max(0f, source.clip.length - 0.05f));
+        }
+
+        public static bool SoundPaused => _soundPaused;
+
+        public static void PauseSound(bool pause)
+        {
+            var source = SoundSource();
+            if (source == null) return;
+            if (pause) source.Pause();
+            else source.UnPause();
+            _soundPaused = pause;
         }
 
         // ----- Effects -----
@@ -601,7 +650,7 @@ namespace Scry
                 Played.RemoveAt(i);
             }
 
-            if (_sound != null && now >= _soundUntil) Destroy(ref _sound);
+            if (_sound != null && !SoundAlive(now)) Destroy(ref _sound);
             for (var i = StatusVisuals.Count - 1; i >= 0; i--) if (StatusVisuals[i] == null) StatusVisuals.RemoveAt(i);
             Pinned.RemoveAll(p => p == null);
         }

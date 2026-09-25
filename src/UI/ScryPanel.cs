@@ -327,10 +327,33 @@ namespace Scry
             // Header: the name, the catalog size, the view switch and a close button. It drags the panel.
             var viewText = _compact ? "Full view" : "Compact";
             var viewW = Skin.Button.CalcSize(new GUIContent(viewText)).x + U(10f);
-            var header = new Rect(0f, 0f, w - U(56f) - viewW, U(52f));
+            // Clear sits in the header so it is in the same place whatever is selected.
+            var outCount = Previews.OutCount;
+            var clearText = outCount > 0 ? $"Clear  {outCount}" : "Clear";
+            var clearW = Skin.Button.CalcSize(new GUIContent(clearText)).x + U(10f);
+            var viewRect = new Rect(w - pad - U(40f) - viewW, U(15f), viewW, U(28f));
+            var clearRect = new Rect(viewRect.x - U(8f) - clearW, viewRect.y, clearW, viewRect.height);
+
+            var header = new Rect(0f, 0f, clearRect.x - U(8f), U(52f));
             GUI.Label(new Rect(pad, U(10f), U(90f), U(34f)), "Scry", Skin.Title);
             if (!_compact) GUI.Label(new Rect(pad + U(86f), U(16f), U(300f), U(26f)), Session.CatalogSummary, Skin.Subtitle);
-            if (GUI.Button(new Rect(w - pad - U(40f) - viewW, U(15f), viewW, U(28f)), viewText, Skin.Button)) ToggleCompact();
+
+            var enabled = GUI.enabled;
+            GUI.enabled = outCount > 0;
+            if (GUI.Button(clearRect, clearText, outCount > 0 ? Skin.Primary : Skin.Button))
+            {
+                Previews.ClearWorld();
+                Session.Say("Cleared. Nothing from Scry is left in the world.");
+            }
+            GUI.enabled = enabled;
+            if (clearRect.Contains(e.mousePosition))
+            {
+                AskTip("clear", outCount > 0
+                    ? "Removes every preview from the world, pinned ones included, and stops what is playing"
+                    : "Nothing from Scry is in the world");
+            }
+
+            if (GUI.Button(viewRect, viewText, Skin.Button)) ToggleCompact();
             if (GUI.Button(new Rect(w - pad - U(32f), U(12f), U(32f), U(32f)), "×", Skin.Close)) Session.Hide();
             if (e.type == EventType.MouseDown && e.button == 0 && header.Contains(e.mousePosition))
             {
@@ -675,7 +698,11 @@ namespace Scry
             y = Title(explorer, entry, cw, y);
             if (!withStage && (entry.Kind == Kind.Sound || entry.Kind == Kind.StatusEffect)) y = CompactCard(entry, cw, y);
             y = Actions(entry, cw, y);
-            if (entry.Kind == Kind.Sound) y = Variants(entry, cw, y);
+            if (entry.Kind == Kind.Sound)
+            {
+                y = Timeline(cw, y);
+                y = Variants(entry, cw, y);
+            }
             y = Adjust(explorer, entry, cw, y, withStage);
             y = Details(entry, cw, y);
             if (Event.current.type == EventType.Repaint) _sideHeight = y + U(8f);
@@ -798,7 +825,7 @@ namespace Scry
             var total = bars * barW + (bars - 1) * gap;
             var x = rect.x + (rect.width - total) / 2f;
             var mid = rect.y + rect.height * 0.42f;
-            var playing = Previews.SoundPlaying;
+            var playing = Previews.SoundPlaying && !Previews.SoundPaused;
             var accent = Skin.KindColor(Kind.Sound);
 
             for (var i = 0; i < bars; i++)
@@ -963,7 +990,11 @@ namespace Scry
             {
                 case Kind.Sound:
                     if (Button(Variants(entry).Count > 1 ? "Play a random one" : "Play", Skin.Primary)) Previews.PlaySound(entry);
-                    if (Previews.SoundPlaying && Button("Stop", Skin.Button)) Previews.StopSound();
+                    if (Previews.SoundPlaying)
+                    {
+                        if (Button(Previews.SoundPaused ? "Resume" : "Pause", Skin.Button)) Previews.PauseSound(!Previews.SoundPaused);
+                        if (Button("Stop", Skin.Button)) Previews.StopSound();
+                    }
                     if (Button(Previews.LoopSounds ? "Repeat on" : "Repeat off", Previews.LoopSounds ? Skin.On : Skin.Button)) Previews.LoopSounds = !Previews.LoopSounds;
                     break;
 
@@ -992,17 +1023,13 @@ namespace Scry
                             if (Button("Pin", Skin.Button))
                             {
                                 Previews.Pin();
-                                Session.Say("Pinned. It stays where it is until you clear the world.");
+                                Session.Say("Pinned. It stays where it is until you press Clear.");
                             }
                         }
                     }
                     break;
             }
 
-            if (Previews.AnythingInWorld && Button(Previews.PinnedCount > 0 ? $"Clear the world ({Previews.PinnedCount} pinned)" : "Clear the world", Skin.Button))
-            {
-                Previews.ClearWorld();
-            }
 
             if (any) y += rowH;
 
@@ -1050,6 +1077,42 @@ namespace Scry
             }
 
             return "Only the look. The effect itself is never applied to you.";
+        }
+
+        // ----- Sound timeline -----
+
+        /// <summary>
+        /// Where the playing sound is in its clip, as a bar that can be dragged to any point. Shown
+        /// while a sound plays or is paused, which is what makes long clips such as music usable.
+        /// </summary>
+        private static float Timeline(float width, float y)
+        {
+            if (!Previews.SoundPosition(out var time, out var length)) return y;
+
+            var rowH = U(26f);
+            var labelW = U(52f);
+            GUI.Label(new Rect(0f, y, labelW, rowH), Clock(time), Skin.Label);
+            var slider = new Rect(labelW, y + (rowH - U(14f)) / 2f, width - labelW * 2f - U(8f), U(14f));
+
+            GUI.changed = false;
+            var picked = GUI.HorizontalSlider(slider, time, 0f, length);
+            if (GUI.changed) Previews.SeekSound(picked);
+
+            var end = new Rect(width - labelW, y, labelW, rowH);
+            var style = Skin.DimLabel;
+            var anchor = style.alignment;
+            style.alignment = TextAnchor.MiddleRight;
+            GUI.Label(end, Clock(length), style);
+            style.alignment = anchor;
+
+            return y + rowH + U(14f);
+        }
+
+        private static string Clock(float seconds)
+        {
+            var whole = Mathf.Max(0, Mathf.FloorToInt(seconds));
+            if (seconds < 10f) return seconds.ToString("0.0", CultureInfo.InvariantCulture) + " s";
+            return $"{whole / 60}:{whole % 60:00}";
         }
 
         // ----- Sound variants -----
