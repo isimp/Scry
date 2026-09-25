@@ -78,15 +78,45 @@ namespace Scry
         private static readonly int LegsBumpMap = Shader.PropertyToID("_LegsBumpMap");
         private static readonly int LegsMetal = Shader.PropertyToID("_LegsMetal");
 
-        /// <summary>Whether an item can be shown worn: something held, worn on the head or the body.</summary>
+        /// <summary>
+        /// Whether an item can be shown worn: one the game equips (held, or worn on the head or
+        /// body) that has something to show when it is. Materials and trophies also carry an
+        /// attach part, for item stands, but have no slot.
+        /// </summary>
         public static bool IsWearable(GameObject item)
         {
-            var shared = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared : null;
-            if (shared == null) return false;
+            if (SlotOf(item) == Slot.None) return false;
+            var shared = item.GetComponent<ItemDrop>().m_itemData.m_shared;
             if (AttachPart(item, out _) != null) return true;
             var type = shared.m_itemType;
             return shared.m_armorMaterial != null
                    && (type == ItemDrop.ItemData.ItemType.Chest || type == ItemDrop.ItemData.ItemType.Legs);
+        }
+
+        /// <summary>Where the game equips an item, by its type.</summary>
+        public static Slot SlotOf(GameObject item)
+        {
+            var shared = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared : null;
+            if (shared == null) return Slot.None;
+            switch (shared.m_itemType)
+            {
+                case ItemDrop.ItemData.ItemType.OneHandedWeapon:
+                case ItemDrop.ItemData.ItemType.Torch:
+                case ItemDrop.ItemData.ItemType.Tool:
+                    return Slot.RightHand;
+                case ItemDrop.ItemData.ItemType.Shield:
+                    return Slot.LeftHand;
+                case ItemDrop.ItemData.ItemType.TwoHandedWeapon:
+                case ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft:
+                case ItemDrop.ItemData.ItemType.Bow:
+                    return Slot.BothHands;
+                case ItemDrop.ItemData.ItemType.Helmet: return Slot.Head;
+                case ItemDrop.ItemData.ItemType.Chest: return Slot.Chest;
+                case ItemDrop.ItemData.ItemType.Legs: return Slot.Legs;
+                case ItemDrop.ItemData.ItemType.Shoulder: return Slot.Shoulders;
+                case ItemDrop.ItemData.ItemType.Utility: return Slot.Utility;
+                default: return Slot.None;
+            }
         }
 
         /// <summary>
@@ -95,7 +125,7 @@ namespace Scry
         /// painted onto the body the way the game swaps its textures. A style, when given, is
         /// set on each worn part as <c>ItemStyle</c> sets it.
         /// </summary>
-        public static void Wear(GameObject prefab, GameObject copy, IList<GameObject> items, int style = -1)
+        public static void Wear(GameObject prefab, GameObject copy, IList<GameObject> items, int style = -1, GameObject styled = null)
         {
             var vis = prefab.GetComponentInChildren<VisEquipment>(true);
             if (vis == null) return;
@@ -153,11 +183,11 @@ namespace Scry
                     worn.transform.localRotation = Quaternion.identity;
                 }
 
-                if (worn != null && style >= 0 && MaterialMan.instance != null)
+                if (worn != null && style >= 0 && (styled == null || styled == item) && MaterialMan.instance != null)
                 {
-                    foreach (var styled in part.GetComponentsInChildren<ItemStyle>(true))
+                    foreach (var itemStyle in part.GetComponentsInChildren<ItemStyle>(true))
                     {
-                        var twin = Looks.Twin(part.transform, worn.transform, styled.transform);
+                        var twin = Looks.Twin(part.transform, worn.transform, itemStyle.transform);
                         if (twin != null) MaterialMan.instance.SetValue(twin.gameObject, ShaderProps._Style, style, true);
                     }
                 }

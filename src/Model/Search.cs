@@ -45,7 +45,7 @@ namespace Scry
     public static class Search
     {
         /// <summary>The keys a term can have, as typed before the colon.</summary>
-        public static readonly string[] Keys = { "kind", "has", "biome", "mod", "used" };
+        public static readonly string[] Keys = { "kind", "has", "biome", "mod", "used", "station" };
 
         private static readonly char[] Separators = { ' ', '\t' };
 
@@ -183,6 +183,7 @@ namespace Scry
                 case "biome": return AnyContains(entry.Biomes, value);
                 case "mod": return Contains(entry.ModName, value);
                 case "used": return AnyContains(entry.UsedBy, value);
+                case "station": return StationMatches(entry.Stations, value);
                 default: return false;
             }
         }
@@ -196,6 +197,27 @@ namespace Scry
             var label = Kinds.Label(kind).Replace(" ", "").ToLowerInvariant();
             var name = kind.ToString().ToLowerInvariant();
             return label.StartsWith(typed, StringComparison.Ordinal) || name.StartsWith(typed, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Made at a station by that name, either the game's or the prefab's. Digits at the end
+        /// are a station level: "forge3" is what a forge at level 3 can make, needing 3 or less.
+        /// </summary>
+        public static bool StationMatches(StationUse[] stations, string value)
+        {
+            if (stations == null || stations.Length == 0) return false;
+
+            var digits = value.Length;
+            while (digits > 0 && char.IsDigit(value[digits - 1])) digits--;
+            var name = value.Substring(0, digits);
+            var level = digits < value.Length ? int.Parse(value.Substring(digits)) : 0;
+
+            foreach (var use in stations)
+            {
+                var named = name.Length == 0 || Contains(use.Name, name) || Contains(use.Shown.Replace(" ", ""), name);
+                if (named && (level == 0 || use.Level <= level)) return true;
+            }
+            return false;
         }
 
         private static bool AnyContains(IEnumerable<string> values, string value)

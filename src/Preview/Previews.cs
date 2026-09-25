@@ -665,6 +665,34 @@ namespace Scry
             else PlayList(list, at != null ? at.position : copy.transform.position + Vector3.up * 0.5f, copy.transform.rotation);
         }
 
+        /// <summary>
+        /// Clip names that go with an effect list, for the few moments the game both animates
+        /// and plays effects: a creature that has a death animation plays it before its death
+        /// effects, and a jump has its jump.
+        /// </summary>
+        private static readonly Dictionary<string, string[]> ClipsFor = new Dictionary<string, string[]>
+        {
+            { "death", new[] { "death", "die", "dead" } },
+            { "jump", new[] { "jump" } },
+        };
+
+        /// <summary>Plays an effect list, with the animation that goes with it when the creature has one.</summary>
+        public static void PlayEffectList(string label, EffectList list)
+        {
+            var word = (label ?? "").Split(' ', '(')[0].ToLowerInvariant();
+            if (ClipsFor.TryGetValue(word, out var names))
+            {
+                foreach (var clip in Clips())
+                {
+                    var lower = clip.name.ToLowerInvariant();
+                    if (!System.Array.Exists(names, n => lower.Contains(n))) continue;
+                    PlayClip(clip);
+                    break;
+                }
+            }
+            PlayEffectList(list);
+        }
+
         /// <summary>Plays an effect list on the stage copy, and on the copy in the world when there is one.</summary>
         public static void PlayEffectList(EffectList list)
         {

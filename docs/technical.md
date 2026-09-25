@@ -10,6 +10,9 @@ A prefab is from the game when it was in the scene's lists before any mod ran, r
 
 ## Effects
 
+Most creatures have no death animation: the game swaps them for a ragdoll that falls under physics. The few that do set their animator's dead flag first. So Death, and Jump, play a clip whose name says so when the creature has one, and otherwise only the effects.
+
+
 Effect lists sometimes point at whole models: the ragdoll that replaces a creature when it dies, creatures it splits into, items, skinned bodies and pieces that fly apart under physics. A preview copy keeps no physics, so these would only stand frozen beside the preview; playing an effect leaves them out.
 
 ## Preview copies
@@ -26,7 +29,7 @@ A status effect offers every effect list it carries that has something in it: it
 
 Some prefabs have several looks that the game switches by script, and one kind is offered per prefab, in this order: a plant's growth (the grown plant is a prefab of its own, so it is copied instead), a fire's state (the enabled, low, high, full, half and empty objects of `Fireplace`, set as `Fireplace.UpdateState` sets them), a pickable's picked state (its hidden-when-picked object), a humanoid's gear, and an item's style (set through the game's material manager as `ItemStyle.Setup` does).
 
-Gear is put on as `VisEquipment.AttachItem` puts it on: each item's `attach` part hangs on the matching hand or head bone, and an `attach_skin` part is bound to the body's bones. A creature always carrying the same things offers one gear look with its default items and the first of each random weapon, armour and shield; one given one of several sets offers each set. A prefab whose body mesh is chosen at run time, such as the player, gets the first of its models. Armour made for a skeleton with a different number of bones is left off rather than drawn twisted. An item shown worn is put on a copy of the player the same way, and chest and leg armour also paint the body with their own textures, as the game swaps them. /scry dump writes every renderer of the stage copy to the log, for finding out why part of a model does not show.
+Gear is put on as `VisEquipment.AttachItem` puts it on: each item's `attach` part hangs on the matching hand or head bone, and an `attach_skin` part is bound to the body's bones. A creature always carrying the same things offers one gear look with its default items and the first of each random weapon, armour and shield; one given one of several sets offers each set. A prefab whose body mesh is chosen at run time, such as the player, gets the first of its models. Armour made for a skeleton with a different number of bones is left off rather than drawn twisted. An item shown worn is put on a copy of the player the same way, over whatever items are kept on (one per slot, a two-handed weapon taking both hands), and chest and leg armour also paint the body with their own textures, as the game swaps them. /scry dump writes every renderer of the stage copy to the log, for finding out why part of a model does not show.
 
 ## Knowledge
 

@@ -18,6 +18,9 @@ namespace Scry
         public sealed class Row
         {
             public string Title = "";
+
+            /// <summary>The prefab the title names, such as the crafting station, so it can be gone to.</summary>
+            public string TitleLink;
             public readonly List<Ingredient> Items = new List<Ingredient>();
         }
 
@@ -40,14 +43,19 @@ namespace Scry
         public readonly List<Row> Rows = new List<Row>();
 
         /// <summary>Where it lives, comes from, or what gives it, under <see cref="WhereTitle"/>.</summary>
-        public readonly List<string> Where = new List<string>();
+        public readonly List<Source> Where = new List<Source>();
         public string WhereTitle = "Where it comes from";
 
         public bool IsEmpty => Description.Length == 0 && Pairs.Count == 0 && Rows.Count == 0 && Where.Count == 0;
 
-        private void Add(string label, string value)
+        /// <summary>Values that name something in the catalog, by their label: a prefab name, or "se:" and a status effect's.</summary>
+        public readonly Dictionary<string, string> Links = new Dictionary<string, string>();
+
+        private void Add(string label, string value, string link = null)
         {
-            if (!string.IsNullOrEmpty(value)) Pairs.Add(new KeyValuePair<string, string>(label, value));
+            if (string.IsNullOrEmpty(value)) return;
+            Pairs.Add(new KeyValuePair<string, string>(label, value));
+            if (link != null) Links[label] = link;
         }
 
         private static readonly Dictionary<Entry, Facts> Cache = new Dictionary<Entry, Facts>();
@@ -76,7 +84,7 @@ namespace Scry
                     // An item nothing makes, drops or sells here comes from somewhere Scry cannot see.
                     if (entry.Kind == Kind.Item && facts.Where.Count == 0 && !facts.Rows.Any(r => r.Title.StartsWith("Made")))
                     {
-                        facts.Where.Add("Nothing loaded makes, drops or sells it. It may come from a location, a dungeon, an event or a mod.");
+                        facts.Where.Add(new Source("Nothing loaded makes, drops or sells it. It may come from a location, a dungeon, an event or a mod.", null));
                     }
                 }
             }
@@ -144,9 +152,9 @@ namespace Scry
             if (shared.m_toolTier > 0) Add("Tool tier", shared.m_toolTier.ToString(CultureInfo.InvariantCulture));
             if (Math.Abs(shared.m_movementModifier) > 0.001f) Add("Movement", Percent(shared.m_movementModifier));
             if (!string.IsNullOrEmpty(shared.m_setName)) Add("Set", shared.m_setName);
-            if (shared.m_equipStatusEffect != null) Add("When worn", EffectName(shared.m_equipStatusEffect));
-            if (shared.m_consumeStatusEffect != null) Add("When used", EffectName(shared.m_consumeStatusEffect));
-            if (shared.m_attackStatusEffect != null) Add("On hit", EffectName(shared.m_attackStatusEffect));
+            if (shared.m_equipStatusEffect != null) Add("When worn", EffectName(shared.m_equipStatusEffect), "se:" + shared.m_equipStatusEffect.name);
+            if (shared.m_consumeStatusEffect != null) Add("When used", EffectName(shared.m_consumeStatusEffect), "se:" + shared.m_consumeStatusEffect.name);
+            if (shared.m_attackStatusEffect != null) Add("On hit", EffectName(shared.m_attackStatusEffect), "se:" + shared.m_attackStatusEffect.name);
 
             var db = ObjectDB.instance;
             if (db == null) return;
@@ -159,7 +167,9 @@ namespace Scry
                     ? $"Made at {station}{(recipe.m_minStationLevel > 1 ? $" level {recipe.m_minStationLevel}" : "")}"
                     : "Made by hand";
                 if (recipe.m_amount > 1) title += $", makes {recipe.m_amount}";
-                Rows.Add(Requirements(title, recipe.m_resources));
+                var row = Requirements(title, recipe.m_resources, shared.m_maxQuality > 1);
+                row.TitleLink = recipe.m_craftingStation != null ? recipe.m_craftingStation.gameObject.name : null;
+                Rows.Add(row);
             }
         }
 
@@ -199,9 +209,15 @@ namespace Scry
 
             if (prefab.GetComponent<Tameable>() != null)
             {
+                Add("Tameable", "yes");
                 var ai = prefab.GetComponent<MonsterAI>();
-                var food = ai?.m_consumeItems?.Where(i => i != null).Select(i => ItemName(i.gameObject)).ToList() ?? new List<string>();
-                Add("Tameable", food.Count > 0 ? "yes, eats " + string.Join(", ", food) : "yes");
+                var food = ai?.m_consumeItems?.Where(i => i != null).ToList();
+                if (food != null && food.Count > 0)
+                {
+                    var eats = new Row { Title = "Eats" };
+                    foreach (var item in food) eats.Items.Add(new Ingredient { Icon = Icon(item.gameObject), Name = ItemName(item.gameObject), Amount = "", Prefab = item.gameObject.name });
+                    Rows.Add(eats);
+                }
             }
 
             var drops = prefab.GetComponent<CharacterDrop>();
@@ -252,11 +268,18 @@ namespace Scry
             if (piece.m_resources != null && piece.m_resources.Length > 0)
             {
                 var station = piece.m_craftingStation != null ? CatalogBuilder.Localize(piece.m_craftingStation.m_name) : "";
-                Rows.Add(Requirements(station.Length > 0 ? "Built near " + station : "Build cost", piece.m_resources));
+                var row = Requirements(station.Length > 0 ? "Built near " + station : "Build cost", piece.m_resources, false);
+                row.TitleLink = piece.m_craftingStation != null ? piece.m_craftingStation.gameObject.name : null;
+                Rows.Add(row);
             }
         }
 
-        private static Row Requirements(string title, Piece.Requirement[] requirements)
+        /// <summary>
+        /// What something costs. Each ingredient also says how many more each upgrade needs, but
+        /// only for items that can be upgraded: the game fills that number in everywhere, pieces
+        /// and single-quality items included, where it means nothing.
+        /// </summary>
+        private static Row Requirements(string title, Piece.Requirement[] requirements, bool upgradable)
         {
             var row = new Row { Title = title };
             if (requirements == null) return row;
@@ -264,7 +287,7 @@ namespace Scry
             {
                 if (need?.m_resItem == null) continue;
                 var amount = need.m_amount.ToString(CultureInfo.InvariantCulture);
-                if (need.m_amountPerLevel > 0) amount += $" (+{need.m_amountPerLevel})";
+                if (upgradable && need.m_amountPerLevel > 0) amount += $", +{need.m_amountPerLevel} per level";
                 row.Items.Add(new Ingredient
                 {
                     Icon = Icon(need.m_resItem.gameObject), Name = ItemName(need.m_resItem.gameObject), Amount = amount, Prefab = need.m_resItem.gameObject.name,

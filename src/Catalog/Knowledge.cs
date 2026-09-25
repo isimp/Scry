@@ -13,24 +13,37 @@ namespace Scry
     /// What the game knows about a prefab beyond its own components: where it spawns or grows,
     /// and which mod added it. Gathered once with the catalog.
     /// </summary>
+    /// <summary>One line of what is known, and the prefab it names, if it names one.</summary>
+    internal struct Source
+    {
+        public string Text;
+        public string Prefab;
+
+        public Source(string text, string prefab)
+        {
+            Text = text;
+            Prefab = prefab;
+        }
+    }
+
     internal static class Knowledge
     {
-        private static readonly Dictionary<string, List<string>> Where = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, List<Source>> Where = new Dictionary<string, List<Source>>(StringComparer.Ordinal);
         private static readonly Dictionary<string, HashSet<string>> BiomesOf = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         private static readonly Dictionary<string, string> ModOf = new Dictionary<string, string>(StringComparer.Ordinal);
-        private static readonly Dictionary<string, List<string>> ComesFrom = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, List<Source>> ComesFrom = new Dictionary<string, List<Source>>(StringComparer.Ordinal);
         private static readonly Dictionary<Type, FieldInfo[]> DropTableFields = new Dictionary<Type, FieldInfo[]>();
 
         /// <summary>Lines saying what drops or yields an item, or none.</summary>
-        public static IReadOnlyList<string> SourceLines(string item)
+        public static IReadOnlyList<Source> SourceLines(string item)
         {
-            return ComesFrom.TryGetValue(item, out var lines) ? lines : (IReadOnlyList<string>)Array.Empty<string>();
+            return ComesFrom.TryGetValue(item, out var lines) ? lines : (IReadOnlyList<Source>)Array.Empty<Source>();
         }
 
         /// <summary>Lines saying where a prefab spawns or grows, or none.</summary>
-        public static IReadOnlyList<string> WhereLines(string prefab)
+        public static IReadOnlyList<Source> WhereLines(string prefab)
         {
-            return Where.TryGetValue(prefab, out var lines) ? lines : (IReadOnlyList<string>)Array.Empty<string>();
+            return Where.TryGetValue(prefab, out var lines) ? lines : (IReadOnlyList<Source>)Array.Empty<Source>();
         }
 
         public static string[] Biomes(string prefab)
@@ -65,9 +78,11 @@ namespace Scry
 
         private static void Try(string what, Action act)
         {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 act();
+                if (watch.ElapsedMilliseconds >= 50) Plugin.Log.LogInfo($"Scry read {what} in {watch.ElapsedMilliseconds} ms.");
             }
             catch (Exception ex)
             {
@@ -77,11 +92,11 @@ namespace Scry
 
         // ----- Where things live -----
 
-        private static void Add(string prefab, string line)
+        private static void Add(string prefab, string line, string target = null)
         {
             if (string.IsNullOrEmpty(prefab)) return;
-            if (!Where.TryGetValue(prefab, out var lines)) Where[prefab] = lines = new List<string>();
-            if (!lines.Contains(line)) lines.Add(line);
+            if (!Where.TryGetValue(prefab, out var lines)) Where[prefab] = lines = new List<Source>();
+            if (!lines.Exists(l => l.Text == line)) lines.Add(new Source(line, target));
         }
 
         private static void AddBiomes(string prefab, Heightmap.Biome biome)
@@ -185,13 +200,13 @@ namespace Scry
                     foreach (var data in area.m_prefabs)
                     {
                         if (data?.m_prefab == null) continue;
-                        Add(data.m_prefab.name, $"Comes from {Shown(prefab)}, {Levels(data.m_minLevel, data.m_maxLevel)}");
+                        Add(data.m_prefab.name, $"Comes from {Shown(prefab)}, {Levels(data.m_minLevel, data.m_maxLevel)}", prefab.name);
                     }
                 }
                 foreach (var point in prefab.GetComponentsInChildren<CreatureSpawner>(true))
                 {
                     if (point.m_creaturePrefab == null) continue;
-                    Add(point.m_creaturePrefab.name, $"In dungeons or locations, from the spawn point {prefab.name}");
+                    Add(point.m_creaturePrefab.name, $"In dungeons or locations, from the spawn point {prefab.name}", prefab.name);
                 }
             }
         }
@@ -225,11 +240,11 @@ namespace Scry
         /// </summary>
         private static void Drops(List<GameObject> prefabs)
         {
-            void From(GameObject item, string line)
+            void From(GameObject item, string line, string target)
             {
                 if (item == null) return;
-                if (!ComesFrom.TryGetValue(item.name, out var lines)) ComesFrom[item.name] = lines = new List<string>();
-                if (!lines.Contains(line) && lines.Count < 40) lines.Add(line);
+                if (!ComesFrom.TryGetValue(item.name, out var lines)) ComesFrom[item.name] = lines = new List<Source>();
+                if (!lines.Exists(l => l.Text == line) && lines.Count < 40) lines.Add(new Source(line, target));
             }
 
             foreach (var prefab in prefabs)
@@ -245,20 +260,20 @@ namespace Scry
                             if (drop?.m_prefab == null) continue;
                             var amount = drop.m_amountMin == drop.m_amountMax ? $"{drop.m_amountMin}" : $"{drop.m_amountMin} to {drop.m_amountMax}";
                             var chance = drop.m_chance < 1f ? $", {Mathf.RoundToInt(drop.m_chance * 100f)}%" : "";
-                            From(drop.m_prefab, $"Dropped by {Shown(prefab)} ({amount}{chance})");
+                            From(drop.m_prefab, $"Dropped by {Shown(prefab)} ({amount}{chance})", prefab.name);
                         }
                         continue;
                     }
 
                     if (component is Pickable pickable)
                     {
-                        From(pickable.m_itemPrefab, $"Picked from {Shown(prefab)}");
+                        From(pickable.m_itemPrefab, $"Picked from {Shown(prefab)}", prefab.name);
                     }
 
                     foreach (var field in DropTables(component.GetType()))
                     {
                         if (!(field.GetValue(component) is DropTable table) || table.m_drops == null) continue;
-                        foreach (var data in table.m_drops) From(data.m_item, $"Comes out of {Shown(prefab)}");
+                        foreach (var data in table.m_drops) From(data.m_item, $"Comes out of {Shown(prefab)}", prefab.name);
                     }
                 }
             }
@@ -272,11 +287,11 @@ namespace Scry
         /// </summary>
         private static void Makers(List<GameObject> prefabs)
         {
-            void From(GameObject item, string line)
+            void From(GameObject item, string line, string target)
             {
                 if (item == null) return;
-                if (!ComesFrom.TryGetValue(item.name, out var lines)) ComesFrom[item.name] = lines = new List<string>();
-                if (!lines.Contains(line) && lines.Count < 40) lines.Add(line);
+                if (!ComesFrom.TryGetValue(item.name, out var lines)) ComesFrom[item.name] = lines = new List<Source>();
+                if (!lines.Exists(l => l.Text == line) && lines.Count < 40) lines.Add(new Source(line, target));
             }
 
             foreach (var prefab in prefabs)
@@ -294,7 +309,7 @@ namespace Scry
                             var from = type.GetField("m_from")?.GetValue(conversion) as ItemDrop;
                             var to = type.GetField("m_to")?.GetValue(conversion) as ItemDrop;
                             if (from == null || to == null) continue;
-                            From(to.gameObject, $"Made from {ItemName(from.gameObject)} in {Shown(prefab)}");
+                            From(to.gameObject, $"Made from {ItemName(from.gameObject)} in {Shown(prefab)}", from.gameObject.name);
                         }
                     }
                 }
@@ -309,7 +324,7 @@ namespace Scry
                 {
                     if (trade?.m_prefab == null) continue;
                     var stack = trade.m_stack > 1 ? $"{trade.m_stack} for " : "";
-                    From(trade.m_prefab.gameObject, $"Sold by {name}, {stack}{trade.m_price} coins");
+                    From(trade.m_prefab.gameObject, $"Sold by {name}, {stack}{trade.m_price} coins", null);
                 }
             }
         }
@@ -337,13 +352,13 @@ namespace Scry
             return known;
         }
 
-        private static readonly Dictionary<string, List<string>> GivenBy = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, List<Source>> GivenBy = new Dictionary<string, List<Source>>(StringComparer.Ordinal);
         private static readonly Dictionary<Type, FieldInfo[]> EffectRefFields = new Dictionary<Type, FieldInfo[]>();
 
         /// <summary>Lines saying what gives a status effect, or none.</summary>
-        public static IReadOnlyList<string> GiverLines(string statusEffect)
+        public static IReadOnlyList<Source> GiverLines(string statusEffect)
         {
-            return GivenBy.TryGetValue(statusEffect, out var lines) ? lines : (IReadOnlyList<string>)Array.Empty<string>();
+            return GivenBy.TryGetValue(statusEffect, out var lines) ? lines : (IReadOnlyList<Source>)Array.Empty<Source>();
         }
 
         /// <summary>
@@ -368,8 +383,8 @@ namespace Scry
                     var how = Naming.FieldLabel(field.Name).ToLowerInvariant()
                         .Replace("status effect", "").Replace(" se", "").Trim();
                     var line = how.Length > 0 ? $"From {ItemOrPrefab(prefab)} ({how})" : $"From {ItemOrPrefab(prefab)}";
-                    if (!GivenBy.TryGetValue(name, out var lines)) GivenBy[name] = lines = new List<string>();
-                    if (!lines.Contains(line) && lines.Count < 40) lines.Add(line);
+                    if (!GivenBy.TryGetValue(name, out var lines)) GivenBy[name] = lines = new List<Source>();
+                    if (!lines.Exists(l => l.Text == line) && lines.Count < 40) lines.Add(new Source(line, prefab.name));
                 }
             }
 

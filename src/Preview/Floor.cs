@@ -35,6 +35,64 @@ namespace Scry
             return floor;
         }
 
+        /// <summary>A flat quad on the stage layer with a material of its own, showing a texture.</summary>
+        public static GameObject Surface(string name, int layer, Texture2D texture)
+        {
+            var shared = Material();
+            if (shared == null) return null;
+
+            var surface = new GameObject(name) { layer = layer };
+            surface.AddComponent<MeshFilter>().sharedMesh = Quad();
+            var renderer = surface.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = new Material(shared.shader) { mainTexture = texture, name = name };
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            return surface;
+        }
+
+        /// <summary>One square metre of grid: a faint fill with brighter edges, tiled across the floor.</summary>
+        public static Texture2D GridTexture()
+        {
+            const int size = 64;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, true)
+            {
+                wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Trilinear, anisoLevel = 8, name = "Scry grid",
+            };
+            var pixels = new Color32[size * size];
+            for (var y = 0; y < size; y++)
+            {
+                for (var x = 0; x < size; x++)
+                {
+                    var edge = x < 2 || y < 2;
+                    pixels[y * size + x] = edge ? new Color32(230, 232, 238, 110) : new Color32(200, 205, 215, 16);
+                }
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(true, true);
+            return texture;
+        }
+
+        /// <summary>A sky from top to bottom: its colour above, a brighter horizon, and the ground below.</summary>
+        public static Texture2D SkyTexture(Color top, Color horizon, Color ground)
+        {
+            const int height = 128;
+            var texture = new Texture2D(4, height, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "Scry sky" };
+            var pixels = new Color[4 * height];
+            for (var y = 0; y < height; y++)
+            {
+                // Row 0 is the top of the view, as the quad is turned to face the camera.
+                var t = y / (height - 1f);
+                var colour = t < 0.55f
+                    ? Color.Lerp(top, horizon, Mathf.SmoothStep(0f, 1f, t / 0.55f))
+                    : Color.Lerp(horizon, ground, Mathf.SmoothStep(0f, 1f, (t - 0.55f) / 0.25f));
+                colour.a = 1f;
+                for (var x = 0; x < 4; x++) pixels[y * 4 + x] = colour;
+            }
+            texture.SetPixels(pixels);
+            texture.Apply(false, true);
+            return texture;
+        }
+
         private static Material Material()
         {
             if (_tried) return _material;

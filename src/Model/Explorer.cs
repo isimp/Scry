@@ -146,12 +146,12 @@ namespace Scry
         /// Selects the prefab of that name, as when an ingredient or a drop is clicked. When the
         /// search or the filters hide it, they are cleared so it shows. False when there is none.
         /// </summary>
-        public bool Jump(string prefabName)
+        public bool Jump(string prefabName, bool statusEffect = false)
         {
             Entry target = null;
             foreach (var entry in _catalog)
             {
-                if (entry.Kind != Kind.StatusEffect && entry.Name == prefabName)
+                if ((entry.Kind == Kind.StatusEffect) == statusEffect && entry.Name == prefabName)
                 {
                     target = entry;
                     break;

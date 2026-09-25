@@ -661,6 +661,7 @@ namespace Scry
             new[] { "biome:swamp", "What spawns or grows in that biome." },
             new[] { "mod:epic", "What a mod added, by the start or any part of its name." },
             new[] { "used:troll", "The sounds and effects a prefab plays." },
+            new[] { "station:forge3", "What is made at that station, here what a forge at level 3 can make. station:forge for any level, station:hand for what needs none." },
             new[] { "-has:ragdoll kind:c", "Terms combine, can be left out with a minus, and can be shortened." },
         };
 
@@ -889,6 +890,7 @@ namespace Scry
             y = Title(explorer, entry, cw, y);
             if (!withStage && (entry.Kind == Kind.Sound || entry.Kind == Kind.StatusEffect)) y = CompactCard(entry, cw, y);
             y = Actions(entry, cw, y);
+            if (Looks.IsWorn(entry)) y = Wearing(explorer, cw, y);
             if (entry.Kind == Kind.Sound)
             {
                 y = Timeline(cw, y);
@@ -898,7 +900,7 @@ namespace Scry
             y = Effects(entry, cw, y, withStage);
             y = FactsSection(explorer, entry, cw, y);
             y = Command(explorer, entry, cw, y);
-            y = Details(entry, cw, y);
+            y = Details(explorer, entry, cw, y);
             if (Event.current.type == EventType.Repaint) _sideHeight = y + U(8f);
 
             GUI.EndScrollView();
@@ -1135,6 +1137,11 @@ namespace Scry
             {
                 var subRect = new Rect(x, y, width - x, U(22f));
                 if (!FitLabel(subRect, sub, Skin.DimLabel, 10f) && subRect.Contains(Event.current.mousePosition)) AskTip("sub", sub);
+                if (entry.Origin == Origin.Mod && entry.ModName.Length > 0)
+                {
+                    if (subRect.Contains(Event.current.mousePosition)) AskTip("mod", "Show everything " + entry.ModName + " added");
+                    if (GUI.Button(subRect, GUIContent.none, GUIStyle.none)) SearchFor(explorer, "mod:" + entry.ModName.Split(' ')[0].ToLowerInvariant());
+                }
                 y += U(26f);
             }
 
@@ -1212,6 +1219,16 @@ namespace Scry
 
                 default:
                     if (entry.Kind == Kind.Projectile && Button("Fire where you look", Skin.Primary)) Previews.Fire(entry);
+                    if (Looks.IsWorn(entry))
+                    {
+                        var kept = Looks.Outfit.Contains(entry.Name);
+                        if (Button(kept ? "Kept on" : "Keep it on", kept ? Skin.On : Skin.Button))
+                        {
+                            if (kept) Looks.Outfit.TakeOff(entry.Name);
+                            else Looks.Outfit.Keep(entry.Name, Gear.SlotOf((GameObject)entry.Source));
+                            Previews.Rebuild();
+                        }
+                    }
                     if (_compact && entry.Kind == Kind.Item && entry.Source is GameObject wearable && Gear.IsWearable(wearable)
                         && Button(Looks.OnPerson ? "Worn by a person" : "Wear it", Looks.OnPerson ? Skin.On : Skin.Button))
                     {
@@ -1282,6 +1299,64 @@ namespace Scry
             }
 
             return "Only the look. The effect itself is never applied to you.";
+        }
+
+        // ----- Outfit -----
+
+        /// <summary>
+        /// What the person keeps on while other items are tried on over it. Each piece goes to its
+        /// item when clicked, and comes off with its cross.
+        /// </summary>
+        private static float Wearing(Explorer explorer, float width, float y)
+        {
+            var kept = Looks.Outfit.Keys;
+            if (kept.Count == 0) return y;
+
+            y = SectionHeading("KEPT ON", width, y, () =>
+            {
+                foreach (var key in kept.ToList()) Looks.Outfit.TakeOff(key);
+                Previews.Rebuild();
+            });
+
+            var x = 0f;
+            var chipH = U(30f);
+            foreach (var key in kept.ToList())
+            {
+                var prefab = Looks.Prefab(key);
+                var shared = prefab != null ? prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared : null;
+                var name = shared != null ? CatalogBuilder.Localize(shared.m_name) : "";
+                if (name.Length == 0) name = key;
+
+                var w = Mathf.Min(width, Skin.Chip.CalcSize(new GUIContent(name)).x + U(58f));
+                if (x + w > width && x > 0f)
+                {
+                    x = 0f;
+                    y += chipH + U(5f);
+                }
+                var chip = new Rect(x, y, w, chipH);
+                var cross = new Rect(chip.xMax - U(26f), chip.y, U(24f), chipH);
+                var hover = chip.Contains(Event.current.mousePosition);
+                Skin.PillBox(chip, hover ? Skin.RaisedHover : Skin.Raised);
+                var icon = PrefabIcon(key);
+                if (icon != null) DrawSprite(icon, new Rect(chip.x + U(6f), chip.y + U(4f), U(22f), U(22f)));
+                GUI.Label(new Rect(chip.x + U(32f), chip.y, chip.width - U(62f), chip.height), name, Skin.Small);
+                GUI.Label(cross, "\u00d7", Skin.Cross);
+
+                if (GUI.Button(cross, GUIContent.none, GUIStyle.none))
+                {
+                    Looks.Outfit.TakeOff(key);
+                    Previews.Rebuild();
+                }
+                else if (GUI.Button(new Rect(chip.x, chip.y, chip.width - U(26f), chip.height), GUIContent.none, GUIStyle.none) && explorer.Jump(key))
+                {
+                    _reveal = true;
+                    _sideScroll = Vector2.zero;
+                }
+                if (hover) AskTip("kept:" + key, cross.Contains(Event.current.mousePosition) ? "Take it off" : "Go to " + name);
+                x += w + U(6f);
+            }
+
+            return y + chipH + U(16f);
         }
 
         // ----- Sound timeline -----
@@ -1635,7 +1710,7 @@ namespace Scry
                     y += rowH + U(5f);
                 }
                 var chip = new Rect(x, y, w, rowH);
-                if (GUI.Button(chip, pair.Key, Skin.Chip)) Previews.PlayEffectList(pair.Value);
+                if (GUI.Button(chip, pair.Key, Skin.Chip)) Previews.PlayEffectList(pair.Key, pair.Value);
                 if (chip.Contains(Event.current.mousePosition))
                 {
                     var names = pair.Value.m_effectPrefabs.Where(d => d?.m_prefab != null).Select(d => d.m_prefab.name);
@@ -1672,21 +1747,44 @@ namespace Scry
                 var labelH = Skin.DimWrap.CalcHeight(new GUIContent(pair.Key), labelW);
                 var height = Mathf.Max(U(20f), Mathf.Max(labelH, Skin.Wrap.CalcHeight(new GUIContent(pair.Value), valueW)));
                 GUI.Label(new Rect(0f, y, labelW, labelH), pair.Key, Skin.DimWrap);
-                GUI.Label(new Rect(labelW + U(10f), y, valueW, height), pair.Value, Skin.Wrap);
+                var valueRect = new Rect(labelW + U(10f), y, valueW, height);
+                if (facts.Links.TryGetValue(pair.Key, out var link))
+                {
+                    var linkW = Mathf.Min(valueW, Skin.Wrap.CalcSize(new GUIContent(pair.Value)).x + U(4f));
+                    var linkRect = new Rect(valueRect.x, valueRect.y, linkW, height);
+                    LinkLabel(linkRect, pair.Value, Skin.Wrap);
+                    if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, "Go to " + pair.Value);
+                    if (GUI.Button(linkRect, GUIContent.none, GUIStyle.none)) Go(explorer, link);
+                }
+                else
+                {
+                    GUI.Label(valueRect, pair.Value, Skin.Wrap);
+                }
                 y += height + U(6f);
             }
 
             foreach (var row in facts.Rows)
             {
                 y += U(6f);
-                GUI.Label(new Rect(0f, y, width, U(20f)), row.Title, Skin.DimLabel);
+                if (!string.IsNullOrEmpty(row.TitleLink) && InCatalog(explorer, row.TitleLink))
+                {
+                    var titleW = Mathf.Min(width, Skin.DimLabel.CalcSize(new GUIContent(row.Title)).x + U(4f));
+                    var titleRect = new Rect(0f, y, titleW, U(20f));
+                    LinkLabel(titleRect, row.Title, Skin.DimLabel);
+                    if (titleRect.Contains(Event.current.mousePosition)) AskTip("station:" + row.TitleLink, "Go to " + row.TitleLink);
+                    if (GUI.Button(titleRect, GUIContent.none, GUIStyle.none)) Go(explorer, row.TitleLink);
+                }
+                else
+                {
+                    GUI.Label(new Rect(0f, y, width, U(20f)), row.Title, Skin.DimLabel);
+                }
                 y += U(24f);
 
                 var x = 0f;
                 var chipH = U(30f);
                 foreach (var item in row.Items)
                 {
-                    var text = $"{item.Amount}  {item.Name}";
+                    var text = string.IsNullOrEmpty(item.Amount) ? item.Name : $"{item.Amount}  {item.Name}";
                     var w = Mathf.Min(width, Skin.Chip.CalcSize(new GUIContent(text)).x + U(30f));
                     if (x + w > width && x > 0f)
                     {
@@ -1720,15 +1818,123 @@ namespace Scry
                 y += U(6f);
                 GUI.Label(new Rect(0f, y, width, U(20f)), facts.WhereTitle, Skin.DimLabel);
                 y += U(24f);
-                foreach (var line in facts.Where)
+                foreach (var source in facts.Where)
                 {
-                    var height = Skin.Wrap.CalcHeight(new GUIContent(line), width);
-                    GUI.Label(new Rect(0f, y, width, height), line, Skin.Wrap);
-                    y += height + U(3f);
+                    // A line naming a prefab in the catalog is a chip that goes there; the rest is text.
+                    if (string.IsNullOrEmpty(source.Prefab) || !InCatalog(explorer, source.Prefab))
+                    {
+                        var height = Skin.Wrap.CalcHeight(new GUIContent(source.Text), width);
+                        GUI.Label(new Rect(0f, y, width, height), source.Text, Skin.Wrap);
+                        y += height + U(4f);
+                        continue;
+                    }
+
+                    var icon = PrefabIcon(source.Prefab);
+                    var textX = icon != null ? U(34f) : U(12f);
+                    var textW = width - textX - U(10f);
+                    var chipH = Mathf.Max(U(30f), Skin.Small.CalcHeight(new GUIContent(source.Text), textW) + U(10f));
+                    var chip = new Rect(0f, y, width, chipH);
+                    var hover = chip.Contains(Event.current.mousePosition);
+                    Skin.Box(chip, hover ? Skin.RaisedHover : Skin.Raised);
+                    if (icon != null) DrawSprite(icon, new Rect(U(6f), y + (chipH - U(22f)) / 2f, U(22f), U(22f)));
+                    var wrapped = new GUIStyle(Skin.Small) { wordWrap = true };
+                    GUI.Label(new Rect(textX, y, textW, chipH), source.Text, wrapped);
+                    if (hover) AskTip("src:" + source.Prefab, "Go to " + source.Prefab);
+                    if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(source.Prefab))
+                    {
+                        _reveal = true;
+                        _sideScroll = Vector2.zero;
+                        _help = false;
+                    }
+                    y += chipH + U(5f);
                 }
             }
 
             return y + U(14f);
+        }
+
+        /// <summary>Goes to a prefab, or to a status effect when the target starts with "se:".</summary>
+        private static void Go(Explorer explorer, string target)
+        {
+            var statusEffect = target.StartsWith("se:", StringComparison.Ordinal);
+            if (!explorer.Jump(statusEffect ? target.Substring(3) : target, statusEffect)) return;
+            _reveal = true;
+            _sideScroll = Vector2.zero;
+            _help = false;
+        }
+
+        /// <summary>Puts a search in the box, with every other filter cleared so it shows all it finds.</summary>
+        private static void SearchFor(Explorer explorer, string text)
+        {
+            explorer.KindFilter = null;
+            explorer.FavouritesOnly = false;
+            explorer.RecentOnly = false;
+            explorer.Origin = OriginFilter.All;
+            explorer.Text = text;
+            _listScroll = Vector2.zero;
+            _reveal = true;
+            _help = false;
+        }
+
+        /// <summary>Text drawn as a link: accent coloured, brighter under the mouse.</summary>
+        private static void LinkLabel(Rect rect, string text, GUIStyle style)
+        {
+            var was = style.normal.textColor;
+            style.normal.textColor = rect.Contains(Event.current.mousePosition) ? Color.Lerp(Skin.Accent, Color.white, 0.3f) : Skin.Accent;
+            GUI.Label(rect, text, style);
+            style.normal.textColor = was;
+        }
+
+        /// <summary>A small heading and a wrapping row of chips, each doing its own thing when clicked.</summary>
+        private static float ChipRow(string title, IEnumerable<KeyValuePair<string, Action>> chips, float width, float y)
+        {
+            GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
+            y += U(24f);
+            var x = 0f;
+            var rowH = U(26f);
+            foreach (var chip in chips)
+            {
+                var w = Mathf.Min(width, Skin.Chip.CalcSize(new GUIContent(chip.Key)).x + U(8f));
+                if (x + w > width && x > 0f)
+                {
+                    x = 0f;
+                    y += rowH + U(5f);
+                }
+                if (GUI.Button(new Rect(x, y, w, rowH), chip.Key, Skin.Chip)) chip.Value();
+                x += w + U(5f);
+            }
+            return y + rowH + U(10f);
+        }
+
+        private static readonly Dictionary<string, Sprite> PrefabIcons = new Dictionary<string, Sprite>();
+        private static HashSet<string> _catalogNames;
+        private static Explorer _namesFor;
+
+        private static bool InCatalog(Explorer explorer, string prefab)
+        {
+            if (_namesFor != explorer || _catalogNames == null)
+            {
+                _namesFor = explorer;
+                _catalogNames = new HashSet<string>(explorer.Catalog.Where(e => e.Kind != Kind.StatusEffect).Select(e => e.Name));
+                PrefabIcons.Clear();
+            }
+            return _catalogNames.Contains(prefab);
+        }
+
+        /// <summary>The icon of an item or piece prefab by name, or null.</summary>
+        private static Sprite PrefabIcon(string prefab)
+        {
+            if (PrefabIcons.TryGetValue(prefab, out var known)) return known;
+            Sprite icon = null;
+            var go = ZNetScene.instance != null ? ZNetScene.instance.GetPrefab(prefab) : null;
+            if (go != null)
+            {
+                var icons = go.GetComponent<ItemDrop>()?.m_itemData?.m_shared?.m_icons;
+                if (icons != null && icons.Length > 0) icon = icons[0];
+                else icon = go.GetComponent<Piece>()?.m_icon;
+            }
+            PrefabIcons[prefab] = icon;
+            return icon;
         }
 
         private static void DrawSprite(Sprite sprite, Rect rect)
@@ -1822,7 +2028,7 @@ namespace Scry
 
         private static readonly Dictionary<Entry, string> ComponentLists = new Dictionary<Entry, string>();
 
-        private static float Details(Entry entry, float width, float y)
+        private static float Details(Explorer explorer, Entry entry, float width, float y)
         {
             var label = _details ? "HIDE DETAILS" : "SHOW DETAILS";
             var labelW = Skin.Heading.CalcSize(new GUIContent(label)).x;
@@ -1833,15 +2039,10 @@ namespace Scry
 
             var lines = new List<string> { "Prefab name: " + entry.Name };
             lines.Add("Origin: " + (entry.Origin == Origin.Vanilla ? "the game" : entry.Origin == Origin.Mod ? (entry.ModName.Length > 0 ? entry.ModName : "a mod, not named") : "unknown"));
-            if (entry.Biomes.Length > 0) lines.Add("Biomes: " + string.Join(", ", entry.Biomes));
+
             if (entry.ExtraLevels > 0) lines.Add($"Star looks: {entry.ExtraLevels}");
 
-            if (entry.UsedBy.Count > 0)
-            {
-                var users = entry.UsedBy.Take(8).ToList();
-                var more = entry.UsedBy.Count > users.Count ? $" and {entry.UsedBy.Count - users.Count} more" : "";
-                lines.Add("Used by: " + string.Join(", ", users) + more);
-            }
+
 
             if (entry.Source is GameObject prefab)
             {
@@ -1858,6 +2059,26 @@ namespace Scry
                 var height = Skin.DimWrap.CalcHeight(new GUIContent(line), width);
                 GUI.Label(new Rect(0f, y, width, height), line, Skin.DimWrap);
                 y += height + U(4f);
+            }
+
+            if (entry.Biomes.Length > 0)
+            {
+                y = ChipRow("Biomes (search)", entry.Biomes.Select(b => new KeyValuePair<string, Action>(Naming.FieldLabel(b), () => SearchFor(explorer, "biome:" + b.ToLowerInvariant()))), width, y);
+            }
+            if (entry.UsedBy.Count > 0)
+            {
+                var users = entry.UsedBy.Where(u => InCatalog(explorer, u)).Take(24).ToList();
+                if (users.Count > 0) y = ChipRow($"Played by ({entry.UsedBy.Count})", users.Select(u => new KeyValuePair<string, Action>(u, () => Go(explorer, u))), width, y);
+            }
+
+            // For finding out why part of a model does not show: every part the preview draws, in the log.
+            if (Stage.Subject != null)
+            {
+                y += U(4f);
+                var text = "Write its parts to the log";
+                var w = Skin.Chip.CalcSize(new GUIContent(text)).x + U(8f);
+                if (GUI.Button(new Rect(0f, y, Mathf.Min(width, w), U(26f)), text, Skin.Chip)) Session.Say(Stage.Dump());
+                y += U(32f);
             }
 
             return y + U(6f);

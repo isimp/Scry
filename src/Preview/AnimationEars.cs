@@ -23,6 +23,8 @@ namespace Scry
             "TrailOn", "TrailOff", "GPower", "Die", "Speed", "Chain", "ResetChain", "FreezeFrame",
         };
 
+        private static readonly HashSet<string> Told = new HashSet<string>();
+
         private GameObject _prefab;
         private GameObject _copy;
         private float _lastStep;
@@ -33,14 +35,26 @@ namespace Scry
             var animator = ClipPlayer.AnimatorOf(copy);
             if (animator == null) return;
 
+            var unknown = new SortedSet<string>();
+            var events = 0;
             foreach (var clip in animator.runtimeAnimatorController.animationClips)
             {
                 if (clip == null) continue;
                 foreach (var e in clip.events)
                 {
-                    if (!Heard.Contains(e.functionName)) return;
+                    events++;
+                    if (!Heard.Contains(e.functionName)) unknown.Add(e.functionName);
                 }
             }
+
+            // Said once per prefab, so it can be told why a creature's clips stay silent.
+            if (Told.Add(prefab.name))
+            {
+                if (unknown.Count > 0) Plugin.Log.LogInfo($"Scry leaves the animations of {prefab.name} silent: its clips send events it cannot answer ({string.Join(", ", unknown)}).");
+                else if (events == 0) Plugin.Log.LogInfo($"Scry: the animations of {prefab.name} send no events, so they have no sounds of their own.");
+                else Plugin.Log.LogInfo($"Scry answers the {events} animation events of {prefab.name}.");
+            }
+            if (unknown.Count > 0) return;
 
             var ears = animator.gameObject.AddComponent<AnimationEars>();
             ears._prefab = prefab;

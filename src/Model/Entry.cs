@@ -50,6 +50,9 @@ namespace Scry
         /// <summary>The look it is shown in at first.</summary>
         public int DefaultLook;
 
+        /// <summary>The crafting stations it is made or built at, with the level each needs.</summary>
+        public StationUse[] Stations = new StationUse[0];
+
         /// <summary>The prefab (a GameObject) or status effect behind this entry.</summary>
         public object Source;
 
@@ -63,5 +66,21 @@ namespace Scry
         public string Key => Kind == Kind.StatusEffect ? "se:" + Name : Name;
 
         public override string ToString() => Key;
+    }
+
+    /// <summary>A crafting station something is made at, by its prefab name and shown name, and the level it needs.</summary>
+    public struct StationUse
+    {
+        public string Name;
+        public string Shown;
+        public int Level;
+
+        public StationUse(string name, string shown, int level)
+        {
+            Name = name ?? "";
+            Shown = shown ?? "";
+            Level = level;
+        }
+
     }
 }

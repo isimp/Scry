@@ -61,6 +61,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void JumpingToAStatusEffectFindsTheStatusEffect()
+        {
+            var catalog = Game();
+            catalog.Add(E("Rested", Kind.Other));
+            var explorer = new Explorer(catalog, new Favourites(Path.Combine(TempDir(), "f.txt")));
+
+            Assert.True(explorer.Jump("Rested", statusEffect: true));
+
+            Assert.Equal(Kind.StatusEffect, explorer.Selected?.Kind);
+        }
+
+        [Fact]
         public void JumpingToSomethingNotInTheCatalogChangesNothing()
         {
             var explorer = Open();

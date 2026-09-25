@@ -26,7 +26,7 @@ namespace Scry
         private sealed class Lighting
         {
             public string Name;
-            public Color Key, Fill, Rim, Ambient, Backdrop;
+            public Color Key, Fill, Rim, Ambient, Backdrop, SkyTop, Horizon, Ground;
             public float KeyPower, FillPower, RimPower;
             public Vector3 KeyAngle = new Vector3(35f, -40f, 0f);
         }
@@ -37,40 +37,40 @@ namespace Scry
             {
                 Name = "Studio", Key = new Color(1f, 0.95f, 0.86f), KeyPower = 1.15f, Fill = new Color(0.70f, 0.78f, 1f), FillPower = 0.45f,
                 Rim = new Color(1f, 0.85f, 0.65f), RimPower = 0.7f, Ambient = new Color(0.40f, 0.41f, 0.45f), Backdrop = new Color(0.105f, 0.112f, 0.135f),
+                SkyTop = new Color(0.16f, 0.17f, 0.21f), Horizon = new Color(0.26f, 0.27f, 0.31f), Ground = new Color(0.08f, 0.085f, 0.10f),
             },
             new Lighting
             {
                 Name = "Day", Key = new Color(1f, 0.96f, 0.88f), KeyPower = 1.35f, KeyAngle = new Vector3(50f, -30f, 0f), Fill = new Color(0.62f, 0.74f, 1f), FillPower = 0.5f,
                 Rim = new Color(1f, 0.95f, 0.85f), RimPower = 0.3f, Ambient = new Color(0.52f, 0.56f, 0.62f), Backdrop = new Color(0.38f, 0.50f, 0.64f),
+                SkyTop = new Color(0.28f, 0.46f, 0.74f), Horizon = new Color(0.78f, 0.84f, 0.90f), Ground = new Color(0.30f, 0.33f, 0.24f),
             },
             new Lighting
             {
                 Name = "Dusk", Key = new Color(1f, 0.62f, 0.38f), KeyPower = 1.1f, KeyAngle = new Vector3(12f, -50f, 0f), Fill = new Color(0.55f, 0.45f, 0.80f), FillPower = 0.35f,
                 Rim = new Color(1f, 0.5f, 0.3f), RimPower = 0.8f, Ambient = new Color(0.33f, 0.27f, 0.36f), Backdrop = new Color(0.22f, 0.15f, 0.20f),
+                SkyTop = new Color(0.18f, 0.14f, 0.30f), Horizon = new Color(0.95f, 0.55f, 0.30f), Ground = new Color(0.15f, 0.10f, 0.10f),
             },
             new Lighting
             {
                 Name = "Night", Key = new Color(0.55f, 0.65f, 1f), KeyPower = 0.55f, KeyAngle = new Vector3(40f, -30f, 0f), Fill = new Color(0.2f, 0.25f, 0.45f), FillPower = 0.25f,
                 Rim = new Color(0.5f, 0.6f, 1f), RimPower = 0.45f, Ambient = new Color(0.13f, 0.15f, 0.23f), Backdrop = new Color(0.03f, 0.04f, 0.07f),
+                SkyTop = new Color(0.01f, 0.02f, 0.05f), Horizon = new Color(0.09f, 0.13f, 0.24f), Ground = new Color(0.02f, 0.02f, 0.03f),
             },
             new Lighting
             {
                 Name = "Cave", Key = new Color(1f, 0.62f, 0.3f), KeyPower = 0.9f, KeyAngle = new Vector3(10f, 60f, 0f), Fill = new Color(0.3f, 0.3f, 0.35f), FillPower = 0.1f,
                 Rim = new Color(0.4f, 0.4f, 0.5f), RimPower = 0.2f, Ambient = new Color(0.10f, 0.08f, 0.07f), Backdrop = new Color(0.02f, 0.02f, 0.02f),
+                SkyTop = new Color(0.02f, 0.02f, 0.02f), Horizon = new Color(0.11f, 0.07f, 0.05f), Ground = new Color(0.03f, 0.02f, 0.02f),
             },
         };
 
-        /// <summary>Backdrops to choose from, the first being whatever the lighting brings.</summary>
-        private static readonly Color?[] Backdrops =
-        {
-            null,
-            new Color(0.07f, 0.075f, 0.09f),
-            new Color(0.35f, 0.36f, 0.38f),
-            new Color(0.78f, 0.78f, 0.80f),
-        };
-
         public static readonly string[] LightingNames = { "Studio", "Day", "Dusk", "Night", "Cave" };
-        public static readonly string[] BackdropNames = { "Match", "Dark", "Grey", "Light" };
+/// <summary>
+        /// What stands behind and under the model: the lighting's own colour, a sky with a horizon
+        /// in the lighting's colours, a floor ruled in one-metre squares for judging size, or both.
+        /// </summary>
+        public static readonly string[] BackdropNames = { "Plain", "Sky", "Grid", "Sky and grid" };
 
         private static GameObject _root;
         private static Camera _camera;
@@ -78,6 +78,10 @@ namespace Scry
         private static int _layer = -2;
         private static GameObject _floor;
         private static Light _key, _fill, _rim;
+        private static GameObject _sky;
+        private static GameObject _grid;
+        private static readonly Texture2D[] SkyTextures = new Texture2D[5];
+        private static Entry _lastShown;
 
         private static GameObject _subject;
         private static GameObject _person;
@@ -122,7 +126,7 @@ namespace Scry
             get => _backdrop;
             set
             {
-                _backdrop = Mathf.Clamp(value, 0, Backdrops.Length - 1);
+                _backdrop = Mathf.Clamp(value, 0, BackdropNames.Length - 1);
                 ApplyLighting();
             }
         }
@@ -150,6 +154,11 @@ namespace Scry
         public static void Show(Entry entry, Modifiers modifiers)
         {
             ClearSubject();
+            if (entry != _lastShown)
+            {
+                _lastShown = entry;
+                ResetView();
+            }
             if (!IsStaged(entry) || !(entry.Source is GameObject)) return;
             if (!Ensure()) return;
 
@@ -392,9 +401,26 @@ namespace Scry
             _camera.farClipPlane = distance + radius * 6f + 10f;
             _camera.aspect = (float)_width / _height;
 
+            var groundY = Mathf.Min(subject.min.y, _person != null && _person.activeSelf ? _personBounds.min.y : subject.min.y);
+            if (_sky != null && _sky.activeSelf)
+            {
+                var depth = _camera.farClipPlane * 0.95f;
+                var tall = 2f * depth * Mathf.Tan(FieldOfView * 0.5f * Mathf.Deg2Rad) * 1.05f;
+                _sky.transform.localPosition = new Vector3(0f, 0f, depth);
+                _sky.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                _sky.transform.localScale = new Vector3(tall * _camera.aspect, 1f, tall);
+            }
+            if (_grid != null && _grid.activeSelf)
+            {
+                var metres = Mathf.Max(4f, Mathf.Ceil(radius * 4f));
+                _grid.transform.position = new Vector3(Origin.x, groundY - 0.004f, Origin.z);
+                _grid.transform.localScale = new Vector3(metres, 1f, metres);
+                _grid.GetComponent<MeshRenderer>().sharedMaterial.mainTextureScale = new Vector2(metres, metres);
+            }
+
             if (_floor != null)
             {
-                var floorY = Mathf.Min(subject.min.y, _person != null && _person.activeSelf ? _personBounds.min.y : subject.min.y) - 0.005f;
+                var floorY = groundY - 0.005f;
                 _floor.transform.position = new Vector3(center.x, floorY, center.z);
                 var size = radius * 3.2f;
                 _floor.transform.localScale = new Vector3(size, size, size);
@@ -508,6 +534,13 @@ namespace Scry
             _floor = Floor.Make(_layer);
             if (_floor != null) _floor.transform.SetParent(_root.transform, true);
 
+            _grid = Floor.Surface("Scry stage grid", _layer, Floor.GridTexture());
+            if (_grid != null) _grid.transform.SetParent(_root.transform, true);
+
+            _sky = Floor.Surface("Scry stage sky", _layer, null);
+            if (_sky != null) _sky.transform.SetParent(cameraObject.transform, false);
+            ApplyLighting();
+
             EnsureTexture();
             _camera.targetTexture = _texture;
             return true;
@@ -521,7 +554,18 @@ namespace Scry
             Set(_key, preset.KeyAngle, preset.Key, preset.KeyPower);
             Set(_fill, new Vector3(15f, 55f, 0f), preset.Fill, preset.FillPower);
             Set(_rim, new Vector3(-20f, 170f, 0f), preset.Rim, preset.RimPower);
-            _camera.backgroundColor = Backdrops[_backdrop] ?? preset.Backdrop;
+            _camera.backgroundColor = preset.Backdrop;
+
+            var sky = _backdrop == 1 || _backdrop == 3;
+            var grid = _backdrop == 2 || _backdrop == 3;
+            if (_sky != null)
+            {
+                _sky.SetActive(sky);
+                if (SkyTextures[_lighting] == null) SkyTextures[_lighting] = Floor.SkyTexture(preset.SkyTop, preset.Horizon, preset.Ground);
+                _sky.GetComponent<MeshRenderer>().sharedMaterial.mainTexture = SkyTextures[_lighting];
+            }
+            if (_grid != null) _grid.SetActive(grid);
+            if (_floor != null) _floor.SetActive(!grid);
         }
 
         private static void Set(Light light, Vector3 angle, Color color, float power)

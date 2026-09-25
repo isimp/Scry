@@ -56,6 +56,7 @@ namespace Scry
 
             // Where things live and which mod added them, before any entry is made.
             Knowledge.Gather(registered.Values.Select(f => f.Prefab));
+            IndexRecipes();
 
             var entries = new List<Entry>();
 
@@ -136,6 +137,7 @@ namespace Scry
             {
                 entry.Looks = Variants.Of(found.Prefab, out var look);
                 entry.DefaultLook = look;
+                entry.Stations = StationsOf(found.Prefab);
             }
 
             if (asEffect != null)
@@ -145,6 +147,50 @@ namespace Scry
             }
 
             return entry;
+        }
+
+        private static Dictionary<string, List<Recipe>> _recipes;
+
+        /// <summary>
+        /// Where it is made: each recipe's crafting station and the level it needs, "by hand" for
+        /// a recipe without one, and a piece's build station.
+        /// </summary>
+        private static StationUse[] StationsOf(GameObject prefab)
+        {
+            var uses = new List<StationUse>();
+
+            if (prefab.GetComponent<ItemDrop>() != null && _recipes != null && _recipes.TryGetValue(prefab.name, out var recipes))
+            {
+                foreach (var recipe in recipes)
+                {
+                    uses.Add(recipe.m_craftingStation != null
+                        ? new StationUse(recipe.m_craftingStation.gameObject.name, Localize(recipe.m_craftingStation.m_name), Math.Max(1, recipe.m_minStationLevel))
+                        : new StationUse("hand", "By hand", 1));
+                }
+            }
+
+            var piece = prefab.GetComponent<Piece>();
+            if (piece != null && piece.m_craftingStation != null)
+            {
+                uses.Add(new StationUse(piece.m_craftingStation.gameObject.name, Localize(piece.m_craftingStation.m_name), 1));
+            }
+
+            return uses.ToArray();
+        }
+
+        /// <summary>Every enabled recipe by the prefab name of what it makes.</summary>
+        private static void IndexRecipes()
+        {
+            _recipes = new Dictionary<string, List<Recipe>>(StringComparer.Ordinal);
+            var db = ObjectDB.instance;
+            if (db == null) return;
+            foreach (var recipe in db.m_recipes)
+            {
+                if (recipe == null || !recipe.m_enabled || recipe.m_item == null) continue;
+                var name = recipe.m_item.gameObject.name;
+                if (!_recipes.TryGetValue(name, out var list)) _recipes[name] = list = new List<Recipe>();
+                list.Add(recipe);
+            }
         }
 
         /// <summary>Reads a prefab's components into its traits, and follows its effect lists.</summary>

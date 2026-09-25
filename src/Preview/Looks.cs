@@ -38,6 +38,9 @@ namespace Scry
         /// <summary>Show wearable items worn by a person rather than on their own.</summary>
         public static bool OnPerson;
 
+        /// <summary>What the person keeps on while other items are tried on.</summary>
+        public static readonly Outfit Outfit = new Outfit();
+
         /// <summary>Whether this entry is shown worn by a person right now.</summary>
         public static bool IsWorn(Entry entry)
         {
@@ -54,9 +57,24 @@ namespace Scry
             if (copy == null) return null;
 
             Gear.Body(person, copy);
-            Gear.Wear(person, copy, new[] { item }, modifiers.LookAvailable ? modifiers.Look : -1);
+
+            var items = new List<GameObject>();
+            foreach (var name in Outfit.With(item.name, Gear.SlotOf(item)))
+            {
+                var worn = name == item.name ? item : Prefab(name);
+                if (worn != null) items.Add(worn);
+            }
+            Gear.Wear(person, copy, items, modifiers.LookAvailable ? modifiers.Look : -1, item);
             AnimationEars.Attach(person, copy);
             return copy;
+        }
+
+        /// <summary>An item prefab by name.</summary>
+        public static GameObject Prefab(string name)
+        {
+            var item = ObjectDB.instance != null ? ObjectDB.instance.GetItemPrefab(name) : null;
+            if (item == null && ZNetScene.instance != null) item = ZNetScene.instance.GetPrefab(name);
+            return item;
         }
 
         /// <summary>Gives a creature copy the look of a level, as <c>LevelEffects</c> would.</summary>
