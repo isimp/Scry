@@ -866,6 +866,9 @@ namespace Scry
             public Dictionary<string, ClipAttack> Attacks = new Dictionary<string, ClipAttack>();
             public Dictionary<string, object> Actions = new Dictionary<string, object>();
             public Dictionary<string, object> Around = new Dictionary<string, object>();
+
+            /// <summary>The flying effect of a born flyer its animator has no flying switch for, kept going in every clip.</summary>
+            public EffectList Flying;
         }
 
         private static readonly Dictionary<string, ClipPlays> ClipPlaysCache = new Dictionary<string, ClipPlays>();
@@ -899,8 +902,16 @@ namespace Scry
         {
             lasting = false;
             var plays = PlaysOf(prefab, copy, clip);
-            if (plays == null || !plays.Actions.TryGetValue(clip, out var list)) return null;
+            if (plays == null) return null;
             var character = prefab.GetComponent<Character>();
+            if (!plays.Actions.TryGetValue(clip, out var list))
+            {
+                // A born flyer the animator has no flying switch for flies whatever it plays, and
+                // the game keeps its flying effect going all the while (Character.IsFlying).
+                if (plays.Flying == null) return null;
+                lasting = true;
+                return plays.Flying;
+            }
             lasting = character != null && (list == character.m_waterEffects || list == character.m_flyingContinuousEffect);
             return (EffectList)list;
         }
@@ -969,6 +980,14 @@ namespace Scry
             if (hit != null && HasAny(hit)) around.Add(("stagger", hit));
             var idleSound = ai != null && HasAny(ai.m_idleSound) ? ai.m_idleSound : null;
             plays.Around = ClipAround.Match(around, seen.Actions, seen.Idle, idleSound, plays.Attacks.Keys);
+
+            var body = prefab.GetComponent<Character>();
+            if (body != null && body.m_flying && HasAny(body.m_flyingContinuousEffect) && !animator.parameters.Any(p => p.name == "flying")) plays.Flying = body.m_flyingContinuousEffect;
+            if (body != null && Told.Add("lasting:" + prefab.name))
+            {
+                string Of(EffectList list) => HasAny(list) ? string.Join(", ", Members(list)) : "nothing";
+                Plugin.Log.LogInfo($"Scry: {prefab.name} keeps going in water {Of(body.m_waterEffects)}; flying {Of(body.m_flyingContinuousEffect)}{(body.m_flying ? ", and it flies from birth" : "")}; its own scale {prefab.transform.localScale.x:0.##}.");
+            }
             return plays;
         }
 
@@ -1270,12 +1289,14 @@ namespace Scry
         /// <summary>
         /// Where an attack strikes from a copy, as <c>Attack.GetProjectileSpawnPoint</c> places its
         /// reach: from its origin joint or the body, up by its height, out by its range, aside by
-        /// its offset; on the ground under that for what hits the ground.
+        /// its offset; on the ground under that for what hits the ground. The game measures these
+        /// in metres whatever the creature's own scale (a frost troll's is four), so they are only
+        /// made bigger or smaller as the copy is shown so.
         /// </summary>
         public static Vector3 StrikePoint(GameObject copy, Attack attack, bool ground)
         {
             var t = copy.transform;
-            var size = t.lossyScale.x;
+            var size = SizeOf(copy);
             var origin = AttackOrigin(copy, attack);
             var point = origin.position + t.up * attack.m_attackHeight * size + t.forward * attack.m_attackRange * size + t.right * attack.m_attackOffset * size;
             if (ground) point.y = t.position.y;

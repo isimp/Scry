@@ -294,7 +294,7 @@ namespace Scry
 
             // Where Attack.GetProjectileSpawnPoint puts it, at the copy's size.
             var t = _copy.transform;
-            var size = t.lossyScale.x;
+            var size = Previews.SizeOf(_copy);
             var origin = Previews.AttackOrigin(_copy, attack);
             var start = origin.position + t.up * attack.m_attackHeight * size + t.forward * attack.m_attackRange * size + t.right * attack.m_attackOffset * size;
             var aim = t.forward;
