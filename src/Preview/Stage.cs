@@ -156,8 +156,11 @@ namespace Scry
             }
         }
 
-        /// <summary>The lowest point of the model's body, as if at size one.</summary>
+        /// <summary>The lowest point of the model's body, or where it stands, as if at size one.</summary>
         private static float _bodyMinY;
+
+        /// <summary>Whether the floor is where the character stands, which what it draws does not move.</summary>
+        private static bool _groundFixed;
         private static bool _followEffect;
 
         /// <summary>The layer nothing in the game uses, which the stage is drawn on and falling copies land with.</summary>
@@ -243,6 +246,14 @@ namespace Scry
             _baseScale = _subject.transform.localScale;
             _bounds = Measure(_subject);
             _bodyMinY = Measure(_subject, body: true).min.y;
+
+            // A character on its feet stands where the game stands it, on the bottom of its
+            // capsule (Character's CapsuleCollider resting on the ground), whatever of its model
+            // reaches below: a root's base is in the ground, a weapon may hang low.
+            var grounded = _subjectIsPerson ? ZNetScene.instance?.GetPrefab("Player") : _onFeet ? entry.Source as GameObject : null;
+            var capsule = grounded != null ? grounded.GetComponent<CapsuleCollider>() : null;
+            _groundFixed = capsule != null && capsule.direction == 1;
+            if (_groundFixed) _bodyMinY = Origin.y + (capsule.center.y - capsule.height / 2f) * _baseScale.y;
             Apply(modifiers);
         }
 
@@ -669,7 +680,7 @@ namespace Scry
             var now = Measure(_subject);
             var unscaled = new Bounds(Origin + (now.center - Origin) / _scale, now.size / _scale);
             if (unscaled.size.magnitude > _bounds.size.magnitude * 4f + 1f) return;
-            var body = Origin.y + (Measure(_subject, body: true).min.y - Origin.y) / _scale;
+            var body = _groundFixed ? _bodyMinY : Origin.y + (Measure(_subject, body: true).min.y - Origin.y) / _scale;
             if (_settled)
             {
                 _bounds.Encapsulate(unscaled);
