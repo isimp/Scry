@@ -860,7 +860,8 @@ namespace Scry
         /// <summary>
         /// What the game plays as it moves a creature's animator into a clip by one of its own
         /// actions (<see cref="ClipActions"/>): a jump's effects with the clip the jump leads to,
-        /// waking's with the wake-up, going to sleep's, being alerted's, eating's. Null for none.
+        /// waking's with the wake-up, going to sleep's, being alerted's, eating's, even an empty
+        /// list, which the game then plays as nothing. Null for none.
         /// </summary>
         public static EffectList ListOfClip(GameObject prefab, GameObject copy, string clip)
         {
@@ -917,11 +918,11 @@ namespace Scry
             var character = prefab.GetComponent<Character>();
             var ai = prefab.GetComponent<BaseAI>();
             var monster = ai as MonsterAI;
-            if (character != null && HasAny(character.m_jumpEffects)) yield return ("jump", character.m_jumpEffects);
-            if (character is Humanoid humanoid && HasAny(humanoid.m_consumeItemEffects)) yield return ("consume", humanoid.m_consumeItemEffects);
-            if (monster != null && HasAny(monster.m_sleepEffects)) yield return ("sleep", monster.m_sleepEffects);
-            if (monster != null && HasAny(monster.m_wakeupEffects)) yield return ("wake", monster.m_wakeupEffects);
-            if (ai != null && HasAny(ai.m_alertedEffects)) yield return ("alert", ai.m_alertedEffects);
+            if (character?.m_jumpEffects != null) yield return ("jump", character.m_jumpEffects);
+            if (character is Humanoid humanoid && humanoid.m_consumeItemEffects != null) yield return ("consume", humanoid.m_consumeItemEffects);
+            if (monster?.m_sleepEffects != null) yield return ("sleep", monster.m_sleepEffects);
+            if (monster?.m_wakeupEffects != null) yield return ("wake", monster.m_wakeupEffects);
+            if (ai?.m_alertedEffects != null) yield return ("alert", ai.m_alertedEffects);
         }
 
         /// <summary>The trigger an attack starts by on this animator, as <c>Attack.Start</c> pulls it, or null when it has none.</summary>

@@ -112,6 +112,11 @@ namespace Scry
             var list = clip != null && !_quiet ? Previews.ListOfClip(_prefab, _copy, clip.name) : null;
             if (list == null) return;
             if (list == _prefab.GetComponent<Character>()?.m_jumpEffects && System.Array.Exists(clip.events, e => e.functionName == "Jump")) return;
+            if (list.m_effectPrefabs == null || !System.Array.Exists(list.m_effectPrefabs, d => d != null && d.m_enabled && d.m_prefab != null))
+            {
+                Listen.Note(Listening, "the game plays nothing with it: this creature's list for it is empty");
+                return;
+            }
             Listen.Note(Listening, "what the game plays with it");
             Report(Previews.PlayOnCopy(_copy, list, null));
         }
