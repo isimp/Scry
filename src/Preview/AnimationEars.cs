@@ -75,7 +75,7 @@ namespace Scry
         {
             _quiet = quiet;
             var attack = clip != null && !quiet ? AttackFor(clip.name) : null;
-            if (attack != null) Previews.PlayOnCopy(_copy, attack.m_startEffect, null);
+            if (attack != null) Report(Previews.PlayOnCopy(_copy, attack.m_startEffect, null));
             WatchFeet(clip);
         }
 
@@ -114,11 +114,77 @@ namespace Scry
             _feet = feet.ToArray();
             _footing = new StepDetector[_feet.Length];
             for (var i = 0; i < _footing.Length; i++) _footing[i] = new StepDetector();
-            _motion = name.Contains("run") || name.Contains("sprint") || name.Contains("gallop") || name.Contains("charge")
+            _motion = MotionOf(name);
+        }
+
+        private static global::FootStep.MotionType MotionOf(string name)
+        {
+            return name.Contains("run") || name.Contains("sprint") || name.Contains("gallop") || name.Contains("charge")
                 ? global::FootStep.MotionType.Run
                 : name.Contains("sneak") || name.Contains("crawl") ? global::FootStep.MotionType.Sneak
                 : name.Contains("walk") || name.Contains("stroll") ? global::FootStep.MotionType.Walk
                 : global::FootStep.MotionType.Jog;
+        }
+
+        /// <summary>Lights what a playing clip made under its chip.</summary>
+        private void Report(List<GameObject> made)
+        {
+            var clip = _copy != null ? _copy.GetComponent<ClipPlayer>()?.Clip : null;
+            if (clip != null && made.Count > 0) Previews.Heard(clip, made);
+        }
+
+        /// <summary>
+        /// What a clip plays of itself, by prefab name: the effects and props its events name,
+        /// its jump and death, its footsteps on the chosen ground when it moves the feet, and its
+        /// attack's start and swing when it is an attack.
+        /// </summary>
+        public List<string> Members(AnimationClip clip)
+        {
+            var names = new List<string>();
+            void Add(GameObject prefab)
+            {
+                if (prefab != null && !names.Contains(prefab.name)) names.Add(prefab.name);
+            }
+            void AddList(EffectList list)
+            {
+                if (list?.m_effectPrefabs == null) return;
+                foreach (var data in list.m_effectPrefabs) if (data != null && data.m_enabled) Add(data.m_prefab);
+            }
+            if (clip == null) return names;
+
+            var character = _prefab.GetComponent<Character>();
+            var step = _prefab.GetComponentInChildren<global::FootStep>(true);
+            foreach (var e in clip.events)
+            {
+                switch (e.functionName)
+                {
+                    case "Effect":
+                    case "Attach":
+                        Add(e.objectReferenceParameter as GameObject);
+                        break;
+                    case "Jump": AddList(character?.m_jumpEffects); break;
+                    case "Die": AddList(character?.m_deathEffects); break;
+                    case "FootStep":
+                        var stepped = step != null ? Step(step, global::FootStep.MotionType.Jog | global::FootStep.MotionType.Walk, Previews.StepGround) : null;
+                        if (stepped != null) foreach (var p in stepped.m_effectPrefabs) Add(p);
+                        break;
+                }
+            }
+
+            var name = clip.name.ToLowerInvariant();
+            if (step != null && step.m_feet != null && step.m_feet.Length > 0 && System.Array.Exists(Moving, m => name.Contains(m)))
+            {
+                var moving = Step(step, MotionOf(name), Previews.StepGround);
+                if (moving != null) foreach (var p in moving.m_effectPrefabs) Add(p);
+            }
+
+            var attack = AttackFor(clip.name);
+            if (attack != null)
+            {
+                AddList(attack.m_startEffect);
+                AddList(attack.m_triggerEffect);
+            }
+            return names;
         }
 
         private void WatchSteps()
@@ -132,8 +198,8 @@ namespace Scry
                 if (!_footing[i].Feed(Time.unscaledTime, height)) continue;
 
                 var step = _prefab.GetComponentInChildren<global::FootStep>(true);
-                var effect = step != null ? Step(step, _motion) : null;
-                if (effect != null) Previews.PlayOnCopy(_copy, AsList(effect.m_effectPrefabs), _feet[i]);
+                var effect = step != null ? Step(step, _motion, Previews.StepGround) : null;
+                if (effect != null) Report(Previews.PlayOnCopy(_copy, AsList(effect.m_effectPrefabs), _feet[i]));
             }
         }
 
@@ -231,7 +297,7 @@ namespace Scry
 
         private void Play(EffectList list)
         {
-            if (list != null) Previews.PlayOnCopy(_copy, list, null);
+            if (list != null) Report(Previews.PlayOnCopy(_copy, list, null));
         }
 
         /// <summary>
@@ -252,7 +318,7 @@ namespace Scry
             }
             if (at == null) at = transform;
 
-            Previews.PlayOnCopy(_copy, AsList(new[] { prefab }), at);
+            Report(Previews.PlayOnCopy(_copy, AsList(new[] { prefab }), at));
         }
 
         /// <summary>
@@ -287,12 +353,12 @@ namespace Scry
             _lastStep = Time.unscaledTime;
 
             var step = _prefab.GetComponentInChildren<global::FootStep>(true);
-            var effect = step != null ? Step(step, global::FootStep.MotionType.Jog | global::FootStep.MotionType.Walk) : null;
+            var effect = step != null ? Step(step, global::FootStep.MotionType.Jog | global::FootStep.MotionType.Walk, Previews.StepGround) : null;
             if (effect == null) return;
 
             Transform foot = null;
             if (!string.IsNullOrEmpty(e.Text)) foot = Utils.FindChild(_copy.transform, e.Text);
-            Previews.PlayOnCopy(_copy, AsList(effect.m_effectPrefabs), foot);
+            Report(Previews.PlayOnCopy(_copy, AsList(effect.m_effectPrefabs), foot));
         }
 
         // ----- Helpers -----
@@ -306,7 +372,7 @@ namespace Scry
             var clip = _copy.GetComponent<ClipPlayer>()?.Clip;
             if (clip == null || _quiet) return;
             var attack = AttackFor(clip.name);
-            if (attack != null) Previews.PlayOnCopy(_copy, attack.m_triggerEffect, null);
+            if (attack != null) Report(Previews.PlayOnCopy(_copy, attack.m_triggerEffect, null));
         }
 
         private Attack AttackFor(string clip)
@@ -338,21 +404,27 @@ namespace Scry
 
         /// <summary>The step a walk on plain ground makes, or failing that the first there is.</summary>
         /// <summary>
-        /// The step made on plain ground in this way of moving; failing that, any on plain ground;
-        /// failing that, the first there is. Both are sets of flags in the game.
+        /// The step made on the chosen ground in this way of moving; failing that, any on that
+        /// ground; failing those, the same on plain ground; failing that, the first there is. Ways
+        /// of moving and grounds are sets of flags in the game.
         /// </summary>
-        private static global::FootStep.StepEffect Step(global::FootStep step, global::FootStep.MotionType motion)
+        private static global::FootStep.StepEffect Step(global::FootStep step, global::FootStep.MotionType motion, global::FootStep.GroundMaterial ground)
         {
-            global::FootStep.StepEffect first = null, ground = null;
-            foreach (var effect in step.m_effects)
+            global::FootStep.StepEffect Find(global::FootStep.GroundMaterial on, bool matchMotion)
             {
-                if (effect?.m_effectPrefabs == null || effect.m_effectPrefabs.Length == 0) continue;
-                if (first == null) first = effect;
-                var plain = (effect.m_material & global::FootStep.GroundMaterial.Default) != 0;
-                if (plain && ground == null) ground = effect;
-                if (plain && (effect.m_motionType & motion) != 0) return effect;
+                foreach (var effect in step.m_effects)
+                {
+                    if (effect?.m_effectPrefabs == null || effect.m_effectPrefabs.Length == 0) continue;
+                    if ((effect.m_material & on) == 0) continue;
+                    if (matchMotion && (effect.m_motionType & motion) == 0) continue;
+                    return effect;
+                }
+                return null;
             }
-            return ground ?? first;
+
+            return Find(ground, true) ?? Find(ground, false)
+                   ?? Find(global::FootStep.GroundMaterial.Default, true) ?? Find(global::FootStep.GroundMaterial.Default, false)
+                   ?? step.m_effects.Find(e => e?.m_effectPrefabs != null && e.m_effectPrefabs.Length > 0);
         }
 
         private static EffectList AsList(GameObject[] prefabs)

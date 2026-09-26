@@ -150,6 +150,18 @@ namespace Scry
             if (shared.m_toolTier > 0) Add("Tool tier", shared.m_toolTier.ToString(CultureInfo.InvariantCulture));
             if (Math.Abs(shared.m_movementModifier) > 0.001f) Add("Movement", Percent(shared.m_movementModifier));
             if (!string.IsNullOrEmpty(shared.m_setName)) Add("Set", shared.m_setName);
+            if (shared.m_setStatusEffect != null)
+            {
+                var pieces = shared.m_setSize > 0 ? $" ({shared.m_setSize} pieces)" : "";
+                Add("Set bonus", EffectName(shared.m_setStatusEffect) + pieces, "se:" + shared.m_setStatusEffect.name);
+            }
+            foreach (var (damageType, name) in DamageEffects)
+            {
+                var amount = damageType == "fire" ? shared.m_damages.m_fire : damageType == "frost" ? shared.m_damages.m_frost : damageType == "lightning" ? shared.m_damages.m_lightning
+                    : damageType == "poison" ? shared.m_damages.m_poison : shared.m_damages.m_spirit;
+                var effect = amount > 0f && ObjectDB.instance != null ? ObjectDB.instance.GetStatusEffect(name.GetStableHashCode()) : null;
+                if (effect != null) Add(Naming.FieldLabel(damageType) + " damage causes", EffectName(effect), "se:" + effect.name);
+            }
             if (shared.m_equipStatusEffect != null) Add("When worn", EffectName(shared.m_equipStatusEffect), "se:" + shared.m_equipStatusEffect.name);
             if (shared.m_consumeStatusEffect != null) Add("When used", EffectName(shared.m_consumeStatusEffect), "se:" + shared.m_consumeStatusEffect.name);
             if (shared.m_attackStatusEffect != null) Add("On hit", EffectName(shared.m_attackStatusEffect), "se:" + shared.m_attackStatusEffect.name);
@@ -378,6 +390,12 @@ namespace Scry
             if (text.Length > 0 && (char.IsDigit(text[0]) || text[0] == '-')) return null;
             return string.Join(", ", text.Split(new[] { ", " }, StringSplitOptions.None).Select(Naming.FieldLabel));
         }
+
+        /// <summary>The status effect each kind of damage puts on what it hits, as <c>Character</c> adds them.</summary>
+        private static readonly (string Damage, string Effect)[] DamageEffects =
+        {
+            ("fire", "Burning"), ("frost", "Frost"), ("lightning", "Lightning"), ("poison", "Poison"), ("spirit", "Spirit"),
+        };
 
         private static string EffectName(StatusEffect effect)
         {

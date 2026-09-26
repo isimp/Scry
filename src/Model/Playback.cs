@@ -32,10 +32,14 @@ namespace Scry
             }
         }
 
-        public void Started(object key, IEnumerable<(string Tag, T Thing)> things)
+        /// <summary>
+        /// Records what a button started. Not pressed, the things are only added to what it has
+        /// going, as what a playing animation starts of itself is to its clip's.
+        /// </summary>
+        public void Started(object key, IEnumerable<(string Tag, T Thing)> things, bool pressed = true)
         {
             if (key == null) return;
-            Last = key;
+            if (pressed) Last = key;
             if (!_started.TryGetValue(key, out var list))
             {
                 list = new List<(string, T)>();
@@ -60,6 +64,16 @@ namespace Scry
                 if (tag == null || thing.Tag == tag) return true;
             }
             return false;
+        }
+
+        /// <summary>Takes what a button started out of the watch, to be stopped; it is not lit after.</summary>
+        public List<T> Take(object key)
+        {
+            var taken = new List<T>();
+            if (key == null || !_started.TryGetValue(key, out var list)) return taken;
+            foreach (var thing in list) if (thing.Thing != null) taken.Add(thing.Thing);
+            _started.Remove(key);
+            return taken;
         }
 
         public void Forget()

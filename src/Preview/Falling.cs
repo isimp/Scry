@@ -395,7 +395,7 @@ namespace Scry
                 var body = GetComponentInChildren<Rigidbody>();
                 var at = body != null ? body.transform : transform;
                 if (_onStage) Stage.PlayList(_parting, at);
-                else Previews.PlayList(_parting, at.position, Quaternion.identity);
+                else Previews.PlayList(_parting, at.position, Quaternion.identity, Previews.StageHeard);
             }
             Destroy(gameObject);
         }

@@ -18,6 +18,8 @@ namespace Scry.Tests
             catalog.Add(E("TrollHelmet", Kind.Item, "Troll leather helmet"));
             catalog.Add(E("SetEffect_TrollArmor", Kind.StatusEffect, "Sneaky"));
             catalog.Add(E("sfx_troll_step", Kind.Sound));
+            catalog.Add(E("FW_ArmorTrollLeatherChest", Kind.Item, "Troll leather tunic"));
+            catalog.Add(E("SP_ArmorTrollLeatherChest", Kind.Item, "Troll leather tunic"));
             return catalog;
         }
 
@@ -113,12 +115,61 @@ namespace Scry.Tests
 
             book.AddSets(new[]
             {
-                ("TrollArmorChest", "troll"), ("TrollArmorLegs", "troll"), ("TrollHelmet", "troll"), ("Bow", ""),
+                ("TrollArmorChest", "troll", "Troll leather tunic", true), ("TrollArmorLegs", "troll", "Troll leather pants", true),
+                ("TrollHelmet", "troll", "Troll leather helmet", true), ("Bow", "", "Crude bow", true),
             });
             book.Apply(catalog);
 
             Assert.Equal(new[] { "TrollArmorLegs", "TrollHelmet" }, Targets(Find(catalog, "TrollArmorChest"), LinkBook.SameSet));
             Assert.Empty(Find(catalog, "Bow").Links);
+        }
+
+        [Fact]
+        public void CopiesOfAPieceUnderTheSameNameAreItsVariantsNotMorePiecesOfTheSet()
+        {
+            var catalog = Catalog();
+            var book = new LinkBook();
+
+            book.AddSets(new[]
+            {
+                ("TrollArmorChest", "troll", "Troll leather tunic", true), ("TrollArmorLegs", "troll", "Troll leather pants", true),
+                ("FW_ArmorTrollLeatherChest", "troll", "Troll leather tunic", false), ("SP_ArmorTrollLeatherChest", "troll", "Troll leather tunic", false),
+            });
+            book.Apply(catalog);
+
+            Assert.Equal(new[] { "TrollArmorLegs" }, Targets(Find(catalog, "TrollArmorChest"), LinkBook.SameSet));
+            Assert.Equal(new[] { "TrollArmorChest" }, Targets(Find(catalog, "TrollArmorLegs"), LinkBook.SameSet));
+            Assert.Equal(new[] { "FW_ArmorTrollLeatherChest", "SP_ArmorTrollLeatherChest" }, Targets(Find(catalog, "TrollArmorChest"), LinkBook.Variants));
+            Assert.Equal(new[] { "TrollArmorChest" }, Targets(Find(catalog, "FW_ArmorTrollLeatherChest"), LinkBook.VariantOf));
+            Assert.Empty(Targets(Find(catalog, "FW_ArmorTrollLeatherChest"), LinkBook.SameSet));
+        }
+
+        [Fact]
+        public void WithoutOneThatIsMadeTheShortestNameStandsForItsCopies()
+        {
+            var catalog = Catalog();
+            var book = new LinkBook();
+
+            book.AddSets(new[]
+            {
+                ("SP_ArmorTrollLeatherChest", "troll", "Troll leather tunic", false), ("TrollArmorChest", "troll", "Troll leather tunic", false),
+            });
+            book.Apply(catalog);
+
+            Assert.Equal(new[] { "SP_ArmorTrollLeatherChest" }, Targets(Find(catalog, "TrollArmorChest"), LinkBook.Variants));
+        }
+
+        [Fact]
+        public void ALinkCanBeShownAtItsFarEndOnly()
+        {
+            var catalog = Catalog();
+            var book = new LinkBook();
+
+            book.Add("TrollArmorChest", null, "se:SetEffect_TrollArmor", "Given by", "set bonus");
+            book.Apply(catalog);
+
+            Assert.Empty(Find(catalog, "TrollArmorChest").Links);
+            Assert.Equal(new[] { "TrollArmorChest" }, Targets(Find(catalog, "se:SetEffect_TrollArmor"), "Given by"));
         }
 
         [Fact]

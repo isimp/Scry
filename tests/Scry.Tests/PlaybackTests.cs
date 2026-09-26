@@ -95,6 +95,32 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void StoppingAButtonHandsBackWhatItStartedAndPutsItOut()
+        {
+            var playback = Tracker();
+            var sound = new Thing();
+            var puff = new Thing();
+            playback.Started("Death", new[] { ("sfx", sound), ("vfx", puff) });
+
+            var taken = playback.Take("Death");
+
+            Assert.Equal(new[] { sound, puff }, taken);
+            Assert.False(playback.IsPlaying("Death"));
+        }
+
+        [Fact]
+        public void WhatAnAnimationStartsOfItselfDoesNotChangeTheButtonPressedLast()
+        {
+            var playback = Tracker();
+            playback.Started("Death", new[] { ("sfx", new Thing()) });
+
+            playback.Started("walk", new[] { ("step", new Thing()) }, pressed: false);
+
+            Assert.Equal("Death", playback.Last);
+            Assert.True(playback.IsPlaying("walk", "step"));
+        }
+
+        [Fact]
         public void ForgettingEverythingPutsAllOut()
         {
             var playback = Tracker();

@@ -1297,8 +1297,18 @@ namespace Scry
                     break;
 
                 case Kind.Effect:
-                    if (Button("Play where you look", Previews.Playing.IsPlaying("there:" + entry.Name) ? Skin.On : Skin.Primary)) Previews.PlayEffect(entry, onYou: false);
-                    if (Button("Play on you", Previews.Playing.IsPlaying("on you:" + entry.Name) ? Skin.On : Skin.Button)) Previews.PlayEffect(entry, onYou: true);
+                    var there = Previews.Playing.IsPlaying("there:" + entry.Name);
+                    if (Button("Play where you look", there ? Skin.On : Skin.Primary))
+                    {
+                        if (there) Previews.Stop("there:" + entry.Name);
+                        else Previews.PlayEffect(entry, onYou: false);
+                    }
+                    var onYou = Previews.Playing.IsPlaying("on you:" + entry.Name);
+                    if (Button("Play on you", onYou ? Skin.On : Skin.Button))
+                    {
+                        if (onYou) Previews.Stop("on you:" + entry.Name);
+                        else Previews.PlayEffect(entry, onYou: true);
+                    }
                     if (!_compact)
                     {
                         if (Button("Replay", Skin.Button)) Previews.Replay();
@@ -1329,10 +1339,11 @@ namespace Scry
                         Previews.Rebuild();
                         SaveRects();
                     }
-                    if (Previews.RagdollOf(entry) != null && Stage.Subject != null
-                        && Button("Ragdoll", Previews.Playing.IsPlaying("ragdoll") ? Skin.On : Skin.Button))
+                    var fallen = Previews.Playing.IsPlaying("ragdoll");
+                    if (Previews.RagdollOf(entry) != null && Stage.Subject != null && Button("Ragdoll", fallen ? Skin.On : Skin.Button))
                     {
-                        Previews.Ragdoll();
+                        if (fallen) Previews.Stop("ragdoll");
+                        else Previews.Ragdoll();
                     }
                     if (Previews.IsModel(entry))
                     {
@@ -1394,7 +1405,11 @@ namespace Scry
             {
                 if (list.Value == effect.m_startEffects) continue;
                 var style = Previews.Playing.IsPlaying(list.Value) ? Skin.On : hasStart ? Skin.Button : Skin.Primary;
-                if (button("Play " + list.Key.ToLowerInvariant(), style)) Previews.PlayOnYou(list.Value);
+                if (button("Play " + list.Key.ToLowerInvariant(), style))
+                {
+                    if (Previews.Playing.IsPlaying(list.Value)) Previews.Stop(list.Value);
+                    else Previews.PlayOnYou(list.Value);
+                }
             }
 
             return "Only the look. The effect itself is never applied to you.";
@@ -1611,7 +1626,7 @@ namespace Scry
             if (clips.Count > 0)
             {
                 y += U(6f);
-                y = Clips(clips, modifiers, width, labelW, y);
+                y = Clips(explorer, clips, modifiers, width, labelW, y);
             }
 
             return y + U(10f);
@@ -1779,14 +1794,24 @@ namespace Scry
         /// Every animation clip the creature has, each played directly on the copy. The one playing
         /// is lit; Stop hands the copy back to its own animations.
         /// </summary>
-        private static float Clips(List<AnimationClip> clips, Modifiers modifiers, float width, float labelW, float y)
+        private static float Clips(Explorer explorer, List<AnimationClip> clips, Modifiers modifiers, float width, float labelW, float y)
         {
+            _groundsFor = explorer.Selected;
             var playing = Previews.PlayingClip();
             y = SectionHeading($"ANIMATIONS  {clips.Count}", width, y, null, "animations");
             if (IsFolded("animations")) return y;
 
             var speed = SliderRow("Speed", $"×{modifiers.AnimationSpeed.ToString("0.0", CultureInfo.InvariantCulture)}", modifiers.AnimationSpeed, 0f, Modifiers.MaxAnimationSpeed, width, labelW, ref y);
             if (!Mathf.Approximately(speed, modifiers.AnimationSpeed)) modifiers.AnimationSpeed = speed;
+
+            // The ground footsteps sound on, when the creature sounds different on some.
+            var grounds = Previews.Grounds(_groundsFor?.Source as GameObject);
+            if (grounds.Count > 1)
+            {
+                var names = grounds.Select(g => g == FootStep.GroundMaterial.Default ? "Plain" : g == FootStep.GroundMaterial.GenericGround ? "Ground" : Naming.FieldLabel(g.ToString())).ToList();
+                var chosen = Segments("Ground", names, Mathf.Max(0, grounds.IndexOf(Previews.StepGround)), width, labelW, ref y);
+                if (chosen >= 0) Previews.StepGround = grounds[chosen];
+            }
 
             var x = 0f;
             var rowH = U(26f);
@@ -1838,7 +1863,15 @@ namespace Scry
                     y += rowH + U(5f);
                 }
                 var chip = new Rect(x, y, w, rowH);
-                if (GUI.Button(chip, clip.name, style)) Previews.PlayClip(clip);
+                if (GUI.Button(chip, clip.name, style))
+                {
+                    if (on) Previews.StopClip();
+                    else
+                    {
+                        Previews.PlayClip(clip);
+                        Previews.LastClip = clip;
+                    }
+                }
                 if (chip.Contains(Event.current.mousePosition))
                 {
                     AskTip("clip:" + clip.name, $"{clip.name}\n{clip.length.ToString("0.0", CultureInfo.InvariantCulture)} s{(clip.isLooping ? ", loops" : "")}");
@@ -1846,6 +1879,17 @@ namespace Scry
                 x += w + U(5f);
             }
             if (x > 0f) y += rowH;
+
+            var last = Previews.LastClip;
+            if (last != null && clips.Contains(last))
+            {
+                var members = Previews.ClipMembers(last).ToArray();
+                if (members.Length > 0)
+                {
+                    y += U(10f);
+                    y = Members(explorer, "In " + last.name + ":", last, members, null, width, y);
+                }
+            }
 
             return y + U(10f);
         }
@@ -1989,7 +2033,12 @@ namespace Scry
                 }
                 var chip = new Rect(x, y, w, rowH);
                 var playing = Previews.Playing.IsPlaying(pair.Value);
-                if (GUI.Button(chip, pair.Key, playing ? Skin.ChipOn : Skin.Chip)) Previews.PlayEffectList(pair.Key, pair.Value);
+                if (GUI.Button(chip, pair.Key, playing ? Skin.ChipOn : Skin.Chip))
+                {
+                    if (playing) Previews.Stop(pair.Value);
+                    else Previews.PlayEffectList(pair.Key, pair.Value);
+                }
+                if (playing && chip.Contains(Event.current.mousePosition)) AskTip("fx-stop:" + pair.Key, "Playing; click to stop it");
                 if (chip.Contains(Event.current.mousePosition))
                 {
                     var names = pair.Value.m_effectPrefabs.Where(d => d?.m_prefab != null).Select(d => d.m_prefab.name);
@@ -2020,7 +2069,9 @@ namespace Scry
         /// The parts of a list as chips: each goes to its prefab, and is lit while the copy of it
         /// the list last started still plays. The selected prefab itself is shown but not a link.
         /// </summary>
-        private static float Members(Explorer explorer, string title, EffectList list, string[] members, string self, float width, float y)
+        private static Entry _groundsFor;
+
+        private static float Members(Explorer explorer, string title, object list, string[] members, string self, float width, float y)
         {
             if (title != null)
             {
@@ -2094,7 +2145,11 @@ namespace Scry
                 var x = 0f;
                 var playText = "\u25B6 Play";
                 var playW = Skin.Chip.CalcSize(new GUIContent(playText)).x + U(12f);
-                if (list != null && GUI.Button(new Rect(x, y, playW, rowH), playText, playing ? Skin.ChipOn : Skin.Chip)) Previews.PlayWhole(entry, list);
+                if (list != null && GUI.Button(new Rect(x, y, playW, rowH), playText, playing ? Skin.ChipOn : Skin.Chip))
+                {
+                    if (playing) Previews.Stop(list);
+                    else Previews.PlayWhole(entry, list);
+                }
                 if (new Rect(x, y, playW, rowH).Contains(Event.current.mousePosition)) AskTip("playrow:" + row.Label + row.Owners[0].Shown, "Play the whole list together");
                 x += playW + U(8f);
                 var labelW = Mathf.Min(width - x, Skin.Label.CalcSize(new GUIContent(row.Label)).x + U(4f));

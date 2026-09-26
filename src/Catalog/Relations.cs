@@ -26,6 +26,17 @@ namespace Scry
         public const string SpawnedBy = "Spawned by";
         public const string StatusEffects = "Status effects";
         public const string GivenBy = "Given by";
+        public const string Upgrades = "Upgrades";
+        public const string UpgradeOf = "Upgrade of";
+
+        /// <summary>The status effect each kind of damage puts on what it hits, as <c>Character</c> adds them.</summary>
+        private static readonly (string Damage, string Effect)[] DamageEffects =
+        {
+            ("fire", "Burning"), ("frost", "Frost"), ("lightning", "Lightning"), ("poison", "Poison"), ("spirit", "Spirit"),
+        };
+
+        /// <summary>The ways an item gives a status effect that its own facts already tell, with a link.</summary>
+        private static readonly HashSet<string> ToldByItems = new HashSet<string> { "equip", "set", "consume", "attack" };
 
         private static readonly Dictionary<RuntimeAnimatorController, List<(string Clip, GameObject Thing)>> ByController =
             new Dictionary<RuntimeAnimatorController, List<(string, GameObject)>>();
@@ -34,9 +45,15 @@ namespace Scry
         public static LinkBook Gather(List<GameObject> prefabs)
         {
             var book = new LinkBook();
-            var sets = new List<(string, string)>();
+            var sets = new List<(string, string, string, bool)>();
             var ammo = new List<(string, string, bool)>();
             ByController.Clear();
+
+            var made = new HashSet<string>(StringComparer.Ordinal);
+            if (ObjectDB.instance != null)
+            {
+                foreach (var recipe in ObjectDB.instance.m_recipes) if (recipe?.m_item != null) made.Add(recipe.m_item.gameObject.name);
+            }
 
             foreach (var prefab in prefabs)
             {
@@ -47,11 +64,17 @@ namespace Scry
                     Steps(prefab, book);
                     Carried(prefab, book);
                     Fields(prefab, book);
+                    Upgrade(prefab, book);
+
+                    var aoe = prefab.GetComponent<Aoe>();
+                    if (aoe != null) Damage(prefab, aoe.m_damage, book, StatusEffects);
 
                     var shared = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
                     if (shared != null)
                     {
-                        sets.Add((prefab.name, shared.m_setName));
+                        // An item tells what its damage causes in its own facts; the effect names the item.
+                        Damage(prefab, shared.m_damages, book, null);
+                        sets.Add((prefab.name, shared.m_setName, CatalogBuilder.Localize(shared.m_name), made.Contains(prefab.name)));
                         var type = shared.m_itemType;
                         ammo.Add((prefab.name, shared.m_ammoType,
                             type == ItemDrop.ItemData.ItemType.Ammo || type == ItemDrop.ItemData.ItemType.AmmoNonEquipable));
@@ -65,8 +88,38 @@ namespace Scry
 
             book.AddSets(sets);
             book.AddAmmo(ammo);
-            foreach (var giver in Knowledge.Givers()) book.Add(giver.Prefab, StatusEffects, "se:" + giver.Effect, GivenBy, giver.How);
+            foreach (var giver in Knowledge.Givers())
+            {
+                // What an item gives when worn, used, as a set or on hit is in its own facts already.
+                var item = ToldByItems.Contains(giver.How) && IsItem(giver.Prefab, prefabs);
+                book.Add(giver.Prefab, item ? null : StatusEffects, "se:" + giver.Effect, GivenBy, giver.How);
+            }
             return book;
+        }
+
+        private static bool IsItem(string name, List<GameObject> prefabs)
+        {
+            var prefab = ZNetScene.instance != null ? ZNetScene.instance.GetPrefab(name) : prefabs.Find(p => p != null && p.name == name);
+            return prefab != null && prefab.GetComponent<ItemDrop>() != null;
+        }
+
+        /// <summary>The status effects a prefab's damage puts on what it hits.</summary>
+        private static void Damage(GameObject prefab, HitData.DamageTypes damage, LinkBook book, string group)
+        {
+            foreach (var (type, effect) in DamageEffects)
+            {
+                var amount = type == "fire" ? damage.m_fire : type == "frost" ? damage.m_frost : type == "lightning" ? damage.m_lightning
+                    : type == "poison" ? damage.m_poison : damage.m_spirit;
+                if (amount > 0f) book.Add(prefab.name, group, "se:" + effect, GivenBy, type + " damage");
+            }
+        }
+
+        /// <summary>A crafting station's upgrades: the pieces that raise its level while built near it.</summary>
+        private static void Upgrade(GameObject prefab, LinkBook book)
+        {
+            var extension = prefab.GetComponent<StationExtension>();
+            var station = extension != null ? extension.m_craftingStation : null;
+            if (station != null) book.Add(station.transform.root.name, Upgrades, prefab.name, UpgradeOf);
         }
 
         /// <summary>What a creature's clips name themselves to play or hold, by clip.</summary>

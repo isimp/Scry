@@ -54,7 +54,7 @@ namespace Scry
         private static int _aliveFrame = -1;
 
         /// <summary>Records what a button started, each part tagged with the prefab it copies.</summary>
-        private static void Started(object key, IEnumerable<GameObject> things)
+        private static void Started(object key, IEnumerable<GameObject> things, bool pressed = true)
         {
             var tagged = new List<(string, GameObject)>();
             var now = Time.unscaledTime;
@@ -64,7 +64,50 @@ namespace Scry
                 Born[thing] = now;
                 tagged.Add((thing.name, thing));
             }
-            Playing.Started(key, tagged);
+            Playing.Started(key, tagged, pressed);
+        }
+
+        private static readonly Dictionary<object, AnimationClip> ClipOf = new Dictionary<object, AnimationClip>();
+        private static AnimationClip _startedClip;
+
+        /// <summary>
+        /// Stops what a lit button started: its copies go, a fallen or broken copy stands again,
+        /// and an animation it started ends.
+        /// </summary>
+        public static void Stop(object key)
+        {
+            foreach (var thing in Playing.Take(key)) if (thing != null) Object.Destroy(thing);
+            if (key != null && ClipOf.TryGetValue(key, out var clip))
+            {
+                ClipOf.Remove(key);
+                if (PlayingClip() == clip) StopClip();
+            }
+        }
+
+        /// <summary>What a playing animation made of itself, lit under its clip.</summary>
+        public static void Heard(AnimationClip clip, IEnumerable<GameObject> things)
+        {
+            if (clip != null) Started(clip, things, pressed: false);
+        }
+
+        /// <summary>The clip whose chip was pressed last, for showing what it plays.</summary>
+        public static AnimationClip LastClip;
+
+        /// <summary>The ground footsteps are heard on.</summary>
+        public static FootStep.GroundMaterial StepGround = FootStep.GroundMaterial.Default;
+
+        /// <summary>The grounds a creature's footsteps sound different on, each once.</summary>
+        public static List<FootStep.GroundMaterial> Grounds(GameObject prefab)
+        {
+            var grounds = new List<FootStep.GroundMaterial>();
+            var step = prefab != null ? prefab.GetComponentInChildren<FootStep>(true) : null;
+            if (step?.m_effects == null) return grounds;
+            foreach (FootStep.GroundMaterial ground in System.Enum.GetValues(typeof(FootStep.GroundMaterial)))
+            {
+                if (ground == FootStep.GroundMaterial.None || ground == FootStep.GroundMaterial.Everything) continue;
+                if (step.m_effects.Exists(e => e != null && (e.m_material & ground) != 0 && (e.m_material & FootStep.GroundMaterial.Everything) != FootStep.GroundMaterial.Everything)) grounds.Add(ground);
+            }
+            return grounds;
         }
 
         /// <summary>
@@ -174,6 +217,7 @@ namespace Scry
         private static void Selected(Entry entry, Modifiers modifiers)
         {
             _entry = entry;
+            LastClip = null;
             _builtLevel = modifiers.Level;
             _builtWear = modifiers.Wear;
             _builtLook = modifiers.Look;
@@ -590,7 +634,11 @@ namespace Scry
         }
 
         /// <summary>Plays every prefab of an effect list at a point, as the game would on a hit.</summary>
-        public static List<GameObject> PlayList(EffectList list, Vector3 position, Quaternion rotation)
+        /// <summary>
+        /// Plays every prefab of a list at a point in the world. Muted, it is only seen: while the
+        /// stage shows the same, its sound is heard from there once rather than twice.
+        /// </summary>
+        public static List<GameObject> PlayList(EffectList list, Vector3 position, Quaternion rotation, bool muted = false)
         {
             var made = new List<GameObject>();
             if (list?.m_effectPrefabs == null) return made;
@@ -607,11 +655,15 @@ namespace Scry
                 else copy = Ghost.Make(data.m_prefab, null, position, rotation);
 
                 if (copy == null) continue;
+                if (muted) foreach (var source in copy.GetComponentsInChildren<AudioSource>(true)) source.mute = true;
                 Remember(copy, EffectSeconds);
                 made.Add(copy);
             }
             return made;
         }
+
+        /// <summary>Whether the stage is showing, so the world copy's sounds would be heard twice.</summary>
+        public static bool StageHeard => Stage.Subject != null;
 
         /// <summary>
         /// Plays a list a sound or effect is part of, whole: an effect's on the stage around it,
@@ -620,12 +672,12 @@ namespace Scry
         public static void PlayWhole(Entry entry, EffectList list)
         {
             if (entry == null || list == null) return;
+            Stop(list);
             var things = new List<GameObject>();
             if (entry.Kind == Kind.Effect && Stage.IsStaged(entry))
             {
                 Replay();
                 foreach (var made in Stage.PlayList(list, null, entry.Name)) things.Add(made.Item2);
-                if (Stage.Subject != null) things.Add(Stage.Subject);
             }
             else
             {
@@ -787,12 +839,11 @@ namespace Scry
         /// Plays an effect list on one copy: on the stage when it is the stage copy, heard as if
         /// beside you, otherwise where the copy stands in the world. At a part of it when given.
         /// </summary>
-        public static void PlayOnCopy(GameObject copy, EffectList list, Transform at)
+        public static List<GameObject> PlayOnCopy(GameObject copy, EffectList list, Transform at)
         {
-            if (copy == null || list == null) return;
-            if (copy == Stage.Subject) Stage.PlayList(list, at);
-
-            else PlayList(list, at != null ? at.position : copy.transform.position + Vector3.up * 0.5f, copy.transform.rotation);
+            if (copy == null || list == null) return new List<GameObject>();
+            if (copy == Stage.Subject) return Stage.PlayList(list, at).ConvertAll(m => m.Item2);
+            return PlayList(list, at != null ? at.position : copy.transform.position + Vector3.up * 0.5f, copy.transform.rotation, StageHeard);
         }
 
         /// <summary>
@@ -812,6 +863,8 @@ namespace Scry
             var ragdoll = _entry != null && _entry.Kind == Kind.Creature ? Falling.RagdollIn(list) : null;
             var word = (label ?? "").Split(' ', '(')[0].ToLowerInvariant();
             var things = new List<GameObject>();
+            Stop(list);
+            _startedClip = null;
 
             if (ragdoll != null)
             {
@@ -843,7 +896,25 @@ namespace Scry
                 if (clip != null) PlayClip(clip);
             }
             things.AddRange(PlayEffectList(list));
+            if (_startedClip != null) ClipOf[list] = _startedClip;
+            if (things.Count == 0) TellEmpty(label, list);
             Started(list, things);
+        }
+
+        private static readonly HashSet<EffectList> ToldEmpty = new HashSet<EffectList>();
+
+        /// <summary>Says once per list why playing it showed nothing, for finding out what it holds.</summary>
+        private static void TellEmpty(string label, EffectList list)
+        {
+            if (list?.m_effectPrefabs == null || !ToldEmpty.Add(list)) return;
+            var parts = new List<string>();
+            foreach (var data in list.m_effectPrefabs)
+            {
+                if (data?.m_prefab == null) { parts.Add("an empty slot"); continue; }
+                var why = !data.m_enabled ? "switched off" : Ghost.IsWholeModel(data.m_prefab) && !Ghost.IsDebris(data.m_prefab) ? "a whole model, left out" : "could not be copied";
+                parts.Add($"{data.m_prefab.name} ({why})");
+            }
+            Plugin.Log.LogInfo($"Scry played nothing of {_entry?.Name}'s \"{label}\": {(parts.Count > 0 ? string.Join(", ", parts) : "it is empty")}.");
         }
 
         /// <summary>The ragdoll a creature leaves when it dies, when it has one.</summary>
@@ -858,6 +929,7 @@ namespace Scry
         {
             var ragdoll = RagdollOf(_entry);
             if (ragdoll == null) return;
+            Stop("ragdoll");
             var prefab = (GameObject)_entry.Source;
             var modifiers = _explorer?.Modifiers;
             var level = modifiers != null ? modifiers.Level : 1;
@@ -870,7 +942,7 @@ namespace Scry
         {
             var things = new List<GameObject>();
             foreach (var made in Stage.PlayList(list)) things.Add(made.Item2);
-            if (_world != null) things.AddRange(PlayList(list, _world.transform.position + Vector3.up * 0.5f, _world.transform.rotation));
+            if (_world != null) things.AddRange(PlayList(list, _world.transform.position + Vector3.up * 0.5f, _world.transform.rotation, StageHeard));
             return things;
         }
 
@@ -943,6 +1015,14 @@ namespace Scry
         public static bool LoopClips;
 
         /// <summary>The animation clips the stage copy's animator has, by name.</summary>
+        /// <summary>What the stage copy's animation clip plays of itself, by prefab name.</summary>
+        public static List<string> ClipMembers(AnimationClip clip)
+        {
+            var animator = ClipPlayer.AnimatorOf(Stage.Subject);
+            var ears = animator != null ? animator.GetComponent<AnimationEars>() : null;
+            return ears != null ? ears.Members(clip) : new List<string>();
+        }
+
         public static List<AnimationClip> Clips()
         {
             var clips = new List<AnimationClip>();
@@ -971,6 +1051,7 @@ namespace Scry
             var speed = _explorer != null ? _explorer.Modifiers.AnimationSpeed : 1f;
             ClipPlayer.Play(Stage.Subject, clip, LoopClips, speed, quiet);
             ClipPlayer.Play(_world, clip, LoopClips, speed, quiet);
+            _startedClip = clip;
         }
 
         private static string _clipOnShow;

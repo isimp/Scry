@@ -25,28 +25,45 @@ namespace Scry
     public sealed class LinkBook
     {
         public const string SameSet = "Same set";
+        public const string Variants = "Variants";
+        public const string VariantOf = "Variant of";
         public const string Shoots = "Shoots";
         public const string ShotFrom = "Shot from";
 
         private readonly List<(string From, string Group, string To, string Note)> _links = new List<(string, string, string, string)>();
 
-        /// <summary>Notes a link from one entry to another, with the heading each end shows it under.</summary>
+        /// <summary>
+        /// Notes a link from one entry to another, with the heading each end shows it under. Without
+        /// a heading an end does not show it, as when that end tells of it in its own way already.
+        /// </summary>
         public void Add(string from, string group, string to, string backGroup, string note = null)
         {
             if (string.IsNullOrEmpty(from) || string.IsNullOrEmpty(to)) return;
-            _links.Add((from, group, to, note));
+            if (group != null) _links.Add((from, group, to, note));
             if (backGroup != null) _links.Add((to, backGroup, from, note));
         }
 
-        /// <summary>Links the items of each set to the rest of it, given each item's set name.</summary>
-        public void AddSets(IEnumerable<(string Item, string Set)> items)
+        /// <summary>
+        /// Links the pieces of each set to the rest of it, given each item's set name and shown
+        /// name. The game keeps copies of some pieces under the same name and set for creatures to
+        /// wear; one of them stands for the piece (the one that is made, else the shortest name)
+        /// and the others are linked to it as its variants rather than listed as more pieces.
+        /// </summary>
+        public void AddSets(IEnumerable<(string Item, string Set, string Shown, bool Made)> items)
         {
             foreach (var set in items.Where(i => !string.IsNullOrEmpty(i.Set)).GroupBy(i => i.Set))
             {
-                var members = set.Select(i => i.Item).Distinct().ToList();
-                foreach (var item in members)
+                var pieces = new List<string>();
+                foreach (var piece in set.GroupBy(i => string.IsNullOrEmpty(i.Shown) ? i.Item : i.Shown))
                 {
-                    foreach (var other in members) _links.Add((item, SameSet, other, null));
+                    var copies = piece.GroupBy(i => i.Item).Select(g => g.First()).ToList();
+                    var stands = copies.OrderBy(i => i.Made ? 0 : 1).ThenBy(i => i.Item.Length).ThenBy(i => i.Item, StringComparer.Ordinal).First();
+                    pieces.Add(stands.Item);
+                    foreach (var copy in copies) if (copy.Item != stands.Item) Add(stands.Item, Variants, copy.Item, VariantOf);
+                }
+                foreach (var item in pieces)
+                {
+                    foreach (var other in pieces) _links.Add((item, SameSet, other, null));
                 }
             }
         }
