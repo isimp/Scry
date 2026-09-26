@@ -212,7 +212,7 @@ namespace Scry
                     ? Previews.PlayOnCopy(_copy, _clipTrigger, Previews.AttackOrigin(_copy, attack))
                     : Previews.PlayOnCopyAt(_copy, _clipTrigger, Previews.ReachPoint(_copy, attack)));
             }
-            if (_clipHit != null)
+            if (_clipHit?.m_effectPrefabs != null && _clipHit.m_effectPrefabs.Length > 0)
             {
                 var point = Previews.StrikePoint(_copy, attack, Previews.LandsOnGround(_clipHit));
                 var ahead = Vector3.Dot(point - _copy.transform.position, _copy.transform.forward);
