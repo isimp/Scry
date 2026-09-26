@@ -129,16 +129,28 @@ namespace Scry
         private static float _settleFrom;
         private static bool _settled;
 
-        // A creature that walks stands with its feet where its root is, as the game puts it on
-        // the ground; what its animation draws below or above does not move the floor.
+        // A creature that walks is measured for a short moment once its animation runs, a flyer
+        // over its flight; the floor is under what it draws then.
         private static bool _onFeet;
+
+        /// <summary>How far the view is moved off the model, by dragging with the right button.</summary>
+        private static Vector3 _pan;
+
+        /// <summary>Moves the view across the stage, as the mouse drags it, at the distance the camera is from the model.</summary>
+        public static void Pan(Vector2 delta)
+        {
+            if (_camera == null) return;
+            var t = _camera.transform;
+            var distance = Vector3.Distance(t.position, Origin + _pan);
+            var step = distance * 0.0016f;
+            _pan += -t.right * delta.x * step + t.up * delta.y * step;
+        }
 
         /// <summary>Where the floor under the model is, as shown.</summary>
         private static float FloorY
         {
             get
             {
-                if (_onFeet && _subject != null) return _subject.transform.position.y;
                 return Origin.y + (_bounds.min.y - Origin.y) * _scale;
             }
         }
@@ -422,6 +434,7 @@ namespace Scry
             Pitch = FrontPitch;
             Zoom = 1f;
             _frameRadius = -1f;
+            _pan = Vector3.zero;
         }
 
         /// <summary>Turns the camera to a view: "Front", "Side", "Top", or "Fit" to frame it whole again.</summary>
@@ -442,6 +455,7 @@ namespace Scry
                     break;
             }
             Zoom = 1f;
+            _pan = Vector3.zero;
         }
 
         /// <summary>Films the stage, when the panel showed it in the last couple of frames.</summary>
@@ -568,7 +582,7 @@ namespace Scry
             // The camera stays on the model, and backs off far enough to take in what an effect
             // reaches as well: an effect's own particles as they spread, and what was played on
             // the model (sparks, debris, a ragdoll, a fallen log), within a few times its size.
-            var center = framed.center;
+            var center = framed.center + _pan;
             var own = Mathf.Max(0.05f, framed.extents.magnitude);
             var reach = own;
             if (_followEffect) Reach(_subject, center, ref reach);

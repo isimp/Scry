@@ -42,7 +42,7 @@ namespace Scry
         private static float _badgeWidth;
         private static string _effectFilter = "";
 
-        private enum Drag { None, Move, Resize, Orbit, StageSize }
+        private enum Drag { None, Move, Resize, Orbit, StageSize, Pan }
 
         /// <summary>The stage's height against its usual one, set by dragging its bottom edge.</summary>
         private static float _stageScale = 1f;
@@ -283,6 +283,9 @@ namespace Scry
                     break;
                 case Drag.Orbit:
                     Stage.Orbit(e.delta);
+                    break;
+                case Drag.Pan:
+                    Stage.Pan(e.delta);
                     break;
                 case Drag.StageSize:
                     _stageScale = Mathf.Clamp(_stageScale + e.delta.y / Mathf.Max(1f, _stageBaseH), 0.4f, 2.4f);
@@ -1013,7 +1016,7 @@ namespace Scry
                 if (rect.Contains(e.mousePosition) || _drag == Drag.Orbit)
                 {
                     FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), textW, U(22f)),
-                        "Drag to turn, scroll to zoom, double-click to reset", Skin.FaintLabel, 9f);
+                        "Drag to turn, right-drag to move, scroll to zoom, double-click to reset", Skin.FaintLabel, 9f);
                 }
                 else if (Stage.Subject != null && Stage.ShowsGrid)
                 {
@@ -1032,6 +1035,11 @@ namespace Scry
                     if (e.clickCount == 2) Stage.ResetView();
                     _drag = Drag.Orbit;
                     Stage.Dragging = true;
+                    e.Use();
+                }
+                else if (e.type == EventType.MouseDown && e.button == 1 && rect.Contains(e.mousePosition))
+                {
+                    _drag = Drag.Pan;
                     e.Use();
                 }
                 else if (e.type == EventType.ScrollWheel && rect.Contains(e.mousePosition))
@@ -1744,6 +1752,10 @@ namespace Scry
             {
                 if (!loadout.Offered(rows[i])) continue;
                 var names = loadout.Options(rows[i]).Select(ItemName).ToList();
+                for (var n = 0; n < names.Count; n++)
+                {
+                    if (names.Count(other => other == names[n]) > 1) names[n] = names[n] + " (" + loadout.Options(rows[i])[n] + ")";
+                }
 
                 // A shield the weapon leaves no hand for is shown put away, and still chosen for later.
                 var held = loadout.Held(rows[i]);
@@ -1999,8 +2011,8 @@ namespace Scry
 
         // ----- Effects -----
 
-        private static readonly Dictionary<Entry, List<KeyValuePair<string, EffectList>>> EffectCache =
-            new Dictionary<Entry, List<KeyValuePair<string, EffectList>>>();
+        private static readonly Dictionary<string, List<KeyValuePair<string, EffectList>>> EffectCache =
+            new Dictionary<string, List<KeyValuePair<string, EffectList>>>();
 
         /// <summary>
         /// Every effect list the prefab carries, played on the stage copy and on the copy in the
@@ -2011,10 +2023,13 @@ namespace Scry
             if (!(entry.Source is GameObject prefab) || entry.Kind == Kind.Sound || entry.Kind == Kind.Effect) return y;
             if (!withStage && !(Previews.InWorld && Previews.IsModel(entry))) return y;
 
-            if (!EffectCache.TryGetValue(entry, out var lists))
+            // A creature's chips follow what it has on: the weapon in its hand, not the rest.
+            var carried = Previews.CarriedNow(entry);
+            var cacheKey = entry.Key + "|" + (carried == null ? "all" : string.Join(",", carried.Select(c => c.name)));
+            if (!EffectCache.TryGetValue(cacheKey, out var lists))
             {
-                lists = Previews.PrefabLists(prefab);
-                EffectCache[entry] = lists;
+                lists = carried == null ? Previews.PrefabLists(prefab) : Previews.PrefabLists(prefab, carried);
+                EffectCache[cacheKey] = lists;
             }
             if (lists.Count == 0) return y;
 

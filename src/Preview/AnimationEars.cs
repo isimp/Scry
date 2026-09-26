@@ -23,7 +23,7 @@ namespace Scry
         {
             "FootStep", "Hit", "OnAttackTrigger", "Jump", "Land", "TakeOff", "Stop", "DodgeMortal",
             "TrailOn", "TrailOff", "GPower", "Die", "Speed", "Chain", "ResetChain", "FreezeFrame",
-            "Effect", "Attach", "RemoveAttachments",
+            "Effect", "Attach", "RemoveAttachments", "HideObject", "ShowObject",
         };
 
         private static readonly HashSet<string> Told = new HashSet<string>();
@@ -85,7 +85,7 @@ namespace Scry
         // ----- Steps -----
 
         /// <summary>Words of the clips in which a creature walks, runs or otherwise moves on its feet.</summary>
-        private static readonly string[] Moving = { "walk", "run", "jog", "sneak", "trot", "gallop", "move", "crawl", "charge", "sprint", "stroll", "step" };
+        private static readonly string[] Moving = { "walk", "run", "jog", "sneak", "trot", "gallop", "move", "crawl", "charge", "sprint", "stroll", "step", "turn", "strafe" };
 
         private bool _quiet;
         private Attack _swing;
@@ -95,10 +95,28 @@ namespace Scry
         /// An attack swung on this copy by its animator trigger: when its animation strikes, it
         /// throws or shoots what it throws, as <c>Attack</c> does at that moment.
         /// </summary>
-        public void Swinging(Attack attack)
+        public void Swinging(Attack attack, EffectList strike = null, string heard = null)
         {
             _swing = attack;
             _swingUntil = Time.unscaledTime + 4f;
+            _strike = strike;
+            _strikeHeard = heard;
+        }
+
+        private EffectList _strike;
+        private string _strikeHeard;
+
+        /// <summary>
+        /// Plays what lands where the swing strikes, when it strikes, as <c>Attack</c> plays its
+        /// hit and trigger effects there; also when the animation never says so, late.
+        /// </summary>
+        private void Strike(Attack attack)
+        {
+            var strike = _strike;
+            _strike = null;
+            if (strike == null || attack == null || _copy == null) return;
+            var made = Previews.PlayOnCopyAt(_copy, strike, Previews.StrikePoint(_copy, attack, Previews.LandsOnGround(strike)));
+            Previews.Struck(strike, _strikeHeard, made);
         }
 
         /// <summary>Throws or shoots the swung attack's projectile from where the attack sends it.</summary>
@@ -106,6 +124,7 @@ namespace Scry
         {
             var attack = _swing;
             _swing = null;
+            if (Time.unscaledTime <= _swingUntil) Strike(attack);
             if (attack?.m_attackProjectile == null || Time.unscaledTime > _swingUntil || _copy == null) return;
 
             // Where Attack.GetProjectileSpawnPoint puts it, at the copy's size.
@@ -144,9 +163,14 @@ namespace Scry
                 return;
             }
 
-            // Every clip: a turn or a stomp sets feet down as a walk does, and a foot that only
-            // sways makes no step.
+            // The game only steps while the creature moves; an attack or a stagger in place makes
+            // none. Turning is moving here: the feet are set down as it turns.
             var name = clip.name.ToLowerInvariant();
+            if (!System.Array.Exists(Moving, m => name.Contains(m)))
+            {
+                Listen.Note(heard, "feet not watched: the clip does not move the creature along");
+                return;
+            }
             Listen.Note(heard, $"watching {step.m_feet.Length} feet");
 
             var feet = new List<Transform>();
@@ -296,6 +320,8 @@ namespace Scry
         public void Effect(AnimationEvent e) => Hear(e);
         public void Attach(AnimationEvent e) => Hear(e);
         public void RemoveAttachments(AnimationEvent e) => Hear(e);
+        public void HideObject(AnimationEvent e) => Hear(e);
+        public void ShowObject(AnimationEvent e) => Hear(e);
         public void Land(AnimationEvent e) { }
         public void TakeOff(AnimationEvent e) { }
         public void Stop(AnimationEvent e) { }
@@ -321,6 +347,14 @@ namespace Scry
         private void Update()
         {
             WatchSteps();
+
+            // A swing whose animation sends no strike still lands, a little late.
+            if (_swing != null && _strike != null && Time.unscaledTime > _swingUntil - 1.5f)
+            {
+                var attack = _swing;
+                _swing = null;
+                Strike(attack);
+            }
             if (_waiting.Count == 0) return;
             var now = _waiting.ToArray();
             _waiting.Clear();
@@ -354,7 +388,22 @@ namespace Scry
                 case "Effect": Effect(e); break;
                 case "Attach": Attach(e); break;
                 case "RemoveAttachments": ClipEnded(); break;
+                case "HideObject": Toggle(e.Text, false); break;
+                case "ShowObject": Toggle(e.Text, true); break;
             }
+        }
+
+        /// <summary>
+        /// As <c>AnimationObjectToggle</c>: a part named in the event, under the part the script
+        /// names or under the animated body, shown or hidden (a frost troll's club drawn, say).
+        /// </summary>
+        private void Toggle(string name, bool on)
+        {
+            if (string.IsNullOrEmpty(name)) return;
+            var toggle = _prefab.GetComponentInChildren<AnimationObjectToggle>(true);
+            var under = toggle != null && toggle.m_parentTransform != null ? Looks.Twin(_prefab.transform, _copy.transform, toggle.m_parentTransform) : null;
+            var part = (under != null ? under : transform).Find(name);
+            if (part != null) part.gameObject.SetActive(on);
         }
 
         // ----- Answered -----

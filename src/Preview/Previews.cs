@@ -786,6 +786,58 @@ namespace Scry
         /// <summary>The attack each of a creature's attack lists belongs to, for the swing that goes with it.</summary>
         private static readonly Dictionary<EffectList, Attack> AttackOf = new Dictionary<EffectList, Attack>();
 
+        /// <summary>A weapon's own lists that play with a swing; its block, equip and the like do not.</summary>
+        private static readonly HashSet<string> SwingLists = new HashSet<string>
+        {
+            "m_hitEffect", "m_hitTerrainEffect", "m_startEffect", "m_holdStartEffect", "m_triggerEffect", "m_trailStartEffect",
+        };
+
+        /// <summary>The lists that play where and when the swing strikes, as <c>Attack.OnAttackTrigger</c> plays them.</summary>
+        private static readonly HashSet<string> StrikeLists = new HashSet<string> { "m_hitEffect", "m_hitTerrainEffect", "m_triggerEffect" };
+
+        private static readonly HashSet<EffectList> Strikes = new HashSet<EffectList>();
+        private static readonly HashSet<EffectList> OnGround = new HashSet<EffectList>();
+
+        /// <summary>Notes which of an item's and its attacks' lists play at the strike, and which on the ground there.</summary>
+        private static void NoteStrikes(object owner)
+        {
+            foreach (var field in CatalogBuilder.EffectFields(owner.GetType()))
+            {
+                if (!(field.GetValue(owner) is EffectList list) || !StrikeLists.Contains(field.Name)) continue;
+                Strikes.Add(list);
+                if (field.Name == "m_hitTerrainEffect") OnGround.Add(list);
+            }
+        }
+
+        /// <summary>
+        /// Every effect list anywhere on a prefab, as <see cref="PrefabLists(GameObject)"/>, but of
+        /// the items a creature carries only those it has now: the weapon in its hand, its shield
+        /// and armour. A slap is not in the hand that holds a log.
+        /// </summary>
+        public static List<KeyValuePair<string, EffectList>> PrefabLists(GameObject prefab, ICollection<GameObject> carried)
+        {
+            _carriedOnly = carried;
+            try
+            {
+                return PrefabLists(prefab);
+            }
+            finally
+            {
+                _carriedOnly = null;
+            }
+        }
+
+        private static ICollection<GameObject> _carriedOnly;
+
+        /// <summary>What a creature has on now, in the look shown: what it holds and wears.</summary>
+        public static List<GameObject> CarriedNow(Entry entry)
+        {
+            var prefab = entry?.Source as GameObject;
+            var modifiers = _explorer?.Modifiers;
+            if (prefab == null || modifiers == null || !modifiers.LookAvailable || !Variants.IsGear(prefab)) return null;
+            return Variants.GearOf(prefab, modifiers.Look);
+        }
+
         public static List<KeyValuePair<string, EffectList>> PrefabLists(GameObject prefab)
         {
             var lists = new List<KeyValuePair<string, EffectList>>();
@@ -810,6 +862,9 @@ namespace Scry
             var own = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
             if (own != null)
             {
+                NoteStrikes(own);
+                if (own.m_attack != null) NoteStrikes(own.m_attack);
+                if (own.m_secondaryAttack != null) NoteStrikes(own.m_secondaryAttack);
                 foreach (var attack in new[] { own.m_attack, own.m_secondaryAttack })
                 {
                     if (attack == null) continue;
@@ -822,7 +877,7 @@ namespace Scry
                 {
                     foreach (var field in CatalogBuilder.EffectFields(typeof(ItemDrop.ItemData.SharedData)))
                     {
-                        if (field.GetValue(own) is EffectList list && field.Name != "m_blockEffect" && field.Name != "m_equipEffect") AttackOf[list] = own.m_attack;
+                        if (field.GetValue(own) is EffectList list && SwingLists.Contains(field.Name)) AttackOf[list] = own.m_attack;
                     }
                 }
             }
@@ -830,8 +885,12 @@ namespace Scry
             // A creature's attacks are its own, each named after the item that makes it.
             foreach (var item in Relations.CarriedItems(prefab))
             {
+                if (_carriedOnly != null && !_carriedOnly.Contains(item)) continue;
                 var carried = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
                 if (carried == null) continue;
+                NoteStrikes(carried);
+                if (carried.m_attack != null) NoteStrikes(carried.m_attack);
+                if (carried.m_secondaryAttack != null) NoteStrikes(carried.m_secondaryAttack);
                 var part = CatalogBuilder.AttackName(item);
 
                 // The weapon's own lists, and each attack's, both play when it strikes; they are
@@ -841,7 +900,7 @@ namespace Scry
                 {
                     foreach (var field in CatalogBuilder.EffectFields(typeof(ItemDrop.ItemData.SharedData)))
                     {
-                        if (field.GetValue(carried) is EffectList list) AttackOf[list] = carried.m_attack;
+                        if (field.GetValue(carried) is EffectList list && SwingLists.Contains(field.Name)) AttackOf[list] = carried.m_attack;
                     }
                 }
                 foreach (var attack in new[] { carried.m_attack, carried.m_secondaryAttack })
@@ -913,6 +972,10 @@ namespace Scry
             var things = new List<GameObject>();
             Stop(list);
             _startedClip = null;
+            var deferred = false;
+            var heard = $"{_entry?.Name}'s \"{label}\"";
+            Listen.Start(heard, 3f);
+            _heard = heard;
 
             if (ragdoll != null)
             {
@@ -935,8 +998,13 @@ namespace Scry
             else if (AttackOf.TryGetValue(list, out var attack))
             {
                 // The swing that goes with the attack's effect, started as the game starts it; its
-                // own sounds are the ones played here.
-                if (!Swing(attack))
+                // own sounds are the ones played here, what lands at the strike when it strikes.
+                var strike = Strikes.Contains(list);
+                if (Swing(attack, strike ? list : null))
+                {
+                    deferred = strike;
+                }
+                else
                 {
                     var anim = attack.m_attackAnimation ?? "";
                     var clip = anim.Length == 0 ? null : Clips().Find(c =>
@@ -951,16 +1019,51 @@ namespace Scry
                 var clip = name != null ? clips.Find(c => c.name == name) : null;
                 if (clip != null) PlayClip(clip);
             }
-            things.AddRange(PlayEffectList(list));
+            if (!deferred) things.AddRange(PlayEffectList(list));
             if (_startedClip != null) ClipOf[list] = _startedClip;
+            _heard = null;
 
-            var heard = $"{_entry?.Name}'s \"{label}\"";
-            Listen.Start(heard, 2.5f);
             Listen.Add(heard, things);
             if (WorldHeard) Listen.Note(heard, "a copy stands in the world, so the stage's are muted");
-            if (!things.Exists(Perceptible)) TellEmpty(label, list, things);
+            if (!deferred && !things.Exists(Perceptible)) TellEmpty(label, list, things);
             Started(list, things);
         }
+
+        /// <summary>The effect list being played, as the log names it, for notes on what was set.</summary>
+        private static string _heard;
+
+        /// <summary>What a swing made when it struck, lit under the list and told in the log.</summary>
+        public static void Struck(EffectList list, string heard, List<GameObject> made)
+        {
+            Started(list, made, pressed: false);
+            Listen.Add(heard, made);
+        }
+
+        /// <summary>
+        /// Where an attack strikes from a copy, as <c>Attack.GetProjectileSpawnPoint</c> places its
+        /// reach: from its origin joint or the body, up by its height, out by its range, aside by
+        /// its offset; on the ground under that for what hits the ground.
+        /// </summary>
+        public static Vector3 StrikePoint(GameObject copy, Attack attack, bool ground)
+        {
+            var t = copy.transform;
+            var size = t.lossyScale.x;
+            var origin = attack.m_attackOriginJoint.Length > 0 ? Utils.FindChild(t, attack.m_attackOriginJoint) : null;
+            if (origin == null) origin = t;
+            var point = origin.position + t.up * attack.m_attackHeight * size + t.forward * attack.m_attackRange * size + t.right * attack.m_attackOffset * size;
+            if (ground) point.y = t.position.y;
+            return point;
+        }
+
+        /// <summary>Plays a list at a point on a copy, on the stage or in the world, as the stage's or the world's.</summary>
+        public static List<GameObject> PlayOnCopyAt(GameObject copy, EffectList list, Vector3 point)
+        {
+            if (copy == null || list == null) return new List<GameObject>();
+            if (copy == Stage.Subject) return Stage.PlayList(list, null, null, point).ConvertAll(m => m.Item2);
+            return PlayList(list, point, copy.transform.rotation);
+        }
+
+        public static bool LandsOnGround(EffectList list) => OnGround.Contains(list);
 
         private static readonly List<(float At, System.Action Act)> LaterOn = new List<(float, System.Action)>();
         private static readonly Dictionary<object, System.Action> Undo = new Dictionary<object, System.Action>();
@@ -981,34 +1084,34 @@ namespace Scry
 
             if (character != null && list == character.m_jumpEffects)
             {
-                return (character.m_flying && Trigger("fly_takeoff")) || Trigger("jump");
+                return (character.m_flying && TriggerQuiet("fly_takeoff")) || Trigger("jump");
             }
             if (character != null && list == character.m_deathEffects)
             {
                 if (!Switch("dead", true)) return false;
-                Undo[list] = () => Switch("dead", false);
+                Undo[list] = () => SwitchQuiet("dead", false);
                 return true;
             }
             if (ai != null && list == ai.m_alertedEffects)
             {
                 if (!Switch("alert", true)) return false;
-                Undo[list] = () => Switch("alert", false);
+                Undo[list] = () => SwitchQuiet("alert", false);
                 return true;
             }
             if (ai is MonsterAI monster && list == monster.m_wakeupEffects)
             {
                 if (!Switch("sleeping", true)) return false;
-                LaterOn.Add((Time.unscaledTime + 1.2f, () => Switch("sleeping", false)));
+                LaterOn.Add((Time.unscaledTime + 1.2f, () => SwitchQuiet("sleeping", false)));
                 return true;
             }
             if (humanoid != null && list == humanoid.m_consumeItemEffects)
             {
-                return Trigger("eat") || Trigger("consume");
+                return TriggerQuiet("eat") || Trigger("consume");
             }
             if (humanoid != null && (list == humanoid.m_perfectBlockEffect || IsBlock(prefab, list)))
             {
                 if (!Switch("blocking", true)) return false;
-                LaterOn.Add((Time.unscaledTime + 1.2f, () => Switch("blocking", false)));
+                LaterOn.Add((Time.unscaledTime + 1.2f, () => SwitchQuiet("blocking", false)));
                 return true;
             }
             return false;
@@ -1028,6 +1131,13 @@ namespace Scry
         /// <summary>Sets a trigger on the stage copy's and the world copy's animators, where they have it.</summary>
         private static bool Trigger(string name)
         {
+            var set = TriggerQuiet(name);
+            Listen.Note(_heard, set ? $"set the animator's {name} trigger" : $"the animator has no {name} trigger, so the game animates nothing here either");
+            return set;
+        }
+
+        private static bool TriggerQuiet(string name)
+        {
             var set = false;
             foreach (var copy in new[] { Stage.Subject, _world })
             {
@@ -1042,6 +1152,13 @@ namespace Scry
 
         /// <summary>Sets a switch on the stage copy's and the world copy's animators, where they have it.</summary>
         private static bool Switch(string name, bool on)
+        {
+            var set = SwitchQuiet(name, on);
+            if (_heard != null) Listen.Note(_heard, set ? $"set the animator's {name} switch {(on ? "on" : "off")}" : $"the animator has no {name} switch, so the game animates nothing here either");
+            return set;
+        }
+
+        private static bool SwitchQuiet(string name, bool on)
         {
             var set = false;
             foreach (var copy in new[] { Stage.Subject, _world })
@@ -1085,7 +1202,7 @@ namespace Scry
         /// The copy's own animator then plays it, with its events. False when its animator has
         /// no such trigger.
         /// </summary>
-        private static bool Swing(Attack attack)
+        private static bool Swing(Attack attack, EffectList strike = null)
         {
             var anim = attack.m_attackAnimation;
             if (string.IsNullOrEmpty(anim)) return false;
@@ -1095,10 +1212,17 @@ namespace Scry
                 var animator = ClipPlayer.AnimatorOf(copy);
                 if (animator == null) continue;
                 var trigger = HasTrigger(animator, anim) ? anim : attack.m_attackChainLevels > 1 && HasTrigger(animator, anim + "0") ? anim + "0" : null;
-                if (trigger == null) continue;
+                if (trigger == null)
+                {
+                    Listen.Note(_heard, $"the animator has no {anim} trigger for this attack");
+                    continue;
+                }
                 ClipPlayer.Stop(copy);
                 animator.SetTrigger(trigger);
-                animator.GetComponent<AnimationEars>()?.Swinging(attack);
+                Listen.Note(_heard, $"swung by the animator's {trigger} trigger");
+                var ears = animator.GetComponent<AnimationEars>();
+                if (ears != null) ears.Swinging(attack, strike, _heard);
+                else if (strike != null) Struck(strike, _heard, PlayOnCopyAt(copy, strike, StrikePoint(copy, attack, LandsOnGround(strike))));
                 swung = true;
             }
             return swung;

@@ -7,13 +7,13 @@ namespace Scry
     /// The looks a prefab can be switched between, when the game switches them by script: a
     /// plant growing or grown, a fire unlit or lit, a portal unconnected, connected or open, a door
     /// or chest shut or open, a smelter, windmill, fermenter, sap collector or crafting station at
-    /// work, a ship's sail furled or set, something picked or not, a creature with or without its
+    /// work, something picked or not, a creature with or without its
     /// gear or saddle, an item in each of its styles. Only one kind is offered per prefab, in
     /// that order, and each is applied to a copy the way the game's own script would.
     /// </summary>
     internal static class Variants
     {
-        private enum Sort { None, Growth, Fire, Portal, Door, Chest, Windmill, Smelter, Fermenter, Sap, Station, Sail, Picked, Gear, Saddle, Style }
+        private enum Sort { None, Growth, Fire, Portal, Door, Chest, Windmill, Smelter, Fermenter, Sap, Station, Picked, Gear, Saddle, Style }
 
         private sealed class Found
         {
@@ -85,9 +85,6 @@ namespace Scry
                 case Sort.Station:
                     Station(prefab, copy, look);
                     break;
-                case Sort.Sail:
-                    Sail(prefab, copy, look);
-                    break;
                 case Sort.Saddle:
                     var saddle = prefab.GetComponentInChildren<Tameable>(true).m_saddle;
                     Show(prefab, copy, saddle != null ? saddle.gameObject : null, look == 1);
@@ -134,7 +131,6 @@ namespace Scry
                 var fermenter = prefab.GetComponentInChildren<Fermenter>(true);
                 var sap = prefab.GetComponentInChildren<SapCollector>(true);
                 var station = prefab.GetComponentInChildren<CraftingStation>(true);
-                var ship = prefab.GetComponentInChildren<Ship>(true);
                 var tameable = prefab.GetComponentInChildren<Tameable>(true);
                 var drop = prefab.GetComponent<ItemDrop>();
 
@@ -192,10 +188,6 @@ namespace Scry
                         Sort = Sort.Station,
                         Names = station.m_haveFireObject != null ? new[] { "Cold", "Fire lit", "In use" } : new[] { "Idle", "In use" },
                     };
-                }
-                else if (ship != null && ship.m_sailBottomTransform != null && ship.m_sailFurledPosition != null && ship.m_sailMidfurledPosition != null && ship.m_sailUnfurledPosition != null)
-                {
-                    found = new Found { Sort = Sort.Sail, Names = new[] { "Sail furled", "Half sail", "Full sail" } };
                 }
                 else if (pickable != null && pickable.m_hideWhenPicked != null)
                 {
@@ -340,25 +332,6 @@ namespace Scry
             var inUse = look == (hasFire ? 2 : 1);
             Show(prefab, copy, station.m_inUseObject, inUse);
             if (hasFire) Show(prefab, copy, station.m_haveFireObject, look >= 1);
-        }
-
-        /// <summary>
-        /// As <c>Ship.UpdateSailSize</c> sets it: the sail's bottom edge drawn from furled to half
-        /// set to full, which the sail's shape follows.
-        /// </summary>
-        private static void Sail(GameObject prefab, GameObject copy, int look)
-        {
-            var ship = prefab.GetComponentInChildren<Ship>(true);
-            Transform Twin(Transform part) => Looks.Twin(prefab.transform, copy.transform, part);
-            var bottom = Twin(ship.m_sailBottomTransform);
-            var furled = Twin(ship.m_sailFurledPosition);
-            var mid = Twin(ship.m_sailMidfurledPosition);
-            var full = Twin(ship.m_sailUnfurledPosition);
-            if (bottom == null || furled == null || mid == null || full == null) return;
-
-            var position = look == 0 ? 0f : look == 1 ? 0.5f : 1f;
-            var t = Utils.Frac(Mathf.Clamp(position, 0f, 0.999f) * 2f);
-            bottom.position = position >= 0.5f ? Vector3.Lerp(mid.position, full.position, t) : Vector3.Lerp(furled.position, mid.position, t);
         }
 
         /// <summary>
