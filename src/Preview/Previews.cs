@@ -93,8 +93,14 @@ namespace Scry
         /// <summary>What a playing animation made of itself, lit under its clip.</summary>
         public static void Heard(AnimationClip clip, IEnumerable<GameObject> things)
         {
-            if (clip != null) Started(clip, things, pressed: false);
+            if (clip == null) return;
+            var made = things.ToList();
+            Started(clip, made, pressed: false);
+            if (_litWith.Clip == clip && _litWith.Key != null) Started(_litWith.Key, made, pressed: false);
         }
+
+        /// <summary>A clip an effect list's button started, whose parts light that button too.</summary>
+        private static (AnimationClip Clip, object Key) _litWith;
 
         /// <summary>The clip whose chip was pressed last, for showing what it plays.</summary>
         public static AnimationClip LastClip;
@@ -884,7 +890,7 @@ namespace Scry
         /// </summary>
         public static ClipAttack AttackOfClip(GameObject prefab, GameObject copy, string clip)
         {
-            var plays = PlaysOf(prefab, copy, clip);
+            var plays = string.IsNullOrEmpty(clip) ? null : PlaysOf(prefab, copy);
             return plays != null && plays.Attacks.TryGetValue(clip, out var part) ? part : null;
         }
 
@@ -904,7 +910,7 @@ namespace Scry
         public static EffectList ListOfClip(GameObject prefab, GameObject copy, string clip, out bool lasting)
         {
             lasting = false;
-            var plays = PlaysOf(prefab, copy, clip);
+            var plays = string.IsNullOrEmpty(clip) ? null : PlaysOf(prefab, copy);
             if (plays == null) return null;
             var character = prefab.GetComponent<Character>();
             if (!plays.Actions.TryGetValue(clip, out var list))
@@ -926,7 +932,7 @@ namespace Scry
         /// </summary>
         public static EffectList AroundOfClip(GameObject prefab, GameObject copy, string clip)
         {
-            var plays = PlaysOf(prefab, copy, clip);
+            var plays = string.IsNullOrEmpty(clip) ? null : PlaysOf(prefab, copy);
             return plays != null && plays.Around.TryGetValue(clip, out var list) ? (EffectList)list : null;
         }
 
@@ -938,16 +944,36 @@ namespace Scry
         public static EffectList ByNameOfClip(GameObject prefab, GameObject copy, string clip, out bool lasting)
         {
             lasting = false;
-            var plays = PlaysOf(prefab, copy, clip);
+            var plays = string.IsNullOrEmpty(clip) ? null : PlaysOf(prefab, copy);
             if (plays == null || !plays.ByName.TryGetValue(clip, out var found)) return null;
             lasting = found == prefab.GetComponent<Character>()?.m_waterEffects;
             return (EffectList)found;
         }
 
-        private static ClipPlays PlaysOf(GameObject prefab, GameObject copy, string clip)
+        /// <summary>
+        /// The clip an item's attack plays first on the person trying it on, as the person's
+        /// animator plays it for the attack's trigger in the stance the item gives; null for none.
+        /// </summary>
+        private static AnimationClip AttackClipOf(Attack attack)
         {
-            if (prefab == null || string.IsNullOrEmpty(clip)) return null;
-            var carried = _entry != null && ReferenceEquals(_entry.Source, prefab) ? CarriedNow(_entry) : null;
+            var ears = ClipPlayer.AnimatorOf(Stage.Subject)?.GetComponent<AnimationEars>();
+            var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject) : null;
+            if (plays == null) return null;
+            foreach (var part in plays.Attacks)
+            {
+                if (part.Value.Key == attack && part.Value.Begins) return Clips().Find(c => c.name == part.Key);
+            }
+            return null;
+        }
+
+        private static ClipPlays PlaysOf(GameObject prefab, GameObject copy)
+        {
+            if (prefab == null) return null;
+
+            // What it has now: a creature what its look carries; the person trying an item on
+            // what it wears, the item first.
+            var worn = Looks.IsWorn(_entry) && !ReferenceEquals(_entry.Source, prefab) ? Looks.WornWith((GameObject)_entry.Source) : null;
+            var carried = worn ?? (_entry != null && ReferenceEquals(_entry.Source, prefab) ? CarriedNow(_entry) : null);
             var cacheKey = prefab.name + "|" + (carried == null ? "" : string.Join(",", carried.Select(c => c.name)));
             if (ClipPlaysCache.TryGetValue(cacheKey, out var plays)) return plays;
 
@@ -956,7 +982,7 @@ namespace Scry
             var animator = ClipPlayer.AnimatorOf(copy);
             if (animator == null) return plays;
 
-            var items = Relations.CarriedItems(prefab);
+            var items = worn ?? Relations.CarriedItems(prefab);
             if (carried != null) items = items.Where(carried.Contains).Concat(items.Where(i => !carried.Contains(i))).ToList();
             var attacks = new List<(string, object)>();
             foreach (var item in items)
@@ -1065,22 +1091,8 @@ namespace Scry
             "m_hitEffect", "m_hitTerrainEffect", "m_startEffect", "m_holdStartEffect", "m_triggerEffect", "m_trailStartEffect",
         };
 
-        /// <summary>The lists that play where and when the swing strikes, as <c>Attack.OnAttackTrigger</c> plays them.</summary>
-        private static readonly HashSet<string> StrikeLists = new HashSet<string> { "m_hitEffect", "m_hitTerrainEffect", "m_triggerEffect" };
-
-        private static readonly HashSet<EffectList> Strikes = new HashSet<EffectList>();
+        /// <summary>The hits of attacks that land on the ground there.</summary>
         private static readonly HashSet<EffectList> OnGround = new HashSet<EffectList>();
-
-        /// <summary>Notes which of an item's and its attacks' lists play at the strike, and which on the ground there.</summary>
-        private static void NoteStrikes(object owner)
-        {
-            foreach (var field in CatalogBuilder.EffectFields(owner.GetType()))
-            {
-                if (!(field.GetValue(owner) is EffectList list) || !StrikeLists.Contains(field.Name)) continue;
-                Strikes.Add(list);
-                if (field.Name == "m_hitTerrainEffect") OnGround.Add(list);
-            }
-        }
 
         /// <summary>
         /// Every effect list anywhere on a prefab, as <see cref="PrefabLists(GameObject)"/>, but of
@@ -1138,9 +1150,6 @@ namespace Scry
             var own = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
             if (own != null)
             {
-                NoteStrikes(own);
-                if (own.m_attack != null) NoteStrikes(own.m_attack);
-                if (own.m_secondaryAttack != null) NoteStrikes(own.m_secondaryAttack);
                 foreach (var attack in new[] { own.m_attack, own.m_secondaryAttack })
                 {
                     if (attack == null) continue;
@@ -1269,22 +1278,13 @@ namespace Scry
             {
                 // Set on the animator the way the game sets it for this list.
             }
-            else if (AttackOf.TryGetValue(list, out var attack))
+            else if (AttackOf.TryGetValue(list, out var attack) && AttackClipOf(attack) is AnimationClip swing)
             {
-                // The swing that goes with the attack's effect, started as the game starts it; its
-                // own sounds are the ones played here, what lands at the strike when it strikes.
-                var strike = Strikes.Contains(list);
-                if (Swing(attack, strike ? list : null))
-                {
-                    deferred = strike;
-                }
-                else
-                {
-                    var anim = attack.m_attackAnimation ?? "";
-                    var clip = anim.Length == 0 ? null : Clips().Find(c =>
-                        c.name.IndexOf(anim, System.StringComparison.OrdinalIgnoreCase) >= 0 || anim.IndexOf(c.name, System.StringComparison.OrdinalIgnoreCase) >= 0);
-                    if (clip != null) PlayClip(clip, quiet: true);
-                }
+                // An item's attack, played whole by the clip the person swings it in, as a
+                // creature's attacks play by theirs; lit under the list pressed.
+                Listen.Note(heard, "played by the clip " + swing.name);
+                PlayClip(swing, litWith: list);
+                deferred = true;
             }
             else
             {
@@ -1305,13 +1305,6 @@ namespace Scry
 
         /// <summary>The effect list being played, as the log names it, for notes on what was set.</summary>
         private static string _heard;
-
-        /// <summary>What a swing made when it struck, lit under the list and told in the log.</summary>
-        public static void Struck(EffectList list, string heard, List<GameObject> made)
-        {
-            Started(list, made, pressed: false);
-            Listen.Add(heard, made);
-        }
 
         /// <summary>
         /// Where an attack strikes from a copy, as <c>Attack.GetProjectileSpawnPoint</c> places its
@@ -1511,38 +1504,6 @@ namespace Scry
             return copy;
         }
 
-        /// <summary>
-        /// Swings an attack on the stage copy and the copy in the world as <c>Attack.Start</c>
-        /// does: by the animator trigger the attack names, or its first link when it is a chain.
-        /// The copy's own animator then plays it, with its events. False when its animator has
-        /// no such trigger.
-        /// </summary>
-        private static bool Swing(Attack attack, EffectList strike = null, EffectList key = null)
-        {
-            var anim = attack.m_attackAnimation;
-            if (string.IsNullOrEmpty(anim)) return false;
-            var swung = false;
-            foreach (var copy in new[] { Stage.Subject, _world })
-            {
-                var animator = ClipPlayer.AnimatorOf(copy);
-                if (animator == null) continue;
-                var trigger = HasTrigger(animator, anim) ? anim : attack.m_attackChainLevels > 1 && HasTrigger(animator, anim + "0") ? anim + "0" : null;
-                if (trigger == null)
-                {
-                    Listen.Note(_heard, $"the animator has no {anim} trigger for this attack; its triggers are {Triggers(animator)}");
-                    continue;
-                }
-                ClipPlayer.Stop(copy);
-                animator.SetTrigger(trigger);
-                Listen.Note(_heard, $"swung by the animator's {trigger} trigger");
-                var ears = animator.GetComponent<AnimationEars>();
-                if (ears != null) ears.Swinging(attack, strike, _heard, key ?? strike);
-                else if (strike != null) Struck(key ?? strike, _heard, PlayOnCopyAt(copy, strike, StrikePoint(copy, attack, LandsOnGround(strike))));
-                swung = true;
-            }
-            return swung;
-        }
-
         /// <summary>The animator's triggers by name, for the log.</summary>
         private static string Triggers(Animator animator)
         {
@@ -1732,12 +1693,16 @@ namespace Scry
             return player != null ? player.Clip : null;
         }
 
-        /// <summary>Plays a clip on the stage copy and the copy in the world. Quiet leaves its attack's own sounds to the caller.</summary>
-        public static void PlayClip(AnimationClip clip, bool quiet = false)
+        /// <summary>
+        /// Plays a clip on the stage copy and the copy in the world. Started by an effect list's
+        /// button (an item's attack), what it plays lights that button too.
+        /// </summary>
+        public static void PlayClip(AnimationClip clip, object litWith = null)
         {
+            _litWith = (clip, litWith);
             var speed = _explorer != null ? _explorer.Modifiers.AnimationSpeed : 1f;
-            ClipPlayer.Play(Stage.Subject, clip, LoopClips, speed, quiet);
-            ClipPlayer.Play(_world, clip, LoopClips, speed, quiet);
+            ClipPlayer.Play(Stage.Subject, clip, LoopClips, speed);
+            ClipPlayer.Play(_world, clip, LoopClips, speed);
             _startedClip = clip;
         }
 

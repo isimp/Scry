@@ -86,10 +86,30 @@ namespace Scry
         /// <summary>The clips each of the triggers and each of the game's actions leads through; one that leads to none has an empty list.</summary>
         public static Probed ClipsOf(string prefab, Animator animator, IEnumerable<string> triggers)
         {
-            if (Seen.TryGetValue(prefab, out var known)) return known;
+            // Seen for each stance it stands in: what a trigger plays depends on the weapon held
+            // (Humanoid.SetupAnimationState sets statei and statef).
+            var stance = new List<(string Name, AnimatorControllerParameterType Type, float Value)>();
+            if (animator != null)
+            {
+                foreach (var parameter in animator.parameters)
+                {
+                    if (parameter.name == "statei" && parameter.type == AnimatorControllerParameterType.Int) stance.Add((parameter.name, parameter.type, animator.GetInteger(parameter.name)));
+                    if (parameter.name == "statef" && parameter.type == AnimatorControllerParameterType.Float) stance.Add((parameter.name, parameter.type, animator.GetFloat(parameter.name)));
+                }
+            }
+            var key = prefab + string.Concat(stance.Select(s => $"|{s.Name}={s.Value}"));
+            if (Seen.TryGetValue(key, out var known)) return known;
             var seen = new Probed();
-            Seen[prefab] = seen;
+            Seen[key] = seen;
             if (animator == null || animator.runtimeAnimatorController == null) return seen;
+            _stance = a =>
+            {
+                foreach (var (name, type, value) in stance)
+                {
+                    if (type == AnimatorControllerParameterType.Int) a.SetInteger(name, (int)value);
+                    else a.SetFloat(name, value);
+                }
+            };
 
             var watch = System.Diagnostics.Stopwatch.StartNew();
             var holder = new GameObject("Scry probe");
@@ -170,7 +190,7 @@ namespace Scry
                     seen.Actions[action] = clips;
                     actions.Add(Tell(action, clips));
                 }
-                Plugin.Note($"Scry saw in {watch.ElapsedMilliseconds} ms what the animator of {prefab} plays: attacks {(attacks.Count > 0 ? string.Join("; ", attacks) : "none")}; the game's own actions {(actions.Count > 0 ? string.Join("; ", actions) : "none")}; left alone {string.Join(", ", seen.Idle.OrderBy(c => c))}.");
+                Plugin.Note($"Scry saw in {watch.ElapsedMilliseconds} ms what the animator of {key} plays: attacks {(attacks.Count > 0 ? string.Join("; ", attacks) : "none")}; the game's own actions {(actions.Count > 0 ? string.Join("; ", actions) : "none")}; left alone {string.Join(", ", seen.Idle.OrderBy(c => c))}.");
             }
             catch (System.Exception ex)
             {
@@ -179,10 +199,14 @@ namespace Scry
             finally
             {
                 Random.state = random;
+                _stance = null;
                 Object.DestroyImmediate(holder);
             }
             return seen;
         }
+
+        /// <summary>Sets the stance the copy stands in on every run.</summary>
+        private static System.Action<Animator> _stance;
 
         /// <summary>
         /// Runs the animator from its start, seeded alike and with its settings as they start
@@ -205,6 +229,7 @@ namespace Scry
                     case AnimatorControllerParameterType.Int: animator.SetInteger(parameter.name, parameter.defaultInt); break;
                 }
             }
+            _stance?.Invoke(animator);
             setup?.Invoke(animator);
             if (act != null && first) act(animator);
             animator.Update(0f);

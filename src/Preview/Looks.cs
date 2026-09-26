@@ -58,16 +58,22 @@ namespace Scry
             if (copy == null) return null;
 
             Gear.Body(person, copy);
+            Gear.Wear(person, copy, WornWith(item), modifiers.LookAvailable ? modifiers.Look : -1, item);
+            AnimationEars.Attach(person, copy);
+            return copy;
+        }
 
+        /// <summary>What the person wears when trying an item on: the item and what it keeps on, the item first.</summary>
+        public static List<GameObject> WornWith(GameObject item)
+        {
             var items = new List<GameObject>();
             foreach (var name in Outfit.With(item.name, Gear.SlotOf(item)))
             {
                 var worn = name == item.name ? item : Prefab(name);
                 if (worn != null) items.Add(worn);
             }
-            Gear.Wear(person, copy, items, modifiers.LookAvailable ? modifiers.Look : -1, item);
-            AnimationEars.Attach(person, copy);
-            return copy;
+            items.Sort((a, b) => (b == item).CompareTo(a == item));
+            return items;
         }
 
         /// <summary>An item prefab by name.</summary>

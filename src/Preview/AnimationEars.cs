@@ -83,13 +83,13 @@ namespace Scry
         }
 
         /// <summary>
-        /// A clip starting. An attack's clip plays what the attack plays as it begins now, and
-        /// what lands when it strikes (<see cref="ClipStrike"/>). Quiet, its attack is left to
-        /// whoever started it, who plays the one it was asked for.
+        /// A clip starting: an attack's plays what the attack plays as it begins now, and what
+        /// lands when it strikes (<see cref="ClipStrike"/>); any plays what the game plays with it,
+        /// what it was found by name to play, and what is heard around it; and walking, its feet
+        /// are watched.
         /// </summary>
-        public void ClipStarted(AnimationClip clip, bool quiet = false)
+        public void ClipStarted(AnimationClip clip)
         {
-            _quiet = quiet;
             StartAttack(clip);
             PlayGameList(clip);
             PlayByName(clip);
@@ -112,7 +112,7 @@ namespace Scry
         /// </summary>
         private void PlayAround(AnimationClip clip)
         {
-            var list = clip != null && !_quiet ? Previews.AroundOfClip(_prefab, _copy, clip.name) : null;
+            var list = clip != null ? Previews.AroundOfClip(_prefab, _copy, clip.name) : null;
             if (list == null) return;
             Listen.Note(Listening, "heard around it, though the game does not play it with this clip");
             Report(Previews.PlayOnCopy(_copy, list, null));
@@ -140,7 +140,7 @@ namespace Scry
         /// </summary>
         private void PlayGameList(AnimationClip clip)
         {
-            if (clip == null || _quiet) return;
+            if (clip == null) return;
             var list = Previews.ListOfClip(_prefab, _copy, clip.name, out var lasting);
             if (list == null) return;
             var character = _prefab.GetComponent<Character>();
@@ -165,10 +165,7 @@ namespace Scry
 
         private void StartAttack(AnimationClip clip)
         {
-            _swing = null;
-            _strike = null;
-            _strikeKey = null;
-            var part = clip != null && !_quiet ? AttackFor(clip.name) : null;
+            var part = clip != null ? AttackFor(clip.name) : null;
             _clipAttack = part?.Key as Attack;
             _clipTrigger = null;
             _clipHit = null;
@@ -232,49 +229,6 @@ namespace Scry
         /// <summary>Words of the clips in which a creature walks, runs or otherwise moves on its feet.</summary>
         private static readonly string[] Moving = { "walk", "run", "jog", "sneak", "trot", "gallop", "move", "crawl", "charge", "sprint", "stroll", "step", "turn", "strafe", "swim" };
 
-        private bool _quiet;
-        private Attack _swing;
-        private float _swingUntil;
-
-        /// <summary>
-        /// An attack swung on this copy by its animator trigger: when its animation strikes, it
-        /// throws or shoots what it throws, as <c>Attack</c> does at that moment.
-        /// </summary>
-        public void Swinging(Attack attack, EffectList strike = null, string heard = null, EffectList key = null)
-        {
-            _swing = attack;
-            _swingUntil = Time.unscaledTime + 4f;
-            _strike = strike;
-            _strikeHeard = heard;
-            _strikeKey = key ?? strike;
-        }
-
-        private EffectList _strike;
-        private EffectList _strikeKey;
-        private string _strikeHeard;
-
-        /// <summary>
-        /// Plays what lands where the swing strikes, when it strikes, as <c>Attack</c> plays its
-        /// hit and trigger effects there; also when the animation never says so, late.
-        /// </summary>
-        private void Strike(Attack attack)
-        {
-            var strike = _strike;
-            _strike = null;
-            if (strike == null || attack == null || _copy == null) return;
-            var made = Previews.PlayOnCopyAt(_copy, strike, Previews.StrikePoint(_copy, attack, Previews.LandsOnGround(strike)));
-            Previews.Struck(_strikeKey ?? strike, _strikeHeard, made);
-        }
-
-        /// <summary>Throws or shoots the swung attack's projectile from where the attack sends it.</summary>
-        private void Throw()
-        {
-            var attack = _swing;
-            _swing = null;
-            if (Time.unscaledTime > _swingUntil) return;
-            Strike(attack);
-            Launch(attack);
-        }
 
         /// <summary>
         /// Throws or shoots an attack's projectile, as <c>Attack</c> does when its swing strikes:
@@ -299,8 +253,7 @@ namespace Scry
             if (thrown != null)
             {
                 Report(new List<GameObject> { thrown });
-                var heard = Listening ?? _strikeHeard;
-                if (_strikeKey != null) Previews.Struck(_strikeKey, heard, new List<GameObject> { thrown });
+                var heard = Listening;
                 Listen.Add(heard, new List<GameObject> { thrown });
                 Listen.Note(heard, "threw " + attack.m_attackProjectile.name);
             }
@@ -390,7 +343,7 @@ namespace Scry
         /// </summary>
         private void PlayByName(AnimationClip clip)
         {
-            if (clip == null || _quiet) return;
+            if (clip == null) return;
             var list = Previews.ByNameOfClip(_prefab, _copy, clip.name, out var lasting);
             if (list == null) return;
             var character = _prefab.GetComponent<Character>();
@@ -552,7 +505,6 @@ namespace Scry
             foreach (var lasting in _lasting) if (lasting != null) Destroy(lasting);
             _lasting.Clear();
             _feet = null;
-            _quiet = false;
             _clipAttack = null;
             _strikeAt = -1f;
         }
@@ -610,13 +562,6 @@ namespace Scry
             WatchSteps();
             if (_strikeAt >= 0f && ClipPlayer.Position(_copy, out var time, out _) && time >= _strikeAt) ClipStrike();
 
-            // A swing whose animation sends no strike still lands, a little late.
-            if (_swing != null && _strike != null && Time.unscaledTime > _swingUntil - 1.5f)
-            {
-                var attack = _swing;
-                _swing = null;
-                Strike(attack);
-            }
             if (_waiting.Count == 0) return;
             var now = _waiting.ToArray();
             _waiting.Clear();
@@ -642,7 +587,6 @@ namespace Scry
                 case "FootStep": Step(e); break;
                 case "Hit":
                 case "OnAttackTrigger":
-                    if (_swing != null) Throw();
                     AttackTrigger();
                     break;
                 case "Jump": Play(_prefab.GetComponent<Character>()?.m_jumpEffects); break;
@@ -742,9 +686,12 @@ namespace Scry
         private void AttackTrigger()
         {
             var clip = _copy.GetComponent<ClipPlayer>()?.Clip;
-            if (clip == null || _quiet || _clipAttack == null) return;
+            if (clip == null || _clipAttack == null) return;
             ClipStrike();
         }
+
+        /// <summary>The prefab this copy is of: a creature, or the person trying items on.</summary>
+        public GameObject Prefab => _prefab;
 
         /// <summary>What a clip of this prefab plays of an attack, as its animator plays it; null for a clip no attack plays.</summary>
         private ClipAttack AttackFor(string clip) => Previews.AttackOfClip(_prefab, _copy, clip);
