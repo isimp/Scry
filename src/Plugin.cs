@@ -48,9 +48,30 @@ namespace Scry
                 "Plays a sound as soon as it is selected, so the list can be auditioned with the arrow keys.");
 
             _harmony = new Harmony(Guid);
-            _harmony.PatchAll(typeof(Plugin).Assembly);
+            Patch();
 
             Commands.Register();
+        }
+
+        /// <summary>
+        /// Applies each patch class on its own. A game update that renames a patched method then
+        /// costs only that patch's feature, and the others still go on; the startup check tells
+        /// which.
+        /// </summary>
+        private void Patch()
+        {
+            foreach (var type in typeof(Plugin).Assembly.GetTypes())
+            {
+                if (type.GetCustomAttributes(typeof(HarmonyPatch), false).Length == 0) continue;
+                try
+                {
+                    _harmony.CreateClassProcessor(type).Patch();
+                }
+                catch (System.Exception ex)
+                {
+                    Log.LogWarning($"Scry could not patch {type.Name}: {ex.Message}");
+                }
+            }
         }
 
         private void Update()

@@ -93,6 +93,9 @@ namespace Scry
             "UnityEngine.MeshCollider",
         };
 
+        /// <summary>The game's scripts copies keep, by name.</summary>
+        public static IEnumerable<string> KeptScriptNames => KeptScripts;
+
         /// <summary>Whether a component stays, and if not, in which pass it goes.</summary>
         public static int PassFor(ComponentFacts facts, bool falling = false)
         {

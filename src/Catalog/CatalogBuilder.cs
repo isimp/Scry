@@ -36,6 +36,7 @@ namespace Scry
 
         public static List<Entry> Build()
         {
+            Compatibility.Check();
             var scene = ZNetScene.instance;
             var registered = new Dictionary<string, Found>(StringComparer.Ordinal);
             EffectLinks.Clear();

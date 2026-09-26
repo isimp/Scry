@@ -74,6 +74,14 @@ The compact view is a slim column at the side of the screen without the turntabl
 
 Favourites and the panel's state (its place on screen in both views, the stage's lighting, backdrop, person and spinning, the stage's height, and which sections are folded) are kept in `Scry` inside the game's own data folder (on Windows `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim\Scry`), outside the BepInEx folder, so a mod manager replacing a profile's configs leaves them alone. Favourites of prefabs that are not in the game right now are kept.
 
+## Game updates
+
+Most of what Scry shows is read from the game as it runs, so new creatures, items and mods appear without a change to Scry. Some previews copy the workings of the game's own scripts, and a few features reach private parts of the game by name; an update can change those. So the first time Scry reads the catalog in a world it checks each of them and says in the log what it found: one line when all is as expected, and otherwise a line for each part that is missing (its feature is off) or has changed (its preview may be slightly wrong).
+
+It checks the private members it reaches by name, that each of its patches is on its method, the code of about thirty game methods whose workings its previews copy (gear attachment, star levels, wear, fire and portal looks, ragdolls, breaking pieces, falling trees, where effects appear, footsteps, the status effects damage causes, and more), that the game answers no animation event Scry does not, the layers falling copies land on, the effect scripts copies keep, and the status effects and prefab it looks up by name. A method's code is compared by its shape: the sequence of its steps, leaving out what they name, which the game numbers anew in every build, so only a rewritten method counts as changed. The shapes were read from Valheim 1.0.16's own assembly. A mod that rewrites one of these methods before the game starts would show it as changed too.
+
+Each patch is applied on its own, so one whose method an update renamed costs only its own feature, and a private member that is gone costs only what needs it.
+
 ## Limits
 
 A mod prefab whose look is built by its own scripts may preview bare. Locations cannot be previewed. The stage is lit by its own lights, so materials that depend on the world's lighting can look different there than in the world.

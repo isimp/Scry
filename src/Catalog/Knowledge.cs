@@ -131,8 +131,23 @@ namespace Scry
             }));
         }
 
-        private static readonly AccessTools.FieldRef<List<SpawnSystem>> SpawnSystems =
-            AccessTools.StaticFieldRefAccess<List<SpawnSystem>>(AccessTools.Field(typeof(SpawnSystem), "m_instances"));
+        private static AccessTools.FieldRef<List<SpawnSystem>> _spawnSystems;
+        private static bool _spawnSystemsTried;
+
+        /// <summary>
+        /// The running spawn systems, from the game's private list of them. Reached when first
+        /// needed: if an update renames the list, only where creatures spawn is lost.
+        /// </summary>
+        private static List<SpawnSystem> SpawnSystems()
+        {
+            if (!_spawnSystemsTried)
+            {
+                _spawnSystemsTried = true;
+                var field = AccessTools.Field(typeof(SpawnSystem), "m_instances");
+                if (field != null) _spawnSystems = AccessTools.StaticFieldRefAccess<List<SpawnSystem>>(field);
+            }
+            return _spawnSystems?.Invoke();
+        }
 
         /// <summary>The world's spawn lists, as the running spawn systems use them.</summary>
         private static void WorldSpawners()

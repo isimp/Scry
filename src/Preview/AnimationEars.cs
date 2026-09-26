@@ -28,6 +28,9 @@ namespace Scry
 
         private static readonly HashSet<string> Told = new HashSet<string>();
 
+        /// <summary>Whether Scry answers an animation event of this name.</summary>
+        public static bool Answers(string name) => Answered.Contains(name);
+
         private GameObject _prefab;
         private GameObject _copy;
         private float _lastStep;
