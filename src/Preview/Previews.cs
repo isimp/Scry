@@ -878,6 +878,51 @@ namespace Scry
 
             /// <summary>What clips play that were paired by their names alone (<see cref="ClipByName"/>).</summary>
             public Dictionary<string, object> ByName = new Dictionary<string, object>();
+
+            /// <summary>What each clip is, in a few words, for its chip: the attack it plays, or what the creature does in it.</summary>
+            public Dictionary<string, string> Tags = new Dictionary<string, string>();
+        }
+
+        /// <summary>What the game's own actions are called on a clip's chip.</summary>
+        private static readonly Dictionary<string, string> ActionWords = new Dictionary<string, string>
+        {
+            ["jump"] = "jumps", ["consume"] = "eats", ["sleep"] = "sleeps", ["wake"] = "wakes", ["alert"] = "alerted",
+            ["spawn"] = "spawns", ["stagger"] = "staggers", ["water"] = "in water", ["swim"] = "swims", ["fly"] = "flies", ["dead"] = "dies",
+        };
+
+        private static readonly Dictionary<string, string> NoTags = new Dictionary<string, string>();
+
+        /// <summary>What each clip of the stage copy is, in a few words, by clip name: the attack it plays or what the creature does in it.</summary>
+        public static IReadOnlyDictionary<string, string> ClipTags()
+        {
+            var ears = ClipPlayer.AnimatorOf(Stage.Subject)?.GetComponent<AnimationEars>();
+            var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject) : null;
+            return plays != null ? plays.Tags : NoTags;
+        }
+
+        /// <summary>
+        /// The stage copy's clips an effect list goes with: those that play it (as the game does
+        /// with its own actions, or an item's attack), those it was found by name to go with, and
+        /// those it is heard around, each said which.
+        /// </summary>
+        public static List<(AnimationClip Clip, string How)> ClipsOfList(EffectList list)
+        {
+            var found = new List<(AnimationClip, string)>();
+            var ears = list != null ? ClipPlayer.AnimatorOf(Stage.Subject)?.GetComponent<AnimationEars>() : null;
+            var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject) : null;
+            if (plays == null) return found;
+
+            var clips = Clips();
+            void Add(string name, string how)
+            {
+                var clip = clips.Find(c => c.name == name);
+                if (clip != null && !found.Exists(f => f.Item1 == clip)) found.Add((clip, how));
+            }
+            if (AttackOf.TryGetValue(list, out var attack) && AttackClipOf(attack) is AnimationClip swing) Add(swing.name, "");
+            foreach (var pair in plays.Actions) if (pair.Value == list) Add(pair.Key, "");
+            foreach (var pair in plays.ByName) if (pair.Value == list) Add(pair.Key, "by name");
+            foreach (var pair in plays.Around) if (pair.Value == list) Add(pair.Key, "heard around");
+            return found;
         }
 
         private static readonly Dictionary<string, ClipPlays> ClipPlaysCache = new Dictionary<string, ClipPlays>();
@@ -985,6 +1030,7 @@ namespace Scry
             var items = worn ?? Relations.CarriedItems(prefab);
             if (carried != null) items = items.Where(carried.Contains).Concat(items.Where(i => !carried.Contains(i))).ToList();
             var attacks = new List<(string, object)>();
+            var names = new Dictionary<Attack, string>();
             foreach (var item in items)
             {
                 var shared = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
@@ -995,6 +1041,8 @@ namespace Scry
                     if (trigger == null) continue;
                     WeaponOf[attack] = shared;
                     attacks.Add((trigger, attack));
+                    var name = (CatalogBuilder.GameName(item) ?? WeaponChoices.Readable(item.name, prefab.name)).ToLowerInvariant();
+                    names[attack] = "attack " + name + (attack == shared.m_secondaryAttack ? ", second" : "");
                 }
             }
 
@@ -1036,6 +1084,21 @@ namespace Scry
             plays.ByName = ClipByName.Match(named, tried, clips.Select(c => c.name), plays.Attacks.Keys.Concat(plays.Actions.Keys));
 
             if (body != null && body.m_flying && HasAny(body.m_flyingContinuousEffect) && !animator.parameters.Any(p => p.name == "flying")) plays.Flying = body.m_flyingContinuousEffect;
+
+            // What each clip is: the attack it plays, what the animator was seen to do there,
+            // what it was named for, or idling.
+            foreach (var part in plays.Attacks) if (part.Value.Key is Attack attack && names.TryGetValue(attack, out var name)) plays.Tags[part.Key] = name;
+            foreach (var pair in seen.Actions)
+            {
+                if (pair.Value.Count > 0 && ActionWords.TryGetValue(pair.Key, out var word) && !plays.Tags.ContainsKey(pair.Value[0])) plays.Tags[pair.Value[0]] = word;
+            }
+            foreach (var pair in plays.ByName)
+            {
+                if (plays.Tags.ContainsKey(pair.Key)) continue;
+                var lower = pair.Key.ToLowerInvariant();
+                plays.Tags[pair.Key] = (lower.Contains("jump") ? "jumps" : lower.Contains("swim") ? "swims" : "in water") + ", by name";
+            }
+            foreach (var clip in seen.Idle) if (!plays.Tags.ContainsKey(clip)) plays.Tags[clip] = "idles";
             if (body != null && Told.Add("lasting:" + prefab.name))
             {
                 string Of(EffectList list) => HasAny(list) ? string.Join(", ", Members(list)) : "nothing";

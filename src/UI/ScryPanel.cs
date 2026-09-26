@@ -1874,20 +1874,23 @@ namespace Scry
             }
 
             x = 0f;
+            var tags = Previews.ClipTags();
             foreach (var clip in clips)
             {
-                if (_clipFilter.Length > 0 && clip.name.IndexOf(_clipFilter, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                // Named by the modelers; what it is follows, as far as Scry saw.
+                var text = tags.TryGetValue(clip.name, out var tag) ? clip.name + "  ·  " + tag : clip.name;
+                if (_clipFilter.Length > 0 && text.IndexOf(_clipFilter, StringComparison.OrdinalIgnoreCase) < 0) continue;
 
                 var on = playing == clip;
                 var style = on ? Skin.ChipOn : Skin.Chip;
-                var w = Mathf.Min(width, style.CalcSize(new GUIContent(clip.name)).x + U(8f));
+                var w = Mathf.Min(width, style.CalcSize(new GUIContent(text)).x + U(8f));
                 if (x + w > width && x > 0f)
                 {
                     x = 0f;
                     y += rowH + U(5f);
                 }
                 var chip = new Rect(x, y, w, rowH);
-                if (GUI.Button(chip, clip.name, style))
+                if (GUI.Button(chip, text, style))
                 {
                     if (on) Previews.StopClip();
                     else
@@ -2097,9 +2100,49 @@ namespace Scry
             {
                 y += U(10f);
                 y = Members(explorer, "In " + last.Key + ":", last.Value, Members(last.Value), null, width, y);
+
+                // The clips it goes with, to play from here.
+                var withClips = Previews.ClipsOfList(last.Value);
+                if (withClips.Count > 0) y = ClipLinks(withClips, width, y + U(2f));
             }
 
             return y + U(14f);
+        }
+
+        /// <summary>
+        /// Chips for the clips an effect list goes with, each said how where it is not played
+        /// with it (found by name, heard around), each playing its clip.
+        /// </summary>
+        private static float ClipLinks(List<(AnimationClip Clip, string How)> clips, float width, float y)
+        {
+            GUI.Label(new Rect(0f, y, width, U(20f)), clips.Count > 1 ? "With its clips:" : "With its clip:", Skin.DimLabel);
+            y += U(24f);
+            var rowH = U(26f);
+            var x = 0f;
+            var playing = Previews.PlayingClip();
+            foreach (var (clip, how) in clips)
+            {
+                var text = how.Length > 0 ? clip.name + "  ·  " + how : clip.name;
+                var on = playing == clip;
+                var style = on ? Skin.ChipOn : Skin.Chip;
+                var w = Mathf.Min(width, style.CalcSize(new GUIContent(text)).x + U(8f));
+                if (x + w > width && x > 0f)
+                {
+                    x = 0f;
+                    y += rowH + U(5f);
+                }
+                if (GUI.Button(new Rect(x, y, w, rowH), text, style))
+                {
+                    if (on) Previews.StopClip();
+                    else
+                    {
+                        Previews.PlayClip(clip);
+                        Previews.LastClip = clip;
+                    }
+                }
+                x += w + U(5f);
+            }
+            return y + rowH + U(6f);
         }
 
         /// <summary>The prefabs an effect list plays, each once.</summary>
