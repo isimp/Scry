@@ -238,7 +238,7 @@ namespace Scry
             var aim = t.forward;
             if (attack.m_launchAngle != 0f) aim = Quaternion.AngleAxis(attack.m_launchAngle, Vector3.Cross(Vector3.up, aim)) * aim;
 
-            var thrown = Previews.Launch(attack.m_attackProjectile, start, aim * attack.m_projectileVel, _copy == Stage.Subject);
+            var thrown = Previews.Launch(attack.m_attackProjectile, start, aim * attack.m_projectileVel, _copy == Stage.Subject, Previews.SizeOf(_copy));
             if (thrown != null)
             {
                 Report(new List<GameObject> { thrown });

@@ -14,6 +14,9 @@ namespace Scry
         public float Lifetime = 4f;
         public EffectList Burst;
 
+        /// <summary>How many times its size it is shown, as what burst from it is.</summary>
+        public float Size = 1f;
+
         /// <summary>Flying on the stage: it lands on the stage's ground and bursts there.</summary>
         public bool OnStage;
 
@@ -44,7 +47,7 @@ namespace Scry
             {
                 transform.position = hit.point;
                 if (OnStage) Stage.PlayList(Burst, null, null, hit.point);
-                else Previews.PlayList(Burst, hit.point, Quaternion.LookRotation(hit.normal));
+                else Previews.PlayList(Burst, hit.point, Quaternion.LookRotation(hit.normal), size: Size);
                 Destroy(gameObject);
                 return;
             }

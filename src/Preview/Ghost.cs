@@ -59,6 +59,25 @@ namespace Scry
         }
 
         /// <summary>
+        /// Makes a copy so many times its size, as what a creature shown bigger or smaller plays
+        /// is shown with it: its particles take the size of everything above them (a particle
+        /// system otherwise heeds only its own scale), and its trails and lights reach as far again.
+        /// </summary>
+        public static void Magnify(GameObject copy, float times)
+        {
+            if (copy == null || Mathf.Abs(times - 1f) < 0.01f) return;
+            copy.transform.localScale *= times;
+            foreach (var particles in copy.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                var main = particles.main;
+                main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+            }
+            foreach (var trail in copy.GetComponentsInChildren<TrailRenderer>(true)) trail.widthMultiplier *= times;
+            foreach (var line in copy.GetComponentsInChildren<LineRenderer>(true)) line.widthMultiplier *= times;
+            foreach (var light in copy.GetComponentsInChildren<Light>(true)) light.range *= times;
+        }
+
+        /// <summary>
         /// Makes the copy and hangs it on a parent keeping its size in the world, as the game
         /// hangs effects and held items on bones. Bones are often scaled, a creature's by a
         /// hundred, so a copy that kept its own scale under one would be drawn that much bigger.

@@ -332,6 +332,7 @@ namespace Scry
                         : Ghost.Make(data.m_prefab, _root.transform, at, anchor.rotation, _layer);
                 }
                 if (copy == null) continue;
+                if (!debris) Ghost.Magnify(copy, _scale);
                 Tune(copy, audible: !Previews.WorldHeard);
                 Played.Add(new KeyValuePair<GameObject, float>(copy, Time.unscaledTime + PlayedSeconds));
                 made.Add((data.m_prefab.name, copy));

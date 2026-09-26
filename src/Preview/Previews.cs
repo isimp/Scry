@@ -652,7 +652,7 @@ namespace Scry
         /// Plays every prefab of a list at a point in the world. Muted, it is only seen: while the
         /// stage shows the same, its sound is heard from there once rather than twice.
         /// </summary>
-        public static List<GameObject> PlayList(EffectList list, Vector3 position, Quaternion rotation, bool muted = false)
+        public static List<GameObject> PlayList(EffectList list, Vector3 position, Quaternion rotation, bool muted = false, float size = 1f)
         {
             var made = new List<GameObject>();
             if (list?.m_effectPrefabs == null) return made;
@@ -666,7 +666,11 @@ namespace Scry
                     copy = Falling.Debris(data.m_prefab, null, position, rotation, -1, Stage.Layer);
                 }
                 else if (Ghost.IsWholeModel(data.m_prefab)) continue;
-                else copy = Ghost.Make(data.m_prefab, null, position, rotation);
+                else
+                {
+                    copy = Ghost.Make(data.m_prefab, null, position, rotation);
+                    Ghost.Magnify(copy, size);
+                }
 
                 if (copy == null) continue;
                 if (muted) foreach (var source in copy.GetComponentsInChildren<AudioSource>(true)) source.mute = true;
@@ -1097,7 +1101,13 @@ namespace Scry
         {
             if (copy == null || list == null) return new List<GameObject>();
             if (copy == Stage.Subject) return Stage.PlayList(list, at).ConvertAll(m => m.Item2);
-            return PlayList(list, at != null ? at.position : copy.transform.position + Vector3.up * 0.5f, copy.transform.rotation);
+            return PlayList(list, at != null ? at.position : copy.transform.position + Vector3.up * 0.5f, copy.transform.rotation, size: SizeOf(copy));
+        }
+
+        /// <summary>How many times its size the selection is shown, on the stage or in the world; what it plays is shown so too.</summary>
+        public static float SizeOf(GameObject copy)
+        {
+            return (copy == Stage.Subject || copy == _world) && _explorer != null ? _explorer.Modifiers.Scale : 1f;
         }
 
         /// <summary>
@@ -1207,7 +1217,7 @@ namespace Scry
         {
             if (copy == null || list == null) return new List<GameObject>();
             if (copy == Stage.Subject) return Stage.PlayList(list, null, null, point).ConvertAll(m => m.Item2);
-            return PlayList(list, point, copy.transform.rotation);
+            return PlayList(list, point, copy.transform.rotation, size: SizeOf(copy));
         }
 
         public static bool LandsOnGround(EffectList list) => OnGround.Contains(list);
@@ -1331,15 +1341,19 @@ namespace Scry
         }
 
         /// <summary>Throws or shoots a projectile copy on the stage or in the world, flying as <see cref="Flight"/> flies it.</summary>
-        public static GameObject Launch(GameObject prefab, Vector3 start, Vector3 velocity, bool onStage)
+        public static GameObject Launch(GameObject prefab, Vector3 start, Vector3 velocity, bool onStage, float size = 1f)
         {
             var copy = Ghost.Make(prefab, null, start, velocity.sqrMagnitude > 0.001f ? Quaternion.LookRotation(velocity) : Quaternion.identity);
             if (copy == null) return null;
+            Ghost.Magnify(copy, size);
 
+            // Shown so many times its size, it flies as far again in the same time: its speed
+            // and its fall both so many times more.
             var projectile = prefab.GetComponentInChildren<Projectile>(true);
             var flight = copy.AddComponent<Flight>();
-            flight.Velocity = velocity;
-            flight.Gravity = projectile != null ? projectile.m_gravity : 0f;
+            flight.Velocity = velocity * size;
+            flight.Gravity = (projectile != null ? projectile.m_gravity : 0f) * size;
+            flight.Size = size;
             flight.Lifetime = projectile != null && projectile.m_ttl > 0f ? Mathf.Min(projectile.m_ttl, 8f) : 4f;
             flight.Burst = projectile?.m_hitEffects;
             flight.OnStage = onStage;
@@ -1450,7 +1464,7 @@ namespace Scry
         {
             var things = new List<GameObject>();
             foreach (var made in Stage.PlayList(list)) things.Add(made.Item2);
-            if (_world != null) things.AddRange(PlayList(list, _world.transform.position + Vector3.up * 0.5f, _world.transform.rotation));
+            if (_world != null) things.AddRange(PlayList(list, _world.transform.position + Vector3.up * 0.5f, _world.transform.rotation, size: SizeOf(_world)));
             return things;
         }
 
