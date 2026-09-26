@@ -36,8 +36,11 @@ namespace Scry
                 copy = Object.Instantiate(prefab, Holder().transform, false);
                 copy.name = prefab.name;
 
+                var limit = falling ? StripPolicy.PushApartLimit(ScriptNames(prefab)) : null;
                 Strip(copy, falling);
                 Settle(copy, falling);
+                var body = limit != null ? copy.GetComponent<Rigidbody>() : null;
+                if (body != null) body.maxDepenetrationVelocity = limit.Value;
                 if (layer >= 0) SetLayer(copy.transform, layer);
 
                 var t = copy.transform;
@@ -226,6 +229,15 @@ namespace Scry
             known = list.ToArray();
             RequiredByType[type] = known;
             return known;
+        }
+
+        /// <summary>The type names of the scripts on a prefab's root, where the game keeps the ones that set up its body.</summary>
+        private static IEnumerable<string> ScriptNames(GameObject prefab)
+        {
+            foreach (var script in prefab.GetComponents<MonoBehaviour>())
+            {
+                if (script != null) yield return script.GetType().Name;
+            }
         }
 
         /// <summary>

@@ -133,5 +133,32 @@ namespace Scry.Tests
         {
             Assert.Equal(StripPolicy.ScriptsPass, StripPolicy.PassFor(Script(script), falling: true));
         }
+
+        [Theory]
+        [InlineData("ItemDrop", 1f)]
+        [InlineData("TreeLog", 1f)]
+        [InlineData("TombStone", 1f)]
+        [InlineData("Smoke", 1f)]
+        [InlineData("Character", 2f)]
+        [InlineData("Humanoid", 2f)]
+        [InlineData("Ship", 2f)]
+        [InlineData("Vagon", 2f)]
+        public void AFallingCopyIsPushedOutOfWhatItOverlapsNoHarderThanTheGameLetsIt(string script, float limit)
+        {
+            Assert.Equal(limit, StripPolicy.PushApartLimit(new[] { "ZNetView", script }));
+        }
+
+        [Fact]
+        public void AFallingCopyWhoseScriptsSetNoLimitKeepsTheEngines()
+        {
+            Assert.Null(StripPolicy.PushApartLimit(new[] { "ZNetView", "Destructible", "SomeMod.Turret" }));
+            Assert.Null(StripPolicy.PushApartLimit(new string[0]));
+        }
+
+        [Fact]
+        public void AFallingCopyWithTwoLimitingScriptsTakesTheGentler()
+        {
+            Assert.Equal(1f, StripPolicy.PushApartLimit(new[] { "Vagon", "ItemDrop" }));
+        }
     }
 }

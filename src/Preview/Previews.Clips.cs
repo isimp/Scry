@@ -32,6 +32,20 @@ namespace Scry
         }
 
         /// <summary>
+        /// Whether what the stage copy's clips play is still being worked out, over the next
+        /// frames; till then the panel says so rather than show the part found so far.
+        /// </summary>
+        public static bool ClipsSorting
+        {
+            get
+            {
+                var ears = ClipPlayer.AnimatorOf(Stage.Subject)?.GetComponent<AnimationEars>();
+                var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject, wait: false) : null;
+                return plays != null && !plays.Ready;
+            }
+        }
+
+        /// <summary>
         /// Whether a clip of the stage copy plays any sound or effect: of its own, with its attack
         /// or the game's actions, found by name, or heard around it. Worked out once per clip.
         /// </summary>

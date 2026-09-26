@@ -70,13 +70,15 @@ namespace Scry
 
             // Grouped by what they do: the attacks (of what is held, on a person with hundreds of
             // clips), then those that play sounds or effects, then the silent; within each, those
-            // Scry knows what they are first.
-            var tags = Previews.ClipTags();
+            // Scry knows what they are first. While that is still being worked out, they are
+            // listed as they come, and it says so.
+            var sorting = Previews.ClipsSorting;
+            var tags = sorting ? NoTags : Previews.ClipTags();
             string Text(AnimationClip c) => tags.TryGetValue(c.name, out var t) ? c.name + "  ·  " + t : c.name;
-            int Group(AnimationClip c) => tags.TryGetValue(c.name, out var t) && t.StartsWith("attack") ? 0 : Previews.ClipSounds(c) ? 1 : 2;
+            int Group(AnimationClip c) => sorting ? 3 : tags.TryGetValue(c.name, out var t) && t.StartsWith("attack") ? 0 : Previews.ClipSounds(c) ? 1 : 2;
             var shown = clips.Where(c => _clipFilter.Length == 0 || Text(c).IndexOf(_clipFilter, StringComparison.OrdinalIgnoreCase) >= 0)
                 .OrderBy(Group).ThenBy(c => tags.ContainsKey(c.name) ? 0 : 1).ToList();
-            var headings = new[] { "Attacks", "With sounds or effects", "Silent" };
+            var headings = new[] { "Attacks", "With sounds or effects", "Silent", "Working out what each clip plays" + Dots() };
             var ownNow = Previews.AnimatorClipNow();
             var group = -1;
             x = 0f;
@@ -123,7 +125,7 @@ namespace Scry
             if (x > 0f) y += rowH;
 
             var last = Previews.LastClip;
-            if (last != null && clips.Contains(last))
+            if (last != null && clips.Contains(last) && !sorting)
             {
                 var members = Previews.ClipMembers(last).ToArray();
                 if (members.Length > 0)
@@ -151,5 +153,10 @@ namespace Scry
 
             return y + U(10f);
         }
+
+        private static readonly Dictionary<string, string> NoTags = new Dictionary<string, string>();
+
+        /// <summary>One to three dots, going round, for something still being worked out.</summary>
+        private static string Dots() => new string('.', 1 + (int)(Time.unscaledTime * 3f) % 3);
     }
 }

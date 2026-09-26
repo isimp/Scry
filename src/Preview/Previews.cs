@@ -184,7 +184,9 @@ namespace Scry
         {
             Expire();
             Listen.Update();
+            var started = Timing.Start();
             TriggerProbe.Update();
+            Timing.Add("update probe", started);
             for (var i = LaterOn.Count - 1; i >= 0; i--)
             {
                 if (Time.unscaledTime < LaterOn[i].At) continue;
@@ -207,12 +209,16 @@ namespace Scry
                 _selectionVersion = explorer.SelectionVersion;
                 _modifierVersion = modifiers.Version;
                 _stageStale = false;
+                started = Timing.Start();
                 Selected(explorer.Selected, modifiers);
+                Timing.Add("update selection", started);
             }
             else if (modifiers.Version != _modifierVersion)
             {
                 _modifierVersion = modifiers.Version;
+                started = Timing.Start();
                 Modified(modifiers);
+                Timing.Add("update modifiers", started);
             }
 
             if (_stageStale)
@@ -244,8 +250,12 @@ namespace Scry
             _replayAt = -1f;
 
             StopSound();
+            var started = Timing.Start();
             Stage.Show(entry, modifiers);
+            Timing.Add("selection stage", started);
+            started = Timing.Start();
             if (InWorld) RebuildWorld(modifiers);
+            Timing.Add("selection world", started);
 
             if (_clipOnShow != null)
             {

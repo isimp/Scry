@@ -88,17 +88,23 @@ namespace Scry
 
         private void Update()
         {
+            var started = Timing.Start();
             Session.Update();
+            Timing.Add("update", started);
         }
 
         private void LateUpdate()
         {
+            var started = Timing.Start();
             Session.LateUpdate();
+            Timing.Add("render", started);
         }
 
         private void OnGUI()
         {
+            var started = Timing.Start();
             ScryPanel.OnGUI();
+            Timing.Add("panel", started);
         }
 
         private void OnDestroy()

@@ -78,9 +78,17 @@ namespace Scry
                 y += U(10f);
                 y = Members(explorer, "In " + last.Key + ":", last.Value, Members(last.Value), null, width, y);
 
-                // The clips it goes with, to play from here.
-                var withClips = Previews.ClipsOfList(last.Value);
-                if (withClips.Count > 0) y = ClipLinks(withClips, width, y + U(2f));
+                // The clips it goes with, to play from here, once they are worked out.
+                if (Previews.ClipsSorting)
+                {
+                    GUI.Label(new Rect(0f, y + U(2f), width, U(20f)), "Finding the clips it goes with" + Dots(), Skin.DimLabel);
+                    y += U(24f);
+                }
+                else
+                {
+                    var withClips = Previews.ClipsOfList(last.Value);
+                    if (withClips.Count > 0) y = ClipLinks(withClips, width, y + U(2f));
+                }
             }
 
             return y + U(14f);

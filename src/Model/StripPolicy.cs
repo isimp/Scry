@@ -93,6 +93,39 @@ namespace Scry
             "UnityEngine.MeshCollider",
         };
 
+        /// <summary>
+        /// How fast the game's scripts let their body be pushed out of whatever it overlaps, set
+        /// on waking (<c>ItemDrop</c>, <c>TreeLog</c> and the rest read in the game's code). A copy
+        /// loses the script, so without this a log's halves or the items that fall out, made
+        /// inside one another, would fly apart.
+        /// </summary>
+        private static readonly Dictionary<string, float> PushLimits = new Dictionary<string, float>
+        {
+            { "ItemDrop", 1f },
+            { "TreeLog", 1f },
+            { "TombStone", 1f },
+            { "Smoke", 1f },
+            { "Character", 2f },
+            { "Humanoid", 2f },
+            { "Player", 2f },
+            { "Ship", 2f },
+            { "Vagon", 2f },
+        };
+
+        /// <summary>
+        /// The most a falling copy's own body may be pushed apart from what it overlaps, by the
+        /// scripts its prefab has, the gentler of two; none where no script sets one.
+        /// </summary>
+        public static float? PushApartLimit(IEnumerable<string> scriptNames)
+        {
+            float? limit = null;
+            foreach (var name in scriptNames)
+            {
+                if (name != null && PushLimits.TryGetValue(name, out var each) && (limit == null || each < limit)) limit = each;
+            }
+            return limit;
+        }
+
         /// <summary>The game's scripts copies keep, by name.</summary>
         public static IEnumerable<string> KeptScriptNames => KeptScripts;
 
