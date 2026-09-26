@@ -888,10 +888,21 @@ namespace Scry
         /// waking's with the wake-up, going to sleep's, being alerted's, eating's, even an empty
         /// list, which the game then plays as nothing. Null for none.
         /// </summary>
-        public static EffectList ListOfClip(GameObject prefab, GameObject copy, string clip)
+        public static EffectList ListOfClip(GameObject prefab, GameObject copy, string clip) => ListOfClip(prefab, copy, clip, out _);
+
+        /// <summary>
+        /// As <see cref="ListOfClip(GameObject, GameObject, string)"/>, and whether the game keeps
+        /// it going for as long as the creature is there (in water, flying) rather than playing it
+        /// once.
+        /// </summary>
+        public static EffectList ListOfClip(GameObject prefab, GameObject copy, string clip, out bool lasting)
         {
+            lasting = false;
             var plays = PlaysOf(prefab, copy, clip);
-            return plays != null && plays.Actions.TryGetValue(clip, out var list) ? (EffectList)list : null;
+            if (plays == null || !plays.Actions.TryGetValue(clip, out var list)) return null;
+            var character = prefab.GetComponent<Character>();
+            lasting = character != null && (list == character.m_waterEffects || list == character.m_flyingContinuousEffect);
+            return (EffectList)list;
         }
 
         /// <summary>
@@ -952,6 +963,10 @@ namespace Scry
                 around.Add(("wake", alerted));
                 around.Add(("spawn", alerted));
             }
+
+            // Staggered, it was hit, again and again (Character.AddStaggerDamage).
+            var hit = prefab.GetComponent<Character>()?.m_hitEffects;
+            if (hit != null && HasAny(hit)) around.Add(("stagger", hit));
             var idleSound = ai != null && HasAny(ai.m_idleSound) ? ai.m_idleSound : null;
             plays.Around = ClipAround.Match(around, seen.Actions, seen.Idle, idleSound, plays.Attacks.Keys);
             return plays;
@@ -973,6 +988,16 @@ namespace Scry
             if (monster?.m_sleepEffects != null) yield return ("sleep", monster.m_sleepEffects);
             if (monster?.m_wakeupEffects != null) yield return ("wake", monster.m_wakeupEffects);
             if (ai?.m_alertedEffects != null) yield return ("alert", ai.m_alertedEffects);
+
+            // In water or flying, the game keeps these going for as long (Character.UpdateContinousEffects);
+            // dying, it plays its death (Character.OnDeath).
+            if (character?.m_waterEffects != null)
+            {
+                yield return ("water", character.m_waterEffects);
+                yield return ("swim", character.m_waterEffects);
+            }
+            if (character?.m_flyingContinuousEffect != null) yield return ("fly", character.m_flyingContinuousEffect);
+            if (character?.m_deathEffects != null) yield return ("dead", character.m_deathEffects);
         }
 
         /// <summary>The trigger an attack starts by on this animator, as <c>Attack.Start</c> pulls it, or null when it has none.</summary>

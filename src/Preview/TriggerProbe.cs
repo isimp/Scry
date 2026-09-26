@@ -46,19 +46,29 @@ namespace Scry
         /// The game's own actions, as its code does them: <c>Character.ForceJump</c> pulls
         /// "jump", <c>MonsterAI.UpdateConsumeItem</c> "consume", <c>MonsterAI.Sleep</c> and
         /// <c>Wakeup</c> switch "sleeping" on and off, <c>BaseAI.SetAlerted</c> switches "alert",
-        /// and a spawner that wakes what it spawns (<c>SpawnArea</c>, <c>SpawnAbility</c>) switches
-        /// "wakeup" on as it appears. Each is the switch or trigger, whether it is a switch, and
-        /// whether it is let go after.
+        /// a spawner that wakes what it spawns (<c>SpawnArea</c>, <c>SpawnAbility</c>) switches
+        /// "wakeup" on as it appears, <c>Character.RPC_Stagger</c> pulls "stagger", a character
+        /// in water or flying switches "inWater" or "flying" on (still, and swimming along), and
+        /// <c>Character.OnDeath</c> switches "dead" on. Each is the switch or trigger, whether it
+        /// is a switch, whether it is let go after, and how fast it moves meanwhile.
         /// </summary>
-        private static readonly (string Action, string Name, bool Switch, bool Release)[] GameActions =
+        private static readonly (string Action, string Name, bool Switch, bool Release, float Speed)[] GameActions =
         {
-            ("jump", "jump", false, false),
-            ("consume", "consume", false, false),
-            ("sleep", "sleeping", true, false),
-            ("wake", "sleeping", true, true),
-            ("alert", "alert", true, false),
-            ("spawn", "wakeup", true, false),
+            ("jump", "jump", false, false, 0f),
+            ("consume", "consume", false, false, 0f),
+            ("sleep", "sleeping", true, false, 0f),
+            ("wake", "sleeping", true, true, 0f),
+            ("alert", "alert", true, false, 0f),
+            ("spawn", "wakeup", true, false, 0f),
+            ("stagger", "stagger", false, false, 0f),
+            ("water", "inWater", true, false, 0f),
+            ("swim", "inWater", true, false, SwimSpeed),
+            ("fly", "flying", true, false, 0f),
+            ("dead", "dead", true, false, 0f),
         };
+
+        /// <summary>How fast a swimming creature is moved along, beside one walking as fast out of water.</summary>
+        private const float SwimSpeed = 2f;
 
         /// <summary>How many more seeded runs, a few seconds each, gather the clips it idles in.</summary>
         private const int IdleSeeds = 4;
@@ -123,15 +133,26 @@ namespace Scry
                 }
 
                 var actions = new List<string>();
-                foreach (var (action, name, isSwitch, release) in GameActions)
+                foreach (var (action, name, isSwitch, release, speed) in GameActions)
                 {
                     if (!Has(name, isSwitch ? AnimatorControllerParameterType.Bool : AnimatorControllerParameterType.Trigger)) continue;
                     System.Action<Animator> act = isSwitch ? a => a.SetBool(name, true) : (System.Action<Animator>)(a => a.SetTrigger(name));
 
+                    // Moving along, it is watched beside a run moving as fast without it, so what
+                    // moving alone does (walking) is not taken for it.
+                    System.Action<Animator> setup = null;
+                    var beside = alone;
+                    if (speed > 0f)
+                    {
+                        if (!Has("forward_speed", AnimatorControllerParameterType.Float)) continue;
+                        setup = a => a.SetFloat("forward_speed", speed);
+                        beside = Trace(probe, null, false, null, -1, 2 * ActionPatience + Settle, 1, setup);
+                    }
+
                     // A switch is set as the animator starts, since some go to sleep only from
                     // their start; a trigger is pulled once it runs.
-                    var run = Trace(probe, act, isSwitch, null, -1, 2 * ActionPatience + Settle);
-                    var at = Parting(run, alone, 0, ActionPatience);
+                    var run = Trace(probe, act, isSwitch, null, -1, 2 * ActionPatience + Settle, 1, setup);
+                    var at = Parting(run, beside, 0, ActionPatience);
                     var clips = new List<string>();
                     if (!release)
                     {
@@ -141,7 +162,7 @@ namespace Scry
                     {
                         // Let go only once it has gone there (fallen asleep), beside a run kept there.
                         var letGo = at + Settle;
-                        var back = Trace(probe, act, isSwitch, a => a.SetBool(name, false), letGo, letGo + ActionPatience);
+                        var back = Trace(probe, act, isSwitch, a => a.SetBool(name, false), letGo, letGo + ActionPatience, 1, setup);
                         var woke = Parting(back, run, letGo, back.Count - 1);
                         if (woke >= 0 && back[woke].Clip != null) clips.Add(back[woke].Clip);
                     }
@@ -163,12 +184,13 @@ namespace Scry
         }
 
         /// <summary>
-        /// Runs the animator from its start, seeded alike and with its settings as they start,
-        /// for <paramref name="steps"/> steps: done <paramref name="act"/> to as it starts
-        /// (<paramref name="first"/>) or once it runs, and <paramref name="then"/> at step
-        /// <paramref name="thenAt"/>. Where it is at each step, the first before any step.
+        /// Runs the animator from its start, seeded alike and with its settings as they start
+        /// (and as <paramref name="setup"/> sets them), for <paramref name="steps"/> steps: done
+        /// <paramref name="act"/> to as it starts (<paramref name="first"/>) or once it runs, and
+        /// <paramref name="then"/> at step <paramref name="thenAt"/>. Where it is at each step,
+        /// the first before any step.
         /// </summary>
-        private static List<Frame> Trace(Animator animator, System.Action<Animator> act, bool first, System.Action<Animator> then, int thenAt, int steps, int seed = 1)
+        private static List<Frame> Trace(Animator animator, System.Action<Animator> act, bool first, System.Action<Animator> then, int thenAt, int steps, int seed = 1, System.Action<Animator> setup = null)
         {
             Random.InitState(seed);
             animator.Rebind();
@@ -182,6 +204,7 @@ namespace Scry
                     case AnimatorControllerParameterType.Int: animator.SetInteger(parameter.name, parameter.defaultInt); break;
                 }
             }
+            setup?.Invoke(animator);
             if (act != null && first) act(animator);
             animator.Update(0f);
             if (act != null && !first) act(animator);

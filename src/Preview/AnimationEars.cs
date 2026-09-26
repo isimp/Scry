@@ -138,12 +138,30 @@ namespace Scry
         /// </summary>
         private void PlayGameList(AnimationClip clip)
         {
-            var list = clip != null && !_quiet ? Previews.ListOfClip(_prefab, _copy, clip.name) : null;
+            if (clip == null || _quiet) return;
+            var list = Previews.ListOfClip(_prefab, _copy, clip.name, out var lasting);
             if (list == null) return;
-            if (list == _prefab.GetComponent<Character>()?.m_jumpEffects && System.Array.Exists(clip.events, e => e.functionName == "Jump")) return;
+            var character = _prefab.GetComponent<Character>();
+            if (list == character?.m_jumpEffects && System.Array.Exists(clip.events, e => e.functionName == "Jump")) return;
+            if (list == character?.m_deathEffects && System.Array.Exists(clip.events, e => e.functionName == "Die")) return;
+
             if (list.m_effectPrefabs == null || !System.Array.Exists(list.m_effectPrefabs, d => d != null && d.m_enabled && d.m_prefab != null))
             {
                 Listen.Note(Listening, "the game plays nothing with it: this creature's list for it is empty");
+                return;
+            }
+
+            // Kept going while the clip plays, and gone with it; played again only once gone.
+            if (lasting)
+            {
+                if (_lasting.Exists(l => l != null)) return;
+                _lasting.Clear();
+                var at = LastingPoint(character, list);
+                var made = Previews.PlayOnCopy(_copy, list, at);
+                foreach (var thing in made) if (thing != null) thing.transform.SetParent(_copy.transform, true);
+                _lasting.AddRange(made);
+                Listen.Note(Listening, "what the game keeps going while it is in this state");
+                Report(made);
                 return;
             }
             Listen.Note(Listening, "what the game plays with it");
@@ -360,6 +378,26 @@ namespace Scry
                 : global::FootStep.MotionType.Jog;
         }
 
+        private readonly List<GameObject> _lasting = new List<GameObject>();
+        private Transform _lastingPoint;
+
+        /// <summary>
+        /// Where the game keeps a lasting list: the water effect at the water's surface, which a
+        /// swimming creature is its swim depth below (Character.UpdateContinousEffects), the flying
+        /// effect at the creature.
+        /// </summary>
+        private Transform LastingPoint(Character character, EffectList list)
+        {
+            if (_lastingPoint == null)
+            {
+                _lastingPoint = new GameObject("Scry lasting point").transform;
+                _lastingPoint.SetParent(_copy.transform, false);
+            }
+            var depth = list == character?.m_waterEffects ? character.m_swimDepth + 0.05f : 0f;
+            _lastingPoint.localPosition = Vector3.up * depth;
+            return _lastingPoint;
+        }
+
         /// <summary>The copy's body, as the game finds a character's: its part called "Visual", else the copy.</summary>
         private Transform Body
         {
@@ -474,6 +512,8 @@ namespace Scry
         {
             foreach (var attached in _attached) if (attached != null) Destroy(attached);
             _attached.Clear();
+            foreach (var lasting in _lasting) if (lasting != null) Destroy(lasting);
+            _lasting.Clear();
             _feet = null;
             _quiet = false;
             _clipAttack = null;
