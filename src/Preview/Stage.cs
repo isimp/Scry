@@ -235,14 +235,17 @@ namespace Scry
         /// named part of its body when there is one, attached when the list says so. Heard as if
         /// beside you.
         /// </summary>
-        public static void PlayList(EffectList list, Transform part = null)
+        public static List<(string, GameObject)> PlayList(EffectList list, Transform part = null, string skip = null)
         {
-            if (_subject == null || list?.m_effectPrefabs == null) return;
+            var made = new List<(string, GameObject)>();
+            if (_subject == null || list?.m_effectPrefabs == null) return made;
 
             var center = part != null ? part.position : Origin + (_bounds.center - Origin) * _scale;
             foreach (var data in list.m_effectPrefabs)
             {
-                if (data == null || !data.m_enabled || data.m_prefab == null || Ghost.IsWholeModel(data.m_prefab)) continue;
+                if (data == null || !data.m_enabled || data.m_prefab == null || data.m_prefab.name == skip) continue;
+                var debris = Ghost.IsDebris(data.m_prefab);
+                if (!debris && Ghost.IsWholeModel(data.m_prefab)) continue;
 
                 var anchor = _subject.transform;
                 var at = center;
@@ -256,13 +259,25 @@ namespace Scry
                     }
                 }
 
-                var copy = data.m_attach
-                    ? Ghost.MakeOn(data.m_prefab, anchor, at, anchor.rotation, _layer)
-                    : Ghost.Make(data.m_prefab, _root.transform, at, anchor.rotation, _layer);
+                GameObject copy;
+                if (debris)
+                {
+                    if (!Falling.Ready(_layer)) continue;
+                    PlaceGround();
+                    copy = Falling.Debris(data.m_prefab, _root.transform, at, anchor.rotation, _layer, _layer);
+                }
+                else
+                {
+                    copy = data.m_attach
+                        ? Ghost.MakeOn(data.m_prefab, anchor, at, anchor.rotation, _layer)
+                        : Ghost.Make(data.m_prefab, _root.transform, at, anchor.rotation, _layer);
+                }
                 if (copy == null) continue;
                 Tune(copy, audible: true);
                 Played.Add(new KeyValuePair<GameObject, float>(copy, Time.unscaledTime + PlayedSeconds));
+                made.Add((data.m_prefab.name, copy));
             }
+            return made;
         }
 
         /// <summary>
@@ -282,30 +297,48 @@ namespace Scry
         /// level's colours and its armour, and lies there as long as the game leaves it before
         /// its parting effect plays and the creature stands again.
         /// </summary>
-        public static void Fall(global::Ragdoll ragdoll, GameObject creature, int level, IList<GameObject> gear)
+        public static GameObject Fall(global::Ragdoll ragdoll, GameObject creature, int level, IList<GameObject> gear)
         {
-            if (_subject == null || ragdoll == null || Standin.IsDown(_subject) || !Falling.Ready(_layer)) return;
+            if (_subject == null || ragdoll == null || Standin.IsDown(_subject) || !Falling.Ready(_layer)) return null;
             PlaceGround();
 
             var fallen = Falling.Ragdoll(ragdoll, creature, _subject, level, _scale, gear, _root.transform, _layer, _layer);
-            if (fallen == null) return;
+            if (fallen == null) return null;
             Tune(fallen, audible: true);
 
             var seconds = Mathf.Clamp(ragdoll.m_ttl, 3f, 12f);
             Standin.For(fallen, _subject, seconds, ragdoll.m_removeEffect, onStage: true);
             Played.Add(new KeyValuePair<GameObject, float>(fallen, Time.unscaledTime + seconds + 1f));
+            return fallen;
         }
 
-        /// <summary>Breaks the stage copy into its parts, which tumble onto the stage and are gone; then it stands again.</summary>
-        public static void Break(GameObject prefab)
+        /// <summary>
+        /// Destroys the stage copy as the game destroys the prefab: it is gone while what it
+        /// leaves behind falls (its parts, its log and stump, the debris its list throws), and then
+        /// it stands again.
+        /// </summary>
+        public static GameObject Destroy(GameObject prefab, EffectList list)
         {
-            if (_subject == null || Standin.IsDown(_subject) || !Falling.Ready(_layer)) return;
+            if (_subject == null || Standin.IsDown(_subject) || !Falling.Ready(_layer)) return null;
             PlaceGround();
 
-            var pieces = Falling.Break(prefab, _subject, _root.transform, _layer, _layer);
-            if (pieces == null) return;
-            Standin.For(pieces, _subject, 4.5f, null, onStage: true);
-            Played.Add(new KeyValuePair<GameObject, float>(pieces, Time.unscaledTime + 5.5f));
+            var seconds = Falling.DebrisSeconds(list);
+            var left = Falling.Breaks(prefab, list) ? Falling.Break(prefab, _subject, _root.transform, _layer, _layer) : null;
+            if (left == null)
+            {
+                var away = _camera != null ? Vector3.ProjectOnPlane(_camera.transform.forward, Vector3.up).normalized : Vector3.forward;
+                left = Falling.Fell(prefab, _subject, _root.transform, _layer, _layer, away);
+                if (left != null) seconds = 10f;
+            }
+            if (left == null)
+            {
+                left = new GameObject("Scry destroyed");
+                left.transform.SetParent(_root.transform, false);
+            }
+
+            Standin.For(left, _subject, seconds, null, onStage: true);
+            Played.Add(new KeyValuePair<GameObject, float>(left, Time.unscaledTime + seconds + 1f));
+            return left;
         }
 
         /// <summary>The invisible ground falling copies land on, level with the floor under the model.</summary>

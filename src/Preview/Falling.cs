@@ -50,6 +50,99 @@ namespace Scry
         }
 
         /// <summary>
+        /// Whether this is the list the prefab plays when it is destroyed: a piece broken, a tree
+        /// felled, a rock or log smashed. The prefab is gone from the world after it plays.
+        /// </summary>
+        public static bool IsDestroyedList(GameObject prefab, EffectList list)
+        {
+            if (prefab == null || list == null) return false;
+            foreach (var component in prefab.GetComponents<Component>())
+            {
+                switch (component)
+                {
+                    case WearNTear piece when piece.m_destroyedEffect == list: return true;
+                    case Destructible destructible when destructible.m_destroyedEffect == list: return true;
+                    case MineRock rock when rock.m_destroyedEffect == list: return true;
+                    case MineRock5 rock5 when rock5.m_destroyedEffect == list: return true;
+                    case TreeBase tree when tree.m_destroyedEffect == list: return true;
+                    case TreeLog log when log.m_destroyedEffect == list: return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// How long what a destroyed list leaves behind lasts: the longest timer of the debris it
+        /// throws, or a few seconds when it throws none.
+        /// </summary>
+        public static float DebrisSeconds(EffectList list)
+        {
+            var longest = 0f;
+            if (list?.m_effectPrefabs != null)
+            {
+                foreach (var data in list.m_effectPrefabs)
+                {
+                    if (data?.m_prefab == null || !Ghost.IsDebris(data.m_prefab)) continue;
+                    foreach (var timer in data.m_prefab.GetComponentsInChildren<TimedDestruction>(true)) longest = Mathf.Max(longest, timer.m_timeout);
+                    if (longest <= 0f) longest = 5f;
+                }
+            }
+            return longest > 0f ? Mathf.Clamp(longest, 3f, 10f) : 4.5f;
+        }
+
+        /// <summary>
+        /// A tree copy felled as <c>TreeBase.SpawnLog</c> fells it: its log, the size of the tree,
+        /// tipped over from high up so it topples away from you, and its stump left standing.
+        /// </summary>
+        public static GameObject Fell(GameObject prefab, GameObject copy, Transform parent, int layer, int physicsLayer, Vector3 away)
+        {
+            var tree = prefab.GetComponent<TreeBase>();
+            if (tree == null || tree.m_logPrefab == null) return null;
+
+            var point = tree.m_logSpawnPoint != null ? Looks.Twin(prefab.transform, copy.transform, tree.m_logSpawnPoint) : null;
+            if (point == null) point = copy.transform;
+            var scale = copy.transform.lossyScale.x;
+
+            var holder = new GameObject("Scry felled tree");
+            holder.transform.SetParent(parent, false);
+
+            var log = Ghost.Make(tree.m_logPrefab, holder.transform, point.position, point.rotation, layer, falling: true);
+            if (log == null)
+            {
+                Object.Destroy(holder);
+                return null;
+            }
+            log.transform.localScale = tree.m_logPrefab.transform.localScale * scale;
+            if (layer < 0) Solidify(log, physicsLayer);
+
+            var body = log.GetComponent<Rigidbody>();
+            if (body != null)
+            {
+                body.mass *= scale;
+                body.ResetInertiaTensor();
+                body.AddForceAtPosition(away * 0.2f * body.mass, log.transform.position + Vector3.up * 4f * scale, ForceMode.Impulse);
+            }
+
+            if (tree.m_stubPrefab != null)
+            {
+                var stump = Ghost.Make(tree.m_stubPrefab, holder.transform, copy.transform.position, copy.transform.rotation, layer);
+                if (stump != null) stump.transform.localScale = tree.m_stubPrefab.transform.localScale * scale;
+            }
+            return holder;
+        }
+
+        /// <summary>
+        /// A copy of debris an effect list throws (planks, splinters, stones), falling under its
+        /// own physics where the list puts it.
+        /// </summary>
+        public static GameObject Debris(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer, int physicsLayer)
+        {
+            var copy = Ghost.Make(prefab, parent, position, rotation, layer, falling: true);
+            if (copy != null && layer < 0) Solidify(copy, physicsLayer);
+            return copy;
+        }
+
+        /// <summary>
         /// Whether playing this list on the prefab breaks it apart: it is the list a piece, tree or
         /// rock plays when destroyed, and the game breaks that one into parts as well.
         /// </summary>

@@ -5,13 +5,13 @@ namespace Scry
 {
     /// <summary>
     /// The looks a prefab can be switched between, when the game switches them by script: a
-    /// plant growing or grown, a fire unlit or lit, something picked or not, a creature with or
-    /// without its gear, an item in each of its styles. Only one kind is offered per prefab, in
+    /// plant growing or grown, a fire unlit or lit, a portal unconnected, connected or open,
+    /// something picked or not, a creature with or without its gear, an item in each of its styles. Only one kind is offered per prefab, in
     /// that order, and each is applied to a copy the way the game's own script would.
     /// </summary>
     internal static class Variants
     {
-        private enum Sort { None, Growth, Fire, Picked, Gear, Style }
+        private enum Sort { None, Growth, Fire, Portal, Picked, Gear, Style }
 
         private sealed class Found
         {
@@ -52,6 +52,9 @@ namespace Scry
                 case Sort.Fire:
                     Fire(prefab, copy, look);
                     break;
+                case Sort.Portal:
+                    Portal(prefab, copy, look);
+                    break;
                 case Sort.Picked:
                     var pickable = prefab.GetComponentInChildren<Pickable>(true);
                     var shown = Looks.Twin(prefab.transform, copy.transform, pickable.m_hideWhenPicked.transform);
@@ -86,6 +89,7 @@ namespace Scry
                 var plant = prefab.GetComponentInChildren<Plant>(true);
                 var fire = prefab.GetComponentInChildren<Fireplace>(true);
                 var pickable = prefab.GetComponentInChildren<Pickable>(true);
+                var portal = prefab.GetComponentInChildren<TeleportWorld>(true);
                 var drop = prefab.GetComponent<ItemDrop>();
 
                 if (plant != null && plant.m_grownPrefabs != null && plant.m_grownPrefabs.Length > 0)
@@ -106,6 +110,10 @@ namespace Scry
                         Names = hasLow ? new[] { "Unlit", "Low", "Lit" } : new[] { "Unlit", "Lit" },
                         Default = hasLow ? 2 : 1,
                     };
+                }
+                else if (portal != null && (portal.m_model != null || portal.m_target_found != null))
+                {
+                    found = new Found { Sort = Sort.Portal, Names = new[] { "Unconnected", "Connected", "Open" }, Default = 2 };
                 }
                 else if (pickable != null && pickable.m_hideWhenPicked != null)
                 {
@@ -158,6 +166,61 @@ namespace Scry
             Set(fire.m_fullObject, burning && !low);
             Set(fire.m_halfObject, low);
             Set(fire.m_emptyObject, !burning);
+        }
+
+        /// <summary>
+        /// As <c>TeleportWorld</c> shows a portal: its runes glow in one colour until it is
+        /// connected and in another after, and its swirl fades in while a player who may travel
+        /// stands near a connected one.
+        /// </summary>
+        private static void Portal(GameObject prefab, GameObject copy, int look)
+        {
+            var portal = prefab.GetComponentInChildren<TeleportWorld>(true);
+            if (portal.m_model != null)
+            {
+                var model = Looks.Twin(prefab.transform, copy.transform, portal.m_model.transform)?.GetComponent<Renderer>();
+                if (model != null) model.material.SetColor("_EmissionColor", look == 0 ? portal.m_colorUnconnected : portal.m_colorTargetfound);
+            }
+            if (portal.m_target_found != null) Fade(prefab, copy, portal.m_target_found, look == 2);
+        }
+
+        /// <summary>
+        /// Puts every <c>EffectFade</c> part of a copy out, as the script does when it wakes: the
+        /// game only fades them in when something calls for it, as a portal does.
+        /// </summary>
+        public static void FadeOut(GameObject prefab, GameObject copy)
+        {
+            foreach (var fade in prefab.GetComponentsInChildren<EffectFade>(true)) Fade(prefab, copy, fade, false);
+        }
+
+        /// <summary>An <c>EffectFade</c> part of the copy faded in or out: its particles, light and sound.</summary>
+        private static void Fade(GameObject prefab, GameObject copy, EffectFade fade, bool on)
+        {
+            var twin = Looks.Twin(prefab.transform, copy.transform, fade.transform);
+            if (twin == null) return;
+
+            foreach (var particles in twin.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                var emission = particles.emission;
+                emission.enabled = on;
+                if (on && !particles.isPlaying) particles.Play();
+            }
+
+            var light = twin.GetComponentInChildren<Light>(true);
+            var original = fade.GetComponentInChildren<Light>(true);
+            if (light != null)
+            {
+                light.enabled = on;
+                if (original != null) light.intensity = original.intensity;
+            }
+
+            var source = twin.GetComponentInChildren<AudioSource>(true);
+            var sound = fade.GetComponentInChildren<AudioSource>(true);
+            if (source != null)
+            {
+                source.volume = on && sound != null ? sound.volume : 0f;
+                if (on && source.loop && !source.isPlaying) source.Play();
+            }
         }
 
         /// <summary>As <c>ItemStyle.Setup</c> picks an item's style through the game's material manager.</summary>

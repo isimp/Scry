@@ -93,6 +93,19 @@ namespace Scry
 
         private static readonly Dictionary<GameObject, bool> Known = new Dictionary<GameObject, bool>();
 
+        /// <summary>
+        /// Whether a prefab an effect list points at is debris: loose parts that fly apart under
+        /// physics (planks, splinters, stones), which a falling copy can show as the game does.
+        /// </summary>
+        public static bool IsDebris(GameObject prefab)
+        {
+            return prefab != null
+                   && HasFreeBody(prefab)
+                   && prefab.GetComponentInChildren<Ragdoll>(true) == null
+                   && prefab.GetComponentInChildren<Character>(true) == null
+                   && prefab.GetComponent<ItemDrop>() == null;
+        }
+
         private static bool HasFreeBody(GameObject prefab)
         {
             foreach (var body in prefab.GetComponentsInChildren<Rigidbody>(true))

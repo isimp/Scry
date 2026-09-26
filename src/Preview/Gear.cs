@@ -67,18 +67,44 @@ namespace Scry
                 foreach (var set in humanoid.m_randomSets) if (set != null && AnyVisible(set.m_items)) visibleSets.Add(set);
             }
 
+            // In the order GiveDefaultItems hands them out: shield, weapon, armour, set, extras.
+            var loadout = LoadoutOf(prefab);
+            void Add(string name)
+            {
+                var item = string.IsNullOrEmpty(name) ? null : Looks.Prefab(name);
+                if (item != null) items.Add(item);
+            }
+            foreach (var row in new[] { Loadout.Row.Shield, Loadout.Row.Weapon, Loadout.Row.Armour })
+            {
+                if (loadout.Options(row).Count > 0) Add(loadout.Options(row)[loadout.Chosen(row)]);
+            }
             if (visibleSets.Count > 0)
             {
                 items.AddRange(visibleSets[Mathf.Clamp(look - 1, 0, visibleSets.Count - 1)].m_items);
             }
-
-            foreach (var name in LoadoutOf(prefab).Worn())
+            for (var i = 0; i < loadout.Extras.Count; i++)
             {
-                var item = Looks.Prefab(name);
-                if (item != null) items.Add(item);
+                if (loadout.ExtraOn(i)) Add(loadout.Extras[i].Name);
             }
             items.RemoveAll(i => i == null);
-            return items;
+
+            // Each item is equipped as it is handed out, taking the place of one worn in the same
+            // slot, so what comes later is what shows.
+            var outfit = new Outfit();
+            var slotless = new List<GameObject>();
+            foreach (var item in items)
+            {
+                var slot = SlotOf(item);
+                if (slot == Slot.None) slotless.Add(item);
+                else outfit.Keep(item.name, slot);
+            }
+            var worn = new List<GameObject>(slotless);
+            foreach (var name in outfit.Keys)
+            {
+                var item = items.Find(i => i.name == name);
+                if (item != null) worn.Add(item);
+            }
+            return worn;
         }
 
         private static readonly Dictionary<GameObject, Loadout> Loadouts = new Dictionary<GameObject, Loadout>();

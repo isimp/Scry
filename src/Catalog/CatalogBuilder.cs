@@ -38,6 +38,7 @@ namespace Scry
         {
             var scene = ZNetScene.instance;
             var registered = new Dictionary<string, Found>(StringComparer.Ordinal);
+            EffectLinks.Clear();
             var effects = new Dictionary<string, Found>(StringComparer.Ordinal);
 
             foreach (var list in new[] { scene.m_prefabs, scene.m_nonNetViewPrefabs })
@@ -67,7 +68,8 @@ namespace Scry
                 {
                     if (effect == null) continue;
                     var origin = Origins.StatusEffects.Of(effect.name);
-                    Gather(effect, "status effect " + effect.name, origin, effects);
+                    var shown = Localize(effect.m_name);
+                    Gather(effect, "status effect " + effect.name, origin, effects, "se:" + effect.name, shown.Length > 0 ? shown : effect.name);
 
                     entries.Add(new Entry
                     {
@@ -219,14 +221,14 @@ namespace Scry
                 {
                     Note(component, found, traits);
                     found.Components.Add(component.GetType().Name);
-                    Gather(component, owner, ownerOrigin, effects);
+                    Gather(component, owner, ownerOrigin, effects, owner, owner);
 
                     if (component is ItemDrop drop && drop.m_itemData?.m_shared != null)
                     {
                         var shared = drop.m_itemData.m_shared;
-                        Gather(shared, owner, ownerOrigin, effects);
-                        if (shared.m_attack != null) Gather(shared.m_attack, owner, ownerOrigin, effects);
-                        if (shared.m_secondaryAttack != null) Gather(shared.m_secondaryAttack, owner, ownerOrigin, effects);
+                        Gather(shared, owner, ownerOrigin, effects, owner, owner);
+                        if (shared.m_attack != null) Gather(shared.m_attack, owner, ownerOrigin, effects, owner, owner, "Attack");
+                        if (shared.m_secondaryAttack != null) Gather(shared.m_secondaryAttack, owner, ownerOrigin, effects, owner, owner, "Second attack");
                     }
                 }
                 catch (Exception ex)
@@ -311,7 +313,7 @@ namespace Scry
                     if (component == null) continue;
                     try
                     {
-                        Gather(component, Provenance.Interface, Origin.Vanilla, effects);
+                        Gather(component, Provenance.Interface, Origin.Vanilla, effects, null, Provenance.Interface);
                     }
                     catch (Exception ex)
                     {
@@ -326,12 +328,21 @@ namespace Scry
             if (part != null) roots.Add(part.transform.root);
         }
 
-        /// <summary>Records whatever the effect lists on one object point at, and who uses it.</summary>
-        private static void Gather(object owner, string ownerName, Origin ownerOrigin, Dictionary<string, Found> effects)
+        /// <summary>
+        /// Records whatever the effect lists on one object point at, and who uses it: by name for
+        /// the details, and as a list with its purpose for playing it whole. An attack's lists say
+        /// which attack they are for.
+        /// </summary>
+        private static void Gather(object owner, string ownerName, Origin ownerOrigin, Dictionary<string, Found> effects,
+            string ownerKey, string shown, string part = null)
         {
             foreach (var field in EffectFields(owner.GetType()))
             {
                 if (!(field.GetValue(owner) is EffectList list) || list.m_effectPrefabs == null) continue;
+
+                var label = Naming.EffectListLabel(field.Name);
+                if (part != null) label = part + ": " + label.ToLowerInvariant();
+                EffectLinks.Note(list, shown, ownerKey, label);
 
                 foreach (var data in list.m_effectPrefabs)
                 {

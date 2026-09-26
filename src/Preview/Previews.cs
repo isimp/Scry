@@ -46,6 +46,67 @@ namespace Scry
         private static readonly List<GameObject> StatusVisuals = new List<GameObject>();
         private static StatusEffect _status;
 
+        /// <summary>What each play button started, so it stays lit until all of it has finished.</summary>
+        public static readonly Playback<GameObject> Playing = new Playback<GameObject>(Alive);
+
+        private static readonly Dictionary<GameObject, float> Born = new Dictionary<GameObject, float>();
+        private static readonly Dictionary<GameObject, bool> AliveNow = new Dictionary<GameObject, bool>();
+        private static int _aliveFrame = -1;
+
+        /// <summary>Records what a button started, each part tagged with the prefab it copies.</summary>
+        private static void Started(object key, IEnumerable<GameObject> things)
+        {
+            var tagged = new List<(string, GameObject)>();
+            var now = Time.unscaledTime;
+            foreach (var thing in things)
+            {
+                if (thing == null) continue;
+                Born[thing] = now;
+                tagged.Add((thing.name, thing));
+            }
+            Playing.Started(key, tagged);
+        }
+
+        /// <summary>
+        /// Whether a copy is still playing: while it is new (a sound starts a frame or a delay
+        /// later), stands in for a fallen or broken copy, has particles alive, a sound playing or
+        /// parts falling, or, having none of those, until it is destroyed. Asked many times a
+        /// frame by the panel, so answered once per frame.
+        /// </summary>
+        private static bool Alive(GameObject thing)
+        {
+            if (thing == null) return false;
+            if (_aliveFrame != Time.frameCount)
+            {
+                _aliveFrame = Time.frameCount;
+                AliveNow.Clear();
+                var gone = new List<GameObject>();
+                foreach (var born in Born) if (born.Key == null) gone.Add(born.Key);
+                foreach (var key in gone) Born.Remove(key);
+            }
+            if (AliveNow.TryGetValue(thing, out var known)) return known;
+
+            var alive = Born.TryGetValue(thing, out var at) && Time.unscaledTime - at < 0.6f;
+            if (!alive && thing.activeInHierarchy)
+            {
+                var moving = false;
+                if (thing.GetComponent<Standin>() != null || thing.GetComponentInChildren<Rigidbody>() != null) alive = true;
+                foreach (var particles in thing.GetComponentsInChildren<ParticleSystem>())
+                {
+                    moving = true;
+                    if (particles.IsAlive(false)) alive = true;
+                }
+                foreach (var source in thing.GetComponentsInChildren<AudioSource>())
+                {
+                    moving = true;
+                    if (source.isPlaying) alive = true;
+                }
+                if (!moving) alive = true;
+            }
+            AliveNow[thing] = alive;
+            return alive;
+        }
+
         /// <summary>Whether the selected model is also shown in the world, where you were looking.</summary>
         public static bool InWorld { get; private set; }
 
@@ -213,6 +274,7 @@ namespace Scry
             Played.Clear();
             StopSound();
             StopStatus(false);
+            Playing.Forget();
         }
 
         private static void RebuildWorld(Modifiers modifiers)
@@ -514,17 +576,53 @@ namespace Scry
                 copy = Ghost.Make(prefab, null, _spot, _facing);
             }
             Remember(copy, EffectSeconds);
+            Started((onYou ? "on you:" : "there:") + prefab.name, new[] { copy });
         }
 
         /// <summary>Plays every prefab of an effect list at a point, as the game would on a hit.</summary>
-        public static void PlayList(EffectList list, Vector3 position, Quaternion rotation)
+        public static List<GameObject> PlayList(EffectList list, Vector3 position, Quaternion rotation)
         {
-            if (list?.m_effectPrefabs == null) return;
+            var made = new List<GameObject>();
+            if (list?.m_effectPrefabs == null) return made;
             foreach (var data in list.m_effectPrefabs)
             {
-                if (data == null || !data.m_enabled || data.m_prefab == null || Ghost.IsWholeModel(data.m_prefab)) continue;
-                Remember(Ghost.Make(data.m_prefab, null, position, rotation), EffectSeconds);
+                if (data == null || !data.m_enabled || data.m_prefab == null) continue;
+                GameObject copy;
+                if (Ghost.IsDebris(data.m_prefab))
+                {
+                    if (!Falling.Ready(Stage.Layer)) continue;
+                    copy = Falling.Debris(data.m_prefab, null, position, rotation, -1, Stage.Layer);
+                }
+                else if (Ghost.IsWholeModel(data.m_prefab)) continue;
+                else copy = Ghost.Make(data.m_prefab, null, position, rotation);
+
+                if (copy == null) continue;
+                Remember(copy, EffectSeconds);
+                made.Add(copy);
             }
+            return made;
+        }
+
+        /// <summary>
+        /// Plays a list a sound or effect is part of, whole: an effect's on the stage around it,
+        /// restarted to play along, and a sound's where you are looking.
+        /// </summary>
+        public static void PlayWhole(Entry entry, EffectList list)
+        {
+            if (entry == null || list == null) return;
+            var things = new List<GameObject>();
+            if (entry.Kind == Kind.Effect && Stage.IsStaged(entry))
+            {
+                Replay();
+                foreach (var made in Stage.PlayList(list, null, entry.Name)) things.Add(made.Item2);
+                if (Stage.Subject != null) things.Add(Stage.Subject);
+            }
+            else
+            {
+                Aim();
+                things.AddRange(PlayList(list, _spot + Vector3.up * 0.5f, _facing));
+            }
+            Started(list, things);
         }
 
         // ----- Projectiles -----
@@ -662,6 +760,7 @@ namespace Scry
         {
             if (copy == null || list == null) return;
             if (copy == Stage.Subject) Stage.PlayList(list, at);
+
             else PlayList(list, at != null ? at.position : copy.transform.position + Vector3.up * 0.5f, copy.transform.rotation);
         }
 
@@ -686,19 +785,21 @@ namespace Scry
             var prefab = _entry?.Source as GameObject;
             var ragdoll = _entry != null && _entry.Kind == Kind.Creature ? Falling.RagdollIn(list) : null;
             var word = (label ?? "").Split(' ', '(')[0].ToLowerInvariant();
+            var things = new List<GameObject>();
 
             if (ragdoll != null)
             {
                 var modifiers = _explorer?.Modifiers;
                 var level = modifiers != null ? modifiers.Level : 1;
                 var gear = modifiers != null && modifiers.LookAvailable ? Variants.GearOf(prefab, modifiers.Look) : new List<GameObject>();
-                Stage.Fall(ragdoll, prefab, level, gear);
-                FallInWorld(ragdoll, prefab, level, gear);
+                things.Add(Stage.Fall(ragdoll, prefab, level, gear));
+                things.Add(FallInWorld(ragdoll, prefab, level, gear));
             }
-            else if (Falling.Breaks(prefab, list))
+            else if (Falling.IsDestroyedList(prefab, list))
             {
-                Stage.Break(prefab);
-                BreakInWorld(prefab);
+                Tell(prefab, list);
+                things.Add(Stage.Destroy(prefab, list));
+                things.Add(DestroyInWorld(prefab, list));
             }
             else if (ClipsFor.TryGetValue(word, out var names))
             {
@@ -710,20 +811,42 @@ namespace Scry
                     break;
                 }
             }
-            PlayEffectList(list);
+            things.AddRange(PlayEffectList(list));
+            Started(list, things);
         }
 
         /// <summary>Plays an effect list on the stage copy, and on the copy in the world when there is one.</summary>
-        public static void PlayEffectList(EffectList list)
+        public static List<GameObject> PlayEffectList(EffectList list)
         {
-            Stage.PlayList(list);
-            if (_world != null) PlayList(list, _world.transform.position + Vector3.up * 0.5f, _world.transform.rotation);
+            var things = new List<GameObject>();
+            foreach (var made in Stage.PlayList(list)) things.Add(made.Item2);
+            if (_world != null) things.AddRange(PlayList(list, _world.transform.position + Vector3.up * 0.5f, _world.transform.rotation));
+            return things;
+        }
+
+        private static readonly HashSet<string> Told = new HashSet<string>();
+
+        /// <summary>Says once per prefab what destroying it leaves behind, for finding out why nothing falls.</summary>
+        private static void Tell(GameObject prefab, EffectList list)
+        {
+            if (prefab == null || !Told.Add(prefab.name)) return;
+            var debris = new List<string>();
+            if (list?.m_effectPrefabs != null)
+            {
+                foreach (var data in list.m_effectPrefabs) if (data?.m_prefab != null && Ghost.IsDebris(data.m_prefab)) debris.Add(data.m_prefab.name);
+            }
+            var tree = prefab.GetComponent<TreeBase>();
+            Plugin.Log.LogInfo($"Scry destroys {prefab.name}: {(Falling.Breaks(prefab, list) ? "breaks into its own parts" : "no parts of its own")}, "
+                               + $"{(tree != null && tree.m_logPrefab != null ? "fells its log " + tree.m_logPrefab.name : "no log")}, "
+                               + $"debris {(debris.Count > 0 ? string.Join(", ", debris) : "none")}.");
         }
 
         /// <summary>Plays one of a status effect's lists on you once.</summary>
         public static void PlayOnYou(EffectList list)
         {
-            foreach (var copy in OnYou(list)) Remember(copy, EffectSeconds);
+            var made = OnYou(list);
+            foreach (var copy in made) Remember(copy, EffectSeconds);
+            Started(list, made);
         }
 
         private static bool HasAny(EffectList list)
@@ -826,25 +949,37 @@ namespace Scry
             if (_explorer != null) Stage.Show(_entry, _explorer.Modifiers);
         }
 
-        private static void FallInWorld(global::Ragdoll ragdoll, GameObject creature, int level, IList<GameObject> gear)
+        private static GameObject FallInWorld(global::Ragdoll ragdoll, GameObject creature, int level, IList<GameObject> gear)
         {
-            if (_world == null || Standin.IsDown(_world) || !Falling.Ready(Stage.Layer)) return;
+            if (_world == null || Standin.IsDown(_world) || !Falling.Ready(Stage.Layer)) return null;
             var scale = _explorer != null ? _explorer.Modifiers.Scale : 1f;
             var fallen = Falling.Ragdoll(ragdoll, creature, _world, level, scale, gear, null, -1, Stage.Layer);
-            if (fallen == null) return;
+            if (fallen == null) return null;
 
             var seconds = Mathf.Clamp(ragdoll.m_ttl, 3f, 12f);
             Standin.For(fallen, _world, seconds, ragdoll.m_removeEffect, onStage: false);
             Remember(fallen, seconds + 1f);
+            return fallen;
         }
 
-        private static void BreakInWorld(GameObject prefab)
+        private static GameObject DestroyInWorld(GameObject prefab, EffectList list)
         {
-            if (_world == null || Standin.IsDown(_world) || !Falling.Ready(Stage.Layer)) return;
-            var pieces = Falling.Break(prefab, _world, null, -1, Stage.Layer);
-            if (pieces == null) return;
-            Standin.For(pieces, _world, 4.5f, null, onStage: false);
-            Remember(pieces, 5.5f);
+            if (_world == null || Standin.IsDown(_world) || !Falling.Ready(Stage.Layer)) return null;
+
+            var seconds = Falling.DebrisSeconds(list);
+            var left = Falling.Breaks(prefab, list) ? Falling.Break(prefab, _world, null, -1, Stage.Layer) : null;
+            if (left == null)
+            {
+                var player = Player.m_localPlayer;
+                var away = player != null ? Vector3.ProjectOnPlane(_world.transform.position - player.transform.position, Vector3.up).normalized : Vector3.forward;
+                left = Falling.Fell(prefab, _world, null, -1, Stage.Layer, away);
+                if (left != null) seconds = 10f;
+            }
+            if (left == null) left = new GameObject("Scry destroyed");
+
+            Standin.For(left, _world, seconds, null, onStage: false);
+            Remember(left, seconds + 1f);
+            return left;
         }
 
         // ----- Housekeeping -----

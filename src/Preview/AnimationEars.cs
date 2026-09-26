@@ -129,8 +129,10 @@ namespace Scry
 
         public void FootStep(AnimationEvent e)
         {
-            // Blended-out clips send steps too; the game ignores the faint ones, and so do we.
-            if (e.animatorClipInfo.weight < 0.33f || Time.unscaledTime - _lastStep < 0.08f) return;
+            // Blended-out clips send steps too; the game ignores the faint ones, and so do we. A
+            // clip Scry plays on its own is all there is, and reports no weight to go by.
+            var alone = _copy.GetComponent<ClipPlayer>()?.Clip != null;
+            if ((!alone && e.animatorClipInfo.weight < 0.33f) || Time.unscaledTime - _lastStep < 0.08f) return;
             _lastStep = Time.unscaledTime;
 
             var step = _prefab.GetComponentInChildren<global::FootStep>(true);

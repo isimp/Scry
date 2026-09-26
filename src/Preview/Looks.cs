@@ -28,6 +28,7 @@ namespace Scry
             if (copy == null) return null;
 
             Gear.Body(source, copy);
+            Variants.FadeOut(source, copy);
             if (entry.Kind == Kind.Creature) ApplyLevel(source, copy, modifiers.Level);
             if (modifiers.WearAvailable) ApplyWear(source, copy, modifiers.Wear);
             if (source == prefab) Variants.Apply(prefab, copy, modifiers.Look);

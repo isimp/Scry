@@ -897,7 +897,8 @@ namespace Scry
                 y = Variants(entry, cw, y);
             }
             y = Adjust(explorer, entry, cw, y, withStage);
-            y = Effects(entry, cw, y, withStage);
+            y = Effects(explorer, entry, cw, y, withStage);
+            y = PlaysInSection(explorer, entry, cw, y);
             y = FactsSection(explorer, entry, cw, y);
             y = Command(explorer, entry, cw, y);
             y = Details(explorer, entry, cw, y);
@@ -1204,8 +1205,8 @@ namespace Scry
                     break;
 
                 case Kind.Effect:
-                    if (Button("Play where you look", Skin.Primary)) Previews.PlayEffect(entry, onYou: false);
-                    if (Button("Play on you", Skin.Button)) Previews.PlayEffect(entry, onYou: true);
+                    if (Button("Play where you look", Previews.Playing.IsPlaying("there:" + entry.Name) ? Skin.On : Skin.Primary)) Previews.PlayEffect(entry, onYou: false);
+                    if (Button("Play on you", Previews.Playing.IsPlaying("on you:" + entry.Name) ? Skin.On : Skin.Button)) Previews.PlayEffect(entry, onYou: true);
                     if (!_compact)
                     {
                         if (Button("Replay", Skin.Button)) Previews.Replay();
@@ -1295,7 +1296,8 @@ namespace Scry
             foreach (var list in lists)
             {
                 if (list.Value == effect.m_startEffects) continue;
-                if (button("Play " + list.Key.ToLowerInvariant(), hasStart ? Skin.Button : Skin.Primary)) Previews.PlayOnYou(list.Value);
+                var style = Previews.Playing.IsPlaying(list.Value) ? Skin.On : hasStart ? Skin.Button : Skin.Primary;
+                if (button("Play " + list.Key.ToLowerInvariant(), style)) Previews.PlayOnYou(list.Value);
             }
 
             return "Only the look. The effect itself is never applied to you.";
@@ -1739,7 +1741,7 @@ namespace Scry
         /// Every effect list the prefab carries, played on the stage copy and on the copy in the
         /// world: a creature's hits and death, a piece's placing and breaking, an item's swings.
         /// </summary>
-        private static float Effects(Entry entry, float width, float y, bool withStage)
+        private static float Effects(Explorer explorer, Entry entry, float width, float y, bool withStage)
         {
             if (!(entry.Source is GameObject prefab) || entry.Kind == Kind.Sound || entry.Kind == Kind.Effect) return y;
             if (!withStage && !(Previews.InWorld && Previews.IsModel(entry))) return y;
@@ -1775,7 +1777,8 @@ namespace Scry
                     y += rowH + U(5f);
                 }
                 var chip = new Rect(x, y, w, rowH);
-                if (GUI.Button(chip, pair.Key, Skin.Chip)) Previews.PlayEffectList(pair.Key, pair.Value);
+                var playing = Previews.Playing.IsPlaying(pair.Value);
+                if (GUI.Button(chip, pair.Key, playing ? Skin.ChipOn : Skin.Chip)) Previews.PlayEffectList(pair.Key, pair.Value);
                 if (chip.Contains(Event.current.mousePosition))
                 {
                     var names = pair.Value.m_effectPrefabs.Where(d => d?.m_prefab != null).Select(d => d.m_prefab.name);
@@ -1785,7 +1788,183 @@ namespace Scry
             }
             if (x > 0f) y += rowH;
 
+            // What the list played last is made of, each part lit while its copy plays.
+            var last = lists.FirstOrDefault(l => ReferenceEquals(l.Value, Previews.Playing.Last));
+            if (last.Value != null)
+            {
+                y += U(10f);
+                y = Members(explorer, last.Key + " plays", last.Value, Members(last.Value), null, width, y);
+            }
+
             return y + U(14f);
+        }
+
+        /// <summary>The prefabs an effect list plays, each once.</summary>
+        private static string[] Members(EffectList list)
+        {
+            return list.m_effectPrefabs.Where(d => d != null && d.m_enabled && d.m_prefab != null).Select(d => d.m_prefab.name).Distinct().ToArray();
+        }
+
+        /// <summary>
+        /// The parts of a list as chips: each goes to its prefab, and is lit while the copy of it
+        /// the list last started still plays. The selected prefab itself is shown but not a link.
+        /// </summary>
+        private static float Members(Explorer explorer, string title, EffectList list, string[] members, string self, float width, float y)
+        {
+            if (title != null)
+            {
+                GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
+                y += U(24f);
+            }
+            var x = 0f;
+            var rowH = U(26f);
+            foreach (var member in members)
+            {
+                var w = Mathf.Min(width, Skin.Chip.CalcSize(new GUIContent(member)).x + U(8f));
+                if (x + w > width && x > 0f)
+                {
+                    x = 0f;
+                    y += rowH + U(5f);
+                }
+                var chip = new Rect(x, y, w, rowH);
+                var lit = Previews.Playing.IsPlaying(list, member);
+                if (member == self || !InCatalog(explorer, member))
+                {
+                    GUI.Label(chip, member, lit ? Skin.ChipOn : Skin.CenterDim);
+                }
+                else
+                {
+                    if (GUI.Button(chip, member, lit ? Skin.ChipOn : Skin.Chip)) Go(explorer, member);
+                    if (chip.Contains(Event.current.mousePosition)) AskTip("member:" + member, "Go to " + member);
+                }
+                x += w + U(5f);
+            }
+            return y + rowH + U(6f);
+        }
+
+        // ----- Plays in -----
+
+        private static bool _allPlaysIn;
+        private static Entry _playsInFor;
+
+        /// <summary>
+        /// The effect lists a sound or effect is part of, one row per list: what it is for, who
+        /// plays it, and what else it plays, all of which go where they name. Play plays the whole
+        /// list: an effect's around it on the stage, a sound's where you are looking.
+        /// </summary>
+        private static float PlaysInSection(Explorer explorer, Entry entry, float width, float y)
+        {
+            var rows = EffectLinks.For(entry.Name);
+            if (rows.Count == 0) return y;
+            if (_playsInFor != entry)
+            {
+                _playsInFor = entry;
+                _allPlaysIn = false;
+            }
+
+            y = SectionHeading($"PLAYS IN  {rows.Count}", width, y, null);
+            const int Shown = 8;
+            var rowH = U(26f);
+
+            foreach (var row in _allPlaysIn ? rows : rows.Take(Shown))
+            {
+                var list = row.List as EffectList;
+                var playing = list != null && Previews.Playing.IsPlaying(list);
+
+                // Play, what it is for, and who plays it.
+                var x = 0f;
+                var playW = Skin.Chip.CalcSize(new GUIContent("Play")).x + U(12f);
+                if (list != null && GUI.Button(new Rect(x, y, playW, rowH), "Play", playing ? Skin.ChipOn : Skin.Chip)) Previews.PlayWhole(entry, list);
+                x += playW + U(8f);
+                var labelW = Mathf.Min(width - x, Skin.Label.CalcSize(new GUIContent(row.Label)).x + U(4f));
+                GUI.Label(new Rect(x, y, labelW, rowH), row.Label, Skin.Label);
+                x += labelW + U(8f);
+
+                const int Owners = 4;
+                foreach (var owner in row.Owners.Take(Owners))
+                {
+                    var shown = ShownName(explorer, owner.Key, owner.Shown);
+                    var w = Mathf.Min(width, Skin.Chip.CalcSize(new GUIContent(shown)).x + U(8f));
+                    if (x + w > width && x > 0f)
+                    {
+                        x = 0f;
+                        y += rowH + U(5f);
+                    }
+                    var chip = new Rect(x, y, w, rowH);
+                    if (owner.Key != null && CanGo(explorer, owner.Key))
+                    {
+                        if (GUI.Button(chip, shown, Skin.Chip)) Go(explorer, owner.Key);
+                        if (chip.Contains(Event.current.mousePosition)) AskTip("owner:" + owner.Key, "Go to " + shown);
+                    }
+                    else
+                    {
+                        GUI.Label(chip, shown, Skin.CenterDim);
+                    }
+                    x += w + U(5f);
+                }
+                if (row.Owners.Count > Owners)
+                {
+                    var more = $"and {row.Owners.Count - Owners} more";
+                    var w = Skin.DimLabel.CalcSize(new GUIContent(more)).x + U(4f);
+                    if (x + w > width && x > 0f)
+                    {
+                        x = 0f;
+                        y += rowH + U(5f);
+                    }
+                    var rect = new Rect(x, y, w, rowH);
+                    GUI.Label(rect, more, Skin.DimLabel);
+                    if (rect.Contains(Event.current.mousePosition)) AskTip("owners:" + row.Label + row.Owners[0].Shown, string.Join("\n", row.Owners.Skip(Owners).Take(30).Select(o => o.Shown)));
+                }
+                y += rowH + U(5f);
+
+                // What plays along.
+                if (list != null) y = Members(explorer, null, list, row.Members, entry.Name, width, y);
+                y += U(6f);
+            }
+
+            if (rows.Count > Shown)
+            {
+                var text = _allPlaysIn ? "Show fewer" : $"Show all {rows.Count}";
+                var w = Skin.Chip.CalcSize(new GUIContent(text)).x + U(8f);
+                if (GUI.Button(new Rect(0f, y, Mathf.Min(width, w), rowH), text, Skin.Chip)) _allPlaysIn = !_allPlaysIn;
+                y += rowH;
+            }
+            return y + U(14f);
+        }
+
+        /// <summary>Whether a prefab or status effect ("se:" name) is in the catalog to go to.</summary>
+        private static bool CanGo(Explorer explorer, string key)
+        {
+            if (!key.StartsWith("se:", StringComparison.Ordinal)) return InCatalog(explorer, key);
+            if (_statusFor != explorer)
+            {
+                _statusFor = explorer;
+                StatusNames.Clear();
+                foreach (var e in explorer.Catalog) if (e.Kind == Kind.StatusEffect) StatusNames.Add(e.Name);
+            }
+            return StatusNames.Contains(key.Substring(3));
+        }
+
+        private static readonly HashSet<string> StatusNames = new HashSet<string>();
+        private static Explorer _statusFor;
+
+        private static readonly Dictionary<string, string> ShownNames = new Dictionary<string, string>();
+        private static Explorer _shownFor;
+
+        /// <summary>A prefab's name as the game shows it, or the name given when it has none.</summary>
+        private static string ShownName(Explorer explorer, string key, string fallback)
+        {
+            if (key == null || key.StartsWith("se:", StringComparison.Ordinal)) return fallback;
+            if (_shownFor != explorer)
+            {
+                _shownFor = explorer;
+                ShownNames.Clear();
+                foreach (var e in explorer.Catalog)
+                {
+                    if (e.Kind != Kind.StatusEffect && !string.IsNullOrEmpty(e.DisplayName) && !ShownNames.ContainsKey(e.Name)) ShownNames[e.Name] = e.DisplayName;
+                }
+            }
+            return ShownNames.TryGetValue(key, out var shown) ? shown : fallback;
         }
 
         // ----- Facts -----
@@ -2130,7 +2309,7 @@ namespace Scry
             {
                 y = ChipRow("Biomes (search)", entry.Biomes.Select(b => new KeyValuePair<string, Action>(Naming.FieldLabel(b), () => SearchFor(explorer, "biome:" + b.ToLowerInvariant()))), width, y);
             }
-            if (entry.UsedBy.Count > 0)
+            if (entry.UsedBy.Count > 0 && EffectLinks.For(entry.Name).Count == 0)
             {
                 var users = entry.UsedBy.Where(u => InCatalog(explorer, u)).Take(24).ToList();
                 if (users.Count > 0) y = ChipRow($"Played by ({entry.UsedBy.Count})", users.Select(u => new KeyValuePair<string, Action>(u, () => Go(explorer, u))), width, y);
