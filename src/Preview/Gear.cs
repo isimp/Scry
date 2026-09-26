@@ -537,6 +537,7 @@ namespace Scry
 
             var equipped = t.Find("equiped");
             if (equipped != null) equipped.gameObject.SetActive(true);
+            worn.AddComponent<Hung>();
             worn.SetActive(true);
             return worn;
         }

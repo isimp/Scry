@@ -50,9 +50,7 @@ namespace Scry
                     y += rowH + U(6f);
                 }
                 var field = new Rect(x, y - U(1f), Mathf.Min(width - x, U(260f)), U(28f));
-                GUI.SetNextControlName(ClipControl);
-                _clipFilter = GUI.TextField(field, _clipFilter, 40, Skin.Field);
-                if (string.IsNullOrEmpty(_clipFilter)) GUI.Label(field, "Filter", Skin.Placeholder);
+                _clipFilter = FilterField(ClipControl, _clipFilter, field);
             }
             y += rowH + U(10f);
 
@@ -79,6 +77,7 @@ namespace Scry
             var shown = clips.Where(c => _clipFilter.Length == 0 || Text(c).IndexOf(_clipFilter, StringComparison.OrdinalIgnoreCase) >= 0)
                 .OrderBy(Group).ThenBy(c => tags.ContainsKey(c.name) ? 0 : 1).ToList();
             var headings = new[] { "Attacks", "With sounds or effects", "Silent" };
+            var ownNow = Previews.AnimatorClipNow();
             var group = -1;
             x = 0f;
             foreach (var clip in shown)
@@ -93,8 +92,9 @@ namespace Scry
                     y += U(22f);
                 }
 
-                // Named by the modelers; what it is follows, as far as Scry saw.
-                var text = Text(clip);
+                // Named by the modelers; what it is follows, as far as Scry saw. The one the
+                // animator plays on its own right now is marked.
+                var text = (clip == ownNow ? "\u25B6 " : "") + Text(clip);
 
                 var on = playing == clip;
                 var style = on ? Skin.ChipOn : Skin.Chip;
@@ -116,7 +116,7 @@ namespace Scry
                 }
                 if (chip.Contains(Event.current.mousePosition))
                 {
-                    AskTip("clip:" + clip.name, $"{clip.name}\n{clip.length.ToString("0.0", CultureInfo.InvariantCulture)} s{(clip.isLooping ? ", loops" : "")}");
+                    AskTip("clip:" + clip.name + (clip == ownNow ? ":now" : ""), $"{clip.name}\n{clip.length.ToString("0.0", CultureInfo.InvariantCulture)} s{(clip.isLooping ? ", loops" : "")}{(clip == ownNow ? "\nPlaying on its own now" : "")}");
                 }
                 x += w + U(5f);
             }

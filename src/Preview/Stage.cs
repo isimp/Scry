@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -146,14 +147,17 @@ namespace Scry
             _pan += -t.right * delta.x * step + t.up * delta.y * step;
         }
 
-        /// <summary>Where the floor under the model is, as shown.</summary>
+        /// <summary>Where the floor under the model is, as shown: under its body, not what it holds.</summary>
         private static float FloorY
         {
             get
             {
-                return Origin.y + (_bounds.min.y - Origin.y) * _scale;
+                return Origin.y + (_bodyMinY - Origin.y) * _scale;
             }
         }
+
+        /// <summary>The lowest point of the model's body, as if at size one.</summary>
+        private static float _bodyMinY;
         private static bool _followEffect;
 
         /// <summary>The layer nothing in the game uses, which the stage is drawn on and falling copies land with.</summary>
@@ -238,6 +242,7 @@ namespace Scry
             _settleUntil = _followEffect ? 0f : Time.unscaledTime + (_onFeet ? 0.5f : 1.5f);
             _baseScale = _subject.transform.localScale;
             _bounds = Measure(_subject);
+            _bodyMinY = Measure(_subject, body: true).min.y;
             Apply(modifiers);
         }
 
@@ -664,8 +669,17 @@ namespace Scry
             var now = Measure(_subject);
             var unscaled = new Bounds(Origin + (now.center - Origin) / _scale, now.size / _scale);
             if (unscaled.size.magnitude > _bounds.size.magnitude * 4f + 1f) return;
-            if (_settled) _bounds.Encapsulate(unscaled);
-            else _bounds = unscaled;
+            var body = Origin.y + (Measure(_subject, body: true).min.y - Origin.y) / _scale;
+            if (_settled)
+            {
+                _bounds.Encapsulate(unscaled);
+                _bodyMinY = Mathf.Min(_bodyMinY, body);
+            }
+            else
+            {
+                _bounds = unscaled;
+                _bodyMinY = body;
+            }
             _settled = true;
             PlacePerson();
         }
@@ -726,8 +740,22 @@ namespace Scry
         /// The size the camera frames, from what the copy draws. Particles are left out when there
         /// is anything else, since their bounds are unsettled while they start.
         /// </summary>
-        private static Bounds Measure(GameObject subject)
+        /// <summary>
+        /// What a copy draws, as bounds; of its <paramref name="body"/> only, leaving out what hangs
+        /// on it, where it has anything else.
+        /// </summary>
+        private static Bounds Measure(GameObject subject, bool body = false)
         {
+            if (body)
+            {
+                var own = subject.GetComponentsInChildren<Renderer>().Where(r => r.enabled && !(r is ParticleSystemRenderer) && r.GetComponentInParent<Hung>() == null).ToList();
+                if (own.Count > 0)
+                {
+                    var b = own[0].bounds;
+                    foreach (var r in own) b.Encapsulate(r.bounds);
+                    if (b.size.sqrMagnitude >= 0.0001f && b.size.magnitude <= 2000f) return b;
+                }
+            }
             var solid = new List<Renderer>();
             var loose = new List<Renderer>();
             foreach (var renderer in subject.GetComponentsInChildren<Renderer>())

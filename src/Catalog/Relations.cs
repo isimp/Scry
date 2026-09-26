@@ -232,6 +232,15 @@ namespace Scry
                 catch { continue; }
                 if (value == null) continue;
 
+                // An attack uses only what its kind uses (Attack.OnAttackTrigger): a projectile
+                // only when it throws or shoots, what it spawns only when it swings or hits an area.
+                if (owner is Attack attack)
+                {
+                    var type = attack.m_attackType;
+                    if (field.Name == "m_attackProjectile" && type != Attack.AttackType.Projectile) continue;
+                    if (field.Name == "m_spawnOnTrigger" && type != Attack.AttackType.Horizontal && type != Attack.AttackType.Vertical && type != Attack.AttackType.Area) continue;
+                }
+
                 var label = outer ?? Naming.FieldLabel(field.Name);
                 if (value is GameObject single)
                 {

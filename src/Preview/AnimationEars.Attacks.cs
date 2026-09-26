@@ -62,7 +62,7 @@ namespace Scry
                 Listen.Note(Listening, $"hits {ahead:0.0} m ahead and {point.y - _copy.transform.position.y:0.0} m up of a copy shown at ×{Previews.SizeOf(_copy):0.00}, its scale {_copy.transform.lossyScale.x:0.00}");
                 Report(Previews.PlayOnCopyAt(_copy, _clipHit, point));
             }
-            if (attack.m_spawnOnTrigger != null)
+            if (attack.m_spawnOnTrigger != null && (Previews.IsMelee(attack) || attack.m_attackType == Attack.AttackType.Area))
             {
                 Report(Previews.PlayOnCopyAt(_copy, AsList(new[] { attack.m_spawnOnTrigger }), Previews.StrikePoint(_copy, attack, false)));
                 Listen.Note(Listening, "spawned " + attack.m_spawnOnTrigger.name);

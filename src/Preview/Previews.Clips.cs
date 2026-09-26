@@ -373,6 +373,26 @@ namespace Scry
             return clips;
         }
 
+        /// <summary>
+        /// The clip the stage copy's animator plays on its own right now, when Scry plays none:
+        /// the strongest of the state it is in or moving to. Null when there is none.
+        /// </summary>
+        public static AnimationClip AnimatorClipNow()
+        {
+            var animator = ClipPlayer.AnimatorOf(Stage.Subject);
+            if (animator == null || !animator.isActiveAndEnabled || animator.runtimeAnimatorController == null || PlayingClip() != null) return null;
+            var infos = animator.IsInTransition(0) ? animator.GetNextAnimatorClipInfo(0) : animator.GetCurrentAnimatorClipInfo(0);
+            AnimationClip strongest = null;
+            var weight = -1f;
+            foreach (var info in infos)
+            {
+                if (info.clip == null || info.weight <= weight) continue;
+                strongest = info.clip;
+                weight = info.weight;
+            }
+            return strongest;
+        }
+
         /// <summary>The clip playing on the stage copy, or null.</summary>
         public static AnimationClip PlayingClip()
         {

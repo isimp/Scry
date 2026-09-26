@@ -558,6 +558,43 @@ namespace Scry
             _help = false;
         }
 
+        /// <summary>
+        /// A small filter box with its placeholder and, while it holds anything, a button to clear
+        /// it, as the search has. Returns what it holds now.
+        /// </summary>
+        private static string FilterField(string control, string value, Rect rect)
+        {
+            var e = Event.current;
+            var hasText = !string.IsNullOrEmpty(value);
+            var clear = new Rect(rect.xMax - U(28f), rect.y + (rect.height - U(22f)) / 2f, U(22f), U(22f));
+
+            // The text field takes every click inside it, so the clear button is handled before it.
+            if (hasText && e.type == EventType.MouseDown && e.button == 0 && clear.Contains(e.mousePosition))
+            {
+                GUIUtility.keyboardControl = 0;
+                e.Use();
+                return "";
+            }
+
+            GUI.SetNextControlName(control);
+            value = GUI.TextField(rect, value, 40, Skin.Field);
+            if (string.IsNullOrEmpty(value))
+            {
+                GUI.Label(rect, "Filter", Skin.Placeholder);
+                return value;
+            }
+
+            var hover = clear.Contains(e.mousePosition);
+            if (hover) Skin.Icon(clear, Skin.Circle, new Color(1f, 1f, 1f, 0.12f));
+            var style = Skin.Cross;
+            var was = style.normal.textColor;
+            style.normal.textColor = hover ? Skin.Text : Skin.Dim;
+            GUI.Label(new Rect(clear.x, clear.y - U(1f), clear.width, clear.height), "×", style);
+            style.normal.textColor = was;
+            if (hover) AskTip("clear-filter:" + control, "Clear the filter");
+            return value;
+        }
+
         private static void Search(Explorer explorer, Rect rect)
         {
             var e = Event.current;

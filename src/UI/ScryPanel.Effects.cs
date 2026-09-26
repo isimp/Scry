@@ -39,9 +39,7 @@ namespace Scry
             if (lists.Count > 12 || _effectFilter.Length > 0)
             {
                 var field = new Rect(0f, y, Mathf.Min(width, U(260f)), U(28f));
-                GUI.SetNextControlName(EffectControl);
-                _effectFilter = GUI.TextField(field, _effectFilter, 40, Skin.Field);
-                if (string.IsNullOrEmpty(_effectFilter)) GUI.Label(field, "Filter", Skin.Placeholder);
+                _effectFilter = FilterField(EffectControl, _effectFilter, field);
                 y += U(36f);
             }
 

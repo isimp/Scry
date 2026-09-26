@@ -184,7 +184,7 @@ namespace Scry
                 {
                     AddList(trigger);
                     AddList(hit);
-                    Add(attack.m_spawnOnTrigger);
+                    if (Previews.IsMelee(attack) || attack.m_attackType == Attack.AttackType.Area) Add(attack.m_spawnOnTrigger);
                     if (attack.m_attackType == Attack.AttackType.Projectile) Add(attack.m_attackProjectile);
                 }
             }
