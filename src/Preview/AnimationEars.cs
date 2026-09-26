@@ -92,6 +92,7 @@ namespace Scry
             _quiet = quiet;
             StartAttack(clip);
             PlayGameList(clip);
+            PlayByName(clip);
             PlayAround(clip);
             WatchFeet(clip);
         }
@@ -101,6 +102,7 @@ namespace Scry
         {
             StartAttack(clip);
             PlayGameList(clip);
+            PlayByName(clip);
             PlayAround(clip);
         }
 
@@ -151,17 +153,10 @@ namespace Scry
                 return;
             }
 
-            // Kept going while the clip plays, and gone with it; played again only once gone.
             if (lasting)
             {
-                if (_lasting.Exists(l => l != null)) return;
-                _lasting.Clear();
-                var at = LastingPoint(character, list);
-                var made = Previews.PlayOnCopy(_copy, list, at);
-                foreach (var thing in made) if (thing != null) thing.transform.SetParent(_copy.transform, true);
-                _lasting.AddRange(made);
                 Listen.Note(Listening, "what the game keeps going while it is in this state");
-                Report(made);
+                PlayLasting(character, list);
                 return;
             }
             Listen.Note(Listening, "what the game plays with it");
@@ -376,6 +371,48 @@ namespace Scry
                 : name.Contains("sneak") || name.Contains("crawl") ? global::FootStep.MotionType.Sneak
                 : name.Contains("walk") || name.Contains("stroll") ? global::FootStep.MotionType.Walk
                 : global::FootStep.MotionType.Jog;
+        }
+
+        /// <summary>A list the game keeps going, kept going while the clip plays and gone with it; played again only once gone.</summary>
+        private void PlayLasting(Character character, EffectList list)
+        {
+            if (_lasting.Exists(l => l != null)) return;
+            _lasting.Clear();
+            var made = Previews.PlayOnCopy(_copy, list, LastingPoint(character, list));
+            foreach (var thing in made) if (thing != null) thing.transform.SetParent(_copy.transform, true);
+            _lasting.AddRange(made);
+            Report(made);
+        }
+
+        /// <summary>
+        /// What a clip plays that it was paired with by its name alone (<see cref="Previews.ByNameOfClip"/>),
+        /// played as it starts and told apart as found by name.
+        /// </summary>
+        private void PlayByName(AnimationClip clip)
+        {
+            if (clip == null || _quiet) return;
+            var list = Previews.ByNameOfClip(_prefab, _copy, clip.name, out var lasting);
+            if (list == null) return;
+            var character = _prefab.GetComponent<Character>();
+            if (list == character?.m_jumpEffects && System.Array.Exists(clip.events, e => e.functionName == "Jump")) return;
+            Listen.Note(Listening, "found by its name, not by the animator");
+            if (lasting) PlayLasting(character, list);
+            else Report(Previews.PlayOnCopy(_copy, list, null));
+        }
+
+        /// <summary>What a clip plays that it was paired with by its name alone, by prefab name, apart from what it plays itself.</summary>
+        public List<string> ByNameMembers(AnimationClip clip)
+        {
+            var names = new List<string>();
+            var list = clip != null ? Previews.ByNameOfClip(_prefab, _copy, clip.name, out _) : null;
+            if (list?.m_effectPrefabs == null) return names;
+            var own = Members(clip);
+            foreach (var data in list.m_effectPrefabs)
+            {
+                if (data?.m_prefab == null || !data.m_enabled || names.Contains(data.m_prefab.name) || own.Contains(data.m_prefab.name)) continue;
+                names.Add(data.m_prefab.name);
+            }
+            return names;
         }
 
         private readonly List<GameObject> _lasting = new List<GameObject>();

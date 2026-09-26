@@ -869,6 +869,9 @@ namespace Scry
 
             /// <summary>The flying effect of a born flyer its animator has no flying switch for, kept going in every clip.</summary>
             public EffectList Flying;
+
+            /// <summary>What clips play that were paired by their names alone (<see cref="ClipByName"/>).</summary>
+            public Dictionary<string, object> ByName = new Dictionary<string, object>();
         }
 
         private static readonly Dictionary<string, ClipPlays> ClipPlaysCache = new Dictionary<string, ClipPlays>();
@@ -927,6 +930,20 @@ namespace Scry
             return plays != null && plays.Around.TryGetValue(clip, out var list) ? (EffectList)list : null;
         }
 
+        /// <summary>
+        /// What a clip plays that it was paired with by its name alone, where the animator could
+        /// not be seen to go there (<see cref="ClipByName"/>), and whether the game keeps it
+        /// going. Null for none.
+        /// </summary>
+        public static EffectList ByNameOfClip(GameObject prefab, GameObject copy, string clip, out bool lasting)
+        {
+            lasting = false;
+            var plays = PlaysOf(prefab, copy, clip);
+            if (plays == null || !plays.ByName.TryGetValue(clip, out var found)) return null;
+            lasting = found == prefab.GetComponent<Character>()?.m_waterEffects;
+            return (EffectList)found;
+        }
+
         private static ClipPlays PlaysOf(GameObject prefab, GameObject copy, string clip)
         {
             if (prefab == null || string.IsNullOrEmpty(clip)) return null;
@@ -981,7 +998,17 @@ namespace Scry
             var idleSound = ai != null && HasAny(ai.m_idleSound) ? ai.m_idleSound : null;
             plays.Around = ClipAround.Match(around, seen.Actions, seen.Idle, idleSound, plays.Attacks.Keys);
 
+            // Where the animator could not be seen to swim or jump, clips named so.
             var body = prefab.GetComponent<Character>();
+            var named = new List<(string, string[], object)>();
+            if (body != null && HasAny(body.m_waterEffects)) named.Add(("water", new[] { "swim", "tread" }, body.m_waterEffects));
+            if (body != null && HasAny(body.m_jumpEffects)) named.Add(("jump", new[] { "jump" }, body.m_jumpEffects));
+            var tried = new Dictionary<string, IReadOnlyList<string>>();
+            IReadOnlyList<string> Saw(string action) => seen.Actions.TryGetValue(action, out var s) ? s : new string[0];
+            tried["water"] = Saw("water").Concat(Saw("swim")).ToList();
+            tried["jump"] = Saw("jump");
+            plays.ByName = ClipByName.Match(named, tried, clips.Select(c => c.name), plays.Attacks.Keys.Concat(plays.Actions.Keys));
+
             if (body != null && body.m_flying && HasAny(body.m_flyingContinuousEffect) && !animator.parameters.Any(p => p.name == "flying")) plays.Flying = body.m_flyingContinuousEffect;
             if (body != null && Told.Add("lasting:" + prefab.name))
             {
@@ -1634,6 +1661,14 @@ namespace Scry
             var animator = ClipPlayer.AnimatorOf(Stage.Subject);
             var ears = animator != null ? animator.GetComponent<AnimationEars>() : null;
             return ears != null ? ears.Members(clip) : new List<string>();
+        }
+
+        /// <summary>What the stage copy's animation clip plays that it was paired with by its name alone, by prefab name.</summary>
+        public static List<string> ClipByNameMembers(AnimationClip clip)
+        {
+            var animator = ClipPlayer.AnimatorOf(Stage.Subject);
+            var ears = animator != null ? animator.GetComponent<AnimationEars>() : null;
+            return ears != null ? ears.ByNameMembers(clip) : new List<string>();
         }
 
         /// <summary>What is heard around the stage copy's animation clip, by prefab name.</summary>

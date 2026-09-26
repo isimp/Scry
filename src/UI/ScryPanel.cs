@@ -1914,11 +1914,19 @@ namespace Scry
                     y = Members(explorer, "In " + last.name + ":", last, members, null, width, y);
                 }
 
+                // Paired by the clip's name alone, where the animator could not be seen to go there.
+                var named = Previews.ClipByNameMembers(last).ToArray();
+                if (named.Length > 0)
+                {
+                    y += U(members.Length > 0 ? 2f : 10f);
+                    y = Members(explorer, "Found by name:", last, named, null, width, y);
+                }
+
                 // What the game does not play with the clip but plays around it: next, or now and then.
                 var around = Previews.ClipAroundMembers(last).ToArray();
                 if (around.Length > 0)
                 {
-                    y += U(members.Length > 0 ? 2f : 10f);
+                    y += U(members.Length > 0 || named.Length > 0 ? 2f : 10f);
                     y = Members(explorer, "Heard around it:", last, around, null, width, y);
                 }
             }
