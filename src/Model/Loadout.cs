@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -37,6 +38,19 @@ namespace Scry
         private readonly Extra[] _extras;
         private readonly bool[] _on;
         private readonly HashSet<string> _bothHands;
+        private List<string> _setWeapons = new List<string>();
+
+        /// <summary>
+        /// The weapons of the gear set the creature rolled, shown in its look: they are among what
+        /// it may hold, as those it always carries are. Another set's take their place.
+        /// </summary>
+        public void Carrying(IEnumerable<string> setWeapons)
+        {
+            var weapons = Distinct(setWeapons).Where(w => w.Length > 0).ToList();
+            if (weapons.SequenceEqual(_setWeapons)) return;
+            _setWeapons = weapons;
+            _chosen[(int)Row.Holding] = 0;
+        }
 
         /// <summary>
         /// A loadout from the lists a creature rolls from. Weapons held in both hands (bows,
@@ -70,6 +84,7 @@ namespace Scry
             var rolled = _options[(int)Row.Weapon];
             if (rolled.Count > 0 && rolled[_chosen[(int)Row.Weapon]].Length > 0) weapons.Add(rolled[_chosen[(int)Row.Weapon]]);
             foreach (var own in _options[(int)Row.Holding]) if (!weapons.Contains(own)) weapons.Add(own);
+            foreach (var set in _setWeapons) if (!weapons.Contains(set)) weapons.Add(set);
             return weapons;
         }
 

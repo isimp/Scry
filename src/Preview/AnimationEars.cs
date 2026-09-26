@@ -50,7 +50,8 @@ namespace Scry
             {
                 var all = copy.GetComponentsInChildren<Animator>(true).Length;
                 var names = animator.runtimeAnimatorController.animationClips.Where(c => c != null).Select(c => c.name).Distinct().OrderBy(n => n).ToList();
-                Plugin.Log.LogInfo($"Scry plays {prefab.name} by the animator on {animator.gameObject.name} ({animator.runtimeAnimatorController.name}, {all} animators on the copy), {names.Count} clips: {string.Join(", ", names)}.");
+                var settings = string.Join(", ", animator.parameters.Select(p => $"{p.name} ({p.type.ToString().ToLowerInvariant()})"));
+                Plugin.Log.LogInfo($"Scry plays {prefab.name} by the animator on {animator.gameObject.name} ({animator.runtimeAnimatorController.name}, {all} animators on the copy), {names.Count} clips: {string.Join(", ", names)}. Its settings: {(settings.Length > 0 ? settings : "none")}.");
             }
 
             var unknown = new SortedSet<string>();
@@ -106,15 +107,17 @@ namespace Scry
         /// An attack swung on this copy by its animator trigger: when its animation strikes, it
         /// throws or shoots what it throws, as <c>Attack</c> does at that moment.
         /// </summary>
-        public void Swinging(Attack attack, EffectList strike = null, string heard = null)
+        public void Swinging(Attack attack, EffectList strike = null, string heard = null, EffectList key = null)
         {
             _swing = attack;
             _swingUntil = Time.unscaledTime + 4f;
             _strike = strike;
             _strikeHeard = heard;
+            _strikeKey = key ?? strike;
         }
 
         private EffectList _strike;
+        private EffectList _strikeKey;
         private string _strikeHeard;
 
         /// <summary>
@@ -127,7 +130,7 @@ namespace Scry
             _strike = null;
             if (strike == null || attack == null || _copy == null) return;
             var made = Previews.PlayOnCopyAt(_copy, strike, Previews.StrikePoint(_copy, attack, Previews.LandsOnGround(strike)));
-            Previews.Struck(strike, _strikeHeard, made);
+            Previews.Struck(_strikeKey ?? strike, _strikeHeard, made);
         }
 
         /// <summary>Throws or shoots the swung attack's projectile from where the attack sends it.</summary>
@@ -162,6 +165,7 @@ namespace Scry
             {
                 Report(new List<GameObject> { thrown });
                 var heard = Listening ?? _strikeHeard;
+                if (_strikeKey != null) Previews.Struck(_strikeKey, heard, new List<GameObject> { thrown });
                 Listen.Add(heard, new List<GameObject> { thrown });
                 Listen.Note(heard, "threw " + attack.m_attackProjectile.name);
             }

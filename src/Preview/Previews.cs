@@ -786,6 +786,80 @@ namespace Scry
         /// <summary>The attack each of a creature's attack lists belongs to, for the swing that goes with it.</summary>
         private static readonly Dictionary<EffectList, Attack> AttackOf = new Dictionary<EffectList, Attack>();
 
+        /// <summary>An attack played whole: what plays as it begins, what plays at the strike, and the attack.</summary>
+        private sealed class WholeAttack
+        {
+            public Attack Attack;
+            public EffectList Begin;
+            public EffectList Strike;
+        }
+
+        private static readonly Dictionary<EffectList, WholeAttack> WholeAttacks = new Dictionary<EffectList, WholeAttack>();
+        private static readonly Dictionary<Attack, EffectList> ChipOfAttack = new Dictionary<Attack, EffectList>();
+
+        /// <summary>
+        /// One list standing for an attack, holding all it plays, made once per attack: as it
+        /// begins, the weapon's and the attack's start and trail; at the strike, their trigger and
+        /// hit, or where there is no hit, their hit on the ground.
+        /// </summary>
+        private static EffectList AttackChip(ItemDrop.ItemData.SharedData weapon, Attack attack)
+        {
+            if (ChipOfAttack.TryGetValue(attack, out var known)) return known;
+
+            EffectList Join(params string[] fields)
+            {
+                var data = new List<EffectList.EffectData>();
+                foreach (var owner in new object[] { weapon, attack })
+                {
+                    foreach (var field in CatalogBuilder.EffectFields(owner.GetType()))
+                    {
+                        if (System.Array.IndexOf(fields, field.Name) < 0 || !(field.GetValue(owner) is EffectList list) || list.m_effectPrefabs == null) continue;
+                        data.AddRange(list.m_effectPrefabs.Where(d => d != null && d.m_enabled && d.m_prefab != null));
+                    }
+                }
+                return new EffectList { m_effectPrefabs = data.ToArray() };
+            }
+
+            var begin = Join("m_startEffect", "m_holdStartEffect", "m_trailStartEffect");
+            var strike = Join("m_triggerEffect", "m_hitEffect");
+
+            // An attack with no hit of its own (a ground slam) lands on the ground.
+            if (Join("m_hitEffect").m_effectPrefabs.Length == 0)
+            {
+                var ground = Join("m_hitTerrainEffect");
+                strike = new EffectList { m_effectPrefabs = strike.m_effectPrefabs.Concat(ground.m_effectPrefabs).ToArray() };
+                OnGround.Add(strike);
+            }
+
+            var chip = new EffectList { m_effectPrefabs = begin.m_effectPrefabs.Concat(strike.m_effectPrefabs).ToArray() };
+            if (chip.m_effectPrefabs.Length == 0 && attack.m_attackProjectile == null && string.IsNullOrEmpty(attack.m_attackAnimation)) return null;
+            WholeAttacks[chip] = new WholeAttack { Attack = attack, Begin = begin, Strike = strike };
+            ChipOfAttack[attack] = chip;
+            return chip;
+        }
+
+        /// <summary>
+        /// Plays an attack whole, as the game does: it swings by its trigger, what begins it plays
+        /// now, and what lands plays when and where it strikes, with what it throws.
+        /// </summary>
+        private static List<GameObject> PlayAttack(EffectList chip, WholeAttack whole)
+        {
+            var things = new List<GameObject>();
+            things.AddRange(PlayEffectList(whole.Begin));
+            if (Swing(whole.Attack, whole.Strike, chip)) return things;
+
+            // Without its trigger, its clip by name, and what lands at once where it reaches.
+            var anim = whole.Attack.m_attackAnimation ?? "";
+            var clip = anim.Length == 0 ? null : Clips().Find(c =>
+                c.name.IndexOf(anim, System.StringComparison.OrdinalIgnoreCase) >= 0 || anim.IndexOf(c.name, System.StringComparison.OrdinalIgnoreCase) >= 0);
+            if (clip != null) PlayClip(clip, quiet: true);
+            foreach (var copy in new[] { Stage.Subject, _world })
+            {
+                if (copy != null) things.AddRange(PlayOnCopyAt(copy, whole.Strike, StrikePoint(copy, whole.Attack, LandsOnGround(whole.Strike))));
+            }
+            return things;
+        }
+
         /// <summary>A weapon's own lists that play with a swing; its block, equip and the like do not.</summary>
         private static readonly HashSet<string> SwingLists = new HashSet<string>
         {
@@ -836,9 +910,9 @@ namespace Scry
             var modifiers = _explorer?.Modifiers;
             if (prefab == null || modifiers == null || !modifiers.LookAvailable || !Variants.IsGear(prefab)) return null;
 
-            // It carries its weapons whether they are drawn or not, so what it has is taken from
-            // the gear look even while it is shown without.
-            return Variants.GearOf(prefab, Mathf.Max(1, modifiers.Look));
+            // It carries its weapons whether they are drawn or not, and uses any of them, so what
+            // it has is all it carries in the look, even while it is shown without gear.
+            return Gear.Inventory(prefab, modifiers.Look);
         }
 
         public static List<KeyValuePair<string, EffectList>> PrefabLists(GameObject prefab)
@@ -850,10 +924,11 @@ namespace Scry
 
             // Named by what they are for ("Death", "Hit"); the part they belong to is only added
             // where two would read the same. An item's attacks always say which attack.
-            void Collect(object owner, string part, bool alwaysSayPart)
+            void Collect(object owner, string part, bool alwaysSayPart, bool swings = true)
             {
                 foreach (var field in CatalogBuilder.EffectFields(owner.GetType()))
                 {
+                    if (!swings && SwingLists.Contains(field.Name)) continue;
                     if (!(field.GetValue(owner) is EffectList list) || !HasAny(list) || !seen.Add(list)) continue;
                     var label = Naming.EffectListLabel(field.Name);
                     if (alwaysSayPart) label = part + ": " + label.ToLowerInvariant();
@@ -896,24 +971,16 @@ namespace Scry
                 if (carried.m_secondaryAttack != null) NoteStrikes(carried.m_secondaryAttack);
                 var part = CatalogBuilder.AttackName(item);
 
-                // The weapon's own lists, and each attack's, both play when it strikes; they are
-                // told apart as the weapon's and the attack's, and each swings the attack.
-                Collect(carried, part, true);
-                if (carried.m_attack != null)
-                {
-                    foreach (var field in CatalogBuilder.EffectFields(typeof(ItemDrop.ItemData.SharedData)))
-                    {
-                        if (field.GetValue(carried) is EffectList list && SwingLists.Contains(field.Name)) AttackOf[list] = carried.m_attack;
-                    }
-                }
+                // Each attack is one chip that plays it whole, as the game plays it; the weapon's
+                // other lists (a shield's block) stay chips of their own.
+                Collect(carried, part, true, swings: false);
                 foreach (var attack in new[] { carried.m_attack, carried.m_secondaryAttack })
                 {
                     if (attack == null) continue;
-                    Collect(attack, part + (attack == carried.m_attack ? " attack" : " second attack"), true);
-                    foreach (var field in CatalogBuilder.EffectFields(typeof(Attack)))
-                    {
-                        if (field.GetValue(attack) is EffectList list) AttackOf[list] = attack;
-                    }
+                    var chip = AttackChip(carried, attack);
+                    if (chip == null || !seen.Add(chip)) continue;
+                    var label = attack == carried.m_attack ? part : part + ", second attack";
+                    found.Add(new KeyValuePair<string, KeyValuePair<string, EffectList>>(item.name, new KeyValuePair<string, EffectList>(label, chip)));
                 }
             }
 
@@ -980,7 +1047,12 @@ namespace Scry
             Listen.Start(heard, 3f);
             _heard = heard;
 
-            if (ragdoll != null)
+            if (WholeAttacks.TryGetValue(list, out var whole))
+            {
+                things.AddRange(PlayAttack(list, whole));
+                deferred = true;
+            }
+            else if (ragdoll != null)
             {
                 var modifiers = _explorer?.Modifiers;
                 var level = modifiers != null ? modifiers.Level : 1;
@@ -1210,7 +1282,7 @@ namespace Scry
         /// The copy's own animator then plays it, with its events. False when its animator has
         /// no such trigger.
         /// </summary>
-        private static bool Swing(Attack attack, EffectList strike = null)
+        private static bool Swing(Attack attack, EffectList strike = null, EffectList key = null)
         {
             var anim = attack.m_attackAnimation;
             if (string.IsNullOrEmpty(anim)) return false;
@@ -1230,8 +1302,8 @@ namespace Scry
                 Listen.Note(_heard, $"swung by the animator's {trigger} trigger");
                 if (copy == Stage.Subject && _entry?.Source is GameObject swinger) Learn(swinger.name, animator, attack);
                 var ears = animator.GetComponent<AnimationEars>();
-                if (ears != null) ears.Swinging(attack, strike, _heard);
-                else if (strike != null) Struck(strike, _heard, PlayOnCopyAt(copy, strike, StrikePoint(copy, attack, LandsOnGround(strike))));
+                if (ears != null) ears.Swinging(attack, strike, _heard, key ?? strike);
+                else if (strike != null) Struck(key ?? strike, _heard, PlayOnCopyAt(copy, strike, StrikePoint(copy, attack, LandsOnGround(strike))));
                 swung = true;
             }
             return swung;

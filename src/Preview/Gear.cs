@@ -44,13 +44,57 @@ namespace Scry
         /// <summary>The sets a humanoid rolls one of when it spawns, those with anything in them.</summary>
         private static List<Humanoid.ItemSet> RolledSets(Humanoid humanoid)
         {
+            // A set listed twice (to be rolled more often) is one look.
             var sets = new List<Humanoid.ItemSet>();
+            var seen = new HashSet<string>();
             if (humanoid.m_randomSets == null) return sets;
             foreach (var set in humanoid.m_randomSets)
             {
-                if (set?.m_items != null && set.m_items.Any(i => i != null)) sets.Add(set);
+                if (set?.m_items == null || !set.m_items.Any(i => i != null)) continue;
+                var key = string.Join(",", set.m_items.Where(i => i != null).Select(i => i.name).OrderBy(n => n));
+                if (seen.Add(key)) sets.Add(set);
             }
             return sets;
+        }
+
+        /// <summary>The weapons of the set a look shows, those that show in the hand first.</summary>
+        public static List<string> SetWeapons(GameObject prefab, int look)
+        {
+            var humanoid = prefab != null ? prefab.GetComponent<Humanoid>() : null;
+            var sets = humanoid != null ? RolledSets(humanoid) : new List<Humanoid.ItemSet>();
+            if (sets.Count == 0 || look <= 0) return new List<string>();
+            return sets[Mathf.Clamp(look - 1, 0, sets.Count - 1)].m_items
+                .Where(i => i != null && i.GetComponent<ItemDrop>()?.m_itemData?.IsWeapon() == true)
+                .OrderBy(i => AttachPart(i, out _) != null ? 0 : 1)
+                .Select(i => i.name).Distinct().ToList();
+        }
+
+        /// <summary>
+        /// Everything a creature carries in a look, as the game gives it at spawn: what it always
+        /// has, the set it rolled, and the weapon, shield, armour and extras it rolled. All of it,
+        /// not only what is in its hand, since its AI takes any of its weapons in a fight.
+        /// </summary>
+        public static List<GameObject> Inventory(GameObject prefab, int look)
+        {
+            var items = new List<GameObject>();
+            var humanoid = prefab != null ? prefab.GetComponent<Humanoid>() : null;
+            if (humanoid == null) return items;
+            if (humanoid.m_defaultItems != null) items.AddRange(humanoid.m_defaultItems.Where(i => i != null));
+            var sets = RolledSets(humanoid);
+            if (sets.Count > 0) items.AddRange(sets[Mathf.Clamp(Mathf.Max(1, look) - 1, 0, sets.Count - 1)].m_items.Where(i => i != null));
+            var loadout = LoadoutOf(prefab);
+            foreach (var row in new[] { Loadout.Row.Weapon, Loadout.Row.Shield, Loadout.Row.Armour })
+            {
+                if (loadout.Options(row).Count == 0 || !loadout.Held(row)) continue;
+                var item = Looks.Prefab(loadout.Options(row)[loadout.Chosen(row)]);
+                if (item != null) items.Add(item);
+            }
+            for (var i = 0; i < loadout.Extras.Count; i++)
+            {
+                var extra = loadout.ExtraOn(i) ? Looks.Prefab(loadout.Extras[i].Name) : null;
+                if (extra != null) items.Add(extra);
+            }
+            return items.Distinct().ToList();
         }
 
         /// <summary>A set by its own name, else by what of it is drawn, else by its number.</summary>
@@ -91,6 +135,7 @@ namespace Scry
 
             // Of the weapons it always carries it holds one, the one chosen; the rest are put away.
             var loadout = LoadoutOf(prefab);
+            loadout.Carrying(SetWeapons(prefab, look));
             var holding = loadout.Options(Loadout.Row.Holding);
             var held = holding.Count > 0 ? holding[loadout.Chosen(Loadout.Row.Holding)] : null;
             if (humanoid.m_defaultItems != null)
@@ -119,7 +164,11 @@ namespace Scry
             }
             if (visibleSets.Count > 0)
             {
-                items.AddRange(visibleSets[Mathf.Clamp(look - 1, 0, visibleSets.Count - 1)].m_items);
+                // Of the set's weapons only the one in hand; the rest of it is worn.
+                foreach (var item in visibleSets[Mathf.Clamp(look - 1, 0, visibleSets.Count - 1)].m_items)
+                {
+                    if (item != null && (!holding.Contains(item.name) || item.name == held)) items.Add(item);
+                }
             }
             for (var i = 0; i < loadout.Extras.Count; i++)
             {

@@ -211,6 +211,32 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheWeaponsOfTheSetItRolledCanBeHeld()
+        {
+            var loadout = new Loadout(new string[0], new string[0], new string[0], new Loadout.Extra[0]);
+
+            loadout.Carrying(new[] { "troll_punch", "troll_groundslam", "troll_throw" });
+
+            Assert.True(loadout.Offered(Loadout.Row.Holding));
+            Assert.Equal(new[] { "troll_punch", "troll_groundslam", "troll_throw" }, loadout.Options(Loadout.Row.Holding));
+            loadout.Choose(Loadout.Row.Holding, 2);
+            Assert.Contains("troll_throw", loadout.Worn());
+            Assert.DoesNotContain("troll_punch", loadout.Worn());
+        }
+
+        [Fact]
+        public void AnotherSetsWeaponsTakeThePlaceOfTheFirstSets()
+        {
+            var loadout = new Loadout(new string[0], new string[0], new string[0], new Loadout.Extra[0]);
+            loadout.Carrying(new[] { "troll_punch", "troll_throw" });
+
+            loadout.Carrying(new[] { "troll_log_swing_v", "troll_log_swing_h" });
+
+            Assert.Equal(new[] { "troll_log_swing_v", "troll_log_swing_h" }, loadout.Options(Loadout.Row.Holding));
+            Assert.Contains("troll_log_swing_v", loadout.Worn());
+        }
+
+        [Fact]
         public void ExtrasStartWithTheFirstOfEachKindOn()
         {
             var loadout = new Loadout(new string[0], new string[0], new string[0], new[]

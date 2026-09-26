@@ -1623,7 +1623,7 @@ namespace Scry
             {
                 var chosen = Segments("Look", new List<string>(modifiers.LookNames), modifiers.Look, width, labelW, ref y);
                 if (chosen >= 0) modifiers.Look = chosen;
-                if (modifiers.Look > 0 && entry.Source is GameObject creature && Scry.Variants.IsGear(creature)) LoadoutRows(creature, width, labelW, ref y);
+                if (modifiers.Look > 0 && entry.Source is GameObject creature && Scry.Variants.IsGear(creature)) LoadoutRows(creature, modifiers.Look, width, labelW, ref y);
             }
 
             if (open && projectile)
@@ -1743,9 +1743,10 @@ namespace Scry
         /// The weapon, shield and armour a creature can roll, one row each, and the extras it may
         /// be given, each put on or taken off. Only rows with a choice are shown.
         /// </summary>
-        private static void LoadoutRows(GameObject creature, float width, float labelW, ref float y)
+        private static void LoadoutRows(GameObject creature, int look, float width, float labelW, ref float y)
         {
             var loadout = Gear.LoadoutOf(creature);
+            loadout.Carrying(Gear.SetWeapons(creature, look));
             var rows = new[] { Loadout.Row.Holding, Loadout.Row.Weapon, Loadout.Row.Shield, Loadout.Row.Armour };
             var labels = new[] { "Holding", "Weapon", "Shield", "Armour" };
             for (var i = 0; i < rows.Length; i++)
