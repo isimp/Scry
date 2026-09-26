@@ -22,15 +22,14 @@ namespace Scry
             var humanoid = prefab.GetComponent<Humanoid>();
             if (humanoid == null || prefab.GetComponentInChildren<VisEquipment>(true) == null) return false;
 
-            if (humanoid.m_randomSets != null && humanoid.m_randomSets.Length > 0)
+            // Every set it may roll, also one with nothing drawn: a troll given the set without a
+            // log fights with its hands, and is a look of its own.
+            var rolled = RolledSets(humanoid);
+            if (rolled.Count > 0)
             {
-                for (var i = 0; i < humanoid.m_randomSets.Length; i++)
-                {
-                    var set = humanoid.m_randomSets[i];
-                    if (set == null || !AnyVisible(set.m_items)) continue;
-                    sets.Add(string.IsNullOrEmpty(set.m_name) ? $"Set {i + 1}" : Naming.FieldLabel(set.m_name));
-                }
-                if (sets.Count > 0) return true;
+                foreach (var set in rolled) sets.Add(SetName(set, rolled.IndexOf(set)));
+                Tell(prefab, rolled);
+                return true;
             }
 
             if (AnyVisible(humanoid.m_defaultItems) || AnyVisible(humanoid.m_randomWeapon)
@@ -40,6 +39,36 @@ namespace Scry
                 sets.Add("Gear");
             }
             return sets.Count > 0;
+        }
+
+        /// <summary>The sets a humanoid rolls one of when it spawns, those with anything in them.</summary>
+        private static List<Humanoid.ItemSet> RolledSets(Humanoid humanoid)
+        {
+            var sets = new List<Humanoid.ItemSet>();
+            if (humanoid.m_randomSets == null) return sets;
+            foreach (var set in humanoid.m_randomSets)
+            {
+                if (set?.m_items != null && set.m_items.Any(i => i != null)) sets.Add(set);
+            }
+            return sets;
+        }
+
+        /// <summary>A set by its own name, else by what of it is drawn, else by its number.</summary>
+        private static string SetName(Humanoid.ItemSet set, int index)
+        {
+            if (!string.IsNullOrEmpty(set.m_name)) return Naming.FieldLabel(set.m_name);
+            var drawn = set.m_items.Where(i => i != null && AttachPart(i, out _) != null).Select(CatalogBuilder.AttackName).Distinct().ToList();
+            return drawn.Count > 0 ? string.Join(" + ", drawn) : $"Set {index + 1}, nothing drawn";
+        }
+
+        private static readonly HashSet<string> ToldSets = new HashSet<string>();
+
+        /// <summary>Says once per creature which sets it rolls from and what is in each, drawn or not.</summary>
+        private static void Tell(GameObject prefab, List<Humanoid.ItemSet> sets)
+        {
+            if (!ToldSets.Add(prefab.name)) return;
+            var told = sets.Select((set, i) => $"{SetName(set, i)} ({string.Join(", ", set.m_items.Where(x => x != null).Select(x => x.name + (AttachPart(x, out _) != null ? "" : " not drawn")))})");
+            Plugin.Log.LogInfo($"Scry: {prefab.name} rolls one of {sets.Count} gear sets: {string.Join("; ", told)}.");
         }
 
         /// <summary>Puts the gear of a look on the copy: 1 is the first set, or the only one.</summary>
@@ -73,11 +102,7 @@ namespace Scry
             }
             var chosen = loadout.Worn();
 
-            var visibleSets = new List<Humanoid.ItemSet>();
-            if (humanoid.m_randomSets != null)
-            {
-                foreach (var set in humanoid.m_randomSets) if (set != null && AnyVisible(set.m_items)) visibleSets.Add(set);
-            }
+            var visibleSets = RolledSets(humanoid);
 
             // In the order GiveDefaultItems hands them out: shield, weapon, armour, set, extras.
             void Add(string name)

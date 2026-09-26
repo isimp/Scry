@@ -135,8 +135,18 @@ namespace Scry
         {
             var attack = _swing;
             _swing = null;
-            if (Time.unscaledTime <= _swingUntil) Strike(attack);
-            if (attack?.m_attackProjectile == null || Time.unscaledTime > _swingUntil || _copy == null) return;
+            if (Time.unscaledTime > _swingUntil) return;
+            Strike(attack);
+            Launch(attack);
+        }
+
+        /// <summary>
+        /// Throws or shoots an attack's projectile, as <c>Attack</c> does when its swing strikes:
+        /// from where the attack sends it, along the creature's facing and its launch angle.
+        /// </summary>
+        private void Launch(Attack attack)
+        {
+            if (attack?.m_attackProjectile == null || _copy == null) return;
 
             // Where Attack.GetProjectileSpawnPoint puts it, at the copy's size.
             var t = _copy.transform;
@@ -151,7 +161,9 @@ namespace Scry
             if (thrown != null)
             {
                 Report(new List<GameObject> { thrown });
-                Listen.Note(Listening, "threw " + attack.m_attackProjectile.name);
+                var heard = Listening ?? _strikeHeard;
+                Listen.Add(heard, new List<GameObject> { thrown });
+                Listen.Note(heard, "threw " + attack.m_attackProjectile.name);
             }
         }
         private Transform[] _feet;
@@ -496,7 +508,9 @@ namespace Scry
             var clip = _copy.GetComponent<ClipPlayer>()?.Clip;
             if (clip == null || _quiet) return;
             var attack = AttackFor(clip.name);
-            if (attack != null) Report(Previews.PlayOnCopy(_copy, attack.m_triggerEffect, null));
+            if (attack == null) return;
+            Report(Previews.PlayOnCopy(_copy, attack.m_triggerEffect, null));
+            Launch(attack);
         }
 
         private Attack AttackFor(string clip)
