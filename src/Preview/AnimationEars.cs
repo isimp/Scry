@@ -91,11 +91,30 @@ namespace Scry
         {
             _quiet = quiet;
             StartAttack(clip);
+            PlayGameList(clip);
             WatchFeet(clip);
         }
 
         /// <summary>A clip played again from its start begins its attack again; its feet are still watched.</summary>
-        public void ClipRepeated(AnimationClip clip) => StartAttack(clip);
+        public void ClipRepeated(AnimationClip clip)
+        {
+            StartAttack(clip);
+            PlayGameList(clip);
+        }
+
+        /// <summary>
+        /// What the game plays as it moves the animator into this clip by one of its own actions,
+        /// such as a jump or waking (<see cref="Previews.ListOfClip"/>), played as the clip starts.
+        /// A clip whose own Jump event plays the jump leaves it to the event.
+        /// </summary>
+        private void PlayGameList(AnimationClip clip)
+        {
+            var list = clip != null && !_quiet ? Previews.ListOfClip(_prefab, _copy, clip.name) : null;
+            if (list == null) return;
+            if (list == _prefab.GetComponent<Character>()?.m_jumpEffects && System.Array.Exists(clip.events, e => e.functionName == "Jump")) return;
+            Listen.Note(Listening, "what the game plays with it");
+            Report(Previews.PlayOnCopy(_copy, list, null));
+        }
 
         private void StartAttack(AnimationClip clip)
         {
@@ -342,6 +361,7 @@ namespace Scry
                 if (moving != null) foreach (var p in moving.m_effectPrefabs) Add(p);
             }
 
+            AddList(Previews.ListOfClip(_prefab, _copy, clip.name));
             var part = AttackFor(clip.name);
             if (part?.Key is Attack attack)
             {

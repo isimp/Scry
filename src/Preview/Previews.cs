@@ -836,7 +836,14 @@ namespace Scry
             strike = whole.Strike;
         }
 
-        private static readonly Dictionary<string, Dictionary<string, ClipAttack>> ClipAttackCache = new Dictionary<string, Dictionary<string, ClipAttack>>();
+        /// <summary>What a creature's clips play: of its attacks, and what the game plays with its own actions.</summary>
+        private sealed class ClipPlays
+        {
+            public Dictionary<string, ClipAttack> Attacks = new Dictionary<string, ClipAttack>();
+            public Dictionary<string, object> Actions = new Dictionary<string, object>();
+        }
+
+        private static readonly Dictionary<string, ClipPlays> ClipPlaysCache = new Dictionary<string, ClipPlays>();
 
         /// <summary>
         /// What a creature's clip plays of an attack (<see cref="ClipAttacks"/>), its
@@ -846,38 +853,75 @@ namespace Scry
         /// </summary>
         public static ClipAttack AttackOfClip(GameObject prefab, GameObject copy, string clip)
         {
+            var plays = PlaysOf(prefab, copy, clip);
+            return plays != null && plays.Attacks.TryGetValue(clip, out var part) ? part : null;
+        }
+
+        /// <summary>
+        /// What the game plays as it moves a creature's animator into a clip by one of its own
+        /// actions (<see cref="ClipActions"/>): a jump's effects with the clip the jump leads to,
+        /// waking's with the wake-up, going to sleep's, being alerted's, eating's. Null for none.
+        /// </summary>
+        public static EffectList ListOfClip(GameObject prefab, GameObject copy, string clip)
+        {
+            var plays = PlaysOf(prefab, copy, clip);
+            return plays != null && plays.Actions.TryGetValue(clip, out var list) ? (EffectList)list : null;
+        }
+
+        private static ClipPlays PlaysOf(GameObject prefab, GameObject copy, string clip)
+        {
             if (prefab == null || string.IsNullOrEmpty(clip)) return null;
             var carried = _entry != null && ReferenceEquals(_entry.Source, prefab) ? CarriedNow(_entry) : null;
             var cacheKey = prefab.name + "|" + (carried == null ? "" : string.Join(",", carried.Select(c => c.name)));
-            if (!ClipAttackCache.TryGetValue(cacheKey, out var played))
+            if (ClipPlaysCache.TryGetValue(cacheKey, out var plays)) return plays;
+
+            plays = new ClipPlays();
+            ClipPlaysCache[cacheKey] = plays;
+            var animator = ClipPlayer.AnimatorOf(copy);
+            if (animator == null) return plays;
+
+            var items = Relations.CarriedItems(prefab);
+            if (carried != null) items = items.Where(carried.Contains).Concat(items.Where(i => !carried.Contains(i))).ToList();
+            var attacks = new List<(string, object)>();
+            foreach (var item in items)
             {
-                played = new Dictionary<string, ClipAttack>();
-                var animator = ClipPlayer.AnimatorOf(copy);
-                var items = Relations.CarriedItems(prefab);
-                if (carried != null) items = items.Where(carried.Contains).Concat(items.Where(i => !carried.Contains(i))).ToList();
-                var attacks = new List<(string, object)>();
-                foreach (var item in animator != null ? items : new List<GameObject>())
+                var shared = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                if (shared == null) continue;
+                foreach (var attack in new[] { shared.m_attack, shared.m_secondaryAttack })
                 {
-                    var shared = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
-                    if (shared == null) continue;
-                    foreach (var attack in new[] { shared.m_attack, shared.m_secondaryAttack })
-                    {
-                        var trigger = attack != null ? TriggerOf(animator, attack) : null;
-                        if (trigger == null) continue;
-                        WeaponOf[attack] = shared;
-                        attacks.Add((trigger, attack));
-                    }
+                    var trigger = attack != null ? TriggerOf(animator, attack) : null;
+                    if (trigger == null) continue;
+                    WeaponOf[attack] = shared;
+                    attacks.Add((trigger, attack));
                 }
-                if (attacks.Count > 0)
-                {
-                    var clips = animator.runtimeAnimatorController.animationClips.Where(c => c != null).ToList();
-                    var striking = clips.Where(c => c.events.Any(e => e.functionName == "Hit" || e.functionName == "OnAttackTrigger")).Select(c => c.name);
-                    var seen = TriggerProbe.ClipsOf(prefab.name, animator, attacks.Select(a => a.Item1));
-                    played = ClipAttacks.Match(attacks, seen, clips.Select(c => c.name), striking);
-                }
-                ClipAttackCache[cacheKey] = played;
             }
-            return played.TryGetValue(clip, out var part) ? part : null;
+
+            var actions = GameLists(prefab).ToList();
+            if (attacks.Count == 0 && actions.Count == 0) return plays;
+            var clips = animator.runtimeAnimatorController.animationClips.Where(c => c != null).ToList();
+            var striking = clips.Where(c => c.events.Any(e => e.functionName == "Hit" || e.functionName == "OnAttackTrigger")).Select(c => c.name);
+            var seen = TriggerProbe.ClipsOf(prefab.name, animator, attacks.Select(a => a.Item1));
+            plays.Attacks = ClipAttacks.Match(attacks, seen.Triggers, clips.Select(c => c.name), striking);
+            plays.Actions = ClipActions.Match(actions, seen.Actions, plays.Attacks.Keys);
+            return plays;
+        }
+
+        /// <summary>
+        /// The game's own actions on a creature's animator that come with an effect list, as its
+        /// code plays them together: a jump (<c>Character.ForceJump</c>), eating
+        /// (<c>MonsterAI.UpdateConsumeItem</c>), going to sleep and waking (<c>MonsterAI.Sleep</c>,
+        /// <c>Wakeup</c>), being alerted (<c>BaseAI.SetAlerted</c>). Named as the probe names them.
+        /// </summary>
+        private static IEnumerable<(string, object)> GameLists(GameObject prefab)
+        {
+            var character = prefab.GetComponent<Character>();
+            var ai = prefab.GetComponent<BaseAI>();
+            var monster = ai as MonsterAI;
+            if (character != null && HasAny(character.m_jumpEffects)) yield return ("jump", character.m_jumpEffects);
+            if (character is Humanoid humanoid && HasAny(humanoid.m_consumeItemEffects)) yield return ("consume", humanoid.m_consumeItemEffects);
+            if (monster != null && HasAny(monster.m_sleepEffects)) yield return ("sleep", monster.m_sleepEffects);
+            if (monster != null && HasAny(monster.m_wakeupEffects)) yield return ("wake", monster.m_wakeupEffects);
+            if (ai != null && HasAny(ai.m_alertedEffects)) yield return ("alert", ai.m_alertedEffects);
         }
 
         /// <summary>The trigger an attack starts by on this animator, as <c>Attack.Start</c> pulls it, or null when it has none.</summary>

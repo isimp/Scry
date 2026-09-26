@@ -83,12 +83,27 @@ namespace Scry
                 else if (seen.Muted) what.Add("muted");
                 if (seen.Particles > 0) what.Add($"{seen.Particles} particles");
                 if (seen.Drawn) what.Add("drawn");
-                if (what.Count == 0) what.Add("nothing to see or hear");
+                if (what.Count == 0) what.Add("nothing to see or hear" + (thing != null ? " (" + Inside(thing) + ")" : ""));
                 parts.Add($"{name} {where}: {string.Join(", ", what)}");
             }
             var notes = watch.Notes.Select(n => n.Value > 1 ? $"{n.Key} ×{n.Value}" : n.Key).ToList();
             var made = parts.Count > 0 ? string.Join("; ", parts) : "no copies";
             return $"Scry played {watch.What}: {made}{(notes.Count > 0 ? ". " + string.Join("; ", notes) : "")}.";
+        }
+
+        /// <summary>
+        /// What a copy that showed nothing has, to tell why: its renderers, how many are switched
+        /// on and seen by a camera, its particle systems and how many play, and its sounds.
+        /// </summary>
+        private static string Inside(GameObject thing)
+        {
+            var renderers = thing.GetComponentsInChildren<Renderer>(true).Where(r => !(r is ParticleSystemRenderer)).ToList();
+            var on = renderers.Count(r => r.enabled && r.gameObject.activeInHierarchy);
+            var seen = renderers.Count(r => r.isVisible);
+            var systems = thing.GetComponentsInChildren<ParticleSystem>(true);
+            var playing = systems.Count(p => p.isPlaying);
+            var sounds = thing.GetComponentsInChildren<AudioSource>(true).Length;
+            return $"{renderers.Count} renderers, {on} on, {seen} seen; {systems.Length} particle systems, {playing} playing; {sounds} sounds{(thing.activeInHierarchy ? "" : "; switched off")}";
         }
 
         /// <summary>On the stage or in the world, and how far from the camera there.</summary>
