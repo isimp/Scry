@@ -115,9 +115,17 @@ namespace Scry
         /// <summary>Changes every time a different entry is selected, so a view can tell.</summary>
         public int SelectionVersion => _selectionVersion;
 
-        public void Select(Entry entry)
+        /// <summary>Selects an entry; picking another than the one shown is a step to go back from.</summary>
+        public void Select(Entry entry) => Select(entry, true);
+
+        private void Select(Entry entry, bool record)
         {
             if (entry == _selected) return;
+            if (record && entry != null && _here != null && _here.Selected != entry)
+            {
+                Remember(_back);
+                _forward.Clear();
+            }
 
             _selected = entry;
             _selectedIndex = entry == null ? -1 : _results.IndexOf(entry);
@@ -126,6 +134,7 @@ namespace Scry
 
             // The recent list is not reordered under the cursor; it catches up on the next refresh.
             if (entry == null) return;
+            _here = Here(entry);
             _recent.Remove(entry.Key);
             _recent.Insert(0, entry.Key);
             if (_recent.Count > RecentLimit) _recent.RemoveRange(RecentLimit, _recent.Count - RecentLimit);
@@ -158,7 +167,7 @@ namespace Scry
                 }
             }
             if (target == null) return false;
-            if (target != _selected)
+            if (target != _selected && _here != null)
             {
                 Remember(_back);
                 _forward.Clear();
@@ -174,7 +183,7 @@ namespace Scry
                 Refresh();
             }
 
-            Select(target);
+            Select(target, false);
             return true;
         }
 
@@ -194,13 +203,16 @@ namespace Scry
             public Entry Selected;
         }
 
+        /// <summary>The entry shown last, with the search and filters it was picked from.</summary>
+        private Place _here;
+
         private readonly List<Place> _back = new List<Place>();
         private readonly List<Place> _forward = new List<Place>();
 
         public bool CanGoBack => _back.Count > 0;
         public bool CanGoForward => _forward.Count > 0;
 
-        /// <summary>Goes back to where the player was before the last jump, with its search and filters.</summary>
+        /// <summary>Goes back to the entry shown before, with its search and filters.</summary>
         public bool Back() => Step(_back, _forward);
 
         /// <summary>Goes forward again to where going back came from.</summary>
@@ -219,23 +231,30 @@ namespace Scry
             _query.Origin = place.Origin;
             _recentOnly = place.RecentOnly;
             Refresh();
-            Select(place.Selected);
+            Select(place.Selected, false);
             return true;
         }
 
+        /// <summary>
+        /// Keeps the entry shown last: with the search as it is now when that still shows it,
+        /// otherwise with the search it was picked from.
+        /// </summary>
         private void Remember(List<Place> into)
         {
-            into.Add(new Place
-            {
-                Text = _query.Text,
-                Kind = _query.Kind,
-                FavouritesOnly = _query.FavouritesOnly,
-                RecentOnly = _recentOnly,
-                Origin = _query.Origin,
-                Selected = _selected,
-            });
+            if (_here == null) return;
+            into.Add(_results.Contains(_here.Selected) ? Here(_here.Selected) : _here);
             if (into.Count > HistoryLimit) into.RemoveAt(0);
         }
+
+        private Place Here(Entry selected) => new Place
+        {
+            Text = _query.Text,
+            Kind = _query.Kind,
+            FavouritesOnly = _query.FavouritesOnly,
+            RecentOnly = _recentOnly,
+            Origin = _query.Origin,
+            Selected = selected,
+        };
 
         public void ToggleFavourite(Entry entry)
         {
@@ -274,7 +293,7 @@ namespace Scry
             if (_selected == null) return;
 
             _selectedIndex = _results.IndexOf(_selected);
-            if (_selectedIndex < 0) Select(null);
+            if (_selectedIndex < 0) Select(null, false);
         }
     }
 }

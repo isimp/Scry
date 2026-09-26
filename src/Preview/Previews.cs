@@ -769,11 +769,6 @@ namespace Scry
         /// and plays effects: a creature that has a death animation plays it before its death
         /// effects, and a jump has its jump.
         /// </summary>
-        private static readonly Dictionary<string, string[]> ClipsFor = new Dictionary<string, string[]>
-        {
-            { "death", new[] { "death", "die", "dead" } },
-            { "jump", new[] { "jump" } },
-        };
 
         /// <summary>
         /// Plays an effect list, with what goes with it: a creature that leaves a ragdoll falls as
@@ -801,18 +796,34 @@ namespace Scry
                 things.Add(Stage.Destroy(prefab, list));
                 things.Add(DestroyInWorld(prefab, list));
             }
-            else if (ClipsFor.TryGetValue(word, out var names))
+            else
             {
-                foreach (var clip in Clips())
-                {
-                    var lower = clip.name.ToLowerInvariant();
-                    if (!System.Array.Exists(names, n => lower.Contains(n))) continue;
-                    PlayClip(clip);
-                    break;
-                }
+                var clips = Clips();
+                var name = ClipMatch.For(label, clips.ConvertAll(c => c.name));
+                var clip = name != null ? clips.Find(c => c.name == name) : null;
+                if (clip != null) PlayClip(clip);
             }
             things.AddRange(PlayEffectList(list));
             Started(list, things);
+        }
+
+        /// <summary>The ragdoll a creature leaves when it dies, when it has one.</summary>
+        public static global::Ragdoll RagdollOf(Entry entry)
+        {
+            if (entry == null || entry.Kind != Kind.Creature || !(entry.Source is GameObject prefab)) return null;
+            return Falling.RagdollIn(prefab.GetComponent<Character>()?.m_deathEffects);
+        }
+
+        /// <summary>Lets the creature fall as its ragdoll, on the stage and in the world, without its death effects.</summary>
+        public static void Ragdoll()
+        {
+            var ragdoll = RagdollOf(_entry);
+            if (ragdoll == null) return;
+            var prefab = (GameObject)_entry.Source;
+            var modifiers = _explorer?.Modifiers;
+            var level = modifiers != null ? modifiers.Level : 1;
+            var gear = modifiers != null && modifiers.LookAvailable ? Variants.GearOf(prefab, modifiers.Look) : new List<GameObject>();
+            Started("ragdoll", new[] { Stage.Fall(ragdoll, prefab, level, gear), FallInWorld(ragdoll, prefab, level, gear) });
         }
 
         /// <summary>Plays an effect list on the stage copy, and on the copy in the world when there is one.</summary>

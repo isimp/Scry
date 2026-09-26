@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Scry
 {
@@ -18,11 +19,11 @@ namespace Scry
     internal sealed class AnimationEars : MonoBehaviour
     {
         /// <summary>The events <c>CharacterAnimEvent</c> and <c>AnimationEffect</c> answer, all of which are heard here.</summary>
-        private static readonly HashSet<string> Heard = new HashSet<string>
+        private static readonly HashSet<string> Answered = new HashSet<string>
         {
             "FootStep", "Hit", "OnAttackTrigger", "Jump", "Land", "TakeOff", "Stop", "DodgeMortal",
             "TrailOn", "TrailOff", "GPower", "Die", "Speed", "Chain", "ResetChain", "FreezeFrame",
-            "Effect", "Attach",
+            "Effect", "Attach", "RemoveAttachments",
         };
 
         private static readonly HashSet<string> Told = new HashSet<string>();
@@ -46,7 +47,7 @@ namespace Scry
                 foreach (var e in clip.events)
                 {
                     events++;
-                    if (!Heard.Contains(e.functionName)) unknown.Add(e.functionName);
+                    if (!Answered.Contains(e.functionName)) unknown.Add(e.functionName);
                 }
             }
 
@@ -79,19 +80,104 @@ namespace Scry
             _attached.Clear();
         }
 
+        // ----- Heard -----
+
+        /// <summary>One event heard, kept to be answered outside the callback it came in.</summary>
+        private struct Heard
+        {
+            public string Name;
+            public string Text;
+            public Object Thing;
+            public int Number;
+            public float Weight;
+        }
+
+        private readonly List<Heard> _waiting = new List<Heard>();
+
+        // Unity calls these by the event's name. Nothing is made inside the callback, where Unity
+        // refuses to take components off a new copy, so each is kept and answered in Update.
+        public void FootStep(AnimationEvent e) => Hear(e);
+        public void Hit(AnimationEvent e) => Hear(e);
+        public void OnAttackTrigger(AnimationEvent e) => Hear(e);
+        public void Jump(AnimationEvent e) => Hear(e);
+        public void Die(AnimationEvent e) => Hear(e);
+        public void Effect(AnimationEvent e) => Hear(e);
+        public void Attach(AnimationEvent e) => Hear(e);
+        public void RemoveAttachments(AnimationEvent e) => Hear(e);
+        public void Land(AnimationEvent e) { }
+        public void TakeOff(AnimationEvent e) { }
+        public void Stop(AnimationEvent e) { }
+        public void DodgeMortal(AnimationEvent e) { }
+        public void TrailOn(AnimationEvent e) { }
+        public void TrailOff(AnimationEvent e) { }
+        public void GPower(AnimationEvent e) { }
+        public void Speed(AnimationEvent e) { }
+        public void Chain(AnimationEvent e) { }
+        public void ResetChain(AnimationEvent e) { }
+        public void FreezeFrame(AnimationEvent e) { }
+
+        /// <summary>An event fired by the animator itself, which knows how strongly its clip is blended in.</summary>
+        private void Hear(AnimationEvent e)
+        {
+            _waiting.Add(new Heard
+            {
+                Name = e.functionName, Text = e.stringParameter, Thing = e.objectReferenceParameter,
+                Number = e.intParameter, Weight = e.animatorClipInfo.weight,
+            });
+        }
+
+        private void Update()
+        {
+            if (_waiting.Count == 0) return;
+            var now = _waiting.ToArray();
+            _waiting.Clear();
+            foreach (var heard in now) Answer(heard);
+        }
+
+        /// <summary>An event of a clip Scry plays itself, which is all there is on the copy then.</summary>
+        public void Answer(AnimationEvent e)
+        {
+            Answer(new Heard
+            {
+                Name = e.functionName, Text = e.stringParameter, Thing = e.objectReferenceParameter,
+                Number = e.intParameter, Weight = 1f,
+            });
+        }
+
+        private void Answer(Heard e)
+        {
+            if (_copy == null) return;
+            switch (e.Name)
+            {
+                case "FootStep": Step(e); break;
+                case "Hit":
+                case "OnAttackTrigger": AttackTrigger(); break;
+                case "Jump": Play(_prefab.GetComponent<Character>()?.m_jumpEffects); break;
+                case "Die": Play(_prefab.GetComponent<Character>()?.m_deathEffects); break;
+                case "Effect": Effect(e); break;
+                case "Attach": Attach(e); break;
+                case "RemoveAttachments": ClipEnded(); break;
+            }
+        }
+
         // ----- Answered -----
+
+        private void Play(EffectList list)
+        {
+            if (list != null) Previews.PlayOnCopy(_copy, list, null);
+        }
 
         /// <summary>
         /// A clip's own effect, named in the event: played at the bone the event names, else at
         /// the prefab's effect root, else at the animated body.
         /// </summary>
-        public void Effect(AnimationEvent e)
+        private void Effect(Heard e)
         {
-            var prefab = e.objectReferenceParameter as GameObject;
+            var prefab = e.Thing as GameObject;
             if (prefab == null) return;
 
             Transform at = null;
-            if (!string.IsNullOrEmpty(e.stringParameter)) at = Utils.FindChild(transform, e.stringParameter);
+            if (!string.IsNullOrEmpty(e.Text)) at = Utils.FindChild(transform, e.Text);
             if (at == null)
             {
                 var root = _prefab.GetComponentInChildren<global::AnimationEffect>(true)?.m_effectRoot;
@@ -106,11 +192,11 @@ namespace Scry
         /// A prop a clip holds for as long as it plays, hung on the bone the event names. One
         /// hung there before comes off first; a scale of 10 keeps the prop's own size.
         /// </summary>
-        public void Attach(AnimationEvent e)
+        private void Attach(Heard e)
         {
-            var prefab = e.objectReferenceParameter as GameObject;
-            if (prefab == null || string.IsNullOrEmpty(e.stringParameter)) return;
-            var joint = Utils.FindChild(transform, e.stringParameter);
+            var prefab = e.Thing as GameObject;
+            if (prefab == null || string.IsNullOrEmpty(e.Text)) return;
+            var joint = Utils.FindChild(transform, e.Text);
             if (joint == null) return;
 
             for (var i = _attached.Count - 1; i >= 0; i--)
@@ -122,17 +208,15 @@ namespace Scry
 
             var copy = _copy == Stage.Subject ? Stage.Hang(prefab, joint) : Ghost.MakeOn(prefab, joint, joint.position, joint.rotation);
             if (copy == null) return;
-            if (e.intParameter == 10 || e.intParameter == -10) copy.transform.localScale = prefab.transform.localScale;
+            if (e.Number == 10 || e.Number == -10) copy.transform.localScale = prefab.transform.localScale;
             copy.SetActive(true);
             _attached.Add(copy);
         }
 
-        public void FootStep(AnimationEvent e)
+        private void Step(Heard e)
         {
-            // Blended-out clips send steps too; the game ignores the faint ones, and so do we. A
-            // clip Scry plays on its own is all there is, and reports no weight to go by.
-            var alone = _copy.GetComponent<ClipPlayer>()?.Clip != null;
-            if ((!alone && e.animatorClipInfo.weight < 0.33f) || Time.unscaledTime - _lastStep < 0.08f) return;
+            // Blended-out clips send steps too; the game ignores the faint ones, and so do we.
+            if (e.Weight < 0.33f || Time.unscaledTime - _lastStep < 0.08f) return;
             _lastStep = Time.unscaledTime;
 
             var step = _prefab.GetComponentInChildren<global::FootStep>(true);
@@ -140,38 +224,9 @@ namespace Scry
             if (effect == null) return;
 
             Transform foot = null;
-            if (!string.IsNullOrEmpty(e.stringParameter)) foot = Utils.FindChild(_copy.transform, e.stringParameter);
+            if (!string.IsNullOrEmpty(e.Text)) foot = Utils.FindChild(_copy.transform, e.Text);
             Previews.PlayOnCopy(_copy, AsList(effect.m_effectPrefabs), foot);
         }
-
-        public void Hit() => AttackTrigger();
-        public void OnAttackTrigger() => AttackTrigger();
-
-        public void Jump()
-        {
-            var character = _prefab.GetComponent<Character>();
-            if (character != null) Previews.PlayOnCopy(_copy, character.m_jumpEffects, null);
-        }
-
-        public void Die()
-        {
-            var character = _prefab.GetComponent<Character>();
-            if (character != null) Previews.PlayOnCopy(_copy, character.m_deathEffects, null);
-        }
-
-        // ----- Heard, nothing to play -----
-
-        public void Land() { }
-        public void TakeOff() { }
-        public void Stop(AnimationEvent e) { }
-        public void DodgeMortal() { }
-        public void TrailOn() { }
-        public void TrailOff() { }
-        public void GPower() { }
-        public void Speed(float speedScale) { }
-        public void Chain() { }
-        public void ResetChain() { }
-        public void FreezeFrame(float delay) { }
 
         // ----- Helpers -----
 

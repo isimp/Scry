@@ -11,6 +11,10 @@ namespace Scry
     /// states under conditions the game sets together, and those conditions cannot be read at run
     /// time, so pulling one on its own often does nothing. A clip played here always shows. When
     /// it ends, or is stopped, the animator carries on as before.
+    ///
+    /// The clip's events are sent from here as its time passes them, to the copy's
+    /// <see cref="AnimationEars"/>, rather than left to the graph, and the animator's own events
+    /// are off meanwhile, so each is heard once and outside Unity's callbacks.
     /// </summary>
     internal sealed class ClipPlayer : MonoBehaviour
     {
@@ -21,6 +25,8 @@ namespace Scry
         private bool _loop;
         private bool _paused;
         private float _speed = 1f;
+        private Animator _animator;
+        private float _heardTo;
 
         /// <summary>The clip playing on this copy, or null.</summary>
         public AnimationClip Clip => _graph.IsValid() ? _clip : null;
@@ -65,7 +71,9 @@ namespace Scry
         public static void Seek(GameObject copy, float time)
         {
             var player = copy != null ? copy.GetComponent<ClipPlayer>() : null;
-            if (player != null && player._graph.IsValid()) player._playable.SetTime(time);
+            if (player == null || !player._graph.IsValid()) return;
+            player._playable.SetTime(time);
+            player._heardTo = time;
         }
 
         /// <summary>Holds the clip playing on a copy on its pose, or lets it go on.</summary>
@@ -107,9 +115,12 @@ namespace Scry
             _loop = loop;
             _paused = false;
             _speed = speed;
+            _animator = animator;
+            _heardTo = -0.001f;
             _playable = AnimationPlayableUtilities.PlayClip(animator, clip, out _graph);
             _playable.SetSpeed(speed);
             _ears = animator.GetComponent<AnimationEars>();
+            animator.fireEvents = false;
             if (_ears != null) _ears.ClipStarted(clip);
         }
 
@@ -117,6 +128,7 @@ namespace Scry
         {
             if (_graph.IsValid()) _graph.Destroy();
             _clip = null;
+            if (_animator != null) _animator.fireEvents = _ears != null;
             if (_ears != null) _ears.ClipEnded();
         }
 
@@ -125,10 +137,30 @@ namespace Scry
             if (!_graph.IsValid() || _clip == null || _paused) return;
 
             var length = Mathf.Max(0.05f, _clip.length);
+            var time = Mathf.Min((float)_playable.GetTime(), length);
+            if (time > _heardTo)
+            {
+                Fire(_heardTo, time);
+                _heardTo = time;
+            }
             if (_playable.GetTime() < length) return;
 
-            if (_loop) _playable.SetTime(0.0);
+            if (_loop)
+            {
+                _playable.SetTime(0.0);
+                _heardTo = -0.001f;
+            }
             else if (_playable.GetTime() >= length + 0.4f) End();
+        }
+
+        /// <summary>Sends the events the clip passed since it was last looked at.</summary>
+        private void Fire(float after, float upTo)
+        {
+            if (_ears == null) return;
+            foreach (var e in _clip.events)
+            {
+                if (e.time > after && e.time <= upTo) _ears.Answer(e);
+            }
         }
 
         private void OnDestroy()

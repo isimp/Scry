@@ -124,5 +124,45 @@ namespace Scry.Tests
 
             Assert.Equal(Explorer.HistoryLimit, steps);
         }
+
+        [Fact]
+        public void PickingAnotherEntryFromTheListIsAStepBackToo()
+        {
+            var explorer = OnTroll();
+            explorer.Select(explorer.Results[1]);
+            var second = explorer.Selected;
+
+            Assert.True(explorer.Back());
+
+            Assert.Equal("Troll", explorer.Selected?.Name);
+            Assert.NotEqual(second, explorer.Selected);
+        }
+
+        [Fact]
+        public void BackShowsTheEntryWithTheSearchItWasPickedFromWhenTheSearchHasSinceMovedOn()
+        {
+            var explorer = OnTroll();
+            explorer.Text = "bow";
+            explorer.KindFilter = null;
+            explorer.Select(explorer.Results[0]);
+
+            explorer.Back();
+
+            Assert.Equal("Troll", explorer.Selected?.Name);
+            Assert.Contains(explorer.Selected, explorer.Results);
+        }
+
+        [Fact]
+        public void BackKeepsTheSearchAsItIsWhenItStillShowsTheEntry()
+        {
+            var explorer = OnTroll();
+            explorer.Text = "trol";
+            explorer.Select(explorer.Results.First(e => e.Name != "Troll"));
+
+            explorer.Back();
+
+            Assert.Equal("trol", explorer.Text);
+            Assert.Equal("Troll", explorer.Selected?.Name);
+        }
     }
 }

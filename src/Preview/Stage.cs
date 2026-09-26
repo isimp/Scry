@@ -121,8 +121,11 @@ namespace Scry
         private static float _gridMetres = -1f;
 
         // What the camera frames, eased towards what is to be seen, so it does not jump about.
-        private static Vector3 _frameCenter;
         private static float _frameRadius = -1f;
+
+        // A model's resting pose is not always where its animation takes it (a bat flies lower
+        // than it hangs), so what it draws is measured again while its animation first plays.
+        private static float _settleUntil;
         private static bool _followEffect;
 
         /// <summary>The layer nothing in the game uses, which the stage is drawn on and falling copies land with.</summary>
@@ -197,6 +200,7 @@ namespace Scry
 
             _madeAt = Time.unscaledTime;
             _followEffect = entry.Kind == Kind.Effect;
+            _settleUntil = _followEffect ? 0f : Time.unscaledTime + 1.5f;
             _baseScale = _subject.transform.localScale;
             _bounds = Measure(_subject);
             Apply(modifiers);
@@ -416,6 +420,7 @@ namespace Scry
             if (Spin && !Dragging && _subject != null) Yaw += SpinDegreesPerSecond * Time.unscaledDeltaTime;
 
             EnsureTexture();
+            Settle();
             Frame();
 
             var mask = 1 << _layer;
@@ -527,27 +532,26 @@ namespace Scry
             var framed = subject;
             if (_person != null && _person.activeSelf) framed.Encapsulate(_personBounds);
 
-            // Everything an effect reaches is framed too: an effect's own particles as they
-            // spread, and what was played on the model (sparks, debris, a ragdoll, a fallen log).
-            if (_followEffect) Reach(_subject, ref framed);
-            foreach (var played in Played) Reach(played.Key, ref framed);
+            // The camera stays on the model, and backs off far enough to take in what an effect
+            // reaches as well: an effect's own particles as they spread, and what was played on
+            // the model (sparks, debris, a ragdoll, a fallen log), within a few times its size.
+            var center = framed.center;
+            var own = Mathf.Max(0.05f, framed.extents.magnitude);
+            var reach = own;
+            if (_followEffect) Reach(_subject, center, ref reach);
+            foreach (var played in Played) Reach(played.Key, center, ref reach);
+            var wantRadius = Mathf.Min(reach, _followEffect ? 25f : Mathf.Max(own * 2.5f, 3f));
 
-            var wantCenter = framed.center;
-            var wantRadius = Mathf.Max(0.05f, framed.extents.magnitude);
             if (_frameRadius < 0f)
             {
-                _frameCenter = wantCenter;
                 _frameRadius = wantRadius;
             }
             else
             {
                 // Out quickly, so nothing leaves the picture; back in slowly, once it settles.
-                var dt = Time.unscaledDeltaTime;
-                var rate = wantRadius > _frameRadius ? 6f : 1.2f;
-                _frameRadius = Mathf.Lerp(_frameRadius, wantRadius, 1f - Mathf.Exp(-rate * dt));
-                _frameCenter = Vector3.Lerp(_frameCenter, wantCenter, 1f - Mathf.Exp(-3f * dt));
+                var rate = wantRadius > _frameRadius ? 5f : 1f;
+                _frameRadius = Mathf.Lerp(_frameRadius, wantRadius, 1f - Mathf.Exp(-rate * Time.unscaledDeltaTime));
             }
-            var center = _frameCenter;
             var radius = _frameRadius;
             var distance = radius / Mathf.Sin(FieldOfView * 0.5f * Mathf.Deg2Rad) * Zoom;
 
@@ -591,16 +595,27 @@ namespace Scry
             }
         }
 
-        /// <summary>Grows the framed space by what a copy draws now, leaving out what is far off or runaway.</summary>
-        private static void Reach(GameObject thing, ref Bounds framed)
+        /// <summary>Takes in what the model draws while its animation first plays, as if at size one.</summary>
+        private static void Settle()
+        {
+            if (_subject == null || Time.unscaledTime > _settleUntil || Standin.IsDown(_subject) || _scale <= 0f) return;
+            var now = Measure(_subject);
+            var unscaled = new Bounds(Origin + (now.center - Origin) / _scale, now.size / _scale);
+            if (unscaled.size.magnitude > _bounds.size.magnitude * 4f + 1f) return;
+            _bounds.Encapsulate(unscaled);
+            PlacePerson();
+        }
+
+        /// <summary>How far from the middle a copy draws now, leaving out what is runaway.</summary>
+        private static void Reach(GameObject thing, Vector3 center, ref float reach)
         {
             if (thing == null || !thing.activeInHierarchy) return;
             foreach (var renderer in thing.GetComponentsInChildren<Renderer>())
             {
                 if (!renderer.enabled) continue;
                 var bounds = renderer.bounds;
-                if (bounds.size.sqrMagnitude < 1e-6f || bounds.size.magnitude > 200f || (bounds.center - Origin).magnitude > 200f) continue;
-                framed.Encapsulate(bounds);
+                if (bounds.size.sqrMagnitude < 1e-6f || bounds.size.magnitude > 200f) continue;
+                reach = Mathf.Max(reach, Vector3.Distance(center, bounds.center) + bounds.extents.magnitude);
             }
         }
 

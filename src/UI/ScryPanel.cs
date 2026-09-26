@@ -401,6 +401,13 @@ namespace Scry
             }
 
             // Search, favourites and origin, then the kind tabs, across the whole width.
+            // The mouse's side buttons, as the panel's own events see them.
+            if (Event.current.type == EventType.MouseDown && (Event.current.button == 3 || Event.current.button == 4))
+            {
+                Step(explorer, Event.current.button == 3);
+                Event.current.Use();
+            }
+
             var y = Controls(explorer, new Rect(pad, U(56f), w - pad * 2f, U(36f)));
             y = Tabs(explorer, new Rect(pad, y + U(10f), w - pad * 2f, U(30f)));
 
@@ -521,7 +528,9 @@ namespace Scry
             return originRow + rect.height;
         }
 
-        /// <summary>Back to where the last jump came from, and forward again, as in a browser.</summary>
+        private static int _steppedFrame = -1;
+
+        /// <summary>Back to the entry shown before, and forward again, as in a browser.</summary>
         private static void BackAndForward(Explorer explorer, Rect back, Rect forward)
         {
             var was = GUI.enabled;
@@ -530,14 +539,17 @@ namespace Scry
             GUI.enabled = was && explorer.CanGoForward;
             if (GUI.Button(forward, "\u203A", Skin.IconButton)) Step(explorer, false);
             GUI.enabled = was;
-            if (back.Contains(Event.current.mousePosition)) AskTip("back", "Back to where you jumped from (mouse back button)");
+            if (back.Contains(Event.current.mousePosition)) AskTip("back", "Back to the entry shown before (mouse back button)");
             if (forward.Contains(Event.current.mousePosition)) AskTip("forward", "Forward again (mouse forward button)");
         }
 
         /// <summary>Goes back or forward, and shows where it lands.</summary>
         public static void Step(Explorer explorer, bool back)
         {
-            if (explorer == null || !(back ? explorer.Back() : explorer.Forward())) return;
+            // The same press can arrive both as a key and as a panel event; it counts once.
+            if (explorer == null || _steppedFrame == Time.frameCount) return;
+            _steppedFrame = Time.frameCount;
+            if (!(back ? explorer.Back() : explorer.Forward())) return;
             _reveal = true;
             _sideScroll = Vector2.zero;
             _help = false;
@@ -928,6 +940,7 @@ namespace Scry
 
             var cw = content.width;
             var y = 0f;
+            _foldAllShown = false;
             y = Title(explorer, entry, cw, y);
             if (!withStage && (entry.Kind == Kind.Sound || entry.Kind == Kind.StatusEffect)) y = CompactCard(entry, cw, y);
             y = Actions(entry, cw, y);
@@ -1212,17 +1225,9 @@ namespace Scry
             var x = _compact ? KindBadge(entry, new Vector2(0f, y)) + U(10f) : 0f;
             var origin = OriginText(entry);
             var sub = entry.Name == primary ? origin : entry.Name + (origin.Length > 0 ? "   ·   " + origin : "");
-
-            // Folding every section at once, at the right of this row.
-            var anyOpen = Foldable.Any(k => !Folded.Contains(k));
-            var foldText = anyOpen ? "Fold all" : "Open all";
-            var foldW = Skin.Chip.CalcSize(new GUIContent(foldText)).x + U(6f);
-            var foldRect = new Rect(width - foldW, y, foldW, U(22f));
-            if (GUI.Button(foldRect, foldText, Skin.Chip)) FoldAll(anyOpen);
-            if (foldRect.Contains(Event.current.mousePosition)) AskTip("fold-all", anyOpen ? "Fold every section away" : "Open every section");
-
+            if (sub.Length > 0 || _compact)
             {
-                var subRect = new Rect(x, y, width - x - foldW - U(8f), U(22f));
+                var subRect = new Rect(x, y, width - x, U(22f));
                 if (!FitLabel(subRect, sub, Skin.DimLabel, 10f) && subRect.Contains(Event.current.mousePosition)) AskTip("sub", sub);
                 if (entry.Origin == Origin.Mod && entry.ModName.Length > 0)
                 {
@@ -1322,6 +1327,11 @@ namespace Scry
                         Looks.OnPerson = !Looks.OnPerson;
                         Previews.Rebuild();
                         SaveRects();
+                    }
+                    if (Previews.RagdollOf(entry) != null && Stage.Subject != null
+                        && Button("Ragdoll", Previews.Playing.IsPlaying("ragdoll") ? Skin.On : Skin.Button))
+                    {
+                        Previews.Ragdoll();
                     }
                     if (Previews.IsModel(entry))
                     {
@@ -1607,6 +1617,9 @@ namespace Scry
 
         private static bool IsFolded(string key) => key != null && Folded.Contains(key);
 
+        /// <summary>Whether this pass over the side has drawn the fold-all link yet.</summary>
+        private static bool _foldAllShown;
+
         /// <summary>Every section that folds, by key.</summary>
         private static readonly string[] Foldable = { "kept", "variants", "adjust", "animations", "effects", "playsin", "facts", "command", "details" };
 
@@ -1644,9 +1657,24 @@ namespace Scry
                 }
             }
             var lineEnd = reset != null ? width - U(74f) : width;
+
+            // The first section that folds carries a link to fold or open them all, at the end of its rule.
+            if (key != null && !_foldAllShown)
+            {
+                _foldAllShown = true;
+                var anyOpen = Foldable.Any(k => !Folded.Contains(k));
+                var foldText = anyOpen ? "fold all" : "open all";
+                var linkW = Skin.FaintLabel.CalcSize(new GUIContent(foldText)).x + U(4f);
+                var link = new Rect(lineEnd - linkW, y, linkW, U(20f));
+                LinkLabel(link, foldText, Skin.FaintLabel, Skin.Faint);
+                if (link.Contains(Event.current.mousePosition)) AskTip("fold-all", anyOpen ? "Fold every section away" : "Open every section");
+                if (GUI.Button(link, GUIContent.none, GUIStyle.none)) FoldAll(anyOpen);
+                lineEnd = link.x - U(8f);
+            }
+
             Skin.Fill(new Rect(textW + U(12f), y + U(10f), Mathf.Max(0f, lineEnd - textW - U(12f)), U(1f)), Skin.Outline);
             if (reset != null && GUI.Button(new Rect(width - U(64f), y - U(2f), U(64f), U(24f)), "Reset", Skin.Chip)) reset();
-            return y + U(folded ? 26f : 30f);
+            return y + U(folded ? 36f : 30f);
         }
 
         private static float SliderRow(string label, string value, float current, float min, float max, float width, float labelW, ref float y)
@@ -1971,7 +1999,7 @@ namespace Scry
             if (last.Value != null)
             {
                 y += U(10f);
-                y = Members(explorer, last.Key + " plays", last.Value, Members(last.Value), null, width, y);
+                y = Members(explorer, "In " + last.Key + ":", last.Value, Members(last.Value), null, width, y);
             }
 
             return y + U(14f);
@@ -1998,23 +2026,17 @@ namespace Scry
             var rowH = U(26f);
             foreach (var member in members)
             {
-                var w = Mathf.Min(width, Skin.Chip.CalcSize(new GUIContent(member)).x + U(8f));
+                var lit = Previews.Playing.IsPlaying(list, member);
+                var go = member != self && InCatalog(explorer, member);
+                var w = Mathf.Min(width, LinkChipWidth(member, go));
                 if (x + w > width && x > 0f)
                 {
                     x = 0f;
                     y += rowH + U(5f);
                 }
                 var chip = new Rect(x, y, w, rowH);
-                var lit = Previews.Playing.IsPlaying(list, member);
-                if (member == self || !InCatalog(explorer, member))
-                {
-                    GUI.Label(chip, member, lit ? Skin.ChipOn : Skin.CenterDim);
-                }
-                else
-                {
-                    if (GUI.Button(chip, member, lit ? Skin.ChipOn : Skin.Chip)) Go(explorer, member);
-                    if (chip.Contains(Event.current.mousePosition)) AskTip("member:" + member, "Go to " + member);
-                }
+                if (LinkChip(chip, member, KindOf(explorer, member), lit, go)) Go(explorer, member);
+                if (go && chip.Contains(Event.current.mousePosition)) AskTip("member:" + member, "Go to " + member + (lit ? "\n(playing now)" : ""));
                 x += w + U(5f);
             }
             return y + rowH + U(6f);
@@ -2052,8 +2074,10 @@ namespace Scry
 
                 // Play, what it is for, and who plays it.
                 var x = 0f;
-                var playW = Skin.Chip.CalcSize(new GUIContent("Play")).x + U(12f);
-                if (list != null && GUI.Button(new Rect(x, y, playW, rowH), "Play", playing ? Skin.ChipOn : Skin.Chip)) Previews.PlayWhole(entry, list);
+                var playText = "\u25B6 Play";
+                var playW = Skin.Chip.CalcSize(new GUIContent(playText)).x + U(12f);
+                if (list != null && GUI.Button(new Rect(x, y, playW, rowH), playText, playing ? Skin.ChipOn : Skin.Chip)) Previews.PlayWhole(entry, list);
+                if (new Rect(x, y, playW, rowH).Contains(Event.current.mousePosition)) AskTip("playrow:" + row.Label + row.Owners[0].Shown, "Play the whole list together");
                 x += playW + U(8f);
                 var labelW = Mathf.Min(width - x, Skin.Label.CalcSize(new GUIContent(row.Label)).x + U(4f));
                 GUI.Label(new Rect(x, y, labelW, rowH), row.Label, Skin.Label);
@@ -2063,22 +2087,17 @@ namespace Scry
                 foreach (var owner in row.Owners.Take(Owners))
                 {
                     var shown = ShownName(explorer, owner.Key, owner.Shown);
-                    var w = Mathf.Min(width, Skin.Chip.CalcSize(new GUIContent(shown)).x + U(8f));
+                    var go = owner.Key != null && CanGo(explorer, owner.Key);
+                    var w = Mathf.Min(width, LinkChipWidth(shown, go));
                     if (x + w > width && x > 0f)
                     {
                         x = 0f;
                         y += rowH + U(5f);
                     }
                     var chip = new Rect(x, y, w, rowH);
-                    if (owner.Key != null && CanGo(explorer, owner.Key))
-                    {
-                        if (GUI.Button(chip, shown, Skin.Chip)) Go(explorer, owner.Key);
-                        if (chip.Contains(Event.current.mousePosition)) AskTip("owner:" + owner.Key, "Go to " + shown);
-                    }
-                    else
-                    {
-                        GUI.Label(chip, shown, Skin.CenterDim);
-                    }
+                    var kind = owner.Key != null && owner.Key.StartsWith("se:", StringComparison.Ordinal) ? Kind.StatusEffect : KindOf(explorer, owner.Key);
+                    if (LinkChip(chip, shown, kind, false, go)) Go(explorer, owner.Key);
+                    if (go && chip.Contains(Event.current.mousePosition)) AskTip("owner:" + owner.Key, "Go to " + shown);
                     x += w + U(5f);
                 }
                 if (row.Owners.Count > Owners)
@@ -2312,6 +2331,72 @@ namespace Scry
             style.normal.textColor = was;
         }
 
+/// <summary>
+        /// A chip that goes to an entry rather than doing something: tinted in the colour of the
+        /// kind of entry it goes to, with an arrow. Brighter while what it names is playing. One
+        /// that goes nowhere (the entry itself, or something not in the catalog) is plain.
+        /// </summary>
+        private static bool LinkChip(Rect rect, string text, Kind? kind, bool lit, bool go)
+        {
+            var hover = go && rect.Contains(Event.current.mousePosition);
+            var colour = kind.HasValue ? Skin.KindColor(kind.Value) : Skin.Dim;
+            var fill = lit ? 0.55f : hover ? 0.36f : 0.22f;
+            Skin.PillBox(rect, new Color(colour.r * fill, colour.g * fill, colour.b * fill, go || lit ? 0.95f : 0.45f));
+
+            var style = Skin.Small;
+            var was = style.normal.textColor;
+            var alignment = style.alignment;
+            style.normal.textColor = go || lit ? Color.Lerp(colour, Color.white, lit || hover ? 0.6f : 0.35f) : Skin.Dim;
+            style.alignment = TextAnchor.MiddleCenter;
+            GUI.Label(rect, go ? text + "  \u203A" : text, style);
+            style.normal.textColor = was;
+            style.alignment = alignment;
+
+            return go && GUI.Button(rect, GUIContent.none, GUIStyle.none);
+        }
+
+        private static float LinkChipWidth(string text, bool go) => Skin.Small.CalcSize(new GUIContent(go ? text + "  \u203A" : text)).x + U(16f);
+
+        /// <summary>The kind of the entry a prefab name goes to, when it is in the catalog.</summary>
+        private static Kind? KindOf(Explorer explorer, string name)
+        {
+            if (string.IsNullOrEmpty(name)) return null;
+            if (_kindsFor != explorer)
+            {
+                _kindsFor = explorer;
+                KindByName.Clear();
+                foreach (var e in explorer.Catalog) if (e.Kind != Kind.StatusEffect && !KindByName.ContainsKey(e.Name)) KindByName[e.Name] = e.Kind;
+            }
+            return KindByName.TryGetValue(name, out var kind) ? kind : (Kind?)null;
+        }
+
+        private static readonly Dictionary<string, Kind> KindByName = new Dictionary<string, Kind>();
+        private static Explorer _kindsFor;
+
+        /// <summary>A small heading and a wrapping row of link chips, each going to what it names.</summary>
+        private static float LinkRow(Explorer explorer, string title, IEnumerable<string> names, float width, float y)
+        {
+            GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
+            y += U(24f);
+            var x = 0f;
+            var rowH = U(26f);
+            foreach (var name in names)
+            {
+                var shown = ShownName(explorer, name, name);
+                var w = Mathf.Min(width, LinkChipWidth(shown, true));
+                if (x + w > width && x > 0f)
+                {
+                    x = 0f;
+                    y += rowH + U(5f);
+                }
+                var chip = new Rect(x, y, w, rowH);
+                if (LinkChip(chip, shown, KindOf(explorer, name), false, true)) Go(explorer, name);
+                if (chip.Contains(Event.current.mousePosition)) AskTip("link:" + name, "Go to " + name);
+                x += w + U(5f);
+            }
+            return y + rowH + U(10f);
+        }
+
         /// <summary>A small heading and a wrapping row of chips, each doing its own thing when clicked.</summary>
         private static float ChipRow(string title, IEnumerable<KeyValuePair<string, Action>> chips, float width, float y)
         {
@@ -2492,7 +2577,7 @@ namespace Scry
             if (entry.UsedBy.Count > 0 && EffectLinks.For(entry.Name).Count == 0)
             {
                 var users = entry.UsedBy.Where(u => InCatalog(explorer, u)).Take(24).ToList();
-                if (users.Count > 0) y = ChipRow($"Played by ({entry.UsedBy.Count})", users.Select(u => new KeyValuePair<string, Action>(u, () => Go(explorer, u))), width, y);
+                if (users.Count > 0) y = LinkRow(explorer, $"Played by ({entry.UsedBy.Count})", users, width, y);
             }
 
             // For finding out why part of a model does not show: every part the preview draws, in the log.
