@@ -6,25 +6,32 @@ using Object = UnityEngine.Object;
 namespace Scry
 {
     /// <summary>
-    /// Which clip each trigger of a creature's animator plays. Its states and the ways between
-    /// them cannot be read at run time, so each trigger is pulled on a hidden copy of the animated
-    /// body, from where the animator starts, and the first clip it moves to is noted. Seen once
-    /// per prefab and said in the log.
+    /// Which clips each attack trigger of a creature's animator plays. Its states and the ways
+    /// between them cannot be read at run time, so each trigger is pulled on a hidden copy of the
+    /// animated body, from where the animator starts, and watched as the game watches an attack
+    /// (<c>Humanoid.InAttack</c>): for as long as it is in a state tagged "attack", every clip it
+    /// plays there is the attack's, in order, so a bow drawn in one clip and let go in the next is
+    /// both. Where an animator tags no attack, the first clip it moves to that it never plays
+    /// when left alone is taken. Seen once per prefab and said in the log.
     /// </summary>
     internal static class TriggerProbe
     {
-        private static readonly Dictionary<string, Dictionary<string, string>> Seen = new Dictionary<string, Dictionary<string, string>>();
+        private static readonly int AttackTag = Animator.StringToHash("attack");
+        private const float Step = 0.025f;
 
-        /// <summary>The clip each trigger of the animator leads to, by trigger; a trigger that leads to none is left out.</summary>
-        public static Dictionary<string, string> ClipsOf(string prefab, Animator animator)
+        private static readonly Dictionary<string, Dictionary<string, IReadOnlyList<string>>> Seen = new Dictionary<string, Dictionary<string, IReadOnlyList<string>>>();
+
+        /// <summary>The clips each of the triggers leads through, by trigger; one that leads to none has an empty list.</summary>
+        public static Dictionary<string, IReadOnlyList<string>> ClipsOf(string prefab, Animator animator, IEnumerable<string> triggers)
         {
             if (Seen.TryGetValue(prefab, out var known)) return known;
-            var seen = new Dictionary<string, string>();
+            var seen = new Dictionary<string, IReadOnlyList<string>>();
             Seen[prefab] = seen;
             if (animator == null || animator.runtimeAnimatorController == null) return seen;
 
             var holder = new GameObject("Scry probe");
             holder.SetActive(false);
+            var random = Random.state;
             try
             {
                 // Drawn by nothing, heard by nothing, sending no events: only the animator runs.
@@ -39,16 +46,20 @@ namespace Scry
                 probe.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                 holder.SetActive(true);
 
-                var none = new List<string>();
-                foreach (var parameter in probe.parameters)
+                // The game's RandomIdle picks idle clips at random; seeded alike, each run idles
+                // alike, so what it plays left alone is what no trigger plays.
+                var idle = new HashSet<string>();
+                Run(probe, null, idle);
+
+                var told = new List<string>();
+                foreach (var trigger in triggers.Distinct())
                 {
-                    if (parameter.type != AnimatorControllerParameterType.Trigger) continue;
-                    var clip = Pull(probe, parameter.name);
-                    if (clip != null) seen[parameter.name] = clip;
-                    else none.Add(parameter.name);
+                    if (!probe.parameters.Any(p => p.type == AnimatorControllerParameterType.Trigger && p.name == trigger)) continue;
+                    var clips = Run(probe, trigger, idle);
+                    seen[trigger] = clips;
+                    told.Add(clips.Count > 0 ? $"{trigger} plays {string.Join(" then ", clips)}" : $"{trigger} plays no clip of its own");
                 }
-                var told = string.Join(", ", seen.Select(s => $"{s.Key} plays {s.Value}"));
-                Plugin.Log.LogInfo($"Scry saw what the triggers of {prefab} play: {(told.Length > 0 ? told : "nothing")}{(none.Count > 0 ? "; no new clip for " + string.Join(", ", none) : "")}.");
+                Plugin.Log.LogInfo($"Scry saw what the attack triggers of {prefab} play: {(told.Count > 0 ? string.Join("; ", told) : "none")}.");
             }
             catch (System.Exception ex)
             {
@@ -56,40 +67,76 @@ namespace Scry
             }
             finally
             {
+                Random.state = random;
                 Object.DestroyImmediate(holder);
             }
             return seen;
         }
 
         /// <summary>
-        /// Pulls a trigger from where the animator starts and steps it on for up to a second: the
-        /// first clip it moves to that was not playing before, the strongest of those, or null.
+        /// Starts the animator over, seeded alike, and steps it on. With no trigger, every clip it
+        /// plays for four seconds goes into <paramref name="idle"/>. With one, the clips of its
+        /// attack states in order until the attack is over; failing any within a second, the
+        /// first clip it moves to that is not in <paramref name="idle"/>.
         /// </summary>
-        private static string Pull(Animator animator, string trigger)
+        private static List<string> Run(Animator animator, string trigger, HashSet<string> idle)
         {
+            Random.InitState(1);
             animator.Rebind();
             animator.Update(0f);
-            var before = new HashSet<string>(Playing(animator).Select(p => p.Name));
-            animator.SetTrigger(trigger);
-            for (var i = 0; i < 40; i++)
+            if (trigger != null) animator.SetTrigger(trigger);
+
+            var played = new List<string>();
+            var attacking = false;
+            string moved = null;
+            for (var i = 0; i < 160; i++)
             {
-                animator.Update(0.025f);
-                var moved = Playing(animator).Where(p => !before.Contains(p.Name)).OrderByDescending(p => p.Weight).FirstOrDefault();
-                if (moved.Name != null) return moved.Name;
+                animator.Update(Step);
+                if (trigger == null)
+                {
+                    for (var layer = 0; layer < animator.layerCount; layer++)
+                    {
+                        foreach (var info in animator.GetCurrentAnimatorClipInfo(layer)) if (info.clip != null) idle.Add(info.clip.name);
+                        foreach (var info in animator.GetNextAnimatorClipInfo(layer)) if (info.clip != null) idle.Add(info.clip.name);
+                    }
+                    continue;
+                }
+
+                var attack = Heading(animator, true);
+                if (attack != null)
+                {
+                    attacking = true;
+                    if (!played.Contains(attack)) played.Add(attack);
+                    continue;
+                }
+                if (attacking) break;
+
+                var heading = Heading(animator, false);
+                if (moved == null && heading != null && !idle.Contains(heading)) moved = heading;
+                if (i >= 40) break;
             }
-            animator.ResetTrigger(trigger);
-            return null;
+            if (!attacking && moved != null) played.Add(moved);
+            if (trigger != null) animator.ResetTrigger(trigger);
+            return played;
         }
 
-        /// <summary>The clips playing on every layer, and those it is moving to.</summary>
-        private static IEnumerable<(string Name, float Weight)> Playing(Animator animator)
+        /// <summary>
+        /// The clip a layer is playing or moving to, the strongest of its clips there: of the
+        /// first layer heading into an attack state when <paramref name="attack"/>, else of the
+        /// first layer. Null when there is none.
+        /// </summary>
+        private static string Heading(Animator animator, bool attack)
         {
-            for (var layer = 0; layer < animator.layerCount; layer++)
+            for (var layer = 0; layer < (attack ? animator.layerCount : 1); layer++)
             {
-                foreach (var info in animator.GetCurrentAnimatorClipInfo(layer)) if (info.clip != null) yield return (info.clip.name, info.weight);
-                if (!animator.IsInTransition(layer)) continue;
-                foreach (var info in animator.GetNextAnimatorClipInfo(layer)) if (info.clip != null) yield return (info.clip.name, info.weight);
+                var moving = animator.IsInTransition(layer);
+                var state = moving ? animator.GetNextAnimatorStateInfo(layer) : animator.GetCurrentAnimatorStateInfo(layer);
+                if (attack && state.tagHash != AttackTag) continue;
+                var infos = moving ? animator.GetNextAnimatorClipInfo(layer) : animator.GetCurrentAnimatorClipInfo(layer);
+                var strongest = infos.Where(c => c.clip != null).OrderByDescending(c => c.weight).FirstOrDefault();
+                if (strongest.clip != null) return strongest.clip.name;
             }
+            return null;
         }
     }
 }

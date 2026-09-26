@@ -836,21 +836,22 @@ namespace Scry
             strike = whole.Strike;
         }
 
-        private static readonly Dictionary<string, Dictionary<string, object>> ClipAttackCache = new Dictionary<string, Dictionary<string, object>>();
+        private static readonly Dictionary<string, Dictionary<string, ClipAttack>> ClipAttackCache = new Dictionary<string, Dictionary<string, ClipAttack>>();
 
         /// <summary>
-        /// The attack a creature's clip plays (<see cref="ClipAttacks"/>): of the attacks its
-        /// animator can start, those of what it has now first, then those of all it may carry.
-        /// Null for a clip no attack plays.
+        /// What a creature's clip plays of an attack (<see cref="ClipAttacks"/>), its
+        /// <see cref="ClipAttack.Key"/> the <see cref="Attack"/>: of the attacks its animator can
+        /// start, those of what it has now first, then those of all it may carry. Null for a clip
+        /// no attack plays.
         /// </summary>
-        public static Attack AttackOfClip(GameObject prefab, GameObject copy, string clip)
+        public static ClipAttack AttackOfClip(GameObject prefab, GameObject copy, string clip)
         {
             if (prefab == null || string.IsNullOrEmpty(clip)) return null;
             var carried = _entry != null && ReferenceEquals(_entry.Source, prefab) ? CarriedNow(_entry) : null;
             var cacheKey = prefab.name + "|" + (carried == null ? "" : string.Join(",", carried.Select(c => c.name)));
             if (!ClipAttackCache.TryGetValue(cacheKey, out var played))
             {
-                played = new Dictionary<string, object>();
+                played = new Dictionary<string, ClipAttack>();
                 var animator = ClipPlayer.AnimatorOf(copy);
                 var items = Relations.CarriedItems(prefab);
                 if (carried != null) items = items.Where(carried.Contains).Concat(items.Where(i => !carried.Contains(i))).ToList();
@@ -869,12 +870,14 @@ namespace Scry
                 }
                 if (attacks.Count > 0)
                 {
-                    var clips = animator.runtimeAnimatorController.animationClips.Where(c => c != null).Select(c => c.name);
-                    played = ClipAttacks.Match(attacks, TriggerProbe.ClipsOf(prefab.name, animator), clips);
+                    var clips = animator.runtimeAnimatorController.animationClips.Where(c => c != null).ToList();
+                    var striking = clips.Where(c => c.events.Any(e => e.functionName == "Hit" || e.functionName == "OnAttackTrigger")).Select(c => c.name);
+                    var seen = TriggerProbe.ClipsOf(prefab.name, animator, attacks.Select(a => a.Item1));
+                    played = ClipAttacks.Match(attacks, seen, clips.Select(c => c.name), striking);
                 }
                 ClipAttackCache[cacheKey] = played;
             }
-            return played.TryGetValue(clip, out var key) ? (Attack)key : null;
+            return played.TryGetValue(clip, out var part) ? part : null;
         }
 
         /// <summary>The trigger an attack starts by on this animator, as <c>Attack.Start</c> pulls it, or null when it has none.</summary>

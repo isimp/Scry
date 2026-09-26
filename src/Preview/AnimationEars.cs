@@ -51,7 +51,8 @@ namespace Scry
                 var all = copy.GetComponentsInChildren<Animator>(true).Length;
                 var names = animator.runtimeAnimatorController.animationClips.Where(c => c != null).Select(c => c.name).Distinct().OrderBy(n => n).ToList();
                 var settings = string.Join(", ", animator.parameters.Select(p => $"{p.name} ({p.type.ToString().ToLowerInvariant()})"));
-                Plugin.Log.LogInfo($"Scry plays {prefab.name} by the animator on {animator.gameObject.name} ({animator.runtimeAnimatorController.name}, {all} animators on the copy), {names.Count} clips: {string.Join(", ", names)}. Its settings: {(settings.Length > 0 ? settings : "none")}.");
+                var layers = string.Join(", ", Enumerable.Range(0, animator.layerCount).Select(l => $"{animator.GetLayerName(l)} at {animator.GetLayerWeight(l):0.##}"));
+                Plugin.Log.LogInfo($"Scry plays {prefab.name} by the animator on {animator.gameObject.name} ({animator.runtimeAnimatorController.name}, {all} animators on the copy), {names.Count} clips: {string.Join(", ", names)}. Its settings: {(settings.Length > 0 ? settings : "none")}. Its layers: {layers}.");
             }
 
             var unknown = new SortedSet<string>();
@@ -101,21 +102,22 @@ namespace Scry
             _swing = null;
             _strike = null;
             _strikeKey = null;
-            _clipAttack = clip != null && !_quiet ? AttackFor(clip.name) : null;
+            var part = clip != null && !_quiet ? AttackFor(clip.name) : null;
+            _clipAttack = part?.Key as Attack;
             _clipStrike = null;
             _strikeAt = -1f;
             if (_clipAttack != null)
             {
                 Previews.AttackParts(_clipAttack, out var begin, out _clipStrike);
-                Listen.Note(Listening, "the attack " + _clipAttack.m_attackAnimation);
+                Listen.Note(Listening, "the attack " + _clipAttack.m_attackAnimation + (part.Begins ? "" : ", begun in an earlier clip"));
 
-                // The game strikes when the clip says so; a clip that never says, halfway.
-                if (!System.Array.Exists(clip.events, e => e.functionName == "Hit" || e.functionName == "OnAttackTrigger"))
+                // The game strikes when a clip says so; an attack whose clips never say, halfway.
+                if (part.Halfway)
                 {
                     _strikeAt = clip.length * 0.5f;
-                    Listen.Note(Listening, "the clip never says when it strikes, so it strikes halfway");
+                    Listen.Note(Listening, "no clip of the attack says when it strikes, so it strikes halfway");
                 }
-                Report(Previews.PlayOnCopy(_copy, begin, null));
+                if (part.Begins) Report(Previews.PlayOnCopy(_copy, begin, null));
             }
         }
 
@@ -125,7 +127,7 @@ namespace Scry
 
         /// <summary>
         /// What lands when an attack's clip strikes, where the attack strikes, as <c>Attack</c>
-        /// plays its trigger and hit there, and what it throws or shoots.
+        /// plays its trigger and hit there, what it spawns there, and what it throws or shoots.
         /// </summary>
         private void ClipStrike()
         {
@@ -133,6 +135,11 @@ namespace Scry
             _strikeAt = -1f;
             if (attack == null || _copy == null) return;
             if (_clipStrike != null) Report(Previews.PlayOnCopyAt(_copy, _clipStrike, Previews.StrikePoint(_copy, attack, Previews.LandsOnGround(_clipStrike))));
+            if (attack.m_spawnOnTrigger != null)
+            {
+                Report(Previews.PlayOnCopyAt(_copy, AsList(new[] { attack.m_spawnOnTrigger }), Previews.StrikePoint(_copy, attack, false)));
+                Listen.Note(Listening, "spawned " + attack.m_spawnOnTrigger.name);
+            }
             Launch(attack);
         }
 
@@ -191,7 +198,12 @@ namespace Scry
         /// </summary>
         private void Launch(Attack attack)
         {
-            if (attack?.m_attackProjectile == null || _copy == null) return;
+            if (attack == null || _copy == null) return;
+            if (attack.m_attackProjectile == null)
+            {
+                if (attack.m_attackType == Attack.AttackType.Projectile) Listen.Note(Listening, "a projectile attack that names no projectile");
+                return;
+            }
 
             // Where Attack.GetProjectileSpawnPoint puts it, at the copy's size.
             var t = _copy.transform;
@@ -330,13 +342,17 @@ namespace Scry
                 if (moving != null) foreach (var p in moving.m_effectPrefabs) Add(p);
             }
 
-            var attack = AttackFor(clip.name);
-            if (attack != null)
+            var part = AttackFor(clip.name);
+            if (part?.Key is Attack attack)
             {
                 Previews.AttackParts(attack, out var begin, out var strike);
-                AddList(begin);
-                AddList(strike);
-                Add(attack.m_attackProjectile);
+                if (part.Begins) AddList(begin);
+                if (part.Strikes)
+                {
+                    AddList(strike);
+                    Add(attack.m_spawnOnTrigger);
+                    Add(attack.m_attackProjectile);
+                }
             }
             return names;
         }
@@ -558,8 +574,8 @@ namespace Scry
             ClipStrike();
         }
 
-        /// <summary>The attack a clip of this prefab plays, as its animator plays it; null for a clip no attack plays.</summary>
-        private Attack AttackFor(string clip) => Previews.AttackOfClip(_prefab, _copy, clip);
+        /// <summary>What a clip of this prefab plays of an attack, as its animator plays it; null for a clip no attack plays.</summary>
+        private ClipAttack AttackFor(string clip) => Previews.AttackOfClip(_prefab, _copy, clip);
 
         /// <summary>The step a walk on plain ground makes, or failing that the first there is.</summary>
         /// <summary>
