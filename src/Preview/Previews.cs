@@ -894,9 +894,10 @@ namespace Scry
         /// the items a creature carries only those it has now: the weapon in its hand, its shield
         /// and armour. A slap is not in the hand that holds a log.
         /// </summary>
-        public static List<KeyValuePair<string, EffectList>> PrefabLists(GameObject prefab, ICollection<GameObject> carried)
+        public static List<KeyValuePair<string, EffectList>> PrefabLists(GameObject prefab, ICollection<GameObject> carried, ICollection<string> triggers = null)
         {
             _carriedOnly = carried;
+            _triggersOnly = triggers;
             try
             {
                 return PrefabLists(prefab);
@@ -904,7 +905,20 @@ namespace Scry
             finally
             {
                 _carriedOnly = null;
+                _triggersOnly = null;
             }
+        }
+
+        private static ICollection<string> _triggersOnly;
+
+        /// <summary>The triggers the stage copy's animator has, or null when there is no stage copy.</summary>
+        public static HashSet<string> StageTriggers()
+        {
+            var animator = ClipPlayer.AnimatorOf(Stage.Subject);
+            if (animator == null) return null;
+            var triggers = new HashSet<string>();
+            foreach (var parameter in animator.parameters) if (parameter.type == AnimatorControllerParameterType.Trigger) triggers.Add(parameter.name);
+            return triggers;
         }
 
         private static ICollection<GameObject> _carriedOnly;
@@ -987,6 +1001,16 @@ namespace Scry
                     if (SwingLists.Contains(field.Name) || !(field.GetValue(carried) is EffectList list) || !HasAny(list)) continue;
                     others.Add((Naming.EffectListLabel(field.Name), shown ?? AttackChips.Readable(item.name, prefab.name), list));
                 }
+            }
+            // Only attacks the creature's own animator can play: one whose trigger it lacks (as
+            // many second attacks) would play nothing of the attack.
+            if (_triggersOnly != null)
+            {
+                attacks.RemoveAll(a =>
+                {
+                    var anim = ((Attack)a.Key).m_attackAnimation ?? "";
+                    return anim.Length > 0 && !_triggersOnly.Contains(anim) && !_triggersOnly.Contains(anim + "0");
+                });
             }
             foreach (var chip in AttackChips.For(prefab.name, attacks))
             {

@@ -244,8 +244,22 @@ namespace Scry
             var weapons = (items ?? new GameObject[0])
                 .Where(i => i != null && i.GetComponent<ItemDrop>()?.m_itemData?.IsWeapon() == true)
                 .Distinct()
-                .Select(i => (i.name, CatalogBuilder.GameName(i) ?? AttackChips.Readable(i.name, creature), AttachPart(i, out _) != null));
+                .Select(i => (i.name, Drawn(i) ?? CatalogBuilder.GameName(i) ?? AttackChips.Readable(i.name, creature), AttachPart(i, out _) != null));
             return AttackChips.Holdable(weapons);
+        }
+
+        /// <summary>
+        /// What an item draws in the hand, by the meshes of its part: two items drawing the same
+        /// (a troll's log for either swing) are the same weapon to see. Null when it draws none.
+        /// </summary>
+        private static string Drawn(GameObject item)
+        {
+            var part = AttachPart(item, out _);
+            if (part == null) return null;
+            var meshes = part.GetComponentsInChildren<MeshFilter>(true).Select(m => m.sharedMesh != null ? m.sharedMesh.name : "")
+                .Concat(part.GetComponentsInChildren<SkinnedMeshRenderer>(true).Select(m => m.sharedMesh != null ? m.sharedMesh.name : ""))
+                .Where(n => n.Length > 0).OrderBy(n => n).ToList();
+            return meshes.Count > 0 ? string.Join(",", meshes) : null;
         }
 
         /// <summary>Puts a creature's loadout back to the first of each.</summary>
