@@ -314,6 +314,19 @@ namespace Scry
             }
         }
 
+        /// <summary>
+        /// The name the game shows for an item, when it has one of its own: a translated name. A
+        /// name that is no translation key ("slap", "fireballattack") is only a maker's label, and
+        /// gives none.
+        /// </summary>
+        internal static string GameName(GameObject item)
+        {
+            var token = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared?.m_name : null;
+            if (string.IsNullOrEmpty(token) || !token.StartsWith("$", StringComparison.Ordinal)) return null;
+            var shown = Localize(token);
+            return shown.Length > 0 && !shown.StartsWith("$", StringComparison.Ordinal) ? shown : null;
+        }
+
         /// <summary>What an item a creature carries is called: its shown name, or its prefab name when it has none.</summary>
         internal static string AttackName(GameObject item)
         {

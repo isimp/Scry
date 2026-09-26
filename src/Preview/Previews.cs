@@ -805,6 +805,8 @@ namespace Scry
         private static EffectList AttackChip(ItemDrop.ItemData.SharedData weapon, Attack attack)
         {
             if (ChipOfAttack.TryGetValue(attack, out var known)) return known;
+            NoteStrikes(weapon);
+            NoteStrikes(attack);
 
             EffectList Join(params string[] fields)
             {
@@ -859,6 +861,10 @@ namespace Scry
             }
             return things;
         }
+
+        /// <summary>The prefabs an effect list plays, each once.</summary>
+        private static IEnumerable<string> Members(EffectList list) =>
+            (list?.m_effectPrefabs ?? new EffectList.EffectData[0]).Where(d => d?.m_prefab != null).Select(d => d.m_prefab.name).Distinct();
 
         /// <summary>A weapon's own lists that play with a swing; its block, equip and the like do not.</summary>
         private static readonly HashSet<string> SwingLists = new HashSet<string>
@@ -924,11 +930,10 @@ namespace Scry
 
             // Named by what they are for ("Death", "Hit"); the part they belong to is only added
             // where two would read the same. An item's attacks always say which attack.
-            void Collect(object owner, string part, bool alwaysSayPart, bool swings = true)
+            void Collect(object owner, string part, bool alwaysSayPart)
             {
                 foreach (var field in CatalogBuilder.EffectFields(owner.GetType()))
                 {
-                    if (!swings && SwingLists.Contains(field.Name)) continue;
                     if (!(field.GetValue(owner) is EffectList list) || !HasAny(list) || !seen.Add(list)) continue;
                     var label = Naming.EffectListLabel(field.Name);
                     if (alwaysSayPart) label = part + ": " + label.ToLowerInvariant();
@@ -960,28 +965,43 @@ namespace Scry
                 }
             }
 
-            // A creature's attacks are its own, each named after the item that makes it.
+            // A creature's attacks, one chip per animation it attacks with (AttackChips); its
+            // weapons' other lists (a block) one chip per list that plays alike.
+            var attacks = new List<AttackInfo>();
+            var weaponOf = new Dictionary<Attack, ItemDrop.ItemData.SharedData>();
+            var others = new List<(string Label, string Owner, EffectList List)>();
             foreach (var item in Relations.CarriedItems(prefab))
             {
                 if (_carriedOnly != null && !_carriedOnly.Contains(item)) continue;
                 var carried = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
                 if (carried == null) continue;
-                NoteStrikes(carried);
-                if (carried.m_attack != null) NoteStrikes(carried.m_attack);
-                if (carried.m_secondaryAttack != null) NoteStrikes(carried.m_secondaryAttack);
-                var part = CatalogBuilder.AttackName(item);
-
-                // Each attack is one chip that plays it whole, as the game plays it; the weapon's
-                // other lists (a shield's block) stay chips of their own.
-                Collect(carried, part, true, swings: false);
+                var shown = CatalogBuilder.GameName(item);
                 foreach (var attack in new[] { carried.m_attack, carried.m_secondaryAttack })
                 {
                     if (attack == null) continue;
-                    var chip = AttackChip(carried, attack);
-                    if (chip == null || !seen.Add(chip)) continue;
-                    var label = attack == carried.m_attack ? part : part + ", second attack";
-                    found.Add(new KeyValuePair<string, KeyValuePair<string, EffectList>>(item.name, new KeyValuePair<string, EffectList>(label, chip)));
+                    weaponOf[attack] = carried;
+                    attacks.Add(new AttackInfo(item.name, shown, attack.m_attackAnimation, attack == carried.m_secondaryAttack, attack));
                 }
+                foreach (var field in CatalogBuilder.EffectFields(typeof(ItemDrop.ItemData.SharedData)))
+                {
+                    if (SwingLists.Contains(field.Name) || !(field.GetValue(carried) is EffectList list) || !HasAny(list)) continue;
+                    others.Add((Naming.EffectListLabel(field.Name), shown ?? AttackChips.Readable(item.name, prefab.name), list));
+                }
+            }
+            foreach (var chip in AttackChips.For(prefab.name, attacks))
+            {
+                var attack = (Attack)chip.Key;
+                var list = AttackChip(weaponOf[attack], attack);
+                if (list == null || !seen.Add(list)) continue;
+                found.Add(new KeyValuePair<string, KeyValuePair<string, EffectList>>(chip.Label, new KeyValuePair<string, EffectList>(chip.Label, list)));
+            }
+            foreach (var group in others.GroupBy(o => o.Label + "|" + string.Join(",", Members(o.List).OrderBy(m => m))))
+            {
+                var first = group.First();
+                if (!seen.Add(first.List)) continue;
+                var clash = others.Any(o => o.Label == first.Label && !group.Contains(o));
+                var label = clash ? first.Owner + ": " + first.Label.ToLowerInvariant() : first.Label;
+                found.Add(new KeyValuePair<string, KeyValuePair<string, EffectList>>(label, new KeyValuePair<string, EffectList>(label, first.List)));
             }
 
             foreach (var component in prefab.GetComponentsInChildren<Component>(true))

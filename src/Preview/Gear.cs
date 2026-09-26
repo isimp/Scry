@@ -63,10 +63,7 @@ namespace Scry
             var humanoid = prefab != null ? prefab.GetComponent<Humanoid>() : null;
             var sets = humanoid != null ? RolledSets(humanoid) : new List<Humanoid.ItemSet>();
             if (sets.Count == 0 || look <= 0) return new List<string>();
-            return sets[Mathf.Clamp(look - 1, 0, sets.Count - 1)].m_items
-                .Where(i => i != null && i.GetComponent<ItemDrop>()?.m_itemData?.IsWeapon() == true)
-                .OrderBy(i => AttachPart(i, out _) != null ? 0 : 1)
-                .Select(i => i.name).Distinct().ToList();
+            return HoldChoices(sets[Mathf.Clamp(look - 1, 0, sets.Count - 1)].m_items, prefab.name);
         }
 
         /// <summary>
@@ -174,7 +171,9 @@ namespace Scry
             {
                 if (loadout.ExtraOn(i)) Add(loadout.Extras[i].Name);
             }
-            items.RemoveAll(i => i == null);
+            // What draws nothing (a creature's unseen attacks) has no place on the copy, and must
+            // not take the hand from a weapon that shows.
+            items.RemoveAll(i => i == null || !Draws(i));
 
             // Each item is equipped as it is handed out, taking the place of one worn in the same
             // slot, so what comes later is what shows.
@@ -234,15 +233,19 @@ namespace Scry
         /// as its AI picks them in a fight. One that shows in the hand comes first, as it is the
         /// one to see.
         /// </summary>
-        private static List<string> Holdable(Humanoid humanoid)
+        private static List<string> Holdable(Humanoid humanoid) => HoldChoices(humanoid.m_defaultItems, humanoid.gameObject.name);
+
+        /// <summary>
+        /// Of some items, the weapons that are choices to hold (<see cref="AttackChips.Holdable"/>):
+        /// only those that show in the hand, one of each that shows alike.
+        /// </summary>
+        private static List<string> HoldChoices(IEnumerable<GameObject> items, string creature)
         {
-            var weapons = (humanoid.m_defaultItems ?? new GameObject[0])
+            var weapons = (items ?? new GameObject[0])
                 .Where(i => i != null && i.GetComponent<ItemDrop>()?.m_itemData?.IsWeapon() == true)
                 .Distinct()
-                .OrderBy(i => AttachPart(i, out _) != null ? 0 : 1)
-                .Select(i => i.name)
-                .ToList();
-            return weapons;
+                .Select(i => (i.name, CatalogBuilder.GameName(i) ?? AttackChips.Readable(i.name, creature), AttachPart(i, out _) != null));
+            return AttackChips.Holdable(weapons);
         }
 
         /// <summary>Puts a creature's loadout back to the first of each.</summary>
@@ -522,6 +525,13 @@ namespace Scry
             if (equipped != null) equipped.gameObject.SetActive(true);
             worn.SetActive(true);
             return worn;
+        }
+
+        /// <summary>Whether an item shows when worn: it has a part to hang, or armour that paints the body.</summary>
+        private static bool Draws(GameObject item)
+        {
+            if (AttachPart(item, out _) != null) return true;
+            return item.GetComponent<ItemDrop>()?.m_itemData?.m_shared?.m_armorMaterial != null;
         }
 
         /// <summary>The part of an item worn on the body, found as <c>VisEquipment.AttachItem</c> finds it.</summary>
