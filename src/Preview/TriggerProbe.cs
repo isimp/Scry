@@ -46,7 +46,7 @@ namespace Scry
         /// The game's own actions, as its code does them: <c>Character.ForceJump</c> pulls
         /// "jump", <c>MonsterAI.UpdateConsumeItem</c> "consume", <c>MonsterAI.Sleep</c> and
         /// <c>Wakeup</c> switch "sleeping" on and off, <c>BaseAI.SetAlerted</c> switches "alert",
-        /// a spawner that wakes what it spawns (<c>SpawnArea</c>, <c>SpawnAbility</c>) switches
+        /// a spawner that wakes what it spawns (<c>CreatureSpawner</c>, <c>SpawnAbility</c>) switches
         /// "wakeup" on as it appears, <c>Character.RPC_Stagger</c> pulls "stagger", a character
         /// in water or flying switches "inWater" or "flying" on (still, and swimming along), and
         /// <c>Character.OnDeath</c> switches "dead" on. Each is the switch or trigger, whether it
