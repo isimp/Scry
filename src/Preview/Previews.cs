@@ -790,11 +790,12 @@ namespace Scry
         /// <summary>The attack each of a creature's attack lists belongs to, for the swing that goes with it.</summary>
         private static readonly Dictionary<EffectList, Attack> AttackOf = new Dictionary<EffectList, Attack>();
 
-        /// <summary>An attack played whole: what plays as it begins and what plays at the strike.</summary>
+        /// <summary>An attack played whole: what plays as it begins, as it strikes, and where it hits.</summary>
         private sealed class WholeAttack
         {
             public EffectList Begin;
-            public EffectList Strike;
+            public EffectList Trigger;
+            public EffectList Hit;
         }
 
         private static readonly Dictionary<Attack, WholeAttack> Wholes = new Dictionary<Attack, WholeAttack>();
@@ -802,10 +803,12 @@ namespace Scry
 
         /// <summary>
         /// All an attack plays, as the game plays it, made once per attack: as it begins, the
-        /// weapon's and the attack's start and trail; at the strike, their trigger and hit, or
-        /// where there is no hit, their hit on the ground.
+        /// weapon's and the attack's start and trail; as it strikes, their trigger; where it hits,
+        /// their hit, or where there is no hit, their hit on the ground. What is thrown or shot hits
+        /// with its own effects where it lands, so such an attack has no hit of its own
+        /// (<c>Attack.ProjectileAttackTriggered</c> plays only the trigger).
         /// </summary>
-        public static void AttackParts(Attack attack, out EffectList begin, out EffectList strike)
+        public static void AttackParts(Attack attack, out EffectList begin, out EffectList trigger, out EffectList hit)
         {
             if (!Wholes.TryGetValue(attack, out var whole))
             {
@@ -826,18 +829,35 @@ namespace Scry
                     return new EffectList { m_effectPrefabs = data.ToArray() };
                 }
 
-                whole = new WholeAttack { Begin = Join("m_startEffect", "m_holdStartEffect", "m_trailStartEffect"), Strike = Join("m_triggerEffect", "m_hitEffect") };
+                whole = new WholeAttack { Begin = Join("m_startEffect", "m_holdStartEffect", "m_trailStartEffect"), Trigger = Join("m_triggerEffect"), Hit = Join("m_hitEffect") };
 
-                // An attack with no hit of its own (a ground slam) lands on the ground.
-                if (Join("m_hitEffect").m_effectPrefabs.Length == 0)
+                // Thrown, it hits where it lands; an attack with no hit of its own (a ground
+                // slam) lands on the ground.
+                if (attack.m_attackType == Attack.AttackType.Projectile) whole.Hit = new EffectList { m_effectPrefabs = new EffectList.EffectData[0] };
+                else if (whole.Hit.m_effectPrefabs.Length == 0)
                 {
-                    whole.Strike = new EffectList { m_effectPrefabs = whole.Strike.m_effectPrefabs.Concat(Join("m_hitTerrainEffect").m_effectPrefabs).ToArray() };
-                    OnGround.Add(whole.Strike);
+                    whole.Hit = Join("m_hitTerrainEffect");
+                    OnGround.Add(whole.Hit);
                 }
                 Wholes[attack] = whole;
             }
             begin = whole.Begin;
-            strike = whole.Strike;
+            trigger = whole.Trigger;
+            hit = whole.Hit;
+        }
+
+        /// <summary>
+        /// Where an attack comes from on a copy, as <c>Attack.GetAttackOrigin</c> finds it: its
+        /// origin joint in the body (the part the game calls "Visual", not an old model kept
+        /// switched off beside it), else the copy itself.
+        /// </summary>
+        public static Transform AttackOrigin(GameObject copy, Attack attack)
+        {
+            var t = copy.transform;
+            if (string.IsNullOrEmpty(attack.m_attackOriginJoint)) return t;
+            var body = t.Find("Visual");
+            var joint = Utils.FindChild(body != null ? body : t, attack.m_attackOriginJoint);
+            return joint != null ? joint : t;
         }
 
         /// <summary>What a creature's clips play: of its attacks, and what the game plays with its own actions.</summary>
@@ -1205,8 +1225,7 @@ namespace Scry
         {
             var t = copy.transform;
             var size = t.lossyScale.x;
-            var origin = attack.m_attackOriginJoint.Length > 0 ? Utils.FindChild(t, attack.m_attackOriginJoint) : null;
-            if (origin == null) origin = t;
+            var origin = AttackOrigin(copy, attack);
             var point = origin.position + t.up * attack.m_attackHeight * size + t.forward * attack.m_attackRange * size + t.right * attack.m_attackOffset * size;
             if (ground) point.y = t.position.y;
             return point;

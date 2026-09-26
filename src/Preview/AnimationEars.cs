@@ -128,11 +128,12 @@ namespace Scry
             _strikeKey = null;
             var part = clip != null && !_quiet ? AttackFor(clip.name) : null;
             _clipAttack = part?.Key as Attack;
-            _clipStrike = null;
+            _clipTrigger = null;
+            _clipHit = null;
             _strikeAt = -1f;
             if (_clipAttack != null)
             {
-                Previews.AttackParts(_clipAttack, out var begin, out _clipStrike);
+                Previews.AttackParts(_clipAttack, out var begin, out _clipTrigger, out _clipHit);
                 Listen.Note(Listening, "the attack " + _clipAttack.m_attackAnimation + (part.Begins ? "" : ", begun in an earlier clip"));
 
                 // The game strikes when a clip says so; an attack whose clips never say, halfway.
@@ -141,24 +142,33 @@ namespace Scry
                     _strikeAt = clip.length * 0.5f;
                     Listen.Note(Listening, "no clip of the attack says when it strikes, so it strikes halfway");
                 }
-                if (part.Begins) Report(Previews.PlayOnCopy(_copy, begin, null));
+                // Begun where the attack comes from, as the game starts it there.
+                if (part.Begins) Report(Previews.PlayOnCopy(_copy, begin, Previews.AttackOrigin(_copy, _clipAttack)));
             }
         }
 
         private Attack _clipAttack;
-        private EffectList _clipStrike;
+        private EffectList _clipTrigger;
+        private EffectList _clipHit;
         private float _strikeAt = -1f;
 
         /// <summary>
-        /// What lands when an attack's clip strikes, where the attack strikes, as <c>Attack</c>
-        /// plays its trigger and hit there, what it spawns there, and what it throws or shoots.
+        /// What an attack's clip plays when it strikes, where the game plays it: its trigger where
+        /// the attack comes from, or for a throw where it lets go; its hit where it reaches; what
+        /// it spawns there; and what it throws or shoots.
         /// </summary>
         private void ClipStrike()
         {
             var attack = _clipAttack;
             _strikeAt = -1f;
             if (attack == null || _copy == null) return;
-            if (_clipStrike != null) Report(Previews.PlayOnCopyAt(_copy, _clipStrike, Previews.StrikePoint(_copy, attack, Previews.LandsOnGround(_clipStrike))));
+            if (_clipTrigger != null)
+            {
+                Report(attack.m_attackType == Attack.AttackType.Projectile
+                    ? Previews.PlayOnCopyAt(_copy, _clipTrigger, Previews.StrikePoint(_copy, attack, false))
+                    : Previews.PlayOnCopy(_copy, _clipTrigger, Previews.AttackOrigin(_copy, attack)));
+            }
+            if (_clipHit != null) Report(Previews.PlayOnCopyAt(_copy, _clipHit, Previews.StrikePoint(_copy, attack, Previews.LandsOnGround(_clipHit))));
             if (attack.m_spawnOnTrigger != null)
             {
                 Report(Previews.PlayOnCopyAt(_copy, AsList(new[] { attack.m_spawnOnTrigger }), Previews.StrikePoint(_copy, attack, false)));
@@ -170,7 +180,7 @@ namespace Scry
         // ----- Steps -----
 
         /// <summary>Words of the clips in which a creature walks, runs or otherwise moves on its feet.</summary>
-        private static readonly string[] Moving = { "walk", "run", "jog", "sneak", "trot", "gallop", "move", "crawl", "charge", "sprint", "stroll", "step", "turn", "strafe" };
+        private static readonly string[] Moving = { "walk", "run", "jog", "sneak", "trot", "gallop", "move", "crawl", "charge", "sprint", "stroll", "step", "turn", "strafe", "swim" };
 
         private bool _quiet;
         private Attack _swing;
@@ -232,8 +242,7 @@ namespace Scry
             // Where Attack.GetProjectileSpawnPoint puts it, at the copy's size.
             var t = _copy.transform;
             var size = t.lossyScale.x;
-            var origin = attack.m_attackOriginJoint.Length > 0 ? Utils.FindChild(t, attack.m_attackOriginJoint) : null;
-            if (origin == null) origin = t;
+            var origin = Previews.AttackOrigin(_copy, attack);
             var start = origin.position + t.up * attack.m_attackHeight * size + t.forward * attack.m_attackRange * size + t.right * attack.m_attackOffset * size;
             var aim = t.forward;
             if (attack.m_launchAngle != 0f) aim = Quaternion.AngleAxis(attack.m_launchAngle, Vector3.Cross(Vector3.up, aim)) * aim;
@@ -278,12 +287,26 @@ namespace Scry
             }
             Listen.Note(heard, $"watching {step.m_feet.Length} feet");
 
+            // A foot the game names in an old model kept switched off beside the body (a frost
+            // troll's) never moves; the body's bone of that name does.
             var feet = new List<Transform>();
+            var body = Body;
+            var moved = 0;
             foreach (var foot in step.m_feet)
             {
                 var twin = foot != null ? Looks.Twin(_prefab.transform, _copy.transform, foot) : null;
+                if (twin != null && !twin.IsChildOf(body))
+                {
+                    var same = Utils.FindChild(body, twin.name);
+                    if (same != null)
+                    {
+                        twin = same;
+                        moved++;
+                    }
+                }
                 if (twin != null) feet.Add(twin);
             }
+            if (moved > 0) Listen.Note(heard, $"{moved} feet found by name in the body, the ones named being in a part switched off");
             if (feet.Count == 0) return;
 
             _feet = feet.ToArray();
@@ -294,11 +317,22 @@ namespace Scry
 
         private static global::FootStep.MotionType MotionOf(string name)
         {
+            if (name.Contains("swim")) return global::FootStep.MotionType.Swimming;
             return name.Contains("run") || name.Contains("sprint") || name.Contains("gallop") || name.Contains("charge")
                 ? global::FootStep.MotionType.Run
                 : name.Contains("sneak") || name.Contains("crawl") ? global::FootStep.MotionType.Sneak
                 : name.Contains("walk") || name.Contains("stroll") ? global::FootStep.MotionType.Walk
                 : global::FootStep.MotionType.Jog;
+        }
+
+        /// <summary>The copy's body, as the game finds a character's: its part called "Visual", else the copy.</summary>
+        private Transform Body
+        {
+            get
+            {
+                var body = _copy.transform.Find("Visual");
+                return body != null ? body : _copy.transform;
+            }
         }
 
         /// <summary>Lights what a playing clip made under its chip.</summary>
@@ -370,11 +404,12 @@ namespace Scry
             var part = AttackFor(clip.name);
             if (part?.Key is Attack attack)
             {
-                Previews.AttackParts(attack, out var begin, out var strike);
+                Previews.AttackParts(attack, out var begin, out var trigger, out var hit);
                 if (part.Begins) AddList(begin);
                 if (part.Strikes)
                 {
-                    AddList(strike);
+                    AddList(trigger);
+                    AddList(hit);
                     Add(attack.m_spawnOnTrigger);
                     Add(attack.m_attackProjectile);
                 }
@@ -585,7 +620,7 @@ namespace Scry
             if (effect == null) return;
 
             Transform foot = null;
-            if (!string.IsNullOrEmpty(e.Text)) foot = Utils.FindChild(_copy.transform, e.Text);
+            if (!string.IsNullOrEmpty(e.Text)) foot = Utils.FindChild(Body, e.Text) ?? Utils.FindChild(_copy.transform, e.Text);
             Report(Previews.PlayOnCopy(_copy, AsList(effect.m_effectPrefabs), foot));
         }
 
@@ -610,6 +645,19 @@ namespace Scry
         /// </summary>
         private static global::FootStep.StepEffect Step(global::FootStep step, global::FootStep.MotionType motion, global::FootStep.GroundMaterial ground)
         {
+            // In water the game steps on water, and only where a creature has a swimming step
+            // (FootStep.FindBestStepEffect: the motion must match; the last match wins).
+            if ((motion & global::FootStep.MotionType.Swimming) != 0)
+            {
+                global::FootStep.StepEffect swim = null;
+                foreach (var effect in step.m_effects)
+                {
+                    if (effect?.m_effectPrefabs == null || (effect.m_motionType & global::FootStep.MotionType.Swimming) == 0) continue;
+                    if ((effect.m_material & global::FootStep.GroundMaterial.Water) != 0 || (swim == null && (effect.m_material & global::FootStep.GroundMaterial.Default) != 0)) swim = effect;
+                }
+                return swim;
+            }
+
             global::FootStep.StepEffect Find(global::FootStep.GroundMaterial on, bool matchMotion)
             {
                 foreach (var effect in step.m_effects)

@@ -306,11 +306,11 @@ namespace Scry
                 // The game looks for the named part and hangs the effect on it only when it
                 // gives a parent; what it places at a point (a hit, a thrown thing's release) it
                 // gives none (EffectList.Create).
-                var anchor = _subject.transform;
+                var anchor = part != null ? part : _subject.transform;
                 var at = center;
                 if (point == null && !string.IsNullOrEmpty(data.m_childTransform))
                 {
-                    var child = Utils.FindChild(_subject.transform, data.m_childTransform);
+                    var child = Utils.FindChild(anchor, data.m_childTransform);
                     if (child != null)
                     {
                         anchor = child;
