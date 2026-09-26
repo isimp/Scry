@@ -92,6 +92,7 @@ namespace Scry
             _quiet = quiet;
             StartAttack(clip);
             PlayGameList(clip);
+            PlayAround(clip);
             WatchFeet(clip);
         }
 
@@ -100,6 +101,34 @@ namespace Scry
         {
             StartAttack(clip);
             PlayGameList(clip);
+            PlayAround(clip);
+        }
+
+        /// <summary>
+        /// What is heard around this clip, though the game does not play it with the clip
+        /// (<see cref="Previews.AroundOfClip"/>), played as it starts and told apart in the panel.
+        /// </summary>
+        private void PlayAround(AnimationClip clip)
+        {
+            var list = clip != null && !_quiet ? Previews.AroundOfClip(_prefab, _copy, clip.name) : null;
+            if (list == null) return;
+            Listen.Note(Listening, "heard around it, though the game does not play it with this clip");
+            Report(Previews.PlayOnCopy(_copy, list, null));
+        }
+
+        /// <summary>What is heard around a clip, by prefab name, apart from what it plays itself.</summary>
+        public List<string> AroundMembers(AnimationClip clip)
+        {
+            var names = new List<string>();
+            var list = clip != null ? Previews.AroundOfClip(_prefab, _copy, clip.name) : null;
+            if (list?.m_effectPrefabs == null) return names;
+            var own = Members(clip);
+            foreach (var data in list.m_effectPrefabs)
+            {
+                if (data?.m_prefab == null || !data.m_enabled || names.Contains(data.m_prefab.name) || own.Contains(data.m_prefab.name)) continue;
+                names.Add(data.m_prefab.name);
+            }
+            return names;
         }
 
         /// <summary>

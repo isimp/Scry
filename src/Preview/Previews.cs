@@ -865,6 +865,7 @@ namespace Scry
         {
             public Dictionary<string, ClipAttack> Attacks = new Dictionary<string, ClipAttack>();
             public Dictionary<string, object> Actions = new Dictionary<string, object>();
+            public Dictionary<string, object> Around = new Dictionary<string, object>();
         }
 
         private static readonly Dictionary<string, ClipPlays> ClipPlaysCache = new Dictionary<string, ClipPlays>();
@@ -891,6 +892,17 @@ namespace Scry
         {
             var plays = PlaysOf(prefab, copy, clip);
             return plays != null && plays.Actions.TryGetValue(clip, out var list) ? (EffectList)list : null;
+        }
+
+        /// <summary>
+        /// What is heard around a creature's clip, though the game does not play it with the clip
+        /// (<see cref="ClipAround"/>): with waking and a spawn roar, what it calls out once
+        /// alerted; with the clips it idles in, its idle sound. Null for none.
+        /// </summary>
+        public static EffectList AroundOfClip(GameObject prefab, GameObject copy, string clip)
+        {
+            var plays = PlaysOf(prefab, copy, clip);
+            return plays != null && plays.Around.TryGetValue(clip, out var list) ? (EffectList)list : null;
         }
 
         private static ClipPlays PlaysOf(GameObject prefab, GameObject copy, string clip)
@@ -922,12 +934,26 @@ namespace Scry
             }
 
             var actions = GameLists(prefab).ToList();
-            if (attacks.Count == 0 && actions.Count == 0) return plays;
+            if (attacks.Count == 0 && actions.Count == 0 && prefab.GetComponent<BaseAI>() == null) return plays;
             var clips = animator.runtimeAnimatorController.animationClips.Where(c => c != null).ToList();
             var striking = clips.Where(c => c.events.Any(e => e.functionName == "Hit" || e.functionName == "OnAttackTrigger")).Select(c => c.name);
             var seen = TriggerProbe.ClipsOf(prefab.name, animator, attacks.Select(a => a.Item1));
             plays.Attacks = ClipAttacks.Match(attacks, seen.Triggers, clips.Select(c => c.name), striking);
             plays.Actions = ClipActions.Match(actions, seen.Actions, plays.Attacks.Keys);
+
+            // What is heard next or now and then: waking, a troll is silent and roars once it
+            // spots you (BaseAI.SetAlerted); awake, it makes its idle sound now and then
+            // (BaseAI.DoIdleSound), whatever it plays.
+            var ai = prefab.GetComponent<BaseAI>();
+            var alerted = ai != null && HasAny(ai.m_alertedEffects) ? ai.m_alertedEffects : null;
+            var around = new List<(string, object)>();
+            if (alerted != null)
+            {
+                around.Add(("wake", alerted));
+                around.Add(("spawn", alerted));
+            }
+            var idleSound = ai != null && HasAny(ai.m_idleSound) ? ai.m_idleSound : null;
+            plays.Around = ClipAround.Match(around, seen.Actions, seen.Idle, idleSound, plays.Attacks.Keys);
             return plays;
         }
 
@@ -1562,6 +1588,14 @@ namespace Scry
             var animator = ClipPlayer.AnimatorOf(Stage.Subject);
             var ears = animator != null ? animator.GetComponent<AnimationEars>() : null;
             return ears != null ? ears.Members(clip) : new List<string>();
+        }
+
+        /// <summary>What is heard around the stage copy's animation clip, by prefab name.</summary>
+        public static List<string> ClipAroundMembers(AnimationClip clip)
+        {
+            var animator = ClipPlayer.AnimatorOf(Stage.Subject);
+            var ears = animator != null ? animator.GetComponent<AnimationEars>() : null;
+            return ears != null ? ears.AroundMembers(clip) : new List<string>();
         }
 
         public static List<AnimationClip> Clips()

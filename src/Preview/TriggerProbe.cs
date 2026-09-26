@@ -10,6 +10,9 @@ namespace Scry
     {
         public readonly Dictionary<string, IReadOnlyList<string>> Triggers = new Dictionary<string, IReadOnlyList<string>>();
         public readonly Dictionary<string, IReadOnlyList<string>> Actions = new Dictionary<string, IReadOnlyList<string>>();
+
+        /// <summary>The clips it plays when left alone, over several seeds, since it picks among them at random.</summary>
+        public readonly HashSet<string> Idle = new HashSet<string>();
     }
 
     /// <summary>
@@ -42,8 +45,10 @@ namespace Scry
         /// <summary>
         /// The game's own actions, as its code does them: <c>Character.ForceJump</c> pulls
         /// "jump", <c>MonsterAI.UpdateConsumeItem</c> "consume", <c>MonsterAI.Sleep</c> and
-        /// <c>Wakeup</c> switch "sleeping" on and off, <c>BaseAI.SetAlerted</c> switches "alert".
-        /// Each is the switch or trigger, whether it is a switch, and whether it is let go after.
+        /// <c>Wakeup</c> switch "sleeping" on and off, <c>BaseAI.SetAlerted</c> switches "alert",
+        /// and a spawner that wakes what it spawns (<c>SpawnArea</c>, <c>SpawnAbility</c>) switches
+        /// "wakeup" on as it appears. Each is the switch or trigger, whether it is a switch, and
+        /// whether it is let go after.
         /// </summary>
         private static readonly (string Action, string Name, bool Switch, bool Release)[] GameActions =
         {
@@ -52,7 +57,11 @@ namespace Scry
             ("sleep", "sleeping", true, false),
             ("wake", "sleeping", true, true),
             ("alert", "alert", true, false),
+            ("spawn", "wakeup", true, false),
         };
+
+        /// <summary>How many more seeded runs, a few seconds each, gather the clips it idles in.</summary>
+        private const int IdleSeeds = 4;
 
         /// <summary>Where the animator is at one step: the state it is in or moving to, its strongest clip there, and the clip of an attack state it is in or moving to.</summary>
         private struct Frame
@@ -90,6 +99,11 @@ namespace Scry
                 holder.SetActive(true);
 
                 var alone = Trace(probe, null, false, null, -1, 2 * ActionPatience + Settle);
+                foreach (var frame in alone) if (frame.Clip != null) seen.Idle.Add(frame.Clip);
+                for (var seed = 2; seed <= IdleSeeds + 1; seed++)
+                {
+                    foreach (var frame in Trace(probe, null, false, null, -1, 160, seed)) if (frame.Clip != null) seen.Idle.Add(frame.Clip);
+                }
                 bool Has(string name, AnimatorControllerParameterType type) => probe.parameters.Any(p => p.type == type && p.name == name);
                 string Tell(string name, List<string> clips) => clips.Count > 0 ? $"{name} plays {string.Join(" then ", clips)}" : $"{name} plays no clip of its own";
 
@@ -134,7 +148,7 @@ namespace Scry
                     seen.Actions[action] = clips;
                     actions.Add(Tell(action, clips));
                 }
-                Plugin.Log.LogInfo($"Scry saw what the animator of {prefab} plays: attacks {(attacks.Count > 0 ? string.Join("; ", attacks) : "none")}; the game's own actions {(actions.Count > 0 ? string.Join("; ", actions) : "none")}.");
+                Plugin.Log.LogInfo($"Scry saw what the animator of {prefab} plays: attacks {(attacks.Count > 0 ? string.Join("; ", attacks) : "none")}; the game's own actions {(actions.Count > 0 ? string.Join("; ", actions) : "none")}; left alone {string.Join(", ", seen.Idle.OrderBy(c => c))}.");
             }
             catch (System.Exception ex)
             {
@@ -154,9 +168,9 @@ namespace Scry
         /// (<paramref name="first"/>) or once it runs, and <paramref name="then"/> at step
         /// <paramref name="thenAt"/>. Where it is at each step, the first before any step.
         /// </summary>
-        private static List<Frame> Trace(Animator animator, System.Action<Animator> act, bool first, System.Action<Animator> then, int thenAt, int steps)
+        private static List<Frame> Trace(Animator animator, System.Action<Animator> act, bool first, System.Action<Animator> then, int thenAt, int steps, int seed = 1)
         {
-            Random.InitState(1);
+            Random.InitState(seed);
             animator.Rebind();
             foreach (var parameter in animator.parameters)
             {

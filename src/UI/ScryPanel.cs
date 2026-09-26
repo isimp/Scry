@@ -1913,6 +1913,14 @@ namespace Scry
                     y += U(10f);
                     y = Members(explorer, "In " + last.name + ":", last, members, null, width, y);
                 }
+
+                // What the game does not play with the clip but plays around it: next, or now and then.
+                var around = Previews.ClipAroundMembers(last).ToArray();
+                if (around.Length > 0)
+                {
+                    y += U(members.Length > 0 ? 2f : 10f);
+                    y = Members(explorer, "Heard around it:", last, around, null, width, y);
+                }
             }
 
             return y + U(10f);
