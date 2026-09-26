@@ -399,10 +399,10 @@ namespace Scry
             PlaceGround();
 
             var seconds = Falling.DebrisSeconds(list);
+            var away = _camera != null ? Vector3.ProjectOnPlane(_camera.transform.forward, Vector3.up).normalized : Vector3.forward;
             var left = Falling.Breaks(prefab, list) ? Falling.Break(prefab, _subject, _root.transform, _layer, _layer) : null;
             if (left == null)
             {
-                var away = _camera != null ? Vector3.ProjectOnPlane(_camera.transform.forward, Vector3.up).normalized : Vector3.forward;
                 left = Falling.Fell(prefab, _subject, _root.transform, _layer, _layer, away);
                 if (left != null) seconds = 10f;
             }
@@ -411,11 +411,36 @@ namespace Scry
                 left = new GameObject("Scry destroyed");
                 left.transform.SetParent(_root.transform, false);
             }
+            if (Falling.Leave(prefab, _subject, left.transform, _layer, _layer, away))
+            {
+                Tune(left, audible: !Previews.WorldHeard);
+                seconds = Mathf.Max(seconds, 8f);
+            }
 
             Standin.For(left, _subject, seconds, null, onStage: true);
             Played.Add(new KeyValuePair<GameObject, float>(left, Time.unscaledTime + seconds + 1f));
             return left;
         }
+
+        /// <summary>
+        /// Lets the stage copy of something the game leaves to physics (a log, an item) fall from
+        /// where it stands and roll or tumble on the ground; it stands again after a while.
+        /// </summary>
+        public static GameObject LetFall(GameObject prefab)
+        {
+            if (_subject == null || Standin.IsDown(_subject) || !Falling.Ready(_layer)) return null;
+            PlaceGround();
+            var away = _camera != null ? Vector3.ProjectOnPlane(_camera.transform.right, Vector3.up).normalized : Vector3.right;
+            var loose = Falling.Loose(prefab, _subject, _root.transform, _layer, _layer, away);
+            if (loose == null) return null;
+            Tune(loose, audible: !Previews.WorldHeard);
+            Standin.For(loose, _subject, LooseSeconds, null, onStage: true);
+            Played.Add(new KeyValuePair<GameObject, float>(loose, Time.unscaledTime + LooseSeconds + 1f));
+            return loose;
+        }
+
+        /// <summary>How long something let fall lies before the copy stands again.</summary>
+        public const float LooseSeconds = 8f;
 
         /// <summary>The invisible ground falling copies land on, level with the floor under the model.</summary>
         private static void PlaceGround()

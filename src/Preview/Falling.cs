@@ -138,9 +138,167 @@ namespace Scry
         public static GameObject Debris(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer, int physicsLayer)
         {
             var copy = Ghost.Make(prefab, parent, position, rotation, layer, falling: true);
+            Gib(prefab, copy, Vector3.zero);
             if (copy != null && layer < 0) Solidify(copy, physicsLayer);
             return copy;
         }
+
+        /// <summary>
+        /// What else the game leaves when it destroys the prefab, under the parent, at the copy's
+        /// size: a log's halves at its split points (<c>TreeLog.Destroy</c>), what a destructible
+        /// leaves in its place (<c>Destructible.Destroy</c>'s spawn, its gibs flung as
+        /// <c>Gibber</c> flings them), and what its drop table rolls, falling out where the game
+        /// puts it (<c>TreeBase</c>, <c>TreeLog</c>, <c>DropOnDestroyed</c>). True when anything
+        /// was left.
+        /// </summary>
+        public static bool Leave(GameObject prefab, GameObject copy, Transform parent, int layer, int physicsLayer, Vector3 away)
+        {
+            var left = false;
+            var t = copy.transform;
+            var size = t.lossyScale;
+            var shown = t.lossyScale.x / Mathf.Max(0.001f, prefab.transform.localScale.x);
+
+            var log = prefab.GetComponent<TreeLog>();
+            if (log != null && log.m_subLogPrefab != null)
+            {
+                foreach (var point in log.m_subLogPoints)
+                {
+                    if (point == null) continue;
+                    var at = Looks.Twin(prefab.transform, t, point) ?? t;
+                    var half = Ghost.Make(log.m_subLogPrefab, parent, at.position, log.m_useSubLogPointRotation ? at.rotation : t.rotation, layer, falling: true);
+                    if (half == null) continue;
+                    half.transform.localScale = size;
+                    if (layer < 0) Solidify(half, physicsLayer);
+                    left = true;
+                }
+            }
+
+            var destructible = prefab.GetComponent<Destructible>();
+            var spawn = destructible != null ? destructible.m_spawnWhenDestroyed : null;
+            if (spawn != null && spawn.GetComponentInChildren<Character>(true) == null)
+            {
+                var broken = Ghost.Make(spawn, parent, t.position, t.rotation, layer, falling: true);
+                if (broken != null)
+                {
+                    broken.transform.localScale = size;
+                    Gib(spawn, broken, away);
+                    if (layer < 0) Solidify(broken, physicsLayer);
+                    left = true;
+                }
+            }
+
+            // What its drop table rolls: along a log, and above anything else, a step higher each.
+            DropTable table = null;
+            float spread = 0f, offset = 0.5f, step = 0.3f;
+            if (log != null) { table = log.m_dropWhenDestroyed; spread = log.m_spawnDistance; offset = 0f; }
+            else if (prefab.GetComponent<TreeBase>() is TreeBase tree) { table = tree.m_dropWhenDestroyed; offset = tree.m_spawnYOffset; step = tree.m_spawnYStep; }
+            else if (prefab.GetComponent<DropOnDestroyed>() is DropOnDestroyed drops) { table = drops.m_dropWhenDestroyed; offset = drops.m_spawnYOffset; step = drops.m_spawnYStep; }
+            if (table != null)
+            {
+                var items = table.GetDropList();
+                for (var i = 0; i < items.Count && i < 24; i++)
+                {
+                    if (items[i] == null) continue;
+                    Vector3 position;
+                    if (log != null) position = t.position + t.up * Random.Range(-spread, spread) * shown + Vector3.up * 0.3f * i * shown;
+                    else
+                    {
+                        var circle = Random.insideUnitCircle * 0.5f * shown;
+                        position = t.position + Vector3.up * offset * shown + new Vector3(circle.x, step * i * shown, circle.y);
+                    }
+                    var item = Ghost.Make(items[i], parent, position, Quaternion.Euler(0f, Random.Range(0, 360), 0f), layer, falling: true);
+                    if (item == null) continue;
+                    item.transform.localScale = items[i].transform.localScale * shown;
+                    if (layer < 0) Solidify(item, physicsLayer);
+                    left = true;
+                }
+            }
+            return left;
+        }
+
+        /// <summary>
+        /// Flings a copy's pieces as the game's <c>Gibber</c> does when it appears: each drawn part
+        /// without a body gets one, and every body flies out from their middle, turned towards the
+        /// hit's direction by as much as it says, at a speed between its least and most, spinning.
+        /// Nothing for a copy of a prefab without one.
+        /// </summary>
+        public static void Gib(GameObject prefab, GameObject copy, Vector3 hitDir)
+        {
+            var gibber = prefab != null ? prefab.GetComponent<Gibber>() : null;
+            if (gibber == null || copy == null) return;
+            foreach (var part in copy.GetComponentsInChildren<MeshRenderer>())
+            {
+                if (part.GetComponent<Rigidbody>() != null) continue;
+                part.gameObject.AddComponent<BoxCollider>();
+                part.gameObject.AddComponent<Rigidbody>().maxDepenetrationVelocity = 2f;
+            }
+            var bodies = copy.GetComponentsInChildren<Rigidbody>();
+            if (bodies.Length == 0) return;
+            var middle = Vector3.zero;
+            foreach (var body in bodies) middle += body.worldCenterOfMass;
+            middle /= bodies.Length;
+            var mix = hitDir.magnitude > 0.01f ? gibber.m_impactDirectionMix : 0f;
+            foreach (var body in bodies)
+            {
+                var direction = Vector3.Lerp(Vector3.Normalize(body.worldCenterOfMass - middle), hitDir, mix);
+                body.linearVelocity = direction * Random.Range(gibber.m_minVel, gibber.m_maxVel);
+                var spin = gibber.m_maxRotVel;
+                body.angularVelocity = new Vector3(Random.Range(-spin, spin), Random.Range(-spin, spin), Random.Range(-spin, spin));
+            }
+        }
+
+        /// <summary>
+        /// A loose copy of something the game leaves to physics (a log, an item), dropped a little
+        /// above where the copy stands and let fall: a log pushed across its length, so it rolls,
+        /// anything else set tumbling.
+        /// </summary>
+        public static GameObject Loose(GameObject prefab, GameObject copy, Transform parent, int layer, int physicsLayer, Vector3 away)
+        {
+            var t = copy.transform;
+            var holder = new GameObject("Scry let fall");
+            holder.transform.SetParent(parent, false);
+            var size = t.lossyScale.x;
+            var loose = Ghost.Make(prefab, holder.transform, t.position + Vector3.up * 0.5f * size, t.rotation, layer, falling: true);
+            if (loose == null)
+            {
+                Object.Destroy(holder);
+                return null;
+            }
+            loose.transform.localScale = t.lossyScale;
+            if (layer < 0) Solidify(loose, physicsLayer);
+
+            var body = loose.GetComponent<Rigidbody>();
+            if (body != null)
+            {
+                body.isKinematic = false;
+                if (prefab.GetComponent<TreeLog>() != null)
+                {
+                    // Across its longest side, and turning about it.
+                    var along = LongestSide(loose);
+                    var across = Vector3.ProjectOnPlane(away, along).normalized;
+                    if (across.sqrMagnitude < 0.01f) across = Vector3.Cross(along, Vector3.up).normalized;
+                    body.linearVelocity = across * 2.5f * size;
+                    body.angularVelocity = Vector3.Cross(Vector3.up, across) * 3f;
+                }
+                else
+                {
+                    body.linearVelocity = (away * 1.5f + Vector3.up * 2f) * size;
+                    body.angularVelocity = Random.onUnitSphere * 6f;
+                }
+            }
+            return holder;
+        }
+
+        /// <summary>The world direction of a copy's longest side, by what it draws.</summary>
+        private static Vector3 LongestSide(GameObject copy)
+        {
+            var mesh = copy.GetComponentInChildren<MeshFilter>();
+            if (mesh == null || mesh.sharedMesh == null) return copy.transform.forward;
+            var extents = mesh.sharedMesh.bounds.extents;
+            var local = extents.x >= extents.y && extents.x >= extents.z ? Vector3.right : extents.y >= extents.z ? Vector3.up : Vector3.forward;
+            return mesh.transform.TransformDirection(local).normalized;
+        }
+
 
         /// <summary>
         /// Whether playing this list on the prefab breaks it apart: it is the list a piece, tree or

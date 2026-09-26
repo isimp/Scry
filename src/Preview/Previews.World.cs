@@ -125,6 +125,18 @@ namespace Scry
             return fallen;
         }
 
+        private static GameObject LetFallInWorld(GameObject prefab)
+        {
+            if (_world == null || Standin.IsDown(_world) || !Falling.Ready(Stage.Layer)) return null;
+            var player = Player.m_localPlayer;
+            var away = player != null ? Vector3.Cross(Vector3.up, Vector3.ProjectOnPlane(_world.transform.position - player.transform.position, Vector3.up).normalized) : Vector3.right;
+            var loose = Falling.Loose(prefab, _world, null, -1, Stage.Layer, away);
+            if (loose == null) return null;
+            Standin.For(loose, _world, Stage.LooseSeconds, null, onStage: false);
+            Remember(loose, Stage.LooseSeconds + 1f);
+            return loose;
+        }
+
         private static GameObject DestroyInWorld(GameObject prefab, EffectList list)
         {
             if (_world == null || Standin.IsDown(_world) || !Falling.Ready(Stage.Layer)) return null;
@@ -139,6 +151,8 @@ namespace Scry
                 if (left != null) seconds = 10f;
             }
             if (left == null) left = new GameObject("Scry destroyed");
+            var from = Player.m_localPlayer != null ? Vector3.ProjectOnPlane(_world.transform.position - Player.m_localPlayer.transform.position, Vector3.up).normalized : Vector3.forward;
+            if (Falling.Leave(prefab, _world, left.transform, -1, Stage.Layer, from)) seconds = Mathf.Max(seconds, 8f);
 
             Standin.For(left, _world, seconds, null, onStage: false);
             Remember(left, seconds + 1f);

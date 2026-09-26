@@ -447,6 +447,12 @@ namespace Scry
                         if (fallen) Previews.Stop("ragdoll");
                         else Previews.Ragdoll();
                     }
+                    var loose = Previews.Playing.IsPlaying("let fall");
+                    if (Previews.CanLetFall(entry) && Stage.Subject != null && Button("Let it fall", loose ? Skin.On : Skin.Button))
+                    {
+                        if (loose) Previews.Stop("let fall");
+                        else Previews.LetFall();
+                    }
                     if (Previews.IsModel(entry))
                     {
                         if (Button(Previews.InWorld ? "Showing in the world" : "Show in the world", Previews.InWorld ? Skin.On : (entry.Kind == Kind.Projectile ? Skin.Button : Skin.Primary))) Previews.ToggleWorld();

@@ -410,6 +410,19 @@ namespace Scry
         private static bool Animate(GameObject prefab, EffectList list)
         {
             if (prefab == null || list == null) return false;
+
+            // A tree struck shakes its trunk a second (TreeBase.Shake).
+            var tree = prefab.GetComponent<TreeBase>();
+            if (tree != null && tree.m_trunk != null && list == tree.m_hitEffect)
+            {
+                foreach (var copy in new[] { Stage.Subject, _world })
+                {
+                    var trunk = copy != null ? Looks.Twin(prefab.transform, copy.transform, tree.m_trunk.transform) : null;
+                    if (trunk != null) TrunkShake.Start(trunk);
+                }
+                Listen.Note(_heard, "shook the trunk");
+                return true;
+            }
             var character = prefab.GetComponent<Character>();
             var ai = prefab.GetComponent<BaseAI>();
             var humanoid = character as Humanoid;
@@ -556,6 +569,22 @@ namespace Scry
         {
             if (entry == null || entry.Kind != Kind.Creature || !(entry.Source is GameObject prefab)) return null;
             return Falling.RagdollIn(prefab.GetComponent<Character>()?.m_deathEffects);
+        }
+
+        /// <summary>Whether an entry is something the game leaves to physics, a log or an item, which can be let fall.</summary>
+        public static bool CanLetFall(Entry entry)
+        {
+            if (!(entry?.Source is GameObject prefab) || Looks.IsWorn(entry)) return false;
+            return (prefab.GetComponent<TreeLog>() != null || prefab.GetComponent<ItemDrop>() != null) && prefab.GetComponent<Rigidbody>() != null;
+        }
+
+        /// <summary>Lets a log or an item fall and roll or tumble, on the stage and in the world.</summary>
+        public static void LetFall()
+        {
+            if (!CanLetFall(_entry)) return;
+            Stop("let fall");
+            var prefab = (GameObject)_entry.Source;
+            Started("let fall", new[] { Stage.LetFall(prefab), LetFallInWorld(prefab) });
         }
 
         /// <summary>Lets the creature fall as its ragdoll, on the stage and in the world, without its death effects.</summary>
