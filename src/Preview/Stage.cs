@@ -120,6 +120,11 @@ namespace Scry
 
         private static float _gridMetres = -1f;
 
+        // What the camera frames, eased towards what is to be seen, so it does not jump about.
+        private static Vector3 _frameCenter;
+        private static float _frameRadius = -1f;
+        private static bool _followEffect;
+
         /// <summary>The layer nothing in the game uses, which the stage is drawn on and falling copies land with.</summary>
         public static int Layer
         {
@@ -191,6 +196,7 @@ namespace Scry
             Tune(_subject, entry.Kind == Kind.Effect);
 
             _madeAt = Time.unscaledTime;
+            _followEffect = entry.Kind == Kind.Effect;
             _baseScale = _subject.transform.localScale;
             _bounds = Measure(_subject);
             Apply(modifiers);
@@ -378,6 +384,27 @@ namespace Scry
             Yaw = FrontYaw;
             Pitch = FrontPitch;
             Zoom = 1f;
+            _frameRadius = -1f;
+        }
+
+        /// <summary>Turns the camera to a view: "Front", "Side", "Top", or "Fit" to frame it whole again.</summary>
+        public static void View(string name)
+        {
+            switch (name)
+            {
+                case "Front":
+                    Yaw = 180f;
+                    Pitch = 8f;
+                    break;
+                case "Side":
+                    Yaw = 90f;
+                    Pitch = 8f;
+                    break;
+                case "Top":
+                    Pitch = 85f;
+                    break;
+            }
+            Zoom = 1f;
         }
 
         /// <summary>Films the stage, when the panel showed it in the last couple of frames.</summary>
@@ -500,8 +527,28 @@ namespace Scry
             var framed = subject;
             if (_person != null && _person.activeSelf) framed.Encapsulate(_personBounds);
 
-            var center = framed.center;
-            var radius = Mathf.Max(0.05f, framed.extents.magnitude);
+            // Everything an effect reaches is framed too: an effect's own particles as they
+            // spread, and what was played on the model (sparks, debris, a ragdoll, a fallen log).
+            if (_followEffect) Reach(_subject, ref framed);
+            foreach (var played in Played) Reach(played.Key, ref framed);
+
+            var wantCenter = framed.center;
+            var wantRadius = Mathf.Max(0.05f, framed.extents.magnitude);
+            if (_frameRadius < 0f)
+            {
+                _frameCenter = wantCenter;
+                _frameRadius = wantRadius;
+            }
+            else
+            {
+                // Out quickly, so nothing leaves the picture; back in slowly, once it settles.
+                var dt = Time.unscaledDeltaTime;
+                var rate = wantRadius > _frameRadius ? 6f : 1.2f;
+                _frameRadius = Mathf.Lerp(_frameRadius, wantRadius, 1f - Mathf.Exp(-rate * dt));
+                _frameCenter = Vector3.Lerp(_frameCenter, wantCenter, 1f - Mathf.Exp(-3f * dt));
+            }
+            var center = _frameCenter;
+            var radius = _frameRadius;
             var distance = radius / Mathf.Sin(FieldOfView * 0.5f * Mathf.Deg2Rad) * Zoom;
 
             var rotation = Quaternion.Euler(Pitch, Yaw, 0f);
@@ -541,6 +588,19 @@ namespace Scry
                 _floor.transform.position = new Vector3(center.x, floorY, center.z);
                 var size = radius * 3.2f;
                 _floor.transform.localScale = new Vector3(size, size, size);
+            }
+        }
+
+        /// <summary>Grows the framed space by what a copy draws now, leaving out what is far off or runaway.</summary>
+        private static void Reach(GameObject thing, ref Bounds framed)
+        {
+            if (thing == null || !thing.activeInHierarchy) return;
+            foreach (var renderer in thing.GetComponentsInChildren<Renderer>())
+            {
+                if (!renderer.enabled) continue;
+                var bounds = renderer.bounds;
+                if (bounds.size.sqrMagnitude < 1e-6f || bounds.size.magnitude > 200f || (bounds.center - Origin).magnitude > 200f) continue;
+                framed.Encapsulate(bounds);
             }
         }
 

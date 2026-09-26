@@ -922,6 +922,24 @@ namespace Scry
             ClipPlayer.Play(_world, clip, LoopClips, speed);
         }
 
+        /// <summary>Where the clip on the stage is, and how long it is.</summary>
+        public static bool ClipPosition(out float time, out float length) => ClipPlayer.Position(Stage.Subject, out time, out length);
+
+        public static bool ClipPaused => ClipPlayer.Paused(Stage.Subject);
+
+        /// <summary>Moves the clip to a time, on the stage and in the world together.</summary>
+        public static void SeekClip(float time)
+        {
+            ClipPlayer.Seek(Stage.Subject, time);
+            ClipPlayer.Seek(_world, time);
+        }
+
+        public static void PauseClip(bool pause)
+        {
+            ClipPlayer.Pause(Stage.Subject, pause);
+            ClipPlayer.Pause(_world, pause);
+        }
+
         public static void StopClip()
         {
             ClipPlayer.Stop(Stage.Subject);

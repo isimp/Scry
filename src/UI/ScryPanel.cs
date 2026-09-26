@@ -42,7 +42,11 @@ namespace Scry
         private static float _badgeWidth;
         private static string _effectFilter = "";
 
-        private enum Drag { None, Move, Resize, Orbit }
+        private enum Drag { None, Move, Resize, Orbit, StageSize }
+
+        /// <summary>The stage's height against its usual one, set by dragging its bottom edge.</summary>
+        private static float _stageScale = 1f;
+        private static float _stageBaseH = 300f;
         private static Drag _drag;
         private static bool _failed;
 
@@ -259,7 +263,7 @@ namespace Scry
 
             if (e.rawType == EventType.MouseUp)
             {
-                if (_drag == Drag.Move || _drag == Drag.Resize) SaveRects();
+                if (_drag == Drag.Move || _drag == Drag.Resize || _drag == Drag.StageSize) SaveRects();
                 _drag = Drag.None;
                 Stage.Dragging = false;
                 return;
@@ -279,6 +283,9 @@ namespace Scry
                     break;
                 case Drag.Orbit:
                     Stage.Orbit(e.delta);
+                    break;
+                case Drag.StageSize:
+                    _stageScale = Mathf.Clamp(_stageScale + e.delta.y / Mathf.Max(1f, _stageBaseH), 0.4f, 2.4f);
                     break;
             }
             Win = win;
@@ -305,6 +312,7 @@ namespace Scry
                     if (parts.Length == 2 && parts[0] == "person") Stage.ShowPerson = parts[1] == "1";
                     if (parts.Length == 2 && parts[0] == "worn") Looks.OnPerson = parts[1] == "1";
                     if (parts.Length == 2 && parts[0] == "spin") Stage.Spin = parts[1] == "1";
+                    if (parts.Length == 2 && parts[0] == "stage" && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var stage)) _stageScale = Mathf.Clamp(stage, 0.4f, 2.4f);
                     if (parts.Length >= 1 && parts[0] == "folded")
                     {
                         Folded.Clear();
@@ -334,7 +342,8 @@ namespace Scry
                 Directory.CreateDirectory(Plugin.DataFolder);
                 File.WriteAllLines(RectFile, new[] { Line("full", _full), Line("compact", _compactRect), "view " + (_compact ? "compact" : "full"),
                     "light " + Stage.LightingIndex, "backdrop " + Stage.BackdropIndex, "person " + (Stage.ShowPerson ? "1" : "0"), "worn " + (Looks.OnPerson ? "1" : "0"),
-                    "spin " + (Stage.Spin ? "1" : "0"), "folded " + string.Join(" ", Folded) });
+                    "spin " + (Stage.Spin ? "1" : "0"), "folded " + string.Join(" ", Folded),
+                    "stage " + _stageScale.ToString("0.00", CultureInfo.InvariantCulture) });
             }
             catch (Exception ex)
             {
@@ -446,16 +455,18 @@ namespace Scry
 
             // In the compact view the search has the whole first row and the buttons go below it.
             var row = rect.y;
+            var navW = starW * 2f + U(4f) + gap;
             Rect search;
             if (_compact)
             {
-                search = new Rect(rect.x, rect.y, rect.width, rect.height);
+                search = new Rect(rect.x + navW, rect.y, rect.width - navW, rect.height);
                 row = rect.yMax + U(8f);
             }
             else
             {
-                search = new Rect(rect.x, rect.y, rect.width - originW - starW * 2f - recentW - gap * 4f, rect.height);
+                search = new Rect(rect.x + navW, rect.y, rect.width - navW - originW - starW * 2f - recentW - gap * 4f, rect.height);
             }
+            BackAndForward(explorer, new Rect(rect.x, rect.y, starW, rect.height), new Rect(rect.x + starW + U(4f), rect.y, starW, rect.height));
             Search(explorer, search);
             var startX = _compact ? rect.x - gap : search.xMax;
 
@@ -508,6 +519,28 @@ namespace Scry
             if (originRect.Contains(Event.current.mousePosition)) AskTip("origin", "Everything, only the game's own, or only what mods added");
 
             return originRow + rect.height;
+        }
+
+        /// <summary>Back to where the last jump came from, and forward again, as in a browser.</summary>
+        private static void BackAndForward(Explorer explorer, Rect back, Rect forward)
+        {
+            var was = GUI.enabled;
+            GUI.enabled = was && explorer.CanGoBack;
+            if (GUI.Button(back, "\u2039", Skin.IconButton)) Step(explorer, true);
+            GUI.enabled = was && explorer.CanGoForward;
+            if (GUI.Button(forward, "\u203A", Skin.IconButton)) Step(explorer, false);
+            GUI.enabled = was;
+            if (back.Contains(Event.current.mousePosition)) AskTip("back", "Back to where you jumped from (mouse back button)");
+            if (forward.Contains(Event.current.mousePosition)) AskTip("forward", "Forward again (mouse forward button)");
+        }
+
+        /// <summary>Goes back or forward, and shows where it lands.</summary>
+        public static void Step(Explorer explorer, bool back)
+        {
+            if (explorer == null || !(back ? explorer.Back() : explorer.Forward())) return;
+            _reveal = true;
+            _sideScroll = Vector2.zero;
+            _help = false;
         }
 
         private static void Search(Explorer explorer, Rect rect)
@@ -882,8 +915,10 @@ namespace Scry
             var top = rect.y;
             if (withStage)
             {
-                var stageH = Mathf.Round(Mathf.Min(rect.width * 0.60f, rect.height * 0.50f));
+                _stageBaseH = Mathf.Round(Mathf.Min(rect.width * 0.60f, rect.height * 0.50f));
+                var stageH = Mathf.Round(Mathf.Clamp(_stageBaseH * _stageScale, U(120f), rect.height * 0.85f));
                 StageArea(entry, new Rect(rect.x, rect.y, rect.width, stageH));
+                StageHandle(new Rect(rect.x, rect.y + stageH, rect.width, U(12f)));
                 top += stageH + U(12f);
             }
 
@@ -913,6 +948,33 @@ namespace Scry
             GUI.EndScrollView();
         }
 
+        /// <summary>
+        /// The strip under the stage: dragged, it makes the stage taller or shorter; double-clicked,
+        /// it puts the usual height back.
+        /// </summary>
+        private static void StageHandle(Rect strip)
+        {
+            var e = Event.current;
+            var hover = strip.Contains(e.mousePosition) || _drag == Drag.StageSize;
+            var bar = new Rect(strip.center.x - U(24f), strip.y + U(4f), U(48f), U(4f));
+            Skin.Fill(bar, hover ? Skin.Dim : Skin.Outline);
+            if (strip.Contains(e.mousePosition)) AskTip("stage-size", "Drag to make the stage taller or shorter, double-click for its usual height");
+
+            if (e.type == EventType.MouseDown && e.button == 0 && strip.Contains(e.mousePosition))
+            {
+                if (e.clickCount == 2)
+                {
+                    _stageScale = 1f;
+                    SaveRects();
+                }
+                else
+                {
+                    _drag = Drag.StageSize;
+                }
+                e.Use();
+            }
+        }
+
         private static void StageArea(Entry entry, Rect rect)
         {
             var e = Event.current;
@@ -932,9 +994,11 @@ namespace Scry
                     GUI.Label(inner, "This one could not be previewed.", Skin.CenterDim);
                 }
 
+                var viewsW = ViewButtons(inner);
+                var textW = inner.width - U(24f) - viewsW;
                 if (rect.Contains(e.mousePosition) || _drag == Drag.Orbit)
                 {
-                    FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), inner.width - U(24f), U(22f)),
+                    FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), textW, U(22f)),
                         "Drag to turn, scroll to zoom, double-click to reset", Skin.FaintLabel, 9f);
                 }
                 else if (Stage.Subject != null && Stage.ShowsGrid)
@@ -942,7 +1006,7 @@ namespace Scry
                     // On the grid, how big the model is, in the same metres as its squares.
                     var size = Stage.SubjectSize;
                     string M(float v) => v.ToString(v < 10f ? "0.0" : "0", CultureInfo.InvariantCulture);
-                    FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), inner.width - U(24f), U(22f)),
+                    FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), textW, U(22f)),
                         $"Squares of 1 m, lines every 5 m  \u00B7  {M(size.y)} m tall, {M(size.x)} × {M(size.z)} m", Skin.DimLabel, 9f);
                 }
 
@@ -1148,9 +1212,17 @@ namespace Scry
             var x = _compact ? KindBadge(entry, new Vector2(0f, y)) + U(10f) : 0f;
             var origin = OriginText(entry);
             var sub = entry.Name == primary ? origin : entry.Name + (origin.Length > 0 ? "   ·   " + origin : "");
-            if (sub.Length > 0 || _compact)
+
+            // Folding every section at once, at the right of this row.
+            var anyOpen = Foldable.Any(k => !Folded.Contains(k));
+            var foldText = anyOpen ? "Fold all" : "Open all";
+            var foldW = Skin.Chip.CalcSize(new GUIContent(foldText)).x + U(6f);
+            var foldRect = new Rect(width - foldW, y, foldW, U(22f));
+            if (GUI.Button(foldRect, foldText, Skin.Chip)) FoldAll(anyOpen);
+            if (foldRect.Contains(Event.current.mousePosition)) AskTip("fold-all", anyOpen ? "Fold every section away" : "Open every section");
+
             {
-                var subRect = new Rect(x, y, width - x, U(22f));
+                var subRect = new Rect(x, y, width - x - foldW - U(8f), U(22f));
                 if (!FitLabel(subRect, sub, Skin.DimLabel, 10f) && subRect.Contains(Event.current.mousePosition)) AskTip("sub", sub);
                 if (entry.Origin == Origin.Mod && entry.ModName.Length > 0)
                 {
@@ -1535,6 +1607,16 @@ namespace Scry
 
         private static bool IsFolded(string key) => key != null && Folded.Contains(key);
 
+        /// <summary>Every section that folds, by key.</summary>
+        private static readonly string[] Foldable = { "kept", "variants", "adjust", "animations", "effects", "playsin", "facts", "command", "details" };
+
+        private static void FoldAll(bool fold)
+        {
+            if (fold) foreach (var key in Foldable) Folded.Add(key);
+            else Folded.Clear();
+            SaveRects();
+        }
+
         /// <summary>
         /// A section's heading and rule. With a key, the heading folds the section shut or opens
         /// it when clicked, and the choice is remembered; the caller skips its body while folded.
@@ -1552,10 +1634,11 @@ namespace Scry
             else
             {
                 LinkLabel(head, shown, Skin.Heading, Skin.Heading.normal.textColor);
-                if (head.Contains(Event.current.mousePosition)) AskTip("fold:" + key, folded ? "Open this section" : "Fold this section away");
+                if (head.Contains(Event.current.mousePosition)) AskTip("fold:" + key, (folded ? "Open this section" : "Fold this section away") + "\nShift-click: every section");
                 if (GUI.Button(head, GUIContent.none, GUIStyle.none))
                 {
-                    if (folded) Folded.Remove(key);
+                    if (Event.current.shift) FoldAll(!folded);
+                    else if (folded) Folded.Remove(key);
                     else Folded.Add(key);
                     SaveRects();
                 }
@@ -1694,6 +1777,20 @@ namespace Scry
             }
             y += rowH + U(10f);
 
+            // The clip playing, to pause and scrub through, like a sound.
+            if (playing != null && Previews.ClipPosition(out var time, out var length))
+            {
+                var pauseW = U(84f);
+                if (GUI.Button(new Rect(0f, y, pauseW, rowH), Previews.ClipPaused ? "Resume" : "Pause", Previews.ClipPaused ? Skin.ChipOn : Skin.Chip)) Previews.PauseClip(!Previews.ClipPaused);
+                var readout = $"{time.ToString("0.00", CultureInfo.InvariantCulture)} / {length.ToString("0.00", CultureInfo.InvariantCulture)} s";
+                var readW = Skin.DimLabel.CalcSize(new GUIContent(readout)).x + U(6f);
+                var slider = new Rect(pauseW + U(10f), y + (rowH - U(14f)) / 2f, Mathf.Max(U(40f), width - pauseW - readW - U(20f)), U(14f));
+                var picked = GUI.HorizontalSlider(slider, time, 0f, length);
+                if (!Mathf.Approximately(picked, time)) Previews.SeekClip(picked);
+                GUI.Label(new Rect(width - readW, y, readW, rowH), readout, Skin.DimLabel);
+                y += rowH + U(10f);
+            }
+
             x = 0f;
             foreach (var clip in clips)
             {
@@ -1728,6 +1825,35 @@ namespace Scry
         }
 
         // ----- Stage buttons -----
+
+        /// <summary>
+        /// Front, side and top views and a fit, in the stage's bottom right corner. Picking a view
+        /// holds the model still, so it stays in that view. Returns the width they take.
+        /// </summary>
+        private static float ViewButtons(Rect inner)
+        {
+            var h = U(22f);
+            var y = inner.yMax - U(8f) - h;
+            var x = inner.xMax - U(8f);
+            var views = new[] { ("Fit", "Frame it whole again"), ("Top", "Look down on it"), ("Side", "Look at it from the side"), ("Front", "Look at it from the front") };
+            foreach (var (name, tip) in views)
+            {
+                var w = Skin.Chip.CalcSize(new GUIContent(name)).x + U(2f);
+                x -= w;
+                var chip = new Rect(x, y, w, h);
+                x -= U(4f);
+                if (chip.Contains(Event.current.mousePosition)) AskTip("view:" + name, tip);
+                if (!GUI.Button(chip, name, Skin.Chip)) continue;
+
+                Stage.View(name);
+                if (name != "Fit" && Stage.Spin)
+                {
+                    Stage.Spin = false;
+                    SaveRects();
+                }
+            }
+            return inner.xMax - U(8f) - x;
+        }
 
         /// <summary>The person for size, the lighting and the backdrop, in the stage's top right corner.</summary>
         private static void StageButtons(Entry entry, Rect rect)

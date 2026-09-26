@@ -102,6 +102,10 @@ namespace Scry
             if (!IsOpen || !Input.GetMouseButton(1)) Looking = false;
             else if (Input.GetMouseButtonDown(1) && !ScryPanel.Covers(Input.mousePosition)) Looking = true;
 
+            // The mouse's own back and forward buttons step through jumps, as in a browser.
+            if (IsOpen && Input.GetKeyDown(KeyCode.Mouse3)) ScryPanel.Step(Explorer, true);
+            if (IsOpen && Input.GetKeyDown(KeyCode.Mouse4)) ScryPanel.Step(Explorer, false);
+
             Previews.Update(IsOpen ? Explorer : null);
         }
 

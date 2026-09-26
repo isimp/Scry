@@ -158,6 +158,11 @@ namespace Scry
                 }
             }
             if (target == null) return false;
+            if (target != _selected)
+            {
+                Remember(_back);
+                _forward.Clear();
+            }
 
             if (!_results.Contains(target))
             {
@@ -171,6 +176,65 @@ namespace Scry
 
             Select(target);
             return true;
+        }
+
+        // ----- Back and forward -----
+
+        /// <summary>How many steps back are kept.</summary>
+        public const int HistoryLimit = 50;
+
+        /// <summary>Where the player was: the search, the filters and the selection.</summary>
+        private sealed class Place
+        {
+            public string Text;
+            public Kind? Kind;
+            public bool FavouritesOnly;
+            public bool RecentOnly;
+            public OriginFilter Origin;
+            public Entry Selected;
+        }
+
+        private readonly List<Place> _back = new List<Place>();
+        private readonly List<Place> _forward = new List<Place>();
+
+        public bool CanGoBack => _back.Count > 0;
+        public bool CanGoForward => _forward.Count > 0;
+
+        /// <summary>Goes back to where the player was before the last jump, with its search and filters.</summary>
+        public bool Back() => Step(_back, _forward);
+
+        /// <summary>Goes forward again to where going back came from.</summary>
+        public bool Forward() => Step(_forward, _back);
+
+        private bool Step(List<Place> from, List<Place> to)
+        {
+            if (from.Count == 0) return false;
+            Remember(to);
+            var place = from[from.Count - 1];
+            from.RemoveAt(from.Count - 1);
+
+            _query.Text = place.Text;
+            _query.Kind = place.Kind;
+            _query.FavouritesOnly = place.FavouritesOnly;
+            _query.Origin = place.Origin;
+            _recentOnly = place.RecentOnly;
+            Refresh();
+            Select(place.Selected);
+            return true;
+        }
+
+        private void Remember(List<Place> into)
+        {
+            into.Add(new Place
+            {
+                Text = _query.Text,
+                Kind = _query.Kind,
+                FavouritesOnly = _query.FavouritesOnly,
+                RecentOnly = _recentOnly,
+                Origin = _query.Origin,
+                Selected = _selected,
+            });
+            if (into.Count > HistoryLimit) into.RemoveAt(0);
         }
 
         public void ToggleFavourite(Entry entry)

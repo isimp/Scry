@@ -19,6 +19,8 @@ namespace Scry
         private AnimationClip _clip;
         private AnimationEars _ears;
         private bool _loop;
+        private bool _paused;
+        private float _speed = 1f;
 
         /// <summary>The clip playing on this copy, or null.</summary>
         public AnimationClip Clip => _graph.IsValid() ? _clip : null;
@@ -43,7 +45,42 @@ namespace Scry
         public static void SetSpeed(GameObject copy, float speed)
         {
             var player = copy != null ? copy.GetComponent<ClipPlayer>() : null;
-            if (player != null && player._graph.IsValid()) player._playable.SetSpeed(speed);
+            if (player == null) return;
+            player._speed = speed;
+            if (player._graph.IsValid() && !player._paused) player._playable.SetSpeed(speed);
+        }
+
+        /// <summary>Where the clip playing on a copy is, and how long it is; false when none plays.</summary>
+        public static bool Position(GameObject copy, out float time, out float length)
+        {
+            time = length = 0f;
+            var player = copy != null ? copy.GetComponent<ClipPlayer>() : null;
+            if (player == null || !player._graph.IsValid() || player._clip == null) return false;
+            length = Mathf.Max(0.05f, player._clip.length);
+            time = Mathf.Clamp((float)player._playable.GetTime(), 0f, length);
+            return true;
+        }
+
+        /// <summary>Moves the clip playing on a copy to a time; a paused clip shows that pose.</summary>
+        public static void Seek(GameObject copy, float time)
+        {
+            var player = copy != null ? copy.GetComponent<ClipPlayer>() : null;
+            if (player != null && player._graph.IsValid()) player._playable.SetTime(time);
+        }
+
+        /// <summary>Holds the clip playing on a copy on its pose, or lets it go on.</summary>
+        public static void Pause(GameObject copy, bool pause)
+        {
+            var player = copy != null ? copy.GetComponent<ClipPlayer>() : null;
+            if (player == null) return;
+            player._paused = pause;
+            if (player._graph.IsValid()) player._playable.SetSpeed(pause ? 0f : player._speed);
+        }
+
+        public static bool Paused(GameObject copy)
+        {
+            var player = copy != null ? copy.GetComponent<ClipPlayer>() : null;
+            return player != null && player._paused && player._graph.IsValid();
         }
 
         public static void SetLoop(GameObject copy, bool loop)
@@ -68,6 +105,8 @@ namespace Scry
             End();
             _clip = clip;
             _loop = loop;
+            _paused = false;
+            _speed = speed;
             _playable = AnimationPlayableUtilities.PlayClip(animator, clip, out _graph);
             _playable.SetSpeed(speed);
             _ears = animator.GetComponent<AnimationEars>();
@@ -83,7 +122,7 @@ namespace Scry
 
         private void Update()
         {
-            if (!_graph.IsValid() || _clip == null) return;
+            if (!_graph.IsValid() || _clip == null || _paused) return;
 
             var length = Mathf.Max(0.05f, _clip.length);
             if (_playable.GetTime() < length) return;
