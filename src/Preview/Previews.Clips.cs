@@ -26,6 +26,9 @@ namespace Scry
 
             /// <summary>Whether each clip plays any sound or effect, as worked out when first asked.</summary>
             public Dictionary<string, bool> Sounding = new Dictionary<string, bool>();
+
+            /// <summary>False while the animator is still being watched.</summary>
+            public bool Ready = true;
         }
 
         /// <summary>
@@ -35,8 +38,8 @@ namespace Scry
         public static bool ClipSounds(AnimationClip clip)
         {
             var ears = clip != null ? ClipPlayer.AnimatorOf(Stage.Subject)?.GetComponent<AnimationEars>() : null;
-            var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject) : null;
-            if (plays == null) return false;
+            var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject, wait: false) : null;
+            if (plays == null || !plays.Ready) return false;
             if (!plays.Sounding.TryGetValue(clip.name, out var sounds))
             {
                 sounds = ears.Members(clip).Count > 0 || ears.ByNameMembers(clip).Count > 0 || ears.AroundMembers(clip).Count > 0;
@@ -58,7 +61,7 @@ namespace Scry
         public static IReadOnlyDictionary<string, string> ClipTags()
         {
             var ears = ClipPlayer.AnimatorOf(Stage.Subject)?.GetComponent<AnimationEars>();
-            var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject) : null;
+            var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject, wait: false) : null;
             return plays != null ? plays.Tags : NoTags;
         }
 
@@ -173,7 +176,14 @@ namespace Scry
             return null;
         }
 
-        private static ClipPlays PlaysOf(GameObject prefab, GameObject copy)
+        /// <summary>What clips play while their creature's animator is still being watched: nothing yet.</summary>
+        private static readonly ClipPlays NotYet = new ClipPlays { Ready = false };
+
+        /// <summary>
+        /// What each of a creature's clips plays. The animator is watched over the next frames; till
+        /// then <see cref="NotYet"/>, unless <paramref name="wait"/>, when it is finished at once.
+        /// </summary>
+        private static ClipPlays PlaysOf(GameObject prefab, GameObject copy, bool wait = true)
         {
             if (prefab == null) return null;
 
@@ -212,7 +222,12 @@ namespace Scry
             if (attacks.Count == 0 && actions.Count == 0 && prefab.GetComponent<BaseAI>() == null) return plays;
             var clips = animator.runtimeAnimatorController.animationClips.Where(c => c != null).ToList();
             var striking = clips.Where(c => c.events.Any(e => e.functionName == "Hit" || e.functionName == "OnAttackTrigger")).Select(c => c.name);
-            var seen = TriggerProbe.ClipsOf(prefab.name, animator, attacks.Select(a => a.Item1));
+            var seen = TriggerProbe.ClipsOf(prefab.name, animator, attacks.Select(a => a.Item1), wait);
+            if (seen.Busy)
+            {
+                ClipPlaysCache.Remove(cacheKey);
+                return NotYet;
+            }
             plays.Attacks = ClipAttacks.Match(attacks, seen.Triggers, clips.Select(c => c.name), striking);
             plays.Actions = ClipActions.Match(actions, seen.Actions, plays.Attacks.Keys);
 

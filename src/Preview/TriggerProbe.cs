@@ -13,6 +13,9 @@ namespace Scry
 
         /// <summary>The clips it plays when left alone, over several seeds, since it picks among them at random.</summary>
         public readonly HashSet<string> Idle = new HashSet<string>();
+
+        /// <summary>Still being watched: what is here so far is only part.</summary>
+        public bool Busy;
     }
 
     /// <summary>
@@ -83,8 +86,33 @@ namespace Scry
 
         private static readonly Dictionary<string, Probed> Seen = new Dictionary<string, Probed>();
 
-        /// <summary>The clips each of the triggers and each of the game's actions leads through; one that leads to none has an empty list.</summary>
-        public static Probed ClipsOf(string prefab, Animator animator, IEnumerable<string> triggers)
+        /// <summary>A probe under way: the hidden copy, what it stands in, the triggers still to pull, and the work left, done a run at a time.</summary>
+        private sealed class Job
+        {
+            public string Key;
+            public Probed Seen;
+            public GameObject Holder;
+            public Animator Probe;
+            public System.Action<Animator> Stance;
+            public bool First;
+            public readonly Queue<string> Triggers = new Queue<string>();
+            public IEnumerator<bool> Work;
+            public long Ms;
+            public int Frames;
+        }
+
+        private static readonly Dictionary<string, Job> Jobs = new Dictionary<string, Job>();
+
+        /// <summary>How long the probes may run each frame, so seeing an animator never stalls the game.</summary>
+        private const long FrameBudgetMs = 8;
+
+        /// <summary>
+        /// The clips each of the triggers and each of the game's actions leads through; one that
+        /// leads to none has an empty list. The watching is done a run at a time over the next
+        /// frames, and until it is done the answer is <see cref="Probed.Busy"/>; with
+        /// <paramref name="wait"/>, it is finished at once, as when a clip is about to play.
+        /// </summary>
+        public static Probed ClipsOf(string prefab, Animator animator, IEnumerable<string> triggers, bool wait)
         {
             // Seen for each stance it stands in: what a trigger plays depends on the weapon held
             // (Humanoid.SetupAnimationState sets statei and statef).
@@ -99,64 +127,146 @@ namespace Scry
             }
             var key = prefab + string.Concat(stance.Select(s => $"|{s.Name}={s.Value}"));
 
-            // Seen before in this stance, only triggers not pulled yet are (a sword's and a mace's
-            // differ, while their stance is the same).
-            var wanted = triggers.Distinct().ToList();
             var first = !Seen.TryGetValue(key, out var seen);
             if (first)
             {
                 seen = new Probed();
                 Seen[key] = seen;
             }
-            else
-            {
-                wanted = wanted.Where(t => !seen.Triggers.ContainsKey(t)).ToList();
-                if (wanted.Count == 0) return seen;
-            }
-            if (animator == null || animator.runtimeAnimatorController == null) return seen;
-            _stance = a =>
-            {
-                foreach (var (name, type, value) in stance)
-                {
-                    if (type == AnimatorControllerParameterType.Int) a.SetInteger(name, (int)value);
-                    else a.SetFloat(name, value);
-                }
-            };
 
+            // Seen before in this stance, only triggers not pulled yet are (a sword's and a mace's
+            // differ, while their stance is the same).
+            Jobs.TryGetValue(key, out var job);
+            var missing = triggers.Distinct().Where(t => !seen.Triggers.ContainsKey(t) && (job == null || !job.Triggers.Contains(t))).ToList();
+            if (job == null && (first || missing.Count > 0) && animator != null && animator.runtimeAnimatorController != null)
+            {
+                job = Begin(key, animator, stance, seen, first);
+            }
+            if (job != null)
+            {
+                foreach (var trigger in missing) job.Triggers.Enqueue(trigger);
+                if (wait) while (Advance(job)) { }
+            }
+            return seen;
+        }
+
+        /// <summary>Goes on with the probes under way, a run at a time, for as long as this frame allows.</summary>
+        public static void Update()
+        {
+            if (Jobs.Count == 0) return;
             var watch = System.Diagnostics.Stopwatch.StartNew();
+            foreach (var job in Jobs.Values.ToList())
+            {
+                job.Frames++;
+                while (watch.ElapsedMilliseconds < FrameBudgetMs && Advance(job)) { }
+                if (watch.ElapsedMilliseconds >= FrameBudgetMs) return;
+            }
+        }
+
+        private static Job Begin(string key, Animator animator, List<(string Name, AnimatorControllerParameterType Type, float Value)> stance, Probed seen, bool first)
+        {
+            // Drawn by nothing, heard by nothing, sending no events: only the animator runs.
+            // Its scripts go before it wakes, which would wake them even switched off.
             var holder = new GameObject("Scry probe");
             holder.SetActive(false);
+            var body = Object.Instantiate(animator.gameObject, holder.transform, false);
+            foreach (var script in body.GetComponentsInChildren<MonoBehaviour>(true)) Object.DestroyImmediate(script);
+            foreach (var behaviour in body.GetComponentsInChildren<Behaviour>(true)) if (!(behaviour is Animator)) behaviour.enabled = false;
+            foreach (var renderer in body.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
+            var probe = body.GetComponent<Animator>();
+            probe.fireEvents = false;
+            probe.applyRootMotion = false;
+            probe.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            holder.SetActive(true);
+
+            var job = new Job
+            {
+                Key = key, Seen = seen, Holder = holder, Probe = probe, First = first,
+                Stance = a =>
+                {
+                    foreach (var (name, type, value) in stance)
+                    {
+                        if (type == AnimatorControllerParameterType.Int) a.SetInteger(name, (int)value);
+                        else a.SetFloat(name, value);
+                    }
+                },
+            };
+            job.Work = Work(job);
+            seen.Busy = true;
+            Jobs[key] = job;
+            return job;
+        }
+
+        /// <summary>
+        /// One run of a probe. The game's randomness is kept as it was around it, since each run
+        /// seeds its own. False once the probe is done, or its copy is gone with the world.
+        /// </summary>
+        private static bool Advance(Job job)
+        {
+            if (job.Holder == null)
+            {
+                End(job);
+                return false;
+            }
             var random = Random.state;
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            _stance = job.Stance;
+            bool more;
             try
             {
-                // Drawn by nothing, heard by nothing, sending no events: only the animator runs.
-                // Its scripts go before it wakes, which would wake them even switched off.
-                var body = Object.Instantiate(animator.gameObject, holder.transform, false);
-                foreach (var script in body.GetComponentsInChildren<MonoBehaviour>(true)) Object.DestroyImmediate(script);
-                foreach (var behaviour in body.GetComponentsInChildren<Behaviour>(true)) if (!(behaviour is Animator)) behaviour.enabled = false;
-                foreach (var renderer in body.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
-                var probe = body.GetComponent<Animator>();
-                probe.fireEvents = false;
-                probe.applyRootMotion = false;
-                probe.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-                holder.SetActive(true);
+                more = job.Work.MoveNext();
+            }
+            catch (System.Exception ex)
+            {
+                Plugin.Log.LogWarning($"Scry could not see what the animator of {job.Key} plays: {ex.Message}");
+                more = false;
+            }
+            finally
+            {
+                _stance = null;
+                Random.state = random;
+                job.Ms += watch.ElapsedMilliseconds;
+            }
+            if (!more) End(job);
+            return more;
+        }
 
-                var alone = Trace(probe, null, false, null, -1, first ? 2 * ActionPatience + Settle : 160);
-                if (first)
+        private static void End(Job job)
+        {
+            if (job.Holder != null) Object.DestroyImmediate(job.Holder);
+            Jobs.Remove(job.Key);
+            job.Seen.Busy = false;
+        }
+
+        /// <summary>The runs of a probe, each yielded after: left alone, each trigger, each of the game's actions.</summary>
+        private static IEnumerator<bool> Work(Job job)
+        {
+            var probe = job.Probe;
+            var seen = job.Seen;
+            bool Has(string name, AnimatorControllerParameterType type) => probe.parameters.Any(p => p.type == type && p.name == name);
+            string Tell(string name, List<string> clips) => clips.Count > 0 ? $"{name} plays {string.Join(" then ", clips)}" : $"{name} plays no clip of its own";
+
+            var alone = Trace(probe, null, false, null, -1, job.First ? 2 * ActionPatience + Settle : 160);
+            yield return true;
+            if (job.First)
+            {
+                foreach (var frame in alone) if (frame.Clip != null) seen.Idle.Add(frame.Clip);
+                for (var seed = 2; seed <= IdleSeeds + 1; seed++)
                 {
-                    foreach (var frame in alone) if (frame.Clip != null) seen.Idle.Add(frame.Clip);
-                    for (var seed = 2; seed <= IdleSeeds + 1; seed++)
-                    {
-                        foreach (var frame in Trace(probe, null, false, null, -1, 160, seed)) if (frame.Clip != null) seen.Idle.Add(frame.Clip);
-                    }
+                    foreach (var frame in Trace(probe, null, false, null, -1, 160, seed)) if (frame.Clip != null) seen.Idle.Add(frame.Clip);
+                    yield return true;
                 }
-                bool Has(string name, AnimatorControllerParameterType type) => probe.parameters.Any(p => p.type == type && p.name == name);
-                string Tell(string name, List<string> clips) => clips.Count > 0 ? $"{name} plays {string.Join(" then ", clips)}" : $"{name} plays no clip of its own";
+            }
 
-                var attacks = new List<string>();
-                foreach (var trigger in wanted)
+            var attacks = new List<string>();
+            var actions = new List<string>();
+            var actionsDone = !job.First;
+            while (true)
+            {
+                while (job.Triggers.Count > 0)
                 {
-                    if (!Has(trigger, AnimatorControllerParameterType.Trigger)) continue;
+                    var trigger = job.Triggers.Dequeue();
+                    if (seen.Triggers.ContainsKey(trigger) || !Has(trigger, AnimatorControllerParameterType.Trigger)) continue;
                     var run = Trace(probe, a => a.SetTrigger(trigger), false, null, -1, 160);
                     var clips = AttackClips(run);
                     if (clips.Count == 0)
@@ -166,10 +276,12 @@ namespace Scry
                     }
                     seen.Triggers[trigger] = clips;
                     attacks.Add(Tell(trigger, clips));
+                    yield return true;
                 }
+                if (actionsDone) break;
+                actionsDone = true;
 
-                var actions = new List<string>();
-                foreach (var (action, name, isSwitch, release, speed) in first ? GameActions : new (string, string, bool, bool, float)[0])
+                foreach (var (action, name, isSwitch, release, speed) in GameActions)
                 {
                     if (!Has(name, isSwitch ? AnimatorControllerParameterType.Bool : AnimatorControllerParameterType.Trigger)) continue;
                     System.Action<Animator> act = isSwitch ? a => a.SetBool(name, true) : (System.Action<Animator>)(a => a.SetTrigger(name));
@@ -183,6 +295,7 @@ namespace Scry
                         if (!Has("forward_speed", AnimatorControllerParameterType.Float)) continue;
                         setup = a => a.SetFloat("forward_speed", speed);
                         beside = Trace(probe, null, false, null, -1, 2 * ActionPatience + Settle, 1, setup);
+                        yield return true;
                     }
 
                     // A switch is set as the animator starts, since some go to sleep only from
@@ -197,6 +310,7 @@ namespace Scry
                     else if (at >= 0)
                     {
                         // Let go only once it has gone there (fallen asleep), beside a run kept there.
+                        yield return true;
                         var letGo = at + Settle;
                         var back = Trace(probe, act, isSwitch, a => a.SetBool(name, false), letGo, letGo + ActionPatience, 1, setup);
                         var woke = Parting(back, run, letGo, back.Count - 1);
@@ -204,21 +318,13 @@ namespace Scry
                     }
                     seen.Actions[action] = clips;
                     actions.Add(Tell(action, clips));
+                    yield return true;
                 }
-                if (!first) Plugin.Note($"Scry saw in {watch.ElapsedMilliseconds} ms what more triggers of {key} play: {string.Join("; ", attacks)}.");
-                else Plugin.Note($"Scry saw in {watch.ElapsedMilliseconds} ms what the animator of {key} plays: attacks {(attacks.Count > 0 ? string.Join("; ", attacks) : "none")}; the game's own actions {(actions.Count > 0 ? string.Join("; ", actions) : "none")}; left alone {string.Join(", ", seen.Idle.OrderBy(c => c))}.");
             }
-            catch (System.Exception ex)
-            {
-                Plugin.Log.LogWarning($"Scry could not see what the animator of {prefab} plays: {ex.Message}");
-            }
-            finally
-            {
-                Random.state = random;
-                _stance = null;
-                Object.DestroyImmediate(holder);
-            }
-            return seen;
+
+            var took = $"{job.Ms} ms over {job.Frames} frames";
+            if (!job.First) Plugin.Note($"Scry saw in {took} what more triggers of {job.Key} play: {string.Join("; ", attacks)}.");
+            else Plugin.Note($"Scry saw in {took} what the animator of {job.Key} plays: attacks {(attacks.Count > 0 ? string.Join("; ", attacks) : "none")}; the game's own actions {(actions.Count > 0 ? string.Join("; ", actions) : "none")}; left alone {string.Join(", ", seen.Idle.OrderBy(c => c))}.");
         }
 
         /// <summary>Sets the stance the copy stands in on every run.</summary>

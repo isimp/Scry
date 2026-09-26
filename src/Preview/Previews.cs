@@ -184,6 +184,7 @@ namespace Scry
         {
             Expire();
             Listen.Update();
+            TriggerProbe.Update();
             for (var i = LaterOn.Count - 1; i >= 0; i--)
             {
                 if (Time.unscaledTime < LaterOn[i].At) continue;
