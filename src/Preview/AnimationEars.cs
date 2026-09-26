@@ -81,17 +81,59 @@ namespace Scry
             animator.fireEvents = true;
         }
 
-        /// <summary>An attack's clip starting makes the attack's opening sound, as starting the attack does in the game.</summary>
         /// <summary>
-        /// A clip starting. Quiet, its attack's own sounds are left to whoever started it, who
-        /// plays the one it was asked for.
+        /// A clip starting. An attack's clip plays what the attack plays as it begins now, and
+        /// what lands when it strikes (<see cref="ClipStrike"/>). Quiet, its attack is left to
+        /// whoever started it, who plays the one it was asked for.
         /// </summary>
         public void ClipStarted(AnimationClip clip, bool quiet = false)
         {
             _quiet = quiet;
-            var attack = clip != null && !quiet ? AttackFor(clip.name) : null;
-            if (attack != null) Report(Previews.PlayOnCopy(_copy, attack.m_startEffect, null));
+            StartAttack(clip);
             WatchFeet(clip);
+        }
+
+        /// <summary>A clip played again from its start begins its attack again; its feet are still watched.</summary>
+        public void ClipRepeated(AnimationClip clip) => StartAttack(clip);
+
+        private void StartAttack(AnimationClip clip)
+        {
+            _swing = null;
+            _strike = null;
+            _strikeKey = null;
+            _clipAttack = clip != null && !_quiet ? AttackFor(clip.name) : null;
+            _clipStrike = null;
+            _strikeAt = -1f;
+            if (_clipAttack != null)
+            {
+                Previews.AttackParts(_clipAttack, out var begin, out _clipStrike);
+                Listen.Note(Listening, "the attack " + _clipAttack.m_attackAnimation);
+
+                // The game strikes when the clip says so; a clip that never says, halfway.
+                if (!System.Array.Exists(clip.events, e => e.functionName == "Hit" || e.functionName == "OnAttackTrigger"))
+                {
+                    _strikeAt = clip.length * 0.5f;
+                    Listen.Note(Listening, "the clip never says when it strikes, so it strikes halfway");
+                }
+                Report(Previews.PlayOnCopy(_copy, begin, null));
+            }
+        }
+
+        private Attack _clipAttack;
+        private EffectList _clipStrike;
+        private float _strikeAt = -1f;
+
+        /// <summary>
+        /// What lands when an attack's clip strikes, where the attack strikes, as <c>Attack</c>
+        /// plays its trigger and hit there, and what it throws or shoots.
+        /// </summary>
+        private void ClipStrike()
+        {
+            var attack = _clipAttack;
+            _strikeAt = -1f;
+            if (attack == null || _copy == null) return;
+            if (_clipStrike != null) Report(Previews.PlayOnCopyAt(_copy, _clipStrike, Previews.StrikePoint(_copy, attack, Previews.LandsOnGround(_clipStrike))));
+            Launch(attack);
         }
 
         // ----- Steps -----
@@ -291,8 +333,10 @@ namespace Scry
             var attack = AttackFor(clip.name);
             if (attack != null)
             {
-                AddList(attack.m_startEffect);
-                AddList(attack.m_triggerEffect);
+                Previews.AttackParts(attack, out var begin, out var strike);
+                AddList(begin);
+                AddList(strike);
+                Add(attack.m_attackProjectile);
             }
             return names;
         }
@@ -321,6 +365,8 @@ namespace Scry
             _attached.Clear();
             _feet = null;
             _quiet = false;
+            _clipAttack = null;
+            _strikeAt = -1f;
         }
 
         // ----- Heard -----
@@ -374,6 +420,7 @@ namespace Scry
         private void Update()
         {
             WatchSteps();
+            if (_strikeAt >= 0f && ClipPlayer.Position(_copy, out var time, out _) && time >= _strikeAt) ClipStrike();
 
             // A swing whose animation sends no strike still lands, a little late.
             if (_swing != null && _strike != null && Time.unscaledTime > _swingUntil - 1.5f)
@@ -503,48 +550,16 @@ namespace Scry
 
         // ----- Helpers -----
 
-        /// <summary>
-        /// The swing of the attack whose animation is playing. Clips and attacks are matched by
-        /// name, which holds for most creatures; a clip that matches no attack stays quiet.
-        /// </summary>
+        /// <summary>The strike of the attack whose clip is playing, when the clip says it strikes.</summary>
         private void AttackTrigger()
         {
             var clip = _copy.GetComponent<ClipPlayer>()?.Clip;
-            if (clip == null || _quiet) return;
-            var attack = AttackFor(clip.name);
-            if (attack == null) return;
-            Report(Previews.PlayOnCopy(_copy, attack.m_triggerEffect, null));
-            Launch(attack);
+            if (clip == null || _quiet || _clipAttack == null) return;
+            ClipStrike();
         }
 
-        private Attack AttackFor(string clip)
-        {
-            var learnt = Previews.AttackOfClip(_prefab.name, clip);
-            if (learnt != null) return learnt;
-            var humanoid = _prefab.GetComponent<Humanoid>();
-            if (humanoid == null) return null;
-
-            var items = new List<GameObject>();
-            if (humanoid.m_defaultItems != null) items.AddRange(humanoid.m_defaultItems);
-            if (humanoid.m_randomWeapon != null) items.AddRange(humanoid.m_randomWeapon);
-            if (humanoid.m_randomSets != null)
-            {
-                foreach (var set in humanoid.m_randomSets) if (set?.m_items != null) items.AddRange(set.m_items);
-            }
-
-            foreach (var item in items)
-            {
-                var shared = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared : null;
-                if (shared == null) continue;
-                foreach (var attack in new[] { shared.m_attack, shared.m_secondaryAttack })
-                {
-                    var name = attack?.m_attackAnimation;
-                    if (string.IsNullOrEmpty(name)) continue;
-                    if (clip.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0 || name.IndexOf(clip, StringComparison.OrdinalIgnoreCase) >= 0) return attack;
-                }
-            }
-            return null;
-        }
+        /// <summary>The attack a clip of this prefab plays, as its animator plays it; null for a clip no attack plays.</summary>
+        private Attack AttackFor(string clip) => Previews.AttackOfClip(_prefab, _copy, clip);
 
         /// <summary>The step a walk on plain ground makes, or failing that the first there is.</summary>
         /// <summary>

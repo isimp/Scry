@@ -173,6 +173,7 @@ namespace Scry
             {
                 _playable.SetTime(0.0);
                 _heardTo = -0.001f;
+                if (_ears != null) _ears.ClipRepeated(_clip);
             }
             else if (_playable.GetTime() >= length + 0.4f) End();
         }

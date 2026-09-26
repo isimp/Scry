@@ -2026,11 +2026,10 @@ namespace Scry
 
             // A creature's chips follow what it has on: the weapon in its hand, not the rest.
             var carried = Previews.CarriedNow(entry);
-            var triggers = Previews.StageTriggers();
-            var cacheKey = entry.Key + "|" + (carried == null ? "all" : string.Join(",", carried.Select(c => c.name))) + "|" + (triggers == null ? "" : triggers.Count.ToString());
+            var cacheKey = entry.Key + "|" + (carried == null ? "all" : string.Join(",", carried.Select(c => c.name)));
             if (!EffectCache.TryGetValue(cacheKey, out var lists))
             {
-                lists = Previews.PrefabLists(prefab, carried, triggers);
+                lists = carried == null ? Previews.PrefabLists(prefab) : Previews.PrefabLists(prefab, carried);
                 EffectCache[cacheKey] = lists;
             }
             if (lists.Count == 0) return y;

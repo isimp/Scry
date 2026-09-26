@@ -236,7 +236,7 @@ namespace Scry
         private static List<string> Holdable(Humanoid humanoid) => HoldChoices(humanoid.m_defaultItems, humanoid.gameObject.name);
 
         /// <summary>
-        /// Of some items, the weapons that are choices to hold (<see cref="AttackChips.Holdable"/>):
+        /// Of some items, the weapons that are choices to hold (<see cref="WeaponChoices.Holdable"/>):
         /// only those that show in the hand, one of each that shows alike.
         /// </summary>
         private static List<string> HoldChoices(IEnumerable<GameObject> items, string creature)
@@ -244,8 +244,8 @@ namespace Scry
             var weapons = (items ?? new GameObject[0])
                 .Where(i => i != null && i.GetComponent<ItemDrop>()?.m_itemData?.IsWeapon() == true)
                 .Distinct()
-                .Select(i => (i.name, Drawn(i) ?? CatalogBuilder.GameName(i) ?? AttackChips.Readable(i.name, creature), AttachPart(i, out _) != null));
-            return AttackChips.Holdable(weapons);
+                .Select(i => (i.name, Drawn(i) ?? CatalogBuilder.GameName(i) ?? WeaponChoices.Readable(i.name, creature), AttachPart(i, out _) != null));
+            return WeaponChoices.Holdable(weapons);
         }
 
         /// <summary>
