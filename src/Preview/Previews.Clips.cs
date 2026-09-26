@@ -187,6 +187,25 @@ namespace Scry
         {
             if (prefab == null) return null;
 
+            // Asked many times a frame by the panel (for every clip, a person's hundreds), so the
+            // answer is kept for the frame.
+            if (_playsFrame == Time.frameCount && _playsPrefab == prefab && _playsCopy == copy && _plays != null && (!wait || _plays.Ready)) return _plays;
+            var found = Find(prefab, copy, wait);
+            _playsFrame = Time.frameCount;
+            _playsPrefab = prefab;
+            _playsCopy = copy;
+            _plays = found;
+            return found;
+        }
+
+        private static int _playsFrame = -1;
+        private static GameObject _playsPrefab;
+        private static GameObject _playsCopy;
+        private static ClipPlays _plays;
+
+        private static ClipPlays Find(GameObject prefab, GameObject copy, bool wait)
+        {
+
             // What it has now: a creature what its look carries; the person trying an item on
             // what it wears, the item first.
             var worn = Looks.IsWorn(_entry) && !ReferenceEquals(_entry.Source, prefab) ? Looks.WornWith((GameObject)_entry.Source) : null;

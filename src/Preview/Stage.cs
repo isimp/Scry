@@ -624,9 +624,22 @@ namespace Scry
             }
         }
 
+        /// <summary>What the model shows, as if at size one: above where it stands, a root's base in the ground left out.</summary>
+        private static Bounds Shown
+        {
+            get
+            {
+                if (!_groundFixed || _bounds.min.y >= _bodyMinY || _bounds.max.y <= _bodyMinY) return _bounds;
+                var shown = new Bounds();
+                shown.SetMinMax(new Vector3(_bounds.min.x, _bodyMinY, _bounds.min.z), _bounds.max);
+                return shown;
+            }
+        }
+
         private static void Frame()
         {
-            var subject = new Bounds(Origin + (_bounds.center - Origin) * _scale, _bounds.size * _scale);
+            var shown = Shown;
+            var subject = new Bounds(Origin + (shown.center - Origin) * _scale, shown.size * _scale);
             var framed = subject;
             if (_person != null && _person.activeSelf) framed.Encapsulate(_personBounds);
 

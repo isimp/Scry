@@ -177,6 +177,7 @@ namespace Scry
             probe.fireEvents = false;
             probe.applyRootMotion = false;
             probe.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            probe.keepAnimatorStateOnDisable = true;
             holder.SetActive(true);
 
             var job = new Job
@@ -246,14 +247,17 @@ namespace Scry
             bool Has(string name, AnimatorControllerParameterType type) => probe.parameters.Any(p => p.type == type && p.name == name);
             string Tell(string name, List<string> clips) => clips.Count > 0 ? $"{name} plays {string.Join(" then ", clips)}" : $"{name} plays no clip of its own";
 
-            var alone = Trace(probe, null, false, null, -1, job.First ? 2 * ActionPatience + Settle : 160);
+            var alone = new List<Frame>();
+            foreach (var _ in Trace(alone, probe, null, false, null, -1, job.First ? 2 * ActionPatience + Settle : 160)) yield return true;
             yield return true;
             if (job.First)
             {
                 foreach (var frame in alone) if (frame.Clip != null) seen.Idle.Add(frame.Clip);
                 for (var seed = 2; seed <= IdleSeeds + 1; seed++)
                 {
-                    foreach (var frame in Trace(probe, null, false, null, -1, 160, seed)) if (frame.Clip != null) seen.Idle.Add(frame.Clip);
+                    var idle = new List<Frame>();
+                    foreach (var _ in Trace(idle, probe, null, false, null, -1, 160, seed)) yield return true;
+                    foreach (var frame in idle) if (frame.Clip != null) seen.Idle.Add(frame.Clip);
                     yield return true;
                 }
             }
@@ -267,7 +271,8 @@ namespace Scry
                 {
                     var trigger = job.Triggers.Dequeue();
                     if (seen.Triggers.ContainsKey(trigger) || !Has(trigger, AnimatorControllerParameterType.Trigger)) continue;
-                    var run = Trace(probe, a => a.SetTrigger(trigger), false, null, -1, 160);
+                    var run = new List<Frame>();
+                    foreach (var _ in Trace(run, probe, a => a.SetTrigger(trigger), false, null, -1, 160)) yield return true;
                     var clips = AttackClips(run);
                     if (clips.Count == 0)
                     {
@@ -294,13 +299,15 @@ namespace Scry
                     {
                         if (!Has("forward_speed", AnimatorControllerParameterType.Float)) continue;
                         setup = a => a.SetFloat("forward_speed", speed);
-                        beside = Trace(probe, null, false, null, -1, 2 * ActionPatience + Settle, 1, setup);
+                        beside = new List<Frame>();
+                        foreach (var _ in Trace(beside, probe, null, false, null, -1, 2 * ActionPatience + Settle, 1, setup)) yield return true;
                         yield return true;
                     }
 
                     // A switch is set as the animator starts, since some go to sleep only from
                     // their start; a trigger is pulled once it runs.
-                    var run = Trace(probe, act, isSwitch, null, -1, 2 * ActionPatience + Settle, 1, setup);
+                    var run = new List<Frame>();
+                    foreach (var _ in Trace(run, probe, act, isSwitch, null, -1, 2 * ActionPatience + Settle, 1, setup)) yield return true;
                     var at = Parting(run, beside, 0, ActionPatience);
                     var clips = new List<string>();
                     if (!release)
@@ -312,7 +319,8 @@ namespace Scry
                         // Let go only once it has gone there (fallen asleep), beside a run kept there.
                         yield return true;
                         var letGo = at + Settle;
-                        var back = Trace(probe, act, isSwitch, a => a.SetBool(name, false), letGo, letGo + ActionPatience, 1, setup);
+                        var back = new List<Frame>();
+                        foreach (var _ in Trace(back, probe, act, isSwitch, a => a.SetBool(name, false), letGo, letGo + ActionPatience, 1, setup)) yield return true;
                         var woke = Parting(back, run, letGo, back.Count - 1);
                         if (woke >= 0 && back[woke].Clip != null) clips.Add(back[woke].Clip);
                     }
@@ -337,7 +345,7 @@ namespace Scry
         /// <paramref name="then"/> at step <paramref name="thenAt"/>. Where it is at each step,
         /// the first before any step.
         /// </summary>
-        private static List<Frame> Trace(Animator animator, System.Action<Animator> act, bool first, System.Action<Animator> then, int thenAt, int steps, int seed = 1, System.Action<Animator> setup = null)
+        private static IEnumerable<bool> Trace(List<Frame> frames, Animator animator, System.Action<Animator> act, bool first, System.Action<Animator> then, int thenAt, int steps, int seed = 1, System.Action<Animator> setup = null)
         {
             Random.InitState(seed);
             animator.Rebind();
@@ -357,15 +365,29 @@ namespace Scry
             animator.Update(0f);
             if (act != null && !first) act(animator);
 
-            var frames = new List<Frame> { Where(animator) };
+            frames.Add(Where(animator));
             for (var i = 1; i <= steps; i++)
             {
                 if (i == thenAt && then != null) then(animator);
                 animator.Update(Step);
                 frames.Add(Where(animator));
+
+                // A pause every few dozen steps, so a run stays within a frame's share: the copy
+                // switched off meanwhile so its animator does not run on by itself, and the run's
+                // own randomness kept for when it goes on.
+                if (i % StepsPerPause != 0 || i == steps) continue;
+                var mine = Random.state;
+                var holder = animator.transform.parent.gameObject;
+                holder.SetActive(false);
+                yield return true;
+                if (holder == null) yield break;
+                holder.SetActive(true);
+                Random.state = mine;
             }
-            return frames;
         }
+
+        /// <summary>How many steps a run takes before it pauses for the next frame.</summary>
+        private const int StepsPerPause = 40;
 
         /// <summary>The first step from <paramref name="from"/> up to <paramref name="upTo"/> where a run is in another state than the one beside it, or -1.</summary>
         private static int Parting(List<Frame> run, List<Frame> beside, int from, int upTo)
