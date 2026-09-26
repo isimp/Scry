@@ -110,6 +110,10 @@ namespace Scry
                 if (!registered.ContainsKey(pair.Key)) entries.Add(ToEntry(pair.Key, pair.Value, effects, registeredOrigin: false));
             }
 
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            Leftovers.Pair(entries, FindLeftovers(registered.Values.Select(f => f.Prefab)));
+            if (watch.ElapsedMilliseconds >= 50) Plugin.Log.LogInfo($"Scry paired leftovers in {watch.ElapsedMilliseconds} ms.");
+
             return entries;
         }
 
@@ -289,6 +293,72 @@ namespace Scry
                                      || (wear.m_broken != null && wear.m_broken != wear.m_new);
                     break;
             }
+        }
+
+        /// <summary>
+        /// What each prefab leaves behind, as the game leaves it: a creature's ragdoll and the
+        /// remains its death throws, a tree's log and stump, a log's halves, a rock's broken
+        /// version, and the debris anything throws when destroyed.
+        /// </summary>
+        private static List<Leftover> FindLeftovers(IEnumerable<GameObject> prefabs)
+        {
+            var found = new List<Leftover>();
+            void Add(GameObject thing, GameObject owner, string role)
+            {
+                if (thing != null && owner != null) found.Add(new Leftover(thing.name, owner.name, role));
+            }
+            void Thrown(EffectList list, GameObject owner, string role, bool ragdolls)
+            {
+                if (list?.m_effectPrefabs == null) return;
+                foreach (var data in list.m_effectPrefabs)
+                {
+                    var prefab = data?.m_prefab;
+                    if (prefab == null) continue;
+                    if (ragdolls && prefab.GetComponent<Ragdoll>() != null) Add(prefab, owner, "ragdoll");
+                    else if (Ghost.IsDebris(prefab)) Add(prefab, owner, role);
+                }
+            }
+
+            foreach (var prefab in prefabs)
+            {
+                if (prefab == null) continue;
+                try
+                {
+                    var character = prefab.GetComponent<Character>();
+                    if (character != null) Thrown(character.m_deathEffects, prefab, "remains", true);
+
+                    var tree = prefab.GetComponent<TreeBase>();
+                    if (tree != null)
+                    {
+                        Add(tree.m_logPrefab, prefab, "log");
+                        Add(tree.m_stubPrefab, prefab, "stump");
+                        Thrown(tree.m_destroyedEffect, prefab, "debris", false);
+                    }
+
+                    var log = prefab.GetComponent<TreeLog>();
+                    if (log != null)
+                    {
+                        Add(log.m_subLogPrefab, prefab, "half");
+                        Thrown(log.m_destroyedEffect, prefab, "debris", false);
+                    }
+
+                    var destructible = prefab.GetComponent<Destructible>();
+                    if (destructible != null)
+                    {
+                        Add(destructible.m_spawnWhenDestroyed, prefab, "broken");
+                        Thrown(destructible.m_destroyedEffect, prefab, "debris", false);
+                    }
+
+                    Thrown(prefab.GetComponent<WearNTear>()?.m_destroyedEffect, prefab, "debris", false);
+                    Thrown(prefab.GetComponent<MineRock>()?.m_destroyedEffect, prefab, "debris", false);
+                    Thrown(prefab.GetComponent<MineRock5>()?.m_destroyedEffect, prefab, "debris", false);
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogDebug($"Scry could not read what {prefab.name} leaves behind: {ex.Message}");
+                }
+            }
+            return found;
         }
 
         /// <summary>

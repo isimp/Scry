@@ -17,7 +17,7 @@ namespace Scry
         {
             new KeyValuePair<string, string[]>("death", new[] { "death", "die", "dead" }),
             new KeyValuePair<string, string[]>("jump", new[] { "jump" }),
-            new KeyValuePair<string, string[]>("hit", new[] { "hit", "stagger", "hurt", "damage" }),
+            new KeyValuePair<string, string[]>("hit", new[] { "hit" }),
             new KeyValuePair<string, string[]>("stagger", new[] { "stagger", "hit" }),
             new KeyValuePair<string, string[]>("alerted", new[] { "alert" }),
             new KeyValuePair<string, string[]>("wakeup", new[] { "wakeup", "wake" }),

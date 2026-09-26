@@ -539,8 +539,13 @@ namespace Scry
             var own = Mathf.Max(0.05f, framed.extents.magnitude);
             var reach = own;
             if (_followEffect) Reach(_subject, center, ref reach);
-            foreach (var played in Played) Reach(played.Key, center, ref reach);
-            var wantRadius = Mathf.Min(reach, _followEffect ? 25f : Mathf.Max(own * 2.5f, 3f));
+            foreach (var played in Played)
+            {
+                // Around a model, only what falls from it is followed: sparks and smoke stay
+                // where they are, a ragdoll, debris or a log is kept in the picture.
+                if (_followEffect || (played.Key != null && played.Key.GetComponentInChildren<Rigidbody>() != null)) Reach(played.Key, center, ref reach);
+            }
+            var wantRadius = Mathf.Min(reach, _followEffect ? 25f : own * 1.6f);
 
             if (_frameRadius < 0f)
             {

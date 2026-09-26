@@ -944,6 +944,8 @@ namespace Scry
             y = Title(explorer, entry, cw, y);
             if (!withStage && (entry.Kind == Kind.Sound || entry.Kind == Kind.StatusEffect)) y = CompactCard(entry, cw, y);
             y = Actions(entry, cw, y);
+            if (entry.LeftBy.Count > 0) y = LinkRow(explorer, "Left behind by", entry.LeftBy.Take(24), cw, y);
+            if (entry.LeavesBehind.Count > 0) y = LinkRow(explorer, "Leaves behind", entry.LeavesBehind, cw, y);
             if (Looks.IsWorn(entry)) y = Wearing(explorer, cw, y);
             if (entry.Kind == Kind.Sound)
             {
@@ -2046,6 +2048,7 @@ namespace Scry
 
         private static bool _allPlaysIn;
         private static Entry _playsInFor;
+        private static List<PlaysInRow> _playsInRows = new List<PlaysInRow>();
 
         /// <summary>
         /// The effect lists a sound or effect is part of, one row per list: what it is for, who
@@ -2054,13 +2057,25 @@ namespace Scry
         /// </summary>
         private static float PlaysInSection(Explorer explorer, Entry entry, float width, float y)
         {
-            var rows = EffectLinks.For(entry.Name);
-            if (rows.Count == 0) return y;
             if (_playsInFor != entry)
             {
                 _playsInFor = entry;
                 _allPlaysIn = false;
+
+                // A list the entry itself plays is its own, not one it plays in; and it is not
+                // named among what plays along.
+                _playsInRows = EffectLinks.For(entry.Name)
+                    .Select(r => new PlaysInRow
+                    {
+                        Label = r.Label, List = r.List,
+                        Owners = r.Owners.Where(o => o.Key != entry.Name).ToList(),
+                        Members = r.Members.Where(m => m != entry.Name).ToArray(),
+                    })
+                    .Where(r => r.Owners.Count > 0)
+                    .ToList();
             }
+            var rows = _playsInRows;
+            if (rows.Count == 0) return y;
 
             y = SectionHeading($"PLAYS IN  {rows.Count}", width, y, null, "playsin");
             if (IsFolded("playsin")) return y;

@@ -19,9 +19,11 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void AHitPlaysTheStaggerWhenTheCreatureHasNoHitAnimation()
+        public void AHitIsNotAStagger()
         {
-            Assert.Equal("stagger", ClipMatch.For("Hit", new[] { "idle", "stagger", "death" }));
+            // The game only staggers a creature when a hit breaks its balance, not on every hit.
+            Assert.Null(ClipMatch.For("Hit", new[] { "idle", "stagger", "death" }));
+            Assert.Equal("stagger", ClipMatch.For("Stagger", new[] { "idle", "stagger", "death" }));
         }
 
         [Fact]

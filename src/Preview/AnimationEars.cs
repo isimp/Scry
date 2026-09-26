@@ -71,6 +71,64 @@ namespace Scry
         {
             var attack = clip != null ? AttackFor(clip.name) : null;
             if (attack != null) Previews.PlayOnCopy(_copy, attack.m_startEffect, null);
+            WatchFeet(clip);
+        }
+
+        // ----- Steps -----
+
+        /// <summary>Words of the clips in which a creature walks, runs or otherwise moves on its feet.</summary>
+        private static readonly string[] Moving = { "walk", "run", "jog", "sneak", "trot", "gallop", "move", "crawl", "charge", "sprint", "stroll", "step" };
+
+        private Transform[] _feet;
+        private StepDetector[] _footing;
+        private global::FootStep.MotionType _motion;
+
+        /// <summary>
+        /// The game steps by a value its walk animations set on the animator as a foot comes down,
+        /// which a clip played on its own does not set. So while such a clip plays, the feet the
+        /// prefab's <c>FootStep</c> names are watched, and a step is heard where one comes down.
+        /// </summary>
+        private void WatchFeet(AnimationClip clip)
+        {
+            _feet = null;
+            var step = _prefab.GetComponentInChildren<global::FootStep>(true);
+            if (clip == null || step == null || step.m_feet == null || step.m_feet.Length == 0) return;
+
+            var name = clip.name.ToLowerInvariant();
+            if (!System.Array.Exists(Moving, m => name.Contains(m))) return;
+
+            var feet = new List<Transform>();
+            foreach (var foot in step.m_feet)
+            {
+                var twin = foot != null ? Looks.Twin(_prefab.transform, _copy.transform, foot) : null;
+                if (twin != null) feet.Add(twin);
+            }
+            if (feet.Count == 0) return;
+
+            _feet = feet.ToArray();
+            _footing = new StepDetector[_feet.Length];
+            for (var i = 0; i < _footing.Length; i++) _footing[i] = new StepDetector();
+            _motion = name.Contains("run") || name.Contains("sprint") || name.Contains("gallop") || name.Contains("charge")
+                ? global::FootStep.MotionType.Run
+                : name.Contains("sneak") || name.Contains("crawl") ? global::FootStep.MotionType.Sneak
+                : name.Contains("walk") || name.Contains("stroll") ? global::FootStep.MotionType.Walk
+                : global::FootStep.MotionType.Jog;
+        }
+
+        private void WatchSteps()
+        {
+            if (_feet == null || _copy == null) return;
+            var root = _copy.transform;
+            for (var i = 0; i < _feet.Length; i++)
+            {
+                if (_feet[i] == null) continue;
+                var height = root.InverseTransformPoint(_feet[i].position).y;
+                if (!_footing[i].Feed(Time.unscaledTime, height)) continue;
+
+                var step = _prefab.GetComponentInChildren<global::FootStep>(true);
+                var effect = step != null ? Step(step, _motion) : null;
+                if (effect != null) Previews.PlayOnCopy(_copy, AsList(effect.m_effectPrefabs), _feet[i]);
+            }
         }
 
         /// <summary>What a clip hung on the copy comes off when it ends, as it does when the game's animation moves on.</summary>
@@ -78,6 +136,7 @@ namespace Scry
         {
             foreach (var attached in _attached) if (attached != null) Destroy(attached);
             _attached.Clear();
+            _feet = null;
         }
 
         // ----- Heard -----
@@ -128,6 +187,7 @@ namespace Scry
 
         private void Update()
         {
+            WatchSteps();
             if (_waiting.Count == 0) return;
             var now = _waiting.ToArray();
             _waiting.Clear();
@@ -220,7 +280,7 @@ namespace Scry
             _lastStep = Time.unscaledTime;
 
             var step = _prefab.GetComponentInChildren<global::FootStep>(true);
-            var effect = step != null ? Step(step) : null;
+            var effect = step != null ? Step(step, global::FootStep.MotionType.Jog | global::FootStep.MotionType.Walk) : null;
             if (effect == null) return;
 
             Transform foot = null;
@@ -270,20 +330,22 @@ namespace Scry
         }
 
         /// <summary>The step a walk on plain ground makes, or failing that the first there is.</summary>
-        private static global::FootStep.StepEffect Step(global::FootStep step)
+        /// <summary>
+        /// The step made on plain ground in this way of moving; failing that, any on plain ground;
+        /// failing that, the first there is. Both are sets of flags in the game.
+        /// </summary>
+        private static global::FootStep.StepEffect Step(global::FootStep step, global::FootStep.MotionType motion)
         {
-            global::FootStep.StepEffect first = null;
+            global::FootStep.StepEffect first = null, ground = null;
             foreach (var effect in step.m_effects)
             {
                 if (effect?.m_effectPrefabs == null || effect.m_effectPrefabs.Length == 0) continue;
                 if (first == null) first = effect;
-                if (effect.m_material == global::FootStep.GroundMaterial.Default
-                    && (effect.m_motionType == global::FootStep.MotionType.Jog || effect.m_motionType == global::FootStep.MotionType.Walk))
-                {
-                    return effect;
-                }
+                var plain = (effect.m_material & global::FootStep.GroundMaterial.Default) != 0;
+                if (plain && ground == null) ground = effect;
+                if (plain && (effect.m_motionType & motion) != 0) return effect;
             }
-            return first;
+            return ground ?? first;
         }
 
         private static EffectList AsList(GameObject[] prefabs)

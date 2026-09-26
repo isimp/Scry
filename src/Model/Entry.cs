@@ -29,6 +29,12 @@ namespace Scry
         /// <summary>Names of the prefabs whose effect lists point at this one.</summary>
         public List<string> UsedBy = new List<string>();
 
+        /// <summary>What leaves this behind (a ragdoll's creature, a log's tree), when it is such a leftover.</summary>
+        public List<string> LeftBy = new List<string>();
+
+        /// <summary>The leftovers this leaves behind: its ragdoll, its log and stump, its debris.</summary>
+        public List<string> LeavesBehind = new List<string>();
+
         /// <summary>Registered with the scene, so the game's own spawn command knows it.</summary>
         public bool Registered;
 
