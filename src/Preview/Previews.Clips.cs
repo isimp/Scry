@@ -23,6 +23,26 @@ namespace Scry
 
             /// <summary>What each clip is, in a few words, for its chip: the attack it plays, or what the creature does in it.</summary>
             public Dictionary<string, string> Tags = new Dictionary<string, string>();
+
+            /// <summary>Whether each clip plays any sound or effect, as worked out when first asked.</summary>
+            public Dictionary<string, bool> Sounding = new Dictionary<string, bool>();
+        }
+
+        /// <summary>
+        /// Whether a clip of the stage copy plays any sound or effect: of its own, with its attack
+        /// or the game's actions, found by name, or heard around it. Worked out once per clip.
+        /// </summary>
+        public static bool ClipSounds(AnimationClip clip)
+        {
+            var ears = clip != null ? ClipPlayer.AnimatorOf(Stage.Subject)?.GetComponent<AnimationEars>() : null;
+            var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject) : null;
+            if (plays == null) return false;
+            if (!plays.Sounding.TryGetValue(clip.name, out var sounds))
+            {
+                sounds = ears.Members(clip).Count > 0 || ears.ByNameMembers(clip).Count > 0 || ears.AroundMembers(clip).Count > 0;
+                plays.Sounding[clip.name] = sounds;
+            }
+            return sounds;
         }
 
         /// <summary>What the game's own actions are called on a clip's chip.</summary>

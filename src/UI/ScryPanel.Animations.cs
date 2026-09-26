@@ -41,7 +41,8 @@ namespace Scry
             if (playing != null && GUI.Button(new Rect(x, y, U(60f), rowH), "Stop", Skin.Chip)) Previews.StopClip();
             x += U(66f);
 
-            if (clips.Count > 12)
+            // Shown while it filters, even where there are few clips to filter.
+            if (clips.Count > 12 || _clipFilter.Length > 0)
             {
                 if (width - x < U(150f))
                 {
@@ -69,16 +70,31 @@ namespace Scry
                 y += rowH + U(10f);
             }
 
-            // What Scry knows a clip to be comes first, the attacks of what is held before all:
-            // among a person's hundreds of clips, those of the item tried on.
-            x = 0f;
+            // Grouped by what they do: the attacks (of what is held, on a person with hundreds of
+            // clips), then those that play sounds or effects, then the silent; within each, those
+            // Scry knows what they are first.
             var tags = Previews.ClipTags();
-            int Rank(AnimationClip c) => !tags.TryGetValue(c.name, out var t) ? 2 : t.StartsWith("attack") ? 0 : 1;
-            foreach (var clip in clips.OrderBy(Rank).ToList())
+            string Text(AnimationClip c) => tags.TryGetValue(c.name, out var t) ? c.name + "  ·  " + t : c.name;
+            int Group(AnimationClip c) => tags.TryGetValue(c.name, out var t) && t.StartsWith("attack") ? 0 : Previews.ClipSounds(c) ? 1 : 2;
+            var shown = clips.Where(c => _clipFilter.Length == 0 || Text(c).IndexOf(_clipFilter, StringComparison.OrdinalIgnoreCase) >= 0)
+                .OrderBy(Group).ThenBy(c => tags.ContainsKey(c.name) ? 0 : 1).ToList();
+            var headings = new[] { "Attacks", "With sounds or effects", "Silent" };
+            var group = -1;
+            x = 0f;
+            foreach (var clip in shown)
             {
+                var g = Group(clip);
+                if (g != group)
+                {
+                    if (x > 0f) y += rowH + U(4f);
+                    x = 0f;
+                    group = g;
+                    GUI.Label(new Rect(0f, y, width, U(20f)), headings[g], Skin.DimLabel);
+                    y += U(22f);
+                }
+
                 // Named by the modelers; what it is follows, as far as Scry saw.
-                var text = tags.TryGetValue(clip.name, out var tag) ? clip.name + "  ·  " + tag : clip.name;
-                if (_clipFilter.Length > 0 && text.IndexOf(_clipFilter, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                var text = Text(clip);
 
                 var on = playing == clip;
                 var style = on ? Skin.ChipOn : Skin.Chip;

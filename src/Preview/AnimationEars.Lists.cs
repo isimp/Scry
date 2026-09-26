@@ -185,7 +185,7 @@ namespace Scry
                     AddList(trigger);
                     AddList(hit);
                     Add(attack.m_spawnOnTrigger);
-                    Add(attack.m_attackProjectile);
+                    if (attack.m_attackType == Attack.AttackType.Projectile) Add(attack.m_attackProjectile);
                 }
             }
             return names;

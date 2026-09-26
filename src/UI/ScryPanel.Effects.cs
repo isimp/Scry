@@ -36,7 +36,7 @@ namespace Scry
             if (IsFolded("effects")) return y;
             var rowH = U(26f);
 
-            if (lists.Count > 12)
+            if (lists.Count > 12 || _effectFilter.Length > 0)
             {
                 var field = new Rect(0f, y, Mathf.Min(width, U(260f)), U(28f));
                 GUI.SetNextControlName(EffectControl);

@@ -76,10 +76,10 @@ namespace Scry
         /// </summary>
         private void Launch(Attack attack)
         {
-            if (attack == null || _copy == null) return;
+            if (attack == null || _copy == null || attack.m_attackType != Attack.AttackType.Projectile) return;
             if (attack.m_attackProjectile == null)
             {
-                if (attack.m_attackType == Attack.AttackType.Projectile) Listen.Note(Listening, "a projectile attack that names no projectile");
+                Listen.Note(Listening, "a projectile attack that names no projectile");
                 return;
             }
 
