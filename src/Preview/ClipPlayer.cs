@@ -97,15 +97,34 @@ namespace Scry
             if (player != null) player._loop = loop;
         }
 
-        /// <summary>The animator that drives the copy: the first one with a controller.</summary>
+        /// <summary>
+        /// The animator that drives the copy, as the game finds a character's: the first one with a
+        /// controller on a part that is switched on. Some prefabs keep an old model switched off
+        /// beside the one in use (a frost troll's Visual_OLD), with an animator of its own; failing
+        /// a switched-on one, the first there is.
+        /// </summary>
         public static Animator AnimatorOf(GameObject copy)
         {
             if (copy == null) return null;
+            Animator any = null;
             foreach (var animator in copy.GetComponentsInChildren<Animator>(true))
             {
-                if (animator.runtimeAnimatorController != null) return animator;
+                if (animator.runtimeAnimatorController == null) continue;
+                if (On(animator.transform, copy.transform)) return animator;
+                if (any == null) any = animator;
             }
-            return null;
+            return any;
+        }
+
+        /// <summary>Whether a part and every part above it, up to the copy, is switched on.</summary>
+        private static bool On(Transform part, Transform root)
+        {
+            for (var t = part; t != null; t = t.parent)
+            {
+                if (!t.gameObject.activeSelf) return false;
+                if (t == root) return true;
+            }
+            return true;
         }
 
         private void Begin(Animator animator, AnimationClip clip, bool loop, float speed, bool quiet)

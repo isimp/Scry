@@ -125,7 +125,9 @@ namespace Scry
         /// <summary>What a creature's clips name themselves to play or hold, by clip.</summary>
         private static void Animations(GameObject prefab, LinkBook book)
         {
-            foreach (var animator in prefab.GetComponentsInChildren<Animator>(true))
+            // Only the animator the creature plays by, not an old one left switched off beside it.
+            var played = ClipPlayer.AnimatorOf(prefab);
+            foreach (var animator in played != null ? new[] { played } : new Animator[0])
             {
                 var controller = animator.runtimeAnimatorController;
                 if (controller == null) continue;
