@@ -50,10 +50,18 @@ namespace Scry
             return surface;
         }
 
-        /// <summary>One square metre of grid: a faint fill with brighter edges, tiled across the floor.</summary>
+/// <summary>How many metres one tile of the grid texture covers.</summary>
+        public const float GridMetres = 5f;
+
+        /// <summary>
+        /// Five metres of grid: squares of one metre in faint lines, a brighter line every five,
+        /// over a faint fill. Tiled across the floor by its mesh, since the stage's shaders ignore
+        /// a material's tiling.
+        /// </summary>
         public static Texture2D GridTexture()
         {
-            const int size = 64;
+            const int perMetre = 64;
+            const int size = perMetre * 5;
             var texture = new Texture2D(size, size, TextureFormat.RGBA32, true)
             {
                 wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Trilinear, anisoLevel = 8, name = "Scry grid",
@@ -63,13 +71,24 @@ namespace Scry
             {
                 for (var x = 0; x < size; x++)
                 {
-                    var edge = x < 2 || y < 2;
-                    pixels[y * size + x] = edge ? new Color32(230, 232, 238, 110) : new Color32(200, 205, 215, 16);
+                    var major = x < 3 || y < 3;
+                    var minor = x % perMetre < 2 || y % perMetre < 2;
+                    pixels[y * size + x] = major ? new Color32(240, 242, 248, 150)
+                        : minor ? new Color32(225, 228, 236, 80)
+                        : new Color32(200, 205, 215, 14);
                 }
             }
             texture.SetPixels32(pixels);
             texture.Apply(true, true);
             return texture;
+        }
+
+        /// <summary>Repeats a surface's texture the given number of times each way, through its mesh.</summary>
+        public static void Tile(GameObject surface, float times)
+        {
+            var mesh = surface != null ? surface.GetComponent<MeshFilter>()?.sharedMesh : null;
+            if (mesh == null) return;
+            mesh.uv = new[] { new Vector2(0, 0), new Vector2(0, times), new Vector2(times, times), new Vector2(times, 0) };
         }
 
         /// <summary>A sky from top to bottom: its colour above, a brighter horizon, and the ground below.</summary>

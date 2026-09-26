@@ -64,7 +64,7 @@ The compact view is a slim column at the side of the screen without the turntabl
 
 ## Files
 
-Favourites and the panel's place on screen are kept in `Scry` inside the game's own data folder (on Windows `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim\Scry`), outside the BepInEx folder, so a mod manager replacing a profile's configs leaves them alone. Favourites of prefabs that are not in the game right now are kept.
+Favourites and the panel's state (its place on screen in both views, the stage's lighting, backdrop, person and spinning, and which sections are folded) are kept in `Scry` inside the game's own data folder (on Windows `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim\Scry`), outside the BepInEx folder, so a mod manager replacing a profile's configs leaves them alone. Favourites of prefabs that are not in the game right now are kept.
 
 ## Limits
 

@@ -109,6 +109,17 @@ namespace Scry
 
         public static Texture Texture => _texture;
 
+        /// <summary>Whether the model turns on its own; starts as the config says.</summary>
+        public static bool Spin = Plugin.AutoSpin;
+
+        /// <summary>Whether the floor ruled in metres is showing.</summary>
+        public static bool ShowsGrid => _grid != null && _grid.activeSelf;
+
+        /// <summary>The size of the model as shown, in metres.</summary>
+        public static Vector3 SubjectSize => _bounds.size * _scale;
+
+        private static float _gridMetres = -1f;
+
         /// <summary>The layer nothing in the game uses, which the stage is drawn on and falling copies land with.</summary>
         public static int Layer
         {
@@ -375,7 +386,7 @@ namespace Scry
             Expire();
             if (_camera == null || Time.frameCount - _wantedFrame > 2) return;
 
-            if (Plugin.AutoSpin && !Dragging && _subject != null) Yaw += SpinDegreesPerSecond * Time.unscaledDeltaTime;
+            if (Spin && !Dragging && _subject != null) Yaw += SpinDegreesPerSecond * Time.unscaledDeltaTime;
 
             EnsureTexture();
             Frame();
@@ -512,10 +523,16 @@ namespace Scry
             }
             if (_grid != null && _grid.activeSelf)
             {
-                var metres = Mathf.Max(4f, Mathf.Ceil(radius * 4f));
+                // Whole tiles of five metres, an even number of them, so a five-metre line runs
+                // under the middle of the model.
+                var metres = Mathf.Max(10f, Mathf.Ceil(radius * 4f / 10f) * 10f);
                 _grid.transform.position = new Vector3(Origin.x, groundY - 0.004f, Origin.z);
                 _grid.transform.localScale = new Vector3(metres, 1f, metres);
-                _grid.GetComponent<MeshRenderer>().sharedMaterial.mainTextureScale = new Vector2(metres, metres);
+                if (!Mathf.Approximately(metres, _gridMetres))
+                {
+                    _gridMetres = metres;
+                    Floor.Tile(_grid, metres / Floor.GridMetres);
+                }
             }
 
             if (_floor != null)
@@ -639,6 +656,7 @@ namespace Scry
             _ground.AddComponent<BoxCollider>();
 
             _grid = Floor.Surface("Scry stage grid", _layer, Floor.GridTexture());
+            _gridMetres = -1f;
             if (_grid != null) _grid.transform.SetParent(_root.transform, true);
 
             _sky = Floor.Surface("Scry stage sky", _layer, null);

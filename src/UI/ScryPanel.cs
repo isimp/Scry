@@ -37,7 +37,6 @@ namespace Scry
 
         private static bool _focusSearch;
         private static bool _reveal;
-        private static bool _details;
         private static string _clipFilter = "";
         private static bool _help;
         private static float _badgeWidth;
@@ -305,6 +304,12 @@ namespace Scry
                     if (parts.Length == 2 && parts[0] == "backdrop" && int.TryParse(parts[1], out var backdrop)) Stage.BackdropIndex = backdrop;
                     if (parts.Length == 2 && parts[0] == "person") Stage.ShowPerson = parts[1] == "1";
                     if (parts.Length == 2 && parts[0] == "worn") Looks.OnPerson = parts[1] == "1";
+                    if (parts.Length == 2 && parts[0] == "spin") Stage.Spin = parts[1] == "1";
+                    if (parts.Length >= 1 && parts[0] == "folded")
+                    {
+                        Folded.Clear();
+                        foreach (var key in parts.Skip(1)) if (key.Length > 0) Folded.Add(key);
+                    }
                     if (parts.Length != 5) continue;
 
                     var v = parts.Skip(1).Select(p => float.Parse(p, CultureInfo.InvariantCulture)).ToArray();
@@ -328,7 +333,8 @@ namespace Scry
 
                 Directory.CreateDirectory(Plugin.DataFolder);
                 File.WriteAllLines(RectFile, new[] { Line("full", _full), Line("compact", _compactRect), "view " + (_compact ? "compact" : "full"),
-                    "light " + Stage.LightingIndex, "backdrop " + Stage.BackdropIndex, "person " + (Stage.ShowPerson ? "1" : "0"), "worn " + (Looks.OnPerson ? "1" : "0") });
+                    "light " + Stage.LightingIndex, "backdrop " + Stage.BackdropIndex, "person " + (Stage.ShowPerson ? "1" : "0"), "worn " + (Looks.OnPerson ? "1" : "0"),
+                    "spin " + (Stage.Spin ? "1" : "0"), "folded " + string.Join(" ", Folded) });
             }
             catch (Exception ex)
             {
@@ -931,6 +937,14 @@ namespace Scry
                     FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), inner.width - U(24f), U(22f)),
                         "Drag to turn, scroll to zoom, double-click to reset", Skin.FaintLabel, 9f);
                 }
+                else if (Stage.Subject != null && Stage.ShowsGrid)
+                {
+                    // On the grid, how big the model is, in the same metres as its squares.
+                    var size = Stage.SubjectSize;
+                    string M(float v) => v.ToString(v < 10f ? "0.0" : "0", CultureInfo.InvariantCulture);
+                    FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), inner.width - U(24f), U(22f)),
+                        $"Squares of 1 m, lines every 5 m  \u00B7  {M(size.y)} m tall, {M(size.x)} × {M(size.z)} m", Skin.DimLabel, 9f);
+                }
 
                 // The stage's own buttons come before its dragging, which would otherwise take their clicks.
                 StageButtons(entry, rect);
@@ -1318,7 +1332,8 @@ namespace Scry
             {
                 foreach (var key in kept.ToList()) Looks.Outfit.TakeOff(key);
                 Previews.Rebuild();
-            });
+            }, "kept");
+            if (IsFolded("kept")) return y;
 
             var x = 0f;
             var chipH = U(30f);
@@ -1420,7 +1435,8 @@ namespace Scry
             var clips = Variants(entry);
             if (clips.Count < 2) return y;
 
-            y = SectionHeading($"VARIANTS  {clips.Count}", width, y, null);
+            y = SectionHeading($"VARIANTS  {clips.Count}", width, y, null, "variants");
+            if (IsFolded("variants")) return y;
             var now = Previews.SoundClipNow();
             var x = 0f;
             var rowH = U(28f);
@@ -1467,10 +1483,11 @@ namespace Scry
                 modifiers.Reset();
                 if (entry.Source is GameObject reset) Gear.ResetLoadout(reset);
                 Previews.Rebuild();
-            });
+            }, "adjust");
             var labelW = U(_compact ? 100f : 120f);
+            var open = !IsFolded("adjust");
 
-            if (staged)
+            if (open && staged)
             {
                 // Size on a curve, so the range from a tenth to ten times is usable end to end.
                 var logScale = Mathf.Log10(modifiers.Scale);
@@ -1478,7 +1495,7 @@ namespace Scry
                 if (!Mathf.Approximately(picked, logScale)) modifiers.Scale = Mathf.Pow(10f, picked);
             }
 
-            if (entry.Kind == Kind.Creature && modifiers.MaxLevel > 1)
+            if (open && entry.Kind == Kind.Creature && modifiers.MaxLevel > 1)
             {
                 var names = new List<string>();
                 for (var level = 1; level <= modifiers.MaxLevel; level++) names.Add(level == 1 ? "No stars" : level == 2 ? "1 star" : $"{level - 1} stars");
@@ -1486,42 +1503,67 @@ namespace Scry
                 if (chosen >= 0) modifiers.Level = chosen + 1;
             }
 
-            if (modifiers.WearAvailable)
+            if (open && modifiers.WearAvailable)
             {
                 var chosen = Segments("Wear", new List<string> { "New", "Worn", "Broken" }, (int)modifiers.Wear, width, labelW, ref y);
                 if (chosen >= 0) modifiers.Wear = (Wear)chosen;
             }
 
-            if (modifiers.LookAvailable)
+            if (open && modifiers.LookAvailable)
             {
                 var chosen = Segments("Look", new List<string>(modifiers.LookNames), modifiers.Look, width, labelW, ref y);
                 if (chosen >= 0) modifiers.Look = chosen;
                 if (modifiers.Look > 0 && entry.Source is GameObject creature && Scry.Variants.IsGear(creature)) LoadoutRows(creature, width, labelW, ref y);
             }
 
-            if (projectile)
+            if (open && projectile)
             {
                 Previews.ProjectileSpeed = SliderRow("Speed", $"{Mathf.RoundToInt(Previews.ProjectileSpeed)} m/s", Previews.ProjectileSpeed, 5f, 120f, width, labelW, ref y);
             }
 
             if (clips.Count > 0)
             {
-                var speed = SliderRow("Animation speed", $"×{modifiers.AnimationSpeed.ToString("0.0", CultureInfo.InvariantCulture)}", modifiers.AnimationSpeed, 0f, Modifiers.MaxAnimationSpeed, width, labelW, ref y);
-                if (!Mathf.Approximately(speed, modifiers.AnimationSpeed)) modifiers.AnimationSpeed = speed;
-                y = Clips(clips, width, y);
+                y += U(6f);
+                y = Clips(clips, modifiers, width, labelW, y);
             }
 
             return y + U(10f);
         }
 
-        private static float SectionHeading(string text, float width, float y, Action reset)
+/// <summary>The sections folded shut, by key. Details start shut; the rest start open.</summary>
+        private static readonly HashSet<string> Folded = new HashSet<string> { "details" };
+
+        private static bool IsFolded(string key) => key != null && Folded.Contains(key);
+
+        /// <summary>
+        /// A section's heading and rule. With a key, the heading folds the section shut or opens
+        /// it when clicked, and the choice is remembered; the caller skips its body while folded.
+        /// </summary>
+        private static float SectionHeading(string text, float width, float y, Action reset, string key = null)
         {
-            var textW = Skin.Heading.CalcSize(new GUIContent(text)).x;
-            GUI.Label(new Rect(0f, y, textW + U(4f), U(20f)), text, Skin.Heading);
+            var folded = IsFolded(key);
+            var shown = key == null ? text : text + (folded ? "  \u25B8" : "  \u25BE");
+            var textW = Skin.Heading.CalcSize(new GUIContent(shown)).x;
+            var head = new Rect(0f, y, textW + U(4f), U(20f));
+            if (key == null)
+            {
+                GUI.Label(head, shown, Skin.Heading);
+            }
+            else
+            {
+                LinkLabel(head, shown, Skin.Heading, Skin.Heading.normal.textColor);
+                if (head.Contains(Event.current.mousePosition)) AskTip("fold:" + key, folded ? "Open this section" : "Fold this section away");
+                if (GUI.Button(head, GUIContent.none, GUIStyle.none))
+                {
+                    if (folded) Folded.Remove(key);
+                    else Folded.Add(key);
+                    SaveRects();
+                }
+            }
             var lineEnd = reset != null ? width - U(74f) : width;
             Skin.Fill(new Rect(textW + U(12f), y + U(10f), Mathf.Max(0f, lineEnd - textW - U(12f)), U(1f)), Skin.Outline);
             if (reset != null && GUI.Button(new Rect(width - U(64f), y - U(2f), U(64f), U(24f)), "Reset", Skin.Chip)) reset();
-            return y + U(30f);
+            return y + U(folded ? 26f : 30f);
         }
 
         private static float SliderRow(string label, string value, float current, float min, float max, float width, float labelW, ref float y)
@@ -1621,10 +1663,14 @@ namespace Scry
         /// Every animation clip the creature has, each played directly on the copy. The one playing
         /// is lit; Stop hands the copy back to its own animations.
         /// </summary>
-        private static float Clips(List<AnimationClip> clips, float width, float y)
+        private static float Clips(List<AnimationClip> clips, Modifiers modifiers, float width, float labelW, float y)
         {
             var playing = Previews.PlayingClip();
-            y = SectionHeading("ANIMATIONS", width, y, null);
+            y = SectionHeading($"ANIMATIONS  {clips.Count}", width, y, null, "animations");
+            if (IsFolded("animations")) return y;
+
+            var speed = SliderRow("Speed", $"×{modifiers.AnimationSpeed.ToString("0.0", CultureInfo.InvariantCulture)}", modifiers.AnimationSpeed, 0f, Modifiers.MaxAnimationSpeed, width, labelW, ref y);
+            if (!Mathf.Approximately(speed, modifiers.AnimationSpeed)) modifiers.AnimationSpeed = speed;
 
             var x = 0f;
             var rowH = U(26f);
@@ -1692,7 +1738,7 @@ namespace Scry
 
             // Everything the row will hold, measured first, so it can move clear of the kind badge.
             var wearable = entry.Kind == Kind.Item && entry.Source is GameObject wornItem && Gear.IsWearable(wornItem);
-            var texts = new List<string> { Stage.BackdropNames[Stage.BackdropIndex], Stage.LightingNames[Stage.LightingIndex] };
+            var texts = new List<string> { Stage.BackdropNames[Stage.BackdropIndex], Stage.LightingNames[Stage.LightingIndex], "Spin" };
             if (wearable) texts.Add("Worn");
             if (!Looks.IsWorn(entry)) texts.Add("Person");
             var total = texts.Sum(t => Skin.Chip.CalcSize(new GUIContent(t)).x + U(10f));
@@ -1709,6 +1755,11 @@ namespace Scry
                 return GUI.Button(chip, text, style);
             }
 
+            if (Chip("Spin", Stage.Spin, Stage.Spin ? "Turning; click to hold it still" : "Held still; click to turn it"))
+            {
+                Stage.Spin = !Stage.Spin;
+                SaveRects();
+            }
             if (Chip(Stage.BackdropNames[Stage.BackdropIndex], false, "Backdrop: click for the next"))
             {
                 Stage.BackdropIndex = (Stage.BackdropIndex + 1) % Stage.BackdropNames.Length;
@@ -1753,7 +1804,8 @@ namespace Scry
             }
             if (lists.Count == 0) return y;
 
-            y = SectionHeading($"EFFECTS  {lists.Count}", width, y, null);
+            y = SectionHeading($"EFFECTS  {lists.Count}", width, y, null, "effects");
+            if (IsFolded("effects")) return y;
             var rowH = U(26f);
 
             if (lists.Count > 12)
@@ -1862,7 +1914,8 @@ namespace Scry
                 _allPlaysIn = false;
             }
 
-            y = SectionHeading($"PLAYS IN  {rows.Count}", width, y, null);
+            y = SectionHeading($"PLAYS IN  {rows.Count}", width, y, null, "playsin");
+            if (IsFolded("playsin")) return y;
             const int Shown = 8;
             var rowH = U(26f);
 
@@ -1974,7 +2027,8 @@ namespace Scry
             var facts = Facts.For(entry);
             if (facts.IsEmpty) return y;
 
-            y = SectionHeading("IN THE GAME", width, y, null);
+            y = SectionHeading("IN THE GAME", width, y, null, "facts");
+            if (IsFolded("facts")) return y;
 
             if (facts.Description.Length > 0)
             {
@@ -2121,10 +2175,13 @@ namespace Scry
         }
 
         /// <summary>Text drawn as a link: accent coloured, brighter under the mouse.</summary>
-        private static void LinkLabel(Rect rect, string text, GUIStyle style)
+        private static void LinkLabel(Rect rect, string text, GUIStyle style) => LinkLabel(rect, text, style, Skin.Accent);
+
+        /// <summary>Text that can be clicked: in its colour, brighter under the mouse.</summary>
+        private static void LinkLabel(Rect rect, string text, GUIStyle style, Color colour)
         {
             var was = style.normal.textColor;
-            style.normal.textColor = rect.Contains(Event.current.mousePosition) ? Color.Lerp(Skin.Accent, Color.white, 0.3f) : Skin.Accent;
+            style.normal.textColor = rect.Contains(Event.current.mousePosition) ? Color.Lerp(colour, Color.white, 0.35f) : colour;
             GUI.Label(rect, text, style);
             style.normal.textColor = was;
         }
@@ -2220,7 +2277,8 @@ namespace Scry
             var command = SpawnCommand.For(entry, _commandAmount, level, give: isItem);
             if (command == null) return y;
 
-            y = SectionHeading(isItem ? "GIVE COMMAND" : "SPAWN COMMAND", width, y, null);
+            y = SectionHeading(isItem ? "GIVE COMMAND" : "SPAWN COMMAND", width, y, null, "command");
+            if (IsFolded("command")) return y;
             var rowH = U(28f);
 
             if (isItem)
@@ -2274,12 +2332,8 @@ namespace Scry
 
         private static float Details(Explorer explorer, Entry entry, float width, float y)
         {
-            var label = _details ? "HIDE DETAILS" : "SHOW DETAILS";
-            var labelW = Skin.Heading.CalcSize(new GUIContent(label)).x;
-            if (GUI.Button(new Rect(0f, y, labelW + U(4f), U(20f)), label, Skin.Heading)) _details = !_details;
-            Skin.Fill(new Rect(labelW + U(12f), y + U(10f), Mathf.Max(0f, width - labelW - U(12f)), U(1f)), Skin.Outline);
-            y += U(28f);
-            if (!_details) return y;
+            y = SectionHeading("DETAILS", width, y, null, "details");
+            if (IsFolded("details")) return y;
 
             var lines = new List<string> { "Prefab name: " + entry.Name };
             lines.Add("Origin: " + (entry.Origin == Origin.Vanilla ? "the game" : entry.Origin == Origin.Mod ? (entry.ModName.Length > 0 ? entry.ModName : "a mod, not named") : "unknown"));
