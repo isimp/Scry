@@ -113,11 +113,11 @@ namespace Scry
 
             var watch = System.Diagnostics.Stopwatch.StartNew();
             Leftovers.Pair(entries, FindLeftovers(registered.Values.Select(f => f.Prefab)));
-            if (watch.ElapsedMilliseconds >= 50) Plugin.Log.LogInfo($"Scry paired leftovers in {watch.ElapsedMilliseconds} ms.");
+            if (watch.ElapsedMilliseconds >= 50) Plugin.Note($"Scry paired leftovers in {watch.ElapsedMilliseconds} ms.");
 
             watch.Restart();
             Relations.Gather(registered.Values.Select(f => f.Prefab).ToList()).Apply(entries);
-            if (watch.ElapsedMilliseconds >= 50) Plugin.Log.LogInfo($"Scry read links in {watch.ElapsedMilliseconds} ms.");
+            if (watch.ElapsedMilliseconds >= 50) Plugin.Note($"Scry read links in {watch.ElapsedMilliseconds} ms.");
 
             return entries;
         }

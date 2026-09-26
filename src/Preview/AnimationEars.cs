@@ -52,7 +52,7 @@ namespace Scry
                 var names = animator.runtimeAnimatorController.animationClips.Where(c => c != null).Select(c => c.name).Distinct().OrderBy(n => n).ToList();
                 var settings = string.Join(", ", animator.parameters.Select(p => $"{p.name} ({p.type.ToString().ToLowerInvariant()})"));
                 var layers = string.Join(", ", Enumerable.Range(0, animator.layerCount).Select(l => $"{animator.GetLayerName(l)} at {animator.GetLayerWeight(l):0.##}"));
-                Plugin.Log.LogInfo($"Scry plays {prefab.name} by the animator on {animator.gameObject.name} ({animator.runtimeAnimatorController.name}, {all} animators on the copy), {names.Count} clips: {string.Join(", ", names)}. Its settings: {(settings.Length > 0 ? settings : "none")}. Its layers: {layers}.");
+                Plugin.Note($"Scry plays {prefab.name} by the animator on {animator.gameObject.name} ({animator.runtimeAnimatorController.name}, {all} animators on the copy), {names.Count} clips: {string.Join(", ", names)}. Its settings: {(settings.Length > 0 ? settings : "none")}. Its layers: {layers}.");
             }
 
             var unknown = new SortedSet<string>();
@@ -70,9 +70,9 @@ namespace Scry
             // Said once per prefab, so it can be told why a creature's clips stay silent.
             if (Told.Add(prefab.name))
             {
-                if (unknown.Count > 0) Plugin.Log.LogInfo($"Scry leaves the animations of {prefab.name} silent: its clips send events it cannot answer ({string.Join(", ", unknown)}).");
-                else if (events == 0) Plugin.Log.LogInfo($"Scry: the animations of {prefab.name} send no events, so they have no sounds of their own.");
-                else Plugin.Log.LogInfo($"Scry answers the {events} animation events of {prefab.name}.");
+                if (unknown.Count > 0) Plugin.Note($"Scry leaves the animations of {prefab.name} silent: its clips send events it cannot answer ({string.Join(", ", unknown)}).");
+                else if (events == 0) Plugin.Note($"Scry: the animations of {prefab.name} send no events, so they have no sounds of their own.");
+                else Plugin.Note($"Scry answers the {events} animation events of {prefab.name}.");
             }
             if (unknown.Count > 0) return;
 

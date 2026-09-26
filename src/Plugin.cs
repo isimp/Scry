@@ -18,11 +18,21 @@ namespace Scry
         private static ConfigEntry<bool> _autoSpin;
         private static ConfigEntry<bool> _playOnSelect;
         private static ConfigEntry<float> _uiScale;
+        private static ConfigEntry<bool> _logPreviews;
 
         public static KeyCode OpenKey => _openKey?.Value ?? KeyCode.F7;
         public static bool AutoSpin => _autoSpin?.Value ?? true;
         public static bool PlayOnSelect => _playOnSelect?.Value ?? true;
         public static float UiScale => _uiScale?.Value ?? 1f;
+
+        /// <summary>Whether the log tells what previews play and what Scry saw of each prefab, for finding out why something looks or sounds wrong.</summary>
+        public static bool LogPreviews => _logPreviews?.Value ?? false;
+
+        /// <summary>A note for the log about what a preview did, written only when <see cref="LogPreviews"/> is on.</summary>
+        public static void Note(string line)
+        {
+            if (LogPreviews) Log.LogInfo(line);
+        }
 
         /// <summary>
         /// Where Scry keeps its own files: favourites and the panel's place on screen. Outside the
@@ -46,6 +56,8 @@ namespace Scry
                 "Turns the model in the preview slowly while you are not dragging it.");
             _playOnSelect = Config.Bind("2 - Preview", "PlayOnSelect", true,
                 "Plays a sound as soon as it is selected, so the list can be auditioned with the arrow keys.");
+            _logPreviews = Config.Bind("3 - Diagnostics", "LogPreviews", false,
+                "Writes to the log what each preview played and what Scry found out about each prefab (its animator, its gear, what it leaves behind), for finding out why something looks or sounds wrong. Off, the log only says when the game has changed in a way Scry notices, and how long reading the catalog took.");
 
             _harmony = new Harmony(Guid);
             Patch();

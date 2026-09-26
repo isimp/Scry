@@ -1013,7 +1013,7 @@ namespace Scry
             if (body != null && Told.Add("lasting:" + prefab.name))
             {
                 string Of(EffectList list) => HasAny(list) ? string.Join(", ", Members(list)) : "nothing";
-                Plugin.Log.LogInfo($"Scry: {prefab.name} keeps going in water {Of(body.m_waterEffects)}; flying {Of(body.m_flyingContinuousEffect)}{(body.m_flying ? ", and it flies from birth" : "")}; its own scale {prefab.transform.localScale.x:0.##}.");
+                Plugin.Note($"Scry: {prefab.name} keeps going in water {Of(body.m_waterEffects)}; flying {Of(body.m_flyingContinuousEffect)}{(body.m_flying ? ", and it flies from birth" : "")}; its own scale {prefab.transform.localScale.x:0.##}.");
             }
             return plays;
         }
@@ -1585,7 +1585,7 @@ namespace Scry
                     : "could not be copied";
                 parts.Add($"{data.m_prefab.name} ({why})");
             }
-            Plugin.Log.LogInfo($"Scry played nothing to see or hear of {_entry?.Name}'s \"{label}\": {(parts.Count > 0 ? string.Join("; ", parts) : "it is empty")}.");
+            Plugin.Note($"Scry played nothing to see or hear of {_entry?.Name}'s \"{label}\": {(parts.Count > 0 ? string.Join("; ", parts) : "it is empty")}.");
         }
 
         /// <summary>The ragdoll a creature leaves when it dies, when it has one.</summary>
@@ -1629,7 +1629,7 @@ namespace Scry
                 foreach (var data in list.m_effectPrefabs) if (data?.m_prefab != null && Ghost.IsDebris(data.m_prefab)) debris.Add(data.m_prefab.name);
             }
             var tree = prefab.GetComponent<TreeBase>();
-            Plugin.Log.LogInfo($"Scry destroys {prefab.name}: {(Falling.Breaks(prefab, list) ? "breaks into its own parts" : "no parts of its own")}, "
+            Plugin.Note($"Scry destroys {prefab.name}: {(Falling.Breaks(prefab, list) ? "breaks into its own parts" : "no parts of its own")}, "
                                + $"{(tree != null && tree.m_logPrefab != null ? "fells its log " + tree.m_logPrefab.name : "no log")}, "
                                + $"debris {(debris.Count > 0 ? string.Join(", ", debris) : "none")}.");
         }

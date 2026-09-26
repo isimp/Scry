@@ -91,6 +91,7 @@ namespace Scry
             Seen[prefab] = seen;
             if (animator == null || animator.runtimeAnimatorController == null) return seen;
 
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             var holder = new GameObject("Scry probe");
             holder.SetActive(false);
             var random = Random.state;
@@ -169,7 +170,7 @@ namespace Scry
                     seen.Actions[action] = clips;
                     actions.Add(Tell(action, clips));
                 }
-                Plugin.Log.LogInfo($"Scry saw what the animator of {prefab} plays: attacks {(attacks.Count > 0 ? string.Join("; ", attacks) : "none")}; the game's own actions {(actions.Count > 0 ? string.Join("; ", actions) : "none")}; left alone {string.Join(", ", seen.Idle.OrderBy(c => c))}.");
+                Plugin.Note($"Scry saw in {watch.ElapsedMilliseconds} ms what the animator of {prefab} plays: attacks {(attacks.Count > 0 ? string.Join("; ", attacks) : "none")}; the game's own actions {(actions.Count > 0 ? string.Join("; ", actions) : "none")}; left alone {string.Join(", ", seen.Idle.OrderBy(c => c))}.");
             }
             catch (System.Exception ex)
             {

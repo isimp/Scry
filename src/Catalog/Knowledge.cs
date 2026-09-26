@@ -82,7 +82,7 @@ namespace Scry
             try
             {
                 act();
-                if (watch.ElapsedMilliseconds >= 50) Plugin.Log.LogInfo($"Scry read {what} in {watch.ElapsedMilliseconds} ms.");
+                if (watch.ElapsedMilliseconds >= 50) Plugin.Note($"Scry read {what} in {watch.ElapsedMilliseconds} ms.");
             }
             catch (Exception ex)
             {

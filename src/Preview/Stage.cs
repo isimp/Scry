@@ -883,7 +883,7 @@ namespace Scry
             {
                 if (string.IsNullOrEmpty(LayerMask.LayerToName(i)))
                 {
-                    Plugin.Log.LogInfo($"Scry is using layer {i} for its preview stage.");
+                    Plugin.Note($"Scry is using layer {i} for its preview stage.");
                     return i;
                 }
             }
