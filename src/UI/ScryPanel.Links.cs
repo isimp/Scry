@@ -1,0 +1,255 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using UnityEngine;
+
+namespace Scry
+{
+    /// <summary>Chips that go to other entries, coloured by their kind, and the Linked section.</summary>
+    internal static partial class ScryPanel
+    {
+        /// <summary>Goes to a prefab, or to a status effect when the target starts with "se:".</summary>
+        private static void Go(Explorer explorer, string target)
+        {
+            var statusEffect = target.StartsWith("se:", StringComparison.Ordinal);
+            if (!explorer.Jump(statusEffect ? target.Substring(3) : target, statusEffect)) return;
+            _reveal = true;
+            _sideScroll = Vector2.zero;
+            _help = false;
+        }
+
+        /// <summary>Puts a search in the box, with every other filter cleared so it shows all it finds.</summary>
+        private static void SearchFor(Explorer explorer, string text)
+        {
+            explorer.KindFilter = null;
+            explorer.FavouritesOnly = false;
+            explorer.RecentOnly = false;
+            explorer.Origin = OriginFilter.All;
+            explorer.Text = text;
+            _listScroll = Vector2.zero;
+            _reveal = true;
+            _help = false;
+        }
+
+        /// <summary>Text drawn as a link: accent coloured, brighter under the mouse.</summary>
+        private static void LinkLabel(Rect rect, string text, GUIStyle style) => LinkLabel(rect, text, style, Skin.Accent);
+
+        /// <summary>Text that can be clicked: in its colour, brighter under the mouse.</summary>
+        private static void LinkLabel(Rect rect, string text, GUIStyle style, Color colour)
+        {
+            var was = style.normal.textColor;
+            style.normal.textColor = rect.Contains(Event.current.mousePosition) ? Color.Lerp(colour, Color.white, 0.35f) : colour;
+            GUI.Label(rect, text, style);
+            style.normal.textColor = was;
+        }
+
+        /// <summary>
+        /// A chip that goes to an entry rather than doing something: tinted in the colour of the
+        /// kind of entry it goes to, with an arrow. Brighter while what it names is playing. One
+        /// that goes nowhere (the entry itself, or something not in the catalog) is plain.
+        /// </summary>
+        private static bool LinkChip(Rect rect, string text, Kind? kind, bool lit, bool go)
+        {
+            var hover = go && rect.Contains(Event.current.mousePosition);
+            Skin.PillBox(rect, go || lit ? LinkFill(kind, hover, lit) : new Color(0.2f, 0.2f, 0.22f, 0.45f));
+
+            var style = Skin.Small;
+            var was = style.normal.textColor;
+            var alignment = style.alignment;
+            style.normal.textColor = go || lit ? LinkText(kind, hover || lit) : Skin.Dim;
+            style.alignment = TextAnchor.MiddleCenter;
+            GUI.Label(rect, go ? text + "  \u203A" : text, style);
+            style.normal.textColor = was;
+            style.alignment = alignment;
+
+            return go && GUI.Button(rect, GUIContent.none, GUIStyle.none);
+        }
+
+        /// <summary>The fill of anything that goes to an entry: a dark shade of its kind's colour.</summary>
+        private static Color LinkFill(Kind? kind, bool hover, bool lit = false)
+        {
+            var colour = kind.HasValue ? Skin.KindColor(kind.Value) : Skin.Neutral;
+            var fill = lit ? 0.55f : hover ? 0.36f : 0.22f;
+            return new Color(colour.r * fill, colour.g * fill, colour.b * fill, 0.95f);
+        }
+
+        /// <summary>The text of anything that goes to an entry: its kind's colour, lighter.</summary>
+        private static Color LinkText(Kind? kind, bool hover)
+        {
+            var colour = kind.HasValue ? Skin.KindColor(kind.Value) : Skin.Neutral;
+            return Color.Lerp(colour, Color.white, hover ? 0.6f : 0.35f);
+        }
+
+        private static float LinkChipWidth(string text, bool go) => Skin.Small.CalcSize(new GUIContent(go ? text + "  \u203A" : text)).x + U(16f);
+
+        /// <summary>The kind of the entry a prefab name goes to, when it is in the catalog.</summary>
+        private static Kind? KindOf(Explorer explorer, string name)
+        {
+            if (string.IsNullOrEmpty(name)) return null;
+            if (_kindsFor != explorer)
+            {
+                _kindsFor = explorer;
+                KindByName.Clear();
+                foreach (var e in explorer.Catalog) if (e.Kind != Kind.StatusEffect && !KindByName.ContainsKey(e.Name)) KindByName[e.Name] = e.Kind;
+            }
+            return KindByName.TryGetValue(name, out var kind) ? kind : (Kind?)null;
+        }
+
+        private static readonly Dictionary<string, Kind> KindByName = new Dictionary<string, Kind>();
+        private static Explorer _kindsFor;
+
+        /// <summary>A small heading and a wrapping row of link chips, each going to what it names.</summary>
+        private static float LinkRow(Explorer explorer, string title, IEnumerable<string> names, float width, float y)
+        {
+            return LinkItems(explorer, title, names.Select(n => (n, ShownName(explorer, n, n), "Go to " + ShownName(explorer, n, n), (Action)(() => Go(explorer, n)))), width, y);
+        }
+
+        /// <summary>A small heading and a wrapping row of link chips, each with its own text, tip and doing.</summary>
+        private static float LinkItems(Explorer explorer, string title, IEnumerable<(string Key, string Text, string Tip, Action Click)> items, float width, float y)
+        {
+            GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
+            y += U(24f);
+            var x = 0f;
+            var rowH = U(26f);
+            foreach (var item in items)
+            {
+                var w = Mathf.Min(width, LinkChipWidth(item.Text, true));
+                if (x + w > width && x > 0f)
+                {
+                    x = 0f;
+                    y += rowH + U(5f);
+                }
+                var chip = new Rect(x, y, w, rowH);
+                if (LinkChip(chip, item.Text, KindOfKey(explorer, item.Key), false, true)) item.Click();
+                if (chip.Contains(Event.current.mousePosition)) AskTip("link:" + title + item.Key + item.Text, item.Tip);
+                x += w + U(5f);
+            }
+            return y + rowH + U(10f);
+        }
+
+        private static Kind? KindOfKey(Explorer explorer, string key) =>
+            key != null && key.StartsWith("se:", StringComparison.Ordinal) ? Kind.StatusEffect : KindOf(explorer, key);
+
+        /// <summary>
+        /// Everything else the entry is linked to, a row per heading: what it leaves behind or is
+        /// left by, what it carries, its footsteps, the sounds its animations name, what it
+        /// spawns, its set, its ammo, its status effects. A sound an animation names goes to the
+        /// creature and plays that animation there.
+        /// </summary>
+        private static float LinksSection(Explorer explorer, Entry entry, float width, float y)
+        {
+            var groups = entry.LinkGroups();
+            if (groups.Count == 0 && entry.LeftBy.Count == 0 && entry.LeavesBehind.Count == 0) return y;
+
+            y = SectionHeading("LINKED", width, y, null, "links");
+            if (IsFolded("links")) return y;
+
+            if (entry.LeftBy.Count > 0) y = LinkRow(explorer, "Left behind by", entry.LeftBy.Take(24), width, y);
+            if (entry.LeavesBehind.Count > 0) y = LinkRow(explorer, "Leaves behind", entry.LeavesBehind, width, y);
+
+            foreach (var group in groups)
+            {
+                var links = group.Value.Take(40).ToList();
+                var more = group.Value.Count > links.Count ? $" (first {links.Count} of {group.Value.Count})" : "";
+                var title = group.Key + more;
+
+                if (group.Key == Relations.PlayedByAnimation)
+                {
+                    // One chip per animation, which goes to the creature and plays it.
+                    var items = links.SelectMany(l => l.Notes.Count > 0 ? l.Notes.Select(n => (l.Target, n)) : new[] { (l.Target, "") })
+                        .Select(p =>
+                        {
+                            var shown = ShownName(explorer, p.Target, p.Target);
+                            var text = p.Item2.Length > 0 ? shown + " \u00b7 " + p.Item2 : shown;
+                            var tip = p.Item2.Length > 0 ? $"Go to {shown} and play its {p.Item2} animation" : "Go to " + shown;
+                            return (p.Target, text, tip, (Action)(() =>
+                            {
+                                if (p.Item2.Length > 0) Previews.PlayClipOnShow(p.Item2);
+                                Go(explorer, p.Target);
+                            }));
+                        });
+                    y = LinkItems(explorer, title, items, width, y);
+                    continue;
+                }
+
+                y = LinkItems(explorer, title, links.Select(l =>
+                {
+                    var shown = ShownName(explorer, l.Target, l.Target);
+                    var note = l.Notes.Count == 1 && l.Notes[0].Length <= 28 ? " \u00b7 " + l.Notes[0] : "";
+                    var tip = "Go to " + shown + (l.Notes.Count > 0 ? "\n" + string.Join("\n", l.Notes.Take(12)) : "");
+                    return (l.Target, shown + note, tip, (Action)(() => Go(explorer, l.Target)));
+                }), width, y);
+            }
+            return y + U(4f);
+        }
+
+        /// <summary>A small heading and a wrapping row of chips, each doing its own thing when clicked.</summary>
+        private static float ChipRow(string title, IEnumerable<KeyValuePair<string, Action>> chips, float width, float y)
+        {
+            GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
+            y += U(24f);
+            var x = 0f;
+            var rowH = U(26f);
+            foreach (var chip in chips)
+            {
+                var w = Mathf.Min(width, Skin.Chip.CalcSize(new GUIContent(chip.Key)).x + U(8f));
+                if (x + w > width && x > 0f)
+                {
+                    x = 0f;
+                    y += rowH + U(5f);
+                }
+                if (GUI.Button(new Rect(x, y, w, rowH), chip.Key, Skin.Chip)) chip.Value();
+                x += w + U(5f);
+            }
+            return y + rowH + U(10f);
+        }
+
+        private static readonly Dictionary<string, Sprite> PrefabIcons = new Dictionary<string, Sprite>();
+        private static HashSet<string> _catalogNames;
+        private static Explorer _namesFor;
+
+        private static bool InCatalog(Explorer explorer, string prefab)
+        {
+            if (_namesFor != explorer || _catalogNames == null)
+            {
+                _namesFor = explorer;
+                _catalogNames = new HashSet<string>(explorer.Catalog.Where(e => e.Kind != Kind.StatusEffect).Select(e => e.Name));
+                PrefabIcons.Clear();
+            }
+            return _catalogNames.Contains(prefab);
+        }
+
+        /// <summary>The icon of an item or piece prefab by name, or null.</summary>
+        private static Sprite PrefabIcon(string prefab)
+        {
+            if (PrefabIcons.TryGetValue(prefab, out var known)) return known;
+            Sprite icon = null;
+            var go = ZNetScene.instance != null ? ZNetScene.instance.GetPrefab(prefab) : null;
+            if (go != null)
+            {
+                var icons = go.GetComponent<ItemDrop>()?.m_itemData?.m_shared?.m_icons;
+                if (icons != null && icons.Length > 0) icon = icons[0];
+                else icon = go.GetComponent<Piece>()?.m_icon;
+            }
+            PrefabIcons[prefab] = icon;
+            return icon;
+        }
+
+        private static void DrawSprite(Sprite sprite, Rect rect)
+        {
+            if (sprite == null || sprite.texture == null || Event.current.type != EventType.Repaint) return;
+            try
+            {
+                var t = sprite.texture;
+                var r = sprite.textureRect;
+                GUI.DrawTextureWithTexCoords(rect, t, new Rect(r.x / t.width, r.y / t.height, r.width / t.width, r.height / t.height), true);
+            }
+            catch
+            {
+                // Some sprites have no simple rectangle; the chip shows without its icon.
+            }
+        }
+    }
+}
