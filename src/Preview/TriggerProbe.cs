@@ -35,6 +35,9 @@ namespace Scry
         private const int AttackPatience = 40;
         private const int ActionPatience = 240;
 
+        /// <summary>How many seeded runs gather the idle clips.</summary>
+        private const int IdleSeeds = 8;
+
         /// <summary>
         /// The game's own actions, as its code does them: <c>Character.ForceJump</c> pulls
         /// "jump", <c>MonsterAI.UpdateConsumeItem</c> "consume", <c>MonsterAI.Sleep</c> and
@@ -77,10 +80,10 @@ namespace Scry
                 probe.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                 holder.SetActive(true);
 
-                // The game's RandomIdle picks idle clips at random; seeded alike, each run idles
-                // alike, so what it plays left alone is what nothing done to it plays.
+                // The game's RandomIdle picks idle clips at random, so what it plays left alone
+                // is gathered over several seeds, to know every idle clip it has.
                 var idle = new HashSet<string>();
-                Run(probe, null, null, idle, 0);
+                for (var seed = 1; seed <= IdleSeeds; seed++) Run(probe, null, false, null, idle, 0, seed);
 
                 bool Has(string name, AnimatorControllerParameterType type) => probe.parameters.Any(p => p.type == type && p.name == name);
                 string Tell(string name, List<string> clips) => clips.Count > 0 ? $"{name} plays {string.Join(" then ", clips)}" : $"{name} plays no clip of its own";
@@ -89,7 +92,7 @@ namespace Scry
                 foreach (var trigger in triggers.Distinct())
                 {
                     if (!Has(trigger, AnimatorControllerParameterType.Trigger)) continue;
-                    var clips = Run(probe, a => a.SetTrigger(trigger), null, idle, AttackPatience);
+                    var clips = Run(probe, a => a.SetTrigger(trigger), false, null, idle, AttackPatience);
                     seen.Triggers[trigger] = clips;
                     attacks.Add(Tell(trigger, clips));
                 }
@@ -99,7 +102,7 @@ namespace Scry
                 {
                     if (!Has(name, isSwitch ? AnimatorControllerParameterType.Bool : AnimatorControllerParameterType.Trigger)) continue;
                     System.Action<Animator> act = isSwitch ? a => a.SetBool(name, true) : (System.Action<Animator>)(a => a.SetTrigger(name));
-                    var clips = Run(probe, act, release ? a => a.SetBool(name, false) : (System.Action<Animator>)null, idle, ActionPatience);
+                    var clips = Run(probe, act, isSwitch, release ? a => a.SetBool(name, false) : (System.Action<Animator>)null, idle, ActionPatience);
                     seen.Actions[action] = clips;
                     actions.Add(Tell(action, clips));
                 }
@@ -118,17 +121,19 @@ namespace Scry
         }
 
         /// <summary>
-        /// Starts the animator over, seeded alike and with its settings as they start, and steps
-        /// it on. Done nothing to, every clip it plays for four seconds goes into
-        /// <paramref name="idle"/>. Otherwise it is done <paramref name="act"/> to, and, when
-        /// given, <paramref name="then"/> once it has moved on from its idle (fallen asleep, say):
-        /// the clips of its attack states in order until the attack is over; failing any within
-        /// <paramref name="patience"/> steps, the first clip it moves to that it did not play left
-        /// alone or before <paramref name="then"/>.
+        /// Starts the animator over, seeded, with its settings as they start, and steps it on.
+        /// Done nothing to, every clip it plays for four seconds goes into <paramref name="idle"/>.
+        /// Otherwise it is done <paramref name="act"/> to, a switch as it starts (<paramref
+        /// name="first"/>), since some animators go to sleep only from their start, and a trigger
+        /// once it runs: the clips of its attack states in order until the attack is over; failing
+        /// any within <paramref name="patience"/> steps, the first clip it moves to that it does
+        /// not play left alone. With <paramref name="then"/>, only once it has gone to a clip of
+        /// its own (fallen asleep, say) is it done <paramref name="then"/> to (woken), and the
+        /// clip of the first state it then moves to is taken, unless it is one already played.
         /// </summary>
-        private static List<string> Run(Animator animator, System.Action<Animator> act, System.Action<Animator> then, HashSet<string> idle, int patience)
+        private static List<string> Run(Animator animator, System.Action<Animator> act, bool first, System.Action<Animator> then, HashSet<string> idle, int patience, int seed = 1)
         {
-            Random.InitState(1);
+            Random.InitState(seed);
             animator.Rebind();
             foreach (var parameter in animator.parameters)
             {
@@ -140,6 +145,7 @@ namespace Scry
                     case AnimatorControllerParameterType.Int: animator.SetInteger(parameter.name, parameter.defaultInt); break;
                 }
             }
+            if (act != null && first) act(animator);
             animator.Update(0f);
 
             var played = new List<string>();
@@ -156,28 +162,41 @@ namespace Scry
                 }
                 return played;
             }
+            if (!first) act(animator);
 
-            act(animator);
-            var known = idle;
             if (then != null)
             {
-                known = new HashSet<string>(idle);
-                var asleep = -1;
-                for (var i = 0; i < ActionPatience; i++)
+                var known = new HashSet<string>(idle);
+                var reached = -2;
+                for (var i = -1; i < ActionPatience; i++)
+                {
+                    if (i >= 0) animator.Update(Step);
+                    var heading = Heading(animator, false);
+                    if (heading == null) continue;
+                    if (reached < -1 && !idle.Contains(heading)) reached = i;
+                    known.Add(heading);
+                    if (reached >= -1 && i >= reached + 40) break;
+                }
+                if (reached < -1) return played;
+
+                then(animator);
+                var from = HeadingState(animator);
+                for (var i = 0; i < patience; i++)
                 {
                     animator.Update(Step);
-                    var before = Heading(animator, false);
-                    if (before != null && known.Add(before) && asleep < 0) asleep = i;
-                    if (asleep >= 0 && i >= asleep + 40) break;
+                    if (HeadingState(animator) == from) continue;
+                    var heading = Heading(animator, false);
+                    if (heading != null && !known.Contains(heading)) played.Add(heading);
+                    break;
                 }
-                then(animator);
+                return played;
             }
 
             var attacking = false;
             string moved = null;
-            for (var i = 0; i < Mathf.Max(160, patience); i++)
+            for (var i = -1; i < Mathf.Max(160, patience); i++)
             {
-                animator.Update(Step);
+                if (i >= 0) animator.Update(Step);
                 var attack = Heading(animator, true);
                 if (attack != null)
                 {
@@ -188,11 +207,17 @@ namespace Scry
                 if (attacking) break;
 
                 var heading = Heading(animator, false);
-                if (moved == null && heading != null && !known.Contains(heading)) moved = heading;
+                if (moved == null && heading != null && !idle.Contains(heading)) moved = heading;
                 if (moved != null || i >= patience) break;
             }
             if (!attacking && moved != null) played.Add(moved);
             return played;
+        }
+
+        /// <summary>The state the first layer is in or moving to.</summary>
+        private static int HeadingState(Animator animator)
+        {
+            return animator.IsInTransition(0) ? animator.GetNextAnimatorStateInfo(0).fullPathHash : animator.GetCurrentAnimatorStateInfo(0).fullPathHash;
         }
 
         /// <summary>

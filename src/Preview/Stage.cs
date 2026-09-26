@@ -303,9 +303,12 @@ namespace Scry
                 var debris = Ghost.IsDebris(data.m_prefab);
                 if (!debris && Ghost.IsWholeModel(data.m_prefab)) continue;
 
+                // The game looks for the named part and hangs the effect on it only when it
+                // gives a parent; what it places at a point (a hit, a thrown thing's release) it
+                // gives none (EffectList.Create).
                 var anchor = _subject.transform;
                 var at = center;
-                if (!string.IsNullOrEmpty(data.m_childTransform))
+                if (point == null && !string.IsNullOrEmpty(data.m_childTransform))
                 {
                     var child = Utils.FindChild(_subject.transform, data.m_childTransform);
                     if (child != null)
@@ -324,7 +327,7 @@ namespace Scry
                 }
                 else
                 {
-                    copy = data.m_attach
+                    copy = data.m_attach && point == null
                         ? Ghost.MakeOn(data.m_prefab, anchor, at, anchor.rotation, _layer)
                         : Ghost.Make(data.m_prefab, _root.transform, at, anchor.rotation, _layer);
                 }
