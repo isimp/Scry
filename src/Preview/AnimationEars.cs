@@ -206,9 +206,11 @@ namespace Scry
             if (attack == null || _copy == null) return;
             if (_clipTrigger != null)
             {
-                Report(attack.m_attackType == Attack.AttackType.Projectile
-                    ? Previews.PlayOnCopyAt(_copy, _clipTrigger, Previews.StrikePoint(_copy, attack, false))
-                    : Previews.PlayOnCopy(_copy, _clipTrigger, Previews.AttackOrigin(_copy, attack)));
+                // A swing's at its joint, hung there; an area's in its middle and a throw's where
+                // it lets go (DoMeleeAttack, DoAreaAttack, ProjectileAttackTriggered).
+                Report(Previews.IsMelee(attack)
+                    ? Previews.PlayOnCopy(_copy, _clipTrigger, Previews.AttackOrigin(_copy, attack))
+                    : Previews.PlayOnCopyAt(_copy, _clipTrigger, Previews.ReachPoint(_copy, attack)));
             }
             if (_clipHit != null)
             {
@@ -289,9 +291,7 @@ namespace Scry
 
             // Where Attack.GetProjectileSpawnPoint puts it, at the copy's size.
             var t = _copy.transform;
-            var size = Previews.SizeOf(_copy);
-            var origin = Previews.AttackOrigin(_copy, attack);
-            var start = origin.position + t.up * attack.m_attackHeight * size + t.forward * attack.m_attackRange * size + t.right * attack.m_attackOffset * size;
+            var start = Previews.ReachPoint(_copy, attack);
             var aim = t.forward;
             if (attack.m_launchAngle != 0f) aim = Quaternion.AngleAxis(attack.m_launchAngle, Vector3.Cross(Vector3.up, aim)) * aim;
 

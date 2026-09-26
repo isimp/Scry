@@ -1322,12 +1322,43 @@ namespace Scry
         /// </summary>
         public static Vector3 StrikePoint(GameObject copy, Attack attack, bool ground)
         {
+            var point = IsMelee(attack) ? MeleeHitPoint(copy, attack) : ReachPoint(copy, attack);
+            if (ground) point.y = copy.transform.position.y;
+            return point;
+        }
+
+        /// <summary>Whether an attack is a swing, which hits along its sweep, rather than an area, a throw or nothing.</summary>
+        public static bool IsMelee(Attack attack) =>
+            attack.m_attackType == Attack.AttackType.Horizontal || attack.m_attackType == Attack.AttackType.Vertical;
+
+        /// <summary>
+        /// Where an area attack's middle is, and where a throw lets go (<c>Attack.DoAreaAttack</c>,
+        /// <c>GetProjectileSpawnPoint</c>): from its origin joint, up by its height, out by its
+        /// range, aside by its offset.
+        /// </summary>
+        public static Vector3 ReachPoint(GameObject copy, Attack attack)
+        {
             var t = copy.transform;
             var size = SizeOf(copy);
-            var origin = AttackOrigin(copy, attack);
-            var point = origin.position + t.up * attack.m_attackHeight * size + t.forward * attack.m_attackRange * size + t.right * attack.m_attackOffset * size;
-            if (ground) point.y = t.position.y;
-            return point;
+            return AttackOrigin(copy, attack).position + t.up * attack.m_attackHeight * size + t.forward * attack.m_attackRange * size + t.right * attack.m_attackOffset * size;
+        }
+
+        /// <summary>
+        /// Where a swing hits one it swings at (<c>Attack.DoMeleeAttack</c>): it sweeps out from
+        /// its origin joint, up by its height and aside by its offset, as far as its range, and hits
+        /// the first thing there. The creature swings once one is within its weapon's attack
+        /// distance of it (<c>MonsterAI</c>, <c>m_aiAttackRange</c>), so that is taken to be where
+        /// the one it hits stands, never beyond the sweep.
+        /// </summary>
+        private static Vector3 MeleeHitPoint(GameObject copy, Attack attack)
+        {
+            var t = copy.transform;
+            var size = SizeOf(copy);
+            var start = AttackOrigin(copy, attack).position + Vector3.up * attack.m_attackHeight * size + t.right * attack.m_attackOffset * size;
+            var stands = WeaponOf.TryGetValue(attack, out var weapon) ? weapon.m_aiAttackRange : attack.m_attackRange;
+            var ahead = Vector3.Dot(start - t.position, t.forward);
+            var reach = Mathf.Clamp(stands * size - ahead, 0f, attack.m_attackRange * size);
+            return start + t.forward * reach;
         }
 
         /// <summary>Plays a list at a point on a copy, on the stage or in the world, as the stage's or the world's.</summary>
