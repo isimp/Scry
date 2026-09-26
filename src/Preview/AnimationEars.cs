@@ -108,12 +108,9 @@ namespace Scry
                 return;
             }
 
+            // Every clip: a turn or a stomp sets feet down as a walk does, and a foot that only
+            // sways makes no step.
             var name = clip.name.ToLowerInvariant();
-            if (!System.Array.Exists(Moving, m => name.Contains(m)))
-            {
-                Listen.Note(heard, "feet not watched: the clip's name is not one of walking or running");
-                return;
-            }
             Listen.Note(heard, $"watching {step.m_feet.Length} feet");
 
             var feet = new List<Transform>();
@@ -199,6 +196,7 @@ namespace Scry
             var name = clip.name.ToLowerInvariant();
             if (step != null && step.m_feet != null && step.m_feet.Length > 0 && System.Array.Exists(Moving, m => name.Contains(m)))
             {
+                // Listed only for clips that walk, where a step is sure; others may step too.
                 var moving = Step(step, MotionOf(name), Previews.StepGround);
                 if (moving != null) foreach (var p in moving.m_effectPrefabs) Add(p);
             }

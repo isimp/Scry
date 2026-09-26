@@ -6,7 +6,9 @@ namespace Scry
     /// The gear a creature rolls when it spawns, laid out for choosing. The game gives such a
     /// creature one weapon, one shield and one armour, each picked at random from its own list,
     /// and each of a few extras by chance, one per kind of item. Here each list is a row to pick
-    /// from, starting on its first entry, and each extra can be put on or taken off.
+    /// from, starting on its first entry, and each extra can be put on or taken off. A creature
+    /// carrying several weapons of its own (a troll's log, slap and throw) holds one at a time,
+    /// as its AI picks them in a fight; which one is a row too.
     ///
     /// Names stand for item prefabs. An empty entry in a list is the game's way of letting the
     /// creature roll nothing for that row, and is offered as nothing; an item listed more than once
@@ -14,7 +16,8 @@ namespace Scry
     /// </summary>
     public sealed class Loadout
     {
-        public enum Row { Weapon, Shield, Armour }
+        /// <summary>What can be chosen: a weapon, shield and armour rolled from lists, and which of the weapons it always carries it holds.</summary>
+        public enum Row { Weapon, Shield, Armour, Holding }
 
         /// <summary>An item a creature may be given by chance, and the kind of item it is.</summary>
         public struct Extra
@@ -29,8 +32,8 @@ namespace Scry
             }
         }
 
-        private readonly List<string>[] _options = new List<string>[3];
-        private readonly int[] _chosen = new int[3];
+        private readonly List<string>[] _options = new List<string>[4];
+        private readonly int[] _chosen = new int[4];
         private readonly Extra[] _extras;
         private readonly bool[] _on;
         private readonly HashSet<string> _bothHands;
@@ -40,12 +43,13 @@ namespace Scry
         /// two-handed weapons) leave no hand for a shield, as equipping one takes the shield off.
         /// </summary>
         public Loadout(IEnumerable<string> weapons, IEnumerable<string> shields, IEnumerable<string> armours, IEnumerable<Extra> extras,
-            IEnumerable<string> bothHands = null)
+            IEnumerable<string> bothHands = null, IEnumerable<string> holding = null)
         {
             _bothHands = new HashSet<string>(bothHands ?? new string[0]);
             _options[(int)Row.Weapon] = Distinct(weapons);
             _options[(int)Row.Shield] = Distinct(shields);
             _options[(int)Row.Armour] = Distinct(armours);
+            _options[(int)Row.Holding] = Distinct(holding);
 
             _extras = new List<Extra>(extras ?? new Extra[0]).ToArray();
             _on = new bool[_extras.Length];
@@ -60,7 +64,7 @@ namespace Scry
         public bool Offered(Row row) => _options[(int)row].Count > 1;
 
         /// <summary>Whether there is anything to choose at all.</summary>
-        public bool HasChoices => Offered(Row.Weapon) || Offered(Row.Shield) || Offered(Row.Armour) || _extras.Length > 0;
+        public bool HasChoices => Offered(Row.Weapon) || Offered(Row.Shield) || Offered(Row.Armour) || Offered(Row.Holding) || _extras.Length > 0;
 
         public int Chosen(Row row) => _chosen[(int)row];
 
@@ -71,8 +75,12 @@ namespace Scry
         public bool Held(Row row)
         {
             if (row != Row.Shield) return true;
-            var weapons = _options[(int)Row.Weapon];
-            return weapons.Count == 0 || !_bothHands.Contains(weapons[_chosen[(int)Row.Weapon]]);
+            foreach (var hand in new[] { Row.Weapon, Row.Holding })
+            {
+                var weapons = _options[(int)hand];
+                if (weapons.Count > 0 && _bothHands.Contains(weapons[_chosen[(int)hand]])) return false;
+            }
+            return true;
         }
 
         public void Choose(Row row, int index)

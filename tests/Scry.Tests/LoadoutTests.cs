@@ -128,6 +128,43 @@ namespace Scry.Tests
             Assert.Contains("ShieldWood", loadout.Worn());
         }
 
+        private static Loadout Troll() => new Loadout(
+            weapons: new string[0], shields: new[] { "ShieldWood" }, armours: new string[0], extras: new Loadout.Extra[0],
+            bothHands: new[] { "troll_log" },
+            holding: new[] { "troll_log", "troll_slap", "troll_throw" });
+
+        [Fact]
+        public void ACreatureCarryingSeveralWeaponsHoldsOneAtATime()
+        {
+            var loadout = Troll();
+
+            Assert.True(loadout.Offered(Loadout.Row.Holding));
+            Assert.Equal(new[] { "troll_log", "troll_slap", "troll_throw" }, loadout.Options(Loadout.Row.Holding));
+            Assert.Contains("troll_log", loadout.Worn());
+            Assert.DoesNotContain("troll_slap", loadout.Worn());
+        }
+
+        [Fact]
+        public void HoldingAnotherWeaponPutsTheFirstAway()
+        {
+            var loadout = Troll();
+
+            loadout.Choose(Loadout.Row.Holding, 1);
+
+            Assert.Contains("troll_slap", loadout.Worn());
+            Assert.DoesNotContain("troll_log", loadout.Worn());
+        }
+
+        [Fact]
+        public void AHeldWeaponInBothHandsPutsTheShieldAwayToo()
+        {
+            var loadout = Troll();
+
+            Assert.False(loadout.Held(Loadout.Row.Shield));
+            loadout.Choose(Loadout.Row.Holding, 1);
+            Assert.True(loadout.Held(Loadout.Row.Shield));
+        }
+
         [Fact]
         public void ExtrasStartWithTheFirstOfEachKindOn()
         {

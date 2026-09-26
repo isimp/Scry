@@ -60,7 +60,17 @@ namespace Scry
             var humanoid = prefab != null ? prefab.GetComponent<Humanoid>() : null;
             if (humanoid == null || look <= 0 || prefab.GetComponentInChildren<VisEquipment>(true) == null) return items;
 
-            if (humanoid.m_defaultItems != null) items.AddRange(humanoid.m_defaultItems);
+            // Of the weapons it always carries it holds one, the one chosen; the rest are put away.
+            var loadout = LoadoutOf(prefab);
+            var holding = loadout.Options(Loadout.Row.Holding);
+            var held = holding.Count > 0 ? holding[loadout.Chosen(Loadout.Row.Holding)] : null;
+            if (humanoid.m_defaultItems != null)
+            {
+                foreach (var item in humanoid.m_defaultItems)
+                {
+                    if (item != null && (!holding.Contains(item.name) || item.name == held)) items.Add(item);
+                }
+            }
 
             var visibleSets = new List<Humanoid.ItemSet>();
             if (humanoid.m_randomSets != null)
@@ -69,7 +79,6 @@ namespace Scry
             }
 
             // In the order GiveDefaultItems hands them out: shield, weapon, armour, set, extras.
-            var loadout = LoadoutOf(prefab);
             void Add(string name)
             {
                 var item = string.IsNullOrEmpty(name) ? null : Looks.Prefab(name);
@@ -135,9 +144,27 @@ namespace Scry
             var loadout = humanoid == null
                 ? new Loadout(null, null, null, null)
                 : new Loadout(Choices(humanoid.m_randomWeapon), Choices(humanoid.m_randomShield), Choices(humanoid.m_randomArmor), extras,
-                    (humanoid.m_randomWeapon ?? new GameObject[0]).Where(w => w != null && SlotOf(w) == Slot.BothHands).Select(w => w.name));
+                    (humanoid.m_randomWeapon ?? new GameObject[0]).Concat(humanoid.m_defaultItems ?? new GameObject[0])
+                        .Where(w => w != null && SlotOf(w) == Slot.BothHands).Select(w => w.name),
+                    Holdable(humanoid));
             Loadouts[prefab] = loadout;
             return loadout;
+        }
+
+        /// <summary>
+        /// The weapons a creature always carries, when it carries more than one: it holds one at
+        /// a time, as its AI picks them in a fight. One that shows in the hand comes first, as it
+        /// is the one to see.
+        /// </summary>
+        private static List<string> Holdable(Humanoid humanoid)
+        {
+            var weapons = (humanoid.m_defaultItems ?? new GameObject[0])
+                .Where(i => i != null && i.GetComponent<ItemDrop>()?.m_itemData?.IsWeapon() == true)
+                .Distinct()
+                .OrderBy(i => AttachPart(i, out _) != null ? 0 : 1)
+                .Select(i => i.name)
+                .ToList();
+            return weapons.Count > 1 ? weapons : new List<string>();
         }
 
         /// <summary>Puts a creature's loadout back to the first of each.</summary>

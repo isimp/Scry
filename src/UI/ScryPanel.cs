@@ -1738,8 +1738,8 @@ namespace Scry
         private static void LoadoutRows(GameObject creature, float width, float labelW, ref float y)
         {
             var loadout = Gear.LoadoutOf(creature);
-            var rows = new[] { Loadout.Row.Weapon, Loadout.Row.Shield, Loadout.Row.Armour };
-            var labels = new[] { "Weapon", "Shield", "Armour" };
+            var rows = new[] { Loadout.Row.Holding, Loadout.Row.Weapon, Loadout.Row.Shield, Loadout.Row.Armour };
+            var labels = new[] { "Holding", "Weapon", "Shield", "Armour" };
             for (var i = 0; i < rows.Length; i++)
             {
                 if (!loadout.Offered(rows[i])) continue;

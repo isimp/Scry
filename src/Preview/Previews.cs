@@ -800,11 +800,21 @@ namespace Scry
                 var carried = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
                 if (carried == null) continue;
                 var part = CatalogBuilder.AttackName(item);
+
+                // The weapon's own lists, and each attack's, both play when it strikes; they are
+                // told apart as the weapon's and the attack's, and each swings the attack.
                 Collect(carried, part, true);
+                if (carried.m_attack != null)
+                {
+                    foreach (var field in CatalogBuilder.EffectFields(typeof(ItemDrop.ItemData.SharedData)))
+                    {
+                        if (field.GetValue(carried) is EffectList list) AttackOf[list] = carried.m_attack;
+                    }
+                }
                 foreach (var attack in new[] { carried.m_attack, carried.m_secondaryAttack })
                 {
                     if (attack == null) continue;
-                    Collect(attack, attack == carried.m_attack ? part : part + " (second)", true);
+                    Collect(attack, part + (attack == carried.m_attack ? " attack" : " second attack"), true);
                     foreach (var field in CatalogBuilder.EffectFields(typeof(Attack)))
                     {
                         if (field.GetValue(attack) is EffectList list) AttackOf[list] = attack;
@@ -887,11 +897,15 @@ namespace Scry
             }
             else if (AttackOf.TryGetValue(list, out var attack))
             {
-                // The swing that goes with the attack's effect; its own sounds are the ones played here.
-                var anim = attack.m_attackAnimation ?? "";
-                var clip = anim.Length == 0 ? null : Clips().Find(c =>
-                    c.name.IndexOf(anim, System.StringComparison.OrdinalIgnoreCase) >= 0 || anim.IndexOf(c.name, System.StringComparison.OrdinalIgnoreCase) >= 0);
-                if (clip != null) PlayClip(clip, quiet: true);
+                // The swing that goes with the attack's effect, started as the game starts it; its
+                // own sounds are the ones played here.
+                if (!Swing(attack))
+                {
+                    var anim = attack.m_attackAnimation ?? "";
+                    var clip = anim.Length == 0 ? null : Clips().Find(c =>
+                        c.name.IndexOf(anim, System.StringComparison.OrdinalIgnoreCase) >= 0 || anim.IndexOf(c.name, System.StringComparison.OrdinalIgnoreCase) >= 0);
+                    if (clip != null) PlayClip(clip, quiet: true);
+                }
             }
             else
             {
@@ -909,6 +923,39 @@ namespace Scry
             if (WorldHeard) Listen.Note(heard, "a copy stands in the world, so the stage's are muted");
             if (!things.Exists(Perceptible)) TellEmpty(label, list, things);
             Started(list, things);
+        }
+
+        /// <summary>
+        /// Swings an attack on the stage copy and the copy in the world as <c>Attack.Start</c>
+        /// does: by the animator trigger the attack names, or its first link when it is a chain.
+        /// The copy's own animator then plays it, with its events. False when its animator has
+        /// no such trigger.
+        /// </summary>
+        private static bool Swing(Attack attack)
+        {
+            var anim = attack.m_attackAnimation;
+            if (string.IsNullOrEmpty(anim)) return false;
+            var swung = false;
+            foreach (var copy in new[] { Stage.Subject, _world })
+            {
+                var animator = ClipPlayer.AnimatorOf(copy);
+                if (animator == null) continue;
+                var trigger = HasTrigger(animator, anim) ? anim : attack.m_attackChainLevels > 1 && HasTrigger(animator, anim + "0") ? anim + "0" : null;
+                if (trigger == null) continue;
+                ClipPlayer.Stop(copy);
+                animator.SetTrigger(trigger);
+                swung = true;
+            }
+            return swung;
+        }
+
+        private static bool HasTrigger(Animator animator, string name)
+        {
+            foreach (var parameter in animator.parameters)
+            {
+                if (parameter.type == AnimatorControllerParameterType.Trigger && parameter.name == name) return true;
+            }
+            return false;
         }
 
         private static readonly HashSet<EffectList> ToldEmpty = new HashSet<EffectList>();
