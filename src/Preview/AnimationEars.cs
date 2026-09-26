@@ -168,7 +168,13 @@ namespace Scry
                     ? Previews.PlayOnCopyAt(_copy, _clipTrigger, Previews.StrikePoint(_copy, attack, false))
                     : Previews.PlayOnCopy(_copy, _clipTrigger, Previews.AttackOrigin(_copy, attack)));
             }
-            if (_clipHit != null) Report(Previews.PlayOnCopyAt(_copy, _clipHit, Previews.StrikePoint(_copy, attack, Previews.LandsOnGround(_clipHit))));
+            if (_clipHit != null)
+            {
+                var point = Previews.StrikePoint(_copy, attack, Previews.LandsOnGround(_clipHit));
+                var ahead = Vector3.Dot(point - _copy.transform.position, _copy.transform.forward);
+                Listen.Note(Listening, $"hits {ahead:0.0} m ahead and {point.y - _copy.transform.position.y:0.0} m up of a copy shown at ×{Previews.SizeOf(_copy):0.00}, its scale {_copy.transform.lossyScale.x:0.00}");
+                Report(Previews.PlayOnCopyAt(_copy, _clipHit, point));
+            }
             if (attack.m_spawnOnTrigger != null)
             {
                 Report(Previews.PlayOnCopyAt(_copy, AsList(new[] { attack.m_spawnOnTrigger }), Previews.StrikePoint(_copy, attack, false)));
