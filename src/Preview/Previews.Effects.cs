@@ -335,7 +335,6 @@ namespace Scry
         {
             var prefab = _entry?.Source as GameObject;
             var ragdoll = _entry != null && _entry.Kind == Kind.Creature ? Falling.RagdollIn(list) : null;
-            var word = (label ?? "").Split(' ', '(')[0].ToLowerInvariant();
             var things = new List<GameObject>();
             Stop(list);
             _startedClip = null;
@@ -370,12 +369,12 @@ namespace Scry
                 PlayClip(swing, litWith: list);
                 deferred = true;
             }
-            else
+            else if (ClipsOfList(list).Find(c => c.How.Length == 0).Clip is AnimationClip own)
             {
-                var clips = Clips();
-                var name = ClipMatch.For(label, clips.ConvertAll(c => c.name));
-                var clip = name != null ? clips.Find(c => c.name == name) : null;
-                if (clip != null) PlayClip(clip);
+                // A list the game plays as it moves the animator into a clip, seen by the probe
+                // (not one only heard around it: a hit does not play the stagger).
+                Listen.Note(heard, "plays with the clip " + own.name);
+                PlayClip(own);
             }
             if (!deferred) things.AddRange(PlayEffectList(list));
             if (_startedClip != null) ClipOf[list] = _startedClip;
