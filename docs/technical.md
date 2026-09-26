@@ -46,6 +46,10 @@ Which mod added a prefab is read from Jotunn's registry when Jotunn is installed
 
 What a status effect changes is every number, switch or choice on it that differs from a fresh status effect of the same kind, plus its damage modifiers, so status effects from mods show too.
 
+## Links
+
+Besides effect lists, prefabs point at one another in other ways, and each becomes a link shown at both ends, each under its own heading: the sounds and effects a creature's animation clips name in their events (the wolf's howl), by clip, where going to the creature plays that clip; a creature's footsteps from its FootStep table, by gait and ground; the items a humanoid may be handed when it spawns, whose attacks also count as the creature's own, so their effects play from its effect chips (with the attack's swing) and name it as their player; any other prefab a field names, directly, in a list, or one level down in the game's small data classes (the projectile an attack fires, what a projectile spawns on hit, a plant's grown version, a spawner's creature), leaving out parts of the prefab itself, drop tables, carried items and leftovers, which are told elsewhere; items of the same armour set; weapons and the ammo of their ammo type; and the status effects items and prefabs give, by reference or by name. Links to anything not in the catalog, and to itself, are left out.
+
 ## Leftovers
 
 What a prefab leaves behind is paired with it: a creature's ragdoll and the remains its death throws, a tree's log and stump, a log's halves, a rock's broken version, and the debris anything throws when destroyed. Only what would otherwise be listed as other is paired. A leftover is named after its owner ("Troll · ragdoll") and takes its owner's kind, so it sits beside it in the list and a search for the owner finds it; the two link to each other. One shared by owners of different names, such as the debris of every wooden piece, is named for what it is and how many leave it ("Debris of 30"), and one shared by owners of different kinds stays among the others.

@@ -352,14 +352,11 @@ namespace Scry
             return known;
         }
 
-        private static readonly Dictionary<string, List<Source>> GivenBy = new Dictionary<string, List<Source>>(StringComparer.Ordinal);
+        private static readonly List<(string Prefab, string Effect, string How)> GiverList = new List<(string, string, string)>();
         private static readonly Dictionary<Type, FieldInfo[]> EffectRefFields = new Dictionary<Type, FieldInfo[]>();
 
-        /// <summary>Lines saying what gives a status effect, or none.</summary>
-        public static IReadOnlyList<Source> GiverLines(string statusEffect)
-        {
-            return GivenBy.TryGetValue(statusEffect, out var lines) ? lines : (IReadOnlyList<Source>)Array.Empty<Source>();
-        }
+        /// <summary>Each prefab that gives a status effect, which one, and how (worn, eaten, a set, an attack).</summary>
+        public static IReadOnlyList<(string Prefab, string Effect, string How)> Givers() => GiverList;
 
         /// <summary>
         /// What gives each status effect: any item, attack or part of a prefab that names it,
@@ -368,7 +365,7 @@ namespace Scry
         /// </summary>
         private static void Givers(List<GameObject> prefabs)
         {
-            GivenBy.Clear();
+            GiverList.Clear();
 
             void Note(object owner, GameObject prefab)
             {
@@ -382,9 +379,7 @@ namespace Scry
 
                     var how = Naming.FieldLabel(field.Name).ToLowerInvariant()
                         .Replace("status effect", "").Replace(" se", "").Trim();
-                    var line = how.Length > 0 ? $"From {ItemOrPrefab(prefab)} ({how})" : $"From {ItemOrPrefab(prefab)}";
-                    if (!GivenBy.TryGetValue(name, out var lines)) GivenBy[name] = lines = new List<Source>();
-                    if (!lines.Exists(l => l.Text == line) && lines.Count < 40) lines.Add(new Source(line, prefab.name));
+                    GiverList.Add((prefab.name, name, how));
                 }
             }
 
@@ -420,12 +415,6 @@ namespace Scry
             known = found.ToArray();
             EffectRefFields[type] = known;
             return known;
-        }
-
-        private static string ItemOrPrefab(GameObject prefab)
-        {
-            var name = ItemName(prefab);
-            return name != prefab.name ? $"{name} ({prefab.name})" : Shown(prefab);
         }
 
         private static string ItemName(GameObject item)

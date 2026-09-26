@@ -183,6 +183,13 @@ namespace Scry
             Stage.Show(entry, modifiers);
             if (InWorld) RebuildWorld(modifiers);
 
+            if (_clipOnShow != null)
+            {
+                var clip = Clips().Find(c => c.name == _clipOnShow);
+                _clipOnShow = null;
+                if (clip != null) PlayClip(clip);
+            }
+
             if (entry != null && entry.Kind == Kind.Sound && Plugin.PlayOnSelect) PlaySound(entry);
         }
 
@@ -236,6 +243,7 @@ namespace Scry
             if (InWorld)
             {
                 InWorld = false;
+                Standin.ClearFor(_world);
                 Destroy(ref _world);
                 return;
             }
@@ -250,6 +258,7 @@ namespace Scry
         {
             Aim();
             if (_world == null) return;
+            Standin.ClearFor(_world);
             _world.transform.position = _spot;
             _world.transform.rotation = _facing;
         }
@@ -279,6 +288,7 @@ namespace Scry
 
         private static void RebuildWorld(Modifiers modifiers)
         {
+            Standin.ClearFor(_world);
             Destroy(ref _world);
             if (!IsModel(_entry)) return;
 
@@ -704,6 +714,9 @@ namespace Scry
         /// the part it belongs to: a creature's hits and death, a piece's placing and breaking, an
         /// item's attacks.
         /// </summary>
+        /// <summary>The attack each of a creature's attack lists belongs to, for the swing that goes with it.</summary>
+        private static readonly Dictionary<EffectList, Attack> AttackOf = new Dictionary<EffectList, Attack>();
+
         public static List<KeyValuePair<string, EffectList>> PrefabLists(GameObject prefab)
         {
             var lists = new List<KeyValuePair<string, EffectList>>();
@@ -721,6 +734,24 @@ namespace Scry
                     var label = Naming.EffectListLabel(field.Name);
                     if (alwaysSayPart) label = part + ": " + label.ToLowerInvariant();
                     found.Add(new KeyValuePair<string, KeyValuePair<string, EffectList>>(part, new KeyValuePair<string, EffectList>(label, list)));
+                }
+            }
+
+            // A creature's attacks are its own, each named after the item that makes it.
+            foreach (var item in Relations.CarriedItems(prefab))
+            {
+                var carried = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                if (carried == null) continue;
+                var part = CatalogBuilder.AttackName(item);
+                Collect(carried, part, true);
+                foreach (var attack in new[] { carried.m_attack, carried.m_secondaryAttack })
+                {
+                    if (attack == null) continue;
+                    Collect(attack, attack == carried.m_attack ? part : part + " (second)", true);
+                    foreach (var field in CatalogBuilder.EffectFields(typeof(Attack)))
+                    {
+                        if (field.GetValue(attack) is EffectList list) AttackOf[list] = attack;
+                    }
                 }
             }
 
@@ -795,6 +826,14 @@ namespace Scry
                 Tell(prefab, list);
                 things.Add(Stage.Destroy(prefab, list));
                 things.Add(DestroyInWorld(prefab, list));
+            }
+            else if (AttackOf.TryGetValue(list, out var attack))
+            {
+                // The swing that goes with the attack's effect; its own sounds are the ones played here.
+                var anim = attack.m_attackAnimation ?? "";
+                var clip = anim.Length == 0 ? null : Clips().Find(c =>
+                    c.name.IndexOf(anim, System.StringComparison.OrdinalIgnoreCase) >= 0 || anim.IndexOf(c.name, System.StringComparison.OrdinalIgnoreCase) >= 0);
+                if (clip != null) PlayClip(clip, quiet: true);
             }
             else
             {
@@ -926,12 +965,18 @@ namespace Scry
             return player != null ? player.Clip : null;
         }
 
-        public static void PlayClip(AnimationClip clip)
+        /// <summary>Plays a clip on the stage copy and the copy in the world. Quiet leaves its attack's own sounds to the caller.</summary>
+        public static void PlayClip(AnimationClip clip, bool quiet = false)
         {
             var speed = _explorer != null ? _explorer.Modifiers.AnimationSpeed : 1f;
-            ClipPlayer.Play(Stage.Subject, clip, LoopClips, speed);
-            ClipPlayer.Play(_world, clip, LoopClips, speed);
+            ClipPlayer.Play(Stage.Subject, clip, LoopClips, speed, quiet);
+            ClipPlayer.Play(_world, clip, LoopClips, speed, quiet);
         }
+
+        private static string _clipOnShow;
+
+        /// <summary>Plays the clip of that name once the next selection is shown, as when going to a creature from one of its animation's sounds.</summary>
+        public static void PlayClipOnShow(string name) => _clipOnShow = name;
 
         /// <summary>Where the clip on the stage is, and how long it is.</summary>
         public static bool ClipPosition(out float time, out float length) => ClipPlayer.Position(Stage.Subject, out time, out length);

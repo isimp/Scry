@@ -66,7 +66,7 @@ namespace Scry
         };
 
         public static readonly string[] LightingNames = { "Studio", "Day", "Dusk", "Night", "Cave" };
-/// <summary>
+        /// <summary>
         /// What stands behind and under the model: the lighting's own colour, a sky with a horizon
         /// in the lighting's colours, a floor ruled in one-metre squares for judging size, or both.
         /// </summary>

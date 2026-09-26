@@ -373,6 +373,7 @@ namespace Scry
             var standin = fallen.AddComponent<Standin>();
             standin._copy = copy;
             Down.Add(copy);
+            All.Add(standin);
             standin._until = Time.unscaledTime + seconds;
             standin._parting = parting;
             standin._onStage = onStage;
@@ -399,6 +400,21 @@ namespace Scry
             Destroy(gameObject);
         }
 
+        private static readonly List<Standin> All = new List<Standin>();
+
+        /// <summary>
+        /// Takes away whatever stands in for a copy, which then stands again: when the copy is
+        /// moved, made again or taken away, its ragdoll or parts should not be left lying about.
+        /// </summary>
+        public static void ClearFor(GameObject copy)
+        {
+            if (copy == null) return;
+            foreach (var standin in All.ToArray())
+            {
+                if (standin != null && standin._copy == copy) Destroy(standin.gameObject);
+            }
+        }
+
         /// <summary>Whether a copy is lying fallen or broken right now, so it cannot fall again until it stands.</summary>
         public static bool IsDown(GameObject copy)
         {
@@ -408,6 +424,7 @@ namespace Scry
 
         private void OnDestroy()
         {
+            All.Remove(this);
             Down.Remove(_copy);
             foreach (var renderer in _hidden) if (renderer != null) renderer.enabled = true;
             _hidden.Clear();

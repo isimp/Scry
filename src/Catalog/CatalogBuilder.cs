@@ -114,6 +114,10 @@ namespace Scry
             Leftovers.Pair(entries, FindLeftovers(registered.Values.Select(f => f.Prefab)));
             if (watch.ElapsedMilliseconds >= 50) Plugin.Log.LogInfo($"Scry paired leftovers in {watch.ElapsedMilliseconds} ms.");
 
+            watch.Restart();
+            Relations.Gather(registered.Values.Select(f => f.Prefab).ToList()).Apply(entries);
+            if (watch.ElapsedMilliseconds >= 50) Plugin.Log.LogInfo($"Scry read links in {watch.ElapsedMilliseconds} ms.");
+
             return entries;
         }
 
@@ -227,6 +231,20 @@ namespace Scry
                     found.Components.Add(component.GetType().Name);
                     Gather(component, owner, ownerOrigin, effects, owner, owner);
 
+                    // A creature's attacks are its own: their sounds and effects are played by it.
+                    if (component is Humanoid)
+                    {
+                        foreach (var item in Relations.CarriedItems(found.Prefab))
+                        {
+                            var carried = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                            if (carried == null) continue;
+                            var part = AttackName(item);
+                            Gather(carried, owner, ownerOrigin, effects, owner, owner, part);
+                            if (carried.m_attack != null) Gather(carried.m_attack, owner, ownerOrigin, effects, owner, owner, part);
+                            if (carried.m_secondaryAttack != null) Gather(carried.m_secondaryAttack, owner, ownerOrigin, effects, owner, owner, part + " (second)");
+                        }
+                    }
+
                     if (component is ItemDrop drop && drop.m_itemData?.m_shared != null)
                     {
                         var shared = drop.m_itemData.m_shared;
@@ -293,6 +311,14 @@ namespace Scry
                                      || (wear.m_broken != null && wear.m_broken != wear.m_new);
                     break;
             }
+        }
+
+        /// <summary>What an item a creature carries is called: its shown name, or its prefab name when it has none.</summary>
+        internal static string AttackName(GameObject item)
+        {
+            var shared = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+            var shown = shared != null ? Localize(shared.m_name) : "";
+            return shown.Length > 0 && !shown.StartsWith("$", StringComparison.Ordinal) ? shown : item.name;
         }
 
         /// <summary>

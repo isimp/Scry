@@ -35,6 +35,22 @@ namespace Scry
         /// <summary>The leftovers this leaves behind: its ragdoll, its log and stump, its debris.</summary>
         public List<string> LeavesBehind = new List<string>();
 
+        /// <summary>What else it is linked to, under headings: what it carries, its footsteps, its set, its ammo.</summary>
+        public List<Link> Links = new List<Link>();
+
+        /// <summary>The links under each heading, in the order the headings first came in.</summary>
+        public List<KeyValuePair<string, List<Link>>> LinkGroups()
+        {
+            var groups = new List<KeyValuePair<string, List<Link>>>();
+            foreach (var link in Links)
+            {
+                var group = groups.FindIndex(g => g.Key == link.Group);
+                if (group < 0) groups.Add(new KeyValuePair<string, List<Link>>(link.Group, new List<Link> { link }));
+                else groups[group].Value.Add(link);
+            }
+            return groups;
+        }
+
         /// <summary>Registered with the scene, so the game's own spawn command knows it.</summary>
         public bool Registered;
 

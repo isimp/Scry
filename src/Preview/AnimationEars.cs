@@ -67,9 +67,14 @@ namespace Scry
         }
 
         /// <summary>An attack's clip starting makes the attack's opening sound, as starting the attack does in the game.</summary>
-        public void ClipStarted(AnimationClip clip)
+        /// <summary>
+        /// A clip starting. Quiet, its attack's own sounds are left to whoever started it, who
+        /// plays the one it was asked for.
+        /// </summary>
+        public void ClipStarted(AnimationClip clip, bool quiet = false)
         {
-            var attack = clip != null ? AttackFor(clip.name) : null;
+            _quiet = quiet;
+            var attack = clip != null && !quiet ? AttackFor(clip.name) : null;
             if (attack != null) Previews.PlayOnCopy(_copy, attack.m_startEffect, null);
             WatchFeet(clip);
         }
@@ -79,6 +84,7 @@ namespace Scry
         /// <summary>Words of the clips in which a creature walks, runs or otherwise moves on its feet.</summary>
         private static readonly string[] Moving = { "walk", "run", "jog", "sneak", "trot", "gallop", "move", "crawl", "charge", "sprint", "stroll", "step" };
 
+        private bool _quiet;
         private Transform[] _feet;
         private StepDetector[] _footing;
         private global::FootStep.MotionType _motion;
@@ -137,6 +143,7 @@ namespace Scry
             foreach (var attached in _attached) if (attached != null) Destroy(attached);
             _attached.Clear();
             _feet = null;
+            _quiet = false;
         }
 
         // ----- Heard -----
@@ -297,7 +304,7 @@ namespace Scry
         private void AttackTrigger()
         {
             var clip = _copy.GetComponent<ClipPlayer>()?.Clip;
-            if (clip == null) return;
+            if (clip == null || _quiet) return;
             var attack = AttackFor(clip.name);
             if (attack != null) Previews.PlayOnCopy(_copy, attack.m_triggerEffect, null);
         }

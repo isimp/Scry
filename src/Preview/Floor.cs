@@ -50,7 +50,7 @@ namespace Scry
             return surface;
         }
 
-/// <summary>How many metres one tile of the grid texture covers.</summary>
+        /// <summary>How many metres one tile of the grid texture covers.</summary>
         public const float GridMetres = 5f;
 
         /// <summary>

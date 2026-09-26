@@ -944,8 +944,6 @@ namespace Scry
             y = Title(explorer, entry, cw, y);
             if (!withStage && (entry.Kind == Kind.Sound || entry.Kind == Kind.StatusEffect)) y = CompactCard(entry, cw, y);
             y = Actions(entry, cw, y);
-            if (entry.LeftBy.Count > 0) y = LinkRow(explorer, "Left behind by", entry.LeftBy.Take(24), cw, y);
-            if (entry.LeavesBehind.Count > 0) y = LinkRow(explorer, "Leaves behind", entry.LeavesBehind, cw, y);
             if (Looks.IsWorn(entry)) y = Wearing(explorer, cw, y);
             if (entry.Kind == Kind.Sound)
             {
@@ -955,6 +953,7 @@ namespace Scry
             y = Adjust(explorer, entry, cw, y, withStage);
             y = Effects(explorer, entry, cw, y, withStage);
             y = PlaysInSection(explorer, entry, cw, y);
+            y = LinksSection(explorer, entry, cw, y);
             y = FactsSection(explorer, entry, cw, y);
             y = Command(explorer, entry, cw, y);
             y = Details(explorer, entry, cw, y);
@@ -1614,7 +1613,7 @@ namespace Scry
             return y + U(10f);
         }
 
-/// <summary>The sections folded shut, by key. Details start shut; the rest start open.</summary>
+        /// <summary>The sections folded shut, by key. Details start shut; the rest start open.</summary>
         private static readonly HashSet<string> Folded = new HashSet<string> { "details" };
 
         private static bool IsFolded(string key) => key != null && Folded.Contains(key);
@@ -1623,7 +1622,7 @@ namespace Scry
         private static bool _foldAllShown;
 
         /// <summary>Every section that folds, by key.</summary>
-        private static readonly string[] Foldable = { "kept", "variants", "adjust", "animations", "effects", "playsin", "facts", "command", "details" };
+        private static readonly string[] Foldable = { "kept", "variants", "adjust", "animations", "effects", "playsin", "links", "facts", "command", "details" };
 
         private static void FoldAll(bool fold)
         {
@@ -2167,14 +2166,14 @@ namespace Scry
         /// <summary>A prefab's name as the game shows it, or the name given when it has none.</summary>
         private static string ShownName(Explorer explorer, string key, string fallback)
         {
-            if (key == null || key.StartsWith("se:", StringComparison.Ordinal)) return fallback;
+            if (key == null) return fallback;
             if (_shownFor != explorer)
             {
                 _shownFor = explorer;
                 ShownNames.Clear();
                 foreach (var e in explorer.Catalog)
                 {
-                    if (e.Kind != Kind.StatusEffect && !string.IsNullOrEmpty(e.DisplayName) && !ShownNames.ContainsKey(e.Name)) ShownNames[e.Name] = e.DisplayName;
+                    if (!string.IsNullOrEmpty(e.DisplayName) && !ShownNames.ContainsKey(e.Key)) ShownNames[e.Key] = e.DisplayName;
                 }
             }
             return ShownNames.TryGetValue(key, out var shown) ? shown : fallback;
@@ -2346,7 +2345,7 @@ namespace Scry
             style.normal.textColor = was;
         }
 
-/// <summary>
+        /// <summary>
         /// A chip that goes to an entry rather than doing something: tinted in the colour of the
         /// kind of entry it goes to, with an arrow. Brighter while what it names is playing. One
         /// that goes nowhere (the entry itself, or something not in the catalog) is plain.
@@ -2391,25 +2390,88 @@ namespace Scry
         /// <summary>A small heading and a wrapping row of link chips, each going to what it names.</summary>
         private static float LinkRow(Explorer explorer, string title, IEnumerable<string> names, float width, float y)
         {
+            return LinkItems(explorer, title, names.Select(n => (n, ShownName(explorer, n, n), "Go to " + ShownName(explorer, n, n), (Action)(() => Go(explorer, n)))), width, y);
+        }
+
+        /// <summary>A small heading and a wrapping row of link chips, each with its own text, tip and doing.</summary>
+        private static float LinkItems(Explorer explorer, string title, IEnumerable<(string Key, string Text, string Tip, Action Click)> items, float width, float y)
+        {
             GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
             y += U(24f);
             var x = 0f;
             var rowH = U(26f);
-            foreach (var name in names)
+            foreach (var item in items)
             {
-                var shown = ShownName(explorer, name, name);
-                var w = Mathf.Min(width, LinkChipWidth(shown, true));
+                var w = Mathf.Min(width, LinkChipWidth(item.Text, true));
                 if (x + w > width && x > 0f)
                 {
                     x = 0f;
                     y += rowH + U(5f);
                 }
                 var chip = new Rect(x, y, w, rowH);
-                if (LinkChip(chip, shown, KindOf(explorer, name), false, true)) Go(explorer, name);
-                if (chip.Contains(Event.current.mousePosition)) AskTip("link:" + name, "Go to " + name);
+                if (LinkChip(chip, item.Text, KindOfKey(explorer, item.Key), false, true)) item.Click();
+                if (chip.Contains(Event.current.mousePosition)) AskTip("link:" + title + item.Key + item.Text, item.Tip);
                 x += w + U(5f);
             }
             return y + rowH + U(10f);
+        }
+
+        private static Kind? KindOfKey(Explorer explorer, string key) =>
+            key != null && key.StartsWith("se:", StringComparison.Ordinal) ? Kind.StatusEffect : KindOf(explorer, key);
+
+        // ----- Linked -----
+
+        /// <summary>
+        /// Everything else the entry is linked to, a row per heading: what it leaves behind or is
+        /// left by, what it carries, its footsteps, the sounds its animations name, what it
+        /// spawns, its set, its ammo, its status effects. A sound an animation names goes to the
+        /// creature and plays that animation there.
+        /// </summary>
+        private static float LinksSection(Explorer explorer, Entry entry, float width, float y)
+        {
+            var groups = entry.LinkGroups();
+            if (groups.Count == 0 && entry.LeftBy.Count == 0 && entry.LeavesBehind.Count == 0) return y;
+
+            y = SectionHeading("LINKED", width, y, null, "links");
+            if (IsFolded("links")) return y;
+
+            if (entry.LeftBy.Count > 0) y = LinkRow(explorer, "Left behind by", entry.LeftBy.Take(24), width, y);
+            if (entry.LeavesBehind.Count > 0) y = LinkRow(explorer, "Leaves behind", entry.LeavesBehind, width, y);
+
+            foreach (var group in groups)
+            {
+                var links = group.Value.Take(40).ToList();
+                var more = group.Value.Count > links.Count ? $" (first {links.Count} of {group.Value.Count})" : "";
+                var title = group.Key + more;
+
+                if (group.Key == Relations.PlayedByAnimation)
+                {
+                    // One chip per animation, which goes to the creature and plays it.
+                    var items = links.SelectMany(l => l.Notes.Count > 0 ? l.Notes.Select(n => (l.Target, n)) : new[] { (l.Target, "") })
+                        .Select(p =>
+                        {
+                            var shown = ShownName(explorer, p.Target, p.Target);
+                            var text = p.Item2.Length > 0 ? shown + " \u00b7 " + p.Item2 : shown;
+                            var tip = p.Item2.Length > 0 ? $"Go to {shown} and play its {p.Item2} animation" : "Go to " + shown;
+                            return (p.Target, text, tip, (Action)(() =>
+                            {
+                                if (p.Item2.Length > 0) Previews.PlayClipOnShow(p.Item2);
+                                Go(explorer, p.Target);
+                            }));
+                        });
+                    y = LinkItems(explorer, title, items, width, y);
+                    continue;
+                }
+
+                y = LinkItems(explorer, title, links.Select(l =>
+                {
+                    var shown = ShownName(explorer, l.Target, l.Target);
+                    var note = l.Notes.Count == 1 && l.Notes[0].Length <= 28 ? " \u00b7 " + l.Notes[0] : "";
+                    var tip = "Go to " + shown + (l.Notes.Count > 0 ? "\n" + string.Join("\n", l.Notes.Take(12)) : "");
+                    return (l.Target, shown + note, tip, (Action)(() => Go(explorer, l.Target)));
+                }), width, y);
+            }
+            return y + U(4f);
         }
 
         /// <summary>A small heading and a wrapping row of chips, each doing its own thing when clicked.</summary>

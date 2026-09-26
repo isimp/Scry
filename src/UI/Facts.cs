@@ -71,8 +71,6 @@ namespace Scry
                 if (entry.Source is StatusEffect effect)
                 {
                     facts.StatusEffect(effect);
-                    facts.WhereTitle = "What gives it";
-                    facts.Where.AddRange(Knowledge.GiverLines(effect.name));
                 }
                 else if (entry.Source is GameObject prefab)
                 {

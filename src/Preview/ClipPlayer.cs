@@ -31,7 +31,7 @@ namespace Scry
         /// <summary>The clip playing on this copy, or null.</summary>
         public AnimationClip Clip => _graph.IsValid() ? _clip : null;
 
-        public static void Play(GameObject copy, AnimationClip clip, bool loop, float speed)
+        public static void Play(GameObject copy, AnimationClip clip, bool loop, float speed, bool quiet = false)
         {
             if (copy == null || clip == null) return;
             var animator = AnimatorOf(copy);
@@ -39,7 +39,7 @@ namespace Scry
 
             var player = copy.GetComponent<ClipPlayer>();
             if (player == null) player = copy.AddComponent<ClipPlayer>();
-            player.Begin(animator, clip, loop, speed);
+            player.Begin(animator, clip, loop, speed, quiet);
         }
 
         public static void Stop(GameObject copy)
@@ -108,7 +108,7 @@ namespace Scry
             return null;
         }
 
-        private void Begin(Animator animator, AnimationClip clip, bool loop, float speed)
+        private void Begin(Animator animator, AnimationClip clip, bool loop, float speed, bool quiet)
         {
             End();
             _clip = clip;
@@ -121,7 +121,7 @@ namespace Scry
             _playable.SetSpeed(speed);
             _ears = animator.GetComponent<AnimationEars>();
             animator.fireEvents = false;
-            if (_ears != null) _ears.ClipStarted(clip);
+            if (_ears != null) _ears.ClipStarted(clip, quiet);
         }
 
         private void End()
