@@ -738,7 +738,7 @@ namespace Scry
                 }
 
                 var parent = data.m_attach || data.m_follow ? anchor : null;
-                var copy = Ghost.Make(data.m_prefab, parent, anchor.position, anchor.rotation);
+                var copy = Ghost.MakeOn(data.m_prefab, parent, anchor.position, anchor.rotation);
                 if (copy != null) made.Add(copy);
             }
             return made;

@@ -6,21 +6,23 @@ namespace Scry
 {
     /// <summary>
     /// Hears a preview copy's animation events and answers them with the prefab's own sounds and
-    /// effects, as the game's <c>CharacterAnimEvent</c> would through the scripts the copy no
-    /// longer has: footsteps from its <c>FootStep</c> list, swings from the attack whose
-    /// animation is playing, jumps and deaths from the character's own lists. Events that only
-    /// move or steer the character are heard and ignored.
+    /// effects, as the game's <c>CharacterAnimEvent</c> and <c>AnimationEffect</c> would through
+    /// the scripts the copy no longer has: footsteps from its <c>FootStep</c> list, swings from
+    /// the attack whose animation is playing, jumps and deaths from the character's own lists,
+    /// and the effects and props a clip names itself (a wolf's howl, a tool in a hand). Events
+    /// that only move or steer the character are heard and ignored.
     ///
     /// Put on a copy only when every event its clips send is one of these, since an event nothing
     /// hears makes Unity log an error each time it fires.
     /// </summary>
     internal sealed class AnimationEars : MonoBehaviour
     {
-        /// <summary>The events <c>CharacterAnimEvent</c> answers, all of which are heard here.</summary>
+        /// <summary>The events <c>CharacterAnimEvent</c> and <c>AnimationEffect</c> answer, all of which are heard here.</summary>
         private static readonly HashSet<string> Heard = new HashSet<string>
         {
             "FootStep", "Hit", "OnAttackTrigger", "Jump", "Land", "TakeOff", "Stop", "DodgeMortal",
             "TrailOn", "TrailOff", "GPower", "Die", "Speed", "Chain", "ResetChain", "FreezeFrame",
+            "Effect", "Attach",
         };
 
         private static readonly HashSet<string> Told = new HashSet<string>();
@@ -28,6 +30,7 @@ namespace Scry
         private GameObject _prefab;
         private GameObject _copy;
         private float _lastStep;
+        private readonly List<GameObject> _attached = new List<GameObject>();
 
         /// <summary>Lets a copy's animations sound, when all of their events can be answered.</summary>
         public static void Attach(GameObject prefab, GameObject copy)
@@ -69,7 +72,60 @@ namespace Scry
             if (attack != null) Previews.PlayOnCopy(_copy, attack.m_startEffect, null);
         }
 
+        /// <summary>What a clip hung on the copy comes off when it ends, as it does when the game's animation moves on.</summary>
+        public void ClipEnded()
+        {
+            foreach (var attached in _attached) if (attached != null) Destroy(attached);
+            _attached.Clear();
+        }
+
         // ----- Answered -----
+
+        /// <summary>
+        /// A clip's own effect, named in the event: played at the bone the event names, else at
+        /// the prefab's effect root, else at the animated body.
+        /// </summary>
+        public void Effect(AnimationEvent e)
+        {
+            var prefab = e.objectReferenceParameter as GameObject;
+            if (prefab == null) return;
+
+            Transform at = null;
+            if (!string.IsNullOrEmpty(e.stringParameter)) at = Utils.FindChild(transform, e.stringParameter);
+            if (at == null)
+            {
+                var root = _prefab.GetComponentInChildren<global::AnimationEffect>(true)?.m_effectRoot;
+                if (root != null) at = Looks.Twin(_prefab.transform, _copy.transform, root);
+            }
+            if (at == null) at = transform;
+
+            Previews.PlayOnCopy(_copy, AsList(new[] { prefab }), at);
+        }
+
+        /// <summary>
+        /// A prop a clip holds for as long as it plays, hung on the bone the event names. One
+        /// hung there before comes off first; a scale of 10 keeps the prop's own size.
+        /// </summary>
+        public void Attach(AnimationEvent e)
+        {
+            var prefab = e.objectReferenceParameter as GameObject;
+            if (prefab == null || string.IsNullOrEmpty(e.stringParameter)) return;
+            var joint = Utils.FindChild(transform, e.stringParameter);
+            if (joint == null) return;
+
+            for (var i = _attached.Count - 1; i >= 0; i--)
+            {
+                if (_attached[i] != null && _attached[i].transform.parent != joint) continue;
+                if (_attached[i] != null) Destroy(_attached[i]);
+                _attached.RemoveAt(i);
+            }
+
+            var copy = _copy == Stage.Subject ? Stage.Hang(prefab, joint) : Ghost.MakeOn(prefab, joint, joint.position, joint.rotation);
+            if (copy == null) return;
+            if (e.intParameter == 10 || e.intParameter == -10) copy.transform.localScale = prefab.transform.localScale;
+            copy.SetActive(true);
+            _attached.Add(copy);
+        }
 
         public void FootStep(AnimationEvent e)
         {

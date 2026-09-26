@@ -55,6 +55,18 @@ namespace Scry
         }
 
         /// <summary>
+        /// Makes the copy and hangs it on a parent keeping its size in the world, as the game
+        /// hangs effects and held items on bones. Bones are often scaled, a creature's by a
+        /// hundred, so a copy that kept its own scale under one would be drawn that much bigger.
+        /// </summary>
+        public static GameObject MakeOn(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer = -1)
+        {
+            var copy = Make(prefab, null, position, rotation, layer);
+            if (copy != null && parent != null) copy.transform.SetParent(parent, true);
+            return copy;
+        }
+
+        /// <summary>
         /// Whether a prefab an effect list points at is a model rather than an effect: a ragdoll
         /// that takes a creature's place when it dies, a creature it splits into, an item, a
         /// skinned body, or pieces that fly apart under physics. A copy keeps none of its physics,

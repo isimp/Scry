@@ -245,11 +245,25 @@ namespace Scry
                     }
                 }
 
-                var copy = Ghost.Make(data.m_prefab, data.m_attach ? anchor : _root.transform, at, anchor.rotation, _layer);
+                var copy = data.m_attach
+                    ? Ghost.MakeOn(data.m_prefab, anchor, at, anchor.rotation, _layer)
+                    : Ghost.Make(data.m_prefab, _root.transform, at, anchor.rotation, _layer);
                 if (copy == null) continue;
                 Tune(copy, audible: true);
                 Played.Add(new KeyValuePair<GameObject, float>(copy, Time.unscaledTime + PlayedSeconds));
             }
+        }
+
+        /// <summary>
+        /// Hangs a copy of a prefab on one of the subject's bones, heard as if beside you. It
+        /// goes with the subject, so nothing else has to clear it.
+        /// </summary>
+        public static GameObject Hang(GameObject prefab, Transform joint)
+        {
+            if (_subject == null || joint == null) return null;
+            var copy = Ghost.MakeOn(prefab, joint, joint.position, joint.rotation, _layer);
+            if (copy != null) Tune(copy, audible: true);
+            return copy;
         }
 
         public static void Orbit(Vector2 delta)

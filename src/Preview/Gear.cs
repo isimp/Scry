@@ -152,7 +152,7 @@ namespace Scry
                 GameObject worn = null;
                 if (skin)
                 {
-                    if (body != null) worn = Skin(part, body, copy.layer);
+                    if (body != null) worn = Skin(item, part, body, copy.layer);
                 }
                 else
                 {
@@ -176,11 +176,7 @@ namespace Scry
                     }
                     if (joint == null) continue;
 
-                    worn = Ghost.Make(part, joint, joint.position, joint.rotation, copy.layer);
-                    if (worn == null) continue;
-                    worn.SetActive(true);
-                    worn.transform.localPosition = Vector3.zero;
-                    worn.transform.localRotation = Quaternion.identity;
+                    worn = Hang(item, part, joint, copy.layer);
                 }
 
                 if (worn != null && style >= 0 && (styled == null || styled == item) && MaterialMan.instance != null)
@@ -231,14 +227,10 @@ namespace Scry
         }
 
         /// <summary>Hangs a skinned part (armour, cape) on the body's own bones.</summary>
-        private static GameObject Skin(GameObject part, SkinnedMeshRenderer body, int layer)
+        private static GameObject Skin(GameObject item, GameObject part, SkinnedMeshRenderer body, int layer)
         {
-            var parent = body.transform.parent;
-            var worn = Ghost.Make(part, parent, parent.position, parent.rotation, layer);
+            var worn = Hang(item, part, body.transform.parent, layer);
             if (worn == null) return null;
-            worn.SetActive(true);
-            worn.transform.localPosition = Vector3.zero;
-            worn.transform.localRotation = Quaternion.identity;
 
             var bones = body.bones;
             foreach (var renderer in worn.GetComponentsInChildren<SkinnedMeshRenderer>(true))
@@ -257,6 +249,33 @@ namespace Scry
                 renderer.bones = bones;
                 renderer.updateWhenOffscreen = true;
             }
+            return worn;
+        }
+
+        /// <summary>
+        /// Hangs a copy of an item's part on a bone the way <c>VisEquipment.AttachItem</c> does:
+        /// made on its own and then parented keeping its size in the world, so it is as big on a
+        /// creature whose bones are scaled up as in a hand. The item's <c>equipoffset</c> shifts it,
+        /// and its <c>equiped</c> child, the glow or flame it has while held, is switched on.
+        /// </summary>
+        private static GameObject Hang(GameObject item, GameObject part, Transform parent, int layer)
+        {
+            var worn = Ghost.MakeOn(part, parent, parent.position, parent.rotation, layer);
+            if (worn == null) return null;
+
+            var t = worn.transform;
+            t.localPosition = Vector3.zero;
+            t.localRotation = Quaternion.identity;
+            var offset = item.transform.Find("equipoffset");
+            if (offset != null)
+            {
+                t.localPosition += offset.position;
+                t.localRotation *= offset.rotation;
+            }
+
+            var equipped = t.Find("equiped");
+            if (equipped != null) equipped.gameObject.SetActive(true);
+            worn.SetActive(true);
             return worn;
         }
 

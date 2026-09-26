@@ -17,6 +17,7 @@ namespace Scry
         private PlayableGraph _graph;
         private AnimationClipPlayable _playable;
         private AnimationClip _clip;
+        private AnimationEars _ears;
         private bool _loop;
 
         /// <summary>The clip playing on this copy, or null.</summary>
@@ -69,13 +70,15 @@ namespace Scry
             _loop = loop;
             _playable = AnimationPlayableUtilities.PlayClip(animator, clip, out _graph);
             _playable.SetSpeed(speed);
-            animator.GetComponent<AnimationEars>()?.ClipStarted(clip);
+            _ears = animator.GetComponent<AnimationEars>();
+            if (_ears != null) _ears.ClipStarted(clip);
         }
 
         private void End()
         {
             if (_graph.IsValid()) _graph.Destroy();
             _clip = null;
+            if (_ears != null) _ears.ClipEnded();
         }
 
         private void Update()
