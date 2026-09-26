@@ -835,7 +835,10 @@ namespace Scry
             var prefab = entry?.Source as GameObject;
             var modifiers = _explorer?.Modifiers;
             if (prefab == null || modifiers == null || !modifiers.LookAvailable || !Variants.IsGear(prefab)) return null;
-            return Variants.GearOf(prefab, modifiers.Look);
+
+            // It carries its weapons whether they are drawn or not, so what it has is taken from
+            // the gear look even while it is shown without.
+            return Variants.GearOf(prefab, Mathf.Max(1, modifiers.Look));
         }
 
         public static List<KeyValuePair<string, EffectList>> PrefabLists(GameObject prefab)
@@ -1132,7 +1135,12 @@ namespace Scry
         private static bool Trigger(string name)
         {
             var set = TriggerQuiet(name);
-            Listen.Note(_heard, set ? $"set the animator's {name} trigger" : $"the animator has no {name} trigger, so the game animates nothing here either");
+            if (_heard != null && !set)
+            {
+                var animator = ClipPlayer.AnimatorOf(Stage.Subject);
+                Listen.Note(_heard, $"the animator has no {name} trigger, so the game animates nothing here either; its triggers are {(animator != null ? Triggers(animator) : "none")}");
+            }
+            else Listen.Note(_heard, $"set the animator's {name} trigger");
             return set;
         }
 
@@ -1214,18 +1222,48 @@ namespace Scry
                 var trigger = HasTrigger(animator, anim) ? anim : attack.m_attackChainLevels > 1 && HasTrigger(animator, anim + "0") ? anim + "0" : null;
                 if (trigger == null)
                 {
-                    Listen.Note(_heard, $"the animator has no {anim} trigger for this attack");
+                    Listen.Note(_heard, $"the animator has no {anim} trigger for this attack; its triggers are {Triggers(animator)}");
                     continue;
                 }
                 ClipPlayer.Stop(copy);
                 animator.SetTrigger(trigger);
                 Listen.Note(_heard, $"swung by the animator's {trigger} trigger");
+                if (copy == Stage.Subject && _entry?.Source is GameObject swinger) Learn(swinger.name, animator, attack);
                 var ears = animator.GetComponent<AnimationEars>();
                 if (ears != null) ears.Swinging(attack, strike, _heard);
                 else if (strike != null) Struck(strike, _heard, PlayOnCopyAt(copy, strike, StrikePoint(copy, attack, LandsOnGround(strike))));
                 swung = true;
             }
             return swung;
+        }
+
+        /// <summary>The animator's triggers by name, for the log.</summary>
+        private static string Triggers(Animator animator)
+        {
+            var names = new List<string>();
+            foreach (var parameter in animator.parameters) if (parameter.type == AnimatorControllerParameterType.Trigger) names.Add(parameter.name);
+            return names.Count > 0 ? string.Join(", ", names) : "none";
+        }
+
+        private static readonly Dictionary<(string, string), Attack> LearnedAttacks = new Dictionary<(string, string), Attack>();
+
+        /// <summary>
+        /// The attack a clip belongs to, as learnt when that attack was swung: the animator plays
+        /// its own clip for the attack's trigger, and which one it is is seen a moment after.
+        /// </summary>
+        public static Attack AttackOfClip(string prefab, string clip)
+        {
+            return LearnedAttacks.TryGetValue((prefab, clip), out var attack) ? attack : null;
+        }
+
+        private static void Learn(string prefab, Animator animator, Attack attack)
+        {
+            LaterOn.Add((Time.unscaledTime + 0.35f, () =>
+            {
+                if (animator == null) return;
+                foreach (var info in animator.GetCurrentAnimatorClipInfo(0)) if (info.clip != null) LearnedAttacks[(prefab, info.clip.name)] = attack;
+                foreach (var info in animator.GetNextAnimatorClipInfo(0)) if (info.clip != null) LearnedAttacks[(prefab, info.clip.name)] = attack;
+            }));
         }
 
         private static bool HasTrigger(Animator animator, string name)

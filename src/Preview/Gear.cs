@@ -323,6 +323,8 @@ namespace Scry
         /// is held as one), else the right hand's, else the bare hands'. A draugr stands with its
         /// bow as with a bow, and a person tried on with an axe holds it as an axe.
         /// </summary>
+        private static readonly HashSet<string> Told = new HashSet<string>();
+
         private static void Stance(GameObject prefab, GameObject copy, IList<GameObject> items)
         {
             var animator = ClipPlayer.AnimatorOf(copy);
@@ -344,10 +346,18 @@ namespace Scry
                 : unarmed != null ? unarmed.m_animationState
                 : ItemDrop.ItemData.AnimationState.Unarmed;
 
+            var stood = false;
             foreach (var parameter in animator.parameters)
             {
-                if (parameter.name == "statei" && parameter.type == AnimatorControllerParameterType.Int) animator.SetInteger("statei", (int)state);
-                if (parameter.name == "statef" && parameter.type == AnimatorControllerParameterType.Float) animator.SetFloat("statef", (float)state);
+                if (parameter.name == "statei" && parameter.type == AnimatorControllerParameterType.Int) { animator.SetInteger("statei", (int)state); stood = true; }
+                if (parameter.name == "statef" && parameter.type == AnimatorControllerParameterType.Float) { animator.SetFloat("statef", (float)state); stood = true; }
+            }
+
+            var told = $"{prefab.name}|{string.Join(",", items.Where(i => i != null).Select(i => i.name))}";
+            if (Told.Add(told))
+            {
+                var hands = string.Join(", ", items.Where(i => i != null && SlotOf(i) != Slot.None && SlotOf(i) != Slot.Head && SlotOf(i) != Slot.Chest && SlotOf(i) != Slot.Legs).Select(i => i.name + (AttachPart(i, out _) != null ? "" : " (not drawn)")));
+                Plugin.Log.LogInfo($"Scry dressed {prefab.name}: in hand {(hands.Length > 0 ? hands : "nothing")}; stance {state}{(stood ? "" : ", which its animator does not take")}.");
             }
         }
 

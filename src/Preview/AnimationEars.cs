@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -27,6 +28,7 @@ namespace Scry
         };
 
         private static readonly HashSet<string> Told = new HashSet<string>();
+        private static readonly HashSet<string> Listed = new HashSet<string>();
 
         /// <summary>Whether Scry answers an animation event of this name.</summary>
         public static bool Answers(string name) => Answered.Contains(name);
@@ -41,6 +43,15 @@ namespace Scry
         {
             var animator = ClipPlayer.AnimatorOf(copy);
             if (animator == null) return;
+
+            // Said once per prefab: which animator plays it and every clip it has, for finding out
+            // why a clip seems missing.
+            if (Listed.Add(prefab.name))
+            {
+                var all = copy.GetComponentsInChildren<Animator>(true).Length;
+                var names = animator.runtimeAnimatorController.animationClips.Where(c => c != null).Select(c => c.name).Distinct().OrderBy(n => n).ToList();
+                Plugin.Log.LogInfo($"Scry plays {prefab.name} by the animator on {animator.gameObject.name} ({animator.runtimeAnimatorController.name}, {all} animators on the copy), {names.Count} clips: {string.Join(", ", names)}.");
+            }
 
             var unknown = new SortedSet<string>();
             var events = 0;
@@ -490,6 +501,8 @@ namespace Scry
 
         private Attack AttackFor(string clip)
         {
+            var learnt = Previews.AttackOfClip(_prefab.name, clip);
+            if (learnt != null) return learnt;
             var humanoid = _prefab.GetComponent<Humanoid>();
             if (humanoid == null) return null;
 
