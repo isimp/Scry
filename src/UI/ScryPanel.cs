@@ -1436,10 +1436,14 @@ namespace Scry
                 var chip = new Rect(x, y, w, chipH);
                 var cross = new Rect(chip.xMax - U(26f), chip.y, U(24f), chipH);
                 var hover = chip.Contains(Event.current.mousePosition);
-                Skin.PillBox(chip, hover ? Skin.RaisedHover : Skin.Raised);
+                Skin.PillBox(chip, LinkFill(Kind.Item, hover));
                 var icon = PrefabIcon(key);
                 if (icon != null) DrawSprite(icon, new Rect(chip.x + U(6f), chip.y + U(4f), U(22f), U(22f)));
-                GUI.Label(new Rect(chip.x + U(32f), chip.y, chip.width - U(62f), chip.height), name, Skin.Small);
+                var small = Skin.Small;
+                var smallWas = small.normal.textColor;
+                small.normal.textColor = LinkText(Kind.Item, hover);
+                GUI.Label(new Rect(chip.x + U(32f), chip.y, chip.width - U(62f), chip.height), name, small);
+                small.normal.textColor = smallWas;
                 GUI.Label(cross, "\u00d7", Skin.Cross);
 
                 if (GUI.Button(cross, GUIContent.none, GUIStyle.none))
@@ -2209,7 +2213,7 @@ namespace Scry
                 {
                     var linkW = Mathf.Min(valueW, Skin.Wrap.CalcSize(new GUIContent(pair.Value)).x + U(4f));
                     var linkRect = new Rect(valueRect.x, valueRect.y, linkW, height);
-                    LinkLabel(linkRect, pair.Value, Skin.Wrap);
+                    LinkLabel(linkRect, pair.Value, Skin.Wrap, LinkText(KindOfKey(explorer, link), false));
                     if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, "Go to " + pair.Value);
                     if (GUI.Button(linkRect, GUIContent.none, GUIStyle.none)) Go(explorer, link);
                 }
@@ -2227,7 +2231,7 @@ namespace Scry
                 {
                     var titleW = Mathf.Min(width, Skin.DimLabel.CalcSize(new GUIContent(row.Title)).x + U(4f));
                     var titleRect = new Rect(0f, y, titleW, U(20f));
-                    LinkLabel(titleRect, row.Title, Skin.DimLabel);
+                    LinkLabel(titleRect, row.Title, Skin.DimLabel, LinkText(KindOfKey(explorer, row.TitleLink), false));
                     if (titleRect.Contains(Event.current.mousePosition)) AskTip("station:" + row.TitleLink, "Go to " + row.TitleLink);
                     if (GUI.Button(titleRect, GUIContent.none, GUIStyle.none)) Go(explorer, row.TitleLink);
                 }
@@ -2250,9 +2254,15 @@ namespace Scry
                     }
                     var chip = new Rect(x, y, w, chipH);
                     var hover = chip.Contains(Event.current.mousePosition);
-                    Skin.PillBox(chip, hover ? Skin.RaisedHover : Skin.Raised);
+                    var goes = !string.IsNullOrEmpty(item.Prefab) && InCatalog(explorer, item.Prefab);
+                    var kind = goes ? KindOf(explorer, item.Prefab) : null;
+                    Skin.PillBox(chip, goes ? LinkFill(kind, hover) : Skin.Raised);
                     if (item.Icon != null) DrawSprite(item.Icon, new Rect(chip.x + U(6f), chip.y + U(4f), U(22f), U(22f)));
-                    GUI.Label(new Rect(chip.x + U(32f), chip.y, chip.width - U(36f), chip.height), text, Skin.Small);
+                    var small = Skin.Small;
+                    var smallWas = small.normal.textColor;
+                    if (goes) small.normal.textColor = LinkText(kind, hover);
+                    GUI.Label(new Rect(chip.x + U(32f), chip.y, chip.width - U(36f), chip.height), text, small);
+                    small.normal.textColor = smallWas;
 
                     // Clicking an ingredient or a drop goes to it.
                     if (!string.IsNullOrEmpty(item.Prefab))
@@ -2292,9 +2302,11 @@ namespace Scry
                     var chipH = Mathf.Max(U(30f), Skin.Small.CalcHeight(new GUIContent(source.Text), textW) + U(10f));
                     var chip = new Rect(0f, y, width, chipH);
                     var hover = chip.Contains(Event.current.mousePosition);
-                    Skin.Box(chip, hover ? Skin.RaisedHover : Skin.Raised);
+                    var kind = KindOf(explorer, source.Prefab);
+                    Skin.Box(chip, LinkFill(kind, hover));
                     if (icon != null) DrawSprite(icon, new Rect(U(6f), y + (chipH - U(22f)) / 2f, U(22f), U(22f)));
                     var wrapped = new GUIStyle(Skin.Small) { wordWrap = true };
+                    wrapped.normal.textColor = LinkText(kind, hover);
                     GUI.Label(new Rect(textX, y, textW, chipH), source.Text, wrapped);
                     if (hover) AskTip("src:" + source.Prefab, "Go to " + source.Prefab);
                     if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(source.Prefab))
@@ -2353,20 +2365,33 @@ namespace Scry
         private static bool LinkChip(Rect rect, string text, Kind? kind, bool lit, bool go)
         {
             var hover = go && rect.Contains(Event.current.mousePosition);
-            var colour = kind.HasValue ? Skin.KindColor(kind.Value) : Skin.Dim;
-            var fill = lit ? 0.55f : hover ? 0.36f : 0.22f;
-            Skin.PillBox(rect, new Color(colour.r * fill, colour.g * fill, colour.b * fill, go || lit ? 0.95f : 0.45f));
+            Skin.PillBox(rect, go || lit ? LinkFill(kind, hover, lit) : new Color(0.2f, 0.2f, 0.22f, 0.45f));
 
             var style = Skin.Small;
             var was = style.normal.textColor;
             var alignment = style.alignment;
-            style.normal.textColor = go || lit ? Color.Lerp(colour, Color.white, lit || hover ? 0.6f : 0.35f) : Skin.Dim;
+            style.normal.textColor = go || lit ? LinkText(kind, hover || lit) : Skin.Dim;
             style.alignment = TextAnchor.MiddleCenter;
             GUI.Label(rect, go ? text + "  \u203A" : text, style);
             style.normal.textColor = was;
             style.alignment = alignment;
 
             return go && GUI.Button(rect, GUIContent.none, GUIStyle.none);
+        }
+
+        /// <summary>The fill of anything that goes to an entry: a dark shade of its kind's colour.</summary>
+        private static Color LinkFill(Kind? kind, bool hover, bool lit = false)
+        {
+            var colour = kind.HasValue ? Skin.KindColor(kind.Value) : Skin.Neutral;
+            var fill = lit ? 0.55f : hover ? 0.36f : 0.22f;
+            return new Color(colour.r * fill, colour.g * fill, colour.b * fill, 0.95f);
+        }
+
+        /// <summary>The text of anything that goes to an entry: its kind's colour, lighter.</summary>
+        private static Color LinkText(Kind? kind, bool hover)
+        {
+            var colour = kind.HasValue ? Skin.KindColor(kind.Value) : Skin.Neutral;
+            return Color.Lerp(colour, Color.white, hover ? 0.6f : 0.35f);
         }
 
         private static float LinkChipWidth(string text, bool go) => Skin.Small.CalcSize(new GUIContent(go ? text + "  \u203A" : text)).x + U(16f);

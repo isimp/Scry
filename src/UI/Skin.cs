@@ -38,6 +38,9 @@ namespace Scry
         private static Font _heading;
         private static readonly Dictionary<string, Texture2D> Tinted = new Dictionary<string, Texture2D>();
 
+        /// <summary>The colour of no kind in particular: all of them, or one not known.</summary>
+        public static readonly Color Neutral = new Color(0.62f, 0.64f, 0.70f);
+
         public static Color KindColor(Kind kind)
         {
             switch (kind)
@@ -49,7 +52,8 @@ namespace Scry
                 case Kind.Effect: return new Color(0.70f, 0.56f, 0.97f);
                 case Kind.Sound: return new Color(0.42f, 0.80f, 0.82f);
                 case Kind.StatusEffect: return new Color(0.54f, 0.84f, 0.52f);
-                default: return new Color(0.62f, 0.64f, 0.70f);
+                case Kind.Other: return new Color(0.50f, 0.66f, 0.96f);
+                default: return Neutral;
             }
         }
 
@@ -173,7 +177,7 @@ namespace Scry
             Close.hover.textColor = Skin.Text;
             Close.padding = new RectOffset(0, 0, 0, 0);
 
-            // A bare × for small spots such as inside the search box, with no padding to squeeze it out.
+            // A bare ï¿½ for small spots such as inside the search box, with no padding to squeeze it out.
             Cross = Style(19f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
             Cross.clipping = TextClipping.Overflow;
             IconButton = Boxed(Style(13f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Rounded, scale);
