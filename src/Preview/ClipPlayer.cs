@@ -121,6 +121,11 @@ namespace Scry
             _playable.SetSpeed(speed);
             _ears = animator.GetComponent<AnimationEars>();
             animator.fireEvents = false;
+
+            var heard = Heard(clip);
+            Listen.Start(heard, clip.length / Mathf.Max(0.1f, speed) + 0.5f);
+            Listen.Note(heard, $"{clip.events.Length} events in the clip");
+            if (_ears == null) Listen.Note(heard, "no ears on this copy: its clips send events Scry does not answer, so none are played");
             if (_ears != null) _ears.ClipStarted(clip, quiet);
         }
 
@@ -152,6 +157,9 @@ namespace Scry
             }
             else if (_playable.GetTime() >= length + 0.4f) End();
         }
+
+        /// <summary>How a clip is named in the log: the prefab it is on and its name.</summary>
+        public string Heard(AnimationClip clip) => clip == null ? null : $"{name}'s clip {clip.name}";
 
         /// <summary>Sends the events the clip passed since it was last looked at.</summary>
         private void Fire(float after, float upTo)

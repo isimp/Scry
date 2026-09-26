@@ -1,0 +1,102 @@
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+
+namespace Scry
+{
+    /// <summary>
+    /// Tells in the log, once for each effect list and animation clip, what playing it did: the
+    /// copies it made, whether each sounded, showed particles or was drawn, where it played, and
+    /// for a clip the events that arrived and the footsteps heard. For finding out why something
+    /// seems to play nothing, without guessing.
+    /// </summary>
+    internal static class Listen
+    {
+        private sealed class Watch
+        {
+            public string What;
+            public float Until;
+            public readonly List<(GameObject Thing, string Where)> Things = new List<(GameObject, string)>();
+            public readonly Dictionary<GameObject, (bool Sounded, int Particles, bool Drawn, bool Muted)> Seen = new Dictionary<GameObject, (bool, int, bool, bool)>();
+            public readonly Dictionary<string, int> Notes = new Dictionary<string, int>();
+        }
+
+        private static readonly Dictionary<string, Watch> Watching = new Dictionary<string, Watch>();
+        private static readonly HashSet<string> Told = new HashSet<string>();
+
+        /// <summary>Starts watching what something plays, the first time it plays; later plays add to it while it is watched.</summary>
+        public static void Start(string what, float seconds)
+        {
+            if (what == null || Told.Contains(what) || Watching.ContainsKey(what)) return;
+            Watching[what] = new Watch { What = what, Until = Time.unscaledTime + Mathf.Clamp(seconds, 1.5f, 8f) };
+        }
+
+        public static void Add(string what, IEnumerable<GameObject> things)
+        {
+            if (what == null || !Watching.TryGetValue(what, out var watch)) return;
+            foreach (var thing in things)
+            {
+                if (thing != null && !watch.Things.Exists(t => t.Thing == thing)) watch.Things.Add((thing, Where(thing)));
+            }
+        }
+
+        public static void Note(string what, string note)
+        {
+            if (what == null || !Watching.TryGetValue(what, out var watch)) return;
+            watch.Notes[note] = watch.Notes.TryGetValue(note, out var n) ? n + 1 : 1;
+        }
+
+        public static void Update()
+        {
+            if (Watching.Count == 0) return;
+            var now = Time.unscaledTime;
+            foreach (var watch in Watching.Values.ToList())
+            {
+                foreach (var (thing, _) in watch.Things)
+                {
+                    if (thing == null) continue;
+                    watch.Seen.TryGetValue(thing, out var seen);
+                    var sources = thing.GetComponentsInChildren<AudioSource>(true);
+                    seen.Sounded |= sources.Any(s => s.isPlaying && !s.mute && s.volume > 0f);
+                    seen.Muted |= sources.Length > 0 && sources.All(s => s.mute);
+                    seen.Particles = Mathf.Max(seen.Particles, thing.GetComponentsInChildren<ParticleSystem>().Sum(p => p.particleCount));
+                    seen.Drawn |= thing.GetComponentsInChildren<Renderer>().Any(r => r.enabled && r.isVisible && !(r is ParticleSystemRenderer));
+                    watch.Seen[thing] = seen;
+                }
+                if (now < watch.Until) continue;
+
+                Watching.Remove(watch.What);
+                Told.Add(watch.What);
+                Plugin.Log.LogInfo(Report(watch));
+            }
+        }
+
+        private static string Report(Watch watch)
+        {
+            var parts = new List<string>();
+            foreach (var (thing, where) in watch.Things)
+            {
+                var name = thing != null ? thing.name : "a copy gone early";
+                watch.Seen.TryGetValue(thing, out var seen);
+                var what = new List<string>();
+                if (seen.Sounded) what.Add("sounded");
+                else if (seen.Muted) what.Add("muted");
+                if (seen.Particles > 0) what.Add($"{seen.Particles} particles");
+                if (seen.Drawn) what.Add("drawn");
+                if (what.Count == 0) what.Add("nothing to see or hear");
+                parts.Add($"{name} {where}: {string.Join(", ", what)}");
+            }
+            var notes = watch.Notes.Select(n => n.Value > 1 ? $"{n.Key} ×{n.Value}" : n.Key).ToList();
+            var made = parts.Count > 0 ? string.Join("; ", parts) : "no copies";
+            return $"Scry played {watch.What}: {made}{(notes.Count > 0 ? ". " + string.Join("; ", notes) : "")}.";
+        }
+
+        /// <summary>On the stage or in the world, and how far from the camera there.</summary>
+        private static string Where(GameObject thing)
+        {
+            if (thing.layer == Stage.Layer) return "on the stage";
+            var camera = GameCamera.instance != null ? GameCamera.instance.transform.position : thing.transform.position;
+            return $"in the world {Vector3.Distance(camera, thing.transform.position):0} m away";
+        }
+    }
+}

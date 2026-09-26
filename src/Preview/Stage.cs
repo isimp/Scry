@@ -126,6 +126,8 @@ namespace Scry
         // A model's resting pose is not always where its animation takes it (a bat flies lower
         // than it hangs), so what it draws is measured again while its animation first plays.
         private static float _settleUntil;
+        private static float _settleFrom;
+        private static bool _settled;
 
         // A creature that walks stands with its feet where its root is, as the game puts it on
         // the ground; what its animation draws below or above does not move the floor.
@@ -216,7 +218,12 @@ namespace Scry
             _followEffect = entry.Kind == Kind.Effect;
             var character = (entry.Source as GameObject)?.GetComponent<Character>();
             _onFeet = character != null && !character.m_flying;
-            _settleUntil = _followEffect ? 0f : Time.unscaledTime + 1.5f;
+            // The first pose, before the animation has run, can stand far from where the model
+            // stands after (lying, raised, off to a side), so the size is taken again once it
+            // has run a moment; a flying creature is measured over its flight a while longer.
+            _settleFrom = Time.unscaledTime + 0.25f;
+            _settled = false;
+            _settleUntil = _followEffect ? 0f : Time.unscaledTime + (_onFeet ? 0.5f : 1.5f);
             _baseScale = _subject.transform.localScale;
             _bounds = Measure(_subject);
             Apply(modifiers);
@@ -619,11 +626,13 @@ namespace Scry
         /// <summary>Takes in what the model draws while its animation first plays, as if at size one.</summary>
         private static void Settle()
         {
-            if (_subject == null || Time.unscaledTime > _settleUntil || Standin.IsDown(_subject) || _scale <= 0f) return;
+            if (_subject == null || Time.unscaledTime < _settleFrom || Time.unscaledTime > _settleUntil || Standin.IsDown(_subject) || _scale <= 0f) return;
             var now = Measure(_subject);
             var unscaled = new Bounds(Origin + (now.center - Origin) / _scale, now.size / _scale);
             if (unscaled.size.magnitude > _bounds.size.magnitude * 4f + 1f) return;
-            _bounds.Encapsulate(unscaled);
+            if (_settled) _bounds.Encapsulate(unscaled);
+            else _bounds = unscaled;
+            _settled = true;
             PlacePerson();
         }
 

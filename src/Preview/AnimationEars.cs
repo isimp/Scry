@@ -100,11 +100,21 @@ namespace Scry
         private void WatchFeet(AnimationClip clip)
         {
             _feet = null;
+            var heard = _copy.GetComponent<ClipPlayer>()?.Heard(clip);
             var step = _prefab.GetComponentInChildren<global::FootStep>(true);
-            if (clip == null || step == null || step.m_feet == null || step.m_feet.Length == 0) return;
+            if (clip == null || step == null || step.m_feet == null || step.m_feet.Length == 0)
+            {
+                Listen.Note(heard, step == null ? "no footsteps: the prefab has no FootStep" : "no feet named in its FootStep, so steps cannot be told");
+                return;
+            }
 
             var name = clip.name.ToLowerInvariant();
-            if (!System.Array.Exists(Moving, m => name.Contains(m))) return;
+            if (!System.Array.Exists(Moving, m => name.Contains(m)))
+            {
+                Listen.Note(heard, "feet not watched: the clip's name is not one of walking or running");
+                return;
+            }
+            Listen.Note(heard, $"watching {step.m_feet.Length} feet");
 
             var feet = new List<Transform>();
             foreach (var foot in step.m_feet)
@@ -132,8 +142,20 @@ namespace Scry
         /// <summary>Lights what a playing clip made under its chip.</summary>
         private void Report(List<GameObject> made)
         {
-            var clip = _copy != null ? _copy.GetComponent<ClipPlayer>()?.Clip : null;
+            var player = _copy != null ? _copy.GetComponent<ClipPlayer>() : null;
+            var clip = player != null ? player.Clip : null;
             if (clip != null && made.Count > 0) Previews.Heard(clip, made);
+            Listen.Add(Listening, made);
+        }
+
+        /// <summary>The clip playing on this copy, as the log names it.</summary>
+        private string Listening
+        {
+            get
+            {
+                var player = _copy != null ? _copy.GetComponent<ClipPlayer>() : null;
+                return player != null ? player.Heard(player.Clip) : null;
+            }
         }
 
         /// <summary>
@@ -199,6 +221,7 @@ namespace Scry
                 if (_feet[i] == null) continue;
                 var height = root.InverseTransformPoint(_feet[i].position).y;
                 if (!_footing[i].Feed(Time.unscaledTime, height)) continue;
+                Listen.Note(Listening, "a foot came down");
 
                 var step = _prefab.GetComponentInChildren<global::FootStep>(true);
                 var effect = step != null ? Step(step, _motion, Previews.StepGround) : null;
@@ -283,6 +306,7 @@ namespace Scry
         private void Answer(Heard e)
         {
             if (_copy == null) return;
+            Listen.Note(Listening, "event " + e.Name);
             switch (e.Name)
             {
                 case "FootStep": Step(e); break;

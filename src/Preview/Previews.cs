@@ -173,6 +173,7 @@ namespace Scry
         public static void Update(Explorer explorer)
         {
             Expire();
+            Listen.Update();
 
             if (explorer == null) return;
 
@@ -901,6 +902,11 @@ namespace Scry
             }
             things.AddRange(PlayEffectList(list));
             if (_startedClip != null) ClipOf[list] = _startedClip;
+
+            var heard = $"{_entry?.Name}'s \"{label}\"";
+            Listen.Start(heard, 2.5f);
+            Listen.Add(heard, things);
+            if (WorldHeard) Listen.Note(heard, "a copy stands in the world, so the stage's are muted");
             if (!things.Exists(Perceptible)) TellEmpty(label, list, things);
             Started(list, things);
         }
