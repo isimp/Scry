@@ -10,6 +10,13 @@ namespace Scry
     /// <summary>The selected entry: its card, stage, title, actions, outfit and stage buttons.</summary>
     internal static partial class ScryPanel
     {
+        private static long _part;
+
+        /// <summary>What of the scrolled side can be seen, in its own terms, so rows of chips out of sight are only counted, not drawn.</summary>
+        private static Rect _sideVisible;
+
+        private static bool OutOfSight(Rect rect) => rect.yMax < _sideVisible.yMin || rect.yMin > _sideVisible.yMax;
+
         private static void Side(Explorer explorer, Rect rect, bool withStage)
         {
             var entry = explorer.Selected;
@@ -28,7 +35,9 @@ namespace Scry
             {
                 _stageBaseH = Mathf.Round(Mathf.Min(rect.width * 0.60f, rect.height * 0.50f));
                 var stageH = Mathf.Round(Mathf.Clamp(_stageBaseH * _stageScale, U(120f), rect.height * 0.85f));
+                _part = Timing.Start();
                 StageArea(entry, new Rect(rect.x, rect.y, rect.width, stageH));
+                Timing.Add("side stage", _part);
                 StageHandle(new Rect(rect.x, rect.y + stageH, rect.width, U(12f)));
                 top += stageH + U(12f);
             }
@@ -36,26 +45,45 @@ namespace Scry
             var below = new Rect(rect.x, top, rect.width, rect.yMax - top);
             var content = new Rect(0f, 0f, below.width - U(14f), Mathf.Max(_sideHeight, below.height));
             _sideScroll = GUI.BeginScrollView(below, _sideScroll, content, false, false, GUIStyle.none, Skin.Gui.verticalScrollbar);
+            _sideVisible = new Rect(0f, _sideScroll.y, content.width, below.height);
 
             var cw = content.width;
             var y = 0f;
             _foldAllShown = false;
+            _part = Timing.Start();
             y = Title(explorer, entry, cw, y);
+            Timing.Add("side title", _part);
             if (!withStage && (entry.Kind == Kind.Sound || entry.Kind == Kind.StatusEffect)) y = CompactCard(entry, cw, y);
+            _part = Timing.Start();
             y = Actions(entry, cw, y);
+            Timing.Add("side actions", _part);
             if (Looks.IsWorn(entry)) y = Wearing(explorer, cw, y);
             if (entry.Kind == Kind.Sound)
             {
                 y = Timeline(cw, y);
                 y = Variants(entry, cw, y);
             }
+            _part = Timing.Start();
             y = Adjust(explorer, entry, cw, y, withStage);
+            Timing.Add("side adjust", _part);
+            _part = Timing.Start();
             y = Effects(explorer, entry, cw, y, withStage);
+            Timing.Add("side effects", _part);
+            _part = Timing.Start();
             y = PlaysInSection(explorer, entry, cw, y);
+            Timing.Add("side plays in", _part);
+            _part = Timing.Start();
             y = LinksSection(explorer, entry, cw, y);
+            Timing.Add("side links", _part);
+            _part = Timing.Start();
             y = FactsSection(explorer, entry, cw, y);
+            Timing.Add("side facts", _part);
+            _part = Timing.Start();
             y = Command(explorer, entry, cw, y);
+            Timing.Add("side command", _part);
+            _part = Timing.Start();
             y = Details(explorer, entry, cw, y);
+            Timing.Add("side details", _part);
             if (Event.current.type == EventType.Repaint) _sideHeight = y + U(8f);
 
             GUI.EndScrollView();
@@ -168,7 +196,7 @@ namespace Scry
         {
             var color = Skin.KindColor(entry.Kind);
             var label = entry.Kind == Kind.StatusEffect ? "Status effect" : Kinds.Label(entry.Kind).TrimEnd('s');
-            var width = Skin.Glyph.CalcSize(new GUIContent(label)).x + U(20f);
+            var width = Skin.Width(Skin.Glyph, label) + U(20f);
             var badge = new Rect(at.x, at.y, width, U(22f));
             _badgeWidth = width;
             Skin.PillBox(badge, new Color(color.r * 0.28f, color.g * 0.28f, color.b * 0.28f, 0.95f));
@@ -196,7 +224,7 @@ namespace Scry
                 text = StatusFacts(effect) + (tooltip.Length > 0 ? "\n" + tooltip : "");
             }
 
-            var height = Skin.DimWrap.CalcHeight(new GUIContent(text), width);
+            var height = Skin.Height(Skin.DimWrap, text, width);
             GUI.Label(new Rect(0f, y, width, height), text, Skin.DimWrap);
             return y + height + U(12f);
         }
@@ -352,13 +380,12 @@ namespace Scry
         private static bool FitLabel(Rect rect, string text, GUIStyle style, float smallest)
         {
             var original = style.fontSize;
-            var content = new GUIContent(text);
             var floor = Mathf.Max(1, Mathf.RoundToInt(smallest * _s));
-            var fits = style.CalcSize(content).x <= rect.width;
+            var fits = Skin.Width(style, text) <= rect.width;
             while (!fits && style.fontSize > floor)
             {
                 style.fontSize -= 1;
-                fits = style.CalcSize(content).x <= rect.width;
+                fits = Skin.Width(style, text) <= rect.width;
             }
             GUI.Label(rect, text, style);
             style.fontSize = original;
@@ -374,7 +401,7 @@ namespace Scry
             bool Button(string text, GUIStyle style)
             {
                 any = true;
-                var w = style.CalcSize(new GUIContent(text)).x + U(12f);
+                var w = Skin.Width(style, text) + U(12f);
                 if (x + w > width && x > 0f)
                 {
                     x = 0f;
@@ -478,7 +505,7 @@ namespace Scry
             }
             if (note != null)
             {
-                var height = Skin.DimWrap.CalcHeight(new GUIContent(note), width);
+                var height = Skin.Height(Skin.DimWrap, note, width);
                 GUI.Label(new Rect(0f, y + U(8f), width, height), note, Skin.DimWrap);
                 y += height + U(8f);
             }
@@ -548,7 +575,7 @@ namespace Scry
                 var name = shared != null ? CatalogBuilder.Localize(shared.m_name) : "";
                 if (name.Length == 0) name = key;
 
-                var w = Mathf.Min(width, Skin.Chip.CalcSize(new GUIContent(name)).x + U(58f));
+                var w = Mathf.Min(width, Skin.Width(Skin.Chip, name) + U(58f));
                 if (x + w > width && x > 0f)
                 {
                     x = 0f;
@@ -603,7 +630,7 @@ namespace Scry
             var views = new[] { ("Fit", "Frame it whole again"), ("Top", "Look down on it"), ("Side", "Look at it from the side"), ("Front", "Look at it from the front") };
             foreach (var (name, tip) in views)
             {
-                var w = Skin.Chip.CalcSize(new GUIContent(name)).x + U(2f);
+                var w = Skin.Width(Skin.Chip, name) + U(2f);
                 x -= w;
                 var chip = new Rect(x, y, w, h);
                 x -= U(4f);
@@ -632,13 +659,13 @@ namespace Scry
             var texts = new List<string> { Stage.BackdropNames[Stage.BackdropIndex], Stage.LightingNames[Stage.LightingIndex], "Spin" };
             if (wearable) texts.Add("Worn");
             if (!Looks.IsWorn(entry)) texts.Add("Person");
-            var total = texts.Sum(t => Skin.Chip.CalcSize(new GUIContent(t)).x + U(10f));
+            var total = texts.Sum(t => Skin.Width(Skin.Chip, t) + U(10f));
             if (x - total < rect.x + U(10f) + _badgeWidth + U(10f)) y += h + U(8f);
 
             bool Chip(string text, bool on, string tip)
             {
                 var style = on ? Skin.ChipOn : Skin.Chip;
-                var w = style.CalcSize(new GUIContent(text)).x + U(4f);
+                var w = Skin.Width(style, text) + U(4f);
                 x -= w;
                 var chip = new Rect(x, y, w, h);
                 x -= U(6f);

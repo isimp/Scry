@@ -20,7 +20,7 @@ namespace Scry
 
             if (facts.Description.Length > 0)
             {
-                var height = Skin.Wrap.CalcHeight(new GUIContent(facts.Description), width);
+                var height = Skin.Height(Skin.Wrap, facts.Description, width);
                 GUI.Label(new Rect(0f, y, width, height), facts.Description, Skin.Wrap);
                 y += height + U(10f);
             }
@@ -30,13 +30,13 @@ namespace Scry
             foreach (var pair in facts.Pairs)
             {
                 var valueW = width - labelW - U(10f);
-                var labelH = Skin.DimWrap.CalcHeight(new GUIContent(pair.Key), labelW);
-                var height = Mathf.Max(U(20f), Mathf.Max(labelH, Skin.Wrap.CalcHeight(new GUIContent(pair.Value), valueW)));
+                var labelH = Skin.Height(Skin.DimWrap, pair.Key, labelW);
+                var height = Mathf.Max(U(20f), Mathf.Max(labelH, Skin.Height(Skin.Wrap, pair.Value, valueW)));
                 GUI.Label(new Rect(0f, y, labelW, labelH), pair.Key, Skin.DimWrap);
                 var valueRect = new Rect(labelW + U(10f), y, valueW, height);
                 if (facts.Links.TryGetValue(pair.Key, out var link))
                 {
-                    var linkW = Mathf.Min(valueW, Skin.Wrap.CalcSize(new GUIContent(pair.Value)).x + U(4f));
+                    var linkW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
                     var linkRect = new Rect(valueRect.x, valueRect.y, linkW, height);
                     LinkLabel(linkRect, pair.Value, Skin.Wrap, LinkText(KindOfKey(explorer, link), false));
                     if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, "Go to " + pair.Value);
@@ -54,7 +54,7 @@ namespace Scry
                 y += U(6f);
                 if (!string.IsNullOrEmpty(row.TitleLink) && InCatalog(explorer, row.TitleLink))
                 {
-                    var titleW = Mathf.Min(width, Skin.DimLabel.CalcSize(new GUIContent(row.Title)).x + U(4f));
+                    var titleW = Mathf.Min(width, Skin.Width(Skin.DimLabel, row.Title) + U(4f));
                     var titleRect = new Rect(0f, y, titleW, U(20f));
                     LinkLabel(titleRect, row.Title, Skin.DimLabel, LinkText(KindOfKey(explorer, row.TitleLink), false));
                     if (titleRect.Contains(Event.current.mousePosition)) AskTip("station:" + row.TitleLink, "Go to " + row.TitleLink);
@@ -71,7 +71,7 @@ namespace Scry
                 foreach (var item in row.Items)
                 {
                     var text = string.IsNullOrEmpty(item.Amount) ? item.Name : $"{item.Amount}  {item.Name}";
-                    var w = Mathf.Min(width, Skin.Chip.CalcSize(new GUIContent(text)).x + U(30f));
+                    var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(30f));
                     if (x + w > width && x > 0f)
                     {
                         x = 0f;
@@ -115,7 +115,7 @@ namespace Scry
                     // A line naming a prefab in the catalog is a chip that goes there; the rest is text.
                     if (string.IsNullOrEmpty(source.Prefab) || !InCatalog(explorer, source.Prefab))
                     {
-                        var height = Skin.Wrap.CalcHeight(new GUIContent(source.Text), width);
+                        var height = Skin.Height(Skin.Wrap, source.Text, width);
                         GUI.Label(new Rect(0f, y, width, height), source.Text, Skin.Wrap);
                         y += height + U(4f);
                         continue;
@@ -124,7 +124,7 @@ namespace Scry
                     var icon = PrefabIcon(source.Prefab);
                     var textX = icon != null ? U(34f) : U(12f);
                     var textW = width - textX - U(10f);
-                    var chipH = Mathf.Max(U(30f), Skin.Small.CalcHeight(new GUIContent(source.Text), textW) + U(10f));
+                    var chipH = Mathf.Max(U(30f), Skin.Height(Skin.Small, source.Text, textW) + U(10f));
                     var chip = new Rect(0f, y, width, chipH);
                     var hover = chip.Contains(Event.current.mousePosition);
                     var kind = KindOf(explorer, source.Prefab);
@@ -213,7 +213,7 @@ namespace Scry
             y += U(36f);
 
             const string note = "Runs in the console with devcommands on, which the game only allows the host or a single-player world.";
-            var height = Skin.DimWrap.CalcHeight(new GUIContent(note), width);
+            var height = Skin.Height(Skin.DimWrap, note, width);
             GUI.Label(new Rect(0f, y, width, height), note, Skin.DimWrap);
             return y + height + U(14f);
         }
@@ -244,7 +244,7 @@ namespace Scry
 
             foreach (var line in lines)
             {
-                var height = Skin.DimWrap.CalcHeight(new GUIContent(line), width);
+                var height = Skin.Height(Skin.DimWrap, line, width);
                 GUI.Label(new Rect(0f, y, width, height), line, Skin.DimWrap);
                 y += height + U(4f);
             }
@@ -264,7 +264,7 @@ namespace Scry
             {
                 y += U(4f);
                 var text = "Write its parts to the log";
-                var w = Skin.Chip.CalcSize(new GUIContent(text)).x + U(8f);
+                var w = Skin.Width(Skin.Chip, text) + U(8f);
                 if (GUI.Button(new Rect(0f, y, Mathf.Min(width, w), U(26f)), text, Skin.Chip)) Session.Say(Stage.Dump());
                 y += U(32f);
             }

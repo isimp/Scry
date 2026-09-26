@@ -114,6 +114,7 @@ namespace Scry
             }
             log.transform.localScale = tree.m_logPrefab.transform.localScale * scale;
             if (layer < 0) Solidify(log, physicsLayer);
+            FallWatch.Start(log, copy, layer >= 0);
 
             var body = log.GetComponent<Rigidbody>();
             if (body != null)
@@ -169,6 +170,7 @@ namespace Scry
                     if (half == null) continue;
                     half.transform.localScale = size;
                     if (layer < 0) Solidify(half, physicsLayer);
+                    FallWatch.Start(half, copy, layer >= 0);
                     left = true;
                 }
             }
@@ -183,6 +185,7 @@ namespace Scry
                     broken.transform.localScale = size;
                     Gib(spawn, broken, away);
                     if (layer < 0) Solidify(broken, physicsLayer);
+                    FallWatch.Start(broken, copy, layer >= 0);
                     left = true;
                 }
             }
@@ -210,6 +213,7 @@ namespace Scry
                     if (item == null) continue;
                     item.transform.localScale = items[i].transform.localScale * shown;
                     if (layer < 0) Solidify(item, physicsLayer);
+                    FallWatch.Start(item, copy, layer >= 0);
                     left = true;
                 }
             }
@@ -286,6 +290,7 @@ namespace Scry
                     body.angularVelocity = Random.onUnitSphere * 6f;
                 }
             }
+            FallWatch.Start(loose, copy, layer >= 0);
             return holder;
         }
 

@@ -60,7 +60,7 @@ namespace Scry
                 var pauseW = U(84f);
                 if (GUI.Button(new Rect(0f, y, pauseW, rowH), Previews.ClipPaused ? "Resume" : "Pause", Previews.ClipPaused ? Skin.ChipOn : Skin.Chip)) Previews.PauseClip(!Previews.ClipPaused);
                 var readout = $"{time.ToString("0.00", CultureInfo.InvariantCulture)} / {length.ToString("0.00", CultureInfo.InvariantCulture)} s";
-                var readW = Skin.DimLabel.CalcSize(new GUIContent(readout)).x + U(6f);
+                var readW = Skin.Width(Skin.DimLabel, readout) + U(6f);
                 var slider = new Rect(pauseW + U(10f), y + (rowH - U(14f)) / 2f, Mathf.Max(U(40f), width - pauseW - readW - U(20f)), U(14f));
                 var picked = GUI.HorizontalSlider(slider, time, 0f, length);
                 if (!Mathf.Approximately(picked, time)) Previews.SeekClip(picked);
@@ -100,13 +100,18 @@ namespace Scry
 
                 var on = playing == clip;
                 var style = on ? Skin.ChipOn : Skin.Chip;
-                var w = Mathf.Min(width, style.CalcSize(new GUIContent(text)).x + U(8f));
+                var w = Mathf.Min(width, Skin.Width(style, text) + U(8f));
                 if (x + w > width && x > 0f)
                 {
                     x = 0f;
                     y += rowH + U(5f);
                 }
                 var chip = new Rect(x, y, w, rowH);
+                if (OutOfSight(chip))
+                {
+                    x += w + U(5f);
+                    continue;
+                }
                 if (GUI.Button(chip, text, style))
                 {
                     if (on) Previews.StopClip();

@@ -82,7 +82,7 @@ namespace Scry
             return Color.Lerp(colour, Color.white, hover ? 0.6f : 0.35f);
         }
 
-        private static float LinkChipWidth(string text, bool go) => Skin.Small.CalcSize(new GUIContent(go ? text + "  \u203A" : text)).x + U(16f);
+        private static float LinkChipWidth(string text, bool go) => Skin.Width(Skin.Small, go ? text + "  \u203A" : text) + U(16f);
 
         /// <summary>The kind of the entry a prefab name goes to, when it is in the catalog.</summary>
         private static Kind? KindOf(Explorer explorer, string name)
@@ -194,7 +194,7 @@ namespace Scry
             var rowH = U(26f);
             foreach (var chip in chips)
             {
-                var w = Mathf.Min(width, Skin.Chip.CalcSize(new GUIContent(chip.Key)).x + U(8f));
+                var w = Mathf.Min(width, Skin.Width(Skin.Chip, chip.Key) + U(8f));
                 if (x + w > width && x > 0f)
                 {
                     x = 0f;

@@ -48,7 +48,7 @@ namespace Scry
             {
                 if (_effectFilter.Length > 0 && pair.Key.IndexOf(_effectFilter, StringComparison.OrdinalIgnoreCase) < 0) continue;
 
-                var w = Mathf.Min(width, Skin.Chip.CalcSize(new GUIContent(pair.Key)).x + U(8f));
+                var w = Mathf.Min(width, Skin.Width(Skin.Chip, pair.Key) + U(8f));
                 if (x + w > width && x > 0f)
                 {
                     x = 0f;
@@ -110,7 +110,7 @@ namespace Scry
                 var text = how.Length > 0 ? clip.name + "  ·  " + how : clip.name;
                 var on = playing == clip;
                 var style = on ? Skin.ChipOn : Skin.Chip;
-                var w = Mathf.Min(width, style.CalcSize(new GUIContent(text)).x + U(8f));
+                var w = Mathf.Min(width, Skin.Width(style, text) + U(8f));
                 if (x + w > width && x > 0f)
                 {
                     x = 0f;
@@ -213,7 +213,7 @@ namespace Scry
                 // Play, what it is for, and who plays it.
                 var x = 0f;
                 var playText = "\u25B6 Play";
-                var playW = Skin.Chip.CalcSize(new GUIContent(playText)).x + U(12f);
+                var playW = Skin.Width(Skin.Chip, playText) + U(12f);
                 if (list != null && GUI.Button(new Rect(x, y, playW, rowH), playText, playing ? Skin.ChipOn : Skin.Chip))
                 {
                     if (playing) Previews.Stop(list);
@@ -221,7 +221,7 @@ namespace Scry
                 }
                 if (new Rect(x, y, playW, rowH).Contains(Event.current.mousePosition)) AskTip("playrow:" + row.Label + row.Owners[0].Shown, "Play the whole list together");
                 x += playW + U(8f);
-                var labelW = Mathf.Min(width - x, Skin.Label.CalcSize(new GUIContent(row.Label)).x + U(4f));
+                var labelW = Mathf.Min(width - x, Skin.Width(Skin.Label, row.Label) + U(4f));
                 GUI.Label(new Rect(x, y, labelW, rowH), row.Label, Skin.Label);
                 x += labelW + U(8f);
 
@@ -245,7 +245,7 @@ namespace Scry
                 if (row.Owners.Count > Owners)
                 {
                     var more = $"and {row.Owners.Count - Owners} more";
-                    var w = Skin.DimLabel.CalcSize(new GUIContent(more)).x + U(4f);
+                    var w = Skin.Width(Skin.DimLabel, more) + U(4f);
                     if (x + w > width && x > 0f)
                     {
                         x = 0f;
@@ -265,7 +265,7 @@ namespace Scry
             if (rows.Count > Shown)
             {
                 var text = _allPlaysIn ? "Show fewer" : $"Show all {rows.Count}";
-                var w = Skin.Chip.CalcSize(new GUIContent(text)).x + U(8f);
+                var w = Skin.Width(Skin.Chip, text) + U(8f);
                 if (GUI.Button(new Rect(0f, y, Mathf.Min(width, w), rowH), text, Skin.Chip)) _allPlaysIn = !_allPlaysIn;
                 y += rowH;
             }

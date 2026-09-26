@@ -102,6 +102,63 @@ namespace Scry
         }
 
         /// <summary>
+        /// How wide a text is in a style. Measuring text is the costly part of drawing the panel,
+        /// and the panel is drawn several times a frame with mostly the same texts, so each size is
+        /// measured once and kept.
+        /// </summary>
+        public static float Width(GUIStyle style, string text)
+        {
+            var key = new Measured(style, text, -1);
+            if (!Sizes.TryGetValue(key, out var width))
+            {
+                width = style.CalcSize(new GUIContent(text)).x;
+                Keep(key, width);
+            }
+            return width;
+        }
+
+        /// <summary>How tall a text is in a style, wrapped to a width, measured once and kept as <see cref="Width"/> is.</summary>
+        public static float Height(GUIStyle style, string text, float width)
+        {
+            var key = new Measured(style, text, Mathf.RoundToInt(width * 2f));
+            if (!Sizes.TryGetValue(key, out var height))
+            {
+                height = style.CalcHeight(new GUIContent(text), width);
+                Keep(key, height);
+            }
+            return height;
+        }
+
+        private static void Keep(Measured key, float value)
+        {
+            if (Sizes.Count >= 20000) Sizes.Clear();
+            Sizes[key] = value;
+        }
+
+        private static readonly Dictionary<Measured, float> Sizes = new Dictionary<Measured, float>();
+
+        /// <summary>A text measured in a style at its font size, and for a height, the width it wraps to (in half pixels; -1 for a width).</summary>
+        private readonly struct Measured : IEquatable<Measured>
+        {
+            private readonly GUIStyle _style;
+            private readonly int _fontSize;
+            private readonly string _text;
+            private readonly int _wrap;
+
+            public Measured(GUIStyle style, string text, int wrap)
+            {
+                _style = style;
+                _fontSize = style.fontSize;
+                _text = text ?? "";
+                _wrap = wrap;
+            }
+
+            public bool Equals(Measured other) => ReferenceEquals(_style, other._style) && _fontSize == other._fontSize && _wrap == other._wrap && _text == other._text;
+            public override bool Equals(object obj) => obj is Measured other && Equals(other);
+            public override int GetHashCode() => ((System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(_style) * 31 + _fontSize) * 31 + _wrap) * 31 + _text.GetHashCode();
+        }
+
+        /// <summary>
         /// Looks for the game's fonts again the next time the styles are needed, when they were not
         /// loaded yet at the main menu. Once both are found this does nothing.
         /// </summary>

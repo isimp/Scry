@@ -369,11 +369,11 @@ namespace Scry
 
             // Header: the name, the catalog size, the view switch and a close button. It drags the panel.
             var viewText = _compact ? "Full view" : "Compact";
-            var viewW = Skin.Button.CalcSize(new GUIContent(viewText)).x + U(10f);
+            var viewW = Skin.Width(Skin.Button, viewText) + U(10f);
             // Clear sits in the header so it is in the same place whatever is selected.
             var outCount = Previews.OutCount;
             var clearText = outCount > 0 ? $"Clear  {outCount}" : "Clear";
-            var clearW = Skin.Button.CalcSize(new GUIContent(clearText)).x + U(10f);
+            var clearW = Skin.Width(Skin.Button, clearText) + U(10f);
             var viewRect = new Rect(w - pad - U(40f) - viewW, U(15f), viewW, U(28f));
             var clearRect = new Rect(viewRect.x - U(8f) - clearW, viewRect.y, clearW, viewRect.height);
 
@@ -411,8 +411,10 @@ namespace Scry
                 Event.current.Use();
             }
 
+            var controls = Timing.Start();
             var y = Controls(explorer, new Rect(pad, U(56f), w - pad * 2f, U(36f)));
             y = Tabs(explorer, new Rect(pad, y + U(10f), w - pad * 2f, U(30f)));
+            Timing.Add("panel controls", controls);
 
             var bodyTop = y + U(12f);
             var footerH = U(28f);
@@ -422,14 +424,18 @@ namespace Scry
             if (_compact)
             {
                 var listH = Mathf.Round(bodyH * 0.46f);
+                var listed = Timing.Start();
                 List(explorer, new Rect(pad, bodyTop, w - pad * 2f, listH));
+                Timing.Add("panel list", listed);
                 Side(explorer, new Rect(pad, bodyTop + listH + U(12f), w - pad * 2f, bodyH - listH - U(12f)), withStage: false);
             }
             else
             {
                 var leftW = Mathf.Round((w - pad * 3f) * 0.40f);
                 var rightX = pad * 2f + leftW;
+                var listed = Timing.Start();
                 List(explorer, new Rect(pad, bodyTop, leftW, bodyH));
+                Timing.Add("panel list", listed);
                 Side(explorer, new Rect(rightX, bodyTop, w - rightX - pad, bodyH), withStage: true);
             }
 
@@ -456,12 +462,12 @@ namespace Scry
         private static float Controls(Explorer explorer, Rect rect)
         {
             var names = new[] { "All", "Game", "Mods" };
-            var widths = names.Select(n => Skin.Segment.CalcSize(new GUIContent(n)).x + U(6f)).ToArray();
+            var widths = names.Select(n => Skin.Width(Skin.Segment, n) + U(6f)).ToArray();
             var originW = widths.Sum() + U(4f) * (names.Length - 1);
             var starW = rect.height;
             var gap = U(8f);
             var recentText = "Recent";
-            var recentW = Skin.Segment.CalcSize(new GUIContent(recentText)).x + U(6f);
+            var recentW = Skin.Width(Skin.Segment, recentText) + U(6f);
 
             // In the compact view the search has the whole first row and the buttons go below it.
             var row = rect.y;
@@ -662,7 +668,7 @@ namespace Scry
                 var style = on ? Skin.TabOn : Skin.Tab;
                 var countColor = on ? "5a4526" : "8f929c";
                 var text = $"{label}  <color=#{countColor}>{count:N0}</color>";
-                var width = style.CalcSize(new GUIContent(text)).x + U(2f);
+                var width = Skin.Width(style, text) + U(2f);
                 if (x + width > rect.xMax && x > rect.x)
                 {
                     x = rect.x;
@@ -703,7 +709,7 @@ namespace Scry
                 : "Arrows move, Enter plays or shows, Ctrl+F searches. Click away from the search to walk, hold right mouse outside the panel to look.");
             // The catalog's size sits at the far right, clear of the resize grip.
             var summary = Session.CatalogSummary;
-            var summaryW = _compact ? 0f : Skin.FaintLabel.CalcSize(new GUIContent(summary)).x;
+            var summaryW = _compact ? 0f : Skin.Width(Skin.FaintLabel, summary);
             if (summaryW > 0f)
             {
                 GUI.Label(new Rect(rect.xMax - U(26f) - summaryW, rect.y, summaryW, rect.height), summary, Skin.FaintLabel);
@@ -717,7 +723,7 @@ namespace Scry
         /// </summary>
         private static void Ticker(Rect rect, string text, GUIStyle style)
         {
-            var width = style.CalcSize(new GUIContent(text)).x;
+            var width = Skin.Width(style, text);
             var overflow = width - rect.width;
             if (overflow <= 0f)
             {
@@ -768,7 +774,7 @@ namespace Scry
         {
             var folded = IsFolded(key);
             var shown = key == null ? text : text + (folded ? "  \u25B8" : "  \u25BE");
-            var textW = Skin.Heading.CalcSize(new GUIContent(shown)).x;
+            var textW = Skin.Width(Skin.Heading, shown);
             var head = new Rect(0f, y, textW + U(4f), U(20f));
             if (key == null)
             {
@@ -794,7 +800,7 @@ namespace Scry
                 _foldAllShown = true;
                 var anyOpen = Foldable.Any(k => !Folded.Contains(k));
                 var foldText = anyOpen ? "fold all" : "open all";
-                var linkW = Skin.FaintLabel.CalcSize(new GUIContent(foldText)).x + U(4f);
+                var linkW = Skin.Width(Skin.FaintLabel, foldText) + U(4f);
                 var link = new Rect(lineEnd - linkW, y, linkW, U(20f));
                 LinkLabel(link, foldText, Skin.FaintLabel, Skin.Faint);
                 if (link.Contains(Event.current.mousePosition)) AskTip("fold-all", anyOpen ? "Fold every section away" : "Open every section");
@@ -828,7 +834,7 @@ namespace Scry
             for (var i = 0; i < names.Count; i++)
             {
                 var style = i == selected ? Skin.SegmentOn : Skin.Segment;
-                var w = style.CalcSize(new GUIContent(names[i])).x + U(10f);
+                var w = Skin.Width(style, names[i]) + U(10f);
                 if (x + w > width && x > labelW)
                 {
                     x = labelW;

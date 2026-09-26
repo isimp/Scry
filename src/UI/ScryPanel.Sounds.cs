@@ -76,7 +76,7 @@ namespace Scry
                 var clip = clips[i];
                 var text = $"{i + 1}   {clip.name}";
                 var style = clip == now ? Skin.ChipOn : Skin.Chip;
-                var w = Mathf.Min(width, style.CalcSize(new GUIContent(text)).x + U(8f));
+                var w = Mathf.Min(width, Skin.Width(style, text) + U(8f));
                 if (x + w > width && x > 0f)
                 {
                     x = 0f;

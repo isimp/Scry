@@ -56,13 +56,13 @@ namespace Scry
                 var textX = stacked ? x : x + keyW + U(10f);
                 var textY = stacked ? y + U(28f) : y + U(2f);
                 var textW = stacked ? width : width - keyW - U(10f);
-                var height = Skin.DimWrap.CalcHeight(new GUIContent(line[1]), textW);
+                var height = Skin.Height(Skin.DimWrap, line[1], textW);
                 GUI.Label(new Rect(textX, textY, textW, height), line[1], Skin.DimWrap);
                 y = Mathf.Max(y + U(24f), textY + height) + U(12f);
             }
 
             const string more = "The star shows only favourites, Recent what you looked at last. The kind tabs, Game or Mods, and all of the above work together.";
-            var moreH = Skin.DimWrap.CalcHeight(new GUIContent(more), width);
+            var moreH = Skin.Height(Skin.DimWrap, more, width);
             GUI.Label(new Rect(x, y, width, moreH), more, Skin.DimWrap);
             if (Event.current.type == EventType.Repaint) _helpHeight = y + moreH + U(12f);
 
@@ -146,7 +146,7 @@ namespace Scry
             var nameStyle = Skin.RowName;
             var was = nameStyle.normal.textColor;
             if (entry.Empty) nameStyle.normal.textColor = Skin.Faint;
-            var fullW = nameStyle.CalcSize(new GUIContent(primary)).x;
+            var fullW = Skin.Width(nameStyle, primary);
             var nameW = Mathf.Min(textW, fullW);
             GUI.Label(new Rect(textX, inner.y, nameW, inner.height), primary, nameStyle);
             nameStyle.normal.textColor = was;
@@ -158,7 +158,7 @@ namespace Scry
                 if (room > U(40f))
                 {
                     GUI.Label(new Rect(textX + nameW + U(8f), inner.y + U(1f), room, inner.height), secondary, Skin.RowSub);
-                    cut |= Skin.RowSub.CalcSize(new GUIContent(secondary)).x > room;
+                    cut |= Skin.Width(Skin.RowSub, secondary) > room;
                 }
                 else
                 {

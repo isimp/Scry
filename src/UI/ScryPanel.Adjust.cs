@@ -136,7 +136,7 @@ namespace Scry
             for (var i = 0; i < names.Count; i++)
             {
                 var style = on(i) ? Skin.SegmentOn : Skin.Segment;
-                var w = style.CalcSize(new GUIContent(names[i])).x + U(10f);
+                var w = Skin.Width(style, names[i]) + U(10f);
                 if (x + w > width && x > labelW)
                 {
                     x = labelW;

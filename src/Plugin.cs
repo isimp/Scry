@@ -103,8 +103,10 @@ namespace Scry
         private void OnGUI()
         {
             var started = Timing.Start();
+            var kind = Event.current.type;
             ScryPanel.OnGUI();
             Timing.Add("panel", started);
+            Timing.Add("panel " + kind, started);
         }
 
         private void OnDestroy()
