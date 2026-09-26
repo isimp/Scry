@@ -408,6 +408,12 @@ namespace Scry
         }
 
         /// <summary>Puts a copy made for the stage on it, heard or not as the stage's copies are, gone after a while.</summary>
+        /// <summary>Whether bounds are within what the stage camera looks at, for telling why something was not seen.</summary>
+        public static bool InView(Bounds bounds)
+        {
+            return _camera != null && GeometryUtility.TestPlanesAABB(GeometryUtility.CalculateFrustumPlanes(_camera), bounds);
+        }
+
         public static void Adopt(GameObject copy, float seconds)
         {
             if (copy == null || _root == null) return;

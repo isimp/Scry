@@ -28,6 +28,14 @@ namespace Scry
         private const float Step = 0.025f;
 
         /// <summary>
+        /// How many steps to wait for a clip that is not an attack: an attack starts at once,
+        /// while going to sleep or jumping can wait for the idle clip playing to end, some of
+        /// which last several seconds.
+        /// </summary>
+        private const int AttackPatience = 40;
+        private const int ActionPatience = 240;
+
+        /// <summary>
         /// The game's own actions, as its code does them: <c>Character.ForceJump</c> pulls
         /// "jump", <c>MonsterAI.UpdateConsumeItem</c> "consume", <c>MonsterAI.Sleep</c> and
         /// <c>Wakeup</c> switch "sleeping" on and off, <c>BaseAI.SetAlerted</c> switches "alert".
@@ -72,7 +80,7 @@ namespace Scry
                 // The game's RandomIdle picks idle clips at random; seeded alike, each run idles
                 // alike, so what it plays left alone is what nothing done to it plays.
                 var idle = new HashSet<string>();
-                Run(probe, null, null, idle);
+                Run(probe, null, null, idle, 0);
 
                 bool Has(string name, AnimatorControllerParameterType type) => probe.parameters.Any(p => p.type == type && p.name == name);
                 string Tell(string name, List<string> clips) => clips.Count > 0 ? $"{name} plays {string.Join(" then ", clips)}" : $"{name} plays no clip of its own";
@@ -81,7 +89,7 @@ namespace Scry
                 foreach (var trigger in triggers.Distinct())
                 {
                     if (!Has(trigger, AnimatorControllerParameterType.Trigger)) continue;
-                    var clips = Run(probe, a => a.SetTrigger(trigger), null, idle);
+                    var clips = Run(probe, a => a.SetTrigger(trigger), null, idle, AttackPatience);
                     seen.Triggers[trigger] = clips;
                     attacks.Add(Tell(trigger, clips));
                 }
@@ -91,7 +99,7 @@ namespace Scry
                 {
                     if (!Has(name, isSwitch ? AnimatorControllerParameterType.Bool : AnimatorControllerParameterType.Trigger)) continue;
                     System.Action<Animator> act = isSwitch ? a => a.SetBool(name, true) : (System.Action<Animator>)(a => a.SetTrigger(name));
-                    var clips = release ? Run(probe, act, a => a.SetBool(name, false), idle) : Run(probe, act, null, idle);
+                    var clips = Run(probe, act, release ? a => a.SetBool(name, false) : (System.Action<Animator>)null, idle, ActionPatience);
                     seen.Actions[action] = clips;
                     actions.Add(Tell(action, clips));
                 }
@@ -113,11 +121,12 @@ namespace Scry
         /// Starts the animator over, seeded alike and with its settings as they start, and steps
         /// it on. Done nothing to, every clip it plays for four seconds goes into
         /// <paramref name="idle"/>. Otherwise it is done <paramref name="act"/> to, and, when
-        /// given, <paramref name="then"/> two seconds later: the clips of its attack states in
-        /// order until the attack is over; failing any within a second, the first clip it moves
-        /// to that it did not play left alone or before <paramref name="then"/>.
+        /// given, <paramref name="then"/> once it has moved on from its idle (fallen asleep, say):
+        /// the clips of its attack states in order until the attack is over; failing any within
+        /// <paramref name="patience"/> steps, the first clip it moves to that it did not play left
+        /// alone or before <paramref name="then"/>.
         /// </summary>
-        private static List<string> Run(Animator animator, System.Action<Animator> act, System.Action<Animator> then, HashSet<string> idle)
+        private static List<string> Run(Animator animator, System.Action<Animator> act, System.Action<Animator> then, HashSet<string> idle, int patience)
         {
             Random.InitState(1);
             animator.Rebind();
@@ -153,18 +162,20 @@ namespace Scry
             if (then != null)
             {
                 known = new HashSet<string>(idle);
-                for (var i = 0; i < 80; i++)
+                var asleep = -1;
+                for (var i = 0; i < ActionPatience; i++)
                 {
                     animator.Update(Step);
                     var before = Heading(animator, false);
-                    if (before != null) known.Add(before);
+                    if (before != null && known.Add(before) && asleep < 0) asleep = i;
+                    if (asleep >= 0 && i >= asleep + 40) break;
                 }
                 then(animator);
             }
 
             var attacking = false;
             string moved = null;
-            for (var i = 0; i < 160; i++)
+            for (var i = 0; i < Mathf.Max(160, patience); i++)
             {
                 animator.Update(Step);
                 var attack = Heading(animator, true);
@@ -178,7 +189,7 @@ namespace Scry
 
                 var heading = Heading(animator, false);
                 if (moved == null && heading != null && !known.Contains(heading)) moved = heading;
-                if (i >= 40) break;
+                if (moved != null || i >= patience) break;
             }
             if (!attacking && moved != null) played.Add(moved);
             return played;
