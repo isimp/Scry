@@ -106,7 +106,14 @@ namespace Scry
             var unseen = renderers.Where(r => r.enabled && r.gameObject.activeInHierarchy && !r.isVisible)
                 .Select(r => $"{r.GetType().Name} {r.bounds.size.magnitude:0.0} m{(r.GetComponentInParent<LODGroup>() != null ? " in a level-of-detail group" : "")}{(Stage.InView(r.bounds) ? ", in the stage's view" : ", outside the stage's view")}").ToList();
             var off = thing.activeInHierarchy ? "" : thing.activeSelf ? "; switched off above it" : "; switched off in itself, as saved";
-            return $"{renderers.Count} renderers, {on} on, {seen} seen; {systems.Length} particle systems, {playing} playing; {sounds} sounds{off}{(unseen.Count > 0 ? "; unseen: " + string.Join(", ", unseen) : "")}";
+            var listener = Object.FindAnyObjectByType<AudioListener>();
+            var quiet = thing.GetComponentsInChildren<AudioSource>(true).Select(s =>
+            {
+                var sfx = s.GetComponent<ZSFX>();
+                var far = listener != null ? $", {Vector3.Distance(listener.transform.position, s.transform.position):0} m from the ears of {s.maxDistance:0}" : "";
+                return $"{(s.clip != null ? s.clip.name : "no clip")} {(s.isPlaying ? "playing" : "not playing")}{(s.enabled ? "" : ", off")}, volume {s.volume:0.##}{far}, {(sfx == null ? "no ZSFX" : (sfx.enabled ? "ZSFX on" : "ZSFX off") + (sfx.m_playOnAwake ? "" : ", not played on waking"))}";
+            }).ToList();
+            return $"{renderers.Count} renderers, {on} on, {seen} seen; {systems.Length} particle systems, {playing} playing; {sounds} sounds{off}{(unseen.Count > 0 ? "; unseen: " + string.Join(", ", unseen) : "")}{(quiet.Count > 0 ? "; sounds: " + string.Join(", ", quiet) : "")}";
         }
 
         /// <summary>On the stage or in the world, and how far from the camera there.</summary>

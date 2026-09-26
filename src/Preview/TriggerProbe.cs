@@ -16,11 +16,14 @@ namespace Scry
     /// Which clips a creature's animator plays for each attack trigger and for each of the
     /// game's own actions that come with an effect list. Its states and the ways between them
     /// cannot be read at run time, so each is done on a hidden copy of the animated body, from
-    /// where the animator starts, and watched. An attack is watched as the game watches one
+    /// where the animator starts, and watched beside a run left alone. The game's RandomIdle
+    /// picks idle clips at random, so every run is seeded alike: the two go the same way until
+    /// what was done takes effect. An attack is watched as the game watches one
     /// (<c>Humanoid.InAttack</c>): for as long as it is in a state tagged "attack", every clip it
     /// plays there is the attack's, in order, so a bow drawn in one clip and let go in the next is
-    /// both. Otherwise the first clip it moves to that it never plays when left alone is taken.
-    /// Seen once per prefab and said in the log.
+    /// both. Anything else plays the clip of the first state it goes to that the run left alone
+    /// does not, even one it also idles in (an asksvin eats in its idle too). Seen once per
+    /// prefab and said in the log.
     /// </summary>
     internal static class TriggerProbe
     {
@@ -28,15 +31,13 @@ namespace Scry
         private const float Step = 0.025f;
 
         /// <summary>
-        /// How many steps to wait for a clip that is not an attack: an attack starts at once,
+        /// How many steps to wait for what was done to take effect: an attack starts at once,
         /// while going to sleep or jumping can wait for the idle clip playing to end, some of
-        /// which last several seconds.
+        /// which last several seconds. Asleep, a creature is left a second before it is woken.
         /// </summary>
         private const int AttackPatience = 40;
         private const int ActionPatience = 240;
-
-        /// <summary>How many seeded runs gather the idle clips.</summary>
-        private const int IdleSeeds = 8;
+        private const int Settle = 40;
 
         /// <summary>
         /// The game's own actions, as its code does them: <c>Character.ForceJump</c> pulls
@@ -52,6 +53,14 @@ namespace Scry
             ("wake", "sleeping", true, true),
             ("alert", "alert", true, false),
         };
+
+        /// <summary>Where the animator is at one step: the state it is in or moving to, its strongest clip there, and the clip of an attack state it is in or moving to.</summary>
+        private struct Frame
+        {
+            public int State;
+            public string Clip;
+            public string Attack;
+        }
 
         private static readonly Dictionary<string, Probed> Seen = new Dictionary<string, Probed>();
 
@@ -80,11 +89,7 @@ namespace Scry
                 probe.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                 holder.SetActive(true);
 
-                // The game's RandomIdle picks idle clips at random, so what it plays left alone
-                // is gathered over several seeds, to know every idle clip it has.
-                var idle = new HashSet<string>();
-                for (var seed = 1; seed <= IdleSeeds; seed++) Run(probe, null, false, null, idle, 0, seed);
-
+                var alone = Trace(probe, null, false, null, -1, 2 * ActionPatience + Settle);
                 bool Has(string name, AnimatorControllerParameterType type) => probe.parameters.Any(p => p.type == type && p.name == name);
                 string Tell(string name, List<string> clips) => clips.Count > 0 ? $"{name} plays {string.Join(" then ", clips)}" : $"{name} plays no clip of its own";
 
@@ -92,7 +97,13 @@ namespace Scry
                 foreach (var trigger in triggers.Distinct())
                 {
                     if (!Has(trigger, AnimatorControllerParameterType.Trigger)) continue;
-                    var clips = Run(probe, a => a.SetTrigger(trigger), false, null, idle, AttackPatience);
+                    var run = Trace(probe, a => a.SetTrigger(trigger), false, null, -1, 160);
+                    var clips = AttackClips(run);
+                    if (clips.Count == 0)
+                    {
+                        var at = Parting(run, alone, 0, AttackPatience);
+                        if (at >= 0 && run[at].Clip != null) clips.Add(run[at].Clip);
+                    }
                     seen.Triggers[trigger] = clips;
                     attacks.Add(Tell(trigger, clips));
                 }
@@ -102,7 +113,24 @@ namespace Scry
                 {
                     if (!Has(name, isSwitch ? AnimatorControllerParameterType.Bool : AnimatorControllerParameterType.Trigger)) continue;
                     System.Action<Animator> act = isSwitch ? a => a.SetBool(name, true) : (System.Action<Animator>)(a => a.SetTrigger(name));
-                    var clips = Run(probe, act, isSwitch, release ? a => a.SetBool(name, false) : (System.Action<Animator>)null, idle, ActionPatience);
+
+                    // A switch is set as the animator starts, since some go to sleep only from
+                    // their start; a trigger is pulled once it runs.
+                    var run = Trace(probe, act, isSwitch, null, -1, 2 * ActionPatience + Settle);
+                    var at = Parting(run, alone, 0, ActionPatience);
+                    var clips = new List<string>();
+                    if (!release)
+                    {
+                        if (at >= 0 && run[at].Clip != null) clips.Add(run[at].Clip);
+                    }
+                    else if (at >= 0)
+                    {
+                        // Let go only once it has gone there (fallen asleep), beside a run kept there.
+                        var letGo = at + Settle;
+                        var back = Trace(probe, act, isSwitch, a => a.SetBool(name, false), letGo, letGo + ActionPatience);
+                        var woke = Parting(back, run, letGo, back.Count - 1);
+                        if (woke >= 0 && back[woke].Clip != null) clips.Add(back[woke].Clip);
+                    }
                     seen.Actions[action] = clips;
                     actions.Add(Tell(action, clips));
                 }
@@ -121,19 +149,14 @@ namespace Scry
         }
 
         /// <summary>
-        /// Starts the animator over, seeded, with its settings as they start, and steps it on.
-        /// Done nothing to, every clip it plays for four seconds goes into <paramref name="idle"/>.
-        /// Otherwise it is done <paramref name="act"/> to, a switch as it starts (<paramref
-        /// name="first"/>), since some animators go to sleep only from their start, and a trigger
-        /// once it runs: the clips of its attack states in order until the attack is over; failing
-        /// any within <paramref name="patience"/> steps, the first clip it moves to that it does
-        /// not play left alone. With <paramref name="then"/>, only once it has gone to a clip of
-        /// its own (fallen asleep, say) is it done <paramref name="then"/> to (woken), and the
-        /// clip of the first state it then moves to is taken, unless it is one already played.
+        /// Runs the animator from its start, seeded alike and with its settings as they start,
+        /// for <paramref name="steps"/> steps: done <paramref name="act"/> to as it starts
+        /// (<paramref name="first"/>) or once it runs, and <paramref name="then"/> at step
+        /// <paramref name="thenAt"/>. Where it is at each step, the first before any step.
         /// </summary>
-        private static List<string> Run(Animator animator, System.Action<Animator> act, bool first, System.Action<Animator> then, HashSet<string> idle, int patience, int seed = 1)
+        private static List<Frame> Trace(Animator animator, System.Action<Animator> act, bool first, System.Action<Animator> then, int thenAt, int steps)
         {
-            Random.InitState(seed);
+            Random.InitState(1);
             animator.Rebind();
             foreach (var parameter in animator.parameters)
             {
@@ -147,96 +170,70 @@ namespace Scry
             }
             if (act != null && first) act(animator);
             animator.Update(0f);
+            if (act != null && !first) act(animator);
 
-            var played = new List<string>();
-            if (act == null)
+            var frames = new List<Frame> { Where(animator) };
+            for (var i = 1; i <= steps; i++)
             {
-                for (var i = 0; i < 160; i++)
-                {
-                    animator.Update(Step);
-                    for (var layer = 0; layer < animator.layerCount; layer++)
-                    {
-                        foreach (var info in animator.GetCurrentAnimatorClipInfo(layer)) if (info.clip != null) idle.Add(info.clip.name);
-                        foreach (var info in animator.GetNextAnimatorClipInfo(layer)) if (info.clip != null) idle.Add(info.clip.name);
-                    }
-                }
-                return played;
+                if (i == thenAt && then != null) then(animator);
+                animator.Update(Step);
+                frames.Add(Where(animator));
             }
-            if (!first) act(animator);
-
-            if (then != null)
-            {
-                var known = new HashSet<string>(idle);
-                var reached = -2;
-                for (var i = -1; i < ActionPatience; i++)
-                {
-                    if (i >= 0) animator.Update(Step);
-                    var heading = Heading(animator, false);
-                    if (heading == null) continue;
-                    if (reached < -1 && !idle.Contains(heading)) reached = i;
-                    known.Add(heading);
-                    if (reached >= -1 && i >= reached + 40) break;
-                }
-                if (reached < -1) return played;
-
-                then(animator);
-                var from = HeadingState(animator);
-                for (var i = 0; i < patience; i++)
-                {
-                    animator.Update(Step);
-                    if (HeadingState(animator) == from) continue;
-                    var heading = Heading(animator, false);
-                    if (heading != null && !known.Contains(heading)) played.Add(heading);
-                    break;
-                }
-                return played;
-            }
-
-            var attacking = false;
-            string moved = null;
-            for (var i = -1; i < Mathf.Max(160, patience); i++)
-            {
-                if (i >= 0) animator.Update(Step);
-                var attack = Heading(animator, true);
-                if (attack != null)
-                {
-                    attacking = true;
-                    if (!played.Contains(attack)) played.Add(attack);
-                    continue;
-                }
-                if (attacking) break;
-
-                var heading = Heading(animator, false);
-                if (moved == null && heading != null && !idle.Contains(heading)) moved = heading;
-                if (moved != null || i >= patience) break;
-            }
-            if (!attacking && moved != null) played.Add(moved);
-            return played;
+            return frames;
         }
 
-        /// <summary>The state the first layer is in or moving to.</summary>
-        private static int HeadingState(Animator animator)
+        /// <summary>The first step from <paramref name="from"/> up to <paramref name="upTo"/> where a run is in another state than the one beside it, or -1.</summary>
+        private static int Parting(List<Frame> run, List<Frame> beside, int from, int upTo)
         {
-            return animator.IsInTransition(0) ? animator.GetNextAnimatorStateInfo(0).fullPathHash : animator.GetCurrentAnimatorStateInfo(0).fullPathHash;
+            for (var i = from; i <= upTo && i < run.Count && i < beside.Count; i++)
+            {
+                if (run[i].State != beside[i].State) return i;
+            }
+            return -1;
         }
 
-        /// <summary>
-        /// The clip a layer is playing or moving to, the strongest of its clips there: of the
-        /// first layer heading into an attack state when <paramref name="attack"/>, else of the
-        /// first layer. Null when there is none.
-        /// </summary>
-        private static string Heading(Animator animator, bool attack)
+        /// <summary>The clips of the attack states a run goes through, in order, until the attack is over.</summary>
+        private static List<string> AttackClips(List<Frame> run)
         {
-            for (var layer = 0; layer < (attack ? animator.layerCount : 1); layer++)
+            var clips = new List<string>();
+            foreach (var frame in run)
+            {
+                if (frame.Attack != null)
+                {
+                    if (!clips.Contains(frame.Attack)) clips.Add(frame.Attack);
+                }
+                else if (clips.Count > 0) break;
+            }
+            return clips;
+        }
+
+        private static Frame Where(Animator animator)
+        {
+            var moving = animator.IsInTransition(0);
+            var state = moving ? animator.GetNextAnimatorStateInfo(0) : animator.GetCurrentAnimatorStateInfo(0);
+            return new Frame { State = state.fullPathHash, Clip = Strongest(animator, 0, moving), Attack = AttackIn(animator) };
+        }
+
+        /// <summary>The clip of the first layer that is in or moving to a state tagged "attack", or null.</summary>
+        private static string AttackIn(Animator animator)
+        {
+            for (var layer = 0; layer < animator.layerCount; layer++)
             {
                 var moving = animator.IsInTransition(layer);
                 var state = moving ? animator.GetNextAnimatorStateInfo(layer) : animator.GetCurrentAnimatorStateInfo(layer);
-                if (attack && state.tagHash != AttackTag) continue;
-                var infos = moving ? animator.GetNextAnimatorClipInfo(layer) : animator.GetCurrentAnimatorClipInfo(layer);
-                var strongest = infos.Where(c => c.clip != null).OrderByDescending(c => c.weight).FirstOrDefault();
-                if (strongest.clip != null) return strongest.clip.name;
+                if (state.tagHash != AttackTag) continue;
+                var clip = Strongest(animator, layer, moving);
+                if (clip != null) return clip;
             }
             return null;
+        }
+
+        /// <summary>The strongest clip of the state a layer is in, or is moving to.</summary>
+        private static string Strongest(Animator animator, int layer, bool moving)
+        {
+            var infos = moving ? animator.GetNextAnimatorClipInfo(layer) : animator.GetCurrentAnimatorClipInfo(layer);
+            var strongest = infos.Where(c => c.clip != null).OrderByDescending(c => c.weight).FirstOrDefault();
+            return strongest.clip != null ? strongest.clip.name : null;
         }
     }
 }

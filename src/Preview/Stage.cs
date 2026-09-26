@@ -751,6 +751,12 @@ namespace Scry
         /// Sound on the stage: an effect's is heard as if beside you, anything else stays quiet,
         /// since a creature or a fire humming in your ears while you browse is not a preview.
         /// </summary>
+        /// <summary>
+        /// Heard as if beside you, or not at all while the world copy is heard. A sound kept
+        /// quiet is also kept from playing: the game lets only so many of one sound play at once,
+        /// some anywhere at all (`AudioMan.RequestPlaySound`), so a muted one playing here would
+        /// keep the world copy's from playing there.
+        /// </summary>
         private static void Tune(GameObject copy, bool audible)
         {
             foreach (var source in copy.GetComponentsInChildren<AudioSource>(true))
@@ -758,6 +764,8 @@ namespace Scry
                 if (audible) source.spatialBlend = 0f;
                 else source.mute = true;
             }
+            if (audible) return;
+            foreach (var sfx in copy.GetComponentsInChildren<ZSFX>(true)) sfx.enabled = false;
         }
 
         private static bool Ensure()
