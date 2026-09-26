@@ -69,9 +69,12 @@ namespace Scry
                 y += rowH + U(10f);
             }
 
+            // What Scry knows a clip to be comes first, the attacks of what is held before all:
+            // among a person's hundreds of clips, those of the item tried on.
             x = 0f;
             var tags = Previews.ClipTags();
-            foreach (var clip in clips)
+            int Rank(AnimationClip c) => !tags.TryGetValue(c.name, out var t) ? 2 : t.StartsWith("attack") ? 0 : 1;
+            foreach (var clip in clips.OrderBy(Rank).ToList())
             {
                 // Named by the modelers; what it is follows, as far as Scry saw.
                 var text = tags.TryGetValue(clip.name, out var tag) ? clip.name + "  ·  " + tag : clip.name;

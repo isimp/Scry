@@ -98,9 +98,21 @@ namespace Scry
                 }
             }
             var key = prefab + string.Concat(stance.Select(s => $"|{s.Name}={s.Value}"));
-            if (Seen.TryGetValue(key, out var known)) return known;
-            var seen = new Probed();
-            Seen[key] = seen;
+
+            // Seen before in this stance, only triggers not pulled yet are (a sword's and a mace's
+            // differ, while their stance is the same).
+            var wanted = triggers.Distinct().ToList();
+            var first = !Seen.TryGetValue(key, out var seen);
+            if (first)
+            {
+                seen = new Probed();
+                Seen[key] = seen;
+            }
+            else
+            {
+                wanted = wanted.Where(t => !seen.Triggers.ContainsKey(t)).ToList();
+                if (wanted.Count == 0) return seen;
+            }
             if (animator == null || animator.runtimeAnimatorController == null) return seen;
             _stance = a =>
             {
@@ -129,17 +141,20 @@ namespace Scry
                 probe.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                 holder.SetActive(true);
 
-                var alone = Trace(probe, null, false, null, -1, 2 * ActionPatience + Settle);
-                foreach (var frame in alone) if (frame.Clip != null) seen.Idle.Add(frame.Clip);
-                for (var seed = 2; seed <= IdleSeeds + 1; seed++)
+                var alone = Trace(probe, null, false, null, -1, first ? 2 * ActionPatience + Settle : 160);
+                if (first)
                 {
-                    foreach (var frame in Trace(probe, null, false, null, -1, 160, seed)) if (frame.Clip != null) seen.Idle.Add(frame.Clip);
+                    foreach (var frame in alone) if (frame.Clip != null) seen.Idle.Add(frame.Clip);
+                    for (var seed = 2; seed <= IdleSeeds + 1; seed++)
+                    {
+                        foreach (var frame in Trace(probe, null, false, null, -1, 160, seed)) if (frame.Clip != null) seen.Idle.Add(frame.Clip);
+                    }
                 }
                 bool Has(string name, AnimatorControllerParameterType type) => probe.parameters.Any(p => p.type == type && p.name == name);
                 string Tell(string name, List<string> clips) => clips.Count > 0 ? $"{name} plays {string.Join(" then ", clips)}" : $"{name} plays no clip of its own";
 
                 var attacks = new List<string>();
-                foreach (var trigger in triggers.Distinct())
+                foreach (var trigger in wanted)
                 {
                     if (!Has(trigger, AnimatorControllerParameterType.Trigger)) continue;
                     var run = Trace(probe, a => a.SetTrigger(trigger), false, null, -1, 160);
@@ -154,7 +169,7 @@ namespace Scry
                 }
 
                 var actions = new List<string>();
-                foreach (var (action, name, isSwitch, release, speed) in GameActions)
+                foreach (var (action, name, isSwitch, release, speed) in first ? GameActions : new (string, string, bool, bool, float)[0])
                 {
                     if (!Has(name, isSwitch ? AnimatorControllerParameterType.Bool : AnimatorControllerParameterType.Trigger)) continue;
                     System.Action<Animator> act = isSwitch ? a => a.SetBool(name, true) : (System.Action<Animator>)(a => a.SetTrigger(name));
@@ -190,7 +205,8 @@ namespace Scry
                     seen.Actions[action] = clips;
                     actions.Add(Tell(action, clips));
                 }
-                Plugin.Note($"Scry saw in {watch.ElapsedMilliseconds} ms what the animator of {key} plays: attacks {(attacks.Count > 0 ? string.Join("; ", attacks) : "none")}; the game's own actions {(actions.Count > 0 ? string.Join("; ", actions) : "none")}; left alone {string.Join(", ", seen.Idle.OrderBy(c => c))}.");
+                if (!first) Plugin.Note($"Scry saw in {watch.ElapsedMilliseconds} ms what more triggers of {key} play: {string.Join("; ", attacks)}.");
+                else Plugin.Note($"Scry saw in {watch.ElapsedMilliseconds} ms what the animator of {key} plays: attacks {(attacks.Count > 0 ? string.Join("; ", attacks) : "none")}; the game's own actions {(actions.Count > 0 ? string.Join("; ", actions) : "none")}; left alone {string.Join(", ", seen.Idle.OrderBy(c => c))}.");
             }
             catch (System.Exception ex)
             {
