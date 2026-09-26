@@ -170,7 +170,8 @@ namespace Scry
             Primary = Boxed(Style(13f, OnAccent, FontStyle.Bold, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Rounded, scale);
             On = Boxed(Style(13f, Accent, FontStyle.Bold, TextAnchor.MiddleCenter), new Color(0.96f, 0.72f, 0.34f, 0.20f), new Color(0.96f, 0.72f, 0.34f, 0.28f), new Color(0.96f, 0.72f, 0.34f, 0.36f), Rounded, scale);
             Chip = Boxed(Style(12f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Pill, scale);
-            ChipOn = Boxed(Style(12f, OnAccent, FontStyle.Bold, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Pill, scale);
+            // Lit by its colour alone: bolder text would no longer fit a chip measured unlit.
+            ChipOn = Boxed(Style(12f, OnAccent, FontStyle.Normal, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Pill, scale);
             Segment = Boxed(Style(12f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Rounded, scale);
             SegmentOn = Boxed(Style(12f, OnAccent, FontStyle.Bold, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Rounded, scale);
             Close = Boxed(Style(20f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), new Color(0, 0, 0, 0), RaisedHover, Shade(RaisedHover, 1.3f), Rounded, scale);

@@ -89,6 +89,45 @@ namespace Scry.Tests
             Assert.Empty(loadout.Worn());
         }
 
+        private static Loadout Archer() => new Loadout(
+            weapons: new[] { "AxeDraugr", "BowDraugr" },
+            shields: new[] { "ShieldWood" },
+            armours: new string[0],
+            extras: new Loadout.Extra[0],
+            bothHands: new[] { "BowDraugr" });
+
+        [Fact]
+        public void AWeaponHeldInBothHandsLeavesNoHandForAShield()
+        {
+            var loadout = Archer();
+
+            loadout.Choose(Loadout.Row.Weapon, 1);
+
+            Assert.False(loadout.Held(Loadout.Row.Shield));
+            Assert.DoesNotContain("ShieldWood", loadout.Worn());
+            Assert.Contains("BowDraugr", loadout.Worn());
+        }
+
+        [Fact]
+        public void AOneHandedWeaponKeepsTheShield()
+        {
+            var loadout = Archer();
+
+            Assert.True(loadout.Held(Loadout.Row.Shield));
+            Assert.Contains("ShieldWood", loadout.Worn());
+        }
+
+        [Fact]
+        public void TheShieldChosenComesBackWhenAHandIsFreeAgain()
+        {
+            var loadout = Archer();
+            loadout.Choose(Loadout.Row.Weapon, 1);
+
+            loadout.Choose(Loadout.Row.Weapon, 0);
+
+            Assert.Contains("ShieldWood", loadout.Worn());
+        }
+
         [Fact]
         public void ExtrasStartWithTheFirstOfEachKindOn()
         {

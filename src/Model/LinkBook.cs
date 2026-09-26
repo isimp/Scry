@@ -80,15 +80,23 @@ namespace Scry
             }
         }
 
-        /// <summary>Puts the links on the entries at both of their ends.</summary>
+        /// <summary>
+        /// Puts the links on the entries at both of their ends. A copy of a set piece is left out
+        /// of a heading where the piece it copies is listed already, so the piece shows once.
+        /// </summary>
         public void Apply(IEnumerable<Entry> catalog)
         {
             var byKey = new Dictionary<string, Entry>(StringComparer.Ordinal);
             foreach (var entry in catalog) if (!byKey.ContainsKey(entry.Key)) byKey[entry.Key] = entry;
 
+            var copyOf = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var (from, group, to, _) in _links) if (group == VariantOf) copyOf[from] = to;
+            var listed = new HashSet<(string, string, string)>(_links.Select(l => (l.From, l.Group, l.To)));
+
             foreach (var (from, group, to, note) in _links)
             {
                 if (from == to || !byKey.TryGetValue(from, out var entry) || !byKey.ContainsKey(to)) continue;
+                if (group != Variants && group != VariantOf && copyOf.TryGetValue(to, out var piece) && listed.Contains((from, group, piece))) continue;
 
                 var link = entry.Links.Find(l => l.Group == group && l.Target == to);
                 if (link == null)

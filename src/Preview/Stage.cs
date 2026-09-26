@@ -126,6 +126,20 @@ namespace Scry
         // A model's resting pose is not always where its animation takes it (a bat flies lower
         // than it hangs), so what it draws is measured again while its animation first plays.
         private static float _settleUntil;
+
+        // A creature that walks stands with its feet where its root is, as the game puts it on
+        // the ground; what its animation draws below or above does not move the floor.
+        private static bool _onFeet;
+
+        /// <summary>Where the floor under the model is, as shown.</summary>
+        private static float FloorY
+        {
+            get
+            {
+                if (_onFeet && _subject != null) return _subject.transform.position.y;
+                return Origin.y + (_bounds.min.y - Origin.y) * _scale;
+            }
+        }
         private static bool _followEffect;
 
         /// <summary>The layer nothing in the game uses, which the stage is drawn on and falling copies land with.</summary>
@@ -200,6 +214,8 @@ namespace Scry
 
             _madeAt = Time.unscaledTime;
             _followEffect = entry.Kind == Kind.Effect;
+            var character = (entry.Source as GameObject)?.GetComponent<Character>();
+            _onFeet = character != null && !character.m_flying;
             _settleUntil = _followEffect ? 0f : Time.unscaledTime + 1.5f;
             _baseScale = _subject.transform.localScale;
             _bounds = Measure(_subject);
@@ -294,7 +310,7 @@ namespace Scry
                         : Ghost.Make(data.m_prefab, _root.transform, at, anchor.rotation, _layer);
                 }
                 if (copy == null) continue;
-                Tune(copy, audible: true);
+                Tune(copy, audible: !Previews.WorldHeard);
                 Played.Add(new KeyValuePair<GameObject, float>(copy, Time.unscaledTime + PlayedSeconds));
                 made.Add((data.m_prefab.name, copy));
             }
@@ -309,7 +325,7 @@ namespace Scry
         {
             if (_subject == null || joint == null) return null;
             var copy = Ghost.MakeOn(prefab, joint, joint.position, joint.rotation, _layer);
-            if (copy != null) Tune(copy, audible: true);
+            if (copy != null) Tune(copy, audible: !Previews.WorldHeard);
             return copy;
         }
 
@@ -325,7 +341,7 @@ namespace Scry
 
             var fallen = Falling.Ragdoll(ragdoll, creature, _subject, level, _scale, gear, _root.transform, _layer, _layer);
             if (fallen == null) return null;
-            Tune(fallen, audible: true);
+            Tune(fallen, audible: !Previews.WorldHeard);
 
             var seconds = Mathf.Clamp(ragdoll.m_ttl, 3f, 12f);
             Standin.For(fallen, _subject, seconds, ragdoll.m_removeEffect, onStage: true);
@@ -368,7 +384,7 @@ namespace Scry
             if (_ground == null) return;
             var subject = new Bounds(Origin + (_bounds.center - Origin) * _scale, _bounds.size * _scale);
             var reach = Mathf.Max(2f, subject.extents.magnitude * 10f);
-            _ground.transform.position = new Vector3(subject.center.x, subject.min.y - 0.5f, subject.center.z);
+            _ground.transform.position = new Vector3(subject.center.x, FloorY - 0.5f, subject.center.z);
             _ground.transform.localScale = new Vector3(reach, 1f, reach);
         }
 
@@ -568,7 +584,7 @@ namespace Scry
             _camera.farClipPlane = distance + radius * 6f + 10f;
             _camera.aspect = (float)_width / _height;
 
-            var groundY = Mathf.Min(subject.min.y, _person != null && _person.activeSelf ? _personBounds.min.y : subject.min.y);
+            var groundY = Mathf.Min(FloorY, _person != null && _person.activeSelf ? _personBounds.min.y : FloorY);
             if (_sky != null && _sky.activeSelf)
             {
                 var depth = _camera.farClipPlane * 0.95f;
@@ -658,7 +674,7 @@ namespace Scry
             // Its right side a little to the left of the model, its feet on the model's ground.
             var subjectMin = Origin + (_bounds.min - Origin) * _scale;
             var subjectCenter = Origin + (_bounds.center - Origin) * _scale;
-            var wanted = new Vector3(subjectMin.x - 0.4f - _personLocal.extents.x, subjectMin.y + _personLocal.extents.y, subjectCenter.z);
+            var wanted = new Vector3(subjectMin.x - 0.4f - _personLocal.extents.x, FloorY + _personLocal.extents.y, subjectCenter.z);
             _person.transform.position = wanted - _personLocal.center;
             _personBounds = new Bounds(wanted, _personLocal.size);
         }

@@ -1,5 +1,6 @@
-using HarmonyLib;
 using System.Collections.Generic;
+using System.Linq;
+using HarmonyLib;
 using UnityEngine;
 
 namespace Scry
@@ -662,8 +663,11 @@ namespace Scry
             return made;
         }
 
-        /// <summary>Whether the stage is showing, so the world copy's sounds would be heard twice.</summary>
-        public static bool StageHeard => Stage.Subject != null;
+        /// <summary>
+        /// Whether the selection stands in the world too. Its sounds are then heard from there,
+        /// where they are, and the stage's copies are only seen, so nothing sounds twice.
+        /// </summary>
+        public static bool WorldHeard => _world != null;
 
         /// <summary>
         /// Plays a list a sound or effect is part of, whole: an effect's on the stage around it,
@@ -843,7 +847,7 @@ namespace Scry
         {
             if (copy == null || list == null) return new List<GameObject>();
             if (copy == Stage.Subject) return Stage.PlayList(list, at).ConvertAll(m => m.Item2);
-            return PlayList(list, at != null ? at.position : copy.transform.position + Vector3.up * 0.5f, copy.transform.rotation, StageHeard);
+            return PlayList(list, at != null ? at.position : copy.transform.position + Vector3.up * 0.5f, copy.transform.rotation);
         }
 
         /// <summary>
@@ -897,24 +901,36 @@ namespace Scry
             }
             things.AddRange(PlayEffectList(list));
             if (_startedClip != null) ClipOf[list] = _startedClip;
-            if (things.Count == 0) TellEmpty(label, list);
+            if (!things.Exists(Perceptible)) TellEmpty(label, list, things);
             Started(list, things);
         }
 
         private static readonly HashSet<EffectList> ToldEmpty = new HashSet<EffectList>();
 
         /// <summary>Says once per list why playing it showed nothing, for finding out what it holds.</summary>
-        private static void TellEmpty(string label, EffectList list)
+        /// <summary>Whether a copy can be seen or heard: it draws, glows, sounds, or stands in for a fallen copy.</summary>
+        private static bool Perceptible(GameObject thing)
+        {
+            return thing != null && (thing.GetComponentInChildren<Renderer>(true) != null || thing.GetComponentInChildren<AudioSource>(true) != null
+                                     || thing.GetComponentInChildren<Light>(true) != null || thing.GetComponent<Standin>() != null);
+        }
+
+        private static void TellEmpty(string label, EffectList list, List<GameObject> made)
         {
             if (list?.m_effectPrefabs == null || !ToldEmpty.Add(list)) return;
             var parts = new List<string>();
             foreach (var data in list.m_effectPrefabs)
             {
                 if (data?.m_prefab == null) { parts.Add("an empty slot"); continue; }
-                var why = !data.m_enabled ? "switched off" : Ghost.IsWholeModel(data.m_prefab) && !Ghost.IsDebris(data.m_prefab) ? "a whole model, left out" : "could not be copied";
+                var copy = made.Find(m => m != null && m.name == data.m_prefab.name);
+                var kept = string.Join(" ", data.m_prefab.GetComponentsInChildren<Component>(true).Where(c => c != null && !(c is Transform)).Select(c => c.GetType().Name).Distinct().Take(12));
+                var why = !data.m_enabled ? "switched off"
+                    : copy != null ? "copied, but it has nothing that draws or sounds once its scripts are off: " + kept
+                    : Ghost.IsWholeModel(data.m_prefab) && !Ghost.IsDebris(data.m_prefab) ? "a whole model, left out"
+                    : "could not be copied";
                 parts.Add($"{data.m_prefab.name} ({why})");
             }
-            Plugin.Log.LogInfo($"Scry played nothing of {_entry?.Name}'s \"{label}\": {(parts.Count > 0 ? string.Join(", ", parts) : "it is empty")}.");
+            Plugin.Log.LogInfo($"Scry played nothing to see or hear of {_entry?.Name}'s \"{label}\": {(parts.Count > 0 ? string.Join("; ", parts) : "it is empty")}.");
         }
 
         /// <summary>The ragdoll a creature leaves when it dies, when it has one.</summary>
@@ -942,7 +958,7 @@ namespace Scry
         {
             var things = new List<GameObject>();
             foreach (var made in Stage.PlayList(list)) things.Add(made.Item2);
-            if (_world != null) things.AddRange(PlayList(list, _world.transform.position + Vector3.up * 0.5f, _world.transform.rotation, StageHeard));
+            if (_world != null) things.AddRange(PlayList(list, _world.transform.position + Vector3.up * 0.5f, _world.transform.rotation));
             return things;
         }
 

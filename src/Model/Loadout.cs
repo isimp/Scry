@@ -33,9 +33,16 @@ namespace Scry
         private readonly int[] _chosen = new int[3];
         private readonly Extra[] _extras;
         private readonly bool[] _on;
+        private readonly HashSet<string> _bothHands;
 
-        public Loadout(IEnumerable<string> weapons, IEnumerable<string> shields, IEnumerable<string> armours, IEnumerable<Extra> extras)
+        /// <summary>
+        /// A loadout from the lists a creature rolls from. Weapons held in both hands (bows,
+        /// two-handed weapons) leave no hand for a shield, as equipping one takes the shield off.
+        /// </summary>
+        public Loadout(IEnumerable<string> weapons, IEnumerable<string> shields, IEnumerable<string> armours, IEnumerable<Extra> extras,
+            IEnumerable<string> bothHands = null)
         {
+            _bothHands = new HashSet<string>(bothHands ?? new string[0]);
             _options[(int)Row.Weapon] = Distinct(weapons);
             _options[(int)Row.Shield] = Distinct(shields);
             _options[(int)Row.Armour] = Distinct(armours);
@@ -56,6 +63,17 @@ namespace Scry
         public bool HasChoices => Offered(Row.Weapon) || Offered(Row.Shield) || Offered(Row.Armour) || _extras.Length > 0;
 
         public int Chosen(Row row) => _chosen[(int)row];
+
+        /// <summary>
+        /// Whether what is chosen in a row is worn: a shield is not while the chosen weapon takes
+        /// both hands. The choice is kept for when a hand is free again.
+        /// </summary>
+        public bool Held(Row row)
+        {
+            if (row != Row.Shield) return true;
+            var weapons = _options[(int)Row.Weapon];
+            return weapons.Count == 0 || !_bothHands.Contains(weapons[_chosen[(int)Row.Weapon]]);
+        }
 
         public void Choose(Row row, int index)
         {
@@ -90,7 +108,7 @@ namespace Scry
             for (var row = 0; row < _options.Length; row++)
             {
                 var options = _options[row];
-                if (options.Count == 0) continue;
+                if (options.Count == 0 || !Held((Row)row)) continue;
                 var name = options[_chosen[row]];
                 if (name.Length > 0) worn.Add(name);
             }

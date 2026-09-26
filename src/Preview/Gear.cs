@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -76,7 +77,7 @@ namespace Scry
             }
             foreach (var row in new[] { Loadout.Row.Shield, Loadout.Row.Weapon, Loadout.Row.Armour })
             {
-                if (loadout.Options(row).Count > 0) Add(loadout.Options(row)[loadout.Chosen(row)]);
+                if (loadout.Options(row).Count > 0 && loadout.Held(row)) Add(loadout.Options(row)[loadout.Chosen(row)]);
             }
             if (visibleSets.Count > 0)
             {
@@ -133,7 +134,8 @@ namespace Scry
 
             var loadout = humanoid == null
                 ? new Loadout(null, null, null, null)
-                : new Loadout(Choices(humanoid.m_randomWeapon), Choices(humanoid.m_randomShield), Choices(humanoid.m_randomArmor), extras);
+                : new Loadout(Choices(humanoid.m_randomWeapon), Choices(humanoid.m_randomShield), Choices(humanoid.m_randomArmor), extras,
+                    (humanoid.m_randomWeapon ?? new GameObject[0]).Where(w => w != null && SlotOf(w) == Slot.BothHands).Select(w => w.name));
             Loadouts[prefab] = loadout;
             return loadout;
         }

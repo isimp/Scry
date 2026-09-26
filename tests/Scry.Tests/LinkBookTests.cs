@@ -145,6 +145,43 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void CopiesOfAPieceAreNotListedBesideItElsewhere()
+        {
+            var catalog = Catalog();
+            var book = new LinkBook();
+
+            book.AddSets(new[]
+            {
+                ("TrollArmorChest", "troll", "Troll leather tunic", true),
+                ("FW_ArmorTrollLeatherChest", "troll", "Troll leather tunic", false),
+                ("SP_ArmorTrollLeatherChest", "troll", "Troll leather tunic", false),
+            });
+            book.Add("TrollArmorChest", null, "se:SetEffect_TrollArmor", "Given by", "set");
+            book.Add("FW_ArmorTrollLeatherChest", null, "se:SetEffect_TrollArmor", "Given by", "set");
+            book.Add("SP_ArmorTrollLeatherChest", null, "se:SetEffect_TrollArmor", "Given by", "set");
+            book.Apply(catalog);
+
+            Assert.Equal(new[] { "TrollArmorChest" }, Targets(Find(catalog, "se:SetEffect_TrollArmor"), "Given by"));
+        }
+
+        [Fact]
+        public void ACopyWhosePieceIsNotThereStillShows()
+        {
+            var catalog = Catalog();
+            var book = new LinkBook();
+
+            book.AddSets(new[]
+            {
+                ("TrollArmorChest", "troll", "Troll leather tunic", true),
+                ("FW_ArmorTrollLeatherChest", "troll", "Troll leather tunic", false),
+            });
+            book.Add("FW_ArmorTrollLeatherChest", "Carried by", "Troll", "Carries");
+            book.Apply(catalog);
+
+            Assert.Equal(new[] { "FW_ArmorTrollLeatherChest" }, Targets(Find(catalog, "Troll"), "Carries"));
+        }
+
+        [Fact]
         public void WithoutOneThatIsMadeTheShortestNameStandsForItsCopies()
         {
             var catalog = Catalog();
