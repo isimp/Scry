@@ -66,6 +66,15 @@ namespace Scry
             }
         }
 
+        /// <summary>What a creature wears in a look; nothing when the look is not about gear.</summary>
+        public static List<GameObject> GearOf(GameObject prefab, int look)
+        {
+            return Describe(prefab).Sort == Sort.Gear ? Gear.DressItems(prefab, look) : new List<GameObject>();
+        }
+
+        /// <summary>Whether a prefab's looks are about the gear it wears.</summary>
+        public static bool IsGear(GameObject prefab) => Describe(prefab).Sort == Sort.Gear;
+
         private static Found Describe(GameObject prefab)
         {
             if (prefab == null) return new Found();

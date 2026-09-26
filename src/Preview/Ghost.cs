@@ -18,8 +18,12 @@ namespace Scry
         private static GameObject _holder;
         private static readonly Dictionary<Type, Type[]> RequiredByType = new Dictionary<Type, Type[]>();
 
-        /// <summary>Makes the copy, or returns null if the prefab could not be copied.</summary>
-        public static GameObject Make(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer = -1)
+        /// <summary>
+        /// Makes the copy, or returns null if the prefab could not be copied. A falling copy keeps
+        /// its bodies, colliders and joints, for <see cref="Falling"/> to put where they only meet
+        /// the ground.
+        /// </summary>
+        public static GameObject Make(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer = -1, bool falling = false)
         {
             if (prefab == null) return null;
 
@@ -32,8 +36,8 @@ namespace Scry
                 copy = Object.Instantiate(prefab, Holder().transform, false);
                 copy.name = prefab.name;
 
-                Strip(copy);
-                Settle(copy);
+                Strip(copy, falling);
+                Settle(copy, falling);
                 if (layer >= 0) SetLayer(copy.transform, layer);
 
                 var t = copy.transform;
@@ -118,7 +122,7 @@ namespace Scry
         /// Takes off everything the policy does not keep. A component another one requires can
         /// only go after that one, so removal repeats until nothing more can be taken off.
         /// </summary>
-        private static void Strip(GameObject copy)
+        private static void Strip(GameObject copy, bool falling)
         {
             var all = copy.GetComponentsInChildren<Component>(true);
             var remaining = new List<Component>(all.Length);
@@ -130,7 +134,7 @@ namespace Scry
                 remaining.Add(component);
 
                 var facts = new ComponentFacts(component.GetType().FullName, component is MonoBehaviour, component is Joint);
-                var pass = StripPolicy.PassFor(facts);
+                var pass = StripPolicy.PassFor(facts, falling);
                 if (pass != StripPolicy.Keep) doomed.Add(new KeyValuePair<int, Component>(pass, component));
             }
 
@@ -195,12 +199,14 @@ namespace Scry
         /// <summary>
         /// Keeps what stayed from wandering off or complaining. Animations play in place, and the
         /// events they would send to the scripts just removed are not sent. The copy is drawn
-        /// wherever it stands, since the preview stage is far from the player.
+        /// wherever it stands, since the preview stage is far from the player. A falling copy is
+        /// moved by physics alone.
         /// </summary>
-        private static void Settle(GameObject copy)
+        private static void Settle(GameObject copy, bool falling)
         {
             foreach (var animator in copy.GetComponentsInChildren<Animator>(true))
             {
+                if (falling) animator.enabled = false;
                 animator.applyRootMotion = false;
                 animator.fireEvents = false;
                 animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;

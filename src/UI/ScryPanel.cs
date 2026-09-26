@@ -1460,7 +1460,12 @@ namespace Scry
             if (!withStage && !modelInWorld && !projectile) return y;
             if (!staged && !projectile) return y;
 
-            y = SectionHeading("ADJUST", width, y, () => modifiers.Reset());
+            y = SectionHeading("ADJUST", width, y, () =>
+            {
+                modifiers.Reset();
+                if (entry.Source is GameObject reset) Gear.ResetLoadout(reset);
+                Previews.Rebuild();
+            });
             var labelW = U(_compact ? 100f : 120f);
 
             if (staged)
@@ -1489,6 +1494,7 @@ namespace Scry
             {
                 var chosen = Segments("Look", new List<string>(modifiers.LookNames), modifiers.Look, width, labelW, ref y);
                 if (chosen >= 0) modifiers.Look = chosen;
+                if (modifiers.Look > 0 && entry.Source is GameObject creature && Scry.Variants.IsGear(creature)) LoadoutRows(creature, width, labelW, ref y);
             }
 
             if (projectile)
@@ -1548,6 +1554,65 @@ namespace Scry
             }
             y += rowH + U(8f);
             return chosen;
+        }
+
+        /// <summary>
+        /// The weapon, shield and armour a creature can roll, one row each, and the extras it may
+        /// be given, each put on or taken off. Only rows with a choice are shown.
+        /// </summary>
+        private static void LoadoutRows(GameObject creature, float width, float labelW, ref float y)
+        {
+            var loadout = Gear.LoadoutOf(creature);
+            var rows = new[] { Loadout.Row.Weapon, Loadout.Row.Shield, Loadout.Row.Armour };
+            var labels = new[] { "Weapon", "Shield", "Armour" };
+            for (var i = 0; i < rows.Length; i++)
+            {
+                if (!loadout.Offered(rows[i])) continue;
+                var names = loadout.Options(rows[i]).Select(ItemName).ToList();
+                var chosen = Segments(labels[i], names, loadout.Chosen(rows[i]), width, labelW, ref y);
+                if (chosen < 0 || chosen == loadout.Chosen(rows[i])) continue;
+                loadout.Choose(rows[i], chosen);
+                Previews.Rebuild();
+            }
+
+            if (loadout.Extras.Count == 0) return;
+            var extras = loadout.Extras.Select(e => ItemName(e.Name)).ToList();
+            var clicked = Toggles("Extras", extras, loadout.ExtraOn, width, labelW, ref y);
+            if (clicked < 0) return;
+            loadout.ToggleExtra(clicked);
+            Previews.Rebuild();
+        }
+
+        /// <summary>An item's name as the game shows it, or "Nothing" for an empty choice.</summary>
+        private static string ItemName(string prefabName)
+        {
+            if (string.IsNullOrEmpty(prefabName)) return "Nothing";
+            var shared = Looks.Prefab(prefabName)?.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+            var shown = shared != null ? CatalogBuilder.Localize(shared.m_name) : "";
+            return shown.Length > 0 ? shown : prefabName;
+        }
+
+        /// <summary>Like <see cref="Segments"/>, but any number can be on; returns the one clicked.</summary>
+        private static int Toggles(string label, List<string> names, Func<int, bool> on, float width, float labelW, ref float y)
+        {
+            var rowH = U(28f);
+            FitLabel(new Rect(0f, y, labelW - U(6f), rowH), label, Skin.DimLabel, 10f);
+            var x = labelW;
+            var clicked = -1;
+            for (var i = 0; i < names.Count; i++)
+            {
+                var style = on(i) ? Skin.SegmentOn : Skin.Segment;
+                var w = style.CalcSize(new GUIContent(names[i])).x + U(10f);
+                if (x + w > width && x > labelW)
+                {
+                    x = labelW;
+                    y += rowH + U(4f);
+                }
+                if (GUI.Button(new Rect(x, y, w, rowH), names[i], style)) clicked = i;
+                x += w + U(4f);
+            }
+            y += rowH + U(8f);
+            return clicked;
         }
 
         /// <summary>

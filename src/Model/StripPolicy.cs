@@ -79,13 +79,28 @@ namespace Scry
             "ParticleDecal",
         };
 
+        /// <summary>
+        /// What a copy that falls keeps as well: its bodies, their colliders and the joints that
+        /// hold them together, so a ragdoll slumps and the parts of a broken piece tumble. Where
+        /// such a copy stands, its colliders only meet the ground, never a player or a creature.
+        /// </summary>
+        private static readonly HashSet<string> KeptFalling = new HashSet<string>
+        {
+            "UnityEngine.Rigidbody",
+            "UnityEngine.BoxCollider",
+            "UnityEngine.SphereCollider",
+            "UnityEngine.CapsuleCollider",
+            "UnityEngine.MeshCollider",
+        };
+
         /// <summary>Whether a component stays, and if not, in which pass it goes.</summary>
-        public static int PassFor(ComponentFacts facts)
+        public static int PassFor(ComponentFacts facts, bool falling = false)
         {
             var name = facts.TypeName ?? "";
 
             if (facts.IsScript) return KeptScripts.Contains(name) ? Keep : ScriptsPass;
-            if (facts.IsJoint) return JointsPass;
+            if (facts.IsJoint) return falling ? Keep : JointsPass;
+            if (falling && KeptFalling.Contains(name)) return Keep;
             return KeptEngine.Contains(name) ? Keep : RestPass;
         }
     }

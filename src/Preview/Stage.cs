@@ -77,6 +77,7 @@ namespace Scry
         private static RenderTexture _texture;
         private static int _layer = -2;
         private static GameObject _floor;
+        private static GameObject _ground;
         private static Light _key, _fill, _rim;
         private static GameObject _sky;
         private static GameObject _grid;
@@ -107,6 +108,16 @@ namespace Scry
         private static bool _showPerson;
 
         public static Texture Texture => _texture;
+
+        /// <summary>The layer nothing in the game uses, which the stage is drawn on and falling copies land with.</summary>
+        public static int Layer
+        {
+            get
+            {
+                if (_layer == -2) _layer = FreeLayer();
+                return _layer;
+            }
+        }
         public static GameObject Subject => _subject;
 
         /// <summary>Which of <see cref="LightingNames"/> lights the stage.</summary>
@@ -266,6 +277,47 @@ namespace Scry
             return copy;
         }
 
+        /// <summary>
+        /// Lets the stage copy die as the game lets it: its ragdoll falls where it stood, in its
+        /// level's colours and its armour, and lies there as long as the game leaves it before
+        /// its parting effect plays and the creature stands again.
+        /// </summary>
+        public static void Fall(global::Ragdoll ragdoll, GameObject creature, int level, IList<GameObject> gear)
+        {
+            if (_subject == null || ragdoll == null || Standin.IsDown(_subject) || !Falling.Ready(_layer)) return;
+            PlaceGround();
+
+            var fallen = Falling.Ragdoll(ragdoll, creature, _subject, level, _scale, gear, _root.transform, _layer, _layer);
+            if (fallen == null) return;
+            Tune(fallen, audible: true);
+
+            var seconds = Mathf.Clamp(ragdoll.m_ttl, 3f, 12f);
+            Standin.For(fallen, _subject, seconds, ragdoll.m_removeEffect, onStage: true);
+            Played.Add(new KeyValuePair<GameObject, float>(fallen, Time.unscaledTime + seconds + 1f));
+        }
+
+        /// <summary>Breaks the stage copy into its parts, which tumble onto the stage and are gone; then it stands again.</summary>
+        public static void Break(GameObject prefab)
+        {
+            if (_subject == null || Standin.IsDown(_subject) || !Falling.Ready(_layer)) return;
+            PlaceGround();
+
+            var pieces = Falling.Break(prefab, _subject, _root.transform, _layer, _layer);
+            if (pieces == null) return;
+            Standin.For(pieces, _subject, 4.5f, null, onStage: true);
+            Played.Add(new KeyValuePair<GameObject, float>(pieces, Time.unscaledTime + 5.5f));
+        }
+
+        /// <summary>The invisible ground falling copies land on, level with the floor under the model.</summary>
+        private static void PlaceGround()
+        {
+            if (_ground == null) return;
+            var subject = new Bounds(Origin + (_bounds.center - Origin) * _scale, _bounds.size * _scale);
+            var reach = Mathf.Max(2f, subject.extents.magnitude * 10f);
+            _ground.transform.position = new Vector3(subject.center.x, subject.min.y - 0.5f, subject.center.z);
+            _ground.transform.localScale = new Vector3(reach, 1f, reach);
+        }
+
         public static void Orbit(Vector2 delta)
         {
             Yaw += delta.x * 0.4f;
@@ -377,6 +429,7 @@ namespace Scry
             _root = null;
             _camera = null;
             _floor = null;
+            _ground = null;
             _person = null;
             if (_texture != null)
             {
@@ -547,6 +600,10 @@ namespace Scry
 
             _floor = Floor.Make(_layer);
             if (_floor != null) _floor.transform.SetParent(_root.transform, true);
+
+            _ground = new GameObject("Scry stage ground") { layer = _layer };
+            _ground.transform.SetParent(_root.transform, false);
+            _ground.AddComponent<BoxCollider>();
 
             _grid = Floor.Surface("Scry stage grid", _layer, Floor.GridTexture());
             if (_grid != null) _grid.transform.SetParent(_root.transform, true);

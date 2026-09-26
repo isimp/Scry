@@ -108,6 +108,18 @@ namespace Scry
             }
         }
 
+        /// <summary>
+        /// Gives a renderer the colours of a creature's level, as <c>Ragdoll.Setup</c> gives its
+        /// body the colours of the creature that died.
+        /// </summary>
+        public static void Tint(GameObject creature, Renderer renderer, int level)
+        {
+            if (level <= 1) return;
+            var effects = creature.GetComponentInChildren<LevelEffects>(true);
+            if (effects == null || effects.m_levelSetups == null || effects.m_levelSetups.Count < level - 1) return;
+            renderer.sharedMaterials = Tinted(creature.name + " fallen", level, renderer.sharedMaterials, effects.m_levelSetups[level - 2]);
+        }
+
         /// <summary>Shows a piece copy new, worn or broken, as <c>WearNTear</c> would.</summary>
         public static void ApplyWear(GameObject prefab, GameObject copy, Wear wear)
         {

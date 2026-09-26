@@ -33,7 +33,8 @@ namespace Scry
             }
 
             if (AnyVisible(humanoid.m_defaultItems) || AnyVisible(humanoid.m_randomWeapon)
-                || AnyVisible(humanoid.m_randomArmor) || AnyVisible(humanoid.m_randomShield))
+                || AnyVisible(humanoid.m_randomArmor) || AnyVisible(humanoid.m_randomShield)
+                || LoadoutOf(prefab).HasChoices)
             {
                 sets.Add("Gear");
             }
@@ -43,11 +44,21 @@ namespace Scry
         /// <summary>Puts the gear of a look on the copy: 1 is the first set, or the only one.</summary>
         public static void Dress(GameObject prefab, GameObject copy, int look)
         {
-            var humanoid = prefab.GetComponent<Humanoid>();
-            var vis = prefab.GetComponentInChildren<VisEquipment>(true);
-            if (humanoid == null || vis == null) return;
+            var items = DressItems(prefab, look);
+            if (items.Count > 0) Wear(prefab, copy, items);
+        }
 
+        /// <summary>
+        /// What a creature wears in a look, as <c>Humanoid.GiveDefaultItems</c> hands it out: what
+        /// it always has, the set of the look, and the weapon, shield, armour and extras chosen in
+        /// its <see cref="LoadoutOf">loadout</see>, which the game would roll.
+        /// </summary>
+        public static List<GameObject> DressItems(GameObject prefab, int look)
+        {
             var items = new List<GameObject>();
+            var humanoid = prefab != null ? prefab.GetComponent<Humanoid>() : null;
+            if (humanoid == null || look <= 0 || prefab.GetComponentInChildren<VisEquipment>(true) == null) return items;
+
             if (humanoid.m_defaultItems != null) items.AddRange(humanoid.m_defaultItems);
 
             var visibleSets = new List<Humanoid.ItemSet>();
@@ -60,15 +71,70 @@ namespace Scry
             {
                 items.AddRange(visibleSets[Mathf.Clamp(look - 1, 0, visibleSets.Count - 1)].m_items);
             }
-            else
+
+            foreach (var name in LoadoutOf(prefab).Worn())
             {
-                // A creature given one of several weapons, armours or shields shows the first of each.
-                AddFirst(items, humanoid.m_randomWeapon);
-                AddFirst(items, humanoid.m_randomArmor);
-                AddFirst(items, humanoid.m_randomShield);
+                var item = Looks.Prefab(name);
+                if (item != null) items.Add(item);
+            }
+            items.RemoveAll(i => i == null);
+            return items;
+        }
+
+        private static readonly Dictionary<GameObject, Loadout> Loadouts = new Dictionary<GameObject, Loadout>();
+
+        /// <summary>
+        /// The weapon, shield and armour a creature rolls from its lists when it spawns, and the
+        /// extras it may be given by chance, as choices. Only items that show when worn are
+        /// offered. The choices are kept for each creature until reset.
+        /// </summary>
+        public static Loadout LoadoutOf(GameObject prefab)
+        {
+            if (prefab == null) return new Loadout(null, null, null, null);
+            if (Loadouts.TryGetValue(prefab, out var known)) return known;
+
+            var humanoid = prefab.GetComponent<Humanoid>();
+            var extras = new List<Loadout.Extra>();
+            if (humanoid?.m_randomItems != null)
+            {
+                foreach (var random in humanoid.m_randomItems)
+                {
+                    var item = random?.m_prefab;
+                    var shared = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared : null;
+                    if (shared != null && Shows(item)) extras.Add(new Loadout.Extra(item.name, (int)shared.m_itemType));
+                }
             }
 
-            Wear(prefab, copy, items);
+            var loadout = humanoid == null
+                ? new Loadout(null, null, null, null)
+                : new Loadout(Choices(humanoid.m_randomWeapon), Choices(humanoid.m_randomShield), Choices(humanoid.m_randomArmor), extras);
+            Loadouts[prefab] = loadout;
+            return loadout;
+        }
+
+        /// <summary>Puts a creature's loadout back to the first of each.</summary>
+        public static void ResetLoadout(GameObject prefab)
+        {
+            if (prefab != null) Loadouts.Remove(prefab);
+        }
+
+        /// <summary>A list's items by name, an empty entry kept as nothing, items that do not show left out.</summary>
+        private static List<string> Choices(GameObject[] items)
+        {
+            var names = new List<string>();
+            if (items == null) return names;
+            foreach (var item in items)
+            {
+                if (item == null) names.Add(null);
+                else if (Shows(item)) names.Add(item.name);
+            }
+            return names;
+        }
+
+        private static bool Shows(GameObject item)
+        {
+            var shared = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+            return AttachPart(item, out _) != null || shared?.m_armorMaterial != null;
         }
 
         private static readonly int ChestTex = Shader.PropertyToID("_ChestTex");
@@ -307,15 +373,5 @@ namespace Scry
             return false;
         }
 
-        private static void AddFirst(List<GameObject> items, GameObject[] choices)
-        {
-            if (choices == null) return;
-            foreach (var choice in choices)
-            {
-                if (choice == null) continue;
-                items.Add(choice);
-                return;
-            }
-        }
     }
 }

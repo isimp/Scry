@@ -95,5 +95,43 @@ namespace Scry.Tests
         {
             Assert.NotEqual(StripPolicy.Keep, StripPolicy.PassFor(Script("SomeMod.LightFlicker")));
         }
+
+        // ----- A copy that falls: a ragdoll, or a piece breaking apart -----
+
+        [Theory]
+        [InlineData("Rigidbody")]
+        [InlineData("BoxCollider")]
+        [InlineData("SphereCollider")]
+        [InlineData("CapsuleCollider")]
+        [InlineData("MeshCollider")]
+        public void AFallingCopyKeepsWhatMakesItFall(string engineComponent)
+        {
+            Assert.Equal(StripPolicy.Keep, StripPolicy.PassFor(Engine(engineComponent), falling: true));
+        }
+
+        [Fact]
+        public void AFallingCopyKeepsTheJointsThatHoldARagdollTogether()
+        {
+            Assert.Equal(StripPolicy.Keep, StripPolicy.PassFor(new ComponentFacts("UnityEngine.CharacterJoint", isJoint: true), falling: true));
+        }
+
+        [Theory]
+        [InlineData("CharacterController")]
+        [InlineData("AI.NavMeshAgent")]
+        [InlineData("WheelCollider")]
+        public void AFallingCopyStillCannotWalkOrDrive(string engineComponent)
+        {
+            Assert.NotEqual(StripPolicy.Keep, StripPolicy.PassFor(Engine(engineComponent), falling: true));
+        }
+
+        [Theory]
+        [InlineData("Ragdoll")]
+        [InlineData("ZNetView")]
+        [InlineData("Character")]
+        [InlineData("ItemDrop")]
+        public void AFallingCopyStillCannotBeFoughtLootedOrSaved(string script)
+        {
+            Assert.Equal(StripPolicy.ScriptsPass, StripPolicy.PassFor(Script(script), falling: true));
+        }
     }
 }

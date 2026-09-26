@@ -676,11 +676,31 @@ namespace Scry
             { "jump", new[] { "jump" } },
         };
 
-        /// <summary>Plays an effect list, with the animation that goes with it when the creature has one.</summary>
+        /// <summary>
+        /// Plays an effect list, with what goes with it: a creature that leaves a ragdoll falls as
+        /// one, a piece that breaks into parts breaks, and otherwise a creature that has an
+        /// animation for it plays that.
+        /// </summary>
         public static void PlayEffectList(string label, EffectList list)
         {
+            var prefab = _entry?.Source as GameObject;
+            var ragdoll = _entry != null && _entry.Kind == Kind.Creature ? Falling.RagdollIn(list) : null;
             var word = (label ?? "").Split(' ', '(')[0].ToLowerInvariant();
-            if (ClipsFor.TryGetValue(word, out var names))
+
+            if (ragdoll != null)
+            {
+                var modifiers = _explorer?.Modifiers;
+                var level = modifiers != null ? modifiers.Level : 1;
+                var gear = modifiers != null && modifiers.LookAvailable ? Variants.GearOf(prefab, modifiers.Look) : new List<GameObject>();
+                Stage.Fall(ragdoll, prefab, level, gear);
+                FallInWorld(ragdoll, prefab, level, gear);
+            }
+            else if (Falling.Breaks(prefab, list))
+            {
+                Stage.Break(prefab);
+                BreakInWorld(prefab);
+            }
+            else if (ClipsFor.TryGetValue(word, out var names))
             {
                 foreach (var clip in Clips())
                 {
@@ -804,6 +824,27 @@ namespace Scry
         public static void Replay()
         {
             if (_explorer != null) Stage.Show(_entry, _explorer.Modifiers);
+        }
+
+        private static void FallInWorld(global::Ragdoll ragdoll, GameObject creature, int level, IList<GameObject> gear)
+        {
+            if (_world == null || Standin.IsDown(_world) || !Falling.Ready(Stage.Layer)) return;
+            var scale = _explorer != null ? _explorer.Modifiers.Scale : 1f;
+            var fallen = Falling.Ragdoll(ragdoll, creature, _world, level, scale, gear, null, -1, Stage.Layer);
+            if (fallen == null) return;
+
+            var seconds = Mathf.Clamp(ragdoll.m_ttl, 3f, 12f);
+            Standin.For(fallen, _world, seconds, ragdoll.m_removeEffect, onStage: false);
+            Remember(fallen, seconds + 1f);
+        }
+
+        private static void BreakInWorld(GameObject prefab)
+        {
+            if (_world == null || Standin.IsDown(_world) || !Falling.Ready(Stage.Layer)) return;
+            var pieces = Falling.Break(prefab, _world, null, -1, Stage.Layer);
+            if (pieces == null) return;
+            Standin.For(pieces, _world, 4.5f, null, onStage: false);
+            Remember(pieces, 5.5f);
         }
 
         // ----- Housekeeping -----
