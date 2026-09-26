@@ -88,6 +88,42 @@ namespace Scry
         private static readonly string[] Moving = { "walk", "run", "jog", "sneak", "trot", "gallop", "move", "crawl", "charge", "sprint", "stroll", "step" };
 
         private bool _quiet;
+        private Attack _swing;
+        private float _swingUntil;
+
+        /// <summary>
+        /// An attack swung on this copy by its animator trigger: when its animation strikes, it
+        /// throws or shoots what it throws, as <c>Attack</c> does at that moment.
+        /// </summary>
+        public void Swinging(Attack attack)
+        {
+            _swing = attack;
+            _swingUntil = Time.unscaledTime + 4f;
+        }
+
+        /// <summary>Throws or shoots the swung attack's projectile from where the attack sends it.</summary>
+        private void Throw()
+        {
+            var attack = _swing;
+            _swing = null;
+            if (attack?.m_attackProjectile == null || Time.unscaledTime > _swingUntil || _copy == null) return;
+
+            // Where Attack.GetProjectileSpawnPoint puts it, at the copy's size.
+            var t = _copy.transform;
+            var size = t.lossyScale.x;
+            var origin = attack.m_attackOriginJoint.Length > 0 ? Utils.FindChild(t, attack.m_attackOriginJoint) : null;
+            if (origin == null) origin = t;
+            var start = origin.position + t.up * attack.m_attackHeight * size + t.forward * attack.m_attackRange * size + t.right * attack.m_attackOffset * size;
+            var aim = t.forward;
+            if (attack.m_launchAngle != 0f) aim = Quaternion.AngleAxis(attack.m_launchAngle, Vector3.Cross(Vector3.up, aim)) * aim;
+
+            var thrown = Previews.Launch(attack.m_attackProjectile, start, aim * attack.m_projectileVel, _copy == Stage.Subject);
+            if (thrown != null)
+            {
+                Report(new List<GameObject> { thrown });
+                Listen.Note(Listening, "threw " + attack.m_attackProjectile.name);
+            }
+        }
         private Transform[] _feet;
         private StepDetector[] _footing;
         private global::FootStep.MotionType _motion;
@@ -309,7 +345,10 @@ namespace Scry
             {
                 case "FootStep": Step(e); break;
                 case "Hit":
-                case "OnAttackTrigger": AttackTrigger(); break;
+                case "OnAttackTrigger":
+                    if (_swing != null) Throw();
+                    AttackTrigger();
+                    break;
                 case "Jump": Play(_prefab.GetComponent<Character>()?.m_jumpEffects); break;
                 case "Die": Play(_prefab.GetComponent<Character>()?.m_deathEffects); break;
                 case "Effect": Effect(e); break;

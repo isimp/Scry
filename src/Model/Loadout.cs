@@ -58,15 +58,35 @@ namespace Scry
         }
 
         /// <summary>What a row offers; an empty name stands for nothing.</summary>
-        public IReadOnlyList<string> Options(Row row) => _options[(int)row];
+        public IReadOnlyList<string> Options(Row row) => row == Row.Holding ? Holdable() : _options[(int)row];
+
+        /// <summary>
+        /// The weapons it may hold: the one it rolled, first, and those it always carries. Any of
+        /// them is in its hand at a time, as its AI picks it.
+        /// </summary>
+        private List<string> Holdable()
+        {
+            var weapons = new List<string>();
+            var rolled = _options[(int)Row.Weapon];
+            if (rolled.Count > 0 && rolled[_chosen[(int)Row.Weapon]].Length > 0) weapons.Add(rolled[_chosen[(int)Row.Weapon]]);
+            foreach (var own in _options[(int)Row.Holding]) if (!weapons.Contains(own)) weapons.Add(own);
+            return weapons;
+        }
 
         /// <summary>Whether a row has more than one thing to choose from.</summary>
-        public bool Offered(Row row) => _options[(int)row].Count > 1;
+        public bool Offered(Row row) => Options(row).Count > 1;
 
         /// <summary>Whether there is anything to choose at all.</summary>
         public bool HasChoices => Offered(Row.Weapon) || Offered(Row.Shield) || Offered(Row.Armour) || Offered(Row.Holding) || _extras.Length > 0;
 
-        public int Chosen(Row row) => _chosen[(int)row];
+        public int Chosen(Row row) => row == Row.Holding ? System.Math.Min(_chosen[(int)row], System.Math.Max(0, Holdable().Count - 1)) : _chosen[(int)row];
+
+        /// <summary>The weapon in its hand, or empty when it holds none.</summary>
+        private string InHand()
+        {
+            var weapons = Holdable();
+            return weapons.Count > 0 ? weapons[Chosen(Row.Holding)] : "";
+        }
 
         /// <summary>
         /// Whether what is chosen in a row is worn: a shield is not while the chosen weapon takes
@@ -74,18 +94,12 @@ namespace Scry
         /// </summary>
         public bool Held(Row row)
         {
-            if (row != Row.Shield) return true;
-            foreach (var hand in new[] { Row.Weapon, Row.Holding })
-            {
-                var weapons = _options[(int)hand];
-                if (weapons.Count > 0 && _bothHands.Contains(weapons[_chosen[(int)hand]])) return false;
-            }
-            return true;
+            return row != Row.Shield || !_bothHands.Contains(InHand());
         }
 
         public void Choose(Row row, int index)
         {
-            if (index < 0 || index >= _options[(int)row].Count) return;
+            if (index < 0 || index >= Options(row).Count) return;
             _chosen[(int)row] = index;
         }
 
@@ -113,11 +127,13 @@ namespace Scry
         public List<string> Worn()
         {
             var worn = new List<string>();
-            for (var row = 0; row < _options.Length; row++)
+            var hand = InHand();
+            if (hand.Length > 0) worn.Add(hand);
+            foreach (var row in new[] { Row.Shield, Row.Armour })
             {
-                var options = _options[row];
-                if (options.Count == 0 || !Held((Row)row)) continue;
-                var name = options[_chosen[row]];
+                var options = _options[(int)row];
+                if (options.Count == 0 || !Held(row)) continue;
+                var name = options[_chosen[(int)row]];
                 if (name.Length > 0) worn.Add(name);
             }
             for (var i = 0; i < _extras.Length; i++)

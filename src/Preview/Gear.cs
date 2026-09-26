@@ -71,6 +71,7 @@ namespace Scry
                     if (item != null && (!holding.Contains(item.name) || item.name == held)) items.Add(item);
                 }
             }
+            var chosen = loadout.Worn();
 
             var visibleSets = new List<Humanoid.ItemSet>();
             if (humanoid.m_randomSets != null)
@@ -86,7 +87,10 @@ namespace Scry
             }
             foreach (var row in new[] { Loadout.Row.Shield, Loadout.Row.Weapon, Loadout.Row.Armour })
             {
-                if (loadout.Options(row).Count > 0 && loadout.Held(row)) Add(loadout.Options(row)[loadout.Chosen(row)]);
+                // The rolled weapon only when it is the one in hand.
+                if (loadout.Options(row).Count == 0) continue;
+                var choice = loadout.Options(row)[loadout.Chosen(row)];
+                if (chosen.Contains(choice)) Add(choice);
             }
             if (visibleSets.Count > 0)
             {
@@ -152,9 +156,9 @@ namespace Scry
         }
 
         /// <summary>
-        /// The weapons a creature always carries, when it carries more than one: it holds one at
-        /// a time, as its AI picks them in a fight. One that shows in the hand comes first, as it
-        /// is the one to see.
+        /// The weapons a creature always carries: with the one it rolls, it holds one at a time,
+        /// as its AI picks them in a fight. One that shows in the hand comes first, as it is the
+        /// one to see.
         /// </summary>
         private static List<string> Holdable(Humanoid humanoid)
         {
@@ -164,7 +168,7 @@ namespace Scry
                 .OrderBy(i => AttachPart(i, out _) != null ? 0 : 1)
                 .Select(i => i.name)
                 .ToList();
-            return weapons.Count > 1 ? weapons : new List<string>();
+            return weapons;
         }
 
         /// <summary>Puts a creature's loadout back to the first of each.</summary>
@@ -308,6 +312,42 @@ namespace Scry
                         if (twin != null) MaterialMan.instance.SetValue(twin.gameObject, ShaderProps._Style, style, true);
                     }
                 }
+            }
+
+            Stance(prefab, copy, items);
+        }
+
+        /// <summary>
+        /// Sets the stance the items in hand call for on the copy's animator, as
+        /// <c>Humanoid.SetupAnimationState</c> does: the left hand's item decides (a torch there
+        /// is held as one), else the right hand's, else the bare hands'. A draugr stands with its
+        /// bow as with a bow, and a person tried on with an axe holds it as an axe.
+        /// </summary>
+        private static void Stance(GameObject prefab, GameObject copy, IList<GameObject> items)
+        {
+            var animator = ClipPlayer.AnimatorOf(copy);
+            if (animator == null) return;
+
+            ItemDrop.ItemData.SharedData left = null, right = null;
+            foreach (var item in items)
+            {
+                var shared = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared : null;
+                if (shared == null) continue;
+                var type = shared.m_itemType;
+                if (type == ItemDrop.ItemData.ItemType.Shield || type == ItemDrop.ItemData.ItemType.Bow || type == ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft) left = shared;
+                else if (SlotOf(item) == Slot.RightHand || SlotOf(item) == Slot.BothHands) right = shared;
+            }
+
+            var unarmed = prefab.GetComponent<Humanoid>()?.m_unarmedWeapon?.m_itemData?.m_shared;
+            var state = left != null ? (left.m_itemType == ItemDrop.ItemData.ItemType.Torch ? ItemDrop.ItemData.AnimationState.LeftTorch : left.m_animationState)
+                : right != null ? right.m_animationState
+                : unarmed != null ? unarmed.m_animationState
+                : ItemDrop.ItemData.AnimationState.Unarmed;
+
+            foreach (var parameter in animator.parameters)
+            {
+                if (parameter.name == "statei" && parameter.type == AnimatorControllerParameterType.Int) animator.SetInteger("statei", (int)state);
+                if (parameter.name == "statef" && parameter.type == AnimatorControllerParameterType.Float) animator.SetFloat("statef", (float)state);
             }
         }
 

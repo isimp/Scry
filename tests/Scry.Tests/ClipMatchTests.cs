@@ -8,9 +8,6 @@ namespace Scry.Tests
 
         [Theory]
         [InlineData("Death", "death")]
-        [InlineData("Hit", "hit")]
-        [InlineData("Crit hit", "hit")]
-        [InlineData("Backstab hit", "hit")]
         [InlineData("Alerted", "alert")]
         [InlineData("Wakeup", "wakeup")]
         public void AnEffectOfACreaturePlaysTheAnimationThatGoesWithIt(string effect, string clip)
@@ -19,17 +16,18 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void AHitIsNotAStagger()
+        public void AHitPlaysNoAnimationAsInTheGame()
         {
-            // The game only staggers a creature when a hit breaks its balance, not on every hit.
-            Assert.Null(ClipMatch.For("Hit", new[] { "idle", "stagger", "death" }));
+            // The game animates no hit; it only staggers a creature when a hit breaks its balance.
+            Assert.Null(ClipMatch.For("Hit", new[] { "idle", "hit", "stagger" }));
+            Assert.Null(ClipMatch.For("Crit hit", new[] { "idle", "hit" }));
             Assert.Equal("stagger", ClipMatch.For("Stagger", new[] { "idle", "stagger", "death" }));
         }
 
         [Fact]
         public void TheSimplestOfSeveralMatchingAnimationsIsPlayed()
         {
-            Assert.Equal("Hit", ClipMatch.For("Hit", new[] { "hit_left_big", "Hit", "hit_right" }));
+            Assert.Equal("Death", ClipMatch.For("Death", new[] { "death_left_big", "Death", "death_right" }));
         }
 
         [Fact]

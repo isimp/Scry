@@ -279,12 +279,12 @@ namespace Scry
         /// named part of its body when there is one, attached when the list says so. Heard as if
         /// beside you.
         /// </summary>
-        public static List<(string, GameObject)> PlayList(EffectList list, Transform part = null, string skip = null)
+        public static List<(string, GameObject)> PlayList(EffectList list, Transform part = null, string skip = null, Vector3? point = null)
         {
             var made = new List<(string, GameObject)>();
             if (_subject == null || list?.m_effectPrefabs == null) return made;
 
-            var center = part != null ? part.position : Origin + (_bounds.center - Origin) * _scale;
+            var center = point ?? (part != null ? part.position : Origin + (_bounds.center - Origin) * _scale);
             foreach (var data in list.m_effectPrefabs)
             {
                 if (data == null || !data.m_enabled || data.m_prefab == null || data.m_prefab.name == skip) continue;
@@ -393,6 +393,16 @@ namespace Scry
             var reach = Mathf.Max(2f, subject.extents.magnitude * 10f);
             _ground.transform.position = new Vector3(subject.center.x, FloorY - 0.5f, subject.center.z);
             _ground.transform.localScale = new Vector3(reach, 1f, reach);
+        }
+
+        /// <summary>Puts a copy made for the stage on it, heard or not as the stage's copies are, gone after a while.</summary>
+        public static void Adopt(GameObject copy, float seconds)
+        {
+            if (copy == null || _root == null) return;
+            copy.transform.SetParent(_root.transform, true);
+            Ghost.SetLayer(copy.transform, _layer);
+            Tune(copy, audible: !Previews.WorldHeard);
+            Played.Add(new KeyValuePair<GameObject, float>(copy, Time.unscaledTime + seconds));
         }
 
         public static void Orbit(Vector2 delta)

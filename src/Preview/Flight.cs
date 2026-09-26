@@ -14,6 +14,9 @@ namespace Scry
         public float Lifetime = 4f;
         public EffectList Burst;
 
+        /// <summary>Flying on the stage: it lands on the stage's ground and bursts there.</summary>
+        public bool OnStage;
+
         private float _age;
 
         private static int _mask = -1;
@@ -36,10 +39,12 @@ namespace Scry
             var from = transform.position;
             var step = Velocity * dt;
 
-            if (step.sqrMagnitude > 0f && Physics.Raycast(from, step.normalized, out var hit, step.magnitude, Mask, QueryTriggerInteraction.Ignore))
+            var mask = OnStage ? 1 << Stage.Layer : Mask;
+            if (step.sqrMagnitude > 0f && Physics.Raycast(from, step.normalized, out var hit, step.magnitude, mask, QueryTriggerInteraction.Ignore))
             {
                 transform.position = hit.point;
-                Previews.PlayList(Burst, hit.point, Quaternion.LookRotation(hit.normal));
+                if (OnStage) Stage.PlayList(Burst, null, null, hit.point);
+                else Previews.PlayList(Burst, hit.point, Quaternion.LookRotation(hit.normal));
                 Destroy(gameObject);
                 return;
             }

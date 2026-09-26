@@ -5,13 +5,15 @@ namespace Scry
 {
     /// <summary>
     /// The looks a prefab can be switched between, when the game switches them by script: a
-    /// plant growing or grown, a fire unlit or lit, a portal unconnected, connected or open,
-    /// something picked or not, a creature with or without its gear, an item in each of its styles. Only one kind is offered per prefab, in
+    /// plant growing or grown, a fire unlit or lit, a portal unconnected, connected or open, a door
+    /// or chest shut or open, a smelter, windmill, fermenter, sap collector or crafting station at
+    /// work, a ship's sail furled or set, something picked or not, a creature with or without its
+    /// gear or saddle, an item in each of its styles. Only one kind is offered per prefab, in
     /// that order, and each is applied to a copy the way the game's own script would.
     /// </summary>
     internal static class Variants
     {
-        private enum Sort { None, Growth, Fire, Portal, Picked, Gear, Style }
+        private enum Sort { None, Growth, Fire, Portal, Door, Chest, Windmill, Smelter, Fermenter, Sap, Station, Sail, Picked, Gear, Saddle, Style }
 
         private sealed class Found
         {
@@ -55,6 +57,41 @@ namespace Scry
                 case Sort.Portal:
                     Portal(prefab, copy, look);
                     break;
+                case Sort.Door:
+                    Door(prefab, copy, look);
+                    break;
+                case Sort.Chest:
+                    var chest = prefab.GetComponentInChildren<Container>(true);
+                    Show(prefab, copy, chest.m_open, look == 1);
+                    Show(prefab, copy, chest.m_closed, look == 0);
+                    break;
+                case Sort.Windmill:
+                    Windmill(prefab, copy, look == 1);
+                    break;
+                case Sort.Smelter:
+                    Smelter(prefab, copy, look);
+                    break;
+                case Sort.Fermenter:
+                    var fermenter = prefab.GetComponentInChildren<Fermenter>(true);
+                    Show(prefab, copy, fermenter.m_topObject, look != 0);
+                    Show(prefab, copy, fermenter.m_fermentingObject, look == 1);
+                    Show(prefab, copy, fermenter.m_readyObject, look == 2);
+                    break;
+                case Sort.Sap:
+                    var sap = prefab.GetComponentInChildren<SapCollector>(true);
+                    Show(prefab, copy, sap.m_workingEffect, look == 1);
+                    Show(prefab, copy, sap.m_notEmptyEffect, look != 0);
+                    break;
+                case Sort.Station:
+                    Station(prefab, copy, look);
+                    break;
+                case Sort.Sail:
+                    Sail(prefab, copy, look);
+                    break;
+                case Sort.Saddle:
+                    var saddle = prefab.GetComponentInChildren<Tameable>(true).m_saddle;
+                    Show(prefab, copy, saddle != null ? saddle.gameObject : null, look == 1);
+                    break;
                 case Sort.Picked:
                     var pickable = prefab.GetComponentInChildren<Pickable>(true);
                     var shown = Looks.Twin(prefab.transform, copy.transform, pickable.m_hideWhenPicked.transform);
@@ -90,6 +127,15 @@ namespace Scry
                 var fire = prefab.GetComponentInChildren<Fireplace>(true);
                 var pickable = prefab.GetComponentInChildren<Pickable>(true);
                 var portal = prefab.GetComponentInChildren<TeleportWorld>(true);
+                var door = prefab.GetComponentInChildren<global::Door>(true);
+                var chest = prefab.GetComponentInChildren<Container>(true);
+                var windmill = prefab.GetComponentInChildren<global::Windmill>(true);
+                var smelter = prefab.GetComponentInChildren<global::Smelter>(true);
+                var fermenter = prefab.GetComponentInChildren<Fermenter>(true);
+                var sap = prefab.GetComponentInChildren<SapCollector>(true);
+                var station = prefab.GetComponentInChildren<CraftingStation>(true);
+                var ship = prefab.GetComponentInChildren<Ship>(true);
+                var tameable = prefab.GetComponentInChildren<Tameable>(true);
                 var drop = prefab.GetComponent<ItemDrop>();
 
                 if (plant != null && plant.m_grownPrefabs != null && plant.m_grownPrefabs.Length > 0)
@@ -115,6 +161,42 @@ namespace Scry
                 {
                     found = new Found { Sort = Sort.Portal, Names = new[] { "Unconnected", "Connected", "Open" }, Default = 2 };
                 }
+                else if (door != null && ClipPlayer.AnimatorOf(prefab) != null)
+                {
+                    found = new Found { Sort = Sort.Door, Names = new[] { "Shut", "Open", "Open the other way" } };
+                }
+                else if (chest != null && (chest.m_open != null || chest.m_closed != null))
+                {
+                    found = new Found { Sort = Sort.Chest, Names = new[] { "Shut", "Open" } };
+                }
+                else if (windmill != null && windmill.m_propeller != null)
+                {
+                    found = new Found { Sort = Sort.Windmill, Names = new[] { "Still", "Turning" }, Default = 1 };
+                }
+                else if (smelter != null)
+                {
+                    found = new Found { Sort = Sort.Smelter, Names = new[] { "Cold", "Loaded", "Working" }, Default = 2 };
+                }
+                else if (fermenter != null && fermenter.m_topObject != null)
+                {
+                    found = new Found { Sort = Sort.Fermenter, Names = new[] { "Empty", "Fermenting", "Ready" }, Default = 1 };
+                }
+                else if (sap != null && (sap.m_workingEffect != null || sap.m_notEmptyEffect != null))
+                {
+                    found = new Found { Sort = Sort.Sap, Names = new[] { "Idle", "Working", "Full" }, Default = 1 };
+                }
+                else if (station != null && (station.m_inUseObject != null || station.m_haveFireObject != null))
+                {
+                    found = new Found
+                    {
+                        Sort = Sort.Station,
+                        Names = station.m_haveFireObject != null ? new[] { "Cold", "Fire lit", "In use" } : new[] { "Idle", "In use" },
+                    };
+                }
+                else if (ship != null && ship.m_sailBottomTransform != null && ship.m_sailFurledPosition != null && ship.m_sailMidfurledPosition != null && ship.m_sailUnfurledPosition != null)
+                {
+                    found = new Found { Sort = Sort.Sail, Names = new[] { "Sail furled", "Half sail", "Full sail" } };
+                }
                 else if (pickable != null && pickable.m_hideWhenPicked != null)
                 {
                     found = new Found { Sort = Sort.Picked, Names = new[] { "Ready", "Picked" } };
@@ -124,6 +206,10 @@ namespace Scry
                     var names = new List<string> { "No gear" };
                     names.AddRange(sets);
                     found = new Found { Sort = Sort.Gear, Names = names.ToArray(), Default = 1 };
+                }
+                else if (tameable != null && tameable.m_saddle != null)
+                {
+                    found = new Found { Sort = Sort.Saddle, Names = new[] { "No saddle", "Saddled" } };
                 }
                 else if (drop != null && drop.m_itemData?.m_shared != null && drop.m_itemData.m_shared.m_variants > 1)
                 {
@@ -182,6 +268,97 @@ namespace Scry
                 if (model != null) model.material.SetColor("_EmissionColor", look == 0 ? portal.m_colorUnconnected : portal.m_colorTargetfound);
             }
             if (portal.m_target_found != null) Fade(prefab, copy, portal.m_target_found, look == 2);
+        }
+
+        /// <summary>A part of the prefab shown or hidden on the copy, as a script's <c>SetActive</c> does.</summary>
+        private static void Show(GameObject prefab, GameObject copy, GameObject part, bool on)
+        {
+            if (part == null) return;
+            var twin = Looks.Twin(prefab.transform, copy.transform, part.transform);
+            if (twin != null) twin.gameObject.SetActive(on);
+        }
+
+        /// <summary>As <c>Door.SetState</c>: the animator's state (1 open, -1 open the other way) and the part shown while open.</summary>
+        private static void Door(GameObject prefab, GameObject copy, int look)
+        {
+            var door = prefab.GetComponentInChildren<global::Door>(true);
+            var state = look == 1 ? 1 : look == 2 ? -1 : 0;
+            var animator = ClipPlayer.AnimatorOf(copy);
+            if (animator != null) animator.SetInteger("state", state);
+            Show(prefab, copy, door.m_openEnable, state != 0);
+        }
+
+        /// <summary>
+        /// As <c>Windmill.Update</c> turns them, at full wind: the blades about their axis, the
+        /// millstone about its own, and a smelter it drives at work.
+        /// </summary>
+        private static void Windmill(GameObject prefab, GameObject copy, bool turning)
+        {
+            var mill = prefab.GetComponentInChildren<global::Windmill>(true);
+            if (mill.m_propellerAOE != null) Show(prefab, copy, mill.m_propellerAOE, false);
+            if (prefab.GetComponentInChildren<global::Smelter>(true) != null) Smelter(prefab, copy, turning ? 2 : 1);
+            if (!turning) return;
+
+            var propeller = Looks.Twin(prefab.transform, copy.transform, mill.m_propeller);
+            var stone = mill.m_grindstone != null ? Looks.Twin(prefab.transform, copy.transform, mill.m_grindstone) : null;
+            var turn = copy.AddComponent<Turn>();
+            turn.Propeller = propeller;
+            turn.PropellerSpeed = mill.m_propellerRotationSpeed;
+            turn.Stone = stone;
+            turn.StoneSpeed = mill.m_grindstoneRotationSpeed;
+        }
+
+        /// <summary>
+        /// As <c>Smelter.UpdateState</c> and <c>SetAnimation</c>: cold (empty, unlit), loaded
+        /// (fuel and ore in, not burning) or working (burning, its bellows and wheels going).
+        /// </summary>
+        private static void Smelter(GameObject prefab, GameObject copy, int look)
+        {
+            var smelter = prefab.GetComponentInChildren<global::Smelter>(true);
+            var working = look == 2;
+            var loaded = look >= 1;
+            Show(prefab, copy, smelter.m_enabledObject, working);
+            Show(prefab, copy, smelter.m_disabledObject, !working);
+            Show(prefab, copy, smelter.m_haveFuelObject, loaded);
+            Show(prefab, copy, smelter.m_haveOreObject, loaded);
+            Show(prefab, copy, smelter.m_noOreObject, !loaded);
+            if (smelter.m_animators == null) return;
+            foreach (var animator in smelter.m_animators)
+            {
+                var twin = animator != null ? Looks.Twin(prefab.transform, copy.transform, animator.transform)?.GetComponent<Animator>() : null;
+                if (twin == null) continue;
+                twin.SetBool("active", working);
+                twin.SetFloat("activef", working ? 1f : 0f);
+            }
+        }
+
+        /// <summary>As <c>CraftingStation</c> shows it: its fire lit when one burns near, and its in-use part while someone crafts.</summary>
+        private static void Station(GameObject prefab, GameObject copy, int look)
+        {
+            var station = prefab.GetComponentInChildren<CraftingStation>(true);
+            var hasFire = station.m_haveFireObject != null;
+            var inUse = look == (hasFire ? 2 : 1);
+            Show(prefab, copy, station.m_inUseObject, inUse);
+            if (hasFire) Show(prefab, copy, station.m_haveFireObject, look >= 1);
+        }
+
+        /// <summary>
+        /// As <c>Ship.UpdateSailSize</c> sets it: the sail's bottom edge drawn from furled to half
+        /// set to full, which the sail's shape follows.
+        /// </summary>
+        private static void Sail(GameObject prefab, GameObject copy, int look)
+        {
+            var ship = prefab.GetComponentInChildren<Ship>(true);
+            Transform Twin(Transform part) => Looks.Twin(prefab.transform, copy.transform, part);
+            var bottom = Twin(ship.m_sailBottomTransform);
+            var furled = Twin(ship.m_sailFurledPosition);
+            var mid = Twin(ship.m_sailMidfurledPosition);
+            var full = Twin(ship.m_sailUnfurledPosition);
+            if (bottom == null || furled == null || mid == null || full == null) return;
+
+            var position = look == 0 ? 0f : look == 1 ? 0.5f : 1f;
+            var t = Utils.Frac(Mathf.Clamp(position, 0f, 0.999f) * 2f);
+            bottom.position = position >= 0.5f ? Vector3.Lerp(mid.position, full.position, t) : Vector3.Lerp(furled.position, mid.position, t);
         }
 
         /// <summary>

@@ -8,7 +8,9 @@ namespace Scry
     /// moment (it staggers as its hit effect plays, it rears up as it is alerted), but nothing ties
     /// them by name, so they are matched by what the effect is for: each purpose has the words its
     /// animations are named with, tried in order, and the plainest animation with the first word
-    /// that turns up is the one.
+    /// that turns up is the one. A hit has none: the game animates no hit, only a stagger when a
+    /// hit breaks a creature's balance. Where the game sets an animator switch for an effect
+    /// itself, Scry uses that instead, and this is only for what it does not know.
     /// </summary>
     public static class ClipMatch
     {
@@ -17,7 +19,6 @@ namespace Scry
         {
             new KeyValuePair<string, string[]>("death", new[] { "death", "die", "dead" }),
             new KeyValuePair<string, string[]>("jump", new[] { "jump" }),
-            new KeyValuePair<string, string[]>("hit", new[] { "hit" }),
             new KeyValuePair<string, string[]>("stagger", new[] { "stagger", "hit" }),
             new KeyValuePair<string, string[]>("alerted", new[] { "alert" }),
             new KeyValuePair<string, string[]>("wakeup", new[] { "wakeup", "wake" }),

@@ -165,6 +165,51 @@ namespace Scry.Tests
             Assert.True(loadout.Held(Loadout.Row.Shield));
         }
 
+        private static Loadout Fuling() => new Loadout(
+            weapons: new[] { "Club", "Spear" }, shields: new string[0], armours: new string[0], extras: new Loadout.Extra[0],
+            bothHands: new string[0],
+            holding: new[] { "Torch" });
+
+        [Fact]
+        public void TheRolledWeaponCanBeHeldAsWellAsItsOwn()
+        {
+            var loadout = Fuling();
+
+            Assert.True(loadout.Offered(Loadout.Row.Holding));
+            Assert.Equal(new[] { "Club", "Torch" }, loadout.Options(Loadout.Row.Holding));
+            loadout.Choose(Loadout.Row.Weapon, 1);
+            Assert.Equal(new[] { "Spear", "Torch" }, loadout.Options(Loadout.Row.Holding));
+        }
+
+        [Fact]
+        public void ItHoldsTheRolledWeaponFirst()
+        {
+            var loadout = Fuling();
+
+            Assert.Contains("Club", loadout.Worn());
+            Assert.DoesNotContain("Torch", loadout.Worn());
+        }
+
+        [Fact]
+        public void HoldingItsOwnWeaponPutsTheRolledOneAway()
+        {
+            var loadout = Fuling();
+
+            loadout.Choose(Loadout.Row.Holding, 1);
+
+            Assert.Contains("Torch", loadout.Worn());
+            Assert.DoesNotContain("Club", loadout.Worn());
+        }
+
+        [Fact]
+        public void ASingleWeaponOfItsOwnIsHeldWithoutAChoice()
+        {
+            var loadout = new Loadout(new string[0], new string[0], new string[0], new Loadout.Extra[0], holding: new[] { "troll_log" });
+
+            Assert.False(loadout.Offered(Loadout.Row.Holding));
+            Assert.Contains("troll_log", loadout.Worn());
+        }
+
         [Fact]
         public void ExtrasStartWithTheFirstOfEachKindOn()
         {

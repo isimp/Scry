@@ -78,6 +78,11 @@ namespace Scry
         public static void Stop(object key)
         {
             foreach (var thing in Playing.Take(key)) if (thing != null) Object.Destroy(thing);
+            if (key != null && Undo.TryGetValue(key, out var undo))
+            {
+                Undo.Remove(key);
+                undo();
+            }
             if (key != null && ClipOf.TryGetValue(key, out var clip))
             {
                 ClipOf.Remove(key);
@@ -174,6 +179,13 @@ namespace Scry
         {
             Expire();
             Listen.Update();
+            for (var i = LaterOn.Count - 1; i >= 0; i--)
+            {
+                if (Time.unscaledTime < LaterOn[i].At) continue;
+                var act = LaterOn[i].Act;
+                LaterOn.RemoveAt(i);
+                act();
+            }
 
             if (explorer == null) return;
 
@@ -794,6 +806,27 @@ namespace Scry
                 }
             }
 
+            // An item's own lists swing its attack, on the person trying it on.
+            var own = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+            if (own != null)
+            {
+                foreach (var attack in new[] { own.m_attack, own.m_secondaryAttack })
+                {
+                    if (attack == null) continue;
+                    foreach (var field in CatalogBuilder.EffectFields(typeof(Attack)))
+                    {
+                        if (field.GetValue(attack) is EffectList list) AttackOf[list] = attack;
+                    }
+                }
+                if (own.m_attack != null)
+                {
+                    foreach (var field in CatalogBuilder.EffectFields(typeof(ItemDrop.ItemData.SharedData)))
+                    {
+                        if (field.GetValue(own) is EffectList list && field.Name != "m_blockEffect" && field.Name != "m_equipEffect") AttackOf[list] = own.m_attack;
+                    }
+                }
+            }
+
             // A creature's attacks are its own, each named after the item that makes it.
             foreach (var item in Relations.CarriedItems(prefab))
             {
@@ -895,6 +928,10 @@ namespace Scry
                 things.Add(Stage.Destroy(prefab, list));
                 things.Add(DestroyInWorld(prefab, list));
             }
+            else if (Animate(prefab, list))
+            {
+                // Set on the animator the way the game sets it for this list.
+            }
             else if (AttackOf.TryGetValue(list, out var attack))
             {
                 // The swing that goes with the attack's effect, started as the game starts it; its
@@ -925,6 +962,123 @@ namespace Scry
             Started(list, things);
         }
 
+        private static readonly List<(float At, System.Action Act)> LaterOn = new List<(float, System.Action)>();
+        private static readonly Dictionary<object, System.Action> Undo = new Dictionary<object, System.Action>();
+
+        /// <summary>
+        /// Animates an effect list the way the game does when it plays it: a jump by the jump
+        /// trigger (a flyer's by its take-off), a death without a ragdoll by the dead switch,
+        /// being alerted by the alert switch, waking by the sleeping switch let go, eating by
+        /// the eat or consume trigger, a block by holding the blocking switch a moment. Each
+        /// only where the copy's animator has it. False when the game sets nothing for the list.
+        /// </summary>
+        private static bool Animate(GameObject prefab, EffectList list)
+        {
+            if (prefab == null || list == null) return false;
+            var character = prefab.GetComponent<Character>();
+            var ai = prefab.GetComponent<BaseAI>();
+            var humanoid = character as Humanoid;
+
+            if (character != null && list == character.m_jumpEffects)
+            {
+                return (character.m_flying && Trigger("fly_takeoff")) || Trigger("jump");
+            }
+            if (character != null && list == character.m_deathEffects)
+            {
+                if (!Switch("dead", true)) return false;
+                Undo[list] = () => Switch("dead", false);
+                return true;
+            }
+            if (ai != null && list == ai.m_alertedEffects)
+            {
+                if (!Switch("alert", true)) return false;
+                Undo[list] = () => Switch("alert", false);
+                return true;
+            }
+            if (ai is MonsterAI monster && list == monster.m_wakeupEffects)
+            {
+                if (!Switch("sleeping", true)) return false;
+                LaterOn.Add((Time.unscaledTime + 1.2f, () => Switch("sleeping", false)));
+                return true;
+            }
+            if (humanoid != null && list == humanoid.m_consumeItemEffects)
+            {
+                return Trigger("eat") || Trigger("consume");
+            }
+            if (humanoid != null && (list == humanoid.m_perfectBlockEffect || IsBlock(prefab, list)))
+            {
+                if (!Switch("blocking", true)) return false;
+                LaterOn.Add((Time.unscaledTime + 1.2f, () => Switch("blocking", false)));
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>Whether the list is what an item the creature carries, or the item itself, plays when blocking.</summary>
+        private static bool IsBlock(GameObject prefab, EffectList list)
+        {
+            foreach (var item in Relations.CarriedItems(prefab))
+            {
+                var shared = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                if (shared != null && shared.m_blockEffect == list) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Sets a trigger on the stage copy's and the world copy's animators, where they have it.</summary>
+        private static bool Trigger(string name)
+        {
+            var set = false;
+            foreach (var copy in new[] { Stage.Subject, _world })
+            {
+                var animator = ClipPlayer.AnimatorOf(copy);
+                if (animator == null || !Has(animator, name, AnimatorControllerParameterType.Trigger)) continue;
+                ClipPlayer.Stop(copy);
+                animator.SetTrigger(name);
+                set = true;
+            }
+            return set;
+        }
+
+        /// <summary>Sets a switch on the stage copy's and the world copy's animators, where they have it.</summary>
+        private static bool Switch(string name, bool on)
+        {
+            var set = false;
+            foreach (var copy in new[] { Stage.Subject, _world })
+            {
+                var animator = ClipPlayer.AnimatorOf(copy);
+                if (animator == null || !Has(animator, name, AnimatorControllerParameterType.Bool)) continue;
+                ClipPlayer.Stop(copy);
+                animator.SetBool(name, on);
+                set = true;
+            }
+            return set;
+        }
+
+        private static bool Has(Animator animator, string name, AnimatorControllerParameterType type)
+        {
+            foreach (var parameter in animator.parameters) if (parameter.type == type && parameter.name == name) return true;
+            return false;
+        }
+
+        /// <summary>Throws or shoots a projectile copy on the stage or in the world, flying as <see cref="Flight"/> flies it.</summary>
+        public static GameObject Launch(GameObject prefab, Vector3 start, Vector3 velocity, bool onStage)
+        {
+            var copy = Ghost.Make(prefab, null, start, velocity.sqrMagnitude > 0.001f ? Quaternion.LookRotation(velocity) : Quaternion.identity);
+            if (copy == null) return null;
+
+            var projectile = prefab.GetComponentInChildren<Projectile>(true);
+            var flight = copy.AddComponent<Flight>();
+            flight.Velocity = velocity;
+            flight.Gravity = projectile != null ? projectile.m_gravity : 0f;
+            flight.Lifetime = projectile != null && projectile.m_ttl > 0f ? Mathf.Min(projectile.m_ttl, 8f) : 4f;
+            flight.Burst = projectile?.m_hitEffects;
+            flight.OnStage = onStage;
+            if (onStage) Stage.Adopt(copy, flight.Lifetime + 1f);
+            else Remember(copy, flight.Lifetime + 1f);
+            return copy;
+        }
+
         /// <summary>
         /// Swings an attack on the stage copy and the copy in the world as <c>Attack.Start</c>
         /// does: by the animator trigger the attack names, or its first link when it is a chain.
@@ -944,6 +1098,7 @@ namespace Scry
                 if (trigger == null) continue;
                 ClipPlayer.Stop(copy);
                 animator.SetTrigger(trigger);
+                animator.GetComponent<AnimationEars>()?.Swinging(attack);
                 swung = true;
             }
             return swung;
