@@ -55,6 +55,7 @@
   <!-- The tests build the model on their own. -->
   <ItemGroup>
     <Compile Remove="tests/**" />
+    <Compile Remove="tools/**" />
   </ItemGroup>
 
   <!-- Forward slashes on purpose: Windows accepts them, and CI builds this on Linux. -->
