@@ -111,9 +111,10 @@ namespace Scry
             if (character != null) Creature(prefab, character);
 
             var piece = prefab.GetComponent<Piece>();
-            if (piece != null) Piece(piece, prefab.GetComponent<WearNTear>());
+            if (piece != null && piece.enabled) Piece(piece, prefab.GetComponent<WearNTear>());
 
             Resource(prefab);
+            if (piece != null && !piece.enabled) MadeBuildable(piece);
         }
 
         // ----- Items -----
@@ -456,6 +457,24 @@ namespace Scry
                 Rows.Add(row);
             }
         }
+
+        /// <summary>
+        /// One of the game's own prefabs a mod made buildable, by adding a piece to it that it
+        /// leaves switched off on the prefab (MoreVanillaBuildPrefabs does so): what it costs.
+        /// </summary>
+        private void MadeBuildable(Piece piece)
+        {
+            var by = BepInEx.Bootstrap.Chainloader.PluginInfos.TryGetValue(BuildPrefabsGuid, out var mod) && mod?.Metadata != null ? mod.Metadata.Name : "a mod";
+            Add("Buildable", "through " + by);
+            if (piece.m_resources == null || piece.m_resources.Length == 0) return;
+            var station = piece.m_craftingStation != null ? CatalogBuilder.Localize(piece.m_craftingStation.m_name) : "";
+            var row = Requirements(station.Length > 0 ? $"Built through {by} near {station}" : $"Built through {by} with", piece.m_resources, false);
+            row.TitleLink = piece.m_craftingStation != null ? piece.m_craftingStation.gameObject.name : null;
+            if (row.Items.Count > 0) Rows.Add(row);
+        }
+
+        /// <summary>MoreVanillaBuildPrefabs' plugin id, as it loads ("Loading [MoreVanillaBuildPrefabs 1.5.0] (Searica.Valheim.MoreVanillaBuildPrefabs)").</summary>
+        private const string BuildPrefabsGuid = "Searica.Valheim.MoreVanillaBuildPrefabs";
 
         /// <summary>
         /// What something costs. Each ingredient also says how many more each upgrade needs, but

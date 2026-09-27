@@ -465,7 +465,10 @@ namespace Scry
                     }
                     break;
                 case Piece piece:
-                    traits.HasPiece = true;
+                    // A piece a mod added to one of the game's own prefabs to make it buildable is
+                    // switched off on the prefab (MoreVanillaBuildPrefabs does so; none of the
+                    // game's own 25,802 pieces in its bundles is), and leaves the prefab what it was.
+                    if (piece.enabled) traits.HasPiece = true;
                     found.Token = found.Token ?? piece.m_name;
                     found.Icon = found.Icon ?? piece.m_icon;
                     break;
