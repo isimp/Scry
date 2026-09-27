@@ -27,6 +27,7 @@ namespace Scry.Tests
         [InlineData("m_fuelAddedEffects", "Building, crafting and using")]
         [InlineData("m_eatEffect", "Building, crafting and using")]
         [InlineData("m_thunderEffect", "Weather")]
+        [InlineData("weather", "Weather")]
         [InlineData("m_tarEffects", "Footsteps and movement")]
         [InlineData("m_setTargetEffect", "Other")]
         [InlineData("m_lostTargetEffect", "Other")]
@@ -86,6 +87,16 @@ namespace Scry.Tests
             Assert.Equal("Thrown", Groups.Projectile(new[] { new Shooter(Kind.Item, "Spears", false) }).Name);
             Assert.Equal("Traps and turrets", Groups.Projectile(new[] { new Shooter(Kind.Piece, "", false) }).Name);
             Assert.Equal("Other", Groups.Projectile(new Shooter[0]).Name);
+        }
+
+        [Fact]
+        public void ArrowsAndBoltsGoWithBowsAndATurretsAmmoWithTraps()
+        {
+            // Ammo carries the projectile, and its own skill says nothing of the bow that fires it.
+            Assert.Equal("Bows and crossbows", Groups.Projectile(new[] { new Shooter(Kind.Item, "Swords", false, "$ammo_arrows") }).Name);
+            Assert.Equal("Bows and crossbows", Groups.Projectile(new[] { new Shooter(Kind.Item, "", false, "$ammo_bolts") }).Name);
+            Assert.Equal("Traps and turrets", Groups.Projectile(new[] { new Shooter(Kind.Item, "", false, "$ammo_turretbolt") }).Name);
+            Assert.Equal("Thrown", Groups.Projectile(new[] { new Shooter(Kind.Item, "", false, "$ammo_bombs") }).Name);
         }
 
         [Fact]

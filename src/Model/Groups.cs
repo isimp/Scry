@@ -35,11 +35,15 @@ namespace Scry
         public string Skill;
         public bool CarriedByCreature;
 
-        public Shooter(Kind kind, string skill, bool carriedByCreature)
+        /// <summary>For ammo, what it is ammo for ("$ammo_arrows"), which says more than its own skill.</summary>
+        public string AmmoType;
+
+        public Shooter(Kind kind, string skill, bool carriedByCreature, string ammoType = "")
         {
             Kind = kind;
             Skill = skill ?? "";
             CarriedByCreature = carriedByCreature;
+            AmmoType = ammoType ?? "";
         }
     }
 
@@ -136,7 +140,7 @@ namespace Scry
             ("Spawning and summoning", 4, new[] { "spawn", "summon", "birth", "hatch", "wakeup", "initiate" }),
             ("Creature calls", 5, new[] { "idle", "alert", "taunt", "pet", "tamed", "soothe", "love", "pheromone", "greet", "talk", "goodbye", "speak", "noise", "sleep" }),
             ("Footsteps and movement", 6, new[] { "jump", "slide", "water", "dodge", "flying", "step", "leg", "moving", "walk", "tareffect", "lava" }),
-            ("Weather", 10, new[] { "thunder", "lightning" }),
+            ("Weather", 10, new[] { "thunder", "lightning", "weather" }),
             ("Building, crafting and using", 7, new[] { "place", "build", "craft", "repair", "upgrade", "fuel", "add", "produce", "done", "open", "close", "lever", "switch", "toggle", "activate", "lock", "write", "eat", "consume", "pick", "load", "equip", "cook", "grow", "sell", "buy", "trade", "firework", "ping", "tap", "select", "move", "drop", "nibble", "connect", "sail", "arm", "enter", "leave", "tab", "group", "button", "inventory" }),
         };
 
@@ -195,6 +199,7 @@ namespace Scry
                 if (shooter.Kind == Kind.Creature || (shooter.Kind == Kind.Item && shooter.CarriedByCreature)) group = new Group("Creatures", 5);
                 else if (shooter.Kind == Kind.Piece) group = new Group("Traps and turrets", 4);
                 else if (shooter.Kind != Kind.Item) continue;
+                else if (shooter.AmmoType.Length > 0) group = Ammo(shooter.AmmoType);
                 else if (shooter.Skill == "Bows" || shooter.Skill == "Crossbows") group = new Group("Bows and crossbows", 1);
                 else if (shooter.Skill == "ElementalMagic" || shooter.Skill == "BloodMagic") group = new Group("Staffs", 2);
                 else group = new Group("Thrown", 3);
@@ -229,6 +234,15 @@ namespace Scry
                 if (group.Order < best.Order) best = group;
             }
             return best;
+        }
+
+        /// <summary>Ammo by what fires it: a turret's or a ballista's with the traps, arrows and bolts with the bows, anything else thrown.</summary>
+        private static Group Ammo(string ammoType)
+        {
+            var type = ammoType.ToLowerInvariant();
+            if (type.Contains("turret") || type.Contains("ballista") || type.Contains("catapult")) return new Group("Traps and turrets", 4);
+            if (type.Contains("arrow") || type.Contains("bolt")) return new Group("Bows and crossbows", 1);
+            return new Group("Thrown", 3);
         }
 
         // ----- Other by role -----

@@ -25,6 +25,15 @@ namespace Scry
             {
                 if (entry.Kind != Kind.StatusEffect && !byName.ContainsKey(entry.Name)) byName[entry.Name] = entry;
             }
+            var weather = new HashSet<string>(StringComparer.Ordinal);
+            try
+            {
+                Weather(weather);
+            }
+            catch (Exception ex)
+            {
+                Tell("the weather", ex);
+            }
             Dictionary<string, Group> menus;
             try
             {
@@ -41,7 +50,7 @@ namespace Scry
                 var entry = entries[i];
                 try
                 {
-                    var group = Of(entry, byName, menus);
+                    var group = Of(entry, byName, menus, weather);
                     if (group.HasValue)
                     {
                         entry.Group = group.Value.Name;
@@ -75,10 +84,13 @@ namespace Scry
                 Plugin.Note($"Scry groups its {Kinds.Label(kind.Key).ToLowerInvariant()}: {string.Join(", ", groups)}.");
             }
             var unplayed = entries.Where(e => (e.Kind == Kind.Effect || e.Kind == Kind.Sound) && e.GroupOrder == Groups.Purpose(new string[0], false, false).Order).Select(e => e.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
+            var unfired = entries.Where(e => e.Kind == Kind.Projectile && e.GroupOrder == Groups.Projectile(new Shooter[0]).Order)
+                .Select(e => e.Name + (e.Links.Count > 0 ? " (" + string.Join("/", e.Links.Select(l => l.Group).Distinct()) + ")" : "")).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
+            if (unfired.Count > 0) Plugin.Note($"Scry found nothing that fires {unfired.Count} projectiles, among them: {string.Join(", ", unfired.Take(100))}.");
             if (unplayed.Count > 0) Plugin.Note($"Scry found nothing that plays {unplayed.Count} effects and sounds, among them: {string.Join(", ", unplayed.Take(150))}.");
         }
 
-        private static Group? Of(Entry entry, Dictionary<string, Entry> byName, Dictionary<string, Group> menus)
+        private static Group? Of(Entry entry, Dictionary<string, Entry> byName, Dictionary<string, Group> menus, HashSet<string> weather)
         {
             var prefab = entry.Source as GameObject;
             switch (entry.Kind)
@@ -96,7 +108,11 @@ namespace Scry
                 case Kind.Sound:
                     var footstep = entry.Links.Any(l => l.Group == Relations.FootstepOf);
                     var animation = entry.Links.Any(l => l.Group == Relations.PlayedByAnimation);
-                    var purpose = Groups.Purpose(entry.PlayedIn, footstep, animation);
+                    // Besides its effect lists: weather shows it, or something leaves it when destroyed.
+                    var fields = entry.PlayedIn.ToList();
+                    if (weather.Contains(entry.Name)) fields.Add("weather");
+                    if (entry.LeftBy.Count > 0) fields.Add("left when destroyed");
+                    var purpose = Groups.Purpose(fields, footstep, animation);
 
                     // Found to be played only through a field that spawns or carries it: other.
                     if (purpose.Order == Groups.Purpose(new string[0], false, false).Order && Users(entry).Any()) purpose = Groups.Purpose(new[] { "" }, false, false);
@@ -141,6 +157,20 @@ namespace Scry
             }
         }
 
+        /// <summary>What the weather shows, by prefab name: each environment's particle systems and its object (<c>EnvSetup.m_psystems</c>, <c>m_envObject</c>).</summary>
+        private static void Weather(HashSet<string> names)
+        {
+            var environments = EnvMan.instance != null ? EnvMan.instance.m_environments : null;
+            if (environments == null) return;
+            foreach (var environment in environments)
+            {
+                if (environment == null) continue;
+                if (environment.m_envObject != null) names.Add(environment.m_envObject.name);
+                if (environment.m_psystems == null) continue;
+                foreach (var system in environment.m_psystems) if (system != null) names.Add(system.name);
+            }
+        }
+
         /// <summary>
         /// What fires a projectile, by the links noted: what shoots it or spawns it, each with its
         /// kind, its weapon skill, and whether only creatures carry it (carried by one, and made by
@@ -154,9 +184,11 @@ namespace Scry
                 if (!byName.TryGetValue(link.Target, out var shooter)) continue;
                 var prefab = shooter.Source as GameObject;
                 var drop = prefab != null ? prefab.GetComponent<ItemDrop>() : null;
-                var skill = drop != null && drop.m_itemData?.m_shared != null ? drop.m_itemData.m_shared.m_skillType.ToString() : "";
+                var shared = drop != null ? drop.m_itemData?.m_shared : null;
+                var skill = shared != null ? shared.m_skillType.ToString() : "";
+                var ammo = shared != null && (shared.m_itemType == ItemDrop.ItemData.ItemType.Ammo || shared.m_itemType == ItemDrop.ItemData.ItemType.AmmoNonEquipable) ? shared.m_ammoType : "";
                 var carried = shooter.Links.Any(l => l.Group == Relations.CarriedBy) && shooter.Stations.Length == 0;
-                yield return new Shooter(shooter.Kind, skill, carried);
+                yield return new Shooter(shooter.Kind, skill, carried, ammo);
             }
         }
 
@@ -227,6 +259,8 @@ namespace Scry
                     Tell("the build tabs' names", ex);
                 }
             }
+            // The game's catch-all tab, whose pieces show under every tab.
+            if (category == Piece.PieceCategory.All) return "Every tab";
             var name = _categoryNames.TryGetValue(category, out var known) ? known : category.ToString();
             return name.IndexOf(' ') >= 0 ? name : Naming.FieldLabel(name);
         }

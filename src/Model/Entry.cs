@@ -57,6 +57,9 @@ namespace Scry
 
         /// <summary>For an effect or sound, the effect lists that play it, by field name (a status effect's marked "se:", the interface's "ui:").</summary>
         public string[] PlayedIn = new string[0];
+
+        /// <summary>Whether it took the kind of what leaves it behind when paired with it (a stump listed with its trees).</summary>
+        public bool KindFromOwners;
         public Origin Origin;
 
         /// <summary>Nothing to see or hear, such as an invisible controller object.</summary>

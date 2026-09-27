@@ -61,14 +61,19 @@ namespace Scry
                     : Capital(role) + " of " + owners.Count;
 
                 var kinds = owners.Select(o => o.Kind).Distinct().ToList();
-                if (kinds.Count == 1) leftover.Kind = kinds[0];
+                if (kinds.Count == 1 && leftover.Kind != kinds[0])
+                {
+                    leftover.Kind = kinds[0];
+                    leftover.KindFromOwners = true;
+                }
             }
         }
 
         /// <summary>
-        /// Lists what is left behind in the group of what leaves it, once every entry has its
-        /// group: a stump with its trees, a ragdoll with its creature's faction. One that kept a
-        /// kind of its own, left by owners of different kinds, keeps its own group.
+        /// Lists what took the kind of what leaves it behind in the group of that, once every
+        /// entry has its group: a stump with its trees, a ragdoll with its creature's faction.
+        /// One that was of that kind already (a log, a resource of its own) keeps its own group,
+        /// as does one left by owners of different kinds.
         /// </summary>
         public static void JoinOwnersGroups(IList<Entry> catalog)
         {
@@ -79,7 +84,7 @@ namespace Scry
             }
             foreach (var entry in catalog)
             {
-                if (entry.LeftBy.Count == 0) continue;
+                if (entry.LeftBy.Count == 0 || !entry.KindFromOwners) continue;
                 foreach (var name in entry.LeftBy)
                 {
                     if (!byName.TryGetValue(name, out var owner) || owner.Kind != entry.Kind || owner == entry) continue;

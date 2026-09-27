@@ -40,6 +40,25 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ALogLeftByItsTreeKeepsItsOwnGroupAsItWasAResourceAlready()
+        {
+            var catalog = WithLeftovers();
+            var oak = Find(catalog, "Oak1");
+            oak.Kind = Kind.Resource;
+            oak.Group = "Trees";
+            oak.GroupOrder = 1;
+            var log = Find(catalog, "Oak_log");
+            log.Kind = Kind.Resource;
+            log.Group = "Logs";
+            log.GroupOrder = 2;
+            Leftovers.Pair(catalog, new[] { new Leftover("Oak_log", "Oak1", "log") });
+
+            Leftovers.JoinOwnersGroups(catalog);
+
+            Assert.Equal("Logs", log.Group);
+        }
+
+        [Fact]
         public void WhatStaysItsOwnKindKeepsItsOwnGroup()
         {
             var catalog = WithLeftovers();
