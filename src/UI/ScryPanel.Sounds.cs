@@ -98,6 +98,11 @@ namespace Scry
                     y += rowH + U(5f);
                 }
                 var chip = new Rect(x, y, w, rowH);
+                if (OutOfSight(chip))
+                {
+                    x += w + U(5f);
+                    continue;
+                }
                 if (GUI.Button(chip, text, style)) Previews.PlaySound(entry, clip);
                 if (chip.Contains(Event.current.mousePosition))
                 {
