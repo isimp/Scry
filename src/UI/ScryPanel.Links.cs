@@ -219,6 +219,33 @@ namespace Scry
         private static HashSet<string> _catalogNames;
         private static Explorer _namesFor;
 
+        /// <summary>
+        /// Builds the lookups the side pane uses over the whole catalog (names in it, their kinds,
+        /// the names the game shows, the status effects) one a frame after the catalog is read,
+        /// so the first entry selected does not build them all at once.
+        /// </summary>
+        public static void Prepare(Explorer explorer)
+        {
+            if (explorer == null || ReferenceEquals(explorer, _prepared)) return;
+            if (!ReferenceEquals(explorer, _preparing))
+            {
+                _preparing = explorer;
+                _prepareStep = 0;
+            }
+            switch (_prepareStep++)
+            {
+                case 0: InCatalog(explorer, ""); break;
+                case 1: KindOf(explorer, "-"); break;
+                case 2: ShownName(explorer, "-", ""); break;
+                case 3: CanGo(explorer, "se:-"); break;
+                default: _prepared = explorer; break;
+            }
+        }
+
+        private static Explorer _preparing;
+        private static Explorer _prepared;
+        private static int _prepareStep;
+
         private static bool InCatalog(Explorer explorer, string prefab)
         {
             if (_namesFor != explorer || _catalogNames == null)

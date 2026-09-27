@@ -34,6 +34,18 @@ namespace Scry
 
         private static float _builtScale = -1f;
         private static bool _warmed;
+        private static int _warmNext;
+
+        /// <summary>Every printable letter and the signs the panel draws: crosses, dots, arrows, the play mark, degrees.</summary>
+        private static readonly GUIContent Sample = new GUIContent(Letters());
+
+        private static string Letters()
+        {
+            var every = new System.Text.StringBuilder();
+            for (var c = ' '; c <= '~'; c++) every.Append(c);
+            every.Append("×·▸▾›‹▶°…");
+            return every.ToString();
+        }
         private static Font _body;
         private static Font _heading;
         private static readonly Dictionary<TintKey, Texture2D> Tinted = new Dictionary<TintKey, Texture2D>();
@@ -103,21 +115,28 @@ namespace Scry
         public static void Warm(float scale)
         {
             if (_warmed) return;
-            _warmed = true;
 
             try
             {
                 Ensure(scale);
 
-                var every = new System.Text.StringBuilder();
-                for (var c = ' '; c <= '~'; c++) every.Append(c);
-                var sample = new GUIContent(every.ToString());
-
-                var started = Timing.Start();
-                foreach (var style in new[] { Title, Subtitle, Label, Small, Heading, Big, RowName, RowSub, Glyph, Button, Chip, Field, Tab, TabOn, Tip })
+                // Every style the panel writes in, bold ones and the small sizes a label shrinks
+                // to included, with the signs it draws besides letters; one style a frame, so the
+                // warming itself never stalls one.
+                var styles = new[]
                 {
-                    style.CalcSize(sample);
+                    Title, Subtitle, Label, Small, DimLabel, FaintLabel, Heading, Big, Wrap, DimWrap, RowName, RowSub, Glyph, Center, CenterDim,
+                    Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close, Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross,
+                };
+                if (_warmNext >= styles.Length)
+                {
+                    _warmed = true;
+                    _warmNext = 0;
+                    return;
                 }
+                var started = Timing.Start();
+                var style = styles[_warmNext++];
+                if (style != null) style.CalcSize(Sample);
                 Timing.Add("skin glyphs", started);
             }
             catch (Exception ex)
@@ -400,6 +419,7 @@ namespace Scry
             Gui.horizontalSliderThumb.active.background = Tint(Circle, Color.white, null);
 
             _warmed = false;
+            _warmNext = 0;
         }
 
         /// <summary>

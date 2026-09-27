@@ -125,6 +125,10 @@ namespace Scry
             if (IsOpen && Player.m_localPlayer == null) Hide();
 
             ReadCatalog();
+            if (Explorer != null)
+            {
+                try { ScryPanel.Prepare(Explorer); } catch (Exception ex) { Faults.Tell("preparing the panel's lookups", ex); }
+            }
 
             if (Input.GetKeyDown(Plugin.OpenKey) && CanToggle() && !TypingIt(Plugin.OpenKey)) Toggle();
 

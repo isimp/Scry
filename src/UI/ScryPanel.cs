@@ -115,6 +115,8 @@ namespace Scry
             _catalogNames = null;
             _rowsFor = null;
             _foldChecked = null;
+            _preparing = null;
+            _prepared = null;
             _playsInRows = new List<PlaysInRow>();
             _playsInFor = null;
             Unpacked.Clear();

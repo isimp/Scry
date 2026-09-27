@@ -114,9 +114,11 @@ namespace Scry
             y = Section("side links", y, at => LinksSection(explorer, entry, cw, at));
             y = Section("side command", y, at => Command(explorer, entry, cw, at));
             y = Section("side details", y, at => Details(explorer, entry, cw, at));
-            if (Event.current.type == EventType.Repaint) _sideHeight = y + U(8f);
-
+            // The height as this draw found it, so the scroll range is right from the next event on,
+            // and a scroll left past the end by content that shrank comes back to the end.
+            _sideHeight = y + U(8f);
             GUI.EndScrollView();
+            _sideScroll.y = Mathf.Clamp(_sideScroll.y, 0f, Mathf.Max(0f, _sideHeight - below.height));
         }
 
         /// <summary>
@@ -533,13 +535,13 @@ namespace Scry
                         SaveRects();
                     }
                     var fallen = Previews.Playing.IsPlaying("ragdoll");
-                    if (Previews.RagdollOf(entry) != null && Stage.Subject != null && Button("Ragdoll", fallen ? Skin.On : Skin.Button))
+                    if (Previews.RagdollOf(entry) != null && Shown("Ragdoll", fallen ? Skin.On : Skin.Button, Stage.Subject != null))
                     {
                         if (fallen) Previews.Stop("ragdoll");
                         else Previews.Ragdoll();
                     }
                     var loose = Previews.Playing.IsPlaying("let fall");
-                    if (Previews.CanLetFall(entry) && Stage.Subject != null && Button("Let it fall", loose ? Skin.On : Skin.Button))
+                    if (Previews.CanLetFall(entry) && Shown("Let it fall", loose ? Skin.On : Skin.Button, Stage.Subject != null))
                     {
                         if (loose) Previews.Stop("let fall");
                         else Previews.LetFall();
