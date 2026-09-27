@@ -74,6 +74,45 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AListASaveWroteAsideButNeverMovedIntoPlaceIsStillRead()
+        {
+            // A save cut short after writing the new list aside and before it took the old one's place.
+            var path = Path.Combine(TempDir(), "favourites.txt");
+            File.WriteAllLines(path + ".tmp", new[] { "Troll", "Bow" });
+
+            var favourites = new Favourites(path);
+
+            Assert.True(favourites.Contains(E("Troll", Kind.Creature)));
+            Assert.True(favourites.Contains(E("Bow", Kind.Item)));
+        }
+
+        [Fact]
+        public void AListAsideDoesNotOverrideTheListInPlace()
+        {
+            // With the list in place, anything aside is a save that never finished writing.
+            var path = Path.Combine(TempDir(), "favourites.txt");
+            File.WriteAllLines(path, new[] { "Troll" });
+            File.WriteAllLines(path + ".tmp", new[] { "Bo" });
+
+            var favourites = new Favourites(path);
+
+            Assert.True(favourites.Contains(E("Troll", Kind.Creature)));
+            Assert.Single(favourites.Keys);
+        }
+
+        [Fact]
+        public void SavingOverAListLeavesOnlyTheNewListBehind()
+        {
+            var path = Path.Combine(TempDir(), "favourites.txt");
+            File.WriteAllLines(path, new[] { "Troll" });
+
+            new Favourites(path).Toggle(E("Bow", Kind.Item));
+
+            Assert.Equal(new[] { "Bow", "Troll" }, File.ReadAllLines(path));
+            Assert.False(File.Exists(path + ".tmp"));
+        }
+
+        [Fact]
         public void BlankLinesAndStraySpacesInTheFileAreIgnored()
         {
             var path = Path.Combine(TempDir(), "favourites.txt");

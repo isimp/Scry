@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.IO;
 using Xunit;
 using static Scry.Tests.TestCatalog;
 
@@ -62,6 +64,63 @@ namespace Scry.Tests
             modifiers.Reset();
 
             Assert.Equal(1, modifiers.Look);
+        }
+
+        [Fact]
+        public void APrefabsLooksAreWorkedOutOnlyOnceItIsSelected()
+        {
+            // Reading the looks off a prefab takes a while; a catalog of thousands only needs the selected one's.
+            var asked = 0;
+            var fire = E("fire_pit", Kind.Piece);
+            fire.LooksFrom(() =>
+            {
+                asked++;
+                return (new[] { "Unlit", "Low", "Lit" }, 2);
+            });
+            var explorer = new Explorer(new List<Entry> { fire, E("Rock_3", Kind.Other) }, new Favourites(Path.Combine(TempDir(), "f.txt")));
+            explorer.Text = "fire";
+            Assert.Equal(0, asked);
+
+            explorer.Select(fire);
+
+            Assert.Equal(1, asked);
+            Assert.Equal(new[] { "Unlit", "Low", "Lit" }, explorer.Modifiers.LookNames);
+            Assert.Equal(2, explorer.Modifiers.Look);
+
+            explorer.Select(null);
+            explorer.Select(fire);
+            Assert.Equal(1, asked);
+        }
+
+        [Fact]
+        public void LooksThatCannotBeWorkedOutOfferNoneAndTheSelectionStillWorks()
+        {
+            var broken = E("mod_thing", Kind.Piece);
+            broken.LooksFrom(() => throw new System.InvalidOperationException("a mod's script broke"));
+            var explorer = new Explorer(new List<Entry> { broken }, new Favourites(Path.Combine(TempDir(), "f.txt")));
+
+            explorer.Select(broken);
+
+            Assert.Same(broken, explorer.Selected);
+            Assert.False(explorer.Modifiers.LookAvailable);
+            Assert.Equal(0, explorer.Modifiers.Look);
+        }
+
+        [Fact]
+        public void LooksSetOutrightReplaceTheOnesToBeWorkedOut()
+        {
+            var asked = 0;
+            var fire = E("fire_pit", Kind.Piece);
+            fire.LooksFrom(() =>
+            {
+                asked++;
+                return (new[] { "Unlit", "Lit" }, 1);
+            });
+
+            fire.Looks = new[] { "Cold", "Warm", "Hot" };
+
+            Assert.Equal(new[] { "Cold", "Warm", "Hot" }, For(fire).LookNames);
+            Assert.Equal(0, asked);
         }
 
         [Fact]

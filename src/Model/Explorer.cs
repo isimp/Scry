@@ -264,31 +264,22 @@ namespace Scry
 
         private void Refresh()
         {
-            _results = Search.Run(_catalog, _query, _favourites.Keys);
-
+            Dictionary<string, int> order = null;
             if (_recentOnly)
             {
-                // Newest first, whatever the search ranking would be.
-                var order = new Dictionary<string, int>();
+                order = new Dictionary<string, int>();
                 for (var i = 0; i < _recent.Count; i++) order[_recent[i]] = i;
-                _results = _results.FindAll(e => order.ContainsKey(e.Key));
-                _results.Sort((a, b) => order[a.Key].CompareTo(order[b.Key]));
             }
 
-            // The chips count across every kind, so picking one still shows what the others hold.
+            // One pass over the catalog lists what matches and counts it by kind for the chips,
+            // across every kind, so picking one still shows what the others hold.
             Array.Clear(_counts, 0, _counts.Length);
+            _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, _counts);
             _countAll = 0;
-            var search = Search.Parse(_query.Text);
-            var anyKind = new Query { Text = _query.Text, FavouritesOnly = _query.FavouritesOnly, Origin = _query.Origin };
-            var recent = _recentOnly ? new HashSet<string>(_recent) : null;
-            foreach (var entry in _catalog)
-            {
-                if (!Search.Passes(entry, anyKind, _favourites.Keys)) continue;
-                if (recent != null && !recent.Contains(entry.Key)) continue;
-                if (!search.IsEmpty && !Search.Matches(entry, search)) continue;
-                _counts[(int)entry.Kind]++;
-                _countAll++;
-            }
+            foreach (var count in _counts) _countAll += count;
+
+            // Newest first, whatever the search ranking would be.
+            if (order != null) _results.Sort((a, b) => order[a.Key].CompareTo(order[b.Key]));
 
             if (_selected == null) return;
 

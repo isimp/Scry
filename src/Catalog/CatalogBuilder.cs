@@ -146,8 +146,21 @@ namespace Scry
 
             if (found.Prefab != null)
             {
-                entry.Looks = Variants.Of(found.Prefab, out var look);
-                entry.DefaultLook = look;
+                // Its looks are read off the prefab when it is first selected, not for every prefab here.
+                var prefab = found.Prefab;
+                entry.LooksFrom(() =>
+                {
+                    try
+                    {
+                        var names = Variants.Of(prefab, out var look);
+                        return (names, look);
+                    }
+                    catch (Exception ex)
+                    {
+                        Plugin.Log.LogWarning($"Scry could not work out the looks of {name}, and offers none: {ex.Message}");
+                        throw;
+                    }
+                });
                 entry.Stations = StationsOf(found.Prefab);
             }
 
