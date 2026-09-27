@@ -58,6 +58,7 @@ namespace Scry
                     t.localRotation = rotation;
                 }
                 t.SetParent(parent, false);
+                Awake(prefab, copy);
 
                 // Made under a holder that outlives worlds; one standing on its own belongs to the
                 // world, and goes with it.
@@ -283,6 +284,25 @@ namespace Scry
         /// wherever it stands, since the preview stage is far from the player. A falling copy is
         /// moved by physics alone.
         /// </summary>
+        /// <summary>
+        /// A person starts standing, as the game starts one that has no place in the world (the
+        /// one on the character screen): <c>Player.SetupAwake</c> switches its animator's
+        /// "wakeup" off then. Only a player waking in the world gets up from sitting first.
+        /// Switched once the copy is awake, before its animator first moves.
+        /// </summary>
+        private static void Awake(GameObject prefab, GameObject copy)
+        {
+            if (prefab.GetComponent<Player>() == null) return;
+            foreach (var animator in copy.GetComponentsInChildren<Animator>(true))
+            {
+                if (animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled) continue;
+                foreach (var parameter in animator.parameters)
+                {
+                    if (parameter.name == "wakeup" && parameter.type == AnimatorControllerParameterType.Bool) animator.SetBool("wakeup", false);
+                }
+            }
+        }
+
         private static void Settle(GameObject copy, bool falling)
         {
             foreach (var animator in copy.GetComponentsInChildren<Animator>(true))

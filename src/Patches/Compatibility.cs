@@ -109,6 +109,7 @@ namespace Scry
             (typeof(RandomIdle), "GetRandomIdle", 1, 0x7A49F403, "idle clips picked at random"),
             (typeof(CreatureSpawner), "Spawn", 0, 0xF64EBBF9, "spawn roars"),
             (typeof(SpawnAbility), "Spawn", 0, 0x13568EE6, "spawn roars"),
+            (typeof(Player), "SetupAwake", 0, 0x38272BB3, "the person standing from the start"),
         };
 
         /// <summary>Public methods of the animation event receivers that are not events.</summary>
