@@ -252,6 +252,13 @@ namespace Scry
         /// </summary>
         public static void Forget()
         {
+            // The explorer holds the whole catalog of the world left; it is only given again while
+            // the panel is open, so it is let go here rather than kept into the next world.
+            _explorer = null;
+            _entry = null;
+            _soundEntry = null;
+            _status = null;
+            _selectionVersion = -1;
             Undo.Clear();
             ClipPlaysCache.Clear();
             Wholes.Clear();

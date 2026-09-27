@@ -130,6 +130,10 @@ namespace Scry
             _rowsClips = null;
             _rowsTags = null;
 
+            _groundsFor = null;
+            _commandFor = null;
+            _sideFor = null;
+
             // The search help's index holds the whole catalog.
             _terms = null;
             _termsFor = null;
