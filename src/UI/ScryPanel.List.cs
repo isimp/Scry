@@ -135,6 +135,9 @@ namespace Scry
         /// <summary>The groups folded away, by kind and name; they stay folded while the game runs.</summary>
         private static readonly HashSet<string> FoldedGroups = new HashSet<string>(StringComparer.Ordinal);
 
+        /// <summary>The selection a folded group was last opened for, so one is opened once, when the selection moves into it.</summary>
+        private static Entry _foldChecked;
+
         private static string FoldKey(Explorer explorer, string group) => explorer.KindFilter + "|" + group;
 
         /// <summary>A group's heading, which folds the group away or opens it again when clicked.</summary>
@@ -166,12 +169,13 @@ namespace Scry
         {
             var results = explorer.Results;
 
-            // A selection that lands in a folded group, by the keys or a link, opens it.
+            // A selection that lands in a folded group, by a link or a search, opens it; folding
+            // the group the selection is in afterwards keeps it folded.
             var selected = explorer.SelectedIndex;
-            if (ReferenceEquals(results, _rowsFor) && selected >= 0 && selected < _rowOfEntry.Count && _rowOfEntry[selected] < 0)
+            if (!ReferenceEquals(explorer.Selected, _foldChecked))
             {
-                FoldedGroups.Remove(FoldKey(explorer, results[selected].Group));
-                _rowsFor = null;
+                _foldChecked = explorer.Selected;
+                if (selected >= 0 && selected < results.Count && explorer.KindFilter != null && FoldedGroups.Remove(FoldKey(explorer, results[selected].Group))) _rowsFor = null;
             }
             if (ReferenceEquals(results, _rowsFor)) return _listRows;
             _rowsFor = results;

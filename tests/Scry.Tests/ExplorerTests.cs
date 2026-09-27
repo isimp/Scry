@@ -33,6 +33,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TwoGroupsThatComeInTheSamePlaceStillListTheirEntriesTogether()
+        {
+            Entry R(string name, string group, int order) => new Entry { Name = name, Kind = Kind.Resource, Origin = Origin.Vanilla, Group = group, GroupOrder = order };
+            var catalog = new System.Collections.Generic.List<Entry> { R("a1", "Bushes", 5), R("b1", "Scenery", 5), R("c1", "Bushes", 5), R("d1", "Scenery", 5) };
+            var explorer = new Explorer(catalog, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+
+            explorer.KindFilter = Kind.Resource;
+
+            Assert.Equal(new[] { "Bushes", "Bushes", "Scenery", "Scenery" }, explorer.Results.Select(e => e.Group).ToArray());
+        }
+
+        [Fact]
         public void OpeningShowsEverythingWithNothingSelected()
         {
             var explorer = Open();

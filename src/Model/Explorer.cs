@@ -298,7 +298,7 @@ namespace Scry
 
             // Within a kind's tab, by its groups (resources by how they are gathered), each
             // group in the order the search gave it.
-            else if (_query.Kind != null) _results = _results.OrderBy(e => e.GroupOrder).ToList();
+            else if (_query.Kind != null) _results = _results.OrderBy(e => e.GroupOrder).ThenBy(e => e.Group, StringComparer.Ordinal).ToList();
 
             if (_selected == null) return;
 

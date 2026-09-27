@@ -51,6 +51,15 @@ namespace Scry
                 }
                 if ((i + 1) % slice == 0) yield return i + 1;
             }
+            // What is left behind goes with what leaves it: a stump with its trees.
+            try
+            {
+                Leftovers.JoinOwnersGroups(entries);
+            }
+            catch (Exception ex)
+            {
+                Tell("what is left behind", ex);
+            }
             if (Plugin.LogPreviews) Report(entries);
         }
 

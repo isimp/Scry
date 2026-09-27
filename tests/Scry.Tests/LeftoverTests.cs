@@ -22,6 +22,38 @@ namespace Scry.Tests
         private static Entry Find(List<Entry> catalog, string name) => catalog.Single(e => e.Name == name);
 
         [Fact]
+        public void WhatIsLeftBehindIsListedInTheGroupOfWhatLeavesIt()
+        {
+            var catalog = WithLeftovers();
+            var troll = Find(catalog, "Troll");
+            troll.Group = "Forest monsters";
+            troll.GroupOrder = 2;
+            var ragdoll = Find(catalog, "Troll_ragdoll");
+            ragdoll.Group = "Remains";
+            ragdoll.GroupOrder = 2;
+            Leftovers.Pair(catalog, new[] { new Leftover("Troll_ragdoll", "Troll", "ragdoll") });
+
+            Leftovers.JoinOwnersGroups(catalog);
+
+            Assert.Equal("Forest monsters", ragdoll.Group);
+            Assert.Equal(2, ragdoll.GroupOrder);
+        }
+
+        [Fact]
+        public void WhatStaysItsOwnKindKeepsItsOwnGroup()
+        {
+            var catalog = WithLeftovers();
+            var debris = Find(catalog, "wood_debris");
+            debris.Group = "Scenery";
+            debris.GroupOrder = 5;
+            Leftovers.Pair(catalog, new[] { new Leftover("wood_debris", "stone_wall", "debris"), new Leftover("wood_debris", "Troll", "debris") });
+
+            Leftovers.JoinOwnersGroups(catalog);
+
+            Assert.Equal("Scenery", debris.Group);
+        }
+
+        [Fact]
         public void ARagdollIsNamedAfterItsCreatureAndListedWithIt()
         {
             var catalog = WithLeftovers();

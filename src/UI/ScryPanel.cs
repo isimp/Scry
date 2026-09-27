@@ -111,6 +111,7 @@ namespace Scry
             ShownNames.Clear();
             _catalogNames = null;
             _rowsFor = null;
+            _foldChecked = null;
             _listRows.Clear();
             _rowOfEntry.Clear();
             _statusFor = null;

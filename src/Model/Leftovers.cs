@@ -65,6 +65,31 @@ namespace Scry
             }
         }
 
+        /// <summary>
+        /// Lists what is left behind in the group of what leaves it, once every entry has its
+        /// group: a stump with its trees, a ragdoll with its creature's faction. One that kept a
+        /// kind of its own, left by owners of different kinds, keeps its own group.
+        /// </summary>
+        public static void JoinOwnersGroups(IList<Entry> catalog)
+        {
+            var byName = new Dictionary<string, Entry>(StringComparer.Ordinal);
+            foreach (var entry in catalog)
+            {
+                if (entry.Kind != Kind.StatusEffect && !byName.ContainsKey(entry.Name)) byName[entry.Name] = entry;
+            }
+            foreach (var entry in catalog)
+            {
+                if (entry.LeftBy.Count == 0) continue;
+                foreach (var name in entry.LeftBy)
+                {
+                    if (!byName.TryGetValue(name, out var owner) || owner.Kind != entry.Kind || owner == entry) continue;
+                    entry.Group = owner.Group;
+                    entry.GroupOrder = owner.GroupOrder;
+                    break;
+                }
+            }
+        }
+
         private static string Capital(string text) => string.IsNullOrEmpty(text) ? text : char.ToUpperInvariant(text[0]) + text.Substring(1);
     }
 }
