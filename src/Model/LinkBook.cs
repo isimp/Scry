@@ -86,6 +86,15 @@ namespace Scry
         /// </summary>
         public void Apply(IEnumerable<Entry> catalog)
         {
+            foreach (var _ in ApplyInSteps(catalog, int.MaxValue)) { }
+        }
+
+        /// <summary>
+        /// The same, a few links at a time: each step puts on up to <paramref name="perStep"/> of
+        /// the links noted, and says how many are on so far, so the work can be spread over frames.
+        /// </summary>
+        public IEnumerable<int> ApplyInSteps(IEnumerable<Entry> catalog, int perStep)
+        {
             var byKey = new Dictionary<string, Entry>(StringComparer.Ordinal);
             foreach (var entry in catalog) if (!byKey.ContainsKey(entry.Key)) byKey[entry.Key] = entry;
 
@@ -97,9 +106,12 @@ namespace Scry
             // rather than looked for among all of the entry's (a creature's footsteps, a set's pieces).
             var index = new Dictionary<(Entry, string, string), Link>();
             var indexed = new HashSet<Entry>();
+            yield return 0;
 
+            var done = 0;
             foreach (var (from, group, to, note) in _links)
             {
+                if (++done % perStep == 0) yield return done;
                 if (from == to || !byKey.TryGetValue(from, out var entry) || !byKey.ContainsKey(to)) continue;
                 if (group != Variants && group != VariantOf && copyOf.TryGetValue(to, out var piece) && listed.Contains((from, group, piece))) continue;
 

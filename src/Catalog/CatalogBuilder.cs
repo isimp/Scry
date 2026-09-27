@@ -81,12 +81,16 @@ namespace Scry
             CatalogTiming.Add("setup", started);
             yield return $"Reading prefabs: 0 of {registered.Count:N0}";
 
+            // A prefab at a time: some are large, and a few read together could take a frame's share.
             var components = new List<Component>();
+            var leftovers = new List<Leftover>();
             var read = 0;
+            var progress = "";
             foreach (var pair in registered)
             {
-                ReadPrefab(pair.Key, pair.Value, effects, components);
-                if (++read % 8 == 0) yield return $"Reading prefabs: {read:N0} of {registered.Count:N0}";
+                ReadPrefab(pair.Key, pair.Value, effects, components, leftovers);
+                if (++read % 16 == 1) progress = $"Reading prefabs: {read:N0} of {registered.Count:N0}";
+                yield return progress;
             }
             components.Clear();
 
@@ -150,7 +154,7 @@ namespace Scry
                     Describe(found, name, Provenance.Combine(found.UserOrigins), effects, components);
                     CatalogTiming.Add("describe effects", started);
                     grew = true;
-                    if (++walked % 16 == 0) yield return $"Reading effects: {walked:N0}";
+                    if (++walked % 4 == 0) yield return $"Reading effects: {walked:N0}";
                 }
             }
             while (grew);
@@ -161,20 +165,20 @@ namespace Scry
             foreach (var pair in registered)
             {
                 MakeEntry(entries, pair.Key, pair.Value, effects, true);
-                if (++made % 32 == 0) yield return $"Making entries: {made:N0} of about {total:N0}";
+                if (++made % 16 == 0) yield return $"Making entries: {made:N0} of about {total:N0}";
             }
             foreach (var pair in effects)
             {
                 if (registered.ContainsKey(pair.Key)) continue;
                 MakeEntry(entries, pair.Key, pair.Value, effects, false);
-                if (++made % 32 == 0) yield return $"Making entries: {made:N0} of about {total:N0}";
+                if (++made % 16 == 0) yield return $"Making entries: {made:N0} of about {total:N0}";
             }
             yield return "Pairing leftovers";
 
             started = CatalogTiming.Start();
             try
             {
-                Leftovers.Pair(entries, FindLeftovers(prefabs));
+                Leftovers.Pair(entries, leftovers);
             }
             catch (Exception ex)
             {
@@ -184,15 +188,32 @@ namespace Scry
             yield return "Linking entries";
 
             started = CatalogTiming.Start();
+            IEnumerator<int> linking = null;
             try
             {
-                Relations.Finish(prefabs).Apply(entries);
+                linking = Relations.Finish(prefabs).ApplyInSteps(entries, 400).GetEnumerator();
             }
             catch (Exception ex)
             {
                 Plugin.Log.LogWarning($"Scry could not link entries, and shows them without links: {ex}");
             }
             CatalogTiming.Add("links applied", started);
+            while (linking != null)
+            {
+                started = CatalogTiming.Start();
+                var more = false;
+                try
+                {
+                    more = linking.MoveNext();
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"Scry could not link all entries, and shows some without links: {ex}");
+                }
+                CatalogTiming.Add("links applied", started);
+                if (!more) break;
+                yield return $"Linking entries: {linking.Current:N0}";
+            }
 
             job.Entries = entries;
             Plugin.Note($"Scry's catalog, by part (ms): {CatalogTiming.Report()}; {GC.CollectionCount(0) - collections} garbage collections meanwhile.");
@@ -202,7 +223,7 @@ namespace Scry
         /// One registered prefab: its components looked through once, for its own details, what
         /// it tells of where things come from, and its links.
         /// </summary>
-        private static void ReadPrefab(string name, Found found, Dictionary<string, Found> effects, List<Component> components)
+        private static void ReadPrefab(string name, Found found, Dictionary<string, Found> effects, List<Component> components, List<Leftover> leftovers)
         {
             components.Clear();
             var started = CatalogTiming.Start();
@@ -213,6 +234,9 @@ namespace Scry
             started = CatalogTiming.Start();
             Relations.Read(found.Prefab, components);
             CatalogTiming.Add("links", started);
+            started = CatalogTiming.Start();
+            FindLeftovers(found.Prefab, leftovers);
+            CatalogTiming.Add("leftovers", started);
         }
 
         private static void MakeEntry(List<Entry> entries, string name, Found found, Dictionary<string, Found> effects, bool registeredOrigin)
@@ -484,9 +508,8 @@ namespace Scry
         /// remains its death throws, a tree's log and stump, a log's halves, a rock's broken
         /// version, and the debris anything throws when destroyed.
         /// </summary>
-        private static List<Leftover> FindLeftovers(IEnumerable<GameObject> prefabs)
+        private static void FindLeftovers(GameObject prefab, List<Leftover> found)
         {
-            var found = new List<Leftover>();
             void Add(GameObject thing, GameObject owner, string role)
             {
                 if (thing != null && owner != null) found.Add(new Leftover(thing.name, owner.name, role));
@@ -496,53 +519,49 @@ namespace Scry
                 if (list?.m_effectPrefabs == null) return;
                 foreach (var data in list.m_effectPrefabs)
                 {
-                    var prefab = data?.m_prefab;
-                    if (prefab == null) continue;
-                    if (ragdolls && prefab.GetComponent<Ragdoll>() != null) Add(prefab, owner, "ragdoll");
-                    else if (Ghost.IsDebris(prefab)) Add(prefab, owner, role);
+                    var thing = data?.m_prefab;
+                    if (thing == null) continue;
+                    if (ragdolls && thing.GetComponent<Ragdoll>() != null) Add(thing, owner, "ragdoll");
+                    else if (Ghost.IsDebris(thing)) Add(thing, owner, role);
                 }
             }
 
-            foreach (var prefab in prefabs)
+            if (prefab == null) return;
+            try
             {
-                if (prefab == null) continue;
-                try
+                var character = prefab.GetComponent<Character>();
+                if (character != null) Thrown(character.m_deathEffects, prefab, "remains", true);
+
+                var tree = prefab.GetComponent<TreeBase>();
+                if (tree != null)
                 {
-                    var character = prefab.GetComponent<Character>();
-                    if (character != null) Thrown(character.m_deathEffects, prefab, "remains", true);
-
-                    var tree = prefab.GetComponent<TreeBase>();
-                    if (tree != null)
-                    {
-                        Add(tree.m_logPrefab, prefab, "log");
-                        Add(tree.m_stubPrefab, prefab, "stump");
-                        Thrown(tree.m_destroyedEffect, prefab, "debris", false);
-                    }
-
-                    var log = prefab.GetComponent<TreeLog>();
-                    if (log != null)
-                    {
-                        Add(log.m_subLogPrefab, prefab, "half");
-                        Thrown(log.m_destroyedEffect, prefab, "debris", false);
-                    }
-
-                    var destructible = prefab.GetComponent<Destructible>();
-                    if (destructible != null)
-                    {
-                        Add(destructible.m_spawnWhenDestroyed, prefab, "broken");
-                        Thrown(destructible.m_destroyedEffect, prefab, "debris", false);
-                    }
-
-                    Thrown(prefab.GetComponent<WearNTear>()?.m_destroyedEffect, prefab, "debris", false);
-                    Thrown(prefab.GetComponent<MineRock>()?.m_destroyedEffect, prefab, "debris", false);
-                    Thrown(prefab.GetComponent<MineRock5>()?.m_destroyedEffect, prefab, "debris", false);
+                    Add(tree.m_logPrefab, prefab, "log");
+                    Add(tree.m_stubPrefab, prefab, "stump");
+                    Thrown(tree.m_destroyedEffect, prefab, "debris", false);
                 }
-                catch (Exception ex)
+
+                var log = prefab.GetComponent<TreeLog>();
+                if (log != null)
                 {
-                    Plugin.Log.LogDebug($"Scry could not read what {prefab.name} leaves behind: {ex.Message}");
+                    Add(log.m_subLogPrefab, prefab, "half");
+                    Thrown(log.m_destroyedEffect, prefab, "debris", false);
                 }
+
+                var destructible = prefab.GetComponent<Destructible>();
+                if (destructible != null)
+                {
+                    Add(destructible.m_spawnWhenDestroyed, prefab, "broken");
+                    Thrown(destructible.m_destroyedEffect, prefab, "debris", false);
+                }
+
+                Thrown(prefab.GetComponent<WearNTear>()?.m_destroyedEffect, prefab, "debris", false);
+                Thrown(prefab.GetComponent<MineRock>()?.m_destroyedEffect, prefab, "debris", false);
+                Thrown(prefab.GetComponent<MineRock5>()?.m_destroyedEffect, prefab, "debris", false);
             }
-            return found;
+            catch (Exception ex)
+            {
+                Plugin.Log.LogDebug($"Scry could not read what {prefab.name} leaves behind: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -686,6 +705,10 @@ namespace Scry
         private readonly FrameShare _share = new FrameShare(4);
         private readonly System.Diagnostics.Stopwatch _all = new System.Diagnostics.Stopwatch();
 
+        /// <summary>Pieces that took longer than this are told at the end, with what they read.</summary>
+        private const double LongPieceMs = 8;
+        private readonly List<(string What, double Ms)> _long = new List<(string, double)>();
+
         public CatalogJob()
         {
             _steps = CatalogBuilder.Steps(this);
@@ -727,8 +750,11 @@ namespace Scry
                 while (_share.MayBegin(frame.Elapsed.TotalMilliseconds, done, budgetMs))
                 {
                     var before = frame.Elapsed.TotalMilliseconds;
+                    var what = Progress;
                     var more = _steps.MoveNext();
-                    _share.Took(frame.Elapsed.TotalMilliseconds - before);
+                    var took = frame.Elapsed.TotalMilliseconds - before;
+                    _share.Took(took);
+                    if (took > LongPieceMs && Plugin.LogPreviews) _long.Add((what, took));
                     done++;
                     if (!more)
                     {
@@ -748,6 +774,10 @@ namespace Scry
             {
                 _all.Stop();
                 _steps.Dispose();
+                if (_long.Count > 0)
+                {
+                    Plugin.Note($"Scry's catalog pieces over {LongPieceMs:0} ms ({_long.Count}): {string.Join(", ", _long.OrderByDescending(p => p.Ms).Take(25).Select(p => $"{p.What} {p.Ms:0}"))}.");
+                }
             }
             return Done;
         }

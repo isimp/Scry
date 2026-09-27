@@ -28,6 +28,41 @@ namespace Scry.Tests
         private static List<string> Targets(Entry entry, string group) =>
             entry.Links.Where(l => l.Group == group).Select(l => l.Target).ToList();
 
+        private static LinkBook Busy()
+        {
+            var book = new LinkBook();
+            book.Add("Troll", "Footsteps", "sfx_troll_step", "Footstep of", "walk");
+            book.Add("Troll", "Footsteps", "sfx_troll_step", "Footstep of", "run");
+            book.Add("Troll", "Carries", "Bow", "Carried by");
+            book.AddAmmo(new[] { ("Bow", "$ammo_arrows", false), ("arrow_wood", "$ammo_arrows", true), ("arrow_fire", "$ammo_arrows", true) });
+            book.AddSets(new[]
+            {
+                ("TrollArmorChest", "troll", "Troll leather tunic", true),
+                ("TrollArmorLegs", "troll", "Troll leather pants", true),
+                ("FW_ArmorTrollLeatherChest", "troll", "Troll leather tunic", false),
+            });
+            book.Add("TrollArmorChest", null, "se:SetEffect_TrollArmor", "Given by", "set");
+            return book;
+        }
+
+        private static List<string> Everything(List<Entry> catalog) =>
+            catalog.SelectMany(e => e.Links.Select(l => $"{e.Key} {l.Group} {l.Target} [{string.Join(",", l.Notes)}]")).ToList();
+
+        [Fact]
+        public void LinksPutOnAFewAtATimeComeOutAsWhenPutOnAtOnce()
+        {
+            // Reading the catalog is spread over frames; linking its entries is too.
+            var atOnce = Catalog();
+            Busy().Apply(atOnce);
+
+            var inSteps = Catalog();
+            var steps = Busy().ApplyInSteps(inSteps, 2).Count();
+
+            Assert.True(steps > 1, "the links went on in one step");
+            Assert.Equal(Everything(atOnce), Everything(inSteps));
+            Assert.NotEmpty(Everything(inSteps));
+        }
+
         [Fact]
         public void ALinkShowsOnBothEndsUnderEachEndsOwnHeading()
         {
