@@ -90,23 +90,29 @@ namespace Scry
             }
         }
 
-        /// <summary>Before the search box: Tab through the suggestions, and a click on one of them.</summary>
-        private static void SearchKeysAndPicks(Explorer explorer)
+        /// <summary>
+        /// After the search box, Tab through the suggestions. Not before it: the box's name, by
+        /// which its focus is known, is only given again as it is drawn in each pass, and a Tab it
+        /// does not use (the box leaves Tab alone) moves Unity's keyboard focus to the next control.
+        /// </summary>
+        private static void SearchTab(Explorer explorer)
         {
             var e = Event.current;
-            if (e.type == EventType.KeyDown && (e.keyCode == KeyCode.Tab || e.character == '\t') && GUI.GetNameOfFocusedControl() == SearchControl)
+            if (e.type != EventType.KeyDown || (e.keyCode != KeyCode.Tab && e.character != '\t')) return;
+            var editor = SearchEditor();
+            if (editor == null) return;
+            if (e.keyCode == KeyCode.Tab)
             {
-                if (e.keyCode == KeyCode.Tab)
-                {
-                    var editor = SearchEditor();
-                    var caret = editor != null ? editor.cursorIndex : (explorer.Text ?? "").Length;
-                    var (text, at) = Cycle.Next(explorer.Text ?? "", caret, w => SuggestFor(explorer, w), e.shift);
-                    if (text != explorer.Text) SetSearch(explorer, text, at);
-                }
-                e.Use();
-                return;
+                var (text, at) = Cycle.Next(explorer.Text ?? "", editor.cursorIndex, w => SuggestFor(explorer, w), e.shift);
+                if (text != explorer.Text) SetSearch(explorer, text, at);
             }
+            e.Use();
+        }
 
+        /// <summary>Before the search box and everything under the list of suggestions: a click on one of them.</summary>
+        private static void SearchPicks(Explorer explorer)
+        {
+            var e = Event.current;
             if (_dropShown && e.type == EventType.MouseDown && e.button == 0 && _dropRect.Contains(e.mousePosition))
             {
                 var row = Mathf.FloorToInt((e.mousePosition.y - _dropRect.y - U(4f)) / DropRowH);
@@ -151,9 +157,11 @@ namespace Scry
                 return;
             }
 
+            // Nothing typed yet, in an empty box or after a space, shows every key; the start of
+            // a word already there shows nothing.
             var span = SearchHelp.WordAt(text, caret);
             var typed = text.Substring(span.Start, caret - span.Start);
-            if (typed.Length == 0 || editor.cursorIndex != editor.selectIndex) return;
+            if ((typed.Length == 0 && span.Word.Length > 0) || editor.cursorIndex != editor.selectIndex) return;
 
             var suggested = SuggestFor(explorer, typed);
             if (suggested.Count == 0) return;

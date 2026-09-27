@@ -208,15 +208,16 @@ namespace Scry
         }
 
         /// <summary>
-        /// What could finish the word being typed. A word without a colon that starts a key gets
-        /// the key; after a known key's colon, the values in the catalog that start with (or else
+        /// What could finish the word being typed. Nothing typed yet gets every key, to show what
+        /// the search can do; a word without a colon that starts a key gets the key; after a known key's colon, the values in the catalog that start with (or else
         /// hold) what is typed after it, those most entries have first, whichever tab is open. A
         /// minus in front stays in front. Each finds as many as its count says.
         /// </summary>
         public static List<Suggestion> Suggest(string word, TermIndex index, int max = 8)
         {
             var found = new List<Suggestion>();
-            if (string.IsNullOrEmpty(word) || index == null) return found;
+            if (index == null) return found;
+            word = word ?? "";
             var minus = word.Length > 1 && word[0] == '-' ? "-" : "";
             var typed = word.Substring(minus.Length);
 

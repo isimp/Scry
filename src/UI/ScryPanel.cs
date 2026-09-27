@@ -739,7 +739,7 @@ namespace Scry
 
         private static void Search(Explorer explorer, Rect rect)
         {
-            SearchKeysAndPicks(explorer);
+            SearchPicks(explorer);
             var e = Event.current;
             var hasText = !string.IsNullOrEmpty(explorer.Text);
             var clear = new Rect(rect.xMax - U(32f), rect.y + (rect.height - U(24f)) / 2f, U(24f), U(24f));
@@ -760,6 +760,7 @@ namespace Scry
 
             GUI.SetNextControlName(SearchControl);
             var text = GUI.TextField(rect, explorer.Text, 80, Skin.Field);
+            SearchTab(explorer);
             if (text != explorer.Text)
             {
                 explorer.Text = text;

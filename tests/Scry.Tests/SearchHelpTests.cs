@@ -76,6 +76,15 @@ namespace Scry.Tests
         // ----- What is suggested -----
 
         [Fact]
+        public void NothingTypedYetOffersEveryKeyWithWhatItLooksFor()
+        {
+            var keys = Suggest("");
+            Assert.Equal(Search.Keys.Select(k => k + ":"), keys.Select(s => s.Insert));
+            Assert.All(keys, k => Assert.True(k.IsKey && k.Note.Length > 0));
+            Assert.Equal("", SearchHelp.Ghost("", keys));
+        }
+
+        [Fact]
         public void TheStartOfAKeySuggestsTheKey()
         {
             var suggested = Suggest("bi");
