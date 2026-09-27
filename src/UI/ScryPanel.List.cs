@@ -231,7 +231,8 @@ namespace Scry
             _listRows.Clear();
             _rowOfEntry.Clear();
 
-            var grouped = explorer.KindFilter != null && results.Any(e => e.Group.Length > 0);
+            // Recent lists newest first, not by group, so it has no headings.
+            var grouped = explorer.KindFilter != null && !explorer.RecentOnly && results.Any(e => e.Group.Length > 0);
             for (var i = 0; i < results.Count; i++)
             {
                 var folded = false;

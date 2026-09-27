@@ -120,7 +120,9 @@ namespace Scry
             // Leaving a world destroys every prefab the catalog points at. Compared as references:
             // once the scene is destroyed, Unity's own comparison calls it null, the same as the
             // instance the game has then, and the change would never be seen.
-            if (!ReferenceEquals(_scene, null) && !ReferenceEquals(ZNetScene.instance, _scene)) Forget();
+            // A world left while its catalog is still being read goes the same way.
+            var of = !ReferenceEquals(_scene, null) ? _scene : _job?.Scene;
+            if (!ReferenceEquals(of, null) && !ReferenceEquals(ZNetScene.instance, of)) Forget();
 
             if (IsOpen && Player.m_localPlayer == null) Hide();
 

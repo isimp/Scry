@@ -129,6 +129,16 @@ namespace Scry
             _clipRows = new List<ClipRow>();
             _rowsClips = null;
             _rowsTags = null;
+
+            // The search help's index holds the whole catalog.
+            _terms = null;
+            _termsFor = null;
+            _suggestFor = null;
+            _suggested = new List<Suggestion>();
+            _dropShown = false;
+            _dropList = new List<Suggestion>();
+            _caretTo = -1;
+            Cycle.Reset();
         }
 
         public static void OnGUI()

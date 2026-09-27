@@ -28,6 +28,13 @@ namespace Scry.Tests
             Assert.Equal(shown, Places.RoomLabel(theme));
         }
 
+        [Fact]
+        public void ANameWithNoWordsInItKeepsItsOwnSoThePlaceIsNeverNameless()
+        {
+            Assert.Equal("2048", Places.LocationLabel("2048"));
+            Assert.Equal("65536 rooms", Places.RoomLabel("65536"));
+        }
+
         private static Dictionary<string, HashSet<string>> Found(params (string Prefab, string Place)[] finds)
         {
             var found = new Dictionary<string, HashSet<string>>();

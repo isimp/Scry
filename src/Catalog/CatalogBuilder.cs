@@ -148,27 +148,16 @@ namespace Scry
             started = CatalogTiming.Start();
             GatherInterface(effects);
             CatalogTiming.Add("interface", started);
-            yield return "Reading what prefabs spawn";
-
-            // What a prefab's helpers play is the prefab's: the spawn effects of what a staff's
-            // projectile leaves to raise its summon, the snow a shovel moves. One that is an effect
-            // of its own is read as one below instead.
-            var helpers = new List<Relations.Helper>();
-            Relations.TakeHelpers(helpers);
-            for (var i = 0; i < helpers.Count; i++)
-            {
-                started = CatalogTiming.Start();
-                GatherHelper(helpers[i], registered, effects, components);
-                CatalogTiming.Add("helpers", started);
-                if (i % 8 == 7) yield return $"Reading what prefabs spawn: {i + 1:N0} of {helpers.Count:N0}";
-            }
-            components.Clear();
             yield return "Reading effects";
 
             // Effects can point at further effects (a hit effect with an area of its own), so the
-            // walk continues until nothing new turns up.
+            // walk continues until nothing new turns up. Then what a prefab's helpers play is read
+            // as the prefab's (the spawn effects of what a staff's projectile leaves to raise its
+            // summon, the snow a shovel moves), and what that adds is walked in turn. A helper that
+            // turned out to be an effect of its own is read only as that.
             var described = new HashSet<string>(StringComparer.Ordinal);
             var walked = 0;
+            var helpersRead = false;
             bool grew;
             do
             {
@@ -183,6 +172,21 @@ namespace Scry
                     CatalogTiming.Add("describe effects", started);
                     grew = true;
                     if (++walked % 4 == 0) yield return $"Reading effects: {walked:N0}";
+                }
+
+                if (!grew && !helpersRead)
+                {
+                    helpersRead = true;
+                    var helpers = new List<Relations.Helper>();
+                    Relations.TakeHelpers(helpers);
+                    for (var i = 0; i < helpers.Count; i++)
+                    {
+                        started = CatalogTiming.Start();
+                        GatherHelper(helpers[i], registered, effects, components);
+                        CatalogTiming.Add("helpers", started);
+                        if (i % 8 == 7) yield return $"Reading what prefabs spawn: {i + 1:N0} of {helpers.Count:N0}";
+                    }
+                    grew = true;
                 }
             }
             while (grew);
@@ -1028,6 +1032,9 @@ namespace Scry
 
         /// <summary>The catalog, once read.</summary>
         public List<Entry> Entries { get; internal set; }
+
+        /// <summary>The scene of the world it is read for.</summary>
+        public ZNetScene Scene => _scene;
 
         /// <summary>What the piece being read is about, where more can be told than the progress says (a prefab's name).</summary>
         internal string Piece;

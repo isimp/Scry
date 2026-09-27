@@ -33,6 +33,7 @@ namespace Scry
         {
             if (layer < 0) return false;
             if (_readyLayer == layer) return true;
+            Release();
 
             var ground = new HashSet<int> { layer };
             foreach (var name in Ground)

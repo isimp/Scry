@@ -87,8 +87,9 @@ namespace Scry
                     facts.Where.AddRange(Knowledge.WhereLines(entry.Name));
                     facts.Where.AddRange(Knowledge.SourceLines(entry.Name));
 
-                    // An item nothing makes, drops or sells here comes from somewhere Scry cannot see.
-                    if (entry.Kind == Kind.Item && facts.Where.Count == 0 && !facts.Rows.Any(r => r.Title.StartsWith("Made")))
+                    // An item nothing makes, drops or sells here comes from somewhere Scry cannot see,
+                    // unless the locations, once read, show where it is found.
+                    if (entry.Kind == Kind.Item && facts.Where.Count == 0 && entry.FoundIn.Length == 0 && !facts.Rows.Any(r => r.Title.StartsWith("Made")))
                     {
                         facts.Where.Add(new Source("Nothing loaded makes, drops or sells it. It may come from a location, a dungeon, an event or a mod.", null));
                     }

@@ -14,12 +14,15 @@ namespace Scry
     {
         /// <summary>
         /// A location's name in words, without the number of its variant: "WoodHouse10" is a wood
-        /// house, "Crypt2" a crypt. A word in capitals ("DN") stays so.
+        /// house, "Crypt2" a crypt. A word in capitals ("DN") stays so. A name with no words in it
+        /// (a mod's, all digits) keeps its own, so no place goes unnamed.
         /// </summary>
-        public static string LocationLabel(string prefab) => InWords(prefab);
+        public static string LocationLabel(string prefab) => OrOwn(InWords(prefab), prefab);
 
-        /// <summary>The rooms of a kind of dungeon (the game's <c>Room.Theme</c>, by name).</summary>
-        public static string RoomLabel(string theme) => InWords(theme) + " rooms";
+        /// <summary>The rooms of a kind of dungeon (the game's <c>Room.Theme</c>, by name; a mod's may be only a number).</summary>
+        public static string RoomLabel(string theme) => OrOwn(InWords(theme), theme) + " rooms";
+
+        private static string OrOwn(string words, string own) => words.Length > 0 ? words : (own ?? "").Trim();
 
         private static string InWords(string name)
         {

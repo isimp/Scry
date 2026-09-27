@@ -203,7 +203,11 @@ namespace Scry
             if (Here.Count == 0) Here.Add(Places.RoomLabel("Dungeon"));
         }
 
-        /// <summary>What one part names: itself, when it is a networked prefab placed there; what its fields name; what its effect lists play.</summary>
+        /// <summary>
+        /// What one part names: itself, when it is a networked prefab placed there; what its fields
+        /// name; what its drop tables hold (a chest's loot, what a pickable or a rock gives); what
+        /// its effect lists play.
+        /// </summary>
         private static void Read(Component component)
         {
             if (component == null || component is Transform) return;
@@ -219,6 +223,38 @@ namespace Scry
             Named.Clear();
             Relations.PrefabsNamedBy(component, Named);
             foreach (var thing in Named) if (thing != null) Add(thing.name);
+
+            foreach (var field in DropTablesOf(component.GetType()))
+            {
+                if (!(field.GetValue(component) is DropTable table) || table.m_drops == null) continue;
+                foreach (var drop in table.m_drops) if (drop.m_item != null) Add(drop.m_item.name);
+            }
+        }
+
+        private static readonly Dictionary<Type, System.Reflection.FieldInfo[]> DropTableFields = new Dictionary<Type, System.Reflection.FieldInfo[]>();
+
+        /// <summary>The drop table fields of a type and its bases, found once per type.</summary>
+        private static System.Reflection.FieldInfo[] DropTablesOf(Type type)
+        {
+            if (DropTableFields.TryGetValue(type, out var known)) return known;
+            var found = new List<System.Reflection.FieldInfo>();
+            const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public
+                | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.DeclaredOnly;
+            try
+            {
+                for (var t = type; t != null && t != typeof(MonoBehaviour) && t != typeof(Component) && t != typeof(object); t = t.BaseType)
+                {
+                    foreach (var field in t.GetFields(flags)) if (field.FieldType == typeof(DropTable)) found.Add(field);
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogDebug($"Scry could not read the fields of {type.Name}: {ex.Message}");
+                found.Clear();
+            }
+            known = found.ToArray();
+            DropTableFields[type] = known;
+            return known;
         }
 
         private static void Add(string name)
@@ -268,6 +304,7 @@ namespace Scry
                 }
                 explorer.Regrouped();
             }
+            Facts.Forget();
             Plugin.Log.LogInfo(
                 $"Scry read {Total} locations and dungeon rooms in {_clock.Elapsed.TotalSeconds:0.0} s ({_workMs:0} ms of its own work over {_frames} frames, {_failed} could not be loaded): " +
                 $"they name {Found.Count} prefabs, {inCatalog} of them in the catalog; {moved} effects, sounds and projectiles nothing else plays or fires went under \"In locations\".");
