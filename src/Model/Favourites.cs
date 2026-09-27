@@ -41,13 +41,18 @@ namespace Scry
             Save();
         }
 
+        private string Aside => _path + ".tmp";
+
         private void Load()
         {
             try
             {
-                if (!File.Exists(_path)) return;
+                // Without a list in place, one written aside is a save that stopped before
+                // moving it there, and is the newest list there is.
+                var path = File.Exists(_path) ? _path : File.Exists(Aside) ? Aside : null;
+                if (path == null) return;
 
-                foreach (var line in File.ReadAllLines(_path))
+                foreach (var line in File.ReadAllLines(path))
                 {
                     var key = line.Trim();
                     if (key.Length > 0) _keys.Add(key);
@@ -66,13 +71,26 @@ namespace Scry
                 var folder = Path.GetDirectoryName(_path);
                 if (!string.IsNullOrEmpty(folder)) Directory.CreateDirectory(folder);
 
-                // Written aside and moved into place, so a crash mid-write cannot leave half a list.
+                // Written aside and swapped into place in one step, so a crash at any point leaves
+                // either the old list or the new one, never half a list or none.
                 var keys = new List<string>(_keys);
                 keys.Sort(StringComparer.OrdinalIgnoreCase);
-                var temp = _path + ".tmp";
-                File.WriteAllLines(temp, keys);
-                if (File.Exists(_path)) File.Delete(_path);
-                File.Move(temp, _path);
+                File.WriteAllLines(Aside, keys);
+                if (!File.Exists(_path)) File.Move(Aside, _path);
+                else
+                {
+                    try
+                    {
+                        File.Replace(Aside, _path, null);
+                    }
+                    catch (Exception) when (File.Exists(Aside))
+                    {
+                        // Where the file system cannot swap files, copying over the old list
+                        // still saves; the list aside is only removed once the copy is done.
+                        File.Copy(Aside, _path, true);
+                        File.Delete(Aside);
+                    }
+                }
                 Problem = null;
             }
             catch (Exception ex)
