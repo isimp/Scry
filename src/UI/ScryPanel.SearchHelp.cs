@@ -55,6 +55,9 @@ namespace Scry
         private static int _dropMark;
         private static WordSpan _dropSpan;
 
+        /// <summary>Whether Enter takes the marked suggestion (<see cref="SearchHelp.EnterTakesSuggestion"/>) instead of playing the selection.</summary>
+        private static bool _dropTakesEnter;
+
         /// <summary>Where the caret goes once the search box has the keyboard again after a click took it.</summary>
         private static int _caretTo = -1;
 
@@ -109,6 +112,32 @@ namespace Scry
             e.Use();
         }
 
+        /// <summary>
+        /// After the search box, as Tab: Enter takes the marked suggestion while one is offered for
+        /// a word being typed, and ends Tab's cycling, keeping what it put in. Otherwise Enter is
+        /// left to the list (<see cref="Keys"/>), which plays the selection.
+        /// </summary>
+        private static void SearchEnter(Explorer explorer)
+        {
+            var e = Event.current;
+            if (e.type != EventType.KeyDown || !_dropShown || !_dropTakesEnter) return;
+            var enter = e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter;
+            if (!enter && e.character != '\n') return;
+            var editor = SearchEditor();
+            if (editor == null) return;
+            if (enter)
+            {
+                var text = explorer.Text ?? "";
+                if (Cycle.IsAt(text, editor.cursorIndex)) Cycle.Reset();
+                else if (_dropMark >= 0 && _dropMark < _dropList.Count)
+                {
+                    var taken = SearchHelp.Replace(text, _dropSpan, _dropList[_dropMark].Insert, out var caret);
+                    SetSearch(explorer, taken, caret);
+                }
+            }
+            e.Use();
+        }
+
         /// <summary>Before the search box and everything under the list of suggestions: a click on one of them.</summary>
         private static void SearchPicks(Explorer explorer)
         {
@@ -134,6 +163,7 @@ namespace Scry
         private static void SearchSuggestions(Explorer explorer, Rect box)
         {
             _dropShown = false;
+            _dropTakesEnter = false;
             var editor = SearchEditor();
             if (editor == null) return;
             if (_caretTo >= 0)
@@ -152,6 +182,7 @@ namespace Scry
                 _dropList = Cycle.Suggestions;
                 _dropSpan = new WordSpan { Start = Cycle.Start, End = caret, Word = text.Substring(Cycle.Start, caret - Cycle.Start) };
                 _dropMark = Cycle.Index;
+                _dropTakesEnter = SearchHelp.EnterTakesSuggestion("", true, _dropList.Count);
                 var cycleW = Mathf.Min(box.width, Mathf.Max(U(300f), box.width * 0.6f));
                 _dropRect = new Rect(box.x, box.yMax + U(2f), cycleW, _dropList.Count * DropRowH + U(8f));
                 return;
@@ -186,6 +217,7 @@ namespace Scry
             _dropList = suggested;
             _dropSpan = span;
             _dropMark = 0;
+            _dropTakesEnter = SearchHelp.EnterTakesSuggestion(typed, false, suggested.Count);
             var width = Mathf.Min(box.width, Mathf.Max(U(300f), box.width * 0.6f));
             _dropRect = new Rect(box.x, box.yMax + U(2f), width, suggested.Count * DropRowH + U(8f));
         }

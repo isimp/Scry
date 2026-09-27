@@ -181,6 +181,19 @@ namespace Scry.Tests
             Assert.Equal("", SearchHelp.Ghost("", Suggest("")));
         }
 
+        // ----- Enter -----
+
+        [Theory]
+        [InlineData("bi", false, 1, true)]
+        [InlineData("biome:swamp", true, 2, true)]
+        [InlineData("", false, 7, false)]
+        [InlineData("troll", false, 0, false)]
+        [InlineData("", true, 7, true)]
+        public void EnterTakesASuggestionOnlyForAWordBeingTypedOrWhileTabCycles(string typed, bool cycling, int shown, bool takes)
+        {
+            Assert.Equal(takes, SearchHelp.EnterTakesSuggestion(typed, cycling, shown));
+        }
+
         // ----- Tab -----
 
         [Fact]

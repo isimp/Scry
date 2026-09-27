@@ -240,6 +240,8 @@ namespace Scry
                     break;
                 case KeyCode.Return:
                 case KeyCode.KeypadEnter:
+                    // While the search offers a suggestion for the word being typed, Enter takes it (SearchEnter).
+                    if (SearchFocused && _dropShown && _dropTakesEnter) break;
                     Primary(explorer.Selected);
                     e.Use();
                     break;
@@ -770,6 +772,7 @@ namespace Scry
 
             // After the typed text is taken: what Tab puts in must not be undone by it.
             SearchTab(explorer);
+            SearchEnter(explorer);
             hasText = !string.IsNullOrEmpty(explorer.Text);
 
             if (!hasText)

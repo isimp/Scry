@@ -287,6 +287,16 @@ namespace Scry
             return count;
         }
 
+        /// <summary>
+        /// Whether Enter takes the marked suggestion rather than playing the list's selection: only
+        /// while suggestions show for a word being typed, or while Tab cycles through them. The
+        /// keys listed for nothing typed yet leave Enter to the list.
+        /// </summary>
+        public static bool EnterTakesSuggestion(string typed, bool cycling, int shown)
+        {
+            return shown > 0 && (cycling || !string.IsNullOrEmpty(typed));
+        }
+
         /// <summary>The rest of the best suggestion, when it begins with the word typed; nothing otherwise.</summary>
         public static string Ghost(string word, List<Suggestion> suggestions)
         {
