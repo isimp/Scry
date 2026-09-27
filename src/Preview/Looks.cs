@@ -11,6 +11,9 @@ namespace Scry
     /// </summary>
     internal static class Looks
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static Looks() => WorldCaches.Register(nameof(Looks), Forget);
+
         private static readonly Dictionary<string, Material> LevelMaterials = new Dictionary<string, Material>();
 
         /// <summary>What went wrong dressing a copy, each told once.</summary>

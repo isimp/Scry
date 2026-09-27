@@ -16,6 +16,9 @@ namespace Scry
     /// </summary>
     internal static class Relations
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static Relations() => WorldCaches.Register(nameof(Relations), Forget);
+
         public const string AnimationSounds = "Animation sounds and effects";
         public const string PlayedByAnimation = "Played by an animation of";
         public const string Footsteps = "Footsteps";

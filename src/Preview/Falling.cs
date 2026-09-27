@@ -13,6 +13,9 @@ namespace Scry
     /// </summary>
     internal static class Falling
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static Falling() => WorldCaches.Register(nameof(Falling), Release);
+
         /// <summary>The layers a falling copy lands on in the world.</summary>
         private static readonly string[] Ground = { "Default", "terrain", "static_solid", "piece" };
 

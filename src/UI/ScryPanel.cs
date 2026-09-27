@@ -19,6 +19,9 @@ namespace Scry
     /// </summary>
     internal static partial class ScryPanel
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static ScryPanel() => WorldCaches.Register(nameof(ScryPanel), Forget);
+
         private const string SearchControl = "scry-search";
         private const string ClipControl = "scry-clip-filter";
         private const string EffectControl = "scry-effect-filter";
@@ -112,6 +115,9 @@ namespace Scry
             _catalogNames = null;
             _rowsFor = null;
             _foldChecked = null;
+            _playsInRows = new List<PlaysInRow>();
+            _playsInFor = null;
+            Unpacked.Clear();
             _listRows.Clear();
             _rowOfEntry.Clear();
             _statusFor = null;

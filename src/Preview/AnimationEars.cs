@@ -19,6 +19,9 @@ namespace Scry
     /// </summary>
     internal sealed partial class AnimationEars : MonoBehaviour
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static AnimationEars() => WorldCaches.Register(nameof(AnimationEars), Forget);
+
         /// <summary>The events <c>CharacterAnimEvent</c> and <c>AnimationEffect</c> answer, all of which are heard here.</summary>
         private static readonly HashSet<string> Answered = new HashSet<string>
         {

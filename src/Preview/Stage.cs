@@ -13,6 +13,9 @@ namespace Scry
     /// </summary>
     internal static class Stage
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static Stage() => WorldCaches.Register(nameof(Stage), Clear);
+
         private static readonly Vector3 Origin = new Vector3(0f, 5000f, 0f);
         private const float FieldOfView = 30f;
         private const float SpinDegreesPerSecond = 14f;

@@ -10,6 +10,9 @@ namespace Scry
     /// </summary>
     internal static class EffectLinks
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static EffectLinks() => WorldCaches.Register(nameof(EffectLinks), Clear);
+
         private static readonly Dictionary<string, List<EffectUse>> Uses = new Dictionary<string, List<EffectUse>>(StringComparer.Ordinal);
         private static readonly HashSet<(EffectList, string)> Noted = new HashSet<(EffectList, string)>();
         private static readonly Dictionary<string, List<PlaysInRow>> Rows = new Dictionary<string, List<PlaysInRow>>(StringComparer.Ordinal);

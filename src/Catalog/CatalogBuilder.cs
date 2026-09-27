@@ -19,6 +19,9 @@ namespace Scry
     /// </summary>
     internal static class CatalogBuilder
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static CatalogBuilder() => WorldCaches.Register(nameof(CatalogBuilder), Forget);
+
         private sealed class Found
         {
             public GameObject Prefab;
@@ -309,9 +312,6 @@ namespace Scry
         /// </summary>
         public static void Forget()
         {
-            EffectLinks.Clear();
-            Knowledge.Begin();
-            Relations.Forget();
             _recipes = null;
             FailedKinds.Clear();
         }

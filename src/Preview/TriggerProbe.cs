@@ -33,6 +33,9 @@ namespace Scry
     /// </summary>
     internal static class TriggerProbe
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static TriggerProbe() => WorldCaches.Register(nameof(TriggerProbe), Forget);
+
         private static readonly int AttackTag = Animator.StringToHash("attack");
         private const float Step = 0.025f;
 

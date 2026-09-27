@@ -15,6 +15,9 @@ namespace Scry
     /// </summary>
     internal static partial class Previews
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static Previews() => WorldCaches.Register(nameof(Previews), Forget);
+
         private const float EffectSeconds = 10f;
 
         private struct Timed
@@ -249,9 +252,6 @@ namespace Scry
         /// </summary>
         public static void Forget()
         {
-            TriggerProbe.Forget();
-            AnimationEars.Forget();
-            Ghost.Forget();
             Undo.Clear();
             ClipPlaysCache.Clear();
             Wholes.Clear();
@@ -261,6 +261,7 @@ namespace Scry
             AttackOf.Clear();
             ToldEmpty.Clear();
             GroundsOf.Clear();
+            Born.Clear();
             _carriedPrefab = null;
             _carried = null;
             _clipsOf = null;

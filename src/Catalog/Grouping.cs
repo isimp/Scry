@@ -12,6 +12,9 @@ namespace Scry
     /// </summary>
     internal static class Grouping
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static Grouping() => WorldCaches.Register(nameof(Grouping), Forget);
+
         private static readonly HashSet<string> Told = new HashSet<string>();
 
         /// <summary>Groups the entries, a slice at a time; each step yields how many are done.</summary>

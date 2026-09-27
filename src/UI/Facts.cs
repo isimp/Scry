@@ -14,6 +14,9 @@ namespace Scry
     /// </summary>
     internal sealed class Facts
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static Facts() => WorldCaches.Register(nameof(Facts), Forget);
+
         /// <summary>A row of items with amounts, such as a recipe or a creature's drops.</summary>
         public sealed class Row
         {

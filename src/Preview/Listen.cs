@@ -12,6 +12,9 @@ namespace Scry
     /// </summary>
     internal static class Listen
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static Listen() => WorldCaches.Register(nameof(Listen), Forget);
+
         private sealed class Watch
         {
             public string What;
@@ -22,6 +25,9 @@ namespace Scry
         }
 
         private static readonly Dictionary<string, Watch> Watching = new Dictionary<string, Watch>();
+
+        /// <summary>Stops watching what was played in the world left.</summary>
+        public static void Forget() => Watching.Clear();
         private static readonly HashSet<string> Told = new HashSet<string>();
 
         // Filled again for each thing watched, so watching makes no garbage each frame.

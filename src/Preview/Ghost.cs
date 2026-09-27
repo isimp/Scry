@@ -15,6 +15,9 @@ namespace Scry
     /// </summary>
     internal static class Ghost
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static Ghost() => WorldCaches.Register(nameof(Ghost), Forget);
+
         private static GameObject _holder;
         private static readonly Dictionary<Type, Type[]> RequiredByType = new Dictionary<Type, Type[]>();
 

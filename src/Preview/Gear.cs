@@ -12,6 +12,9 @@ namespace Scry
     /// </summary>
     internal static class Gear
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static Gear() => WorldCaches.Register(nameof(Gear), Forget);
+
         /// <summary>
         /// The gear choices a creature has: "Gear" when it always carries the same things, or one
         /// entry per set when it is given one of several.

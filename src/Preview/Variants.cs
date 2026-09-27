@@ -13,6 +13,9 @@ namespace Scry
     /// </summary>
     internal static class Variants
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static Variants() => WorldCaches.Register(nameof(Variants), Forget);
+
         private enum Sort { None, Growth, Fire, Portal, Door, Chest, Windmill, Smelter, Fermenter, Sap, Station, Picked, Gear, Saddle, Style }
 
         private sealed class Found
