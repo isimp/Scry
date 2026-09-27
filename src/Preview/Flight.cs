@@ -45,10 +45,11 @@ namespace Scry
             var mask = OnStage ? 1 << Stage.Layer : Mask;
             if (step.sqrMagnitude > 0f && Physics.Raycast(from, step.normalized, out var hit, step.magnitude, mask, QueryTriggerInteraction.Ignore))
             {
+                // Gone whatever the burst does, so one that fails leaves no projectile flying on.
                 transform.position = hit.point;
+                Destroy(gameObject);
                 if (OnStage) Stage.PlayList(Burst, null, null, hit.point);
                 else Previews.PlayList(Burst, hit.point, Quaternion.LookRotation(hit.normal), size: Size);
-                Destroy(gameObject);
                 return;
             }
 

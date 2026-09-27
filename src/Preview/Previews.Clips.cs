@@ -241,6 +241,17 @@ namespace Scry
             return null;
         }
 
+        /// <summary>
+        /// Whether what a copy's clips play is known, without waiting for it: false while its
+        /// animator is still being watched, when a clip started now has to wait for its attack and
+        /// lists rather than stall the game until the watching is done.
+        /// </summary>
+        public static bool ClipsKnown(GameObject prefab, GameObject copy)
+        {
+            var plays = PlaysOf(prefab, copy, wait: false);
+            return plays == null || plays.Ready;
+        }
+
         /// <summary>What clips play while their creature's animator is still being watched: nothing yet.</summary>
         private static readonly ClipPlays NotYet = new ClipPlays { Ready = false };
 

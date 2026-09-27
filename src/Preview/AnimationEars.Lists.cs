@@ -15,7 +15,7 @@ namespace Scry
         /// </summary>
         private void PlayAround(AnimationClip clip)
         {
-            var list = clip != null ? Previews.AroundOfClip(_prefab, _copy, clip.name) : null;
+            var list = clip != null && _prefab != null ? Previews.AroundOfClip(_prefab, _copy, clip.name) : null;
             if (list == null) return;
             Listen.Note(Listening, "heard around it, though the game does not play it with this clip");
             Report(Previews.PlayOnCopy(_copy, list, null));
@@ -25,7 +25,7 @@ namespace Scry
         public List<string> AroundMembers(AnimationClip clip)
         {
             var names = new List<string>();
-            var list = clip != null ? Previews.AroundOfClip(_prefab, _copy, clip.name) : null;
+            var list = clip != null && _prefab != null ? Previews.AroundOfClip(_prefab, _copy, clip.name) : null;
             if (list?.m_effectPrefabs == null) return names;
             var own = Members(clip);
             foreach (var data in list.m_effectPrefabs)
@@ -97,7 +97,7 @@ namespace Scry
         public List<string> ByNameMembers(AnimationClip clip)
         {
             var names = new List<string>();
-            var list = clip != null ? Previews.ByNameOfClip(_prefab, _copy, clip.name, out _) : null;
+            var list = clip != null && _prefab != null ? Previews.ByNameOfClip(_prefab, _copy, clip.name, out _) : null;
             if (list?.m_effectPrefabs == null) return names;
             var own = Members(clip);
             foreach (var data in list.m_effectPrefabs)
@@ -145,7 +145,7 @@ namespace Scry
                 if (list?.m_effectPrefabs == null) return;
                 foreach (var data in list.m_effectPrefabs) if (data != null && data.m_enabled) Add(data.m_prefab);
             }
-            if (clip == null) return names;
+            if (clip == null || _prefab == null) return names;
 
             var character = _prefab.GetComponent<Character>();
             var step = _prefab.GetComponentInChildren<global::FootStep>(true);

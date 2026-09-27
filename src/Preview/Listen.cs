@@ -24,6 +24,11 @@ namespace Scry
         private static readonly Dictionary<string, Watch> Watching = new Dictionary<string, Watch>();
         private static readonly HashSet<string> Told = new HashSet<string>();
 
+        // Filled again for each thing watched, so watching makes no garbage each frame.
+        private static readonly List<AudioSource> Sources = new List<AudioSource>();
+        private static readonly List<ParticleSystem> Systems = new List<ParticleSystem>();
+        private static readonly List<Renderer> Renderers = new List<Renderer>();
+
         /// <summary>Starts watching what something plays, the first time it plays; later plays add to it while it is watched.</summary>
         public static void Start(string what, float seconds)
         {
@@ -56,11 +61,21 @@ namespace Scry
                 {
                     if (thing == null) continue;
                     watch.Seen.TryGetValue(thing, out var seen);
-                    var sources = thing.GetComponentsInChildren<AudioSource>(true);
-                    seen.Sounded |= sources.Any(s => s.isPlaying && !s.mute && s.volume > 0f);
-                    seen.Muted |= sources.Length > 0 && sources.All(s => s.mute);
-                    seen.Particles = Mathf.Max(seen.Particles, thing.GetComponentsInChildren<ParticleSystem>().Sum(p => p.particleCount));
-                    seen.Drawn |= thing.GetComponentsInChildren<Renderer>().Any(r => r.enabled && r.isVisible && !(r is ParticleSystemRenderer));
+                    thing.GetComponentsInChildren(true, Sources);
+                    seen.Sounded |= Sources.Exists(s => s.isPlaying && !s.mute && s.volume > 0f);
+                    seen.Muted |= Sources.Count > 0 && Sources.TrueForAll(s => s.mute);
+                    Sources.Clear();
+                    thing.GetComponentsInChildren(false, Systems);
+                    var particles = 0;
+                    foreach (var system in Systems) particles += system.particleCount;
+                    Systems.Clear();
+                    seen.Particles = Mathf.Max(seen.Particles, particles);
+                    if (!seen.Drawn)
+                    {
+                        thing.GetComponentsInChildren(false, Renderers);
+                        seen.Drawn = Renderers.Exists(r => r.enabled && r.isVisible && !(r is ParticleSystemRenderer));
+                        Renderers.Clear();
+                    }
                     watch.Seen[thing] = seen;
                 }
                 if (now < watch.Until) continue;

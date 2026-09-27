@@ -245,6 +245,8 @@ namespace Scry
         /// </summary>
         public static void Forget()
         {
+            TriggerProbe.Forget();
+            AnimationEars.Forget();
             ClipPlaysCache.Clear();
             Wholes.Clear();
             WeaponOf.Clear();
@@ -292,6 +294,15 @@ namespace Scry
             started = Timing.Start();
             if (InWorld) RebuildWorld(modifiers);
             Timing.Add("selection world", started);
+
+            // Only the animators now shown are still worth watching.
+            var shown = new List<string>(2);
+            foreach (var copy in new[] { Stage.Subject, _world })
+            {
+                var ears = ClipPlayer.AnimatorOf(copy)?.GetComponent<AnimationEars>();
+                if (ears != null && ears.Prefab != null) shown.Add(ears.Prefab.name);
+            }
+            TriggerProbe.CancelAllBut(shown);
 
             if (_clipOnShow != null)
             {

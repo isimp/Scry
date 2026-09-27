@@ -76,12 +76,17 @@ namespace Scry
         /// <summary>How many more seeded runs, a few seconds each, gather the clips it idles in.</summary>
         private const int IdleSeeds = 4;
 
-        /// <summary>Where the animator is at one step: the state it is in or moving to, its strongest clip there, and the clip of an attack state it is in or moving to.</summary>
+        /// <summary>
+        /// Where the animator is at one step: the state it is in or moving to, its strongest clip
+        /// there, and the clip of an attack state it is in or moving to. The clips are kept as
+        /// they are and named only where a run is told, since a person's probe takes thousands of
+        /// steps and a clip's name is a new string each time it is asked for.
+        /// </summary>
         private struct Frame
         {
             public int State;
-            public string Clip;
-            public string Attack;
+            public AnimationClip Clip;
+            public AnimationClip Attack;
         }
 
         private static readonly Dictionary<string, Probed> Seen = new Dictionary<string, Probed>();
@@ -103,8 +108,17 @@ namespace Scry
 
         private static readonly Dictionary<string, Job> Jobs = new Dictionary<string, Job>();
 
-        /// <summary>How long the probes may run each frame, so seeing an animator never stalls the game.</summary>
-        private const long FrameBudgetMs = 8;
+        /// <summary>
+        /// How long the probes may run each frame, so seeing an animator never stalls the game: a
+        /// run's next piece is begun only while one like those before still fits.
+        /// </summary>
+        private static readonly FrameShare Share = new FrameShare(4);
+
+        /// <summary>A probe that failed is tried once more; one that fails again is given up, and said so once.</summary>
+        private static Attempts Failures = new Attempts(2);
+
+        /// <summary>Which stance settings each controller has, found once rather than from its parameters on every ask.</summary>
+        private static readonly Dictionary<RuntimeAnimatorController, (bool Int, bool Float)> Stances = new Dictionary<RuntimeAnimatorController, (bool, bool)>();
 
         /// <summary>
         /// The clips each of the triggers and each of the game's actions leads through; one that
@@ -116,16 +130,15 @@ namespace Scry
         {
             // Seen for each stance it stands in: what a trigger plays depends on the weapon held
             // (Humanoid.SetupAnimationState sets statei and statef).
-            var stance = new List<(string Name, AnimatorControllerParameterType Type, float Value)>();
-            if (animator != null)
+            var stance = StanceOf(animator);
+            var key = KeyOf(prefab, stance);
+
+            // A probe given up on answers nothing, rather than being made and failing again.
+            if (Failures.GivenUp(key))
             {
-                foreach (var parameter in animator.parameters)
-                {
-                    if (parameter.name == "statei" && parameter.type == AnimatorControllerParameterType.Int) stance.Add((parameter.name, parameter.type, animator.GetInteger(parameter.name)));
-                    if (parameter.name == "statef" && parameter.type == AnimatorControllerParameterType.Float) stance.Add((parameter.name, parameter.type, animator.GetFloat(parameter.name)));
-                }
+                if (!Seen.TryGetValue(key, out var left)) Seen[key] = left = new Probed();
+                return left;
             }
-            var key = prefab + string.Concat(stance.Select(s => $"|{s.Name}={s.Value}"));
 
             var first = !Seen.TryGetValue(key, out var seen);
             if (first)
@@ -137,49 +150,189 @@ namespace Scry
             // Seen before in this stance, only triggers not pulled yet are (a sword's and a mace's
             // differ, while their stance is the same).
             Jobs.TryGetValue(key, out var job);
-            var missing = triggers.Distinct().Where(t => !seen.Triggers.ContainsKey(t) && (job == null || !job.Triggers.Contains(t))).ToList();
+            var missing = new List<string>();
+            foreach (var trigger in triggers)
+            {
+                if (seen.Triggers.ContainsKey(trigger) || missing.Contains(trigger) || (job != null && job.Triggers.Contains(trigger))) continue;
+                missing.Add(trigger);
+            }
             if (job == null && (first || missing.Count > 0) && animator != null && animator.runtimeAnimatorController != null)
             {
                 job = Begin(key, animator, stance, seen, first);
+                if (job == null) return AfterFailure(key);
             }
             if (job != null)
             {
                 foreach (var trigger in missing) job.Triggers.Enqueue(trigger);
                 if (wait) while (Advance(job)) { }
             }
-            return seen;
+            return Seen.TryGetValue(key, out var now) ? now : AfterFailure(key);
+        }
+
+        /// <summary>
+        /// The answer for a probe that just failed: still to come while it is to be tried again,
+        /// so nothing takes the part seen for the whole; nothing once it is given up.
+        /// </summary>
+        private static Probed AfterFailure(string key)
+        {
+            if (!Failures.GivenUp(key)) return new Probed { Busy = true };
+            if (!Seen.TryGetValue(key, out var left)) Seen[key] = left = new Probed();
+            return left;
+        }
+
+        /// <summary>The stance an animator stands in now: its statei and statef, those of them it has.</summary>
+        private static List<(string Name, AnimatorControllerParameterType Type, float Value)> StanceOf(Animator animator)
+        {
+            var stance = new List<(string Name, AnimatorControllerParameterType Type, float Value)>(2);
+            var controller = animator != null ? animator.runtimeAnimatorController : null;
+            if (controller == null) return stance;
+            if (!Stances.TryGetValue(controller, out var has))
+            {
+                foreach (var parameter in animator.parameters)
+                {
+                    if (parameter.name == "statei" && parameter.type == AnimatorControllerParameterType.Int) has.Int = true;
+                    if (parameter.name == "statef" && parameter.type == AnimatorControllerParameterType.Float) has.Float = true;
+                }
+                Stances[controller] = has;
+            }
+            if (has.Int) stance.Add(("statei", AnimatorControllerParameterType.Int, animator.GetInteger("statei")));
+            if (has.Float) stance.Add(("statef", AnimatorControllerParameterType.Float, animator.GetFloat("statef")));
+            return stance;
+        }
+
+        private static string KeyOf(string prefab, List<(string Name, AnimatorControllerParameterType Type, float Value)> stance)
+        {
+            var key = prefab;
+            foreach (var (name, _, value) in stance) key += $"|{name}={value}";
+            return key;
+        }
+
+        /// <summary>Whether a probe of this prefab is under way, whatever stance it is in.</summary>
+        public static bool IsBusy(string prefab)
+        {
+            foreach (var key in Jobs.Keys) if (Of(key, prefab)) return true;
+            return false;
+        }
+
+        /// <summary>Whether a probe's key is of this prefab, in any stance.</summary>
+        private static bool Of(string key, string prefab) => key == prefab || key.StartsWith(prefab + "|", System.StringComparison.Ordinal);
+
+        /// <summary>
+        /// Stops the probes of every prefab but these, as when another entry is selected: browsing
+        /// quickly would otherwise leave a hidden copy watched for each entry passed, the first
+        /// taking the whole of each frame's share. What they saw so far is let go, so they start
+        /// afresh when their prefab is shown again.
+        /// </summary>
+        public static void CancelAllBut(ICollection<string> keep)
+        {
+            foreach (var job in Jobs.Values.ToList())
+            {
+                var kept = false;
+                foreach (var prefab in keep) kept |= prefab != null && Of(job.Key, prefab);
+                if (kept) continue;
+                Plugin.Note($"Scry stopped watching the animator of {job.Key}, as it is no longer shown.");
+                Drop(job);
+            }
+        }
+
+        /// <summary>Stops every probe and forgets all that was seen, for a world that was left.</summary>
+        public static void Forget()
+        {
+            foreach (var job in Jobs.Values.ToList()) Drop(job);
+            Seen.Clear();
+            Stances.Clear();
+            Failures = new Attempts(2);
+        }
+
+        /// <summary>A probe ended before it was done: its copy destroyed and its part answer let go.</summary>
+        private static void Drop(Job job)
+        {
+            if (job.Holder != null) Object.DestroyImmediate(job.Holder);
+            Jobs.Remove(job.Key);
+            job.Seen.Busy = false;
+            if (Seen.TryGetValue(job.Key, out var seen) && ReferenceEquals(seen, job.Seen)) Seen.Remove(job.Key);
         }
 
         /// <summary>Goes on with the probes under way, a run at a time, for as long as this frame allows.</summary>
         public static void Update()
         {
             if (Jobs.Count == 0) return;
-            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var frame = System.Diagnostics.Stopwatch.StartNew();
+            var done = 0;
             foreach (var job in Jobs.Values.ToList())
             {
                 job.Frames++;
-                while (watch.ElapsedMilliseconds < FrameBudgetMs && Advance(job)) { }
-                if (watch.ElapsedMilliseconds >= FrameBudgetMs) return;
+                while (Share.MayBegin(frame.Elapsed.TotalMilliseconds, done))
+                {
+                    var piece = frame.Elapsed.TotalMilliseconds;
+                    var more = Advance(job);
+                    Share.Took(frame.Elapsed.TotalMilliseconds - piece);
+                    done++;
+                    if (!more) break;
+                }
+                if (!Share.MayBegin(frame.Elapsed.TotalMilliseconds, done)) return;
             }
         }
 
         private static Job Begin(string key, Animator animator, List<(string Name, AnimatorControllerParameterType Type, float Value)> stance, Probed seen, bool first)
         {
-            // Drawn by nothing, heard by nothing, sending no events: only the animator runs.
-            // Its scripts go before it wakes, which would wake them even switched off.
-            var holder = new GameObject("Scry probe");
-            holder.SetActive(false);
-            var body = Object.Instantiate(animator.gameObject, holder.transform, false);
-            foreach (var script in body.GetComponentsInChildren<MonoBehaviour>(true)) Object.DestroyImmediate(script);
-            foreach (var behaviour in body.GetComponentsInChildren<Behaviour>(true)) if (!(behaviour is Animator)) behaviour.enabled = false;
-            foreach (var renderer in body.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
-            var probe = body.GetComponent<Animator>();
-            probe.fireEvents = false;
-            probe.applyRootMotion = false;
-            probe.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-            probe.keepAnimatorStateOnDisable = true;
-            holder.SetActive(true);
+            GameObject holder = null;
+            try
+            {
+                // Drawn by nothing, heard by nothing, sending no events, touching nothing: only
+                // the animator runs. Its scripts go before it wakes, which would wake them even
+                // switched off. Particle systems are no behaviour to switch off and would play
+                // on awake, and colliders would stand unseen in the world.
+                holder = new GameObject("Scry probe");
+                holder.SetActive(false);
+                var body = Object.Instantiate(animator.gameObject, holder.transform, false);
+                foreach (var script in body.GetComponentsInChildren<MonoBehaviour>(true)) Object.DestroyImmediate(script);
+                foreach (var behaviour in body.GetComponentsInChildren<Behaviour>(true)) if (!(behaviour is Animator)) behaviour.enabled = false;
+                foreach (var renderer in body.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
+                foreach (var particles in body.GetComponentsInChildren<ParticleSystem>(true))
+                {
+                    var main = particles.main;
+                    main.playOnAwake = false;
+                    var emission = particles.emission;
+                    emission.enabled = false;
+                    particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                }
+                foreach (var collider in body.GetComponentsInChildren<Collider>(true)) collider.enabled = false;
+                foreach (var rigidbody in body.GetComponentsInChildren<Rigidbody>(true))
+                {
+                    rigidbody.isKinematic = true;
+                    rigidbody.detectCollisions = false;
+                }
+                var probe = body.GetComponent<Animator>();
+                probe.fireEvents = false;
+                probe.applyRootMotion = false;
+                probe.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                probe.keepAnimatorStateOnDisable = true;
+                holder.SetActive(true);
+                return Start(key, holder, probe, stance, seen, first);
+            }
+            catch (System.Exception ex)
+            {
+                if (holder != null) Object.DestroyImmediate(holder);
+                Failed(key, seen, ex.Message);
+                return null;
+            }
+        }
 
+        /// <summary>
+        /// A probe that could not be made or did not finish: what it saw is let go, and it is tried
+        /// again when next asked, once; failing again, it is given up and said so.
+        /// </summary>
+        private static void Failed(string key, Probed seen, string why)
+        {
+            seen.Busy = false;
+            if (Seen.TryGetValue(key, out var kept) && ReferenceEquals(kept, seen)) Seen.Remove(key);
+            if (Failures.Failed(key)) Plugin.Note($"Scry could not see what the animator of {key} plays ({why}); it tries once more.");
+            else Plugin.Log.LogWarning($"Scry could not see what the animator of {key} plays ({why}), and leaves its clips unmatched.");
+        }
+
+        private static Job Start(string key, GameObject holder, Animator probe, List<(string Name, AnimatorControllerParameterType Type, float Value)> stance, Probed seen, bool first)
+        {
             var job = new Job
             {
                 Key = key, Seen = seen, Holder = holder, Probe = probe, First = first,
@@ -206,20 +359,22 @@ namespace Scry
         {
             if (job.Holder == null)
             {
-                End(job);
+                Drop(job);
+                Failed(job.Key, job.Seen, "its hidden copy was gone");
                 return false;
             }
             var random = Random.state;
             var watch = System.Diagnostics.Stopwatch.StartNew();
             _stance = job.Stance;
             bool more;
+            string failure = null;
             try
             {
                 more = job.Work.MoveNext();
             }
             catch (System.Exception ex)
             {
-                Plugin.Log.LogWarning($"Scry could not see what the animator of {job.Key} plays: {ex.Message}");
+                failure = ex.Message;
                 more = false;
             }
             finally
@@ -227,6 +382,15 @@ namespace Scry
                 _stance = null;
                 Random.state = random;
                 job.Ms += watch.ElapsedMilliseconds;
+            }
+
+            // A run stops early, as done, when its copy goes with the scene; that is no answer either.
+            if (failure == null && !more && job.Holder == null) failure = "its hidden copy was gone";
+            if (failure != null)
+            {
+                Drop(job);
+                Failed(job.Key, job.Seen, failure);
+                return false;
             }
             if (!more) End(job);
             return more;
@@ -252,12 +416,12 @@ namespace Scry
             yield return true;
             if (job.First)
             {
-                foreach (var frame in alone) if (frame.Clip != null) seen.Idle.Add(frame.Clip);
+                foreach (var frame in alone) if (frame.Clip != null) seen.Idle.Add(frame.Clip.name);
                 for (var seed = 2; seed <= IdleSeeds + 1; seed++)
                 {
                     var idle = new List<Frame>();
                     foreach (var _ in Trace(idle, probe, null, false, null, -1, 160, seed)) yield return true;
-                    foreach (var frame in idle) if (frame.Clip != null) seen.Idle.Add(frame.Clip);
+                    foreach (var frame in idle) if (frame.Clip != null) seen.Idle.Add(frame.Clip.name);
                     yield return true;
                 }
             }
@@ -277,7 +441,7 @@ namespace Scry
                     if (clips.Count == 0)
                     {
                         var at = Parting(run, alone, 0, AttackPatience);
-                        if (at >= 0 && run[at].Clip != null) clips.Add(run[at].Clip);
+                        if (at >= 0 && run[at].Clip != null) clips.Add(run[at].Clip.name);
                     }
                     seen.Triggers[trigger] = clips;
                     attacks.Add(Tell(trigger, clips));
@@ -312,7 +476,7 @@ namespace Scry
                     var clips = new List<string>();
                     if (!release)
                     {
-                        if (at >= 0 && run[at].Clip != null) clips.Add(run[at].Clip);
+                        if (at >= 0 && run[at].Clip != null) clips.Add(run[at].Clip.name);
                     }
                     else if (at >= 0)
                     {
@@ -322,7 +486,7 @@ namespace Scry
                         var back = new List<Frame>();
                         foreach (var _ in Trace(back, probe, act, isSwitch, a => a.SetBool(name, false), letGo, letGo + ActionPatience, 1, setup)) yield return true;
                         var woke = Parting(back, run, letGo, back.Count - 1);
-                        if (woke >= 0 && back[woke].Clip != null) clips.Add(back[woke].Clip);
+                        if (woke >= 0 && back[woke].Clip != null) clips.Add(back[woke].Clip.name);
                     }
                     seen.Actions[action] = clips;
                     actions.Add(Tell(action, clips));
@@ -387,7 +551,7 @@ namespace Scry
         }
 
         /// <summary>How many steps a run takes before it pauses for the next frame.</summary>
-        private const int StepsPerPause = 40;
+        private const int StepsPerPause = 20;
 
         /// <summary>The first step from <paramref name="from"/> up to <paramref name="upTo"/> where a run is in another state than the one beside it, or -1.</summary>
         private static int Parting(List<Frame> run, List<Frame> beside, int from, int upTo)
@@ -407,7 +571,8 @@ namespace Scry
             {
                 if (frame.Attack != null)
                 {
-                    if (!clips.Contains(frame.Attack)) clips.Add(frame.Attack);
+                    var name = frame.Attack.name;
+                    if (!clips.Contains(name)) clips.Add(name);
                 }
                 else if (clips.Count > 0) break;
             }
@@ -422,7 +587,7 @@ namespace Scry
         }
 
         /// <summary>The clip of the first layer that is in or moving to a state tagged "attack", or null.</summary>
-        private static string AttackIn(Animator animator)
+        private static AnimationClip AttackIn(Animator animator)
         {
             for (var layer = 0; layer < animator.layerCount; layer++)
             {
@@ -435,12 +600,24 @@ namespace Scry
             return null;
         }
 
-        /// <summary>The strongest clip of the state a layer is in, or is moving to.</summary>
-        private static string Strongest(Animator animator, int layer, bool moving)
+        /// <summary>Filled again on each step, so watching an animator makes no garbage.</summary>
+        private static readonly List<AnimatorClipInfo> Infos = new List<AnimatorClipInfo>();
+
+        /// <summary>The strongest clip of the state a layer is in, or is moving to; of equally strong ones, the first.</summary>
+        private static AnimationClip Strongest(Animator animator, int layer, bool moving)
         {
-            var infos = moving ? animator.GetNextAnimatorClipInfo(layer) : animator.GetCurrentAnimatorClipInfo(layer);
-            var strongest = infos.Where(c => c.clip != null).OrderByDescending(c => c.weight).FirstOrDefault();
-            return strongest.clip != null ? strongest.clip.name : null;
+            if (moving) animator.GetNextAnimatorClipInfo(layer, Infos);
+            else animator.GetCurrentAnimatorClipInfo(layer, Infos);
+            AnimationClip strongest = null;
+            var weight = float.NegativeInfinity;
+            foreach (var info in Infos)
+            {
+                if (info.clip == null || info.weight <= weight) continue;
+                strongest = info.clip;
+                weight = info.weight;
+            }
+            Infos.Clear();
+            return strongest;
         }
     }
 }

@@ -55,17 +55,7 @@ namespace Scry
                 Plugin.Note($"Scry plays {prefab.name} by the animator on {animator.gameObject.name} ({animator.runtimeAnimatorController.name}, {all} animators on the copy), {names.Count} clips: {string.Join(", ", names)}. Its settings: {(settings.Length > 0 ? settings : "none")}. Its layers: {layers}.");
             }
 
-            var unknown = new SortedSet<string>();
-            var events = 0;
-            foreach (var clip in animator.runtimeAnimatorController.animationClips)
-            {
-                if (clip == null) continue;
-                foreach (var e in clip.events)
-                {
-                    events++;
-                    if (!Answered.Contains(e.functionName)) unknown.Add(e.functionName);
-                }
-            }
+            var (events, unknown) = EventsOf(animator.runtimeAnimatorController);
 
             // Said once per prefab, so it can be told why a creature's clips stay silent.
             if (Told.Add(prefab.name))
@@ -82,28 +72,106 @@ namespace Scry
             animator.fireEvents = true;
         }
 
+        /// <summary>How many events a controller's clips send, and those Scry does not answer.</summary>
+        private static readonly Dictionary<RuntimeAnimatorController, (int Events, SortedSet<string> Unknown)> EventsByController =
+            new Dictionary<RuntimeAnimatorController, (int, SortedSet<string>)>();
+
+        /// <summary>
+        /// Read once per controller: every copy made asks, on the stage and in the world at each
+        /// selection, and each clip's events are made anew each time they are read (a person's
+        /// controller has hundreds of clips).
+        /// </summary>
+        private static (int Events, SortedSet<string> Unknown) EventsOf(RuntimeAnimatorController controller)
+        {
+            if (EventsByController.TryGetValue(controller, out var known)) return known;
+            var unknown = new SortedSet<string>();
+            var events = 0;
+            foreach (var clip in controller.animationClips)
+            {
+                if (clip == null) continue;
+                foreach (var e in clip.events)
+                {
+                    events++;
+                    if (!Answered.Contains(e.functionName)) unknown.Add(e.functionName);
+                }
+            }
+            known = (events, unknown);
+            EventsByController[controller] = known;
+            return known;
+        }
+
+        /// <summary>Lets go of what was read of the controllers, for a world that was left.</summary>
+        public static void Forget() => EventsByController.Clear();
+
         /// <summary>
         /// A clip starting: an attack's plays what the attack plays as it begins now, and what
         /// lands when it strikes (<see cref="ClipStrike"/>); any plays what the game plays with it,
         /// what it was found by name to play, and what is heard around it; and walking, its feet
-        /// are watched.
+        /// are watched. While the animator is still being watched, what the clip plays is not
+        /// known yet: the clip shows at once, and the rest follows once it is (<see cref="Update"/>).
         /// </summary>
         public void ClipStarted(AnimationClip clip)
         {
-            StartAttack(clip);
-            PlayGameList(clip);
-            PlayByName(clip);
-            PlayAround(clip);
-            WatchFeet(clip);
+            if (_prefab != null && _copy != null) Safely("its feet", () => WatchFeet(clip));
+            Begin(clip);
         }
 
         /// <summary>A clip played again from its start begins its attack again; its feet are still watched.</summary>
-        public void ClipRepeated(AnimationClip clip)
+        public void ClipRepeated(AnimationClip clip) => Begin(clip);
+
+        /// <summary>The clip that started while what it plays was not known yet, to be begun once it is.</summary>
+        private AnimationClip _pending;
+
+        private void Begin(AnimationClip clip)
         {
-            StartAttack(clip);
-            PlayGameList(clip);
-            PlayByName(clip);
-            PlayAround(clip);
+            _pending = null;
+            if (_prefab == null || _copy == null || clip == null) return;
+            if (!Previews.ClipsKnown(_prefab, _copy))
+            {
+                _pending = clip;
+                Listen.Note(Listening, "what it plays is still being worked out; it follows once it is");
+                return;
+            }
+            Safely("its attack", () => StartAttack(clip));
+            Safely("what the game plays with it", () => PlayGameList(clip));
+            Safely("what it was found by name to play", () => PlayByName(clip));
+            Safely("what is heard around it", () => PlayAround(clip));
+        }
+
+        /// <summary>
+        /// A clip that had to wait, begun now that what it plays is known, if it still plays. Its
+        /// attack's strike already passed goes off at once, since the clip will not say so again.
+        /// </summary>
+        private void BeginPending()
+        {
+            if (_pending == null || _prefab == null || !Previews.ClipsKnown(_prefab, _copy)) return;
+            var clip = _pending;
+            _pending = null;
+            var player = _copy != null ? _copy.GetComponent<ClipPlayer>() : null;
+            if (player == null || player.Clip != clip || !ClipPlayer.Position(_copy, out var time, out _)) return;
+
+            Begin(clip);
+            if (_clipAttack == null || _strikeAt >= 0f) return;
+            foreach (var e in player.Events)
+            {
+                if (e.time > time) break;
+                if (e.functionName != "Hit" && e.functionName != "OnAttackTrigger") continue;
+                Safely("its attack's strike", ClipStrike);
+                break;
+            }
+        }
+
+        /// <summary>One thing answered for a clip or an event; one that fails is left out and told once, and the rest still go on.</summary>
+        private void Safely(string what, Action act)
+        {
+            try
+            {
+                act();
+            }
+            catch (Exception ex)
+            {
+                Faults.Tell($"{(_prefab != null ? _prefab.name : "a copy")}'s animations playing {what}", ex);
+            }
         }
 
         // ----- Clips -----
@@ -132,6 +200,8 @@ namespace Scry
         {
             get
             {
+                // Only named while diagnostics are logged; otherwise nothing is listened to.
+                if (!Plugin.LogPreviews) return null;
                 var player = _copy != null ? _copy.GetComponent<ClipPlayer>() : null;
                 return player != null ? player.Heard(player.Clip) : null;
             }
@@ -140,6 +210,7 @@ namespace Scry
         /// <summary>What a clip hung on the copy comes off when it ends, as it does when the game's animation moves on.</summary>
         public void ClipEnded()
         {
+            _pending = null;
             foreach (var attached in _attached) if (attached != null) Destroy(attached);
             _attached.Clear();
             foreach (var lasting in _lasting) if (lasting != null) Destroy(lasting);
@@ -199,13 +270,19 @@ namespace Scry
 
         private void Update()
         {
-            WatchSteps();
-            if (_strikeAt >= 0f && ClipPlayer.Position(_copy, out var time, out _) && time >= _strikeAt) ClipStrike();
+            if (_prefab == null || _copy == null)
+            {
+                _waiting.Clear();
+                return;
+            }
+            Safely("its footsteps", WatchSteps);
+            BeginPending();
+            if (_strikeAt >= 0f && ClipPlayer.Position(_copy, out var time, out _) && time >= _strikeAt) Safely("its attack's strike", ClipStrike);
 
             if (_waiting.Count == 0) return;
             var now = _waiting.ToArray();
             _waiting.Clear();
-            foreach (var heard in now) Answer(heard);
+            foreach (var heard in now) Safely("the event " + heard.Name, () => Answer(heard));
         }
 
         /// <summary>An event of a clip Scry plays itself, which is all there is on the copy then.</summary>
@@ -220,8 +297,8 @@ namespace Scry
 
         private void Answer(Heard e)
         {
-            if (_copy == null) return;
-            Listen.Note(Listening, "event " + e.Name);
+            if (_copy == null || _prefab == null) return;
+            if (Plugin.LogPreviews) Listen.Note(Listening, "event " + e.Name);
             switch (e.Name)
             {
                 case "FootStep": Step(e); break;

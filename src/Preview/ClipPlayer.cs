@@ -31,6 +31,13 @@ namespace Scry
         /// <summary>The clip playing on this copy, or null.</summary>
         public AnimationClip Clip => _graph.IsValid() ? _clip : null;
 
+        /// <summary>
+        /// The playing clip's events, by time, read once as it begins: Unity makes the clip's
+        /// events anew each time they are asked for, which on every frame of every copy playing
+        /// a clip made garbage for nothing.
+        /// </summary>
+        public AnimationEvent[] Events { get; private set; } = new AnimationEvent[0];
+
         public static void Play(GameObject copy, AnimationClip clip, bool loop, float speed)
         {
             if (copy == null || clip == null) return;
@@ -154,10 +161,13 @@ namespace Scry
             _playable.SetSpeed(speed);
             _ears = animator.GetComponent<AnimationEars>();
             animator.fireEvents = false;
+            // Kept in order of time, events at the same time in the order the clip has them.
+            var events = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.OrderBy(clip.events, e => e.time));
+            Events = events;
 
-            var heard = Heard(clip);
+            var heard = Plugin.LogPreviews ? Heard(clip) : null;
             Listen.Start(heard, clip.length / Mathf.Max(0.1f, speed) + 0.5f);
-            Listen.Note(heard, $"{clip.events.Length} events in the clip");
+            if (heard != null) Listen.Note(heard, $"{events.Length} events in the clip");
             if (_ears == null) Listen.Note(heard, "no ears on this copy: its clips send events Scry does not answer, so none are played");
             if (_ears != null) _ears.ClipStarted(clip);
         }
@@ -166,6 +176,7 @@ namespace Scry
         {
             if (_graph.IsValid()) _graph.Destroy();
             _clip = null;
+            Events = new AnimationEvent[0];
             if (_animator != null) _animator.fireEvents = _ears != null;
             if (_ears != null) _ears.ClipEnded();
         }
@@ -178,8 +189,11 @@ namespace Scry
             var time = Mathf.Min((float)_playable.GetTime(), length);
             if (time > _heardTo)
             {
-                Fire(_heardTo, time);
+                // Moved on first, so events that fail to be answered are not sent again next frame.
+                var after = _heardTo;
                 _heardTo = time;
+                Fire(after, time);
+                if (!_graph.IsValid() || _clip == null) return;
             }
             if (_playable.GetTime() < length) return;
 
@@ -199,9 +213,19 @@ namespace Scry
         private void Fire(float after, float upTo)
         {
             if (_ears == null) return;
-            foreach (var e in _clip.events)
+            foreach (var e in Events)
             {
-                if (e.time > after && e.time <= upTo) _ears.Answer(e);
+                if (e.time <= after) continue;
+                if (e.time > upTo) break;
+                try
+                {
+                    _ears.Answer(e);
+                }
+                catch (System.Exception ex)
+                {
+                    Faults.Tell($"answering the event {e.functionName} of the clip {_clip.name}", ex);
+                }
+                if (_ears == null || _clip == null) return;
             }
         }
 
