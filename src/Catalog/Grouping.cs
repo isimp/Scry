@@ -91,6 +91,8 @@ namespace Scry
                     return purpose;
                 case Kind.Projectile:
                     return Groups.Projectile(Shooters(entry, byName));
+                case Kind.StatusEffect:
+                    return Groups.StatusEffect(Givers(entry, byName));
                 default:
                     return null;
             }
@@ -114,6 +116,18 @@ namespace Scry
         {
             Relations.FootstepOf, Relations.PlayedByAnimation, Relations.SpawnedBy, Relations.CarriedBy, LinkBook.ShotFrom,
         };
+
+        /// <summary>What gives a status effect, by the links noted: each giver's kind, and how it gives it.</summary>
+        private static IEnumerable<Giver> Givers(Entry entry, Dictionary<string, Entry> byName)
+        {
+            foreach (var link in entry.Links)
+            {
+                if (link.Group != Relations.GivenBy) continue;
+                var kind = byName.TryGetValue(link.Target, out var giver) ? giver.Kind : Kind.Other;
+                if (link.Notes.Count == 0) yield return new Giver(kind, "");
+                foreach (var how in link.Notes) yield return new Giver(kind, how);
+            }
+        }
 
         /// <summary>
         /// What fires a projectile, by the links noted: what shoots it or spawns it, each with its

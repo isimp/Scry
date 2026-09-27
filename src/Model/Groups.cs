@@ -15,6 +15,19 @@ namespace Scry
         }
     }
 
+    /// <summary>What gives a status effect: its kind, and how, in the words of the field that names it ("consume", "set", "fire damage").</summary>
+    public struct Giver
+    {
+        public Kind Kind;
+        public string How;
+
+        public Giver(Kind kind, string how)
+        {
+            Kind = kind;
+            How = how ?? "";
+        }
+    }
+
     /// <summary>What fires a projectile: its kind, the skill of the weapon, and whether only creatures carry that weapon.</summary>
     public struct Shooter
     {
@@ -185,6 +198,34 @@ namespace Scry
                 else if (shooter.Skill == "Bows" || shooter.Skill == "Crossbows") group = new Group("Bows and crossbows", 1);
                 else if (shooter.Skill == "ElementalMagic" || shooter.Skill == "BloodMagic") group = new Group("Staffs", 2);
                 else group = new Group("Thrown", 3);
+                if (group.Order < best.Order) best = group;
+            }
+            return best;
+        }
+
+        // ----- Status effects by where they come from -----
+
+        /// <summary>
+        /// A status effect by what gives it and how, as the links noted it: a guardian power,
+        /// food and meads, a set, worn equipment, damage of a kind, an attack or a creature, a
+        /// piece, anything else; given by nothing Scry found, it is the game's own (wet, cold,
+        /// rested and the like). Given several ways, it goes under the first.
+        /// </summary>
+        public static Group StatusEffect(IEnumerable<Giver> givers)
+        {
+            var best = new Group("Given by the game itself", 9);
+            foreach (var giver in givers)
+            {
+                var how = (giver.How ?? "").ToLowerInvariant();
+                Group group;
+                if (how.Contains("guardian")) group = new Group("Guardian powers", 1);
+                else if (how.Contains("consume")) group = new Group("Food and meads", 2);
+                else if (how.Contains("set")) group = new Group("Set bonuses", 3);
+                else if (how.Contains("equip")) group = new Group("Worn equipment", 4);
+                else if (how.Contains("damage")) group = new Group("From damage", 5);
+                else if (giver.Kind == Kind.Creature || how.Contains("attack") || how.Contains("hit")) group = new Group("From attacks and creatures", 6);
+                else if (giver.Kind == Kind.Piece) group = new Group("From pieces", 7);
+                else group = new Group("Other", 8);
                 if (group.Order < best.Order) best = group;
             }
             return best;

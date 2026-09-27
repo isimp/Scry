@@ -279,12 +279,6 @@ namespace Scry
         }
 
         /// <summary>
-        /// Keeps what stayed from wandering off or complaining. Animations play in place, and the
-        /// events they would send to the scripts just removed are not sent. The copy is drawn
-        /// wherever it stands, since the preview stage is far from the player. A falling copy is
-        /// moved by physics alone.
-        /// </summary>
-        /// <summary>
         /// A person starts standing, as the game starts one that has no place in the world (the
         /// one on the character screen): <c>Player.SetupAwake</c> switches its animator's
         /// "wakeup" off then. Only a player waking in the world gets up from sitting first.
@@ -303,6 +297,12 @@ namespace Scry
             }
         }
 
+        /// <summary>
+        /// Keeps what stayed from wandering off or complaining. Animations play in place, and the
+        /// events they would send to the scripts just removed are not sent. The copy is drawn
+        /// wherever it stands, since the preview stage is far from the player. A falling copy is
+        /// moved by physics alone.
+        /// </summary>
         private static void Settle(GameObject copy, bool falling)
         {
             foreach (var animator in copy.GetComponentsInChildren<Animator>(true))

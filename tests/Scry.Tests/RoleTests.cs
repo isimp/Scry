@@ -97,6 +97,38 @@ namespace Scry.Tests
             Assert.Equal("Bows and crossbows", Groups.Projectile(reversed).Name);
         }
 
+        // ----- Status effects by where they come from -----
+
+        [Fact]
+        public void AStatusEffectGoesByWhatGivesIt()
+        {
+            Assert.Equal("Guardian powers", Groups.StatusEffect(new[] { new Giver(Kind.Piece, "guardian power") }).Name);
+            Assert.Equal("Food and meads", Groups.StatusEffect(new[] { new Giver(Kind.Item, "consume") }).Name);
+            Assert.Equal("Food and meads", Groups.StatusEffect(new[] { new Giver(Kind.Piece, "consume") }).Name);
+            Assert.Equal("Set bonuses", Groups.StatusEffect(new[] { new Giver(Kind.Item, "set") }).Name);
+            Assert.Equal("Worn equipment", Groups.StatusEffect(new[] { new Giver(Kind.Item, "equip") }).Name);
+            Assert.Equal("From damage", Groups.StatusEffect(new[] { new Giver(Kind.Item, "fire damage") }).Name);
+            Assert.Equal("From attacks and creatures", Groups.StatusEffect(new[] { new Giver(Kind.Creature, "") }).Name);
+            Assert.Equal("From attacks and creatures", Groups.StatusEffect(new[] { new Giver(Kind.Item, "attack") }).Name);
+            Assert.Equal("From pieces", Groups.StatusEffect(new[] { new Giver(Kind.Piece, "") }).Name);
+            Assert.Equal("Other", Groups.StatusEffect(new[] { new Giver(Kind.Other, "") }).Name);
+            Assert.Equal("Given by the game itself", Groups.StatusEffect(new Giver[0]).Name);
+        }
+
+        [Fact]
+        public void AStatusEffectGivenSeveralWaysGoesUnderTheFirst()
+        {
+            var eatenAndBurnt = new[] { new Giver(Kind.Item, "fire damage"), new Giver(Kind.Item, "consume") };
+            Assert.Equal("Food and meads", Groups.StatusEffect(eatenAndBurnt).Name);
+            Assert.Equal("Food and meads", Groups.StatusEffect(new[] { eatenAndBurnt[1], eatenAndBurnt[0] }).Name);
+        }
+
+        [Fact]
+        public void WhatTheGameGivesItselfComesLast()
+        {
+            Assert.True(Groups.StatusEffect(new[] { new Giver(Kind.Other, "") }).Order < Groups.StatusEffect(new Giver[0]).Order);
+        }
+
         // ----- Other by role -----
 
         [Fact]
