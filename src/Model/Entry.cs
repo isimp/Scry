@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Scry
@@ -94,14 +95,71 @@ namespace Scry
         /// <summary>The mod that added it, when that could be told. Empty otherwise.</summary>
         public string ModName = "";
 
+        private string[] _looks = new string[0];
+        private int _defaultLook;
+        private Func<(string[] Names, int Default)> _readLooks;
+
         /// <summary>
         /// The looks it can be shown in, when the game switches between several by script: a
         /// creature with or without its gear, a fire lit or not, a plant growing or grown.
         /// </summary>
-        public string[] Looks = new string[0];
+        public string[] Looks
+        {
+            get
+            {
+                ReadLooks();
+                return _looks;
+            }
+            set
+            {
+                _readLooks = null;
+                _looks = value ?? new string[0];
+            }
+        }
 
         /// <summary>The look it is shown in at first.</summary>
-        public int DefaultLook;
+        public int DefaultLook
+        {
+            get
+            {
+                ReadLooks();
+                return _defaultLook;
+            }
+            set
+            {
+                ReadLooks();
+                _defaultLook = value;
+            }
+        }
+
+        /// <summary>
+        /// Leaves the looks to be worked out when they are first asked for, which is when the
+        /// entry is selected: reading them off a prefab takes a while, and a catalog of thousands
+        /// only ever needs a few. Looks that cannot be worked out are none.
+        /// </summary>
+        public void LooksFrom(Func<(string[] Names, int Default)> read)
+        {
+            _readLooks = read;
+        }
+
+        private void ReadLooks()
+        {
+            var read = _readLooks;
+            if (read == null) return;
+            _readLooks = null;
+
+            try
+            {
+                var (names, first) = read();
+                _looks = names ?? new string[0];
+                _defaultLook = first;
+            }
+            catch (Exception)
+            {
+                _looks = new string[0];
+                _defaultLook = 0;
+            }
+        }
 
         /// <summary>The crafting stations it is made or built at, with the level each needs.</summary>
         public StationUse[] Stations = new StationUse[0];
