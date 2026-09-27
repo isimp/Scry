@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Scry
@@ -20,6 +21,14 @@ namespace Scry
 
         private static Material _material;
         private static bool _tried;
+        private static Texture2D _grid;
+
+        /// <summary>
+        /// The quads and the surfaces' own materials made for the stage now standing. Unity does
+        /// not destroy them with the objects that draw them, so <see cref="Release"/> does when
+        /// the stage is taken down. The shared floor material and the textures are kept.
+        /// </summary>
+        private static readonly List<Object> Made = new List<Object>();
 
         public static GameObject Make(int layer)
         {
@@ -44,10 +53,19 @@ namespace Scry
             var surface = new GameObject(name) { layer = layer };
             surface.AddComponent<MeshFilter>().sharedMesh = Quad();
             var renderer = surface.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = new Material(shared.shader) { mainTexture = texture, name = name };
+            var material = new Material(shared.shader) { mainTexture = texture, name = name };
+            Made.Add(material);
+            renderer.sharedMaterial = material;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
             return surface;
+        }
+
+        /// <summary>Destroys the quads and materials made for the stage, once it is taken down.</summary>
+        public static void Release()
+        {
+            foreach (var made in Made) if (made != null) Object.Destroy(made);
+            Made.Clear();
         }
 
         /// <summary>How many metres one tile of the grid texture covers.</summary>
@@ -56,10 +74,11 @@ namespace Scry
         /// <summary>
         /// Five metres of grid: squares of one metre in faint lines, a brighter line every five,
         /// over a faint fill. Tiled across the floor by its mesh, since the stage's shaders ignore
-        /// a material's tiling.
+        /// a material's tiling. Made once and kept, as the sky's textures are.
         /// </summary>
         public static Texture2D GridTexture()
         {
+            if (_grid != null) return _grid;
             const int perMetre = 64;
             const int size = perMetre * 5;
             var texture = new Texture2D(size, size, TextureFormat.RGBA32, true)
@@ -80,6 +99,7 @@ namespace Scry
             }
             texture.SetPixels32(pixels);
             texture.Apply(true, true);
+            _grid = texture;
             return texture;
         }
 
@@ -130,10 +150,11 @@ namespace Scry
             return null;
         }
 
-        /// <summary>A flat unit quad facing up, centred on its origin.</summary>
+        /// <summary>A flat unit quad facing up, centred on its origin, one for each surface, as the grid's is tiled through its own.</summary>
         private static Mesh Quad()
         {
             var mesh = new Mesh { name = "Scry floor" };
+            Made.Add(mesh);
             mesh.vertices = new[]
             {
                 new Vector3(-0.5f, 0f, -0.5f), new Vector3(-0.5f, 0f, 0.5f),

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -97,7 +96,22 @@ namespace Scry
         private static int _wantedFrame = -10;
         private static int _width = 512;
         private static int _height = 512;
+        private static float _sizeSince;
         private static readonly List<KeyValuePair<GameObject, float>> Played = new List<KeyValuePair<GameObject, float>>();
+
+        /// <summary>How long the size the panel asks for must hold still before the texture is made again at it.</summary>
+        private const float ResizeAfter = 0.15f;
+
+        /// <summary>The main camera Scry took the stage's layer from, to give it back when the stage is taken down.</summary>
+        private static Camera _hiddenFrom;
+
+        // Filled again on each use, so looking through a copy each frame makes no garbage.
+        private static readonly List<Renderer> Renderers = new List<Renderer>();
+        private static readonly List<Renderer> SolidRenderers = new List<Renderer>();
+        private static readonly List<Renderer> LooseRenderers = new List<Renderer>();
+        private static readonly List<ParticleSystem> Particles = new List<ParticleSystem>();
+        private static readonly List<AudioSource> Sources = new List<AudioSource>();
+        private static readonly List<Animator> Animators = new List<Animator>();
 
         public static float Yaw = FrontYaw;
         public static float Pitch = FrontPitch;
@@ -211,8 +225,12 @@ namespace Scry
         public static void Request(int width, int height)
         {
             _wantedFrame = Time.frameCount;
-            _width = Mathf.Clamp(width, 64, 2048);
-            _height = Mathf.Clamp(height, 64, 2048);
+            width = Mathf.Clamp(width, 64, 2048);
+            height = Mathf.Clamp(height, 64, 2048);
+            if (width == _width && height == _height) return;
+            _width = width;
+            _height = height;
+            _sizeSince = Time.unscaledTime;
         }
 
         /// <summary>Puts a fresh copy of the entry on the stage, with the modifiers applied.</summary>
@@ -227,12 +245,15 @@ namespace Scry
             if (!IsStaged(entry) || !(entry.Source is GameObject)) return;
             if (!Ensure()) return;
 
+            // Making it and dressing it are told as "selection copy" and "selection dress",
+            // measuring it and applying the modifiers as "selection measure" and "selection apply".
             _subjectIsPerson = Looks.IsWorn(entry);
-            _subject = Looks.Copy(entry, modifiers, _root.transform, Origin, Quaternion.identity, _layer);
+            _subject = Looks.Copy(entry, modifiers, _root.transform, Origin, Quaternion.identity, _layer, "selection");
             if (_subject == null) return;
 
             Tune(_subject, entry.Kind == Kind.Effect);
 
+            var started = Timing.Start();
             _madeAt = Time.unscaledTime;
             _followEffect = entry.Kind == Kind.Effect;
             var character = (entry.Source as GameObject)?.GetComponent<Character>();
@@ -254,7 +275,11 @@ namespace Scry
             var capsule = grounded != null ? grounded.GetComponent<CapsuleCollider>() : null;
             _groundFixed = capsule != null && capsule.direction == 1;
             if (_groundFixed) _bodyMinY = Origin.y + (capsule.center.y - capsule.height / 2f) * _baseScale.y;
+            Timing.Add("selection measure", started);
+
+            started = Timing.Start();
             Apply(modifiers);
+            Timing.Add("selection apply", started);
         }
 
         /// <summary>Whether an entry has something to put on the stage.</summary>
@@ -270,7 +295,9 @@ namespace Scry
 
             _scale = modifiers.Scale;
             _subject.transform.localScale = _baseScale * modifiers.Scale;
-            foreach (var animator in _subject.GetComponentsInChildren<Animator>(true)) animator.speed = modifiers.AnimationSpeed;
+            _subject.GetComponentsInChildren(true, Animators);
+            foreach (var animator in Animators) animator.speed = modifiers.AnimationSpeed;
+            Animators.Clear();
             ClipPlayer.SetSpeed(_subject, modifiers.AnimationSpeed);
             PlacePerson();
         }
@@ -287,18 +314,13 @@ namespace Scry
                 if (Time.unscaledTime - _madeAt < 0.5f) return false;
 
                 // Something with neither particles nor sound only ends when it is destroyed.
-                var moving = false;
-                foreach (var particles in _subject.GetComponentsInChildren<ParticleSystem>())
-                {
-                    moving = true;
-                    if (particles.IsAlive(false)) return false;
-                }
-                foreach (var source in _subject.GetComponentsInChildren<AudioSource>())
-                {
-                    moving = true;
-                    if (source.isPlaying) return false;
-                }
-                return moving;
+                _subject.GetComponentsInChildren(false, Particles);
+                _subject.GetComponentsInChildren(false, Sources);
+                var moving = Particles.Count > 0 || Sources.Count > 0;
+                var playing = Particles.Exists(p => p.IsAlive(false)) || Sources.Exists(s => s.isPlaying);
+                Particles.Clear();
+                Sources.Clear();
+                return moving && !playing;
             }
         }
 
@@ -515,6 +537,10 @@ namespace Scry
             Expire();
             if (_camera == null || Time.frameCount - _wantedFrame > 2) return;
 
+            // With nothing on the stage there is nothing to film: the panel draws the texture
+            // only while a copy is on it.
+            if (_subject == null && Played.Count == 0) return;
+
             if (Spin && !Dragging && _subject != null) Yaw += SpinDegreesPerSecond * Time.unscaledDeltaTime;
 
             EnsureTexture();
@@ -524,7 +550,11 @@ namespace Scry
             var mask = 1 << _layer;
             var sun = EnvMan.instance != null ? EnvMan.instance.m_dirLight : null;
             var main = GameCamera.instance != null ? GameCamera.instance.GetComponent<Camera>() : null;
-            if (main != null) main.cullingMask &= ~mask;
+            if (main != null && (main.cullingMask & mask) != 0)
+            {
+                main.cullingMask &= ~mask;
+                _hiddenFrom = main;
+            }
 
             var fog = RenderSettings.fog;
             var ambient = RenderSettings.ambientLight;
@@ -605,12 +635,21 @@ namespace Scry
             _floor = null;
             _ground = null;
             _person = null;
+            _grid = null;
+            _sky = null;
+            _key = _fill = _rim = null;
+            _lastShown = null;
+            Floor.Release();
             if (_texture != null)
             {
                 _texture.Release();
                 Object.Destroy(_texture);
                 _texture = null;
             }
+
+            // The main camera sees the layer again, as it did before Scry took it.
+            if (_hiddenFrom != null && _layer >= 0) _hiddenFrom.cullingMask |= 1 << _layer;
+            _hiddenFrom = null;
         }
 
         private static void Expire()
@@ -658,6 +697,18 @@ namespace Scry
             }
             var wantRadius = Mathf.Min(reach, _followEffect ? 25f : own * 1.6f);
 
+            // Measuring leaves out what has no usable bounds, but should anything still come out
+            // of it that is not a number, the camera frames the stage's middle as it frames a model
+            // with nothing to measure, rather than being put nowhere.
+            if (!Finite(center) || !Finite(wantRadius) || !Finite(_frameRadius))
+            {
+                _pan = Vector3.zero;
+                var fallback = Unmeasured(Origin);
+                center = fallback.center;
+                wantRadius = fallback.extents.magnitude * 1.6f;
+                _frameRadius = -1f;
+            }
+
             if (_frameRadius < 0f)
             {
                 _frameRadius = wantRadius;
@@ -680,6 +731,7 @@ namespace Scry
             _camera.aspect = (float)_width / _height;
 
             var groundY = Mathf.Min(FloorY, _person != null && _person.activeSelf ? _personBounds.min.y : FloorY);
+            if (!Finite(groundY)) groundY = Origin.y;
             if (_sky != null && _sky.activeSelf)
             {
                 var depth = _camera.farClipPlane * 0.95f;
@@ -737,13 +789,15 @@ namespace Scry
         private static void Reach(GameObject thing, Vector3 center, ref float reach)
         {
             if (thing == null || !thing.activeInHierarchy) return;
-            foreach (var renderer in thing.GetComponentsInChildren<Renderer>())
+            thing.GetComponentsInChildren(false, Renderers);
+            foreach (var renderer in Renderers)
             {
                 if (!renderer.enabled) continue;
                 var bounds = renderer.bounds;
-                if (bounds.size.sqrMagnitude < 1e-6f || bounds.size.magnitude > 200f) continue;
+                if (!Usable(bounds) || bounds.size.sqrMagnitude < 1e-6f || bounds.size.magnitude > 200f) continue;
                 reach = Mathf.Max(reach, Vector3.Distance(center, bounds.center) + bounds.extents.magnitude);
             }
+            Renderers.Clear();
         }
 
         /// <summary>
@@ -795,35 +849,61 @@ namespace Scry
         /// </summary>
         private static Bounds Measure(GameObject subject, bool body = false)
         {
-            if (body)
+            // A renderer whose bounds are not numbers (a mod's broken mesh) would make the whole
+            // measure so, and the camera with it; it is left out.
+            subject.GetComponentsInChildren(false, Renderers);
+            try
             {
-                var own = subject.GetComponentsInChildren<Renderer>().Where(r => r.enabled && !(r is ParticleSystemRenderer) && r.GetComponentInParent<Hung>() == null).ToList();
-                if (own.Count > 0)
+                if (body)
                 {
-                    var b = own[0].bounds;
-                    foreach (var r in own) b.Encapsulate(r.bounds);
-                    if (b.size.sqrMagnitude >= 0.0001f && b.size.magnitude <= 2000f) return b;
+                    var any = false;
+                    var b = new Bounds();
+                    foreach (var r in Renderers)
+                    {
+                        if (!r.enabled || r is ParticleSystemRenderer || r.GetComponentInParent<Hung>() != null) continue;
+                        var rb = r.bounds;
+                        if (!Usable(rb)) continue;
+                        if (any) b.Encapsulate(rb);
+                        else b = rb;
+                        any = true;
+                    }
+                    if (any && b.size.sqrMagnitude >= 0.0001f && b.size.magnitude <= 2000f) return b;
                 }
+
+                foreach (var renderer in Renderers)
+                {
+                    if (!renderer.enabled || !Usable(renderer.bounds)) continue;
+                    if (renderer is ParticleSystemRenderer || renderer is TrailRenderer || renderer is LineRenderer) LooseRenderers.Add(renderer);
+                    else SolidRenderers.Add(renderer);
+                }
+
+                var use = SolidRenderers.Count > 0 ? SolidRenderers : LooseRenderers;
+                if (use.Count == 0) return Unmeasured(subject.transform.position);
+
+                var bounds = use[0].bounds;
+                for (var i = 1; i < use.Count; i++) bounds.Encapsulate(use[i].bounds);
+
+                // A degenerate or runaway size would put the camera nowhere useful.
+                if (!Usable(bounds) || bounds.size.sqrMagnitude < 0.0001f || bounds.size.magnitude > 2000f) return Unmeasured(subject.transform.position);
+                return bounds;
             }
-            var solid = new List<Renderer>();
-            var loose = new List<Renderer>();
-            foreach (var renderer in subject.GetComponentsInChildren<Renderer>())
+            finally
             {
-                if (!renderer.enabled) continue;
-                if (renderer is ParticleSystemRenderer || renderer is TrailRenderer || renderer is LineRenderer) loose.Add(renderer);
-                else solid.Add(renderer);
+                Renderers.Clear();
+                SolidRenderers.Clear();
+                LooseRenderers.Clear();
             }
-
-            var use = solid.Count > 0 ? solid : loose;
-            if (use.Count == 0) return new Bounds(subject.transform.position + Vector3.up, Vector3.one * 2f);
-
-            var bounds = use[0].bounds;
-            for (var i = 1; i < use.Count; i++) bounds.Encapsulate(use[i].bounds);
-
-            // A degenerate or runaway size would put the camera nowhere useful.
-            if (bounds.size.sqrMagnitude < 0.0001f || bounds.size.magnitude > 2000f) return new Bounds(subject.transform.position + Vector3.up, Vector3.one * 2f);
-            return bounds;
         }
+
+        /// <summary>What a copy with nothing to measure is taken to be: two metres across, standing where it is.</summary>
+        private static Bounds Unmeasured(Vector3 position) => new Bounds(position + Vector3.up, Vector3.one * 2f);
+
+        /// <summary>Whether bounds are numbers throughout, neither NaN nor infinite.</summary>
+        private static bool Usable(Bounds bounds) => Finite(bounds.center) && Finite(bounds.extents);
+
+        private static bool Finite(Vector3 v) => Finite(v.x) && Finite(v.y) && Finite(v.z);
+
+        private static bool Finite(float f) => !float.IsNaN(f) && !float.IsInfinity(f);
 
         /// <summary>
         /// Sound on the stage: an effect's is heard as if beside you, anything else stays quiet,
@@ -853,10 +933,14 @@ namespace Scry
             if (_layer == -2) _layer = FreeLayer();
             if (_layer < 0) return false;
 
+            // What a stage taken down with the scene rather than through Clear left behind.
+            if (_root != null) Object.Destroy(_root);
+            Floor.Release();
+
             _root = new GameObject("Scry stage");
             _root.transform.position = Origin;
 
-            var cameraObject = new GameObject("Scry stage camera");
+            var cameraObject = new GameObject("Scry stage camera") { layer = _layer };
             cameraObject.transform.SetParent(_root.transform, false);
             _camera = cameraObject.AddComponent<Camera>();
             _camera.enabled = false;
@@ -924,7 +1008,7 @@ namespace Scry
 
         private static Light AddLight(Transform parent)
         {
-            var lightObject = new GameObject("Scry stage light");
+            var lightObject = new GameObject("Scry stage light") { layer = _layer };
             lightObject.transform.SetParent(parent, false);
             var light = lightObject.AddComponent<Light>();
             light.type = LightType.Directional;
@@ -935,10 +1019,15 @@ namespace Scry
 
         private static void EnsureTexture()
         {
-            if (_texture != null && _texture.width == _width && _texture.height == _height) return;
-
             if (_texture != null)
             {
+                if (_texture.width == _width && _texture.height == _height) return;
+
+                // While the panel or the stage is being resized the size changes on every frame;
+                // the texture there is drawn stretched until the size holds still, rather than one
+                // made and let go on each of them. The camera films at the size's shape meanwhile.
+                if (Time.unscaledTime - _sizeSince < ResizeAfter) return;
+
                 if (_camera != null) _camera.targetTexture = null;
                 _texture.Release();
                 Object.Destroy(_texture);
