@@ -20,7 +20,28 @@ namespace Scry
         private static ConfigEntry<float> _uiScale;
         private static ConfigEntry<bool> _logPreviews;
 
-        public static KeyCode OpenKey => _openKey?.Value ?? KeyCode.F7;
+        /// <summary>
+        /// The key that opens the panel. One the game or the panel already uses for something
+        /// else (a click, Escape, the mouse's back and forward buttons) would open and close it
+        /// by accident, so F7 stands in for it, and the log says so once.
+        /// </summary>
+        public static KeyCode OpenKey
+        {
+            get
+            {
+                var key = _openKey?.Value ?? KeyCode.F7;
+                if (key != KeyCode.Mouse0 && key != KeyCode.Mouse1 && key != KeyCode.Escape && key != KeyCode.Mouse3 && key != KeyCode.Mouse4) return key;
+                if (_toldKey != key)
+                {
+                    _toldKey = key;
+                    Log.LogWarning($"Scry cannot open on {key}, which the game or the panel already uses; F7 opens it instead.");
+                }
+                return KeyCode.F7;
+            }
+        }
+
+        private static KeyCode _toldKey = KeyCode.None;
+
         public static bool AutoSpin => _autoSpin?.Value ?? true;
         public static bool PlayOnSelect => _playOnSelect?.Value ?? true;
         public static float UiScale => _uiScale?.Value ?? 1f;
