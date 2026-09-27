@@ -187,7 +187,6 @@ namespace Scry
             {
                 var (tool, main, table) = tools[t];
                 var pieces = table.m_pieces.Where(p => p != null).Select(p => p.GetComponent<Piece>()).Where(p => p != null).ToList();
-                var tabCount = pieces.Select(p => p.m_category).Distinct().Count();
                 foreach (var piece in pieces)
                 {
                     var name = piece.gameObject.name;
@@ -197,7 +196,7 @@ namespace Scry
                         ? CatalogBuilder.Localize(table.m_categoryLabels[index])
                         : "";
                     if (label.Length == 0) label = CategoryName(piece.m_category);
-                    menus[name] = Groups.Piece(tool, t, main, label, index >= 0 ? index : 500 + (int)piece.m_category, tabCount);
+                    menus[name] = Groups.Piece(tool, t, main, label, index >= 0 ? index : 500 + (int)piece.m_category);
                 }
             }
             return menus;

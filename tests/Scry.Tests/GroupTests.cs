@@ -54,19 +54,19 @@ namespace Scry.Tests
         [Fact]
         public void ThePiecesOfTheHammerGoByItsTabsAndOtherToolsAreOneGroupEach()
         {
-            Assert.Equal("Furniture", Groups.Piece("Hammer", 0, true, "Furniture", 3, 5).Name);
-            Assert.Equal("Cultivator", Groups.Piece("Cultivator", 2, false, "Misc", 0, 1).Name);
-            Assert.Equal("Serving tray", Groups.Piece("Serving tray", 3, false, "Meads", 1, 2).Name);
+            Assert.Equal("Furniture", Groups.Piece("Hammer", 0, true, "Furniture", 3).Name);
+            Assert.Equal("Cultivator", Groups.Piece("Cultivator", 2, false, "Misc", 0).Name);
+            Assert.Equal("Serving tray", Groups.Piece("Serving tray", 3, false, "Meads", 1).Name);
             // A mod's tool with many tabs of its own (PlanBuild's plans) is one group, not one a tab.
-            Assert.Equal("Plan hammer", Groups.Piece("Plan hammer", 4, false, "Furniture", 4, 12).Name);
+            Assert.Equal("Plan hammer", Groups.Piece("Plan hammer", 4, false, "Furniture", 4).Name);
         }
 
         [Fact]
         public void PiecesComeByToolThenTabThenThoseInNoMenu()
         {
-            var hammerLast = Groups.Piece("Hammer", 0, true, "Misc", 8, 9);
-            var cultivator = Groups.Piece("Cultivator", 1, false, "Misc", 0, 1);
-            Assert.True(Groups.Piece("Hammer", 0, true, "Crafting", 0, 9).Order < hammerLast.Order);
+            var hammerLast = Groups.Piece("Hammer", 0, true, "Misc", 8);
+            var cultivator = Groups.Piece("Cultivator", 1, false, "Misc", 0);
+            Assert.True(Groups.Piece("Hammer", 0, true, "Crafting", 0).Order < hammerLast.Order);
             Assert.True(hammerLast.Order < cultivator.Order);
             Assert.True(cultivator.Order < Groups.InNoMenu.Order);
             Assert.Equal("In no build menu", Groups.InNoMenu.Name);

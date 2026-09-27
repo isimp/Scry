@@ -113,7 +113,7 @@ namespace Scry
         /// cultivator, the serving tray, a mod's own, such as PlanBuild's with its many tabs) all
         /// in one group. The hammer's tabs first, then the tools.
         /// </summary>
-        public static Group Piece(string tool, int toolOrder, bool mainTool, string tab, int tabOrder, int tabCount)
+        public static Group Piece(string tool, int toolOrder, bool mainTool, string tab, int tabOrder)
         {
             return mainTool ? new Group(tab, 1 + tabOrder) : new Group(tool, 1 + toolOrder * 1000);
         }
