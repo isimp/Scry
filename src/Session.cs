@@ -141,6 +141,8 @@ namespace Scry
             if (IsOpen && Explorer != null && Input.GetKeyDown(KeyCode.Mouse4)) ScryPanel.Step(Explorer, false);
 
             Previews.Update(IsOpen ? Explorer : null);
+
+            try { LocationSurvey.Update(); } catch (Exception ex) { Faults.Tell("measuring the locations", ex); LocationSurvey.Forget(); }
         }
 
         public static void LateUpdate()
