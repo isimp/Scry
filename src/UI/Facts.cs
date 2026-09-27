@@ -112,6 +112,8 @@ namespace Scry
 
             var piece = prefab.GetComponent<Piece>();
             if (piece != null) Piece(piece, prefab.GetComponent<WearNTear>());
+
+            Resource(prefab);
         }
 
         // ----- Items -----
@@ -207,19 +209,7 @@ namespace Scry
             Add("Faction", Word(character.m_faction));
             if (character.m_boss) Add("Boss", "yes");
 
-            var groups = new SortedDictionary<string, List<string>>();
-            var mods = character.m_damageModifiers;
-            foreach (var field in typeof(HitData.DamageModifiers).GetFields(BindingFlags.Public | BindingFlags.Instance))
-            {
-                if (field.FieldType != typeof(HitData.DamageModifier) || field.Name == "m_nonPlayer") continue;
-                var modifier = (HitData.DamageModifier)field.GetValue(mods);
-                if (modifier == HitData.DamageModifier.Normal) continue;
-
-                var group = ModifierWords(modifier);
-                if (!groups.TryGetValue(group, out var list)) groups[group] = list = new List<string>();
-                list.Add(Naming.FieldLabel(field.Name).ToLowerInvariant());
-            }
-            foreach (var group in groups) Add(group.Key, string.Join(", ", group.Value));
+            Resists(character.m_damageModifiers);
 
             if (prefab.GetComponent<Tameable>() != null)
             {
@@ -241,12 +231,165 @@ namespace Scry
                 foreach (var drop in drops.m_drops)
                 {
                     if (drop?.m_prefab == null) continue;
-                    var amount = drop.m_amountMin == drop.m_amountMax ? $"{drop.m_amountMin}" : $"{drop.m_amountMin}-{drop.m_amountMax}";
+                    var amount = DropWords.Range(drop.m_amountMin, drop.m_amountMax);
                     if (drop.m_chance < 1f) amount += $" ({Mathf.RoundToInt(drop.m_chance * 100f)}%)";
                     row.Items.Add(new Ingredient { Icon = Icon(drop.m_prefab), Name = ItemName(drop.m_prefab), Amount = amount, Prefab = drop.m_prefab.name });
                 }
                 if (row.Items.Count > 0) Rows.Add(row);
             }
+        }
+
+        /// <summary>What it resists or is weak to, a row for each degree, as a creature's or a resource's are told.</summary>
+        private void Resists(HitData.DamageModifiers mods)
+        {
+            var groups = new SortedDictionary<string, List<string>>();
+            foreach (var field in typeof(HitData.DamageModifiers).GetFields(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (field.FieldType != typeof(HitData.DamageModifier) || field.Name == "m_nonPlayer") continue;
+                var modifier = (HitData.DamageModifier)field.GetValue(mods);
+                if (modifier == HitData.DamageModifier.Normal) continue;
+
+                var group = ModifierWords(modifier);
+                if (!groups.TryGetValue(group, out var list)) groups[group] = list = new List<string>();
+                list.Add(Naming.FieldLabel(field.Name).ToLowerInvariant());
+            }
+            foreach (var group in groups) Add(group.Key, string.Join(", ", group.Value));
+        }
+
+        // ----- Resources -----
+
+        /// <summary>
+        /// What is chopped, mined, broken, picked or grown: how much it takes and with what tool,
+        /// what it resists, and what it gives, as the game's own scripts hold it. A prefab can be
+        /// several of these (a stump breaks and drops wood), so each part adds its own.
+        /// </summary>
+        private void Resource(GameObject prefab)
+        {
+            var tree = prefab.GetComponent<TreeBase>();
+            if (tree != null)
+            {
+                Hits(tree.m_health, false, tree.m_minToolTier, tree.m_damageModifiers);
+                Drops(tree.m_dropWhenDestroyed, "When felled, ");
+            }
+
+            var log = prefab.GetComponent<TreeLog>();
+            if (log != null)
+            {
+                Hits(log.m_health, false, log.m_minToolTier, log.m_damages);
+                Drops(log.m_dropWhenDestroyed, null);
+            }
+
+            // A rock or ore vein is mined a piece at a time; each piece has this much health.
+            var rock = prefab.GetComponent<MineRock>();
+            if (rock != null)
+            {
+                Hits(rock.m_health, true, rock.m_minToolTier, rock.m_damageModifiers);
+                Drops(rock.m_dropItems, "Each piece ");
+            }
+            var vein = prefab.GetComponent<MineRock5>();
+            if (vein != null)
+            {
+                Hits(vein.m_health, true, vein.m_minToolTier, vein.m_damageModifiers);
+                Drops(vein.m_dropItems, "Each piece ");
+            }
+
+            var breaks = prefab.GetComponent<Destructible>();
+            if (breaks != null && tree == null && log == null)
+            {
+                Hits(breaks.m_health, false, breaks.m_minToolTier, breaks.m_damages);
+                var dropping = prefab.GetComponent<DropOnDestroyed>();
+                if (dropping != null) Drops(dropping.m_dropWhenDestroyed, "When broken, ");
+            }
+
+            var pickable = prefab.GetComponent<Pickable>();
+            if (pickable != null && pickable.m_itemPrefab != null)
+            {
+                var picked = new Row { Title = "Picked" };
+                picked.Items.Add(new Ingredient
+                {
+                    Icon = Icon(pickable.m_itemPrefab), Name = ItemName(pickable.m_itemPrefab),
+                    Amount = pickable.m_amount.ToString(CultureInfo.InvariantCulture), Prefab = pickable.m_itemPrefab.name,
+                });
+                Rows.Add(picked);
+                if (pickable.m_respawnTimeMinutes > 0f) Add("Grows back in", Minutes(pickable.m_respawnTimeMinutes * 60f));
+                Drops(pickable.m_extraDrops, "Also ");
+            }
+
+            var found = prefab.GetComponent<PickableItem>();
+            if (found != null)
+            {
+                var row = new Row { Title = found.m_randomItemPrefabs != null && found.m_randomItemPrefabs.Length > 1 ? "Picked, one of" : "Picked" };
+                if (found.m_randomItemPrefabs != null && found.m_randomItemPrefabs.Length > 0)
+                {
+                    foreach (var random in found.m_randomItemPrefabs)
+                    {
+                        if (random.m_itemPrefab == null) continue;
+                        var item = random.m_itemPrefab.gameObject;
+                        row.Items.Add(new Ingredient { Icon = Icon(item), Name = ItemName(item), Amount = DropWords.Range(random.m_stackMin, random.m_stackMax), Prefab = item.name });
+                    }
+                }
+                else if (found.m_itemPrefab != null)
+                {
+                    var item = found.m_itemPrefab.gameObject;
+                    row.Items.Add(new Ingredient { Icon = Icon(item), Name = ItemName(item), Amount = Math.Max(1, found.m_stack).ToString(CultureInfo.InvariantCulture), Prefab = item.name });
+                }
+                if (row.Items.Count > 0) Rows.Add(row);
+            }
+
+            var plant = prefab.GetComponent<Plant>();
+            if (plant != null)
+            {
+                Add("Takes to grow", plant.m_growTimeMax > plant.m_growTime
+                    ? $"{Minutes(plant.m_growTime)} to {Minutes(plant.m_growTimeMax)}"
+                    : Minutes(plant.m_growTime));
+                if (plant.m_biome != 0) Add("Grows in", Knowledge.BiomeNames(plant.m_biome));
+                if (plant.m_needCultivatedGround) Add("Needs", "cultivated ground");
+                var tolerates = new List<string>();
+                if (plant.m_tolerateHeat) tolerates.Add("heat");
+                if (plant.m_tolerateCold) tolerates.Add("cold");
+                if (tolerates.Count > 0) Add("Tolerates", string.Join(", ", tolerates));
+                if (plant.m_grownPrefabs != null && plant.m_grownPrefabs.Length > 0)
+                {
+                    var grows = new Row { Title = plant.m_grownPrefabs.Length > 1 ? "Grows into one of" : "Grows into" };
+                    foreach (var grown in plant.m_grownPrefabs.Where(g => g != null).GroupBy(g => g.name).Select(g => g.First()))
+                    {
+                        grows.Items.Add(new Ingredient { Icon = AnyIcon(grown), Name = AnyName(grown, grown.name), Amount = "", Prefab = grown.name });
+                    }
+                    if (grows.Items.Count > 0) Rows.Add(grows);
+                }
+            }
+        }
+
+        /// <summary>How much it takes to break, with what tool, and what it resists.</summary>
+        private void Hits(float health, bool perPiece, int toolTier, HitData.DamageModifiers resists)
+        {
+            if (health > 0f) Add("Health", Number(health) + (perPiece ? " a piece" : ""));
+            if (toolTier > 0) Add("Needs tool tier", toolTier.ToString(CultureInfo.InvariantCulture));
+            Resists(resists);
+        }
+
+        /// <summary>A drop table as a row: its title says how often and how many times, each chip how many and its share.</summary>
+        private void Drops(DropTable table, string lead)
+        {
+            if (table?.m_drops == null) return;
+            var info = new DropTableInfo { Min = table.m_dropMin, Max = table.m_dropMax, Chance = table.m_dropChance, OneOfEach = table.m_oneOfEach };
+            var items = new List<GameObject>();
+            foreach (var drop in table.m_drops)
+            {
+                if (drop.m_item == null) continue;
+                info.Drops.Add(new DropInfo(drop.m_item.name, drop.m_stackMin, drop.m_stackMax, drop.m_weight));
+                items.Add(drop.m_item);
+            }
+            if (DropWords.IsEmpty(info)) return;
+
+            var title = DropWords.Title(info);
+            if (lead != null) title = lead + char.ToLowerInvariant(title[0]) + title.Substring(1);
+            var row = new Row { Title = title };
+            for (var i = 0; i < items.Count; i++)
+            {
+                row.Items.Add(new Ingredient { Icon = Icon(items[i]), Name = ItemName(items[i]), Amount = DropWords.Amount(info, info.Drops[i]), Prefab = items[i].name });
+            }
+            Rows.Add(row);
         }
 
         /// <summary>How a damage modifier reads as a label, e.g. "Weak to".</summary>

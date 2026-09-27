@@ -105,6 +105,22 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ALogThatIsAResourceItselfIsStillNamedAfterItsTree()
+        {
+            // A log is chopped for wood as a tree is, and is a resource too.
+            var catalog = WithLeftovers();
+            Find(catalog, "Oak1").Kind = Kind.Resource;
+            Find(catalog, "Oak_log").Kind = Kind.Resource;
+
+            Leftovers.Pair(catalog, new[] { new Leftover("Oak_log", "Oak1", "log") });
+
+            var log = Find(catalog, "Oak_log");
+            Assert.Equal("Oak · log", log.DisplayName);
+            Assert.Equal(Kind.Resource, log.Kind);
+            Assert.Equal(new[] { "Oak1" }, log.LeftBy);
+        }
+
+        [Fact]
         public void OnlyWhatIsListedAsOtherIsPaired()
         {
             var catalog = WithLeftovers();

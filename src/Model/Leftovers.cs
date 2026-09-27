@@ -28,7 +28,8 @@ namespace Scry
     /// owner's kind, so it sits beside it in the list and a search for the owner finds it, and
     /// each knows the other. A leftover shared by owners of different names (the debris of every
     /// wooden piece) is named for what it is and how many leave it; one shared by owners of
-    /// different kinds stays where it was. Only what is listed as other is paired.
+    /// different kinds stays where it was. Only what is listed as other, or as a resource (a log
+    /// or a stump, chopped as its tree is), is paired.
     /// </summary>
     public static class Leftovers
     {
@@ -42,7 +43,7 @@ namespace Scry
 
             foreach (var group in found.GroupBy(f => f.Name))
             {
-                if (!byName.TryGetValue(group.Key, out var leftover) || leftover.Kind != Kind.Other) continue;
+                if (!byName.TryGetValue(group.Key, out var leftover) || (leftover.Kind != Kind.Other && leftover.Kind != Kind.Resource)) continue;
 
                 var owners = group.Select(f => f.Owner).Distinct()
                     .Where(o => o != group.Key && byName.ContainsKey(o))

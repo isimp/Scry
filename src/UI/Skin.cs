@@ -69,6 +69,7 @@ namespace Scry
                 case Kind.Creature: return new Color(0.92f, 0.47f, 0.42f);
                 case Kind.Item: return new Color(0.96f, 0.76f, 0.36f);
                 case Kind.Piece: return new Color(0.78f, 0.62f, 0.45f);
+                case Kind.Resource: return new Color(0.72f, 0.86f, 0.30f);
                 case Kind.Projectile: return new Color(0.98f, 0.56f, 0.28f);
                 case Kind.Effect: return new Color(0.70f, 0.56f, 0.97f);
                 case Kind.Sound: return new Color(0.42f, 0.80f, 0.82f);
@@ -86,6 +87,7 @@ namespace Scry
                 case Kind.Creature: return "C";
                 case Kind.Item: return "I";
                 case Kind.Piece: return "P";
+                case Kind.Resource: return "R";
                 case Kind.Projectile: return "Pr";
                 case Kind.Effect: return "Fx";
                 case Kind.Sound: return "S";

@@ -37,6 +37,45 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TreesRocksOreBushesAndPlantsAreResources()
+        {
+            // What you chop, mine, pick or grow: the game's TreeBase, TreeLog, MineRock, Pickable, Plant.
+            var oak = new PrefabTraits { HasResource = true, HasRenderer = true, HasSolidCollider = true };
+            var raspberries = new PrefabTraits { HasResource = true, HasRenderer = true };
+
+            Assert.Equal(Kind.Resource, Kinds.Of(oak));
+            Assert.Equal(Kind.Resource, Kinds.Of(raspberries));
+        }
+
+        [Fact]
+        public void SomethingThatBreaksIntoDropsIsAResource()
+        {
+            var rock = new PrefabTraits { HasDestructible = true, HasDrops = true, HasRenderer = true, HasSolidCollider = true };
+            var pot = new PrefabTraits { HasDestructible = true, HasRenderer = true, HasSolidCollider = true };
+
+            Assert.Equal(Kind.Resource, Kinds.Of(rock));
+            Assert.Equal(Kind.Other, Kinds.Of(pot));
+        }
+
+        [Fact]
+        public void ANestIsNoResourceThoughItBreaksIntoDrops()
+        {
+            // A greydwarf nest spawns creatures; it is found with the other spawners.
+            var nest = new PrefabTraits { HasDestructible = true, HasDrops = true, HasSpawner = true, HasRenderer = true, HasSolidCollider = true };
+
+            Assert.Equal(Kind.Other, Kinds.Of(nest));
+        }
+
+        [Fact]
+        public void WhatAPrefabIsInTheGameOutranksBeingAResource()
+        {
+            // A piece can grow or be picked (a planted crop, a beehive); it is still built.
+            var crop = new PrefabTraits { HasPiece = true, HasResource = true, HasRenderer = true };
+
+            Assert.Equal(Kind.Piece, Kinds.Of(crop));
+        }
+
+        [Fact]
         public void SomethingYouCanOnlyHearIsASound()
         {
             var sfx = new PrefabTraits { HasAudio = true, FromEffectList = true };

@@ -490,6 +490,25 @@ namespace Scry
                 case Collider collider:
                     if (!collider.isTrigger) traits.HasSolidCollider = true;
                     break;
+                case TreeBase _:
+                case TreeLog _:
+                case MineRock _:
+                case MineRock5 _:
+                case Pickable _:
+                case PickableItem _:
+                case Plant _:
+                    traits.HasResource = true;
+                    break;
+                case Destructible _:
+                    traits.HasDestructible = true;
+                    break;
+                case DropOnDestroyed dropping:
+                    if (dropping.m_dropWhenDestroyed?.m_drops != null && dropping.m_dropWhenDestroyed.m_drops.Count > 0) traits.HasDrops = true;
+                    break;
+                case SpawnArea _:
+                case CreatureSpawner _:
+                    traits.HasSpawner = true;
+                    break;
                 case LevelEffects levels:
                     found.ExtraLevels = Math.Max(found.ExtraLevels, levels.m_levelSetups?.Count ?? 0);
                     break;

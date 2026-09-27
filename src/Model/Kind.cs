@@ -6,6 +6,7 @@ namespace Scry
         Creature,
         Item,
         Piece,
+        Resource,
         Projectile,
         Effect,
         Sound,
@@ -38,6 +39,16 @@ namespace Scry
         public bool HasAudio;
         public bool HasSolidCollider;
 
+        /// <summary>Chopped, mined, picked or grown: a tree, a log, a rock or ore vein, a bush, a plant.</summary>
+        public bool HasResource;
+
+        /// <summary>Breaks when hit, and whether it then drops anything.</summary>
+        public bool HasDestructible;
+        public bool HasDrops;
+
+        /// <summary>Spawns creatures, as a nest does.</summary>
+        public bool HasSpawner;
+
         /// <summary>Reached through an effect list on some other prefab rather than registered on its own.</summary>
         public bool FromEffectList;
     }
@@ -55,6 +66,10 @@ namespace Scry
             if (traits.HasProjectile) return Kind.Projectile;
             if (traits.HasItemDrop) return Kind.Item;
             if (traits.HasPiece) return Kind.Piece;
+
+            // What is chopped, mined, picked or grown, or broken for what it drops; a nest drops
+            // things too, but is found with the other spawners.
+            if (!traits.HasSpawner && (traits.HasResource || (traits.HasDestructible && traits.HasDrops))) return Kind.Resource;
 
             var visible = traits.HasRenderer || traits.HasParticles || traits.HasLight;
             if (traits.HasAudio && !visible) return Kind.Sound;
@@ -80,6 +95,7 @@ namespace Scry
                 case Kind.Creature: return "Creatures";
                 case Kind.Item: return "Items";
                 case Kind.Piece: return "Pieces";
+                case Kind.Resource: return "Resources";
                 case Kind.Projectile: return "Projectiles";
                 case Kind.Effect: return "Effects";
                 case Kind.Sound: return "Sounds";
