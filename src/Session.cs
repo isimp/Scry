@@ -252,6 +252,7 @@ namespace Scry
             try { Looks.Forget(); } catch (Exception ex) { Faults.Tell("forgetting the levels' looks", ex); }
             try { Variants.Forget(); } catch (Exception ex) { Faults.Tell("forgetting the looks of prefabs", ex); }
             try { Gear.Forget(); } catch (Exception ex) { Faults.Tell("forgetting gear chosen", ex); }
+            try { Grouping.Forget(); } catch (Exception ex) { Faults.Tell("forgetting the build tabs' names", ex); }
             try { CatalogBuilder.Forget(); } catch (Exception ex) { Faults.Tell("forgetting the catalog's reading", ex); }
             try { Falling.Release(); } catch (Exception ex) { Faults.Tell("giving back the stage layer's collisions", ex); }
             try { ScryPanel.Forget(); } catch (Exception ex) { Faults.Tell("forgetting the panel's lists", ex); }

@@ -247,7 +247,22 @@ namespace Scry
         private static void Step(Explorer explorer, int rows)
         {
             explorer.Move(rows);
+
+            // Past a folded group rather than into it, one entry at a time the same way.
+            var step = rows < 0 ? -1 : 1;
+            for (var guard = 0; guard < explorer.Results.Count && InFoldedGroup(explorer); guard++)
+            {
+                var before = explorer.SelectedIndex;
+                explorer.Move(step);
+                if (explorer.SelectedIndex == before) break;
+            }
             _reveal = true;
+        }
+
+        private static bool InFoldedGroup(Explorer explorer)
+        {
+            var entry = explorer.Selected;
+            return entry != null && explorer.KindFilter != null && FoldedGroups.Contains(FoldKey(explorer, entry.Group));
         }
 
         /// <summary>What Enter and a double click do: the main thing for the kind.</summary>

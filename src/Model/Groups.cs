@@ -30,27 +30,27 @@ namespace Scry
             ["Bow"] = new Group("Weapons", 1),
             ["Attach_Atgeir"] = new Group("Weapons", 1),
             ["Shield"] = new Group("Shields", 2),
-            ["Helmet"] = new Group("Armour and capes", 3),
-            ["Chest"] = new Group("Armour and capes", 3),
-            ["Legs"] = new Group("Armour and capes", 3),
-            ["Hands"] = new Group("Armour and capes", 3),
-            ["Shoulder"] = new Group("Armour and capes", 3),
-            ["Utility"] = new Group("Belts and trinkets", 4),
-            ["Trinket"] = new Group("Belts and trinkets", 4),
-            ["Ammo"] = new Group("Ammo", 5),
-            ["AmmoNonEquipable"] = new Group("Ammo", 5),
-            ["Consumable"] = new Group("Food and meads", 6),
-            ["Material"] = new Group("Materials", 7),
-            ["Tool"] = new Group("Tools", 8),
-            ["Torch"] = new Group("Tools", 8),
-            ["Fish"] = new Group("Fish", 9),
-            ["Trophy"] = new Group("Trophies", 10),
+            ["Helmet"] = new Group("Helmets", 3),
+            ["Chest"] = new Group("Chest armour", 4),
+            ["Legs"] = new Group("Leg armour", 5),
+            ["Hands"] = new Group("Gloves", 6),
+            ["Shoulder"] = new Group("Capes", 7),
+            ["Utility"] = new Group("Belts and trinkets", 8),
+            ["Trinket"] = new Group("Belts and trinkets", 8),
+            ["Ammo"] = new Group("Ammo", 9),
+            ["AmmoNonEquipable"] = new Group("Ammo", 9),
+            ["Consumable"] = new Group("Food and meads", 10),
+            ["Material"] = new Group("Materials", 11),
+            ["Tool"] = new Group("Tools", 12),
+            ["Torch"] = new Group("Tools", 12),
+            ["Fish"] = new Group("Fish", 13),
+            ["Trophy"] = new Group("Trophies", 14),
         };
 
         /// <summary>An item by its item type (<c>ItemDrop.ItemData.ItemType</c>, by name); an unknown or odd one is other.</summary>
         public static Group Item(string itemType)
         {
-            return itemType != null && ItemTypes.TryGetValue(itemType, out var group) ? group : new Group("Other", 11);
+            return itemType != null && ItemTypes.TryGetValue(itemType, out var group) ? group : new Group("Other", 15);
         }
 
         private static readonly Dictionary<string, Group> Factions = new Dictionary<string, Group>

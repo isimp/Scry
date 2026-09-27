@@ -10,8 +10,11 @@ namespace Scry.Tests
         [InlineData("Bow", "Weapons")]
         [InlineData("Attach_Atgeir", "Weapons")]
         [InlineData("Shield", "Shields")]
-        [InlineData("Helmet", "Armour and capes")]
-        [InlineData("Shoulder", "Armour and capes")]
+        [InlineData("Helmet", "Helmets")]
+        [InlineData("Chest", "Chest armour")]
+        [InlineData("Legs", "Leg armour")]
+        [InlineData("Hands", "Gloves")]
+        [InlineData("Shoulder", "Capes")]
         [InlineData("Utility", "Belts and trinkets")]
         [InlineData("Trinket", "Belts and trinkets")]
         [InlineData("AmmoNonEquipable", "Ammo")]
@@ -32,6 +35,9 @@ namespace Scry.Tests
         {
             Assert.True(Groups.Item("Bow").Order < Groups.Item("Shield").Order);
             Assert.True(Groups.Item("Shield").Order < Groups.Item("Helmet").Order);
+            Assert.True(Groups.Item("Helmet").Order < Groups.Item("Chest").Order);
+            Assert.True(Groups.Item("Chest").Order < Groups.Item("Legs").Order);
+            Assert.True(Groups.Item("Legs").Order < Groups.Item("Shoulder").Order);
             Assert.True(Groups.Item("Trophy").Order < Groups.Item("Misc").Order);
         }
 

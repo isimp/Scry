@@ -69,11 +69,30 @@ namespace Scry
                     return menus.TryGetValue(entry.Name, out var menu) ? menu : Groups.InNoMenu;
                 case Kind.Effect:
                 case Kind.Sound:
-                    return Groups.ByUsers(entry.UsedBy.Select(user => KindOf(user, kinds)));
+                    return Groups.ByUsers(Users(entry).Select(user => KindOf(user, kinds)));
                 default:
                     return null;
             }
         }
+
+        /// <summary>
+        /// What plays an effect or sound: what its effect lists name, and what points at it in
+        /// other ways (the footsteps of a creature, an animation's events, a field that spawns or
+        /// shoots it, a hand that carries it), as the links noted.
+        /// </summary>
+        private static IEnumerable<string> Users(Entry entry)
+        {
+            foreach (var user in entry.UsedBy) yield return user;
+            foreach (var link in entry.Links)
+            {
+                if (UsedByLinks.Contains(link.Group)) yield return link.Target;
+            }
+        }
+
+        private static readonly HashSet<string> UsedByLinks = new HashSet<string>(StringComparer.Ordinal)
+        {
+            Relations.FootstepOf, Relations.PlayedByAnimation, Relations.SpawnedBy, Relations.CarriedBy, LinkBook.ShotFrom,
+        };
 
         /// <summary>The kind of what plays an effect, by the name it is noted under: a prefab by its name, a status effect as "status effect" and its name.</summary>
         private static Kind KindOf(string user, Dictionary<string, Kind> kinds)
@@ -118,12 +137,47 @@ namespace Scry
                     var index = table.m_categories != null ? table.m_categories.IndexOf(piece.m_category) : -1;
                     var label = index >= 0 && table.m_categoryLabels != null && index < table.m_categoryLabels.Count
                         ? CatalogBuilder.Localize(table.m_categoryLabels[index])
-                        : Naming.FieldLabel(piece.m_category.ToString());
+                        : "";
+                    if (label.Length == 0) label = CategoryName(piece.m_category);
                     menus[name] = Groups.Piece(tool, t, main, label, index >= 0 ? index : 500 + (int)piece.m_category, tabCount);
                 }
             }
             return menus;
         }
+
+        /// <summary>
+        /// A build tab by its name. A tab a mod adds through Jotunn is a number the game's enum does
+        /// not name; Jotunn adds its names to what Enum.GetNames and GetValues give for the enum,
+        /// so they are read from there, not from the value itself.
+        /// </summary>
+        private static string CategoryName(Piece.PieceCategory category)
+        {
+            if (_categoryNames == null)
+            {
+                _categoryNames = new Dictionary<Piece.PieceCategory, string>();
+                try
+                {
+                    var names = Enum.GetNames(typeof(Piece.PieceCategory));
+                    var values = Enum.GetValues(typeof(Piece.PieceCategory));
+                    for (var i = 0; i < names.Length && i < values.Length; i++)
+                    {
+                        var value = (Piece.PieceCategory)values.GetValue(i);
+                        if (!_categoryNames.ContainsKey(value)) _categoryNames[value] = names[i];
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Tell("the build tabs' names", ex);
+                }
+            }
+            var name = _categoryNames.TryGetValue(category, out var known) ? known : category.ToString();
+            return name.IndexOf(' ') >= 0 ? name : Naming.FieldLabel(name);
+        }
+
+        private static Dictionary<Piece.PieceCategory, string> _categoryNames;
+
+        /// <summary>Forgets the build tabs' names, which mods may add to in the next world.</summary>
+        public static void Forget() => _categoryNames = null;
 
         private static void Tell(string what, Exception ex)
         {

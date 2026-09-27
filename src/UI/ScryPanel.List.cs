@@ -98,7 +98,7 @@ namespace Scry
             {
                 _reveal = false;
                 var index = explorer.SelectedIndex;
-                if (index >= 0 && index < _rowOfEntry.Count)
+                if (index >= 0 && index < _rowOfEntry.Count && _rowOfEntry[index] >= 0)
                 {
                     var top = _rowOfEntry[index] * rowH;
                     if (top < _listScroll.y) _listScroll.y = top;
@@ -117,7 +117,7 @@ namespace Scry
                 var at = new Rect(0f, i * rowH, view.width, rowH);
                 var row = rows[i];
                 if (row.Entry >= 0) Row(explorer, results[row.Entry], at, row.Entry == explorer.SelectedIndex, visible);
-                else GUI.Label(new Rect(at.x + U(12f), at.y + U(8f), at.width - U(24f), at.height - U(8f)), row.Heading, Skin.DimLabel);
+                else Heading(explorer, row, at, visible);
             }
 
             GUI.EndScrollView();
@@ -128,6 +128,29 @@ namespace Scry
         {
             public int Entry;
             public string Heading;
+            public string Group;
+            public bool Folded;
+        }
+
+        /// <summary>The groups folded away, by kind and name; they stay folded while the game runs.</summary>
+        private static readonly HashSet<string> FoldedGroups = new HashSet<string>(StringComparer.Ordinal);
+
+        private static string FoldKey(Explorer explorer, string group) => explorer.KindFilter + "|" + group;
+
+        /// <summary>A group's heading, which folds the group away or opens it again when clicked.</summary>
+        private static void Heading(Explorer explorer, ListRow row, Rect at, Rect visible)
+        {
+            var hover = at.Contains(Event.current.mousePosition) && visible.Contains(Event.current.mousePosition) && _drag == Drag.None;
+            if (hover) Skin.Box(new Rect(at.x + U(2f), at.y + U(1f), at.width - U(4f), at.height - U(2f)), Skin.Hover);
+            var text = (row.Folded ? "▸ " : "▾ ") + row.Heading;
+            GUI.Label(new Rect(at.x + U(10f), at.y + U(8f), at.width - U(20f), at.height - U(8f)), text, Skin.DimLabel);
+            if (hover) AskTip("group:" + row.Group, row.Folded ? "Show this group" : "Fold this group away");
+            if (GUI.Button(at, GUIContent.none, GUIStyle.none))
+            {
+                var key = FoldKey(explorer, row.Group);
+                if (!FoldedGroups.Remove(key)) FoldedGroups.Add(key);
+                _rowsFor = null;
+            }
         }
 
         private static readonly List<ListRow> _listRows = new List<ListRow>();
@@ -142,6 +165,14 @@ namespace Scry
         private static List<ListRow> ListRows(Explorer explorer)
         {
             var results = explorer.Results;
+
+            // A selection that lands in a folded group, by the keys or a link, opens it.
+            var selected = explorer.SelectedIndex;
+            if (ReferenceEquals(results, _rowsFor) && selected >= 0 && selected < _rowOfEntry.Count && _rowOfEntry[selected] < 0)
+            {
+                FoldedGroups.Remove(FoldKey(explorer, results[selected].Group));
+                _rowsFor = null;
+            }
             if (ReferenceEquals(results, _rowsFor)) return _listRows;
             _rowsFor = results;
             _listRows.Clear();
@@ -150,12 +181,22 @@ namespace Scry
             var grouped = explorer.KindFilter != null && results.Any(e => e.Group.Length > 0);
             for (var i = 0; i < results.Count; i++)
             {
-                if (grouped && (i == 0 || results[i].Group != results[i - 1].Group))
+                var folded = false;
+                if (grouped)
                 {
-                    var count = 1;
-                    while (i + count < results.Count && results[i + count].Group == results[i].Group) count++;
-                    var name = results[i].Group.Length > 0 ? results[i].Group : "Ungrouped";
-                    _listRows.Add(new ListRow { Entry = -1, Heading = $"{name}  {count}" });
+                    folded = FoldedGroups.Contains(FoldKey(explorer, results[i].Group));
+                    if (i == 0 || results[i].Group != results[i - 1].Group)
+                    {
+                        var count = 1;
+                        while (i + count < results.Count && results[i + count].Group == results[i].Group) count++;
+                        var name = results[i].Group.Length > 0 ? results[i].Group : "Ungrouped";
+                        _listRows.Add(new ListRow { Entry = -1, Heading = $"{name}  {count}", Group = results[i].Group, Folded = folded });
+                    }
+                }
+                if (folded)
+                {
+                    _rowOfEntry.Add(-1);
+                    continue;
                 }
                 _rowOfEntry.Add(_listRows.Count);
                 _listRows.Add(new ListRow { Entry = i });
