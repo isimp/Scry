@@ -48,8 +48,7 @@ namespace Scry
             var keyW = stacked ? width : Mathf.Min(U(190f), width * 0.42f);
             foreach (var line in HelpLines)
             {
-                var keyText = new GUIContent(line[0]);
-                var boxW = Mathf.Min(keyW, Skin.Label.CalcSize(keyText).x + U(16f));
+                var boxW = Mathf.Min(keyW, Skin.Width(Skin.Label, line[0]) + U(16f));
                 Skin.Box(new Rect(x - U(4f), y - U(1f), boxW, U(24f)), Skin.Raised);
                 GUI.Label(new Rect(x + U(4f), y, boxW - U(8f), U(22f)), line[0], Skin.Label);
 

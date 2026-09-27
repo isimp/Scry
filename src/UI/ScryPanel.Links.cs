@@ -103,7 +103,7 @@ namespace Scry
         /// <summary>A small heading and a wrapping row of link chips, each going to what it names.</summary>
         private static float LinkRow(Explorer explorer, string title, IEnumerable<string> names, float width, float y)
         {
-            return LinkItems(explorer, title, names.Select(n => (n, ShownName(explorer, n, n), "Go to " + ShownName(explorer, n, n), (Action)(() => Go(explorer, n)))), width, y);
+            return LinkItems(explorer, title, names.Select(n => (n, ShownName(explorer, n, n), (string)null, (Action)(() => Go(explorer, n)))), width, y);
         }
 
         /// <summary>A small heading and a wrapping row of link chips, each with its own text, tip and doing.</summary>
@@ -122,8 +122,13 @@ namespace Scry
                     y += rowH + U(5f);
                 }
                 var chip = new Rect(x, y, w, rowH);
+                if (OutOfSight(chip))
+                {
+                    x += w + U(5f);
+                    continue;
+                }
                 if (LinkChip(chip, item.Text, KindOfKey(explorer, item.Key), false, true)) item.Click();
-                if (chip.Contains(Event.current.mousePosition)) AskTip("link:" + title + item.Key + item.Text, item.Tip);
+                if (chip.Contains(Event.current.mousePosition)) AskTip("link:" + title + item.Key + item.Text, item.Tip ?? "Go to " + item.Text);
                 x += w + U(5f);
             }
             return y + rowH + U(10f);
@@ -200,7 +205,8 @@ namespace Scry
                     x = 0f;
                     y += rowH + U(5f);
                 }
-                if (GUI.Button(new Rect(x, y, w, rowH), chip.Key, Skin.Chip)) chip.Value();
+                var rect = new Rect(x, y, w, rowH);
+                if (!OutOfSight(rect) && GUI.Button(rect, chip.Key, Skin.Chip)) chip.Value();
                 x += w + U(5f);
             }
             return y + rowH + U(10f);

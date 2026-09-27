@@ -36,7 +36,28 @@ namespace Scry
         private static bool _warmed;
         private static Font _body;
         private static Font _heading;
-        private static readonly Dictionary<string, Texture2D> Tinted = new Dictionary<string, Texture2D>();
+        private static readonly Dictionary<TintKey, Texture2D> Tinted = new Dictionary<TintKey, Texture2D>();
+
+        /// <summary>A shape in a fill and an outline, as a key for its tinted copy, made without building a string on every box drawn.</summary>
+        private readonly struct TintKey : IEquatable<TintKey>
+        {
+            private readonly int _shape;
+            private readonly Color _fill;
+            private readonly Color _outline;
+            private readonly bool _outlined;
+
+            public TintKey(Texture2D shape, Color fill, Color? outline)
+            {
+                _shape = shape.GetInstanceID();
+                _fill = fill;
+                _outline = outline ?? default;
+                _outlined = outline.HasValue;
+            }
+
+            public bool Equals(TintKey other) => _shape == other._shape && _fill == other._fill && _outline == other._outline && _outlined == other._outlined;
+            public override bool Equals(object obj) => obj is TintKey other && Equals(other);
+            public override int GetHashCode() => ((_shape * 31 + _fill.GetHashCode()) * 31 + _outline.GetHashCode()) * 2 + (_outlined ? 1 : 0);
+        }
 
         /// <summary>The colour of no kind in particular: all of them, or one not known.</summary>
         public static readonly Color Neutral = new Color(0.62f, 0.64f, 0.70f);
@@ -109,7 +130,7 @@ namespace Scry
         public static float Width(GUIStyle style, string text)
         {
             var key = new Measured(style, text, -1);
-            if (!Sizes.TryGetValue(key, out var width))
+            if (!Known(key, out var width))
             {
                 width = style.CalcSize(new GUIContent(text)).x;
                 Keep(key, width);
@@ -121,7 +142,7 @@ namespace Scry
         public static float Height(GUIStyle style, string text, float width)
         {
             var key = new Measured(style, text, Mathf.RoundToInt(width * 2f));
-            if (!Sizes.TryGetValue(key, out var height))
+            if (!Known(key, out var height))
             {
                 height = style.CalcHeight(new GUIContent(text), width);
                 Keep(key, height);
@@ -131,11 +152,28 @@ namespace Scry
 
         private static void Keep(Measured key, float value)
         {
-            if (Sizes.Count >= 20000) Sizes.Clear();
+            // Two generations: when the newer fills, it becomes the older and the oldest goes, so
+            // texts still in use are found again in the older without all being measured anew.
+            if (Sizes.Count >= 10000)
+            {
+                var older = OlderSizes;
+                OlderSizes = Sizes;
+                older.Clear();
+                Sizes = older;
+            }
             Sizes[key] = value;
         }
 
-        private static readonly Dictionary<Measured, float> Sizes = new Dictionary<Measured, float>();
+        private static bool Known(Measured key, out float value)
+        {
+            if (Sizes.TryGetValue(key, out value)) return true;
+            if (!OlderSizes.TryGetValue(key, out value)) return false;
+            Keep(key, value);
+            return true;
+        }
+
+        private static Dictionary<Measured, float> Sizes = new Dictionary<Measured, float>();
+        private static Dictionary<Measured, float> OlderSizes = new Dictionary<Measured, float>();
 
         /// <summary>A text measured in a style at its font size, and for a height, the width it wraps to (in half pixels; -1 for a width).</summary>
         private readonly struct Measured : IEquatable<Measured>
@@ -362,9 +400,12 @@ namespace Scry
         private static void DrawSliced(Rect rect, Texture2D texture, int border)
         {
             Sliced.normal.background = texture;
-            Sliced.border = new RectOffset(border, border, border, border);
+            Sliced.border = border == 15 ? PillBorder : border == 10 ? BoxBorder : new RectOffset(border, border, border, border);
             Sliced.Draw(rect, false, false, false, false);
         }
+
+        private static readonly RectOffset BoxBorder = new RectOffset(10, 10, 10, 10);
+        private static readonly RectOffset PillBorder = new RectOffset(15, 15, 15, 15);
 
         private static GUIStyle Boxed(GUIStyle text, Color normal, Color hover, Color active, Texture2D shape, float scale)
         {
@@ -495,7 +536,7 @@ namespace Scry
         /// <summary>A copy of a white shape in a colour, with an optional outline, made once per colour.</summary>
         public static Texture2D Tint(Texture2D shape, Color fill, Color? outline)
         {
-            var key = shape.GetInstanceID() + ":" + fill + ":" + outline;
+            var key = new TintKey(shape, fill, outline);
             if (Tinted.TryGetValue(key, out var known) && known != null) return known;
 
             var source = shape.GetPixels32();

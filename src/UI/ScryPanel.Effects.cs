@@ -10,6 +10,10 @@ namespace Scry
     /// <summary>The Effects section and the Plays in rows: effect lists, what they are made of and the clips they go with.</summary>
     internal static partial class ScryPanel
     {
+        private static Entry _effectsEntry;
+        private static List<GameObject> _effectsCarried;
+        private static List<KeyValuePair<string, EffectList>> _effects;
+
         private static readonly Dictionary<string, List<KeyValuePair<string, EffectList>>> EffectCache =
             new Dictionary<string, List<KeyValuePair<string, EffectList>>>();
 
@@ -24,11 +28,19 @@ namespace Scry
 
             // A creature's chips follow what it has on: the weapon in its hand, not the rest.
             var carried = Previews.CarriedNow(entry);
-            var cacheKey = entry.Key + "|" + (carried == null ? "all" : string.Join(",", carried.Select(c => c.name)));
-            if (!EffectCache.TryGetValue(cacheKey, out var lists))
+            List<KeyValuePair<string, EffectList>> lists;
+            if (ReferenceEquals(entry, _effectsEntry) && ReferenceEquals(carried, _effectsCarried) && _effects != null) lists = _effects;
+            else
             {
-                lists = carried == null ? Previews.PrefabLists(prefab) : Previews.PrefabLists(prefab, carried);
-                EffectCache[cacheKey] = lists;
+                var cacheKey = entry.Key + "|" + (carried == null ? "all" : string.Join(",", carried.Select(c => c.name)));
+                if (!EffectCache.TryGetValue(cacheKey, out lists))
+                {
+                    lists = carried == null ? Previews.PrefabLists(prefab) : Previews.PrefabLists(prefab, carried);
+                    EffectCache[cacheKey] = lists;
+                }
+                _effectsEntry = entry;
+                _effectsCarried = carried;
+                _effects = lists;
             }
             if (lists.Count == 0) return y;
 
@@ -55,6 +67,11 @@ namespace Scry
                     y += rowH + U(5f);
                 }
                 var chip = new Rect(x, y, w, rowH);
+                if (OutOfSight(chip))
+                {
+                    x += w + U(5f);
+                    continue;
+                }
                 var playing = Previews.Playing.IsPlaying(pair.Value);
                 if (GUI.Button(chip, pair.Key, playing ? Skin.ChipOn : Skin.Chip))
                 {
@@ -153,7 +170,6 @@ namespace Scry
             var rowH = U(26f);
             foreach (var member in members)
             {
-                var lit = Previews.Playing.IsPlaying(list, member);
                 var go = member != self && InCatalog(explorer, member);
                 var w = Mathf.Min(width, LinkChipWidth(member, go));
                 if (x + w > width && x > 0f)
@@ -162,6 +178,12 @@ namespace Scry
                     y += rowH + U(5f);
                 }
                 var chip = new Rect(x, y, w, rowH);
+                if (OutOfSight(chip))
+                {
+                    x += w + U(5f);
+                    continue;
+                }
+                var lit = Previews.Playing.IsPlaying(list, member);
                 if (LinkChip(chip, member, KindOf(explorer, member), lit, go)) Go(explorer, member);
                 if (go && chip.Contains(Event.current.mousePosition)) AskTip("member:" + member, "Go to " + member + (lit ? "\n(playing now)" : ""));
                 x += w + U(5f);

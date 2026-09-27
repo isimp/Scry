@@ -10,8 +10,6 @@ namespace Scry
     /// <summary>The selected entry: its card, stage, title, actions, outfit and stage buttons.</summary>
     internal static partial class ScryPanel
     {
-        private static long _part;
-
         /// <summary>What of the scrolled side can be seen, in its own terms, so rows of chips out of sight are only counted, not drawn.</summary>
         private static Rect _sideVisible;
 
@@ -20,6 +18,13 @@ namespace Scry
         private static void Side(Explorer explorer, Rect rect, bool withStage)
         {
             var entry = explorer.Selected;
+
+            // What a world's catalog points at is gone once the world is: nothing to show then.
+            if (entry != null && entry.Source is UnityEngine.Object source && source == null)
+            {
+                explorer.Select(null);
+                entry = null;
+            }
             if (entry == null)
             {
                 Skin.Box(rect, Skin.Panel);
@@ -35,9 +40,7 @@ namespace Scry
             {
                 _stageBaseH = Mathf.Round(Mathf.Min(rect.width * 0.60f, rect.height * 0.50f));
                 var stageH = Mathf.Round(Mathf.Clamp(_stageBaseH * _stageScale, U(120f), rect.height * 0.85f));
-                _part = Timing.Start();
-                StageArea(entry, new Rect(rect.x, rect.y, rect.width, stageH));
-                Timing.Add("side stage", _part);
+                Section("side stage", 0f, _ => { StageArea(entry, new Rect(rect.x, rect.y, rect.width, stageH)); return 0f; });
                 StageHandle(new Rect(rect.x, rect.y + stageH, rect.width, U(12f)));
                 top += stageH + U(12f);
             }
@@ -50,43 +53,54 @@ namespace Scry
             var cw = content.width;
             var y = 0f;
             _foldAllShown = false;
-            _part = Timing.Start();
-            y = Title(explorer, entry, cw, y);
-            Timing.Add("side title", _part);
-            if (!withStage && (entry.Kind == Kind.Sound || entry.Kind == Kind.StatusEffect)) y = CompactCard(entry, cw, y);
-            _part = Timing.Start();
-            y = Actions(entry, cw, y);
-            Timing.Add("side actions", _part);
-            if (Looks.IsWorn(entry)) y = Wearing(explorer, cw, y);
+            y = Section("side title", y, at => Title(explorer, entry, cw, at));
+            if (!withStage && (entry.Kind == Kind.Sound || entry.Kind == Kind.StatusEffect)) y = Section("side card", y, at => CompactCard(entry, cw, at));
+            y = Section("side actions", y, at => Actions(entry, cw, at));
+            if (Looks.IsWorn(entry)) y = Section("side wearing", y, at => Wearing(explorer, cw, at));
             if (entry.Kind == Kind.Sound)
             {
-                y = Timeline(cw, y);
-                y = Variants(entry, cw, y);
+                y = Section("side timeline", y, at => Timeline(cw, at));
+                y = Section("side variants", y, at => Variants(entry, cw, at));
             }
-            _part = Timing.Start();
-            y = Adjust(explorer, entry, cw, y, withStage);
-            Timing.Add("side adjust", _part);
-            _part = Timing.Start();
-            y = Effects(explorer, entry, cw, y, withStage);
-            Timing.Add("side effects", _part);
-            _part = Timing.Start();
-            y = PlaysInSection(explorer, entry, cw, y);
-            Timing.Add("side plays in", _part);
-            _part = Timing.Start();
-            y = LinksSection(explorer, entry, cw, y);
-            Timing.Add("side links", _part);
-            _part = Timing.Start();
-            y = FactsSection(explorer, entry, cw, y);
-            Timing.Add("side facts", _part);
-            _part = Timing.Start();
-            y = Command(explorer, entry, cw, y);
-            Timing.Add("side command", _part);
-            _part = Timing.Start();
-            y = Details(explorer, entry, cw, y);
-            Timing.Add("side details", _part);
+            y = Section("side adjust", y, at => Adjust(explorer, entry, cw, at, withStage));
+            y = Section("side effects", y, at => Effects(explorer, entry, cw, at, withStage));
+            y = Section("side plays in", y, at => PlaysInSection(explorer, entry, cw, at));
+            y = Section("side links", y, at => LinksSection(explorer, entry, cw, at));
+            y = Section("side facts", y, at => FactsSection(explorer, entry, cw, at));
+            y = Section("side command", y, at => Command(explorer, entry, cw, at));
+            y = Section("side details", y, at => Details(explorer, entry, cw, at));
             if (Event.current.type == EventType.Repaint) _sideHeight = y + U(8f);
 
             GUI.EndScrollView();
+        }
+
+        /// <summary>
+        /// Draws one section of the side, timed. A section that fails is left out, told once in the
+        /// log, and the others still draw: a mod's odd prefab costs one section, not the panel.
+        /// No section opens a group or scroll view of its own, so leaving one halfway is safe.
+        /// </summary>
+        private static float Section(string part, float y, System.Func<float, float> draw)
+        {
+            var started = Timing.Start();
+            try
+            {
+                return draw(y);
+            }
+            catch (ExitGUIException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Faults.Tell("the panel's " + part, ex);
+                GUI.enabled = true;
+                GUI.color = Color.white;
+                return y;
+            }
+            finally
+            {
+                Timing.Add(part, started);
+            }
         }
 
         /// <summary>

@@ -206,9 +206,18 @@ namespace Scry
             if (prefab == null || modifiers == null || !modifiers.LookAvailable || !Variants.IsGear(prefab)) return null;
 
             // It carries its weapons whether they are drawn or not, and uses any of them, so what
-            // it has is all it carries in the look, even while it is shown without gear.
-            return Gear.Inventory(prefab, modifiers.Look);
+            // it has is all it carries in the look, even while it is shown without gear. Asked on
+            // every event the panel draws, so kept while the prefab and look stay the same.
+            if (ReferenceEquals(prefab, _carriedPrefab) && modifiers.Look == _carriedLook && _carried != null) return _carried;
+            _carried = Gear.Inventory(prefab, modifiers.Look);
+            _carriedPrefab = prefab;
+            _carriedLook = modifiers.Look;
+            return _carried;
         }
+
+        private static GameObject _carriedPrefab;
+        private static int _carriedLook;
+        private static List<GameObject> _carried;
 
         public static List<KeyValuePair<string, EffectList>> PrefabLists(GameObject prefab)
         {

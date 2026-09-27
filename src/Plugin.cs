@@ -94,14 +94,14 @@ namespace Scry
         private void Update()
         {
             var started = Timing.Start();
-            Session.Update();
+            try { Session.Update(); } catch (System.Exception ex) { Faults.Tell("the frame", ex); }
             Timing.Add("update", started);
         }
 
         private void LateUpdate()
         {
             var started = Timing.Start();
-            Session.LateUpdate();
+            try { Session.LateUpdate(); } catch (System.Exception ex) { Faults.Tell("drawing the stage", ex); }
             Timing.Add("render", started);
         }
 

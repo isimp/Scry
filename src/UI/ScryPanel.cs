@@ -48,7 +48,6 @@ namespace Scry
         private static float _stageScale = 1f;
         private static float _stageBaseH = 300f;
         private static Drag _drag;
-        private static bool _failed;
 
         // A tooltip asked for during this repaint, and the one showing.
         private static string _askedTipKey;
@@ -95,6 +94,31 @@ namespace Scry
 
         private static float Scale() => Mathf.Clamp(Screen.height / 1080f, 0.75f, 3f) * Plugin.UiScale;
 
+        /// <summary>Lets go of the lists kept for the entries of the world left, which point at its prefabs.</summary>
+        public static void Forget()
+        {
+            EffectCache.Clear();
+            _effectsEntry = null;
+            _effectsCarried = null;
+            _effects = null;
+            ComponentLists.Clear();
+            SoundFactCache.Clear();
+            StatusListCache.Clear();
+            VariantCache.Clear();
+            PrefabIcons.Clear();
+            KindByName.Clear();
+            StatusNames.Clear();
+            ShownNames.Clear();
+            _catalogNames = null;
+            _statusFor = null;
+            _shownFor = null;
+            _kindsFor = null;
+            _namesFor = null;
+            _clipRows = new List<ClipRow>();
+            _rowsClips = null;
+            _rowsTags = null;
+        }
+
         public static void OnGUI()
         {
             var scale = Scale();
@@ -124,6 +148,14 @@ namespace Scry
                 Keys(explorer);
                 if (!Session.IsOpen) return;
 
+                // Dragging the panel, its corner or the stage needs nothing but the drag.
+                if (_drag != Drag.None && Event.current.type == EventType.MouseDrag)
+                {
+                    Drags();
+                    Event.current.Use();
+                    return;
+                }
+
                 Draw(explorer);
                 Drags();
                 Tooltip();
@@ -136,10 +168,19 @@ namespace Scry
                 SearchFocused = focused == SearchControl;
                 Typing = focused == SearchControl || focused == ClipControl || focused == EffectControl;
             }
+            catch (ExitGUIException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
-                if (!_failed) Plugin.Log.LogError($"Scry panel: {ex}");
-                _failed = true;
+                // Told once for each way it fails; the groups and scroll views left open are
+                // closed by leaving this event the way Unity provides for it.
+                Faults.Tell("the panel", ex);
+                GUI.enabled = true;
+                GUI.color = Color.white;
+                GUI.skin = skin;
+                GUIUtility.ExitGUI();
             }
             finally
             {
@@ -877,8 +918,8 @@ namespace Scry
 
             var content = new GUIContent(_askedTipText);
             var maxW = U(420f);
-            var width = Mathf.Min(maxW, Skin.Tip.CalcSize(content).x + U(2f));
-            var height = Skin.Tip.CalcHeight(content, width);
+            var width = Mathf.Min(maxW, Skin.Width(Skin.Tip, _askedTipText) + U(2f));
+            var height = Skin.Height(Skin.Tip, _askedTipText, width);
             var x = Mathf.Min(_askedTipAt.x + U(16f), Screen.width - width - U(4f));
             var y = _askedTipAt.y + U(20f);
             if (y + height > Screen.height - U(4f)) y = _askedTipAt.y - height - U(8f);

@@ -150,7 +150,11 @@ namespace Scry
                 left = Falling.Fell(prefab, _world, null, -1, Stage.Layer, away);
                 if (left != null) seconds = 10f;
             }
-            if (left == null) left = new GameObject("Scry destroyed");
+            if (left == null)
+            {
+                left = new GameObject("Scry destroyed");
+                left.transform.position = _world.transform.position;
+            }
             var from = Player.m_localPlayer != null ? Vector3.ProjectOnPlane(_world.transform.position - Player.m_localPlayer.transform.position, Vector3.up).normalized : Vector3.forward;
             if (Falling.Leave(prefab, _world, left.transform, -1, Stage.Layer, from)) seconds = Mathf.Max(seconds, 8f);
 

@@ -58,6 +58,10 @@ namespace Scry
                     t.localRotation = rotation;
                 }
                 t.SetParent(parent, false);
+
+                // Made under a holder that outlives worlds; one standing on its own belongs to the
+                // world, and goes with it.
+                if (parent == null) UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(copy, UnityEngine.SceneManagement.SceneManager.GetActiveScene());
                 return copy;
             }
             catch (Exception ex)
@@ -171,16 +175,12 @@ namespace Scry
         private static void Strip(GameObject copy, bool falling)
         {
             var all = copy.GetComponentsInChildren<Component>(true);
-            var remaining = new List<Component>(all.Length);
             var doomed = new List<KeyValuePair<int, Component>>();
 
             foreach (var component in all)
             {
                 if (component == null) continue;
-                remaining.Add(component);
-
-                var facts = new ComponentFacts(component.GetType().FullName, component is MonoBehaviour, component is Joint);
-                var pass = StripPolicy.PassFor(facts, falling);
+                var pass = PassFor(component, falling);
                 if (pass != StripPolicy.Keep) doomed.Add(new KeyValuePair<int, Component>(pass, component));
             }
 
@@ -193,9 +193,8 @@ namespace Scry
                 for (var i = 0; i < doomed.Count; i++)
                 {
                     var component = doomed[i].Value;
-                    if (IsRequired(component, remaining)) continue;
+                    if (IsRequired(component)) continue;
 
-                    remaining.Remove(component);
                     Object.DestroyImmediate(component);
                     doomed.RemoveAt(i);
                     i--;
@@ -209,21 +208,45 @@ namespace Scry
             }
         }
 
-        private static bool IsRequired(Component component, List<Component> remaining)
+        /// <summary>Whether another component on the same object requires this one, so it can only go after that one.</summary>
+        private static bool IsRequired(Component component)
         {
             var type = component.GetType();
-            var owner = component.gameObject;
-
-            foreach (var other in remaining)
+            component.GetComponents(Siblings);
+            try
             {
-                if (other == component || other.gameObject != owner) continue;
-                foreach (var required in Requires(other.GetType()))
+                foreach (var other in Siblings)
                 {
-                    if (required != null && required.IsAssignableFrom(type)) return true;
+                    if (other == null || other == component) continue;
+                    foreach (var required in Requires(other.GetType()))
+                    {
+                        if (required != null && required.IsAssignableFrom(type)) return true;
+                    }
                 }
+                return false;
             }
-            return false;
+            finally
+            {
+                Siblings.Clear();
+            }
         }
+
+        private static readonly List<Component> Siblings = new List<Component>();
+
+        /// <summary>What the policy says of a component, worked out once for each type and way of copying.</summary>
+        private static int PassFor(Component component, bool falling)
+        {
+            var type = component.GetType();
+            var key = new KeyValuePair<Type, bool>(type, falling);
+            if (!PassByType.TryGetValue(key, out var pass))
+            {
+                pass = StripPolicy.PassFor(new ComponentFacts(type.FullName, component is MonoBehaviour, component is Joint), falling);
+                PassByType[key] = pass;
+            }
+            return pass;
+        }
+
+        private static readonly Dictionary<KeyValuePair<Type, bool>, int> PassByType = new Dictionary<KeyValuePair<Type, bool>, int>();
 
         private static Type[] Requires(Type type)
         {

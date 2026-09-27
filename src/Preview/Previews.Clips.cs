@@ -118,21 +118,41 @@ namespace Scry
         public static List<(AnimationClip Clip, string How)> ClipsOfList(EffectList list)
         {
             var found = new List<(AnimationClip, string)>();
-            var ears = list != null ? ClipPlayer.AnimatorOf(Stage.Subject)?.GetComponent<AnimationEars>() : null;
+            var animator = list != null ? ClipPlayer.AnimatorOf(Stage.Subject) : null;
+            var ears = animator != null ? animator.GetComponent<AnimationEars>() : null;
             var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject) : null;
             if (plays == null) return found;
 
-            var clips = Clips();
+            // Asked on every event the panel draws while the list is the one played last.
+            if (ReferenceEquals(list, _ofList) && ReferenceEquals(plays, _ofListPlays) && ReferenceEquals(Stage.Subject, _ofListCopy)) return _ofListClips;
+
             void Add(string name, string how)
             {
-                var clip = clips.Find(c => c.name == name);
+                var clip = ClipNamed(name);
                 if (clip != null && !found.Exists(f => f.Item1 == clip)) found.Add((clip, how));
             }
             if (AttackOf.TryGetValue(list, out var attack) && AttackClipOf(attack) is AnimationClip swing) Add(swing.name, "");
             foreach (var pair in plays.Actions) if (pair.Value == list) Add(pair.Key, "");
             foreach (var pair in plays.ByName) if (pair.Value == list) Add(pair.Key, "by name");
             foreach (var pair in plays.Around) if (pair.Value == list) Add(pair.Key, "heard around");
+            _ofList = list;
+            _ofListPlays = plays;
+            _ofListCopy = Stage.Subject;
+            _ofListClips = found;
             return found;
+        }
+
+        private static EffectList _ofList;
+        private static ClipPlays _ofListPlays;
+        private static GameObject _ofListCopy;
+        private static List<(AnimationClip Clip, string How)> _ofListClips;
+
+        /// <summary>The stage copy's clip of a name, or null.</summary>
+        public static AnimationClip ClipNamed(string name)
+        {
+            if (name == null) return null;
+            Clips();
+            return _clipByName.TryGetValue(name, out var clip) ? clip : null;
         }
 
         private static readonly Dictionary<string, ClipPlays> ClipPlaysCache = new Dictionary<string, ClipPlays>();
@@ -216,7 +236,7 @@ namespace Scry
             if (plays == null) return null;
             foreach (var part in plays.Attacks)
             {
-                if (part.Value.Key == attack && part.Value.Begins) return Clips().Find(c => c.name == part.Key);
+                if (part.Value.Key == attack && part.Value.Begins) return ClipNamed(part.Key);
             }
             return null;
         }
@@ -430,7 +450,12 @@ namespace Scry
         {
             var animator = ClipPlayer.AnimatorOf(Stage.Subject);
             var controller = animator != null ? animator.runtimeAnimatorController : null;
-            if (controller == null) return NoClips;
+            if (controller == null)
+            {
+                _clipByName.Clear();
+                _clipsOf = null;
+                return NoClips;
+            }
             if (ReferenceEquals(controller, _clipsOf) && _clips != null) return _clips;
 
             var all = controller.animationClips;
@@ -450,8 +475,12 @@ namespace Scry
             System.Array.Sort(keys, sorted, System.StringComparer.OrdinalIgnoreCase);
             _clipsOf = controller;
             _clips = new List<AnimationClip>(sorted);
+            _clipByName.Clear();
+            for (var i = 0; i < keys.Length; i++) _clipByName[keys[i]] = sorted[i];
             return _clips;
         }
+
+        private static readonly Dictionary<string, AnimationClip> _clipByName = new Dictionary<string, AnimationClip>();
 
         private static readonly List<AnimationClip> NoClips = new List<AnimationClip>();
         private static RuntimeAnimatorController _clipsOf;

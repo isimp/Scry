@@ -78,6 +78,11 @@ namespace Scry
                         y += chipH + U(5f);
                     }
                     var chip = new Rect(x, y, w, chipH);
+                    if (OutOfSight(chip))
+                    {
+                        x += w + U(6f);
+                        continue;
+                    }
                     var hover = chip.Contains(Event.current.mousePosition);
                     var goes = !string.IsNullOrEmpty(item.Prefab) && InCatalog(explorer, item.Prefab);
                     var kind = goes ? KindOf(explorer, item.Prefab) : null;
@@ -124,13 +129,13 @@ namespace Scry
                     var icon = PrefabIcon(source.Prefab);
                     var textX = icon != null ? U(34f) : U(12f);
                     var textW = width - textX - U(10f);
-                    var chipH = Mathf.Max(U(30f), Skin.Height(Skin.Small, source.Text, textW) + U(10f));
+                    var wrapped = SmallWrapped();
+                    var chipH = Mathf.Max(U(30f), Skin.Height(wrapped, source.Text, textW) + U(10f));
                     var chip = new Rect(0f, y, width, chipH);
                     var hover = chip.Contains(Event.current.mousePosition);
                     var kind = KindOf(explorer, source.Prefab);
                     Skin.Box(chip, LinkFill(kind, hover));
                     if (icon != null) DrawSprite(icon, new Rect(U(6f), y + (chipH - U(22f)) / 2f, U(22f), U(22f)));
-                    var wrapped = new GUIStyle(Skin.Small) { wordWrap = true };
                     wrapped.normal.textColor = LinkText(kind, hover);
                     GUI.Label(new Rect(textX, y, textW, chipH), source.Text, wrapped);
                     if (hover) AskTip("src:" + source.Prefab, "Go to " + source.Prefab);
@@ -283,6 +288,20 @@ namespace Scry
                 counts[name] = n + 1;
             }
             return string.Join(", ", counts.Select(p => p.Value > 1 ? $"{p.Key} ×{p.Value}" : p.Key));
+        }
+
+        private static GUIStyle _smallWrapped;
+        private static GUIStyle _smallWrappedFrom;
+
+        /// <summary>The small text style wrapping, made once for each time the styles are made, not for every chip drawn.</summary>
+        private static GUIStyle SmallWrapped()
+        {
+            if (_smallWrapped == null || !ReferenceEquals(_smallWrappedFrom, Skin.Small))
+            {
+                _smallWrappedFrom = Skin.Small;
+                _smallWrapped = new GUIStyle(Skin.Small) { wordWrap = true };
+            }
+            return _smallWrapped;
         }
     }
 }

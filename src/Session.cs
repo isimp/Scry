@@ -91,8 +91,10 @@ namespace Scry
 
         public static void Update()
         {
-            // Leaving a world destroys every prefab the catalog points at.
-            if (_scene != null && ZNetScene.instance != _scene) Forget();
+            // Leaving a world destroys every prefab the catalog points at. Compared as references:
+            // once the scene is destroyed, Unity's own comparison calls it null, the same as the
+            // instance the game has then, and the change would never be seen.
+            if (!ReferenceEquals(_scene, null) && !ReferenceEquals(ZNetScene.instance, _scene)) Forget();
 
             if (IsOpen && Player.m_localPlayer == null) Hide();
 
@@ -172,16 +174,22 @@ namespace Scry
             }
         }
 
+        /// <summary>
+        /// Lets go of everything from the world left. The scene is let go first, so a step that
+        /// fails is not tried again every frame, and each step goes on its own.
+        /// </summary>
         private static void Forget()
         {
-            Hide();
-            Previews.ClearWorld();
-            Stage.Clear();
             _scene = null;
-            Facts.Forget();
+            try { Hide(); } catch (Exception ex) { Faults.Tell("closing on leaving a world", ex); }
+            try { Previews.ClearWorld(); } catch (Exception ex) { Faults.Tell("clearing the world's previews", ex); }
+            try { Stage.Clear(); } catch (Exception ex) { Faults.Tell("clearing the stage", ex); }
+            try { Previews.Forget(); } catch (Exception ex) { Faults.Tell("forgetting what previews found", ex); }
+            try { Facts.Forget(); } catch (Exception ex) { Faults.Tell("forgetting facts", ex); }
+            try { ScryPanel.Forget(); } catch (Exception ex) { Faults.Tell("forgetting the panel's lists", ex); }
 
             // The search and filters carry over to the next world; the entries cannot.
-            if (Explorer != null) Explorer.Select(null);
+            try { if (Explorer != null) Explorer.Select(null); } catch (Exception ex) { Faults.Tell("letting go of the selection", ex); }
         }
     }
 }

@@ -103,8 +103,7 @@ namespace Scry
             if (point == null) point = copy.transform;
             var scale = copy.transform.lossyScale.x;
 
-            var holder = new GameObject("Scry felled tree");
-            holder.transform.SetParent(parent, false);
+            var holder = NewHolder("Scry felled tree", parent, copy.transform, layer);
 
             var log = Ghost.Make(tree.m_logPrefab, holder.transform, point.position, point.rotation, layer, falling: true);
             if (log == null)
@@ -114,6 +113,7 @@ namespace Scry
             }
             log.transform.localScale = tree.m_logPrefab.transform.localScale * scale;
             if (layer < 0) Solidify(log, physicsLayer);
+            Physics.SyncTransforms();
             FallWatch.Start(log, copy, layer >= 0);
 
             var body = log.GetComponent<Rigidbody>();
@@ -129,6 +129,19 @@ namespace Scry
                 var stump = Ghost.Make(tree.m_stubPrefab, holder.transform, copy.transform.position, copy.transform.rotation, layer);
                 if (stump != null) stump.transform.localScale = tree.m_stubPrefab.transform.localScale * scale;
             }
+            return holder;
+        }
+
+        /// <summary>
+        /// What holds a fall's pieces: where the copy stood, and on the stage on its layer, so the
+        /// log says where the fall is rather than where the world or the stage begins.
+        /// </summary>
+        private static GameObject NewHolder(string name, Transform parent, Transform at, int layer)
+        {
+            var holder = new GameObject(name);
+            if (layer >= 0) holder.layer = layer;
+            holder.transform.SetParent(parent, false);
+            holder.transform.position = at.position;
             return holder;
         }
 
@@ -217,6 +230,7 @@ namespace Scry
                     left = true;
                 }
             }
+            if (left) Physics.SyncTransforms();
             return left;
         }
 
@@ -259,8 +273,7 @@ namespace Scry
         public static GameObject Loose(GameObject prefab, GameObject copy, Transform parent, int layer, int physicsLayer, Vector3 away)
         {
             var t = copy.transform;
-            var holder = new GameObject("Scry let fall");
-            holder.transform.SetParent(parent, false);
+            var holder = NewHolder("Scry let fall", parent, t, layer);
             var size = t.lossyScale.x;
             var loose = Ghost.Make(prefab, holder.transform, t.position + Vector3.up * 0.5f * size, t.rotation, layer, falling: true);
             if (loose == null)
@@ -290,6 +303,7 @@ namespace Scry
                     body.angularVelocity = Random.onUnitSphere * 6f;
                 }
             }
+            Physics.SyncTransforms();
             FallWatch.Start(loose, copy, layer >= 0);
             return holder;
         }
@@ -381,8 +395,7 @@ namespace Scry
             }
             if (roots.Count == 0) roots.Add(copy.transform);
 
-            var holder = new GameObject("Scry pieces");
-            holder.transform.SetParent(parent, false);
+            var holder = NewHolder("Scry pieces", parent, copy.transform, layer);
 
             var bodies = new List<Rigidbody>();
             foreach (var root in roots)
@@ -479,12 +492,23 @@ namespace Scry
 
                 var holder = new GameObject("Scry collider") { layer = layer };
                 holder.transform.SetParent(owner.transform, false);
-                if (Clone(collider, holder)) Object.Destroy(collider);
-                else Object.Destroy(holder);
+                if (Clone(collider, holder)) Object.DestroyImmediate(collider);
+                else Object.DestroyImmediate(holder);
             }
         }
 
+        /// <summary>A collider copied onto another object, as it was: its shape, and whether it is a trigger, switched on, and of what material.</summary>
         private static bool Clone(Collider from, GameObject to)
+        {
+            if (!Shape(from, to)) return false;
+            var made = to.GetComponent<Collider>();
+            made.isTrigger = from.isTrigger;
+            made.enabled = from.enabled;
+            made.sharedMaterial = from.sharedMaterial;
+            return true;
+        }
+
+        private static bool Shape(Collider from, GameObject to)
         {
             switch (from)
             {

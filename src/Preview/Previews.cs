@@ -110,9 +110,13 @@ namespace Scry
         /// <summary>The grounds a creature's footsteps sound different on, each once.</summary>
         public static List<FootStep.GroundMaterial> Grounds(GameObject prefab)
         {
+            // Asked on every event the panel draws; worked out once per prefab.
+            if (prefab == null) return NoGrounds;
+            if (GroundsOf.TryGetValue(prefab, out var known)) return known;
             var grounds = new List<FootStep.GroundMaterial>();
-            var step = prefab != null ? prefab.GetComponentInChildren<FootStep>(true) : null;
-            if (step?.m_effects == null) return grounds;
+            GroundsOf[prefab] = grounds;
+            var step = prefab.GetComponentInChildren<FootStep>(true);
+            if (step == null || step.m_effects == null) return grounds;
             foreach (FootStep.GroundMaterial ground in System.Enum.GetValues(typeof(FootStep.GroundMaterial)))
             {
                 if (ground == FootStep.GroundMaterial.None || ground == FootStep.GroundMaterial.Everything) continue;
@@ -120,6 +124,9 @@ namespace Scry
             }
             return grounds;
         }
+
+        private static readonly Dictionary<GameObject, List<FootStep.GroundMaterial>> GroundsOf = new Dictionary<GameObject, List<FootStep.GroundMaterial>>();
+        private static readonly List<FootStep.GroundMaterial> NoGrounds = new List<FootStep.GroundMaterial>();
 
         /// <summary>
         /// Whether a copy is still playing: while it is new (a sound starts a frame or a delay
@@ -182,18 +189,19 @@ namespace Scry
 
         public static void Update(Explorer explorer)
         {
-            Expire();
-            Listen.Update();
+            // Each part on its own: one that fails does not keep the others from running.
+            try { Expire(); } catch (System.Exception ex) { Faults.Tell("expiring previews", ex); }
+            try { Listen.Update(); } catch (System.Exception ex) { Faults.Tell("listening", ex); }
             var started = Timing.Start();
-            TriggerProbe.Update();
-            SortSomeClips();
+            try { TriggerProbe.Update(); } catch (System.Exception ex) { Faults.Tell("watching an animator", ex); }
+            try { SortSomeClips(); } catch (System.Exception ex) { Faults.Tell("sorting clips", ex); }
             Timing.Add("update probe", started);
             for (var i = LaterOn.Count - 1; i >= 0; i--)
             {
                 if (Time.unscaledTime < LaterOn[i].At) continue;
                 var act = LaterOn[i].Act;
                 LaterOn.RemoveAt(i);
-                act();
+                try { act(); } catch (System.Exception ex) { Faults.Tell("a later step", ex); }
             }
 
             if (explorer == null) return;
@@ -211,24 +219,51 @@ namespace Scry
                 _modifierVersion = modifiers.Version;
                 _stageStale = false;
                 started = Timing.Start();
-                Selected(explorer.Selected, modifiers);
+                try { Selected(explorer.Selected, modifiers); } catch (System.Exception ex) { Faults.Tell("showing the selection", ex); }
                 Timing.Add("update selection", started);
             }
             else if (modifiers.Version != _modifierVersion)
             {
                 _modifierVersion = modifiers.Version;
                 started = Timing.Start();
-                Modified(modifiers);
+                try { Modified(modifiers); } catch (System.Exception ex) { Faults.Tell("changing the preview", ex); }
                 Timing.Add("update modifiers", started);
             }
 
             if (_stageStale)
             {
                 _stageStale = false;
-                Stage.Show(_entry, modifiers);
+                try { Stage.Show(_entry, modifiers); } catch (System.Exception ex) { Faults.Tell("showing the stage", ex); }
             }
 
-            Repeat(modifiers);
+            try { Repeat(modifiers); } catch (System.Exception ex) { Faults.Tell("repeating", ex); }
+        }
+
+        /// <summary>
+        /// Lets go of what was found out about the prefabs of the world left: they are made anew
+        /// in the next, and a mod's may differ there.
+        /// </summary>
+        public static void Forget()
+        {
+            ClipPlaysCache.Clear();
+            Wholes.Clear();
+            WeaponOf.Clear();
+            OnGround.Clear();
+            ClipOf.Clear();
+            AttackOf.Clear();
+            ToldEmpty.Clear();
+            GroundsOf.Clear();
+            _carriedPrefab = null;
+            _carried = null;
+            _clipsOf = null;
+            _clips = null;
+            _ofList = null;
+            _ofListPlays = null;
+            _ofListCopy = null;
+            _ofListClips = null;
+            _plays = null;
+            _playsPrefab = null;
+            _playsCopy = null;
         }
 
         /// <summary>
@@ -260,7 +295,7 @@ namespace Scry
 
             if (_clipOnShow != null)
             {
-                var clip = Clips().Find(c => c.name == _clipOnShow);
+                var clip = ClipNamed(_clipOnShow);
                 _clipOnShow = null;
                 if (clip != null) PlayClip(clip);
             }
