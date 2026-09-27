@@ -189,6 +189,10 @@ namespace Scry
         {
             var source = SoundSource();
             if (source == null) return;
+
+            // Pausing a sound that has just ended, as a click can land just after, would keep it
+            // paused at its end for good, with nothing left to resume; it is let end instead.
+            if (pause && !source.isPlaying) return;
             TakeOverSound();
             if (pause) source.Pause();
             else source.UnPause();

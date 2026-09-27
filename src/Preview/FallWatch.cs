@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -6,7 +7,8 @@ namespace Scry
     /// <summary>
     /// With <see cref="Plugin.LogPreviews"/> on, watches a copy let fall for a few seconds and
     /// tells in the log where it was made, how high and how fast it went and where it came to
-    /// rest, measured from the foot of the copy it came from, with what it has to land with.
+    /// rest, measured from the foot of the copy it came from, with what it has to land with and
+    /// what else it touched on the way (another copy, the ground, a building or a tree of the world).
     /// </summary>
     internal sealed class FallWatch : MonoBehaviour
     {
@@ -20,6 +22,10 @@ namespace Scry
         private float _highest;
         private float _fastest;
         private Rigidbody _body;
+        private Collider[] _own;
+        private int _meets;
+        private readonly List<string> _touched = new List<string>();
+        private static readonly Collider[] Near = new Collider[16];
 
         public static void Start(GameObject piece, GameObject from, bool onStage)
         {
@@ -34,6 +40,12 @@ namespace Scry
             watch._body = piece.GetComponentInChildren<Rigidbody>();
 
             var colliders = piece.GetComponentsInChildren<Collider>(true);
+            watch._own = colliders;
+            if (colliders.Length > 0)
+            {
+                var layer = colliders[0].gameObject.layer;
+                for (var i = 0; i < 32; i++) if (!Physics.GetIgnoreLayerCollision(layer, i)) watch._meets |= 1 << i;
+            }
             var told = string.Join(", ", colliders.Select(c =>
                 c.GetType().Name + (c is MeshCollider mesh && !mesh.convex ? " not convex" : "") + (c.enabled ? "" : " off") + " on " + LayerMask.LayerToName(c.gameObject.layer) + "/" + c.gameObject.layer));
             var body = watch._body;
@@ -47,6 +59,30 @@ namespace Scry
             if (_body == null) return;
             _highest = Mathf.Max(_highest, _body.worldCenterOfMass.y);
             _fastest = Mathf.Max(_fastest, _body.linearVelocity.magnitude);
+            Touching();
+        }
+
+        /// <summary>Notes each collider not its own that one of its colliders overlaps, by name, layer and what it belongs to.</summary>
+        private void Touching()
+        {
+            if (_own == null || _touched.Count >= 6) return;
+            foreach (var mine in _own)
+            {
+                if (mine == null || !mine.enabled) continue;
+                var bounds = mine.bounds;
+                var count = Physics.OverlapBoxNonAlloc(bounds.center, bounds.extents + Vector3.one * 0.05f, Near, Quaternion.identity, _meets, QueryTriggerInteraction.Ignore);
+                for (var i = 0; i < count; i++)
+                {
+                    var other = Near[i];
+                    if (other == null || System.Array.IndexOf(_own, other) >= 0) continue;
+                    var inside = Physics.ComputePenetration(mine, mine.transform.position, mine.transform.rotation,
+                        other, other.transform.position, other.transform.rotation, out _, out var depth);
+                    var told = $"{other.name} ({other.GetType().Name} on {LayerMask.LayerToName(other.gameObject.layer)}/{other.gameObject.layer}) of {other.transform.root.name}";
+                    if (inside) told += $" by {depth:0.00} m";
+                    if (!_touched.Exists(t => t.StartsWith(told.Split(new[] { " by " }, System.StringSplitOptions.None)[0], System.StringComparison.Ordinal))) _touched.Add(told);
+                    if (_touched.Count >= 6) return;
+                }
+            }
         }
 
         private void Update()
@@ -55,7 +91,8 @@ namespace Scry
             var at = _body != null ? _body.transform.position : transform.position;
             var ground = _onStage ? float.NaN : ZoneSystem.instance != null ? ZoneSystem.instance.GetGroundHeight(at) : float.NaN;
             Plugin.Note($"Scry watched {name} from {_from} {(_onStage ? "on the stage" : "in the world")} for {Seconds:0} s: highest {_highest - _foot.y:0.0} m above its foot, fastest {_fastest:0.#} m/s, now {Around(at - _foot)} of it"
-                + (float.IsNaN(ground) ? "" : $", {at.y - ground:0.0} m above the ground there") + ".");
+                + (float.IsNaN(ground) ? "" : $", {at.y - ground:0.0} m above the ground there")
+                + $"; touched {(_touched.Count > 0 ? string.Join(", ", _touched) : "nothing")}.");
             Destroy(this);
         }
 

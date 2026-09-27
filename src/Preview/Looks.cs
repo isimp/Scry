@@ -52,9 +52,11 @@ namespace Scry
         /// </summary>
         private static void Step(GameObject prefab, string what, System.Action step)
         {
+            var started = Timing.Start();
             try
             {
                 step();
+                if (Plugin.LogPreviews) Timing.Add("dress " + what, started);
             }
             catch (System.Exception ex)
             {

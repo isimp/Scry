@@ -111,10 +111,12 @@ namespace Scry
                 for (var c = ' '; c <= '~'; c++) every.Append(c);
                 var sample = new GUIContent(every.ToString());
 
+                var started = Timing.Start();
                 foreach (var style in new[] { Title, Subtitle, Label, Small, Heading, Big, RowName, RowSub, Glyph, Button, Chip, Field, Tab, TabOn, Tip })
                 {
                     style.CalcSize(sample);
                 }
+                Timing.Add("skin glyphs", started);
             }
             catch (Exception ex)
             {
@@ -211,8 +213,13 @@ namespace Scry
             if (Gui != null && Mathf.Approximately(scale, _builtScale)) return;
             _builtScale = scale;
 
+            // Timed by part: the first time falls in the game's own loading, where it is hard to see.
+            var started = Timing.Start();
             FindFonts();
+            Timing.Add("skin fonts", started);
+            started = Timing.Start();
             MakeTextures();
+            Timing.Add("skin textures", started);
 
             if (Gui == null) Gui = UnityEngine.Object.Instantiate(GUI.skin);
             Gui.font = _body;

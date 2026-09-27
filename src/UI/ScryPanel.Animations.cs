@@ -72,9 +72,11 @@ namespace Scry
             // clips), then those that play sounds or effects, then the silent; within each, those
             // Scry knows what they are first. While that is still being worked out, they are
             // listed as they come, and it says so.
+            var started = Timing.Start();
             var sorting = Previews.ClipsSorting;
             var shown = ClipRows(clips, sorting);
             var ownNow = Previews.AnimatorClipNow();
+            Timing.Add("clips rows", started);
             var group = -1;
             x = 0f;
             foreach (var row in shown)
@@ -95,7 +97,9 @@ namespace Scry
 
                 var on = playing == clip;
                 var style = on ? Skin.ChipOn : Skin.Chip;
+                started = Timing.Start();
                 var w = Mathf.Min(width, Skin.Width(style, text) + U(8f));
+                Timing.Add("clips measured", started);
                 if (x + w > width && x > 0f)
                 {
                     x = 0f;
