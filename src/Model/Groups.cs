@@ -50,7 +50,9 @@ namespace Scry
     /// <summary>
     /// The groups each kind's tab lists its entries in, by what the game itself says of them:
     /// items by their item type, creatures by their faction, pieces by the build menu and tab
-    /// they are in, effects and sounds by what plays them.
+    /// they are in, effects and sounds by what they are for (the names of the effect lists that
+    /// play them), projectiles by what fires them, status effects by what gives them, and the
+    /// rest by what they are there for.
     /// </summary>
     public static class Groups
     {

@@ -27,7 +27,8 @@ namespace Scry
     /// The typed search, taken apart. Plain words are matched against both names and rank the
     /// results. A word with a known key and a colon narrows the list by something else:
     /// <c>kind:</c>, <c>has:</c> (a component), <c>biome:</c>, <c>mod:</c>, <c>used:</c> (the prefabs
-    /// that play an effect) and <c>in:</c> (a location or dungeon it is found in, once they are read). A minus in front of a word or a term leaves out what matches it.
+    /// that play an effect), <c>station:</c> (where it is made) and <c>in:</c> (a location or dungeon
+    /// it is found in, once they are read). A minus in front of a word or a term leaves out what matches it.
     /// </summary>
     public sealed class ParsedSearch
     {
@@ -200,13 +201,6 @@ namespace Scry
             var result = new List<Entry>(found.Count);
             foreach (var pair in found) result.Add(pair.Value);
             return result;
-        }
-
-        /// <summary>The filters other than the text: kind, favourites and origin.</summary>
-        public static bool Passes(Entry entry, Query query, ICollection<string> favourites)
-        {
-            if (query.Kind.HasValue && entry.Kind != query.Kind.Value) return false;
-            return PassesAnyKind(entry, query, favourites);
         }
 
         /// <summary>The filters other than the text and the kind: favourites and origin.</summary>

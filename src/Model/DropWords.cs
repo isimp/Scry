@@ -36,8 +36,9 @@ namespace Scry
     }
 
     /// <summary>
-    /// A drop table in words, the same for every tree, rock, bush and chest: how many times it is
-    /// rolled and how often, and for each item how many it gives and its share of a roll.
+    /// A drop table in words, the same for every tree, rock, bush and creature: how many times it
+    /// is rolled and how often, and for each item how many it gives and its share of a roll. A
+    /// chest's is told as what it holds.
     /// </summary>
     public static class DropWords
     {

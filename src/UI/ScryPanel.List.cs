@@ -210,8 +210,9 @@ namespace Scry
         private static IReadOnlyList<Entry> _rowsFor;
 
         /// <summary>
-        /// The list's rows: on a kind's tab whose entries fall into groups (resources by how they
-        /// are gathered), each group under a heading with its count; otherwise the entries alone.
+        /// The list's rows: on a kind's tab, each group (items by their type, resources by how
+        /// they are gathered) under a heading with its count, unless Recent lists them newest
+        /// first; otherwise the entries alone.
         /// Worked out again only when the results change.
         /// </summary>
         private static List<ListRow> ListRows(Explorer explorer)

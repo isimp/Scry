@@ -8,7 +8,9 @@ namespace Scry
     /// <summary>
     /// Puts each entry in the group its kind's tab lists it under (<see cref="Groups"/>): an item
     /// by its item type, a creature by its faction, a piece by the build menu and tab it is in, an
-    /// effect or sound by what plays it. Resources have theirs from how they are gathered.
+    /// effect or sound by what it is for, a projectile by what fires it, a status effect by what
+    /// gives it, anything else by what it is there for. Resources have theirs from how they are
+    /// gathered.
     /// </summary>
     internal static class Grouping
     {

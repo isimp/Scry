@@ -155,7 +155,7 @@ namespace Scry
                 if (Session.Reading != null) DrawReading(scale, Session.Reading);
 
                 // Warmed in a world only: at the main menu the game's fonts are not loaded yet, so
-                // warming there measured a font the panel never uses, for most of a second.
+                // warming there would measure a font the panel never uses, for most of a second.
                 else if (Player.m_localPlayer != null) Skin.Warm(scale);
                 return;
             }
@@ -254,9 +254,8 @@ namespace Scry
                     break;
                 case KeyCode.Return:
                 case KeyCode.KeypadEnter:
-                    // While the search offers a suggestion for the word being typed, Enter takes it (SearchEnter).
-                    if (SearchFocused && _dropShown && _dropTakesEnter) break;
-                    Primary(explorer.Selected);
+                    // While the search offers a suggestion for the word being typed, Enter takes it.
+                    if (!TakeSuggestion(explorer)) Primary(explorer.Selected);
                     e.Use();
                     break;
                 case KeyCode.F:
@@ -786,7 +785,6 @@ namespace Scry
 
             // After the typed text is taken: what Tab puts in must not be undone by it.
             SearchTab(explorer);
-            SearchEnter(explorer);
             hasText = !string.IsNullOrEmpty(explorer.Text);
 
             if (!hasText)

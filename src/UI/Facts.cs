@@ -9,8 +9,9 @@ namespace Scry
 {
     /// <summary>
     /// What an entry is in the game, in words: an item's stats and recipe, a creature's health,
-    /// resistances and drops, a piece's cost and comfort, what a status effect changes, and
-    /// where things spawn, grow or come from. Read from the prefab, so mods' changes show.
+    /// resistances and drops, a piece's cost and comfort, a resource's drops, a chest's contents,
+    /// what a status effect changes, and where things spawn, grow or come from. Read from the
+    /// prefab, so mods' changes show; a world whose settings change them says so.
     /// </summary>
     internal sealed class Facts
     {

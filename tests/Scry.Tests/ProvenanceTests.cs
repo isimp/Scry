@@ -34,7 +34,7 @@ namespace Scry.Tests
         {
             var provenance = SceneStartedWith("Troll");
 
-            Assert.Equal(Origin.Vanilla, provenance.OfEffect(new[] { "CoolMod_TrollStatue", "Troll" }));
+            Assert.Equal(Origin.Vanilla, Provenance.Combine(new[] { provenance.Of("CoolMod_TrollStatue"), provenance.Of("Troll") }));
         }
 
         [Fact]
@@ -42,21 +42,19 @@ namespace Scry.Tests
         {
             var provenance = SceneStartedWith("Troll");
 
-            Assert.Equal(Origin.Mod, provenance.OfEffect(new[] { "CoolMod_TrollStatue" }));
+            Assert.Equal(Origin.Mod, Provenance.Combine(new[] { provenance.Of("CoolMod_TrollStatue") }));
         }
 
         [Fact]
-        public void AnInterfaceSoundIsTheGames()
+        public void AnEffectAModUsesBesideSomethingOfUnknownOriginIsNotClaimed()
         {
-            var provenance = SceneStartedWith("Troll");
-
-            Assert.Equal(Origin.Vanilla, provenance.OfEffect(new[] { Provenance.Interface }));
+            Assert.Equal(Origin.Unknown, Provenance.Combine(new[] { Origin.Mod, Origin.Unknown }));
         }
 
         [Fact]
         public void AnEffectNobodyIsKnownToUseIsNotClaimed()
         {
-            Assert.Equal(Origin.Unknown, SceneStartedWith("Troll").OfEffect(new string[0]));
+            Assert.Equal(Origin.Unknown, Provenance.Combine(new Origin[0]));
         }
     }
 }

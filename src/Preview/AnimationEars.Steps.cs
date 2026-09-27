@@ -98,7 +98,7 @@ namespace Scry
 
         private void Step(Heard e)
         {
-            // Blended-out clips send steps too; the game ignores the faint ones, and so do we.
+            // Blended-out clips send steps too; the game ignores the faint ones, and so are they here.
             if (e.Weight < 0.33f || Time.unscaledTime - _lastStep < 0.08f) return;
             _lastStep = Time.unscaledTime;
 

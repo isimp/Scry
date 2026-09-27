@@ -7,7 +7,8 @@ namespace Scry
     /// <summary>
     /// Help with the search (rules in <see cref="SearchHelp"/>): what could finish the word being
     /// typed, in a list under the box and as the rest of the best one after the text, taken by a
-    /// click or with Tab (Shift+Tab back). The arrow keys and Enter stay with the list.
+    /// click, with Tab (Shift+Tab back), or with Enter while a word is being typed. The arrow
+    /// keys stay with the list.
     /// </summary>
     internal static partial class ScryPanel
     {
@@ -113,29 +114,32 @@ namespace Scry
         }
 
         /// <summary>
-        /// After the search box, as Tab: Enter takes the marked suggestion while one is offered for
-        /// a word being typed, and ends Tab's cycling, keeping what it put in. Otherwise Enter is
-        /// left to the list (<see cref="Keys"/>), which plays the selection.
+        /// Enter takes the marked suggestion while one is offered for a word being typed, and ends
+        /// Tab's cycling, keeping what it put in; true when it did. Asked by <see cref="Keys"/>
+        /// before the search box is drawn, since the box uses up any key that types no character,
+        /// Enter among them. Its name is not known yet in that pass, so the box's editor is found
+        /// by the keyboard's control, which the box had at the end of the last one.
         /// </summary>
-        private static void SearchEnter(Explorer explorer)
+        private static bool TakeSuggestion(Explorer explorer)
         {
-            var e = Event.current;
-            if (e.type != EventType.KeyDown || !_dropShown || !_dropTakesEnter) return;
-            var enter = e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter;
-            if (!enter && e.character != '\n') return;
-            var editor = SearchEditor();
-            if (editor == null) return;
-            if (enter)
+            if (!SearchFocused || !_dropShown || !_dropTakesEnter || GUIUtility.keyboardControl == 0) return false;
+            var editor = GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl) as TextEditor;
+            if (editor == null) return false;
+            var text = explorer.Text ?? "";
+            if (Cycle.IsAt(text, editor.cursorIndex))
             {
-                var text = explorer.Text ?? "";
-                if (Cycle.IsAt(text, editor.cursorIndex)) Cycle.Reset();
-                else if (_dropMark >= 0 && _dropMark < _dropList.Count)
-                {
-                    var taken = SearchHelp.Replace(text, _dropSpan, _dropList[_dropMark].Insert, out var caret);
-                    SetSearch(explorer, taken, caret);
-                }
+                Cycle.Reset();
+                return true;
             }
-            e.Use();
+            if (_dropMark < 0 || _dropMark >= _dropList.Count) return false;
+            var taken = SearchHelp.Replace(text, _dropSpan, _dropList[_dropMark].Insert, out var caret);
+            explorer.Text = taken;
+            _listScroll = Vector2.zero;
+            _reveal = true;
+            _help = false;
+            editor.text = taken;
+            editor.cursorIndex = editor.selectIndex = caret;
+            return true;
         }
 
         /// <summary>Before the search box and everything under the list of suggestions: a click on one of them.</summary>

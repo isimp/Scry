@@ -21,20 +21,10 @@ namespace Scry
             _original = new HashSet<string>(names, StringComparer.Ordinal);
         }
 
-        public bool Recorded => _original != null;
-
         public Origin Of(string name)
         {
             if (_original == null) return Origin.Unknown;
             return _original.Contains(name) ? Origin.Vanilla : Origin.Mod;
-        }
-
-        /// <summary>The origin of an effect, from the prefabs that use it.</summary>
-        public Origin OfEffect(IEnumerable<string> usedBy)
-        {
-            var origins = new List<Origin>();
-            foreach (var user in usedBy) origins.Add(user == Interface ? Origin.Vanilla : Of(user));
-            return Combine(origins);
         }
 
         /// <summary>

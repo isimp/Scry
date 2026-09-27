@@ -116,8 +116,6 @@ namespace Scry
         /// <summary>Which suggestion is in the search now, while cycling.</summary>
         public int Index { get; private set; }
 
-        public bool Cycling => _list != null;
-
         /// <summary>What is being cycled through, while cycling, and where the word it replaces starts.</summary>
         public IReadOnlyList<Suggestion> Suggestions => _list;
 

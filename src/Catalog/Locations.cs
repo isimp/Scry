@@ -9,7 +9,7 @@ namespace Scry
 {
     /// <summary>
     /// Where things are found in the world's locations and dungeon rooms, read when asked (the
-    /// panel's "Find it in locations and dungeons", or <c>/scry locations</c>). The game keeps them
+    /// panel's "Find in locations" buttons, or <c>/scry locations</c>). The game keeps them
     /// only as soft references to asset bundles (<c>ZoneSystem.m_locations</c>, <c>DungeonDB</c>'s
     /// rooms), loaded while it builds a zone; loading all of them at once stalls the game for
     /// seconds, so one at a time is loaded in the background, read a few milliseconds a frame, and
