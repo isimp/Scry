@@ -5,13 +5,34 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// The panel's life: opening and closing it, the catalog of the world it was opened in, and
-    /// letting everything go when that world is left.
+    /// The panel's life: opening and closing it, the catalog of the world it is in, and letting
+    /// everything go when that world is left.
+    ///
+    /// The catalog is read over many frames, a few milliseconds each, starting a little after
+    /// the world is entered, so it is usually ready by the time the panel is first opened.
+    /// Opened before then, the panel says how far it has got, and the reading goes faster.
     /// </summary>
     internal static class Session
     {
         private static ZNetScene _scene;
         private static Favourites _favourites;
+        private static CatalogJob _job;
+        private static float _inWorldSince = -1f;
+        private static ZNetScene _failedIn;
+        private static string _pendingSearch;
+
+        /// <summary>The search and filters of the last world's explorer, carried over to the next.</summary>
+        private static (string Text, Kind? Kind, OriginFilter Origin, bool Favourites)? _carried;
+
+        /// <summary>How long after arriving in a world the catalog starts to be read, so the world's own loading goes first.</summary>
+        private const float QuietDelay = 3f;
+
+        /// <summary>Scry's share of a frame for reading the catalog while nobody waits for it, and while the open panel does.</summary>
+        private const double QuietBudgetMs = 4;
+        private const double WaitedBudgetMs = 14;
+
+        /// <summary>What is being read of the catalog while the open panel waits for it; null once there is nothing to wait for.</summary>
+        public static string Reading => IsOpen && Explorer == null ? _job != null ? _job.Progress : "Reading the catalog" : null;
         private static int _closedFrame = -10;
         private static string _note;
         private static float _noteUntil;
@@ -52,9 +73,13 @@ namespace Scry
                 return;
             }
 
-            if (!EnsureCatalog()) return;
-
-            if (search != null) Explorer.Text = search;
+            // Opened before the catalog is read, the panel says how far it has got meanwhile.
+            if (search != null)
+            {
+                if (Explorer != null) Explorer.Text = search;
+                else _pendingSearch = search;
+            }
+            if (Explorer == null && ReferenceEquals(_failedIn, ZNetScene.instance)) _failedIn = null;
             IsOpen = true;
             ScryPanel.Opened();
         }
@@ -98,6 +123,8 @@ namespace Scry
 
             if (IsOpen && Player.m_localPlayer == null) Hide();
 
+            ReadCatalog();
+
             if (Input.GetKeyDown(Plugin.OpenKey) && CanToggle() && !TypingIt(Plugin.OpenKey)) Toggle();
 
             // Looking starts only from a press outside the panel, so a right click on it stays a click.
@@ -105,8 +132,8 @@ namespace Scry
             else if (Input.GetMouseButtonDown(1) && !ScryPanel.Covers(Input.mousePosition)) Looking = true;
 
             // The mouse's own back and forward buttons step through jumps, as in a browser.
-            if (IsOpen && Input.GetKeyDown(KeyCode.Mouse3)) ScryPanel.Step(Explorer, true);
-            if (IsOpen && Input.GetKeyDown(KeyCode.Mouse4)) ScryPanel.Step(Explorer, false);
+            if (IsOpen && Explorer != null && Input.GetKeyDown(KeyCode.Mouse3)) ScryPanel.Step(Explorer, true);
+            if (IsOpen && Explorer != null && Input.GetKeyDown(KeyCode.Mouse4)) ScryPanel.Step(Explorer, false);
 
             Previews.Update(IsOpen ? Explorer : null);
         }
@@ -138,40 +165,71 @@ namespace Scry
             return true;
         }
 
-        private static bool EnsureCatalog()
+        /// <summary>
+        /// Reads on at the catalog of the world, if it is not read yet: once the world has been
+        /// entered a few seconds, or at once when the panel is opened, and faster while it waits.
+        /// A reading that failed is tried again only when the panel is next opened.
+        /// </summary>
+        private static void ReadCatalog()
         {
-            if (Explorer != null && _scene == ZNetScene.instance) return true;
-
-            try
+            var scene = ZNetScene.instance;
+            if (scene == null || ObjectDB.instance == null || Player.m_localPlayer == null)
             {
-                var watch = System.Diagnostics.Stopwatch.StartNew();
-                var catalog = CatalogBuilder.Build();
-                watch.Stop();
-
-                _favourites = _favourites ?? new Favourites(Path.Combine(Plugin.DataFolder, "favourites.txt"));
-                if (_favourites.Problem != null) Plugin.Log.LogWarning($"Scry could not read its favourites: {_favourites.Problem}");
-
-                var previous = Explorer;
-                Explorer = new Explorer(catalog, _favourites);
-                if (previous != null)
-                {
-                    Explorer.Text = previous.Text;
-                    Explorer.KindFilter = previous.KindFilter;
-                    Explorer.Origin = previous.Origin;
-                    Explorer.FavouritesOnly = previous.FavouritesOnly;
-                }
-
-                _scene = ZNetScene.instance;
-                CatalogSummary = $"{catalog.Count:N0} prefabs";
-                Plugin.Log.LogInfo($"Scry read {catalog.Count} prefabs and status effects in {watch.ElapsedMilliseconds} ms.");
-                return true;
+                _inWorldSince = -1f;
+                return;
             }
-            catch (Exception ex)
+            if (Explorer != null && ReferenceEquals(_scene, scene)) return;
+
+            if (_inWorldSince < 0f) _inWorldSince = Time.unscaledTime;
+            if (_job == null)
             {
-                Plugin.Log.LogError($"Scry could not read the game's prefabs: {ex}");
-                Chat.instance?.AddString("Scry could not read the game's prefabs; the log has the details.");
-                return false;
+                if (!IsOpen && (Time.unscaledTime - _inWorldSince < QuietDelay || ReferenceEquals(_failedIn, scene))) return;
+                _job = new CatalogJob();
             }
+
+            var started = Timing.Start();
+            var done = _job.Advance(IsOpen ? WaitedBudgetMs : QuietBudgetMs);
+            Timing.Add("catalog", started);
+            if (!done) return;
+
+            var job = _job;
+            _job = null;
+            if (job.Entries != null) Made(job, scene);
+            else if (job.Failure != "the world was left") Failed(job.Failure, scene);
+        }
+
+        private static void Made(CatalogJob job, ZNetScene scene)
+        {
+            var catalog = job.Entries;
+            _favourites = _favourites ?? new Favourites(Path.Combine(Plugin.DataFolder, "favourites.txt"));
+            if (_favourites.Problem != null) Plugin.Log.LogWarning($"Scry could not read its favourites: {_favourites.Problem}");
+
+            Explorer = new Explorer(catalog, _favourites);
+            if (_carried.HasValue)
+            {
+                var carried = _carried.Value;
+                Explorer.Text = carried.Text;
+                Explorer.KindFilter = carried.Kind;
+                Explorer.Origin = carried.Origin;
+                Explorer.FavouritesOnly = carried.Favourites;
+            }
+            if (_pendingSearch != null) Explorer.Text = _pendingSearch;
+            _pendingSearch = null;
+            _carried = null;
+
+            _scene = scene;
+            _failedIn = null;
+            CatalogSummary = $"{catalog.Count:N0} prefabs";
+            Plugin.Log.LogInfo($"Scry read {catalog.Count} prefabs and status effects in {job.WorkMs:0} ms over {job.Frames} frames ({job.ElapsedMs / 1000.0:0.0} s in all).");
+        }
+
+        private static void Failed(string why, ZNetScene scene)
+        {
+            _failedIn = scene;
+            Plugin.Log.LogError($"Scry could not read the game's prefabs: {why}");
+            if (!IsOpen) return;
+            Hide();
+            Chat.instance?.AddString("Scry could not read the game's prefabs; the log has the details.");
         }
 
         /// <summary>
@@ -181,6 +239,9 @@ namespace Scry
         private static void Forget()
         {
             _scene = null;
+            _job = null;
+            _failedIn = null;
+            _inWorldSince = -1f;
             try { Hide(); } catch (Exception ex) { Faults.Tell("closing on leaving a world", ex); }
             try { Previews.ClearWorld(); } catch (Exception ex) { Faults.Tell("clearing the world's previews", ex); }
             try { Stage.Clear(); } catch (Exception ex) { Faults.Tell("clearing the stage", ex); }
@@ -193,6 +254,8 @@ namespace Scry
 
             // The search and filters carry over to the next world; the entries cannot.
             try { if (Explorer != null) Explorer.Select(null); } catch (Exception ex) { Faults.Tell("letting go of the selection", ex); }
+            if (Explorer != null) _carried = (Explorer.Text, Explorer.KindFilter, Explorer.Origin, Explorer.FavouritesOnly);
+            Explorer = null;
         }
     }
 }

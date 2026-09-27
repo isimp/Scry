@@ -56,28 +56,90 @@ namespace Scry
             return ModOf.TryGetValue(name, out var mod) ? mod : "";
         }
 
-        /// <summary>Reads it all again for the current world.</summary>
-        public static void Gather(IEnumerable<GameObject> registered)
+        // Read prefab by prefab, then put together in the order the lines were always told in.
+        private static readonly Dictionary<string, List<Source>> SpawnPointLines = new Dictionary<string, List<Source>>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, List<Source>> DropLines = new Dictionary<string, List<Source>>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, List<Source>> MakerLines = new Dictionary<string, List<Source>>(StringComparer.Ordinal);
+        private static readonly Dictionary<GameObject, string> ShownNames = new Dictionary<GameObject, string>();
+        private static readonly HashSet<string> Failures = new HashSet<string>();
+
+        /// <summary>Starts reading it all again for the current world.</summary>
+        public static void Begin()
         {
             Where.Clear();
             BiomesOf.Clear();
             ModOf.Clear();
             ComesFrom.Clear();
+            GiverList.Clear();
+            SpawnPointLines.Clear();
+            DropLines.Clear();
+            MakerLines.Clear();
+            ShownNames.Clear();
+            Failures.Clear();
+        }
 
-            var prefabs = registered.Where(p => p != null).ToList();
+        /// <summary>
+        /// What one prefab tells: the creatures it spawns, what it drops or yields, what it makes
+        /// from what, and the status effects it gives. Read from its components, looked through
+        /// once for the whole catalog. Each part goes on its own, so one mod's odd component loses
+        /// only that part of that prefab, told once for each kind of failure.
+        /// </summary>
+        public static void Read(GameObject prefab, List<Component> components)
+        {
+            var started = CatalogTiming.Start();
+            try { SpawnPoints(prefab, components); } catch (Exception ex) { Failed("nests and spawn points", prefab, ex); }
+            CatalogTiming.Add("spawn points", started);
+            started = CatalogTiming.Start();
+            try { Drops(prefab, components); } catch (Exception ex) { Failed("drops", prefab, ex); }
+            CatalogTiming.Add("drops", started);
+            started = CatalogTiming.Start();
+            try { Makers(prefab, components); } catch (Exception ex) { Failed("makers", prefab, ex); }
+            CatalogTiming.Add("makers", started);
+            started = CatalogTiming.Start();
+            try { Givers(prefab, components); } catch (Exception ex) { Failed("status effect givers", prefab, ex); }
+            CatalogTiming.Add("givers", started);
+        }
+
+        private static void Failed(string what, GameObject prefab, Exception ex)
+        {
+            if (Failures.Add(what + "|" + ex.GetType().Name + "|" + ex.Message))
+            {
+                Plugin.Log.LogWarning($"Scry could not read the {what} of {prefab.name}, and leaves them out (said once for this kind of failure): {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// What the world as a whole tells, once every prefab is read, a step at a time: where
+        /// creatures spawn and plants grow, what traders sell, and which mod added what. Each
+        /// step says what it was.
+        /// </summary>
+        public static IEnumerable<string> Finish(List<GameObject> prefabs)
+        {
             Try("world spawners", WorldSpawners);
             Try("raids", Raids);
-            Try("nests and spawn points", () => Spawners(prefabs));
+            Try("nests and spawn points", () => Merge(SpawnPointLines, (prefab, line) => Add(prefab, line.Text, line.Prefab)));
             Try("vegetation", Vegetation);
-            Try("drops", () => Drops(prefabs));
-            Try("makers and traders", () => Makers(prefabs));
-            Try("status effect givers", () => Givers(prefabs));
+            yield return "where things live";
+
+            Try("drops", () => Merge(DropLines, From));
+            Try("makers", () => Merge(MakerLines, From));
+            Try("traders", Traders);
+            yield return "what makes things";
+
             Try("Jotunn's registry", JotunnMods);
-            Try("asset bundles", () => BundleMods(prefabs));
+            yield return "which mod added what";
+
+            foreach (var step in BundleMods(prefabs)) yield return step;
+        }
+
+        private static void Merge(Dictionary<string, List<Source>> lines, Action<string, Source> add)
+        {
+            foreach (var pair in lines) foreach (var line in pair.Value) add(pair.Key, line);
         }
 
         private static void Try(string what, Action act)
         {
+            var started = CatalogTiming.Start();
             var watch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
@@ -88,6 +150,22 @@ namespace Scry
             {
                 Plugin.Log.LogWarning($"Scry could not read {what}: {ex.Message}");
             }
+            CatalogTiming.Add(what, started);
+        }
+
+        /// <summary>A line of what something comes from, for one item: each line once, and at most 40.</summary>
+        private static void From(string item, Source line)
+        {
+            if (!ComesFrom.TryGetValue(item, out var lines)) ComesFrom[item] = lines = new List<Source>();
+            if (!lines.Exists(l => l.Text == line.Text) && lines.Count < 40) lines.Add(line);
+        }
+
+        /// <summary>A line kept to be put together later.</summary>
+        private static void Keep(Dictionary<string, List<Source>> lines, GameObject item, string line, string target)
+        {
+            if (item == null) return;
+            if (!lines.TryGetValue(item.name, out var list)) lines[item.name] = list = new List<Source>();
+            list.Add(new Source(line, target));
         }
 
         // ----- Where things live -----
@@ -206,23 +284,21 @@ namespace Scry
             }
         }
 
-        private static void Spawners(List<GameObject> prefabs)
+        private static void SpawnPoints(GameObject prefab, List<Component> components)
         {
-            foreach (var prefab in prefabs)
+            foreach (var component in components)
             {
-                foreach (var area in prefab.GetComponentsInChildren<SpawnArea>(true))
+                if (!(component is SpawnArea area) || area.m_prefabs == null) continue;
+                foreach (var data in area.m_prefabs)
                 {
-                    foreach (var data in area.m_prefabs)
-                    {
-                        if (data?.m_prefab == null) continue;
-                        Add(data.m_prefab.name, $"Comes from {Shown(prefab)}, {Levels(data.m_minLevel, data.m_maxLevel)}", prefab.name);
-                    }
+                    if (data?.m_prefab == null) continue;
+                    Keep(SpawnPointLines, data.m_prefab, $"Comes from {Shown(prefab)}, {Levels(data.m_minLevel, data.m_maxLevel)}", prefab.name);
                 }
-                foreach (var point in prefab.GetComponentsInChildren<CreatureSpawner>(true))
-                {
-                    if (point.m_creaturePrefab == null) continue;
-                    Add(point.m_creaturePrefab.name, $"In dungeons or locations, from the spawn point {prefab.name}", prefab.name);
-                }
+            }
+            foreach (var component in components)
+            {
+                if (!(component is CreatureSpawner point) || point.m_creaturePrefab == null) continue;
+                Keep(SpawnPointLines, point.m_creaturePrefab, $"In dungeons or locations, from the spawn point {prefab.name}", prefab.name);
             }
         }
 
@@ -253,43 +329,38 @@ namespace Scry
         /// What gives each item: creatures that drop it, plants and bushes it is picked from, and
         /// anything with a drop table (rocks, trees, containers) that can yield it.
         /// </summary>
-        private static void Drops(List<GameObject> prefabs)
+        private static void Drops(GameObject prefab, List<Component> components)
         {
-            void From(GameObject item, string line, string target)
+            foreach (var component in components)
             {
-                if (item == null) return;
-                if (!ComesFrom.TryGetValue(item.name, out var lines)) ComesFrom[item.name] = lines = new List<Source>();
-                if (!lines.Exists(l => l.Text == line) && lines.Count < 40) lines.Add(new Source(line, target));
-            }
+                if (component == null) continue;
 
-            foreach (var prefab in prefabs)
-            {
-                foreach (var component in prefab.GetComponentsInChildren<Component>(true))
+                if (component is CharacterDrop drops)
                 {
-                    if (component == null) continue;
-
-                    if (component is CharacterDrop drops)
+                    if (drops.m_drops == null) continue;
+                    foreach (var drop in drops.m_drops)
                     {
-                        foreach (var drop in drops.m_drops)
-                        {
-                            if (drop?.m_prefab == null) continue;
-                            var amount = drop.m_amountMin == drop.m_amountMax ? $"{drop.m_amountMin}" : $"{drop.m_amountMin} to {drop.m_amountMax}";
-                            var chance = drop.m_chance < 1f ? $", {Mathf.RoundToInt(drop.m_chance * 100f)}%" : "";
-                            From(drop.m_prefab, $"Dropped by {Shown(prefab)} ({amount}{chance})", prefab.name);
-                        }
-                        continue;
+                        if (drop?.m_prefab == null) continue;
+                        var amount = drop.m_amountMin == drop.m_amountMax ? $"{drop.m_amountMin}" : $"{drop.m_amountMin} to {drop.m_amountMax}";
+                        var chance = drop.m_chance < 1f ? $", {Mathf.RoundToInt(drop.m_chance * 100f)}%" : "";
+                        Keep(DropLines, drop.m_prefab, $"Dropped by {Shown(prefab)} ({amount}{chance})", prefab.name);
                     }
+                    continue;
+                }
 
-                    if (component is Pickable pickable)
-                    {
-                        From(pickable.m_itemPrefab, $"Picked from {Shown(prefab)}", prefab.name);
-                    }
+                if (component is Pickable pickable)
+                {
+                    Keep(DropLines, pickable.m_itemPrefab, $"Picked from {Shown(prefab)}", prefab.name);
+                }
 
-                    foreach (var field in DropTables(component.GetType()))
-                    {
-                        if (!(field.GetValue(component) is DropTable table) || table.m_drops == null) continue;
-                        foreach (var data in table.m_drops) From(data.m_item, $"Comes out of {Shown(prefab)}", prefab.name);
-                    }
+                var tables = DropTables(component.GetType());
+                if (tables.Length == 0) continue;
+                string shown = null;
+                foreach (var field in tables)
+                {
+                    if (!(field.GetValue(component) is DropTable table) || table.m_drops == null) continue;
+                    shown = shown ?? $"Comes out of {Shown(prefab)}";
+                    foreach (var data in table.m_drops) Keep(DropLines, data.m_item, shown, prefab.name);
                 }
             }
         }
@@ -300,36 +371,30 @@ namespace Scry
         /// same way), and what traders sell. Traders stand in locations, so only those loaded are
         /// found.
         /// </summary>
-        private static void Makers(List<GameObject> prefabs)
+        private static void Makers(GameObject prefab, List<Component> components)
         {
-            void From(GameObject item, string line, string target)
+            foreach (var component in components)
             {
-                if (item == null) return;
-                if (!ComesFrom.TryGetValue(item.name, out var lines)) ComesFrom[item.name] = lines = new List<Source>();
-                if (!lines.Exists(l => l.Text == line) && lines.Count < 40) lines.Add(new Source(line, target));
-            }
-
-            foreach (var prefab in prefabs)
-            {
-                foreach (var component in prefab.GetComponentsInChildren<Component>(true))
+                if (component == null) continue;
+                foreach (var field in Conversions(component.GetType()))
                 {
-                    if (component == null) continue;
-                    foreach (var field in Conversions(component.GetType()))
+                    if (!(field.GetValue(component) is System.Collections.IEnumerable list)) continue;
+                    foreach (var conversion in list)
                     {
-                        if (!(field.GetValue(component) is System.Collections.IEnumerable list)) continue;
-                        foreach (var conversion in list)
-                        {
-                            if (conversion == null) continue;
-                            var type = conversion.GetType();
-                            var from = type.GetField("m_from")?.GetValue(conversion) as ItemDrop;
-                            var to = type.GetField("m_to")?.GetValue(conversion) as ItemDrop;
-                            if (from == null || to == null) continue;
-                            From(to.gameObject, $"Made from {ItemName(from.gameObject)} in {Shown(prefab)}", from.gameObject.name);
-                        }
+                        if (conversion == null) continue;
+                        var type = conversion.GetType();
+                        var from = type.GetField("m_from")?.GetValue(conversion) as ItemDrop;
+                        var to = type.GetField("m_to")?.GetValue(conversion) as ItemDrop;
+                        if (from == null || to == null) continue;
+                        Keep(MakerLines, to.gameObject, $"Made from {ItemName(from.gameObject)} in {Shown(prefab)}", from.gameObject.name);
                     }
                 }
             }
+        }
 
+        /// <summary>What traders sell. They stand in locations, so only those loaded are found.</summary>
+        private static void Traders()
+        {
             foreach (var trader in Resources.FindObjectsOfTypeAll<Trader>())
             {
                 if (trader == null || trader.m_items == null) continue;
@@ -339,7 +404,7 @@ namespace Scry
                 {
                     if (trade?.m_prefab == null) continue;
                     var stack = trade.m_stack > 1 ? $"{trade.m_stack} for " : "";
-                    From(trade.m_prefab.gameObject, $"Sold by {name}, {stack}{trade.m_price} coins", null);
+                    From(trade.m_prefab.gameObject.name, new Source($"Sold by {name}, {stack}{trade.m_price} coins", null));
                 }
             }
         }
@@ -351,16 +416,25 @@ namespace Scry
         {
             if (ConversionFields.TryGetValue(type, out var known)) return known;
             var found = new List<FieldInfo>();
-            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-            for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour); t = t.BaseType)
+            try
             {
-                foreach (var field in t.GetFields(flags))
+                const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+                for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour); t = t.BaseType)
                 {
-                    var element = field.FieldType.IsArray ? field.FieldType.GetElementType()
-                        : field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(List<>) ? field.FieldType.GetGenericArguments()[0] : null;
-                    if (element == null) continue;
-                    if (element.GetField("m_from")?.FieldType == typeof(ItemDrop) && element.GetField("m_to")?.FieldType == typeof(ItemDrop)) found.Add(field);
+                    foreach (var field in t.GetFields(flags))
+                    {
+                        var element = field.FieldType.IsArray ? field.FieldType.GetElementType()
+                            : field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(List<>) ? field.FieldType.GetGenericArguments()[0] : null;
+                        if (element == null) continue;
+                        if (element.GetField("m_from")?.FieldType == typeof(ItemDrop) && element.GetField("m_to")?.FieldType == typeof(ItemDrop)) found.Add(field);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                // A mod's type whose fields cannot be read has none here, remembered as such.
+                Plugin.Log.LogDebug($"Scry could not read the fields of {type.Name}: {ex.Message}");
+                found.Clear();
             }
             known = found.ToArray();
             ConversionFields[type] = known;
@@ -378,11 +452,9 @@ namespace Scry
         /// whether by reference (eating, wearing, a set, an attack, a guardian power) or by name
         /// (areas of effect, and the like).
         /// </summary>
-        private static void Givers(List<GameObject> prefabs)
+        private static void Givers(GameObject prefab, List<Component> components)
         {
-            GiverList.Clear();
-
-            void Note(object owner, GameObject prefab)
+            void Note(object owner)
             {
                 foreach (var field in EffectRefs(owner.GetType()))
                 {
@@ -398,18 +470,15 @@ namespace Scry
                 }
             }
 
-            foreach (var prefab in prefabs)
+            foreach (var component in components)
             {
-                foreach (var component in prefab.GetComponentsInChildren<Component>(true))
-                {
-                    if (component == null) continue;
-                    Note(component, prefab);
-                    var shared = (component as ItemDrop)?.m_itemData?.m_shared;
-                    if (shared == null) continue;
-                    Note(shared, prefab);
-                    if (shared.m_attack != null) Note(shared.m_attack, prefab);
-                    if (shared.m_secondaryAttack != null) Note(shared.m_secondaryAttack, prefab);
-                }
+                if (component == null) continue;
+                Note(component);
+                var shared = (component as ItemDrop)?.m_itemData?.m_shared;
+                if (shared == null) continue;
+                Note(shared);
+                if (shared.m_attack != null) Note(shared.m_attack);
+                if (shared.m_secondaryAttack != null) Note(shared.m_secondaryAttack);
             }
         }
 
@@ -418,14 +487,23 @@ namespace Scry
         {
             if (EffectRefFields.TryGetValue(type, out var known)) return known;
             var found = new List<FieldInfo>();
-            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-            for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour) && t != typeof(ScriptableObject); t = t.BaseType)
+            try
             {
-                foreach (var field in t.GetFields(flags))
+                const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+                for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour) && t != typeof(ScriptableObject); t = t.BaseType)
                 {
-                    if (typeof(StatusEffect).IsAssignableFrom(field.FieldType)) found.Add(field);
-                    else if (field.FieldType == typeof(string) && field.Name.IndexOf("statuseffect", StringComparison.OrdinalIgnoreCase) >= 0) found.Add(field);
+                    foreach (var field in t.GetFields(flags))
+                    {
+                        if (typeof(StatusEffect).IsAssignableFrom(field.FieldType)) found.Add(field);
+                        else if (field.FieldType == typeof(string) && field.Name.IndexOf("statuseffect", StringComparison.OrdinalIgnoreCase) >= 0) found.Add(field);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                // A mod's type whose fields cannot be read has none here, remembered as such.
+                Plugin.Log.LogDebug($"Scry could not read the fields of {type.Name}: {ex.Message}");
+                found.Clear();
             }
             known = found.ToArray();
             EffectRefFields[type] = known;
@@ -443,17 +521,35 @@ namespace Scry
         {
             if (DropTableFields.TryGetValue(type, out var known)) return known;
             var found = new List<FieldInfo>();
-            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-            for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour); t = t.BaseType)
+            try
             {
-                foreach (var field in t.GetFields(flags)) if (field.FieldType == typeof(DropTable)) found.Add(field);
+                const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+                for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour); t = t.BaseType)
+                {
+                    foreach (var field in t.GetFields(flags)) if (field.FieldType == typeof(DropTable)) found.Add(field);
+                }
+            }
+            catch (Exception ex)
+            {
+                // A mod's type whose fields cannot be read has none here, remembered as such.
+                Plugin.Log.LogDebug($"Scry could not read the fields of {type.Name}: {ex.Message}");
+                found.Clear();
             }
             known = found.ToArray();
             DropTableFields[type] = known;
             return known;
         }
 
+        /// <summary>A prefab as the lines name it: its shown name and its prefab name. Worked out once per prefab.</summary>
         private static string Shown(GameObject prefab)
+        {
+            if (ShownNames.TryGetValue(prefab, out var known)) return known;
+            known = ShownOf(prefab);
+            ShownNames[prefab] = known;
+            return known;
+        }
+
+        private static string ShownOf(GameObject prefab)
         {
             string token = null;
             var character = prefab.GetComponent<Character>();
@@ -469,14 +565,28 @@ namespace Scry
 
         // ----- Which mod -----
 
+        /// <summary>Jotunn's plugin id, as it loads (Jotunn 2.30: "Loading [Jotunn 2.30.2] (com.jotunn.jotunn)").</summary>
+        private const string JotunnGuid = "com.jotunn.jotunn";
+
+        private static readonly Dictionary<(Type, string), PropertyInfo> Properties = new Dictionary<(Type, string), PropertyInfo>();
+
         /// <summary>
-        /// Jotunn keeps a registry of what each mod built on it added, with the mod. Read by name,
-        /// so Scry needs no reference to Jotunn and does nothing when it is not installed.
+        /// Jotunn keeps a registry of what each mod built on it added, with the mod. Read by name
+        /// from Jotunn's own assembly, so Scry needs no reference to Jotunn and does nothing when it
+        /// is not installed. Looking the type up among all assemblies instead made the log fill
+        /// with the load errors of mods whose types cannot all be loaded.
         /// </summary>
         private static void JotunnMods()
         {
-            var registry = AccessTools.TypeByName("Jotunn.Utils.ModRegistry");
+            if (!Chainloader.PluginInfos.TryGetValue(JotunnGuid, out var jotunn) || jotunn?.Instance == null) return;
+            var registry = jotunn.Instance.GetType().Assembly.GetType("Jotunn.Utils.ModRegistry", false);
             if (registry == null) return;
+
+            PropertyInfo Property(Type type, string name)
+            {
+                if (!Properties.TryGetValue((type, name), out var property)) Properties[(type, name)] = property = AccessTools.Property(type, name);
+                return property;
+            }
 
             void Read(string method, string property)
             {
@@ -487,8 +597,8 @@ namespace Scry
                 foreach (var entity in entities)
                 {
                     if (entity == null) continue;
-                    var mod = AccessTools.Property(entity.GetType(), "SourceMod")?.GetValue(entity) as BepInEx.BepInPlugin;
-                    var thing = AccessTools.Property(entity.GetType(), property)?.GetValue(entity) as UnityEngine.Object;
+                    var mod = Property(entity.GetType(), "SourceMod")?.GetValue(entity) as BepInEx.BepInPlugin;
+                    var thing = Property(entity.GetType(), property)?.GetValue(entity) as UnityEngine.Object;
                     if (mod == null || thing == null) continue;
                     ModOf[thing.name] = mod.Name;
                 }
@@ -506,30 +616,53 @@ namespace Scry
         /// name is found among those loaded, and the mod shipping a bundle of that name named.
         /// A prefab made in code, or a bundle named unlike anything the mod ships, stays unnamed.
         /// </summary>
-        private static void BundleMods(List<GameObject> prefabs)
+        private static IEnumerable<string> BundleMods(List<GameObject> prefabs)
         {
-            var wanted = new HashSet<string>(prefabs.Where(p => !ModOf.ContainsKey(p.name) && Origins.Prefabs.Of(p.name) == Origin.Mod)
+            var started = CatalogTiming.Start();
+            var wanted = new HashSet<string>(prefabs.Where(p => p != null && !ModOf.ContainsKey(p.name) && Origins.Prefabs.Of(p.name) == Origin.Mod)
                 .Select(p => p.name.ToLowerInvariant()));
-            if (wanted.Count == 0) return;
+            if (wanted.Count == 0) yield break;
 
+            // A bundle, or a mod's folder, at a time: looking through them all took some 150 ms.
             var bundleOf = new Dictionary<string, string>();
-            foreach (var bundle in AssetBundle.GetAllLoadedAssetBundles())
+            List<AssetBundle> bundles;
+            try
             {
-                if (bundle == null || bundle.isStreamedSceneAssetBundle) continue;
-                foreach (var path in bundle.GetAllAssetNames())
-                {
-                    var file = Path.GetFileNameWithoutExtension(path);
-                    if (wanted.Contains(file) && !bundleOf.ContainsKey(file)) bundleOf[file] = Leaf(bundle.name);
-                }
+                bundles = AssetBundle.GetAllLoadedAssetBundles().ToList();
             }
-            if (bundleOf.Count == 0) return;
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"Scry could not read asset bundles: {ex.Message}");
+                yield break;
+            }
+            foreach (var bundle in bundles)
+            {
+                try
+                {
+                    if (bundle == null || bundle.isStreamedSceneAssetBundle) continue;
+                    foreach (var path in bundle.GetAllAssetNames())
+                    {
+                        var file = Path.GetFileNameWithoutExtension(path);
+                        if (wanted.Contains(file) && !bundleOf.ContainsKey(file)) bundleOf[file] = Leaf(bundle.name);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogDebug($"Scry could not look through a bundle: {ex.Message}");
+                }
+                CatalogTiming.Add("asset bundles", started);
+                yield return "which mod added what: asset bundles";
+                started = CatalogTiming.Start();
+            }
+            if (bundleOf.Count == 0) yield break;
 
             var modOfBundle = new Dictionary<string, string>();
             var needed = new HashSet<string>(bundleOf.Values);
-            foreach (var info in Chainloader.PluginInfos.Values)
+            foreach (var info in Chainloader.PluginInfos.Values.ToList())
             {
                 var name = info?.Metadata?.Name;
                 if (string.IsNullOrEmpty(name)) continue;
+                started = CatalogTiming.Start();
 
                 try
                 {
@@ -562,11 +695,13 @@ namespace Scry
                 {
                     Plugin.Log.LogDebug($"Scry could not look through {name}: {ex.Message}");
                 }
+                CatalogTiming.Add("asset bundles", started);
+                yield return "which mod added what: mods' files";
             }
 
             foreach (var prefab in prefabs)
             {
-                if (ModOf.ContainsKey(prefab.name)) continue;
+                if (prefab == null || ModOf.ContainsKey(prefab.name)) continue;
                 if (bundleOf.TryGetValue(prefab.name.ToLowerInvariant(), out var bundle) && modOfBundle.TryGetValue(bundle, out var mod))
                 {
                     ModOf[prefab.name] = mod;

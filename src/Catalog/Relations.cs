@@ -42,58 +42,72 @@ namespace Scry
             new Dictionary<RuntimeAnimatorController, List<(string, GameObject)>>();
         private static readonly Dictionary<Type, FieldInfo[]> PrefabFields = new Dictionary<Type, FieldInfo[]>();
 
-        public static LinkBook Gather(List<GameObject> prefabs)
-        {
-            var book = new LinkBook();
-            var sets = new List<(string, string, string, bool)>();
-            var ammo = new List<(string, string, bool)>();
-            ByController.Clear();
+        private static LinkBook _book = new LinkBook();
+        private static readonly List<(string, string, string, bool)> Sets = new List<(string, string, string, bool)>();
+        private static readonly List<(string, string, bool)> Ammo = new List<(string, string, bool)>();
+        private static readonly HashSet<string> Made = new HashSet<string>(StringComparer.Ordinal);
 
-            var made = new HashSet<string>(StringComparer.Ordinal);
+        /// <summary>Starts reading the links again, for the catalog of the current world.</summary>
+        public static void Begin()
+        {
+            _book = new LinkBook();
+            Sets.Clear();
+            Ammo.Clear();
+            ByController.Clear();
+            Made.Clear();
             if (ObjectDB.instance != null)
             {
-                foreach (var recipe in ObjectDB.instance.m_recipes) if (recipe?.m_item != null) made.Add(recipe.m_item.gameObject.name);
+                foreach (var recipe in ObjectDB.instance.m_recipes) if (recipe?.m_item != null) Made.Add(recipe.m_item.gameObject.name);
             }
+        }
 
-            foreach (var prefab in prefabs)
+        /// <summary>One prefab's links, read from its components, which are looked through once for the whole catalog.</summary>
+        public static void Read(GameObject prefab, List<Component> components)
+        {
+            if (prefab == null) return;
+            try
             {
-                if (prefab == null) continue;
-                try
-                {
-                    Animations(prefab, book);
-                    Steps(prefab, book);
-                    Carried(prefab, book);
-                    Fields(prefab, book);
-                    Upgrade(prefab, book);
+                Animations(prefab, _book);
+                Steps(prefab, _book);
+                Carried(prefab, _book);
+                Fields(prefab, components, _book);
+                Upgrade(prefab, _book);
 
-                    var aoe = prefab.GetComponent<Aoe>();
-                    if (aoe != null) Damage(prefab, aoe.m_damage, book, StatusEffects);
+                var aoe = prefab.GetComponent<Aoe>();
+                if (aoe != null) Damage(prefab, aoe.m_damage, _book, StatusEffects);
 
-                    var shared = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
-                    if (shared != null)
-                    {
-                        // An item tells what its damage causes in its own facts; the effect names the item.
-                        Damage(prefab, shared.m_damages, book, null);
-                        sets.Add((prefab.name, shared.m_setName, CatalogBuilder.Localize(shared.m_name), made.Contains(prefab.name)));
-                        var type = shared.m_itemType;
-                        ammo.Add((prefab.name, shared.m_ammoType,
-                            type == ItemDrop.ItemData.ItemType.Ammo || type == ItemDrop.ItemData.ItemType.AmmoNonEquipable));
-                    }
-                }
-                catch (Exception ex)
+                var shared = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                if (shared != null)
                 {
-                    Plugin.Log.LogDebug($"Scry could not read the links of {prefab.name}: {ex.Message}");
+                    // An item tells what its damage causes in its own facts; the effect names the item.
+                    Damage(prefab, shared.m_damages, _book, null);
+                    Sets.Add((prefab.name, shared.m_setName, CatalogBuilder.Localize(shared.m_name), Made.Contains(prefab.name)));
+                    var type = shared.m_itemType;
+                    Ammo.Add((prefab.name, shared.m_ammoType,
+                        type == ItemDrop.ItemData.ItemType.Ammo || type == ItemDrop.ItemData.ItemType.AmmoNonEquipable));
                 }
             }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogDebug($"Scry could not read the links of {prefab.name}: {ex.Message}");
+            }
+        }
 
-            book.AddSets(sets);
-            book.AddAmmo(ammo);
+        /// <summary>The links read, with sets, weapons' ammo and what gives each status effect put in once every prefab is read.</summary>
+        public static LinkBook Finish(List<GameObject> prefabs)
+        {
+            var book = _book;
+            _book = new LinkBook();
+            book.AddSets(Sets);
+            book.AddAmmo(Ammo);
             foreach (var giver in Knowledge.Givers())
             {
                 // What an item gives when worn, used, as a set or on hit is in its own facts already.
                 var item = ToldByItems.Contains(giver.How) && IsItem(giver.Prefab, prefabs);
                 book.Add(giver.Prefab, item ? null : StatusEffects, "se:" + giver.Effect, GivenBy, giver.How);
             }
+            Sets.Clear();
+            Ammo.Clear();
             return book;
         }
 
@@ -207,9 +221,9 @@ namespace Scry
         /// prefab itself, drop tables (told as drops), what it carries and what it leaves behind are
         /// linked elsewhere and left out here.
         /// </summary>
-        private static void Fields(GameObject prefab, LinkBook book)
+        private static void Fields(GameObject prefab, List<Component> components, LinkBook book)
         {
-            foreach (var component in prefab.GetComponentsInChildren<Component>(true))
+            foreach (var component in components)
             {
                 if (component == null || component is Transform || component is CharacterDrop || component is Humanoid
                     || component is TreeBase || component is TreeLog || component is Destructible) continue;
@@ -241,30 +255,37 @@ namespace Scry
                     if (field.Name == "m_spawnOnTrigger" && type != Attack.AttackType.Horizontal && type != Attack.AttackType.Vertical && type != Attack.AttackType.Area) continue;
                 }
 
-                var label = outer ?? Naming.FieldLabel(field.Name);
+                // Named only when a link is made or looked for further down: most fields name nothing.
+                var label = outer;
+                string Label() => label = label ?? Naming.FieldLabel(field.Name);
                 if (value is GameObject single)
                 {
-                    Link(single, prefab, book, label);
+                    if (Links(single, prefab)) Link(single, prefab, book, Label());
                 }
                 else if (value is IEnumerable list && !(value is string))
                 {
                     foreach (var item in list)
                     {
-                        if (item is GameObject each) Link(each, prefab, book, label);
-                        else if (item != null && depth < 1 && IsData(item.GetType())) Named(item, prefab, book, depth + 1, label);
+                        if (item is GameObject each)
+                        {
+                            if (Links(each, prefab)) Link(each, prefab, book, Label());
+                        }
+                        else if (item != null && depth < 1 && IsData(item.GetType())) Named(item, prefab, book, depth + 1, Label());
                     }
                 }
                 else if (depth < 1 && IsData(value.GetType()))
                 {
-                    Named(value, prefab, book, depth + 1, label);
+                    Named(value, prefab, book, depth + 1, Label());
                 }
             }
         }
 
+        /// <summary>Only other prefabs are linked: a part of this one has a parent, and is not a thing of its own.</summary>
+        private static bool Links(GameObject target, GameObject prefab) => target != null && target != prefab && target.transform.parent == null;
+
         private static void Link(GameObject target, GameObject prefab, LinkBook book, string label)
         {
-            // Only other prefabs: a part of this one has a parent, and is not a thing of its own.
-            if (target == null || target == prefab || target.transform.parent != null) return;
+            if (!Links(target, prefab)) return;
             book.Add(prefab.name, Spawns, target.name, SpawnedBy, label.ToLowerInvariant());
         }
 
@@ -281,18 +302,27 @@ namespace Scry
             if (PrefabFields.TryGetValue(type, out var known)) return known;
             var found = new List<FieldInfo>();
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-            for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour) && t != typeof(Component); t = t.BaseType)
+            try
             {
-                foreach (var field in t.GetFields(flags))
+                for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour) && t != typeof(Component); t = t.BaseType)
                 {
-                    var ft = field.FieldType;
-                    if (field.IsNotSerialized || field.GetCustomAttribute<NonSerializedAttribute>() != null) continue;
-                    if (!field.IsPublic && field.GetCustomAttribute<SerializeField>() == null) continue;
-                    if (ft == typeof(GameObject) || ft == typeof(GameObject[]) || ft == typeof(List<GameObject>)) found.Add(field);
-                    else if (ft.IsArray && IsData(ft.GetElementType())) found.Add(field);
-                    else if (ft.IsGenericType && ft.GetGenericTypeDefinition() == typeof(List<>) && IsData(ft.GetGenericArguments()[0])) found.Add(field);
-                    else if (IsData(ft)) found.Add(field);
+                    foreach (var field in t.GetFields(flags))
+                    {
+                        var ft = field.FieldType;
+                        if (field.IsNotSerialized || field.GetCustomAttribute<NonSerializedAttribute>() != null) continue;
+                        if (!field.IsPublic && field.GetCustomAttribute<SerializeField>() == null) continue;
+                        if (ft == typeof(GameObject) || ft == typeof(GameObject[]) || ft == typeof(List<GameObject>)) found.Add(field);
+                        else if (ft.IsArray && IsData(ft.GetElementType())) found.Add(field);
+                        else if (ft.IsGenericType && ft.GetGenericTypeDefinition() == typeof(List<>) && IsData(ft.GetGenericArguments()[0])) found.Add(field);
+                        else if (IsData(ft)) found.Add(field);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                // A mod's type whose fields cannot be read links nothing, remembered as such.
+                Plugin.Log.LogDebug($"Scry could not read the fields of {type.Name}: {ex.Message}");
+                found.Clear();
             }
             known = found.ToArray();
             PrefabFields[type] = known;

@@ -126,7 +126,8 @@ namespace Scry
             {
                 SearchFocused = false;
                 Typing = false;
-                Skin.Warm(scale);
+                if (Session.Reading != null) DrawReading(scale, Session.Reading);
+                else Skin.Warm(scale);
                 return;
             }
 
@@ -396,6 +397,44 @@ namespace Scry
         }
 
         // ----- Drawing -----
+
+        /// <summary>The panel while the catalog is still being read: how far it has got, and a way to close it.</summary>
+        private static void DrawReading(float scale, string progress)
+        {
+            var skin = GUI.skin;
+            try
+            {
+                Skin.Ensure(scale);
+                _s = scale;
+                GUI.skin = Skin.Gui;
+                Place();
+
+                var e = Event.current;
+                if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape)
+                {
+                    Session.Hide();
+                    e.Use();
+                    return;
+                }
+
+                var pad = U(16f);
+                var rect = new Rect(Win.x, Win.y, Win.width, Mathf.Min(Win.height, U(124f)));
+                Skin.Box(rect, Skin.Backdrop, Skin.Outline);
+                GUI.BeginGroup(rect);
+                GUI.Label(new Rect(pad, U(10f), U(90f), U(34f)), "Scry", Skin.Title);
+                if (GUI.Button(new Rect(rect.width - pad - U(32f), U(12f), U(32f), U(32f)), "×", Skin.Close)) Session.Hide();
+                GUI.Label(new Rect(pad, U(58f), rect.width - 2f * pad, U(24f)), "Reading the catalog, once for this world", Skin.Label);
+                GUI.Label(new Rect(pad, U(84f), rect.width - 2f * pad, U(22f)), progress, Skin.DimLabel);
+                GUI.EndGroup();
+
+                // The panel is solid: clicks and the wheel over it stop here.
+                if (rect.Contains(e.mousePosition) && (e.isMouse || e.type == EventType.ScrollWheel)) e.Use();
+            }
+            finally
+            {
+                GUI.skin = skin;
+            }
+        }
 
         private static void Draw(Explorer explorer)
         {

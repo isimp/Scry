@@ -93,16 +93,25 @@ namespace Scry
             foreach (var (from, group, to, _) in _links) if (group == VariantOf) copyOf[from] = to;
             var listed = new HashSet<(string, string, string)>(_links.Select(l => (l.From, l.Group, l.To)));
 
+            // Each entry's links by heading and target, so a link noted again is found at once
+            // rather than looked for among all of the entry's (a creature's footsteps, a set's pieces).
+            var index = new Dictionary<(Entry, string, string), Link>();
+            var indexed = new HashSet<Entry>();
+
             foreach (var (from, group, to, note) in _links)
             {
                 if (from == to || !byKey.TryGetValue(from, out var entry) || !byKey.ContainsKey(to)) continue;
                 if (group != Variants && group != VariantOf && copyOf.TryGetValue(to, out var piece) && listed.Contains((from, group, piece))) continue;
 
-                var link = entry.Links.Find(l => l.Group == group && l.Target == to);
-                if (link == null)
+                if (indexed.Add(entry))
+                {
+                    foreach (var had in entry.Links) if (!index.ContainsKey((entry, had.Group, had.Target))) index[(entry, had.Group, had.Target)] = had;
+                }
+                if (!index.TryGetValue((entry, group, to), out var link))
                 {
                     link = new Link { Group = group, Target = to };
                     entry.Links.Add(link);
+                    index[(entry, group, to)] = link;
                 }
                 if (!string.IsNullOrEmpty(note) && !link.Notes.Contains(note)) link.Notes.Add(note);
             }

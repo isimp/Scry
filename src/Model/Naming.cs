@@ -31,7 +31,9 @@ namespace Scry
         /// <summary>A name without the rich-text tags some mods colour or size their names with.</summary>
         public static string Plain(string text)
         {
-            return string.IsNullOrEmpty(text) ? text ?? "" : Markup.Replace(text, "");
+            // Every tag starts with "<"; most names have none, and are left without the regex.
+            if (string.IsNullOrEmpty(text)) return text ?? "";
+            return text.IndexOf('<') < 0 ? text : Markup.Replace(text, "");
         }
 
         /// <summary>"healthUpgrade" as "Health upgrade".</summary>

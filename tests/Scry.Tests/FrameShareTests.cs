@@ -76,6 +76,25 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AFrameCanBeGivenAWiderShareThanUsual()
+        {
+            // The catalog is read in 4 ms a frame in the background, and faster while the panel
+            // is open and waits for it; what a piece takes is learned across both.
+            var share = new FrameShare(4);
+            Frame(share, () => 1);
+            var done = 0;
+            var elapsed = 0.0;
+            while (share.MayBegin(elapsed, done, 12))
+            {
+                share.Took(1);
+                elapsed += 1;
+                done++;
+            }
+            Assert.Equal(12, done);
+            Assert.Equal(4, Frame(share, () => 1).Pieces);
+        }
+
+        [Fact]
         public void PiecesGrowingQuickerAreSoonBegunMoreOften()
         {
             var share = new FrameShare(4);

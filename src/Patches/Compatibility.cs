@@ -140,7 +140,7 @@ namespace Scry
                 }
                 foreach (var script in StripPolicy.KeptScriptNames)
                 {
-                    list.Add($"script {script}", $"effects keeping their {script}", AccessTools.TypeByName(script) != null ? Found.Present : Found.Missing);
+                    list.Add($"script {script}", $"effects keeping their {script}", GameType(script) != null ? Found.Present : Found.Missing);
                 }
                 foreach (var effect in new[] { "Burning", "Frost", "Lightning", "Poison", "Spirit" })
                 {
@@ -161,6 +161,13 @@ namespace Scry
                 else Plugin.Log.LogInfo(line);
             }
         }
+
+        /// <summary>
+        /// One of the game's own types by name, from the game's assembly, where every script the
+        /// copies keep is. Looking through all assemblies instead loads every mod's types, and
+        /// logs the errors of those that cannot be.
+        /// </summary>
+        private static Type GameType(string name) => typeof(ZSFX).Assembly.GetType(name, false);
 
         private const BindingFlags All = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
 

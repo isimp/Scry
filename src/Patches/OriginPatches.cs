@@ -21,10 +21,18 @@ namespace Scry
         [HarmonyPriority(Priority.First)]
         private static void Prefix(ZNetScene __instance)
         {
-            var names = new List<string>();
-            foreach (var prefab in __instance.m_prefabs) if (prefab != null) names.Add(prefab.name);
-            foreach (var prefab in __instance.m_nonNetViewPrefabs) if (prefab != null) names.Add(prefab.name);
-            Origins.Prefabs.RecordOriginal(names);
+            // Runs inside the game's own Awake: whatever goes wrong here must not stop it.
+            try
+            {
+                var names = new List<string>();
+                foreach (var prefab in __instance.m_prefabs) if (prefab != null) names.Add(prefab.name);
+                foreach (var prefab in __instance.m_nonNetViewPrefabs) if (prefab != null) names.Add(prefab.name);
+                Origins.Prefabs.RecordOriginal(names);
+            }
+            catch (System.Exception ex)
+            {
+                Plugin.Log.LogWarning($"Scry could not tell the game's prefabs from those mods add: {ex.Message}");
+            }
         }
     }
 
@@ -35,9 +43,17 @@ namespace Scry
         [HarmonyPriority(Priority.First)]
         private static void Prefix(ObjectDB __instance)
         {
-            var names = new List<string>();
-            foreach (var effect in __instance.m_StatusEffects) if (effect != null) names.Add(effect.name);
-            Origins.StatusEffects.RecordOriginal(names);
+            // Runs inside the game's own Awake: whatever goes wrong here must not stop it.
+            try
+            {
+                var names = new List<string>();
+                foreach (var effect in __instance.m_StatusEffects) if (effect != null) names.Add(effect.name);
+                Origins.StatusEffects.RecordOriginal(names);
+            }
+            catch (System.Exception ex)
+            {
+                Plugin.Log.LogWarning($"Scry could not tell the game's status effects from those mods add: {ex.Message}");
+            }
         }
     }
 }

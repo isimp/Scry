@@ -34,14 +34,38 @@ namespace Scry
 
         private static readonly Dictionary<Type, FieldInfo[]> EffectFieldsByType = new Dictionary<Type, FieldInfo[]>();
 
+        /// <summary>Reads the whole catalog at once, as the job would over frames.</summary>
         public static List<Entry> Build()
         {
+            var job = new CatalogJob();
+            while (!job.Advance(double.MaxValue)) { }
+            if (job.Entries == null) throw new InvalidOperationException(job.Failure ?? "the catalog could not be read");
+            return job.Entries;
+        }
+
+        /// <summary>
+        /// The reading of the catalog, a piece at a time, each piece followed by what is being read
+        /// next. Nothing is shown until the end: an entry's kind, its users, its origin, what it
+        /// leaves behind and its links are only known once everything is read. Each prefab is
+        /// looked through once, and what it tells is read from that for its own details, where it
+        /// comes from and its links; one that cannot be read loses only its own part.
+        /// </summary>
+        internal static IEnumerator<string> Steps(CatalogJob job)
+        {
+            CatalogTiming.Reset();
+            var collections = GC.CollectionCount(0);
+
+            var started = CatalogTiming.Start();
             Compatibility.Check();
+            CatalogTiming.Add("startup check", started);
+            yield return "Reading the prefabs";
+
+            started = CatalogTiming.Start();
             var scene = ZNetScene.instance;
             var registered = new Dictionary<string, Found>(StringComparer.Ordinal);
-            EffectLinks.Clear();
             var effects = new Dictionary<string, Found>(StringComparer.Ordinal);
-
+            EffectLinks.Clear();
+            Localized.Clear();
             foreach (var list in new[] { scene.m_prefabs, scene.m_nonNetViewPrefabs })
             {
                 foreach (var prefab in list)
@@ -50,47 +74,69 @@ namespace Scry
                     registered[prefab.name] = new Found { Prefab = prefab };
                 }
             }
+            var prefabs = registered.Values.Select(f => f.Prefab).ToList();
+            Knowledge.Begin();
+            Relations.Begin();
+            IndexRecipes();
+            CatalogTiming.Add("setup", started);
+            yield return $"Reading prefabs: 0 of {registered.Count:N0}";
 
+            var components = new List<Component>();
+            var read = 0;
             foreach (var pair in registered)
             {
-                Describe(pair.Value, pair.Key, Origins.Prefabs.Of(pair.Key), effects);
+                ReadPrefab(pair.Key, pair.Value, effects, components);
+                if (++read % 8 == 0) yield return $"Reading prefabs: {read:N0} of {registered.Count:N0}";
             }
+            components.Clear();
 
             // Where things live and which mod added them, before any entry is made.
-            Knowledge.Gather(registered.Values.Select(f => f.Prefab));
-            IndexRecipes();
+            foreach (var step in Knowledge.Finish(prefabs)) yield return "Reading " + step;
 
+            started = CatalogTiming.Start();
             var entries = new List<Entry>();
-
             var db = ObjectDB.instance;
             if (db != null)
             {
                 foreach (var effect in db.m_StatusEffects)
                 {
                     if (effect == null) continue;
-                    var origin = Origins.StatusEffects.Of(effect.name);
-                    var shown = Localize(effect.m_name);
-                    Gather(effect, "status effect " + effect.name, origin, effects, "se:" + effect.name, shown.Length > 0 ? shown : effect.name);
-
-                    entries.Add(new Entry
+                    try
                     {
-                        Name = effect.name,
-                        DisplayName = Localize(effect.m_name),
-                        Kind = Kind.StatusEffect,
-                        Origin = origin,
-                        Source = effect,
-                        Icon = effect.m_icon,
-                        Components = new[] { effect.GetType().Name },
-                        ModName = Knowledge.ModName(effect.name),
-                    });
+                        var origin = Origins.StatusEffects.Of(effect.name);
+                        var shown = Localize(effect.m_name);
+                        Gather(effect, "status effect " + effect.name, origin, effects, "se:" + effect.name, shown.Length > 0 ? shown : effect.name);
+
+                        entries.Add(new Entry
+                        {
+                            Name = effect.name,
+                            DisplayName = shown,
+                            Kind = Kind.StatusEffect,
+                            Origin = origin,
+                            Source = effect,
+                            Icon = effect.m_icon,
+                            Components = new[] { effect.GetType().Name },
+                            ModName = Knowledge.ModName(effect.name),
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Failed("status effect", effect.name, ex);
+                    }
                 }
             }
+            CatalogTiming.Add("status effects", started);
+            yield return "Reading the interface's sounds";
 
+            started = CatalogTiming.Start();
             GatherInterface(effects);
+            CatalogTiming.Add("interface", started);
+            yield return "Reading effects";
 
             // Effects can point at further effects (a hit effect with an area of its own), so the
             // walk continues until nothing new turns up.
             var described = new HashSet<string>(StringComparer.Ordinal);
+            var walked = 0;
             bool grew;
             do
             {
@@ -99,27 +145,99 @@ namespace Scry
                 {
                     var name = found.Prefab.name;
                     if (registered.ContainsKey(name) || !described.Add(name)) continue;
-                    Describe(found, name, Provenance.Combine(found.UserOrigins), effects);
+                    started = CatalogTiming.Start();
+                    components.Clear();
+                    Describe(found, name, Provenance.Combine(found.UserOrigins), effects, components);
+                    CatalogTiming.Add("describe effects", started);
                     grew = true;
+                    if (++walked % 16 == 0) yield return $"Reading effects: {walked:N0}";
                 }
             }
             while (grew);
+            components.Clear();
 
-            foreach (var pair in registered) entries.Add(ToEntry(pair.Key, pair.Value, effects, registeredOrigin: true));
+            var made = 0;
+            var total = registered.Count + effects.Count;
+            foreach (var pair in registered)
+            {
+                MakeEntry(entries, pair.Key, pair.Value, effects, true);
+                if (++made % 32 == 0) yield return $"Making entries: {made:N0} of about {total:N0}";
+            }
             foreach (var pair in effects)
             {
-                if (!registered.ContainsKey(pair.Key)) entries.Add(ToEntry(pair.Key, pair.Value, effects, registeredOrigin: false));
+                if (registered.ContainsKey(pair.Key)) continue;
+                MakeEntry(entries, pair.Key, pair.Value, effects, false);
+                if (++made % 32 == 0) yield return $"Making entries: {made:N0} of about {total:N0}";
             }
+            yield return "Pairing leftovers";
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            Leftovers.Pair(entries, FindLeftovers(registered.Values.Select(f => f.Prefab)));
-            if (watch.ElapsedMilliseconds >= 50) Plugin.Note($"Scry paired leftovers in {watch.ElapsedMilliseconds} ms.");
+            started = CatalogTiming.Start();
+            try
+            {
+                Leftovers.Pair(entries, FindLeftovers(prefabs));
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"Scry could not pair what things leave behind, and leaves them unpaired: {ex}");
+            }
+            CatalogTiming.Add("leftovers", started);
+            yield return "Linking entries";
 
-            watch.Restart();
-            Relations.Gather(registered.Values.Select(f => f.Prefab).ToList()).Apply(entries);
-            if (watch.ElapsedMilliseconds >= 50) Plugin.Note($"Scry read links in {watch.ElapsedMilliseconds} ms.");
+            started = CatalogTiming.Start();
+            try
+            {
+                Relations.Finish(prefabs).Apply(entries);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"Scry could not link entries, and shows them without links: {ex}");
+            }
+            CatalogTiming.Add("links applied", started);
 
-            return entries;
+            job.Entries = entries;
+            Plugin.Note($"Scry's catalog, by part (ms): {CatalogTiming.Report()}; {GC.CollectionCount(0) - collections} garbage collections meanwhile.");
+        }
+
+        /// <summary>
+        /// One registered prefab: its components looked through once, for its own details, what
+        /// it tells of where things come from, and its links.
+        /// </summary>
+        private static void ReadPrefab(string name, Found found, Dictionary<string, Found> effects, List<Component> components)
+        {
+            components.Clear();
+            var started = CatalogTiming.Start();
+            Describe(found, name, Origins.Prefabs.Of(name), effects, components);
+            CatalogTiming.Add("describe", started);
+            if (components.Count == 0) return;
+            Knowledge.Read(found.Prefab, components);
+            started = CatalogTiming.Start();
+            Relations.Read(found.Prefab, components);
+            CatalogTiming.Add("links", started);
+        }
+
+        private static void MakeEntry(List<Entry> entries, string name, Found found, Dictionary<string, Found> effects, bool registeredOrigin)
+        {
+            var started = CatalogTiming.Start();
+            try
+            {
+                entries.Add(ToEntry(name, found, effects, registeredOrigin));
+            }
+            catch (Exception ex)
+            {
+                Failed("entry", name, ex);
+            }
+            CatalogTiming.Add("entries", started);
+        }
+
+        private static readonly HashSet<string> FailedKinds = new HashSet<string>();
+
+        /// <summary>Something left out of the catalog, told once for each kind of failure.</summary>
+        private static void Failed(string what, string name, Exception ex)
+        {
+            if (FailedKinds.Add(what + "|" + ex.GetType().Name + "|" + ex.Message))
+            {
+                Plugin.Log.LogWarning($"Scry leaves the {what} {name} out of its catalog (said once for this kind of failure): {ex}");
+            }
         }
 
         private static Entry ToEntry(string name, Found found, Dictionary<string, Found> effects, bool registeredOrigin)
@@ -218,18 +336,18 @@ namespace Scry
         }
 
         /// <summary>Reads a prefab's components into its traits, and follows its effect lists.</summary>
-        private static void Describe(Found found, string owner, Origin ownerOrigin, Dictionary<string, Found> effects)
+        private static void Describe(Found found, string owner, Origin ownerOrigin, Dictionary<string, Found> effects, List<Component> components)
         {
             var traits = new PrefabTraits();
             found.Traits = traits;
 
-            Component[] components;
             try
             {
-                components = found.Prefab.GetComponentsInChildren<Component>(true);
+                found.Prefab.GetComponentsInChildren(true, components);
             }
             catch (Exception ex)
             {
+                components.Clear();
                 Plugin.Log.LogDebug($"Scry could not read {owner}: {ex.Message}");
                 return;
             }
@@ -461,9 +579,9 @@ namespace Scry
         {
             foreach (var field in EffectFields(owner.GetType()))
             {
-                if (!(field.GetValue(owner) is EffectList list) || list.m_effectPrefabs == null) continue;
+                if (!(field.GetValue(owner) is EffectList list) || list.m_effectPrefabs == null || list.m_effectPrefabs.Length == 0) continue;
 
-                var label = Naming.EffectListLabel(field.Name);
+                if (!Labels.TryGetValue(field, out var label)) Labels[field] = label = Naming.EffectListLabel(field.Name);
                 if (part != null) label = part + ": " + label.ToLowerInvariant();
                 EffectLinks.Note(list, shown, ownerKey, label);
 
@@ -483,7 +601,10 @@ namespace Scry
             }
         }
 
-        /// <summary>The EffectList fields on a type and its bases, remembered per type.</summary>
+        /// <summary>Each effect list field's label, made once.</summary>
+        private static readonly Dictionary<FieldInfo, string> Labels = new Dictionary<FieldInfo, string>();
+
+        /// <summary>The EffectList fields on a type and its bases, remembered per type; none for a type whose fields cannot be read.</summary>
         internal static FieldInfo[] EffectFields(Type type)
         {
             if (EffectFieldsByType.TryGetValue(type, out var known)) return known;
@@ -491,12 +612,20 @@ namespace Scry
             var found = new List<FieldInfo>();
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
 
-            for (var t = type; t != null && t != typeof(object); t = t.BaseType)
+            try
             {
-                foreach (var field in t.GetFields(flags))
+                for (var t = type; t != null && t != typeof(object); t = t.BaseType)
                 {
-                    if (field.FieldType == typeof(EffectList)) found.Add(field);
+                    foreach (var field in t.GetFields(flags))
+                    {
+                        if (field.FieldType == typeof(EffectList)) found.Add(field);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogDebug($"Scry could not read the fields of {type.Name}: {ex.Message}");
+                found.Clear();
             }
 
             known = found.ToArray();
@@ -504,21 +633,130 @@ namespace Scry
             return known;
         }
 
+        /// <summary>
+        /// Tokens translated so far, kept from one reading of the catalog to the next: the same
+        /// names come up again and again, and the game keeps only its last hundred.
+        /// </summary>
+        private static readonly Dictionary<string, string> Localized = new Dictionary<string, string>(StringComparer.Ordinal);
+
         /// <summary>The game's text for a name token, or nothing when it has none.</summary>
         public static string Localize(string token)
         {
             if (string.IsNullOrEmpty(token)) return "";
+            if (Localized.TryGetValue(token, out var known)) return known;
 
+            string text;
             try
             {
-                var text = Naming.Plain(Localization.instance != null ? Localization.instance.Localize(token) : token).Trim();
-                if (string.IsNullOrEmpty(text) || text.StartsWith("[", StringComparison.Ordinal) || text.StartsWith("$", StringComparison.Ordinal)) return "";
-                return text;
+                text = Naming.Plain(Localization.instance != null ? Localization.instance.Localize(token) : token).Trim();
+                if (string.IsNullOrEmpty(text) || text.StartsWith("[", StringComparison.Ordinal) || text.StartsWith("$", StringComparison.Ordinal)) text = "";
             }
             catch
             {
-                return "";
+                text = "";
             }
+            if (Localized.Count > 20000) Localized.Clear();
+            Localized[token] = text;
+            return text;
         }
+    }
+
+
+    /// <summary>
+    /// Reading the catalog spread over frames: a piece at a time, for as long as a frame's share
+    /// allows, until it is read or the world it was begun in is left.
+    /// </summary>
+    internal sealed class CatalogJob
+    {
+        private readonly ZNetScene _scene = ZNetScene.instance;
+        private readonly IEnumerator<string> _steps;
+        private readonly FrameShare _share = new FrameShare(4);
+        private readonly System.Diagnostics.Stopwatch _all = new System.Diagnostics.Stopwatch();
+
+        public CatalogJob()
+        {
+            _steps = CatalogBuilder.Steps(this);
+        }
+
+        /// <summary>The catalog, once read.</summary>
+        public List<Entry> Entries { get; internal set; }
+
+        /// <summary>Why it could not be read, when it could not.</summary>
+        public string Failure { get; private set; }
+
+        /// <summary>What is being read now, for the panel.</summary>
+        public string Progress { get; private set; } = "Reading the catalog";
+
+        public bool Done => Entries != null || Failure != null;
+
+        /// <summary>Scry's own time spent reading it, and over how many frames.</summary>
+        public double WorkMs { get; private set; }
+        public int Frames { get; private set; }
+
+        /// <summary>Since it began, frames between included.</summary>
+        public double ElapsedMs => _all.Elapsed.TotalMilliseconds;
+
+        /// <summary>Reads on for as long as this frame's share allows; true once done.</summary>
+        public bool Advance(double budgetMs)
+        {
+            if (Done) return true;
+            if (!ReferenceEquals(ZNetScene.instance, _scene))
+            {
+                Failure = "the world was left";
+                return true;
+            }
+
+            _all.Start();
+            var frame = System.Diagnostics.Stopwatch.StartNew();
+            var done = 0;
+            try
+            {
+                while (_share.MayBegin(frame.Elapsed.TotalMilliseconds, done, budgetMs))
+                {
+                    var before = frame.Elapsed.TotalMilliseconds;
+                    var more = _steps.MoveNext();
+                    _share.Took(frame.Elapsed.TotalMilliseconds - before);
+                    done++;
+                    if (!more)
+                    {
+                        if (Entries == null) Failure = "it ended without a catalog";
+                        break;
+                    }
+                    Progress = _steps.Current;
+                }
+            }
+            catch (Exception ex)
+            {
+                Failure = ex.ToString();
+            }
+            WorkMs += frame.Elapsed.TotalMilliseconds;
+            Frames++;
+            if (Done)
+            {
+                _all.Stop();
+                _steps.Dispose();
+            }
+            return Done;
+        }
+    }
+
+    /// <summary>How long each part of reading the catalog took, summed over the frames it was read in.</summary>
+    internal static class CatalogTiming
+    {
+        private static readonly Dictionary<string, double> Parts = new Dictionary<string, double>();
+
+        public static long Start() => System.Diagnostics.Stopwatch.GetTimestamp();
+
+        public static void Add(string part, long started)
+        {
+            var ms = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            Parts.TryGetValue(part, out var sum);
+            Parts[part] = sum + ms;
+        }
+
+        public static void Reset() => Parts.Clear();
+
+        /// <summary>The parts, longest first.</summary>
+        public static string Report() => string.Join(", ", Parts.OrderByDescending(p => p.Value).Select(p => $"{p.Key} {p.Value:0}"));
     }
 }

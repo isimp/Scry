@@ -25,7 +25,10 @@ namespace Scry
         public double PieceMs { get; private set; }
 
         /// <summary>Whether another piece may begin, this far into the frame with this many done in it.</summary>
-        public bool MayBegin(double elapsedMs, int doneThisFrame) => doneThisFrame == 0 || elapsedMs + PieceMs <= BudgetMs;
+        public bool MayBegin(double elapsedMs, int doneThisFrame) => MayBegin(elapsedMs, doneThisFrame, BudgetMs);
+
+        /// <summary>The same, in a frame given another share than usual.</summary>
+        public bool MayBegin(double elapsedMs, int doneThisFrame, double budgetMs) => doneThisFrame == 0 || elapsedMs + PieceMs <= budgetMs;
 
         /// <summary>A piece done, and how long it took.</summary>
         public void Took(double ms)
