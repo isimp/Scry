@@ -327,17 +327,23 @@ namespace Scry
                 default:
                     const string text = "Find it in locations and dungeons";
                     var w = Skin.Width(Skin.Chip, text) + U(8f);
-                    if (GUI.Button(new Rect(0f, y, Mathf.Min(width, w), U(26f)), text, Skin.Chip))
-                    {
-                        var said = Locations.Start();
-                        Session.Say(char.ToUpperInvariant(said[0]) + said.Substring(1));
-                    }
+                    if (GUI.Button(new Rect(0f, y, Mathf.Min(width, w), U(26f)), text, Skin.Chip)) StartReadingLocations();
                     y += U(30f);
                     const string note = "Reads each of this world's locations and dungeon rooms once, in the background, for about a minute.";
                     var height = Skin.Height(Skin.DimWrap, note, width);
                     GUI.Label(new Rect(0f, y, width, height), note, Skin.DimWrap);
                     return y + height + U(6f);
             }
+        }
+
+        private const string LocationsButtonText = "Find in locations";
+        private const string LocationsButtonTip = "Reads where things are found in this world's locations and dungeons, in the background, for about a minute";
+
+        /// <summary>Starts reading the locations, from any of the buttons that offer it, and says so.</summary>
+        private static void StartReadingLocations()
+        {
+            var said = Locations.Start();
+            Session.Say(char.ToUpperInvariant(said[0]) + said.Substring(1));
         }
 
         private static string Components(GameObject prefab)

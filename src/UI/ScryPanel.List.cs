@@ -18,7 +18,7 @@ namespace Scry
             new[] { "kind:creature", "Only one kind: creature, item, piece, resource, projectile, effect, sound, se (status effect), other." },
             new[] { "has:aoe", "Prefabs with a part of that type, such as has:light, has:pickable, has:fireplace." },
             new[] { "biome:swamp", "What spawns or grows in that biome." },
-            new[] { "in:crypt", "What is found in a location or dungeon, once they are read (Find it in locations and dungeons, under an entry's details)." },
+            new[] { "in:crypt", "What is found in a location or dungeon, once they are read with Find in locations (at the top of the panel, or below)." },
             new[] { "mod:epic", "What a mod added, by the start or any part of its name." },
             new[] { "used:troll", "The sounds and effects a prefab plays." },
             new[] { "station:forge3", "What is made at that station, here what a forge at level 3 can make. station:forge for any level, station:hand for what needs none." },
@@ -68,7 +68,48 @@ namespace Scry
 
             GUI.EndScrollView();
 
-            if (GUI.Button(new Rect(rect.xMax - U(96f), rect.yMax - closeH - U(10f), U(80f), closeH), "Close", Skin.Button)) _help = false;
+            var closeRect = new Rect(rect.xMax - U(96f), rect.yMax - closeH - U(10f), U(80f), closeH);
+            if (GUI.Button(closeRect, "Close", Skin.Button)) _help = false;
+
+            // in: needs the locations read; offered beside Close until they are.
+            if (Locations.Now == Locations.State.NotRead)
+            {
+                var w = Skin.Width(Skin.Button, LocationsButtonText) + U(10f);
+                var locRect = new Rect(closeRect.x - U(8f) - w, closeRect.y, w, closeH);
+                if (locRect.x > rect.x + U(8f))
+                {
+                    if (GUI.Button(locRect, LocationsButtonText, Skin.Button)) StartReadingLocations();
+                    if (locRect.Contains(Event.current.mousePosition)) AskTip("locations-help", LocationsButtonTip);
+                }
+            }
+        }
+
+        /// <summary>Whether the search asks what is in a place, with in: (not with a minus, which asks for the rest).</summary>
+        private static bool SearchesPlaces(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+            foreach (var word in text.Split(' '))
+            {
+                if (word.StartsWith("in:", StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
+        }
+
+        private static void NoPlacesYet(Rect inner)
+        {
+            var reading = Locations.Now == Locations.State.Reading;
+            var message = reading
+                ? "Reading this world's locations and dungeons. What is found in them shows here once they are read."
+                : "Nothing is known to be in a location yet: this world's locations and dungeons are read only when asked.";
+            var textW = Mathf.Min(inner.width - U(24f), U(420f));
+            var height = Skin.Height(Skin.CenterDim, message, textW);
+            var top = inner.y + Mathf.Max(U(20f), (inner.height - height - U(44f)) / 2f);
+            GUI.Label(new Rect(inner.x + (inner.width - textW) / 2f, top, textW, height), message, Skin.CenterDim);
+            if (reading) return;
+
+            var w = Skin.Width(Skin.Button, LocationsButtonText) + U(10f);
+            var button = new Rect(inner.x + (inner.width - w) / 2f, top + height + U(12f), w, U(30f));
+            if (GUI.Button(button, LocationsButtonText, Skin.Button)) StartReadingLocations();
         }
 
         private static void List(Explorer explorer, Rect rect)
@@ -87,6 +128,12 @@ namespace Scry
 
             if (results.Count == 0)
             {
+                // A search for what is in a place finds nothing until the places are read: say so, and offer it.
+                if (Locations.Now != Locations.State.Read && SearchesPlaces(explorer.Text))
+                {
+                    NoPlacesYet(inner);
+                    return;
+                }
                 var message = explorer.FavouritesOnly && explorer.Favourites.Keys.Count == 0
                     ? "No favourites yet. Star something to keep it here."
                     : "Nothing matches.";
