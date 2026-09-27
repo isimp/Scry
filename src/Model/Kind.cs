@@ -42,6 +42,9 @@ namespace Scry
         /// <summary>Chopped, mined, picked or grown: a tree, a log, a rock or ore vein, a bush, a plant.</summary>
         public bool HasResource;
 
+        /// <summary>Grows from being planted: a crop or sapling put in the ground with the cultivator.</summary>
+        public bool HasPlant;
+
         /// <summary>Breaks when hit, and whether it then drops anything.</summary>
         public bool HasDestructible;
         public bool HasDrops;
@@ -68,11 +71,14 @@ namespace Scry
             if (traits.HasCharacter) return Kind.Creature;
             if (traits.HasProjectile) return Kind.Projectile;
             if (traits.HasItemDrop) return Kind.Item;
-            if (traits.HasPiece) return Kind.Piece;
 
-            // What is chopped, mined, picked or grown, or broken for what it drops; a nest drops
-            // things too, but is found with the other spawners.
-            if (!traits.HasSpawner && (traits.HasResource || traits.BreaksIntoResource || (traits.HasDestructible && traits.HasDrops))) return Kind.Resource;
+            // What is chopped, mined or picked stays a resource when a mod makes it buildable too
+            // (MoreVanillaBuildPrefabs does so for hundreds of the game's own prefabs); a crop
+            // planted with the cultivator is built like any piece. A nest drops things too, but is
+            // found with the other spawners.
+            var gathered = !traits.HasSpawner && (traits.HasResource || traits.BreaksIntoResource);
+            if (traits.HasPiece) return gathered && !traits.HasPlant ? Kind.Resource : Kind.Piece;
+            if (gathered || (!traits.HasSpawner && traits.HasDestructible && traits.HasDrops)) return Kind.Resource;
 
             var visible = traits.HasRenderer || traits.HasParticles || traits.HasLight;
             if (traits.HasAudio && !visible) return Kind.Sound;

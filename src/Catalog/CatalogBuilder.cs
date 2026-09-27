@@ -496,8 +496,11 @@ namespace Scry
                 case MineRock5 _:
                 case Pickable _:
                 case PickableItem _:
+                    traits.HasResource = true;
+                    break;
                 case Plant _:
                     traits.HasResource = true;
+                    traits.HasPlant = true;
                     break;
                 case Destructible breaks:
                     traits.HasDestructible = true;

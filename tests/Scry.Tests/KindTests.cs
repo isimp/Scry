@@ -76,12 +76,32 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void WhatAPrefabIsInTheGameOutranksBeingAResource()
+        public void ACropYouPlantIsAPieceThoughItGrows()
         {
-            // A piece can grow or be picked (a planted crop, a beehive); it is still built.
-            var crop = new PrefabTraits { HasPiece = true, HasResource = true, HasRenderer = true };
+            // Planted with the cultivator, it is built like any other piece.
+            var crop = new PrefabTraits { HasPiece = true, HasResource = true, HasPlant = true, HasRenderer = true };
 
             Assert.Equal(Kind.Piece, Kinds.Of(crop));
+        }
+
+        [Fact]
+        public void ATreeRockOrBushAModMadeBuildableIsStillAResource()
+        {
+            // MoreVanillaBuildPrefabs adds a Piece to hundreds of the game's own prefabs; an oak
+            // is still chopped, a rock mined and a bush picked.
+            var oak = new PrefabTraits { HasPiece = true, HasResource = true, HasRenderer = true, HasSolidCollider = true };
+            var vein = new PrefabTraits { HasPiece = true, HasDestructible = true, BreaksIntoResource = true, HasRenderer = true };
+
+            Assert.Equal(Kind.Resource, Kinds.Of(oak));
+            Assert.Equal(Kind.Resource, Kinds.Of(vein));
+        }
+
+        [Fact]
+        public void ABuiltPieceThatDropsWhatItIsMadeOfIsStillAPiece()
+        {
+            var crate = new PrefabTraits { HasPiece = true, HasDestructible = true, HasDrops = true, HasRenderer = true };
+
+            Assert.Equal(Kind.Piece, Kinds.Of(crate));
         }
 
         [Fact]
