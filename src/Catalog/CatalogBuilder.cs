@@ -305,6 +305,8 @@ namespace Scry
                 Name = name,
                 DisplayName = Localize(found.Token),
                 Kind = Kinds.Of(found.Traits),
+                Group = Kinds.GroupLabel(Kinds.GroupOf(found.Traits)),
+                GroupOrder = (int)Kinds.GroupOf(found.Traits),
                 Empty = Kinds.IsEmpty(found.Traits),
                 ExtraLevels = found.ExtraLevels,
                 HasWear = found.HasWear,
@@ -494,12 +496,22 @@ namespace Scry
                     if (!collider.isTrigger) traits.HasSolidCollider = true;
                     break;
                 case TreeBase _:
+                    traits.HasResource = true;
+                    traits.IsTree = true;
+                    break;
                 case TreeLog _:
+                    traits.HasResource = true;
+                    traits.IsLog = true;
+                    break;
                 case MineRock _:
                 case MineRock5 _:
+                    traits.HasResource = true;
+                    traits.IsMined = true;
+                    break;
                 case Pickable _:
                 case PickableItem _:
                     traits.HasResource = true;
+                    traits.IsPicked = true;
                     break;
                 case Plant _:
                     traits.HasResource = true;

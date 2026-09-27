@@ -97,6 +97,25 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ResourcesAreGroupedByHowTheyAreGathered()
+        {
+            Assert.Equal(ResourceGroup.Trees, Kinds.GroupOf(new PrefabTraits { HasResource = true, IsTree = true, HasDestructible = true, HasDrops = true }));
+            Assert.Equal(ResourceGroup.Logs, Kinds.GroupOf(new PrefabTraits { HasResource = true, IsLog = true }));
+            Assert.Equal(ResourceGroup.RocksAndOre, Kinds.GroupOf(new PrefabTraits { HasResource = true, IsMined = true }));
+            Assert.Equal(ResourceGroup.RocksAndOre, Kinds.GroupOf(new PrefabTraits { HasDestructible = true, BreaksIntoResource = true }));
+            Assert.Equal(ResourceGroup.Plants, Kinds.GroupOf(new PrefabTraits { HasResource = true, HasPlant = true, IsPicked = true }));
+            Assert.Equal(ResourceGroup.BushesAndPickables, Kinds.GroupOf(new PrefabTraits { HasResource = true, IsPicked = true, HasDestructible = true }));
+            Assert.Equal(ResourceGroup.Other, Kinds.GroupOf(new PrefabTraits { HasDestructible = true, HasDrops = true }));
+        }
+
+        [Fact]
+        public void OnlyResourcesHaveAGroup()
+        {
+            Assert.Equal(ResourceGroup.None, Kinds.GroupOf(new PrefabTraits { HasCharacter = true }));
+            Assert.Equal(ResourceGroup.None, Kinds.GroupOf(new PrefabTraits { HasPiece = true, HasResource = true, HasPlant = true }));
+        }
+
+        [Fact]
         public void ABuiltPieceThatDropsWhatItIsMadeOfIsStillAPiece()
         {
             var crate = new PrefabTraits { HasPiece = true, HasDestructible = true, HasDrops = true, HasRenderer = true };

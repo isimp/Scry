@@ -15,6 +15,24 @@ namespace Scry.Tests
         private static Entry Named(Explorer explorer, string name) => explorer.Catalog.First(e => e.Name == name);
 
         [Fact]
+        public void TheResourcesTabListsTreesThenLogsThenRocksThenPlantsThenBushesThenTheRest()
+        {
+            Entry R(string name, ResourceGroup group) => new Entry { Name = name, Kind = Kind.Resource, Origin = Origin.Vanilla, Group = Kinds.GroupLabel(group), GroupOrder = (int)group };
+            var catalog = new System.Collections.Generic.List<Entry>
+            {
+                R("barrel", ResourceGroup.Other), R("RaspberryBush", ResourceGroup.BushesAndPickables), R("rock4_copper", ResourceGroup.RocksAndOre),
+                R("Oak_log", ResourceGroup.Logs), R("Beech1", ResourceGroup.Trees), R("sapling_turnip", ResourceGroup.Plants),
+                R("BlueberryBush", ResourceGroup.BushesAndPickables), R("Birch1", ResourceGroup.Trees), E("wood_wall", Kind.Piece),
+            };
+            var explorer = new Explorer(catalog, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+
+            explorer.KindFilter = Kind.Resource;
+
+            Assert.Equal(new[] { "Beech1", "Birch1", "Oak_log", "rock4_copper", "sapling_turnip", "BlueberryBush", "RaspberryBush", "barrel" },
+                explorer.Results.Select(e => e.Name).ToArray());
+        }
+
+        [Fact]
         public void OpeningShowsEverythingWithNothingSelected()
         {
             var explorer = Open();

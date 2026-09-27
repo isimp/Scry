@@ -47,6 +47,13 @@ namespace Scry
         internal string DisplayNameUpper => _displayNameUpper ?? (_displayNameUpper = _displayName?.ToUpperInvariant());
 
         public Kind Kind;
+
+        /// <summary>
+        /// The group a kind's tab lists it under (a resource by how it is gathered), and where
+        /// that group comes among the others; none has an empty name and comes first.
+        /// </summary>
+        public string Group = "";
+        public int GroupOrder;
         public Origin Origin;
 
         /// <summary>Nothing to see or hear, such as an invisible controller object.</summary>

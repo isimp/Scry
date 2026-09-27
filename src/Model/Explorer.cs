@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace Scry
@@ -294,6 +295,10 @@ namespace Scry
 
             // Newest first, whatever the search ranking would be.
             if (order != null) _results.Sort((a, b) => order[a.Key].CompareTo(order[b.Key]));
+
+            // Within a kind's tab, by its groups (resources by how they are gathered), each
+            // group in the order the search gave it.
+            else if (_query.Kind != null) _results = _results.OrderBy(e => e.GroupOrder).ToList();
 
             if (_selected == null) return;
 

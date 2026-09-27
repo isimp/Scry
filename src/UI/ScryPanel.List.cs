@@ -93,30 +93,74 @@ namespace Scry
                 return;
             }
 
+            var rows = ListRows(explorer);
             if (_reveal && Event.current.type == EventType.Repaint)
             {
                 _reveal = false;
                 var index = explorer.SelectedIndex;
-                if (index >= 0)
+                if (index >= 0 && index < _rowOfEntry.Count)
                 {
-                    var top = index * rowH;
+                    var top = _rowOfEntry[index] * rowH;
                     if (top < _listScroll.y) _listScroll.y = top;
                     else if (top + rowH > _listScroll.y + inner.height) _listScroll.y = top + rowH - inner.height;
                 }
             }
 
-            var view = new Rect(0f, 0f, inner.width - U(14f), results.Count * rowH);
+            var view = new Rect(0f, 0f, inner.width - U(14f), rows.Count * rowH);
             _listScroll = GUI.BeginScrollView(inner, _listScroll, view, false, false, GUIStyle.none, Skin.Gui.verticalScrollbar);
 
             var first = Mathf.Max(0, Mathf.FloorToInt(_listScroll.y / rowH));
-            var last = Mathf.Min(results.Count - 1, first + _rowsInView + 1);
+            var last = Mathf.Min(rows.Count - 1, first + _rowsInView + 1);
             var visible = new Rect(0f, _listScroll.y, view.width, inner.height);
             for (var i = first; i <= last; i++)
             {
-                Row(explorer, results[i], new Rect(0f, i * rowH, view.width, rowH), i == explorer.SelectedIndex, visible);
+                var at = new Rect(0f, i * rowH, view.width, rowH);
+                var row = rows[i];
+                if (row.Entry >= 0) Row(explorer, results[row.Entry], at, row.Entry == explorer.SelectedIndex, visible);
+                else GUI.Label(new Rect(at.x + U(12f), at.y + U(8f), at.width - U(24f), at.height - U(8f)), row.Heading, Skin.DimLabel);
             }
 
             GUI.EndScrollView();
+        }
+
+        /// <summary>A row of the list: an entry (its place in the results), or the heading of the group that follows.</summary>
+        private struct ListRow
+        {
+            public int Entry;
+            public string Heading;
+        }
+
+        private static readonly List<ListRow> _listRows = new List<ListRow>();
+        private static readonly List<int> _rowOfEntry = new List<int>();
+        private static IReadOnlyList<Entry> _rowsFor;
+
+        /// <summary>
+        /// The list's rows: on a kind's tab whose entries fall into groups (resources by how they
+        /// are gathered), each group under a heading with its count; otherwise the entries alone.
+        /// Worked out again only when the results change.
+        /// </summary>
+        private static List<ListRow> ListRows(Explorer explorer)
+        {
+            var results = explorer.Results;
+            if (ReferenceEquals(results, _rowsFor)) return _listRows;
+            _rowsFor = results;
+            _listRows.Clear();
+            _rowOfEntry.Clear();
+
+            var grouped = explorer.KindFilter != null && results.Any(e => e.Group.Length > 0);
+            for (var i = 0; i < results.Count; i++)
+            {
+                if (grouped && (i == 0 || results[i].Group != results[i - 1].Group))
+                {
+                    var count = 1;
+                    while (i + count < results.Count && results[i + count].Group == results[i].Group) count++;
+                    var name = results[i].Group.Length > 0 ? results[i].Group : "Ungrouped";
+                    _listRows.Add(new ListRow { Entry = -1, Heading = $"{name}  {count}" });
+                }
+                _rowOfEntry.Add(_listRows.Count);
+                _listRows.Add(new ListRow { Entry = i });
+            }
+            return _listRows;
         }
 
         private static void Row(Explorer explorer, Entry entry, Rect rect, bool selected, Rect visible)

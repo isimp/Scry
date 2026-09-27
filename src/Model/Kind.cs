@@ -14,6 +14,18 @@ namespace Scry
         Other,
     }
 
+    /// <summary>How a resource is gathered, the groups the Resources tab lists them in, in this order.</summary>
+    public enum ResourceGroup
+    {
+        None,
+        Trees,
+        Logs,
+        RocksAndOre,
+        Plants,
+        BushesAndPickables,
+        Other,
+    }
+
     /// <summary>Where a prefab comes from.</summary>
     public enum Origin
     {
@@ -44,6 +56,12 @@ namespace Scry
 
         /// <summary>Grows from being planted: a crop or sapling put in the ground with the cultivator.</summary>
         public bool HasPlant;
+
+        /// <summary>What kind of resource it is: a standing tree, a fallen log, a rock or vein mined a piece at a time, or something picked.</summary>
+        public bool IsTree;
+        public bool IsLog;
+        public bool IsMined;
+        public bool IsPicked;
 
         /// <summary>Breaks when hit, and whether it then drops anything.</summary>
         public bool HasDestructible;
@@ -87,6 +105,33 @@ namespace Scry
             if (!traits.HasSolidCollider && (traits.HasParticles || (traits.FromEffectList && visible))) return Kind.Effect;
 
             return Kind.Other;
+        }
+
+        /// <summary>The group a resource is listed in; none for anything else.</summary>
+        public static ResourceGroup GroupOf(PrefabTraits traits)
+        {
+            if (Of(traits) != Kind.Resource) return ResourceGroup.None;
+            if (traits.IsTree) return ResourceGroup.Trees;
+            if (traits.IsLog) return ResourceGroup.Logs;
+            if (traits.IsMined || traits.BreaksIntoResource) return ResourceGroup.RocksAndOre;
+            if (traits.HasPlant) return ResourceGroup.Plants;
+            if (traits.IsPicked) return ResourceGroup.BushesAndPickables;
+            return ResourceGroup.Other;
+        }
+
+        /// <summary>The heading a group of resources goes by.</summary>
+        public static string GroupLabel(ResourceGroup group)
+        {
+            switch (group)
+            {
+                case ResourceGroup.Trees: return "Trees";
+                case ResourceGroup.Logs: return "Logs";
+                case ResourceGroup.RocksAndOre: return "Rocks and ore";
+                case ResourceGroup.Plants: return "Plants";
+                case ResourceGroup.BushesAndPickables: return "Bushes and pickables";
+                case ResourceGroup.Other: return "Broken for what they drop";
+                default: return "";
+            }
         }
 
         /// <summary>Whether a prefab has anything to see or hear at all.</summary>

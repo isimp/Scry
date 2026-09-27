@@ -110,6 +110,9 @@ namespace Scry
             StatusNames.Clear();
             ShownNames.Clear();
             _catalogNames = null;
+            _rowsFor = null;
+            _listRows.Clear();
+            _rowOfEntry.Clear();
             _statusFor = null;
             _shownFor = null;
             _kindsFor = null;
