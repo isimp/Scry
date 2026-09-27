@@ -23,6 +23,7 @@ namespace Scry
         /// </summary>
         public static GameObject Copy(Entry entry, Modifiers modifiers, Transform parent, Vector3 position, Quaternion rotation, int layer = -1, string timing = null)
         {
+            if (entry?.Source is StatusEffect effect) return Affected(effect, parent, position, rotation, layer, timing);
             if (!(entry?.Source is GameObject prefab)) return null;
 
             if (IsWorn(entry)) return Worn(prefab, modifiers, parent, position, rotation, layer, timing);
@@ -94,6 +95,54 @@ namespace Scry
             Step(item, "the person's body", () => Gear.Body(person, copy));
             Step(item, "being worn", () => Gear.Wear(person, copy, WornWith(item), modifiers.LookAvailable ? modifiers.Look : -1, item));
             Step(item, "the person's animation events", () => AnimationEars.Attach(person, copy));
+            if (timing != null) Timing.Add(timing + " dress", started);
+            return copy;
+        }
+
+        /// <summary>Whether a status effect shows on a person: whether its start effects have anything to see or hear.</summary>
+        public static bool ShowsOnPerson(Entry entry)
+        {
+            if (!(entry?.Source is StatusEffect effect) || effect.m_startEffects?.m_effectPrefabs == null) return false;
+            foreach (var data in effect.m_startEffects.m_effectPrefabs)
+            {
+                if (data != null && data.m_enabled && data.m_prefab != null && !Ghost.IsWholeModel(data.m_prefab)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// A person with a status effect's look on it: its start effects put where the game puts
+        /// them on a character (<c>EffectList.Create</c> with the character as base: on the named
+        /// part, following it when attached), as "Show it on you" puts them on you. Only the look;
+        /// the effect itself is not there.
+        /// </summary>
+        private static GameObject Affected(StatusEffect effect, Transform parent, Vector3 position, Quaternion rotation, int layer, string timing)
+        {
+            var person = ZNetScene.instance != null ? ZNetScene.instance.GetPrefab("Player") : null;
+            if (person == null) return null;
+
+            var started = Timing.Start();
+            var copy = Ghost.Make(person, parent, position, rotation, layer);
+            if (timing != null) Timing.Add(timing + " copy", started);
+            if (copy == null) return null;
+
+            started = Timing.Start();
+            Step(person, "the person's body", () => Gear.Body(person, copy));
+            Step(person, "the person's animation events", () => AnimationEars.Attach(person, copy));
+            Step(person, "the look of " + effect.name, () =>
+            {
+                foreach (var data in effect.m_startEffects.m_effectPrefabs)
+                {
+                    if (data == null || !data.m_enabled || data.m_prefab == null || Ghost.IsWholeModel(data.m_prefab)) continue;
+                    var anchor = copy.transform;
+                    if (!string.IsNullOrEmpty(data.m_childTransform))
+                    {
+                        var child = Utils.FindChild(anchor, data.m_childTransform);
+                        if (child != null) anchor = child;
+                    }
+                    Ghost.Make(data.m_prefab, anchor, anchor.position, anchor.rotation, layer);
+                }
+            });
             if (timing != null) Timing.Add(timing + " dress", started);
             return copy;
         }

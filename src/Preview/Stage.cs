@@ -242,12 +242,12 @@ namespace Scry
                 _lastShown = entry;
                 ResetView();
             }
-            if (!IsStaged(entry) || !(entry.Source is GameObject)) return;
+            if (!IsStaged(entry) || !(entry.Source is GameObject || entry.Source is StatusEffect)) return;
             if (!Ensure()) return;
 
             // Making it and dressing it are told as "selection copy" and "selection dress",
             // measuring it and applying the modifiers as "selection measure" and "selection apply".
-            _subjectIsPerson = Looks.IsWorn(entry);
+            _subjectIsPerson = Looks.IsWorn(entry) || entry.Kind == Kind.StatusEffect;
             _subject = Looks.Copy(entry, modifiers, _root.transform, Origin, Quaternion.identity, _layer, "selection");
             if (_subject == null) return;
 
@@ -285,7 +285,9 @@ namespace Scry
         /// <summary>Whether an entry has something to put on the stage.</summary>
         public static bool IsStaged(Entry entry)
         {
-            return entry != null && !entry.Empty && entry.Kind != Kind.Sound && entry.Kind != Kind.StatusEffect;
+            if (entry == null || entry.Kind == Kind.Sound) return false;
+            if (entry.Kind == Kind.StatusEffect) return Looks.ShowsOnPerson(entry);
+            return !entry.Empty;
         }
 
         /// <summary>The modifiers that change without making a new copy.</summary>

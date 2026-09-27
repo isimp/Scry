@@ -72,7 +72,7 @@ A sound or effect shows the effect lists it is part of, as rows: what the list i
 
 A lit play button stops what it started when clicked again, and playing again starts over rather than adding to it. It stays lit until everything it started has finished: while a copy it made has particles alive, a sound playing or parts falling, or, having none of those, until it is gone. Each part of a list is lit while its own copy plays. A filter set on the clips or the effects stays visible while it filters, also on an entry with few of them, so it can always be cleared, and a cross in it clears it.
 
-A status effect offers every effect list it carries that has something in it: its start effects are shown on you until taken off, and the others, such as stop, tick or break, play once. One with none says so.
+A status effect whose start effects have something to see or hear is shown on the stage on a person, its start effects put where the game puts them on a character (on the named part, following it when attached). It also offers every effect list it carries that has something in it: its start effects are shown on you until taken off, and the others, such as stop, tick or break, play once. One with none says so.
 
 ## Knowledge
 

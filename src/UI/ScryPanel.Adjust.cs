@@ -16,7 +16,7 @@ namespace Scry
             var staged = Stage.IsStaged(entry);
             var projectile = entry.Kind == Kind.Projectile;
             var modelInWorld = Previews.InWorld && Previews.IsModel(entry);
-            var clips = staged ? Previews.Clips() : new List<AnimationClip>();
+            var clips = staged && entry.Kind != Kind.StatusEffect ? Previews.Clips() : new List<AnimationClip>();
 
             // Without the stage there is nothing to adjust unless the copy is in the world.
             if (!withStage && !modelInWorld && !projectile) return y;
