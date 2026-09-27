@@ -25,7 +25,7 @@ namespace Scry
         private static (string Text, Kind? Kind, OriginFilter Origin, bool Favourites)? _carried;
 
         /// <summary>How long after arriving in a world the catalog starts to be read, so the world's own loading goes first.</summary>
-        private const float QuietDelay = 3f;
+        private const float QuietDelay = 10f;
 
         /// <summary>Scry's share of a frame for reading the catalog while nobody waits for it, and while the open panel does.</summary>
         private const double QuietBudgetMs = 4;
