@@ -760,15 +760,17 @@ namespace Scry
 
             GUI.SetNextControlName(SearchControl);
             var text = GUI.TextField(rect, explorer.Text, 80, Skin.Field);
-            SearchTab(explorer);
             if (text != explorer.Text)
             {
                 explorer.Text = text;
                 _listScroll = Vector2.zero;
                 _reveal = true;
                 _help = false;
-                hasText = !string.IsNullOrEmpty(text);
             }
+
+            // After the typed text is taken: what Tab puts in must not be undone by it.
+            SearchTab(explorer);
+            hasText = !string.IsNullOrEmpty(explorer.Text);
 
             if (!hasText)
             {
