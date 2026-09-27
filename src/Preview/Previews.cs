@@ -192,9 +192,13 @@ namespace Scry
             // Each part on its own: one that fails does not keep the others from running.
             try { Expire(); } catch (System.Exception ex) { Faults.Tell("expiring previews", ex); }
             try { Listen.Update(); } catch (System.Exception ex) { Faults.Tell("listening", ex); }
+            // Working out what clips play waits while the panel is closed, and goes on when it opens.
             var started = Timing.Start();
-            try { TriggerProbe.Update(); } catch (System.Exception ex) { Faults.Tell("watching an animator", ex); }
-            try { SortSomeClips(); } catch (System.Exception ex) { Faults.Tell("sorting clips", ex); }
+            if (explorer != null)
+            {
+                try { TriggerProbe.Update(); } catch (System.Exception ex) { Faults.Tell("watching an animator", ex); }
+                try { SortSomeClips(); } catch (System.Exception ex) { Faults.Tell("sorting clips", ex); }
+            }
             Timing.Add("update probe", started);
             for (var i = LaterOn.Count - 1; i >= 0; i--)
             {
@@ -272,12 +276,15 @@ namespace Scry
 
         /// <summary>
         /// Takes the stage copy down while the panel is closed, so a looping effect does not go on
-        /// sounding in your ears. It is put back when the panel opens again.
+        /// sounding in your ears; it is put back when the panel opens again. A sound playing at
+        /// your ears stops with it, looping ones such as location music included. What stands or
+        /// plays in the world stays.
         /// </summary>
         public static void Suspend()
         {
             Stage.ClearSubject();
             _stageStale = true;
+            StopSound();
         }
 
         private static void Selected(Entry entry, Modifiers modifiers)
