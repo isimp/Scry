@@ -125,7 +125,16 @@ namespace Scry
 
             Resource(prefab);
             if (piece != null && !piece.enabled) MadeBuildable(piece);
+
+            // The prefab's own numbers are shown; a world that changes them says by how much.
+            var game = Game.instance;
+            var enemy = character != null && !(character is Player);
+            var note = WorldWords.Note(Game.m_worldLevel, game != null ? game.m_worldLevelEnemyHPMultiplier : 1f, Game.m_resourceRate, enemy, _drops);
+            if (note != null) Add("In this world", char.ToUpperInvariant(note[0]) + note.Substring(1));
         }
+
+        /// <summary>Whether any drops were told, which a world's resource rate scales.</summary>
+        private bool _drops;
 
         // ----- Items -----
 
@@ -260,7 +269,11 @@ namespace Scry
                     if (drop.m_chance < 1f) amount += $" ({Mathf.RoundToInt(drop.m_chance * 100f)}%)";
                     row.Items.Add(new Ingredient { Icon = Icon(drop.m_prefab), Name = ItemName(drop.m_prefab), Amount = amount, Prefab = drop.m_prefab.name });
                 }
-                if (row.Items.Count > 0) Rows.Add(row);
+                if (row.Items.Count > 0)
+                {
+                    Rows.Add(row);
+                    _drops = true;
+                }
             }
         }
 
@@ -422,6 +435,7 @@ namespace Scry
                     Amount = pickable.m_amount.ToString(CultureInfo.InvariantCulture), Prefab = pickable.m_itemPrefab.name,
                 });
                 Rows.Add(picked);
+                _drops = true;
                 if (pickable.m_respawnTimeMinutes > 0f) Add("Grows back in", Minutes(pickable.m_respawnTimeMinutes * 60f));
                 var day = EnvMan.instance != null ? EnvMan.instance.m_dayLengthSec : 1200L;
                 var yields = Yield.PerDay(pickable.m_amount, pickable.m_respawnTimeMinutes, day);
@@ -447,7 +461,11 @@ namespace Scry
                     var item = found.m_itemPrefab.gameObject;
                     row.Items.Add(new Ingredient { Icon = Icon(item), Name = ItemName(item), Amount = Math.Max(1, found.m_stack).ToString(CultureInfo.InvariantCulture), Prefab = item.name });
                 }
-                if (row.Items.Count > 0) Rows.Add(row);
+                if (row.Items.Count > 0)
+                {
+                    Rows.Add(row);
+                    _drops = true;
+                }
             }
 
             var plant = prefab.GetComponent<Plant>();
@@ -559,6 +577,7 @@ namespace Scry
                 row.Items.Add(new Ingredient { Icon = Icon(items[i]), Name = ItemName(items[i]), Amount = DropWords.Amount(info, info.Drops[i]), Prefab = items[i].name });
             }
             Rows.Add(row);
+            _drops = true;
         }
 
         /// <summary>How a damage modifier reads as a label, e.g. "Weak to".</summary>
