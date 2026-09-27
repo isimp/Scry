@@ -168,8 +168,11 @@ namespace Scry
             }
             var x = 0f;
             var rowH = U(26f);
-            foreach (var member in members)
+            var key = "members:" + (title ?? "") + (list != null ? list.GetHashCode().ToString() : "");
+            var count = ShownOf(key, members.Length);
+            for (var i = 0; i < count; i++)
             {
+                var member = members[i];
                 var go = member != self && InCatalog(explorer, member);
                 var w = Mathf.Min(width, LinkChipWidth(member, go));
                 if (x + w > width && x > 0f)
@@ -188,10 +191,10 @@ namespace Scry
                 if (go && chip.Contains(Event.current.mousePosition)) AskTip("member:" + member, "Go to " + member + (lit ? "\n(playing now)" : ""));
                 x += w + U(5f);
             }
+            MoreChip(key, members.Length, FirstChips, width, rowH, U(5f), ref x, ref y);
             return y + rowH + U(6f);
         }
 
-        private static bool _allPlaysIn;
         private static Entry _playsInFor;
         private static List<PlaysInRow> _playsInRows = new List<PlaysInRow>();
 
@@ -205,7 +208,6 @@ namespace Scry
             if (_playsInFor != entry)
             {
                 _playsInFor = entry;
-                _allPlaysIn = false;
 
                 // A list the entry itself plays is its own, not one it plays in; and it is not
                 // named among what plays along.
@@ -224,11 +226,14 @@ namespace Scry
 
             y = SectionHeading($"PLAYS IN  {rows.Count}", width, y, null, "playsin");
             if (IsFolded("playsin")) return y;
-            const int Shown = 8;
+            // Each row is a list of its own, so fewer show before the rest are asked for.
+            const int firstRows = 8;
             var rowH = U(26f);
+            var index = 0;
 
-            foreach (var row in _allPlaysIn ? rows : rows.Take(Shown))
+            foreach (var row in rows.Take(ShownOf("playsin", rows.Count, firstRows)))
             {
+                index++;
                 var list = row.List as EffectList;
                 var playing = list != null && Previews.Playing.IsPlaying(list);
 
@@ -247,8 +252,9 @@ namespace Scry
                 GUI.Label(new Rect(x, y, labelW, rowH), row.Label, Skin.Label);
                 x += labelW + U(8f);
 
-                const int Owners = 4;
-                foreach (var owner in row.Owners.Take(Owners))
+                const int firstOwners = 4;
+                var ownersKey = "owners:" + index;
+                foreach (var owner in row.Owners.Take(ShownOf(ownersKey, row.Owners.Count, firstOwners)))
                 {
                     var shown = ShownName(explorer, owner.Key, owner.Shown);
                     var go = owner.Key != null && CanGo(explorer, owner.Key);
@@ -264,19 +270,7 @@ namespace Scry
                     if (go && chip.Contains(Event.current.mousePosition)) AskTip("owner:" + owner.Key, "Go to " + shown);
                     x += w + U(5f);
                 }
-                if (row.Owners.Count > Owners)
-                {
-                    var more = $"and {row.Owners.Count - Owners} more";
-                    var w = Skin.Width(Skin.DimLabel, more) + U(4f);
-                    if (x + w > width && x > 0f)
-                    {
-                        x = 0f;
-                        y += rowH + U(5f);
-                    }
-                    var rect = new Rect(x, y, w, rowH);
-                    GUI.Label(rect, more, Skin.DimLabel);
-                    if (rect.Contains(Event.current.mousePosition)) AskTip("owners:" + row.Label + row.Owners[0].Shown, string.Join("\n", row.Owners.Skip(Owners).Take(30).Select(o => o.Shown)));
-                }
+                MoreChip(ownersKey, row.Owners.Count, firstOwners, width, rowH, U(5f), ref x, ref y);
                 y += rowH + U(5f);
 
                 // What plays along.
@@ -284,13 +278,9 @@ namespace Scry
                 y += U(6f);
             }
 
-            if (rows.Count > Shown)
-            {
-                var text = _allPlaysIn ? "Show fewer" : $"Show all {rows.Count}";
-                var w = Skin.Width(Skin.Chip, text) + U(8f);
-                if (GUI.Button(new Rect(0f, y, Mathf.Min(width, w), rowH), text, Skin.Chip)) _allPlaysIn = !_allPlaysIn;
-                y += rowH;
-            }
+            var mx = 0f;
+            MoreChip("playsin", rows.Count, firstRows, width, rowH, U(5f), ref mx, ref y);
+            if (mx > 0f) y += rowH;
             return y + U(14f);
         }
 

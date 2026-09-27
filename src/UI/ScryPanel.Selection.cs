@@ -15,6 +15,39 @@ namespace Scry
 
         private static bool OutOfSight(Rect rect) => rect.yMax < _sideVisible.yMin || rect.yMin > _sideVisible.yMax;
 
+        /// <summary>How many chips of a list show before the rest are left to a "more" chip.</summary>
+        private const int FirstChips = 18;
+
+        /// <summary>Long lists opened to show all, by key; all fold again when another entry is shown.</summary>
+        private static readonly HashSet<string> OpenLists = new HashSet<string>();
+
+        /// <summary>How many of a list to show (<see cref="Shortlist"/>).</summary>
+        private static int ShownOf(string key, int total, int first = FirstChips) => Shortlist.Shown(total, first, OpenLists.Contains(key));
+
+        /// <summary>
+        /// The chip at the end of a long list, placed as its own chips are: "N more" shows the
+        /// rest, "Show fewer" folds it again. Every long list in the panel ends with it.
+        /// </summary>
+        private static void MoreChip(string key, int total, int first, float width, float rowH, float gap, ref float x, ref float y)
+        {
+            if (!Shortlist.Long(total, first)) return;
+            var open = OpenLists.Contains(key);
+            var text = open ? "Show fewer" : $"{Shortlist.Hidden(total, first, false)} more";
+            var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(16f));
+            if (x + w > width && x > 0f)
+            {
+                x = 0f;
+                y += rowH + gap;
+            }
+            var rect = new Rect(x, y, w, rowH);
+            if (!OutOfSight(rect) && GUI.Button(rect, text, Skin.Chip))
+            {
+                if (open) OpenLists.Remove(key);
+                else OpenLists.Add(key);
+            }
+            x += w + gap;
+        }
+
         /// <summary>The entry the side was last shown for; another starts at its top.</summary>
         private static Entry _sideFor;
 
@@ -25,6 +58,7 @@ namespace Scry
             {
                 _sideFor = entry;
                 _sideScroll = Vector2.zero;
+                OpenLists.Clear();
             }
 
             // What a world's catalog points at is gone once the world is: nothing to show then.

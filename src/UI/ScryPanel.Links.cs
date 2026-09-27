@@ -109,8 +109,12 @@ namespace Scry
             y += U(24f);
             var x = 0f;
             var rowH = U(26f);
-            foreach (var item in items)
+            var all = items as IList<(string Key, string Text, string Tip, Action Click)> ?? items.ToList();
+            var key = "links:" + title;
+            var count = ShownOf(key, all.Count);
+            for (var i = 0; i < count; i++)
             {
+                var item = all[i];
                 var w = Mathf.Min(width, LinkChipWidth(item.Text, true));
                 if (x + w > width && x > 0f)
                 {
@@ -127,6 +131,7 @@ namespace Scry
                 if (chip.Contains(Event.current.mousePosition)) AskTip("link:" + title + item.Key + item.Text, item.Tip ?? "Go to " + item.Text);
                 x += w + U(5f);
             }
+            MoreChip(key, all.Count, FirstChips, width, rowH, U(5f), ref x, ref y);
             return y + rowH + U(10f);
         }
 
@@ -147,14 +152,13 @@ namespace Scry
             y = SectionHeading("LINKED", width, y, null, "links");
             if (IsFolded("links")) return y;
 
-            if (entry.LeftBy.Count > 0) y = LinkRow(explorer, "Left behind by", entry.LeftBy.Take(24), width, y);
+            if (entry.LeftBy.Count > 0) y = LinkRow(explorer, "Left behind by", entry.LeftBy, width, y);
             if (entry.LeavesBehind.Count > 0) y = LinkRow(explorer, "Leaves behind", entry.LeavesBehind, width, y);
 
             foreach (var group in groups)
             {
-                var links = group.Value.Take(40).ToList();
-                var more = group.Value.Count > links.Count ? $" (first {links.Count} of {group.Value.Count})" : "";
-                var title = group.Key + more;
+                var links = group.Value;
+                var title = group.Key;
 
                 if (group.Key == Relations.PlayedByAnimation)
                 {
@@ -193,7 +197,9 @@ namespace Scry
             y += U(24f);
             var x = 0f;
             var rowH = U(26f);
-            foreach (var chip in chips)
+            var all = chips.ToList();
+            var key = "chips:" + title;
+            foreach (var chip in all.Take(ShownOf(key, all.Count)))
             {
                 var w = Mathf.Min(width, Skin.Width(Skin.Chip, chip.Key) + U(8f));
                 if (x + w > width && x > 0f)
@@ -205,6 +211,7 @@ namespace Scry
                 if (!OutOfSight(rect) && GUI.Button(rect, chip.Key, Skin.Chip)) chip.Value();
                 x += w + U(5f);
             }
+            MoreChip(key, all.Count, FirstChips, width, rowH, U(5f), ref x, ref y);
             return y + rowH + U(10f);
         }
 

@@ -49,14 +49,16 @@ namespace Scry
                 y += height + U(6f);
             }
 
-            foreach (var row in facts.Rows) y = FactRow(explorer, row, width, y, 0);
+            foreach (var row in facts.Rows) y = FactRow(explorer, row, width, y);
 
             if (facts.Where.Count > 0)
             {
                 y += U(6f);
                 GUI.Label(new Rect(0f, y, width, U(20f)), facts.WhereTitle, Skin.DimLabel);
                 y += U(24f);
-                foreach (var source in facts.Where)
+                const int firstLines = 8;
+                var lines = ShownOf("where", facts.Where.Count, firstLines);
+                foreach (var source in facts.Where.Take(lines))
                 {
                     // A line naming a prefab in the catalog is a chip that goes there; the rest is text.
                     if (string.IsNullOrEmpty(source.Prefab) || !InCatalog(explorer, source.Prefab))
@@ -88,6 +90,9 @@ namespace Scry
                     }
                     y += chipH + U(5f);
                 }
+                var lx = 0f;
+                MoreChip("where", facts.Where.Count, firstLines, width, U(26f), U(5f), ref lx, ref y);
+                if (lx > 0f) y += U(26f) + U(5f);
             }
 
             // What it is used for, under a heading of its own; a long row (wood builds a hundred
@@ -97,33 +102,20 @@ namespace Scry
                 y += U(6f);
                 GUI.Label(new Rect(0f, y, width, U(20f)), "What it is used for", Skin.DimLabel);
                 y += U(22f);
-                foreach (var row in facts.UseRows) y = FactRow(explorer, row, width, y, ShortRow);
+                foreach (var row in facts.UseRows) y = FactRow(explorer, row, width, y);
             }
 
             return y + U(14f);
         }
 
-        /// <summary>How many chips a long row of uses shows before a chip for the rest.</summary>
-        private const int ShortRow = 18;
-
-        /// <summary>Rows of uses shown whole, by their title; forgotten when another entry is shown.</summary>
-        private static readonly HashSet<string> OpenRows = new HashSet<string>();
-        private static Entry _openRowsFor;
-
         /// <summary>
         /// A titled row of chips, each an item with its amount that goes to it when clicked; the
-        /// title goes to the station it names. With a <paramref name="limit"/>, a longer row shows
-        /// that many and a chip that shows the rest.
+        /// title goes to the station it names. A long row shows its first chips and one for the rest.
         /// </summary>
-        private static float FactRow(Explorer explorer, Facts.Row row, float width, float y, int limit)
+        private static float FactRow(Explorer explorer, Facts.Row row, float width, float y)
         {
-            if (!ReferenceEquals(explorer.Selected, _openRowsFor))
-            {
-                _openRowsFor = explorer.Selected;
-                OpenRows.Clear();
-            }
-            var shortened = limit > 0 && row.Items.Count > limit + 2 && !OpenRows.Contains(row.Title);
-            var count = shortened ? limit : row.Items.Count;
+            var key = "facts:" + row.Title;
+            var count = ShownOf(key, row.Items.Count);
             y += U(6f);
             if (!string.IsNullOrEmpty(row.TitleLink) && InCatalog(explorer, row.TitleLink))
             {
@@ -181,17 +173,7 @@ namespace Scry
                 }
                 x += w + U(6f);
             }
-            if (shortened)
-            {
-                var more = $"{row.Items.Count - count} more";
-                var w = Skin.Width(Skin.Chip, more) + U(16f);
-                if (x + w > width && x > 0f)
-                {
-                    x = 0f;
-                    y += chipH + U(5f);
-                }
-                if (GUI.Button(new Rect(x, y, w, chipH), more, Skin.Chip)) OpenRows.Add(row.Title);
-            }
+            MoreChip(key, row.Items.Count, FirstChips, width, chipH, U(5f), ref x, ref y);
             y += chipH + U(6f);
 
             return y;
