@@ -36,11 +36,23 @@ namespace Scry
             GameObject copy = null;
             try
             {
-                copy = Object.Instantiate(prefab, Holder().transform, false);
+                // A large prefab (the person, with hundreds of parts) is stripped once and kept
+                // stripped under the sleeping holder; later copies are made from that.
+                var key = new KeyValuePair<GameObject, bool>(prefab, falling);
+                if (Templates.TryGetValue(key, out var template) && template != null)
+                {
+                    copy = Object.Instantiate(template, Holder().transform, false);
+                    Used.Remove(key);
+                    Used.Add(key);
+                }
+                else
+                {
+                    copy = Object.Instantiate(prefab, Holder().transform, false);
+                    if (Strip(copy, falling) >= TemplateFrom) KeepTemplate(key, copy);
+                }
                 copy.name = prefab.name;
 
                 var limit = falling ? StripPolicy.PushApartLimit(ScriptNames(prefab)) : null;
-                Strip(copy, falling);
                 Settle(copy, falling);
                 var body = limit != null ? copy.GetComponent<Rigidbody>() : null;
                 if (body != null) body.maxDepenetrationVelocity = limit.Value;
@@ -135,7 +147,38 @@ namespace Scry
         private static readonly Dictionary<GameObject, bool> Known = new Dictionary<GameObject, bool>();
 
         /// <summary>Lets go of what was found out about the prefabs of a world that was left.</summary>
-        public static void Forget() => Known.Clear();
+        public static void Forget()
+        {
+            Known.Clear();
+            foreach (var template in Templates.Values) if (template != null) Object.Destroy(template);
+            Templates.Clear();
+            Used.Clear();
+        }
+
+        /// <summary>Stripped copies kept to copy again, by prefab and way of copying, and the order they were last used in.</summary>
+        private static readonly Dictionary<KeyValuePair<GameObject, bool>, GameObject> Templates = new Dictionary<KeyValuePair<GameObject, bool>, GameObject>();
+        private static readonly List<KeyValuePair<GameObject, bool>> Used = new List<KeyValuePair<GameObject, bool>>();
+
+        /// <summary>How many parts a prefab has before its stripped copy is kept, and how many are kept at most.</summary>
+        private const int TemplateFrom = 150;
+        private const int TemplatesKept = 4;
+
+        /// <summary>Keeps a stripped copy of a large prefab asleep under the holder, the one used longest ago going when too many are.</summary>
+        private static void KeepTemplate(KeyValuePair<GameObject, bool> key, GameObject stripped)
+        {
+            var template = Object.Instantiate(stripped, Holder().transform, false);
+            template.name = stripped.name + " (Scry template)";
+            Templates[key] = template;
+            Used.Remove(key);
+            Used.Add(key);
+            while (Used.Count > TemplatesKept)
+            {
+                var oldest = Used[0];
+                Used.RemoveAt(0);
+                if (Templates.TryGetValue(oldest, out var gone) && gone != null) Object.Destroy(gone);
+                Templates.Remove(oldest);
+            }
+        }
 
         /// <summary>
         /// Whether a prefab an effect list points at is debris: loose parts that fly apart under
@@ -179,7 +222,7 @@ namespace Scry
         /// Takes off everything the policy does not keep. A component another one requires can
         /// only go after that one, so removal repeats until nothing more can be taken off.
         /// </summary>
-        private static void Strip(GameObject copy, bool falling)
+        private static int Strip(GameObject copy, bool falling)
         {
             var all = copy.GetComponentsInChildren<Component>(true);
             var doomed = new List<KeyValuePair<int, Component>>();
@@ -213,6 +256,7 @@ namespace Scry
             {
                 Plugin.Log.LogDebug($"Scry left {doomed.Count} part(s) on the preview of {copy.name} that something else needs.");
             }
+            return all.Length;
         }
 
         /// <summary>Whether another component on the same object requires this one, so it can only go after that one.</summary>
