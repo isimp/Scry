@@ -46,7 +46,10 @@ namespace Scry
         public readonly List<Source> Where = new List<Source>();
         public string WhereTitle = "Where it comes from";
 
-        public bool IsEmpty => Description.Length == 0 && Pairs.Count == 0 && Rows.Count == 0 && Where.Count == 0;
+        /// <summary>What it is used for, a row for each kind of use and place.</summary>
+        public readonly List<Row> UseRows = new List<Row>();
+
+        public bool IsEmpty => Description.Length == 0 && Pairs.Count == 0 && Rows.Count == 0 && Where.Count == 0 && UseRows.Count == 0;
 
         /// <summary>Values that name something in the catalog, by their label: a prefab name, or "se:" and a status effect's.</summary>
         public readonly Dictionary<string, string> Links = new Dictionary<string, string>();
@@ -84,6 +87,7 @@ namespace Scry
                     {
                         facts.Where.Add(new Source("Nothing loaded makes, drops or sells it. It may come from a location, a dungeon, an event or a mod.", null));
                     }
+                    facts.Uses(entry.Name);
                 }
             }
             catch (Exception ex)
@@ -304,6 +308,60 @@ namespace Scry
                 });
             }
             return row;
+        }
+
+        // ----- What it is used for -----
+
+        /// <summary>What an item is used for, a row for each kind of use and place, each thing it goes into a chip.</summary>
+        private void Uses(string item)
+        {
+            foreach (var group in Knowledge.UsesOf(item))
+            {
+                var row = new Row { Title = UseTitle(group), TitleLink = group.Place != null && group.Place != "hand" ? group.Place : null };
+                foreach (var (target, amount) in group.Targets)
+                {
+                    var prefab = Looks.Prefab(target);
+                    // A recipe that takes none of it at first needs it only to upgrade what it makes.
+                    var name = AnyName(prefab, target);
+                    if (amount <= 0 && group.Kind == UseKind.Crafts) name += " (upgrades)";
+                    var shown = amount > 0 ? amount.ToString(CultureInfo.InvariantCulture) : "";
+                    row.Items.Add(new Ingredient { Icon = AnyIcon(prefab), Name = name, Amount = shown, Prefab = target });
+                }
+                if (row.Items.Count > 0) UseRows.Add(row);
+            }
+        }
+
+        private static string UseTitle(UseGroup group)
+        {
+            var place = group.Place != null && group.Place != "hand" ? AnyName(Looks.Prefab(group.Place), group.Place) : null;
+            switch (group.Kind)
+            {
+                case UseKind.Crafts: return place != null ? $"Used to make at {place}" : "Used to make by hand";
+                case UseKind.Builds: return place != null ? $"Used to build near {place}" : "Used to build";
+                case UseKind.TurnsInto: return place != null ? $"{place} turns it into" : "Turned into";
+                case UseKind.Fuels: return "Burnt as fuel by";
+                default: return "Eaten by";
+            }
+        }
+
+        /// <summary>A prefab's name as the game shows it: an item's, a piece's or a creature's, else the prefab's own.</summary>
+        private static string AnyName(GameObject prefab, string fallback)
+        {
+            if (prefab == null) return fallback;
+            var token = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared?.m_name
+                        ?? prefab.GetComponent<Piece>()?.m_name
+                        ?? prefab.GetComponent<Character>()?.m_name;
+            var shown = CatalogBuilder.Localize(token);
+            return shown.Length > 0 ? shown : prefab.name;
+        }
+
+        private static Sprite AnyIcon(GameObject prefab)
+        {
+            if (prefab == null) return null;
+            var icons = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared?.m_icons;
+            if (icons != null && icons.Length > 0) return icons[0];
+            var piece = prefab.GetComponent<Piece>();
+            return piece != null ? piece.m_icon : null;
         }
 
         // ----- Status effects -----

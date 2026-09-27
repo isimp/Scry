@@ -63,6 +63,12 @@ namespace Scry
         private static readonly Dictionary<GameObject, string> ShownNames = new Dictionary<GameObject, string>();
         private static readonly HashSet<string> Failures = new HashSet<string>();
 
+        /// <summary>What each item is used for, noted as the catalog is read.</summary>
+        private static readonly UseBook Uses = new UseBook();
+
+        /// <summary>What an item is used for: recipes, pieces, what stations turn it into, what burns it and what eats it.</summary>
+        public static IReadOnlyList<UseGroup> UsesOf(string item) => Uses.Of(item);
+
         /// <summary>Starts reading it all again for the current world.</summary>
         public static void Begin()
         {
@@ -76,6 +82,7 @@ namespace Scry
             MakerLines.Clear();
             ShownNames.Clear();
             Failures.Clear();
+            Uses.Clear();
         }
 
         /// <summary>
@@ -98,6 +105,89 @@ namespace Scry
             started = CatalogTiming.Start();
             try { Givers(prefab, components); } catch (Exception ex) { Failed("status effect givers", prefab, ex); }
             CatalogTiming.Add("givers", started);
+            started = CatalogTiming.Start();
+            try { UsesIn(prefab, components); } catch (Exception ex) { Failed("uses of items", prefab, ex); }
+            CatalogTiming.Add("uses", started);
+        }
+
+        /// <summary>
+        /// What a prefab uses items for: a piece what it is built from, any station or fire the
+        /// items it burns (any field of an item named for fuel, which covers mods' stations too),
+        /// and a creature what it eats. What stations turn items into is noted with the makers.
+        /// </summary>
+        private static void UsesIn(GameObject prefab, List<Component> components)
+        {
+            foreach (var component in components)
+            {
+                switch (component)
+                {
+                    case null:
+                        continue;
+                    case Piece piece when piece.m_enabled && piece.m_resources != null:
+                        var near = piece.m_craftingStation != null ? piece.m_craftingStation.gameObject.name : null;
+                        foreach (var need in piece.m_resources)
+                        {
+                            if (need?.m_resItem != null) Uses.Add(need.m_resItem.gameObject.name, UseKind.Builds, prefab.name, need.m_amount, near);
+                        }
+                        break;
+                    case MonsterAI ai when ai.m_consumeItems != null:
+                        foreach (var food in ai.m_consumeItems)
+                        {
+                            if (food != null) Uses.Add(food.gameObject.name, UseKind.EatenBy, prefab.name, 0);
+                        }
+                        break;
+                }
+
+                foreach (var field in FuelFields(component.GetType()))
+                {
+                    if (field.GetValue(component) is ItemDrop fuel && fuel != null) Uses.Add(fuel.gameObject.name, UseKind.Fuels, prefab.name, 0);
+                }
+            }
+        }
+
+        private static readonly Dictionary<Type, FieldInfo[]> FuelFieldsByType = new Dictionary<Type, FieldInfo[]>();
+
+        /// <summary>Fields holding an item that is burnt: a smelter's, a fire's, a cooking station's, and the like.</summary>
+        private static FieldInfo[] FuelFields(Type type)
+        {
+            if (FuelFieldsByType.TryGetValue(type, out var known)) return known;
+            var found = new List<FieldInfo>();
+            try
+            {
+                const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+                for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour); t = t.BaseType)
+                {
+                    foreach (var field in t.GetFields(flags))
+                    {
+                        if (field.FieldType == typeof(ItemDrop) && field.Name.IndexOf("fuel", StringComparison.OrdinalIgnoreCase) >= 0) found.Add(field);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // A mod's type whose fields cannot be read has none here, remembered as such.
+                Plugin.Log.LogDebug($"Scry could not read the fields of {type.Name}: {ex.Message}");
+                found.Clear();
+            }
+            known = found.ToArray();
+            FuelFieldsByType[type] = known;
+            return known;
+        }
+
+        /// <summary>The recipes each item goes into, noted once every prefab is read.</summary>
+        private static void Recipes()
+        {
+            var db = ObjectDB.instance;
+            if (db == null) return;
+            foreach (var recipe in db.m_recipes)
+            {
+                if (recipe == null || !recipe.m_enabled || recipe.m_item == null || recipe.m_resources == null) continue;
+                var at = recipe.m_craftingStation != null ? recipe.m_craftingStation.gameObject.name : "hand";
+                foreach (var need in recipe.m_resources)
+                {
+                    if (need?.m_resItem != null) Uses.Add(need.m_resItem.gameObject.name, UseKind.Crafts, recipe.m_item.gameObject.name, need.m_amount, at);
+                }
+            }
         }
 
         private static void Failed(string what, GameObject prefab, Exception ex)
@@ -123,6 +213,7 @@ namespace Scry
 
             Try("drops", () => Merge(DropLines, From));
             Try("makers", () => Merge(MakerLines, From));
+            Try("recipes items go into", Recipes);
             Try("traders", Traders);
             yield return "what makes things";
 
@@ -387,6 +478,7 @@ namespace Scry
                         var to = type.GetField("m_to")?.GetValue(conversion) as ItemDrop;
                         if (from == null || to == null) continue;
                         Keep(MakerLines, to.gameObject, $"Made from {ItemName(from.gameObject)} in {Shown(prefab)}", from.gameObject.name);
+                        Uses.Add(from.gameObject.name, UseKind.TurnsInto, to.gameObject.name, 0, prefab.name);
                     }
                 }
             }

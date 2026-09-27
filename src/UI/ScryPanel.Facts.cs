@@ -49,66 +49,7 @@ namespace Scry
                 y += height + U(6f);
             }
 
-            foreach (var row in facts.Rows)
-            {
-                y += U(6f);
-                if (!string.IsNullOrEmpty(row.TitleLink) && InCatalog(explorer, row.TitleLink))
-                {
-                    var titleW = Mathf.Min(width, Skin.Width(Skin.DimLabel, row.Title) + U(4f));
-                    var titleRect = new Rect(0f, y, titleW, U(20f));
-                    LinkLabel(titleRect, row.Title, Skin.DimLabel, LinkText(KindOfKey(explorer, row.TitleLink), false));
-                    if (titleRect.Contains(Event.current.mousePosition)) AskTip("station:" + row.TitleLink, "Go to " + row.TitleLink);
-                    if (GUI.Button(titleRect, GUIContent.none, GUIStyle.none)) Go(explorer, row.TitleLink);
-                }
-                else
-                {
-                    GUI.Label(new Rect(0f, y, width, U(20f)), row.Title, Skin.DimLabel);
-                }
-                y += U(24f);
-
-                var x = 0f;
-                var chipH = U(30f);
-                foreach (var item in row.Items)
-                {
-                    var text = string.IsNullOrEmpty(item.Amount) ? item.Name : $"{item.Amount}  {item.Name}";
-                    var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(30f));
-                    if (x + w > width && x > 0f)
-                    {
-                        x = 0f;
-                        y += chipH + U(5f);
-                    }
-                    var chip = new Rect(x, y, w, chipH);
-                    if (OutOfSight(chip))
-                    {
-                        x += w + U(6f);
-                        continue;
-                    }
-                    var hover = chip.Contains(Event.current.mousePosition);
-                    var goes = !string.IsNullOrEmpty(item.Prefab) && InCatalog(explorer, item.Prefab);
-                    var kind = goes ? KindOf(explorer, item.Prefab) : null;
-                    Skin.PillBox(chip, goes ? LinkFill(kind, hover) : Skin.Raised);
-                    if (item.Icon != null) DrawSprite(item.Icon, new Rect(chip.x + U(6f), chip.y + U(4f), U(22f), U(22f)));
-                    var small = Skin.Small;
-                    var smallWas = small.normal.textColor;
-                    if (goes) small.normal.textColor = LinkText(kind, hover);
-                    GUI.Label(new Rect(chip.x + U(32f), chip.y, chip.width - U(36f), chip.height), text, small);
-                    small.normal.textColor = smallWas;
-
-                    // Clicking an ingredient or a drop goes to it.
-                    if (!string.IsNullOrEmpty(item.Prefab))
-                    {
-                        if (hover) AskTip("goto:" + item.Prefab, $"Go to {item.Name}");
-                        if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(item.Prefab))
-                        {
-                            _reveal = true;
-                            _sideScroll = Vector2.zero;
-                            _help = false;
-                        }
-                    }
-                    x += w + U(6f);
-                }
-                y += chipH + U(6f);
-            }
+            foreach (var row in facts.Rows) y = FactRow(explorer, row, width, y, 0);
 
             if (facts.Where.Count > 0)
             {
@@ -149,7 +90,111 @@ namespace Scry
                 }
             }
 
+            // What it is used for, under a heading of its own; a long row (wood builds a hundred
+            // pieces) shows its first few until asked for the rest.
+            if (facts.UseRows.Count > 0)
+            {
+                y += U(6f);
+                GUI.Label(new Rect(0f, y, width, U(20f)), "What it is used for", Skin.DimLabel);
+                y += U(22f);
+                foreach (var row in facts.UseRows) y = FactRow(explorer, row, width, y, ShortRow);
+            }
+
             return y + U(14f);
+        }
+
+        /// <summary>How many chips a long row of uses shows before a chip for the rest.</summary>
+        private const int ShortRow = 18;
+
+        /// <summary>Rows of uses shown whole, by their title; forgotten when another entry is shown.</summary>
+        private static readonly HashSet<string> OpenRows = new HashSet<string>();
+        private static Entry _openRowsFor;
+
+        /// <summary>
+        /// A titled row of chips, each an item with its amount that goes to it when clicked; the
+        /// title goes to the station it names. With a <paramref name="limit"/>, a longer row shows
+        /// that many and a chip that shows the rest.
+        /// </summary>
+        private static float FactRow(Explorer explorer, Facts.Row row, float width, float y, int limit)
+        {
+            if (!ReferenceEquals(explorer.Selected, _openRowsFor))
+            {
+                _openRowsFor = explorer.Selected;
+                OpenRows.Clear();
+            }
+            var shortened = limit > 0 && row.Items.Count > limit + 2 && !OpenRows.Contains(row.Title);
+            var count = shortened ? limit : row.Items.Count;
+            y += U(6f);
+            if (!string.IsNullOrEmpty(row.TitleLink) && InCatalog(explorer, row.TitleLink))
+            {
+                var titleW = Mathf.Min(width, Skin.Width(Skin.DimLabel, row.Title) + U(4f));
+                var titleRect = new Rect(0f, y, titleW, U(20f));
+                LinkLabel(titleRect, row.Title, Skin.DimLabel, LinkText(KindOfKey(explorer, row.TitleLink), false));
+                if (titleRect.Contains(Event.current.mousePosition)) AskTip("station:" + row.TitleLink, "Go to " + row.TitleLink);
+                if (GUI.Button(titleRect, GUIContent.none, GUIStyle.none)) Go(explorer, row.TitleLink);
+            }
+            else
+            {
+                GUI.Label(new Rect(0f, y, width, U(20f)), row.Title, Skin.DimLabel);
+            }
+            y += U(24f);
+
+            var x = 0f;
+            var chipH = U(30f);
+            for (var i = 0; i < count; i++)
+            {
+                var item = row.Items[i];
+                var text = string.IsNullOrEmpty(item.Amount) ? item.Name : $"{item.Amount}  {item.Name}";
+                var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(30f));
+                if (x + w > width && x > 0f)
+                {
+                    x = 0f;
+                    y += chipH + U(5f);
+                }
+                var chip = new Rect(x, y, w, chipH);
+                if (OutOfSight(chip))
+                {
+                    x += w + U(6f);
+                    continue;
+                }
+                var hover = chip.Contains(Event.current.mousePosition);
+                var goes = !string.IsNullOrEmpty(item.Prefab) && InCatalog(explorer, item.Prefab);
+                var kind = goes ? KindOf(explorer, item.Prefab) : null;
+                Skin.PillBox(chip, goes ? LinkFill(kind, hover) : Skin.Raised);
+                if (item.Icon != null) DrawSprite(item.Icon, new Rect(chip.x + U(6f), chip.y + U(4f), U(22f), U(22f)));
+                var small = Skin.Small;
+                var smallWas = small.normal.textColor;
+                if (goes) small.normal.textColor = LinkText(kind, hover);
+                GUI.Label(new Rect(chip.x + U(32f), chip.y, chip.width - U(36f), chip.height), text, small);
+                small.normal.textColor = smallWas;
+
+                // Clicking an ingredient or a drop goes to it.
+                if (!string.IsNullOrEmpty(item.Prefab))
+                {
+                    if (hover) AskTip("goto:" + item.Prefab, $"Go to {item.Name}");
+                    if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(item.Prefab))
+                    {
+                        _reveal = true;
+                        _sideScroll = Vector2.zero;
+                        _help = false;
+                    }
+                }
+                x += w + U(6f);
+            }
+            if (shortened)
+            {
+                var more = $"{row.Items.Count - count} more";
+                var w = Skin.Width(Skin.Chip, more) + U(16f);
+                if (x + w > width && x > 0f)
+                {
+                    x = 0f;
+                    y += chipH + U(5f);
+                }
+                if (GUI.Button(new Rect(x, y, w, chipH), more, Skin.Chip)) OpenRows.Add(row.Title);
+            }
+            y += chipH + U(6f);
+
+            return y;
         }
 
         private static int _commandAmount = 1;
