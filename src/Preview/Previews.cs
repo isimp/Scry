@@ -186,6 +186,7 @@ namespace Scry
             Listen.Update();
             var started = Timing.Start();
             TriggerProbe.Update();
+            SortSomeClips();
             Timing.Add("update probe", started);
             for (var i = LaterOn.Count - 1; i >= 0; i--)
             {

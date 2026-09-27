@@ -29,6 +29,9 @@ namespace Scry
 
             /// <summary>False while the animator is still being watched.</summary>
             public bool Ready = true;
+
+            /// <summary>Whether <see cref="Sounding"/> is known for every clip, worked out a little each frame.</summary>
+            public bool AllSounding;
         }
 
         /// <summary>
@@ -39,11 +42,39 @@ namespace Scry
         {
             get
             {
-                var ears = ClipPlayer.AnimatorOf(Stage.Subject)?.GetComponent<AnimationEars>();
-                var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject, wait: false) : null;
-                return plays != null && !plays.Ready;
+                var plays = StagePlays(out _);
+                return plays != null && (!plays.Ready || !plays.AllSounding);
             }
         }
+
+        /// <summary>What the stage copy's clips play, as far as known, and the ears that play it; null for a copy without.</summary>
+        private static ClipPlays StagePlays(out AnimationEars ears)
+        {
+            var animator = ClipPlayer.AnimatorOf(Stage.Subject);
+            ears = animator != null ? animator.GetComponent<AnimationEars>() : null;
+            return ears != null ? PlaysOf(ears.Prefab, Stage.Subject, wait: false) : null;
+        }
+
+        /// <summary>
+        /// Works out, a few milliseconds a frame, whether each of the stage copy's clips plays
+        /// anything, so the panel never works out a person's hundreds of clips all at once.
+        /// </summary>
+        private static void SortSomeClips()
+        {
+            var plays = StagePlays(out _);
+            if (plays == null || !plays.Ready || plays.AllSounding) return;
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            foreach (var clip in Clips())
+            {
+                if (plays.Sounding.ContainsKey(clip.name)) continue;
+                if (watch.ElapsedMilliseconds >= SortingBudgetMs) return;
+                ClipSounds(clip);
+            }
+            plays.AllSounding = true;
+        }
+
+        /// <summary>How long working out the clips may take each frame.</summary>
+        private const long SortingBudgetMs = 4;
 
         /// <summary>
         /// Whether a clip of the stage copy plays any sound or effect: of its own, with its attack
@@ -51,8 +82,8 @@ namespace Scry
         /// </summary>
         public static bool ClipSounds(AnimationClip clip)
         {
-            var ears = clip != null ? ClipPlayer.AnimatorOf(Stage.Subject)?.GetComponent<AnimationEars>() : null;
-            var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject, wait: false) : null;
+            if (clip == null) return false;
+            var plays = StagePlays(out var ears);
             if (plays == null || !plays.Ready) return false;
             if (!plays.Sounding.TryGetValue(clip.name, out var sounds))
             {
@@ -391,20 +422,40 @@ namespace Scry
             return ears != null ? ears.AroundMembers(clip) : new List<string>();
         }
 
+        /// <summary>
+        /// The stage copy's animation clips, each name once, by name. Kept for as long as the
+        /// copy's animator and its controller stay the same; not to be changed by the caller.
+        /// </summary>
         public static List<AnimationClip> Clips()
         {
-            var clips = new List<AnimationClip>();
             var animator = ClipPlayer.AnimatorOf(Stage.Subject);
-            if (animator == null) return clips;
+            var controller = animator != null ? animator.runtimeAnimatorController : null;
+            if (controller == null) return NoClips;
+            if (ReferenceEquals(controller, _clipsOf) && _clips != null) return _clips;
 
+            var all = controller.animationClips;
+            var names = new List<string>(all.Length);
+            var clips = new List<AnimationClip>(all.Length);
             var seen = new HashSet<string>();
-            foreach (var clip in animator.runtimeAnimatorController.animationClips)
+            foreach (var clip in all)
             {
-                if (clip != null && seen.Add(clip.name)) clips.Add(clip);
+                if (clip == null) continue;
+                var name = clip.name;
+                if (!seen.Add(name)) continue;
+                names.Add(name);
+                clips.Add(clip);
             }
-            clips.Sort((a, b) => string.Compare(a.name, b.name, System.StringComparison.OrdinalIgnoreCase));
-            return clips;
+            var keys = names.ToArray();
+            var sorted = clips.ToArray();
+            System.Array.Sort(keys, sorted, System.StringComparer.OrdinalIgnoreCase);
+            _clipsOf = controller;
+            _clips = new List<AnimationClip>(sorted);
+            return _clips;
         }
+
+        private static readonly List<AnimationClip> NoClips = new List<AnimationClip>();
+        private static RuntimeAnimatorController _clipsOf;
+        private static List<AnimationClip> _clips;
 
         /// <summary>
         /// The clip the stage copy's animator plays on its own right now, when Scry plays none:

@@ -47,6 +47,11 @@ namespace Scry
         {
             Log = Logger;
 
+            // The panel places everything itself and uses no automatic layout, so the layout pass
+            // Unity would otherwise run before every event, drawing the whole panel once more, is
+            // left out.
+            useGUILayout = false;
+
             _openKey = Config.Bind("1 - General", "OpenKey", KeyCode.F7,
                 "Opens and closes the Scry panel. /scry in the chat does the same.");
             _uiScale = Config.Bind("1 - General", "PanelScale", 1f,
@@ -106,7 +111,7 @@ namespace Scry
             var kind = Event.current.type;
             ScryPanel.OnGUI();
             Timing.Add("panel", started);
-            Timing.Add("panel " + kind, started);
+            if (Plugin.LogPreviews) Timing.Add("panel " + kind, started);
         }
 
         private void OnDestroy()

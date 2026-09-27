@@ -94,7 +94,7 @@ namespace Scry
                 return;
             }
 
-            if (_reveal && Event.current.type == EventType.Layout)
+            if (_reveal && Event.current.type == EventType.Repaint)
             {
                 _reveal = false;
                 var index = explorer.SelectedIndex;

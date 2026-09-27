@@ -60,7 +60,7 @@ namespace Scry
                 var pauseW = U(84f);
                 if (GUI.Button(new Rect(0f, y, pauseW, rowH), Previews.ClipPaused ? "Resume" : "Pause", Previews.ClipPaused ? Skin.ChipOn : Skin.Chip)) Previews.PauseClip(!Previews.ClipPaused);
                 var readout = $"{time.ToString("0.00", CultureInfo.InvariantCulture)} / {length.ToString("0.00", CultureInfo.InvariantCulture)} s";
-                var readW = Skin.Width(Skin.DimLabel, readout) + U(6f);
+                var readW = Skin.Width(Skin.DimLabel, "00.00 / 00.00 s") + U(6f);
                 var slider = new Rect(pauseW + U(10f), y + (rowH - U(14f)) / 2f, Mathf.Max(U(40f), width - pauseW - readW - U(20f)), U(14f));
                 var picked = GUI.HorizontalSlider(slider, time, 0f, length);
                 if (!Mathf.Approximately(picked, time)) Previews.SeekClip(picked);
@@ -73,30 +73,25 @@ namespace Scry
             // Scry knows what they are first. While that is still being worked out, they are
             // listed as they come, and it says so.
             var sorting = Previews.ClipsSorting;
-            var tags = sorting ? NoTags : Previews.ClipTags();
-            string Text(AnimationClip c) => tags.TryGetValue(c.name, out var t) ? c.name + "  ·  " + t : c.name;
-            int Group(AnimationClip c) => sorting ? 3 : tags.TryGetValue(c.name, out var t) && t.StartsWith("attack") ? 0 : Previews.ClipSounds(c) ? 1 : 2;
-            var shown = clips.Where(c => _clipFilter.Length == 0 || Text(c).IndexOf(_clipFilter, StringComparison.OrdinalIgnoreCase) >= 0)
-                .OrderBy(Group).ThenBy(c => tags.ContainsKey(c.name) ? 0 : 1).ToList();
-            var headings = new[] { "Attacks", "With sounds or effects", "Silent", "Working out what each clip plays" + Dots() };
+            var shown = ClipRows(clips, sorting);
             var ownNow = Previews.AnimatorClipNow();
             var group = -1;
             x = 0f;
-            foreach (var clip in shown)
+            foreach (var row in shown)
             {
-                var g = Group(clip);
-                if (g != group)
+                var clip = row.Clip;
+                if (row.Group != group)
                 {
                     if (x > 0f) y += rowH + U(4f);
                     x = 0f;
-                    group = g;
-                    GUI.Label(new Rect(0f, y, width, U(20f)), headings[g], Skin.DimLabel);
+                    group = row.Group;
+                    GUI.Label(new Rect(0f, y, width, U(20f)), group < 3 ? ClipHeadings[group] : "Working out what each clip plays" + Dots(), Skin.DimLabel);
                     y += U(22f);
                 }
 
                 // Named by the modelers; what it is follows, as far as Scry saw. The one the
                 // animator plays on its own right now is marked.
-                var text = (clip == ownNow ? "\u25B6 " : "") + Text(clip);
+                var text = clip == ownNow ? "\u25B6 " + row.Text : row.Text;
 
                 var on = playing == clip;
                 var style = on ? Skin.ChipOn : Skin.Chip;
@@ -123,7 +118,7 @@ namespace Scry
                 }
                 if (chip.Contains(Event.current.mousePosition))
                 {
-                    AskTip("clip:" + clip.name + (clip == ownNow ? ":now" : ""), $"{clip.name}\n{clip.length.ToString("0.0", CultureInfo.InvariantCulture)} s{(clip.isLooping ? ", loops" : "")}{(clip == ownNow ? "\nPlaying on its own now" : "")}");
+                    AskTip("clip:" + row.Name + (clip == ownNow ? ":now" : ""), $"{row.Name}\n{clip.length.ToString("0.0", CultureInfo.InvariantCulture)} s{(clip.isLooping ? ", loops" : "")}{(clip == ownNow ? "\nPlaying on its own now" : "")}");
                 }
                 x += w + U(5f);
             }
@@ -160,6 +155,53 @@ namespace Scry
         }
 
         private static readonly Dictionary<string, string> NoTags = new Dictionary<string, string>();
+
+        private static readonly string[] ClipHeadings = { "Attacks", "With sounds or effects", "Silent" };
+
+        /// <summary>A clip's chip as the Animations section lists it: its name, its text and its group (3 while still being worked out).</summary>
+        private sealed class ClipRow
+        {
+            public AnimationClip Clip;
+            public string Name;
+            public string Text;
+            public int Group;
+        }
+
+        private static List<ClipRow> _clipRows = new List<ClipRow>();
+        private static List<AnimationClip> _rowsClips;
+        private static IReadOnlyDictionary<string, string> _rowsTags;
+        private static bool _rowsSorting;
+        private static string _rowsFilter;
+
+        /// <summary>
+        /// The clips' chips in the order they are listed, filtered. Worked out again only when the
+        /// clips, what is known of them or the filter change, not on every event the panel draws.
+        /// </summary>
+        private static List<ClipRow> ClipRows(List<AnimationClip> clips, bool sorting)
+        {
+            var tags = sorting ? NoTags : Previews.ClipTags();
+            if (ReferenceEquals(clips, _rowsClips) && ReferenceEquals(tags, _rowsTags) && sorting == _rowsSorting && _clipFilter == _rowsFilter) return _clipRows;
+
+            var rows = new List<ClipRow>(clips.Count);
+            foreach (var clip in clips)
+            {
+                var name = clip.name;
+                var tagged = tags.TryGetValue(name, out var tag);
+                var text = tagged ? name + "  \u00B7  " + tag : name;
+                if (_clipFilter.Length > 0 && text.IndexOf(_clipFilter, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                var group = sorting ? 3 : tagged && tag.StartsWith("attack", StringComparison.Ordinal) ? 0 : Previews.ClipSounds(clip) ? 1 : 2;
+                rows.Add(new ClipRow { Clip = clip, Name = name, Text = text, Group = group * 2 + (tagged ? 0 : 1) });
+            }
+            rows = rows.OrderBy(r => r.Group).ToList();
+            foreach (var row in rows) row.Group /= 2;
+
+            _clipRows = rows;
+            _rowsClips = clips;
+            _rowsTags = tags;
+            _rowsSorting = sorting;
+            _rowsFilter = _clipFilter;
+            return rows;
+        }
 
         /// <summary>One to three dots, going round, for something still being worked out.</summary>
         private static string Dots() => new string('.', 1 + (int)(Time.unscaledTime * 3f) % 3);

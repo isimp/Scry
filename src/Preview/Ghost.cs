@@ -43,10 +43,21 @@ namespace Scry
                 if (body != null) body.maxDepenetrationVelocity = limit.Value;
                 if (layer >= 0) SetLayer(copy.transform, layer);
 
+                // Posed while still asleep, then woken where it stands. A body wakes where its copy
+                // is at that moment, and one the game interpolates (a log, whose parts sit some
+                // 50 m from its root) does not follow a move made after.
                 var t = copy.transform;
+                if (parent != null)
+                {
+                    t.localPosition = parent.InverseTransformPoint(position);
+                    t.localRotation = Quaternion.Inverse(parent.rotation) * rotation;
+                }
+                else
+                {
+                    t.localPosition = position;
+                    t.localRotation = rotation;
+                }
                 t.SetParent(parent, false);
-                t.position = position;
-                t.rotation = rotation;
                 return copy;
             }
             catch (Exception ex)
