@@ -412,6 +412,8 @@ namespace Scry
                         : $", from {Mathf.RoundToInt(veg.m_minAltitude)} m up";
                 }
                 if (veg.m_minOceanDepth > 0f || veg.m_maxOceanDepth > 0f) line += ", in the sea";
+                if (veg.m_inForest) line += ", in forests";
+                if (veg.m_groupSizeMax > 1) line += veg.m_groupSizeMin == veg.m_groupSizeMax ? $", in groups of {veg.m_groupSizeMax}" : $", in groups of {veg.m_groupSizeMin} to {veg.m_groupSizeMax}";
                 Add(name, line);
             }
         }

@@ -100,7 +100,11 @@ namespace Scry
         }
 
         /// <summary>Forgets everything read, for a new world.</summary>
-        public static void Forget() => Cache.Clear();
+        public static void Forget()
+        {
+            Cache.Clear();
+            _comesFrom = null;
+        }
 
         private void Prefab(GameObject prefab)
         {
@@ -266,11 +270,18 @@ namespace Scry
         /// </summary>
         private void Resource(GameObject prefab)
         {
+            // Where it comes from and what it becomes: a tree falls as its log and leaves a stump,
+            // a log splits into halves, a vein's shell breaks into the vein (TreeBase.SpawnLog,
+            // TreeLog.Destroy, Destructible.Destroy).
+            Leads("Comes from", ComesFrom(prefab.name).Select(p => (p, 1)));
+
             var tree = prefab.GetComponent<TreeBase>();
             if (tree != null)
             {
                 Hits(tree.m_health, false, tree.m_minToolTier, tree.m_damageModifiers);
                 Drops(tree.m_dropWhenDestroyed, "When felled, ");
+                Leads("Felled, falls as", new[] { (tree.m_logPrefab, 1) });
+                Leads("Leaves", new[] { (tree.m_stubPrefab, 1) });
             }
 
             var log = prefab.GetComponent<TreeLog>();
@@ -278,6 +289,7 @@ namespace Scry
             {
                 Hits(log.m_health, false, log.m_minToolTier, log.m_damages);
                 Drops(log.m_dropWhenDestroyed, null);
+                Leads("Splits into", new[] { (log.m_subLogPrefab, log.m_subLogPoints?.Count(p => p != null) ?? 0) });
             }
 
             // A rock or ore vein is mined a piece at a time; each piece has this much health.
@@ -332,6 +344,9 @@ namespace Scry
                 });
                 Rows.Add(picked);
                 if (pickable.m_respawnTimeMinutes > 0f) Add("Grows back in", Minutes(pickable.m_respawnTimeMinutes * 60f));
+                var day = EnvMan.instance != null ? EnvMan.instance.m_dayLengthSec : 1200L;
+                var yields = Yield.PerDay(pickable.m_amount, pickable.m_respawnTimeMinutes, day);
+                if (yields != null) Add("Gives", yields + $" (a day is {Minutes(day)})");
                 Drops(pickable.m_extraDrops, "Also ");
             }
 
@@ -378,6 +393,54 @@ namespace Scry
                     if (grows.Items.Count > 0) Rows.Add(grows);
                 }
             }
+        }
+
+        /// <summary>A row of what a resource leads to or comes from, each part going to it; nothing when there is none.</summary>
+        private void Leads(string title, IEnumerable<(GameObject Prefab, int Count)> parts)
+        {
+            var row = new Row { Title = title };
+            foreach (var (part, count) in parts)
+            {
+                if (part == null || count <= 0) continue;
+                row.Items.Add(new Ingredient { Icon = AnyIcon(part), Name = AnyName(part, part.name), Amount = count > 1 ? count.ToString(CultureInfo.InvariantCulture) : "", Prefab = part.name });
+            }
+            if (row.Items.Count > 0) Rows.Add(row);
+        }
+
+        private static Dictionary<string, List<GameObject>> _comesFrom;
+
+        /// <summary>
+        /// What turns into a prefab when felled, split or broken open: the trees that fall as a
+        /// log, the logs that split into a half, the shells that break into a vein. Worked out once
+        /// a world, from its prefabs.
+        /// </summary>
+        private static List<GameObject> ComesFrom(string name)
+        {
+            if (_comesFrom == null)
+            {
+                _comesFrom = new Dictionary<string, List<GameObject>>();
+                void Note(GameObject into, GameObject from)
+                {
+                    if (into == null || from == null) return;
+                    if (!_comesFrom.TryGetValue(into.name, out var list)) _comesFrom[into.name] = list = new List<GameObject>();
+                    if (!list.Contains(from)) list.Add(from);
+                }
+                var prefabs = ZNetScene.instance != null ? ZNetScene.instance.m_prefabs : null;
+                if (prefabs != null)
+                {
+                    foreach (var prefab in prefabs)
+                    {
+                        if (prefab == null) continue;
+                        var tree = prefab.GetComponent<TreeBase>();
+                        if (tree != null) Note(tree.m_logPrefab, prefab);
+                        var log = prefab.GetComponent<TreeLog>();
+                        if (log != null) Note(log.m_subLogPrefab, prefab);
+                        var breaks = prefab.GetComponent<Destructible>();
+                        if (breaks != null) Note(MinedInside(breaks.m_spawnWhenDestroyed), prefab);
+                    }
+                }
+            }
+            return _comesFrom.TryGetValue(name, out var from) ? from : new List<GameObject>();
         }
 
         /// <summary>What a prefab turns into when broken, if that is mined (a vein, a rock), or null.</summary>
