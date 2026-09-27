@@ -26,8 +26,8 @@ namespace Scry
     /// <summary>
     /// The typed search, taken apart. Plain words are matched against both names and rank the
     /// results. A word with a known key and a colon narrows the list by something else:
-    /// <c>kind:</c>, <c>has:</c> (a component), <c>biome:</c>, <c>mod:</c> and <c>used:</c> (the prefabs
-    /// that play an effect). A minus in front of a word or a term leaves out what matches it.
+    /// <c>kind:</c>, <c>has:</c> (a component), <c>biome:</c>, <c>mod:</c>, <c>used:</c> (the prefabs
+    /// that play an effect) and <c>in:</c> (a location or dungeon it is found in, once they are read). A minus in front of a word or a term leaves out what matches it.
     /// </summary>
     public sealed class ParsedSearch
     {
@@ -98,7 +98,7 @@ namespace Scry
     public static class Search
     {
         /// <summary>The keys a term can have, as typed before the colon.</summary>
-        public static readonly string[] Keys = { "kind", "has", "biome", "mod", "used", "station" };
+        public static readonly string[] Keys = { "kind", "has", "biome", "mod", "used", "station", "in" };
 
         private static readonly char[] Separators = { ' ', '\t' };
 
@@ -259,6 +259,7 @@ namespace Scry
                     return kind >= 0 && kind < term.Kinds.Length && term.Kinds[kind];
                 case "has": return AnyContains(entry.Components, term.Value);
                 case "biome": return AnyContains(entry.Biomes, term.Value);
+                case "in": return AnyContainsLeavingOutSpaces(entry.FoundIn, term.Value);
                 case "mod": return Contains(entry.ModName, term.Value);
                 case "used": return AnyContains(entry.UsedBy, term.Value);
                 case "station": return StationMatches(entry.Stations, term.Station, term.Level);
@@ -321,6 +322,13 @@ namespace Scry
         {
             if (values == null) return false;
             foreach (var candidate in values) if (Contains(candidate, value)) return true;
+            return false;
+        }
+
+        private static bool AnyContainsLeavingOutSpaces(string[] values, string value)
+        {
+            if (values == null) return false;
+            foreach (var candidate in values) if (ContainsLeavingOutSpaces(candidate, value)) return true;
             return false;
         }
 

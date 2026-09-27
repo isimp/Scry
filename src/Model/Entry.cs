@@ -105,6 +105,9 @@ namespace Scry
         /// <summary>The biomes it spawns or grows in, as the game names them.</summary>
         public string[] Biomes = new string[0];
 
+        /// <summary>The locations and kinds of dungeon room it is found in, once they are read (<see cref="Places"/>).</summary>
+        public string[] FoundIn = new string[0];
+
         /// <summary>The mod that added it, when that could be told. Empty otherwise.</summary>
         public string ModName = "";
 

@@ -9,7 +9,7 @@ namespace Scry
         public static void Register()
         {
             new Terminal.ConsoleCommand("scry",
-                "[text] - opens the prefab previewer, searching for the text if given. 'scry clear' removes every preview from the world.",
+                "[text] - opens the prefab previewer, searching for the text if given. 'scry clear' removes every preview from the world; 'scry locations' reads where things are found in locations and dungeons.",
                 args =>
                 {
                     var rest = args.Length > 1 ? (args.ArgsAll ?? "").Trim() : "";
@@ -23,7 +23,7 @@ namespace Scry
 
                     if (rest.Equals("locations", System.StringComparison.OrdinalIgnoreCase))
                     {
-                        args.Context?.AddString("Scry: " + LocationSurvey.Start());
+                        args.Context?.AddString("Scry: " + Locations.Start());
                         return;
                     }
 

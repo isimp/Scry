@@ -385,6 +385,40 @@ namespace Scry
             }
         }
 
+        /// <summary>
+        /// The prefabs the fields of one object name, directly, in a list, or one level down in the
+        /// game's small data classes, without linking them: for a location, which is no entry.
+        /// </summary>
+        public static void PrefabsNamedBy(object owner, List<GameObject> into, int depth = 0)
+        {
+            foreach (var field in FieldsOf(owner.GetType()))
+            {
+                object value;
+                try { value = field.GetValue(owner); }
+                catch { continue; }
+                if (value == null) continue;
+                if (value is GameObject single)
+                {
+                    if (single != null) into.Add(single);
+                }
+                else if (value is IEnumerable list && !(value is string))
+                {
+                    foreach (var item in list)
+                    {
+                        if (item is GameObject each)
+                        {
+                            if (each != null) into.Add(each);
+                        }
+                        else if (item != null && depth < 1 && IsData(item.GetType())) PrefabsNamedBy(item, into, depth + 1);
+                    }
+                }
+                else if (depth < 1 && IsData(value.GetType()))
+                {
+                    PrefabsNamedBy(value, into, depth + 1);
+                }
+            }
+        }
+
         /// <summary>Only other prefabs are linked: a part of this one has a parent, and is not a thing of its own.</summary>
         private static bool Links(GameObject target, GameObject self) => target != null && target != self && target.transform.parent == null;
 

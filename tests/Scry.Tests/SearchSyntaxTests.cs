@@ -16,6 +16,7 @@ namespace Scry.Tests
             var draugr = E("Draugr", Kind.Creature, "Draugr");
             draugr.Components = new[] { "Humanoid", "MonsterAI" };
             draugr.Biomes = new[] { "Swamp" };
+            draugr.FoundIn = new[] { "Crypt", "Sunken crypt rooms" };
 
             var blob = E("BlobElite", Kind.Creature, "Oozer");
             blob.Components = new[] { "MonsterAI", "Aoe" };
@@ -50,6 +51,15 @@ namespace Scry.Tests
         {
             // With no words typed the list is in name order, as everywhere else.
             Assert.Equal(new[] { "BlobElite", "Draugr" }, Find("biome:swamp"));
+        }
+
+        [Fact]
+        public void InFindsWhatIsFoundInALocationOrDungeonWrittenWithoutItsSpaces()
+        {
+            Assert.Equal(new[] { "Draugr" }, Find("in:crypt"));
+            Assert.Equal(new[] { "Draugr" }, Find("in:sunkencryptrooms"));
+            Assert.Empty(Find("in:stonehenge"));
+            Assert.Equal(2, Find("kind:creature -in:crypt").Count);
         }
 
         [Fact]

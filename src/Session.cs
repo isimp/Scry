@@ -142,7 +142,9 @@ namespace Scry
 
             Previews.Update(IsOpen ? Explorer : null);
 
-            try { LocationSurvey.Update(); } catch (Exception ex) { Faults.Tell("measuring the locations", ex); LocationSurvey.Forget(); }
+            var reading = Timing.Start();
+            try { Locations.Update(); } catch (Exception ex) { Faults.Tell("reading the locations", ex); Locations.Forget(); }
+            Timing.Add("locations", reading);
         }
 
         public static void LateUpdate()

@@ -277,6 +277,9 @@ namespace Scry
             if (_query.FavouritesOnly) Refresh();
         }
 
+        /// <summary>Lists the results again after entries changed their groups (what the locations were found to hold).</summary>
+        public void Regrouped() => Refresh();
+
         private void Refresh()
         {
             Dictionary<string, int> order = null;

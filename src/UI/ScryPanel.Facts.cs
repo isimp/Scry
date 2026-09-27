@@ -286,6 +286,7 @@ namespace Scry
             {
                 y = ChipRow("Biomes (search)", entry.Biomes.Select(b => new KeyValuePair<string, Action>(Naming.FieldLabel(b), () => SearchFor(explorer, "biome:" + b.ToLowerInvariant()))), width, y);
             }
+            if (entry.Kind != Kind.StatusEffect) y = FoundIn(explorer, entry, width, y);
             if (entry.UsedBy.Count > 0 && EffectLinks.For(entry.Name).Count == 0)
             {
                 var users = entry.UsedBy.Where(u => InCatalog(explorer, u)).Take(24).ToList();
@@ -303,6 +304,40 @@ namespace Scry
             }
 
             return y + U(6f);
+        }
+
+        /// <summary>
+        /// Where it is found in the world's locations and dungeons: a button that reads them (they
+        /// are read only when asked, since loading them takes a while), how far the reading has got,
+        /// then the places, each a search for everything found there.
+        /// </summary>
+        private static float FoundIn(Explorer explorer, Entry entry, float width, float y)
+        {
+            switch (Locations.Now)
+            {
+                case Locations.State.Read:
+                    if (entry.FoundIn.Length == 0) return y;
+                    return ChipRow("Found in (search)", entry.FoundIn.Select(p => new KeyValuePair<string, Action>(p, () => SearchFor(explorer, "in:" + p.Replace(" ", "").ToLowerInvariant()))), width, y);
+
+                case Locations.State.Reading:
+                    // Not measured: the text changes every frame, and each would be kept.
+                    GUI.Label(new Rect(0f, y, width, U(20f)), $"Reading locations and dungeons: {Locations.Done} of {Locations.Total}", Skin.DimLabel);
+                    return y + U(26f);
+
+                default:
+                    const string text = "Find it in locations and dungeons";
+                    var w = Skin.Width(Skin.Chip, text) + U(8f);
+                    if (GUI.Button(new Rect(0f, y, Mathf.Min(width, w), U(26f)), text, Skin.Chip))
+                    {
+                        var said = Locations.Start();
+                        Session.Say(char.ToUpperInvariant(said[0]) + said.Substring(1));
+                    }
+                    y += U(30f);
+                    const string note = "Reads each of this world's locations and dungeon rooms once, in the background, for about a minute.";
+                    var height = Skin.Height(Skin.DimWrap, note, width);
+                    GUI.Label(new Rect(0f, y, width, height), note, Skin.DimWrap);
+                    return y + height + U(6f);
+            }
         }
 
         private static string Components(GameObject prefab)

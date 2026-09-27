@@ -148,7 +148,13 @@ namespace Scry
         private static readonly Group StatusEffects = new Group("Status effects", 9);
         private static readonly Group Interface = new Group("Interface", 11);
         private static readonly Group OtherPurpose = new Group("Other", 12);
-        private static readonly Group NothingFound = new Group("Played by nothing found", 13);
+        private static readonly Group NothingFound = new Group("Played by nothing found", 14);
+
+        /// <summary>An effect or sound nothing was found to play, but a location or dungeon room names, once they are read.</summary>
+        public static readonly Group EffectsInLocations = new Group("In locations", 13);
+
+        /// <summary>A projectile nothing was found to fire, but a location or dungeon room names, once they are read.</summary>
+        public static readonly Group ProjectilesInLocations = new Group("In locations", 6);
 
         /// <summary>
         /// What an effect or sound is for: by the names of the effect lists it is in (a status
@@ -192,7 +198,7 @@ namespace Scry
         /// </summary>
         public static Group Projectile(IEnumerable<Shooter> shooters)
         {
-            var best = new Group("Other", 6);
+            var best = new Group("Other", 7);
             foreach (var shooter in shooters)
             {
                 Group group;

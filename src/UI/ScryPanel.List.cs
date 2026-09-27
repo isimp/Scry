@@ -18,6 +18,7 @@ namespace Scry
             new[] { "kind:creature", "Only one kind: creature, item, piece, resource, projectile, effect, sound, se (status effect), other." },
             new[] { "has:aoe", "Prefabs with a part of that type, such as has:light, has:pickable, has:fireplace." },
             new[] { "biome:swamp", "What spawns or grows in that biome." },
+            new[] { "in:crypt", "What is found in a location or dungeon, once they are read (Find it in locations and dungeons, under an entry's details)." },
             new[] { "mod:epic", "What a mod added, by the start or any part of its name." },
             new[] { "used:troll", "The sounds and effects a prefab plays." },
             new[] { "station:forge3", "What is made at that station, here what a forge at level 3 can make. station:forge for any level, station:hand for what needs none." },
