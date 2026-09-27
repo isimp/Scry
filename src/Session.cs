@@ -186,6 +186,9 @@ namespace Scry
             try { Stage.Clear(); } catch (Exception ex) { Faults.Tell("clearing the stage", ex); }
             try { Previews.Forget(); } catch (Exception ex) { Faults.Tell("forgetting what previews found", ex); }
             try { Facts.Forget(); } catch (Exception ex) { Faults.Tell("forgetting facts", ex); }
+            try { Looks.Forget(); } catch (Exception ex) { Faults.Tell("forgetting the levels' looks", ex); }
+            try { Variants.Forget(); } catch (Exception ex) { Faults.Tell("forgetting the looks of prefabs", ex); }
+            try { Gear.Forget(); } catch (Exception ex) { Faults.Tell("forgetting gear chosen", ex); }
             try { ScryPanel.Forget(); } catch (Exception ex) { Faults.Tell("forgetting the panel's lists", ex); }
 
             // The search and filters carry over to the next world; the entries cannot.
