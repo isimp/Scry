@@ -24,6 +24,18 @@ namespace Scry
             return Words(name);
         }
 
+        /// <summary>
+        /// The name an effect list inside a field's game data goes by (a fire pit's fireworks, one
+        /// list per firework): its own, unless it is only called "effect", then the field's. One of
+        /// several says what it is for, as a part does ("Blue fireworks: fireworks").
+        /// </summary>
+        public static string NestedListLabel(string outer, string inner, string of = null)
+        {
+            var own = EffectListLabel(inner);
+            var label = own == "Effect" ? EffectListLabel(outer) : own;
+            return string.IsNullOrEmpty(of) ? label : of + ": " + label.ToLowerInvariant();
+        }
+
         private static readonly System.Text.RegularExpressions.Regex Markup = new System.Text.RegularExpressions.Regex(
             @"</?(color|b|i|size|material|quad|sprite|u|s|sup|sub|mark|font|align|alpha|cspace|indent|line-height|lowercase|uppercase|smallcaps|noparse|nobr|space|voffset|width|link|style|rotate|pos)(=[^>]*)?>",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase);

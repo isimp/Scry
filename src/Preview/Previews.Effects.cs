@@ -230,10 +230,11 @@ namespace Scry
             // where two would read the same. An item's attacks always say which attack.
             void Collect(object owner, string part, bool alwaysSayPart)
             {
-                foreach (var field in CatalogBuilder.EffectFields(owner.GetType()))
+                foreach (var on in CatalogBuilder.ListsOn(owner))
                 {
-                    if (!(field.GetValue(owner) is EffectList list) || !HasAny(list) || !seen.Add(list)) continue;
-                    var label = Naming.EffectListLabel(field.Name);
+                    var list = on.List;
+                    if (!HasAny(list) || !seen.Add(list)) continue;
+                    var label = on.Label;
                     if (alwaysSayPart) label = part + ": " + label.ToLowerInvariant();
                     found.Add(new KeyValuePair<string, KeyValuePair<string, EffectList>>(part, new KeyValuePair<string, EffectList>(label, list)));
                 }

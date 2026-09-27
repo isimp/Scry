@@ -29,7 +29,8 @@ namespace Scry
     /// each knows the other. A leftover shared by owners of different names (the debris of every
     /// wooden piece) is named for what it is and how many leave it; one shared by owners of
     /// different kinds stays where it was. Only what is listed as other, or as a resource (a log
-    /// or a stump, chopped as its tree is), is paired.
+    /// or a stump, chopped as its tree is), is paired. An effect or sound left when something is
+    /// destroyed (a stalagmite's burst of ice) is only linked with it, and keeps its name and kind.
     /// </summary>
     public static class Leftovers
     {
@@ -43,7 +44,9 @@ namespace Scry
 
             foreach (var group in found.GroupBy(f => f.Name))
             {
-                if (!byName.TryGetValue(group.Key, out var leftover) || (leftover.Kind != Kind.Other && leftover.Kind != Kind.Resource)) continue;
+                if (!byName.TryGetValue(group.Key, out var leftover)) continue;
+                var effect = leftover.Kind == Kind.Effect || leftover.Kind == Kind.Sound;
+                if (leftover.Kind != Kind.Other && leftover.Kind != Kind.Resource && !effect) continue;
 
                 var owners = group.Select(f => f.Owner).Distinct()
                     .Where(o => o != group.Key && byName.ContainsKey(o))
@@ -54,6 +57,9 @@ namespace Scry
                 var role = group.First().Role;
                 leftover.LeftBy = owners.Select(o => o.Name).ToList();
                 foreach (var owner in owners) owner.LeavesBehind.Add(leftover.Name);
+
+                // An effect or sound is only linked: it is found among the effects under its own name.
+                if (effect) continue;
 
                 var shown = owners.Select(o => string.IsNullOrEmpty(o.DisplayName) ? o.Name : o.DisplayName).Distinct().ToList();
                 leftover.DisplayName = shown.Count == 1

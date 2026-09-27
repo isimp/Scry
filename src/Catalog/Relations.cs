@@ -50,6 +50,33 @@ namespace Scry
         private static readonly List<(string, string, bool)> Ammo = new List<(string, string, bool)>();
         private static readonly HashSet<string> Made = new HashSet<string>(StringComparer.Ordinal);
 
+        /// <summary>The registered prefabs' names: a prefab a field names that is none of them is followed as a helper of its user.</summary>
+        private static readonly HashSet<string> Registered = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>The helpers followed while reading, for their effect lists to be read as their users'.</summary>
+        private static readonly List<Helper> Helpers = new List<Helper>();
+
+        /// <summary>The helpers followed for the prefab being read, so each is followed once for it.</summary>
+        private static readonly HashSet<GameObject> Following = new HashSet<GameObject>();
+
+        /// <summary>
+        /// A prefab no entry stands for, used by one that has one: what a summoning staff's
+        /// projectile leaves to raise the troll, the snow a shovel moves. What it spawns and plays
+        /// is its user's, under the name of the field that led to it.
+        /// </summary>
+        public struct Helper
+        {
+            public string User;
+            public GameObject Prefab;
+            public string Part;
+        }
+
+        /// <summary>A creature's gear, linked as what it carries, not as what it spawns.</summary>
+        private static readonly HashSet<string> GearFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "m_defaultItems", "m_randomWeapon", "m_randomArmor", "m_randomShield", "m_randomSets", "m_randomItems",
+        };
+
         /// <summary>Lets go of the links read, for a world that was left.</summary>
         public static void Forget()
         {
@@ -58,16 +85,23 @@ namespace Scry
             Ammo.Clear();
             ByController.Clear();
             Made.Clear();
+            Registered.Clear();
+            Helpers.Clear();
+            Following.Clear();
         }
 
-        /// <summary>Starts reading the links again, for the catalog of the current world.</summary>
-        public static void Begin()
+        /// <summary>Starts reading the links again, for the catalog of the current world, whose registered prefabs are named.</summary>
+        public static void Begin(IEnumerable<string> registered)
         {
             _book = new LinkBook();
             Sets.Clear();
             Ammo.Clear();
             ByController.Clear();
             Made.Clear();
+            Registered.Clear();
+            Registered.UnionWith(registered);
+            Helpers.Clear();
+            Following.Clear();
             if (ObjectDB.instance != null)
             {
                 foreach (var recipe in ObjectDB.instance.m_recipes) if (recipe?.m_item != null) Made.Add(recipe.m_item.gameObject.name);
@@ -78,6 +112,7 @@ namespace Scry
         public static void Read(GameObject prefab, List<Component> components)
         {
             if (prefab == null) return;
+            Following.Clear();
             try
             {
                 Animations(prefab, _book);
@@ -104,6 +139,28 @@ namespace Scry
             {
                 Plugin.Log.LogDebug($"Scry could not read the links of {prefab.name}: {ex.Message}");
             }
+        }
+
+        /// <summary>The prefabs a status effect's fields name, such as the demister's ball of light.</summary>
+        public static void ReadStatusEffect(StatusEffect effect)
+        {
+            if (effect == null) return;
+            Following.Clear();
+            try
+            {
+                Named(effect, "se:" + effect.name, null, _book, 0);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogDebug($"Scry could not read the links of the status effect {effect.name}: {ex.Message}");
+            }
+        }
+
+        /// <summary>Hands over the helpers followed so far, and forgets them.</summary>
+        public static void TakeHelpers(List<Helper> into)
+        {
+            into.AddRange(Helpers);
+            Helpers.Clear();
         }
 
         /// <summary>The links read, with sets, weapons' ammo and what gives each status effect put in once every prefab is read.</summary>
@@ -240,42 +297,55 @@ namespace Scry
                 // items (a troll's throw) are in the game's item list but not the scene's, so they
                 // are not in the catalog, and a link through them would be lost.
                 var shared = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
-                if (shared?.m_attack != null) Named(shared.m_attack, prefab, book, 1);
-                if (shared?.m_secondaryAttack != null) Named(shared.m_secondaryAttack, prefab, book, 1);
+                if (shared == null) continue;
+                var part = CatalogBuilder.AttackName(item);
+                if (shared.m_attack != null) Named(shared.m_attack, prefab.name, prefab, book, 1, part: part);
+                if (shared.m_secondaryAttack != null) Named(shared.m_secondaryAttack, prefab.name, prefab, book, 1, part: part);
             }
         }
 
         /// <summary>
         /// Any other prefab a field of the prefab names: directly, in a list, or one level down in
         /// the game's small data classes (a spawner's spawn data, an item's attack). Parts of the
-        /// prefab itself, drop tables (told as drops), what it carries and what it leaves behind are
-        /// linked elsewhere and left out here.
+        /// prefab itself, drop tables (told as drops), what a creature carries and what anything
+        /// leaves behind are linked elsewhere and left out here.
         /// </summary>
         private static void Fields(GameObject prefab, List<Component> components, LinkBook book)
         {
             foreach (var component in components)
             {
-                if (component == null || component is Transform || component is CharacterDrop || component is Humanoid
-                    || component is TreeBase || component is TreeLog || component is Destructible) continue;
-                Named(component, prefab, book, 0);
+                if (Skipped(component)) continue;
+                Named(component, prefab.name, prefab, book, 0);
 
                 var shared = (component as ItemDrop)?.m_itemData?.m_shared;
                 if (shared == null) continue;
-                Named(shared, prefab, book, 1);
-                if (shared.m_attack != null) Named(shared.m_attack, prefab, book, 1);
-                if (shared.m_secondaryAttack != null) Named(shared.m_secondaryAttack, prefab, book, 1);
+                Named(shared, prefab.name, prefab, book, 1);
+                if (shared.m_attack != null) Named(shared.m_attack, prefab.name, prefab, book, 1);
+                if (shared.m_secondaryAttack != null) Named(shared.m_secondaryAttack, prefab.name, prefab, book, 1);
 
                 // Ammo holds the projectile the weapon firing it shoots (Attack.FireProjectileBurst
                 // takes the ammo's), whatever the ammo's own attack is: an arrow's is a swing.
                 var ammo = shared.m_itemType == ItemDrop.ItemData.ItemType.Ammo || shared.m_itemType == ItemDrop.ItemData.ItemType.AmmoNonEquipable;
-                if (ammo && shared.m_attack?.m_attackProjectile != null) Link(shared.m_attack.m_attackProjectile, prefab, book, Naming.FieldLabel("m_attackProjectile"));
+                if (ammo && shared.m_attack?.m_attackProjectile != null) Link(shared.m_attack.m_attackProjectile, prefab.name, prefab, book, Naming.FieldLabel("m_attackProjectile"), null);
             }
         }
 
-        private static void Named(object owner, GameObject prefab, LinkBook book, int depth, string outer = null)
+        /// <summary>Parts whose prefabs are linked elsewhere: drops, what is left behind, a tree's log and stump.</summary>
+        private static bool Skipped(Component component)
+        {
+            return component == null || component is Transform || component is CharacterDrop
+                   || component is TreeBase || component is TreeLog || component is Destructible;
+        }
+
+        /// <summary>
+        /// The prefabs the fields of one object name, linked from its user (by key: a prefab's name,
+        /// or "se:" and a status effect's); <paramref name="self"/> is the user's own prefab, if any.
+        /// </summary>
+        private static void Named(object owner, string key, GameObject self, LinkBook book, int depth, string outer = null, string part = null)
         {
             foreach (var field in FieldsOf(owner.GetType()))
             {
+                if (owner is Humanoid && GearFields.Contains(field.Name)) continue;
                 object value;
                 try { value = field.GetValue(owner); }
                 catch { continue; }
@@ -295,7 +365,7 @@ namespace Scry
                 string Label() => label = label ?? Naming.FieldLabel(field.Name);
                 if (value is GameObject single)
                 {
-                    if (Links(single, prefab)) Link(single, prefab, book, Label());
+                    if (Links(single, self)) Link(single, key, self, book, Label(), part);
                 }
                 else if (value is IEnumerable list && !(value is string))
                 {
@@ -303,25 +373,52 @@ namespace Scry
                     {
                         if (item is GameObject each)
                         {
-                            if (Links(each, prefab)) Link(each, prefab, book, Label());
+                            if (Links(each, self)) Link(each, key, self, book, Label(), part);
                         }
-                        else if (item != null && depth < 1 && IsData(item.GetType())) Named(item, prefab, book, depth + 1, Label());
+                        else if (item != null && depth < 1 && IsData(item.GetType())) Named(item, key, self, book, depth + 1, Label(), part);
                     }
                 }
                 else if (depth < 1 && IsData(value.GetType()))
                 {
-                    Named(value, prefab, book, depth + 1, Label());
+                    Named(value, key, self, book, depth + 1, Label(), part);
                 }
             }
         }
 
         /// <summary>Only other prefabs are linked: a part of this one has a parent, and is not a thing of its own.</summary>
-        private static bool Links(GameObject target, GameObject prefab) => target != null && target != prefab && target.transform.parent == null;
+        private static bool Links(GameObject target, GameObject self) => target != null && target != self && target.transform.parent == null;
 
-        private static void Link(GameObject target, GameObject prefab, LinkBook book, string label)
+        private static void Link(GameObject target, string key, GameObject self, LinkBook book, string label, string part)
         {
-            if (!Links(target, prefab)) return;
-            book.Add(prefab.name, Spawns, target.name, SpawnedBy, label.ToLowerInvariant());
+            if (!Links(target, self)) return;
+            book.Add(key, Spawns, target.name, SpawnedBy, label.ToLowerInvariant());
+            Follow(target, key, self, book, part ?? label);
+        }
+
+        /// <summary>
+        /// Follows a prefab no entry stands for into what its own fields name, linked from its
+        /// user, and keeps it for its effect lists to be read as the user's (<see cref="Helper"/>).
+        /// A few dozen at most for one user, each once, so a chain of them ends.
+        /// </summary>
+        private static void Follow(GameObject target, string key, GameObject self, LinkBook book, string part)
+        {
+            if (Registered.Count == 0 || Registered.Contains(target.name) || Following.Count >= 64 || !Following.Add(target)) return;
+            Helpers.Add(new Helper { User = key, Prefab = target, Part = part });
+
+            var parts = new List<Component>();
+            target.GetComponentsInChildren(true, parts);
+            foreach (var component in parts)
+            {
+                if (Skipped(component)) continue;
+                try
+                {
+                    Named(component, key, self, book, 0, null, part);
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogDebug($"Scry could not read the links of {target.name}, used by {key}: {ex.Message}");
+                }
+            }
         }
 
         /// <summary>The game's own small serializable data classes, which hold prefab names one level down.</summary>
@@ -339,7 +436,7 @@ namespace Scry
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
             try
             {
-                for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour) && t != typeof(Component); t = t.BaseType)
+                for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour) && t != typeof(Component) && t != typeof(ScriptableObject); t = t.BaseType)
                 {
                     foreach (var field in t.GetFields(flags))
                     {

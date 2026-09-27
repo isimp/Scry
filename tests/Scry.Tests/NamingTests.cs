@@ -44,5 +44,23 @@ namespace Scry.Tests
         {
             Assert.Equal("Effect", Naming.EffectListLabel(field));
         }
+    
+        [Theory]
+        [InlineData("m_fireworkItemList", "m_fireworksEffects", "Fireworks")]
+        [InlineData("m_projectileHitEffects", "m_effect", "Projectile hit")]
+        [InlineData("m_projectileHitEffects", "m_effects", "Projectile hit")]
+        public void AListInsideTheGameDataOfAFieldGoesByItsOwnNameElseByTheField(string outer, string inner, string shown)
+        {
+            Assert.Equal(shown, Naming.NestedListLabel(outer, inner));
+        }
+
+        [Theory]
+        [InlineData("m_fireworkItemList", "m_fireworksEffects", "Blue fireworks", "Blue fireworks: fireworks")]
+        [InlineData("m_projectileHitEffects", "m_effect", "Arrow", "Arrow: projectile hit")]
+        [InlineData("m_projectileHitEffects", "m_effect", "", "Projectile hit")]
+        public void OneOfSeveralListsInTheGameDataIsNamedAfterWhatItIsFor(string outer, string inner, string of, string shown)
+        {
+            Assert.Equal(shown, Naming.NestedListLabel(outer, inner, of));
+        }
     }
 }

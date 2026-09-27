@@ -21,6 +21,42 @@ namespace Scry.Tests
 
         private static Entry Find(List<Entry> catalog, string name) => catalog.Single(e => e.Name == name);
 
+        [Theory]
+        [InlineData(Kind.Effect)]
+        [InlineData(Kind.Sound)]
+        public void AnEffectLeftWhenSomethingIsDestroyedSaysWhatLeavesItAndStaysAnEffectUnderItsOwnName(Kind kind)
+        {
+            var catalog = WithLeftovers();
+            catalog.Add(E("stone_wall_destruction", kind, "Stone dust"));
+
+            Leftovers.Pair(catalog, new[] { new Leftover("stone_wall_destruction", "stone_wall", "broken") });
+
+            var effect = Find(catalog, "stone_wall_destruction");
+            Assert.Equal(new[] { "stone_wall" }, effect.LeftBy);
+            Assert.Contains("stone_wall_destruction", Find(catalog, "stone_wall").LeavesBehind);
+            Assert.Equal(kind, effect.Kind);
+            Assert.False(effect.KindFromOwners);
+            Assert.Equal("Stone dust", effect.DisplayName);
+        }
+
+        [Fact]
+        public void AnEffectLeftBehindStaysInItsOwnGroup()
+        {
+            var catalog = WithLeftovers();
+            var wall = Find(catalog, "stone_wall");
+            wall.Group = "Building";
+            wall.GroupOrder = 3;
+            var dust = E("stone_wall_destruction", Kind.Effect);
+            dust.Group = "Deaths and destruction";
+            dust.GroupOrder = 3;
+            catalog.Add(dust);
+            Leftovers.Pair(catalog, new[] { new Leftover("stone_wall_destruction", "stone_wall", "broken") });
+
+            Leftovers.JoinOwnersGroups(catalog);
+
+            Assert.Equal("Deaths and destruction", dust.Group);
+        }
+
         [Fact]
         public void WhatIsLeftBehindIsListedInTheGroupOfWhatLeavesIt()
         {

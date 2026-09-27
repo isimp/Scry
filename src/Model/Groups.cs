@@ -140,7 +140,7 @@ namespace Scry
             ("Spawning and summoning", 4, new[] { "spawn", "summon", "birth", "hatch", "wakeup", "initiate" }),
             ("Creature calls", 5, new[] { "idle", "alert", "taunt", "pet", "tamed", "soothe", "love", "pheromone", "greet", "talk", "goodbye", "speak", "noise", "sleep" }),
             ("Footsteps and movement", 6, new[] { "jump", "slide", "water", "dodge", "flying", "step", "leg", "moving", "walk", "tareffect", "lava" }),
-            ("Weather", 10, new[] { "thunder", "lightning", "weather" }),
+            ("Weather and ambience", 10, new[] { "thunder", "lightning", "weather", "ambience" }),
             ("Building, crafting and using", 7, new[] { "place", "build", "craft", "repair", "upgrade", "fuel", "add", "produce", "done", "open", "close", "lever", "switch", "toggle", "activate", "lock", "write", "eat", "consume", "pick", "load", "equip", "cook", "grow", "sell", "buy", "trade", "firework", "ping", "tap", "select", "move", "drop", "nibble", "connect", "sail", "arm", "enter", "leave", "tab", "group", "button", "inventory" }),
         };
 

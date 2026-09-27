@@ -35,6 +35,7 @@ namespace Scry
         private static readonly Dictionary<string, HashSet<string>> BiomesOf = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         private static readonly Dictionary<string, string> ModOf = new Dictionary<string, string>(StringComparer.Ordinal);
         private static readonly Dictionary<string, List<Source>> ComesFrom = new Dictionary<string, List<Source>>(StringComparer.Ordinal);
+        private static readonly HashSet<string> PlacedByWorld = new HashSet<string>(StringComparer.Ordinal);
         private static readonly Dictionary<Type, FieldInfo[]> DropTableFields = new Dictionary<Type, FieldInfo[]>();
 
         /// <summary>Lines saying what drops or yields an item, or none.</summary>
@@ -53,6 +54,9 @@ namespace Scry
         {
             return BiomesOf.TryGetValue(prefab, out var set) ? set.ToArray() : new string[0];
         }
+
+        /// <summary>Whether the world places it by itself: its spawn lists (cinder rain, fireflies) or its vegetation.</summary>
+        public static bool IsPlacedByWorld(string prefab) => PlacedByWorld.Contains(prefab);
 
         public static string ModName(string name)
         {
@@ -79,6 +83,7 @@ namespace Scry
             BiomesOf.Clear();
             ModOf.Clear();
             ComesFrom.Clear();
+            PlacedByWorld.Clear();
             GiverList.Clear();
             SpawnPointLines.Clear();
             DropLines.Clear();
@@ -345,6 +350,7 @@ namespace Scry
                     if (data?.m_prefab == null || !data.m_enabled) continue;
                     var name = data.m_prefab.name;
                     AddBiomes(name, data.m_biome);
+                    PlacedByWorld.Add(name);
 
                     var parts = new List<string> { "Spawns in " + BiomeNames(data.m_biome) };
                     if (data.m_spawnAtDay != data.m_spawnAtNight) parts.Add(data.m_spawnAtNight ? "at night" : "by day");
@@ -406,6 +412,7 @@ namespace Scry
                 if (veg?.m_prefab == null || !veg.m_enable) continue;
                 var name = veg.m_prefab.name;
                 AddBiomes(name, veg.m_biome);
+                PlacedByWorld.Add(name);
 
                 var line = "Grows in " + BiomeNames(veg.m_biome);
                 if (veg.m_minAltitude > -1000f || veg.m_maxAltitude < 1000f)

@@ -118,9 +118,12 @@ namespace Scry
                 case Kind.Sound:
                     var footstep = entry.Links.Any(l => l.Group == Relations.FootstepOf);
                     var animation = entry.Links.Any(l => l.Group == Relations.PlayedByAnimation);
-                    // Besides its effect lists: weather shows it, or something leaves it when destroyed.
+                    // Besides its effect lists: weather shows it, the world places it by itself (cinder
+                    // rain, fireflies), a status effect spawns it, or something leaves it when destroyed.
                     var fields = entry.PlayedIn.ToList();
                     if (weather.Contains(entry.Name)) fields.Add("weather");
+                    if (Knowledge.IsPlacedByWorld(entry.Name)) fields.Add("ambience");
+                    if (entry.Links.Any(l => l.Group == Relations.SpawnedBy && l.Target.StartsWith("se:", StringComparison.Ordinal))) fields.Add("se:spawned");
                     if (entry.LeftBy.Count > 0) fields.Add("left when destroyed");
                     var purpose = Groups.Purpose(fields, footstep, animation);
 
