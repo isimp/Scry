@@ -233,6 +233,33 @@ namespace Scry
                 yield return $"Linking entries: {linking.Current:N0}";
             }
 
+            yield return "Grouping entries";
+            IEnumerator<int> grouping = null;
+            try
+            {
+                grouping = Grouping.Apply(entries, 400).GetEnumerator();
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"Scry could not group entries, and lists them ungrouped: {ex}");
+            }
+            while (grouping != null)
+            {
+                started = CatalogTiming.Start();
+                var more = false;
+                try
+                {
+                    more = grouping.MoveNext();
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"Scry could not group all entries, and lists some ungrouped: {ex}");
+                }
+                CatalogTiming.Add("grouping", started);
+                if (!more) break;
+                yield return $"Grouping entries: {grouping.Current:N0}";
+            }
+
             job.Entries = entries;
             Plugin.Note($"Scry's catalog, by part (ms): {CatalogTiming.Report()}; {GC.CollectionCount(0) - collections} garbage collections meanwhile.");
         }
