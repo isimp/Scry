@@ -130,6 +130,9 @@ namespace Scry
 
         private static readonly Dictionary<GameObject, bool> Known = new Dictionary<GameObject, bool>();
 
+        /// <summary>Lets go of what was found out about the prefabs of a world that was left.</summary>
+        public static void Forget() => Known.Clear();
+
         /// <summary>
         /// Whether a prefab an effect list points at is debris: loose parts that fly apart under
         /// physics (planks, splinters, stones), which a falling copy can show as the game does.

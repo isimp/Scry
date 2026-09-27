@@ -247,6 +247,8 @@ namespace Scry
         {
             TriggerProbe.Forget();
             AnimationEars.Forget();
+            Ghost.Forget();
+            Undo.Clear();
             ClipPlaysCache.Clear();
             Wholes.Clear();
             WeaponOf.Clear();

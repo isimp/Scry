@@ -24,6 +24,30 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void SearchingFromALinkClearsEveryOtherFilterAndFindsWhatTheTextAloneFinds()
+        {
+            // A biome or mod chip searches with every other filter off, in one go rather than a
+            // refresh of the whole catalog for each filter it clears.
+            var explorer = Open();
+            explorer.KindFilter = Kind.Piece;
+            explorer.FavouritesOnly = true;
+            explorer.RecentOnly = true;
+            explorer.Origin = OriginFilter.Vanilla;
+
+            explorer.SearchEverything("troll");
+
+            var alone = Open();
+            alone.Text = "troll";
+            Assert.Null(explorer.KindFilter);
+            Assert.False(explorer.FavouritesOnly);
+            Assert.False(explorer.RecentOnly);
+            Assert.Equal(OriginFilter.All, explorer.Origin);
+            Assert.Equal("troll", explorer.Text);
+            Assert.Equal(alone.Results.Select(e => e.Name), explorer.Results.Select(e => e.Name));
+            Assert.Equal(alone.CountOf(Kind.Creature), explorer.CountOf(Kind.Creature));
+        }
+
+        [Fact]
         public void KindChipsCountWhatMatchesTheSearch()
         {
             var explorer = Open();

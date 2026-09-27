@@ -23,11 +23,7 @@ namespace Scry
         /// <summary>Puts a search in the box, with every other filter cleared so it shows all it finds.</summary>
         private static void SearchFor(Explorer explorer, string text)
         {
-            explorer.KindFilter = null;
-            explorer.FavouritesOnly = false;
-            explorer.RecentOnly = false;
-            explorer.Origin = OriginFilter.All;
-            explorer.Text = text;
+            explorer.SearchEverything(text);
             _listScroll = Vector2.zero;
             _reveal = true;
             _help = false;
@@ -246,15 +242,32 @@ namespace Scry
         private static void DrawSprite(Sprite sprite, Rect rect)
         {
             if (sprite == null || sprite.texture == null || Event.current.type != EventType.Repaint) return;
+            if (!SpriteUv(sprite, out var uv, out _)) return;
+            GUI.DrawTextureWithTexCoords(rect, sprite.texture, uv, true);
+        }
+
+        /// <summary>Sprites with no simple rectangle, found once rather than failing on every repaint.</summary>
+        private static readonly HashSet<Sprite> Unpacked = new HashSet<Sprite>();
+
+        /// <summary>
+        /// Where a sprite sits on its texture, and its rectangle there; false for one packed in a
+        /// way that has no simple rectangle, which is then drawn without its icon.
+        /// </summary>
+        private static bool SpriteUv(Sprite sprite, out Rect uv, out Rect rect)
+        {
+            uv = rect = default;
+            if (Unpacked.Contains(sprite)) return false;
             try
             {
                 var t = sprite.texture;
-                var r = sprite.textureRect;
-                GUI.DrawTextureWithTexCoords(rect, t, new Rect(r.x / t.width, r.y / t.height, r.width / t.width, r.height / t.height), true);
+                rect = sprite.textureRect;
+                uv = new Rect(rect.x / t.width, rect.y / t.height, rect.width / t.width, rect.height / t.height);
+                return true;
             }
             catch
             {
-                // Some sprites have no simple rectangle; the chip shows without its icon.
+                Unpacked.Add(sprite);
+                return false;
             }
         }
     }

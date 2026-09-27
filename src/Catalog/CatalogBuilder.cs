@@ -231,6 +231,19 @@ namespace Scry
 
         private static readonly HashSet<string> FailedKinds = new HashSet<string>();
 
+        /// <summary>
+        /// Lets go of what was read for the catalog of a world that was left: it points at that
+        /// world's prefabs, effect lists and recipes, which would otherwise be kept in memory.
+        /// </summary>
+        public static void Forget()
+        {
+            EffectLinks.Clear();
+            Knowledge.Begin();
+            Relations.Forget();
+            _recipes = null;
+            FailedKinds.Clear();
+        }
+
         /// <summary>Something left out of the catalog, told once for each kind of failure.</summary>
         private static void Failed(string what, string name, Exception ex)
         {

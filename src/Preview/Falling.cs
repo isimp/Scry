@@ -18,7 +18,14 @@ namespace Scry
 
         private static int _readyLayer = -1;
 
-        /// <summary>Sets the layer to meet only the ground and itself. Once is enough.</summary>
+        /// <summary>Which layers the stage's layer ignored before Scry set it, to give back.</summary>
+        private static readonly bool[] Before = new bool[32];
+
+        /// <summary>
+        /// Sets the layer to meet only the ground and itself. Once is enough, until the world is
+        /// left, when it is given back as it was (<see cref="Release"/>): it is a layer the game
+        /// does not name, and another mod may take it up too.
+        /// </summary>
         public static bool Ready(int layer)
         {
             if (layer < 0) return false;
@@ -30,10 +37,22 @@ namespace Scry
                 var index = LayerMask.NameToLayer(name);
                 if (index >= 0) ground.Add(index);
             }
-            for (var i = 0; i < 32; i++) Physics.IgnoreLayerCollision(layer, i, !ground.Contains(i));
+            for (var i = 0; i < 32; i++)
+            {
+                Before[i] = Physics.GetIgnoreLayerCollision(layer, i);
+                Physics.IgnoreLayerCollision(layer, i, !ground.Contains(i));
+            }
 
             _readyLayer = layer;
             return true;
+        }
+
+        /// <summary>Gives the layer's collisions back as they were before Scry set them.</summary>
+        public static void Release()
+        {
+            if (_readyLayer < 0) return;
+            for (var i = 0; i < 32; i++) Physics.IgnoreLayerCollision(_readyLayer, i, Before[i]);
+            _readyLayer = -1;
         }
 
         /// <summary>The ragdoll a creature's death list leaves behind, if it has one.</summary>

@@ -149,6 +149,11 @@ namespace Scry
                 Keys(explorer);
                 if (!Session.IsOpen) return;
 
+                // A key no text box of the panel has, such as one held to walk and repeated, has
+                // nothing to draw: only the panel's own keys above answer it.
+                var key = Event.current;
+                if ((key.type == EventType.KeyDown || key.type == EventType.KeyUp) && GUIUtility.keyboardControl == 0) return;
+
                 // Dragging the panel, its corner or the stage needs nothing but the drag.
                 if (_drag != Drag.None && Event.current.type == EventType.MouseDrag)
                 {

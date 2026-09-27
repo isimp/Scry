@@ -47,6 +47,16 @@ namespace Scry
         private static readonly List<(string, string, bool)> Ammo = new List<(string, string, bool)>();
         private static readonly HashSet<string> Made = new HashSet<string>(StringComparer.Ordinal);
 
+        /// <summary>Lets go of the links read, for a world that was left.</summary>
+        public static void Forget()
+        {
+            _book = new LinkBook();
+            Sets.Clear();
+            Ammo.Clear();
+            ByController.Clear();
+            Made.Clear();
+        }
+
         /// <summary>Starts reading the links again, for the catalog of the current world.</summary>
         public static void Begin()
         {

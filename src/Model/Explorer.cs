@@ -98,6 +98,20 @@ namespace Scry
             }
         }
 
+        /// <summary>
+        /// Searches for the text with every other filter off, as a chip that searches does, going
+        /// through the catalog once rather than once for each filter it clears.
+        /// </summary>
+        public void SearchEverything(string text)
+        {
+            _query.Kind = null;
+            _query.FavouritesOnly = false;
+            _recentOnly = false;
+            _query.Origin = OriginFilter.All;
+            _query.Text = text ?? "";
+            Refresh();
+        }
+
         /// <summary>What the list shows now, best match first.</summary>
         public IReadOnlyList<Entry> Results => _results;
 

@@ -187,24 +187,16 @@ namespace Scry
 
         private static void DrawIcon(Entry entry, Rect rect)
         {
-            if (entry.Icon is Sprite sprite && sprite != null && sprite.texture != null && Event.current.type == EventType.Repaint)
+            // A sprite packed in a way that has no simple rectangle has the mark below stand in.
+            if (entry.Icon is Sprite sprite && sprite != null && sprite.texture != null && Event.current.type == EventType.Repaint
+                && SpriteUv(sprite, out var uv, out var r))
             {
-                try
-                {
-                    var t = sprite.texture;
-                    var r = sprite.textureRect;
-                    var uv = new Rect(r.x / t.width, r.y / t.height, r.width / t.width, r.height / t.height);
-                    var aspect = r.width / Mathf.Max(1f, r.height);
-                    var fit = aspect >= 1f
-                        ? new Rect(rect.x, rect.y + (rect.height - rect.height / aspect) / 2f, rect.width, rect.height / aspect)
-                        : new Rect(rect.x + (rect.width - rect.width * aspect) / 2f, rect.y, rect.width * aspect, rect.height);
-                    GUI.DrawTextureWithTexCoords(fit, t, uv, true);
-                    return;
-                }
-                catch
-                {
-                    // A sprite packed in a way that has no simple rectangle; the mark below stands in.
-                }
+                var aspect = r.width / Mathf.Max(1f, r.height);
+                var fit = aspect >= 1f
+                    ? new Rect(rect.x, rect.y + (rect.height - rect.height / aspect) / 2f, rect.width, rect.height / aspect)
+                    : new Rect(rect.x + (rect.width - rect.width * aspect) / 2f, rect.y, rect.width * aspect, rect.height);
+                GUI.DrawTextureWithTexCoords(fit, sprite.texture, uv, true);
+                return;
             }
 
             var color = Skin.KindColor(entry.Kind);

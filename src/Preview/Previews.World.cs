@@ -45,6 +45,11 @@ namespace Scry
         {
             if (_world == null) return;
             Pinned.Add(_world);
+
+            // Nothing is played on a pinned copy any more, so it animates and is skinned only
+            // while it is seen, as the game's own creatures are, rather than always.
+            foreach (var animator in _world.GetComponentsInChildren<Animator>(true)) animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+            foreach (var skinned in _world.GetComponentsInChildren<SkinnedMeshRenderer>(true)) skinned.updateWhenOffscreen = false;
             _world = null;
             InWorld = false;
         }

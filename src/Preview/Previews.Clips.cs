@@ -289,6 +289,10 @@ namespace Scry
             var cacheKey = prefab.name + "|" + (carried == null ? "" : string.Join(",", carried.Select(c => c.name)));
             if (ClipPlaysCache.TryGetValue(cacheKey, out var plays)) return plays;
 
+            // While its animator is still watched, nothing below can be answered yet; asked each
+            // frame meanwhile, it is not worked out again only to be thrown away.
+            if (!wait && TriggerProbe.IsBusy(prefab.name)) return NotYet;
+
             plays = new ClipPlays();
             ClipPlaysCache[cacheKey] = plays;
             var animator = ClipPlayer.AnimatorOf(copy);
