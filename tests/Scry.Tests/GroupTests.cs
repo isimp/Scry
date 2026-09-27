@@ -52,11 +52,13 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ThePiecesOfTheHammerGoByItsTabsAndOtherToolsByTheirName()
+        public void ThePiecesOfTheHammerGoByItsTabsAndOtherToolsAreOneGroupEach()
         {
             Assert.Equal("Furniture", Groups.Piece("Hammer", 0, true, "Furniture", 3, 5).Name);
             Assert.Equal("Cultivator", Groups.Piece("Cultivator", 2, false, "Misc", 0, 1).Name);
-            Assert.Equal("Serving tray: Meads", Groups.Piece("Serving tray", 3, false, "Meads", 1, 2).Name);
+            Assert.Equal("Serving tray", Groups.Piece("Serving tray", 3, false, "Meads", 1, 2).Name);
+            // A mod's tool with many tabs of its own (PlanBuild's plans) is one group, not one a tab.
+            Assert.Equal("Plan hammer", Groups.Piece("Plan hammer", 4, false, "Furniture", 4, 12).Name);
         }
 
         [Fact]
@@ -68,19 +70,6 @@ namespace Scry.Tests
             Assert.True(hammerLast.Order < cultivator.Order);
             Assert.True(cultivator.Order < Groups.InNoMenu.Order);
             Assert.Equal("In no build menu", Groups.InNoMenu.Name);
-        }
-
-        [Fact]
-        public void EffectsAndSoundsGoByWhatPlaysThemCreaturesFirst()
-        {
-            Assert.Equal("Played by creatures", Groups.ByUsers(new[] { Kind.Piece, Kind.Creature }).Name);
-            Assert.Equal("Played by creatures", Groups.ByUsers(new[] { Kind.Creature, Kind.Piece }).Name);
-            Assert.Equal("Played by items", Groups.ByUsers(new[] { Kind.Item, Kind.Other }).Name);
-            Assert.Equal("Played by pieces", Groups.ByUsers(new[] { Kind.Piece }).Name);
-            Assert.Equal("Played by other things", Groups.ByUsers(new[] { Kind.Other }).Name);
-            Assert.Equal("Played by nothing listed", Groups.ByUsers(new Kind[0]).Name);
-            Assert.True(Groups.ByUsers(new[] { Kind.Creature }).Order < Groups.ByUsers(new[] { Kind.Item }).Order);
-            Assert.True(Groups.ByUsers(new[] { Kind.Other }).Order < Groups.ByUsers(new Kind[0]).Order);
         }
     }
 }

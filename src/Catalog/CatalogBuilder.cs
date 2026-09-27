@@ -30,6 +30,9 @@ namespace Scry
             public readonly HashSet<string> Users = new HashSet<string>(StringComparer.Ordinal);
             public readonly List<Origin> UserOrigins = new List<Origin>();
             public readonly HashSet<string> Components = new HashSet<string>(StringComparer.Ordinal);
+
+            /// <summary>The effect lists that play it, by field name; a status effect's marked "se:", the interface's "ui:".</summary>
+            public readonly HashSet<string> Fields = new HashSet<string>(StringComparer.Ordinal);
         }
 
         private static readonly Dictionary<Type, FieldInfo[]> EffectFieldsByType = new Dictionary<Type, FieldInfo[]>();
@@ -334,6 +337,7 @@ namespace Scry
                 Kind = Kinds.Of(found.Traits),
                 Group = Kinds.GroupLabel(Kinds.GroupOf(found.Traits)),
                 GroupOrder = (int)Kinds.GroupOf(found.Traits),
+                PlayedIn = asEffect != null ? asEffect.Fields.ToArray() : new string[0],
                 Empty = Kinds.IsEmpty(found.Traits),
                 ExtraLevels = found.ExtraLevels,
                 HasWear = found.HasWear,
@@ -345,6 +349,14 @@ namespace Scry
                 Biomes = Knowledge.Biomes(name),
                 ModName = Knowledge.ModName(name),
             };
+
+            // Something none of the other kinds is grouped by what it is there for.
+            if (entry.Kind == Kind.Other)
+            {
+                var role = Groups.Role(found.Traits);
+                entry.Group = role.Name;
+                entry.GroupOrder = role.Order;
+            }
 
             if (found.Prefab != null)
             {
@@ -478,8 +490,18 @@ namespace Scry
 
         private static void Note(Component component, Found found, PrefabTraits traits)
         {
+            if (component is Interactable) traits.IsUsable = true;
             switch (component)
             {
+                case OfferingBowl _:
+                    traits.IsAltar = true;
+                    break;
+                case global::Ragdoll _:
+                    traits.HasRagdoll = true;
+                    break;
+                case Container _:
+                    traits.HasContainer = true;
+                    break;
                 case Character character:
                     traits.HasCharacter = true;
                     found.Token = found.Token ?? character.m_name;
@@ -712,6 +734,7 @@ namespace Scry
                     }
 
                     if (found.Users.Add(ownerName)) found.UserOrigins.Add(ownerOrigin);
+                    found.Fields.Add((ownerName == Provenance.Interface ? "ui:" : ownerName.StartsWith("status effect ", StringComparison.Ordinal) ? "se:" : "") + field.Name);
                 }
             }
         }

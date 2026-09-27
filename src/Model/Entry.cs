@@ -54,6 +54,9 @@ namespace Scry
         /// </summary>
         public string Group = "";
         public int GroupOrder;
+
+        /// <summary>For an effect or sound, the effect lists that play it, by field name (a status effect's marked "se:", the interface's "ui:").</summary>
+        public string[] PlayedIn = new string[0];
         public Origin Origin;
 
         /// <summary>Nothing to see or hear, such as an invisible controller object.</summary>

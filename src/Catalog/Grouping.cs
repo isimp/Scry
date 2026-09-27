@@ -17,10 +17,10 @@ namespace Scry
         /// <summary>Groups the entries, a slice at a time; each step yields how many are done.</summary>
         public static IEnumerable<int> Apply(List<Entry> entries, int slice)
         {
-            var kinds = new Dictionary<string, Kind>(StringComparer.Ordinal);
+            var byName = new Dictionary<string, Entry>(StringComparer.Ordinal);
             foreach (var entry in entries)
             {
-                if (entry.Kind != Kind.StatusEffect && !kinds.ContainsKey(entry.Name)) kinds[entry.Name] = entry.Kind;
+                if (entry.Kind != Kind.StatusEffect && !byName.ContainsKey(entry.Name)) byName[entry.Name] = entry;
             }
             Dictionary<string, Group> menus;
             try
@@ -38,7 +38,7 @@ namespace Scry
                 var entry = entries[i];
                 try
                 {
-                    var group = Of(entry, kinds, menus);
+                    var group = Of(entry, byName, menus);
                     if (group.HasValue)
                     {
                         entry.Group = group.Value.Name;
@@ -51,9 +51,22 @@ namespace Scry
                 }
                 if ((i + 1) % slice == 0) yield return i + 1;
             }
+            if (Plugin.LogPreviews) Report(entries);
         }
 
-        private static Group? Of(Entry entry, Dictionary<string, Kind> kinds, Dictionary<string, Group> menus)
+        /// <summary>For the log: how many each group holds, and a sample of what nothing was found to play.</summary>
+        private static void Report(List<Entry> entries)
+        {
+            foreach (var kind in entries.Where(e => e.Group.Length > 0).GroupBy(e => e.Kind))
+            {
+                var groups = kind.GroupBy(e => e.Group).OrderBy(g => g.First().GroupOrder).Select(g => $"{g.Key} {g.Count()}");
+                Plugin.Note($"Scry groups its {Kinds.Label(kind.Key).ToLowerInvariant()}: {string.Join(", ", groups)}.");
+            }
+            var unplayed = entries.Where(e => (e.Kind == Kind.Effect || e.Kind == Kind.Sound) && e.GroupOrder == Groups.Purpose(new string[0], false, false).Order).Select(e => e.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
+            if (unplayed.Count > 0) Plugin.Note($"Scry found nothing that plays {unplayed.Count} effects and sounds, among them: {string.Join(", ", unplayed.Take(150))}.");
+        }
+
+        private static Group? Of(Entry entry, Dictionary<string, Entry> byName, Dictionary<string, Group> menus)
         {
             var prefab = entry.Source as GameObject;
             switch (entry.Kind)
@@ -69,7 +82,15 @@ namespace Scry
                     return menus.TryGetValue(entry.Name, out var menu) ? menu : Groups.InNoMenu;
                 case Kind.Effect:
                 case Kind.Sound:
-                    return Groups.ByUsers(Users(entry).Select(user => KindOf(user, kinds)));
+                    var footstep = entry.Links.Any(l => l.Group == Relations.FootstepOf);
+                    var animation = entry.Links.Any(l => l.Group == Relations.PlayedByAnimation);
+                    var purpose = Groups.Purpose(entry.PlayedIn, footstep, animation);
+
+                    // Found to be played only through a field that spawns or carries it: other.
+                    if (purpose.Order == Groups.Purpose(new string[0], false, false).Order && Users(entry).Any()) purpose = Groups.Purpose(new[] { "" }, false, false);
+                    return purpose;
+                case Kind.Projectile:
+                    return Groups.Projectile(Shooters(entry, byName));
                 default:
                     return null;
             }
@@ -94,12 +115,23 @@ namespace Scry
             Relations.FootstepOf, Relations.PlayedByAnimation, Relations.SpawnedBy, Relations.CarriedBy, LinkBook.ShotFrom,
         };
 
-        /// <summary>The kind of what plays an effect, by the name it is noted under: a prefab by its name, a status effect as "status effect" and its name.</summary>
-        private static Kind KindOf(string user, Dictionary<string, Kind> kinds)
+        /// <summary>
+        /// What fires a projectile, by the links noted: what shoots it or spawns it, each with its
+        /// kind, its weapon skill, and whether only creatures carry it (carried by one, and made by
+        /// no recipe or at no station).
+        /// </summary>
+        private static IEnumerable<Shooter> Shooters(Entry entry, Dictionary<string, Entry> byName)
         {
-            if (user == null) return Kind.Other;
-            if (user.StartsWith("status effect ", StringComparison.Ordinal)) return Kind.StatusEffect;
-            return kinds.TryGetValue(user, out var kind) ? kind : Kind.Other;
+            foreach (var link in entry.Links)
+            {
+                if (link.Group != LinkBook.ShotFrom && link.Group != Relations.SpawnedBy) continue;
+                if (!byName.TryGetValue(link.Target, out var shooter)) continue;
+                var prefab = shooter.Source as GameObject;
+                var drop = prefab != null ? prefab.GetComponent<ItemDrop>() : null;
+                var skill = drop != null && drop.m_itemData?.m_shared != null ? drop.m_itemData.m_shared.m_skillType.ToString() : "";
+                var carried = shooter.Links.Any(l => l.Group == Relations.CarriedBy) && shooter.Stations.Length == 0;
+                yield return new Shooter(shooter.Kind, skill, carried);
+            }
         }
 
         /// <summary>

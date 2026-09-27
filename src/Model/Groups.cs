@@ -15,6 +15,21 @@ namespace Scry
         }
     }
 
+    /// <summary>What fires a projectile: its kind, the skill of the weapon, and whether only creatures carry that weapon.</summary>
+    public struct Shooter
+    {
+        public Kind Kind;
+        public string Skill;
+        public bool CarriedByCreature;
+
+        public Shooter(Kind kind, string skill, bool carriedByCreature)
+        {
+            Kind = kind;
+            Skill = skill ?? "";
+            CarriedByCreature = carriedByCreature;
+        }
+    }
+
     /// <summary>
     /// The groups each kind's tab lists its entries in, by what the game itself says of them:
     /// items by their item type, creatures by their faction, pieces by the build menu and tab
@@ -81,46 +96,113 @@ namespace Scry
         }
 
         /// <summary>
-        /// A piece by the build menu it is in and the tab there: the hammer's by the tab alone,
-        /// another tool's by the tool, and its tab too where it has several. By tool, then by tab.
+        /// A piece by the build menu it is in: the hammer's by its tab, any other tool's (the
+        /// cultivator, the serving tray, a mod's own, such as PlanBuild's with its many tabs) all
+        /// in one group. The hammer's tabs first, then the tools.
         /// </summary>
         public static Group Piece(string tool, int toolOrder, bool mainTool, string tab, int tabOrder, int tabCount)
         {
-            var name = mainTool ? tab : tabCount <= 1 ? tool : tool + ": " + tab;
-            return new Group(name, 1 + toolOrder * 1000 + tabOrder);
+            return mainTool ? new Group(tab, 1 + tabOrder) : new Group(tool, 1 + toolOrder * 1000);
         }
 
         /// <summary>A piece no build menu holds.</summary>
         public static Group InNoMenu => new Group("In no build menu", int.MaxValue);
 
-        private static readonly (Kind Kind, string Name)[] Players =
-        {
-            (Kind.Creature, "Played by creatures"),
-            (Kind.Item, "Played by items"),
-            (Kind.Piece, "Played by pieces"),
-            (Kind.Resource, "Played by resources"),
-            (Kind.Projectile, "Played by projectiles"),
-            (Kind.StatusEffect, "Played by status effects"),
-        };
+        // ----- Effects and sounds by what they are for -----
 
         /// <summary>
-        /// An effect or sound by the kinds of what plays it, the first of creatures, items, pieces,
-        /// resources, projectiles and status effects that does; then anything else; then nothing.
+        /// What an effect list is for, by words in its field's name, each purpose with the words
+        /// that mark it, in the order a name is tried against them: "unsummon" is a death before it
+        /// is a summoning, "shieldHit" a hit before anything else.
         /// </summary>
-        public static Group ByUsers(IEnumerable<Kind> users)
+        private static readonly (string Name, int Order, string[] Words)[] PurposeWords =
         {
-            var any = false;
-            var best = int.MaxValue;
-            foreach (var kind in users)
+            ("Deaths and destruction", 3, new[] { "death", "destroy", "destruction", "break", "despawn", "drown", "unsummon", "remove", "gib" }),
+            ("Hits and blocks", 2, new[] { "hit", "impact", "block", "parry", "crit", "backstab", "bullseye", "perfect", "stagger", "damage" }),
+            ("Attacks and swings", 1, new[] { "attack", "trigger", "trail", "shoot", "reload", "charge", "hold", "punch", "warmup", "chain", "start" }),
+            ("Spawning and summoning", 4, new[] { "spawn", "summon", "birth", "hatch", "wakeup", "initiate" }),
+            ("Creature calls", 5, new[] { "idle", "alert", "taunt", "pet", "tamed", "soothe", "love", "pheromone", "greet", "talk", "goodbye", "speak", "noise", "sleep" }),
+            ("Footsteps and movement", 6, new[] { "jump", "slide", "water", "dodge", "flying", "step", "leg", "moving", "walk", "tareffect", "lava" }),
+            ("Weather", 10, new[] { "thunder", "lightning" }),
+            ("Building, crafting and using", 7, new[] { "place", "build", "craft", "repair", "upgrade", "fuel", "add", "produce", "done", "open", "close", "lever", "switch", "toggle", "activate", "lock", "write", "eat", "consume", "pick", "load", "equip", "cook", "grow", "sell", "buy", "trade", "firework", "ping", "tap", "select", "move", "drop", "nibble", "connect", "sail", "arm", "enter", "leave", "tab", "group", "button", "inventory" }),
+        };
+
+        private static readonly Group AnimationSounds = new Group("Animation sounds", 8);
+        private static readonly Group StatusEffects = new Group("Status effects", 9);
+        private static readonly Group Interface = new Group("Interface", 11);
+        private static readonly Group OtherPurpose = new Group("Other", 12);
+        private static readonly Group NothingFound = new Group("Played by nothing found", 13);
+
+        /// <summary>
+        /// What an effect or sound is for: by the names of the effect lists it is in (a status
+        /// effect's marked "se:", the interface's "ui:"), and whether it is a footstep or played by
+        /// an animation's events. Used for several things, it goes under the first of them.
+        /// </summary>
+        public static Group Purpose(IEnumerable<string> fields, bool footstep, bool animation)
+        {
+            var best = footstep ? new Group("Footsteps and movement", 6) : animation ? AnimationSounds : NothingFound;
+            foreach (var field in fields)
             {
-                any = true;
-                for (var i = 0; i < Players.Length; i++)
+                var purpose = PurposeOf(field);
+                if (purpose.Order < best.Order) best = purpose;
+            }
+            return best;
+        }
+
+        private static Group PurposeOf(string field)
+        {
+            if (string.IsNullOrEmpty(field)) return OtherPurpose;
+            if (field.StartsWith("se:", System.StringComparison.Ordinal)) return StatusEffects;
+            if (field.StartsWith("ui:", System.StringComparison.Ordinal)) return Interface;
+            var name = field.StartsWith("m_", System.StringComparison.Ordinal) ? field.Substring(2) : field;
+            name = name.ToLowerInvariant();
+            foreach (var (purpose, order, words) in PurposeWords)
+            {
+                foreach (var word in words)
                 {
-                    if (Players[i].Kind == kind && i < best) best = i;
+                    if (name.Contains(word)) return new Group(purpose, order);
                 }
             }
-            if (best < Players.Length) return new Group(Players[best].Name, 1 + best);
-            return any ? new Group("Played by other things", 1 + Players.Length) : new Group("Played by nothing listed", 2 + Players.Length);
+            return OtherPurpose;
+        }
+
+        // ----- Projectiles by who fires them -----
+
+        /// <summary>
+        /// A projectile by what fires it: a player's weapon by its skill (bows and crossbows,
+        /// staffs, anything else thrown), then a trap or turret, then a creature (by its attack or
+        /// an item only creatures carry). Fired by a weapon and a creature, it goes with the weapon.
+        /// </summary>
+        public static Group Projectile(IEnumerable<Shooter> shooters)
+        {
+            var best = new Group("Other", 6);
+            foreach (var shooter in shooters)
+            {
+                Group group;
+                if (shooter.Kind == Kind.Creature || (shooter.Kind == Kind.Item && shooter.CarriedByCreature)) group = new Group("Creatures", 5);
+                else if (shooter.Kind == Kind.Piece) group = new Group("Traps and turrets", 4);
+                else if (shooter.Kind != Kind.Item) continue;
+                else if (shooter.Skill == "Bows" || shooter.Skill == "Crossbows") group = new Group("Bows and crossbows", 1);
+                else if (shooter.Skill == "ElementalMagic" || shooter.Skill == "BloodMagic") group = new Group("Staffs", 2);
+                else group = new Group("Thrown", 3);
+                if (group.Order < best.Order) best = group;
+            }
+            return best;
+        }
+
+        // ----- Other by role -----
+
+        /// <summary>What something that is none of the other kinds is there for, by what it has.</summary>
+        public static Group Role(PrefabTraits traits)
+        {
+            if (traits.HasSpawner || traits.IsAltar) return new Group("Spawners and altars", 1);
+            if (traits.HasRagdoll) return new Group("Remains", 2);
+            if (traits.HasContainer) return new Group("Chests and containers", 3);
+            if (traits.IsUsable) return new Group("Things you can use", 4);
+            var visible = traits.HasRenderer || traits.HasParticles || traits.HasLight;
+            if (visible && traits.HasSolidCollider) return new Group("Scenery", 5);
+            if (visible) return new Group("Decoration", 6);
+            return new Group("Nothing to show", 7);
         }
     }
 }

@@ -73,6 +73,18 @@ namespace Scry
         /// <summary>Spawns creatures, as a nest does.</summary>
         public bool HasSpawner;
 
+        /// <summary>Summons a boss when offered to (<c>OfferingBowl</c>).</summary>
+        public bool IsAltar;
+
+        /// <summary>What a creature leaves when it dies, falling as a body (<c>Ragdoll</c>).</summary>
+        public bool HasRagdoll;
+
+        /// <summary>Holds items (<c>Container</c>).</summary>
+        public bool HasContainer;
+
+        /// <summary>Can be used by a player: a door, a bed, a sign, a stone to read (the game's <c>Interactable</c>).</summary>
+        public bool IsUsable;
+
         /// <summary>Reached through an effect list on some other prefab rather than registered on its own.</summary>
         public bool FromEffectList;
     }
