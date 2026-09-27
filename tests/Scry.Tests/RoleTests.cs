@@ -140,6 +140,53 @@ namespace Scry.Tests
             Assert.True(Groups.StatusEffect(new[] { new Giver(Kind.Other, "") }).Order < Groups.StatusEffect(new Giver[0]).Order);
         }
 
+        [Fact]
+        public void AProjectileAnotherSpawnsGoesWithIt()
+        {
+            // A cluster bomb's splinters fly with the staff that fires the bomb, a meteor's rocks with the meteor.
+            Entry P(string name, string group, int order) => new Entry { Name = name, Kind = Kind.Projectile, Group = group, GroupOrder = order };
+            var bomb = P("clusterbomb", "Staffs", 2);
+            var splinter = P("splinter", "Other", 6);
+            splinter.Links.Add(new Link { Group = "Spawned by", Target = "clusterbomb" });
+            var shard = P("shard", "Other", 6);
+            shard.Links.Add(new Link { Group = "Spawned by", Target = "splinter" });
+            var catalog = new System.Collections.Generic.List<Entry> { shard, splinter, bomb };
+
+            Groups.FollowSpawners(catalog, "Spawned by", "Other");
+
+            Assert.Equal("Staffs", splinter.Group);
+            Assert.Equal(2, splinter.GroupOrder);
+            Assert.Equal("Staffs", shard.Group);
+        }
+
+        [Fact]
+        public void AProjectileTwoOthersSpawnGoesWithTheOneThatHasAGroup()
+        {
+            Entry P(string name, string group, int order) => new Entry { Name = name, Kind = Kind.Projectile, Group = group, GroupOrder = order };
+            var stray = P("stray", "Other", 6);
+            var bomb = P("clusterbomb", "Staffs", 2);
+            var splinter = P("splinter", "Other", 6);
+            splinter.Links.Add(new Link { Group = "Spawned by", Target = "stray" });
+            splinter.Links.Add(new Link { Group = "Spawned by", Target = "clusterbomb" });
+
+            Groups.FollowSpawners(new System.Collections.Generic.List<Entry> { stray, bomb, splinter }, "Spawned by", "Other");
+
+            Assert.Equal("Staffs", splinter.Group);
+        }
+
+        [Fact]
+        public void AProjectileWithAGroupOfItsOwnKeepsIt()
+        {
+            Entry P(string name, string group, int order) => new Entry { Name = name, Kind = Kind.Projectile, Group = group, GroupOrder = order };
+            var bomb = P("clusterbomb", "Staffs", 2);
+            var arrow = P("arrow", "Bows and crossbows", 1);
+            arrow.Links.Add(new Link { Group = "Spawned by", Target = "clusterbomb" });
+
+            Groups.FollowSpawners(new System.Collections.Generic.List<Entry> { bomb, arrow }, "Spawned by", "Other");
+
+            Assert.Equal("Bows and crossbows", arrow.Group);
+        }
+
         // ----- Other by role -----
 
         [Fact]

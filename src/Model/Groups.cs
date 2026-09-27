@@ -245,7 +245,38 @@ namespace Scry
             return new Group("Thrown", 3);
         }
 
-        // ----- Other by role -----
+        /// <summary>
+        /// Puts a projectile nothing else was found to fire in the group of the projectile that
+        /// spawns it (a cluster bomb's splinters, a meteor's rocks), following chains of them.
+        /// One with a group of its own keeps it.
+        /// </summary>
+        public static void FollowSpawners(IList<Entry> catalog, string spawnedBy, string other)
+        {
+            var projectiles = new Dictionary<string, Entry>();
+            foreach (var entry in catalog)
+            {
+                if (entry.Kind == Kind.Projectile && !projectiles.ContainsKey(entry.Name)) projectiles[entry.Name] = entry;
+            }
+            for (var round = 0; round < 8; round++)
+            {
+                var changed = false;
+                foreach (var entry in projectiles.Values)
+                {
+                    if (entry.Group != other) continue;
+                    foreach (var link in entry.Links)
+                    {
+                        if (link.Group != spawnedBy || !projectiles.TryGetValue(link.Target, out var parent) || parent == entry || parent.Group == other) continue;
+                        entry.Group = parent.Group;
+                        entry.GroupOrder = parent.GroupOrder;
+                        changed = true;
+                        break;
+                    }
+                }
+                if (!changed) return;
+            }
+        }
+
+                // ----- Other by role -----
 
         /// <summary>What something that is none of the other kinds is there for, by what it has.</summary>
         public static Group Role(PrefabTraits traits)

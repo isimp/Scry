@@ -232,7 +232,17 @@ namespace Scry
 
         private static void Carried(GameObject prefab, LinkBook book)
         {
-            foreach (var item in CarriedItems(prefab)) book.Add(prefab.name, Carries, item.name, CarriedBy);
+            foreach (var item in CarriedItems(prefab))
+            {
+                book.Add(prefab.name, Carries, item.name, CarriedBy);
+
+                // What its attacks fire or spawn is the creature's too. A creature's own attack
+                // items (a troll's throw) are in the game's item list but not the scene's, so they
+                // are not in the catalog, and a link through them would be lost.
+                var shared = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                if (shared?.m_attack != null) Named(shared.m_attack, prefab, book, 1);
+                if (shared?.m_secondaryAttack != null) Named(shared.m_secondaryAttack, prefab, book, 1);
+            }
         }
 
         /// <summary>
@@ -254,6 +264,11 @@ namespace Scry
                 Named(shared, prefab, book, 1);
                 if (shared.m_attack != null) Named(shared.m_attack, prefab, book, 1);
                 if (shared.m_secondaryAttack != null) Named(shared.m_secondaryAttack, prefab, book, 1);
+
+                // Ammo holds the projectile the weapon firing it shoots (Attack.FireProjectileBurst
+                // takes the ammo's), whatever the ammo's own attack is: an arrow's is a swing.
+                var ammo = shared.m_itemType == ItemDrop.ItemData.ItemType.Ammo || shared.m_itemType == ItemDrop.ItemData.ItemType.AmmoNonEquipable;
+                if (ammo && shared.m_attack?.m_attackProjectile != null) Link(shared.m_attack.m_attackProjectile, prefab, book, Naming.FieldLabel("m_attackProjectile"));
             }
         }
 

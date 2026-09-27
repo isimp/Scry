@@ -34,7 +34,8 @@ namespace Scry
                 var height = Mathf.Max(U(20f), Mathf.Max(labelH, Skin.Height(Skin.Wrap, pair.Value, valueW)));
                 GUI.Label(new Rect(0f, y, labelW, labelH), pair.Key, Skin.DimWrap);
                 var valueRect = new Rect(labelW + U(10f), y, valueW, height);
-                if (facts.Links.TryGetValue(pair.Key, out var link))
+                // A link only to what is in the catalog: a creature's own attack items are not.
+                if (facts.Links.TryGetValue(pair.Key, out var link) && (link.StartsWith("se:", StringComparison.Ordinal) || InCatalog(explorer, link)))
                 {
                     var linkW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
                     var linkRect = new Rect(valueRect.x, valueRect.y, linkW, height);

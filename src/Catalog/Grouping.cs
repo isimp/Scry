@@ -63,6 +63,16 @@ namespace Scry
                 }
                 if ((i + 1) % slice == 0) yield return i + 1;
             }
+            // A projectile another spawns (a cluster bomb's splinters) flies with that one.
+            try
+            {
+                Groups.FollowSpawners(entries, Relations.SpawnedBy, Groups.Projectile(new Shooter[0]).Name);
+            }
+            catch (Exception ex)
+            {
+                Tell("projectiles spawned by others", ex);
+            }
+
             // What is left behind goes with what leaves it: a stump with its trees.
             try
             {
