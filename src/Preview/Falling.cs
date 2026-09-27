@@ -510,15 +510,34 @@ namespace Scry
                 }
 
                 var holder = new GameObject("Scry collider") { layer = layer };
-                holder.transform.SetParent(owner.transform, false);
                 if (Clone(collider, holder)) Object.DestroyImmediate(collider);
                 else Object.DestroyImmediate(holder);
             }
         }
 
-        /// <summary>A collider copied onto another object, as it was: its shape, and whether it is a trigger, switched on, and of what material.</summary>
+        /// <summary>
+        /// A collider copied onto another object, as it was: its shape, where it is, and whether
+        /// it is a trigger, switched on, and of what material. A box, sphere or capsule is copied
+        /// in its real size onto an object of no scale of its own, placed where it was: made the
+        /// child of a part scaled unevenly (a log is 12 by 12 by 6.5), its copy came out stretched
+        /// (the log's 13.8 m capsule 25.4 m, reaching 5 m into the ground). A mesh keeps its part.
+        /// </summary>
         private static bool Clone(Collider from, GameObject to)
         {
+            var owner = from.transform;
+            if (from is MeshCollider)
+            {
+                to.transform.SetParent(owner, false);
+            }
+            else
+            {
+                // Under the body, which moves it, at no scale: its size is given in metres.
+                var body = from.attachedRigidbody != null ? from.attachedRigidbody.transform : owner;
+                to.transform.SetParent(body, false);
+                var bodyScale = body.lossyScale;
+                to.transform.localScale = new Vector3(1f / Mathf.Max(1e-6f, Mathf.Abs(bodyScale.x)), 1f / Mathf.Max(1e-6f, Mathf.Abs(bodyScale.y)), 1f / Mathf.Max(1e-6f, Mathf.Abs(bodyScale.z)));
+                to.transform.rotation = owner.rotation;
+            }
             if (!Shape(from, to)) return false;
             var made = to.GetComponent<Collider>();
             made.isTrigger = from.isTrigger;
@@ -529,24 +548,35 @@ namespace Scry
 
         private static bool Shape(Collider from, GameObject to)
         {
+            // The part's own scale, by its axes, which the copy takes into its size in metres.
+            var owner = from.transform;
+            var scale = owner.lossyScale;
+            var axes = new Vector3(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z));
             switch (from)
             {
                 case BoxCollider box:
+                    to.transform.position = owner.TransformPoint(box.center);
                     var b = to.AddComponent<BoxCollider>();
-                    b.center = box.center;
-                    b.size = box.size;
+                    b.center = Vector3.zero;
+                    b.size = Vector3.Scale(box.size, axes);
                     return true;
                 case SphereCollider sphere:
+                    to.transform.position = owner.TransformPoint(sphere.center);
                     var s = to.AddComponent<SphereCollider>();
-                    s.center = sphere.center;
-                    s.radius = sphere.radius;
+                    s.center = Vector3.zero;
+                    s.radius = sphere.radius * Mathf.Max(axes.x, Mathf.Max(axes.y, axes.z));
                     return true;
                 case CapsuleCollider capsule:
+                    // As Unity sizes one: its length by the scale along it, its radius by the
+                    // larger of the other two.
+                    to.transform.position = owner.TransformPoint(capsule.center);
+                    var along = capsule.direction == 0 ? axes.x : capsule.direction == 1 ? axes.y : axes.z;
+                    var across = capsule.direction == 0 ? Mathf.Max(axes.y, axes.z) : capsule.direction == 1 ? Mathf.Max(axes.x, axes.z) : Mathf.Max(axes.x, axes.y);
                     var c = to.AddComponent<CapsuleCollider>();
-                    c.center = capsule.center;
-                    c.radius = capsule.radius;
-                    c.height = capsule.height;
+                    c.center = Vector3.zero;
                     c.direction = capsule.direction;
+                    c.radius = capsule.radius * across;
+                    c.height = capsule.height * along;
                     return true;
                 case MeshCollider mesh:
                     var m = to.AddComponent<MeshCollider>();

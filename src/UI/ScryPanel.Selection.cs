@@ -15,9 +15,17 @@ namespace Scry
 
         private static bool OutOfSight(Rect rect) => rect.yMax < _sideVisible.yMin || rect.yMin > _sideVisible.yMax;
 
+        /// <summary>The entry the side was last shown for; another starts at its top.</summary>
+        private static Entry _sideFor;
+
         private static void Side(Explorer explorer, Rect rect, bool withStage)
         {
             var entry = explorer.Selected;
+            if (!ReferenceEquals(entry, _sideFor))
+            {
+                _sideFor = entry;
+                _sideScroll = Vector2.zero;
+            }
 
             // What a world's catalog points at is gone once the world is: nothing to show then.
             if (entry != null && entry.Source is UnityEngine.Object source && source == null)

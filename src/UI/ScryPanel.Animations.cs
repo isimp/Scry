@@ -54,17 +54,22 @@ namespace Scry
             }
             y += rowH + U(10f);
 
-            // The clip playing, to pause and scrub through, like a sound.
-            if (playing != null && Previews.ClipPosition(out var time, out var length))
+            // The clip playing, to pause and scrub through, like a sound. Its row stays, greyed out,
+            // while none plays, so starting one moves nothing below it.
             {
+                float time = 0f, length = 0f;
+                var timed = playing != null && Previews.ClipPosition(out time, out length);
+                var enabled = GUI.enabled;
+                GUI.enabled = enabled && timed;
                 var pauseW = U(84f);
-                if (GUI.Button(new Rect(0f, y, pauseW, rowH), Previews.ClipPaused ? "Resume" : "Pause", Previews.ClipPaused ? Skin.ChipOn : Skin.Chip)) Previews.PauseClip(!Previews.ClipPaused);
-                var readout = $"{time.ToString("0.00", CultureInfo.InvariantCulture)} / {length.ToString("0.00", CultureInfo.InvariantCulture)} s";
+                if (GUI.Button(new Rect(0f, y, pauseW, rowH), timed && Previews.ClipPaused ? "Resume" : "Pause", timed && Previews.ClipPaused ? Skin.ChipOn : Skin.Chip)) Previews.PauseClip(!Previews.ClipPaused);
+                var readout = timed ? $"{time.ToString("0.00", CultureInfo.InvariantCulture)} / {length.ToString("0.00", CultureInfo.InvariantCulture)} s" : "";
                 var readW = Skin.Width(Skin.DimLabel, "00.00 / 00.00 s") + U(6f);
                 var slider = new Rect(pauseW + U(10f), y + (rowH - U(14f)) / 2f, Mathf.Max(U(40f), width - pauseW - readW - U(20f)), U(14f));
-                var picked = GUI.HorizontalSlider(slider, time, 0f, length);
-                if (!Mathf.Approximately(picked, time)) Previews.SeekClip(picked);
+                var picked = GUI.HorizontalSlider(slider, time, 0f, Mathf.Max(length, 0.01f));
+                if (timed && !Mathf.Approximately(picked, time)) Previews.SeekClip(picked);
                 GUI.Label(new Rect(width - readW, y, readW, rowH), readout, Skin.DimLabel);
+                GUI.enabled = enabled;
                 y += rowH + U(10f);
             }
 
