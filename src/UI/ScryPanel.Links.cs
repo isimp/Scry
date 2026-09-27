@@ -238,6 +238,7 @@ namespace Scry
                 case 1: KindOf(explorer, "-"); break;
                 case 2: ShownName(explorer, "-", ""); break;
                 case 3: CanGo(explorer, "se:-"); break;
+                case 4: TermsFor(explorer); break;
                 default: _prepared = explorer; break;
             }
         }

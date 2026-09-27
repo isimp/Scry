@@ -547,6 +547,7 @@ namespace Scry
             var controls = Timing.Start();
             var y = Controls(explorer, new Rect(pad, U(56f), w - pad * 2f, U(36f)));
             y = Tabs(explorer, new Rect(pad, y + U(10f), w - pad * 2f, U(30f)));
+            y = TermChips(explorer, y, pad, w - pad * 2f);
             Timing.Add("panel controls", controls);
 
             var bodyTop = y + U(12f);
@@ -573,6 +574,9 @@ namespace Scry
             }
 
             Footer(new Rect(pad, h - pad - footerH + U(6f), w - pad * 2f, footerH));
+
+            // Over everything below the search box; its clicks were taken before any of it drew.
+            DrawSuggestions();
 
             // Resize grip in the corner.
             var grip = new Rect(w - U(22f), h - U(22f), U(20f), U(20f));
@@ -736,6 +740,7 @@ namespace Scry
 
         private static void Search(Explorer explorer, Rect rect)
         {
+            SearchKeysAndPicks(explorer);
             var e = Event.current;
             var hasText = !string.IsNullOrEmpty(explorer.Text);
             var clear = new Rect(rect.xMax - U(32f), rect.y + (rect.height - U(24f)) / 2f, U(24f), U(24f));
@@ -780,6 +785,8 @@ namespace Scry
                 style.normal.textColor = was;
                 if (hover) AskTip("clear-search", "Clear the search");
             }
+
+            SearchSuggestions(explorer, rect);
 
             if (_focusSearch && Event.current.type == EventType.Repaint)
             {

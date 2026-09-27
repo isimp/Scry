@@ -260,8 +260,8 @@ namespace Scry
                 case "has": return AnyContains(entry.Components, term.Value);
                 case "biome": return AnyContains(entry.Biomes, term.Value);
                 case "in": return AnyContainsLeavingOutSpaces(entry.FoundIn, term.Value);
-                case "mod": return Contains(entry.ModName, term.Value);
-                case "used": return AnyContains(entry.UsedBy, term.Value);
+                case "mod": return ContainsLeavingOutSpaces(entry.ModName, term.Value);
+                case "used": return AnyContainsLeavingOutSpaces(entry.UsedBy, term.Value);
                 case "station": return StationMatches(entry.Stations, term.Station, term.Level);
                 default: return false;
             }
@@ -326,6 +326,13 @@ namespace Scry
         }
 
         private static bool AnyContainsLeavingOutSpaces(string[] values, string value)
+        {
+            if (values == null) return false;
+            foreach (var candidate in values) if (ContainsLeavingOutSpaces(candidate, value)) return true;
+            return false;
+        }
+
+        private static bool AnyContainsLeavingOutSpaces(List<string> values, string value)
         {
             if (values == null) return false;
             foreach (var candidate in values) if (ContainsLeavingOutSpaces(candidate, value)) return true;
