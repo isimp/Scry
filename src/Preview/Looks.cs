@@ -13,27 +13,56 @@ namespace Scry
     {
         private static readonly Dictionary<string, Material> LevelMaterials = new Dictionary<string, Material>();
 
+        /// <summary>What went wrong dressing a copy, each told once.</summary>
+        private static readonly HashSet<string> Failed = new HashSet<string>();
+
         /// <summary>
         /// A copy of an entry in the look its modifiers ask for: grown or not, its body, its
-        /// level, its wear, and its fire, picked state, gear or style.
+        /// level, its wear, and its fire, picked state, gear or style. With <paramref name="timing"/>,
+        /// making and dressing it are added to <see cref="Timing"/> as its "copy" and "dress" parts.
         /// </summary>
-        public static GameObject Copy(Entry entry, Modifiers modifiers, Transform parent, Vector3 position, Quaternion rotation, int layer = -1)
+        public static GameObject Copy(Entry entry, Modifiers modifiers, Transform parent, Vector3 position, Quaternion rotation, int layer = -1, string timing = null)
         {
             if (!(entry?.Source is GameObject prefab)) return null;
 
-            if (IsWorn(entry)) return Worn(prefab, modifiers, parent, position, rotation, layer);
+            if (IsWorn(entry)) return Worn(prefab, modifiers, parent, position, rotation, layer, timing);
 
+            var started = Timing.Start();
             var source = Variants.SourceFor(prefab, modifiers.Look);
             var copy = Ghost.Make(source, parent, position, rotation, layer);
+            if (timing != null) Timing.Add(timing + " copy", started);
             if (copy == null) return null;
 
-            Gear.Body(source, copy);
-            Variants.FadeOut(source, copy);
-            if (entry.Kind == Kind.Creature) ApplyLevel(source, copy, modifiers.Level);
-            if (modifiers.WearAvailable) ApplyWear(source, copy, modifiers.Wear);
-            if (source == prefab) Variants.Apply(prefab, copy, modifiers.Look);
-            AnimationEars.Attach(source, copy);
+            // The copy is already in the scene, so whatever goes wrong dressing it, it is handed
+            // back to be kept track of and cleared like any other.
+            started = Timing.Start();
+            Step(prefab, "its body", () => Gear.Body(source, copy));
+            Step(prefab, "its effects faded out", () => Variants.FadeOut(source, copy));
+            if (entry.Kind == Kind.Creature) Step(prefab, "its level", () => ApplyLevel(source, copy, modifiers.Level));
+            if (modifiers.WearAvailable) Step(prefab, "its wear", () => ApplyWear(source, copy, modifiers.Wear));
+            if (source == prefab) Step(prefab, "its look", () => Variants.Apply(prefab, copy, modifiers.Look));
+            Step(prefab, "its animation events", () => AnimationEars.Attach(source, copy));
+            if (timing != null) Timing.Add(timing + " dress", started);
             return copy;
+        }
+
+        /// <summary>
+        /// One step of dressing a copy. A step that fails, as one can on a mod's prefab laid out
+        /// in a way it does not expect, is left out, and each distinct failure is told once.
+        /// </summary>
+        private static void Step(GameObject prefab, string what, System.Action step)
+        {
+            try
+            {
+                step();
+            }
+            catch (System.Exception ex)
+            {
+                if (Failed.Add(prefab.name + "|" + what + "|" + ex.GetType().Name + "|" + ex.Message))
+                {
+                    Plugin.Log.LogWarning($"Scry shows its copy of {prefab.name} without {what}, which failed: {ex}");
+                }
+            }
         }
 
         /// <summary>Show wearable items worn by a person rather than on their own.</summary>
@@ -49,17 +78,21 @@ namespace Scry
         }
 
         /// <summary>A person, the game's own player model, wearing the item in its chosen style.</summary>
-        private static GameObject Worn(GameObject item, Modifiers modifiers, Transform parent, Vector3 position, Quaternion rotation, int layer)
+        private static GameObject Worn(GameObject item, Modifiers modifiers, Transform parent, Vector3 position, Quaternion rotation, int layer, string timing)
         {
             var person = ZNetScene.instance != null ? ZNetScene.instance.GetPrefab("Player") : null;
             if (person == null) return null;
 
+            var started = Timing.Start();
             var copy = Ghost.Make(person, parent, position, rotation, layer);
+            if (timing != null) Timing.Add(timing + " copy", started);
             if (copy == null) return null;
 
-            Gear.Body(person, copy);
-            Gear.Wear(person, copy, WornWith(item), modifiers.LookAvailable ? modifiers.Look : -1, item);
-            AnimationEars.Attach(person, copy);
+            started = Timing.Start();
+            Step(item, "the person's body", () => Gear.Body(person, copy));
+            Step(item, "being worn", () => Gear.Wear(person, copy, WornWith(item), modifiers.LookAvailable ? modifiers.Look : -1, item));
+            Step(item, "the person's animation events", () => AnimationEars.Attach(person, copy));
+            if (timing != null) Timing.Add(timing + " dress", started);
             return copy;
         }
 
@@ -143,6 +176,17 @@ namespace Scry
                 var twin = Twin(prefab.transform, copy.transform, state.transform);
                 if (twin != null) twin.gameObject.SetActive(state == shown);
             }
+        }
+
+        /// <summary>
+        /// Destroys the levels' materials and forgets what failed, for a world that was left.
+        /// Called once the copies that draw with them are gone.
+        /// </summary>
+        public static void Forget()
+        {
+            foreach (var material in LevelMaterials.Values) if (material != null) Object.Destroy(material);
+            LevelMaterials.Clear();
+            Failed.Clear();
         }
 
         /// <summary>The level's material, made once per creature and level and reused after.</summary>

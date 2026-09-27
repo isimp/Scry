@@ -268,6 +268,15 @@ namespace Scry
             if (prefab != null) Loadouts.Remove(prefab);
         }
 
+        /// <summary>
+        /// Lets go of the loadouts of prefabs that are gone, for a world that was left. The
+        /// choices made for prefabs that are still there are kept, as they were before.
+        /// </summary>
+        public static void Forget()
+        {
+            foreach (var prefab in Loadouts.Keys.Where(p => p == null).ToList()) Loadouts.Remove(prefab);
+        }
+
         /// <summary>A list's items by name, an empty entry kept as nothing, items that do not show left out.</summary>
         private static List<string> Choices(GameObject[] items)
         {
@@ -360,7 +369,7 @@ namespace Scry
                 var shared = drop?.m_itemData?.m_shared;
                 if (shared == null) continue;
 
-                if (body != null && shared.m_armorMaterial != null) Paint(body, shared);
+                if (body != null && shared.m_armorMaterial != null) Paint(body, shared, copy);
 
                 var part = AttachPart(item, out var skin);
                 if (part == null) continue;
@@ -452,11 +461,15 @@ namespace Scry
             }
         }
 
-        /// <summary>Chest and leg armour change the body's own textures as well, as the game does.</summary>
-        private static void Paint(SkinnedMeshRenderer body, ItemDrop.ItemData.SharedData shared)
+        /// <summary>
+        /// Chest and leg armour change the body's own textures as well, as the game does. The body
+        /// gets a material of its own for it, which goes with the copy.
+        /// </summary>
+        private static void Paint(SkinnedMeshRenderer body, ItemDrop.ItemData.SharedData shared, GameObject copy)
         {
             var armour = shared.m_armorMaterial;
-            var material = body.material;
+            var material = Owned.MaterialOf(body, copy);
+            if (material == null) return;
             if (shared.m_itemType == ItemDrop.ItemData.ItemType.Chest)
             {
                 if (armour.HasProperty(ChestTex)) material.SetTexture(ChestTex, armour.GetTexture(ChestTex));

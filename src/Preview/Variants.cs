@@ -112,6 +112,12 @@ namespace Scry
         /// <summary>Whether a prefab's looks are about the gear it wears.</summary>
         public static bool IsGear(GameObject prefab) => Describe(prefab).Sort == Sort.Gear;
 
+        /// <summary>
+        /// Forgets the looks worked out for each prefab, for a world that was left: they are keyed
+        /// by prefab, and a world's prefabs can be gone or changed by the next one.
+        /// </summary>
+        public static void Forget() => Known.Clear();
+
         private static Found Describe(GameObject prefab)
         {
             if (prefab == null) return new Found();
@@ -256,8 +262,10 @@ namespace Scry
             var portal = prefab.GetComponentInChildren<TeleportWorld>(true);
             if (portal.m_model != null)
             {
+                // The runes' colour is set on a material of the model's own, which goes with the copy.
                 var model = Looks.Twin(prefab.transform, copy.transform, portal.m_model.transform)?.GetComponent<Renderer>();
-                if (model != null) model.material.SetColor("_EmissionColor", look == 0 ? portal.m_colorUnconnected : portal.m_colorTargetfound);
+                var material = model != null ? Owned.MaterialOf(model, copy) : null;
+                if (material != null) material.SetColor("_EmissionColor", look == 0 ? portal.m_colorUnconnected : portal.m_colorTargetfound);
             }
             if (portal.m_target_found != null) Fade(prefab, copy, portal.m_target_found, look == 2);
         }
