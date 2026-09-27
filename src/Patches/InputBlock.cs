@@ -21,6 +21,22 @@ namespace Scry
     }
 
     /// <summary>
+    /// The inventory opens on its key (Tab unless rebound) without asking <c>TextInput.IsVisible</c>:
+    /// <c>InventoryGui.Update</c> checks only the chat, console, menu, text viewer, cutscenes, free
+    /// fly and the map. So Tab to complete a search would open it. While one of the panel's text
+    /// boxes has the keyboard the press is let go before the inventory looks at it, as the game
+    /// itself lets go of one it has handled (<c>ZInput.ResetButtonStatus</c>).
+    /// </summary>
+    [HarmonyPatch(typeof(InventoryGui), "Update")]
+    internal static class InventoryKeyBlock
+    {
+        private static void Prefix()
+        {
+            if (Session.IsOpen && ScryPanel.Typing && ZInput.instance != null) ZInput.ResetButtonStatus("Inventory");
+        }
+    }
+
+    /// <summary>
     /// Holding the right mouse button outside the panel turns the camera. The game asks for mouse
     /// look separately (<c>TakeInput(look: true)</c>) from movement and actions, so only that one
     /// question is answered yes; walking, blocking and attacking stay off.

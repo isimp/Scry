@@ -13,7 +13,8 @@ namespace Scry
         private static float FactsSection(Explorer explorer, Entry entry, float width, float y)
         {
             var facts = Facts.For(entry);
-            if (facts.IsEmpty) return y;
+            var places = entry.Kind != Kind.StatusEffect && (Locations.Now != Locations.State.Read || entry.FoundIn.Length > 0);
+            if (facts.IsEmpty && !places) return y;
 
             y = SectionHeading("IN THE GAME", width, y, null, "facts");
             if (IsFolded("facts")) return y;
@@ -94,6 +95,12 @@ namespace Scry
                 var lx = 0f;
                 MoreChip("where", facts.Where.Count, firstLines, width, U(26f), U(5f), ref lx, ref y);
                 if (lx > 0f) y += U(26f) + U(5f);
+            }
+
+            if (places)
+            {
+                y += U(6f);
+                y = FoundIn(explorer, entry, width, y);
             }
 
             // What it is used for, under a heading of its own; a long row (wood builds a hundred
@@ -286,7 +293,6 @@ namespace Scry
             {
                 y = ChipRow("Biomes (search)", entry.Biomes.Select(b => new KeyValuePair<string, Action>(Naming.FieldLabel(b), () => SearchFor(explorer, "biome:" + b.ToLowerInvariant()))), width, y);
             }
-            if (entry.Kind != Kind.StatusEffect) y = FoundIn(explorer, entry, width, y);
             if (entry.UsedBy.Count > 0 && EffectLinks.For(entry.Name).Count == 0)
             {
                 var users = entry.UsedBy.Where(u => InCatalog(explorer, u)).Take(24).ToList();
@@ -329,7 +335,7 @@ namespace Scry
                     var w = Skin.Width(Skin.Chip, text) + U(8f);
                     if (GUI.Button(new Rect(0f, y, Mathf.Min(width, w), U(26f)), text, Skin.Chip)) StartReadingLocations();
                     y += U(30f);
-                    const string note = "Reads each of this world's locations and dungeon rooms once, in the background, for about a minute.";
+                    const string note = "Reads each of this world's locations and dungeon rooms once, in the background, over a few minutes.";
                     var height = Skin.Height(Skin.DimWrap, note, width);
                     GUI.Label(new Rect(0f, y, width, height), note, Skin.DimWrap);
                     return y + height + U(6f);
@@ -337,7 +343,7 @@ namespace Scry
         }
 
         private const string LocationsButtonText = "Find in locations";
-        private const string LocationsButtonTip = "Reads where things are found in this world's locations and dungeons, in the background, for about a minute";
+        private const string LocationsButtonTip = "Reads where things are found in this world's locations and dungeons, in the background, over a few minutes";
 
         /// <summary>Starts reading the locations, from any of the buttons that offer it, and says so.</summary>
         private static void StartReadingLocations()

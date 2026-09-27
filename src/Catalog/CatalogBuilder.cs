@@ -884,7 +884,9 @@ namespace Scry
                 case UnityEngine.Object thing when thing != null:
                     return thing.name;
                 case Enum kind:
-                    return Naming.FieldLabel(kind.ToString());
+                    // A kind of nothing (a projectile type of None) says nothing; flags each say theirs.
+                    if (Convert.ToInt64(kind) == 0) return "";
+                    return string.Join(", ", kind.ToString().Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries).Select(Naming.FieldLabel));
                 default:
                     return "";
             }

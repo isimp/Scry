@@ -7,9 +7,7 @@ namespace Scry
     /// <summary>
     /// Help with the search (rules in <see cref="SearchHelp"/>): what could finish the word being
     /// typed, in a list under the box and as the rest of the best one after the text, taken by a
-    /// click or with Tab (Shift+Tab back); and a row of chips under the kind tabs with the terms in
-    /// the search, each taken out with a click, and the values the open tab has most of, each put
-    /// in with a click. The arrow keys and Enter stay with the list.
+    /// click or with Tab (Shift+Tab back). The arrow keys and Enter stay with the list.
     /// </summary>
     internal static partial class ScryPanel
     {
@@ -27,7 +25,6 @@ namespace Scry
                 _termsFor = explorer;
                 _termsAt = Locations.Now;
                 _suggestFor = null;
-                _chipsFor = null;
                 Timing.Add("search terms", started);
             }
             return _terms;
@@ -37,18 +34,16 @@ namespace Scry
 
         private static readonly TabCycle Cycle = new TabCycle();
         private static string _suggestFor;
-        private static Kind? _suggestKind;
         private static List<Suggestion> _suggested = new List<Suggestion>();
 
-        /// <summary>What could finish the word, kept while the word and the tab stay the same.</summary>
+        /// <summary>What could finish the word, kept while the word stays the same.</summary>
         private static List<Suggestion> SuggestFor(Explorer explorer, string word)
         {
-            if (word != _suggestFor || explorer.KindFilter != _suggestKind || !ReferenceEquals(_termsFor, explorer) || _termsAt != Locations.Now)
+            if (word != _suggestFor || !ReferenceEquals(_termsFor, explorer) || _termsAt != Locations.Now)
             {
                 var terms = TermsFor(explorer);
-                _suggested = SearchHelp.Suggest(word, terms, explorer.KindFilter);
+                _suggested = SearchHelp.Suggest(word, terms);
                 _suggestFor = word;
-                _suggestKind = explorer.KindFilter;
             }
             return _suggested;
         }
@@ -72,11 +67,10 @@ namespace Scry
         }
 
         /// <summary>
-        /// Puts new text in the search, the box's own copy included, with the caret where given.
-        /// When the box has lost the keyboard to a click, it gets it back only if asked: a chip
-        /// clicked with the mouse leaves the keys to walking.
+        /// Puts new text in the search, the box's own copy included, with the caret where given;
+        /// when a click took the keyboard, the box gets it back.
         /// </summary>
-        private static void SetSearch(Explorer explorer, string text, int caret, bool refocus = true)
+        private static void SetSearch(Explorer explorer, string text, int caret)
         {
             explorer.Text = text;
             _listScroll = Vector2.zero;
@@ -88,7 +82,7 @@ namespace Scry
                 editor.text = text;
                 editor.cursorIndex = editor.selectIndex = caret;
             }
-            else if (refocus)
+            else
             {
                 // A click took the keyboard; the box gets it back, and the caret, on the next frames.
                 _focusSearch = true;
@@ -240,105 +234,5 @@ namespace Scry
             return _rightDim;
         }
 
-        // ----- Chips under the kind tabs -----
-
-        private static List<Suggestion> _chips = new List<Suggestion>();
-        private static List<string> _active = new List<string>();
-        private static string _chipsFor;
-        private static Kind? _chipsKind;
-        private static bool _chipsOpen;
-
-        /// <summary>
-        /// The row of chips under the tabs: first the terms in the search, lit, each taken out with
-        /// a click; then the values the open tab has most of, each put in with a click. One row,
-        /// and a chip for the rest that opens up to six. Below <paramref name="top"/>; where the
-        /// row ends, or <paramref name="top"/> when there is nothing to show.
-        /// </summary>
-        private static float TermChips(Explorer explorer, float top, float left, float width)
-        {
-            var rect = new Rect(left, top + U(8f), width, U(26f));
-            var text = explorer.Text ?? "";
-            if (text != _chipsFor || explorer.KindFilter != _chipsKind || !ReferenceEquals(_termsFor, explorer) || _termsAt != Locations.Now)
-            {
-                if (explorer.KindFilter != _chipsKind) _chipsOpen = false;
-                var terms = TermsFor(explorer);
-                _active = SearchHelp.ActiveTerms(text);
-                _chips = SearchHelp.Chips(terms, explorer.KindFilter, text);
-                _chipsFor = text;
-                _chipsKind = explorer.KindFilter;
-            }
-            if (_active.Count == 0 && _chips.Count == 0) return top;
-
-            var rowH = rect.height;
-            var gap = U(6f);
-            var x = rect.x;
-            var y = rect.y;
-            var maxRows = _chipsOpen ? 6 : 1;
-            var rows = 1;
-            var total = _active.Count + _chips.Count;
-            var mouse = Event.current.mousePosition;
-
-            bool Place(string label, out Rect at, float reserve)
-            {
-                var w = Mathf.Min(rect.width, Skin.Width(Skin.Chip, label) + U(16f));
-                if (x + w > rect.xMax - reserve && x > rect.x)
-                {
-                    if (rows >= maxRows)
-                    {
-                        at = default;
-                        return false;
-                    }
-                    rows++;
-                    x = rect.x;
-                    y += rowH + gap;
-                }
-                at = new Rect(x, y, w, rowH);
-                x += w + gap;
-                return true;
-            }
-
-            var moreW = Skin.Width(Skin.Chip, "999 more") + U(16f);
-            var shown = 0;
-            string change = null;
-            for (var i = 0; i < total; i++)
-            {
-                var active = i < _active.Count;
-                var label = active ? _active[i] + "  ×" : $"{_chips[i - _active.Count].Label}  {_chips[i - _active.Count].Count:N0}";
-                var last = rows >= maxRows;
-                if (!Place(label, out var at, last && i < total - 1 ? moreW : 0f)) break;
-                shown++;
-                if (GUI.Button(at, label, active ? Skin.ChipOn : Skin.Chip)) change = active ? _active[i] : _chips[i - _active.Count].Insert;
-                if (at.Contains(mouse))
-                {
-                    if (active) AskTip("term:" + _active[i], "Take " + _active[i] + " out of the search");
-                    else
-                    {
-                        var chip = _chips[i - _active.Count];
-                        AskTip("chip:" + chip.Insert, $"{chip.Insert}: {chip.Note}");
-                    }
-                }
-            }
-
-            // The rest, or folding them again.
-            if (shown < total || _chipsOpen)
-            {
-                var label = _chipsOpen ? "Show fewer" : $"{total - shown:N0} more";
-                var w = Skin.Width(Skin.Chip, label) + U(16f);
-                if (x + w > rect.xMax && x > rect.x)
-                {
-                    x = rect.x;
-                    y += rowH + gap;
-                }
-                if (GUI.Button(new Rect(x, y, w, rowH), label, Skin.Chip)) _chipsOpen = !_chipsOpen;
-            }
-
-            if (change != null)
-            {
-                Cycle.Reset();
-                var changed = SearchHelp.Toggle(text, change);
-                SetSearch(explorer, changed, changed.Length, refocus: false);
-            }
-            return y + rowH;
-        }
     }
 }

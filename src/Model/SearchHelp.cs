@@ -34,7 +34,7 @@ namespace Scry
     /// Every value each search key can take in the catalog, read in one pass: the kinds, the
     /// component types, biomes, mods, the players of effects, stations and places. Each value is
     /// kept as the one word the search takes ("blackforest", "byhand") and as its name, with how
-    /// many entries have it, in all and of each kind.
+    /// many entries have it.
     /// </summary>
     public sealed class TermIndex
     {
@@ -43,10 +43,7 @@ namespace Scry
             public string Token;
             public string Label;
             public int Count;
-            public readonly int[] ByKind = new int[KindCount];
         }
-
-        private static readonly int KindCount = Enum.GetValues(typeof(Kind)).Length;
 
         private readonly Dictionary<string, Dictionary<string, Value>> _byKey = new Dictionary<string, Dictionary<string, Value>>(StringComparer.Ordinal);
         private readonly Dictionary<string, List<Value>> _lists = new Dictionary<string, List<Value>>(StringComparer.Ordinal);
@@ -71,7 +68,6 @@ namespace Scry
                     var value = Intern(key, word, label);
                     if (!seen.Add(key + "|" + value.Token)) return;
                     value.Count++;
-                    value.ByKind[(int)entry.Kind]++;
                 }
 
                 Add("kind", entry.Kind.ToString(), Kinds.Label(entry.Kind));
@@ -176,8 +172,7 @@ namespace Scry
 
     /// <summary>
     /// Help with typing a search: the word being typed, what could finish it and how many each
-    /// would find, the rest of the best one shown after it, the terms in the search, and the
-    /// values a kind's tab offers as chips.
+    /// would find in the whole catalog, and the rest of the best one shown after it.
     /// </summary>
     public static class SearchHelp
     {
@@ -192,22 +187,6 @@ namespace Scry
             ["station"] = "where it is made",
             ["in"] = "a location or dungeon it is found in",
         };
-
-        /// <summary>The keys a kind's tab offers chips of, most useful first; the All tab its own.</summary>
-        private static readonly Dictionary<Kind, string[]> ChipKeys = new Dictionary<Kind, string[]>
-        {
-            [Kind.Creature] = new[] { "biome", "in", "mod" },
-            [Kind.Item] = new[] { "station", "in", "mod" },
-            [Kind.Piece] = new[] { "station", "mod" },
-            [Kind.Resource] = new[] { "biome", "in", "mod" },
-            [Kind.Projectile] = new[] { "in", "mod" },
-            [Kind.Effect] = new[] { "in", "mod" },
-            [Kind.Sound] = new[] { "in", "mod" },
-            [Kind.StatusEffect] = new[] { "mod" },
-            [Kind.Other] = new[] { "biome", "in", "mod" },
-        };
-
-        private static readonly string[] AllTabKeys = { "biome", "station", "mod" };
 
         /// <summary>The word the caret is in (or at the end of), from space to space.</summary>
         public static WordSpan WordAt(string text, int caret)
@@ -231,11 +210,10 @@ namespace Scry
         /// <summary>
         /// What could finish the word being typed. A word without a colon that starts a key gets
         /// the key; after a known key's colon, the values in the catalog that start with (or else
-        /// hold) what is typed after it, those most entries have first. On a kind's tab the values
-        /// are those of that kind, counted there, unless that kind has none of them. A minus in
-        /// front stays in front. Each finds as many as its count says.
+        /// hold) what is typed after it, those most entries have first, whichever tab is open. A
+        /// minus in front stays in front. Each finds as many as its count says.
         /// </summary>
-        public static List<Suggestion> Suggest(string word, TermIndex index, Kind? kind, int max = 8)
+        public static List<Suggestion> Suggest(string word, TermIndex index, int max = 8)
         {
             var found = new List<Suggestion>();
             if (string.IsNullOrEmpty(word) || index == null) return found;
@@ -258,14 +236,9 @@ namespace Scry
             if (Array.IndexOf(Search.Keys, name) < 0) return found;
             var partial = TermIndex.Token(typed.Substring(colon + 1));
 
-            var values = index.ValuesOf(name);
-            var inKind = kind.HasValue && values.Any(v => v.ByKind[(int)kind.Value] > 0);
-            int CountOf(TermIndex.Value v) => inKind ? v.ByKind[(int)kind.Value] : v.Count;
-
             var ranked = new List<(int Rank, TermIndex.Value Value)>();
-            foreach (var value in values)
+            foreach (var value in index.ValuesOf(name))
             {
-                if (inKind && value.ByKind[(int)kind.Value] == 0) continue;
                 var rank = Rank(value, partial);
                 if (rank >= 0) ranked.Add((rank, value));
             }
@@ -273,7 +246,7 @@ namespace Scry
             {
                 var byRank = a.Rank.CompareTo(b.Rank);
                 if (byRank != 0) return byRank;
-                var byCount = CountOf(b.Value).CompareTo(CountOf(a.Value));
+                var byCount = b.Value.Count.CompareTo(a.Value.Count);
                 return byCount != 0 ? byCount : string.Compare(a.Value.Label, b.Value.Label, StringComparison.OrdinalIgnoreCase);
             });
 
@@ -284,7 +257,7 @@ namespace Scry
                 {
                     Label = value.Label,
                     Insert = minus + term,
-                    Count = Finds(index.Catalog, term, inKind ? kind : null),
+                    Count = Finds(index.Catalog, term),
                 });
             }
             return found;
@@ -301,14 +274,13 @@ namespace Scry
             return value.Token.IndexOf(partial, StringComparison.Ordinal) >= 0 ? 2 : -1;
         }
 
-        /// <summary>How many entries (of a kind, if given) a term finds, as the search finds them.</summary>
-        private static int Finds(IReadOnlyList<Entry> catalog, string term, Kind? kind)
+        /// <summary>How many entries a term finds, as the search finds them.</summary>
+        private static int Finds(IReadOnlyList<Entry> catalog, string term)
         {
             var parsed = Search.Parse(term);
             var count = 0;
             foreach (var entry in catalog)
             {
-                if (kind.HasValue && entry.Kind != kind.Value) continue;
                 if (Search.Matches(entry, parsed)) count++;
             }
             return count;
@@ -320,54 +292,6 @@ namespace Scry
             if (string.IsNullOrEmpty(word) || suggestions == null || suggestions.Count == 0) return "";
             var best = suggestions[0].Insert;
             return best.Length > word.Length && best.StartsWith(word, StringComparison.OrdinalIgnoreCase) ? best.Substring(word.Length) : "";
-        }
-
-        /// <summary>The terms in the search as typed (with a minus, if any), each to be shown and taken out on its own.</summary>
-        public static List<string> ActiveTerms(string text)
-        {
-            var terms = new List<string>();
-            foreach (var raw in Search.Words(text))
-            {
-                var word = raw.Length > 1 && raw[0] == '-' ? raw.Substring(1) : raw;
-                var colon = word.IndexOf(':');
-                if (colon <= 0 || colon == word.Length - 1) continue;
-                if (Array.IndexOf(Search.Keys, word.Substring(0, colon).ToLowerInvariant()) >= 0) terms.Add(raw);
-            }
-            return terms;
-        }
-
-        /// <summary>Takes a term out of the search when it is in it, or puts it at the end when it is not.</summary>
-        public static string Toggle(string text, string term)
-        {
-            var words = Search.Words(text).ToList();
-            var had = words.RemoveAll(w => string.Equals(w, term, StringComparison.OrdinalIgnoreCase)) > 0;
-            if (!had) words.Add(term);
-            return string.Join(" ", words);
-        }
-
-        /// <summary>
-        /// The chips a kind's tab offers: for each of its keys, the values its entries have, those
-        /// most have first, with how many have each; none that is in the search already.
-        /// </summary>
-        public static List<Suggestion> Chips(TermIndex index, Kind? kind, string text)
-        {
-            var chips = new List<Suggestion>();
-            if (index == null) return chips;
-            var inSearch = new HashSet<string>(Search.Words(text), StringComparer.OrdinalIgnoreCase);
-            var keys = kind.HasValue && ChipKeys.TryGetValue(kind.Value, out var own) ? own : AllTabKeys;
-            foreach (var key in keys)
-            {
-                var values = index.ValuesOf(key)
-                    .Select(v => (Value: v, Count: kind.HasValue ? v.ByKind[(int)kind.Value] : v.Count))
-                    .Where(v => v.Count > 0 && !inSearch.Contains(key + ":" + v.Value.Token))
-                    .OrderByDescending(v => v.Count)
-                    .ThenBy(v => v.Value.Label, StringComparer.OrdinalIgnoreCase);
-                foreach (var (value, count) in values)
-                {
-                    chips.Add(new Suggestion { Label = value.Label, Insert = key + ":" + value.Token, Note = KeyNotes[key], Count = count });
-                }
-            }
-            return chips;
         }
     }
 }

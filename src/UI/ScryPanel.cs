@@ -547,7 +547,6 @@ namespace Scry
             var controls = Timing.Start();
             var y = Controls(explorer, new Rect(pad, U(56f), w - pad * 2f, U(36f)));
             y = Tabs(explorer, new Rect(pad, y + U(10f), w - pad * 2f, U(30f)));
-            y = TermChips(explorer, y, pad, w - pad * 2f);
             Timing.Add("panel controls", controls);
 
             var bodyTop = y + U(12f);

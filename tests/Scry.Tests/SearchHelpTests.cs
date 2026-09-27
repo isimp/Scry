@@ -46,7 +46,7 @@ namespace Scry.Tests
             return new List<Entry> { troll, draugr, blob, guck, sword, club, statue, hit };
         }
 
-        private static List<Suggestion> Suggest(string word, Kind? kind = null) => SearchHelp.Suggest(word, new TermIndex(Catalog()), kind);
+        private static List<Suggestion> Suggest(string word) => SearchHelp.Suggest(word, new TermIndex(Catalog()));
 
         private static List<string> Find(string text) =>
             Search.Run(Catalog(), new Query { Text = text }, new List<string>()).Select(e => e.Name).ToList();
@@ -107,18 +107,10 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void OnAKindsTabTheValuesAreThoseOfThatKindCountedThere()
+        public void TheCountsAreOfTheWholeCatalogWhicheverKindHasTheValue()
         {
-            var swamp = Suggest("biome:sw", Kind.Creature).Single();
-            Assert.Equal(2, swamp.Count);
-            Assert.Equal("biome:swamp", Suggest("biome:sw", Kind.Resource).Single().Insert);
-            Assert.Equal(1, Suggest("biome:sw", Kind.Resource).Single().Count);
-        }
-
-        [Fact]
-        public void ATabWithoutAnyOfTheValuesStillOffersAllOfThem()
-        {
-            Assert.Equal(2, Suggest("biome:", Kind.Item).Count);
+            var swamp = Suggest("biome:sw").Single();
+            Assert.Equal(3, swamp.Count);
         }
 
         [Fact]
@@ -166,7 +158,7 @@ namespace Scry.Tests
         [Fact]
         public void AtMostAFewAreSuggested()
         {
-            Assert.True(SearchHelp.Suggest("has:", new TermIndex(Catalog()), null, 2).Count == 2);
+            Assert.True(SearchHelp.Suggest("has:", new TermIndex(Catalog()), 2).Count == 2);
         }
 
         // ----- Inline completion -----
@@ -188,11 +180,11 @@ namespace Scry.Tests
             var index = new TermIndex(Catalog());
             var cycle = new TabCycle();
 
-            var (text, caret) = cycle.Next("troll bi", 8, w => SearchHelp.Suggest(w, index, null), false);
+            var (text, caret) = cycle.Next("troll bi", 8, w => SearchHelp.Suggest(w, index), false);
             Assert.Equal("troll biome:", text);
             Assert.Equal(12, caret);
 
-            (text, caret) = cycle.Next(text, caret, w => SearchHelp.Suggest(w, index, null), false);
+            (text, caret) = cycle.Next(text, caret, w => SearchHelp.Suggest(w, index), false);
             Assert.Equal("troll biome:swamp", text);
         }
 
@@ -201,7 +193,7 @@ namespace Scry.Tests
         {
             var index = new TermIndex(Catalog());
             var cycle = new TabCycle();
-            System.Func<string, List<Suggestion>> suggest = w => SearchHelp.Suggest(w, index, null);
+            System.Func<string, List<Suggestion>> suggest = w => SearchHelp.Suggest(w, index);
 
             var (text, caret) = cycle.Next("has:", 4, suggest, false);
             Assert.Equal("has:monsterai", text);
@@ -221,7 +213,7 @@ namespace Scry.Tests
         {
             var index = new TermIndex(Catalog());
             var cycle = new TabCycle();
-            System.Func<string, List<Suggestion>> suggest = w => SearchHelp.Suggest(w, index, null);
+            System.Func<string, List<Suggestion>> suggest = w => SearchHelp.Suggest(w, index);
 
             var (text, caret) = cycle.Next("has:", 4, suggest, false);
             Assert.Equal("has:monsterai", text);
@@ -235,46 +227,9 @@ namespace Scry.Tests
         public void TabWithNothingToSuggestChangesNothing()
         {
             var cycle = new TabCycle();
-            var (text, caret) = cycle.Next("troll", 5, w => SearchHelp.Suggest(w, new TermIndex(Catalog()), null), false);
+            var (text, caret) = cycle.Next("troll", 5, w => SearchHelp.Suggest(w, new TermIndex(Catalog())), false);
             Assert.Equal("troll", text);
             Assert.Equal(5, caret);
-        }
-
-        // ----- Chips -----
-
-        [Fact]
-        public void TheTermsInTheSearchAreListedToBeTakenOutOneByOne()
-        {
-            var active = SearchHelp.ActiveTerms("troll biome:swamp -has:aoe biome:");
-            Assert.Equal(new[] { "biome:swamp", "-has:aoe" }, active);
-            Assert.Equal("troll -has:aoe", SearchHelp.Toggle("troll biome:swamp -has:aoe", "biome:swamp"));
-        }
-
-        [Fact]
-        public void AChipNotInTheSearchIsAddedToIt()
-        {
-            Assert.Equal("troll biome:swamp", SearchHelp.Toggle("troll ", "biome:swamp"));
-            Assert.Equal("biome:swamp", SearchHelp.Toggle("", "biome:swamp"));
-        }
-
-        [Fact]
-        public void ATabOffersTheValuesItsEntriesHaveMostOfFirst()
-        {
-            var chips = SearchHelp.Chips(new TermIndex(Catalog()), Kind.Creature, "");
-            Assert.Equal("biome:swamp", chips[0].Insert);
-            Assert.Equal(2, chips[0].Count);
-            Assert.Contains("in:crypt", chips.Select(c => c.Insert));
-            Assert.DoesNotContain("station:forge", chips.Select(c => c.Insert));
-
-            var items = SearchHelp.Chips(new TermIndex(Catalog()), Kind.Item, "");
-            Assert.Contains("station:forge", items.Select(c => c.Insert));
-        }
-
-        [Fact]
-        public void AChipAlreadyInTheSearchIsNotOfferedAgain()
-        {
-            var chips = SearchHelp.Chips(new TermIndex(Catalog()), Kind.Creature, "biome:swamp");
-            Assert.DoesNotContain("biome:swamp", chips.Select(c => c.Insert));
         }
 
         // ----- Terms written as one word -----

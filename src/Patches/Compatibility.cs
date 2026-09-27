@@ -22,6 +22,7 @@ namespace Scry
         private static readonly Dictionary<string, string> PatchFeatures = new Dictionary<string, string>
         {
             { "TextInputBlock", "keeping the game's keys away while the panel is open" },
+            { "InventoryKeyBlock", "keeping Tab from opening the inventory while typing in the panel" },
             { "LookThrough", "looking around and walking while the panel is open" },
             { "NoCombatWhileOpen", "keeping attacks, blocks and dodges from going off while the panel is open" },
             { "LookCapture", "holding the cursor while looking around" },
