@@ -70,11 +70,14 @@ namespace Scry
                 y = Section("side timeline", y, at => Timeline(cw, at));
                 y = Section("side variants", y, at => Variants(entry, cw, at));
             }
+
+            // What it is in the game comes first after what can be done with it: an item's stats
+            // and recipe are what most look for, and were below a creature's hundreds of clips.
+            y = Section("side facts", y, at => FactsSection(explorer, entry, cw, at));
             y = Section("side adjust", y, at => Adjust(explorer, entry, cw, at, withStage));
             y = Section("side effects", y, at => Effects(explorer, entry, cw, at, withStage));
             y = Section("side plays in", y, at => PlaysInSection(explorer, entry, cw, at));
             y = Section("side links", y, at => LinksSection(explorer, entry, cw, at));
-            y = Section("side facts", y, at => FactsSection(explorer, entry, cw, at));
             y = Section("side command", y, at => Command(explorer, entry, cw, at));
             y = Section("side details", y, at => Details(explorer, entry, cw, at));
             if (Event.current.type == EventType.Repaint) _sideHeight = y + U(8f);
@@ -420,7 +423,11 @@ namespace Scry
             var rowH = U(32f);
             var any = false;
 
-            bool Button(string text, GUIStyle style)
+            bool Button(string text, GUIStyle style) => Shown(text, style, true);
+
+            // A button that is always there, greyed out while it can do nothing, so the row
+            // does not shift as it comes and goes.
+            bool Shown(string text, GUIStyle style, bool can)
             {
                 any = true;
                 var w = Skin.Width(style, text) + U(12f);
@@ -429,9 +436,12 @@ namespace Scry
                     x = 0f;
                     y += rowH + U(6f);
                 }
+                var enabled = GUI.enabled;
+                GUI.enabled = enabled && can;
                 var clicked = GUI.Button(new Rect(x, y, w, rowH), text, style);
+                GUI.enabled = enabled;
                 x += w + U(8f);
-                return clicked;
+                return clicked && can;
             }
 
             string note = null;
@@ -439,12 +449,10 @@ namespace Scry
             {
                 case Kind.Sound:
                     if (Button(Variants(entry).Count > 1 ? "Play a random one" : "Play", Skin.Primary)) Previews.PlaySound(entry);
-                    if (Previews.SoundPlaying)
-                    {
-                        if (Button(Previews.SoundPaused ? "Resume" : "Pause", Skin.Button)) Previews.PauseSound(!Previews.SoundPaused);
-                        if (Button("Stop", Skin.Button)) Previews.StopSound();
-                    }
-                    if (Button(Previews.LoopSounds ? "Repeat on" : "Repeat off", Previews.LoopSounds ? Skin.On : Skin.Button)) Previews.LoopSounds = !Previews.LoopSounds;
+                    var sounding = Previews.SoundPlaying;
+                    if (Shown(sounding && Previews.SoundPaused ? "Resume" : "Pause", Skin.Button, sounding)) Previews.PauseSound(!Previews.SoundPaused);
+                    if (Shown("Stop", Skin.Button, sounding)) Previews.StopSound();
+                    if (Button("Repeat", Previews.LoopSounds ? Skin.On : Skin.Button)) Previews.LoopSounds = !Previews.LoopSounds;
                     break;
 
                 case Kind.Effect:
@@ -463,7 +471,7 @@ namespace Scry
                     if (!_compact)
                     {
                         if (Button("Replay", Skin.Button)) Previews.Replay();
-                        if (Button(Previews.LoopEffects ? "Repeat on" : "Repeat off", Previews.LoopEffects ? Skin.On : Skin.Button)) Previews.LoopEffects = !Previews.LoopEffects;
+                        if (Button("Repeat", Previews.LoopEffects ? Skin.On : Skin.Button)) Previews.LoopEffects = !Previews.LoopEffects;
                     }
                     break;
 
@@ -476,7 +484,7 @@ namespace Scry
                     if (Looks.IsWorn(entry))
                     {
                         var kept = Looks.Outfit.Contains(entry.Name);
-                        if (Button(kept ? "Kept on" : "Keep it on", kept ? Skin.On : Skin.Button))
+                        if (Button("Keep it on", kept ? Skin.On : Skin.Button))
                         {
                             if (kept) Looks.Outfit.TakeOff(entry.Name);
                             else Looks.Outfit.Keep(entry.Name, Gear.SlotOf((GameObject)entry.Source));
@@ -484,7 +492,7 @@ namespace Scry
                         }
                     }
                     if (_compact && entry.Kind == Kind.Item && entry.Source is GameObject wearable && Gear.IsWearable(wearable)
-                        && Button(Looks.OnPerson ? "Worn by a person" : "Wear it", Looks.OnPerson ? Skin.On : Skin.Button))
+                        && Button("Wear it", Looks.OnPerson ? Skin.On : Skin.Button))
                     {
                         Looks.OnPerson = !Looks.OnPerson;
                         Previews.Rebuild();
@@ -504,7 +512,7 @@ namespace Scry
                     }
                     if (Previews.IsModel(entry))
                     {
-                        if (Button(Previews.InWorld ? "Showing in the world" : "Show in the world", Previews.InWorld ? Skin.On : (entry.Kind == Kind.Projectile ? Skin.Button : Skin.Primary))) Previews.ToggleWorld();
+                        if (Button("Show in the world", Previews.InWorld ? Skin.On : (entry.Kind == Kind.Projectile ? Skin.Button : Skin.Primary))) Previews.ToggleWorld();
                         if (Previews.InWorld)
                         {
                             if (Button("Move to where you look", Skin.Button)) Previews.PlaceHere();
@@ -548,13 +556,11 @@ namespace Scry
             var hasStart = lists.Any(l => l.Value == effect.m_startEffects);
             if (hasStart)
             {
-                if (Previews.StatusShowing)
+                // One button that lights while it is on you, as every switch in the panel does.
+                if (button("Show it on you", Previews.StatusShowing ? Skin.On : Skin.Primary))
                 {
-                    if (button("Take it off you", Skin.Primary)) Previews.StopStatus(true);
-                }
-                else if (button("Show it on you", Skin.Primary))
-                {
-                    Previews.ShowStatus(entry);
+                    if (Previews.StatusShowing) Previews.StopStatus(true);
+                    else Previews.ShowStatus(entry);
                 }
             }
 

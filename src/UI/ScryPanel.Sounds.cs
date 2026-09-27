@@ -11,27 +11,42 @@ namespace Scry
     internal static partial class ScryPanel
     {
         /// <summary>
-        /// Where the playing sound is in its clip, as a bar that can be dragged to any point. Shown
-        /// while a sound plays or is paused, which is what makes long clips such as music usable.
+        /// Where the playing sound is in its clip, as a bar that can be dragged to any point, which
+        /// is what makes long clips such as music usable. Its row stays, greyed out, while nothing
+        /// plays, so playing a sound moves nothing below it.
         /// </summary>
         private static float Timeline(float width, float y)
         {
-            if (!Previews.SoundPosition(out var time, out var length)) return y;
+            float time = 0f, length = 0f;
+            var timed = Previews.SoundPosition(out time, out length);
+            var enabled = GUI.enabled;
+            GUI.enabled = enabled && timed;
+            try
+            {
+                return TimelineRow(width, y, time, length, timed);
+            }
+            finally
+            {
+                GUI.enabled = enabled;
+            }
+        }
 
+        private static float TimelineRow(float width, float y, float time, float length, bool timed)
+        {
             var rowH = U(26f);
             var labelW = U(52f);
             GUI.Label(new Rect(0f, y, labelW, rowH), Clock(time), Skin.Label);
             var slider = new Rect(labelW, y + (rowH - U(14f)) / 2f, width - labelW * 2f - U(8f), U(14f));
 
             GUI.changed = false;
-            var picked = GUI.HorizontalSlider(slider, time, 0f, length);
-            if (GUI.changed) Previews.SeekSound(picked);
+            var picked = GUI.HorizontalSlider(slider, time, 0f, Mathf.Max(length, 0.01f));
+            if (GUI.changed && timed) Previews.SeekSound(picked);
 
             var end = new Rect(width - labelW, y, labelW, rowH);
             var style = Skin.DimLabel;
             var anchor = style.alignment;
             style.alignment = TextAnchor.MiddleRight;
-            GUI.Label(end, Clock(length), style);
+            GUI.Label(end, timed ? Clock(length) : "", style);
             style.alignment = anchor;
 
             return y + rowH + U(14f);

@@ -36,9 +36,12 @@ namespace Scry
             var x = 0f;
             var rowH = U(26f);
 
-            if (GUI.Button(new Rect(x, y, U(84f), rowH), Previews.LoopClips ? "Repeat on" : "Repeat off", Previews.LoopClips ? Skin.ChipOn : Skin.Chip)) Previews.ToggleLoopClips();
+            if (GUI.Button(new Rect(x, y, U(84f), rowH), "Repeat", Previews.LoopClips ? Skin.ChipOn : Skin.Chip)) Previews.ToggleLoopClips();
             x += U(90f);
-            if (playing != null && GUI.Button(new Rect(x, y, U(60f), rowH), "Stop", Skin.Chip)) Previews.StopClip();
+            var stopEnabled = GUI.enabled;
+            GUI.enabled = stopEnabled && playing != null;
+            if (GUI.Button(new Rect(x, y, U(60f), rowH), "Stop", Skin.Chip) && playing != null) Previews.StopClip();
+            GUI.enabled = stopEnabled;
             x += U(66f);
 
             // Shown while it filters, even where there are few clips to filter.
