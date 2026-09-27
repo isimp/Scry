@@ -343,55 +343,86 @@ namespace Scry
         public static void PlayEffectList(string label, EffectList list)
         {
             var prefab = _entry?.Source as GameObject;
-            var ragdoll = _entry != null && _entry.Kind == Kind.Creature ? Falling.RagdollIn(list) : null;
             var things = new List<GameObject>();
             Stop(list);
             _startedClip = null;
-            var deferred = false;
             var heard = $"{_entry?.Name}'s \"{label}\"";
             Listen.Start(heard, 3f);
             _heard = heard;
 
-            if (ragdoll != null)
+            // What the game does with the list besides playing it (ChipPlan). The clips it could
+            // go with are looked for only when nothing else comes first, since finding them may
+            // have to wait for the animator to be watched.
+            var character = prefab != null ? prefab.GetComponent<Character>() : null;
+            var ragdoll = _entry != null && _entry.Kind == Kind.Creature ? Falling.RagdollIn(list) : null;
+            var facts = new ChipFacts(RoleOf(prefab, list), AnimatorParameters())
             {
-                var modifiers = _explorer?.Modifiers;
-                var level = modifiers != null ? modifiers.Level : 1;
-                var gear = modifiers != null && modifiers.LookAvailable ? Variants.GearOf(prefab, modifiers.Look) : new List<GameObject>();
-                things.Add(Stage.Fall(ragdoll, prefab, level, gear));
-                things.Add(FallInWorld(ragdoll, prefab, level, gear));
-            }
-            else if (Falling.IsDestroyedList(prefab, list))
+                Flying = character != null && character.m_flying,
+                HasRagdoll = ragdoll != null,
+                IsDestroyed = Falling.IsDestroyedList(prefab, list),
+            };
+            var plan = ChipPlan.For(facts);
+            AnimationClip swing = null, own = null;
+            if (plan.Step == ChipStep.List)
             {
-                Tell(prefab, list);
-                things.Add(Stage.Destroy(prefab, list));
-                things.Add(DestroyInWorld(prefab, list));
+                swing = AttackOf.TryGetValue(list, out var attack) ? AttackClipOf(attack) : null;
+                own = ClipsOfList(list).Find(c => c.How.Length == 0).Clip;
+                facts.HasAttackClip = swing != null;
+                facts.HasOwnClip = own != null;
+                plan = ChipPlan.For(facts);
             }
-            else if (Animate(prefab, list))
+            if (facts.Role != ListRole.Other && plan.Step != ChipStep.Trigger && plan.Step != ChipStep.Switch && plan.Step != ChipStep.ShakeTrunk && plan.Step != ChipStep.Ragdoll)
             {
-                // Set on the animator the way the game sets it for this list.
+                var animator = ClipPlayer.AnimatorOf(Stage.Subject);
+                Listen.Note(heard, $"the animator has nothing the game sets for {facts.Role.ToString().ToLowerInvariant()}, so the game animates nothing here either; its triggers are {(animator != null ? Triggers(animator) : "none")}");
             }
-            else if (AttackOf.TryGetValue(list, out var attack) && AttackClipOf(attack) is AnimationClip swing)
+
+            switch (plan.Step)
             {
-                // An item's attack, played whole by the clip the person swings it in, as a
-                // creature's attacks play by theirs; lit under the list pressed.
-                Listen.Note(heard, "played by the clip " + swing.name);
-                PlayClip(swing, litWith: list);
-                deferred = true;
+                case ChipStep.Ragdoll:
+                    var modifiers = _explorer?.Modifiers;
+                    var level = modifiers != null ? modifiers.Level : 1;
+                    var gear = modifiers != null && modifiers.LookAvailable ? Variants.GearOf(prefab, modifiers.Look) : new List<GameObject>();
+                    things.Add(Stage.Fall(ragdoll, prefab, level, gear));
+                    things.Add(FallInWorld(ragdoll, prefab, level, gear));
+                    break;
+                case ChipStep.Destroy:
+                    Tell(prefab, list);
+                    things.Add(Stage.Destroy(prefab, list));
+                    things.Add(DestroyInWorld(prefab, list));
+                    break;
+                case ChipStep.ShakeTrunk:
+                    ShakeTrunk(prefab);
+                    break;
+                case ChipStep.Trigger:
+                    Trigger(plan.Parameter);
+                    break;
+                case ChipStep.Switch:
+                    Switch(plan.Parameter, true);
+                    var name = plan.Parameter;
+                    if (plan.UndoOnStop) Undo[list] = () => SwitchQuiet(name, false);
+                    if (plan.OffAfter > 0f) LaterOn.Add((Time.unscaledTime + plan.OffAfter, () => SwitchQuiet(name, false)));
+                    break;
+                case ChipStep.AttackClip:
+                    // An item's attack, played whole by the clip the person swings it in, as a
+                    // creature's attacks play by theirs; lit under the list pressed.
+                    Listen.Note(heard, "played by the clip " + swing.name);
+                    PlayClip(swing, litWith: list);
+                    break;
+                case ChipStep.OwnClip:
+                    // A list the game plays as it moves the animator into a clip, seen by the probe
+                    // (not one only heard around it: a hit does not play the stagger).
+                    Listen.Note(heard, "plays with the clip " + own.name);
+                    PlayClip(own);
+                    break;
             }
-            else if (ClipsOfList(list).Find(c => c.How.Length == 0).Clip is AnimationClip own)
-            {
-                // A list the game plays as it moves the animator into a clip, seen by the probe
-                // (not one only heard around it: a hit does not play the stagger).
-                Listen.Note(heard, "plays with the clip " + own.name);
-                PlayClip(own);
-            }
-            if (!deferred) things.AddRange(PlayEffectList(list));
+            if (plan.PlaysList) things.AddRange(PlayEffectList(list));
             if (_startedClip != null) ClipOf[list] = _startedClip;
             _heard = null;
 
             Listen.Add(heard, things);
             if (WorldHeard) Listen.Note(heard, "a copy stands in the world, so the stage's are muted");
-            if (!deferred && !things.Exists(Perceptible)) TellEmpty(label, list, things);
+            if (plan.PlaysList && !things.Exists(Perceptible)) TellEmpty(label, list, things);
             Started(list, things);
         }
 
@@ -410,65 +441,54 @@ namespace Scry
         private static readonly Dictionary<object, System.Action> Undo = new Dictionary<object, System.Action>();
 
         /// <summary>
-        /// Animates an effect list the way the game does when it plays it: a jump by the jump
-        /// trigger (a flyer's by its take-off), a death without a ragdoll by the dead switch,
-        /// being alerted by the alert switch, waking by the sleeping switch let go, eating by
-        /// the eat or consume trigger, a block by holding the blocking switch a moment. Each
-        /// only where the copy's animator has it. False when the game sets nothing for the list.
+        /// What an effect list is to its prefab, where the game does more with it than play it: a
+        /// tree's hit (it shakes, TreeBase.Shake), a jump, a death, being alerted, waking, eating
+        /// or blocking (each setting the animator as the game sets it).
         /// </summary>
-        private static bool Animate(GameObject prefab, EffectList list)
+        private static ListRole RoleOf(GameObject prefab, EffectList list)
         {
-            if (prefab == null || list == null) return false;
-
-            // A tree struck shakes its trunk a second (TreeBase.Shake).
+            if (prefab == null || list == null) return ListRole.Other;
             var tree = prefab.GetComponent<TreeBase>();
-            if (tree != null && tree.m_trunk != null && list == tree.m_hitEffect)
-            {
-                foreach (var copy in new[] { Stage.Subject, _world })
-                {
-                    var trunk = copy != null ? Looks.Twin(prefab.transform, copy.transform, tree.m_trunk.transform) : null;
-                    if (trunk != null) TrunkShake.Start(trunk);
-                }
-                Listen.Note(_heard, "shook the trunk");
-                return true;
-            }
+            if (tree != null && tree.m_trunk != null && list == tree.m_hitEffect) return ListRole.TreeHit;
+
             var character = prefab.GetComponent<Character>();
             var ai = prefab.GetComponent<BaseAI>();
             var humanoid = character as Humanoid;
+            if (character != null && list == character.m_jumpEffects) return ListRole.Jump;
+            if (character != null && list == character.m_deathEffects) return ListRole.Death;
+            if (ai != null && list == ai.m_alertedEffects) return ListRole.Alerted;
+            if (ai is MonsterAI monster && list == monster.m_wakeupEffects) return ListRole.Wakeup;
+            if (humanoid != null && list == humanoid.m_consumeItemEffects) return ListRole.Consume;
+            if (humanoid != null && (list == humanoid.m_perfectBlockEffect || IsBlock(prefab, list))) return ListRole.Block;
+            return ListRole.Other;
+        }
 
-            if (character != null && list == character.m_jumpEffects)
+        /// <summary>The trigger and switch names the stage copy's and the world copy's animators have.</summary>
+        private static string[] AnimatorParameters()
+        {
+            var names = new HashSet<string>();
+            foreach (var copy in new[] { Stage.Subject, _world })
             {
-                return (character.m_flying && TriggerQuiet("fly_takeoff")) || Trigger("jump");
+                var animator = ClipPlayer.AnimatorOf(copy);
+                if (animator == null) continue;
+                foreach (var parameter in animator.parameters)
+                {
+                    if (parameter.type == AnimatorControllerParameterType.Trigger || parameter.type == AnimatorControllerParameterType.Bool) names.Add(parameter.name);
+                }
             }
-            if (character != null && list == character.m_deathEffects)
+            return names.ToArray();
+        }
+
+        /// <summary>A tree struck shakes its trunk a second (TreeBase.Shake), on the stage and in the world.</summary>
+        private static void ShakeTrunk(GameObject prefab)
+        {
+            var tree = prefab.GetComponent<TreeBase>();
+            foreach (var copy in new[] { Stage.Subject, _world })
             {
-                if (!Switch("dead", true)) return false;
-                Undo[list] = () => SwitchQuiet("dead", false);
-                return true;
+                var trunk = copy != null ? Looks.Twin(prefab.transform, copy.transform, tree.m_trunk.transform) : null;
+                if (trunk != null) TrunkShake.Start(trunk);
             }
-            if (ai != null && list == ai.m_alertedEffects)
-            {
-                if (!Switch("alert", true)) return false;
-                Undo[list] = () => SwitchQuiet("alert", false);
-                return true;
-            }
-            if (ai is MonsterAI monster && list == monster.m_wakeupEffects)
-            {
-                if (!Switch("sleeping", true)) return false;
-                LaterOn.Add((Time.unscaledTime + 1.2f, () => SwitchQuiet("sleeping", false)));
-                return true;
-            }
-            if (humanoid != null && list == humanoid.m_consumeItemEffects)
-            {
-                return TriggerQuiet("eat") || Trigger("consume");
-            }
-            if (humanoid != null && (list == humanoid.m_perfectBlockEffect || IsBlock(prefab, list)))
-            {
-                if (!Switch("blocking", true)) return false;
-                LaterOn.Add((Time.unscaledTime + 1.2f, () => SwitchQuiet("blocking", false)));
-                return true;
-            }
-            return false;
+            Listen.Note(_heard, "shook the trunk");
         }
 
         /// <summary>Whether the list is what an item the creature carries, or the item itself, plays when blocking.</summary>
