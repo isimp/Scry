@@ -85,19 +85,31 @@ namespace Scry
             var shown = ClipRows(clips, sorting);
             var ownNow = Previews.AnimatorClipNow();
             Timing.Add("clips rows", started);
+            // Each group shows its first chips and one for the rest (a person has hundreds of
+            // clips); while filtering, every match.
+            var totals = new Dictionary<int, int>();
+            foreach (var row in shown) totals[row.Group] = totals.TryGetValue(row.Group, out var n) ? n + 1 : 1;
+            var filtering = _clipFilter.Length > 0;
             var group = -1;
+            var inGroup = 0;
+            var limit = 0;
             x = 0f;
             foreach (var row in shown)
             {
                 var clip = row.Clip;
                 if (row.Group != group)
                 {
+                    if (group >= 0 && !filtering) MoreChip("clips:" + group, totals[group], FirstChips, width, rowH, U(5f), ref x, ref y);
                     if (x > 0f) y += rowH + U(4f);
                     x = 0f;
                     group = row.Group;
+                    inGroup = 0;
+                    limit = filtering ? totals[group] : ShownOf("clips:" + group, totals[group]);
                     GUI.Label(new Rect(0f, y, width, U(20f)), group < 3 ? ClipHeadings[group] : "Working out what each clip plays" + Dots(), Skin.DimLabel);
                     y += U(22f);
                 }
+
+                if (inGroup++ >= limit) continue;
 
                 // Named by the modelers; what it is follows, as far as Scry saw. The one the
                 // animator plays on its own right now is marked.
@@ -137,6 +149,7 @@ namespace Scry
                 }
                 x += w + U(5f);
             }
+            if (group >= 0 && !filtering) MoreChip("clips:" + group, totals[group], FirstChips, width, rowH, U(5f), ref x, ref y);
             if (x > 0f) y += rowH;
 
             var last = Previews.LastClip;

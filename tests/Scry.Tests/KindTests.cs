@@ -58,6 +58,15 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AVeinThatBreaksIntoOreIsAResourceThoughItDropsNothingItself()
+        {
+            // A silver vein is a shell that, struck, turns into the vein that is mined (silvervein_frac).
+            var vein = new PrefabTraits { HasDestructible = true, BreaksIntoResource = true, HasRenderer = true, HasSolidCollider = true };
+
+            Assert.Equal(Kind.Resource, Kinds.Of(vein));
+        }
+
+        [Fact]
         public void ANestIsNoResourceThoughItBreaksIntoDrops()
         {
             // A greydwarf nest spawns creatures; it is found with the other spawners.

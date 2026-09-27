@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -220,7 +221,8 @@ namespace Scry
             _scene = scene;
             _failedIn = null;
             CatalogSummary = $"{catalog.Count:N0} prefabs";
-            Plugin.Log.LogInfo($"Scry read {catalog.Count} prefabs and status effects in {job.WorkMs:0} ms over {job.Frames} frames ({job.ElapsedMs / 1000.0:0.0} s in all).");
+            var kinds = string.Join(", ", catalog.GroupBy(e => e.Kind).OrderBy(g => g.Key).Select(g => $"{g.Count()} {Kinds.Label(g.Key).ToLowerInvariant()}"));
+            Plugin.Log.LogInfo($"Scry read {catalog.Count} prefabs and status effects in {job.WorkMs:0} ms over {job.Frames} frames ({job.ElapsedMs / 1000.0:0.0} s in all): {kinds}.");
         }
 
         private static void Failed(string why, ZNetScene scene)

@@ -46,6 +46,9 @@ namespace Scry
         public bool HasDestructible;
         public bool HasDrops;
 
+        /// <summary>Turns, when broken, into something mined or chopped (a silver vein into the vein itself).</summary>
+        public bool BreaksIntoResource;
+
         /// <summary>Spawns creatures, as a nest does.</summary>
         public bool HasSpawner;
 
@@ -69,7 +72,7 @@ namespace Scry
 
             // What is chopped, mined, picked or grown, or broken for what it drops; a nest drops
             // things too, but is found with the other spawners.
-            if (!traits.HasSpawner && (traits.HasResource || (traits.HasDestructible && traits.HasDrops))) return Kind.Resource;
+            if (!traits.HasSpawner && (traits.HasResource || traits.BreaksIntoResource || (traits.HasDestructible && traits.HasDrops))) return Kind.Resource;
 
             var visible = traits.HasRenderer || traits.HasParticles || traits.HasLight;
             if (traits.HasAudio && !visible) return Kind.Sound;

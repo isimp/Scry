@@ -294,7 +294,26 @@ namespace Scry
             }
 
             var breaks = prefab.GetComponent<Destructible>();
-            if (breaks != null && tree == null && log == null)
+            var inside = breaks != null ? MinedInside(breaks.m_spawnWhenDestroyed) : null;
+            if (inside != null)
+            {
+                // A shell that, struck once, turns into what is mined (a silver vein, a copper
+                // deposit): what that takes and gives is what the vein takes and gives.
+                Add("Breaks into", AnyName(inside, inside.name) + ", mined a piece at a time", inside.name);
+                var innerRock = inside.GetComponent<MineRock>();
+                var innerVein = inside.GetComponent<MineRock5>();
+                if (innerVein != null)
+                {
+                    Hits(innerVein.m_health, true, Math.Max(breaks.m_minToolTier, innerVein.m_minToolTier), innerVein.m_damageModifiers);
+                    Drops(innerVein.m_dropItems, "Each piece ");
+                }
+                else if (innerRock != null)
+                {
+                    Hits(innerRock.m_health, true, Math.Max(breaks.m_minToolTier, innerRock.m_minToolTier), innerRock.m_damageModifiers);
+                    Drops(innerRock.m_dropItems, "Each piece ");
+                }
+            }
+            else if (breaks != null && tree == null && log == null)
             {
                 Hits(breaks.m_health, false, breaks.m_minToolTier, breaks.m_damages);
                 var dropping = prefab.GetComponent<DropOnDestroyed>();
@@ -358,6 +377,13 @@ namespace Scry
                     if (grows.Items.Count > 0) Rows.Add(grows);
                 }
             }
+        }
+
+        /// <summary>What a prefab turns into when broken, if that is mined (a vein, a rock), or null.</summary>
+        public static GameObject MinedInside(GameObject broken)
+        {
+            if (broken == null) return null;
+            return broken.GetComponent<MineRock5>() != null || broken.GetComponent<MineRock>() != null ? broken : null;
         }
 
         /// <summary>How much it takes to break, with what tool, and what it resists.</summary>

@@ -55,11 +55,13 @@ namespace Scry
                 y += U(36f);
             }
 
+            // A long list shows its first chips and one for the rest; while filtering, every match.
             var x = 0f;
-            foreach (var pair in lists)
+            var matching = _effectFilter.Length > 0 ? lists.Where(p => p.Key.IndexOf(_effectFilter, StringComparison.OrdinalIgnoreCase) >= 0).ToList() : lists;
+            var count = _effectFilter.Length > 0 ? matching.Count : ShownOf("effects", matching.Count);
+            for (var i = 0; i < count; i++)
             {
-                if (_effectFilter.Length > 0 && pair.Key.IndexOf(_effectFilter, StringComparison.OrdinalIgnoreCase) < 0) continue;
-
+                var pair = matching[i];
                 var w = Mathf.Min(width, Skin.Width(Skin.Chip, pair.Key) + U(8f));
                 if (x + w > width && x > 0f)
                 {
@@ -86,6 +88,7 @@ namespace Scry
                 }
                 x += w + U(5f);
             }
+            if (_effectFilter.Length == 0) MoreChip("effects", matching.Count, FirstChips, width, rowH, U(5f), ref x, ref y);
             if (x > 0f) y += rowH;
 
             // What the list played last is made of, each part lit while its copy plays.
