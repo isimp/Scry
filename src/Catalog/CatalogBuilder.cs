@@ -75,6 +75,10 @@ namespace Scry
                 }
             }
             var prefabs = registered.Values.Select(f => f.Prefab).ToList();
+            CatalogTiming.Add("setup", started);
+            yield return "Reading recipes";
+
+            started = CatalogTiming.Start();
             Knowledge.Begin();
             Relations.Begin();
             IndexRecipes();
@@ -88,6 +92,7 @@ namespace Scry
             var progress = "";
             foreach (var pair in registered)
             {
+                job.Piece = pair.Key;
                 ReadPrefab(pair.Key, pair.Value, effects, components, leftovers);
                 if (++read % 16 == 1) progress = $"Reading prefabs: {read:N0} of {registered.Count:N0}";
                 yield return progress;
@@ -188,10 +193,23 @@ namespace Scry
             yield return "Linking entries";
 
             started = CatalogTiming.Start();
+            LinkBook book = null;
+            try
+            {
+                book = Relations.Finish(prefabs);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"Scry could not link entries, and shows them without links: {ex}");
+            }
+            CatalogTiming.Add("links finished", started);
+            yield return "Linking entries";
+
+            started = CatalogTiming.Start();
             IEnumerator<int> linking = null;
             try
             {
-                linking = Relations.Finish(prefabs).ApplyInSteps(entries, 400).GetEnumerator();
+                if (book != null) linking = book.ApplyInSteps(entries, 400).GetEnumerator();
             }
             catch (Exception ex)
             {
@@ -717,6 +735,9 @@ namespace Scry
         /// <summary>The catalog, once read.</summary>
         public List<Entry> Entries { get; internal set; }
 
+        /// <summary>What the piece being read is about, where more can be told than the progress says (a prefab's name).</summary>
+        internal string Piece;
+
         /// <summary>Why it could not be read, when it could not.</summary>
         public string Failure { get; private set; }
 
@@ -751,10 +772,11 @@ namespace Scry
                 {
                     var before = frame.Elapsed.TotalMilliseconds;
                     var what = Progress;
+                    Piece = null;
                     var more = _steps.MoveNext();
                     var took = frame.Elapsed.TotalMilliseconds - before;
                     _share.Took(took);
-                    if (took > LongPieceMs && Plugin.LogPreviews) _long.Add((what, took));
+                    if (took > LongPieceMs && Plugin.LogPreviews) _long.Add((Piece != null ? "the prefab " + Piece : what, took));
                     done++;
                     if (!more)
                     {

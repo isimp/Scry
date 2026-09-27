@@ -140,6 +140,46 @@ namespace Scry
             return width;
         }
 
+        /// <summary>
+        /// How wide a text is, for one that is out of sight: measured if it was before, or while
+        /// this frame's share for such texts lasts; otherwise told from the style's usual letter
+        /// width until a later frame measures it. A list of hundreds (a person's clips) is so
+        /// measured over a few frames rather than all in the one that shows it.
+        /// </summary>
+        public static float WidthSoon(GUIStyle style, string text)
+        {
+            var key = new Measured(style, text, -1);
+            if (Known(key, out var width)) return width;
+            if (_soonFrame != Time.frameCount)
+            {
+                _soonFrame = Time.frameCount;
+                _soonMs = 0.0;
+            }
+            if (_soonMs >= SoonShareMs) return Estimate(style, text);
+
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            width = Width(style, text);
+            _soonMs += (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            return width;
+        }
+
+        private const double SoonShareMs = 1.5;
+        private static int _soonFrame = -1;
+        private static double _soonMs;
+        private static readonly Dictionary<GUIStyle, float> LetterWidths = new Dictionary<GUIStyle, float>();
+
+        /// <summary>A text's width told from its length and the style's usual letter width, measured once per style.</summary>
+        private static float Estimate(GUIStyle style, string text)
+        {
+            if (!LetterWidths.TryGetValue(style, out var letter))
+            {
+                const string sample = "Attack Standing Idle walk run 0123456789";
+                letter = Width(style, sample) / sample.Length;
+                LetterWidths[style] = letter;
+            }
+            return letter * text.Length + style.padding.horizontal;
+        }
+
         /// <summary>How tall a text is in a style, wrapped to a width, measured once and kept as <see cref="Width"/> is.</summary>
         public static float Height(GUIStyle style, string text, float width)
         {
@@ -212,6 +252,7 @@ namespace Scry
         {
             if (Gui != null && Mathf.Approximately(scale, _builtScale)) return;
             _builtScale = scale;
+            LetterWidths.Clear();
 
             // Timed by part: the first time falls in the game's own loading, where it is hard to see.
             var started = Timing.Start();

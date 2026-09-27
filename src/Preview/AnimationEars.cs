@@ -46,7 +46,7 @@ namespace Scry
 
             // Said once per prefab: which animator plays it and every clip it has, for finding out
             // why a clip seems missing.
-            if (Listed.Add(prefab.name))
+            if (Plugin.LogPreviews && Listed.Add(prefab.name))
             {
                 var all = copy.GetComponentsInChildren<Animator>(true).Length;
                 var names = animator.runtimeAnimatorController.animationClips.Where(c => c != null).Select(c => c.name).Distinct().OrderBy(n => n).ToList();
@@ -98,6 +98,12 @@ namespace Scry
             known = (events, unknown);
             EventsByController[controller] = known;
             return known;
+        }
+
+        /// <summary>What a controller's clips send, as read while the catalog was, kept for its copies.</summary>
+        public static void Remember(RuntimeAnimatorController controller, int events, SortedSet<string> unknown)
+        {
+            if (controller != null && !EventsByController.ContainsKey(controller)) EventsByController[controller] = (events, unknown);
         }
 
         /// <summary>Lets go of what was read of the controllers, for a world that was left.</summary>

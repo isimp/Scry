@@ -469,6 +469,7 @@ namespace Scry
             {
                 _clipByName.Clear();
                 _clipsOf = null;
+                _clipNames = new List<string>();
                 return NoClips;
             }
             if (ReferenceEquals(controller, _clipsOf) && _clips != null) return _clips;
@@ -490,10 +491,23 @@ namespace Scry
             System.Array.Sort(keys, sorted, System.StringComparer.OrdinalIgnoreCase);
             _clipsOf = controller;
             _clips = new List<AnimationClip>(sorted);
+            _clipNames = new List<string>(keys);
             _clipByName.Clear();
             for (var i = 0; i < keys.Length; i++) _clipByName[keys[i]] = sorted[i];
             return _clips;
         }
+
+        /// <summary>
+        /// The names of <see cref="Clips"/>, in the same order: a clip's name is made anew each time
+        /// it is asked for, so the panel takes them from here.
+        /// </summary>
+        public static List<string> ClipNames()
+        {
+            Clips();
+            return _clipNames;
+        }
+
+        private static List<string> _clipNames = new List<string>();
 
         private static readonly Dictionary<string, AnimationClip> _clipByName = new Dictionary<string, AnimationClip>();
 

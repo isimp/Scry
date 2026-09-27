@@ -98,6 +98,10 @@ namespace Scry
             public Probed Seen;
             public GameObject Holder;
             public Animator Probe;
+
+            /// <summary>The copy's animator the hidden one is made from, once the probe begins.</summary>
+            public Animator Source;
+            public bool Started;
             public System.Action<Animator> Stance;
             public bool First;
             public readonly Queue<string> Triggers = new Queue<string>();
@@ -274,8 +278,33 @@ namespace Scry
             }
         }
 
+        /// <summary>
+        /// A probe set to begin: its hidden copy is made as its first piece of work, in a frame of
+        /// its own, rather than in the one that asked (a person's whole body takes some 15 ms).
+        /// </summary>
         private static Job Begin(string key, Animator animator, List<(string Name, AnimatorControllerParameterType Type, float Value)> stance, Probed seen, bool first)
         {
+            var job = new Job
+            {
+                Key = key, Seen = seen, Source = animator, First = first,
+                Stance = a =>
+                {
+                    foreach (var (name, type, value) in stance)
+                    {
+                        if (type == AnimatorControllerParameterType.Int) a.SetInteger(name, (int)value);
+                        else a.SetFloat(name, value);
+                    }
+                },
+            };
+            seen.Busy = true;
+            Jobs[key] = job;
+            return job;
+        }
+
+        /// <summary>Makes a probe's hidden copy and its runs; false when it could not be made.</summary>
+        private static bool Make(Job job)
+        {
+            var animator = job.Source;
             GameObject holder = null;
             try
             {
@@ -309,13 +338,17 @@ namespace Scry
                 probe.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                 probe.keepAnimatorStateOnDisable = true;
                 holder.SetActive(true);
-                return Start(key, holder, probe, stance, seen, first);
+                job.Holder = holder;
+                job.Probe = probe;
+                job.Work = Work(job);
+                return true;
             }
             catch (System.Exception ex)
             {
                 if (holder != null) Object.DestroyImmediate(holder);
-                Failed(key, seen, ex.Message);
-                return null;
+                Drop(job);
+                Failed(job.Key, job.Seen, ex.Message);
+                return false;
             }
         }
 
@@ -331,32 +364,24 @@ namespace Scry
             else Plugin.Log.LogWarning($"Scry could not see what the animator of {key} plays ({why}), and leaves its clips unmatched.");
         }
 
-        private static Job Start(string key, GameObject holder, Animator probe, List<(string Name, AnimatorControllerParameterType Type, float Value)> stance, Probed seen, bool first)
-        {
-            var job = new Job
-            {
-                Key = key, Seen = seen, Holder = holder, Probe = probe, First = first,
-                Stance = a =>
-                {
-                    foreach (var (name, type, value) in stance)
-                    {
-                        if (type == AnimatorControllerParameterType.Int) a.SetInteger(name, (int)value);
-                        else a.SetFloat(name, value);
-                    }
-                },
-            };
-            job.Work = Work(job);
-            seen.Busy = true;
-            Jobs[key] = job;
-            return job;
-        }
-
         /// <summary>
         /// One run of a probe. The game's randomness is kept as it was around it, since each run
         /// seeds its own. False once the probe is done, or its copy is gone with the world.
         /// </summary>
         private static bool Advance(Job job)
         {
+            if (!job.Started)
+            {
+                job.Started = true;
+
+                // Its copy went before it began (another entry was shown): nothing to watch.
+                if (job.Source == null)
+                {
+                    Drop(job);
+                    return false;
+                }
+                return Make(job);
+            }
             if (job.Holder == null)
             {
                 Drop(job);

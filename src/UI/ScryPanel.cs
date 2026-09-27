@@ -127,7 +127,10 @@ namespace Scry
                 SearchFocused = false;
                 Typing = false;
                 if (Session.Reading != null) DrawReading(scale, Session.Reading);
-                else Skin.Warm(scale);
+
+                // Warmed in a world only: at the main menu the game's fonts are not loaded yet, so
+                // warming there measured a font the panel never uses, for most of a second.
+                else if (Player.m_localPlayer != null) Skin.Warm(scale);
                 return;
             }
 

@@ -157,12 +157,18 @@ namespace Scry
                 if (controller == null) continue;
                 if (!ByController.TryGetValue(controller, out var named))
                 {
+                    // Every clip's events are read here once anyway; what a copy's ears need of
+                    // them is kept too, so showing a person need not read its hundreds of clips.
                     named = new List<(string, GameObject)>();
+                    var events = 0;
+                    var unknown = new SortedSet<string>();
                     foreach (var clip in controller.animationClips)
                     {
                         if (clip == null) continue;
                         foreach (var e in clip.events)
                         {
+                            events++;
+                            if (!AnimationEars.Answers(e.functionName)) unknown.Add(e.functionName);
                             if ((e.functionName == "Effect" || e.functionName == "Attach") && e.objectReferenceParameter is GameObject thing && thing != null)
                             {
                                 named.Add((clip.name, thing));
@@ -170,6 +176,7 @@ namespace Scry
                         }
                     }
                     ByController[controller] = named;
+                    AnimationEars.Remember(controller, events, unknown);
                 }
                 foreach (var (clip, thing) in named) book.Add(prefab.name, AnimationSounds, thing.name, PlayedByAnimation, clip);
             }

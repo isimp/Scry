@@ -46,8 +46,18 @@ namespace Scry
                 var layer = colliders[0].gameObject.layer;
                 for (var i = 0; i < 32; i++) if (!Physics.GetIgnoreLayerCollision(layer, i)) watch._meets |= 1 << i;
             }
+            // Where each collider reaches, from the foot, and where the ground is beneath it, since
+            // a copy made reaching into the ground is pushed out of it slowly.
+            var foot = watch._foot.y;
+            string Reach(Collider c)
+            {
+                var b = c.bounds;
+                var ground = !onStage && ZoneSystem.instance != null ? ZoneSystem.instance.GetGroundHeight(b.center) : float.NaN;
+                return $" from {b.min.y - foot:0.0} to {b.max.y - foot:0.0} m, {b.size.x:0.0} by {b.size.z:0.0} m across"
+                       + (float.IsNaN(ground) ? "" : $", ground beneath at {ground - foot:0.0} m");
+            }
             var told = string.Join(", ", colliders.Select(c =>
-                c.GetType().Name + (c is MeshCollider mesh && !mesh.convex ? " not convex" : "") + (c.enabled ? "" : " off") + " on " + LayerMask.LayerToName(c.gameObject.layer) + "/" + c.gameObject.layer));
+                c.GetType().Name + (c is MeshCollider mesh && !mesh.convex ? " not convex" : "") + (c.enabled ? "" : " off") + " on " + LayerMask.LayerToName(c.gameObject.layer) + "/" + c.gameObject.layer + Reach(c)));
             var body = watch._body;
             Plugin.Note($"Scry lets {piece.name} fall {(onStage ? "on the stage" : "in the world")} from {from.name}: made {Around(watch._start - watch._foot)} of its foot"
                 + (body != null ? $", body mass {body.mass:0.#}{(body.isKinematic ? " kinematic" : "")}{(body.useGravity ? "" : " without gravity")}, pushed apart at most {body.maxDepenetrationVelocity:0.#} m/s, moving {body.linearVelocity.magnitude:0.#} m/s" : ", no body")
@@ -76,9 +86,9 @@ namespace Scry
                     var other = Near[i];
                     if (other == null || System.Array.IndexOf(_own, other) >= 0) continue;
                     var inside = Physics.ComputePenetration(mine, mine.transform.position, mine.transform.rotation,
-                        other, other.transform.position, other.transform.rotation, out _, out var depth);
+                        other, other.transform.position, other.transform.rotation, out var away, out var depth);
                     var told = $"{other.name} ({other.GetType().Name} on {LayerMask.LayerToName(other.gameObject.layer)}/{other.gameObject.layer}) of {other.transform.root.name}";
-                    if (inside) told += $" by {depth:0.00} m";
+                    if (inside) told += $" by {depth:0.00} m, pushed {(away.y > 0.7f ? "up" : away.y < -0.7f ? "down" : "aside")} at {Time.time - (_until - Seconds):0.00} s";
                     if (!_touched.Exists(t => t.StartsWith(told.Split(new[] { " by " }, System.StringSplitOptions.None)[0], System.StringComparison.Ordinal))) _touched.Add(told);
                     if (_touched.Count >= 6) return;
                 }

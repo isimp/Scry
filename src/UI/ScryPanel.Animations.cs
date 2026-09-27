@@ -97,8 +97,11 @@ namespace Scry
 
                 var on = playing == clip;
                 var style = on ? Skin.ChipOn : Skin.Chip;
+                // Rows below what shows are measured a few a frame; until then their width is told
+                // from their length, which only moves rows out of sight.
                 started = Timing.Start();
-                var w = Mathf.Min(width, Skin.Width(style, text) + U(8f));
+                var below = y > _sideVisible.yMax;
+                var w = Mathf.Min(width, (below ? Skin.WidthSoon(style, text) : Skin.Width(style, text)) + U(8f));
                 Timing.Add("clips measured", started);
                 if (x + w > width && x > 0f)
                 {
@@ -187,9 +190,11 @@ namespace Scry
             if (ReferenceEquals(clips, _rowsClips) && ReferenceEquals(tags, _rowsTags) && sorting == _rowsSorting && _clipFilter == _rowsFilter) return _clipRows;
 
             var rows = new List<ClipRow>(clips.Count);
-            foreach (var clip in clips)
+            var names = Previews.ClipNames();
+            for (var i = 0; i < clips.Count; i++)
             {
-                var name = clip.name;
+                var clip = clips[i];
+                var name = i < names.Count ? names[i] : clip.name;
                 var tagged = tags.TryGetValue(name, out var tag);
                 var text = tagged ? name + "  \u00B7  " + tag : name;
                 if (_clipFilter.Length > 0 && text.IndexOf(_clipFilter, StringComparison.OrdinalIgnoreCase) < 0) continue;
