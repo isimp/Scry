@@ -44,6 +44,20 @@ namespace Scry.Tests
             Assert.Equal("1–2", DropWords.Amount(table, table.Drops[0]));
         }
 
+        [Theory]
+        [InlineData(2, 3, 1f, true, 5, "Holds 2–3 of these, each at most once")]
+        [InlineData(3, 3, 1f, true, 3, "Holds each of these once")]
+        [InlineData(2, 3, 1f, false, 4, "Holds 2–3 of these")]
+        [InlineData(1, 1, 1f, false, 3, "Holds one of these")]
+        [InlineData(1, 1, 1f, false, 1, "Holds")]
+        [InlineData(2, 4, 0.5f, true, 6, "Holds 2–4 of these, each at most once, 50% of the time")]
+        public void AChestsContentsAreToldAsWhatItHolds(int min, int max, float chance, bool oneOfEach, int items, string title)
+        {
+            var drops = Enumerable.Range(0, items).Select(i => new DropInfo("Item" + i, 1, 2, 1f)).ToArray();
+
+            Assert.Equal(title, DropWords.HoldsTitle(Table(min, max, chance, oneOfEach, drops)));
+        }
+
         [Fact]
         public void AnEmptyTableDropsNothing()
         {

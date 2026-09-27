@@ -59,6 +59,29 @@ namespace Scry
             return title;
         }
 
+        /// <summary>
+        /// The title of a chest's contents, the same table told as what it holds: "Holds 2–3 of
+        /// these, each at most once", "Holds one of these", "Holds" for a single sure item.
+        /// </summary>
+        public static string HoldsTitle(DropTableInfo table)
+        {
+            string title;
+            if (table.OneOfEach)
+            {
+                title = table.Min >= table.Drops.Count ? "Holds each of these once" : $"Holds {Range(table.Min, table.Max)} of these, each at most once";
+            }
+            else if (table.Max > 1)
+            {
+                title = $"Holds {Range(table.Min, table.Max)} of these";
+            }
+            else
+            {
+                title = table.Drops.Count > 1 ? "Holds one of these" : "Holds";
+            }
+            if (table.Chance < 1f) title += $", {Percent(table.Chance)}% of the time";
+            return title;
+        }
+
         /// <summary>How many of an item a roll gives, and its share of a roll where there is a choice.</summary>
         public static string Amount(DropTableInfo table, DropInfo drop)
         {

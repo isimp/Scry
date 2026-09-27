@@ -126,6 +126,11 @@ namespace Scry
             Resource(prefab);
             if (piece != null && !piece.enabled) MadeBuildable(piece);
 
+            // What a chest is filled with when the game first opens it (Container.AddDefaultItems);
+            // one players build has nothing.
+            var container = prefab.GetComponent<Container>();
+            if (container != null) Drops(container.m_defaultItems, null, holds: true);
+
             // The prefab's own numbers are shown; a world that changes them says by how much.
             var game = Game.instance;
             var enemy = character != null && !(character is Player);
@@ -555,8 +560,11 @@ namespace Scry
             Resists(resists);
         }
 
-        /// <summary>A drop table as a row: its title says how often and how many times, each chip how many and its share.</summary>
-        private void Drops(DropTable table, string lead)
+        /// <summary>
+        /// A drop table as a row: its title says how often and how many times, each chip how many
+        /// and its share. A chest's is told as what it holds.
+        /// </summary>
+        private void Drops(DropTable table, string lead, bool holds = false)
         {
             if (table?.m_drops == null) return;
             var info = new DropTableInfo { Min = table.m_dropMin, Max = table.m_dropMax, Chance = table.m_dropChance, OneOfEach = table.m_oneOfEach };
@@ -569,7 +577,7 @@ namespace Scry
             }
             if (DropWords.IsEmpty(info)) return;
 
-            var title = DropWords.Title(info);
+            var title = holds ? DropWords.HoldsTitle(info) : DropWords.Title(info);
             if (lead != null) title = lead + char.ToLowerInvariant(title[0]) + title.Substring(1);
             var row = new Row { Title = title };
             for (var i = 0; i < items.Count; i++)
