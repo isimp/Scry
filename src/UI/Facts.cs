@@ -80,6 +80,8 @@ namespace Scry
                 }
                 else if (entry.Source is GameObject prefab)
                 {
+                    // The game spawns creatures up to two stars; some mods go higher, and show it.
+                    facts._stars = Math.Max(2, entry.ExtraLevels);
                     facts.Prefab(prefab);
                     if (entry.Kind == Kind.Creature) facts.WhereTitle = "Where it lives";
                     facts.Where.AddRange(Knowledge.WhereLines(entry.Name));
@@ -211,13 +213,27 @@ namespace Scry
 
         // ----- Creatures -----
 
+        /// <summary>How many stars a creature can have, for what they add.</summary>
+        private int _stars = 2;
+
         private void Creature(GameObject prefab, Character character)
         {
             Add("Health", Number(character.m_health));
             Add("Faction", Word(character.m_faction));
             if (character.m_boss) Add("Boss", "yes");
 
+            // What stars add: its health once more for each, and half as much again to each hit.
+            if (!character.m_boss)
+            {
+                var health = CombatWords.StarHealth(character.m_health, _stars);
+                if (health != null) Add("Health with stars", health);
+                var hits = CombatWords.StarDamage(_stars);
+                if (hits != null) Add("Hits with stars", hits);
+            }
+
             Resists(character.m_damageModifiers);
+            Attacks(prefab);
+            Behaviour(prefab, character);
 
             if (prefab.GetComponent<Tameable>() != null)
             {
@@ -244,6 +260,65 @@ namespace Scry
                     row.Items.Add(new Ingredient { Icon = Icon(drop.m_prefab), Name = ItemName(drop.m_prefab), Amount = amount, Prefab = drop.m_prefab.name });
                 }
                 if (row.Items.Count > 0) Rows.Add(row);
+            }
+        }
+
+        /// <summary>
+        /// Each attack it has, from the items it may carry (a creature fights with items of its
+        /// own, as a person does): what a hit does, how, and from how near and far and how often
+        /// its AI uses it (<c>m_aiAttackRange</c>, <c>m_aiAttackRangeMin</c>, <c>m_aiAttackInterval</c>).
+        /// Each goes to its item.
+        /// </summary>
+        private void Attacks(GameObject prefab)
+        {
+            foreach (var item in Relations.CarriedItems(prefab))
+            {
+                var shared = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                var attack = shared?.m_attack;
+                if (attack == null) continue;
+                var name = ItemName(item);
+                var d = shared.m_damages;
+                var damage = CombatWords.Damage(new[]
+                {
+                    ("true", d.m_damage), ("blunt", d.m_blunt), ("slash", d.m_slash), ("pierce", d.m_pierce), ("chop", d.m_chop), ("pickaxe", d.m_pickaxe),
+                    ("fire", d.m_fire), ("frost", d.m_frost), ("lightning", d.m_lightning), ("poison", d.m_poison), ("spirit", d.m_spirit),
+                });
+                var key = "Attack: " + name;
+                if (Pairs.Any(p => p.Key == key)) continue;
+                Add(key, CombatWords.Attack(damage, attack.m_attackType.ToString(), shared.m_aiAttackRangeMin, shared.m_aiAttackRange, shared.m_aiAttackInterval));
+                Links[key] = item.name;
+            }
+        }
+
+        /// <summary>How it moves, sees and hears, what it fears, when it flees, and how long it takes to tame.</summary>
+        private void Behaviour(GameObject prefab, Character character)
+        {
+            var moves = new List<string>();
+            if (character.m_flying) moves.Add($"flies {Number(character.m_flySlowSpeed)} to {Number(character.m_flyFastSpeed)} m/s");
+            else moves.Add($"walks {Number(character.m_walkSpeed)} m/s, runs {Number(character.m_runSpeed)} m/s");
+            if (character.m_canSwim) moves.Add($"swims {Number(character.m_swimSpeed)} m/s");
+            Add("Moves", string.Join(", ", moves));
+
+            var ai = prefab.GetComponent<BaseAI>();
+            if (ai != null)
+            {
+                Add("Sees", $"{Number(ai.m_viewRange)} m, {Number(ai.m_viewAngle)}° ahead");
+                if (ai.m_hearRange < 9000f) Add("Hears", $"{Number(ai.m_hearRange)} m");
+                if (ai.m_afraidOfFire) Add("Fire", "afraid of it");
+                else if (ai.m_avoidFire) Add("Fire", "keeps away from it");
+                if (ai.m_passiveAggresive) Add("Fights", "only once attacked");
+                if (ai is MonsterAI monster)
+                {
+                    if (monster.m_fleeIfLowHealth > 0f) Add("Flees", $"below {Mathf.RoundToInt(monster.m_fleeIfLowHealth * 100f)}% health, right after being hurt");
+                    if (!monster.m_attackPlayerObjects) Add("Leaves alone", "what players build");
+                }
+            }
+
+            var tame = prefab.GetComponent<Tameable>();
+            if (tame != null)
+            {
+                Add("Takes to tame", Minutes(tame.m_tamingTime));
+                Add("Stays fed", Minutes(tame.m_fedDuration));
             }
         }
 
