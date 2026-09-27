@@ -8,11 +8,42 @@ namespace Scry
     /// </summary>
     public sealed class Entry
     {
+        private string _name = "";
+        private string _displayName = "";
+
+        // Worked out once per name, since the search reads them for every entry on every keystroke.
+        private string _nameUpper;
+        private string _displayNameUpper;
+        private string _statusEffectKey;
+
         /// <summary>The prefab name, or the status effect's name.</summary>
-        public string Name = "";
+        public string Name
+        {
+            get => _name;
+            set
+            {
+                _name = value;
+                _nameUpper = null;
+                _statusEffectKey = null;
+            }
+        }
 
         /// <summary>The name the game shows for it, in the current language. Empty when it has none.</summary>
-        public string DisplayName = "";
+        public string DisplayName
+        {
+            get => _displayName;
+            set
+            {
+                _displayName = value;
+                _displayNameUpper = null;
+            }
+        }
+
+        /// <summary>The prefab name in capitals, to match typed words against whatever their case.</summary>
+        internal string NameUpper => _nameUpper ?? (_nameUpper = _name?.ToUpperInvariant());
+
+        /// <summary>The shown name in capitals, to match typed words against whatever their case.</summary>
+        internal string DisplayNameUpper => _displayNameUpper ?? (_displayNameUpper = _displayName?.ToUpperInvariant());
 
         public Kind Kind;
         public Origin Origin;
@@ -85,7 +116,7 @@ namespace Scry
         /// The key favourites are stored under. Status effects live in their own namespace, since
         /// a status effect and a prefab may share a name.
         /// </summary>
-        public string Key => Kind == Kind.StatusEffect ? "se:" + Name : Name;
+        public string Key => Kind == Kind.StatusEffect ? _statusEffectKey ?? (_statusEffectKey = "se:" + Name) : Name;
 
         public override string ToString() => Key;
     }

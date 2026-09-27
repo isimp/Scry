@@ -56,6 +56,22 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AStationsShownNameIsFoundWrittenWithoutItsSpaces()
+        {
+            Assert.Equal(new[] { "piece_chair" }, Find("station:artisantable"));
+            Assert.Equal(new[] { "piece_chair" }, Find("station:ANTAB"));
+            Assert.Empty(Find("station:artisantables"));
+        }
+
+        [Fact]
+        public void AStationLevelTooLargeToCountFindsEverythingTheStationMakes()
+        {
+            Assert.Equal(new[] { "MaceSilver", "SwordIron" }, Find("station:forge99999999999999"));
+            Assert.Equal(new[] { "MaceSilver", "SwordIron" }, Find("station:forge4294967298"));
+            Assert.Equal(new[] { "Club" }, Find("station:workbench2147483648"));
+        }
+
+        [Fact]
         public void WhatNoStationMakesIsNotFoundByOne()
         {
             Assert.DoesNotContain("Wood", Find("station:forge"));
