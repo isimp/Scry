@@ -80,10 +80,13 @@ namespace Scry
             var top = rect.y;
             if (withStage)
             {
+                // A sound or a status effect with nothing to show on a person gets a card only as
+                // tall as what it holds, so its details start higher; a model gets the stage.
+                var card = CardHeight(entry);
                 _stageBaseH = Mathf.Round(Mathf.Min(rect.width * 0.60f, rect.height * 0.50f));
-                var stageH = Mathf.Round(Mathf.Clamp(_stageBaseH * _stageScale, U(120f), rect.height * 0.85f));
+                var stageH = card > 0f ? card : Mathf.Round(Mathf.Clamp(_stageBaseH * _stageScale, U(120f), rect.height * 0.85f));
                 Section("side stage", 0f, _ => { StageArea(entry, new Rect(rect.x, rect.y, rect.width, stageH)); return 0f; });
-                StageHandle(new Rect(rect.x, rect.y + stageH, rect.width, U(12f)));
+                if (card <= 0f) StageHandle(new Rect(rect.x, rect.y + stageH, rect.width, U(12f)));
                 top += stageH + U(12f);
             }
 
@@ -101,7 +104,8 @@ namespace Scry
             if (Looks.IsWorn(entry)) y = Section("side wearing", y, at => Wearing(explorer, cw, at));
             if (entry.Kind == Kind.Sound)
             {
-                y = Section("side timeline", y, at => Timeline(cw, at));
+                // With a stage the timeline is on the sound's card.
+                if (!withStage) y = Section("side timeline", y, at => Timeline(cw, at));
                 y = Section("side variants", y, at => Variants(entry, cw, at));
             }
 
@@ -311,28 +315,23 @@ namespace Scry
             return facts;
         }
 
+        /// <summary>The card's height for an entry shown as a card on the stage, or 0 for one the stage shows.</summary>
+        private static float CardHeight(Entry entry)
+        {
+            if (entry == null || Stage.IsStaged(entry)) return 0f;
+            if (entry.Kind == Kind.Sound) return U(118f);
+            if (entry.Kind == Kind.StatusEffect) return U(150f);
+            return 0f;
+        }
+
+        /// <summary>What the sound is (its clips and length), and where it has got to, which can be moved.</summary>
         private static void SoundCard(Entry entry, Rect rect)
         {
-            // Bars that move while the sound plays.
-            var bars = 24;
-            var barW = U(6f);
-            var gap = U(5f);
-            var total = bars * barW + (bars - 1) * gap;
-            var x = rect.x + (rect.width - total) / 2f;
-            var mid = rect.y + rect.height * 0.42f;
-            var playing = Previews.SoundPlaying && !Previews.SoundPaused;
-            var accent = Skin.KindColor(Kind.Sound);
-
-            for (var i = 0; i < bars; i++)
-            {
-                var shape = 0.35f + 0.65f * Mathf.Abs(Mathf.Sin(i * 0.9f + 0.6f)) * Mathf.Sin((i + 1f) / (bars + 1f) * Mathf.PI);
-                var motion = playing ? 0.55f + 0.45f * Mathf.Sin(Time.unscaledTime * 9f + i * 0.7f) : 0.35f;
-                var height = U(90f) * shape * motion + U(6f);
-                var bar = new Rect(x + i * (barW + gap), mid - height / 2f, barW, height);
-                Skin.PillBox(bar, playing ? accent : new Color(accent.r, accent.g, accent.b, 0.35f));
-            }
-
-            GUI.Label(new Rect(rect.x + U(20f), mid + U(64f), rect.width - U(40f), U(26f)), SoundFacts(entry), Skin.CenterDim);
+            GUI.Label(new Rect(rect.x + U(20f), rect.y + U(40f), rect.width - U(40f), U(24f)), SoundFacts(entry), Skin.Center);
+            var line = new Rect(rect.x + U(20f), rect.y + U(74f), rect.width - U(40f), U(30f));
+            GUI.BeginGroup(line);
+            Timeline(line.width, 0f);
+            GUI.EndGroup();
         }
 
         private static string DescribeSound(GameObject prefab)
@@ -379,21 +378,15 @@ namespace Scry
 
         private static void StatusCard(Entry entry, Rect rect)
         {
+            // Its icon and how long it lasts; what it does is the first thing under In the game.
             var effect = entry.Source as StatusEffect;
-            var iconSize = U(84f);
-            var icon = new Rect(rect.x + (rect.width - iconSize) / 2f, rect.y + U(34f), iconSize, iconSize);
+            var iconSize = U(64f);
+            var icon = new Rect(rect.x + (rect.width - iconSize) / 2f, rect.y + U(38f), iconSize, iconSize);
             if (effect != null && effect.m_icon != null) DrawIcon(entry, icon);
             else DrawIcon(new Entry { Kind = Kind.StatusEffect }, icon);
 
             if (effect == null) return;
-            var y = icon.yMax + U(12f);
-            GUI.Label(new Rect(rect.x + U(20f), y, rect.width - U(40f), U(22f)), StatusFacts(effect), Skin.CenterDim);
-
-            var tooltip = CatalogBuilder.Localize(effect.m_tooltip);
-            if (tooltip.Length > 0)
-            {
-                GUI.Label(new Rect(rect.x + U(30f), y + U(28f), rect.width - U(60f), rect.yMax - y - U(34f)), tooltip, Skin.CenterDim);
-            }
+            GUI.Label(new Rect(rect.x + U(20f), icon.yMax + U(10f), rect.width - U(40f), U(22f)), StatusFacts(effect), Skin.CenterDim);
         }
 
         private static float Title(Explorer explorer, Entry entry, float width, float y)
