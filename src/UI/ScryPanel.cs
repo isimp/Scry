@@ -91,10 +91,16 @@ namespace Scry
             _reveal = true;
         }
 
+        /// <summary>
+        /// What the panel last drew: the whole window, or only the card shown while the catalog is
+        /// read, so the space around that card is the world's, for looking around.
+        /// </summary>
+        private static Rect _drawn;
+
         /// <summary>Whether a mouse position (in Unity's bottom-up screen coordinates) is over the panel.</summary>
         public static bool Covers(Vector3 mouse)
         {
-            return Session.IsOpen && Win.Contains(new Vector2(mouse.x, Screen.height - mouse.y));
+            return Session.IsOpen && _drawn.Contains(new Vector2(mouse.x, Screen.height - mouse.y));
         }
 
         private static float U(float v) => Mathf.Round(v * _s);
@@ -555,6 +561,7 @@ namespace Scry
 
                 var pad = U(16f);
                 var rect = new Rect(Win.x, Win.y, Win.width, Mathf.Min(Win.height, U(124f)));
+                _drawn = rect;
                 Skin.Box(rect, Skin.Backdrop, Skin.Outline);
                 GUI.BeginGroup(rect);
                 GUI.Label(new Rect(pad, U(10f), U(90f), U(34f)), "Scry", Skin.Title);
@@ -575,6 +582,7 @@ namespace Scry
         private static void Draw(Explorer explorer)
         {
             var win = Win;
+            _drawn = win;
             Skin.Box(win, Skin.Backdrop, Skin.Outline);
 
             GUI.BeginGroup(win);
