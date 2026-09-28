@@ -170,10 +170,11 @@ namespace Scry
             }
 
             var type = shared.m_itemType;
-            var worn = type == ItemDrop.ItemData.ItemType.Helmet || type == ItemDrop.ItemData.ItemType.Chest || type == ItemDrop.ItemData.ItemType.Legs
-                       || type == ItemDrop.ItemData.ItemType.Hands || type == ItemDrop.ItemData.ItemType.Shoulder;
+            // The slots whose armour counts (Humanoid.GetBodyArmor); gloves' does not.
+            var worn = type == ItemDrop.ItemData.ItemType.Helmet || type == ItemDrop.ItemData.ItemType.Chest
+                       || type == ItemDrop.ItemData.ItemType.Legs || type == ItemDrop.ItemData.ItemType.Shoulder;
             if (worn && shared.m_armor > 0f) Add("Armour", $"{Number(shared.m_armor)}, +{Number(shared.m_armorPerLevel)} per quality");
-            if (type == ItemDrop.ItemData.ItemType.Shield && shared.m_blockPower > 0f) Add("Block", $"{Number(shared.m_blockPower)}, +{Number(shared.m_blockPowerPerLevel)} per quality");
+            Combat(prefab, shared);
 
             if (shared.m_food > 0f || shared.m_foodStamina > 0f || shared.m_foodEitr > 0f)
             {
@@ -225,6 +226,73 @@ namespace Scry
                 if (kits.Items.Count > 0) Rows.Add(kits);
             }
             MadeIn(prefab);
+        }
+
+        /// <summary>
+        /// What the game's own tooltip tells of a weapon, shield, tool or ammo besides its damage
+        /// (<c>ItemDrop.ItemData.GetTooltip</c>, <c>AddBlockTooltip</c>): the skill it trains,
+        /// durability and where it is repaired, blocking and parrying, knockback, backstab, and
+        /// what an attack costs; and for what can be upgraded, the station level each quality needs
+        /// (<c>Recipe.GetRequiredStationLevel</c>: one more for each quality).
+        /// </summary>
+        private void Combat(GameObject prefab, ItemDrop.ItemData.SharedData shared)
+        {
+            var type = shared.m_itemType;
+            var weapon = type == ItemDrop.ItemData.ItemType.OneHandedWeapon || type == ItemDrop.ItemData.ItemType.TwoHandedWeapon
+                         || type == ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft || type == ItemDrop.ItemData.ItemType.Bow || type == ItemDrop.ItemData.ItemType.Torch;
+            var ammo = type == ItemDrop.ItemData.ItemType.Ammo || type == ItemDrop.ItemData.ItemType.AmmoNonEquipable;
+            var shield = type == ItemDrop.ItemData.ItemType.Shield;
+            var upgradable = shared.m_maxQuality > 1;
+            string PerQuality(float perLevel) => upgradable && perLevel > 0f ? $", +{Number(perLevel)} per quality" : "";
+
+            if ((weapon || ammo || shield || type == ItemDrop.ItemData.ItemType.Tool) && shared.m_skillType != Skills.SkillType.None)
+            {
+                Add("Skill", Word(shared.m_skillType));
+            }
+
+            if (weapon || shield)
+            {
+                // The game tells blocking only above 1, as AddBlockTooltip does.
+                if (shared.m_blockPower > 1f) Add("Block", Number(shared.m_blockPower) + PerQuality(shared.m_blockPowerPerLevel));
+                if (shared.m_deflectionForce > 1f) Add("Block force", Number(shared.m_deflectionForce) + PerQuality(shared.m_deflectionForcePerLevel));
+                if (shared.m_timedBlockBonus > 1f) Add("Parry bonus", $"\u00d7{Number(shared.m_timedBlockBonus)}");
+            }
+
+            if ((weapon || ammo) && shared.m_attackForce > 0f) Add("Knockback", Number(shared.m_attackForce));
+            if (weapon && shared.m_backstabBonus > 1f) Add("Backstab", $"\u00d7{Number(shared.m_backstabBonus)}");
+
+            var attack = shared.m_attack;
+            if (weapon && attack != null)
+            {
+                var costs = new List<string>();
+                if (attack.m_attackStamina > 0f) costs.Add($"{Number(attack.m_attackStamina)} stamina");
+                if (attack.m_attackEitr > 0f) costs.Add($"{Number(attack.m_attackEitr)} eitr");
+                if (attack.m_attackHealth > 0f) costs.Add($"{Number(attack.m_attackHealth)} health");
+                if (attack.m_attackHealthPercentage > 0f) costs.Add($"{Number(attack.m_attackHealthPercentage)}% health");
+                if (costs.Count > 0) Add("Each attack costs", string.Join(", ", costs));
+                if (attack.m_drawStaminaDrain > 0f) Add("Drawing costs", $"{Number(attack.m_drawStaminaDrain)} stamina a second");
+            }
+
+            var recipe = ObjectDB.instance != null ? ObjectDB.instance.m_recipes.FirstOrDefault(r => r != null && r.m_enabled && r.m_item != null && r.m_item.gameObject.name == prefab.name) : null;
+            if (shared.m_useDurability)
+            {
+                Add("Durability", Number(shared.m_maxDurability) + PerQuality(shared.m_durabilityPerLevel));
+                // Repaired where it is made or at its repair station, from the recipe's station level (InventoryGui.CanRepair).
+                var at = recipe != null ? recipe.m_repairStation ?? recipe.m_craftingStation : null;
+                if (shared.m_canBeReparied && at != null)
+                {
+                    var level = recipe.m_minStationLevel > 1 ? $", level {recipe.m_minStationLevel}" : "";
+                    Add("Repaired at", CatalogBuilder.Localize(at.m_name) + level, at.gameObject.name);
+                }
+            }
+
+            var station = recipe != null ? recipe.m_craftingStation ?? recipe.m_repairStation : null;
+            if (upgradable && station != null)
+            {
+                var first = recipe.GetRequiredStationLevel(2);
+                var last = recipe.GetRequiredStationLevel(shared.m_maxQuality);
+                Add("Upgrades need", $"{CatalogBuilder.Localize(station.m_name)} level {DropWords.Range(first, last)}, one more for each quality", station.gameObject.name);
+            }
         }
 
         /// <summary>
@@ -315,6 +383,12 @@ namespace Scry
                 {
                     Rows.Add(row);
                     _drops = true;
+                    // A boss is not spawned with stars; any other creature's drops grow with them.
+                    if (!character.m_boss && drops.m_drops.Any(d => d?.m_prefab != null && d.m_levelMultiplier && !d.m_onePerPlayer))
+                    {
+                        var same = drops.m_drops.Where(d => d?.m_prefab != null && !d.m_levelMultiplier).Select(d => ItemName(d.m_prefab)).Distinct().ToList();
+                        Add("Drops with stars", DropWords.StarDrops(_stars, same));
+                    }
                 }
             }
         }
@@ -644,7 +718,15 @@ namespace Scry
             Description = CatalogBuilder.Localize(piece.m_description);
             // The build menu tab it is under, named as the list's group names it (not the game's category enum).
             if (_entry != null && _entry.Kind == Kind.Piece) Add("Build menu", _entry.Group == Groups.InNoMenu.Name ? "none" : _entry.Group);
-            if (piece.m_comfort > 0) Add("Comfort", piece.m_comfort.ToString(CultureInfo.InvariantCulture));
+            if (piece.m_comfort > 0)
+            {
+                // SE_Rested.CalculateComfortLevel counts, within 10 m, only the best of each comfort
+                // group, and a piece of the same name once.
+                Add("Comfort", piece.m_comfort.ToString(CultureInfo.InvariantCulture));
+                Add("Comfort group", piece.m_comfortGroup != global::Piece.ComfortGroup.None
+                    ? $"{Word(piece.m_comfortGroup)}: only the best of these within 10 m counts"
+                    : "none: a second one within 10 m adds nothing");
+            }
             if (wear != null)
             {
                 Add("Health", Number(wear.m_health));
@@ -766,6 +848,11 @@ namespace Scry
         private void StatusEffect(StatusEffect effect)
         {
             Description = CatalogBuilder.Localize(effect.m_tooltip);
+
+            // What the game's own tooltip says of its stats, in its words and units, where it can
+            // be read (SE_Stats.GetTooltipString); the fields it tells are then not told again.
+            var told = effect is SE_Stats && GameWords(effect);
+
             ScriptableObject blank = null;
             try
             {
@@ -774,16 +861,18 @@ namespace Scry
                 foreach (var field in effect.GetType().GetFields(flags))
                 {
                     if (Skipped.Contains(field.Name)) continue;
+                    if (told && ToldByTheGame.Contains(field.Name)) continue;
                     var type = field.FieldType;
                     if (type != typeof(float) && type != typeof(int) && type != typeof(bool) && !type.IsEnum) continue;
 
                     var value = field.GetValue(effect);
                     if (Equals(value, field.GetValue(blank))) continue;
-                    var shown = Shown(value);
+                    // A time is told with its unit ("Cooldown 20 min", not 1200).
+                    var shown = value is float seconds && IsTime(field.Name) ? Naming.Duration(seconds) : Shown(value);
                     if (shown != null) Add(Naming.FieldLabel(field.Name), shown);
                 }
 
-                if (effect is SE_Stats stats && stats.m_mods != null)
+                if (!told && effect is SE_Stats stats && stats.m_mods != null)
                 {
                     foreach (var pair in stats.m_mods)
                     {
@@ -796,6 +885,77 @@ namespace Scry
             {
                 if (blank != null) UnityEngine.Object.Destroy(blank);
             }
+        }
+
+        /// <summary>
+        /// The game's own tooltip lines, each "Label: value" as a pair, and a skill's "Swords +15"
+        /// by the skill; the description it starts with is left out, as the card shows it, and so
+        /// is its duration. False where the tooltip cannot be read or tells nothing more.
+        /// </summary>
+        private bool GameWords(StatusEffect effect)
+        {
+            string text;
+            try
+            {
+                text = Localization.instance != null ? Localization.instance.Localize(effect.GetTooltipString()) : null;
+            }
+            catch
+            {
+                // A mod's effect that needs a character to describe itself is told by its fields.
+                return false;
+            }
+            if (string.IsNullOrEmpty(text)) return false;
+            text = Naming.Plain(text).Replace("\r", "");
+            var lines = text.Split('\n').ToList();
+            if (!string.IsNullOrEmpty(effect.m_tooltip))
+            {
+                var gap = lines.FindIndex(l => l.Trim().Length == 0);
+                lines = gap >= 0 ? lines.Skip(gap + 1).ToList() : new List<string>();
+            }
+            var duration = Localization.instance.Localize("$se_ttl");
+            var added = 0;
+            foreach (var raw in lines)
+            {
+                var line = raw.Trim();
+                if (line.Length == 0) continue;
+                var colon = line.IndexOf(':');
+                var space = line.LastIndexOf(' ');
+                string label, value;
+                if (colon > 0)
+                {
+                    label = line.Substring(0, colon).Trim();
+                    value = line.Substring(colon + 1).Trim();
+                }
+                else if (space > 0)
+                {
+                    label = line.Substring(0, space).Trim();
+                    value = line.Substring(space + 1).Trim();
+                }
+                else continue;
+                if (label.Length == 0 || value.Length == 0 || label == duration) continue;
+                Add(label, value);
+                added++;
+            }
+            return added > 0;
+        }
+
+        /// <summary>The fields <c>SE_Stats.GetTooltipString</c> tells.</summary>
+        private static readonly HashSet<string> ToldByTheGame = new HashSet<string>
+        {
+            "m_addArmor", "m_addMaxCarryWeight", "m_adrenalineModifier", "m_adrenalineUpFront", "m_armorMultiplier", "m_attackStaminaUseModifier",
+            "m_blockStaminaUseFlatValue", "m_blockStaminaUseModifier", "m_dodgeStaminaUseModifier", "m_eitrOverTime", "m_eitrRegenMultiplier",
+            "m_eitrUpFront", "m_fallDamageModifier", "m_healthOverTime", "m_healthRegenMultiplier", "m_healthUpFront", "m_homeItemStaminaUseModifier",
+            "m_jumpModifier", "m_jumpStaminaUseModifier", "m_maxMaxFallSpeed", "m_mods", "m_noiseModifier", "m_percentigeDamageModifiers",
+            "m_runStaminaDrainModifier", "m_runStaminaUseModifier", "m_skillLevel", "m_skillLevelModifier", "m_skillLevel2", "m_skillLevelModifier2",
+            "m_sneakStaminaUseModifier", "m_speedModifier", "m_staggerModifier", "m_staminaOverTime", "m_staminaRegenMultiplier", "m_staminaUpFront",
+            "m_stealthModifier", "m_swimSpeedModifier", "m_swimStaminaUseModifier", "m_timedBlockBonus",
+        };
+
+        /// <summary>A field that holds a time in seconds, by its name.</summary>
+        private static bool IsTime(string field)
+        {
+            var name = field.ToLowerInvariant();
+            return (name.Contains("cooldown") || name.Contains("duration") || name.EndsWith("time") || name.Contains("interval")) && !name.Contains("multiplier") && !name.Contains("modifier");
         }
 
         /// <summary>Settings the card already shows, or that say nothing about what the effect does.</summary>

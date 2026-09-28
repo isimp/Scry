@@ -102,6 +102,28 @@ namespace Scry
         public static string CreatureAmount(int min, int max, bool onePerPlayer) =>
             onePerPlayer ? "1 per player" : Range(min, max - 1);
 
+        /// <summary>
+        /// What stars do to a creature's drops: <c>CharacterDrop.GenerateDropList</c> multiplies
+        /// the chance and the amount of each drop with <c>m_levelMultiplier</c> by 2 to the power
+        /// of its stars; those without it, named, stay the same. Null without stars.
+        /// </summary>
+        public static string StarDrops(int maxStars, IList<string> unchanged)
+        {
+            if (maxStars <= 0) return null;
+            var steps = new List<string>();
+            for (var stars = 1; stars <= maxStars; stars++) steps.Add($"×{1 << stars} at {stars} {(stars == 1 ? "star" : "stars")}");
+            var words = "amount and chance " + string.Join(", ", steps);
+            if (unchanged != null && unchanged.Count > 0) words += $"; {Joined(unchanged)} {(unchanged.Count == 1 ? "stays" : "stay")} the same";
+            return words;
+        }
+
+        /// <summary>"A", "A and B", "A, B and C".</summary>
+        private static string Joined(IList<string> names)
+        {
+            var all = new List<string>(names);
+            return all.Count == 1 ? all[0] : string.Join(", ", all.GetRange(0, all.Count - 1).ToArray()) + " and " + all[all.Count - 1];
+        }
+
         /// <summary>A range of counts, written as the rest of the panel writes them: "3", "1–4".</summary>
         public static string Range(int min, int max) => max <= min ? min.ToString() : $"{min}–{max}";
 
