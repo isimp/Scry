@@ -188,8 +188,11 @@ namespace Scry
             _sideFor = null;
 
             // The search help's index holds the whole catalog.
+            MemberKeys.Clear();
             _terms = null;
             _termsFor = null;
+            _termsJob = null;
+            _jobFor = null;
             _suggestFor = null;
             _suggested = new List<Suggestion>();
             _dropShown = false;

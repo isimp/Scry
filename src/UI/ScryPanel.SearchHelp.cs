@@ -16,19 +16,49 @@ namespace Scry
         private static Explorer _termsFor;
         private static Locations.State _termsAt;
 
-        /// <summary>Every value the search keys can take, read once per catalog and again once the locations are read.</summary>
+        private static System.Threading.Tasks.Task<TermIndex> _termsJob;
+        private static Explorer _jobFor;
+        private static Locations.State _jobAt;
+        private static readonly TermIndex NoTerms = new TermIndex(new Entry[0]);
+
+        /// <summary>
+        /// Every value the search keys can take, read once per catalog and again once the
+        /// locations are read. Reading thousands of entries took most of a frame (80 ms and more),
+        /// so it is done on a worker thread; until it is done the terms of before serve, or none
+        /// right after the catalog is read. The catalog's entries are only read there.
+        /// </summary>
         private static TermIndex TermsFor(Explorer explorer)
         {
-            if (_terms == null || !ReferenceEquals(explorer, _termsFor) || _termsAt != Locations.Now)
+            if (_terms != null && ReferenceEquals(explorer, _termsFor) && _termsAt == Locations.Now) return _terms;
+
+            if (_termsJob == null || !ReferenceEquals(_jobFor, explorer) || _jobAt != Locations.Now)
+            {
+                var catalog = explorer.Catalog;
+                _jobFor = explorer;
+                _jobAt = Locations.Now;
+                _termsJob = System.Threading.Tasks.Task.Run(() => new TermIndex(catalog));
+            }
+
+            if (_termsJob.IsCompleted)
             {
                 var started = Timing.Start();
-                _terms = new TermIndex(explorer.Catalog);
-                _termsFor = explorer;
-                _termsAt = Locations.Now;
+                if (_termsJob.Status == System.Threading.Tasks.TaskStatus.RanToCompletion)
+                {
+                    _terms = _termsJob.Result;
+                }
+                else
+                {
+                    Plugin.Log.LogWarning($"Scry could not read the search terms on a worker thread, and reads them now: {_termsJob.Exception?.GetBaseException().Message}");
+                    _terms = new TermIndex(explorer.Catalog);
+                }
+                _termsFor = _jobFor;
+                _termsAt = _jobAt;
+                _termsJob = null;
                 _suggestFor = null;
                 Timing.Add("search terms", started);
+                return _terms;
             }
-            return _terms;
+            return _terms != null && ReferenceEquals(_termsFor, explorer) ? _terms : NoTerms;
         }
 
         // ----- Suggestions while typing -----

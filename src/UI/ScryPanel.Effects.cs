@@ -181,7 +181,7 @@ namespace Scry
             }
             var x = 0f;
             var rowH = U(26f);
-            var key = "members:" + (title ?? "") + (list != null ? list.GetHashCode().ToString() : "");
+            var key = MembersKey(title, list);
             var count = ShownOf(key, members.Length);
             for (var i = 0; i < count; i++)
             {
@@ -206,6 +206,24 @@ namespace Scry
             }
             MoreChip(key, members.Length, FirstChips, width, rowH, U(5f), ref x, ref y);
             return y + rowH + U(6f);
+        }
+
+        private static readonly Dictionary<(string, object), string> MemberKeys = new Dictionary<(string, object), string>();
+
+        /// <summary>The key a list of members' "more" is kept under, made once for each list rather than every event.</summary>
+        private static string MembersKey(string title, object list)
+        {
+            if (MemberKeys.TryGetValue((title, list), out var key)) return key;
+            if (MemberKeys.Count > 5000) MemberKeys.Clear();
+            return MemberKeys[(title, list)] = "members:" + (title ?? "") + (list != null ? list.GetHashCode().ToString() : "");
+        }
+
+        private static readonly List<string> OwnerKeys = new List<string>();
+
+        private static string OwnersKey(int index)
+        {
+            while (OwnerKeys.Count <= index) OwnerKeys.Add("owners:" + OwnerKeys.Count);
+            return OwnerKeys[index];
         }
 
         private static Entry _playsInFor;
@@ -276,7 +294,7 @@ namespace Scry
                 x += labelW + U(8f);
 
                 const int firstOwners = 4;
-                var ownersKey = "owners:" + index;
+                var ownersKey = OwnersKey(index);
                 var shownOwners = Mathf.Min(ShownOf(ownersKey, row.Owners.Count, firstOwners), row.Owners.Count);
                 for (var o = 0; o < shownOwners; o++)
                 {

@@ -56,7 +56,7 @@ namespace Scry
             var alignment = style.alignment;
             style.normal.textColor = go || lit ? LinkText(kind, hover || lit) : Skin.Dim;
             style.alignment = TextAnchor.MiddleCenter;
-            GUI.Label(rect, go ? text + "  \u203A" : text, style);
+            GUI.Label(rect, go ? GoText(text) : text, style);
             style.normal.textColor = was;
             style.alignment = alignment;
 
@@ -78,7 +78,22 @@ namespace Scry
             return Color.Lerp(colour, Color.white, hover ? 0.6f : 0.35f);
         }
 
-        private static float LinkChipWidth(string text, bool go) => Skin.Width(Skin.Small, go ? text + "  \u203A" : text) + U(16f);
+        /// <summary>
+        /// A chip's width. A name not measured before is measured within the frame's share, and
+        /// guessed from its length past it, so opening a long list measures its names over a few
+        /// frames rather than all in one.
+        /// </summary>
+        private static float LinkChipWidth(string text, bool go) => Skin.WidthSoon(Skin.Small, go ? GoText(text) : text) + U(16f);
+
+        private static readonly Dictionary<string, string> GoTexts = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>A chip's text with the arrow of one that goes somewhere, made once for each name.</summary>
+        private static string GoText(string text)
+        {
+            if (GoTexts.TryGetValue(text, out var shown)) return shown;
+            if (GoTexts.Count > 20000) GoTexts.Clear();
+            return GoTexts[text] = text + "  \u203A";
+        }
 
         /// <summary>The kind of the entry a prefab name goes to, when it is in the catalog.</summary>
         private static Kind? KindOf(Explorer explorer, string name)
@@ -257,11 +272,11 @@ namespace Scry
         {
             if (explorer == null) return;
 
-            // Reading the locations adds values to search by (in:): the terms are made again here,
-            // in a frame of their own, rather than on the next keystroke.
+            // Reading the locations adds values to search by (in:): the terms are made again on a
+            // worker thread started here, and taken up here once done, rather than on a keystroke.
             if (ReferenceEquals(explorer, _prepared))
             {
-                if (_termsAt != Locations.Now && Locations.Now != Locations.State.Reading) TermsFor(explorer);
+                if ((_terms == null || !ReferenceEquals(_termsFor, explorer) || _termsAt != Locations.Now) && Locations.Now != Locations.State.Reading) TermsFor(explorer);
                 return;
             }
             if (!ReferenceEquals(explorer, _preparing))
