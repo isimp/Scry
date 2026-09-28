@@ -12,7 +12,9 @@ namespace Scry
     {
         private static float FactsSection(Explorer explorer, Entry entry, float width, float y)
         {
+            var built = Timing.Start();
             var facts = Facts.For(entry);
+            Timing.Add("facts built", built);
             var places = entry.Kind != Kind.StatusEffect && (Locations.Now != Locations.State.Read || entry.FoundIn.Length > 0);
             if (facts.IsEmpty && !places) return y;
 

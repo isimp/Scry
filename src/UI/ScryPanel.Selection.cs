@@ -189,7 +189,9 @@ namespace Scry
 
                 if (Stage.Subject != null && Stage.Texture != null)
                 {
+                    var drawn = Timing.Start();
                     if (e.type == EventType.Repaint) GUI.DrawTexture(inner, Stage.Texture, ScaleMode.StretchToFill, false);
+                    Timing.Add("stage texture", drawn);
                 }
                 else if (entry.Kind != Kind.Effect)
                 {
@@ -235,11 +237,15 @@ namespace Scry
             }
             else if (entry.Kind == Kind.Sound)
             {
+                var drawn = Timing.Start();
                 SoundCard(entry, rect);
+                Timing.Add("stage card", drawn);
             }
             else if (entry.Kind == Kind.StatusEffect)
             {
+                var drawn = Timing.Start();
                 StatusCard(entry, rect);
+                Timing.Add("stage card", drawn);
             }
             else
             {

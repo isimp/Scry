@@ -116,6 +116,7 @@ namespace Scry
         /// </summary>
         private void Part(string part, Action read)
         {
+            var started = Timing.Start();
             try
             {
                 read();
@@ -124,6 +125,10 @@ namespace Scry
             {
                 Faults.Tell("the " + part + " details", ex);
                 if (!_missing.Contains(part)) _missing.Add(part);
+            }
+            finally
+            {
+                if (Plugin.LogPreviews) Timing.Add("facts " + part, started);
             }
         }
 

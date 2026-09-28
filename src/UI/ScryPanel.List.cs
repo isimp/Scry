@@ -154,7 +154,9 @@ namespace Scry
                 _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
             }
 
+            var built = Timing.Start();
             var rows = ListRows(explorer);
+            Timing.Add("list rows", built);
             if (_reveal && Event.current.type == EventType.Repaint)
             {
                 _reveal = false;
@@ -285,13 +287,16 @@ namespace Scry
             if (selected) Skin.Fill(new Rect(inner.x, inner.y + U(8f), U(3f), inner.height - U(16f)), Skin.Accent);
 
             var icon = new Rect(inner.x + U(10f), inner.y + (inner.height - U(24f)) / 2f, U(24f), U(24f));
+            var drawn = Timing.Start();
             DrawIcon(entry, icon);
+            Timing.Add("list icons", drawn);
 
             var favourite = explorer.Favourites.Contains(entry);
             var star = new Rect(inner.xMax - U(28f), inner.y + (inner.height - U(18f)) / 2f, U(18f), U(18f));
             if (favourite) Skin.Icon(star, Skin.Star, Skin.Accent);
             else if (hover) Skin.Icon(star, Skin.StarHollow, star.Contains(e.mousePosition) ? Skin.Accent : Skin.Faint);
 
+            var named = Timing.Start();
             var textX = icon.xMax + U(10f);
             var textW = star.x - U(8f) - textX;
             var primary = string.IsNullOrEmpty(entry.DisplayName) ? entry.Name : entry.DisplayName;
@@ -324,6 +329,7 @@ namespace Scry
             {
                 AskTip(entry.Key, secondary.Length > 0 ? primary + "\n" + secondary : primary);
             }
+            Timing.Add("list names", named);
 
             if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition) && visible.Contains(e.mousePosition))
             {

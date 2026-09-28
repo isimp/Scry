@@ -155,7 +155,7 @@ namespace Scry
 
             var reading = Timing.Start();
             try { Locations.Update(); } catch (Exception ex) { Faults.Tell("reading the locations", ex); Locations.Forget(); }
-            Timing.Add("locations", reading);
+            Timing.Add("update locations", reading);
         }
 
         private static void Step(string part, Action step)
@@ -231,7 +231,7 @@ namespace Scry
 
             var started = Timing.Start();
             var done = _job.Advance(IsOpen ? WaitedBudgetMs : QuietBudgetMs);
-            Timing.Add("catalog", started);
+            Timing.Add("update catalog", started);
             if (!done) return;
 
             var job = _job;

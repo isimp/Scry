@@ -648,7 +648,10 @@ namespace Scry
 
             var controls = Timing.Start();
             var y = Controls(explorer, new Rect(pad, U(56f), w - pad * 2f, U(36f)));
+            Timing.Add("controls search", controls);
+            var tabs = Timing.Start();
             y = Tabs(explorer, new Rect(pad, y + U(10f), w - pad * 2f, U(30f)));
+            Timing.Add("controls tabs", tabs);
             Timing.Add("panel controls", controls);
 
             var bodyTop = y + U(12f);
