@@ -142,7 +142,6 @@ namespace Scry
         public static void Forget()
         {
             Cache.Clear();
-            _comesFrom = null;
         }
 
         private void Prefab(GameObject prefab)
@@ -527,7 +526,7 @@ namespace Scry
             // Where it comes from and what it becomes: a tree falls as its log and leaves a stump,
             // a log splits into halves, a vein's shell breaks into the vein (TreeBase.SpawnLog,
             // TreeLog.Destroy, Destructible.Destroy).
-            Leads("Comes from", ComesFrom(prefab.name).Select(p => (p, 1)));
+            Leads("Comes from", Knowledge.TurnedFrom(prefab.name).Select(p => (p, 1)));
 
             var tree = prefab.GetComponent<TreeBase>();
             if (tree != null)
@@ -561,7 +560,7 @@ namespace Scry
             }
 
             var breaks = prefab.GetComponent<Destructible>();
-            var inside = breaks != null ? MinedInside(breaks.m_spawnWhenDestroyed) : null;
+            var inside = breaks != null ? Knowledge.MinedInside(breaks.m_spawnWhenDestroyed) : null;
             if (inside != null)
             {
                 // A shell that, struck once, turns into what is mined (a silver vein, a copper
@@ -662,49 +661,6 @@ namespace Scry
                 row.Items.Add(new Ingredient { Icon = AnyIcon(part), Name = AnyName(part, part.name), Amount = count > 1 ? count.ToString(CultureInfo.InvariantCulture) : "", Prefab = part.name });
             }
             if (row.Items.Count > 0) Rows.Add(row);
-        }
-
-        private static Dictionary<string, List<GameObject>> _comesFrom;
-
-        /// <summary>
-        /// What turns into a prefab when felled, split or broken open: the trees that fall as a
-        /// log, the logs that split into a half, the shells that break into a vein. Worked out once
-        /// a world, from its prefabs.
-        /// </summary>
-        private static List<GameObject> ComesFrom(string name)
-        {
-            if (_comesFrom == null)
-            {
-                _comesFrom = new Dictionary<string, List<GameObject>>();
-                void Note(GameObject into, GameObject from)
-                {
-                    if (into == null || from == null) return;
-                    if (!_comesFrom.TryGetValue(into.name, out var list)) _comesFrom[into.name] = list = new List<GameObject>();
-                    if (!list.Contains(from)) list.Add(from);
-                }
-                var prefabs = ZNetScene.instance != null ? ZNetScene.instance.m_prefabs : null;
-                if (prefabs != null)
-                {
-                    foreach (var prefab in prefabs)
-                    {
-                        if (prefab == null) continue;
-                        var tree = prefab.GetComponent<TreeBase>();
-                        if (tree != null) Note(tree.m_logPrefab, prefab);
-                        var log = prefab.GetComponent<TreeLog>();
-                        if (log != null) Note(log.m_subLogPrefab, prefab);
-                        var breaks = prefab.GetComponent<Destructible>();
-                        if (breaks != null) Note(MinedInside(breaks.m_spawnWhenDestroyed), prefab);
-                    }
-                }
-            }
-            return _comesFrom.TryGetValue(name, out var from) ? from : new List<GameObject>();
-        }
-
-        /// <summary>What a prefab turns into when broken, if that is mined (a vein, a rock), or null.</summary>
-        public static GameObject MinedInside(GameObject broken)
-        {
-            if (broken == null) return null;
-            return broken.GetComponent<MineRock5>() != null || broken.GetComponent<MineRock>() != null ? broken : null;
         }
 
         /// <summary>How much it takes to break, with what tool, and what it resists.</summary>

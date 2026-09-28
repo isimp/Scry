@@ -118,6 +118,47 @@ namespace Scry
 
         public static string UpgradeStationName { get; private set; }
 
+        /// <summary>
+        /// What turns into each prefab when felled, split or broken open: the trees that fall as a
+        /// log, the logs that split into a half, the shells that break into a vein
+        /// (<c>TreeBase.SpawnLog</c>, <c>TreeLog.Destroy</c>, <c>Destructible.Destroy</c>).
+        /// </summary>
+        private static readonly Dictionary<string, List<GameObject>> Turned = new Dictionary<string, List<GameObject>>(StringComparer.Ordinal);
+
+        /// <summary>What turns into a prefab when felled, split or broken open, or none.</summary>
+        public static IReadOnlyList<GameObject> TurnedFrom(string prefab)
+        {
+            return Turned.TryGetValue(prefab, out var from) ? from : (IReadOnlyList<GameObject>)Array.Empty<GameObject>();
+        }
+
+        /// <summary>What a prefab turns into when broken, if that is mined (a vein, a rock), or null.</summary>
+        public static GameObject MinedInside(GameObject broken)
+        {
+            if (broken == null) return null;
+            return broken.GetComponent<MineRock5>() != null || broken.GetComponent<MineRock>() != null ? broken : null;
+        }
+
+        /// <summary>Notes what the prefab turns into, from its own components (not its parts').</summary>
+        private static void Turns(GameObject prefab, List<Component> components)
+        {
+            void Note(GameObject into)
+            {
+                if (into == null) return;
+                if (!Turned.TryGetValue(into.name, out var list)) Turned[into.name] = list = new List<GameObject>();
+                if (!list.Contains(prefab)) list.Add(prefab);
+            }
+            foreach (var component in components)
+            {
+                if (component == null || component.gameObject != prefab) continue;
+                switch (component)
+                {
+                    case TreeBase tree: Note(tree.m_logPrefab); break;
+                    case TreeLog log: Note(log.m_subLogPrefab); break;
+                    case Destructible breaks: Note(MinedInside(breaks.m_spawnWhenDestroyed)); break;
+                }
+            }
+        }
+
         /// <summary>The altars among the registered prefabs, and what each summons.</summary>
         private static readonly List<Summon> Altars = new List<Summon>();
 
@@ -152,6 +193,7 @@ namespace Scry
             Uses.Clear();
             Bosses.Clear();
             Altars.Clear();
+            Turned.Clear();
             SpawnPointsLeft.Clear();
             UpgradeStation = null;
             UpgradeStationName = null;
@@ -180,6 +222,9 @@ namespace Scry
             started = CatalogTiming.Start();
             try { UsesIn(prefab, components); } catch (Exception ex) { Failed("uses of items", prefab, ex); }
             CatalogTiming.Add("uses", started);
+            started = CatalogTiming.Start();
+            try { Turns(prefab, components); } catch (Exception ex) { Failed("what things turn into", prefab, ex); }
+            CatalogTiming.Add("turns into", started);
 
             foreach (var component in components)
             {

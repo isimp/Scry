@@ -641,7 +641,7 @@ namespace Scry
                     break;
                 case Destructible breaks:
                     traits.HasDestructible = true;
-                    if (Facts.MinedInside(breaks.m_spawnWhenDestroyed) != null) traits.BreaksIntoResource = true;
+                    if (Knowledge.MinedInside(breaks.m_spawnWhenDestroyed) != null) traits.BreaksIntoResource = true;
                     break;
                 case DropOnDestroyed dropping:
                     if (dropping.m_dropWhenDestroyed?.m_drops != null && dropping.m_dropWhenDestroyed.m_drops.Count > 0) traits.HasDrops = true;
