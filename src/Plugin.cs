@@ -79,13 +79,14 @@ namespace Scry
         /// </summary>
         public static string DataFolder => Path.Combine(Paths.ConfigPath, Guid);
 
-        /// <summary>Where earlier versions kept them, in the game's own save folder.</summary>
+        /// <summary>A folder of Scry's in the game's own save folder, whose files are moved to <see cref="DataFolder"/>.</summary>
         private static string OldDataFolder => Path.Combine(Application.persistentDataPath, "Scry");
 
         /// <summary>
-        /// Moves the files an earlier version kept in the game's save folder to <see cref="DataFolder"/>,
-        /// once: any file already there is kept, and the old folder goes once it is empty. One that
-        /// cannot be moved is left where it was and said so; Scry starts afresh without it.
+        /// Moves Scry's files found in the game's save folder to <see cref="DataFolder"/>, so they
+        /// are kept in one place: any file already there is kept, and the folder they came from goes
+        /// once it is empty. One that cannot be moved is left where it was and said so; Scry starts
+        /// afresh without it.
         /// </summary>
         private static void MoveOldFiles()
         {
