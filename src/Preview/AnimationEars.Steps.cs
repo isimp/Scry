@@ -111,7 +111,6 @@ namespace Scry
             Report(Previews.PlayOnCopy(_copy, AsList(effect.m_effectPrefabs), foot));
         }
 
-        /// <summary>The step a walk on plain ground makes, or failing that the first there is.</summary>
         /// <summary>
         /// The step made on the chosen ground in this way of moving; failing that, any on that
         /// ground; failing those, the same on plain ground; failing that, the first there is. Ways

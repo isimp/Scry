@@ -10,10 +10,6 @@ namespace Scry
     /// <summary>The Animations section: clips, their timeline and what each plays.</summary>
     internal static partial class ScryPanel
     {
-        /// <summary>
-        /// Every animation clip the creature has, each played directly on the copy. The one playing
-        /// is lit; Stop hands the copy back to its own animations.
-        /// </summary>
         /// <summary>The clip the filter shows first, for Enter in the filter box.</summary>
         private static AnimationClip _firstClip;
 
@@ -24,6 +20,10 @@ namespace Scry
             Previews.LastClip = _firstClip;
         }
 
+        /// <summary>
+        /// Every animation clip the creature has, each played directly on the copy. The one playing
+        /// is lit; Stop hands the copy back to its own animations.
+        /// </summary>
         private static float Clips(Explorer explorer, List<AnimationClip> clips, Modifiers modifiers, float width, float labelW, float y)
         {
             _groundsFor = explorer.Selected;

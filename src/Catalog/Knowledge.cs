@@ -9,10 +9,6 @@ using UnityEngine;
 
 namespace Scry
 {
-    /// <summary>
-    /// What the game knows about a prefab beyond its own components: where it spawns or grows,
-    /// and which mod added it. Gathered once with the catalog.
-    /// </summary>
     /// <summary>One line of what is known, and the prefab it names, if it names one.</summary>
     internal struct Source
     {
@@ -52,6 +48,10 @@ namespace Scry
         }
     }
 
+    /// <summary>
+    /// What the game knows about a prefab beyond its own components: where it spawns or grows,
+    /// and which mod added it. Gathered once with the catalog.
+    /// </summary>
     internal static class Knowledge
     {
         /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>

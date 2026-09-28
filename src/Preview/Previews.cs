@@ -190,7 +190,6 @@ namespace Scry
         public static int PinnedCount => Pinned.Count;
         public static bool AnythingInWorld => _world != null || Pinned.Count > 0 || Played.Count > 0 || _sound != null || StatusVisuals.Count > 0;
 
-        /// <summary>How many things Scry has out in the world or playing, for the Clear button.</summary>
         /// <summary>
         /// How many lines <see cref="Out"/> would list, counted without making the list, since the
         /// button showing it is drawn several times a frame.

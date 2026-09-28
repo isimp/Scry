@@ -165,13 +165,13 @@ namespace Scry
         /// <summary>The features the check found turned off by a missing part.</summary>
         private static List<string> _off = new List<string>();
 
+        /// <summary>How many features may be off, cheap enough to ask every frame.</summary>
+        public static int OffCount => _off.Count + Faults.ChangedFeatures.Count;
+
         /// <summary>
         /// Every feature this version cannot offer on this version of the game: those the check
         /// found missing a part, and those that failed since because the game changed.
         /// </summary>
-        /// <summary>How many there may be, cheap enough to ask every frame.</summary>
-        public static int OffCount => _off.Count + Faults.ChangedFeatures.Count;
-
         public static List<string> FeaturesOff()
         {
             var all = new List<string>(_off);

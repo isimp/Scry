@@ -29,7 +29,6 @@ namespace Scry
             Started((onYou ? "on you:" : "there:") + prefab.name, new[] { copy });
         }
 
-        /// <summary>Plays every prefab of an effect list at a point, as the game would on a hit.</summary>
         /// <summary>
         /// Plays every prefab of a list at a point in the world. Muted, it is only seen: while the
         /// stage shows the same, its sound is heard from there once rather than twice.
@@ -160,11 +159,6 @@ namespace Scry
             return lists;
         }
 
-        /// <summary>
-        /// Every effect list anywhere on a prefab that has something in it, each once, named after
-        /// the part it belongs to: a creature's hits and death, a piece's placing and breaking, an
-        /// item's attacks.
-        /// </summary>
         /// <summary>The attack each of a creature's attack lists belongs to, for the swing that goes with it.</summary>
         private static readonly Dictionary<EffectList, Attack> AttackOf = new Dictionary<EffectList, Attack>();
 
@@ -219,6 +213,11 @@ namespace Scry
         private static int _carriedLook;
         private static List<GameObject> _carried;
 
+        /// <summary>
+        /// Every effect list anywhere on a prefab that has something in it, each once, named after
+        /// the part it belongs to: a creature's hits and death, a piece's placing and breaking, an
+        /// item's attacks.
+        /// </summary>
         public static List<KeyValuePair<string, EffectList>> PrefabLists(GameObject prefab)
         {
             var lists = new List<KeyValuePair<string, EffectList>>();
@@ -329,12 +328,6 @@ namespace Scry
         {
             return (copy == Stage.Subject || copy == _world) && _explorer != null ? _explorer.Modifiers.Scale : 1f;
         }
-
-        /// <summary>
-        /// Clip names that go with an effect list, for the few moments the game both animates
-        /// and plays effects: a creature that has a death animation plays it before its death
-        /// effects, and a jump has its jump.
-        /// </summary>
 
         /// <summary>
         /// Plays an effect list, with what goes with it: a creature that leaves a ragdoll falls as
@@ -568,7 +561,6 @@ namespace Scry
 
         private static readonly HashSet<EffectList> ToldEmpty = new HashSet<EffectList>();
 
-        /// <summary>Says once per list why playing it showed nothing, for finding out what it holds.</summary>
         /// <summary>Whether a copy can be seen or heard: it draws, glows, sounds, or stands in for a fallen copy.</summary>
         private static bool Perceptible(GameObject thing)
         {
@@ -576,6 +568,7 @@ namespace Scry
                                      || thing.GetComponentInChildren<Light>(true) != null || thing.GetComponent<Standin>() != null);
         }
 
+        /// <summary>Says once per list why playing it showed nothing, for finding out what it holds.</summary>
         private static void TellEmpty(string label, EffectList list, List<GameObject> made)
         {
             if (list?.m_effectPrefabs == null || !ToldEmpty.Add(list)) return;

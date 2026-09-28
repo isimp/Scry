@@ -697,10 +697,6 @@ namespace Scry
             return entry.ModName.Length > 0 ? "added by " + entry.ModName : "added by a mod";
         }
 
-        /// <summary>
-        /// Front, side and top views and a fit, in the stage's bottom right corner. Picking a view
-        /// holds the model still, so it stays in that view. Returns the width they take.
-        /// </summary>
         private static readonly Dictionary<(string, string), string> ChipLabels = new Dictionary<(string, string), string>();
 
         /// <summary>A chip's text that says what it is ("Light: Studio"), made once for each choice.</summary>
@@ -711,6 +707,10 @@ namespace Scry
             return label;
         }
 
+        /// <summary>
+        /// Front, side and top views and a fit, in the stage's bottom right corner. Picking a view
+        /// holds the model still, so it stays in that view. Returns the width they take.
+        /// </summary>
         private static float ViewButtons(Rect inner)
         {
             var h = U(22f);

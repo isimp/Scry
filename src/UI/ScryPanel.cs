@@ -1150,8 +1150,6 @@ namespace Scry
 
         private static bool IsFolded(string key) => key != null && Folded.Contains(key);
 
-        /// <summary>Whether this pass over the side has drawn the fold-all link yet.</summary>
-
         /// <summary>Every section that folds, by key.</summary>
         private static readonly string[] Foldable = { "kept", "variants", "adjust", "animations", "effects", "playsin", "links", "facts", "command", "details" };
 
@@ -1231,8 +1229,7 @@ namespace Scry
 
         // ----- Tooltips -----
 
-        /// <summary>Asks for a tooltip at the mouse, shown once the mouse has rested on the same thing for a moment.</summary>
-        /// <summary>The panel's foot line: its keys, and walking and looking as the settings allow them.</summary>
+        /// <summary>The panel's foot line for each view and setting, once made.</summary>
         private static readonly string[] FootHints = new string[8];
 
         /// <summary>
@@ -1281,6 +1278,7 @@ namespace Scry
             if (rect.Contains(e.mousePosition)) AskTip("game-changed", _offTip);
         }
 
+        /// <summary>Asks for a tooltip at the mouse, shown once the mouse has rested on the same thing for a moment.</summary>
         private static void AskTip(string key, string text)
         {
             if (Event.current.type != EventType.Repaint || _drag != Drag.None || string.IsNullOrEmpty(text)) return;

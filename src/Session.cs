@@ -25,7 +25,6 @@ namespace Scry
         /// <summary>The search and filters of the last world's explorer, carried over to the next.</summary>
         private static (string Text, Kind? Kind, OriginFilter Origin, bool Favourites)? _carried;
 
-        /// <summary>How long after arriving in a world the catalog starts to be read, so the world's own loading goes first.</summary>
         /// <summary>How long after entering a world the catalog waits before it is read, unless the panel is opened.</summary>
         private static float QuietDelay => Plugin.CatalogDelay;
 

@@ -432,7 +432,6 @@ namespace Scry
         /// <summary>Plays the clip again as soon as it ends.</summary>
         public static bool LoopClips;
 
-        /// <summary>The animation clips the stage copy's animator has, by name.</summary>
         /// <summary>What the stage copy's animation clip plays of itself, by prefab name.</summary>
         public static List<string> ClipMembers(AnimationClip clip)
         {

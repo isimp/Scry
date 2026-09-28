@@ -479,7 +479,6 @@ namespace Scry
             _ground.transform.localScale = new Vector3(reach, 1f, reach);
         }
 
-        /// <summary>Puts a copy made for the stage on it, heard or not as the stage's copies are, gone after a while.</summary>
         /// <summary>Whether bounds are within what the stage camera looks at, for telling why something was not seen.</summary>
         public static bool InView(Bounds bounds)
         {
@@ -845,12 +844,9 @@ namespace Scry
         }
 
         /// <summary>
-        /// The size the camera frames, from what the copy draws. Particles are left out when there
-        /// is anything else, since their bounds are unsettled while they start.
-        /// </summary>
-        /// <summary>
         /// What a copy draws, as bounds; of its <paramref name="body"/> only, leaving out what hangs
-        /// on it, where it has anything else.
+        /// on it, where it has anything else. Particles are left out when there is anything else,
+        /// since their bounds are unsettled while they start.
         /// </summary>
         private static Bounds Measure(GameObject subject, bool body = false)
         {
@@ -910,10 +906,6 @@ namespace Scry
 
         private static bool Finite(float f) => !float.IsNaN(f) && !float.IsInfinity(f);
 
-        /// <summary>
-        /// Sound on the stage: an effect's is heard as if beside you, anything else stays quiet,
-        /// since a creature or a fire humming in your ears while you browse is not a preview.
-        /// </summary>
         /// <summary>
         /// Heard as if beside you, or not at all while the world copy is heard. A sound kept
         /// quiet is also kept from playing: the game lets only so many of one sound play at once,
