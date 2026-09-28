@@ -707,16 +707,22 @@ namespace Scry
             GUI.EndGroup();
         }
 
-        /// <summary>The search box, the favourites star and the origin switch, on one row.</summary>
+        private static readonly string[] OriginNames = { "All", "Game", "Mods" };
+
+        /// <summary>
+        /// The search box, then which list is shown (help, favourites, recent), then apart from
+        /// those the origin switch, labelled so its "All" is not taken for the kind tabs' own.
+        /// </summary>
         private static float Controls(Explorer explorer, Rect rect)
         {
-            var names = new[] { "All", "Game", "Mods" };
+            var names = OriginNames;
             var widths = names.Select(n => Skin.Width(Skin.Segment, n) + U(6f)).ToArray();
-            var originW = widths.Sum() + U(4f) * (names.Length - 1);
+            const string fromText = "From";
+            var fromW = Skin.Width(Skin.FaintLabel, fromText) + U(8f);
+            var originW = fromW + widths.Sum() + U(4f) * (names.Length - 1);
             var starW = rect.height;
             var gap = U(8f);
-            var recentText = "Recent";
-            var recentW = Skin.Width(Skin.Segment, recentText) + U(6f);
+            var recentW = starW;
 
             // In the compact view the search has the whole first row and the buttons go below it.
             var row = rect.y;
@@ -729,7 +735,7 @@ namespace Scry
             }
             else
             {
-                search = new Rect(rect.x + navW, rect.y, rect.width - navW - originW - starW * 2f - recentW - gap * 4f, rect.height);
+                search = new Rect(rect.x + navW, rect.y, rect.width - navW - originW - starW * 2f - recentW - gap * 5f, rect.height);
             }
             BackAndForward(explorer, new Rect(rect.x, rect.y, starW, rect.height), new Rect(rect.x + starW + U(4f), rect.y, starW, rect.height));
             Search(explorer, search);
@@ -752,15 +758,17 @@ namespace Scry
             if (star.Contains(Event.current.mousePosition)) AskTip("fav", explorer.FavouritesOnly ? "Showing only favourites" : "Show only favourites");
 
             var recent = new Rect(star.xMax + gap, row, recentW, rect.height);
-            if (GUI.Button(recent, recentText, explorer.RecentOnly ? Skin.SegmentOn : Skin.Segment))
+            if (GUI.Button(recent, GUIContent.none, explorer.RecentOnly ? Skin.On : Skin.IconButton))
             {
                 explorer.RecentOnly = !explorer.RecentOnly;
                 _listScroll = Vector2.zero;
                 _help = false;
             }
-            if (recent.Contains(Event.current.mousePosition)) AskTip("recent", "What you looked at last, newest first");
+            var clock = new Rect(recent.x + recent.width * 0.22f, recent.y + recent.height * 0.22f, recent.width * 0.56f, recent.height * 0.56f);
+            Skin.Icon(clock, Skin.Clock, explorer.RecentOnly ? Skin.Accent : Skin.Dim);
+            if (recent.Contains(Event.current.mousePosition)) AskTip("recent", explorer.RecentOnly ? "Showing what you looked at last, newest first" : "Show what you looked at last, newest first");
 
-            var originX = recent.xMax + gap;
+            var originX = recent.xMax + gap * 2f;
             var originRow = row;
             if (originX + originW > rect.xMax)
             {
@@ -768,7 +776,8 @@ namespace Scry
                 originRow = row + rect.height + U(6f);
             }
 
-            var x = originX;
+            GUI.Label(new Rect(originX, originRow, fromW, rect.height), fromText, Skin.FaintLabel);
+            var x = originX + fromW;
             for (var i = 0; i < names.Length; i++)
             {
                 var on = (int)explorer.Origin == i;

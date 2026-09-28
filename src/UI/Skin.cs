@@ -30,7 +30,7 @@ namespace Scry
         public static GUIStyle RowName, RowSub, Glyph, Center, CenterDim;
         public static GUIStyle Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close;
         public static GUIStyle Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross;
-        public static Texture2D Rounded, Pill, Circle, Star, StarHollow;
+        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock;
 
         private static float _builtScale = -1f;
         private static bool _warmed;
@@ -530,6 +530,19 @@ namespace Scry
             Circle = Shape(32, 32, (x, y) => RoundedCoverage(x, y, 32, 32, 16f));
             Star = Shape(32, 32, (x, y) => StarCoverage(x, y, 32, filled: true));
             StarHollow = Shape(32, 32, (x, y) => StarCoverage(x, y, 32, filled: false));
+            Clock = Shape(32, 32, ClockCoverage);
+        }
+
+        /// <summary>A clock face: a ring, a hand pointing up and a shorter one pointing right.</summary>
+        private static bool ClockCoverage(float x, float y)
+        {
+            const float c = 16f;
+            var dx = x - c;
+            var dy = y - c;
+            var d = Mathf.Sqrt(dx * dx + dy * dy);
+            if (d >= 11.5f && d <= 14.5f) return true;
+            if (Mathf.Abs(dx) <= 1.4f && dy >= -1.4f && dy <= 8.5f) return true;
+            return Mathf.Abs(dy) <= 1.4f && dx >= -1.4f && dx <= 6.5f;
         }
 
         /// <summary>A white shape whose alpha is the coverage function, supersampled for smooth edges.</summary>
