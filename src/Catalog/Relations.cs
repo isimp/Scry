@@ -115,32 +115,36 @@ namespace Scry
         {
             if (prefab == null) return;
             Following.Clear();
-            try
-            {
-                Animations(prefab, _book);
-                Steps(prefab, _book);
-                Carried(prefab, _book);
-                Fields(prefab, components, _book);
-                Upgrade(prefab, _book);
 
+            // Each kind of link on its own: one that fails, on a mod's odd prefab or because an
+            // update changed what it reads, costs only that kind.
+            void Part(string links, Action read)
+            {
+                try { read(); }
+                catch (Exception ex) { Faults.Skip(links, prefab.name, ex); }
+            }
+            Part("links of animations", () => Animations(prefab, _book));
+            Part("links of footsteps", () => Steps(prefab, _book));
+            Part("links of carried items", () => Carried(prefab, _book));
+            Part("links of named prefabs and items", () => Fields(prefab, components, _book));
+            Part("links of station upgrades", () => Upgrade(prefab, _book));
+            Part("links of status effects damage causes", () =>
+            {
                 var aoe = prefab.GetComponent<Aoe>();
                 if (aoe != null) Damage(prefab, aoe.m_damage, _book, StatusEffects);
-
-                var shared = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
-                if (shared != null)
-                {
-                    // An item tells what its damage causes in its own facts; the effect names the item.
-                    Damage(prefab, shared.m_damages, _book, null);
-                    Sets.Add((prefab.name, shared.m_setName, CatalogBuilder.Localize(shared.m_name), Made.Contains(prefab.name)));
-                    var type = shared.m_itemType;
-                    Ammo.Add((prefab.name, shared.m_ammoType,
-                        type == ItemDrop.ItemData.ItemType.Ammo || type == ItemDrop.ItemData.ItemType.AmmoNonEquipable));
-                }
-            }
-            catch (Exception ex)
+                var damages = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                // An item tells what its damage causes in its own facts; the effect names the item.
+                if (damages != null) Damage(prefab, damages.m_damages, _book, null);
+            });
+            Part("links of sets and ammo", () =>
             {
-                Plugin.Log.LogDebug($"Scry could not read the links of {prefab.name}: {ex.Message}");
-            }
+                var shared = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                if (shared == null) return;
+                Sets.Add((prefab.name, shared.m_setName, CatalogBuilder.Localize(shared.m_name), Made.Contains(prefab.name)));
+                var type = shared.m_itemType;
+                Ammo.Add((prefab.name, shared.m_ammoType,
+                    type == ItemDrop.ItemData.ItemType.Ammo || type == ItemDrop.ItemData.ItemType.AmmoNonEquipable));
+            });
         }
 
         /// <summary>The prefabs a status effect's fields name, such as the demister's ball of light.</summary>
@@ -154,7 +158,7 @@ namespace Scry
             }
             catch (Exception ex)
             {
-                Plugin.Log.LogDebug($"Scry could not read the links of the status effect {effect.name}: {ex.Message}");
+                Faults.Skip("links of status effects", effect.name, ex);
             }
         }
 
@@ -486,7 +490,7 @@ namespace Scry
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Log.LogDebug($"Scry could not read the links of {target.name}, used by {key}: {ex.Message}");
+                    Faults.Skip("links of what prefabs spawn", target.name, ex);
                 }
             }
         }
@@ -527,7 +531,7 @@ namespace Scry
             catch (Exception ex)
             {
                 // A mod's type whose fields cannot be read links nothing, remembered as such.
-                Plugin.Log.LogDebug($"Scry could not read the fields of {type.Name}: {ex.Message}");
+                Faults.Skip("reading of a type's fields", type.Name, ex);
                 found.Clear();
             }
             known = found.ToArray();

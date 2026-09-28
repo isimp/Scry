@@ -289,6 +289,7 @@ namespace Scry
 
             job.Entries = entries;
             Plugin.Note($"Scry's catalog, by part (ms): {CatalogTiming.Report()}; {GC.CollectionCount(0) - collections} garbage collections meanwhile.");
+            Faults.TellSkipped();
         }
 
         /// <summary>
@@ -328,7 +329,7 @@ namespace Scry
             }
             catch (Exception ex)
             {
-                Plugin.Log.LogDebug($"Scry could not read {prefab.name}, used by {user}: {ex.Message}");
+                Faults.Skip("effects of what prefabs spawn", prefab.name, ex);
                 return;
             }
             var origin = Origins.Prefabs.Of(user);
@@ -341,7 +342,7 @@ namespace Scry
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Log.LogDebug($"Scry skipped a part of {prefab.name}, used by {user}: {ex.Message}");
+                    Faults.Skip("effects of what prefabs spawn", prefab.name, ex);
                 }
             }
         }
@@ -375,6 +376,12 @@ namespace Scry
         /// <summary>Something left out of the catalog, told once for each kind of failure.</summary>
         private static void Failed(string what, string name, Exception ex)
         {
+            // An entry left out for a game change is told as that; anything else once for its kind.
+            if (Trouble.IsGameChange(ex))
+            {
+                Faults.Skip(what + " entries", name, ex);
+                return;
+            }
             if (FailedKinds.Add(what + "|" + ex.GetType().Name + "|" + ex.Message))
             {
                 Plugin.Log.LogWarning($"Scry leaves the {what} {name} out of its catalog (said once for this kind of failure): {ex}");
@@ -509,7 +516,7 @@ namespace Scry
             catch (Exception ex)
             {
                 components.Clear();
-                Plugin.Log.LogDebug($"Scry could not read {owner}: {ex.Message}");
+                Faults.Skip("effect lists", owner, ex);
                 return;
             }
 
@@ -548,7 +555,7 @@ namespace Scry
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Log.LogDebug($"Scry skipped a part of {owner}: {ex.Message}");
+                    Faults.Skip("effect lists", owner, ex);
                 }
             }
         }
@@ -730,7 +737,7 @@ namespace Scry
             }
             catch (Exception ex)
             {
-                Plugin.Log.LogDebug($"Scry could not read what {prefab.name} leaves behind: {ex.Message}");
+                Faults.Skip("what things leave behind", prefab.name, ex);
             }
         }
 
@@ -760,7 +767,7 @@ namespace Scry
                     }
                     catch (Exception ex)
                     {
-                        Plugin.Log.LogDebug($"Scry skipped part of the interface: {ex.Message}");
+                        Faults.Skip("interface sounds", Provenance.Interface, ex);
                     }
                 }
             }
@@ -880,7 +887,7 @@ namespace Scry
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Log.LogDebug($"Scry could not read the fields of {type.Name}: {ex.Message}");
+                    Faults.Skip("reading of a type's fields", type.Name, ex);
                 }
                 NamingFields[type] = naming;
             }
@@ -941,7 +948,7 @@ namespace Scry
             }
             catch (Exception ex)
             {
-                Plugin.Log.LogDebug($"Scry could not read the fields of {type.Name}: {ex.Message}");
+                Faults.Skip("reading of a type's fields", type.Name, ex);
                 found.Clear();
             }
             known = found.ToArray();
@@ -981,7 +988,7 @@ namespace Scry
             }
             catch (Exception ex)
             {
-                Plugin.Log.LogDebug($"Scry could not read the fields of {type.Name}: {ex.Message}");
+                Faults.Skip("reading of a type's fields", type.Name, ex);
                 found.Clear();
             }
 

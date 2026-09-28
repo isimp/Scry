@@ -111,6 +111,30 @@ namespace Scry
             (typeof(CreatureSpawner), "Spawn", 0, 0xF64EBBF9, "spawn roars"),
             (typeof(SpawnAbility), "Spawn", 0, 0x13568EE6, "spawn roars"),
             (typeof(Player), "SetupAwake", 0, 0x38272BB3, "the person standing from the start"),
+
+            // What the details tell the game's rules from: if one changes, its words may be off.
+            (typeof(CharacterDrop), "GenerateDropList", 0, 0x1D58F486, "creature drop amounts, chances and stars in the details"),
+            (typeof(DropTable), "AddItemToList", 2, 0xAECEE75C, "drop table amounts in the details"),
+            (typeof(DropTable), "GetDropList", 1, 0xBF6963CC, "drop table rolls in the details"),
+            (typeof(BaseAI), "CanSeeTarget", 7, 0xDE5EBD88, "what creatures see, in the details"),
+            (typeof(Character), "SetupMaxHealth", 0, 0x6F57CA0E, "health with stars in the details"),
+            (typeof(Attack), "GetLevelDamageFactor", 0, 0x56C23F2E, "hits with stars in the details"),
+            (typeof(Player), "HaveRequirementItems", 4, 0xB9AF033A, "upgrade kits told apart from ingredients"),
+            (typeof(InventoryGui), "SetupRequirementList", 4, 0xB8443C09, "upgrade kits told apart from ingredients"),
+            (typeof(InventoryGui), "UpdateRecipeList", 1, 0xC89F3E86, "what an upgrade station does, in the details"),
+            (typeof(InventoryGui), "CanRepair", 1, 0xD57710C7, "where items are repaired, in the details"),
+            (typeof(Recipe), "GetRequiredStationLevel", 1, 0x7AD112DA, "station levels for upgrades in the details"),
+            (typeof(ItemDrop.ItemData), "GetTooltip", 6, 0xE717E1A4, "item stats in the details"),
+            (typeof(ItemDrop.ItemData), "AddBlockTooltip", 3, 0xDF722134, "block and parry in the details"),
+            (typeof(Player), "GetBodyArmor", 0, 0x03C09085, "which armour counts, in the details"),
+            (typeof(HitData), "ApplyResistance", 2, 0x8BB9A7D5, "true damage in the details"),
+            (typeof(SE_Rested), "CalculateComfortLevel", 2, 0x71FEE0E8, "comfort groups in the details"),
+            (typeof(SE_Stats), "GetTooltipString", 0, 0x8126FDA1, "status effect stats in the details"),
+            (typeof(Player), "CanConsumeItem", 2, 0x27D77A45, "effects that cannot be taken together, in the details"),
+            (typeof(Incinerator.IncineratorConversion), "AttemptCraft", 2, 0x7D4E45C5, "what the obliterator makes, in the details"),
+            (typeof(RandEventSystem), "HaveGlobalKeys", 2, 0xBAF80048, "what raids wait for, in the details"),
+            (typeof(Trader), "GetAvailableItems", 0, 0x19BA382C, "what traders sell and when, in the details"),
+            (typeof(Fermenter), "UpdateCover", 2, 0x861BA786, "what a fermenter needs, in the details"),
         };
 
         /// <summary>Public methods of the animation event receivers that are not events.</summary>
@@ -120,6 +144,20 @@ namespace Scry
         };
 
         private static bool _checked;
+
+        /// <summary>The features the check found turned off by a missing part.</summary>
+        private static List<string> _off = new List<string>();
+
+        /// <summary>
+        /// Every feature this version cannot offer on this version of the game: those the check
+        /// found missing a part, and those that failed since because the game changed.
+        /// </summary>
+        public static List<string> FeaturesOff()
+        {
+            var all = new List<string>(_off);
+            foreach (var feature in Faults.ChangedFeatures) if (!all.Contains(feature)) all.Add(feature);
+            return all;
+        }
 
         /// <summary>Checks once, in a world, and tells the log.</summary>
         public static void Check()
@@ -157,6 +195,7 @@ namespace Scry
                 Plugin.Log.LogWarning($"Scry could not finish checking the game: {ex.Message}");
             }
 
+            _off = list.FeaturesOff;
             foreach (var line in list.Report())
             {
                 if (list.AnyTrouble) Plugin.Log.LogWarning(line);

@@ -518,6 +518,7 @@ namespace Scry
 
             var header = new Rect(0f, 0f, (showLoc ? locRect.x : clearRect.x) - U(8f), U(52f));
             GUI.Label(new Rect(pad, U(10f), U(90f), U(34f)), "Scry", Skin.Title);
+            GameChangedChip(pad + U(84f), header.xMax - U(4f), e);
 
             if (showLoc)
             {
@@ -1007,6 +1008,31 @@ namespace Scry
         // ----- Tooltips -----
 
         /// <summary>Asks for a tooltip at the mouse, shown once the mouse has rested on the same thing for a moment.</summary>
+        private static int _offCount = -1;
+        private static string _offTip = "";
+
+        /// <summary>
+        /// When a game update has turned features off, a chip beside the title says so, and its
+        /// tip names them: nothing fails quietly. It stays until Scry is updated for the game.
+        /// </summary>
+        private static void GameChangedChip(float x, float limit, Event e)
+        {
+            var off = Compatibility.FeaturesOff();
+            if (off.Count == 0) return;
+            if (off.Count != _offCount)
+            {
+                _offCount = off.Count;
+                _offTip = "This version of Scry does not fully know this version of the game, so these are off until Scry is updated:\n"
+                          + string.Join("\n", off.Select(f => "  " + f)) + "\nEverything else works. The log has the details.";
+            }
+            const string text = "Game changed";
+            var w = Skin.Width(Skin.Chip, text) + U(12f);
+            if (x + w > limit) return;
+            var rect = new Rect(x, U(18f), w, U(24f));
+            GUI.Label(rect, text, Skin.Chip);
+            if (rect.Contains(e.mousePosition)) AskTip("game-changed", _offTip);
+        }
+
         private static void AskTip(string key, string text)
         {
             if (Event.current.type != EventType.Repaint || _drag != Drag.None || string.IsNullOrEmpty(text)) return;

@@ -73,19 +73,19 @@ namespace Scry
             if (Cache.TryGetValue(entry, out var known)) return known;
 
             var facts = new Facts();
-            try
+            if (entry.Source is StatusEffect effect)
             {
-                if (entry.Source is StatusEffect effect)
+                facts.Part("status effect", () => facts.StatusEffect(effect));
+            }
+            else if (entry.Source is GameObject prefab)
+            {
+                // The game spawns creatures up to two stars; some mods go higher, and show it.
+                facts._stars = Math.Max(2, entry.ExtraLevels);
+                facts._entry = entry;
+                facts.Prefab(prefab);
+                if (entry.Kind == Kind.Creature) facts.WhereTitle = "Where it lives";
+                facts.Part("where it comes from", () =>
                 {
-                    facts.StatusEffect(effect);
-                }
-                else if (entry.Source is GameObject prefab)
-                {
-                    // The game spawns creatures up to two stars; some mods go higher, and show it.
-                    facts._stars = Math.Max(2, entry.ExtraLevels);
-                    facts._entry = entry;
-                    facts.Prefab(prefab);
-                    if (entry.Kind == Kind.Creature) facts.WhereTitle = "Where it lives";
                     facts.Where.AddRange(Knowledge.WhereLines(entry.Name));
                     facts.Where.AddRange(Knowledge.SourceLines(entry.Name));
 
@@ -97,16 +97,40 @@ namespace Scry
                     {
                         facts.Where.Add(new Source("Nothing loaded makes, drops or sells it. It may come from a location, a dungeon, an event or a mod.", null));
                     }
-                    facts.Uses(entry.Name);
-                }
+                });
+                facts.Part("uses", () => facts.Uses(entry.Name));
             }
-            catch (Exception ex)
-            {
-                Plugin.Log.LogDebug($"Scry could not read the facts of {entry.Name}: {ex.Message}");
-            }
+            facts.TellMissing();
 
             Cache[entry] = facts;
             return facts;
+        }
+
+        /// <summary>The parts of these facts that could not be read, told at their end.</summary>
+        private readonly List<string> _missing = new List<string>();
+
+        /// <summary>
+        /// Reads one part of the facts on its own. One that fails, on a mod's odd prefab or because
+        /// an update changed what it reads, is told once in the log and named at the end of the
+        /// facts, and the other parts still show.
+        /// </summary>
+        private void Part(string part, Action read)
+        {
+            try
+            {
+                read();
+            }
+            catch (Exception ex)
+            {
+                Faults.Tell("the " + part + " details", ex);
+                if (!_missing.Contains(part)) _missing.Add(part);
+            }
+        }
+
+        private void TellMissing()
+        {
+            if (_missing.Count == 0) return;
+            Add("Not shown", $"the {string.Join(", ", _missing)} details could not be read (the log says why)");
         }
 
         /// <summary>Forgets everything read, for a new world.</summary>
@@ -119,31 +143,35 @@ namespace Scry
         private void Prefab(GameObject prefab)
         {
             var drop = prefab.GetComponent<ItemDrop>();
-            if (drop?.m_itemData?.m_shared != null) Item(prefab, drop.m_itemData.m_shared);
+            var shared = drop?.m_itemData?.m_shared;
+            if (shared != null) Part("item", () => Item(prefab, shared));
 
             var character = prefab.GetComponent<Character>();
-            if (character != null) Creature(prefab, character);
+            if (character != null) Part("creature", () => Creature(prefab, character));
 
             var piece = prefab.GetComponent<Piece>();
-            if (piece != null && piece.enabled) Piece(piece, prefab.GetComponent<WearNTear>());
+            if (piece != null && piece.enabled) Part("piece", () => Piece(piece, prefab.GetComponent<WearNTear>()));
 
-            Resource(prefab);
-            if (piece != null && !piece.enabled) MadeBuildable(piece);
-            Station(prefab);
+            Part("resource", () => Resource(prefab));
+            if (piece != null && !piece.enabled) Part("build cost", () => MadeBuildable(piece));
+            Part("station", () => Station(prefab));
 
             var projectile = prefab.GetComponent<Projectile>();
-            if (projectile != null) Flight(projectile);
+            if (projectile != null) Part("projectile", () => Flight(projectile));
 
             // What a chest is filled with when the game first opens it (Container.AddDefaultItems);
             // one players build has nothing.
             var container = prefab.GetComponent<Container>();
-            if (container != null) Drops(container.m_defaultItems, null, holds: true);
+            if (container != null) Part("chest", () => Drops(container.m_defaultItems, null, holds: true));
 
             // The prefab's own numbers are shown; a world that changes them says by how much.
-            var game = Game.instance;
-            var enemy = character != null && !(character is Player);
-            var note = WorldWords.Note(Game.m_worldLevel, game != null ? game.m_worldLevelEnemyHPMultiplier : 1f, Game.m_resourceRate, enemy, _drops);
-            if (note != null) Add("In this world", char.ToUpperInvariant(note[0]) + note.Substring(1));
+            Part("world settings", () =>
+            {
+                var game = Game.instance;
+                var enemy = character != null && !(character is Player);
+                var note = WorldWords.Note(Game.m_worldLevel, game != null ? game.m_worldLevelEnemyHPMultiplier : 1f, Game.m_resourceRate, enemy, _drops);
+                if (note != null) Add("In this world", char.ToUpperInvariant(note[0]) + note.Substring(1));
+            });
         }
 
         /// <summary>The entry told of, for what the list already says of it (its group).</summary>
@@ -175,11 +203,11 @@ namespace Scry
             }
 
             var type = shared.m_itemType;
-            // The slots whose armour counts (Humanoid.GetBodyArmor); gloves' does not.
+            // The slots whose armour counts (Player.GetBodyArmor); gloves' does not.
             var worn = type == ItemDrop.ItemData.ItemType.Helmet || type == ItemDrop.ItemData.ItemType.Chest
                        || type == ItemDrop.ItemData.ItemType.Legs || type == ItemDrop.ItemData.ItemType.Shoulder;
             if (worn && shared.m_armor > 0f) Add("Armour", Number(shared.m_armor) + (upgradable && shared.m_armorPerLevel > 0f ? $", +{Number(shared.m_armorPerLevel)} per quality" : ""));
-            Combat(prefab, shared);
+            Part("item stats", () => Combat(prefab, shared));
 
             if (shared.m_food > 0f || shared.m_foodStamina > 0f || shared.m_foodEitr > 0f)
             {
@@ -211,6 +239,13 @@ namespace Scry
             if (shared.m_consumeStatusEffect != null) Add("When used", EffectName(shared.m_consumeStatusEffect), "se:" + shared.m_consumeStatusEffect.name);
             if (shared.m_attackStatusEffect != null) Add("On hit", EffectName(shared.m_attackStatusEffect), "se:" + shared.m_attackStatusEffect.name);
 
+            Part("recipe", () => Recipes(prefab, shared));
+            Part("made at stations", () => MadeIn(prefab));
+        }
+
+        /// <summary>Each enabled recipe that makes the item, with its upgrade kits.</summary>
+        private void Recipes(GameObject prefab, ItemDrop.ItemData.SharedData shared)
+        {
             var db = ObjectDB.instance;
             if (db == null) return;
             foreach (var recipe in db.m_recipes)
@@ -230,7 +265,6 @@ namespace Scry
                 var kits = UpgradeKits(recipe, shared.m_maxQuality);
                 if (kits.Items.Count > 0) Rows.Add(kits);
             }
-            MadeIn(prefab);
         }
 
         /// <summary>
@@ -355,10 +389,10 @@ namespace Scry
                 if (hits != null) Add("Hits with stars", hits);
             }
 
-            Resists(character.m_damageModifiers);
-            Attacks(prefab);
-            Behaviour(prefab, character);
-            if (character.m_boss) SummonedBy(prefab);
+            Part("resistances", () => Resists(character.m_damageModifiers));
+            Part("attacks", () => Attacks(prefab));
+            Part("behaviour", () => Behaviour(prefab, character));
+            if (character.m_boss) Part("summoning", () => SummonedBy(prefab));
 
             if (prefab.GetComponent<Tameable>() != null)
             {

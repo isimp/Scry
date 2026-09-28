@@ -29,6 +29,9 @@ namespace Scry
 
         public bool AnyTrouble => _parts.Any(p => p.Found != Found.Present);
 
+        /// <summary>The features a missing part turns off, each once, for the panel to show.</summary>
+        public List<string> FeaturesOff => _parts.Where(p => p.Found == Found.Missing).Select(p => p.Feature).Distinct().ToList();
+
         public List<string> Report()
         {
             var missing = _parts.Count(p => p.Found == Found.Missing);
@@ -38,7 +41,7 @@ namespace Scry
 
             var lines = new List<string> { $"{head}: {missing} missing, {changed} changed." };
             foreach (var part in _parts.Where(p => p.Found == Found.Missing)) lines.Add($"  {part.Part} is missing: {part.Feature} is off.");
-            foreach (var part in _parts.Where(p => p.Found == Found.Changed)) lines.Add($"  {part.Part} changed since this version of Scry: {part.Feature} may preview slightly wrong.");
+            foreach (var part in _parts.Where(p => p.Found == Found.Changed)) lines.Add($"  {part.Part} changed since this version of Scry: {part.Feature} may be slightly off.");
             return lines;
         }
     }

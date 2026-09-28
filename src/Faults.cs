@@ -6,19 +6,67 @@ namespace Scry
     /// <summary>
     /// What went wrong in Scry's own work, each kind told once. Everything Scry does each frame is
     /// caught part by part, so one part that fails (on a mod's odd prefab, say) neither stops the
-    /// rest nor fills the log a line a frame.
+    /// rest nor fills the log a line a frame. A failure that means the game changed under Scry (a
+    /// member an update renamed) is told as the feature it turns off, and the panel shows those
+    /// features; one odd prefab's part is counted and told with the others once the catalog is read.
     /// </summary>
     internal static class Faults
     {
         private static readonly HashSet<string> Told = new HashSet<string>();
+        private static readonly Trouble Found = new Trouble();
+
+        /// <summary>The features a game update has turned off in this session, for the panel.</summary>
+        public static IReadOnlyList<string> ChangedFeatures => Found.ChangedFeatures;
 
         /// <summary>Tells a failure in the log the first time this part fails this way.</summary>
         public static void Tell(string part, Exception ex)
         {
             if (ex == null) return;
+            if (GameChanged(part, ex)) return;
             var key = part + "|" + ex.GetType().Name + "|" + ex.Message + "|" + TopFrame(ex);
             if (Told.Count > 500 || !Told.Add(key)) return;
             Plugin.Log.LogError($"Scry failed in {part} (told once): {ex}");
+        }
+
+        /// <summary>
+        /// A part of one prefab left out while reading. A game change is told at once as the
+        /// feature it turns off; anything else is counted, for <see cref="TellSkipped"/>.
+        /// </summary>
+        public static void Skip(string part, string prefab, Exception ex)
+        {
+            if (ex == null || GameChanged(part, ex)) return;
+            Found.Skip(part, prefab, ex);
+            Plugin.Log.LogDebug($"Scry left out the {part} of {prefab}: {ex.Message}");
+        }
+
+        /// <summary>Tells, once a reading is done, what it left out, and starts counting again.</summary>
+        public static void TellSkipped()
+        {
+            var any = false;
+            foreach (var line in Found.Summary())
+            {
+                if (!any) Plugin.Log.LogInfo("Scry could not read some parts of some prefabs, most likely mods' own, and left those parts out:");
+                any = true;
+                Plugin.Log.LogInfo("  " + line);
+            }
+            Found.ForgetSkips();
+        }
+
+        /// <summary>Whether the failure is the game having changed; if so, told once as the feature it turns off.</summary>
+        private static bool GameChanged(string feature, Exception ex)
+        {
+            if (!Trouble.IsGameChange(ex)) return false;
+            if (Found.Changed(feature, ex))
+            {
+                Plugin.Log.LogWarning($"Scry: the game has changed in a way this version does not know, so {feature} is off until Scry is updated. The rest works on. ({Innermost(ex).Message})");
+            }
+            return true;
+        }
+
+        private static Exception Innermost(Exception ex)
+        {
+            while (ex.InnerException != null) ex = ex.InnerException;
+            return ex;
         }
 
         private static string TopFrame(Exception ex)

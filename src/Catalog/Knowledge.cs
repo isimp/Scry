@@ -102,7 +102,6 @@ namespace Scry
         /// <summary>What a station makes.</summary>
         public static IReadOnlyList<Making> MadeAt(string station) => Made.At(station);
         private static readonly Dictionary<GameObject, string> ShownNames = new Dictionary<GameObject, string>();
-        private static readonly HashSet<string> Failures = new HashSet<string>();
 
         /// <summary>The boss each world key names, by the key its defeat sets (<c>Character.m_defeatSetGlobalKey</c>).</summary>
         private static readonly Dictionary<string, GameObject> Bosses = new Dictionary<string, GameObject>(StringComparer.OrdinalIgnoreCase);
@@ -138,7 +137,6 @@ namespace Scry
             DropLines.Clear();
             Made.Clear();
             ShownNames.Clear();
-            Failures.Clear();
             Uses.Clear();
             Bosses.Clear();
             Altars.Clear();
@@ -256,7 +254,7 @@ namespace Scry
             catch (Exception ex)
             {
                 // A mod's type whose fields cannot be read has none here, remembered as such.
-                Plugin.Log.LogDebug($"Scry could not read the fields of {type.Name}: {ex.Message}");
+                Faults.Skip("reading of a type's fields", type.Name, ex);
                 found.Clear();
             }
             known = found.ToArray();
@@ -286,10 +284,7 @@ namespace Scry
 
         private static void Failed(string what, GameObject prefab, Exception ex)
         {
-            if (Failures.Add(what + "|" + ex.GetType().Name + "|" + ex.Message))
-            {
-                Plugin.Log.LogWarning($"Scry could not read the {what} of {prefab.name}, and leaves them out (said once for this kind of failure): {ex.Message}");
-            }
+            Faults.Skip(what, prefab.name, ex);
         }
 
         /// <summary>
@@ -333,12 +328,34 @@ namespace Scry
             }
             catch (Exception ex)
             {
-                Plugin.Log.LogWarning($"Scry could not read {what}: {ex.Message}");
+                if (Trouble.IsGameChange(ex)) Faults.Skip(what, "this world", ex);
+                else Plugin.Log.LogWarning($"Scry could not read {what}, and leaves it out: {ex.Message}");
             }
             CatalogTiming.Add(what, started);
         }
 
-        /// <summary>A line of what something comes from, for one item: each line once, and at most 40.</summary>
+        /// <summary>
+        /// Each of a list on its own, for the world-wide steps: one odd entry (a mod's spawn with
+        /// something missing) costs only itself, not the rest of the list after it.
+        /// </summary>
+        private static void Each<T>(IEnumerable<T> list, string what, Func<T, string> name, Action<T> read) where T : class
+        {
+            if (list == null) return;
+            foreach (var item in list)
+            {
+                if (item == null) continue;
+                try { read(item); }
+                catch (Exception ex)
+                {
+                    string called;
+                    try { called = name(item); }
+                    catch { called = typeof(T).Name; }
+                    Faults.Skip(what, called, ex);
+                }
+            }
+        }
+
+        /// <summary>A line of what something comes from, for one item: each line once.</summary>
         private static void From(string item, Source line)
         {
             if (!ComesFrom.TryGetValue(item, out var lines)) ComesFrom[item] = lines = new List<Source>();
@@ -434,9 +451,9 @@ namespace Scry
 
             foreach (var list in lists)
             {
-                foreach (var data in list.m_spawners)
+                Each(list.m_spawners, "world spawns", d => d.m_name.Length > 0 ? d.m_name : d.m_prefab != null ? d.m_prefab.name : "a spawn", data =>
                 {
-                    if (data?.m_prefab == null || !data.m_enabled) continue;
+                    if (data.m_prefab == null || !data.m_enabled) return;
                     var name = data.m_prefab.name;
                     AddBiomes(name, data.m_biome);
                     PlacedByWorld.Add(name);
@@ -450,7 +467,7 @@ namespace Scry
                         Keys = new[] { data.m_requiredGlobalKey },
                     };
                     Add(name, SpawnWords.Line("Spawns in", spawn, BossOf), BossPrefabOf(data.m_requiredGlobalKey));
-                }
+                });
             }
         }
 
@@ -461,18 +478,19 @@ namespace Scry
 
             // A world set to pick raids by each player's own progress checks other keys for them.
             var byPlayer = ZoneSystem.instance != null && ZoneSystem.instance.GetGlobalKey(GlobalKeys.PlayerEvents);
-            foreach (var raid in events)
+            Each(events, "raids", r => r.m_name, raid =>
             {
-                if (raid?.m_spawn == null || !raid.m_enabled) continue;
+                if (raid.m_spawn == null || !raid.m_enabled) return;
                 var shown = CatalogBuilder.Localize(raid.m_startMessage);
                 var start = $"Comes in the raid \"{(shown.Length > 0 ? shown : raid.m_name)}\"";
-                var perPlayer = byPlayer && (raid.m_altRequiredPlayerKeysAny.Count > 0 || raid.m_altRequiredPlayerKeysAll.Count > 0 || raid.m_altRequiredKnownItems.Count > 0
-                                             || raid.m_altRequiredNotKnownItems.Count > 0 || raid.m_altNotRequiredPlayerKeys.Count > 0);
+                int Count<T>(List<T> keys) => keys?.Count ?? 0;
+                var perPlayer = byPlayer && (Count(raid.m_altRequiredPlayerKeysAny) > 0 || Count(raid.m_altRequiredPlayerKeysAll) > 0 || Count(raid.m_altRequiredKnownItems) > 0
+                                             || Count(raid.m_altRequiredNotKnownItems) > 0 || Count(raid.m_altNotRequiredPlayerKeys) > 0);
                 var facts = new SpawnFacts
                 {
                     Biomes = raid.m_biome != 0 ? BiomeNames(raid.m_biome) : "",
-                    Keys = perPlayer ? new string[0] : raid.m_requiredGlobalKeys.ToArray(),
-                    NotKeys = perPlayer ? new string[0] : raid.m_notRequiredGlobalKeys.ToArray(),
+                    Keys = perPlayer || raid.m_requiredGlobalKeys == null ? new string[0] : raid.m_requiredGlobalKeys.ToArray(),
+                    NotKeys = perPlayer || raid.m_notRequiredGlobalKeys == null ? new string[0] : raid.m_notRequiredGlobalKeys.ToArray(),
                 };
                 var line = SpawnWords.Line(facts.Biomes.Length > 0 ? start + ", in" : start, facts, BossOf);
                 if (perPlayer) line += ", for a player whose own progress calls for it";
@@ -481,7 +499,7 @@ namespace Scry
                     if (data?.m_prefab == null) continue;
                     Add(data.m_prefab.name, line, BossPrefabOf(facts.Keys.FirstOrDefault()));
                 }
-            }
+            });
         }
 
         /// <summary>Spawn points read, told once every prefab is read and each boss is known by its key.</summary>
@@ -525,9 +543,9 @@ namespace Scry
             var vegetation = ZoneSystem.instance?.m_vegetation;
             if (vegetation == null) return;
 
-            foreach (var veg in vegetation)
+            Each(vegetation, "vegetation", v => v.m_name, veg =>
             {
-                if (veg?.m_prefab == null || !veg.m_enable) continue;
+                if (veg.m_prefab == null || !veg.m_enable) return;
                 var name = veg.m_prefab.name;
                 AddBiomes(name, veg.m_biome);
                 PlacedByWorld.Add(name);
@@ -544,7 +562,7 @@ namespace Scry
                 var group = SpawnWords.Group(veg.m_groupSizeMin, veg.m_groupSizeMax);
                 if (group != null) line += ", " + group;
                 Add(name, line);
-            }
+            });
         }
 
         /// <summary>
@@ -681,9 +699,9 @@ namespace Scry
         /// <summary>What traders sell. They stand in locations, so only those loaded are found.</summary>
         private static void Traders()
         {
-            foreach (var trader in Resources.FindObjectsOfTypeAll<Trader>())
+            Each(Resources.FindObjectsOfTypeAll<Trader>(), "traders", t => t.name, trader =>
             {
-                if (trader == null || trader.m_items == null) continue;
+                if (trader.m_items == null) return;
                 var name = CatalogBuilder.Localize(trader.m_name);
                 if (name.Length == 0) name = trader.gameObject.name;
                 // The trader's own prefab, where it is one, for the line to go to; a copy standing in a location is named after it.
@@ -695,7 +713,7 @@ namespace Scry
                     var key = string.IsNullOrEmpty(trade.m_requiredGlobalKey) ? "" : ", " + SpawnWords.Once(trade.m_requiredGlobalKey, BossOf);
                     From(trade.m_prefab.gameObject.name, new Source($"Sold by {name}, {stack}{trade.m_price} coins{key}", self));
                 }
-            }
+            });
         }
 
         private static readonly Dictionary<Type, FieldInfo[]> ConversionFields = new Dictionary<Type, FieldInfo[]>();
@@ -722,7 +740,7 @@ namespace Scry
             catch (Exception ex)
             {
                 // A mod's type whose fields cannot be read has none here, remembered as such.
-                Plugin.Log.LogDebug($"Scry could not read the fields of {type.Name}: {ex.Message}");
+                Faults.Skip("reading of a type's fields", type.Name, ex);
                 found.Clear();
             }
             known = found.ToArray();
@@ -791,7 +809,7 @@ namespace Scry
             catch (Exception ex)
             {
                 // A mod's type whose fields cannot be read has none here, remembered as such.
-                Plugin.Log.LogDebug($"Scry could not read the fields of {type.Name}: {ex.Message}");
+                Faults.Skip("reading of a type's fields", type.Name, ex);
                 found.Clear();
             }
             known = found.ToArray();
@@ -821,7 +839,7 @@ namespace Scry
             catch (Exception ex)
             {
                 // A mod's type whose fields cannot be read has none here, remembered as such.
-                Plugin.Log.LogDebug($"Scry could not read the fields of {type.Name}: {ex.Message}");
+                Faults.Skip("reading of a type's fields", type.Name, ex);
                 found.Clear();
             }
             known = found.ToArray();
@@ -948,7 +966,7 @@ namespace Scry
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Log.LogDebug($"Scry could not look through a bundle: {ex.Message}");
+                    Faults.Skip("which mod added what", "a bundle", ex);
                 }
                 CatalogTiming.Add("asset bundles", started);
                 yield return "which mod added what: asset bundles";
@@ -993,7 +1011,7 @@ namespace Scry
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Log.LogDebug($"Scry could not look through {name}: {ex.Message}");
+                    Faults.Skip("which mod added what", name, ex);
                 }
                 CatalogTiming.Add("asset bundles", started);
                 yield return "which mod added what: mods' files";

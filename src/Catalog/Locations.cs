@@ -182,7 +182,7 @@ namespace Scry
             catch (Exception ex)
             {
                 // One odd location costs only itself.
-                Plugin.Log.LogDebug($"Scry could not read the location {_current.Name}: {ex.Message}");
+                Faults.Skip("locations", _current.Name, ex);
                 _failed++;
                 Next();
             }
@@ -262,7 +262,7 @@ namespace Scry
             }
             catch (Exception ex)
             {
-                Plugin.Log.LogDebug($"Scry could not read the fields of {type.Name}: {ex.Message}");
+                Faults.Skip("reading of a type's fields", type.Name, ex);
                 found.Clear();
             }
             known = found.ToArray();
@@ -323,6 +323,7 @@ namespace Scry
                 $"they name {Found.Count} prefabs, {inCatalog} of them in the catalog; {moved} effects, sounds and projectiles nothing else plays or fires went under \"In locations\".");
             Found.Clear();
             Named.Clear();
+            Faults.TellSkipped();
         }
     }
 }

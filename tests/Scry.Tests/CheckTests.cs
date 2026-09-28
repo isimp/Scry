@@ -95,14 +95,27 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void AChangedPartSaysItsPreviewMayBeSlightlyOff()
+        public void AChangedPartSaysItsFeatureMayBeSlightlyOff()
         {
             var list = new Checklist();
             list.Add("VisEquipment.AttachItem", "gear on creatures", Found.Changed);
 
             var report = list.Report();
 
-            Assert.Contains(report, l => l.Contains("VisEquipment.AttachItem") && l.Contains("gear on creatures may preview slightly wrong"));
+            Assert.Contains(report, l => l.Contains("VisEquipment.AttachItem") && l.Contains("gear on creatures may be slightly off"));
+        }
+
+        [Fact]
+        public void ThePanelIsToldOnlyTheFeaturesThatAreOffEachOnce()
+        {
+            // A changed part still works, perhaps a little off, and stays in the log; a missing one turns its feature off.
+            var list = new Checklist();
+            list.Add("A", "gear on creatures", Found.Missing);
+            list.Add("B", "gear on creatures", Found.Missing);
+            list.Add("C", "saddles", Found.Changed);
+            list.Add("D", "footsteps", Found.Present);
+
+            Assert.Equal(new[] { "gear on creatures" }, list.FeaturesOff);
         }
 
         [Fact]
