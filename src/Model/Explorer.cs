@@ -289,6 +289,30 @@ namespace Scry
         /// <summary>Lists the results again after entries changed their groups (what the locations were found to hold).</summary>
         public void Regrouped() => Refresh();
 
+        /// <summary>
+        /// The results by their groups, the groups in their order and then by name, each group
+        /// keeping the order the search gave it. Sorted as numbers: a group's place and each
+        /// result's place in one, so a tab of thousands is sorted with no call per comparison.
+        /// </summary>
+        public static List<Entry> ByGroup(List<Entry> results)
+        {
+            var orders = results.Select(e => e.GroupOrder).Distinct().OrderBy(o => o).ToList();
+            var names = results.Select(e => e.Group ?? "").Distinct().OrderBy(n => n, StringComparer.Ordinal).ToList();
+            var orderRank = new Dictionary<int, int>();
+            for (var i = 0; i < orders.Count; i++) orderRank[orders[i]] = i;
+            var nameRank = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (var i = 0; i < names.Count; i++) nameRank[names[i]] = i;
+
+            var keys = new long[results.Count];
+            var entries = results.ToArray();
+            for (var i = 0; i < entries.Length; i++)
+            {
+                keys[i] = ((long)orderRank[entries[i].GroupOrder] << 42) | ((long)nameRank[entries[i].Group ?? ""] << 21) | (long)i;
+            }
+            Array.Sort(keys, entries);
+            return new List<Entry>(entries);
+        }
+
         private void Refresh()
         {
             Dictionary<string, int> order = null;
@@ -310,7 +334,7 @@ namespace Scry
 
             // Within a kind's tab, by its groups (resources by how they are gathered), each
             // group in the order the search gave it.
-            else if (_query.Kind != null) _results = _results.OrderBy(e => e.GroupOrder).ThenBy(e => e.Group, StringComparer.Ordinal).ToList();
+            else if (_query.Kind != null) _results = ByGroup(_results);
 
             if (_selected == null) return;
 

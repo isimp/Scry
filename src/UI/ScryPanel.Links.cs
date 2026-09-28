@@ -251,7 +251,15 @@ namespace Scry
         /// </summary>
         public static void Prepare(Explorer explorer)
         {
-            if (explorer == null || ReferenceEquals(explorer, _prepared)) return;
+            if (explorer == null) return;
+
+            // Reading the locations adds values to search by (in:): the terms are made again here,
+            // in a frame of their own, rather than on the next keystroke.
+            if (ReferenceEquals(explorer, _prepared))
+            {
+                if (_termsAt != Locations.Now && Locations.Now != Locations.State.Reading) TermsFor(explorer);
+                return;
+            }
             if (!ReferenceEquals(explorer, _preparing))
             {
                 _preparing = explorer;

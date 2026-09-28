@@ -170,10 +170,13 @@ namespace Scry
             ICollection<string> only, int[] kindCounts)
         {
             var search = Parse(query.Text).Matcher;
-            var found = new List<KeyValuePair<int, Entry>>();
+            var found = new List<Entry>();
+            var scores = new List<int>();
+            var unordered = false;
 
             foreach (var entry in all)
             {
+                if (entry.NameOrder < 0) unordered = true;
                 if (!PassesAnyKind(entry, query, favourites)) continue;
                 if (only != null && !only.Contains(entry.Key)) continue;
 
@@ -182,29 +185,54 @@ namespace Scry
 
                 if (kindCounts != null) kindCounts[(int)entry.Kind]++;
                 if (query.Kind.HasValue && entry.Kind != query.Kind.Value) continue;
-                found.Add(new KeyValuePair<int, Entry>(score, entry));
+                found.Add(entry);
+                scores.Add(score);
             }
 
+            // Names are put in order once, and again only after one changes (a leftover renamed
+            // after its owner), so sorting compares numbers rather than names: a search matching
+            // most of the catalog sorts thousands of entries on every keystroke.
+            if (unordered) OrderNames(all);
+
+            // Best score first; among equal matches the shorter name is the closer one ("Troll"
+            // before "Troll_Summoned"); then name order. With no words typed every score is equal
+            // and this is name order. The three are one number for each entry, so the sort
+            // compares plain numbers, with no call made for each comparison.
             var ranked = search.Words.Count > 0;
-            found.Sort((a, b) =>
+            var keys = new long[found.Count];
+            var entries = found.ToArray();
+            for (var i = 0; i < entries.Length; i++) keys[i] = SortKey(scores[i], ranked ? entries[i].Name.Length : 0, entries[i].NameOrder);
+            Array.Sort(keys, entries);
+            return new List<Entry>(entries);
+        }
+
+        /// <summary>
+        /// A result's place as one number: its score, then its name's length, then its name's
+        /// order, each in bits of its own, the first counting most. Each is held to its bits, so an
+        /// odd score or a name longer than any the game has only ties, never wraps around.
+        /// </summary>
+        public static long SortKey(int score, int length, int nameOrder)
+        {
+            long Bits(int value, int bits) => Math.Max(0, Math.Min(value, (1 << bits) - 1));
+            return (Bits(score, 20) << 43) | (Bits(length, 16) << 27) | Bits(nameOrder, 27);
+        }
+
+        /// <summary>
+        /// Numbers every entry by its name, ignoring case, with ties broken by the exact name and
+        /// then by place in the catalog, so the order never depends on how a sort happens to run.
+        /// </summary>
+        public static void OrderNames(IReadOnlyList<Entry> all)
+        {
+            var order = new List<KeyValuePair<Entry, int>>(all.Count);
+            for (var i = 0; i < all.Count; i++) order.Add(new KeyValuePair<Entry, int>(all[i], i));
+            order.Sort((a, b) =>
             {
-                var byScore = a.Key.CompareTo(b.Key);
-                if (byScore != 0) return byScore;
-
-                // Among equal matches the shorter name is the closer one: "Troll" before
-                // "Troll_Summoned". With no words typed every score is equal and this is name order.
-                if (ranked)
-                {
-                    var byLength = a.Value.Name.Length.CompareTo(b.Value.Name.Length);
-                    if (byLength != 0) return byLength;
-                }
-
-                return string.Compare(a.Value.Name, b.Value.Name, StringComparison.OrdinalIgnoreCase);
+                var byName = string.Compare(a.Key.Name, b.Key.Name, StringComparison.OrdinalIgnoreCase);
+                if (byName != 0) return byName;
+                var exact = string.CompareOrdinal(a.Key.Name, b.Key.Name);
+                return exact != 0 ? exact : a.Value.CompareTo(b.Value);
             });
-
-            var result = new List<Entry>(found.Count);
-            foreach (var pair in found) result.Add(pair.Value);
-            return result;
+            for (var i = 0; i < order.Count; i++) order[i].Key.NameOrder = i;
         }
 
         /// <summary>The filters other than the text and the kind: favourites and origin.</summary>

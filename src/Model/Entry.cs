@@ -26,6 +26,7 @@ namespace Scry
                 _name = value;
                 _nameUpper = null;
                 _statusEffectKey = null;
+                NameOrder = -1;
             }
         }
 
@@ -39,6 +40,12 @@ namespace Scry
                 _displayNameUpper = null;
             }
         }
+
+        /// <summary>
+        /// Where the name comes among the catalog's names, for sorting results by name without
+        /// comparing the names each time; -1 until the catalog's names are put in order.
+        /// </summary>
+        public int NameOrder = -1;
 
         /// <summary>The prefab name in capitals, to match typed words against whatever their case.</summary>
         internal string NameUpper => _nameUpper ?? (_nameUpper = _name?.ToUpperInvariant());

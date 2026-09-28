@@ -43,7 +43,17 @@ namespace Scry
             public string Token;
             public string Label;
             public int Count;
+
+            /// <summary>The entries that have it, by place in the catalog, each once.</summary>
+            public readonly List<int> Entries = new List<int>();
         }
+
+        /// <summary>How many entries each suggested term finds, worked out once a world.</summary>
+        private readonly Dictionary<string, int> _finds = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        // Marks an entry already counted, by the round it was counted in, so no set is made per count.
+        private int[] _counted;
+        private int _round;
 
         private readonly Dictionary<string, Dictionary<string, Value>> _byKey = new Dictionary<string, Dictionary<string, Value>>(StringComparer.Ordinal);
         private readonly Dictionary<string, List<Value>> _lists = new Dictionary<string, List<Value>>(StringComparer.Ordinal);
@@ -59,8 +69,9 @@ namespace Scry
             foreach (Kind kind in Enum.GetValues(typeof(Kind))) Intern("kind", kind.ToString(), Kinds.Label(kind));
 
             var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var entry in Catalog)
+            for (var at = 0; at < Catalog.Count; at++)
             {
+                var entry = Catalog[at];
                 seen.Clear();
                 void Add(string key, string word, string label)
                 {
@@ -68,6 +79,7 @@ namespace Scry
                     var value = Intern(key, word, label);
                     if (!seen.Add(key + "|" + value.Token)) return;
                     value.Count++;
+                    value.Entries.Add(at);
                 }
 
                 Add("kind", entry.Kind.ToString(), Kinds.Label(entry.Kind));
@@ -95,6 +107,49 @@ namespace Scry
 
         /// <summary>A value as one word of the search: without its spaces, in small letters.</summary>
         internal static string Token(string word) => (word ?? "").Replace(" ", "").ToLowerInvariant();
+
+        /// <summary>
+        /// How many entries a term of one of the index's values finds, as the search finds them:
+        /// every entry with a value of that key holding the term's word, each once. Read from the
+        /// index rather than the catalog, as suggestions count up to eight terms a keystroke. The
+        /// kinds and stations, whose words the search reads in ways of their own, are counted by
+        /// searching; every count is kept once found.
+        /// </summary>
+        internal int Finds(string key, string token)
+        {
+            var term = key + ":" + token;
+            if (_finds.TryGetValue(term, out var known)) return known;
+
+            int count;
+            if (key == "kind" || key == "station")
+            {
+                var parsed = Search.Parse(term);
+                count = 0;
+                foreach (var entry in Catalog) if (Search.Matches(entry, parsed)) count++;
+            }
+            else
+            {
+                if (_counted == null) _counted = new int[Catalog.Count];
+                if (++_round == int.MaxValue)
+                {
+                    System.Array.Clear(_counted, 0, _counted.Length);
+                    _round = 1;
+                }
+                count = 0;
+                foreach (var value in ValuesOf(key))
+                {
+                    if (value.Token.IndexOf(token, StringComparison.Ordinal) < 0) continue;
+                    foreach (var at in value.Entries)
+                    {
+                        if (_counted[at] == _round) continue;
+                        _counted[at] = _round;
+                        count++;
+                    }
+                }
+            }
+            _finds[term] = count;
+            return count;
+        }
 
         internal List<Value> ValuesOf(string key)
         {
@@ -256,7 +311,7 @@ namespace Scry
                 {
                     Label = value.Label,
                     Insert = minus + term,
-                    Count = Finds(index.Catalog, term),
+                    Count = index.Finds(name, value.Token),
                 });
             }
             return found;
@@ -271,18 +326,6 @@ namespace Scry
                 if (word.StartsWith(partial, StringComparison.OrdinalIgnoreCase)) return 1;
             }
             return value.Token.IndexOf(partial, StringComparison.Ordinal) >= 0 ? 2 : -1;
-        }
-
-        /// <summary>How many entries a term finds, as the search finds them.</summary>
-        private static int Finds(IReadOnlyList<Entry> catalog, string term)
-        {
-            var parsed = Search.Parse(term);
-            var count = 0;
-            foreach (var entry in catalog)
-            {
-                if (Search.Matches(entry, parsed)) count++;
-            }
-            return count;
         }
 
         /// <summary>
