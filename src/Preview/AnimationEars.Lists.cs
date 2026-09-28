@@ -1,8 +1,5 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace Scry
 {
@@ -38,7 +35,7 @@ namespace Scry
 
         /// <summary>
         /// What the game plays as it moves the animator into this clip by one of its own actions,
-        /// such as a jump or waking (<see cref="Previews.ListOfClip"/>), played as the clip starts.
+        /// such as a jump or waking (<see cref="Previews.ListOfClip(GameObject, GameObject, string)"/>), played as the clip starts.
         /// A clip whose own Jump event plays the jump leaves it to the event.
         /// </summary>
         private void PlayGameList(AnimationClip clip)

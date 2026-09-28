@@ -1,0 +1,140 @@
+using UnityEngine;
+
+namespace Scry
+{
+    /// <summary>Setting the stage up: its layer, camera, lights and texture.</summary>
+    internal static partial class Stage
+    {
+        private static bool Ensure()
+        {
+            if (_root != null && _camera != null) return true;
+
+            if (_layer == -2) _layer = FreeLayer();
+            if (_layer < 0) return false;
+
+            // What a stage taken down with the scene rather than through Clear left behind.
+            if (_root != null) Object.Destroy(_root);
+            Floor.Release();
+
+            _root = new GameObject("Scry stage");
+            _root.transform.position = Origin;
+
+            var cameraObject = new GameObject("Scry stage camera") { layer = _layer };
+            cameraObject.transform.SetParent(_root.transform, false);
+            _camera = cameraObject.AddComponent<Camera>();
+            _camera.enabled = false;
+            _camera.clearFlags = CameraClearFlags.SolidColor;
+            _camera.cullingMask = 1 << _layer;
+            _camera.fieldOfView = FieldOfView;
+            _camera.allowHDR = false;
+            _camera.allowMSAA = true;
+            _camera.useOcclusionCulling = false;
+
+            _key = AddLight(cameraObject.transform);
+            _fill = AddLight(cameraObject.transform);
+            _rim = AddLight(cameraObject.transform);
+            ApplyLighting();
+
+            _floor = Floor.Make(_layer);
+            if (_floor != null) _floor.transform.SetParent(_root.transform, true);
+
+            _ground = new GameObject("Scry stage ground") { layer = _layer };
+            _ground.transform.SetParent(_root.transform, false);
+            _ground.AddComponent<BoxCollider>();
+
+            _grid = Floor.Surface("Scry stage grid", _layer, Floor.GridTexture());
+            _gridMetres = -1f;
+            if (_grid != null) _grid.transform.SetParent(_root.transform, true);
+
+            _sky = Floor.Surface("Scry stage sky", _layer, null);
+            if (_sky != null) _sky.transform.SetParent(cameraObject.transform, false);
+            ApplyLighting();
+
+            EnsureTexture();
+            _camera.targetTexture = _texture;
+            return true;
+        }
+
+        private static void ApplyLighting()
+        {
+            if (_camera == null) return;
+            var preset = Presets[_lighting];
+
+            Set(_key, preset.KeyAngle, preset.Key, preset.KeyPower);
+            Set(_fill, new Vector3(15f, 55f, 0f), preset.Fill, preset.FillPower);
+            Set(_rim, new Vector3(-20f, 170f, 0f), preset.Rim, preset.RimPower);
+            _camera.backgroundColor = preset.Backdrop;
+
+            var sky = _backdrop == 1 || _backdrop == 3;
+            var grid = _backdrop == 2 || _backdrop == 3;
+            if (_sky != null)
+            {
+                _sky.SetActive(sky);
+                if (SkyTextures[_lighting] == null) SkyTextures[_lighting] = Floor.SkyTexture(preset.SkyTop, preset.Horizon, preset.Ground);
+                _sky.GetComponent<MeshRenderer>().sharedMaterial.mainTexture = SkyTextures[_lighting];
+            }
+            if (_grid != null) _grid.SetActive(grid);
+            if (_floor != null) _floor.SetActive(!grid);
+        }
+
+        private static void Set(Light light, Vector3 angle, Color color, float power)
+        {
+            if (light == null) return;
+            light.transform.localRotation = Quaternion.Euler(angle);
+            light.color = color;
+            light.intensity = power;
+        }
+
+        private static Light AddLight(Transform parent)
+        {
+            var lightObject = new GameObject("Scry stage light") { layer = _layer };
+            lightObject.transform.SetParent(parent, false);
+            var light = lightObject.AddComponent<Light>();
+            light.type = LightType.Directional;
+            light.shadows = LightShadows.None;
+            light.cullingMask = 1 << _layer;
+            return light;
+        }
+
+        private static void EnsureTexture()
+        {
+            if (_texture != null)
+            {
+                if (_texture.width == _width && _texture.height == _height) return;
+
+                // While the panel or the stage is being resized the size changes on every frame;
+                // the texture there is drawn stretched until the size holds still, rather than one
+                // made and let go on each of them. The camera films at the size's shape meanwhile.
+                if (Time.unscaledTime - _sizeSince < ResizeAfter) return;
+
+                if (_camera != null) _camera.targetTexture = null;
+                _texture.Release();
+                Object.Destroy(_texture);
+            }
+
+            _texture = new RenderTexture(_width, _height, 24, RenderTextureFormat.ARGB32)
+            {
+                antiAliasing = 4,
+                name = "Scry stage",
+            };
+            _texture.Create();
+            if (_camera != null) _camera.targetTexture = _texture;
+        }
+
+        /// <summary>The highest layer without a name, which nothing in the game draws on.</summary>
+        private static int FreeLayer()
+        {
+            for (var i = 31; i >= 8; i--)
+            {
+                if (string.IsNullOrEmpty(LayerMask.LayerToName(i)))
+                {
+                    Plugin.Note($"Scry is using layer {i} for its preview stage.");
+                    return i;
+                }
+            }
+
+            Plugin.Log.LogWarning("Scry found no free layer for its preview stage, so the panel shows no turntable. Showing in the world still works.");
+            return -1;
+        }
+    }
+}
