@@ -77,6 +77,19 @@ namespace Scry.Tests
         }
 
         [Theory]
+        [InlineData(12.25f, "12.25")]
+        [InlineData(2.5f, "2.5")]
+        [InlineData(12f, "12")]
+        [InlineData(11.9999f, "12")]
+        [InlineData(0.333f, "0.33")]
+        [InlineData(-5f, "-5")]
+        public void NumbersAreWrittenOneWayEverywhere(float value, string shown)
+        {
+            // Up to two decimals, none for a whole number: a creature's attack and an item's facts agree.
+            Assert.Equal(shown, Naming.Number(value));
+        }
+
+        [Theory]
         [InlineData(3000f, 3600f, "50–60 min")]
         [InlineData(20f, 40f, "20–40 s")]
         [InlineData(90f, 180f, "90 s to 3 min")]

@@ -1074,7 +1074,7 @@ namespace Scry
 
         private static string Number(float value)
         {
-            return value.ToString(Math.Abs(value - Mathf.Round(value)) < 0.001f ? "0" : "0.##", CultureInfo.InvariantCulture);
+            return Naming.Number(value);
         }
 
         private static string Percent(float value)

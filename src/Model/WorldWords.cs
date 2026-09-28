@@ -20,6 +20,6 @@ namespace Scry
             return parts.Count > 0 ? string.Join(" and ", parts) + ", not counted in these figures" : null;
         }
 
-        private static string Number(float value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+        private static string Number(float value) => Naming.Number(value);
     }
 }

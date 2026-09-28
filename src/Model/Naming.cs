@@ -40,6 +40,12 @@ namespace Scry
             @"</?(color|b|i|size|material|quad|sprite|u|s|sup|sub|mark|font|align|alpha|cspace|indent|line-height|lowercase|uppercase|smallcaps|noparse|nobr|space|voffset|width|link|style|rotate|pos)(=[^>]*)?>",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
+        /// <summary>
+        /// A number as every fact writes it: up to two decimals, none for a whole number. Times
+        /// are the one exception, written by <see cref="Duration"/> to one decimal of their unit.
+        /// </summary>
+        public static string Number(float value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
         /// <summary>A length of time in the largest unit that reads well: "40 s", "25 min", "2.5 h".</summary>
         public static string Duration(float seconds)
         {

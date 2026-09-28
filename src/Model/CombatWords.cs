@@ -14,7 +14,7 @@ namespace Scry
         /// <summary>Stars in figures, as the Adjust choices and the spawn lines count them.</summary>
         private static string Stars(int stars) => stars.ToString(CultureInfo.InvariantCulture) + (stars == 1 ? " star" : " stars");
 
-        private static string Number(float value) => value.ToString("0.#", CultureInfo.InvariantCulture);
+        private static string Number(float value) => Naming.Number(value);
 
         /// <summary>Health at each star up to the highest, or null without stars.</summary>
         public static string StarHealth(float health, int maxStars)
