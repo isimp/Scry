@@ -198,9 +198,12 @@ namespace Scry
                     GUI.Label(inner, "This one could not be previewed.", Skin.CenterDim);
                 }
 
-                var viewsW = ViewButtons(inner);
+                // The camera's buttons show only while the mouse is on the stage, as its hint does,
+                // so the model is not framed by controls while it is looked at.
+                var over = rect.Contains(e.mousePosition) || _drag == Drag.Orbit;
+                var viewsW = over ? ViewButtons(inner) : 0f;
                 var textW = inner.width - U(24f) - viewsW;
-                if (rect.Contains(e.mousePosition) || _drag == Drag.Orbit)
+                if (over)
                 {
                     FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), textW, U(22f)),
                         "Drag to turn, right-drag to move, scroll to zoom, double-click to reset", Skin.FaintLabel, 9f);
@@ -516,6 +519,15 @@ namespace Scry
 
                 default:
                     if (entry.Kind == Kind.Projectile && Button("Fire where you look", Skin.Primary)) Previews.Fire(entry);
+                    // Wearing it and keeping it on are one idea, side by side under the stage in
+                    // both views; the stage's own chips only change how it is seen.
+                    if (entry.Kind == Kind.Item && entry.Source is GameObject wearable && Gear.IsWearable(wearable)
+                        && Button("Wear it", Looks.OnPerson ? Skin.On : Skin.Button))
+                    {
+                        Looks.OnPerson = !Looks.OnPerson;
+                        Previews.Rebuild();
+                        SaveRects();
+                    }
                     if (Looks.IsWorn(entry))
                     {
                         var kept = Looks.Outfit.Contains(entry.Name);
@@ -525,13 +537,6 @@ namespace Scry
                             else Looks.Outfit.Keep(entry.Name, Gear.SlotOf((GameObject)entry.Source));
                             Previews.Rebuild();
                         }
-                    }
-                    if (_compact && entry.Kind == Kind.Item && entry.Source is GameObject wearable && Gear.IsWearable(wearable)
-                        && Button("Worn", Looks.OnPerson ? Skin.On : Skin.Button))
-                    {
-                        Looks.OnPerson = !Looks.OnPerson;
-                        Previews.Rebuild();
-                        SaveRects();
                     }
                     var fallen = Previews.Playing.IsPlaying("ragdoll");
                     if (Previews.RagdollOf(entry) != null && Shown("Ragdoll", fallen ? Skin.On : Skin.Button, Stage.Subject != null))
@@ -685,6 +690,16 @@ namespace Scry
         /// Front, side and top views and a fit, in the stage's bottom right corner. Picking a view
         /// holds the model still, so it stays in that view. Returns the width they take.
         /// </summary>
+        private static readonly Dictionary<(string, string), string> ChipLabels = new Dictionary<(string, string), string>();
+
+        /// <summary>A chip's text that says what it is ("Light: Studio"), made once for each choice.</summary>
+        private static string Labelled(string prefix, string[] names, int index)
+        {
+            var name = names[index];
+            if (!ChipLabels.TryGetValue((prefix, name), out var label)) ChipLabels[(prefix, name)] = label = prefix + name;
+            return label;
+        }
+
         private static float ViewButtons(Rect inner)
         {
             var h = U(22f);
@@ -718,9 +733,9 @@ namespace Scry
             var x = rect.xMax - U(10f);
 
             // Everything the row will hold, measured first, so it can move clear of the kind badge.
-            var wearable = entry.Kind == Kind.Item && entry.Source is GameObject wornItem && Gear.IsWearable(wornItem);
-            var texts = new List<string> { Stage.BackdropNames[Stage.BackdropIndex], Stage.LightingNames[Stage.LightingIndex], "Spin" };
-            if (wearable) texts.Add("Worn");
+            var backdrop = Labelled("Backdrop: ", Stage.BackdropNames, Stage.BackdropIndex);
+            var lighting = Labelled("Light: ", Stage.LightingNames, Stage.LightingIndex);
+            var texts = new List<string> { backdrop, lighting, "Spin" };
             if (!Looks.IsWorn(entry)) texts.Add("Person");
             var total = texts.Sum(t => Skin.Width(Skin.Chip, t) + U(10f));
             if (x - total < rect.x + U(10f) + _badgeWidth + U(10f)) y += h + U(8f);
@@ -741,20 +756,14 @@ namespace Scry
                 Stage.Spin = !Stage.Spin;
                 SaveRects();
             }
-            if (Chip(Stage.BackdropNames[Stage.BackdropIndex], false, "Backdrop: click for the next"))
+            if (Chip(backdrop, false, "Click for the next backdrop"))
             {
                 Stage.BackdropIndex = (Stage.BackdropIndex + 1) % Stage.BackdropNames.Length;
                 SaveRects();
             }
-            if (Chip(Stage.LightingNames[Stage.LightingIndex], false, "Lighting: click for the next"))
+            if (Chip(lighting, false, "Click for the next lighting"))
             {
                 Stage.LightingIndex = (Stage.LightingIndex + 1) % Stage.LightingNames.Length;
-                SaveRects();
-            }
-            if (wearable && Chip("Worn", Looks.OnPerson, "Show it worn by a person"))
-            {
-                Looks.OnPerson = !Looks.OnPerson;
-                Previews.Rebuild();
                 SaveRects();
             }
             if (!Looks.IsWorn(entry) && Chip("Person", Stage.ShowPerson, "A person beside it, to judge its size"))
