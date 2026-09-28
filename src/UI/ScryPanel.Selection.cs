@@ -364,7 +364,6 @@ namespace Scry
         private static string StatusFacts(StatusEffect effect)
         {
             var parts = new List<string>();
-            if (!string.IsNullOrEmpty(effect.m_category)) parts.Add("Category: " + effect.m_category);
             parts.Add(effect.m_ttl > 0f ? "Lasts " + Duration(effect.m_ttl) : "No time limit of its own");
             return string.Join("    ", parts);
         }

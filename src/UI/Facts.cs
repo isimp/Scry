@@ -858,6 +858,17 @@ namespace Scry
         {
             Description = CatalogBuilder.Localize(effect.m_tooltip);
 
+            // Its category is an id the game never shows; what it means is that nothing giving
+            // another effect of the same category can be eaten or drunk while it lasts
+            // (Player.CanConsumeItem, SEMan.HaveStatusEffectCategory).
+            if (!string.IsNullOrEmpty(effect.m_category) && ObjectDB.instance != null)
+            {
+                var kin = ObjectDB.instance.m_StatusEffects
+                    .Where(other => other != null && other != effect && other.m_category == effect.m_category)
+                    .Select(EffectName).Distinct().OrderBy(n => n, StringComparer.Ordinal).ToList();
+                if (kin.Count > 0) Add("While it lasts, cannot take", string.Join(", ", kin));
+            }
+
             // What the game's own tooltip says of its stats, in its words and units, where it can
             // be read (SE_Stats.GetTooltipString); the fields it tells are then not told again.
             var told = effect is SE_Stats && GameWords(effect);

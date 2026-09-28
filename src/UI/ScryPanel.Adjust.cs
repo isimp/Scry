@@ -43,7 +43,7 @@ namespace Scry
             {
                 var names = new List<string>();
                 for (var level = 1; level <= modifiers.MaxLevel; level++) names.Add(level == 1 ? "No stars" : level == 2 ? "1 star" : $"{level - 1} stars");
-                var chosen = Segments("Level", names, modifiers.Level - 1, width, labelW, ref y);
+                var chosen = Segments("Stars", names, modifiers.Level - 1, width, labelW, ref y);
                 if (chosen >= 0) modifiers.Level = chosen + 1;
             }
 

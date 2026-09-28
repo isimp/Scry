@@ -447,7 +447,8 @@ namespace Scry
 
         /// <summary>
         /// Where it is made: each recipe's crafting station and the level it needs, "by hand" for
-        /// a recipe without one, and a piece's build station.
+        /// a recipe without one, a piece's build station, and any station that turns something
+        /// into it (a smelter, a fermenter), as the details tell it "Made in".
         /// </summary>
         private static StationUse[] StationsOf(GameObject prefab)
         {
@@ -467,6 +468,14 @@ namespace Scry
             if (piece != null && piece.m_craftingStation != null)
             {
                 uses.Add(new StationUse(piece.m_craftingStation.gameObject.name, Localize(piece.m_craftingStation.m_name), 1));
+            }
+
+            foreach (var making in Knowledge.MadeOf(prefab.name))
+            {
+                if (uses.Exists(u => u.Name == making.Station)) continue;
+                var station = ZNetScene.instance != null ? ZNetScene.instance.GetPrefab(making.Station) : null;
+                var shown = station != null ? Localize(station.GetComponent<Piece>()?.m_name) : "";
+                uses.Add(new StationUse(making.Station, shown, 1));
             }
 
             return uses.ToArray();
