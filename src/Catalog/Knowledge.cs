@@ -142,6 +142,7 @@ namespace Scry
             Uses.Clear();
             Bosses.Clear();
             Altars.Clear();
+            SpawnPointsLeft.Clear();
         }
 
         /// <summary>
@@ -300,6 +301,7 @@ namespace Scry
         {
             Try("world spawners", WorldSpawners);
             Try("raids", Raids);
+            Try("spawn points", TellSpawnPoints);
             Try("nests and spawn points", () => Merge(SpawnPointLines, (prefab, line) => Add(prefab, line.Text, line.Prefab)));
             Try("vegetation", Vegetation);
             yield return "where things live";
@@ -482,6 +484,18 @@ namespace Scry
             }
         }
 
+        /// <summary>Spawn points read, told once every prefab is read and each boss is known by its key.</summary>
+        private static readonly List<(GameObject Point, GameObject Creature, SpawnFacts Spawn)> SpawnPointsLeft = new List<(GameObject, GameObject, SpawnFacts)>();
+
+        private static void TellSpawnPoints()
+        {
+            foreach (var (point, creature, spawn) in SpawnPointsLeft)
+            {
+                Keep(SpawnPointLines, creature, SpawnWords.Line($"In dungeons or locations, from the spawn point {Shown(point)}", spawn, BossOf), point.name);
+            }
+            SpawnPointsLeft.Clear();
+        }
+
         private static void SpawnPoints(GameObject prefab, List<Component> components)
         {
             foreach (var component in components)
@@ -496,7 +510,13 @@ namespace Scry
             foreach (var component in components)
             {
                 if (!(component is CreatureSpawner point) || point.m_creaturePrefab == null) continue;
-                Keep(SpawnPointLines, point.m_creaturePrefab, $"In dungeons or locations, from the spawn point {prefab.name}", prefab.name);
+                // Told as a world spawn is, by the same words, once every boss is known for its key.
+                var spawn = new SpawnFacts
+                {
+                    AtNight = point.m_spawnAtNight, AtDay = point.m_spawnAtDay, MinLevel = point.m_minLevel, MaxLevel = point.m_maxLevel,
+                    Keys = new[] { point.m_requiredGlobalKey }, NotKeys = new[] { point.m_blockingGlobalKey },
+                };
+                SpawnPointsLeft.Add((prefab, point.m_creaturePrefab, spawn));
             }
         }
 
@@ -630,7 +650,7 @@ namespace Scry
                         {
                             if (need?.m_resItem == null) continue;
                             making.Inputs.Add((need.m_resItem.gameObject.name, Math.Max(1, need.m_amount)));
-                            Uses.Add(need.m_resItem.gameObject.name, UseKind.TurnsInto, making.Output, need.m_amount, prefab.name);
+                            Uses.Add(need.m_resItem.gameObject.name, UseKind.TurnsInto, making.Output, 0, prefab.name);
                         }
                         Made.Add(making);
                     }

@@ -75,5 +75,15 @@ namespace Scry.Tests
         {
             Assert.Equal(shown, Naming.Duration(seconds));
         }
+
+        [Theory]
+        [InlineData(3000f, 3600f, "50–60 min")]
+        [InlineData(20f, 40f, "20–40 s")]
+        [InlineData(90f, 180f, "90 s to 3 min")]
+        [InlineData(600f, 600f, "10 min")]
+        public void ARangeOfTimesSharesItsUnitWhereItCan(float least, float most, string shown)
+        {
+            Assert.Equal(shown, Naming.DurationRange(least, most));
+        }
     }
 }

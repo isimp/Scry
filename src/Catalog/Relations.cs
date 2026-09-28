@@ -332,14 +332,11 @@ namespace Scry
             }
         }
 
-        /// <summary>
-        /// Parts whose prefabs are linked elsewhere: drops, what is left behind, a tree's log and
-        /// stump, and what a bush or plant gives, which its facts tell as picked.
-        /// </summary>
+        /// <summary>Parts whose prefabs are linked elsewhere: drops, what is left behind, a tree's log and stump.</summary>
         private static bool Skipped(Component component)
         {
             return component == null || component is Transform || component is CharacterDrop
-                   || component is TreeBase || component is TreeLog || component is Destructible || component is Pickable;
+                   || component is TreeBase || component is TreeLog || component is Destructible;
         }
 
         /// <summary>
@@ -351,9 +348,12 @@ namespace Scry
         {
             if (owner is Piece && field.Name == "m_resources") return true;
             if (owner is MonsterAI && field.Name == "m_consumeItems") return true;
+            if (owner is CookingStation && field.Name == "m_overCookedItem") return true;
             if (owner is Trader || owner is Beehive || owner is SapCollector || owner is Incinerator || owner is OfferingBowl) return true;
-            // A plant's grown version is told as "Grows into" on it and "Grows from" on what it grows into.
+            // A plant's grown version is told as "Grows into" on it and "Grows from" on what it grows
+            // into; what a bush gives, as "Picked" on it and "Picked from" on the item.
             if (owner is Plant && field.Name == "m_grownPrefabs") return true;
+            if (owner is Pickable && field.Name == "m_itemPrefab") return true;
             return owner is Component && Knowledge.IsToldAsUse(owner.GetType(), field);
         }
 
@@ -367,7 +367,7 @@ namespace Scry
             {
                 if (owner is Humanoid && GearFields.Contains(field.Name)) continue;
                 var told = depth == 0 && ItemsToldElsewhere(owner, field);
-                if (told && owner is Plant) continue;
+                if (told && (owner is Plant || owner is Pickable)) continue;
                 object value;
                 try { value = field.GetValue(owner); }
                 catch { continue; }

@@ -62,7 +62,7 @@ namespace Scry
                 {
                     var least = times.Min();
                     var most = times.Max();
-                    Add("Each takes", least == most ? Naming.Duration(least) : $"{Naming.Duration(least)} to {Naming.Duration(most)}");
+                    Add("Each takes", Naming.DurationRange(least, most));
                 }
                 if (cooking.m_canOvercookItems && cooking.m_overCookedItem != null)
                 {

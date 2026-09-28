@@ -49,6 +49,17 @@ namespace Scry
             return Number(seconds / 3600f) + " h";
         }
 
+        /// <summary>From one time to another, the unit said once where both share it: "50–60 min", "90 s to 3 min".</summary>
+        public static string DurationRange(float least, float most)
+        {
+            var low = Duration(least);
+            var high = Duration(most);
+            if (low == high) return low;
+            var lowUnit = low.Substring(low.LastIndexOf(' ') + 1);
+            var highUnit = high.Substring(high.LastIndexOf(' ') + 1);
+            return lowUnit == highUnit ? $"{low.Substring(0, low.LastIndexOf(' '))}–{high}" : $"{low} to {high}";
+        }
+
         /// <summary>A name without the rich-text tags some mods colour or size their names with.</summary>
         public static string Plain(string text)
         {

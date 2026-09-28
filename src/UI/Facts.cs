@@ -162,18 +162,20 @@ namespace Scry
             if (shared.m_maxQuality > 1) Add("Quality", $"up to {shared.m_maxQuality}");
             if (!shared.m_teleportable) Add("Portals", "cannot go through");
 
+            // The game fills in per-quality numbers everywhere; they mean something only for what can be upgraded.
+            var upgradable = shared.m_maxQuality > 1;
             var damage = Damages(shared.m_damages);
             if (damage.Length > 0)
             {
                 Add("Damage", damage);
-                Add("Per quality", Damages(shared.m_damagesPerLevel));
+                if (upgradable) Add("Per quality", Damages(shared.m_damagesPerLevel));
             }
 
             var type = shared.m_itemType;
             // The slots whose armour counts (Humanoid.GetBodyArmor); gloves' does not.
             var worn = type == ItemDrop.ItemData.ItemType.Helmet || type == ItemDrop.ItemData.ItemType.Chest
                        || type == ItemDrop.ItemData.ItemType.Legs || type == ItemDrop.ItemData.ItemType.Shoulder;
-            if (worn && shared.m_armor > 0f) Add("Armour", $"{Number(shared.m_armor)}, +{Number(shared.m_armorPerLevel)} per quality");
+            if (worn && shared.m_armor > 0f) Add("Armour", Number(shared.m_armor) + (upgradable && shared.m_armorPerLevel > 0f ? $", +{Number(shared.m_armorPerLevel)} per quality" : ""));
             Combat(prefab, shared);
 
             if (shared.m_food > 0f || shared.m_foodStamina > 0f || shared.m_foodEitr > 0f)
@@ -281,7 +283,7 @@ namespace Scry
                 var at = recipe != null ? recipe.m_repairStation ?? recipe.m_craftingStation : null;
                 if (shared.m_canBeReparied && at != null)
                 {
-                    var level = recipe.m_minStationLevel > 1 ? $", level {recipe.m_minStationLevel}" : "";
+                    var level = recipe.m_minStationLevel > 1 ? $" level {recipe.m_minStationLevel}" : "";
                     Add("Repaired at", CatalogBuilder.Localize(at.m_name) + level, at.gameObject.name);
                 }
             }
@@ -419,7 +421,7 @@ namespace Scry
         private void Behaviour(GameObject prefab, Character character)
         {
             var moves = new List<string>();
-            if (character.m_flying) moves.Add($"flies {Number(character.m_flySlowSpeed)} to {Number(character.m_flyFastSpeed)} m/s");
+            if (character.m_flying) moves.Add($"flies {Number(character.m_flySlowSpeed)}–{Number(character.m_flyFastSpeed)} m/s");
             else moves.Add($"walks {Number(character.m_walkSpeed)} m/s, runs {Number(character.m_runSpeed)} m/s");
             if (character.m_canSwim) moves.Add($"swims {Number(character.m_swimSpeed)} m/s");
             Add("Moves", string.Join(", ", moves));
@@ -450,18 +452,20 @@ namespace Scry
         /// <summary>What it resists or is weak to, a row for each degree, as a creature's or a resource's are told.</summary>
         private void Resists(HitData.DamageModifiers mods)
         {
-            var groups = new SortedDictionary<string, List<string>>();
+            // By degree, from very weak to immune, as the game orders them, not by the words' spelling.
+            var groups = new SortedDictionary<int, (string Words, List<string> Types)>();
             foreach (var field in typeof(HitData.DamageModifiers).GetFields(BindingFlags.Public | BindingFlags.Instance))
             {
                 if (field.FieldType != typeof(HitData.DamageModifier) || field.Name == "m_nonPlayer") continue;
                 var modifier = (HitData.DamageModifier)field.GetValue(mods);
                 if (modifier == HitData.DamageModifier.Normal) continue;
 
-                var group = ModifierWords(modifier);
-                if (!groups.TryGetValue(group, out var list)) groups[group] = list = new List<string>();
-                list.Add(Naming.FieldLabel(field.Name).ToLowerInvariant());
+                var order = Array.IndexOf(Degrees, modifier);
+                if (order < 0) order = Degrees.Length + (int)modifier;
+                if (!groups.TryGetValue(order, out var group)) groups[order] = group = (ModifierWords(modifier), new List<string>());
+                group.Types.Add(Naming.FieldLabel(field.Name).ToLowerInvariant());
             }
-            foreach (var group in groups) Add(group.Key, string.Join(", ", group.Value));
+            foreach (var group in groups.Values) Add(group.Words, string.Join(", ", group.Types));
         }
 
         // ----- Resources -----
@@ -582,9 +586,7 @@ namespace Scry
             var plant = prefab.GetComponent<Plant>();
             if (plant != null)
             {
-                Add("Takes to grow", plant.m_growTimeMax > plant.m_growTime
-                    ? $"{Minutes(plant.m_growTime)} to {Minutes(plant.m_growTimeMax)}"
-                    : Minutes(plant.m_growTime));
+                Add("Takes to grow", Naming.DurationRange(plant.m_growTime, Math.Max(plant.m_growTime, plant.m_growTimeMax)));
                 if (plant.m_biome != 0) Add("Grows in", Knowledge.BiomeNames(plant.m_biome));
                 if (plant.m_needCultivatedGround) Add("Needs", "cultivated ground");
                 var tolerates = new List<string>();
@@ -693,6 +695,13 @@ namespace Scry
             Rows.Add(row);
             _drops = true;
         }
+
+        /// <summary>The degrees of a damage modifier, from the most harm taken to the least.</summary>
+        private static readonly HitData.DamageModifier[] Degrees =
+        {
+            HitData.DamageModifier.VeryWeak, HitData.DamageModifier.Weak, HitData.DamageModifier.SlightlyWeak, HitData.DamageModifier.SlightlyResistant,
+            HitData.DamageModifier.Resistant, HitData.DamageModifier.VeryResistant, HitData.DamageModifier.Immune, HitData.DamageModifier.Ignore,
+        };
 
         /// <summary>How a damage modifier reads as a label, e.g. "Weak to".</summary>
         private static string ModifierWords(HitData.DamageModifier modifier)
@@ -872,7 +881,7 @@ namespace Scry
                     if (shown != null) Add(Naming.FieldLabel(field.Name), shown);
                 }
 
-                if (!told && effect is SE_Stats stats && stats.m_mods != null)
+                if (effect is SE_Stats stats && stats.m_mods != null)
                 {
                     foreach (var pair in stats.m_mods)
                     {
@@ -906,13 +915,13 @@ namespace Scry
             }
             if (string.IsNullOrEmpty(text)) return false;
             text = Naming.Plain(text).Replace("\r", "");
+            // The tooltip starts with the description, which may hold blank lines of its own.
+            var intro = Naming.Plain(Localization.instance.Localize(effect.m_tooltip ?? "")).Replace("\r", "");
+            if (intro.Length > 0 && text.StartsWith(intro, StringComparison.Ordinal)) text = text.Substring(intro.Length);
             var lines = text.Split('\n').ToList();
-            if (!string.IsNullOrEmpty(effect.m_tooltip))
-            {
-                var gap = lines.FindIndex(l => l.Trim().Length == 0);
-                lines = gap >= 0 ? lines.Skip(gap + 1).ToList() : new List<string>();
-            }
             var duration = Localization.instance.Localize("$se_ttl");
+            // Resistances are told as a creature's are, in the rows below.
+            var modifier = Localization.instance.Localize("$inventory_dmgmod");
             var added = 0;
             foreach (var raw in lines)
             {
@@ -932,7 +941,7 @@ namespace Scry
                     value = line.Substring(space + 1).Trim();
                 }
                 else continue;
-                if (label.Length == 0 || value.Length == 0 || label == duration) continue;
+                if (label.Length == 0 || value.Length == 0 || label == duration || label == modifier) continue;
                 Add(label, value);
                 added++;
             }
@@ -945,7 +954,7 @@ namespace Scry
             "m_addArmor", "m_addMaxCarryWeight", "m_adrenalineModifier", "m_adrenalineUpFront", "m_armorMultiplier", "m_attackStaminaUseModifier",
             "m_blockStaminaUseFlatValue", "m_blockStaminaUseModifier", "m_dodgeStaminaUseModifier", "m_eitrOverTime", "m_eitrRegenMultiplier",
             "m_eitrUpFront", "m_fallDamageModifier", "m_healthOverTime", "m_healthRegenMultiplier", "m_healthUpFront", "m_homeItemStaminaUseModifier",
-            "m_jumpModifier", "m_jumpStaminaUseModifier", "m_maxMaxFallSpeed", "m_mods", "m_noiseModifier", "m_percentigeDamageModifiers",
+            "m_jumpModifier", "m_jumpStaminaUseModifier", "m_maxMaxFallSpeed", "m_noiseModifier", "m_percentigeDamageModifiers",
             "m_runStaminaDrainModifier", "m_runStaminaUseModifier", "m_skillLevel", "m_skillLevelModifier", "m_skillLevel2", "m_skillLevelModifier2",
             "m_sneakStaminaUseModifier", "m_speedModifier", "m_staggerModifier", "m_staminaOverTime", "m_staminaRegenMultiplier", "m_staminaUpFront",
             "m_stealthModifier", "m_swimSpeedModifier", "m_swimStaminaUseModifier", "m_timedBlockBonus",
