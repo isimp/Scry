@@ -146,16 +146,39 @@ namespace Scry
         /// </summary>
         private static float LinksSection(Explorer explorer, Entry entry, float width, float y)
         {
-            var groups = entry.LinkGroups();
-            if (groups.Count == 0 && entry.LeftBy.Count == 0 && entry.LeavesBehind.Count == 0) return y;
+            // Made once for the entry shown, not for every event the panel draws.
+            if (!ReferenceEquals(_linksFor, entry) || !ReferenceEquals(_linksIn, explorer))
+            {
+                _linksFor = entry;
+                _linksIn = explorer;
+                LinkRows.Clear();
+                MakeLinkRows(explorer, entry);
+            }
+            if (LinkRows.Count == 0) return y;
 
             y = SectionHeading("LINKED", width, y, null, "links");
             if (IsFolded("links")) return y;
 
-            if (entry.LeftBy.Count > 0) y = LinkRow(explorer, "Left behind by", entry.LeftBy, width, y);
-            if (entry.LeavesBehind.Count > 0) y = LinkRow(explorer, "Leaves behind", entry.LeavesBehind, width, y);
+            foreach (var (title, items) in LinkRows) y = LinkItems(explorer, title, items, width, y);
+            return y + U(4f);
+        }
 
-            foreach (var group in groups)
+        private static Entry _linksFor;
+        private static Explorer _linksIn;
+        private static readonly List<(string Title, List<(string Key, string Text, string Tip, Action Click)> Items)> LinkRows =
+            new List<(string, List<(string, string, string, Action)>)>();
+
+        /// <summary>The rows of the LINKED section, each chip with its text, tip and what it does.</summary>
+        private static void MakeLinkRows(Explorer explorer, Entry entry)
+        {
+            void Plain(string title, IEnumerable<string> names)
+            {
+                LinkRows.Add((title, names.Select(n => (n, ShownName(explorer, n, n), (string)null, (Action)(() => Go(explorer, n)))).ToList()));
+            }
+            if (entry.LeftBy.Count > 0) Plain("Left behind by", entry.LeftBy);
+            if (entry.LeavesBehind.Count > 0) Plain("Leaves behind", entry.LeavesBehind);
+
+            foreach (var group in entry.LinkGroups())
             {
                 var links = group.Value;
                 var title = group.Key;
@@ -175,22 +198,21 @@ namespace Scry
                                 Go(explorer, p.Target);
                             }));
                         });
-                    y = LinkItems(explorer, title, items, width, y);
+                    LinkRows.Add((title, items.ToList()));
                     continue;
                 }
 
                 // How an item gives an effect is told in its facts' words; the notes keep the field's for grouping.
                 var giver = group.Key == Relations.GivenBy;
-                y = LinkItems(explorer, title, links.Select(l =>
+                LinkRows.Add((title, links.Select(l =>
                 {
                     var shown = ShownName(explorer, l.Target, l.Target);
                     var notes = giver ? l.Notes.Select(Groups.GiverWords).ToList() : l.Notes;
                     var note = notes.Count == 1 && notes[0].Length > 0 && notes[0].Length <= 28 ? " \u00b7 " + notes[0] : "";
                     var tip = "Go to " + shown + (notes.Count > 0 ? "\n" + string.Join("\n", notes.Take(12)) : "");
                     return (l.Target, shown + note, tip, (Action)(() => Go(explorer, l.Target)));
-                }), width, y);
+                }).ToList()));
             }
-            return y + U(4f);
         }
 
         /// <summary>A small heading and a wrapping row of chips, each doing its own thing when clicked.</summary>

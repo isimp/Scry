@@ -259,6 +259,9 @@ namespace Scry
         }
 
         private static readonly Dictionary<Entry, string> ComponentLists = new Dictionary<Entry, string>();
+        private static Entry _usersFor;
+        private static List<(string Key, string Text, string Tip, Action Click)> _users = new List<(string, string, string, Action)>();
+        private static string _usersTitle = "";
 
         private static float Details(Explorer explorer, Entry entry, float width, float y)
         {
@@ -295,9 +298,16 @@ namespace Scry
             }
             if (entry.UsedBy.Count > 0 && EffectLinks.For(entry.Name).Count == 0)
             {
-                // Every one, the first few until asked for the rest, as every long row shows.
-                var users = entry.UsedBy.Where(u => InCatalog(explorer, u)).ToList();
-                if (users.Count > 0) y = LinkRow(explorer, $"Played by ({users.Count})", users, width, y);
+                // Every one, the first few until asked for the rest, as every long row shows; found
+                // once for the entry shown, not for every event drawn.
+                if (!ReferenceEquals(_usersFor, entry))
+                {
+                    _usersFor = entry;
+                    _users = entry.UsedBy.Where(u => InCatalog(explorer, u))
+                        .Select(n => (n, ShownName(explorer, n, n), (string)null, (Action)(() => Go(explorer, n)))).ToList();
+                    _usersTitle = $"Played by ({_users.Count})";
+                }
+                if (_users.Count > 0) y = LinkItems(explorer, _usersTitle, _users, width, y);
             }
 
             // For finding out why part of a model does not show: every part the preview draws, in the

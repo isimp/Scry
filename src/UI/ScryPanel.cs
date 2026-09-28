@@ -119,6 +119,11 @@ namespace Scry
             _prepared = null;
             _playsInRows = new List<PlaysInRow>();
             _playsInFor = null;
+            _linksFor = null;
+            _linksIn = null;
+            _usersFor = null;
+            _users = new List<(string, string, string, Action)>();
+            LinkRows.Clear();
             Unpacked.Clear();
             _listRows.Clear();
             _rowOfEntry.Clear();
@@ -1017,11 +1022,12 @@ namespace Scry
         /// </summary>
         private static void GameChangedChip(float x, float limit, Event e)
         {
-            var off = Compatibility.FeaturesOff();
-            if (off.Count == 0) return;
-            if (off.Count != _offCount)
+            var count = Compatibility.OffCount;
+            if (count == 0) return;
+            if (count != _offCount)
             {
-                _offCount = off.Count;
+                _offCount = count;
+                var off = Compatibility.FeaturesOff();
                 _offTip = "This version of Scry does not fully know this version of the game, so these are off until Scry is updated:\n"
                           + string.Join("\n", off.Select(f => "  " + f)) + "\nEverything else works. The log has the details.";
             }
