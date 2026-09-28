@@ -319,6 +319,7 @@ namespace Scry
             Now = State.Read;
             var explorer = Session.Explorer;
             var moved = 0;
+            var items = 0;
             var inCatalog = 0;
             if (explorer != null)
             {
@@ -330,12 +331,13 @@ namespace Scry
                     if (entry.FoundIn.Length > 0) inCatalog++;
                     if (before[i] != entry.Group) moved++;
                 }
+                items = Grouping.FoundInLocations(explorer.Catalog);
                 explorer.Regrouped();
             }
             Facts.Forget();
             Plugin.Log.LogInfo(
                 $"Scry read {Total} locations and dungeon rooms in {_clock.Elapsed.TotalSeconds:0.0} s ({_workMs:0} ms of its own work over {_frames} frames, {_failed} could not be loaded): " +
-                $"they name {Found.Count} prefabs, {inCatalog} of them in the catalog; {moved} effects, sounds and projectiles nothing else plays or fires went under \"In locations\".");
+                $"they name {Found.Count} prefabs, {inCatalog} of them in the catalog; {moved} effects, sounds and projectiles nothing else plays or fires went under \"In locations\", and {items} items only creatures seemed to have went back to their kind of item.");
             Found.Clear();
             Named.Clear();
             Faults.TellSkipped();

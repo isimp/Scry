@@ -102,20 +102,53 @@ namespace Scry
             if (unplayed.Count > 0) Plugin.Note($"Scry found nothing that plays {unplayed.Count} effects and sounds, among them: {string.Join(", ", unplayed.Take(150))}.");
         }
 
+        /// <summary>An item's group: by its type, a weapon by its skill, or with what only creatures have.</summary>
+        private static Group Item(Entry entry, GameObject prefab)
+        {
+            var drop = prefab != null ? prefab.GetComponent<ItemDrop>() : null;
+            var shared = drop != null ? drop.m_itemData?.m_shared : null;
+            // Only creatures have it when one carries it and nothing a player meets gives it:
+            // no recipe or station, nothing that drops, holds, sells, spawns or places it.
+            var carried = entry.Links.Any(l => l.Group == Relations.CarriedBy);
+            var obtainable = entry.Stations.Length > 0 || Knowledge.SourceLines(entry.Name).Count > 0 || entry.FoundIn.Length > 0
+                || Knowledge.IsPlacedByWorld(entry.Name) || entry.Links.Any(l => l.Group == Relations.SpawnedBy);
+            return Groups.Item(shared?.m_itemType.ToString(), shared?.m_skillType.ToString(), carried, obtainable);
+        }
+
+        /// <summary>
+        /// Groups again the items only creatures seemed to have that the locations turned out to
+        /// hold, once those are read; returns how many moved.
+        /// </summary>
+        public static int FoundInLocations(IEnumerable<Entry> entries)
+        {
+            var carried = Groups.CarriedByCreatures.Order;
+            var moved = 0;
+            foreach (var entry in entries)
+            {
+                if (entry.Kind != Kind.Item || entry.GroupOrder != carried || entry.FoundIn.Length == 0) continue;
+                try
+                {
+                    var group = Item(entry, entry.Source as GameObject);
+                    if (group.Order == carried) continue;
+                    entry.Group = group.Name;
+                    entry.GroupOrder = group.Order;
+                    moved++;
+                }
+                catch (Exception ex)
+                {
+                    Tell("an entry", ex);
+                }
+            }
+            return moved;
+        }
+
         private static Group? Of(Entry entry, Dictionary<string, Entry> byName, Dictionary<string, Group> menus, HashSet<string> weather)
         {
             var prefab = entry.Source as GameObject;
             switch (entry.Kind)
             {
                 case Kind.Item:
-                    var drop = prefab != null ? prefab.GetComponent<ItemDrop>() : null;
-                    var shared = drop != null ? drop.m_itemData?.m_shared : null;
-                    // Only creatures have it when one carries it and nothing a player meets gives it:
-                    // no recipe or station, nothing that drops, holds, sells, spawns or places it.
-                    var carried = entry.Links.Any(l => l.Group == Relations.CarriedBy);
-                    var obtainable = entry.Stations.Length > 0 || Knowledge.SourceLines(entry.Name).Count > 0 || entry.FoundIn.Length > 0
-                        || Knowledge.IsPlacedByWorld(entry.Name) || entry.Links.Any(l => l.Group == Relations.SpawnedBy);
-                    return Groups.Item(shared?.m_itemType.ToString(), shared?.m_skillType.ToString(), carried, obtainable);
+                    return Item(entry, prefab);
                 case Kind.Creature:
                     var character = prefab != null ? prefab.GetComponent<Character>() : null;
                     return character != null ? Groups.Creature(character.m_faction.ToString(), character.m_boss) : Groups.Creature(null, false);
