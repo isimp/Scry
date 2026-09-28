@@ -11,9 +11,8 @@ namespace Scry
     /// </summary>
     public static class CombatWords
     {
-        private static readonly string[] Counts = { "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten" };
-
-        private static string Stars(int stars) => (stars < Counts.Length ? Counts[stars] : stars.ToString(CultureInfo.InvariantCulture)) + (stars == 1 ? " star" : " stars");
+        /// <summary>Stars in figures, as the Adjust choices and the spawn lines count them.</summary>
+        private static string Stars(int stars) => stars.ToString(CultureInfo.InvariantCulture) + (stars == 1 ? " star" : " stars");
 
         private static string Number(float value) => value.ToString("0.#", CultureInfo.InvariantCulture);
 

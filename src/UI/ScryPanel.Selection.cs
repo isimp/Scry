@@ -426,7 +426,7 @@ namespace Scry
                 if (entry.Origin == Origin.Mod && entry.ModName.Length > 0)
                 {
                     if (subRect.Contains(Event.current.mousePosition)) AskTip("mod", "Show everything " + entry.ModName + " added");
-                    if (GUI.Button(subRect, GUIContent.none, GUIStyle.none)) SearchFor(explorer, "mod:" + entry.ModName.Split(' ')[0].ToLowerInvariant());
+                    if (GUI.Button(subRect, GUIContent.none, GUIStyle.none)) SearchFor(explorer, "mod:" + entry.ModName.Replace(" ", "").ToLowerInvariant());
                 }
                 y += U(26f);
             }
@@ -528,7 +528,7 @@ namespace Scry
                         }
                     }
                     if (_compact && entry.Kind == Kind.Item && entry.Source is GameObject wearable && Gear.IsWearable(wearable)
-                        && Button("Wear it", Looks.OnPerson ? Skin.On : Skin.Button))
+                        && Button("Worn", Looks.OnPerson ? Skin.On : Skin.Button))
                     {
                         Looks.OnPerson = !Looks.OnPerson;
                         Previews.Rebuild();

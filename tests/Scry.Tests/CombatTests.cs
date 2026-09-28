@@ -10,14 +10,14 @@ namespace Scry.Tests
         [Fact]
         public void EachStarAddsTheBaseHealthOnceMore()
         {
-            Assert.Equal("one star 400, two stars 600", CombatWords.StarHealth(200f, 2));
+            Assert.Equal("1 star 400, 2 stars 600", CombatWords.StarHealth(200f, 2));
         }
 
         [Fact]
         public void EachStarAddsHalfOfEveryHit()
         {
-            Assert.Equal("one star ×1.5, two stars ×2", CombatWords.StarDamage(2));
-            Assert.Equal("one star ×1.5, two stars ×2, three stars ×2.5", CombatWords.StarDamage(3));
+            Assert.Equal("1 star ×1.5, 2 stars ×2", CombatWords.StarDamage(2));
+            Assert.Equal("1 star ×1.5, 2 stars ×2, 3 stars ×2.5", CombatWords.StarDamage(3));
         }
 
         [Fact]

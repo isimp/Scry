@@ -51,6 +51,33 @@ namespace Scry.Tests
             Assert.Equal("Other factions", Groups.Creature("17", false).Name);
         }
 
+        [Theory]
+        [InlineData("Shoulder", "Cape")]
+        [InlineData("Hands", "Gloves")]
+        [InlineData("Legs", "Leg armour")]
+        [InlineData("OneHandedWeapon", "One-handed weapon")]
+        [InlineData("TwoHandedWeaponLeft", "Two-handed weapon")]
+        [InlineData("Consumable", "Food or mead")]
+        [InlineData("Utility", "Belt or trinket")]
+        [InlineData("Misc", "Misc")]
+        [InlineData("26", "26")]
+        public void AnItemsTypeIsNamedAsItsGroupIsNamed(string type, string shown)
+        {
+            // The facts say "Cape" where the list groups it under "Capes", never the game's "Shoulder".
+            Assert.Equal(shown, Groups.ItemTypeName(type));
+        }
+
+        [Theory]
+        [InlineData("AnimalsVeg", "Animals")]
+        [InlineData("Dverger", "Dvergr")]
+        [InlineData("DeepNorth", "Deep North")]
+        [InlineData("Boss", "Bosses")]
+        [InlineData("17", "17")]
+        public void AFactionIsNamedAsItsGroupIsNamed(string faction, string shown)
+        {
+            Assert.Equal(shown, Groups.FactionName(faction));
+        }
+
         [Fact]
         public void ThePiecesOfTheHammerGoByItsTabsAndOtherToolsAreOneGroupEach()
         {

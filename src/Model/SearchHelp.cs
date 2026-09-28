@@ -74,7 +74,7 @@ namespace Scry
                 foreach (var part in entry.Components ?? new string[0]) Add("has", part, part);
                 foreach (var biome in entry.Biomes ?? new string[0]) Add("biome", biome, Naming.FieldLabel(biome));
                 Add("mod", entry.ModName, entry.ModName);
-                foreach (var user in entry.UsedBy) Add("used", user, user);
+                foreach (var user in entry.UsedBy) Add("playedby", user, user);
                 foreach (var station in entry.Stations ?? new StationUse[0]) Add("station", station.Shown.Length > 0 ? station.Shown : station.Name, station.Shown.Length > 0 ? station.Shown : station.Name);
                 foreach (var place in entry.FoundIn ?? new string[0]) Add("in", place, place);
             }
@@ -181,7 +181,7 @@ namespace Scry
             ["has"] = "a part of that type",
             ["biome"] = "where it spawns or grows",
             ["mod"] = "the mod that added it",
-            ["used"] = "what plays it",
+            ["playedby"] = "what plays it",
             ["station"] = "where it is made",
             ["in"] = "a location or dungeon it is found in",
         };

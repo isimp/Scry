@@ -26,8 +26,8 @@ namespace Scry
     /// <summary>
     /// The typed search, taken apart. Plain words are matched against both names and rank the
     /// results. A word with a known key and a colon narrows the list by something else:
-    /// <c>kind:</c>, <c>has:</c> (a component), <c>biome:</c>, <c>mod:</c>, <c>used:</c> (the prefabs
-    /// that play an effect), <c>station:</c> (where it is made) and <c>in:</c> (a location or dungeon
+    /// <c>kind:</c>, <c>has:</c> (a component), <c>biome:</c>, <c>mod:</c>, <c>playedby:</c> (the prefabs
+    /// that play an effect; <c>used:</c> is its older spelling), <c>station:</c> (where it is made) and <c>in:</c> (a location or dungeon
     /// it is found in, once they are read). A minus in front of a word or a term leaves out what matches it.
     /// </summary>
     public sealed class ParsedSearch
@@ -99,7 +99,10 @@ namespace Scry
     public static class Search
     {
         /// <summary>The keys a term can have, as typed before the colon.</summary>
-        public static readonly string[] Keys = { "kind", "has", "biome", "mod", "used", "station", "in" };
+        public static readonly string[] Keys = { "kind", "has", "biome", "mod", "playedby", "station", "in" };
+
+        /// <summary>Older spellings of a key, still read: "used:" was taken for what an item is used for.</summary>
+        private static readonly Dictionary<string, string> OldKeys = new Dictionary<string, string> { ["used"] = "playedby" };
 
         private static readonly char[] Separators = { ' ', '\t' };
 
@@ -122,6 +125,7 @@ namespace Scry
 
                 var colon = word.IndexOf(':');
                 var key = colon > 0 ? word.Substring(0, colon).ToLowerInvariant() : null;
+                if (key != null && OldKeys.TryGetValue(key, out var current)) key = current;
                 if (key != null && Array.IndexOf(Keys, key) >= 0)
                 {
                     var value = word.Substring(colon + 1);
@@ -255,7 +259,7 @@ namespace Scry
                 case "biome": return AnyContains(entry.Biomes, term.Value);
                 case "in": return AnyContainsLeavingOutSpaces(entry.FoundIn, term.Value);
                 case "mod": return ContainsLeavingOutSpaces(entry.ModName, term.Value);
-                case "used": return AnyContainsLeavingOutSpaces(entry.UsedBy, term.Value);
+                case "playedby": return AnyContainsLeavingOutSpaces(entry.UsedBy, term.Value);
                 case "station": return StationMatches(entry.Stations, term.Station, term.Level);
                 default: return false;
             }

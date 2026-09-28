@@ -83,6 +83,7 @@ namespace Scry
                 {
                     // The game spawns creatures up to two stars; some mods go higher, and show it.
                     facts._stars = Math.Max(2, entry.ExtraLevels);
+                    facts._entry = entry;
                     facts.Prefab(prefab);
                     if (entry.Kind == Kind.Creature) facts.WhereTitle = "Where it lives";
                     facts.Where.AddRange(Knowledge.WhereLines(entry.Name));
@@ -142,6 +143,9 @@ namespace Scry
             if (note != null) Add("In this world", char.ToUpperInvariant(note[0]) + note.Substring(1));
         }
 
+        /// <summary>The entry told of, for what the list already says of it (its group).</summary>
+        private Entry _entry;
+
         /// <summary>Whether any drops were told, which a world's resource rate scales.</summary>
         private bool _drops;
 
@@ -151,7 +155,7 @@ namespace Scry
         {
             Description = CatalogBuilder.Localize(shared.m_description);
 
-            Add("Type", Word(shared.m_itemType));
+            Add("Type", Groups.ItemTypeName(shared.m_itemType.ToString()));
             Add("Weight", Number(shared.m_weight));
             if (shared.m_value > 0) Add("Worth", $"{shared.m_value} coins");
             if (shared.m_maxStackSize > 1) Add("Stacks to", shared.m_maxStackSize.ToString(CultureInfo.InvariantCulture));
@@ -166,8 +170,8 @@ namespace Scry
             }
 
             var type = shared.m_itemType;
-            var worn = type == ItemDrop.ItemData.ItemType.Helmet || type == ItemDrop.ItemData.ItemType.Chest
-                       || type == ItemDrop.ItemData.ItemType.Legs || type == ItemDrop.ItemData.ItemType.Shoulder;
+            var worn = type == ItemDrop.ItemData.ItemType.Helmet || type == ItemDrop.ItemData.ItemType.Chest || type == ItemDrop.ItemData.ItemType.Legs
+                       || type == ItemDrop.ItemData.ItemType.Hands || type == ItemDrop.ItemData.ItemType.Shoulder;
             if (worn && shared.m_armor > 0f) Add("Armour", $"{Number(shared.m_armor)}, +{Number(shared.m_armorPerLevel)} per quality");
             if (type == ItemDrop.ItemData.ItemType.Shield && shared.m_blockPower > 0f) Add("Block", $"{Number(shared.m_blockPower)}, +{Number(shared.m_blockPowerPerLevel)} per quality");
 
@@ -245,16 +249,17 @@ namespace Scry
             return row;
         }
 
-        private static string Damages(HitData.DamageTypes damages)
+        /// <summary>
+        /// Damage by type, the biggest first, in the same words everywhere: an item's, a creature's
+        /// attack's. The game's plain <c>m_damage</c>, which no resistance lessens, is "true".
+        /// </summary>
+        private static string Damages(HitData.DamageTypes d)
         {
-            var parts = new List<string>();
-            foreach (var field in typeof(HitData.DamageTypes).GetFields(BindingFlags.Public | BindingFlags.Instance))
+            return CombatWords.Damage(new[]
             {
-                if (field.FieldType != typeof(float) || field.Name == "m_nonPlayer") continue;
-                var value = (float)field.GetValue(damages);
-                if (value > 0f) parts.Add($"{Naming.FieldLabel(field.Name).ToLowerInvariant()} {Number(value)}");
-            }
-            return string.Join(", ", parts);
+                ("true", d.m_damage), ("blunt", d.m_blunt), ("slash", d.m_slash), ("pierce", d.m_pierce), ("chop", d.m_chop), ("pickaxe", d.m_pickaxe),
+                ("fire", d.m_fire), ("frost", d.m_frost), ("lightning", d.m_lightning), ("poison", d.m_poison), ("spirit", d.m_spirit),
+            }) ?? "";
         }
 
         // ----- Creatures -----
@@ -265,7 +270,7 @@ namespace Scry
         private void Creature(GameObject prefab, Character character)
         {
             Add("Health", Number(character.m_health));
-            Add("Faction", Word(character.m_faction));
+            Add("Faction", Groups.FactionName(character.m_faction.ToString()));
             if (character.m_boss) Add("Boss", "yes");
 
             // What stars add: its health once more for each, and half as much again to each hit.
@@ -328,12 +333,7 @@ namespace Scry
                 var attack = shared?.m_attack;
                 if (attack == null) continue;
                 var name = ItemName(item);
-                var d = shared.m_damages;
-                var damage = CombatWords.Damage(new[]
-                {
-                    ("true", d.m_damage), ("blunt", d.m_blunt), ("slash", d.m_slash), ("pierce", d.m_pierce), ("chop", d.m_chop), ("pickaxe", d.m_pickaxe),
-                    ("fire", d.m_fire), ("frost", d.m_frost), ("lightning", d.m_lightning), ("poison", d.m_poison), ("spirit", d.m_spirit),
-                });
+                var damage = Damages(shared.m_damages);
                 var key = "Attack: " + name;
                 if (Pairs.Any(p => p.Key == key)) continue;
                 Add(key, CombatWords.Attack(damage, attack.m_attackType.ToString(), shared.m_aiAttackRangeMin, shared.m_aiAttackRange, shared.m_aiAttackInterval));
@@ -642,7 +642,8 @@ namespace Scry
         private void Piece(Piece piece, WearNTear wear)
         {
             Description = CatalogBuilder.Localize(piece.m_description);
-            Add("Category", Word(piece.m_category));
+            // The build menu tab it is under, named as the list's group names it (not the game's category enum).
+            if (_entry != null && _entry.Kind == Kind.Piece) Add("Build menu", _entry.Group == Groups.InNoMenu.Name ? "none" : _entry.Group);
             if (piece.m_comfort > 0) Add("Comfort", piece.m_comfort.ToString(CultureInfo.InvariantCulture));
             if (wear != null)
             {
@@ -691,7 +692,7 @@ namespace Scry
             {
                 if (need?.m_resItem == null || need.m_upgraderResource) continue;
                 var amount = need.m_amount.ToString(CultureInfo.InvariantCulture);
-                if (upgradable && need.m_amountPerLevel > 0) amount += $", +{need.m_amountPerLevel} per level";
+                if (upgradable && need.m_amountPerLevel > 0) amount += $", +{need.m_amountPerLevel} per quality";
                 row.Items.Add(new Ingredient
                 {
                     Icon = Icon(need.m_resItem.gameObject), Name = ItemName(need.m_resItem.gameObject), Amount = amount, Prefab = need.m_resItem.gameObject.name,

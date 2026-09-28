@@ -41,7 +41,7 @@ namespace Scry
                     var linkW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
                     var linkRect = new Rect(valueRect.x, valueRect.y, linkW, height);
                     LinkLabel(linkRect, pair.Value, Skin.Wrap, LinkText(KindOfKey(explorer, link), false));
-                    if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, "Go to " + pair.Value);
+                    if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, "Go to " + ShownName(explorer, link, pair.Value));
                     if (GUI.Button(linkRect, GUIContent.none, GUIStyle.none)) Go(explorer, link);
                 }
                 else
@@ -83,7 +83,7 @@ namespace Scry
                     if (icon != null) DrawSprite(icon, new Rect(U(6f), y + (chipH - U(22f)) / 2f, U(22f), U(22f)));
                     wrapped.normal.textColor = LinkText(kind, hover);
                     GUI.Label(new Rect(textX, y, textW, chipH), source.Text, wrapped);
-                    if (hover) AskTip("src:" + source.Prefab, "Go to " + source.Prefab);
+                    if (hover) AskTip("src:" + source.Prefab, "Go to " + ShownName(explorer, source.Prefab, source.Prefab));
                     if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(source.Prefab))
                     {
                         _reveal = true;
@@ -130,7 +130,7 @@ namespace Scry
                 var titleW = Mathf.Min(width, Skin.Width(Skin.DimLabel, row.Title) + U(4f));
                 var titleRect = new Rect(0f, y, titleW, U(20f));
                 LinkLabel(titleRect, row.Title, Skin.DimLabel, LinkText(KindOfKey(explorer, row.TitleLink), false));
-                if (titleRect.Contains(Event.current.mousePosition)) AskTip("station:" + row.TitleLink, "Go to " + row.TitleLink);
+                if (titleRect.Contains(Event.current.mousePosition)) AskTip("station:" + row.TitleLink, "Go to " + ShownName(explorer, row.TitleLink, row.TitleLink));
                 if (GUI.Button(titleRect, GUIContent.none, GUIStyle.none)) Go(explorer, row.TitleLink);
             }
             else
@@ -291,16 +291,18 @@ namespace Scry
 
             if (entry.Biomes.Length > 0)
             {
-                y = ChipRow("Biomes (search)", entry.Biomes.Select(b => new KeyValuePair<string, Action>(Naming.FieldLabel(b), () => SearchFor(explorer, "biome:" + b.ToLowerInvariant()))), width, y);
+                y = ChipRow("Biomes (search)", entry.Biomes.Select(b => new KeyValuePair<string, Action>(Knowledge.BiomeName(b), () => SearchFor(explorer, "biome:" + b.ToLowerInvariant()))), width, y);
             }
             if (entry.UsedBy.Count > 0 && EffectLinks.For(entry.Name).Count == 0)
             {
-                var users = entry.UsedBy.Where(u => InCatalog(explorer, u)).Take(24).ToList();
-                if (users.Count > 0) y = LinkRow(explorer, $"Played by ({entry.UsedBy.Count})", users, width, y);
+                // Every one, the first few until asked for the rest, as every long row shows.
+                var users = entry.UsedBy.Where(u => InCatalog(explorer, u)).ToList();
+                if (users.Count > 0) y = LinkRow(explorer, $"Played by ({users.Count})", users, width, y);
             }
 
-            // For finding out why part of a model does not show: every part the preview draws, in the log.
-            if (Stage.Subject != null)
+            // For finding out why part of a model does not show: every part the preview draws, in the
+            // log. Offered only with the preview notes on, as it is there for looking into previews.
+            if (Stage.Subject != null && Plugin.LogPreviews)
             {
                 y += U(4f);
                 var text = "Write its parts to the log";

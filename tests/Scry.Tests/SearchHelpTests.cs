@@ -147,7 +147,7 @@ namespace Scry.Tests
             Assert.Contains("station:byhand", Suggest("station:").Select(s => s.Insert));
             Assert.Equal("mod:coolstatues", Suggest("mod:c").Single().Insert);
             Assert.Contains("in:sunkencryptrooms", Suggest("in:").Select(s => s.Insert));
-            Assert.Contains("used:statuseffectburning", Suggest("used:").Select(s => s.Insert));
+            Assert.Contains("playedby:statuseffectburning", Suggest("playedby:").Select(s => s.Insert));
         }
 
         [Fact]
@@ -260,7 +260,7 @@ namespace Scry.Tests
         public void ModAndUsedMatchWithTheSpacesOfTheNameLeftOut()
         {
             Assert.Equal(new[] { "CoolMod_TrollStatue" }, Find("mod:coolstatues"));
-            Assert.Equal(new[] { "sfx_troll_hit" }, Find("used:statuseffectburning"));
+            Assert.Equal(new[] { "sfx_troll_hit" }, Find("playedby:statuseffectburning"));
         }
     }
 }

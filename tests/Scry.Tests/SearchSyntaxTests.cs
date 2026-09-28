@@ -79,9 +79,17 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void UsedFindsTheEffectsAPrefabPlays()
+        public void PlayedByFindsTheEffectsAPrefabPlays()
         {
+            Assert.Equal(new[] { "vfx_troll_death" }, Find("playedby:troll"));
+        }
+
+        [Fact]
+        public void TheOldUsedTermStillFindsWhatAPrefabPlays()
+        {
+            // "used:" read as "what it is used for", which the details mean by crafting; it stays as another spelling.
             Assert.Equal(new[] { "vfx_troll_death" }, Find("used:troll"));
+            Assert.Equal(Find("-playedby:troll"), Find("-used:troll"));
         }
 
         [Fact]

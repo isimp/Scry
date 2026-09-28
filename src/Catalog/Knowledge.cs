@@ -340,7 +340,7 @@ namespace Scry
         private static void From(string item, Source line)
         {
             if (!ComesFrom.TryGetValue(item, out var lines)) ComesFrom[item] = lines = new List<Source>();
-            if (!lines.Exists(l => l.Text == line.Text) && lines.Count < 40) lines.Add(line);
+            if (!lines.Exists(l => l.Text == line.Text)) lines.Add(line);
         }
 
         /// <summary>A line kept to be put together later.</summary>
@@ -377,6 +377,13 @@ namespace Scry
             }
         }
 
+        /// <summary>One biome, by its enum name, as the game shows it: "BlackForest" as "Black Forest".</summary>
+        public static string BiomeName(string biome)
+        {
+            var shown = CatalogBuilder.Localize("$biome_" + (biome ?? "").ToLowerInvariant());
+            return shown.Length > 0 ? shown : Naming.FieldLabel(biome ?? "");
+        }
+
         /// <summary>Biomes by the names the game shows, joined.</summary>
         public static string BiomeNames(Heightmap.Biome biome)
         {
@@ -385,11 +392,7 @@ namespace Scry
             if (all.Count == 0) return "no biome";
             if (all.Count >= every) return "every biome";
 
-            return string.Join(", ", all.Select(b =>
-            {
-                var shown = CatalogBuilder.Localize("$biome_" + b.ToString().ToLowerInvariant());
-                return shown.Length > 0 ? shown : Naming.FieldLabel(b.ToString());
-            }));
+            return string.Join(", ", all.Select(b => BiomeName(b.ToString())));
         }
 
         private static AccessTools.FieldRef<List<SpawnSystem>> _spawnSystems;

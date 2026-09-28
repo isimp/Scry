@@ -87,6 +87,45 @@ namespace Scry
             return itemType != null && ItemTypes.TryGetValue(itemType, out var group) ? group : new Group("Other", 15);
         }
 
+        /// <summary>One item's type, in the words of its group ("Capes" holds a "Cape").</summary>
+        private static readonly Dictionary<string, string> ItemTypeNames = new Dictionary<string, string>
+        {
+            ["OneHandedWeapon"] = "One-handed weapon",
+            ["TwoHandedWeapon"] = "Two-handed weapon",
+            ["TwoHandedWeaponLeft"] = "Two-handed weapon",
+            ["Bow"] = "Bow",
+            ["Attach_Atgeir"] = "Weapon",
+            ["Shield"] = "Shield",
+            ["Helmet"] = "Helmet",
+            ["Chest"] = "Chest armour",
+            ["Legs"] = "Leg armour",
+            ["Hands"] = "Gloves",
+            ["Shoulder"] = "Cape",
+            ["Utility"] = "Belt or trinket",
+            ["Trinket"] = "Belt or trinket",
+            ["Ammo"] = "Ammo",
+            ["AmmoNonEquipable"] = "Ammo",
+            ["Consumable"] = "Food or mead",
+            ["Material"] = "Material",
+            ["Tool"] = "Tool",
+            ["Torch"] = "Torch",
+            ["Fish"] = "Fish",
+            ["Trophy"] = "Trophy",
+        };
+
+        /// <summary>An item's type as its facts tell it, in the words of the group it is listed under; an odd one by the game's name.</summary>
+        public static string ItemTypeName(string itemType)
+        {
+            return itemType != null && ItemTypeNames.TryGetValue(itemType, out var name) ? name : itemType ?? "";
+        }
+
+        /// <summary>A faction as a creature's facts tell it: the name of its group, whatever the creature is.</summary>
+        public static string FactionName(string faction)
+        {
+            if (faction == "Boss") return "Bosses";
+            return faction != null && Factions.TryGetValue(faction, out var group) ? group.Name : faction ?? "";
+        }
+
         private static readonly Dictionary<string, Group> Factions = new Dictionary<string, Group>
         {
             ["AnimalsVeg"] = new Group("Animals", 1),

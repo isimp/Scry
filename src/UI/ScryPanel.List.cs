@@ -20,7 +20,7 @@ namespace Scry
             new[] { "biome:swamp", "What spawns or grows in that biome." },
             new[] { "in:crypt", "What is found in a location or dungeon, once they are read with Find in locations (at the top of the panel, or below)." },
             new[] { "mod:epic", "What a mod added, by the start or any part of its name." },
-            new[] { "used:troll", "The sounds and effects a prefab plays." },
+            new[] { "playedby:troll", "The sounds and effects a prefab plays." },
             new[] { "station:forge3", "What is made at that station, here what a forge at level 3 can make. station:forge for any level, station:hand for what needs none." },
             new[] { "-has:ragdoll kind:c", "Terms combine, can be left out with a minus, and can be shortened." },
             new[] { "Tab", "Completes the word being typed with a term or a value the catalog holds, as the list under the search suggests. Tab again for the next, Shift+Tab for the one before; Enter takes the marked one." },
@@ -137,7 +137,9 @@ namespace Scry
                 }
                 var message = explorer.FavouritesOnly && explorer.Favourites.Keys.Count == 0
                     ? "No favourites yet. Star something to keep it here."
-                    : "Nothing matches.";
+                    : explorer.RecentOnly && explorer.RecentKeys.Count == 0
+                        ? "Nothing looked at yet. What you select is kept here."
+                        : "Nothing matches.";
                 GUI.Label(inner, message, Skin.CenterDim);
                 return;
             }
