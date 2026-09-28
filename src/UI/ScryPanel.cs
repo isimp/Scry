@@ -299,6 +299,10 @@ namespace Scry
                     return;
                 }
 
+                // The card is the top of the panel, and dragging it moves the panel, as the
+                // header does once the catalog is read.
+                Drags();
+
                 var pad = U(16f);
                 var rect = new Rect(Win.x, Win.y, Win.width, Mathf.Min(Win.height, U(124f)));
                 _drawn = rect;
@@ -309,6 +313,13 @@ namespace Scry
                 GUI.Label(new Rect(pad, U(58f), rect.width - 2f * pad, U(24f)), "Reading the catalog, once for this world", Skin.Label);
                 GUI.Label(new Rect(pad, U(84f), rect.width - 2f * pad, U(22f)), progress, Skin.DimLabel);
                 GUI.EndGroup();
+
+                // Anywhere but the close button, which has taken its own click by now.
+                if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
+                {
+                    _drag = Drag.Move;
+                    e.Use();
+                }
 
                 // The panel is solid: clicks and the wheel over it stop here.
                 if (rect.Contains(e.mousePosition) && (e.isMouse || e.type == EventType.ScrollWheel)) e.Use();
