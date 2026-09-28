@@ -260,12 +260,13 @@ namespace Scry
         /// <summary>
         /// A status effect by what gives it and how, as the links noted it: a guardian power,
         /// food and meads, a set, worn equipment, damage of a kind, an attack or a creature, a
-        /// piece, anything else; given by nothing Scry found, it is the game's own (wet, cold,
-        /// rested and the like). Given several ways, it goes under the first.
+        /// piece, anything else; given by nothing Scry found (the game's own wet, cold and rested,
+        /// given from its code, and any a mod gives the same way), it goes under that name. Given
+        /// several ways, it goes under the first.
         /// </summary>
         public static Group StatusEffect(IEnumerable<Giver> givers)
         {
-            var best = new Group("Given by the game itself", 9);
+            var best = new Group("Given by nothing found", 9);
             foreach (var giver in givers)
             {
                 var how = (giver.How ?? "").ToLowerInvariant();

@@ -131,6 +131,9 @@ namespace Scry
             if (piece != null && !piece.enabled) MadeBuildable(piece);
             Station(prefab);
 
+            var projectile = prefab.GetComponent<Projectile>();
+            if (projectile != null) Flight(projectile);
+
             // What a chest is filled with when the game first opens it (Container.AddDefaultItems);
             // one players build has nothing.
             var container = prefab.GetComponent<Container>();

@@ -126,7 +126,7 @@ namespace Scry.Tests
             Assert.Equal("From attacks and creatures", Groups.StatusEffect(new[] { new Giver(Kind.Item, "attack") }).Name);
             Assert.Equal("From pieces", Groups.StatusEffect(new[] { new Giver(Kind.Piece, "") }).Name);
             Assert.Equal("Other", Groups.StatusEffect(new[] { new Giver(Kind.Other, "") }).Name);
-            Assert.Equal("Given by the game itself", Groups.StatusEffect(new Giver[0]).Name);
+            Assert.Equal("Given by nothing found", Groups.StatusEffect(new Giver[0]).Name);
         }
 
         [Fact]
