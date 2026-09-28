@@ -20,12 +20,27 @@ namespace Scry
         public const float MaxScale = 10f;
         public const float MaxAnimationSpeed = 3f;
 
+        /// <summary>The loudest a preview may play: twice as loud as the game plays the same sound.</summary>
+        public const float MaxVolume = 2f;
+
         private float _scale;
         private int _level;
         private int _maxLevel;
         private Wear _wear;
         private bool _wearAvailable;
         private float _animationSpeed;
+        private float _volume;
+
+        /// <summary>
+        /// How loud the preview plays, as a share of the game's own loudness, from silent to
+        /// <see cref="MaxVolume"/>. Heard at once, so turning it rebuilds nothing; back to the
+        /// game's own with every selection, as some previews play as soon as they are selected.
+        /// </summary>
+        public float Volume
+        {
+            get => _volume;
+            set => _volume = float.IsNaN(value) ? 1f : Math.Max(0f, Math.Min(MaxVolume, value));
+        }
 
         /// <summary>Starts out set for nothing in particular: first level, new, normal size.</summary>
         public Modifiers()
@@ -99,6 +114,7 @@ namespace Scry
             _level = 1;
             _wear = Wear.New;
             _animationSpeed = 1f;
+            _volume = 1f;
             _look = _defaultLook;
             Version++;
         }

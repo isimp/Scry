@@ -27,7 +27,6 @@ namespace Scry
         private static ConfigEntry<float> _tooltipDelay;
         private static ConfigEntry<int> _recentCount;
         private static ConfigEntry<float> _spinSpeed;
-        private static ConfigEntry<float> _previewVolume;
 
         /// <summary>
         /// The key that opens the panel. One the game or the panel already uses for something
@@ -61,17 +60,6 @@ namespace Scry
         public static float TooltipDelay => Mathf.Clamp(_tooltipDelay?.Value ?? 0.35f, 0f, 3f);
         public static int RecentCount => _recentCount?.Value ?? 30;
         public static float SpinSpeed => Mathf.Clamp(_spinSpeed?.Value ?? 14f, 1f, 90f);
-
-        /// <summary>The loudest the previews may be set, three times the game's own.</summary>
-        public const float MostVolume = 3f;
-
-        /// <summary>Keeps a loudness chosen in the panel, saved in the settings.</summary>
-        public static void SetPreviewVolume(float volume)
-        {
-            var value = Mathf.Clamp(volume, 0f, MostVolume);
-            Loudness.Gain = value;
-            if (_previewVolume != null && !Mathf.Approximately(_previewVolume.Value, value)) _previewVolume.Value = value;
-        }
 
         /// <summary>Whether the log tells what previews play and what Scry saw of each prefab, for finding out why something looks or sounds wrong.</summary>
         public static bool LogPreviews => _logPreviews?.Value ?? false;
@@ -155,11 +143,6 @@ namespace Scry
             _spinSpeed = Config.Bind("2 - Preview", "SpinSpeed", 14f,
                 new ConfigDescription("How fast the model turns by itself, in degrees a second, while AutoSpin is on.",
                     new AcceptableValueRange<float>(1f, 90f)));
-            _previewVolume = Config.Bind("2 - Preview", "Volume", 1f,
-                new ConfigDescription("How loud previews play: 1 is as loud as the game plays the same sound, up to 3 times as loud. Loud sounds may distort above 1. Also set with the Volume slider under Adjust.",
-                    new AcceptableValueRange<float>(0f, MostVolume)));
-            Loudness.Gain = Mathf.Clamp(_previewVolume.Value, 0f, MostVolume);
-            _previewVolume.SettingChanged += (sender, args) => Loudness.Gain = Mathf.Clamp(_previewVolume.Value, 0f, MostVolume);
             _playOnSelect = Config.Bind("2 - Preview", "PlayOnSelect", true,
                 "Plays a sound as soon as it is selected, so the list can be auditioned with the arrow keys.");
             _logPreviews = Config.Bind("3 - Diagnostics", "LogPreviews", false,

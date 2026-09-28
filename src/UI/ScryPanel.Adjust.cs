@@ -32,7 +32,7 @@ namespace Scry
             var labelW = U(_compact ? 100f : 120f);
             var open = !IsFolded("adjust");
 
-            if (open) Volume(width, labelW, ref y);
+            if (open) Volume(modifiers, width, labelW, ref y);
 
             if (open && model && staged)
             {
@@ -78,27 +78,21 @@ namespace Scry
         }
 
         private static readonly List<AnimationClip> NoClips = new List<AnimationClip>();
-        private static bool _volumeMoved;
-
         /// <summary>
-        /// How loud previews play, from silent to three times the game's own, in steps of 5%. It
-        /// is heard as it moves, and saved in the settings once the mouse lets go, not at every step.
+        /// How loud the selection's previews play, from silent to twice the game's own, in steps of
+        /// 5%, heard as it moves. It is the selection's own, like its size: the next one starts at
+        /// the game's loudness again, so a sound turned up never carries over to one that plays as
+        /// soon as it is selected.
         /// </summary>
-        private static void Volume(float width, float labelW, ref float y)
+        private static void Volume(Modifiers modifiers, float width, float labelW, ref float y)
         {
-            var now = Loudness.Gain;
-            var picked = SliderRow("Volume", $"{Mathf.RoundToInt(now * 100f)}%", now, 0f, Plugin.MostVolume, width, labelW, ref y);
+            var now = modifiers.Volume;
+            var picked = SliderRow("Volume", $"{Mathf.RoundToInt(now * 100f)}%", now, 0f, Modifiers.MaxVolume, width, labelW, ref y);
             picked = Mathf.Round(picked * 20f) / 20f;
             if (!Mathf.Approximately(picked, now))
             {
-                Loudness.Gain = picked;
-                _volumeMoved = true;
-            }
-            // The slider uses up the mouse's release, so it is told by the event's raw type.
-            if (_volumeMoved && Event.current.rawType == EventType.MouseUp)
-            {
-                _volumeMoved = false;
-                Plugin.SetPreviewVolume(Loudness.Gain);
+                modifiers.Volume = picked;
+                Loudness.Gain = modifiers.Volume;
             }
         }
 

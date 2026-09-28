@@ -103,5 +103,45 @@ namespace Scry.Tests
             Assert.Equal(1f, modifiers.AnimationSpeed);
             Assert.Equal(3, modifiers.MaxLevel);
         }
+
+        [Fact]
+        public void VolumeGoesFromSilentToTwiceTheGamesOwn()
+        {
+            var modifiers = new Modifiers();
+            Assert.Equal(1f, modifiers.Volume);
+
+            modifiers.Volume = 1.5f;
+            Assert.Equal(1.5f, modifiers.Volume);
+            modifiers.Volume = 5f;
+            Assert.Equal(Modifiers.MaxVolume, modifiers.Volume);
+            Assert.Equal(2f, Modifiers.MaxVolume);
+            modifiers.Volume = -1f;
+            Assert.Equal(0f, modifiers.Volume);
+            modifiers.Volume = float.NaN;
+            Assert.Equal(1f, modifiers.Volume);
+        }
+
+        [Fact]
+        public void EverySelectionStartsAtTheGamesOwnVolume()
+        {
+            // Some previews play as soon as they are selected; one turned up must not carry over to the next.
+            var modifiers = new Modifiers { Volume = 2f };
+            modifiers.ResetFor(new Entry { Name = "sfx_troll_idle" });
+            Assert.Equal(1f, modifiers.Volume);
+
+            modifiers.Volume = 0.5f;
+            modifiers.Reset();
+            Assert.Equal(1f, modifiers.Volume);
+        }
+
+        [Fact]
+        public void TurningTheVolumeDoesNotRebuildThePreview()
+        {
+            // A rebuild would start the sound again at every step of the slider.
+            var modifiers = new Modifiers();
+            var version = modifiers.Version;
+            modifiers.Volume = 1.8f;
+            Assert.Equal(version, modifiers.Version);
+        }
     }
 }

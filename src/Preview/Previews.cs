@@ -192,6 +192,10 @@ namespace Scry
 
         public static void Update(Explorer explorer)
         {
+            // How loud previews play follows the selection, which starts every one at the game's
+            // own loudness; with the panel closed, whatever still plays does so at the game's own.
+            Loudness.Gain = explorer != null ? explorer.Modifiers.Volume : 1f;
+
             // Each part on its own: one that fails does not keep the others from running.
             try { Expire(); } catch (System.Exception ex) { Faults.Tell("expiring previews", ex); }
             try { Listen.Update(); } catch (System.Exception ex) { Faults.Tell("listening", ex); }
