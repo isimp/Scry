@@ -29,6 +29,12 @@ namespace Scry
         /// <summary>The time of the outer parts, in milliseconds.</summary>
         public double Total => _parts.Where(p => p.Outer).Sum(p => p.Ms);
 
+        /// <summary>What the outer parts allocated, in bytes.</summary>
+        public long Bytes => _parts.Where(p => p.Outer).Sum(p => p.Bytes);
+
+        /// <summary>The cleanups that ran inside the outer parts.</summary>
+        public int Cleanups => _parts.Where(p => p.Outer).Sum(p => p.Cleanups);
+
         /// <summary>Adds to a part: its time, what it allocated, and how many cleanups ran inside it.</summary>
         public void Add(string part, double ms, long bytes, int cleanups)
         {
@@ -56,9 +62,8 @@ namespace Scry
         /// </summary>
         public string Line(double frameMs)
         {
-            var outer = _parts.Where(p => p.Outer).ToList();
-            var cleanups = outer.Sum(p => p.Cleanups);
-            var kb = Kilobytes(outer.Sum(p => p.Bytes));
+            var cleanups = Cleanups;
+            var kb = Kilobytes(Bytes);
 
             var head = $"Scry took {Whole(Total)} ms of a {Whole(frameMs)} ms frame";
             if (cleanups == 1) head += ", a memory cleanup ran inside it";

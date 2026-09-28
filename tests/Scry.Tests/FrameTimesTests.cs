@@ -66,6 +66,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheFramesAllocationAndCleanupsAreThoseOfItsOuterParts()
+        {
+            var frame = new FrameTimes();
+            frame.Add("panel", 30, 2048, 1);
+            frame.Add("panel list", 29, 1024, 1);
+            frame.Add("update", 1, 4096, 0);
+
+            Assert.Equal(6144, frame.Bytes);
+            Assert.Equal(1, frame.Cleanups);
+        }
+
+        [Fact]
         public void APartThatTookNoTimeButAllocatedMuchIsStillTold()
         {
             var frame = new FrameTimes();
