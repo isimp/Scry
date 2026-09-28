@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using SoftReferenceableAssets;
 using UnityEngine;
 
@@ -43,6 +44,9 @@ namespace Scry
             public string Name;
             public bool Room;
             public SoftReference<GameObject> Reference;
+
+            /// <summary>The biomes the world's list places a location in, all of its entries together.</summary>
+            public Heightmap.Biome Biome;
         }
 
         private static readonly List<Asset> Queue = new List<Asset>();
@@ -57,6 +61,12 @@ namespace Scry
         private static readonly Dictionary<string, HashSet<string>> Found = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         private static readonly List<GameObject> Named = new List<GameObject>();
         private static readonly List<string> Here = new List<string>();
+
+        /// <summary>The dungeons read so far: the kinds of room each is built with, and its place's name.</summary>
+        private static readonly List<KeyValuePair<int, string>> Dungeons = new List<KeyValuePair<int, string>>();
+
+        /// <summary>Creatures' shown names by prefab name, for the words of places named after them.</summary>
+        private static Dictionary<string, string> _creatures = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private static int _next;
         private static int _failed;
 
@@ -79,6 +89,7 @@ namespace Scry
             Found.Clear();
             Named.Clear();
             Here.Clear();
+            Dungeons.Clear();
             Summoned.Clear();
             Now = State.NotRead;
             Done = 0;
@@ -107,13 +118,29 @@ namespace Scry
             if (zones == null || Session.Explorer == null) return "the catalog of this world is not read yet.";
 
             Forget();
-            var seen = new HashSet<string>(StringComparer.Ordinal);
+            _creatures = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in Session.Explorer.Catalog)
+            {
+                if (entry.Kind == Kind.Creature && !string.IsNullOrEmpty(entry.DisplayName) && !_creatures.ContainsKey(entry.Name)) _creatures[entry.Name] = entry.DisplayName;
+            }
+
+            // Locations first, so each dungeon is named before the rooms it is built with.
+            var seen = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var location in zones.m_locations)
             {
                 if (location == null || !location.m_enable || !location.m_prefab.IsValid) continue;
                 var name = string.IsNullOrEmpty(location.m_prefabName) ? location.m_prefab.Name : location.m_prefabName;
-                if (seen.Add("location|" + name)) Queue.Add(new Asset { Name = name, Reference = location.m_prefab });
+                if (seen.TryGetValue(name, out var at))
+                {
+                    var known = Queue[at];
+                    known.Biome |= location.m_biome;
+                    Queue[at] = known;
+                    continue;
+                }
+                seen[name] = Queue.Count;
+                Queue.Add(new Asset { Name = name, Reference = location.m_prefab, Biome = location.m_biome });
             }
+            var roomsSeen = new HashSet<string>(StringComparer.Ordinal);
             var rooms = DungeonDB.instance != null ? DungeonDB.GetRooms() : null;
             if (rooms != null)
             {
@@ -121,7 +148,7 @@ namespace Scry
                 {
                     if (room == null || !room.m_prefab.IsValid) continue;
                     var name = room.m_prefab.Name;
-                    if (seen.Add("room|" + name)) Queue.Add(new Asset { Name = name, Room = true, Reference = room.m_prefab });
+                    if (roomsSeen.Add(name)) Queue.Add(new Asset { Name = name, Room = true, Reference = room.m_prefab });
                 }
             }
             if (Queue.Count == 0) return "this world has no locations or dungeon rooms to read.";
@@ -207,22 +234,77 @@ namespace Scry
             }
         }
 
-        /// <summary>The places the one being read stands for: a location by its name, a room by its kinds of dungeon.</summary>
+        /// <summary>
+        /// The places the one being read stands for: a location by its name (<see cref="Places"/>),
+        /// noting the kinds of room any dungeon in it is built with; a room by those dungeons.
+        /// </summary>
         private static void PlacesOf(GameObject prefab)
         {
             Here.Clear();
-            if (!_current.Room)
+            if (_current.Room)
             {
-                Here.Add(Places.LocationLabel(_current.Name));
+                var theme = 0;
+                try { theme = ThemeOf(prefab); }
+                catch (Exception ex) { Faults.Skip("names of dungeon rooms", _current.Name, ex); }
+                Here.AddRange(Places.RoomLabels(theme, Dungeons));
                 return;
             }
+
+            var facts = new PlaceFacts { Prefab = _current.Name, Biome = BiomeOf(_current.Biome) };
+            var themes = new List<int>();
+            try { NameFacts(prefab, facts, themes); }
+            catch (Exception ex) { Faults.Skip("names of locations", _current.Name, ex); }
+            var label = Places.LocationLabel(facts, _creatures);
+            Here.Add(label);
+            foreach (var kinds in themes) Dungeons.Add(new KeyValuePair<int, string>(kinds, label));
+        }
+
+        /// <summary>The kinds of room a dungeon room is (<c>Room.m_theme</c>, flags).</summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static int ThemeOf(GameObject prefab)
+        {
             var room = prefab.GetComponent<Room>();
-            var themes = room != null ? room.m_theme.ToString() : "";
-            foreach (var theme in themes.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries))
+            return room != null ? (int)room.m_theme : 0;
+        }
+
+        /// <summary>
+        /// What names a location, each as the game shows it: the name shown on entering its dungeon
+        /// (<c>Teleport.m_enterText</c>) or on discovering it (<c>Location.m_discoverLabel</c>), the
+        /// boss its altar summons and the trader standing there; and the kinds of room each dungeon
+        /// in it is built with (<c>DungeonGenerator.m_themes</c>).
+        /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void NameFacts(GameObject prefab, PlaceFacts facts, List<int> themes)
+        {
+            foreach (var door in prefab.GetComponentsInChildren<Teleport>(true))
             {
-                if (theme != "None") Here.Add(Places.RoomLabel(theme));
+                if (facts.GameName.Length == 0 && door != null) facts.GameName = CatalogBuilder.Localize(door.m_enterText);
             }
-            if (Here.Count == 0) Here.Add(Places.RoomLabel("Dungeon"));
+            foreach (var location in prefab.GetComponentsInChildren<Location>(true))
+            {
+                if (facts.GameName.Length == 0 && location != null) facts.GameName = CatalogBuilder.Localize(location.m_discoverLabel);
+            }
+            foreach (var bowl in prefab.GetComponentsInChildren<OfferingBowl>(true))
+            {
+                var boss = bowl != null && bowl.m_bossPrefab != null ? bowl.m_bossPrefab.GetComponent<Character>() : null;
+                if (facts.Boss.Length == 0 && boss != null) facts.Boss = CatalogBuilder.Localize(boss.m_name);
+            }
+            foreach (var trader in prefab.GetComponentsInChildren<Trader>(true))
+            {
+                if (facts.Trader.Length == 0 && trader != null) facts.Trader = CatalogBuilder.Localize(trader.m_name);
+            }
+            foreach (var generator in prefab.GetComponentsInChildren<DungeonGenerator>(true))
+            {
+                if (generator != null && generator.m_themes != 0) themes.Add((int)generator.m_themes);
+            }
+        }
+
+        /// <summary>The biomes a location is placed in as the game shows them, or none when that is every one or none.</summary>
+        private static string BiomeOf(Heightmap.Biome biome)
+        {
+            if (biome == Heightmap.Biome.None) return "";
+            var names = Knowledge.BiomeNames(biome);
+            return names == "every biome" || names == "no biome" ? "" : names;
         }
 
         /// <summary>

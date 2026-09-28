@@ -88,7 +88,7 @@ namespace Scry
                 Add("mod", entry.ModName, entry.ModName);
                 foreach (var user in entry.UsedBy) Add("playedby", user, user);
                 foreach (var station in entry.Stations ?? new StationUse[0]) Add("station", station.Shown.Length > 0 ? station.Shown : station.Name, station.Shown.Length > 0 ? station.Shown : station.Name);
-                foreach (var place in entry.FoundIn ?? new string[0]) Add("in", place, place);
+                foreach (var place in entry.FoundIn ?? new string[0]) Add("in", Places.NameOf(place), Places.NameOf(place));
             }
         }
 

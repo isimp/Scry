@@ -337,7 +337,7 @@ namespace Scry
             {
                 case Locations.State.Read:
                     if (entry.FoundIn.Length == 0) return y;
-                    return ChipRow("Found in (search)", entry.FoundIn.Select(p => new KeyValuePair<string, Action>(p, () => SearchFor(explorer, "in:" + p.Replace(" ", "").ToLowerInvariant()))), width, y);
+                    return ChipRow("Found in (search)", entry.FoundIn.Select(p => new KeyValuePair<string, Action>(p, () => SearchFor(explorer, "in:" + Places.NameOf(p).Replace(" ", "").ToLowerInvariant()))), width, y);
 
                 case Locations.State.Reading:
                     // Not measured: the text changes every frame, and each would be kept.

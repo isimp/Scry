@@ -7,32 +7,100 @@ namespace Scry.Tests
 {
     public class PlacesTests
     {
-        [Theory]
-        [InlineData("Crypt2", "Crypt")]
-        [InlineData("WoodHouse10", "Wood house")]
-        [InlineData("TheHole01", "The hole")]
-        [InlineData("GoblinCamp2_1", "Goblin camp")]
-        [InlineData("DN_Bossroom", "DN bossroom")]
-        [InlineData("Mistlands_DvergrBossEntrance1", "Mistlands dvergr boss entrance")]
-        [InlineData("Mistlands_GuardTower1_new", "Mistlands guard tower new")]
-        public void ALocationGoesByItsNameInWordsWithoutTheNumberOfItsVariant(string prefab, string shown)
+        private static readonly Dictionary<string, string> Creatures = new Dictionary<string, string>
         {
-            Assert.Equal(shown, Places.LocationLabel(prefab));
+            ["Goblin"] = "Fuling",
+            ["Greydwarf"] = "Greydwarf",
+            ["Boar"] = "Boar",
+        };
+
+        private static string Named(string prefab, string game = "", string boss = "", string trader = "", string biome = "") =>
+            Places.LocationLabel(new PlaceFacts { Prefab = prefab, GameName = game, Boss = boss, Trader = trader, Biome = biome }, Creatures);
+
+        [Fact]
+        public void APlaceTheGameNamesGoesByThatName()
+        {
+            // The name shown on entering a dungeon or discovering a place.
+            Assert.Equal("Burial Chambers", Named("Crypt2", game: "Burial Chambers"));
+            Assert.Equal("Sealed Tower", Named("Hildir_plainsfortress", game: "Sealed Tower", trader: "Hildir"));
+        }
+
+        [Fact]
+        public void AnAltarGoesByTheBossItSummonsAndACampByItsTrader()
+        {
+            Assert.Equal("The Elder's altar", Named("GDKing", boss: "The Elder"));
+            Assert.Equal("Haldor's camp", Named("Vendor_BlackForest", trader: "Haldor"));
+            Assert.Equal("The Bog Witch's camp", Named("BogWitch_Camp", trader: "The Bog Witch"));
         }
 
         [Theory]
-        [InlineData("SunkenCrypt", "Sunken crypt rooms")]
-        [InlineData("Crypt", "Crypt rooms")]
-        public void DungeonRoomsGoByTheirKindOfDungeon(string theme, string shown)
+        [InlineData("WoodHouse10", "Wood house")]
+        [InlineData("GoblinCamp2_1", "Fuling camp")]
+        [InlineData("GoblinHut03", "Fuling hut")]
+        [InlineData("Greydwarf_camp1", "Greydwarf camp")]
+        [InlineData("Mistlands_GuardTower1_new", "Mistlands guard tower")]
+        [InlineData("Mistlands_GuardTower1_ruined_new2", "Mistlands guard tower ruined")]
+        [InlineData("FrozenShip01_DN", "Frozen ship")]
+        [InlineData("PlaceofMystery2", "Place of mystery")]
+        [InlineData("DevRoof1", "Dev roof")]
+        public void AnyOtherPlaceGoesByItsNameInWordsWithoutVariantsOrBuildTags(string prefab, string shown)
         {
-            Assert.Equal(shown, Places.RoomLabel(theme));
+            Assert.Equal(shown, Named(prefab));
+        }
+
+        [Fact]
+        public void APlaceSaysItsBiomeAndDoesNotRepeatIt()
+        {
+            Assert.Equal("Wood house · Meadows", Named("WoodHouse3", biome: "Meadows"));
+            Assert.Equal("Guard tower · Mistlands", Named("Mistlands_GuardTower2_new", biome: "Mistlands"));
+            Assert.Equal("Runestone · Black Forest", Named("Runestone_BlackForest", biome: "Black Forest"));
+            Assert.Equal("Runestone · Swamp", Named("Runestone_Swamps", biome: "Swamp"));
+            Assert.Equal("Runestone boars · Meadows", Named("Runestone_Boars", biome: "Meadows"));
+            // Only the whole biome's name goes: the forest in a crypt's name stays.
+            Assert.Equal("Half burried forest crypt · Black Forest", Named("HalfBurried_ForestCrypt", biome: "Black Forest"));
+            Assert.Equal("Burial Chambers · Black Forest", Named("Crypt3", game: "Burial Chambers", biome: "Black Forest"));
         }
 
         [Fact]
         public void ANameWithNoWordsInItKeepsItsOwnSoThePlaceIsNeverNameless()
         {
-            Assert.Equal("2048", Places.LocationLabel("2048"));
-            Assert.Equal("65536 rooms", Places.RoomLabel("65536"));
+            Assert.Equal("2048", Named("2048"));
+            // A name that is only its biome keeps it rather than go blank.
+            Assert.Equal("Mistlands · Mistlands", Named("Mistlands1", biome: "Mistlands"));
+        }
+
+        [Fact]
+        public void DungeonRoomsGoByTheDungeonsTheyAreBuiltInto()
+        {
+            var dungeons = new List<KeyValuePair<int, string>>
+            {
+                new KeyValuePair<int, string>(8, "Burial Chambers · Black Forest"),
+                new KeyValuePair<int, string>(4, "Frost Caves · Mountain"),
+                new KeyValuePair<int, string>(1024, "Howling Cavern · Mountain"),
+                new KeyValuePair<int, string>(262144, "Half burried forest crypt · Black Forest"),
+                new KeyValuePair<int, string>(8, "Burial Chambers · Black Forest"),
+            };
+
+            Assert.Equal(new[] { "Burial Chambers · Black Forest" }, Places.RoomLabels(8, dungeons));
+            // A room several dungeons build with is in each of them.
+            Assert.Equal(new[] { "Frost Caves · Mountain", "Howling Cavern · Mountain" }, Places.RoomLabels(1028, dungeons));
+            // A kind of room the game has no name for is still found through its dungeon.
+            Assert.Equal(new[] { "Half burried forest crypt · Black Forest" }, Places.RoomLabels(262144, dungeons));
+            // Rooms no dungeon here builds with (a mod's) are said to be a dungeon's.
+            Assert.Equal(new[] { "Dungeon rooms" }, Places.RoomLabels(32768, dungeons));
+            Assert.Equal(new[] { "Dungeon rooms" }, Places.RoomLabels(0, dungeons));
+        }
+
+        [Fact]
+        public void APlaceIsSearchedForByItsNameAlone()
+        {
+            Assert.Equal("Wood house", Places.NameOf("Wood house · Meadows"));
+            Assert.Equal("Crypt", Places.NameOf("Crypt"));
+
+            var house = E("Beehive", Kind.Piece);
+            house.FoundIn = new[] { "Wood house · Meadows" };
+            Assert.True(Search.Matches(house, "in:woodhouse"));
+            Assert.False(Search.Matches(house, "in:meadows"));
         }
 
         private static Dictionary<string, HashSet<string>> Found(params (string Prefab, string Place)[] finds)

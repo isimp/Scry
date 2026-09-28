@@ -290,7 +290,7 @@ namespace Scry
                     return kind >= 0 && kind < term.Kinds.Length && term.Kinds[kind];
                 case "has": return AnyContains(entry.Components, term.Value);
                 case "biome": return AnyContains(entry.Biomes, term.Value);
-                case "in": return AnyContainsLeavingOutSpaces(entry.FoundIn, term.Value);
+                case "in": return AnyPlaceNamed(entry.FoundIn, term.Value);
                 case "mod": return ContainsLeavingOutSpaces(entry.ModName, term.Value);
                 case "playedby": return AnyContainsLeavingOutSpaces(entry.UsedBy, term.Value);
                 case "station": return StationMatches(entry.Stations, term.Station, term.Level);
@@ -353,6 +353,14 @@ namespace Scry
         {
             if (values == null) return false;
             foreach (var candidate in values) if (Contains(candidate, value)) return true;
+            return false;
+        }
+
+        /// <summary>A place whose name, not its biome, holds the word, as the suggestions for places offer them.</summary>
+        private static bool AnyPlaceNamed(string[] places, string value)
+        {
+            if (places == null) return false;
+            foreach (var place in places) if (ContainsLeavingOutSpaces(Places.NameOf(place), value)) return true;
             return false;
         }
 
