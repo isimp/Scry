@@ -705,8 +705,8 @@ namespace Scry
             // offered here too until it is done; while reading it shows how far it has got. Its
             // width is fixed while reading, as the text changes every frame and is not measured.
             var reading = Locations.Now == Locations.State.Reading;
-            var locText = reading ? $"Locations {Locations.Done} of {Locations.Total}" : LocationsButtonText;
-            var locW = Skin.Width(Skin.Button, reading ? "Locations 000 of 000" : LocationsButtonText) + U(10f);
+            var locText = reading ? $"Stop reading  {Locations.Done} of {Locations.Total}" : LocationsButtonText;
+            var locW = Skin.Width(Skin.Button, reading ? "Stop reading  000 of 000" : LocationsButtonText) + U(10f);
             var locRect = new Rect(clearRect.x - U(8f) - locW, clearRect.y, locW, clearRect.height);
             var showLoc = Locations.Now != Locations.State.Read && locRect.x > pad + U(98f);
 
@@ -716,11 +716,13 @@ namespace Scry
 
             if (showLoc)
             {
-                var wasEnabled = GUI.enabled;
-                GUI.enabled = !reading;
-                if (GUI.Button(locRect, locText, Skin.Button)) StartReadingLocations();
-                GUI.enabled = wasEnabled;
-                if (locRect.Contains(e.mousePosition)) AskTip("locations", reading ? "Reading where things are found in this world's locations and dungeons" : LocationsButtonTip);
+                // While reading, the same button stops it.
+                if (GUI.Button(locRect, locText, Skin.Button))
+                {
+                    if (reading) StopReadingLocations();
+                    else StartReadingLocations();
+                }
+                if (locRect.Contains(e.mousePosition)) AskTip("locations", reading ? "Stop reading the locations and dungeons; nothing read so far is kept" : LocationsButtonTip);
             }
 
             if (outLines > 0 && GUI.Button(clearRect, clearText, Skin.Primary))

@@ -9,7 +9,7 @@ namespace Scry
         public static void Register()
         {
             new Terminal.ConsoleCommand("scry",
-                "[text] - opens the prefab previewer, searching for the text if given. 'scry clear' removes every preview from the world; 'scry locations' reads where things are found in locations and dungeons.",
+                "[text] - opens the prefab previewer, searching for the text if given. 'scry clear' removes every preview from the world; 'scry locations' reads where things are found in locations and dungeons, 'scry locations stop' stops it.",
                 args =>
                 {
                     // A command that fails says so in the chat, and once in the log, rather than
@@ -40,6 +40,12 @@ namespace Scry
             if (rest.Equals("locations", System.StringComparison.OrdinalIgnoreCase))
             {
                 args.Context?.AddString("Scry: " + Locations.Start());
+                return;
+            }
+
+            if (rest.Equals("locations stop", System.StringComparison.OrdinalIgnoreCase))
+            {
+                args.Context?.AddString("Scry: " + Locations.Stop());
                 return;
             }
 

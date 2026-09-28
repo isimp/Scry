@@ -106,11 +106,15 @@ namespace Scry
             var height = Skin.Height(Skin.CenterDim, message, textW);
             var top = inner.y + Mathf.Max(U(20f), (inner.height - height - U(44f)) / 2f);
             GUI.Label(new Rect(inner.x + (inner.width - textW) / 2f, top, textW, height), message, Skin.CenterDim);
-            if (reading) return;
 
-            var w = Skin.Width(Skin.Button, LocationsButtonText) + U(10f);
+            var label = reading ? "Stop reading" : LocationsButtonText;
+            var w = Skin.Width(Skin.Button, label) + U(10f);
             var button = new Rect(inner.x + (inner.width - w) / 2f, top + height + U(12f), w, U(30f));
-            if (GUI.Button(button, LocationsButtonText, Skin.Button)) StartReadingLocations();
+            if (GUI.Button(button, label, Skin.Button))
+            {
+                if (reading) StopReadingLocations();
+                else StartReadingLocations();
+            }
         }
 
         private static void List(Explorer explorer, Rect rect)

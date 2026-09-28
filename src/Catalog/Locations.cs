@@ -50,8 +50,10 @@ namespace Scry
         /// <summary>The altars found in the locations: which boss each summons, with what, and where it stands.</summary>
         private static readonly List<Summon> Summoned = new List<Summon>();
 
-        /// <summary>The bosses the locations' altars summon, once read.</summary>
-        public static IReadOnlyList<Summon> Summons => Summoned;
+        /// <summary>The bosses the locations' altars summon, once all are read; none while reading.</summary>
+        public static IReadOnlyList<Summon> Summons => Now == State.Read ? Summoned : (IReadOnlyList<Summon>)NoSummons;
+
+        private static readonly List<Summon> NoSummons = new List<Summon>();
         private static readonly Dictionary<string, HashSet<string>> Found = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         private static readonly List<GameObject> Named = new List<GameObject>();
         private static readonly List<string> Here = new List<string>();
@@ -81,6 +83,19 @@ namespace Scry
             Now = State.NotRead;
             Done = 0;
             _clock = null;
+        }
+
+        /// <summary>
+        /// Stops reading and says so. Nothing read so far is kept: what the locations hold shows
+        /// only once all are read, so a reading stopped leaves the world as it was before it.
+        /// </summary>
+        public static string Stop()
+        {
+            if (Now != State.Reading) return "not reading the locations and dungeons.";
+            var done = Done;
+            Forget();
+            Plugin.Log.LogInfo($"Scry stopped reading the locations after {done} of them; nothing read is kept.");
+            return "stopped reading the locations and dungeons; nothing read so far is kept.";
         }
 
         /// <summary>Starts reading, and says what it does.</summary>

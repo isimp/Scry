@@ -341,8 +341,11 @@ namespace Scry
 
                 case Locations.State.Reading:
                     // Not measured: the text changes every frame, and each would be kept.
-                    GUI.Label(new Rect(0f, y, width, U(20f)), $"Reading locations and dungeons: {Locations.Done} of {Locations.Total}", Skin.DimLabel);
-                    return y + U(26f);
+                    const string stop = "Stop";
+                    var stopW = Skin.Width(Skin.Chip, stop) + U(12f);
+                    GUI.Label(new Rect(0f, y, width - stopW - U(8f), U(24f)), $"Reading locations and dungeons: {Locations.Done} of {Locations.Total}", Skin.DimLabel);
+                    if (GUI.Button(new Rect(width - stopW, y, stopW, U(24f)), stop, Skin.Chip)) StopReadingLocations();
+                    return y + U(30f);
 
                 default:
                     const string text = "Find it in locations and dungeons";
@@ -358,6 +361,13 @@ namespace Scry
 
         private const string LocationsButtonText = "Find in locations";
         private const string LocationsButtonTip = "Reads where things are found in this world's locations and dungeons, in the background, over a few minutes";
+
+        /// <summary>Stops reading the locations, from any of the buttons that offer it, and says so.</summary>
+        private static void StopReadingLocations()
+        {
+            var said = Locations.Stop();
+            Session.Say(char.ToUpperInvariant(said[0]) + said.Substring(1));
+        }
 
         /// <summary>Starts reading the locations, from any of the buttons that offer it, and says so.</summary>
         private static void StartReadingLocations()
