@@ -121,6 +121,9 @@ namespace Scry
 
             var craft = prefab.GetComponent<CraftingStation>();
             if (craft != null) MadeHere(prefab.name);
+            // An upgrader takes what can be upgraded past its top quality, with the upgrade kits
+            // its recipe names alone (InventoryGui.UpdateRecipeList, Player.HaveRequirements).
+            if (craft != null && craft.m_upgrader) Add("Upgrades", "items past their top quality, with the upgrade kits their recipes name");
 
             var trader = prefab.GetComponent<Trader>();
             if (trader != null) Sells(trader);
