@@ -982,14 +982,7 @@ namespace Scry
         {
             var note = Session.Note;
             var text = note ?? FootHint();
-            // The catalog's size sits at the far right, clear of the resize grip.
-            var summary = Session.CatalogSummary;
-            var summaryW = _compact ? 0f : Skin.Width(Skin.FaintLabel, summary);
-            if (summaryW > 0f)
-            {
-                GUI.Label(new Rect(rect.xMax - U(26f) - summaryW, rect.y, summaryW, rect.height), summary, Skin.FaintLabel);
-            }
-            Ticker(new Rect(rect.x, rect.y, rect.width - U(40f) - summaryW, rect.height), text, note != null ? Skin.DimLabel : Skin.FaintLabel);
+            Ticker(new Rect(rect.x, rect.y, rect.width - U(40f), rect.height), text, note != null ? Skin.DimLabel : Skin.FaintLabel);
         }
 
         /// <summary>
@@ -1126,20 +1119,26 @@ namespace Scry
 
         /// <summary>Asks for a tooltip at the mouse, shown once the mouse has rested on the same thing for a moment.</summary>
         /// <summary>The panel's foot line: its keys, and walking and looking as the settings allow them.</summary>
+        private static readonly string[] FootHints = new string[8];
+
+        /// <summary>
+        /// The keys that are not obvious, short, and only those the settings allow; the rest is
+        /// under "?". Made once for each view and setting.
+        /// </summary>
         private static string FootHint()
         {
             var walk = Plugin.WalkWhileOpen;
             var look = Plugin.LookWithRightMouse;
-            if (_compact)
-            {
-                if (walk && look) return "Walk with your keys when not typing. Hold right mouse outside the panel to look around.";
-                if (walk) return "Walk with your keys when not typing.";
-                return look ? "Hold right mouse outside the panel to look around." : "Arrows move, Enter plays.";
-            }
-            const string keys = "Arrows move, Enter plays, Ctrl+F searches, Escape leaves the search.";
-            if (walk && look) return keys + " Click away from the search to walk, hold right mouse outside the panel to look.";
-            if (walk) return keys + " Click away from the search to walk.";
-            return look ? keys + " Hold right mouse outside the panel to look." : keys;
+            var index = (_compact ? 4 : 0) + (walk ? 2 : 0) + (look ? 1 : 0);
+            if (FootHints[index] != null) return FootHints[index];
+
+            var parts = new List<string>();
+            if (!_compact) parts.AddRange(new[] { "Enter plays", "Ctrl+F searches", "Esc leaves a box" });
+            if (walk) parts.Add("keys walk when not typing");
+            if (look) parts.Add("right-drag outside the panel to look");
+            if (parts.Count == 0) parts.Add("Enter plays");
+            parts[0] = char.ToUpperInvariant(parts[0][0]) + parts[0].Substring(1);
+            return FootHints[index] = string.Join("  ·  ", parts);
         }
 
         private static int _offCount = -1;

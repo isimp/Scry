@@ -43,9 +43,6 @@ namespace Scry
 
         public static Explorer Explorer { get; private set; }
 
-        /// <summary>How the catalog came out, for the panel's header.</summary>
-        public static string CatalogSummary { get; private set; } = "";
-
         /// <summary>
         /// Whether the game should keep its hands off input. Stays true for the frame after
         /// closing, so the Escape that closed the panel does not also open the game's menu.
@@ -261,7 +258,6 @@ namespace Scry
 
             _scene = scene;
             _failedIn = null;
-            CatalogSummary = $"{catalog.Count:N0} prefabs";
             var kinds = string.Join(", ", catalog.GroupBy(e => e.Kind).OrderBy(g => g.Key).Select(g => $"{g.Count()} {Kinds.Label(g.Key).ToLowerInvariant()}"));
             Plugin.Log.LogInfo($"Scry read {catalog.Count} prefabs and status effects in {job.WorkMs:0} ms over {job.Frames} frames ({job.ElapsedMs / 1000.0:0.0} s in all): {kinds}.");
 
