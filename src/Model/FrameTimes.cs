@@ -49,10 +49,23 @@ namespace Scry
             known.Cleanups += Math.Max(0, cleanups);
         }
 
+        /// <summary>
+        /// Empties the frame for the next. The parts are kept and zeroed rather than made again,
+        /// since the same few dozen come back every frame and measuring should add no garbage.
+        /// </summary>
         public void Clear()
         {
-            _parts.Clear();
-            _byName.Clear();
+            foreach (var part in _parts)
+            {
+                part.Ms = 0;
+                part.Bytes = 0;
+                part.Cleanups = 0;
+            }
+            if (_parts.Count > 500)
+            {
+                _parts.Clear();
+                _byName.Clear();
+            }
         }
 
         /// <summary>

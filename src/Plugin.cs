@@ -192,7 +192,17 @@ namespace Scry
             catch (ExitGUIException) { throw; }
             catch (System.Exception ex) { Faults.Tell("the panel", ex); }
             Timing.Add("panel", started);
-            if (Plugin.LogPreviews) Timing.Add("panel " + kind, started);
+            if (Plugin.LogPreviews) Timing.Add(EventPart(kind), started);
+        }
+
+        private static readonly string[] EventParts = new string[64];
+
+        /// <summary>The timing part for a kind of GUI event ("panel repaint"), made once.</summary>
+        private static string EventPart(EventType kind)
+        {
+            var index = (int)kind;
+            if (index < 0 || index >= EventParts.Length) return "panel " + kind;
+            return EventParts[index] ?? (EventParts[index] = "panel " + kind);
         }
 
         private void OnDestroy()

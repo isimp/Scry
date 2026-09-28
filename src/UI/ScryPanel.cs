@@ -902,6 +902,24 @@ namespace Scry
             }
         }
 
+        private static readonly Kind[] EveryKind = (Kind[])Enum.GetValues(typeof(Kind));
+
+        /// <summary>
+        /// Each tab's text by its name, count and whether it is picked, so drawing the tabs, which
+        /// happens several times a frame, makes no new text while the counts stay the same.
+        /// </summary>
+        private static readonly Dictionary<(string Label, int Count, bool On), string> TabTexts =
+            new Dictionary<(string, int, bool), string>();
+
+        private static string TabText(string label, int count, bool on)
+        {
+            if (TabTexts.TryGetValue((label, count, on), out var text)) return text;
+            if (TabTexts.Count > 2000) TabTexts.Clear();
+            text = $"{label}  <color=#{(on ? "5a4526" : "8f929c")}>{count:N0}</color>";
+            TabTexts[(label, count, on)] = text;
+            return text;
+        }
+
         /// <summary>One tab per kind with what the search holds of it, wrapping when the row is full.</summary>
         private static float Tabs(Explorer explorer, Rect rect)
         {
@@ -910,11 +928,10 @@ namespace Scry
             var tabH = rect.height;
             var gap = U(4f);
 
-            void Tab(string label, int count, Color dot, bool on, Action act)
+            bool Tab(string label, int count, Color dot, bool on)
             {
                 var style = on ? Skin.TabOn : Skin.Tab;
-                var countColor = on ? "5a4526" : "8f929c";
-                var text = $"{label}  <color=#{countColor}>{count:N0}</color>";
+                var text = TabText(label, count, on);
                 var width = Skin.Width(style, text) + U(2f);
                 if (x + width > rect.xMax && x > rect.x)
                 {
@@ -922,19 +939,19 @@ namespace Scry
                     y += tabH + gap;
                 }
                 var tab = new Rect(x, y, width, tabH);
-                if (GUI.Button(tab, text, style)) act();
+                var clicked = GUI.Button(tab, text, style);
                 var size = U(8f);
                 Skin.Icon(new Rect(tab.x + U(10f), tab.y + (tabH - size) / 2f, size, size), Skin.Circle, on ? Skin.OnAccent : dot);
                 x += width + gap;
+                return clicked;
             }
 
-            Tab("All", explorer.CountAll, Skin.Text, explorer.KindFilter == null, () => Filter(explorer, null));
-            foreach (Kind kind in Enum.GetValues(typeof(Kind)))
+            if (Tab("All", explorer.CountAll, Skin.Text, explorer.KindFilter == null)) Filter(explorer, null);
+            foreach (var kind in EveryKind)
             {
                 var count = explorer.CountOf(kind);
                 if (count == 0 && explorer.KindFilter != kind) continue;
-                var k = kind;
-                Tab(Kinds.Label(kind), count, Skin.KindColor(kind), explorer.KindFilter == kind, () => Filter(explorer, k));
+                if (Tab(Kinds.Label(kind), count, Skin.KindColor(kind), explorer.KindFilter == kind)) Filter(explorer, kind);
             }
 
             return y + tabH;
