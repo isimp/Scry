@@ -317,7 +317,8 @@ namespace Scry
             {
                 Add("Durability", Number(shared.m_maxDurability) + PerQuality(shared.m_durabilityPerLevel));
                 // Repaired where it is made or at its repair station, from the recipe's station level (InventoryGui.CanRepair).
-                var at = recipe != null ? recipe.m_repairStation ?? recipe.m_craftingStation : null;
+                // Unity's own null check, not ??, which a destroyed reference would pass.
+                var at = recipe == null ? null : recipe.m_repairStation != null ? recipe.m_repairStation : recipe.m_craftingStation;
                 if (shared.m_canBeReparied && at != null)
                 {
                     var level = recipe.m_minStationLevel > 1 ? $" level {recipe.m_minStationLevel}" : "";
@@ -325,7 +326,7 @@ namespace Scry
                 }
             }
 
-            var station = recipe != null ? recipe.m_craftingStation ?? recipe.m_repairStation : null;
+            var station = recipe == null ? null : recipe.m_craftingStation != null ? recipe.m_craftingStation : recipe.m_repairStation;
             if (upgradable && station != null)
             {
                 var first = recipe.GetRequiredStationLevel(2);

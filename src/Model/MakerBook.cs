@@ -32,21 +32,38 @@ namespace Scry
     /// </summary>
     public sealed class MakerBook
     {
-        private readonly List<Making> _noted = new List<Making>();
+        // By what is made and by where, in the order noted: every entry of the catalog asks once.
+        private readonly Dictionary<string, List<Making>> _byOutput = new Dictionary<string, List<Making>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<Making>> _byStation = new Dictionary<string, List<Making>>(StringComparer.Ordinal);
 
         public void Add(Making making)
         {
             if (making == null || string.IsNullOrEmpty(making.Station) || string.IsNullOrEmpty(making.Output) || making.Inputs.Count == 0) return;
-            _noted.Add(making);
+            Note(_byOutput, making.Output, making);
+            Note(_byStation, making.Station, making);
         }
 
+        private static void Note(Dictionary<string, List<Making>> index, string key, Making making)
+        {
+            if (!index.TryGetValue(key, out var list)) index[key] = list = new List<Making>();
+            list.Add(making);
+        }
+
+        private static readonly IReadOnlyList<Making> None = new Making[0];
+
         /// <summary>The ways an item is made, station by station in the order noted.</summary>
-        public IReadOnlyList<Making> Of(string output) => Merged(_noted.Where(m => m.Output == output));
+        public IReadOnlyList<Making> Of(string output) =>
+            output != null && _byOutput.TryGetValue(output, out var list) ? Merged(list) : None;
 
         /// <summary>What a station makes, item by item in the order noted.</summary>
-        public IReadOnlyList<Making> At(string station) => Merged(_noted.Where(m => m.Station == station));
+        public IReadOnlyList<Making> At(string station) =>
+            station != null && _byStation.TryGetValue(station, out var list) ? Merged(list) : None;
 
-        public void Clear() => _noted.Clear();
+        public void Clear()
+        {
+            _byOutput.Clear();
+            _byStation.Clear();
+        }
 
         private static List<Making> Merged(IEnumerable<Making> makings)
         {

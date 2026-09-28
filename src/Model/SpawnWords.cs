@@ -33,7 +33,8 @@ namespace Scry
     /// <summary>
     /// Where, when and how many of something spawn, in words, the same for world spawns, raids,
     /// nests and plants: stars counted as the game shows them over a head, ranges written as
-    /// drops write them, and a boss's key named by the boss.
+    /// drops write them, and a world key named by the creature whose defeat sets it (a boss's,
+    /// or a troll's "KilledTroll").
     /// </summary>
     public static class SpawnWords
     {
@@ -51,7 +52,7 @@ namespace Scry
         /// <summary>How many come together, or null for one at a time.</summary>
         public static string Group(int min, int max) => max > 1 ? "in groups of " + DropWords.Range(min, max) : null;
 
-        /// <summary>What a world key it waits for means: a boss defeated, else the key by name.</summary>
+        /// <summary>What a world key it waits for means: the creature that sets it defeated, else the key by name.</summary>
         public static string Once(string key, Func<string, string> bossOf) => "once " + KeyWords(key, bossOf);
 
         /// <summary>What a world key that ends it means.</summary>

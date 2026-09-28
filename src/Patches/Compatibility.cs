@@ -174,7 +174,8 @@ namespace Scry
             void Each(string part, Action check)
             {
                 try { check(); }
-                catch (Exception ex) { list.Add(part, "part of the startup check", Found.Missing); Plugin.Log.LogDebug($"Scry could not check {part}: {ex.Message}"); }
+                // A check that cannot run says so; it turns no feature off, so the panel does not show it.
+                catch (Exception ex) { Plugin.Log.LogWarning($"Scry could not check {part} at start, and goes on without knowing: {ex.Message}"); }
             }
             Each("SpawnSystem.m_instances", () => Member(list, "SpawnSystem", "m_instances", "where creatures spawn"));
             Each("ZSFX.m_fadeOutTimer", () => Member(list, "ZSFX", "m_fadeOutTimer", "sounds playing on after a seek or pause"));

@@ -103,7 +103,10 @@ namespace Scry
         public static IReadOnlyList<Making> MadeAt(string station) => Made.At(station);
         private static readonly Dictionary<GameObject, string> ShownNames = new Dictionary<GameObject, string>();
 
-        /// <summary>The boss each world key names, by the key its defeat sets (<c>Character.m_defeatSetGlobalKey</c>).</summary>
+        /// <summary>
+        /// The creature whose defeat sets each world key (<c>Character.m_defeatSetGlobalKey</c>): a
+        /// boss's, and some others' (a troll sets "KilledTroll"), so a key reads as that creature defeated.
+        /// </summary>
         private static readonly Dictionary<string, GameObject> Bosses = new Dictionary<string, GameObject>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>The altars among the registered prefabs, and what each summons.</summary>
@@ -112,10 +115,10 @@ namespace Scry
         /// <summary>Every altar known: the registered ones, and those the locations hold once read.</summary>
         public static IEnumerable<Summon> Summons() => Altars.Concat(Locations.Summons);
 
-        /// <summary>The name shown for the boss whose defeat sets a world key, or null.</summary>
+        /// <summary>The name shown for the creature whose defeat sets a world key, or null.</summary>
         public static string BossOf(string key) => key != null && Bosses.TryGetValue(key, out var boss) ? ShownName(boss) : null;
 
-        /// <summary>The prefab of the boss whose defeat sets a world key, or null.</summary>
+        /// <summary>The prefab of the creature whose defeat sets a world key, or null.</summary>
         public static string BossPrefabOf(string key) => key != null && Bosses.TryGetValue(key, out var boss) ? boss.name : null;
 
         /// <summary>What each item is used for, noted as the catalog is read.</summary>
