@@ -14,6 +14,7 @@ namespace Scry
         private static bool _outOpen;
         private static Rect _outRect;
         private static List<OutRow> _outRows = new List<OutRow>();
+        private static int _outRowsFrame = -1;
 
         /// <summary>How many lines fit in the list; past them the last line says how many more there are.</summary>
         private static int _outFits;
@@ -54,7 +55,13 @@ namespace Scry
             _outOpen = zone.Contains(e.mousePosition);
             if (!_outOpen) return;
 
-            if (!wasOpen || e.type == EventType.Layout) _outRows = Previews.Out();
+            // Once a frame while open, as things end and come: the panel has no layout events
+            // (useGUILayout is off), so a refresh tied to them never came.
+            if (!wasOpen || _outRowsFrame != Time.frameCount)
+            {
+                _outRows = Previews.Out();
+                _outRowsFrame = Time.frameCount;
+            }
 
             // Under the button, kept inside the panel: as wide as it can be up to its usual width,
             // and as many lines as fit, the last saying how many more are out.
