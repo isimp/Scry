@@ -137,10 +137,12 @@ namespace Scry
                 y = Section("side variants", y, at => Variants(entry, cw, at));
             }
 
-            // What it is in the game comes first after what can be done with it: an item's stats
-            // and recipe are what most look for, and were below a creature's hundreds of clips.
-            y = Section("side facts", y, at => FactsSection(explorer, entry, cw, at));
+            // How it plays comes right under what can be done with it, then what it is in the game:
+            // an item's stats and recipe are what most look for, and come before a creature's
+            // hundreds of clips.
             y = Section("side adjust", y, at => Adjust(explorer, entry, cw, at, withStage));
+            y = Section("side facts", y, at => FactsSection(explorer, entry, cw, at));
+            y = Section("side animations", y, at => Animations(explorer, entry, cw, at, withStage));
             y = Section("side effects", y, at => Effects(explorer, entry, cw, at, withStage));
             y = Section("side plays in", y, at => PlaysInSection(explorer, entry, cw, at));
             y = Section("side links", y, at => LinksSection(explorer, entry, cw, at));

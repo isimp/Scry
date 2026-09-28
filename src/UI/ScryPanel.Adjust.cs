@@ -7,21 +7,39 @@ using UnityEngine;
 
 namespace Scry
 {
-    /// <summary>The Adjust section: size, level, look, gear rows and switches.</summary>
+    /// <summary>
+    /// The Adjust section (loudness, size, stars, wear, look, gear rows), just under what can be
+    /// done with the selection, and the Animations section, which can hold hundreds of clips and
+    /// so comes after what the entry is in the game.
+    /// </summary>
     internal static partial class ScryPanel
     {
+        /// <summary>
+        /// Whether the model can be adjusted: without the stage only while its copy is in the
+        /// world. How loud previews play can always be, for sounds as for everything else.
+        /// </summary>
+        private static bool Adjustable(Entry entry, bool withStage, out bool staged)
+        {
+            staged = Stage.IsStaged(entry);
+            var projectile = entry.Kind == Kind.Projectile;
+            var modelInWorld = Previews.InWorld && Previews.IsModel(entry);
+            return (withStage || modelInWorld || projectile) && (staged || projectile);
+        }
+
+        private static float Animations(Explorer explorer, Entry entry, float width, float y, bool withStage)
+        {
+            var model = Adjustable(entry, withStage, out var staged);
+            var clips = model && staged && entry.Kind != Kind.StatusEffect ? Previews.Clips() : NoClips;
+            if (clips.Count == 0) return y;
+            y = Clips(explorer, clips, explorer.Modifiers, width, U(_compact ? 100f : 120f), y);
+            return IsFolded("animations") ? y : y + U(10f);
+        }
+
         private static float Adjust(Explorer explorer, Entry entry, float width, float y, bool withStage)
         {
             var modifiers = explorer.Modifiers;
-            var staged = Stage.IsStaged(entry);
             var projectile = entry.Kind == Kind.Projectile;
-            var modelInWorld = Previews.InWorld && Previews.IsModel(entry);
-            var clips = staged && entry.Kind != Kind.StatusEffect ? Previews.Clips() : NoClips;
-
-            // Without the stage there is nothing to adjust about the model unless the copy is in the
-            // world; how loud previews play is always there, for sounds as for everything else.
-            var model = (withStage || modelInWorld || projectile) && (staged || projectile);
-            if (!model) clips = NoClips;
+            var model = Adjustable(entry, withStage, out var staged);
 
             // Reset is offered only while the section is open and something differs from the prefab.
             var open = !IsFolded("adjust");
@@ -70,16 +88,8 @@ namespace Scry
                 Previews.ProjectileSpeed = SliderRow("Speed", $"{Mathf.RoundToInt(Previews.ProjectileSpeed)} m/s", Previews.ProjectileSpeed, 5f, 120f, width, labelW, ref y);
             }
 
-            if (clips.Count > 0)
-            {
-                if (open) y += U(6f);
-                y = Clips(explorer, clips, modifiers, width, labelW, y);
-            }
-
-            // Space after what was drawn last only when it is open: a folded heading already
-            // leaves the same gap as every other.
-            var lastOpen = clips.Count > 0 ? !IsFolded("animations") : open;
-            return lastOpen ? y + U(10f) : y;
+            // Space after it only when open: a folded heading already leaves the same gap as every other.
+            return open ? y + U(10f) : y;
         }
 
         private static readonly List<AnimationClip> NoClips = new List<AnimationClip>();
