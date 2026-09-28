@@ -8,7 +8,7 @@ Models turn on a stage inside the panel, where they can be resized, shown at eac
 
 Below the stage, the details tell what the game knows of the selection: an item's stats as its tooltip gives them, its recipe and uses, a creature's health and drops with stars, its attacks and senses, what a resource takes to gather and what it gives, a piece's cost and comfort, what a station makes and burns, what a trader sells, how a boss is summoned, what a status effect changes, where things spawn or grow, and which mod added them. Most things the details name can be clicked to go to them, and much of what a prefab is tied to, such as what a creature carries or the sounds its animations make, is linked from both sides.
 
-Every preview is local to your game. Nothing is spawned into the world, saved, or seen by other players, and all of it is gone when you leave the world or press Clear at the top of the panel.
+Every preview is local to your game. Nothing is spawned into the world, saved, or seen by other players, and all of it is gone when you leave the world or press Clear world at the top of the panel, whose list takes things away one at a time.
 
 ## AI notice
 

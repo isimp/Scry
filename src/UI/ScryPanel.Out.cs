@@ -1,0 +1,123 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace Scry
+{
+    /// <summary>
+    /// What Scry has in the world, listed under the "Clear world" button while the mouse is on
+    /// it or on the list: each line goes to its entry when its name is clicked and is taken out
+    /// of the world by its ×. The button itself still clears everything.
+    /// </summary>
+    internal static partial class ScryPanel
+    {
+        private static bool _outOpen;
+        private static Rect _outRect;
+        private static List<OutRow> _outRows = new List<OutRow>();
+        private static readonly string[] ClearTexts = new string[100];
+
+        private static float OutRowH => U(26f);
+        private static float OutTop => U(30f);
+        private static float OutCrossW => U(34f);
+
+        /// <summary>The button's text for so many lines out, made once for each count.</summary>
+        private static string ClearText(int lines)
+        {
+            if (lines <= 1) return "Clear world";
+            if (lines >= ClearTexts.Length) return $"Clear world  {lines}";
+            return ClearTexts[lines] ?? (ClearTexts[lines] = $"Clear world  {lines}");
+        }
+
+        /// <summary>
+        /// Opens the list while the mouse is on the button or on the list (with a little room
+        /// between them), and works out its lines once a frame while open.
+        /// </summary>
+        private static void OutHover(Rect button, int lines, Event e)
+        {
+            if (lines == 0)
+            {
+                _outOpen = false;
+                return;
+            }
+
+            var zone = button;
+            if (_outOpen)
+            {
+                var left = Mathf.Min(button.x, _outRect.x) - U(6f);
+                var right = Mathf.Max(button.xMax, _outRect.xMax) + U(6f);
+                zone = new Rect(left, button.y - U(6f), right - left, _outRect.yMax - button.y + U(12f));
+            }
+            var wasOpen = _outOpen;
+            _outOpen = zone.Contains(e.mousePosition);
+            if (!_outOpen) return;
+
+            if (!wasOpen || e.type == EventType.Layout) _outRows = Previews.Out();
+            var width = U(320f);
+            _outRect = new Rect(button.xMax - width, button.yMax + U(4f), width, OutTop + _outRows.Count * OutRowH + U(6f));
+        }
+
+        /// <summary>Before anything under the list is drawn: a click on one of its lines.</summary>
+        private static void OutClicks(Explorer explorer, Event e)
+        {
+            if (!_outOpen || e.type != EventType.MouseDown || !_outRect.Contains(e.mousePosition)) return;
+            var index = Mathf.FloorToInt((e.mousePosition.y - _outRect.y - OutTop) / OutRowH);
+            if (e.button == 0 && index >= 0 && index < _outRows.Count)
+            {
+                var row = _outRows[index];
+                if (e.mousePosition.x >= _outRect.xMax - OutCrossW)
+                {
+                    Previews.TakeAway(row);
+                    _outRows = Previews.Out();
+                    if (_outRows.Count == 0) _outOpen = false;
+                }
+                else
+                {
+                    Go(explorer, OutTarget(row));
+                }
+            }
+            e.Use();
+        }
+
+        private static string OutTarget(OutRow row) => row.Place == OutPlace.Status ? "se:" + row.Key : row.Key;
+
+        private static string OutPlaceWord(OutPlace place)
+        {
+            switch (place)
+            {
+                case OutPlace.Shown: return "Shown";
+                case OutPlace.Pinned: return "Pinned";
+                case OutPlace.Sound: return "Sound";
+                case OutPlace.Status: return "On you";
+                default: return "Playing";
+            }
+        }
+
+        /// <summary>Drawn last, over what lies below the button.</summary>
+        private static void DrawOutList(Explorer explorer)
+        {
+            if (!_outOpen || _outRows.Count == 0 || Event.current.type != EventType.Repaint) return;
+            Skin.Box(_outRect, Skin.Backdrop, Skin.Outline);
+            GUI.Label(new Rect(_outRect.x + U(12f), _outRect.y + U(6f), _outRect.width - U(24f), U(20f)),
+                "Click a name to go to it, × to take it away", Skin.FaintLabel);
+
+            var mouse = Event.current.mousePosition;
+            for (var i = 0; i < _outRows.Count; i++)
+            {
+                var r = _outRows[i];
+                var line = new Rect(_outRect.x + U(4f), _outRect.y + OutTop + i * OutRowH, _outRect.width - U(8f), OutRowH);
+                var onCross = line.Contains(mouse) && mouse.x >= _outRect.xMax - OutCrossW;
+                if (line.Contains(mouse) && !onCross) Skin.Box(line, Skin.Hover);
+
+                var placeW = U(64f);
+                GUI.Label(new Rect(line.x + U(8f), line.y, placeW, line.height), OutPlaceWord(r.Place), Skin.DimLabel);
+                var name = ShownName(explorer, OutTarget(r), r.Key) + (r.Count > 1 ? $"  ×{r.Count}" : "");
+                var nameX = line.x + U(8f) + placeW;
+                GUI.Label(new Rect(nameX, line.y, line.xMax - OutCrossW - nameX, line.height), name, Skin.Label);
+
+                var cross = new Rect(_outRect.xMax - OutCrossW, line.y, OutCrossW - U(4f), line.height);
+                if (onCross) Skin.Box(cross, Skin.Hover);
+                GUI.Label(cross, "×", onCross ? Skin.Center : Skin.CenterDim);
+            }
+        }
+    }
+}

@@ -126,7 +126,7 @@ namespace Scry
 
             var seconds = Mathf.Clamp(ragdoll.m_ttl, 3f, 12f);
             Standin.For(fallen, _world, seconds, ragdoll.m_removeEffect, onStage: false);
-            Remember(fallen, seconds + 1f);
+            Remember(fallen, seconds + 1f, creature != null ? creature.name : null);
             return fallen;
         }
 
@@ -138,7 +138,7 @@ namespace Scry
             var loose = Falling.Loose(prefab, _world, null, -1, Stage.Layer, away);
             if (loose == null) return null;
             Standin.For(loose, _world, Stage.LooseSeconds, null, onStage: false);
-            Remember(loose, Stage.LooseSeconds + 1f);
+            Remember(loose, Stage.LooseSeconds + 1f, prefab.name);
             return loose;
         }
 
@@ -164,7 +164,7 @@ namespace Scry
             if (Falling.Leave(prefab, _world, left.transform, -1, Stage.Layer, from)) seconds = Mathf.Max(seconds, 8f);
 
             Standin.For(left, _world, seconds, null, onStage: false);
-            Remember(left, seconds + 1f);
+            Remember(left, seconds + 1f, prefab.name);
             return left;
         }
     }

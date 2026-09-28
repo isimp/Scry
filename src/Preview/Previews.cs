@@ -24,6 +24,9 @@ namespace Scry
         {
             public GameObject Thing;
             public float Until;
+
+            /// <summary>The prefab it is of, or came from (what a felled tree leaves is the tree's).</summary>
+            public string Key;
         }
 
         private static Explorer _explorer;
@@ -188,7 +191,26 @@ namespace Scry
         public static bool AnythingInWorld => _world != null || Pinned.Count > 0 || Played.Count > 0 || _sound != null || StatusVisuals.Count > 0;
 
         /// <summary>How many things Scry has out in the world or playing, for the Clear button.</summary>
-        public static int OutCount => (_world != null ? 1 : 0) + Pinned.Count + Played.Count + (_sound != null ? 1 : 0) + StatusVisuals.Count;
+        /// <summary>
+        /// How many lines <see cref="Out"/> would list, counted without making the list, since the
+        /// button showing it is drawn several times a frame.
+        /// </summary>
+        public static int OutLines
+        {
+            get
+            {
+                var lines = (_world != null ? 1 : 0) + (_sound != null ? 1 : 0) + (_status != null && StatusVisuals.Count > 0 ? 1 : 0);
+                foreach (var pinned in Pinned) if (pinned != null) lines++;
+                for (var i = 0; i < Played.Count; i++)
+                {
+                    if (Played[i].Thing == null) continue;
+                    var first = true;
+                    for (var j = 0; j < i && first; j++) first = Played[j].Thing == null || Played[j].Key != Played[i].Key;
+                    if (first) lines++;
+                }
+                return lines;
+            }
+        }
 
         public static void Update(Explorer explorer)
         {
@@ -389,9 +411,59 @@ namespace Scry
 
         // ----- Housekeeping -----
 
-        private static void Remember(GameObject thing, float seconds)
+        private static void Remember(GameObject thing, float seconds, string key = null)
         {
-            if (thing != null) Played.Add(new Timed { Thing = thing, Until = Time.unscaledTime + seconds });
+            if (thing != null) Played.Add(new Timed { Thing = thing, Until = Time.unscaledTime + seconds, Key = key ?? thing.name });
+        }
+
+        /// <summary>What Scry has in the world, a line per thing (<see cref="OutList"/>), for taking them away one at a time.</summary>
+        public static List<OutRow> Out()
+        {
+            var things = new List<(OutPlace, string)>();
+            if (_world != null) things.Add((OutPlace.Shown, _world.name));
+            foreach (var pinned in Pinned) if (pinned != null) things.Add((OutPlace.Pinned, pinned.name));
+            if (_sound != null) things.Add((OutPlace.Sound, _sound.name));
+            if (_status != null && StatusVisuals.Count > 0) things.Add((OutPlace.Status, _status.name));
+            foreach (var played in Played) if (played.Thing != null) things.Add((OutPlace.Playing, played.Key));
+            return OutList.Rows(things);
+        }
+
+        /// <summary>Takes one line of <see cref="Out"/> out of the world: a pinned copy alone, or every copy of what plays.</summary>
+        public static void TakeAway(OutRow row)
+        {
+            switch (row.Place)
+            {
+                case OutPlace.Shown:
+                    InWorld = false;
+                    Destroy(ref _world);
+                    break;
+                case OutPlace.Pinned:
+                    var nth = 0;
+                    for (var i = 0; i < Pinned.Count; i++)
+                    {
+                        if (Pinned[i] == null || Pinned[i].name != row.Key) continue;
+                        if (nth++ != row.Nth) continue;
+                        Object.Destroy(Pinned[i]);
+                        Pinned.RemoveAt(i);
+                        break;
+                    }
+                    break;
+                case OutPlace.Sound:
+                    StopSound();
+                    break;
+                case OutPlace.Status:
+                    StopStatus(false);
+                    break;
+                case OutPlace.Playing:
+                    for (var i = Played.Count - 1; i >= 0; i--)
+                    {
+                        if (Played[i].Key != row.Key) continue;
+                        if (Played[i].Thing != null) Object.Destroy(Played[i].Thing);
+                        Played.RemoveAt(i);
+                    }
+                    break;
+            }
+            if (!AnythingInWorld) Playing.Forget();
         }
 
         private static void Expire()

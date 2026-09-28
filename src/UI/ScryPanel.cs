@@ -594,12 +594,13 @@ namespace Scry
             // Header: the name, the catalog size, the view switch and a close button. It drags the panel.
             var viewText = _compact ? "Full view" : "Compact";
             var viewW = Skin.Width(Skin.Button, viewText) + U(10f);
-            // Clear sits in the header so it is in the same place whatever is selected.
-            var outCount = Previews.OutCount;
-            var clearText = outCount > 0 ? $"Clear  {outCount}" : "Clear";
-            var clearW = Skin.Width(Skin.Button, clearText) + U(10f);
+            // Clear world sits in the header so it is in the same place whatever is selected, and
+            // only while something of Scry's is in the world.
+            var outLines = Previews.OutLines;
+            var clearText = ClearText(outLines);
+            var clearW = outLines > 0 ? Skin.Width(Skin.Button, clearText) + U(10f) : 0f;
             var viewRect = new Rect(w - pad - U(40f) - viewW, U(15f), viewW, U(28f));
-            var clearRect = new Rect(viewRect.x - U(8f) - clearW, viewRect.y, clearW, viewRect.height);
+            var clearRect = new Rect(viewRect.x - (outLines > 0 ? U(8f) + clearW : 0f), viewRect.y, clearW, viewRect.height);
 
             // Reading the locations completes what the search and the details know, so it is
             // offered here too until it is done; while reading it shows how far it has got. Its
@@ -623,20 +624,14 @@ namespace Scry
                 if (locRect.Contains(e.mousePosition)) AskTip("locations", reading ? "Reading where things are found in this world's locations and dungeons" : LocationsButtonTip);
             }
 
-            var enabled = GUI.enabled;
-            GUI.enabled = outCount > 0;
-            if (GUI.Button(clearRect, clearText, outCount > 0 ? Skin.Primary : Skin.Button))
+            if (outLines > 0 && GUI.Button(clearRect, clearText, Skin.Primary))
             {
                 Previews.ClearWorld();
+                _outOpen = false;
                 Session.Say("Cleared. Nothing from Scry is left in the world.");
             }
-            GUI.enabled = enabled;
-            if (clearRect.Contains(e.mousePosition))
-            {
-                AskTip("clear", outCount > 0
-                    ? "Removes every preview from the world, pinned ones included, and stops what is playing"
-                    : "Nothing from Scry is in the world");
-            }
+            OutHover(clearRect, outLines, e);
+            OutClicks(explorer, e);
 
             if (GUI.Button(viewRect, viewText, Skin.Button)) ToggleCompact();
             if (GUI.Button(new Rect(w - pad - U(32f), U(12f), U(32f), U(32f)), "×", Skin.Close)) Session.Hide();
@@ -689,6 +684,7 @@ namespace Scry
 
             // Over everything below the search box; its clicks were taken before any of it drew.
             DrawSuggestions();
+            DrawOutList(explorer);
 
             // Resize grip in the corner.
             var grip = new Rect(w - U(22f), h - U(22f), U(20f), U(20f));
