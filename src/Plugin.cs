@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
@@ -88,7 +89,9 @@ namespace Scry
             _harmony = new Harmony(Guid);
             Patch();
 
-            Commands.Register();
+            // Without the chat command F7 still opens the panel.
+            try { Commands.Register(); }
+            catch (System.Exception ex) { Faults.Tell("the /scry command", ex); }
         }
 
         /// <summary>
@@ -98,17 +101,34 @@ namespace Scry
         /// </summary>
         private void Patch()
         {
-            foreach (var type in typeof(Plugin).Assembly.GetTypes())
+            foreach (var type in OwnTypes())
             {
-                if (type.GetCustomAttributes(typeof(HarmonyPatch), false).Length == 0) continue;
                 try
                 {
+                    if (type.GetCustomAttributes(typeof(HarmonyPatch), false).Length == 0) continue;
                     _harmony.CreateClassProcessor(type).Patch();
                 }
                 catch (System.Exception ex)
                 {
                     Log.LogWarning($"Scry could not patch {type.Name}: {ex.Message}");
                 }
+            }
+        }
+
+        /// <summary>
+        /// Scry's own types, those that load. One naming a game type an update removed cannot be
+        /// loaded; the rest still are, so that one costs only itself.
+        /// </summary>
+        internal static System.Type[] OwnTypes()
+        {
+            try
+            {
+                return typeof(Plugin).Assembly.GetTypes();
+            }
+            catch (System.Reflection.ReflectionTypeLoadException ex)
+            {
+                Log.LogWarning($"Scry: {ex.Types.Count(t => t == null)} of its own parts cannot be loaded on this version of the game, and are off; the rest work on. ({ex.LoaderExceptions.FirstOrDefault()?.Message})");
+                return ex.Types.Where(t => t != null).ToArray();
             }
         }
 
@@ -130,14 +150,19 @@ namespace Scry
         {
             var started = Timing.Start();
             var kind = Event.current.type;
-            ScryPanel.OnGUI();
+            // The panel catches its own sections; this is for a panel that cannot run at all,
+            // which is told once rather than an error every frame.
+            try { ScryPanel.OnGUI(); }
+            catch (ExitGUIException) { throw; }
+            catch (System.Exception ex) { Faults.Tell("the panel", ex); }
             Timing.Add("panel", started);
             if (Plugin.LogPreviews) Timing.Add("panel " + kind, started);
         }
 
         private void OnDestroy()
         {
-            Session.Shutdown();
+            try { Session.Shutdown(); }
+            catch (System.Exception ex) { Faults.Tell("closing down", ex); }
             _harmony?.UnpatchSelf();
         }
     }

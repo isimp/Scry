@@ -35,106 +35,106 @@ namespace Scry
         /// The game methods whose workings Scry's previews copy, with the shape of their code in
         /// Valheim 1.0.16, read from the game's own assembly.
         /// </summary>
-        private static readonly (Type Type, string Method, int Params, uint Shape, string Feature)[] Copied =
+        private static readonly (string Type, string Method, int Params, uint Shape, string Feature)[] Copied =
         {
-            (typeof(VisEquipment), "AttachItem", 6, 0xD7DAC228, "gear on creatures and the person"),
-            (typeof(Humanoid), "GiveDefaultItems", 0, 0x308C20BE, "what creatures carry"),
-            (typeof(Humanoid), "EquipItem", 2, 0xB6B9953E, "which gear takes the place of which"),
-            (typeof(Humanoid), "SetupVisEquipment", 2, 0x17BDBBAE, "armour on ragdolls"),
-            (typeof(LevelEffects), "SetupLevelVisualization", 1, 0xD5E59AD9, "star-level looks"),
-            (typeof(WearNTear), "UpdateVisual", 1, 0x390E7B55, "worn and broken looks"),
-            (typeof(Fireplace), "UpdateState", 0, 0xA932F988, "fire looks"),
-            (typeof(TeleportWorld), "UpdatePortal", 0, 0xB1368747, "portal looks"),
-            (typeof(EffectFade), "SetActive", 1, 0xDC4AA873, "effects fading in and out"),
-            (typeof(ItemStyle), "Setup", 1, 0xB6778751, "item styles"),
-            (typeof(Plant), "Grow", 0, 0x387B2C65, "plants grown"),
-            (typeof(Pickable), "SetPicked", 1, 0xD43BD169, "picked looks"),
-            (typeof(Character), "OnDeath", 0, 0x63009BD2, "ragdoll deaths"),
-            (typeof(Ragdoll), "Setup", 7, 0xD56D1722, "ragdoll deaths"),
-            (typeof(Destructible), "CreateFragments", 2, 0x2A65B522, "pieces breaking apart"),
-            (typeof(WearNTear), "RPC_CreateFragments", 1, 0x2724FEDC, "pieces breaking apart"),
-            (typeof(TreeBase), "SpawnLog", 1, 0xBF8E65F4, "trees falling"),
-            (typeof(EffectList), "Create", 6, 0xA8985D0C, "where effects appear on a model"),
-            (typeof(AnimationEffect), "Effect", 1, 0xDF43C7EF, "sounds and effects animations name"),
-            (typeof(AnimationEffect), "Attach", 1, 0x1974D1DE, "props animations hold"),
-            (typeof(FootStep), "UpdateFootstepCurveTrigger", 1, 0xBB6FCBEA, "footsteps"),
-            (typeof(ZSFX), "Play", 0, 0xF60FF796, "picking a sound's variants"),
-            (typeof(MusicLocation), "Awake", 0, 0x80F33570, "location music"),
-            (typeof(Character), "AddFireDamage", 2, 0xA441CEBC, "the status effects damage causes"),
-            (typeof(Character), "AddFrostDamage", 2, 0x77AE9523, "the status effects damage causes"),
-            (typeof(Character), "AddLightningDamage", 2, 0x068B93DE, "the status effects damage causes"),
-            (typeof(Character), "AddPoisonDamage", 2, 0x77AE9523, "the status effects damage causes"),
-            (typeof(Character), "AddSpiritDamage", 2, 0xA441CEBC, "the status effects damage causes"),
-            (typeof(Door), "SetState", 1, 0xFD8700BC, "door looks"),
-            (typeof(Container), "UpdateUseVisual", 0, 0x53F25066, "chest looks"),
-            (typeof(Smelter), "UpdateState", 0, 0x74799120, "smelter looks"),
-            (typeof(Smelter), "SetAnimation", 1, 0x8728BDAE, "smelter looks"),
-            (typeof(Fermenter), "SlowUpdate", 0, 0xBF99D857, "fermenter looks"),
-            (typeof(SapCollector), "UpdateEffects", 0, 0xA276633B, "sap collector looks"),
-            (typeof(CraftingStation), "CustomUpdate", 2, 0x0F1DE708, "crafting stations in use"),
-            (typeof(CraftingStation), "CheckFire", 0, 0xAE55015F, "crafting stations' fire"),
-            (typeof(Windmill), "Update", 0, 0x5B823CE2, "windmills turning"),
-            (typeof(Tameable), "SetSaddle", 1, 0x7BC32B79, "saddles"),
-            (typeof(AnimationObjectToggle), "SetGameObject", 2, 0xFB641210, "parts animations show and hide"),
-            (typeof(Character), "ForceJump", 2, 0xBF80A81B, "jump animations"),
-            (typeof(Character), "TakeOff", 0, 0xA4E55A1C, "flyers taking off"),
-            (typeof(Character), "OnDeathAnim", 0, 0xECCFE468, "death animations"),
-            (typeof(Humanoid), "SetupAnimationState", 0, 0xA69F123F, "weapon stances"),
-            (typeof(Humanoid), "UpdateBlock", 1, 0xE93DD6F9, "block animations"),
-            (typeof(Humanoid), "UseItem", 3, 0x0FE529C5, "eating animations"),
-            (typeof(BaseAI), "SetAlerted", 1, 0xA6DC542C, "alert animations"),
-            (typeof(MonsterAI), "Wakeup", 0, 0xE05A55C9, "waking animations"),
-            (typeof(MonsterAI), "UpdateConsumeItem", 2, 0x7D31D2DF, "eating animations"),
-            (typeof(Attack), "Start", 9, 0xF77DB3EE, "attack swings"),
-            (typeof(Attack), "GetProjectileSpawnPoint", 2, 0xA167E181, "thrown and shot projectiles"),
-            (typeof(Attack), "FireProjectileBurst", 0, 0x9C942866, "thrown and shot projectiles"),
-            (typeof(Attack), "OnAttackTrigger", 0, 0x8575D354, "what an attack plays as it strikes"),
-            (typeof(Attack), "DoMeleeAttack", 0, 0x02E4B054, "where swings hit"),
-            (typeof(Attack), "GetMeleeAttackDir", 2, 0x2F48BDB7, "where swings hit"),
-            (typeof(Attack), "DoAreaAttack", 0, 0x8E76EA3A, "where area attacks hit"),
-            (typeof(Attack), "ProjectileAttackTriggered", 0, 0x6F38B2FF, "what throws play as they let go"),
-            (typeof(Attack), "GetAttackOrigin", 0, 0x1F38E4AA, "where attacks come from"),
-            (typeof(Projectile), "Setup", 6, 0xAC11A4B1, "throws hitting with their own effects"),
-            (typeof(Character), "Awake", 0, 0x26223A54, "the body the game animates"),
-            (typeof(Humanoid), "InAttack", 0, 0x9FA3519B, "which clips are an attack's"),
-            (typeof(Character), "RPC_Stagger", 2, 0xF2A24690, "stagger animations"),
-            (typeof(Character), "AddStaggerDamage", 3, 0xCEA5F8B3, "hits heard with staggers"),
-            (typeof(Character), "UpdateContinousEffects", 0, 0xABFA49E2, "water and flying effects kept going"),
-            (typeof(Character), "UpdateSwimming", 1, 0x0FCF0647, "swimming animations"),
-            (typeof(FootStep), "FindBestStepEffect", 2, 0x2A458304, "which step a creature makes"),
-            (typeof(MonsterAI), "Sleep", 0, 0x76D7B742, "sleeping animations"),
-            (typeof(MonsterAI), "UpdateSleep", 1, 0x0849E9C0, "what is heard after waking"),
-            (typeof(BaseAI), "DoIdleSound", 0, 0xEAD56C82, "idle sounds heard around idle clips"),
-            (typeof(RandomIdle), "OnStateEnter", 3, 0x387CD94B, "idle clips picked at random"),
-            (typeof(RandomIdle), "OnStateUpdate", 3, 0x1E89789A, "idle clips picked at random"),
-            (typeof(RandomIdle), "GetRandomIdle", 1, 0x7A49F403, "idle clips picked at random"),
-            (typeof(CreatureSpawner), "Spawn", 0, 0xF64EBBF9, "spawn roars"),
-            (typeof(SpawnAbility), "Spawn", 0, 0x13568EE6, "spawn roars"),
-            (typeof(Player), "SetupAwake", 0, 0x38272BB3, "the person standing from the start"),
+            ("VisEquipment", "AttachItem", 6, 0xD7DAC228, "gear on creatures and the person"),
+            ("Humanoid", "GiveDefaultItems", 0, 0x308C20BE, "what creatures carry"),
+            ("Humanoid", "EquipItem", 2, 0xB6B9953E, "which gear takes the place of which"),
+            ("Humanoid", "SetupVisEquipment", 2, 0x17BDBBAE, "armour on ragdolls"),
+            ("LevelEffects", "SetupLevelVisualization", 1, 0xD5E59AD9, "star-level looks"),
+            ("WearNTear", "UpdateVisual", 1, 0x390E7B55, "worn and broken looks"),
+            ("Fireplace", "UpdateState", 0, 0xA932F988, "fire looks"),
+            ("TeleportWorld", "UpdatePortal", 0, 0xB1368747, "portal looks"),
+            ("EffectFade", "SetActive", 1, 0xDC4AA873, "effects fading in and out"),
+            ("ItemStyle", "Setup", 1, 0xB6778751, "item styles"),
+            ("Plant", "Grow", 0, 0x387B2C65, "plants grown"),
+            ("Pickable", "SetPicked", 1, 0xD43BD169, "picked looks"),
+            ("Character", "OnDeath", 0, 0x63009BD2, "ragdoll deaths"),
+            ("Ragdoll", "Setup", 7, 0xD56D1722, "ragdoll deaths"),
+            ("Destructible", "CreateFragments", 2, 0x2A65B522, "pieces breaking apart"),
+            ("WearNTear", "RPC_CreateFragments", 1, 0x2724FEDC, "pieces breaking apart"),
+            ("TreeBase", "SpawnLog", 1, 0xBF8E65F4, "trees falling"),
+            ("EffectList", "Create", 6, 0xA8985D0C, "where effects appear on a model"),
+            ("AnimationEffect", "Effect", 1, 0xDF43C7EF, "sounds and effects animations name"),
+            ("AnimationEffect", "Attach", 1, 0x1974D1DE, "props animations hold"),
+            ("FootStep", "UpdateFootstepCurveTrigger", 1, 0xBB6FCBEA, "footsteps"),
+            ("ZSFX", "Play", 0, 0xF60FF796, "picking a sound's variants"),
+            ("MusicLocation", "Awake", 0, 0x80F33570, "location music"),
+            ("Character", "AddFireDamage", 2, 0xA441CEBC, "the status effects damage causes"),
+            ("Character", "AddFrostDamage", 2, 0x77AE9523, "the status effects damage causes"),
+            ("Character", "AddLightningDamage", 2, 0x068B93DE, "the status effects damage causes"),
+            ("Character", "AddPoisonDamage", 2, 0x77AE9523, "the status effects damage causes"),
+            ("Character", "AddSpiritDamage", 2, 0xA441CEBC, "the status effects damage causes"),
+            ("Door", "SetState", 1, 0xFD8700BC, "door looks"),
+            ("Container", "UpdateUseVisual", 0, 0x53F25066, "chest looks"),
+            ("Smelter", "UpdateState", 0, 0x74799120, "smelter looks"),
+            ("Smelter", "SetAnimation", 1, 0x8728BDAE, "smelter looks"),
+            ("Fermenter", "SlowUpdate", 0, 0xBF99D857, "fermenter looks"),
+            ("SapCollector", "UpdateEffects", 0, 0xA276633B, "sap collector looks"),
+            ("CraftingStation", "CustomUpdate", 2, 0x0F1DE708, "crafting stations in use"),
+            ("CraftingStation", "CheckFire", 0, 0xAE55015F, "crafting stations' fire"),
+            ("Windmill", "Update", 0, 0x5B823CE2, "windmills turning"),
+            ("Tameable", "SetSaddle", 1, 0x7BC32B79, "saddles"),
+            ("AnimationObjectToggle", "SetGameObject", 2, 0xFB641210, "parts animations show and hide"),
+            ("Character", "ForceJump", 2, 0xBF80A81B, "jump animations"),
+            ("Character", "TakeOff", 0, 0xA4E55A1C, "flyers taking off"),
+            ("Character", "OnDeathAnim", 0, 0xECCFE468, "death animations"),
+            ("Humanoid", "SetupAnimationState", 0, 0xA69F123F, "weapon stances"),
+            ("Humanoid", "UpdateBlock", 1, 0xE93DD6F9, "block animations"),
+            ("Humanoid", "UseItem", 3, 0x0FE529C5, "eating animations"),
+            ("BaseAI", "SetAlerted", 1, 0xA6DC542C, "alert animations"),
+            ("MonsterAI", "Wakeup", 0, 0xE05A55C9, "waking animations"),
+            ("MonsterAI", "UpdateConsumeItem", 2, 0x7D31D2DF, "eating animations"),
+            ("Attack", "Start", 9, 0xF77DB3EE, "attack swings"),
+            ("Attack", "GetProjectileSpawnPoint", 2, 0xA167E181, "thrown and shot projectiles"),
+            ("Attack", "FireProjectileBurst", 0, 0x9C942866, "thrown and shot projectiles"),
+            ("Attack", "OnAttackTrigger", 0, 0x8575D354, "what an attack plays as it strikes"),
+            ("Attack", "DoMeleeAttack", 0, 0x02E4B054, "where swings hit"),
+            ("Attack", "GetMeleeAttackDir", 2, 0x2F48BDB7, "where swings hit"),
+            ("Attack", "DoAreaAttack", 0, 0x8E76EA3A, "where area attacks hit"),
+            ("Attack", "ProjectileAttackTriggered", 0, 0x6F38B2FF, "what throws play as they let go"),
+            ("Attack", "GetAttackOrigin", 0, 0x1F38E4AA, "where attacks come from"),
+            ("Projectile", "Setup", 6, 0xAC11A4B1, "throws hitting with their own effects"),
+            ("Character", "Awake", 0, 0x26223A54, "the body the game animates"),
+            ("Humanoid", "InAttack", 0, 0x9FA3519B, "which clips are an attack's"),
+            ("Character", "RPC_Stagger", 2, 0xF2A24690, "stagger animations"),
+            ("Character", "AddStaggerDamage", 3, 0xCEA5F8B3, "hits heard with staggers"),
+            ("Character", "UpdateContinousEffects", 0, 0xABFA49E2, "water and flying effects kept going"),
+            ("Character", "UpdateSwimming", 1, 0x0FCF0647, "swimming animations"),
+            ("FootStep", "FindBestStepEffect", 2, 0x2A458304, "which step a creature makes"),
+            ("MonsterAI", "Sleep", 0, 0x76D7B742, "sleeping animations"),
+            ("MonsterAI", "UpdateSleep", 1, 0x0849E9C0, "what is heard after waking"),
+            ("BaseAI", "DoIdleSound", 0, 0xEAD56C82, "idle sounds heard around idle clips"),
+            ("RandomIdle", "OnStateEnter", 3, 0x387CD94B, "idle clips picked at random"),
+            ("RandomIdle", "OnStateUpdate", 3, 0x1E89789A, "idle clips picked at random"),
+            ("RandomIdle", "GetRandomIdle", 1, 0x7A49F403, "idle clips picked at random"),
+            ("CreatureSpawner", "Spawn", 0, 0xF64EBBF9, "spawn roars"),
+            ("SpawnAbility", "Spawn", 0, 0x13568EE6, "spawn roars"),
+            ("Player", "SetupAwake", 0, 0x38272BB3, "the person standing from the start"),
 
             // What the details tell the game's rules from: if one changes, its words may be off.
-            (typeof(CharacterDrop), "GenerateDropList", 0, 0x1D58F486, "creature drop amounts, chances and stars in the details"),
-            (typeof(DropTable), "AddItemToList", 2, 0xAECEE75C, "drop table amounts in the details"),
-            (typeof(DropTable), "GetDropList", 1, 0xBF6963CC, "drop table rolls in the details"),
-            (typeof(BaseAI), "CanSeeTarget", 7, 0xDE5EBD88, "what creatures see, in the details"),
-            (typeof(Character), "SetupMaxHealth", 0, 0x6F57CA0E, "health with stars in the details"),
-            (typeof(Attack), "GetLevelDamageFactor", 0, 0x56C23F2E, "hits with stars in the details"),
-            (typeof(Player), "HaveRequirementItems", 4, 0xB9AF033A, "upgrade kits told apart from ingredients"),
-            (typeof(InventoryGui), "SetupRequirementList", 4, 0xB8443C09, "upgrade kits told apart from ingredients"),
-            (typeof(InventoryGui), "UpdateRecipeList", 1, 0xC89F3E86, "what an upgrade station does, in the details"),
-            (typeof(InventoryGui), "CanRepair", 1, 0xD57710C7, "where items are repaired, in the details"),
-            (typeof(Recipe), "GetRequiredStationLevel", 1, 0x7AD112DA, "station levels for upgrades in the details"),
-            (typeof(ItemDrop.ItemData), "GetTooltip", 6, 0xE717E1A4, "item stats in the details"),
-            (typeof(ItemDrop.ItemData), "AddBlockTooltip", 3, 0xDF722134, "block and parry in the details"),
-            (typeof(Player), "GetBodyArmor", 0, 0x03C09085, "which armour counts, in the details"),
-            (typeof(HitData), "ApplyResistance", 2, 0x8BB9A7D5, "true damage in the details"),
-            (typeof(SE_Rested), "CalculateComfortLevel", 2, 0x71FEE0E8, "comfort groups in the details"),
-            (typeof(SE_Stats), "GetTooltipString", 0, 0x8126FDA1, "status effect stats in the details"),
-            (typeof(Player), "CanConsumeItem", 2, 0x27D77A45, "effects that cannot be taken together, in the details"),
-            (typeof(Incinerator.IncineratorConversion), "AttemptCraft", 2, 0x7D4E45C5, "what the obliterator makes, in the details"),
-            (typeof(RandEventSystem), "HaveGlobalKeys", 2, 0xBAF80048, "what raids wait for, in the details"),
-            (typeof(Trader), "GetAvailableItems", 0, 0x19BA382C, "what traders sell and when, in the details"),
-            (typeof(Fermenter), "UpdateCover", 2, 0x861BA786, "what a fermenter needs, in the details"),
+            ("CharacterDrop", "GenerateDropList", 0, 0x1D58F486, "creature drop amounts, chances and stars in the details"),
+            ("DropTable", "AddItemToList", 2, 0xAECEE75C, "drop table amounts in the details"),
+            ("DropTable", "GetDropList", 1, 0xBF6963CC, "drop table rolls in the details"),
+            ("BaseAI", "CanSeeTarget", 7, 0xDE5EBD88, "what creatures see, in the details"),
+            ("Character", "SetupMaxHealth", 0, 0x6F57CA0E, "health with stars in the details"),
+            ("Attack", "GetLevelDamageFactor", 0, 0x56C23F2E, "hits with stars in the details"),
+            ("Player", "HaveRequirementItems", 4, 0xB9AF033A, "upgrade kits told apart from ingredients"),
+            ("InventoryGui", "SetupRequirementList", 4, 0xB8443C09, "upgrade kits told apart from ingredients"),
+            ("InventoryGui", "UpdateRecipeList", 1, 0xC89F3E86, "what an upgrade station does, in the details"),
+            ("InventoryGui", "CanRepair", 1, 0xD57710C7, "where items are repaired, in the details"),
+            ("Recipe", "GetRequiredStationLevel", 1, 0x7AD112DA, "station levels for upgrades in the details"),
+            ("ItemDrop+ItemData", "GetTooltip", 6, 0xE717E1A4, "item stats in the details"),
+            ("ItemDrop+ItemData", "AddBlockTooltip", 3, 0xDF722134, "block and parry in the details"),
+            ("Player", "GetBodyArmor", 0, 0x03C09085, "which armour counts, in the details"),
+            ("HitData", "ApplyResistance", 2, 0x8BB9A7D5, "true damage in the details"),
+            ("SE_Rested", "CalculateComfortLevel", 2, 0x71FEE0E8, "comfort groups in the details"),
+            ("SE_Stats", "GetTooltipString", 0, 0x8126FDA1, "status effect stats in the details"),
+            ("Player", "CanConsumeItem", 2, 0x27D77A45, "effects that cannot be taken together, in the details"),
+            ("Incinerator+IncineratorConversion", "AttemptCraft", 2, 0x7D4E45C5, "what the obliterator makes, in the details"),
+            ("RandEventSystem", "HaveGlobalKeys", 2, 0xBAF80048, "what raids wait for, in the details"),
+            ("Trader", "GetAvailableItems", 0, 0x19BA382C, "what traders sell and when, in the details"),
+            ("Fermenter", "UpdateCover", 2, 0x861BA786, "what a fermenter needs, in the details"),
         };
 
         /// <summary>Public methods of the animation event receivers that are not events.</summary>
@@ -165,35 +165,44 @@ namespace Scry
             if (_checked) return;
             _checked = true;
 
+            // Every game type is found by name and every part checked on its own, so a type or
+            // member an update removed is told as missing rather than stopping the check.
             var list = new Checklist();
-            try
+            void Each(string part, Action check)
             {
-                Member(list, typeof(SpawnSystem), "m_instances", "where creatures spawn");
-                Member(list, typeof(ZSFX), "m_fadeOutTimer", "sounds playing on after a seek or pause");
-                Patches(list);
-                foreach (var copied in Copied) Code(list, copied.Type, copied.Method, copied.Params, copied.Shape, copied.Feature);
-                Events(list, typeof(CharacterAnimEvent));
-                Events(list, typeof(AnimationEffect));
-                foreach (var layer in new[] { "Default", "terrain", "static_solid", "piece" })
-                {
-                    list.Add($"layer {layer}", $"falling copies landing on {layer}", LayerMask.NameToLayer(layer) >= 0 ? Found.Present : Found.Missing);
-                }
-                foreach (var script in StripPolicy.KeptScriptNames)
-                {
-                    list.Add($"script {script}", $"effects keeping their {script}", GameType(script) != null ? Found.Present : Found.Missing);
-                }
-                foreach (var effect in new[] { "Burning", "Frost", "Lightning", "Poison", "Spirit" })
+                try { check(); }
+                catch (Exception ex) { list.Add(part, "part of the startup check", Found.Missing); Plugin.Log.LogDebug($"Scry could not check {part}: {ex.Message}"); }
+            }
+            Each("SpawnSystem.m_instances", () => Member(list, "SpawnSystem", "m_instances", "where creatures spawn"));
+            Each("ZSFX.m_fadeOutTimer", () => Member(list, "ZSFX", "m_fadeOutTimer", "sounds playing on after a seek or pause"));
+            Each("the patches", () => Patches(list));
+            foreach (var copied in Copied)
+            {
+                Each($"{copied.Type}.{copied.Method}", () => Code(list, copied.Type, copied.Method, copied.Params, copied.Shape, copied.Feature));
+            }
+            Each("CharacterAnimEvent", () => Events(list, "CharacterAnimEvent"));
+            Each("AnimationEffect", () => Events(list, "AnimationEffect"));
+            foreach (var layer in new[] { "Default", "terrain", "static_solid", "piece" })
+            {
+                Each($"layer {layer}", () => list.Add($"layer {layer}", $"falling copies landing on {layer}", LayerMask.NameToLayer(layer) >= 0 ? Found.Present : Found.Missing));
+            }
+            foreach (var script in StripPolicy.KeptScriptNames)
+            {
+                Each($"script {script}", () => list.Add($"script {script}", $"effects keeping their {script}", GameType(script) != null ? Found.Present : Found.Missing));
+            }
+            foreach (var effect in new[] { "Burning", "Frost", "Lightning", "Poison", "Spirit" })
+            {
+                Each($"status effect {effect}", () =>
                 {
                     var found = ObjectDB.instance != null && ObjectDB.instance.GetStatusEffect(effect.GetStableHashCode()) != null;
                     list.Add($"status effect {effect}", $"linking damage to {effect}", found ? Found.Present : Found.Missing);
-                }
+                });
+            }
+            Each("prefab Player", () =>
+            {
                 var player = ZNetScene.instance != null && ZNetScene.instance.GetPrefab("Player") != null;
                 list.Add("prefab Player", "the person beside the model and items tried on", player ? Found.Present : Found.Missing);
-            }
-            catch (Exception ex)
-            {
-                Plugin.Log.LogWarning($"Scry could not finish checking the game: {ex.Message}");
-            }
+            });
 
             _off = list.FeaturesOff;
             foreach (var line in list.Report())
@@ -208,21 +217,24 @@ namespace Scry
         /// copies keep is. Looking through all assemblies instead loads every mod's types, and
         /// logs the errors of those that cannot be.
         /// </summary>
-        private static Type GameType(string name) => typeof(ZSFX).Assembly.GetType(name, false);
+        private static Type GameType(string name) => typeof(ZNetScene).Assembly.GetType(name, false);
 
         private const BindingFlags All = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
 
-        private static void Member(Checklist list, Type type, string name, string feature)
+        private static void Member(Checklist list, string typeName, string name, string feature)
         {
-            list.Add($"{type.Name}.{name}", feature, type.GetField(name, All) != null ? Found.Present : Found.Missing);
+            var type = GameType(typeName);
+            list.Add($"{typeName}.{name}", feature, type?.GetField(name, All) != null ? Found.Present : Found.Missing);
         }
 
         /// <summary>Each patch, by whether its method is there and carries Scry's patch now.</summary>
         private static void Patches(Checklist list)
         {
-            foreach (var type in typeof(Plugin).Assembly.GetTypes())
+            foreach (var type in Plugin.OwnTypes())
             {
-                var attribute = type.GetCustomAttributes(typeof(HarmonyPatch), false).FirstOrDefault() as HarmonyPatch;
+                HarmonyPatch attribute;
+                try { attribute = type.GetCustomAttributes(typeof(HarmonyPatch), false).FirstOrDefault() as HarmonyPatch; }
+                catch (Exception) { list.Add(type.Name, PatchFeatures.TryGetValue(type.Name, out var off) ? off : type.Name, Found.Missing); continue; }
                 if (attribute?.info?.declaringType == null) continue;
 
                 var target = attribute.info.declaringType;
@@ -234,24 +246,31 @@ namespace Scry
             }
         }
 
-        private static void Code(Checklist list, Type type, string name, int parameters, uint shape, string feature)
+        private static void Code(Checklist list, string typeName, string name, int parameters, uint shape, string feature)
         {
-            var method = type.GetMethods(All).FirstOrDefault(m => m.Name == name && m.GetParameters().Length == parameters);
+            var type = GameType(typeName);
+            var method = type?.GetMethods(All).FirstOrDefault(m => m.Name == name && m.GetParameters().Length == parameters);
             if (method == null)
             {
-                list.Add($"{type.Name}.{name}", feature, Found.Missing);
+                list.Add($"{typeName}.{name}", feature, Found.Missing);
                 return;
             }
             var now = IlShape.Of(method.GetMethodBody()?.GetILAsByteArray());
-            list.Add($"{type.Name}.{name}", feature, now == shape ? Found.Present : Found.Changed);
+            list.Add($"{typeName}.{name}", feature, now == shape ? Found.Present : Found.Changed);
         }
 
         /// <summary>
         /// An animation event the game answers and Scry does not: a creature whose clips send it
         /// has its animations left silent, so the check tells of it.
         /// </summary>
-        private static void Events(Checklist list, Type type)
+        private static void Events(Checklist list, string typeName)
         {
+            var type = GameType(typeName);
+            if (type == null)
+            {
+                list.Add(typeName, "sounds of animations", Found.Missing);
+                return;
+            }
             foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
             {
                 if (method.IsSpecialName || method.ReturnType != typeof(void) || method.GetParameters().Length > 1) continue;

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using HarmonyLib;
 
 namespace Scry
@@ -21,18 +22,26 @@ namespace Scry
         [HarmonyPriority(Priority.First)]
         private static void Prefix(ZNetScene __instance)
         {
-            // Runs inside the game's own Awake: whatever goes wrong here must not stop it.
+            // Runs inside the game's own Awake: whatever goes wrong here must not stop it. The work
+            // is in a method of its own, so that a list an update renamed, which fails the method
+            // naming it before it runs, is caught here too.
             try
             {
-                var names = new List<string>();
-                foreach (var prefab in __instance.m_prefabs) if (prefab != null) names.Add(prefab.name);
-                foreach (var prefab in __instance.m_nonNetViewPrefabs) if (prefab != null) names.Add(prefab.name);
-                Origins.Prefabs.RecordOriginal(names);
+                Record(__instance);
             }
             catch (System.Exception ex)
             {
-                Plugin.Log.LogWarning($"Scry could not tell the game's prefabs from those mods add: {ex.Message}");
+                Faults.Tell("telling the game's prefabs from those mods add", ex);
             }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Record(ZNetScene scene)
+        {
+            var names = new List<string>();
+            foreach (var prefab in scene.m_prefabs) if (prefab != null) names.Add(prefab.name);
+            foreach (var prefab in scene.m_nonNetViewPrefabs) if (prefab != null) names.Add(prefab.name);
+            Origins.Prefabs.RecordOriginal(names);
         }
     }
 
@@ -43,17 +52,23 @@ namespace Scry
         [HarmonyPriority(Priority.First)]
         private static void Prefix(ObjectDB __instance)
         {
-            // Runs inside the game's own Awake: whatever goes wrong here must not stop it.
+            // Runs inside the game's own Awake: as above, nothing here may stop it.
             try
             {
-                var names = new List<string>();
-                foreach (var effect in __instance.m_StatusEffects) if (effect != null) names.Add(effect.name);
-                Origins.StatusEffects.RecordOriginal(names);
+                Record(__instance);
             }
             catch (System.Exception ex)
             {
-                Plugin.Log.LogWarning($"Scry could not tell the game's status effects from those mods add: {ex.Message}");
+                Faults.Tell("telling the game's status effects from those mods add", ex);
             }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Record(ObjectDB db)
+        {
+            var names = new List<string>();
+            foreach (var effect in db.m_StatusEffects) if (effect != null) names.Add(effect.name);
+            Origins.StatusEffects.RecordOriginal(names);
         }
     }
 }

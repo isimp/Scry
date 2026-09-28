@@ -63,7 +63,8 @@ namespace Scry
             var collections = GC.CollectionCount(0);
 
             var started = CatalogTiming.Start();
-            Compatibility.Check();
+            try { Compatibility.Check(); }
+            catch (Exception ex) { Faults.Tell("the startup check", ex); }
             CatalogTiming.Add("startup check", started);
             yield return "Reading the prefabs";
 

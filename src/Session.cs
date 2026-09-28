@@ -117,36 +117,49 @@ namespace Scry
 
         public static void Update()
         {
-            // Leaving a world destroys every prefab the catalog points at. Compared as references:
-            // once the scene is destroyed, Unity's own comparison calls it null, the same as the
-            // instance the game has then, and the change would never be seen.
-            // A world left while its catalog is still being read goes the same way.
-            var of = !ReferenceEquals(_scene, null) ? _scene : _job?.Scene;
-            if (!ReferenceEquals(of, null) && !ReferenceEquals(ZNetScene.instance, of)) Forget();
-
-            if (IsOpen && Player.m_localPlayer == null) Hide();
-
-            ReadCatalog();
-            if (Explorer != null)
+            // Each step on its own: one that fails (a game update renamed what it reads) is told
+            // once and costs only itself, never the key that opens the panel or the steps after it.
+            Step("noticing a world left", () =>
             {
-                try { ScryPanel.Prepare(Explorer); } catch (Exception ex) { Faults.Tell("preparing the panel's lookups", ex); }
-            }
+                // Leaving a world destroys every prefab the catalog points at. Compared as references:
+                // once the scene is destroyed, Unity's own comparison calls it null, the same as the
+                // instance the game has then, and the change would never be seen.
+                // A world left while its catalog is still being read goes the same way.
+                var of = !ReferenceEquals(_scene, null) ? _scene : _job?.Scene;
+                if (!ReferenceEquals(of, null) && !ReferenceEquals(ZNetScene.instance, of)) Forget();
+                if (IsOpen && Player.m_localPlayer == null) Hide();
+            });
 
-            if (Input.GetKeyDown(Plugin.OpenKey) && CanToggle() && !TypingIt(Plugin.OpenKey)) Toggle();
+            Step("reading the catalog", () => ReadCatalog());
+            if (Explorer != null) Step("preparing the panel's lookups", () => ScryPanel.Prepare(Explorer));
 
-            // Looking starts only from a press outside the panel, so a right click on it stays a click.
-            if (!IsOpen || !Input.GetMouseButton(1)) Looking = false;
-            else if (Input.GetMouseButtonDown(1) && !ScryPanel.Covers(Input.mousePosition)) Looking = true;
+            Step("the key that opens the panel", () =>
+            {
+                if (Input.GetKeyDown(Plugin.OpenKey) && CanToggle() && !TypingIt(Plugin.OpenKey)) Toggle();
+            });
 
-            // The mouse's own back and forward buttons step through jumps, as in a browser.
-            if (IsOpen && Explorer != null && Input.GetKeyDown(KeyCode.Mouse3)) ScryPanel.Step(Explorer, true);
-            if (IsOpen && Explorer != null && Input.GetKeyDown(KeyCode.Mouse4)) ScryPanel.Step(Explorer, false);
+            Step("looking around and stepping back", () =>
+            {
+                // Looking starts only from a press outside the panel, so a right click on it stays a click.
+                if (!IsOpen || !Input.GetMouseButton(1)) Looking = false;
+                else if (Input.GetMouseButtonDown(1) && !ScryPanel.Covers(Input.mousePosition)) Looking = true;
 
-            Previews.Update(IsOpen ? Explorer : null);
+                // The mouse's own back and forward buttons step through jumps, as in a browser.
+                if (IsOpen && Explorer != null && Input.GetKeyDown(KeyCode.Mouse3)) ScryPanel.Step(Explorer, true);
+                if (IsOpen && Explorer != null && Input.GetKeyDown(KeyCode.Mouse4)) ScryPanel.Step(Explorer, false);
+            });
+
+            Step("the previews", () => Previews.Update(IsOpen ? Explorer : null));
 
             var reading = Timing.Start();
             try { Locations.Update(); } catch (Exception ex) { Faults.Tell("reading the locations", ex); Locations.Forget(); }
             Timing.Add("locations", reading);
+        }
+
+        private static void Step(string part, Action step)
+        {
+            try { step(); }
+            catch (Exception ex) { Faults.Tell(part, ex); }
         }
 
         public static void LateUpdate()
@@ -167,10 +180,26 @@ namespace Scry
             return (key >= KeyCode.Space && key <= KeyCode.Z) || (key >= KeyCode.Keypad0 && key <= KeyCode.KeypadEquals);
         }
 
-        /// <summary>Not while typing in the chat or console, or with the game's menu up.</summary>
+        /// <summary>
+        /// Not while typing in the chat or console, or with the game's menu up. Should the game no
+        /// longer answer one of those, the key opens the panel anyway, rather than never.
+        /// </summary>
         private static bool CanToggle()
         {
             if (IsOpen) return true;
+            try
+            {
+                return GameAllowsToggle();
+            }
+            catch (Exception ex)
+            {
+                Faults.Tell("telling whether the chat, console or menu is up", ex);
+                return true;
+            }
+        }
+
+        private static bool GameAllowsToggle()
+        {
             if (Chat.instance != null && Chat.instance.HasFocus()) return false;
             if (global::Console.IsVisible() || Menu.IsVisible()) return false;
             return true;
