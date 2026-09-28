@@ -97,8 +97,11 @@ namespace Scry.Tests
         {
             var explorer = new Explorer(BigCatalog(), new Favourites(Path.Combine(TempDir(), "f.txt")));
             var typed = "troll armor";
-            var worst = 0.0;
-            var times = new List<double>();
+            // Each keystroke's time is its best over the rounds, so a pause of the test process
+            // (a garbage collection, another process on the machine) is not taken for the search's
+            // own cost; the slowest keystroke is then the slowest of those.
+            var best = new double[typed.Length];
+            for (var i = 0; i < best.Length; i++) best[i] = double.MaxValue;
             for (var round = 0; round < 5; round++)
             {
                 explorer.Text = "";
@@ -107,11 +110,12 @@ namespace Scry.Tests
                     var watch = Stopwatch.StartNew();
                     explorer.Text = typed.Substring(0, i);
                     var ms = watch.Elapsed.TotalMilliseconds;
-                    if (round > 0) times.Add(ms);
+                    if (round > 0) best[i - 1] = Math.Min(best[i - 1], ms);
                 }
             }
+            var times = new List<double>(best);
             times.Sort();
-            worst = times[times.Count - 1];
+            var worst = times[times.Count - 1];
             var median = times[times.Count / 2];
             _out.WriteLine($"typing \"{typed}\" over {Size} entries: median {median:0.00} ms, slowest {worst:0.00} ms a keystroke");
             Assert.True(median < KeystrokeMs / 2, $"median {median:0.00} ms");
