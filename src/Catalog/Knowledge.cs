@@ -191,9 +191,13 @@ namespace Scry
             {
                 if (recipe == null || !recipe.m_enabled || recipe.m_item == null || recipe.m_resources == null) continue;
                 var at = recipe.m_craftingStation != null ? recipe.m_craftingStation.gameObject.name : "hand";
+                var maxQuality = recipe.m_item.m_itemData?.m_shared?.m_maxQuality ?? 1;
                 foreach (var need in recipe.m_resources)
                 {
-                    if (need?.m_resItem != null) Uses.Add(need.m_resItem.gameObject.name, UseKind.Crafts, recipe.m_item.gameObject.name, need.m_amount, at);
+                    if (need?.m_resItem == null) continue;
+                    // An upgrade kit is asked for only at an upgrade station, and only for what can be upgraded.
+                    if (!need.m_upgraderResource) Uses.Add(need.m_resItem.gameObject.name, UseKind.Crafts, recipe.m_item.gameObject.name, need.m_amount, at);
+                    else if (maxQuality > 1) Uses.Add(need.m_resItem.gameObject.name, UseKind.UpgradesPastTop, recipe.m_item.gameObject.name, need.GetAmount(maxQuality + 1));
                 }
             }
         }
@@ -444,7 +448,7 @@ namespace Scry
                     foreach (var drop in drops.m_drops)
                     {
                         if (drop?.m_prefab == null) continue;
-                        var amount = drop.m_amountMin == drop.m_amountMax ? $"{drop.m_amountMin}" : $"{drop.m_amountMin} to {drop.m_amountMax}";
+                        var amount = DropWords.CreatureAmount(drop.m_amountMin, drop.m_amountMax, drop.m_onePerPlayer);
                         var chance = drop.m_chance < 1f ? $", {Mathf.RoundToInt(drop.m_chance * 100f)}%" : "";
                         Keep(DropLines, drop.m_prefab, $"Dropped by {Shown(prefab)} ({amount}{chance})", prefab.name);
                     }

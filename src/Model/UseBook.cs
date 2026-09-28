@@ -9,6 +9,12 @@ namespace Scry
         /// <summary>An ingredient of a recipe; the place is the crafting station, or "hand".</summary>
         Crafts,
 
+        /// <summary>
+        /// An upgrade kit a recipe names, which the game asks for only at an upgrade station, to
+        /// take what the recipe makes past its top quality; no place.
+        /// </summary>
+        UpgradesPastTop,
+
         /// <summary>Part of the cost of a piece; the place is the station it is built near, if any.</summary>
         Builds,
 

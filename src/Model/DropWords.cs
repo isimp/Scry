@@ -94,6 +94,14 @@ namespace Scry
             return total > 0f ? $"{amount} ({Percent(drop.Weight / total)}%)" : amount;
         }
 
+        /// <summary>
+        /// How many of an item a creature drops. <c>CharacterDrop</c> rolls its amount with
+        /// <c>Random.Range(int, int)</c>, which never returns the top value, so a drop set to 1 and
+        /// 3 gives one or two; one set to drop per player gives one for each player online.
+        /// </summary>
+        public static string CreatureAmount(int min, int max, bool onePerPlayer) =>
+            onePerPlayer ? "1 per player" : Range(min, max - 1);
+
         /// <summary>A range of counts, written as the rest of the panel writes them: "3", "1–4".</summary>
         public static string Range(int min, int max) => max <= min ? min.ToString() : $"{min}–{max}";
 

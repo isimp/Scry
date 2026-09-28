@@ -42,5 +42,16 @@ namespace Scry.Tests
             Assert.Equal("a shot, from 5 to 30 m · every 10 s", CombatWords.Attack(null, "Projectile", 5f, 30f, 10f));
             Assert.Equal("20 fire · around it, reaching 4 m", CombatWords.Attack("20 fire", "Area", 0f, 4f, 0f));
         }
+
+        [Fact]
+        public void SightTellsTheWholeFieldOfViewAndThatAnAlertedCreatureSeesAllRound()
+        {
+            // BaseAI.CanSeeTarget turns away a target more than m_viewAngle off the creature's
+            // forward, either side, and only while it is not alerted.
+            Assert.Equal("30 m, 180° ahead, all round once alerted", CombatWords.Sight(30f, 90f));
+            Assert.Equal("40 m, 120° ahead, all round once alerted", CombatWords.Sight(40f, 60f));
+            Assert.Equal("25 m, all round", CombatWords.Sight(25f, 180f));
+            Assert.Equal("25 m, all round", CombatWords.Sight(25f, 200f));
+        }
     }
 }

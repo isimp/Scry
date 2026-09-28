@@ -71,5 +71,16 @@ namespace Scry
             if (interval > 0f) parts.Add($"every {Number(interval)} s");
             return string.Join(" · ", parts);
         }
+
+        /// <summary>
+        /// How far and how wide it sees. <c>BaseAI.CanSeeTarget</c> turns away a target more than
+        /// <c>m_viewAngle</c> off its forward on either side, so the field is twice that angle, and
+        /// only while it is not alerted; once alerted it sees all round.
+        /// </summary>
+        public static string Sight(float range, float halfAngle)
+        {
+            var field = halfAngle * 2f;
+            return field >= 360f ? $"{Number(range)} m, all round" : $"{Number(range)} m, {Number(field)}° ahead, all round once alerted";
+        }
     }
 }

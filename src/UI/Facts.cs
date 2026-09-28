@@ -88,9 +88,11 @@ namespace Scry
                     facts.Where.AddRange(Knowledge.WhereLines(entry.Name));
                     facts.Where.AddRange(Knowledge.SourceLines(entry.Name));
 
-                    // An item nothing makes, drops or sells here comes from somewhere Scry cannot see,
-                    // unless the locations, once read, show where it is found.
-                    if (entry.Kind == Kind.Item && facts.Where.Count == 0 && entry.FoundIn.Length == 0 && !facts.Rows.Any(r => r.Title.StartsWith("Made")))
+                    // An item nothing makes, drops, sells or spawns here comes from somewhere Scry cannot
+                    // see, unless the locations, once read, show where it is found. Something that
+                    // spawns it (an Asksvin its egg) is told under LINKED.
+                    if (entry.Kind == Kind.Item && facts.Where.Count == 0 && entry.FoundIn.Length == 0 && !facts.Rows.Any(r => r.Title.StartsWith("Made"))
+                        && !entry.Links.Any(l => l.Group == Relations.SpawnedBy))
                     {
                         facts.Where.Add(new Source("Nothing loaded makes, drops or sells it. It may come from a location, a dungeon, an event or a mod.", null));
                     }
@@ -181,7 +183,7 @@ namespace Scry
 
             if (shared.m_toolTier > 0) Add("Tool tier", shared.m_toolTier.ToString(CultureInfo.InvariantCulture));
             if (Math.Abs(shared.m_movementModifier) > 0.001f) Add("Movement", Percent(shared.m_movementModifier));
-            if (!string.IsNullOrEmpty(shared.m_setName)) Add("Set", shared.m_setName);
+            // The set's own name is an id the game never shows; the rest of the set is linked under LINKED.
             if (shared.m_setStatusEffect != null)
             {
                 var pieces = shared.m_setSize > 0 ? $" ({shared.m_setSize} pieces)" : "";
@@ -209,10 +211,36 @@ namespace Scry
                     ? $"Made at {station}{(recipe.m_minStationLevel > 1 ? $" level {recipe.m_minStationLevel}" : "")}"
                     : "Made by hand";
                 if (recipe.m_amount > 1) title += $", makes {recipe.m_amount}";
+                if (recipe.m_requireOnlyOneIngredient) title += ", from any one of these";
                 var row = Requirements(title, recipe.m_resources, shared.m_maxQuality > 1);
                 row.TitleLink = recipe.m_craftingStation != null ? recipe.m_craftingStation.gameObject.name : null;
                 Rows.Add(row);
+
+                var kits = UpgradeKits(recipe, shared.m_maxQuality);
+                if (kits.Items.Count > 0) Rows.Add(kits);
             }
+        }
+
+        /// <summary>
+        /// The upgrade kits a recipe names. The game asks for them only at a station marked as an
+        /// upgrader, which takes an item past its top quality with the kits alone, and leaves them
+        /// out everywhere else (<c>Player.HaveRequirements</c>, <c>InventoryGui.SetupRequirementList</c>).
+        /// Each shows how many the first step past the top takes.
+        /// </summary>
+        private static Row UpgradeKits(Recipe recipe, int maxQuality)
+        {
+            var row = new Row { Title = "Past its top quality, at an upgrade station" };
+            if (recipe.m_resources == null || maxQuality <= 1) return row;
+            foreach (var need in recipe.m_resources)
+            {
+                if (need?.m_resItem == null || !need.m_upgraderResource) continue;
+                row.Items.Add(new Ingredient
+                {
+                    Icon = Icon(need.m_resItem.gameObject), Name = ItemName(need.m_resItem.gameObject),
+                    Amount = need.GetAmount(maxQuality + 1).ToString(CultureInfo.InvariantCulture), Prefab = need.m_resItem.gameObject.name,
+                });
+            }
+            return row;
         }
 
         private static string Damages(HitData.DamageTypes damages)
@@ -271,7 +299,7 @@ namespace Scry
                 foreach (var drop in drops.m_drops)
                 {
                     if (drop?.m_prefab == null) continue;
-                    var amount = DropWords.Range(drop.m_amountMin, drop.m_amountMax);
+                    var amount = DropWords.CreatureAmount(drop.m_amountMin, drop.m_amountMax, drop.m_onePerPlayer);
                     if (drop.m_chance < 1f) amount += $" ({Mathf.RoundToInt(drop.m_chance * 100f)}%)";
                     row.Items.Add(new Ingredient { Icon = Icon(drop.m_prefab), Name = ItemName(drop.m_prefab), Amount = amount, Prefab = drop.m_prefab.name });
                 }
@@ -322,7 +350,7 @@ namespace Scry
             var ai = prefab.GetComponent<BaseAI>();
             if (ai != null)
             {
-                Add("Sees", $"{Number(ai.m_viewRange)} m, {Number(ai.m_viewAngle)}° ahead");
+                Add("Sees", CombatWords.Sight(ai.m_viewRange, ai.m_viewAngle));
                 if (ai.m_hearRange < 9000f) Add("Hears", $"{Number(ai.m_hearRange)} m");
                 if (ai.m_afraidOfFire) Add("Fire", "afraid of it");
                 else if (ai.m_avoidFire) Add("Fire", "keeps away from it");
@@ -649,7 +677,8 @@ namespace Scry
         /// <summary>
         /// What something costs. Each ingredient also says how many more each upgrade needs, but
         /// only for items that can be upgraded: the game fills that number in everywhere, pieces
-        /// and single-quality items included, where it means nothing.
+        /// and single-quality items included, where it means nothing. Upgrade kits are left out, as
+        /// the game leaves them out (<see cref="UpgradeKits"/>).
         /// </summary>
         private static Row Requirements(string title, Piece.Requirement[] requirements, bool upgradable)
         {
@@ -657,7 +686,7 @@ namespace Scry
             if (requirements == null) return row;
             foreach (var need in requirements)
             {
-                if (need?.m_resItem == null) continue;
+                if (need?.m_resItem == null || need.m_upgraderResource) continue;
                 var amount = need.m_amount.ToString(CultureInfo.InvariantCulture);
                 if (upgradable && need.m_amountPerLevel > 0) amount += $", +{need.m_amountPerLevel} per level";
                 row.Items.Add(new Ingredient
@@ -695,6 +724,7 @@ namespace Scry
             switch (group.Kind)
             {
                 case UseKind.Crafts: return place != null ? $"Used to make at {place}" : "Used to make by hand";
+                case UseKind.UpgradesPastTop: return "Takes these past their top quality, at an upgrade station";
                 case UseKind.Builds: return place != null ? $"Used to build near {place}" : "Used to build";
                 case UseKind.TurnsInto: return place != null ? $"{place} turns it into" : "Turned into";
                 case UseKind.Fuels: return "Burnt as fuel by";

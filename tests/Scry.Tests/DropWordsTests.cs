@@ -65,6 +65,27 @@ namespace Scry.Tests
             Assert.False(DropWords.IsEmpty(Table(drops: new DropInfo("Wood", 1, 1, 1f))));
         }
 
+        [Theory]
+        [InlineData(1, 3, "1–2")]
+        [InlineData(1, 2, "1")]
+        [InlineData(20, 30, "20–29")]
+        [InlineData(3, 3, "3")]
+        [InlineData(2, 1, "2")]
+        public void ACreaturesDropNeverReachesItsTopAmount(int min, int max, string amount)
+        {
+            // CharacterDrop rolls Random.Range(int, int), which leaves the top value out:
+            // a deer's hide set to 1 and 3 drops one or two.
+            Assert.Equal(amount, DropWords.CreatureAmount(min, max, onePerPlayer: false));
+        }
+
+        [Fact]
+        public void ADropForEachPlayerSaysSo()
+        {
+            // The Elder's crypt key: the game drops one for each player online, whatever the amounts say.
+            Assert.Equal("1 per player", DropWords.CreatureAmount(1, 1, onePerPlayer: true));
+            Assert.Equal("1 per player", DropWords.CreatureAmount(2, 5, onePerPlayer: true));
+        }
+
         [Fact]
         public void RangesAreWrittenTheSameEverywhere()
         {
