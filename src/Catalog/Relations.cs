@@ -31,6 +31,8 @@ namespace Scry
         public const string GivenBy = "Given by";
         public const string Upgrades = "Upgrades";
         public const string UpgradeOf = "Upgrade of";
+        public const string Items = "Items";
+        public const string ItemOf = "Item of";
 
         /// <summary>The status effect each kind of damage puts on what it hits, as <c>Character</c> adds them.</summary>
         private static readonly (string Damage, string Effect)[] DamageEffects =
@@ -330,11 +332,29 @@ namespace Scry
             }
         }
 
-        /// <summary>Parts whose prefabs are linked elsewhere: drops, what is left behind, a tree's log and stump.</summary>
+        /// <summary>
+        /// Parts whose prefabs are linked elsewhere: drops, what is left behind, a tree's log and
+        /// stump, and what a bush or plant gives, which its facts tell as picked.
+        /// </summary>
         private static bool Skipped(Component component)
         {
             return component == null || component is Transform || component is CharacterDrop
-                   || component is TreeBase || component is TreeLog || component is Destructible;
+                   || component is TreeBase || component is TreeLog || component is Destructible || component is Pickable;
+        }
+
+        /// <summary>
+        /// Fields whose items the facts already tell, as uses or sources, and are not linked again:
+        /// what a piece is built from, what a creature eats, what a trader sells, what a station
+        /// turns into what or burns, what a producer makes, and what an altar takes.
+        /// </summary>
+        private static bool ItemsToldElsewhere(object owner, FieldInfo field)
+        {
+            if (owner is Piece && field.Name == "m_resources") return true;
+            if (owner is MonsterAI && field.Name == "m_consumeItems") return true;
+            if (owner is Trader || owner is Beehive || owner is SapCollector || owner is Incinerator || owner is OfferingBowl) return true;
+            // A plant's grown version is told as "Grows into" on it and "Grows from" on what it grows into.
+            if (owner is Plant && field.Name == "m_grownPrefabs") return true;
+            return owner is Component && Knowledge.IsToldAsUse(owner.GetType(), field);
         }
 
         /// <summary>
@@ -346,6 +366,8 @@ namespace Scry
             foreach (var field in FieldsOf(owner.GetType()))
             {
                 if (owner is Humanoid && GearFields.Contains(field.Name)) continue;
+                var told = depth == 0 && ItemsToldElsewhere(owner, field);
+                if (told && owner is Plant) continue;
                 object value;
                 try { value = field.GetValue(owner); }
                 catch { continue; }
@@ -367,6 +389,10 @@ namespace Scry
                 {
                     if (Links(single, self)) Link(single, key, self, book, Label(), part);
                 }
+                else if (value is ItemDrop thing)
+                {
+                    if (!told && thing != null && Links(thing.gameObject, self)) LinkItem(thing.gameObject, key, book, Label());
+                }
                 else if (value is IEnumerable list && !(value is string))
                 {
                     foreach (var item in list)
@@ -375,10 +401,14 @@ namespace Scry
                         {
                             if (Links(each, self)) Link(each, key, self, book, Label(), part);
                         }
-                        else if (item != null && depth < 1 && IsData(item.GetType())) Named(item, key, self, book, depth + 1, Label(), part);
+                        else if (item is ItemDrop listed)
+                        {
+                            if (!told && listed != null && Links(listed.gameObject, self)) LinkItem(listed.gameObject, key, book, Label());
+                        }
+                        else if (item != null && depth < 1 && !told && IsData(item.GetType())) Named(item, key, self, book, depth + 1, Label(), part);
                     }
                 }
-                else if (depth < 1 && IsData(value.GetType()))
+                else if (depth < 1 && !told && IsData(value.GetType()))
                 {
                     Named(value, key, self, book, depth + 1, Label(), part);
                 }
@@ -422,6 +452,12 @@ namespace Scry
         /// <summary>Only other prefabs are linked: a part of this one has a parent, and is not a thing of its own.</summary>
         private static bool Links(GameObject target, GameObject self) => target != null && target != self && target.transform.parent == null;
 
+        /// <summary>An item a field names, such as a creature's saddle, a door's key or a fish's bait: linked as an item, not as spawned.</summary>
+        private static void LinkItem(GameObject item, string key, LinkBook book, string label)
+        {
+            book.Add(key, Items, item.name, ItemOf, label.ToLowerInvariant());
+        }
+
         private static void Link(GameObject target, string key, GameObject self, LinkBook book, string label, string part)
         {
             if (!Links(target, self)) return;
@@ -455,14 +491,17 @@ namespace Scry
             }
         }
 
-        /// <summary>The game's own small serializable data classes, which hold prefab names one level down.</summary>
+        /// <summary>
+        /// The game's own small serializable data, classes or structs (a turret's ammo, a fire
+        /// pit's fireworks), which hold prefab names one level down.
+        /// </summary>
         private static bool IsData(Type type)
         {
-            return type.IsClass && !typeof(UnityEngine.Object).IsAssignableFrom(type) && type.IsSerializable
-                   && type.Namespace == null && type != typeof(DropTable) && type != typeof(EffectList);
+            var shape = type.IsClass ? !typeof(UnityEngine.Object).IsAssignableFrom(type) : type.IsValueType && !type.IsPrimitive && !type.IsEnum;
+            return shape && type.IsSerializable && type.Namespace == null && type != typeof(DropTable) && type != typeof(EffectList);
         }
 
-        /// <summary>The fields that can hold a prefab: one, a list of them, or data holding them.</summary>
+        /// <summary>The fields that can hold a prefab or an item: one, a list of them, or data holding them.</summary>
         private static FieldInfo[] FieldsOf(Type type)
         {
             if (PrefabFields.TryGetValue(type, out var known)) return known;
@@ -478,6 +517,7 @@ namespace Scry
                         if (field.IsNotSerialized || field.GetCustomAttribute<NonSerializedAttribute>() != null) continue;
                         if (!field.IsPublic && field.GetCustomAttribute<SerializeField>() == null) continue;
                         if (ft == typeof(GameObject) || ft == typeof(GameObject[]) || ft == typeof(List<GameObject>)) found.Add(field);
+                        else if (ft == typeof(ItemDrop) || ft == typeof(ItemDrop[]) || ft == typeof(List<ItemDrop>)) found.Add(field);
                         else if (ft.IsArray && IsData(ft.GetElementType())) found.Add(field);
                         else if (ft.IsGenericType && ft.GetGenericTypeDefinition() == typeof(List<>) && IsData(ft.GetGenericArguments()[0])) found.Add(field);
                         else if (IsData(ft)) found.Add(field);

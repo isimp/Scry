@@ -46,6 +46,12 @@ namespace Scry
         }
 
         private static readonly List<Asset> Queue = new List<Asset>();
+
+        /// <summary>The altars found in the locations: which boss each summons, with what, and where it stands.</summary>
+        private static readonly List<Summon> Summoned = new List<Summon>();
+
+        /// <summary>The bosses the locations' altars summon, once read.</summary>
+        public static IReadOnlyList<Summon> Summons => Summoned;
         private static readonly Dictionary<string, HashSet<string>> Found = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         private static readonly List<GameObject> Named = new List<GameObject>();
         private static readonly List<string> Here = new List<string>();
@@ -71,6 +77,7 @@ namespace Scry
             Found.Clear();
             Named.Clear();
             Here.Clear();
+            Summoned.Clear();
             Now = State.NotRead;
             Done = 0;
             _clock = null;
@@ -212,6 +219,12 @@ namespace Scry
         {
             if (component == null || component is Transform) return;
             if (component is ZNetView && component.transform != _root) Add(PrefabName(component.gameObject.name));
+
+            if (component is OfferingBowl bowl)
+            {
+                var summon = Summon.Of(bowl, Here.Count > 0 ? Here[0] : _current.Name, null);
+                if (summon.Boss != null && !Summoned.Exists(s => s.Boss == summon.Boss && s.Item == summon.Item && s.Place == summon.Place)) Summoned.Add(summon);
+            }
 
             foreach (var on in CatalogBuilder.ListsOn(component))
             {

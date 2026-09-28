@@ -40,6 +40,15 @@ namespace Scry
             @"</?(color|b|i|size|material|quad|sprite|u|s|sup|sub|mark|font|align|alpha|cspace|indent|line-height|lowercase|uppercase|smallcaps|noparse|nobr|space|voffset|width|link|style|rotate|pos)(=[^>]*)?>",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
+        /// <summary>A length of time in the largest unit that reads well: "40 s", "25 min", "2.5 h".</summary>
+        public static string Duration(float seconds)
+        {
+            string Number(float value) => value.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+            if (seconds < 120f) return Number(seconds) + " s";
+            if (seconds < 7200f) return Number(seconds / 60f) + " min";
+            return Number(seconds / 3600f) + " h";
+        }
+
         /// <summary>A name without the rich-text tags some mods colour or size their names with.</summary>
         public static string Plain(string text)
         {

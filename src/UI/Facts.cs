@@ -13,7 +13,7 @@ namespace Scry
     /// what a status effect changes, and where things spawn, grow or come from. Read from the
     /// prefab, so mods' changes show; a world whose settings change them says so.
     /// </summary>
-    internal sealed class Facts
+    internal sealed partial class Facts
     {
         /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
         static Facts() => WorldCaches.Register(nameof(Facts), Forget);
@@ -128,6 +128,7 @@ namespace Scry
 
             Resource(prefab);
             if (piece != null && !piece.enabled) MadeBuildable(piece);
+            Station(prefab);
 
             // What a chest is filled with when the game first opens it (Container.AddDefaultItems);
             // one players build has nothing.
@@ -219,6 +220,7 @@ namespace Scry
                 var kits = UpgradeKits(recipe, shared.m_maxQuality);
                 if (kits.Items.Count > 0) Rows.Add(kits);
             }
+            MadeIn(prefab);
         }
 
         /// <summary>
@@ -278,6 +280,7 @@ namespace Scry
             Resists(character.m_damageModifiers);
             Attacks(prefab);
             Behaviour(prefab, character);
+            if (character.m_boss) SummonedBy(prefab);
 
             if (prefab.GetComponent<Tameable>() != null)
             {
@@ -716,6 +719,7 @@ namespace Scry
                 }
                 if (row.Items.Count > 0) UseRows.Add(row);
             }
+            OfferedFor(item);
         }
 
         private static string UseTitle(UseGroup group)
@@ -862,7 +866,7 @@ namespace Scry
 
         private static string Minutes(float seconds)
         {
-            return seconds >= 120f ? $"{Mathf.RoundToInt(seconds / 60f)} min" : $"{Mathf.RoundToInt(seconds)} s";
+            return Naming.Duration(seconds);
         }
     }
 }

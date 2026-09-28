@@ -62,5 +62,18 @@ namespace Scry.Tests
         {
             Assert.Equal(shown, Naming.NestedListLabel(outer, inner, of));
         }
+
+        [Theory]
+        [InlineData(40f, "40 s")]
+        [InlineData(119f, "119 s")]
+        [InlineData(120f, "2 min")]
+        [InlineData(90f * 60f, "90 min")]
+        [InlineData(1500f, "25 min")]
+        [InlineData(7200f, "2 h")]
+        [InlineData(9000f, "2.5 h")]
+        public void ATimeIsToldInTheLargestUnitThatReadsWell(float seconds, string shown)
+        {
+            Assert.Equal(shown, Naming.Duration(seconds));
+        }
     }
 }
