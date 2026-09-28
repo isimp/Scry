@@ -166,16 +166,18 @@ namespace Scry
             if (made.Items.Count > 0) Rows.Add(made);
             if (upgraded.Items.Count > 0) Rows.Add(upgraded);
 
-            // The pieces built near it, as each piece says "Built near" it.
+            // The pieces built near it, as each piece says "Built near" it: found in the catalog,
+            // which knows each piece's station already, rather than in every prefab of the game.
             var built = new Row { Title = "Built near it" };
-            var prefabs = ZNetScene.instance != null ? ZNetScene.instance.m_prefabs : null;
-            if (prefabs != null)
+            var catalog = Session.Explorer?.Catalog;
+            if (catalog != null)
             {
-                foreach (var prefab in prefabs)
+                foreach (var entry in catalog)
                 {
-                    var piece = prefab != null ? prefab.GetComponent<global::Piece>() : null;
-                    if (piece == null || !piece.enabled || !piece.m_enabled || piece.m_craftingStation == null || piece.m_craftingStation.gameObject.name != station) continue;
-                    if (seen.Add(prefab.name)) built.Items.Add(Chip(prefab.name, ""));
+                    if (entry.Kind != Kind.Piece || entry.Stations == null || !entry.Stations.Any(s => s.Name == station)) continue;
+                    var piece = (entry.Source as GameObject)?.GetComponent<global::Piece>();
+                    if (piece == null || !piece.m_enabled) continue;
+                    if (seen.Add(entry.Name)) built.Items.Add(Chip(entry.Name, ""));
                 }
             }
             if (built.Items.Count > 0) Rows.Add(built);
