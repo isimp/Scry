@@ -122,7 +122,7 @@ The compact view is a slim column at the side of the screen without the turntabl
 
 ## Files
 
-The settings are in `BepInEx/config/isimp.Scry.cfg`. Favourites and the panel's state (its place on screen in both views, the stage's lighting, backdrop, person and spinning, the stage's height, and which sections are folded) are kept beside them, in `BepInEx/config/isimp.Scry/`, so they go with the profile. A mod manager that copies one player's configs over another's (Gale's profile sync, for one) copies these files too, as it does every mod's. Favourites of prefabs that are not in the game right now are kept.
+The settings are in `BepInEx/config/isimp.Scry.cfg`. Favourites and the panel's state (its place on screen in both views, the stage's lighting, backdrop, person and spinning, the stage's height, the list's width and whether it is folded away, and which sections are folded) are kept beside them, in `BepInEx/config/isimp.Scry/`, so they go with the profile. A mod manager that copies one player's configs over another's (Gale's profile sync, for one) copies these files too, as it does every mod's. Favourites of prefabs that are not in the game right now are kept.
 
 Besides the key that opens it and its size, the settings choose whether the search box has the keyboard when the panel opens, whether walking and looking around with the right mouse button are allowed while it is open, how long the mouse rests before a tip shows, how many entries Recent remembers, how many seconds after entering a world the catalog is read, whether the model turns by itself and how fast, whether a sound plays when it is selected, and the diagnostics in the log.
 

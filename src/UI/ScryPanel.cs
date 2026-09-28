@@ -45,7 +45,20 @@ namespace Scry
         private static float _badgeWidth;
         private static string _effectFilter = "";
 
-        private enum Drag { None, Move, Resize, Orbit, StageSize, Pan }
+        private enum Drag { None, Move, Resize, Orbit, StageSize, Pan, ListSize }
+
+        /// <summary>The list's share of the full view's width, set by dragging the gap beside it.</summary>
+        private static float _listShare = 0.40f;
+
+        /// <summary>Whether the list is folded away in the full view, leaving the width to the details.</summary>
+        private static bool _listHidden;
+
+        /// <summary>Where a drag of the gap has got to, below the list's narrowest when it would fold away.</summary>
+        private static float _listDragged;
+
+        private const float ListNarrowest = 0.20f;
+        private const float ListWidest = 0.70f;
+        private const float ListFolds = 0.12f;
 
         /// <summary>The stage's height against its usual one, set by dragging its bottom edge.</summary>
         private static float _stageScale = 1f;
@@ -440,6 +453,39 @@ namespace Scry
             SaveRects();
         }
 
+        /// <summary>
+        /// The gap between the list and the details: a grip to drag it wider or narrower (past the
+        /// narrowest it folds the list away), a double-click or its arrow to fold or open the list.
+        /// </summary>
+        private static void ListDivider(Rect gap)
+        {
+            var e = Event.current;
+            var hover = gap.Contains(e.mousePosition) || _drag == Drag.ListSize;
+            var grip = new Rect(gap.center.x - U(2f), gap.center.y - U(24f), U(4f), U(48f));
+            Skin.Fill(grip, hover ? Skin.Dim : Skin.Outline);
+
+            var arrow = new Rect(gap.x, gap.y + U(4f), gap.width, U(22f));
+            GUI.Label(arrow, _listHidden ? "›" : "‹", hover ? Skin.Center : Skin.CenterDim);
+            if (gap.Contains(e.mousePosition))
+            {
+                AskTip("list-gap", _listHidden ? "Click to bring the list back" : "Drag to widen or narrow the list; double-click or ‹ to fold it away");
+            }
+
+            if (e.type != EventType.MouseDown || e.button != 0 || !gap.Contains(e.mousePosition)) return;
+            if (_listHidden || e.clickCount == 2 || arrow.Contains(e.mousePosition))
+            {
+                _listHidden = !_listHidden;
+                _reveal = true;
+                SaveRects();
+            }
+            else
+            {
+                _listDragged = _listShare;
+                _drag = Drag.ListSize;
+            }
+            e.Use();
+        }
+
         private static void Drags()
         {
             var e = Event.current;
@@ -447,7 +493,7 @@ namespace Scry
 
             if (e.rawType == EventType.MouseUp)
             {
-                if (_drag == Drag.Move || _drag == Drag.Resize || _drag == Drag.StageSize) SaveRects();
+                if (_drag == Drag.Move || _drag == Drag.Resize || _drag == Drag.StageSize || _drag == Drag.ListSize) SaveRects();
                 _drag = Drag.None;
                 Stage.Dragging = false;
                 return;
@@ -473,6 +519,12 @@ namespace Scry
                     break;
                 case Drag.StageSize:
                     _stageScale = Mathf.Clamp(_stageScale + e.delta.y / Mathf.Max(1f, _stageBaseH), 0.4f, 2.4f);
+                    break;
+                case Drag.ListSize:
+                    // Past its narrowest the list folds away; dragged back out, it opens again.
+                    _listDragged += e.delta.x / Mathf.Max(1f, win.width - U(16f) * 3f);
+                    _listHidden = _listDragged < ListFolds;
+                    if (!_listHidden) _listShare = Mathf.Clamp(_listDragged, ListNarrowest, ListWidest);
                     break;
             }
             Win = win;
@@ -500,6 +552,8 @@ namespace Scry
                     if (parts.Length == 2 && parts[0] == "worn") Looks.OnPerson = parts[1] == "1";
                     if (parts.Length == 2 && parts[0] == "spin") Stage.Spin = parts[1] == "1";
                     if (parts.Length == 2 && parts[0] == "stage" && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var stage)) _stageScale = Mathf.Clamp(stage, 0.4f, 2.4f);
+                    if (parts.Length == 2 && parts[0] == "list" && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var share)) _listShare = Mathf.Clamp(share, ListNarrowest, ListWidest);
+                    if (parts.Length == 2 && parts[0] == "listhidden") _listHidden = parts[1] == "1";
                     if (parts.Length >= 1 && parts[0] == "folded")
                     {
                         Folded.Clear();
@@ -530,7 +584,8 @@ namespace Scry
                 File.WriteAllLines(RectFile, new[] { Line("full", _full), Line("compact", _compactRect), "view " + (_compact ? "compact" : "full"),
                     "light " + Stage.LightingIndex, "backdrop " + Stage.BackdropIndex, "person " + (Stage.ShowPerson ? "1" : "0"), "worn " + (Looks.OnPerson ? "1" : "0"),
                     "spin " + (Stage.Spin ? "1" : "0"), "folded " + string.Join(" ", Folded),
-                    "stage " + _stageScale.ToString("0.00", CultureInfo.InvariantCulture) });
+                    "stage " + _stageScale.ToString("0.00", CultureInfo.InvariantCulture),
+                    "list " + _listShare.ToString("0.00", CultureInfo.InvariantCulture), "listhidden " + (_listHidden ? "1" : "0") });
             }
             catch (Exception ex)
             {
@@ -672,11 +727,17 @@ namespace Scry
             }
             else
             {
-                var leftW = Mathf.Round((w - pad * 3f) * 0.40f);
+                // The list and the details share the width at the gap between them, which can be
+                // dragged, or folded away to leave the details the whole width.
+                var leftW = _listHidden ? 0f : Mathf.Round((w - pad * 3f) * _listShare);
                 var rightX = pad * 2f + leftW;
-                var listed = Timing.Start();
-                List(explorer, new Rect(pad, bodyTop, leftW, bodyH));
-                Timing.Add("panel list", listed);
+                if (!_listHidden)
+                {
+                    var listed = Timing.Start();
+                    List(explorer, new Rect(pad, bodyTop, leftW, bodyH));
+                    Timing.Add("panel list", listed);
+                }
+                ListDivider(new Rect(pad + leftW, bodyTop, pad, bodyH));
                 Side(explorer, new Rect(rightX, bodyTop, w - rightX - pad, bodyH), withStage: true);
             }
 
