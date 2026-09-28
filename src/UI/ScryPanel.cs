@@ -47,17 +47,42 @@ namespace Scry
 
         private enum Drag { None, Move, Resize, Orbit, StageSize, Pan, ListSize }
 
-        /// <summary>The list's share of the full view's width, set by dragging the gap beside it.</summary>
-        private static float _listShare = 0.40f;
+        // The list's share of the room it shares with the details (the full view's width, the
+        // compact view's height), set by dragging the gap between them, and whether it is folded
+        // away; each view keeps its own.
+        private static float _listShareFull = 0.40f;
+        private static float _listShareCompact = 0.46f;
+        private static bool _listHiddenFull;
+        private static bool _listHiddenCompact;
 
-        /// <summary>Whether the list is folded away in the full view, leaving the width to the details.</summary>
-        private static bool _listHidden;
+        private static float ListShare
+        {
+            get => _compact ? _listShareCompact : _listShareFull;
+            set
+            {
+                if (_compact) _listShareCompact = Mathf.Clamp(value, ListNarrowest, ListWidest);
+                else _listShareFull = Mathf.Clamp(value, ListNarrowest, ListWidest);
+            }
+        }
 
-        /// <summary>Where a drag of the gap has got to, below the list's narrowest when it would fold away.</summary>
+        private static bool ListHidden
+        {
+            get => _compact ? _listHiddenCompact : _listHiddenFull;
+            set
+            {
+                if (_compact) _listHiddenCompact = value;
+                else _listHiddenFull = value;
+            }
+        }
+
+        /// <summary>Where a drag of the gap has got to, below the list's smallest when it would fold away.</summary>
         private static float _listDragged;
 
+        /// <summary>The length the list's share is of, in the view drawn last, for a drag of the gap.</summary>
+        private static float _listSpan = 1f;
+
         private const float ListNarrowest = 0.20f;
-        private const float ListWidest = 0.70f;
+        private const float ListWidest = 0.72f;
         private const float ListFolds = 0.12f;
 
         /// <summary>The stage's height against its usual one, set by dragging its bottom edge.</summary>
@@ -453,34 +478,47 @@ namespace Scry
             SaveRects();
         }
 
+        /// <summary>Folds the list away or brings it back, in the view in use.</summary>
+        private static void ToggleList()
+        {
+            ListHidden = !ListHidden;
+            _reveal = true;
+            SaveRects();
+        }
+
         /// <summary>
-        /// The gap between the list and the details: a grip to drag it wider or narrower (past the
-        /// narrowest it folds the list away), a double-click or its arrow to fold or open the list.
+        /// The gap between the list and the details: a grip to drag it (past the smallest the list
+        /// folds away), a double-click to fold it. While folded, the gap is a button along its
+        /// whole length that brings the list back. Across the full view it runs top to bottom;
+        /// in the compact view, where the list is above the details, left to right.
         /// </summary>
-        private static void ListDivider(Rect gap)
+        private static void ListDivider(Rect gap, bool upright)
         {
             var e = Event.current;
-            var hover = gap.Contains(e.mousePosition) || _drag == Drag.ListSize;
-            var grip = new Rect(gap.center.x - U(2f), gap.center.y - U(24f), U(4f), U(48f));
-            Skin.Fill(grip, hover ? Skin.Dim : Skin.Outline);
+            var inside = gap.Contains(e.mousePosition);
 
-            var arrow = new Rect(gap.x, gap.y + U(4f), gap.width, U(22f));
-            GUI.Label(arrow, _listHidden ? "›" : "‹", hover ? Skin.Center : Skin.CenterDim);
-            if (gap.Contains(e.mousePosition))
+            if (ListHidden)
             {
-                AskTip("list-gap", _listHidden ? "Click to bring the list back" : "Drag to widen or narrow the list; double-click or ‹ to fold it away");
+                if (GUI.Button(gap, upright ? "\u203A" : "Show the list  \u25BE", Skin.Button)) ToggleList();
+                if (inside) AskTip("list-gap", "Bring the list back");
+                return;
             }
 
-            if (e.type != EventType.MouseDown || e.button != 0 || !gap.Contains(e.mousePosition)) return;
-            if (_listHidden || e.clickCount == 2 || arrow.Contains(e.mousePosition))
+            var hover = inside || _drag == Drag.ListSize;
+            var grip = upright
+                ? new Rect(gap.center.x - U(2f), gap.center.y - U(24f), U(4f), U(48f))
+                : new Rect(gap.center.x - U(24f), gap.center.y - U(2f), U(48f), U(4f));
+            Skin.Fill(grip, hover ? Skin.Dim : Skin.Outline);
+            if (inside) AskTip("list-gap", "Drag to make the list bigger or smaller, past the smallest to fold it away; double-click to fold it");
+
+            if (e.type != EventType.MouseDown || e.button != 0 || !inside) return;
+            if (e.clickCount == 2)
             {
-                _listHidden = !_listHidden;
-                _reveal = true;
-                SaveRects();
+                ToggleList();
             }
             else
             {
-                _listDragged = _listShare;
+                _listDragged = ListShare;
                 _drag = Drag.ListSize;
             }
             e.Use();
@@ -522,9 +560,9 @@ namespace Scry
                     break;
                 case Drag.ListSize:
                     // Past its narrowest the list folds away; dragged back out, it opens again.
-                    _listDragged += e.delta.x / Mathf.Max(1f, win.width - U(16f) * 3f);
-                    _listHidden = _listDragged < ListFolds;
-                    if (!_listHidden) _listShare = Mathf.Clamp(_listDragged, ListNarrowest, ListWidest);
+                    _listDragged += (_compact ? e.delta.y : e.delta.x) / Mathf.Max(1f, _listSpan);
+                    ListHidden = _listDragged < ListFolds;
+                    if (!ListHidden) ListShare = _listDragged;
                     break;
             }
             Win = win;
@@ -552,8 +590,10 @@ namespace Scry
                     if (parts.Length == 2 && parts[0] == "worn") Looks.OnPerson = parts[1] == "1";
                     if (parts.Length == 2 && parts[0] == "spin") Stage.Spin = parts[1] == "1";
                     if (parts.Length == 2 && parts[0] == "stage" && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var stage)) _stageScale = Mathf.Clamp(stage, 0.4f, 2.4f);
-                    if (parts.Length == 2 && parts[0] == "list" && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var share)) _listShare = Mathf.Clamp(share, ListNarrowest, ListWidest);
-                    if (parts.Length == 2 && parts[0] == "listhidden") _listHidden = parts[1] == "1";
+                    if (parts.Length == 2 && parts[0] == "list" && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var share)) _listShareFull = Mathf.Clamp(share, ListNarrowest, ListWidest);
+                    if (parts.Length == 2 && parts[0] == "listhidden") _listHiddenFull = parts[1] == "1";
+                    if (parts.Length == 2 && parts[0] == "clist" && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var cshare)) _listShareCompact = Mathf.Clamp(cshare, ListNarrowest, ListWidest);
+                    if (parts.Length == 2 && parts[0] == "clisthidden") _listHiddenCompact = parts[1] == "1";
                     if (parts.Length >= 1 && parts[0] == "folded")
                     {
                         Folded.Clear();
@@ -585,7 +625,8 @@ namespace Scry
                     "light " + Stage.LightingIndex, "backdrop " + Stage.BackdropIndex, "person " + (Stage.ShowPerson ? "1" : "0"), "worn " + (Looks.OnPerson ? "1" : "0"),
                     "spin " + (Stage.Spin ? "1" : "0"), "folded " + string.Join(" ", Folded),
                     "stage " + _stageScale.ToString("0.00", CultureInfo.InvariantCulture),
-                    "list " + _listShare.ToString("0.00", CultureInfo.InvariantCulture), "listhidden " + (_listHidden ? "1" : "0") });
+                    "list " + _listShareFull.ToString("0.00", CultureInfo.InvariantCulture), "listhidden " + (_listHiddenFull ? "1" : "0"),
+                    "clist " + _listShareCompact.ToString("0.00", CultureInfo.InvariantCulture), "clisthidden " + (_listHiddenCompact ? "1" : "0") });
             }
             catch (Exception ex)
             {
@@ -685,7 +726,7 @@ namespace Scry
                 _outOpen = false;
                 Session.Say("Cleared. Nothing from Scry is left in the world.");
             }
-            OutHover(clearRect, outLines, e);
+            OutHover(clearRect, outLines, e, new Rect(pad, 0f, w - pad * 2f, h - pad));
             OutClicks(explorer, e);
 
             if (GUI.Button(viewRect, viewText, Skin.Button)) ToggleCompact();
@@ -717,27 +758,38 @@ namespace Scry
             var bodyBottom = h - pad - footerH;
             var bodyH = bodyBottom - bodyTop;
 
+            // The list and the details share the room at the gap between them, which can be
+            // dragged, or folded away to leave the details all of it.
             if (_compact)
             {
-                var listH = Mathf.Round(bodyH * 0.46f);
-                var listed = Timing.Start();
-                List(explorer, new Rect(pad, bodyTop, w - pad * 2f, listH));
-                Timing.Add("panel list", listed);
-                Side(explorer, new Rect(pad, bodyTop + listH + U(12f), w - pad * 2f, bodyH - listH - U(12f)), withStage: false);
+                var gapH = ListHidden ? U(28f) : U(12f);
+                _listSpan = bodyH - U(12f);
+                var listH = ListHidden ? 0f : Mathf.Round(_listSpan * ListShare);
+                if (!ListHidden)
+                {
+                    var listed = Timing.Start();
+                    List(explorer, new Rect(pad, bodyTop, w - pad * 2f, listH));
+                    Timing.Add("panel list", listed);
+                }
+                var gap = new Rect(pad, bodyTop + listH, w - pad * 2f, gapH);
+                ListDivider(gap, upright: false);
+                var sideTop = gap.yMax + (ListHidden ? U(8f) : 0f);
+                Side(explorer, new Rect(pad, sideTop, w - pad * 2f, bodyBottom - sideTop), withStage: false);
             }
             else
             {
-                // The list and the details share the width at the gap between them, which can be
-                // dragged, or folded away to leave the details the whole width.
-                var leftW = _listHidden ? 0f : Mathf.Round((w - pad * 3f) * _listShare);
-                var rightX = pad * 2f + leftW;
-                if (!_listHidden)
+                var gapW = ListHidden ? U(26f) : pad;
+                _listSpan = w - pad * 3f;
+                var leftW = ListHidden ? 0f : Mathf.Round(_listSpan * ListShare);
+                if (!ListHidden)
                 {
                     var listed = Timing.Start();
                     List(explorer, new Rect(pad, bodyTop, leftW, bodyH));
                     Timing.Add("panel list", listed);
                 }
-                ListDivider(new Rect(pad + leftW, bodyTop, pad, bodyH));
+                var gap = new Rect(pad + leftW, bodyTop, gapW, bodyH);
+                ListDivider(gap, upright: true);
+                var rightX = gap.xMax + (ListHidden ? U(8f) : 0f);
                 Side(explorer, new Rect(rightX, bodyTop, w - rightX - pad, bodyH), withStage: true);
             }
 
@@ -783,7 +835,7 @@ namespace Scry
 
             // In the compact view the search has the whole first row and the buttons go below it.
             var row = rect.y;
-            var navW = starW * 2f + U(4f) + gap;
+            var navW = starW * 3f + U(4f) * 2f + gap;
             Rect search;
             if (_compact)
             {
@@ -794,7 +846,9 @@ namespace Scry
             {
                 search = new Rect(rect.x + navW, rect.y, rect.width - navW - originW - starW * 2f - recentW - gap * 5f, rect.height);
             }
-            BackAndForward(explorer, new Rect(rect.x, rect.y, starW, rect.height), new Rect(rect.x + starW + U(4f), rect.y, starW, rect.height));
+            ListButton(new Rect(rect.x, rect.y, starW, rect.height));
+            var navX = rect.x + starW + U(4f);
+            BackAndForward(explorer, new Rect(navX, rect.y, starW, rect.height), new Rect(navX + starW + U(4f), rect.y, starW, rect.height));
             Search(explorer, search);
             var startX = _compact ? rect.x - gap : search.xMax;
 
@@ -850,6 +904,15 @@ namespace Scry
             if (originRect.Contains(Event.current.mousePosition)) AskTip("origin", "Everything, only the game's own, or only what mods added");
 
             return originRow + rect.height;
+        }
+
+        /// <summary>Folds the list away or brings it back; lit while it is folded, so the way back is plain.</summary>
+        private static void ListButton(Rect button)
+        {
+            if (GUI.Button(button, GUIContent.none, ListHidden ? Skin.On : Skin.IconButton)) ToggleList();
+            var icon = new Rect(button.x + button.width * 0.24f, button.y + button.height * 0.24f, button.width * 0.52f, button.height * 0.52f);
+            Skin.Icon(icon, Skin.ListMark, ListHidden ? Skin.Accent : Skin.Dim);
+            if (button.Contains(Event.current.mousePosition)) AskTip("list-button", ListHidden ? "Bring the list back" : "Fold the list away, leaving the room to the details");
         }
 
         private static int _steppedFrame = -1;
@@ -1181,7 +1244,7 @@ namespace Scry
             var parts = new List<string>();
             if (!_compact) parts.AddRange(new[] { "Enter plays", "Ctrl+F searches", "Esc leaves a box" });
             if (walk) parts.Add("keys walk when not typing");
-            if (look) parts.Add("right-drag outside the panel to look");
+            if (look) parts.Add("right-drag outside to look");
             if (parts.Count == 0) parts.Add("Enter plays");
             parts[0] = char.ToUpperInvariant(parts[0][0]) + parts[0].Substring(1);
             return FootHints[index] = string.Join("  ·  ", parts);

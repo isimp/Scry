@@ -30,7 +30,7 @@ namespace Scry
         public static GUIStyle RowName, RowSub, Glyph, Center, CenterDim;
         public static GUIStyle Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close;
         public static GUIStyle Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross;
-        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock;
+        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark;
 
         private static float _builtScale = -1f;
         private static bool _warmed;
@@ -535,6 +535,19 @@ namespace Scry
             Star = Shape(32, 32, (x, y) => StarCoverage(x, y, 32, filled: true));
             StarHollow = Shape(32, 32, (x, y) => StarCoverage(x, y, 32, filled: false));
             Clock = Shape(32, 32, ClockCoverage);
+            ListMark = Shape(32, 32, ListCoverage);
+        }
+
+        /// <summary>A list: three lines, each with a dot before it.</summary>
+        private static bool ListCoverage(float x, float y)
+        {
+            foreach (var line in new[] { 8f, 16f, 24f })
+            {
+                if (Mathf.Abs(y - line) > 1.7f) continue;
+                if (x >= 11f && x <= 27f) return true;
+                if (x >= 4f && x <= 7.5f) return true;
+            }
+            return false;
         }
 
         /// <summary>A clock face: a ring, a hand pointing up and a shorter one pointing right.</summary>

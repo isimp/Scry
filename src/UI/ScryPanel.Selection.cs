@@ -126,7 +126,8 @@ namespace Scry
 
             var cw = content.width;
             var y = 0f;
-            if (!withStage && (entry.Kind == Kind.Sound || entry.Kind == Kind.StatusEffect)) y = Section("side card", y, at => CompactCard(entry, cw, at));
+            // Without a stage a sound says what it is here; a status effect's card would only repeat In the game.
+            if (!withStage && entry.Kind == Kind.Sound) y = Section("side card", y, at => CompactCard(entry, cw, at));
             y = Section("side actions", y, at => Actions(entry, cw, at));
             if (Looks.IsWorn(entry)) y = Section("side wearing", y, at => Wearing(explorer, cw, at));
             if (entry.Kind == Kind.Sound)
@@ -309,22 +310,10 @@ namespace Scry
             return badge.xMax;
         }
 
-        /// <summary>In compact view, the facts the stage card would show, as lines of text.</summary>
+        /// <summary>In compact view, what the sound card would say: its clips and length.</summary>
         private static float CompactCard(Entry entry, float width, float y)
         {
-            string text;
-            if (entry.Kind == Kind.Sound)
-            {
-                text = SoundFacts(entry);
-            }
-            else
-            {
-                var effect = entry.Source as StatusEffect;
-                if (effect == null) return y;
-                var tooltip = CatalogBuilder.Localize(effect.m_tooltip);
-                text = StatusFacts(effect) + (tooltip.Length > 0 ? "\n" + tooltip : "");
-            }
-
+            var text = SoundFacts(entry);
             var height = Skin.Height(Skin.DimWrap, text, width);
             GUI.Label(new Rect(0f, y, width, height), text, Skin.DimWrap);
             return y + height + U(12f);
