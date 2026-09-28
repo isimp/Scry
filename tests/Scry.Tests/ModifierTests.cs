@@ -143,5 +143,26 @@ namespace Scry.Tests
             modifiers.Volume = 1.8f;
             Assert.Equal(version, modifiers.Version);
         }
+
+        [Fact]
+        public void ANewSelectionIsAsThePrefabIsAndAnyChangeIsNot()
+        {
+            // Reset is offered only when there is something to reset.
+            var modifiers = For(E("Troll", Kind.Creature));
+            Assert.True(modifiers.IsDefault);
+
+            modifiers.Volume = 1.5f;
+            Assert.False(modifiers.IsDefault);
+            modifiers.Volume = 1f;
+            Assert.True(modifiers.IsDefault);
+
+            modifiers.Scale = 2f;
+            Assert.False(modifiers.IsDefault);
+            modifiers.Reset();
+            Assert.True(modifiers.IsDefault);
+
+            modifiers.AnimationSpeed = 0.5f;
+            Assert.False(modifiers.IsDefault);
+        }
     }
 }

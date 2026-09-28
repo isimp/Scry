@@ -23,14 +23,16 @@ namespace Scry
             var model = (withStage || modelInWorld || projectile) && (staged || projectile);
             if (!model) clips = NoClips;
 
-            y = SectionHeading("ADJUST", width, y, () =>
+            // Reset is offered only while the section is open and something differs from the prefab.
+            var open = !IsFolded("adjust");
+            var changed = !modifiers.IsDefault || (entry.Source is GameObject rolled && Gear.LoadoutChanged(rolled));
+            y = SectionHeading("ADJUST", width, y, open && changed ? () =>
             {
                 modifiers.Reset();
                 if (entry.Source is GameObject reset) Gear.ResetLoadout(reset);
                 Previews.Rebuild();
-            }, "adjust");
+            } : (Action)null, "adjust");
             var labelW = U(_compact ? 100f : 120f);
-            var open = !IsFolded("adjust");
 
             if (open) Volume(modifiers, width, labelW, ref y);
 
@@ -70,11 +72,14 @@ namespace Scry
 
             if (clips.Count > 0)
             {
-                y += U(6f);
+                if (open) y += U(6f);
                 y = Clips(explorer, clips, modifiers, width, labelW, y);
             }
 
-            return y + U(10f);
+            // Space after what was drawn last only when it is open: a folded heading already
+            // leaves the same gap as every other.
+            var lastOpen = clips.Count > 0 ? !IsFolded("animations") : open;
+            return lastOpen ? y + U(10f) : y;
         }
 
         private static readonly List<AnimationClip> NoClips = new List<AnimationClip>();

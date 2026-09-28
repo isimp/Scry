@@ -48,6 +48,23 @@ namespace Scry
             x += w + gap;
         }
 
+        /// <summary>Room kept at the end of the name's second line for the link that folds every section.</summary>
+        private static float _foldAllW;
+
+        private static bool AnyOpen()
+        {
+            foreach (var key in Foldable) if (!Folded.Contains(key)) return true;
+            return false;
+        }
+
+        /// <summary>Folds or opens every section, always in the same place whatever is selected.</summary>
+        private static void FoldAllLink(Rect link, string text, bool anyOpen)
+        {
+            LinkLabel(link, text, Skin.FaintLabel, Skin.Faint);
+            if (link.Contains(Event.current.mousePosition)) AskTip("fold-all", anyOpen ? "Fold every section away" : "Open every section");
+            if (GUI.Button(link, GUIContent.none, GUIStyle.none)) FoldAll(anyOpen);
+        }
+
         /// <summary>The entry the side was last shown for; another starts at its top.</summary>
         private static Entry _sideFor;
 
@@ -93,8 +110,12 @@ namespace Scry
             // The name stays in sight while what is below it scrolls, so a long section scrolled
             // to never leaves the selection unnamed.
             var titleArea = new Rect(rect.x, top, rect.width - U(14f), U(68f));
+            var anyOpen = AnyOpen();
+            var foldText = anyOpen ? "fold all" : "open all";
+            _foldAllW = Skin.Width(Skin.FaintLabel, foldText) + U(16f);
             GUI.BeginGroup(titleArea);
             var titleH = Section("side title", 0f, at => Title(explorer, entry, titleArea.width, at));
+            FoldAllLink(new Rect(titleArea.width - _foldAllW + U(12f), U(34f), _foldAllW - U(12f), U(22f)), foldText, anyOpen);
             GUI.EndGroup();
             top += titleH;
 
@@ -105,7 +126,6 @@ namespace Scry
 
             var cw = content.width;
             var y = 0f;
-            _foldAllShown = false;
             if (!withStage && (entry.Kind == Kind.Sound || entry.Kind == Kind.StatusEffect)) y = Section("side card", y, at => CompactCard(entry, cw, at));
             y = Section("side actions", y, at => Actions(entry, cw, at));
             if (Looks.IsWorn(entry)) y = Section("side wearing", y, at => Wearing(explorer, cw, at));
@@ -421,9 +441,9 @@ namespace Scry
             var x = _compact ? KindBadge(entry, new Vector2(0f, y)) + U(10f) : 0f;
             var origin = OriginText(entry);
             var sub = entry.Name == primary ? origin : entry.Name + (origin.Length > 0 ? "   ·   " + origin : "");
-            if (sub.Length > 0 || _compact)
+            // The second line is kept even when empty: the link to fold every section sits at its end.
             {
-                var subRect = new Rect(x, y, width - x, U(22f));
+                var subRect = new Rect(x, y, width - x - _foldAllW, U(22f));
                 if (!FitLabel(subRect, sub, Skin.DimLabel, 10f) && subRect.Contains(Event.current.mousePosition)) AskTip("sub", sub);
                 if (entry.Origin == Origin.Mod && entry.ModName.Length > 0)
                 {

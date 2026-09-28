@@ -274,5 +274,31 @@ namespace Scry.Tests
             loadout.ToggleExtra(0);
             Assert.Equal(new[] { "Cape" }, loadout.Worn().ToArray());
         }
+
+        [Fact]
+        public void ALoadoutAsTheCreatureRollsItFirstIsUnchanged()
+        {
+            var loadout = new Loadout(new[] { "AxeDraugr", "BowDraugr" }, new string[0], new string[0],
+                new[] { new Loadout.Extra("HelmetA", 6), new Loadout.Extra("HelmetB", 6) });
+
+            Assert.False(loadout.Changed);
+        }
+
+        [Fact]
+        public void AnotherWeaponOrExtraChosenIsAChangeAndChoosingBackIsNot()
+        {
+            var loadout = new Loadout(new[] { "AxeDraugr", "BowDraugr" }, new string[0], new string[0],
+                new[] { new Loadout.Extra("HelmetA", 6), new Loadout.Extra("HelmetB", 6) });
+
+            loadout.Choose(Loadout.Row.Weapon, 1);
+            Assert.True(loadout.Changed);
+            loadout.Choose(Loadout.Row.Weapon, 0);
+            Assert.False(loadout.Changed);
+
+            loadout.ToggleExtra(1);
+            Assert.True(loadout.Changed);
+            loadout.ToggleExtra(0);
+            Assert.False(loadout.Changed);
+        }
     }
 }

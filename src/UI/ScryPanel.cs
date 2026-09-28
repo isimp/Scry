@@ -1022,7 +1022,6 @@ namespace Scry
         private static bool IsFolded(string key) => key != null && Folded.Contains(key);
 
         /// <summary>Whether this pass over the side has drawn the fold-all link yet.</summary>
-        private static bool _foldAllShown;
 
         /// <summary>Every section that folds, by key.</summary>
         private static readonly string[] Foldable = { "kept", "variants", "adjust", "animations", "effects", "playsin", "links", "facts", "command", "details" };
@@ -1061,20 +1060,6 @@ namespace Scry
                 }
             }
             var lineEnd = reset != null ? width - U(74f) : width;
-
-            // The first section that folds carries a link to fold or open them all, at the end of its rule.
-            if (key != null && !_foldAllShown)
-            {
-                _foldAllShown = true;
-                var anyOpen = Foldable.Any(k => !Folded.Contains(k));
-                var foldText = anyOpen ? "fold all" : "open all";
-                var linkW = Skin.Width(Skin.FaintLabel, foldText) + U(4f);
-                var link = new Rect(lineEnd - linkW, y, linkW, U(20f));
-                LinkLabel(link, foldText, Skin.FaintLabel, Skin.Faint);
-                if (link.Contains(Event.current.mousePosition)) AskTip("fold-all", anyOpen ? "Fold every section away" : "Open every section");
-                if (GUI.Button(link, GUIContent.none, GUIStyle.none)) FoldAll(anyOpen);
-                lineEnd = link.x - U(8f);
-            }
 
             Skin.Fill(new Rect(textW + U(12f), y + U(10f), Mathf.Max(0f, lineEnd - textW - U(12f)), U(1f)), Skin.Outline);
             if (reset != null && GUI.Button(new Rect(width - U(64f), y - U(2f), U(64f), U(24f)), "Reset", Skin.Chip)) reset();

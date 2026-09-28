@@ -37,6 +37,7 @@ namespace Scry
         private readonly int[] _chosen = new int[4];
         private readonly Extra[] _extras;
         private readonly bool[] _on;
+        private readonly bool[] _onFirst;
         private readonly HashSet<string> _bothHands;
         private List<string> _setWeapons = new List<string>();
 
@@ -69,6 +70,7 @@ namespace Scry
             _on = new bool[_extras.Length];
             var kinds = new HashSet<int>();
             for (var i = 0; i < _extras.Length; i++) _on[i] = kinds.Add(_extras[i].Kind);
+            _onFirst = (bool[])_on.Clone();
         }
 
         /// <summary>What a row offers; an empty name stands for nothing.</summary>
@@ -117,6 +119,9 @@ namespace Scry
             if (index < 0 || index >= Options(row).Count) return;
             _chosen[(int)row] = index;
         }
+
+        /// <summary>Whether anything differs from what the creature rolls first, so there is something to reset.</summary>
+        public bool Changed => _chosen.Any(c => c != 0) || !_on.SequenceEqual(_onFirst);
 
         public IReadOnlyList<Extra> Extras => _extras;
 

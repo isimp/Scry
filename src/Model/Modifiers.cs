@@ -107,6 +107,11 @@ namespace Scry
             Reset();
         }
 
+        /// <summary>Whether everything is as the prefab is, so there is nothing to reset.</summary>
+        public bool IsDefault => Same(_scale, 1f) && _level == 1 && _wear == Wear.New && Same(_animationSpeed, 1f) && Same(_volume, 1f) && _look == _defaultLook;
+
+        private static bool Same(float a, float b) => Math.Abs(a - b) < 1e-4f;
+
         /// <summary>Goes back to the prefab as it is, keeping what the current entry offers.</summary>
         public void Reset()
         {

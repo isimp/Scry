@@ -265,6 +265,12 @@ namespace Scry
             return meshes.Count > 0 ? string.Join(",", meshes) : null;
         }
 
+        /// <summary>Whether a creature's loadout differs from the first of each.</summary>
+        public static bool LoadoutChanged(GameObject prefab)
+        {
+            return prefab != null && Loadouts.TryGetValue(prefab, out var loadout) && loadout.Changed;
+        }
+
         /// <summary>Puts a creature's loadout back to the first of each.</summary>
         public static void ResetLoadout(GameObject prefab)
         {
