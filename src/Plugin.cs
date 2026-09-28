@@ -9,6 +9,7 @@ using UnityEngine;
 namespace Scry
 {
     [BepInPlugin(Guid, "Scry", "0.1.0")]
+    [BepInProcess("valheim.exe")]
     public class Plugin : BaseUnityPlugin
     {
         public const string Guid = "isimp.Scry";
