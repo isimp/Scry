@@ -236,6 +236,13 @@ namespace Scry
             var e = Event.current;
             if (e.type != EventType.KeyDown) return;
 
+            // A Tab also comes as a typed character; in a filter box neither means anything.
+            if (e.character == '	' && Typing && !SearchFocused)
+            {
+                e.Use();
+                return;
+            }
+
             switch (e.keyCode)
             {
                 case KeyCode.Escape:
@@ -270,6 +277,11 @@ namespace Scry
                         _focusSearch = true;
                         e.Use();
                     }
+                    break;
+                case KeyCode.Tab:
+                    // Tab completes the search; in a filter box it means nothing, rather than Unity
+                    // moving the keyboard on to whichever text box comes next.
+                    if (Typing && !SearchFocused) e.Use();
                     break;
             }
         }
