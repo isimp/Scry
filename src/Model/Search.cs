@@ -218,15 +218,20 @@ namespace Scry
         }
 
         /// <summary>
-        /// Numbers every entry by its name, ignoring case, with ties broken by the exact name and
-        /// then by place in the catalog, so the order never depends on how a sort happens to run.
+        /// Numbers every entry by the name the list shows first (the game's, else the prefab's),
+        /// then by its prefab name, ignoring case, with ties broken by the exact name and then by
+        /// place in the catalog, so the order never depends on how a sort happens to run.
         /// </summary>
         public static void OrderNames(IReadOnlyList<Entry> all)
         {
             var order = new List<KeyValuePair<Entry, int>>(all.Count);
             for (var i = 0; i < all.Count; i++) order.Add(new KeyValuePair<Entry, int>(all[i], i));
+            // By the name the list shows first (the game's, else the prefab's), then the prefab's.
+            string Shown(Entry e) => string.IsNullOrEmpty(e.DisplayName) ? e.Name : e.DisplayName;
             order.Sort((a, b) =>
             {
+                var byShown = string.Compare(Shown(a.Key), Shown(b.Key), StringComparison.OrdinalIgnoreCase);
+                if (byShown != 0) return byShown;
                 var byName = string.Compare(a.Key.Name, b.Key.Name, StringComparison.OrdinalIgnoreCase);
                 if (byName != 0) return byName;
                 var exact = string.CompareOrdinal(a.Key.Name, b.Key.Name);

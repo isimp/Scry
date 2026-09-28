@@ -49,8 +49,8 @@ namespace Scry.Tests
         [Fact]
         public void BiomeFindsWhatLivesThere()
         {
-            // With no words typed the list is in name order, as everywhere else.
-            Assert.Equal(new[] { "BlobElite", "Draugr" }, Find("biome:swamp"));
+            // With no words typed the list is in the order of the names it shows, as everywhere else.
+            Assert.Equal(new[] { "Draugr", "BlobElite" }, Find("biome:swamp"));
         }
 
         [Fact]

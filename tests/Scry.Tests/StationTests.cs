@@ -81,7 +81,7 @@ namespace Scry.Tests
         [Fact]
         public void LeavingAStationOutWorksLikeAnyTerm()
         {
-            Assert.Equal(new[] { "Club", "piece_chair", "stone_wall", "Wood" }, Find("-station:forge"));
+            Assert.Equal(new[] { "piece_chair", "Club", "stone_wall", "Wood" }, Find("-station:forge"));
         }
     }
 }

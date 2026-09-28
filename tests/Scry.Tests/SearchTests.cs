@@ -68,12 +68,37 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void NothingTypedListsEverythingInNameOrder()
+        public void NothingTypedListsEverythingByTheNameItShows()
         {
-            var found = Find("");
+            // The list shows the game's name first, so that is the order it reads in; a prefab
+            // with none shows, and is ordered by, its own name.
+            var found = Search.Run(Game(), new Query(), new List<string>());
+            string Shown(Entry e) => string.IsNullOrEmpty(e.DisplayName) ? e.Name : e.DisplayName;
 
             Assert.Equal(Game().Count, found.Count);
-            Assert.Equal(found.OrderBy(n => n, System.StringComparer.OrdinalIgnoreCase), found);
+            Assert.Equal(found.Select(Shown).OrderBy(n => n, System.StringComparer.OrdinalIgnoreCase), found.Select(Shown));
+        }
+
+        [Fact]
+        public void EntriesShownAlikeAreOrderedByTheirPrefabNames()
+        {
+            var catalog = new List<Entry> { E("Troll_Summoned", Kind.Creature, "Troll"), E("Troll", Kind.Creature, "Troll") };
+
+            var found = Search.Run(catalog, new Query(), new List<string>());
+
+            Assert.Equal(new[] { "Troll", "Troll_Summoned" }, found.Select(e => e.Name).ToArray());
+        }
+
+        [Fact]
+        public void AnEntryWhoseShownNameChangesTakesItsNewPlace()
+        {
+            var catalog = new List<Entry> { E("a_prefab", Kind.Other, "Apple"), E("b_prefab", Kind.Other, "Banana") };
+            Search.Run(catalog, new Query(), new List<string>());
+
+            catalog[0].DisplayName = "Cherry";
+            var found = Search.Run(catalog, new Query(), new List<string>());
+
+            Assert.Equal(new[] { "Banana", "Cherry" }, found.Select(e => e.DisplayName).ToArray());
         }
 
         [Fact]

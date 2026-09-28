@@ -38,6 +38,7 @@ namespace Scry
             {
                 _displayName = value;
                 _displayNameUpper = null;
+                NameOrder = -1;
             }
         }
 
