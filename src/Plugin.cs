@@ -79,37 +79,6 @@ namespace Scry
         /// </summary>
         public static string DataFolder => Path.Combine(Paths.ConfigPath, Guid);
 
-        /// <summary>A folder of Scry's in the game's own save folder, whose files are moved to <see cref="DataFolder"/>.</summary>
-        private static string OldDataFolder => Path.Combine(Application.persistentDataPath, "Scry");
-
-        /// <summary>
-        /// Moves Scry's files found in the game's save folder to <see cref="DataFolder"/>, so they
-        /// are kept in one place: any file already there is kept, and the folder they came from goes
-        /// once it is empty. One that cannot be moved is left where it was and said so; Scry starts
-        /// afresh without it.
-        /// </summary>
-        private static void MoveOldFiles()
-        {
-            try
-            {
-                var old = OldDataFolder;
-                if (!Directory.Exists(old)) return;
-                Directory.CreateDirectory(DataFolder);
-                foreach (var file in Directory.GetFiles(old))
-                {
-                    var to = Path.Combine(DataFolder, Path.GetFileName(file));
-                    if (File.Exists(to)) continue;
-                    File.Move(file, to);
-                    Log.LogInfo($"Scry moved {Path.GetFileName(file)} to {DataFolder}.");
-                }
-                if (Directory.GetFileSystemEntries(old).Length == 0) Directory.Delete(old);
-            }
-            catch (System.Exception ex)
-            {
-                Log.LogWarning($"Scry could not move its files from {OldDataFolder} to {DataFolder}, and leaves them where they were: {ex.Message}");
-            }
-        }
-
         private Harmony _harmony;
 
         private void Awake()
@@ -152,8 +121,6 @@ namespace Scry
                 "Plays a sound as soon as it is selected, so the list can be auditioned with the arrow keys.");
             _logPreviews = Config.Bind("3 - Diagnostics", "LogPreviews", false,
                 "Writes to the log what each preview played and what Scry found out about each prefab (its animator, its gear, what it leaves behind), for finding out why something looks or sounds wrong. Off, the log only says when the game has changed in a way Scry notices, and how long reading the catalog took.");
-
-            MoveOldFiles();
 
             _harmony = new Harmony(Guid);
             Patch();
