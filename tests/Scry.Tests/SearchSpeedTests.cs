@@ -69,7 +69,9 @@ namespace Scry.Tests
                 foreach (Kind kind in Enum.GetValues(typeof(Kind)))
                 {
                     explorer.KindFilter = kind;
-                    Assert.Equal(explorer.Results.Count, explorer.CountOf(kind));
+                    // A tab with nothing of its own lists every kind's matches instead.
+                    Assert.Equal(explorer.ShowingEveryKind ? 0 : explorer.Results.Count, explorer.CountOf(kind));
+                    if (explorer.ShowingEveryKind) Assert.Equal(all, explorer.Results.Count);
                     sum += explorer.CountOf(kind);
                 }
                 explorer.KindFilter = null;

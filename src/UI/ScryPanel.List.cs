@@ -144,6 +144,16 @@ namespace Scry
                 return;
             }
 
+            // The picked tab has nothing for the search: say so above every kind's matches.
+            if (explorer.ShowingEveryKind && explorer.KindFilter is Kind picked)
+            {
+                var noteH = U(26f);
+                GUI.Label(new Rect(inner.x + U(10f), inner.y, inner.width - U(20f), noteH),
+                    $"Nothing in {Kinds.Label(picked)}, showing all {results.Count}", Skin.DimLabel);
+                inner = new Rect(inner.x, inner.y + noteH, inner.width, inner.height - noteH);
+                _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
+            }
+
             var rows = ListRows(explorer);
             if (_reveal && Event.current.type == EventType.Repaint)
             {
@@ -191,6 +201,9 @@ namespace Scry
 
         private static string FoldKey(Explorer explorer, string group) => explorer.KindFilter + "|" + group;
 
+        /// <summary>Whether the list is one kind's, in its groups; not while every kind is shown for an empty tab.</summary>
+        private static bool Grouped(Explorer explorer) => explorer.KindFilter != null && !explorer.ShowingEveryKind;
+
         /// <summary>A group's heading, which folds the group away or opens it again when clicked.</summary>
         private static void Heading(Explorer explorer, ListRow row, Rect at, Rect visible)
         {
@@ -227,7 +240,7 @@ namespace Scry
             if (!ReferenceEquals(explorer.Selected, _foldChecked))
             {
                 _foldChecked = explorer.Selected;
-                if (selected >= 0 && selected < results.Count && explorer.KindFilter != null && FoldedGroups.Remove(FoldKey(explorer, results[selected].Group))) _rowsFor = null;
+                if (selected >= 0 && selected < results.Count && Grouped(explorer) && FoldedGroups.Remove(FoldKey(explorer, results[selected].Group))) _rowsFor = null;
             }
             if (ReferenceEquals(results, _rowsFor)) return _listRows;
             _rowsFor = results;
@@ -235,7 +248,7 @@ namespace Scry
             _rowOfEntry.Clear();
 
             // Recent lists newest first, not by group, so it has no headings.
-            var grouped = explorer.KindFilter != null && !explorer.RecentOnly && results.Any(e => e.Group.Length > 0);
+            var grouped = Grouped(explorer) && !explorer.RecentOnly && results.Any(e => e.Group.Length > 0);
             for (var i = 0; i < results.Count; i++)
             {
                 var folded = false;

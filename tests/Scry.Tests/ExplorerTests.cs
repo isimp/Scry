@@ -102,6 +102,75 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ASearchTheOpenTabHasNothingForListsEveryMatchAndKeepsTheTabPicked()
+        {
+            // Typing past what the open tab holds is no dead end: the matches of every kind show,
+            // listed as the All tab lists them, while the tab stays the player's pick.
+            var explorer = Open();
+            explorer.KindFilter = Kind.Projectile;
+            explorer.Text = "troll";
+
+            var alone = Open();
+            alone.Text = "troll";
+            Assert.Equal(Kind.Projectile, explorer.KindFilter);
+            Assert.True(explorer.ShowingEveryKind);
+            Assert.Equal(alone.Results.Select(e => e.Name), explorer.Results.Select(e => e.Name));
+            Assert.Equal(0, explorer.CountOf(Kind.Projectile));
+        }
+
+        [Fact]
+        public void EveryMatchShownForAnEmptyTabIsInTheAllTabsOrderNotByGroup()
+        {
+            Entry C(string name, string group, int order) => new Entry { Name = name, Kind = Kind.Creature, Origin = Origin.Vanilla, Group = group, GroupOrder = order };
+            var catalog = new System.Collections.Generic.List<Entry> { C("Troll", "Zeta", 5), C("TrollKing", "Alpha", 1), E("arrow_wood_projectile", Kind.Projectile) };
+            var explorer = new Explorer(catalog, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            explorer.KindFilter = Kind.Projectile;
+
+            explorer.Text = "troll";
+
+            Assert.Equal(new[] { "Troll", "TrollKing" }, explorer.Results.Select(e => e.Name).ToArray());
+        }
+
+        [Fact]
+        public void OnceTheOpenTabHasMatchesAgainTheListGoesBackToThem()
+        {
+            var explorer = Open();
+            explorer.KindFilter = Kind.Projectile;
+            explorer.Text = "troll";
+
+            explorer.Text = "wood";
+
+            Assert.False(explorer.ShowingEveryKind);
+            Assert.Equal(new[] { "arrow_wood_projectile" }, explorer.Results.Select(e => e.Name).ToArray());
+        }
+
+        [Fact]
+        public void ASearchNothingMatchesStillShowsNothing()
+        {
+            var explorer = Open();
+            explorer.KindFilter = Kind.Item;
+            explorer.Text = "dragonfruit";
+
+            Assert.False(explorer.ShowingEveryKind);
+            Assert.Empty(explorer.Results);
+        }
+
+        [Fact]
+        public void AnEntryListedFromEveryKindCanBeSelectedAndKeptWhileTyping()
+        {
+            var explorer = Open();
+            explorer.KindFilter = Kind.Projectile;
+            explorer.Text = "troll";
+            var troll = Named(explorer, "MountainTroll");
+
+            explorer.Select(troll);
+            explorer.Text = "mountain";
+
+            Assert.Same(troll, explorer.Selected);
+            Assert.Equal(explorer.Results.ToList().IndexOf(troll), explorer.SelectedIndex);
+        }
+
+        [Fact]
         public void TheSelectionStaysWhileNarrowingTheSearchIfItStillMatches()
         {
             var explorer = Open();

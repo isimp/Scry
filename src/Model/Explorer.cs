@@ -131,6 +131,15 @@ namespace Scry
         /// <summary>How many the text and the other filters let through, all kinds together.</summary>
         public int CountAll => _countAll;
 
+        /// <summary>
+        /// The picked kind has nothing the text and the other filters let through while other
+        /// kinds do, so the list shows those, as the All tab would; the kind stays picked and
+        /// the list goes back to it once it has matches again.
+        /// </summary>
+        public bool ShowingEveryKind => _showingEveryKind;
+
+        private bool _showingEveryKind;
+
         public Entry Selected => _selected;
 
         /// <summary>Position of the selection in <see cref="Results"/>, or -1.</summary>
@@ -329,12 +338,23 @@ namespace Scry
             _countAll = 0;
             foreach (var count in _counts) _countAll += count;
 
+            // A picked kind with nothing to show while others have matches lists those instead,
+            // so typing never ends on an empty list with the matches a tab away.
+            _showingEveryKind = _results.Count == 0 && _query.Kind != null && _countAll > 0;
+            if (_showingEveryKind)
+            {
+                var kind = _query.Kind;
+                _query.Kind = null;
+                _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, null);
+                _query.Kind = kind;
+            }
+
             // Newest first, whatever the search ranking would be.
             if (order != null) _results.Sort((a, b) => order[a.Key].CompareTo(order[b.Key]));
 
             // Within a kind's tab, by its groups (resources by how they are gathered), each
             // group in the order the search gave it.
-            else if (_query.Kind != null) _results = ByGroup(_results);
+            else if (_query.Kind != null && !_showingEveryKind) _results = ByGroup(_results);
 
             if (_selected == null) return;
 
