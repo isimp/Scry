@@ -233,6 +233,10 @@ namespace Scry
                     })
                     .Where(r => r.Owners.Count > 0)
                     .ToList();
+                foreach (var row in _playsInRows)
+                {
+                    row.Names = ChipNames.Apart(row.Owners.Select(o => (o.Key, ShownName(explorer, o.Key, o.Shown))).ToList());
+                }
             }
             var rows = _playsInRows;
             if (rows.Count == 0) return y;
@@ -246,6 +250,12 @@ namespace Scry
 
             foreach (var row in rows.Take(ShownOf("playsin", rows.Count, firstRows)))
             {
+                // A faint rule between rows, so where one list ends and the next begins is plain.
+                if (index > 0)
+                {
+                    Skin.Fill(new Rect(0f, y, width, U(1f)), Skin.Outline);
+                    y += U(10f);
+                }
                 index++;
                 var list = row.List as EffectList;
                 var playing = list != null && Previews.Playing.IsPlaying(list);
@@ -267,9 +277,11 @@ namespace Scry
 
                 const int firstOwners = 4;
                 var ownersKey = "owners:" + index;
-                foreach (var owner in row.Owners.Take(ShownOf(ownersKey, row.Owners.Count, firstOwners)))
+                var shownOwners = Mathf.Min(ShownOf(ownersKey, row.Owners.Count, firstOwners), row.Owners.Count);
+                for (var o = 0; o < shownOwners; o++)
                 {
-                    var shown = ShownName(explorer, owner.Key, owner.Shown);
+                    var owner = row.Owners[o];
+                    var shown = row.Names != null && o < row.Names.Length ? row.Names[o] : ShownName(explorer, owner.Key, owner.Shown);
                     var go = owner.Key != null && CanGo(explorer, owner.Key);
                     var w = Mathf.Min(width, LinkChipWidth(shown, go));
                     if (x + w > width && x > 0f)

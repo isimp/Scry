@@ -38,6 +38,10 @@ namespace Scry
         public string Label;
         public string[] Members;
         public List<(string Shown, string Key)> Owners = new List<(string, string)>();
+
+        /// <summary>The owners' names as their chips read them, told apart where the game shows several alike.</summary>
+        public string[] Names;
+
         public object List;
     }
 
