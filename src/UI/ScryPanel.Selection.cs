@@ -90,6 +90,14 @@ namespace Scry
                 top += stageH + U(12f);
             }
 
+            // The name stays in sight while what is below it scrolls, so a long section scrolled
+            // to never leaves the selection unnamed.
+            var titleArea = new Rect(rect.x, top, rect.width - U(14f), U(68f));
+            GUI.BeginGroup(titleArea);
+            var titleH = Section("side title", 0f, at => Title(explorer, entry, titleArea.width, at));
+            GUI.EndGroup();
+            top += titleH;
+
             var below = new Rect(rect.x, top, rect.width, rect.yMax - top);
             var content = new Rect(0f, 0f, below.width - U(14f), Mathf.Max(_sideHeight, below.height));
             _sideScroll = GUI.BeginScrollView(below, _sideScroll, content, false, false, GUIStyle.none, Skin.Gui.verticalScrollbar);
@@ -98,7 +106,6 @@ namespace Scry
             var cw = content.width;
             var y = 0f;
             _foldAllShown = false;
-            y = Section("side title", y, at => Title(explorer, entry, cw, at));
             if (!withStage && (entry.Kind == Kind.Sound || entry.Kind == Kind.StatusEffect)) y = Section("side card", y, at => CompactCard(entry, cw, at));
             y = Section("side actions", y, at => Actions(entry, cw, at));
             if (Looks.IsWorn(entry)) y = Section("side wearing", y, at => Wearing(explorer, cw, at));
