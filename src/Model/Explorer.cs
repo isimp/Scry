@@ -67,8 +67,17 @@ namespace Scry
             }
         }
 
-        /// <summary>How many recently looked-at entries are remembered.</summary>
-        public const int RecentLimit = 30;
+        /// <summary>The most recently looked-at entries that may be remembered.</summary>
+        public const int MostRecent = 500;
+
+        private int _recentLimit = 30;
+
+        /// <summary>How many recently looked-at entries are remembered, from one to <see cref="MostRecent"/>.</summary>
+        public int RecentLimit
+        {
+            get => _recentLimit;
+            set => _recentLimit = Math.Max(1, Math.Min(MostRecent, value));
+        }
 
         private readonly List<string> _recent = new List<string>();
         private bool _recentOnly;

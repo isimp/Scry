@@ -25,7 +25,7 @@ namespace Scry
         private const string SearchControl = "scry-search";
         private const string ClipControl = "scry-clip-filter";
         private const string EffectControl = "scry-effect-filter";
-        private const float TipDelay = 0.35f;
+        private static float TipDelay => Plugin.TooltipDelay;
 
         private static Rect _full;
         private static Rect _compactRect;
@@ -82,8 +82,9 @@ namespace Scry
         {
             Skin.LookForFontsAgain();
 
-            // In the compact view the keys walk until the search is clicked, so it is not focused on opening.
-            _focusSearch = !_compact;
+            // In the compact view the keys walk until the search is clicked, so it is not focused on
+            // opening; in the full view as the player sets it.
+            _focusSearch = !_compact && Plugin.FocusSearchOnOpen;
             _reveal = true;
         }
 
@@ -867,9 +868,7 @@ namespace Scry
         private static void Footer(Rect rect)
         {
             var note = Session.Note;
-            var text = note ?? (_compact
-                ? "Walk with your keys when not typing. Hold right mouse outside the panel to look around."
-                : "Arrows move, Enter plays or shows, Ctrl+F searches. Click away from the search to walk, hold right mouse outside the panel to look.");
+            var text = note ?? FootHint();
             // The catalog's size sits at the far right, clear of the resize grip.
             var summary = Session.CatalogSummary;
             var summaryW = _compact ? 0f : Skin.Width(Skin.FaintLabel, summary);
@@ -1013,6 +1012,23 @@ namespace Scry
         // ----- Tooltips -----
 
         /// <summary>Asks for a tooltip at the mouse, shown once the mouse has rested on the same thing for a moment.</summary>
+        /// <summary>The panel's foot line: its keys, and walking and looking as the settings allow them.</summary>
+        private static string FootHint()
+        {
+            var walk = Plugin.WalkWhileOpen;
+            var look = Plugin.LookWithRightMouse;
+            if (_compact)
+            {
+                if (walk && look) return "Walk with your keys when not typing. Hold right mouse outside the panel to look around.";
+                if (walk) return "Walk with your keys when not typing.";
+                return look ? "Hold right mouse outside the panel to look around." : "Arrows move, Enter plays or shows.";
+            }
+            const string keys = "Arrows move, Enter plays or shows, Ctrl+F searches.";
+            if (walk && look) return keys + " Click away from the search to walk, hold right mouse outside the panel to look.";
+            if (walk) return keys + " Click away from the search to walk.";
+            return look ? keys + " Hold right mouse outside the panel to look." : keys;
+        }
+
         private static int _offCount = -1;
         private static string _offTip = "";
 

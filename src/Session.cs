@@ -26,7 +26,8 @@ namespace Scry
         private static (string Text, Kind? Kind, OriginFilter Origin, bool Favourites)? _carried;
 
         /// <summary>How long after arriving in a world the catalog starts to be read, so the world's own loading goes first.</summary>
-        private const float QuietDelay = 10f;
+        /// <summary>How long after entering a world the catalog waits before it is read, unless the panel is opened.</summary>
+        private static float QuietDelay => Plugin.CatalogDelay;
 
         /// <summary>Scry's share of a frame for reading the catalog while nobody waits for it, and while the open panel does.</summary>
         private const double QuietBudgetMs = 4;
@@ -82,6 +83,7 @@ namespace Scry
             }
             if (Explorer == null && ReferenceEquals(_failedIn, ZNetScene.instance)) _failedIn = null;
             IsOpen = true;
+            if (Explorer != null) Explorer.RecentLimit = Plugin.RecentCount;
             ScryPanel.Opened();
         }
 
@@ -111,7 +113,7 @@ namespace Scry
         /// Whether the character can walk while the panel is open: whenever none of its text boxes
         /// has the keyboard, so typing a search never moves anyone.
         /// </summary>
-        public static bool Walking => IsOpen && !ScryPanel.Typing;
+        public static bool Walking => IsOpen && !ScryPanel.Typing && Plugin.WalkWhileOpen;
 
         private static bool _toldPreviewsStay;
 
@@ -142,7 +144,7 @@ namespace Scry
             {
                 // Looking starts only from a press outside the panel, so a right click on it stays a click.
                 if (!IsOpen || !Input.GetMouseButton(1)) Looking = false;
-                else if (Input.GetMouseButtonDown(1) && !ScryPanel.Covers(Input.mousePosition)) Looking = true;
+                else if (Input.GetMouseButtonDown(1) && Plugin.LookWithRightMouse && !ScryPanel.Covers(Input.mousePosition)) Looking = true;
 
                 // The mouse's own back and forward buttons step through jumps, as in a browser.
                 if (IsOpen && Explorer != null && Input.GetKeyDown(KeyCode.Mouse3)) ScryPanel.Step(Explorer, true);
@@ -244,7 +246,7 @@ namespace Scry
             _favourites = _favourites ?? new Favourites(Path.Combine(Plugin.DataFolder, "favourites.txt"));
             if (_favourites.Problem != null) Plugin.Log.LogWarning($"Scry could not read its favourites: {_favourites.Problem}");
 
-            Explorer = new Explorer(catalog, _favourites);
+            Explorer = new Explorer(catalog, _favourites) { RecentLimit = Plugin.RecentCount };
             if (_carried.HasValue)
             {
                 var carried = _carried.Value;

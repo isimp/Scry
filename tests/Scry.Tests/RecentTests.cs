@@ -43,7 +43,7 @@ namespace Scry.Tests
             var explorer = new Explorer(catalog, new Favourites(Path.Combine(TempDir(), "f.txt")));
             foreach (var entry in catalog) explorer.Select(entry);
 
-            Assert.Equal(Explorer.RecentLimit, explorer.RecentKeys.Count);
+            Assert.Equal(explorer.RecentLimit, explorer.RecentKeys.Count);
             Assert.Equal("Thing39", explorer.RecentKeys[0]);
         }
 
@@ -71,6 +71,21 @@ namespace Scry.Tests
             explorer.Text = "troll";
 
             Assert.Equal(new[] { "Troll" }, explorer.Results.Select(e => e.Name));
+        }
+
+        [Fact]
+        public void HowManyAreRememberedCanBeSetAndStaysSensible()
+        {
+            // A player may keep a longer or shorter list; fewer than one or absurdly many are held in bounds.
+            var catalog = Enumerable.Range(0, 6).Select(i => E("Thing" + i, Kind.Other)).ToList();
+            var explorer = new Explorer(catalog, new Favourites(Path.Combine(TempDir(), "f.txt"))) { RecentLimit = 3 };
+            foreach (var entry in catalog) explorer.Select(entry);
+            Assert.Equal(3, explorer.RecentKeys.Count);
+
+            explorer.RecentLimit = 0;
+            Assert.Equal(1, explorer.RecentLimit);
+            explorer.RecentLimit = 100000;
+            Assert.Equal(Explorer.MostRecent, explorer.RecentLimit);
         }
     }
 }

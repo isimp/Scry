@@ -18,7 +18,7 @@ namespace Scry
 
         private static readonly Vector3 Origin = new Vector3(0f, 5000f, 0f);
         private const float FieldOfView = 30f;
-        private const float SpinDegreesPerSecond = 14f;
+        private static float SpinDegreesPerSecond => Plugin.SpinSpeed;
         private const float PlayedSeconds = 8f;
 
         // Prefabs face along +Z, so the camera starts in front of them, a little to one side.

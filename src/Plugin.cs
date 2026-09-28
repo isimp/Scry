@@ -20,6 +20,13 @@ namespace Scry
         private static ConfigEntry<bool> _playOnSelect;
         private static ConfigEntry<float> _uiScale;
         private static ConfigEntry<bool> _logPreviews;
+        private static ConfigEntry<bool> _focusSearch;
+        private static ConfigEntry<float> _catalogDelay;
+        private static ConfigEntry<bool> _walkWhileOpen;
+        private static ConfigEntry<bool> _lookWithRightMouse;
+        private static ConfigEntry<float> _tooltipDelay;
+        private static ConfigEntry<int> _recentCount;
+        private static ConfigEntry<float> _spinSpeed;
 
         /// <summary>
         /// The key that opens the panel. One the game or the panel already uses for something
@@ -46,6 +53,13 @@ namespace Scry
         public static bool AutoSpin => _autoSpin?.Value ?? true;
         public static bool PlayOnSelect => _playOnSelect?.Value ?? true;
         public static float UiScale => _uiScale?.Value ?? 1f;
+        public static bool FocusSearchOnOpen => _focusSearch?.Value ?? true;
+        public static float CatalogDelay => Mathf.Clamp(_catalogDelay?.Value ?? 10f, 0f, 120f);
+        public static bool WalkWhileOpen => _walkWhileOpen?.Value ?? true;
+        public static bool LookWithRightMouse => _lookWithRightMouse?.Value ?? true;
+        public static float TooltipDelay => Mathf.Clamp(_tooltipDelay?.Value ?? 0.35f, 0f, 3f);
+        public static int RecentCount => _recentCount?.Value ?? 30;
+        public static float SpinSpeed => Mathf.Clamp(_spinSpeed?.Value ?? 14f, 1f, 90f);
 
         /// <summary>Whether the log tells what previews play and what Scry saw of each prefab, for finding out why something looks or sounds wrong.</summary>
         public static bool LogPreviews => _logPreviews?.Value ?? false;
@@ -57,11 +71,41 @@ namespace Scry
         }
 
         /// <summary>
-        /// Where Scry keeps its own files: favourites and the panel's place on screen. Outside the
-        /// BepInEx folder, so a mod manager replacing a profile's configs leaves them alone, and
-        /// shared by every profile on this computer.
+        /// Where Scry keeps its own files, favourites and the panel's place on screen: beside its
+        /// settings, in a folder of BepInEx's config folder named for it, so they go with the
+        /// profile as its settings do.
         /// </summary>
-        public static string DataFolder => Path.Combine(Application.persistentDataPath, "Scry");
+        public static string DataFolder => Path.Combine(Paths.ConfigPath, Guid);
+
+        /// <summary>Where earlier versions kept them, in the game's own save folder.</summary>
+        private static string OldDataFolder => Path.Combine(Application.persistentDataPath, "Scry");
+
+        /// <summary>
+        /// Moves the files an earlier version kept in the game's save folder to <see cref="DataFolder"/>,
+        /// once: any file already there is kept, and the old folder goes once it is empty. One that
+        /// cannot be moved is left where it was and said so; Scry starts afresh without it.
+        /// </summary>
+        private static void MoveOldFiles()
+        {
+            try
+            {
+                var old = OldDataFolder;
+                if (!Directory.Exists(old)) return;
+                Directory.CreateDirectory(DataFolder);
+                foreach (var file in Directory.GetFiles(old))
+                {
+                    var to = Path.Combine(DataFolder, Path.GetFileName(file));
+                    if (File.Exists(to)) continue;
+                    File.Move(file, to);
+                    Log.LogInfo($"Scry moved {Path.GetFileName(file)} to {DataFolder}.");
+                }
+                if (Directory.GetFileSystemEntries(old).Length == 0) Directory.Delete(old);
+            }
+            catch (System.Exception ex)
+            {
+                Log.LogWarning($"Scry could not move its files from {OldDataFolder} to {DataFolder}, and leaves them where they were: {ex.Message}");
+            }
+        }
 
         private Harmony _harmony;
 
@@ -79,12 +123,32 @@ namespace Scry
             _uiScale = Config.Bind("1 - General", "PanelScale", 1f,
                 new ConfigDescription("Size of the panel and its text, on top of the automatic scaling by screen height.",
                     new AcceptableValueRange<float>(0.6f, 2f)));
+            _focusSearch = Config.Bind("1 - General", "FocusSearchOnOpen", true,
+                "Puts the keyboard in the search box when the panel opens, so you can type straight away. The compact view never does, so that the keys walk there until the search is clicked.");
+            _walkWhileOpen = Config.Bind("1 - General", "WalkWhileOpen", true,
+                "Lets you walk with your keys while the panel is open and you are not typing in it. Off, your character stands still while the panel is open.");
+            _lookWithRightMouse = Config.Bind("1 - General", "LookWithRightMouse", true,
+                "Holding the right mouse button outside the panel turns the camera, to look around while it is open.");
+            _tooltipDelay = Config.Bind("1 - General", "TooltipDelay", 0.35f,
+                new ConfigDescription("Seconds the mouse rests on something in the panel before its tip shows.",
+                    new AcceptableValueRange<float>(0f, 3f)));
+            _recentCount = Config.Bind("1 - General", "RecentCount", 30,
+                new ConfigDescription("How many entries the Recent list remembers.",
+                    new AcceptableValueRange<int>(1, Explorer.MostRecent)));
+            _catalogDelay = Config.Bind("1 - General", "CatalogDelay", 10f,
+                new ConfigDescription("Seconds after entering a world before Scry starts reading the game's prefabs in the background. Opening the panel sooner starts it at once.",
+                    new AcceptableValueRange<float>(0f, 120f)));
             _autoSpin = Config.Bind("2 - Preview", "AutoSpin", true,
                 "Turns the model in the preview slowly while you are not dragging it.");
+            _spinSpeed = Config.Bind("2 - Preview", "SpinSpeed", 14f,
+                new ConfigDescription("How fast the model turns by itself, in degrees a second, while AutoSpin is on.",
+                    new AcceptableValueRange<float>(1f, 90f)));
             _playOnSelect = Config.Bind("2 - Preview", "PlayOnSelect", true,
                 "Plays a sound as soon as it is selected, so the list can be auditioned with the arrow keys.");
             _logPreviews = Config.Bind("3 - Diagnostics", "LogPreviews", false,
                 "Writes to the log what each preview played and what Scry found out about each prefab (its animator, its gear, what it leaves behind), for finding out why something looks or sounds wrong. Off, the log only says when the game has changed in a way Scry notices, and how long reading the catalog took.");
+
+            MoveOldFiles();
 
             _harmony = new Harmony(Guid);
             Patch();
