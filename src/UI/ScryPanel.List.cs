@@ -223,6 +223,11 @@ namespace Scry
         }
 
         private static readonly List<ListRow> _listRows = new List<ListRow>();
+
+        /// <summary>Whether anything in the list has an icon of its own, so the icon column is kept.</summary>
+        private static bool _listHasIcons;
+
+        private static bool HasIcon(Entry entry) => entry.Icon is Sprite sprite && sprite != null;
         private static readonly List<int> _rowOfEntry = new List<int>();
         private static IReadOnlyList<Entry> _rowsFor;
 
@@ -248,6 +253,13 @@ namespace Scry
             _rowsFor = results;
             _listRows.Clear();
             _rowOfEntry.Clear();
+            _listHasIcons = false;
+            foreach (var entry in results)
+            {
+                if (!HasIcon(entry)) continue;
+                _listHasIcons = true;
+                break;
+            }
 
             // Recent lists newest first, not by group, so it has no headings.
             var grouped = Grouped(explorer) && !explorer.RecentOnly && results.Any(e => e.Group.Length > 0);
@@ -286,9 +298,18 @@ namespace Scry
             else if (hover) Skin.Box(inner, Skin.Hover);
             if (selected) Skin.Fill(new Rect(inner.x, inner.y + U(8f), U(3f), inner.height - U(16f)), Skin.Accent);
 
+            // An entry without an icon of its own gets no mark in a kind's tab, where it would be
+            // the same on every row, and the names move left when nothing there has an icon; in a
+            // list of every kind, a dot of its kind's colour tells the kinds apart.
             var icon = new Rect(inner.x + U(10f), inner.y + (inner.height - U(24f)) / 2f, U(24f), U(24f));
+            var oneKind = Grouped(explorer);
             var drawn = Timing.Start();
-            DrawIcon(entry, icon);
+            if (HasIcon(entry)) DrawIcon(entry, icon);
+            else if (!oneKind)
+            {
+                var dot = U(8f);
+                Skin.Icon(new Rect(icon.center.x - dot / 2f, icon.center.y - dot / 2f, dot, dot), Skin.Circle, Skin.KindColor(entry.Kind));
+            }
             Timing.Add("list icons", drawn);
 
             var favourite = explorer.Favourites.Contains(entry);
@@ -297,7 +318,7 @@ namespace Scry
             else if (hover) Skin.Icon(star, Skin.StarHollow, star.Contains(e.mousePosition) ? Skin.Accent : Skin.Faint);
 
             var named = Timing.Start();
-            var textX = icon.xMax + U(10f);
+            var textX = oneKind && !_listHasIcons ? inner.x + U(12f) : icon.xMax + U(10f);
             var textW = star.x - U(8f) - textX;
             var primary = string.IsNullOrEmpty(entry.DisplayName) ? entry.Name : entry.DisplayName;
             var secondary = string.IsNullOrEmpty(entry.DisplayName) || entry.DisplayName == entry.Name ? "" : entry.Name;
