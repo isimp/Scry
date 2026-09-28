@@ -123,7 +123,7 @@ namespace Scry
             if (craft != null) MadeHere(prefab.name);
             // An upgrader takes what can be upgraded past its top quality, with the upgrade kits
             // its recipe names alone (InventoryGui.UpdateRecipeList, Player.HaveRequirements).
-            if (craft != null && craft.m_upgrader) Add("Upgrades", "items past their top quality, with the upgrade kits their recipes name");
+            if (craft != null && craft.m_upgrader) Add("Upgrade station", "takes items past their top quality, with the upgrade kits their recipes name");
 
             var trader = prefab.GetComponent<Trader>();
             if (trader != null) Sells(trader);
@@ -160,6 +160,20 @@ namespace Scry
             }
             if (made.Items.Count > 0) Rows.Add(made);
             if (upgraded.Items.Count > 0) Rows.Add(upgraded);
+
+            // The pieces built near it, as each piece says "Built near" it.
+            var built = new Row { Title = "Built near it" };
+            var prefabs = ZNetScene.instance != null ? ZNetScene.instance.m_prefabs : null;
+            if (prefabs != null)
+            {
+                foreach (var prefab in prefabs)
+                {
+                    var piece = prefab != null ? prefab.GetComponent<global::Piece>() : null;
+                    if (piece == null || !piece.enabled || !piece.m_enabled || piece.m_craftingStation == null || piece.m_craftingStation.gameObject.name != station) continue;
+                    if (seen.Add(prefab.name)) built.Items.Add(Chip(prefab.name, ""));
+                }
+            }
+            if (built.Items.Count > 0) Rows.Add(built);
         }
 
         /// <summary>What a trader sells and for how much, a row for each world key its wares wait for.</summary>
