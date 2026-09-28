@@ -82,10 +82,16 @@ namespace Scry
         };
 
         /// <summary>An item by its item type (<c>ItemDrop.ItemData.ItemType</c>, by name); an unknown or odd one is other.</summary>
-        public static Group Item(string itemType)
+        /// <param name="carriedByCreature">A creature carries it (its attacks and gear are items).</param>
+        /// <param name="obtainable">A recipe makes it, or something drops, holds, sells or places it.</param>
+        public static Group Item(string itemType, bool carriedByCreature = false, bool obtainable = true)
         {
+            if (carriedByCreature && !obtainable) return CarriedByCreatures;
             return itemType != null && ItemTypes.TryGetValue(itemType, out var group) ? group : new Group("Other", 15);
         }
+
+        /// <summary>What only creatures have: their attacks and gear no player can get, after every other group.</summary>
+        public static Group CarriedByCreatures => new Group("Carried by creatures", 16);
 
         /// <summary>One item's type, in the words of its group ("Capes" holds a "Cape").</summary>
         private static readonly Dictionary<string, string> ItemTypeNames = new Dictionary<string, string>

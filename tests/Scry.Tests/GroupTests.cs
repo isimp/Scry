@@ -42,6 +42,29 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AnItemOnlyCreaturesHaveIsCarriedByCreaturesListedAfterEveryOtherGroup()
+        {
+            // A troll's slam or a Jotun's club is no weapon a player can hold, so it is kept
+            // apart from the Weapons a player looks through.
+            var attack = Groups.Item("OneHandedWeapon", carriedByCreature: true, obtainable: false);
+
+            Assert.Equal("Carried by creatures", attack.Name);
+            Assert.True(attack.Order > Groups.Item("SomeModType").Order);
+        }
+
+        [Fact]
+        public void AnItemACreatureCarriesThatPlayersCanAlsoGetStaysWithItsType()
+        {
+            Assert.Equal("Weapons", Groups.Item("Bow", carriedByCreature: true, obtainable: true).Name);
+        }
+
+        [Fact]
+        public void AnItemNothingCarriesStaysWithItsTypeEvenWhenNothingMakesIt()
+        {
+            Assert.Equal("Weapons", Groups.Item("OneHandedWeapon", carriedByCreature: false, obtainable: false).Name);
+        }
+
+        [Fact]
         public void CreaturesAreGroupedByFactionWithBossesTogether()
         {
             Assert.Equal("Forest monsters", Groups.Creature("ForestMonsters", false).Name);
