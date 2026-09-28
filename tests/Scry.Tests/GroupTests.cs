@@ -1,3 +1,4 @@
+using System.Linq;
 using Xunit;
 
 namespace Scry.Tests
@@ -5,10 +6,46 @@ namespace Scry.Tests
     public class GroupTests
     {
         [Theory]
-        [InlineData("OneHandedWeapon", "Weapons")]
-        [InlineData("TwoHandedWeaponLeft", "Weapons")]
-        [InlineData("Bow", "Weapons")]
-        [InlineData("Attach_Atgeir", "Weapons")]
+        [InlineData("OneHandedWeapon", "Swords", "Swords")]
+        [InlineData("TwoHandedWeapon", "Axes", "Axes")]
+        [InlineData("OneHandedWeapon", "Clubs", "Clubs")]
+        [InlineData("OneHandedWeapon", "Knives", "Knives")]
+        [InlineData("OneHandedWeapon", "Spears", "Spears")]
+        [InlineData("TwoHandedWeapon", "Polearms", "Polearms")]
+        [InlineData("Attach_Atgeir", "Polearms", "Polearms")]
+        [InlineData("OneHandedWeapon", "Unarmed", "Fists")]
+        [InlineData("Bow", "Bows", "Bows")]
+        [InlineData("Bow", "Crossbows", "Crossbows")]
+        [InlineData("TwoHandedWeapon", "ElementalMagic", "Staffs")]
+        [InlineData("TwoHandedWeaponLeft", "BloodMagic", "Staffs")]
+        [InlineData("TwoHandedWeapon", "Pickaxes", "Pickaxes")]
+        [InlineData("OneHandedWeapon", "None", "Other weapons")]
+        [InlineData("OneHandedWeapon", "SomeModSkill", "Other weapons")]
+        [InlineData("Bow", null, "Other weapons")]
+        public void WeaponsAreGroupedByTheSkillTheyTrain(string type, string skill, string group)
+        {
+            // Nearly two hundred weapons read better as swords, axes, bows and so on.
+            Assert.Equal(group, Groups.Item(type, skill).Name);
+        }
+
+        [Fact]
+        public void WeaponGroupsComeMeleeThenRangedThenMagicThenPickaxesAllBeforeShields()
+        {
+            var order = new[] { "Swords", "Axes", "Clubs", "Knives", "Spears", "Polearms", "Unarmed", "Bows", "Crossbows", "ElementalMagic", "Pickaxes", "None" }
+                .Select(skill => Groups.Item("OneHandedWeapon", skill).Order).ToArray();
+
+            Assert.Equal(order.OrderBy(o => o), order);
+            Assert.True(order.Last() < Groups.Item("Shield").Order);
+        }
+
+        [Fact]
+        public void AnItemThatIsNoWeaponIgnoresItsSkill()
+        {
+            Assert.Equal("Shields", Groups.Item("Shield", "Blocking").Name);
+            Assert.Equal("Tools", Groups.Item("Tool", "Pickaxes").Name);
+        }
+
+        [Theory]
         [InlineData("Shield", "Shields")]
         [InlineData("Helmet", "Helmets")]
         [InlineData("Chest", "Chest armour")]
@@ -25,7 +62,7 @@ namespace Scry.Tests
         [InlineData("Trophy", "Trophies")]
         [InlineData("Customization", "Other")]
         [InlineData("SomeModType", "Other")]
-        public void ItemsAreGroupedByTheGamesOwnItemType(string type, string group)
+        public void ItemsOtherThanWeaponsAreGroupedByTheGamesOwnItemType(string type, string group)
         {
             Assert.Equal(group, Groups.Item(type).Name);
         }
@@ -46,7 +83,7 @@ namespace Scry.Tests
         {
             // A troll's slam or a Jotun's club is no weapon a player can hold, so it is kept
             // apart from the Weapons a player looks through.
-            var attack = Groups.Item("OneHandedWeapon", carriedByCreature: true, obtainable: false);
+            var attack = Groups.Item("OneHandedWeapon", "Clubs", carriedByCreature: true, obtainable: false);
 
             Assert.Equal("Carried by creatures", attack.Name);
             Assert.True(attack.Order > Groups.Item("SomeModType").Order);
@@ -55,13 +92,13 @@ namespace Scry.Tests
         [Fact]
         public void AnItemACreatureCarriesThatPlayersCanAlsoGetStaysWithItsType()
         {
-            Assert.Equal("Weapons", Groups.Item("Bow", carriedByCreature: true, obtainable: true).Name);
+            Assert.Equal("Bows", Groups.Item("Bow", "Bows", carriedByCreature: true, obtainable: true).Name);
         }
 
         [Fact]
         public void AnItemNothingCarriesStaysWithItsTypeEvenWhenNothingMakesIt()
         {
-            Assert.Equal("Weapons", Groups.Item("OneHandedWeapon", carriedByCreature: false, obtainable: false).Name);
+            Assert.Equal("Swords", Groups.Item("OneHandedWeapon", "Swords", carriedByCreature: false, obtainable: false).Name);
         }
 
         [Fact]

@@ -58,40 +58,65 @@ namespace Scry
     {
         private static readonly Dictionary<string, Group> ItemTypes = new Dictionary<string, Group>
         {
-            ["OneHandedWeapon"] = new Group("Weapons", 1),
-            ["TwoHandedWeapon"] = new Group("Weapons", 1),
-            ["TwoHandedWeaponLeft"] = new Group("Weapons", 1),
-            ["Bow"] = new Group("Weapons", 1),
-            ["Attach_Atgeir"] = new Group("Weapons", 1),
-            ["Shield"] = new Group("Shields", 2),
-            ["Helmet"] = new Group("Helmets", 3),
-            ["Chest"] = new Group("Chest armour", 4),
-            ["Legs"] = new Group("Leg armour", 5),
-            ["Hands"] = new Group("Gloves", 6),
-            ["Shoulder"] = new Group("Capes", 7),
-            ["Utility"] = new Group("Belts and trinkets", 8),
-            ["Trinket"] = new Group("Belts and trinkets", 8),
-            ["Ammo"] = new Group("Ammo", 9),
-            ["AmmoNonEquipable"] = new Group("Ammo", 9),
-            ["Consumable"] = new Group("Food and meads", 10),
-            ["Material"] = new Group("Materials", 11),
-            ["Tool"] = new Group("Tools", 12),
-            ["Torch"] = new Group("Tools", 12),
-            ["Fish"] = new Group("Fish", 13),
-            ["Trophy"] = new Group("Trophies", 14),
+            ["Shield"] = new Group("Shields", 20),
+            ["Helmet"] = new Group("Helmets", 30),
+            ["Chest"] = new Group("Chest armour", 40),
+            ["Legs"] = new Group("Leg armour", 50),
+            ["Hands"] = new Group("Gloves", 60),
+            ["Shoulder"] = new Group("Capes", 70),
+            ["Utility"] = new Group("Belts and trinkets", 80),
+            ["Trinket"] = new Group("Belts and trinkets", 80),
+            ["Ammo"] = new Group("Ammo", 90),
+            ["AmmoNonEquipable"] = new Group("Ammo", 90),
+            ["Consumable"] = new Group("Food and meads", 100),
+            ["Material"] = new Group("Materials", 110),
+            ["Tool"] = new Group("Tools", 120),
+            ["Torch"] = new Group("Tools", 120),
+            ["Fish"] = new Group("Fish", 130),
+            ["Trophy"] = new Group("Trophies", 140),
         };
 
-        /// <summary>An item by its item type (<c>ItemDrop.ItemData.ItemType</c>, by name); an unknown or odd one is other.</summary>
+        /// <summary>The game's item types for what is held to fight with, grouped by the skill it trains.</summary>
+        private static readonly HashSet<string> WeaponTypes = new HashSet<string>
+        {
+            "OneHandedWeapon", "TwoHandedWeapon", "TwoHandedWeaponLeft", "Bow", "Attach_Atgeir",
+        };
+
+        /// <summary>Weapons by the skill they train (<c>Skills.SkillType</c>, by name): melee, then ranged, then magic, then pickaxes.</summary>
+        private static readonly Dictionary<string, Group> WeaponSkills = new Dictionary<string, Group>
+        {
+            ["Swords"] = new Group("Swords", 1),
+            ["Axes"] = new Group("Axes", 2),
+            ["Clubs"] = new Group("Clubs", 3),
+            ["Knives"] = new Group("Knives", 4),
+            ["Spears"] = new Group("Spears", 5),
+            ["Polearms"] = new Group("Polearms", 6),
+            ["Unarmed"] = new Group("Fists", 7),
+            ["Bows"] = new Group("Bows", 8),
+            ["Crossbows"] = new Group("Crossbows", 9),
+            ["ElementalMagic"] = new Group("Staffs", 10),
+            ["BloodMagic"] = new Group("Staffs", 10),
+            ["Pickaxes"] = new Group("Pickaxes", 11),
+        };
+
+        /// <summary>
+        /// An item by its item type (<c>ItemDrop.ItemData.ItemType</c>, by name), a weapon by the skill
+        /// it trains; an unknown or odd one is other.
+        /// </summary>
         /// <param name="carriedByCreature">A creature carries it (its attacks and gear are items).</param>
         /// <param name="obtainable">A recipe makes it, or something drops, holds, sells or places it.</param>
-        public static Group Item(string itemType, bool carriedByCreature = false, bool obtainable = true)
+        public static Group Item(string itemType, string skill = null, bool carriedByCreature = false, bool obtainable = true)
         {
             if (carriedByCreature && !obtainable) return CarriedByCreatures;
-            return itemType != null && ItemTypes.TryGetValue(itemType, out var group) ? group : new Group("Other", 15);
+            if (itemType != null && WeaponTypes.Contains(itemType))
+            {
+                return skill != null && WeaponSkills.TryGetValue(skill, out var weapons) ? weapons : new Group("Other weapons", 12);
+            }
+            return itemType != null && ItemTypes.TryGetValue(itemType, out var group) ? group : new Group("Other", 150);
         }
 
         /// <summary>What only creatures have: their attacks and gear no player can get, after every other group.</summary>
-        public static Group CarriedByCreatures => new Group("Carried by creatures", 16);
+        public static Group CarriedByCreatures => new Group("Carried by creatures", 160);
 
         /// <summary>One item's type, in the words of its group ("Capes" holds a "Cape").</summary>
         private static readonly Dictionary<string, string> ItemTypeNames = new Dictionary<string, string>
