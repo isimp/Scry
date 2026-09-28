@@ -391,10 +391,14 @@ namespace Scry
                 margin = new RectOffset(Px(4f), 0, 0, 0),
             };
             Gui.verticalScrollbar.normal.background = Tint(Pill, new Color(1f, 1f, 1f, 0.03f), null);
+            // IMGUI makes a thumb its share of the track plus its padding, and moves it over what
+            // is left, so the padding is its shortest length: a long list keeps a thumb that can
+            // be seen and caught rather than a dot.
             Gui.verticalScrollbarThumb = new GUIStyle
             {
                 fixedWidth = Px(8f),
                 border = new RectOffset(4, 4, 4, 4),
+                padding = new RectOffset(0, 0, Px(16f), Px(16f)),
             };
             Gui.verticalScrollbarThumb.normal.background = Tint(Pill, new Color(1f, 1f, 1f, 0.16f), null);
             Gui.verticalScrollbarThumb.hover.background = Tint(Pill, new Color(1f, 1f, 1f, 0.26f), null);
