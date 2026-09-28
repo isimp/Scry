@@ -264,6 +264,14 @@ namespace Scry
             CatalogSummary = $"{catalog.Count:N0} prefabs";
             var kinds = string.Join(", ", catalog.GroupBy(e => e.Kind).OrderBy(g => g.Key).Select(g => $"{g.Count()} {Kinds.Label(g.Key).ToLowerInvariant()}"));
             Plugin.Log.LogInfo($"Scry read {catalog.Count} prefabs and status effects in {job.WorkMs:0} ms over {job.Frames} frames ({job.ElapsedMs / 1000.0:0.0} s in all): {kinds}.");
+
+            // Where things are found, read by itself for those who want it: the same background
+            // reading the panel's button starts, a few milliseconds a frame.
+            if (Plugin.ReadLocationsAutomatically && Locations.Now == Locations.State.NotRead)
+            {
+                try { Plugin.Log.LogInfo("Scry: " + Locations.Start()); }
+                catch (Exception ex) { Faults.Tell("reading the locations by itself", ex); }
+            }
         }
 
         private static void Failed(string why, ZNetScene scene)

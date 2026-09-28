@@ -27,6 +27,7 @@ namespace Scry
         private static ConfigEntry<float> _tooltipDelay;
         private static ConfigEntry<int> _recentCount;
         private static ConfigEntry<float> _spinSpeed;
+        private static ConfigEntry<bool> _readLocations;
 
         /// <summary>
         /// The key that opens the panel. One the game or the panel already uses for something
@@ -60,6 +61,7 @@ namespace Scry
         public static float TooltipDelay => Mathf.Clamp(_tooltipDelay?.Value ?? 0.35f, 0f, 3f);
         public static int RecentCount => _recentCount?.Value ?? 30;
         public static float SpinSpeed => Mathf.Clamp(_spinSpeed?.Value ?? 14f, 1f, 90f);
+        public static bool ReadLocationsAutomatically => _readLocations?.Value ?? false;
 
         /// <summary>Whether the log tells what previews play and what Scry saw of each prefab, for finding out why something looks or sounds wrong.</summary>
         public static bool LogPreviews => _logPreviews?.Value ?? false;
@@ -138,6 +140,8 @@ namespace Scry
             _catalogDelay = Config.Bind("1 - General", "CatalogDelay", 10f,
                 new ConfigDescription("Seconds after entering a world before Scry starts reading the game's prefabs in the background. Opening the panel sooner starts it at once.",
                     new AcceptableValueRange<float>(0f, 120f)));
+            _readLocations = Config.Bind("1 - General", "ReadLocationsAutomatically", false,
+                "Reads where things are found in each world's locations and dungeons by itself, in the background once the prefabs are read, taking a few minutes. Off, they are read only when asked, with Find in locations or /scry locations.");
             _autoSpin = Config.Bind("2 - Preview", "AutoSpin", true,
                 "Turns the model in the preview slowly while you are not dragging it.");
             _spinSpeed = Config.Bind("2 - Preview", "SpinSpeed", 14f,
