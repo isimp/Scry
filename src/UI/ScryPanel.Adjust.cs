@@ -16,11 +16,12 @@ namespace Scry
             var staged = Stage.IsStaged(entry);
             var projectile = entry.Kind == Kind.Projectile;
             var modelInWorld = Previews.InWorld && Previews.IsModel(entry);
-            var clips = staged && entry.Kind != Kind.StatusEffect ? Previews.Clips() : new List<AnimationClip>();
+            var clips = staged && entry.Kind != Kind.StatusEffect ? Previews.Clips() : NoClips;
 
-            // Without the stage there is nothing to adjust unless the copy is in the world.
-            if (!withStage && !modelInWorld && !projectile) return y;
-            if (!staged && !projectile) return y;
+            // Without the stage there is nothing to adjust about the model unless the copy is in the
+            // world; how loud previews play is always there, for sounds as for everything else.
+            var model = (withStage || modelInWorld || projectile) && (staged || projectile);
+            if (!model) clips = NoClips;
 
             y = SectionHeading("ADJUST", width, y, () =>
             {
@@ -31,7 +32,9 @@ namespace Scry
             var labelW = U(_compact ? 100f : 120f);
             var open = !IsFolded("adjust");
 
-            if (open && staged)
+            if (open) Volume(width, labelW, ref y);
+
+            if (open && model && staged)
             {
                 // Size on a curve, so the range from a tenth to ten times is usable end to end.
                 var logScale = Mathf.Log10(modifiers.Scale);
@@ -39,7 +42,7 @@ namespace Scry
                 if (!Mathf.Approximately(picked, logScale)) modifiers.Scale = Mathf.Pow(10f, picked);
             }
 
-            if (open && entry.Kind == Kind.Creature && modifiers.MaxLevel > 1)
+            if (open && model && entry.Kind == Kind.Creature && modifiers.MaxLevel > 1)
             {
                 var names = new List<string>();
                 for (var level = 1; level <= modifiers.MaxLevel; level++) names.Add(level == 1 ? "No stars" : level == 2 ? "1 star" : $"{level - 1} stars");
@@ -47,13 +50,13 @@ namespace Scry
                 if (chosen >= 0) modifiers.Level = chosen + 1;
             }
 
-            if (open && modifiers.WearAvailable)
+            if (open && model && modifiers.WearAvailable)
             {
                 var chosen = Segments("Wear", new List<string> { "New", "Worn", "Broken" }, (int)modifiers.Wear, width, labelW, ref y);
                 if (chosen >= 0) modifiers.Wear = (Wear)chosen;
             }
 
-            if (open && modifiers.LookAvailable)
+            if (open && model && modifiers.LookAvailable)
             {
                 var chosen = Segments("Look", new List<string>(modifiers.LookNames), modifiers.Look, width, labelW, ref y);
                 if (chosen >= 0) modifiers.Look = chosen;
@@ -72,6 +75,31 @@ namespace Scry
             }
 
             return y + U(10f);
+        }
+
+        private static readonly List<AnimationClip> NoClips = new List<AnimationClip>();
+        private static bool _volumeMoved;
+
+        /// <summary>
+        /// How loud previews play, from silent to three times the game's own, in steps of 5%. It
+        /// is heard as it moves, and saved in the settings once the mouse lets go, not at every step.
+        /// </summary>
+        private static void Volume(float width, float labelW, ref float y)
+        {
+            var now = Loudness.Gain;
+            var picked = SliderRow("Volume", $"{Mathf.RoundToInt(now * 100f)}%", now, 0f, Plugin.MostVolume, width, labelW, ref y);
+            picked = Mathf.Round(picked * 20f) / 20f;
+            if (!Mathf.Approximately(picked, now))
+            {
+                Loudness.Gain = picked;
+                _volumeMoved = true;
+            }
+            // The slider uses up the mouse's release, so it is told by the event's raw type.
+            if (_volumeMoved && Event.current.rawType == EventType.MouseUp)
+            {
+                _volumeMoved = false;
+                Plugin.SetPreviewVolume(Loudness.Gain);
+            }
         }
 
         /// <summary>

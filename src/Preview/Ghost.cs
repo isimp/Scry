@@ -73,6 +73,10 @@ namespace Scry
                     t.localRotation = rotation;
                 }
                 t.SetParent(parent, false);
+
+                // Its sounds at the loudness the player chose; one that cannot take it plays as the game would.
+                try { Loudness.Add(copy); }
+                catch (Exception ex) { Faults.Tell("preview loudness", ex); }
                 Awake(prefab, copy);
 
                 // Made under a holder that outlives worlds; one standing on its own belongs to the
