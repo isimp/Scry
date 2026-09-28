@@ -104,10 +104,30 @@ class Program
             foreach (var mh in type.GetMethods())
             {
                 var method = md.GetMethodDefinition(mh);
-                all.Add(new Found { Type = typeName, Name = md.GetString(method.Name), Params = ParamCount(md, method), Shape = ShapeOf(pe, method) });
+                var name = md.GetString(method.Name);
+                all.Add(new Found { Type = typeName, Name = name, Params = ParamCount(md, method), Shape = StepsOf(pe, md, type, method, name) });
             }
         }
         return all;
+    }
+
+    /// <summary>
+    /// A method's shape as the game check reads it: a coroutine's is its state machine's
+    /// MoveNext, where its steps are, as its own method only hands that out.
+    /// </summary>
+    private static uint StepsOf(PEReader pe, MetadataReader md, TypeDefinition type, MethodDefinition method, string name)
+    {
+        foreach (var nh in type.GetNestedTypes())
+        {
+            var nested = md.GetTypeDefinition(nh);
+            if (!IlShape.IsStateMachineOf(md.GetString(nested.Name), name)) continue;
+            foreach (var mh in nested.GetMethods())
+            {
+                var step = md.GetMethodDefinition(mh);
+                if (md.GetString(step.Name) == "MoveNext") return ShapeOf(pe, step);
+            }
+        }
+        return ShapeOf(pe, method);
     }
 
     private static string TypeName(MetadataReader md, TypeDefinition type)
@@ -147,7 +167,7 @@ class Program
                 var receivers = typeName == "CharacterAnimEvent" || typeName == "AnimationEffect";
                 if (!wanted.Any(w => w[0] == typeName && w[1] == name) && !receivers) continue;
                 var pub = (method.Attributes & System.Reflection.MethodAttributes.Public) != 0 ? "public" : "private";
-                Console.WriteLine($"{(receivers ? "RECV " : "")}{typeName}.{name} params={ParamCount(md, method)} {pub} shape=0x{ShapeOf(pe, method):X8}");
+                Console.WriteLine($"{(receivers ? "RECV " : "")}{typeName}.{name} params={ParamCount(md, method)} {pub} shape=0x{StepsOf(pe, md, type, method, name):X8}");
             }
         }
     }

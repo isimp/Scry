@@ -15,6 +15,18 @@ namespace Scry
         private static readonly OpCode?[] TwoByte = new OpCode?[256];
         private static bool _built;
 
+        /// <summary>
+        /// Whether a nested type is the state machine the compiler made for a coroutine of this
+        /// name ("&lt;Spawn&gt;d__12" for Spawn). A coroutine's own method only hands that out,
+        /// so its steps, and its shape, are in the state machine's MoveNext.
+        /// </summary>
+        public static bool IsStateMachineOf(string nestedType, string method)
+        {
+            if (string.IsNullOrEmpty(nestedType) || string.IsNullOrEmpty(method)) return false;
+            var prefix = "<" + method + ">d__";
+            return nestedType.Length > prefix.Length && nestedType.StartsWith(prefix, System.StringComparison.Ordinal);
+        }
+
         public static uint Of(byte[] il)
         {
             if (il == null || il.Length == 0) return 0;

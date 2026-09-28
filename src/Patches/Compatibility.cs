@@ -54,6 +54,10 @@ namespace Scry
             ("Destructible", "CreateFragments", 2, 0x2A65B522, "pieces breaking apart"),
             ("WearNTear", "RPC_CreateFragments", 1, 0x2724FEDC, "pieces breaking apart"),
             ("TreeBase", "SpawnLog", 1, 0xBF8E65F4, "trees falling"),
+            ("TreeLog", "Destroy", 2, 0xD6731DC4, "logs splitting into halves"),
+            ("Destructible", "Destroy", 1, 0xD9E62863, "what things leave when broken"),
+            ("TreeBase", "Shake", 0, 0x60417B85, "trees shaking when struck"),
+            ("TreeBase", "ShakeAnimation", 0, 0xBA9F74EE, "trees shaking when struck"),
             ("EffectList", "Create", 6, 0xA8985D0C, "where effects appear on a model"),
             ("AnimationEffect", "Effect", 1, 0xDF43C7EF, "sounds and effects animations name"),
             ("AnimationEffect", "Attach", 1, 0x1974D1DE, "props animations hold"),
@@ -109,7 +113,7 @@ namespace Scry
             ("RandomIdle", "OnStateUpdate", 3, 0x1E89789A, "idle clips picked at random"),
             ("RandomIdle", "GetRandomIdle", 1, 0x7A49F403, "idle clips picked at random"),
             ("CreatureSpawner", "Spawn", 0, 0xF64EBBF9, "spawn roars"),
-            ("SpawnAbility", "Spawn", 0, 0x13568EE6, "spawn roars"),
+            ("SpawnAbility", "Spawn", 0, 0xD3A37693, "spawn roars"),
             ("Player", "SetupAwake", 0, 0x38272BB3, "the person standing from the start"),
 
             // What the details tell the game's rules from: if one changes, its words may be off.
@@ -135,6 +139,19 @@ namespace Scry
             ("RandEventSystem", "HaveGlobalKeys", 2, 0xBAF80048, "what raids wait for, in the details"),
             ("Trader", "GetAvailableItems", 0, 0x19BA382C, "what traders sell and when, in the details"),
             ("Fermenter", "UpdateCover", 2, 0x861BA786, "what a fermenter needs, in the details"),
+            ("Beehive", "UpdateBees", 0, 0x14D30E4F, "what a beehive makes and needs, in the details"),
+            ("Beehive", "HaveFreeSpace", 0, 0x67355E85, "what a beehive makes and needs, in the details"),
+            ("Beehive", "CheckBiome", 0, 0x0719B463, "what a beehive makes and needs, in the details"),
+            ("SapCollector", "UpdateTick", 0, 0x82F639F5, "what a sap collector makes and needs, in the details"),
+            ("Container", "AddDefaultItems", 0, 0xD14D7482, "what chests hold, in the details"),
+            ("MineRock5", "DamageArea", 2, 0x80C15677, "a rock's health per piece, in the details"),
+            ("Plant", "GetGrowTime", 0, 0x424F2EF8, "how plants grow, in the details"),
+            ("Plant", "UpdateHealth", 1, 0xC5AAD837, "how plants grow, in the details"),
+            ("Pickable", "UpdateRespawn", 0, 0x31AD3B33, "when what is picked grows back, in the details"),
+            ("Tameable", "TamingUpdate", 0, 0xB81F3F62, "taming and feeding in the details"),
+            ("Tameable", "IsHungry", 0, 0x38421197, "taming and feeding in the details"),
+            ("Character", "GetMaxHealthBase", 0, 0x1BFF8AE9, "the world's level in the details"),
+            ("SEMan", "HaveStatusEffectCategory", 1, 0xE7A9814B, "effects that cannot be taken together, in the details"),
         };
 
         /// <summary>Public methods of the animation event receivers that are not events.</summary>
@@ -259,7 +276,11 @@ namespace Scry
                 list.Add($"{typeName}.{name}", feature, Found.Missing);
                 return;
             }
-            var now = IlShape.Of(method.GetMethodBody()?.GetILAsByteArray());
+            // A coroutine's steps are in the state machine made for it, not in its own method.
+            var steps = type.GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public)
+                .FirstOrDefault(t => IlShape.IsStateMachineOf(t.Name, name))
+                ?.GetMethod("MoveNext", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public) ?? method;
+            var now = IlShape.Of(steps.GetMethodBody()?.GetILAsByteArray());
             list.Add($"{typeName}.{name}", feature, now == shape ? Found.Present : Found.Changed);
         }
 

@@ -56,6 +56,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ACoroutinesCodeIsFoundInTheTypeTheCompilerMakesForIt()
+        {
+            // A coroutine's own method only hands out its state machine, which never changes; its
+            // steps are in the state machine the compiler names after it.
+            Assert.True(IlShape.IsStateMachineOf("<Spawn>d__12", "Spawn"));
+            Assert.True(IlShape.IsStateMachineOf("<ShakeAnimation>d__3", "ShakeAnimation"));
+            Assert.False(IlShape.IsStateMachineOf("<SpawnAll>d__4", "Spawn"));
+            Assert.False(IlShape.IsStateMachineOf("<Spawn>b__12_0", "Spawn"));
+            Assert.False(IlShape.IsStateMachineOf("<>c", "Spawn"));
+            Assert.False(IlShape.IsStateMachineOf("Spawn", "Spawn"));
+            Assert.False(IlShape.IsStateMachineOf(null, "Spawn"));
+        }
+
+        [Fact]
         public void BrokenCodeHasNoShape()
         {
             Assert.Equal(0u, IlShape.Of(new byte[] { 0x7B, 0x11 }));
