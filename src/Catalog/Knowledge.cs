@@ -109,6 +109,15 @@ namespace Scry
         /// </summary>
         private static readonly Dictionary<string, GameObject> Bosses = new Dictionary<string, GameObject>(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// The station that takes items past their top quality with the upgrade kits their recipes
+        /// name (<c>CraftingStation.m_upgrader</c>), and its name as the game shows it; null when
+        /// no prefab has one.
+        /// </summary>
+        public static string UpgradeStation { get; private set; }
+
+        public static string UpgradeStationName { get; private set; }
+
         /// <summary>The altars among the registered prefabs, and what each summons.</summary>
         private static readonly List<Summon> Altars = new List<Summon>();
 
@@ -144,6 +153,8 @@ namespace Scry
             Bosses.Clear();
             Altars.Clear();
             SpawnPointsLeft.Clear();
+            UpgradeStation = null;
+            UpgradeStationName = null;
         }
 
         /// <summary>
@@ -203,6 +214,11 @@ namespace Scry
                         {
                             if (need?.m_resItem != null) Uses.Add(need.m_resItem.gameObject.name, UseKind.Builds, prefab.name, need.m_amount, near);
                         }
+                        break;
+                    case CraftingStation craft when craft.m_upgrader && UpgradeStation == null:
+                        UpgradeStation = prefab.name;
+                        var shown = CatalogBuilder.Localize(craft.m_name);
+                        UpgradeStationName = shown.Length > 0 ? shown : prefab.name;
                         break;
                     case MonsterAI ai when ai.m_consumeItems != null:
                         foreach (var food in ai.m_consumeItems)

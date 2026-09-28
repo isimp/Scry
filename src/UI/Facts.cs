@@ -149,6 +149,10 @@ namespace Scry
             var character = prefab.GetComponent<Character>();
             if (character != null) Part("creature", () => Creature(prefab, character));
 
+            // The build menu tab it is under, named as the list's group names it (not the game's
+            // category enum). Told for every piece, one whose Piece sits on a part of it too.
+            if (_entry != null && _entry.Kind == Kind.Piece) Add("Build menu", _entry.Group == Groups.InNoMenu.Name ? "none" : _entry.Group);
+
             var piece = prefab.GetComponent<Piece>();
             if (piece != null && piece.enabled) Part("piece", () => Piece(piece, prefab.GetComponent<WearNTear>()));
 
@@ -343,7 +347,7 @@ namespace Scry
         /// </summary>
         private static Row UpgradeKits(Recipe recipe, int maxQuality)
         {
-            var row = new Row { Title = "Past its top quality, at an upgrade station" };
+            var row = new Row { Title = "Past its top quality, at " + UpgradeStationName, TitleLink = Knowledge.UpgradeStation };
             if (recipe.m_resources == null || maxQuality <= 1) return row;
             foreach (var need in recipe.m_resources)
             {
@@ -387,7 +391,7 @@ namespace Scry
                 var health = CombatWords.StarHealth(character.m_health, _stars);
                 if (health != null) Add("Health with stars", health);
                 var hits = CombatWords.StarDamage(_stars);
-                if (hits != null) Add("Hits with stars", hits);
+                if (hits != null) Add("Damage with stars", hits);
             }
 
             Part("resistances", () => Resists(character.m_damageModifiers));
@@ -763,8 +767,6 @@ namespace Scry
         private void Piece(Piece piece, WearNTear wear)
         {
             Description = CatalogBuilder.Localize(piece.m_description);
-            // The build menu tab it is under, named as the list's group names it (not the game's category enum).
-            if (_entry != null && _entry.Kind == Kind.Piece) Add("Build menu", _entry.Group == Groups.InNoMenu.Name ? "none" : _entry.Group);
             if (piece.m_comfort > 0)
             {
                 // SE_Rested.CalculateComfortLevel counts, within 10 m, only the best of each comfort
@@ -838,6 +840,7 @@ namespace Scry
             foreach (var group in Knowledge.UsesOf(item))
             {
                 var row = new Row { Title = UseTitle(group), TitleLink = group.Place != null && group.Place != "hand" ? group.Place : null };
+                if (group.Kind == UseKind.UpgradesPastTop) row.TitleLink = Knowledge.UpgradeStation;
                 foreach (var (target, amount) in group.Targets)
                 {
                     var prefab = Looks.Prefab(target);
@@ -858,13 +861,16 @@ namespace Scry
             switch (group.Kind)
             {
                 case UseKind.Crafts: return place != null ? $"Used to make at {place}" : "Used to make by hand";
-                case UseKind.UpgradesPastTop: return "Takes these past their top quality, at an upgrade station";
+                case UseKind.UpgradesPastTop: return "Takes these past their top quality, at " + UpgradeStationName;
                 case UseKind.Builds: return place != null ? $"Used to build near {place}" : "Used to build";
                 case UseKind.TurnsInto: return place != null ? $"{place} turns it into" : "Turned into";
                 case UseKind.Fuels: return "Burnt as fuel by";
                 default: return "Eaten by";
             }
         }
+
+        /// <summary>The upgrade station by the name the game shows, or said plainly when no prefab is one.</summary>
+        private static string UpgradeStationName => Knowledge.UpgradeStationName ?? "an upgrade station";
 
         /// <summary>A prefab's name as the game shows it: an item's, a piece's or a creature's, else the prefab's own.</summary>
         private static string AnyName(GameObject prefab, string fallback)
@@ -895,6 +901,9 @@ namespace Scry
         private void StatusEffect(StatusEffect effect)
         {
             Description = CatalogBuilder.Localize(effect.m_tooltip);
+
+            // Told here as well as on the card, since an effect seen on a person has no card.
+            Add("Lasts", effect.m_ttl > 0f ? Naming.Duration(effect.m_ttl) : "no time limit of its own");
 
             // Its category is an id the game never shows; what it means is that nothing giving
             // another effect of the same category can be eaten or drunk while it lasts
@@ -1016,7 +1025,7 @@ namespace Scry
             return (name.Contains("cooldown") || name.Contains("duration") || name.EndsWith("time") || name.Contains("interval")) && !name.Contains("multiplier") && !name.Contains("modifier");
         }
 
-        /// <summary>Settings the card already shows, or that say nothing about what the effect does.</summary>
+        /// <summary>Settings told in their own words already (how long it lasts, its name, icon and tooltip), or that say nothing about what the effect does.</summary>
         private static readonly HashSet<string> Skipped = new HashSet<string>
         {
             "m_ttl", "m_name", "m_category", "m_tooltip", "m_icon", "m_iconText", "m_startMessage", "m_stopMessage",

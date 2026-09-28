@@ -118,7 +118,7 @@ namespace Scry
             ("DropTable", "GetDropList", 1, 0xBF6963CC, "drop table rolls in the details"),
             ("BaseAI", "CanSeeTarget", 7, 0xDE5EBD88, "what creatures see, in the details"),
             ("Character", "SetupMaxHealth", 0, 0x6F57CA0E, "health with stars in the details"),
-            ("Attack", "GetLevelDamageFactor", 0, 0x56C23F2E, "hits with stars in the details"),
+            ("Attack", "GetLevelDamageFactor", 0, 0x56C23F2E, "damage with stars in the details"),
             ("Player", "HaveRequirementItems", 4, 0xB9AF033A, "upgrade kits told apart from ingredients"),
             ("InventoryGui", "SetupRequirementList", 4, 0xB8443C09, "upgrade kits told apart from ingredients"),
             ("InventoryGui", "UpdateRecipeList", 1, 0xC89F3E86, "what an upgrade station does, in the details"),
