@@ -564,8 +564,8 @@ namespace Scry
                     {
                         if (drop?.m_prefab == null) continue;
                         var amount = DropWords.CreatureAmount(drop.m_amountMin, drop.m_amountMax, drop.m_onePerPlayer);
-                        var chance = drop.m_chance < 1f ? $", {Mathf.RoundToInt(drop.m_chance * 100f)}%" : "";
-                        Keep(DropLines, drop.m_prefab, $"Dropped by {Shown(prefab)} ({amount}{chance})", prefab.name);
+                        var chance = drop.m_chance < 1f ? $" ({Mathf.RoundToInt(drop.m_chance * 100f)}%)" : "";
+                        Keep(DropLines, drop.m_prefab, $"Dropped by {Shown(prefab)}, {amount}{chance}", prefab.name);
                     }
                     continue;
                 }
@@ -587,7 +587,7 @@ namespace Scry
                 foreach (var field in tables)
                 {
                     if (!(field.GetValue(component) is DropTable table) || table.m_drops == null) continue;
-                    shown = shown ?? $"Comes out of {Shown(prefab)}";
+                    shown = shown ?? $"{FromVerb(component)} {Shown(prefab)}";
                     foreach (var data in table.m_drops) Keep(DropLines, data.m_item, shown, prefab.name);
                 }
             }
@@ -655,6 +655,26 @@ namespace Scry
                         Made.Add(making);
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// How an item comes out of a drop table, in the words the other side's facts use: a tree
+        /// "When felled", a rock "Each piece drops", a chest "Holds", a bush "Also", anything
+        /// broken "When broken"; a mod's own part, plainly.
+        /// </summary>
+        private static string FromVerb(Component component)
+        {
+            switch (component)
+            {
+                case TreeBase _: return "Felled from";
+                case TreeLog _: return "Chopped from";
+                case MineRock _:
+                case MineRock5 _: return "Mined from";
+                case Container _: return "Found in";
+                case Pickable _: return "Also picked from";
+                case DropOnDestroyed _: return "Broken out of";
+                default: return "Comes out of";
             }
         }
 

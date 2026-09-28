@@ -179,11 +179,14 @@ namespace Scry
                     continue;
                 }
 
+                // How an item gives an effect is told in its facts' words; the notes keep the field's for grouping.
+                var giver = group.Key == Relations.GivenBy;
                 y = LinkItems(explorer, title, links.Select(l =>
                 {
                     var shown = ShownName(explorer, l.Target, l.Target);
-                    var note = l.Notes.Count == 1 && l.Notes[0].Length <= 28 ? " \u00b7 " + l.Notes[0] : "";
-                    var tip = "Go to " + shown + (l.Notes.Count > 0 ? "\n" + string.Join("\n", l.Notes.Take(12)) : "");
+                    var notes = giver ? l.Notes.Select(Groups.GiverWords).ToList() : l.Notes;
+                    var note = notes.Count == 1 && notes[0].Length > 0 && notes[0].Length <= 28 ? " \u00b7 " + notes[0] : "";
+                    var tip = "Go to " + shown + (notes.Count > 0 ? "\n" + string.Join("\n", notes.Take(12)) : "");
                     return (l.Target, shown + note, tip, (Action)(() => Go(explorer, l.Target)));
                 }), width, y);
             }

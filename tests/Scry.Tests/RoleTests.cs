@@ -214,5 +214,19 @@ namespace Scry.Tests
             Assert.True(spawner.Order < scenery.Order);
             Assert.True(scenery.Order < nothing.Order);
         }
+
+        [Theory]
+        [InlineData("equip", "when worn")]
+        [InlineData("consume", "when used")]
+        [InlineData("set", "set bonus")]
+        [InlineData("attack", "on hit")]
+        [InlineData("fire damage", "fire damage")]
+        [InlineData("guardian power", "guardian power")]
+        [InlineData("", "")]
+        public void HowAnItemGivesAnEffectIsToldInTheWordsOfTheItemsOwnFacts(string how, string shown)
+        {
+            // An item says "When worn: Troll armour set"; the effect says it back in the same words.
+            Assert.Equal(shown, Groups.GiverWords(how));
+        }
     }
 }

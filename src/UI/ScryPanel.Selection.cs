@@ -364,7 +364,7 @@ namespace Scry
         private static string StatusFacts(StatusEffect effect)
         {
             var parts = new List<string>();
-            parts.Add(effect.m_ttl > 0f ? "Lasts " + Duration(effect.m_ttl) : "No time limit of its own");
+            parts.Add(effect.m_ttl > 0f ? "Lasts " + Naming.Duration(effect.m_ttl) : "No time limit of its own");
             return string.Join("    ", parts);
         }
 
@@ -385,12 +385,6 @@ namespace Scry
             {
                 GUI.Label(new Rect(rect.x + U(30f), y + U(28f), rect.width - U(60f), rect.yMax - y - U(34f)), tooltip, Skin.CenterDim);
             }
-        }
-
-        private static string Duration(float seconds)
-        {
-            if (seconds >= 120f) return $"{Mathf.RoundToInt(seconds / 60f)} min";
-            return $"{Mathf.RoundToInt(seconds)} s";
         }
 
         private static float Title(Explorer explorer, Entry entry, float width, float y)

@@ -284,6 +284,23 @@ namespace Scry
             return best;
         }
 
+        /// <summary>
+        /// How something gives a status effect, as it is shown with the effect: in the words the
+        /// item's own facts use ("When worn", "When used", "Set bonus", "On hit"), not the game's
+        /// field names, which the groups above read.
+        /// </summary>
+        public static string GiverWords(string how)
+        {
+            switch ((how ?? "").Trim().ToLowerInvariant())
+            {
+                case "equip": return "when worn";
+                case "consume": return "when used";
+                case "set": return "set bonus";
+                case "attack": return "on hit";
+                default: return how ?? "";
+            }
+        }
+
         /// <summary>Ammo by what fires it: a turret's or a ballista's with the traps, arrows and bolts with the bows, anything else thrown.</summary>
         private static Group Ammo(string ammoType)
         {
