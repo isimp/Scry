@@ -541,7 +541,7 @@ namespace Scry
                     }
                     if (Previews.IsModel(entry))
                     {
-                        if (Button("Show in the world", Previews.InWorld ? Skin.On : (entry.Kind == Kind.Projectile ? Skin.Button : Skin.Primary))) Previews.ToggleWorld();
+                        if (Button("Show in the world", Previews.InWorld ? Skin.On : Skin.Button)) Previews.ToggleWorld();
                         if (Previews.InWorld)
                         {
                             if (Button("Move to where you look", Skin.Button)) Previews.PlaceHere();

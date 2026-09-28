@@ -65,6 +65,9 @@ namespace Scry
         /// <summary>Whether any of the panel's text boxes has the keyboard.</summary>
         public static bool Typing { get; private set; }
 
+        /// <summary>The filter box that had the keyboard at the end of the last pass, or null.</summary>
+        private static string FocusedFilter;
+
         /// <summary>Whether the panel is in its compact view.</summary>
         public static bool Compact => _compact;
 
@@ -208,6 +211,7 @@ namespace Scry
                 var focused = GUI.GetNameOfFocusedControl();
                 SearchFocused = focused == SearchControl;
                 Typing = focused == SearchControl || focused == ClipControl || focused == EffectControl;
+                FocusedFilter = focused == ClipControl || focused == EffectControl ? focused : null;
             }
             catch (ExitGUIException)
             {
@@ -246,7 +250,14 @@ namespace Scry
             switch (e.keyCode)
             {
                 case KeyCode.Escape:
-                    Session.Hide();
+                    // Out of a text box first, handing the keys back to the list and to walking;
+                    // from anywhere else the panel closes.
+                    if (Typing)
+                    {
+                        GUIUtility.keyboardControl = 0;
+                        Cycle.Reset();
+                    }
+                    else Session.Hide();
                     e.Use();
                     break;
                 case KeyCode.UpArrow:
@@ -267,8 +278,12 @@ namespace Scry
                     break;
                 case KeyCode.Return:
                 case KeyCode.KeypadEnter:
-                    // While the search offers a suggestion for the word being typed, Enter takes it.
-                    if (!TakeSuggestion(explorer)) Primary(explorer.Selected);
+                    // In a filter box Enter plays what the filter shows first; in the search, while
+                    // it offers a suggestion for the word being typed, it takes it; else it plays
+                    // or shows the selection.
+                    if (FocusedFilter == EffectControl) PlayFirstEffect();
+                    else if (FocusedFilter == ClipControl) PlayFirstClip();
+                    else if (!TakeSuggestion(explorer)) Primary(explorer.Selected);
                     e.Use();
                     break;
                 case KeyCode.F:
@@ -307,7 +322,13 @@ namespace Scry
             return entry != null && explorer.KindFilter != null && FoldedGroups.Contains(FoldKey(explorer, entry.Group));
         }
 
-        /// <summary>What Enter and a double click do: the main thing for the kind.</summary>
+        /// <summary>
+        /// What Enter and a double click do: the thing most wanted of each kind. A sound or an
+        /// effect plays, a projectile is fired, a status effect is shown; a creature makes its
+        /// first attack; an item is worn or taken off, if it can be; a tree, log, rock or piece
+        /// does what the game does when it is felled or broken, or a log or rock falls where it
+        /// has nothing else. Anything else is left alone; showing it in the world is a button.
+        /// </summary>
         private static void Primary(Entry entry)
         {
             if (entry == null) return;
@@ -327,10 +348,57 @@ namespace Scry
                     if (Previews.StatusShowing) Previews.StopStatus(true);
                     else Previews.ShowStatus(entry);
                     break;
+                case Kind.Creature:
+                    FirstAttack();
+                    break;
+                case Kind.Item:
+                    if (entry.Source is GameObject item && Gear.IsWearable(item))
+                    {
+                        Looks.OnPerson = !Looks.OnPerson;
+                        Previews.Rebuild();
+                        SaveRects();
+                    }
+                    break;
                 default:
-                    if (Previews.IsModel(entry)) Previews.ToggleWorld();
+                    OwnAction(entry);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Plays a creature's first attack, as its chip under Animations does, once its clips are
+        /// known to be attacks; until then it says so rather than playing something else.
+        /// </summary>
+        private static void FirstAttack()
+        {
+            var clips = Previews.Clips();
+            var names = Previews.ClipNames();
+            var tags = Previews.ClipTags();
+            for (var i = 0; i < clips.Count; i++)
+            {
+                var name = i < names.Count ? names[i] : clips[i].name;
+                if (!tags.TryGetValue(name, out var tag) || !tag.StartsWith("attack", StringComparison.Ordinal)) continue;
+                Previews.PlayClip(clips[i]);
+                Previews.LastClip = clips[i];
+                return;
+            }
+            if (clips.Count > 0 && tags.Count == 0) Session.Say("Its animations are still being worked out; Enter plays its first attack once they are.");
+        }
+
+        /// <summary>
+        /// What a tree, log, rock or piece does when the game fells or breaks it, as the chip of
+        /// that effect list does it; a log or rock with nothing of the kind falls instead.
+        /// </summary>
+        private static void OwnAction(Entry entry)
+        {
+            if (!(entry.Source is GameObject prefab) || !Previews.IsModel(entry)) return;
+            foreach (var pair in Previews.PrefabLists(prefab))
+            {
+                if (pair.Value == null || !Falling.IsDestroyedList(prefab, pair.Value)) continue;
+                Previews.PlayEffectList(pair.Key, pair.Value);
+                return;
+            }
+            if (Previews.CanLetFall(entry)) Previews.LetFall();
         }
 
         // ----- Window -----
@@ -1033,9 +1101,9 @@ namespace Scry
             {
                 if (walk && look) return "Walk with your keys when not typing. Hold right mouse outside the panel to look around.";
                 if (walk) return "Walk with your keys when not typing.";
-                return look ? "Hold right mouse outside the panel to look around." : "Arrows move, Enter plays or shows.";
+                return look ? "Hold right mouse outside the panel to look around." : "Arrows move, Enter plays.";
             }
-            const string keys = "Arrows move, Enter plays or shows, Ctrl+F searches.";
+            const string keys = "Arrows move, Enter plays, Ctrl+F searches, Escape leaves the search.";
             if (walk && look) return keys + " Click away from the search to walk, hold right mouse outside the panel to look.";
             if (walk) return keys + " Click away from the search to walk.";
             return look ? keys + " Hold right mouse outside the panel to look." : keys;

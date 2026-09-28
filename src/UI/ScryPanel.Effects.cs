@@ -58,6 +58,7 @@ namespace Scry
             // A long list shows its first chips and one for the rest; while filtering, every match.
             var x = 0f;
             var matching = _effectFilter.Length > 0 ? lists.Where(p => p.Key.IndexOf(_effectFilter, StringComparison.OrdinalIgnoreCase) >= 0).ToList() : lists;
+            _firstEffect = matching.Count > 0 ? matching[0] : default;
             var count = _effectFilter.Length > 0 ? matching.Count : ShownOf("effects", matching.Count);
             for (var i = 0; i < count; i++)
             {
@@ -148,6 +149,15 @@ namespace Scry
                 x += w + U(5f);
             }
             return y + rowH + U(6f);
+        }
+
+        /// <summary>The effect list the filter shows first, for Enter in the filter box.</summary>
+        private static KeyValuePair<string, EffectList> _firstEffect;
+
+        private static void PlayFirstEffect()
+        {
+            if (_firstEffect.Value == null) return;
+            Previews.PlayEffectList(_firstEffect.Key, _firstEffect.Value);
         }
 
         /// <summary>The prefabs an effect list plays, each once.</summary>

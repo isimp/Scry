@@ -14,6 +14,16 @@ namespace Scry
         /// Every animation clip the creature has, each played directly on the copy. The one playing
         /// is lit; Stop hands the copy back to its own animations.
         /// </summary>
+        /// <summary>The clip the filter shows first, for Enter in the filter box.</summary>
+        private static AnimationClip _firstClip;
+
+        private static void PlayFirstClip()
+        {
+            if (_firstClip == null) return;
+            Previews.PlayClip(_firstClip);
+            Previews.LastClip = _firstClip;
+        }
+
         private static float Clips(Explorer explorer, List<AnimationClip> clips, Modifiers modifiers, float width, float labelW, float y)
         {
             _groundsFor = explorer.Selected;
@@ -90,6 +100,7 @@ namespace Scry
             var totals = new Dictionary<int, int>();
             foreach (var row in shown) totals[row.Group] = totals.TryGetValue(row.Group, out var n) ? n + 1 : 1;
             var filtering = _clipFilter.Length > 0;
+            _firstClip = shown.Count > 0 ? shown[0].Clip : null;
             var group = -1;
             var inGroup = 0;
             var limit = 0;
