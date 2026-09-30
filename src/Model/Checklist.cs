@@ -9,7 +9,7 @@ namespace Scry
         /// <summary>There, as it was when this version of Scry was made.</summary>
         Present,
 
-        /// <summary>There, but its code has changed since, so what Scry copies of it may be off.</summary>
+        /// <summary>There, but its code has changed since, so what Scry works out by its rules may be off.</summary>
         Changed,
 
         /// <summary>Gone or renamed, so the feature that needs it is off.</summary>
@@ -17,7 +17,7 @@ namespace Scry
     }
 
     /// <summary>
-    /// The parts of the game Scry reaches by name or copies the workings of, as found at start:
+    /// The parts of the game Scry reaches by name or follows the rules of, as found at start:
     /// each with the feature that needs it. Told in the log as one line when all is well, and a
     /// line for each part that is missing or has changed otherwise.
     /// </summary>

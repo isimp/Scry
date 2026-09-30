@@ -7,7 +7,7 @@ namespace Scry.Tests
     public class ShapeListTests
     {
         private const string Source =
-@"        private static readonly (string Type, string Method, int Params, uint Shape, string Feature)[] Copied =
+@"        private static readonly (string Type, string Method, int Params, uint Shape, string Feature)[] Watched =
         {
             (""VisEquipment"", ""AttachItem"", 6, 0xD7DAC228, ""gear on creatures and the person""),
             (""ItemDrop+ItemData"", ""GetTooltip"", 6, 0xE717E1A4, ""item stats in the details""),

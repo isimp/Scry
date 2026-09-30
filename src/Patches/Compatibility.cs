@@ -10,7 +10,7 @@ namespace Scry
     /// <summary>
     /// Checks the parts of the game Scry relies on, once, when it first reads the catalog in a
     /// world, and says in the log what it found: the members it reaches by name, the methods it
-    /// patches, the game code whose workings its previews copy (by the shape of that code as it
+    /// patches, the game code whose rules its previews follow (by the shape of that code as it
     /// was when this version was made, see <see cref="IlShape"/>), the animation events the game
     /// answers, the layers falling copies land on, the effect scripts copies keep, and the status
     /// effects and prefab it looks up by name. A game update that moves any of these is told as
@@ -32,10 +32,10 @@ namespace Scry
         };
 
         /// <summary>
-        /// The game methods whose workings Scry's previews copy, with the shape of their code in
+        /// The game methods whose rules Scry follows, with the shape of their code in
         /// Valheim 1.0.16, read from the game's own assembly.
         /// </summary>
-        private static readonly (string Type, string Method, int Params, uint Shape, string Feature)[] Copied =
+        private static readonly (string Type, string Method, int Params, uint Shape, string Feature)[] Watched =
         {
             ("VisEquipment", "AttachItem", 6, 0xD7DAC228, "gear on creatures and the person"),
             ("Humanoid", "GiveDefaultItems", 0, 0x308C20BE, "what creatures carry"),
@@ -197,9 +197,9 @@ namespace Scry
             Each("SpawnSystem.m_instances", () => Member(list, "SpawnSystem", "m_instances", "where creatures spawn"));
             Each("ZSFX.m_fadeOutTimer", () => Member(list, "ZSFX", "m_fadeOutTimer", "sounds playing on after a seek or pause"));
             Each("the patches", () => Patches(list));
-            foreach (var copied in Copied)
+            foreach (var watched in Watched)
             {
-                Each($"{copied.Type}.{copied.Method}", () => Code(list, copied.Type, copied.Method, copied.Params, copied.Shape, copied.Feature));
+                Each($"{watched.Type}.{watched.Method}", () => Code(list, watched.Type, watched.Method, watched.Params, watched.Shape, watched.Feature));
             }
             Each("CharacterAnimEvent", () => Events(list, "CharacterAnimEvent"));
             Each("AnimationEffect", () => Events(list, "AnimationEffect"));

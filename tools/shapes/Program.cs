@@ -1,4 +1,4 @@
-// Reads the code shapes of game methods from assembly_valheim.dll, for Compatibility.Copied.
+// Reads the code shapes of game methods from assembly_valheim.dll, for Compatibility.Watched.
 //
 // From the repository's folder, after a game update:
 //   dotnet run --project tools/shapes -c Release -- --check    lists what changed or is missing

@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace Scry
 {
-    /// <summary>One game method the startup check knows the shape of, as written in <c>Compatibility.Copied</c>.</summary>
+    /// <summary>One game method the startup check knows the shape of, as written in <c>Compatibility.Watched</c>.</summary>
     public sealed class ShapeEntry
     {
         /// <summary>Its line in the file, from 1.</summary>
