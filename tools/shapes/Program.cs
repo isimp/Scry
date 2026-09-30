@@ -113,14 +113,17 @@ class Program
 
     /// <summary>
     /// A method's shape as the game check reads it: a coroutine's is its state machine's
-    /// MoveNext, where its steps are, as its own method only hands that out.
+    /// MoveNext, where its steps are, as its own method only hands that out. The state machine
+    /// is the one the coroutine's attribute names, else the first named after it.
     /// </summary>
     private static uint StepsOf(PEReader pe, MetadataReader md, TypeDefinition type, MethodDefinition method, string name)
     {
+        var machine = StateMachineOf(md, method);
         foreach (var nh in type.GetNestedTypes())
         {
             var nested = md.GetTypeDefinition(nh);
-            if (!IlShape.IsStateMachineOf(md.GetString(nested.Name), name)) continue;
+            var nestedName = md.GetString(nested.Name);
+            if (machine != null ? nestedName != machine : !IlShape.IsStateMachineOf(nestedName, name)) continue;
             foreach (var mh in nested.GetMethods())
             {
                 var step = md.GetMethodDefinition(mh);
@@ -128,6 +131,25 @@ class Program
             }
         }
         return ShapeOf(pe, method);
+    }
+
+    /// <summary>The name of the state machine a coroutine's IteratorStateMachine attribute names, or null for a method without one.</summary>
+    private static string StateMachineOf(MetadataReader md, MethodDefinition method)
+    {
+        foreach (var ah in method.GetCustomAttributes())
+        {
+            var attribute = md.GetCustomAttribute(ah);
+            if (attribute.Constructor.Kind != HandleKind.MemberReference) continue;
+            var parent = md.GetMemberReference((MemberReferenceHandle)attribute.Constructor).Parent;
+            if (parent.Kind != HandleKind.TypeReference || md.GetString(md.GetTypeReference((TypeReferenceHandle)parent).Name) != "IteratorStateMachineAttribute") continue;
+
+            // The value is the type's name as a serialized string after the blob's prolog, nested as Outer+Inner.
+            var blob = md.GetBlobReader(attribute.Value);
+            blob.ReadUInt16();
+            var full = blob.ReadSerializedString();
+            return full?.Substring(full.LastIndexOf('+') + 1);
+        }
+        return null;
     }
 
     private static string TypeName(MetadataReader md, TypeDefinition type)

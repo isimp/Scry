@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using HarmonyLib;
 using UnityEngine;
 
@@ -115,6 +116,12 @@ namespace Scry
             ("CreatureSpawner", "Spawn", 0, 0xF64EBBF9, "spawn roars"),
             ("SpawnAbility", "Spawn", 0, 0xD3A37693, "spawn roars"),
             ("Player", "SetupAwake", 0, 0x38272BB3, "the person standing from the start"),
+            ("ZoneSystem", "SpawnLocation", 7, 0xDC30DC06, "locations and rooms as the game builds them"),
+            ("RandomSpawn", "Randomize", 3, 0x36081587, "the chance parts of locations and rooms"),
+            ("RandomSpawn", "SetSpawned", 1, 0xEEAF5E83, "the chance parts of locations and rooms"),
+            ("RandomObject", "Randomize", 3, 0x7EF8F11A, "the chance parts of locations and rooms"),
+            ("RandomObject", "GetWeightedObject", 0, 0xDB9205DF, "the chance parts of locations and rooms"),
+            ("RandomObject", "SetSpawned", 1, 0x8FFF8015, "the chance parts of locations and rooms"),
 
             // What the details tell the game's rules from: if one changes, its words may be off.
             ("CharacterDrop", "GenerateDropList", 0, 0x1D58F486, "creature drop amounts, chances and stars in the details"),
@@ -171,6 +178,10 @@ namespace Scry
             ("Tameable", "IsHungry", 0, 0x38421197, "taming and feeding in the details"),
             ("Character", "GetMaxHealthBase", 0, 0x1BFF8AE9, "the world's level in the details"),
             ("SEMan", "HaveStatusEffectCategory", 1, 0xE7A9814B, "effects that cannot be taken together, in the details"),
+            ("ZoneSystem", "GenerateLocationsTimeSliced", 0, 0x3D0E575E, "which locations are placed first, in the details"),
+            ("ZoneSystem", "GenerateLocationsTimeSliced", 3, 0xB5CD6171, "where locations are placed, in the details"),
+            ("Location", "GetMaxRadius", 0, 0xB73300D6, "where nothing can be built near a location, in the details"),
+            ("Location", "IsInside", 3, 0xCC89D439, "where nothing can be built near a location, in the details"),
         };
 
         /// <summary>Public methods of the animation event receivers that are not events.</summary>
@@ -295,10 +306,12 @@ namespace Scry
                 list.Add($"{typeName}.{name}", feature, Found.Missing);
                 return;
             }
-            // A coroutine's steps are in the state machine made for it, not in its own method.
-            var steps = type.GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public)
-                .FirstOrDefault(t => IlShape.IsStateMachineOf(t.Name, name))
-                ?.GetMethod("MoveNext", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public) ?? method;
+            // A coroutine's steps are in the state machine made for it, not in its own method: the
+            // one its attribute names, which tells two coroutines of one name apart, else the
+            // first named after it.
+            var machine = (method.GetCustomAttributes(typeof(IteratorStateMachineAttribute), false).FirstOrDefault() as IteratorStateMachineAttribute)?.StateMachineType
+                ?? type.GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public).FirstOrDefault(t => IlShape.IsStateMachineOf(t.Name, name));
+            var steps = machine?.GetMethod("MoveNext", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public) ?? method;
             var now = IlShape.Of(steps.GetMethodBody()?.GetILAsByteArray());
             list.Add($"{typeName}.{name}", feature, now == shape ? Found.Present : Found.Changed);
         }
