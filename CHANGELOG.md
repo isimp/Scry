@@ -26,6 +26,8 @@ What creatures drop as you play is watched and kept from session to session, whi
 
 Mods have a tab of their own: every mod loaded has a page telling its version, what it adds kind by kind, its stations and tools, which of the game's drops and spawning it hooks into, and what Scry could not place. The line naming the mod that added an entry goes to that page.
 
+When part of Scry is off, because the game changed in a way it does not know or a part of it failed, an amber strip under the header says what in plain words instead of a *Game changed* chip, with details that say what to do and copy what is off for a report.
+
 ## 0.1.0
 
 First release.

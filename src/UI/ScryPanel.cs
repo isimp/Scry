@@ -375,7 +375,6 @@ namespace Scry
 
             var header = new Rect(0f, 0f, (showLoc ? locRect.x : clearRect.x) - U(8f), U(52f));
             GUI.Label(new Rect(pad, U(10f), U(90f), U(34f)), "Scry", Skin.Title);
-            GameChangedChip(pad + U(84f), header.xMax - U(4f), e);
 
             if (showLoc)
             {
@@ -413,8 +412,12 @@ namespace Scry
                 Event.current.Use();
             }
 
+            // What is off, in a strip under the header, the rest moved down to make room.
+            var noticeH = OffNoticeHeight();
+            if (noticeH > 0f) OffNotice(new Rect(pad, U(54f), w - pad * 2f, noticeH - U(4f)));
+
             var controls = Timing.Start();
-            var y = Controls(explorer, new Rect(pad, U(56f), w - pad * 2f, U(36f)));
+            var y = Controls(explorer, new Rect(pad, U(56f) + noticeH, w - pad * 2f, U(36f)));
             Timing.Add("controls search", controls);
             var tabs = Timing.Start();
             y = Tabs(explorer, new Rect(pad, y + U(10f), w - pad * 2f, U(30f)));
@@ -526,6 +529,7 @@ namespace Scry
             {
                 _help = !_help;
                 _modReport = false;
+                _offDetails = false;
             }
             if (help.Contains(Event.current.mousePosition)) AskTip("help", "How to search");
 

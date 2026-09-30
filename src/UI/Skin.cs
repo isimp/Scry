@@ -23,6 +23,10 @@ namespace Scry
         public static readonly Color Faint = new Color(0.600f, 0.605f, 0.640f, 1f);
         public static readonly Color Accent = new Color(0.960f, 0.720f, 0.340f, 1f);
         public static readonly Color AccentSoft = new Color(0.960f, 0.720f, 0.340f, 0.16f);
+
+        /// <summary>What is off, in a warmer amber than the accent, so it is not taken for a selection.</summary>
+        public static readonly Color Warn = new Color(0.985f, 0.600f, 0.260f, 1f);
+        public static readonly Color WarnSoft = new Color(0.985f, 0.600f, 0.260f, 0.13f);
         public static readonly Color OnAccent = new Color(0.110f, 0.080f, 0.040f, 1f);
 
         public static GUISkin Gui;

@@ -41,6 +41,7 @@ namespace Scry
         {
             _modReport = true;
             _help = false;
+            _offDetails = false;
             _modScroll = Vector2.zero;
         }
 
