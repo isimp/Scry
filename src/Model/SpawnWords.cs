@@ -64,6 +64,50 @@ namespace Scry
             return string.IsNullOrEmpty(boss) ? $"the world key \"{key}\" is set" : $"{boss} is defeated";
         }
 
+        // ----- Spawners (SpawnArea) -----
+
+        private static string Metres(float value) => value.ToString("#,0.##", System.Globalization.CultureInfo.InvariantCulture) + " m";
+
+        /// <summary>
+        /// How often a spawner spawns. <c>SpawnArea.UpdateSpawn</c> runs every two seconds, adds two
+        /// seconds to its timer and spawns once the timer is past the interval, so the pace is the
+        /// first even second past it.
+        /// </summary>
+        public static string SpawnerPace(float interval)
+        {
+            var seconds = 2f * ((float)Math.Floor(Math.Max(0f, interval) / 2f) + 1f);
+            return "one every " + Naming.Duration(seconds);
+        }
+
+        /// <summary>A spawner works only while a player is within its trigger distance.</summary>
+        public static string SpawnerWakes(float triggerDistance) => $"while someone is within {Metres(triggerDistance)}";
+
+        /// <summary>The most of its own creatures, untamed, it lets be alive near it and farther out (<c>SpawnArea.GetInstances</c>).</summary>
+        public static string SpawnerCaps(int maxNear, float nearRadius, int maxTotal, float farRadius)
+        {
+            return $"{maxNear:#,0} within {Metres(nearRadius)}, {maxTotal:#,0} within {Metres(farRadius)}";
+        }
+
+        /// <summary>How far from itself it puts what it spawns, and whether only where nothing is built (<c>SpawnArea.FindSpawnPoint</c>).</summary>
+        public static string SpawnerPlaces(float radius, bool groundOnly)
+        {
+            return $"up to {Metres(radius)} away" + (groundOnly ? ", on open ground only" : "");
+        }
+
+        /// <summary>
+        /// A creature's share of a spawner's spawns, by its weight among the whole pool
+        /// (<c>SpawnArea.SelectWeightedPrefab</c>), and its stars. The only one in the pool, or a
+        /// pool without weights, is every spawn.
+        /// </summary>
+        public static string PoolShare(float weight, float totalWeight, int minLevel, int maxLevel)
+        {
+            var share = weight < totalWeight ? $"{Math.Round(weight / totalWeight * 100f):0}% of the spawns" : "every spawn";
+            return share + ", " + Stars(minLevel, maxLevel);
+        }
+
+        /// <summary>The chance of each star beyond the least, each rolled on its own until one misses (<c>SpawnArea.SpawnOne</c>).</summary>
+        public static string StarChance(float levelUpChance) => levelUpChance > 0f ? $"{Naming.Number(levelUpChance)}% for each star" : null;
+
         /// <summary>A whole line: how it starts ("Spawns in"), then the biomes and every limit it has.</summary>
         public static string Line(string start, SpawnFacts spawn, Func<string, string> bossOf)
         {

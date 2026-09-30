@@ -159,10 +159,11 @@ namespace Scry
             foreach (var component in components)
             {
                 if (!(component is SpawnArea area) || area.m_prefabs == null) continue;
+                var total = area.m_prefabs.Where(d => d?.m_prefab != null).Sum(d => d.m_weight);
                 foreach (var data in area.m_prefabs)
                 {
                     if (data?.m_prefab == null) continue;
-                    Keep(SpawnPointLines, data.m_prefab, $"Comes from {Shown(prefab)}, {SpawnWords.Stars(data.m_minLevel, data.m_maxLevel)}", prefab.name);
+                    Keep(SpawnPointLines, data.m_prefab, $"Comes from {Shown(prefab)}, {SpawnWords.PoolShare(data.m_weight, total, data.m_minLevel, data.m_maxLevel)}", prefab.name);
                 }
             }
             foreach (var component in components)

@@ -35,6 +35,62 @@ namespace Scry.Tests
             Assert.Equal(words, SpawnWords.Group(min, max));
         }
 
+        // A spawner (SpawnArea) checks every two seconds, adding two seconds to its timer, and
+        // spawns once the timer is past its interval: a 10 s interval spawns every 12 s.
+
+        [Theory]
+        [InlineData(10f, "one every 12 s")]
+        [InlineData(30f, "one every 32 s")]
+        [InlineData(5f, "one every 6 s")]
+        [InlineData(9.9f, "one every 10 s")]
+        [InlineData(0f, "one every 2 s")]
+        public void ASpawnerSpawnsOnItsTwoSecondBeatPastItsInterval(float interval, string words)
+        {
+            Assert.Equal(words, SpawnWords.SpawnerPace(interval));
+        }
+
+        [Fact]
+        public void ASpawnerWakesWhileSomeoneIsNear()
+        {
+            Assert.Equal("while someone is within 60 m", SpawnWords.SpawnerWakes(60f));
+        }
+
+        [Fact]
+        public void ASpawnerStopsAtItsCapsNearAndFar()
+        {
+            Assert.Equal("3 within 20 m, 100 within 1,000 m", SpawnWords.SpawnerCaps(3, 20f, 100, 1000f));
+        }
+
+        [Fact]
+        public void ASpawnerPlacesWithinItsRadiusAndSaysWhenOnlyOnOpenGround()
+        {
+            Assert.Equal("up to 4 m away", SpawnWords.SpawnerPlaces(4f, groundOnly: false));
+            Assert.Equal("up to 2.28 m away, on open ground only", SpawnWords.SpawnerPlaces(2.28f, groundOnly: true));
+        }
+
+        [Fact]
+        public void EachCreatureOfASpawnersPoolHasItsShareOfTheSpawns()
+        {
+            // SpawnArea.SelectWeightedPrefab picks by weight among all of the pool.
+            Assert.Equal("71% of the spawns, up to 2 stars", SpawnWords.PoolShare(5f, 7f, 1, 3));
+            Assert.Equal("14% of the spawns, no stars", SpawnWords.PoolShare(1f, 7f, 1, 1));
+        }
+
+        [Fact]
+        public void ASpawnerWithOneCreatureAlwaysSpawnsIt()
+        {
+            Assert.Equal("every spawn, up to 2 stars", SpawnWords.PoolShare(1f, 1f, 1, 3));
+            Assert.Equal("every spawn, up to 2 stars", SpawnWords.PoolShare(0f, 0f, 1, 3));
+        }
+
+        [Fact]
+        public void EachFurtherStarNeedsItsOwnRoll()
+        {
+            // SpawnArea.SpawnOne rolls once for each level above the least, stopping at the first miss.
+            Assert.Equal("15% for each star", SpawnWords.StarChance(15f));
+            Assert.Null(SpawnWords.StarChance(0f));
+        }
+
         [Fact]
         public void ABossKeyNamesTheBossAndAnyOtherKeyIsToldAsAWorldKey()
         {

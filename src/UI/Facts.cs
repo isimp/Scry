@@ -163,6 +163,11 @@ namespace Scry
             if (piece != null && !piece.enabled) Part("build cost", () => MadeBuildable(piece));
             Part("station", () => Station(prefab));
 
+            // A spawner finds its network view among its parents (SpawnArea.Awake), so it may sit
+            // on a part of the prefab; the first found is told.
+            var spawner = prefab.GetComponentInChildren<SpawnArea>(true);
+            if (spawner != null) Part("spawner", () => Spawner(spawner));
+
             var projectile = prefab.GetComponent<Projectile>();
             if (projectile != null) Part("projectile", () => Flight(projectile));
 
