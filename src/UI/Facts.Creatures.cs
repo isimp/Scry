@@ -30,6 +30,7 @@ namespace Scry
             }
 
             Part("resistances", () => Resists(character.m_damageModifiers));
+            Part("weak spots", () => WeakSpots(character));
             Part("attacks", () => Attacks(prefab));
             Part("behaviour", () => Behaviour(prefab, character));
             if (character.m_boss) Part("summoning", () => SummonedBy(prefab));
@@ -113,6 +114,8 @@ namespace Scry
                 if (ai.m_passiveAggresive) Add("Fights", "only once attacked");
                 if (ai is MonsterAI monster)
                 {
+                    Add("Turns on you", CombatWords.Alerted(monster.m_alertRange));
+                    Add("Gives up chasing", CombatWords.Chase(monster.m_maxChaseDistance));
                     if (monster.m_fleeIfLowHealth > 0f) Add("Flees", $"below {Mathf.RoundToInt(monster.m_fleeIfLowHealth * 100f)}% health, right after being hurt");
                     if (!monster.m_attackPlayerObjects) Add("Leaves alone", "what players build");
                 }
@@ -129,7 +132,15 @@ namespace Scry
         /// <summary>What it resists or is weak to, a row for each degree, as a creature's or a resource's are told.</summary>
         private void Resists(HitData.DamageModifiers mods)
         {
-            // By degree, from very weak to immune, as the game orders them, not by the words' spelling.
+            foreach (var group in ByDegree(mods)) Add(group.Words, string.Join(", ", group.Types));
+        }
+
+        /// <summary>
+        /// Each damage modifier that is not plain, grouped by degree from very weak to immune, as
+        /// the game orders them, not by the words' spelling.
+        /// </summary>
+        private static List<(string Words, string[] Types)> ByDegree(HitData.DamageModifiers mods)
+        {
             var groups = new SortedDictionary<int, (string Words, List<string> Types)>();
             foreach (var field in typeof(HitData.DamageModifiers).GetFields(BindingFlags.Public | BindingFlags.Instance))
             {
@@ -142,7 +153,24 @@ namespace Scry
                 if (!groups.TryGetValue(order, out var group)) groups[order] = group = (ModifierWords(modifier), new List<string>());
                 group.Types.Add(Naming.FieldLabel(field.Name).ToLowerInvariant());
             }
-            foreach (var group in groups.Values) Add(group.Words, string.Join(", ", group.Types));
+            return groups.Values.Select(g => (g.Words, g.Types.ToArray())).ToList();
+        }
+
+        /// <summary>
+        /// Its weak spots: parts whose own resistances take the place of the body's for a hit
+        /// that lands there (<c>Character.GetDamageModifiers</c>), a troll's head for one. Each
+        /// part is told once, however many of it there are.
+        /// </summary>
+        private void WeakSpots(Character character)
+        {
+            if (character.m_weakSpots == null) return;
+            foreach (var spot in character.m_weakSpots)
+            {
+                if (spot == null) continue;
+                var key = "Hit on the " + CombatWords.PartName(spot.gameObject.name);
+                if (Pairs.Any(p => p.Key == key)) continue;
+                Add(key, CombatWords.Resistances(ByDegree(spot.m_damageModifiers)));
+            }
         }
     }
 }

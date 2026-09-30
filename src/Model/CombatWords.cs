@@ -81,5 +81,54 @@ namespace Scry
             var field = halfAngle * 2f;
             return field >= 360f ? $"{Number(range)} m, all round" : $"{Number(range)} m, {Number(field)}° ahead, all round once alerted";
         }
+
+        /// <summary>
+        /// How near it must see its target to turn on it. <c>MonsterAI</c> turns alerted on seeing
+        /// its target nearer than <c>m_alertRange</c> times the target's stealth factor, which is
+        /// below one only while the target sneaks. The field's default of 9999 is no limit, which
+        /// sight already tells, so it is not told.
+        /// </summary>
+        public static string Alerted(float alertRange)
+        {
+            if (alertRange >= 9000f) return null;
+            if (alertRange <= 0f) return "never on sight alone";
+            return $"on seeing you within {Number(alertRange)} m, nearer while you sneak";
+        }
+
+        /// <summary>
+        /// How far it follows. <c>MonsterAI</c> gives up once it is farther than
+        /// <c>m_maxChaseDistance</c> from where it spawned and has not seen or heard its target for
+        /// a second; none set is no limit.
+        /// </summary>
+        public static string Chase(float maxChaseDistance)
+        {
+            return maxChaseDistance > 0f ? $"beyond {Number(maxChaseDistance)} m from where it spawned, once it has lost you" : null;
+        }
+
+        /// <summary>
+        /// A weak spot's part of the body in plain words, from the name of the object it sits on:
+        /// "WEAKSPOT_HEAD" is the head. The game gives weak spots no names of their own.
+        /// </summary>
+        public static string PartName(string objectName)
+        {
+            var name = objectName ?? "";
+            var copy = name.IndexOf(" (", System.StringComparison.Ordinal);
+            if (copy >= 0) name = name.Substring(0, copy);
+            const string marker = "weakspot";
+            if (name.StartsWith(marker, System.StringComparison.OrdinalIgnoreCase)) name = name.Substring(marker.Length);
+            name = string.Join(" ", name.Split(new[] { '_', ' ' }, System.StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
+            return name.Length > 0 ? name : "weak spot";
+        }
+
+        /// <summary>
+        /// Resistances as one line, each degree with the damage it applies to, in the order given
+        /// (from the most harm taken to the least). A part that resists nothing takes every hit in
+        /// full, whatever the rest of the body resists.
+        /// </summary>
+        public static string Resistances(IEnumerable<(string Words, string[] Types)> byDegree)
+        {
+            var parts = byDegree.Where(d => d.Types.Length > 0).Select(d => d.Words.ToLowerInvariant() + " " + string.Join(", ", d.Types)).ToList();
+            return parts.Count > 0 ? string.Join("; ", parts) : "takes every hit in full";
+        }
     }
 }
