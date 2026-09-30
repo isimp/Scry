@@ -198,6 +198,9 @@ namespace Scry
             Cycle.Reset();
         }
 
+        /// <summary>How many times the open panel has been drawn this session.</summary>
+        public static int Repaints { get; private set; }
+
         public static void OnGUI()
         {
             var scale = Scale();
@@ -251,6 +254,8 @@ namespace Scry
                 // The panel is solid: clicks and the wheel over it stop here.
                 var e = Event.current;
                 if (Win.Contains(e.mousePosition) && (e.isMouse || e.type == EventType.ScrollWheel)) e.Use();
+
+                if (e.type == EventType.Repaint) Repaints++;
 
                 var focused = GUI.GetNameOfFocusedControl();
                 SearchFocused = focused == SearchControl;

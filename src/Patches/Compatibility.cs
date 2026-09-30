@@ -235,6 +235,9 @@ namespace Scry
         /// <summary>The features the check found turned off by a missing part.</summary>
         private static List<string> _off = new List<string>();
 
+        /// <summary>Whether the check has run in this session.</summary>
+        public static bool Checked => _checked;
+
         /// <summary>How many features may be off, cheap enough to ask every frame.</summary>
         public static int OffCount => _off.Count + Faults.ChangedFeatures.Count;
 

@@ -295,6 +295,67 @@ namespace Scry
             Selected = selected,
         };
 
+        // ----- Keeping and putting back -----
+
+        /// <summary>Keeps where the explorer is whole, to be put back with <see cref="Restore"/>.</summary>
+        public Kept Keep() => new Kept(this);
+
+        /// <summary>Puts the explorer back where it was kept: search, filters, selection, recent entries and history.</summary>
+        public void Restore(Kept kept) => kept?.Into(this);
+
+        /// <summary>
+        /// Where the explorer was: the search and filters, the selection, the recent entries and
+        /// the steps back and forward, so something that looks around through it (the self-test)
+        /// leaves it as the player had it.
+        /// </summary>
+        public sealed class Kept
+        {
+            private readonly string _text;
+            private readonly Kind? _kind;
+            private readonly bool _favouritesOnly, _recentOnly;
+            private readonly OriginFilter _origin;
+            private readonly Entry _selected;
+            private readonly Place _here;
+            private readonly List<string> _recent;
+            private readonly List<Place> _back, _forward;
+
+            internal Kept(Explorer explorer)
+            {
+                _text = explorer._query.Text;
+                _kind = explorer._query.Kind;
+                _favouritesOnly = explorer._query.FavouritesOnly;
+                _origin = explorer._query.Origin;
+                _recentOnly = explorer._recentOnly;
+                _selected = explorer._selected;
+                _here = explorer._here;
+                _recent = new List<string>(explorer._recent);
+                _back = new List<Place>(explorer._back);
+                _forward = new List<Place>(explorer._forward);
+            }
+
+            internal void Into(Explorer explorer)
+            {
+                explorer._query.Text = _text;
+                explorer._query.Kind = _kind;
+                explorer._query.FavouritesOnly = _favouritesOnly;
+                explorer._query.Origin = _origin;
+                explorer._recentOnly = _recentOnly;
+                explorer._recent.Clear();
+                explorer._recent.AddRange(_recent);
+                explorer.Refresh();
+
+                explorer._selected = _selected;
+                explorer._selectedIndex = _selected == null ? -1 : explorer._results.IndexOf(_selected);
+                explorer._selectionVersion++;
+                explorer._modifiers.ResetFor(_selected);
+                explorer._here = _here;
+                explorer._back.Clear();
+                explorer._back.AddRange(_back);
+                explorer._forward.Clear();
+                explorer._forward.AddRange(_forward);
+            }
+        }
+
         public void ToggleFavourite(Entry entry)
         {
             _favourites.Toggle(entry);

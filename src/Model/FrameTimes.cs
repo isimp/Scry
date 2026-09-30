@@ -35,6 +35,23 @@ namespace Scry
         /// <summary>The cleanups that ran inside the outer parts.</summary>
         public int Cleanups => _parts.Where(p => p.Outer).Sum(p => p.Cleanups);
 
+        /// <summary>The part that took longest: of the inner parts, which say more about what was slow, else of the outer ones.</summary>
+        public (string Name, double Ms) Slowest
+        {
+            get
+            {
+                Part inner = null, outer = null;
+                foreach (var part in _parts)
+                {
+                    if (part.Ms <= 0) continue;
+                    if (part.Outer) { if (outer == null || part.Ms > outer.Ms) outer = part; }
+                    else if (inner == null || part.Ms > inner.Ms) inner = part;
+                }
+                var slowest = inner ?? outer;
+                return slowest == null ? ("", 0.0) : (slowest.Name, slowest.Ms);
+            }
+        }
+
         /// <summary>Adds to a part: its time, what it allocated, and how many cleanups ran inside it.</summary>
         public void Add(string part, double ms, long bytes, int cleanups)
         {

@@ -32,9 +32,18 @@ namespace Scry
         private static float _toldAt = -10f;
         private static float _windowFrom = -1f;
 
+        /// <summary>
+        /// Where each frame's total goes while the self-test measures (<see cref="SelfTest"/>),
+        /// with its slowest part; null otherwise. Slow frames are logged only with
+        /// <see cref="Plugin.LogPreviews"/> on.
+        /// </summary>
+        public static FrameStats Measuring;
+
+        private static bool On => Plugin.LogPreviews || Measuring != null;
+
         public static Mark Start()
         {
-            if (!Plugin.LogPreviews) return default;
+            if (!On) return default;
             return new Mark { Ticks = Stopwatch.GetTimestamp(), Bytes = GC.GetTotalMemory(false), Cleanups = GC.CollectionCount(0) };
         }
 
@@ -44,7 +53,7 @@ namespace Scry
         /// </summary>
         public static void Add(string part, Mark started)
         {
-            if (!Plugin.LogPreviews || started.Ticks == 0) return;
+            if (!On || started.Ticks == 0) return;
             var ms = (Stopwatch.GetTimestamp() - started.Ticks) * 1000.0 / Stopwatch.Frequency;
             var cleanups = GC.CollectionCount(0) - started.Cleanups;
             var bytes = cleanups > 0 ? 0 : GC.GetTotalMemory(false) - started.Bytes;
@@ -59,6 +68,17 @@ namespace Scry
         private static void Roll()
         {
             if (Time.frameCount == _frame) return;
+            if (Measuring != null && _frame >= 0)
+            {
+                var slowest = Frame.Slowest;
+                Measuring.Add(Frame.Total, slowest.Name, slowest.Ms);
+            }
+            if (!Plugin.LogPreviews)
+            {
+                Frame.Clear();
+                _frame = Time.frameCount;
+                return;
+            }
             if (Frame.Total >= SlowMs && Time.unscaledTime - _toldAt >= 0.5f)
             {
                 _toldAt = Time.unscaledTime;

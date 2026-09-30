@@ -236,6 +236,9 @@ namespace Scry
             _sizeSince = Time.unscaledTime;
         }
 
+        /// <summary>The entry the stage was last asked to show, whose copy is <see cref="Subject"/> once made.</summary>
+        public static Entry Showing => _lastShown;
+
         /// <summary>Puts a fresh copy of the entry on the stage, with the modifiers applied.</summary>
         public static void Show(Entry entry, Modifiers modifiers)
         {

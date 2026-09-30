@@ -148,6 +148,7 @@ namespace Scry
             });
 
             Step("the previews", () => Previews.Update(IsOpen ? Explorer : null));
+            Step("the self-test", SelfTest.Tick);
 
             var reading = Timing.Start();
             try { Locations.Update(); } catch (Exception ex) { Faults.Tell("reading the locations", ex); Locations.Forget(); }

@@ -9,7 +9,7 @@ namespace Scry
         public static void Register()
         {
             new Terminal.ConsoleCommand("scry",
-                "[text] - opens the prefab previewer, searching for the text if given. 'scry clear' removes every preview from the world; 'scry locations' reads where things are found in locations and dungeons, 'scry locations stop' stops it.",
+                "[text] - opens the prefab previewer, searching for the text if given. 'scry clear' removes every preview from the world; 'scry locations' reads where things are found in locations and dungeons, 'scry locations stop' stops it; 'scry selftest' tries Scry out and writes BepInEx/Scry-selftest.log.",
                 args =>
                 {
                     // A command that fails says so in the chat, and once in the log, rather than
@@ -46,6 +46,18 @@ namespace Scry
             if (rest.Equals("locations stop", System.StringComparison.OrdinalIgnoreCase))
             {
                 args.Context?.AddString("Scry: " + Locations.Stop());
+                return;
+            }
+
+            if (rest.Equals("selftest", System.StringComparison.OrdinalIgnoreCase))
+            {
+                args.Context?.AddString("Scry: " + SelfTest.Start("it was asked for with /scry selftest"));
+                return;
+            }
+
+            if (rest.Equals("selftest stop", System.StringComparison.OrdinalIgnoreCase))
+            {
+                args.Context?.AddString("Scry: " + SelfTest.Stop());
                 return;
             }
 
