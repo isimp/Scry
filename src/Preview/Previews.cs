@@ -282,6 +282,16 @@ namespace Scry
                 Faults.Tell("loading a location", ex);
             }
 
+            // A dungeon or camp selected: its rooms are read for an example layout.
+            try
+            {
+                ExampleLayouts.Update(explorer);
+            }
+            catch (System.Exception ex)
+            {
+                Faults.Tell("laying out an example dungeon", ex);
+            }
+
             if (_stageStale)
             {
                 _stageStale = false;
@@ -339,8 +349,10 @@ namespace Scry
             _stageStale = true;
             StopSound();
 
-            // A location's bundle is loaded again when the panel opens on it.
+            // A location's bundle is loaded again when the panel opens on it, and any dungeon
+            // room being read for its example layout.
             PlaceAssets.Release();
+            ExampleLayouts.Pause();
         }
 
         /// <summary>

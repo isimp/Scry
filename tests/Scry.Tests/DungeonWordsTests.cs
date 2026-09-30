@@ -64,6 +64,46 @@ namespace Scry.Tests
             Assert.Equal("a room", DungeonWords.Role(new RoomShape()));
         }
 
+        // The example layout under a dungeon's details: its rooms are read first, then what the
+        // example holds is counted under its plan.
+
+        [Fact]
+        public void WhileItsRoomsAreReadThePlanSaysHowFarItHasGot()
+        {
+            Assert.Equal("Reading the 34 kinds of room it is built of, 12 so far", DungeonWords.Reading(12, 34));
+        }
+
+        private static PlacedRoom Of(RoomShape room) => new PlacedRoom { Room = room };
+
+        [Fact]
+        public void AnExampleCountsItsRoomsEndCapsDividersWallAndDoors()
+        {
+            var example = new DungeonExample();
+            example.Rooms.Add(Of(new RoomShape { Entrance = true }));
+            example.Rooms.Add(Of(new RoomShape()));
+            example.Rooms.Add(Of(new RoomShape { EndCap = true }));
+            example.Rooms.Add(Of(new RoomShape { EndCap = true }));
+            example.Rooms.Add(Of(new RoomShape { Divider = true }));
+            example.Doors.Add(new Vec3(0f, 0f, 0f));
+            Assert.Equal("2 rooms, 2 end caps, 1 divider, 1 door", DungeonWords.Example(example, 0));
+
+            var camp = new DungeonExample();
+            camp.Rooms.Add(Of(new RoomShape()));
+            camp.Rooms.Add(Of(new RoomShape { Perimeter = true }));
+            camp.Rooms.Add(Of(new RoomShape { Perimeter = true }));
+            Assert.Equal("1 room, 2 pieces of wall", DungeonWords.Example(camp, 0));
+        }
+
+        [Fact]
+        public void RoomsThatCouldNotBeLoadedAreSaidToBeLeftOut()
+        {
+            var example = new DungeonExample();
+            example.Rooms.Add(Of(new RoomShape { Entrance = true }));
+            Assert.Equal("1 room; 1 kind of room could not be loaded and is left out", DungeonWords.Example(example, 1));
+            Assert.Equal("1 room; 3 kinds of room could not be loaded and are left out", DungeonWords.Example(example, 3));
+            Assert.Equal("Nothing could be laid out", DungeonWords.Example(new DungeonExample(), 0));
+        }
+
         [Fact]
         public void ARoomsDoorwaysAreCountedByType()
         {

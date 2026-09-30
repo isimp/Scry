@@ -72,6 +72,33 @@ namespace Scry
             return "a room";
         }
 
+        /// <summary>What a dungeon's plan says while the rooms it is built of are read.</summary>
+        public static string Reading(int read, int total) => $"Reading the {total} kinds of room it is built of, {read} so far";
+
+        /// <summary>
+        /// What an example holds: its rooms (the entrance among them), end caps, dividers, pieces
+        /// of a camp's wall and doors, each only when there are any, and the kinds of room left
+        /// out because they could not be loaded.
+        /// </summary>
+        public static string Example(DungeonExample example, int failed)
+        {
+            string Count(int n, string one, string many) => n == 1 ? "1 " + one : $"{n} {many}";
+            var rooms = example.Rooms.Count(r => !r.Room.EndCap && !r.Room.Divider && !r.Room.Perimeter);
+            var parts = new List<string>();
+            if (rooms > 0) parts.Add(Count(rooms, "room", "rooms"));
+            var caps = example.Rooms.Count(r => r.Room.EndCap);
+            if (caps > 0) parts.Add(Count(caps, "end cap", "end caps"));
+            var dividers = example.Rooms.Count(r => r.Room.Divider);
+            if (dividers > 0) parts.Add(Count(dividers, "divider", "dividers"));
+            var wall = example.Rooms.Count(r => r.Room.Perimeter);
+            if (wall > 0) parts.Add(Count(wall, "piece of wall", "pieces of wall"));
+            if (example.Doors.Count > 0) parts.Add(Count(example.Doors.Count, "door", "doors"));
+
+            var text = parts.Count > 0 ? string.Join(", ", parts) : "Nothing could be laid out";
+            if (failed > 0) text += failed == 1 ? "; 1 kind of room could not be loaded and is left out" : $"; {failed} kinds of room could not be loaded and are left out";
+            return text;
+        }
+
         /// <summary>How many doorways and of which types, the commonest first.</summary>
         public static string Doorways(RoomShape room)
         {

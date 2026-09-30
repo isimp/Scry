@@ -183,7 +183,38 @@ namespace Scry
             {
                 foreach (var door in generator.m_doorTypes) if (door != null) plan.Doors.Add((door.m_connectionType ?? "", door.m_chance));
             }
+            Site(prefab, generator, plan);
             contents.Dungeon = plan;
+        }
+
+        /// <summary>
+        /// Where the generator stands, for an example's zone (<see cref="DungeonLayout.Site"/>), as
+        /// <c>ZoneSystem.SpawnLocation</c> puts it: with an interior of its own, at the zone's
+        /// centre moved on by the interior's and the generator's own offsets and turned only by
+        /// the generator's own turn, its zone as high as the generator less its offset; otherwise
+        /// where it is in its location, turned with it.
+        /// </summary>
+        private static void Site(GameObject prefab, DungeonGenerator generator, DungeonPlan plan)
+        {
+            var location = prefab.GetComponent<Location>();
+            var interior = location != null ? location.m_interiorTransform : null;
+            var own = location != null ? location.m_generator : null;
+            if (location != null && location.m_useCustomInteriorTransform && interior != null && own != null)
+            {
+                var at = interior.localPosition;
+                var offset = own.transform.localPosition;
+                var turn = Quaternion.Inverse(interior.rotation) * own.transform.rotation;
+                plan.CustomInterior = true;
+                plan.ZoneFromGenerator = new Vec3(-(at.x + offset.x), -offset.y, -(at.z + offset.z));
+                plan.GeneratorTurn = new Quat(turn.x, turn.y, turn.z, turn.w);
+                return;
+            }
+            var root = prefab.transform;
+            var inverse = Quaternion.Inverse(root.rotation);
+            var from = inverse * (generator.transform.position - root.position);
+            var turned = inverse * generator.transform.rotation;
+            plan.GeneratorAt = new Vec3(from.x, from.y, from.z);
+            plan.GeneratorTurn = new Quat(turned.x, turned.y, turned.z, turned.w);
         }
 
         /// <summary>A room's box, kind and doorways, each doorway where it sits relative to the room.</summary>

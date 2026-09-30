@@ -1,6 +1,6 @@
 # Scry
 
-Look up anything in Valheim and see it, without spawning a thing. Press F7 or type /scry in chat, search for a creature, item, piece, sound or effect, and it appears on a turntable inside the panel.
+Look up anything in Valheim and see it, without spawning a thing. Press F7 or type /scry in chat, search for a creature, item, piece, sound, effect or location, and it appears on a turntable inside the panel.
 
 ![A creature on the Scry turntable with its details](https://raw.githubusercontent.com/isimp/Scry/main/docs/images/screenshot.webp)
 
@@ -12,7 +12,9 @@ Most of Scry was written by Claude Code (Anthropic), which did the heavy lifting
 
 Creatures can be shown at every star level, in any of their animations and with the gear they can roll, and they attack with their own sounds and effects. Trees can be felled, pieces shown new, worn or broken, sounds and effects played, and projectiles fired where you look. Any model can also be placed in the world in front of you and pinned there to compare with others.
 
-Below the preview, Scry tells what the game knows about it: an item's stats and recipe, a creature's health, attacks and drops, what a station makes, where things spawn and what drops them, and which mod added them. Almost everything named there can be clicked to go to it. *Find in locations* also reads where things are found in dungeons and other locations, which takes a few minutes in the background.
+Locations and dungeon rooms stand on the turntable with what the game leaves to chance rolled as a new zone rolls it, and *Roll again* rolls it anew. A dungeon or camp also shows an example floor plan, laid out the way the game lays out a new one, where a click on a room goes to it. Raids have a tab of their own that tells for whom each comes and what it brings.
+
+Below the preview, Scry tells what the game knows about it: an item's stats and recipe, a creature's health, attacks and drops, what a station makes, where things spawn and what drops them, where the world places a location and what it holds, and which mod added them. Almost everything named there can be clicked to go to it. *Find in locations* also reads where things are found in dungeons and other locations, which takes a few minutes in the background.
 
 Everything Scry shows stays on your own screen. Nothing is spawned, saved or seen by other players, it works on any server, and servers do not need it. *Clear world* at the top of the panel takes back whatever you placed.
 
