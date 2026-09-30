@@ -14,8 +14,6 @@ Raids have a tab of their own. Each tells for whom it comes, when it is on the t
 
 Locations have a tab of their own: every location the world can place and every dungeon room, grouped by biome in the order players meet them, rooms under their dungeon. Each tells where the world places it, down to the woods, lava or plant growth it keeps to, and once shown what it holds and how likely, the creatures its spawn points place, where its vegvisirs point, the levels it sets for its spawn points and how far around it nothing can be built. It stands on the turntable with what the game leaves to chance rolled as a new zone rolls it, and *Roll again* rolls it anew. *Find in locations* fills in every location and room the same way.
 
-`/scry selftest` tries Scry out by itself in the world you are in, a few minutes of opening the panel and looking around, and writes what worked and how fast to `BepInEx/Scry-selftest.log`. Everything it changes is put back, and it spawns nothing.
-
 A dungeon or camp shows an example floor plan under its details, laid out the way the game lays out a new one and never a world's real one. A click on a room goes to it, and *Another example* lays out a new one.
 
 ## 0.1.0

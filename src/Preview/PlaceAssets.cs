@@ -21,6 +21,9 @@ namespace Scry
         /// <summary>Whether the held place's bundle could not be loaded.</summary>
         public static bool Failed { get; private set; }
 
+        /// <summary>The place whose bundle is held, or null, for the self-test to see nothing is left held.</summary>
+        public static PlaceSource Held => _holding ? _source : null;
+
         /// <summary>How far a place's model has got; one not held yet is on its way, as the next frame asks for it.</summary>
         public static PlaceLoad State(PlaceSource source)
         {

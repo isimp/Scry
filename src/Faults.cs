@@ -18,23 +18,26 @@ namespace Scry
         /// <summary>The features a game update has turned off in this session, for the panel.</summary>
         public static IReadOnlyList<string> ChangedFeatures => Found.ChangedFeatures;
 
-        /// <summary>How many failures there have been this session, told or not, for the self-test to see any during a scenario.</summary>
+        /// <summary>How many failures of a part there have been this session, told or not, for the self-test to see any during a scenario.</summary>
         public static int Count { get; private set; }
 
         /// <summary>The latest failure, by its part and message.</summary>
         public static string Latest { get; private set; } = "";
 
-        private static void Counted(string part, Exception ex)
-        {
-            Count++;
-            Latest = part + ": " + ex.GetType().Name + ": " + ex.Message;
-        }
+        /// <summary>How many parts of single prefabs have been left out this session (<see cref="Skip"/>), which Scry is made to bear.</summary>
+        public static int Skipped { get; private set; }
+
+        /// <summary>The latest part of a prefab left out, by its part, prefab and message.</summary>
+        public static string LatestSkipped { get; private set; } = "";
+
+        private static string Words(string part, Exception ex) => part + ": " + ex.GetType().Name + ": " + ex.Message;
 
         /// <summary>Tells a failure in the log the first time this part fails this way.</summary>
         public static void Tell(string part, Exception ex)
         {
             if (ex == null) return;
-            Counted(part, ex);
+            Count++;
+            Latest = Words(part, ex);
             if (GameChanged(part, ex)) return;
             var key = part + "|" + ex.GetType().Name + "|" + ex.Message + "|" + TopFrame(ex);
             if (Told.Count > 500 || !Told.Add(key)) return;
@@ -48,7 +51,8 @@ namespace Scry
         public static void Skip(string part, string prefab, Exception ex)
         {
             if (ex == null) return;
-            Counted(part + " of " + prefab, ex);
+            Skipped++;
+            LatestSkipped = Words(part + " of " + prefab, ex);
             if (GameChanged(part, ex)) return;
             Found.Skip(part, prefab, ex);
             Plugin.Log.LogDebug($"Scry left out the {part} of {prefab}: {ex.Message}");

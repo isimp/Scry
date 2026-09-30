@@ -38,6 +38,9 @@ namespace Scry
         public static int Total => Rooms.Count;
         public static int Read => Rooms.Count(e => ((PlaceSource)e.Source).Contents?.Room != null);
 
+        /// <summary>Whether a room's bundle is held while it loads, for the self-test to see nothing is left held.</summary>
+        public static bool Holding => _loading != null;
+
         /// <summary>Whether the example shown is of this entry.</summary>
         public static bool Of(Entry entry) => entry != null && entry == _entry;
 

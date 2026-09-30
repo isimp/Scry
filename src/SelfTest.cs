@@ -18,8 +18,9 @@ namespace Scry
     /// recent entries and history are put back as they were, it closes again if it was closed,
     /// and a copy the player had standing in the world is left alone.
     ///
-    /// Starts with <c>/scry selftest</c>, or by itself a few seconds after the catalog is read when
-    /// the file <c>BepInEx/Scry-selftest.run</c> exists; <c>/scry selftest stop</c> stops it.
+    /// Runs only with the SelfTest setting on: it starts with <c>/scry selftest</c>, or by itself a
+    /// few seconds after the catalog is read when the file <c>BepInEx/Scry-selftest.run</c> exists;
+    /// <c>/scry selftest stop</c> stops it.
     /// </summary>
     internal static partial class SelfTest
     {
@@ -77,7 +78,7 @@ namespace Scry
             if (Time.unscaledTime - _readyAt < 5f) return;
             _autoFor = explorer;
             _readyAt = -1f;
-            if (File.Exists(MarkerFile)) Start("the marker file is present");
+            if (Plugin.SelfTestAllowed && File.Exists(MarkerFile)) Start("the marker file is present");
         }
 
         public static string Start(string why)
@@ -119,8 +120,9 @@ namespace Scry
         {
             try
             {
+                var readHere = _before != null && _before.LocationsWere != Locations.State.Read && Locations.Now == Locations.State.Read;
                 PutBack();
-                Write("Everything the test changed has been put back.");
+                Write("Everything the test changed has been put back" + (readHere ? ", except that the locations stay read, as Find in locations leaves them." : "."));
             }
             catch (Exception ex)
             {
@@ -144,7 +146,8 @@ namespace Scry
         {
             public Explorer Explorer;
             public Explorer.Kept Kept;
-            public bool Open, InWorld, LoopSounds, LoopEffects, LoopClips, OnPerson;
+            public bool Open, InWorld, LoopSounds, LoopEffects, LoopClips, OnPerson, PlanFolded;
+            public Locations.State LocationsWere;
 
             public static Before Take() => new Before
             {
@@ -156,6 +159,8 @@ namespace Scry
                 LoopEffects = Previews.LoopEffects,
                 LoopClips = Previews.LoopClips,
                 OnPerson = Looks.OnPerson,
+                PlanFolded = ScryPanel.PlanFolded,
+                LocationsWere = Locations.Now,
             };
         }
 
@@ -170,6 +175,7 @@ namespace Scry
             Previews.LoopEffects = before.LoopEffects;
             Previews.LoopClips = before.LoopClips;
             Looks.OnPerson = before.OnPerson;
+            ScryPanel.PlanFolded = before.PlanFolded;
             if (Session.Explorer != null && Session.Explorer == before.Explorer) before.Explorer.Restore(before.Kept);
             if (!before.Open) Session.Hide();
             else Previews.Rebuild();
@@ -178,16 +184,21 @@ namespace Scry
         // ----- What the scenarios share -----
 
         /// <summary>
-        /// A scenario that also fails when any part of Scry failed while it ran, and notes how long
-        /// Scry's own work took in its frames. Its body may yield another's steps, which run in place.
+        /// A scenario that also fails when any part of Scry failed while it ran or a feature went
+        /// off for a game change, and notes how long Scry's own work took in its frames. A part of
+        /// a single prefab left out fails it too, unless it reads what mods add as well
+        /// (<paramref name="bearsSkips"/>), where Scry is made to bear that and it is only noted.
+        /// Its body may yield another's steps, which run in place.
         /// </summary>
-        private static Scenario S(string name, Func<Probe, IEnumerator> body, double timeout = 20, Action cleanup = null) =>
-            new Scenario(name, p => Watched(p, body), cleanup) { Timeout = timeout };
+        private static Scenario S(string name, Func<Probe, IEnumerator> body, double timeout = 20, Action cleanup = null, bool bearsSkips = false) =>
+            new Scenario(name, p => Watched(p, body, bearsSkips), cleanup) { Timeout = timeout };
 
-        private static IEnumerator Watched(Probe p, Func<Probe, IEnumerator> body)
+        private static IEnumerator Watched(Probe p, Func<Probe, IEnumerator> body, bool bearsSkips)
         {
             var from = Frames.Frames;
             var faults = Faults.Count;
+            var skipped = Faults.Skipped;
+            var off = Faults.ChangedFeatures.Count;
             var steps = new Stack<IEnumerator>();
             steps.Push(body(p));
             while (steps.Count > 0)
@@ -208,6 +219,11 @@ namespace Scry
 
             var failed = Faults.Count - faults;
             p.Check(failed == 0, "no part of Scry failed meanwhile", $"{failed} failures, the latest in {Faults.Latest}");
+            var turnedOff = Faults.ChangedFeatures.Count - off;
+            p.Check(turnedOff == 0, "no feature went off for a game change meanwhile", string.Join("; ", Faults.ChangedFeatures.Skip(off)));
+            var left = Faults.Skipped - skipped;
+            if (left > 0 && bearsSkips) p.Note($"{left} parts of single prefabs were left out, the latest {Faults.LatestSkipped}");
+            else p.Check(left == 0, "no part of a prefab was left out meanwhile", $"{left} left out, the latest {Faults.LatestSkipped}");
             var mine = Frames.Since(from);
             if (mine.Frames > 0) p.Note(mine.Line(Budget) + Slowest(mine, 1));
         }
@@ -256,5 +272,8 @@ namespace Scry
             facts.Pairs.Any(pair => pair.Key == title) || facts.Rows.Any(row => row.Title == title);
 
         private static string Pairs(Facts facts) => string.Join("; ", facts.Pairs.Select(pair => pair.Key + ": " + pair.Value));
+
+        /// <summary>The value of the facts' pair of that title, or null.</summary>
+        private static string Value(Facts facts, string title) => facts.Pairs.FirstOrDefault(pair => pair.Key == title).Value;
     }
 }

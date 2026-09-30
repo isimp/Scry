@@ -30,6 +30,7 @@ namespace Scry
         private static ConfigEntry<int> _recentCount;
         private static ConfigEntry<float> _spinSpeed;
         private static ConfigEntry<bool> _readLocations;
+        private static ConfigEntry<bool> _selfTest;
 
         /// <summary>
         /// The key that opens the panel. One the game or the panel already uses for something
@@ -67,6 +68,9 @@ namespace Scry
 
         /// <summary>Whether the log tells what previews play and what Scry saw of each prefab, for finding out why something looks or sounds wrong.</summary>
         public static bool LogPreviews => _logPreviews?.Value ?? false;
+
+        /// <summary>Whether the self-test may run (<c>/scry selftest</c>, or the marker file), for finding faults rather than for play.</summary>
+        public static bool SelfTestAllowed => _selfTest?.Value ?? false;
 
         /// <summary>A note for the log about what a preview did, written only when <see cref="LogPreviews"/> is on.</summary>
         public static void Note(string line)
@@ -123,6 +127,8 @@ namespace Scry
                 "Plays a sound as soon as it is selected, so the list can be auditioned with the arrow keys.");
             _logPreviews = Config.Bind("3 - Diagnostics", "LogPreviews", false,
                 "Writes to the log what each preview played and what Scry found out about each prefab (its animator, its gear, what it leaves behind), for finding out why something looks or sounds wrong. Off, the log only says when the game has changed in a way Scry notices, and how long reading the catalog took.");
+            _selfTest = Config.Bind("3 - Diagnostics", "SelfTest", false,
+                "Allows /scry selftest, which tries Scry out by itself for a few minutes in the world you are in (opening the panel, playing previews, loading and reading every location) and writes what worked and how fast to BepInEx/Scry-selftest.log; with the file BepInEx/Scry-selftest.run present it also starts by itself once in each world. For finding faults, not for play.");
 
             _harmony = new Harmony(Guid);
             Patch();

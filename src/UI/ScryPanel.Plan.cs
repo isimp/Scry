@@ -15,9 +15,37 @@ namespace Scry
         private static (float MinX, float MaxX, float MinZ, float MaxZ) _planExtent;
         private static readonly List<PlacedRoom> PlanRooms = new List<PlacedRoom>();
 
+        /// <summary>How many times a plan's rooms have been drawn, for the self-test to see the plan draws.</summary>
+        public static int PlansDrawn { get; private set; }
+
+        /// <summary>Whether the side scrolls to the plan on its next draw.</summary>
+        private static bool _revealPlan;
+
+        /// <summary>Scrolls the side to the example layout on its next draw, for the self-test, which cannot scroll by hand.</summary>
+        public static void RevealPlan() => _revealPlan = true;
+
+        /// <summary>Whether the example layout's section is folded shut; setting it is remembered, as a click on its heading is.</summary>
+        public static bool PlanFolded
+        {
+            get => IsFolded("plan");
+            set
+            {
+                if (value == IsFolded("plan")) return;
+                if (value) Folded.Add("plan");
+                else Folded.Remove("plan");
+                SaveRects();
+            }
+        }
+
         private static float PlanSection(Explorer explorer, Entry entry, float width, float y)
         {
             if (!(entry.Source is PlaceSource place) || place.IsRoom || place.Contents?.Dungeon == null) return y;
+            if (_revealPlan)
+            {
+                // Shown from the next draw on, which starts the scroll view there.
+                _revealPlan = false;
+                _sideScroll.y = y;
+            }
 
             y = SectionHeading("EXAMPLE LAYOUT", width, y, null, "plan");
             if (IsFolded("plan")) return y;
@@ -78,6 +106,7 @@ namespace Scry
                 }
 
                 foreach (var room in PlanRooms) PlanRoom(room, At(room.Position), scale, room == hovered);
+                if (e.type == EventType.Repaint) PlansDrawn++;
                 var door = Mathf.Max(U(3f), 0.8f * scale);
                 foreach (var at in example.Doors)
                 {
