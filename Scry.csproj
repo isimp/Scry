@@ -5,7 +5,7 @@
     <AssemblyName>Scry</AssemblyName>
     <RootNamespace>Scry</RootNamespace>
     <LangVersion>latest</LangVersion>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>isimp</Authors>
     <Product>Scry</Product>
     <Description>Browse every prefab in the game and preview it: look at creatures, items and pieces, play sounds and effects, fly projectiles and show status effects, without anything entering the world.</Description>

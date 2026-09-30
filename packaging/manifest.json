@@ -1,6 +1,6 @@
 {
   "name": "Scry",
-  "version_number": "0.1.0",
+  "version_number": "0.2.0",
   "website_url": "https://github.com/isimp/Scry",
   "description": "Look up any creature, item, piece, sound or effect in the game and preview it on a turntable, with what the game knows about it. Nothing is spawned.",
   "dependencies": []
