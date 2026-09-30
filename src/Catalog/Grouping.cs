@@ -256,32 +256,36 @@ namespace Scry
             var items = ObjectDB.instance != null ? ObjectDB.instance.m_items : null;
             if (items == null) return menus;
 
-            var tools = new List<(string Name, bool Main, PieceTable Table)>();
+            var tools = new List<(string Prefab, string Name, bool Main, PieceTable Table)>();
             foreach (var item in items)
             {
                 var shared = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared : null;
                 var table = shared?.m_buildPieces;
                 if (table == null || table.m_pieces == null) continue;
                 var main = item.name == "Hammer";
-                var entry = (CatalogBuilder.Localize(shared.m_name), main, table);
+                var shown = CatalogBuilder.Localize(shared.m_name);
+                var entry = (item.name, shown.Length > 0 ? shown : item.name, main, table);
                 if (main) tools.Insert(0, entry);
                 else tools.Add(entry);
             }
 
+            // Every tool a piece is in is noted for its details and the tool's; the list groups
+            // it under the first, the hammer before the rest.
             for (var t = 0; t < tools.Count; t++)
             {
-                var (tool, main, table) = tools[t];
+                var (prefab, tool, main, table) = tools[t];
                 var pieces = table.m_pieces.Where(p => p != null).Select(p => p.GetComponent<Piece>()).Where(p => p != null).ToList();
                 foreach (var piece in pieces)
                 {
                     var name = piece.gameObject.name;
-                    if (menus.ContainsKey(name)) continue;
                     var index = table.m_categories != null ? table.m_categories.IndexOf(piece.m_category) : -1;
                     var label = index >= 0 && table.m_categoryLabels != null && index < table.m_categoryLabels.Count
                         ? CatalogBuilder.Localize(table.m_categoryLabels[index])
                         : "";
                     if (label.Length == 0) label = CategoryName(piece.m_category);
-                    menus[name] = Groups.Piece(tool, t, main, label, index >= 0 ? index : 500 + (int)piece.m_category);
+                    var order = index >= 0 ? index : 500 + (int)piece.m_category;
+                    Knowledge.Tools.Add(prefab, tool, name, label, order);
+                    if (!menus.ContainsKey(name)) menus[name] = Groups.Piece(tool, t, main, label, order);
                 }
             }
             return menus;

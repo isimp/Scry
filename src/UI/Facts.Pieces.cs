@@ -43,6 +43,36 @@ namespace Scry
             }
         }
 
+        /// <summary>The build tools a piece is built with, each with the tab it is on there; one alone is a link to the tool.</summary>
+        private void BuiltWith(string piece)
+        {
+            var tools = Knowledge.Tools.ToolsOf(piece);
+            if (tools.Count == 0)
+            {
+                Add("Built with", "no tool: it is in no build menu");
+                return;
+            }
+            if (tools.Count == 1)
+            {
+                Add("Built with", $"{tools[0].ToolName}, on its {tools[0].Tab} tab", tools[0].Tool);
+                return;
+            }
+            var row = new Row { Title = "Built with" };
+            foreach (var tool in tools) row.Items.Add(Chip(tool.Tool, tool.Tab));
+            Rows.Add(row);
+        }
+
+        /// <summary>What a build tool builds, a row for each of its tabs, in its own order.</summary>
+        private void Builds(string tool)
+        {
+            foreach (var (tab, pieces) in Knowledge.Tools.PiecesOf(tool))
+            {
+                var row = new Row { Title = $"Builds on its {tab} tab ({pieces.Count})" };
+                foreach (var piece in pieces) row.Items.Add(Chip(piece, ""));
+                Rows.Add(row);
+            }
+        }
+
         /// <summary>
         /// What holds it up: its material's support, read from the game's own
         /// <c>WearNTear.GetMaterialProperties</c> so a mod that changes it shows, and whether it

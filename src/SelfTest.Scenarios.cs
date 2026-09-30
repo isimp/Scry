@@ -26,6 +26,7 @@ namespace Scry
 
             yield return S("creatures tell their weak spots, when they turn on you and how far they chase", CreatureFacts, 60);
             yield return S("a piece tells its support and what wears it", PieceFacts, 10);
+            yield return S("build tools and their pieces lead to each other", ToolsAndPieces, 10);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
 
@@ -190,6 +191,30 @@ namespace Scry
                 var wall = Facts.For(stone);
                 p.Note($"{stone.Name}: support {Value(wall, "Support")}; rain {Value(wall, "Rain")}");
             }
+            yield break;
+        }
+
+        /// <summary>
+        /// The workbench says the hammer builds it and on which tab, the hammer lists it there,
+        /// and every tool, mods' too, lists what it builds.
+        /// </summary>
+        private static IEnumerator ToolsAndPieces(Probe p)
+        {
+            var bench = Pick(Kind.Piece, "piece_workbench");
+            var hammer = Pick(Kind.Item, "Hammer");
+            if (bench == null || hammer == null) p.Skip("there is no workbench or hammer");
+            var built = Value(Facts.For(bench), "Built with") ?? "";
+            p.Check(built.StartsWith("Hammer", StringComparison.Ordinal) || built.Contains(hammer.DisplayName), "the workbench says the hammer builds it", built);
+            var builds = Facts.For(hammer).Rows.Where(r => r.Title.StartsWith("Builds on its", StringComparison.Ordinal)).ToList();
+            p.Check(builds.Any(r => r.Items.Any(i => i.Prefab == "piece_workbench")), "the hammer lists the workbench among what it builds", string.Join("; ", builds.Select(r => r.Title)));
+
+            var tools = X.Catalog.Where(e => e.Kind == Kind.Item && Knowledge.Tools.IsTool(e.Name)).ToList();
+            p.Note($"{tools.Count} build tools: " + string.Join(", ", tools.Select(t => $"{t.Name} ({Knowledge.Tools.PiecesOf(t.Name).Sum(tab => tab.Pieces.Count)} pieces{(t.Origin == Origin.Vanilla ? "" : ", " + t.ModName)})")));
+            var empty = tools.Where(t => !Facts.For(t).Rows.Any(r => r.Title.StartsWith("Builds on its", StringComparison.Ordinal))).Select(t => t.Name).ToList();
+            p.Check(empty.Count == 0, "every tool lists what it builds", string.Join(", ", empty));
+            var pieces = X.Catalog.Where(e => e.Kind == Kind.Piece).ToList();
+            var withTool = pieces.Count(e => Knowledge.Tools.ToolsOf(e.Name).Count > 0);
+            p.Note($"{withTool} of {pieces.Count} pieces are built with a tool; the rest are in no build menu");
             yield break;
         }
 

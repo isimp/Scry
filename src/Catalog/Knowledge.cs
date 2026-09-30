@@ -168,6 +168,9 @@ namespace Scry
         /// <summary>The prefab of the creature whose defeat sets a world key, or null.</summary>
         public static string BossPrefabOf(string key) => key != null && Bosses.TryGetValue(key, out var boss) ? boss.name : null;
 
+        /// <summary>Which build tools build which pieces, on which tab, noted as the list is grouped.</summary>
+        public static readonly ToolBook Tools = new ToolBook();
+
         /// <summary>What each item is used for, noted as the catalog is read.</summary>
         private static readonly UseBook Uses = new UseBook();
 
@@ -188,6 +191,7 @@ namespace Scry
             Made.Clear();
             ShownNames.Clear();
             Uses.Clear();
+            Tools.Clear();
             Bosses.Clear();
             Altars.Clear();
             Turned.Clear();

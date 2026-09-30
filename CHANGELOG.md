@@ -16,6 +16,8 @@ Locations have a tab of their own: every location the world can place and every 
 
 A dungeon or camp shows an example, laid out the way the game lays out a new one and never a world's real one: built on the stage room by room, where a dungeon's *Inside* and *Outside* switch between the example and its entrance, with its floor plan in the stage's corner. A room under the mouse is named on either, a click goes to it, and *Another example* lays out a new one.
 
+A piece says which build tool builds it and on which tab, a mod's own hammer or the cultivator as much as the hammer, and a tool lists everything it builds, tab by tab.
+
 ## 0.1.0
 
 First release.

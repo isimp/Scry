@@ -167,9 +167,10 @@ namespace Scry
             var character = prefab.GetComponent<Character>();
             if (character != null) Part("creature", () => Creature(prefab, character));
 
-            // The build menu tab it is under, named as the list's group names it (not the game's
-            // category enum). Told for every piece, one whose Piece sits on a part of it too.
-            if (_entry != null && _entry.Kind == Kind.Piece) Add("Build menu", _entry.Group == Groups.InNoMenu.Name ? "none" : _entry.Group);
+            // The tools that build it and the tab it is on in each, told for every piece, one
+            // whose Piece sits on a part of it too; and what a tool builds.
+            if (_entry != null && _entry.Kind == Kind.Piece) Part("built with", () => BuiltWith(prefab.name));
+            if (Knowledge.Tools.IsTool(prefab.name)) Part("builds", () => Builds(prefab.name));
 
             var piece = prefab.GetComponent<Piece>();
             if (piece != null && piece.enabled) Part("piece", () => Piece(piece, prefab.GetComponent<WearNTear>()));
