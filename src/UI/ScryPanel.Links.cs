@@ -20,6 +20,7 @@ namespace Scry
         /// <summary>Puts a search in the box, with every other filter cleared so it shows all it finds.</summary>
         private static void SearchFor(Explorer explorer, string text)
         {
+            _modReport = false;
             explorer.SearchEverything(text);
             _listScroll = Vector2.zero;
             _reveal = true;

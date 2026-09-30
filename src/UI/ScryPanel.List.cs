@@ -122,6 +122,11 @@ namespace Scry
                 HelpCard(rect);
                 return;
             }
+            if (_modReport)
+            {
+                ModReportCard(explorer, rect);
+                return;
+            }
 
             Skin.Box(rect, Skin.Panel);
             var inner = new Rect(rect.x + U(4f), rect.y + U(6f), rect.width - U(8f), rect.height - U(12f));
@@ -144,6 +149,13 @@ namespace Scry
                         : "Nothing matches.";
                 GUI.Label(inner, message, Skin.CenterDim);
                 return;
+            }
+
+            // Only what mods added: how many mods, and their report.
+            if (explorer.Origin == OriginFilter.Mods)
+            {
+                inner = ModsBar(explorer, inner);
+                _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
             }
 
             // The picked tab has nothing for the search: say so above every kind's matches.

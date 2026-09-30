@@ -522,7 +522,11 @@ namespace Scry
 
             // Help for the search terms.
             var help = new Rect(startX + gap, row, starW, rect.height);
-            if (GUI.Button(help, "?", _help ? Skin.On : Skin.IconButton)) _help = !_help;
+            if (GUI.Button(help, "?", _help ? Skin.On : Skin.IconButton))
+            {
+                _help = !_help;
+                _modReport = false;
+            }
             if (help.Contains(Event.current.mousePosition)) AskTip("help", "How to search");
 
             var star = new Rect(help.xMax + gap, row, starW, rect.height);
@@ -531,6 +535,7 @@ namespace Scry
                 explorer.FavouritesOnly = !explorer.FavouritesOnly;
                 _listScroll = Vector2.zero;
                 _help = false;
+                _modReport = false;
             }
             var icon = new Rect(star.x + star.width * 0.22f, star.y + star.height * 0.22f, star.width * 0.56f, star.height * 0.56f);
             Skin.Icon(icon, explorer.FavouritesOnly ? Skin.Star : Skin.StarHollow, explorer.FavouritesOnly ? Skin.Accent : Skin.Dim);
@@ -542,6 +547,7 @@ namespace Scry
                 explorer.RecentOnly = !explorer.RecentOnly;
                 _listScroll = Vector2.zero;
                 _help = false;
+                _modReport = false;
             }
             var clock = new Rect(recent.x + recent.width * 0.22f, recent.y + recent.height * 0.22f, recent.width * 0.56f, recent.height * 0.56f);
             Skin.Icon(clock, Skin.Clock, explorer.RecentOnly ? Skin.Accent : Skin.Dim);
@@ -565,6 +571,7 @@ namespace Scry
                     explorer.Origin = (OriginFilter)i;
                     _listScroll = Vector2.zero;
                     _help = false;
+                    _modReport = false;
                 }
                 x += widths[i] + U(4f);
             }
@@ -676,6 +683,7 @@ namespace Scry
                 _listScroll = Vector2.zero;
                 _reveal = true;
                 _help = false;
+                _modReport = false;
             }
 
             // After the typed text is taken: what Tab puts in must not be undone by it.
@@ -767,6 +775,7 @@ namespace Scry
             explorer.KindFilter = kind;
             _listScroll = Vector2.zero;
             _help = false;
+            _modReport = false;
             _reveal = true;
         }
 

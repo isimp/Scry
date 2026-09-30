@@ -28,6 +28,7 @@ namespace Scry
             yield return S("a piece tells its support and what wears it", PieceFacts, 10);
             yield return S("build tools and their pieces lead to each other", ToolsAndPieces, 10);
             yield return S("mods hooking into drops, loot and spawning are named", HookingMods, 10);
+            yield return S("the mod report links every mod station as the game does", ModReportLinks, 20);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
 
@@ -247,6 +248,53 @@ namespace Scry
                 p.Check(mods.Count == 0 ? note == null : note != null, $"{rock.Name} names the mods hooking into what it gives, if it gives anything", note ?? "no note");
             }
             yield break;
+        }
+
+        /// <summary>
+        /// The mod report as a player opens it, written out whole, and checked against the game's
+        /// own lists: every piece a mod's station is named by (Piece.m_craftingStation) and every
+        /// recipe made at it must be linked to it.
+        /// </summary>
+        private static IEnumerator ModReportLinks(Probe p)
+        {
+            var report = ScryPanel.Report(X);
+            var mods = X.Catalog.Where(e => e.Origin == Origin.Mod).Select(e => e.ModName.Length > 0 ? e.ModName : ModReportReader.UnknownMod).Distinct().ToList();
+            var missing = mods.Where(m => !report.Any(r => r.Mod == m)).ToList();
+            p.Check(missing.Count == 0, "every mod that adds anything is in the report", string.Join(", ", missing));
+            foreach (var mod in report)
+            {
+                var gaps = new List<string>();
+                if (mod.IdleStations.Count > 0) gaps.Add($"{mod.IdleStations.Count} idle stations");
+                if (mod.Sourceless.Count > 0) gaps.Add($"{mod.Sourceless.Count} items with no source ({string.Join(", ", mod.Sourceless.Take(4).Select(e => e.Name))})");
+                if (mod.Unspawned.Count > 0) gaps.Add($"{mod.Unspawned.Count} creatures spawning nowhere seen ({string.Join(", ", mod.Unspawned.Take(4).Select(e => e.Name))})");
+                if (mod.Unbuilt.Count > 0) gaps.Add($"{mod.Unbuilt.Count} pieces in no build menu");
+                p.Note($"{mod.Mod}: {ModReportWords.Counts(mod)}" + (mod.Hooks.Count > 0 ? $"; hooks into {ModReportWords.Hooks(mod.Hooks)}" : "")
+                       + string.Concat(mod.Stations.Select(s => $"; station {s.Name}: {ModReportWords.Station(s)}"))
+                       + string.Concat(mod.Tools.Select(t => $"; tool {t.Name}: {ModReportWords.Tool(t)}"))
+                       + (gaps.Count > 0 ? "; not placed: " + string.Join(", ", gaps) : ""));
+            }
+
+            // Scry's links against the game's own lists, station by station.
+            var linked = X.Catalog.Where(e => e.Stations != null).ToList();
+            var wrong = new List<string>();
+            foreach (var station in report.SelectMany(m => m.Stations))
+            {
+                var pieces = ZNetScene.instance.m_prefabs.Where(g => g != null && g.GetComponent<Piece>() is Piece piece && piece.m_craftingStation != null && piece.m_craftingStation.gameObject.name == station.Name).Select(g => g.name).ToList();
+                var recipes = ObjectDB.instance.m_recipes.Where(r => r != null && r.m_enabled && r.m_item != null && r.m_craftingStation != null && r.m_craftingStation.gameObject.name == station.Name).Select(r => r.m_item.gameObject.name).Distinct().ToList();
+                var builtNear = new HashSet<string>(linked.Where(e => e.Kind == Kind.Piece && e.Stations.Any(s => s.Name == station.Name)).Select(e => e.Name));
+                var madeHere = new HashSet<string>(linked.Where(e => e.Kind != Kind.Piece && e.Stations.Any(s => s.Name == station.Name)).Select(e => e.Name));
+                var unlinked = pieces.Where(n => !builtNear.Contains(n)).Concat(recipes.Where(n => !madeHere.Contains(n))).ToList();
+                p.Note($"{station.Name}: the game names it for {pieces.Count} pieces and {recipes.Count} recipes; Scry links {builtNear.Count} built near and {madeHere.Count} made here");
+                if (unlinked.Count > 0) wrong.Add($"{station.Name} misses {string.Join(", ", unlinked.Take(5))}");
+            }
+            p.Check(wrong.Count == 0, "every piece and recipe the game names a mod's station for is linked to it", string.Join("; ", wrong));
+
+            // As a player opens it: the report in the list's place, drawn.
+            ScryPanel.ShowModReport();
+            var drawn = ScryPanel.ModReportsDrawn;
+            yield return Until(() => ScryPanel.ModReportsDrawn > drawn, 3);
+            p.Check(ScryPanel.ModReportShown && ScryPanel.ModReportsDrawn > drawn, "the report opens and draws in the panel");
+            ScryPanel.HideModReport();
         }
 
         private static IEnumerator SpawnerFacts(Probe p)

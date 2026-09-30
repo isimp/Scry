@@ -185,6 +185,7 @@ namespace Scry
             Previews.LoopClips = before.LoopClips;
             Looks.OnPerson = before.OnPerson;
             ScryPanel.PlanFolded = before.PlanFolded;
+            ScryPanel.HideModReport();
             if (before.Compact.HasValue) ScryPanel.Compact = before.Compact.Value;
             if (Session.Explorer != null && Session.Explorer == before.Explorer) before.Explorer.Restore(before.Kept);
             if (!before.Open) Session.Hide();
