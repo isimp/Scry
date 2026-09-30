@@ -393,8 +393,8 @@ namespace Scry
         private static string[] _foundInOf;
         private static Explorer _foundInIn;
 
-        private const string LocationsButtonText = "Find in locations";
-        private const string LocationsButtonTip = "Reads where things are found in this world's locations and dungeons, in the background, over a few minutes";
+        private const string LocationsButtonText = "Read all locations";
+        private const string LocationsButtonTip = "Reads what every location and dungeon room in this world holds, in the background over a few minutes, so things tell where they are found and in: finds them. A location selected is read by itself.";
 
         /// <summary>Stops reading the locations, from any of the buttons that offer it, and says so.</summary>
         private static void StopReadingLocations()

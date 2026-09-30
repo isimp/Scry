@@ -122,7 +122,7 @@ namespace Scry
             {
                 var readHere = _before != null && _before.LocationsWere != Locations.State.Read && Locations.Now == Locations.State.Read;
                 PutBack();
-                Write("Everything the test changed has been put back" + (readHere ? ", except that the locations stay read, as Find in locations leaves them." : "."));
+                Write("Everything the test changed has been put back" + (readHere ? ", except that the locations stay read, as Read all locations leaves them." : "."));
             }
             catch (Exception ex)
             {

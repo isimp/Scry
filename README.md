@@ -14,7 +14,7 @@ Creatures can be shown at every star level, in any of their animations and with 
 
 Locations and dungeon rooms stand on the turntable with what the game leaves to chance rolled as a new zone rolls it, and *Roll again* rolls it anew. A dungeon or camp also shows an example floor plan, laid out the way the game lays out a new one, where a click on a room goes to it. Raids have a tab of their own that tells for whom each comes and what it brings.
 
-Below the preview, Scry tells what the game knows about it: an item's stats and recipe, a creature's health, attacks and drops, what a station makes, where things spawn and what drops them, where the world places a location and what it holds, and which mod added them. Almost everything named there can be clicked to go to it. *Find in locations* also reads where things are found in dungeons and other locations, which takes a few minutes in the background.
+Below the preview, Scry tells what the game knows about it: an item's stats and recipe, a creature's health, attacks and drops, what a station makes, where things spawn and what drops them, where the world places a location and what it holds, and which mod added them. Almost everything named there can be clicked to go to it. *Read all locations* reads what every dungeon and other location holds, so things tell where they are found, which takes a few minutes in the background.
 
 Everything Scry shows stays on your own screen. Nothing is spawned, saved or seen by other players, it works on any server, and servers do not need it. *Clear world* at the top of the panel takes back whatever you placed.
 

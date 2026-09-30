@@ -117,7 +117,7 @@ namespace Scry
                 new ConfigDescription("Seconds after entering a world before Scry starts reading the game's prefabs in the background. Opening the panel sooner starts it at once.",
                     new AcceptableValueRange<float>(0f, 120f)));
             _readLocations = Config.Bind("1 - General", "ReadLocationsAutomatically", false,
-                "Reads where things are found in each world's locations and dungeons by itself, in the background once the prefabs are read, taking a few minutes. Off, they are read only when asked, with Find in locations or /scry locations.");
+                "Reads where things are found in each world's locations and dungeons by itself, in the background once the prefabs are read, taking a few minutes. Off, they are read only when asked, with Read all locations or /scry locations.");
             _autoSpin = Config.Bind("2 - Preview", "AutoSpin", true,
                 "Turns the model in the preview slowly while you are not dragging it.");
             _spinSpeed = Config.Bind("2 - Preview", "SpinSpeed", 14f,
