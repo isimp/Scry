@@ -220,6 +220,32 @@ namespace Scry.Tests
             Assert.Contains(_log, l => l.Contains("1 passed, 1 failed, 1 skipped"));
         }
 
+        private static IEnumerator WaitsTwoSeconds(Probe probe)
+        {
+            yield return new Wait(2);
+            probe.Check(true, "it waited");
+        }
+
+        [Fact]
+        public void EachPartsLastLineTellsHowLongItTook()
+        {
+            var runner = Runner(new Scenario("slow", WaitsTwoSeconds), new Scenario("bad", Fails));
+            for (double t = 0; t < 100 && runner.Tick(t); t += 0.5) { }
+
+            Assert.Contains("PASS slow (2.0 s)", _log);
+            Assert.Contains("FAIL bad (0.0 s)", _log);
+        }
+
+        [Fact]
+        public void TheLastLineTellsHowLongTheWholeRunTook()
+        {
+            var runner = Runner(new Scenario("slow", WaitsTwoSeconds), Passing("quick"));
+            for (double t = 10; t < 100 && runner.Tick(t); t += 0.5) { }
+
+            Assert.Equal(2.5, runner.Seconds, 3);
+            Assert.Equal("DONE 2 passed, 0 failed, 0 skipped, in 3 s", _log.Last());
+        }
+
         [Fact]
         public void EveryLineGoesToTheLogAsItHappens()
         {

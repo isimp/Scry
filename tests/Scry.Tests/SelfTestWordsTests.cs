@@ -51,6 +51,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheHeadlineSaysHowLongTheRunTook()
+        {
+            Assert.Equal("Self-test done in 42 s: 2 of 4 parts passed, 1 failed, 1 skipped.", SelfTestWords.Finished(Run(), 42.4));
+            Assert.Equal("Self-test done in 12 min 5 s: all 1 parts passed.", SelfTestWords.Finished(new List<ScenarioReport> { Report("a", Result.Pass) }, 725));
+            Assert.Equal("Self-test done in 3 min: all 1 parts passed.", SelfTestWords.Finished(new List<ScenarioReport> { Report("a", Result.Pass) }, 180.2));
+            Assert.Equal("59 s", SelfTestWords.Duration(59.4));
+            Assert.Equal("1 min", SelfTestWords.Duration(59.5));
+        }
+
+        [Fact]
         public void TheSummaryNamesEachFailedPartWithItsFailedChecksThenTheSkippedThenThePassed()
         {
             Assert.Equal(new[]

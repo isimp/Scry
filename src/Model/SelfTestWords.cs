@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -14,7 +15,7 @@ namespace Scry
         private const string SkipMark = "  SKIP ";
 
         public static string Started(int parts) =>
-            $"self-test started: {parts} parts, about five to ten minutes. Stand still and leave the panel be; it shows how far the test has got. /scry selftest stop stops it.";
+            $"self-test started: {parts} parts, about five to fifteen minutes. Stand still and leave the panel be; it shows how far the test has got. /scry selftest stop stops it.";
 
         /// <summary>The line the panel shows while the test runs: the part running now, or how many are done between parts.</summary>
         public static string Progress(int done, int total, string current, int failed)
@@ -24,14 +25,15 @@ namespace Scry
             return at + so + " Stand still until it is done.";
         }
 
-        /// <summary>The headline at the end: all passed, or how many passed, failed and were skipped.</summary>
-        public static string Finished(IReadOnlyList<ScenarioReport> reports)
+        /// <summary>The headline at the end: all passed, or how many passed, failed and were skipped; with how long it took, when given.</summary>
+        public static string Finished(IReadOnlyList<ScenarioReport> reports, double? seconds = null)
         {
             var passed = reports.Count(r => r.Result == Result.Pass);
             var failed = reports.Count(r => r.Result == Result.Fail);
             var skipped = reports.Count(r => r.Result == Result.Skip);
-            if (passed == reports.Count) return $"Self-test done: all {reports.Count} parts passed.";
-            var told = $"Self-test done: {passed} of {reports.Count} parts passed";
+            var done = seconds.HasValue ? $"Self-test done in {Duration(seconds.Value)}" : "Self-test done";
+            if (passed == reports.Count) return $"{done}: all {reports.Count} parts passed.";
+            var told = $"{done}: {passed} of {reports.Count} parts passed";
             if (failed > 0) told += $", {failed} failed";
             if (skipped > 0) told += $", {skipped} skipped";
             return told + ".";
@@ -63,6 +65,14 @@ namespace Scry
             }
             lines.Add($"Passed: {reports.Count(r => r.Result == Result.Pass)}.");
             return lines;
+        }
+
+        /// <summary>A run's length in whole seconds, or minutes and seconds from a minute on.</summary>
+        public static string Duration(double seconds)
+        {
+            var whole = (int)Math.Round(seconds, MidpointRounding.AwayFromZero);
+            if (whole < 60) return $"{whole} s";
+            return whole % 60 == 0 ? $"{whole / 60} min" : $"{whole / 60} min {whole % 60} s";
         }
 
         /// <summary>What to do next: nothing when all went well, else send the log.</summary>

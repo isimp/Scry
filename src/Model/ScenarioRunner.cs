@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace Scry
@@ -101,6 +102,8 @@ namespace Scry
         private Probe _probe;
         private ScenarioReport _report;
         private double _startedAt;
+        private double _firstAt = -1;
+        private double _lastEnd = -1;
         private double _waitUntil;
         private bool _finished;
 
@@ -112,6 +115,9 @@ namespace Scry
         public int Done => _reports.Count;
         public string Current => _current?.Name;
         public int FailedSoFar => _reports.Count(r => r.Result == Result.Fail);
+
+        /// <summary>How long the run has taken, from the first part's start to the last one's end so far.</summary>
+        public double Seconds => _firstAt < 0 || _lastEnd < 0 ? 0 : _lastEnd - _firstAt;
 
         public string Summary =>
             $"{_reports.Count(r => r.Result == Result.Pass)} passed, " +
@@ -139,7 +145,7 @@ namespace Scry
 
             if (now - _startedAt > _current.Timeout)
             {
-                End(Result.Fail, $"  FAIL timed out after {_current.Timeout:0.#} s");
+                End(now, Result.Fail, $"  FAIL timed out after {_current.Timeout:0.#} s");
                 return true;
             }
 
@@ -152,19 +158,19 @@ namespace Scry
             }
             catch (SkipScenario skip)
             {
-                End(_probe.Failed ? Result.Fail : Result.Skip, $"  SKIP {skip.Message}");
+                End(now, _probe.Failed ? Result.Fail : Result.Skip, $"  SKIP {skip.Message}");
                 return true;
             }
             catch (Exception ex)
             {
-                End(Result.Fail, $"  FAIL threw {ex.GetType().Name}: {ex.Message}");
+                End(now, Result.Fail, $"  FAIL threw {ex.GetType().Name}: {ex.Message}");
                 return true;
             }
 
             if (!more)
             {
-                if (_probe.Checks == 0) End(Result.Fail, "  FAIL checked nothing");
-                else End(_probe.Failed ? Result.Fail : Result.Pass, null);
+                if (_probe.Checks == 0) End(now, Result.Fail, "  FAIL checked nothing");
+                else End(now, _probe.Failed ? Result.Fail : Result.Pass, null);
                 return true;
             }
 
@@ -180,6 +186,7 @@ namespace Scry
             _report = new ScenarioReport { Name = _current.Name };
             _probe = new Probe(_report, _write);
             _startedAt = now;
+            if (_firstAt < 0) _firstAt = now;
             _waitUntil = now;
 
             _write($"START {_current.Name}");
@@ -202,7 +209,7 @@ namespace Scry
             yield break;
         }
 
-        private void End(Result result, string line)
+        private void End(double now, Result result, string line)
         {
             if (line != null) _probe.Line(line);
 
@@ -218,7 +225,8 @@ namespace Scry
 
             _report.Result = result;
             _reports.Add(_report);
-            _write($"{result.ToString().ToUpperInvariant()} {_current.Name}");
+            _lastEnd = now;
+            _write(string.Format(CultureInfo.InvariantCulture, "{0} {1} ({2:0.0} s)", result.ToString().ToUpperInvariant(), _current.Name, now - _startedAt));
 
             _current = null;
             _body = null;
@@ -235,7 +243,7 @@ namespace Scry
             {
                 _write($"FAIL the finishing step threw {ex.GetType().Name}: {ex.Message}");
             }
-            _write($"DONE {Summary}");
+            _write($"DONE {Summary}, in {SelfTestWords.Duration(Seconds)}");
         }
     }
 }
