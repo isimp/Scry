@@ -10,6 +10,8 @@ namespace Scry
         public static readonly Provenance Prefabs = new Provenance();
         public static readonly Provenance StatusEffects = new Provenance();
         public static readonly Provenance Raids = new Provenance();
+        public static readonly Provenance Locations = new Provenance();
+        public static readonly Provenance Rooms = new Provenance();
     }
 
     /// <summary>
@@ -73,7 +75,10 @@ namespace Scry
         }
     }
 
-    /// <summary>The same for raids, which live in <c>RandEventSystem</c>.</summary>
+    /// <summary>
+    /// The same for raids, which live in <c>RandEventSystem</c>. The game adds more a step later
+    /// from its location lists (<see cref="LocationOrigins"/>).
+    /// </summary>
     [HarmonyPatch(typeof(RandEventSystem), "Awake")]
     internal static class RaidOrigins
     {
@@ -97,6 +102,93 @@ namespace Scry
             var names = new List<string>();
             foreach (var raid in events.m_events) if (raid != null) names.Add(raid.m_name);
             Origins.Raids.RecordOriginal(names);
+        }
+    }
+
+    /// <summary>
+    /// The locations as the game's own location lists give them, read after
+    /// <c>ZoneSystem.SetupLocations</c> gathers them and before any mod's later step adds its own.
+    /// The same step adds the raids those lists hold, which are the game's too.
+    /// </summary>
+    [HarmonyPatch(typeof(ZoneSystem), "SetupLocations")]
+    internal static class LocationOrigins
+    {
+        private static HashSet<string> _raidsBefore;
+
+        [HarmonyPriority(Priority.First)]
+        private static void Prefix()
+        {
+            // Runs inside the game's own setup: as above, nothing here may stop it.
+            try
+            {
+                _raidsBefore = RaidNames();
+            }
+            catch (System.Exception ex)
+            {
+                Faults.Tell("telling the game's raids from those mods add", ex);
+            }
+        }
+
+        [HarmonyPriority(Priority.First)]
+        private static void Postfix(ZoneSystem __instance)
+        {
+            try
+            {
+                Record(__instance);
+            }
+            catch (System.Exception ex)
+            {
+                Faults.Tell("telling the game's locations from those mods add", ex);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static HashSet<string> RaidNames()
+        {
+            var names = new HashSet<string>();
+            var events = RandEventSystem.instance?.m_events;
+            if (events != null) foreach (var raid in events) if (raid != null) names.Add(raid.m_name);
+            return names;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Record(ZoneSystem zones)
+        {
+            var locations = new List<string>();
+            foreach (var location in zones.m_locations) if (location != null && location.m_prefab.IsValid) locations.Add(location.m_prefab.Name);
+            Origins.Locations.RecordOriginal(locations);
+
+            var before = _raidsBefore ?? new HashSet<string>();
+            var added = new List<string>();
+            foreach (var name in RaidNames()) if (!before.Contains(name)) added.Add(name);
+            Origins.Raids.AddOriginal(added);
+            _raidsBefore = null;
+        }
+    }
+
+    /// <summary>The same for dungeon rooms, gathered by <c>DungeonDB.SetupRooms</c> from the game's room lists.</summary>
+    [HarmonyPatch(typeof(DungeonDB), "SetupRooms")]
+    internal static class RoomOrigins
+    {
+        [HarmonyPriority(Priority.First)]
+        private static void Postfix()
+        {
+            try
+            {
+                Record();
+            }
+            catch (System.Exception ex)
+            {
+                Faults.Tell("telling the game's dungeon rooms from those mods add", ex);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Record()
+        {
+            var names = new List<string>();
+            foreach (var room in DungeonDB.GetRooms()) if (room != null && room.m_prefab.IsValid) names.Add(room.m_prefab.Name);
+            Origins.Rooms.RecordOriginal(names);
         }
     }
 }

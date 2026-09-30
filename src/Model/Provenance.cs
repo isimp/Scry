@@ -21,6 +21,13 @@ namespace Scry
             _original = new HashSet<string>(names, StringComparer.Ordinal);
         }
 
+        /// <summary>Adds names the game itself adds a step later, from lists of its own.</summary>
+        public void AddOriginal(IEnumerable<string> names)
+        {
+            if (_original == null) _original = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var name in names) _original.Add(name);
+        }
+
         public Origin Of(string name)
         {
             if (_original == null) return Origin.Unknown;

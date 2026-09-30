@@ -52,6 +52,28 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatTheGameAddsFromItsOwnListsLaterIsTheGamesToo()
+        {
+            // Raids come both from RandEventSystem and, a step later, from the game's location
+            // lists (ZoneSystem.SetupLocations); both are the game's.
+            var provenance = SceneStartedWith("army_eikthyr");
+            provenance.AddOriginal(new[] { "army_charred" });
+
+            Assert.Equal(Origin.Vanilla, provenance.Of("army_eikthyr"));
+            Assert.Equal(Origin.Vanilla, provenance.Of("army_charred"));
+            Assert.Equal(Origin.Mod, provenance.Of("CoolMod_raid"));
+        }
+
+        [Fact]
+        public void AddingTheGamesNamesBeforeAnyWereSeenStillClaimsThem()
+        {
+            var provenance = new Provenance();
+            provenance.AddOriginal(new[] { "army_charred" });
+
+            Assert.Equal(Origin.Vanilla, provenance.Of("army_charred"));
+        }
+
+        [Fact]
         public void AnEffectNobodyIsKnownToUseIsNotClaimed()
         {
             Assert.Equal(Origin.Unknown, Provenance.Combine(new Origin[0]));
