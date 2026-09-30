@@ -118,6 +118,23 @@ namespace Scry.Tests
             Assert.Equal("Troll", E("Troll", Kind.Creature).Key);
             Assert.Equal("se:Rested", E("Rested", Kind.StatusEffect).Key);
             Assert.Equal("raid:foresttrolls", E("foresttrolls", Kind.Raid).Key);
+            Assert.Equal("loc:Crypt2", E("Crypt2", Kind.Location).Key);
+        }
+
+        [Fact]
+        public void ALinkToALocationOrRoomGoesThereEvenWhereAPrefabSharesItsName()
+        {
+            // A floor plan's rooms link to their entries, which are no prefabs of the scene.
+            var catalog = Game();
+            catalog.Insert(0, E("Troll", Kind.Location, "Troll cave"));
+            catalog.Add(E("forestcrypt_Bend1", Kind.Location, "Bend 1"));
+            var explorer = new Explorer(catalog, new Favourites(Path.Combine(TempDir(), "f.txt")));
+
+            Assert.True(explorer.Jump("loc:forestcrypt_Bend1"));
+            Assert.Equal("Bend 1", explorer.Selected?.DisplayName);
+
+            explorer.Jump("Troll");
+            Assert.Equal(Kind.Creature, explorer.Selected?.Kind);
         }
 
         [Fact]

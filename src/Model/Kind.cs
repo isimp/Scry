@@ -12,6 +12,9 @@ namespace Scry
         Sound,
         StatusEffect,
 
+        /// <summary>A place the world generator puts in the world, or a room a dungeon is built of; no prefab of the scene.</summary>
+        Location,
+
         /// <summary>A raid (the game's random event), no prefab: what it brings, when and for whom.</summary>
         Raid,
         Other,
@@ -169,6 +172,7 @@ namespace Scry
                 case Kind.Effect: return "Effects";
                 case Kind.Sound: return "Sounds";
                 case Kind.StatusEffect: return "Status effects";
+                case Kind.Location: return "Locations";
                 case Kind.Raid: return "Raids";
                 default: return "Other";
             }

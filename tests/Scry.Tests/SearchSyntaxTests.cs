@@ -85,6 +85,22 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void LocationsAndRoomsAreFoundByKindAndByThePlaceTheyBelongTo()
+        {
+            var crypt = E("Crypt2", Kind.Location, "Burial Chambers");
+            crypt.FoundIn = new[] { "Burial Chambers" };
+            var room = E("forestcrypt_Bend1", Kind.Location, "Bend 1");
+            room.FoundIn = new[] { "Burial Chambers" };
+            var catalog = Catalog();
+            catalog.Add(crypt);
+            catalog.Add(room);
+            List<string> In(string text) => Search.Run(catalog, new Query { Text = text }, new List<string>()).Select(e => e.Name).ToList();
+
+            Assert.Equal(new[] { "forestcrypt_Bend1", "Crypt2" }, In("kind:loc"));
+            Assert.Equal(new[] { "forestcrypt_Bend1", "Crypt2" }, In("kind:locations in:burial"));
+        }
+
+        [Fact]
         public void ModFindsWhatANamedModAdded()
         {
             Assert.Equal(new[] { "CoolMod_TrollStatue" }, Find("mod:statues"));

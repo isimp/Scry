@@ -65,6 +65,11 @@ namespace Scry
         /// <summary>The dungeons read so far: the kinds of room each is built with, and its place's name.</summary>
         private static readonly List<KeyValuePair<int, string>> Dungeons = new List<KeyValuePair<int, string>>();
 
+        /// <summary>What each location and room was read to hold, and the places each stands for, by its prefab name, for their entries.</summary>
+        private static readonly Dictionary<string, PlaceContents> ReadLocations = new Dictionary<string, PlaceContents>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, PlaceContents> ReadRooms = new Dictionary<string, PlaceContents>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, string[]> PlaceLabels = new Dictionary<string, string[]>(StringComparer.Ordinal);
+
         /// <summary>Creatures' shown names by prefab name, for the words of places named after them.</summary>
         private static Dictionary<string, string> _creatures = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private static int _next;
@@ -91,6 +96,9 @@ namespace Scry
             Here.Clear();
             Dungeons.Clear();
             Summoned.Clear();
+            ReadLocations.Clear();
+            ReadRooms.Clear();
+            PlaceLabels.Clear();
             Now = State.NotRead;
             Done = 0;
             _clock = null;
@@ -241,22 +249,36 @@ namespace Scry
         private static void PlacesOf(GameObject prefab)
         {
             Here.Clear();
+            PlaceContents contents = null;
+            try { contents = PlaceReader.Read(prefab, _current.Room); }
+            catch (Exception ex) { Faults.Skip("locations", _current.Name, ex); }
+
             if (_current.Room)
             {
                 var theme = 0;
                 try { theme = ThemeOf(prefab); }
                 catch (Exception ex) { Faults.Skip("names of dungeon rooms", _current.Name, ex); }
                 Here.AddRange(Places.RoomLabels(theme, Dungeons));
+                if (contents != null) ReadRooms[_current.Name] = contents;
+                PlaceLabels["room:" + _current.Name] = Here.ToArray();
                 return;
             }
 
             var facts = new PlaceFacts { Prefab = _current.Name, Biome = BiomeOf(_current.Biome) };
+            if (contents != null)
+            {
+                facts.GameName = contents.GameName;
+                facts.Boss = contents.Boss;
+                facts.Trader = contents.Trader;
+            }
             var themes = new List<int>();
-            try { NameFacts(prefab, facts, themes); }
+            try { DungeonThemes(prefab, themes); }
             catch (Exception ex) { Faults.Skip("names of locations", _current.Name, ex); }
             var label = Places.LocationLabel(facts, _creatures);
             Here.Add(label);
             foreach (var kinds in themes) Dungeons.Add(new KeyValuePair<int, string>(kinds, label));
+            if (contents != null) ReadLocations[_current.Name] = contents;
+            PlaceLabels[_current.Name] = new[] { label };
         }
 
         /// <summary>The kinds of room a dungeon room is (<c>Room.m_theme</c>, flags).</summary>
@@ -268,31 +290,14 @@ namespace Scry
         }
 
         /// <summary>
-        /// What names a location, each as the game shows it: the name shown on entering its dungeon
-        /// (<c>Teleport.m_enterText</c>) or on discovering it (<c>Location.m_discoverLabel</c>), the
-        /// boss its altar summons and the trader standing there; and the kinds of room each dungeon
-        /// in it is built with (<c>DungeonGenerator.m_themes</c>).
+        /// The kinds of room each dungeon in a location is built with (<c>DungeonGenerator.m_themes</c>).
+        /// What names it is read with the rest of it (<see cref="PlaceReader"/>): the name shown on
+        /// entering its dungeon (<c>Teleport.m_enterText</c>) or on discovering it
+        /// (<c>Location.m_discoverLabel</c>), the boss its altar summons and the trader there.
         /// </summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static void NameFacts(GameObject prefab, PlaceFacts facts, List<int> themes)
+        private static void DungeonThemes(GameObject prefab, List<int> themes)
         {
-            foreach (var door in prefab.GetComponentsInChildren<Teleport>(true))
-            {
-                if (facts.GameName.Length == 0 && door != null) facts.GameName = CatalogBuilder.Localize(door.m_enterText);
-            }
-            foreach (var location in prefab.GetComponentsInChildren<Location>(true))
-            {
-                if (facts.GameName.Length == 0 && location != null) facts.GameName = CatalogBuilder.Localize(location.m_discoverLabel);
-            }
-            foreach (var bowl in prefab.GetComponentsInChildren<OfferingBowl>(true))
-            {
-                var boss = bowl != null && bowl.m_bossPrefab != null ? bowl.m_bossPrefab.GetComponent<Character>() : null;
-                if (facts.Boss.Length == 0 && boss != null) facts.Boss = CatalogBuilder.Localize(boss.m_name);
-            }
-            foreach (var trader in prefab.GetComponentsInChildren<Trader>(true))
-            {
-                if (facts.Trader.Length == 0 && trader != null) facts.Trader = CatalogBuilder.Localize(trader.m_name);
-            }
             foreach (var generator in prefab.GetComponentsInChildren<DungeonGenerator>(true))
             {
                 if (generator != null && generator.m_themes != 0) themes.Add((int)generator.m_themes);
@@ -300,12 +305,7 @@ namespace Scry
         }
 
         /// <summary>The biomes a location is placed in as the game shows them, or none when that is every one or none.</summary>
-        private static string BiomeOf(Heightmap.Biome biome)
-        {
-            if (biome == Heightmap.Biome.None) return "";
-            var names = Knowledge.BiomeNames(biome);
-            return names == "every biome" || names == "no biome" ? "" : names;
-        }
+        private static string BiomeOf(Heightmap.Biome biome) => PlaceEntries.BiomeWords(biome);
 
         /// <summary>
         /// What one part names: itself, when it is a networked prefab placed there; what its fields
@@ -414,6 +414,13 @@ namespace Scry
                     if (before[i] != entry.Group) moved++;
                 }
                 items = Grouping.FoundInLocations(explorer.Catalog);
+                foreach (var entry in explorer.Catalog)
+                {
+                    if (!(entry.Source is PlaceSource place)) continue;
+                    var read = place.IsRoom ? ReadRooms : ReadLocations;
+                    if (place.Contents == null && read.TryGetValue(place.Prefab, out var contents)) place.Contents = contents;
+                    if (PlaceLabels.TryGetValue(place.IsRoom ? "room:" + place.Prefab : place.Prefab, out var labels)) PlaceEntries.Named(entry, labels);
+                }
                 explorer.Regrouped();
             }
             Facts.Forget();
@@ -422,6 +429,9 @@ namespace Scry
                 $"they name {Found.Count} prefabs, {inCatalog} of them in the catalog; {moved} effects, sounds and projectiles nothing else plays or fires went under \"In locations\", and {items} items only creatures seemed to have went back to their kind of item.");
             Found.Clear();
             Named.Clear();
+            ReadLocations.Clear();
+            ReadRooms.Clear();
+            PlaceLabels.Clear();
             Faults.TellSkipped();
         }
     }

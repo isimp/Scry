@@ -261,6 +261,18 @@ namespace Scry
                 Timing.Add("update modifiers", started);
             }
 
+            // A location or room selected: its bundle is loaded and held while it is shown, what it
+            // holds read once it is in, and its stage copy made then.
+            try
+            {
+                PlaceAssets.Hold(explorer.Selected?.Source as PlaceSource);
+                if (PlaceAssets.Update()) PlaceLoaded(explorer, explorer.Selected);
+            }
+            catch (System.Exception ex)
+            {
+                Faults.Tell("loading a location", ex);
+            }
+
             if (_stageStale)
             {
                 _stageStale = false;
@@ -317,6 +329,37 @@ namespace Scry
             Stage.ClearSubject();
             _stageStale = true;
             StopSound();
+
+            // A location's bundle is loaded again when the panel opens on it.
+            PlaceAssets.Release();
+        }
+
+        /// <summary>
+        /// The selected location or room has loaded: what it holds is read, the first time, and its
+        /// entry named as the game names it (a Burial Chamber rather than "Crypt"), then its copy
+        /// is put on the stage.
+        /// </summary>
+        private static void PlaceLoaded(Explorer explorer, Entry entry)
+        {
+            if (!(entry?.Source is PlaceSource place)) return;
+            var asset = PlaceAssets.Asset(place);
+            if (asset == null) return;
+            if (place.Contents == null)
+            {
+                place.Contents = PlaceReader.Read(asset, place.IsRoom);
+                if (!place.IsRoom)
+                {
+                    var facts = new PlaceFacts
+                    {
+                        Prefab = place.Prefab, Biome = PlaceEntries.BiomeWords(place.Biomes),
+                        GameName = place.Contents.GameName, Boss = place.Contents.Boss, Trader = place.Contents.Trader,
+                    };
+                    PlaceEntries.Named(entry, new[] { Places.LocationLabel(facts, PlaceEntries.CreatureNames(explorer.Catalog)) });
+                }
+                Facts.Forget(entry);
+                explorer.Regrouped();
+            }
+            Stage.Show(entry, explorer.Modifiers);
         }
 
         private static void Selected(Entry entry, Modifiers modifiers)

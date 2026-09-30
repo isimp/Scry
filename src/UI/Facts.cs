@@ -80,6 +80,11 @@ namespace Scry
             {
                 facts.Part("raid", () => facts.Raid(raid));
             }
+            else if (entry.Source is PlaceSource place)
+            {
+                facts._entry = entry;
+                facts.Place(entry, place);
+            }
             else if (entry.Source is GameObject prefab)
             {
                 // The game spawns creatures up to two stars; some mods go higher, and show it.
@@ -145,6 +150,12 @@ namespace Scry
         public static void Forget()
         {
             Cache.Clear();
+        }
+
+        /// <summary>Forgets what was told of one entry, which knows more now (a location, once read).</summary>
+        public static void Forget(Entry entry)
+        {
+            if (entry != null) Cache.Remove(entry);
         }
 
         private void Prefab(GameObject prefab)

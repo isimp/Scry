@@ -245,13 +245,25 @@ namespace Scry
                 _lastShown = entry;
                 ResetView();
             }
-            if (!IsStaged(entry) || !(entry.Source is GameObject || entry.Source is StatusEffect)) return;
+            if (!IsStaged(entry) || !(entry.Source is GameObject || entry.Source is StatusEffect || entry.Source is PlaceSource)) return;
             if (!Ensure()) return;
 
             // Making it and dressing it are told as "selection copy" and "selection dress",
             // measuring it and applying the modifiers as "selection measure" and "selection apply".
+            // A location or room is made once its bundle has loaded (PlaceAssets), which shows it again.
             _subjectIsPerson = Looks.IsWorn(entry) || entry.Kind == Kind.StatusEffect;
-            _subject = Looks.Copy(entry, modifiers, _root.transform, Origin, Quaternion.identity, _layer, "selection");
+            if (entry.Source is PlaceSource place)
+            {
+                var asset = PlaceAssets.Asset(place);
+                if (asset == null) return;
+                var made = Timing.Start();
+                _subject = PlaceCopy.Make(asset, _root.transform, Origin, Quaternion.identity, _layer);
+                Timing.Add("selection copy", made);
+            }
+            else
+            {
+                _subject = Looks.Copy(entry, modifiers, _root.transform, Origin, Quaternion.identity, _layer, "selection");
+            }
             if (_subject == null) return;
 
             Tune(_subject, entry.Kind == Kind.Effect);

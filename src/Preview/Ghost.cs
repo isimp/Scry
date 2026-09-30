@@ -24,9 +24,11 @@ namespace Scry
         /// <summary>
         /// Makes the copy, or returns null if the prefab could not be copied. A falling copy keeps
         /// its bodies, colliders and joints, for <see cref="Falling"/> to put where they only meet
-        /// the ground.
+        /// the ground. What <paramref name="prepare"/> does to the copy is done while it still
+        /// sleeps, before it is stripped (a location's parts rolled); such a copy is never kept as a
+        /// template, since the next is prepared anew.
         /// </summary>
-        public static GameObject Make(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer = -1, bool falling = false)
+        public static GameObject Make(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer = -1, bool falling = false, Action<GameObject> prepare = null)
         {
             if (prefab == null) return null;
 
@@ -39,7 +41,13 @@ namespace Scry
                 // A large prefab (the person, with hundreds of parts) is stripped once and kept
                 // stripped under the sleeping holder; later copies are made from that.
                 var key = new KeyValuePair<GameObject, bool>(prefab, falling);
-                if (Templates.TryGetValue(key, out var template) && template != null)
+                if (prepare != null)
+                {
+                    copy = Object.Instantiate(prefab, Holder().transform, false);
+                    prepare(copy);
+                    Strip(copy, falling);
+                }
+                else if (Templates.TryGetValue(key, out var template) && template != null)
                 {
                     copy = Object.Instantiate(template, Holder().transform, false);
                     Used.Remove(key);

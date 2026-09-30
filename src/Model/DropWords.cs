@@ -156,7 +156,7 @@ namespace Scry
         /// A share as a percentage: whole where that says enough, with a decimal near none or all,
         /// so a rare drop never reads as 0% nor a likely one as 100%.
         /// </summary>
-        private static string Share(float share)
+        public static string Share(float share)
         {
             var percent = share * 100f;
             if (percent > 0f && percent < 0.05f) return "under 0.1%";

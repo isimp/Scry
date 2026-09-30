@@ -291,6 +291,18 @@ namespace Scry
                 yield return $"Grouping entries: {grouping.Current:N0}";
             }
 
+            // Locations and rooms take their names from creatures' (a Fuling camp), so they come last.
+            started = CatalogTiming.Start();
+            try
+            {
+                PlaceEntries.Add(entries);
+            }
+            catch (Exception ex)
+            {
+                Faults.Tell("the locations and dungeon rooms", ex);
+            }
+            CatalogTiming.Add("locations", started);
+
             job.Entries = entries;
             Plugin.Note($"Scry's catalog, by part (ms): {CatalogTiming.Report()}; {GC.CollectionCount(0) - collections} garbage collections meanwhile.");
             Faults.TellSkipped();
