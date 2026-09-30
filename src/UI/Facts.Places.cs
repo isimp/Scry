@@ -146,6 +146,52 @@ namespace Scry
             var row = new Row { Title = $"Built of {rooms.Count} kinds of room" };
             foreach (var room in rooms) row.Items.Add(new Ingredient { Name = room.DisplayName, Amount = "", Prefab = room.Key });
             Rows.Add(row);
+            RoomsHold(rooms);
+        }
+
+        /// <summary>
+        /// What a dungeon's or camp's rooms hold, as its own prefab holds little: every part, the
+        /// loot those give (a chest's filling, what a pickable or a pile of remains yields), and the
+        /// creatures their spawn points place, each with in how many of its kinds of room it is.
+        /// Its rooms are read as its example is laid out, or with every location.
+        /// </summary>
+        private void RoomsHold(List<Entry> rooms)
+        {
+            var read = rooms.Select(r => ((PlaceSource)r.Source).Contents).Where(c => c != null).ToList();
+            if (read.Count == 0)
+            {
+                Add("What its rooms hold", "read once its rooms have loaded for its example layout");
+                return;
+            }
+            var of = read.Count < rooms.Count ? $", {read.Count} of {rooms.Count} kinds of room read" : "";
+
+            var parts = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Parts));
+            if (parts.Count > 0)
+            {
+                var row = new Row { Title = $"Its rooms hold{of}" };
+                foreach (var (prefab, count) in parts) row.Items.Add(Chip(prefab, PlaceParts.InRooms(count)));
+                Rows.Add(row);
+            }
+
+            var loot = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Parts
+                .SelectMany(p => Knowledge.LootOf(ZNetScene.instance != null ? ZNetScene.instance.GetPrefab(p.Prefab) : null))
+                .Distinct()
+                .Select(item => new PlacePart { Prefab = item, Count = 1, Chance = 1f })
+                .ToList()));
+            if (loot.Count > 0)
+            {
+                var row = new Row { Title = $"Loot in its rooms{of}" };
+                foreach (var (item, count) in loot) row.Items.Add(Chip(item, PlaceParts.InRooms(count)));
+                Rows.Add(row);
+            }
+
+            var creatures = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Creatures));
+            if (creatures.Count > 0)
+            {
+                var row = new Row { Title = $"Its rooms' spawn points place{of}" };
+                foreach (var (creature, count) in creatures) row.Items.Add(Chip(creature, PlaceParts.InRooms(count)));
+                Rows.Add(row);
+            }
         }
 
         /// <summary>The room entries of the kinds a dungeon is built of, entrances first, then rooms, then end caps.</summary>

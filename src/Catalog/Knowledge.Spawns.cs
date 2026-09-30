@@ -475,6 +475,40 @@ namespace Scry
         }
 
         /// <summary>
+        /// The items a prefab gives: an item it is, the item a pickable yields, and what any of its
+        /// drop tables holds (a chest's filling, what a rock or a pile of remains drops), each once.
+        /// </summary>
+        public static List<string> LootOf(GameObject prefab)
+        {
+            var items = new List<string>();
+            if (prefab == null) return items;
+            void Add(GameObject item)
+            {
+                if (item != null && !items.Contains(item.name)) items.Add(item.name);
+            }
+            foreach (var component in prefab.GetComponentsInChildren<Component>(true))
+            {
+                switch (component)
+                {
+                    case null:
+                        continue;
+                    case ItemDrop item when component.gameObject == prefab:
+                        Add(item.gameObject);
+                        break;
+                    case Pickable pickable:
+                        Add(pickable.m_itemPrefab);
+                        break;
+                }
+                foreach (var field in DropTables(component.GetType()))
+                {
+                    if (!(field.GetValue(component) is DropTable table) || table.m_drops == null) continue;
+                    foreach (var data in table.m_drops) Add(data.m_item);
+                }
+            }
+            return items;
+        }
+
+        /// <summary>
         /// Whether a prefab gives loot of its own: a drop table holding anything on any of its
         /// components (a chest's filling, a rock's or tree's drops), or a pickable's item. A chest
         /// built by players has an empty table, and gives nothing.

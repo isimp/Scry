@@ -680,6 +680,14 @@ namespace Scry
             if (another == null) yield break;
             example = another;
 
+            // Its page tells what its rooms hold, the loot in them and what their spawn points place.
+            var page = Facts.For(entry);
+            var holds = page.Rows.FirstOrDefault(r => r.Title.StartsWith("Its rooms hold", StringComparison.Ordinal));
+            p.Check(holds != null && holds.Items.Count > 0, "its page tells what its rooms hold", holds != null ? $"{holds.Items.Count} things" : string.Join("; ", page.Rows.Select(r => r.Title)));
+            var loot = page.Rows.FirstOrDefault(r => r.Title.StartsWith("Loot in its rooms", StringComparison.Ordinal));
+            p.Note(loot != null ? $"loot in its rooms: {string.Join(", ", loot.Items.Take(12).Select(i => i.Prefab + " " + i.Amount))}" : "no loot in its rooms");
+            if (algorithm == "Dungeon") p.Check(loot != null && loot.Items.Count > 0, "and the loot in them");
+
             // It is built on the stage, room by room: a dungeon inside, opened on its top floor,
             // with its entrance outside; a camp around the location's own parts.
             var wasInside = Stage.Inside;

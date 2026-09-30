@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
@@ -7,6 +8,43 @@ namespace Scry.Tests
     {
         // A location's parts are rolled when the game first builds its zone: each RandomSpawn at
         // its chance, each RandomObject picking one of its objects by weight (ZoneSystem.SpawnLocation).
+
+        // A dungeon's or camp's own prefab holds little; what is in it is in its rooms. Its page
+        // counts each thing across its kinds of room: in how many of them it is, the most
+        // widespread first, then by name.
+
+        private static List<PlacePart> Room(params string[] prefabs) => prefabs.Select(p => new PlacePart { Prefab = p, Count = 1, Chance = 1f }).ToList();
+
+        [Fact]
+        public void WhatARoomsHoldIsCountedByTheKindsOfRoomItIsIn()
+        {
+            var across = PlaceParts.Across(new[] { Room("TreasureChest_forestcrypt", "Spawner_Skeleton"), Room("Spawner_Skeleton", "Pickable_ForestCryptRemains"), Room("Spawner_Skeleton") });
+
+            Assert.Equal(new[] { ("Spawner_Skeleton", 3), ("Pickable_ForestCryptRemains", 1), ("TreasureChest_forestcrypt", 1) }, across.ToArray());
+        }
+
+        [Fact]
+        public void AThingTwiceInOneRoomCountsThatRoomOnce()
+        {
+            var room = Room("Spawner_Skeleton");
+            room.Add(new PlacePart { Prefab = "Spawner_Skeleton", Count = 2, Chance = 0.5f });
+
+            Assert.Equal(new[] { ("Spawner_Skeleton", 1) }, PlaceParts.Across(new[] { room }).ToArray());
+        }
+
+        [Fact]
+        public void RoomsNotReadAddNothing()
+        {
+            Assert.Empty(PlaceParts.Across(new List<PlacePart>[] { null, new List<PlacePart>() }));
+        }
+
+        [Theory]
+        [InlineData(1, "in 1 kind of room")]
+        [InlineData(5, "in 5 kinds of room")]
+        public void HowWidespreadIsToldInKindsOfRoom(int rooms, string told)
+        {
+            Assert.Equal(told, PlaceParts.InRooms(rooms));
+        }
 
         [Fact]
         public void PartsOfOnePrefabAtOneChanceAreCountedTogether()

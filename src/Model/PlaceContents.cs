@@ -77,6 +77,29 @@ namespace Scry
             return spawnChances.Any(c => c > 0f && c < 100f) || pickWeights.Any(w => w.Count(x => x > 0f) > 1);
         }
 
+        /// <summary>
+        /// What a dungeon's or camp's kinds of room hold, each thing with how many of them it is
+        /// in (once for a room however often it is there), the most widespread first, then by
+        /// name; a room not read yet adds nothing.
+        /// </summary>
+        public static List<(string Prefab, int Rooms)> Across(IEnumerable<IReadOnlyList<PlacePart>> rooms)
+        {
+            var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var room in rooms)
+            {
+                if (room == null) continue;
+                foreach (var prefab in room.Where(p => p != null && !string.IsNullOrEmpty(p.Prefab)).Select(p => p.Prefab).Distinct())
+                {
+                    counts.TryGetValue(prefab, out var n);
+                    counts[prefab] = n + 1;
+                }
+            }
+            return counts.OrderByDescending(c => c.Value).ThenBy(c => c.Key, StringComparer.OrdinalIgnoreCase).Select(c => (c.Key, c.Value)).ToList();
+        }
+
+        /// <summary>How widespread a thing is among a dungeon's kinds of room, as a chip's amount.</summary>
+        public static string InRooms(int rooms) => rooms == 1 ? "in 1 kind of room" : $"in {rooms} kinds of room";
+
         /// <summary>How many and how likely, as a chip's amount: nothing for one that is always there.</summary>
         public static string Amount(int count, float chance)
         {
