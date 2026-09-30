@@ -56,7 +56,7 @@ namespace Scry
             {
                 title = table.Max <= 1 ? "Drops" : $"Drops {Range(table.Min, table.Max)} times";
             }
-            if (table.Chance < 1f) title += $", {Percent(table.Chance)}% of the time";
+            if (table.Chance < 1f) title += $", {Share(table.Chance)} of the time";
             return title;
         }
 
@@ -79,7 +79,7 @@ namespace Scry
             {
                 title = table.Drops.Count > 1 ? "Holds one of these" : "Holds";
             }
-            if (table.Chance < 1f) title += $", {Percent(table.Chance)}% of the time";
+            if (table.Chance < 1f) title += $", {Share(table.Chance)} of the time";
             return title;
         }
 
@@ -91,7 +91,32 @@ namespace Scry
 
             var total = 0f;
             foreach (var each in table.Drops) total += each.Weight;
-            return total > 0f ? $"{amount} ({Percent(drop.Weight / total)}%)" : amount;
+            return total > 0f ? $"{amount} ({Share(drop.Weight / total)})" : amount;
+        }
+
+        /// <summary>
+        /// One item's odds in a table, as the item's details tell where it comes from: how many a
+        /// roll gives, its share of a roll where there is a choice, how many rolls there are, and
+        /// how often the table gives anything. From a table that gives each item at most once, how
+        /// many of its items are picked instead.
+        /// </summary>
+        public static string ForItem(DropTableInfo table, DropInfo drop)
+        {
+            var amount = Range(drop.StackMin, drop.StackMax);
+            var odds = new List<string>();
+            if (table.OneOfEach)
+            {
+                if (table.Min < table.Drops.Count) odds.Add($"at most once, {Range(table.Min, table.Max)} of {table.Drops.Count} picked");
+            }
+            else
+            {
+                var total = 0f;
+                foreach (var each in table.Drops) total += each.Weight;
+                if (table.Drops.Count > 1 && total > 0f) odds.Add(Share(drop.Weight / total) + " a roll");
+                if (table.Max > 1) odds.Add($"{Range(table.Min, table.Max)} rolls");
+            }
+            if (table.Chance < 1f) odds.Add(Share(table.Chance) + " of the time");
+            return odds.Count > 0 ? $"{amount} ({string.Join(", ", odds.ToArray())})" : amount;
         }
 
         /// <summary>
@@ -127,6 +152,17 @@ namespace Scry
         /// <summary>A range of counts, written as the rest of the panel writes them: "3", "1–4".</summary>
         public static string Range(int min, int max) => max <= min ? min.ToString() : $"{min}–{max}";
 
-        private static int Percent(float share) => (int)System.Math.Round(share * 100f);
+        /// <summary>
+        /// A share as a percentage: whole where that says enough, with a decimal near none or all,
+        /// so a rare drop never reads as 0% nor a likely one as 100%.
+        /// </summary>
+        private static string Share(float share)
+        {
+            var percent = share * 100f;
+            if (percent > 0f && percent < 0.05f) return "under 0.1%";
+            if (percent < 100f && percent > 99.95f) return "over 99.9%";
+            var format = percent < 10f || percent > 90f ? "0.#" : "0";
+            return percent.ToString(format, System.Globalization.CultureInfo.InvariantCulture) + "%";
+        }
     }
 }

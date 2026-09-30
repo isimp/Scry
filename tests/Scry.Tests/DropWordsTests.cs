@@ -44,6 +44,49 @@ namespace Scry.Tests
             Assert.Equal("1–2", DropWords.Amount(table, table.Drops[0]));
         }
 
+        [Fact]
+        public void ARareShareKeepsADecimalRatherThanReadingAsNone()
+        {
+            // An idol weighted 1 among 500 is 0.2% of a roll, not 0%.
+            var table = Table(drops: new[] { new DropInfo("Coins", 5, 30, 499f), new DropInfo("Upgrader2Weapon", 1, 1, 1f) });
+
+            Assert.Equal("1 (0.2%)", DropWords.Amount(table, table.Drops[1]));
+            Assert.Equal("5–30 (99.8%)", DropWords.Amount(table, table.Drops[0]));
+        }
+
+        [Fact]
+        public void AShareUnderATenthOfAPercentSaysSo()
+        {
+            var table = Table(drops: new[] { new DropInfo("Coins", 1, 1, 9999f), new DropInfo("Rare", 1, 1, 1f) });
+
+            Assert.Equal("1 (under 0.1%)", DropWords.Amount(table, table.Drops[1]));
+            Assert.Equal("1 (over 99.9%)", DropWords.Amount(table, table.Drops[0]));
+        }
+
+        [Fact]
+        public void AnItemTellsItsOddsInEachTableThatGivesIt()
+        {
+            // As an item's details tell where it comes from: how many, its share of a roll, how many rolls.
+            var chest = Table(3, 5, 1f, false, new DropInfo("Amber", 1, 2, 3f), new DropInfo("Coins", 5, 30, 10f));
+            Assert.Equal("1–2 (23% a roll, 3–5 rolls)", DropWords.ForItem(chest, chest.Drops[0]));
+
+            var tree = Table(drops: new DropInfo("Wood", 10, 10, 1f));
+            Assert.Equal("10", DropWords.ForItem(tree, tree.Drops[0]));
+
+            var bush = Table(1, 1, 0.5f, false, new DropInfo("Raspberry", 1, 3, 4f), new DropInfo("Seed", 1, 1, 1f));
+            Assert.Equal("1–3 (80% a roll, 50% of the time)", DropWords.ForItem(bush, bush.Drops[0]));
+        }
+
+        [Fact]
+        public void AnItemFromAOneOfEachTableSaysHowManyOfTheItemsArePicked()
+        {
+            var some = Table(2, 3, 1f, true, new DropInfo("A", 1, 1, 1f), new DropInfo("B", 1, 2, 1f), new DropInfo("C", 1, 1, 1f), new DropInfo("D", 1, 1, 1f));
+            Assert.Equal("1–2 (at most once, 2–3 of 4 picked)", DropWords.ForItem(some, some.Drops[1]));
+
+            var all = Table(2, 2, 1f, true, new DropInfo("Resin", 1, 2, 1f), new DropInfo("Wood", 5, 5, 1f));
+            Assert.Equal("5", DropWords.ForItem(all, all.Drops[1]));
+        }
+
         [Theory]
         [InlineData(2, 3, 1f, true, 5, "Holds 2–3 of these, each at most once")]
         [InlineData(3, 3, 1f, true, 3, "Holds each of these once")]

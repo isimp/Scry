@@ -8,6 +8,8 @@ A piece's details tell its support, how much of it is lost for each metre sidewa
 
 A spawner's details, such as a greydwarf nest's, tell each creature's share of its spawns and stars, the chance of each star, when it works, its pace, how many it keeps alive and how far away it puts them. A creature that comes from one says its share there too.
 
+An item tells its odds in every chest, rock, tree or anything else that can give it: how many a roll gives, its share of a roll, how many rolls, and how often. A rare share keeps a decimal instead of showing as 0%.
+
 ## 0.1.0
 
 First release.

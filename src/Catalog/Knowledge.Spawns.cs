@@ -247,7 +247,13 @@ namespace Scry
                 {
                     if (!(field.GetValue(component) is DropTable table) || table.m_drops == null) continue;
                     shown = shown ?? $"{FromVerb(component)} {Shown(prefab)}";
-                    foreach (var data in table.m_drops) Keep(DropLines, data.m_item, shown, prefab.name);
+                    var info = new DropTableInfo { Min = table.m_dropMin, Max = table.m_dropMax, Chance = table.m_dropChance, OneOfEach = table.m_oneOfEach };
+                    foreach (var data in table.m_drops) if (data.m_item != null) info.Drops.Add(new DropInfo(data.m_item.name, data.m_stackMin, data.m_stackMax, data.m_weight));
+                    foreach (var data in table.m_drops)
+                    {
+                        if (data.m_item == null) continue;
+                        Keep(DropLines, data.m_item, $"{shown}, {DropWords.ForItem(info, new DropInfo(data.m_item.name, data.m_stackMin, data.m_stackMax, data.m_weight))}", prefab.name);
+                    }
                 }
             }
         }
