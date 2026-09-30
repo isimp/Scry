@@ -16,7 +16,7 @@ namespace Scry
         private static bool IsFolded(string key) => key != null && Folded.Contains(key);
 
         /// <summary>Every section that folds, by key.</summary>
-        private static readonly string[] Foldable = { "kept", "variants", "adjust", "animations", "effects", "playsin", "links", "facts", "plan", "command", "details" };
+        private static readonly string[] Foldable = { "kept", "variants", "adjust", "animations", "effects", "playsin", "links", "facts", "layout", "command", "details" };
 
         private static void FoldAll(bool fold)
         {

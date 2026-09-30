@@ -249,11 +249,15 @@ namespace Scry
                     GUI.Label(inner, note ?? "This one could not be previewed.", Skin.CenterDim);
                 }
 
+                // The example's plan in the corner, which takes the mouse where it is.
+                var plan = Stage.Subject != null ? PlanOverlay(explorer, entry, inner) : Rect.zero;
+
                 // A room of the example under the mouse is named, and a click on it that is not a
                 // drag goes to its entry.
                 string roomKey = null;
+                _stageRoom = null;
                 var still = _drag == Drag.None || (_drag == Drag.Orbit && _orbitMoved < U(5f));
-                if (Stage.ExampleRoomsShown > 0 && still && inner.Contains(e.mousePosition))
+                if (Stage.ExampleRoomsShown > 0 && still && inner.Contains(e.mousePosition) && !plan.Contains(e.mousePosition))
                 {
                     var point = new Vector2((e.mousePosition.x - inner.x) / inner.width, 1f - (e.mousePosition.y - inner.y) / inner.height);
                     var room = Stage.ExampleRoomAt(point);
@@ -264,6 +268,7 @@ namespace Scry
                         var name = ShownName(explorer, key, LocationWords.RoomName(room.Room.Name));
                         AskTip("stageroom:" + room.Room.Name, known ? name + "\nClick to go to it" : name);
                         if (known) roomKey = key;
+                        _stageRoom = room.Room.Name;
                     }
                 }
                 if (e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _stageRoomDown != null && _orbitMoved < U(5f))
@@ -842,6 +847,7 @@ namespace Scry
             if (!Looks.IsWorn(entry)) texts.Add("Person");
             if (Stage.HasFloors) texts.Add(Stage.CutLabel);
             if (Stage.HasInside) texts.Add(Stage.Inside ? "Inside" : "Outside");
+            if (ExampleOf(entry) != null) texts.Add("Plan");
             var total = texts.Sum(t => Skin.Width(Skin.Chip, t) + U(10f));
             if (x - total < rect.x + U(10f) + _badgeWidth + U(10f)) y += h + U(8f);
 
@@ -875,6 +881,10 @@ namespace Scry
             {
                 Stage.ShowPerson = !Stage.ShowPerson;
                 SaveRects();
+            }
+            if (ExampleOf(entry) != null && Chip("Plan", !PlanFolded, PlanFolded ? "Shows the example's plan in the stage's corner" : "Puts the example's plan away"))
+            {
+                PlanFolded = !PlanFolded;
             }
             if (Stage.HasInside && Chip(Stage.Inside ? "Inside" : "Outside", Stage.Inside,
                     Stage.Inside ? "The example dungeon, laid out as the game lays out a new one; click for its entrance outside" : "Its entrance; click for the example dungeon inside"))

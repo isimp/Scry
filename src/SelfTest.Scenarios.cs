@@ -555,9 +555,8 @@ namespace Scry
             var missing = example.Rooms.Select(r => EntryKeys.For(Kind.Location, r.Room.Name)).Where(k => !keys.Contains(k)).Distinct().ToList();
             p.Check(missing.Count == 0, "every room on it has an entry to go to", string.Join(", ", missing.Take(5)));
 
-            // The plan is far down the details; brought into view it draws its rooms.
+            // Its plan in the stage's corner draws its rooms.
             ScryPanel.PlanFolded = false;
-            ScryPanel.RevealPlan();
             var drawn = ScryPanel.PlansDrawn;
             yield return Until(() => ScryPanel.PlansDrawn > drawn, 3);
             p.Check(ScryPanel.PlansDrawn > drawn, "the plan draws its rooms");
