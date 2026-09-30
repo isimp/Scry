@@ -73,6 +73,13 @@ namespace Scry.Tests
             Assert.Equal("Reading the 34 kinds of room it is built of, 12 so far", DungeonWords.Reading(12, 34));
         }
 
+        [Fact]
+        public void TheStageSaysHowFarTheExampleHasBeenBuilt()
+        {
+            Assert.Equal("Building the example on the stage, 5 of its 18 rooms so far", DungeonWords.Building(5, 18));
+            Assert.Equal("Building the example on the stage, 0 of its 1 room so far", DungeonWords.Building(0, 1));
+        }
+
         private static PlacedRoom Of(RoomShape room) => new PlacedRoom { Room = room };
 
         [Fact]

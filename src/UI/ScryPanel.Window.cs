@@ -114,6 +114,7 @@ namespace Scry
                     win.height += e.delta.y;
                     break;
                 case Drag.Orbit:
+                    _orbitMoved += e.delta.magnitude;
                     Stage.Orbit(e.delta);
                     break;
                 case Drag.Pan:

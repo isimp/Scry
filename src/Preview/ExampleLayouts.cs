@@ -9,9 +9,12 @@ namespace Scry
     /// <summary>
     /// An example layout of the dungeon or camp in the location selected (<see cref="DungeonLayout"/>).
     /// The rooms of its kinds are kept by the game only as soft references to asset bundles, so
-    /// those not read yet are loaded one at a time in the background, each read
-    /// (<see cref="PlaceReader"/>, which fills their own entries too) and let go of; once all are
-    /// in, the example is laid out, and laid out anew on asking for another.
+    /// those not read yet are loaded one at a time in the background and read
+    /// (<see cref="PlaceReader"/>, which fills their own entries too); once all are in, the
+    /// example is laid out, and laid out anew on asking for another. The example is then built
+    /// on the stage from copies of its rooms (<see cref="Stage.StepExample"/>), so the bundles of
+    /// the kinds it uses are held while it is shown, and the rest let go of a frame after the
+    /// stage has let go of their copies. Closing the panel or leaving the location lets go of all.
     /// </summary>
     internal static class ExampleLayouts
     {
@@ -39,7 +42,14 @@ namespace Scry
         public static int Read => Rooms.Count(e => ((PlaceSource)e.Source).Contents?.Room != null);
 
         /// <summary>Whether a room's bundle is held while it loads, for the self-test to see nothing is left held.</summary>
-        public static bool Holding => _loading != null;
+        public static bool Holding => _loading != null || Held.Count > 0;
+
+        /// <summary>The bundles held for the stage's copies, by room prefab.</summary>
+        private static readonly Dictionary<string, PlaceSource> Held = new Dictionary<string, PlaceSource>(StringComparer.Ordinal);
+
+        /// <summary>The example whose kinds of room are held, and the frame from which the others may be let go of.</summary>
+        private static DungeonExample _heldFor;
+        private static int _releaseFrom = -1;
 
         /// <summary>Whether the example shown is of this entry.</summary>
         public static bool Of(Entry entry) => entry != null && entry == _entry;
@@ -47,7 +57,7 @@ namespace Scry
         /// <summary>Lets go of any room held, and forgets the example.</summary>
         public static void Forget()
         {
-            LetGo();
+            LetGoOfAll();
             _entry = null;
             Rooms.Clear();
             _next = 0;
@@ -55,8 +65,8 @@ namespace Scry
             Example = null;
         }
 
-        /// <summary>Lets go of the room being loaded, which is loaded again when the panel opens; the example stays.</summary>
-        public static void Pause() => LetGo();
+        /// <summary>Lets go of every room held, loaded again when the panel opens; the example stays.</summary>
+        public static void Pause() => LetGoOfAll();
 
         /// <summary>Lays out another example of the same.</summary>
         public static void Another()
@@ -77,8 +87,18 @@ namespace Scry
                 return;
             }
             if (entry != _entry) Start(explorer, entry, plan);
-            if (Example != null) return;
+            if (Example == null) ReadRooms();
+            if (Example == null) return;
 
+            // Its rooms' copies on the stage, from the bundles of the kinds it uses.
+            HoldFor(Example);
+            Stage.StepExample(_entry, Example, plan, RoomModel);
+            if (_releaseFrom >= 0 && Time.frameCount >= _releaseFrom) LetGoOfUnused();
+        }
+
+        /// <summary>Loads and reads the rooms not read yet, a few milliseconds a frame, one bundle at a time, and lays out the example once all are in.</summary>
+        private static void ReadRooms()
+        {
             var watch = Stopwatch.StartNew();
             while (watch.Elapsed.TotalMilliseconds < BudgetMs)
             {
@@ -116,9 +136,65 @@ namespace Scry
                         Faults.Skip("dungeon rooms", _loading.Prefab, ex);
                     }
                 }
-                LetGo();
+
+                // Kept for the stage, which is likely to want it next; let go of if it did not load.
+                if (asset != null && !Held.ContainsKey(_loading.Prefab)) Held[_loading.Prefab] = _loading;
+                else _loading.Reference.Release();
+                _loading = null;
                 _next++;
             }
+        }
+
+        /// <summary>Holds the bundle of every kind of room the example uses, asking for those not held; the rest are let go of shortly.</summary>
+        private static void HoldFor(DungeonExample example)
+        {
+            if (ReferenceEquals(_heldFor, example)) return;
+            _heldFor = example;
+            foreach (var room in example.Rooms)
+            {
+                var name = room.Room.Name;
+                if (Held.ContainsKey(name)) continue;
+                var source = Rooms.Select(e => (PlaceSource)e.Source).FirstOrDefault(s => s.Prefab == name);
+                if (source == null) continue;
+                // Holds a reference until let go of; loads over the next frames.
+                source.Reference.LoadAsync();
+                Held[name] = source;
+            }
+            _releaseFrom = Time.frameCount + 2;
+        }
+
+        /// <summary>A room's model for the stage: true once it has loaded, with null when it could not be.</summary>
+        private static bool RoomModel(string prefab, out GameObject model)
+        {
+            model = null;
+            if (!Held.TryGetValue(prefab, out var source)) return true;
+            if (source.Reference.IsLoaded)
+            {
+                model = source.Reference.Asset;
+                return true;
+            }
+            return !source.Reference.IsLoading;
+        }
+
+        /// <summary>Lets go of the bundles the example shown does not use.</summary>
+        private static void LetGoOfUnused()
+        {
+            _releaseFrom = -1;
+            var used = new HashSet<string>(Example?.Rooms.Select(r => r.Room.Name) ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
+            foreach (var name in Held.Keys.Where(n => !used.Contains(n)).ToList())
+            {
+                Held[name].Reference.Release();
+                Held.Remove(name);
+            }
+        }
+
+        private static void LetGoOfAll()
+        {
+            LetGo();
+            foreach (var source in Held.Values) source.Reference.Release();
+            Held.Clear();
+            _heldFor = null;
+            _releaseFrom = -1;
         }
 
         /// <summary>The rooms of a dungeon's kinds, enabled, in the order the game lists them (<c>DungeonGenerator.SetupAvailableRooms</c>).</summary>

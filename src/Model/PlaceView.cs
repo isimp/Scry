@@ -23,6 +23,10 @@ namespace Scry
             return floors;
         }
 
+        /// <summary>An example dungeon's or camp's floors, from the top down: where its rooms' doorways are.</summary>
+        public static List<float> ExampleFloors(DungeonExample example) =>
+            Floors(example.Rooms.SelectMany(r => Enumerable.Range(0, r.Room.Doorways.Count).Select(i => r.DoorwayAt(i).Y)));
+
         /// <summary>Heights as floors, from the top down, those less than <see cref="SameFloor"/> below the last one kept taken as that one.</summary>
         public static List<float> Floors(IEnumerable<float> heights)
         {

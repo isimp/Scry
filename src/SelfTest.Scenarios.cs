@@ -522,6 +522,34 @@ namespace Scry
             if (another == null) yield break;
             example = another;
 
+            // It is built on the stage, room by room: a dungeon inside, opened on its top floor,
+            // with its entrance outside; a camp around the location's own parts.
+            var wasInside = Stage.Inside;
+            Stage.Inside = true;
+            yield return Until(() => Stage.ExampleRoomsTotal == example.Rooms.Count && Stage.ExampleRoomsShown == example.Rooms.Count, 30);
+            p.Check(Stage.ExampleRoomsShown == example.Rooms.Count, "it is built on the stage, room by room", $"{Stage.ExampleRoomsShown} of {example.Rooms.Count}");
+            yield return null;
+            var size = Stage.SubjectSize;
+            p.Note($"the stage shows it {size.x:0} × {size.z:0} m, {size.y:0} m high");
+            if (algorithm == "Dungeon")
+            {
+                p.Check(Stage.HasInside && Stage.Inside, "it shows the dungeon inside");
+                p.Check(Stage.Cutting, "opened on its top floor", Stage.CutLabel);
+                var point = Stage.ExamplePointOf(0);
+                p.Check(point.HasValue && Stage.ExampleRoomAt(point.Value) != null, "a room on the stage is found under the mouse", point?.ToString() ?? "not in view");
+                Stage.Inside = false;
+                yield return null;
+                var outside = Stage.SubjectSize;
+                p.Check(Mathf.Max(outside.x, outside.z) < Mathf.Max(size.x, size.z), "outside it shows its entrance", $"{outside.x:0} × {outside.z:0} m");
+                Stage.Inside = true;
+            }
+            else
+            {
+                p.Check(!Stage.HasInside, "a camp has no inside to go into");
+                p.Check(Mathf.Max(size.x, size.z) > 15f, "the camp stands around the location", $"{size.x:0} × {size.z:0} m");
+            }
+            Stage.Inside = wasInside;
+
             // Every room of it goes to an entry of its own.
             var keys = new HashSet<string>(X.Catalog.Select(e => e.Key));
             var missing = example.Rooms.Select(r => EntryKeys.For(Kind.Location, r.Room.Name)).Where(k => !keys.Contains(k)).Distinct().ToList();

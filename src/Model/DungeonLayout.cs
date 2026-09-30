@@ -79,6 +79,88 @@ namespace Scry
         /// <summary>The room a point on the plan is in: the one drawn on top of the others there, or null.</summary>
         public PlacedRoom RoomAt(float x, float z) => BottomUp.LastOrDefault(r => r.Covers(x, z));
 
+        /// <summary>
+        /// The same example as it stands from its generator: the generator at the origin and
+        /// unturned, each room and door where it is from there, as a stage that holds the
+        /// generator's place shows it. The zone's box moves with it but keeps its size; a turned
+        /// site leaves it turned, so it is for the stage, not for a plan.
+        /// </summary>
+        public DungeonExample FromGenerator()
+        {
+            var back = Site.Turn.Inverse();
+            var generator = Site.Generator;
+            Vec3 Local(Vec3 p) => back * (p - generator);
+
+            var staged = new DungeonExample
+            {
+                Site = new DungeonSite { ZoneCenter = Local(Site.ZoneCenter), ZoneSize = Site.ZoneSize },
+                Doors = Doors.Select(Local).ToList(),
+            };
+            var moved = new Dictionary<PlacedRoom, PlacedRoom>();
+            foreach (var room in Rooms)
+            {
+                var placed = new PlacedRoom { Room = room.Room, Position = Local(room.Position), Rotation = back * room.Rotation, PlaceOrder = room.PlaceOrder };
+                moved[room] = placed;
+                staged.Rooms.Add(placed);
+            }
+            foreach (var room in Rooms)
+            {
+                if (room.JoinedTo != null && moved.TryGetValue(room.JoinedTo, out var to)) moved[room].JoinedTo = to;
+            }
+            return staged;
+        }
+
+        /// <summary>
+        /// The room a ray meets first, going by each room's box (end caps and dividers, which have
+        /// no depth, a little deep), leaving out what is above <paramref name="below"/>, where the
+        /// stage cuts the example open; null when it meets none.
+        /// </summary>
+        public PlacedRoom Pick(Vec3 from, Vec3 direction, float below = float.PositiveInfinity)
+        {
+            // Where the ray is below the cut: from a least t when it goes down, up to a most t when it goes up.
+            var least = 0.0;
+            var most = double.PositiveInfinity;
+            if (Math.Abs(direction.Y) < 1e-6f)
+            {
+                if (from.Y > below) return null;
+            }
+            else if (!float.IsPositiveInfinity(below))
+            {
+                var at = (below - from.Y) / (double)direction.Y;
+                if (direction.Y < 0f) least = Math.Max(least, at);
+                else most = Math.Min(most, at);
+            }
+
+            PlacedRoom nearest = null;
+            var nearestT = double.PositiveInfinity;
+            foreach (var room in Rooms)
+            {
+                var back = room.Rotation.Inverse();
+                var o = back * (from - room.Position);
+                var d = back * direction;
+                var enter = least;
+                var leave = most;
+                if (!Slab(o.X, d.X, Math.Max(0.25f, room.Room.Size.X / 2f), ref enter, ref leave)) continue;
+                if (!Slab(o.Y, d.Y, Math.Max(0.25f, room.Room.Size.Y / 2f), ref enter, ref leave)) continue;
+                if (!Slab(o.Z, d.Z, Math.Max(0.25f, room.Room.Size.Z / 2f), ref enter, ref leave)) continue;
+                if (enter > leave || enter >= nearestT) continue;
+                nearest = room;
+                nearestT = enter;
+            }
+            return nearest;
+        }
+
+        /// <summary>Narrows where a ray is inside a box to where it is between two of its faces; false when it never is.</summary>
+        private static bool Slab(float origin, float direction, float half, ref double enter, ref double leave)
+        {
+            if (Math.Abs(direction) < 1e-6f) return Math.Abs(origin) <= half;
+            var a = (-half - origin) / (double)direction;
+            var b = (half - origin) / (double)direction;
+            enter = Math.Max(enter, Math.Min(a, b));
+            leave = Math.Min(leave, Math.Max(a, b));
+            return enter <= leave;
+        }
+
         /// <summary>What a plan of it shows as seen from above: its zone's box and every room.</summary>
         public (float MinX, float MaxX, float MinZ, float MaxZ) Extent()
         {

@@ -75,6 +75,9 @@ namespace Scry
         /// <summary>What a dungeon's plan says while the rooms it is built of are read.</summary>
         public static string Reading(int read, int total) => $"Reading the {total} kinds of room it is built of, {read} so far";
 
+        /// <summary>How far the example has been built on the stage, room by room.</summary>
+        public static string Building(int shown, int total) => $"Building the example on the stage, {shown} of its {total} {(total == 1 ? "room" : "rooms")} so far";
+
         /// <summary>
         /// What an example holds: its rooms (the entrance among them), end caps, dividers, pieces
         /// of a camp's wall and doors, each only when there are any, and the kinds of room left

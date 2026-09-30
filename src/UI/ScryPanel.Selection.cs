@@ -101,7 +101,7 @@ namespace Scry
                 var card = CardHeight(entry);
                 _stageBaseH = Mathf.Round(Mathf.Min(rect.width * 0.60f, rect.height * 0.50f));
                 var stageH = card > 0f ? card : Mathf.Round(Mathf.Clamp(_stageBaseH * _stageScale, U(120f), rect.height * 0.85f));
-                Section("side stage", 0f, _ => { StageArea(entry, new Rect(rect.x, rect.y, rect.width, stageH)); return 0f; });
+                Section("side stage", 0f, _ => { StageArea(explorer, entry, new Rect(rect.x, rect.y, rect.width, stageH)); return 0f; });
                 if (card <= 0f) StageHandle(new Rect(rect.x, rect.y + stageH, rect.width, U(12f)));
                 top += stageH + U(12f);
             }
@@ -211,7 +211,22 @@ namespace Scry
             }
         }
 
-        private static void StageArea(Entry entry, Rect rect)
+        /// <summary>The room of the stage's example the left button went down on, gone to if it comes up without a drag.</summary>
+        private static string _stageRoomDown;
+
+        /// <summary>How far the mouse has moved since the left button went down on the stage.</summary>
+        private static float _orbitMoved;
+
+        /// <summary>What the stage says while a dungeon's or camp's example is read and built; null once it stands.</summary>
+        private static string ExampleProgress(Entry entry)
+        {
+            if (!(entry.Source is PlaceSource place) || place.IsRoom || place.Contents?.Dungeon == null || !ExampleLayouts.Of(entry)) return null;
+            if (ExampleLayouts.Example == null) return DungeonWords.Reading(ExampleLayouts.Read, ExampleLayouts.Total);
+            var total = Stage.ExampleRoomsTotal;
+            return total > 0 && Stage.ExampleRoomsShown < total ? DungeonWords.Building(Stage.ExampleRoomsShown, total) : null;
+        }
+
+        private static void StageArea(Explorer explorer, Entry entry, Rect rect)
         {
             var e = Event.current;
             Skin.Box(rect, Skin.Stage);
@@ -234,6 +249,30 @@ namespace Scry
                     GUI.Label(inner, note ?? "This one could not be previewed.", Skin.CenterDim);
                 }
 
+                // A room of the example under the mouse is named, and a click on it that is not a
+                // drag goes to its entry.
+                string roomKey = null;
+                var still = _drag == Drag.None || (_drag == Drag.Orbit && _orbitMoved < U(5f));
+                if (Stage.ExampleRoomsShown > 0 && still && inner.Contains(e.mousePosition))
+                {
+                    var point = new Vector2((e.mousePosition.x - inner.x) / inner.width, 1f - (e.mousePosition.y - inner.y) / inner.height);
+                    var room = Stage.ExampleRoomAt(point);
+                    if (room != null)
+                    {
+                        var key = EntryKeys.For(Kind.Location, room.Room.Name);
+                        var known = InCatalog(explorer, key);
+                        var name = ShownName(explorer, key, LocationWords.RoomName(room.Room.Name));
+                        AskTip("stageroom:" + room.Room.Name, known ? name + "\nClick to go to it" : name);
+                        if (known) roomKey = key;
+                    }
+                }
+                if (e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _stageRoomDown != null && _orbitMoved < U(5f))
+                {
+                    var go = _stageRoomDown;
+                    _stageRoomDown = null;
+                    Go(explorer, go);
+                }
+
                 // The camera's buttons show only while the mouse is on the stage, as its hint does,
                 // so the model is not framed by controls while it is looked at.
                 var over = rect.Contains(e.mousePosition) || _drag == Drag.Orbit;
@@ -243,6 +282,11 @@ namespace Scry
                 {
                     FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), textW, U(22f)),
                         Stage.Cutting ? StageHintCut : StageHint, Skin.FaintLabel, 9f);
+                }
+                else if (ExampleProgress(entry) is string progress)
+                {
+                    // Not measured: the text changes as it goes, and each would be kept.
+                    GUI.Label(new Rect(inner.x + U(12f), inner.yMax - U(28f), textW, U(22f)), progress, Skin.DimLabel);
                 }
                 else if (Stage.Subject != null && Stage.ShowsGrid)
                 {
@@ -259,6 +303,8 @@ namespace Scry
                 if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
                 {
                     if (e.clickCount == 2) Stage.ResetView();
+                    _stageRoomDown = e.clickCount == 2 ? null : roomKey;
+                    _orbitMoved = 0f;
                     _drag = Drag.Orbit;
                     Stage.Dragging = true;
                     e.Use();
@@ -795,6 +841,7 @@ namespace Scry
             var texts = new List<string> { backdrop, lighting, "Spin" };
             if (!Looks.IsWorn(entry)) texts.Add("Person");
             if (Stage.HasFloors) texts.Add(Stage.CutLabel);
+            if (Stage.HasInside) texts.Add(Stage.Inside ? "Inside" : "Outside");
             var total = texts.Sum(t => Skin.Width(Skin.Chip, t) + U(10f));
             if (x - total < rect.x + U(10f) + _badgeWidth + U(10f)) y += h + U(8f);
 
@@ -828,6 +875,11 @@ namespace Scry
             {
                 Stage.ShowPerson = !Stage.ShowPerson;
                 SaveRects();
+            }
+            if (Stage.HasInside && Chip(Stage.Inside ? "Inside" : "Outside", Stage.Inside,
+                    Stage.Inside ? "The example dungeon, laid out as the game lays out a new one; click for its entrance outside" : "Its entrance; click for the example dungeon inside"))
+            {
+                Stage.Inside = !Stage.Inside;
             }
             if (Stage.HasFloors && Chip(Stage.CutLabel, Stage.Cutting, "Cuts away what is above head height over a floor, to look in. Click for the next floor down, then the roof back; Shift and the wheel move the cut"))
             {

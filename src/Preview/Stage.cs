@@ -656,6 +656,7 @@ namespace Scry
 
         public static void ClearSubject()
         {
+            ForgetExample();
             if (_subject != null) Object.Destroy(_subject);
             _subject = null;
             foreach (var played in Played) if (played.Key != null) Object.Destroy(played.Key);
