@@ -89,20 +89,23 @@ namespace Scry
 
             Write("");
             Write($"==== Scry {Plugin.Version} self-test, {DateTime.Now:yyyy-MM-dd HH:mm:ss}, started because {why} ====");
-            Write($"World {ZNet.instance?.GetWorldName()}, {Session.Explorer.Catalog.Count} entries, panel {(Session.IsOpen ? "open" : "closed")}" +
+            Write($"World {ZNet.instance?.GetWorldName()}, {Session.Explorer.Catalog.Count} entries, {BepInEx.Bootstrap.Chainloader.PluginInfos.Count} mods loaded, panel {(Session.IsOpen ? "open" : "closed")}" +
                   $"{(ScryPanel.Compact ? " in its compact view" : "")}, locations {Locations.Now}, LogPreviews {(Plugin.LogPreviews ? "on" : "off")}.");
+            Write("Each part uses Scry as a player would and checks what it did. START and PASS, FAIL or SKIP frame a part; within it, PASS is a check that held,");
+            Write("FAIL one that did not (with what was found), and note is something worth knowing. The summary at the end lists every failed check again.");
 
             _before = Before.Take();
             Frames.Clear();
             Timing.Measuring = Frames;
             _runner = new ScenarioRunner(Scenarios(), Write, Finish);
-            return "self-test started. It opens the panel and looks around by itself for a few minutes; results go to BepInEx/Scry-selftest.log.";
+            ScryPanel.ShowTestResult();
+            return SelfTestWords.Started(_runner.Total);
         }
 
         public static string Stop()
         {
             if (_runner == null) return "the self-test is not running.";
-            Abort("it was stopped with /scry selftest stop");
+            Abort("you stopped it");
             return "self-test stopped; what it changed has been put back.";
         }
 
@@ -111,13 +114,34 @@ namespace Scry
             Write($"ABORTED: {why}");
             var runner = _runner;
             _runner = null;
-            Finish(runner?.Summary);
+            Finish(runner, why);
         }
 
-        private static void Finish() => Finish(_runner?.Summary);
+        private static void Finish() => Finish(_runner, null);
 
-        private static void Finish(string summary)
+        /// <summary>The self-test's progress while it runs, for the panel's strip; null when none runs.</summary>
+        public static string Progress => _runner == null ? null : SelfTestWords.Progress(_runner.Done, _runner.Total, _runner.Current, _runner.FailedSoFar);
+
+        /// <summary>How much of the run is done, from 0 to 1.</summary>
+        public static float Fraction => _runner == null || _runner.Total == 0 ? 0f : (float)_runner.Done / _runner.Total;
+
+        /// <summary>The last run's headline, the failed and skipped parts with their checks, and what to do; null before any run this session.</summary>
+        public static string LastHeadline { get; private set; }
+        public static List<string> LastSummary { get; private set; } = new List<string>();
+        public static string LastAdvice { get; private set; }
+        public static bool LastFailed { get; private set; }
+
+        /// <summary>The whole of the last run's outcome as text, for copying.</summary>
+        public static string LastText => LastHeadline == null ? "" : LastHeadline + Environment.NewLine + string.Join(Environment.NewLine, LastSummary) + Environment.NewLine + LastAdvice;
+
+        private static void Finish(ScenarioRunner runner, string stopped)
         {
+            var reports = runner?.Reports ?? new List<ScenarioReport>();
+            LastHeadline = stopped == null ? SelfTestWords.Finished(reports) : $"Self-test stopped after {reports.Count} of {runner?.Total ?? 0} parts, as {stopped}.";
+            LastSummary = SelfTestWords.Summary(reports);
+            LastAdvice = SelfTestWords.Advice(reports, "BepInEx/Scry-selftest.log");
+            LastFailed = reports.Any(r => r.Result == Result.Fail);
+
             try
             {
                 var readHere = _before != null && _before.LocationsWere != Locations.State.Read && Locations.Now == Locations.State.Read;
@@ -130,7 +154,13 @@ namespace Scry
             }
             Timing.Measuring = null;
             _before = null;
-            Chat.instance?.AddString($"Scry self-test finished{(string.IsNullOrEmpty(summary) ? "" : ": " + summary)}. See BepInEx/Scry-selftest.log.");
+
+            Write("==== Summary ====");
+            Write(LastHeadline);
+            foreach (var line in LastSummary) Write(line);
+            Write(LastAdvice);
+            ScryPanel.ShowTestResult();
+            Chat.instance?.AddString($"Scry: {LastHeadline} Open Scry for the details; BepInEx/Scry-selftest.log has everything.");
         }
 
         private static void Write(string line)

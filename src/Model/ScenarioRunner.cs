@@ -107,6 +107,12 @@ namespace Scry
         public IReadOnlyList<ScenarioReport> Reports => _reports;
         public bool Finished => _finished;
 
+        /// <summary>How many scenarios there are, how many are done, which runs now (null between them and at the end), and how many failed so far.</summary>
+        public int Total { get; }
+        public int Done => _reports.Count;
+        public string Current => _current?.Name;
+        public int FailedSoFar => _reports.Count(r => r.Result == Result.Fail);
+
         public string Summary =>
             $"{_reports.Count(r => r.Result == Result.Pass)} passed, " +
             $"{_reports.Count(r => r.Result == Result.Fail)} failed, " +
@@ -115,6 +121,7 @@ namespace Scry
         public ScenarioRunner(IEnumerable<Scenario> scenarios, Action<string> write, Action finish = null)
         {
             _pending = new Queue<Scenario>(scenarios ?? Enumerable.Empty<Scenario>());
+            Total = _pending.Count;
             _write = write ?? (_ => { });
             _finally = finish;
         }

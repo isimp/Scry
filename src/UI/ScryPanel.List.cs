@@ -117,6 +117,11 @@ namespace Scry
 
         private static void List(Explorer explorer, Rect rect)
         {
+            if (_testDetails)
+            {
+                TestCard(rect);
+                return;
+            }
             if (_help)
             {
                 HelpCard(rect);

@@ -185,6 +185,32 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhileItRunsItTellsHowFarItHasGotWhatRunsNowAndWhatFailedSoFar()
+        {
+            var runner = Runner(new Scenario("a", probe => Pausing(probe, true)), new Scenario("b", probe => Pausing(probe, false)), new Scenario("c", probe => Pausing(probe, true)));
+            Assert.Equal((3, 0, (string)null, 0), (runner.Total, runner.Done, runner.Current, runner.FailedSoFar));
+
+            runner.Tick(0);
+            Assert.Equal(("a", 0), (runner.Current, runner.Done));
+            runner.Tick(0.1);
+            Assert.Equal(((string)null, 1), (runner.Current, runner.Done));
+            runner.Tick(0.2);
+            Assert.Equal("b", runner.Current);
+            runner.Tick(0.3);
+            Assert.Equal((2, 1), (runner.Done, runner.FailedSoFar));
+
+            RunToEnd(runner);
+            Assert.Equal((3, 3, (string)null, 1), (runner.Total, runner.Done, runner.Current, runner.FailedSoFar));
+        }
+
+        /// <summary>A scenario that checks, waits a tick, and ends.</summary>
+        private static IEnumerator Pausing(Probe probe, bool holds)
+        {
+            probe.Check(holds, "it held");
+            yield return null;
+        }
+
+        [Fact]
         public void TheSummaryCountsEachResult()
         {
             var runner = Runner(Passing("a"), new Scenario("b", Fails), new Scenario("c", Skips));

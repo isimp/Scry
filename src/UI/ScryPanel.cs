@@ -412,9 +412,12 @@ namespace Scry
                 Event.current.Use();
             }
 
-            // What is off, in a strip under the header, the rest moved down to make room.
+            // The self-test and what is off, in strips under the header, the rest moved down to make room.
+            var testH = TestNoticeHeight();
+            if (testH > 0f) TestNotice(new Rect(pad, U(54f), w - pad * 2f, testH - U(4f)));
             var noticeH = OffNoticeHeight();
-            if (noticeH > 0f) OffNotice(new Rect(pad, U(54f), w - pad * 2f, noticeH - U(4f)));
+            if (noticeH > 0f) OffNotice(new Rect(pad, U(54f) + testH, w - pad * 2f, noticeH - U(4f)));
+            noticeH += testH;
 
             var controls = Timing.Start();
             var y = Controls(explorer, new Rect(pad, U(56f) + noticeH, w - pad * 2f, U(36f)));
