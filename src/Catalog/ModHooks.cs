@@ -24,7 +24,6 @@ namespace Scry
         private static readonly (HookedRule Rule, Type Type, string Method, bool OnlyNamingDrops)[] Methods =
         {
             (HookedRule.Drops, typeof(Character), "OnDeath", true),
-            (HookedRule.Drops, typeof(Humanoid), "OnDeath", true),
             (HookedRule.Drops, typeof(CharacterDrop), "OnDeath", false),
             (HookedRule.Drops, typeof(CharacterDrop), "GenerateDropList", false),
             (HookedRule.Drops, typeof(CharacterDrop), "DropItems", false),
