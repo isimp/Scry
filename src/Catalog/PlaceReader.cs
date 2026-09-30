@@ -48,6 +48,9 @@ namespace Scry
 
             try { Location(prefab, contents); }
             catch (Exception ex) { Faults.Skip("locations", prefab.name, ex); }
+
+            try { Music(prefab, contents); }
+            catch (Exception ex) { Faults.Skip("music of locations", prefab.name, ex); }
             return contents;
         }
 
@@ -260,6 +263,39 @@ namespace Scry
         }
 
         /// <summary>What the place's own <c>Location</c> says: the levels it sets for its spawn points, and how near it nothing can be built (<c>Location.IsInside</c> with its build check).</summary>
+        /// <summary>
+        /// The music a place plays: a source of its own that starts on coming near
+        /// (<c>MusicLocation</c>), one of the game's pieces by name on stepping inside
+        /// (<c>MusicVolume</c>, at its chance unless it fades in by distance), and the music of the
+        /// weather it sets inside (<c>EnvZone</c>, the environment's day music, else its night,
+        /// morning or evening music). Each once, in that order.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Music(GameObject prefab, PlaceContents contents)
+        {
+            void Add(string name, MusicWhen when, float chance)
+            {
+                if (string.IsNullOrEmpty(name) || contents.Music.Exists(m => m.Name == name && m.When == when)) return;
+                contents.Music.Add(new PlaceMusic { Name = name, When = when, Chance = Mathf.Clamp01(chance) });
+            }
+            foreach (var near in prefab.GetComponentsInChildren<MusicLocation>(false))
+            {
+                if (near != null && near.GetComponent<AudioSource>()?.clip != null) Add(PrefabName(near.gameObject.name), MusicWhen.Near, 1f);
+            }
+            foreach (var inside in prefab.GetComponentsInChildren<MusicVolume>(false))
+            {
+                if (inside != null) Add(inside.m_musicName, MusicWhen.Inside, inside.m_fadeByProximity ? 1f : inside.m_musicChance);
+            }
+            var environments = EnvMan.instance != null ? EnvMan.instance.m_environments : null;
+            foreach (var zone in prefab.GetComponentsInChildren<EnvZone>(false))
+            {
+                var setup = zone != null ? environments?.Find(e => e != null && e.m_name == zone.m_environment) : null;
+                if (setup == null) continue;
+                var name = new[] { setup.m_musicDay, setup.m_musicNight, setup.m_musicMorning, setup.m_musicEvening }.FirstOrDefault(m => !string.IsNullOrEmpty(m));
+                Add(name, MusicWhen.Weather, 1f);
+            }
+        }
+
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void Location(GameObject prefab, PlaceContents contents)
         {

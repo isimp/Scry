@@ -189,5 +189,31 @@ namespace Scry
 
         /// <summary>Whether anything in it is there only by chance, so another roll can show it otherwise (<see cref="PlaceParts.LeftToChance"/>).</summary>
         public bool LeftToChance;
+
+        /// <summary>The music it plays, in the order Enter tries them.</summary>
+        public List<PlaceMusic> Music = new List<PlaceMusic>();
+    }
+
+    /// <summary>When a place's music plays.</summary>
+    public enum MusicWhen
+    {
+        /// <summary>On coming near, from a source of its own (<c>MusicLocation</c>).</summary>
+        Near,
+
+        /// <summary>On stepping inside, one of the game's pieces of music by name (<c>MusicVolume</c>).</summary>
+        Inside,
+
+        /// <summary>While inside, as the music of the weather it sets there (<c>EnvZone</c>).</summary>
+        Weather,
+    }
+
+    /// <summary>A piece of music a place plays: its name, when, and how often it plays on stepping inside.</summary>
+    public sealed class PlaceMusic
+    {
+        public string Name = "";
+        public MusicWhen When;
+
+        /// <summary>The chance it plays each time one steps inside (<c>MusicVolume.m_musicChance</c>); 1 otherwise.</summary>
+        public float Chance = 1f;
     }
 }

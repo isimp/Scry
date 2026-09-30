@@ -16,6 +16,45 @@ namespace Scry.Tests
 
         private static string Row(LocationRules rules, string label) => LocationWords.Rows(rules).FirstOrDefault(r => r.Key == label).Value;
 
+        // A place's music is told with when the game plays it: its own source on coming near
+        // (MusicLocation), one of the game's pieces by name on stepping inside, at its chance
+        // (MusicVolume), or the music of the weather it sets inside (EnvZone). Enter plays it.
+
+        private static PlaceMusic Tune(string name, MusicWhen when, float chance = 1f) => new PlaceMusic { Name = name, When = when, Chance = chance };
+
+        [Fact]
+        public void APlacesOwnMusicPlaysWhenYouComeNear()
+        {
+            Assert.Equal("Music_FulingCamp when you come near. Enter plays it", LocationWords.Music(new[] { Tune("Music_FulingCamp", MusicWhen.Near) }));
+        }
+
+        [Fact]
+        public void MusicOnSteppingInsideTellsHowOftenItPlays()
+        {
+            Assert.Equal("Location_Crypt each time you step inside. Enter plays it", LocationWords.Music(new[] { Tune("Location_Crypt", MusicWhen.Inside) }));
+            Assert.Equal("Location_Crypt on 70% of the times you step inside. Enter plays it", LocationWords.Music(new[] { Tune("Location_Crypt", MusicWhen.Inside, 0.7f) }));
+        }
+
+        [Fact]
+        public void TheMusicOfTheWeatherInsidePlaysWhileYouAreInside()
+        {
+            Assert.Equal("crypt while you are inside. Enter plays it", LocationWords.Music(new[] { Tune("crypt", MusicWhen.Weather) }));
+        }
+
+        [Fact]
+        public void SeveralPiecesOfMusicAreToldInTurnAndEnterPlaysTheFirst()
+        {
+            Assert.Equal("Music_StoneHenge when you come near; crypt while you are inside. Enter plays the first",
+                LocationWords.Music(new[] { Tune("Music_StoneHenge", MusicWhen.Near), Tune("crypt", MusicWhen.Weather) }));
+        }
+
+        [Fact]
+        public void APlaceWithoutMusicTellsNone()
+        {
+            Assert.Null(LocationWords.Music(new PlaceMusic[0]));
+            Assert.Null(LocationWords.Music(null));
+        }
+
         // A location's model is loaded when it is selected; until it is in, the stage and the
         // details say so, and a model that could not be loaded is not promised again.
 

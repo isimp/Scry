@@ -44,6 +44,7 @@ namespace Scry
             yield return S("a camp lays out an example, drawn", CampExample, 150, bearsSkips: true);
             yield return S("placement details tell the woods and lava a location keeps to", PlacementDetails, 20);
             yield return S("reading every location fills their details", ReadLocations, 450, bearsSkips: true);
+            yield return S("a location plays its music on Enter and gives the game's back", PlaysMusic, 30);
             yield return S("closing the panel lets go of every bundle", ClosingLetsGo, 5);
 
             yield return new Scenario("Scry's own work over the whole run", WholeRun) { Timeout = 5 };
@@ -632,6 +633,38 @@ namespace Scry
             var missing = copy.GetComponentsInChildren<MeshFilter>(true).Count(m => m.sharedMesh == null);
             foreach (var renderer in copy.GetComponentsInChildren<Renderer>(true)) missing += renderer.sharedMaterials.Count(m => m == null);
             return missing;
+        }
+
+        /// <summary>
+        /// A location with music of its own plays it through the path Enter takes, mutes the
+        /// game's music meanwhile, and gives it back when something else is selected; a place
+        /// whose music is named for stepping inside plays it from the game's music list.
+        /// </summary>
+        private static IEnumerator PlaysMusic(Probe p)
+        {
+            var withMusic = X.Catalog.Where(e => PlaceOf(e)?.Contents?.Music.Count > 0).ToList();
+            p.Note($"{withMusic.Count} locations and rooms play music: " + string.Join(", ", withMusic.Take(8).Select(e => e.Name)));
+            if (withMusic.Count == 0) p.Skip("no location read plays music");
+            var near = withMusic.FirstOrDefault(e => PlaceOf(e).Contents.Music[0].When == MusicWhen.Near) ?? withMusic[0];
+
+            foreach (var entry in new[] { near, withMusic.FirstOrDefault(e => PlaceOf(e).Contents.Music[0].When != MusicWhen.Near) })
+            {
+                if (entry == null) continue;
+                var place = PlaceOf(entry);
+                Select(entry);
+                yield return Until(() => PlaceAssets.State(place) != PlaceLoad.Loading, 20);
+                var said = Previews.PlacesMusic(entry);
+                p.Note($"{entry.Name}: {LocationWords.Music(place.Contents.Music)}; Enter said \"{said}\"");
+                yield return null;
+                p.Check(MusicPreview.PlayingFor == entry && MusicPreview.Sounding, $"{entry.Name} plays {place.Contents.Music[0].Name}", said);
+                var game = MusicMan.instance != null ? MusicMan.instance.GetComponentsInChildren<AudioSource>(true) : new AudioSource[0];
+                p.Check(game.All(s => s.mute), "the game's music is muted meanwhile", $"{game.Length} sources");
+
+                Select(Pick(Kind.Creature, "Boar", "Greyling"));
+                yield return Until(() => MusicPreview.PlayingFor == null, 2);
+                p.Check(!MusicPreview.Sounding && MusicPreview.PlayingFor == null, "selecting something else stops it");
+                p.Check(game.All(s => s == null || !s.mute), "and gives the game's music back");
+            }
         }
 
         private static IEnumerator ClosingLetsGo(Probe p)

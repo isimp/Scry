@@ -33,6 +33,25 @@ namespace Scry
         }
 
         /// <summary>
+        /// Plays the music of the location or room shown, or stops it when it plays already, and
+        /// says what it did. It plays once its model has loaded and been read (<see cref="MusicPreview"/>).
+        /// </summary>
+        public static string PlacesMusic(Entry entry)
+        {
+            if (!(entry?.Source is PlaceSource place)) return null;
+            if (MusicPreview.PlayingFor == entry)
+            {
+                StopSound();
+                return "Stopped its music.";
+            }
+            if (place.Contents == null) return "Its music is known once its model has loaded.";
+            if (place.Contents.Music.Count == 0) return "It has no music of its own.";
+            StopSound();
+            var played = MusicPreview.Play(entry, PlaceAssets.Asset(place), place.Contents.Music);
+            return played != null ? $"Playing {played}; Enter again stops it." : "Its music could not be found.";
+        }
+
+        /// <summary>
         /// Starts audio that the game would start from a script the copy no longer has. Location
         /// music is the main case: its source does not play on its own, and <c>MusicLocation</c>
         /// starts it when you come near, at your music volume. Sounds the game's sound script plays
@@ -92,6 +111,7 @@ namespace Scry
 
         public static void StopSound()
         {
+            MusicPreview.Stop();
             _soundEntry = null;
             _soundPaused = false;
             _soundChosen = null;

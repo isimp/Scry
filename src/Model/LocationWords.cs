@@ -291,6 +291,31 @@ namespace Scry
             }
         }
 
+        /// <summary>The music a place plays, each with when, and that Enter plays the first; null for none.</summary>
+        public static string Music(IReadOnlyList<PlaceMusic> music)
+        {
+            if (music == null || music.Count == 0) return null;
+            var lines = new List<string>();
+            foreach (var tune in music)
+            {
+                switch (tune.When)
+                {
+                    case MusicWhen.Near:
+                        lines.Add(tune.Name + " when you come near");
+                        break;
+                    case MusicWhen.Inside:
+                        lines.Add(tune.Chance >= 1f
+                            ? tune.Name + " each time you step inside"
+                            : tune.Name + " on " + (tune.Chance * 100f).ToString("0.#", CultureInfo.InvariantCulture) + "% of the times you step inside");
+                        break;
+                    default:
+                        lines.Add(tune.Name + " while you are inside");
+                        break;
+                }
+            }
+            return string.Join("; ", lines) + (music.Count == 1 ? ". Enter plays it" : ". Enter plays the first");
+        }
+
         /// <summary>What its details say it holds before it has been read.</summary>
         public static string HoldsNote(PlaceLoad load) =>
             load == PlaceLoad.Failed ? "not known, its model could not be loaded" : "read once its model has loaded";

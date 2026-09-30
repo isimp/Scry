@@ -98,6 +98,7 @@ namespace Scry
         {
             Add("Levels at its spawn points", SpawnWords.LocationLevels(contents.EnemyMinLevel, contents.EnemyMaxLevel, contents.EnemyLevelUpChance, contents.LevelOverrideExceptions));
             if (contents.NoBuild && contents.NoBuildRadius > 0f) Add("Building", $"not within {Naming.Number(contents.NoBuildRadius)} m");
+            Add("Music", LocationWords.Music(contents.Music));
 
             if (contents.Creatures.Count > 0)
             {
