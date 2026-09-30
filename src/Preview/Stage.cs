@@ -102,6 +102,20 @@ namespace Scry
         private static float _sizeSince;
         private static readonly List<KeyValuePair<GameObject, float>> Played = new List<KeyValuePair<GameObject, float>>();
 
+        /// <summary>How many things the stage holds (its copy, what played on it), for the self-test.</summary>
+        public static int Held => _root != null ? _root.transform.childCount : 0;
+
+        /// <summary>How many things played on the model are still about, for the self-test.</summary>
+        public static int PlayedCount
+        {
+            get
+            {
+                var count = 0;
+                foreach (var played in Played) if (played.Key != null) count++;
+                return count;
+            }
+        }
+
         /// <summary>How long the size the panel asks for must hold still before the texture is made again at it.</summary>
         private const float ResizeAfter = 0.15f;
 

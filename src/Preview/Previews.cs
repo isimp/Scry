@@ -393,7 +393,7 @@ namespace Scry
             LastClip = null;
             _builtLevel = modifiers.Level;
             _builtWear = modifiers.Wear;
-            _builtLook = modifiers.Look;
+                _builtLook = modifiers.Look;
             _replayAt = -1f;
 
             StopSound();
@@ -429,7 +429,7 @@ namespace Scry
             {
                 _builtLevel = modifiers.Level;
                 _builtWear = modifiers.Wear;
-            _builtLook = modifiers.Look;
+                _builtLook = modifiers.Look;
                 Stage.Show(_entry, modifiers);
                 if (InWorld) RebuildWorld(modifiers);
                 return;

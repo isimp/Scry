@@ -137,7 +137,7 @@ namespace Scry
         private static void Finish(ScenarioRunner runner, string stopped)
         {
             var reports = runner?.Reports ?? new List<ScenarioReport>();
-            LastHeadline = stopped == null ? SelfTestWords.Finished(reports) : $"Self-test stopped after {reports.Count} of {runner?.Total ?? 0} parts, as {stopped}.";
+            LastHeadline = stopped == null ? SelfTestWords.Finished(reports, runner?.Seconds) : $"Self-test stopped after {reports.Count} of {runner?.Total ?? 0} parts, as {stopped}.";
             LastSummary = SelfTestWords.Summary(reports);
             LastAdvice = SelfTestWords.Advice(reports, "BepInEx/Scry-selftest.log");
             LastFailed = reports.Any(r => r.Result == Result.Fail);

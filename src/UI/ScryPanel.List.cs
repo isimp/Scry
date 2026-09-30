@@ -24,6 +24,11 @@ namespace Scry
             new[] { "Tab", "Completes the word being typed with a term or a value the catalog holds, as the list under the search suggests. Tab again for the next, Shift+Tab for the one before; Enter takes the marked one." },
         };
 
+        /// <summary>Whether the search's help is shown, how many times it has been drawn, and showing or hiding it, for the self-test.</summary>
+        public static bool HelpShown => _help;
+        public static int HelpsDrawn { get; private set; }
+        public static void ShowHelp(bool shown) => _help = shown;
+
         /// <summary>How to search, shown in place of the list while the ? button is on.</summary>
         private static Vector2 _helpScroll;
         private static float _helpHeight;
@@ -63,7 +68,11 @@ namespace Scry
             const string more = "The star shows only favourites, Recent what you looked at last. The kind tabs, Game or Mods, and all of the above work together.";
             var moreH = Skin.Height(Skin.DimWrap, more, width);
             GUI.Label(new Rect(x, y, width, moreH), more, Skin.DimWrap);
-            if (Event.current.type == EventType.Repaint) _helpHeight = y + moreH + U(12f);
+            if (Event.current.type == EventType.Repaint)
+            {
+                _helpHeight = y + moreH + U(12f);
+                HelpsDrawn++;
+            }
 
             GUI.EndScrollView();
 

@@ -15,6 +15,15 @@ namespace Scry
             yield return S("the catalog holds every kind", Catalog, 5);
             yield return S("the search finds by name, kind and biome", Searching, 5);
             yield return S("the panel opens and draws", PanelDraws, 10);
+            yield return S(ProgressPart, ProgressShown, 5);
+            yield return S("each kind of search term finds what it says", SearchTerms, 20);
+            yield return S("favourites, recent and history keep what they should", FavouritesRecentHistory, 10);
+            yield return S("every tab lists all it counts, group by group", TabsAndGroups, 20);
+            yield return S("both views draw, and /scry searches", PanelViews, 10);
+            yield return S("the arrow keys move, Game and Mods filter, and an empty tab shows every kind", ListKeysAndFilters, 10, ResetList);
+            yield return S("the search's help opens and closes", HelpOpens, 5, () => ScryPanel.ShowHelp(false));
+            yield return S("the catalog is sound: keys, names, groups and counts", CatalogSound, 10);
+            yield return S("every search is quick enough to run as you type", SearchSpeed, 10, ResetList);
 
             yield return S("a creature shows on the stage and tells its facts", p => Shows(p, Pick(Kind.Creature, "Troll", "Greydwarf"), true), 20);
             yield return S("an item shows on the stage and tells its facts", p => Shows(p, Pick(Kind.Item, "SwordIron", "AxeBronze"), true), 20);
@@ -33,23 +42,49 @@ namespace Scry
             yield return S("every mod has a page of what it adds and changes", ModPages, 10);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
+            yield return S("items, stations, smelters and beds tell what they are for", WhatThingsTell, 10);
 
+            yield return S("the stage's lighting, backdrops and views all draw", StageControls, 20);
+            yield return S("a bigger size makes a bigger copy", SizeAdjusts, 10);
+            yield return S("a creature stands with stars and in each look", StarsAndLooks, 30, () => X.Modifiers.Reset());
+            yield return S("a slower animation slows it, and a piece stands in every wear", SpeedAndWear, 30, () => X.Modifiers.Reset());
+            yield return S("loudness follows, and a new selection starts afresh", AdjustmentsStartAfresh, 10, () => X.Modifiers.Reset());
+            yield return S("a spread of every kind stands on the stage", KindsOnStage, 240, bearsSkips: true);
+            yield return S("switching every frame leaves the last one shown", FastSwitching, 60);
+            yield return S("after many others, the stage holds no leftovers", NoLeftovers, 40);
+            yield return S("every raid tells what it brings", EveryRaid, 10);
             yield return S("a creature plays an attack", CreatureAttacks, 30);
+            yield return S("a clip plays, pauses, seeks, loops and stops", ClipControls, 20, Previews.StopClip);
             yield return S("a sound plays and stops", SoundPlays, 10);
+            yield return S("a sound plays the variant chosen", SoundVariant, 10);
+            yield return S("a sound pauses, seeks and goes on", SoundControls, 15, Previews.StopSound);
+            yield return S("an effect loops until stopped", EffectLoops, 10);
             yield return S("an effect plays on you and stops", EffectOnYou, 10);
             yield return S("a status effect shows on you and comes off", StatusOnYou, 10);
+            yield return S("an item is worn by the person and taken off", WearIt, 25, () => Looks.OnPerson = _before?.OnPerson ?? false);
+            yield return S("a tree felled leaves what it leaves, which goes again", TreeFalls, 40);
             yield return S("a model stands in the world and goes again", ModelInWorld, 10);
             yield return S("a projectile flies where you look", ProjectileFlies, 15);
+            yield return S("Clear world takes away what stands in the world", ClearWorld, 15);
+            yield return S("closing the panel quiets it, and opening it brings the selection back", CloseAndOpen, 25, () => { if (!Session.IsOpen) Session.Show(null); });
 
             yield return S("a raid tells what it brings, and its creatures lead back to it", RaidLinks, 10);
             yield return S("a location loads, shows what it holds and rolls again", LocationLoads, 45);
             yield return S("switching between locations while they load holds only the one shown", Switching, 60);
             yield return S("a dungeon room shows its shape", RoomShows, 30);
+            yield return S("the roof's cut moves, starts afresh, and a location keeps its roof", CutMoves, 60);
             yield return S("a dungeon lays out an example, drawn, its rooms going to their entries", DungeonExample, 200, bearsSkips: true);
             yield return S("a camp lays out an example, drawn", CampExample, 150, bearsSkips: true);
             yield return S("placement details tell the woods and lava a location keeps to", PlacementDetails, 20);
             yield return S("reading every location fills their details", ReadLocations, 450, bearsSkips: true);
+            yield return S("every dungeon and camp lays out", EveryDungeonLaysOut, 60, bearsSkips: true);
+            yield return S("every dungeon heads its group, its rooms under it", EveryDungeonHeadsItsGroup, 10);
+            yield return S("a spread of locations stands on the stage", LocationsOnStage, 200, bearsSkips: true);
+            yield return S("every entry's details are told, every chip leading somewhere", EveryDetail, 300, bearsSkips: true);
             yield return S("a location plays its music on Enter and gives the game's back", PlaysMusic, 30);
+            yield return S("every boss tells its altar, and every trader what it sells", AltarsAndTraders, 10);
+            yield return S("every location with music of its own plays it", EveryMusic, 300, Previews.StopSound);
+            yield return S("a spread of rooms stands on its floor, opened", RoomsOnStage, 160);
             yield return S("closing the panel lets go of every bundle", ClosingLetsGo, 5);
 
             yield return new Scenario("Scry's own work over the whole run", WholeRun) { Timeout = 5 };
@@ -701,6 +736,15 @@ namespace Scry
             {
                 p.Check(Stage.HasInside && Stage.Inside, "it shows the dungeon inside");
                 p.Check(Stage.Cutting, "opened on its top floor", Stage.CutLabel);
+                var cuts = new List<float>();
+                while (Stage.Cutting && cuts.Count < 12)
+                {
+                    cuts.Add(Stage.CutAt);
+                    Stage.NextCut();
+                }
+                var down = cuts.Zip(cuts.Skip(1), (above, below) => below < above).All(lower => lower);
+                p.Check(cuts.Count > 0 && down && !Stage.Cutting, "its chip steps down floor by floor to the roof", string.Join(", ", cuts.Select(c => c.ToString("0.0"))) + " m, then " + Stage.CutLabel);
+                Stage.NextCut();
                 var point = Stage.ExamplePointOf(0);
                 p.Check(point.HasValue && Stage.ExampleRoomAt(point.Value) != null, "a room on the stage is found under the mouse", point?.ToString() ?? "not in view");
                 Stage.Inside = false;
