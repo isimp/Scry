@@ -153,10 +153,10 @@ namespace Scry
             ComponentLists.Clear();
             SoundFactCache.Clear();
             StatusListCache.Clear();
+            RaidCardCache.Clear();
             VariantCache.Clear();
             PrefabIcons.Clear();
-            KindByName.Clear();
-            StatusNames.Clear();
+            KindByKey.Clear();
             ShownNames.Clear();
             _catalogNames = null;
             _rowsFor = null;
@@ -173,7 +173,6 @@ namespace Scry
             Unpacked.Clear();
             _listRows.Clear();
             _rowOfEntry.Clear();
-            _statusFor = null;
             _shownFor = null;
             _kindsFor = null;
             _namesFor = null;

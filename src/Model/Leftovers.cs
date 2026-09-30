@@ -39,7 +39,7 @@ namespace Scry
             var byName = new Dictionary<string, Entry>(StringComparer.Ordinal);
             foreach (var entry in catalog)
             {
-                if (entry.Kind != Kind.StatusEffect && !byName.ContainsKey(entry.Name)) byName[entry.Name] = entry;
+                if (!EntryKeys.HasOwnNamespace(entry.Kind) && !byName.ContainsKey(entry.Name)) byName[entry.Name] = entry;
             }
 
             foreach (var group in found.GroupBy(f => f.Name))
@@ -86,7 +86,7 @@ namespace Scry
             var byName = new Dictionary<string, Entry>(StringComparer.Ordinal);
             foreach (var entry in catalog)
             {
-                if (entry.Kind != Kind.StatusEffect && !byName.ContainsKey(entry.Name)) byName[entry.Name] = entry;
+                if (!EntryKeys.HasOwnNamespace(entry.Kind) && !byName.ContainsKey(entry.Name)) byName[entry.Name] = entry;
             }
             foreach (var entry in catalog)
             {

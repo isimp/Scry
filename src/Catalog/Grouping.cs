@@ -25,7 +25,7 @@ namespace Scry
             var byName = new Dictionary<string, Entry>(StringComparer.Ordinal);
             foreach (var entry in entries)
             {
-                if (entry.Kind != Kind.StatusEffect && !byName.ContainsKey(entry.Name)) byName[entry.Name] = entry;
+                if (!EntryKeys.HasOwnNamespace(entry.Kind) && !byName.ContainsKey(entry.Name)) byName[entry.Name] = entry;
             }
             var weather = new HashSet<string>(StringComparer.Ordinal);
             try

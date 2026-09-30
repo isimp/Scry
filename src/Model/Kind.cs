@@ -11,6 +11,9 @@ namespace Scry
         Effect,
         Sound,
         StatusEffect,
+
+        /// <summary>A raid (the game's random event), no prefab: what it brings, when and for whom.</summary>
+        Raid,
         Other,
     }
 
@@ -166,6 +169,7 @@ namespace Scry
                 case Kind.Effect: return "Effects";
                 case Kind.Sound: return "Sounds";
                 case Kind.StatusEffect: return "Status effects";
+                case Kind.Raid: return "Raids";
                 default: return "Other";
             }
         }

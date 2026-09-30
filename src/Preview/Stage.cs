@@ -288,7 +288,7 @@ namespace Scry
         /// <summary>Whether an entry has something to put on the stage.</summary>
         public static bool IsStaged(Entry entry)
         {
-            if (entry == null || entry.Kind == Kind.Sound) return false;
+            if (entry == null || entry.Kind == Kind.Sound || entry.Kind == Kind.Raid) return false;
             if (entry.Kind == Kind.StatusEffect) return Looks.ShowsOnPerson(entry);
             return !entry.Empty;
         }

@@ -283,6 +283,12 @@ namespace Scry
                 StatusCard(entry, rect);
                 Timing.Add("stage card", drawn);
             }
+            else if (entry.Kind == Kind.Raid)
+            {
+                var drawn = Timing.Start();
+                RaidCard(entry, rect);
+                Timing.Add("stage card", drawn);
+            }
             else
             {
                 var middle = new Rect(rect.x + U(30f), rect.y + rect.height / 2f - U(34f), rect.width - U(60f), U(70f));
@@ -338,7 +344,31 @@ namespace Scry
             if (entry == null || Stage.IsStaged(entry)) return 0f;
             if (entry.Kind == Kind.Sound) return U(118f);
             if (entry.Kind == Kind.StatusEffect) return U(150f);
+            if (entry.Kind == Kind.Raid) return U(118f);
             return 0f;
+        }
+
+        private static readonly Dictionary<Entry, (string Lasts, string Brings)> RaidCardCache = new Dictionary<Entry, (string, string)>();
+
+        /// <summary>A raid has nothing to show on the stage: how long it lasts and what it brings, the rest under In the game.</summary>
+        private static void RaidCard(Entry entry, Rect rect)
+        {
+            if (!RaidCardCache.TryGetValue(entry, out var card))
+            {
+                var raid = entry.Source as RandomEvent;
+                var brings = raid?.m_spawn?.Where(s => s?.m_prefab != null).Select(s => ShownNameOf(s.m_prefab)).Distinct().ToList() ?? new List<string>();
+                card = (raid != null ? "Lasts " + Naming.Duration(raid.m_duration) : "", brings.Count > 0 ? "Brings " + string.Join(", ", brings) : "Brings nothing");
+                RaidCardCache[entry] = card;
+            }
+            GUI.Label(new Rect(rect.x + U(20f), rect.y + U(40f), rect.width - U(40f), U(24f)), card.Lasts, Skin.Center);
+            GUI.Label(new Rect(rect.x + U(20f), rect.y + U(68f), rect.width - U(40f), U(40f)), card.Brings, Skin.CenterDim);
+        }
+
+        /// <summary>A creature's name as the game shows it, else its prefab's.</summary>
+        private static string ShownNameOf(GameObject prefab)
+        {
+            var shown = CatalogBuilder.Localize(prefab.GetComponent<Character>()?.m_name);
+            return shown.Length > 0 ? shown : prefab.name;
         }
 
         /// <summary>What the sound is (its clips and length), and where it has got to, which can be moved.</summary>

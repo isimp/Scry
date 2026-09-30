@@ -76,6 +76,10 @@ namespace Scry
             {
                 facts.Part("status effect", () => facts.StatusEffect(effect));
             }
+            else if (entry.Source is RandomEvent raid)
+            {
+                facts.Part("raid", () => facts.Raid(raid));
+            }
             else if (entry.Source is GameObject prefab)
             {
                 // The game spawns creatures up to two stars; some mods go higher, and show it.

@@ -10,6 +10,8 @@ A spawner's details, such as a greydwarf nest's, tell each creature's share of i
 
 An item tells its odds in every chest, rock, tree or anything else that can give it: how many a roll gives, its share of a roll, how many rolls, and how often. A rare share keeps a decimal instead of showing as 0%.
 
+Raids have a tab of their own. Each tells for whom it comes, when it is on the table, how the game rolls for raids, how long it lasts and what it brings, each creature with how many, how often and how likely. A creature's "Comes in the raid" line goes to the raid.
+
 ## 0.1.0
 
 First release.

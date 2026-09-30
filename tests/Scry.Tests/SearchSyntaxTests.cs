@@ -32,7 +32,10 @@ namespace Scry.Tests
 
             var rested = E("Rested", Kind.StatusEffect, "Rested");
 
-            return new List<Entry> { troll, draugr, blob, statue, death, rested };
+            var raid = E("foresttrolls", Kind.Raid, "The ground is shaking");
+            raid.Biomes = new[] { "Meadows", "BlackForest" };
+
+            return new List<Entry> { troll, draugr, blob, statue, death, rested, raid };
         }
 
         private static List<string> Find(string text)
@@ -73,6 +76,15 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void RaidsAreFoundByNameKindAndBiomeLikeEverythingElse()
+        {
+            Assert.Equal(new[] { "foresttrolls" }, Find("kind:raid"));
+            Assert.Equal(new[] { "foresttrolls" }, Find("kind:raids"));
+            Assert.Equal(new[] { "foresttrolls" }, Find("ground shaking"));
+            Assert.Equal(new[] { "foresttrolls", "Troll" }, Find("biome:blackforest"));
+        }
+
+        [Fact]
         public void ModFindsWhatANamedModAdded()
         {
             Assert.Equal(new[] { "CoolMod_TrollStatue" }, Find("mod:statues"));
@@ -95,7 +107,7 @@ namespace Scry.Tests
         [Fact]
         public void AMinusLeavesThingsOut()
         {
-            Assert.Equal(new[] { "Troll", "vfx_troll_death" }, Find("troll -statue"));
+            Assert.Equal(new[] { "Troll", "vfx_troll_death", "foresttrolls" }, Find("troll -statue"));
             Assert.Equal(new[] { "Draugr", "Troll" }, Find("kind:creature -has:aoe"));
         }
 

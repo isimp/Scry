@@ -184,16 +184,22 @@ namespace Scry
             Select(_results[index]);
         }
 
+        /// <summary>Selects the status effect of that name, or the prefab when it is not one (<see cref="Jump(string)"/>).</summary>
+        public bool Jump(string prefabName, bool statusEffect) => Jump(statusEffect ? EntryKeys.For(Kind.StatusEffect, prefabName) : prefabName);
+
         /// <summary>
-        /// Selects the prefab of that name, as when an ingredient or a drop is clicked. When the
+        /// Selects the entry a key names (<see cref="EntryKeys"/>): a prefab by its name, as when an
+        /// ingredient or a drop is clicked, or a status effect or raid in its namespace. When the
         /// search or the filters hide it, they are cleared so it shows. False when there is none.
         /// </summary>
-        public bool Jump(string prefabName, bool statusEffect = false)
+        public bool Jump(string key)
         {
+            var name = EntryKeys.Split(key, out var kind);
             Entry target = null;
             foreach (var entry in _catalog)
             {
-                if ((entry.Kind == Kind.StatusEffect) == statusEffect && entry.Name == prefabName)
+                var matches = kind != null ? entry.Kind == kind : !EntryKeys.HasOwnNamespace(entry.Kind);
+                if (matches && entry.Name == name)
                 {
                     target = entry;
                     break;

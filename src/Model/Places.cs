@@ -202,7 +202,7 @@ namespace Scry
             var unfired = Groups.Projectile(new Shooter[0]).Order;
             foreach (var entry in catalog)
             {
-                if (entry.Kind == Kind.StatusEffect || !found.TryGetValue(entry.Name, out var places) || places.Count == 0) continue;
+                if (EntryKeys.HasOwnNamespace(entry.Kind) || !found.TryGetValue(entry.Name, out var places) || places.Count == 0) continue;
                 entry.FoundIn = places.Distinct().OrderBy(p => p, StringComparer.OrdinalIgnoreCase).ToArray();
 
                 Group? group = null;

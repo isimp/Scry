@@ -9,6 +9,7 @@ namespace Scry
     {
         public static readonly Provenance Prefabs = new Provenance();
         public static readonly Provenance StatusEffects = new Provenance();
+        public static readonly Provenance Raids = new Provenance();
     }
 
     /// <summary>
@@ -69,6 +70,33 @@ namespace Scry
             var names = new List<string>();
             foreach (var effect in db.m_StatusEffects) if (effect != null) names.Add(effect.name);
             Origins.StatusEffects.RecordOriginal(names);
+        }
+    }
+
+    /// <summary>The same for raids, which live in <c>RandEventSystem</c>.</summary>
+    [HarmonyPatch(typeof(RandEventSystem), "Awake")]
+    internal static class RaidOrigins
+    {
+        [HarmonyPriority(Priority.First)]
+        private static void Prefix(RandEventSystem __instance)
+        {
+            // Runs inside the game's own Awake: as above, nothing here may stop it.
+            try
+            {
+                Record(__instance);
+            }
+            catch (System.Exception ex)
+            {
+                Faults.Tell("telling the game's raids from those mods add", ex);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Record(RandEventSystem events)
+        {
+            var names = new List<string>();
+            foreach (var raid in events.m_events) if (raid != null) names.Add(raid.m_name);
+            Origins.Raids.RecordOriginal(names);
         }
     }
 }

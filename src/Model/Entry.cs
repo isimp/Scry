@@ -15,7 +15,7 @@ namespace Scry
         // Worked out once per name, since the search reads them for every entry on every keystroke.
         private string _nameUpper;
         private string _displayNameUpper;
-        private string _statusEffectKey;
+        private string _key;
 
         /// <summary>The prefab name, or the status effect's name.</summary>
         public string Name
@@ -25,7 +25,7 @@ namespace Scry
             {
                 _name = value;
                 _nameUpper = null;
-                _statusEffectKey = null;
+                _key = null;
                 NameOrder = -1;
             }
         }
@@ -54,7 +54,17 @@ namespace Scry
         /// <summary>The shown name in capitals, to match typed words against whatever their case.</summary>
         internal string DisplayNameUpper => _displayNameUpper ?? (_displayNameUpper = _displayName?.ToUpperInvariant());
 
-        public Kind Kind;
+        private Kind _kind;
+
+        public Kind Kind
+        {
+            get => _kind;
+            set
+            {
+                _kind = value;
+                _key = null;
+            }
+        }
 
         /// <summary>
         /// The group a kind's tab lists it under (a resource by how it is gathered), and where
@@ -195,10 +205,10 @@ namespace Scry
         public object Icon;
 
         /// <summary>
-        /// The key favourites are stored under. Status effects live in their own namespace, since
-        /// a status effect and a prefab may share a name.
+        /// The key favourites, recent and links use (<see cref="EntryKeys"/>). What is no prefab
+        /// lives in a namespace of its own, since it may share a name with a prefab.
         /// </summary>
-        public string Key => Kind == Kind.StatusEffect ? _statusEffectKey ?? (_statusEffectKey = "se:" + Name) : Name;
+        public string Key => _key ?? (_key = EntryKeys.For(Kind, Name));
 
         public override string ToString() => Key;
     }

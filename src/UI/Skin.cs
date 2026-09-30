@@ -86,6 +86,7 @@ namespace Scry
                 case Kind.Effect: return new Color(0.70f, 0.56f, 0.97f);
                 case Kind.Sound: return new Color(0.42f, 0.80f, 0.82f);
                 case Kind.StatusEffect: return new Color(0.54f, 0.84f, 0.52f);
+                case Kind.Raid: return new Color(0.90f, 0.40f, 0.62f);
                 case Kind.Other: return new Color(0.50f, 0.66f, 0.96f);
                 default: return Neutral;
             }
@@ -104,6 +105,7 @@ namespace Scry
                 case Kind.Effect: return "Fx";
                 case Kind.Sound: return "S";
                 case Kind.StatusEffect: return "SE";
+                case Kind.Raid: return "Ra";
                 default: return "O";
             }
         }

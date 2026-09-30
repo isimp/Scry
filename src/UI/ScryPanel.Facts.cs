@@ -14,7 +14,7 @@ namespace Scry
             var built = Timing.Start();
             var facts = Facts.For(entry);
             Timing.Add("facts built", built);
-            var places = entry.Kind != Kind.StatusEffect && (Locations.Now != Locations.State.Read || entry.FoundIn.Length > 0);
+            var places = !EntryKeys.HasOwnNamespace(entry.Kind) && (Locations.Now != Locations.State.Read || entry.FoundIn.Length > 0);
             if (facts.IsEmpty && !places) return y;
 
             y = SectionHeading("IN THE GAME", width, y, null, "facts");
@@ -37,11 +37,11 @@ namespace Scry
                 GUI.Label(new Rect(0f, y, labelW, labelH), pair.Key, Skin.DimWrap);
                 var valueRect = new Rect(labelW + U(10f), y, valueW, height);
                 // A link only to what is in the catalog: a creature's own attack items are not.
-                if (facts.Links.TryGetValue(pair.Key, out var link) && (link.StartsWith("se:", StringComparison.Ordinal) || InCatalog(explorer, link)))
+                if (facts.Links.TryGetValue(pair.Key, out var link) && InCatalog(explorer, link))
                 {
                     var linkW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
                     var linkRect = new Rect(valueRect.x, valueRect.y, linkW, height);
-                    LinkLabel(linkRect, pair.Value, Skin.Wrap, LinkText(KindOfKey(explorer, link), false));
+                    LinkLabel(linkRect, pair.Value, Skin.Wrap, LinkText(KindOf(explorer, link), false));
                     if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, "Go to " + ShownName(explorer, link, pair.Value));
                     if (GUI.Button(linkRect, GUIContent.none, GUIStyle.none)) Go(explorer, link);
                 }
@@ -130,7 +130,7 @@ namespace Scry
             {
                 var titleW = Mathf.Min(width, Skin.Width(Skin.DimLabel, row.Title) + U(4f));
                 var titleRect = new Rect(0f, y, titleW, U(20f));
-                LinkLabel(titleRect, row.Title, Skin.DimLabel, LinkText(KindOfKey(explorer, row.TitleLink), false));
+                LinkLabel(titleRect, row.Title, Skin.DimLabel, LinkText(KindOf(explorer, row.TitleLink), false));
                 if (titleRect.Contains(Event.current.mousePosition)) AskTip("station:" + row.TitleLink, "Go to " + ShownName(explorer, row.TitleLink, row.TitleLink));
                 if (GUI.Button(titleRect, GUIContent.none, GUIStyle.none)) Go(explorer, row.TitleLink);
             }

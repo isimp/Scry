@@ -298,7 +298,7 @@ namespace Scry
                 {
                     var owner = row.Owners[o];
                     var shown = row.Names != null && o < row.Names.Length ? row.Names[o] : ShownName(explorer, owner.Key, owner.Shown);
-                    var go = owner.Key != null && CanGo(explorer, owner.Key);
+                    var go = owner.Key != null && InCatalog(explorer, owner.Key);
                     var w = Mathf.Min(width, LinkChipWidth(shown, go));
                     if (x + w > width && x > 0f)
                     {
@@ -306,7 +306,7 @@ namespace Scry
                         y += rowH + U(5f);
                     }
                     var chip = new Rect(x, y, w, rowH);
-                    var kind = owner.Key != null && owner.Key.StartsWith("se:", StringComparison.Ordinal) ? Kind.StatusEffect : KindOf(explorer, owner.Key);
+                    var kind = KindOf(explorer, owner.Key);
                     if (LinkChip(chip, shown, kind, false, go)) Go(explorer, owner.Key);
                     if (go && chip.Contains(Event.current.mousePosition)) AskTip("owner:" + owner.Key, "Go to " + shown);
                     x += w + U(5f);
@@ -324,22 +324,6 @@ namespace Scry
             if (mx > 0f) y += rowH;
             return y + U(14f);
         }
-
-        /// <summary>Whether a prefab or status effect ("se:" name) is in the catalog to go to.</summary>
-        private static bool CanGo(Explorer explorer, string key)
-        {
-            if (!key.StartsWith("se:", StringComparison.Ordinal)) return InCatalog(explorer, key);
-            if (_statusFor != explorer)
-            {
-                _statusFor = explorer;
-                StatusNames.Clear();
-                foreach (var e in explorer.Catalog) if (e.Kind == Kind.StatusEffect) StatusNames.Add(e.Name);
-            }
-            return StatusNames.Contains(key.Substring(3));
-        }
-
-        private static readonly HashSet<string> StatusNames = new HashSet<string>();
-        private static Explorer _statusFor;
 
         private static readonly Dictionary<string, string> ShownNames = new Dictionary<string, string>();
         private static Explorer _shownFor;

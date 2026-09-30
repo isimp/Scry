@@ -36,6 +36,9 @@ namespace Scry
             }
         }
 
+        /// <summary>The single biomes in a set of flags by their enum names, as entries keep them for the search.</summary>
+        public static string[] BiomeKeys(Heightmap.Biome biome) => Singles(biome).Select(b => b.ToString()).ToArray();
+
         /// <summary>One biome, by its enum name, as the game shows it: "BlackForest" as "Black Forest".</summary>
         public static string BiomeName(string biome)
         {
@@ -137,7 +140,7 @@ namespace Scry
                 foreach (var data in raid.m_spawn)
                 {
                     if (data?.m_prefab == null) continue;
-                    Add(data.m_prefab.name, line, BossPrefabOf(facts.Keys.FirstOrDefault()));
+                    Add(data.m_prefab.name, line, EntryKeys.For(Kind.Raid, raid.m_name));
                 }
             });
         }

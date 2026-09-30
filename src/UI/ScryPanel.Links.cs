@@ -8,11 +8,10 @@ namespace Scry
     /// <summary>Chips that go to other entries, coloured by their kind, and the Linked section.</summary>
     internal static partial class ScryPanel
     {
-        /// <summary>Goes to a prefab, or to a status effect when the target starts with "se:".</summary>
+        /// <summary>Goes to the entry a key names: a prefab by its name, or a status effect or raid in its namespace (<see cref="EntryKeys"/>).</summary>
         private static void Go(Explorer explorer, string target)
         {
-            var statusEffect = target.StartsWith("se:", StringComparison.Ordinal);
-            if (!explorer.Jump(statusEffect ? target.Substring(3) : target, statusEffect)) return;
+            if (!explorer.Jump(target)) return;
             _reveal = true;
             _sideScroll = Vector2.zero;
             _help = false;
@@ -93,20 +92,20 @@ namespace Scry
             return GoTexts[text] = text + "  \u203A";
         }
 
-        /// <summary>The kind of the entry a prefab name goes to, when it is in the catalog.</summary>
-        private static Kind? KindOf(Explorer explorer, string name)
+        /// <summary>The kind of the entry a key goes to (a prefab's name, or a key in a namespace), when it is in the catalog.</summary>
+        private static Kind? KindOf(Explorer explorer, string key)
         {
-            if (string.IsNullOrEmpty(name)) return null;
+            if (string.IsNullOrEmpty(key)) return null;
             if (_kindsFor != explorer)
             {
                 _kindsFor = explorer;
-                KindByName.Clear();
-                foreach (var e in explorer.Catalog) if (e.Kind != Kind.StatusEffect && !KindByName.ContainsKey(e.Name)) KindByName[e.Name] = e.Kind;
+                KindByKey.Clear();
+                foreach (var e in explorer.Catalog) if (!KindByKey.ContainsKey(e.Key)) KindByKey[e.Key] = e.Kind;
             }
-            return KindByName.TryGetValue(name, out var kind) ? kind : (Kind?)null;
+            return KindByKey.TryGetValue(key, out var kind) ? kind : (Kind?)null;
         }
 
-        private static readonly Dictionary<string, Kind> KindByName = new Dictionary<string, Kind>();
+        private static readonly Dictionary<string, Kind> KindByKey = new Dictionary<string, Kind>();
         private static Explorer _kindsFor;
 
         /// <summary>A small heading and a wrapping row of link chips, each going to what it names.</summary>
@@ -140,16 +139,13 @@ namespace Scry
                     x += w + U(5f);
                     continue;
                 }
-                if (LinkChip(chip, item.Text, KindOfKey(explorer, item.Key), false, true)) item.Click();
+                if (LinkChip(chip, item.Text, KindOf(explorer, item.Key), false, true)) item.Click();
                 if (chip.Contains(Event.current.mousePosition)) AskTip("link:" + title + item.Key + item.Text, item.Tip ?? "Go to " + item.Text);
                 x += w + U(5f);
             }
             MoreChip(key, all.Count, FirstChips, width, rowH, U(5f), ref x, ref y);
             return y + rowH + U(10f);
         }
-
-        private static Kind? KindOfKey(Explorer explorer, string key) =>
-            key != null && key.StartsWith("se:", StringComparison.Ordinal) ? Kind.StatusEffect : KindOf(explorer, key);
 
         /// <summary>
         /// Everything else the entry is linked to, a row per heading: what it leaves behind or is
@@ -287,8 +283,7 @@ namespace Scry
                 case 0: InCatalog(explorer, ""); break;
                 case 1: KindOf(explorer, "-"); break;
                 case 2: ShownName(explorer, "-", ""); break;
-                case 3: CanGo(explorer, "se:-"); break;
-                case 4: TermsFor(explorer); break;
+                case 3: TermsFor(explorer); break;
                 default: _prepared = explorer; break;
             }
         }
@@ -297,15 +292,16 @@ namespace Scry
         private static Explorer _prepared;
         private static int _prepareStep;
 
-        private static bool InCatalog(Explorer explorer, string prefab)
+        /// <summary>Whether the entry a key names (a prefab's name, or a key in a namespace) is in the catalog to go to.</summary>
+        private static bool InCatalog(Explorer explorer, string key)
         {
             if (_namesFor != explorer || _catalogNames == null)
             {
                 _namesFor = explorer;
-                _catalogNames = new HashSet<string>(explorer.Catalog.Where(e => e.Kind != Kind.StatusEffect).Select(e => e.Name));
+                _catalogNames = new HashSet<string>(explorer.Catalog.Select(e => e.Key));
                 PrefabIcons.Clear();
             }
-            return _catalogNames.Contains(prefab);
+            return key != null && _catalogNames.Contains(key);
         }
 
         /// <summary>The icon of an item or piece prefab by name, or null.</summary>

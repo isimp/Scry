@@ -143,6 +143,10 @@ namespace Scry
                 }
             }
             CatalogTiming.Add("status effects", started);
+
+            started = CatalogTiming.Start();
+            Raids(entries);
+            CatalogTiming.Add("raids", started);
             yield return "Reading the interface's sounds";
 
             started = CatalogTiming.Start();
@@ -385,6 +389,39 @@ namespace Scry
             if (FailedKinds.Add(what + "|" + ex.GetType().Name + "|" + ex.Message))
             {
                 Plugin.Log.LogWarning($"Scry leaves the {what} {name} out of its catalog (said once for this kind of failure): {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Every raid the world has switched on (<c>RandEventSystem.m_events</c>), each an entry of
+        /// its own though it is no prefab, named by the message the game shows when it starts.
+        /// </summary>
+        private static void Raids(List<Entry> entries)
+        {
+            var events = RandEventSystem.instance?.m_events;
+            if (events == null) return;
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var raid in events)
+            {
+                if (raid == null || string.IsNullOrEmpty(raid.m_name) || !raid.m_enabled || !seen.Add(raid.m_name)) continue;
+                try
+                {
+                    var shown = Localize(raid.m_startMessage);
+                    entries.Add(new Entry
+                    {
+                        Name = raid.m_name,
+                        DisplayName = shown.Length > 0 ? shown : Naming.FieldLabel(raid.m_name),
+                        Kind = Kind.Raid,
+                        Origin = Origins.Raids.Of(raid.m_name),
+                        Source = raid,
+                        Components = new[] { raid.GetType().Name },
+                        Biomes = Knowledge.BiomeKeys(raid.m_biome),
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Failed("raid", raid.m_name, ex);
+                }
             }
         }
 
