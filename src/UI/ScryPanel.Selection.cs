@@ -339,6 +339,12 @@ namespace Scry
                 StatusCard(entry, rect);
                 Timing.Add("stage card", drawn);
             }
+            else if (entry.Kind == Kind.Mod)
+            {
+                var drawn = Timing.Start();
+                ModCard(entry, rect);
+                Timing.Add("stage card", drawn);
+            }
             else if (entry.Kind == Kind.Raid)
             {
                 var drawn = Timing.Start();
@@ -400,7 +406,7 @@ namespace Scry
             if (entry == null || Stage.IsStaged(entry)) return 0f;
             if (entry.Kind == Kind.Sound) return U(118f);
             if (entry.Kind == Kind.StatusEffect) return U(150f);
-            if (entry.Kind == Kind.Raid) return U(118f);
+            if (entry.Kind == Kind.Raid || entry.Kind == Kind.Mod) return U(118f);
             return 0f;
         }
 
@@ -418,6 +424,16 @@ namespace Scry
             }
             GUI.Label(new Rect(rect.x + U(20f), rect.y + U(40f), rect.width - U(40f), U(24f)), card.Lasts, Skin.Center);
             GUI.Label(new Rect(rect.x + U(20f), rect.y + U(68f), rect.width - U(40f), U(40f)), card.Brings, Skin.CenterDim);
+        }
+
+        /// <summary>A mod's card in the stage's place: its version and id, and what it adds.</summary>
+        private static void ModCard(Entry entry, Rect rect)
+        {
+            if (!(entry.Source is ModSource mod)) return;
+            var summary = Session.Explorer != null ? Report(Session.Explorer).FirstOrDefault(m => m.Mod == mod.Name) : null;
+            var adds = summary != null ? ModReportWords.Counts(summary) : "adds nothing of its own";
+            GUI.Label(new Rect(rect.x + U(20f), rect.y + U(40f), rect.width - U(40f), U(24f)), ModWords.Card(mod), Skin.Center);
+            GUI.Label(new Rect(rect.x + U(20f), rect.y + U(68f), rect.width - U(40f), U(40f)), char.ToUpperInvariant(adds[0]) + adds.Substring(1), Skin.CenterDim);
         }
 
         /// <summary>A creature's name as the game shows it, else its prefab's.</summary>
@@ -521,10 +537,17 @@ namespace Scry
             {
                 var subRect = new Rect(x, y, width - x - _foldAllW, U(22f));
                 if (!FitLabel(subRect, sub, Skin.DimLabel, 10f) && subRect.Contains(Event.current.mousePosition)) AskTip("sub", sub);
-                if (entry.Origin == Origin.Mod && entry.ModName.Length > 0)
+                // Where a mod added it, the line goes to the mod's own page, or else shows everything it added.
+                if (entry.Origin == Origin.Mod && entry.ModName.Length > 0 && entry.Kind != Kind.Mod)
                 {
-                    if (subRect.Contains(Event.current.mousePosition)) AskTip("mod", "Show everything " + entry.ModName + " added");
-                    if (GUI.Button(subRect, GUIContent.none, GUIStyle.none)) SearchFor(explorer, "mod:" + entry.ModName.Replace(" ", "").ToLowerInvariant());
+                    var page = EntryKeys.For(Kind.Mod, entry.ModName);
+                    var known = InCatalog(explorer, page);
+                    if (subRect.Contains(Event.current.mousePosition)) AskTip("mod", known ? "Go to " + entry.ModName + ": what it adds and changes" : "Show everything " + entry.ModName + " added");
+                    if (GUI.Button(subRect, GUIContent.none, GUIStyle.none))
+                    {
+                        if (known) Go(explorer, page);
+                        else SearchFor(explorer, "mod:" + entry.ModName.Replace(" ", "").ToLowerInvariant());
+                    }
                 }
                 y += U(26f);
             }
@@ -786,6 +809,7 @@ namespace Scry
 
         private static string OriginText(Entry entry)
         {
+            if (entry.Kind == Kind.Mod) return "a mod loaded";
             if (entry.Origin == Origin.Vanilla) return "from the game";
             if (entry.Origin != Origin.Mod) return "";
             return entry.ModName.Length > 0 ? "added by " + entry.ModName : "added by a mod";

@@ -88,6 +88,7 @@ namespace Scry
                 case Kind.StatusEffect: return new Color(0.54f, 0.84f, 0.52f);
                 case Kind.Location: return new Color(0.80f, 0.78f, 0.72f);
                 case Kind.Raid: return new Color(0.90f, 0.40f, 0.62f);
+                case Kind.Mod: return new Color(0.62f, 0.72f, 0.80f);
                 case Kind.Other: return new Color(0.50f, 0.66f, 0.96f);
                 default: return Neutral;
             }
@@ -108,6 +109,7 @@ namespace Scry
                 case Kind.StatusEffect: return "SE";
                 case Kind.Location: return "L";
                 case Kind.Raid: return "Ra";
+                case Kind.Mod: return "M";
                 default: return "O";
             }
         }

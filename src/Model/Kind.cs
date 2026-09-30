@@ -17,6 +17,9 @@ namespace Scry
 
         /// <summary>A raid (the game's random event), no prefab: what it brings, when and for whom.</summary>
         Raid,
+
+        /// <summary>A mod loaded, no prefab: what it adds and which of the game's rules it hooks into.</summary>
+        Mod,
         Other,
     }
 
@@ -174,6 +177,7 @@ namespace Scry
                 case Kind.StatusEffect: return "Status effects";
                 case Kind.Location: return "Locations";
                 case Kind.Raid: return "Raids";
+                case Kind.Mod: return "Mods";
                 default: return "Other";
             }
         }

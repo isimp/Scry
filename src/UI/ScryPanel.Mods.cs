@@ -104,14 +104,12 @@ namespace Scry
                 var headingH = U(26f);
                 var heading = new Rect(x, y, width, headingH);
                 GUI.Label(heading, mod.Mod, Skin.Heading);
-                if (mod.Mod != ModReportReader.UnknownMod && mod.Counts.Count > 0)
+                // A mod's name goes to its own page; the report stays for the next.
+                var page = EntryKeys.For(Kind.Mod, mod.Mod);
+                if (mod.Mod != ModReportReader.UnknownMod && InCatalog(explorer, page))
                 {
-                    if (heading.Contains(Event.current.mousePosition)) AskTip("mod:" + mod.Mod, "Show everything it adds");
-                    if (GUI.Button(heading, GUIContent.none, GUIStyle.none))
-                    {
-                        _modReport = false;
-                        SearchFor(explorer, "mod:" + mod.Mod.Replace(" ", "").ToLowerInvariant());
-                    }
+                    if (heading.Contains(Event.current.mousePosition)) AskTip("mod:" + mod.Mod, "Go to its page: what it adds and changes");
+                    if (GUI.Button(heading, GUIContent.none, GUIStyle.none)) Go(explorer, page);
                 }
                 y += headingH + U(2f);
                 y = Paragraph(char.ToUpperInvariant(ModReportWords.Counts(mod)[0]) + ModReportWords.Counts(mod).Substring(1) + ".", x, y, width);

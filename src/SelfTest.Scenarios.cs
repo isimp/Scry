@@ -30,6 +30,7 @@ namespace Scry
             yield return S("mods hooking into drops, loot and spawning are named", HookingMods, 10);
             yield return S("the mod report links every mod station as the game does", ModReportLinks, 20);
             yield return S("what creatures drop in play is watched", DropsWatched, 5);
+            yield return S("every mod has a page of what it adds and changes", ModPages, 10);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
 
@@ -322,6 +323,32 @@ namespace Scry
             p.Check(told.Rows.Any(r => r.Title == SeenWords.Title(DropWatch.Seen.Kills(seen.Name))), $"{seen.Name} shows what it was seen to drop");
             var item = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && e.Name == DropWatch.Seen.Of(seen.Name)[0].Item);
             if (item != null) p.Check(Facts.For(item).Where.Any(l => l.Prefab == seen.Name && l.Text.StartsWith("Seen dropped by", StringComparison.Ordinal)), $"{item.Name} names {seen.Name} as seen dropping it");
+        }
+
+        /// <summary>
+        /// Every mod loaded has an entry of its own; the one adding the most tells what it adds
+        /// kind by kind, and one of its entries names it as a page to go to.
+        /// </summary>
+        private static IEnumerator ModPages(Probe p)
+        {
+            var loaded = BepInEx.Bootstrap.Chainloader.PluginInfos.Values.Select(i => i?.Metadata?.Name).Where(n => !string.IsNullOrEmpty(n)).Distinct().ToList();
+            var pages = X.Catalog.Where(e => e.Kind == Kind.Mod).ToList();
+            var missing = loaded.Where(n => !pages.Any(e => e.Name == n)).ToList();
+            p.Check(missing.Count == 0, "every mod loaded has a page", string.Join(", ", missing.Take(5)));
+            foreach (var group in pages.GroupBy(e => e.Group)) p.Note($"{group.Key}: {group.Count()}");
+
+            var busiest = pages.OrderByDescending(e => X.Catalog.Count(c => c.ModName == e.Name && c.Kind != Kind.Mod)).FirstOrDefault();
+            if (busiest == null || X.Catalog.All(c => c.ModName != busiest.Name || c.Kind == Kind.Mod))
+            {
+                p.Note("no mod adds anything, so no page tells what it adds");
+                yield break;
+            }
+            var told = Facts.For(busiest);
+            p.Check(Tells(told, "Adds") && told.Rows.Any(r => r.Title.StartsWith("Adds ", StringComparison.Ordinal)), $"{busiest.Name}'s page tells what it adds, kind by kind", string.Join("; ", told.Rows.Select(r => r.Title)));
+            p.Note($"{busiest.Name}: {Pairs(told)}");
+            var added = X.Catalog.First(c => c.ModName == busiest.Name && c.Kind != Kind.Mod);
+            p.Check(X.Catalog.Any(e => e.Key == EntryKeys.For(Kind.Mod, added.ModName)), $"{added.Name} names its mod's page", added.ModName);
+            p.Check(X.Jump(busiest.Key) && X.Selected == busiest, "the page can be gone to");
         }
 
         private static IEnumerator SpawnerFacts(Probe p)

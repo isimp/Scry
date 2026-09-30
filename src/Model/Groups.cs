@@ -194,6 +194,13 @@ namespace Scry
             return mainTool ? new Group(tab, 1 + tabOrder) : new Group(tool, 1 + toolOrder * 1000);
         }
 
+        /// <summary>A mod, by whether it adds to the game, only hooks into its drops or spawning, or neither.</summary>
+        public static Group Mod(bool adds, bool hooks)
+        {
+            if (adds) return new Group("Adding to the game", 1);
+            return hooks ? new Group("Hooking into its drops or spawning", 2) : new Group("Neither, as far as Scry sees", 3);
+        }
+
         /// <summary>A piece no build menu holds.</summary>
         public static Group InNoMenu => new Group("In no build menu", int.MaxValue);
 

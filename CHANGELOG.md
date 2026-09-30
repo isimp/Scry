@@ -24,6 +24,8 @@ What creatures drop as you play is watched and kept from session to session, whi
 
 *Mod report*, above the list while it shows only what mods added or with `/scry mods`, sums up each mod: what it adds, what Scry links for its crafting stations and build tools, which of the game's drops and spawning it hooks into, and what Scry could not place, such as a station nothing is made or built at or an item with no source Scry sees.
 
+Mods have a tab of their own: every mod loaded has a page telling its version, what it adds kind by kind, its stations and tools, which of the game's drops and spawning it hooks into, and what Scry could not place. The line naming the mod that added an entry goes to that page.
+
 ## 0.1.0
 
 First release.

@@ -303,6 +303,18 @@ namespace Scry
             }
             CatalogTiming.Add("locations", started);
 
+            // Every mod loaded, last, once every entry knows the mod that added it.
+            started = CatalogTiming.Start();
+            try
+            {
+                Mods(entries);
+            }
+            catch (Exception ex)
+            {
+                Faults.Tell("the mods' own entries", ex);
+            }
+            CatalogTiming.Add("mods", started);
+
             job.Entries = entries;
             Plugin.Note($"Scry's catalog, by part (ms): {CatalogTiming.Report()}; {GC.CollectionCount(0) - collections} garbage collections meanwhile.");
             Faults.TellSkipped();
@@ -433,6 +445,44 @@ namespace Scry
                 catch (Exception ex)
                 {
                     Failed("raid", raid.m_name, ex);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Every mod loaded (<c>Chainloader.PluginInfos</c>), an entry of its own though it is no
+        /// prefab: its page tells what it adds and which of the game's rules it hooks into. It is
+        /// listed by whether it adds to the game, only hooks into its drops or spawning, or neither.
+        /// </summary>
+        private static void Mods(List<Entry> entries)
+        {
+            var adding = new HashSet<string>(entries.Where(e => e.ModName.Length > 0).Select(e => e.ModName), StringComparer.Ordinal);
+            foreach (var info in BepInEx.Bootstrap.Chainloader.PluginInfos.Values)
+            {
+                var name = info?.Metadata?.Name;
+                if (string.IsNullOrEmpty(name)) continue;
+                try
+                {
+                    var folder = "";
+                    try { folder = System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(info.Location) ?? ""); }
+                    catch (Exception) { /* no folder to tell */ }
+                    var group = Groups.Mod(adding.Contains(name), ModHooks.Rules(name).Count > 0);
+                    entries.Add(new Entry
+                    {
+                        Name = name,
+                        DisplayName = name,
+                        Kind = Kind.Mod,
+                        Origin = Origin.Mod,
+                        ModName = name,
+                        Source = new ModSource { Name = name, Version = info.Metadata.Version?.ToString() ?? "", Guid = info.Metadata.GUID ?? "", Folder = folder },
+                        Group = group.Name,
+                        GroupOrder = group.Order,
+                        Components = new[] { "BaseUnityPlugin" },
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Failed("mod", name, ex);
                 }
             }
         }

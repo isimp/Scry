@@ -6,13 +6,14 @@ namespace Scry
     /// The key an entry is kept under in favourites, recent and links. A prefab goes by its name;
     /// what is no prefab has a namespace of its own, since it may share a name with one: a status
     /// effect "se:" and its name, a raid "raid:" and its name, a location or dungeon room "loc:"
-    /// and its prefab's name.
+    /// and its prefab's name, a mod "mod:" and its name.
     /// </summary>
     public static class EntryKeys
     {
         public const string StatusEffect = "se:";
         public const string Raid = "raid:";
         public const string Location = "loc:";
+        public const string Mod = "mod:";
 
         /// <summary>The key of an entry of this kind and name.</summary>
         public static string For(Kind kind, string name)
@@ -22,6 +23,7 @@ namespace Scry
                 case Kind.StatusEffect: return StatusEffect + name;
                 case Kind.Raid: return Raid + name;
                 case Kind.Location: return Location + name;
+                case Kind.Mod: return Mod + name;
                 default: return name;
             }
         }
@@ -48,11 +50,16 @@ namespace Scry
                 kind = Kind.Location;
                 return key.Substring(Location.Length);
             }
+            if (key.StartsWith(Mod, StringComparison.Ordinal))
+            {
+                kind = Kind.Mod;
+                return key.Substring(Mod.Length);
+            }
             kind = null;
             return key;
         }
 
         /// <summary>Whether entries of this kind have a namespace of their own rather than the prefabs'.</summary>
-        public static bool HasOwnNamespace(Kind kind) => kind == Kind.StatusEffect || kind == Kind.Raid || kind == Kind.Location;
+        public static bool HasOwnNamespace(Kind kind) => kind == Kind.StatusEffect || kind == Kind.Raid || kind == Kind.Location || kind == Kind.Mod;
     }
 }

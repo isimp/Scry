@@ -70,7 +70,7 @@ namespace Scry
         {
             if (entry == null) return new Facts();
             // A creature's or item's facts tell what was seen dropping in play, which grows as you play.
-            if (Cache.TryGetValue(entry, out var known) && (known._seenVersion == DropWatch.Version || (entry.Kind != Kind.Creature && entry.Kind != Kind.Item))) return known;
+            if (Cache.TryGetValue(entry, out var known) && (known._seenVersion == DropWatch.Version || (entry.Kind != Kind.Creature && entry.Kind != Kind.Item && entry.Kind != Kind.Mod))) return known;
 
             var facts = new Facts { _seenVersion = DropWatch.Version };
             if (entry.Source is StatusEffect effect)
@@ -80,6 +80,11 @@ namespace Scry
             else if (entry.Source is RandomEvent raid)
             {
                 facts.Part("raid", () => facts.Raid(raid));
+            }
+            else if (entry.Source is ModSource mod)
+            {
+                facts._entry = entry;
+                facts.Part("mod", () => facts.Mod(mod));
             }
             else if (entry.Source is PlaceSource place)
             {
