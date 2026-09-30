@@ -45,6 +45,34 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WithinAGroupWhatRanksFirstComesFirstThenByName()
+        {
+            // A dungeon's group: the location, then entrances, then rooms, then end caps, each by name.
+            Entry L(string name, int rank) => new Entry { Name = name, Kind = Kind.Location, Origin = Origin.Vanilla, Group = "Black Forest · Burial Chambers", GroupOrder = 11, GroupRank = rank };
+            var catalog = new System.Collections.Generic.List<Entry> { L("zz_endcap", 3), L("aa_room", 2), L("Crypt3", 0), L("mm_entrance", 1), L("Crypt2", 0), L("bb_room", 2) };
+            var explorer = new Explorer(catalog, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+
+            explorer.KindFilter = Kind.Location;
+
+            Assert.Equal(new[] { "Crypt2", "Crypt3", "mm_entrance", "aa_room", "bb_room", "zz_endcap" }, explorer.Results.Select(e => e.Name).ToArray());
+        }
+
+        [Fact]
+        public void ARankOrdersOnlyWithinItsGroupNeverAcrossGroups()
+        {
+            Entry L(string name, string group, int rank) => new Entry { Name = name, Kind = Kind.Location, Origin = Origin.Vanilla, Group = group, GroupOrder = 11, GroupRank = rank };
+            var catalog = new System.Collections.Generic.List<Entry>
+            {
+                L("GoblinCamp2", "Black Forest · Fuling camp", 0), L("forestcrypt_EndCap", "Black Forest · Burial Chambers", 3), L("Crypt2", "Black Forest · Burial Chambers", 0),
+            };
+            var explorer = new Explorer(catalog, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+
+            explorer.KindFilter = Kind.Location;
+
+            Assert.Equal(new[] { "Crypt2", "forestcrypt_EndCap", "GoblinCamp2" }, explorer.Results.Select(e => e.Name).ToArray());
+        }
+
+        [Fact]
         public void OpeningShowsEverythingWithNothingSelected()
         {
             var explorer = Open();

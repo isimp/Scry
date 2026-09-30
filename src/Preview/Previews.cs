@@ -379,6 +379,9 @@ namespace Scry
                     PlaceEntries.Named(entry, new[] { Places.LocationLabel(facts, PlaceEntries.CreatureNames(explorer.Catalog)) });
                 }
                 Facts.Forget(entry);
+
+                // A dungeon or camp read now gathers its rooms into its group.
+                PlaceEntries.Arrange(explorer.Catalog);
                 explorer.Regrouped();
             }
             Stage.Show(entry, explorer.Modifiers);

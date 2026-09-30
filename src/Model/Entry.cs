@@ -129,6 +129,15 @@ namespace Scry
         /// <summary>The mod that added it, when that could be told. Empty otherwise.</summary>
         public string ModName = "";
 
+        /// <summary>Its place within its group, lower first (a dungeon's location before its rooms); 0 for most.</summary>
+        public int GroupRank;
+
+        /// <summary>A word or two beside its name in the list, in place of its prefab name (a room's "entrance room"); null for none.</summary>
+        public string Tag;
+
+        /// <summary>Whether it is listed indented, under the first of its group (a room under its dungeon).</summary>
+        public bool Indent;
+
         private string[] _looks = new string[0];
         private int _defaultLook;
         private Func<(string[] Names, int Default)> _readLooks;

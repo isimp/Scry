@@ -366,9 +366,10 @@ namespace Scry
         public void Regrouped() => Refresh();
 
         /// <summary>
-        /// The results by their groups, the groups in their order and then by name, each group
-        /// keeping the order the search gave it. Sorted as numbers: a group's place and each
-        /// result's place in one, so a tab of thousands is sorted with no call per comparison.
+        /// The results by their groups, the groups in their order and then by name, within a group
+        /// by rank (<see cref="Entry.GroupRank"/>) and then in the order the search gave them.
+        /// Sorted as numbers: a group's place, a rank and each result's place in one, so a tab of
+        /// thousands is sorted with no call per comparison.
         /// </summary>
         public static List<Entry> ByGroup(List<Entry> results)
         {
@@ -383,7 +384,8 @@ namespace Scry
             var entries = results.ToArray();
             for (var i = 0; i < entries.Length; i++)
             {
-                keys[i] = ((long)orderRank[entries[i].GroupOrder] << 42) | ((long)nameRank[entries[i].Group ?? ""] << 21) | (long)i;
+                var rank = Math.Max(0, Math.Min(entries[i].GroupRank, 63));
+                keys[i] = ((long)orderRank[entries[i].GroupOrder] << 48) | ((long)nameRank[entries[i].Group ?? ""] << 27) | ((long)rank << 21) | (long)i;
             }
             Array.Sort(keys, entries);
             return new List<Entry>(entries);

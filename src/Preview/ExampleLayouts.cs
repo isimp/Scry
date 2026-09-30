@@ -229,8 +229,18 @@ namespace Scry
             var wasNone = Example == null;
             Example = DungeonLayout.Build(plan, shapes, DungeonLayout.Site(plan, radius, turned, dice), dice);
 
-            // The kinds of room it is built of are listed by what each is, known now.
-            if (wasNone) Facts.Forget(_entry);
+            // The kinds of room it is built of are listed by what each is, known now, and ranked
+            // under their dungeon as entrances, rooms and end caps.
+            if (wasNone)
+            {
+                Facts.Forget(_entry);
+                var explorer = Session.Explorer;
+                if (explorer != null)
+                {
+                    PlaceEntries.Arrange(explorer.Catalog);
+                    explorer.Regrouped();
+                }
+            }
         }
 
         private static void LetGo()

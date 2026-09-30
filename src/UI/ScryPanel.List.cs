@@ -338,9 +338,11 @@ namespace Scry
 
             var named = Timing.Start();
             var textX = oneKind && !_listHasIcons ? inner.x + U(12f) : icon.xMax + U(10f);
+            // A room sits indented under its dungeon in its dungeon's group.
+            if (entry.Indent && oneKind) textX += U(20f);
             var textW = star.x - U(8f) - textX;
             var primary = string.IsNullOrEmpty(entry.DisplayName) ? entry.Name : entry.DisplayName;
-            var secondary = string.IsNullOrEmpty(entry.DisplayName) || entry.DisplayName == entry.Name ? "" : entry.Name;
+            var secondary = entry.Tag ?? (string.IsNullOrEmpty(entry.DisplayName) || entry.DisplayName == entry.Name ? "" : entry.Name);
 
             var nameStyle = Skin.RowName;
             var was = nameStyle.normal.textColor;

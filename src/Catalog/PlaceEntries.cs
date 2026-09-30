@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using SoftReferenceableAssets;
 using UnityEngine;
 
@@ -84,7 +85,11 @@ namespace Scry
             }
 
             var rooms = DungeonDB.instance != null ? DungeonDB.GetRooms() : null;
-            if (rooms == null) return;
+            if (rooms == null)
+            {
+                Arrange(entries);
+                return;
+            }
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var room in rooms)
             {
@@ -92,6 +97,7 @@ namespace Scry
                 try { entries.Add(RoomEntry(new PlaceSource { Prefab = room.m_prefab.Name, Reference = room.m_prefab, Room = room }, creatures)); }
                 catch (Exception ex) { Faults.Skip("dungeon room entries", room.m_prefab.Name, ex); }
             }
+            Arrange(entries);
         }
 
         private static Entry LocationEntry(PlaceSource source, IReadOnlyDictionary<string, string> creatures)
@@ -135,22 +141,61 @@ namespace Scry
 
         /// <summary>
         /// Gives a location or room entry the names its places were read to have: a location its
-        /// label (its game name, boss or trader, with its biome), a room the dungeons built with it,
-        /// grouped under the first of them.
+        /// label (its game name, boss or trader, with its biome), a room the dungeons built with
+        /// it. Where either is listed is left to <see cref="Arrange"/>.
         /// </summary>
         public static void Named(Entry entry, string[] labels)
         {
             if (labels == null || labels.Length == 0 || !(entry.Source is PlaceSource place)) return;
             entry.FoundIn = labels;
-            if (place.IsRoom)
+            if (!place.IsRoom) entry.DisplayName = Places.NameOf(labels[0]);
+        }
+
+        /// <summary>
+        /// Puts every location and room where the Locations list shows it (<see cref="PlaceGrouping"/>),
+        /// from what is known of them now: a location read tells the kinds of room its dungeon or
+        /// camp is built of, and a room read tells whether it is an entrance, an end cap or a wall.
+        /// Done when the catalog is made and again whenever places are read.
+        /// </summary>
+        public static void Arrange(IEnumerable<Entry> entries)
+        {
+            var places = new List<(Entry Entry, PlaceItem Item)>();
+            Dictionary<string, string> creatures = null;
+            var words = new Dictionary<int, string>();
+            foreach (var entry in entries)
             {
-                var group = LocationWords.RoomGroup(Places.NameOf(labels[0]));
-                entry.Group = group.Name;
-                entry.GroupOrder = group.Order;
+                if (!(entry.Source is PlaceSource source)) continue;
+                var item = new PlaceItem { Key = entry.Key, Prefab = source.Prefab, Shown = entry.DisplayName.Length > 0 ? entry.DisplayName : source.Prefab, Room = source.IsRoom };
+                if (source.IsRoom)
+                {
+                    item.Theme = (int)source.Room.m_theme;
+                    item.Shape = source.Contents?.Room;
+                    var home = PlaceGrouping.Home(item.Theme);
+                    if (!words.TryGetValue(home, out var named))
+                    {
+                        creatures = creatures ?? CreatureNames(entries);
+                        words[home] = named = Places.NameOf(ThemeNames((Room.Theme)home, creatures)[0]);
+                    }
+                    item.ThemeWords = named;
+                }
+                else
+                {
+                    item.Theme = source.Contents?.Dungeon?.Themes ?? 0;
+                    item.Algorithm = source.Contents?.Dungeon?.Algorithm ?? "";
+                    item.Biome = LocationWords.Group(Knowledge.BiomeKeys(source.Biomes), Knowledge.BiomeName);
+                }
+                places.Add((entry, item));
             }
-            else
+
+            var placed = PlaceGrouping.Arrange(places.Select(p => p.Item).ToList());
+            foreach (var (entry, item) in places)
             {
-                entry.DisplayName = Places.NameOf(labels[0]);
+                if (!placed.TryGetValue(item.Key, out var placing)) continue;
+                entry.Group = placing.Group.Name;
+                entry.GroupOrder = placing.Group.Order;
+                entry.GroupRank = placing.Rank;
+                entry.Tag = placing.Tag;
+                entry.Indent = placing.Indent;
             }
         }
 

@@ -270,15 +270,19 @@ namespace Scry
         /// </summary>
         public static Group Group(string[] biomes, Func<string, string> shown = null)
         {
-            if (biomes == null || biomes.Length == 0) return new Group("In no biome", 90);
-            if (biomes.Length > 1) return new Group("In several biomes", 100);
+            // Ten apart, so the dungeons and camps of a biome can follow it (DungeonGroup).
+            if (biomes == null || biomes.Length == 0) return new Group("In no biome", 900);
+            if (biomes.Length > 1) return new Group("In several biomes", 1000);
             var at = Array.IndexOf(BiomeOrder, biomes[0]);
             var name = shown?.Invoke(biomes[0]) ?? Naming.FieldLabel(biomes[0]);
-            return new Group(name, at >= 0 ? at : 50);
+            return new Group(name, at >= 0 ? at * 10 : 500);
         }
 
         /// <summary>A dungeon's rooms, listed after every place, under the dungeon's name.</summary>
-        public static Group RoomGroup(string dungeon) => new Group(dungeon + " rooms", 200);
+        public static Group RoomGroup(string dungeon) => new Group(dungeon + " rooms", 2000);
+
+        /// <summary>A dungeon or camp with its rooms, right after the other places of its biome, the dungeons of one biome by their names.</summary>
+        public static Group DungeonGroup(Group biome, string dungeon) => new Group(biome.Name + " \u00b7 " + dungeon, biome.Order + 1);
 
         /// <summary>What the stage says in place of the copy of a location or room while its model is not in; null once it is.</summary>
         public static string StageNote(PlaceLoad load)

@@ -80,7 +80,20 @@ namespace Scry
         /// <summary>What a room is, from its record before it is read, and its shape once it is.</summary>
         private void RoomFacts(PlaceSource place)
         {
-            if (_entry != null && _entry.FoundIn.Length > 0) Add("Built into", string.Join(", ", _entry.FoundIn.Select(Places.NameOf)));
+            // Every dungeon built with it, each going to its location; a room two share is listed
+            // under the first, and named here for both.
+            if (_entry != null && _entry.FoundIn.Length > 0)
+            {
+                var catalog = Session.Explorer?.Catalog;
+                var row = new Row { Title = "Built into" };
+                foreach (var label in _entry.FoundIn)
+                {
+                    var location = catalog != null ? Places.LocationNamed(catalog, label) : null;
+                    if (location != null && row.Items.All(i => i.Prefab != location.Key)) row.Items.Add(EntryChip(location));
+                }
+                if (row.Items.Count > 0) Rows.Add(row);
+                else Add("Built into", string.Join(", ", _entry.FoundIn.Select(Places.NameOf)));
+            }
             var shape = place.Contents?.Room;
             if (shape == null) return;
             Add("Is", DungeonWords.Role(shape));

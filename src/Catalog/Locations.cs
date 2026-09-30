@@ -421,6 +421,7 @@ namespace Scry
                     if (place.Contents == null && read.TryGetValue(place.Prefab, out var contents)) place.Contents = contents;
                     if (PlaceLabels.TryGetValue(place.IsRoom ? "room:" + place.Prefab : place.Prefab, out var labels)) PlaceEntries.Named(entry, labels);
                 }
+                PlaceEntries.Arrange(explorer.Catalog);
                 explorer.Regrouped();
             }
             Facts.Forget();

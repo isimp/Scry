@@ -538,7 +538,7 @@ namespace Scry
             var place = PlaceOf(crypt);
             p.Note($"{crypt.Name} ({crypt.DisplayName}), listed under {crypt.Group}");
             var forest = Knowledge.BiomeName("BlackForest");
-            if (place.Biomes == Heightmap.Biome.BlackForest) p.Check(crypt.Group == forest, "it is listed under its biome", crypt.Group);
+            if (place.Biomes == Heightmap.Biome.BlackForest) p.Check(crypt.Group == forest || crypt.Group.StartsWith(forest + " · ", StringComparison.Ordinal), "it is listed under its biome", crypt.Group);
 
             var asked = Time.unscaledTime;
             Select(crypt);
@@ -817,6 +817,21 @@ namespace Scry
             var contents = PlaceOf(crypt)?.Contents;
             if (crypt != null && contents != null && contents.GameName.Length > 0) p.Check(crypt.DisplayName == contents.GameName, "the crypt goes by the game's name", crypt.DisplayName);
             var rooms = places.Where(e => PlaceOf(e).IsRoom).ToList();
+
+            // Each dungeon is one group in its biome: its location first, tagged, its rooms indented under it.
+            if (crypt != null)
+            {
+                var group = X.Catalog.Where(e => e.Kind == Kind.Location && e.Group == crypt.Group).ToList();
+                p.Note($"{crypt.Name} is listed in \"{crypt.Group}\" with {group.Count(e => e.Indent)} rooms, tagged \"{crypt.Tag}\"");
+                p.Check(crypt.Group.Contains(" \u00b7 ") && (crypt.Tag ?? "").StartsWith("dungeon", StringComparison.Ordinal), "the crypt heads a group of its own, tagged a dungeon", crypt.Group);
+                p.Check(group.Count(e => e.Indent) > 0 && group.Where(e => e.Indent).All(e => e.GroupRank > 0) && group.Where(e => !e.Indent).All(e => e.GroupRank == 0), "its rooms are indented under it and rank after it");
+                var entrance = group.FirstOrDefault(e => PlaceOf(e)?.Contents?.Room?.Entrance == true);
+                p.Check(entrance != null && entrance.GroupRank == 1 && (entrance.Tag ?? "").StartsWith("entrance room", StringComparison.Ordinal), "its entrance comes first among its rooms, tagged an entrance room", entrance?.Name ?? "none");
+            }
+            var waiting = rooms.Where(e => !e.Indent).ToList();
+            p.Note($"{rooms.Count - waiting.Count} of {rooms.Count} rooms are under their dungeon; {waiting.Count} wait in theme groups: {string.Join(", ", waiting.Select(e => e.Group).Distinct().Take(6))}");
+            var homes = rooms.Where(e => e.Indent).GroupBy(e => e.Name).Count(g => g.Select(e => e.Group).Distinct().Count() > 1);
+            p.Check(homes == 0, "each room has one home");
             var placed = rooms.Count(e => e.FoundIn.Length > 0 && e.FoundIn[0] != Places.AnyDungeon);
             p.Note($"{placed} of {rooms.Count} rooms are listed under the dungeons built with them");
             p.Check(placed >= rooms.Count / 2, "most rooms are listed under their dungeons", $"{placed} of {rooms.Count}");
