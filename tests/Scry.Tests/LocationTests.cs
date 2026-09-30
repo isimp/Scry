@@ -133,6 +133,124 @@ namespace Scry.Tests
             Assert.Equal("rising 5–10 m within 12 m of it", Row(rules, "Ground"));
         }
 
+        // WorldGenerator.GetForestFactor is noise from 0, the thickest woods, to about 2.2; the
+        // Meadows count as wooded below 1.15 (InForest). A location in woods keeps to a range of it.
+
+        private const string ForestScale = " (0 is the thickest woods, about 2.2 the most open; the Meadows are wooded below 1.15)";
+
+        [Fact]
+        public void AWoodsRuleSaysItsRangeOfTheForestFactor()
+        {
+            var rules = Crypt();
+            Assert.Null(Row(rules, "Woods"));
+            rules.InForest = true;
+            rules.ForestMin = 0.5f;
+            rules.ForestMax = 1f;
+            Assert.Equal("forest factor 0.5–1" + ForestScale, Row(rules, "Woods"));
+            rules.ForestMin = 0f;
+            Assert.Equal("forest factor at most 1" + ForestScale, Row(rules, "Woods"));
+            rules.ForestMin = 1f;
+            rules.ForestMax = 5f;
+            Assert.Equal("forest factor at least 1" + ForestScale, Row(rules, "Woods"));
+            rules.ForestMin = 0f;
+            Assert.Null(Row(rules, "Woods"));
+        }
+
+        // The ground value the generator reads where it places a location is the Ashlands' lava
+        // (from 0.6 it counts as lava, ZoneSystem.IsLavaPreHeightmap), the Mistlands' growth, and
+        // 0 in every other biome (WorldGenerator.GetBiomeHeight). It must be over the minimum and
+        // under the maximum.
+
+        private static LocationRules In(params string[] biomes)
+        {
+            var rules = Crypt();
+            rules.BiomeKeys = biomes;
+            return rules;
+        }
+
+        [Fact]
+        public void InTheAshlandsTheGroundRuleIsAboutLava()
+        {
+            var rules = In("AshLands");
+            Assert.Null(Row(rules, "Lava"));
+            rules.MaxVegetation = 0.1f;
+            Assert.Equal("only on ground less than 10% lava (the game counts 60% and more as lava)", Row(rules, "Lava"));
+            rules.MinVegetation = 0.6f;
+            rules.MaxVegetation = 1f;
+            Assert.Equal("only on ground more than 60% lava (the game counts 60% and more as lava)", Row(rules, "Lava"));
+            rules.MinVegetation = 0.2f;
+            rules.MaxVegetation = 0.5f;
+            Assert.Equal("only on ground 20–50% lava (the game counts 60% and more as lava)", Row(rules, "Lava"));
+        }
+
+        [Fact]
+        public void InTheMistlandsTheGroundRuleIsAboutGrowth()
+        {
+            var rules = In("Mistlands");
+            rules.MaxVegetation = 0.3f;
+            Assert.Equal("only where the Mistlands' growth value, which their plants grow by, is under 0.3", Row(rules, "Growth"));
+            rules.MinVegetation = 0.1f;
+            Assert.Equal("only where the Mistlands' growth value, which their plants grow by, is 0.1–0.3", Row(rules, "Growth"));
+            rules.MaxVegetation = 1f;
+            Assert.Equal("only where the Mistlands' growth value, which their plants grow by, is over 0.1", Row(rules, "Growth"));
+        }
+
+        [Fact]
+        public void WhereTheGroundHasNoValueAMinimumIsNeverMetAndAMaximumAlwaysIs()
+        {
+            var rules = In("Meadows");
+            rules.MaxVegetation = 0.5f;
+            Assert.DoesNotContain(LocationWords.Rows(rules), r => r.Key == "Ground value");
+            rules.MinVegetation = 0.2f;
+            Assert.Equal("never met: it asks for lava or Mistlands growth, which its biome does not have", Row(rules, "Ground value"));
+        }
+
+        [Fact]
+        public void SeveralBiomesTellTheGroundValueForEach()
+        {
+            var rules = In("AshLands", "Mistlands");
+            rules.MaxVegetation = 0.1f;
+            Assert.Equal("under 0.1 (lava in the Ashlands, growth in the Mistlands, none elsewhere)", Row(rules, "Ground value"));
+        }
+
+        // ZoneSystem.GenerateLocationsTimeSliced sums the ground value round a spot and keeps only
+        // spots at least so far from the average of those that met the other rules to the most found.
+
+        [Fact]
+        public void TheSurroundingsAreComparedWithTheOtherSpotsTried()
+        {
+            var rules = In("AshLands");
+            rules.SurroundCheck = true;
+            rules.SurroundDistance = 30f;
+            Assert.Equal("more lava within 30 m than the average spot that meets its other rules", Row(rules, "Surroundings"));
+            rules.SurroundBetter = 0.5f;
+            Assert.Equal("lava within 30 m at least 50% of the way from the average spot that meets its other rules to the most found", Row(rules, "Surroundings"));
+        }
+
+        [Fact]
+        public void SurroundingsWithNothingToMeasureAreLeftOut()
+        {
+            var rules = In("Mountain");
+            rules.SurroundCheck = true;
+            rules.SurroundDistance = 40f;
+            Assert.Null(Row(rules, "Surroundings"));
+        }
+
+        [Fact]
+        public void TheLineOfARuleSetTellsTheWoodsAndGroundToo()
+        {
+            var rules = In("AshLands");
+            rules.MaxVegetation = 0.1f;
+            rules.InForest = true;
+            rules.ForestMax = 1f;
+            rules.SurroundCheck = true;
+            var line = LocationWords.Line(rules);
+            Assert.Contains("more lava within 20 m than the average spot", line);
+            Assert.Contains("forest factor at most 1", line);
+            Assert.Contains("on ground less than 10% lava", line);
+            Assert.DoesNotContain("thickest", line);
+        }
+
         [Fact]
         public void HowItIsPlacedTellsPriorityUniquenessAndTheCentreFirst()
         {

@@ -66,6 +66,15 @@ namespace Scry
             Prioritized = location.m_prioritized,
             CenterFirst = location.m_centerFirst,
             Unique = location.m_unique,
+            BiomeKeys = Knowledge.BiomeKeys(location.m_biome),
+            InForest = location.m_inForest,
+            ForestMin = location.m_forestTresholdMin,
+            ForestMax = location.m_forestTresholdMax,
+            MinVegetation = location.m_minimumVegetation,
+            MaxVegetation = location.m_maximumVegetation,
+            SurroundCheck = location.m_surroundCheckVegetation,
+            SurroundDistance = location.m_surroundCheckDistance,
+            SurroundBetter = location.m_surroundBetterThanAverage,
         };
 
         /// <summary>What a room is, from its record before it is read, and its shape once it is.</summary>

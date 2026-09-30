@@ -32,6 +32,20 @@ namespace Scry
         public float MinTerrainDelta, MaxTerrainDelta = 2f, ExteriorRadius;
 
         public bool Prioritized, CenterFirst, Unique;
+
+        /// <summary>Its biomes by the game's names for them ("AshLands"), which say what its ground value is.</summary>
+        public string[] BiomeKeys = new string[0];
+
+        /// <summary>Whether it keeps to a range of the forest factor (<c>m_inForest</c>), and the range.</summary>
+        public bool InForest;
+        public float ForestMin, ForestMax = 1f;
+
+        /// <summary>The ground value it asks for, over the first and under the second; 0 and 1 are no limit.</summary>
+        public float MinVegetation, MaxVegetation = 1f;
+
+        /// <summary>Whether it keeps to spots whose surroundings have more of the ground value than most tried, how far round it looks, and how much more.</summary>
+        public bool SurroundCheck;
+        public float SurroundDistance = 20f, SurroundBetter;
     }
 
     /// <summary>
@@ -60,6 +74,11 @@ namespace Scry
             Add("Apart", Apart(rules));
             Add("Near", Near(rules));
             Add("Ground", Ground(rules));
+            var woods = Woods(rules);
+            if (woods != null) Add("Woods", woods + ForestScale);
+            var cover = Cover(rules);
+            if (cover.Words != null) Add(cover.Label, cover.Words + cover.Note);
+            Add("Surroundings", Surroundings(rules));
             Add("Placed", Placed(rules));
             return rows;
         }
@@ -72,7 +91,7 @@ namespace Scry
             if (centre != null) parts.Add(centre + " from the centre");
             var altitude = Altitude(rules);
             if (altitude != null) parts.Add(altitude + " above the sea");
-            foreach (var part in new[] { Apart(rules), Near(rules), Ground(rules), Placed(rules) }) if (part != null) parts.Add(part);
+            foreach (var part in new[] { Apart(rules), Near(rules), Ground(rules), Woods(rules), Cover(rules).Words, Surroundings(rules), Placed(rules) }) if (part != null) parts.Add(part);
             return string.Join(", ", parts);
         }
 
@@ -134,6 +153,70 @@ namespace Scry
             if (low) return "rising at least " + Metres(rules.MinTerrainDelta) + within;
             if (high) return "rising at most " + Metres(rules.MaxTerrainDelta) + within;
             return null;
+        }
+
+        /// <summary>How high the forest factor goes: three layers of noise, halved in weight each time and a bit (<c>WorldGenerator.GetForestFactor</c>).</summary>
+        private const float ForestTop = 2.19f;
+
+        private const string ForestScale = " (0 is the thickest woods, about 2.2 the most open; the Meadows are wooded below 1.15)";
+
+        private static string Number(float value) => value.ToString("#,0.##", CultureInfo.InvariantCulture);
+
+        /// <summary>The range of the forest factor it keeps to, or null when it keeps to none or to all of it.</summary>
+        private static string Woods(LocationRules rules)
+        {
+            if (!rules.InForest) return null;
+            var low = rules.ForestMin > 0f;
+            var high = rules.ForestMax < ForestTop;
+            if (low && high) return $"forest factor {Number(rules.ForestMin)}–{Number(rules.ForestMax)}";
+            if (high) return "forest factor at most " + Number(rules.ForestMax);
+            if (low) return "forest factor at least " + Number(rules.ForestMin);
+            return null;
+        }
+
+        private static string Percent(float value) => (value * 100f).ToString("0.#", CultureInfo.InvariantCulture) + "%";
+
+        private static bool Only(LocationRules rules, string biome) => rules.BiomeKeys.Length > 0 && Array.TrueForAll(rules.BiomeKeys, b => b == biome);
+
+        private static bool HasValue(LocationRules rules) => Array.Exists(rules.BiomeKeys, b => b == "AshLands" || b == "Mistlands");
+
+        /// <summary>
+        /// The ground value it asks for, as its biomes have it: the Ashlands' lava, the Mistlands'
+        /// growth, and 0 anywhere else, where a minimum is never met and a maximum always is.
+        /// </summary>
+        private static (string Label, string Words, string Note) Cover(LocationRules rules)
+        {
+            var low = rules.MinVegetation > 0f;
+            var high = rules.MaxVegetation < 1f;
+            if (!low && !high) return (null, null, null);
+            if (!HasValue(rules))
+            {
+                return low ? ("Ground value", "never met: it asks for lava or Mistlands growth, which its biome does not have", "") : (null, null, null);
+            }
+            if (Only(rules, "AshLands"))
+            {
+                var lava = low && high ? $"{Percent(rules.MinVegetation)}–{Percent(rules.MaxVegetation)}".Replace("%–", "–")
+                    : low ? "more than " + Percent(rules.MinVegetation) : "less than " + Percent(rules.MaxVegetation);
+                return ("Lava", $"only on ground {lava} lava", " (the game counts 60% and more as lava)");
+            }
+            var range = low && high ? $"{Number(rules.MinVegetation)}–{Number(rules.MaxVegetation)}"
+                : low ? "over " + Number(rules.MinVegetation) : "under " + Number(rules.MaxVegetation);
+            if (Only(rules, "Mistlands")) return ("Growth", "only where the Mistlands' growth value, which their plants grow by, is " + range, "");
+            return ("Ground value", range, " (lava in the Ashlands, growth in the Mistlands, none elsewhere)");
+        }
+
+        /// <summary>
+        /// How its surroundings must compare with the other spots tried: the ground value summed
+        /// round it, at least so far from the average of the spots that met its other rules to the
+        /// most found. Left out where its biome has no ground value, as there it measures nothing.
+        /// </summary>
+        private static string Surroundings(LocationRules rules)
+        {
+            if (!rules.SurroundCheck || !HasValue(rules)) return null;
+            var what = Only(rules, "AshLands") ? "lava" : Only(rules, "Mistlands") ? "Mistlands growth" : "lava or Mistlands growth";
+            var within = $"within {Metres(rules.SurroundDistance)}";
+            if (rules.SurroundBetter <= 0f) return $"more {what} {within} than the average spot that meets its other rules";
+            return $"{what} {within} at least {Percent(rules.SurroundBetter)} of the way from the average spot that meets its other rules to the most found";
         }
 
         /// <summary>

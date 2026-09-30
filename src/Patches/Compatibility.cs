@@ -216,6 +216,12 @@ namespace Scry
             ("ZoneSystem", "GenerateLocationsTimeSliced", 3, 0xB5CD6171, "where locations are placed, in the details"),
             ("Location", "GetMaxRadius", 0, 0xB73300D6, "where nothing can be built near a location, in the details"),
             ("Location", "IsInside", 3, 0xCC89D439, "where nothing can be built near a location, in the details"),
+            ("WorldGenerator", "GetForestFactor", 1, 0x33E92B46, "the woods locations keep to, in the details"),
+            ("WorldGenerator", "InForest", 1, 0x26492B75, "the woods locations keep to, in the details"),
+            ("WorldGenerator", "GetBiomeHeight", 6, 0x529952E1, "the lava and growth locations keep to, in the details"),
+            ("WorldGenerator", "GetAshlandsHeight", 4, 0x203BF12F, "the lava and growth locations keep to, in the details"),
+            ("WorldGenerator", "GetMistlandsHeight", 3, 0xA0B9E42A, "the lava and growth locations keep to, in the details"),
+            ("ZoneSystem", "IsLavaPreHeightmap", 2, 0xA4791600, "the lava and growth locations keep to, in the details"),
         };
 
         /// <summary>Public methods of the animation event receivers that are not events.</summary>
