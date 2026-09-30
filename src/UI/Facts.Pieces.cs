@@ -24,6 +24,14 @@ namespace Scry
             {
                 Add("Health", Number(wear.m_health));
                 Add("Material", Word(wear.m_materialType));
+                Part("support", () => Support(wear));
+                Part("weather", () =>
+                {
+                    Add("Rain", BuildWords.Rain(wear.m_noRoofWear));
+                    Add("Ashlands", BuildWords.Ash(wear.m_ashDamageImmune, wear.m_ashDamageResist));
+                    Add("Heavy snow", BuildWords.Snow(wear.m_snowDamageImmune));
+                });
+                Part("resistances", () => Resists(wear.m_damages));
             }
 
             if (piece.m_resources != null && piece.m_resources.Length > 0)
@@ -34,6 +42,27 @@ namespace Scry
                 Rows.Add(row);
             }
         }
+
+        /// <summary>
+        /// What holds it up: its material's support, read from the game's own
+        /// <c>WearNTear.GetMaterialProperties</c> so a mod that changes it shows, and whether it
+        /// holds up other pieces at all.
+        /// </summary>
+        private void Support(WearNTear wear)
+        {
+            var args = new object[4];
+            MaterialProperties.Invoke(wear, args);
+            float max = (float)args[0], min = (float)args[1], sideways = (float)args[2], up = (float)args[3];
+            Add("Support", BuildWords.Support(max, min, wear.m_noSupportWear));
+            Add("Support lost", BuildWords.SupportLoss(sideways, up));
+            if (!wear.m_supports) Add("Holds up others", "no");
+        }
+
+        private static System.Reflection.MethodInfo _materialProperties;
+
+        private static System.Reflection.MethodInfo MaterialProperties => _materialProperties ?? (_materialProperties = typeof(WearNTear).GetMethod(
+            "GetMaterialProperties", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)
+            ?? throw new System.MissingMethodException(nameof(WearNTear), "GetMaterialProperties"));
 
         /// <summary>
         /// One of the game's own prefabs a mod made buildable, by adding a piece to it that it
