@@ -474,6 +474,26 @@ namespace Scry
             return name.Length > 0 ? name : item != null ? item.name : "";
         }
 
+        /// <summary>
+        /// Whether a prefab gives loot of its own: a drop table holding anything on any of its
+        /// components (a chest's filling, a rock's or tree's drops), or a pickable's item. A chest
+        /// built by players has an empty table, and gives nothing.
+        /// </summary>
+        public static bool GivesLoot(GameObject prefab)
+        {
+            if (prefab == null) return false;
+            foreach (var component in prefab.GetComponents<Component>())
+            {
+                if (component == null) continue;
+                if (component is Pickable pickable && pickable.m_itemPrefab != null) return true;
+                foreach (var field in DropTables(component.GetType()))
+                {
+                    if (field.GetValue(component) is DropTable table && table.m_drops != null && table.m_drops.Count > 0) return true;
+                }
+            }
+            return false;
+        }
+
         private static FieldInfo[] DropTables(Type type)
         {
             if (DropTableFields.TryGetValue(type, out var known)) return known;

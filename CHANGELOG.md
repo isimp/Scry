@@ -18,6 +18,8 @@ A dungeon or camp shows an example, laid out the way the game lays out a new one
 
 A piece says which build tool builds it and on which tab, a mod's own hammer or the cultivator as much as the hammer, and a tool lists everything it builds, tab by tab.
 
+A creature names the mods that hook into the game's own code for what it drops or where it spawns, and a chest, rock, tree or plant those hooking into what it gives, found for any mod, so the details never look more complete than they are.
+
 ## 0.1.0
 
 First release.

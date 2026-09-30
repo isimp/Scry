@@ -176,6 +176,7 @@ namespace Scry
             if (piece != null && piece.enabled) Part("piece", () => Piece(piece, prefab.GetComponent<WearNTear>()));
 
             Part("resource", () => Resource(prefab));
+            if (Knowledge.GivesLoot(prefab)) Add(ModHookWords.Label(HookedRule.Loot), ModHookWords.Note(HookedRule.Loot, ModHooks.Mods(HookedRule.Loot)));
             if (piece != null && !piece.enabled) Part("build cost", () => MadeBuildable(piece));
             Part("station", () => Station(prefab));
 

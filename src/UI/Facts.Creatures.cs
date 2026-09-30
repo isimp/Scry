@@ -71,6 +71,15 @@ namespace Scry
                     }
                 }
             }
+
+            // Mods that hook into what creatures drop, or where they spawn, can change either
+            // beyond what the prefab says (ModHooks); a person has neither.
+            if (character is Player) return;
+            Add(ModHookWords.Label(HookedRule.Drops), ModHookWords.Note(HookedRule.Drops, ModHooks.Mods(HookedRule.Drops)));
+            if (Knowledge.IsPlacedByWorld(prefab.name) || Knowledge.WhereLines(prefab.name).Count > 0)
+            {
+                Add(ModHookWords.Label(HookedRule.Spawns), ModHookWords.Note(HookedRule.Spawns, ModHooks.Mods(HookedRule.Spawns)));
+            }
         }
 
         /// <summary>

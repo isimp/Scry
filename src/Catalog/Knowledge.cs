@@ -372,6 +372,7 @@ namespace Scry
             yield return "what makes things";
 
             Try("Jotunn's registry", JotunnMods);
+            Try("mods' hooks", ModHooks.Read);
             yield return "which mod added what";
 
             foreach (var step in BundleMods(prefabs)) yield return step;

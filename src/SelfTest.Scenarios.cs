@@ -27,6 +27,7 @@ namespace Scry
             yield return S("creatures tell their weak spots, when they turn on you and how far they chase", CreatureFacts, 60);
             yield return S("a piece tells its support and what wears it", PieceFacts, 10);
             yield return S("build tools and their pieces lead to each other", ToolsAndPieces, 10);
+            yield return S("mods hooking into drops, loot and spawning are named", HookingMods, 10);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
 
@@ -215,6 +216,36 @@ namespace Scry
             var pieces = X.Catalog.Where(e => e.Kind == Kind.Piece).ToList();
             var withTool = pieces.Count(e => Knowledge.Tools.ToolsOf(e.Name).Count > 0);
             p.Note($"{withTool} of {pieces.Count} pieces are built with a tool; the rest are in no build menu");
+            yield break;
+        }
+
+        /// <summary>
+        /// The mods found hooking into drops, loot and spawning, and every hook looked at; a
+        /// creature and a rock name the mods there are, and say nothing where there are none.
+        /// </summary>
+        private static IEnumerator HookingMods(Probe p)
+        {
+            foreach (var rule in new[] { HookedRule.Drops, HookedRule.Loot, HookedRule.Spawns })
+            {
+                p.Note($"{rule}: {(ModHooks.Mods(rule).Count > 0 ? string.Join(", ", ModHooks.Mods(rule)) : "no mod")}");
+            }
+            foreach (var (mod, method, counted) in ModHooks.Seen) p.Note($"{mod} hooks {method}{(counted ? "" : ", not counted: its code names no drop list")}");
+            p.Check(!ModHooks.AllMods.Contains("Scry"), "Scry itself is not named");
+
+            var creature = Pick(Kind.Creature, "Greydwarf", "Boar");
+            if (creature != null)
+            {
+                var note = Value(Facts.For(creature), ModHookWords.Label(HookedRule.Drops));
+                var mods = ModHooks.Mods(HookedRule.Drops);
+                p.Check(mods.Count == 0 ? note == null : note != null && mods.All(m => note.Contains(m)), $"{creature.Name} names the mods hooking into its drops", note ?? "no note");
+            }
+            var rock = Pick(Kind.Resource, "rock1_forest", "Rock_3", "MineRock_Copper", "Beech1");
+            if (rock != null)
+            {
+                var note = Value(Facts.For(rock), ModHookWords.Label(HookedRule.Loot));
+                var mods = ModHooks.Mods(HookedRule.Loot);
+                p.Check(mods.Count == 0 ? note == null : note != null, $"{rock.Name} names the mods hooking into what it gives, if it gives anything", note ?? "no note");
+            }
             yield break;
         }
 

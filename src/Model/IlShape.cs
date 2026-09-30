@@ -61,6 +61,45 @@ namespace Scry
             return hash == 0 ? 1u : hash;
         }
 
+        /// <summary>
+        /// The tokens of the fields, methods and types a method's code names, in order, for its
+        /// module to resolve; none when the code cannot be read.
+        /// </summary>
+        public static System.Collections.Generic.List<int> Names(byte[] il)
+        {
+            var names = new System.Collections.Generic.List<int>();
+            if (il == null || il.Length == 0) return names;
+            Build();
+
+            var i = 0;
+            while (i < il.Length)
+            {
+                OpCode? op;
+                if (il[i] == 0xFE)
+                {
+                    if (i + 1 >= il.Length) return new System.Collections.Generic.List<int>();
+                    op = TwoByte[il[i + 1]];
+                    i += 2;
+                }
+                else
+                {
+                    op = OneByte[il[i]];
+                    i += 1;
+                }
+                if (op == null) return new System.Collections.Generic.List<int>();
+
+                var skip = OperandSize(op.Value, il, i);
+                if (skip < 0 || i + skip > il.Length) return new System.Collections.Generic.List<int>();
+                var type = op.Value.OperandType;
+                if (type == OperandType.InlineField || type == OperandType.InlineMethod || type == OperandType.InlineType || type == OperandType.InlineTok)
+                {
+                    names.Add(il[i] | (il[i + 1] << 8) | (il[i + 2] << 16) | (il[i + 3] << 24));
+                }
+                i += skip;
+            }
+            return names;
+        }
+
         private static int OperandSize(OpCode op, byte[] il, int at)
         {
             switch (op.OperandType)
