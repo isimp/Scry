@@ -303,6 +303,13 @@ namespace Scry
             {
                 _groundFixed = true;
                 _bodyMinY = Origin.y + PlaceView.Ground(shown.Contents, shown.IsRoom) * _baseScale.y;
+
+                // A room opens on its top floor to be looked into; a location keeps its roof.
+                SetFloors(entry, shown.IsRoom ? PlaceView.RoomFloors(shown.Contents?.Room) : new List<float> { 0f }, open: shown.IsRoom);
+            }
+            else
+            {
+                ClearFloors();
             }
             Timing.Add("selection measure", started);
 
@@ -534,7 +541,7 @@ namespace Scry
         public static void ResetView()
         {
             Yaw = FrontYaw;
-            Pitch = FrontPitch;
+            Pitch = Cutting ? CutPitch : FrontPitch;
             Zoom = 1f;
             _frameRadius = -1f;
             _pan = Vector3.zero;

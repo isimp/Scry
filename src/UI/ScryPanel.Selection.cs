@@ -242,7 +242,7 @@ namespace Scry
                 if (over)
                 {
                     FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), textW, U(22f)),
-                        "Drag to turn, right-drag to move, scroll to zoom, double-click to reset", Skin.FaintLabel, 9f);
+                        Stage.Cutting ? StageHintCut : StageHint, Skin.FaintLabel, 9f);
                 }
                 else if (Stage.Subject != null && Stage.ShowsGrid)
                 {
@@ -270,7 +270,9 @@ namespace Scry
                 }
                 else if (e.type == EventType.ScrollWheel && rect.Contains(e.mousePosition))
                 {
-                    Stage.ZoomBy(e.delta.y);
+                    // With Shift the wheel moves the cut of a place opened, down as it scrolls down.
+                    if (e.shift && Stage.Cutting) Stage.CutBy(-e.delta.y * 0.25f);
+                    else Stage.ZoomBy(e.delta.y);
                     e.Use();
                 }
             }
@@ -778,6 +780,9 @@ namespace Scry
         }
 
         /// <summary>The person for size, the lighting and the backdrop, in the stage's top right corner.</summary>
+        private const string StageHint = "Drag to turn, right-drag to move, scroll to zoom, double-click to reset";
+        private const string StageHintCut = "Drag to turn, right-drag to move, scroll to zoom, Shift-scroll to move the cut, double-click to reset";
+
         private static void StageButtons(Entry entry, Rect rect)
         {
             var h = U(24f);
@@ -789,6 +794,7 @@ namespace Scry
             var lighting = Labelled("Light: ", Stage.LightingNames, Stage.LightingIndex);
             var texts = new List<string> { backdrop, lighting, "Spin" };
             if (!Looks.IsWorn(entry)) texts.Add("Person");
+            if (Stage.HasFloors) texts.Add(Stage.CutLabel);
             var total = texts.Sum(t => Skin.Width(Skin.Chip, t) + U(10f));
             if (x - total < rect.x + U(10f) + _badgeWidth + U(10f)) y += h + U(8f);
 
@@ -822,6 +828,10 @@ namespace Scry
             {
                 Stage.ShowPerson = !Stage.ShowPerson;
                 SaveRects();
+            }
+            if (Stage.HasFloors && Chip(Stage.CutLabel, Stage.Cutting, "Cuts away what is above head height over a floor, to look in. Click for the next floor down, then the roof back; Shift and the wheel move the cut"))
+            {
+                Stage.NextCut();
             }
         }
     }

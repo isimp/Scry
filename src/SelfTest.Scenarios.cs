@@ -472,6 +472,19 @@ namespace Scry
             p.Note($"{DungeonWords.Role(shape)}, {DungeonWords.Size(shape)}, doorways {DungeonWords.Doorways(shape)}");
             var floor = PlaceView.Ground(place.Contents, true);
             p.Check(Mathf.Abs(Stage.Ground - floor) < 0.01f, "it stands on the floor it is walked into on", $"{Stage.Ground:0.00} m, its lowest doorway {floor:0.00} m");
+
+            // It opens on its top floor to be looked into, and the chip steps down its floors to the roof and round again.
+            var floors = PlaceView.RoomFloors(shape);
+            p.Check(Stage.HasFloors && Stage.Cutting, "it is cut open", Stage.CutLabel);
+            p.Check(Mathf.Abs(Stage.CutAt - PlaceView.CutHeight(floors[0])) < 0.01f, "above head height over its top floor", $"cut at {Stage.CutAt:0.0} m, floors {string.Join(", ", floors.Select(f => f.ToString("0.0")))}");
+            var labels = new List<string>();
+            for (var i = 0; i <= floors.Count; i++)
+            {
+                Stage.NextCut();
+                labels.Add(Stage.CutLabel);
+            }
+            p.Check(labels[floors.Count - 1] == "Roof on" && Stage.Cutting && Mathf.Abs(Stage.CutAt - PlaceView.CutHeight(floors[0])) < 0.01f, "its chip steps down every floor to the roof and round again", string.Join("; ", labels));
+            yield return null;
         }
 
         private static IEnumerator DungeonExample(Probe p) => Layout(p, Crypt(), "Dungeon");

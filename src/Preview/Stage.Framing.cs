@@ -103,6 +103,8 @@ namespace Scry
                 var size = radius * 3.2f;
                 _floor.transform.localScale = new Vector3(size, size, size);
             }
+
+            ApplyCut();
         }
 
         /// <summary>Takes in what the model draws while its animation first plays, as if at size one.</summary>

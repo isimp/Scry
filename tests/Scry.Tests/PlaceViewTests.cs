@@ -47,5 +47,48 @@ namespace Scry.Tests
             Assert.Equal(0f, PlaceView.Ground(null, room: true));
             Assert.Equal(0f, PlaceView.Ground(new PlaceContents(), room: true));
         }
+
+        // To look in, the stage cuts away what is above head height over a floor. A room's floors
+        // are where its doorways are, from the top down; doorways less than a storey apart (a step,
+        // a slope) are one floor, the highest of them, so the cut clears every doorway on it.
+
+        [Fact]
+        public void ARoomsFloorsAreItsDoorwaysHeightsFromTheTopDown()
+        {
+            Assert.Equal(new[] { 1.5f, -6f }, PlaceView.RoomFloors(Room(-6f, 1.5f, 1.5f, -6f).Room));
+        }
+
+        [Fact]
+        public void DoorwaysLessThanAStoreyApartAreOneFloorTheHighestOfThem()
+        {
+            Assert.Equal(new[] { 0.5f, -2.5f }, PlaceView.RoomFloors(Room(-3.5f, 0.5f, -0.5f, -2.5f).Room));
+            Assert.Equal(new[] { 0f, -2f }, PlaceView.Floors(new[] { 0f, -1.9f, -2f }));
+        }
+
+        [Fact]
+        public void ARoomWithoutDoorwaysHasOneFloorAtItsRoot()
+        {
+            Assert.Equal(new[] { 0f }, PlaceView.RoomFloors(Room().Room));
+            Assert.Equal(new[] { 0f }, PlaceView.RoomFloors(null));
+        }
+
+        [Fact]
+        public void TheCutIsAboveHeadHeightOverItsFloor()
+        {
+            Assert.Equal(2.5f, PlaceView.CutHeight(0f));
+            Assert.Equal(-3.5f, PlaceView.CutHeight(-6f));
+        }
+
+        [Theory]
+        [InlineData(0, 1, "Roof off")]
+        [InlineData(1, 1, "Roof on")]
+        [InlineData(0, 3, "Roof off, top floor")]
+        [InlineData(1, 3, "Roof off, floor 2 of 3")]
+        [InlineData(2, 3, "Roof off, floor 3 of 3")]
+        [InlineData(3, 3, "Roof on")]
+        public void TheCutSaysWhichFloorItOpens(int level, int floors, string said)
+        {
+            Assert.Equal(said, PlaceView.CutLabel(level, floors));
+        }
     }
 }
