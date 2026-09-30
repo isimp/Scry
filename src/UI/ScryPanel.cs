@@ -104,8 +104,15 @@ namespace Scry
         /// <summary>The filter box that had the keyboard at the end of the last pass, or null.</summary>
         private static string FocusedFilter;
 
-        /// <summary>Whether the panel is in its compact view.</summary>
-        public static bool Compact => _compact;
+        /// <summary>Whether the panel is in its compact view; setting it switches views, as the header's button does.</summary>
+        public static bool Compact
+        {
+            get => _compact;
+            set
+            {
+                if (value != _compact) ToggleCompact();
+            }
+        }
 
         private static Rect Win
         {

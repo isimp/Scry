@@ -109,6 +109,16 @@ namespace Scry
             yield return Until(() => ScryPanel.Repaints >= from + 5, 5);
             p.Check(Session.IsOpen, "the panel is open");
             p.Check(ScryPanel.Repaints >= from + 5, "it draws, frame after frame", $"{ScryPanel.Repaints - from} repaints");
+
+            // The stage is drawn only in the full view; the view it was in is put back afterwards.
+            KeepView();
+            if (ScryPanel.Compact)
+            {
+                ScryPanel.Compact = false;
+                p.Note("switched to the full view, which draws the stage");
+                from = ScryPanel.Repaints;
+                yield return Until(() => ScryPanel.Repaints >= from + 2, 5);
+            }
         }
 
         // ----- Each kind on the stage -----
@@ -383,10 +393,13 @@ namespace Scry
             p.Check(CopyOf(crypt) != null, "a copy stands on the stage");
 
             // A location keeps far-off parts of its own (its dungeon is built high above it), which
-            // must not be what the stage frames.
+            // must not be what the stage frames: framing both would measure too far to frame, and
+            // leave the 2 m box of something with nothing to measure.
             var size = Stage.SubjectSize;
             p.Note($"the stage shows it {size.x:0} × {size.z:0} m, {size.y:0} m high");
             p.Check(Mathf.Max(size.x, Mathf.Max(size.y, size.z)) < 300f, "the stage frames the place itself", $"{size.x:0} × {size.z:0} × {size.y:0} m");
+            p.Check(Mathf.Max(size.x, size.z) > 4f, "and takes in its entrance", $"{size.x:0.0} × {size.z:0.0} m");
+            p.Check(Mathf.Abs(Stage.Ground) < 0.01f, "it stands on its own ground", $"{Stage.Ground:0.00} m");
 
             var contents = place.Contents;
             if (!p.Check(contents != null, "what it holds has been read")) yield break;
@@ -456,6 +469,8 @@ namespace Scry
             p.Check(shape.Doorways.Count > 0, "it has doorways", DungeonWords.Doorways(shape));
             p.Check(shape.Name == place.Prefab, "its prefab goes by the name its entry has", $"{shape.Name} and {place.Prefab}");
             p.Note($"{DungeonWords.Role(shape)}, {DungeonWords.Size(shape)}, doorways {DungeonWords.Doorways(shape)}");
+            var floor = PlaceView.Ground(place.Contents, true);
+            p.Check(Mathf.Abs(Stage.Ground - floor) < 0.01f, "it stands on the floor it is walked into on", $"{Stage.Ground:0.00} m, its lowest doorway {floor:0.00} m");
         }
 
         private static IEnumerator DungeonExample(Probe p) => Layout(p, Crypt(), "Dungeon");

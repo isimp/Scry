@@ -173,6 +173,9 @@ namespace Scry
             }
         }
 
+        /// <summary>Where the model stands, from its root, as if at size one, for the self-test to see a place stands on its own ground.</summary>
+        public static float Ground => _bodyMinY - Origin.y;
+
         /// <summary>The lowest point of the model's body, or where it stands, as if at size one.</summary>
         private static float _bodyMinY;
 
@@ -293,6 +296,14 @@ namespace Scry
             var capsule = grounded != null ? grounded.GetComponent<CapsuleCollider>() : null;
             _groundFixed = capsule != null && capsule.direction == 1;
             if (_groundFixed) _bodyMinY = Origin.y + (capsule.center.y - capsule.height / 2f) * _baseScale.y;
+
+            // A location stands on the ground the game stands it on, a room on the floor it is
+            // walked into on (PlaceView.Ground), not on the lowest thing it holds.
+            if (entry.Source is PlaceSource shown)
+            {
+                _groundFixed = true;
+                _bodyMinY = Origin.y + PlaceView.Ground(shown.Contents, shown.IsRoom) * _baseScale.y;
+            }
             Timing.Add("selection measure", started);
 
             started = Timing.Start();

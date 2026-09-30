@@ -149,6 +149,9 @@ namespace Scry
             public bool Open, InWorld, LoopSounds, LoopEffects, LoopClips, OnPerson, PlanFolded;
             public Locations.State LocationsWere;
 
+            /// <summary>The view the panel was in when the test first opened it, for the full view the stage is drawn in.</summary>
+            public bool? Compact;
+
             public static Before Take() => new Before
             {
                 Explorer = Session.Explorer,
@@ -164,6 +167,12 @@ namespace Scry
             };
         }
 
+        /// <summary>Remembers the view the panel is in, once, the first time the test has it open.</summary>
+        private static void KeepView()
+        {
+            if (_before != null && !_before.Compact.HasValue) _before.Compact = ScryPanel.Compact;
+        }
+
         private static void PutBack()
         {
             var before = _before;
@@ -176,6 +185,7 @@ namespace Scry
             Previews.LoopClips = before.LoopClips;
             Looks.OnPerson = before.OnPerson;
             ScryPanel.PlanFolded = before.PlanFolded;
+            if (before.Compact.HasValue) ScryPanel.Compact = before.Compact.Value;
             if (Session.Explorer != null && Session.Explorer == before.Explorer) before.Explorer.Restore(before.Kept);
             if (!before.Open) Session.Hide();
             else Previews.Rebuild();

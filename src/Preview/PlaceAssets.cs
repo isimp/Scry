@@ -91,14 +91,50 @@ namespace Scry
     /// for when it is off otherwise, then each <c>RandomObject</c> picking one of its objects by
     /// weight. The rolls are made on the copy while it still sleeps, so the prefab itself is
     /// never touched.
+    ///
+    /// A dungeon's interior is left out: the game builds it thousands of metres above its
+    /// entrance, and on the stage it would stand so far off that the camera could frame
+    /// neither. So is a view of the outside that the game shows only to someone inside
+    /// (<c>EnvZone.m_exteriorMesh</c>).
     /// </summary>
     internal static class PlaceCopy
     {
         private static readonly System.Random Dice = new System.Random();
 
+        /// <summary>How far above its root a part must be to be an interior: the game's stand some 5000 m up.</summary>
+        private const float InteriorHeight = 1000f;
+
         public static GameObject Make(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer)
         {
-            return Ghost.Make(prefab, parent, position, rotation, layer, prepare: Roll);
+            return Ghost.Make(prefab, parent, position, rotation, layer, prepare: Prepare);
+        }
+
+        private static void Prepare(GameObject copy)
+        {
+            Roll(copy);
+            LeaveOutInterior(copy);
+            foreach (var zone in copy.GetComponentsInChildren<EnvZone>(true))
+            {
+                if (zone != null && zone.m_exteriorMesh != null) zone.m_exteriorMesh.enabled = false;
+            }
+        }
+
+        /// <summary>Switches off each part under the root that stands an interior's height above it, and the one holding a dungeon generator there.</summary>
+        private static void LeaveOutInterior(GameObject copy)
+        {
+            var root = copy.transform;
+            foreach (Transform part in root)
+            {
+                if (part.localPosition.y >= InteriorHeight) part.gameObject.SetActive(false);
+            }
+            foreach (var generator in copy.GetComponentsInChildren<DungeonGenerator>(true))
+            {
+                if (generator == null || generator.transform == root) continue;
+                if (root.InverseTransformPoint(generator.transform.position).y < InteriorHeight) continue;
+                var top = generator.transform;
+                while (top.parent != null && top.parent != root) top = top.parent;
+                top.gameObject.SetActive(false);
+            }
         }
 
         private static void Roll(GameObject copy)
