@@ -196,5 +196,29 @@ namespace Scry
 
         /// <summary>A dungeon's rooms, listed after every place, under the dungeon's name.</summary>
         public static Group RoomGroup(string dungeon) => new Group(dungeon + " rooms", 200);
+
+        /// <summary>What the stage says in place of the copy of a location or room while its model is not in; null once it is.</summary>
+        public static string StageNote(PlaceLoad load)
+        {
+            switch (load)
+            {
+                case PlaceLoad.Ready: return null;
+                case PlaceLoad.Failed: return "Its model could not be loaded.";
+                default: return "Loading its model";
+            }
+        }
+
+        /// <summary>What its details say it holds before it has been read.</summary>
+        public static string HoldsNote(PlaceLoad load) =>
+            load == PlaceLoad.Failed ? "not known, its model could not be loaded" : "read once its model has loaded";
+    }
+
+    /// <summary>How far the model of the location or room shown has got.</summary>
+    public enum PlaceLoad
+    {
+        None,
+        Loading,
+        Ready,
+        Failed,
     }
 }

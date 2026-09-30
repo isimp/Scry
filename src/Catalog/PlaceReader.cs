@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 
@@ -31,6 +32,7 @@ namespace Scry
                 parts.Add((PrefabName(view.gameObject.name), ChanceOf(view.transform, root, factors)));
             }
             contents.Parts = PlaceParts.Group(parts);
+            contents.LeftToChance = LeftToChance(prefab);
 
             try { Creatures(prefab, root, factors, contents); }
             catch (Exception ex) { Faults.Skip("creatures of locations", prefab.name, ex); }
@@ -65,19 +67,32 @@ namespace Scry
             foreach (var pick in prefab.GetComponentsInChildren<RandomObject>(false))
             {
                 if (pick?.m_objects == null) continue;
-                var total = 0f;
-                foreach (var entry in pick.m_objects) if (entry?.m_object != null) total += entry.m_weight;
-                foreach (var entry in pick.m_objects)
+                // An entry without an object weighs in too; picking it leaves the whole pick out.
+                var shares = PlaceParts.Shares(pick.m_objects.Select(e => e?.m_weight ?? 0f).ToList());
+                var nothing = 0f;
+                for (var i = 0; i < shares.Length; i++)
                 {
-                    if (entry?.m_object == null) continue;
-                    Times(entry.m_object.transform, total > 0f ? entry.m_weight / total : 0f);
+                    var entry = pick.m_objects[i];
+                    if (entry?.m_object != null) Times(entry.m_object.transform, shares[i]);
+                    else nothing += shares[i];
                 }
+                if (nothing > 0f) Times(pick.transform, 1f - nothing);
             }
             foreach (var spawn in prefab.GetComponentsInChildren<RandomSpawn>(false))
             {
                 if (spawn != null && spawn.m_OffObject != null) Times(spawn.m_OffObject.transform, 1f - Mathf.Clamp01(spawn.m_chanceToSpawn / 100f));
             }
             return factors;
+        }
+
+        /// <summary>Whether a copy of it can come out otherwise, by the rolls its copy is made with (<see cref="PlaceCopy"/>).</summary>
+        private static bool LeftToChance(GameObject prefab)
+        {
+            var spawns = prefab.GetComponentsInChildren<RandomSpawn>(false).Where(s => s != null && s.enabled).Select(s => s.m_chanceToSpawn);
+            var picks = prefab.GetComponentsInChildren<RandomObject>(false)
+                .Where(p => p?.m_objects != null && p.enabled)
+                .Select(p => (IReadOnlyList<float>)p.m_objects.Select(e => e?.m_weight ?? 0f).ToList());
+            return PlaceParts.LeftToChance(spawns.ToList(), picks.ToList());
         }
 
         /// <summary>The chance a part is there: every roll on it and above it, up to the prefab's root, multiplied.</summary>

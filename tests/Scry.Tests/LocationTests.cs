@@ -16,6 +16,29 @@ namespace Scry.Tests
 
         private static string Row(LocationRules rules, string label) => LocationWords.Rows(rules).FirstOrDefault(r => r.Key == label).Value;
 
+        // A location's model is loaded when it is selected; until it is in, the stage and the
+        // details say so, and a model that could not be loaded is not promised again.
+
+        [Fact]
+        public void WhileItsModelLoadsTheStageAndDetailsSaySo()
+        {
+            Assert.Equal("Loading its model", LocationWords.StageNote(PlaceLoad.Loading));
+            Assert.Equal("read once its model has loaded", LocationWords.HoldsNote(PlaceLoad.Loading));
+        }
+
+        [Fact]
+        public void AModelThatCouldNotBeLoadedIsToldAsSuch()
+        {
+            Assert.Equal("Its model could not be loaded.", LocationWords.StageNote(PlaceLoad.Failed));
+            Assert.Equal("not known, its model could not be loaded", LocationWords.HoldsNote(PlaceLoad.Failed));
+        }
+
+        [Fact]
+        public void ALoadedModelLeavesTheStageToItsCopy()
+        {
+            Assert.Null(LocationWords.StageNote(PlaceLoad.Ready));
+        }
+
         [Fact]
         public void APlacesRulesAreToldEachOnItsOwnRow()
         {

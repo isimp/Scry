@@ -262,11 +262,20 @@ namespace Scry
             }
 
             // A location or room selected: its bundle is loaded and held while it is shown, what it
-            // holds read once it is in, and its stage copy made then.
+            // holds read once it is in, and its stage copy made then. Its details say how far the
+            // loading has got, so they are told again as that changes.
             try
             {
-                PlaceAssets.Hold(explorer.Selected?.Source as PlaceSource);
-                if (PlaceAssets.Update()) PlaceLoaded(explorer, explorer.Selected);
+                if (PlaceAssets.Hold(explorer.Selected?.Source as PlaceSource)) Facts.Forget(explorer.Selected);
+                switch (PlaceAssets.Update())
+                {
+                    case PlaceLoad.Ready:
+                        PlaceLoaded(explorer, explorer.Selected);
+                        break;
+                    case PlaceLoad.Failed:
+                        Facts.Forget(explorer.Selected);
+                        break;
+                }
             }
             catch (System.Exception ex)
             {

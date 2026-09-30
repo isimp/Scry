@@ -41,6 +41,42 @@ namespace Scry
                 .ToList();
         }
 
+        /// <summary>
+        /// Which entry of a <c>RandomObject</c> a roll from 0 to 1 picks (<c>GetWeightedObject</c>):
+        /// the first whose running weight reaches the roll's share of them all, or -1 for none.
+        /// </summary>
+        public static int Pick(IReadOnlyList<float> weights, double roll)
+        {
+            var total = 0f;
+            foreach (var weight in weights) total += weight;
+            var at = (float)(roll * total);
+            var running = 0f;
+            for (var i = 0; i < weights.Count; i++)
+            {
+                running += weights[i];
+                if (at <= running) return i;
+            }
+            return -1;
+        }
+
+        /// <summary>Each entry's share of a <c>RandomObject</c>'s picks; all 0 when no entry weighs anything.</summary>
+        public static float[] Shares(IReadOnlyList<float> weights)
+        {
+            var total = 0f;
+            foreach (var weight in weights) total += weight;
+            return weights.Select(w => total > 0f ? w / total : 0f).ToArray();
+        }
+
+        /// <summary>
+        /// Whether a place can come out otherwise when rolled again: a <c>RandomSpawn</c> between
+        /// never and always (chances in percent), or a <c>RandomObject</c> with two or more
+        /// entries it can pick.
+        /// </summary>
+        public static bool LeftToChance(IEnumerable<float> spawnChances, IEnumerable<IReadOnlyList<float>> pickWeights)
+        {
+            return spawnChances.Any(c => c > 0f && c < 100f) || pickWeights.Any(w => w.Count(x => x > 0f) > 1);
+        }
+
         /// <summary>How many and how likely, as a chip's amount: nothing for one that is always there.</summary>
         public static string Amount(int count, float chance)
         {

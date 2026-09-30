@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -21,15 +22,22 @@ namespace Scry
         /// <summary>Whether the held place's bundle could not be loaded.</summary>
         public static bool Failed { get; private set; }
 
-        /// <summary>Whether the held place's bundle is still loading.</summary>
-        public static bool Loading => _holding && !Failed && !_source.Reference.IsLoaded;
-
-        /// <summary>Asks for a place's bundle, letting go of any other; null lets go of all.</summary>
-        public static void Hold(PlaceSource source)
+        /// <summary>How far a place's model has got; one not held yet is on its way, as the next frame asks for it.</summary>
+        public static PlaceLoad State(PlaceSource source)
         {
-            if (ReferenceEquals(source, _source)) return;
+            if (source == null) return PlaceLoad.None;
+            if (!_holding || !ReferenceEquals(source, _source)) return PlaceLoad.Loading;
+            if (Failed) return PlaceLoad.Failed;
+            if (!_source.Reference.IsLoaded) return PlaceLoad.Loading;
+            return _source.Reference.Asset != null ? PlaceLoad.Ready : PlaceLoad.Failed;
+        }
+
+        /// <summary>Asks for a place's bundle, letting go of any other; null lets go of all. True when it starts loading one.</summary>
+        public static bool Hold(PlaceSource source)
+        {
+            if (ReferenceEquals(source, _source)) return false;
             Release();
-            if (source == null) return;
+            if (source == null) return false;
             _source = source;
             _holding = true;
             _told = false;
@@ -37,6 +45,7 @@ namespace Scry
 
             // Holds a reference until released, as Load does; loads over the next frames.
             source.Reference.LoadAsync();
+            return true;
         }
 
         public static void Release()
@@ -54,21 +63,22 @@ namespace Scry
             return _source.Reference.Asset;
         }
 
-        /// <summary>Checks on the held place each frame: true once, on the frame it is ready.</summary>
-        public static bool Update()
+        /// <summary>Checks on the held place each frame: Ready or Failed once, on the frame it comes to that, else None.</summary>
+        public static PlaceLoad Update()
         {
-            if (!_holding || Failed || _told) return false;
+            if (!_holding || Failed || _told) return PlaceLoad.None;
             if (_source.Reference.IsLoaded)
             {
                 _told = true;
-                return _source.Reference.Asset != null;
+                if (_source.Reference.Asset != null) return PlaceLoad.Ready;
             }
-            if (!_source.Reference.IsLoading)
+            else if (_source.Reference.IsLoading)
             {
-                Failed = true;
-                Plugin.Log.LogWarning($"Scry could not load the location or dungeon room {_source.Prefab} to show it.");
+                return PlaceLoad.None;
             }
-            return false;
+            Failed = true;
+            Plugin.Log.LogWarning($"Scry could not load the location or dungeon room {_source.Prefab} to show it.");
+            return PlaceLoad.Failed;
         }
     }
 
@@ -102,17 +112,11 @@ namespace Scry
             foreach (var pick in copy.GetComponentsInChildren<RandomObject>(true))
             {
                 if (pick?.m_objects == null || !pick.enabled || !ActiveUnder(pick.transform, root)) continue;
-                var total = 0f;
-                foreach (var entry in pick.m_objects) if (entry?.m_object != null) total += entry.m_weight;
-                var roll = (float)Dice.NextDouble() * total;
-                GameObject chosen = null;
-                foreach (var entry in pick.m_objects)
-                {
-                    if (entry?.m_object == null) continue;
-                    roll -= entry.m_weight;
-                    if (roll <= 0f && chosen == null) chosen = entry.m_object;
-                }
+                // An entry without an object weighs in too, and picking it leaves the whole pick out.
+                var at = PlaceParts.Pick(pick.m_objects.Select(e => e?.m_weight ?? 0f).ToList(), Dice.NextDouble());
+                var chosen = at >= 0 ? pick.m_objects[at]?.m_object : null;
                 foreach (var entry in pick.m_objects) if (entry?.m_object != null) entry.m_object.SetActive(entry.m_object == chosen);
+                if (chosen == null) pick.gameObject.SetActive(false);
             }
         }
 

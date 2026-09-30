@@ -163,5 +163,8 @@ namespace Scry
 
         public bool NoBuild;
         public float NoBuildRadius;
+
+        /// <summary>Whether anything in it is there only by chance, so another roll can show it otherwise (<see cref="PlaceParts.LeftToChance"/>).</summary>
+        public bool LeftToChance;
     }
 }

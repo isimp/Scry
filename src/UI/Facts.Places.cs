@@ -20,7 +20,7 @@ namespace Scry
             var contents = place.Contents;
             if (contents == null)
             {
-                Add("What it holds", "read once it is shown, or with Find in locations");
+                Add("What it holds", LocationWords.HoldsNote(PlaceAssets.State(place)));
                 return;
             }
             Part("location", () => PlaceHolds(entry, contents));

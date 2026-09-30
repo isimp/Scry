@@ -127,7 +127,7 @@ namespace Scry
             var y = 0f;
             // Without a stage a sound says what it is here; a status effect's card would only repeat In the game.
             if (!withStage && entry.Kind == Kind.Sound) y = Section("side card", y, at => CompactCard(entry, cw, at));
-            y = Section("side actions", y, at => Actions(entry, cw, at));
+            y = Section("side actions", y, at => Actions(entry, cw, at, withStage));
             if (Looks.IsWorn(entry)) y = Section("side wearing", y, at => Wearing(explorer, cw, at));
             if (entry.Kind == Kind.Sound)
             {
@@ -228,7 +228,9 @@ namespace Scry
                 }
                 else if (entry.Kind != Kind.Effect)
                 {
-                    GUI.Label(inner, "This one could not be previewed.", Skin.CenterDim);
+                    // A location or room is shown once its model has loaded.
+                    var note = entry.Source is PlaceSource place ? LocationWords.StageNote(PlaceAssets.State(place)) : null;
+                    GUI.Label(inner, note ?? "This one could not be previewed.", Skin.CenterDim);
                 }
 
                 // The camera's buttons show only while the mouse is on the stage, as its hint does,
@@ -495,7 +497,7 @@ namespace Scry
             return fits;
         }
 
-        private static float Actions(Entry entry, float width, float y)
+        private static float Actions(Entry entry, float width, float y, bool withStage)
         {
             var x = 0f;
             var rowH = U(32f);
@@ -555,6 +557,15 @@ namespace Scry
 
                 case Kind.StatusEffect:
                     note = StatusActions(entry, Button);
+                    break;
+
+                case Kind.Location:
+                    // What the game leaves to chance, rolled again on a new copy; only where something is.
+                    if (withStage && entry.Source is PlaceSource place && place.Contents != null && place.Contents.LeftToChance
+                        && Shown("Roll again", Skin.Primary, Stage.Subject != null))
+                    {
+                        Previews.Rebuild();
+                    }
                     break;
 
                 default:
