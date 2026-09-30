@@ -23,6 +23,10 @@ namespace Scry
 
         public static float Distance(Vec3 a, Vec3 b) => (a - b).Length;
 
+        public static float Dot(Vec3 a, Vec3 b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+
+        public static Vec3 Cross(Vec3 a, Vec3 b) => new Vec3(a.Y * b.Z - a.Z * b.Y, a.Z * b.X - a.X * b.Z, a.X * b.Y - a.Y * b.X);
+
         public override string ToString() => $"({X:0.##}, {Y:0.##}, {Z:0.##})";
     }
 
@@ -132,8 +136,24 @@ namespace Scry
         public float TileWidth, SpawnChance, CampRadiusMin, CampRadiusMax, PerimeterBuffer;
         public int PerimeterSections;
 
-        /// <summary>The box rooms must stay inside, centred on the generator.</summary>
+        /// <summary>The box rooms must stay inside, as big as a zone (<c>m_zoneSize</c>); where it is, <see cref="DungeonLayout.Site"/> works out.</summary>
         public Vec3 ZoneSize = new Vec3(64f, 64f, 64f);
+
+        /// <summary>
+        /// Whether its location puts its interior where it says rather than above the entrance
+        /// (<c>Location.m_useCustomInteriorTransform</c> with an interior and a generator): the
+        /// generator then stands at a set place in its zone, unturned.
+        /// </summary>
+        public bool CustomInterior;
+
+        /// <summary>For one with its own interior, where its zone's centre is from the generator: back by the interior's and generator's own offsets.</summary>
+        public Vec3 ZoneFromGenerator;
+
+        /// <summary>Otherwise, where the generator is in its location, from the location's centre, as the location is turned.</summary>
+        public Vec3 GeneratorAt;
+
+        /// <summary>How the generator is turned in its location, or for one with its own interior, in the interior.</summary>
+        public Quat GeneratorTurn = Quat.Identity;
     }
 
     /// <summary>
