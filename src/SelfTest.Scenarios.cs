@@ -599,6 +599,12 @@ namespace Scry
             p.Check(Locations.Summons.Count > 0, "the altars' bosses are known", $"{Locations.Summons.Count}");
             p.Check(X.Catalog.Any(e => e.Kind == Kind.Item && e.FoundIn.Length > 0), "items tell where they are found");
 
+            // Each place an item is found in goes to its location.
+            var found = X.Catalog.Where(e => e.Kind == Kind.Item && e.FoundIn.Length > 0).SelectMany(e => e.FoundIn).Distinct().ToList();
+            var named = found.Count(place => Places.LocationNamed(X.Catalog, place) != null);
+            p.Note($"{named} of the {found.Count} places items are found in go to a location");
+            p.Check(named >= found.Count * 0.9, "nearly every place items are found in goes to its location", $"{named} of {found.Count}");
+
             // Every place goes by its name, and rooms by the dungeons built with them.
             var crypt = Crypt();
             var contents = PlaceOf(crypt)?.Contents;

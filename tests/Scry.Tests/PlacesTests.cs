@@ -173,6 +173,57 @@ namespace Scry.Tests
             Assert.True(bolt.GroupOrder > Groups.Projectile(new[] { new Shooter(Kind.Creature, "", false) }).Order);
         }
 
+        // A place an item is found in goes to the location of that name: its label (name and
+        // biome) is the location's own, and a dungeon's rooms carry their dungeon's label too.
+
+        private static Entry PlaceEntry(string prefab, string label, string component)
+        {
+            var entry = E(prefab, Kind.Location);
+            entry.Components = new[] { component };
+            entry.FoundIn = new[] { label };
+            return entry;
+        }
+
+        private const string Chambers = "Burial Chambers" + Places.BiomeMark + "Black Forest";
+
+        [Fact]
+        public void APlaceFoundInGoesToTheLocationOfThatNameNotToARoomBuiltIntoIt()
+        {
+            var catalog = new List<Entry>
+            {
+                PlaceEntry("forestcrypt_room1", Chambers, "Room"),
+                PlaceEntry("Crypt2", Chambers, "Location"),
+                PlaceEntry("TrollCave02", "Troll cave" + Places.BiomeMark + "Black Forest", "Location"),
+            };
+
+            Assert.Equal("Crypt2", Places.LocationNamed(catalog, Chambers)?.Name);
+            Assert.Equal("TrollCave02", Places.LocationNamed(catalog, "Troll cave" + Places.BiomeMark + "Black Forest")?.Name);
+        }
+
+        [Fact]
+        public void APlaceSeveralLocationsGoByGoesToTheFirstOfThem()
+        {
+            var catalog = new List<Entry> { PlaceEntry("Crypt2", Chambers, "Location"), PlaceEntry("Crypt3", Chambers, "Location") };
+
+            Assert.Equal("Crypt2", Places.LocationNamed(catalog, Chambers)?.Name);
+        }
+
+        [Fact]
+        public void APlaceNoLocationGoesByGoesToNone()
+        {
+            var amber = E("Amber", Kind.Item);
+            amber.FoundIn = new[] { Chambers };
+
+            // A prefab of another kind found there, even one with a Location of its own on it.
+            var marker = E("mod_marker", Kind.Other);
+            marker.Components = new[] { "Location" };
+            marker.FoundIn = new[] { Chambers };
+            var catalog = new List<Entry> { PlaceEntry("modroom", Places.AnyDungeon, "Room"), amber, marker, PlaceEntry("Crypt4", "Burial Chambers", "Location") };
+
+            Assert.Null(Places.LocationNamed(catalog, Places.AnyDungeon));
+            Assert.Null(Places.LocationNamed(catalog, Chambers));
+        }
+
         [Fact]
         public void AStatusEffectIsNeverFoundInAPlaceByTheNameOfAPrefab()
         {

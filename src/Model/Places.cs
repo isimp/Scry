@@ -78,6 +78,22 @@ namespace Scry
             return labels;
         }
 
+        /// <summary>
+        /// The location a place something is found in goes to: the first location in the catalog
+        /// whose label it is, or none when no location goes by it (a mod's room no dungeon here is
+        /// built with). A dungeon's rooms carry its label too, and are passed over.
+        /// </summary>
+        public static Entry LocationNamed(IEnumerable<Entry> catalog, string place)
+        {
+            if (string.IsNullOrEmpty(place)) return null;
+            foreach (var entry in catalog)
+            {
+                if (entry.Kind != Kind.Location || entry.FoundIn.Length == 0 || !entry.Components.Contains("Location")) continue;
+                if (string.Equals(entry.FoundIn[0], place, StringComparison.Ordinal)) return entry;
+            }
+            return null;
+        }
+
         /// <summary>A place's name without its biome, as the search and its suggestions take it.</summary>
         public static string NameOf(string place)
         {

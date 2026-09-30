@@ -328,7 +328,7 @@ namespace Scry
         /// <summary>
         /// Where it is found in the world's locations and dungeons: a button that reads them (they
         /// are read only when asked, since loading them takes a while), how far the reading has got,
-        /// then the places, each a search for everything found there.
+        /// then the places, each going to its location.
         /// </summary>
         private static float FoundIn(Explorer explorer, Entry entry, float width, float y)
         {
@@ -336,7 +336,7 @@ namespace Scry
             {
                 case Locations.State.Read:
                     if (entry.FoundIn.Length == 0) return y;
-                    return ChipRow("Found in (search)", entry.FoundIn.Select(p => new KeyValuePair<string, Action>(p, () => SearchFor(explorer, "in:" + Places.NameOf(p).Replace(" ", "").ToLowerInvariant()))), width, y);
+                    return LinkItems(explorer, "Found in", FoundInLinks(explorer, entry), width, y);
 
                 case Locations.State.Reading:
                     // Not measured: the text changes every frame, and each would be kept.
@@ -357,6 +357,41 @@ namespace Scry
                     return y + height + U(6f);
             }
         }
+
+        /// <summary>
+        /// The places an entry is found in, each going to the location of that name
+        /// (<see cref="Places.LocationNamed"/>), or, where no location goes by it, searching for
+        /// what is found there. Made once for the entry shown and the places it was read to be in.
+        /// </summary>
+        private static List<(string Key, string Text, string Tip, Action Click)> FoundInLinks(Explorer explorer, Entry entry)
+        {
+            if (ReferenceEquals(_foundInFor, entry) && ReferenceEquals(_foundInOf, entry.FoundIn) && ReferenceEquals(_foundInIn, explorer)) return FoundInItems;
+            _foundInFor = entry;
+            _foundInOf = entry.FoundIn;
+            _foundInIn = explorer;
+            FoundInItems.Clear();
+            foreach (var place in entry.FoundIn)
+            {
+                var name = Places.NameOf(place);
+                var location = Places.LocationNamed(explorer.Catalog, place);
+                if (location != null)
+                {
+                    var key = location.Key;
+                    FoundInItems.Add((key, place, "Go to " + name, () => Go(explorer, key)));
+                }
+                else
+                {
+                    var search = "in:" + name.Replace(" ", "").ToLowerInvariant();
+                    FoundInItems.Add((search, place, "Search for what is found in " + name, () => SearchFor(explorer, search)));
+                }
+            }
+            return FoundInItems;
+        }
+
+        private static readonly List<(string Key, string Text, string Tip, Action Click)> FoundInItems = new List<(string, string, string, Action)>();
+        private static Entry _foundInFor;
+        private static string[] _foundInOf;
+        private static Explorer _foundInIn;
 
         private const string LocationsButtonText = "Find in locations";
         private const string LocationsButtonTip = "Reads where things are found in this world's locations and dungeons, in the background, over a few minutes";
