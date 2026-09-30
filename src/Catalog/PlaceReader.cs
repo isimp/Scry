@@ -259,7 +259,7 @@ namespace Scry
             return shape;
         }
 
-        /// <summary>What the place's own <c>Location</c> says: the levels it gives its creatures, and how near it nothing can be built (<c>Location.IsInside</c> with its build check).</summary>
+        /// <summary>What the place's own <c>Location</c> says: the levels it sets for its spawn points, and how near it nothing can be built (<c>Location.IsInside</c> with its build check).</summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void Location(GameObject prefab, PlaceContents contents)
         {
@@ -268,6 +268,7 @@ namespace Scry
             contents.EnemyMinLevel = location.m_enemyMinLevelOverride;
             contents.EnemyMaxLevel = location.m_enemyMaxLevelOverride;
             contents.EnemyLevelUpChance = location.m_enemyLevelUpOverride;
+            contents.LevelOverrideExceptions = location.m_excludeEnemyLevelOverrideGroups != null && location.m_excludeEnemyLevelOverrideGroups.Count > 0;
             contents.NoBuild = location.m_noBuild;
             contents.NoBuildRadius = location.m_noBuildRadiusOverride > 0f ? location.m_noBuildRadiusOverride : location.GetMaxRadius();
         }

@@ -105,6 +105,23 @@ namespace Scry
             return share + ", " + Stars(minLevel, maxLevel);
         }
 
+        /// <summary>
+        /// The levels a location sets for its spawn points (<c>CreatureSpawner.Spawn</c>): each of
+        /// its overrides set (0 or more) replaces that point's own least level, most level or star
+        /// chance, and spawn groups it excludes keep their own. Null when it sets none that matters.
+        /// </summary>
+        public static string LocationLevels(int minLevel, int maxLevel, float levelUpChance, bool someExcluded)
+        {
+            var parts = new List<string>();
+            if (maxLevel >= 0) parts.Add(Stars(Math.Max(1, minLevel), maxLevel));
+            else if (minLevel > 1) parts.Add($"at least {minLevel - 1} {(minLevel == 2 ? "star" : "stars")}");
+            if (levelUpChance > 0f) parts.Add(StarChance(levelUpChance));
+            else if (levelUpChance == 0f) parts.Add("never a star above the least");
+            if (parts.Count == 0) return null;
+            if (someExcluded) parts.Add("except at some of them");
+            return string.Join(", ", parts);
+        }
+
         /// <summary>The chance of each star beyond the least, each rolled on its own until one misses (<c>SpawnArea.SpawnOne</c>).</summary>
         public static string StarChance(float levelUpChance) => levelUpChance > 0f ? $"{Naming.Number(levelUpChance)}% for each star" : null;
 

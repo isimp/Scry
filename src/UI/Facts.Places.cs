@@ -90,17 +90,13 @@ namespace Scry
         }
 
         /// <summary>
-        /// What it holds: the levels it gives its creatures, where nothing can be built, the
+        /// What it holds: the levels it sets for its spawn points, where nothing can be built, the
         /// creatures its spawn points place, every networked part with how many and how likely,
         /// and where its vegvisirs point.
         /// </summary>
         private void PlaceHolds(Entry entry, PlaceContents contents)
         {
-            if (contents.EnemyMinLevel > 0 || contents.EnemyMaxLevel > 0)
-            {
-                var levels = SpawnWords.Stars(contents.EnemyMinLevel > 0 ? contents.EnemyMinLevel : 1, contents.EnemyMaxLevel > 0 ? contents.EnemyMaxLevel : contents.EnemyMinLevel);
-                Add("Its creatures", levels + (contents.EnemyLevelUpChance >= 0f ? ", " + SpawnWords.StarChance(contents.EnemyLevelUpChance) : ""));
-            }
+            Add("Levels at its spawn points", SpawnWords.LocationLevels(contents.EnemyMinLevel, contents.EnemyMaxLevel, contents.EnemyLevelUpChance, contents.LevelOverrideExceptions));
             if (contents.NoBuild && contents.NoBuildRadius > 0f) Add("Building", $"not within {Naming.Number(contents.NoBuildRadius)} m");
 
             if (contents.Creatures.Count > 0)

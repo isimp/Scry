@@ -113,7 +113,7 @@ namespace Scry
             ("RandomIdle", "OnStateEnter", 3, 0x387CD94B, "idle clips picked at random"),
             ("RandomIdle", "OnStateUpdate", 3, 0x1E89789A, "idle clips picked at random"),
             ("RandomIdle", "GetRandomIdle", 1, 0x7A49F403, "idle clips picked at random"),
-            ("CreatureSpawner", "Spawn", 0, 0xF64EBBF9, "spawn roars"),
+            ("CreatureSpawner", "Spawn", 0, 0xF64EBBF9, "spawn roars, and the levels locations set in the details"),
             ("SpawnAbility", "Spawn", 0, 0xD3A37693, "spawn roars"),
             ("Player", "SetupAwake", 0, 0x38272BB3, "the person standing from the start"),
             ("ZoneSystem", "SpawnLocation", 7, 0xDC30DC06, "locations and rooms as the game builds them"),

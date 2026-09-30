@@ -158,8 +158,8 @@ namespace Scry
 
     /// <summary>
     /// What was read of a location or room once its bundle was loaded: what names it, what it
-    /// holds and how likely, the dungeon it builds or the room it is, and the levels it gives
-    /// its creatures.
+    /// holds and how likely, the dungeon it builds or the room it is, and the levels it sets
+    /// for its spawn points.
     /// </summary>
     public sealed class PlaceContents
     {
@@ -177,9 +177,12 @@ namespace Scry
         public DungeonPlan Dungeon;
         public RoomShape Room;
 
-        /// <summary>The levels a location gives its creatures in place of theirs (<c>Location.m_enemyMinLevelOverride</c>); -1 for none.</summary>
+        /// <summary>The levels a location sets for its spawn points in place of theirs (<c>Location.m_enemyMinLevelOverride</c> and the like); -1 for none.</summary>
         public int EnemyMinLevel = -1, EnemyMaxLevel = -1;
         public float EnemyLevelUpChance = -1f;
+
+        /// <summary>Whether some of its spawn groups keep their own levels (<c>Location.m_excludeEnemyLevelOverrideGroups</c>).</summary>
+        public bool LevelOverrideExceptions;
 
         public bool NoBuild;
         public float NoBuildRadius;

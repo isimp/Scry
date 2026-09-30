@@ -83,6 +83,31 @@ namespace Scry.Tests
             Assert.Equal("every spawn, up to 2 stars", SpawnWords.PoolShare(0f, 0f, 1, 3));
         }
 
+        // A location's level overrides replace each of its spawn points' own least level, most level
+        // and star chance, each on its own when set (0 or more), except for the spawn groups it
+        // excludes (CreatureSpawner.Spawn).
+
+        [Theory]
+        [InlineData(1, 3, -1f, false, "up to 2 stars")]
+        [InlineData(2, 3, -1f, false, "1–2 stars")]
+        [InlineData(2, -1, -1f, false, "at least 1 star")]
+        [InlineData(-1, 1, -1f, false, "no stars")]
+        [InlineData(-1, 3, -1f, false, "up to 2 stars")]
+        [InlineData(-1, -1, 50f, false, "50% for each star")]
+        [InlineData(-1, -1, 0f, false, "never a star above the least")]
+        [InlineData(1, 3, 20f, true, "up to 2 stars, 20% for each star, except at some of them")]
+        public void ALocationsLevelsTellEachOverrideItSets(int min, int max, float chance, bool someExcluded, string words)
+        {
+            Assert.Equal(words, SpawnWords.LocationLevels(min, max, chance, someExcluded));
+        }
+
+        [Fact]
+        public void ALocationWithoutLevelOverridesTellsNone()
+        {
+            Assert.Null(SpawnWords.LocationLevels(-1, -1, -1f, false));
+            Assert.Null(SpawnWords.LocationLevels(1, -1, -1f, true));
+        }
+
         [Fact]
         public void EachFurtherStarNeedsItsOwnRoll()
         {
