@@ -69,9 +69,10 @@ namespace Scry
         public static Facts For(Entry entry)
         {
             if (entry == null) return new Facts();
-            if (Cache.TryGetValue(entry, out var known)) return known;
+            // A creature's or item's facts tell what was seen dropping in play, which grows as you play.
+            if (Cache.TryGetValue(entry, out var known) && (known._seenVersion == DropWatch.Version || (entry.Kind != Kind.Creature && entry.Kind != Kind.Item))) return known;
 
-            var facts = new Facts();
+            var facts = new Facts { _seenVersion = DropWatch.Version };
             if (entry.Source is StatusEffect effect)
             {
                 facts.Part("status effect", () => facts.StatusEffect(effect));
@@ -96,6 +97,10 @@ namespace Scry
                 {
                     facts.Where.AddRange(Knowledge.WhereLines(entry.Name));
                     facts.Where.AddRange(Knowledge.SourceLines(entry.Name));
+                    foreach (var (creature, drop, kills) in DropWatch.Seen.Sources(entry.Name))
+                    {
+                        facts.Where.Add(new Source(SeenWords.Line(AnyName(Looks.Prefab(creature), creature), drop, kills), creature));
+                    }
 
                     // An item nothing makes, drops, sells or spawns here comes from somewhere Scry cannot
                     // see, unless the locations, once read, show where it is found. Something that
@@ -113,6 +118,9 @@ namespace Scry
             Cache[entry] = facts;
             return facts;
         }
+
+        /// <summary>What had been seen dropping in play when these facts were told (<see cref="DropWatch.Version"/>).</summary>
+        private int _seenVersion;
 
         /// <summary>The parts of these facts that could not be read, told at their end.</summary>
         private readonly List<string> _missing = new List<string>();

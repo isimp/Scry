@@ -22,6 +22,7 @@ namespace Scry
         private static Explorer _reportFor;
         private static int _reportCount;
         private static Locations.State _reportLocations;
+        private static int _reportSeen;
 
         /// <summary>How many mods added to the catalog, for the bar above the list.</summary>
         private static int _modCount;
@@ -43,14 +44,15 @@ namespace Scry
             _modScroll = Vector2.zero;
         }
 
-        /// <summary>The report of the explorer's catalog, made again once the catalog or the locations have changed.</summary>
+        /// <summary>The report of the explorer's catalog, made again once the catalog, the locations or the drops seen in play have changed.</summary>
         public static List<ModSummary> Report(Explorer explorer)
         {
-            if (_report == null || !ReferenceEquals(_reportFor, explorer) || _reportCount != explorer.Catalog.Count || _reportLocations != Locations.Now)
+            if (_report == null || !ReferenceEquals(_reportFor, explorer) || _reportCount != explorer.Catalog.Count || _reportLocations != Locations.Now || _reportSeen != DropWatch.Version)
             {
                 _reportFor = explorer;
                 _reportCount = explorer.Catalog.Count;
                 _reportLocations = Locations.Now;
+                _reportSeen = DropWatch.Version;
                 _report = ModReportReader.Read(explorer.Catalog);
             }
             return _report;

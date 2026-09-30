@@ -180,6 +180,7 @@ namespace Scry
         {
             var started = Timing.Start();
             try { Session.Update(); } catch (System.Exception ex) { Faults.Tell("the frame", ex); }
+            DropWatch.Save();
             Timing.Add("update", started);
         }
 
@@ -215,6 +216,7 @@ namespace Scry
 
         private void OnDestroy()
         {
+            DropWatch.Save(now: true);
             try { Session.Shutdown(); }
             catch (System.Exception ex) { Faults.Tell("closing down", ex); }
             _harmony?.UnpatchSelf();

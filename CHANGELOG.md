@@ -20,6 +20,8 @@ A piece says which build tool builds it and on which tab, a mod's own hammer or 
 
 A creature names the mods that hook into the game's own code for what it drops or where it spawns, and a chest, rock, tree or plant those hooking into what it gives, found for any mod, so the details never look more complete than they are.
 
+What creatures drop as you play is watched and kept from session to session, whichever mod put it there: a creature shows what it was seen dropping and in how many of your kills, and an item names every creature seen dropping it. Nothing is changed by watching, and loot another player's game makes is not seen.
+
 *Mod report*, above the list while it shows only what mods added or with `/scry mods`, sums up each mod: what it adds, what Scry links for its crafting stations and build tools, which of the game's drops and spawning it hooks into, and what Scry could not place, such as a station nothing is made or built at or an item with no source Scry sees.
 
 ## 0.1.0

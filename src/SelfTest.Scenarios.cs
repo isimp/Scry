@@ -29,6 +29,7 @@ namespace Scry
             yield return S("build tools and their pieces lead to each other", ToolsAndPieces, 10);
             yield return S("mods hooking into drops, loot and spawning are named", HookingMods, 10);
             yield return S("the mod report links every mod station as the game does", ModReportLinks, 20);
+            yield return S("what creatures drop in play is watched", DropsWatched, 5);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
 
@@ -295,6 +296,32 @@ namespace Scry
             yield return Until(() => ScryPanel.ModReportsDrawn > drawn, 3);
             p.Check(ScryPanel.ModReportShown && ScryPanel.ModReportsDrawn > drawn, "the report opens and draws in the panel");
             ScryPanel.HideModReport();
+        }
+
+        /// <summary>
+        /// The hooks watching the loot of deaths are in place, and what was seen so far is told:
+        /// a creature seen dying shows its row, and each item it dropped names it. Nothing is
+        /// killed for the test, so what it checks is what earlier play left.
+        /// </summary>
+        private static IEnumerator DropsWatched(Probe p)
+        {
+            foreach (var (type, name) in new[] { (typeof(CharacterDrop), "OnDeath"), (typeof(Ragdoll), "SpawnLoot"), (typeof(Ragdoll), "Setup"), (typeof(ItemDrop), "Awake") })
+            {
+                var method = HarmonyLib.AccessTools.DeclaredMethod(type, name);
+                p.Check(method != null && HarmonyLib.Harmony.GetPatchInfo(method)?.Owners.Contains(Plugin.Guid) == true, $"{type.Name}.{name} is watched");
+            }
+            var creatures = X.Catalog.Where(e => e.Kind == Kind.Creature && DropWatch.Seen.Kills(e.Name) > 0).ToList();
+            p.Note($"{creatures.Count} kinds of creature seen dying in play, {creatures.Sum(c => DropWatch.Seen.Kills(c.Name))} kills: " + string.Join(", ", creatures.Take(10).Select(c => $"{c.Name} {DropWatch.Seen.Kills(c.Name)}")));
+            var seen = creatures.FirstOrDefault(c => DropWatch.Seen.Of(c.Name).Count > 0);
+            if (seen == null)
+            {
+                p.Note("nothing seen dropping yet; kill something and run the test again to see it told");
+                yield break;
+            }
+            var told = Facts.For(seen);
+            p.Check(told.Rows.Any(r => r.Title == SeenWords.Title(DropWatch.Seen.Kills(seen.Name))), $"{seen.Name} shows what it was seen to drop");
+            var item = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && e.Name == DropWatch.Seen.Of(seen.Name)[0].Item);
+            if (item != null) p.Check(Facts.For(item).Where.Any(l => l.Prefab == seen.Name && l.Text.StartsWith("Seen dropped by", StringComparison.Ordinal)), $"{item.Name} names {seen.Name} as seen dropping it");
         }
 
         private static IEnumerator SpawnerFacts(Probe p)

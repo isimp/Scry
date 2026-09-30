@@ -57,7 +57,11 @@ namespace Scry
                 }
                 if (entry.Kind == Kind.Item) one.Builds = Knowledge.Tools.PiecesOf(entry.Name).Sum(t => t.Pieces.Count);
                 if (entry.Kind == Kind.Piece) one.InBuildMenu = Knowledge.Tools.ToolsOf(entry.Name).Count > 0;
-                if (entry.Kind == Kind.Item) one.HasSource = (entry.Stations != null && entry.Stations.Length > 0) || Knowledge.SourceLines(entry.Name).Count > 0 || entry.FoundIn.Length > 0;
+                if (entry.Kind == Kind.Item)
+                {
+                    one.HasSource = (entry.Stations != null && entry.Stations.Length > 0) || Knowledge.SourceLines(entry.Name).Count > 0 || entry.FoundIn.Length > 0
+                                    || DropWatch.Seen.Sources(entry.Name).Count > 0;
+                }
                 if (entry.Kind == Kind.Creature)
                 {
                     one.Spawns = Knowledge.WhereLines(entry.Name).Count > 0 || Knowledge.IsPlacedByWorld(entry.Name) || entry.FoundIn.Length > 0

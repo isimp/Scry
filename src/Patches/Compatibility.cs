@@ -30,6 +30,10 @@ namespace Scry
             { "WheelBlock", "keeping the mouse wheel from zooming the game camera while over the panel" },
             { "SceneOrigins", "telling the game's prefabs from those mods add" },
             { "StatusEffectOrigins", "telling the game's status effects from those mods add" },
+            { "DeathLoot", "drops seen in play" },
+            { "RagdollLootSetUp", "drops seen in play" },
+            { "RagdollLoot", "drops seen in play" },
+            { "ItemMade", "drops seen in play" },
         };
 
         /// <summary>
@@ -162,6 +166,9 @@ namespace Scry
 
             // What the details tell the game's rules from: if one changes, its words may be off.
             ("CharacterDrop", "GenerateDropList", 0, 0x1D58F486, "creature drop amounts, chances and stars in the details"),
+            ("CharacterDrop", "OnDeath", 0, 0x15143844, "drops seen in play"),
+            ("Ragdoll", "Setup", 7, 0xD56D1722, "drops seen in play"),
+            ("Ragdoll", "SpawnLoot", 1, 0x1CB6DE81, "drops seen in play"),
             ("DropTable", "AddItemToList", 2, 0xAECEE75C, "drop table amounts in the details"),
             ("DropTable", "GetDropList", 1, 0xBF6963CC, "drop table rolls in the details"),
             ("BaseAI", "CanSeeTarget", 7, 0xDE5EBD88, "what creatures see, in the details"),
@@ -272,6 +279,7 @@ namespace Scry
             }
             Each("SpawnSystem.m_instances", () => Member(list, "SpawnSystem", "m_instances", "where creatures spawn"));
             Each("ZSFX.m_fadeOutTimer", () => Member(list, "ZSFX", "m_fadeOutTimer", "sounds playing on after a seek or pause"));
+            Each("CharacterDrop.m_dropsEnabled", () => Member(list, "CharacterDrop", "m_dropsEnabled", "drops seen in play"));
             Each("the patches", () => Patches(list));
             foreach (var watched in Watched)
             {

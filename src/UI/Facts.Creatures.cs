@@ -75,6 +75,16 @@ namespace Scry
             // Mods that hook into what creatures drop, or where they spawn, can change either
             // beyond what the prefab says (ModHooks); a person has neither.
             if (character is Player) return;
+
+            // What it was seen to drop as you played, whichever mod put it there (DropWatch).
+            var kills = DropWatch.Seen.Kills(prefab.name);
+            if (kills > 0)
+            {
+                var seen = new Row { Title = SeenWords.Title(kills) };
+                foreach (var drop in DropWatch.Seen.Of(prefab.name)) seen.Items.Add(Chip(drop.Item, SeenWords.Chip(drop, kills)));
+                if (seen.Items.Count > 0) Rows.Add(seen);
+                else Add(SeenWords.Title(kills), "nothing");
+            }
             Add(ModHookWords.Label(HookedRule.Drops), ModHookWords.Note(HookedRule.Drops, ModHooks.Mods(HookedRule.Drops)));
             if (Knowledge.IsPlacedByWorld(prefab.name) || Knowledge.WhereLines(prefab.name).Count > 0)
             {
