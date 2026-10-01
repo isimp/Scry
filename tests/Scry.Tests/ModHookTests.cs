@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Xunit;
 
 namespace Scry.Tests
@@ -36,6 +37,46 @@ namespace Scry.Tests
         {
             Assert.Equal("Drop That hooks into it: it may give more or other than listed", ModHookWords.Note(HookedRule.Loot, new[] { "Drop That" }));
             Assert.Equal("Monstrum hooks into it: it may spawn elsewhere or otherwise than told", ModHookWords.Note(HookedRule.Spawns, new[] { "Monstrum" }));
+        }
+
+        [Fact]
+        public void APagesHooksAreToldInOneShortLine()
+        {
+            // Every rule mods hook into on a page in one line, with how many mods; who they are
+            // and what each may change is told on hover.
+            var hooks = new List<(HookedRule, IReadOnlyList<string>)>
+            {
+                (HookedRule.Drops, new[] { "Drop That", "Epic Loot" }),
+                (HookedRule.Spawns, new[] { "Monstrum", "Drop That" }),
+                (HookedRule.Taming, new[] { "AllTameable" }),
+            };
+            Assert.Equal("4 mods hook into its drops, its spawning and taming", ModHookWords.Line(hooks));
+            Assert.Equal("A mod hooks into its drops", ModHookWords.Line(new List<(HookedRule, IReadOnlyList<string>)> { (HookedRule.Drops, new[] { "Drop That" }) }));
+            Assert.Equal("2 mods hook into its drops", ModHookWords.Line(new List<(HookedRule, IReadOnlyList<string>)> { (HookedRule.Drops, new[] { "A", "B" }) }));
+        }
+
+        [Fact]
+        public void TheLinesHoverNamesEachModAndWhatItMayChange()
+        {
+            var hooks = new List<(HookedRule, IReadOnlyList<string>)>
+            {
+                (HookedRule.Drops, new[] { "Drop That" }),
+                (HookedRule.Spawns, new[] { "Monstrum" }),
+            };
+            Assert.Equal("Drop That hooks into them: it may drop more or other than listed\nMonstrum hooks into it: it may spawn elsewhere or otherwise than told", ModHookWords.Tip(hooks));
+        }
+
+        [Fact]
+        public void APageNoModHooksIntoHasNoLine()
+        {
+            Assert.Null(ModHookWords.Line(new List<(HookedRule, IReadOnlyList<string>)>()));
+            Assert.Null(ModHookWords.Line(new List<(HookedRule, IReadOnlyList<string>)> { (HookedRule.Drops, new string[0]) }));
+            Assert.Null(ModHookWords.Tip(new List<(HookedRule, IReadOnlyList<string>)>()));
+
+            // A rule no mod hooks into is left out of the line and its hover.
+            var some = new List<(HookedRule, IReadOnlyList<string>)> { (HookedRule.Drops, new[] { "Drop That" }), (HookedRule.Spawns, new string[0]) };
+            Assert.Equal("A mod hooks into its drops", ModHookWords.Line(some));
+            Assert.Equal(ModHookWords.Note(HookedRule.Drops, new[] { "Drop That" }), ModHookWords.Tip(some));
         }
 
         [Fact]

@@ -70,27 +70,67 @@ namespace Scry
     public static class ModHookWords
     {
         /// <summary>The note's label for a rule.</summary>
-        public static string Label(HookedRule rule)
+        public static string Label(HookedRule rule) => "Mods and " + Topic(rule);
+
+        /// <summary>What of the entry a rule decides, as a page's line names it.</summary>
+        public static string Topic(HookedRule rule)
         {
             switch (rule)
             {
-                case HookedRule.Drops: return "Mods and its drops";
-                case HookedRule.Loot: return "Mods and what it gives";
-                case HookedRule.Spawns: return "Mods and its spawning";
-                case HookedRule.Comfort: return "Mods and its comfort";
-                case HookedRule.Burning: return "Mods and its fuel";
-                case HookedRule.Wear: return "Mods and its wear";
-                case HookedRule.Crafting: return "Mods and its cost";
-                case HookedRule.ItemStats: return "Mods and its stats";
-                case HookedRule.Food: return "Mods and eating it";
-                case HookedRule.Growth: return "Mods and its growing";
-                case HookedRule.Weather: return "Mods and the weather";
-                case HookedRule.Raids: return "Mods and raids";
-                case HookedRule.Taming: return "Mods and taming";
-                case HookedRule.Trading: return "Mods and its wares";
-                case HookedRule.Storage: return "Mods and its size";
-                default: return "Mods and how it works";
+                case HookedRule.Drops: return "its drops";
+                case HookedRule.Loot: return "what it gives";
+                case HookedRule.Spawns: return "its spawning";
+                case HookedRule.Comfort: return "its comfort";
+                case HookedRule.Burning: return "its fuel";
+                case HookedRule.Wear: return "its wear";
+                case HookedRule.Crafting: return "its cost";
+                case HookedRule.ItemStats: return "its stats";
+                case HookedRule.Food: return "eating it";
+                case HookedRule.Growth: return "its growing";
+                case HookedRule.Weather: return "the weather";
+                case HookedRule.Raids: return "raids";
+                case HookedRule.Taming: return "taming";
+                case HookedRule.Trading: return "its wares";
+                case HookedRule.Storage: return "its size";
+                default: return "how it works";
             }
+        }
+
+        /// <summary>
+        /// A page's one line for every rule mods hook into there, after everything else it tells:
+        /// what they hook into and how many mods; null for none. Who they are and what each may
+        /// change is its hover (<see cref="Tip"/>).
+        /// </summary>
+        public static string Line(IReadOnlyList<(HookedRule Rule, IReadOnlyList<string> Mods)> hooks)
+        {
+            var topics = new List<string>();
+            var mods = new List<string>();
+            foreach (var (rule, named) in hooks ?? new List<(HookedRule, IReadOnlyList<string>)>())
+            {
+                var any = false;
+                foreach (var mod in named ?? new string[0])
+                {
+                    if (string.IsNullOrEmpty(mod)) continue;
+                    any = true;
+                    if (!mods.Contains(mod)) mods.Add(mod);
+                }
+                if (any && !topics.Contains(Topic(rule))) topics.Add(Topic(rule));
+            }
+            if (mods.Count == 0) return null;
+            var what = topics.Count == 1 ? topics[0] : string.Join(", ", topics.GetRange(0, topics.Count - 1).ToArray()) + " and " + topics[topics.Count - 1];
+            return mods.Count == 1 ? $"A mod hooks into {what}" : $"{mods.Count} mods hook into {what}";
+        }
+
+        /// <summary>The line's hover: each rule's note, naming its mods and what they may change; null for none.</summary>
+        public static string Tip(IReadOnlyList<(HookedRule Rule, IReadOnlyList<string> Mods)> hooks)
+        {
+            var notes = new List<string>();
+            foreach (var (rule, named) in hooks ?? new List<(HookedRule, IReadOnlyList<string>)>())
+            {
+                var note = Note(rule, named);
+                if (note != null) notes.Add(note);
+            }
+            return notes.Count == 0 ? null : string.Join("\n", notes.ToArray());
         }
 
         /// <summary>The note for the mods hooking into a rule, or null for none.</summary>

@@ -161,6 +161,19 @@ namespace Scry
                 foreach (var row in facts.UseRows) y = FactRow(explorer, row, width, y);
             }
 
+            // Mods hooking into what the page tells, in one soft line after the rest; who they
+            // are and what each may change on hover.
+            var hooks = ModHookWords.Line(facts.Hooks);
+            if (hooks != null)
+            {
+                y += U(6f);
+                var text = UnsureWords.Marked(hooks);
+                var hooksRect = new Rect(0f, y, width, Skin.Height(Skin.DimWrap, text, width));
+                GUI.Label(hooksRect, text, Skin.DimWrap);
+                if (hooksRect.Contains(Event.current.mousePosition)) AskTip("hooks:" + entry.Key, ModHookWords.Tip(facts.Hooks) + "\n" + UnsureWords.Hooked);
+                y = hooksRect.yMax;
+            }
+
             return y + U(14f);
         }
 

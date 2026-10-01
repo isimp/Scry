@@ -58,7 +58,7 @@ namespace Scry
         /// <summary>What it is used for, a row for each kind of use and place.</summary>
         public readonly List<Row> UseRows = new List<Row>();
 
-        public bool IsEmpty => Description.Length == 0 && Pairs.Count == 0 && Rows.Count == 0 && Where.Count == 0 && UseRows.Count == 0;
+        public bool IsEmpty => Description.Length == 0 && Pairs.Count == 0 && Rows.Count == 0 && Where.Count == 0 && UseRows.Count == 0 && Hooks.Count == 0;
 
         /// <summary>Values that name something in the catalog, by their label: a prefab name, or "se:" and a status effect's.</summary>
         public readonly Dictionary<string, string> Links = new Dictionary<string, string>();
@@ -329,7 +329,17 @@ namespace Scry
         }
 
         /// <summary>The note naming the mods that hook into a rule told here, when any do (<see cref="ModHooks"/>).</summary>
-        private void Hooked(HookedRule rule) => AddUnsure(ModHookWords.Label(rule), ModHookWords.Note(rule, ModHooks.Mods(rule)), UnsureWords.Hooked);
+        /// <summary>
+        /// The rules mods hook into on this page, with the mods, told in one soft line after
+        /// everything else, who and what on hover (<see cref="ModHookWords.Line"/>).
+        /// </summary>
+        public readonly List<(HookedRule Rule, IReadOnlyList<string> Mods)> Hooks = new List<(HookedRule, IReadOnlyList<string>)>();
+
+        private void Hooked(HookedRule rule)
+        {
+            var mods = ModHooks.Mods(rule);
+            if (mods.Count > 0 && !Hooks.Exists(h => h.Rule == rule)) Hooks.Add((rule, mods));
+        }
 
         private static string ItemName(GameObject item)
         {

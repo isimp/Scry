@@ -292,14 +292,14 @@ namespace Scry
             var creature = Pick(Kind.Creature, "Greydwarf", "Boar");
             if (creature != null)
             {
-                var note = Value(Facts.For(creature), ModHookWords.Label(HookedRule.Drops));
+                var note = HookNote(Facts.For(creature), HookedRule.Drops);
                 var mods = ModHooks.Mods(HookedRule.Drops);
                 p.Check(mods.Count == 0 ? note == null : note != null && mods.All(m => note.Contains(m)), $"{creature.Name} names the mods hooking into its drops", note ?? "no note");
             }
             var rock = Pick(Kind.Resource, "rock1_forest", "Rock_3", "MineRock_Copper", "Beech1");
             if (rock != null)
             {
-                var note = Value(Facts.For(rock), ModHookWords.Label(HookedRule.Loot));
+                var note = HookNote(Facts.For(rock), HookedRule.Loot);
                 var mods = ModHooks.Mods(HookedRule.Loot);
                 p.Check(mods.Count == 0 ? note == null : note != null, $"{rock.Name} names the mods hooking into what it gives, if it gives anything", note ?? "no note");
             }
@@ -318,12 +318,16 @@ namespace Scry
             })
             {
                 if (entry == null) continue;
-                var note = Value(Facts.For(entry), ModHookWords.Label(rule));
+                var note = HookNote(Facts.For(entry), rule);
                 var mods = ModHooks.Mods(rule);
                 p.Check(mods.Count == 0 ? note == null : note != null && mods.All(m => note.Contains(m)), $"{entry.Name} names the mods hooking into {rule}", note ?? "no note");
             }
             yield break;
         }
+
+        /// <summary>A page's note on the mods hooking into a rule, as its one line's hover tells it; null for none.</summary>
+        private static string HookNote(Facts facts, HookedRule rule) =>
+            facts.Hooks.Where(h => h.Rule == rule).Select(h => ModHookWords.Note(h.Rule, h.Mods)).FirstOrDefault();
 
         /// <summary>
         /// The mod report as a player opens it, written out whole, and checked against the game's
@@ -736,8 +740,10 @@ namespace Scry
             if (creature == null) p.Skip("there is no creature");
             var told = Facts.For(creature);
             p.Check(!told.Unsure.ContainsKey("Health") && told.Pairs.Any(pair => pair.Key == "Health"), $"{creature.Name}'s health is told as sure");
-            var hook = ModHookWords.Label(HookedRule.Drops);
-            if (ModHooks.Mods(HookedRule.Drops).Count > 0) p.Check(told.Unsure.ContainsKey(hook), $"{creature.Name}'s note on mods hooking into its drops is marked unsure");
+            if (ModHooks.Mods(HookedRule.Drops).Count > 0)
+            {
+                p.Check(ModHookWords.Line(told.Hooks) != null && HookNote(told, HookedRule.Drops) != null, $"{creature.Name} tells in one line after the rest that mods hook into its drops", ModHookWords.Line(told.Hooks) ?? "no line");
+            }
             p.Check(told.Unsure.Values.All(why => !string.IsNullOrEmpty(why)), "every mark says why");
 
             var named = X.Catalog.Where(e => e.ModName.Length > 0 && e.Kind != Kind.Mod).ToList();
