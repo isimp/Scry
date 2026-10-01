@@ -43,7 +43,7 @@ namespace Scry
         private static float _badgeWidth;
         private static string _effectFilter = "";
 
-        private enum Drag { None, Move, Resize, Orbit, StageSize, Pan, ListSize }
+        private enum Drag { None, Move, Resize, Orbit, StageSize, Pan, ListSize, Ruler }
 
         // The list's share of the room it shares with the details (the full view's width, the
         // compact view's height), set by dragging the gap between them, and whether it is folded

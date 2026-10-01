@@ -102,6 +102,46 @@ namespace Scry
             p.Check(wrong.Count == 0, "each stands as a wave", string.Join("; ", wrong.Take(8)));
         }
 
+        /// <summary>
+        /// Floors are found in the places themselves: a spread of locations and rooms, and the
+        /// towers and caves among them, each with floors from the top down and a cut over each,
+        /// no collider left on its copy once read, and the floor ruler drawn beside the stage.
+        /// </summary>
+        private static IEnumerator FloorsFound(Probe p)
+        {
+            var places = X.Catalog.Where(e => PlaceOf(e) != null).OrderBy(e => e.Name, StringComparer.Ordinal).ToList();
+            if (places.Count == 0) p.Skip("there are no locations");
+            var picks = Spread(places, 16);
+            picks.AddRange(places.Where(e => e.Name.IndexOf("Tower", StringComparison.OrdinalIgnoreCase) >= 0 || e.Name.IndexOf("Cave", StringComparison.OrdinalIgnoreCase) >= 0).Take(8));
+            var wrong = new List<string>();
+            var several = new List<string>();
+            foreach (var entry in picks.Distinct().ToList())
+            {
+                var place = PlaceOf(entry);
+                Select(entry);
+                yield return Until(() => PlaceAssets.State(place) != PlaceLoad.Loading && CopyOf(entry) != null, 20);
+                if (CopyOf(entry) == null)
+                {
+                    if (PlaceAssets.State(place) == PlaceLoad.Ready) wrong.Add($"{entry.Name} stands nowhere");
+                    continue;
+                }
+                yield return null;
+                var floors = Stage.FloorHeights.ToList();
+                var cuts = Stage.CutHeights.ToList();
+                if (floors.Count == 0) wrong.Add($"{entry.Name} has no floor");
+                else if (floors.Zip(floors.Skip(1), (above, below) => above > below).Any(ordered => !ordered)) wrong.Add($"{entry.Name}'s floors are out of order: {string.Join(", ", floors)}");
+                else if (cuts.Zip(floors, (cut, floor) => cut > floor).Any(over => !over)) wrong.Add($"{entry.Name} is cut below a floor");
+                var left = CopyOf(entry) != null ? CopyOf(entry).GetComponentsInChildren<Collider>(true).Length : 0;
+                if (left > 0) wrong.Add($"{entry.Name} keeps {left} colliders");
+                if (floors.Count > 1) several.Add($"{entry.Name} ({string.Join(", ", floors.Select(f => f.ToString("0.0")))} m)");
+            }
+            p.Note(several.Count > 0 ? "with several floors: " + string.Join("; ", several) : "none with several floors");
+            p.Check(wrong.Count == 0, "each has floors from the top down, cut over each, with no collider left on its copy", string.Join("; ", wrong.Take(8)));
+            var drawn = ScryPanel.RulersDrawn;
+            yield return Until(() => ScryPanel.RulersDrawn > drawn, 3);
+            p.Check(ScryPanel.RulersDrawn > drawn, "the floor ruler draws beside the stage");
+        }
+
         /// <summary>A runestone location tells its stone's texts, in words, under Runestone texts.</summary>
         private static IEnumerator RunestoneTexts(Probe p)
         {

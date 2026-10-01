@@ -42,11 +42,14 @@ namespace Scry
                     e.Use();
                     break;
                 case KeyCode.PageUp:
-                    Step(explorer, -Math.Max(1, _rowsInView - 1));
+                    // Over a place's stage they step its floors; elsewhere they page the list.
+                    if (Stage.HasFloors && MouseOverStage(e.mousePosition)) Stage.StepCut(false);
+                    else Step(explorer, -Math.Max(1, _rowsInView - 1));
                     e.Use();
                     break;
                 case KeyCode.PageDown:
-                    Step(explorer, Math.Max(1, _rowsInView - 1));
+                    if (Stage.HasFloors && MouseOverStage(e.mousePosition)) Stage.StepCut(true);
+                    else Step(explorer, Math.Max(1, _rowsInView - 1));
                     e.Use();
                     break;
                 case KeyCode.Return:

@@ -27,8 +27,10 @@ namespace Scry
         /// the ground. What <paramref name="prepare"/> does to the copy is done while it still
         /// sleeps, before it is stripped (a location's parts rolled); such a copy is never kept as a
         /// template, since the next is prepared anew.
+        /// With <paramref name="keepColliders"/> its colliders stay, for the caller to read where
+        /// its floors are (<see cref="FloorProbe"/>).
         /// </summary>
-        public static GameObject Make(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer = -1, bool falling = false, Action<GameObject> prepare = null)
+        public static GameObject Make(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer = -1, bool falling = false, Action<GameObject> prepare = null, bool keepColliders = false)
         {
             if (prefab == null) return null;
 
@@ -45,7 +47,7 @@ namespace Scry
                 {
                     copy = Object.Instantiate(prefab, Holder().transform, false);
                     prepare(copy);
-                    Strip(copy, falling);
+                    Strip(copy, falling, keepColliders);
                 }
                 else if (Templates.TryGetValue(key, out var template) && template != null)
                 {
@@ -234,14 +236,14 @@ namespace Scry
         /// Takes off everything the policy does not keep. A component another one requires can
         /// only go after that one, so removal repeats until nothing more can be taken off.
         /// </summary>
-        private static int Strip(GameObject copy, bool falling)
+        private static int Strip(GameObject copy, bool falling, bool keepColliders = false)
         {
             var all = copy.GetComponentsInChildren<Component>(true);
             var doomed = new List<KeyValuePair<int, Component>>();
 
             foreach (var component in all)
             {
-                if (component == null) continue;
+                if (component == null || keepColliders && component is Collider) continue;
                 var pass = PassFor(component, falling);
                 if (pass != StripPolicy.Keep) doomed.Add(new KeyValuePair<int, Component>(pass, component));
             }

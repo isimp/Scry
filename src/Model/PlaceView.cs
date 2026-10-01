@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -12,8 +13,56 @@ namespace Scry
         /// <summary>Doorways closer in height than this are on one floor: a step or a slope, not a storey.</summary>
         public const float SameFloor = 2f;
 
+        /// <summary>How far under the floor above the cut stays, to take that floor away whole.</summary>
+        public const float UnderFloorAbove = 0.6f;
+
+        /// <summary>The lowest the cut goes over its floor, to keep what stands on it.</summary>
+        public const float LeastHeadroom = 1.4f;
+
         /// <summary>Where the stage cuts to open a floor.</summary>
-        public static float CutHeight(float floor) => floor + CutAboveFloor;
+        public static float CutHeight(float floor) => CutHeight(floor, null);
+
+        /// <summary>Where the stage cuts to open a floor: head height over it, or just under the floor above where that is lower, but never lower than <see cref="LeastHeadroom"/>.</summary>
+        public static float CutHeight(float floor, float? above)
+        {
+            var cut = floor + CutAboveFloor;
+            if (above.HasValue && cut > above.Value - UnderFloorAbove) cut = Math.Max(floor + LeastHeadroom, above.Value - UnderFloorAbove);
+            return cut;
+        }
+
+        /// <summary>Where each of the floors (from the top down) is cut, each with the one above it.</summary>
+        public static List<float> CutHeights(IReadOnlyList<float> floors) =>
+            floors.Select((floor, i) => CutHeight(floor, i == 0 ? (float?)null : floors[i - 1])).ToList();
+
+        /// <summary>
+        /// The cut a floor down or up: down from the roof opens the top floor and stays on the
+        /// lowest; up from the top floor puts the roof back on. <paramref name="level"/> is the
+        /// floor opened, from the top, or <paramref name="floors"/> for the roof on.
+        /// </summary>
+        public static int StepCut(int level, int floors, bool down)
+        {
+            if (down) return level >= floors ? 0 : Math.Min(level + 1, floors - 1);
+            if (level >= floors) return floors;
+            return level == 0 ? floors : level - 1;
+        }
+
+        /// <summary>A location's floors with its ground among them, its root, where none lies near it (bare earth, the world's own, is no part of it).</summary>
+        public static List<float> WithGround(IReadOnlyList<float> floors)
+        {
+            var all = floors.ToList();
+            if (!all.Any(f => Math.Abs(f) < SameFloor)) all.Add(0f);
+            return all.OrderByDescending(f => f).ToList();
+        }
+
+        /// <summary>The floor a cut set by hand opens: the highest it is half a metre or more over; the lowest below them all.</summary>
+        public static int LevelAt(IReadOnlyList<float> floors, float height)
+        {
+            for (var i = 0; i < floors.Count; i++)
+            {
+                if (floors[i] + 0.5f <= height) return i;
+            }
+            return Math.Max(0, floors.Count - 1);
+        }
 
         /// <summary>A room's floors above its root, from the top down: its doorways' heights (<see cref="Floors"/>); one at its root with none.</summary>
         public static List<float> RoomFloors(RoomShape room)

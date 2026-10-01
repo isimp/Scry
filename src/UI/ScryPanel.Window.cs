@@ -120,6 +120,9 @@ namespace Scry
                 case Drag.Pan:
                     Stage.Pan(e.delta);
                     break;
+                case Drag.Ruler:
+                    RulerAt(GUIUtility.GUIToScreenPoint(e.mousePosition).y);
+                    break;
                 case Drag.StageSize:
                     _stageScale = Mathf.Clamp(_stageScale + e.delta.y / Mathf.Max(1f, _stageBaseH), 0.4f, 2.4f);
                     break;

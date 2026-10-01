@@ -104,9 +104,9 @@ namespace Scry
         /// <summary>How far above its root a part must be to be an interior: the game's stand some 5000 m up.</summary>
         private const float InteriorHeight = 1000f;
 
-        public static GameObject Make(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer)
+        public static GameObject Make(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer, bool keepColliders = false)
         {
-            return Ghost.Make(prefab, parent, position, rotation, layer, prepare: Prepare);
+            return Ghost.Make(prefab, parent, position, rotation, layer, prepare: Prepare, keepColliders: keepColliders);
         }
 
         private static void Prepare(GameObject copy)

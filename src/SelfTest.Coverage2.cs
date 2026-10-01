@@ -459,9 +459,13 @@ namespace Scry
             Select(location);
             yield return Until(() => CopyOf(location) != null, 20);
             p.Check(Stage.HasFloors && !Stage.Cutting, $"{location.Name} keeps its roof on", Stage.CutLabel);
-            Stage.NextCut();
+            Stage.ToggleRoof();
             p.Check(Stage.Cutting, "until its chip takes it off", Stage.CutLabel);
-            Stage.NextCut();
+            var height = (Stage.ModelBottom + Stage.ModelTop) / 2f;
+            Stage.CutTo(height);
+            p.Check(Mathf.Abs(Stage.CutAt - height) < 0.01f && Stage.CutLevel == PlaceView.LevelAt(Stage.FloorHeights, height), "the ruler sets the cut anywhere, over the floor below it", $"{Stage.CutAt:0.0} m, {Stage.CutLabel}");
+            Stage.ToggleRoof();
+            p.Check(!Stage.Cutting, "and the chip puts the roof back on", Stage.CutLabel);
         }
 
         /// <summary>After many other entries, the stage holds no more than it held before.</summary>

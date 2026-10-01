@@ -77,6 +77,7 @@ namespace Scry
             yield return S("switching between locations while they load holds only the one shown", Switching, 60);
             yield return S("a dungeon room shows its shape", RoomShows, 30);
             yield return S("the roof's cut moves, starts afresh, and a location keeps its roof", CutMoves, 60);
+            yield return S("places' floors are found in the places themselves", FloorsFound, 240, bearsSkips: true);
             yield return S("a dungeon lays out an example, drawn, its rooms going to their entries", DungeonExample, 200, bearsSkips: true);
             yield return S("a camp lays out an example, drawn", CampExample, 150, bearsSkips: true);
             yield return S("placement details tell the woods and lava a location keeps to", PlacementDetails, 20);
@@ -671,17 +672,22 @@ namespace Scry
             var floor = PlaceView.Ground(place.Contents, true);
             p.Check(Mathf.Abs(Stage.Ground - floor) < 0.01f, "it stands on the floor it is walked into on", $"{Stage.Ground:0.00} m, its lowest doorway {floor:0.00} m");
 
-            // It opens on its top floor to be looked into, and the chip steps down its floors to the roof and round again.
-            var floors = PlaceView.RoomFloors(shape);
+            // It opens on its top floor to be looked into; the arrows step down to the lowest and up to the roof, and the chip takes the roof off again.
+            var floors = Stage.FloorHeights.ToList();
+            p.Note($"floors found in it at {string.Join(", ", floors.Select(f => f.ToString("0.0")))} m; its doorways at {string.Join(", ", PlaceView.RoomFloors(shape).Select(f => f.ToString("0.0")))} m");
             p.Check(Stage.HasFloors && Stage.Cutting, "it is cut open", Stage.CutLabel);
-            p.Check(Mathf.Abs(Stage.CutAt - PlaceView.CutHeight(floors[0])) < 0.01f, "above head height over its top floor", $"cut at {Stage.CutAt:0.0} m, floors {string.Join(", ", floors.Select(f => f.ToString("0.0")))}");
+            p.Check(floors.Count > 0 && Mathf.Abs(Stage.CutAt - Stage.CutHeights[0]) < 0.01f && Stage.CutAt > floors[0], "over its top floor", $"cut at {Stage.CutAt:0.0} m");
             var labels = new List<string>();
             for (var i = 0; i <= floors.Count; i++)
             {
-                Stage.NextCut();
+                Stage.StepCut(true);
                 labels.Add(Stage.CutLabel);
             }
-            p.Check(labels[floors.Count - 1] == "Roof on" && Stage.Cutting && Mathf.Abs(Stage.CutAt - PlaceView.CutHeight(floors[0])) < 0.01f, "its chip steps down every floor to the roof and round again", string.Join("; ", labels));
+            p.Check(Stage.CutLevel == floors.Count - 1, "a floor down at a time, staying on the lowest", string.Join("; ", labels));
+            for (var i = 0; i <= floors.Count; i++) Stage.StepCut(false);
+            p.Check(!Stage.Cutting, "a floor up at a time, to the roof on", Stage.CutLabel);
+            Stage.ToggleRoof();
+            p.Check(Stage.Cutting && Stage.CutLevel == 0, "and the chip takes the roof off its top floor again", Stage.CutLabel);
             yield return null;
         }
 
@@ -741,15 +747,16 @@ namespace Scry
             {
                 p.Check(Stage.HasInside && Stage.Inside, "it shows the dungeon inside");
                 p.Check(Stage.Cutting, "opened on its top floor", Stage.CutLabel);
-                var cuts = new List<float>();
-                while (Stage.Cutting && cuts.Count < 12)
+                var cuts = new List<float> { Stage.CutAt };
+                while (Stage.CutLevel < Stage.FloorHeights.Count - 1 && cuts.Count < 40)
                 {
+                    Stage.StepCut(true);
                     cuts.Add(Stage.CutAt);
-                    Stage.NextCut();
                 }
                 var down = cuts.Zip(cuts.Skip(1), (above, below) => below < above).All(lower => lower);
-                p.Check(cuts.Count > 0 && down && !Stage.Cutting, "its chip steps down floor by floor to the roof", string.Join(", ", cuts.Select(c => c.ToString("0.0"))) + " m, then " + Stage.CutLabel);
-                Stage.NextCut();
+                p.Note($"{Stage.FloorHeights.Count} floors found in its rooms");
+                p.Check(cuts.Count > 0 && down, "it steps down floor by floor", string.Join(", ", cuts.Select(c => c.ToString("0.0"))) + " m");
+                Stage.OpenLevel(0);
                 var point = Stage.ExamplePointOf(0);
                 p.Check(point.HasValue && Stage.ExampleRoomAt(point.Value) != null, "a room on the stage is found under the mouse", point?.ToString() ?? "not in view");
                 Stage.Inside = false;

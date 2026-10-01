@@ -302,8 +302,10 @@ namespace Scry
                         $"Squares of 1 m, lines every 5 m  \u00B7  {M(size.y)} m tall, {M(size.x)} × {M(size.z)} m", Skin.DimLabel, 9f);
                 }
 
-                // The stage's own buttons come before its dragging, which would otherwise take their clicks.
+                // The stage's own buttons and its floor ruler come before its dragging, which would otherwise take their clicks.
+                NoteStage(rect);
                 StageButtons(entry, rect);
+                FloorRuler(rect);
 
                 if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
                 {
@@ -888,7 +890,7 @@ namespace Scry
 
         /// <summary>The person for size, the lighting and the backdrop, in the stage's top right corner.</summary>
         private const string StageHint = "Drag to turn, right-drag to move, scroll to zoom, double-click to reset";
-        private const string StageHintCut = "Drag to turn, right-drag to move, scroll to zoom, Shift-scroll to move the cut, double-click to reset";
+        private const string StageHintCut = "Drag to turn, right-drag to move, scroll to zoom, Page Up/Down or the ruler for floors, Shift-scroll to move the cut";
 
         private static void StageButtons(Entry entry, Rect rect)
         {
@@ -901,13 +903,18 @@ namespace Scry
             var lighting = Labelled("Light: ", Stage.LightingNames, Stage.LightingIndex);
             var texts = new List<string> { backdrop, lighting, "Spin" };
             if (!Looks.IsWorn(entry)) texts.Add("Person");
-            if (Stage.HasFloors) texts.Add(Stage.CutLabel);
+            if (Stage.HasFloors)
+            {
+                texts.Add(Stage.CutLabel);
+                texts.Add("\u25B2");
+                texts.Add("\u25BC");
+            }
             if (Stage.HasInside) texts.Add(Stage.Inside ? "Inside" : "Outside");
             if (ExampleOf(entry) != null) texts.Add("Plan");
             var total = texts.Sum(t => Skin.Width(Skin.Chip, t) + U(10f));
             if (x - total < rect.x + U(10f) + _badgeWidth + U(10f)) y += h + U(8f);
 
-            bool Chip(string text, bool on, string tip)
+            bool Chip(string text, bool on, string tip, bool can = true)
             {
                 var style = on ? Skin.ChipOn : Skin.Chip;
                 var w = Skin.Width(style, text) + U(4f);
@@ -915,7 +922,11 @@ namespace Scry
                 var chip = new Rect(x, y, w, h);
                 x -= U(6f);
                 if (chip.Contains(Event.current.mousePosition)) AskTip("stage:" + tip, tip);
-                return GUI.Button(chip, text, style);
+                var enabled = GUI.enabled;
+                GUI.enabled = enabled && can;
+                var clicked = GUI.Button(chip, text, style);
+                GUI.enabled = enabled;
+                return clicked && can;
             }
 
             if (Chip("Spin", Stage.Spin, Stage.Spin ? "Turning; click to hold it still" : "Held still; click to turn it"))
@@ -947,9 +958,15 @@ namespace Scry
             {
                 Stage.Inside = !Stage.Inside;
             }
-            if (Stage.HasFloors && Chip(Stage.CutLabel, Stage.Cutting, "Cuts away what is above head height over a floor, to look in. Click for the next floor down, then the roof back; Shift and the wheel move the cut"))
+            if (Stage.HasFloors)
             {
-                Stage.NextCut();
+                if (Chip(Stage.CutLabel, Stage.Cutting, Stage.Cutting ? "Cut open above head height over a floor; click to put the roof back on" : "Click to take the roof off, cutting away what is above head height over a floor"))
+                {
+                    Stage.ToggleRoof();
+                }
+                var floors = Stage.FloorHeights.Count;
+                if (Chip("\u25BC", false, "A floor down (Page Down over the stage)", !Stage.Cutting || Stage.CutLevel < floors - 1)) Stage.StepCut(true);
+                if (Chip("\u25B2", false, "A floor up, then the roof back on (Page Up over the stage)", Stage.Cutting)) Stage.StepCut(false);
             }
         }
     }

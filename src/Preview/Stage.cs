@@ -76,6 +76,9 @@ namespace Scry
         public static readonly string[] BackdropNames = { "Plain", "Sky", "Grid", "Sky and grid" };
 
         private static GameObject _root;
+
+        /// <summary>The floors found in the place shown, kept for when a dungeon's example is left for its entrance.</summary>
+        private static List<float> _placeFloors = new List<float>();
         private static Camera _camera;
         private static RenderTexture _texture;
         private static int _layer = -2;
@@ -277,8 +280,14 @@ namespace Scry
                 var asset = PlaceAssets.Asset(place);
                 if (asset == null) return;
                 var made = Timing.Start();
-                _subject = PlaceCopy.Make(asset, _root.transform, Origin, Quaternion.identity, _layer);
+                _subject = PlaceCopy.Make(asset, _root.transform, Origin, Quaternion.identity, _layer, keepColliders: true);
                 Timing.Add("selection copy", made);
+                if (_subject != null)
+                {
+                    var probed = Timing.Start();
+                    _placeFloors = FloorsOf(_subject, place);
+                    Timing.Add("selection floors", probed);
+                }
             }
             else if (entry.Source is RandomEvent raid)
             {
@@ -333,7 +342,7 @@ namespace Scry
                 _bodyMinY = Origin.y + PlaceView.Ground(shown.Contents, shown.IsRoom) * _baseScale.y;
 
                 // A room opens on its top floor to be looked into; a location keeps its roof.
-                SetFloors(entry, shown.IsRoom ? PlaceView.RoomFloors(shown.Contents?.Room) : new List<float> { 0f }, open: shown.IsRoom);
+                SetFloors(entry, _placeFloors, open: shown.IsRoom);
             }
             else
             {

@@ -76,14 +76,25 @@ namespace Scry
                 var holder = _exampleHolder.transform;
                 var at = holder.TransformPoint(new Vector3(room.Position.X, room.Position.Y, room.Position.Z));
                 var turn = holder.rotation * new Quaternion(room.Rotation.X, room.Rotation.Y, room.Rotation.Z, room.Rotation.W);
-                var copy = PlaceCopy.Make(prefab, holder, at, turn, _layer);
+                var copy = PlaceCopy.Make(prefab, holder, at, turn, _layer, keepColliders: _exampleIsDungeon);
                 if (copy == null) continue;
+
+                // A dungeon room's floors, read with the holder awake for a moment if the entrance
+                // is shown; a camp keeps its location's.
+                if (_exampleIsDungeon)
+                {
+                    var asleep = !_exampleHolder.activeSelf;
+                    if (asleep) _exampleHolder.SetActive(true);
+                    _exampleRays += FloorProbe.Read(copy, _subject.transform, _layer, ExampleHits);
+                    if (asleep) _exampleHolder.SetActive(false);
+                }
                 Tune(copy, audible: false);
                 _exampleCopies++;
 
                 if (_exampleCopies == 1 && _exampleIsDungeon) ShowInsideOrOut();
                 else if (_exampleHolder.activeInHierarchy) _bounds.Encapsulate(Unscaled(Measure(copy)));
             }
+            if (placedAny && _exampleIsDungeon && _inside && _exampleCopies > 1) RefreshFloors(ExampleFloorsNow());
             Timing.Add("stage example", made);
         }
 
@@ -96,7 +107,20 @@ namespace Scry
             _examplePlaced = null;
             _exampleNext = 0;
             _exampleCopies = 0;
+            ExampleHits.Clear();
+            _exampleRays = 0;
             OutsideParts.Clear();
+        }
+
+        /// <summary>Where the example's rays landed, as heights above the place's root, and how many were cast (<see cref="FloorProbe"/>).</summary>
+        private static readonly List<float> ExampleHits = new List<float>();
+        private static int _exampleRays;
+
+        /// <summary>The example's floors: found in its rooms, or where their doorways are while none are found.</summary>
+        private static List<float> ExampleFloorsNow()
+        {
+            var found = FloorFinder.Floors(ExampleHits, _exampleRays);
+            return found.Count > 0 ? found : PlaceView.ExampleFloors(_examplePlaced);
         }
 
         private static void BeginExample(DungeonExample example, DungeonPlan plan)
@@ -136,7 +160,7 @@ namespace Scry
             foreach (var part in OutsideParts) if (part != null) part.SetActive(!inside);
             _exampleHolder.SetActive(inside);
 
-            var floors = inside ? PlaceView.ExampleFloors(_examplePlaced) : new List<float> { 0f };
+            var floors = inside ? ExampleFloorsNow() : new List<float>(_placeFloors);
             if (floors.Count == 0) floors.Add(0f);
             _bodyMinY = Origin.y + floors[floors.Count - 1] * _baseScale.y;
             _bounds = Unscaled(Measure(_subject));
