@@ -145,7 +145,7 @@ namespace Scry
         }
 
         /// <summary>
-        /// The cave dungeons, the Frost Caves and M\u00F6rkhalla, whose rooms are rock: each one's example is
+        /// The cave dungeons, the Frost Caves and M&#xF6;rkhalla, whose rooms are rock: each one's example is
         /// built and opened floor by floor, told with how many rooms stand on each floor; a floor
         /// no room stands on is a floor found where there is none.
         /// </summary>
