@@ -162,7 +162,10 @@ namespace Scry
 
             var floors = inside ? ExampleFloorsNow() : new List<float>(_placeFloors);
             if (floors.Count == 0) floors.Add(0f);
-            _bodyMinY = Origin.y + floors[floors.Count - 1] * _baseScale.y;
+            // Inside, the example stands on its lowest floor; outside, the location stands on the
+            // ground the game stands it on, not on a sunken part of it.
+            var outside = _lastShown?.Source is PlaceSource place ? PlaceView.Ground(place.Contents, place.IsRoom) : 0f;
+            _bodyMinY = Origin.y + (inside ? floors[floors.Count - 1] : outside) * _baseScale.y;
             _bounds = Unscaled(Measure(_subject));
             _cutFor = null;
             SetFloors(_lastShown, floors, open: inside);

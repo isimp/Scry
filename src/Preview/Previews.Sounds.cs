@@ -27,6 +27,7 @@ namespace Scry
             _soundEntry = entry;
             _soundChosen = only;
             _soundPaused = false;
+            _seekWhilePaused = null;
             _soundTakenOver = false;
             _soundWaitUntil = Time.unscaledTime + MaxDelay(prefab) + 0.5f;
             if (only != null) Narrow(_sound, only);
@@ -153,6 +154,7 @@ namespace Scry
             MusicPreview.Stop();
             _soundEntry = null;
             _soundPaused = false;
+            _seekWhilePaused = null;
             _soundChosen = null;
             Destroy(ref _sound);
         }
@@ -239,7 +241,11 @@ namespace Scry
             if (source == null || source.clip == null) return;
             TakeOverSound();
             source.time = Mathf.Clamp(time, 0f, Mathf.Max(0f, source.clip.length - 0.05f));
+            // A streamed clip (music) can lose a point set while paused once it goes on: kept, and set again then.
+            _seekWhilePaused = _soundPaused ? source.time : (float?)null;
         }
+
+        private static float? _seekWhilePaused;
 
         public static bool SoundPaused => _soundPaused;
 
@@ -253,7 +259,12 @@ namespace Scry
             if (pause && !source.isPlaying) return;
             TakeOverSound();
             if (pause) source.Pause();
-            else source.UnPause();
+            else
+            {
+                source.UnPause();
+                if (_seekWhilePaused.HasValue) source.time = _seekWhilePaused.Value;
+                _seekWhilePaused = null;
+            }
             _soundPaused = pause;
         }
 

@@ -312,7 +312,7 @@ namespace Scry
                 (HookedRule.Producing, Pick(Kind.Piece, "piece_beehive")), (HookedRule.Crafting, Pick(Kind.Item, "AxeBronze", "SwordIron")),
                 (HookedRule.ItemStats, Pick(Kind.Item, "SwordIron", "AxeBronze")), (HookedRule.Food, Pick(Kind.Item, "CookedMeat", "Raspberry")),
                 (HookedRule.Growth, Pick(Kind.Piece, "sapling_carrot", "sapling_turnip")), (HookedRule.Taming, Pick(Kind.Creature, "Boar", "Wolf")),
-                (HookedRule.Raids, X.Catalog.FirstOrDefault(e => e.Kind == Kind.Raid && e.Name == "army_eikthyr")), (HookedRule.Trading, Pick(Kind.Creature, "Haldor")),
+                (HookedRule.Raids, X.Catalog.FirstOrDefault(e => e.Kind == Kind.Raid && e.Name == "army_eikthyr")), (HookedRule.Trading, X.Catalog.FirstOrDefault(e => e.Source is GameObject g && g.GetComponent<Trader>() != null)),
                 (HookedRule.Storage, Pick(Kind.Piece, "piece_chest_wood", "piece_chest")),
             })
             {
@@ -650,23 +650,23 @@ namespace Scry
         private static IEnumerator StandardRows(Probe p)
         {
             GameObject Of(Entry e) => e.Source as GameObject;
-            // A label may name alternatives, "Build cost|Built near": any one of them will do.
+            // A label may name alternatives, "Build cost|Built near", and one ending in a space or
+            // colon is the start of labels ("Hit on the "): any one of them will do.
             bool Has(Facts told, string labels) => labels.Split('|').Any(label =>
-                told.Pairs.Any(pair => pair.Key == label || pair.Key.StartsWith(label + ": ", StringComparison.Ordinal)) || told.Rows.Any(r => r.Title.StartsWith(label, StringComparison.Ordinal)));
+                told.Pairs.Any(pair => pair.Key == label || ((label.EndsWith(" ") || label.EndsWith(":")) && pair.Key.StartsWith(label, StringComparison.Ordinal)))
+                || told.Rows.Any(r => r.Title.StartsWith(label, StringComparison.Ordinal)));
+            // Each kind's entries told a few a frame, so the check makes no long frame of its own.
+            var checks = new List<(string What, Entry Entry, string[] Labels)>();
+            var groups = new List<(string What, int Count, string[] Labels)>();
             void Every(string what, IEnumerable<Entry> entries, params string[] labels)
             {
                 var list = entries.ToList();
-                var missing = new List<string>();
-                foreach (var entry in list)
-                {
-                    var told = Facts.For(entry);
-                    foreach (var label in labels) if (!Has(told, label) && !(label == "Weak spots" && Has(told, "Hit on the")) && !(label == "Attacks" && Has(told, "Attack"))) missing.Add($"{entry.Name} {label}");
-                }
-                p.Check(missing.Count == 0, $"every {what} ({list.Count}) shows {string.Join(", ", labels)}", string.Join("; ", missing.Take(6)));
+                groups.Add((what, list.Count, labels));
+                foreach (var entry in list) checks.Add((what, entry, labels));
             }
 
             var creatures = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<Character>() is Character c && !(c is Player));
-            Every("creature", creatures, "Health", "Attacks", "Weak spots", "Tameable", "Drops");
+            Every("creature", creatures, "Health", "Attacks|Attack: ", "Weak spots|Hit on the ", "Tameable", "Drops");
             var shared = X.Catalog.Where(e => e.Kind == Kind.Item && Of(e)?.GetComponent<ItemDrop>()?.m_itemData?.m_shared != null)
                 .Select(e => (Entry: e, Type: Of(e).GetComponent<ItemDrop>().m_itemData.m_shared.m_itemType)).ToList();
             bool Is(ItemDrop.ItemData.ItemType t, params ItemDrop.ItemData.ItemType[] types) => types.Contains(t);
@@ -677,7 +677,23 @@ namespace Scry
                 "Quality", "Durability", "Block", "Secondary attack");
             var built = X.Catalog.Where(e => e.Kind == Kind.Piece && Of(e)?.GetComponent<Piece>()?.enabled == true && Knowledge.Tools.ToolsOf(e.Name).Count > 0);
             Every("buildable piece", built, "Build cost|Built near", "Built with");
-            yield break;
+
+            var missing = new Dictionary<string, List<string>>();
+            yield return Budgeted(checks, check =>
+            {
+                var told = Facts.For(check.Entry);
+                foreach (var label in check.Labels)
+                {
+                    if (Has(told, label)) continue;
+                    if (!missing.TryGetValue(check.What, out var list)) missing[check.What] = list = new List<string>();
+                    list.Add($"{check.Entry.Name} {label}");
+                }
+            }, 8);
+            foreach (var (what, count, labels) in groups)
+            {
+                var gaps = missing.TryGetValue(what, out var list) ? list : new List<string>();
+                p.Check(gaps.Count == 0, $"every {what} ({count}) shows {string.Join(", ", labels)}", string.Join("; ", gaps.Take(6)));
+            }
         }
 
         /// <summary>
@@ -689,7 +705,8 @@ namespace Scry
             GameObject Of(Entry e) => e.Source as GameObject;
             bool HasGrid(Entry e) => Facts.For(e).Rows.Any(r => r.Cells != null && r.Cells.Count == ResistWords.Types.Length);
             var creatures = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<Character>() != null && !(Of(e).GetComponent<Character>() is Player)).ToList();
-            var gridless = creatures.Where(e => !HasGrid(e)).Select(e => e.Name).ToList();
+            var gridless = new List<string>();
+            yield return Budgeted(creatures, e => { if (!HasGrid(e)) gridless.Add(e.Name); }, 8);
             p.Check(creatures.Count > 0 && gridless.Count == 0, $"every creature ({creatures.Count}) has the grid", string.Join(", ", gridless.Take(5)));
             var pieces = Spread(X.Catalog.Where(e => e.Kind == Kind.Piece && Of(e)?.GetComponent<WearNTear>() != null && Of(e).GetComponent<Piece>()?.enabled == true).OrderBy(e => e.Name, StringComparer.Ordinal).ToList(), 40);
             var pieceless = pieces.Where(e => !HasGrid(e)).Select(e => e.Name).ToList();
@@ -789,7 +806,8 @@ namespace Scry
             {
                 foreach (var raid in RandEventSystem.instance.m_events)
                 {
-                    if (raid?.m_requiredGlobalKeys == null) continue;
+                    // A raid the game has switched off never comes, so nothing follows it.
+                    if (raid?.m_requiredGlobalKeys == null || !raid.m_enabled || raid.m_spawn == null) continue;
                     foreach (var key in raid.m_requiredGlobalKeys)
                     {
                         if (!Knowledge.Unlocks.Of(key, Unlock.RaidStarts).Contains(EntryKeys.For(Kind.Raid, raid.m_name))) missed.Add($"{raid.m_name} ({key})");

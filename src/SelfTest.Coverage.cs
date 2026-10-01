@@ -265,7 +265,12 @@ namespace Scry
             yield return Until(() => CopyOf(effect) != null, 5);
             var first = CopyOf(effect);
             yield return Until(() => CopyOf(effect) != null && CopyOf(effect) != first, 8);
-            p.Check(first != null && CopyOf(effect) != null && CopyOf(effect) != first, "with Repeat on, the stage plays it again once it has played out");
+            var again = first != null && CopyOf(effect) != null && CopyOf(effect) != first;
+            // What still plays, when it has not played out: the stage waits for every particle and sound.
+            var still = again || first == null ? "" : string.Join(", ",
+                first.GetComponentsInChildren<ParticleSystem>(false).Where(s => s.IsAlive(false)).Select(s => $"{s.name} (loops {s.main.loop}, lasts {s.main.duration:0.#} s)")
+                    .Concat(first.GetComponentsInChildren<AudioSource>(false).Where(s => s.isPlaying).Select(s => $"{s.name} sound (loops {s.loop})")));
+            p.Check(again, "with Repeat on, the stage plays it again once it has played out", still.Length > 0 ? "still playing: " + still : null);
             Previews.LoopEffects = false;
             var last = CopyOf(effect);
             yield return Until(() => Stage.Finished, 8);
@@ -341,11 +346,11 @@ namespace Scry
                 if (string.IsNullOrEmpty(target) || target == "hand") return;
                 chips++;
                 if (keys.Contains(target)) return;
-                // A prefab the game never registers (a creature's own attack items) has no entry,
-                // and the panel shows it as text; only a registered prefab or a key of Scry's own
-                // that leads nowhere is a gap.
+                // A prefab the scene never registers (a creature's own attack items, which only the
+                // game's item list holds) has no entry, and the panel shows it as text; only a
+                // prefab of the scene or a key of Scry's own that leads nowhere is a gap.
                 var name = EntryKeys.Split(target, out var kind);
-                if (kind == null && ZNetScene.instance?.GetPrefab(name) == null && ObjectDB.instance?.GetItemPrefab(name) == null)
+                if (kind == null && ZNetScene.instance?.GetPrefab(name) == null)
                 {
                     unregistered.Add(target);
                     return;
@@ -374,7 +379,7 @@ namespace Scry
             Facts.Forget();
 
             p.Note($"{X.Catalog.Count} entries told, {chips} chips, links and lines followed");
-            if (unregistered.Count > 0) p.Note($"{unregistered.Count} prefabs named are not registered with the game, so have no entry and show as text: " + string.Join(", ", unregistered.Take(10)));
+            if (unregistered.Count > 0) p.Note($"{unregistered.Count} prefabs named are not among the scene's, so have no entry and show as text: " + string.Join(", ", unregistered.Take(10)));
             if (slow.Count > 0) p.Note("slowest to tell: " + string.Join(", ", slow.OrderByDescending(s => s.Ms).Take(6).Select(s => $"{s.Name} {s.Ms:0} ms")));
             var gameNotShown = notShown.Where(n => X.Catalog.FirstOrDefault(e => n.StartsWith(e.Name + " ", StringComparison.Ordinal))?.Origin == Origin.Vanilla).ToList();
             if (notShown.Count > gameNotShown.Count) p.Note($"{notShown.Count - gameNotShown.Count} mods' entries could not tell all their details: " + string.Join("; ", notShown.Except(gameNotShown).Take(6)));
