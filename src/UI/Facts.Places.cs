@@ -152,7 +152,12 @@ namespace Scry
         {
             Add("Laid out", DungeonWords.Layout(plan));
             Add("Picks rooms", DungeonWords.Picks(plan));
-            Add("Doors", DungeonWords.Doors(plan));
+            foreach (var (title, doors) in DungeonWords.DoorRows(plan))
+            {
+                var doorRow = new Row { Title = title };
+                foreach (var (prefab, chance) in doors) if (prefab.Length > 0) doorRow.Items.Add(Chip(prefab, chance));
+                if (doorRow.Items.Count > 0) Rows.Add(doorRow);
+            }
 
             var rooms = RoomsOf(plan.Themes);
             if (rooms.Count == 0) return;

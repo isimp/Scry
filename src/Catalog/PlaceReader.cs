@@ -209,7 +209,7 @@ namespace Scry
             };
             if (generator.m_doorTypes != null)
             {
-                foreach (var door in generator.m_doorTypes) if (door != null) plan.Doors.Add((door.m_connectionType ?? "", door.m_chance));
+                foreach (var door in generator.m_doorTypes) if (door != null) plan.Doors.Add((door.m_connectionType ?? "", door.m_chance, door.m_prefab != null ? door.m_prefab.name : ""));
             }
             Site(prefab, generator, plan);
             contents.Dungeon = plan;

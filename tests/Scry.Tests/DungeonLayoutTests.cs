@@ -349,7 +349,7 @@ namespace Scry.Tests
         {
             var plan = Plan(8);
             plan.DoorChance = dungeonChance;
-            plan.Doors.Add((type, ownChance));
+            plan.Doors.Add((type, ownChance, "door"));
             return plan;
         }
 

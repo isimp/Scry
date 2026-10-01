@@ -129,8 +129,8 @@ namespace Scry
 
         public float DoorChance;
 
-        /// <summary>The doors it may put in a doorway, by the doorway's type, each with its own chance or none (0).</summary>
-        public List<(string Type, float Chance)> Doors = new List<(string, float)>();
+        /// <summary>The doors it may put in a doorway, by the doorway's type, each with its own chance or none (0), and its prefab.</summary>
+        public List<(string Type, float Chance, string Prefab)> Doors = new List<(string, float, string)>();
 
         public int GridSize;
         public float TileWidth, SpawnChance, CampRadiusMin, CampRadiusMax, PerimeterBuffer;

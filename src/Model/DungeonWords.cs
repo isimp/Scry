@@ -48,17 +48,29 @@ namespace Scry
         }
 
         /// <summary>
-        /// How often a doorway between rooms gets a door (<c>PlaceDoors</c>): a door type's own
-        /// chance where it has one, else the dungeon's. Null for a dungeon without doors.
+        /// The doors a dungeon puts between rooms, a row for each type of doorway (<c>PlaceDoors</c>):
+        /// a doorway that allows a door gets one of those listed for its type, each listing alike
+        /// likely (<c>FindDoorType</c>), at that door's own chance or, where it has none, the
+        /// dungeon's. The title tells how many such doorways get a door; each door is named, with
+        /// its own chance where the doors' differ. None for a dungeon without doors.
         /// </summary>
-        public static string Doors(DungeonPlan plan)
+        public static List<(string Title, List<(string Prefab, string Chance)> Doors)> DoorRows(DungeonPlan plan)
         {
-            if (plan.Doors.Count == 0) return null;
-            var own = plan.Doors.Where(d => d.Chance > 0f).ToList();
-            if (own.Count == 0) return $"{DropWords.Share(plan.DoorChance)} of doorways";
-            var parts = own.Select(d => $"{DropWords.Share(d.Chance)} of {d.Type} doorways").ToList();
-            if (own.Count < plan.Doors.Count) parts.Add($"{DropWords.Share(plan.DoorChance)} of the others");
-            return string.Join(", ", parts);
+            var rows = new List<(string, List<(string, string)>)>();
+            foreach (var type in plan.Doors.Select(d => d.Type ?? "").Distinct())
+            {
+                var listed = plan.Doors.Where(d => (d.Type ?? "") == type).ToList();
+                float Chance((string Type, float Chance, string Prefab) d) => d.Chance > 0f ? d.Chance : plan.DoorChance;
+                var alike = listed.All(d => Chance(d) == Chance(listed[0]));
+                var doors = listed.GroupBy(d => d.Prefab).Select(g => (g.Key, alike ? "" : DropWords.Share(Chance(g.First())))).ToList();
+                var share = DropWords.Share(listed.Average(d => Chance(d)));
+                var typed = type.Length > 0 ? type + " " : "";
+                var title = doors.Count == 1
+                    ? $"Door in {share} of {typed}doorways that allow one"
+                    : $"Doors in {share} of {typed}doorways that allow one, one of these alike";
+                rows.Add((title, doors));
+            }
+            return rows;
         }
 
         public static string Size(RoomShape room) => $"{Number(room.Size.X)} × {Number(room.Size.Z)} m, {Number(room.Size.Y)} m high";

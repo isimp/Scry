@@ -1,3 +1,4 @@
+using System.Linq;
 using Xunit;
 
 namespace Scry.Tests
@@ -45,13 +46,71 @@ namespace Scry.Tests
             Assert.Equal("by their weights", DungeonWords.Picks(new DungeonPlan { Algorithm = "CampGrid" }));
         }
 
+        // A doorway that allows a door gets one of the doors listed for its type, each alike
+        // likely, at that door's own chance or, where it has none, the dungeon's (PlaceDoors,
+        // FindDoorType). The doors are named, each going to its entry.
+
         [Fact]
-        public void DoorsSayHowOftenADoorwayGetsOne()
+        public void DoorsAreToldByTheirDoorwaysTypeEachNamed()
+        {
+            var plan = new DungeonPlan { DoorChance = 0.3f };
+            plan.Doors.Add(("", 0f, "wood_door"));
+            plan.Doors.Add(("iron", 0.5f, "iron_gate"));
+
+            var rows = DungeonWords.DoorRows(plan);
+
+            Assert.Equal(2, rows.Count);
+            Assert.Equal("Door in 30% of doorways that allow one", rows[0].Title);
+            Assert.Equal(new[] { ("wood_door", "") }, rows[0].Doors);
+            Assert.Equal("Door in 50% of iron doorways that allow one", rows[1].Title);
+            Assert.Equal(new[] { ("iron_gate", "") }, rows[1].Doors);
+        }
+
+        [Fact]
+        public void SeveralDoorsForOneDoorwayAreOneRowNotOneLineEach()
+        {
+            // The winding tunnels list five doors, all for any doorway, all always.
+            var plan = new DungeonPlan { DoorChance = 0.6f };
+            foreach (var door in new[] { "a", "b", "c", "d", "e" }) plan.Doors.Add(("", 1f, door));
+
+            var row = Assert.Single(DungeonWords.DoorRows(plan));
+
+            Assert.Equal("Doors in 100% of doorways that allow one, one of these alike", row.Title);
+            Assert.Equal(new[] { "a", "b", "c", "d", "e" }, row.Doors.Select(d => d.Prefab));
+            Assert.All(row.Doors, d => Assert.Equal("", d.Chance));
+        }
+
+        [Fact]
+        public void DoorsOfDifferentChancesSayTheirOwnAndTheDoorwaysOnAverage()
         {
             var plan = new DungeonPlan { DoorChance = 0.5f };
-            plan.Doors.Add(("stone", 0f));
-            Assert.Equal("50% of doorways", DungeonWords.Doors(plan));
-            Assert.Null(DungeonWords.Doors(new DungeonPlan { DoorChance = 0.5f }));
+            plan.Doors.Add(("", 1f, "a"));
+            plan.Doors.Add(("", 0f, "b"));
+            plan.Doors.Add(("", 1f, "a"));
+
+            var row = Assert.Single(DungeonWords.DoorRows(plan));
+
+            // Listed twice, a is picked twice as often: (1 + 0.5 + 1) / 3 of doorways.
+            Assert.Equal("Doors in 83% of doorways that allow one, one of these alike", row.Title);
+            Assert.Equal(new[] { ("a", "100%"), ("b", "50%") }, row.Doors);
+        }
+
+        [Fact]
+        public void ADoorListedTwiceIsStillOneDoor()
+        {
+            var plan = new DungeonPlan { DoorChance = 0.3f };
+            plan.Doors.Add(("", 0f, "wood_door"));
+            plan.Doors.Add(("", 0f, "wood_door"));
+
+            var row = Assert.Single(DungeonWords.DoorRows(plan));
+            Assert.Equal("Door in 30% of doorways that allow one", row.Title);
+            Assert.Single(row.Doors);
+        }
+
+        [Fact]
+        public void ADungeonWithoutDoorsTellsNone()
+        {
+            Assert.Empty(DungeonWords.DoorRows(new DungeonPlan { DoorChance = 0.5f }));
         }
 
         [Fact]
