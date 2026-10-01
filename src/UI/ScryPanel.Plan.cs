@@ -63,7 +63,7 @@ namespace Scry
             // At one scale whichever way it is turned: as wide as a third of the stage and no
             // taller than under half of it, its box hugging its rooms as they are turned now.
             var yaw = Stage.ExampleViewYaw;
-            var floor = Stage.ExampleOpenFloor;
+            var floor = Stage.ExamplePlanFloor;
             var extent = ExamplePlan.Extent(PlanRooms, yaw);
             var pad = U(6f);
             var scale = (Mathf.Min(Mathf.Min(inner.width * 0.34f, U(240f)), inner.height * 0.5f) - pad * 2f) / _planWidest;
@@ -86,12 +86,12 @@ namespace Scry
                 var right = extent.MinRight + (e.mousePosition.x - area.x - pad) / scale;
                 var up = extent.MaxUp - (e.mousePosition.y - area.y - pad) / scale;
                 var (x, z) = ExamplePlan.Back(right, up, yaw);
-                hovered = ExamplePlan.RoomAt(PlanRooms, x, z, floor);
+                hovered = ExamplePlan.TopmostAt(PlanRooms, x, z, r => Stage.ExampleRoomShown(r) == PlanRoomShown.Whole);
             }
 
             foreach (var room in PlanRooms)
             {
-                var shown = ExamplePlan.Shown(room, floor);
+                var shown = Stage.ExampleRoomShown(room);
                 if (shown == PlanRoomShown.None) continue;
                 var lit = shown == PlanRoomShown.Whole && (room == hovered || (hovered == null && _stageRoom != null && _stageRoom == room.Room.Name));
                 PlanRoom(room, At(room.Position), scale, yaw, lit, shown == PlanRoomShown.Faint);

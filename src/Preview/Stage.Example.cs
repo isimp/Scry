@@ -34,6 +34,14 @@ namespace Scry
 
         /// <summary>A few milliseconds a frame for putting rooms away and back as floors are opened.</summary>
         private const double KeepBudgetMs = 4.0;
+
+        /// <summary>What each dungeon room's own rays found, to tell the floors it stands on (<see cref="FloorFinder.Holds"/>).</summary>
+        private static readonly Dictionary<PlacedRoom, FloorPatch> RoomGround = new Dictionary<PlacedRoom, FloorPatch>();
+
+        /// <summary>The rooms counted on the floor opened, worked out once a frame.</summary>
+        private static int _countedAt = -1;
+        private static float? _countedFloor;
+        private static int _countedRooms;
         private static bool _exampleIsDungeon;
         private static readonly List<GameObject> OutsideParts = new List<GameObject>();
 
@@ -127,7 +135,7 @@ namespace Scry
                 ExampleCopies.Add(new KeyValuePair<PlacedRoom, GameObject>(placed, copy));
 
                 // A dungeon room's floors; a camp keeps its location's.
-                if (_exampleIsDungeon) ReadFloors(copy, _exampleCopies);
+                if (_exampleIsDungeon) ReadFloors(copy, placed, _exampleCopies);
                 Tune(copy, audible: false);
                 _exampleCopies++;
 
@@ -147,12 +155,11 @@ namespace Scry
         private static void KeepToFloor()
         {
             if (!_exampleIsDungeon || _exampleHolder == null || ExampleCopies.Count == 0) return;
-            var floor = ExampleOpenFloor;
             var watch = Stopwatch.StartNew();
             foreach (var pair in ExampleCopies)
             {
                 if (pair.Value == null) continue;
-                var wanted = ExamplePlan.Shown(pair.Key, floor) == PlanRoomShown.Whole;
+                var wanted = ExampleRoomShown(pair.Key) == PlanRoomShown.Whole;
                 if (pair.Value.activeSelf == wanted) continue;
                 pair.Value.SetActive(wanted);
                 if (watch.Elapsed.TotalMilliseconds >= KeepBudgetMs) break;
@@ -177,13 +184,37 @@ namespace Scry
             {
                 var floor = ExampleOpenFloor;
                 if (floor == null || _examplePlaced == null) return -1;
+                if (_countedAt == Time.frameCount && _countedFloor == floor) return _countedRooms;
                 var count = 0;
                 foreach (var room in _examplePlaced.Rooms)
                 {
-                    if (!room.Room.EndCap && !room.Room.Divider && ExamplePlan.Shown(room, floor) == PlanRoomShown.Whole) count++;
+                    if (!room.Room.EndCap && !room.Room.Divider && OnFloor(room, floor.Value)) count++;
                 }
+                _countedAt = Time.frameCount;
+                _countedFloor = floor;
+                _countedRooms = count;
                 return count;
             }
+        }
+
+        /// <summary>Whether a room stands on a floor: its box says so (<see cref="ExamplePlan.Shown"/>), or its own rays found ground there (<see cref="FloorFinder.Holds"/>), as its meshes can reach past its box.</summary>
+        private static bool OnFloor(PlacedRoom room, float floor) =>
+            ExamplePlan.Shown(room, floor) == PlanRoomShown.Whole || RoomGround.TryGetValue(room, out var ground) && FloorHolds(ground, floor);
+
+        private static bool FloorHolds(FloorPatch ground, float floor) => FloorFinder.Holds(ground, floor);
+
+        /// <summary>
+        /// The floor opened over the example as its plan and stage honour it: none with the roof
+        /// on, or where no room stands on it, which then shows every room rather than none.
+        /// </summary>
+        public static float? ExamplePlanFloor => ExampleOpenFloor is float floor && ExampleRoomsOnFloor > 0 ? floor : (float?)null;
+
+        /// <summary>How a room of the example shows with the floor opened: whole on it, else as its box says, below faintly or above not at all.</summary>
+        public static PlanRoomShown ExampleRoomShown(PlacedRoom room)
+        {
+            var floor = ExamplePlanFloor;
+            if (floor == null) return PlanRoomShown.Whole;
+            return OnFloor(room, floor.Value) ? PlanRoomShown.Whole : ExamplePlan.Shown(room, floor);
         }
 
         /// <summary>
@@ -191,14 +222,16 @@ namespace Scry
         /// example sleeps, and the room alone is woken for it beside the example: a dungeon's
         /// example stands where its location does, so the room stands the same in either.
         /// </summary>
-        private static void ReadFloors(GameObject copy, int patch)
+        private static void ReadFloors(GameObject copy, PlacedRoom room, int patch)
         {
             var read = Timing.Start();
             var asleep = !_exampleHolder.activeSelf;
             if (asleep) copy.transform.SetParent(_subject.transform, false);
             RoomHits.Clear();
             _exampleGround += FloorProbe.Read(copy, _subject.transform, _layer, RoomHits, patch);
-            ExamplePatches.Add(FloorFinder.Patch(RoomHits));
+            var ground = FloorFinder.Patch(RoomHits);
+            ExamplePatches.Add(ground);
+            RoomGround[room] = ground;
             RoomHits.Clear();
             if (asleep) copy.transform.SetParent(_exampleHolder.transform, false);
             Timing.Add("example floors", read);
@@ -217,6 +250,8 @@ namespace Scry
             _exampleCopies = 0;
             ExamplePatches.Clear();
             ExampleCopies.Clear();
+            RoomGround.Clear();
+            _countedAt = -1;
             _exampleGround = 0f;
             OutsideParts.Clear();
         }
@@ -303,9 +338,8 @@ namespace Scry
             var direction = holder.InverseTransformVector(ray);
             var below = Cutting ? holder.InverseTransformPoint(new Vector3(eye.position.x, Origin.y + CutAt * _scale, eye.position.z)).y : float.PositiveInfinity;
             // Rooms put away with a floor opened are passed by.
-            var floor = _exampleIsDungeon ? ExampleOpenFloor : null;
             var room = _examplePlaced.Pick(new Vec3(from.x, from.y, from.z), new Vec3(direction.x, direction.y, direction.z), below,
-                floor == null ? (Func<PlacedRoom, bool>)null : r => ExamplePlan.Shown(r, floor) == PlanRoomShown.Whole);
+                _exampleIsDungeon ? r => ExampleRoomShown(r) == PlanRoomShown.Whole : (Func<PlacedRoom, bool>)null);
             return room != null && _examplePlaced.Rooms.IndexOf(room) < _exampleNext ? room : null;
         }
 

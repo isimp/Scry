@@ -161,6 +161,23 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ARoomStandsOnAFloorItsOwnRaysFoundGroundOn()
+        {
+            // A room's meshes can reach past the box the game sizes it by, so a floor found in it
+            // is checked against what its own rays found: ground within a metre of the floor.
+            var tower = FloorFinder.Patch(Patch(0, 0, 12, 12, 0f).Concat(Patch(0, 0, 12, 12, 6.2f)));
+            Assert.True(FloorFinder.Holds(tower, 6f));
+            Assert.True(FloorFinder.Holds(tower, 0.5f));
+            Assert.False(FloorFinder.Holds(tower, 3f));
+            Assert.False(FloorFinder.Holds(tower, 7.5f));
+
+            // Ground open to the sky, a ledge too narrow to stand on and nothing at all hold none.
+            Assert.False(FloorFinder.Holds(FloorFinder.Patch(Patch(0, 0, 12, 12, 6f, open: true)), 6f));
+            Assert.False(FloorFinder.Holds(FloorFinder.Patch(Patch(0, 0, 12, 1, 6f)), 6f));
+            Assert.False(FloorFinder.Holds(FloorFinder.Patch(new FloorHit[0]), 6f));
+        }
+
+        [Fact]
         public void NothingHitIsNoFloor()
         {
             Assert.Empty(FloorFinder.Floors(new List<FloorHit>(), 100f));

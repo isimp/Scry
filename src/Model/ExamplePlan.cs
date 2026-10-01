@@ -104,6 +104,10 @@ namespace Scry
 
         /// <summary>The room a point of the plan is in: the topmost of those shown whole there, or null.</summary>
         public static PlacedRoom RoomAt(IEnumerable<PlacedRoom> rooms, float x, float z, float? floor) =>
-            rooms.Where(r => Shown(r, floor) == PlanRoomShown.Whole && r.Covers(x, z)).OrderBy(r => r.Position.Y).LastOrDefault();
+            TopmostAt(rooms, x, z, r => Shown(r, floor) == PlanRoomShown.Whole);
+
+        /// <summary>The room a point of the plan is in: the topmost of those <paramref name="whole"/> says show whole, or null.</summary>
+        public static PlacedRoom TopmostAt(IEnumerable<PlacedRoom> rooms, float x, float z, Func<PlacedRoom, bool> whole) =>
+            rooms.Where(r => whole(r) && r.Covers(x, z)).OrderBy(r => r.Position.Y).LastOrDefault();
     }
 }

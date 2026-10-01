@@ -117,6 +117,24 @@ namespace Scry
             return patch;
         }
 
+        /// <summary>How near a floor a room's own ground must be for the room to stand on it, in metres.</summary>
+        public const float Holding = 1f;
+
+        /// <summary>
+        /// Whether a patch's rays found ground one can stand on within <see cref="Holding"/> of a
+        /// floor: a room of an example stands on a floor its own rays found ground on, whatever
+        /// box the game sizes the room by.
+        /// </summary>
+        public static bool Holds(FloorPatch patch, float floor)
+        {
+            // A patch keeps only bands its rays found ground in.
+            foreach (var band in patch.Bands.Values)
+            {
+                if (Math.Abs(band.Sum / band.Count - floor) <= Holding) return true;
+            }
+            return false;
+        }
+
         /// <summary>The floors from the top down from what each patch of rays found, and the ground they were cast over.</summary>
         public static List<float> Floors(IEnumerable<FloorPatch> patches, float footprint)
         {
