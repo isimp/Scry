@@ -100,6 +100,9 @@ namespace Scry
             }
         }
 
+        /// <summary>What waits for each world key: raids, spawns, spawners and traders' wares (<see cref="UnlockBook"/>).</summary>
+        public static readonly UnlockBook Unlocks = new UnlockBook();
+
         /// <summary>What a young one may grow into, each once.</summary>
         public static List<GameObject> GrownOf(Growup grow)
         {
@@ -200,6 +203,7 @@ namespace Scry
                         Keys = new[] { data.m_requiredGlobalKey },
                     };
                     Add(name, SpawnWords.Line("Spawns in", spawn, BossOf), BossPrefabOf(data.m_requiredGlobalKey));
+                    Unlocks.Add(data.m_requiredGlobalKey, Unlock.Spawns, name);
                 });
             }
         }
@@ -226,6 +230,8 @@ namespace Scry
                     NotKeys = perPlayer || raid.m_notRequiredGlobalKeys == null ? new string[0] : raid.m_notRequiredGlobalKeys.ToArray(),
                 };
                 var line = SpawnWords.Line(facts.Biomes.Length > 0 ? start + ", in" : start, facts, BossOf);
+                foreach (var key in facts.Keys) Unlocks.Add(key, Unlock.RaidStarts, EntryKeys.For(Kind.Raid, raid.m_name));
+                foreach (var key in facts.NotKeys) Unlocks.Add(key, Unlock.RaidEnds, EntryKeys.For(Kind.Raid, raid.m_name));
                 if (perPlayer) line += ", for a player whose own progress calls for it";
                 foreach (var data in raid.m_spawn)
                 {
@@ -269,6 +275,8 @@ namespace Scry
                     Keys = new[] { point.m_requiredGlobalKey }, NotKeys = new[] { point.m_blockingGlobalKey },
                 };
                 SpawnPointsLeft.Add((prefab, point.m_creaturePrefab, spawn));
+                Unlocks.Add(point.m_requiredGlobalKey, Unlock.Spawns, point.m_creaturePrefab.name);
+                Unlocks.Add(point.m_blockingGlobalKey, Unlock.StopsSpawning, point.m_creaturePrefab.name);
             }
         }
 
@@ -452,6 +460,7 @@ namespace Scry
                     var stack = trade.m_stack > 1 ? $"{trade.m_stack} for " : "";
                     var key = string.IsNullOrEmpty(trade.m_requiredGlobalKey) ? "" : ", " + SpawnWords.Once(trade.m_requiredGlobalKey, BossOf);
                     From(trade.m_prefab.gameObject.name, new Source($"Sold by {name}, {stack}{trade.m_price} coins{key}", self));
+                    Unlocks.Add(trade.m_requiredGlobalKey, Unlock.Sells, trade.m_prefab.gameObject.name);
                 }
             });
         }

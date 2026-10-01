@@ -224,6 +224,7 @@ namespace Scry
             Baits.Clear();
             Keys.Clear();
             Powers.Clear();
+            Unlocks.Clear();
             ComesFrom.Clear();
             PlacedByWorld.Clear();
             GiverList.Clear();

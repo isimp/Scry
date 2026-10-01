@@ -38,6 +38,8 @@ namespace Scry
             Part("attacks", () => Attacks(prefab));
             Part("behaviour", () => Behaviour(prefab, character));
             if (character.m_boss) Part("summoning", () => SummonedBy(prefab));
+            var key = character.m_defeatSetGlobalKey;
+            if (!string.IsNullOrEmpty(key) && Knowledge.Unlocks.Any(key)) Part("after it falls", () => AfterItFalls(key));
 
             if (prefab.GetComponent<Tameable>() != null)
             {
@@ -164,6 +166,32 @@ namespace Scry
 
             var grow = prefab.GetComponent<Growup>();
             if (grow != null) Part("growing up", () => GrowingUp(grow));
+        }
+
+        /// <summary>
+        /// What its defeat opens, through the world key it sets (<c>Character.m_defeatSetGlobalKey</c>):
+        /// raids that may then come or stop, what then spawns or stops spawning, and what traders
+        /// then sell, a row for each, each thing a chip going to it.
+        /// </summary>
+        private void AfterItFalls(string key)
+        {
+            var catalog = Session.Explorer?.Catalog;
+            foreach (Unlock kind in Enum.GetValues(typeof(Unlock)))
+            {
+                var targets = Knowledge.Unlocks.Of(key, kind);
+                if (targets.Count == 0) continue;
+                var row = new Row { Title = UnlockWords.Title(kind, targets.Count) };
+                foreach (var target in targets)
+                {
+                    if (kind == Unlock.RaidStarts || kind == Unlock.RaidEnds)
+                    {
+                        var raid = catalog?.FirstOrDefault(e => e.Key == target);
+                        if (raid != null) row.Items.Add(EntryChip(raid));
+                    }
+                    else row.Items.Add(Chip(target, ""));
+                }
+                if (row.Items.Count > 0) Rows.Add(row);
+            }
         }
 
         /// <summary>What a saddle lets it be ridden with, and its stamina while ridden (<c>Sadle</c>).</summary>

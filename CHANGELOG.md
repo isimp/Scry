@@ -32,6 +32,8 @@ A piece tells where it may be placed: on the ground or cultivated ground only, n
 
 A ballista tells what it fires and at whom, and the trophies that make it shoot only their creatures; a trap on whom it springs and how hard; a ship whether the Ashlands' seas burn it and what it takes capsized; a cart what it weighs with its load; a catapult what it loads.
 
+A boss, or any creature whose defeat moves the world on, tells what follows its fall: the raids that may then come and those that stop, what then spawns and what spawners stop placing, and what traders then sell.
+
 What creatures drop as you play is watched and kept from session to session, whichever mod put it there: a creature shows what it was seen dropping and in how many of your kills, and an item names every creature seen dropping it. Nothing is changed by watching, and loot another player's game makes is not seen.
 
 *Mod report*, above the list while it shows only what mods added or with `/scry mods`, sums up each mod: what it adds, what Scry links for its crafting stations and build tools, which of the game's rules it hooks into, and what Scry could not place, such as a station nothing is made or built at or an item with no source Scry sees.

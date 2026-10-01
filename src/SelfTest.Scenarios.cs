@@ -47,6 +47,7 @@ namespace Scry
             yield return S("fish tell their baits, doors their keys, and bosses and trophies their Forsaken powers, each both ways", BaitsKeysPowers, 10);
             yield return S("pieces tell where they may be placed, stations their reach, upgrades their station, areas what they do, and beds what they need", BuildingRules, 10);
             yield return S("ballistas, traps, ships, carts and catapults tell what they do", MachineFacts, 10);
+            yield return S("a creature whose defeat sets a world key tells what then follows", AfterDefeat, 10);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
             yield return S("items, stations, smelters and beds tell what they are for", WhatThingsTell, 10);
@@ -632,6 +633,39 @@ namespace Scry
             p.Check(bosses.Count > 0 && unpowered.Count == 0, "every one names its power", string.Join(", ", unpowered));
             var trophy = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && Knowledge.PowerOf(e.Name).Power != null);
             if (trophy != null) p.Check(Value(Facts.For(trophy), "On its boss stone") != null, $"{trophy.Name} names the power it gives on its boss stone");
+            yield break;
+        }
+
+        /// <summary>
+        /// Every creature whose defeat sets a world key that something waits for tells it, and
+        /// every raid the game's own list waits on that key for is among its raids.
+        /// </summary>
+        private static IEnumerator AfterDefeat(Probe p)
+        {
+            var keyed = X.Catalog.Where(e => e.Kind == Kind.Creature && e.Source is GameObject g && g.GetComponent<Character>() is Character c && !string.IsNullOrEmpty(c.m_defeatSetGlobalKey))
+                .Select(e => (Entry: e, Key: ((GameObject)e.Source).GetComponent<Character>().m_defeatSetGlobalKey)).ToList();
+            p.Note($"{keyed.Count} creatures set a world key when they fall: {string.Join(", ", keyed.Take(12).Select(k => $"{k.Entry.Name} ({k.Key})"))}");
+            var silent = keyed.Where(k => Knowledge.Unlocks.Any(k.Key) && !Facts.For(k.Entry).Rows.Any(r => r.Title.StartsWith("After it falls", StringComparison.Ordinal))).Select(k => k.Entry.Name).ToList();
+            p.Check(silent.Count == 0, "each one something waits for tells what follows", string.Join(", ", silent.Take(5)));
+            foreach (var (entry, key) in keyed.Take(3))
+            {
+                p.Note($"{entry.Name}: " + string.Join("; ", Facts.For(entry).Rows.Where(r => r.Title.StartsWith("After it falls", StringComparison.Ordinal)).Select(r => $"{r.Title}: {string.Join(", ", r.Items.Take(6).Select(i => i.Name))}")));
+            }
+
+            var byPlayer = ZoneSystem.instance != null && ZoneSystem.instance.GetGlobalKey(GlobalKeys.PlayerEvents);
+            var missed = new List<string>();
+            if (!byPlayer && RandEventSystem.instance != null)
+            {
+                foreach (var raid in RandEventSystem.instance.m_events)
+                {
+                    if (raid?.m_requiredGlobalKeys == null) continue;
+                    foreach (var key in raid.m_requiredGlobalKeys)
+                    {
+                        if (!Knowledge.Unlocks.Of(key, Unlock.RaidStarts).Contains(EntryKeys.For(Kind.Raid, raid.m_name))) missed.Add($"{raid.m_name} ({key})");
+                    }
+                }
+            }
+            p.Check(missed.Count == 0, "every raid waiting on a key is told under it", string.Join(", ", missed.Take(5)));
             yield break;
         }
 
