@@ -50,6 +50,7 @@ namespace Scry
             yield return S("a creature whose defeat sets a world key tells what then follows", AfterDefeat, 10);
             yield return S("each biome has a page of its weathers, music and what is there, and every biome named has one", BiomePages, 10);
             yield return S("what Scry is not sure of is marked with why, and what it read from the game is not", UnsureMarks, 10);
+            yield return S("resistances show as a grid of every damage type on every creature, piece and rock", ResistanceGrids, 10);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
             yield return S("items, stations, smelters and beds tell what they are for", WhatThingsTell, 10);
@@ -530,8 +531,8 @@ namespace Scry
             bool Worn(ItemDrop.ItemData.ItemType t) => t == ItemDrop.ItemData.ItemType.Chest || t == ItemDrop.ItemData.ItemType.Legs || t == ItemDrop.ItemData.ItemType.Helmet || t == ItemDrop.ItemData.ItemType.Shoulder;
             var cases = new (string What, Func<ItemDrop.ItemData.SharedData, bool> Has, string Label)[]
             {
-                ("armour resisting while worn", s => Worn(s.m_itemType) && s.m_damageModifiers.Any(m => m.m_modifier != HitData.DamageModifier.Normal), "When worn"),
-                ("a shield resisting while blocking", s => s.m_itemType == ItemDrop.ItemData.ItemType.Shield && s.m_damageModifiers.Any(m => m.m_modifier != HitData.DamageModifier.Normal), "When blocking"),
+                ("armour resisting while worn", s => Worn(s.m_itemType) && s.m_damageModifiers.Any(m => m.m_modifier != HitData.DamageModifier.Normal), "Damage it takes while worn"),
+                ("a shield resisting while blocking", s => s.m_itemType == ItemDrop.ItemData.ItemType.Shield && s.m_damageModifiers.Any(m => m.m_modifier != HitData.DamageModifier.Normal), "Damage it takes while blocking"),
                 ("gear against heat", s => Math.Abs(s.m_heatResistanceModifier) >= 0.005f, "Heat resistance"),
                 ("gear changing run stamina", s => Math.Abs(s.m_runStaminaModifier) >= 0.005f, "Run stamina"),
                 ("gear changing eitr regeneration", s => Math.Abs(s.m_eitrRegenModifier) >= 0.005f, "Eitr regeneration"),
@@ -549,7 +550,8 @@ namespace Scry
                     continue;
                 }
                 var (entry, _) = found[0];
-                var value = Value(Facts.For(entry), label);
+                var gearFacts = Facts.For(entry);
+                var value = Value(gearFacts, label) ?? (gearFacts.Rows.Any(r => r.Title == label && r.Cells != null) ? string.Join(", ", gearFacts.Rows.First(r => r.Title == label).Cells.Where(c => c.Tone != Tone.Plain).Select(c => c.Type + " " + c.Value)) : null);
                 p.Check(value != null, $"{entry.Name}, {what} ({found.Count} such), tells it under {label}", value ?? "not told");
                 if (value != null) p.Note($"{entry.Name}: {label} {value}");
             }
@@ -636,6 +638,33 @@ namespace Scry
             var trophy = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && Knowledge.PowerOf(e.Name).Power != null);
             if (trophy != null) p.Check(Value(Facts.For(trophy), "On its boss stone") != null, $"{trophy.Name} names the power it gives on its boss stone");
             yield break;
+        }
+
+        /// <summary>
+        /// Every creature, every piece that can be damaged and every rock or tree tells its
+        /// resistances as the same grid of ten damage types; one drawn on the page counts.
+        /// </summary>
+        private static IEnumerator ResistanceGrids(Probe p)
+        {
+            GameObject Of(Entry e) => e.Source as GameObject;
+            bool HasGrid(Entry e) => Facts.For(e).Rows.Any(r => r.Cells != null && r.Cells.Count == ResistWords.Types.Length);
+            var creatures = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<Character>() != null && !(Of(e).GetComponent<Character>() is Player)).ToList();
+            var gridless = creatures.Where(e => !HasGrid(e)).Select(e => e.Name).ToList();
+            p.Check(creatures.Count > 0 && gridless.Count == 0, $"every creature ({creatures.Count}) has the grid", string.Join(", ", gridless.Take(5)));
+            var pieces = Spread(X.Catalog.Where(e => e.Kind == Kind.Piece && Of(e)?.GetComponent<WearNTear>() != null && Of(e).GetComponent<Piece>()?.enabled == true).OrderBy(e => e.Name, StringComparer.Ordinal).ToList(), 40);
+            var pieceless = pieces.Where(e => !HasGrid(e)).Select(e => e.Name).ToList();
+            p.Check(pieceless.Count == 0, $"a spread of {pieces.Count} pieces each have it", string.Join(", ", pieceless.Take(5)));
+            var rocks = Spread(X.Catalog.Where(e => e.Kind == Kind.Resource && (Of(e)?.GetComponent<Destructible>() != null || Of(e)?.GetComponent<MineRock5>() != null)).OrderBy(e => e.Name, StringComparer.Ordinal).ToList(), 20);
+            p.Note($"{rocks.Count(HasGrid)} of a spread of {rocks.Count} rocks and trees have it");
+
+            var shown = creatures.FirstOrDefault(e => e.Name == "Troll") ?? creatures.FirstOrDefault();
+            if (shown == null) yield break;
+            var cells = Facts.For(shown).Rows.First(r => r.Cells != null).Cells;
+            p.Note($"{shown.Name}: {string.Join(", ", cells.Select(c => $"{c.Type} {c.Value}"))}");
+            Select(shown);
+            var drawn = ScryPanel.GridsDrawn;
+            yield return Until(() => ScryPanel.GridsDrawn > drawn, 3);
+            p.Check(ScryPanel.GridsDrawn > drawn, $"{shown.Name}'s page draws its grid");
         }
 
         /// <summary>

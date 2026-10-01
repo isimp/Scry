@@ -27,6 +27,9 @@ namespace Scry
 
             /// <summary>Why Scry is not sure of the row, or null when it is (<see cref="UnsureWords"/>).</summary>
             public string Unsure;
+
+            /// <summary>A grid in place of chips: every damage type and the share of it taken (<see cref="ResistWords"/>).</summary>
+            public List<ResistCell> Cells;
             public readonly List<Ingredient> Items = new List<Ingredient>();
         }
 

@@ -168,8 +168,67 @@ namespace Scry
         /// A titled row of chips, each an item with its amount that goes to it when clicked; the
         /// title goes to the station it names. A long row shows its first chips and one for the rest.
         /// </summary>
+        private static GUIStyle _cellType, _cellValue;
+        private static GUIStyle _cellFrom;
+
+        /// <summary>Drawn grids, for the self-test.</summary>
+        public static int GridsDrawn { get; private set; }
+
+        /// <summary>The cells' colours: the plain share faint, resisting green, weak red, taking nothing blue.</summary>
+        private static Color ToneColor(Tone tone)
+        {
+            switch (tone)
+            {
+                case Tone.Resists: return new Color(0.56f, 0.82f, 0.52f);
+                case Tone.Weak: return new Color(0.95f, 0.52f, 0.44f);
+                case Tone.Immune: return new Color(0.52f, 0.76f, 0.98f);
+                default: return Skin.Faint;
+            }
+        }
+
+        /// <summary>
+        /// A grid of every damage type: up to five cells a row, fewer where the side is narrow so
+        /// none is cut, each its type over the share taken, coloured by how it lands, with the
+        /// game's word on hover.
+        /// </summary>
+        private static float GridRow(Facts.Row row, float width, float y)
+        {
+            if (_cellType == null || !ReferenceEquals(_cellFrom, Skin.Small))
+            {
+                _cellFrom = Skin.Small;
+                _cellType = new GUIStyle(Skin.Small) { alignment = TextAnchor.UpperCenter, wordWrap = false, clipping = TextClipping.Clip };
+                _cellType.normal.textColor = Skin.Faint;
+                _cellValue = new GUIStyle(Skin.Small) { alignment = TextAnchor.LowerCenter, fontStyle = FontStyle.Bold, wordWrap = false, clipping = TextClipping.Clip };
+            }
+            y += U(6f);
+            var titleRect = new Rect(0f, y, width, U(20f));
+            GUI.Label(titleRect, row.Unsure != null ? UnsureWords.Marked(row.Title) : row.Title, Skin.DimLabel);
+            if (row.Unsure != null && titleRect.Contains(Event.current.mousePosition)) AskTip("unsure:" + row.Title, row.Unsure);
+            y += U(24f);
+
+            var gap = U(4f);
+            var columns = Mathf.Clamp(Mathf.FloorToInt((width + gap) / (U(62f) + gap)), 2, 5);
+            var cellW = (width - gap * (columns - 1)) / columns;
+            var cellH = U(38f);
+            for (var i = 0; i < row.Cells.Count; i++)
+            {
+                var cell = row.Cells[i];
+                var at = new Rect((i % columns) * (cellW + gap), y + (i / columns) * (cellH + gap), cellW, cellH);
+                if (OutOfSight(at)) continue;
+                Skin.Box(at, Skin.Raised);
+                GUI.Label(new Rect(at.x + U(2f), at.y + U(3f), at.width - U(4f), U(16f)), cell.Type, _cellType);
+                _cellValue.normal.textColor = ToneColor(cell.Tone);
+                GUI.Label(new Rect(at.x + U(2f), at.y, at.width - U(4f), at.height - U(4f)), cell.Value, _cellValue);
+                if (at.Contains(Event.current.mousePosition)) AskTip("cell:" + row.Title + cell.Type, cell.Tip);
+            }
+            if (Event.current.type == EventType.Repaint) GridsDrawn++;
+            var lines = (row.Cells.Count + columns - 1) / columns;
+            return y + lines * (cellH + gap) + U(4f);
+        }
+
         private static float FactRow(Explorer explorer, Facts.Row row, float width, float y)
         {
+            if (row.Cells != null) return GridRow(row, width, y);
             var key = "facts:" + row.Title;
             var count = ShownOf(key, row.Items.Count);
             y += U(6f);

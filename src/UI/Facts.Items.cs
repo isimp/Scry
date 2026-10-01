@@ -199,15 +199,15 @@ namespace Scry
         /// </summary>
         private void GearResists(ItemDrop.ItemData.SharedData shared, bool worn)
         {
-            if (shared.m_damageModifiers == null || shared.m_damageModifiers.Count == 0) return;
             var type = shared.m_itemType;
+            if (shared.m_damageModifiers == null) return;
             var blocks = type == ItemDrop.ItemData.ItemType.Shield || type == ItemDrop.ItemData.ItemType.OneHandedWeapon || type == ItemDrop.ItemData.ItemType.TwoHandedWeapon
                          || type == ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft;
             if (!worn && !blocks) return;
             var mods = default(HitData.DamageModifiers);
             mods.Apply(shared.m_damageModifiers);
-            var degrees = ByDegree(mods);
-            if (degrees.Count > 0) Add(worn ? "When worn" : "When blocking", CombatWords.Resistances(degrees));
+            if (ByDegree(mods).Count > 0) Resists(mods, worn ? "Damage it takes while worn" : "Damage it takes while blocking");
+            else if (worn || type == ItemDrop.ItemData.ItemType.Shield) Add(worn ? "Resists while worn" : "Resists while blocking", "nothing");
         }
 
         /// <summary>What gear changes while worn, by its field names, for <see cref="GearWords"/>.</summary>

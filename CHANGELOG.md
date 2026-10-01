@@ -32,6 +32,8 @@ A piece tells where it may be placed: on the ground or cultivated ground only, n
 
 A ballista tells what it fires and at whom, and the trophies that make it shoot only their creatures; a trap on whom it springs and how hard; a ship whether the Ashlands' seas burn it and what it takes capsized; a cart what it weighs with its load; a catapult what it loads.
 
+Resistances show as a grid of every damage type, the same on every creature, piece, rock and tree, each the share of that damage taken (50% resisted, 150% weak, 0% immune) and coloured by it, so pages line up whatever they resist. Armour and shields show theirs the same way, or say they resist nothing.
+
 What Scry is not sure of is marked with a `~` and a softer colour, and says why when hovered: which mod added something when only clues tell it, what mods hooking into a rule may change, what was seen in play, and where Scry found nothing. Everything else is read from the game or worked out by its rules. An item or creature Scry finds no source for says so instead of leaving the place empty.
 
 Biomes have a tab of their own. A biome's page tells each of its weathers, how likely it is and what it does, its music for each time of day, playing when clicked, and what lives, grows, stands and raids there; *Everything here* searches for all of it, and the biome chips on every page go to it.
