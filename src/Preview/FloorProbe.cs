@@ -7,8 +7,11 @@ namespace Scry
     /// Finds where a place's floors are (<see cref="FloorFinder"/>): its copy is made with its
     /// colliders kept, rays are cast straight down over it onto them on a grid, and where they
     /// land on what is flat is noted, as heights in the space given, with each ray's place on the
-    /// grid and the ground it stands for. A roof (its pieces lean 26 or 45 degrees) or a ramp is
-    /// not flat. The colliders are taken away after, so the copy is like any other.
+    /// grid, the ground it stands for and whether anything of the place is above it. Each ray
+    /// goes down through every surface it meets, not only the first of each collider as one cast
+    /// finds them: a cave room's rock is a single collider, the top of its rock and its floor
+    /// both. A roof (its pieces lean 26 or 45 degrees) or a ramp is not flat. The colliders are
+    /// taken away after, so the copy is like any other.
     /// </summary>
     internal static class FloorProbe
     {
@@ -17,8 +20,12 @@ namespace Scry
 
         private static readonly List<Collider> Colliders = new List<Collider>();
 
-        /// <summary>Where one ray lands, reused for every ray: more than a ray could pass through in any place.</summary>
-        private static readonly RaycastHit[] Landed = new RaycastHit[256];
+        /// <summary>How many surfaces one ray goes through at the most, and how far past each it goes on.</summary>
+        private const int MostSurfaces = 48;
+        private const float Past = 0.02f;
+
+        /// <summary>How far under the topmost thing on a ray a surface must be for something to be above it.</summary>
+        private const float Covered = 0.5f;
 
         /// <summary>
         /// Casts the rays over the copy and adds where they land to <paramref name="hits"/>, as
@@ -56,15 +63,24 @@ namespace Scry
                 var root = copy.transform;
                 var grid = FloorFinder.Grid(bounds.min.x, bounds.max.x, bounds.min.z, bounds.max.z);
                 var cell = FloorFinder.CellArea(bounds.min.x, bounds.max.x, bounds.min.z, bounds.max.z, grid.Count);
+                var bottom = top - length;
                 foreach (var (i, j, x, z) in grid)
                 {
                     rays++;
-                    var count = Physics.RaycastNonAlloc(new Vector3(x, top, z), Vector3.down, Landed, length, mask, QueryTriggerInteraction.Ignore);
-                    for (var k = 0; k < count; k++)
+                    var from = top;
+                    var highest = float.NaN;
+                    for (var step = 0; step < MostSurfaces && from > bottom; step++)
                     {
-                        var hit = Landed[k];
-                        if (hit.normal.y < Flat || hit.collider == null || !hit.collider.transform.IsChildOf(root)) continue;
-                        hits.Add(new FloorHit { Patch = patch, I = i, J = j, Height = space.InverseTransformPoint(hit.point).y, Area = cell });
+                        if (!Physics.Raycast(new Vector3(x, from, z), Vector3.down, out var hit, from - bottom, mask, QueryTriggerInteraction.Ignore)) break;
+                        from = hit.point.y - Past;
+                        if (hit.collider == null || !hit.collider.transform.IsChildOf(root)) continue;
+                        if (float.IsNaN(highest)) highest = hit.point.y;
+                        if (hit.normal.y < Flat) continue;
+                        hits.Add(new FloorHit
+                        {
+                            Patch = patch, I = i, J = j, Height = space.InverseTransformPoint(hit.point).y, Area = cell,
+                            Open = highest - hit.point.y < Covered,
+                        });
                         names?.Add(hit.collider.gameObject.name.Replace("(Clone)", "").Trim());
                     }
                 }

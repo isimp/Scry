@@ -28,6 +28,12 @@ namespace Scry
         private static int _exampleNext;
         private static int _exampleCopies;
         private static Ghost.Building _exampleBuild;
+
+        /// <summary>The example's rooms standing on the stage, each with its copy, to put away those off the floor opened.</summary>
+        private static readonly List<KeyValuePair<PlacedRoom, GameObject>> ExampleCopies = new List<KeyValuePair<PlacedRoom, GameObject>>();
+
+        /// <summary>A few milliseconds a frame for putting rooms away and back as floors are opened.</summary>
+        private const double KeepBudgetMs = 4.0;
         private static bool _exampleIsDungeon;
         private static readonly List<GameObject> OutsideParts = new List<GameObject>();
 
@@ -88,6 +94,7 @@ namespace Scry
         {
             if (_subject == null || !ReferenceEquals(_lastShown, entry) || example == null || plan == null) return;
             if (_exampleHolder == null || !ReferenceEquals(_exampleOf, example)) BeginExample(example, plan);
+            KeepToFloor();
             if (_exampleNext >= _examplePlaced.Rooms.Count) return;
 
             var made = Timing.Start();
@@ -112,10 +119,12 @@ namespace Scry
                 stepped = true;
                 if (!_exampleBuild.Go(ExampleBudgetMs - watch.Elapsed.TotalMilliseconds)) break;
                 var copy = _exampleBuild.Result;
+                var placed = _examplePlaced.Rooms[_exampleNext];
                 _exampleBuild = null;
                 _exampleNext++;
                 if (copy == null) continue;
                 placedAny = true;
+                ExampleCopies.Add(new KeyValuePair<PlacedRoom, GameObject>(placed, copy));
 
                 // A dungeon room's floors; a camp keeps its location's.
                 if (_exampleIsDungeon) ReadFloors(copy, _exampleCopies);
@@ -127,6 +136,54 @@ namespace Scry
             }
             if (placedAny && _exampleIsDungeon && _inside && _exampleCopies > 1) RefreshFloors(ExampleFloorsNow());
             Timing.Add("stage example", made);
+        }
+
+        /// <summary>
+        /// With a floor opened inside a dungeon's example, only that floor's rooms stand on the
+        /// stage (<see cref="ExamplePlan.Shown"/>): those below are put away, as those above are
+        /// cut away; with the roof on, or its entrance shown, every room stands. A few each frame,
+        /// as a big example puts many away or back at once.
+        /// </summary>
+        private static void KeepToFloor()
+        {
+            if (!_exampleIsDungeon || _exampleHolder == null || ExampleCopies.Count == 0) return;
+            var floor = ExampleOpenFloor;
+            var watch = Stopwatch.StartNew();
+            foreach (var pair in ExampleCopies)
+            {
+                if (pair.Value == null) continue;
+                var wanted = ExamplePlan.Shown(pair.Key, floor) == PlanRoomShown.Whole;
+                if (pair.Value.activeSelf == wanted) continue;
+                pair.Value.SetActive(wanted);
+                if (watch.Elapsed.TotalMilliseconds >= KeepBudgetMs) break;
+            }
+        }
+
+        /// <summary>How many of the example's rooms are put away, off the floor opened, for the self-test.</summary>
+        public static int ExampleRoomsAway
+        {
+            get
+            {
+                var away = 0;
+                foreach (var pair in ExampleCopies) if (pair.Value != null && !pair.Value.activeSelf) away++;
+                return away;
+            }
+        }
+
+        /// <summary>How many rooms of the example stand on the floor opened, end caps and dividers left out; -1 with no floor of an example opened.</summary>
+        public static int ExampleRoomsOnFloor
+        {
+            get
+            {
+                var floor = ExampleOpenFloor;
+                if (floor == null || _examplePlaced == null) return -1;
+                var count = 0;
+                foreach (var room in _examplePlaced.Rooms)
+                {
+                    if (!room.Room.EndCap && !room.Room.Divider && ExamplePlan.Shown(room, floor) == PlanRoomShown.Whole) count++;
+                }
+                return count;
+            }
         }
 
         /// <summary>
@@ -159,6 +216,7 @@ namespace Scry
             _exampleNext = 0;
             _exampleCopies = 0;
             ExamplePatches.Clear();
+            ExampleCopies.Clear();
             _exampleGround = 0f;
             OutsideParts.Clear();
         }
@@ -244,7 +302,10 @@ namespace Scry
             var from = holder.InverseTransformPoint(eye.position);
             var direction = holder.InverseTransformVector(ray);
             var below = Cutting ? holder.InverseTransformPoint(new Vector3(eye.position.x, Origin.y + CutAt * _scale, eye.position.z)).y : float.PositiveInfinity;
-            var room = _examplePlaced.Pick(new Vec3(from.x, from.y, from.z), new Vec3(direction.x, direction.y, direction.z), below);
+            // Rooms put away with a floor opened are passed by.
+            var floor = _exampleIsDungeon ? ExampleOpenFloor : null;
+            var room = _examplePlaced.Pick(new Vec3(from.x, from.y, from.z), new Vec3(direction.x, direction.y, direction.z), below,
+                floor == null ? (Func<PlacedRoom, bool>)null : r => ExamplePlan.Shown(r, floor) == PlanRoomShown.Whole);
             return room != null && _examplePlaced.Rooms.IndexOf(room) < _exampleNext ? room : null;
         }
 

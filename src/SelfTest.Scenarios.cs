@@ -1252,8 +1252,21 @@ namespace Scry
                 var down = cuts.Zip(cuts.Skip(1), (above, below) => below < above).All(lower => lower);
                 p.Note($"{Stage.FloorHeights.Count} floors found in its rooms");
                 p.Check(cuts.Count > 0 && down, "it steps down floor by floor", string.Join(", ", cuts.Select(c => c.ToString("0.0"))) + " m");
+                if (Stage.FloorHeights.Count > 1)
+                {
+                    // On its lowest floor the rooms above are put away; with the roof on, all stand again.
+                    yield return Until(() => Stage.ExampleRoomsAway > 0, 3);
+                    var label = PlaceView.FloorLabel(Stage.CutLevel, Stage.FloorHeights.Count, Stage.ExampleRoomsOnFloor);
+                    p.Check(Stage.ExampleRoomsAway > 0 && label != null, "a floor opened shows its own rooms alone, named by the ruler", $"{Stage.ExampleRoomsAway} rooms put away; {label ?? "no label"}");
+                    Stage.OpenLevel(Stage.FloorHeights.Count);
+                    yield return Until(() => Stage.ExampleRoomsAway == 0, 3);
+                    p.Check(Stage.ExampleRoomsAway == 0, "with the roof on every room stands", $"{Stage.ExampleRoomsAway} still away");
+                }
                 Stage.OpenLevel(0);
-                var point = Stage.ExamplePointOf(0);
+                yield return Until(() => Stage.ExampleRoomsAway > 0 || Stage.FloorHeights.Count < 2, 2);
+                // A room of the top floor, which stands while it is opened.
+                var top = Stage.ExampleShown?.Rooms.FindIndex(r => !r.Room.EndCap && !r.Room.Divider && ExamplePlan.Shown(r, Stage.ExampleOpenFloor) == PlanRoomShown.Whole) ?? -1;
+                var point = Stage.ExamplePointOf(Math.Max(0, top));
                 p.Check(point.HasValue && Stage.ExampleRoomAt(point.Value) != null, "a room on the stage is found under the mouse", point?.ToString() ?? "not in view");
                 Stage.Inside = false;
                 yield return null;

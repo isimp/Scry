@@ -58,6 +58,16 @@ namespace Scry
                 }
                 var cutY = Stage.Cutting ? Y(Stage.CutAt) : rect.y;
                 Skin.Fill(new Rect(rect.x - U(4f), cutY - U(1.5f), rect.width + U(8f), U(3f)), Skin.Accent);
+
+                // The floor opened named beside the cut, with an example's rooms on it.
+                var named = Stage.Cutting ? PlaceView.FloorLabel(Stage.CutLevel, floors.Count, Stage.ExampleRoomsOnFloor) : null;
+                if (named != null)
+                {
+                    var labelW = Skin.Width(Skin.DimLabel, named) + U(12f);
+                    var label = new Rect(rect.x - U(8f) - labelW, Mathf.Clamp(cutY - U(11f), stage.y, stage.yMax - U(22f)), labelW, U(22f));
+                    Skin.Fill(label, new Color(Skin.Stage.r, Skin.Stage.g, Skin.Stage.b, 0.75f));
+                    GUI.Label(new Rect(label.x + U(6f), label.y, label.width - U(6f), label.height), named, Skin.DimLabel);
+                }
             }
 
             var area = new Rect(rect.x - U(6f), rect.y - U(6f), rect.width + U(12f), rect.height + U(12f));

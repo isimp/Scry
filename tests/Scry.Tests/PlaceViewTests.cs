@@ -145,5 +145,19 @@ namespace Scry.Tests
         {
             Assert.Equal(said, PlaceView.CutLabel(level, floors));
         }
+
+        [Theory]
+        [InlineData(0, 3, 14, "Top floor, 14 rooms")]
+        [InlineData(1, 3, 1, "Floor 2 of 3, 1 room")]
+        [InlineData(2, 3, -1, "Floor 3 of 3")]
+        [InlineData(1, 3, 0, "Floor 2 of 3, no rooms")]
+        [InlineData(0, 1, 6, "6 rooms")]
+        [InlineData(0, 1, -1, null)]
+        [InlineData(3, 3, 14, null)]
+        public void TheFloorOpenedIsNamedByTheRulerWithItsRooms(int level, int floors, int rooms, string said)
+        {
+            // Rooms are counted only for an example; with the roof on nothing is named.
+            Assert.Equal(said, PlaceView.FloorLabel(level, floors, rooms));
+        }
     }
 }

@@ -15,9 +15,9 @@ namespace Scry.Tests
 
         private const float Cell = 0.25f;
 
-        /// <summary>A flat patch of cells, so many wide and deep, at a height.</summary>
-        private static IEnumerable<FloorHit> Patch(int i0, int j0, int wide, int deep, float height, int patch = 0) =>
-            from i in Enumerable.Range(i0, wide) from j in Enumerable.Range(j0, deep) select new FloorHit { Patch = patch, I = i, J = j, Height = height, Area = Cell };
+        /// <summary>A flat patch of cells, so many wide and deep, at a height; open with nothing of the place above it.</summary>
+        private static IEnumerable<FloorHit> Patch(int i0, int j0, int wide, int deep, float height, int patch = 0, bool open = false) =>
+            from i in Enumerable.Range(i0, wide) from j in Enumerable.Range(j0, deep) select new FloorHit { Patch = patch, I = i, J = j, Height = height, Area = Cell, Open = open };
 
         private static List<float> Floors(IEnumerable<FloorHit> hits, int raysPerSide = 20) =>
             FloorFinder.Floors(hits.ToList(), raysPerSide * raysPerSide * Cell);
@@ -31,6 +31,20 @@ namespace Scry.Tests
             Assert.Equal(8.3f, floors[0], 2);
             Assert.Equal(4.2f, floors[1], 2);
             Assert.Equal(0.1f, floors[2], 2);
+        }
+
+        [Fact]
+        public void WhatHasNothingAboveItIsNoFloorToCutTo()
+        {
+            // A flat roof's top, a cave's rock over its hollow, a tower's open deck: seen with the
+            // roof on, so no floor to cut to. The rooms under it are.
+            var floors = Floors(Patch(0, 0, 20, 20, 9f, open: true).Concat(Patch(0, 0, 20, 20, 4.2f)).Concat(Patch(0, 0, 20, 20, 0.1f)));
+            Assert.Equal(2, floors.Count);
+            Assert.Equal(4.2f, floors[0], 2);
+            Assert.Equal(0.1f, floors[1], 2);
+
+            // A place open to the sky all over has none.
+            Assert.Empty(Floors(Patch(0, 0, 20, 20, 0f, open: true)));
         }
 
         [Fact]

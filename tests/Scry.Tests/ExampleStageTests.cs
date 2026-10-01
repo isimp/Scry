@@ -127,6 +127,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ARoomPutAwayIsNotPointedAt()
+        {
+            // With a floor opened, the rooms of other floors are put away: the pointer goes past them.
+            var upper = At(Box("upper", 8f, 4f, 8f), 0f, 0f, 0f);
+            var lower = At(Box("lower", 8f, 4f, 8f), 0f, -8f, 0f);
+            var example = new DungeonExample { Rooms = { upper, lower } };
+            var down = new Vec3(0f, -1f, 0f);
+
+            Assert.Same(lower, example.Pick(new Vec3(1f, 50f, 1f), down, shown: r => r != upper));
+            Assert.Null(example.Pick(new Vec3(1f, 50f, 1f), down, shown: r => false));
+        }
+
+        [Fact]
         public void ATurnedRoomIsMetWhereItStands()
         {
             var long_ = At(Box("long", 2f, 4f, 10f), 0f, 0f, 0f, 90f);

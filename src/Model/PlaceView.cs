@@ -97,6 +97,20 @@ namespace Scry
         }
 
         /// <summary>
+        /// The floor opened, named beside the ruler, from the top as the cut's chip counts them,
+        /// with how many rooms of an example stand on it (none told when <paramref name="rooms"/>
+        /// is below nought); null with the roof on, or for a lone floor with no rooms to count.
+        /// </summary>
+        public static string FloorLabel(int level, int floors, int rooms)
+        {
+            if (level >= floors) return null;
+            var parts = new List<string>();
+            if (floors > 1) parts.Add(level == 0 ? "Top floor" : $"Floor {level + 1} of {floors}");
+            if (rooms >= 0) parts.Add(rooms == 0 ? "no rooms" : rooms == 1 ? "1 room" : $"{rooms} rooms");
+            return parts.Count == 0 ? null : string.Join(", ", parts);
+        }
+
+        /// <summary>
         /// Where a place's ground is, above its root: a location's is its root, where the game
         /// stands it on the terrain, which hides whatever of it reaches below; a room's is its
         /// lowest doorway, the floor it is walked into on (<c>RoomConnection</c>), as rooms are

@@ -7,12 +7,13 @@ namespace Scry
     /// <summary>
     /// Where a ray cast straight down landed on something flat: the patch of rays it belongs to
     /// (each room of an example is probed on its own grid), its place on that grid, the height,
-    /// and the ground it stands for.
+    /// the ground it stands for, and whether it is open, with nothing of the place above it.
     /// </summary>
     public struct FloorHit
     {
         public int Patch, I, J;
         public float Height, Area;
+        public bool Open;
     }
 
     /// <summary>
@@ -39,7 +40,9 @@ namespace Scry
     /// on what is flat, floors, landings and platforms, but also tables, beds and beams. Only
     /// ground one can stand on makes a floor: a spot counts where the spots beside it, all four
     /// ways, landed at the same height too, so a beam, a table or a bed adds nothing; those spots
-    /// must hold <see cref="MinRoom"/> and a share of the place's ground. Heights closer than
+    /// must hold <see cref="MinRoom"/> and a share of the place's ground. What is open, with
+    /// nothing of the place above it (a flat roof's top, a cave's rock over its hollow, a tower's
+    /// open deck), is seen with the roof on and is no floor to cut to. Heights closer than
     /// <see cref="PlaceView.SameFloor"/> are one floor (a step, a dais), the one with the most
     /// room standing for them.
     /// </summary>
@@ -72,6 +75,7 @@ namespace Scry
             var spots = new Dictionary<int, HashSet<(int, int)>>();
             foreach (var hit in hits)
             {
+                if (hit.Open) continue;
                 var band = (int)Math.Round(hit.Height / Band);
                 if (!byBand.TryGetValue(band, out var held))
                 {

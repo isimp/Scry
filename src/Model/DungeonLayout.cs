@@ -113,9 +113,10 @@ namespace Scry
         /// <summary>
         /// The room a ray meets first, going by each room's box (end caps and dividers, which have
         /// no depth, a little deep), leaving out what is above <paramref name="below"/>, where the
-        /// stage cuts the example open; null when it meets none.
+        /// stage cuts the example open, and rooms <paramref name="shown"/> says are put away; null
+        /// when it meets none.
         /// </summary>
-        public PlacedRoom Pick(Vec3 from, Vec3 direction, float below = float.PositiveInfinity)
+        public PlacedRoom Pick(Vec3 from, Vec3 direction, float below = float.PositiveInfinity, Func<PlacedRoom, bool> shown = null)
         {
             // Where the ray is below the cut: from a least t when it goes down, up to a most t when it goes up.
             var least = 0.0;
@@ -135,6 +136,7 @@ namespace Scry
             var nearestT = double.PositiveInfinity;
             foreach (var room in Rooms)
             {
+                if (shown != null && !shown(room)) continue;
                 var back = room.Rotation.Inverse();
                 var o = back * (from - room.Position);
                 var d = back * direction;
