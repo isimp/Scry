@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Scry
@@ -22,6 +23,9 @@ namespace Scry
         /// <summary>How many strikes have played, for the self-test.</summary>
         public static int Played { get; private set; }
 
+        /// <summary>The last contacts a falling copy made, how fast, when, and whether they played, for the self-test to tell.</summary>
+        public static readonly List<(float Speed, float At, bool Struck)> Contacts = new List<(float, float, bool)>();
+
         /// <summary>Has a falling copy play its prefab's impact, if the prefab has one.</summary>
         public static void Add(GameObject prefab, GameObject copy, bool onStage)
         {
@@ -39,8 +43,12 @@ namespace Scry
 
         private void OnCollisionEnter(Collision collision)
         {
-            if (_hit == null || collision.contactCount == 0 || Time.unscaledTime < _next) return;
-            if (collision.relativeVelocity.magnitude < _least) return;
+            if (_hit == null || collision.contactCount == 0) return;
+            var speed = collision.relativeVelocity.magnitude;
+            var struck = Time.unscaledTime >= _next && speed >= _least;
+            Contacts.Add((speed, Time.unscaledTime, struck));
+            if (Contacts.Count > 24) Contacts.RemoveAt(0);
+            if (!struck) return;
             _next = Time.unscaledTime + _interval;
             var point = collision.GetContact(0).point;
             Played++;

@@ -115,7 +115,8 @@ namespace Scry
 
         /// <summary>
         /// A tree copy felled as <c>TreeBase.SpawnLog</c> fells it: its log, the size of the tree,
-        /// tipped over from high up so it topples away from you, and its stump left standing.
+        /// tipped over from high up so it topples away from you, and its stump left standing,
+        /// solid, for the log to topple off.
         /// </summary>
         public static GameObject Fell(GameObject prefab, GameObject copy, Transform parent, int layer, int physicsLayer, Vector3 away)
         {
@@ -147,10 +148,18 @@ namespace Scry
                 body.AddForceAtPosition(away * 0.2f * body.mass, log.transform.position + Vector3.up * 4f * scale, ForceMode.Impulse);
             }
 
+            // The stump stands solid, as the game's does: the log rests on it and topples off onto
+            // the ground, a contact of its own, which is what makes the log strike
+            // (ImpactEffect.OnCollisionEnter); on bare ground the log's foot would touch it all along.
             if (tree.m_stubPrefab != null)
             {
-                var stump = Ghost.Make(tree.m_stubPrefab, holder.transform, copy.transform.position, copy.transform.rotation, layer);
-                if (stump != null) stump.transform.localScale = tree.m_stubPrefab.transform.localScale * scale;
+                var stump = Ghost.Make(tree.m_stubPrefab, holder.transform, copy.transform.position, copy.transform.rotation, layer, falling: true);
+                if (stump != null)
+                {
+                    stump.transform.localScale = tree.m_stubPrefab.transform.localScale * scale;
+                    foreach (var held in stump.GetComponentsInChildren<Rigidbody>(true)) held.isKinematic = true;
+                    if (layer < 0) Solidify(stump, physicsLayer);
+                }
             }
             return holder;
         }
