@@ -49,6 +49,15 @@ namespace Scry
                         if (said != null) Session.Say(said);
                     }
                 }
+                // A mod's website opens in the browser.
+                else if (facts.Links.TryGetValue(pair.Key, out var web) && web.StartsWith(Facts.OpenWebsite, StringComparison.Ordinal))
+                {
+                    var webW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
+                    var webRect = new Rect(valueRect.x, valueRect.y, webW, height);
+                    LinkLabel(webRect, pair.Value, Skin.Wrap, Skin.Accent);
+                    if (webRect.Contains(Event.current.mousePosition)) AskTip("web:" + entry.Key, "Open it in your browser");
+                    if (GUI.Button(webRect, GUIContent.none, GUIStyle.none)) Application.OpenURL(web.Substring(Facts.OpenWebsite.Length));
+                }
                 // A link only to what is in the catalog: a creature's own attack items are not.
                 else if (facts.Links.TryGetValue(pair.Key, out var link) && InCatalog(explorer, link))
                 {

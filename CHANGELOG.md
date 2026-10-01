@@ -24,7 +24,7 @@ What creatures drop as you play is watched and kept from session to session, whi
 
 *Mod report*, above the list while it shows only what mods added or with `/scry mods`, sums up each mod: what it adds, what Scry links for its crafting stations and build tools, which of the game's drops and spawning it hooks into, and what Scry could not place, such as a station nothing is made or built at or an item with no source Scry sees.
 
-Mods have a tab of their own: every mod loaded has a page telling its version, what it adds kind by kind, its stations and tools, which of the game's drops and spawning it hooks into, and what Scry could not place. The line naming the mod that added an entry goes to that page.
+Mods have a tab of their own: every mod loaded has a page telling its version, what it adds kind by kind, its stations and tools, which of the game's drops and spawning it hooks into, and what Scry could not place. The line naming the mod that added an entry goes to that page. A mod installed by a mod manager shows its icon, says what it is, who made it and where its website is, and shows its readme as plain text, all from its package's own files. Every page lists the mods it needs and works with and those needing or working with it, each going to that mod's page, and names any it will not run with.
 
 When part of Scry is off, because the game changed in a way it does not know or a part of it failed, an amber strip under the header says what in plain words instead of a *Game changed* chip, with details that say what to do and copy what is off for a report.
 

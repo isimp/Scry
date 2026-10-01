@@ -40,6 +40,7 @@ namespace Scry
             yield return S("the mod report links every mod station as the game does", ModReportLinks, 20);
             yield return S("what creatures drop in play is watched", DropsWatched, 5);
             yield return S("every mod has a page of what it adds and changes", ModPages, 10);
+            yield return S("a mod's page tells what its package says and how it ties to other mods", ModPackages, 10);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
             yield return S("items, stations, smelters and beds tell what they are for", WhatThingsTell, 10);
@@ -390,6 +391,67 @@ namespace Scry
             var added = X.Catalog.First(c => c.ModName == busiest.Name && c.Kind != Kind.Mod);
             p.Check(X.Catalog.Any(e => e.Key == EntryKeys.For(Kind.Mod, added.ModName)), $"{added.Name} names its mod's page", added.ModName);
             p.Check(X.Jump(busiest.Key) && X.Selected == busiest, "the page can be gone to");
+        }
+
+        /// <summary>
+        /// What mod managers put beside a mod is read: its package's description, author,
+        /// website, icon and readme, each told on its page; and the mods each needs and works
+        /// with are told both ways, as BepInEx and the packages declare them.
+        /// </summary>
+        private static IEnumerator ModPackages(Probe p)
+        {
+            var pages = X.Catalog.Where(e => e.Kind == Kind.Mod && e.Source is ModSource).ToList();
+            var mods = pages.Select(e => (Entry: e, Mod: (ModSource)e.Source)).ToList();
+            var packaged = mods.Where(m => m.Mod.Description.Length > 0 || m.Mod.IconPath.Length > 0 || m.Mod.ReadmePath.Length > 0).ToList();
+            p.Note($"{mods.Count} mods, {packaged.Count} from a package: {mods.Count(m => m.Mod.Description.Length > 0)} described, {mods.Count(m => m.Mod.Author.Length > 0)} with an author, "
+                   + $"{mods.Count(m => ModWords.IsWebsite(m.Mod.Website))} with a website, {mods.Count(m => m.Mod.IconPath.Length > 0)} with an icon, {mods.Count(m => m.Mod.ReadmePath.Length > 0)} with a readme");
+            if (packaged.Count == 0) p.Skip("no mod was installed by a mod manager");
+
+            var iconless = mods.Where(m => m.Mod.IconPath.Length > 0 && !(m.Entry.Icon is Sprite)).Select(m => m.Mod.Name).ToList();
+            p.Check(iconless.Count == 0, "every package's icon is read", string.Join(", ", iconless.Take(5)));
+
+            var described = mods.FirstOrDefault(m => m.Mod.Description.Length > 0 && m.Mod.Author.Length > 0);
+            if (described.Mod != null)
+            {
+                var told = Facts.For(described.Entry);
+                p.Check(told.Description == described.Mod.Description && Value(told, "By") == described.Mod.Author, $"{described.Mod.Name}'s page tells what it is and who made it", $"{told.Description} / {Value(told, "By")}");
+                if (ModWords.IsWebsite(described.Mod.Website))
+                {
+                    p.Check(told.Links.TryGetValue("Website", out var web) && web == Facts.OpenWebsite + described.Mod.Website, "its website opens in the browser");
+                }
+            }
+
+            // Both ways: a mod one needs names it as needing it, and the same for working with.
+            var byName = mods.ToDictionary(m => m.Mod.Name, m => m.Mod.Relations);
+            var oneWay = new List<string>();
+            foreach (var (_, mod) in mods)
+            {
+                foreach (var other in mod.Relations.Needs) if (!byName.TryGetValue(other, out var them) || !them.NeededBy.Contains(mod.Name)) oneWay.Add($"{mod.Name} needs {other}");
+                foreach (var other in mod.Relations.WorksWith) if (!byName.TryGetValue(other, out var them) || !them.WorkedWithBy.Contains(mod.Name)) oneWay.Add($"{mod.Name} works with {other}");
+            }
+            p.Check(oneWay.Count == 0, "every tie between mods is told on both", string.Join("; ", oneWay.Take(5)));
+            var declared = BepInEx.Bootstrap.Chainloader.PluginInfos.Values.Where(i => i?.Metadata != null && i.Dependencies != null)
+                .SelectMany(i => i.Dependencies.Where(d => (d.Flags & BepInEx.BepInDependency.DependencyFlags.HardDependency) != 0 && BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(d.DependencyGUID))
+                    .Select(d => (Mod: i.Metadata.Name, Needs: BepInEx.Bootstrap.Chainloader.PluginInfos[d.DependencyGUID].Metadata.Name))).ToList();
+            var missed = declared.Where(d => d.Mod != d.Needs && byName.TryGetValue(d.Mod, out var r) && !r.Needs.Contains(d.Needs)).Select(d => $"{d.Mod} needs {d.Needs}").ToList();
+            p.Check(missed.Count == 0, $"every mod a mod declares it needs is told ({declared.Count} declared)", string.Join("; ", missed.Take(5)));
+            var mostNeeded = mods.OrderByDescending(m => m.Mod.Relations.NeededBy.Count).First();
+            p.Note($"{mostNeeded.Mod.Name} is needed by {mostNeeded.Mod.Relations.NeededBy.Count}; {mods.Count(m => m.Mod.Relations.WorksWith.Count > 0)} mods work with others when there; {mods.Count(m => m.Mod.Relations.WillNotRunWith.Count > 0)} will not run with some");
+
+            var withReadme = mods.Where(m => m.Mod.ReadmePath.Length > 0).OrderBy(m => m.Mod.Name, StringComparer.Ordinal).Select(m => m.Entry).FirstOrDefault();
+            if (withReadme == null)
+            {
+                p.Note("no mod has a readme");
+                yield break;
+            }
+            var text = ScryPanel.ReadmeOf((ModSource)withReadme.Source);
+            p.Note($"{withReadme.Name}'s readme: {text.Length} characters, starting \"{text.Substring(0, Math.Min(60, text.Length)).Replace('\n', ' ')}\"");
+            p.Check(text.Length > 0 && text.IndexOf("](", StringComparison.Ordinal) < 0 && text.IndexOf("<img", StringComparison.OrdinalIgnoreCase) < 0, "its readme reads as plain text");
+            Select(withReadme);
+            ScryPanel.ReadmeFolded = false;
+            var drawn = ScryPanel.ReadmesDrawn;
+            yield return Until(() => ScryPanel.ReadmesDrawn > drawn, 3);
+            p.Check(ScryPanel.ReadmesDrawn > drawn, "its page shows it under README");
         }
 
         private static IEnumerator SpawnerFacts(Probe p)

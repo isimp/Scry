@@ -142,6 +142,7 @@ namespace Scry
             y = Section("side adjust", y, at => Adjust(explorer, entry, cw, at, withStage));
             y = Section("side facts", y, at => FactsSection(explorer, entry, cw, at));
             y = Section("side runes", y, at => RunesSection(entry, cw, at));
+            y = Section("side readme", y, at => ReadmeSection(entry, cw, at));
             y = Section("side animations", y, at => Animations(explorer, entry, cw, at, withStage));
             y = Section("side effects", y, at => Effects(explorer, entry, cw, at, withStage));
             y = Section("side plays in", y, at => PlaysInSection(explorer, entry, cw, at));
@@ -408,6 +409,7 @@ namespace Scry
             if (entry == null || Stage.IsStaged(entry)) return 0f;
             if (entry.Kind == Kind.Sound) return U(118f);
             if (entry.Kind == Kind.StatusEffect) return U(150f);
+            if (entry.Kind == Kind.Mod && entry.Icon is Sprite) return U(150f);
             if (entry.Kind == Kind.Raid || entry.Kind == Kind.Mod) return U(118f);
             return 0f;
         }
@@ -434,8 +436,16 @@ namespace Scry
             if (!(entry.Source is ModSource mod)) return;
             var summary = Session.Explorer != null ? Report(Session.Explorer).FirstOrDefault(m => m.Mod == mod.Name) : null;
             var adds = summary != null ? ModReportWords.Counts(summary) : "adds nothing of its own";
-            GUI.Label(new Rect(rect.x + U(20f), rect.y + U(40f), rect.width - U(40f), U(24f)), ModWords.Card(mod), Skin.Center);
-            GUI.Label(new Rect(rect.x + U(20f), rect.y + U(68f), rect.width - U(40f), U(40f)), char.ToUpperInvariant(adds[0]) + adds.Substring(1), Skin.CenterDim);
+            // Its package's icon above, where it has one.
+            var top = rect.y + U(40f);
+            if (entry.Icon is Sprite icon && icon != null)
+            {
+                var size = U(56f);
+                DrawSprite(icon, new Rect(rect.center.x - size / 2f, rect.y + U(34f), size, size));
+                top = rect.y + U(96f);
+            }
+            GUI.Label(new Rect(rect.x + U(20f), top, rect.width - U(40f), U(24f)), ModWords.Card(mod), Skin.Center);
+            GUI.Label(new Rect(rect.x + U(20f), top + U(28f), rect.width - U(40f), U(40f)), char.ToUpperInvariant(adds[0]) + adds.Substring(1), Skin.CenterDim);
         }
 
         /// <summary>A creature's name as the game shows it, else its prefab's.</summary>

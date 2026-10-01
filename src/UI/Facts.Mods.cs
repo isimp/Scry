@@ -5,20 +5,35 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// A mod's page: its version, id and folder, what it adds kind by kind, its crafting stations
-    /// and build tools with what Scry links for each, which of the game's rules it hooks into,
-    /// and what Scry could not place (<see cref="ModReport"/>), each thing a chip going to it.
+    /// A mod's page: what its package says of it (what it is, who made it, its website), its
+    /// version, id and folder, the mods it needs and works with and those needing or working
+    /// with it, what it adds kind by kind, its crafting stations and build tools with what Scry
+    /// links for each, which of the game's rules it hooks into, and what Scry could not place
+    /// (<see cref="ModReport"/>), each thing a chip going to it.
     /// </summary>
     internal sealed partial class Facts
     {
+        /// <summary>A link that opens a website in the browser, ahead of its address.</summary>
+        public const string OpenWebsite = "web:";
+
         private void Mod(ModSource mod)
         {
+            if (!string.IsNullOrEmpty(mod.Description)) Description = mod.Description;
+            Add("By", mod.Author);
+            if (ModWords.IsWebsite(mod.Website)) Add("Website", mod.Website, OpenWebsite + mod.Website);
             Add("Version", mod.Version);
             Add("Id", mod.Guid);
             Add("Folder", mod.Folder);
 
             var explorer = Session.Explorer;
             if (explorer == null) return;
+            var relations = mod.Relations ?? new ModRelations();
+            if (relations.WillNotRunWith.Count > 0) Add("Will not run with", string.Join(", ", relations.WillNotRunWith.ToArray()));
+            ModRow("Needs", relations.Needs, explorer);
+            ModRow("Needed by", relations.NeededBy, explorer);
+            ModRow("Works with, when there", relations.WorksWith, explorer);
+            ModRow("Works with it, when there", relations.WorkedWithBy, explorer);
+
             var summary = ScryPanel.Report(explorer).FirstOrDefault(m => m.Mod == mod.Name);
             if (summary == null)
             {
@@ -44,6 +59,19 @@ namespace Scry
             GapRow("Pieces in no build menu", summary.Unbuilt, explorer);
         }
 
+        /// <summary>A row of other mods, each going to its page.</summary>
+        private void ModRow(string title, List<string> mods, Explorer explorer)
+        {
+            if (mods == null || mods.Count == 0) return;
+            var row = new Row { Title = $"{title} ({mods.Count})" };
+            foreach (var name in mods)
+            {
+                var entry = explorer.Catalog.FirstOrDefault(e => e.Kind == Kind.Mod && e.Name == name);
+                if (entry != null) row.Items.Add(EntryChip(entry));
+            }
+            if (row.Items.Count > 0) Rows.Add(row);
+        }
+
         /// <summary>A row of what Scry could not place, each going to its entry.</summary>
         private void GapRow(string title, List<ModEntry> entries, Explorer explorer)
         {
@@ -60,7 +88,7 @@ namespace Scry
         /// <summary>A chip for any entry, prefab or not, going to it by its key.</summary>
         private static Ingredient EntryChip(Entry entry) => new Ingredient
         {
-            Icon = AnyIcon(entry.Source as GameObject),
+            Icon = entry.Icon is Sprite own && own != null ? own : AnyIcon(entry.Source as GameObject),
             Name = entry.DisplayName.Length > 0 ? entry.DisplayName : entry.Name,
             Amount = "",
             Prefab = entry.Key,

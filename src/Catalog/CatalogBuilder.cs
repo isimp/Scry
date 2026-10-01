@@ -315,6 +315,18 @@ namespace Scry
             }
             CatalogTiming.Add("mods", started);
 
+            // The mods' icons, a few at a time, as each is a picture to decode; once read, an
+            // icon is kept for the next world's catalog.
+            var icons = 0;
+            foreach (var entry in entries)
+            {
+                if (entry.Kind != Kind.Mod || !(entry.Source is ModSource mod) || mod.IconPath.Length == 0) continue;
+                started = CatalogTiming.Start();
+                entry.Icon = ModFolders.Icon(mod.IconPath);
+                CatalogTiming.Add("mods' icons", started);
+                if (++icons % 4 == 0) yield return "Reading the mods' icons";
+            }
+
             job.Entries = entries;
             Plugin.Note($"Scry's catalog, by part (ms): {CatalogTiming.Report()}; {GC.CollectionCount(0) - collections} garbage collections meanwhile.");
             Faults.TellSkipped();
@@ -458,12 +470,15 @@ namespace Scry
 
         /// <summary>
         /// Every mod loaded (<c>Chainloader.PluginInfos</c>), an entry of its own though it is no
-        /// prefab: its page tells what it adds and which of the game's rules it hooks into. It is
-        /// listed by whether it adds to the game, only hooks into its drops or spawning, or neither.
+        /// prefab: its page tells what it adds and which of the game's rules it hooks into, what
+        /// its package says of it (<see cref="ModFolders"/>), and how it ties to the other mods
+        /// (<see cref="ModLinks"/>). It is listed by whether it adds to the game, only hooks into
+        /// its drops or spawning, or neither.
         /// </summary>
         private static void Mods(List<Entry> entries)
         {
             var adding = new HashSet<string>(entries.Where(e => e.ModName.Length > 0).Select(e => e.ModName), StringComparer.Ordinal);
+            var mods = new List<(Entry Entry, ModFacts Facts)>();
             foreach (var info in BepInEx.Bootstrap.Chainloader.PluginInfos.Values)
             {
                 var name = info?.Metadata?.Name;
@@ -473,24 +488,58 @@ namespace Scry
                     var folder = "";
                     try { folder = System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(info.Location) ?? ""); }
                     catch (Exception) { /* no folder to tell */ }
+                    var source = new ModSource { Name = name, Version = info.Metadata.Version?.ToString() ?? "", Guid = info.Metadata.GUID ?? "", Folder = folder };
+                    var facts = new ModFacts { Name = name, Guid = source.Guid };
+                    if (info.Dependencies != null)
+                    {
+                        foreach (var dependency in info.Dependencies)
+                        {
+                            if (dependency == null) continue;
+                            if ((dependency.Flags & BepInEx.BepInDependency.DependencyFlags.HardDependency) != 0) facts.Hard.Add(dependency.DependencyGUID);
+                            else facts.Soft.Add(dependency.DependencyGUID);
+                        }
+                    }
+                    if (info.Incompatibilities != null) foreach (var refused in info.Incompatibilities) if (refused != null) facts.Incompatible.Add(refused.IncompatibilityGUID);
+
+                    var package = ModFolders.PackageFolder(info.Location);
+                    var manifest = package != null ? ModFolders.Manifest(package) : null;
+                    if (manifest != null)
+                    {
+                        facts.Package = System.IO.Path.GetFileName(package);
+                        facts.PackageDeps.AddRange(manifest.Dependencies);
+                        source.Description = manifest.Description;
+                        source.Author = ModManifest.Author(facts.Package, manifest.Name) ?? "";
+                        source.Website = manifest.Website;
+                        source.ReadmePath = ModFolders.FileIn(package, "README.md");
+                        source.IconPath = ModFolders.FileIn(package, "icon.png");
+                    }
+
                     var group = Groups.Mod(adding.Contains(name), ModHooks.Rules(name).Count > 0);
-                    entries.Add(new Entry
+                    var entry = new Entry
                     {
                         Name = name,
                         DisplayName = name,
                         Kind = Kind.Mod,
                         Origin = Origin.Mod,
                         ModName = name,
-                        Source = new ModSource { Name = name, Version = info.Metadata.Version?.ToString() ?? "", Guid = info.Metadata.GUID ?? "", Folder = folder },
+                        Source = source,
                         Group = group.Name,
                         GroupOrder = group.Order,
                         Components = new[] { "BaseUnityPlugin" },
-                    });
+                    };
+                    entries.Add(entry);
+                    mods.Add((entry, facts));
                 }
                 catch (Exception ex)
                 {
                     Failed("mod", name, ex);
                 }
+            }
+
+            var links = ModLinks.Of(mods.Select(m => m.Facts));
+            foreach (var (entry, facts) in mods)
+            {
+                if (links.TryGetValue(facts.Name, out var relations)) ((ModSource)entry.Source).Relations = relations;
             }
         }
 
