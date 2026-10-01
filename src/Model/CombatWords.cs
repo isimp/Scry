@@ -107,6 +107,13 @@ namespace Scry
         }
 
         /// <summary>
+        /// What a creature does in a world with the setting Passive enemies on, where the game
+        /// lets no creature sense anyone until provoked (<c>BaseAI.CanSenseTarget</c>) unless it
+        /// is marked <c>m_passiveAggresive</c>: such a one attacks as ever, or, an animal, flees.
+        /// </summary>
+        public static string PassiveEnemies(bool flees) => flees ? "flees from you all the same" : "attacks unprovoked all the same";
+
+        /// <summary>
         /// A weak spot's part of the body in plain words, from the name of the object it sits on:
         /// "WEAKSPOT_HEAD" is the head. The game gives weak spots no names of their own.
         /// </summary>

@@ -150,9 +150,9 @@ namespace Scry
                 if (ai.m_hearRange < 9000f) Add("Hears", $"{Number(ai.m_hearRange)} m");
                 if (ai.m_afraidOfFire) Add("Fire", "afraid of it");
                 else if (ai.m_avoidFire) Add("Fire", "keeps away from it");
-                if (ai.m_passiveAggresive) Add("Fights", "only once attacked");
                 // AnimalAI.UpdateAI only ever flees from what it senses.
                 if (ai is AnimalAI) Add("Fights", "never: it flees from what it senses");
+                if (ai.m_passiveAggresive) Add("With Passive enemies", CombatWords.PassiveEnemies(flees: ai is AnimalAI));
                 if (ai is MonsterAI monster)
                 {
                     Add("Turns on you", CombatWords.Alerted(monster.m_alertRange));

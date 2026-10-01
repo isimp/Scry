@@ -87,6 +87,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ACreatureThePassiveEnemiesSettingDoesNotCalmIsToldSo()
+        {
+            // With the world setting Passive enemies on, a creature senses no one until provoked
+            // (BaseAI.CanSenseTarget), unless it is marked m_passiveAggresive: then it hunts as
+            // ever, and an animal, which only flees, flees as ever.
+            Assert.Equal("attacks unprovoked all the same", CombatWords.PassiveEnemies(flees: false));
+            Assert.Equal("flees from you all the same", CombatWords.PassiveEnemies(flees: true));
+        }
+
+        [Fact]
         public void AWeakSpotIsNamedAfterItsPartInPlainWords()
         {
             Assert.Equal("head", CombatWords.PartName("WEAKSPOT_HEAD"));
