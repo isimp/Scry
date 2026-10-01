@@ -21,20 +21,25 @@ namespace Scry
 
     /// <summary>
     /// An altar's offering: the boss it summons (<c>OfferingBowl.m_bossPrefab</c>), the item and
-    /// how many of it are offered (<c>m_bossItem</c>, <c>m_bossItems</c>), and where it stands, a
-    /// location's name or the altar's own prefab where it is one.
+    /// how many of it are offered (<c>m_bossItem</c>, <c>m_bossItems</c>), or for an altar that
+    /// takes them on item stands (<c>m_useItemStands</c>) the stands' item and how many stands,
+    /// and where it stands, a location's name or the altar's own prefab where it is one.
     /// </summary>
     internal struct Summon
     {
         public string Boss;
         public string Item;
         public int Count;
+
+        /// <summary>Whether the items are set on its item stands rather than offered at it.</summary>
+        public bool OnStands;
+
         public string Place;
         public string PlacePrefab;
 
         public static Summon Of(OfferingBowl bowl, string place, string placePrefab)
         {
-            return new Summon
+            var summon = new Summon
             {
                 Boss = bowl.m_bossPrefab != null ? bowl.m_bossPrefab.name : null,
                 Item = bowl.m_bossItem != null ? bowl.m_bossItem.gameObject.name : null,
@@ -42,6 +47,25 @@ namespace Scry
                 Place = place,
                 PlacePrefab = placePrefab,
             };
+
+            // An altar of item stands (Moder's eggs) ignores what it would be offered: every stand
+            // whose name starts with its prefix within its range must hold something
+            // (OfferingBowl.Interact, FindItemStands), the stands taking the item they support.
+            if (bowl.m_useItemStands)
+            {
+                var stands = bowl.transform.root.GetComponentsInChildren<ItemStand>(true)
+                    .Where(s => s != null && s.gameObject.name.StartsWith(bowl.m_itemStandPrefix ?? "", StringComparison.Ordinal)
+                                && Vector3.Distance(s.transform.position, bowl.transform.position) <= bowl.m_itemstandMaxRange)
+                    .ToList();
+                var item = stands.SelectMany(s => s.m_supportedItems ?? new List<ItemDrop>()).FirstOrDefault(i => i != null);
+                if (stands.Count > 0)
+                {
+                    summon.OnStands = true;
+                    summon.Count = stands.Count;
+                    if (item != null) summon.Item = item.gameObject.name;
+                }
+            }
+            return summon;
         }
     }
 

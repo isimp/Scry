@@ -98,6 +98,38 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheSelfTestsOwnChecksCanBeLeftOutOfTheFrame()
+        {
+            // The self-test runs inside Scry's update; its own checks (reading every entry's
+            // details at once) are not work a player's frame does, so its share is taken out.
+            var frame = new FrameTimes();
+            frame.Add("update", 700, 0, 0);
+            frame.Add("update self-test", 640, 0, 0);
+            frame.Add("update previews", 30, 0, 0);
+            frame.Add("selection copy", 20, 0, 0);
+            frame.Add("panel", 20, 0, 0);
+
+            Assert.Equal(720, frame.Total, 3);
+            Assert.Equal(80, frame.TotalWithout("update self-test"), 3);
+            Assert.Equal(("update previews", 30.0), frame.SlowestWithout("update self-test"));
+            Assert.Equal(("update self-test", 640.0), frame.Slowest);
+            Assert.Equal(640, frame.MsOf("update self-test"), 3);
+            Assert.Equal(0, frame.MsOf("nothing"), 3);
+            Assert.Equal(690, frame.InnerMs, 3);
+        }
+
+        [Fact]
+        public void LeavingOutAnOuterPartOrOneNotThereChangesNothing()
+        {
+            var frame = new FrameTimes();
+            frame.Add("update", 30, 0, 0);
+            frame.Add("panel", 20, 0, 0);
+
+            Assert.Equal(50, frame.TotalWithout("panel"), 3);
+            Assert.Equal(50, frame.TotalWithout("update self-test"), 3);
+        }
+
+        [Fact]
         public void ClearingStartsTheNextFrameEmpty()
         {
             var frame = new FrameTimes();

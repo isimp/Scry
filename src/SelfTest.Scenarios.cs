@@ -953,6 +953,7 @@ namespace Scry
         {
             p.Note(Frames.Line(Budget));
             foreach (var frame in Frames.Slowest(5)) p.Note($"a slow frame: {frame.Ms:0.#} ms, the slowest part {frame.Part} {frame.PartMs:0.#} ms");
+            p.Note($"the self-test's own checks, left out of these figures, took up to {Frames.TestMax:0} ms in a frame");
             p.Check(Frames.Frames > 0, "Scry's own work was measured");
             p.Check(Frames.Max < 250, "no frame of Scry's own work took a quarter of a second", $"{Frames.Max:0} ms at the most");
             yield break;

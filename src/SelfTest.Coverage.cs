@@ -58,7 +58,10 @@ namespace Scry
             var swamp = Find("biome:swamp");
             p.Check(swamp.Count > 0 && swamp.All(e => e.Biomes.Any(b => b.IndexOf("swamp", StringComparison.OrdinalIgnoreCase) >= 0)), "\"biome:swamp\" finds what lives in the swamp", $"{swamp.Count} results");
             var played = Find("playedby:troll");
-            p.Check(played.Count > 0 && played.All(e => e.Kind == Kind.Sound || e.Kind == Kind.Effect), "\"playedby:troll\" finds the troll's sounds and effects", $"{played.Count} results");
+            p.Note("\"playedby:troll\": " + string.Join(", ", played.GroupBy(e => e.Kind).Select(g => $"{g.Count()} {Kinds.Label(g.Key).ToLowerInvariant()}")));
+            p.Check(played.Count > 0 && played.All(e => e.UsedBy.Any(u => u.IndexOf("troll", StringComparison.OrdinalIgnoreCase) >= 0))
+                    && played.Any(e => e.Kind == Kind.Sound) && played.Any(e => e.Kind == Kind.Effect),
+                    "\"playedby:troll\" finds what the troll's effect lists play, its sounds and effects among them", $"{played.Count} results");
             var forge = Find("station:forge");
             p.Check(forge.Count > 0 && forge.All(e => e.Stations.Any(s => s.Name.IndexOf("forge", StringComparison.OrdinalIgnoreCase) >= 0 || s.Shown.IndexOf("forge", StringComparison.OrdinalIgnoreCase) >= 0)), "\"station:forge\" finds what is made at a forge", $"{forge.Count} results");
             var hand = Find("station:hand");
@@ -259,20 +262,23 @@ namespace Scry
             yield return null;
             var loops = Previews.LoopEffects;
             Previews.LoopEffects = true;
-            try
-            {
-                var key = "on you:" + effect.Name;
-                Previews.PlayEffect(effect, onYou: true);
-                yield return new Wait(3.0);
-                p.Check(Previews.Playing.IsPlaying(key), "it still plays three seconds on, looping");
-                Previews.Stop(key);
-                yield return null;
-                p.Check(!Previews.Playing.IsPlaying(key), "and stops when asked");
-            }
-            finally
-            {
-                Previews.LoopEffects = loops;
-            }
+            yield return Until(() => CopyOf(effect) != null, 5);
+            var first = CopyOf(effect);
+            yield return Until(() => CopyOf(effect) != null && CopyOf(effect) != first, 8);
+            p.Check(first != null && CopyOf(effect) != null && CopyOf(effect) != first, "with Repeat on, the stage plays it again once it has played out");
+            Previews.LoopEffects = false;
+            var last = CopyOf(effect);
+            yield return Until(() => Stage.Finished, 8);
+            yield return new Wait(1.0);
+            p.Check(CopyOf(effect) == last, "with Repeat off, it is not played again");
+            var key = "on you:" + effect.Name;
+            Previews.PlayEffect(effect, onYou: true);
+            yield return null;
+            p.Check(Previews.Playing.IsPlaying(key), "played on you, it plays");
+            Previews.Stop(key);
+            yield return null;
+            p.Check(!Previews.Playing.IsPlaying(key), "and stops when asked");
+            Previews.LoopEffects = loops;
         }
 
         /// <summary>Clear world takes away what stands in the world, pinned or not.</summary>
@@ -329,11 +335,21 @@ namespace Scry
             var slow = new List<(double Ms, string Name)>();
             var chips = 0;
             var watch = new Stopwatch();
+            var unregistered = new HashSet<string>(StringComparer.Ordinal);
             void Lead(Entry entry, string target)
             {
                 if (string.IsNullOrEmpty(target) || target == "hand") return;
                 chips++;
                 if (keys.Contains(target)) return;
+                // A prefab the game never registers (a creature's own attack items) has no entry,
+                // and the panel shows it as text; only a registered prefab or a key of Scry's own
+                // that leads nowhere is a gap.
+                var name = EntryKeys.Split(target, out var kind);
+                if (kind == null && ZNetScene.instance?.GetPrefab(name) == null && ObjectDB.instance?.GetItemPrefab(name) == null)
+                {
+                    unregistered.Add(target);
+                    return;
+                }
                 var owner = entry.Origin == Origin.Vanilla ? "game" : "mods";
                 if (!dangling.TryGetValue(owner, out var list)) dangling[owner] = list = new List<string>();
                 if (list.Count < 12) list.Add($"{entry.Name} -> {target}");
@@ -358,6 +374,7 @@ namespace Scry
             Facts.Forget();
 
             p.Note($"{X.Catalog.Count} entries told, {chips} chips, links and lines followed");
+            if (unregistered.Count > 0) p.Note($"{unregistered.Count} prefabs named are not registered with the game, so have no entry and show as text: " + string.Join(", ", unregistered.Take(10)));
             if (slow.Count > 0) p.Note("slowest to tell: " + string.Join(", ", slow.OrderByDescending(s => s.Ms).Take(6).Select(s => $"{s.Name} {s.Ms:0} ms")));
             var gameNotShown = notShown.Where(n => X.Catalog.FirstOrDefault(e => n.StartsWith(e.Name + " ", StringComparison.Ordinal))?.Origin == Origin.Vanilla).ToList();
             if (notShown.Count > gameNotShown.Count) p.Note($"{notShown.Count - gameNotShown.Count} mods' entries could not tell all their details: " + string.Join("; ", notShown.Except(gameNotShown).Take(6)));

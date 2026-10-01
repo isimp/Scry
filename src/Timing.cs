@@ -39,6 +39,29 @@ namespace Scry
         /// </summary>
         public static FrameStats Measuring;
 
+        /// <summary>The self-test's own checks, taken out of the frame it measures (<see cref="Own"/>).</summary>
+        public const string SelfTestPart = "update self-test";
+
+        /// <summary>The time of the inner parts so far this frame, for <see cref="Own"/>.</summary>
+        public static double InnerMs()
+        {
+            if (!On) return 0;
+            Roll();
+            return Frame.InnerMs;
+        }
+
+        /// <summary>
+        /// Adds a part's own time: the time since it started less the parts timed inside it, so
+        /// Scry's work that it called (a copy made, details told) stays where it is counted.
+        /// </summary>
+        public static void Own(string part, Mark started, double innerBefore)
+        {
+            if (!On || started.Ticks == 0) return;
+            var ms = (Stopwatch.GetTimestamp() - started.Ticks) * 1000.0 / Stopwatch.Frequency;
+            Roll();
+            Frame.Add(part, Math.Max(0, ms - (Frame.InnerMs - innerBefore)), 0, 0);
+        }
+
         private static bool On => Plugin.LogPreviews || Measuring != null;
 
         public static Mark Start()
@@ -70,8 +93,10 @@ namespace Scry
             if (Time.frameCount == _frame) return;
             if (Measuring != null && _frame >= 0)
             {
-                var slowest = Frame.Slowest;
-                Measuring.Add(Frame.Total, slowest.Name, slowest.Ms);
+                // Scry's own work as a player's frame has it, the self-test's own checks left out.
+                var slowest = Frame.SlowestWithout(SelfTestPart);
+                Measuring.Add(Frame.TotalWithout(SelfTestPart), slowest.Name, slowest.Ms);
+                Measuring.AddTest(Frame.MsOf(SelfTestPart));
             }
             if (!Plugin.LogPreviews)
             {

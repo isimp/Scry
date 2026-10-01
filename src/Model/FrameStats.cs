@@ -16,6 +16,11 @@ namespace Scry
 
         public void Add(double ms, string slowestPart, double slowestMs) => _frames.Add((ms, slowestPart ?? "", slowestMs));
 
+        /// <summary>The most the self-test's own checks took in a frame, left out of the frames above.</summary>
+        public double TestMax { get; private set; }
+
+        public void AddTest(double ms) => TestMax = Math.Max(TestMax, ms);
+
         public int Frames => _frames.Count;
 
         public double Mean => _frames.Count == 0 ? 0 : _frames.Average(f => f.Ms);
@@ -44,7 +49,11 @@ namespace Scry
                    $"{Number(Max)} ms at the most; {Over(budgetMs)} frames over {Number(budgetMs)} ms";
         }
 
-        public void Clear() => _frames.Clear();
+        public void Clear()
+        {
+            _frames.Clear();
+            TestMax = 0;
+        }
 
         /// <summary>The frames from the given one on, told on their own.</summary>
         public FrameStats Since(int first)

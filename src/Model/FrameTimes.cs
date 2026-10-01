@@ -35,21 +35,30 @@ namespace Scry
         /// <summary>The cleanups that ran inside the outer parts.</summary>
         public int Cleanups => _parts.Where(p => p.Outer).Sum(p => p.Cleanups);
 
+        /// <summary>The time of the inner parts so far, in milliseconds.</summary>
+        public double InnerMs => _parts.Where(p => !p.Outer).Sum(p => p.Ms);
+
+        /// <summary>The time of one part, 0 when it has none.</summary>
+        public double MsOf(string part) => part != null && _byName.TryGetValue(part, out var known) ? known.Ms : 0;
+
+        /// <summary>The frame's time less one inner part's, which runs inside an outer part; an outer part is not taken out.</summary>
+        public double TotalWithout(string inner) => Total - (inner != null && _byName.TryGetValue(inner, out var part) && !part.Outer ? part.Ms : 0);
+
         /// <summary>The part that took longest: of the inner parts, which say more about what was slow, else of the outer ones.</summary>
-        public (string Name, double Ms) Slowest
+        public (string Name, double Ms) Slowest => SlowestWithout(null);
+
+        /// <summary>The part that took longest, as <see cref="Slowest"/>, leaving one part out.</summary>
+        public (string Name, double Ms) SlowestWithout(string left)
         {
-            get
+            Part inner = null, outer = null;
+            foreach (var part in _parts)
             {
-                Part inner = null, outer = null;
-                foreach (var part in _parts)
-                {
-                    if (part.Ms <= 0) continue;
-                    if (part.Outer) { if (outer == null || part.Ms > outer.Ms) outer = part; }
-                    else if (inner == null || part.Ms > inner.Ms) inner = part;
-                }
-                var slowest = inner ?? outer;
-                return slowest == null ? ("", 0.0) : (slowest.Name, slowest.Ms);
+                if (part.Ms <= 0 || part.Name == left) continue;
+                if (part.Outer) { if (outer == null || part.Ms > outer.Ms) outer = part; }
+                else if (inner == null || part.Ms > inner.Ms) inner = part;
             }
+            var slowest = inner ?? outer;
+            return slowest == null ? ("", 0.0) : (slowest.Name, slowest.Ms);
         }
 
         /// <summary>Adds to a part: its time, what it allocated, and how many cleanups ran inside it.</summary>

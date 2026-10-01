@@ -525,7 +525,10 @@ namespace Scry
                     if (field.GetValue(component) is DropTable table && table.m_drops != null && table.m_drops.Count > 0) return true;
                 }
             }
-            return false;
+            // A shell that breaks into what is mined gives what that gives, as its details tell.
+            var breaks = prefab.GetComponent<Destructible>();
+            var inside = breaks != null ? MinedInside(breaks.m_spawnWhenDestroyed) : null;
+            return inside != null && inside != prefab && GivesLoot(inside);
         }
 
         private static FieldInfo[] DropTables(Type type)

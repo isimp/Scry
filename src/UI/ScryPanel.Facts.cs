@@ -172,7 +172,7 @@ namespace Scry
                 // Clicking an ingredient or a drop goes to it.
                 if (!string.IsNullOrEmpty(item.Prefab))
                 {
-                    if (hover) AskTip("goto:" + item.Prefab, $"Go to {item.Name}");
+                    if (hover && goes) AskTip("goto:" + item.Prefab, $"Go to {item.Name}");
                     if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(item.Prefab))
                     {
                         _reveal = true;

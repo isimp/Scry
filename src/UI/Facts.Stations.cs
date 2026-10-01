@@ -210,7 +210,7 @@ namespace Scry
         {
             foreach (var summon in Knowledge.Summons().Where(s => s.Boss == boss.name && s.Item != null))
             {
-                var row = new Row { Title = $"Summoned at {summon.Place} with", TitleLink = summon.PlacePrefab };
+                var row = new Row { Title = summon.OnStands ? $"Summoned at {summon.Place} with these on its item stands" : $"Summoned at {summon.Place} with", TitleLink = summon.PlacePrefab };
                 row.Items.Add(Chip(summon.Item, summon.Count.ToString(CultureInfo.InvariantCulture)));
                 if (!Rows.Any(r => r.Title == row.Title && r.Items.Count == 1 && r.Items[0].Prefab == summon.Item)) Rows.Add(row);
             }

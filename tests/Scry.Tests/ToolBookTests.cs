@@ -95,6 +95,27 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ABookAsBigAsPlanBuildsAnswersAtOnce()
+        {
+            // PlanBuild gives a plan of every piece, so the book holds thousands of pieces, and
+            // the mod report asks for every mod piece's tools and every mod item's pieces.
+            var book = new ToolBook();
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            for (var i = 0; i < 4000; i++)
+            {
+                book.Add("Hammer", "Hammer", "piece" + i, "Tab" + (i % 7), i % 7);
+                book.Add("PlanHammer", "Plan hammer", "piece" + i + "_plan", "Plans" + (i % 9), i % 9);
+                book.Add("PlanHammer", "Plan hammer", "piece" + i + "_plan", "Plans" + (i % 9), i % 9);
+            }
+            for (var i = 0; i < 8000; i++) book.ToolsOf("piece" + i);
+            for (var i = 0; i < 2000; i++) book.PiecesOf(i % 2 == 0 ? "Hammer" : "Sword" + i);
+
+            Assert.True(watch.ElapsedMilliseconds < 500, $"{watch.ElapsedMilliseconds} ms");
+            Assert.Equal("Hammer", Assert.Single(book.ToolsOf("piece17")).Tool);
+            Assert.Equal(4000, book.PiecesOf("PlanHammer").Sum(t => t.Pieces.Count));
+        }
+
+        [Fact]
         public void ClearingForgetsEveryTool()
         {
             var book = Book();

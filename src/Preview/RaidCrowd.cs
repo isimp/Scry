@@ -70,7 +70,9 @@ namespace Scry
                 {
                     if (!entries.TryGetValue(creature.Prefab, out var creatureEntry))
                     {
-                        creatureEntry = catalog?.FirstOrDefault(e => e.Kind == Kind.Creature && e.Name == creature.Prefab);
+                        // What a raid brings is mostly creatures; some bring spawners (the Ashlands' charred spawners).
+                        creatureEntry = catalog?.FirstOrDefault(e => e.Kind == Kind.Creature && e.Name == creature.Prefab)
+                                        ?? catalog?.FirstOrDefault(e => !EntryKeys.HasOwnNamespace(e.Kind) && e.Name == creature.Prefab);
                         entries[creature.Prefab] = creatureEntry;
                     }
                     if (creatureEntry == null) continue;
