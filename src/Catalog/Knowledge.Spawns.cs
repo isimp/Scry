@@ -129,6 +129,9 @@ namespace Scry
             }
         }
 
+        /// <summary>Every single biome by its enum name.</summary>
+        public static string[] EveryBiomeKey => Enum.GetValues(typeof(Heightmap.Biome)).Cast<Heightmap.Biome>().Where(b => { var i = (int)b; return i != 0 && (i & (i - 1)) == 0; }).Select(b => b.ToString()).Distinct().ToArray();
+
         /// <summary>The single biomes in a set of flags by their enum names, as entries keep them for the search.</summary>
         public static string[] BiomeKeys(Heightmap.Biome biome) => Singles(biome).Select(b => b.ToString()).ToArray();
 

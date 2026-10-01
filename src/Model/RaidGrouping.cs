@@ -33,6 +33,17 @@ namespace Scry
             return random || standaloneInterval > 0f ? RaidRole.Raid : RaidRole.Other;
         }
 
+        /// <summary>
+        /// Where a raid can come, as the game rolls it (<c>RandEventSystem.InValidBiome</c>): the
+        /// biomes set, or every biome when none is set. A boss's fight and what something else
+        /// starts are never rolled, so they come in no biome of their own.
+        /// </summary>
+        public static string[] Biomes(RaidRole role, string[] set, string[] every)
+        {
+            if (role != RaidRole.Raid) return new string[0];
+            return set != null && set.Length > 0 ? set : every;
+        }
+
         /// <summary>How far along the game a raid comes: the health of the strongest boss whose defeat it waits for, 0 for none.</summary>
         public static float Strength(IEnumerable<string> requiredKeys, Func<string, float> bossHealth)
         {

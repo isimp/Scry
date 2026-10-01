@@ -133,5 +133,19 @@ namespace Scry.Tests
             Assert.Equal(63, ranks["raid99"]);
             Assert.Equal(62, ranks["raid62"]);
         }
+
+        // A raid's biomes are where the game rolls it (RandEventSystem.InValidBiome): those set,
+        // or every biome when none is set. A boss's fight and what something else starts are never
+        // rolled, so no biome is theirs, and no biome page lists them.
+        [Fact]
+        public void OnlyARolledRaidHasBiomesEveryOneWhenNoneIsSet()
+        {
+            var every = new[] { "Meadows", "BlackForest", "Swamp" };
+
+            Assert.Equal(new[] { "Swamp" }, RaidGrouping.Biomes(RaidRole.Raid, new[] { "Swamp" }, every));
+            Assert.Equal(every, RaidGrouping.Biomes(RaidRole.Raid, new string[0], every));
+            Assert.Empty(RaidGrouping.Biomes(RaidRole.BossFight, every, every));
+            Assert.Empty(RaidGrouping.Biomes(RaidRole.Other, new[] { "Swamp" }, every));
+        }
     }
 }

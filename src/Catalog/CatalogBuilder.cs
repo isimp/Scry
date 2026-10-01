@@ -470,7 +470,7 @@ namespace Scry
                         Origin = Origins.Raids.Of(raid.m_name),
                         Source = raid,
                         Components = new[] { raid.GetType().Name },
-                        Biomes = Knowledge.BiomeKeys(raid.m_biome),
+                        Biomes = RaidGrouping.Biomes(RaidGrouping.Role(raid.m_random, raid.m_standaloneInterval, boss != null), Knowledge.BiomeKeys(raid.m_biome), Knowledge.EveryBiomeKey),
                     });
                 }
                 catch (Exception ex)
