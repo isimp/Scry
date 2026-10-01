@@ -23,7 +23,8 @@ namespace Scry
         {
             foreach (var making in Knowledge.MadeOf(item.name))
             {
-                var row = new Row { Title = MakerBook.ItemTitle(AnyName(Looks.Prefab(making.Station), making.Station), making), TitleLink = making.Station };
+                var title = ModWords.AddedBy(MakerBook.ItemTitle(AnyName(Looks.Prefab(making.Station), making.Station), making), Knowledge.ConversionMod(making), Knowledge.ModName(item.name));
+                var row = new Row { Title = title, TitleLink = making.Station };
                 foreach (var (input, amount) in making.Inputs) row.Items.Add(Chip(input, amount.ToString(CultureInfo.InvariantCulture)));
                 Rows.Add(row);
             }

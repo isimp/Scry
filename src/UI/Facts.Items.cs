@@ -87,6 +87,7 @@ namespace Scry
                     : "Made by hand";
                 if (recipe.m_amount > 1) title += $", makes {recipe.m_amount}";
                 if (recipe.m_requireOnlyOneIngredient) title += ", from any one of these";
+                title = ModWords.AddedBy(title, Knowledge.RecipeMod(recipe.name), Knowledge.ModName(prefab.name));
                 var row = Requirements(title, recipe.m_resources, shared.m_maxQuality > 1);
                 row.TitleLink = recipe.m_craftingStation != null ? recipe.m_craftingStation.gameObject.name : null;
                 Rows.Add(row);

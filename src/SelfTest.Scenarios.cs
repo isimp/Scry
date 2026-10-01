@@ -41,6 +41,7 @@ namespace Scry
             yield return S("what creatures drop in play is watched", DropsWatched, 5);
             yield return S("every mod has a page of what it adds and changes", ModPages, 10);
             yield return S("a mod's page tells what its package says and how it ties to other mods", ModPackages, 10);
+            yield return S("which mod added what is found from every clue, and nothing of the game's is put down to a mod", ModClues, 10);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
             yield return S("items, stations, smelters and beds tell what they are for", WhatThingsTell, 10);
@@ -452,6 +453,42 @@ namespace Scry
             var drawn = ScryPanel.ReadmesDrawn;
             yield return Until(() => ScryPanel.ReadmesDrawn > drawn, 3);
             p.Check(ScryPanel.ReadmesDrawn > drawn, "its page shows it under README");
+        }
+
+        /// <summary>
+        /// Which mod added what: how many things each clue named (Jotunn's registry, a mod's
+        /// scripts, its bundles), what is left unnamed kind by kind, that nothing the game has of
+        /// its own is put down to a mod, and that a recipe or conversion another mod added for an
+        /// item says so on the item.
+        /// </summary>
+        private static IEnumerator ModClues(Probe p)
+        {
+            p.Note("named by " + (Knowledge.NamedBy.Count == 0 ? "nothing" : string.Join(", ", Knowledge.NamedBy.OrderByDescending(n => n.Value).Select(n => $"{n.Key}: {n.Value}")))
+                   + $"; recipes named {Knowledge.RecipesNamed}, conversions named {Knowledge.ConversionsNamed}");
+            var unnamed = X.Catalog.Where(e => e.Origin == Origin.Mod && e.ModName.Length == 0 && e.Kind != Kind.Mod).ToList();
+            foreach (var kind in unnamed.GroupBy(e => e.Kind).OrderByDescending(g => g.Count()))
+            {
+                p.Note($"still unnamed, {Kinds.Label(kind.Key).ToLowerInvariant()}: {kind.Count()} ({string.Join(", ", kind.Take(8).Select(e => e.Name))})");
+            }
+            var wrong = X.Catalog.Where(e => e.Origin == Origin.Vanilla && e.ModName.Length > 0 && e.Kind != Kind.Mod).Select(e => $"{e.Name} ({e.ModName})").ToList();
+            p.Check(wrong.Count == 0, "nothing of the game's own is put down to a mod", string.Join(", ", wrong.Take(8)));
+            var named = X.Catalog.Where(e => e.Kind == Kind.Location && e.ModName.Length > 0).Select(e => $"{e.Name} ({e.ModName})").ToList();
+            if (named.Count > 0) p.Note($"locations named for their mod: {string.Join(", ", named.Take(8))}");
+
+            // A recipe another mod added for an item, told on the item.
+            var db = ObjectDB.instance;
+            var recipe = db == null ? null : db.m_recipes.FirstOrDefault(r => r != null && r.m_enabled && r.m_item != null && Knowledge.RecipeMod(r.name).Length > 0
+                                                                               && Knowledge.RecipeMod(r.name) != Knowledge.ModName(r.m_item.gameObject.name));
+            if (recipe == null)
+            {
+                p.Note("no mod adds a recipe for another's item through Jotunn");
+                yield break;
+            }
+            var item = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && e.Name == recipe.m_item.gameObject.name);
+            if (item == null) yield break;
+            var told = Facts.For(item);
+            p.Check(told.Rows.Any(r => r.Title.EndsWith(", added by " + Knowledge.RecipeMod(recipe.name), StringComparison.Ordinal)), $"{item.Name} says {Knowledge.RecipeMod(recipe.name)} added its recipe",
+                string.Join("; ", told.Rows.Select(r => r.Title)));
         }
 
         private static IEnumerator SpawnerFacts(Probe p)

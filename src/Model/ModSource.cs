@@ -25,6 +25,10 @@ namespace Scry
             return $"Version {mod.Version}, id {mod.Guid}";
         }
 
+        /// <summary>A recipe's or conversion's title, saying which mod added it when that is not the made item's own mod.</summary>
+        public static string AddedBy(string title, string mod, string own) =>
+            string.IsNullOrEmpty(mod) || string.Equals(mod, own, System.StringComparison.Ordinal) ? title : $"{title}, added by {mod}";
+
         /// <summary>A website worth a link: one on the web, not a file or anything else a click could open.</summary>
         public static bool IsWebsite(string url) =>
             !string.IsNullOrEmpty(url) && (url.StartsWith("https://", System.StringComparison.OrdinalIgnoreCase) || url.StartsWith("http://", System.StringComparison.OrdinalIgnoreCase))
