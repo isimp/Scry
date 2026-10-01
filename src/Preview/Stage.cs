@@ -259,9 +259,14 @@ namespace Scry
         /// <summary>The entry the stage was last asked to show, whose copy is <see cref="Subject"/> once made.</summary>
         public static Entry Showing => _lastShown;
 
+        /// <summary>How often the stage was asked to show something, and how often a copy came of it, for the self-test to tell.</summary>
+        public static int Shows { get; private set; }
+        public static int CopiesMade { get; private set; }
+
         /// <summary>Puts a fresh copy of the entry on the stage, with the modifiers applied.</summary>
         public static void Show(Entry entry, Modifiers modifiers)
         {
+            Shows++;
             ClearSubject();
             if (entry != _lastShown)
             {
@@ -342,6 +347,7 @@ namespace Scry
         /// <summary>Tunes, measures and stands the copy just made, and applies the modifiers.</summary>
         private static void Present(Entry entry, Modifiers modifiers)
         {
+            CopiesMade++;
             Tune(_subject, entry.Kind == Kind.Effect);
 
             var started = Timing.Start();

@@ -261,6 +261,8 @@ namespace Scry
             // On the stage: the full view, not the world.
             if (ScryPanel.Compact) ScryPanel.Compact = false;
             if (Previews.InWorld) Previews.ToggleWorld();
+            var shows = Stage.Shows;
+            var made = Stage.CopiesMade;
             Select(effect);
             yield return null;
             var loops = Previews.LoopEffects;
@@ -273,7 +275,9 @@ namespace Scry
             var still = again || first == null ? "" : string.Join(", ",
                 first.GetComponentsInChildren<ParticleSystem>(false).Where(s => s.IsAlive(false)).Select(s => $"{s.name} (loops {s.main.loop}, lasts {s.main.duration:0.#} s)")
                     .Concat(first.GetComponentsInChildren<AudioSource>(false).Where(s => s.isPlaying).Select(s => $"{s.name} sound (loops {s.loop})")));
-            var why = first == null ? $"the stage showed {(Stage.Showing != null ? Stage.Showing.Name : "nothing")}{(Stage.IsStaged(effect) ? "" : ", having nothing of it to show")}" : still.Length > 0 ? "still playing: " + still : null;
+            var why = first == null
+                ? $"the stage showed {(Stage.Showing != null ? Stage.Showing.Name : "nothing")}{(Stage.IsStaged(effect) ? "" : ", having nothing of it to show")}, asked {Stage.Shows - shows} times, a copy made {Stage.CopiesMade - made} times, none seen; on you {Looks.OnPerson}, in the world {Previews.InWorld}, compact {ScryPanel.Compact}, panel {(Session.IsOpen ? "open" : "closed")}"
+                : still.Length > 0 ? "still playing: " + still : null;
             p.Check(again, "with Repeat on, the stage plays it again once it has played out", why);
             Previews.LoopEffects = false;
             var last = CopyOf(effect);
