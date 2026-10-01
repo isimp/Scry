@@ -144,6 +144,43 @@ namespace Scry
             p.Check(ScryPanel.RulersDrawn > drawn, "the floor ruler draws beside the stage");
         }
 
+        /// <summary>
+        /// The cave dungeons, the Frost Caves and M\u00F6rkhalla, whose rooms are rock: each one's example is
+        /// built and opened floor by floor, told with how many rooms stand on each floor; a floor
+        /// no room stands on is a floor found where there is none.
+        /// </summary>
+        private static IEnumerator CaveFloors(Probe p)
+        {
+            var caves = X.Catalog.Where(e => PlaceOf(e) != null && !PlaceOf(e).IsRoom
+                                             && (e.DisplayName.IndexOf("Frost Caves", StringComparison.OrdinalIgnoreCase) >= 0 || e.DisplayName.IndexOf("rkhalla", StringComparison.OrdinalIgnoreCase) >= 0))
+                .OrderBy(e => e.Name, StringComparer.Ordinal).ToList();
+            if (caves.Count == 0) p.Skip("neither the Frost Caves nor M\u00F6rkhalla is in the catalog");
+            var wasInside = Stage.Inside;
+            Stage.Inside = true;
+            var empty = new List<string>();
+            foreach (var entry in caves)
+            {
+                Select(entry);
+                yield return Until(() => CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
+                if (CopyOf(entry) == null || Stage.ExampleRoomsTotal == 0)
+                {
+                    p.Note($"{entry.Name}: no example stood on the stage");
+                    continue;
+                }
+                var told = new List<string>();
+                for (var level = 0; level < Stage.FloorHeights.Count; level++)
+                {
+                    Stage.OpenLevel(level);
+                    var rooms = Stage.ExampleRoomsOnFloor;
+                    told.Add($"{Stage.FloorHeights[level]:0.0} m, {rooms} rooms");
+                    if (rooms == 0) empty.Add($"{entry.Name} at {Stage.FloorHeights[level]:0.0} m");
+                }
+                p.Note($"{entry.Name} ({entry.DisplayName}), {Stage.ExampleRoomsTotal} rooms, {Stage.FloorHeights.Count} floors: " + string.Join("; ", told));
+            }
+            Stage.Inside = wasInside;
+            p.Check(empty.Count == 0, "every floor found in their examples has rooms on it", string.Join("; ", empty));
+        }
+
         /// <summary>A runestone location tells its stone's texts, in words, under Runestone texts.</summary>
         private static IEnumerator RunestoneTexts(Probe p)
         {
