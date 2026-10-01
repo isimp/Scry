@@ -153,6 +153,7 @@ namespace Scry
             Previews.SeekSound(1f);
             yield return null;
             p.Check(Previews.SoundPosition(out var time, out _) && Mathf.Abs(time - 1f) < 0.2f, "it seeks", $"{time:0.00} s");
+            p.Note("plays through " + Previews.SoundSourceTold());
             Previews.PauseSound(false);
             yield return new Wait(0.3);
             p.Check(Previews.SoundPosition(out var later, out _) && later > time, "and goes on from there", $"{later:0.00} s");

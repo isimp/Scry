@@ -258,6 +258,9 @@ namespace Scry
         {
             var effect = Pick(Kind.Effect, "vfx_HitSparks", "vfx_Place_workbench");
             if (effect == null) p.Skip("there is no effect");
+            // On the stage: the full view, not the world.
+            if (ScryPanel.Compact) ScryPanel.Compact = false;
+            if (Previews.InWorld) Previews.ToggleWorld();
             Select(effect);
             yield return null;
             var loops = Previews.LoopEffects;
@@ -270,7 +273,8 @@ namespace Scry
             var still = again || first == null ? "" : string.Join(", ",
                 first.GetComponentsInChildren<ParticleSystem>(false).Where(s => s.IsAlive(false)).Select(s => $"{s.name} (loops {s.main.loop}, lasts {s.main.duration:0.#} s)")
                     .Concat(first.GetComponentsInChildren<AudioSource>(false).Where(s => s.isPlaying).Select(s => $"{s.name} sound (loops {s.loop})")));
-            p.Check(again, "with Repeat on, the stage plays it again once it has played out", still.Length > 0 ? "still playing: " + still : null);
+            var why = first == null ? $"the stage showed {(Stage.Showing != null ? Stage.Showing.Name : "nothing")}{(Stage.IsStaged(effect) ? "" : ", having nothing of it to show")}" : still.Length > 0 ? "still playing: " + still : null;
+            p.Check(again, "with Repeat on, the stage plays it again once it has played out", why);
             Previews.LoopEffects = false;
             var last = CopyOf(effect);
             yield return Until(() => Stage.Finished, 8);
@@ -517,7 +521,10 @@ namespace Scry
                 var size = Stage.SubjectSize;
                 sizes.Add($"{entry.Name} {Mathf.Max(size.x, size.z):0} m");
                 if (Mathf.Max(size.x, size.y, size.z) > 300f) wrong.Add($"{entry.Name} frames {size}");
-                if (float.IsNaN(Stage.Ground) || Mathf.Abs(Stage.Ground) > 0.01f) wrong.Add($"{entry.Name} stands at {Stage.Ground:0.0} m");
+                // A location stands on its own ground; a dungeon's example, shown inside, on its lowest floor.
+                var inside = Stage.HasInside && Stage.Inside && Stage.FloorHeights.Count > 0;
+                var ground = inside ? Stage.FloorHeights[Stage.FloorHeights.Count - 1] : 0f;
+                if (float.IsNaN(Stage.Ground) || Mathf.Abs(Stage.Ground - ground) > 0.01f) wrong.Add($"{entry.Name} stands at {Stage.Ground:0.0} m{(inside ? $", its example's lowest floor at {ground:0.0} m" : "")}");
             }
             p.Note(string.Join(", ", sizes));
             p.Check(wrong.Count == 0, "each loads, is framed to a sane size and stands on its own ground", string.Join("; ", wrong));

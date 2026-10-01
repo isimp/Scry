@@ -28,6 +28,7 @@ namespace Scry
             _soundChosen = only;
             _soundPaused = false;
             _seekWhilePaused = null;
+            _held = null;
             _soundTakenOver = false;
             _soundWaitUntil = Time.unscaledTime + MaxDelay(prefab) + 0.5f;
             if (only != null) Narrow(_sound, only);
@@ -155,6 +156,7 @@ namespace Scry
             _soundEntry = null;
             _soundPaused = false;
             _seekWhilePaused = null;
+            _held = null;
             _soundChosen = null;
             Destroy(ref _sound);
         }
@@ -209,17 +211,32 @@ namespace Scry
         }
 
         /// <summary>The audio source on the playing sound that holds its clip.</summary>
+        /// <summary>
+        /// The source the sound plays through: the one found playing, held on to while it is
+        /// paused or sought, so a prefab with several sources is paused, sought and resumed on
+        /// the same one.
+        /// </summary>
         private static AudioSource SoundSource()
         {
             if (_sound == null) return null;
+            if (_held != null && _held.clip != null && _held.transform.IsChildOf(_sound.transform)) return _held;
             AudioSource holding = null;
             foreach (var source in _sound.GetComponentsInChildren<AudioSource>())
             {
                 if (source.clip == null) continue;
-                if (source.isPlaying) return source;
+                if (source.isPlaying) return _held = source;
                 if (holding == null) holding = source;
             }
             return holding;
+        }
+
+        private static AudioSource _held;
+
+        /// <summary>The playing sound's source and how its clip loads, for the self-test to tell.</summary>
+        public static string SoundSourceTold()
+        {
+            var source = SoundSource();
+            return source == null ? "none" : $"{source.name}, {source.clip.name} ({source.clip.loadType}), {_sound.GetComponentsInChildren<AudioSource>().Length} sources";
         }
 
         /// <summary>Where the playing sound is and how long its clip is, for the panel's timeline.</summary>
@@ -229,7 +246,7 @@ namespace Scry
             length = 0f;
             var source = SoundSource();
             if (source == null || source.clip == null || (!source.isPlaying && !_soundPaused)) return false;
-            time = source.time;
+            time = _soundPaused && _seekWhilePaused.HasValue ? _seekWhilePaused.Value : source.time;
             length = source.clip.length;
             return length > 0f;
         }
@@ -240,9 +257,11 @@ namespace Scry
             var source = SoundSource();
             if (source == null || source.clip == null) return;
             TakeOverSound();
-            source.time = Mathf.Clamp(time, 0f, Mathf.Max(0f, source.clip.length - 0.05f));
-            // A streamed clip (music) can lose a point set while paused once it goes on: kept, and set again then.
-            _seekWhilePaused = _soundPaused ? source.time : (float?)null;
+            var at = Mathf.Clamp(time, 0f, Mathf.Max(0f, source.clip.length - 0.05f));
+            source.time = at;
+            // A point set while paused is kept and played from on going on, as a streamed clip
+            // (music) can lose it otherwise.
+            _seekWhilePaused = _soundPaused ? at : (float?)null;
         }
 
         private static float? _seekWhilePaused;
@@ -259,12 +278,16 @@ namespace Scry
             if (pause && !source.isPlaying) return;
             TakeOverSound();
             if (pause) source.Pause();
-            else
+            else if (_seekWhilePaused.HasValue)
             {
-                source.UnPause();
-                if (_seekWhilePaused.HasValue) source.time = _seekWhilePaused.Value;
+                // Played again from the point sought, which every kind of clip keeps.
+                source.Stop();
+                source.time = _seekWhilePaused.Value;
+                source.Play();
                 _seekWhilePaused = null;
             }
+            else source.UnPause();
+            _held = source;
             _soundPaused = pause;
         }
 

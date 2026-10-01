@@ -18,20 +18,26 @@ namespace Scry
 
             var catalog = Session.Explorer?.Catalog;
             if (catalog == null) return;
-            void Here(string title, Func<Entry, bool> which)
+            void Here(string title, Func<Entry, bool> which, bool home = true)
             {
                 var row = new Row();
-                foreach (var entry in catalog.Where(e => which(e) && e.Biomes.Contains(biome.Name)).OrderBy(e => e.DisplayName.Length > 0 ? e.DisplayName : e.Name, StringComparer.OrdinalIgnoreCase))
+                foreach (var entry in catalog.Where(e => which(e) && (home ? e.Biomes.Contains(biome.Name) : Knowledge.EventBiomes(e.Name).Contains(biome.Name) && !e.Biomes.Contains(biome.Name)))
+                             .OrderBy(e => e.DisplayName.Length > 0 ? e.DisplayName : e.Name, StringComparer.OrdinalIgnoreCase))
                 {
                     row.Items.Add(EntryChip(entry));
                 }
                 row.Title = $"{title} ({row.Items.Count})";
                 if (row.Items.Count > 0) Rows.Add(row);
             }
+            bool Fish(Entry e) => e.Kind == Kind.Item && e.Source is UnityEngine.GameObject prefab && prefab.GetComponent<global::Fish>() != null;
             Here("Lives here", e => e.Kind == Kind.Creature);
-            Here("Grows here", e => e.Kind == Kind.Resource);
+            Here("Fish here", Fish);
+            // What grows wild counts whatever kind a mod made it, as a piece one can plant too.
+            Here("Grows here", e => e.Kind == Kind.Resource || (e.Kind == Kind.Piece && Knowledge.IsPlacedByWorld(e.Name)));
             Here("Places here", e => e.Kind == Kind.Location && !(e.Source is PlaceSource place && place.IsRoom));
             Here("Raids here", e => e.Kind == Kind.Raid);
+            Here("Also placed here", e => (e.Kind == Kind.Other || e.Kind == Kind.Effect || e.Kind == Kind.Projectile || (e.Kind == Kind.Item && !Fish(e))) && Knowledge.IsPlacedByWorld(e.Name));
+            Here("Here only in weather a world event brings", e => e.Kind != Kind.Biome, home: false);
         }
     }
 }

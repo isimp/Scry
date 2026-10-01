@@ -227,6 +227,7 @@ namespace Scry
             Keys.Clear();
             Powers.Clear();
             Unlocks.Clear();
+            EventBiomesOf.Clear();
             ComesFrom.Clear();
             PlacedByWorld.Clear();
             GiverList.Clear();
@@ -281,7 +282,9 @@ namespace Scry
                 {
                     Bosses[boss.m_defeatSetGlobalKey] = prefab;
                 }
-                if (component is Character fought && !string.IsNullOrEmpty(fought.m_bossEvent) && !BossEvents.ContainsKey(fought.m_bossEvent))
+                // A boss's fight only where its event is on: the game finds none switched off (RandEventSystem.GetEvent).
+                if (component is Character fought && !string.IsNullOrEmpty(fought.m_bossEvent) && !BossEvents.ContainsKey(fought.m_bossEvent)
+                    && RandEventSystem.instance != null && RandEventSystem.instance.m_events.Exists(e => e != null && e.m_name == fought.m_bossEvent && e.m_enabled))
                 {
                     BossEvents[fought.m_bossEvent] = prefab;
                 }

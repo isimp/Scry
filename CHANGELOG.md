@@ -38,7 +38,7 @@ Resistances show as a grid of every damage type, the same on every creature, pie
 
 What Scry is not sure of is marked with a `~` and a softer colour, and says why when hovered: which mod added something when only clues tell it, what mods hooking into a rule may change, what was seen in play, and where Scry found nothing. Everything else is read from the game or worked out by its rules. An item or creature Scry finds no source for says so instead of leaving the place empty.
 
-Biomes have a tab of their own. A biome's page tells each of its weathers, how likely it is and what it does, its music for each time of day, playing when clicked, and what lives, grows, stands and raids there; *Everything here* searches for all of it, and the biome chips on every page go to it.
+Biomes have a tab of their own. A biome's page tells each of its weathers, how likely it is and what it does, its music for each time of day, playing when clicked, and what lives, swims, grows, stands and raids there, apart from what comes only in a world event's weather; *Everything here* searches for all of it, and the biome chips on every page go to it.
 
 A boss, or any creature whose defeat moves the world on, tells what follows its fall: the raids that may then come and those that stop, what then spawns and what spawners stop placing, and what traders then sell.
 

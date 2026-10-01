@@ -112,6 +112,17 @@ namespace Scry
             return grown;
         }
 
+        /// <summary>The biomes something comes to only in weather a world event brings, by name (<see cref="SpawnBiomes"/>).</summary>
+        private static readonly Dictionary<string, HashSet<string>> EventBiomesOf = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
+        public static string[] EventBiomes(string prefab) => EventBiomesOf.TryGetValue(prefab, out var set) ? set.ToArray() : new string[0];
+
+        private static void AddBiomeKey(Dictionary<string, HashSet<string>> into, string prefab, string key)
+        {
+            if (!into.TryGetValue(prefab, out var set)) into[prefab] = set = new HashSet<string>();
+            set.Add(key);
+        }
+
         private static void AddBiomes(string prefab, Heightmap.Biome biome)
         {
             if (!BiomesOf.TryGetValue(prefab, out var set)) BiomesOf[prefab] = set = new HashSet<string>();
@@ -188,13 +199,30 @@ namespace Scry
                 }
             }
 
+            // Each biome's own weathers, to tell a creature's home from where a world event's weather brings it.
+            var weathers = new Dictionary<string, ICollection<string>>(StringComparer.Ordinal);
+            if (EnvMan.instance?.m_biomes != null)
+            {
+                foreach (var setup in EnvMan.instance.m_biomes)
+                {
+                    if (setup?.m_environments == null) continue;
+                    foreach (var key in BiomeKeys(setup.m_biome))
+                    {
+                        if (!weathers.TryGetValue(key, out var own)) weathers[key] = own = new HashSet<string>(StringComparer.Ordinal);
+                        foreach (var env in setup.m_environments) if (env != null && !string.IsNullOrEmpty(env.m_environment)) own.Add(env.m_environment);
+                    }
+                }
+            }
+
             foreach (var list in lists)
             {
                 Each(list.m_spawners, "world spawns", d => d.m_name.Length > 0 ? d.m_name : d.m_prefab != null ? d.m_prefab.name : "a spawn", data =>
                 {
                     if (data.m_prefab == null || !data.m_enabled) return;
                     var name = data.m_prefab.name;
-                    AddBiomes(name, data.m_biome);
+                    var (home, events) = SpawnBiomes.Split(BiomeKeys(data.m_biome), data.m_requiredEnvironments, b => weathers.TryGetValue(b, out var own) ? own : null);
+                    foreach (var key in home) AddBiomeKey(BiomesOf, name, key);
+                    foreach (var key in events) AddBiomeKey(EventBiomesOf, name, key);
                     PlacedByWorld.Add(name);
 
                     var spawn = new SpawnFacts
