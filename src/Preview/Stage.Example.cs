@@ -29,8 +29,11 @@ namespace Scry
         private static int _exampleCopies;
         private static Ghost.Building _exampleBuild;
 
-        /// <summary>The example's rooms standing on the stage, each with its copy, to put away those off the floor opened.</summary>
+        /// <summary>The example's rooms standing on the stage, each with its copy, to dim or put away those off the floor opened.</summary>
         private static readonly List<KeyValuePair<PlacedRoom, GameObject>> ExampleCopies = new List<KeyValuePair<PlacedRoom, GameObject>>();
+
+        /// <summary>The rooms' copies dimmed, below the floor opened (<see cref="Dim"/>).</summary>
+        private static readonly HashSet<GameObject> DimmedRooms = new HashSet<GameObject>();
 
         /// <summary>A few milliseconds a frame for putting rooms away and back as floors are opened.</summary>
         private const double KeepBudgetMs = 4.0;
@@ -147,10 +150,10 @@ namespace Scry
         }
 
         /// <summary>
-        /// With a floor opened inside a dungeon's example, only that floor's rooms stand on the
-        /// stage (<see cref="ExamplePlan.Shown"/>): those below are put away, as those above are
-        /// cut away; with the roof on, or its entrance shown, every room stands. A few each frame,
-        /// as a big example puts many away or back at once.
+        /// With a floor opened inside a dungeon's example, that floor's rooms stand on the stage as
+        /// they are (<see cref="ExampleRoomShown"/>), those below dimmed (<see cref="Dim"/>) and
+        /// those above put away, as they are cut away; with the roof on, or its entrance shown,
+        /// every room stands as it is. A few each frame, as a big example changes many at once.
         /// </summary>
         private static void KeepToFloor()
         {
@@ -158,28 +161,42 @@ namespace Scry
             var watch = Stopwatch.StartNew();
             foreach (var pair in ExampleCopies)
             {
-                if (pair.Value == null) continue;
-                var wanted = ExampleRoomShown(pair.Key) == PlanRoomShown.Whole;
-                if (pair.Value.activeSelf == wanted) continue;
-                pair.Value.SetActive(wanted);
+                var copy = pair.Value;
+                if (copy == null) continue;
+                var shown = ExampleRoomShown(pair.Key);
+                var standing = shown != PlanRoomShown.None;
+                var dimmed = shown == PlanRoomShown.Faint;
+                if (copy.activeSelf == standing && DimmedRooms.Contains(copy) == dimmed) continue;
+                if (copy.activeSelf != standing) copy.SetActive(standing);
+                if (DimmedRooms.Contains(copy) != dimmed)
+                {
+                    Dim.Set(copy, dimmed);
+                    if (dimmed) DimmedRooms.Add(copy);
+                    else DimmedRooms.Remove(copy);
+                }
                 if (watch.Elapsed.TotalMilliseconds >= KeepBudgetMs) break;
             }
         }
 
-        /// <summary>Whether every room of the example stands or is put away as the floor opened has it, for the self-test.</summary>
+        /// <summary>How many of the example's rooms are dimmed, below the floor opened, for the self-test.</summary>
+        public static int ExampleRoomsDimmed => DimmedRooms.Count;
+
+        /// <summary>Whether every room of the example stands, is dimmed or is put away as the floor opened has it, for the self-test.</summary>
         public static bool ExampleRoomsKept
         {
             get
             {
                 foreach (var pair in ExampleCopies)
                 {
-                    if (pair.Value != null && pair.Value.activeSelf != (ExampleRoomShown(pair.Key) == PlanRoomShown.Whole)) return false;
+                    if (pair.Value == null) continue;
+                    var shown = ExampleRoomShown(pair.Key);
+                    if (pair.Value.activeSelf != (shown != PlanRoomShown.None) || DimmedRooms.Contains(pair.Value) != (shown == PlanRoomShown.Faint)) return false;
                 }
                 return true;
             }
         }
 
-        /// <summary>How many of the example's rooms are put away, off the floor opened, for the self-test.</summary>
+        /// <summary>How many of the example's rooms are put away, above the floor opened, for the self-test.</summary>
         public static int ExampleRoomsAway
         {
             get
@@ -265,6 +282,7 @@ namespace Scry
             _exampleCopies = 0;
             ExamplePatches.Clear();
             ExampleCopies.Clear();
+            DimmedRooms.Clear();
             RoomGround.Clear();
             _countedAt = -1;
             _exampleGround = 0f;

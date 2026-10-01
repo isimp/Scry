@@ -7,8 +7,8 @@ namespace Scry
     /// The example layout of a location's dungeon or camp (<see cref="ExampleLayouts"/>): what it
     /// holds and a button for another under the details, and its plan in a corner of the stage,
     /// as seen from above, turned with the view and framed on its rooms (<see cref="ExamplePlan"/>):
-    /// each room, the entrance marked, and the doors; with a floor opened, that floor's rooms,
-    /// those below faintly. A room under the mouse, on the plan or on the stage, is lit on the
+    /// each room, the entrance marked, and the doors; with a floor opened, only that floor's
+    /// rooms and doors. A room under the mouse, on the plan or on the stage, is lit on the
     /// plan and named, and a click on it goes to its entry. The stage's *Plan* chip puts the plan
     /// away and back.
     /// </summary>
@@ -91,10 +91,10 @@ namespace Scry
 
             foreach (var room in PlanRooms)
             {
-                var shown = Stage.ExampleRoomShown(room);
-                if (shown == PlanRoomShown.None) continue;
-                var lit = shown == PlanRoomShown.Whole && (room == hovered || (hovered == null && _stageRoom != null && _stageRoom == room.Room.Name));
-                PlanRoom(room, At(room.Position), scale, yaw, lit, shown == PlanRoomShown.Faint);
+                // Only the floor opened: the stage dims what is below it.
+                if (Stage.ExampleRoomShown(room) != PlanRoomShown.Whole) continue;
+                var lit = room == hovered || (hovered == null && _stageRoom != null && _stageRoom == room.Room.Name);
+                PlanRoom(room, At(room.Position), scale, yaw, lit);
             }
             if (e.type == EventType.Repaint) PlansDrawn++;
             var door = Mathf.Max(U(2f), 0.8f * scale);
@@ -127,23 +127,20 @@ namespace Scry
             return area;
         }
 
-        /// <summary>
-        /// A room's floor, turned as it is and as the view is: the entrance in the accent colour,
-        /// end caps, dividers and walls fainter, and one below the floor opened faint, unframed.
-        /// </summary>
-        private static void PlanRoom(PlacedRoom room, Vector2 centre, float scale, float yaw, bool hovered, bool below)
+        /// <summary>A room's floor, turned as it is and as the view is: the entrance in the accent colour, end caps, dividers and walls fainter.</summary>
+        private static void PlanRoom(PlacedRoom room, Vector2 centre, float scale, float yaw, bool hovered)
         {
             var shape = room.Room;
             var w = Mathf.Max(U(2f), shape.Size.X * scale);
             var h = Mathf.Max(U(2f), shape.Size.Z * scale);
             var tone = shape.Entrance ? Skin.Accent : shape.EndCap || shape.Divider ? Skin.Faint : Skin.KindColor(Kind.Location);
-            var fill = new Color(tone.r, tone.g, tone.b, below ? 0.12f : shape.EndCap || shape.Divider ? 0.3f : hovered ? 0.7f : 0.4f);
+            var fill = new Color(tone.r, tone.g, tone.b, shape.EndCap || shape.Divider ? 0.3f : hovered ? 0.7f : 0.4f);
 
             var was = GUI.matrix;
             GUIUtility.RotateAroundPivot(room.Rotation.YawDegrees - yaw, centre);
             var rect = new Rect(centre.x - w / 2f, centre.y - h / 2f, w, h);
             Skin.Fill(rect, fill);
-            if (!below) PlanFrame(rect, hovered ? Skin.Accent : new Color(Skin.Text.r, Skin.Text.g, Skin.Text.b, 0.35f), hovered ? 2f : 1f);
+            PlanFrame(rect, hovered ? Skin.Accent : new Color(Skin.Text.r, Skin.Text.g, Skin.Text.b, 0.35f), hovered ? 2f : 1f);
             GUI.matrix = was;
         }
 

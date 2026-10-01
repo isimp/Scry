@@ -10,7 +10,7 @@ namespace Scry
         /// <summary>Above the floor opened, cut away as on the stage.</summary>
         None,
 
-        /// <summary>Below it, faintly, to see where the floor lies over.</summary>
+        /// <summary>Below it: dimmed on the stage, to see where the floor lies over, and left off the plan.</summary>
         Faint,
 
         /// <summary>On it, or every room while the roof is on.</summary>
@@ -20,8 +20,8 @@ namespace Scry
     /// <summary>
     /// An example's plan in the stage's corner, as seen from above. It turns with the view, what
     /// lies ahead of the camera up on the plan, and is framed on its rooms alone, at a scale that
-    /// keeps while the view turns. With a floor opened it shows that floor's rooms whole, those
-    /// below it faintly and none above it, as the stage shows the example cut open. Heights are
+    /// keeps while the view turns. With a floor opened, a room is on that floor, below it or above
+    /// it: the plan shows only the floor's rooms, the stage those below too, dimmed. Heights are
     /// the example's own; a room's box stands centred on its pivot (<see cref="DungeonExample.Pick"/>).
     /// </summary>
     public static class ExamplePlan
