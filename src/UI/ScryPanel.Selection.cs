@@ -142,7 +142,6 @@ namespace Scry
             y = Section("side adjust", y, at => Adjust(explorer, entry, cw, at, withStage));
             y = Section("side facts", y, at => FactsSection(explorer, entry, cw, at));
             y = Section("side runes", y, at => RunesSection(entry, cw, at));
-            y = Section("side plan", y, at => PlanSection(explorer, entry, cw, at));
             y = Section("side animations", y, at => Animations(explorer, entry, cw, at, withStage));
             y = Section("side effects", y, at => Effects(explorer, entry, cw, at, withStage));
             y = Section("side plays in", y, at => PlaysInSection(explorer, entry, cw, at));
@@ -652,6 +651,15 @@ namespace Scry
                         && Shown("Roll again", Skin.Primary, Stage.Subject != null))
                     {
                         Previews.Rebuild();
+                    }
+                    // A dungeon's or camp's example, laid out anew, with what it holds or how far reading it has got.
+                    if (withStage && entry.Source is PlaceSource laid && !laid.IsRoom && laid.Contents?.Dungeon != null)
+                    {
+                        var example = ExampleOf(entry);
+                        if (Shown("Another example", Skin.Button, example != null)) ExampleLayouts.Another();
+                        note = example != null
+                            ? DungeonWords.Example(example, ExampleLayouts.Failed) + (example.Rooms.Count > 0 ? ". One way it can come out; each world lays out its own." : ".")
+                            : ExampleLayouts.Of(entry) ? DungeonWords.Reading(ExampleLayouts.Read, ExampleLayouts.Total) : null;
                     }
                     break;
 

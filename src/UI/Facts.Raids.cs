@@ -8,6 +8,28 @@ namespace Scry
     {
         // ----- Raids -----
 
+        /// <summary>A link that plays the entry's own music rather than going anywhere (<see cref="Previews.EntryMusic"/>).</summary>
+        public const string PlayMusic = "play:music";
+
+        /// <summary>A weather by name and what it does to whoever is out in it (<see cref="WeatherWords"/>); the name alone when the world has no such weather.</summary>
+        private static string Weather(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return null;
+            var env = EnvMan.instance?.m_environments?.Find(e => e != null && e.m_name == name);
+            if (env == null) return Naming.FieldLabel(name);
+            return WeatherWords.Line(Naming.FieldLabel(name), new WeatherFacts
+            {
+                Wet = env.m_isWet,
+                Cold = env.m_isCold,
+                ColdAtNight = env.m_isColdAtNight,
+                Freezing = env.m_isFreezing,
+                FreezingAtNight = env.m_isFreezingAtNight,
+                AlwaysDark = env.m_alwaysDark,
+                WindMin = env.m_windMin,
+                WindMax = env.m_windMax,
+            });
+        }
+
         private void Raid(RandomEvent raid)
         {
             // A boss's own event: its fight's music and weather, on while its health bar shows.
@@ -16,8 +38,8 @@ namespace Scry
             {
                 var range = EnemyHud.instance != null ? EnemyHud.instance.m_maxShowDistanceBoss : 100f;
                 Add("On", RaidWords.WhileFighting(AnyName(boss, boss.name), range), boss.name);
-                if (!string.IsNullOrEmpty(raid.m_forceMusic)) Add("Music", Naming.FieldLabel(raid.m_forceMusic));
-                if (!string.IsNullOrEmpty(raid.m_forceEnvironment)) Add("Weather", Naming.FieldLabel(raid.m_forceEnvironment));
+                Add("Music", Naming.FieldLabel(raid.m_forceMusic), PlayMusic);
+                Add("Weather", Weather(raid.m_forceEnvironment));
                 if (!raid.m_random && raid.m_standaloneInterval <= 0f) return;
             }
 
@@ -36,7 +58,11 @@ namespace Scry
             if (!raid.m_random && raid.m_standaloneInterval <= 0f) Add("Rolled", "never by the raid roll; only something else starts it");
             Add("Lasts", RaidWords.Lasts(raid.m_duration, raid.m_pauseIfNoPlayerInArea, raid.m_eventRange));
             Add("Ends with", CatalogBuilder.Localize(raid.m_endMessage));
-            if (boss == null && !string.IsNullOrEmpty(raid.m_forceEnvironment)) Add("Weather", Naming.FieldLabel(raid.m_forceEnvironment));
+            if (boss == null)
+            {
+                Add("Music", Naming.FieldLabel(raid.m_forceMusic), PlayMusic);
+                Add("Weather", Weather(raid.m_forceEnvironment));
+            }
 
             foreach (var data in raid.m_spawn ?? new List<SpawnSystem.SpawnData>())
             {

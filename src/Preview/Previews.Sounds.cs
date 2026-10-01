@@ -38,6 +38,7 @@ namespace Scry
         /// </summary>
         public static string PlacesMusic(Entry entry)
         {
+            if (entry?.Source is RandomEvent raid) return EventMusic(entry, raid);
             if (!(entry?.Source is PlaceSource place)) return null;
             if (MusicPreview.PlayingFor == entry)
             {
@@ -49,6 +50,20 @@ namespace Scry
             StopSound();
             var played = MusicPreview.Play(entry, PlaceAssets.Asset(place), place.Contents.Music);
             return played != null ? $"Playing {played}; Enter again stops it." : "Its music could not be found.";
+        }
+
+        /// <summary>The music a raid or a boss's fight forces (<c>RandomEvent.m_forceMusic</c>), from the game's music list, or stopped when it plays already.</summary>
+        private static string EventMusic(Entry entry, RandomEvent raid)
+        {
+            if (MusicPreview.PlayingFor == entry)
+            {
+                StopSound();
+                return "Stopped its music.";
+            }
+            if (string.IsNullOrEmpty(raid.m_forceMusic)) return "It has no music of its own.";
+            StopSound();
+            var played = MusicPreview.Play(entry, null, new List<PlaceMusic> { new PlaceMusic { Name = raid.m_forceMusic, When = MusicWhen.Inside } });
+            return played != null ? $"Playing {Naming.FieldLabel(played)}; click it or press Enter again to stop it." : "Its music could not be found.";
         }
 
         /// <summary>

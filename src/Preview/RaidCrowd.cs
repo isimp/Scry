@@ -52,39 +52,49 @@ namespace Scry
             holder.transform.position = origin;
             if (layer >= 0) holder.layer = layer;
 
-            // Each group around a point of its own, the points in a ring far enough apart that
-            // the groups keep to themselves.
-            var groups = wave.GroupBy(c => c.Group).ToList();
-            var widest = groups.Count == 0 ? 0f : groups.Max(g => g.Count() > 1 ? radii[g.First().Prefab] : 0f);
-            var apart = widest * 2f + 4f;
-            var ring = groups.Count <= 1 ? 0f : apart / (2f * Mathf.Sin(Mathf.PI / groups.Count));
+            // Each group around a point of its own with room for every body, the groups apart
+            // (CrowdLayout): the copies cannot push each other aside as live creatures do.
             var catalog = Session.Explorer?.Catalog;
             var entries = new Dictionary<string, Entry>();
-            for (var g = 0; g < groups.Count; g++)
+            Entry EntryOf(string prefab)
             {
-                var angle = 2f * Mathf.PI * g / Mathf.Max(1, groups.Count);
-                var centre = origin + new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * ring;
-                var members = groups[g].ToList();
-                var spread = members.Count > 1 ? radii[members[0].Prefab] : 0f;
+                if (!entries.TryGetValue(prefab, out var found))
+                {
+                    // What a raid brings is mostly creatures; some bring spawners (the Ashlands' charred spawners).
+                    found = catalog?.FirstOrDefault(e => e.Kind == Kind.Creature && e.Name == prefab)
+                            ?? catalog?.FirstOrDefault(e => !EntryKeys.HasOwnNamespace(e.Kind) && e.Name == prefab);
+                    entries[prefab] = found;
+                }
+                return found;
+            }
+            var groups = wave.GroupBy(c => c.Group).Select(g => g.ToList()).ToList();
+            var shapes = groups.Select(g => new CrowdGroup { Count = g.Count, Body = Body(EntryOf(g[0].Prefab)?.Source as GameObject), Spread = radii[g[0].Prefab] }).ToList();
+            var places = CrowdLayout.Place(shapes);
+            var at = 0;
+            foreach (var members in groups)
+            {
                 foreach (var creature in members)
                 {
-                    if (!entries.TryGetValue(creature.Prefab, out var creatureEntry))
-                    {
-                        // What a raid brings is mostly creatures; some bring spawners (the Ashlands' charred spawners).
-                        creatureEntry = catalog?.FirstOrDefault(e => e.Kind == Kind.Creature && e.Name == creature.Prefab)
-                                        ?? catalog?.FirstOrDefault(e => !EntryKeys.HasOwnNamespace(e.Kind) && e.Name == creature.Prefab);
-                        entries[creature.Prefab] = creatureEntry;
-                    }
+                    var place = places[at++];
+                    var creatureEntry = EntryOf(creature.Prefab);
                     if (creatureEntry == null) continue;
                     var modifiers = new Modifiers();
                     modifiers.ResetFor(creatureEntry);
                     modifiers.Level = creature.Level;
-                    var offset = Random.insideUnitCircle * spread;
                     var turned = Quaternion.Euler(0f, Random.Range(-30f, 30f), 0f);
-                    Looks.Copy(creatureEntry, modifiers, holder.transform, centre + new Vector3(offset.x, 0f, offset.y), turned, layer, null);
+                    Looks.Copy(creatureEntry, modifiers, holder.transform, origin + new Vector3(place.X, 0f, place.Z), turned, layer, null);
                 }
             }
             return holder;
+        }
+
+        /// <summary>How wide a creature's body is, its capsule's radius as it stands (<c>Character</c>'s collider); a person's for anything else.</summary>
+        private static float Body(GameObject prefab)
+        {
+            var capsule = prefab != null ? prefab.GetComponent<CapsuleCollider>() : null;
+            if (capsule == null) return 0.5f;
+            var scale = prefab.transform.localScale;
+            return Mathf.Max(0.3f, capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z)));
         }
     }
 }

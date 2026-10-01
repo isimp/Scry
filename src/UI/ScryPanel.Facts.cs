@@ -15,7 +15,7 @@ namespace Scry
             var facts = Facts.For(entry);
             Timing.Add("facts built", built);
             var places = !EntryKeys.HasOwnNamespace(entry.Kind) && (Locations.Now != Locations.State.Read || entry.FoundIn.Length > 0);
-            if (facts.IsEmpty && !places) return y;
+            if (facts.IsEmpty && !places && entry.Biomes.Length == 0 && Users(explorer, entry).Count == 0) return y;
 
             y = SectionHeading("IN THE GAME", width, y, null, "facts");
             if (IsFolded("facts")) return y;
@@ -36,8 +36,21 @@ namespace Scry
                 var height = Mathf.Max(U(20f), Mathf.Max(labelH, Skin.Height(Skin.Wrap, pair.Value, valueW)));
                 GUI.Label(new Rect(0f, y, labelW, labelH), pair.Key, Skin.DimWrap);
                 var valueRect = new Rect(labelW + U(10f), y, valueW, height);
+                // Music plays where it is named.
+                if (facts.Links.TryGetValue(pair.Key, out var music) && music == Facts.PlayMusic)
+                {
+                    var musicW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
+                    var musicRect = new Rect(valueRect.x, valueRect.y, musicW, height);
+                    LinkLabel(musicRect, pair.Value, Skin.Wrap, MusicPreview.PlayingFor == entry ? Skin.KindColor(Kind.Sound) : Skin.Accent);
+                    if (musicRect.Contains(Event.current.mousePosition)) AskTip("music:" + entry.Key, MusicPreview.PlayingFor == entry ? "Stop it" : "Play it");
+                    if (GUI.Button(musicRect, GUIContent.none, GUIStyle.none))
+                    {
+                        var said = Previews.PlacesMusic(entry);
+                        if (said != null) Session.Say(said);
+                    }
+                }
                 // A link only to what is in the catalog: a creature's own attack items are not.
-                if (facts.Links.TryGetValue(pair.Key, out var link) && InCatalog(explorer, link))
+                else if (facts.Links.TryGetValue(pair.Key, out var link) && InCatalog(explorer, link))
                 {
                     var linkW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
                     var linkRect = new Rect(valueRect.x, valueRect.y, linkW, height);
@@ -103,6 +116,14 @@ namespace Scry
                 y += U(6f);
                 y = FoundIn(explorer, entry, width, y);
             }
+
+            // Its biomes, each searching for what else is there, and what plays it.
+            if (entry.Biomes.Length > 0)
+            {
+                y = ChipRow("Biomes (search)", entry.Biomes.Select(b => new KeyValuePair<string, Action>(Knowledge.BiomeName(b), () => SearchFor(explorer, "biome:" + b.ToLowerInvariant()))), width, y);
+            }
+            var users = Users(explorer, entry);
+            if (users.Count > 0) y = LinkItems(explorer, _usersTitle, users, width, y);
 
             // What it is used for, under a heading of its own; a long row (wood builds a hundred
             // pieces) shows its first few until asked for the rest.
@@ -264,6 +285,22 @@ namespace Scry
         private static List<(string Key, string Text, string Tip, Action Click)> _users = new List<(string, string, string, Action)>();
         private static string _usersTitle = "";
 
+        /// <summary>
+        /// What plays it, where nothing else tells (<see cref="EffectLinks"/>): every one, the
+        /// first few until asked for the rest, as every long row shows; found once for the entry
+        /// shown, not for every event drawn.
+        /// </summary>
+        private static List<(string Key, string Text, string Tip, Action Click)> Users(Explorer explorer, Entry entry)
+        {
+            if (ReferenceEquals(_usersFor, entry)) return _users;
+            _usersFor = entry;
+            _users = entry.UsedBy.Count == 0 || EffectLinks.For(entry.Name).Count > 0
+                ? new List<(string, string, string, Action)>()
+                : entry.UsedBy.Where(u => InCatalog(explorer, u)).Select(n => (n, ShownName(explorer, n, n), (string)null, (Action)(() => Go(explorer, n)))).ToList();
+            _usersTitle = $"Played by ({_users.Count})";
+            return _users;
+        }
+
         private static float Details(Explorer explorer, Entry entry, float width, float y)
         {
             y = SectionHeading("DETAILS", width, y, null, "details");
@@ -291,24 +328,6 @@ namespace Scry
                 var height = Skin.Height(Skin.DimWrap, line, width);
                 GUI.Label(new Rect(0f, y, width, height), line, Skin.DimWrap);
                 y += height + U(4f);
-            }
-
-            if (entry.Biomes.Length > 0)
-            {
-                y = ChipRow("Biomes (search)", entry.Biomes.Select(b => new KeyValuePair<string, Action>(Knowledge.BiomeName(b), () => SearchFor(explorer, "biome:" + b.ToLowerInvariant()))), width, y);
-            }
-            if (entry.UsedBy.Count > 0 && EffectLinks.For(entry.Name).Count == 0)
-            {
-                // Every one, the first few until asked for the rest, as every long row shows; found
-                // once for the entry shown, not for every event drawn.
-                if (!ReferenceEquals(_usersFor, entry))
-                {
-                    _usersFor = entry;
-                    _users = entry.UsedBy.Where(u => InCatalog(explorer, u))
-                        .Select(n => (n, ShownName(explorer, n, n), (string)null, (Action)(() => Go(explorer, n)))).ToList();
-                    _usersTitle = $"Played by ({_users.Count})";
-                }
-                if (_users.Count > 0) y = LinkItems(explorer, _usersTitle, _users, width, y);
             }
 
             // For finding out why part of a model does not show: every part the preview draws, in the

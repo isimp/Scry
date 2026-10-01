@@ -40,35 +40,6 @@ namespace Scry
         private static DungeonExample ExampleOf(Entry entry) =>
             entry?.Source is PlaceSource place && !place.IsRoom && place.Contents?.Dungeon != null && ExampleLayouts.Of(entry) ? ExampleLayouts.Example : null;
 
-        /// <summary>Under the details: what the example holds and a button for another, or how far reading its rooms has got.</summary>
-        private static float PlanSection(Explorer explorer, Entry entry, float width, float y)
-        {
-            if (!(entry.Source is PlaceSource place) || place.IsRoom || place.Contents?.Dungeon == null) return y;
-
-            y = SectionHeading("EXAMPLE LAYOUT", width, y, null, "layout");
-            if (IsFolded("layout")) return y;
-
-            var example = ExampleOf(entry);
-            if (example == null)
-            {
-                if (!ExampleLayouts.Of(entry)) return y + U(14f);
-                var reading = DungeonWords.Reading(ExampleLayouts.Read, ExampleLayouts.Total);
-                var readingH = Skin.Height(Skin.DimWrap, reading, width);
-                GUI.Label(new Rect(0f, y, width, readingH), reading, Skin.DimWrap);
-                return y + readingH + U(14f);
-            }
-
-            // What it holds, and a button for another; every world lays out its own.
-            const string another = "Another example";
-            var buttonW = Skin.Width(Skin.Button, another) + U(12f);
-            if (GUI.Button(new Rect(width - buttonW, y, buttonW, U(28f)), another, Skin.Button)) ExampleLayouts.Another();
-            var caption = DungeonWords.Example(example, ExampleLayouts.Failed) + (example.Rooms.Count > 0 ? ". One way it can come out; each world lays out its own. It stands on the stage, with its plan in the stage's corner." : ".");
-            var captionW = width - buttonW - U(10f);
-            var captionH = Skin.Height(Skin.DimWrap, caption, captionW);
-            GUI.Label(new Rect(0f, y, captionW, captionH), caption, Skin.DimWrap);
-            return y + Mathf.Max(U(28f), captionH) + U(14f);
-        }
-
         /// <summary>
         /// The plan in the stage's lower left corner, over the stage's picture. Drawn whole where
         /// the stage is, which does not scroll, so its turned rooms stay inside its box.
