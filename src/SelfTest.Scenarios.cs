@@ -271,11 +271,11 @@ namespace Scry
         /// </summary>
         private static IEnumerator HookingMods(Probe p)
         {
-            foreach (var rule in new[] { HookedRule.Drops, HookedRule.Loot, HookedRule.Spawns })
+            foreach (HookedRule rule in Enum.GetValues(typeof(HookedRule)))
             {
                 p.Note($"{rule}: {(ModHooks.Mods(rule).Count > 0 ? string.Join(", ", ModHooks.Mods(rule)) : "no mod")}");
             }
-            foreach (var (mod, method, counted) in ModHooks.Seen) p.Note($"{mod} hooks {method}{(counted ? "" : ", not counted: its code names no drop list")}");
+            foreach (var (mod, method, counted) in ModHooks.Seen) p.Note($"{mod} hooks {method}{(counted ? "" : ", not counted: its code names nothing that decides it there")}");
             p.Check(!ModHooks.AllMods.Contains("Scry"), "Scry itself is not named");
 
             var creature = Pick(Kind.Creature, "Greydwarf", "Boar");
@@ -291,6 +291,25 @@ namespace Scry
                 var note = Value(Facts.For(rock), ModHookWords.Label(HookedRule.Loot));
                 var mods = ModHooks.Mods(HookedRule.Loot);
                 p.Check(mods.Count == 0 ? note == null : note != null, $"{rock.Name} names the mods hooking into what it gives, if it gives anything", note ?? "no note");
+            }
+
+            // The rest, each on an entry that tells what the rule decides.
+            foreach (var (rule, entry) in new[]
+            {
+                (HookedRule.Comfort, Pick(Kind.Piece, "bed", "piece_bed02")), (HookedRule.Wear, Pick(Kind.Piece, "wood_wall", "stone_wall_1x1")),
+                (HookedRule.Smelting, Pick(Kind.Piece, "smelter")), (HookedRule.Cooking, Pick(Kind.Piece, "piece_cookingstation")),
+                (HookedRule.Fermenting, Pick(Kind.Piece, "fermenter")), (HookedRule.Burning, Pick(Kind.Piece, "fire_pit", "piece_brazierfloor01")),
+                (HookedRule.Producing, Pick(Kind.Piece, "piece_beehive")), (HookedRule.Crafting, Pick(Kind.Item, "AxeBronze", "SwordIron")),
+                (HookedRule.ItemStats, Pick(Kind.Item, "SwordIron", "AxeBronze")), (HookedRule.Food, Pick(Kind.Item, "CookedMeat", "Raspberry")),
+                (HookedRule.Growth, Pick(Kind.Piece, "sapling_carrot", "sapling_turnip")), (HookedRule.Taming, Pick(Kind.Creature, "Boar", "Wolf")),
+                (HookedRule.Raids, X.Catalog.FirstOrDefault(e => e.Kind == Kind.Raid && e.Name == "army_eikthyr")), (HookedRule.Trading, Pick(Kind.Creature, "Haldor")),
+                (HookedRule.Storage, Pick(Kind.Piece, "piece_chest_wood", "piece_chest")),
+            })
+            {
+                if (entry == null) continue;
+                var note = Value(Facts.For(entry), ModHookWords.Label(rule));
+                var mods = ModHooks.Mods(rule);
+                p.Check(mods.Count == 0 ? note == null : note != null && mods.All(m => note.Contains(m)), $"{entry.Name} names the mods hooking into {rule}", note ?? "no note");
             }
             yield break;
         }

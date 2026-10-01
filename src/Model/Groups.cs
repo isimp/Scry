@@ -198,7 +198,7 @@ namespace Scry
         public static Group Mod(bool adds, bool hooks)
         {
             if (adds) return new Group("Adding to the game", 1);
-            return hooks ? new Group("Hooking into its drops or spawning", 2) : new Group("Neither, as far as Scry sees", 3);
+            return hooks ? new Group("Hooking into what Scry tells", 2) : new Group("Neither, as far as Scry sees", 3);
         }
 
         /// <summary>A raid by what starts it: the raid roll or its own timer, a boss being fought, or something else.</summary>

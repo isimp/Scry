@@ -19,6 +19,7 @@ namespace Scry
                 Add("Comfort group", piece.m_comfortGroup != global::Piece.ComfortGroup.None
                     ? $"{Word(piece.m_comfortGroup)}: only the best of these within 10 m counts"
                     : "none: a second one within 10 m adds nothing");
+                Hooked(HookedRule.Comfort);
             }
             if (wear != null)
             {
@@ -32,6 +33,7 @@ namespace Scry
                     Add("Heavy snow", BuildWords.Snow(wear.m_snowDamageImmune));
                 });
                 Part("resistances", () => Resists(wear.m_damages));
+                Hooked(HookedRule.Wear);
             }
 
             if (piece.m_resources != null && piece.m_resources.Length > 0)
@@ -40,6 +42,7 @@ namespace Scry
                 var row = Requirements(station.Length > 0 ? "Built near " + station : "Build cost", piece.m_resources, false);
                 row.TitleLink = piece.m_craftingStation != null ? piece.m_craftingStation.gameObject.name : null;
                 Rows.Add(row);
+                Hooked(HookedRule.Crafting);
             }
         }
 

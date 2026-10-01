@@ -40,6 +40,7 @@ namespace Scry
                 Add("On", RaidWords.WhileFighting(AnyName(boss, boss.name), range), boss.name);
                 Add("Music", Naming.FieldLabel(raid.m_forceMusic), PlayMusic);
                 Add("Weather", Weather(raid.m_forceEnvironment));
+                if (!string.IsNullOrEmpty(raid.m_forceEnvironment)) Hooked(HookedRule.Weather);
                 if (!raid.m_random && raid.m_standaloneInterval <= 0f) return;
             }
 
@@ -62,7 +63,9 @@ namespace Scry
             {
                 Add("Music", Naming.FieldLabel(raid.m_forceMusic), PlayMusic);
                 Add("Weather", Weather(raid.m_forceEnvironment));
+                if (!string.IsNullOrEmpty(raid.m_forceEnvironment)) Hooked(HookedRule.Weather);
             }
+            Hooked(HookedRule.Raids);
 
             foreach (var data in raid.m_spawn ?? new List<SpawnSystem.SpawnData>())
             {

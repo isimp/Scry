@@ -206,6 +206,14 @@ namespace Scry
             var container = prefab.GetComponent<Container>();
             if (container != null) Part("chest", () => Drops(container.m_defaultItems, null, holds: true));
 
+            // How much it holds: a chest's own container, or a cart's or ship's on a part of it.
+            var storage = container != null ? container : prefab.GetComponentInChildren<Container>(true);
+            if (storage != null && character == null)
+            {
+                Add("Slots", ContainerWords.Slots(storage.m_width, storage.m_height));
+                Hooked(HookedRule.Storage);
+            }
+
             // The prefab's own numbers are shown; a world that changes them says by how much.
             Part("world settings", () =>
             {
@@ -223,6 +231,9 @@ namespace Scry
         private bool _drops;
 
         // ----- Helpers -----
+
+        /// <summary>The note naming the mods that hook into a rule told here, when any do (<see cref="ModHooks"/>).</summary>
+        private void Hooked(HookedRule rule) => Add(ModHookWords.Label(rule), ModHookWords.Note(rule, ModHooks.Mods(rule)));
 
         private static string ItemName(GameObject item)
         {

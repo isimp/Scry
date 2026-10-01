@@ -149,6 +149,7 @@ namespace Scry
             {
                 Add("Takes to tame", Minutes(tame.m_tamingTime));
                 Add("Stays fed", Minutes(tame.m_fedDuration));
+                Hooked(HookedRule.Taming);
             }
         }
 

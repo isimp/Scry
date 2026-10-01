@@ -52,6 +52,7 @@ namespace Scry
                 Add("Holds", fuel != null ? $"{smelter.m_maxOre} to process, {smelter.m_maxFuel} fuel" : $"{smelter.m_maxOre} to process");
                 Add("Each takes", Naming.Duration(smelter.m_secPerProduct));
                 if (smelter.m_requiresRoof) Add("Needs", "a roof");
+                Hooked(HookedRule.Smelting);
             }
 
             var cooking = prefab.GetComponent<CookingStation>();
@@ -75,6 +76,7 @@ namespace Scry
                     Add("Holds", $"{cooking.m_maxFuel} fuel");
                 }
                 if (cooking.m_requireFire) Add("Needs", "a fire under it");
+                Hooked(HookedRule.Cooking);
             }
 
             var fermenter = prefab.GetComponent<Fermenter>();
@@ -83,6 +85,7 @@ namespace Scry
                 Add("Each takes", Naming.Duration(fermenter.m_fermentationDuration));
                 // Fermenter.UpdateCover restarts the batch without a roof or with less than 70% cover.
                 Add("Needs", "a roof, and cover on most sides");
+                Hooked(HookedRule.Fermenting);
             }
 
             var incinerator = prefab.GetComponent<Incinerator>();
@@ -98,6 +101,7 @@ namespace Scry
                 if (hive.m_biome != 0) Add("Works in", Knowledge.BiomeNames(hive.m_biome));
                 // Beehive.HaveFreeSpace: it makes nothing while more of the sky around it is covered.
                 if (hive.m_maxCover > 0f) Add("Needs", $"open sky, less than {Mathf.RoundToInt(hive.m_maxCover * 100f)}% covered");
+                Hooked(HookedRule.Producing);
             }
 
             var tap = prefab.GetComponent<SapCollector>();
@@ -107,6 +111,7 @@ namespace Scry
                 // SapCollector.UpdateTick: it makes only while on its root, and no more than the root has left.
                 var root = tap.m_mustConnectTo != null ? tap.m_mustConnectTo.gameObject : null;
                 if (root != null) Add("Needs", $"to be built on {AnyName(root, root.name)}, and takes only the sap it has left", root.name);
+                Hooked(HookedRule.Producing);
             }
 
             var fire = prefab.GetComponent<Fireplace>();
@@ -114,6 +119,7 @@ namespace Scry
             {
                 Add("Burns", $"{ItemName(fire.m_fuelItem.gameObject)}, one every {Naming.Duration(fire.m_secPerFuel)}", fire.m_fuelItem.gameObject.name);
                 Add("Holds", $"{Number(fire.m_maxFuel)} fuel");
+                Hooked(HookedRule.Burning);
             }
 
             var shield = prefab.GetComponent<ShieldGenerator>();
@@ -132,7 +138,11 @@ namespace Scry
             if (craft != null && craft.m_upgrader) Add("Upgrade station", "takes items past their top quality, with the upgrade kits their recipes name");
 
             var trader = prefab.GetComponent<Trader>();
-            if (trader != null) Sells(trader);
+            if (trader != null)
+            {
+                Sells(trader);
+                Hooked(HookedRule.Trading);
+            }
 
             var bowl = prefab.GetComponent<OfferingBowl>();
             if (bowl != null && bowl.m_bossPrefab != null && bowl.m_bossItem != null)

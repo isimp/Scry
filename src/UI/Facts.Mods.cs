@@ -37,7 +37,7 @@ namespace Scry
             var summary = ScryPanel.Report(explorer).FirstOrDefault(m => m.Mod == mod.Name);
             if (summary == null)
             {
-                Add("Adds", "nothing Scry can see, and it hooks into none of the game's drops or spawning");
+                Add("Adds", "nothing Scry can see, and it hooks into none of what Scry tells");
                 return;
             }
             Add("Adds", ModReportWords.Counts(summary));

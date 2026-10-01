@@ -37,6 +37,7 @@ namespace Scry
                        || type == ItemDrop.ItemData.ItemType.Legs || type == ItemDrop.ItemData.ItemType.Shoulder;
             if (worn && shared.m_armor > 0f) Add("Armour", Number(shared.m_armor) + (upgradable && shared.m_armorPerLevel > 0f ? $", +{Number(shared.m_armorPerLevel)} per quality" : ""));
             Part("item stats", () => Combat(prefab, shared));
+            if (damage.Length > 0 || (worn && shared.m_armor > 0f) || shared.m_blockPower > 1f) Hooked(HookedRule.ItemStats);
 
             if (shared.m_food > 0f || shared.m_foodStamina > 0f || shared.m_foodEitr > 0f)
             {
@@ -47,6 +48,7 @@ namespace Scry
                 Add("Food", string.Join(", ", food));
                 if (shared.m_foodRegen > 0f) Add("Heals", $"{Number(shared.m_foodRegen)} a tick");
                 if (shared.m_foodBurnTime > 0f) Add("Lasts", Minutes(shared.m_foodBurnTime));
+                Hooked(HookedRule.Food);
             }
 
             if (shared.m_toolTier > 0) Add("Tool tier", shared.m_toolTier.ToString(CultureInfo.InvariantCulture));
@@ -77,6 +79,7 @@ namespace Scry
         {
             var db = ObjectDB.instance;
             if (db == null) return;
+            var made = false;
             foreach (var recipe in db.m_recipes)
             {
                 if (recipe == null || recipe.m_item == null || recipe.m_item.gameObject.name != prefab.name || !recipe.m_enabled) continue;
@@ -94,7 +97,9 @@ namespace Scry
 
                 var kits = UpgradeKits(recipe, shared.m_maxQuality);
                 if (kits.Items.Count > 0) Rows.Add(kits);
+                made = true;
             }
+            if (made) Hooked(HookedRule.Crafting);
         }
 
         /// <summary>

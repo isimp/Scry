@@ -115,6 +115,32 @@ namespace Scry
             return parts.Count == 0 ? "nothing is made or built at it" : And(parts);
         }
 
+        private static string Hook(HookedRule rule)
+        {
+            switch (rule)
+            {
+                case HookedRule.Drops: return "what creatures drop";
+                case HookedRule.Loot: return "what drop tables, chests and plants give";
+                case HookedRule.Spawns: return "where creatures spawn";
+                case HookedRule.Comfort: return "comfort";
+                case HookedRule.Smelting: return "smelting";
+                case HookedRule.Cooking: return "cooking";
+                case HookedRule.Fermenting: return "fermenting";
+                case HookedRule.Producing: return "beehives and sap";
+                case HookedRule.Burning: return "fires' fuel";
+                case HookedRule.Wear: return "wear and support";
+                case HookedRule.Crafting: return "crafting and building costs";
+                case HookedRule.ItemStats: return "item stats";
+                case HookedRule.Food: return "eating";
+                case HookedRule.Growth: return "growing";
+                case HookedRule.Weather: return "the weather";
+                case HookedRule.Raids: return "raids";
+                case HookedRule.Taming: return "taming and breeding";
+                case HookedRule.Storage: return "container sizes";
+                default: return "trading";
+            }
+        }
+
         public static string Tool(ModEntry tool) => $"builds {tool.Builds} {(tool.Builds == 1 ? "piece" : "pieces")}";
 
         /// <summary>The rules a mod hooks into, as the report names them.</summary>
@@ -123,12 +149,7 @@ namespace Scry
             var parts = new List<string>();
             foreach (var rule in rules)
             {
-                switch (rule)
-                {
-                    case HookedRule.Drops: parts.Add("what creatures drop"); break;
-                    case HookedRule.Loot: parts.Add("what drop tables, chests and plants give"); break;
-                    default: parts.Add("where creatures spawn"); break;
-                }
+                parts.Add(Hook(rule));
             }
             return And(parts);
         }

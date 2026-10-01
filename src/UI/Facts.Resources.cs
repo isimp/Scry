@@ -97,6 +97,7 @@ namespace Scry
                 var yields = Yield.PerDay(pickable.m_amount, pickable.m_respawnTimeMinutes, day);
                 if (yields != null) Add("Gives", yields + $" (a day is {Minutes(day)})");
                 Drops(pickable.m_extraDrops, "Also ");
+                if (pickable.m_respawnTimeMinutes > 0f) Hooked(HookedRule.Growth);
             }
 
             var found = prefab.GetComponent<PickableItem>();
@@ -130,6 +131,7 @@ namespace Scry
                 Add("Takes to grow", Naming.DurationRange(plant.m_growTime, Math.Max(plant.m_growTime, plant.m_growTimeMax)));
                 if (plant.m_biome != 0) Add("Grows in", Knowledge.BiomeNames(plant.m_biome));
                 if (plant.m_needCultivatedGround) Add("Needs", "cultivated ground");
+                Hooked(HookedRule.Growth);
                 var tolerates = new List<string>();
                 if (plant.m_tolerateHeat) tolerates.Add("heat");
                 if (plant.m_tolerateCold) tolerates.Add("cold");
