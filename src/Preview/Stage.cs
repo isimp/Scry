@@ -509,11 +509,9 @@ namespace Scry
                 left = new GameObject("Scry destroyed");
                 left.transform.SetParent(_root.transform, false);
             }
-            if (Falling.Leave(prefab, _subject, left.transform, _layer, _layer, away))
-            {
-                Tune(left, audible: !Previews.WorldHeard);
-                seconds = Mathf.Max(seconds, 8f);
-            }
+            if (Falling.Leave(prefab, _subject, left.transform, _layer, _layer, away)) seconds = Mathf.Max(seconds, 8f);
+            // What falls is heard as if beside you, the log's creak and the parts' clatter, as anything on the stage is.
+            Tune(left, audible: !Previews.WorldHeard);
 
             Standin.For(left, _subject, seconds, null, onStage: true);
             Played.Add(new KeyValuePair<GameObject, float>(left, Time.unscaledTime + seconds + 1f));

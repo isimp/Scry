@@ -67,6 +67,8 @@ namespace Scry
                 var body = limit != null ? copy.GetComponent<Rigidbody>() : null;
                 if (body != null) body.maxDepenetrationVelocity = limit.Value;
                 if (layer >= 0) SetLayer(copy.transform, layer);
+                // A falling copy strikes the ground as its prefab does, heard and seen (Thud).
+                if (falling) Thud.Add(prefab, copy, onStage: layer >= 0);
 
                 // Posed while still asleep, then woken where it stands. A body wakes where its copy
                 // is at that moment, and one the game interpolates (a log, whose parts sit some

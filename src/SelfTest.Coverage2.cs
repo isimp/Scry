@@ -191,9 +191,21 @@ namespace Scry
             yield return Until(() => CopyOf(tree) != null, 10);
             var list = Previews.PrefabLists((GameObject)tree.Source).FirstOrDefault(pair => pair.Value != null && Falling.IsDestroyedList((GameObject)tree.Source, pair.Value));
             if (!p.Check(list.Value != null, "it has what it does when felled")) yield break;
+            var thuds = Thud.Played;
             Previews.PlayEffectList(list.Key, list.Value);
             yield return Until(() => Stage.PlayedCount > 0, 2);
             p.Check(Stage.PlayedCount > 0, $"felling it plays {list.Key}", $"{Stage.PlayedCount} things");
+
+            // Its log strikes the ground as the game's does, with its impact's sound (ImpactEffect).
+            var log = ((GameObject)tree.Source).GetComponent<TreeBase>()?.m_logPrefab;
+            var impact = log != null ? log.GetComponentInChildren<ImpactEffect>(true) : null;
+            if (impact == null) p.Note("its log has no impact of its own");
+            else
+            {
+                p.Note($"its log strikes with {string.Join(", ", impact.m_hitEffect.m_effectPrefabs.Where(e => e?.m_prefab != null).Select(e => e.m_prefab.name))}, from {impact.m_minVelocity:0.#} m/s");
+                yield return Until(() => Thud.Played > thuds, 8);
+                p.Check(Thud.Played > thuds, "its log is heard striking the ground", $"{Thud.Played - thuds} strikes");
+            }
             yield return Until(() => Stage.PlayedCount == 0, 20);
             p.Check(Stage.PlayedCount == 0, "and what it left goes again");
         }
