@@ -12,6 +12,9 @@ namespace Scry
         Sound,
         StatusEffect,
 
+        /// <summary>A biome of the world, no prefab: its weathers, music, and what lives, grows and stands there.</summary>
+        Biome,
+
         /// <summary>A place the world generator puts in the world, or a room a dungeon is built of; no prefab of the scene.</summary>
         Location,
 
@@ -175,6 +178,7 @@ namespace Scry
                 case Kind.Effect: return "Effects";
                 case Kind.Sound: return "Sounds";
                 case Kind.StatusEffect: return "Status effects";
+                case Kind.Biome: return "Biomes";
                 case Kind.Location: return "Locations";
                 case Kind.Raid: return "Raids";
                 case Kind.Mod: return "Mods";

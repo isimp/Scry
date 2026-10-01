@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using HarmonyLib;
 using UnityEngine;
 
@@ -39,6 +40,16 @@ namespace Scry
         public static string PlacesMusic(Entry entry)
         {
             if (entry?.Source is RandomEvent raid) return EventMusic(entry, raid);
+            if (entry?.Source is BiomeSource biome)
+            {
+                var first = BiomeWords.Music(biome.Morning, biome.Evening, biome.Day, biome.Night).Select(m => m.Music).OrderBy(m => m == biome.Day ? 0 : 1).FirstOrDefault();
+                if (MusicPreview.PlayingFor == entry)
+                {
+                    StopSound();
+                    return "Stopped its music.";
+                }
+                return first != null ? NamedMusic(entry, first) : "It has no music of its own.";
+            }
             if (!(entry?.Source is PlaceSource place)) return null;
             if (MusicPreview.PlayingFor == entry)
             {
@@ -50,6 +61,19 @@ namespace Scry
             StopSound();
             var played = MusicPreview.Play(entry, PlaceAssets.Asset(place), place.Contents.Music);
             return played != null ? $"Playing {played}; Enter again stops it." : "Its music could not be found.";
+        }
+
+        /// <summary>A piece of the game's music by its name, played for an entry, or stopped when it plays already.</summary>
+        public static string NamedMusic(Entry entry, string name)
+        {
+            if (MusicPreview.PlayingFor == entry && MusicPreview.Playing == name)
+            {
+                StopSound();
+                return "Stopped its music.";
+            }
+            StopSound();
+            var played = MusicPreview.Play(entry, null, new List<PlaceMusic> { new PlaceMusic { Name = name, When = MusicWhen.Inside } });
+            return played != null ? $"Playing {Naming.FieldLabel(played)}; click it again to stop it." : "Its music could not be found.";
         }
 
         /// <summary>The music a raid or a boss's fight forces (<c>RandomEvent.m_forceMusic</c>), from the game's music list, or stopped when it plays already.</summary>

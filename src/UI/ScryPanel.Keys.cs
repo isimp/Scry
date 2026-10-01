@@ -129,6 +129,7 @@ namespace Scry
                     FirstAttack();
                     break;
                 case Kind.Location:
+                case Kind.Biome:
                     var said = Previews.PlacesMusic(entry);
                     if (said != null) Session.Say(said);
                     break;

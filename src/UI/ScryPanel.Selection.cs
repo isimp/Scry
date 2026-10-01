@@ -348,6 +348,12 @@ namespace Scry
                 ModCard(entry, rect);
                 Timing.Add("stage card", drawn);
             }
+            else if (entry.Kind == Kind.Biome)
+            {
+                var drawn = Timing.Start();
+                BiomeCard(entry, rect);
+                Timing.Add("stage card", drawn);
+            }
             else if (entry.Kind == Kind.Raid)
             {
                 var drawn = Timing.Start();
@@ -410,13 +416,21 @@ namespace Scry
             if (entry.Kind == Kind.Sound) return U(118f);
             if (entry.Kind == Kind.StatusEffect) return U(150f);
             if (entry.Kind == Kind.Mod && entry.Icon is Sprite) return U(150f);
-            if (entry.Kind == Kind.Raid || entry.Kind == Kind.Mod) return U(118f);
+            if (entry.Kind == Kind.Raid || entry.Kind == Kind.Mod || entry.Kind == Kind.Biome) return U(118f);
             return 0f;
         }
 
         private static readonly Dictionary<Entry, (string Lasts, string Brings)> RaidCardCache = new Dictionary<Entry, (string, string)>();
 
         /// <summary>A raid has nothing to show on the stage: how long it lasts and what it brings, the rest under In the game.</summary>
+        /// <summary>A biome has nothing to show on the stage: its weathers, music and what is there are under In the game.</summary>
+        private static void BiomeCard(Entry entry, Rect rect)
+        {
+            var weathers = entry.Source is BiomeSource biome ? BiomeWords.Weathers(biome.Weathers).Count : 0;
+            GUI.Label(new Rect(rect.x + U(20f), rect.y + U(40f), rect.width - U(40f), U(24f)), weathers == 1 ? "One weather" : $"{weathers} weathers", Skin.Center);
+            GUI.Label(new Rect(rect.x + U(20f), rect.y + U(68f), rect.width - U(40f), U(40f)), "Enter plays its music", Skin.CenterDim);
+        }
+
         private static void RaidCard(Entry entry, Rect rect)
         {
             if (!RaidCardCache.TryGetValue(entry, out var card))
@@ -655,6 +669,11 @@ namespace Scry
                         if (Shown("Roll again", Skin.Primary, Stage.Subject != null)) Previews.Rebuild();
                         if (RaidCrowd.LastFor == entry && Stage.Subject != null) note = RaidWords.Wave(RaidCrowd.LastWave, WaveName);
                     }
+                    break;
+
+                case Kind.Biome:
+                    // Everything there, as the search finds it.
+                    if (Button("Everything here", Skin.Primary) && Session.Explorer != null) SearchFor(Session.Explorer, "biome:" + entry.Name.ToLowerInvariant());
                     break;
 
                 case Kind.Location:

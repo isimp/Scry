@@ -264,6 +264,12 @@ namespace Scry
         /// <summary>The game's biomes in the order players meet them; a biome a mod adds comes after.</summary>
         private static readonly string[] BiomeOrder = { "Meadows", "BlackForest", "Swamp", "Mountain", "Plains", "Mistlands", "AshLands", "DeepNorth", "Ocean" };
 
+        /// <summary>A biome's place in the order players meet them, by its enum name; -1 for one not among them.</summary>
+        public static int BiomeRank(string biome) => Array.IndexOf(BiomeOrder, biome);
+
+        /// <summary>How many biomes that order holds.</summary>
+        public static int BiomeCount => BiomeOrder.Length;
+
         /// <summary>
         /// The group a location is listed under: its biome, in the order players meet them, or
         /// "In several biomes" after all of them. Named by the biome's shown name when given.

@@ -93,6 +93,7 @@ namespace Scry
                 case Kind.Location: return new Color(0.80f, 0.78f, 0.72f);
                 case Kind.Raid: return new Color(0.90f, 0.40f, 0.62f);
                 case Kind.Mod: return new Color(0.62f, 0.72f, 0.80f);
+                case Kind.Biome: return new Color(0.46f, 0.74f, 0.58f);
                 case Kind.Other: return new Color(0.50f, 0.66f, 0.96f);
                 default: return Neutral;
             }
@@ -114,6 +115,7 @@ namespace Scry
                 case Kind.Location: return "L";
                 case Kind.Raid: return "Ra";
                 case Kind.Mod: return "M";
+                case Kind.Biome: return "B";
                 default: return "O";
             }
         }

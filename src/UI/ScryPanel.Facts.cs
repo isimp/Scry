@@ -36,16 +36,18 @@ namespace Scry
                 var height = Mathf.Max(U(20f), Mathf.Max(labelH, Skin.Height(Skin.Wrap, pair.Value, valueW)));
                 GUI.Label(new Rect(0f, y, labelW, labelH), pair.Key, Skin.DimWrap);
                 var valueRect = new Rect(labelW + U(10f), y, valueW, height);
-                // Music plays where it is named.
-                if (facts.Links.TryGetValue(pair.Key, out var music) && music == Facts.PlayMusic)
+                // Music plays where it is named: the entry's own, or one by its name (a biome has one for each time of day).
+                if (facts.Links.TryGetValue(pair.Key, out var music) && music.StartsWith(Facts.PlayMusic, StringComparison.Ordinal))
                 {
+                    var named = music.Length > Facts.PlayMusic.Length ? music.Substring(Facts.PlayMusic.Length + 1) : null;
+                    var playing = MusicPreview.PlayingFor == entry && (named == null || MusicPreview.Playing == named);
                     var musicW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
                     var musicRect = new Rect(valueRect.x, valueRect.y, musicW, height);
-                    LinkLabel(musicRect, pair.Value, Skin.Wrap, MusicPreview.PlayingFor == entry ? Skin.KindColor(Kind.Sound) : Skin.Accent);
-                    if (musicRect.Contains(Event.current.mousePosition)) AskTip("music:" + entry.Key, MusicPreview.PlayingFor == entry ? "Stop it" : "Play it");
+                    LinkLabel(musicRect, pair.Value, Skin.Wrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);
+                    if (musicRect.Contains(Event.current.mousePosition)) AskTip("music:" + entry.Key + ":" + named, playing ? "Stop it" : "Play it");
                     if (GUI.Button(musicRect, GUIContent.none, GUIStyle.none))
                     {
-                        var said = Previews.PlacesMusic(entry);
+                        var said = named == null ? Previews.PlacesMusic(entry) : Previews.NamedMusic(entry, named);
                         if (said != null) Session.Say(said);
                     }
                 }
@@ -126,10 +128,16 @@ namespace Scry
                 y = FoundIn(explorer, entry, width, y);
             }
 
-            // Its biomes, each searching for what else is there, and what plays it.
-            if (entry.Biomes.Length > 0)
+            // Its biomes, each going to its page (which can search for everything there), else
+            // searching; a biome's own page names none.
+            if (entry.Biomes.Length > 0 && entry.Kind != Kind.Biome)
             {
-                y = ChipRow("Biomes (search)", entry.Biomes.Select(b => new KeyValuePair<string, Action>(Knowledge.BiomeName(b), () => SearchFor(explorer, "biome:" + b.ToLowerInvariant()))), width, y);
+                y = ChipRow("Biomes", entry.Biomes.Select(b => new KeyValuePair<string, Action>(Knowledge.BiomeName(b), () =>
+                {
+                    var page = EntryKeys.For(Kind.Biome, b);
+                    if (InCatalog(explorer, page)) Go(explorer, page);
+                    else SearchFor(explorer, "biome:" + b.ToLowerInvariant());
+                })), width, y);
             }
             var users = Users(explorer, entry);
             if (users.Count > 0) y = LinkItems(explorer, _usersTitle, users, width, y);

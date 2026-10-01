@@ -48,6 +48,7 @@ namespace Scry
             yield return S("pieces tell where they may be placed, stations their reach, upgrades their station, areas what they do, and beds what they need", BuildingRules, 10);
             yield return S("ballistas, traps, ships, carts and catapults tell what they do", MachineFacts, 10);
             yield return S("a creature whose defeat sets a world key tells what then follows", AfterDefeat, 10);
+            yield return S("each biome has a page of its weathers, music and what is there, and every biome named has one", BiomePages, 10);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
             yield return S("items, stations, smelters and beds tell what they are for", WhatThingsTell, 10);
@@ -634,6 +635,36 @@ namespace Scry
             var trophy = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && Knowledge.PowerOf(e.Name).Power != null);
             if (trophy != null) p.Check(Value(Facts.For(trophy), "On its boss stone") != null, $"{trophy.Name} names the power it gives on its boss stone");
             yield break;
+        }
+
+        /// <summary>
+        /// Every biome is an entry whose page tells its weathers and what lives there; every biome
+        /// an entry names has a page to go to; a biome's music plays and stops.
+        /// </summary>
+        private static IEnumerator BiomePages(Probe p)
+        {
+            var biomes = X.Catalog.Where(e => e.Kind == Kind.Biome).ToList();
+            p.Note($"{biomes.Count} biomes: {string.Join(", ", biomes.Select(b => b.DisplayName))}");
+            var bare = biomes.Where(b => !Facts.For(b).Pairs.Any(pair => pair.Key.EndsWith("of the time", StringComparison.Ordinal))).Select(b => b.Name).ToList();
+            p.Check(biomes.Count > 0 && bare.Count == 0, "each tells its weathers", string.Join(", ", bare));
+            var empty = biomes.Where(b => b.Name != "Ocean" && !Facts.For(b).Rows.Any(r => r.Title.StartsWith("Lives here", StringComparison.Ordinal))).Select(b => b.Name).ToList();
+            p.Note(empty.Count == 0 ? "each but the ocean tells what lives there" : $"no creature told living in {string.Join(", ", empty)}");
+            var named = X.Catalog.Where(e => e.Kind != Kind.Biome).SelectMany(e => e.Biomes).Distinct().ToList();
+            var pageless = named.Where(b => !X.Catalog.Any(e => e.Key == EntryKeys.For(Kind.Biome, b))).ToList();
+            p.Check(pageless.Count == 0, "every biome an entry names has a page", string.Join(", ", pageless));
+            if (biomes.Count > 0) p.Note($"{biomes[0].Name}: {Pairs(Facts.For(biomes[0]))}");
+
+            var withMusic = biomes.FirstOrDefault(b => b.Source is BiomeSource s && BiomeWords.Music(s.Morning, s.Evening, s.Day, s.Night).Count > 0);
+            if (withMusic == null)
+            {
+                p.Note("no biome has music of its own");
+                yield break;
+            }
+            var said = Previews.PlacesMusic(withMusic);
+            p.Check(said != null && said.StartsWith("Playing", StringComparison.Ordinal) && MusicPreview.PlayingFor == withMusic, $"{withMusic.Name}'s music plays", said);
+            yield return null;
+            said = Previews.PlacesMusic(withMusic);
+            p.Check(MusicPreview.PlayingFor != withMusic, $"{withMusic.Name}'s music stops when asked again", said);
         }
 
         /// <summary>

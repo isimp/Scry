@@ -81,6 +81,11 @@ namespace Scry
             {
                 facts.Part("raid", () => facts.Raid(raid));
             }
+            else if (entry.Source is BiomeSource biome)
+            {
+                facts._entry = entry;
+                facts.Part("biome", () => facts.Biome(biome));
+            }
             else if (entry.Source is ModSource mod)
             {
                 facts._entry = entry;

@@ -303,6 +303,17 @@ namespace Scry
             }
             CatalogTiming.Add("locations", started);
 
+            started = CatalogTiming.Start();
+            try
+            {
+                Biomes(entries);
+            }
+            catch (Exception ex)
+            {
+                Faults.Tell("the biomes", ex);
+            }
+            CatalogTiming.Add("biomes", started);
+
             // Every mod loaded, last, once every entry knows the mod that added it.
             started = CatalogTiming.Start();
             try
@@ -465,6 +476,48 @@ namespace Scry
                 {
                     Failed("raid", raid.m_name, ex);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Every biome the world's weather is set up for (<c>EnvMan.m_biomes</c>), an entry of its
+        /// own though it is no prefab: its weathers with their weights and its music by the time
+        /// of day, several setups of one biome taken together. Listed in the order players meet
+        /// them; what lives and stands there comes from the other entries' biomes.
+        /// </summary>
+        private static void Biomes(List<Entry> entries)
+        {
+            var setups = EnvMan.instance != null ? EnvMan.instance.m_biomes : null;
+            if (setups == null) return;
+            var byName = new Dictionary<string, BiomeSource>(StringComparer.Ordinal);
+            foreach (var setup in setups)
+            {
+                if (setup == null) continue;
+                foreach (var key in Knowledge.BiomeKeys(setup.m_biome))
+                {
+                    if (!byName.TryGetValue(key, out var source)) byName[key] = source = new BiomeSource { Name = key };
+                    if (setup.m_environments != null) foreach (var env in setup.m_environments) if (env != null) source.Weathers.Add((env.m_environment, env.m_weight));
+                    if (source.Morning.Length == 0) source.Morning = setup.m_musicMorning ?? "";
+                    if (source.Day.Length == 0) source.Day = setup.m_musicDay ?? "";
+                    if (source.Evening.Length == 0) source.Evening = setup.m_musicEvening ?? "";
+                    if (source.Night.Length == 0) source.Night = setup.m_musicNight ?? "";
+                }
+            }
+            foreach (var source in byName.Values)
+            {
+                entries.Add(new Entry
+                {
+                    Name = source.Name,
+                    DisplayName = Knowledge.BiomeName(source.Name),
+                    Kind = Kind.Biome,
+                    Origin = Origin.Vanilla,
+                    Source = source,
+                    Biomes = new[] { source.Name },
+                    Group = "Biomes",
+                    GroupOrder = 1,
+                    GroupRank = BiomeWords.Rank(source.Name),
+                    Components = new[] { "BiomeEnvSetup" },
+                });
             }
         }
 
