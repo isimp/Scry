@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -118,6 +119,28 @@ namespace Scry
             if (name.StartsWith(marker, System.StringComparison.OrdinalIgnoreCase)) name = name.Substring(marker.Length);
             name = string.Join(" ", name.Split(new[] { '_', ' ' }, System.StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
             return name.Length > 0 ? name : "weak spot";
+        }
+
+        /// <summary>What an attack takes: stamina, eitr, health and a share of health, each only when it takes some.</summary>
+        public static List<string> Costs(float stamina, float eitr, float health, float healthPercent)
+        {
+            var costs = new List<string>();
+            if (stamina > 0f) costs.Add($"{Number(stamina)} stamina");
+            if (eitr > 0f) costs.Add($"{Number(eitr)} eitr");
+            if (health > 0f) costs.Add($"{Number(health)} health");
+            if (healthPercent > 0f) costs.Add($"{Number(healthPercent)}% health");
+            return costs;
+        }
+
+        /// <summary>A weapon's second attack: how much harder its damage, knockback and stagger are than the first's, and what it costs.</summary>
+        public static string SecondaryAttack(float damage, float force, float stagger, IReadOnlyList<string> costs)
+        {
+            var parts = new List<string>();
+            if (Math.Abs(damage - 1f) > 0.001f) parts.Add($"\u00d7{Number(damage)} damage");
+            if (Math.Abs(force - 1f) > 0.001f) parts.Add($"\u00d7{Number(force)} knockback");
+            if (Math.Abs(stagger - 1f) > 0.001f) parts.Add($"\u00d7{Number(stagger)} stagger");
+            var line = parts.Count > 0 ? string.Join(", ", parts) : "as hard as the first";
+            return costs != null && costs.Count > 0 ? line + "; costs " + string.Join(", ", costs) : line;
         }
 
         /// <summary>

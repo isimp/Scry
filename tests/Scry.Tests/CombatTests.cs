@@ -120,5 +120,26 @@ namespace Scry.Tests
         {
             Assert.Equal("takes every hit in full", CombatWords.Resistances(new (string, string[])[0]));
         }
+
+        // An attack's cost is what Attack.HaveStamina and the rest take for it: stamina, eitr,
+        // health and a share of health, each only when the attack takes it.
+        [Fact]
+        public void AnAttackCostsWhatItTakes()
+        {
+            Assert.Equal(new[] { "20 stamina", "5 eitr", "10 health", "25% health" }, CombatWords.Costs(20f, 5f, 10f, 25f));
+            Assert.Equal(new[] { "12.5 stamina" }, CombatWords.Costs(12.5f, 0f, 0f, 0f));
+            Assert.Empty(CombatWords.Costs(0f, 0f, 0f, 0f));
+        }
+
+        // A weapon's second attack (Attack, as m_secondaryAttack) hits harder or softer than its
+        // first by its own multipliers, and costs what it takes.
+        [Fact]
+        public void ASecondAttackTellsHowItDiffersAndWhatItCosts()
+        {
+            Assert.Equal("\u00d73 damage, \u00d72 knockback, \u00d71.5 stagger; costs 20 stamina, 4 eitr", CombatWords.SecondaryAttack(3f, 2f, 1.5f, new[] { "20 stamina", "4 eitr" }));
+            Assert.Equal("\u00d72 damage", CombatWords.SecondaryAttack(2f, 1f, 1f, new string[0]));
+            Assert.Equal("as hard as the first; costs 15 stamina", CombatWords.SecondaryAttack(1f, 1f, 1f, new[] { "15 stamina" }));
+            Assert.Equal("as hard as the first", CombatWords.SecondaryAttack(1f, 1f, 1f, null));
+        }
     }
 }

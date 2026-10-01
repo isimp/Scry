@@ -37,6 +37,7 @@ namespace Scry
                        || type == ItemDrop.ItemData.ItemType.Legs || type == ItemDrop.ItemData.ItemType.Shoulder;
             if (worn && shared.m_armor > 0f) Add("Armour", Number(shared.m_armor) + (upgradable && shared.m_armorPerLevel > 0f ? $", +{Number(shared.m_armorPerLevel)} per quality" : ""));
             Part("item stats", () => Combat(prefab, shared));
+            Part("resistances", () => GearResists(shared, worn));
             if (damage.Length > 0 || (worn && shared.m_armor > 0f) || shared.m_blockPower > 1f) Hooked(HookedRule.ItemStats);
 
             if (shared.m_food > 0f || shared.m_foodStamina > 0f || shared.m_foodEitr > 0f)
@@ -53,6 +54,11 @@ namespace Scry
 
             if (shared.m_toolTier > 0) Add("Tool tier", shared.m_toolTier.ToString(CultureInfo.InvariantCulture));
             if (Math.Abs(shared.m_movementModifier) > 0.001f) Add("Movement", Percent(shared.m_movementModifier));
+            Part("gear", () =>
+            {
+                foreach (var (label, value) in GearWords.Lines(GearValues(shared))) Add(label, value);
+                if (shared.m_fullAdrenalineSE != null) Add("At full adrenaline", EffectName(shared.m_fullAdrenalineSE), "se:" + shared.m_fullAdrenalineSE.name);
+            });
             // The set's own name is an id the game never shows; the rest of the set is linked under LINKED.
             if (shared.m_setStatusEffect != null)
             {
@@ -138,13 +144,18 @@ namespace Scry
             var attack = shared.m_attack;
             if (weapon && attack != null)
             {
-                var costs = new List<string>();
-                if (attack.m_attackStamina > 0f) costs.Add($"{Number(attack.m_attackStamina)} stamina");
-                if (attack.m_attackEitr > 0f) costs.Add($"{Number(attack.m_attackEitr)} eitr");
-                if (attack.m_attackHealth > 0f) costs.Add($"{Number(attack.m_attackHealth)} health");
-                if (attack.m_attackHealthPercentage > 0f) costs.Add($"{Number(attack.m_attackHealthPercentage)}% health");
+                var costs = CombatWords.Costs(attack.m_attackStamina, attack.m_attackEitr, attack.m_attackHealth, attack.m_attackHealthPercentage);
                 if (costs.Count > 0) Add("Each attack costs", string.Join(", ", costs));
                 if (attack.m_drawStaminaDrain > 0f) Add("Drawing costs", $"{Number(attack.m_drawStaminaDrain)} stamina a second");
+
+                // A second attack the game offers only with an animation of its own (ItemData.HaveSecondaryAttack), told against the first.
+                var second = shared.m_secondaryAttack;
+                if (second != null && !string.IsNullOrEmpty(second.m_attackAnimation))
+                {
+                    float Against(float mine, float first) => mine / Math.Max(0.001f, first);
+                    Add("Secondary attack", CombatWords.SecondaryAttack(Against(second.m_damageMultiplier, attack.m_damageMultiplier), Against(second.m_forceMultiplier, attack.m_forceMultiplier),
+                        Against(second.m_staggerMultiplier, attack.m_staggerMultiplier), CombatWords.Costs(second.m_attackStamina, second.m_attackEitr, second.m_attackHealth, second.m_attackHealthPercentage)));
+                }
             }
 
             var recipe = ObjectDB.instance != null ? ObjectDB.instance.m_recipes.FirstOrDefault(r => r != null && r.m_enabled && r.m_item != null && r.m_item.gameObject.name == prefab.name) : null;
@@ -169,6 +180,40 @@ namespace Scry
                 Add("Upgrades need", $"{CatalogBuilder.Localize(station.m_name)} level {DropWords.Range(first, last)}, one more for each quality", station.gameObject.name);
             }
         }
+
+        /// <summary>
+        /// What armour resists while worn (<c>Player.ApplyArmorDamageMods</c>: chest, legs, helmet
+        /// and cape) and what a shield or weapon resists while blocking with it
+        /// (<c>Humanoid.BlockAttack</c>); anything else's own resistances the game never uses.
+        /// </summary>
+        private void GearResists(ItemDrop.ItemData.SharedData shared, bool worn)
+        {
+            if (shared.m_damageModifiers == null || shared.m_damageModifiers.Count == 0) return;
+            var type = shared.m_itemType;
+            var blocks = type == ItemDrop.ItemData.ItemType.Shield || type == ItemDrop.ItemData.ItemType.OneHandedWeapon || type == ItemDrop.ItemData.ItemType.TwoHandedWeapon
+                         || type == ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft;
+            if (!worn && !blocks) return;
+            var mods = default(HitData.DamageModifiers);
+            mods.Apply(shared.m_damageModifiers);
+            var degrees = ByDegree(mods);
+            if (degrees.Count > 0) Add(worn ? "When worn" : "When blocking", CombatWords.Resistances(degrees));
+        }
+
+        /// <summary>What gear changes while worn, by its field names, for <see cref="GearWords"/>.</summary>
+        private static Dictionary<string, float> GearValues(ItemDrop.ItemData.SharedData shared) => new Dictionary<string, float>
+        {
+            ["m_eitrRegenModifier"] = shared.m_eitrRegenModifier,
+            ["m_homeItemsStaminaModifier"] = shared.m_homeItemsStaminaModifier,
+            ["m_heatResistanceModifier"] = shared.m_heatResistanceModifier,
+            ["m_jumpStaminaModifier"] = shared.m_jumpStaminaModifier,
+            ["m_attackStaminaModifier"] = shared.m_attackStaminaModifier,
+            ["m_blockStaminaModifier"] = shared.m_blockStaminaModifier,
+            ["m_dodgeStaminaModifier"] = shared.m_dodgeStaminaModifier,
+            ["m_swimStaminaModifier"] = shared.m_swimStaminaModifier,
+            ["m_sneakStaminaModifier"] = shared.m_sneakStaminaModifier,
+            ["m_runStaminaModifier"] = shared.m_runStaminaModifier,
+            ["m_maxAdrenaline"] = shared.m_maxAdrenaline,
+        };
 
         /// <summary>
         /// The upgrade kits a recipe names. The game asks for them only at a station marked as an

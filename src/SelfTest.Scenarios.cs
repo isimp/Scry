@@ -42,6 +42,7 @@ namespace Scry
             yield return S("every mod has a page of what it adds and changes", ModPages, 10);
             yield return S("a mod's page tells what its package says and how it ties to other mods", ModPackages, 10);
             yield return S("which mod added what is found from every clue, and nothing of the game's is put down to a mod", ModClues, 10);
+            yield return S("gear tells its resistances, what it changes while worn, and a weapon its second attack", GearFacts, 10);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
             yield return S("items, stations, smelters and beds tell what they are for", WhatThingsTell, 10);
@@ -508,6 +509,44 @@ namespace Scry
             var told = Facts.For(item);
             p.Check(told.Rows.Any(r => r.Title.EndsWith(", added by " + Knowledge.RecipeMod(recipe.name), StringComparison.Ordinal)), $"{item.Name} says {Knowledge.RecipeMod(recipe.name)} added its recipe",
                 string.Join("; ", told.Rows.Select(r => r.Title)));
+        }
+
+        /// <summary>
+        /// For each kind of gear fact, the first item that has it shows it: armour's resistances
+        /// while worn, a shield's while blocking, what gear changes while worn (heat, stamina,
+        /// eitr, adrenaline), what full adrenaline gives, and a weapon's second attack.
+        /// </summary>
+        private static IEnumerator GearFacts(Probe p)
+        {
+            var items = X.Catalog.Where(e => e.Kind == Kind.Item && e.Source is GameObject).Select(e => (Entry: e, Shared: ((GameObject)e.Source).GetComponent<ItemDrop>()?.m_itemData?.m_shared))
+                .Where(i => i.Shared != null).OrderBy(i => i.Entry.Name, StringComparer.Ordinal).ToList();
+            bool Worn(ItemDrop.ItemData.ItemType t) => t == ItemDrop.ItemData.ItemType.Chest || t == ItemDrop.ItemData.ItemType.Legs || t == ItemDrop.ItemData.ItemType.Helmet || t == ItemDrop.ItemData.ItemType.Shoulder;
+            var cases = new (string What, Func<ItemDrop.ItemData.SharedData, bool> Has, string Label)[]
+            {
+                ("armour resisting while worn", s => Worn(s.m_itemType) && s.m_damageModifiers.Any(m => m.m_modifier != HitData.DamageModifier.Normal), "When worn"),
+                ("a shield resisting while blocking", s => s.m_itemType == ItemDrop.ItemData.ItemType.Shield && s.m_damageModifiers.Any(m => m.m_modifier != HitData.DamageModifier.Normal), "When blocking"),
+                ("gear against heat", s => Math.Abs(s.m_heatResistanceModifier) >= 0.005f, "Heat resistance"),
+                ("gear changing run stamina", s => Math.Abs(s.m_runStaminaModifier) >= 0.005f, "Run stamina"),
+                ("gear changing eitr regeneration", s => Math.Abs(s.m_eitrRegenModifier) >= 0.005f, "Eitr regeneration"),
+                ("gear adding adrenaline", s => s.m_maxAdrenaline >= 0.5f, "Most adrenaline"),
+                ("gear giving something at full adrenaline", s => s.m_fullAdrenalineSE != null, "At full adrenaline"),
+                ("a weapon with a second attack", s => s.m_secondaryAttack != null && !string.IsNullOrEmpty(s.m_secondaryAttack.m_attackAnimation) && s.m_attack != null
+                    && (s.m_itemType == ItemDrop.ItemData.ItemType.OneHandedWeapon || s.m_itemType == ItemDrop.ItemData.ItemType.TwoHandedWeapon), "Secondary attack"),
+            };
+            foreach (var (what, has, label) in cases)
+            {
+                var found = items.Where(i => has(i.Shared)).ToList();
+                if (found.Count == 0)
+                {
+                    p.Note($"no {what} in this game");
+                    continue;
+                }
+                var (entry, _) = found[0];
+                var value = Value(Facts.For(entry), label);
+                p.Check(value != null, $"{entry.Name}, {what} ({found.Count} such), tells it under {label}", value ?? "not told");
+                if (value != null) p.Note($"{entry.Name}: {label} {value}");
+            }
+            yield break;
         }
 
         private static IEnumerator SpawnerFacts(Probe p)
