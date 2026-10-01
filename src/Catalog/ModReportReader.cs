@@ -61,6 +61,7 @@ namespace Scry
                 {
                     one.HasSource = (entry.Stations != null && entry.Stations.Length > 0) || Knowledge.SourceLines(entry.Name).Count > 0 || entry.FoundIn.Length > 0
                                     || DropWatch.Seen.Sources(entry.Name).Count > 0;
+                    one.Carried = entry.Links.Any(l => l.Group == Relations.CarriedBy);
                 }
                 if (entry.Kind == Kind.Creature)
                 {

@@ -66,7 +66,7 @@ namespace Scry
             {
                 _modCountFor = explorer;
                 _modCountOf = explorer.Catalog.Count;
-                _modCount = explorer.Catalog.Where(e => e.Origin == Origin.Mod).Select(e => e.ModName).Distinct().Count();
+                _modCount = explorer.Catalog.Where(e => e.Origin == Origin.Mod && e.Kind != Kind.Mod).Select(e => e.ModName).Distinct().Count();
             }
             var barH = U(30f);
             const string open = "Mod report";

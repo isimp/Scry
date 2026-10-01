@@ -301,7 +301,7 @@ namespace Scry
         private static IEnumerator ModReportLinks(Probe p)
         {
             var report = ScryPanel.Report(X);
-            var mods = X.Catalog.Where(e => e.Origin == Origin.Mod).Select(e => e.ModName.Length > 0 ? e.ModName : ModReportReader.UnknownMod).Distinct().ToList();
+            var mods = X.Catalog.Where(e => e.Origin == Origin.Mod && e.Kind != Kind.Mod).Select(e => e.ModName.Length > 0 ? e.ModName : ModReportReader.UnknownMod).Distinct().ToList();
             var missing = mods.Where(m => !report.Any(r => r.Mod == m)).ToList();
             p.Check(missing.Count == 0, "every mod that adds anything is in the report", string.Join(", ", missing));
             foreach (var mod in report)

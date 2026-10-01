@@ -23,6 +23,9 @@ namespace Scry
         /// <summary>An item Scry sees a source for: made, dropped, picked, sold, given or found somewhere.</summary>
         public bool HasSource;
 
+        /// <summary>An item a creature carries, such as its own attack: placed with the creature, so never a gap.</summary>
+        public bool Carried;
+
         /// <summary>A creature Scry sees spawn somewhere.</summary>
         public bool Spawns;
     }
@@ -44,7 +47,8 @@ namespace Scry
     /// <summary>
     /// The mod report: for each mod, what it adds, what Scry links for its stations and tools,
     /// which of the game's rules it hooks into (<see cref="HookedRule"/>), and what Scry could
-    /// not place. A mod that only hooks in is in it too; what no mod added is not.
+    /// not place. A mod that only hooks in is in it too; what no mod added is not, nor a mod
+    /// adding nothing but having its page.
     /// </summary>
     public static class ModReport
     {
@@ -59,7 +63,8 @@ namespace Scry
 
             foreach (var entry in entries)
             {
-                if (entry == null || string.IsNullOrEmpty(entry.Mod)) continue;
+                // A mod's own page is Scry's, not something the mod adds.
+                if (entry == null || string.IsNullOrEmpty(entry.Mod) || entry.Kind == Kind.Mod) continue;
                 var mod = Of(entry.Mod);
                 mod.Counts.TryGetValue(entry.Kind, out var count);
                 mod.Counts[entry.Kind] = count + 1;
@@ -70,7 +75,7 @@ namespace Scry
                     if (entry.MadeHere + entry.BuiltNear + entry.Upgrades == 0) mod.IdleStations.Add(entry);
                 }
                 if (entry.Builds > 0) mod.Tools.Add(entry);
-                if (entry.Kind == Kind.Item && !entry.HasSource) mod.Sourceless.Add(entry);
+                if (entry.Kind == Kind.Item && !entry.HasSource && !entry.Carried) mod.Sourceless.Add(entry);
                 if (entry.Kind == Kind.Creature && !entry.Spawns) mod.Unspawned.Add(entry);
                 if (entry.Kind == Kind.Piece && !entry.InBuildMenu) mod.Unbuilt.Add(entry);
             }
