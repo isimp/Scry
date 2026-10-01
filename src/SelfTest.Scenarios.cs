@@ -1363,7 +1363,7 @@ namespace Scry
             if (copy != null)
             {
                 p.Check(Stage.Subject == copy, $"{shown.Name} stayed on the stage meanwhile");
-                p.Check(copy != null && Broken(copy) == brokenBefore, "and kept every mesh and material", $"{Broken(copy)} missing, {brokenBefore} before");
+                p.Check(copy != null && Broken(copy) == brokenBefore, "and kept every mesh and material", $"{Broken(copy)} missing, {brokenBefore} before: {string.Join(", ", BrokenParts(copy).Take(8))}");
             }
 
             var places = X.Catalog.Where(e => PlaceOf(e) != null).ToList();
@@ -1414,6 +1414,26 @@ namespace Scry
         }
 
         /// <summary>How many meshes and materials a copy is missing, which a bundle unloaded under it would take.</summary>
+        /// <summary>Where a copy's missing meshes and materials are, from its root, and whether the part is switched on.</summary>
+        private static List<string> BrokenParts(GameObject copy)
+        {
+            var parts = new List<string>();
+            if (copy == null) return parts;
+            string Path(Transform t)
+            {
+                var path = t.name;
+                for (var up = t.parent; up != null && up != copy.transform; up = up.parent) path = up.name + "/" + path;
+                return path + (t.gameObject.activeInHierarchy ? "" : " (off)");
+            }
+            foreach (var filter in copy.GetComponentsInChildren<MeshFilter>(true)) if (filter.sharedMesh == null) parts.Add(Path(filter.transform) + " mesh");
+            foreach (var renderer in copy.GetComponentsInChildren<Renderer>(true))
+            {
+                var none = renderer.sharedMaterials.Count(m => m == null);
+                if (none > 0) parts.Add(Path(renderer.transform) + $" {none} material{(none > 1 ? "s" : "")}");
+            }
+            return parts;
+        }
+
         private static int Broken(GameObject copy)
         {
             if (copy == null) return 0;
