@@ -96,6 +96,57 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AFloorLyingAcrossTwoBandsCountsWholeThoughItsRoomsAreReadOneByOne()
+        {
+            // Two rooms side by side, one floor at 3 m, the other at 3.25 m: one floor between them,
+            // whether all their rays are looked at together or each room is read as it comes in.
+            var first = Patch(0, 0, 20, 20, 3f, patch: 1).ToList();
+            var second = Patch(0, 0, 20, 20, 3.25f, patch: 2).ToList();
+
+            Assert.Equal(3.125f, Assert.Single(Floors(first.Concat(second))), 3);
+            var rooms = new[] { FloorFinder.Patch(first), FloorFinder.Patch(second) };
+            Assert.Equal(3.125f, Assert.Single(FloorFinder.Floors(rooms, 20 * 20 * Cell)), 3);
+        }
+
+        [Fact]
+        public void HeightsNoRayLandedAtAreNoFloorOfTheirOwn()
+        {
+            // Half a room at 2.5 m, the other half at 3 m, nothing between: the floor is at 3 m,
+            // not halfway, where both halves would count together as one wide floor.
+            var hits = Patch(0, 0, 20, 10, 2.5f).Concat(Patch(0, 10, 20, 10, 3f)).ToList();
+
+            Assert.Equal(new[] { 3f }, Floors(hits));
+            Assert.Equal(new[] { 3f }, FloorFinder.Floors(new[] { FloorFinder.Patch(hits) }, 20 * 20 * Cell));
+        }
+
+        [Fact]
+        public void AnExamplesRoomsReadOneByOneGiveItsFloors()
+        {
+            // A storey of rooms at 0 m and one of rooms at 6 m, read as they come in, with a table in one.
+            var rooms = new List<FloorPatch>();
+            for (var room = 0; room < 6; room++) rooms.Add(FloorFinder.Patch(Patch(0, 0, 12, 12, room < 4 ? 0f : 6f, patch: room)));
+            rooms.Add(FloorFinder.Patch(Patch(0, 0, 12, 12, 0f, patch: 6).Concat(Patch(3, 3, 3, 2, 1.1f, patch: 6))));
+
+            Assert.Equal(new[] { 6f, 0f }, FloorFinder.Floors(rooms, 7 * 12 * 12 * Cell));
+            Assert.Empty(FloorFinder.Floors(new List<FloorPatch>(), 100f));
+
+            // Small rooms, too little room each to stand for a floor, make one together.
+            var small = Enumerable.Range(0, 10).Select(room => FloorFinder.Patch(Patch(0, 0, 4, 4, 2f, patch: room))).ToList();
+            Assert.Empty(FloorFinder.Floors(small.Take(1), 4 * 4 * Cell));
+            Assert.Equal(new[] { 2f }, FloorFinder.Floors(small, 10 * 4 * 4 * Cell));
+        }
+
+        [Fact]
+        public void AFloorSteppingDownRoomByRoomIsOneFloorWhereMostOfItIs()
+        {
+            // Three rooms, each a quarter of a metre below the last: one floor, at the middle one.
+            var rooms = new[] { 3f, 2.75f, 2.5f }.Select((height, room) => Patch(0, 0, 20, 20, height, patch: room).ToList()).ToList();
+
+            Assert.Equal(2.75f, Assert.Single(Floors(rooms.SelectMany(r => r))), 3);
+            Assert.Equal(2.75f, Assert.Single(FloorFinder.Floors(rooms.Select(r => FloorFinder.Patch(r)), 3 * 20 * 20 * Cell)), 3);
+        }
+
+        [Fact]
         public void NothingHitIsNoFloor()
         {
             Assert.Empty(FloorFinder.Floors(new List<FloorHit>(), 100f));

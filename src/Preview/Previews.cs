@@ -283,6 +283,9 @@ namespace Scry
                 Faults.Tell("loading a location", ex);
             }
 
+            // A location or room is put on the stage a little each frame, shown once it is made.
+            try { Stage.StepBuild(); } catch (System.Exception ex) { Faults.Tell("showing a location", ex); }
+
             // A dungeon or camp selected: its rooms are read for an example layout.
             try
             {

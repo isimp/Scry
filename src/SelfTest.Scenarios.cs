@@ -102,6 +102,7 @@ namespace Scry
             yield return S("every boss tells its altar, and every trader what it sells", AltarsAndTraders, 10);
             yield return S("every runestone's texts are told in words", EveryRunestone, 10);
             yield return S("every location with music of its own plays it", EveryMusic, 300, Previews.StopSound);
+            yield return S("the largest locations are made over several frames", LargestLocations, 120);
             yield return S("a spread of rooms stands on its floor, opened", RoomsOnStage, 160);
             yield return S("closing the panel lets go of every bundle", ClosingLetsGo, 5);
 

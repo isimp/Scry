@@ -8,8 +8,8 @@ namespace Scry
 {
     /// <summary>
     /// The example layout of the location shown, built on the stage from copies of its rooms
-    /// (<see cref="ExampleLayouts"/>), a few each frame in the order they were placed, the
-    /// entrance first. A camp's rooms stand around the location's own parts, from where its
+    /// (<see cref="ExampleLayouts"/>), a few milliseconds each frame in the order they were
+    /// placed, the entrance first, a large room over several frames (<see cref="Ghost.Building"/>). A camp's rooms stand around the location's own parts, from where its
     /// generator is. A dungeon's stand where the game builds them, far above its entrance, so
     /// the stage shows either: inside, the example with the entrance's own parts put away, or
     /// outside, the entrance. Inside, the example opens on its top floor like a room.
@@ -27,6 +27,7 @@ namespace Scry
         private static DungeonExample _examplePlaced;
         private static int _exampleNext;
         private static int _exampleCopies;
+        private static Ghost.Building _exampleBuild;
         private static bool _exampleIsDungeon;
         private static readonly List<GameObject> OutsideParts = new List<GameObject>();
 
@@ -65,29 +66,32 @@ namespace Scry
             var made = Timing.Start();
             var watch = Stopwatch.StartNew();
             var placedAny = false;
-            while (_exampleNext < _examplePlaced.Rooms.Count && (!placedAny || watch.Elapsed.TotalMilliseconds < ExampleBudgetMs))
+            var stepped = false;
+            while (_exampleNext < _examplePlaced.Rooms.Count && (!stepped || watch.Elapsed.TotalMilliseconds < ExampleBudgetMs))
             {
-                var room = _examplePlaced.Rooms[_exampleNext];
-                if (!model(room.Room.Name, out var prefab)) break;
-                _exampleNext++;
-                placedAny = true;
-                if (prefab == null) continue;
-
-                var holder = _exampleHolder.transform;
-                var at = holder.TransformPoint(new Vector3(room.Position.X, room.Position.Y, room.Position.Z));
-                var turn = holder.rotation * new Quaternion(room.Rotation.X, room.Rotation.Y, room.Rotation.Z, room.Rotation.W);
-                var copy = PlaceCopy.Make(prefab, holder, at, turn, _layer, keepColliders: _exampleIsDungeon);
-                if (copy == null) continue;
-
-                // A dungeon room's floors, read with the holder awake for a moment if the entrance
-                // is shown; a camp keeps its location's.
-                if (_exampleIsDungeon)
+                if (_exampleBuild == null)
                 {
-                    var asleep = !_exampleHolder.activeSelf;
-                    if (asleep) _exampleHolder.SetActive(true);
-                    _exampleGround += FloorProbe.Read(copy, _subject.transform, _layer, ExampleHits, _exampleCopies);
-                    if (asleep) _exampleHolder.SetActive(false);
+                    var room = _examplePlaced.Rooms[_exampleNext];
+                    if (!model(room.Room.Name, out var prefab)) break;
+                    if (prefab == null)
+                    {
+                        _exampleNext++;
+                        continue;
+                    }
+                    var at = new Vector3(room.Position.X, room.Position.Y, room.Position.Z);
+                    var turn = new Quaternion(room.Rotation.X, room.Rotation.Y, room.Rotation.Z, room.Rotation.W);
+                    _exampleBuild = PlaceCopy.Begin(prefab, _exampleHolder.transform, at, turn, _layer, keepColliders: _exampleIsDungeon, local: true);
                 }
+                stepped = true;
+                if (!_exampleBuild.Go(ExampleBudgetMs - watch.Elapsed.TotalMilliseconds)) break;
+                var copy = _exampleBuild.Result;
+                _exampleBuild = null;
+                _exampleNext++;
+                if (copy == null) continue;
+                placedAny = true;
+
+                // A dungeon room's floors; a camp keeps its location's.
+                if (_exampleIsDungeon) ReadFloors(copy, _exampleCopies);
                 Tune(copy, audible: false);
                 _exampleCopies++;
 
@@ -98,28 +102,53 @@ namespace Scry
             Timing.Add("stage example", made);
         }
 
+        /// <summary>
+        /// Reads a dungeon room's floors, once, as it stands. While the entrance is shown, the
+        /// example sleeps, and the room alone is woken for it beside the example: a dungeon's
+        /// example stands where its location does, so the room stands the same in either.
+        /// </summary>
+        private static void ReadFloors(GameObject copy, int patch)
+        {
+            var read = Timing.Start();
+            var asleep = !_exampleHolder.activeSelf;
+            if (asleep) copy.transform.SetParent(_subject.transform, false);
+            RoomHits.Clear();
+            _exampleGround += FloorProbe.Read(copy, _subject.transform, _layer, RoomHits, patch);
+            ExamplePatches.Add(FloorFinder.Patch(RoomHits));
+            RoomHits.Clear();
+            if (asleep) copy.transform.SetParent(_exampleHolder.transform, false);
+            Timing.Add("example floors", read);
+        }
+
         /// <summary>Takes down the example's copies, as another entry or another example is shown.</summary>
         private static void ForgetExample()
         {
+            _exampleBuild?.Cancel();
+            _exampleBuild = null;
             if (_exampleHolder != null) Object.Destroy(_exampleHolder);
             _exampleHolder = null;
             _exampleOf = null;
             _examplePlaced = null;
             _exampleNext = 0;
             _exampleCopies = 0;
-            ExampleHits.Clear();
+            ExamplePatches.Clear();
             _exampleGround = 0f;
             OutsideParts.Clear();
         }
 
-        /// <summary>Where the example's rays landed, as heights above the place's root, each room a patch of its own, and the ground they were cast over (<see cref="FloorProbe"/>).</summary>
-        private static readonly List<FloorHit> ExampleHits = new List<FloorHit>();
+        /// <summary>
+        /// What each room's rays found, read once as the room stands, and the ground they were
+        /// cast over (<see cref="FloorProbe"/>, <see cref="FloorPatch"/>); the rays of the room
+        /// being read.
+        /// </summary>
+        private static readonly List<FloorPatch> ExamplePatches = new List<FloorPatch>();
+        private static readonly List<FloorHit> RoomHits = new List<FloorHit>();
         private static float _exampleGround;
 
         /// <summary>The example's floors: found in its rooms, or where their doorways are while none are found.</summary>
         private static List<float> ExampleFloorsNow()
         {
-            var found = FloorFinder.Floors(ExampleHits, _exampleGround);
+            var found = FloorFinder.Floors(ExamplePatches, _exampleGround);
             return found.Count > 0 ? found : PlaceView.ExampleFloors(_examplePlaced);
         }
 

@@ -530,6 +530,35 @@ namespace Scry
             p.Check(wrong.Count == 0, "each loads, is framed to a sane size and stands on its own ground", string.Join("; ", wrong));
         }
 
+        /// <summary>
+        /// The locations with the most parts are made over several frames, none of them long:
+        /// what each took, and its slowest frame with the part that took longest in it.
+        /// </summary>
+        private static IEnumerator LargestLocations(Probe p)
+        {
+            int PartsOf(Entry e) => PlaceOf(e)?.Contents?.Parts.Sum(part => part.Count) ?? 0;
+            var largest = X.Catalog.Where(e => PlaceOf(e) != null && !PlaceOf(e).IsRoom && PartsOf(e) > 0).OrderByDescending(PartsOf).Take(3).ToList();
+            if (largest.Count == 0) p.Skip("no location's parts are read");
+
+            var wrong = new List<string>();
+            foreach (var entry in largest)
+            {
+                var place = PlaceOf(entry);
+                var from = Frames.Frames;
+                Select(entry);
+                yield return Until(() => PlaceAssets.State(place) != PlaceLoad.Loading && CopyOf(entry) != null, 30);
+                if (CopyOf(entry) == null)
+                {
+                    wrong.Add($"{entry.Name} stands nowhere");
+                    continue;
+                }
+                var frames = Frames.Since(from);
+                p.Note($"{entry.Name}, {PartsOf(entry)} pieces, {Stage.LastBuildParts} parts, made over {Stage.LastBuildFrames} frames: {frames.Line(Budget)}{Slowest(frames, 1)}");
+                if (frames.Max >= 250) wrong.Add($"{entry.Name} took {frames.Max:0} ms in a frame");
+            }
+            p.Check(wrong.Count == 0, "each is made over several frames, none of them a quarter of a second", string.Join("; ", wrong));
+        }
+
         /// <summary>Every dungeon or camp read heads a group of its own, tagged, with every room under it indented.</summary>
         private static IEnumerator EveryDungeonHeadsItsGroup(Probe p)
         {

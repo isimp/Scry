@@ -17,6 +17,9 @@ namespace Scry
 
         private static readonly List<Collider> Colliders = new List<Collider>();
 
+        /// <summary>Where one ray lands, reused for every ray: more than a ray could pass through in any place.</summary>
+        private static readonly RaycastHit[] Landed = new RaycastHit[256];
+
         /// <summary>
         /// Casts the rays over the copy and adds where they land to <paramref name="hits"/>, as
         /// patch <paramref name="patch"/>; the ground the rays were cast over, 0 for a copy with
@@ -55,8 +58,10 @@ namespace Scry
                 foreach (var (i, j, x, z) in grid)
                 {
                     rays++;
-                    foreach (var hit in Physics.RaycastAll(new Vector3(x, top, z), Vector3.down, length, mask, QueryTriggerInteraction.Ignore))
+                    var count = Physics.RaycastNonAlloc(new Vector3(x, top, z), Vector3.down, Landed, length, mask, QueryTriggerInteraction.Ignore);
+                    for (var k = 0; k < count; k++)
                     {
+                        var hit = Landed[k];
                         if (hit.normal.y < Flat || hit.collider == null || !hit.collider.transform.IsChildOf(root)) continue;
                         hits.Add(new FloorHit { Patch = patch, I = i, J = j, Height = space.InverseTransformPoint(hit.point).y, Area = cell });
                     }

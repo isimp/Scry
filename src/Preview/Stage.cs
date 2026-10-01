@@ -273,23 +273,19 @@ namespace Scry
 
             // Making it and dressing it are told as "selection copy" and "selection dress",
             // measuring it and applying the modifiers as "selection measure" and "selection apply".
-            // A location or room is made once its bundle has loaded (PlaceAssets), which shows it again.
+            // A location or room is made once its bundle has loaded (PlaceAssets), which shows it
+            // again, and then over the next frames, a little each (StepBuild).
             _subjectIsPerson = Looks.IsWorn(entry) || entry.Kind == Kind.StatusEffect;
             if (entry.Source is PlaceSource place)
             {
                 var asset = PlaceAssets.Asset(place);
                 if (asset == null) return;
-                var made = Timing.Start();
-                _subject = PlaceCopy.Make(asset, _root.transform, Origin, Quaternion.identity, _layer, keepColliders: true);
-                Timing.Add("selection copy", made);
-                if (_subject != null)
-                {
-                    var probed = Timing.Start();
-                    _placeFloors = FloorsOf(_subject, place);
-                    Timing.Add("selection floors", probed);
-                }
+                _building = PlaceCopy.Begin(asset, _root.transform, Origin, Quaternion.identity, _layer, keepColliders: true);
+                _buildingWith = modifiers;
+                StepBuild();
+                return;
             }
-            else if (entry.Source is RandomEvent raid)
+            if (entry.Source is RandomEvent raid)
             {
                 // A raid as one wave of its creatures, rolled anew with each copy.
                 var made = Timing.Start();
@@ -301,7 +297,51 @@ namespace Scry
                 _subject = Looks.Copy(entry, modifiers, _root.transform, Origin, Quaternion.identity, _layer, "selection");
             }
             if (_subject == null) return;
+            Present(entry, modifiers);
+        }
 
+        /// <summary>A few milliseconds a frame for making a location or room.</summary>
+        private const double BuildBudgetMs = 8.0;
+
+        private static Ghost.Building _building;
+        private static Modifiers _buildingWith;
+        private static int _builtInFrame = -1;
+
+        /// <summary>Whether a location or room is still being made, shown once it is.</summary>
+        public static bool Building => _building != null;
+
+        /// <summary>How many frames the last location or room took to make, and how many parts it has, for the self-test to tell.</summary>
+        public static int LastBuildFrames { get; private set; }
+        public static int LastBuildParts { get; private set; }
+
+        /// <summary>
+        /// Goes on making the location or room shown, a few milliseconds a frame, and shows it
+        /// once all of it is awake, with its floors read from its colliders.
+        /// </summary>
+        public static void StepBuild()
+        {
+            if (_building == null || _builtInFrame == Time.frameCount) return;
+            _builtInFrame = Time.frameCount;
+            if (!_building.Go(BuildBudgetMs)) return;
+
+            var built = _building;
+            var modifiers = _buildingWith;
+            _building = null;
+            _buildingWith = null;
+            LastBuildFrames = built.Frames;
+            LastBuildParts = built.Parts;
+            _subject = built.Result;
+            if (_subject == null || !(_lastShown?.Source is PlaceSource place)) return;
+
+            var probed = Timing.Start();
+            _placeFloors = FloorsOf(_subject, place);
+            Timing.Add("selection floors", probed);
+            Present(_lastShown, modifiers);
+        }
+
+        /// <summary>Tunes, measures and stands the copy just made, and applies the modifiers.</summary>
+        private static void Present(Entry entry, Modifiers modifiers)
+        {
             Tune(_subject, entry.Kind == Kind.Effect);
 
             var started = Timing.Start();
@@ -692,6 +732,9 @@ namespace Scry
 
         public static void ClearSubject()
         {
+            _building?.Cancel();
+            _building = null;
+            _buildingWith = null;
             ForgetExample();
             if (_subject != null) Object.Destroy(_subject);
             _subject = null;

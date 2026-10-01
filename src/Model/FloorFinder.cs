@@ -16,6 +16,25 @@ namespace Scry
     }
 
     /// <summary>
+    /// What one patch of rays found, height band by height band: the room of its spots with flat
+    /// ground all round, the heights that landed there, and whether a ray landed in the band
+    /// itself. A place's floors are found from its patches added up, so an example's rooms are
+    /// each read once, as they come in, however many there are.
+    /// </summary>
+    public sealed class FloorPatch
+    {
+        internal struct Band
+        {
+            public float Room;
+            public double Sum;
+            public int Count;
+            public bool Landed;
+        }
+
+        internal readonly Dictionary<int, Band> Bands = new Dictionary<int, Band>();
+    }
+
+    /// <summary>
     /// A place's floors found in the place itself: rays cast straight down over it on a grid land
     /// on what is flat, floors, landings and platforms, but also tables, beds and beams. Only
     /// ground one can stand on makes a floor: a spot counts where the spots beside it, all four
@@ -38,33 +57,87 @@ namespace Scry
         public const int MostPerSide = 40;
 
         /// <summary>The floors from the top down, each where its rays landed on average, from where they landed and the ground they were cast over.</summary>
-        public static List<float> Floors(IReadOnlyList<FloorHit> hits, float footprint)
+        public static List<float> Floors(IReadOnlyList<FloorHit> hits, float footprint) =>
+            Floors(hits.GroupBy(h => h.Patch).Select(Patch).ToList(), footprint);
+
+        /// <summary>
+        /// What one patch's rays found, band by band (<see cref="FloorPatch"/>). A spot counts in a
+        /// band, and within a band either way, where the spots beside it all four ways landed
+        /// there too, so a floor lying across two bands counts whole; each spot's ground is
+        /// counted once, however many of its rays lie in the bands.
+        /// </summary>
+        public static FloorPatch Patch(IEnumerable<FloorHit> hits)
         {
-            var least = Math.Max(MinRoom, footprint * MinShare);
             var byBand = new Dictionary<int, List<FloorHit>>();
+            var spots = new Dictionary<int, HashSet<(int, int)>>();
             foreach (var hit in hits)
             {
                 var band = (int)Math.Round(hit.Height / Band);
-                if (!byBand.TryGetValue(band, out var held)) byBand[band] = held = new List<FloorHit>();
+                if (!byBand.TryGetValue(band, out var held))
+                {
+                    byBand[band] = held = new List<FloorHit>();
+                    spots[band] = new HashSet<(int, int)>();
+                }
                 held.Add(hit);
+                spots[band].Add((hit.I, hit.J));
             }
 
-            var candidates = new List<(int Band, float Room, float Height)>();
-            foreach (var band in byBand.Keys)
-            {
-                // The spots within a band either way, so a floor lying across two bands counts whole.
-                var near = new List<FloorHit>();
-                for (var b = band - 1; b <= band + 1; b++) if (byBand.TryGetValue(b, out var held)) near.AddRange(held);
-                var spots = new HashSet<(int, int, int)>(near.Select(h => (h.Patch, h.I, h.J)));
-                bool Inner(FloorHit h) => spots.Contains((h.Patch, h.I - 1, h.J)) && spots.Contains((h.Patch, h.I + 1, h.J))
-                                          && spots.Contains((h.Patch, h.I, h.J - 1)) && spots.Contains((h.Patch, h.I, h.J + 1));
-                var inner = near.Where(Inner).ToList();
-                if (inner.Count == 0) continue;
+            var bands = new HashSet<int>();
+            foreach (var band in byBand.Keys) for (var b = band - 1; b <= band + 1; b++) bands.Add(b);
 
-                // Each spot's ground once, however many of its hits lie in the bands.
-                var room = inner.GroupBy(h => (h.Patch, h.I, h.J)).Sum(g => g.First().Area);
-                if (room < least) continue;
-                candidates.Add((band, room, (float)inner.Average(h => (double)h.Height)));
+            var patch = new FloorPatch();
+            var counted = new HashSet<(int, int)>();
+            foreach (var band in bands)
+            {
+                bool Near(int i, int j)
+                {
+                    for (var b = band - 1; b <= band + 1; b++) if (spots.TryGetValue(b, out var at) && at.Contains((i, j))) return true;
+                    return false;
+                }
+
+                var found = new FloorPatch.Band { Landed = byBand.ContainsKey(band) };
+                counted.Clear();
+                for (var b = band - 1; b <= band + 1; b++)
+                {
+                    if (!byBand.TryGetValue(b, out var held)) continue;
+                    foreach (var hit in held)
+                    {
+                        if (!Near(hit.I - 1, hit.J) || !Near(hit.I + 1, hit.J) || !Near(hit.I, hit.J - 1) || !Near(hit.I, hit.J + 1)) continue;
+                        found.Sum += hit.Height;
+                        found.Count++;
+                        if (counted.Add((hit.I, hit.J))) found.Room += hit.Area;
+                    }
+                }
+                if (found.Count > 0) patch.Bands[band] = found;
+            }
+            return patch;
+        }
+
+        /// <summary>The floors from the top down from what each patch of rays found, and the ground they were cast over.</summary>
+        public static List<float> Floors(IEnumerable<FloorPatch> patches, float footprint)
+        {
+            var least = Math.Max(MinRoom, footprint * MinShare);
+            var total = new Dictionary<int, FloorPatch.Band>();
+            foreach (var patch in patches)
+            {
+                foreach (var pair in patch.Bands)
+                {
+                    total.TryGetValue(pair.Key, out var sum);
+                    sum.Room += pair.Value.Room;
+                    sum.Sum += pair.Value.Sum;
+                    sum.Count += pair.Value.Count;
+                    sum.Landed |= pair.Value.Landed;
+                    total[pair.Key] = sum;
+                }
+            }
+
+            // A floor is in a band some ray landed in.
+            var candidates = new List<(int Band, float Room, float Height)>();
+            foreach (var pair in total)
+            {
+                var band = pair.Value;
+                if (!band.Landed || band.Count == 0 || band.Room < least) continue;
+                candidates.Add((pair.Key, band.Room, (float)(band.Sum / band.Count)));
             }
 
             // The floors with the most room first, each unless one taken is too near it.

@@ -104,9 +104,10 @@ namespace Scry
         /// <summary>How far above its root a part must be to be an interior: the game's stand some 5000 m up.</summary>
         private const float InteriorHeight = 1000f;
 
-        public static GameObject Make(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer, bool keepColliders = false)
+        /// <summary>Starts the copy, made over the next frames as <see cref="Ghost.Building"/> goes on; its pose in the world, or in its parent's space.</summary>
+        public static Ghost.Building Begin(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer, bool keepColliders = false, bool local = false)
         {
-            return Ghost.Make(prefab, parent, position, rotation, layer, prepare: Prepare, keepColliders: keepColliders);
+            return new Ghost.Building(prefab, parent, position, rotation, layer, Prepare, keepColliders, local);
         }
 
         private static void Prepare(GameObject copy)

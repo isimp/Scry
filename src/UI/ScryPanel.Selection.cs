@@ -245,8 +245,8 @@ namespace Scry
                 }
                 else if (entry.Kind != Kind.Effect)
                 {
-                    // A location or room is shown once its model has loaded.
-                    var note = entry.Source is PlaceSource place ? LocationWords.StageNote(PlaceAssets.State(place)) : null;
+                    // A location or room is shown once its model has loaded and its copy is made.
+                    var note = entry.Source is PlaceSource place ? LocationWords.StageNote(Stage.Building ? PlaceLoad.Loading : PlaceAssets.State(place)) : null;
                     GUI.Label(inner, note ?? "This one could not be previewed.", Skin.CenterDim);
                 }
 

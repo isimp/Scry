@@ -12,8 +12,9 @@ namespace Scry
     /// still asleep everything that could be hit, picked up, fought, interacted with or saved is
     /// taken off it (<see cref="StripPolicy"/>), and only then is it moved to where it is shown
     /// and woken. It has no network view, so no other player sees it and nothing of it is saved.
+    /// A copy too large to make at once is made over several frames (<see cref="Building"/>).
     /// </summary>
-    internal static class Ghost
+    internal static partial class Ghost
     {
         /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
         static Ghost() => WorldCaches.Register(nameof(Ghost), Forget);
@@ -24,13 +25,9 @@ namespace Scry
         /// <summary>
         /// Makes the copy, or returns null if the prefab could not be copied. A falling copy keeps
         /// its bodies, colliders and joints, for <see cref="Falling"/> to put where they only meet
-        /// the ground. What <paramref name="prepare"/> does to the copy is done while it still
-        /// sleeps, before it is stripped (a location's parts rolled); such a copy is never kept as a
-        /// template, since the next is prepared anew.
-        /// With <paramref name="keepColliders"/> its colliders stay, for the caller to read where
-        /// its floors are (<see cref="FloorProbe"/>).
+        /// the ground.
         /// </summary>
-        public static GameObject Make(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer = -1, bool falling = false, Action<GameObject> prepare = null, bool keepColliders = false)
+        public static GameObject Make(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer = -1, bool falling = false)
         {
             if (prefab == null) return null;
 
@@ -43,13 +40,7 @@ namespace Scry
                 // A large prefab (the person, with hundreds of parts) is stripped once and kept
                 // stripped under the sleeping holder; later copies are made from that.
                 var key = new KeyValuePair<GameObject, bool>(prefab, falling);
-                if (prepare != null)
-                {
-                    copy = Object.Instantiate(prefab, Holder().transform, false);
-                    prepare(copy);
-                    Strip(copy, falling, keepColliders);
-                }
-                else if (Templates.TryGetValue(key, out var template) && template != null)
+                if (Templates.TryGetValue(key, out var template) && template != null)
                 {
                     copy = Object.Instantiate(template, Holder().transform, false);
                     Used.Remove(key);
@@ -70,25 +61,10 @@ namespace Scry
                 // A falling copy strikes the ground as its prefab does, heard and seen (Thud).
                 if (falling) Thud.Add(prefab, copy, onStage: layer >= 0);
 
-                // Posed while still asleep, then woken where it stands. A body wakes where its copy
-                // is at that moment, and one the game interpolates (a log, whose parts sit some
-                // 50 m from its root) does not follow a move made after.
-                var t = copy.transform;
-                if (parent != null)
-                {
-                    t.localPosition = parent.InverseTransformPoint(position);
-                    t.localRotation = Quaternion.Inverse(parent.rotation) * rotation;
-                }
-                else
-                {
-                    t.localPosition = position;
-                    t.localRotation = rotation;
-                }
-                t.SetParent(parent, false);
-
                 // Its sounds at the loudness the player chose; one that cannot take it plays as the game would.
                 try { Loudness.Add(copy); }
                 catch (Exception ex) { Faults.Tell("preview loudness", ex); }
+                Place(copy, parent, position, rotation);
                 Awake(prefab, copy);
 
                 // Made under a holder that outlives worlds; one standing on its own belongs to the
@@ -106,6 +82,28 @@ namespace Scry
             {
                 ZNetView.m_forceDisableInit = was;
             }
+        }
+
+        /// <summary>
+        /// Poses the copy while it still sleeps, then wakes it where it stands. A body wakes where
+        /// its copy is at that moment, and one the game interpolates (a log, whose parts sit some
+        /// 50 m from its root) does not follow a move made after. A pose given in the parent's own
+        /// space (<paramref name="local"/>) is kept as it is.
+        /// </summary>
+        private static void Place(GameObject copy, Transform parent, Vector3 position, Quaternion rotation, bool local = false)
+        {
+            var t = copy.transform;
+            if (parent != null && !local)
+            {
+                t.localPosition = parent.InverseTransformPoint(position);
+                t.localRotation = Quaternion.Inverse(parent.rotation) * rotation;
+            }
+            else
+            {
+                t.localPosition = position;
+                t.localRotation = rotation;
+            }
+            t.SetParent(parent, false);
         }
 
         /// <summary>
@@ -234,45 +232,12 @@ namespace Scry
             return _holder;
         }
 
-        /// <summary>
-        /// Takes off everything the policy does not keep. A component another one requires can
-        /// only go after that one, so removal repeats until nothing more can be taken off.
-        /// </summary>
-        private static int Strip(GameObject copy, bool falling, bool keepColliders = false)
+        /// <summary>Takes off everything the policy does not keep (<see cref="Stripping"/>); how many components the copy had.</summary>
+        private static int Strip(GameObject copy, bool falling)
         {
-            var all = copy.GetComponentsInChildren<Component>(true);
-            var doomed = new List<KeyValuePair<int, Component>>();
-
-            foreach (var component in all)
-            {
-                if (component == null || keepColliders && component is Collider) continue;
-                var pass = PassFor(component, falling);
-                if (pass != StripPolicy.Keep) doomed.Add(new KeyValuePair<int, Component>(pass, component));
-            }
-
-            doomed.Sort((a, b) => a.Key.CompareTo(b.Key));
-
-            var progress = true;
-            while (doomed.Count > 0 && progress)
-            {
-                progress = false;
-                for (var i = 0; i < doomed.Count; i++)
-                {
-                    var component = doomed[i].Value;
-                    if (IsRequired(component)) continue;
-
-                    Object.DestroyImmediate(component);
-                    doomed.RemoveAt(i);
-                    i--;
-                    progress = true;
-                }
-            }
-
-            if (doomed.Count > 0)
-            {
-                Plugin.Log.LogDebug($"Scry left {doomed.Count} part(s) on the preview of {copy.name} that something else needs.");
-            }
-            return all.Length;
+            var stripping = new Stripping(copy, falling, keepColliders: false);
+            stripping.Go(null, double.PositiveInfinity);
+            return stripping.Parts;
         }
 
         /// <summary>Whether another component on the same object requires this one, so it can only go after that one.</summary>
