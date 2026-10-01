@@ -407,8 +407,13 @@ namespace Scry
             foreach (var raid in raids)
             {
                 var told = Facts.For(raid);
-                if (!Tells(told, "Lasts") || !told.Pairs.Any(pair => pair.Key.StartsWith("Brings ", StringComparison.Ordinal))) wrong.Add($"{raid.Name} tells too little");
                 var brings = (raid.Source as RandomEvent)?.m_spawn?.Where(s => s?.m_prefab != null).Select(s => s.m_prefab.name).ToList() ?? new List<string>();
+                // A boss's fight tells when it is on; a raid how long it lasts, and what it brings when it brings anything.
+                if (BossFight(raid) != null)
+                {
+                    if (!Tells(told, "On")) wrong.Add($"{raid.Name} tells not when it is on");
+                }
+                else if (!Tells(told, "Lasts") || brings.Count > 0 && !told.Pairs.Any(pair => pair.Key.StartsWith("Brings ", StringComparison.Ordinal))) wrong.Add($"{raid.Name} tells too little");
                 var missing = brings.Where(b => !keys.Contains(b)).ToList();
                 if (missing.Count > 0) wrong.Add($"{raid.Name} brings {string.Join(", ", missing)}, not in the catalog");
             }

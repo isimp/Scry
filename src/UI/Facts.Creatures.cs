@@ -19,6 +19,10 @@ namespace Scry
             Add("Health", Number(character.m_health));
             Add("Faction", Groups.FactionName(character.m_faction.ToString()));
             if (character.m_boss) Add("Boss", "yes");
+            if (!string.IsNullOrEmpty(character.m_bossEvent) && Knowledge.BossOfEvent(character.m_bossEvent) == prefab)
+            {
+                Add("Its fight", "music and weather while its health bar shows", EntryKeys.For(Kind.Raid, character.m_bossEvent));
+            }
 
             // What stars add: its health once more for each, and half as much again to each hit.
             if (!character.m_boss)

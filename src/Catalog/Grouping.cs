@@ -47,11 +47,23 @@ namespace Scry
                 menus = new Dictionary<string, Group>();
             }
 
+            Dictionary<string, int> raidRanks;
+            try
+            {
+                raidRanks = RaidRanks(entries);
+            }
+            catch (Exception ex)
+            {
+                Tell("the raids' order", ex);
+                raidRanks = new Dictionary<string, int>();
+            }
+
             for (var i = 0; i < entries.Count; i++)
             {
                 var entry = entries[i];
                 try
                 {
+                    if (entry.Kind == Kind.Raid && raidRanks.TryGetValue(entry.Name, out var rank)) entry.GroupRank = rank;
                     var group = Of(entry, byName, menus, weather);
                     if (group.HasValue)
                     {
@@ -142,6 +154,22 @@ namespace Scry
             return moved;
         }
 
+        /// <summary>
+        /// Each raid's rank within its group, in the order the bosses are fought: a boss's fight by
+        /// the boss's health, a raid by the strongest boss whose defeat it waits for.
+        /// </summary>
+        private static Dictionary<string, int> RaidRanks(List<Entry> entries)
+        {
+            var strengths = new Dictionary<string, float>(StringComparer.Ordinal);
+            foreach (var entry in entries)
+            {
+                if (entry.Kind != Kind.Raid || !(entry.Source is RandomEvent raid)) continue;
+                var boss = Knowledge.BossOfEvent(raid.m_name)?.GetComponent<Character>();
+                strengths[entry.Name] = boss != null ? boss.m_health : RaidGrouping.Strength(raid.m_requiredGlobalKeys, Knowledge.BossHealthOf);
+            }
+            return RaidGrouping.Ranks(strengths);
+        }
+
         private static Group? Of(Entry entry, Dictionary<string, Entry> byName, Dictionary<string, Group> menus, HashSet<string> weather)
         {
             var prefab = entry.Source as GameObject;
@@ -154,6 +182,9 @@ namespace Scry
                     return character != null ? Groups.Creature(character.m_faction.ToString(), character.m_boss) : Groups.Creature(null, false);
                 case Kind.Piece:
                     return menus.TryGetValue(entry.Name, out var menu) ? menu : Groups.InNoMenu;
+                case Kind.Raid:
+                    if (!(entry.Source is RandomEvent raid)) return null;
+                    return Groups.Raid(RaidGrouping.Role(raid.m_random, raid.m_standaloneInterval, Knowledge.BossOfEvent(raid.m_name) != null));
                 case Kind.Effect:
                 case Kind.Sound:
                     var footstep = entry.Links.Any(l => l.Group == Relations.FootstepOf);

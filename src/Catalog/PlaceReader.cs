@@ -51,7 +51,32 @@ namespace Scry
 
             try { Music(prefab, contents); }
             catch (Exception ex) { Faults.Skip("music of locations", prefab.name, ex); }
+
+            try { Runestones(prefab, contents); }
+            catch (Exception ex) { Faults.Skip("runestones of locations", prefab.name, ex); }
             return contents;
+        }
+
+        /// <summary>
+        /// Its runestones and what each gives to read (<c>RuneStone.Interact</c>): one of its random
+        /// texts when it has any (<c>GetRandomText</c>), else the text it has.
+        /// </summary>
+        private static void Runestones(GameObject prefab, PlaceContents contents)
+        {
+            foreach (var rune in prefab.GetComponentsInChildren<RuneStone>(true))
+            {
+                if (rune == null) continue;
+                var stone = new PlaceRunestone { Name = CatalogBuilder.Localize(rune.m_name) };
+                if (rune.m_randomTexts != null && rune.m_randomTexts.Count > 0)
+                {
+                    foreach (var text in rune.m_randomTexts)
+                    {
+                        if (text != null) stone.Texts.Add(new RuneText { Topic = CatalogBuilder.Localize(text.m_topic), Text = CatalogBuilder.Localize(text.m_text) });
+                    }
+                }
+                else stone.Texts.Add(new RuneText { Topic = CatalogBuilder.Localize(rune.m_topic), Text = CatalogBuilder.Localize(rune.m_text) });
+                PlaceRunes.Add(contents.Runestones, stone);
+            }
         }
 
         /// <summary>

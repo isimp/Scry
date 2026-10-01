@@ -107,6 +107,13 @@ namespace Scry
         private static readonly Dictionary<string, GameObject> Bosses = new Dictionary<string, GameObject>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
+        /// The bosses by the event each names (<c>Character.m_bossEvent</c>): the game has that event
+        /// on while the boss's health bar shows (<c>RandEventSystem.GetForcedEvent</c>), for the
+        /// fight's music and weather.
+        /// </summary>
+        private static readonly Dictionary<string, GameObject> BossEvents = new Dictionary<string, GameObject>(StringComparer.Ordinal);
+
+        /// <summary>
         /// The station that takes items past their top quality with the upgrade kits their recipes
         /// name (<c>CraftingStation.m_upgrader</c>), and its name as the game shows it; null when
         /// no prefab has one.
@@ -165,6 +172,12 @@ namespace Scry
         /// <summary>The name shown for the creature whose defeat sets a world key, or null.</summary>
         public static string BossOf(string key) => key != null && Bosses.TryGetValue(key, out var boss) ? ShownName(boss) : null;
 
+        /// <summary>The health of the creature whose defeat sets a world key, or 0: how far along the game that key comes.</summary>
+        public static float BossHealthOf(string key) => key != null && Bosses.TryGetValue(key, out var boss) && boss.GetComponent<Character>() is Character character ? character.m_health : 0f;
+
+        /// <summary>The boss whose fight an event is, or null.</summary>
+        public static GameObject BossOfEvent(string raid) => raid != null && BossEvents.TryGetValue(raid, out var boss) ? boss : null;
+
         /// <summary>The prefab of the creature whose defeat sets a world key, or null.</summary>
         public static string BossPrefabOf(string key) => key != null && Bosses.TryGetValue(key, out var boss) ? boss.name : null;
 
@@ -193,6 +206,7 @@ namespace Scry
             Uses.Clear();
             Tools.Clear();
             Bosses.Clear();
+            BossEvents.Clear();
             Altars.Clear();
             Turned.Clear();
             SpawnPointsLeft.Clear();
@@ -232,6 +246,10 @@ namespace Scry
                 if (component is Character boss && !string.IsNullOrEmpty(boss.m_defeatSetGlobalKey) && !Bosses.ContainsKey(boss.m_defeatSetGlobalKey))
                 {
                     Bosses[boss.m_defeatSetGlobalKey] = prefab;
+                }
+                if (component is Character fought && !string.IsNullOrEmpty(fought.m_bossEvent) && !BossEvents.ContainsKey(fought.m_bossEvent))
+                {
+                    BossEvents[fought.m_bossEvent] = prefab;
                 }
                 if (component is OfferingBowl bowl)
                 {

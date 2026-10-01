@@ -192,6 +192,9 @@ namespace Scry
 
         /// <summary>The music it plays, in the order Enter tries them.</summary>
         public List<PlaceMusic> Music = new List<PlaceMusic>();
+
+        /// <summary>Its runestones with every text each can give (<see cref="PlaceRunes"/>).</summary>
+        public List<PlaceRunestone> Runestones = new List<PlaceRunestone>();
     }
 
     /// <summary>When a place's music plays.</summary>

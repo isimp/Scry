@@ -418,7 +418,8 @@ namespace Scry
 
         /// <summary>
         /// Every raid the world has switched on (<c>RandEventSystem.m_events</c>), each an entry of
-        /// its own though it is no prefab, named by the message the game shows when it starts.
+        /// its own though it is no prefab, named by the message the game shows when it starts; a
+        /// boss's own event, which has none, by the boss it is the fight of.
         /// </summary>
         private static void Raids(List<Entry> entries)
         {
@@ -431,6 +432,12 @@ namespace Scry
                 try
                 {
                     var shown = Localize(raid.m_startMessage);
+                    var boss = Knowledge.BossOfEvent(raid.m_name);
+                    if (shown.Length == 0 && boss != null)
+                    {
+                        var bossName = Localize(boss.GetComponent<Character>()?.m_name);
+                        shown = RaidWords.Fighting(bossName.Length > 0 ? bossName : boss.name);
+                    }
                     entries.Add(new Entry
                     {
                         Name = raid.m_name,

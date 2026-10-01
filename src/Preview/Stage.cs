@@ -265,7 +265,7 @@ namespace Scry
                 _lastShown = entry;
                 ResetView();
             }
-            if (!IsStaged(entry) || !(entry.Source is GameObject || entry.Source is StatusEffect || entry.Source is PlaceSource)) return;
+            if (!IsStaged(entry) || !(entry.Source is GameObject || entry.Source is StatusEffect || entry.Source is PlaceSource || entry.Source is RandomEvent)) return;
             if (!Ensure()) return;
 
             // Making it and dressing it are told as "selection copy" and "selection dress",
@@ -278,6 +278,13 @@ namespace Scry
                 if (asset == null) return;
                 var made = Timing.Start();
                 _subject = PlaceCopy.Make(asset, _root.transform, Origin, Quaternion.identity, _layer);
+                Timing.Add("selection copy", made);
+            }
+            else if (entry.Source is RandomEvent raid)
+            {
+                // A raid as one wave of its creatures, rolled anew with each copy.
+                var made = Timing.Start();
+                _subject = RaidCrowd.Make(entry, raid, _root.transform, Origin, _layer);
                 Timing.Add("selection copy", made);
             }
             else
@@ -311,6 +318,13 @@ namespace Scry
             _groundFixed = capsule != null && capsule.direction == 1;
             if (_groundFixed) _bodyMinY = Origin.y + (capsule.center.y - capsule.height / 2f) * _baseScale.y;
 
+            // A raid's creatures stand where they were put, on the stage's ground.
+            if (entry.Source is RandomEvent)
+            {
+                _groundFixed = true;
+                _bodyMinY = Origin.y;
+            }
+
             // A location stands on the ground the game stands it on, a room on the floor it is
             // walked into on (PlaceView.Ground), not on the lowest thing it holds.
             if (entry.Source is PlaceSource shown)
@@ -335,7 +349,8 @@ namespace Scry
         /// <summary>Whether an entry has something to put on the stage.</summary>
         public static bool IsStaged(Entry entry)
         {
-            if (entry == null || entry.Kind == Kind.Sound || entry.Kind == Kind.Raid || entry.Kind == Kind.Mod) return false;
+            if (entry == null || entry.Kind == Kind.Sound || entry.Kind == Kind.Mod) return false;
+            if (entry.Kind == Kind.Raid) return RaidCrowd.Brings(entry.Source as RandomEvent);
             if (entry.Kind == Kind.StatusEffect) return Looks.ShowsOnPerson(entry);
             return !entry.Empty;
         }

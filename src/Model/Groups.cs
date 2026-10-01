@@ -201,6 +201,17 @@ namespace Scry
             return hooks ? new Group("Hooking into its drops or spawning", 2) : new Group("Neither, as far as Scry sees", 3);
         }
 
+        /// <summary>A raid by what starts it: the raid roll or its own timer, a boss being fought, or something else.</summary>
+        public static Group Raid(RaidRole role)
+        {
+            switch (role)
+            {
+                case RaidRole.Raid: return new Group("Raids", 1);
+                case RaidRole.BossFight: return new Group("Boss fights", 2);
+                default: return new Group("Started by something else", 3);
+            }
+        }
+
         /// <summary>A piece no build menu holds.</summary>
         public static Group InNoMenu => new Group("In no build menu", int.MaxValue);
 

@@ -10,6 +10,17 @@ namespace Scry
 
         private void Raid(RandomEvent raid)
         {
+            // A boss's own event: its fight's music and weather, on while its health bar shows.
+            var boss = Knowledge.BossOfEvent(raid.m_name);
+            if (boss != null)
+            {
+                var range = EnemyHud.instance != null ? EnemyHud.instance.m_maxShowDistanceBoss : 100f;
+                Add("On", RaidWords.WhileFighting(AnyName(boss, boss.name), range), boss.name);
+                if (!string.IsNullOrEmpty(raid.m_forceMusic)) Add("Music", Naming.FieldLabel(raid.m_forceMusic));
+                if (!string.IsNullOrEmpty(raid.m_forceEnvironment)) Add("Weather", Naming.FieldLabel(raid.m_forceEnvironment));
+                if (!raid.m_random && raid.m_standaloneInterval <= 0f) return;
+            }
+
             Add("Comes for", RaidWords.ComesFor(raid.m_biome != 0 ? Knowledge.BiomeNames(raid.m_biome) : "", raid.m_nearBaseOnly));
 
             // A world set to pick raids by each player's own progress checks other keys for them.
@@ -25,7 +36,7 @@ namespace Scry
             if (!raid.m_random && raid.m_standaloneInterval <= 0f) Add("Rolled", "never by the raid roll; only something else starts it");
             Add("Lasts", RaidWords.Lasts(raid.m_duration, raid.m_pauseIfNoPlayerInArea, raid.m_eventRange));
             Add("Ends with", CatalogBuilder.Localize(raid.m_endMessage));
-            if (!string.IsNullOrEmpty(raid.m_forceEnvironment)) Add("Weather", Naming.FieldLabel(raid.m_forceEnvironment));
+            if (boss == null && !string.IsNullOrEmpty(raid.m_forceEnvironment)) Add("Weather", Naming.FieldLabel(raid.m_forceEnvironment));
 
             foreach (var data in raid.m_spawn ?? new List<SpawnSystem.SpawnData>())
             {

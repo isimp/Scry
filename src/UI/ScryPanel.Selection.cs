@@ -141,6 +141,7 @@ namespace Scry
             // hundreds of clips.
             y = Section("side adjust", y, at => Adjust(explorer, entry, cw, at, withStage));
             y = Section("side facts", y, at => FactsSection(explorer, entry, cw, at));
+            y = Section("side runes", y, at => RunesSection(entry, cw, at));
             y = Section("side plan", y, at => PlanSection(explorer, entry, cw, at));
             y = Section("side animations", y, at => Animations(explorer, entry, cw, at, withStage));
             y = Section("side effects", y, at => Effects(explorer, entry, cw, at, withStage));
@@ -636,6 +637,15 @@ namespace Scry
                     note = StatusActions(entry, Button);
                     break;
 
+                case Kind.Raid:
+                    // A raid's wave, rolled again on a new copy.
+                    if (withStage && Stage.IsStaged(entry))
+                    {
+                        if (Shown("Roll again", Skin.Primary, Stage.Subject != null)) Previews.Rebuild();
+                        if (RaidCrowd.LastFor == entry && Stage.Subject != null) note = RaidWords.Wave(RaidCrowd.LastWave, WaveName);
+                    }
+                    break;
+
                 case Kind.Location:
                     // What the game leaves to chance, rolled again on a new copy; only where something is.
                     if (withStage && entry.Source is PlaceSource place && place.Contents != null && place.Contents.LeftToChance
@@ -709,6 +719,20 @@ namespace Scry
             }
 
             return y + U(14f);
+        }
+
+        private static readonly Dictionary<string, string> WaveNames = new Dictionary<string, string>();
+
+        /// <summary>A creature of a raid's wave by the name the game shows for it.</summary>
+        private static string WaveName(string prefab)
+        {
+            if (!WaveNames.TryGetValue(prefab, out var name))
+            {
+                var shown = Session.Explorer?.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && e.Name == prefab)?.DisplayName;
+                name = string.IsNullOrEmpty(shown) ? prefab : shown;
+                WaveNames[prefab] = name;
+            }
+            return name;
         }
 
         /// <summary>

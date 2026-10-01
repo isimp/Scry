@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace Scry.Tests
@@ -65,6 +67,71 @@ namespace Scry.Tests
         {
             // With m_maxSpawned at 0 the game spawns at most one each interval and counts none.
             Assert.Equal("one every 5 s", RaidWords.Spawn(0, 5f, 100f, null));
+        }
+
+        [Fact]
+        public void ABossFightIsNamedForItsBossAndOnWhileTheBossIsAlertedNearYou()
+        {
+            // RandEventSystem.GetForcedEvent: while EnemyHud shows a boss (EnemyHud.TestShow: alerted,
+            // within m_maxShowDistanceBoss), the event its Character.m_bossEvent names is on.
+            Assert.Equal("Fighting Eikthyr", RaidWords.Fighting("Eikthyr"));
+            Assert.Equal("while Eikthyr is alerted within 100 m of you, its health bar showing", RaidWords.WhileFighting("Eikthyr", 100f));
+        }
+
+        [Fact]
+        public void TheRaidsTabListsRaidsFirstThenBossFightsThenTheRest()
+        {
+            // A boss's event is its fight's music and weather, not a raid, even if it could be rolled.
+            Assert.Equal(RaidRole.Raid, RaidGrouping.Role(random: true, standaloneInterval: 0f, namedByBoss: false));
+            Assert.Equal(RaidRole.Raid, RaidGrouping.Role(random: false, standaloneInterval: 3000f, namedByBoss: false));
+            Assert.Equal(RaidRole.BossFight, RaidGrouping.Role(random: false, standaloneInterval: 0f, namedByBoss: true));
+            Assert.Equal(RaidRole.BossFight, RaidGrouping.Role(random: true, standaloneInterval: 0f, namedByBoss: true));
+            Assert.Equal(RaidRole.Other, RaidGrouping.Role(random: false, standaloneInterval: 0f, namedByBoss: false));
+
+            var groups = new[] { RaidRole.Raid, RaidRole.BossFight, RaidRole.Other }.Select(Groups.Raid).ToList();
+            Assert.Equal(new[] { "Raids", "Boss fights", "Started by something else" }, groups.Select(g => g.Name));
+            Assert.True(groups[0].Order < groups[1].Order && groups[1].Order < groups[2].Order);
+        }
+
+        [Fact]
+        public void ARaidIsAsFarAlongAsTheStrongestBossItWaitsFor()
+        {
+            float Health(string key) => key == "defeated_eikthyr" ? 500f : key == "defeated_dragon" ? 7500f : 0f;
+            Assert.Equal(7500f, RaidGrouping.Strength(new[] { "defeated_eikthyr", "defeated_dragon", "KilledTroll" }, Health));
+            Assert.Equal(500f, RaidGrouping.Strength(new[] { "defeated_eikthyr" }, Health));
+            Assert.Equal(0f, RaidGrouping.Strength(new string[0], Health));
+            Assert.Equal(0f, RaidGrouping.Strength(null, Health));
+        }
+
+        [Fact]
+        public void WithinAGroupTheyComeInTheOrderTheBossesAreFought()
+        {
+            // By the boss's health, which grows boss by boss (500 for Eikthyr to 20000 for the
+            // Fader), so a mod's boss falls in place too; those waiting for none come first, and
+            // those alike stay in name order.
+            var ranks = RaidGrouping.Ranks(new Dictionary<string, float>
+            {
+                ["army_moder"] = 7500f,
+                ["wolves"] = 7500f,
+                ["army_eikthyr"] = 500f,
+                ["boars"] = 0f,
+                ["army_goblin"] = 10000f,
+            });
+            Assert.Equal(0, ranks["boars"]);
+            Assert.Equal(1, ranks["army_eikthyr"]);
+            Assert.Equal(2, ranks["army_moder"]);
+            Assert.Equal(2, ranks["wolves"]);
+            Assert.Equal(3, ranks["army_goblin"]);
+        }
+
+        [Fact]
+        public void RanksStopAtTheHighestTheListCanSortBy()
+        {
+            var many = Enumerable.Range(0, 100).ToDictionary(i => "raid" + i, i => (float)i);
+            var ranks = RaidGrouping.Ranks(many);
+            Assert.Equal(63, ranks["raid63"]);
+            Assert.Equal(63, ranks["raid99"]);
+            Assert.Equal(62, ranks["raid62"]);
         }
     }
 }

@@ -176,7 +176,7 @@ namespace Scry
         {
             public Explorer Explorer;
             public Explorer.Kept Kept;
-            public bool Open, InWorld, LoopSounds, LoopEffects, LoopClips, OnPerson, PlanFolded;
+            public bool Open, InWorld, LoopSounds, LoopEffects, LoopClips, OnPerson, PlanFolded, RunesFolded;
             public Locations.State LocationsWere;
 
             /// <summary>The view the panel was in when the test first opened it, for the full view the stage is drawn in.</summary>
@@ -193,6 +193,7 @@ namespace Scry
                 LoopClips = Previews.LoopClips,
                 OnPerson = Looks.OnPerson,
                 PlanFolded = ScryPanel.PlanFolded,
+                RunesFolded = ScryPanel.RunesFolded,
                 LocationsWere = Locations.Now,
             };
         }
@@ -215,6 +216,7 @@ namespace Scry
             Previews.LoopClips = before.LoopClips;
             Looks.OnPerson = before.OnPerson;
             ScryPanel.PlanFolded = before.PlanFolded;
+            ScryPanel.RunesFolded = before.RunesFolded;
             ScryPanel.HideModReport();
             if (before.Compact.HasValue) ScryPanel.Compact = before.Compact.Value;
             if (Session.Explorer != null && Session.Explorer == before.Explorer) before.Explorer.Restore(before.Kept);

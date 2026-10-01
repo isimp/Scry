@@ -78,5 +78,35 @@ namespace Scry
             if (!string.IsNullOrEmpty(stars)) parts.Add(stars);
             return string.Join(", ", parts);
         }
+
+        /// <summary>A rolled wave (<see cref="RaidRoll"/>): each creature in the order it came, how many, and how many with stars.</summary>
+        public static string Wave(IReadOnlyList<RolledCreature> wave, System.Func<string, string> nameOf)
+        {
+            if (wave.Count == 0) return "This roll brought nothing; roll again.";
+            var order = new List<string>();
+            var counts = new Dictionary<string, (int All, int Starred)>();
+            foreach (var creature in wave)
+            {
+                if (!counts.TryGetValue(creature.Prefab, out var count)) order.Add(creature.Prefab);
+                counts[creature.Prefab] = (count.All + 1, count.Starred + (creature.Level > 1 ? 1 : 0));
+            }
+            var parts = new List<string>();
+            foreach (var prefab in order)
+            {
+                var count = counts[prefab];
+                parts.Add($"{nameOf(prefab)} × {count.All}" + (count.Starred > 0 ? $" ({count.Starred} with stars)" : ""));
+            }
+            return "One wave as the game rolls it: " + string.Join(", ", parts) + ".";
+        }
+
+        /// <summary>The name of a boss's own event, which has no message of its own to go by.</summary>
+        public static string Fighting(string boss) => $"Fighting {boss}";
+
+        /// <summary>
+        /// When a boss's event is on: while the boss's health bar shows, which it does while the
+        /// boss is alerted within so many metres (<c>RandEventSystem.GetForcedEvent</c>,
+        /// <c>EnemyHud.TestShow</c>).
+        /// </summary>
+        public static string WhileFighting(string boss, float range) => $"while {boss} is alerted within {Naming.Number(range)} m of you, its health bar showing";
     }
 }
