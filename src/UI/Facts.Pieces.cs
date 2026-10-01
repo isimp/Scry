@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -36,6 +37,24 @@ namespace Scry
                 Hooked(HookedRule.Wear);
             }
 
+            Part("placement", () => Placement(piece));
+
+            // An upgrade of a station, which must stand near it and apart from its other upgrades.
+            var extension = piece.GetComponent<StationExtension>();
+            if (extension != null && extension.m_craftingStation != null)
+            {
+                var upgraded = extension.m_craftingStation.gameObject;
+                var apart = piece.m_spaceRequirement > 0f ? $", {Number(piece.m_spaceRequirement)} m from its other upgrades" : "";
+                Add("Upgrades", $"{AnyName(upgraded, upgraded.name)}, within {Number(extension.m_maxStationDistance)} m of it{apart}", upgraded.name);
+            }
+
+            // Bed.Interact: claiming and sleeping, each needing a roof and 80% cover (CheckExposure).
+            if (piece.GetComponent<Bed>() != null)
+            {
+                Add("Claiming it", BuildWords.BedClaim(0.8f));
+                Add("Sleeping in it", BuildWords.BedSleep(0.8f));
+            }
+
             if (piece.m_resources != null && piece.m_resources.Length > 0)
             {
                 var station = piece.m_craftingStation != null ? CatalogBuilder.Localize(piece.m_craftingStation.m_name) : "";
@@ -44,6 +63,24 @@ namespace Scry
                 Rows.Add(row);
                 Hooked(HookedRule.Crafting);
             }
+        }
+
+        /// <summary>Where it may be placed (<see cref="BuildWords.Placement"/>).</summary>
+        private void Placement(Piece piece)
+        {
+            var rules = new PlacementRules
+            {
+                GroundOnly = piece.m_groundOnly || piece.m_groundPiece, CultivatedOnly = piece.m_cultivatedGroundOnly, DirtOnly = piece.m_vegetationGroundOnly,
+                OnWater = piece.m_waterPiece, NotInWater = piece.m_noInWater, NotOnWood = piece.m_notOnWood, Level = piece.m_notOnTiltingSurface,
+                CeilingOnly = piece.m_inCeilingOnly, NotOnFloor = piece.m_notOnFloor, TeleportArea = piece.m_onlyInTeleportArea, InDungeons = piece.m_allowedInDungeons,
+                DeepSnowOnly = piece.m_requireDeepSnow, Biomes = piece.m_onlyInBiome != 0 ? Knowledge.BiomeNames(piece.m_onlyInBiome) : null,
+                BlockRadius = piece.m_blockRadius,
+                Blocking = piece.m_blockingPieces?.Where(b => b != null).Select(b => AnyName(b.gameObject, b.gameObject.name)).Distinct().ToArray(),
+                ConnectTo = piece.m_mustConnectTo != null ? AnyName(piece.m_mustConnectTo.gameObject, piece.m_mustConnectTo.gameObject.name) : null,
+                ConnectRadius = piece.m_connectRadius, Above = piece.m_mustBeAboveConnected,
+            };
+            var lines = BuildWords.Placement(rules);
+            if (lines.Count > 0) Add("Placed", string.Join(", ", lines));
         }
 
         /// <summary>The build tools a piece is built with, each with the tab it is on there; one alone is a link to the tool.</summary>

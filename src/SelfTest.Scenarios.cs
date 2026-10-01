@@ -45,6 +45,7 @@ namespace Scry
             yield return S("gear tells its resistances, what it changes while worn, and a weapon its second attack", GearFacts, 10);
             yield return S("tame creatures tell how they breed and are ridden, their young where they come from and what they grow into", BreedingFacts, 10);
             yield return S("fish tell their baits, doors their keys, and bosses and trophies their Forsaken powers, each both ways", BaitsKeysPowers, 10);
+            yield return S("pieces tell where they may be placed, stations their reach, upgrades their station, areas what they do, and beds what they need", BuildingRules, 10);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
             yield return S("items, stations, smelters and beds tell what they are for", WhatThingsTell, 10);
@@ -630,6 +631,35 @@ namespace Scry
             p.Check(bosses.Count > 0 && unpowered.Count == 0, "every one names its power", string.Join(", ", unpowered));
             var trophy = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && Knowledge.PowerOf(e.Name).Power != null);
             if (trophy != null) p.Check(Value(Facts.For(trophy), "On its boss stone") != null, $"{trophy.Name} names the power it gives on its boss stone");
+            yield break;
+        }
+
+        /// <summary>For each building rule, the first piece having it tells it.</summary>
+        private static IEnumerator BuildingRules(Probe p)
+        {
+            GameObject Of(Entry e) => e.Source as GameObject;
+            var pieces = X.Catalog.Where(e => Of(e) != null && Of(e).GetComponent<Piece>() != null).OrderBy(e => e.Name, StringComparer.Ordinal).ToList();
+            var cases = new (string What, Func<GameObject, bool> Has, string Label)[]
+            {
+                ("a piece with placement rules", g => g.GetComponent<Piece>() is Piece piece && (piece.m_groundOnly || piece.m_cultivatedGroundOnly || piece.m_noInWater || piece.m_notOnWood || piece.m_onlyInBiome != 0), "Placed"),
+                ("a station", g => g.GetComponent<CraftingStation>() != null, "Building reach"),
+                ("a station's upgrade", g => g.GetComponent<StationExtension>()?.m_craftingStation != null, "Upgrades"),
+                ("a bed", g => g.GetComponent<Bed>() != null, "Sleeping in it"),
+                ("a warm piece", g => g.GetComponentsInChildren<EffectArea>(true).Any(a => (a.m_type & EffectArea.Type.Heat) != 0), "Warmth"),
+                ("a base piece", g => g.GetComponentsInChildren<EffectArea>(true).Any(a => (a.m_type & EffectArea.Type.PlayerBase) != 0), "A base"),
+            };
+            foreach (var (what, has, label) in cases)
+            {
+                var found = pieces.Where(e => has(Of(e))).ToList();
+                if (found.Count == 0)
+                {
+                    p.Note($"no {what} in this game");
+                    continue;
+                }
+                var value = Value(Facts.For(found[0]), label);
+                p.Check(value != null, $"{found[0].Name}, {what} ({found.Count} such), tells it under {label}", value ?? "not told");
+                if (value != null) p.Note($"{found[0].Name}: {label} {value}");
+            }
             yield break;
         }
 

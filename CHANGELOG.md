@@ -28,6 +28,8 @@ A tame creature tells how it breeds: what it needs, how its love points come, ho
 
 A fish tells which baits it bites on and how likely, and a bait which fish it catches. A locked door tells its key, and a key the doors it opens. A boss tells its Forsaken power, and its trophy the power it gives on its boss stone.
 
+A piece tells where it may be placed: on the ground or cultivated ground only, not in water, not on wood, only in one biome, apart from the pieces it must keep away from, and the rest of what the game checks. A station's upgrade names its station and how near it must stand, a station how far from it you may build, and whatever counts as a base, warmth, fire or a place monsters avoid says so and how far it reaches. A bed tells what claiming it and sleeping in it need.
+
 What creatures drop as you play is watched and kept from session to session, whichever mod put it there: a creature shows what it was seen dropping and in how many of your kills, and an item names every creature seen dropping it. Nothing is changed by watching, and loot another player's game makes is not seen.
 
 *Mod report*, above the list while it shows only what mods added or with `/scry mods`, sums up each mod: what it adds, what Scry links for its crafting stations and build tools, which of the game's rules it hooks into, and what Scry could not place, such as a station nothing is made or built at or an item with no source Scry sees.

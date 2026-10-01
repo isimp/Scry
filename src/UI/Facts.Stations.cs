@@ -132,7 +132,15 @@ namespace Scry
             }
 
             var craft = prefab.GetComponent<CraftingStation>();
-            if (craft != null) MadeHere(prefab.name);
+            if (craft != null)
+            {
+                Add("Building reach", BuildWords.Range(craft.m_rangeBuild, craft.m_extraRangePerLevel));
+                var needs = new List<string>();
+                if (craft.m_craftRequireRoof) needs.Add("a roof");
+                if (craft.m_craftRequireFire) needs.Add("a fire");
+                if (needs.Count > 0) Add("Crafting needs", string.Join(" and ", needs));
+                MadeHere(prefab.name);
+            }
             // An upgrader takes what can be upgraded past its top quality, with the upgrade kits
             // its recipe names alone (InventoryGui.UpdateRecipeList, Player.HaveRequirements).
             if (craft != null && craft.m_upgrader) Add("Upgrade station", "takes items past their top quality, with the upgrade kits their recipes name");

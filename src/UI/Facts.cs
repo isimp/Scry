@@ -227,6 +227,20 @@ namespace Scry
             var powerEffect = power != null && ObjectDB.instance != null ? ObjectDB.instance.GetStatusEffect(power.GetStableHashCode()) : null;
             if (powerEffect != null) Add("On its boss stone", $"gives {EffectName(powerEffect)}", "se:" + power);
 
+            // What its areas do: warmth, a base, no monsters and the rest (EffectArea).
+            Part("areas", () =>
+            {
+                foreach (var area in prefab.GetComponentsInChildren<EffectArea>(true))
+                {
+                    var sphere = area.GetComponent<SphereCollider>();
+                    var scale = area.transform.lossyScale;
+                    var radius = sphere != null ? sphere.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z)) : 0f;
+                    foreach (var (label, text) in AreaWords.Lines((int)area.m_type, radius)) Add(label, text);
+                    var given = !string.IsNullOrEmpty(area.m_statusEffect) && ObjectDB.instance != null ? ObjectDB.instance.GetStatusEffect(area.m_statusEffect.GetStableHashCode()) : null;
+                    if (given != null) Add("Gives those in it", EffectName(given), "se:" + given.name);
+                }
+            });
+
             // How much it holds: a chest's own container, or a cart's or ship's on a part of it.
             var storage = container != null ? container : prefab.GetComponentInChildren<Container>(true);
             if (storage != null && character == null)

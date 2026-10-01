@@ -53,5 +53,90 @@ namespace Scry
 
         /// <summary>Heavy snow in the Deep North, told only for a piece it does not harm.</summary>
         public static string Snow(bool immune) => immune ? "does not harm it" : null;
+
+        /// <summary>
+        /// Where a piece may be placed, as <c>Player.UpdatePlacementGhost</c> refuses it, in the
+        /// order the game checks; nothing for a piece placed anywhere.
+        /// </summary>
+        public static List<string> Placement(PlacementRules rules)
+        {
+            var lines = new List<string>();
+            if (rules.BlockRadius > 0f && rules.Blocking != null && rules.Blocking.Length > 0)
+            {
+                lines.Add($"not within {Naming.Number(rules.BlockRadius)} m of {Article(rules.Blocking[0])} {string.Join(" or ", rules.Blocking)}");
+            }
+            if (!string.IsNullOrEmpty(rules.ConnectTo))
+            {
+                lines.Add($"within {Naming.Number(rules.ConnectRadius)} m of {Article(rules.ConnectTo)} {rules.ConnectTo}" + (rules.Above ? ", on top of it" : ""));
+            }
+            if (rules.GroundOnly) lines.Add("on the ground only");
+            if (rules.CultivatedOnly) lines.Add("on cultivated ground only");
+            if (rules.DirtOnly) lines.Add("on dirt only");
+            if (rules.OnWater) lines.Add("on water only");
+            if (rules.NotInWater) lines.Add("not in water");
+            if (rules.NotOnWood) lines.Add("not on wood");
+            if (rules.Level) lines.Add("not on a slope");
+            if (rules.CeilingOnly) lines.Add("under a ceiling only");
+            if (rules.NotOnFloor) lines.Add("not on a floor");
+            if (rules.TeleportArea) lines.Add("in a teleport area only");
+            if (rules.DeepSnowOnly) lines.Add("in the Deep North's deep snow only");
+            if (!string.IsNullOrEmpty(rules.Biomes)) lines.Add($"in {rules.Biomes} only");
+            if (rules.InDungeons) lines.Add("in dungeons too");
+            return lines;
+        }
+
+        private static string Article(string name) => name.Length > 0 && "AEIOUaeiou".IndexOf(name[0]) >= 0 ? "an" : "a";
+
+        /// <summary>How far from a station its pieces may be built (<c>CraftingStation.m_rangeBuild</c>), more with each upgrade.</summary>
+        public static string Range(float range, float perUpgrade) =>
+            perUpgrade > 0f ? $"{Naming.Number(range)} m, {Naming.Number(perUpgrade)} m more for each upgrade" : $"{Naming.Number(range)} m";
+
+        /// <summary>What claiming a bed does and needs (<c>Bed.Interact</c>, <c>CheckExposure</c>).</summary>
+        public static string BedClaim(float cover) => $"where you come back to after dying; it needs a roof and at least {Percent(cover)} cover";
+
+        /// <summary>What sleeping in one's own bed needs (<c>Bed.Interact</c>: night, <c>CheckEnemies</c>, <c>CheckExposure</c>, <c>CheckFire</c>, <c>CheckWet</c>).</summary>
+        public static string BedSleep(float cover) => $"at night, with no enemy sensing you, under a roof with at least {Percent(cover)} cover, by a fire, and dry";
+
+        private static string Percent(float share) => ((int)System.Math.Round(share * 100f, System.MidpointRounding.AwayFromZero)).ToString(CultureInfo.InvariantCulture) + "%";
+    }
+}
+
+namespace Scry
+{
+    public sealed class PlacementRules
+    {
+        public bool GroundOnly, CultivatedOnly, DirtOnly, OnWater, NotInWater, NotOnWood, Level, CeilingOnly, NotOnFloor, TeleportArea, InDungeons, DeepSnowOnly, Above;
+        public string Biomes, ConnectTo;
+        public float BlockRadius, ConnectRadius;
+        public string[] Blocking;
+    }
+
+    /// <summary>
+    /// What an area does (<c>EffectArea.Type</c>), each kind by where the game reads it: warmth
+    /// for resting and beds (<c>Character.OnNearFire</c>, <c>Bed.CheckFire</c>), fire that
+    /// fire-shy creatures avoid (<c>BaseAI.AvoidFire</c>), a base that keeps spawning out and
+    /// counts toward raids (<c>SpawnSystem.IsSpawnPointGood</c>, <c>CreatureSpawner</c>,
+    /// <c>RandEventSystem.CheckBase</c>), flames a cooking station needs, a teleport area some
+    /// pieces need, ground untamed creatures keep out of (<c>MonsterAI</c>), and warm, cozy
+    /// ground the cold does not reach (<c>Player.UpdateEnvStatusEffects</c>). A private area
+    /// the game reads nowhere is not told.
+    /// </summary>
+    public static class AreaWords
+    {
+        public static List<(string Label, string Text)> Lines(int type, float radius)
+        {
+            var lines = new List<(string, string)>();
+            var known = radius > 0f;
+            var r = Naming.Number(radius);
+            var within = known ? $"within {r} m" : "near it";
+            if ((type & 0x01) != 0) lines.Add(("Warmth", $"{within} you are by a fire, which resting and sleeping need"));
+            if ((type & 0x02) != 0) lines.Add(("Fire", known ? $"creatures afraid of fire keep away from within {r} m" : "creatures afraid of fire keep away from it"));
+            if ((type & 0x04) != 0) lines.Add(("A base", $"{within} the world's spawning and creature spawners place nothing, unless set to; three such near you let raids that come for bases come"));
+            if ((type & 0x08) != 0) lines.Add(("Flames", "a cooking station needing a fire cooks over it"));
+            if ((type & 0x10) != 0) lines.Add(("Teleport area", known ? $"pieces built only in one can be built within {r} m" : "pieces built only in one can be built near it"));
+            if ((type & 0x20) != 0) lines.Add(("No monsters", known ? $"untamed creatures turn away from 15 m out and will not chase you into its {r} m" : "untamed creatures turn away from 15 m out and will not chase you into it"));
+            if ((type & 0x40) != 0) lines.Add(("Warm and cozy", $"{within} cold and freezing do not reach you, and you rest even wet"));
+            return lines;
+        }
     }
 }
