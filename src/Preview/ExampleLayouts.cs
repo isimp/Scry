@@ -180,21 +180,25 @@ namespace Scry
         private static void LetGoOfUnused()
         {
             _releaseFrom = -1;
-            // No copy may still be made from a bundle let go of.
-            Ghost.Building.FinishAll();
             var used = new HashSet<string>(Example?.Rooms.Select(r => r.Room.Name) ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
             foreach (var name in Held.Keys.Where(n => !used.Contains(n)).ToList())
             {
-                Held[name].Reference.Release();
+                // Let go of once no copy is being made from it.
+                var reference = Held[name].Reference;
+                Ghost.Building.WhenIdle(() => reference.Release());
                 Held.Remove(name);
             }
         }
 
         private static void LetGoOfAll()
         {
-            Ghost.Building.FinishAll();
             LetGo();
-            foreach (var source in Held.Values) source.Reference.Release();
+            // Let go of once no copy is being made from them.
+            foreach (var source in Held.Values)
+            {
+                var reference = source.Reference;
+                Ghost.Building.WhenIdle(() => reference.Release());
+            }
             Held.Clear();
             _heldFor = null;
             _releaseFrom = -1;

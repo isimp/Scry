@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -110,9 +111,9 @@ namespace Scry
         /// a slice each frame (<c>Object.InstantiateAsync</c>), else at once as <see cref="Make"/>
         /// makes one; then prepared, noted and stripped a little each frame, settled, then posed
         /// where it is shown and woken a few parts each frame (<see cref="WakeChunks"/>). Each
-        /// step goes on until its time is up; waking any one of its parts cannot be split. A copy
-        /// still being made is finished before the bundle it is made from is let go of
-        /// (<see cref="FinishAll"/>). What
+        /// step goes on until its time is up; waking any one of its parts cannot be split. A bundle
+        /// is let go of only once no copy is being made (<see cref="WhenIdle"/>), and a copy
+        /// dropped while Unity still makes it is taken down once made, nothing waiting on it. What
         /// <c>prepare</c> does to the copy is done while it still sleeps, before it is stripped
         /// (a location's parts rolled). With <c>keepColliders</c> its colliders stay, for the
         /// caller to read where its floors are (<see cref="FloorProbe"/>). Its pose is given in
@@ -131,13 +132,61 @@ namespace Scry
             /// <summary>The copies Unity is still making, to finish before what they are made from goes.</summary>
             private static readonly List<AsyncInstantiateOperation<GameObject>> Making = new List<AsyncInstantiateOperation<GameObject>>();
 
-            /// <summary>Finishes every copy still being made, for a bundle about to be let go of: none may read from it after.</summary>
-            public static void FinishAll()
+            /// <summary>Copies dropped while Unity still made them, taken down once it has.</summary>
+            private static readonly List<AsyncInstantiateOperation<GameObject>> Dropped = new List<AsyncInstantiateOperation<GameObject>>();
+
+            /// <summary>What waits to be let go of until no copy is being made: bundles the copies read from.</summary>
+            private static readonly List<Action> AfterMaking = new List<Action>();
+
+            /// <summary>Whether Unity is making any copy still, reading from the bundle it is made from.</summary>
+            private static bool BeingMade => Making.Exists(m => !m.isDone) || Dropped.Exists(m => !m.isDone);
+
+            /// <summary>Lets go of something a copy may be made from: at once when no copy is being made, else as soon as none is (<see cref="Tick"/>).</summary>
+            public static void WhenIdle(Action letGo)
             {
-                foreach (var making in Making.ToArray())
+                if (BeingMade) AfterMaking.Add(letGo);
+                else letGo();
+            }
+
+            /// <summary>Each frame: copies dropped are taken down once made, and what waited for no copy to be made is let go of.</summary>
+            public static void Tick()
+            {
+                foreach (var made in Dropped.Where(d => d.isDone).ToArray())
+                {
+                    Dropped.Remove(made);
+                    TakeDown(made);
+                }
+                if (AfterMaking.Count == 0 || BeingMade) return;
+                var waiting = AfterMaking.ToArray();
+                AfterMaking.Clear();
+                foreach (var letGo in waiting)
+                {
+                    try { letGo(); }
+                    catch (Exception ex) { Faults.Tell("letting go of a bundle", ex); }
+                }
+            }
+
+            /// <summary>Finishes every copy at once and lets go of what waited, as a world is left.</summary>
+            public static void Flush()
+            {
+                foreach (var making in Making.Concat(Dropped).ToArray())
                 {
                     try { if (!making.isDone) making.WaitForCompletion(); }
                     catch (Exception ex) { Faults.Tell("finishing a copy", ex); }
+                }
+                Tick();
+            }
+
+            /// <summary>Takes down what an operation made.</summary>
+            private static void TakeDown(AsyncInstantiateOperation<GameObject> making)
+            {
+                try
+                {
+                    if (making.Result != null) foreach (var made in making.Result) if (made != null) Object.Destroy(made);
+                }
+                catch (Exception ex)
+                {
+                    Faults.Tell("taking down a copy", ex);
                 }
             }
 
@@ -359,19 +408,12 @@ namespace Scry
             {
                 if (_making != null)
                 {
-                    // Finished at once, so nothing reads from its bundle after, and taken down.
+                    // Taken down once Unity has made it, nothing waiting on it meanwhile.
                     var making = _making;
                     _making = null;
                     Making.Remove(making);
-                    try
-                    {
-                        if (!making.isDone) making.WaitForCompletion();
-                        if (making.Result != null) foreach (var made in making.Result) if (made != null) Object.Destroy(made);
-                    }
-                    catch (Exception ex)
-                    {
-                        Faults.Tell("taking down a copy", ex);
-                    }
+                    if (making.isDone) TakeDown(making);
+                    else Dropped.Add(making);
                 }
                 if (_copy != null) Object.Destroy(_copy);
                 _copy = null;

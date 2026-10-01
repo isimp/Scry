@@ -163,6 +163,7 @@ namespace Scry
         /// <summary>Lets go of what was found out about the prefabs of a world that was left.</summary>
         public static void Forget()
         {
+            Building.Flush();
             Known.Clear();
             foreach (var template in Templates.Values) if (template != null) Object.Destroy(template);
             Templates.Clear();
