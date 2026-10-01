@@ -180,6 +180,8 @@ namespace Scry
         private static void LetGoOfUnused()
         {
             _releaseFrom = -1;
+            // No copy may still be made from a bundle let go of.
+            Ghost.Building.FinishAll();
             var used = new HashSet<string>(Example?.Rooms.Select(r => r.Room.Name) ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
             foreach (var name in Held.Keys.Where(n => !used.Contains(n)).ToList())
             {
@@ -190,6 +192,7 @@ namespace Scry
 
         private static void LetGoOfAll()
         {
+            Ghost.Building.FinishAll();
             LetGo();
             foreach (var source in Held.Values) source.Reference.Release();
             Held.Clear();

@@ -590,14 +590,21 @@ namespace Scry
                 var place = PlaceOf(entry);
                 var from = Frames.Frames;
                 Select(entry);
-                yield return Until(() => PlaceAssets.State(place) != PlaceLoad.Loading && CopyOf(entry) != null, 30);
+                // The whole frame too: what Unity does of the copy on its own is no work of Scry's.
+                var whole = 0f;
+                var until = Time.unscaledTime + 30f;
+                while ((PlaceAssets.State(place) == PlaceLoad.Loading || CopyOf(entry) == null) && Time.unscaledTime < until)
+                {
+                    yield return null;
+                    whole = Mathf.Max(whole, Time.unscaledDeltaTime * 1000f);
+                }
                 if (CopyOf(entry) == null)
                 {
                     wrong.Add($"{entry.Name} stands nowhere");
                     continue;
                 }
                 var frames = Frames.Since(from);
-                p.Note($"{entry.Name}, {PartsOf(entry)} pieces, {Stage.LastBuildParts} parts, made over {Stage.LastBuildFrames} frames: {frames.Line(Budget)}{Slowest(frames, 1)}");
+                p.Note($"{entry.Name}, {PartsOf(entry)} pieces, {Stage.LastBuildParts} parts, made over {Stage.LastBuildFrames} frames, the slowest whole frame {whole:0} ms: {frames.Line(Budget)}{Slowest(frames, 1)}");
                 if (frames.Max >= 250) wrong.Add($"{entry.Name} took {frames.Max:0} ms in a frame");
             }
             p.Check(wrong.Count == 0, "each is made over several frames, none of them a quarter of a second", string.Join("; ", wrong));

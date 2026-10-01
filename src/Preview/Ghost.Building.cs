@@ -10,38 +10,66 @@ namespace Scry
     {
         /// <summary>
         /// Takes off everything the policy does not keep (<see cref="StripPolicy"/>), at once or a
-        /// little at a time while the copy sleeps. A component another one requires can only go
-        /// after that one, so the list is gone through again while a pass took anything off; what
-        /// must wait is kept in place, so going through it stays as quick as it is long.
+        /// little at a time while the copy sleeps: what is to go is noted part by part, then taken
+        /// off. A component another one requires can only go after that one, so the list is gone
+        /// through again while a pass took anything off; what must wait is kept in place, so going
+        /// through it stays as quick as it is long.
         /// </summary>
         internal sealed class Stripping
         {
             private readonly GameObject _copy;
+            private readonly bool _falling;
+            private readonly bool _keepColliders;
             private readonly List<KeyValuePair<int, Component>> _doomed = new List<KeyValuePair<int, Component>>();
+            private Transform[] _parts;
+            private int _next;
+            private bool _noted;
             private int _read;
             private int _kept;
             private bool _progress;
 
-            /// <summary>How many components the copy had.</summary>
-            public int Parts { get; }
+            private static readonly List<Component> Found = new List<Component>();
+
+            /// <summary>How many components the copy had, once noted.</summary>
+            public int Parts { get; private set; }
 
             public Stripping(GameObject copy, bool falling, bool keepColliders)
             {
                 _copy = copy;
-                var all = copy.GetComponentsInChildren<Component>(true);
-                Parts = all.Length;
-                foreach (var component in all)
+                _falling = falling;
+                _keepColliders = keepColliders;
+            }
+
+            /// <summary>Notes what is to go, part by part, until the watch reaches the budget (no watch: all); true once all is noted, in the order it goes.</summary>
+            public bool Note(Stopwatch watch, double budgetMs)
+            {
+                if (_noted) return true;
+                if (_parts == null) _parts = _copy.GetComponentsInChildren<Transform>(true);
+                while (_next < _parts.Length)
                 {
-                    if (component == null || keepColliders && component is Collider) continue;
-                    var pass = PassFor(component, falling);
-                    if (pass != StripPolicy.Keep) _doomed.Add(new KeyValuePair<int, Component>(pass, component));
+                    if (watch != null && watch.Elapsed.TotalMilliseconds >= budgetMs) return false;
+                    var part = _parts[_next++];
+                    if (part == null) continue;
+                    part.GetComponents(Found);
+                    foreach (var component in Found)
+                    {
+                        Parts++;
+                        if (component == null || _keepColliders && component is Collider) continue;
+                        var pass = PassFor(component, _falling);
+                        if (pass != StripPolicy.Keep) _doomed.Add(new KeyValuePair<int, Component>(pass, component));
+                    }
+                    Found.Clear();
                 }
                 _doomed.Sort((a, b) => a.Key.CompareTo(b.Key));
+                _parts = null;
+                _noted = true;
+                return true;
             }
 
             /// <summary>Takes off what it can until the watch reaches the budget (no watch: all); true once nothing more can go.</summary>
             public bool Go(Stopwatch watch, double budgetMs)
             {
+                if (!Note(watch, budgetMs)) return false;
                 while (true)
                 {
                     if (_read >= _doomed.Count)
@@ -78,24 +106,40 @@ namespace Scry
         /// <summary>
         /// A copy made over several frames, for a prefab so large (a location with thousands of
         /// parts) that making it at once would hold the game up for a third of a second. It is
-        /// made and prepared asleep under the holder as <see cref="Make"/> makes one, stripped a
-        /// little each frame, settled, then posed where it is shown and woken a few parts each
-        /// frame (<see cref="WakeChunks"/>). Each step goes on until its time is up; making the
-        /// copy itself, and waking any one of its parts, cannot be split. What
+        /// made asleep under the holder, by Unity on a thread of its own and taken into the game
+        /// a slice each frame (<c>Object.InstantiateAsync</c>), else at once as <see cref="Make"/>
+        /// makes one; then prepared, noted and stripped a little each frame, settled, then posed
+        /// where it is shown and woken a few parts each frame (<see cref="WakeChunks"/>). Each
+        /// step goes on until its time is up; waking any one of its parts cannot be split. A copy
+        /// still being made is finished before the bundle it is made from is let go of
+        /// (<see cref="FinishAll"/>). What
         /// <c>prepare</c> does to the copy is done while it still sleeps, before it is stripped
         /// (a location's parts rolled). With <c>keepColliders</c> its colliders stay, for the
         /// caller to read where its floors are (<see cref="FloorProbe"/>). Its pose is given in
         /// the world, or with <c>local</c> in its parent's space, which holds should the parent be
         /// moved or sized while the copy is made.
-        /// The steps are told as "copy made", "copy prepared", "copy stripped", "copy settled"
-        /// and "copy woken".
+        /// The steps are told as "copy made", "copy prepared", "copy noted", "copy stripped",
+        /// "copy settled" and "copy woken".
         /// </summary>
         internal sealed class Building
         {
             /// <summary>How many parts are woken together at most.</summary>
             private const int ChunkParts = 64;
 
-            private enum Step { Make, Strip, Settle, Wake, Done }
+            private enum Step { Make, Prepare, Strip, Settle, Wake, Done }
+
+            /// <summary>The copies Unity is still making, to finish before what they are made from goes.</summary>
+            private static readonly List<AsyncInstantiateOperation<GameObject>> Making = new List<AsyncInstantiateOperation<GameObject>>();
+
+            /// <summary>Finishes every copy still being made, for a bundle about to be let go of: none may read from it after.</summary>
+            public static void FinishAll()
+            {
+                foreach (var making in Making.ToArray())
+                {
+                    try { if (!making.isDone) making.WaitForCompletion(); }
+                    catch (Exception ex) { Faults.Tell("finishing a copy", ex); }
+                }
+            }
 
             private readonly GameObject _prefab;
             private readonly string _name;
@@ -111,6 +155,10 @@ namespace Scry
             private GameObject _copy;
             private Stripping _stripping;
             private int _woken;
+            private AsyncInstantiateOperation<GameObject> _making;
+
+            /// <summary>Whether a step waits on Unity this frame, which ends the frame's work.</summary>
+            private bool _waiting;
 
             public Building(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer, Action<GameObject> prepare, bool keepColliders, bool local = false)
             {
@@ -143,10 +191,11 @@ namespace Scry
                 // A network view left on the copy for any reason destroys itself on waking.
                 var was = ZNetView.m_forceDisableInit;
                 ZNetView.m_forceDisableInit = true;
+                _waiting = false;
                 try
                 {
                     do Next(watch, budgetMs);
-                    while (_step != Step.Done && watch.Elapsed.TotalMilliseconds < budgetMs);
+                    while (_step != Step.Done && !_waiting && watch.Elapsed.TotalMilliseconds < budgetMs);
                 }
                 catch (Exception ex)
                 {
@@ -172,9 +221,35 @@ namespace Scry
                     case Step.Make:
                     {
                         var made = Timing.Start();
-                        _copy = Object.Instantiate(_prefab, Holder().transform, false);
-                        _copy.name = _prefab.name;
+                        if (_making == null && !Begin())
+                        {
+                            _copy = Object.Instantiate(_prefab, Holder().transform, false);
+                        }
+                        else
+                        {
+                            if (!_making.isDone)
+                            {
+                                Timing.Add("copy made", made);
+                                _waiting = true;
+                                return;
+                            }
+                            Making.Remove(_making);
+                            var result = _making.Result;
+                            _making = null;
+                            _copy = result != null && result.Length > 0 ? result[0] : null;
+                        }
                         Timing.Add("copy made", made);
+                        if (_copy == null)
+                        {
+                            Cancel();
+                            return;
+                        }
+                        _copy.name = _prefab.name;
+                        _step = Step.Prepare;
+                        return;
+                    }
+                    case Step.Prepare:
+                    {
                         var prepared = Timing.Start();
                         _prepare?.Invoke(_copy);
                         _stripping = new Stripping(_copy, falling: false, _keepColliders);
@@ -184,6 +259,10 @@ namespace Scry
                     }
                     case Step.Strip:
                     {
+                        var noted = Timing.Start();
+                        var all = _stripping.Note(watch, budgetMs);
+                        Timing.Add("copy noted", noted);
+                        if (!all) return;
                         var stripped = Timing.Start();
                         var done = _stripping.Go(watch, budgetMs);
                         Timing.Add("copy stripped", stripped);
@@ -255,9 +334,45 @@ namespace Scry
                 }
             }
 
+            /// <summary>
+            /// Has Unity make the copy on a thread of its own, under the sleeping holder, its pose
+            /// as the prefab's; false where it cannot, and the copy is made at once.
+            /// </summary>
+            private bool Begin()
+            {
+                try
+                {
+                    _making = Object.InstantiateAsync(_prefab, new InstantiateParameters { parent = Holder().transform, worldSpace = false });
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogDebug($"Scry makes {_name} at once, as Unity could not make it on its own: {ex.Message}");
+                    _making = null;
+                }
+                if (_making == null) return false;
+                Making.Add(_making);
+                return true;
+            }
+
             /// <summary>Stops making the copy and takes down what was made of it; a copy already handed over stays.</summary>
             public void Cancel()
             {
+                if (_making != null)
+                {
+                    // Finished at once, so nothing reads from its bundle after, and taken down.
+                    var making = _making;
+                    _making = null;
+                    Making.Remove(making);
+                    try
+                    {
+                        if (!making.isDone) making.WaitForCompletion();
+                        if (making.Result != null) foreach (var made in making.Result) if (made != null) Object.Destroy(made);
+                    }
+                    catch (Exception ex)
+                    {
+                        Faults.Tell("taking down a copy", ex);
+                    }
+                }
                 if (_copy != null) Object.Destroy(_copy);
                 _copy = null;
                 _stripping = null;

@@ -52,6 +52,8 @@ namespace Scry
 
         public static void Release()
         {
+            // No copy may still be made from a bundle let go of.
+            if (_holding) Ghost.Building.FinishAll();
             if (_holding) _source.Reference.Release();
             _holding = false;
             _source = null;
