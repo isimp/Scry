@@ -52,6 +52,54 @@ namespace Scry
             }
         }
 
+        /// <summary>The fish each bait catches, with the chance it bites when it reaches the hook (<c>Fish.TestBate</c>).</summary>
+        private static readonly Dictionary<string, List<(string Fish, float Chance)>> Baits = new Dictionary<string, List<(string, float)>>(StringComparer.Ordinal);
+
+        /// <summary>The doors each key opens (<c>Door.m_keyItem</c>).</summary>
+        private static readonly Dictionary<string, List<string>> Keys = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+        /// <summary>The Forsaken power each trophy gives on its boss stone, by its name, and the stone (<c>ItemStand.m_guardianPower</c>).</summary>
+        private static readonly Dictionary<string, (string Power, string Stone)> Powers = new Dictionary<string, (string, string)>(StringComparer.Ordinal);
+
+        public static IReadOnlyList<(string Fish, float Chance)> Catches(string bait) =>
+            bait != null && Baits.TryGetValue(bait, out var fish) ? fish : (IReadOnlyList<(string, float)>)Array.Empty<(string, float)>();
+
+        public static IReadOnlyList<string> Opens(string key) =>
+            key != null && Keys.TryGetValue(key, out var doors) ? doors : (IReadOnlyList<string>)Array.Empty<string>();
+
+        /// <summary>The power a trophy gives on its boss stone, and the stone, or nulls.</summary>
+        public static (string Power, string Stone) PowerOf(string trophy) =>
+            trophy != null && Powers.TryGetValue(trophy, out var power) ? power : (null, null);
+
+        /// <summary>What a fish bites on, a door is opened with, and a boss stone's stand gives for a trophy, each told from the other side too.</summary>
+        private static void BaitsKeysAndPowers(GameObject prefab, List<Component> components)
+        {
+            foreach (var component in components)
+            {
+                switch (component)
+                {
+                    case Fish fish when fish.m_baits != null:
+                        foreach (var bait in fish.m_baits)
+                        {
+                            if (bait?.m_bait == null) continue;
+                            if (!Baits.TryGetValue(bait.m_bait.gameObject.name, out var caught)) Baits[bait.m_bait.gameObject.name] = caught = new List<(string, float)>();
+                            if (!caught.Exists(c => c.Fish == prefab.name)) caught.Add((prefab.name, bait.m_chance));
+                        }
+                        break;
+                    case Door door when door.m_keyItem != null:
+                        if (!Keys.TryGetValue(door.m_keyItem.gameObject.name, out var doors)) Keys[door.m_keyItem.gameObject.name] = doors = new List<string>();
+                        if (!doors.Contains(prefab.name)) doors.Add(prefab.name);
+                        break;
+                    case ItemStand stand when stand.m_guardianPower != null && stand.m_supportedItems != null:
+                        foreach (var trophy in stand.m_supportedItems)
+                        {
+                            if (trophy != null && !Powers.ContainsKey(trophy.gameObject.name)) Powers[trophy.gameObject.name] = (stand.m_guardianPower.name, prefab.name);
+                        }
+                        break;
+                }
+            }
+        }
+
         /// <summary>What a young one may grow into, each once.</summary>
         public static List<GameObject> GrownOf(Growup grow)
         {

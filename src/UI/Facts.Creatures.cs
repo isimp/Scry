@@ -63,6 +63,13 @@ namespace Scry
                     if (drop.m_chance < 1f) amount += $" ({Mathf.RoundToInt(drop.m_chance * 100f)}%)";
                     row.Items.Add(new Ingredient { Icon = Icon(drop.m_prefab), Name = ItemName(drop.m_prefab), Amount = amount, Prefab = drop.m_prefab.name });
                 }
+                // A boss's trophy gives its Forsaken power on its boss stone.
+                foreach (var drop in drops.m_drops)
+                {
+                    var power = drop?.m_prefab != null ? Knowledge.PowerOf(drop.m_prefab.name).Power : null;
+                    var effect = power != null && ObjectDB.instance != null ? ObjectDB.instance.GetStatusEffect(power.GetStableHashCode()) : null;
+                    if (effect != null) Add("Forsaken power", EffectName(effect), "se:" + power);
+                }
                 if (row.Items.Count > 0)
                 {
                     Rows.Add(row);

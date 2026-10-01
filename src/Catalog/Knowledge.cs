@@ -221,6 +221,9 @@ namespace Scry
             BiomesOf.Clear();
             ModOf.Clear();
             ForgetMods();
+            Baits.Clear();
+            Keys.Clear();
+            Powers.Clear();
             ComesFrom.Clear();
             PlacedByWorld.Clear();
             GiverList.Clear();
@@ -263,6 +266,7 @@ namespace Scry
             try { UsesIn(prefab, components); } catch (Exception ex) { Failed("uses of items", prefab, ex); }
             try { Scripts(prefab, components); } catch (Exception ex) { Failed("which mod added what", prefab, ex); }
             try { Breeding(prefab, components); } catch (Exception ex) { Failed("breeding", prefab, ex); }
+            try { BaitsKeysAndPowers(prefab, components); } catch (Exception ex) { Failed("baits, keys and powers", prefab, ex); }
             CatalogTiming.Add("uses", started);
             started = CatalogTiming.Start();
             try { Turns(prefab, components); } catch (Exception ex) { Failed("what things turn into", prefab, ex); }

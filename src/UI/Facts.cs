@@ -206,6 +206,27 @@ namespace Scry
             var container = prefab.GetComponent<Container>();
             if (container != null) Part("chest", () => Drops(container.m_defaultItems, null, holds: true));
 
+            // What a fish bites on, and what a bait catches.
+            var fish = prefab.GetComponent<Fish>();
+            if (fish != null && fish.m_baits != null) Part("fishing", () => ChanceRow("Bites on, when it reaches the hook", fish.m_baits.Where(b => b?.m_bait != null).Select(b => (b.m_bait.gameObject.name, b.m_chance))));
+            Part("bait", () => ChanceRow("Catches, when one reaches the hook", Knowledge.Catches(prefab.name)));
+
+            // What a door is opened with, and what a key opens.
+            var door = prefab.GetComponent<Door>();
+            if (door != null && door.m_keyItem != null) Add("Opened with", ItemName(door.m_keyItem.gameObject) + (door.m_consumeKey ? ", used up" : ""), door.m_keyItem.gameObject.name);
+            var opens = Knowledge.Opens(prefab.name);
+            if (opens.Count > 0)
+            {
+                var row = new Row { Title = "Opens" };
+                foreach (var each in opens) row.Items.Add(Chip(each, ""));
+                Rows.Add(row);
+            }
+
+            // The Forsaken power a trophy gives on its boss stone.
+            var (power, stone) = Knowledge.PowerOf(prefab.name);
+            var powerEffect = power != null && ObjectDB.instance != null ? ObjectDB.instance.GetStatusEffect(power.GetStableHashCode()) : null;
+            if (powerEffect != null) Add("On its boss stone", $"gives {EffectName(powerEffect)}", "se:" + power);
+
             // How much it holds: a chest's own container, or a cart's or ship's on a part of it.
             var storage = container != null ? container : prefab.GetComponentInChildren<Container>(true);
             if (storage != null && character == null)
@@ -231,6 +252,14 @@ namespace Scry
         private bool _drops;
 
         // ----- Helpers -----
+
+        /// <summary>A row of prefabs each with its chance, as a share.</summary>
+        private void ChanceRow(string title, IEnumerable<(string Prefab, float Chance)> prefabs)
+        {
+            var row = new Row { Title = title };
+            foreach (var (name, chance) in prefabs) row.Items.Add(Chip(name, DropWords.Share(chance)));
+            if (row.Items.Count > 0) Rows.Add(row);
+        }
 
         /// <summary>The note naming the mods that hook into a rule told here, when any do (<see cref="ModHooks"/>).</summary>
         private void Hooked(HookedRule rule) => Add(ModHookWords.Label(rule), ModHookWords.Note(rule, ModHooks.Mods(rule)));

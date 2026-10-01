@@ -44,6 +44,7 @@ namespace Scry
             yield return S("which mod added what is found from every clue, and nothing of the game's is put down to a mod", ModClues, 10);
             yield return S("gear tells its resistances, what it changes while worn, and a weapon its second attack", GearFacts, 10);
             yield return S("tame creatures tell how they breed and are ridden, their young where they come from and what they grow into", BreedingFacts, 10);
+            yield return S("fish tell their baits, doors their keys, and bosses and trophies their Forsaken powers, each both ways", BaitsKeysPowers, 10);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
             yield return S("items, stations, smelters and beds tell what they are for", WhatThingsTell, 10);
@@ -590,6 +591,45 @@ namespace Scry
             var ridden = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<Tameable>()?.m_saddle != null);
             if (ridden == null) p.Note("no creature is ridden in this game");
             else p.Check(Value(Facts.For(ridden), "Stamina when ridden") != null, $"{ridden.Name} tells its stamina when ridden", Pairs(Facts.For(ridden)));
+            yield break;
+        }
+
+        /// <summary>
+        /// A fish names the baits it bites on and a bait the fish it catches; a locked door its
+        /// key and the key the door; a boss its Forsaken power and its trophy the power it gives
+        /// on its boss stone.
+        /// </summary>
+        private static IEnumerator BaitsKeysPowers(Probe p)
+        {
+            GameObject Of(Entry e) => e.Source as GameObject;
+            var fish = X.Catalog.Where(e => Of(e)?.GetComponent<Fish>()?.m_baits?.Any(b => b?.m_bait != null) == true).ToList();
+            p.Note($"{fish.Count} fish with baits");
+            if (fish.Count > 0)
+            {
+                var one = fish[0];
+                p.Check(Facts.For(one).Rows.Any(r => r.Title.StartsWith("Bites on", StringComparison.Ordinal)), $"{one.Name} names its baits");
+                var bait = Of(one).GetComponent<Fish>().m_baits.First(b => b?.m_bait != null).m_bait.gameObject.name;
+                var baitEntry = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && e.Name == bait);
+                if (baitEntry != null) p.Check(Facts.For(baitEntry).Rows.Any(r => r.Title.StartsWith("Catches", StringComparison.Ordinal) && r.Items.Any(i => i.Prefab == one.Name)), $"{bait} names {one.Name} among what it catches");
+            }
+
+            var doors = X.Catalog.Where(e => Of(e)?.GetComponent<Door>()?.m_keyItem != null).ToList();
+            p.Note($"{doors.Count} locked doors: {string.Join(", ", doors.Take(6).Select(e => e.Name))}");
+            if (doors.Count > 0)
+            {
+                var door = doors[0];
+                var key = Of(door).GetComponent<Door>().m_keyItem.gameObject.name;
+                p.Check(Value(Facts.For(door), "Opened with") != null, $"{door.Name} names its key");
+                var keyEntry = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && e.Name == key);
+                if (keyEntry != null) p.Check(Facts.For(keyEntry).Rows.Any(r => r.Title == "Opens" && r.Items.Any(i => i.Prefab == door.Name)), $"{key} names {door.Name} among what it opens");
+            }
+
+            var bosses = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<CharacterDrop>()?.m_drops?.Any(d => d?.m_prefab != null && Knowledge.PowerOf(d.m_prefab.name).Power != null) == true).ToList();
+            p.Note($"{bosses.Count} creatures drop a trophy with a Forsaken power: {string.Join(", ", bosses.Take(8).Select(e => e.Name))}");
+            var unpowered = bosses.Where(b => Value(Facts.For(b), "Forsaken power") == null).Select(b => b.Name).ToList();
+            p.Check(bosses.Count > 0 && unpowered.Count == 0, "every one names its power", string.Join(", ", unpowered));
+            var trophy = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && Knowledge.PowerOf(e.Name).Power != null);
+            if (trophy != null) p.Check(Value(Facts.For(trophy), "On its boss stone") != null, $"{trophy.Name} names the power it gives on its boss stone");
             yield break;
         }
 

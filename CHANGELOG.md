@@ -26,6 +26,8 @@ Armour tells what it resists while worn and a shield what it resists while block
 
 A tame creature tells how it breeds: what it needs, how its love points come, how long it is pregnant, when too many near stop it, and its young. A young one tells what it grows into and when, an egg what hatches from it and where it must lie, and each names where it comes from. A creature with a saddle tells what it is ridden with and its stamina while ridden.
 
+A fish tells which baits it bites on and how likely, and a bait which fish it catches. A locked door tells its key, and a key the doors it opens. A boss tells its Forsaken power, and its trophy the power it gives on its boss stone.
+
 What creatures drop as you play is watched and kept from session to session, whichever mod put it there: a creature shows what it was seen dropping and in how many of your kills, and an item names every creature seen dropping it. Nothing is changed by watching, and loot another player's game makes is not seen.
 
 *Mod report*, above the list while it shows only what mods added or with `/scry mods`, sums up each mod: what it adds, what Scry links for its crafting stations and build tools, which of the game's rules it hooks into, and what Scry could not place, such as a station nothing is made or built at or an item with no source Scry sees.
