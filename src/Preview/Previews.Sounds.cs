@@ -28,6 +28,7 @@ namespace Scry
             _soundChosen = only;
             _soundPaused = false;
             _seekWhilePaused = null;
+            _seekOnGoing = null;
             _held = null;
             _soundTakenOver = false;
             _soundWaitUntil = Time.unscaledTime + MaxDelay(prefab) + 0.5f;
@@ -156,6 +157,7 @@ namespace Scry
             _soundEntry = null;
             _soundPaused = false;
             _seekWhilePaused = null;
+            _seekOnGoing = null;
             _held = null;
             _soundChosen = null;
             Destroy(ref _sound);
@@ -266,6 +268,25 @@ namespace Scry
 
         private static float? _seekWhilePaused;
 
+        /// <summary>A point sought while paused, set again as the sound goes on until the clip is there, for half a second at most.</summary>
+        private static float? _seekOnGoing;
+        private static float _seekOnGoingUntil;
+
+        /// <summary>Each frame: a point sought while paused is set again until the playing clip is there.</summary>
+        public static void SettleSeek()
+        {
+            if (_seekOnGoing == null) return;
+            var source = SoundSource();
+            if (source == null || source.clip == null || Time.unscaledTime > _seekOnGoingUntil)
+            {
+                _seekOnGoing = null;
+                return;
+            }
+            if (!source.isPlaying) return;
+            if (source.time + 0.1f < _seekOnGoing.Value) source.time = _seekOnGoing.Value;
+            else _seekOnGoing = null;
+        }
+
         public static bool SoundPaused => _soundPaused;
 
         public static void PauseSound(bool pause)
@@ -280,10 +301,14 @@ namespace Scry
             if (pause) source.Pause();
             else if (_seekWhilePaused.HasValue)
             {
-                // Played again from the point sought, which every kind of clip keeps.
+                // Played again from the point sought, set again once playing and each frame after
+                // until the clip is there: a streamed clip (music) can start over from its beginning.
                 source.Stop();
                 source.time = _seekWhilePaused.Value;
                 source.Play();
+                source.time = _seekWhilePaused.Value;
+                _seekOnGoing = _seekWhilePaused.Value;
+                _seekOnGoingUntil = Time.unscaledTime + 0.5f;
                 _seekWhilePaused = null;
             }
             else source.UnPause();

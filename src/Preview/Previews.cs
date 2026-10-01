@@ -220,6 +220,7 @@ namespace Scry
             try { Expire(); } catch (System.Exception ex) { Faults.Tell("expiring previews", ex); }
             try { Listen.Update(); } catch (System.Exception ex) { Faults.Tell("listening", ex); }
             try { MusicPreview.Update(); } catch (System.Exception ex) { Faults.Tell("playing a location's music", ex); }
+            try { SettleSeek(); } catch (System.Exception ex) { Faults.Tell("seeking a sound", ex); }
             // Working out what clips play waits while the panel is closed, and goes on when it opens.
             var started = Timing.Start();
             if (explorer != null)
