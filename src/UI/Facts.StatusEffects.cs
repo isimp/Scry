@@ -29,8 +29,17 @@ namespace Scry
             {
                 var kin = ObjectDB.instance.m_StatusEffects
                     .Where(other => other != null && other != effect && other.m_category == effect.m_category)
-                    .Select(EffectName).Distinct().OrderBy(n => n, StringComparer.Ordinal).ToList();
-                if (kin.Count > 0) Add("While it lasts, cannot take", string.Join(", ", kin));
+                    .GroupBy(EffectName).OrderBy(g => g.Key, StringComparer.Ordinal).ToList();
+                if (kin.Count > 0)
+                {
+                    var row = new Row { Title = "While it lasts, cannot take" };
+                    foreach (var named in kin)
+                    {
+                        var page = EntryOf(EntryKeys.For(Kind.StatusEffect, named.First().name));
+                        row.Items.Add(page != null ? EntryChip(page) : new Ingredient { Name = named.Key, Amount = "" });
+                    }
+                    Rows.Add(row);
+                }
             }
 
             // What the game's own tooltip says of its stats, in its words and units, where it can

@@ -70,6 +70,28 @@ namespace Scry
             if (link != null) Links[label] = link;
         }
 
+        /// <summary>A row of biomes, each going to its page; all of them told in words.</summary>
+        private void BiomeRow(string title, Heightmap.Biome biomes)
+        {
+            var keys = Knowledge.BiomeKeys(biomes);
+            if (keys.Length == 0) return;
+            if (keys.Length >= Knowledge.EveryBiomeKey.Length)
+            {
+                Add(title, "every biome");
+                return;
+            }
+            var row = new Row { Title = title };
+            foreach (var key in keys)
+            {
+                var page = EntryOf(EntryKeys.For(Kind.Biome, key));
+                row.Items.Add(page != null ? EntryChip(page) : new Ingredient { Name = Knowledge.BiomeName(key), Amount = "" });
+            }
+            Rows.Add(row);
+        }
+
+        /// <summary>The entry of a key, or null when the catalog has none.</summary>
+        private static Entry EntryOf(string key) => Session.Explorer?.Catalog.FirstOrDefault(e => e.Key == key);
+
         /// <summary>Why Scry is not sure of a pair, by its label (<see cref="UnsureWords"/>).</summary>
         public readonly Dictionary<string, string> Unsure = new Dictionary<string, string>();
 

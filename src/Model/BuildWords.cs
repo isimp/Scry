@@ -61,14 +61,6 @@ namespace Scry
         public static List<string> Placement(PlacementRules rules)
         {
             var lines = new List<string>();
-            if (rules.BlockRadius > 0f && rules.Blocking != null && rules.Blocking.Length > 0)
-            {
-                lines.Add($"not within {Naming.Number(rules.BlockRadius)} m of {Article(rules.Blocking[0])} {string.Join(" or ", rules.Blocking)}");
-            }
-            if (!string.IsNullOrEmpty(rules.ConnectTo))
-            {
-                lines.Add($"within {Naming.Number(rules.ConnectRadius)} m of {Article(rules.ConnectTo)} {rules.ConnectTo}" + (rules.Above ? ", on top of it" : ""));
-            }
             if (rules.GroundOnly) lines.Add("on the ground only");
             if (rules.CultivatedOnly) lines.Add("on cultivated ground only");
             if (rules.DirtOnly) lines.Add("on dirt only");
@@ -80,12 +72,19 @@ namespace Scry
             if (rules.NotOnFloor) lines.Add("not on a floor");
             if (rules.TeleportArea) lines.Add("in a teleport area only");
             if (rules.DeepSnowOnly) lines.Add("in the Deep North's deep snow only");
-            if (!string.IsNullOrEmpty(rules.Biomes)) lines.Add($"in {rules.Biomes} only");
             if (rules.InDungeons) lines.Add("in dungeons too");
             return lines;
         }
 
-        private static string Article(string name) => name.Length > 0 && "AEIOUaeiou".IndexOf(name[0]) >= 0 ? "an" : "a";
+        /// <summary>
+        /// The title over the pieces one is kept apart from (<c>Piece.m_blockingPieces</c>), each a
+        /// chip; none without a radius, which the game keeps them apart by.
+        /// </summary>
+        public static string KeptApart(float radius) => radius > 0f ? $"Not within {Naming.Number(radius)} m of" : null;
+
+        /// <summary>The label over the piece one must stand near (<c>Piece.m_mustConnectTo</c>), or on top of.</summary>
+        public static string Near(float radius, bool above) =>
+            above ? $"On top of, within {Naming.Number(radius)} m" : $"Within {Naming.Number(radius)} m of";
 
         /// <summary>How far from a station its pieces may be built (<c>CraftingStation.m_rangeBuild</c>), more with each upgrade.</summary>
         public static string Range(float range, float perUpgrade) =>
@@ -105,10 +104,7 @@ namespace Scry
 {
     public sealed class PlacementRules
     {
-        public bool GroundOnly, CultivatedOnly, DirtOnly, OnWater, NotInWater, NotOnWood, Level, CeilingOnly, NotOnFloor, TeleportArea, InDungeons, DeepSnowOnly, Above;
-        public string Biomes, ConnectTo;
-        public float BlockRadius, ConnectRadius;
-        public string[] Blocking;
+        public bool GroundOnly, CultivatedOnly, DirtOnly, OnWater, NotInWater, NotOnWood, Level, CeilingOnly, NotOnFloor, TeleportArea, InDungeons, DeepSnowOnly;
     }
 
     /// <summary>

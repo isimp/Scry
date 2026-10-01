@@ -28,7 +28,10 @@ namespace Scry
             var explorer = Session.Explorer;
             if (explorer == null) return;
             var relations = mod.Relations ?? new ModRelations();
-            if (relations.WillNotRunWith.Count > 0) Add("Will not run with", string.Join(", ", relations.WillNotRunWith.ToArray()));
+            // Those here go to their pages; the rest, which are not, are named.
+            ModRow("Will not run with", relations.WillNotRunWith, explorer);
+            var away = relations.WillNotRunWith.Where(name => !explorer.Catalog.Any(e => e.Kind == Kind.Mod && e.Name == name)).ToArray();
+            if (away.Length > 0) Add("Will not run with", string.Join(", ", away));
             ModRow("Needs", relations.Needs, explorer);
             ModRow("Needed by", relations.NeededBy, explorer);
             ModRow("Works with, when there", relations.WorksWith, explorer);

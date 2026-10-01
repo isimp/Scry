@@ -7,8 +7,9 @@ namespace Scry.Tests
     {
         // Where a piece may be placed, as Player.UpdatePlacementGhost refuses it: on the ground,
         // cultivated ground or dirt only, on water or not in it, not on wood, not on a slope,
-        // under a ceiling or on a wall only, in a teleport area, in deep snow, one biome only;
-        // and in dungeons only when it allows it.
+        // under a ceiling or on a wall only, in a teleport area, in deep snow; and in dungeons
+        // only when it allows it. The biomes it keeps to, the pieces it keeps apart from and the
+        // one it must stand near are each a chip going to it, under a title saying how.
 
         [Fact]
         public void APiecesPlacementRulesAreToldInWords()
@@ -16,13 +17,13 @@ namespace Scry.Tests
             var rules = new PlacementRules
             {
                 GroundOnly = true, CultivatedOnly = true, DirtOnly = true, OnWater = true, NotInWater = true, NotOnWood = true, Level = true,
-                CeilingOnly = true, NotOnFloor = true, TeleportArea = true, InDungeons = true, DeepSnowOnly = true, Biomes = "the Plains",
+                CeilingOnly = true, NotOnFloor = true, TeleportArea = true, InDungeons = true, DeepSnowOnly = true,
             };
 
             Assert.Equal(new[]
             {
                 "on the ground only", "on cultivated ground only", "on dirt only", "on water only", "not in water", "not on wood", "not on a slope",
-                "under a ceiling only", "not on a floor", "in a teleport area only", "in the Deep North's deep snow only", "in the Plains only", "in dungeons too",
+                "under a ceiling only", "not on a floor", "in a teleport area only", "in the Deep North's deep snow only", "in dungeons too",
             }, BuildWords.Placement(rules));
         }
 
@@ -30,16 +31,16 @@ namespace Scry.Tests
         public void APieceWithNoRulesHasNoLine()
         {
             Assert.Empty(BuildWords.Placement(new PlacementRules()));
-            // The game keeps pieces apart only with a radius to keep them by.
-            Assert.Empty(BuildWords.Placement(new PlacementRules { Blocking = new[] { "Beehive" } }));
         }
 
         [Fact]
-        public void SpacingRulesNameWhatTheyKeepAwayFrom()
+        public void SpacingRulesSayHowFarFromWhatTheyName()
         {
-            Assert.Equal(new[] { "not within 5 m of a Beehive or Bee hive", "within 2 m of an Ancient root, on top of it" },
-                BuildWords.Placement(new PlacementRules { BlockRadius = 5f, Blocking = new[] { "Beehive", "Bee hive" }, ConnectRadius = 2f, ConnectTo = "Ancient root", Above = true }));
-            Assert.Equal(new[] { "within 1.5 m of a Sap extractor" }, BuildWords.Placement(new PlacementRules { ConnectRadius = 1.5f, ConnectTo = "Sap extractor" }));
+            Assert.Equal("Not within 5 m of", BuildWords.KeptApart(5f));
+            // The game keeps pieces apart only with a radius to keep them by.
+            Assert.Null(BuildWords.KeptApart(0f));
+            Assert.Equal("Within 1.5 m of", BuildWords.Near(1.5f, above: false));
+            Assert.Equal("On top of, within 2 m", BuildWords.Near(2f, above: true));
         }
 
         // A station's own reach (CraftingStation.m_rangeBuild, more with each upgrade).

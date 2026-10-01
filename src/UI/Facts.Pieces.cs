@@ -69,7 +69,10 @@ namespace Scry
             else if (Knowledge.Tools.ToolsOf(piece.gameObject.name).Count > 0) Add("Build cost", "free");
         }
 
-        /// <summary>Where it may be placed (<see cref="BuildWords.Placement"/>).</summary>
+        /// <summary>
+        /// Where it may be placed (<see cref="BuildWords.Placement"/>); the biomes it keeps to, the
+        /// pieces it keeps apart from and the one it must stand near, each going to it.
+        /// </summary>
         private void Placement(Piece piece)
         {
             var rules = new PlacementRules
@@ -77,14 +80,24 @@ namespace Scry
                 GroundOnly = piece.m_groundOnly || piece.m_groundPiece, CultivatedOnly = piece.m_cultivatedGroundOnly, DirtOnly = piece.m_vegetationGroundOnly,
                 OnWater = piece.m_waterPiece, NotInWater = piece.m_noInWater, NotOnWood = piece.m_notOnWood, Level = piece.m_notOnTiltingSurface,
                 CeilingOnly = piece.m_inCeilingOnly, NotOnFloor = piece.m_notOnFloor, TeleportArea = piece.m_onlyInTeleportArea, InDungeons = piece.m_allowedInDungeons,
-                DeepSnowOnly = piece.m_requireDeepSnow, Biomes = piece.m_onlyInBiome != 0 ? Knowledge.BiomeNames(piece.m_onlyInBiome) : null,
-                BlockRadius = piece.m_blockRadius,
-                Blocking = piece.m_blockingPieces?.Where(b => b != null).Select(b => AnyName(b.gameObject, b.gameObject.name)).Distinct().ToArray(),
-                ConnectTo = piece.m_mustConnectTo != null ? AnyName(piece.m_mustConnectTo.gameObject, piece.m_mustConnectTo.gameObject.name) : null,
-                ConnectRadius = piece.m_connectRadius, Above = piece.m_mustBeAboveConnected,
+                DeepSnowOnly = piece.m_requireDeepSnow,
             };
             var lines = BuildWords.Placement(rules);
             if (lines.Count > 0) Add("Placed", string.Join(", ", lines));
+
+            if (piece.m_mustConnectTo != null)
+            {
+                var near = piece.m_mustConnectTo.gameObject;
+                Add(BuildWords.Near(piece.m_connectRadius, piece.m_mustBeAboveConnected), AnyName(near, near.name), near.name);
+            }
+            var apart = BuildWords.KeptApart(piece.m_blockRadius);
+            if (apart != null && piece.m_blockingPieces != null)
+            {
+                var row = new Row { Title = apart };
+                foreach (var other in piece.m_blockingPieces.Where(b => b != null).Select(b => b.gameObject.name).Distinct()) row.Items.Add(Chip(other, ""));
+                if (row.Items.Count > 0) Rows.Add(row);
+            }
+            if (piece.m_onlyInBiome != 0) BiomeRow("Placed only in", piece.m_onlyInBiome);
         }
 
         /// <summary>The build tools a piece is built with, each with the tab it is on there; one alone is a link to the tool.</summary>

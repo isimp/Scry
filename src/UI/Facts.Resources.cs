@@ -135,7 +135,7 @@ namespace Scry
             if (plant != null)
             {
                 Add("Takes to grow", Naming.DurationRange(plant.m_growTime, Math.Max(plant.m_growTime, plant.m_growTimeMax)));
-                if (plant.m_biome != 0) Add("Grows in", Knowledge.BiomeNames(plant.m_biome));
+                if (plant.m_biome != 0) BiomeRow("Grows in", plant.m_biome);
                 if (plant.m_needCultivatedGround) Add("Needs", "cultivated ground");
                 Hooked(HookedRule.Growth);
                 var tolerates = new List<string>();

@@ -345,6 +345,28 @@ namespace Scry
             var chips = 0;
             var watch = new Stopwatch();
             var unregistered = new HashSet<string>(StringComparer.Ordinal);
+
+            // Entries' names told as text where a chip could go to them, by what they are told under.
+            var byName = new Dictionary<string, Entry>(StringComparer.Ordinal);
+            foreach (var each in X.Catalog) if (each.DisplayName.Length >= 3 && !byName.ContainsKey(each.DisplayName)) byName[each.DisplayName] = each;
+            var names = new HashSet<string>(byName.Keys, StringComparer.Ordinal);
+            var unlinked = new Dictionary<string, (int Count, string Example)>(StringComparer.Ordinal);
+            var onPage = new HashSet<string>(StringComparer.Ordinal);
+            void Unlinked(Entry entry, string label, string text, string linked)
+            {
+                foreach (var name in NamesInText.Find(text, names))
+                {
+                    // One with a chip elsewhere on the page, its biomes' among them, can be gone to.
+                    var named = byName[name];
+                    if (named == entry || named.Key == linked || onPage.Contains(named.Key)) continue;
+                    // A line is told by its words before the name, a pair by its label.
+                    var under = label ?? text.Substring(0, Math.Max(0, Math.Min(text.IndexOf(name, StringComparison.Ordinal), 40))).Trim();
+                    var key = $"{under} -> {name}";
+                    unlinked.TryGetValue(key, out var seen);
+                    unlinked[key] = (seen.Count + 1, seen.Example ?? entry.Name);
+                }
+            }
+
             void Lead(Entry entry, string target)
             {
                 if (string.IsNullOrEmpty(target) || target == "hand") return;
@@ -379,10 +401,32 @@ namespace Scry
                 }
                 foreach (var link in told.Links.Values) Lead(entry, link);
                 foreach (var line in told.Where) Lead(entry, line.Prefab);
+
+                onPage.Clear();
+                foreach (var row in told.Rows.Concat(told.UseRows))
+                {
+                    if (row.TitleLink != null) onPage.Add(row.TitleLink);
+                    foreach (var item in row.Items) if (item.Prefab != null) onPage.Add(item.Prefab);
+                }
+                foreach (var link in told.Links.Values) onPage.Add(link);
+                foreach (var line in told.Where) if (line.Prefab != null) onPage.Add(line.Prefab);
+                foreach (var biome in entry.Biomes) onPage.Add(EntryKeys.For(Kind.Biome, biome));
+                foreach (var pair in told.Pairs) Unlinked(entry, pair.Key, pair.Value, told.Links.TryGetValue(pair.Key, out var linked) ? linked : null);
+                foreach (var line in told.Where) Unlinked(entry, null, line.Text, line.Prefab);
+                foreach (var row in told.Rows.Concat(told.UseRows))
+                {
+                    Unlinked(entry, "a row's title", row.Title, row.TitleLink);
+                    foreach (var item in row.Items) if (string.IsNullOrEmpty(item.Prefab)) Unlinked(entry, row.Title, item.Name, null);
+                }
             }, 10);
             Facts.Forget();
 
             p.Note($"{X.Catalog.Count} entries told, {chips} chips, links and lines followed");
+            if (unlinked.Count > 0)
+            {
+                p.Note($"{unlinked.Count} kinds of name are told as text where a chip could go, the most told first: " +
+                       string.Join("; ", unlinked.OrderByDescending(u => u.Value.Count).ThenBy(u => u.Key, StringComparer.Ordinal).Take(40).Select(u => $"{u.Key} ({u.Value.Count}, as in {u.Value.Example})")));
+            }
             if (unregistered.Count > 0) p.Note($"{unregistered.Count} prefabs named are not among the scene's, so have no entry and show as text: " + string.Join(", ", unregistered.Take(10)));
             if (slow.Count > 0) p.Note("slowest to tell: " + string.Join(", ", slow.OrderByDescending(s => s.Ms).Take(6).Select(s => $"{s.Name} {s.Ms:0} ms")));
             var gameNotShown = notShown.Where(n => X.Catalog.FirstOrDefault(e => n.StartsWith(e.Name + " ", StringComparison.Ordinal))?.Origin == Origin.Vanilla).ToList();

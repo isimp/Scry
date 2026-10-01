@@ -98,7 +98,7 @@ namespace Scry
             if (hive != null && hive.m_honeyItem != null)
             {
                 Add("Makes", $"{ItemName(hive.m_honeyItem.gameObject)}, one every {Naming.Duration(hive.m_secPerUnit)}, holding up to {hive.m_maxHoney}", hive.m_honeyItem.gameObject.name);
-                if (hive.m_biome != 0) Add("Works in", Knowledge.BiomeNames(hive.m_biome));
+                if (hive.m_biome != 0) BiomeRow("Works in", hive.m_biome);
                 // Beehive.HaveFreeSpace: it makes nothing while more of the sky around it is covered.
                 if (hive.m_maxCover > 0f) Add("Needs", $"open sky, less than {Mathf.RoundToInt(hive.m_maxCover * 100f)}% covered");
                 Hooked(HookedRule.Producing);
