@@ -43,6 +43,7 @@ namespace Scry
             yield return S("a mod's page tells what its package says and how it ties to other mods", ModPackages, 10);
             yield return S("which mod added what is found from every clue, and nothing of the game's is put down to a mod", ModClues, 10);
             yield return S("gear tells its resistances, what it changes while worn, and a weapon its second attack", GearFacts, 10);
+            yield return S("tame creatures tell how they breed and are ridden, their young where they come from and what they grow into", BreedingFacts, 10);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
             yield return S("items, stations, smelters and beds tell what they are for", WhatThingsTell, 10);
@@ -546,6 +547,49 @@ namespace Scry
                 p.Check(value != null, $"{entry.Name}, {what} ({found.Count} such), tells it under {label}", value ?? "not told");
                 if (value != null) p.Note($"{entry.Name}: {label} {value}");
             }
+            yield break;
+        }
+
+        /// <summary>
+        /// Every creature that breeds tells how, and its young names it as where it comes from;
+        /// every young one tells what it grows into; an egg tells what hatches from it and when;
+        /// a creature with a saddle tells what it is ridden with and its stamina then.
+        /// </summary>
+        private static IEnumerator BreedingFacts(Probe p)
+        {
+            GameObject Of(Entry e) => e.Source as GameObject;
+            var breeders = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<Procreation>() != null && Of(e).GetComponent<Tameable>() != null).ToList();
+            p.Note($"{breeders.Count} creatures breed: {string.Join(", ", breeders.Take(10).Select(e => e.Name))}");
+            var untold = new List<string>();
+            var unborn = new List<string>();
+            foreach (var breeder in breeders)
+            {
+                var told = Facts.For(breeder);
+                if (Value(told, "Breeds when") == null || Value(told, "Love") == null || !told.Rows.Any(r => r.Title.StartsWith("Has young", StringComparison.Ordinal))) untold.Add(breeder.Name);
+                var young = Of(breeder).GetComponent<Procreation>().m_offspring;
+                if (young == null) continue;
+                var lines = Knowledge.WhereLines(young.name).Concat(Knowledge.SourceLines(young.name));
+                if (!lines.Any(l => l.Prefab == breeder.Name && l.Text.StartsWith("Born to", StringComparison.Ordinal))) unborn.Add(young.name);
+            }
+            p.Check(untold.Count == 0, "every one tells how it breeds and its young", string.Join(", ", untold.Take(5)));
+            p.Check(unborn.Count == 0, "every one's young names it as where it comes from", string.Join(", ", unborn.Take(5)));
+            if (breeders.Count > 0) p.Note($"{breeders[0].Name}: {Pairs(Facts.For(breeders[0]))}");
+
+            var growing = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<Growup>() != null).ToList();
+            var ungrown = growing.Where(e => Value(Facts.For(e), "Grows up in") == null || !Facts.For(e).Rows.Any(r => r.Title.StartsWith("Grows into", StringComparison.Ordinal))).Select(e => e.Name).ToList();
+            p.Check(ungrown.Count == 0, $"every young one ({growing.Count}) tells what it grows into and when", string.Join(", ", ungrown.Take(5)));
+
+            var egg = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && Of(e)?.GetComponent<EggGrow>()?.m_grownPrefab != null);
+            if (egg == null) p.Note("no egg hatches in this game");
+            else
+            {
+                var hatch = Of(egg).GetComponent<EggGrow>().m_grownPrefab.name;
+                p.Check(Value(Facts.For(egg), "Hatches into") != null && Knowledge.WhereLines(hatch).Any(l => l.Prefab == egg.Name), $"{egg.Name} tells what hatches from it, and {hatch} that it hatches from it", Value(Facts.For(egg), "Hatches when") ?? "not told");
+            }
+
+            var ridden = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<Tameable>()?.m_saddle != null);
+            if (ridden == null) p.Note("no creature is ridden in this game");
+            else p.Check(Value(Facts.For(ridden), "Stamina when ridden") != null, $"{ridden.Name} tells its stamina when ridden", Pairs(Facts.For(ridden)));
             yield break;
         }
 

@@ -19,6 +19,48 @@ namespace Scry
             if (!lines.Exists(l => l.Text == line)) lines.Add(new Source(line, target));
         }
 
+        /// <summary>
+        /// Where young come from and what they grow into: a tame creature's young
+        /// (<c>Procreation</c>), what a young one grows up into (<c>Growup</c>) and what an egg
+        /// hatches into (<c>EggGrow</c>), each told where the other comes from. An egg laid is an
+        /// item, so it is told where items come from.
+        /// </summary>
+        private static void Breeding(GameObject prefab, List<Component> components)
+        {
+            void Born(GameObject young, string line)
+            {
+                if (young == null) return;
+                if (young.GetComponent<ItemDrop>() != null) Keep(DropLines, young, line, prefab.name);
+                else Add(young.name, line, prefab.name);
+            }
+
+            foreach (var component in components)
+            {
+                switch (component)
+                {
+                    case Procreation breed:
+                        Born(breed.m_offspring, $"Born to a tame {Shown(prefab)}");
+                        Born(breed.m_noPartnerOffspring, $"Born to a tame {Shown(prefab)} with no partner near");
+                        break;
+                    case Growup grow:
+                        foreach (var grown in GrownOf(grow)) Add(grown.name, $"Grows up from {Shown(prefab)}", prefab.name);
+                        break;
+                    case EggGrow egg when egg.m_grownPrefab != null:
+                        Add(egg.m_grownPrefab.name, $"Hatches from {Shown(prefab)}", prefab.name);
+                        break;
+                }
+            }
+        }
+
+        /// <summary>What a young one may grow into, each once.</summary>
+        public static List<GameObject> GrownOf(Growup grow)
+        {
+            var grown = new List<GameObject>();
+            if (grow.m_altGrownPrefabs != null) foreach (var alt in grow.m_altGrownPrefabs) if (alt?.m_prefab != null && !grown.Contains(alt.m_prefab)) grown.Add(alt.m_prefab);
+            if (grown.Count == 0 && grow.m_grownPrefab != null) grown.Add(grow.m_grownPrefab);
+            return grown;
+        }
+
         private static void AddBiomes(string prefab, Heightmap.Biome biome)
         {
             if (!BiomesOf.TryGetValue(prefab, out var set)) BiomesOf[prefab] = set = new HashSet<string>();

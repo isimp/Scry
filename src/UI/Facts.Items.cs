@@ -76,6 +76,15 @@ namespace Scry
             if (shared.m_consumeStatusEffect != null) Add("When used", EffectName(shared.m_consumeStatusEffect), "se:" + shared.m_consumeStatusEffect.name);
             if (shared.m_attackStatusEffect != null) Add("On hit", EffectName(shared.m_attackStatusEffect), "se:" + shared.m_attackStatusEffect.name);
 
+            // An egg hatches where it is kept right (EggGrow.CanGrow).
+            var egg = prefab.GetComponent<EggGrow>();
+            if (egg != null && egg.m_grownPrefab != null)
+            {
+                Add("Hatches into", AnyName(egg.m_grownPrefab, egg.m_grownPrefab.name) + (egg.m_tamed ? ", tame" : ""), egg.m_grownPrefab.name);
+                Add("Hatches in", Naming.Duration(egg.m_growTime));
+                Add("Hatches when", BreedWords.Hatches(egg.m_requireNearbyFire, egg.m_requireUnderRoof, egg.m_requireCoverPercentige));
+            }
+
             Part("recipe", () => Recipes(prefab, shared));
             Part("made at stations", () => MadeIn(prefab));
         }

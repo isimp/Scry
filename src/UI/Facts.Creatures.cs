@@ -149,8 +149,52 @@ namespace Scry
             {
                 Add("Takes to tame", Minutes(tame.m_tamingTime));
                 Add("Stays fed", Minutes(tame.m_fedDuration));
+                Part("riding", () => Riding(tame));
+                var breed = prefab.GetComponent<Procreation>();
+                if (breed != null) Part("breeding", () => Breeding(breed));
                 Hooked(HookedRule.Taming);
             }
+
+            var grow = prefab.GetComponent<Growup>();
+            if (grow != null) Part("growing up", () => GrowingUp(grow));
+        }
+
+        /// <summary>What a saddle lets it be ridden with, and its stamina while ridden (<c>Sadle</c>).</summary>
+        private void Riding(Tameable tame)
+        {
+            if (tame.m_saddleItem != null) Add("Ridden with", ItemName(tame.m_saddleItem.gameObject), tame.m_saddleItem.gameObject.name);
+            var saddle = tame.m_saddle;
+            if (saddle == null) return;
+            Add("Stamina when ridden", RideWords.Stamina(saddle.m_maxStamina, saddle.m_staminaRegen, saddle.m_staminaRegenHungry));
+            Add("Riding drains", RideWords.Drains(saddle.m_runStaminaDrain, saddle.m_swimStaminaDrain));
+        }
+
+        /// <summary>How a tame one breeds (<c>Procreation.Procreate</c>), and its young.</summary>
+        private void Breeding(Procreation breed)
+        {
+            var partner = breed.m_seperatePartner != null ? AnyName(breed.m_seperatePartner, breed.m_seperatePartner.name) : null;
+            Add("Breeds when", BreedWords.Needs(breed.m_partnerCheckRange, partner, breed.m_noPartnerOffspring != null));
+            Add("Love", BreedWords.Love(breed.m_updateInterval, breed.m_pregnancyChance, breed.m_requiredLovePoints));
+            Add("Pregnant for", Naming.Duration(breed.m_pregnancyDuration));
+            Add("Stops breeding", BreedWords.Crowd(breed.m_maxCreatures, breed.m_totalCheckRange));
+            if (breed.m_offspring != null) Rows.Add(new Row { Title = "Has young, " + BreedWords.Stars(breed.m_minOffspringLevel), Items = { Chip(breed.m_offspring.name, "") } });
+            if (breed.m_noPartnerOffspring != null) Rows.Add(new Row { Title = "With no partner near, has", Items = { Chip(breed.m_noPartnerOffspring.name, "") } });
+        }
+
+        /// <summary>What a young one grows up into, and when (<c>Growup</c>).</summary>
+        private void GrowingUp(Growup grow)
+        {
+            Add("Grows up in", Naming.Duration(grow.m_growTime));
+            var grown = Knowledge.GrownOf(grow);
+            if (grown.Count == 0) return;
+            var row = new Row { Title = (grown.Count > 1 ? "Grows into one of these" : "Grows into") + (grow.m_inheritTame ? ", staying tame" : "") };
+            if (grown.Count > 1)
+            {
+                var shares = BreedWords.Shares(grow.m_altGrownPrefabs.Where(a => a?.m_prefab != null).GroupBy(a => a.m_prefab).Select(g => g.Sum(a => a.m_weight)).ToArray());
+                for (var i = 0; i < grown.Count; i++) row.Items.Add(Chip(grown[i].name, shares[i] + "%"));
+            }
+            else row.Items.Add(Chip(grown[0].name, ""));
+            Rows.Add(row);
         }
 
         /// <summary>What it resists or is weak to, a row for each degree, as a creature's or a resource's are told.</summary>
