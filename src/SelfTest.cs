@@ -307,8 +307,13 @@ namespace Scry
             X.Jump(entry.Key);
         }
 
-        /// <summary>The stage's copy of an entry, once made; null until then.</summary>
-        private static GameObject CopyOf(Entry entry) => Stage.Showing == entry ? Stage.Subject : null;
+        /// <summary>
+        /// The stage's copy of an entry, once made; null until then. Two entries can share a key
+        /// (a mod registering its own of a game's prefab by the same name), and selecting by key
+        /// may show the other, so the key is what is compared.
+        /// </summary>
+        private static GameObject CopyOf(Entry entry) =>
+            entry != null && Stage.Showing != null && (Stage.Showing == entry || Stage.Showing.Key == entry.Key) ? Stage.Subject : null;
 
         private static int Renderers(GameObject copy) => copy == null ? 0 : copy.GetComponentsInChildren<Renderer>(true).Length;
 
