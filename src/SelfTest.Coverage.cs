@@ -347,18 +347,29 @@ namespace Scry
             var unregistered = new HashSet<string>(StringComparer.Ordinal);
 
             // Entries' names told as text where a chip could go to them, by what they are told under.
+            // Scry's own name is prose, and the values of a few labels are kinds the game names
+            // like things (a material Wood, an item type Chest, a comfort group Fire).
             var byName = new Dictionary<string, Entry>(StringComparer.Ordinal);
-            foreach (var each in X.Catalog) if (each.DisplayName.Length >= 3 && !byName.ContainsKey(each.DisplayName)) byName[each.DisplayName] = each;
+            var shownOf = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var each in X.Catalog)
+            {
+                var shown = each.DisplayName.Length > 0 ? each.DisplayName : each.Name;
+                shownOf[each.Key] = shown;
+                if (each.DisplayName.Length >= 3 && each.DisplayName != "Scry" && !byName.ContainsKey(each.DisplayName)) byName[each.DisplayName] = each;
+            }
             var names = new HashSet<string>(byName.Keys, StringComparer.Ordinal);
+            var kinds = new HashSet<string>(StringComparer.Ordinal) { "Material", "Type", "Comfort group", "Faction", "Skill" };
             var unlinked = new Dictionary<string, (int Count, string Example)>(StringComparer.Ordinal);
             var onPage = new HashSet<string>(StringComparer.Ordinal);
             void Unlinked(Entry entry, string label, string text, string linked)
             {
+                if (label != null && kinds.Contains(label)) return;
                 foreach (var name in NamesInText.Find(text, names))
                 {
-                    // One with a chip elsewhere on the page, its biomes' among them, can be gone to.
-                    var named = byName[name];
-                    if (named == entry || named.Key == linked || onPage.Contains(named.Key)) continue;
+                    // One with a chip elsewhere on the page, its biomes' among them, can be gone
+                    // to; several entries can share a name, so names are what is compared.
+                    if (name == entry.DisplayName || onPage.Contains(name)) continue;
+                    if (linked != null && shownOf.TryGetValue(linked, out var linkedName) && linkedName == name) continue;
                     // A line is told by its words before the name, a pair by its label.
                     var under = label ?? text.Substring(0, Math.Max(0, Math.Min(text.IndexOf(name, StringComparison.Ordinal), 40))).Trim();
                     var key = $"{under} -> {name}";
@@ -403,14 +414,18 @@ namespace Scry
                 foreach (var line in told.Where) Lead(entry, line.Prefab);
 
                 onPage.Clear();
+                void OnPage(string key)
+                {
+                    if (key != null && shownOf.TryGetValue(key, out var shown)) onPage.Add(shown);
+                }
                 foreach (var row in told.Rows.Concat(told.UseRows))
                 {
-                    if (row.TitleLink != null) onPage.Add(row.TitleLink);
-                    foreach (var item in row.Items) if (item.Prefab != null) onPage.Add(item.Prefab);
+                    OnPage(row.TitleLink);
+                    foreach (var item in row.Items) OnPage(item.Prefab);
                 }
-                foreach (var link in told.Links.Values) onPage.Add(link);
-                foreach (var line in told.Where) if (line.Prefab != null) onPage.Add(line.Prefab);
-                foreach (var biome in entry.Biomes) onPage.Add(EntryKeys.For(Kind.Biome, biome));
+                foreach (var link in told.Links.Values) OnPage(link);
+                foreach (var line in told.Where) OnPage(line.Prefab);
+                foreach (var biome in entry.Biomes) OnPage(EntryKeys.For(Kind.Biome, biome));
                 foreach (var pair in told.Pairs) Unlinked(entry, pair.Key, pair.Value, told.Links.TryGetValue(pair.Key, out var linked) ? linked : null);
                 foreach (var line in told.Where) Unlinked(entry, null, line.Text, line.Prefab);
                 foreach (var row in told.Rows.Concat(told.UseRows))

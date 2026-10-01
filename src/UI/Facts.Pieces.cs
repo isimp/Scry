@@ -158,7 +158,8 @@ namespace Scry
         private void MadeBuildable(Piece piece)
         {
             var by = BepInEx.Bootstrap.Chainloader.PluginInfos.TryGetValue(BuildPrefabsGuid, out var mod) && mod?.Metadata != null ? mod.Metadata.Name : "a mod";
-            Add("Buildable", "through " + by);
+            // The mod goes to its page where it has one.
+            Add("Buildable", "through " + by, EntryOf(EntryKeys.For(Kind.Mod, by)) != null ? EntryKeys.For(Kind.Mod, by) : null);
             if (piece.m_resources == null || piece.m_resources.Length == 0) return;
             var station = piece.m_craftingStation != null ? CatalogBuilder.Localize(piece.m_craftingStation.m_name) : "";
             var row = Requirements(station.Length > 0 ? $"Built through {by} near {station}" : $"Built through {by} with", piece.m_resources, false);
