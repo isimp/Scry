@@ -766,6 +766,11 @@ namespace Scry
             p.Check(biomes.Count > 0 && bare.Count == 0, "each tells its weathers", string.Join(", ", bare));
             var empty = biomes.Where(b => b.Name != "Ocean" && !Facts.For(b).Rows.Any(r => r.Title.StartsWith("Lives here", StringComparison.Ordinal))).Select(b => b.Name).ToList();
             p.Note(empty.Count == 0 ? "each but the ocean tells what lives there" : $"no creature told living in {string.Join(", ", empty)}");
+            // What spans most biomes, and what of other kinds claims a biome at all, kind by kind, for a look at what is mixed in.
+            var wide = X.Catalog.Where(e => e.Kind != Kind.Biome && e.Biomes.Length >= 6).ToList();
+            foreach (var kind in wide.GroupBy(e => e.Kind)) p.Note($"{Kinds.Label(kind.Key).ToLowerInvariant()} in 6 or more biomes ({kind.Count()}): {string.Join(", ", kind.Take(12).Select(e => $"{e.Name} ({e.Biomes.Length}{(e.ModName.Length > 0 ? ", " + e.ModName : "")})"))}");
+            var others = X.Catalog.Where(e => e.Biomes.Length > 0 && e.Kind != Kind.Biome && e.Kind != Kind.Creature && e.Kind != Kind.Resource && e.Kind != Kind.Location && e.Kind != Kind.Raid).ToList();
+            foreach (var kind in others.GroupBy(e => e.Kind)) p.Note($"{Kinds.Label(kind.Key).ToLowerInvariant()} with biomes ({kind.Count()}): {string.Join(", ", kind.Take(12).Select(e => $"{e.Name} ({string.Join("/", e.Biomes)})"))}");
             var named = X.Catalog.Where(e => e.Kind != Kind.Biome).SelectMany(e => e.Biomes).Distinct().ToList();
             var pageless = named.Where(b => !X.Catalog.Any(e => e.Key == EntryKeys.For(Kind.Biome, b))).ToList();
             p.Check(pageless.Count == 0, "every biome an entry names has a page", string.Join(", ", pageless));
