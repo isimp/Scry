@@ -32,10 +32,14 @@ namespace Scry
             foreach (var pair in facts.Pairs)
             {
                 var valueW = width - labelW - U(10f);
-                var labelH = Skin.Height(Skin.DimWrap, pair.Key, labelW);
+                // A line Scry is not sure of is marked, softer, and says why on hover.
+                var unsure = facts.Unsure.TryGetValue(pair.Key, out var why);
+                var label = unsure ? UnsureWords.Marked(pair.Key) : pair.Key;
+                var labelH = Skin.Height(Skin.DimWrap, label, labelW);
                 var height = Mathf.Max(U(20f), Mathf.Max(labelH, Skin.Height(Skin.Wrap, pair.Value, valueW)));
-                GUI.Label(new Rect(0f, y, labelW, labelH), pair.Key, Skin.DimWrap);
+                GUI.Label(new Rect(0f, y, labelW, labelH), label, Skin.DimWrap);
                 var valueRect = new Rect(labelW + U(10f), y, valueW, height);
+                if (unsure && new Rect(0f, y, width, height).Contains(Event.current.mousePosition)) AskTip("unsure:" + pair.Key, why);
                 // Music plays where it is named: the entry's own, or one by its name (a biome has one for each time of day).
                 if (facts.Links.TryGetValue(pair.Key, out var music) && music.StartsWith(Facts.PlayMusic, StringComparison.Ordinal))
                 {
@@ -71,7 +75,7 @@ namespace Scry
                 }
                 else
                 {
-                    GUI.Label(valueRect, pair.Value, Skin.Wrap);
+                    GUI.Label(valueRect, pair.Value, unsure ? Skin.DimWrap : Skin.Wrap);
                 }
                 y += height + U(6f);
             }
@@ -88,10 +92,15 @@ namespace Scry
                 foreach (var source in facts.Where.Take(lines))
                 {
                     // A line naming a prefab in the catalog is a chip that goes there; the rest is text.
+                    // A line Scry is not sure of is marked and says why on hover.
+                    var text = source.Unsure != null ? UnsureWords.Marked(source.Text) : source.Text;
                     if (string.IsNullOrEmpty(source.Prefab) || !InCatalog(explorer, source.Prefab))
                     {
-                        var height = Skin.Height(Skin.Wrap, source.Text, width);
-                        GUI.Label(new Rect(0f, y, width, height), source.Text, Skin.Wrap);
+                        var style = source.Unsure != null ? Skin.DimWrap : Skin.Wrap;
+                        var height = Skin.Height(style, text, width);
+                        var line = new Rect(0f, y, width, height);
+                        GUI.Label(line, text, style);
+                        if (source.Unsure != null && line.Contains(Event.current.mousePosition)) AskTip("unsure:" + source.Text, source.Unsure);
                         y += height + U(4f);
                         continue;
                     }
@@ -100,15 +109,15 @@ namespace Scry
                     var textX = icon != null ? U(34f) : U(12f);
                     var textW = width - textX - U(10f);
                     var wrapped = SmallWrapped();
-                    var chipH = Mathf.Max(U(30f), Skin.Height(wrapped, source.Text, textW) + U(10f));
+                    var chipH = Mathf.Max(U(30f), Skin.Height(wrapped, text, textW) + U(10f));
                     var chip = new Rect(0f, y, width, chipH);
                     var hover = chip.Contains(Event.current.mousePosition);
                     var kind = KindOf(explorer, source.Prefab);
                     Skin.Box(chip, LinkFill(kind, hover));
                     if (icon != null) DrawSprite(icon, new Rect(U(6f), y + (chipH - U(22f)) / 2f, U(22f), U(22f)));
                     wrapped.normal.textColor = LinkText(kind, hover);
-                    GUI.Label(new Rect(textX, y, textW, chipH), source.Text, wrapped);
-                    if (hover) AskTip("src:" + source.Prefab, "Go to " + ShownName(explorer, source.Prefab, source.Prefab));
+                    GUI.Label(new Rect(textX, y, textW, chipH), text, wrapped);
+                    if (hover) AskTip("src:" + source.Prefab + source.Unsure, (source.Unsure != null ? source.Unsure + "\n" : "") + "Go to " + ShownName(explorer, source.Prefab, source.Prefab));
                     if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(source.Prefab))
                     {
                         _reveal = true;
@@ -164,7 +173,14 @@ namespace Scry
             var key = "facts:" + row.Title;
             var count = ShownOf(key, row.Items.Count);
             y += U(6f);
-            if (!string.IsNullOrEmpty(row.TitleLink) && InCatalog(explorer, row.TitleLink))
+            // A row Scry is not sure of is marked and says why on hover.
+            if (row.Unsure != null)
+            {
+                var unsureRect = new Rect(0f, y, width, U(20f));
+                GUI.Label(unsureRect, UnsureWords.Marked(row.Title), Skin.DimLabel);
+                if (unsureRect.Contains(Event.current.mousePosition)) AskTip("unsure:" + row.Title, row.Unsure);
+            }
+            else if (!string.IsNullOrEmpty(row.TitleLink) && InCatalog(explorer, row.TitleLink))
             {
                 var titleW = Mathf.Min(width, Skin.Width(Skin.DimLabel, row.Title) + U(4f));
                 var titleRect = new Rect(0f, y, titleW, U(20f));

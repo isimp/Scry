@@ -6,16 +6,18 @@ using UnityEngine;
 
 namespace Scry
 {
-    /// <summary>One line of what is known, and the prefab it names, if it names one.</summary>
+    /// <summary>One line of what is known, the prefab it names, if it names one, and why Scry is not sure of it, if it is not.</summary>
     internal struct Source
     {
         public string Text;
         public string Prefab;
+        public string Unsure;
 
-        public Source(string text, string prefab)
+        public Source(string text, string prefab, string unsure = null)
         {
             Text = text;
             Prefab = prefab;
+            Unsure = unsure;
         }
     }
 

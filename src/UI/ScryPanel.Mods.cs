@@ -170,7 +170,10 @@ namespace Scry
         private static float ReportChips(Explorer explorer, string mod, string title, List<ModEntry> entries, float x, float y, float width, Rect visible)
         {
             if (entries.Count == 0) return y;
-            GUI.Label(new Rect(x, y, width, U(20f)), $"{title} ({entries.Count})", Skin.DimLabel);
+            // What Scry could not place may yet be placed by the mod's own code: marked, with why on hover.
+            var titleRect = new Rect(x, y, width, U(20f));
+            GUI.Label(titleRect, UnsureWords.Marked($"{title} ({entries.Count})"), Skin.DimLabel);
+            if (titleRect.Contains(Event.current.mousePosition)) AskTip("unsure:" + mod + title, "Scry found nothing for these; the mod's own code may still place them");
             y += U(24f);
             var rowH = U(26f);
             var key = "mods:" + mod + ":" + title;

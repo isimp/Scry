@@ -93,16 +93,13 @@ namespace Scry
             var kills = DropWatch.Seen.Kills(prefab.name);
             if (kills > 0)
             {
-                var seen = new Row { Title = SeenWords.Title(kills) };
+                var seen = new Row { Title = SeenWords.Title(kills), Unsure = UnsureWords.Seen };
                 foreach (var drop in DropWatch.Seen.Of(prefab.name)) seen.Items.Add(Chip(drop.Item, SeenWords.Chip(drop, kills)));
                 if (seen.Items.Count > 0) Rows.Add(seen);
-                else Add(SeenWords.Title(kills), "nothing");
+                else AddUnsure(SeenWords.Title(kills), "nothing", UnsureWords.Seen);
             }
-            Add(ModHookWords.Label(HookedRule.Drops), ModHookWords.Note(HookedRule.Drops, ModHooks.Mods(HookedRule.Drops)));
-            if (Knowledge.IsPlacedByWorld(prefab.name) || Knowledge.WhereLines(prefab.name).Count > 0)
-            {
-                Add(ModHookWords.Label(HookedRule.Spawns), ModHookWords.Note(HookedRule.Spawns, ModHooks.Mods(HookedRule.Spawns)));
-            }
+            Hooked(HookedRule.Drops);
+            if (Knowledge.IsPlacedByWorld(prefab.name) || Knowledge.WhereLines(prefab.name).Count > 0) Hooked(HookedRule.Spawns);
         }
 
         /// <summary>

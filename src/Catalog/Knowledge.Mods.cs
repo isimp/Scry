@@ -40,6 +40,12 @@ namespace Scry
         /// <summary>How many things each clue named, for the self-test to tell.</summary>
         public static readonly Dictionary<string, int> NamedBy = new Dictionary<string, int>(StringComparer.Ordinal);
 
+        /// <summary>The clue each thing's mod was named by, by the thing's name (<see cref="UnsureWords.IsSureClue"/>).</summary>
+        private static readonly Dictionary<string, string> ClueOf = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>The clue a thing's mod was named by, or "" when none named it.</summary>
+        public static string ModClue(string name) => name != null && ClueOf.TryGetValue(name, out var clue) ? clue : "";
+
         /// <summary>How many recipes and conversions Jotunn's registry names a mod for, for the self-test to tell.</summary>
         public static int RecipesNamed => RecipeMods.Count;
         public static int ConversionsNamed => ConversionMods.Count;
@@ -67,6 +73,7 @@ namespace Scry
             ScriptsOf.Clear();
             ScriptsOnGamePrefabs.Clear();
             NamedBy.Clear();
+            ClueOf.Clear();
             _pluginOf = null;
         }
 
@@ -74,6 +81,7 @@ namespace Scry
         {
             if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(mod) || ModOf.ContainsKey(name)) return;
             ModOf[name] = mod;
+            ClueOf[name] = clue;
             NamedBy.TryGetValue(clue, out var count);
             NamedBy[clue] = count + 1;
         }
@@ -118,8 +126,8 @@ namespace Scry
                 {
                     switch (Value(entity, property))
                     {
-                        case UnityEngine.Object thing when thing != null: Named(thing.name, mod, "Jotunn's registry"); break;
-                        case string name: Named(name, mod, "Jotunn's registry"); break;
+                        case UnityEngine.Object thing when thing != null: Named(thing.name, mod, UnsureWords.RegistryClue); break;
+                        case string name: Named(name, mod, UnsureWords.RegistryClue); break;
                     }
                 });
             }

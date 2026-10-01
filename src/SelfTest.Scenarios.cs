@@ -49,6 +49,7 @@ namespace Scry
             yield return S("ballistas, traps, ships, carts and catapults tell what they do", MachineFacts, 10);
             yield return S("a creature whose defeat sets a world key tells what then follows", AfterDefeat, 10);
             yield return S("each biome has a page of its weathers, music and what is there, and every biome named has one", BiomePages, 10);
+            yield return S("what Scry is not sure of is marked with why, and what it read from the game is not", UnsureMarks, 10);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
             yield return S("items, stations, smelters and beds tell what they are for", WhatThingsTell, 10);
@@ -634,6 +635,36 @@ namespace Scry
             p.Check(bosses.Count > 0 && unpowered.Count == 0, "every one names its power", string.Join(", ", unpowered));
             var trophy = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && Knowledge.PowerOf(e.Name).Power != null);
             if (trophy != null) p.Check(Value(Facts.For(trophy), "On its boss stone") != null, $"{trophy.Name} names the power it gives on its boss stone");
+            yield break;
+        }
+
+        /// <summary>
+        /// A creature's health and drops are sure, a mods' note on them is not; a mod's things
+        /// matched by clues are told apart from those its registry names; a line where Scry found
+        /// nothing is marked; every mark has its reason.
+        /// </summary>
+        private static IEnumerator UnsureMarks(Probe p)
+        {
+            var creature = Pick(Kind.Creature, "Greydwarf", "Boar") ?? X.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature);
+            if (creature == null) p.Skip("there is no creature");
+            var told = Facts.For(creature);
+            p.Check(!told.Unsure.ContainsKey("Health") && told.Pairs.Any(pair => pair.Key == "Health"), $"{creature.Name}'s health is told as sure");
+            var hook = ModHookWords.Label(HookedRule.Drops);
+            if (ModHooks.Mods(HookedRule.Drops).Count > 0) p.Check(told.Unsure.ContainsKey(hook), $"{creature.Name}'s note on mods hooking into its drops is marked unsure");
+            p.Check(told.Unsure.Values.All(why => !string.IsNullOrEmpty(why)), "every mark says why");
+
+            var named = X.Catalog.Where(e => e.ModName.Length > 0 && e.Kind != Kind.Mod).ToList();
+            var guessed = named.Where(e => !UnsureWords.IsSureClue(e.ModClue)).ToList();
+            p.Note($"{named.Count} entries named for their mod: {named.Count - guessed.Count} by the mod's own word, {guessed.Count} by clues ({string.Join(", ", guessed.GroupBy(e => e.ModClue).Select(g => $"{g.Key}: {g.Count()}"))})");
+            if (guessed.Count > 0)
+            {
+                var one = guessed[0];
+                var page = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Mod && e.Name == one.ModName);
+                if (page != null) p.Check(Facts.For(page).Rows.Any(r => r.Unsure != null && r.Items.Any(i => i.Prefab == one.Key)), $"{one.Name} is under its mod's clue-matched row, marked");
+            }
+
+            var nowhere = X.Catalog.FirstOrDefault(e => (e.Kind == Kind.Item || e.Kind == Kind.Creature) && Facts.For(e).Where.Any(l => l.Unsure == UnsureWords.NothingFound || l.Unsure == UnsureWords.NowhereFound));
+            p.Note(nowhere == null ? "no item or creature without a source" : $"{nowhere.Name} says where Scry found nothing, marked");
             yield break;
         }
 

@@ -568,7 +568,8 @@ namespace Scry
                 {
                     var page = EntryKeys.For(Kind.Mod, entry.ModName);
                     var known = InCatalog(explorer, page);
-                    if (subRect.Contains(Event.current.mousePosition)) AskTip("mod", known ? "Go to " + entry.ModName + ": what it adds and changes" : "Show everything " + entry.ModName + " added");
+                    var guess = UnsureWords.IsSureClue(entry.ModClue) ? "" : UnsureWords.ModClue(entry.ModClue) + "\n";
+                    if (subRect.Contains(Event.current.mousePosition)) AskTip("mod" + guess, guess + (known ? "Go to " + entry.ModName + ": what it adds and changes" : "Show everything " + entry.ModName + " added"));
                     if (GUI.Button(subRect, GUIContent.none, GUIStyle.none))
                     {
                         if (known) Go(explorer, page);
@@ -875,7 +876,8 @@ namespace Scry
             if (entry.Kind == Kind.Mod) return "a mod loaded";
             if (entry.Origin == Origin.Vanilla) return "from the game";
             if (entry.Origin != Origin.Mod) return "";
-            return entry.ModName.Length > 0 ? "added by " + entry.ModName : "added by a mod";
+            if (entry.ModName.Length == 0) return "added by a mod";
+            return UnsureWords.IsSureClue(entry.ModClue) ? "added by " + entry.ModName : UnsureWords.Marked("added by " + entry.ModName);
         }
 
         private static readonly Dictionary<(string, string), string> ChipLabels = new Dictionary<(string, string), string>();

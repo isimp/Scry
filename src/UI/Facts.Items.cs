@@ -136,7 +136,9 @@ namespace Scry
 
             if ((weapon || ammo || shield || type == ItemDrop.ItemData.ItemType.Tool) && shared.m_skillType != Skills.SkillType.None)
             {
-                Add("Skill", SkillWords.Name(shared.m_skillType.ToString(), CatalogBuilder.Localize));
+                var skill = SkillWords.Name(shared.m_skillType.ToString(), CatalogBuilder.Localize);
+                if (skill == SkillWords.ModSkill) AddUnsure("Skill", skill, UnsureWords.ModSkill);
+                else Add("Skill", skill);
             }
 
             if (weapon || shield)

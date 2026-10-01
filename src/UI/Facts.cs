@@ -24,6 +24,9 @@ namespace Scry
 
             /// <summary>The prefab the title names, such as the crafting station, so it can be gone to.</summary>
             public string TitleLink;
+
+            /// <summary>Why Scry is not sure of the row, or null when it is (<see cref="UnsureWords"/>).</summary>
+            public string Unsure;
             public readonly List<Ingredient> Items = new List<Ingredient>();
         }
 
@@ -62,6 +65,17 @@ namespace Scry
             if (string.IsNullOrEmpty(value)) return;
             Pairs.Add(new KeyValuePair<string, string>(label, value));
             if (link != null) Links[label] = link;
+        }
+
+        /// <summary>Why Scry is not sure of a pair, by its label (<see cref="UnsureWords"/>).</summary>
+        public readonly Dictionary<string, string> Unsure = new Dictionary<string, string>();
+
+        /// <summary>A pair Scry is not sure of, with why.</summary>
+        private void AddUnsure(string label, string value, string why, string link = null)
+        {
+            if (string.IsNullOrEmpty(value)) return;
+            Add(label, value, link);
+            Unsure[label] = why;
         }
 
         private static readonly Dictionary<Entry, Facts> Cache = new Dictionary<Entry, Facts>();
@@ -109,7 +123,7 @@ namespace Scry
                     facts.Where.AddRange(Knowledge.SourceLines(entry.Name));
                     foreach (var (creature, drop, kills) in DropWatch.Seen.Sources(entry.Name))
                     {
-                        facts.Where.Add(new Source(SeenWords.Line(AnyName(Looks.Prefab(creature), creature), drop, kills), creature));
+                        facts.Where.Add(new Source(SeenWords.Line(AnyName(Looks.Prefab(creature), creature), drop, kills), creature, UnsureWords.Seen));
                     }
 
                     // An item nothing makes, drops, sells or spawns here comes from somewhere Scry cannot
@@ -118,7 +132,14 @@ namespace Scry
                     if (entry.Kind == Kind.Item && facts.Where.Count == 0 && entry.FoundIn.Length == 0 && !facts.Rows.Any(r => r.Title.StartsWith("Made"))
                         && !entry.Links.Any(l => l.Group == Relations.SpawnedBy))
                     {
-                        facts.Where.Add(new Source("Nothing loaded makes, drops or sells it. It may come from a location, a dungeon, an event or a mod.", null));
+                        facts.Where.Add(new Source("Nothing loaded makes, drops or sells it. It may come from a location, a dungeon, an event or a mod.", null, UnsureWords.NothingFound));
+                    }
+
+                    // A creature nothing spawns where Scry can see, the same.
+                    if (entry.Kind == Kind.Creature && facts.Where.Count == 0 && entry.FoundIn.Length == 0 && !Knowledge.IsPlacedByWorld(entry.Name)
+                        && !entry.Links.Any(l => l.Group == Relations.SpawnedBy) && !Knowledge.Summons().Any(s => s.Boss == entry.Name) && !(prefab.GetComponent<Character>() is Player))
+                    {
+                        facts.Where.Add(new Source("Nothing loaded spawns it where Scry can see. It may come from a location, an event, another creature or a mod.", null, UnsureWords.NowhereFound));
                     }
                 });
                 facts.Part("uses", () => facts.Uses(entry.Name));
@@ -194,7 +215,7 @@ namespace Scry
             if (piece != null && piece.enabled) Part("piece", () => Piece(piece, prefab.GetComponent<WearNTear>()));
 
             Part("resource", () => Resource(prefab));
-            if (Knowledge.GivesLoot(prefab)) Add(ModHookWords.Label(HookedRule.Loot), ModHookWords.Note(HookedRule.Loot, ModHooks.Mods(HookedRule.Loot)));
+            if (Knowledge.GivesLoot(prefab)) Hooked(HookedRule.Loot);
             if (piece != null && !piece.enabled) Part("build cost", () => MadeBuildable(piece));
             Part("station", () => Station(prefab));
 
@@ -283,7 +304,7 @@ namespace Scry
         }
 
         /// <summary>The note naming the mods that hook into a rule told here, when any do (<see cref="ModHooks"/>).</summary>
-        private void Hooked(HookedRule rule) => Add(ModHookWords.Label(rule), ModHookWords.Note(rule, ModHooks.Mods(rule)));
+        private void Hooked(HookedRule rule) => AddUnsure(ModHookWords.Label(rule), ModHookWords.Note(rule, ModHooks.Mods(rule)), UnsureWords.Hooked);
 
         private static string ItemName(GameObject item)
         {

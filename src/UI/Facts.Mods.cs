@@ -45,12 +45,15 @@ namespace Scry
             foreach (var station in summary.Stations) Add("Station: " + station.Shown, ModReportWords.Station(station), station.Key);
             foreach (var tool in summary.Tools) Add("Tool: " + tool.Shown, ModReportWords.Tool(tool), tool.Key);
 
-            // What it adds, a row for each kind, in the tabs' order.
+            // What it adds, a row for each kind, in the tabs' order; what only clues match to it
+            // in a row of its own, as Scry's best guess.
             foreach (var kind in explorer.Catalog.Where(e => e.ModName == mod.Name && e.Kind != Kind.Mod).GroupBy(e => e.Kind).OrderBy(g => (int)g.Key))
             {
-                var row = new Row { Title = $"Adds {Kinds.Label(kind.Key).ToLowerInvariant()} ({kind.Count()})" };
-                foreach (var entry in kind.OrderBy(e => e.DisplayName.Length > 0 ? e.DisplayName : e.Name, System.StringComparer.OrdinalIgnoreCase)) row.Items.Add(EntryChip(entry));
-                Rows.Add(row);
+                var label = Kinds.Label(kind.Key).ToLowerInvariant();
+                var sure = kind.Where(e => UnsureWords.IsSureClue(e.ModClue)).ToList();
+                var guessed = kind.Where(e => !UnsureWords.IsSureClue(e.ModClue)).ToList();
+                if (sure.Count > 0) Rows.Add(ChipRow($"Adds {label} ({sure.Count})", sure, null));
+                if (guessed.Count > 0) Rows.Add(ChipRow($"Adds {label}, matched by clues ({guessed.Count})", guessed, "Scry matched these to this mod by the scripts they carry or the assets they use; the mod does not say so itself"));
             }
 
             GapRow("Stations nothing is made or built at", summary.IdleStations, explorer);
@@ -72,11 +75,19 @@ namespace Scry
             if (row.Items.Count > 0) Rows.Add(row);
         }
 
-        /// <summary>A row of what Scry could not place, each going to its entry.</summary>
+        /// <summary>A row of entries, each going to it, sorted by the name shown.</summary>
+        private static Row ChipRow(string title, IEnumerable<Entry> entries, string unsure)
+        {
+            var row = new Row { Title = title, Unsure = unsure };
+            foreach (var entry in entries.OrderBy(e => e.DisplayName.Length > 0 ? e.DisplayName : e.Name, System.StringComparer.OrdinalIgnoreCase)) row.Items.Add(EntryChip(entry));
+            return row;
+        }
+
+        /// <summary>A row of what Scry could not place, each going to its entry: Scry found nothing, which may yet be there.</summary>
         private void GapRow(string title, List<ModEntry> entries, Explorer explorer)
         {
             if (entries.Count == 0) return;
-            var row = new Row { Title = $"{title} ({entries.Count})" };
+            var row = new Row { Title = $"{title} ({entries.Count})", Unsure = "Scry found nothing for these; the mod's own code may still place them" };
             foreach (var one in entries)
             {
                 var entry = explorer.Catalog.FirstOrDefault(e => e.Key == one.Key);

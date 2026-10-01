@@ -134,6 +134,7 @@ namespace Scry
                             Icon = effect.m_icon,
                             Components = new[] { effect.GetType().Name },
                             ModName = Knowledge.ModName(effect.name),
+                            ModClue = Knowledge.ModClue(effect.name),
                         });
                     }
                     catch (Exception ex)
@@ -619,6 +620,7 @@ namespace Scry
                 Components = found.Components.ToArray(),
                 Biomes = Knowledge.Biomes(name),
                 ModName = Knowledge.ModName(name),
+                ModClue = Knowledge.ModClue(name),
             };
 
             // Something none of the other kinds is grouped by what it is there for.

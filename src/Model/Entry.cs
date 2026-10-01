@@ -129,6 +129,9 @@ namespace Scry
         /// <summary>The mod that added it, when that could be told. Empty otherwise.</summary>
         public string ModName = "";
 
+        /// <summary>The clue its mod was named by; a clue that is not the mod's own word makes it Scry's best guess (<see cref="UnsureWords"/>).</summary>
+        public string ModClue = "";
+
         /// <summary>Its place within its group, lower first (a dungeon's location before its rooms); 0 for most.</summary>
         public int GroupRank;
 
