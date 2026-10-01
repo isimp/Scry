@@ -133,7 +133,9 @@ namespace Scry
                 else if (cuts.Zip(floors, (cut, floor) => cut > floor).Any(over => !over)) wrong.Add($"{entry.Name} is cut below a floor");
                 var left = CopyOf(entry) != null ? CopyOf(entry).GetComponentsInChildren<Collider>(true).Length : 0;
                 if (left > 0) wrong.Add($"{entry.Name} keeps {left} colliders");
-                if (floors.Count > 1) several.Add($"{entry.Name} ({string.Join(", ", floors.Select(f => f.ToString("0.0")))} m)");
+                // Each floor with what its rays landed on, to see what is taken for a floor.
+                var makers = Stage.FloorMakersNow();
+                if (floors.Count > 1) several.Add($"{entry.Name} ({string.Join("; ", floors.Select((f, i) => $"{f:0.0} m on {(i < makers.Count ? makers[i] : "?")}"))})");
             }
             p.Note(several.Count > 0 ? "with several floors: " + string.Join("; ", several) : "none with several floors");
             p.Check(wrong.Count == 0, "each has floors from the top down, cut over each, with no collider left on its copy", string.Join("; ", wrong.Take(8)));

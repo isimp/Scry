@@ -22,10 +22,11 @@ namespace Scry
 
         /// <summary>
         /// Casts the rays over the copy and adds where they land to <paramref name="hits"/>, as
-        /// patch <paramref name="patch"/>; the ground the rays were cast over, 0 for a copy with
-        /// nothing to land on.
+        /// patch <paramref name="patch"/>, and to <paramref name="names"/>, when given, the name of
+        /// what each landed on; the ground the rays were cast over, 0 for a copy with nothing to
+        /// land on.
         /// </summary>
-        public static float Read(GameObject copy, Transform space, int layer, List<FloorHit> hits, int patch)
+        public static float Read(GameObject copy, Transform space, int layer, List<FloorHit> hits, int patch, List<string> names = null)
         {
             if (copy == null) return 0f;
             copy.GetComponentsInChildren(false, Colliders);
@@ -64,6 +65,7 @@ namespace Scry
                         var hit = Landed[k];
                         if (hit.normal.y < Flat || hit.collider == null || !hit.collider.transform.IsChildOf(root)) continue;
                         hits.Add(new FloorHit { Patch = patch, I = i, J = j, Height = space.InverseTransformPoint(hit.point).y, Area = cell });
+                        names?.Add(hit.collider.gameObject.name.Replace("(Clone)", "").Trim());
                     }
                 }
                 return rays * cell;

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -138,10 +139,19 @@ namespace Scry
         /// The floors of a place's copy, made with its colliders: found in the model, a location's
         /// ground among them; a room with nothing found keeps its doorways' heights, a location its root.
         /// </summary>
+        private static List<FloorHit> _floorHits = new List<FloorHit>();
+        private static List<string> _floorNames = new List<string>();
+
+        /// <summary>What each floor of the location or room shown stands on, from its rays, for the self-test to tell (<see cref="FloorMakers"/>).</summary>
+        public static List<string> FloorMakersNow() => FloorMakers.Tell(_floorHits.Select(h => h.Height).ToList(), _floorNames, Floors);
+
         private static List<float> FloorsOf(GameObject copy, PlaceSource place)
         {
             var hits = new List<FloorHit>();
-            var found = FloorFinder.Floors(hits, FloorProbe.Read(copy, copy.transform, _layer, hits, 0));
+            var names = new List<string>();
+            var found = FloorFinder.Floors(hits, FloorProbe.Read(copy, copy.transform, _layer, hits, 0, names));
+            _floorHits = hits;
+            _floorNames = names;
             if (place.IsRoom) return found.Count > 0 ? found : PlaceView.RoomFloors(place.Contents?.Room);
             return PlaceView.WithGround(found);
         }
