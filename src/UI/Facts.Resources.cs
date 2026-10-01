@@ -22,6 +22,10 @@ namespace Scry
             // a log splits into halves, a vein's shell breaks into the vein (TreeBase.SpawnLog,
             // TreeLog.Destroy, Destructible.Destroy).
             Leads("Comes from", Knowledge.TurnedFrom(prefab.name).Select(p => (p, 1)));
+            int Gives() => Rows.Count(r => r.Cells == null && r.Items.Count > 0);
+            var giving = Gives();
+            var broken = prefab.GetComponent<TreeBase>() != null || prefab.GetComponent<TreeLog>() != null || prefab.GetComponent<MineRock>() != null
+                         || prefab.GetComponent<MineRock5>() != null || prefab.GetComponent<Destructible>() != null;
 
             var tree = prefab.GetComponent<TreeBase>();
             if (tree != null)
@@ -80,6 +84,8 @@ namespace Scry
                 var dropping = prefab.GetComponent<DropOnDestroyed>();
                 if (dropping != null) Drops(dropping.m_dropWhenDestroyed, "When broken, ");
             }
+            // What breaks and gives nothing says so.
+            if (broken && Gives() == giving) Add("Gives", "nothing when broken");
 
             var pickable = prefab.GetComponent<Pickable>();
             if (pickable != null && pickable.m_itemPrefab != null)
@@ -164,7 +170,7 @@ namespace Scry
         private void Hits(float health, bool perPiece, int toolTier, HitData.DamageModifiers resists)
         {
             if (health > 0f) Add("Health", Number(health) + (perPiece ? " a piece" : ""));
-            if (toolTier > 0) Add("Needs tool tier", toolTier.ToString(CultureInfo.InvariantCulture));
+            Add("Needs tool tier", toolTier > 0 ? toolTier.ToString(CultureInfo.InvariantCulture) : "any");
             Resists(resists);
         }
 

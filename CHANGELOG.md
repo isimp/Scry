@@ -32,6 +32,8 @@ A piece tells where it may be placed: on the ground or cultivated ground only, n
 
 A ballista tells what it fires and at whom, and the trophies that make it shoot only their creatures; a trap on whom it springs and how hard; a ship whether the Ashlands' seas burn it and what it takes capsized; a cart what it weighs with its load; a catapult what it loads.
 
+Pages of one type show the same rows, saying "none" or "no" where that is the answer: a creature whether it attacks, has weak spots, can be tamed and drops anything; every item whether it goes through portals; gear how far it upgrades, whether it wears out and where it is repaired; armour its armour, movement and set bonus; weapons their block and second attack; furniture its comfort; a piece its cost; a rock or tree the tool tier it needs and whether it gives anything.
+
 Resistances show as a grid of every damage type, the same on every creature, piece, rock and tree, each the share of that damage taken (50% resisted, 150% weak, 0% immune) and coloured by it, so pages line up whatever they resist. Armour and shields show theirs the same way, or say they resist nothing.
 
 What Scry is not sure of is marked with a `~` and a softer colour, and says why when hovered: which mod added something when only clues tell it, what mods hooking into a rule may change, what was seen in play, and where Scry found nothing. Everything else is read from the game or worked out by its rules. An item or creature Scry finds no source for says so instead of leaving the place empty.

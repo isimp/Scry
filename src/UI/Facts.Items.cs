@@ -19,8 +19,10 @@ namespace Scry
             Add("Weight", Number(shared.m_weight));
             if (shared.m_value > 0) Add("Worth", $"{shared.m_value} coins");
             if (shared.m_maxStackSize > 1) Add("Stacks to", shared.m_maxStackSize.ToString(CultureInfo.InvariantCulture));
-            if (shared.m_maxQuality > 1) Add("Quality", $"up to {shared.m_maxQuality}");
-            if (!shared.m_teleportable) Add("Portals", "cannot go through");
+            // Gear tells how far it upgrades even when it cannot; anything else only when it can.
+            var gear = IsGear(shared.m_itemType);
+            if (gear || shared.m_maxQuality > 1) Add("Quality", ItemWords.Quality(shared.m_maxQuality));
+            Add("Portals", ItemWords.Portals(shared.m_teleportable));
 
             // The game fills in per-quality numbers everywhere; they mean something only for what can be upgraded.
             var upgradable = shared.m_maxQuality > 1;
@@ -35,7 +37,7 @@ namespace Scry
             // The slots whose armour counts (Player.GetBodyArmor); gloves' does not.
             var worn = type == ItemDrop.ItemData.ItemType.Helmet || type == ItemDrop.ItemData.ItemType.Chest
                        || type == ItemDrop.ItemData.ItemType.Legs || type == ItemDrop.ItemData.ItemType.Shoulder;
-            if (worn && shared.m_armor > 0f) Add("Armour", Number(shared.m_armor) + (upgradable && shared.m_armorPerLevel > 0f ? $", +{Number(shared.m_armorPerLevel)} per quality" : ""));
+            if (worn) Add("Armour", shared.m_armor > 0f ? Number(shared.m_armor) + (upgradable && shared.m_armorPerLevel > 0f ? $", +{Number(shared.m_armorPerLevel)} per quality" : "") : "none");
             Part("item stats", () => Combat(prefab, shared));
             Part("resistances", () => GearResists(shared, worn));
             if (damage.Length > 0 || (worn && shared.m_armor > 0f) || shared.m_blockPower > 1f) Hooked(HookedRule.ItemStats);
@@ -53,11 +55,16 @@ namespace Scry
             }
 
             if (shared.m_toolTier > 0) Add("Tool tier", shared.m_toolTier.ToString(CultureInfo.InvariantCulture));
+            // What gear changes while worn; armour, a shield and what is worn for its effects say so when nothing.
+            var wornFor = worn || type == ItemDrop.ItemData.ItemType.Shield || type == ItemDrop.ItemData.ItemType.Utility || type == ItemDrop.ItemData.ItemType.Trinket;
             if (Math.Abs(shared.m_movementModifier) > 0.001f) Add("Movement", Percent(shared.m_movementModifier));
+            else if (wornFor) Add("Movement", "no change");
             Part("gear", () =>
             {
-                foreach (var (label, value) in GearWords.Lines(GearValues(shared))) Add(label, value);
+                var lines = GearWords.Lines(GearValues(shared));
+                foreach (var (label, value) in lines) Add(label, value);
                 if (shared.m_fullAdrenalineSE != null) Add("At full adrenaline", EffectName(shared.m_fullAdrenalineSE), "se:" + shared.m_fullAdrenalineSE.name);
+                if (wornFor && lines.Count == 0 && shared.m_fullAdrenalineSE == null && shared.m_equipStatusEffect == null) Add("Other changes while worn", "none");
             });
             // The set's own name is an id the game never shows; the rest of the set is linked under LINKED.
             if (shared.m_setStatusEffect != null)
@@ -65,6 +72,7 @@ namespace Scry
                 var pieces = shared.m_setSize > 0 ? $" ({shared.m_setSize} pieces)" : "";
                 Add("Set bonus", EffectName(shared.m_setStatusEffect) + pieces, "se:" + shared.m_setStatusEffect.name);
             }
+            else if (worn) Add("Set bonus", "none");
             foreach (var (damageType, name) in DamageEffects)
             {
                 var amount = damageType == "fire" ? shared.m_damages.m_fire : damageType == "frost" ? shared.m_damages.m_frost : damageType == "lightning" ? shared.m_damages.m_lightning
@@ -143,8 +151,8 @@ namespace Scry
 
             if (weapon || shield)
             {
-                // The game tells blocking only above 1, as AddBlockTooltip does.
-                if (shared.m_blockPower > 1f) Add("Block", Number(shared.m_blockPower) + PerQuality(shared.m_blockPowerPerLevel));
+                // The game tells blocking only above 1, as AddBlockTooltip does; below that it cannot block.
+                Add("Block", shared.m_blockPower > 1f ? Number(shared.m_blockPower) + PerQuality(shared.m_blockPowerPerLevel) : "none");
                 if (shared.m_deflectionForce > 1f) Add("Block force", Number(shared.m_deflectionForce) + PerQuality(shared.m_deflectionForcePerLevel));
                 if (shared.m_timedBlockBonus > 1f) Add("Parry bonus", $"\u00d7{Number(shared.m_timedBlockBonus)}");
             }
@@ -167,21 +175,20 @@ namespace Scry
                     Add("Secondary attack", CombatWords.SecondaryAttack(Against(second.m_damageMultiplier, attack.m_damageMultiplier), Against(second.m_forceMultiplier, attack.m_forceMultiplier),
                         Against(second.m_staggerMultiplier, attack.m_staggerMultiplier), CombatWords.Costs(second.m_attackStamina, second.m_attackEitr, second.m_attackHealth, second.m_attackHealthPercentage)));
                 }
+                else Add("Secondary attack", "none");
             }
 
             var recipe = ObjectDB.instance != null ? ObjectDB.instance.m_recipes.FirstOrDefault(r => r != null && r.m_enabled && r.m_item != null && r.m_item.gameObject.name == prefab.name) : null;
             if (shared.m_useDurability)
             {
                 Add("Durability", Number(shared.m_maxDurability) + PerQuality(shared.m_durabilityPerLevel));
-                // Repaired where it is made or at its repair station, from the recipe's station level (InventoryGui.CanRepair).
-                // Unity's own null check, not ??, which a destroyed reference would pass.
+                // Repaired where it is made or at its repair station, from the recipe's station level (InventoryGui.CanRepair);
+                // where it cannot be, that is said too. Unity's own null check, not ??, which a destroyed reference would pass.
                 var at = recipe == null ? null : recipe.m_repairStation != null ? recipe.m_repairStation : recipe.m_craftingStation;
-                if (shared.m_canBeReparied && at != null)
-                {
-                    var level = recipe.m_minStationLevel > 1 ? $" level {recipe.m_minStationLevel}" : "";
-                    Add("Repaired at", CatalogBuilder.Localize(at.m_name) + level, at.gameObject.name);
-                }
+                Add("Repaired at", ItemWords.Repair(shared.m_canBeReparied, at != null ? CatalogBuilder.Localize(at.m_name) : null, recipe != null ? recipe.m_minStationLevel : 1),
+                    shared.m_canBeReparied && at != null ? at.gameObject.name : null);
             }
+            else if (IsGear(shared.m_itemType)) Add("Durability", ItemWords.NoWear);
 
             var station = recipe == null ? null : recipe.m_craftingStation != null ? recipe.m_craftingStation : recipe.m_repairStation;
             if (upgradable && station != null)
@@ -208,6 +215,31 @@ namespace Scry
             mods.Apply(shared.m_damageModifiers);
             if (ByDegree(mods).Count > 0) Resists(mods, worn ? "Damage it takes while worn" : "Damage it takes while blocking");
             else if (worn || type == ItemDrop.ItemData.ItemType.Shield) Add(worn ? "Resists while worn" : "Resists while blocking", "nothing");
+        }
+
+        /// <summary>What is worn or wielded: weapons, shields, tools, torches, armour, belts and trinkets.</summary>
+        private static bool IsGear(ItemDrop.ItemData.ItemType type)
+        {
+            switch (type)
+            {
+                case ItemDrop.ItemData.ItemType.OneHandedWeapon:
+                case ItemDrop.ItemData.ItemType.TwoHandedWeapon:
+                case ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft:
+                case ItemDrop.ItemData.ItemType.Bow:
+                case ItemDrop.ItemData.ItemType.Shield:
+                case ItemDrop.ItemData.ItemType.Tool:
+                case ItemDrop.ItemData.ItemType.Torch:
+                case ItemDrop.ItemData.ItemType.Helmet:
+                case ItemDrop.ItemData.ItemType.Chest:
+                case ItemDrop.ItemData.ItemType.Legs:
+                case ItemDrop.ItemData.ItemType.Shoulder:
+                case ItemDrop.ItemData.ItemType.Hands:
+                case ItemDrop.ItemData.ItemType.Utility:
+                case ItemDrop.ItemData.ItemType.Trinket:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         /// <summary>What gear changes while worn, by its field names, for <see cref="GearWords"/>.</summary>

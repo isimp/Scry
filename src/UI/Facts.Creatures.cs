@@ -36,11 +36,20 @@ namespace Scry
             Part("resistances", () => Resists(character.m_damageModifiers));
             Part("weak spots", () => WeakSpots(character));
             Part("attacks", () => Attacks(prefab));
+            // Whether it can be tamed, fought or looted is worth telling when it cannot.
+            var person = character is Player;
+            if (!person && !Pairs.Any(pair => pair.Key.StartsWith("Attack: ", StringComparison.Ordinal)))
+            {
+                // One that hunts yet carries no attack Scry can read may still have one in code.
+                if (prefab.GetComponent<MonsterAI>() != null) AddUnsure("Attacks", "none Scry can see", "It hunts, yet carries no attack item Scry can read; code of the game or a mod may still give it one");
+                else Add("Attacks", "none");
+            }
             Part("behaviour", () => Behaviour(prefab, character));
             if (character.m_boss) Part("summoning", () => SummonedBy(prefab));
             var key = character.m_defeatSetGlobalKey;
             if (!string.IsNullOrEmpty(key) && Knowledge.Unlocks.Any(key)) Part("after it falls", () => AfterItFalls(key));
 
+            if (prefab.GetComponent<Tameable>() == null && !person) Add("Tameable", "no");
             if (prefab.GetComponent<Tameable>() != null)
             {
                 Add("Tameable", "yes");
@@ -98,6 +107,7 @@ namespace Scry
                 if (seen.Items.Count > 0) Rows.Add(seen);
                 else AddUnsure(SeenWords.Title(kills), "nothing", UnsureWords.Seen);
             }
+            if (drops == null || !drops.m_drops.Any(d => d?.m_prefab != null)) Add("Drops", "nothing");
             Hooked(HookedRule.Drops);
             if (Knowledge.IsPlacedByWorld(prefab.name) || Knowledge.WhereLines(prefab.name).Count > 0) Hooked(HookedRule.Spawns);
         }
@@ -141,6 +151,8 @@ namespace Scry
                 if (ai.m_afraidOfFire) Add("Fire", "afraid of it");
                 else if (ai.m_avoidFire) Add("Fire", "keeps away from it");
                 if (ai.m_passiveAggresive) Add("Fights", "only once attacked");
+                // AnimalAI.UpdateAI only ever flees from what it senses.
+                if (ai is AnimalAI) Add("Fights", "never: it flees from what it senses");
                 if (ai is MonsterAI monster)
                 {
                     Add("Turns on you", CombatWords.Alerted(monster.m_alertRange));
@@ -270,7 +282,12 @@ namespace Scry
         /// </summary>
         private void WeakSpots(Character character)
         {
-            if (character.m_weakSpots == null) return;
+            if (character is Player) return;
+            if (character.m_weakSpots == null || !character.m_weakSpots.Any(s => s != null))
+            {
+                Add("Weak spots", "none");
+                return;
+            }
             foreach (var spot in character.m_weakSpots)
             {
                 if (spot == null) continue;

@@ -22,6 +22,8 @@ namespace Scry
                     : "none: a second one within 10 m adds nothing");
                 Hooked(HookedRule.Comfort);
             }
+            // Furniture, where comfort is sought, says when it gives none.
+            else if (piece.m_category == global::Piece.PieceCategory.Furniture) Add("Comfort", "none");
             if (wear != null)
             {
                 Add("Health", Number(wear.m_health));
@@ -63,6 +65,8 @@ namespace Scry
                 Rows.Add(row);
                 Hooked(HookedRule.Crafting);
             }
+            // Free only where some tool builds it; one in no build menu costs nothing because it is never built.
+            else if (Knowledge.Tools.ToolsOf(piece.gameObject.name).Count > 0) Add("Build cost", "free");
         }
 
         /// <summary>Where it may be placed (<see cref="BuildWords.Placement"/>).</summary>

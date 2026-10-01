@@ -51,6 +51,7 @@ namespace Scry
             yield return S("each biome has a page of its weathers, music and what is there, and every biome named has one", BiomePages, 10);
             yield return S("what Scry is not sure of is marked with why, and what it read from the game is not", UnsureMarks, 10);
             yield return S("resistances show as a grid of every damage type on every creature, piece and rock", ResistanceGrids, 10);
+            yield return S("every creature, piece of gear and buildable piece shows its standard rows, saying none where it has none", StandardRows, 20);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
             yield return S("items, stations, smelters and beds tell what they are for", WhatThingsTell, 10);
@@ -637,6 +638,45 @@ namespace Scry
             p.Check(bosses.Count > 0 && unpowered.Count == 0, "every one names its power", string.Join(", ", unpowered));
             var trophy = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && Knowledge.PowerOf(e.Name).Power != null);
             if (trophy != null) p.Check(Value(Facts.For(trophy), "On its boss stone") != null, $"{trophy.Name} names the power it gives on its boss stone");
+            yield break;
+        }
+
+        /// <summary>
+        /// The rows a player looks for show on every page of a type, with "none" or "no" where
+        /// that is the answer: a creature's attacks, weak spots, taming and drops; gear's quality,
+        /// portals and wear; armour's armour, movement and set; a weapon's block and second
+        /// attack; a buildable piece's cost.
+        /// </summary>
+        private static IEnumerator StandardRows(Probe p)
+        {
+            GameObject Of(Entry e) => e.Source as GameObject;
+            // A label may name alternatives, "Build cost|Built near": any one of them will do.
+            bool Has(Facts told, string labels) => labels.Split('|').Any(label =>
+                told.Pairs.Any(pair => pair.Key == label || pair.Key.StartsWith(label + ": ", StringComparison.Ordinal)) || told.Rows.Any(r => r.Title.StartsWith(label, StringComparison.Ordinal)));
+            void Every(string what, IEnumerable<Entry> entries, params string[] labels)
+            {
+                var list = entries.ToList();
+                var missing = new List<string>();
+                foreach (var entry in list)
+                {
+                    var told = Facts.For(entry);
+                    foreach (var label in labels) if (!Has(told, label) && !(label == "Weak spots" && Has(told, "Hit on the")) && !(label == "Attacks" && Has(told, "Attack"))) missing.Add($"{entry.Name} {label}");
+                }
+                p.Check(missing.Count == 0, $"every {what} ({list.Count}) shows {string.Join(", ", labels)}", string.Join("; ", missing.Take(6)));
+            }
+
+            var creatures = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<Character>() is Character c && !(c is Player));
+            Every("creature", creatures, "Health", "Attacks", "Weak spots", "Tameable", "Drops");
+            var shared = X.Catalog.Where(e => e.Kind == Kind.Item && Of(e)?.GetComponent<ItemDrop>()?.m_itemData?.m_shared != null)
+                .Select(e => (Entry: e, Type: Of(e).GetComponent<ItemDrop>().m_itemData.m_shared.m_itemType)).ToList();
+            bool Is(ItemDrop.ItemData.ItemType t, params ItemDrop.ItemData.ItemType[] types) => types.Contains(t);
+            Every("item", shared.Select(s => s.Entry), "Type", "Weight", "Portals");
+            Every("piece of armour", shared.Where(s => Is(s.Type, ItemDrop.ItemData.ItemType.Helmet, ItemDrop.ItemData.ItemType.Chest, ItemDrop.ItemData.ItemType.Legs, ItemDrop.ItemData.ItemType.Shoulder)).Select(s => s.Entry),
+                "Quality", "Durability", "Armour", "Movement", "Set bonus");
+            Every("weapon", shared.Where(s => Is(s.Type, ItemDrop.ItemData.ItemType.OneHandedWeapon, ItemDrop.ItemData.ItemType.TwoHandedWeapon, ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft, ItemDrop.ItemData.ItemType.Bow)).Select(s => s.Entry),
+                "Quality", "Durability", "Block", "Secondary attack");
+            var built = X.Catalog.Where(e => e.Kind == Kind.Piece && Of(e)?.GetComponent<Piece>()?.enabled == true && Knowledge.Tools.ToolsOf(e.Name).Count > 0);
+            Every("buildable piece", built, "Build cost|Built near", "Built with");
             yield break;
         }
 
