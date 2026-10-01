@@ -82,8 +82,8 @@ namespace Scry
         /// <summary>
         /// The same example as it stands from its generator: the generator at the origin and
         /// unturned, each room and door where it is from there, as a stage that holds the
-        /// generator's place shows it. The zone's box moves with it but keeps its size; a turned
-        /// site leaves it turned, so it is for the stage, not for a plan.
+        /// generator's place shows it, and its plan with it. The zone's box moves with it but keeps
+        /// its size; a turned site leaves it turned.
         /// </summary>
         public DungeonExample FromGenerator()
         {
@@ -159,26 +159,6 @@ namespace Scry
             enter = Math.Max(enter, Math.Min(a, b));
             leave = Math.Min(leave, Math.Max(a, b));
             return enter <= leave;
-        }
-
-        /// <summary>What a plan of it shows as seen from above: its zone's box and every room.</summary>
-        public (float MinX, float MaxX, float MinZ, float MaxZ) Extent()
-        {
-            var minX = Site.ZoneCenter.X - Site.ZoneSize.X / 2f;
-            var maxX = Site.ZoneCenter.X + Site.ZoneSize.X / 2f;
-            var minZ = Site.ZoneCenter.Z - Site.ZoneSize.Z / 2f;
-            var maxZ = Site.ZoneCenter.Z + Site.ZoneSize.Z / 2f;
-            foreach (var room in Rooms)
-            {
-                foreach (var corner in room.Corners())
-                {
-                    minX = Math.Min(minX, corner.X);
-                    maxX = Math.Max(maxX, corner.X);
-                    minZ = Math.Min(minZ, corner.Z);
-                    maxZ = Math.Max(maxZ, corner.Z);
-                }
-            }
-            return (minX, maxX, minZ, maxZ);
         }
     }
 

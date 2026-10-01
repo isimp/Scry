@@ -38,6 +38,33 @@ namespace Scry
         public static int ExampleRoomsShown => _exampleHolder != null ? _exampleNext : 0;
         public static int ExampleRoomsTotal => _exampleHolder != null && _examplePlaced != null ? _examplePlaced.Rooms.Count : 0;
 
+        /// <summary>The example as it stands on the stage, in its own space, for its plan; null before it is begun.</summary>
+        public static DungeonExample ExampleShown => _exampleHolder != null ? _examplePlaced : null;
+
+        /// <summary>Which way the camera looks over the example, as a yaw in the example's own space, for its plan to turn with the view.</summary>
+        public static float ExampleViewYaw
+        {
+            get
+            {
+                if (_exampleHolder == null || _camera == null) return 0f;
+                var space = _exampleHolder.transform;
+                var ahead = space.InverseTransformDirection(_camera.transform.forward);
+                // Looking straight down, what is ahead is what is up in the picture.
+                if (ahead.x * ahead.x + ahead.z * ahead.z < 0.01f) ahead = space.InverseTransformDirection(_camera.transform.up);
+                return Mathf.Atan2(ahead.x, ahead.z) * Mathf.Rad2Deg;
+            }
+        }
+
+        /// <summary>The floor opened over the example, as a height in its own space; null with the roof on, or while a dungeon's entrance is shown.</summary>
+        public static float? ExampleOpenFloor
+        {
+            get
+            {
+                if (_exampleHolder == null || !Cutting || _exampleIsDungeon && !_exampleHolder.activeSelf) return null;
+                return Floors[_cutLevel] - _exampleHolder.transform.localPosition.y;
+            }
+        }
+
         /// <summary>Whether the location shown is a dungeon whose example can be gone into.</summary>
         public static bool HasInside => _exampleHolder != null && _exampleIsDungeon;
 

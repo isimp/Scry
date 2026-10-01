@@ -6,15 +6,17 @@ namespace Scry
     /// <summary>
     /// The example layout of a location's dungeon or camp (<see cref="ExampleLayouts"/>): what it
     /// holds and a button for another under the details, and its plan in a corner of the stage,
-    /// as seen from above, north up: its zone's box, each room, the entrance marked, and the
-    /// doors. A room under the mouse, on the plan or on the stage, is lit on the plan and named,
-    /// and a click on it goes to its entry. The stage's *Plan* chip puts the plan away and back.
+    /// as seen from above, turned with the view and framed on its rooms (<see cref="ExamplePlan"/>):
+    /// each room, the entrance marked, and the doors; with a floor opened, that floor's rooms,
+    /// those below faintly. A room under the mouse, on the plan or on the stage, is lit on the
+    /// plan and named, and a click on it goes to its entry. The stage's *Plan* chip puts the plan
+    /// away and back.
     /// </summary>
     internal static partial class ScryPanel
     {
-        /// <summary>The example drawn, with its extent and its rooms from the lowest up, worked out once for it rather than every frame.</summary>
+        /// <summary>The example drawn, with its rooms from the lowest up and how wide they are any way round, worked out once for it rather than every frame.</summary>
         private static DungeonExample _planOf;
-        private static (float MinX, float MaxX, float MinZ, float MaxZ) _planExtent;
+        private static float _planWidest;
         private static readonly List<PlacedRoom> PlanRooms = new List<PlacedRoom>();
 
         /// <summary>The room of the example the mouse is on the stage over, lit on the plan too.</summary>
@@ -46,52 +48,59 @@ namespace Scry
         /// </summary>
         private static Rect PlanOverlay(Explorer explorer, Entry entry, Rect inner)
         {
-            var example = ExampleOf(entry);
+            // The example as the stage holds it, so the plan turns as the stage is looked at.
+            var example = ExampleOf(entry) != null ? Stage.ExampleShown : null;
             if (example == null || example.Rooms.Count == 0 || PlanFolded) return Rect.zero;
 
             if (_planOf != example)
             {
                 _planOf = example;
-                _planExtent = example.Extent();
                 PlanRooms.Clear();
                 PlanRooms.AddRange(example.BottomUp);
+                _planWidest = Mathf.Max(1f, ExamplePlan.Widest(PlanRooms));
             }
 
-            // The whole of it at one scale, as wide as a third of the stage and no taller than under half of it.
-            var extent = _planExtent;
-            var spanX = Mathf.Max(1f, extent.MaxX - extent.MinX);
-            var spanZ = Mathf.Max(1f, extent.MaxZ - extent.MinZ);
+            // At one scale whichever way it is turned: as wide as a third of the stage and no
+            // taller than under half of it, its box hugging its rooms as they are turned now.
+            var yaw = Stage.ExampleViewYaw;
+            var floor = Stage.ExampleOpenFloor;
+            var extent = ExamplePlan.Extent(PlanRooms, yaw);
             var pad = U(6f);
-            var most = new Vector2(Mathf.Min(inner.width * 0.34f, U(240f)), inner.height * 0.5f);
-            var scale = Mathf.Min((most.x - pad * 2f) / spanX, (most.y - pad * 2f) / spanZ);
+            var scale = (Mathf.Min(Mathf.Min(inner.width * 0.34f, U(240f)), inner.height * 0.5f) - pad * 2f) / _planWidest;
             if (scale <= 0f) return Rect.zero;
+            var size = new Vector2((extent.MaxRight - extent.MinRight) * scale + pad * 2f, (extent.MaxUp - extent.MinUp) * scale + pad * 2f);
             // Above the stage's line of hints along its bottom.
-            var area = new Rect(inner.x + U(8f), inner.yMax - U(34f) - (spanZ * scale + pad * 2f), spanX * scale + pad * 2f, spanZ * scale + pad * 2f);
-            Vector2 At(Vec3 p) => new Vector2(area.x + pad + (p.X - extent.MinX) * scale, area.y + pad + (extent.MaxZ - p.Z) * scale);
+            var area = new Rect(inner.x + U(8f), inner.yMax - U(34f) - size.y, size.x, size.y);
+            Vector2 At(Vec3 p)
+            {
+                var (right, up) = ExamplePlan.Turn(p.X, p.Z, yaw);
+                return new Vector2(area.x + pad + (right - extent.MinRight) * scale, area.y + pad + (extent.MaxUp - up) * scale);
+            }
 
             var e = Event.current;
             Skin.Box(area, new Color(Skin.Stage.r, Skin.Stage.g, Skin.Stage.b, 0.82f), Skin.Outline);
-            var site = example.Site;
-            var zoneMin = At(new Vec3(site.ZoneCenter.X - site.ZoneSize.X / 2f, 0f, site.ZoneCenter.Z + site.ZoneSize.Z / 2f));
-            PlanFrame(new Rect(zoneMin.x, zoneMin.y, site.ZoneSize.X * scale, site.ZoneSize.Z * scale), Skin.Outline, 1f);
 
             PlacedRoom hovered = null;
             if (area.Contains(e.mousePosition) && (_drag == Drag.None || _drag == Drag.Orbit))
             {
-                var x = extent.MinX + (e.mousePosition.x - area.x - pad) / scale;
-                var z = extent.MaxZ - (e.mousePosition.y - area.y - pad) / scale;
-                hovered = example.RoomAt(x, z);
+                var right = extent.MinRight + (e.mousePosition.x - area.x - pad) / scale;
+                var up = extent.MaxUp - (e.mousePosition.y - area.y - pad) / scale;
+                var (x, z) = ExamplePlan.Back(right, up, yaw);
+                hovered = ExamplePlan.RoomAt(PlanRooms, x, z, floor);
             }
 
             foreach (var room in PlanRooms)
             {
-                var lit = room == hovered || (hovered == null && _stageRoom != null && _stageRoom == room.Room.Name);
-                PlanRoom(room, At(room.Position), scale, lit);
+                var shown = ExamplePlan.Shown(room, floor);
+                if (shown == PlanRoomShown.None) continue;
+                var lit = shown == PlanRoomShown.Whole && (room == hovered || (hovered == null && _stageRoom != null && _stageRoom == room.Room.Name));
+                PlanRoom(room, At(room.Position), scale, yaw, lit, shown == PlanRoomShown.Faint);
             }
             if (e.type == EventType.Repaint) PlansDrawn++;
             var door = Mathf.Max(U(2f), 0.8f * scale);
             foreach (var at in example.Doors)
             {
+                if (!ExamplePlan.DoorShown(at, floor)) continue;
                 var p = At(at);
                 Skin.Fill(new Rect(p.x - door / 2f, p.y - door / 2f, door, door), new Color(Skin.Accent.r, Skin.Accent.g, Skin.Accent.b, 0.85f));
             }
@@ -118,20 +127,23 @@ namespace Scry
             return area;
         }
 
-        /// <summary>A room's floor, turned as it is: the entrance in the accent colour, end caps, dividers and walls fainter.</summary>
-        private static void PlanRoom(PlacedRoom room, Vector2 centre, float scale, bool hovered)
+        /// <summary>
+        /// A room's floor, turned as it is and as the view is: the entrance in the accent colour,
+        /// end caps, dividers and walls fainter, and one below the floor opened faint, unframed.
+        /// </summary>
+        private static void PlanRoom(PlacedRoom room, Vector2 centre, float scale, float yaw, bool hovered, bool below)
         {
             var shape = room.Room;
             var w = Mathf.Max(U(2f), shape.Size.X * scale);
             var h = Mathf.Max(U(2f), shape.Size.Z * scale);
             var tone = shape.Entrance ? Skin.Accent : shape.EndCap || shape.Divider ? Skin.Faint : Skin.KindColor(Kind.Location);
-            var fill = new Color(tone.r, tone.g, tone.b, shape.EndCap || shape.Divider ? 0.3f : hovered ? 0.7f : 0.4f);
+            var fill = new Color(tone.r, tone.g, tone.b, below ? 0.12f : shape.EndCap || shape.Divider ? 0.3f : hovered ? 0.7f : 0.4f);
 
             var was = GUI.matrix;
-            GUIUtility.RotateAroundPivot(room.Rotation.YawDegrees, centre);
+            GUIUtility.RotateAroundPivot(room.Rotation.YawDegrees - yaw, centre);
             var rect = new Rect(centre.x - w / 2f, centre.y - h / 2f, w, h);
             Skin.Fill(rect, fill);
-            PlanFrame(rect, hovered ? Skin.Accent : new Color(Skin.Text.r, Skin.Text.g, Skin.Text.b, 0.35f), hovered ? 2f : 1f);
+            if (!below) PlanFrame(rect, hovered ? Skin.Accent : new Color(Skin.Text.r, Skin.Text.g, Skin.Text.b, 0.35f), hovered ? 2f : 1f);
             GUI.matrix = was;
         }
 

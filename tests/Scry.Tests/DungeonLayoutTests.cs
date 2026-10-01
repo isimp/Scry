@@ -534,16 +534,5 @@ namespace Scry.Tests
             Assert.Same(high, example.RoomAt(0f, 0f));
             Assert.Null(example.RoomAt(5f, 5f));
         }
-
-        [Fact]
-        public void ThePlanTakesInTheZoneAndEveryRoom()
-        {
-            var outside = new PlacedRoom { Room = new RoomShape { Size = new Vec3(4f, 4f, 4f) }, Position = new Vec3(40f, 0f, 0f), Rotation = Quat.Identity };
-            var example = new DungeonExample { Site = Site(), Rooms = { outside } };
-
-            var extent = example.Extent();
-
-            Assert.Equal((-32f, 42f, -32f, 32f), (extent.MinX, extent.MaxX, extent.MinZ, extent.MaxZ));
-        }
     }
 }
