@@ -135,8 +135,13 @@ namespace Scry
             return false;
         }
 
-        /// <summary>The floors from the top down from what each patch of rays found, and the ground they were cast over.</summary>
-        public static List<float> Floors(IEnumerable<FloorPatch> patches, float footprint)
+        /// <summary>
+        /// The floors from the top down from what each patch of rays found, and the ground they
+        /// were cast over. With <paramref name="storey"/>, ground less than that below the next,
+        /// step after step, is one floor, at the ground with the most room (an example's rooms,
+        /// <see cref="PlaceView.Storey"/>).
+        /// </summary>
+        public static List<float> Floors(IEnumerable<FloorPatch> patches, float footprint, float storey = 0f)
         {
             var least = Math.Max(MinRoom, footprint * MinShare);
             var total = new Dictionary<int, FloorPatch.Band>();
@@ -160,6 +165,26 @@ namespace Scry
                 var band = pair.Value;
                 if (!band.Landed || band.Count == 0 || band.Room < least) continue;
                 candidates.Add((pair.Key, band.Room, (float)(band.Sum / band.Count)));
+            }
+
+            // Ground stepping down less than a storey at a time: the one with the most room stands for it.
+            if (candidates.Count > 1)
+            {
+                var steps = candidates.OrderByDescending(c => c.Height).ToList();
+                var kept = new List<(int Band, float Room, float Height)>();
+                var best = steps[0];
+                for (var i = 1; i < steps.Count; i++)
+                {
+                    if (steps[i - 1].Height - steps[i].Height < storey)
+                    {
+                        if (steps[i].Room > best.Room) best = steps[i];
+                        continue;
+                    }
+                    kept.Add(best);
+                    best = steps[i];
+                }
+                kept.Add(best);
+                candidates = kept;
             }
 
             // The floors with the most room first, each unless one taken is too near it.

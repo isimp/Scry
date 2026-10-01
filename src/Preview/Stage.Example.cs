@@ -166,6 +166,19 @@ namespace Scry
             }
         }
 
+        /// <summary>Whether every room of the example stands or is put away as the floor opened has it, for the self-test.</summary>
+        public static bool ExampleRoomsKept
+        {
+            get
+            {
+                foreach (var pair in ExampleCopies)
+                {
+                    if (pair.Value != null && pair.Value.activeSelf != (ExampleRoomShown(pair.Key) == PlanRoomShown.Whole)) return false;
+                }
+                return true;
+            }
+        }
+
         /// <summary>How many of the example's rooms are put away, off the floor opened, for the self-test.</summary>
         public static int ExampleRoomsAway
         {
@@ -185,10 +198,12 @@ namespace Scry
                 var floor = ExampleOpenFloor;
                 if (floor == null || _examplePlaced == null) return -1;
                 if (_countedAt == Time.frameCount && _countedFloor == floor) return _countedRooms;
+                // A room by its box or its own ground; an end cap or divider only by ground of its own there.
                 var count = 0;
                 foreach (var room in _examplePlaced.Rooms)
                 {
-                    if (!room.Room.EndCap && !room.Room.Divider && OnFloor(room, floor.Value)) count++;
+                    if (RoomGround.TryGetValue(room, out var ground) && FloorHolds(ground, floor.Value)) count++;
+                    else if (!room.Room.EndCap && !room.Room.Divider && ExamplePlan.Shown(room, floor) == PlanRoomShown.Whole) count++;
                 }
                 _countedAt = Time.frameCount;
                 _countedFloor = floor;
@@ -268,7 +283,7 @@ namespace Scry
         /// <summary>The example's floors: found in its rooms, or where their doorways are while none are found.</summary>
         private static List<float> ExampleFloorsNow()
         {
-            var found = FloorFinder.Floors(ExamplePatches, _exampleGround);
+            var found = FloorFinder.Floors(ExamplePatches, _exampleGround, PlaceView.Storey);
             return found.Count > 0 ? found : PlaceView.ExampleFloors(_examplePlaced);
         }
 

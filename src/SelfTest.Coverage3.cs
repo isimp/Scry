@@ -174,7 +174,7 @@ namespace Scry
                 for (var level = 0; level < Stage.FloorHeights.Count; level++)
                 {
                     Stage.OpenLevel(level);
-                    yield return Until(() => Stage.ExampleRoomsAway < Stage.ExampleRoomsShown, 2);
+                    yield return Until(() => Stage.ExampleRoomsKept, 5);
                     var rooms = Stage.ExampleRoomsOnFloor;
                     told.Add($"{Stage.FloorHeights[level]:0.0} m, {rooms} rooms, {Stage.ExampleRoomsShown - Stage.ExampleRoomsAway} standing");
                     if (rooms == 0) empty.Add($"{entry.Name} at {Stage.FloorHeights[level]:0.0} m");

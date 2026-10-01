@@ -13,6 +13,13 @@ namespace Scry
         /// <summary>Doorways closer in height than this are on one floor: a step or a slope, not a storey.</summary>
         public const float SameFloor = 2f;
 
+        /// <summary>
+        /// How far apart an example's floors stand at the least: a dungeon's rooms are a storey
+        /// each, so ground less than this below the next, step after step (a cave's slope, a
+        /// raised floor), is one floor.
+        /// </summary>
+        public const float Storey = 3f;
+
         /// <summary>How far under the floor above the cut stays, to take that floor away whole.</summary>
         public const float UnderFloorAbove = 0.6f;
 

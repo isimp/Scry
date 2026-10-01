@@ -178,6 +178,29 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AnExamplesGroundSteppingDownLessThanAStoreyAtATimeIsOneFloor()
+        {
+            // A cave's ground at -3.2, -5.7 and -7.8 m, each less than a storey below the last, is
+            // one floor, at the one with the most room; a chamber far below is a floor of its own.
+            var rooms = new List<FloorPatch>
+            {
+                FloorFinder.Patch(Patch(0, 0, 12, 12, -3.2f, patch: 0)),
+                FloorFinder.Patch(Patch(0, 0, 20, 20, -5.7f, patch: 1)),
+                FloorFinder.Patch(Patch(0, 0, 12, 12, -7.8f, patch: 2)),
+                FloorFinder.Patch(Patch(0, 0, 12, 12, -41.5f, patch: 3)),
+            };
+            var footprint = 4 * 20 * 20 * Cell;
+
+            Assert.Equal(new[] { -5.7f, -41.5f }, FloorFinder.Floors(rooms, footprint, PlaceView.Storey));
+            // Without it, each is a floor of its own.
+            Assert.Equal(4, FloorFinder.Floors(rooms, footprint).Count);
+
+            // A tower's storeys, a storey or more apart, stay floors of their own.
+            var tower = new[] { 0f, 7f, 15f }.Select((h, i) => FloorFinder.Patch(Patch(0, 0, 12, 12, h, patch: i))).ToList();
+            Assert.Equal(new[] { 15f, 7f, 0f }, FloorFinder.Floors(tower, 3 * 12 * 12 * Cell, PlaceView.Storey));
+        }
+
+        [Fact]
         public void NothingHitIsNoFloor()
         {
             Assert.Empty(FloorFinder.Floors(new List<FloorHit>(), 100f));
