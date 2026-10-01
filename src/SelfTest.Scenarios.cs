@@ -46,6 +46,7 @@ namespace Scry
             yield return S("tame creatures tell how they breed and are ridden, their young where they come from and what they grow into", BreedingFacts, 10);
             yield return S("fish tell their baits, doors their keys, and bosses and trophies their Forsaken powers, each both ways", BaitsKeysPowers, 10);
             yield return S("pieces tell where they may be placed, stations their reach, upgrades their station, areas what they do, and beds what they need", BuildingRules, 10);
+            yield return S("ballistas, traps, ships, carts and catapults tell what they do", MachineFacts, 10);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
             yield return S("items, stations, smelters and beds tell what they are for", WhatThingsTell, 10);
@@ -631,6 +632,35 @@ namespace Scry
             p.Check(bosses.Count > 0 && unpowered.Count == 0, "every one names its power", string.Join(", ", unpowered));
             var trophy = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && Knowledge.PowerOf(e.Name).Power != null);
             if (trophy != null) p.Check(Value(Facts.For(trophy), "On its boss stone") != null, $"{trophy.Name} names the power it gives on its boss stone");
+            yield break;
+        }
+
+        /// <summary>Each kind of machine, the first of it in the catalog, tells what it does.</summary>
+        private static IEnumerator MachineFacts(Probe p)
+        {
+            GameObject Of(Entry e) => e.Source as GameObject;
+            var all = X.Catalog.Where(e => Of(e) != null).OrderBy(e => e.Name, StringComparer.Ordinal).ToList();
+            var cases = new (string What, Func<GameObject, bool> Has, string Label)[]
+            {
+                ("a ballista", g => g.GetComponent<Turret>() != null, "Shoots"),
+                ("a trap", g => g.GetComponent<Trap>() != null, "Springs on"),
+                ("a ship", g => g.GetComponent<Ship>() != null, "Ashlands seas"),
+                ("a cart", g => g.GetComponent<Vagon>() != null, "Weighs"),
+                ("a catapult", g => g.GetComponent<Catapult>() != null, "Loads"),
+            };
+            foreach (var (what, has, label) in cases)
+            {
+                var found = all.Where(e => has(Of(e))).ToList();
+                if (found.Count == 0)
+                {
+                    p.Note($"no {what} in this game");
+                    continue;
+                }
+                var told = Facts.For(found[0]);
+                var value = Value(told, label);
+                p.Check(value != null, $"{found[0].Name}, {what} ({found.Count} such), tells it under {label}", value ?? "not told");
+                p.Note($"{found[0].Name}: {Pairs(told)}");
+            }
             yield break;
         }
 

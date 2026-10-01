@@ -227,6 +227,8 @@ namespace Scry
             var powerEffect = power != null && ObjectDB.instance != null ? ObjectDB.instance.GetStatusEffect(power.GetStableHashCode()) : null;
             if (powerEffect != null) Add("On its boss stone", $"gives {EffectName(powerEffect)}", "se:" + power);
 
+            Part("machines", () => Machines(prefab));
+
             // What its areas do: warmth, a base, no monsters and the rest (EffectArea).
             Part("areas", () =>
             {
