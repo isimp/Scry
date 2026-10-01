@@ -85,7 +85,7 @@ namespace Scry
                 {
                     var asleep = !_exampleHolder.activeSelf;
                     if (asleep) _exampleHolder.SetActive(true);
-                    _exampleRays += FloorProbe.Read(copy, _subject.transform, _layer, ExampleHits);
+                    _exampleGround += FloorProbe.Read(copy, _subject.transform, _layer, ExampleHits, _exampleCopies);
                     if (asleep) _exampleHolder.SetActive(false);
                 }
                 Tune(copy, audible: false);
@@ -108,18 +108,18 @@ namespace Scry
             _exampleNext = 0;
             _exampleCopies = 0;
             ExampleHits.Clear();
-            _exampleRays = 0;
+            _exampleGround = 0f;
             OutsideParts.Clear();
         }
 
-        /// <summary>Where the example's rays landed, as heights above the place's root, and how many were cast (<see cref="FloorProbe"/>).</summary>
-        private static readonly List<float> ExampleHits = new List<float>();
-        private static int _exampleRays;
+        /// <summary>Where the example's rays landed, as heights above the place's root, each room a patch of its own, and the ground they were cast over (<see cref="FloorProbe"/>).</summary>
+        private static readonly List<FloorHit> ExampleHits = new List<FloorHit>();
+        private static float _exampleGround;
 
         /// <summary>The example's floors: found in its rooms, or where their doorways are while none are found.</summary>
         private static List<float> ExampleFloorsNow()
         {
-            var found = FloorFinder.Floors(ExampleHits, _exampleRays);
+            var found = FloorFinder.Floors(ExampleHits, _exampleGround);
             return found.Count > 0 ? found : PlaceView.ExampleFloors(_examplePlaced);
         }
 

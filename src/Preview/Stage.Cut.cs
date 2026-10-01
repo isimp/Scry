@@ -140,8 +140,8 @@ namespace Scry
         /// </summary>
         private static List<float> FloorsOf(GameObject copy, PlaceSource place)
         {
-            var hits = new List<float>();
-            var found = FloorFinder.Floors(hits, FloorProbe.Read(copy, copy.transform, _layer, hits));
+            var hits = new List<FloorHit>();
+            var found = FloorFinder.Floors(hits, FloorProbe.Read(copy, copy.transform, _layer, hits, 0));
             if (place.IsRoom) return found.Count > 0 ? found : PlaceView.RoomFloors(place.Contents?.Room);
             return PlaceView.WithGround(found);
         }
