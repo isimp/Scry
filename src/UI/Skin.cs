@@ -34,7 +34,7 @@ namespace Scry
         public static GUIStyle RowName, RowSub, Glyph, Center, CenterDim;
         public static GUIStyle Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close;
         public static GUIStyle Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross;
-        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize;
+        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof;
 
         private static float _builtScale = -1f;
         private static bool _warmed;
@@ -550,6 +550,15 @@ namespace Scry
             ListMark = Shape(32, 32, ListCoverage);
             Speaker = Shape(32, 32, SpeakerCoverage);
             Resize = Shape(32, 32, ResizeCoverage);
+            Roof = Shape(32, 32, RoofCoverage);
+        }
+
+        /// <summary>A house: a roof over its walls, a door in them.</summary>
+        private static bool RoofCoverage(float x, float y)
+        {
+            if (y >= 16f && y <= 28f && Mathf.Abs(x - 16f) <= (28f - y) * 1.15f) return true;
+            if (x < 8f || x > 24f || y < 4f || y >= 16f) return false;
+            return !(x >= 13.5f && x <= 18.5f && y <= 11f);
         }
 
         /// <summary>A speaker: its box, its cone opening to the right, and two arcs of sound.</summary>

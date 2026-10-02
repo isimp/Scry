@@ -777,7 +777,7 @@ namespace Scry
         private static IEnumerator TerrainMaterial(Probe p)
         {
             var ground = Player.m_localPlayer != null ? Heightmap.FindHeightmap(Player.m_localPlayer.transform.position) : null;
-            if (ground == null) ground = UnityEngine.Object.FindObjectOfType<Heightmap>();
+            if (ground == null) ground = UnityEngine.Object.FindAnyObjectByType<Heightmap>();
             if (!p.Check(ground != null && ground.m_material != null, "the world's ground has a material")) yield break;
             var material = ground.m_material;
             var textures = material.GetTexturePropertyNames()
@@ -1324,6 +1324,14 @@ namespace Scry
             if (algorithm == "Dungeon")
             {
                 p.Check(Stage.HasInside && Stage.Inside, "it shows the dungeon inside");
+
+                // Its row holds only View, Inside and Creatures; the roof is over the ruler.
+                var chips = ScryPanel.StageChipsDrawn;
+                var roofs = ScryPanel.RoofButtonsDrawn;
+                var frames = Time.frameCount;
+                yield return Until(() => Time.frameCount > frames + 1 && ScryPanel.RoofButtonsDrawn > roofs, 3);
+                var perFrame = (ScryPanel.StageChipsDrawn - chips) / Mathf.Max(1, ScryPanel.RoofButtonsDrawn - roofs);
+                p.Check(perFrame > 0 && perFrame <= 3 && ScryPanel.RoofButtonsDrawn > roofs, "its stage shows three chips at the most, the roof over its ruler", $"{perFrame} chips a frame");
                 p.Check(Stage.Cutting, "opened on its top floor", Stage.CutLabel);
                 var cuts = new List<float> { Stage.CutAt };
                 while (Stage.CutLevel < Stage.FloorHeights.Count - 1 && cuts.Count < 40)
@@ -1370,6 +1378,12 @@ namespace Scry
             p.Check(missing.Count == 0, "every room on it has an entry to go to", string.Join(", ", missing.Take(5)));
 
             // Its plan in the stage's corner draws its rooms.
+            ScryPanel.PlanFolded = false;
+            // Folded, the plan leaves a tab that brings it back.
+            var tabs = ScryPanel.PlanTabsDrawn;
+            ScryPanel.PlanFolded = true;
+            yield return Until(() => ScryPanel.PlanTabsDrawn > tabs, 3);
+            p.Check(ScryPanel.PlanTabsDrawn > tabs, "folded, the plan leaves a tab to bring it back");
             ScryPanel.PlanFolded = false;
             var drawn = ScryPanel.PlansDrawn;
             yield return Until(() => ScryPanel.PlansDrawn > drawn, 3);

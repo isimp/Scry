@@ -29,6 +29,9 @@ namespace Scry
             _stageFrame = Time.frameCount;
         }
 
+        /// <summary>How many times the roof button over the ruler has been drawn, for the self-test.</summary>
+        public static int RoofButtonsDrawn { get; private set; }
+
         private static void FloorRuler(Rect stage)
         {
             var floors = Stage.FloorHeights;
@@ -39,6 +42,17 @@ namespace Scry
             var w = U(16f);
             var top = stage.y + U(80f);
             var rect = new Rect(stage.xMax - w - U(10f), top, w, Mathf.Max(U(60f), stage.yMax - U(44f) - top));
+            // The roof over the ruler: lit while it is on, a click takes it off or puts it back.
+            var roof = new Rect(rect.center.x - U(11f), rect.y - U(30f), U(22f), U(22f));
+            var roofOver = roof.Contains(e.mousePosition);
+            if (e.type == EventType.Repaint)
+            {
+                Skin.Icon(roof, Skin.Roof, !Stage.Cutting ? Skin.Accent : roofOver ? Skin.Text : Skin.Dim);
+                RoofButtonsDrawn++;
+            }
+            if (roofOver) AskTip("roof", Stage.Cutting ? "Cut open over a floor: click to put the roof back on" : "Roof on: click to take it off, cutting away what is above head height over a floor");
+            if (GUI.Button(roof, GUIContent.none, GUIStyle.none)) Stage.ToggleRoof();
+
             var low = Mathf.Min(floors[floors.Count - 1], Stage.ModelBottom) - 0.5f;
             var high = Mathf.Max(cuts[0], Stage.ModelTop) + 1f;
             _rulerLow = low;

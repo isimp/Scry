@@ -22,10 +22,11 @@ namespace Scry
         /// <summary>The room of the example the mouse is on the stage over, lit on the plan too.</summary>
         private static string _stageRoom;
 
-        /// <summary>How many times a plan's rooms have been drawn, for the self-test to see the plan draws.</summary>
+        /// <summary>How many times a plan's rooms have been drawn, and its tab while folded, for the self-test to see them draw.</summary>
         public static int PlansDrawn { get; private set; }
+        public static int PlanTabsDrawn { get; private set; }
 
-        /// <summary>Whether the plan is put away; setting it is remembered, as the stage's chip is.</summary>
+        /// <summary>Whether the plan is put away, by the fold on it, and brought back by its tab; remembered.</summary>
         public static bool PlanFolded
         {
             get => IsFolded("plan");
@@ -50,7 +51,19 @@ namespace Scry
         {
             // The example as the stage holds it, so the plan turns as the stage is looked at.
             var example = ExampleOf(entry) != null ? Stage.ExampleShown : null;
-            if (example == null || example.Rooms.Count == 0 || PlanFolded) return Rect.zero;
+            if (example == null || example.Rooms.Count == 0) return Rect.zero;
+            var e = Event.current;
+
+            // Folded, a small tab where it stands, which brings it back.
+            if (PlanFolded)
+            {
+                var tabW = Skin.Width(Skin.Chip, "Plan") + U(4f);
+                var tab = new Rect(inner.x + U(8f), inner.yMax - U(34f) - U(22f), tabW, U(22f));
+                if (tab.Contains(e.mousePosition)) AskTip("plan:tab", "Shows the example's plan");
+                if (e.type == EventType.Repaint) PlanTabsDrawn++;
+                if (GUI.Button(tab, "Plan", Skin.Chip)) PlanFolded = false;
+                return tab;
+            }
 
             if (_planOf != example)
             {
@@ -77,8 +90,21 @@ namespace Scry
                 return new Vector2(area.x + pad + (right - extent.MinRight) * scale, area.y + pad + (extent.MaxUp - up) * scale);
             }
 
-            var e = Event.current;
             Skin.Box(area, new Color(Skin.Stage.r, Skin.Stage.g, Skin.Stage.b, 0.82f), Skin.Outline);
+
+            // Its fold, in its top right corner.
+            var fold = new Rect(area.xMax - U(18f), area.y + U(2f), U(16f), U(16f));
+            if (fold.Contains(e.mousePosition))
+            {
+                AskTip("plan:fold", "Puts the plan away");
+                if (e.type == EventType.MouseDown && e.button == 0)
+                {
+                    PlanFolded = true;
+                    e.Use();
+                    return area;
+                }
+            }
+            if (e.type == EventType.Repaint) GUI.Label(fold, "\u2013", fold.Contains(e.mousePosition) ? Skin.Label : Skin.DimLabel);
 
             PlacedRoom hovered = null;
             if (area.Contains(e.mousePosition) && (_drag == Drag.None || _drag == Drag.Orbit))

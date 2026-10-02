@@ -831,8 +831,12 @@ namespace Scry
         private static void KeepWorldLightsOff(int mask)
         {
             WorldLights.Clear();
+            // Unity marks it old but still answers it from its own list of lights, without the
+            // search through the scene that it suggests in its place, which a frame cannot afford.
+#pragma warning disable CS0618
             KeepOff(Light.GetLights(LightType.Directional, _layer), mask);
             if (CreatureLayer != _layer) KeepOff(Light.GetLights(LightType.Directional, CreatureLayer), mask);
+#pragma warning restore CS0618
         }
 
         private static void KeepOff(Light[] lights, int mask)

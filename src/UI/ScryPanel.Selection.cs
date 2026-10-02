@@ -893,15 +893,6 @@ namespace Scry
             return UnsureWords.IsSureClue(entry.ModClue) ? "added by " + entry.ModName : UnsureWords.Marked("added by " + entry.ModName);
         }
 
-        private static readonly Dictionary<(string, string), string> ChipLabels = new Dictionary<(string, string), string>();
-
-        /// <summary>A chip's text that says what it is ("Light: Studio"), made once for each choice.</summary>
-        private static string Labelled(string prefix, string[] names, int index)
-        {
-            var name = names[index];
-            if (!ChipLabels.TryGetValue((prefix, name), out var label)) ChipLabels[(prefix, name)] = label = prefix + name;
-            return label;
-        }
 
         /// <summary>
         /// Front, side and top views and a fit, in the stage's bottom right corner. Picking a view
@@ -932,7 +923,12 @@ namespace Scry
             return inner.xMax - U(8f) - x;
         }
 
-        /// <summary>The person for size, the lighting and the backdrop, in the stage's top right corner.</summary>
+        /// <summary>
+        /// The stage's chips in its top right corner: View, for the spin, backdrop, lighting and
+        /// person (<see cref="ViewRows"/>), and what a place shown has to show or not, its
+        /// example inside or its entrance, and its creatures. Its roof is put on and taken off
+        /// above the ruler, and its plan folds on the plan itself.
+        /// </summary>
         private const string StageHint = "Drag to turn, right-drag to move, scroll to zoom where you point, double-click to reset";
         private const string StageHintCut = "Drag to turn, right-drag to move, scroll to zoom where you point, Page Up/Down or the ruler for floors, Shift-scroll to move the cut";
 
@@ -942,30 +938,24 @@ namespace Scry
             var y = rect.y + U(10f);
             var x = rect.xMax - U(10f);
 
-            // Everything the row will hold, measured first, so it can move clear of the kind badge.
-            var backdrop = Labelled("Backdrop: ", Stage.BackdropNames, Stage.BackdropIndex);
-            var lighting = Labelled("Light: ", Stage.LightingNames, Stage.LightingIndex);
-            var texts = new List<string> { backdrop, lighting, "Spin" };
-            if (!Looks.IsWorn(entry)) texts.Add("Person");
-            if (Stage.HasFloors)
-            {
-                texts.Add(Stage.CutLabel);
-                texts.Add("\u25B2");
-                texts.Add("\u25BC");
-            }
+            // Everything the row will hold, measured first, so it can move clear of the kind badge:
+            // the View chip, and what the place shown has to show or not.
+            var texts = new List<string> { "View" };
             if (Stage.HasInside) texts.Add(Stage.Inside ? "Inside" : "Outside");
-            if (ExampleOf(entry) != null) texts.Add("Plan");
             if (Stage.HasCreatures) texts.Add("Creatures");
             var total = texts.Sum(t => Skin.Width(Skin.Chip, t) + U(10f));
             if (x - total < rect.x + U(10f) + _badgeWidth + U(10f)) y += h + U(8f);
 
+            Rect last = default;
             bool Chip(string text, bool on, string tip, bool can = true)
             {
                 var style = on ? Skin.ChipOn : Skin.Chip;
                 var w = Skin.Width(style, text) + U(4f);
                 x -= w;
                 var chip = new Rect(x, y, w, h);
+                last = chip;
                 x -= U(6f);
+                if (Event.current.type == EventType.Repaint) StageChipsDrawn++;
                 if (chip.Contains(Event.current.mousePosition)) AskTip("stage:" + tip, tip);
                 var enabled = GUI.enabled;
                 GUI.enabled = enabled && can;
@@ -974,30 +964,10 @@ namespace Scry
                 return clicked && can;
             }
 
-            if (Chip("Spin", Stage.Spin, Stage.Spin ? "Turning; click to hold it still" : "Held still; click to turn it"))
-            {
-                Stage.Spin = !Stage.Spin;
-                SaveRects();
-            }
-            if (Chip(backdrop, false, "Click for the next backdrop"))
-            {
-                Stage.BackdropIndex = (Stage.BackdropIndex + 1) % Stage.BackdropNames.Length;
-                SaveRects();
-            }
-            if (Chip(lighting, false, "Click for the next lighting"))
-            {
-                Stage.LightingIndex = (Stage.LightingIndex + 1) % Stage.LightingNames.Length;
-                SaveRects();
-            }
-            if (!Looks.IsWorn(entry) && Chip("Person", Stage.ShowPerson, "A person beside it, to judge its size"))
-            {
-                Stage.ShowPerson = !Stage.ShowPerson;
-                SaveRects();
-            }
-            if (ExampleOf(entry) != null && Chip("Plan", !PlanFolded, PlanFolded ? "Shows the example's plan in the stage's corner" : "Puts the example's plan away"))
-            {
-                PlanFolded = !PlanFolded;
-            }
+            // How it is seen, set and mostly left, in a box of its own.
+            var viewing = _viewOpen && _viewFor == entry;
+            if (Chip("View", viewing, "How it is seen: spin, backdrop, lighting and a person for size")) ViewToggle(entry, new Rect(GUIUtility.GUIToScreenPoint(last.position), last.size));
+            else if (viewing) ViewPlace(entry, new Rect(GUIUtility.GUIToScreenPoint(last.position), last.size));
             if (Stage.HasCreatures && Chip("Creatures", Stage.CreaturesShown,
                     Stage.CreaturesShown ? "Puts away the creatures its spawn points put here" : "Shows the creatures its spawn points put here, rolled anew with every copy"))
             {
@@ -1009,16 +979,9 @@ namespace Scry
             {
                 Stage.Inside = !Stage.Inside;
             }
-            if (Stage.HasFloors)
-            {
-                if (Chip(Stage.CutLabel, Stage.Cutting, Stage.Cutting ? "Cut open above head height over a floor; click to put the roof back on" : "Click to take the roof off, cutting away what is above head height over a floor"))
-                {
-                    Stage.ToggleRoof();
-                }
-                var floors = Stage.FloorHeights.Count;
-                if (Chip("\u25BC", false, "A floor down (Page Down over the stage)", !Stage.Cutting || Stage.CutLevel < floors - 1)) Stage.StepCut(true);
-                if (Chip("\u25B2", false, "A floor up, then the roof back on (Page Up over the stage)", Stage.Cutting)) Stage.StepCut(false);
-            }
         }
+
+        /// <summary>How many chips the stage's row has drawn, for the self-test to count them.</summary>
+        public static int StageChipsDrawn { get; private set; }
     }
 }
