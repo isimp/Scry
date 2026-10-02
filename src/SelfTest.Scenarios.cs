@@ -49,6 +49,7 @@ namespace Scry
             yield return S("ballistas, traps, ships, carts and catapults tell what they do", MachineFacts, 10);
             yield return S("a creature whose defeat sets a world key tells what then follows", AfterDefeat, 10);
             yield return S("each biome has a page of its weathers, music and what is there, and every biome named has one", BiomePages, 10);
+            yield return S("the ground is drawn with the terrain's own material", TerrainMaterial, 5);
             yield return S("what Scry is not sure of is marked with why, and what it read from the game is not", UnsureMarks, 10);
             yield return S("resistances show as a grid of every damage type on every creature, piece and rock", ResistanceGrids, 10);
             yield return S("every creature, piece of gear and buildable piece shows its standard rows, saying none where it has none", StandardRows, 20);
@@ -767,6 +768,24 @@ namespace Scry
         /// Every biome is an entry whose page tells its weathers and what lives there; every biome
         /// an entry names has a page to go to; a biome's music plays and stops.
         /// </summary>
+        /// <summary>
+        /// What the world's ground is drawn with (Heightmap.m_material): its shader and every
+        /// texture it takes, by name, for laying a biome's ground under the stage.
+        /// </summary>
+        private static IEnumerator TerrainMaterial(Probe p)
+        {
+            var ground = Player.m_localPlayer != null ? Heightmap.FindHeightmap(Player.m_localPlayer.transform.position) : null;
+            if (ground == null) ground = UnityEngine.Object.FindObjectOfType<Heightmap>();
+            if (!p.Check(ground != null && ground.m_material != null, "the world's ground has a material")) yield break;
+            var material = ground.m_material;
+            var textures = material.GetTexturePropertyNames()
+                .Select(name => { var texture = material.GetTexture(name); return $"{name}: {(texture != null ? $"{texture.name} ({texture.GetType().Name}, {texture.width}x{texture.height})" : "none")}"; });
+            p.Note($"shader {(material.shader != null ? material.shader.name : "none")}; textures {string.Join("; ", textures)}");
+            var colours = new[] { "_Color", "_GrassColor", "_ForestColor", "_SwampColor", "_MountainColor", "_PlainsColor", "_MistlandsColor", "_AshlandsColor", "_DeepNorthColor" }.Where(material.HasProperty).Select(name => $"{name} {material.GetColor(name)}");
+            p.Note("colours " + string.Join("; ", colours));
+            yield break;
+        }
+
         private static IEnumerator BiomePages(Probe p)
         {
             var biomes = X.Catalog.Where(e => e.Kind == Kind.Biome).ToList();
@@ -1115,7 +1134,8 @@ namespace Scry
             }
             var before = Stage.Subject;
             Previews.Rebuild();
-            yield return null;
+            // Made over a few frames, as every location is.
+            yield return Until(() => Stage.Subject != null && Stage.Subject != before, 10);
             p.Check(Stage.Subject != null && Stage.Subject != before, "Roll again makes a new copy");
         }
 

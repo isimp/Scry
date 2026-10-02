@@ -193,7 +193,8 @@ namespace Scry
         /// </summary>
         private static IEnumerator PlaceCreatures(Probe p)
         {
-            var place = X.Catalog.Where(e => PlaceOf(e) != null && !PlaceOf(e).IsRoom && PlaceOf(e).Contents?.Dungeon == null && PlaceOf(e).Contents?.Creatures.Count > 0)
+            // One with a creature always there, so the first roll brings one.
+            var place = X.Catalog.Where(e => PlaceOf(e) != null && !PlaceOf(e).IsRoom && PlaceOf(e).Contents?.Dungeon == null && PlaceOf(e).Contents.Creatures.Any(c => c.Chance >= 0.999f))
                 .OrderBy(e => e.Name, StringComparer.Ordinal).FirstOrDefault();
             if (place == null) p.Skip("no location read puts creatures there");
             var shown = Stage.CreaturesShown;
