@@ -268,7 +268,7 @@ namespace Scry
 
         private static float? _seekWhilePaused;
 
-        /// <summary>A point sought while paused, set again as the sound goes on until the clip is there, for half a second at most.</summary>
+        /// <summary>A point sought while paused, set again as the sound goes on until the clip is there, for a second at most.</summary>
         private static float? _seekOnGoing;
         private static float _seekOnGoingUntil;
 
@@ -283,8 +283,18 @@ namespace Scry
                 return;
             }
             if (!source.isPlaying) return;
-            if (source.time + 0.1f < _seekOnGoing.Value) source.time = _seekOnGoing.Value;
+            if (source.time + 0.1f < _seekOnGoing.Value) SetPoint(source, _seekOnGoing.Value);
             else _seekOnGoing = null;
+        }
+
+        /// <summary>Sets where a source plays from, by its samples as well as its time: a streamed clip may keep only the one.</summary>
+        private static void SetPoint(AudioSource source, float time)
+        {
+            source.time = time;
+            if (source.clip != null && source.clip.frequency > 0)
+            {
+                source.timeSamples = Mathf.Clamp(Mathf.RoundToInt(time * source.clip.frequency), 0, Mathf.Max(0, source.clip.samples - 1));
+            }
         }
 
         public static bool SoundPaused => _soundPaused;
@@ -304,11 +314,11 @@ namespace Scry
                 // Played again from the point sought, set again once playing and each frame after
                 // until the clip is there: a streamed clip (music) can start over from its beginning.
                 source.Stop();
-                source.time = _seekWhilePaused.Value;
+                SetPoint(source, _seekWhilePaused.Value);
                 source.Play();
-                source.time = _seekWhilePaused.Value;
+                SetPoint(source, _seekWhilePaused.Value);
                 _seekOnGoing = _seekWhilePaused.Value;
-                _seekOnGoingUntil = Time.unscaledTime + 0.5f;
+                _seekOnGoingUntil = Time.unscaledTime + 1f;
                 _seekWhilePaused = null;
             }
             else source.UnPause();
