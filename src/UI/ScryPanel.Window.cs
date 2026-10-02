@@ -156,6 +156,7 @@ namespace Scry
                     if (parts.Length == 2 && parts[0] == "view") _compact = parts[1] == "compact";
                     if (parts.Length == 2 && parts[0] == "light" && int.TryParse(parts[1], out var light)) Stage.LightingIndex = light;
                     if (parts.Length == 2 && parts[0] == "backdrop" && int.TryParse(parts[1], out var backdrop)) Stage.BackdropIndex = backdrop;
+                    if (parts.Length == 2 && parts[0] == "ground") Stage.GroundChoice = parts[1];
                     if (parts.Length == 2 && parts[0] == "person") Stage.ShowPerson = parts[1] == "1";
                     if (parts.Length == 2 && parts[0] == "worn") Looks.OnPerson = parts[1] == "1";
                     if (parts.Length == 2 && parts[0] == "spin") Stage.Spin = parts[1] == "1";
@@ -193,7 +194,7 @@ namespace Scry
 
                 Directory.CreateDirectory(Plugin.DataFolder);
                 File.WriteAllLines(RectFile, new[] { Line("full", _full), Line("compact", _compactRect), "view " + (_compact ? "compact" : "full"),
-                    "light " + Stage.LightingIndex, "backdrop " + Stage.BackdropIndex, "person " + (Stage.ShowPerson ? "1" : "0"), "worn " + (Looks.OnPerson ? "1" : "0"),
+                    "light " + Stage.LightingIndex, "backdrop " + Stage.BackdropIndex, "ground " + Stage.GroundChoice, "person " + (Stage.ShowPerson ? "1" : "0"), "worn " + (Looks.OnPerson ? "1" : "0"),
                     "spin " + (Stage.Spin ? "1" : "0"), "creatures " + (Stage.CreaturesShown ? "1" : "0"), "folded " + string.Join(" ", Folded),
                     "stage " + _stageScale.ToString("0.00", CultureInfo.InvariantCulture),
                     "list " + _listShareFull.ToString("0.00", CultureInfo.InvariantCulture), "listhidden " + (_listHiddenFull ? "1" : "0"),

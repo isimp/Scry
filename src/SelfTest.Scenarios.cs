@@ -97,7 +97,7 @@ namespace Scry
             yield return S("a place's creatures stand on the stage with it", PlaceCreatures, 60, bearsSkips: true);
             yield return S("the stage's camera looks at the floor opened, zooms toward the pointer and drags with it", CameraMoves, 90, bearsSkips: true);
             yield return S("the world's lights stay off the stage", WorldLightsOff, 20);
-            yield return S("the Ground backdrop lays each biome's own ground", GroundBackdrop, 45, bearsSkips: true);
+            yield return S("the Ground backdrop lays each biome's own ground", GroundBackdrop, 120, bearsSkips: true);
             yield return S("placement details tell the woods and lava a location keeps to", PlacementDetails, 20);
             yield return S("reading every location fills their details", ReadLocations, 450, bearsSkips: true);
             yield return S("every dungeon and camp lays out", EveryDungeonLaysOut, 60, bearsSkips: true);

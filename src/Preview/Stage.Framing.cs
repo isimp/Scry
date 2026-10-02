@@ -146,12 +146,9 @@ namespace Scry
                 }
             }
 
-            if (_terrain != null && _terrain.activeSelf)
-            {
-                // Out toward the horizon, under the plain floor's height by as much as the
-                // terrain's shader raises its bumps, so the model's feet stay on it.
-                PlaceGroundAt(new Vector3(_lookAt.x, groundY - GroundBelow, _lookAt.z), radius * 6f);
-            }
+            // A biome's ground under the model, under the plain floor's height by as much as the
+            // terrain's shader raises its bumps, so the model's feet stay on it.
+            LayGround(groundY);
 
             if (_floor != null)
             {

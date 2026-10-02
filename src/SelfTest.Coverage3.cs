@@ -270,8 +270,10 @@ namespace Scry
 
         /// <summary>
         /// The Ground backdrop: a piece stands on its own biome's ground, and each biome's ground,
-        /// laid in turn, looks its own, each told by the colour of the ground before the model and
-        /// saved as a picture of the stage beside the log; a dungeon room keeps the plain floor.
+        /// laid in turn with the sky, looks its own, each told by the colour of the ground before
+        /// the model, its grass and water, and saved as a picture of the stage beside the log; the
+        /// Meadows grow grass, the sea's floor has water over it, a place paints its paths on the
+        /// ground, and a dungeon room keeps the plain floor.
         /// </summary>
         private static IEnumerator GroundBackdrop(Probe p)
         {
@@ -279,7 +281,9 @@ namespace Scry
             if (entry == null) p.Skip("there is no piece to stand on the stage");
             var backdrop = Stage.BackdropIndex;
             var spin = Stage.Spin;
+            var choice = Stage.GroundChoice;
             Stage.Spin = false;
+            Stage.GroundChoice = "Auto";
             Select(entry);
             yield return Until(() => CopyOf(entry) != null, 10);
             Stage.BackdropIndex = 4;
@@ -288,6 +292,7 @@ namespace Scry
             {
                 Stage.BackdropIndex = backdrop;
                 Stage.Spin = spin;
+                Stage.GroundChoice = choice;
                 yield break;
             }
             p.Check(Stage.GroundShown == StageGround.BiomeFor(entry.Biomes), "the ground of its own biome", $"{Stage.GroundShown} for {string.Join(", ", entry.Biomes)}");
@@ -327,12 +332,17 @@ namespace Scry
             System.IO.Directory.CreateDirectory(folder);
             var told = new List<string>();
             var looks = new List<Color32>();
+            var grass = new Dictionary<string, int>();
+            var water = new Dictionary<string, bool>();
+            Stage.BackdropIndex = 5;
             foreach (var biome in new[] { "Meadows", "BlackForest", "Swamp", "Mountain", "Plains", "Mistlands", "AshLands", "DeepNorth", "Ocean" })
             {
                 Stage.GroundBiomeOverride = biome;
                 yield return null;
                 yield return null;
                 yield return null;
+                grass[biome] = Stage.GrassCount;
+                water[biome] = Stage.WaterShown;
                 var front = PictureWithin(new Rect(0f, 0f, 1f, 0.15f), out _, out _);
                 var whole = PictureWithin(new Rect(0f, 0f, 1f, 1f), out var width, out var height);
                 if (whole != null) WriteTga(System.IO.Path.Combine(folder, $"stage-{biome}.tga"), width, height, whole);
@@ -346,12 +356,33 @@ namespace Scry
                 }
                 var look = new Color32((byte)(r / front.Length), (byte)(g / front.Length), (byte)(b / front.Length), 255);
                 looks.Add(look);
-                told.Add($"{biome} #{look.r:X2}{look.g:X2}{look.b:X2}");
+                told.Add($"{biome} #{look.r:X2}{look.g:X2}{look.b:X2}, {grass[biome]} grass{(water[biome] ? ", water" : "")}");
             }
             Stage.GroundBiomeOverride = null;
+            p.Check(grass["Meadows"] > 0, "grass grows on the Meadows' ground", $"{grass["Meadows"]}");
+            p.Check(water["Ocean"] && !water["Meadows"], "the sea's floor has water over it, and only it");
             p.Note($"the ground before it, by biome: {string.Join("; ", told)}; pictures in {folder}");
             var distinct = looks.Where((look, i) => !looks.Take(i).Any(other => !Apart(look, other))).Count();
             p.Check(distinct >= 5, "each biome's ground looks its own", $"{distinct} looks among {looks.Count} biomes");
+
+            // A place paints its paths, dirt and paving on the ground under it.
+            var painted = new List<string>();
+            foreach (var name in new[] { "Vendor_BlackForest", "WoodVillage1", "WoodFarm1", "StartTemple" })
+            {
+                var place = X.Catalog.FirstOrDefault(e => e.Name == name && PlaceOf(e) != null && !PlaceOf(e).IsRoom);
+                if (place == null) continue;
+                Select(place);
+                yield return Until(() => CopyOf(place) != null && Stage.GroundShown != null, 20);
+                yield return null;
+                yield return null;
+                painted.Add($"{name} {Stage.GroundPaintCount}");
+                if (Stage.GroundPaintCount == 0) continue;
+                var whole = PictureWithin(new Rect(0f, 0f, 1f, 1f), out var width, out var height);
+                if (whole != null) WriteTga(System.IO.Path.Combine(folder, $"stage-paths-{name}.tga"), width, height, whole);
+                break;
+            }
+            p.Note("paints on their ground: " + string.Join(", ", painted));
+            p.Check(painted.Any(t => !t.EndsWith(" 0", StringComparison.Ordinal)), "a place paints its paths on the ground under it", string.Join(", ", painted));
 
             // Underground there is no ground of the world's.
             var room = X.Catalog.Where(e => PlaceOf(e) != null && PlaceOf(e).IsRoom).OrderBy(e => e.Name, StringComparer.Ordinal).FirstOrDefault();
@@ -366,6 +397,7 @@ namespace Scry
 
             Stage.BackdropIndex = backdrop;
             Stage.Spin = spin;
+            Stage.GroundChoice = choice;
         }
 
         /// <summary>

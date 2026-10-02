@@ -62,6 +62,97 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheGroundsBiomeCanBePicked()
+        {
+            // Auto is the entry's own; any biome can stand in for it, cycled through in the order players meet them.
+            Assert.Equal("Auto", StageGround.Choices[0]);
+            Assert.Equal("Meadows", StageGround.Choices[1]);
+            Assert.Equal("Ocean", StageGround.Choices[StageGround.Choices.Length - 1]);
+            Assert.Equal("Swamp", StageGround.Chosen("Swamp", new[] { "Plains" }));
+            Assert.Equal("Plains", StageGround.Chosen("Auto", new[] { "Plains" }));
+            Assert.Equal("Plains", StageGround.Chosen(null, new[] { "Plains" }));
+            Assert.Equal("Meadows", StageGround.Next("Auto"));
+            Assert.Equal("BlackForest", StageGround.Next("Meadows"));
+            Assert.Equal("Auto", StageGround.Next("Ocean"));
+            Assert.Equal("Auto", StageGround.Next("Gone"));
+        }
+
+        [Fact]
+        public void TheGroundReachesFarWithTheSkyAndFadesToItsEdge()
+        {
+            // Several times what is framed, out to a horizon with the sky; never less than some way.
+            Assert.Equal(60f, StageGround.Across(10f, sky: false), 3);
+            Assert.Equal(24f, StageGround.Across(1f, sky: false), 3);
+            Assert.Equal(400f, StageGround.Across(20f, sky: true), 3);
+            Assert.Equal(160f, StageGround.Across(1f, sky: true), 3);
+
+            // Whole in its middle, fading over its outer part to nothing at its edge.
+            Assert.Equal(0f, StageGround.Fade(0f), 3);
+            Assert.Equal(0f, StageGround.Fade(0.5f), 3);
+            Assert.Equal(1f, StageGround.Fade(0.95f), 3);
+            Assert.Equal(1f, StageGround.Fade(1.2f), 3);
+            var half = StageGround.Fade(0.775f);
+            Assert.True(half > 0.3f && half < 0.7f, $"{half}");
+            Assert.True(StageGround.Fade(0.7f) < StageGround.Fade(0.8f));
+            // Eased in and out: a quarter of the way along, less than a quarter faded.
+            Assert.Equal(0.156f, StageGround.Fade(0.6875f), 3);
+        }
+
+        [Fact]
+        public void TheBiomesLightGoesWithTheTimeOfDayChosen()
+        {
+            // Studio and Day by day, Dusk by evening, Night by night; the cave keeps its own.
+            Assert.Equal(StageGround.Time.Day, StageGround.TimeFor("Studio"));
+            Assert.Equal(StageGround.Time.Day, StageGround.TimeFor("Day"));
+            Assert.Equal(StageGround.Time.Evening, StageGround.TimeFor("Dusk"));
+            Assert.Equal(StageGround.Time.Night, StageGround.TimeFor("Night"));
+            Assert.Null(StageGround.TimeFor("Cave"));
+            Assert.Null(StageGround.TimeFor("Other"));
+        }
+
+        [Fact]
+        public void GrassIsScatteredAsAtAHeightTypicalOfTheBiome()
+        {
+            // The game scatters its grass by height over the sea; the stage stands at none, so
+            // each biome's ground is taken at one typical of it: the mountains high, the swamp
+            // low, the sea's floor under its water, the rest a little over the sea.
+            Assert.Equal(120f, StageGround.Altitude("Mountain"), 3);
+            Assert.Equal(120f, StageGround.Altitude("DeepNorth"), 3);
+            Assert.Equal(2f, StageGround.Altitude("Swamp"), 3);
+            Assert.Equal(-4f, StageGround.Altitude("Ocean"), 3);
+            Assert.Equal(10f, StageGround.Altitude("Meadows"), 3);
+            Assert.Equal(10f, StageGround.Altitude("ModBiome"), 3);
+        }
+
+        [Fact]
+        public void APlacePaintsItsGroundAsTheGamePaintsItsTerrain()
+        {
+            // Each paint blends toward its colour by (1 - its distance over its reach) to the
+            // tenth power and its strength, keeping the ground's fourth share unless it clears
+            // the vegetation; later paints go over earlier ones.
+            var ground = (0f, 0f, 0f, 1f);
+            var dirt = new GroundPaint { X = 0f, Z = 0f, Radius = 4f, Strength = 1f, Color = (1f, 0f, 0f, 1f) };
+            Assert.Equal((1f, 0f, 0f, 1f), StageGround.Painted(ground, 0f, 0f, new[] { dirt }));
+            Assert.Equal(ground, StageGround.Painted(ground, 5f, 0f, new[] { dirt }));
+            var near = StageGround.Painted(ground, 3.9f, 0f, new[] { dirt });
+            Assert.True(near.R > 0.5f && near.R < 1f, $"{near.R}");
+
+            var weak = new GroundPaint { X = 0f, Z = 0f, Radius = 4f, Strength = 0.5f, Color = (0f, 0f, 1f, 1f) };
+            var both = StageGround.Painted(ground, 0f, 0f, new[] { dirt, weak });
+            Assert.Equal(0.5f, both.R, 3);
+            Assert.Equal(0.5f, both.B, 3);
+
+            var bare = new GroundPaint { X = 0f, Z = 0f, Radius = 4f, Strength = 1f, Color = (0f, 0f, 0f, 0f), ClearsVegetation = true };
+            Assert.Equal(0f, StageGround.Painted(ground, 0f, 0f, new[] { bare }).A, 3);
+            var paved = new GroundPaint { X = 0f, Z = 0f, Radius = 4f, Strength = 1f, Color = (0f, 0f, 1f, 0.2f) };
+            Assert.Equal(1f, StageGround.Painted(ground, 0f, 0f, new[] { paved }).A, 3);
+
+            // A paint reaching nowhere paints nothing, even where it stands.
+            var none = new GroundPaint { X = 0f, Z = 0f, Radius = 0f, Strength = 1f, Color = (1f, 0f, 0f, 1f) };
+            Assert.Equal(ground, StageGround.Painted(ground, 0f, 0f, new[] { none }));
+        }
+
+        [Fact]
         public void AModelStandsOnTheGroundOfTheFirstBiomePlayersMeetOfItsOwn()
         {
             Assert.Equal("BlackForest", StageGround.BiomeFor(new[] { "Swamp", "BlackForest" }));

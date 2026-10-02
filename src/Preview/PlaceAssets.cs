@@ -118,12 +118,12 @@ namespace Scry
         /// in (<paramref name="rules"/>, else the copy's own).
         /// </summary>
         public static Ghost.Building Begin(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer, bool keepColliders = false, bool local = false,
-            List<Stage.SpawnHere> spawns = null, Location rules = null)
+            List<Stage.SpawnHere> spawns = null, Location rules = null, List<Stage.GroundPaintAt> paints = null)
         {
-            return new Ghost.Building(prefab, parent, position, rotation, layer, copy => Prepare(copy, spawns, rules), keepColliders, local);
+            return new Ghost.Building(prefab, parent, position, rotation, layer, copy => Prepare(copy, spawns, rules, paints), keepColliders, local);
         }
 
-        private static void Prepare(GameObject copy, List<Stage.SpawnHere> spawns, Location rules)
+        private static void Prepare(GameObject copy, List<Stage.SpawnHere> spawns, Location rules, List<Stage.GroundPaintAt> paints = null)
         {
             Roll(copy);
             LeaveOutInterior(copy);
@@ -132,6 +132,7 @@ namespace Scry
                 ReadSpawns(copy, spawns, rules != null ? rules : copy.GetComponent<Location>());
                 if (spawns.Count > 0) FloorProbe.NoteNotSolid(copy);
             }
+            if (paints != null) ReadPaints(copy, paints);
             foreach (var zone in copy.GetComponentsInChildren<EnvZone>(true))
             {
                 if (zone != null && zone.m_exteriorMesh != null) zone.m_exteriorMesh.enabled = false;
@@ -183,6 +184,23 @@ namespace Scry
             var found = new List<Stage.SpawnHere>();
             if (prefab != null) ReadSpawns(prefab, found, prefab.GetComponent<Location>());
             return found.Select(s => s.Point).ToList();
+        }
+
+        /// <summary>
+        /// What the place paints on the ground under it once rolled (<c>TerrainModifier</c>): its
+        /// paths, dirt and paving, read while the copy still sleeps, as stripping takes them off.
+        /// </summary>
+        private static void ReadPaints(GameObject copy, List<Stage.GroundPaintAt> into)
+        {
+            var root = copy.transform;
+            foreach (var modifier in copy.GetComponentsInChildren<TerrainModifier>(true))
+            {
+                if (modifier == null || !modifier.enabled || !modifier.m_paintCleared || modifier.m_paintRadius <= 0f || !ActiveUnder(modifier.transform, root)) continue;
+                into.Add(new Stage.GroundPaintAt
+                {
+                    At = modifier.transform, Radius = modifier.m_paintRadius, Strength = modifier.m_paintStrength, Type = modifier.m_paintType, Order = modifier.m_sortOrder,
+                });
+            }
         }
 
         /// <summary>

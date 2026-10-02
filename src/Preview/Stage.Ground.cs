@@ -85,10 +85,20 @@ namespace Scry
             if (_terrain != null && _terrain.activeSelf != ground) _terrain.SetActive(ground);
             var floor = !StageGround.Grid(_backdrop) && !ground;
             if (_floor != null && _floor.activeSelf != floor) _floor.SetActive(floor);
-            if (!ground) return;
-            var biome = GroundBiomeOverride ?? StageGround.BiomeFor(_lastShown?.Biomes);
-            if (biome != _terrainBiome) PaintGround(biome);
-            if (!_groundHideSet) ApplyGroundBlock();
+            var changed = ground != _groundOn;
+            _groundOn = ground;
+            if (ground)
+            {
+                var biome = GroundBiomeOverride ?? StageGround.Chosen(GroundChoice, _lastShown?.Biomes);
+                if (biome != _terrainBiome)
+                {
+                    PaintGround(biome);
+                    changed = true;
+                }
+                if (!_groundHideSet) ApplyGroundBlock();
+            }
+            // The light and sky take the biome's colours, and the key light casts shadows, while it is laid.
+            if (changed) ApplyLighting();
         }
 
         /// <summary>Makes the piece of ground once the world's terrain has a material to borrow, trying again a second apart.</summary>
@@ -241,6 +251,8 @@ namespace Scry
         /// <summary>Lets go of the piece of ground and what was made for it, as the stage is taken down.</summary>
         private static void ForgetGround()
         {
+            ForgetDressing();
+            _groundOn = false;
             if (_terrainMaterial != null) Object.Destroy(_terrainMaterial);
             if (_terrainMesh != null) Object.Destroy(_terrainMesh);
             if (_terrainMask != null) Object.Destroy(_terrainMask);

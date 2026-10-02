@@ -59,7 +59,7 @@ namespace Scry
         private static void ApplyLighting()
         {
             if (_camera == null) return;
-            var preset = Presets[_lighting];
+            var preset = _look = Look();
 
             Set(_key, preset.KeyAngle, preset.Key, preset.KeyPower);
             Set(_fill, new Vector3(15f, 55f, 0f), preset.Fill, preset.FillPower);
@@ -73,10 +73,16 @@ namespace Scry
             if (_sky != null)
             {
                 _sky.SetActive(sky);
-                if (SkyTextures[_lighting] == null) SkyTextures[_lighting] = Floor.SkyTexture(preset.SkyTop, preset.Horizon, preset.Ground);
-                _sky.GetComponent<MeshRenderer>().sharedMaterial.mainTexture = SkyTextures[_lighting];
+                _sky.GetComponent<MeshRenderer>().sharedMaterial.mainTexture = SkyFor(preset);
             }
             if (_grid != null) _grid.SetActive(grid);
+
+            // On a biome's ground the key light casts shadows, so what stands there sits on it.
+            if (_key != null)
+            {
+                _key.shadows = _groundOn ? LightShadows.Soft : LightShadows.None;
+                _key.shadowStrength = 0.7f;
+            }
         }
 
         private static void Set(Light light, Vector3 angle, Color color, float power)

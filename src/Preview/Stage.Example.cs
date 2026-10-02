@@ -32,6 +32,9 @@ namespace Scry
         private static List<SpawnHere> _exampleBuildSpawns;
 
         /// <summary>The example's rooms standing on the stage, each with its copy, to dim or put away those off the floor opened.</summary>
+        /// <summary>The paints on the ground read off the camp's room being built.</summary>
+        private static List<GroundPaintAt> _exampleBuildPaints;
+
         private static readonly List<KeyValuePair<PlacedRoom, GameObject>> ExampleCopies = new List<KeyValuePair<PlacedRoom, GameObject>>();
 
         /// <summary>The rooms' copies dimmed, below the floor opened (<see cref="Dim"/>).</summary>
@@ -129,8 +132,9 @@ namespace Scry
                     var turn = new Quaternion(room.Rotation.X, room.Rotation.Y, room.Rotation.Z, room.Rotation.W);
                     // A room's spawn points go by the rules of the location it is built in.
                     _exampleBuildSpawns = new List<SpawnHere>();
+                    _exampleBuildPaints = _exampleIsDungeon ? null : new List<GroundPaintAt>();
                     var rules = _lastShown?.Source is PlaceSource shown ? PlaceAssets.Asset(shown)?.GetComponent<Location>() : null;
-                    _exampleBuild = PlaceCopy.Begin(prefab, _exampleHolder.transform, at, turn, _layer, keepColliders: _exampleIsDungeon, local: true, spawns: _exampleBuildSpawns, rules: rules);
+                    _exampleBuild = PlaceCopy.Begin(prefab, _exampleHolder.transform, at, turn, _layer, keepColliders: _exampleIsDungeon, local: true, spawns: _exampleBuildSpawns, rules: rules, paints: _exampleBuildPaints);
                 }
                 stepped = true;
                 if (!_exampleBuild.Go(ExampleBudgetMs - watch.Elapsed.TotalMilliseconds)) break;
@@ -147,6 +151,9 @@ namespace Scry
                 Tune(copy, audible: false);
                 Populate(_exampleBuildSpawns, copy);
                 _exampleBuildSpawns = null;
+                // A camp's rooms paint the ground around it; a dungeon's stand under it.
+                TakeGroundPaints(_exampleBuildPaints, copy);
+                _exampleBuildPaints = null;
                 _exampleCopies++;
 
                 if (_exampleCopies == 1 && _exampleIsDungeon) ShowInsideOrOut();
@@ -333,7 +340,9 @@ namespace Scry
         {
             _exampleBuild?.Cancel();
             _exampleBuildSpawns = null;
+            _exampleBuildPaints = null;
             ForgetRoomCreatures();
+            ForgetGroundPaints(rooms: true);
             _exampleBuild = null;
             if (_exampleHolder != null) Object.Destroy(_exampleHolder);
             _exampleHolder = null;

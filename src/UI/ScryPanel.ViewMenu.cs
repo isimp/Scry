@@ -5,7 +5,7 @@ namespace Scry
 {
     /// <summary>
     /// How the stage is seen, set and mostly left: whether the model turns, the backdrop, the
-    /// lighting and a person beside it for size, in a box opened from the stage's View chip. A
+    /// lighting, with a biome's ground which biome's, and a person beside it for size, in a box opened from the stage's View chip. A
     /// row is clicked to switch it, a backdrop or lighting row going on to the next. The box takes
     /// the mouse before anything under it and is drawn over everything; Escape, a click elsewhere
     /// or another selection closes it.
@@ -30,11 +30,20 @@ namespace Scry
                 ("Backdrop", Stage.BackdropNames[Stage.BackdropIndex], false, "Click for the next backdrop", () => Stage.BackdropIndex = (Stage.BackdropIndex + 1) % Stage.BackdropNames.Length),
                 ("Light", Stage.LightingNames[Stage.LightingIndex], false, "Click for the next lighting", () => Stage.LightingIndex = (Stage.LightingIndex + 1) % Stage.LightingNames.Length),
             };
+            // With a biome's ground, which biome's: its own, or any to see it on.
+            if (StageGround.Ground(Stage.BackdropIndex, underground: false))
+            {
+                rows.Add(("Ground", GroundLabel(Stage.GroundChoice), false, "The ground's biome: Auto for its own; click for the next",
+                    () => Stage.GroundChoice = StageGround.Next(Stage.GroundChoice)));
+            }
             if (!Looks.IsWorn(entry)) rows.Add(("Person", Stage.ShowPerson ? "On" : "Off", Stage.ShowPerson, "A person beside it, to judge its size", () => Stage.ShowPerson = !Stage.ShowPerson));
             return rows;
         }
 
         private static float ViewRowHeight => U(28f);
+
+        /// <summary>A ground choice as the box says it: Auto, or the biome as the game names it.</summary>
+        private static string GroundLabel(string choice) => choice == "Auto" ? "Auto" : Knowledge.BiomeName(choice);
 
         /// <summary>Opens or closes the box under the View chip, its right edge on the chip's.</summary>
         private static void ViewToggle(Entry entry, Rect chipScreen)
@@ -65,7 +74,7 @@ namespace Scry
         private static float ViewNameWidth()
         {
             var most = 0f;
-            foreach (var name in new[] { "Spin", "Backdrop", "Light", "Person" }) most = Mathf.Max(most, Skin.Width(Skin.Label, name));
+            foreach (var name in new[] { "Spin", "Backdrop", "Light", "Ground", "Person" }) most = Mathf.Max(most, Skin.Width(Skin.Label, name));
             return most;
         }
 
@@ -74,6 +83,7 @@ namespace Scry
             var most = Mathf.Max(Skin.Width(Skin.Chip, "On"), Skin.Width(Skin.ChipOn, "Off"));
             foreach (var value in Stage.BackdropNames) most = Mathf.Max(most, Skin.Width(Skin.Chip, value));
             foreach (var value in Stage.LightingNames) most = Mathf.Max(most, Skin.Width(Skin.Chip, value));
+            foreach (var choice in StageGround.Choices) most = Mathf.Max(most, Skin.Width(Skin.Chip, GroundLabel(choice)));
             return most + U(4f);
         }
 

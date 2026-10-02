@@ -345,7 +345,8 @@ namespace Scry
                 var asset = PlaceAssets.Asset(place);
                 if (asset == null) return;
                 _buildingSpawns = new List<SpawnHere>();
-                _building = PlaceCopy.Begin(asset, _root.transform, Origin, Quaternion.identity, _layer, keepColliders: true, spawns: _buildingSpawns);
+                _buildingPaints = new List<GroundPaintAt>();
+                _building = PlaceCopy.Begin(asset, _root.transform, Origin, Quaternion.identity, _layer, keepColliders: true, spawns: _buildingSpawns, paints: _buildingPaints);
                 _buildingWith = modifiers;
                 StepBuild();
                 return;
@@ -373,6 +374,9 @@ namespace Scry
 
         /// <summary>The spawn points of the location or room being made, its creatures rolled once it stands.</summary>
         private static List<SpawnHere> _buildingSpawns;
+
+        /// <summary>The paints on the ground read off the location's copy as it is made.</summary>
+        private static List<GroundPaintAt> _buildingPaints;
         private static int _builtInFrame = -1;
 
         /// <summary>Whether a location or room is still being made, shown once it is.</summary>
@@ -407,6 +411,8 @@ namespace Scry
             Present(_lastShown, modifiers);
             Populate(_buildingSpawns, null);
             _buildingSpawns = null;
+            TakeGroundPaints(_buildingPaints, null);
+            _buildingPaints = null;
         }
 
         /// <summary>Tunes, measures and stands the copy just made, and applies the modifiers.</summary>
@@ -770,7 +776,7 @@ namespace Scry
             var sky = RenderSettings.ambientSkyColor;
             var equator = RenderSettings.ambientEquatorColor;
             var ground = RenderSettings.ambientGroundColor;
-            var light = Presets[_lighting].Ambient;
+            var light = (_look ?? Presets[_lighting]).Ambient;
 
             try
             {
@@ -782,6 +788,9 @@ namespace Scry
                 KeepWorldLightsOff(mask);
 
                 _camera.cullingMask = mask;
+                // The water reads the depth of what is under it.
+                _camera.depthTextureMode = WaterShown ? DepthTextureMode.Depth : DepthTextureMode.None;
+                DrawGrass();
                 _camera.Render();
 
                 // A floor's cut is the near plane laid along it, which cut the creatures with all
@@ -896,6 +905,7 @@ namespace Scry
             _building = null;
             _buildingWith = null;
             ForgetExample();
+            ForgetGroundPaints(rooms: false);
             if (_subject != null) Object.Destroy(_subject);
             _subject = null;
             foreach (var played in Played) if (played.Key != null) Object.Destroy(played.Key);
@@ -911,6 +921,7 @@ namespace Scry
             _camera = null;
             _floor = null;
             ForgetGround();
+            _buildingPaints = null;
             _ground = null;
             _person = null;
             _grid = null;
