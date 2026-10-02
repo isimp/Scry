@@ -204,6 +204,7 @@ namespace Scry
             yield return Until(() => CopyOf(place) != null && Stage.CreaturesMade > 0 && Stage.CreaturesWaiting == 0, 20);
             p.Note($"{place.Name}: {Stage.CreaturesMade} creatures, {string.Join(", ", Stage.CreatureNames.Take(10))}; its spawn points can put {string.Join(", ", PlaceOf(place).Contents.Creatures.Select(c => c.Prefab))}");
             p.Check(Stage.CreaturesMade > 0, "its spawn points' creatures stand on the stage with it", $"{Stage.CreaturesMade} made, {Stage.CreaturesWaiting} waiting");
+            p.Note("they stand on layer " + Stage.CreatureLayerTold);
 
             Stage.CreaturesShown = false;
             p.Check(Stage.CreaturesStanding == 0, "the chip puts them away", $"{Stage.CreaturesStanding} still standing");

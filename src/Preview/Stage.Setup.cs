@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Scry
@@ -121,11 +122,11 @@ namespace Scry
             if (_camera != null) _camera.targetTexture = _texture;
         }
 
-        /// <summary>The highest layer without a name, which nothing in the game draws on.</summary>
         /// <summary>
-        /// The layer a place's creatures stand on, drawn in a pass of their own without a floor's
-        /// cut (<see cref="StepCreatures"/>): the next free one below the stage's, or the stage's
-        /// own where there is none, and then they are cut as everything is.
+        /// The layer a place's creatures stand on, so what of them is above a floor's cut can be
+        /// drawn again (<see cref="StepCreatures"/>): the next free one below the stage's, else one
+        /// of those Unity keeps spare under 8 (7, 6 and 3), which have no name and nothing in the
+        /// game draws on; the stage's own where there is none, and then they are cut as all else.
         /// </summary>
         private static int _creatureLayer = -2;
         private static int CreatureLayer
@@ -134,20 +135,33 @@ namespace Scry
             {
                 if (_creatureLayer != -2) return _creatureLayer;
                 _creatureLayer = _layer;
-                for (var i = _layer - 1; i >= 8 && _layer >= 0; i--)
+                if (_layer < 0) return _creatureLayer;
+                var candidates = new List<int>();
+                for (var i = _layer - 1; i >= 8; i--) candidates.Add(i);
+                candidates.AddRange(SpareLayers);
+                foreach (var i in candidates)
                 {
                     if (!string.IsNullOrEmpty(LayerMask.LayerToName(i))) continue;
                     _creatureLayer = i;
-                    Plugin.Note($"Scry is using layer {i} for the creatures standing on its stage.");
                     break;
                 }
+                Plugin.Note(_creatureLayer != _layer
+                    ? $"Scry is using layer {_creatureLayer} for the creatures standing on its stage."
+                    : "Scry found no second free layer for the creatures standing on its stage, so a floor's cut cuts them too.");
                 return _creatureLayer;
             }
         }
 
+        /// <summary>The layers under 8 that Unity keeps spare, unnamed.</summary>
+        private static readonly int[] SpareLayers = { 7, 6, 3 };
+
+        /// <summary>Which layer the creatures stand on, for the self-test to tell.</summary>
+        public static string CreatureLayerTold => _layer < 0 ? "no stage layer" : CreatureLayer == _layer ? $"the stage's own, {_layer}: no second free layer" : $"{CreatureLayer}, the stage's {_layer}";
+
         /// <summary>The stage's layers: its own and its creatures'.</summary>
         private static int StageMask => _layer < 0 ? 0 : (1 << _layer) | (1 << CreatureLayer);
 
+        /// <summary>The highest layer without a name, which nothing in the game draws on.</summary>
         private static int FreeLayer()
         {
             for (var i = 31; i >= 8; i--)
