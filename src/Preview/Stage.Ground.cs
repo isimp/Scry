@@ -101,6 +101,20 @@ namespace Scry
             if (changed) ApplyLighting();
         }
 
+        /// <summary>
+        /// A fault in laying the ground is told once and puts the ground away for the frame, the
+        /// plain floor standing in, so the stage is filmed all the same.
+        /// </summary>
+        private static void GroundFailed(Exception ex)
+        {
+            Faults.Tell("laying the stage's ground", ex);
+            _groundOn = false;
+            if (_terrain != null) _terrain.SetActive(false);
+            if (_groundFade != null) _groundFade.SetActive(false);
+            if (_water != null) _water.SetActive(false);
+            if (_floor != null && !StageGround.Grid(_backdrop)) _floor.SetActive(true);
+        }
+
         /// <summary>Makes the piece of ground once the world's terrain has a material to borrow, trying again a second apart.</summary>
         private static bool EnsureTerrain()
         {
@@ -146,9 +160,9 @@ namespace Scry
         }
 
         /// <summary>
-        /// Gives the ground a biome: each point's colour as the game gives its terrain's, nothing
-        /// painted on it but the share the world keeps in its mask (<see cref="StageGround.MaskShare"/>,
-        /// no lava in the Ashlands), and water over the sea's floor.
+        /// Gives the ground a biome: each point's colour as the game gives its terrain's, and
+        /// water over the sea's floor. Its mask is painted as it is laid for the biome
+        /// (<see cref="PaintMask"/>), at whatever size a place's paints have made it.
         /// </summary>
         private static void PaintGround(string biome)
         {
@@ -156,11 +170,6 @@ namespace Scry
             var colors = new Color32[_terrainMesh.vertexCount];
             for (var i = 0; i < colors.Length; i++) colors[i] = color;
             _terrainMesh.colors32 = colors;
-
-            var nothing = Heightmap.m_paintMaskNothing;
-            nothing.a = StageGround.MaskShare(biome);
-            _terrainMask.SetPixels(new[] { nothing, nothing, nothing, nothing });
-            _terrainMask.Apply(false);
             _terrainBiome = biome;
             _groundWaterAt = float.NaN;
             _groundHideSet = false;

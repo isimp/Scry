@@ -379,6 +379,14 @@ namespace Scry
                 if (Stage.GroundPaintCount == 0) continue;
                 var whole = PictureWithin(new Rect(0f, 0f, 1f, 1f), out var width, out var height);
                 if (whole != null) WriteTga(System.IO.Path.Combine(folder, $"stage-paths-{name}.tga"), width, height, whole);
+                // Another biome over the painted ground, its mask grown past its plain size.
+                var faults = Faults.Count;
+                Stage.GroundBiomeOverride = "Swamp";
+                yield return null;
+                yield return null;
+                Stage.GroundBiomeOverride = null;
+                yield return null;
+                p.Check(Faults.Count == faults && Stage.GroundShown != null, "another biome over a place's painted ground lays it all the same", $"{Faults.Count - faults} faults");
                 break;
             }
             p.Note("paints on their ground: " + string.Join(", ", painted));
