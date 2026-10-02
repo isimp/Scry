@@ -782,9 +782,67 @@ namespace Scry
             var textures = material.GetTexturePropertyNames()
                 .Select(name => { var texture = material.GetTexture(name); return $"{name}: {(texture != null ? $"{texture.name} ({texture.GetType().Name}, {texture.width}x{texture.height})" : "none")}"; });
             p.Note($"shader {(material.shader != null ? material.shader.name : "none")}; textures {string.Join("; ", textures)}");
-            var colours = new[] { "_Color", "_GrassColor", "_ForestColor", "_SwampColor", "_MountainColor", "_PlainsColor", "_MistlandsColor", "_AshlandsColor", "_DeepNorthColor" }.Where(material.HasProperty).Select(name => $"{name} {material.GetColor(name)}");
-            p.Note("colours " + string.Join("; ", colours));
-            yield break;
+            // Each layer of its ground textures with its middle colour, saved as a picture beside
+            // the log, to tell which biome's ground each one is.
+            if (material.HasProperty("_DiffuseArrayTex") && material.GetTexture("_DiffuseArrayTex") is Texture2DArray layers)
+            {
+                var folder = System.IO.Path.Combine(BepInEx.Paths.BepInExRootPath, "Scry-selftest-ground");
+                System.IO.Directory.CreateDirectory(folder);
+                var told = new List<string>();
+                for (var i = 0; i < layers.depth; i++)
+                {
+                    told.Add($"{i} {SaveLayer(layers, i, System.IO.Path.Combine(folder, $"{layers.name}-{i}.tga"))}");
+                    yield return null;
+                }
+                p.Note($"{layers.name}: {layers.depth} layers, {layers.graphicsFormat}, {layers.mipmapCount} mips, readable {layers.isReadable}; middle colours {string.Join("; ", told)}; saved in {folder}");
+            }
+        }
+
+        /// <summary>One layer of a texture array saved as a picture (an uncompressed TGA), and its middle colour; or why it could not be.</summary>
+        private static string SaveLayer(Texture2DArray layers, int index, string path)
+        {
+            var layer = new Texture2D(layers.width, layers.height, layers.graphicsFormat, UnityEngine.Experimental.Rendering.TextureCreationFlags.None);
+            var target = RenderTexture.GetTemporary(layers.width, layers.height, 0, RenderTextureFormat.ARGB32);
+            var read = new Texture2D(layers.width, layers.height, TextureFormat.RGBA32, false);
+            var was = RenderTexture.active;
+            try
+            {
+                Graphics.CopyTexture(layers, index, 0, layer, 0, 0);
+                Graphics.Blit(layer, target);
+                RenderTexture.active = target;
+                read.ReadPixels(new Rect(0, 0, layers.width, layers.height), 0, 0, false);
+                var pixels = read.GetPixels32();
+                using (var file = new System.IO.BinaryWriter(System.IO.File.Create(path)))
+                {
+                    // Uncompressed true colour, 32 bits, rows from the bottom up as read.
+                    file.Write(new byte[] { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
+                    file.Write((ushort)read.width);
+                    file.Write((ushort)read.height);
+                    file.Write((byte)32);
+                    file.Write((byte)8);
+                    foreach (var pixel in pixels) file.Write(new[] { pixel.b, pixel.g, pixel.r, pixel.a });
+                }
+                long r = 0, g = 0, b = 0;
+                foreach (var pixel in pixels)
+                {
+                    r += pixel.r;
+                    g += pixel.g;
+                    b += pixel.b;
+                }
+                var n = Math.Max(1, pixels.Length);
+                return $"#{r / n:X2}{g / n:X2}{b / n:X2}";
+            }
+            catch (Exception e)
+            {
+                return $"not read ({e.GetType().Name}: {e.Message})";
+            }
+            finally
+            {
+                RenderTexture.active = was;
+                RenderTexture.ReleaseTemporary(target);
+                UnityEngine.Object.Destroy(layer);
+                UnityEngine.Object.Destroy(read);
+            }
         }
 
         private static IEnumerator BiomePages(Probe p)
