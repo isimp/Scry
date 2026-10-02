@@ -148,10 +148,9 @@ namespace Scry
 
             if (_terrain != null && _terrain.activeSelf)
             {
-                // Out toward the horizon, a little under the plain floor's height.
-                _terrain.transform.position = new Vector3(_lookAt.x, groundY - 0.006f, _lookAt.z);
-                var across = radius * 6f;
-                _terrain.transform.localScale = new Vector3(across, 1f, across);
+                // Out toward the horizon, under the plain floor's height by as much as the
+                // terrain's shader raises its bumps, so the model's feet stay on it.
+                PlaceGroundAt(new Vector3(_lookAt.x, groundY - GroundBelow, _lookAt.z), radius * 6f);
             }
 
             if (_floor != null)

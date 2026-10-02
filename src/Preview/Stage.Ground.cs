@@ -8,8 +8,9 @@ namespace Scry
     /// The Ground backdrop: a round piece of ground under the model, its own biome's
     /// (<see cref="StageGround"/>), drawn with the world's own terrain material as the game draws
     /// its terrain: the biome told by each point's colour (<c>Heightmap.GetBiomeColor</c>), nothing
-    /// painted on it (<c>Heightmap.m_paintMaskNothing</c>), and, for the sea's floor, water over
-    /// it. Where the world has no terrain to borrow it from yet, or what is shown is underground,
+    /// painted on it (<c>Heightmap.m_paintMaskNothing</c>) but the share the world keeps in its
+    /// mask, a distance to hide it by as the game gives each piece of its terrain, and, for the
+    /// sea's floor, water over it (<c>_WaterLevel</c>). Where the world has no terrain to borrow it from yet, or what is shown is underground,
     /// the plain floor stays.
     /// </summary>
     internal static partial class Stage
@@ -21,8 +22,6 @@ namespace Scry
         private static string _terrainBiome;
         private static int _terrainTriedAt = -1000;
 
-        /// <summary>How far under the sea the sea's floor lies, as the terrain is told of it (<c>Heightmap.UpdateCornerDepths</c>).</summary>
-        private const float SeaDepth = 20f;
 
         /// <summary>
         /// The distance the terrain's shader is given to hide it by, as the game gives each piece
@@ -66,6 +65,9 @@ namespace Scry
             return $"{drawn}; the stage camera renders {path}; shader {shader?.name}, passes {_terrainMaterial.passCount}, queue {_terrainMaterial.renderQueue}, keywords [{string.Join(", ", _terrainMaterial.shaderKeywords)}], properties: {string.Join(", ", names)}";
         }
 
+        /// <summary>How far under the floor the ground lies, as the terrain's shader raises its bumps (<c>_Displacement</c>).</summary>
+        private const float GroundBelow = 0.05f;
+
         /// <summary>For the self-test: a biome whose ground to lay whatever is shown; null for the shown entry's own.</summary>
         public static string GroundBiomeOverride;
 
@@ -86,15 +88,7 @@ namespace Scry
             if (!ground) return;
             var biome = GroundBiomeOverride ?? StageGround.BiomeFor(_lastShown?.Biomes);
             if (biome != _terrainBiome) PaintGround(biome);
-            if (!_groundHideSet)
-            {
-                var renderer = _terrain.GetComponent<MeshRenderer>();
-                if (_groundBlock == null) _groundBlock = new MaterialPropertyBlock();
-                _groundBlock.Clear();
-                if (_groundHide is float distance) _groundBlock.SetFloat("_LodHideDistance", distance);
-                renderer.SetPropertyBlock(_groundHide != null ? _groundBlock : null);
-                _groundHideSet = true;
-            }
+            if (!_groundHideSet) ApplyGroundBlock();
         }
 
         /// <summary>Makes the piece of ground once the world's terrain has a material to borrow, trying again a second apart.</summary>
@@ -108,8 +102,6 @@ namespace Scry
 
             _terrainMaterial = new Material(source) { name = "Scry stage ground" };
             _terrainMask = new Texture2D(2, 2, TextureFormat.RGBA32, false) { name = "Scry stage ground mask", wrapMode = TextureWrapMode.Clamp };
-            _terrainMask.SetPixels(new[] { Heightmap.m_paintMaskNothing, Heightmap.m_paintMaskNothing, Heightmap.m_paintMaskNothing, Heightmap.m_paintMaskNothing });
-            _terrainMask.Apply(false);
             _terrainMaterial.SetTexture("_ClearedMaskTex", _terrainMask);
             _terrainMesh = Disc();
 
@@ -143,16 +135,52 @@ namespace Scry
             return map != null && !map.IsDistantLod ? map.m_material : null;
         }
 
-        /// <summary>Gives the ground a biome: each point's colour as the game gives its terrain's, and the sea over the sea's floor.</summary>
+        /// <summary>
+        /// Gives the ground a biome: each point's colour as the game gives its terrain's, nothing
+        /// painted on it but the share the world keeps in its mask (<see cref="StageGround.MaskShare"/>,
+        /// no lava in the Ashlands), and water over the sea's floor.
+        /// </summary>
         private static void PaintGround(string biome)
         {
             var color = Enum.TryParse<Heightmap.Biome>(biome, out var parsed) ? Heightmap.GetBiomeColor(parsed) : new Color32(0, 0, 0, 0);
             var colors = new Color32[_terrainMesh.vertexCount];
             for (var i = 0; i < colors.Length; i++) colors[i] = color;
             _terrainMesh.colors32 = colors;
-            var depth = biome == "Ocean" ? SeaDepth : 0f;
-            _terrainMaterial.SetFloatArray("_depth", new[] { depth, depth, depth, depth });
+
+            var nothing = Heightmap.m_paintMaskNothing;
+            nothing.a = StageGround.MaskShare(biome);
+            _terrainMask.SetPixels(new[] { nothing, nothing, nothing, nothing });
+            _terrainMask.Apply(false);
             _terrainBiome = biome;
+            _groundWaterAt = float.NaN;
+            _groundHideSet = false;
+        }
+
+        /// <summary>The height of the water the terrain's shader is told of (<c>_WaterLevel</c>) over the sea's floor, as last told; not a number for none.</summary>
+        private static float _groundWaterAt = float.NaN;
+
+        /// <summary>Lays the ground at its height, with water over it for the sea's floor: told again only as the ground moves.</summary>
+        private static void PlaceGroundAt(Vector3 at, float across)
+        {
+            _terrain.transform.position = at;
+            _terrain.transform.localScale = new Vector3(across, 1f, across);
+            var water = StageGround.WaterOver(_terrainBiome) is float over ? at.y + over : float.NaN;
+            if (float.IsNaN(water) == float.IsNaN(_groundWaterAt) && (float.IsNaN(water) || Mathf.Abs(water - _groundWaterAt) < 0.1f)) return;
+            _groundWaterAt = water;
+            _groundHideSet = false;
+            ApplyGroundBlock();
+        }
+
+        /// <summary>What the stage tells the terrain's shader of its piece alone: the distance to hide it by, and the water over it.</summary>
+        private static void ApplyGroundBlock()
+        {
+            var renderer = _terrain.GetComponent<MeshRenderer>();
+            if (_groundBlock == null) _groundBlock = new MaterialPropertyBlock();
+            _groundBlock.Clear();
+            if (_groundHide is float distance) _groundBlock.SetFloat("_LodHideDistance", distance);
+            if (!float.IsNaN(_groundWaterAt)) _groundBlock.SetFloat("_WaterLevel", _groundWaterAt);
+            renderer.SetPropertyBlock(_groundHide != null || !float.IsNaN(_groundWaterAt) ? _groundBlock : null);
+            _groundHideSet = true;
         }
 
         /// <summary>A flat round piece a metre across, in rings, facing up, its texture's corners at its square's.</summary>

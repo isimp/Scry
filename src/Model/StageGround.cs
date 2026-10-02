@@ -24,6 +24,17 @@ namespace Scry
         /// <summary>Whether the plain floor shows: where neither the grid nor the ground does.</summary>
         public static bool Floor(int backdrop, bool underground) => !Grid(backdrop) && !Ground(backdrop, underground);
 
+        /// <summary>
+        /// The fourth share of the terrain's paint mask under the biome's ground: the world keeps
+        /// the Ashlands' lava and the Mistlands' own share there, and leaves it whole elsewhere
+        /// (<c>WorldGenerator.GetBiomeHeight</c>). Ashlands ground without lava, the Mistlands' at
+        /// its most common, the rest as the world leaves it.
+        /// </summary>
+        public static float MaskShare(string biome) => biome == "AshLands" || biome == "Mistlands" ? 0f : 1f;
+
+        /// <summary>How deep the water over the biome's ground is, the sea's floor lying under it; null for ground in the open.</summary>
+        public static float? WaterOver(string biome) => biome == "Ocean" ? 4f : (float?)null;
+
         /// <summary>The biome whose ground it stands on: the first of its own players meet, a mod's after the game's; Meadows for none.</summary>
         public static string BiomeFor(IEnumerable<string> biomes)
         {

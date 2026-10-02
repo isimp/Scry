@@ -43,6 +43,25 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheGroundIsPaintedAsTheWorldBuildsItsOwn()
+        {
+            // The terrain's paint mask keeps more than what is painted on it: its fourth share is
+            // the Ashlands' lava and the Mistlands' own (WorldGenerator.GetAshlandsHeight,
+            // GetMistlandsHeight), whole elsewhere. Ashlands ground without lava, Mistlands' at its
+            // most common, the rest as the world leaves it.
+            Assert.Equal(0f, StageGround.MaskShare("AshLands"));
+            Assert.Equal(0f, StageGround.MaskShare("Mistlands"));
+            Assert.Equal(1f, StageGround.MaskShare("Meadows"));
+            Assert.Equal(1f, StageGround.MaskShare("Mountain"));
+            Assert.Equal(1f, StageGround.MaskShare("ModBiome"));
+
+            // The sea's floor lies under water: a few metres of it over the ground.
+            Assert.Equal(4f, StageGround.WaterOver("Ocean"));
+            Assert.Null(StageGround.WaterOver("Meadows"));
+            Assert.Null(StageGround.WaterOver("Swamp"));
+        }
+
+        [Fact]
         public void AModelStandsOnTheGroundOfTheFirstBiomePlayersMeetOfItsOwn()
         {
             Assert.Equal("BlackForest", StageGround.BiomeFor(new[] { "Swamp", "BlackForest" }));

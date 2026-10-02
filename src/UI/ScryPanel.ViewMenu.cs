@@ -52,9 +52,29 @@ namespace Scry
         private static void ViewPlace(Entry entry, Rect chipScreen)
         {
             _viewChip = chipScreen;
-            var w = U(190f);
+            var w = ViewNameWidth() + ViewValueWidth() + U(8f) + U(8f) + U(16f) + U(6f);
             var h = ViewRows(entry).Count * ViewRowHeight + U(8f);
             _viewBox = new Rect(chipScreen.xMax - w, chipScreen.yMax + U(4f), w, h);
+        }
+
+        /// <summary>
+        /// How wide the box's names and values are at the most: every name, and every value a row
+        /// can take, so the box neither changes width as a row is switched nor lets a long value
+        /// such as "Sky and ground" run over its name.
+        /// </summary>
+        private static float ViewNameWidth()
+        {
+            var most = 0f;
+            foreach (var name in new[] { "Spin", "Backdrop", "Light", "Person" }) most = Mathf.Max(most, Skin.Width(Skin.Label, name));
+            return most;
+        }
+
+        private static float ViewValueWidth()
+        {
+            var most = Mathf.Max(Skin.Width(Skin.Chip, "On"), Skin.Width(Skin.ChipOn, "Off"));
+            foreach (var value in Stage.BackdropNames) most = Mathf.Max(most, Skin.Width(Skin.Chip, value));
+            foreach (var value in Stage.LightingNames) most = Mathf.Max(most, Skin.Width(Skin.Chip, value));
+            return most + U(4f);
         }
 
         /// <summary>
@@ -120,7 +140,7 @@ namespace Scry
                 if (hover) AskTip("view:" + rows[i].Name, rows[i].Tip);
                 if (e.type != EventType.Repaint) continue;
                 if (hover) Skin.Fill(row, new Color(Skin.Text.r, Skin.Text.g, Skin.Text.b, 0.08f));
-                GUI.Label(new Rect(row.x + U(8f), row.y, row.width * 0.5f, row.height), rows[i].Name, Skin.Label);
+                GUI.Label(new Rect(row.x + U(8f), row.y, ViewNameWidth() + U(4f), row.height), rows[i].Name, Skin.Label);
                 var value = rows[i].Value;
                 var style = rows[i].On ? Skin.ChipOn : Skin.Chip;
                 var w = Skin.Width(style, value) + U(4f);
