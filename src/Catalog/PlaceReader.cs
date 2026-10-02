@@ -120,7 +120,8 @@ namespace Scry
             var picks = prefab.GetComponentsInChildren<RandomObject>(false)
                 .Where(p => p?.m_objects != null && p.enabled)
                 .Select(p => (IReadOnlyList<float>)p.m_objects.Select(e => e?.m_weight ?? 0f).ToList());
-            return PlaceParts.LeftToChance(spawns.ToList(), picks.ToList());
+            // Its creatures too: a star to roll, or a spawn group keeping fewer than it has points.
+            return PlaceParts.LeftToChance(spawns.ToList(), picks.ToList()) || SpawnPoints.LeftToChance(PlaceCopy.SpawnPointsOf(prefab));
         }
 
         /// <summary>The chance a part is there: every roll on it and above it, up to the prefab's root, multiplied.</summary>

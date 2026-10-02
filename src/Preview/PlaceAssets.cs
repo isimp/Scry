@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -110,15 +111,23 @@ namespace Scry
         private const float InteriorHeight = 1000f;
 
         /// <summary>Starts the copy, made over the next frames as <see cref="Ghost.Building"/> goes on; its pose in the world, or in its parent's space.</summary>
-        public static Ghost.Building Begin(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer, bool keepColliders = false, bool local = false)
+        /// <summary>
+        /// Starts the copy, made over the next frames as <see cref="Ghost.Building"/> goes on; its
+        /// pose in the world, or in its parent's space. Its creature spawn points that are there
+        /// once rolled go into <paramref name="spawns"/>, by the rules of the location they are
+        /// in (<paramref name="rules"/>, else the copy's own).
+        /// </summary>
+        public static Ghost.Building Begin(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer, bool keepColliders = false, bool local = false,
+            List<Stage.SpawnHere> spawns = null, Location rules = null)
         {
-            return new Ghost.Building(prefab, parent, position, rotation, layer, Prepare, keepColliders, local);
+            return new Ghost.Building(prefab, parent, position, rotation, layer, copy => Prepare(copy, spawns, rules), keepColliders, local);
         }
 
-        private static void Prepare(GameObject copy)
+        private static void Prepare(GameObject copy, List<Stage.SpawnHere> spawns, Location rules)
         {
             Roll(copy);
             LeaveOutInterior(copy);
+            if (spawns != null) ReadSpawns(copy, spawns, rules != null ? rules : copy.GetComponent<Location>());
             foreach (var zone in copy.GetComponentsInChildren<EnvZone>(true))
             {
                 if (zone != null && zone.m_exteriorMesh != null) zone.m_exteriorMesh.enabled = false;
@@ -162,6 +171,65 @@ namespace Scry
                 foreach (var entry in pick.m_objects) if (entry?.m_object != null) entry.m_object.SetActive(entry.m_object == chosen);
                 if (chosen == null) pick.gameObject.SetActive(false);
             }
+        }
+
+        /// <summary>A place's creature spawn points as its prefab has them, by its own rules, for whether they leave anything to chance.</summary>
+        public static List<SpawnPoint> SpawnPointsOf(GameObject prefab)
+        {
+            var found = new List<Stage.SpawnHere>();
+            if (prefab != null) ReadSpawns(prefab, found, prefab.GetComponent<Location>());
+            return found.Select(s => s.Point).ToList();
+        }
+
+        /// <summary>
+        /// The creature spawn points there once the copy is rolled (<c>CreatureSpawner</c>), each
+        /// with what it spawns and how, read while the copy still sleeps, as stripping takes them
+        /// off: a group the location blocks spawns nothing, and the location's level overrides
+        /// apply to every group it does not leave out (<c>CreatureSpawner.Spawn</c>).
+        /// </summary>
+        private static void ReadSpawns(GameObject copy, List<Stage.SpawnHere> into, Location rules)
+        {
+            var root = copy.transform;
+            foreach (var spawner in copy.GetComponentsInChildren<CreatureSpawner>(true))
+            {
+                if (spawner == null || spawner.m_creaturePrefab == null || !spawner.enabled || !ActiveUnder(spawner.transform, root)) continue;
+                var group = spawner.m_spawnGroupID;
+                if (rules != null && rules.m_blockSpawnGroups != null && rules.m_blockSpawnGroups.Contains(group)) continue;
+                int least = spawner.m_minLevel, most = spawner.m_maxLevel;
+                var chance = spawner.m_levelupChance;
+                if (rules != null && (rules.m_excludeEnemyLevelOverrideGroups == null || !rules.m_excludeEnemyLevelOverrideGroups.Contains(group)))
+                {
+                    if (rules.m_enemyMinLevelOverride >= 0) least = rules.m_enemyMinLevelOverride;
+                    if (rules.m_enemyMaxLevelOverride >= 0) most = rules.m_enemyMaxLevelOverride;
+                    if (rules.m_enemyLevelUpOverride >= 0f) chance = rules.m_enemyLevelUpOverride;
+                }
+                var at = root.InverseTransformPoint(spawner.transform.position);
+                into.Add(new Stage.SpawnHere
+                {
+                    At = spawner.transform,
+                    Creature = spawner.m_creaturePrefab,
+                    Point = new SpawnPoint
+                    {
+                        At = new Vec3(at.x, at.y, at.z), Group = group, GroupRadius = spawner.m_spawnGroupRadius, MaxInGroup = spawner.m_maxGroupSpawned,
+                        Weight = spawner.m_spawnerWeight, MinLevel = least, MaxLevel = most, LevelUpChance = LevelUpChance(chance),
+                    },
+                });
+            }
+        }
+
+        /// <summary>
+        /// A spawn point's chance of each star more, as the world has it (<c>SpawnSystem.GetLevelUpChance</c>):
+        /// its own or 10%, by the world's enemy level-up rate or its world level; the share a
+        /// world's sector adds is left out, as the stage stands in none.
+        /// </summary>
+        private static float LevelUpChance(float own)
+        {
+            var chance = own > 0f ? own : 10f;
+            if (Game.m_worldLevel > 0 && Game.instance != null && Game.instance.m_worldLevelEnemyLevelUpExponent > 0f)
+            {
+                return Mathf.Min(70f, Mathf.Pow(chance, Game.m_worldLevel * Game.instance.m_worldLevelEnemyLevelUpExponent));
+            }
+            return chance * Game.m_enemyLevelUpRate;
         }
 
         /// <summary>Whether a part and everything above it up to the copy's root is switched on, as the prefab has it.</summary>

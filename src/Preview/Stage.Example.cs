@@ -28,6 +28,7 @@ namespace Scry
         private static int _exampleNext;
         private static int _exampleCopies;
         private static Ghost.Building _exampleBuild;
+        private static List<SpawnHere> _exampleBuildSpawns;
 
         /// <summary>The example's rooms standing on the stage, each with its copy, to dim or put away those off the floor opened.</summary>
         private static readonly List<KeyValuePair<PlacedRoom, GameObject>> ExampleCopies = new List<KeyValuePair<PlacedRoom, GameObject>>();
@@ -125,7 +126,10 @@ namespace Scry
                     }
                     var at = new Vector3(room.Position.X, room.Position.Y, room.Position.Z);
                     var turn = new Quaternion(room.Rotation.X, room.Rotation.Y, room.Rotation.Z, room.Rotation.W);
-                    _exampleBuild = PlaceCopy.Begin(prefab, _exampleHolder.transform, at, turn, _layer, keepColliders: _exampleIsDungeon, local: true);
+                    // A room's spawn points go by the rules of the location it is built in.
+                    _exampleBuildSpawns = new List<SpawnHere>();
+                    var rules = _lastShown?.Source is PlaceSource shown ? PlaceAssets.Asset(shown)?.GetComponent<Location>() : null;
+                    _exampleBuild = PlaceCopy.Begin(prefab, _exampleHolder.transform, at, turn, _layer, keepColliders: _exampleIsDungeon, local: true, spawns: _exampleBuildSpawns, rules: rules);
                 }
                 stepped = true;
                 if (!_exampleBuild.Go(ExampleBudgetMs - watch.Elapsed.TotalMilliseconds)) break;
@@ -140,6 +144,8 @@ namespace Scry
                 // A dungeon room's floors; a camp keeps its location's.
                 if (_exampleIsDungeon) ReadFloors(copy, placed, _exampleCopies);
                 Tune(copy, audible: false);
+                Populate(_exampleBuildSpawns, copy);
+                _exampleBuildSpawns = null;
                 _exampleCopies++;
 
                 if (_exampleCopies == 1 && _exampleIsDungeon) ShowInsideOrOut();
@@ -273,6 +279,8 @@ namespace Scry
         private static void ForgetExample()
         {
             _exampleBuild?.Cancel();
+            _exampleBuildSpawns = null;
+            ForgetRoomCreatures();
             _exampleBuild = null;
             if (_exampleHolder != null) Object.Destroy(_exampleHolder);
             _exampleHolder = null;

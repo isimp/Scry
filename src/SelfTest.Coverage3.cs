@@ -187,6 +187,34 @@ namespace Scry
             p.Check(blank.Count == 0, "and some room stands on the stage on every floor", string.Join("; ", blank));
         }
 
+        /// <summary>
+        /// A location's spawn points put their creatures on the stage with it: they stand there,
+        /// the chip puts them away and back, and Roll again rolls them anew with the copy.
+        /// </summary>
+        private static IEnumerator PlaceCreatures(Probe p)
+        {
+            var place = X.Catalog.Where(e => PlaceOf(e) != null && !PlaceOf(e).IsRoom && PlaceOf(e).Contents?.Dungeon == null && PlaceOf(e).Contents?.Creatures.Count > 0)
+                .OrderBy(e => e.Name, StringComparer.Ordinal).FirstOrDefault();
+            if (place == null) p.Skip("no location read puts creatures there");
+            var shown = Stage.CreaturesShown;
+            Stage.CreaturesShown = true;
+            Select(place);
+            yield return Until(() => CopyOf(place) != null && Stage.CreaturesMade > 0 && Stage.CreaturesWaiting == 0, 20);
+            p.Note($"{place.Name}: {Stage.CreaturesMade} creatures, {string.Join(", ", Stage.CreatureNames.Take(10))}; its spawn points can put {string.Join(", ", PlaceOf(place).Contents.Creatures.Select(c => c.Prefab))}");
+            p.Check(Stage.CreaturesMade > 0, "its spawn points' creatures stand on the stage with it", $"{Stage.CreaturesMade} made, {Stage.CreaturesWaiting} waiting");
+
+            Stage.CreaturesShown = false;
+            p.Check(Stage.CreaturesStanding == 0, "the chip puts them away", $"{Stage.CreaturesStanding} still standing");
+            Stage.CreaturesShown = true;
+            p.Check(Stage.CreaturesStanding == Stage.CreaturesMade, "and back", $"{Stage.CreaturesStanding} of {Stage.CreaturesMade}");
+
+            var before = CopyOf(place);
+            Previews.Rebuild();
+            yield return Until(() => CopyOf(place) != null && CopyOf(place) != before && Stage.CreaturesMade > 0 && Stage.CreaturesWaiting == 0, 20);
+            p.Check(CopyOf(place) != before && Stage.CreaturesMade > 0, "Roll again rolls them anew with it", $"{Stage.CreaturesMade} made");
+            Stage.CreaturesShown = shown;
+        }
+
         /// <summary>A runestone location tells its stone's texts, in words, under Runestone texts.</summary>
         private static IEnumerator RunestoneTexts(Probe p)
         {

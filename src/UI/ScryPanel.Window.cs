@@ -157,6 +157,7 @@ namespace Scry
                     if (parts.Length == 2 && parts[0] == "person") Stage.ShowPerson = parts[1] == "1";
                     if (parts.Length == 2 && parts[0] == "worn") Looks.OnPerson = parts[1] == "1";
                     if (parts.Length == 2 && parts[0] == "spin") Stage.Spin = parts[1] == "1";
+                    if (parts.Length == 2 && parts[0] == "creatures") Stage.CreaturesShown = parts[1] == "1";
                     if (parts.Length == 2 && parts[0] == "stage" && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var stage)) _stageScale = Mathf.Clamp(stage, 0.4f, 2.4f);
                     if (parts.Length == 2 && parts[0] == "list" && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var share)) _listShareFull = Mathf.Clamp(share, ListNarrowest, ListWidest);
                     if (parts.Length == 2 && parts[0] == "listhidden") _listHiddenFull = parts[1] == "1";
@@ -191,7 +192,7 @@ namespace Scry
                 Directory.CreateDirectory(Plugin.DataFolder);
                 File.WriteAllLines(RectFile, new[] { Line("full", _full), Line("compact", _compactRect), "view " + (_compact ? "compact" : "full"),
                     "light " + Stage.LightingIndex, "backdrop " + Stage.BackdropIndex, "person " + (Stage.ShowPerson ? "1" : "0"), "worn " + (Looks.OnPerson ? "1" : "0"),
-                    "spin " + (Stage.Spin ? "1" : "0"), "folded " + string.Join(" ", Folded),
+                    "spin " + (Stage.Spin ? "1" : "0"), "creatures " + (Stage.CreaturesShown ? "1" : "0"), "folded " + string.Join(" ", Folded),
                     "stage " + _stageScale.ToString("0.00", CultureInfo.InvariantCulture),
                     "list " + _listShareFull.ToString("0.00", CultureInfo.InvariantCulture), "listhidden " + (_listHiddenFull ? "1" : "0"),
                     "clist " + _listShareCompact.ToString("0.00", CultureInfo.InvariantCulture), "clisthidden " + (_listHiddenCompact ? "1" : "0") });

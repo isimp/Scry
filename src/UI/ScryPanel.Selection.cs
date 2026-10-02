@@ -942,6 +942,7 @@ namespace Scry
             }
             if (Stage.HasInside) texts.Add(Stage.Inside ? "Inside" : "Outside");
             if (ExampleOf(entry) != null) texts.Add("Plan");
+            if (Stage.HasCreatures) texts.Add("Creatures");
             var total = texts.Sum(t => Skin.Width(Skin.Chip, t) + U(10f));
             if (x - total < rect.x + U(10f) + _badgeWidth + U(10f)) y += h + U(8f);
 
@@ -983,6 +984,12 @@ namespace Scry
             if (ExampleOf(entry) != null && Chip("Plan", !PlanFolded, PlanFolded ? "Shows the example's plan in the stage's corner" : "Puts the example's plan away"))
             {
                 PlanFolded = !PlanFolded;
+            }
+            if (Stage.HasCreatures && Chip("Creatures", Stage.CreaturesShown,
+                    Stage.CreaturesShown ? "Puts away the creatures its spawn points put here" : "Shows the creatures its spawn points put here, rolled anew with every copy"))
+            {
+                Stage.CreaturesShown = !Stage.CreaturesShown;
+                SaveRects();
             }
             if (Stage.HasInside && Chip(Stage.Inside ? "Inside" : "Outside", Stage.Inside,
                     Stage.Inside ? "The example dungeon, laid out as the game lays out a new one; click for its entrance outside" : "Its entrance; click for the example dungeon inside"))

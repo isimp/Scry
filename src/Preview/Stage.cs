@@ -285,7 +285,8 @@ namespace Scry
             {
                 var asset = PlaceAssets.Asset(place);
                 if (asset == null) return;
-                _building = PlaceCopy.Begin(asset, _root.transform, Origin, Quaternion.identity, _layer, keepColliders: true);
+                _buildingSpawns = new List<SpawnHere>();
+                _building = PlaceCopy.Begin(asset, _root.transform, Origin, Quaternion.identity, _layer, keepColliders: true, spawns: _buildingSpawns);
                 _buildingWith = modifiers;
                 StepBuild();
                 return;
@@ -310,6 +311,9 @@ namespace Scry
 
         private static Ghost.Building _building;
         private static Modifiers _buildingWith;
+
+        /// <summary>The spawn points of the location or room being made, its creatures rolled once it stands.</summary>
+        private static List<SpawnHere> _buildingSpawns;
         private static int _builtInFrame = -1;
 
         /// <summary>Whether a location or room is still being made, shown once it is.</summary>
@@ -342,6 +346,8 @@ namespace Scry
             _placeFloors = FloorsOf(_subject, place);
             Timing.Add("selection floors", probed);
             Present(_lastShown, modifiers);
+            Populate(_buildingSpawns, null);
+            _buildingSpawns = null;
         }
 
         /// <summary>Tunes, measures and stands the copy just made, and applies the modifiers.</summary>
@@ -739,6 +745,8 @@ namespace Scry
         public static void ClearSubject()
         {
             _building?.Cancel();
+            _buildingSpawns = null;
+            ForgetCreatures();
             _building = null;
             _buildingWith = null;
             ForgetExample();
