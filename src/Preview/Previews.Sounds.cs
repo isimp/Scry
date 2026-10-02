@@ -268,11 +268,22 @@ namespace Scry
 
         private static float? _seekWhilePaused;
 
-        /// <summary>A point sought while paused, set again as the sound goes on until the clip is there, for a second at most.</summary>
+        /// <summary>A point sought while paused, set again as the sound goes on until the clip is there, for two seconds at most.</summary>
         private static float? _seekOnGoing;
         private static float _seekOnGoingUntil;
+        private static float _seekAgainAt;
 
-        /// <summary>Each frame: a point sought while paused is set again until the playing clip is there.</summary>
+        /// <summary>How long a streamed clip is given to get to a point set before it is set again.</summary>
+        private const float SeekAgainAfter = 0.25f;
+
+        /// <summary>Where the sound was each frame while a point sought while paused was being settled, for the self-test to tell.</summary>
+        public static readonly List<string> SeekTrail = new List<string>();
+
+        /// <summary>
+        /// Each frame: a point sought while paused is set again until the playing clip is there,
+        /// every quarter second, as a streamed clip (music) takes a moment to get there and setting
+        /// it again starts it over.
+        /// </summary>
         public static void SettleSeek()
         {
             if (_seekOnGoing == null) return;
@@ -282,9 +293,16 @@ namespace Scry
                 _seekOnGoing = null;
                 return;
             }
+            if (SeekTrail.Count < 60) SeekTrail.Add($"{source.time:0.00} s, sample {source.timeSamples}{(source.isPlaying ? "" : ", not playing")}");
             if (!source.isPlaying) return;
-            if (source.time + 0.1f < _seekOnGoing.Value) SetPoint(source, _seekOnGoing.Value);
-            else _seekOnGoing = null;
+            if (source.time + 0.1f >= _seekOnGoing.Value)
+            {
+                _seekOnGoing = null;
+                return;
+            }
+            if (Time.unscaledTime < _seekAgainAt) return;
+            SetPoint(source, _seekOnGoing.Value);
+            _seekAgainAt = Time.unscaledTime + SeekAgainAfter;
         }
 
         /// <summary>Sets where a source plays from, by its samples as well as its time: a streamed clip may keep only the one.</summary>
@@ -318,8 +336,10 @@ namespace Scry
                 source.Play();
                 SetPoint(source, _seekWhilePaused.Value);
                 _seekOnGoing = _seekWhilePaused.Value;
-                _seekOnGoingUntil = Time.unscaledTime + 1f;
+                _seekOnGoingUntil = Time.unscaledTime + 2f;
+                _seekAgainAt = Time.unscaledTime + SeekAgainAfter;
                 _seekWhilePaused = null;
+                SeekTrail.Clear();
             }
             else source.UnPause();
             _held = source;

@@ -157,6 +157,9 @@ namespace Scry
             Previews.PauseSound(false);
             yield return new Wait(0.3);
             p.Check(Previews.SoundPosition(out var later, out _) && later > time, "and goes on from there", $"{later:0.00} s");
+            yield return new Wait(1.0);
+            Previews.SoundPosition(out var after, out _);
+            p.Note($"a second on it is at {after:0.00} s; frame by frame after going on: {string.Join("; ", Previews.SeekTrail)}");
             Previews.StopSound();
         }
 
