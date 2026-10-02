@@ -373,8 +373,9 @@ namespace Scry
                 if (label != null && kinds.Contains(label)) return;
                 foreach (var name in NamesInText.Find(text, names))
                 {
-                    // One with a chip elsewhere on the page, its biomes' among them, can be gone
-                    // to; several entries can share a name, so names are what is compared.
+                    // One with a chip elsewhere on the page can be gone to (the biomes at its foot
+                    // excuse nothing, as a line naming one should go there itself); several
+                    // entries can share a name, so names are what is compared.
                     if (name == entry.DisplayName || onPage.Contains(name)) continue;
                     if (linked != null && shownOf.TryGetValue(linked, out var linkedName) && linkedName == name) continue;
                     // A line is told by its words before the name, a pair by its label.
@@ -432,7 +433,6 @@ namespace Scry
                 }
                 foreach (var link in told.Links.Values) OnPage(link);
                 foreach (var line in told.Where) OnPage(line.Prefab);
-                foreach (var biome in entry.Biomes) OnPage(EntryKeys.For(Kind.Biome, biome));
                 foreach (var pair in told.Pairs) Unlinked(entry, pair.Key, pair.Value, told.Links.TryGetValue(pair.Key, out var linked) ? linked : null);
                 foreach (var line in told.Where) Unlinked(entry, null, line.Text, line.Prefab);
                 foreach (var row in told.Rows.Concat(told.UseRows))

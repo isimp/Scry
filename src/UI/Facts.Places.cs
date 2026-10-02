@@ -33,7 +33,11 @@ namespace Scry
             var sets = place.Rules;
             if (sets.Count == 1)
             {
-                foreach (var row in LocationWords.Rows(RulesOf(sets[0]))) Add(row.Key, row.Value);
+                foreach (var row in LocationWords.Rows(RulesOf(sets[0])))
+                {
+                    if (row.Key == "Biome") BiomeLine(row.Value, sets[0].m_biome);
+                    else Add(row.Key, row.Value);
+                }
                 if (!string.IsNullOrEmpty(sets[0].AltBiomeParent)) Add("Only in", $"the {Naming.FieldLabel(sets[0].AltBiomeParent).ToLowerInvariant()} part of its biome");
                 return;
             }
@@ -43,6 +47,23 @@ namespace Scry
                 if (!string.IsNullOrEmpty(sets[i].AltBiomeParent)) line += $", only in the {Naming.FieldLabel(sets[i].AltBiomeParent).ToLowerInvariant()} part of it";
                 Add(i == 0 ? "Placed" : "Also placed", line);
             }
+        }
+
+        /// <summary>
+        /// The biome it is placed in, going to the biome's page: one biome is the line itself,
+        /// several a row of chips under it, each going to its page.
+        /// </summary>
+        private void BiomeLine(string words, Heightmap.Biome biome)
+        {
+            var keys = Knowledge.BiomeKeys(biome);
+            var page = keys.Length == 1 ? EntryKeys.For(Kind.Biome, keys[0]) : null;
+            if (page != null && EntryOf(page) != null)
+            {
+                Add("Biome", words, page);
+                return;
+            }
+            Add("Biome", words);
+            if (keys.Length > 1) BiomeRow("Its biomes", biome);
         }
 
         private static LocationRules RulesOf(ZoneSystem.ZoneLocation location) => new LocationRules
