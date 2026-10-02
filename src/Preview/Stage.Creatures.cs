@@ -8,9 +8,11 @@ namespace Scry
     /// <summary>
     /// The creatures a location's or room's spawn points put there, standing on the stage with it
     /// (<see cref="SpawnPoints"/>): rolled anew with every copy, an example's rooms each with
-    /// their own, every point whatever the world's progress or the time of day. Each idles where
-    /// its point is, facing a way of its own, with the stars it rolled, muted, dimmed with its
-    /// room; a few are made each frame. The stage's Creatures chip puts them away and back.
+    /// their own, every point whatever the world's progress or the time of day. Each stands where
+    /// its point is, facing a way of its own, with the stars it rolled, held in its first pose,
+    /// muted, dimmed with its room; a few are made each frame. They stand on a layer of their own,
+    /// drawn over the picture without a floor's cut, so a tall one stands whole. The stage's
+    /// Creatures chip puts them away and back.
     /// </summary>
     internal static partial class Stage
     {
@@ -117,6 +119,15 @@ namespace Scry
             if (copy == null) return null;
             copy.transform.SetParent(at, true);
             Tune(copy, audible: false);
+            Ghost.SetLayer(copy.transform, CreatureLayer);
+
+            // Held in its first pose, to spare the frame an animator running for each.
+            foreach (var animator in copy.GetComponentsInChildren<Animator>(true))
+            {
+                if (animator == null || !animator.isActiveAndEnabled) continue;
+                animator.Update(0f);
+                animator.enabled = false;
+            }
             return copy;
         }
 

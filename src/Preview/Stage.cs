@@ -621,9 +621,18 @@ namespace Scry
             Pitch = Mathf.Clamp(Pitch + delta.y * 0.3f, -20f, 85f);
         }
 
+        /// <summary>How near the camera may come to what it frames, in metres, however big.</summary>
+        private const float NearestMetres = 2f;
+
+        /// <summary>
+        /// Zooms by the wheel. In as far as a few metres from the middle of what is shown: a
+        /// small model a seventh of its framing distance, a big place much nearer.
+        /// </summary>
         public static void ZoomBy(float wheel)
         {
-            Zoom = Mathf.Clamp(Zoom * (1f + wheel * 0.08f), 0.15f, 6f);
+            var framed = _frameRadius > 0f ? _frameRadius / Mathf.Sin(FieldOfView * 0.5f * Mathf.Deg2Rad) : 0f;
+            var least = framed > 0f ? Mathf.Clamp(NearestMetres / framed, 0.002f, 0.15f) : 0.15f;
+            Zoom = Mathf.Clamp(Zoom * (1f + wheel * 0.08f), least, 6f);
         }
 
         public static void ResetView()
@@ -672,7 +681,7 @@ namespace Scry
             Settle();
             Frame();
 
-            var mask = 1 << _layer;
+            var mask = StageMask;
             var sun = EnvMan.instance != null ? EnvMan.instance.m_dirLight : null;
             var main = GameCamera.instance != null ? GameCamera.instance.GetComponent<Camera>() : null;
             if (main != null && (main.cullingMask & mask) != 0)
@@ -699,6 +708,27 @@ namespace Scry
                 if (sun != null) sun.cullingMask = sunMask & ~mask;
 
                 _camera.Render();
+
+                // The creatures over the picture with the camera's own projection: a floor's cut
+                // leaves them whole, while what stands before them still hides them.
+                if (CreatureLayer != _layer && CreatureCopies.Count > 0)
+                {
+                    var projection = _camera.projectionMatrix;
+                    var clear = _camera.clearFlags;
+                    try
+                    {
+                        _camera.ResetProjectionMatrix();
+                        _camera.cullingMask = 1 << CreatureLayer;
+                        _camera.clearFlags = CameraClearFlags.Nothing;
+                        _camera.Render();
+                    }
+                    finally
+                    {
+                        _camera.cullingMask = 1 << _layer;
+                        _camera.clearFlags = clear;
+                        _camera.projectionMatrix = projection;
+                    }
+                }
             }
             finally
             {
@@ -779,7 +809,7 @@ namespace Scry
             }
 
             // The main camera sees the layer again, as it did before Scry took it.
-            if (_hiddenFrom != null && _layer >= 0) _hiddenFrom.cullingMask |= 1 << _layer;
+            if (_hiddenFrom != null && _layer >= 0) _hiddenFrom.cullingMask |= StageMask;
             _hiddenFrom = null;
         }
 

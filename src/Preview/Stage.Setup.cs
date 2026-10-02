@@ -92,7 +92,7 @@ namespace Scry
             var light = lightObject.AddComponent<Light>();
             light.type = LightType.Directional;
             light.shadows = LightShadows.None;
-            light.cullingMask = 1 << _layer;
+            light.cullingMask = StageMask;
             return light;
         }
 
@@ -122,6 +122,32 @@ namespace Scry
         }
 
         /// <summary>The highest layer without a name, which nothing in the game draws on.</summary>
+        /// <summary>
+        /// The layer a place's creatures stand on, drawn in a pass of their own without a floor's
+        /// cut (<see cref="StepCreatures"/>): the next free one below the stage's, or the stage's
+        /// own where there is none, and then they are cut as everything is.
+        /// </summary>
+        private static int _creatureLayer = -2;
+        private static int CreatureLayer
+        {
+            get
+            {
+                if (_creatureLayer != -2) return _creatureLayer;
+                _creatureLayer = _layer;
+                for (var i = _layer - 1; i >= 8 && _layer >= 0; i--)
+                {
+                    if (!string.IsNullOrEmpty(LayerMask.LayerToName(i))) continue;
+                    _creatureLayer = i;
+                    Plugin.Note($"Scry is using layer {i} for the creatures standing on its stage.");
+                    break;
+                }
+                return _creatureLayer;
+            }
+        }
+
+        /// <summary>The stage's layers: its own and its creatures'.</summary>
+        private static int StageMask => _layer < 0 ? 0 : (1 << _layer) | (1 << CreatureLayer);
+
         private static int FreeLayer()
         {
             for (var i = 31; i >= 8; i--)
