@@ -74,7 +74,7 @@ namespace Scry
         /// What stands behind and under the model: the lighting's own colour, a sky with a horizon
         /// in the lighting's colours, a floor ruled in one-metre squares for judging size, or both.
         /// </summary>
-        public static readonly string[] BackdropNames = { "Plain", "Sky", "Grid", "Sky and grid" };
+        public static readonly string[] BackdropNames = StageGround.Backdrops;
 
         private static GameObject _root;
 
@@ -752,6 +752,7 @@ namespace Scry
 
             EnsureTexture();
             Settle();
+            KeepGround();
             Frame();
             KeepCreaturesToCut();
 
@@ -908,6 +909,7 @@ namespace Scry
             _root = null;
             _camera = null;
             _floor = null;
+            ForgetGround();
             _ground = null;
             _person = null;
             _grid = null;

@@ -146,6 +146,14 @@ namespace Scry
                 }
             }
 
+            if (_terrain != null && _terrain.activeSelf)
+            {
+                // Out toward the horizon, a little under the plain floor's height.
+                _terrain.transform.position = new Vector3(_lookAt.x, groundY - 0.006f, _lookAt.z);
+                var across = radius * 6f;
+                _terrain.transform.localScale = new Vector3(across, 1f, across);
+            }
+
             if (_floor != null)
             {
                 var floorY = groundY - 0.005f;

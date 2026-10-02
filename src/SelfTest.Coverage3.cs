@@ -269,6 +269,75 @@ namespace Scry
         }
 
         /// <summary>
+        /// The Ground backdrop: a piece stands on its own biome's ground, and each biome's ground,
+        /// laid in turn, looks its own, each told by the colour of the ground before the model and
+        /// saved as a picture of the stage beside the log; a dungeon room keeps the plain floor.
+        /// </summary>
+        private static IEnumerator GroundBackdrop(Probe p)
+        {
+            var entry = Pick(Kind.Piece, "piece_workbench", "wood_wall_half");
+            if (entry == null) p.Skip("there is no piece to stand on the stage");
+            var backdrop = Stage.BackdropIndex;
+            var spin = Stage.Spin;
+            Stage.Spin = false;
+            Select(entry);
+            yield return Until(() => CopyOf(entry) != null, 10);
+            Stage.BackdropIndex = 4;
+            yield return Until(() => Stage.GroundShown != null, 3);
+            if (!p.Check(Stage.GroundShown != null, "with the Ground backdrop it stands on ground", "the world's terrain had no material to borrow"))
+            {
+                Stage.BackdropIndex = backdrop;
+                Stage.Spin = spin;
+                yield break;
+            }
+            p.Check(Stage.GroundShown == StageGround.BiomeFor(entry.Biomes), "the ground of its own biome", $"{Stage.GroundShown} for {string.Join(", ", entry.Biomes)}");
+
+            var folder = System.IO.Path.Combine(BepInEx.Paths.BepInExRootPath, "Scry-selftest-ground");
+            System.IO.Directory.CreateDirectory(folder);
+            var told = new List<string>();
+            var looks = new List<Color32>();
+            foreach (var biome in new[] { "Meadows", "BlackForest", "Swamp", "Mountain", "Plains", "Mistlands", "AshLands", "DeepNorth", "Ocean" })
+            {
+                Stage.GroundBiomeOverride = biome;
+                yield return null;
+                yield return null;
+                yield return null;
+                var front = PictureWithin(new Rect(0f, 0f, 1f, 0.15f), out _, out _);
+                var whole = PictureWithin(new Rect(0f, 0f, 1f, 1f), out var width, out var height);
+                if (whole != null) WriteTga(System.IO.Path.Combine(folder, $"stage-{biome}.tga"), width, height, whole);
+                if (front == null || front.Length == 0) continue;
+                long r = 0, g = 0, b = 0;
+                foreach (var pixel in front)
+                {
+                    r += pixel.r;
+                    g += pixel.g;
+                    b += pixel.b;
+                }
+                var look = new Color32((byte)(r / front.Length), (byte)(g / front.Length), (byte)(b / front.Length), 255);
+                looks.Add(look);
+                told.Add($"{biome} #{look.r:X2}{look.g:X2}{look.b:X2}");
+            }
+            Stage.GroundBiomeOverride = null;
+            p.Note($"the ground before it, by biome: {string.Join("; ", told)}; pictures in {folder}");
+            var distinct = looks.Where((look, i) => !looks.Take(i).Any(other => !Apart(look, other))).Count();
+            p.Check(distinct >= 5, "each biome's ground looks its own", $"{distinct} looks among {looks.Count} biomes");
+
+            // Underground there is no ground of the world's.
+            var room = X.Catalog.Where(e => PlaceOf(e) != null && PlaceOf(e).IsRoom).OrderBy(e => e.Name, StringComparer.Ordinal).FirstOrDefault();
+            if (room != null)
+            {
+                Select(room);
+                yield return Until(() => CopyOf(room) != null, 20);
+                yield return null;
+                yield return null;
+                p.Check(CopyOf(room) != null && Stage.GroundShown == null, "a dungeon room keeps the plain floor", $"{room.Name}: {Stage.GroundShown ?? "no ground"}");
+            }
+
+            Stage.BackdropIndex = backdrop;
+            Stage.Spin = spin;
+        }
+
+        /// <summary>
         /// The world's lights stay off the stage: a directional light made in the world, as a
         /// lightning strike's flash is, leaves the stage's picture as it was.
         /// </summary>

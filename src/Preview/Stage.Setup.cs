@@ -66,8 +66,10 @@ namespace Scry
             Set(_rim, new Vector3(-20f, 170f, 0f), preset.Rim, preset.RimPower);
             _camera.backgroundColor = preset.Backdrop;
 
-            var sky = _backdrop == 1 || _backdrop == 3;
-            var grid = _backdrop == 2 || _backdrop == 3;
+            // The plain floor and a biome's ground are kept each frame (KeepGround), as whether
+            // there is ground goes with what is shown.
+            var sky = StageGround.Sky(_backdrop);
+            var grid = StageGround.Grid(_backdrop);
             if (_sky != null)
             {
                 _sky.SetActive(sky);
@@ -75,7 +77,6 @@ namespace Scry
                 _sky.GetComponent<MeshRenderer>().sharedMaterial.mainTexture = SkyTextures[_lighting];
             }
             if (_grid != null) _grid.SetActive(grid);
-            if (_floor != null) _floor.SetActive(!grid);
         }
 
         private static void Set(Light light, Vector3 angle, Color color, float power)
