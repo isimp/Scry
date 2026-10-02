@@ -234,6 +234,9 @@ namespace Scry
                 Place();
                 var explorer = Session.Explorer;
 
+                // A header slider's box takes the mouse over it before anything under it does.
+                if (SlideInput(explorer)) return;
+
                 // A click anywhere lets go of the keyboard; a click on a text box takes it straight
                 // back. So clicking the list or a button after typing hands the keys back to walking.
                 if (Event.current.type == EventType.MouseDown) GUIUtility.keyboardControl = 0;
@@ -256,6 +259,7 @@ namespace Scry
 
                 Draw(explorer);
                 Drags();
+                SlideDraw(explorer);
                 Tooltip();
 
                 // The panel is solid: clicks and the wheel over it stop here.

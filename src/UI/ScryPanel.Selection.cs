@@ -113,7 +113,7 @@ namespace Scry
             var foldText = anyOpen ? "fold all" : "open all";
             _foldAllW = Skin.Width(Skin.FaintLabel, foldText) + U(16f);
             GUI.BeginGroup(titleArea);
-            var titleH = Section("side title", 0f, at => Title(explorer, entry, titleArea.width, at));
+            var titleH = Section("side title", 0f, at => Title(explorer, entry, titleArea.width, at, withStage));
             FoldAllLink(new Rect(titleArea.width - _foldAllW + U(12f), U(34f), _foldAllW - U(12f), U(22f)), foldText, anyOpen);
             GUI.EndGroup();
             top += titleH;
@@ -534,11 +534,15 @@ namespace Scry
             GUI.Label(new Rect(rect.x + U(20f), icon.yMax + U(10f), rect.width - U(40f), U(22f)), StatusFacts(effect), Skin.CenterDim);
         }
 
-        private static float Title(Explorer explorer, Entry entry, float width, float y)
+        private static float Title(Explorer explorer, Entry entry, float width, float y, bool withStage)
         {
             var primary = string.IsNullOrEmpty(entry.DisplayName) ? entry.Name : entry.DisplayName;
             var copyW = U(104f);
-            var nameRect = new Rect(0f, y, width - copyW - U(46f), U(30f));
+
+            // Volume and, while the stage shows a model, size: small icons opening their sliders.
+            var sized = Adjustable(entry, withStage, out var staged) && staged;
+            var iconsW = SlideIcons(entry, explorer.Modifiers, width - copyW - U(44f), y + U(4f), sized) + U(8f);
+            var nameRect = new Rect(0f, y, width - copyW - U(46f) - iconsW, U(30f));
             var fits = FitLabel(nameRect, primary, Skin.Big, 13f);
             if (!fits && nameRect.Contains(Event.current.mousePosition)) AskTip("title", primary);
 

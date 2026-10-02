@@ -34,7 +34,7 @@ namespace Scry
         public static GUIStyle RowName, RowSub, Glyph, Center, CenterDim;
         public static GUIStyle Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close;
         public static GUIStyle Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross;
-        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark;
+        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize;
 
         private static float _builtScale = -1f;
         private static bool _warmed;
@@ -548,6 +548,28 @@ namespace Scry
             StarHollow = Shape(32, 32, (x, y) => StarCoverage(x, y, 32, filled: false));
             Clock = Shape(32, 32, ClockCoverage);
             ListMark = Shape(32, 32, ListCoverage);
+            Speaker = Shape(32, 32, SpeakerCoverage);
+            Resize = Shape(32, 32, ResizeCoverage);
+        }
+
+        /// <summary>A speaker: its box, its cone opening to the right, and two arcs of sound.</summary>
+        private static bool SpeakerCoverage(float x, float y)
+        {
+            var dy = Mathf.Abs(y - 16f);
+            if (x >= 4f && x <= 10f && dy <= 4f) return true;
+            if (x >= 10f && x <= 16f && dy <= 4f + (x - 10f)) return true;
+            var dx = x - 16f;
+            if (dx <= 2f || dy > dx * 1.1f) return false;
+            var r = Mathf.Sqrt(dx * dx + dy * dy);
+            return Mathf.Abs(r - 8f) <= 1.3f || Mathf.Abs(r - 12.5f) <= 1.3f;
+        }
+
+        /// <summary>Two arrowheads at opposite corners, joined: bigger or smaller.</summary>
+        private static bool ResizeCoverage(float x, float y)
+        {
+            if (Mathf.Abs(x - y) <= 2.3f && x >= 9f && x <= 23f) return true;
+            if (x <= 26f && y <= 26f && x + y >= 43f) return true;
+            return x >= 6f && y >= 6f && x + y <= 21f;
         }
 
         /// <summary>A list: three lines, each with a dot before it.</summary>

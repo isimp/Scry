@@ -52,6 +52,8 @@ Mods have a tab of their own: every mod loaded has a page telling its version, w
 
 When part of Scry is off, because the game changed in a way it does not know or a part of it failed, an amber strip under the header says what in plain words instead of a *Game changed* chip, with details that say what to do and copy what is off for a report.
 
+Volume and size are two small icons beside the selection's name, each opening a short slider; *Adjust* keeps stars, wear, look and a projectile's speed.
+
 ## 0.1.0
 
 First release.
