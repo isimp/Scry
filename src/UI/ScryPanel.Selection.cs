@@ -218,6 +218,13 @@ namespace Scry
         /// <summary>How far the mouse has moved since the left button went down on the stage.</summary>
         private static float _orbitMoved;
 
+        /// <summary>Where the stage's picture was last drawn, on the screen, for a drag to tell where on it the mouse is.</summary>
+        private static Rect _pictureScreen;
+
+        /// <summary>Where a point of the screen is on the stage's picture, 0 to 1 across and 0 to 1 up.</summary>
+        private static Vector2 OnPicture(Vector2 screen) => _pictureScreen.width <= 0f || _pictureScreen.height <= 0f ? new Vector2(0.5f, 0.5f)
+            : new Vector2((screen.x - _pictureScreen.x) / _pictureScreen.width, 1f - (screen.y - _pictureScreen.y) / _pictureScreen.height);
+
         /// <summary>What the stage says while a dungeon's or camp's example is read and built; null once it stands.</summary>
         private static string ExampleProgress(Entry entry)
         {
@@ -236,6 +243,7 @@ namespace Scry
             {
                 var inner = new Rect(rect.x + U(3f), rect.y + U(3f), rect.width - U(6f), rect.height - U(6f));
                 if (e.type == EventType.Repaint) Stage.Request((int)inner.width, (int)inner.height);
+                _pictureScreen = new Rect(GUIUtility.GUIToScreenPoint(inner.position), inner.size);
 
                 if (Stage.Subject != null && Stage.Texture != null)
                 {
@@ -325,8 +333,9 @@ namespace Scry
                 else if (e.type == EventType.ScrollWheel && rect.Contains(e.mousePosition))
                 {
                     // With Shift the wheel moves the cut of a place opened, down as it scrolls down.
+                    // Otherwise it zooms toward what is under the pointer.
                     if (e.shift && Stage.Cutting) Stage.CutBy(-e.delta.y * 0.25f);
-                    else Stage.ZoomBy(e.delta.y);
+                    else Stage.ZoomBy(e.delta.y, OnPicture(GUIUtility.GUIToScreenPoint(e.mousePosition)));
                     e.Use();
                 }
             }
@@ -924,8 +933,8 @@ namespace Scry
         }
 
         /// <summary>The person for size, the lighting and the backdrop, in the stage's top right corner.</summary>
-        private const string StageHint = "Drag to turn, right-drag to move, scroll to zoom, double-click to reset";
-        private const string StageHintCut = "Drag to turn, right-drag to move, scroll to zoom, Page Up/Down or the ruler for floors, Shift-scroll to move the cut";
+        private const string StageHint = "Drag to turn, right-drag to move, scroll to zoom where you point, double-click to reset";
+        private const string StageHintCut = "Drag to turn, right-drag to move, scroll to zoom where you point, Page Up/Down or the ruler for floors, Shift-scroll to move the cut";
 
         private static void StageButtons(Entry entry, Rect rect)
         {

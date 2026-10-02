@@ -13,7 +13,8 @@ namespace Scry
     /// its top floor when first shown, a location keeps its roof; the stage's chip takes the roof
     /// off and puts it back, its arrows, Page Up and Down and the ruler step a floor up or down,
     /// the ruler sets the cut anywhere, and Shift with the wheel moves it. Looked at from below
-    /// the cut, nothing is cut.
+    /// the cut, nothing is cut. With a floor opened the camera looks at that floor, framed on
+    /// what stands on it (<see cref="FloorFrame"/>).
     /// </summary>
     internal static partial class Stage
     {
@@ -173,6 +174,7 @@ namespace Scry
         private static void ApplyCut()
         {
             _camera.ResetProjectionMatrix();
+            _aboveCut = null;
             if (!Cutting || _subject == null) return;
 
             var y = Origin.y + CutAt * _scale;
@@ -187,6 +189,15 @@ namespace Scry
             var normal = toCamera.MultiplyVector(Vector3.down).normalized;
             var plane = new Vector4(normal.x, normal.y, normal.z, -Vector3.Dot(point, normal));
             _camera.projectionMatrix = _camera.CalculateObliqueMatrix(plane);
+
+            var up = -normal;
+            _aboveCut = StageCamera.AboveCutRow(up.x, up.y, up.z, -Vector3.Dot(point, up), _camera.nearClipPlane);
         }
+
+        /// <summary>
+        /// While a cut is laid, the depth row the creatures are drawn again with, keeping what of
+        /// them is above it (<see cref="StageCamera.AboveCutRow"/>); null while nothing is cut.
+        /// </summary>
+        private static (float X, float Y, float Z, float W)? _aboveCut;
     }
 }

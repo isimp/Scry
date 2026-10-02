@@ -247,6 +247,42 @@ namespace Scry
         /// </summary>
         public static float? ExamplePlanFloor => ExampleOpenFloor is float floor && ExampleRoomsOnFloor > 0 ? floor : (float?)null;
 
+        /// <summary>
+        /// The middle across of the rooms standing on the floor opened in a dungeon's example, on
+        /// the stage, and how far they reach from it (x, z and reach); null with none opened or
+        /// none standing on it. Worked out again as the floor or the rooms change.
+        /// </summary>
+        private static Vector3? ExampleFloorAcross()
+        {
+            if (!_exampleIsDungeon || _exampleHolder == null || !_exampleHolder.activeInHierarchy || _examplePlaced == null) return null;
+            var floor = ExamplePlanFloor;
+            if (floor == null) return null;
+            if (_acrossFloor == floor && _acrossRooms == _exampleCopies && ReferenceEquals(_acrossOf, _examplePlaced)) return _across;
+
+            var holder = _exampleHolder.transform;
+            var corners = new List<Vec3>();
+            foreach (var room in _examplePlaced.Rooms)
+            {
+                if (ExampleRoomShown(room) != PlanRoomShown.Whole) continue;
+                foreach (var corner in room.Corners())
+                {
+                    var at = holder.TransformPoint(new Vector3(corner.X, corner.Y, corner.Z));
+                    corners.Add(new Vec3(at.x, at.y, at.z));
+                }
+            }
+            var across = StageCamera.Across(corners);
+            _across = across is (float x, float z, float reach) ? new Vector3(x, z, reach) : (Vector3?)null;
+            _acrossFloor = floor;
+            _acrossRooms = _exampleCopies;
+            _acrossOf = _examplePlaced;
+            return _across;
+        }
+
+        private static Vector3? _across;
+        private static float? _acrossFloor;
+        private static int _acrossRooms = -1;
+        private static DungeonExample _acrossOf;
+
         /// <summary>How a room of the example shows with the floor opened: whole on it, else as its box says, below faintly or above not at all.</summary>
         public static PlanRoomShown ExampleRoomShown(PlacedRoom room)
         {

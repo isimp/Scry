@@ -168,18 +168,76 @@ namespace Scry
         // over its flight; the floor is under what it draws then.
         private static bool _onFeet;
 
-        /// <summary>How far the view is moved off the model, by dragging with the right button.</summary>
+        /// <summary>How far the view is moved off what it frames, by dragging with the right button or zooming toward the pointer.</summary>
         private static Vector3 _pan;
 
-        /// <summary>Moves the view across the stage, as the mouse drags it, at the distance the camera is from the model.</summary>
-        public static void Pan(Vector2 delta)
+        /// <summary>
+        /// Moves the view as the mouse drags it with the right button, from one point of the
+        /// picture to another (0 to 1 across, 0 to 1 up): what was under the pointer stays under
+        /// it, on the floor looked at where one is opened (<see cref="StageCamera.DragOnLevel"/>),
+        /// else as far off as what the camera looks at (<see cref="StageCamera.Drag"/>).
+        /// </summary>
+        public static void Pan(Vector2 from, Vector2 to)
         {
             if (_camera == null) return;
             var t = _camera.transform;
-            var distance = Vector3.Distance(t.position, Origin + _pan);
-            var step = distance * 0.0016f;
-            _pan += -t.right * delta.x * step + t.up * delta.y * step;
+            if (_lookedFloor is float floor)
+            {
+                var along = StageCamera.DragOnLevel(V(t.position), V(RayAt(from)), V(RayAt(to)), floor, Farthest);
+                if (along != null)
+                {
+                    _pan += new Vector3(along.Value.X, 0f, along.Value.Z);
+                    return;
+                }
+            }
+            var (right, up) = StageCamera.Drag(to.x - from.x, to.y - from.y, Vector3.Distance(t.position, _lookAt), FieldOfView, _camera.aspect);
+            var move = t.right * right + t.up * up;
+            _pan += _lookedFloor != null ? new Vector3(move.x, 0f, move.z) : move;
         }
+
+        /// <summary>
+        /// What is under a point of the picture (0 to 1 across, 0 to 1 up), which the wheel zooms
+        /// toward: on the floor looked at where one is opened, else on the plane through what the
+        /// camera looks at, facing it. Null before the camera has filmed.
+        /// </summary>
+        public static Vector3? PointUnder(Vector2 point)
+        {
+            if (_camera == null) return null;
+            var eye = V(_camera.transform.position);
+            var ray = V(RayAt(point));
+            var on = _lookedFloor is float floor ? StageCamera.OnLevel(eye, ray, floor, Farthest) : null;
+            on = on ?? StageCamera.OnFacing(eye, ray, V(_lookAt), V(_camera.transform.forward));
+            return on is Vec3 at ? U(at) : (Vector3?)null;
+        }
+
+        /// <summary>Where a point of the stage's picture (0 to 1 across, 0 to 1 up) shows, for the self-test; null behind the camera.</summary>
+        public static Vector2? PictureOf(Vector3 world)
+        {
+            if (_camera == null) return null;
+            var local = _camera.transform.InverseTransformPoint(world);
+            if (local.z <= 0f) return null;
+            var tan = Mathf.Tan(FieldOfView * 0.5f * Mathf.Deg2Rad);
+            return new Vector2((local.x / (local.z * tan * _camera.aspect) + 1f) / 2f, (local.y / (local.z * tan) + 1f) / 2f);
+        }
+
+        /// <summary>What the camera looks at and how far it is from it, and the height of the floor it looks at with one opened, for the self-test.</summary>
+        public static Vector3 LookAt => _lookAt;
+        public static float LookDistance => _camera != null ? Vector3.Distance(_camera.transform.position, _lookAt) : 0f;
+        public static float? LookedFloor => _lookedFloor;
+
+        /// <summary>The way from the camera through a point of its picture (0 to 1 across, 0 to 1 up).</summary>
+        private static Vector3 RayAt(Vector2 point)
+        {
+            var tan = Mathf.Tan(FieldOfView * 0.5f * Mathf.Deg2Rad);
+            return _camera.transform.rotation * new Vector3((point.x * 2f - 1f) * tan * _camera.aspect, (point.y * 2f - 1f) * tan, 1f);
+        }
+
+        /// <summary>How far off the pointer may find the floor: a few times what is framed beyond the camera's distance.</summary>
+        private static float Farthest => _camera == null ? 0f : (Vector3.Distance(_camera.transform.position, _lookAt) + _frameRadius) * 4f;
+
+        private static Vec3 V(Vector3 v) => new Vec3(v.x, v.y, v.z);
+
+        private static Vector3 U(Vec3 v) => new Vector3(v.X, v.Y, v.Z);
 
         /// <summary>Where the floor under the model is, as shown: under its body, not what it holds.</summary>
         private static float FloorY
@@ -621,18 +679,30 @@ namespace Scry
             Pitch = Mathf.Clamp(Pitch + delta.y * 0.3f, -20f, 85f);
         }
 
-        /// <summary>How near the camera may come to what it frames, in metres, however big.</summary>
-        private const float NearestMetres = 2f;
-
         /// <summary>
-        /// Zooms by the wheel. In as far as a few metres from the middle of what is shown: a
-        /// small model a seventh of its framing distance, a big place much nearer.
+        /// Zooms by the wheel toward what is under the pointer at a point of the picture (0 to 1
+        /// across, 0 to 1 up), which stays under it (<see cref="StageCamera.ZoomToward"/>); in as
+        /// far as a couple of metres however big what is framed (<see cref="StageCamera.LeastZoom"/>).
         /// </summary>
-        public static void ZoomBy(float wheel)
+        public static void ZoomBy(float wheel, Vector2? point = null)
         {
             var framed = _frameRadius > 0f ? _frameRadius / Mathf.Sin(FieldOfView * 0.5f * Mathf.Deg2Rad) : 0f;
-            var least = framed > 0f ? Mathf.Clamp(NearestMetres / framed, 0.002f, 0.15f) : 0.15f;
-            Zoom = Mathf.Clamp(Zoom * (1f + wheel * 0.08f), least, 6f);
+            var before = Zoom;
+            Zoom = Mathf.Clamp(Zoom * (1f + wheel * 0.08f), StageCamera.LeastZoom(framed), 6f);
+            if (point == null || _camera == null || before <= 0f || Mathf.Approximately(Zoom, before)) return;
+            if (!(PointUnder(point.Value) is Vector3 toward)) return;
+
+            var factor = Zoom / before;
+            var move = U(StageCamera.ZoomToward(V(_lookAt), V(toward), factor)) - _lookAt;
+            if (_lookedFloor != null) move.y = 0f;
+            _pan += move;
+
+            // The camera goes along at once, so the next turn of the wheel in the same frame
+            // starts from where this one left it.
+            var t = _camera.transform;
+            var distance = Vector3.Distance(t.position, _lookAt) * factor;
+            _lookAt += move;
+            t.position = _lookAt - t.forward * distance;
         }
 
         public static void ResetView()
@@ -707,24 +777,31 @@ namespace Scry
                 RenderSettings.ambientGroundColor = light * 0.7f;
                 if (sun != null) sun.cullingMask = sunMask & ~mask;
 
+                _camera.cullingMask = mask;
                 _camera.Render();
 
-                // The creatures over the picture with the camera's own projection: a floor's cut
-                // leaves them whole, while what stands before them still hides them.
-                if (CreatureLayer != _layer && CreatureCopies.Count > 0)
+                // A floor's cut is the near plane laid along it, which cut the creatures with all
+                // else. What of them is above it is drawn again over the picture, by a projection
+                // that keeps only what is above the cut (StageCamera.AboveCutRow): nothing below
+                // the cut can stand before it, as the camera looks from above.
+                if (_aboveCut != null && CreatureLayer != _layer && CreatureCopies.Count > 0)
                 {
                     var projection = _camera.projectionMatrix;
                     var clear = _camera.clearFlags;
                     try
                     {
                         _camera.ResetProjectionMatrix();
+                        var above = _camera.projectionMatrix;
+                        var row = _aboveCut.Value;
+                        above.SetRow(2, new Vector4(row.X, row.Y, row.Z, row.W));
+                        _camera.projectionMatrix = above;
                         _camera.cullingMask = 1 << CreatureLayer;
-                        _camera.clearFlags = CameraClearFlags.Nothing;
+                        _camera.clearFlags = CameraClearFlags.Depth;
                         _camera.Render();
                     }
                     finally
                     {
-                        _camera.cullingMask = 1 << _layer;
+                        _camera.cullingMask = mask;
                         _camera.clearFlags = clear;
                         _camera.projectionMatrix = projection;
                     }

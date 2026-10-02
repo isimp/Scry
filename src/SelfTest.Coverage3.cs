@@ -194,7 +194,8 @@ namespace Scry
         private static IEnumerator PlaceCreatures(Probe p)
         {
             // One with a creature always there, so the first roll brings one.
-            var place = X.Catalog.Where(e => PlaceOf(e) != null && !PlaceOf(e).IsRoom && PlaceOf(e).Contents?.Dungeon == null && PlaceOf(e).Contents.Creatures.Any(c => c.Chance >= 0.999f))
+            var place = X.Catalog.Where(e => PlaceOf(e) != null && !PlaceOf(e).IsRoom && PlaceOf(e).Contents != null && PlaceOf(e).Contents.Dungeon == null
+                                             && PlaceOf(e).Contents.Creatures.Any(c => c.Chance >= 0.999f))
                 .OrderBy(e => e.Name, StringComparer.Ordinal).FirstOrDefault();
             if (place == null) p.Skip("no location read puts creatures there");
             var shown = Stage.CreaturesShown;
@@ -209,12 +210,187 @@ namespace Scry
             Stage.CreaturesShown = true;
             p.Check(Stage.CreaturesStanding == Stage.CreaturesMade, "and back", $"{Stage.CreaturesStanding} of {Stage.CreaturesMade}");
 
+            // Cut through the tallest of them, what of it is above the cut is still drawn: the
+            // picture there changes as the creatures are put away.
+            var standing = Stage.CreatureBoundsNow();
+            if (Stage.HasFloors && standing.Count > 0)
+            {
+                var tallest = standing.OrderByDescending(b => b.size.y).First();
+                var cut = tallest.min.y + tallest.size.y * 0.4f;
+                Stage.CutOnStage(cut);
+                yield return Settled();
+                if (Stage.PictureOf(tallest.center) is Vector2 middle)
+                {
+                    for (var i = 0; i < 3; i++) Stage.ZoomBy(-3f, middle);
+                }
+                yield return Settled();
+                var part = AboveIn(tallest, cut);
+                var with = part != null ? PictureWithin(part.Value, out _, out _) : null;
+                Stage.CreaturesShown = false;
+                yield return null;
+                yield return null;
+                var without = part != null ? PictureWithin(part.Value, out _, out _) : null;
+                Stage.CreaturesShown = true;
+                var differ = with != null && without != null && with.Length == without.Length ? with.Where((c, i) => Apart(c, without[i])).Count() : 0;
+                p.Check(Stage.CutLaid && differ >= Math.Max(12, (with?.Length ?? 0) / 50),
+                    "cut through by a floor's cut, a creature stands whole above it",
+                    $"{differ} of {with?.Length ?? 0} points above the cut changed with it put away; cut laid {Stage.CutLaid}, {tallest.size.y:0.0} m tall, cut at {cut - tallest.min.y:0.0} m up it");
+                Stage.OpenLevel(Stage.FloorHeights.Count);
+                Stage.ResetView();
+            }
+            else p.Note("it has no floor to cut through its creatures");
+
             var before = CopyOf(place);
             Previews.Rebuild();
             yield return Until(() => CopyOf(place) != null && CopyOf(place) != before && Stage.CreaturesMade > 0 && Stage.CreaturesWaiting == 0, 20);
             p.Check(CopyOf(place) != before && Stage.CreaturesMade > 0, "Roll again rolls them anew with it", $"{Stage.CreaturesMade} made");
             Stage.CreaturesShown = shown;
         }
+
+        /// <summary>
+        /// The stage's camera with a floor opened in a tall dungeon's example: it looks at that
+        /// floor, every room on it in the picture, and goes down with it a floor down; the wheel
+        /// zooms toward what is under the pointer, which stays under it, and a drag with the right
+        /// button keeps what was grabbed under the pointer; with the roof on, the wheel too.
+        /// </summary>
+        private static IEnumerator CameraMoves(Probe p)
+        {
+            var named = new[] { "MorkBorg", "TheHole01", "Crypt2" };
+            var entry = named.Select(n => X.Catalog.FirstOrDefault(e => e.Name == n && PlaceOf(e) != null && !PlaceOf(e).IsRoom)).FirstOrDefault(e => e != null);
+            if (entry == null) p.Skip("none of " + string.Join(", ", named) + " is in the catalog");
+            var wasInside = Stage.Inside;
+            Stage.Inside = true;
+            Select(entry);
+            yield return Until(() => CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
+            if (!p.Check(CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.HasFloors, "its example stands on the stage", $"{entry.Name}, {Stage.ExampleRoomsShown} rooms"))
+            {
+                Stage.Inside = wasInside;
+                yield break;
+            }
+            p.Note($"{entry.Name} ({entry.DisplayName}), {Stage.ExampleRoomsTotal} rooms, {Stage.FloorHeights.Count} floors");
+
+            Stage.OpenLevel(0);
+            yield return Until(() => Stage.ExampleRoomsKept, 5);
+            yield return Settled();
+            p.Check(Stage.LookedFloor is float top && Mathf.Abs(top - Stage.FloorOnStage(0)) < 0.01f && Mathf.Abs(Stage.LookAt.y - top) < 0.05f,
+                "with a floor opened the camera looks at that floor", $"looks at {Stage.LookAt.y:0.0} m, the floor at {Stage.FloorOnStage(0):0.0} m");
+            var outside = RoomsOutOfPicture();
+            p.Check(outside.Count == 0, "and every room on it is in the picture", string.Join(", ", outside.Take(8)));
+
+            if (Stage.FloorHeights.Count > 1)
+            {
+                Stage.StepCut(true);
+                yield return Until(() => Stage.ExampleRoomsKept, 5);
+                yield return Settled();
+                p.Check(Mathf.Abs(Stage.LookAt.y - Stage.FloorOnStage(Stage.CutLevel)) < 0.05f, "a floor down, it looks at that floor",
+                    $"looks at {Stage.LookAt.y:0.0} m, the floor at {Stage.FloorOnStage(Stage.CutLevel):0.0} m");
+                outside = RoomsOutOfPicture();
+                p.Check(outside.Count == 0, "and every room on that one is in the picture", string.Join(", ", outside.Take(8)));
+            }
+
+            var at = new Vector2(0.7f, 0.35f);
+            var under = Stage.PointUnder(at);
+            var far = Stage.LookDistance;
+            for (var i = 0; i < 5; i++) Stage.ZoomBy(-3f, at);
+            yield return null;
+            yield return null;
+            var seen = under is Vector3 point ? Stage.PictureOf(point) : null;
+            p.Check(seen is Vector2 there && (there - at).magnitude < 0.02f && Stage.LookDistance < far * 0.5f,
+                "the wheel zooms toward what is under the pointer, which stays under it", $"{(seen is Vector2 s ? s.ToString("0.000") : "not in view")} for {at:0.000}; {far:0.0} m to {Stage.LookDistance:0.0} m");
+
+            var from = new Vector2(0.5f, 0.5f);
+            var to = new Vector2(0.62f, 0.44f);
+            var grabbed = Stage.PointUnder(from);
+            Stage.Pan(from, to);
+            yield return null;
+            yield return null;
+            var followed = grabbed is Vector3 held ? Stage.PictureOf(held) : null;
+            p.Check(followed is Vector2 now && (now - to).magnitude < 0.02f, "a drag with the right button keeps what was grabbed under the pointer",
+                $"{(followed is Vector2 f ? f.ToString("0.000") : "not in view")} for {to:0.000}");
+
+            // With the roof on, the wheel zooms toward what is under the pointer as well.
+            Stage.OpenLevel(Stage.FloorHeights.Count);
+            yield return Until(() => Stage.ExampleRoomsAway == 0, 5);
+            yield return Settled();
+            p.Check(Stage.LookedFloor == null, "with the roof on it looks at no floor in particular");
+            under = Stage.PointUnder(at);
+            far = Stage.LookDistance;
+            for (var i = 0; i < 4; i++) Stage.ZoomBy(-3f, at);
+            yield return null;
+            yield return null;
+            seen = under is Vector3 point2 ? Stage.PictureOf(point2) : null;
+            p.Check(seen is Vector2 there2 && (there2 - at).magnitude < 0.02f && Stage.LookDistance < far * 0.5f,
+                "and the wheel zooms toward what is under the pointer there too", $"{(seen is Vector2 s2 ? s2.ToString("0.000") : "not in view")} for {at:0.000}");
+
+            Stage.ResetView();
+            Stage.Inside = wasInside;
+        }
+
+        /// <summary>Waits until the stage's camera stops gliding to what it frames.</summary>
+        private static IEnumerator Settled()
+        {
+            var from = Time.unscaledTime;
+            yield return Until(() => Time.unscaledTime - from > 0.2f && !Stage.Gliding, 8);
+        }
+
+        /// <summary>The example's rooms standing whole on the floor opened that are not in the stage's picture.</summary>
+        private static List<string> RoomsOutOfPicture()
+        {
+            var rooms = Stage.ExampleShown?.Rooms;
+            var outside = new List<string>();
+            if (rooms == null) return outside;
+            for (var i = 0; i < rooms.Count; i++)
+            {
+                if (rooms[i].Room.EndCap || rooms[i].Room.Divider || Stage.ExampleRoomShown(rooms[i]) != PlanRoomShown.Whole) continue;
+                var point = Stage.ExamplePointOf(i);
+                if (!(point is Vector2 at) || at.x < -0.02f || at.x > 1.02f || at.y < -0.02f || at.y > 1.02f) outside.Add($"{rooms[i].Room.Name} at {(point?.ToString("0.00") ?? "behind")}");
+            }
+            return outside;
+        }
+
+        /// <summary>Where in the stage's picture the part of bounds above a height shows, 0 to 1 across and up; null where any of it is behind the camera.</summary>
+        private static Rect? AboveIn(Bounds bounds, float above)
+        {
+            float minX = float.PositiveInfinity, minY = float.PositiveInfinity, maxX = float.NegativeInfinity, maxY = float.NegativeInfinity;
+            foreach (var x in new[] { bounds.min.x, bounds.max.x })
+            foreach (var y in new[] { above, bounds.max.y })
+            foreach (var z in new[] { bounds.min.z, bounds.max.z })
+            {
+                if (!(Stage.PictureOf(new Vector3(x, y, z)) is Vector2 at)) return null;
+                minX = Mathf.Min(minX, at.x);
+                minY = Mathf.Min(minY, at.y);
+                maxX = Mathf.Max(maxX, at.x);
+                maxY = Mathf.Max(maxY, at.y);
+            }
+            return Rect.MinMaxRect(Mathf.Clamp01(minX), Mathf.Clamp01(minY), Mathf.Clamp01(maxX), Mathf.Clamp01(maxY));
+        }
+
+        /// <summary>The stage's picture within a part of it (0 to 1 across and up), as read back; null with no picture.</summary>
+        private static Color32[] PictureWithin(Rect part, out int width, out int height)
+        {
+            width = height = 0;
+            if (!(Stage.Texture is RenderTexture picture)) return null;
+            var x = Mathf.Clamp(Mathf.FloorToInt(part.xMin * picture.width), 0, picture.width - 1);
+            var y = Mathf.Clamp(Mathf.FloorToInt(part.yMin * picture.height), 0, picture.height - 1);
+            width = Mathf.Clamp(Mathf.CeilToInt(part.xMax * picture.width), x + 1, picture.width) - x;
+            height = Mathf.Clamp(Mathf.CeilToInt(part.yMax * picture.height), y + 1, picture.height) - y;
+            var was = RenderTexture.active;
+            var read = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            try
+            {
+                RenderTexture.active = picture;
+                read.ReadPixels(new Rect(x, y, width, height), 0, 0, false);
+                return read.GetPixels32();
+            }
+            finally
+            {
+                RenderTexture.active = was;
+                UnityEngine.Object.Destroy(read);
+            }
+        }
+
+        /// <summary>Whether two points of a picture differ to the eye.</summary>
+        private static bool Apart(Color32 a, Color32 b) => Math.Abs(a.r - b.r) + Math.Abs(a.g - b.g) + Math.Abs(a.b - b.b) > 24;
 
         /// <summary>A runestone location tells its stone's texts, in words, under Runestone texts.</summary>
         private static IEnumerator RunestoneTexts(Probe p)

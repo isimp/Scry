@@ -17,57 +17,107 @@ namespace Scry
             }
         }
 
+        /// <summary>What the camera looks at, moved off what it frames by <see cref="_pan"/>.</summary>
+        private static Vector3 _lookAt;
+
+        /// <summary>The middle of what is framed, gliding to what is to be framed.</summary>
+        private static Vector3 _frameCenter;
+
+        /// <summary>With a floor opened, the height on the stage of the floor the camera looks at; null for none.</summary>
+        private static float? _lookedFloor;
+
+        /// <summary>How quickly the camera glides to what it is to frame, such as a floor stepped to.</summary>
+        private const float GlideRate = 6f;
+
+        /// <summary>Whether the camera is still gliding to what it is to frame, for the self-test to wait on.</summary>
+        public static bool Gliding { get; private set; }
+
+        /// <summary>The height on the stage of a floor of the place shown, for the self-test.</summary>
+        public static float FloorOnStage(int level) => level >= 0 && level < Floors.Count ? Origin.y + Floors[level] * _scale : float.NaN;
+
+        /// <summary>Cuts at a height on the stage, for the self-test.</summary>
+        public static void CutOnStage(float y)
+        {
+            if (_scale > 0f) CutTo((y - Origin.y) / _scale);
+        }
+
+        /// <summary>Whether a cut is laid in the picture, the camera above it, for the self-test.</summary>
+        public static bool CutLaid => _aboveCut != null;
+
         private static void Frame()
         {
-            var shown = Shown;
-            var subject = new Bounds(Origin + (shown.center - Origin) * _scale, shown.size * _scale);
-            var framed = subject;
-            if (_person != null && _person.activeSelf) framed.Encapsulate(_personBounds);
-
-            // The camera stays on the model, and backs off far enough to take in what an effect
-            // reaches as well: an effect's own particles as they spread, and what was played on
-            // the model (sparks, debris, a ragdoll, a fallen log), within a few times its size.
-            var center = framed.center + _pan;
-            var own = Mathf.Max(0.05f, framed.extents.magnitude);
-            var reach = own;
-            if (_followEffect) Reach(_subject, center, ref reach);
-            foreach (var played in Played)
+            // With a floor opened, the camera looks at that floor, framed on what stands on it.
+            var floor = FloorFrame();
+            Vector3 target;
+            float wantRadius;
+            if (floor is Vector4 opened)
             {
-                // Around a model, only what falls from it is followed: sparks and smoke stay
-                // where they are, a ragdoll, debris or a log is kept in the picture.
-                if (_followEffect || (played.Key != null && played.Key.GetComponentInChildren<Rigidbody>() != null)) Reach(played.Key, center, ref reach);
+                target = new Vector3(opened.x, opened.y, opened.z);
+                wantRadius = opened.w;
             }
-            var wantRadius = Mathf.Min(reach, _followEffect ? 25f : own * 1.6f);
+            else
+            {
+                var shown = Shown;
+                var subject = new Bounds(Origin + (shown.center - Origin) * _scale, shown.size * _scale);
+                var framed = subject;
+                if (_person != null && _person.activeSelf) framed.Encapsulate(_personBounds);
+
+                // The camera stays on the model, and backs off far enough to take in what an
+                // effect reaches as well: an effect's own particles as they spread, and what was
+                // played on the model (sparks, debris, a ragdoll, a fallen log), within a few
+                // times its size.
+                var center = framed.center + _pan;
+                var own = Mathf.Max(0.05f, framed.extents.magnitude);
+                var reach = own;
+                if (_followEffect) Reach(_subject, center, ref reach);
+                foreach (var played in Played)
+                {
+                    // Around a model, only what falls from it is followed: sparks and smoke stay
+                    // where they are, a ragdoll, debris or a log is kept in the picture.
+                    if (_followEffect || (played.Key != null && played.Key.GetComponentInChildren<Rigidbody>() != null)) Reach(played.Key, center, ref reach);
+                }
+                target = framed.center;
+                wantRadius = Mathf.Min(reach, _followEffect ? 25f : own * 1.6f);
+            }
 
             // Measuring leaves out what has no usable bounds, but should anything still come out
             // of it that is not a number, the camera frames the stage's middle as it frames a model
             // with nothing to measure, rather than being put nowhere.
-            if (!Finite(center) || !Finite(wantRadius) || !Finite(_frameRadius))
+            if (!Finite(target) || !Finite(wantRadius) || !Finite(_frameRadius) || !Finite(_pan) || !Finite(_frameCenter))
             {
                 _pan = Vector3.zero;
                 var fallback = Unmeasured(Origin);
-                center = fallback.center;
+                target = fallback.center;
                 wantRadius = fallback.extents.magnitude * 1.6f;
                 _frameRadius = -1f;
+                floor = null;
             }
 
             if (_frameRadius < 0f)
             {
                 _frameRadius = wantRadius;
+                _frameCenter = target;
             }
             else
             {
-                // Out quickly, so nothing leaves the picture; back in slowly, once it settles.
-                var rate = wantRadius > _frameRadius ? 5f : 1f;
+                // Out quickly, so nothing leaves the picture; back in slowly, once it settles; to a
+                // floor stepped to quickly either way.
+                var rate = floor != null || wantRadius > _frameRadius ? 5f : 1f;
                 _frameRadius = Mathf.Lerp(_frameRadius, wantRadius, 1f - Mathf.Exp(-rate * Time.unscaledDeltaTime));
+                _frameCenter = Vector3.Lerp(_frameCenter, target, 1f - Mathf.Exp(-GlideRate * Time.unscaledDeltaTime));
             }
+            Gliding = Mathf.Abs(_frameRadius - wantRadius) > Mathf.Max(0.01f, wantRadius * 0.005f) || Vector3.Distance(_frameCenter, target) > 0.02f;
+
+            // Looking at a floor, the view keeps to its height however it is moved.
+            _lookedFloor = floor?.y;
+            _lookAt = _frameCenter + (floor != null ? new Vector3(_pan.x, 0f, _pan.z) : _pan);
             var radius = _frameRadius;
             var distance = radius / Mathf.Sin(FieldOfView * 0.5f * Mathf.Deg2Rad) * Zoom;
 
             var rotation = Quaternion.Euler(Pitch, Yaw, 0f);
             var t = _camera.transform;
             t.rotation = rotation;
-            t.position = center - rotation * Vector3.forward * distance;
+            t.position = _lookAt - rotation * Vector3.forward * distance;
             _camera.nearClipPlane = Mathf.Max(0.01f, distance * 0.01f);
             _camera.farClipPlane = distance + radius * 6f + 10f;
             _camera.aspect = (float)_width / _height;
@@ -99,12 +149,33 @@ namespace Scry
             if (_floor != null)
             {
                 var floorY = groundY - 0.005f;
-                _floor.transform.position = new Vector3(center.x, floorY, center.z);
+                _floor.transform.position = new Vector3(_lookAt.x, floorY, _lookAt.z);
                 var size = radius * 3.2f;
                 _floor.transform.localScale = new Vector3(size, size, size);
             }
 
             ApplyCut();
+        }
+
+        /// <summary>
+        /// With a floor opened, what the camera looks at: the floor's height, over the middle of
+        /// what stands on it (a dungeon example's rooms on that floor, else the whole model),
+        /// framed on how far that reaches (<see cref="StageCamera.Across"/>); null for none.
+        /// </summary>
+        private static Vector4? FloorFrame()
+        {
+            if (!Cutting || _subject == null || _cutLevel >= Floors.Count) return null;
+            var y = Origin.y + Floors[_cutLevel] * _scale;
+            var across = ExampleFloorAcross();
+            if (across == null)
+            {
+                var shown = Shown;
+                var middle = Origin + (shown.center - Origin) * _scale;
+                var extents = shown.extents * _scale;
+                across = new Vector3(middle.x, middle.z, Mathf.Sqrt(extents.x * extents.x + extents.z * extents.z));
+            }
+            var a = across.Value;
+            return new Vector4(a.x, y, a.y, Mathf.Max(2f, a.z));
         }
 
         /// <summary>Takes in what the model draws while its animation first plays, as if at size one.</summary>

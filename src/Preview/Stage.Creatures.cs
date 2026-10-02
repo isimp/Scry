@@ -10,9 +10,9 @@ namespace Scry
     /// (<see cref="SpawnPoints"/>): rolled anew with every copy, an example's rooms each with
     /// their own, every point whatever the world's progress or the time of day. Each stands where
     /// its point is, facing a way of its own, with the stars it rolled, held in its first pose,
-    /// muted, dimmed with its room; a few are made each frame. They stand on a layer of their own,
-    /// drawn over the picture without a floor's cut, so a tall one stands whole. The stage's
-    /// Creatures chip puts them away and back.
+    /// muted, dimmed with its room; a few are made each frame. They stand on a layer of their own:
+    /// what of them is above a floor's cut is drawn again over the picture, so a tall one stands
+    /// whole. The stage's Creatures chip puts them away and back.
     /// </summary>
     internal static partial class Stage
     {
@@ -58,6 +58,10 @@ namespace Scry
 
         /// <summary>How many creatures stand switched on, for the self-test.</summary>
         public static int CreaturesStanding => CreatureCopies.Count(pair => pair.Key != null && pair.Key.activeSelf);
+
+        /// <summary>Where each creature standing on the stage draws, for the self-test.</summary>
+        public static List<Bounds> CreatureBoundsNow() =>
+            CreatureCopies.Where(pair => pair.Key != null && pair.Key.activeInHierarchy).Select(pair => Measure(pair.Key)).ToList();
 
         /// <summary>The names of the creatures made, for the self-test to tell.</summary>
         public static IEnumerable<string> CreatureNames => CreatureCopies.Where(pair => pair.Key != null).Select(pair => pair.Key.name);

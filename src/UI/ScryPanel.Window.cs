@@ -118,7 +118,9 @@ namespace Scry
                     Stage.Orbit(e.delta);
                     break;
                 case Drag.Pan:
-                    Stage.Pan(e.delta);
+                    // What was under the pointer goes with it.
+                    var now = GUIUtility.GUIToScreenPoint(e.mousePosition);
+                    Stage.Pan(OnPicture(now - e.delta), OnPicture(now));
                     break;
                 case Drag.Ruler:
                     RulerAt(GUIUtility.GUIToScreenPoint(e.mousePosition).y);
