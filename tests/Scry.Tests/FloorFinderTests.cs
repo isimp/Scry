@@ -171,6 +171,34 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void EachRoomsLevelsAreItsFloorsAsWhenItIsShownAlone()
+        {
+            // Six big halls at 0 m, and a hall below with a gallery half way up it: the gallery is
+            // a sliver of all the example's ground but a level of its own room, as it is when that
+            // room is shown alone, so a floor. A ledge too small for its own room is none.
+            var rooms = Enumerable.Range(0, 6).Select(room => FloorFinder.Patch(Patch(0, 0, 40, 40, 0f, patch: room))).ToList();
+            var hall = FloorFinder.Patch(Patch(0, 0, 20, 20, -40f, patch: 6).Concat(Patch(0, 0, 20, 4, -34f, patch: 6)).Concat(Patch(30, 30, 3, 3, -30f, patch: 6)));
+            hall.Ground = 20 * 20 * Cell;
+            rooms.Add(hall);
+            var footprint = 6 * 40 * 40 * Cell + hall.Ground;
+            Assert.Equal(new[] { 0f, -34f, -40f }, FloorFinder.Floors(rooms, footprint, PlaceView.Storey));
+            Assert.Equal(FloorFinder.Floors(new[] { hall }, hall.Ground, PlaceView.Storey), new[] { -34f, -40f });
+
+            // With its ground not known, only its main floor stands for it.
+            hall.Ground = 0f;
+            Assert.Equal(new[] { 0f, -40f }, FloorFinder.Floors(rooms, footprint, PlaceView.Storey));
+
+            // A level must hold its share of its own room's ground (here 6 square metres of 400)
+            // and room enough to stand on (2) besides: a platform of 2.25 in a big room is none,
+            // nor a ledge of 1.5 in a small one, though it holds its share.
+            var big = FloorFinder.Patch(Patch(0, 0, 40, 40, -60f, patch: 7).Concat(Patch(0, 0, 5, 5, -55f, patch: 7)));
+            big.Ground = 40 * 40 * Cell;
+            var small = FloorFinder.Patch(Patch(0, 0, 20, 20, -80f, patch: 8).Concat(Patch(0, 0, 5, 4, -75f, patch: 8)));
+            small.Ground = 20 * 20 * Cell;
+            Assert.Equal(new[] { 0f, -40f, -60f, -80f }, FloorFinder.Floors(rooms.Concat(new[] { big, small }), footprint + big.Ground + small.Ground, PlaceView.Storey));
+        }
+
+        [Fact]
         public void ARoomsMainFloorIsWhereItHasTheMostRoomToStand()
         {
             var room = FloorFinder.Patch(Patch(0, 0, 20, 20, -40f).Concat(Patch(30, 30, 6, 6, -36f)));

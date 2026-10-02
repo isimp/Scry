@@ -8,8 +8,9 @@ namespace Scry
     /// filmed by a camera of its own into a texture the panel draws.
     ///
     /// The stage sits on a layer nothing in the game uses, which only its own camera and lights
-    /// see. The world's sun and the main camera are told to leave that layer alone, and the fog and
-    /// ambient light are set for the stage only while its camera renders, then put back.
+    /// see. The main camera is told to leave that layer alone, the world's directional lights (the
+    /// sun, a lightning strike's flash) too while the stage is filmed, and the fog and ambient
+    /// light are set for the stage only while its camera renders, then put back.
     /// </summary>
     internal static partial class Stage
     {
@@ -688,7 +689,9 @@ namespace Scry
         {
             var framed = _frameRadius > 0f ? _frameRadius / Mathf.Sin(FieldOfView * 0.5f * Mathf.Deg2Rad) : 0f;
             var before = Zoom;
-            Zoom = Mathf.Clamp(Zoom * (1f + wheel * 0.08f), StageCamera.LeastZoom(framed), 6f);
+            // No nearer than keeps it over a floor's cut.
+            var least = Mathf.Max(StageCamera.LeastZoom(framed), framed > 0f ? OverCutDistance() / framed : 0f);
+            Zoom = Mathf.Clamp(Zoom * (1f + wheel * 0.08f), Mathf.Min(least, 6f), 6f);
             if (point == null || _camera == null || before <= 0f || Mathf.Approximately(Zoom, before)) return;
             if (!(PointUnder(point.Value) is Vector3 toward)) return;
 
@@ -753,7 +756,6 @@ namespace Scry
             KeepCreaturesToCut();
 
             var mask = StageMask;
-            var sun = EnvMan.instance != null ? EnvMan.instance.m_dirLight : null;
             var main = GameCamera.instance != null ? GameCamera.instance.GetComponent<Camera>() : null;
             if (main != null && (main.cullingMask & mask) != 0)
             {
@@ -766,7 +768,6 @@ namespace Scry
             var sky = RenderSettings.ambientSkyColor;
             var equator = RenderSettings.ambientEquatorColor;
             var ground = RenderSettings.ambientGroundColor;
-            var sunMask = sun != null ? sun.cullingMask : 0;
             var light = Presets[_lighting].Ambient;
 
             try
@@ -776,7 +777,7 @@ namespace Scry
                 RenderSettings.ambientSkyColor = light;
                 RenderSettings.ambientEquatorColor = light;
                 RenderSettings.ambientGroundColor = light * 0.7f;
-                if (sun != null) sun.cullingMask = sunMask & ~mask;
+                KeepWorldLightsOff(mask);
 
                 _camera.cullingMask = mask;
                 _camera.Render();
@@ -815,8 +816,39 @@ namespace Scry
                 RenderSettings.ambientSkyColor = sky;
                 RenderSettings.ambientEquatorColor = equator;
                 RenderSettings.ambientGroundColor = ground;
-                if (sun != null) sun.cullingMask = sunMask;
+                LetWorldLightsBack();
             }
+        }
+
+        /// <summary>
+        /// The world's directional lights that reach the stage and the layers each lit before:
+        /// the sun, and a lightning strike's flash (<c>Thunder.DoFlash</c> makes one for a moment),
+        /// which would light the stage as it lights the world. Kept off the stage's layers while
+        /// it is filmed; its own lights are left as they are.
+        /// </summary>
+        private static readonly List<KeyValuePair<Light, int>> WorldLights = new List<KeyValuePair<Light, int>>();
+
+        private static void KeepWorldLightsOff(int mask)
+        {
+            WorldLights.Clear();
+            KeepOff(Light.GetLights(LightType.Directional, _layer), mask);
+            if (CreatureLayer != _layer) KeepOff(Light.GetLights(LightType.Directional, CreatureLayer), mask);
+        }
+
+        private static void KeepOff(Light[] lights, int mask)
+        {
+            foreach (var light in lights)
+            {
+                if (light == null || light == _key || light == _fill || light == _rim || (light.cullingMask & mask) == 0) continue;
+                WorldLights.Add(new KeyValuePair<Light, int>(light, light.cullingMask));
+                light.cullingMask &= ~mask;
+            }
+        }
+
+        private static void LetWorldLightsBack()
+        {
+            foreach (var pair in WorldLights) if (pair.Key != null) pair.Key.cullingMask = pair.Value;
+            WorldLights.Clear();
         }
 
         /// <summary>

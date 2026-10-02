@@ -186,6 +186,10 @@ namespace Scry
             }
         }
 
+        /// <summary>The creatures that fly and how high over their ground, by kind, for the self-test.</summary>
+        public static string FlyersTold() => string.Join(", ", CreatureLift.Where(pair => pair.Key != null && pair.Value > 0f)
+            .GroupBy(pair => (pair.Key.name, pair.Value)).Select(g => $"{g.Key.name} {g.Key.Value:0.#} m up x{g.Count()}"));
+
         /// <summary>How many creatures stand above the cut, cut away with their floor, for the self-test.</summary>
         public static int CreaturesAboveCut => CreatureCopies.Count(pair => pair.Key != null && pair.Key.layer == _layer && CreatureLayer != _layer);
 

@@ -76,6 +76,21 @@ namespace Scry
             return (-across * tall * aspect, -up * tall);
         }
 
+        /// <summary>How far over a floor's cut the camera stays, in metres.</summary>
+        public const float OverCutMetres = 0.5f;
+
+        /// <summary>
+        /// How far off the camera stays, looking down <paramref name="pitch"/> degrees at a point
+        /// <paramref name="cutAbove"/> metres under a floor's cut, to stay over it, as a cut only
+        /// opens what is seen from above it; 0 where the cut is no higher, or it looks level or up.
+        /// </summary>
+        public static float OverCut(float cutAbove, float pitch)
+        {
+            var up = cutAbove + OverCutMetres;
+            if (up <= 0f || pitch <= 5f) return 0f;
+            return up / (float)Math.Sin(pitch * Math.PI / 180.0);
+        }
+
         /// <summary>The middle of what stands on a floor, across, and how far it reaches from there: half the way from corner to corner. Null for nothing.</summary>
         public static (float X, float Z, float Radius)? Across(IEnumerable<Vec3> corners)
         {

@@ -204,6 +204,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WithACutLaidTheCameraStaysAboveIt()
+        {
+            // Looking down 30 degrees at a point 4 m under the cut, it stays at least 9 m off, half
+            // a metre over the cut: 4.5 m up over sin 30.
+            Assert.Equal(9f, StageCamera.OverCut(4f, 30f), 3);
+            // A cut below what it looks at asks nothing; looking level or from below, nothing either.
+            Assert.Equal(0f, StageCamera.OverCut(-2f, 30f), 3);
+            Assert.Equal(0f, StageCamera.OverCut(4f, 2f), 3);
+            Assert.Equal(0f, StageCamera.OverCut(4f, -10f), 3);
+        }
+
+        [Fact]
         public void BelowTheCutTheCameraKeepsNoSuchPicture()
         {
             Assert.Null(StageCamera.AboveCutRow(0f, 1f, 0f, 0f, 0.1f));

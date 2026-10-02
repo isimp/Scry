@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
@@ -82,6 +83,26 @@ namespace Scry.Tests
             Near(new Vec3(0f, 0f, 10f), staged.Rooms[0].Position);
             SameTurn(45f, staged.Rooms[0].Rotation.YawDegrees);
             Near(new Vec3(0f, -1f, 6f), staged.Doors[0]);
+        }
+
+        [Fact]
+        public void EveryRoomOfAnExampleStandsWholeOnSomeFloor()
+        {
+            // A corridor no floor reaches, found on none, gets one where it is walked into, at its
+            // lowest doorway; a room already standing whole on a floor adds none, nor an end cap.
+            var corridor = At(Hall(), 0f, -35f, 0f);
+            var hall = At(Hall(), 0f, 0f, 20f);
+            var cap = At(new RoomShape { Name = "cap", EndCap = true, Size = new Vec3(2f, 4f, 2f), Doorways = { Door(0f, -1f, 0f, 0f) } }, 0f, -60f, 0f);
+            bool Whole(PlacedRoom room, float floor) => ExamplePlan.Shown(room, floor) == PlanRoomShown.Whole;
+
+            var floors = PlaceView.ReachingEveryRoom(new List<float> { -1f }, new[] { hall, corridor, cap }, Whole);
+            Assert.Equal(new[] { -1f, -36f }, floors);
+            Assert.All(new[] { hall, corridor }, room => Assert.Contains(floors, f => Whole(room, f)));
+            Assert.Equal(new[] { -1f }, PlaceView.ReachingEveryRoom(new List<float> { -1f }, new[] { hall }, Whole));
+
+            // A stair rising through it is walked into at its lower end; the floors stay from the top down.
+            var stair = At(new RoomShape { Name = "stair", Size = new Vec3(4f, 8f, 8f), Doorways = { Door(0f, -3f, -4f, 180f), Door(0f, 1f, 4f, 0f) } }, 0f, -20f, 40f);
+            Assert.Equal(new[] { -23f, -50f }, PlaceView.ReachingEveryRoom(new List<float> { -50f }, new[] { stair }, Whole));
         }
 
         [Fact]

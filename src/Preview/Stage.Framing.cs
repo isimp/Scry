@@ -112,7 +112,7 @@ namespace Scry
             _lookedFloor = floor?.y;
             _lookAt = _frameCenter + (floor != null ? new Vector3(_pan.x, 0f, _pan.z) : _pan);
             var radius = _frameRadius;
-            var distance = radius / Mathf.Sin(FieldOfView * 0.5f * Mathf.Deg2Rad) * Zoom;
+            var distance = Mathf.Max(radius / Mathf.Sin(FieldOfView * 0.5f * Mathf.Deg2Rad) * Zoom, OverCutDistance());
 
             var rotation = Quaternion.Euler(Pitch, Yaw, 0f);
             var t = _camera.transform;
@@ -156,6 +156,14 @@ namespace Scry
 
             ApplyCut();
         }
+
+        /// <summary>
+        /// How far off the camera stays to be over a floor's cut, as a cut only opens what is
+        /// seen from above it (<see cref="StageCamera.OverCut"/>): raised or moved, the cut takes
+        /// the camera up with it rather than leave it under the cut and the place closed.
+        /// </summary>
+        private static float OverCutDistance() =>
+            Cutting && _subject != null ? StageCamera.OverCut(Origin.y + CutAt * _scale - _lookAt.y, Pitch) : 0f;
 
         /// <summary>
         /// With a floor opened, what the camera looks at: the floor's height, over the middle of

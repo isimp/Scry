@@ -33,6 +33,9 @@ namespace Scry
         }
 
         internal readonly Dictionary<int, Band> Bands = new Dictionary<int, Band>();
+
+        /// <summary>The ground its rays were cast over, in square metres; 0 where it is not known.</summary>
+        public float Ground;
     }
 
     /// <summary>
@@ -164,9 +167,11 @@ namespace Scry
         /// The floors from the top down from what each patch of rays found, and the ground they
         /// were cast over. With <paramref name="storey"/>, ground less than that below the next,
         /// step after step, is one floor, at the ground with the most room (an example's rooms,
-        /// <see cref="PlaceView.Storey"/>). Each patch's own main ground (<see cref="MainFloor"/>)
-        /// is a floor however little of all the ground it is: in a big example, a deep chamber's
-        /// floor is a sliver of the ground of all its rooms, but the floor of its own.
+        /// <see cref="PlaceView.Storey"/>). A patch's own floors are floors however little of all
+        /// the ground they are, as they are when its room is shown alone: its main ground
+        /// (<see cref="MainFloor"/>), and with its own ground known, each level with its share of
+        /// that. In a big example, a deep chamber's floor or a hall's gallery is a sliver of the
+        /// ground of all its rooms, but a level of its own room.
         /// </summary>
         public static List<float> Floors(IEnumerable<FloorPatch> patches, float footprint, float storey = 0f)
         {
@@ -176,6 +181,11 @@ namespace Scry
             foreach (var patch in patches)
             {
                 if (MainBand(patch) is int main) mains.Add(main);
+                if (patch.Ground > 0f)
+                {
+                    var own = Math.Max(MinRoom, patch.Ground * MinShare);
+                    foreach (var pair in patch.Bands) if (pair.Value.Room >= own) mains.Add(pair.Key);
+                }
                 foreach (var pair in patch.Bands)
                 {
                     total.TryGetValue(pair.Key, out var sum);

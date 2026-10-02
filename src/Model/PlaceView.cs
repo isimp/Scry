@@ -83,6 +83,24 @@ namespace Scry
         public static List<float> ExampleFloors(DungeonExample example) =>
             Floors(example.Rooms.SelectMany(r => Enumerable.Range(0, r.Room.Doorways.Count).Select(i => r.DoorwayAt(i).Y)));
 
+        /// <summary>
+        /// An example's floors with one more for each room that stands whole on none of them, by
+        /// <paramref name="onFloor"/>: at its lowest doorway, where it is walked into, so every
+        /// room can be opened and gone to (a sloping corridor has no flat ground to find). End
+        /// caps and dividers, and rooms with no doorway, add none. From the top down.
+        /// </summary>
+        public static List<float> ReachingEveryRoom(List<float> floors, IEnumerable<PlacedRoom> rooms, Func<PlacedRoom, float, bool> onFloor)
+        {
+            var all = new List<float>(floors);
+            foreach (var room in rooms)
+            {
+                if (room.Room.EndCap || room.Room.Divider || room.Room.Doorways.Count == 0) continue;
+                if (all.Any(floor => onFloor(room, floor))) continue;
+                all.Add(Enumerable.Range(0, room.Room.Doorways.Count).Min(i => room.DoorwayAt(i).Y));
+            }
+            return all.OrderByDescending(floor => floor).ToList();
+        }
+
         /// <summary>Heights as floors, from the top down, those less than <see cref="SameFloor"/> below the last one kept taken as that one.</summary>
         public static List<float> Floors(IEnumerable<float> heights)
         {

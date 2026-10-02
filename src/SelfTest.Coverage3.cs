@@ -197,7 +197,8 @@ namespace Scry
                     var never = Stage.ExampleShown?.Rooms.Where(r => !r.Room.EndCap && !r.Room.Divider && !reached.Contains(r)).Select(r => $"{r.Room.Name} at {r.Position.Y:0.0} m").ToList() ?? new List<string>();
                     if (never.Count > 0) unreached.Add($"{entry.Name}: {string.Join(", ", never.Take(6))}");
                     p.Note($"{entry.Name} ({entry.DisplayName}), {Stage.ExampleRoomsTotal} rooms, {Stage.FloorHeights.Count} floors: " + string.Join("; ", told)
-                           + $"; creatures {Stage.CreaturesMade}, {Stage.CreaturesDropped} dropped to the ground under their points, {Stage.CreaturesFlying} flying");
+                           + $"; creatures {Stage.CreaturesMade}, {Stage.CreaturesDropped} dropped to the ground under their points, {Stage.CreaturesFlying} flying ({Stage.FlyersTold()})");
+                    if (example == 0 && entry.Name == "MorkBorg") p.Note("its rooms' own floors, as each is shown alone: " + string.Join("; ", Stage.ExampleRoomFloorsTold()));
                 }
             }
             Stage.Inside = wasInside;
@@ -265,6 +266,41 @@ namespace Scry
             yield return Until(() => CopyOf(place) != null && CopyOf(place) != before && Stage.CreaturesMade > 0 && Stage.CreaturesWaiting == 0, 20);
             p.Check(CopyOf(place) != before && Stage.CreaturesMade > 0, "Roll again rolls them anew with it", $"{Stage.CreaturesMade} made");
             Stage.CreaturesShown = shown;
+        }
+
+        /// <summary>
+        /// The world's lights stay off the stage: a directional light made in the world, as a
+        /// lightning strike's flash is, leaves the stage's picture as it was.
+        /// </summary>
+        private static IEnumerator WorldLightsOff(Probe p)
+        {
+            var entry = Pick(Kind.Piece, "piece_workbench", "wood_wall_half");
+            if (entry == null) p.Skip("there is no piece to stand on the stage");
+            var spin = Stage.Spin;
+            Stage.Spin = false;
+            Select(entry);
+            yield return Until(() => CopyOf(entry) != null, 10);
+            var settled = Time.unscaledTime;
+            yield return Until(() => Time.unscaledTime - settled > 0.6f && !Stage.Gliding, 4);
+            var middle = new Rect(0.3f, 0.3f, 0.4f, 0.4f);
+            var before = PictureWithin(middle, out _, out _);
+
+            var flash = new GameObject("Scry self-test flash");
+            var light = flash.AddComponent<Light>();
+            light.type = LightType.Directional;
+            light.color = Color.red;
+            light.intensity = 8f;
+            flash.transform.rotation = Quaternion.Euler(30f, 200f, 0f);
+            yield return null;
+            yield return null;
+            var lit = PictureWithin(middle, out _, out _);
+            UnityEngine.Object.Destroy(flash);
+            Stage.Spin = spin;
+
+            var differ = before != null && lit != null && before.Length == lit.Length ? before.Where((c, i) => Apart(c, lit[i])).Count() : -1;
+            var shown = before?.Count(c => c.r + c.g + c.b > 60) ?? 0;
+            p.Check(before != null && shown > 0, "the piece shows in the picture", $"{shown} bright points");
+            p.Check(differ >= 0 && differ <= (before?.Length ?? 0) / 100, "a directional light of the world, as a lightning flash is, leaves the stage's picture as it was", $"{differ} of {before?.Length ?? 0} points changed");
         }
 
         /// <summary>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -283,6 +284,20 @@ namespace Scry
         private static int _acrossRooms = -1;
         private static DungeonExample _acrossOf;
 
+        /// <summary>Each room of the example read so far with the floors found in it alone, for the self-test to tell.</summary>
+        public static List<string> ExampleRoomFloorsTold()
+        {
+            var told = new List<string>();
+            if (_examplePlaced == null) return told;
+            foreach (var room in _examplePlaced.Rooms)
+            {
+                if (!RoomGround.TryGetValue(room, out var ground)) continue;
+                var alone = FloorFinder.Floors(new[] { ground }, ground.Ground, PlaceView.Storey);
+                told.Add($"{room.Room.Name} at {room.Position.Y:0.0} m: {(alone.Count > 0 ? string.Join(", ", alone.Select(f => f.ToString("0.0"))) : "none")}");
+            }
+            return told;
+        }
+
         /// <summary>How a room of the example shows with the floor opened: whole on it, else as its box says, below faintly or above not at all.</summary>
         public static PlanRoomShown ExampleRoomShown(PlacedRoom room)
         {
@@ -302,8 +317,10 @@ namespace Scry
             var asleep = !_exampleHolder.activeSelf;
             if (asleep) copy.transform.SetParent(_subject.transform, false);
             RoomHits.Clear();
-            _exampleGround += FloorProbe.Read(copy, _subject.transform, _layer, RoomHits, patch, spawns: spawns);
+            var cast = FloorProbe.Read(copy, _subject.transform, _layer, RoomHits, patch, spawns: spawns);
+            _exampleGround += cast;
             var ground = FloorFinder.Patch(RoomHits);
+            ground.Ground = cast;
             ExamplePatches.Add(ground);
             RoomGround[room] = ground;
             RoomHits.Clear();
@@ -342,11 +359,14 @@ namespace Scry
         private static readonly List<FloorHit> RoomHits = new List<FloorHit>();
         private static float _exampleGround;
 
-        /// <summary>The example's floors: found in its rooms, or where their doorways are while none are found.</summary>
+        /// <summary>The example's floors: found in its rooms, with one for each room no floor reaches, or where their doorways are while none are found.</summary>
         private static List<float> ExampleFloorsNow()
         {
             var found = FloorFinder.Floors(ExamplePatches, _exampleGround, PlaceView.Storey);
-            return found.Count > 0 ? found : PlaceView.ExampleFloors(_examplePlaced);
+            if (found.Count == 0) return PlaceView.ExampleFloors(_examplePlaced);
+            // A room standing whole on none of them, a sloping corridor with no flat ground, gets
+            // a floor where it is walked into, so every room built can be opened.
+            return PlaceView.ReachingEveryRoom(found, _examplePlaced.Rooms.Take(_exampleNext), OnFloor);
         }
 
         private static void BeginExample(DungeonExample example, DungeonPlan plan)
