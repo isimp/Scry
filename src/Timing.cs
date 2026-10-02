@@ -39,6 +39,9 @@ namespace Scry
         /// </summary>
         public static FrameStats Measuring;
 
+        /// <summary>About how much Scry's own work has allocated in all, as measured, for the self-test to tell what it allocates idling.</summary>
+        public static long ScryBytes { get; private set; }
+
         /// <summary>The self-test's own checks, taken out of the frame it measures (<see cref="Own"/>).</summary>
         public const string SelfTestPart = "update self-test";
 
@@ -91,6 +94,7 @@ namespace Scry
         private static void Roll()
         {
             if (Time.frameCount == _frame) return;
+            ScryBytes += Frame.Bytes;
             if (Measuring != null && _frame >= 0)
             {
                 // Scry's own work as a player's frame has it, the self-test's own checks left out.

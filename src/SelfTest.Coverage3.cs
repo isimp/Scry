@@ -401,6 +401,47 @@ namespace Scry
         }
 
         /// <summary>
+        /// What Scry costs idling with the panel closed, as between looks: its own work each frame
+        /// and what it allocates over five seconds, and what it keeps, the textures, render
+        /// textures and meshes it made, beside the game's whole managed memory for scale.
+        /// </summary>
+        private static IEnumerator IdleCost(Probe p)
+        {
+            var wasOpen = Session.IsOpen;
+            Session.Hide();
+            yield return null;
+            yield return null;
+            var first = Timing.Measuring?.Frames ?? 0;
+            var bytes = Timing.ScryBytes;
+            var frames = Time.frameCount;
+            yield return new Wait(5.0);
+            var idle = Timing.Measuring?.Since(first);
+            var count = Math.Max(1, Time.frameCount - frames);
+            var allocated = Timing.ScryBytes - bytes;
+            p.Note(idle != null
+                ? $"idling {idle.Frames} frames: Scry's own work {idle.Mean:0.000} ms a frame on average, {idle.Percentile(0.95):0.000} ms at the 95th percentile, {idle.Max:0.000} ms at the most; it allocated about {allocated / 1024} KB, {allocated / count} bytes a frame"
+                : "frames were not measured");
+            p.Note("it keeps: " + KeptTold());
+            if (idle != null) p.Check(idle.Mean < 0.25, "idling, Scry's own work is a quarter of a millisecond a frame at the most on average", $"{idle.Mean:0.000} ms");
+            p.Check(allocated / count < 1024, "idling, Scry allocates under a kilobyte a frame", $"{allocated / count} bytes");
+            if (wasOpen) Session.Show(null);
+        }
+
+        /// <summary>The textures, render textures and meshes Scry made, by kind with their memory, and the game's managed and native memory for scale.</summary>
+        private static string KeptTold()
+        {
+            long Size(UnityEngine.Object thing) => UnityEngine.Profiling.Profiler.GetRuntimeMemorySizeLong(thing);
+            // The panel's own small shapes are left out: a few dozen kilobytes, unnamed.
+            var textures = Resources.FindObjectsOfTypeAll<Texture2D>().Where(t => t != null && t.name.StartsWith("Scry", StringComparison.Ordinal)).ToList();
+            var renders = Resources.FindObjectsOfTypeAll<RenderTexture>().Where(t => t != null && t.name.StartsWith("Scry", StringComparison.Ordinal)).ToList();
+            var meshes = Resources.FindObjectsOfTypeAll<Mesh>().Where(m => m != null && m.name.StartsWith("Scry", StringComparison.Ordinal)).ToList();
+            var byName = textures.GroupBy(t => t.name).OrderByDescending(g => g.Sum(Size)).Take(6).Select(g => $"{g.Key} x{g.Count()} {g.Sum(Size) / 1024} KB");
+            var mb = 1024.0 * 1024.0;
+            return $"{textures.Count} textures, {textures.Sum(Size) / mb:0.0} MB ({string.Join(", ", byName)}); {renders.Count} render textures, {renders.Sum(Size) / mb:0.0} MB; {meshes.Count} meshes, {meshes.Sum(Size) / mb:0.0} MB; "
+                   + $"{X.Catalog.Count} entries; the game's managed memory in use {GC.GetTotalMemory(false) / mb:0} MB, its native memory {UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong() / mb:0} MB";
+        }
+
+        /// <summary>
         /// The world's lights stay off the stage: a directional light made in the world, as a
         /// lightning strike's flash is, leaves the stage's picture as it was.
         /// </summary>
