@@ -150,7 +150,7 @@ namespace Scry
         {
             var hits = new List<FloorHit>();
             var names = new List<string>();
-            var found = FloorFinder.Floors(hits, FloorProbe.Read(copy, copy.transform, _layer, hits, 0, names));
+            var found = FloorFinder.Floors(hits, FloorProbe.Read(copy, copy.transform, _layer, hits, 0, names, _buildingSpawns));
             _floorHits = hits;
             _floorNames = names;
             if (place.IsRoom) return found.Count > 0 ? found : PlaceView.RoomFloors(place.Contents?.Room);

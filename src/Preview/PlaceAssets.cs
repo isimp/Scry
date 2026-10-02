@@ -127,7 +127,11 @@ namespace Scry
         {
             Roll(copy);
             LeaveOutInterior(copy);
-            if (spawns != null) ReadSpawns(copy, spawns, rules != null ? rules : copy.GetComponent<Location>());
+            if (spawns != null)
+            {
+                ReadSpawns(copy, spawns, rules != null ? rules : copy.GetComponent<Location>());
+                if (spawns.Count > 0) FloorProbe.NoteNotSolid(copy);
+            }
             foreach (var zone in copy.GetComponentsInChildren<EnvZone>(true))
             {
                 if (zone != null && zone.m_exteriorMesh != null) zone.m_exteriorMesh.enabled = false;
@@ -208,6 +212,7 @@ namespace Scry
                 {
                     At = spawner.transform,
                     Creature = spawner.m_creaturePrefab,
+                    Lift = FlyingHeight(spawner.m_creaturePrefab),
                     Point = new SpawnPoint
                     {
                         At = new Vec3(at.x, at.y, at.z), Group = group, GroupRadius = spawner.m_spawnGroupRadius, MaxInGroup = spawner.m_maxGroupSpawned,
@@ -215,6 +220,19 @@ namespace Scry
                     },
                 });
             }
+        }
+
+        /// <summary>
+        /// How high above the ground a creature that flies keeps (<c>Character.m_flying</c>,
+        /// <c>BaseAI.m_flyAltitudeMin</c>): the game drops what it spawns to the ground, and one
+        /// that flies takes off and is kept at least this high; 0 for one that walks.
+        /// </summary>
+        private static float FlyingHeight(GameObject creature)
+        {
+            var character = creature.GetComponent<Character>();
+            if (character == null || !character.m_flying) return 0f;
+            var ai = creature.GetComponent<BaseAI>();
+            return ai != null ? Mathf.Max(0f, ai.m_flyAltitudeMin) : 0f;
         }
 
         /// <summary>

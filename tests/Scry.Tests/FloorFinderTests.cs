@@ -151,6 +151,35 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void EachRoomsOwnMainFloorIsAFloorHoweverBigTheExample()
+        {
+            // Six big halls at 0 m and a small chamber far below: the chamber's floor is a sliver of
+            // all the example's ground, but the ground of its own room, so a floor all the same.
+            var rooms = Enumerable.Range(0, 6).Select(room => FloorFinder.Patch(Patch(0, 0, 40, 40, 0f, patch: room))).ToList();
+            var chamber = Patch(0, 0, 10, 10, -40f, patch: 6).ToList();
+            rooms.Add(FloorFinder.Patch(chamber));
+            var footprint = 6 * 40 * 40 * Cell + 10 * 10 * Cell;
+            Assert.Equal(new[] { 0f, -40f }, FloorFinder.Floors(rooms, footprint, PlaceView.Storey));
+
+            // A ledge in it, room enough to stand on but not its main ground, is still no floor.
+            rooms[6] = FloorFinder.Patch(chamber.Concat(Patch(20, 20, 6, 6, -36f, patch: 6)));
+            Assert.Equal(new[] { 0f, -40f }, FloorFinder.Floors(rooms, footprint, PlaceView.Storey));
+
+            // Nor is a room's main ground with too little room to stand on.
+            var cupboard = FloorFinder.Patch(Patch(0, 0, 4, 4, -60f, patch: 7));
+            Assert.Equal(new[] { 0f, -40f }, FloorFinder.Floors(rooms.Concat(new[] { cupboard }), footprint + 4 * 4 * Cell, PlaceView.Storey));
+        }
+
+        [Fact]
+        public void ARoomsMainFloorIsWhereItHasTheMostRoomToStand()
+        {
+            var room = FloorFinder.Patch(Patch(0, 0, 20, 20, -40f).Concat(Patch(30, 30, 6, 6, -36f)));
+            Assert.Equal(-40f, FloorFinder.MainFloor(room).Value, 2);
+            Assert.Null(FloorFinder.MainFloor(FloorFinder.Patch(Patch(0, 0, 4, 4, 2f))));
+            Assert.Null(FloorFinder.MainFloor(FloorFinder.Patch(Patch(0, 0, 20, 20, 2f, open: true))));
+        }
+
+        [Fact]
         public void AFloorSteppingDownRoomByRoomIsOneFloorWhereMostOfItIs()
         {
             // Three rooms, each a quarter of a metre below the last: one floor, at the middle one.

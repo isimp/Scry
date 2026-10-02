@@ -108,6 +108,20 @@ namespace Scry
             return Math.Max(1, level);
         }
 
+        /// <summary>
+        /// How far above its point a creature stands, as the game has it: dropped
+        /// <paramref name="drop"/> to the first solid thing under a metre above the point
+        /// (<c>ZoneSystem.FindFloor</c>), and one that flies kept <paramref name="lift"/> over that
+        /// ground at the least (<c>BaseAI.m_flyAltitudeMin</c>); at its point with nothing under it.
+        /// </summary>
+        public static float Rise(bool grounded, float drop, float lift) => grounded ? lift - drop : 0f;
+
+        /// <summary>
+        /// Whether a creature stands on a floor above a cut, to be cut away with it: the ground
+        /// under it, its feet less what it flies over that, above the cut.
+        /// </summary>
+        public static bool AboveCut(float feet, float lift, float cut) => feet - lift > cut;
+
         /// <summary>Whether rolling the points can come out more than one way: a star to roll, or a group with more points than it keeps.</summary>
         public static bool LeftToChance(IReadOnlyList<SpawnPoint> points) =>
             points.Any(p => p.MaxLevel > p.MinLevel && p.LevelUpChance > 0f)

@@ -750,6 +750,7 @@ namespace Scry
             EnsureTexture();
             Settle();
             Frame();
+            KeepCreaturesToCut();
 
             var mask = StageMask;
             var sun = EnvMan.instance != null ? EnvMan.instance.m_dirLight : null;

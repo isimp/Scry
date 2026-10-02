@@ -142,7 +142,7 @@ namespace Scry
                 ExampleCopies.Add(new KeyValuePair<PlacedRoom, GameObject>(placed, copy));
 
                 // A dungeon room's floors; a camp keeps its location's.
-                if (_exampleIsDungeon) ReadFloors(copy, placed, _exampleCopies);
+                if (_exampleIsDungeon) ReadFloors(copy, placed, _exampleCopies, _exampleBuildSpawns);
                 Tune(copy, audible: false);
                 Populate(_exampleBuildSpawns, copy);
                 _exampleBuildSpawns = null;
@@ -296,13 +296,13 @@ namespace Scry
         /// example sleeps, and the room alone is woken for it beside the example: a dungeon's
         /// example stands where its location does, so the room stands the same in either.
         /// </summary>
-        private static void ReadFloors(GameObject copy, PlacedRoom room, int patch)
+        private static void ReadFloors(GameObject copy, PlacedRoom room, int patch, List<SpawnHere> spawns)
         {
             var read = Timing.Start();
             var asleep = !_exampleHolder.activeSelf;
             if (asleep) copy.transform.SetParent(_subject.transform, false);
             RoomHits.Clear();
-            _exampleGround += FloorProbe.Read(copy, _subject.transform, _layer, RoomHits, patch);
+            _exampleGround += FloorProbe.Read(copy, _subject.transform, _layer, RoomHits, patch, spawns: spawns);
             var ground = FloorFinder.Patch(RoomHits);
             ExamplePatches.Add(ground);
             RoomGround[room] = ground;

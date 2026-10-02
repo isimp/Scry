@@ -116,6 +116,31 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ACreatureStandsOnTheGroundUnderItsPointOrFliesOverIt()
+        {
+            // The game drops what it spawns to the first solid thing under a metre above its point.
+            Assert.Equal(-6f, SpawnPoints.Rise(grounded: true, drop: 6f, lift: 0f), 3);
+            Assert.Equal(0.4f, SpawnPoints.Rise(grounded: true, drop: -0.4f, lift: 0f), 3);
+            // One that flies takes off and keeps at least so high over that ground.
+            Assert.Equal(-3f, SpawnPoints.Rise(grounded: true, drop: 6f, lift: 3f), 3);
+            // With nothing under it, it stays at its point, flying or not.
+            Assert.Equal(0f, SpawnPoints.Rise(grounded: false, drop: 0f, lift: 0f), 3);
+            Assert.Equal(0f, SpawnPoints.Rise(grounded: false, drop: 0f, lift: 3f), 3);
+        }
+
+        [Fact]
+        public void ACreatureOnAFloorAboveACutIsCutAwayWithIt()
+        {
+            // Its ground above the cut, it stands on a floor above; one flying over the floor
+            // opened belongs to that floor though it flies higher than the cut.
+            Assert.True(SpawnPoints.AboveCut(feet: 12f, lift: 0f, cut: 10f));
+            Assert.False(SpawnPoints.AboveCut(feet: 1f, lift: 0f, cut: 10f));
+            Assert.False(SpawnPoints.AboveCut(feet: 11f, lift: 3f, cut: 10f));
+            Assert.True(SpawnPoints.AboveCut(feet: 14f, lift: 3f, cut: 10f));
+            Assert.False(SpawnPoints.AboveCut(feet: 50f, lift: 0f, cut: float.PositiveInfinity));
+        }
+
+        [Fact]
         public void EachCreatureSpawnedGetsItsOwnStars()
         {
             var points = new[] { Point(0f, max: 3, chance: 50f), Point(5f, min: 2, max: 2) };

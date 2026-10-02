@@ -148,7 +148,10 @@ namespace Scry
         /// The dungeons whose rooms are rock or stacked high, the Frost Caves, the M&#xF6;rkhalla ones and
         /// Hildir's sealed tower: each one's example is built and opened floor by floor, told with
         /// how many rooms stand on each floor; a floor no room stands on is a floor found where
-        /// there is none, and some room always stands on the stage.
+        /// there is none, some room always stands on the stage, and every room stands whole on
+        /// some floor, so it can be opened and gone to. M&#xF6;rkhalla, whose floors come out
+        /// differently example to example, is laid out three times. Its creatures are told: how
+        /// many dropped to the ground under their points and how many fly.
         /// </summary>
         private static IEnumerator CaveFloors(Probe p)
         {
@@ -161,30 +164,46 @@ namespace Scry
             Stage.Inside = true;
             var empty = new List<string>();
             var blank = new List<string>();
+            var unreached = new List<string>();
             foreach (var entry in caves)
             {
                 Select(entry);
-                yield return Until(() => CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
-                if (CopyOf(entry) == null || Stage.ExampleRoomsTotal == 0)
+                for (var example = 0; example < (entry.Name == "MorkBorg" ? 3 : 1); example++)
                 {
-                    p.Note($"{entry.Name}: no example stood on the stage");
-                    continue;
+                    if (example > 0)
+                    {
+                        ExampleLayouts.Another();
+                        yield return null;
+                        yield return null;
+                    }
+                    yield return Until(() => CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.CreaturesWaiting == 0, 60);
+                    if (CopyOf(entry) == null || Stage.ExampleRoomsTotal == 0)
+                    {
+                        p.Note($"{entry.Name}: no example stood on the stage");
+                        break;
+                    }
+                    var told = new List<string>();
+                    var reached = new HashSet<PlacedRoom>();
+                    for (var level = 0; level < Stage.FloorHeights.Count; level++)
+                    {
+                        Stage.OpenLevel(level);
+                        yield return Until(() => Stage.ExampleRoomsKept, 5);
+                        var rooms = Stage.ExampleRoomsOnFloor;
+                        told.Add($"{Stage.FloorHeights[level]:0.0} m, {rooms} rooms, {Stage.ExampleRoomsShown - Stage.ExampleRoomsAway} standing, {Stage.CreaturesAboveCut} creatures above the cut");
+                        if (rooms == 0) empty.Add($"{entry.Name} at {Stage.FloorHeights[level]:0.0} m");
+                        if (Stage.ExampleRoomsAway >= Stage.ExampleRoomsShown) blank.Add($"{entry.Name} at {Stage.FloorHeights[level]:0.0} m");
+                        if (rooms > 0) foreach (var room in Stage.ExampleShown.Rooms) if (Stage.ExampleRoomShown(room) == PlanRoomShown.Whole) reached.Add(room);
+                    }
+                    var never = Stage.ExampleShown?.Rooms.Where(r => !r.Room.EndCap && !r.Room.Divider && !reached.Contains(r)).Select(r => $"{r.Room.Name} at {r.Position.Y:0.0} m").ToList() ?? new List<string>();
+                    if (never.Count > 0) unreached.Add($"{entry.Name}: {string.Join(", ", never.Take(6))}");
+                    p.Note($"{entry.Name} ({entry.DisplayName}), {Stage.ExampleRoomsTotal} rooms, {Stage.FloorHeights.Count} floors: " + string.Join("; ", told)
+                           + $"; creatures {Stage.CreaturesMade}, {Stage.CreaturesDropped} dropped to the ground under their points, {Stage.CreaturesFlying} flying");
                 }
-                var told = new List<string>();
-                for (var level = 0; level < Stage.FloorHeights.Count; level++)
-                {
-                    Stage.OpenLevel(level);
-                    yield return Until(() => Stage.ExampleRoomsKept, 5);
-                    var rooms = Stage.ExampleRoomsOnFloor;
-                    told.Add($"{Stage.FloorHeights[level]:0.0} m, {rooms} rooms, {Stage.ExampleRoomsShown - Stage.ExampleRoomsAway} standing");
-                    if (rooms == 0) empty.Add($"{entry.Name} at {Stage.FloorHeights[level]:0.0} m");
-                    if (Stage.ExampleRoomsAway >= Stage.ExampleRoomsShown) blank.Add($"{entry.Name} at {Stage.FloorHeights[level]:0.0} m");
-                }
-                p.Note($"{entry.Name} ({entry.DisplayName}), {Stage.ExampleRoomsTotal} rooms, {Stage.FloorHeights.Count} floors: " + string.Join("; ", told));
             }
             Stage.Inside = wasInside;
             p.Check(empty.Count == 0, "every floor found in their examples has rooms on it", string.Join("; ", empty));
             p.Check(blank.Count == 0, "and some room stands on the stage on every floor", string.Join("; ", blank));
+            p.Check(unreached.Count == 0, "and every room stands whole on some floor", string.Join("; ", unreached));
         }
 
         /// <summary>

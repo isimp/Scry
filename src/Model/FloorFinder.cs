@@ -117,6 +117,31 @@ namespace Scry
             return patch;
         }
 
+        /// <summary>
+        /// Where a patch has the most room to stand, on average, with at least <see cref="MinRoom"/>
+        /// of it: a room's own main floor. Null where it has nowhere so big.
+        /// </summary>
+        public static float? MainFloor(FloorPatch patch)
+        {
+            if (!(MainBand(patch) is int main)) return null;
+            var band = patch.Bands[main];
+            return (float)(band.Sum / band.Count);
+        }
+
+        private static int? MainBand(FloorPatch patch)
+        {
+            int? best = null;
+            var most = 0f;
+            foreach (var pair in patch.Bands)
+            {
+                var band = pair.Value;
+                if (!band.Landed || band.Count == 0 || band.Room < MinRoom || band.Room <= most) continue;
+                best = pair.Key;
+                most = band.Room;
+            }
+            return best;
+        }
+
         /// <summary>How near a floor a room's own ground must be for the room to stand on it, in metres.</summary>
         public const float Holding = 1f;
 
@@ -139,14 +164,18 @@ namespace Scry
         /// The floors from the top down from what each patch of rays found, and the ground they
         /// were cast over. With <paramref name="storey"/>, ground less than that below the next,
         /// step after step, is one floor, at the ground with the most room (an example's rooms,
-        /// <see cref="PlaceView.Storey"/>).
+        /// <see cref="PlaceView.Storey"/>). Each patch's own main ground (<see cref="MainFloor"/>)
+        /// is a floor however little of all the ground it is: in a big example, a deep chamber's
+        /// floor is a sliver of the ground of all its rooms, but the floor of its own.
         /// </summary>
         public static List<float> Floors(IEnumerable<FloorPatch> patches, float footprint, float storey = 0f)
         {
             var least = Math.Max(MinRoom, footprint * MinShare);
             var total = new Dictionary<int, FloorPatch.Band>();
+            var mains = new HashSet<int>();
             foreach (var patch in patches)
             {
+                if (MainBand(patch) is int main) mains.Add(main);
                 foreach (var pair in patch.Bands)
                 {
                     total.TryGetValue(pair.Key, out var sum);
@@ -163,7 +192,7 @@ namespace Scry
             foreach (var pair in total)
             {
                 var band = pair.Value;
-                if (!band.Landed || band.Count == 0 || band.Room < least) continue;
+                if (!band.Landed || band.Count == 0 || band.Room < least && !mains.Contains(pair.Key)) continue;
                 candidates.Add((pair.Key, band.Room, (float)(band.Sum / band.Count)));
             }
 

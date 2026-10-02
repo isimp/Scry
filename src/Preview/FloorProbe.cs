@@ -28,12 +28,67 @@ namespace Scry
         private const float Covered = 0.5f;
 
         /// <summary>
+        /// The colliders of copies with spawn points that are on none of the layers the game finds
+        /// a spawned creature's floor on (<c>ZoneSystem.m_solidRayMask</c>), noted while the copy
+        /// sleeps with its own layers, as the stage's layer is all it has once awake.
+        /// </summary>
+        private static readonly HashSet<Collider> NotSolid = new HashSet<Collider>();
+
+        private static int _solidLayers;
+
+        /// <summary>The layers the game finds a spawned creature's floor on (<c>ZoneSystem.m_solidRayMask</c>).</summary>
+        private static int SolidLayers => _solidLayers != 0 ? _solidLayers : _solidLayers = LayerMask.GetMask("Default", "static_solid", "Default_small", "piece", "terrain");
+
+        /// <summary>Notes which of a sleeping copy's colliders the game's floor rays pass through.</summary>
+        public static void NoteNotSolid(GameObject copy)
+        {
+            copy.GetComponentsInChildren(true, Colliders);
+            foreach (var collider in Colliders)
+            {
+                if (collider != null && (SolidLayers & (1 << collider.gameObject.layer)) == 0) NotSolid.Add(collider);
+            }
+            Colliders.Clear();
+        }
+
+        /// <summary>Forgets the colliders noted, as the stage is cleared.</summary>
+        public static void ForgetNotSolid() => NotSolid.Clear();
+
+        /// <summary>How far down the game looks for a spawned creature's floor, from a metre above its point (<c>ZoneSystem.FindFloor</c>).</summary>
+        private const float FloorBelow = 1000f;
+
+        /// <summary>
+        /// Where each spawn point on the copy puts its creature, as the game spawns it
+        /// (<c>CreatureSpawner.Spawn</c>, <c>ZoneSystem.FindFloor</c>): on the first solid thing
+        /// straight down from a metre above the point, which can be a little above it; where
+        /// nothing is, at the point. Set as how far it drops, so it holds wherever the copy goes.
+        /// </summary>
+        private static void DropSpawns(Transform root, int mask, List<Stage.SpawnHere> spawns)
+        {
+            foreach (var spawn in spawns)
+            {
+                if (spawn.At == null || !spawn.At.IsChildOf(root)) continue;
+                var point = spawn.At.position;
+                var from = point.y + 1f;
+                var bottom = from - FloorBelow;
+                for (var step = 0; step < MostSurfaces && from > bottom; step++)
+                {
+                    if (!Physics.Raycast(new Vector3(point.x, from, point.z), Vector3.down, out var hit, from - bottom, mask, QueryTriggerInteraction.Ignore)) break;
+                    from = hit.point.y - Past;
+                    if (hit.collider == null || !hit.collider.transform.IsChildOf(root) || NotSolid.Contains(hit.collider)) continue;
+                    spawn.Drop = point.y - hit.point.y;
+                    spawn.Grounded = true;
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
         /// Casts the rays over the copy and adds where they land to <paramref name="hits"/>, as
         /// patch <paramref name="patch"/>, and to <paramref name="names"/>, when given, the name of
         /// what each landed on; the ground the rays were cast over, 0 for a copy with nothing to
         /// land on.
         /// </summary>
-        public static float Read(GameObject copy, Transform space, int layer, List<FloorHit> hits, int patch, List<string> names = null)
+        public static float Read(GameObject copy, Transform space, int layer, List<FloorHit> hits, int patch, List<string> names = null, List<Stage.SpawnHere> spawns = null)
         {
             if (copy == null) return 0f;
             copy.GetComponentsInChildren(false, Colliders);
@@ -61,6 +116,7 @@ namespace Scry
                 var length = bounds.size.y + 2f;
                 var mask = layer >= 0 ? 1 << layer : Physics.DefaultRaycastLayers;
                 var root = copy.transform;
+                if (spawns != null) DropSpawns(root, mask, spawns);
                 var grid = FloorFinder.Grid(bounds.min.x, bounds.max.x, bounds.min.z, bounds.max.z);
                 var cell = FloorFinder.CellArea(bounds.min.x, bounds.max.x, bounds.min.z, bounds.max.z, grid.Count);
                 var bottom = top - length;
@@ -90,7 +146,12 @@ namespace Scry
             {
                 // Nothing else of the copy should meet anything; its colliders go once read.
                 copy.GetComponentsInChildren(true, Colliders);
-                foreach (var collider in Colliders) if (collider != null) Object.Destroy(collider);
+                foreach (var collider in Colliders)
+                {
+                    if (collider == null) continue;
+                    NotSolid.Remove(collider);
+                    Object.Destroy(collider);
+                }
                 Colliders.Clear();
             }
         }
