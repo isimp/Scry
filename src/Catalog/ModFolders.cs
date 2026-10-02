@@ -164,7 +164,7 @@ namespace Scry
             texture.hideFlags = HideFlags.HideAndDontSave;
             texture.wrapMode = TextureWrapMode.Clamp;
             texture.Apply(false, true);
-            var sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+            var sprite = Sprite.Create(Kept.Add(texture), new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f));
             sprite.hideFlags = HideFlags.HideAndDontSave;
             return sprite;
         }

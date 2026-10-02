@@ -120,11 +120,11 @@ namespace Scry
                 Object.Destroy(_texture);
             }
 
-            _texture = new RenderTexture(_width, _height, 24, RenderTextureFormat.ARGB32)
+            _texture = Kept.Add(new RenderTexture(_width, _height, 24, RenderTextureFormat.ARGB32)
             {
                 antiAliasing = 4,
                 name = "Scry stage",
-            };
+            });
             _texture.Create();
             if (_camera != null) _camera.targetTexture = _texture;
         }

@@ -73,6 +73,21 @@ namespace Scry
         /// <summary>How many creatures stand switched on, for the self-test.</summary>
         public static int CreaturesStanding => CreatureCopies.Count(pair => pair.Key != null && pair.Key.activeSelf);
 
+        private static readonly List<Renderer> Counted = new List<Renderer>();
+
+        /// <summary>How many parts draw on the stage, its copies, creatures and ground together, for the resource monitor.</summary>
+        public static int PartsOnStage
+        {
+            get
+            {
+                if (_root == null) return 0;
+                _root.GetComponentsInChildren(false, Counted);
+                var count = Counted.Count;
+                Counted.Clear();
+                return count;
+            }
+        }
+
         /// <summary>Where each creature standing on the stage draws, for the self-test.</summary>
         public static List<Bounds> CreatureBoundsNow() =>
             CreatureCopies.Where(pair => pair.Key != null && pair.Key.activeInHierarchy).Select(pair => Measure(pair.Key)).ToList();

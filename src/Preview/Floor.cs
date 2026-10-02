@@ -100,7 +100,7 @@ namespace Scry
             texture.SetPixels32(pixels);
             texture.Apply(true, true);
             _grid = texture;
-            return texture;
+            return Kept.Add(texture);
         }
 
         /// <summary>Repeats a surface's texture the given number of times each way, through its mesh.</summary>
@@ -129,7 +129,7 @@ namespace Scry
             }
             texture.SetPixels(pixels);
             texture.Apply(false, true);
-            return texture;
+            return Kept.Add(texture);
         }
 
         private static Material Material()
@@ -164,7 +164,7 @@ namespace Scry
             mesh.triangles = new[] { 0, 1, 2, 0, 2, 3 };
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
-            return mesh;
+            return Kept.Add(mesh);
         }
 
         /// <summary>A disc that fades out towards its edge, with thin rings.</summary>
@@ -194,7 +194,7 @@ namespace Scry
 
             texture.SetPixels32(pixels);
             texture.Apply(true, true);
-            return texture;
+            return Kept.Add(texture);
         }
     }
 }

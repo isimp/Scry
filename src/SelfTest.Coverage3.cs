@@ -435,6 +435,24 @@ namespace Scry
             if (wasOpen) Session.Show(null);
         }
 
+        /// <summary>
+        /// The resource monitor, switched on: it draws over the screen, measures Scry's frames,
+        /// and tells what Scry holds, its catalog among it; its lines are noted.
+        /// </summary>
+        private static IEnumerator ResourceMonitor(Probe p)
+        {
+            var was = Plugin.ShowMonitor;
+            Plugin.ShowMonitor = true;
+            var drawn = ScryPanel.MonitorsDrawn;
+            var from = Time.unscaledTime;
+            yield return Until(() => Time.unscaledTime - from > 1.5f, 3);
+            p.Check(ScryPanel.MonitorsDrawn > drawn, "it draws over the screen", $"{ScryPanel.MonitorsDrawn - drawn} times");
+            p.Check(Monitor.Window.Count > 0 && Monitor.Window.Mean > 0, "it measures Scry's frames", $"{Monitor.Window.Count} frames, {Monitor.Window.Mean:0.000} ms on average");
+            p.Check(Monitor.Lines.Any(l => l.StartsWith("holds ", StringComparison.Ordinal) && l.Contains($"{X.Catalog.Count} entries")), "it tells what Scry holds", string.Join(" | ", Monitor.Lines));
+            p.Note(string.Join(" | ", Monitor.Lines));
+            Plugin.ShowMonitor = was;
+        }
+
         /// <summary>The textures, render textures and meshes Scry made, by kind with their memory, and the game's managed and native memory for scale.</summary>
         private static string KeptTold()
         {

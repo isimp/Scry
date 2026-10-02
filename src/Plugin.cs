@@ -22,6 +22,7 @@ namespace Scry
         private static ConfigEntry<bool> _playOnSelect;
         private static ConfigEntry<float> _uiScale;
         private static ConfigEntry<bool> _logPreviews;
+        private static ConfigEntry<bool> _showMonitor;
         private static ConfigEntry<bool> _focusSearch;
         private static ConfigEntry<float> _catalogDelay;
         private static ConfigEntry<bool> _walkWhileOpen;
@@ -68,6 +69,16 @@ namespace Scry
 
         /// <summary>Whether the log tells what previews play and what Scry saw of each prefab, for finding out why something looks or sounds wrong.</summary>
         public static bool LogPreviews => _logPreviews?.Value ?? false;
+
+        /// <summary>Whether the resource monitor shows (<see cref="Monitor"/>); <c>/scry monitor</c> switches it.</summary>
+        public static bool ShowMonitor
+        {
+            get => _showMonitor?.Value ?? false;
+            set
+            {
+                if (_showMonitor != null) _showMonitor.Value = value;
+            }
+        }
 
         /// <summary>Whether the self-test may run (<c>/scry selftest</c>, or the marker file), for finding faults rather than for play.</summary>
         public static bool SelfTestAllowed => _selfTest?.Value ?? false;
@@ -127,6 +138,8 @@ namespace Scry
                 "Plays a sound as soon as it is selected, so the list can be auditioned with the arrow keys.");
             _logPreviews = Config.Bind("3 - Diagnostics", "LogPreviews", false,
                 "Writes to the log what each preview played and what Scry found out about each prefab (its animator, its gear, what it leaves behind), for finding out why something looks or sounds wrong. Off, the log only says when the game has changed in a way Scry notices, and how long reading the catalog took.");
+            _showMonitor = Config.Bind("3 - Diagnostics", "ResourceMonitor", false,
+                "Shows a small box in the screen's corner, also with the panel closed, telling what Scry costs and holds: its own time each frame with a graph of the last ten seconds and its parts, what it allocates, the bundles, copies, textures and meshes it holds, beside the game's memory. /scry monitor switches it. For finding faults, not for play.");
             _selfTest = Config.Bind("3 - Diagnostics", "SelfTest", false,
                 "Allows /scry selftest, which tries Scry out by itself for a few minutes in the world you are in (opening the panel, playing previews, loading and reading every location) and writes what worked and how fast to BepInEx/Scry-selftest.log; with the file BepInEx/Scry-selftest.run present it also starts by itself once in each world. For finding faults, not for play.");
 
@@ -202,6 +215,15 @@ namespace Scry
             catch (System.Exception ex) { Faults.Tell("the panel", ex); }
             Timing.Add("panel", started);
             if (Plugin.LogPreviews) Timing.Add(EventPart(kind), started);
+
+            // The resource monitor over everything, its own drawing a part of its own.
+            if (Monitor.On && kind == EventType.Repaint)
+            {
+                var drawn = Timing.Start();
+                try { ScryPanel.MonitorGUI(); }
+                catch (System.Exception ex) { Faults.Tell("the resource monitor", ex); }
+                Timing.Add("monitor", drawn);
+            }
         }
 
         private static readonly string[] EventParts = new string[64];

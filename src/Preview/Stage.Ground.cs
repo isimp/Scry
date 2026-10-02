@@ -125,9 +125,9 @@ namespace Scry
             if (source == null) return false;
 
             _terrainMaterial = new Material(source) { name = "Scry stage ground" };
-            _terrainMask = new Texture2D(2, 2, TextureFormat.RGBA32, false) { name = "Scry stage ground mask", wrapMode = TextureWrapMode.Clamp };
+            _terrainMask = Kept.Add(new Texture2D(2, 2, TextureFormat.RGBA32, false) { name = "Scry stage ground mask", wrapMode = TextureWrapMode.Clamp });
             _terrainMaterial.SetTexture("_ClearedMaskTex", _terrainMask);
-            _terrainMesh = Disc();
+            _terrainMesh = Kept.Add(Disc());
 
             _terrain = new GameObject("Scry stage ground") { layer = _layer };
             _terrain.transform.SetParent(_root.transform, false);

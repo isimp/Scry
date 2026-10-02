@@ -65,7 +65,7 @@ namespace Scry
             Frame.Add(part, Math.Max(0, ms - (Frame.InnerMs - innerBefore)), 0, 0);
         }
 
-        private static bool On => Plugin.LogPreviews || Measuring != null;
+        private static bool On => Plugin.LogPreviews || Measuring != null || Monitor.On;
 
         public static Mark Start()
         {
@@ -95,6 +95,7 @@ namespace Scry
         {
             if (Time.frameCount == _frame) return;
             ScryBytes += Frame.Bytes;
+            if (Monitor.On && _frame >= 0) Monitor.Frame(Frame, Time.unscaledDeltaTime * 1000.0);
             if (Measuring != null && _frame >= 0)
             {
                 // Scry's own work as a player's frame has it, the self-test's own checks left out.

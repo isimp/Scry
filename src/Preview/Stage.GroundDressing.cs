@@ -444,7 +444,7 @@ namespace Scry
         {
             if (_groundFade == null)
             {
-                if (_fadeTexture == null) _fadeTexture = FadeTexture();
+                if (_fadeTexture == null) _fadeTexture = Kept.Add(FadeTexture());
                 _groundFade = Floor.Surface("Scry stage ground fade", _layer, _fadeTexture);
                 if (_groundFade == null) return;
                 _groundFade.transform.SetParent(_root.transform, true);

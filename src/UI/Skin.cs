@@ -633,7 +633,7 @@ namespace Scry
 
             texture.SetPixels32(pixels);
             texture.Apply(false, false);
-            return texture;
+            return Kept.Add(texture);
         }
 
         private static bool RoundedCoverage(float x, float y, float w, float h, float r)
@@ -714,7 +714,7 @@ namespace Scry
             texture.SetPixels32(pixels);
             texture.Apply(false, false);
             Tinted[key] = texture;
-            return texture;
+            return Kept.Add(texture);
         }
 
         private static int EdgeDistance(Color32[] pixels, int w, int h, int x, int y)
@@ -753,7 +753,7 @@ namespace Scry
             }
             texture.SetPixels32(pixels);
             texture.Apply(false, false);
-            return texture;
+            return Kept.Add(texture);
         }
     }
 }

@@ -61,6 +61,12 @@ namespace Scry
             return slowest == null ? ("", 0.0) : (slowest.Name, slowest.Ms);
         }
 
+        /// <summary>Each part with time this frame, as its name and milliseconds, for the resource monitor; nothing is made for it.</summary>
+        public void ForEachPart(Action<string, double> each)
+        {
+            foreach (var part in _parts) if (part.Ms > 0) each(part.Name, part.Ms);
+        }
+
         /// <summary>Adds to a part: its time, what it allocated, and how many cleanups ran inside it.</summary>
         public void Add(string part, double ms, long bytes, int cleanups)
         {
