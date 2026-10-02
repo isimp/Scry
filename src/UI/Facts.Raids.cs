@@ -60,6 +60,8 @@ namespace Scry
             Add("Also rolled", RaidWords.OwnRoll(raid.m_standaloneInterval, raid.m_standaloneChance));
             if (!raid.m_random && raid.m_standaloneInterval <= 0f) Add("Rolled", "never by the raid roll; only something else starts it");
             Add("Lasts", RaidWords.Lasts(raid.m_duration, raid.m_pauseIfNoPlayerInArea, raid.m_eventRange));
+            var brought = (raid.m_spawn ?? new List<SpawnSystem.SpawnData>()).Where(d => d != null && d.m_enabled && d.m_prefab != null).ToList();
+            Add("Keeps coming", RaidWords.KeepsComing(brought.Count(d => d.m_maxSpawned > 0), brought.Count));
             Add("Ends with", CatalogBuilder.Localize(raid.m_endMessage));
             if (boss == null)
             {

@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// The self-test's cases for the Raids tab's groups, a raid's wave on the stage and the
+    /// The self-test's cases for the Raids tab's groups, a raid's roll on the stage and the
     /// runestones' texts.
     /// </summary>
     internal static partial class SelfTest
@@ -47,7 +47,7 @@ namespace Scry
             if (bossEntry != null) p.Check(Facts.For(bossEntry).Links.TryGetValue("Its fight", out var toFight) && toFight == fight.Key, "and the boss's page to its fight", toFight);
         }
 
-        /// <summary>A raid stands on the stage as one rolled wave, every creature of it there, and Roll again rolls a new one.</summary>
+        /// <summary>A raid stands on the stage as the first roll of its creatures, every one rolled there, and Roll again rolls them anew.</summary>
         private static IEnumerator RaidWave(Probe p)
         {
             var raid = Pick(Kind.Raid, "army_eikthyr") ?? X.Catalog.FirstOrDefault(e => e.Kind == Kind.Raid && Stage.IsStaged(e));
@@ -56,8 +56,8 @@ namespace Scry
             yield return Until(() => CopyOf(raid) != null, 15);
             var crowd = CopyOf(raid);
             if (!p.Check(crowd != null, $"{raid.DisplayName} stands on the stage")) yield break;
-            p.Note(RaidWords.Wave(RaidCrowd.LastWave, name => name));
-            p.Check(RaidCrowd.LastFor == raid && crowd.transform.childCount == RaidCrowd.LastWave.Count, "every creature rolled stands there", $"{crowd.transform.childCount} stand, {RaidCrowd.LastWave.Count} rolled");
+            p.Note(RaidWords.FirstRoll(RaidCrowd.LastRoll, name => name));
+            p.Check(RaidCrowd.LastFor == raid && crowd.transform.childCount == RaidCrowd.LastRoll.Count, "every creature rolled stands there", $"{crowd.transform.childCount} stand, {RaidCrowd.LastRoll.Count} rolled");
 
             var spawns = ((RandomEvent)raid.Source).m_spawn.Where(s => s?.m_prefab != null).ToList();
             var counts = new List<int>();
@@ -72,19 +72,19 @@ namespace Scry
                     wrong.Add($"roll {i + 1} stands nowhere");
                     continue;
                 }
-                counts.Add(RaidCrowd.LastWave.Count);
-                if (crowd.transform.childCount != RaidCrowd.LastWave.Count) wrong.Add($"roll {i + 1}: {crowd.transform.childCount} of {RaidCrowd.LastWave.Count} stand");
-                foreach (var creature in RaidCrowd.LastWave)
+                counts.Add(RaidCrowd.LastRoll.Count);
+                if (crowd.transform.childCount != RaidCrowd.LastRoll.Count) wrong.Add($"roll {i + 1}: {crowd.transform.childCount} of {RaidCrowd.LastRoll.Count} stand");
+                foreach (var creature in RaidCrowd.LastRoll)
                 {
                     var spawn = spawns.FirstOrDefault(s => s.m_prefab.name == creature.Prefab);
                     if (spawn != null && (creature.Level < spawn.m_minLevel || creature.Level > Math.Max(spawn.m_minLevel, spawn.m_maxLevel))) wrong.Add($"{creature.Prefab} at level {creature.Level}");
                 }
             }
             p.Note($"8 more rolls brought {string.Join(", ", counts)} creatures");
-            p.Check(wrong.Count == 0, "Roll again rolls a new wave each time, whole and at the levels it allows", string.Join("; ", wrong.Take(6)));
+            p.Check(wrong.Count == 0, "Roll again rolls them anew each time, whole and at the levels it allows", string.Join("; ", wrong.Take(6)));
         }
 
-        /// <summary>Every raid that brings creatures rolls a wave onto the stage, every creature of it standing.</summary>
+        /// <summary>Every raid that brings creatures rolls them onto the stage, every creature rolled standing.</summary>
         private static IEnumerator EveryRaidWave(Probe p)
         {
             var raids = X.Catalog.Where(e => e.Kind == Kind.Raid && Stage.IsStaged(e)).OrderBy(e => e.Name, StringComparer.Ordinal).ToList();
@@ -96,10 +96,10 @@ namespace Scry
                 yield return Until(() => CopyOf(raid) != null, 10);
                 var crowd = CopyOf(raid);
                 if (crowd == null) wrong.Add($"{raid.Name} stands nowhere");
-                else if (crowd.transform.childCount != RaidCrowd.LastWave.Count) wrong.Add($"{raid.Name}: {crowd.transform.childCount} of {RaidCrowd.LastWave.Count} stand");
+                else if (crowd.transform.childCount != RaidCrowd.LastRoll.Count) wrong.Add($"{raid.Name}: {crowd.transform.childCount} of {RaidCrowd.LastRoll.Count} stand");
             }
             p.Note($"{raids.Count} raids bring creatures");
-            p.Check(wrong.Count == 0, "each stands as a wave", string.Join("; ", wrong.Take(8)));
+            p.Check(wrong.Count == 0, "each stands as rolled", string.Join("; ", wrong.Take(8)));
         }
 
         /// <summary>

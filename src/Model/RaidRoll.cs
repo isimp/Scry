@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Scry
 {
-    /// <summary>One creature a raid brings (<c>SpawnSystem.SpawnData</c>), as far as rolling a wave of it goes.</summary>
+    /// <summary>One creature a raid brings (<c>SpawnSystem.SpawnData</c>), as far as rolling it goes.</summary>
     public sealed class RaidSpawn
     {
         public string Prefab;
@@ -20,7 +20,7 @@ namespace Scry
         public float LevelUpChance = 10f;
     }
 
-    /// <summary>A creature of a rolled wave: what it is, its level, and the group it came in.</summary>
+    /// <summary>A creature of a rolled rolled: what it is, its level, and the group it came in.</summary>
     public struct RolledCreature
     {
         public string Prefab;
@@ -29,8 +29,10 @@ namespace Scry
     }
 
     /// <summary>
-    /// One wave of a raid as the game rolls it: <c>SpawnSystem.UpdateSpawnList</c> the first time a
-    /// raid's spawners run with none of its creatures about, and the levels of <c>SpawnSystem.Spawn</c>.
+    /// The first roll of each creature of a raid as the game rolls it: <c>SpawnSystem.UpdateSpawnList</c>
+    /// the first time a raid's spawners run with none of its creatures about, and the levels of
+    /// <c>SpawnSystem.Spawn</c>. A raid comes in no waves: for as long as it lasts, each creature is
+    /// rolled again at its pace (<see cref="RaidWords.KeepsComing"/>).
     /// What depends on the world is left out: the time of day, the weather and world keys a creature
     /// waits for, finding ground for it, and the distance from the world's centre its stars may wait for.
     /// </summary>
@@ -38,9 +40,9 @@ namespace Scry
     {
         /// <param name="percent">A roll from 0 to 100, as <c>UnityEngine.Random.Range(0f, 100f)</c>.</param>
         /// <param name="range">A whole number from the first up to but not including the second, as <c>UnityEngine.Random.Range(int, int)</c>.</param>
-        public static List<RolledCreature> Wave(IReadOnlyList<RaidSpawn> spawns, Func<float> percent, Func<int, int, int> range)
+        public static List<RolledCreature> FirstRoll(IReadOnlyList<RaidSpawn> spawns, Func<float> percent, Func<int, int, int> range)
         {
-            var wave = new List<RolledCreature>();
+            var rolled = new List<RolledCreature>();
             var group = 0;
             foreach (var spawn in spawns)
             {
@@ -53,14 +55,14 @@ namespace Scry
                 for (var i = 0; i < tries; i++)
                 {
                     if (percent() > spawn.Chance) continue;
-                    if (spawn.MaxSpawned > 0 && wave.Count >= spawn.MaxSpawned) break;
+                    if (spawn.MaxSpawned > 0 && rolled.Count >= spawn.MaxSpawned) break;
 
                     var size = Math.Min(range(spawn.GroupMin, spawn.GroupMax + 1), spawn.MaxSpawned > 0 ? spawn.MaxSpawned : 100);
-                    for (var j = 0; j < size; j++) wave.Add(new RolledCreature { Prefab = spawn.Prefab, Level = Level(spawn, percent), Group = group });
+                    for (var j = 0; j < size; j++) rolled.Add(new RolledCreature { Prefab = spawn.Prefab, Level = Level(spawn, percent), Group = group });
                     group++;
                 }
             }
-            return wave;
+            return rolled;
         }
 
         /// <summary>Its level: from its lowest, one more for each roll at the level-up chance or under, up to its highest.</summary>

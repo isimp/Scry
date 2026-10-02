@@ -102,7 +102,7 @@ namespace Scry
         /// What Enter and a double click do: the thing most wanted of each kind. A sound or an
         /// effect plays, a projectile is fired, a status effect is shown; a creature makes its
         /// first attack; an item is worn or taken off, if it can be; a location or room plays its
-        /// music, or stops it; a raid rolls another wave, a boss's fight plays its music; a tree, log, rock or piece
+        /// music, or stops it; a raid rolls its creatures anew, a boss's fight plays its music; a tree, log, rock or piece
         /// does what the game does when it is felled or broken, or a log or rock falls where it
         /// has nothing else. Anything else is left alone; showing it in the world is a button.
         /// </summary>
@@ -134,7 +134,7 @@ namespace Scry
                     if (said != null) Session.Say(said);
                     break;
                 case Kind.Raid:
-                    // A raid rolls another wave; a boss's fight, which brings none, plays its music.
+                    // A raid rolls its creatures anew; a boss's fight, which brings none, plays its music.
                     if (Stage.IsStaged(entry)) Previews.Rebuild();
                     else
                     {

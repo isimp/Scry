@@ -79,13 +79,27 @@ namespace Scry
             return string.Join(", ", parts);
         }
 
-        /// <summary>A rolled wave (<see cref="RaidRoll"/>): each creature in the order it came, how many, and how many with stars.</summary>
-        public static string Wave(IReadOnlyList<RolledCreature> wave, System.Func<string, string> nameOf)
+        /// <summary>
+        /// How a raid's creatures keep coming for as long as it lasts (<c>SpawnSystem.UpdateSpawnList</c>):
+        /// each rolled again at its pace, one with a most topped up to it near you, one without one
+        /// more each time; null for a raid bringing none. It comes in no waves.
+        /// </summary>
+        public static string KeepsComing(int capped, int all)
         {
-            if (wave.Count == 0) return "This roll brought nothing; roll again.";
+            if (all <= 0) return null;
+            const string again = "throughout the raid, each creature is rolled again at its pace";
+            if (capped >= all) return again + " and topped up to its most near you, so the fallen are replaced";
+            if (capped <= 0) return again + ", one more each time";
+            return again + ", those with a most topped up to it near you, so the fallen are replaced";
+        }
+
+        /// <summary>The first roll of each of a raid's creatures (<see cref="RaidRoll"/>): each in the order it came, how many, and how many with stars.</summary>
+        public static string FirstRoll(IReadOnlyList<RolledCreature> rolled, System.Func<string, string> nameOf)
+        {
+            if (rolled.Count == 0) return "This roll brought nothing; roll again.";
             var order = new List<string>();
             var counts = new Dictionary<string, (int All, int Starred)>();
-            foreach (var creature in wave)
+            foreach (var creature in rolled)
             {
                 if (!counts.TryGetValue(creature.Prefab, out var count)) order.Add(creature.Prefab);
                 counts[creature.Prefab] = (count.All + 1, count.Starred + (creature.Level > 1 ? 1 : 0));
@@ -96,7 +110,7 @@ namespace Scry
                 var count = counts[prefab];
                 parts.Add($"{nameOf(prefab)} × {count.All}" + (count.Starred > 0 ? $" ({count.Starred} with stars)" : ""));
             }
-            return "One wave as the game rolls it: " + string.Join(", ", parts) + ".";
+            return "The first roll of each, as the game rolls it: " + string.Join(", ", parts) + ".";
         }
 
         /// <summary>The name of a boss's own event, which has no message of its own to go by.</summary>

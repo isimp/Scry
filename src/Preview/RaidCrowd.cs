@@ -5,20 +5,20 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// A raid on the stage: one wave as the game rolls it (<see cref="RaidRoll"/>), its creatures
+    /// A raid on the stage: the first roll of each of its creatures as the game rolls it (<see cref="RaidRoll"/>), its creatures
     /// standing together, each group around a point of its own as far apart as the game spreads
-    /// it (<c>m_groupRadius</c>), the groups side by side in a ring. A new copy rolls a new wave.
+    /// it (<c>m_groupRadius</c>), the groups side by side in a ring. A new copy rolls them anew.
     /// </summary>
     internal static class RaidCrowd
     {
-        /// <summary>The raid last rolled and its wave, for the words under the stage.</summary>
+        /// <summary>The raid last rolled and what its roll brought, for the words under the stage.</summary>
         public static Entry LastFor { get; private set; }
-        public static IReadOnlyList<RolledCreature> LastWave { get; private set; } = new List<RolledCreature>();
+        public static IReadOnlyList<RolledCreature> LastRoll { get; private set; } = new List<RolledCreature>();
 
         /// <summary>Whether a raid brings any creature to roll.</summary>
         public static bool Brings(RandomEvent raid) => raid?.m_spawn != null && raid.m_spawn.Exists(s => s != null && s.m_enabled && s.m_prefab != null);
 
-        /// <summary>A new wave of the raid, made under the parent; null when it has no creature to roll.</summary>
+        /// <summary>A new roll of the raid, made under the parent; null when it has no creature to roll.</summary>
         public static GameObject Make(Entry entry, RandomEvent raid, Transform parent, Vector3 origin, int layer)
         {
             if (!Brings(raid)) return null;
@@ -43,9 +43,9 @@ namespace Scry
                 if (!radii.ContainsKey(data.m_prefab.name)) radii[data.m_prefab.name] = Mathf.Max(0f, data.m_groupRadius);
             }
 
-            var wave = RaidRoll.Wave(spawns, () => Random.Range(0f, 100f), Random.Range);
+            var rolled = RaidRoll.FirstRoll(spawns, () => Random.Range(0f, 100f), Random.Range);
             LastFor = entry;
-            LastWave = wave;
+            LastRoll = rolled;
 
             var holder = new GameObject("Scry raid");
             holder.transform.SetParent(parent, false);
@@ -67,7 +67,7 @@ namespace Scry
                 }
                 return found;
             }
-            var groups = wave.GroupBy(c => c.Group).Select(g => g.ToList()).ToList();
+            var groups = rolled.GroupBy(c => c.Group).Select(g => g.ToList()).ToList();
             var shapes = groups.Select(g => new CrowdGroup { Count = g.Count, Body = Body(EntryOf(g[0].Prefab)?.Source as GameObject), Spread = radii[g[0].Prefab] }).ToList();
             var places = CrowdLayout.Place(shapes);
             var at = 0;

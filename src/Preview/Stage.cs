@@ -293,7 +293,7 @@ namespace Scry
             }
             if (entry.Source is RandomEvent raid)
             {
-                // A raid as one wave of its creatures, rolled anew with each copy.
+                // A raid as the first roll of each of its creatures, rolled anew with each copy.
                 var made = Timing.Start();
                 _subject = RaidCrowd.Make(entry, raid, _root.transform, Origin, _layer);
                 Timing.Add("selection copy", made);

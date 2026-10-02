@@ -36,6 +36,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ARaidsCreaturesKeepComingWhileItLasts()
+        {
+            // There are no waves: for as long as the raid lasts, each creature is rolled again at
+            // its pace (SpawnSystem.UpdateSpawnList), one with a most topped up to it near you,
+            // one without one more each time.
+            Assert.Equal("throughout the raid, each creature is rolled again at its pace and topped up to its most near you, so the fallen are replaced", RaidWords.KeepsComing(2, 2));
+            Assert.Equal("throughout the raid, each creature is rolled again at its pace, one more each time", RaidWords.KeepsComing(0, 1));
+            Assert.Equal("throughout the raid, each creature is rolled again at its pace, those with a most topped up to it near you, so the fallen are replaced", RaidWords.KeepsComing(1, 2));
+            Assert.Null(RaidWords.KeepsComing(0, 0));
+        }
+
+        [Fact]
         public void ARaidLastsItsTimePausedWhileNobodyIsInIt()
         {
             Assert.Equal("90 s, paused while nobody is within 96 m", RaidWords.Lasts(90f, pauses: true, range: 96f));

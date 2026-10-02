@@ -36,7 +36,7 @@ namespace Scry.Tests
         public void EachCreatureIsTriedAsOftenAsItsCapEachTryAtItsChance()
         {
             // Three tries: 10 hits, 60 misses, 50 hits (a roll above the chance misses).
-            var wave = RaidRoll.Wave(new[] { Spawn("Greydwarf", max: 3, chance: 50f) }, Rolls(10f, 60f, 50f), Sizes(1, 1));
+            var wave = RaidRoll.FirstRoll(new[] { Spawn("Greydwarf", max: 3, chance: 50f) }, Rolls(10f, 60f, 50f), Sizes(1, 1));
 
             Assert.Equal(new[] { "Greydwarf", "Greydwarf" }, wave.Select(c => c.Prefab));
             Assert.Equal(new[] { 0, 1 }, wave.Select(c => c.Group));
@@ -45,7 +45,7 @@ namespace Scry.Tests
         [Fact]
         public void ACreatureWithNoCapIsTriedOnce()
         {
-            var wave = RaidRoll.Wave(new[] { Spawn("Skeleton", max: 0) }, Rolls(0f), Sizes(1));
+            var wave = RaidRoll.FirstRoll(new[] { Spawn("Skeleton", max: 0) }, Rolls(0f), Sizes(1));
             Assert.Single(wave);
         }
 
@@ -53,7 +53,7 @@ namespace Scry.Tests
         public void AGroupComesWholeUpToTheCreaturesOwnCap()
         {
             // A group of 4 rolled, cut to the cap of 2; the next try finds the cap reached.
-            var wave = RaidRoll.Wave(new[] { Spawn("Wolf", max: 2, groupMin: 3, groupMax: 5) }, Rolls(0f, 0f), Sizes(4));
+            var wave = RaidRoll.FirstRoll(new[] { Spawn("Wolf", max: 2, groupMin: 3, groupMax: 5) }, Rolls(0f, 0f), Sizes(4));
 
             Assert.Equal(2, wave.Count);
             Assert.All(wave, c => Assert.Equal(0, c.Group));
@@ -66,7 +66,7 @@ namespace Scry.Tests
             // a group is cut only by the cap less those about before it (none as a raid starts):
             // two groups of 3 come under a cap of 4, and a creature with a cap of 2 brings none.
             var spawns = new[] { Spawn("Draugr", max: 4, groupMin: 3, groupMax: 3), Spawn("Draugr_Elite", max: 2) };
-            var wave = RaidRoll.Wave(spawns, Rolls(0f, 0f, 0f, 0f), Sizes(3, 3));
+            var wave = RaidRoll.FirstRoll(spawns, Rolls(0f, 0f, 0f, 0f), Sizes(3, 3));
 
             Assert.Equal(6, wave.Count(c => c.Prefab == "Draugr"));
             Assert.Equal(new[] { 0, 0, 0, 1, 1, 1 }, wave.Select(c => c.Group));
@@ -78,7 +78,7 @@ namespace Scry.Tests
         {
             // Rolls of the level-up chance (10) or under add a level, until one misses or the top is reached.
             var spawn = Spawn("Greydwarf", max: 2, groupMin: 2, groupMax: 2, minLevel: 1, maxLevel: 3, levelUp: 10f);
-            var wave = RaidRoll.Wave(new[] { spawn }, Rolls(0f, 5f, 50f, 10f, 3f, 0f), Sizes(2));
+            var wave = RaidRoll.FirstRoll(new[] { spawn }, Rolls(0f, 5f, 50f, 10f, 3f, 0f), Sizes(2));
 
             Assert.Equal(new[] { 2, 3 }, wave.Select(c => c.Level));
         }
@@ -86,7 +86,7 @@ namespace Scry.Tests
         [Fact]
         public void ACreatureAtItsTopLevelRollsNoStars()
         {
-            var wave = RaidRoll.Wave(new[] { Spawn("Troll", max: 1, minLevel: 2, maxLevel: 2) }, Rolls(0f), Sizes(1));
+            var wave = RaidRoll.FirstRoll(new[] { Spawn("Troll", max: 1, minLevel: 2, maxLevel: 2) }, Rolls(0f), Sizes(1));
             Assert.Equal(2, wave.Single().Level);
         }
 
@@ -96,7 +96,7 @@ namespace Scry.Tests
             var off = Spawn("Boar", max: 1);
             off.Enabled = false;
             var missing = Spawn(null, max: 1);
-            Assert.Empty(RaidRoll.Wave(new[] { off, missing }, Rolls(), Sizes()));
+            Assert.Empty(RaidRoll.FirstRoll(new[] { off, missing }, Rolls(), Sizes()));
         }
 
         [Fact]
@@ -126,8 +126,8 @@ namespace Scry.Tests
             };
             string Name(string prefab) => prefab == "Greydwarf" ? "Greydwarf" : "Greydwarf brute";
 
-            Assert.Equal("One wave as the game rolls it: Greydwarf × 3 (1 with stars), Greydwarf brute × 1.", RaidWords.Wave(wave, Name));
-            Assert.Equal("This roll brought nothing; roll again.", RaidWords.Wave(new List<RolledCreature>(), Name));
+            Assert.Equal("The first roll of each, as the game rolls it: Greydwarf × 3 (1 with stars), Greydwarf brute × 1.", RaidWords.FirstRoll(wave, Name));
+            Assert.Equal("This roll brought nothing; roll again.", RaidWords.FirstRoll(new List<RolledCreature>(), Name));
         }
     }
 }

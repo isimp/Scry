@@ -664,11 +664,11 @@ namespace Scry
                     break;
 
                 case Kind.Raid:
-                    // A raid's wave, rolled again on a new copy.
+                    // What a raid's roll brought, rolled again on a new copy.
                     if (withStage && Stage.IsStaged(entry))
                     {
                         if (Shown("Roll again", Skin.Primary, Stage.Subject != null)) Previews.Rebuild();
-                        if (RaidCrowd.LastFor == entry && Stage.Subject != null) note = RaidWords.Wave(RaidCrowd.LastWave, WaveName);
+                        if (RaidCrowd.LastFor == entry && Stage.Subject != null) note = RaidWords.FirstRoll(RaidCrowd.LastRoll, RolledName);
                     }
                     break;
 
@@ -761,16 +761,16 @@ namespace Scry
             return y + U(14f);
         }
 
-        private static readonly Dictionary<string, string> WaveNames = new Dictionary<string, string>();
+        private static readonly Dictionary<string, string> RolledNames = new Dictionary<string, string>();
 
-        /// <summary>A creature of a raid's wave by the name the game shows for it.</summary>
-        private static string WaveName(string prefab)
+        /// <summary>A creature a raid rolled, by the name the game shows for it.</summary>
+        private static string RolledName(string prefab)
         {
-            if (!WaveNames.TryGetValue(prefab, out var name))
+            if (!RolledNames.TryGetValue(prefab, out var name))
             {
                 var shown = Session.Explorer?.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && e.Name == prefab)?.DisplayName;
                 name = string.IsNullOrEmpty(shown) ? prefab : shown;
-                WaveNames[prefab] = name;
+                RolledNames[prefab] = name;
             }
             return name;
         }

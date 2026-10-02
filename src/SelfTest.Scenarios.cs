@@ -66,8 +66,8 @@ namespace Scry
             yield return S("after many others, the stage holds no leftovers", NoLeftovers, 40);
             yield return S("every raid tells what it brings", EveryRaid, 10);
             yield return S("boss fights are grouped apart from raids, in the order they are fought", BossFightsGrouped, 10, ResetList);
-            yield return S("a raid stands on the stage as one rolled wave, and rolls again", RaidWave, 60);
-            yield return S("every raid that brings creatures stands as a wave", EveryRaidWave, 120);
+            yield return S("a raid stands on the stage as the first roll of its creatures, and rolls again", RaidWave, 60);
+            yield return S("every raid that brings creatures stands on the stage as rolled", EveryRaidWave, 120);
             yield return S("a creature plays an attack", CreatureAttacks, 30);
             yield return S("a clip plays, pauses, seeks, loops and stops", ClipControls, 20, Previews.StopClip);
             yield return S("a sound plays and stops", SoundPlays, 10);
@@ -1042,7 +1042,7 @@ namespace Scry
             var told = Facts.For(raid);
             foreach (var row in new[] { "Comes for", "On the table", "Lasts" }) p.Check(Tells(told, row), $"it tells {row.ToLowerInvariant()}", Pairs(told));
             p.Check(told.Pairs.Any(pair => pair.Key.StartsWith("Brings ", StringComparison.Ordinal)), "it tells what it brings", Pairs(told));
-            p.Check(Stage.IsStaged(raid), "it stands on the stage as a wave of what it brings");
+            p.Check(Stage.IsStaged(raid), "it stands on the stage as the first roll of what it brings");
 
             var prefab = (raid.Source as RandomEvent)?.m_spawn?.Select(s => s?.m_prefab).FirstOrDefault(x => x != null);
             if (!p.Check(prefab != null, "it brings a creature")) yield break;
