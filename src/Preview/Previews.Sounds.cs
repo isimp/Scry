@@ -274,15 +274,18 @@ namespace Scry
         private static float _seekAgainAt;
 
         /// <summary>How long a streamed clip is given to get to a point set before it is set again.</summary>
-        private const float SeekAgainAfter = 0.25f;
+        private const float SeekAgainAfter = 0.1f;
+
+        /// <summary>How far past the point sought the sound must have played for the point to have held.</summary>
+        private const float HeldPast = 0.3f;
 
         /// <summary>Where the sound was each frame while a point sought while paused was being settled, for the self-test to tell.</summary>
         public static readonly List<string> SeekTrail = new List<string>();
 
         /// <summary>
-        /// Each frame: a point sought while paused is set again until the playing clip is there,
-        /// every quarter second, as a streamed clip (music) takes a moment to get there and setting
-        /// it again starts it over.
+        /// Each frame: a point sought while paused is watched until the sound has played on past
+        /// it, and set again, a tenth of a second apart at the most, while it is before it: a
+        /// streamed clip (music) reads back the point at once, yet can start from its beginning.
         /// </summary>
         public static void SettleSeek()
         {
@@ -295,12 +298,12 @@ namespace Scry
             }
             if (SeekTrail.Count < 60) SeekTrail.Add($"{source.time:0.00} s, sample {source.timeSamples}{(source.isPlaying ? "" : ", not playing")}");
             if (!source.isPlaying) return;
-            if (source.time + 0.1f >= _seekOnGoing.Value)
+            if (source.time >= _seekOnGoing.Value + HeldPast)
             {
                 _seekOnGoing = null;
                 return;
             }
-            if (Time.unscaledTime < _seekAgainAt) return;
+            if (source.time + 0.1f >= _seekOnGoing.Value || Time.unscaledTime < _seekAgainAt) return;
             SetPoint(source, _seekOnGoing.Value);
             _seekAgainAt = Time.unscaledTime + SeekAgainAfter;
         }
