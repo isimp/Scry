@@ -1429,10 +1429,13 @@ namespace Scry
             var brokenBefore = 0;
             if (shown != null)
             {
+                // Counted once its example's rooms stand too, as they are built after the copy.
                 Select(shown);
-                yield return Until(() => CopyOf(shown) != null, 30);
+                yield return Until(() => CopyOf(shown) != null && ExampleLayouts.Of(shown) && ExampleLayouts.Example != null
+                                         && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
                 copy = CopyOf(shown);
                 brokenBefore = Broken(copy);
+                if (brokenBefore > 0) p.Note($"before reading, {shown.Name} stands with {brokenBefore} missing: {string.Join(", ", BrokenParts(copy).Take(8))}; {OwnMissing(copy)}");
             }
 
             var asked = Time.unscaledTime;
@@ -1513,6 +1516,19 @@ namespace Scry
                 if (none > 0) parts.Add(Path(renderer.transform) + $" {none} material{(none > 1 ? "s" : "")}");
             }
             return parts;
+        }
+
+        /// <summary>How many meshes and materials the room prefabs of an example's copies on the stage lack themselves, for those with any missing.</summary>
+        private static string OwnMissing(GameObject copy)
+        {
+            var told = new List<string>();
+            foreach (var room in BrokenParts(copy).Select(part => part.Split('/')).Where(path => path.Length > 2 && path[0] == "Scry example").Select(path => path[1]).Distinct())
+            {
+                var entry = X.Catalog.FirstOrDefault(e => PlaceOf(e) is PlaceSource place && place.IsRoom && place.Prefab == room);
+                var asset = entry != null && PlaceOf(entry).Reference.IsLoaded ? PlaceOf(entry).Reference.Asset : null;
+                told.Add(asset != null ? $"{room}'s own prefab lacks {Broken(asset)}" : $"{room}'s own prefab is not loaded");
+            }
+            return told.Count > 0 ? string.Join("; ", told) : "none in the example's rooms";
         }
 
         private static int Broken(GameObject copy)
