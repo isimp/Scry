@@ -752,6 +752,7 @@ namespace Scry
 
             EnsureTexture();
             Settle();
+            _camera.renderingPath = PathOverride ?? RenderingPath.UsePlayerSettings;
             KeepGround();
             Frame();
             KeepCreaturesToCut();

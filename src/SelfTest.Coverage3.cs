@@ -291,6 +291,37 @@ namespace Scry
                 yield break;
             }
             p.Check(Stage.GroundShown == StageGround.BiomeFor(entry.Biomes), "the ground of its own biome", $"{Stage.GroundShown} for {string.Join(", ", entry.Biomes)}");
+            p.Note("its material: " + Stage.GroundMaterialTold());
+
+            // Whether it draws with each distance its shader may hide it by: the material's own, none, and far.
+            var hide = Stage.GroundHideDistance;
+            var tried = new List<string>();
+            foreach (var distance in new float?[] { null, 0f, 200f, 100000f })
+            {
+                Stage.GroundHideDistance = distance;
+                yield return null;
+                yield return null;
+                yield return null;
+                var below = PictureWithin(new Rect(0f, 0f, 1f, 0.15f), out _, out _);
+                var bare = below?.Count(c => !Apart(c, below[0])) ?? 0;
+                tried.Add($"{(distance?.ToString() ?? "the material's own")}: {(below == null ? "no picture" : below.Length - bare > below.Length / 10 ? "draws" : "nothing")}");
+            }
+            // And with the stage's camera rendering each way.
+            foreach (var path in new[] { RenderingPath.DeferredShading, RenderingPath.Forward })
+            {
+                Stage.PathOverride = path;
+                Stage.GroundHideDistance = 100000f;
+                yield return null;
+                yield return null;
+                yield return null;
+                var below = PictureWithin(new Rect(0f, 0f, 1f, 0.15f), out _, out _);
+                var bare = below?.Count(c => !Apart(c, below[0])) ?? 0;
+                tried.Add($"{path}: {(below == null ? "no picture" : below.Length - bare > below.Length / 10 ? "draws" : "nothing")}");
+            }
+            Stage.PathOverride = null;
+            Stage.GroundHideDistance = hide;
+            p.Note("hidden by distance, and by the camera's path: " + string.Join("; ", tried));
+            p.Note("after: " + Stage.GroundMaterialTold());
 
             var folder = System.IO.Path.Combine(BepInEx.Paths.BepInExRootPath, "Scry-selftest-ground");
             System.IO.Directory.CreateDirectory(folder);

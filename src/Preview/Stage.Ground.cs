@@ -24,6 +24,48 @@ namespace Scry
         /// <summary>How far under the sea the sea's floor lies, as the terrain is told of it (<c>Heightmap.UpdateCornerDepths</c>).</summary>
         private const float SeaDepth = 20f;
 
+        /// <summary>
+        /// The distance the terrain's shader is given to hide it by, as the game gives each piece
+        /// of its terrain one of its own (<c>Heightmap.ApplySettings</c>, <c>_LodHideDistance</c>):
+        /// far, so all of the stage's ground stands within it; null gives none, leaving the
+        /// material's own. Settable for the self-test to try.
+        /// </summary>
+        public static float? GroundHideDistance
+        {
+            get => _groundHide;
+            set
+            {
+                _groundHide = value;
+                _groundHideSet = false;
+            }
+        }
+
+        private static float? _groundHide = 100000f;
+        private static bool _groundHideSet;
+        private static MaterialPropertyBlock _groundBlock;
+
+        /// <summary>For the self-test: a rendering path for the stage's camera to try; null for the game's own setting.</summary>
+        public static RenderingPath? PathOverride;
+
+        /// <summary>The value the terrain's material holds for it, without the stage's, for the self-test to tell.</summary>
+        public static string GroundMaterialTold()
+        {
+            if (_terrainMaterial == null) return "no material";
+            var shader = _terrainMaterial.shader;
+            var names = new System.Collections.Generic.List<string>();
+            for (var i = 0; shader != null && i < shader.GetPropertyCount(); i++)
+            {
+                var name = shader.GetPropertyName(i);
+                var type = shader.GetPropertyType(i);
+                names.Add(type == UnityEngine.Rendering.ShaderPropertyType.Float || type == UnityEngine.Rendering.ShaderPropertyType.Range
+                    ? $"{name} {_terrainMaterial.GetFloat(name):0.###}" : $"{name} ({type})");
+            }
+            var renderer = _terrain != null ? _terrain.GetComponent<MeshRenderer>() : null;
+            var drawn = renderer == null ? "no renderer" : $"active {_terrain.activeInHierarchy}, layer {_terrain.layer}, bounds {renderer.bounds.center} size {renderer.bounds.size}, in view {InView(renderer.bounds)}, drawn by a camera {renderer.isVisible}";
+            var path = _camera != null ? $"{_camera.renderingPath} ({_camera.actualRenderingPath})" : "no camera";
+            return $"{drawn}; the stage camera renders {path}; shader {shader?.name}, passes {_terrainMaterial.passCount}, queue {_terrainMaterial.renderQueue}, keywords [{string.Join(", ", _terrainMaterial.shaderKeywords)}], properties: {string.Join(", ", names)}";
+        }
+
         /// <summary>For the self-test: a biome whose ground to lay whatever is shown; null for the shown entry's own.</summary>
         public static string GroundBiomeOverride;
 
@@ -44,6 +86,15 @@ namespace Scry
             if (!ground) return;
             var biome = GroundBiomeOverride ?? StageGround.BiomeFor(_lastShown?.Biomes);
             if (biome != _terrainBiome) PaintGround(biome);
+            if (!_groundHideSet)
+            {
+                var renderer = _terrain.GetComponent<MeshRenderer>();
+                if (_groundBlock == null) _groundBlock = new MaterialPropertyBlock();
+                _groundBlock.Clear();
+                if (_groundHide is float distance) _groundBlock.SetFloat("_LodHideDistance", distance);
+                renderer.SetPropertyBlock(_groundHide != null ? _groundBlock : null);
+                _groundHideSet = true;
+            }
         }
 
         /// <summary>Makes the piece of ground once the world's terrain has a material to borrow, trying again a second apart.</summary>
@@ -70,6 +121,7 @@ namespace Scry
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = true;
             _terrainBiome = null;
+            _groundHideSet = false;
             _terrain.SetActive(false);
             return true;
         }
@@ -170,6 +222,7 @@ namespace Scry
             _terrainMask = null;
             _terrainBiome = null;
             _terrainTriedAt = -1000;
+            _groundHideSet = false;
         }
     }
 }
