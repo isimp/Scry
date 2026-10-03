@@ -55,7 +55,7 @@ namespace Scry
         /// <summary>
         /// Where the world grows something (<c>ZoneSystem.m_vegetation</c>): its biomes, named, and
         /// every limit it has, its height above the sea in whole metres where it is held to one
-        /// (the game's -1000 and 1000 hold it to none), the sea, forests, and groups.
+        /// (the game's -1,000 and 1,000 hold it to none), the sea, forests, and groups.
         /// </summary>
         public static string Grows(string biomes, float minAltitude, float maxAltitude, bool inSea, bool inForest, int groupMin, int groupMax)
         {

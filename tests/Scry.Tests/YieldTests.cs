@@ -4,7 +4,7 @@ namespace Scry.Tests
 {
     public class YieldTests
     {
-        // A game day lasts 1200 s (EnvMan.m_dayLengthSec).
+        // A game day lasts 1,200 s (EnvMan.m_dayLengthSec).
         private const float Day = 1200f;
 
         [Fact]

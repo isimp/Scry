@@ -20,7 +20,7 @@ namespace Scry
         /// <summary>How far from the world's centre, by either of the two rules that say so; none set is no limit.</summary>
         public float MinDistance, MaxDistance, MinDistanceFromCenter, MaxDistanceFromCenter;
 
-        /// <summary>Its ground's height above the sea; the defaults, -1000 and 1000, are no limit.</summary>
+        /// <summary>Its ground's height above the sea; the defaults, -1,000 and 1,000, are no limit.</summary>
         public float MinAltitude = -1000f, MaxAltitude = 1000f;
 
         /// <summary>How far from another of its kind or group it must be, and how near one of another group.</summary>
@@ -140,7 +140,7 @@ namespace Scry
             return $"within {Numbers.Metres(rules.MaxSimilar)} of {other}";
         }
 
-        /// <summary>How much the ground may rise within its outer radius (<c>WorldGenerator.GetTerrainDelta</c>); 1000 and more is no limit.</summary>
+        /// <summary>How much the ground may rise within its outer radius (<c>WorldGenerator.GetTerrainDelta</c>); 1,000 and more is no limit.</summary>
         private static string Ground(LocationRules rules)
         {
             var within = $" within {Numbers.Metres(rules.ExteriorRadius)} of it";

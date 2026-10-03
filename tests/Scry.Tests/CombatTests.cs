@@ -66,7 +66,7 @@ namespace Scry.Tests
         [Fact]
         public void TheGamesUnlimitedAlertRangeIsNotTold()
         {
-            // 9999 is the field's default: whatever it sees, it turns on, which sight already tells.
+            // 9,999 is the field's default: whatever it sees, it turns on, which sight already tells.
             Assert.Null(CombatWords.Alerted(9999f));
         }
 

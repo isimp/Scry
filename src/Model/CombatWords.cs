@@ -89,7 +89,7 @@ namespace Scry
         /// <summary>
         /// How near it must see its target to turn on it. <c>MonsterAI</c> turns alerted on seeing
         /// its target nearer than <c>m_alertRange</c> times the target's stealth factor, which is
-        /// below one only while the target sneaks. The field's default of 9999 is no limit, which
+        /// below one only while the target sneaks. The field's default of 9,999 is no limit, which
         /// sight already tells, so it is not told.
         /// </summary>
         public static string Alerted(float alertRange)

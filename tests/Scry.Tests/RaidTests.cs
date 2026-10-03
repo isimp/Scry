@@ -118,7 +118,7 @@ namespace Scry.Tests
         [Fact]
         public void WithinAGroupTheyComeInTheOrderTheBossesAreFought()
         {
-            // By the boss's health, which grows boss by boss (500 for Eikthyr to 20000 for the
+            // By the boss's health, which grows boss by boss (500 for Eikthyr to 20,000 for the
             // Fader), so a mod's boss falls in place too; those waiting for none come first, and
             // those alike stay in name order.
             var ranks = RaidGrouping.Ranks(new Dictionary<string, float>
