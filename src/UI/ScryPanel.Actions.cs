@@ -229,7 +229,7 @@ namespace Scry
             foreach (var key in kept.ToList())
             {
                 var prefab = GamePrefabs.Item(key);
-                var shared = prefab != null ? prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared : null;
+                var shared = prefab != null ? prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
                 var name = shared != null ? CatalogBuilder.Localize(shared.m_name) : "";
                 if (name.Length == 0) name = key;
 

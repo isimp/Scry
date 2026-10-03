@@ -226,7 +226,7 @@ namespace Scry
         private void Prefab(GameObject prefab)
         {
             var drop = prefab.GetComponent<ItemDrop>();
-            var shared = drop?.m_itemData?.m_shared;
+            var shared = drop.OrNull()?.m_itemData?.m_shared;
             if (shared != null) Part("item", () => Item(prefab, shared));
 
             var character = prefab.GetComponent<Character>();
@@ -344,14 +344,14 @@ namespace Scry
 
         private static string ItemName(GameObject item)
         {
-            var shared = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared : null;
+            var shared = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
             var name = shared != null ? CatalogBuilder.Localize(shared.m_name) : "";
             return name.Length > 0 ? name : item != null ? item.name : "";
         }
 
         private static Sprite Icon(GameObject item)
         {
-            var icons = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared?.m_icons : null;
+            var icons = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_icons : null;
             return icons != null && icons.Length > 0 ? icons[0] : null;
         }
 

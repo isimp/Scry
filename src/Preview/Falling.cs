@@ -206,7 +206,7 @@ namespace Scry
                 foreach (var point in log.m_subLogPoints)
                 {
                     if (point == null) continue;
-                    var at = Looks.Twin(prefab.transform, t, point) ?? t;
+                    var at = Looks.Twin(prefab.transform, t, point).OrNull() ?? t;
                     var half = Ghost.Make(log.m_subLogPrefab, parent, at.position, log.m_useSubLogPointRotation ? at.rotation : t.rotation, layer, falling: true);
                     if (half == null) continue;
                     half.transform.localScale = size;
@@ -377,7 +377,7 @@ namespace Scry
             if (prefab.GetComponentInChildren<LevelEffects>(true) != null) Looks.ApplyLevel(prefab, fallen, level);
             else if (ragdoll.m_mainModel != null)
             {
-                var main = Looks.Twin(prefab.transform, fallen.transform, ragdoll.m_mainModel.transform)?.GetComponent<Renderer>();
+                var main = Looks.Twin(prefab.transform, fallen.transform, ragdoll.m_mainModel.transform).OrNull()?.GetComponent<Renderer>();
                 if (main != null) Looks.Tint(creature, main, level);
             }
 
@@ -411,7 +411,7 @@ namespace Scry
         {
             var roots = new List<Transform>();
             var piece = prefab.GetComponent<WearNTear>();
-            if (piece?.m_fragmentRoots != null)
+            if (piece.OrNull()?.m_fragmentRoots != null)
             {
                 foreach (var root in piece.m_fragmentRoots)
                 {
@@ -432,7 +432,7 @@ namespace Scry
                 foreach (var renderer in root.GetComponentsInChildren<MeshRenderer>())
                 {
                     if (!renderer.enabled || skipped.Contains(renderer)) continue;
-                    var mesh = renderer.GetComponent<MeshFilter>()?.sharedMesh;
+                    var mesh = renderer.GetComponent<MeshFilter>().OrNull()?.sharedMesh;
                     if (mesh == null) continue;
                     bodies.Add(Fragment(renderer, mesh, holder.transform, layer >= 0 ? layer : physicsLayer, layer >= 0 ? layer : renderer.gameObject.layer));
                 }

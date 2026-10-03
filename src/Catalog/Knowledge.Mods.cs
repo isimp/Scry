@@ -344,7 +344,7 @@ namespace Scry
 
             foreach (var sfx in prefab.GetComponentsInChildren<ZSFX>(true)) if (sfx.m_audioClips != null) foreach (var clip in sfx.m_audioClips) Add(clip);
             foreach (var source in prefab.GetComponentsInChildren<AudioSource>(true)) Add(source.clip);
-            var icons = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared?.m_icons;
+            var icons = prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_icons;
             if (icons != null) foreach (var icon in icons) Add(icon);
             var piece = prefab.GetComponent<Piece>();
             if (piece != null) Add(piece.m_icon);

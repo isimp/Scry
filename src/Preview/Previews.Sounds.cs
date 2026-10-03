@@ -17,7 +17,7 @@ namespace Scry
             StopSound();
             if (!(entry?.Source is GameObject prefab)) return;
 
-            var ears = GameCamera.instance != null ? GameCamera.instance.transform : Player.m_localPlayer?.transform;
+            var ears = GameCamera.instance != null ? GameCamera.instance.transform : Player.m_localPlayer.OrNull()?.transform;
             if (ears == null) return;
             TheSound.Play(entry, prefab, only, ears);
         }

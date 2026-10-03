@@ -165,7 +165,7 @@ namespace Scry
 
             if (effects.m_mainRender != null)
             {
-                var renderer = Twin(prefab.transform, copy.transform, effects.m_mainRender.transform)?.GetComponent<Renderer>();
+                var renderer = Twin(prefab.transform, copy.transform, effects.m_mainRender.transform).OrNull()?.GetComponent<Renderer>();
                 if (renderer != null) renderer.sharedMaterials = Tinted(prefab.name, level, effects.m_mainRender.sharedMaterials, setup);
             }
 

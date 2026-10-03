@@ -47,8 +47,8 @@ namespace Scry
             var list = Previews.ListOfClip(_prefab, _copy, clip.name, out var lasting);
             if (list == null) return;
             var character = _prefab.GetComponent<Character>();
-            if (list == character?.m_jumpEffects && System.Array.Exists(clip.events, e => e.functionName == "Jump")) return;
-            if (list == character?.m_deathEffects && System.Array.Exists(clip.events, e => e.functionName == "Die")) return;
+            if (list == character.OrNull()?.m_jumpEffects && System.Array.Exists(clip.events, e => e.functionName == "Jump")) return;
+            if (list == character.OrNull()?.m_deathEffects && System.Array.Exists(clip.events, e => e.functionName == "Die")) return;
 
             if (!EffectSlots.PlaysAny(list))
             {
@@ -87,7 +87,7 @@ namespace Scry
             var list = Previews.ByNameOfClip(_prefab, _copy, clip.name, out var lasting);
             if (list == null) return;
             var character = _prefab.GetComponent<Character>();
-            if (list == character?.m_jumpEffects && System.Array.Exists(clip.events, e => e.functionName == "Jump")) return;
+            if (list == character.OrNull()?.m_jumpEffects && System.Array.Exists(clip.events, e => e.functionName == "Jump")) return;
             Listen.Note(Listening, "found by its name, not by the animator");
             if (lasting) PlayLasting(character, list);
             else Report(Previews.PlayOnCopy(_copy, list, null));
@@ -112,7 +112,7 @@ namespace Scry
                 _lastingPoint = new GameObject("Scry lasting point").transform;
                 _lastingPoint.SetParent(_copy.transform, false);
             }
-            var depth = list == character?.m_waterEffects ? character.m_swimDepth + 0.05f : 0f;
+            var depth = list == character.OrNull()?.m_waterEffects ? character.m_swimDepth + 0.05f : 0f;
             _lastingPoint.localPosition = Vector3.up * depth;
             return _lastingPoint;
         }
@@ -145,8 +145,8 @@ namespace Scry
                     case "Attach":
                         Add(e.objectReferenceParameter as GameObject);
                         break;
-                    case "Jump": AddList(character?.m_jumpEffects); break;
-                    case "Die": AddList(character?.m_deathEffects); break;
+                    case "Jump": AddList(character.OrNull()?.m_jumpEffects); break;
+                    case "Die": AddList(character.OrNull()?.m_deathEffects); break;
                     case "FootStep":
                         var stepped = step != null ? Step(step, global::FootStep.MotionType.Jog | global::FootStep.MotionType.Walk, Previews.StepGround) : null;
                         if (stepped != null) foreach (var p in stepped.m_effectPrefabs) Add(p);

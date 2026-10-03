@@ -236,9 +236,9 @@ namespace Scry
         private static string AnyName(GameObject prefab, string fallback)
         {
             if (prefab == null) return fallback;
-            var token = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared?.m_name
-                        ?? prefab.GetComponent<Piece>()?.m_name
-                        ?? prefab.GetComponent<Character>()?.m_name;
+            var token = prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_name
+                        ?? prefab.GetComponent<Piece>().OrNull()?.m_name
+                        ?? prefab.GetComponent<Character>().OrNull()?.m_name;
             var shown = CatalogBuilder.Localize(token);
             return shown.Length > 0 ? shown : prefab.name;
         }
@@ -246,7 +246,7 @@ namespace Scry
         private static Sprite AnyIcon(GameObject prefab)
         {
             if (prefab == null) return null;
-            var icons = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared?.m_icons;
+            var icons = prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_icons;
             if (icons != null && icons.Length > 0) return icons[0];
             var piece = prefab.GetComponent<Piece>();
             return piece != null ? piece.m_icon : null;

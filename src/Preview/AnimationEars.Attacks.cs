@@ -99,7 +99,7 @@ namespace Scry
         /// <summary>The strike of the attack whose clip is playing, when the clip says it strikes.</summary>
         private void AttackTrigger()
         {
-            var clip = _copy.GetComponent<ClipPlayer>()?.Clip;
+            var clip = _copy.GetComponent<ClipPlayer>().OrNull()?.Clip;
             if (clip == null || _clipAttack == null) return;
             ClipStrike();
         }

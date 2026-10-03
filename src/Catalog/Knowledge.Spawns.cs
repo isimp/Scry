@@ -204,7 +204,7 @@ namespace Scry
 
             // Each biome's own weathers, to tell a creature's home from where a world event's weather brings it.
             var weathers = new Dictionary<string, ICollection<string>>(StringComparer.Ordinal);
-            if (EnvMan.instance?.m_biomes != null)
+            if (EnvMan.instance.OrNull()?.m_biomes != null)
             {
                 foreach (var setup in EnvMan.instance.m_biomes)
                 {
@@ -244,7 +244,7 @@ namespace Scry
 
         private static void Raids()
         {
-            var events = RandEventSystem.instance?.m_events;
+            var events = RandEventSystem.instance.OrNull()?.m_events;
             if (events == null) return;
 
             Each(events, "raids", r => r.m_name, raid =>
@@ -325,7 +325,7 @@ namespace Scry
 
         private static void Vegetation()
         {
-            var vegetation = ZoneSystem.instance?.m_vegetation;
+            var vegetation = ZoneSystem.instance.OrNull()?.m_vegetation;
             if (vegetation == null) return;
 
             Each(vegetation, "vegetation", v => v.m_name, veg =>
@@ -541,7 +541,7 @@ namespace Scry
             {
                 if (component == null) continue;
                 Note(component);
-                var shared = (component as ItemDrop)?.m_itemData?.m_shared;
+                var shared = (component as ItemDrop).OrNull()?.m_itemData?.m_shared;
                 if (shared == null) continue;
                 Note(shared);
                 if (shared.m_attack != null) Note(shared.m_attack);
@@ -556,7 +556,7 @@ namespace Scry
 
         private static string ItemName(GameObject item)
         {
-            var shared = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared : null;
+            var shared = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
             var name = shared != null ? CatalogBuilder.Localize(shared.m_name) : "";
             return name.Length > 0 ? name : item != null ? item.name : "";
         }
@@ -642,7 +642,7 @@ namespace Scry
         /// <summary>A creature's name as the game shows it, alone, else the prefab's.</summary>
         private static string ShownName(GameObject prefab)
         {
-            var shown = CatalogBuilder.Localize(prefab.GetComponent<Character>()?.m_name);
+            var shown = CatalogBuilder.Localize(prefab.GetComponent<Character>().OrNull()?.m_name);
             return shown.Length > 0 ? shown : prefab.name;
         }
 

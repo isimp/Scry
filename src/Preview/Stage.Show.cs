@@ -131,7 +131,7 @@ namespace Scry
             var started = Timing.Start();
             _madeAt = Time.unscaledTime;
             _followEffect = entry.Kind == Kind.Effect;
-            var character = (entry.Source as GameObject)?.GetComponent<Character>();
+            var character = (entry.Source as GameObject).OrNull()?.GetComponent<Character>();
             _onFeet = character != null && !character.m_flying;
             // The first pose, before the animation has run, can stand far from where the model
             // stands after (lying, raised, off to a side), so the size is taken again once it

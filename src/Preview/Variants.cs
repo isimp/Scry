@@ -288,7 +288,7 @@ namespace Scry
             if (portal.m_model != null)
             {
                 // The runes' colour is set on a material of the model's own, which goes with the copy.
-                var model = Looks.Twin(prefab.transform, copy.transform, portal.m_model.transform)?.GetComponent<Renderer>();
+                var model = Looks.Twin(prefab.transform, copy.transform, portal.m_model.transform).OrNull()?.GetComponent<Renderer>();
                 var material = model != null ? Owned.MaterialOf(model, copy) : null;
                 if (material != null) material.SetColor("_EmissionColor", look == 0 ? portal.m_colorUnconnected : portal.m_colorTargetfound);
             }
@@ -350,7 +350,7 @@ namespace Scry
             if (smelter.m_animators == null) return;
             foreach (var animator in smelter.m_animators)
             {
-                var twin = animator != null ? Looks.Twin(prefab.transform, copy.transform, animator.transform)?.GetComponent<Animator>() : null;
+                var twin = animator != null ? Looks.Twin(prefab.transform, copy.transform, animator.transform).OrNull()?.GetComponent<Animator>() : null;
                 if (twin == null) continue;
                 twin.SetBool("active", working);
                 twin.SetFloat("activef", working ? 1f : 0f);

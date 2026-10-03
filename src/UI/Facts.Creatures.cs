@@ -54,7 +54,7 @@ namespace Scry
             {
                 Add("Tameable", "yes");
                 var ai = prefab.GetComponent<MonsterAI>();
-                var food = ai?.m_consumeItems?.Where(i => i != null).ToList();
+                var food = ai.OrNull()?.m_consumeItems?.Where(i => i != null).ToList();
                 if (food != null && food.Count > 0)
                 {
                     var eats = new Row { Title = "Eats" };
@@ -120,7 +120,7 @@ namespace Scry
         {
             foreach (var item in Relations.CarriedItems(prefab))
             {
-                var shared = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
                 var attack = shared?.m_attack;
                 if (attack == null) continue;
                 var name = ItemName(item);

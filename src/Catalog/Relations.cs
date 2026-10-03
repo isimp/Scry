@@ -100,7 +100,7 @@ namespace Scry
             Following.Clear();
             if (ObjectDB.instance != null)
             {
-                foreach (var recipe in ObjectDB.instance.m_recipes) if (recipe?.m_item != null) Made.Add(recipe.m_item.gameObject.name);
+                foreach (var recipe in ObjectDB.instance.m_recipes) if (recipe.OrNull()?.m_item != null) Made.Add(recipe.m_item.gameObject.name);
             }
         }
 
@@ -125,13 +125,13 @@ namespace Scry
             {
                 var aoe = prefab.GetComponent<Aoe>();
                 if (aoe != null) Damage(prefab, aoe.m_damage, _book, StatusEffects);
-                var damages = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                var damages = prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
                 // An item tells what its damage causes in its own facts; the effect names the item.
                 if (damages != null) Damage(prefab, damages.m_damages, _book, null);
             });
             Part("links of sets and ammo", () =>
             {
-                var shared = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                var shared = prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
                 if (shared == null) return;
                 Sets.Add((prefab.name, shared.m_setName, CatalogBuilder.Localize(shared.m_name), Made.Contains(prefab.name)));
                 var type = shared.m_itemType;
@@ -241,7 +241,7 @@ namespace Scry
         private static void Steps(GameObject prefab, LinkBook book)
         {
             var step = prefab.GetComponentInChildren<FootStep>(true);
-            if (step?.m_effects == null) return;
+            if (step.OrNull()?.m_effects == null) return;
             foreach (var effect in step.m_effects)
             {
                 if (effect?.m_effectPrefabs == null) continue;
@@ -291,7 +291,7 @@ namespace Scry
                 // What its attacks fire or spawn is the creature's too. A creature's own attack
                 // items (a troll's throw) are in the game's item list but not the scene's, so they
                 // are not in the catalog, and a link through them would be lost.
-                var shared = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
                 if (shared == null) continue;
                 var part = CatalogBuilder.AttackName(item);
                 if (shared.m_attack != null) Named(shared.m_attack, prefab.name, prefab, book, 1, part: part);
@@ -312,7 +312,7 @@ namespace Scry
                 if (Skipped(component)) continue;
                 Named(component, prefab.name, prefab, book, 0);
 
-                var shared = (component as ItemDrop)?.m_itemData?.m_shared;
+                var shared = (component as ItemDrop).OrNull()?.m_itemData?.m_shared;
                 if (shared == null) continue;
                 Named(shared, prefab.name, prefab, book, 1);
                 if (shared.m_attack != null) Named(shared.m_attack, prefab.name, prefab, book, 1);

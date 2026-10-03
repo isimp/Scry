@@ -67,7 +67,7 @@ namespace Scry
         {
             if (ZNetScene.instance == null || ObjectDB.instance == null || Player.m_localPlayer == null)
             {
-                Chat.instance?.AddString("Scry opens once you are in a world.");
+                Chat.instance.OrNull()?.AddString("Scry opens once you are in a world.");
                 return;
             }
 
@@ -94,7 +94,7 @@ namespace Scry
             if (Previews.AnythingInWorld && !_toldPreviewsStay)
             {
                 _toldPreviewsStay = true;
-                MessageHud.instance?.ShowMessage(MessageHud.MessageType.TopLeft,
+                MessageHud.instance.OrNull()?.ShowMessage(MessageHud.MessageType.TopLeft,
                     "Scry's previews stay in the world until you clear them in the panel or with /scry clear.");
             }
         }
@@ -267,7 +267,7 @@ namespace Scry
             Faults.Tell("reading the game's prefabs", why);
             if (!IsOpen) return;
             Hide();
-            Chat.instance?.AddString("Scry could not read the game's prefabs; the log has the details.");
+            Chat.instance.OrNull()?.AddString("Scry could not read the game's prefabs; the log has the details.");
         }
 
         /// <summary>

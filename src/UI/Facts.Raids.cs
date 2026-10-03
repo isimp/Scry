@@ -15,7 +15,7 @@ namespace Scry
         private static string Weather(string name)
         {
             if (string.IsNullOrEmpty(name)) return null;
-            var env = EnvMan.instance?.m_environments?.Find(e => e != null && e.m_name == name);
+            var env = EnvMan.instance.OrNull()?.m_environments?.Find(e => e != null && e.m_name == name);
             if (env == null) return Naming.FieldLabel(name);
             return WeatherWords.Line(Naming.FieldLabel(name), new WeatherFacts
             {

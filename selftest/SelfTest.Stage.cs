@@ -163,7 +163,7 @@ namespace Scry
             X.Modifiers.AnimationSpeed = 0.5f;
             yield return null;
             yield return null;
-            var animator = CopyOf(creature)?.GetComponentInChildren<Animator>();
+            var animator = CopyOf(creature).OrNull()?.GetComponentInChildren<Animator>();
             p.Check(animator != null && Mathf.Abs(animator.speed - 0.5f) < 0.01f, "half the speed slows its animator to half", animator != null ? $"{Numbers.Amount(animator.speed)}" : "no animator");
             X.Modifiers.AnimationSpeed = 1f;
 

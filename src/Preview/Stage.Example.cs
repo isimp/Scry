@@ -115,7 +115,7 @@ namespace Scry
                     // A room's spawn points go by the rules of the location it is built in.
                     TheExample.BuildSpawns = new List<SpawnHere>();
                     TheExample.BuildPaints = TheExample.IsDungeon ? null : new List<GroundPaintAt>();
-                    var rules = _lastShown?.Source is PlaceSource shown ? PlaceAssets.Asset(shown)?.GetComponent<Location>() : null;
+                    var rules = _lastShown?.Source is PlaceSource shown ? PlaceAssets.Asset(shown).OrNull()?.GetComponent<Location>() : null;
                     TheExample.Build = PlaceCopy.Begin(prefab, TheExample.Holder.transform, at, turn, _layer, keepColliders: TheExample.IsDungeon, local: true,
                         spawns: TheExample.BuildSpawns, rules: rules, paints: TheExample.BuildPaints);
                 }

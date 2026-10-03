@@ -132,7 +132,7 @@ namespace Scry
         private static string ItemName(string prefabName)
         {
             if (string.IsNullOrEmpty(prefabName)) return "Nothing";
-            var shared = GamePrefabs.Item(prefabName)?.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+            var shared = GamePrefabs.Item(prefabName).OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
             var shown = shared != null ? CatalogBuilder.Localize(shared.m_name) : "";
             return shown.Length > 0 ? shown : prefabName;
         }

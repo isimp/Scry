@@ -284,7 +284,7 @@ namespace Scry
             var renderer = _terrain != null ? _terrain.GetComponent<MeshRenderer>() : null;
             var drawn = renderer == null ? "no renderer" : $"active {_terrain.activeInHierarchy}, layer {Numbers.Count(_terrain.layer)}, bounds {Figures.Point(renderer.bounds.center)} size {Figures.Point(renderer.bounds.size)}, in view {inView(renderer.bounds)}, drawn by a camera {renderer.isVisible}";
             var path = camera != null ? $"{camera.renderingPath} ({camera.actualRenderingPath})" : "no camera";
-            return $"{drawn}; the stage camera renders {path}; shader {shader?.name}, passes {Numbers.Count(_material.passCount)}, queue {Numbers.Count(_material.renderQueue)}, keywords [{string.Join(", ", _material.shaderKeywords)}], properties: {string.Join(", ", names)}";
+            return $"{drawn}; the stage camera renders {path}; shader {shader.OrNull()?.name}, passes {Numbers.Count(_material.passCount)}, queue {Numbers.Count(_material.renderQueue)}, keywords [{string.Join(", ", _material.shaderKeywords)}], properties: {string.Join(", ", names)}";
         }
 
         /// <summary>A flat round piece a metre across, in rings, facing up, its texture's corners at its square's.</summary>
@@ -649,7 +649,7 @@ namespace Scry
                     break;
                 }
             }
-            var mesh = surface != null ? surface.GetComponent<MeshFilter>()?.sharedMesh : null;
+            var mesh = surface != null ? surface.GetComponent<MeshFilter>().OrNull()?.sharedMesh : null;
             if (mesh == null || root == null) return false;
             _waterMaterial = new Material(surface.sharedMaterial) { name = "Scry stage water" };
             _water = new GameObject("Scry stage water") { layer = layer };

@@ -109,7 +109,7 @@ namespace Scry
             flight.Velocity = direction * ProjectileSpeed;
             flight.Gravity = projectile != null ? projectile.m_gravity : 0f;
             flight.Lifetime = projectile != null && projectile.m_ttl > 0f ? Mathf.Min(projectile.m_ttl, 12f) : 4f;
-            flight.Burst = projectile?.m_hitEffects;
+            flight.Burst = projectile.OrNull()?.m_hitEffects;
             Remember(copy, flight.Lifetime + 1f);
         }
 
@@ -234,7 +234,7 @@ namespace Scry
             }
 
             // An item's own lists swing its attack, on the person trying it on.
-            var own = prefab.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+            var own = prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
             if (own != null)
             {
                 foreach (var attack in new[] { own.m_attack, own.m_secondaryAttack })
@@ -260,7 +260,7 @@ namespace Scry
             foreach (var item in Relations.CarriedItems(prefab))
             {
                 if (_carriedOnly != null && !_carriedOnly.Contains(item)) continue;
-                var carried = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                var carried = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
                 if (carried == null) continue;
                 var shown = CatalogBuilder.GameName(item);
                 foreach (var field in CatalogBuilder.EffectFields(typeof(ItemDrop.ItemData.SharedData)))
@@ -284,7 +284,7 @@ namespace Scry
                 Guard.Each("effects shown", prefab.name, () =>
                 {
                         Collect(component, component.GetType().Name, false);
-                        var shared = (component as ItemDrop)?.m_itemData?.m_shared;
+                        var shared = (component as ItemDrop).OrNull()?.m_itemData?.m_shared;
                         if (shared == null) return;
                         Collect(shared, "Item", false);
                         if (shared.m_attack != null) Collect(shared.m_attack, "Attack", true);
@@ -480,7 +480,7 @@ namespace Scry
         {
             foreach (var item in Relations.CarriedItems(prefab))
             {
-                var shared = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
                 if (shared != null && shared.m_blockEffect == list) return true;
             }
             return false;
@@ -581,7 +581,7 @@ namespace Scry
         public static global::Ragdoll RagdollOf(Entry entry)
         {
             if (entry == null || entry.Kind != Kind.Creature || !(entry.Source is GameObject prefab)) return null;
-            return Falling.RagdollIn(prefab.GetComponent<Character>()?.m_deathEffects);
+            return Falling.RagdollIn(prefab.GetComponent<Character>().OrNull()?.m_deathEffects);
         }
 
         /// <summary>Whether an entry is something the game leaves to physics, a log or an item, which can be let fall.</summary>

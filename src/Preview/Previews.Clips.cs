@@ -104,7 +104,7 @@ namespace Scry
         /// <summary>What each clip of the stage copy is, in a few words, by clip name: the attack it plays or what the creature does in it.</summary>
         public static IReadOnlyDictionary<string, string> ClipTags()
         {
-            var ears = ClipPlayer.AnimatorOf(Stage.Subject)?.GetComponent<AnimationEars>();
+            var ears = ClipPlayer.AnimatorOf(Stage.Subject).OrNull()?.GetComponent<AnimationEars>();
             var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject, wait: false) : null;
             return plays != null ? plays.Tags : NoTags;
         }
@@ -220,7 +220,7 @@ namespace Scry
             lasting = false;
             var plays = string.IsNullOrEmpty(clip) ? null : PlaysOf(prefab, copy);
             if (plays == null || !plays.ByName.TryGetValue(clip, out var found)) return null;
-            lasting = found == prefab.GetComponent<Character>()?.m_waterEffects;
+            lasting = found == prefab.GetComponent<Character>().OrNull()?.m_waterEffects;
             return (EffectList)found;
         }
 
@@ -230,7 +230,7 @@ namespace Scry
         /// </summary>
         private static AnimationClip AttackClipOf(Attack attack)
         {
-            var ears = ClipPlayer.AnimatorOf(Stage.Subject)?.GetComponent<AnimationEars>();
+            var ears = ClipPlayer.AnimatorOf(Stage.Subject).OrNull()?.GetComponent<AnimationEars>();
             var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject) : null;
             if (plays == null) return null;
             foreach (var part in plays.Attacks)
@@ -307,7 +307,7 @@ namespace Scry
             var names = new Dictionary<Attack, string>();
             foreach (var item in items)
             {
-                var shared = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
                 if (shared == null) continue;
                 foreach (var attack in new[] { shared.m_attack, shared.m_secondaryAttack })
                 {
@@ -346,7 +346,7 @@ namespace Scry
             }
 
             // Staggered, it was hit, again and again (Character.AddStaggerDamage).
-            var hit = prefab.GetComponent<Character>()?.m_hitEffects;
+            var hit = prefab.GetComponent<Character>().OrNull()?.m_hitEffects;
             if (hit != null && EffectSlots.ShowsAny(hit)) around.Add(("stagger", hit));
             var idleSound = ai != null && EffectSlots.ShowsAny(ai.m_idleSound) ? ai.m_idleSound : null;
             plays.Around = ClipAround.Match(around, seen.Actions, seen.Idle, idleSound, plays.Attacks.Keys);
@@ -397,21 +397,21 @@ namespace Scry
             var character = prefab.GetComponent<Character>();
             var ai = prefab.GetComponent<BaseAI>();
             var monster = ai as MonsterAI;
-            if (character?.m_jumpEffects != null) yield return ("jump", character.m_jumpEffects);
+            if (character.OrNull()?.m_jumpEffects != null) yield return ("jump", character.m_jumpEffects);
             if (character is Humanoid humanoid && humanoid.m_consumeItemEffects != null) yield return ("consume", humanoid.m_consumeItemEffects);
-            if (monster?.m_sleepEffects != null) yield return ("sleep", monster.m_sleepEffects);
-            if (monster?.m_wakeupEffects != null) yield return ("wake", monster.m_wakeupEffects);
-            if (ai?.m_alertedEffects != null) yield return ("alert", ai.m_alertedEffects);
+            if (monster.OrNull()?.m_sleepEffects != null) yield return ("sleep", monster.m_sleepEffects);
+            if (monster.OrNull()?.m_wakeupEffects != null) yield return ("wake", monster.m_wakeupEffects);
+            if (ai.OrNull()?.m_alertedEffects != null) yield return ("alert", ai.m_alertedEffects);
 
             // In water or flying, the game keeps these going for as long (Character.UpdateContinousEffects);
             // dying, it plays its death (Character.OnDeath).
-            if (character?.m_waterEffects != null)
+            if (character.OrNull()?.m_waterEffects != null)
             {
                 yield return ("water", character.m_waterEffects);
                 yield return ("swim", character.m_waterEffects);
             }
-            if (character?.m_flyingContinuousEffect != null) yield return ("fly", character.m_flyingContinuousEffect);
-            if (character?.m_deathEffects != null) yield return ("dead", character.m_deathEffects);
+            if (character.OrNull()?.m_flyingContinuousEffect != null) yield return ("fly", character.m_flyingContinuousEffect);
+            if (character.OrNull()?.m_deathEffects != null) yield return ("dead", character.m_deathEffects);
         }
 
         /// <summary>The trigger an attack starts by on this animator, as <c>Attack.Start</c> pulls it, or null when it has none.</summary>

@@ -169,7 +169,7 @@ namespace Scry
             }
             foreach (var pick in copy.GetComponentsInChildren<RandomObject>(true))
             {
-                if (pick?.m_objects == null || !pick.enabled || !ActiveUnder(pick.transform, root)) continue;
+                if (pick.OrNull()?.m_objects == null || !pick.enabled || !ActiveUnder(pick.transform, root)) continue;
                 // An entry without an object weighs in too, and picking it leaves the whole pick out.
                 var at = PlaceParts.Pick(pick.m_objects.Select(e => e?.m_weight ?? 0f).ToList(), Dice.NextDouble());
                 var chosen = at >= 0 ? pick.m_objects[at]?.m_object : null;

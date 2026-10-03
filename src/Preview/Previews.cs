@@ -401,7 +401,7 @@ namespace Scry
             var shown = new List<string>(2);
             foreach (var copy in new[] { Stage.Subject, _world })
             {
-                var ears = ClipPlayer.AnimatorOf(copy)?.GetComponent<AnimationEars>();
+                var ears = ClipPlayer.AnimatorOf(copy).OrNull()?.GetComponent<AnimationEars>();
                 if (ears != null && ears.Prefab != null) shown.Add(ears.Prefab.name);
             }
             TriggerProbe.CancelAllBut(shown);

@@ -114,7 +114,7 @@ namespace Scry
             foreach (var entry in entries)
             {
                 if (entry.Kind != Kind.Raid || !(entry.Source is RandomEvent raid)) continue;
-                var boss = Knowledge.BossOfEvent(raid.m_name)?.GetComponent<Character>();
+                var boss = Knowledge.BossOfEvent(raid.m_name).OrNull()?.GetComponent<Character>();
                 strengths[entry.Name] = boss != null ? boss.m_health : RaidGrouping.Strength(raid.m_requiredGlobalKeys, Knowledge.BossHealthOf);
             }
             return RaidGrouping.Ranks(strengths);
@@ -243,7 +243,7 @@ namespace Scry
             var tools = new List<(string Prefab, string Name, bool Main, PieceTable Table)>();
             foreach (var item in items)
             {
-                var shared = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared : null;
+                var shared = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
                 var table = shared?.m_buildPieces;
                 if (table == null || table.m_pieces == null) continue;
                 var main = item.name == "Hammer";

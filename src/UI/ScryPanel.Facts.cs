@@ -327,8 +327,8 @@ namespace Scry
                 }
                 y += rowH + U(8f);
 
-                var drop = (entry.Source as GameObject)?.GetComponent<ItemDrop>();
-                var maxQuality = Mathf.Min(SpawnCommand.MaxItemQuality, drop?.m_itemData?.m_shared?.m_maxQuality ?? 1);
+                var drop = (entry.Source as GameObject).OrNull()?.GetComponent<ItemDrop>();
+                var maxQuality = Mathf.Min(SpawnCommand.MaxItemQuality, drop.OrNull()?.m_itemData?.m_shared?.m_maxQuality ?? 1);
                 if (maxQuality > 1)
                 {
                     var names = Enumerable.Range(1, maxQuality).Select(q => Numbers.Count(q)).ToList();

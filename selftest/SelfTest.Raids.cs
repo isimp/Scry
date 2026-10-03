@@ -33,7 +33,7 @@ namespace Scry
             var firstFight = listed.FindIndex(e => e.Group == "Boss fights");
             p.Check(firstFight >= 0 && listed.Take(firstFight).All(e => e.Group == "Raids"), "the tab lists the raids first, then the boss fights", string.Join(", ", listed.Select(e => e.Group).Distinct()));
             var inOrder = listed.Where(e => e.Group == "Boss fights").ToList();
-            var health = inOrder.Select(e => BossOf(e).GetComponent<Character>()?.m_health ?? 0f).ToList();
+            var health = inOrder.Select(e => BossOf(e).GetComponent<Character>().OrNull()?.m_health ?? 0f).ToList();
             p.Check(health.Zip(health.Skip(1), (a, b) => a <= b).All(rising => rising), "the boss fights in the order the bosses are fought", string.Join(", ", inOrder.Select(e => e.DisplayName)));
 
             var fight = fights[0];

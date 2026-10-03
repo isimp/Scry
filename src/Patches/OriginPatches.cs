@@ -126,7 +126,7 @@ namespace Scry
         private static HashSet<string> RaidNames()
         {
             var names = new HashSet<string>();
-            var events = RandEventSystem.instance?.m_events;
+            var events = RandEventSystem.instance.OrNull()?.m_events;
             if (events != null) foreach (var raid in events) if (raid != null) names.Add(raid.m_name);
             return names;
         }

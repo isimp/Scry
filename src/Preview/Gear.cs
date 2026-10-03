@@ -212,12 +212,12 @@ namespace Scry
 
             var humanoid = prefab.GetComponent<Humanoid>();
             var extras = new List<Loadout.Extra>();
-            if (humanoid?.m_randomItems != null)
+            if (humanoid.OrNull()?.m_randomItems != null)
             {
                 foreach (var random in humanoid.m_randomItems)
                 {
                     var item = random?.m_prefab;
-                    var shared = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared : null;
+                    var shared = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
                     if (shared != null && Shows(item)) extras.Add(new Loadout.Extra(item.name, (int)shared.m_itemType));
                 }
             }
@@ -246,7 +246,7 @@ namespace Scry
         private static List<string> HoldChoices(IEnumerable<GameObject> items, string creature)
         {
             var weapons = (items ?? Array.Empty<GameObject>())
-                .Where(i => i != null && i.GetComponent<ItemDrop>()?.m_itemData?.IsWeapon() == true)
+                .Where(i => i != null && i.GetComponent<ItemDrop>().OrNull()?.m_itemData?.IsWeapon() == true)
                 .Distinct()
                 .Select(i => (i.name, Drawn(i) ?? CatalogBuilder.GameName(i) ?? WeaponChoices.Readable(i.name, creature), AttachPart(i, out _) != null));
             return WeaponChoices.Holdable(weapons);
@@ -302,7 +302,7 @@ namespace Scry
 
         private static bool Shows(GameObject item)
         {
-            var shared = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+            var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
             return AttachPart(item, out _) != null || shared?.m_armorMaterial != null;
         }
 
@@ -331,7 +331,7 @@ namespace Scry
         /// <summary>Where the game equips an item, by its type.</summary>
         public static Slot SlotOf(GameObject item)
         {
-            var shared = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared : null;
+            var shared = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
             if (shared == null) return Slot.None;
             switch (shared.m_itemType)
             {
@@ -369,14 +369,14 @@ namespace Scry
             var right = vis.m_rightHand != null ? Looks.Twin(root, copy.transform, vis.m_rightHand) : null;
             var left = vis.m_leftHand != null ? Looks.Twin(root, copy.transform, vis.m_leftHand) : null;
             var head = vis.m_helmet != null ? Looks.Twin(root, copy.transform, vis.m_helmet) : null;
-            var body = vis.m_bodyModel != null ? Looks.Twin(root, copy.transform, vis.m_bodyModel.transform)?.GetComponent<SkinnedMeshRenderer>() : null;
+            var body = vis.m_bodyModel != null ? Looks.Twin(root, copy.transform, vis.m_bodyModel.transform).OrNull()?.GetComponent<SkinnedMeshRenderer>() : null;
 
             var usedRight = false;
             var usedLeft = false;
             foreach (var item in items)
             {
                 var drop = item != null ? item.GetComponent<ItemDrop>() : null;
-                var shared = drop?.m_itemData?.m_shared;
+                var shared = drop.OrNull()?.m_itemData?.m_shared;
                 if (shared == null) continue;
 
                 if (body != null && shared.m_armorMaterial != null) Paint(body, shared, copy);
@@ -443,14 +443,14 @@ namespace Scry
             ItemDrop.ItemData.SharedData left = null, right = null;
             foreach (var item in items)
             {
-                var shared = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared : null;
+                var shared = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
                 if (shared == null) continue;
                 var type = shared.m_itemType;
                 if (type == ItemDrop.ItemData.ItemType.Shield || type == ItemDrop.ItemData.ItemType.Bow || type == ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft) left = shared;
                 else if (SlotOf(item) == Slot.RightHand || SlotOf(item) == Slot.BothHands) right = shared;
             }
 
-            var unarmed = prefab.GetComponent<Humanoid>()?.m_unarmedWeapon?.m_itemData?.m_shared;
+            var unarmed = prefab.GetComponent<Humanoid>().OrNull()?.m_unarmedWeapon.OrNull()?.m_itemData?.m_shared;
             var state = left != null ? (left.m_itemType == ItemDrop.ItemData.ItemType.Torch ? ItemDrop.ItemData.AnimationState.LeftTorch : left.m_animationState)
                 : right != null ? right.m_animationState
                 : unarmed != null ? unarmed.m_animationState
@@ -503,7 +503,7 @@ namespace Scry
             var vis = prefab.GetComponentInChildren<VisEquipment>(true);
             if (vis == null || vis.m_bodyModel == null || vis.m_models == null || vis.m_models.Length == 0) return;
 
-            var body = Looks.Twin(prefab.transform, copy.transform, vis.m_bodyModel.transform)?.GetComponent<SkinnedMeshRenderer>();
+            var body = Looks.Twin(prefab.transform, copy.transform, vis.m_bodyModel.transform).OrNull()?.GetComponent<SkinnedMeshRenderer>();
             var model = vis.m_models[0];
             if (body == null || model == null || model.m_mesh == null) return;
 
@@ -569,7 +569,7 @@ namespace Scry
         private static bool Draws(GameObject item)
         {
             if (AttachPart(item, out _) != null) return true;
-            return item.GetComponent<ItemDrop>()?.m_itemData?.m_shared?.m_armorMaterial != null;
+            return item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_armorMaterial != null;
         }
 
         /// <summary>The part of an item worn on the body, found as <c>VisEquipment.AttachItem</c> finds it.</summary>

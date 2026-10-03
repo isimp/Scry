@@ -279,9 +279,9 @@ namespace Scry
             var go = GamePrefabs.Named(prefab);
             if (go != null)
             {
-                var icons = go.GetComponent<ItemDrop>()?.m_itemData?.m_shared?.m_icons;
+                var icons = go.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_icons;
                 if (icons != null && icons.Length > 0) icon = icons[0];
-                else icon = go.GetComponent<Piece>()?.m_icon;
+                else icon = go.GetComponent<Piece>().OrNull()?.m_icon;
             }
             PrefabIcons[prefab] = icon;
             return icon;

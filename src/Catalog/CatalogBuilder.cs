@@ -118,7 +118,7 @@ namespace Scry
         /// </summary>
         private static void Raids(List<Entry> entries)
         {
-            var events = RandEventSystem.instance?.m_events;
+            var events = RandEventSystem.instance.OrNull()?.m_events;
             if (events == null) return;
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var raid in events)
@@ -130,7 +130,7 @@ namespace Scry
                     var boss = Knowledge.BossOfEvent(raid.m_name);
                     if (shown.Length == 0 && boss != null)
                     {
-                        var bossName = Localize(boss.GetComponent<Character>()?.m_name);
+                        var bossName = Localize(boss.GetComponent<Character>().OrNull()?.m_name);
                         shown = RaidWords.Fighting(bossName.Length > 0 ? bossName : boss.name);
                     }
                     entries.Add(new Entry
@@ -348,7 +348,7 @@ namespace Scry
             {
                 if (uses.Exists(u => u.Name == making.Station)) continue;
                 var station = GamePrefabs.Named(making.Station);
-                var shown = station != null ? Localize(station.GetComponent<Piece>()?.m_name) : "";
+                var shown = station != null ? Localize(station.GetComponent<Piece>().OrNull()?.m_name) : "";
                 uses.Add(new StationUse(making.Station, shown, 1));
             }
 
@@ -398,7 +398,7 @@ namespace Scry
                     {
                         foreach (var item in Relations.CarriedItems(found.Prefab))
                         {
-                            var carried = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+                            var carried = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
                             if (carried == null) continue;
                             var part = AttackName(item);
                             Gather(carried, owner, ownerOrigin, effects, owner, owner, part);
@@ -524,7 +524,7 @@ namespace Scry
         /// </summary>
         internal static string GameName(GameObject item)
         {
-            var token = item != null ? item.GetComponent<ItemDrop>()?.m_itemData?.m_shared?.m_name : null;
+            var token = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_name : null;
             if (string.IsNullOrEmpty(token) || !token.StartsWith("$", StringComparison.Ordinal)) return null;
             var shown = Localize(token);
             return shown.Length > 0 && !shown.StartsWith("$", StringComparison.Ordinal) ? shown : null;
@@ -533,7 +533,7 @@ namespace Scry
         /// <summary>What an item a creature carries is called: its shown name, or its prefab name when it has none.</summary>
         internal static string AttackName(GameObject item)
         {
-            var shared = item.GetComponent<ItemDrop>()?.m_itemData?.m_shared;
+            var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
             var shown = shared != null ? Localize(shared.m_name) : "";
             return shown.Length > 0 && !shown.StartsWith("$", StringComparison.Ordinal) ? shown : item.name;
         }
@@ -588,9 +588,9 @@ namespace Scry
                     Thrown(destructible.m_destroyedEffect, prefab, "debris", false);
                 }
 
-                Thrown(prefab.GetComponent<WearNTear>()?.m_destroyedEffect, prefab, "debris", false);
-                Thrown(prefab.GetComponent<MineRock>()?.m_destroyedEffect, prefab, "debris", false);
-                Thrown(prefab.GetComponent<MineRock5>()?.m_destroyedEffect, prefab, "debris", false);
+                Thrown(prefab.GetComponent<WearNTear>().OrNull()?.m_destroyedEffect, prefab, "debris", false);
+                Thrown(prefab.GetComponent<MineRock>().OrNull()?.m_destroyedEffect, prefab, "debris", false);
+                Thrown(prefab.GetComponent<MineRock5>().OrNull()?.m_destroyedEffect, prefab, "debris", false);
             });
         }
 

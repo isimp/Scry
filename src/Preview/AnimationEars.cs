@@ -310,8 +310,8 @@ namespace Scry
                 case "OnAttackTrigger":
                     AttackTrigger();
                     break;
-                case "Jump": Play(_prefab.GetComponent<Character>()?.m_jumpEffects); break;
-                case "Die": Play(_prefab.GetComponent<Character>()?.m_deathEffects); break;
+                case "Jump": Play(_prefab.GetComponent<Character>().OrNull()?.m_jumpEffects); break;
+                case "Die": Play(_prefab.GetComponent<Character>().OrNull()?.m_deathEffects); break;
                 case "Effect": Effect(e); break;
                 case "Attach": Attach(e); break;
                 case "RemoveAttachments": ClipEnded(); break;
@@ -353,7 +353,7 @@ namespace Scry
             if (!string.IsNullOrEmpty(e.Text)) at = Utils.FindChild(transform, e.Text);
             if (at == null)
             {
-                var root = _prefab.GetComponentInChildren<global::AnimationEffect>(true)?.m_effectRoot;
+                var root = _prefab.GetComponentInChildren<global::AnimationEffect>(true).OrNull()?.m_effectRoot;
                 if (root != null) at = Looks.Twin(_prefab.transform, _copy.transform, root);
             }
             if (at == null) at = transform;

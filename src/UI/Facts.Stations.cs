@@ -193,7 +193,7 @@ namespace Scry
                 foreach (var entry in catalog)
                 {
                     if (entry.Kind != Kind.Piece || entry.Stations == null || !entry.Stations.Any(s => s.Name == station)) continue;
-                    var piece = (entry.Source as GameObject)?.GetComponent<global::Piece>();
+                    var piece = (entry.Source as GameObject).OrNull()?.GetComponent<global::Piece>();
                     if (piece == null || !piece.m_enabled) continue;
                     if (seen.Add(entry.Name)) built.Items.Add(Chip(entry.Name, ""));
                 }

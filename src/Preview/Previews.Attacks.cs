@@ -145,7 +145,7 @@ namespace Scry
             flight.Gravity = (projectile != null ? projectile.m_gravity : 0f) * size;
             flight.Size = size;
             flight.Lifetime = projectile != null && projectile.m_ttl > 0f ? Mathf.Min(projectile.m_ttl, 8f) : 4f;
-            flight.Burst = projectile?.m_hitEffects;
+            flight.Burst = projectile.OrNull()?.m_hitEffects;
             flight.OnStage = onStage;
             if (onStage) Stage.Adopt(copy, flight.Lifetime + 1f);
             else Remember(copy, flight.Lifetime + 1f);

@@ -111,7 +111,7 @@ namespace Scry
         /// </summary>
         private static IEnumerator GearFacts(Probe p)
         {
-            var items = X.Catalog.Where(e => e.Kind == Kind.Item && e.Source is GameObject).Select(e => (Entry: e, Shared: ((GameObject)e.Source).GetComponent<ItemDrop>()?.m_itemData?.m_shared))
+            var items = X.Catalog.Where(e => e.Kind == Kind.Item && e.Source is GameObject).Select(e => (Entry: e, Shared: ((GameObject)e.Source).GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared))
                 .Where(i => i.Shared != null).OrderBy(i => i.Entry.Name, StringComparer.Ordinal).ToList();
             bool Worn(ItemDrop.ItemData.ItemType t) => t == ItemDrop.ItemData.ItemType.Chest || t == ItemDrop.ItemData.ItemType.Legs || t == ItemDrop.ItemData.ItemType.Helmet || t == ItemDrop.ItemData.ItemType.Shoulder;
             var cases = new (string What, Func<ItemDrop.ItemData.SharedData, bool> Has, string Label)[]
@@ -151,7 +151,7 @@ namespace Scry
         private static IEnumerator BreedingFacts(Probe p)
         {
             GameObject Of(Entry e) => e.Source as GameObject;
-            var breeders = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<Procreation>() != null && Of(e).GetComponent<Tameable>() != null).ToList();
+            var breeders = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e).OrNull()?.GetComponent<Procreation>() != null && Of(e).GetComponent<Tameable>() != null).ToList();
             p.Note($"{Numbers.Count(breeders.Count)} creatures breed: {string.Join(", ", breeders.Take(10).Select(e => e.Name))}");
             var untold = new List<string>();
             var unborn = new List<string>();
@@ -168,11 +168,11 @@ namespace Scry
             p.Check(unborn.Count == 0, "every one's young names it as where it comes from", string.Join(", ", unborn.Take(5)));
             if (breeders.Count > 0) p.Note($"{breeders[0].Name}: {Pairs(Facts.For(breeders[0]))}");
 
-            var growing = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<Growup>() != null).ToList();
+            var growing = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e).OrNull()?.GetComponent<Growup>() != null).ToList();
             var ungrown = growing.Where(e => Value(Facts.For(e), "Grows up in") == null || !Facts.For(e).Rows.Any(r => r.Title.StartsWith("Grows into", StringComparison.Ordinal))).Select(e => e.Name).ToList();
             p.Check(ungrown.Count == 0, $"every young one ({Numbers.Count(growing.Count)}) tells what it grows into and when", string.Join(", ", ungrown.Take(5)));
 
-            var egg = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && Of(e)?.GetComponent<EggGrow>()?.m_grownPrefab != null);
+            var egg = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && Of(e).OrNull()?.GetComponent<EggGrow>().OrNull()?.m_grownPrefab != null);
             if (egg == null) p.Note("no egg hatches in this game");
             else
             {
@@ -180,7 +180,7 @@ namespace Scry
                 p.Check(Value(Facts.For(egg), "Hatches into") != null && Knowledge.WhereLines(hatch).Any(l => l.Prefab == egg.Name), $"{egg.Name} tells what hatches from it, and {hatch} that it hatches from it", Value(Facts.For(egg), "Hatches when") ?? "not told");
             }
 
-            var ridden = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<Tameable>()?.m_saddle != null);
+            var ridden = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && Of(e).OrNull()?.GetComponent<Tameable>().OrNull()?.m_saddle != null);
             if (ridden == null) p.Note("no creature is ridden in this game");
             else p.Check(Value(Facts.For(ridden), "Stamina when ridden") != null, $"{ridden.Name} tells its stamina when ridden", Pairs(Facts.For(ridden)));
             yield break;
@@ -194,7 +194,7 @@ namespace Scry
         private static IEnumerator BaitsKeysPowers(Probe p)
         {
             GameObject Of(Entry e) => e.Source as GameObject;
-            var fish = X.Catalog.Where(e => Of(e)?.GetComponent<Fish>()?.m_baits?.Any(b => b?.m_bait != null) == true).ToList();
+            var fish = X.Catalog.Where(e => Of(e).OrNull()?.GetComponent<Fish>().OrNull()?.m_baits?.Any(b => b?.m_bait != null) == true).ToList();
             p.Note($"{Numbers.Count(fish.Count)} fish with baits");
             if (fish.Count > 0)
             {
@@ -205,7 +205,7 @@ namespace Scry
                 if (baitEntry != null) p.Check(Facts.For(baitEntry).Rows.Any(r => r.Title.StartsWith("Catches", StringComparison.Ordinal) && r.Items.Any(i => i.Prefab == one.Name)), $"{bait} names {one.Name} among what it catches");
             }
 
-            var doors = X.Catalog.Where(e => Of(e)?.GetComponent<Door>()?.m_keyItem != null).ToList();
+            var doors = X.Catalog.Where(e => Of(e).OrNull()?.GetComponent<Door>().OrNull()?.m_keyItem != null).ToList();
             p.Note($"{Numbers.Count(doors.Count)} locked doors: {string.Join(", ", doors.Take(6).Select(e => e.Name))}");
             if (doors.Count > 0)
             {
@@ -216,7 +216,7 @@ namespace Scry
                 if (keyEntry != null) p.Check(Facts.For(keyEntry).Rows.Any(r => r.Title == "Opens" && r.Items.Any(i => i.Prefab == door.Name)), $"{key} names {door.Name} among what it opens");
             }
 
-            var bosses = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<CharacterDrop>()?.m_drops?.Any(d => d?.m_prefab != null && Knowledge.PowerOf(d.m_prefab.name).Power != null) == true).ToList();
+            var bosses = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e).OrNull()?.GetComponent<CharacterDrop>().OrNull()?.m_drops?.Any(d => d?.m_prefab != null && Knowledge.PowerOf(d.m_prefab.name).Power != null) == true).ToList();
             p.Note($"{Numbers.Count(bosses.Count)} creatures drop a trophy with a Forsaken power: {string.Join(", ", bosses.Take(8).Select(e => e.Name))}");
             var unpowered = bosses.Where(b => Value(Facts.For(b), "Forsaken power") == null).Select(b => b.Name).ToList();
             p.Check(bosses.Count > 0 && unpowered.Count == 0, "every one names its power", string.Join(", ", unpowered));
@@ -234,7 +234,7 @@ namespace Scry
             {
                 ("a piece with placement rules", g => g.GetComponent<Piece>() is Piece piece && (piece.m_groundOnly || piece.m_cultivatedGroundOnly || piece.m_noInWater || piece.m_notOnWood || piece.m_onlyInBiome != 0), "Placed"),
                 ("a station", g => g.GetComponent<CraftingStation>() != null, "Building reach"),
-                ("a station's upgrade", g => g.GetComponent<StationExtension>()?.m_craftingStation != null, "Upgrades"),
+                ("a station's upgrade", g => g.GetComponent<StationExtension>().OrNull()?.m_craftingStation != null, "Upgrades"),
                 ("a bed", g => g.GetComponent<Bed>() != null, "Sleeping in it"),
                 ("a warm piece", g => g.GetComponentsInChildren<EffectArea>(true).Any(a => (a.m_type & EffectArea.Type.Heat) != 0), "Warmth"),
                 ("a base piece", g => g.GetComponentsInChildren<EffectArea>(true).Any(a => (a.m_type & EffectArea.Type.PlayerBase) != 0), "A base"),
@@ -388,14 +388,14 @@ namespace Scry
         {
             GameObject Of(Entry e) => e.Source as GameObject;
             bool HasGrid(Entry e) => Facts.For(e).Rows.Any(r => r.Cells != null && r.Cells.Count == ResistWords.Types.Length);
-            var creatures = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<Character>() != null && !(Of(e).GetComponent<Character>() is Player)).ToList();
+            var creatures = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e).OrNull()?.GetComponent<Character>() != null && !(Of(e).GetComponent<Character>() is Player)).ToList();
             var gridless = new List<string>();
             yield return Budgeted(creatures, e => { if (!HasGrid(e)) gridless.Add(e.Name); }, 8);
             p.Check(creatures.Count > 0 && gridless.Count == 0, $"every creature ({Numbers.Count(creatures.Count)}) has the grid", string.Join(", ", gridless.Take(5)));
-            var pieces = Spread(X.Catalog.Where(e => e.Kind == Kind.Piece && Of(e)?.GetComponent<WearNTear>() != null && Of(e).GetComponent<Piece>()?.enabled == true).OrderBy(e => e.Name, StringComparer.Ordinal).ToList(), 40);
+            var pieces = Spread(X.Catalog.Where(e => e.Kind == Kind.Piece && Of(e).OrNull()?.GetComponent<WearNTear>() != null && Of(e).GetComponent<Piece>().OrNull()?.enabled == true).OrderBy(e => e.Name, StringComparer.Ordinal).ToList(), 40);
             var pieceless = pieces.Where(e => !HasGrid(e)).Select(e => e.Name).ToList();
             p.Check(pieceless.Count == 0, $"a spread of {Numbers.Count(pieces.Count)} pieces each have it", string.Join(", ", pieceless.Take(5)));
-            var rocks = Spread(X.Catalog.Where(e => e.Kind == Kind.Resource && (Of(e)?.GetComponent<Destructible>() != null || Of(e)?.GetComponent<MineRock5>() != null)).OrderBy(e => e.Name, StringComparer.Ordinal).ToList(), 20);
+            var rocks = Spread(X.Catalog.Where(e => e.Kind == Kind.Resource && (Of(e).OrNull()?.GetComponent<Destructible>() != null || Of(e).OrNull()?.GetComponent<MineRock5>() != null)).OrderBy(e => e.Name, StringComparer.Ordinal).ToList(), 20);
             p.Note($"{Numbers.Count(rocks.Count(HasGrid))} of a spread of {Numbers.Count(rocks.Count)} rocks and trees have it");
 
             var shown = creatures.FirstOrDefault(e => e.Name == "Troll") ?? creatures.FirstOrDefault();
@@ -432,9 +432,9 @@ namespace Scry
                 foreach (var entry in list) checks.Add((what, entry, labels));
             }
 
-            var creatures = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<Character>() is Character c && !(c is Player));
+            var creatures = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e).OrNull()?.GetComponent<Character>() is Character c && !(c is Player));
             Every("creature", creatures, "Health", "Attacks|Attack: ", "Weak spots|Hit on the ", "Tameable", "Drops");
-            var shared = X.Catalog.Where(e => e.Kind == Kind.Item && Of(e)?.GetComponent<ItemDrop>()?.m_itemData?.m_shared != null)
+            var shared = X.Catalog.Where(e => e.Kind == Kind.Item && Of(e).OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared != null)
                 .Select(e => (Entry: e, Type: Of(e).GetComponent<ItemDrop>().m_itemData.m_shared.m_itemType)).ToList();
             bool Is(ItemDrop.ItemData.ItemType t, params ItemDrop.ItemData.ItemType[] types) => types.Contains(t);
             Every("item", shared.Select(s => s.Entry), "Type", "Weight", "Portals");
@@ -442,7 +442,7 @@ namespace Scry
                 "Quality", "Durability", "Armour", "Movement", "Set bonus");
             Every("weapon", shared.Where(s => Is(s.Type, ItemDrop.ItemData.ItemType.OneHandedWeapon, ItemDrop.ItemData.ItemType.TwoHandedWeapon, ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft, ItemDrop.ItemData.ItemType.Bow)).Select(s => s.Entry),
                 "Quality", "Durability", "Block", "Secondary attack");
-            var built = X.Catalog.Where(e => e.Kind == Kind.Piece && Of(e)?.GetComponent<Piece>()?.enabled == true && Knowledge.Tools.ToolsOf(e.Name).Count > 0);
+            var built = X.Catalog.Where(e => e.Kind == Kind.Piece && Of(e).OrNull()?.GetComponent<Piece>().OrNull()?.enabled == true && Knowledge.Tools.ToolsOf(e.Name).Count > 0);
             Every("buildable piece", built, "Build cost|Built near", "Built with");
 
             var missing = new Dictionary<string, List<string>>();
@@ -474,7 +474,7 @@ namespace Scry
             p.Check(told.Pairs.Any(pair => pair.Key.StartsWith("Spawns ", StringComparison.Ordinal)), "it tells what it spawns and how often", Pairs(told));
 
             var area = ((GameObject)nest.Source).GetComponentInChildren<SpawnArea>(true);
-            var first = area?.m_prefabs?.FirstOrDefault(d => d?.m_prefab != null)?.m_prefab;
+            var first = area.OrNull()?.m_prefabs?.FirstOrDefault(d => d?.m_prefab != null)?.m_prefab;
             var creature = first != null ? X.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && e.Name == first.name) : null;
             if (creature == null) yield break;
             var line = Facts.For(creature).Where.FirstOrDefault(s => s.Text.StartsWith("Comes from", StringComparison.Ordinal) && s.Prefab == nest.Name);
@@ -558,7 +558,7 @@ namespace Scry
 
             // Creatures' drops, rarest first: each chip's chance no more than the next's.
             var unsorted = new List<string>();
-            var droppers = X.Catalog.Where(e => e.Kind == Kind.Creature && (e.Source as GameObject)?.GetComponent<CharacterDrop>() != null).ToList();
+            var droppers = X.Catalog.Where(e => e.Kind == Kind.Creature && (e.Source as GameObject).OrNull()?.GetComponent<CharacterDrop>() != null).ToList();
             yield return Budgeted(droppers, creature =>
             {
                 var drops = ((GameObject)creature.Source).GetComponent<CharacterDrop>().m_drops.Where(d => d?.m_prefab != null).ToList();
@@ -582,7 +582,7 @@ namespace Scry
             {
                 var row = Facts.For(biome).Rows.FirstOrDefault(r => r.Title.StartsWith("Lives here", StringComparison.Ordinal));
                 if (row == null) continue;
-                var foes = row.Items.Select(i => GamePrefabs.Item(i.Prefab)?.GetComponent<Character>()).Where(c => c != null).Select(c => (c.m_boss ? 1 : 0, c.m_health)).ToList();
+                var foes = row.Items.Select(i => GamePrefabs.Item(i.Prefab).OrNull()?.GetComponent<Character>()).Where(c => c != null).Select(c => (c.m_boss ? 1 : 0, c.m_health)).ToList();
                 for (var i = 1; i < foes.Count; i++)
                 {
                     if (foes[i].Item1 > foes[i - 1].Item1 || (foes[i].Item1 == foes[i - 1].Item1 && foes[i].Item2 > foes[i - 1].Item2)) { weaker.Add(biome.Name); break; }

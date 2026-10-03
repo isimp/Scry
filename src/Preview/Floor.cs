@@ -106,7 +106,7 @@ namespace Scry
         /// <summary>Repeats a surface's texture the given number of times each way, through its mesh.</summary>
         public static void Tile(GameObject surface, float times)
         {
-            var mesh = surface != null ? surface.GetComponent<MeshFilter>()?.sharedMesh : null;
+            var mesh = surface != null ? surface.GetComponent<MeshFilter>().OrNull()?.sharedMesh : null;
             if (mesh == null) return;
             mesh.uv = new[] { new Vector2(0, 0), new Vector2(0, times), new Vector2(times, times), new Vector2(times, 0) };
         }

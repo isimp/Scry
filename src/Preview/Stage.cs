@@ -266,7 +266,7 @@ namespace Scry
             {
                 var path = renderer.transform == _subject.transform ? renderer.name : Path(renderer.transform);
                 var mesh = renderer is SkinnedMeshRenderer skinned ? skinned.sharedMesh
-                    : renderer.GetComponent<MeshFilter>()?.sharedMesh;
+                    : renderer.GetComponent<MeshFilter>().OrNull()?.sharedMesh;
                 var bones = renderer is SkinnedMeshRenderer s ? $", bones {Numbers.Count(s.bones.Length)}, bindposes {Numbers.Count((s.sharedMesh != null ? s.sharedMesh.bindposes.Length : 0))}, root {(s.rootBone != null ? s.rootBone.name : "none")}" : "";
                 var material = renderer.sharedMaterial != null ? renderer.sharedMaterial.name + " / " + (renderer.sharedMaterial.shader != null ? renderer.sharedMaterial.shader.name : "no shader") : "no material";
                 lines.Add($"  {path}: {renderer.GetType().Name}, active {renderer.gameObject.activeInHierarchy}, enabled {renderer.enabled}, layer {Numbers.Count(renderer.gameObject.layer)}, mesh {(mesh != null ? mesh.name : "none")}{bones}, {material}, bounds {Figures.Point(renderer.bounds.center)} size {Figures.Point(renderer.bounds.size)}");

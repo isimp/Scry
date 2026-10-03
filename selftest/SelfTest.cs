@@ -106,7 +106,7 @@ namespace Scry
 
             Write("");
             Write($"==== Scry {Plugin.Version} self-test, {DateTime.Now:yyyy-MM-dd HH:mm:ss}, started because {why} ====");
-            Write($"World {ZNet.instance?.GetWorldName()}, {Numbers.Count(Session.Explorer.Catalog.Count)} entries, {Numbers.Count(BepInEx.Bootstrap.Chainloader.PluginInfos.Count)} mods loaded, panel {(Session.IsOpen ? "open" : "closed")}" +
+            Write($"World {ZNet.instance.OrNull()?.GetWorldName()}, {Numbers.Count(Session.Explorer.Catalog.Count)} entries, {Numbers.Count(BepInEx.Bootstrap.Chainloader.PluginInfos.Count)} mods loaded, panel {(Session.IsOpen ? "open" : "closed")}" +
                   $"{(ScryPanel.Compact ? " in its compact view" : "")}, locations {Locations.Now}, LogPreviews {(Plugin.LogPreviews ? "on" : "off")}.");
             Write("Each part uses Scry as a player would and checks what it did. START and PASS, FAIL or SKIP frame a part; within it, PASS is a check that held,");
             Write("FAIL one that did not (with what was found), and note is something worth knowing. The summary at the end lists every failed check again.");
@@ -172,7 +172,7 @@ namespace Scry
             foreach (var line in LastSummary) Write(line);
             Write(LastAdvice);
             ScryPanel.ShowTestResult();
-            Chat.instance?.AddString($"Scry: {LastHeadline} Open Scry for the details; BepInEx/Scry-selftest.log has everything.");
+            Chat.instance.OrNull()?.AddString($"Scry: {LastHeadline} Open Scry for the details; BepInEx/Scry-selftest.log has everything.");
         }
 
         private static void Write(string line)

@@ -40,7 +40,7 @@ namespace Scry
 
             Previews.PlayClip(attack);
             yield return Until(() => Previews.PlayingClip() != null, 3);
-            p.Check(Previews.PlayingClip() == attack, "the attack plays", $"playing {Previews.PlayingClip()?.name ?? "nothing"}");
+            p.Check(Previews.PlayingClip() == attack, "the attack plays", $"playing {Previews.PlayingClip().OrNull()?.name ?? "nothing"}");
             yield return new Wait(1.5);
             Previews.StopClip();
         }
@@ -110,7 +110,7 @@ namespace Scry
             yield return Until(() => Previews.SoundPlaying, 2);
             p.Check(Previews.SoundPlaying, "it plays");
             yield return new Wait(0.3);
-            p.Check(Previews.SoundClipNow() == chosen, "the variant chosen is the one heard", Previews.SoundClipNow()?.name ?? "none");
+            p.Check(Previews.SoundClipNow() == chosen, "the variant chosen is the one heard", Previews.SoundClipNow().OrNull()?.name ?? "none");
             Previews.StopSound();
             p.Check(!Previews.SoundPlaying, "and it stops");
         }
@@ -260,7 +260,7 @@ namespace Scry
             p.Check(Stage.PlayedCount > 0, $"felling it plays {list.Key}", $"{Numbers.Count(Stage.PlayedCount)} things");
 
             // Its log strikes the ground as the game's does, with its impact's sound (ImpactEffect).
-            var log = ((GameObject)tree.Source).GetComponent<TreeBase>()?.m_logPrefab;
+            var log = ((GameObject)tree.Source).GetComponent<TreeBase>().OrNull()?.m_logPrefab;
             var impact = log != null ? log.GetComponentInChildren<ImpactEffect>(true) : null;
             if (impact == null) p.Note("its log has no impact of its own");
             else

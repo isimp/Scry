@@ -98,7 +98,7 @@ namespace Scry
         /// <summary>A creature's name as the game shows it, else its prefab's.</summary>
         private static string ShownNameOf(GameObject prefab)
         {
-            var shown = CatalogBuilder.Localize(prefab.GetComponent<Character>()?.m_name);
+            var shown = CatalogBuilder.Localize(prefab.GetComponent<Character>().OrNull()?.m_name);
             return shown.Length > 0 ? shown : prefab.name;
         }
 

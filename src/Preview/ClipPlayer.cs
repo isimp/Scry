@@ -129,7 +129,7 @@ namespace Scry
             }
             _ofFrame = Time.frameCount;
             _ofCopy = copy;
-            _of = found ?? any;
+            _of = found.OrNull() ?? any;
             return _of;
         }
 

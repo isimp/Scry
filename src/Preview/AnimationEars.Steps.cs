@@ -20,7 +20,7 @@ namespace Scry
         private void WatchFeet(AnimationClip clip)
         {
             _feet = null;
-            var heard = _copy.GetComponent<ClipPlayer>()?.Heard(clip);
+            var heard = _copy.GetComponent<ClipPlayer>().OrNull()?.Heard(clip);
             var step = _prefab.GetComponentInChildren<global::FootStep>(true);
             if (clip == null || step == null || step.m_feet == null || step.m_feet.Length == 0)
             {
@@ -104,7 +104,7 @@ namespace Scry
             if (effect == null) return;
 
             Transform foot = null;
-            if (!string.IsNullOrEmpty(e.Text)) foot = Utils.FindChild(Body, e.Text) ?? Utils.FindChild(_copy.transform, e.Text);
+            if (!string.IsNullOrEmpty(e.Text)) foot = Utils.FindChild(Body, e.Text).OrNull() ?? Utils.FindChild(_copy.transform, e.Text);
             Report(Previews.PlayOnCopy(_copy, AsList(effect.m_effectPrefabs), foot));
         }
 

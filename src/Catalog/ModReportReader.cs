@@ -37,7 +37,7 @@ namespace Scry
                         Count(entry.Kind == Kind.Piece ? built : made, station);
                     }
                 }
-                var extension = (entry.Source as GameObject)?.GetComponent<StationExtension>();
+                var extension = (entry.Source as GameObject).OrNull()?.GetComponent<StationExtension>();
                 if (extension != null && extension.m_craftingStation != null) Count(upgrades, extension.m_craftingStation.transform.root.name);
             }
 

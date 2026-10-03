@@ -87,7 +87,7 @@ namespace Scry
             }
             foreach (var pick in prefab.GetComponentsInChildren<RandomObject>(false))
             {
-                if (pick?.m_objects == null) continue;
+                if (pick.OrNull()?.m_objects == null) continue;
                 // An entry without an object weighs in too; picking it leaves the whole pick out.
                 var shares = PlaceParts.Shares(pick.m_objects.Select(e => e?.m_weight ?? 0f).ToList());
                 var nothing = 0f;
@@ -111,7 +111,7 @@ namespace Scry
         {
             var spawns = prefab.GetComponentsInChildren<RandomSpawn>(false).Where(s => s != null && s.enabled).Select(s => s.m_chanceToSpawn);
             var picks = prefab.GetComponentsInChildren<RandomObject>(false)
-                .Where(p => p?.m_objects != null && p.enabled)
+                .Where(p => p.OrNull()?.m_objects != null && p.enabled)
                 .Select(p => (IReadOnlyList<float>)p.m_objects.Select(e => e?.m_weight ?? 0f).ToList());
             // Its creatures too: a star to roll, or a spawn group keeping fewer than it has points.
             return PlaceParts.LeftToChance(spawns.ToList(), picks.ToList()) || SpawnPoints.LeftToChance(PlaceCopy.SpawnPointsOf(prefab));
@@ -161,14 +161,14 @@ namespace Scry
             var found = new List<(string, float)>();
             foreach (var point in prefab.GetComponentsInChildren<CreatureSpawner>(false))
             {
-                if (point?.m_creaturePrefab == null) continue;
+                if (point.OrNull()?.m_creaturePrefab == null) continue;
                 found.Add((point.m_creaturePrefab.name, ChanceOf(point.transform, root, factors)));
             }
             contents.Creatures = PlaceParts.Group(found);
 
             foreach (var vegvisir in prefab.GetComponentsInChildren<Vegvisir>(false))
             {
-                if (vegvisir?.m_locations == null) continue;
+                if (vegvisir.OrNull()?.m_locations == null) continue;
                 foreach (var to in vegvisir.m_locations)
                 {
                     if (to != null && !string.IsNullOrEmpty(to.m_locationName) && !contents.Vegvisirs.Contains(to.m_locationName)) contents.Vegvisirs.Add(to.m_locationName);
@@ -299,7 +299,7 @@ namespace Scry
             }
             foreach (var near in prefab.GetComponentsInChildren<MusicLocation>(false))
             {
-                if (near != null && near.GetComponent<AudioSource>()?.clip != null) Add(PrefabName(near.gameObject.name), MusicWhen.Near, 1f);
+                if (near != null && near.GetComponent<AudioSource>().OrNull()?.clip != null) Add(PrefabName(near.gameObject.name), MusicWhen.Near, 1f);
             }
             foreach (var inside in prefab.GetComponentsInChildren<MusicVolume>(false))
             {
