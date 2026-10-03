@@ -13,6 +13,12 @@ namespace Scry
         /// <summary>The share now, read by the audio thread; 1 is the game's own loudness.</summary>
         public static volatile float Gain = 1f;
 
+        /// <summary>The selection's modifiers while the panel is open, whose volume a new copy starts at; none while it is closed.</summary>
+        private static Modifiers _following;
+
+        /// <summary>Follows the open panel's modifiers, or none, as the previews are updated each frame.</summary>
+        public static void Follow(Modifiers modifiers) => _following = modifiers;
+
         /// <summary>
         /// Puts the gain on every sound of a copy that does not carry it yet. The gain is taken from
         /// the selection first: a copy may be made and heard in the same moment the selection
@@ -20,8 +26,7 @@ namespace Scry
         /// </summary>
         public static void Add(GameObject copy)
         {
-            var explorer = Session.IsOpen ? Session.Explorer : null;
-            Gain = explorer != null ? explorer.Modifiers.Volume : 1f;
+            Gain = _following != null ? _following.Volume : 1f;
             if (copy == null) return;
             foreach (var source in copy.GetComponentsInChildren<AudioSource>(true))
             {

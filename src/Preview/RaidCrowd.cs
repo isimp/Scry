@@ -60,7 +60,7 @@ namespace Scry
                 if (!entries.TryGetValue(prefab, out var found))
                 {
                     // Mostly creatures; some raids bring spawners (the Ashlands' charred spawners).
-                    found = Session.Explorer?.Find(prefab);
+                    found = WorldCatalog.Find(prefab);
                     entries[prefab] = found;
                 }
                 return found;

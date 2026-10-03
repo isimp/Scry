@@ -100,7 +100,7 @@ namespace Scry
         }
 
         /// <summary>The entry of a key, or null when the catalog has none.</summary>
-        private static Entry EntryOf(string key) => Session.Explorer?.Find(key);
+        private static Entry EntryOf(string key) => WorldCatalog.Find(key);
 
         /// <summary>Why Scry is not sure of a pair, by its label (<see cref="UnsureWords"/>).</summary>
         public readonly Dictionary<string, string> Unsure = new Dictionary<string, string>();

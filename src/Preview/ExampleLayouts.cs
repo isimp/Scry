@@ -241,11 +241,11 @@ namespace Scry
             if (wasNone)
             {
                 Learned.About(_entry);
-                var explorer = Session.Explorer;
-                if (explorer != null)
+                var world = WorldCatalog.Current;
+                if (world != null)
                 {
-                    PlaceEntries.Arrange(explorer.Catalog);
-                    explorer.Regrouped();
+                    PlaceEntries.Arrange(world.All);
+                    world.Regroup();
                 }
             }
         }

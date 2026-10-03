@@ -123,11 +123,12 @@ namespace Scry
             if (Now == State.Reading) return $"already reading the locations and dungeons, {Numbers.Count(Done)} of {Numbers.Count(Total)} so far.";
             if (Now == State.Read) return "the locations and dungeons of this world are read already.";
             var zones = ZoneSystem.instance;
-            if (zones == null || Session.Explorer == null) return "the catalog of this world is not read yet.";
+            var catalog = WorldCatalog.Current;
+            if (zones == null || catalog == null) return "the catalog of this world is not read yet.";
 
             Forget();
             _creatures = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var entry in Session.Explorer.Catalog)
+            foreach (var entry in catalog.All)
             {
                 if (entry.Kind == Kind.Creature && !string.IsNullOrEmpty(entry.DisplayName) && !_creatures.ContainsKey(entry.Name)) _creatures[entry.Name] = entry.DisplayName;
             }
@@ -366,30 +367,31 @@ namespace Scry
         private static void Finish()
         {
             Now = State.Read;
-            var explorer = Session.Explorer;
+            var world = WorldCatalog.Current;
             var moved = 0;
             var items = 0;
             var inCatalog = 0;
-            if (explorer != null)
+            if (world != null)
             {
-                var before = explorer.Catalog.Select(e => e.Group).ToList();
-                Places.Apply(explorer.Catalog, Found);
+                var catalog = world.All;
+                var before = catalog.Select(e => e.Group).ToList();
+                Places.Apply(catalog, Found);
                 for (var i = 0; i < before.Count; i++)
                 {
-                    var entry = explorer.Catalog[i];
+                    var entry = catalog[i];
                     if (entry.FoundIn.Length > 0) inCatalog++;
                     if (before[i] != entry.Group) moved++;
                 }
-                items = Grouping.FoundInLocations(explorer.Catalog);
-                foreach (var entry in explorer.Catalog)
+                items = Grouping.FoundInLocations(catalog);
+                foreach (var entry in catalog)
                 {
                     if (!(entry.Source is PlaceSource place)) continue;
                     var read = place.IsRoom ? ReadRooms : ReadLocations;
                     if (place.Contents == null && read.TryGetValue(place.Prefab, out var contents)) place.Contents = contents;
                     if (PlaceLabels.TryGetValue(place.IsRoom ? "room:" + place.Prefab : place.Prefab, out var labels)) PlaceEntries.Named(entry, labels);
                 }
-                PlaceEntries.Arrange(explorer.Catalog);
-                explorer.Regrouped();
+                PlaceEntries.Arrange(catalog);
+                world.Regroup();
             }
             Learned.AboutAll();
             Log.Report(

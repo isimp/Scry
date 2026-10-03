@@ -213,6 +213,7 @@ namespace Scry
         {
             // How loud previews play follows the selection, which starts every one at the game's
             // own loudness; with the panel closed, whatever still plays does so at the game's own.
+            Loudness.Follow(explorer?.Modifiers);
             Loudness.Gain = explorer != null ? explorer.Modifiers.Volume : 1f;
 
             // Each part on its own: one that fails does not keep the others from running.
@@ -375,7 +376,7 @@ namespace Scry
 
                 // A dungeon or camp read now gathers its rooms into its group.
                 PlaceEntries.Arrange(explorer.Catalog);
-                explorer.Regrouped();
+                explorer.Entries.Regroup();
             }
             Stage.Show(entry, explorer.Modifiers);
         }

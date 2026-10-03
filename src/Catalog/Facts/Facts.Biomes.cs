@@ -18,7 +18,7 @@ namespace Scry
             if (biome.Weathers.Count > 0) Hooked(HookedRule.Weather);
             foreach (var (label, music) in BiomeWords.Music(biome.Morning, biome.Evening, biome.Day, biome.Night)) Add(label, Naming.FieldLabel(music), PlayMusic + ":" + music);
 
-            var catalog = Session.Explorer?.Catalog;
+            var catalog = WorldCatalog.Current?.All;
             if (catalog == null) return;
             // Each row by name, then in its own order where it has one.
             void Here(string title, Func<Entry, bool> which, bool home = true, Func<List<Entry>, List<Entry>> order = null)

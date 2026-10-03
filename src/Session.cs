@@ -236,6 +236,7 @@ namespace Scry
             if (_favourites.Problem != null) Faults.Tell("reading the favourites", _favourites.Problem);
 
             Explorer = new Explorer(catalog, _favourites) { RecentLimit = Settings.RecentCount };
+            WorldCatalog.Set(Explorer.Entries);
             if (_carried.HasValue)
             {
                 var carried = _carried.Value;

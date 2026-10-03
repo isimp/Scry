@@ -25,19 +25,19 @@ namespace Scry
             Add("Id", mod.Guid);
             Add("Folder", mod.Folder);
 
-            var explorer = Session.Explorer;
-            if (explorer == null) return;
+            var catalog = WorldCatalog.Current;
+            if (catalog == null) return;
             var relations = mod.Relations ?? new ModRelations();
             // Those here go to their pages; the rest, which are not, are named.
-            ModRow("Will not run with", relations.WillNotRunWith, explorer);
-            var away = relations.WillNotRunWith.Where(name => explorer.Find(EntryKeys.For(Kind.Mod, name)) == null).ToArray();
+            ModRow("Will not run with", relations.WillNotRunWith, catalog);
+            var away = relations.WillNotRunWith.Where(name => catalog.Find(EntryKeys.For(Kind.Mod, name)) == null).ToArray();
             if (away.Length > 0) Add("Will not run with", string.Join(", ", away));
-            ModRow("Needs", relations.Needs, explorer);
-            ModRow("Needed by", relations.NeededBy, explorer);
-            ModRow("Works with, when there", relations.WorksWith, explorer);
-            ModRow("Works with it, when there", relations.WorkedWithBy, explorer);
+            ModRow("Needs", relations.Needs, catalog);
+            ModRow("Needed by", relations.NeededBy, catalog);
+            ModRow("Works with, when there", relations.WorksWith, catalog);
+            ModRow("Works with it, when there", relations.WorkedWithBy, catalog);
 
-            var summary = ModReportReader.Of(explorer.Catalog).FirstOrDefault(m => m.Mod == mod.Name);
+            var summary = ModReportReader.Of(catalog.All).FirstOrDefault(m => m.Mod == mod.Name);
             if (summary == null)
             {
                 Add("Adds", "nothing Scry can see, and it hooks into none of what Scry tells");
@@ -50,7 +50,7 @@ namespace Scry
 
             // What it adds, a row for each kind, in the tabs' order; what only clues match to it
             // in a row of its own, as Scry's best guess.
-            foreach (var kind in explorer.Catalog.Where(e => e.ModName == mod.Name && e.Kind != Kind.Mod).GroupBy(e => e.Kind).OrderBy(g => (int)g.Key))
+            foreach (var kind in catalog.All.Where(e => e.ModName == mod.Name && e.Kind != Kind.Mod).GroupBy(e => e.Kind).OrderBy(g => (int)g.Key))
             {
                 var label = Kinds.Label(kind.Key).ToLowerInvariant();
                 var sure = kind.Where(e => UnsureWords.IsSureClue(e.ModClue)).ToList();
@@ -59,20 +59,20 @@ namespace Scry
                 if (guessed.Count > 0) Rows.Add(ChipRow($"Adds {label}, matched by clues ({Numbers.Count(guessed.Count)})", guessed, "Scry matched these to this mod by the scripts they carry or the assets they use; the mod does not say so itself"));
             }
 
-            GapRow("Stations nothing is made or built at", summary.IdleStations, explorer);
-            GapRow("Items with no source Scry can see", summary.Sourceless, explorer);
-            GapRow("Creatures that spawn nowhere Scry can see", summary.Unspawned, explorer);
-            GapRow("Pieces in no build menu", summary.Unbuilt, explorer);
+            GapRow("Stations nothing is made or built at", summary.IdleStations, catalog);
+            GapRow("Items with no source Scry can see", summary.Sourceless, catalog);
+            GapRow("Creatures that spawn nowhere Scry can see", summary.Unspawned, catalog);
+            GapRow("Pieces in no build menu", summary.Unbuilt, catalog);
         }
 
         /// <summary>A row of other mods, each going to its page.</summary>
-        private void ModRow(string title, List<string> mods, Explorer explorer)
+        private void ModRow(string title, List<string> mods, EntryCatalog catalog)
         {
             if (mods == null || mods.Count == 0) return;
             var row = new Row { Title = $"{title} ({Numbers.Count(mods.Count)})" };
             foreach (var name in mods)
             {
-                var entry = explorer.Find(EntryKeys.For(Kind.Mod, name));
+                var entry = catalog.Find(EntryKeys.For(Kind.Mod, name));
                 if (entry != null) row.Items.Add(EntryChip(entry));
             }
             if (row.Items.Count > 0) Rows.Add(row);
@@ -87,13 +87,13 @@ namespace Scry
         }
 
         /// <summary>A row of what Scry could not place, each going to its entry: Scry found nothing, which may yet be there.</summary>
-        private void GapRow(string title, List<ModEntry> entries, Explorer explorer)
+        private void GapRow(string title, List<ModEntry> entries, EntryCatalog catalog)
         {
             if (entries.Count == 0) return;
             var row = new Row { Title = $"{title} ({Numbers.Count(entries.Count)})", Unsure = "Scry found nothing for these; the mod's own code may still place them" };
             foreach (var one in entries)
             {
-                var entry = explorer.Find(one.Key);
+                var entry = catalog.Find(one.Key);
                 if (entry != null) row.Items.Add(EntryChip(entry));
             }
             if (row.Items.Count > 0) Rows.Add(row);

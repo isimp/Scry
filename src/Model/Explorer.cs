@@ -10,6 +10,7 @@ namespace Scry
     /// </summary>
     internal sealed class Explorer
     {
+        private readonly EntryCatalog _entries;
         private readonly IReadOnlyList<Entry> _catalog;
         private readonly Favourites _favourites;
         private readonly Modifiers _modifiers = new Modifiers();
@@ -24,17 +25,18 @@ namespace Scry
 
         public Explorer(IReadOnlyList<Entry> catalog, Favourites favourites)
         {
+            _entries = new EntryCatalog(catalog);
             _catalog = catalog;
             _favourites = favourites;
-            foreach (var entry in catalog) if (!_byKey.ContainsKey(entry.Key)) _byKey[entry.Key] = entry;
+            _entries.Regrouped += Refresh;
             Refresh();
         }
 
-        /// <summary>Every entry by its key, the first in the catalog where several share one.</summary>
-        private readonly Dictionary<string, Entry> _byKey = new Dictionary<string, Entry>(StringComparer.Ordinal);
+        /// <summary>The catalog the explorer shows, which what reads the world shares (it lists again when the catalog's groups change).</summary>
+        public EntryCatalog Entries => _entries;
 
         /// <summary>The entry kept under a key (<see cref="EntryKeys"/>), the first in the catalog where several are; null for none.</summary>
-        public Entry Find(string key) => key != null && _byKey.TryGetValue(key, out var entry) ? entry : null;
+        public Entry Find(string key) => _entries.Find(key);
 
         public IReadOnlyList<Entry> Catalog => _catalog;
         public Favourites Favourites => _favourites;
@@ -358,9 +360,6 @@ namespace Scry
             _favourites.Toggle(entry);
             if (_query.FavouritesOnly) Refresh();
         }
-
-        /// <summary>Lists the results again after entries changed their groups (what the locations were found to hold).</summary>
-        public void Regrouped() => Refresh();
 
         /// <summary>
         /// The results by their groups, the groups in their order and then by name, within a group

@@ -187,7 +187,7 @@ namespace Scry
             // The pieces built near it, as each piece says "Built near" it: found in the catalog,
             // which knows each piece's station already, rather than in every prefab of the game.
             var built = new Row { Title = "Built near it" };
-            var catalog = Session.Explorer?.Catalog;
+            var catalog = WorldCatalog.Current?.All;
             if (catalog != null)
             {
                 foreach (var entry in catalog)

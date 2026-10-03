@@ -106,7 +106,7 @@ namespace Scry
             // under the first, and named here for both.
             if (_entry != null && _entry.FoundIn.Length > 0)
             {
-                var catalog = Session.Explorer?.Catalog;
+                var catalog = WorldCatalog.Current?.All;
                 var row = new Row { Title = "Built into" };
                 foreach (var label in _entry.FoundIn)
                 {
@@ -167,7 +167,7 @@ namespace Scry
         /// <summary>A location's name as its entry shows it, by its prefab name.</summary>
         private static string PlaceName(string prefab)
         {
-            var entry = Session.Explorer?.Find(EntryKeys.For(Kind.Location, prefab));
+            var entry = WorldCatalog.Find(EntryKeys.For(Kind.Location, prefab));
             return entry != null ? entry.ShownName : prefab;
         }
 
@@ -249,7 +249,7 @@ namespace Scry
         /// <summary>The room entries of the kinds a dungeon is built of, entrances first, then rooms, then end caps.</summary>
         public static List<Entry> RoomsOf(int themes)
         {
-            var catalog = Session.Explorer?.Catalog;
+            var catalog = WorldCatalog.Current?.All;
             if (catalog == null || themes == 0) return new List<Entry>();
             int Order(PlaceSource p) => p.Contents?.Room == null ? 1 : p.Contents.Room.Entrance ? 0 : p.Contents.Room.EndCap ? 2 : 1;
             return catalog

@@ -146,7 +146,7 @@ namespace Scry
             return copy;
         }
 
-        private static Entry EntryOf(string key) => Session.Explorer?.Find(key);
+        private static Entry EntryOf(string key) => WorldCatalog.Find(key);
 
         /// <summary>
         /// With a floor's cut laid, a creature standing above it, on a floor above, is cut away
