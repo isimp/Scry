@@ -271,7 +271,7 @@ namespace Scry
             // worker thread started here, and taken up here once done, rather than on a keystroke.
             if (ReferenceEquals(explorer, _prepared))
             {
-                if ((_terms == null || !ReferenceEquals(_termsFor, explorer) || _termsAt != Locations.Now) && Locations.Now != Locations.State.Reading) TermsFor(explorer);
+                if (!Assist.HasTermsFor(explorer) && Locations.Now != Locations.State.Reading) Assist.TermsFor(explorer);
                 return;
             }
             if (!ReferenceEquals(explorer, _preparing))
@@ -284,7 +284,7 @@ namespace Scry
                 case 0: InCatalog(explorer, ""); break;
                 case 1: KindOf(explorer, "-"); break;
                 case 2: ShownName(explorer, "-", ""); break;
-                case 3: TermsFor(explorer); break;
+                case 3: Assist.TermsFor(explorer); break;
                 default: _prepared = explorer; break;
             }
         }

@@ -193,16 +193,7 @@ namespace Scry
 
             // The search help's index holds the whole catalog.
             MemberKeys.Clear();
-            _terms = null;
-            _termsFor = null;
-            _termsJob = null;
-            _jobFor = null;
-            _suggestFor = null;
-            _suggested = new List<Suggestion>();
-            _dropShown = false;
-            _dropList = new List<Suggestion>();
-            _caretTo = -1;
-            Cycle.Reset();
+            Assist.Forget();
         }
 
         /// <summary>How many times the open panel has been drawn this session.</summary>
@@ -475,7 +466,7 @@ namespace Scry
             Footer(new Rect(pad, h - pad - footerH + U(6f), w - pad * 2f, footerH));
 
             // Over everything below the search box; its clicks were taken before any of it drew.
-            DrawSuggestions();
+            Assist.Draw();
             DrawOutList(explorer);
 
             // Resize grip in the corner.
@@ -668,7 +659,7 @@ namespace Scry
 
         private static void Search(Explorer explorer, Rect rect)
         {
-            SearchPicks(explorer);
+            Assist.Picks(explorer);
             var e = Event.current;
             var hasText = !string.IsNullOrEmpty(explorer.Text);
             var clear = new Rect(rect.xMax - U(32f), rect.y + (rect.height - U(24f)) / 2f, U(24f), U(24f));
@@ -699,7 +690,7 @@ namespace Scry
             }
 
             // After the typed text is taken: what Tab puts in must not be undone by it.
-            SearchTab(explorer);
+            Assist.Tab(explorer);
             hasText = !string.IsNullOrEmpty(explorer.Text);
 
             if (!hasText)
@@ -718,7 +709,7 @@ namespace Scry
                 if (hover) AskTip("clear-search", "Clear the search");
             }
 
-            SearchSuggestions(explorer, rect);
+            Assist.Suggestions(explorer, rect);
 
             if (_focusSearch && Event.current.type == EventType.Repaint)
             {

@@ -28,7 +28,7 @@ namespace Scry
                     if (Typing)
                     {
                         GUIUtility.keyboardControl = 0;
-                        Cycle.Reset();
+                        Assist.ResetCycle();
                     }
                     else Session.Hide();
                     e.Use();
@@ -59,7 +59,7 @@ namespace Scry
                     // or shows the selection.
                     if (FocusedFilter == EffectControl) PlayFirstEffect();
                     else if (FocusedFilter == ClipControl) PlayFirstClip();
-                    else if (!TakeSuggestion(explorer)) Primary(explorer.Selected);
+                    else if (!Assist.TakeEnter(explorer)) Primary(explorer.Selected);
                     e.Use();
                     break;
                 case KeyCode.F:
