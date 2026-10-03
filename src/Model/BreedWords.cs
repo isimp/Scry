@@ -44,11 +44,11 @@ namespace Scry
             return line;
         }
 
-        /// <summary>Each of several weights as a whole percent of them all.</summary>
-        public static int[] Shares(float[] weights)
+        /// <summary>Each of several weights as its share of them all, in the words every share is told in (<see cref="DropWords.Share"/>).</summary>
+        public static string[] Shares(float[] weights)
         {
             var total = weights.Sum();
-            return weights.Select(w => total > 0f ? (int)Math.Round(w / total * 100f, MidpointRounding.AwayFromZero) : 0).ToArray();
+            return weights.Select(w => DropWords.Share(total > 0f ? w / total : 0f)).ToArray();
         }
     }
 

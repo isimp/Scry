@@ -232,7 +232,7 @@ namespace Scry
             if (grown.Count > 1)
             {
                 var shares = BreedWords.Shares(grow.m_altGrownPrefabs.Where(a => a?.m_prefab != null).GroupBy(a => a.m_prefab).Select(g => g.Sum(a => a.m_weight)).ToArray());
-                for (var i = 0; i < grown.Count; i++) row.Items.Add(Chip(grown[i].name, shares[i] + "%"));
+                for (var i = 0; i < grown.Count; i++) row.Items.Add(Chip(grown[i].name, shares[i]));
             }
             else row.Items.Add(Chip(grown[0].name, ""));
             Rows.Add(row);

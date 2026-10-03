@@ -45,9 +45,10 @@ namespace Scry.Tests
         [Fact]
         public void AYoungOneGrowsIntoOneOfItsKindsByWeight()
         {
-            Assert.Equal(new[] { 75, 25 }, BreedWords.Shares(new[] { 3f, 1f }));
-            Assert.Equal(new[] { 100 }, BreedWords.Shares(new[] { 2f }));
-            Assert.Equal(new[] { 0, 0 }, BreedWords.Shares(new[] { 0f, 0f }));
+            Assert.Equal(new[] { "75%", "25%" }, BreedWords.Shares(new[] { 3f, 1f }));
+            Assert.Equal(new[] { "100%" }, BreedWords.Shares(new[] { 2f }));
+            Assert.Equal(new[] { "0%", "0%" }, BreedWords.Shares(new[] { 0f, 0f }));
+            Assert.Equal(new[] { "over 99.9%", "under 0.1%" }, BreedWords.Shares(new[] { 9999f, 0.1f }));
         }
 
         // An egg hatches (EggGrow.CanGrow) only lying on its own, and as it asks, by a fire and

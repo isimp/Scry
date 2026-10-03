@@ -74,6 +74,8 @@ namespace Scry.Tests
             // SpawnArea.SelectWeightedPrefab picks by weight among all of the pool.
             Assert.Equal("71% of the spawns, up to 2 stars", SpawnWords.PoolShare(5f, 7f, 1, 3));
             Assert.Equal("14% of the spawns, no stars", SpawnWords.PoolShare(1f, 7f, 1, 1));
+            // A rare share keeps its decimal, as every share is told.
+            Assert.Equal("0.4% of the spawns, no stars", SpawnWords.PoolShare(1f, 250f, 1, 1));
         }
 
         [Fact]

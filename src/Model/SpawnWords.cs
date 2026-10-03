@@ -122,7 +122,7 @@ namespace Scry
         /// </summary>
         public static string PoolShare(float weight, float totalWeight, int minLevel, int maxLevel)
         {
-            var share = weight < totalWeight ? $"{Math.Round(weight / totalWeight * 100f):0}% of the spawns" : "every spawn";
+            var share = weight < totalWeight ? DropWords.Share(weight / totalWeight) + " of the spawns" : "every spawn";
             return share + ", " + Stars(minLevel, maxLevel);
         }
 

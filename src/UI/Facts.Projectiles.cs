@@ -52,7 +52,7 @@ namespace Scry
             if (projectile.m_respawnItemOnHit) Add("Leaves", "the weapon that threw it, where it lands");
             if (projectile.m_spawnOnHit != null && projectile.m_spawnOnHitChance < 1f)
             {
-                Add("Spawns on hit", $"{Mathf.RoundToInt(projectile.m_spawnOnHitChance * 100f)}% of the time");
+                Add("Spawns on hit", DropWords.Share(projectile.m_spawnOnHitChance) + " of the time");
             }
         }
     }
