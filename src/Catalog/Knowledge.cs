@@ -16,6 +16,9 @@ namespace Scry
         /// <summary>How often it gives the thing, from 0 to 1, for telling the surest first (<see cref="ContentOrder.SurestFirst{T}"/>).</summary>
         public double Chance;
 
+        /// <summary>The figures the line was told from, where it tells a way something gives a thing; null for other lines.</summary>
+        public SourceFacts Record;
+
         public Source(string text, string prefab, string unsure = null, double chance = 1.0)
         {
             Text = text;
@@ -495,5 +498,17 @@ namespace Scry
             if (!lines.TryGetValue(item.name, out var list)) lines[item.name] = list = new List<Source>();
             list.Add(new Source(line, target, chance: chance));
         }
+
+        /// <summary>A way something gives a thing, kept to be put together later.</summary>
+        private static void Keep(Dictionary<string, List<Source>> lines, GameObject item, SourceFacts facts)
+        {
+            if (item == null) return;
+            if (!lines.TryGetValue(item.name, out var list)) lines[item.name] = list = new List<Source>();
+            list.Add(Told(facts));
+        }
+
+        /// <summary>A way something gives a thing as its line, going to what gives it, with how sure it is (<see cref="SourceWords"/>).</summary>
+        private static Source Told(SourceFacts facts) =>
+            new Source(SourceWords.Line(facts, BossOf), facts.Giver, chance: SourceWords.Sureness(facts)) { Record = facts };
     }
 }

@@ -12,11 +12,14 @@ namespace Scry
     {
         // ----- Where things live -----
 
-        private static void Add(string prefab, string line, string target = null, double chance = 1.0)
+        private static void Add(string prefab, string line, string target = null, double chance = 1.0) => Add(prefab, new Source(line, target, chance: chance));
+
+        /// <summary>Where a thing lives or comes from, each line once.</summary>
+        private static void Add(string prefab, Source line)
         {
             if (string.IsNullOrEmpty(prefab)) return;
             if (!Where.TryGetValue(prefab, out var lines)) Where[prefab] = lines = new List<Source>();
-            if (!lines.Exists(l => l.Text == line)) lines.Add(new Source(line, target, chance: chance));
+            if (!lines.Exists(l => l.Text == line.Text)) lines.Add(line);
         }
 
         /// <summary>
@@ -27,11 +30,11 @@ namespace Scry
         /// </summary>
         private static void Breeding(GameObject prefab, List<Component> components)
         {
-            void Born(GameObject young, string line)
+            void Born(GameObject young, SourceFacts from)
             {
                 if (young == null) return;
-                if (young.GetComponent<ItemDrop>() != null) Keep(DropLines, young, line, prefab.name);
-                else Add(young.name, line, prefab.name);
+                if (young.GetComponent<ItemDrop>() != null) Keep(DropLines, young, from);
+                else Add(young.name, Told(from));
             }
 
             foreach (var component in components)
@@ -39,14 +42,14 @@ namespace Scry
                 switch (component)
                 {
                     case Procreation breed:
-                        Born(breed.m_offspring, $"Born to a tame {Shown(prefab)}");
-                        Born(breed.m_noPartnerOffspring, $"Born to a tame {Shown(prefab)} with no partner near");
+                        Born(breed.m_offspring, SourceFacts.Of(SourceWay.Born, prefab.name, Shown(prefab)));
+                        Born(breed.m_noPartnerOffspring, SourceFacts.BornAlone(prefab.name, Shown(prefab)));
                         break;
                     case Growup grow:
-                        foreach (var grown in GrownOf(grow)) Add(grown.name, $"Grows up from {Shown(prefab)}", prefab.name);
+                        foreach (var grown in GrownOf(grow)) Add(grown.name, Told(SourceFacts.Of(SourceWay.GrowsUp, prefab.name, Shown(prefab))));
                         break;
                     case EggGrow egg when egg.m_grownPrefab != null:
-                        Add(egg.m_grownPrefab.name, $"Hatches from {Shown(prefab)}", prefab.name);
+                        Add(egg.m_grownPrefab.name, Told(SourceFacts.Of(SourceWay.Hatches, prefab.name, Shown(prefab))));
                         break;
                 }
             }
@@ -355,38 +358,34 @@ namespace Scry
                     foreach (var drop in drops.m_drops)
                     {
                         if (drop?.m_prefab == null) continue;
-                        var amount = DropWords.CreatureDrop(drop.m_amountMin, drop.m_amountMax, drop.m_onePerPlayer, drop.m_chance);
-                        Keep(DropLines, drop.m_prefab, $"Dropped by {Shown(prefab)}, {amount}", prefab.name, Mathf.Clamp01(drop.m_chance));
+                        Keep(DropLines, drop.m_prefab, SourceFacts.Dropped(prefab.name, Shown(prefab), drop.m_amountMin, drop.m_amountMax, drop.m_onePerPlayer, drop.m_chance));
                     }
                     continue;
                 }
 
                 if (component is Pickable pickable)
                 {
-                    Keep(DropLines, pickable.m_itemPrefab, $"Picked from {Shown(prefab)}", prefab.name);
+                    Keep(DropLines, pickable.m_itemPrefab, SourceFacts.Of(SourceWay.Picked, prefab.name, Shown(prefab)));
                 }
 
                 // A sapling or seedling tells what it grows into; what grows tells where from.
                 if (component is Plant plant && plant.m_grownPrefabs != null)
                 {
-                    foreach (var grown in plant.m_grownPrefabs) Keep(DropLines, grown, $"Grows from {Shown(prefab)}", prefab.name);
+                    foreach (var grown in plant.m_grownPrefabs) Keep(DropLines, grown, SourceFacts.Of(SourceWay.GrowsFrom, prefab.name, Shown(prefab)));
                 }
 
                 var tables = DropTables(component.GetType());
                 if (tables.Length == 0) continue;
-                string shown = null;
+                var of = TableOfPart(component);
                 foreach (var field in tables)
                 {
                     if (!(field.GetValue(component) is DropTable table) || table.m_drops == null) continue;
-                    shown = shown ?? $"{FromVerb(component)} {Shown(prefab)}";
                     var info = new DropTableInfo { Min = table.m_dropMin, Max = table.m_dropMax, Chance = table.m_dropChance, OneOfEach = table.m_oneOfEach };
                     foreach (var data in table.m_drops) if (data.m_item != null) info.Drops.Add(new DropInfo(data.m_item.name, data.m_stackMin, data.m_stackMax, data.m_weight));
-                    var weights = info.Drops.Sum(d => d.Weight);
                     foreach (var data in table.m_drops)
                     {
                         if (data.m_item == null) continue;
-                        var sure = ContentOrder.AtLeastOnce(weights > 0f ? data.m_weight / weights : 0.0, info.Min, info.Max, info.Chance, info.OneOfEach, info.Drops.Count);
-                        Keep(DropLines, data.m_item, $"{shown}, {DropWords.ForItem(info, new DropInfo(data.m_item.name, data.m_stackMin, data.m_stackMax, data.m_weight))}", prefab.name, sure);
+                        Keep(DropLines, data.m_item, SourceFacts.FromTable(prefab.name, Shown(prefab), of, info, new DropInfo(data.m_item.name, data.m_stackMin, data.m_stackMax, data.m_weight)));
                     }
                 }
             }
@@ -425,12 +424,11 @@ namespace Scry
                 // Producers make an item by themselves over time, up to what they hold.
                 if (component is Beehive hive && hive.m_honeyItem != null)
                 {
-                    var biomes = hive.m_biome != 0 ? $", in {BiomeNames(hive.m_biome)}" : "";
-                    Keep(DropLines, hive.m_honeyItem.gameObject, $"Made by {Shown(prefab)}, one every {Naming.Duration(hive.m_secPerUnit)}, holding up to {hive.m_maxHoney}{biomes}", prefab.name);
+                    Keep(DropLines, hive.m_honeyItem.gameObject, SourceFacts.Made(prefab.name, Shown(prefab), hive.m_secPerUnit, hive.m_maxHoney, hive.m_biome != 0 ? BiomeNames(hive.m_biome) : ""));
                 }
                 if (component is SapCollector tap && tap.m_spawnItem != null)
                 {
-                    Keep(DropLines, tap.m_spawnItem.gameObject, $"Made by {Shown(prefab)}, one every {Naming.Duration(tap.m_secPerUnit)}, holding up to {tap.m_maxLevel}", prefab.name);
+                    Keep(DropLines, tap.m_spawnItem.gameObject, SourceFacts.Made(prefab.name, Shown(prefab), tap.m_secPerUnit, tap.m_maxLevel, ""));
                 }
 
                 // The obliterator: each conversion takes all or any one of its items, and whatever
@@ -458,22 +456,22 @@ namespace Scry
         }
 
         /// <summary>
-        /// How an item comes out of a drop table, in the words the other side's facts use: a tree
-        /// "When felled", a rock "Each piece drops", a chest "Holds", a bush "Also", anything
-        /// broken "When broken"; a mod's own part, plainly.
+        /// What a drop table belongs to, which says how an item comes out of it in the words the
+        /// other side's facts use (<see cref="SourceWords.Verb"/>): a tree felled, a log chopped, a
+        /// rock mined, a chest found in, a bush picked, anything broken; a mod's own part, plainly.
         /// </summary>
-        private static string FromVerb(Component component)
+        private static TableOf TableOfPart(Component component)
         {
             switch (component)
             {
-                case TreeBase _: return "Felled from";
-                case TreeLog _: return "Chopped from";
+                case TreeBase _: return TableOf.Tree;
+                case TreeLog _: return TableOf.Log;
                 case MineRock _:
-                case MineRock5 _: return "Mined from";
-                case Container _: return "Found in";
-                case Pickable _: return "Also picked from";
-                case DropOnDestroyed _: return "Broken out of";
-                default: return "Comes out of";
+                case MineRock5 _: return TableOf.Rock;
+                case Container _: return TableOf.Container;
+                case Pickable _: return TableOf.Pickable;
+                case DropOnDestroyed _: return TableOf.Broken;
+                default: return TableOf.Other;
             }
         }
 
@@ -490,9 +488,7 @@ namespace Scry
                 foreach (var trade in trader.m_items)
                 {
                     if (trade?.m_prefab == null) continue;
-                    var stack = trade.m_stack > 1 ? $"{trade.m_stack} for " : "";
-                    var key = string.IsNullOrEmpty(trade.m_requiredGlobalKey) ? "" : ", " + SpawnWords.Once(trade.m_requiredGlobalKey, BossOf);
-                    From(trade.m_prefab.gameObject.name, new Source($"Sold by {name}, {stack}{trade.m_price} coins{key}", self));
+                    From(trade.m_prefab.gameObject.name, Told(SourceFacts.Sold(self, name, trade.m_stack, trade.m_price, trade.m_requiredGlobalKey)));
                     Unlocks.Add(trade.m_requiredGlobalKey, Unlock.Sells, trade.m_prefab.gameObject.name);
                 }
             });
