@@ -355,9 +355,8 @@ namespace Scry
                     foreach (var drop in drops.m_drops)
                     {
                         if (drop?.m_prefab == null) continue;
-                        var amount = DropWords.CreatureAmount(drop.m_amountMin, drop.m_amountMax, drop.m_onePerPlayer);
-                        var chance = drop.m_chance < 1f ? $" ({Mathf.RoundToInt(drop.m_chance * 100f)}%)" : "";
-                        Keep(DropLines, drop.m_prefab, $"Dropped by {Shown(prefab)}, {amount}{chance}", prefab.name, Mathf.Clamp01(drop.m_chance));
+                        var amount = DropWords.CreatureDrop(drop.m_amountMin, drop.m_amountMax, drop.m_onePerPlayer, drop.m_chance);
+                        Keep(DropLines, drop.m_prefab, $"Dropped by {Shown(prefab)}, {amount}", prefab.name, Mathf.Clamp01(drop.m_chance));
                     }
                     continue;
                 }

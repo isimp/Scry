@@ -133,6 +133,17 @@ namespace Scry.Tests
             Assert.Null(DropWords.StarDrops(0, new string[0]));
         }
 
+        [Theory]
+        [InlineData(1f, "1")]
+        [InlineData(0.5f, "1 (50%)")]
+        [InlineData(0.004f, "1 (0.4%)")]
+        [InlineData(0.0004f, "1 (under 0.1%)")]
+        public void ACreaturesDropTellsItsChanceAsEveryShareIsTold(float chance, string told)
+        {
+            // A rare drop keeps its decimal rather than reading as 0%, as every other share does.
+            Assert.Equal(told, DropWords.CreatureDrop(1, 2, false, chance));
+        }
+
         [Fact]
         public void ADropForEachPlayerSaysSo()
         {

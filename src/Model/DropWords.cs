@@ -128,6 +128,13 @@ namespace Scry
             onePerPlayer ? "1 per player" : Range(min, max - 1);
 
         /// <summary>
+        /// A creature's drop as its chip and its line tell it: how many, and how often where it is
+        /// not sure, in the words every share is told in (<see cref="Share"/>).
+        /// </summary>
+        public static string CreatureDrop(int min, int max, bool onePerPlayer, float chance) =>
+            CreatureAmount(min, max, onePerPlayer) + (chance < 1f ? $" ({Share(chance)})" : "");
+
+        /// <summary>
         /// What stars do to a creature's drops: <c>CharacterDrop.GenerateDropList</c> multiplies
         /// the chance and the amount of each drop with <c>m_levelMultiplier</c> by 2 to the power
         /// of its stars; those without it, named, stay the same. Null without stars.

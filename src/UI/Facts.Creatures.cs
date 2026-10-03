@@ -69,8 +69,7 @@ namespace Scry
                 var row = new Row { Title = "Drops" };
                 foreach (var drop in ContentOrder.RarestFirst(drops.m_drops.Where(d => d?.m_prefab != null), d => d.m_chance))
                 {
-                    var amount = DropWords.CreatureAmount(drop.m_amountMin, drop.m_amountMax, drop.m_onePerPlayer);
-                    if (drop.m_chance < 1f) amount += $" ({Mathf.RoundToInt(drop.m_chance * 100f)}%)";
+                    var amount = DropWords.CreatureDrop(drop.m_amountMin, drop.m_amountMax, drop.m_onePerPlayer, drop.m_chance);
                     row.Items.Add(new Ingredient { Icon = Icon(drop.m_prefab), Name = ItemName(drop.m_prefab), Amount = amount, Prefab = drop.m_prefab.name });
                 }
                 // A boss's trophy gives its Forsaken power on its boss stone.
