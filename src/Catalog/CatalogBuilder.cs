@@ -80,45 +80,27 @@ namespace Scry
             if (user.StartsWith("se:", StringComparison.Ordinal)) return;
 
             components.Clear();
-            try
-            {
-                prefab.GetComponentsInChildren(true, components);
-            }
-            catch (Exception ex)
-            {
-                Faults.Skip("effects of what prefabs spawn", prefab.name, ex);
-                return;
-            }
+            if (!Guard.Each("effects of what prefabs spawn", prefab.name, () => prefab.GetComponentsInChildren(true, components))) return;
             var origin = Origins.Prefabs.Of(user);
             foreach (var component in components)
             {
                 if (component == null) continue;
-                try
+                Guard.Each("effects of what prefabs spawn", prefab.name, () =>
                 {
                     Gather(component, user, origin, effects, user, user, helper.Part);
-                }
-                catch (Exception ex)
-                {
-                    Faults.Skip("effects of what prefabs spawn", prefab.name, ex);
-                }
+                });
             }
         }
 
         private static void MakeEntry(List<Entry> entries, string name, Found found, Dictionary<string, Found> effects, bool registeredOrigin)
         {
             var started = CatalogTiming.Start();
-            try
+            Guard.Each("entries", name, () =>
             {
                 entries.Add(ToEntry(name, found, effects, registeredOrigin));
-            }
-            catch (Exception ex)
-            {
-                Failed("entry", name, ex);
-            }
+            });
             CatalogTiming.Add("entries", started);
         }
-
-        private static readonly HashSet<string> FailedKinds = new HashSet<string>();
 
         /// <summary>
         /// Lets go of what was read for the catalog of a world that was left: it points at that
@@ -127,22 +109,6 @@ namespace Scry
         public static void Forget()
         {
             _recipes = null;
-            FailedKinds.Clear();
-        }
-
-        /// <summary>Something left out of the catalog, told once for each kind of failure.</summary>
-        private static void Failed(string what, string name, Exception ex)
-        {
-            // An entry left out for a game change is told as that; anything else once for its kind.
-            if (Trouble.IsGameChange(ex))
-            {
-                Faults.Skip(what + " entries", name, ex);
-                return;
-            }
-            if (FailedKinds.Add(what + "|" + ex.GetType().Name + "|" + ex.Message))
-            {
-                Plugin.Log.LogWarning($"Scry leaves the {what} {name} out of its catalog (said once for this kind of failure): {ex}");
-            }
         }
 
         /// <summary>
@@ -158,7 +124,7 @@ namespace Scry
             foreach (var raid in events)
             {
                 if (raid == null || string.IsNullOrEmpty(raid.m_name) || !raid.m_enabled || !seen.Add(raid.m_name)) continue;
-                try
+                Guard.Each("raid entries", raid.m_name, () =>
                 {
                     var shown = Localize(raid.m_startMessage);
                     var boss = Knowledge.BossOfEvent(raid.m_name);
@@ -177,11 +143,7 @@ namespace Scry
                         Components = new[] { raid.GetType().Name },
                         Biomes = RaidGrouping.Biomes(RaidGrouping.Role(raid.m_random, raid.m_standaloneInterval, boss != null), Knowledge.BiomeKeys(raid.m_biome), Knowledge.EveryBiomeKey),
                     });
-                }
-                catch (Exception ex)
-                {
-                    Failed("raid", raid.m_name, ex);
-                }
+                });
             }
         }
 
@@ -242,11 +204,9 @@ namespace Scry
             {
                 var name = info?.Metadata?.Name;
                 if (string.IsNullOrEmpty(name)) continue;
-                try
+                Guard.Each("mod entries", name, () =>
                 {
-                    var folder = "";
-                    try { folder = System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(info.Location) ?? ""); }
-                    catch (Exception) { /* no folder to tell */ }
+                    if (!Guard.Each("mods' folders", name, () => System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(info.Location) ?? ""), out var folder)) folder = "";
                     var source = new ModSource { Name = name, Version = info.Metadata.Version?.ToString() ?? "", Guid = info.Metadata.GUID ?? "", Folder = folder };
                     var facts = new ModFacts { Name = name, Guid = source.Guid };
                     if (info.Dependencies != null)
@@ -288,11 +248,7 @@ namespace Scry
                     };
                     entries.Add(entry);
                     mods.Add((entry, facts));
-                }
-                catch (Exception ex)
-                {
-                    Failed("mod", name, ex);
-                }
+                });
             }
 
             var links = ModLinks.Of(mods.Select(m => m.Facts));
@@ -340,19 +296,11 @@ namespace Scry
             {
                 // Its looks are read off the prefab when it is first selected, not for every prefab here.
                 var prefab = found.Prefab;
-                entry.LooksFrom(() =>
+                entry.LooksFrom(() => Guard.Each("looks", name, () =>
                 {
-                    try
-                    {
-                        var names = Variants.Of(prefab, out var look);
-                        return (names, look);
-                    }
-                    catch (Exception ex)
-                    {
-                        Plugin.Log.LogWarning($"Scry could not work out the looks of {name}, and offers none: {ex.Message}");
-                        throw;
-                    }
-                });
+                    var names = Variants.Of(prefab, out var look);
+                    return (names, look);
+                }, out var read) ? read : (new string[0], 0));
                 entry.Stations = StationsOf(found.Prefab);
             }
 
@@ -424,14 +372,9 @@ namespace Scry
             var traits = new PrefabTraits();
             found.Traits = traits;
 
-            try
-            {
-                found.Prefab.GetComponentsInChildren(true, components);
-            }
-            catch (Exception ex)
+            if (!Guard.Each("effect lists", owner, () => found.Prefab.GetComponentsInChildren(true, components)))
             {
                 components.Clear();
-                Faults.Skip("effect lists", owner, ex);
                 return;
             }
 
@@ -440,7 +383,7 @@ namespace Scry
                 // A missing script shows up as a null component.
                 if (component == null) continue;
 
-                try
+                Guard.Each("effect lists", owner, () =>
                 {
                     Note(component, found, traits);
                     found.Components.Add(component.GetType().Name);
@@ -467,11 +410,7 @@ namespace Scry
                         if (shared.m_attack != null) Gather(shared.m_attack, owner, ownerOrigin, effects, owner, owner, "Attack");
                         if (shared.m_secondaryAttack != null) Gather(shared.m_secondaryAttack, owner, ownerOrigin, effects, owner, owner, "Second attack");
                     }
-                }
-                catch (Exception ex)
-                {
-                    Faults.Skip("effect lists", owner, ex);
-                }
+                });
             }
         }
 
@@ -619,7 +558,7 @@ namespace Scry
             }
 
             if (prefab == null) return;
-            try
+            Guard.Each("what things leave behind", prefab.name, () =>
             {
                 var character = prefab.GetComponent<Character>();
                 if (character != null) Thrown(character.m_deathEffects, prefab, "remains", true);
@@ -649,11 +588,7 @@ namespace Scry
                 Thrown(prefab.GetComponent<WearNTear>()?.m_destroyedEffect, prefab, "debris", false);
                 Thrown(prefab.GetComponent<MineRock>()?.m_destroyedEffect, prefab, "debris", false);
                 Thrown(prefab.GetComponent<MineRock5>()?.m_destroyedEffect, prefab, "debris", false);
-            }
-            catch (Exception ex)
-            {
-                Faults.Skip("what things leave behind", prefab.name, ex);
-            }
+            });
         }
 
         /// <summary>
@@ -668,13 +603,8 @@ namespace Scry
             if (string.IsNullOrEmpty(token)) return "";
             if (Localized.TryGetValue(token, out var known)) return known;
 
-            string text;
-            try
-            {
-                text = Naming.Plain(Localization.instance != null ? Localization.instance.Localize(token) : token).Trim();
-                if (string.IsNullOrEmpty(text) || text.StartsWith("[", StringComparison.Ordinal) || text.StartsWith("$", StringComparison.Ordinal)) text = "";
-            }
-            catch
+            if (!Guard.Each("names in the game's language", token, () => Naming.Plain(Localization.instance != null ? Localization.instance.Localize(token) : token).Trim(), out var text)
+                || string.IsNullOrEmpty(text) || text.StartsWith("[", StringComparison.Ordinal) || text.StartsWith("$", StringComparison.Ordinal))
             {
                 text = "";
             }

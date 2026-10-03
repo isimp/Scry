@@ -61,7 +61,7 @@ namespace Scry
             _all.Start();
             var frame = System.Diagnostics.Stopwatch.StartNew();
             var done = 0;
-            try
+            var finished = Guard.Run("reading the catalog", () =>
             {
                 while (_share.MayBegin(frame.Elapsed.TotalMilliseconds, done, budgetMs))
                 {
@@ -80,11 +80,8 @@ namespace Scry
                     }
                     Progress = _steps.Current;
                 }
-            }
-            catch (Exception ex)
-            {
-                Failure = ex.ToString();
-            }
+            });
+            if (!finished) Failure = "it failed, as the log says";
             WorkMs += frame.Elapsed.TotalMilliseconds;
             Frames++;
             if (Done)

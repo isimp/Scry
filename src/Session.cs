@@ -186,15 +186,7 @@ namespace Scry
         private static bool CanToggle()
         {
             if (IsOpen) return true;
-            try
-            {
-                return GameAllowsToggle();
-            }
-            catch (Exception ex)
-            {
-                Faults.Tell("telling whether the chat, console or menu is up", ex);
-                return true;
-            }
+            return !Guard.Run("telling whether the chat, console or menu is up", GameAllowsToggle, out var allows) || allows;
         }
 
         private static bool GameAllowsToggle()

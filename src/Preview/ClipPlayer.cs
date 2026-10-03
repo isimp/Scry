@@ -217,14 +217,10 @@ namespace Scry
             {
                 if (e.time <= after) continue;
                 if (e.time > upTo) break;
-                try
+                Guard.Run($"answering the event {e.functionName} of the clip {_clip.name}", () =>
                 {
                     _ears.Answer(e);
-                }
-                catch (System.Exception ex)
-                {
-                    Faults.Tell($"answering the event {e.functionName} of the clip {_clip.name}", ex);
-                }
+                });
                 if (_ears == null || _clip == null) return;
             }
         }

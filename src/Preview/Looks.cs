@@ -17,7 +17,6 @@ namespace Scry
         private static readonly Dictionary<string, Material> LevelMaterials = new Dictionary<string, Material>();
 
         /// <summary>What went wrong dressing a copy, each told once.</summary>
-        private static readonly HashSet<string> Failed = new HashSet<string>();
 
         /// <summary>
         /// A copy of an entry in the look its modifiers ask for: grown or not, its body, its
@@ -57,18 +56,7 @@ namespace Scry
         private static void Step(GameObject prefab, string what, System.Action step)
         {
             var started = Timing.Start();
-            try
-            {
-                step();
-                if (Plugin.LogPreviews) Timing.Add("dress " + what, started);
-            }
-            catch (System.Exception ex)
-            {
-                if (Failed.Add(prefab.name + "|" + what + "|" + ex.GetType().Name + "|" + ex.Message))
-                {
-                    Plugin.Log.LogWarning($"Scry shows its copy of {prefab.name} without {what}, which failed: {ex}");
-                }
-            }
+            if (Guard.Each(what, prefab.name, step) && Plugin.LogPreviews) Timing.Add("dress " + what, started);
         }
 
         /// <summary>Show wearable items worn by a person rather than on their own.</summary>
@@ -240,7 +228,6 @@ namespace Scry
         {
             foreach (var material in LevelMaterials.Values) if (material != null) Object.Destroy(material);
             LevelMaterials.Clear();
-            Failed.Clear();
         }
 
         /// <summary>The level's material, made once per creature and level and reused after.</summary>

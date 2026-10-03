@@ -309,50 +309,46 @@ namespace Scry
         {
             var animator = job.Source;
             GameObject holder = null;
-            try
+            if (Guard.Each("probes of what animators play", job.Key, () =>
             {
-                // Drawn by nothing, heard by nothing, sending no events, touching nothing: only
-                // the animator runs. Its scripts go before it wakes, which would wake them even
-                // switched off. Particle systems are no behaviour to switch off and would play
-                // on awake, and colliders would stand unseen in the world.
-                holder = new GameObject("Scry probe");
-                holder.SetActive(false);
-                var body = Object.Instantiate(animator.gameObject, holder.transform, false);
-                foreach (var script in body.GetComponentsInChildren<MonoBehaviour>(true)) Object.DestroyImmediate(script);
-                foreach (var behaviour in body.GetComponentsInChildren<Behaviour>(true)) if (!(behaviour is Animator)) behaviour.enabled = false;
-                foreach (var renderer in body.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
-                foreach (var particles in body.GetComponentsInChildren<ParticleSystem>(true))
-                {
-                    var main = particles.main;
-                    main.playOnAwake = false;
-                    var emission = particles.emission;
-                    emission.enabled = false;
-                    particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                }
-                foreach (var collider in body.GetComponentsInChildren<Collider>(true)) collider.enabled = false;
-                foreach (var rigidbody in body.GetComponentsInChildren<Rigidbody>(true))
-                {
-                    rigidbody.isKinematic = true;
-                    rigidbody.detectCollisions = false;
-                }
-                var probe = body.GetComponent<Animator>();
-                probe.fireEvents = false;
-                probe.applyRootMotion = false;
-                probe.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-                probe.keepAnimatorStateOnDisable = true;
-                holder.SetActive(true);
-                job.Holder = holder;
-                job.Probe = probe;
-                job.Work = Work(job);
-                return true;
-            }
-            catch (System.Exception ex)
-            {
-                if (holder != null) Object.DestroyImmediate(holder);
-                Drop(job);
-                Failed(job.Key, job.Seen, ex.Message);
-                return false;
-            }
+                    // Drawn by nothing, heard by nothing, sending no events, touching nothing: only
+                    // the animator runs. Its scripts go before it wakes, which would wake them even
+                    // switched off. Particle systems are no behaviour to switch off and would play
+                    // on awake, and colliders would stand unseen in the world.
+                    holder = new GameObject("Scry probe");
+                    holder.SetActive(false);
+                    var body = Object.Instantiate(animator.gameObject, holder.transform, false);
+                    foreach (var script in body.GetComponentsInChildren<MonoBehaviour>(true)) Object.DestroyImmediate(script);
+                    foreach (var behaviour in body.GetComponentsInChildren<Behaviour>(true)) if (!(behaviour is Animator)) behaviour.enabled = false;
+                    foreach (var renderer in body.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
+                    foreach (var particles in body.GetComponentsInChildren<ParticleSystem>(true))
+                    {
+                        var main = particles.main;
+                        main.playOnAwake = false;
+                        var emission = particles.emission;
+                        emission.enabled = false;
+                        particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                    }
+                    foreach (var collider in body.GetComponentsInChildren<Collider>(true)) collider.enabled = false;
+                    foreach (var rigidbody in body.GetComponentsInChildren<Rigidbody>(true))
+                    {
+                        rigidbody.isKinematic = true;
+                        rigidbody.detectCollisions = false;
+                    }
+                    var probe = body.GetComponent<Animator>();
+                    probe.fireEvents = false;
+                    probe.applyRootMotion = false;
+                    probe.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                    probe.keepAnimatorStateOnDisable = true;
+                    holder.SetActive(true);
+                    job.Holder = holder;
+                    job.Probe = probe;
+                    job.Work = Work(job);
+            })) return true;
+            if (holder != null) Object.DestroyImmediate(holder);
+            Drop(job);
+            Failed(job.Key, job.Seen, "it failed, as the log says");
+            return false;
         }
 
         /// <summary>
@@ -394,16 +390,15 @@ namespace Scry
             var random = Random.state;
             var watch = System.Diagnostics.Stopwatch.StartNew();
             _stance = job.Stance;
-            bool more;
             string failure = null;
+            bool more;
             try
             {
-                more = job.Work.MoveNext();
-            }
-            catch (System.Exception ex)
-            {
-                failure = ex.Message;
-                more = false;
+                if (!Guard.Each("probes of what animators play", job.Key, job.Work.MoveNext, out more))
+                {
+                    failure = "it failed, as the log says";
+                    more = false;
+                }
             }
             finally
             {

@@ -286,19 +286,15 @@ namespace Scry
             foreach (var component in prefab.GetComponentsInChildren<Component>(true))
             {
                 if (component == null) continue;
-                try
+                Guard.Each("effects shown", prefab.name, () =>
                 {
-                    Collect(component, component.GetType().Name, false);
-                    var shared = (component as ItemDrop)?.m_itemData?.m_shared;
-                    if (shared == null) continue;
-                    Collect(shared, "Item", false);
-                    if (shared.m_attack != null) Collect(shared.m_attack, "Attack", true);
-                    if (shared.m_secondaryAttack != null) Collect(shared.m_secondaryAttack, "Second attack", true);
-                }
-                catch (System.Exception ex)
-                {
-                    Plugin.Log.LogDebug($"Scry could not read the effects on {prefab.name}: {ex.Message}");
-                }
+                        Collect(component, component.GetType().Name, false);
+                        var shared = (component as ItemDrop)?.m_itemData?.m_shared;
+                        if (shared == null) return;
+                        Collect(shared, "Item", false);
+                        if (shared.m_attack != null) Collect(shared.m_attack, "Attack", true);
+                        if (shared.m_secondaryAttack != null) Collect(shared.m_secondaryAttack, "Second attack", true);
+                });
             }
 
             var counts = new Dictionary<string, int>();

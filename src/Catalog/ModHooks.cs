@@ -208,25 +208,21 @@ namespace Scry
         }
 
         /// <summary>Whether a hook's own code names a member the rule is decided by (<see cref="IlShape.Names"/>).</summary>
-        private static bool Names(MethodInfo hook, Func<MemberInfo, bool> wanted)
+        private static bool Names(MethodInfo hook, Func<MemberInfo, bool> wanted) =>
+            Guard.Each("mods' hooks", hook.DeclaringType?.FullName ?? hook.Name, () => NamesIn(hook, wanted), out var names) && names;
+
+        private static bool NamesIn(MethodInfo hook, Func<MemberInfo, bool> wanted)
         {
-            try
+            var body = hook.GetMethodBody();
+            if (body == null) return false;
+            var typeArgs = hook.DeclaringType != null && hook.DeclaringType.IsGenericType ? hook.DeclaringType.GetGenericArguments() : null;
+            var methodArgs = hook.IsGenericMethod ? hook.GetGenericArguments() : null;
+            foreach (var token in IlShape.Names(body.GetILAsByteArray()))
             {
-                var body = hook.GetMethodBody();
-                if (body == null) return false;
-                var typeArgs = hook.DeclaringType != null && hook.DeclaringType.IsGenericType ? hook.DeclaringType.GetGenericArguments() : null;
-                var methodArgs = hook.IsGenericMethod ? hook.GetGenericArguments() : null;
-                foreach (var token in IlShape.Names(body.GetILAsByteArray()))
-                {
-                    MemberInfo named;
-                    try { named = hook.Module.ResolveMember(token, typeArgs, methodArgs); }
-                    catch { continue; }
-                    if (named != null && wanted(named)) return true;
-                }
-            }
-            catch (Exception ex)
-            {
-                Faults.Skip("mods' hooks", hook.DeclaringType?.FullName ?? hook.Name, ex);
+                // A token the module cannot resolve, of a type it does not load, names nothing looked for.
+                MemberInfo named = null;
+                if (Steps.Run(() => named = hook.Module.ResolveMember(token, typeArgs, methodArgs), null) != null) continue;
+                if (named != null && wanted(named)) return true;
             }
             return false;
         }

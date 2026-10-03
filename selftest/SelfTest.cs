@@ -159,16 +159,11 @@ namespace Scry
             LastAdvice = SelfTestWords.Advice(reports, "BepInEx/Scry-selftest.log");
             LastFailed = reports.Any(r => r.Result == Result.Fail);
 
-            try
-            {
-                var readHere = _before != null && _before.LocationsWere != Locations.State.Read && Locations.Now == Locations.State.Read;
-                PutBack();
-                Write("Everything the test changed has been put back" + (readHere ? ", except that the locations stay read, as Read all locations leaves them." : "."));
-            }
-            catch (Exception ex)
-            {
-                Write($"FAIL putting things back threw {ex.GetType().Name}: {ex.Message}");
-            }
+            var readHere = _before != null && _before.LocationsWere != Locations.State.Read && Locations.Now == Locations.State.Read;
+            var failure = Steps.Run(PutBack, null);
+            Write(failure != null
+                ? $"FAIL putting things back threw {failure.GetType().Name}: {failure.Message}"
+                : "Everything the test changed has been put back" + (readHere ? ", except that the locations stay read, as Read all locations leaves them." : "."));
             Timing.Measuring = null;
             _before = null;
 
@@ -183,8 +178,8 @@ namespace Scry
         private static void Write(string line)
         {
             Plugin.Log.LogInfo($"[selftest] {line}");
-            try { File.AppendAllText(ResultFile, line + Environment.NewLine); }
-            catch { /* the log above still has it */ }
+            // A line the file will not take is still in the log above.
+            Steps.Run(() => File.AppendAllText(ResultFile, line + Environment.NewLine), null);
         }
 
         // ----- What the test changes, and puts back -----

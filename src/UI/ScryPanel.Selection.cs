@@ -165,15 +165,7 @@ namespace Scry
             var started = Timing.Start();
             try
             {
-                return draw(y);
-            }
-            catch (ExitGUIException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                Faults.Tell("the panel's " + part, ex);
+                if (Guard.Run(part, () => draw(y), out var after)) return after;
                 GUI.enabled = true;
                 GUI.color = Color.white;
                 return y;

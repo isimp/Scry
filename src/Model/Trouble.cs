@@ -17,6 +17,7 @@ namespace Scry
         private readonly Dictionary<string, (int Count, string Example)> _skips = new Dictionary<string, (int, string)>(StringComparer.Ordinal);
         private readonly List<string> _order = new List<string>();
         private readonly List<string> _changed = new List<string>();
+        private readonly HashSet<string> _kinds = new HashSet<string>(StringComparer.Ordinal);
 
         /// <summary>Whether a failure means the game no longer has something Scry names, however it is wrapped.</summary>
         public static bool IsGameChange(Exception ex)
@@ -40,16 +41,21 @@ namespace Scry
             return true;
         }
 
-        /// <summary>Counts a part of one prefab left out.</summary>
-        public void Skip(string part, string prefab, Exception ex)
+        /// <summary>
+        /// Counts a part of one prefab left out; true the first time that part fails that way (the
+        /// same kind of failure with the same message), to be told in full then and only counted after.
+        /// </summary>
+        public bool Skip(string part, string prefab, Exception ex)
         {
+            var first = _kinds.Add(part + "|" + ex?.GetType().FullName + "|" + ex?.Message);
             if (_skips.TryGetValue(part, out var known))
             {
                 _skips[part] = (known.Count + 1, known.Example);
-                return;
+                return first;
             }
             _order.Add(part);
             _skips[part] = (1, $"{prefab}: {ex?.GetType().Name} {ex?.Message}".Trim());
+            return first;
         }
 
         /// <summary>A line for each part with prefabs left out: how many, and the first.</summary>
@@ -67,6 +73,7 @@ namespace Scry
         {
             _skips.Clear();
             _order.Clear();
+            _kinds.Clear();
         }
 
         public void Forget()

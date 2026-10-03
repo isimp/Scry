@@ -69,20 +69,18 @@ namespace Scry
             foreach (var step in MakeEntries(read)) yield return step;
             yield return "Pairing leftovers";
 
-            Timed("leftovers", () => Warned("Scry could not pair what things leave behind, and leaves them unpaired", () => Leftovers.Pair(read.Entries, read.Leftovers)));
+            Timed("leftovers", () => Guard.Run("pairing what things leave behind", () => Leftovers.Pair(read.Entries, read.Leftovers)));
             yield return "Linking entries";
 
             LinkBook book = null;
-            Timed("links finished", () => Warned("Scry could not link entries, and shows them without links", () => book = Relations.Finish(read.Prefabs)));
+            Timed("links finished", () => Guard.Run("linking entries", () => book = Relations.Finish(read.Prefabs)));
             yield return "Linking entries";
 
-            var linking = book == null ? null : Stepped(() => book.ApplyInSteps(read.Entries, 400), "links applied",
-                "Scry could not link entries, and shows them without links", "Scry could not link all entries, and shows some without links");
+            var linking = book == null ? null : Stepped(() => book.ApplyInSteps(read.Entries, 400), "links applied", "linking entries");
             if (linking != null) foreach (var done in linking) yield return $"Linking entries: {Numbers.Count(done)}";
 
             yield return "Grouping entries";
-            foreach (var done in Stepped(() => Grouping.Apply(read.Entries, 400), "grouping",
-                "Scry could not group entries, and lists them ungrouped", "Scry could not group all entries, and lists some ungrouped"))
+            foreach (var done in Stepped(() => Grouping.Apply(read.Entries, 400), "grouping", "grouping entries"))
             {
                 yield return $"Grouping entries: {Numbers.Count(done)}";
             }
@@ -140,7 +138,7 @@ namespace Scry
             foreach (var effect in db.m_StatusEffects)
             {
                 if (effect == null) continue;
-                try
+                Guard.Each("status effect entries", effect.name, () =>
                 {
                     var origin = Origins.StatusEffects.Of(effect.name);
                     var shown = Localize(effect.m_name);
@@ -159,11 +157,7 @@ namespace Scry
                         ModName = Knowledge.ModName(effect.name),
                         ModClue = Knowledge.ModClue(effect.name),
                     });
-                }
-                catch (Exception ex)
-                {
-                    Failed("status effect", effect.name, ex);
-                }
+                });
             }
         }
 
@@ -254,28 +248,21 @@ namespace Scry
             CatalogTiming.Add(part, started);
         }
 
-        /// <summary>A step that, should it fail, leaves its part out of the catalog and says so in the log.</summary>
-        private static void Warned(string failure, Action step)
-        {
-            var failed = Scry.Steps.Run(step, null);
-            if (failed != null) Plugin.Log.LogWarning($"{failure}: {failed}");
-        }
-
         /// <summary>
         /// A step done a piece at a time, each piece timed as a part of the catalog's reading,
-        /// handing on how far it has got; failing to begin or part way, it stops and says so.
+        /// handing on how far it has got; failing to begin or part way, it stops, told as what it was doing.
         /// </summary>
-        private static IEnumerable<int> Stepped(Func<IEnumerable<int>> begin, string part, string failedToBegin, string failedPartWay)
+        private static IEnumerable<int> Stepped(Func<IEnumerable<int>> begin, string part, string doing)
         {
             var started = CatalogTiming.Start();
             IEnumerator<int> steps = null;
-            Warned(failedToBegin, () => steps = begin().GetEnumerator());
+            Guard.Run(doing, () => steps = begin().GetEnumerator());
             CatalogTiming.Add(part, started);
             while (steps != null)
             {
                 started = CatalogTiming.Start();
                 var more = false;
-                Warned(failedPartWay, () => more = steps.MoveNext());
+                Guard.Run(doing, () => more = steps.MoveNext());
                 CatalogTiming.Add(part, started);
                 if (!more) yield break;
                 yield return steps.Current;

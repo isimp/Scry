@@ -128,16 +128,13 @@ namespace Scry
                 }
                 else
                 {
-                    try
+                    var reading = _loading;
+                    var room = Rooms[_next];
+                    if (!Guard.Each("dungeon rooms", reading.Prefab, () =>
                     {
-                        _loading.Contents = PlaceReader.Read(asset, true);
-                        Learned.About(Rooms[_next]);
-                    }
-                    catch (Exception ex)
-                    {
-                        Failed++;
-                        Faults.Skip("dungeon rooms", _loading.Prefab, ex);
-                    }
+                        reading.Contents = PlaceReader.Read(asset, true);
+                        Learned.About(room);
+                    })) Failed++;
                 }
 
                 // Kept for the stage, which is likely to want it next; let go of if it did not load.

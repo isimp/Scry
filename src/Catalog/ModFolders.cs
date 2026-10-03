@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
@@ -26,7 +27,7 @@ namespace Scry
         public static string PackageFolder(string location)
         {
             if (string.IsNullOrEmpty(location)) return null;
-            try
+            Guard.Each("mods' folders", location, () =>
             {
                 var root = Path.GetFullPath(BepInEx.Paths.PluginPath).TrimEnd('\\', '/');
                 var folder = Path.GetDirectoryName(Path.GetFullPath(location));
@@ -35,58 +36,31 @@ namespace Scry
                     if (File.Exists(Path.Combine(folder, "manifest.json"))) return folder;
                     folder = Path.GetDirectoryName(folder);
                 }
-            }
-            catch (Exception ex)
-            {
-                Faults.Skip("mods' folders", location, ex);
-            }
-            return null;
+                return null;
+            }, out string package);
+            return package;
         }
 
         /// <summary>A package folder's manifest, or null when it cannot be read.</summary>
         public static ModManifest Manifest(string folder)
         {
-            try
-            {
-                return ModManifest.Parse(File.ReadAllText(Path.Combine(folder, "manifest.json")));
-            }
-            catch (Exception ex)
-            {
-                Faults.Skip("mods' folders", folder, ex);
-                return null;
-            }
+            Guard.Each("mods' folders", folder, () => ModManifest.Parse(File.ReadAllText(Path.Combine(folder, "manifest.json"))), out var manifest);
+            return manifest;
         }
 
         /// <summary>A file of the folder by its name, whatever its case ("readme.md" too), or "" when there is none.</summary>
         public static string FileIn(string folder, string name)
         {
-            try
-            {
-                foreach (var file in Directory.GetFiles(folder))
-                {
-                    if (string.Equals(Path.GetFileName(file), name, StringComparison.OrdinalIgnoreCase)) return file;
-                }
-            }
-            catch (Exception ex)
-            {
-                Faults.Skip("mods' folders", folder, ex);
-            }
-            return "";
+            Guard.Each("mods' folders", folder, () =>
+                Directory.GetFiles(folder).FirstOrDefault(file => string.Equals(Path.GetFileName(file), name, StringComparison.OrdinalIgnoreCase)), out var found);
+            return found ?? "";
         }
 
         /// <summary>A mod's readme as plain text, at most so many characters, or "" when it cannot be read.</summary>
         public static string Readme(string path, int limit)
         {
             if (string.IsNullOrEmpty(path)) return "";
-            try
-            {
-                return ReadmeText.Plain(File.ReadAllText(path), limit);
-            }
-            catch (Exception ex)
-            {
-                Faults.Skip("mods' readmes", path, ex);
-                return "";
-            }
+            return Guard.Each("mods' readmes", path, () => ReadmeText.Plain(File.ReadAllText(path), limit), out var text) ? text : "";
         }
 
         /// <summary>
@@ -98,14 +72,10 @@ namespace Scry
             if (string.IsNullOrEmpty(path)) return null;
             if (Icons.TryGetValue(path, out var known)) return known;
             Sprite sprite = null;
-            try
+            Guard.Each("mods' icons", path, () =>
             {
                 sprite = Read(path);
-            }
-            catch (Exception ex)
-            {
-                Faults.Skip("mods' icons", path, ex);
-            }
+            });
             Icons[path] = sprite;
             return sprite;
         }

@@ -37,43 +37,43 @@ namespace Scry
             GameObject copy = null;
             try
             {
-                // A large prefab (the person, with hundreds of parts) is stripped once and kept
-                // stripped under the sleeping holder; later copies are made from that.
-                var key = new KeyValuePair<GameObject, bool>(prefab, falling);
-                if (Templates.TryGetValue(key, out var template) && template != null)
+                // One that cannot be copied, as a mod's odd prefab may be, shows nothing; what was made of it goes.
+                if (Guard.Each("previews", prefab.name, () =>
                 {
-                    copy = Object.Instantiate(template, Holder().transform, false);
-                    Used.Remove(key);
-                    Used.Add(key);
-                }
-                else
-                {
-                    copy = Object.Instantiate(prefab, Holder().transform, false);
-                    if (Strip(copy, falling) >= TemplateFrom) KeepTemplate(key, copy);
-                }
-                copy.name = prefab.name;
+                    // A large prefab (the person, with hundreds of parts) is stripped once and kept
+                    // stripped under the sleeping holder; later copies are made from that.
+                    var key = new KeyValuePair<GameObject, bool>(prefab, falling);
+                    if (Templates.TryGetValue(key, out var template) && template != null)
+                    {
+                        copy = Object.Instantiate(template, Holder().transform, false);
+                        Used.Remove(key);
+                        Used.Add(key);
+                    }
+                    else
+                    {
+                        copy = Object.Instantiate(prefab, Holder().transform, false);
+                        if (Strip(copy, falling) >= TemplateFrom) KeepTemplate(key, copy);
+                    }
+                    copy.name = prefab.name;
 
-                var limit = falling ? StripPolicy.PushApartLimit(ScriptNames(prefab)) : null;
-                Settle(copy, falling);
-                var body = limit != null ? copy.GetComponent<Rigidbody>() : null;
-                if (body != null) body.maxDepenetrationVelocity = limit.Value;
-                if (layer >= 0) SetLayer(copy.transform, layer);
-                // A falling copy strikes the ground as its prefab does, heard and seen (Thud).
-                if (falling) Thud.Add(prefab, copy, onStage: layer >= 0);
+                    var limit = falling ? StripPolicy.PushApartLimit(ScriptNames(prefab)) : null;
+                    Settle(copy, falling);
+                    var body = limit != null ? copy.GetComponent<Rigidbody>() : null;
+                    if (body != null) body.maxDepenetrationVelocity = limit.Value;
+                    if (layer >= 0) SetLayer(copy.transform, layer);
+                    // A falling copy strikes the ground as its prefab does, heard and seen (Thud).
+                    if (falling) Thud.Add(prefab, copy, onStage: layer >= 0);
 
-                // Its sounds at the loudness the player chose; one that cannot take it plays as the game would.
-                Guard.Run("preview loudness", Loudness.Add, copy);
-                Place(copy, parent, position, rotation);
-                Awake(prefab, copy);
+                    // Its sounds at the loudness the player chose; one that cannot take it plays as the game would.
+                    Guard.Run("preview loudness", Loudness.Add, copy);
+                    Place(copy, parent, position, rotation);
+                    Awake(prefab, copy);
 
-                // Made under a holder that outlives worlds; one standing on its own belongs to the
-                // world, and goes with it.
-                if (parent == null) UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(copy, UnityEngine.SceneManagement.SceneManager.GetActiveScene());
-                return copy;
-            }
-            catch (Exception ex)
-            {
-                Plugin.Log.LogWarning($"Scry could not make a preview of {prefab.name}: {ex.Message}");
+                    // Made under a holder that outlives worlds; one standing on its own belongs to the
+                    // world, and goes with it.
+                    if (parent == null) UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(copy, UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+                    return copy;
+                }, out var made)) return made;
                 if (copy != null) Object.Destroy(copy);
                 return null;
             }

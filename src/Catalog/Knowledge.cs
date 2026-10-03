@@ -262,25 +262,25 @@ namespace Scry
         public static void Read(GameObject prefab, List<Component> components)
         {
             var started = CatalogTiming.Start();
-            try { SpawnPoints(prefab, components); } catch (Exception ex) { Failed("nests and spawn points", prefab, ex); }
+            Guard.Each("nests and spawn points", prefab.name, () => SpawnPoints(prefab, components));
             CatalogTiming.Add("spawn points", started);
             started = CatalogTiming.Start();
-            try { Drops(prefab, components); } catch (Exception ex) { Failed("drops", prefab, ex); }
+            Guard.Each("drops", prefab.name, () => Drops(prefab, components));
             CatalogTiming.Add("drops", started);
             started = CatalogTiming.Start();
-            try { Makers(prefab, components); } catch (Exception ex) { Failed("makers", prefab, ex); }
+            Guard.Each("makers", prefab.name, () => Makers(prefab, components));
             CatalogTiming.Add("makers", started);
             started = CatalogTiming.Start();
-            try { Givers(prefab, components); } catch (Exception ex) { Failed("status effect givers", prefab, ex); }
+            Guard.Each("status effect givers", prefab.name, () => Givers(prefab, components));
             CatalogTiming.Add("givers", started);
             started = CatalogTiming.Start();
-            try { UsesIn(prefab, components); } catch (Exception ex) { Failed("uses of items", prefab, ex); }
-            try { Scripts(prefab, components); } catch (Exception ex) { Failed("which mod added what", prefab, ex); }
-            try { Breeding(prefab, components); } catch (Exception ex) { Failed("breeding", prefab, ex); }
-            try { BaitsKeysAndPowers(prefab, components); } catch (Exception ex) { Failed("baits, keys and powers", prefab, ex); }
+            Guard.Each("uses of items", prefab.name, () => UsesIn(prefab, components));
+            Guard.Each("which mod added what", prefab.name, () => Scripts(prefab, components));
+            Guard.Each("breeding", prefab.name, () => Breeding(prefab, components));
+            Guard.Each("baits, keys and powers", prefab.name, () => BaitsKeysAndPowers(prefab, components));
             CatalogTiming.Add("uses", started);
             started = CatalogTiming.Start();
-            try { Turns(prefab, components); } catch (Exception ex) { Failed("what things turn into", prefab, ex); }
+            Guard.Each("what things turn into", prefab.name, () => Turns(prefab, components));
             CatalogTiming.Add("turns into", started);
 
             foreach (var component in components)
@@ -388,11 +388,6 @@ namespace Scry
             }
         }
 
-        private static void Failed(string what, GameObject prefab, Exception ex)
-        {
-            Faults.Skip(what, prefab.name, ex);
-        }
-
         /// <summary>
         /// What the world as a whole tells, once every prefab is read, a step at a time: where
         /// creatures spawn and plants grow, what traders sell, and which mod added what. Each
@@ -435,14 +430,7 @@ namespace Scry
             foreach (var item in list)
             {
                 if (item == null) continue;
-                try { read(item); }
-                catch (Exception ex)
-                {
-                    string called;
-                    try { called = name(item); }
-                    catch { called = typeof(T).Name; }
-                    Faults.Skip(what, called, ex);
-                }
+                Guard.Each(what, () => name(item), () => read(item));
             }
         }
 

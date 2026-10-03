@@ -66,9 +66,11 @@ namespace Scry
         /// A fault in laying the ground is told once and puts the ground away for the frame, the
         /// plain floor standing in, so the stage is filmed all the same.
         /// </summary>
-        private static void GroundFailed(Exception ex)
+        private const string GroundPart = "laying the stage's ground";
+
+        /// <summary>After a fault in laying the ground: puts it away for the frame, the plain floor back, so the stage is filmed all the same.</summary>
+        private static void PutGroundAway()
         {
-            Faults.Tell("laying the stage's ground", ex);
             TheGround.PutAway();
             if (_floor != null && !StageGround.Grid(_backdrop)) _floor.SetActive(true);
         }

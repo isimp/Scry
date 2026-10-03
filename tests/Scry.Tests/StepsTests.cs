@@ -51,6 +51,28 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APartThatWorksOutAValueHandsItBack()
+        {
+            Assert.Null(Steps.Run(() => 42, out var value, Passes));
+            Assert.Equal(42, value);
+        }
+
+        [Fact]
+        public void APartThatFailsWorkingOutAValueHandsBackItsFailureAndNoValue()
+        {
+            var thrown = new InvalidOperationException("odd prefab");
+
+            Assert.Same(thrown, Steps.Run<string>(() => throw thrown, out var value, Passes));
+            Assert.Null(value);
+        }
+
+        [Fact]
+        public void WhatMustPassThroughWorkingOutAValueDoes()
+        {
+            Assert.Throws<PassThrough>(() => Steps.Run<int>(() => throw new PassThrough(), out _, Passes));
+        }
+
+        [Fact]
         public void WithNothingToPassThroughEveryFailureIsHandedBack()
         {
             Assert.IsType<PassThrough>(Steps.Run(() => throw new PassThrough(), null));

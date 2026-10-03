@@ -182,63 +182,61 @@ namespace Scry
 
             var watch = Stopwatch.StartNew();
             _frames++;
-            try
+            // One odd location costs only itself.
+            if (!Guard.Each("locations", () => _current.Name, () => Step(watch)))
             {
-                while (watch.Elapsed.TotalMilliseconds < BudgetMs)
-                {
-                    if (!_holding)
-                    {
-                        if (_next >= Queue.Count)
-                        {
-                            Finish();
-                            return;
-                        }
-                        _current = Queue[_next++];
-                        _parts = null;
-                        _part = 0;
-                        // Holds a reference until released, as Load does; loads over the next frames.
-                        _holding = true;
-                        _current.Reference.LoadAsync();
-                        return;
-                    }
-
-                    if (_parts == null)
-                    {
-                        if (!_current.Reference.IsLoaded)
-                        {
-                            if (_current.Reference.IsLoading) return;
-                            _failed++;
-                            Next();
-                            continue;
-                        }
-                        var prefab = _current.Reference.Asset;
-                        if (prefab == null)
-                        {
-                            _failed++;
-                            Next();
-                            continue;
-                        }
-                        PlacesOf(prefab);
-                        _root = prefab.transform;
-                        _parts = prefab.GetComponentsInChildren<Component>(true);
-                        continue;
-                    }
-
-                    var end = Math.Min(_parts.Length, _part + 32);
-                    while (_part < end) Read(_parts[_part++]);
-                    if (_part >= _parts.Length) Next();
-                }
-            }
-            catch (Exception ex)
-            {
-                // One odd location costs only itself.
-                Faults.Skip("locations", _current.Name, ex);
                 _failed++;
                 Next();
             }
-            finally
+            _workMs += watch.Elapsed.TotalMilliseconds;
+        }
+
+        /// <summary>Reads on, within the frame's share, a location's parts a few at a time and the next once one is done.</summary>
+        private static void Step(Stopwatch watch)
+        {
+            while (watch.Elapsed.TotalMilliseconds < BudgetMs)
             {
-                _workMs += watch.Elapsed.TotalMilliseconds;
+                if (!_holding)
+                {
+                    if (_next >= Queue.Count)
+                    {
+                        Finish();
+                        return;
+                    }
+                    _current = Queue[_next++];
+                    _parts = null;
+                    _part = 0;
+                    // Holds a reference until released, as Load does; loads over the next frames.
+                    _holding = true;
+                    _current.Reference.LoadAsync();
+                    return;
+                }
+
+                if (_parts == null)
+                {
+                    if (!_current.Reference.IsLoaded)
+                    {
+                        if (_current.Reference.IsLoading) return;
+                        _failed++;
+                        Next();
+                        continue;
+                    }
+                    var prefab = _current.Reference.Asset;
+                    if (prefab == null)
+                    {
+                        _failed++;
+                        Next();
+                        continue;
+                    }
+                    PlacesOf(prefab);
+                    _root = prefab.transform;
+                    _parts = prefab.GetComponentsInChildren<Component>(true);
+                    continue;
+                }
+
+                var end = Math.Min(_parts.Length, _part + 32);
+                while (_part < end) Read(_parts[_part++]);
+                if (_part >= _parts.Length) Next();
             }
         }
 
@@ -250,14 +248,12 @@ namespace Scry
         {
             Here.Clear();
             PlaceContents contents = null;
-            try { contents = PlaceReader.Read(prefab, _current.Room); }
-            catch (Exception ex) { Faults.Skip("locations", _current.Name, ex); }
+            Guard.Each("locations", _current.Name, () => contents = PlaceReader.Read(prefab, _current.Room));
 
             if (_current.Room)
             {
                 var theme = 0;
-                try { theme = ThemeOf(prefab); }
-                catch (Exception ex) { Faults.Skip("names of dungeon rooms", _current.Name, ex); }
+                Guard.Each("names of dungeon rooms", _current.Name, () => theme = ThemeOf(prefab));
                 Here.AddRange(Places.RoomLabels(theme, Dungeons));
                 if (contents != null) ReadRooms[_current.Name] = contents;
                 PlaceLabels["room:" + _current.Name] = Here.ToArray();
@@ -272,8 +268,7 @@ namespace Scry
                 facts.Trader = contents.Trader;
             }
             var themes = new List<int>();
-            try { DungeonThemes(prefab, themes); }
-            catch (Exception ex) { Faults.Skip("names of locations", _current.Name, ex); }
+            Guard.Each("names of locations", _current.Name, () => DungeonThemes(prefab, themes));
             var label = Places.LocationLabel(facts, _creatures);
             Here.Add(label);
             foreach (var kinds in themes) Dungeons.Add(new KeyValuePair<int, string>(kinds, label));

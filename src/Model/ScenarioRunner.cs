@@ -150,19 +150,15 @@ namespace Scry
 
             if (now < _waitUntil) return true;
 
-            bool more;
-            try
-            {
-                more = _body.MoveNext();
-            }
-            catch (SkipScenario skip)
+            var failure = Steps.Run(_body.MoveNext, out var more, null);
+            if (failure is SkipScenario skip)
             {
                 End(now, _probe.Failed ? Result.Fail : Result.Skip, $"  SKIP {skip.Message}");
                 return true;
             }
-            catch (Exception ex)
+            if (failure != null)
             {
-                End(now, Result.Fail, $"  FAIL threw {ex.GetType().Name}: {ex.Message}");
+                End(now, Result.Fail, $"  FAIL threw {failure.GetType().Name}: {failure.Message}");
                 return true;
             }
 
@@ -189,14 +185,11 @@ namespace Scry
             _waitUntil = now;
 
             _write($"START {_current.Name}");
-            try
-            {
-                _body = _current.Body(_probe);
-            }
-            catch (Exception ex)
+            var failure = Steps.Run(() => _current.Body(_probe), out _body, null);
+            if (failure != null)
             {
                 _body = Empty();
-                _probe.Line($"  FAIL could not start: {ex.Message}");
+                _probe.Line($"  FAIL could not start: {failure.Message}");
                 _probe.Failed = true;
                 _probe.Checks++;
             }
@@ -212,13 +205,10 @@ namespace Scry
         {
             if (line != null) _probe.Line(line);
 
-            try
+            var failure = Steps.Run(() => _current.Cleanup?.Invoke(), null);
+            if (failure != null)
             {
-                _current.Cleanup?.Invoke();
-            }
-            catch (Exception ex)
-            {
-                _probe.Line($"  FAIL cleanup threw {ex.GetType().Name}: {ex.Message}");
+                _probe.Line($"  FAIL cleanup threw {failure.GetType().Name}: {failure.Message}");
                 result = Result.Fail;
             }
 
@@ -234,14 +224,8 @@ namespace Scry
         private void Finish()
         {
             _finished = true;
-            try
-            {
-                _finally?.Invoke();
-            }
-            catch (Exception ex)
-            {
-                _write($"FAIL the finishing step threw {ex.GetType().Name}: {ex.Message}");
-            }
+            var failure = Steps.Run(() => _finally?.Invoke(), null);
+            if (failure != null) _write($"FAIL the finishing step threw {failure.GetType().Name}: {failure.Message}");
             _write($"DONE {Summary}, in {SelfTestWords.Duration(Seconds)}");
         }
     }

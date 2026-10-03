@@ -39,14 +39,8 @@ namespace Scry
             lock (All) all = All.ToArray();
             foreach (var (name, forget) in all)
             {
-                try
-                {
-                    forget();
-                }
-                catch (Exception ex)
-                {
-                    failed?.Invoke(name, ex);
-                }
+                var failure = Steps.Run(forget, null);
+                if (failure != null) failed?.Invoke(name, failure);
             }
         }
     }

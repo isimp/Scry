@@ -285,14 +285,8 @@ namespace Scry
             if (!_fadeOutTimerTried)
             {
                 _fadeOutTimerTried = true;
-                try
-                {
-                    _fadeOutTimer = AccessTools.FieldRefAccess<ZSFX, float>("m_fadeOutTimer");
-                }
-                catch (System.Exception ex)
-                {
-                    Plugin.Log.LogDebug($"Scry cannot reach the sound fade timer: {ex.Message}");
-                }
+                // A game without it is told by the startup check, which watches the field.
+                if (Steps.Run(() => AccessTools.FieldRefAccess<ZSFX, float>("m_fadeOutTimer"), out _fadeOutTimer, null) != null) _fadeOutTimer = null;
             }
 
             foreach (var sfx in Copy.GetComponentsInChildren<ZSFX>(true))

@@ -128,33 +128,29 @@ namespace Scry
         {
             if (_warmed) return;
 
-            try
+            Guard.Run("warming the panel's text", () =>
             {
-                Ensure(scale);
+                    Ensure(scale);
 
-                // Every style the panel writes in, bold ones and the small sizes a label shrinks
-                // to included, with the signs it draws besides letters; one style a frame, so the
-                // warming itself never stalls one.
-                var styles = new[]
-                {
-                    Title, Subtitle, Label, Small, DimLabel, FaintLabel, Heading, Big, Wrap, DimWrap, RowName, RowSub, Glyph, Center, CenterDim,
-                    Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close, Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross,
-                };
-                if (_warmNext >= styles.Length)
-                {
-                    _warmed = true;
-                    _warmNext = 0;
-                    return;
-                }
-                var started = Timing.Start();
-                var style = styles[_warmNext++];
-                if (style != null) style.CalcSize(Sample);
-                Timing.Add("skin glyphs", started);
-            }
-            catch (Exception ex)
-            {
-                Plugin.Log.LogDebug($"Scry panel warm-up: {ex.Message}");
-            }
+                    // Every style the panel writes in, bold ones and the small sizes a label shrinks
+                    // to included, with the signs it draws besides letters; one style a frame, so the
+                    // warming itself never stalls one.
+                    var styles = new[]
+                    {
+                        Title, Subtitle, Label, Small, DimLabel, FaintLabel, Heading, Big, Wrap, DimWrap, RowName, RowSub, Glyph, Center, CenterDim,
+                        Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close, Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross,
+                    };
+                    if (_warmNext >= styles.Length)
+                    {
+                        _warmed = true;
+                        _warmNext = 0;
+                        return;
+                    }
+                    var started = Timing.Start();
+                    var style = styles[_warmNext++];
+                    if (style != null) style.CalcSize(Sample);
+                    Timing.Add("skin glyphs", started);
+            });
         }
 
         /// <summary>

@@ -27,8 +27,8 @@ namespace Scry
         private static void Postfix(ref bool __result)
         {
             if (_off) return;
-            try { if (Blocks()) __result = true; }
-            catch (Exception ex) { _off = true; Faults.Tell("keeping the game's keys away while the panel is open", ex); }
+            if (!Guard.Run("keeping the game's keys away while the panel is open", Blocks, out var blocks)) _off = true;
+            else if (blocks) __result = true;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -50,8 +50,7 @@ namespace Scry
         private static void Prefix()
         {
             if (_off) return;
-            try { LetGo(); }
-            catch (Exception ex) { _off = true; Faults.Tell("keeping Tab from opening the inventory while typing in the panel", ex); }
+            if (!Guard.Run("keeping Tab from opening the inventory while typing in the panel", LetGo)) _off = true;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -74,12 +73,15 @@ namespace Scry
         private static void Postfix(bool look, ref bool __result)
         {
             if (_off) return;
-            try { if (Lets(look)) __result = true; }
-            catch (Exception ex) { _off = true; Faults.Tell("looking around and walking while the panel is open", ex); }
+            if (!Guard.Run("looking around and walking while the panel is open", look ? (Func<bool>)Looking : Walking, out var lets)) _off = true;
+            else if (lets) __result = true;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool Lets(bool look) => look ? Session.Looking : Session.Walking;
+        private static bool Looking() => Session.Looking;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool Walking() => Session.Walking;
     }
 
     /// <summary>
@@ -96,17 +98,14 @@ namespace Scry
             ref bool block, ref bool blockHold, ref bool dodge)
         {
             if (_off) return;
-            try
-            {
-                if (!Open()) return;
-                attack = attackHold = secondaryAttack = secondaryAttackHold = false;
-                block = blockHold = dodge = false;
-            }
-            catch (Exception ex)
+            if (!Guard.Run("keeping attacks, blocks and dodges from going off while the panel is open", Open, out var open))
             {
                 _off = true;
-                Faults.Tell("keeping attacks, blocks and dodges from going off while the panel is open", ex);
+                return;
             }
+            if (!open) return;
+            attack = attackHold = secondaryAttack = secondaryAttackHold = false;
+            block = blockHold = dodge = false;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -122,8 +121,7 @@ namespace Scry
         private static void Postfix()
         {
             if (_off) return;
-            try { Capture(); }
-            catch (Exception ex) { _off = true; Faults.Tell("holding the cursor while looking around", ex); }
+            if (!Guard.Run("holding the cursor while looking around", Capture)) _off = true;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -148,8 +146,8 @@ namespace Scry
         private static void Postfix(ref float __result)
         {
             if (_off) return;
-            try { if (Blocks()) __result = 0f; }
-            catch (Exception ex) { _off = true; Faults.Tell("keeping the mouse wheel from zooming the game camera while over the panel", ex); }
+            if (!Guard.Run("keeping the mouse wheel from zooming the game camera while over the panel", Blocks, out var blocks)) _off = true;
+            else if (blocks) __result = 0f;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

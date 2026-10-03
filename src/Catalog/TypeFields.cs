@@ -30,19 +30,41 @@ namespace Scry
         public static FieldInfo[] Matching(Dictionary<Type, FieldInfo[]> cache, Type type, Func<FieldInfo, bool> match) =>
             Picked(cache, type, field => match(field) ? new[] { field } : Array.Empty<FieldInfo>());
 
+        /// <summary>
+        /// A field's value on what holds it: true with the value when it could be read, false with
+        /// none when it could not (a mod's field whose type will not load), the field left out as
+        /// any of a type's fields that cannot be read. Nothing is made for the call, as every
+        /// field of every prefab is read this way while the catalog is.
+        /// </summary>
+        public static bool Read(FieldInfo field, object owner, out object value)
+        {
+            Reading.Field = field;
+            Reading.Owner = owner;
+            Reading.Value = null;
+            var failure = Steps.Run(ReadOne, Reading, null);
+            value = Reading.Value;
+            Reading.Field = null;
+            Reading.Owner = null;
+            Reading.Value = null;
+            if (failure != null) Faults.Skip("reading of a type's fields", field.DeclaringType?.Name + "." + field.Name, failure);
+            return failure == null;
+        }
+
+        private sealed class FieldRead
+        {
+            public FieldInfo Field;
+            public object Owner;
+            public object Value;
+        }
+
+        private static readonly FieldRead Reading = new FieldRead();
+        private static readonly Action<FieldRead> ReadOne = read => read.Value = read.Field.GetValue(read.Owner);
+
         /// <summary>What each field of a type gives, if anything, found once and kept in the cache given.</summary>
         public static T[] Picked<T>(Dictionary<Type, T[]> cache, Type type, Func<FieldInfo, IEnumerable<T>> pick)
         {
             if (cache.TryGetValue(type, out var known)) return known;
-            try
-            {
-                known = Of(type).SelectMany(pick).ToArray();
-            }
-            catch (Exception ex)
-            {
-                Faults.Skip("reading of a type's fields", type.Name, ex);
-                known = Array.Empty<T>();
-            }
+            if (!Guard.Each("reading of a type's fields", type.Name, () => Of(type).SelectMany(pick).ToArray(), out known)) known = Array.Empty<T>();
             cache[type] = known;
             return known;
         }

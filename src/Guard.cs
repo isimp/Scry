@@ -5,10 +5,14 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// The one way a part of Scry's work runs (<see cref="Steps"/>): on its own, a failure told
-    /// once as that part's (<see cref="Faults"/>) and stopping nothing after it, and timed as a
-    /// part of the frame where a name is given (<see cref="Timing"/>). Reading the catalog runs
-    /// its parts the same way, timed for the reading's own report (<see cref="Read"/>).
+    /// The one way Scry's work runs where it may fail (<see cref="Steps"/>), by how much a failure
+    /// costs. A part of the work (<see cref="Run(string, Action, string)"/>) fails on its own,
+    /// told once as that part's and stopping nothing after it, and is timed as a part of the
+    /// frame where a name is given (<see cref="Timing"/>). One item of many, a prefab read or
+    /// shown (<see cref="Each(string, string, Action)"/>), leaves only that item's part out,
+    /// counted and summed up with the others. A step of reading the catalog
+    /// (<see cref="Read"/>) is timed for the reading's own report. Each has a form that works
+    /// out a value and says whether it did. What fails is told through <see cref="Faults"/>.
     /// </summary>
     internal static class Guard
     {
@@ -32,10 +36,43 @@ namespace Scry
             return failure == null;
         }
 
+        /// <summary>Works out a value as a part of Scry's work: true with the value when it finished, false with none when it failed, told once as that part's.</summary>
+        public static bool Run<T>(string part, Func<T> read, out T value)
+        {
+            var failure = Steps.Run(read, out value, PassesThrough);
+            if (failure != null) Faults.Tell(part, failure);
+            return failure == null;
+        }
+
+        /// <summary>One item of many: a failure leaves only that item's part out, counted and summed up with the others; true when it finished.</summary>
+        public static bool Each(string part, string item, Action step)
+        {
+            var failure = Steps.Run(step, PassesThrough);
+            if (failure != null) Faults.Skip(part, item, failure);
+            return failure == null;
+        }
+
+        /// <summary>One item of many whose name is worked out only if it fails, as an odd one may not name itself; true when it finished.</summary>
+        public static bool Each(string part, Func<string> item, Action step)
+        {
+            var failure = Steps.Run(step, PassesThrough);
+            if (failure == null) return true;
+            if (Steps.Run(item, out var name, null) != null || name == null) name = "one that cannot name itself";
+            Faults.Skip(part, name, failure);
+            return false;
+        }
+
+        /// <summary>Works out a value for one item of many: true with the value when it finished, false with none when it failed, that item's part left out.</summary>
+        public static bool Each<T>(string part, string item, Func<T> read, out T value)
+        {
+            var failure = Steps.Run(read, out value, PassesThrough);
+            if (failure != null) Faults.Skip(part, item, failure);
+            return failure == null;
+        }
+
         /// <summary>
         /// A step of reading the catalog: timed for the reading's report, said in the log when it
-        /// took 50 ms or more; one that fails is left out, a game change told as the feature it
-        /// turns off and anything else as a warning.
+        /// took 50 ms or more; one that fails is left out and told as any part's failure.
         /// </summary>
         public static void Read(string what, Action act)
         {
@@ -46,8 +83,7 @@ namespace Scry
             {
                 if (watch.ElapsedMilliseconds >= 50) Plugin.Note($"Scry read {what} in {Numbers.Count(watch.ElapsedMilliseconds)} ms.");
             }
-            else if (Trouble.IsGameChange(failure)) Faults.Skip(what, "this world", failure);
-            else Plugin.Log.LogWarning($"Scry could not read {what}, and leaves it out: {failure.Message}");
+            else Faults.Tell("reading " + what, failure);
             CatalogTiming.Add(what, started);
         }
 

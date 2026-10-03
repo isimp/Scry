@@ -322,9 +322,6 @@ namespace Scry
             GUI.DrawTextureWithTexCoords(rect, sprite.texture, uv, true);
         }
 
-        /// <summary>Sprites with no simple rectangle, found once rather than failing on every repaint.</summary>
-        private static readonly HashSet<Sprite> Unpacked = new HashSet<Sprite>();
-
         /// <summary>
         /// Where a sprite sits on its texture, and its rectangle there; false for one packed in a
         /// way that has no simple rectangle, which is then drawn without its icon.
@@ -332,19 +329,12 @@ namespace Scry
         private static bool SpriteUv(Sprite sprite, out Rect uv, out Rect rect)
         {
             uv = rect = default;
-            if (Unpacked.Contains(sprite)) return false;
-            try
-            {
-                var t = sprite.texture;
-                rect = sprite.textureRect;
-                uv = new Rect(rect.x / t.width, rect.y / t.height, rect.width / t.width, rect.height / t.height);
-                return true;
-            }
-            catch
-            {
-                Unpacked.Add(sprite);
-                return false;
-            }
+            // Unity has no rectangle for one packed tightly (Sprite.textureRect throws for it).
+            var t = sprite.texture;
+            if (t == null || (sprite.packed && sprite.packingMode == SpritePackingMode.Tight)) return false;
+            rect = sprite.textureRect;
+            uv = new Rect(rect.x / t.width, rect.y / t.height, rect.width / t.width, rect.height / t.height);
+            return true;
         }
     }
 }

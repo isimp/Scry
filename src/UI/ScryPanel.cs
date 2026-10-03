@@ -177,7 +177,6 @@ namespace Scry
             _usersFor = null;
             _users = new List<(string, string, string, Action)>();
             LinkRows.Clear();
-            Unpacked.Clear();
             _listRows.Clear();
             _rowOfEntry.Clear();
             _shownFor = null;
@@ -234,72 +233,72 @@ namespace Scry
             var skin = GUI.skin;
             try
             {
-                Skin.Ensure(scale);
-                _s = scale;
-                GUI.skin = Skin.Gui;
-                if (Event.current.type == EventType.Repaint) _askedTipKey = null;
-
-                Place();
-                var explorer = Session.Explorer;
-
-                // A header slider's box, or the stage's View box, takes the mouse over it before anything under it does.
-                if (SlideInput(explorer) || ViewInput(explorer)) return;
-
-                // A click anywhere lets go of the keyboard; a click on a text box takes it straight
-                // back. So clicking the list or a button after typing hands the keys back to walking.
-                if (Event.current.type == EventType.MouseDown) GUIUtility.keyboardControl = 0;
-
-                Keys(explorer);
-                if (!Session.IsOpen) return;
-
-                // A key no text box of the panel has, such as one held to walk and repeated, has
-                // nothing to draw: only the panel's own keys above answer it.
-                var key = Event.current;
-                if ((key.type == EventType.KeyDown || key.type == EventType.KeyUp) && GUIUtility.keyboardControl == 0) return;
-
-                // Dragging the panel, its corner or the stage needs nothing but the drag.
-                if (_drag != Drag.None && Event.current.type == EventType.MouseDrag)
+                if (!Guard.Run("the panel", DrawPanel, scale))
                 {
-                    Drags();
-                    Event.current.Use();
-                    return;
+                    // Told once for each way it fails; the groups and scroll views left open are
+                    // closed by leaving this event the way Unity provides for it.
+                    GUI.enabled = true;
+                    GUI.color = Color.white;
+                    GUI.skin = skin;
+                    GUIUtility.ExitGUI();
                 }
-
-                Draw(explorer);
-                Drags();
-                SlideDraw(explorer);
-                ViewDraw();
-                Tooltip();
-
-                // The panel is solid: clicks and the wheel over it stop here.
-                var e = Event.current;
-                if (Win.Contains(e.mousePosition) && (e.isMouse || e.type == EventType.ScrollWheel)) e.Use();
-
-                if (e.type == EventType.Repaint) Repaints++;
-
-                var focused = GUI.GetNameOfFocusedControl();
-                SearchFocused = focused == SearchControl;
-                Typing = focused == SearchControl || focused == ClipControl || focused == EffectControl;
-                FocusedFilter = focused == ClipControl || focused == EffectControl ? focused : null;
-            }
-            catch (ExitGUIException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                // Told once for each way it fails; the groups and scroll views left open are
-                // closed by leaving this event the way Unity provides for it.
-                Faults.Tell("the panel", ex);
-                GUI.enabled = true;
-                GUI.color = Color.white;
-                GUI.skin = skin;
-                GUIUtility.ExitGUI();
             }
             finally
             {
                 GUI.skin = skin;
             }
+        }
+
+        /// <summary>The open panel, drawn for one event: its place, its keys, its drags, its parts and its boxes over everything.</summary>
+        private static void DrawPanel(float scale)
+        {
+            Skin.Ensure(scale);
+            _s = scale;
+            GUI.skin = Skin.Gui;
+            if (Event.current.type == EventType.Repaint) _askedTipKey = null;
+
+            Place();
+            var explorer = Session.Explorer;
+
+            // A header slider's box, or the stage's View box, takes the mouse over it before anything under it does.
+            if (SlideInput(explorer) || ViewInput(explorer)) return;
+
+            // A click anywhere lets go of the keyboard; a click on a text box takes it straight
+            // back. So clicking the list or a button after typing hands the keys back to walking.
+            if (Event.current.type == EventType.MouseDown) GUIUtility.keyboardControl = 0;
+
+            Keys(explorer);
+            if (!Session.IsOpen) return;
+
+            // A key no text box of the panel has, such as one held to walk and repeated, has
+            // nothing to draw: only the panel's own keys above answer it.
+            var key = Event.current;
+            if ((key.type == EventType.KeyDown || key.type == EventType.KeyUp) && GUIUtility.keyboardControl == 0) return;
+
+            // Dragging the panel, its corner or the stage needs nothing but the drag.
+            if (_drag != Drag.None && Event.current.type == EventType.MouseDrag)
+            {
+                Drags();
+                Event.current.Use();
+                return;
+            }
+
+            Draw(explorer);
+            Drags();
+            SlideDraw(explorer);
+            ViewDraw();
+            Tooltip();
+
+            // The panel is solid: clicks and the wheel over it stop here.
+            var e = Event.current;
+            if (Win.Contains(e.mousePosition) && (e.isMouse || e.type == EventType.ScrollWheel)) e.Use();
+
+            if (e.type == EventType.Repaint) Repaints++;
+
+            var focused = GUI.GetNameOfFocusedControl();
+            SearchFocused = focused == SearchControl;
+            Typing = focused == SearchControl || focused == ClipControl || focused == EffectControl;
+            FocusedFilter = focused == ClipControl || focused == EffectControl ? focused : null;
         }
 
         // ----- Drawing -----

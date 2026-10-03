@@ -159,15 +159,10 @@ namespace Scry
         {
             foreach (var type in OwnTypes())
             {
-                try
+                Guard.Each("patching the game", type.Name, () =>
                 {
-                    if (type.GetCustomAttributes(typeof(HarmonyPatch), false).Length == 0) continue;
-                    _harmony.CreateClassProcessor(type).Patch();
-                }
-                catch (System.Exception ex)
-                {
-                    Log.LogWarning($"Scry could not patch {type.Name}: {ex.Message}");
-                }
+                    if (type.GetCustomAttributes(typeof(HarmonyPatch), false).Length > 0) _harmony.CreateClassProcessor(type).Patch();
+                });
             }
         }
 
@@ -183,7 +178,7 @@ namespace Scry
             }
             catch (System.Reflection.ReflectionTypeLoadException ex)
             {
-                Log.LogWarning($"Scry: {Numbers.Count(ex.Types.Count(t => t == null))} of its own parts cannot be loaded on this version of the game, and are off; the rest work on. ({ex.LoaderExceptions.FirstOrDefault()?.Message})");
+                Faults.Tell(Numbers.Count(ex.Types.Count(t => t == null)) + " of Scry's own parts", ex.LoaderExceptions.FirstOrDefault(e => e != null) ?? ex);
                 return ex.Types.Where(t => t != null).ToArray();
             }
         }

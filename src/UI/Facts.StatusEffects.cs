@@ -87,16 +87,8 @@ namespace Scry
         /// </summary>
         private bool GameWords(StatusEffect effect)
         {
-            string text;
-            try
-            {
-                text = Localization.instance != null ? Localization.instance.Localize(effect.GetTooltipString()) : null;
-            }
-            catch
-            {
-                // A mod's effect that needs a character to describe itself is told by its fields.
-                return false;
-            }
+            // A mod's effect that needs a character to describe itself is told by its fields instead.
+            if (Steps.Run(() => Localization.instance != null ? Localization.instance.Localize(effect.GetTooltipString()) : null, out var text, null) != null) return false;
             if (string.IsNullOrEmpty(text)) return false;
             text = Naming.Plain(text).Replace("\r", "");
             // The tooltip starts with the description, which may hold blank lines of its own.

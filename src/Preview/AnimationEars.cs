@@ -72,6 +72,7 @@ namespace Scry
             var ears = animator.gameObject.AddComponent<AnimationEars>();
             ears._prefab = prefab;
             ears._copy = copy;
+            ears._named = () => ears._prefab != null ? ears._prefab.name : "a copy";
             animator.fireEvents = true;
         }
 
@@ -121,7 +122,7 @@ namespace Scry
         /// </summary>
         public void ClipStarted(AnimationClip clip)
         {
-            if (_prefab != null && _copy != null) Safely("its feet", () => WatchFeet(clip));
+            if (_prefab != null && _copy != null) Safely("animated footsteps", () => WatchFeet(clip));
             Begin(clip);
         }
 
@@ -141,10 +142,10 @@ namespace Scry
                 Listen.Note(Listening, "what it plays is still being worked out; it follows once it is");
                 return;
             }
-            Safely("its attack", () => StartAttack(clip));
-            Safely("what the game plays with it", () => PlayGameList(clip));
-            Safely("what it was found by name to play", () => PlayByName(clip));
-            Safely("what is heard around it", () => PlayAround(clip));
+            Safely("animated attack", () => StartAttack(clip));
+            Safely("clip's own effects", () => PlayGameList(clip));
+            Safely("clip's effects found by name", () => PlayByName(clip));
+            Safely("sounds around a clip", () => PlayAround(clip));
         }
 
         /// <summary>
@@ -165,23 +166,17 @@ namespace Scry
             {
                 if (e.time > time) break;
                 if (e.functionName != "Hit" && e.functionName != "OnAttackTrigger") continue;
-                Safely("its attack's strike", ClipStrike);
+                Safely("attack's strike", ClipStrike);
                 break;
             }
         }
 
         /// <summary>One thing answered for a clip or an event; one that fails is left out and told once, and the rest still go on.</summary>
-        private void Safely(string what, Action act)
-        {
-            try
-            {
-                act();
-            }
-            catch (Exception ex)
-            {
-                Faults.Tell($"{(_prefab != null ? _prefab.name : "a copy")}'s animations playing {what}", ex);
-            }
-        }
+        /// <summary>The copy's name, worked out only for a failure to name it.</summary>
+        private Func<string> _named;
+
+        /// <summary>One part of what a copy's animations play, on its own: a failure leaves out only that part of that copy.</summary>
+        private void Safely(string part, Action act) => Guard.Each(part, _named, act);
 
         // ----- Clips -----
 
@@ -284,14 +279,14 @@ namespace Scry
                 _waiting.Clear();
                 return;
             }
-            Safely("its footsteps", WatchSteps);
+            Safely("footsteps", WatchSteps);
             BeginPending();
-            if (_strikeAt >= 0f && ClipPlayer.Position(_copy, out var time, out _) && time >= _strikeAt) Safely("its attack's strike", ClipStrike);
+            if (_strikeAt >= 0f && ClipPlayer.Position(_copy, out var time, out _) && time >= _strikeAt) Safely("attack's strike", ClipStrike);
 
             if (_waiting.Count == 0) return;
             var now = _waiting.ToArray();
             _waiting.Clear();
-            foreach (var heard in now) Safely("the event " + heard.Name, () => Answer(heard));
+            foreach (var heard in now) Safely("answers to animation events", () => Answer(heard));
         }
 
         /// <summary>An event of a clip Scry plays itself, which is all there is on the copy then.</summary>

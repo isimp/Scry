@@ -127,103 +127,98 @@ namespace Scry
             if (Known.TryGetValue(prefab, out var known)) return known;
 
             var found = new Found();
-            try
+            if (!Guard.Each("looks", prefab.name, () =>
             {
-                var plant = prefab.GetComponentInChildren<Plant>(true);
-                var fire = prefab.GetComponentInChildren<Fireplace>(true);
-                var pickable = prefab.GetComponentInChildren<Pickable>(true);
-                var portal = prefab.GetComponentInChildren<TeleportWorld>(true);
-                var door = prefab.GetComponentInChildren<global::Door>(true);
-                var chest = prefab.GetComponentInChildren<Container>(true);
-                var windmill = prefab.GetComponentInChildren<global::Windmill>(true);
-                var smelter = prefab.GetComponentInChildren<global::Smelter>(true);
-                var fermenter = prefab.GetComponentInChildren<Fermenter>(true);
-                var sap = prefab.GetComponentInChildren<SapCollector>(true);
-                var station = prefab.GetComponentInChildren<CraftingStation>(true);
-                var tameable = prefab.GetComponentInChildren<Tameable>(true);
-                var drop = prefab.GetComponent<ItemDrop>();
+                    var plant = prefab.GetComponentInChildren<Plant>(true);
+                    var fire = prefab.GetComponentInChildren<Fireplace>(true);
+                    var pickable = prefab.GetComponentInChildren<Pickable>(true);
+                    var portal = prefab.GetComponentInChildren<TeleportWorld>(true);
+                    var door = prefab.GetComponentInChildren<global::Door>(true);
+                    var chest = prefab.GetComponentInChildren<Container>(true);
+                    var windmill = prefab.GetComponentInChildren<global::Windmill>(true);
+                    var smelter = prefab.GetComponentInChildren<global::Smelter>(true);
+                    var fermenter = prefab.GetComponentInChildren<Fermenter>(true);
+                    var sap = prefab.GetComponentInChildren<SapCollector>(true);
+                    var station = prefab.GetComponentInChildren<CraftingStation>(true);
+                    var tameable = prefab.GetComponentInChildren<Tameable>(true);
+                    var drop = prefab.GetComponent<ItemDrop>();
 
-                if (plant != null && plant.m_grownPrefabs != null && plant.m_grownPrefabs.Length > 0)
-                {
-                    var names = new List<string> { "Growing" };
-                    for (var i = 0; i < plant.m_grownPrefabs.Length; i++)
+                    if (plant != null && plant.m_grownPrefabs != null && plant.m_grownPrefabs.Length > 0)
                     {
-                        names.Add(plant.m_grownPrefabs.Length == 1 ? "Grown" : $"Grown {Numbers.Count(i + 1)}");
+                        var names = new List<string> { "Growing" };
+                        for (var i = 0; i < plant.m_grownPrefabs.Length; i++)
+                        {
+                            names.Add(plant.m_grownPrefabs.Length == 1 ? "Grown" : $"Grown {Numbers.Count(i + 1)}");
+                        }
+                        found = new Found { Sort = Sort.Growth, Names = names.ToArray() };
                     }
-                    found = new Found { Sort = Sort.Growth, Names = names.ToArray() };
-                }
-                else if (fire != null && fire.m_enabledObject != null)
-                {
-                    var hasLow = fire.m_enabledObjectLow != null && fire.m_enabledObjectHigh != null;
-                    found = new Found
+                    else if (fire != null && fire.m_enabledObject != null)
                     {
-                        Sort = Sort.Fire,
-                        Names = hasLow ? new[] { "Unlit", "Low", "Lit" } : new[] { "Unlit", "Lit" },
-                        Default = hasLow ? 2 : 1,
-                    };
-                }
-                else if (portal != null && (portal.m_model != null || portal.m_target_found != null))
-                {
-                    found = new Found { Sort = Sort.Portal, Names = new[] { "Unconnected", "Connected", "Open" }, Default = 2 };
-                }
-                else if (door != null && ClipPlayer.AnimatorOf(prefab) != null)
-                {
-                    found = new Found { Sort = Sort.Door, Names = new[] { "Shut", "Open", "Open the other way" } };
-                }
-                else if (chest != null && (chest.m_open != null || chest.m_closed != null))
-                {
-                    found = new Found { Sort = Sort.Chest, Names = new[] { "Shut", "Open" } };
-                }
-                else if (windmill != null && windmill.m_propeller != null)
-                {
-                    found = new Found { Sort = Sort.Windmill, Names = new[] { "Still", "Turning" }, Default = 1 };
-                }
-                else if (smelter != null)
-                {
-                    found = new Found { Sort = Sort.Smelter, Names = new[] { "Cold", "Loaded", "Working" }, Default = 2 };
-                }
-                else if (fermenter != null && fermenter.m_topObject != null)
-                {
-                    found = new Found { Sort = Sort.Fermenter, Names = new[] { "Empty", "Fermenting", "Ready" }, Default = 1 };
-                }
-                else if (sap != null && (sap.m_workingEffect != null || sap.m_notEmptyEffect != null))
-                {
-                    found = new Found { Sort = Sort.Sap, Names = new[] { "Idle", "Working", "Full" }, Default = 1 };
-                }
-                else if (station != null && (station.m_inUseObject != null || station.m_haveFireObject != null))
-                {
-                    found = new Found
+                        var hasLow = fire.m_enabledObjectLow != null && fire.m_enabledObjectHigh != null;
+                        found = new Found
+                        {
+                            Sort = Sort.Fire,
+                            Names = hasLow ? new[] { "Unlit", "Low", "Lit" } : new[] { "Unlit", "Lit" },
+                            Default = hasLow ? 2 : 1,
+                        };
+                    }
+                    else if (portal != null && (portal.m_model != null || portal.m_target_found != null))
                     {
-                        Sort = Sort.Station,
-                        Names = station.m_haveFireObject != null ? new[] { "Cold", "Fire lit", "In use" } : new[] { "Idle", "In use" },
-                    };
-                }
-                else if (pickable != null && pickable.m_hideWhenPicked != null)
-                {
-                    found = new Found { Sort = Sort.Picked, Names = new[] { "Ready", "Picked" } };
-                }
-                else if (Gear.Sets(prefab, out var sets) && sets.Count > 0)
-                {
-                    var names = new List<string> { "No gear" };
-                    names.AddRange(sets);
-                    found = new Found { Sort = Sort.Gear, Names = names.ToArray(), Default = 1 };
-                }
-                else if (tameable != null && tameable.m_saddle != null)
-                {
-                    found = new Found { Sort = Sort.Saddle, Names = new[] { "No saddle", "Saddled" } };
-                }
-                else if (drop != null && drop.m_itemData?.m_shared != null && drop.m_itemData.m_shared.m_variants > 1)
-                {
-                    var names = new List<string>();
-                    for (var i = 0; i < drop.m_itemData.m_shared.m_variants; i++) names.Add($"Style {Numbers.Count(i + 1)}");
-                    found = new Found { Sort = Sort.Style, Names = names.ToArray() };
-                }
-            }
-            catch (System.Exception ex)
-            {
-                Plugin.Log.LogDebug($"Scry could not read the looks of {prefab.name}: {ex.Message}");
-                found = new Found();
-            }
+                        found = new Found { Sort = Sort.Portal, Names = new[] { "Unconnected", "Connected", "Open" }, Default = 2 };
+                    }
+                    else if (door != null && ClipPlayer.AnimatorOf(prefab) != null)
+                    {
+                        found = new Found { Sort = Sort.Door, Names = new[] { "Shut", "Open", "Open the other way" } };
+                    }
+                    else if (chest != null && (chest.m_open != null || chest.m_closed != null))
+                    {
+                        found = new Found { Sort = Sort.Chest, Names = new[] { "Shut", "Open" } };
+                    }
+                    else if (windmill != null && windmill.m_propeller != null)
+                    {
+                        found = new Found { Sort = Sort.Windmill, Names = new[] { "Still", "Turning" }, Default = 1 };
+                    }
+                    else if (smelter != null)
+                    {
+                        found = new Found { Sort = Sort.Smelter, Names = new[] { "Cold", "Loaded", "Working" }, Default = 2 };
+                    }
+                    else if (fermenter != null && fermenter.m_topObject != null)
+                    {
+                        found = new Found { Sort = Sort.Fermenter, Names = new[] { "Empty", "Fermenting", "Ready" }, Default = 1 };
+                    }
+                    else if (sap != null && (sap.m_workingEffect != null || sap.m_notEmptyEffect != null))
+                    {
+                        found = new Found { Sort = Sort.Sap, Names = new[] { "Idle", "Working", "Full" }, Default = 1 };
+                    }
+                    else if (station != null && (station.m_inUseObject != null || station.m_haveFireObject != null))
+                    {
+                        found = new Found
+                        {
+                            Sort = Sort.Station,
+                            Names = station.m_haveFireObject != null ? new[] { "Cold", "Fire lit", "In use" } : new[] { "Idle", "In use" },
+                        };
+                    }
+                    else if (pickable != null && pickable.m_hideWhenPicked != null)
+                    {
+                        found = new Found { Sort = Sort.Picked, Names = new[] { "Ready", "Picked" } };
+                    }
+                    else if (Gear.Sets(prefab, out var sets) && sets.Count > 0)
+                    {
+                        var names = new List<string> { "No gear" };
+                        names.AddRange(sets);
+                        found = new Found { Sort = Sort.Gear, Names = names.ToArray(), Default = 1 };
+                    }
+                    else if (tameable != null && tameable.m_saddle != null)
+                    {
+                        found = new Found { Sort = Sort.Saddle, Names = new[] { "No saddle", "Saddled" } };
+                    }
+                    else if (drop != null && drop.m_itemData?.m_shared != null && drop.m_itemData.m_shared.m_variants > 1)
+                    {
+                        var names = new List<string>();
+                        for (var i = 0; i < drop.m_itemData.m_shared.m_variants; i++) names.Add($"Style {Numbers.Count(i + 1)}");
+                        found = new Found { Sort = Sort.Style, Names = names.ToArray() };
+                    }
+            })) found = new Found();
 
             Known[prefab] = found;
             return found;

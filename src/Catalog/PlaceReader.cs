@@ -22,8 +22,7 @@ namespace Scry
             var root = prefab.transform;
             var factors = Factors(prefab);
 
-            try { NameFacts(prefab, contents); }
-            catch (Exception ex) { Faults.Skip("names of locations", prefab.name, ex); }
+            Guard.Each("names of locations", prefab.name, () => NameFacts(prefab, contents));
 
             var parts = new List<(string, float)>();
             foreach (var view in prefab.GetComponentsInChildren<ZNetView>(false))
@@ -34,26 +33,20 @@ namespace Scry
             contents.Parts = PlaceParts.Group(parts);
             contents.LeftToChance = LeftToChance(prefab);
 
-            try { Creatures(prefab, root, factors, contents); }
-            catch (Exception ex) { Faults.Skip("creatures of locations", prefab.name, ex); }
+            Guard.Each("creatures of locations", prefab.name, () => Creatures(prefab, root, factors, contents));
 
-            try { Dungeon(prefab, contents); }
-            catch (Exception ex) { Faults.Skip("dungeons of locations", prefab.name, ex); }
+            Guard.Each("dungeons of locations", prefab.name, () => Dungeon(prefab, contents));
 
             if (room)
             {
-                try { contents.Room = Shape(prefab); }
-                catch (Exception ex) { Faults.Skip("dungeon rooms", prefab.name, ex); }
+                Guard.Each("dungeon rooms", prefab.name, () => contents.Room = Shape(prefab));
             }
 
-            try { Location(prefab, contents); }
-            catch (Exception ex) { Faults.Skip("locations", prefab.name, ex); }
+            Guard.Each("locations", prefab.name, () => Location(prefab, contents));
 
-            try { Music(prefab, contents); }
-            catch (Exception ex) { Faults.Skip("music of locations", prefab.name, ex); }
+            Guard.Each("music of locations", prefab.name, () => Music(prefab, contents));
 
-            try { Runestones(prefab, contents); }
-            catch (Exception ex) { Faults.Skip("runestones of locations", prefab.name, ex); }
+            Guard.Each("runestones of locations", prefab.name, () => Runestones(prefab, contents));
             return contents;
         }
 

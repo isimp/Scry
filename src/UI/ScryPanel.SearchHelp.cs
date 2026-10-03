@@ -79,7 +79,8 @@ namespace Scry
                     }
                     else
                     {
-                        Plugin.Log.LogWarning($"Scry could not read the search terms on a worker thread, and reads them now: {_termsJob.Exception?.GetBaseException().Message}");
+                        // Told as a failure, then read here on the main thread instead.
+                        Faults.Tell("reading the search terms on a worker thread", _termsJob.Exception?.GetBaseException());
                         _terms = new TermIndex(explorer.Catalog);
                     }
                     _termsFor = _jobFor;

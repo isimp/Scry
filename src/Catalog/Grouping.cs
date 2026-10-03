@@ -17,8 +17,6 @@ namespace Scry
         /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
         static Grouping() => WorldCaches.Register(nameof(Grouping), Forget);
 
-        private static readonly HashSet<string> Told = new HashSet<string>();
-
         /// <summary>Groups the entries, a slice at a time; each step yields how many are done.</summary>
         public static IEnumerable<int> Apply(List<Entry> entries, int slice)
         {
@@ -28,40 +26,14 @@ namespace Scry
                 if (!EntryKeys.HasOwnNamespace(entry.Kind) && !byName.ContainsKey(entry.Name)) byName[entry.Name] = entry;
             }
             var weather = new HashSet<string>(StringComparer.Ordinal);
-            try
-            {
-                Weather(weather);
-            }
-            catch (Exception ex)
-            {
-                Tell("the weather", ex);
-            }
-            Dictionary<string, Group> menus;
-            try
-            {
-                menus = Menus();
-            }
-            catch (Exception ex)
-            {
-                Tell("the build menus", ex);
-                menus = new Dictionary<string, Group>();
-            }
-
-            Dictionary<string, int> raidRanks;
-            try
-            {
-                raidRanks = RaidRanks(entries);
-            }
-            catch (Exception ex)
-            {
-                Tell("the raids' order", ex);
-                raidRanks = new Dictionary<string, int>();
-            }
+            Guard.Run("grouping by the weather", () => Weather(weather));
+            if (!Guard.Run("grouping by the build menus", Menus, out var menus)) menus = new Dictionary<string, Group>();
+            if (!Guard.Run("ordering the raids", () => RaidRanks(entries), out var raidRanks)) raidRanks = new Dictionary<string, int>();
 
             for (var i = 0; i < entries.Count; i++)
             {
                 var entry = entries[i];
-                try
+                Guard.Each("grouping", entry.Name, () =>
                 {
                     if (entry.Kind == Kind.Raid && raidRanks.TryGetValue(entry.Name, out var rank)) entry.GroupRank = rank;
                     var group = Of(entry, byName, menus, weather);
@@ -70,32 +42,14 @@ namespace Scry
                         entry.Group = group.Value.Name;
                         entry.GroupOrder = group.Value.Order;
                     }
-                }
-                catch (Exception ex)
-                {
-                    Tell("an entry", ex);
-                }
+                });
                 if ((i + 1) % slice == 0) yield return i + 1;
             }
             // A projectile another spawns (a cluster bomb's splinters) flies with that one.
-            try
-            {
-                Groups.FollowSpawners(entries, Relations.SpawnedBy, Groups.Projectile(new Shooter[0]).Name);
-            }
-            catch (Exception ex)
-            {
-                Tell("projectiles spawned by others", ex);
-            }
+            Guard.Run("grouping projectiles spawned by others", () => Groups.FollowSpawners(entries, Relations.SpawnedBy, Groups.Projectile(new Shooter[0]).Name));
 
             // What is left behind goes with what leaves it: a stump with its trees.
-            try
-            {
-                Leftovers.JoinOwnersGroups(entries);
-            }
-            catch (Exception ex)
-            {
-                Tell("what is left behind", ex);
-            }
+            Guard.Run("grouping what is left behind", () => Leftovers.JoinOwnersGroups(entries));
             if (Plugin.LogPreviews) Report(entries);
         }
 
@@ -138,18 +92,14 @@ namespace Scry
             foreach (var entry in entries)
             {
                 if (entry.Kind != Kind.Item || entry.GroupOrder != carried || entry.FoundIn.Length == 0) continue;
-                try
+                Guard.Each("grouping", entry.Name, () =>
                 {
                     var group = Item(entry, entry.Source as GameObject);
-                    if (group.Order == carried) continue;
+                    if (group.Order == carried) return;
                     entry.Group = group.Name;
                     entry.GroupOrder = group.Order;
                     moved++;
-                }
-                catch (Exception ex)
-                {
-                    Tell("an entry", ex);
-                }
+                });
             }
             return moved;
         }
@@ -332,7 +282,7 @@ namespace Scry
             if (_categoryNames == null)
             {
                 _categoryNames = new Dictionary<Piece.PieceCategory, string>();
-                try
+                Guard.Run("naming the build tabs", () =>
                 {
                     var names = Enum.GetNames(typeof(Piece.PieceCategory));
                     var values = Enum.GetValues(typeof(Piece.PieceCategory));
@@ -341,11 +291,7 @@ namespace Scry
                         var value = (Piece.PieceCategory)values.GetValue(i);
                         if (!_categoryNames.ContainsKey(value)) _categoryNames[value] = names[i];
                     }
-                }
-                catch (Exception ex)
-                {
-                    Tell("the build tabs' names", ex);
-                }
+                });
             }
             // The game's catch-all tab, whose pieces show under every tab.
             if (category == Piece.PieceCategory.All) return "Every tab";
@@ -357,13 +303,5 @@ namespace Scry
 
         /// <summary>Forgets the build tabs' names, which mods may add to in the next world.</summary>
         public static void Forget() => _categoryNames = null;
-
-        private static void Tell(string what, Exception ex)
-        {
-            if (Told.Add(what + "|" + ex.GetType().Name + "|" + ex.Message))
-            {
-                Plugin.Log.LogWarning($"Scry could not group {what}, and lists it ungrouped (said once): {ex.Message}");
-            }
-        }
     }
 }

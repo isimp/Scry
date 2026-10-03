@@ -40,6 +40,27 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ASkipIsToldInFullTheFirstTimeItFailsThatWay()
+        {
+            // A new kind of failure is worth its whole story once; the same one again is only counted.
+            var trouble = new Trouble();
+            Assert.True(trouble.Skip("links", "Troll", new NullReferenceException("a")));
+            Assert.False(trouble.Skip("links", "Greydwarf", new NullReferenceException("a")));
+            Assert.True(trouble.Skip("links", "Boar", new NullReferenceException("b")));
+            Assert.True(trouble.Skip("links", "Neck", new InvalidOperationException("a")));
+            Assert.True(trouble.Skip("drops", "Troll", new NullReferenceException("a")));
+        }
+
+        [Fact]
+        public void AfterForgettingANewReadingTellsItsFailuresAfresh()
+        {
+            var trouble = new Trouble();
+            trouble.Skip("links", "Troll", new NullReferenceException("a"));
+            trouble.ForgetSkips();
+            Assert.True(trouble.Skip("links", "Troll", new NullReferenceException("a")));
+        }
+
+        [Fact]
         public void AFeatureTheGameChangedIsKeptForThePanelOnce()
         {
             var trouble = new Trouble();

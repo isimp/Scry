@@ -28,14 +28,10 @@ namespace Scry
             // Runs inside the game's own Awake: whatever goes wrong here must not stop it. The work
             // is in a method of its own, so that a list an update renamed, which fails the method
             // naming it before it runs, is caught here too.
-            try
+            Guard.Run("telling the game's prefabs from those mods add", () =>
             {
                 Record(__instance);
-            }
-            catch (System.Exception ex)
-            {
-                Faults.Tell("telling the game's prefabs from those mods add", ex);
-            }
+            });
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -56,14 +52,10 @@ namespace Scry
         private static void Prefix(ObjectDB __instance)
         {
             // Runs inside the game's own Awake: as above, nothing here may stop it.
-            try
+            Guard.Run("telling the game's status effects from those mods add", () =>
             {
                 Record(__instance);
-            }
-            catch (System.Exception ex)
-            {
-                Faults.Tell("telling the game's status effects from those mods add", ex);
-            }
+            });
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -86,14 +78,10 @@ namespace Scry
         private static void Prefix(RandEventSystem __instance)
         {
             // Runs inside the game's own Awake: as above, nothing here may stop it.
-            try
+            Guard.Run("telling the game's raids from those mods add", () =>
             {
                 Record(__instance);
-            }
-            catch (System.Exception ex)
-            {
-                Faults.Tell("telling the game's raids from those mods add", ex);
-            }
+            });
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -119,27 +107,19 @@ namespace Scry
         private static void Prefix()
         {
             // Runs inside the game's own setup: as above, nothing here may stop it.
-            try
+            Guard.Run("telling the game's raids from those mods add", () =>
             {
                 _raidsBefore = RaidNames();
-            }
-            catch (System.Exception ex)
-            {
-                Faults.Tell("telling the game's raids from those mods add", ex);
-            }
+            });
         }
 
         [HarmonyPriority(Priority.First)]
         private static void Postfix(ZoneSystem __instance)
         {
-            try
+            Guard.Run("telling the game's locations from those mods add", () =>
             {
                 Record(__instance);
-            }
-            catch (System.Exception ex)
-            {
-                Faults.Tell("telling the game's locations from those mods add", ex);
-            }
+            });
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -173,14 +153,10 @@ namespace Scry
         [HarmonyPriority(Priority.First)]
         private static void Postfix()
         {
-            try
+            Guard.Run("telling the game's dungeon rooms from those mods add", () =>
             {
                 Record();
-            }
-            catch (System.Exception ex)
-            {
-                Faults.Tell("telling the game's dungeon rooms from those mods add", ex);
-            }
+            });
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

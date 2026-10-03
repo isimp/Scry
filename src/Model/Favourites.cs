@@ -43,60 +43,46 @@ namespace Scry
 
         private string Aside => _path + ".tmp";
 
-        private void Load()
-        {
-            try
-            {
-                // Without a list in place, one written aside is a save that stopped before
-                // moving it there, and is the newest list there is.
-                var path = File.Exists(_path) ? _path : File.Exists(Aside) ? Aside : null;
-                if (path == null) return;
+        private void Load() => Problem = Steps.Run(ReadList, null)?.Message;
 
-                foreach (var line in File.ReadAllLines(path))
-                {
-                    var key = line.Trim();
-                    if (key.Length > 0) _keys.Add(key);
-                }
-            }
-            catch (Exception ex)
+        private void ReadList()
+        {
+            // Without a list in place, one written aside is a save that stopped before
+            // moving it there, and is the newest list there is.
+            var path = File.Exists(_path) ? _path : File.Exists(Aside) ? Aside : null;
+            if (path == null) return;
+
+            foreach (var line in File.ReadAllLines(path))
             {
-                Problem = ex.Message;
+                var key = line.Trim();
+                if (key.Length > 0) _keys.Add(key);
             }
         }
 
-        private void Save()
-        {
-            try
-            {
-                var folder = Path.GetDirectoryName(_path);
-                if (!string.IsNullOrEmpty(folder)) Directory.CreateDirectory(folder);
+        private void Save() => Problem = Steps.Run(WriteList, null)?.Message;
 
-                // Written aside and swapped into place in one step, so a crash at any point leaves
-                // either the old list or the new one, never half a list or none.
-                var keys = new List<string>(_keys);
-                keys.Sort(StringComparer.OrdinalIgnoreCase);
-                File.WriteAllLines(Aside, keys);
-                if (!File.Exists(_path)) File.Move(Aside, _path);
-                else
-                {
-                    try
-                    {
-                        File.Replace(Aside, _path, null);
-                    }
-                    catch (Exception) when (File.Exists(Aside))
-                    {
-                        // Where the file system cannot swap files, copying over the old list
-                        // still saves; the list aside is only removed once the copy is done.
-                        File.Copy(Aside, _path, true);
-                        File.Delete(Aside);
-                    }
-                }
-                Problem = null;
-            }
-            catch (Exception ex)
+        private void WriteList()
+        {
+            var folder = Path.GetDirectoryName(_path);
+            if (!string.IsNullOrEmpty(folder)) Directory.CreateDirectory(folder);
+
+            // Written aside and swapped into place in one step, so a crash at any point leaves
+            // either the old list or the new one, never half a list or none.
+            var keys = new List<string>(_keys);
+            keys.Sort(StringComparer.OrdinalIgnoreCase);
+            File.WriteAllLines(Aside, keys);
+            if (!File.Exists(_path))
             {
-                Problem = ex.Message;
+                File.Move(Aside, _path);
+                return;
             }
+            var swapped = Steps.Run(() => File.Replace(Aside, _path, null), null);
+            if (swapped == null) return;
+            // Where the file system cannot swap files, copying over the old list still saves; the
+            // list aside is only removed once the copy is done. With no list aside, nothing saved.
+            if (!File.Exists(Aside)) throw swapped;
+            File.Copy(Aside, _path, true);
+            File.Delete(Aside);
         }
     }
 }

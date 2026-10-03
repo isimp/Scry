@@ -45,8 +45,9 @@ namespace Scry
         }
 
         /// <summary>
-        /// A part of one prefab left out while reading. A game change is told at once as the
-        /// feature it turns off; anything else is counted, for <see cref="TellSkipped"/>.
+        /// A part of one item left out, a prefab's while reading or one shown. A game change is
+        /// told at once as the feature it turns off; anything else is told whole the first time
+        /// that part fails that way, then only counted, and summed up by <see cref="TellSkipped"/>.
         /// </summary>
         public static void Skip(string part, string prefab, Exception ex)
         {
@@ -54,8 +55,8 @@ namespace Scry
             Skipped++;
             LatestSkipped = Words(part + " of " + prefab, ex);
             if (GameChanged(part, ex)) return;
-            Found.Skip(part, prefab, ex);
-            Plugin.Log.LogDebug($"Scry left out the {part} of {prefab}: {ex.Message}");
+            if (Found.Skip(part, prefab, ex)) Plugin.Log.LogWarning($"Scry left out the {part} of {prefab} (told whole once for this failure, then counted): {ex}");
+            else Plugin.Log.LogDebug($"Scry left out the {part} of {prefab}: {ex.Message}");
         }
 
         /// <summary>Tells, once a reading is done, what it left out, and starts counting again.</summary>

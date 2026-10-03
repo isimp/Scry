@@ -194,13 +194,13 @@ namespace Scry
             if (read == null) return;
             _readLooks = null;
 
-            try
+            // One whose looks cannot be read offers none.
+            if (Steps.Run(read, out var looks, null) == null)
             {
-                var (names, first) = read();
-                _looks = names ?? new string[0];
-                _defaultLook = first;
+                _looks = looks.Names ?? new string[0];
+                _defaultLook = looks.Default;
             }
-            catch (Exception)
+            else
             {
                 _looks = new string[0];
                 _defaultLook = 0;

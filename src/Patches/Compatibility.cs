@@ -292,12 +292,7 @@ namespace Scry
             // Every game type is found by name and every part checked on its own, so a type or
             // member an update removed is told as missing rather than stopping the check.
             var list = new Checklist();
-            void Each(string part, Action check)
-            {
-                try { check(); }
-                // A check that cannot run says so; it turns no feature off, so the panel does not show it.
-                catch (Exception ex) { Plugin.Log.LogWarning($"Scry could not check {part} at start, and goes on without knowing: {ex.Message}"); }
-            }
+            void Each(string part, Action check) => Guard.Run("the startup check of " + part, check);
             Each("SpawnSystem.m_instances", () => Member(list, "SpawnSystem", "m_instances", "where creatures spawn"));
             Each("ZSFX.m_fadeOutTimer", () => Member(list, "ZSFX", "m_fadeOutTimer", "sounds playing on after a seek or pause"));
             Each("CharacterDrop.m_dropsEnabled", () => Member(list, "CharacterDrop", "m_dropsEnabled", "drops seen in play"));
@@ -358,9 +353,12 @@ namespace Scry
         {
             foreach (var type in Plugin.OwnTypes())
             {
-                HarmonyPatch attribute;
-                try { attribute = type.GetCustomAttributes(typeof(HarmonyPatch), false).FirstOrDefault() as HarmonyPatch; }
-                catch (Exception) { list.Add(type.Name, PatchFeatures.TryGetValue(type.Name, out var off) ? off : type.Name, Found.Missing); continue; }
+                // A patch whose attribute names what the game no longer has is told missing by the list.
+                if (Steps.Run(() => type.GetCustomAttributes(typeof(HarmonyPatch), false).FirstOrDefault() as HarmonyPatch, out var attribute, null) != null)
+                {
+                    list.Add(type.Name, PatchFeatures.TryGetValue(type.Name, out var off) ? off : type.Name, Found.Missing);
+                    continue;
+                }
                 if (attribute?.info?.declaringType == null) continue;
 
                 var target = attribute.info.declaringType;

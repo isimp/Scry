@@ -114,8 +114,7 @@ namespace Scry
             // update changed what it reads, costs only that kind.
             void Part(string links, Action read)
             {
-                try { read(); }
-                catch (Exception ex) { Faults.Skip(links, prefab.name, ex); }
+                Guard.Each(links, prefab.name, () => read());
             }
             Part("links of animations", () => Animations(prefab, _book));
             Part("links of footsteps", () => Steps(prefab, _book));
@@ -146,14 +145,10 @@ namespace Scry
         {
             if (effect == null) return;
             Following.Clear();
-            try
+            Guard.Each("links of status effects", effect.name, () =>
             {
                 Named(effect, "se:" + effect.name, null, _book, 0);
-            }
-            catch (Exception ex)
-            {
-                Faults.Skip("links of status effects", effect.name, ex);
-            }
+            });
         }
 
         /// <summary>Hands over the helpers followed so far, and forgets them.</summary>
@@ -366,10 +361,7 @@ namespace Scry
                 if (owner is Humanoid && GearFields.Contains(field.Name)) continue;
                 var told = depth == 0 && ItemsToldElsewhere(owner, field);
                 if (told && (owner is Plant || owner is Pickable)) continue;
-                object value;
-                try { value = field.GetValue(owner); }
-                catch { continue; }
-                if (value == null) continue;
+                if (!TypeFields.Read(field, owner, out var value) || value == null) continue;
 
                 // An attack uses only what its kind uses (Attack.OnAttackTrigger): a projectile
                 // only when it throws or shoots, what it spawns only when it swings or hits an area.
@@ -421,10 +413,7 @@ namespace Scry
         {
             foreach (var field in FieldsOf(owner.GetType()))
             {
-                object value;
-                try { value = field.GetValue(owner); }
-                catch { continue; }
-                if (value == null) continue;
+                if (!TypeFields.Read(field, owner, out var value) || value == null) continue;
                 if (value is GameObject single)
                 {
                     if (single != null) into.Add(single);
@@ -478,14 +467,10 @@ namespace Scry
             foreach (var component in parts)
             {
                 if (Skipped(component)) continue;
-                try
+                Guard.Each("links of what prefabs spawn", target.name, () =>
                 {
                     Named(component, key, self, book, 0, null, part);
-                }
-                catch (Exception ex)
-                {
-                    Faults.Skip("links of what prefabs spawn", target.name, ex);
-                }
+                });
             }
         }
 

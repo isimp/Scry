@@ -215,9 +215,7 @@ namespace Scry
             // For reporting: what is off, with the versions, ready to paste.
             if (CardButton(rect, close, "Copy for a report", out _))
             {
-                string game;
-                try { game = GameVersion(); }
-                catch (System.Exception) { game = "of an unknown version"; }
+                if (!Guard.Run("telling the game's version", GameVersion, out var game)) game = "of an unknown version";
                 GUIUtility.systemCopyBuffer = $"Scry {Plugin.Version}, Valheim {game}: off: {string.Join(", ", _offFeatures)}";
                 Session.Say("Copied what is off, with Scry's and the game's versions.");
             }

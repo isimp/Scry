@@ -170,8 +170,7 @@ namespace Scry
             {
                 foreach (var making in Making.Concat(Dropped).ToArray())
                 {
-                    try { if (!making.isDone) making.WaitForCompletion(); }
-                    catch (Exception ex) { Faults.Tell("finishing a copy", ex); }
+                    Guard.Run("finishing a copy", () => { if (!making.isDone) making.WaitForCompletion(); });
                 }
                 Tick();
             }
@@ -179,14 +178,10 @@ namespace Scry
             /// <summary>Takes down what an operation made.</summary>
             private static void TakeDown(AsyncInstantiateOperation<GameObject> making)
             {
-                try
+                Guard.Run("taking down a copy", () =>
                 {
                     if (making.Result != null) foreach (var made in making.Result) if (made != null) Object.Destroy(made);
-                }
-                catch (Exception ex)
-                {
-                    Faults.Tell("taking down a copy", ex);
-                }
+                });
             }
 
             private readonly GameObject _prefab;
@@ -242,13 +237,11 @@ namespace Scry
                 _waiting = false;
                 try
                 {
-                    do Next(watch, budgetMs);
-                    while (_step != Step.Done && !_waiting && watch.Elapsed.TotalMilliseconds < budgetMs);
-                }
-                catch (Exception ex)
-                {
-                    Plugin.Log.LogWarning($"Scry could not make a preview of {_name}: {ex.Message}");
-                    Cancel();
+                    if (!Guard.Each("previews", _name, () =>
+                    {
+                        do Next(watch, budgetMs);
+                        while (_step != Step.Done && !_waiting && watch.Elapsed.TotalMilliseconds < budgetMs);
+                    })) Cancel();
                 }
                 finally
                 {
@@ -387,15 +380,8 @@ namespace Scry
             /// </summary>
             private bool Begin()
             {
-                try
-                {
-                    _making = Object.InstantiateAsync(_prefab, new InstantiateParameters { parent = Holder().transform, worldSpace = false });
-                }
-                catch (Exception ex)
-                {
-                    Plugin.Log.LogDebug($"Scry makes {_name} at once, as Unity could not make it on its own: {ex.Message}");
-                    _making = null;
-                }
+                // Where Unity cannot make the copy on a thread of its own, as some prefabs it will not, it is made at once.
+                if (Steps.Run(() => Object.InstantiateAsync(_prefab, new InstantiateParameters { parent = Holder().transform, worldSpace = false }), out _making, null) != null) _making = null;
                 if (_making == null) return false;
                 Making.Add(_making);
                 return true;

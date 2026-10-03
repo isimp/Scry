@@ -22,8 +22,7 @@ namespace Scry
             EnsureTexture();
             Settle();
             _camera.renderingPath = PathOverride ?? RenderingPath.UsePlayerSettings;
-            try { KeepGround(); }
-            catch (System.Exception ex) { GroundFailed(ex); }
+            if (!Guard.Run(GroundPart, KeepGround)) PutGroundAway();
             Frame();
             KeepCreaturesToCut();
 

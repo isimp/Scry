@@ -30,14 +30,10 @@ namespace Scry
                 foreach (var component in root.GetComponentsInChildren<Component>(true))
                 {
                     if (component == null) continue;
-                    try
+                    Guard.Each("interface sounds", Provenance.Interface, () =>
                     {
                         Gather(component, Provenance.Interface, Origin.Vanilla, effects, null, Provenance.Interface);
-                    }
-                    catch (Exception ex)
-                    {
-                        Faults.Skip("interface sounds", Provenance.Interface, ex);
-                    }
+                    });
                 }
             }
         }
@@ -130,7 +126,7 @@ namespace Scry
             }
         }
 
-        private static readonly Dictionary<Type, FieldInfo> NamingFields = new Dictionary<Type, FieldInfo>();
+        private static readonly Dictionary<Type, FieldInfo[]> NamingFields = new Dictionary<Type, FieldInfo[]>();
 
         /// <summary>
         /// What one entry of game data is for, by its first field that says so: an item (by its
@@ -139,27 +135,10 @@ namespace Scry
         private static string WhatFor(object item)
         {
             var type = item.GetType();
-            if (!NamingFields.TryGetValue(type, out var naming))
-            {
-                naming = null;
-                try
-                {
-                    foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
-                    {
-                        if (field.IsNotSerialized || (!field.IsPublic && field.GetCustomAttribute<SerializeField>() == null)) continue;
-                        if (field.FieldType.IsEnum || typeof(UnityEngine.Object).IsAssignableFrom(field.FieldType))
-                        {
-                            naming = field;
-                            break;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Faults.Skip("reading of a type's fields", type.Name, ex);
-                }
-                NamingFields[type] = naming;
-            }
+            var namings = TypeFields.Matching(NamingFields, type, field =>
+                !field.IsNotSerialized && (field.IsPublic || field.GetCustomAttribute<SerializeField>() != null)
+                && (field.FieldType.IsEnum || typeof(UnityEngine.Object).IsAssignableFrom(field.FieldType)));
+            var naming = namings.Length > 0 ? namings[0] : null;
             if (naming == null) return "";
 
             var value = naming.GetValue(item);
