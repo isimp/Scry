@@ -44,10 +44,6 @@ namespace Scry
         private static Quaternion _facing = Quaternion.identity;
 
         private static readonly List<Timed> Played = new List<Timed>();
-        private static GameObject _sound;
-        private static float _soundWaitUntil;
-        private static bool _soundPaused;
-        private static Entry _soundEntry;
         private static readonly List<GameObject> StatusVisuals = new List<GameObject>();
         private static StatusEffect _status;
 
@@ -56,6 +52,9 @@ namespace Scry
 
         private static readonly Dictionary<GameObject, float> Born = new Dictionary<GameObject, float>();
         private static readonly Dictionary<GameObject, bool> AliveNow = new Dictionary<GameObject, bool>();
+
+        /// <summary>Copies gone since they were made, let go of once a frame; kept to be filled again rather than made each frame.</summary>
+        private static readonly List<GameObject> Gone = new List<GameObject>();
         private static int _aliveFrame = -1;
 
         /// <summary>Records what a button started, each part tagged with the prefab it copies.</summary>
@@ -146,9 +145,9 @@ namespace Scry
             {
                 _aliveFrame = Time.frameCount;
                 AliveNow.Clear();
-                var gone = new List<GameObject>();
-                foreach (var born in Born) if (born.Key == null) gone.Add(born.Key);
-                foreach (var key in gone) Born.Remove(key);
+                foreach (var born in Born) if (born.Key == null) Gone.Add(born.Key);
+                foreach (var key in Gone) Born.Remove(key);
+                Gone.Clear();
             }
             if (AliveNow.TryGetValue(thing, out var known)) return known;
 
@@ -184,10 +183,10 @@ namespace Scry
 
         public static float ProjectileSpeed = 40f;
 
-        public static bool SoundPlaying => _sound != null;
+        public static bool SoundPlaying => TheSound.Copy != null;
         public static bool StatusShowing => _status != null && StatusVisuals.Count > 0;
         public static int PinnedCount => Pinned.Count;
-        public static bool AnythingInWorld => _world != null || Pinned.Count > 0 || Played.Count > 0 || _sound != null || StatusVisuals.Count > 0;
+        public static bool AnythingInWorld => _world != null || Pinned.Count > 0 || Played.Count > 0 || TheSound.Copy != null || StatusVisuals.Count > 0;
 
         /// <summary>
         /// How many lines <see cref="Out"/> would list, counted without making the list, since the
@@ -197,7 +196,7 @@ namespace Scry
         {
             get
             {
-                var lines = (_world != null ? 1 : 0) + (_sound != null ? 1 : 0) + (_status != null && StatusVisuals.Count > 0 ? 1 : 0);
+                var lines = (_world != null ? 1 : 0) + (TheSound.Copy != null ? 1 : 0) + (_status != null && StatusVisuals.Count > 0 ? 1 : 0);
                 foreach (var pinned in Pinned) if (pinned != null) lines++;
                 for (var i = 0; i < Played.Count; i++)
                 {
@@ -306,7 +305,7 @@ namespace Scry
             // the panel is open, so it is let go here rather than kept into the next world.
             _explorer = null;
             _entry = null;
-            _soundEntry = null;
+            TheSound.ForgetEntry();
             _status = null;
             _selectionVersion = -1;
             Undo.Clear();
@@ -450,7 +449,7 @@ namespace Scry
 
             // A sound stopped by hand is not replayed; one that ran out is.
             // A chosen variant repeats as itself; a random play picks again each time, as in the game.
-            if (LoopSounds && _entry.Kind == Kind.Sound && _soundEntry == _entry && _sound == null) PlaySound(_entry, _soundChosen);
+            if (LoopSounds && _entry.Kind == Kind.Sound && TheSound.Entry == _entry && TheSound.Copy == null) PlaySound(_entry, TheSound.Chosen);
         }
 
         // ----- Making again -----
@@ -482,7 +481,7 @@ namespace Scry
             var things = new List<(OutPlace, string)>();
             if (_world != null) things.Add((OutPlace.Shown, _world.name));
             foreach (var pinned in Pinned) if (pinned != null) things.Add((OutPlace.Pinned, pinned.name));
-            if (_sound != null) things.Add((OutPlace.Sound, _sound.name));
+            if (TheSound.Copy != null) things.Add((OutPlace.Sound, TheSound.Copy.name));
             if (_status != null && StatusVisuals.Count > 0) things.Add((OutPlace.Status, _status.name));
             foreach (var played in Played) if (played.Thing != null) things.Add((OutPlace.Playing, played.Key));
             return OutList.Rows(things);
@@ -537,7 +536,7 @@ namespace Scry
                 Played.RemoveAt(i);
             }
 
-            if (_sound != null && !SoundAlive(now)) Destroy(ref _sound);
+            if (TheSound.Copy != null && !TheSound.Alive(now)) TheSound.Drop();
             for (var i = StatusVisuals.Count - 1; i >= 0; i--) if (StatusVisuals[i] == null) StatusVisuals.RemoveAt(i);
             Pinned.RemoveAll(p => p == null);
         }
