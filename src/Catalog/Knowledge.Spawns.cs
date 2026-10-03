@@ -494,34 +494,12 @@ namespace Scry
         private static readonly Dictionary<Type, FieldInfo[]> ConversionFields = new Dictionary<Type, FieldInfo[]>();
 
         /// <summary>Fields holding a list or array of entries with an m_from and an m_to item.</summary>
-        private static FieldInfo[] Conversions(Type type)
+        private static FieldInfo[] Conversions(Type type) => TypeFields.Matching(ConversionFields, type, field =>
         {
-            if (ConversionFields.TryGetValue(type, out var known)) return known;
-            var found = new List<FieldInfo>();
-            try
-            {
-                const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-                for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour); t = t.BaseType)
-                {
-                    foreach (var field in t.GetFields(flags))
-                    {
-                        var element = field.FieldType.IsArray ? field.FieldType.GetElementType()
-                            : field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(List<>) ? field.FieldType.GetGenericArguments()[0] : null;
-                        if (element == null) continue;
-                        if (element.GetField("m_from")?.FieldType == typeof(ItemDrop) && element.GetField("m_to")?.FieldType == typeof(ItemDrop)) found.Add(field);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // A mod's type whose fields cannot be read has none here, remembered as such.
-                Faults.Skip("reading of a type's fields", type.Name, ex);
-                found.Clear();
-            }
-            known = found.ToArray();
-            ConversionFields[type] = known;
-            return known;
-        }
+            var element = field.FieldType.IsArray ? field.FieldType.GetElementType()
+                : field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(List<>) ? field.FieldType.GetGenericArguments()[0] : null;
+            return element != null && element.GetField("m_from")?.FieldType == typeof(ItemDrop) && element.GetField("m_to")?.FieldType == typeof(ItemDrop);
+        });
 
         private static readonly List<(string Prefab, string Effect, string How)> GiverList = new List<(string, string, string)>();
         private static readonly Dictionary<Type, FieldInfo[]> EffectRefFields = new Dictionary<Type, FieldInfo[]>();
@@ -565,32 +543,9 @@ namespace Scry
         }
 
         /// <summary>Fields holding a status effect, or a status effect's name.</summary>
-        private static FieldInfo[] EffectRefs(Type type)
-        {
-            if (EffectRefFields.TryGetValue(type, out var known)) return known;
-            var found = new List<FieldInfo>();
-            try
-            {
-                const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-                for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour) && t != typeof(ScriptableObject); t = t.BaseType)
-                {
-                    foreach (var field in t.GetFields(flags))
-                    {
-                        if (typeof(StatusEffect).IsAssignableFrom(field.FieldType)) found.Add(field);
-                        else if (field.FieldType == typeof(string) && field.Name.IndexOf("statuseffect", StringComparison.OrdinalIgnoreCase) >= 0) found.Add(field);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // A mod's type whose fields cannot be read has none here, remembered as such.
-                Faults.Skip("reading of a type's fields", type.Name, ex);
-                found.Clear();
-            }
-            known = found.ToArray();
-            EffectRefFields[type] = known;
-            return known;
-        }
+        private static FieldInfo[] EffectRefs(Type type) => TypeFields.Matching(EffectRefFields, type, field =>
+            typeof(StatusEffect).IsAssignableFrom(field.FieldType)
+            || field.FieldType == typeof(string) && field.Name.IndexOf("statuseffect", StringComparison.OrdinalIgnoreCase) >= 0);
 
         private static string ItemName(GameObject item)
         {
@@ -666,28 +621,7 @@ namespace Scry
         }
 
         /// <summary>The drop table fields of a type and its bases, found once per type; none for a mod's type whose fields cannot be read.</summary>
-        internal static FieldInfo[] DropTables(Type type)
-        {
-            if (DropTableFields.TryGetValue(type, out var known)) return known;
-            var found = new List<FieldInfo>();
-            try
-            {
-                const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-                for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour); t = t.BaseType)
-                {
-                    foreach (var field in t.GetFields(flags)) if (field.FieldType == typeof(DropTable)) found.Add(field);
-                }
-            }
-            catch (Exception ex)
-            {
-                // A mod's type whose fields cannot be read has none here, remembered as such.
-                Faults.Skip("reading of a type's fields", type.Name, ex);
-                found.Clear();
-            }
-            known = found.ToArray();
-            DropTableFields[type] = known;
-            return known;
-        }
+        internal static FieldInfo[] DropTables(Type type) => TypeFields.Matching(DropTableFields, type, field => field.FieldType == typeof(DropTable));
 
         /// <summary>A prefab as the lines name it: its shown name and its prefab name. Worked out once per prefab.</summary>
         private static string Shown(GameObject prefab)

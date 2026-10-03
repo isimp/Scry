@@ -361,33 +361,12 @@ namespace Scry
             Array.IndexOf(FuelFields(type), field) >= 0 || Array.IndexOf(Conversions(type), field) >= 0;
 
         /// <summary>Fields holding an item that is burnt, or a list of them: a smelter's, a fire's, a shield generator's, and the like.</summary>
-        private static FieldInfo[] FuelFields(Type type)
+        private static FieldInfo[] FuelFields(Type type) => TypeFields.Matching(FuelFieldsByType, type, field =>
         {
-            if (FuelFieldsByType.TryGetValue(type, out var known)) return known;
-            var found = new List<FieldInfo>();
-            try
-            {
-                const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-                for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour); t = t.BaseType)
-                {
-                    foreach (var field in t.GetFields(flags))
-                    {
-                        var ft = field.FieldType;
-                        var holdsItems = ft == typeof(ItemDrop) || ft == typeof(ItemDrop[]) || ft == typeof(List<ItemDrop>);
-                        if (holdsItems && field.Name.IndexOf("fuel", StringComparison.OrdinalIgnoreCase) >= 0) found.Add(field);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // A mod's type whose fields cannot be read has none here, remembered as such.
-                Faults.Skip("reading of a type's fields", type.Name, ex);
-                found.Clear();
-            }
-            known = found.ToArray();
-            FuelFieldsByType[type] = known;
-            return known;
-        }
+            var ft = field.FieldType;
+            var holdsItems = ft == typeof(ItemDrop) || ft == typeof(ItemDrop[]) || ft == typeof(List<ItemDrop>);
+            return holdsItems && field.Name.IndexOf("fuel", StringComparison.OrdinalIgnoreCase) >= 0;
+        });
 
         /// <summary>The recipes each item goes into, noted once every prefab is read.</summary>
         private static void Recipes()

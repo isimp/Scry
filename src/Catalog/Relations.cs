@@ -500,37 +500,16 @@ namespace Scry
         }
 
         /// <summary>The fields that can hold a prefab or an item: one, a list of them, or data holding them.</summary>
-        private static FieldInfo[] FieldsOf(Type type)
+        private static FieldInfo[] FieldsOf(Type type) => TypeFields.Matching(PrefabFields, type, field =>
         {
-            if (PrefabFields.TryGetValue(type, out var known)) return known;
-            var found = new List<FieldInfo>();
-            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-            try
-            {
-                for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour) && t != typeof(Component) && t != typeof(ScriptableObject); t = t.BaseType)
-                {
-                    foreach (var field in t.GetFields(flags))
-                    {
-                        var ft = field.FieldType;
-                        if (field.IsNotSerialized || field.GetCustomAttribute<NonSerializedAttribute>() != null) continue;
-                        if (!field.IsPublic && field.GetCustomAttribute<SerializeField>() == null) continue;
-                        if (ft == typeof(GameObject) || ft == typeof(GameObject[]) || ft == typeof(List<GameObject>)) found.Add(field);
-                        else if (ft == typeof(ItemDrop) || ft == typeof(ItemDrop[]) || ft == typeof(List<ItemDrop>)) found.Add(field);
-                        else if (ft.IsArray && IsData(ft.GetElementType())) found.Add(field);
-                        else if (ft.IsGenericType && ft.GetGenericTypeDefinition() == typeof(List<>) && IsData(ft.GetGenericArguments()[0])) found.Add(field);
-                        else if (IsData(ft)) found.Add(field);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // A mod's type whose fields cannot be read links nothing, remembered as such.
-                Faults.Skip("reading of a type's fields", type.Name, ex);
-                found.Clear();
-            }
-            known = found.ToArray();
-            PrefabFields[type] = known;
-            return known;
-        }
+            var ft = field.FieldType;
+            if (field.IsNotSerialized || field.GetCustomAttribute<NonSerializedAttribute>() != null) return false;
+            if (!field.IsPublic && field.GetCustomAttribute<SerializeField>() == null) return false;
+            return ft == typeof(GameObject) || ft == typeof(GameObject[]) || ft == typeof(List<GameObject>)
+                   || ft == typeof(ItemDrop) || ft == typeof(ItemDrop[]) || ft == typeof(List<ItemDrop>)
+                   || ft.IsArray && IsData(ft.GetElementType())
+                   || ft.IsGenericType && ft.GetGenericTypeDefinition() == typeof(List<>) && IsData(ft.GetGenericArguments()[0])
+                   || IsData(ft);
+        });
     }
 }

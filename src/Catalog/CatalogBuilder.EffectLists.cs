@@ -193,37 +193,18 @@ namespace Scry
         }
 
         /// <summary>The fields of a type that hold game data with effect lists in it, each with those lists' fields, names and labels.</summary>
-        private static (FieldInfo Outer, (FieldInfo Field, string Name, string Label)[] Inner)[] NestedLists(Type type)
-        {
-            if (NestedListsByType.TryGetValue(type, out var known)) return known;
-            var found = new List<(FieldInfo, (FieldInfo, string, string)[])>();
-            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-            try
+        private static (FieldInfo Outer, (FieldInfo Field, string Name, string Label)[] Inner)[] NestedLists(Type type) =>
+            TypeFields.Picked(NestedListsByType, type, outer =>
             {
-                for (var t = type; t != null && t != typeof(object) && t != typeof(MonoBehaviour) && t != typeof(Component) && t != typeof(ScriptableObject); t = t.BaseType)
-                {
-                    foreach (var outer in t.GetFields(flags))
-                    {
-                        if (outer.IsNotSerialized || (!outer.IsPublic && outer.GetCustomAttribute<SerializeField>() == null)) continue;
-                        var ft = outer.FieldType;
-                        var element = ft.IsArray ? ft.GetElementType()
-                            : ft.IsGenericType && ft.GetGenericTypeDefinition() == typeof(List<>) ? ft.GetGenericArguments()[0]
-                            : ft;
-                        if (!HoldsLists(element)) continue;
-                        var inner = EffectFields(element).Select(f => (f, outer.Name + "." + f.Name, Naming.NestedListLabel(outer.Name, f.Name))).ToArray();
-                        if (inner.Length > 0) found.Add((outer, inner));
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Faults.Skip("reading of a type's fields", type.Name, ex);
-                found.Clear();
-            }
-            known = found.ToArray();
-            NestedListsByType[type] = known;
-            return known;
-        }
+                if (outer.IsNotSerialized || (!outer.IsPublic && outer.GetCustomAttribute<SerializeField>() == null)) return Array.Empty<(FieldInfo, (FieldInfo, string, string)[])>();
+                var ft = outer.FieldType;
+                var element = ft.IsArray ? ft.GetElementType()
+                    : ft.IsGenericType && ft.GetGenericTypeDefinition() == typeof(List<>) ? ft.GetGenericArguments()[0]
+                    : ft;
+                if (!HoldsLists(element)) return Array.Empty<(FieldInfo, (FieldInfo, string, string)[])>();
+                var inner = EffectFields(element).Select(f => (f, outer.Name + "." + f.Name, Naming.NestedListLabel(outer.Name, f.Name))).ToArray();
+                return inner.Length > 0 ? new[] { (outer, inner) } : Array.Empty<(FieldInfo, (FieldInfo, string, string)[])>();
+            });
 
         /// <summary>
         /// The game's own small data, a class or a struct, that may hold effect lists of its own;
@@ -238,32 +219,6 @@ namespace Scry
         }
 
         /// <summary>The EffectList fields on a type and its bases, remembered per type; none for a type whose fields cannot be read.</summary>
-        internal static FieldInfo[] EffectFields(Type type)
-        {
-            if (EffectFieldsByType.TryGetValue(type, out var known)) return known;
-
-            var found = new List<FieldInfo>();
-            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-
-            try
-            {
-                for (var t = type; t != null && t != typeof(object); t = t.BaseType)
-                {
-                    foreach (var field in t.GetFields(flags))
-                    {
-                        if (field.FieldType == typeof(EffectList)) found.Add(field);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Faults.Skip("reading of a type's fields", type.Name, ex);
-                found.Clear();
-            }
-
-            known = found.ToArray();
-            EffectFieldsByType[type] = known;
-            return known;
-        }
+        internal static FieldInfo[] EffectFields(Type type) => TypeFields.Matching(EffectFieldsByType, type, field => field.FieldType == typeof(EffectList));
     }
 }
