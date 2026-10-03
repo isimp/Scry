@@ -156,16 +156,10 @@ namespace Scry
                 Timing.Own(Timing.SelfTestPart, started, inner);
             });
 
-            var reading = Timing.Start();
-            try { Locations.Update(); } catch (Exception ex) { Faults.Tell("reading the locations", ex); Locations.Forget(); }
-            Timing.Add("update locations", reading);
+            if (!Guard.Run("reading the locations", Locations.Update, "update locations")) Locations.Forget();
         }
 
-        private static void Step(string part, Action step)
-        {
-            try { step(); }
-            catch (Exception ex) { Faults.Tell(part, ex); }
-        }
+        private static void Step(string part, Action step) => Guard.Run(part, step);
 
         public static void LateUpdate()
         {
@@ -271,8 +265,7 @@ namespace Scry
             // reading the panel's button starts, a few milliseconds a frame.
             if (Plugin.ReadLocationsAutomatically && Locations.Now == Locations.State.NotRead)
             {
-                try { Plugin.Log.LogInfo("Scry: " + Locations.Start()); }
-                catch (Exception ex) { Faults.Tell("reading the locations by itself", ex); }
+                Guard.Run("reading the locations by itself", () => Plugin.Log.LogInfo("Scry: " + Locations.Start()));
             }
         }
 
@@ -295,14 +288,14 @@ namespace Scry
             _job = null;
             _failedIn = null;
             _inWorldSince = -1f;
-            try { Hide(); } catch (Exception ex) { Faults.Tell("closing on leaving a world", ex); }
-            try { Previews.ClearWorld(); } catch (Exception ex) { Faults.Tell("clearing the world's previews", ex); }
+            Guard.Run("closing on leaving a world", Hide);
+            Guard.Run("clearing the world's previews", Previews.ClearWorld);
 
             // Everything else kept of the world, each class having registered how it forgets.
             WorldCaches.ForgetAll((name, ex) => Faults.Tell("forgetting " + name, ex));
 
             // The search and filters carry over to the next world; the entries cannot.
-            try { if (Explorer != null) Explorer.Select(null); } catch (Exception ex) { Faults.Tell("letting go of the selection", ex); }
+            Guard.Run("letting go of the selection", () => Explorer?.Select(null));
             if (Explorer != null) _carried = (Explorer.Text, Explorer.KindFilter, Explorer.Origin, Explorer.FavouritesOnly);
             Explorer = null;
         }

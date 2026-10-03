@@ -217,17 +217,17 @@ namespace Scry
             Loudness.Gain = explorer != null ? explorer.Modifiers.Volume : 1f;
 
             // Each part on its own: one that fails does not keep the others from running.
-            try { Expire(); } catch (System.Exception ex) { Faults.Tell("expiring previews", ex); }
-            try { Listen.Update(); } catch (System.Exception ex) { Faults.Tell("listening", ex); }
-            try { MusicPreview.Update(); } catch (System.Exception ex) { Faults.Tell("playing a location's music", ex); }
-            try { SettleSeek(); } catch (System.Exception ex) { Faults.Tell("seeking a sound", ex); }
-            try { Ghost.Building.Tick(); } catch (System.Exception ex) { Faults.Tell("making a copy", ex); }
+            Guard.Run("expiring previews", Expire);
+            Guard.Run("listening", Listen.Update);
+            Guard.Run("playing a location's music", MusicPreview.Update);
+            Guard.Run("seeking a sound", SettleSeek);
+            Guard.Run("making a copy", Ghost.Building.Tick);
             // Working out what clips play waits while the panel is closed, and goes on when it opens.
             var started = Timing.Start();
             if (explorer != null)
             {
-                try { TriggerProbe.Update(); } catch (System.Exception ex) { Faults.Tell("watching an animator", ex); }
-                try { SortSomeClips(); } catch (System.Exception ex) { Faults.Tell("sorting clips", ex); }
+                Guard.Run("watching an animator", TriggerProbe.Update);
+                Guard.Run("sorting clips", SortSomeClips);
             }
             Timing.Add("update probe", started);
             for (var i = LaterOn.Count - 1; i >= 0; i--)
@@ -235,7 +235,7 @@ namespace Scry
                 if (Time.unscaledTime < LaterOn[i].At) continue;
                 var act = LaterOn[i].Act;
                 LaterOn.RemoveAt(i);
-                try { act(); } catch (System.Exception ex) { Faults.Tell("a later step", ex); }
+                Guard.Run("a later step", act);
             }
 
             if (explorer == null) return;
@@ -252,60 +252,48 @@ namespace Scry
                 _selectionVersion = explorer.SelectionVersion;
                 _modifierVersion = modifiers.Version;
                 _stageStale = false;
-                started = Timing.Start();
-                try { Selected(explorer.Selected, modifiers); } catch (System.Exception ex) { Faults.Tell("showing the selection", ex); }
-                Timing.Add("update selection", started);
+                Guard.Run("showing the selection", e => Selected(e.Selected, e.Modifiers), explorer, "update selection");
             }
             else if (modifiers.Version != _modifierVersion)
             {
                 _modifierVersion = modifiers.Version;
-                started = Timing.Start();
-                try { Modified(modifiers); } catch (System.Exception ex) { Faults.Tell("changing the preview", ex); }
-                Timing.Add("update modifiers", started);
+                Guard.Run("changing the preview", Modified, modifiers, "update modifiers");
             }
 
             // A location or room selected: its bundle is loaded and held while it is shown, what it
             // holds read once it is in, and its stage copy made then. Its details say how far the
             // loading has got, so they are told again as that changes.
-            try
-            {
-                if (PlaceAssets.Hold(explorer.Selected?.Source as PlaceSource)) Learned.About(explorer.Selected);
-                switch (PlaceAssets.Update())
-                {
-                    case PlaceLoad.Ready:
-                        PlaceLoaded(explorer, explorer.Selected);
-                        break;
-                    case PlaceLoad.Failed:
-                        Learned.About(explorer.Selected);
-                        break;
-                }
-            }
-            catch (System.Exception ex)
-            {
-                Faults.Tell("loading a location", ex);
-            }
+            Guard.Run("loading a location", LoadPlace, explorer);
 
             // A location or room is put on the stage a little each frame, shown once it is made, and its creatures after.
-            try { Stage.StepBuild(); } catch (System.Exception ex) { Faults.Tell("showing a location", ex); }
-            try { Stage.StepCreatures(); } catch (System.Exception ex) { Faults.Tell("putting a place's creatures on the stage", ex); }
+            Guard.Run("showing a location", Stage.StepBuild);
+            Guard.Run("putting a place's creatures on the stage", Stage.StepCreatures);
 
             // A dungeon or camp selected: its rooms are read for an example layout.
-            try
-            {
-                ExampleLayouts.Update(explorer);
-            }
-            catch (System.Exception ex)
-            {
-                Faults.Tell("laying out an example dungeon", ex);
-            }
+            Guard.Run("laying out an example dungeon", ExampleLayouts.Update, explorer);
 
             if (_stageStale)
             {
                 _stageStale = false;
-                try { Stage.Show(_entry, modifiers); } catch (System.Exception ex) { Faults.Tell("showing the stage", ex); }
+                Guard.Run("showing the stage", m => Stage.Show(_entry, m), modifiers);
             }
 
-            try { Repeat(modifiers); } catch (System.Exception ex) { Faults.Tell("repeating", ex); }
+            Guard.Run("repeating", Repeat, modifiers);
+        }
+
+        /// <summary>The selected location's or room's bundle held and loaded, what it holds read once it is in.</summary>
+        private static void LoadPlace(Explorer explorer)
+        {
+            if (PlaceAssets.Hold(explorer.Selected?.Source as PlaceSource)) Learned.About(explorer.Selected);
+            switch (PlaceAssets.Update())
+            {
+                case PlaceLoad.Ready:
+                    PlaceLoaded(explorer, explorer.Selected);
+                    break;
+                case PlaceLoad.Failed:
+                    Learned.About(explorer.Selected);
+                    break;
+            }
         }
 
         /// <summary>

@@ -421,21 +421,21 @@ namespace Scry
         /// </summary>
         public static IEnumerable<string> Finish(List<GameObject> prefabs)
         {
-            Try("world spawners", WorldSpawners);
-            Try("raids", Raids);
-            Try("spawn points", TellSpawnPoints);
-            Try("nests and spawn points", () => Merge(SpawnPointLines, (prefab, line) => Add(prefab, line.Text, line.Prefab, line.Chance)));
-            Try("vegetation", Vegetation);
+            Guard.Read("world spawners", WorldSpawners);
+            Guard.Read("raids", Raids);
+            Guard.Read("spawn points", TellSpawnPoints);
+            Guard.Read("nests and spawn points", () => Merge(SpawnPointLines, (prefab, line) => Add(prefab, line.Text, line.Prefab, line.Chance)));
+            Guard.Read("vegetation", Vegetation);
             yield return "where things live";
 
-            Try("drops", () => Merge(DropLines, From));
-            Try("recipes items go into", Recipes);
-            Try("traders", Traders);
+            Guard.Read("drops", () => Merge(DropLines, From));
+            Guard.Read("recipes items go into", Recipes);
+            Guard.Read("traders", Traders);
             yield return "what makes things";
 
-            Try("Jotunn's registry", JotunnMods);
-            Try("mods' scripts", ScriptMods);
-            Try("mods' hooks", ModHooks.Read);
+            Guard.Read("Jotunn's registry", JotunnMods);
+            Guard.Read("mods' scripts", ScriptMods);
+            Guard.Read("mods' hooks", ModHooks.Read);
             yield return "which mod added what";
 
             foreach (var step in BundleMods(prefabs)) yield return step;
@@ -444,23 +444,6 @@ namespace Scry
         private static void Merge(Dictionary<string, List<Source>> lines, Action<string, Source> add)
         {
             foreach (var pair in lines) foreach (var line in pair.Value) add(pair.Key, line);
-        }
-
-        private static void Try(string what, Action act)
-        {
-            var started = CatalogTiming.Start();
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            try
-            {
-                act();
-                if (watch.ElapsedMilliseconds >= 50) Plugin.Note($"Scry read {what} in {watch.ElapsedMilliseconds} ms.");
-            }
-            catch (Exception ex)
-            {
-                if (Trouble.IsGameChange(ex)) Faults.Skip(what, "this world", ex);
-                else Plugin.Log.LogWarning($"Scry could not read {what}, and leaves it out: {ex.Message}");
-            }
-            CatalogTiming.Add(what, started);
         }
 
         /// <summary>

@@ -62,8 +62,7 @@ namespace Scry
                 if (falling) Thud.Add(prefab, copy, onStage: layer >= 0);
 
                 // Its sounds at the loudness the player chose; one that cannot take it plays as the game would.
-                try { Loudness.Add(copy); }
-                catch (Exception ex) { Faults.Tell("preview loudness", ex); }
+                Guard.Run("preview loudness", Loudness.Add, copy);
                 Place(copy, parent, position, rotation);
                 Awake(prefab, copy);
 

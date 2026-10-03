@@ -202,20 +202,7 @@ namespace Scry
         /// </summary>
         private void Part(string part, Action read)
         {
-            var started = Timing.Start();
-            try
-            {
-                read();
-            }
-            catch (Exception ex)
-            {
-                Faults.Tell("the " + part + " details", ex);
-                if (!_missing.Contains(part)) _missing.Add(part);
-            }
-            finally
-            {
-                if (Plugin.LogPreviews) Timing.Add("facts " + part, started);
-            }
+            if (!Guard.Run("the " + part + " details", read, Plugin.LogPreviews ? "facts " + part : null) && !_missing.Contains(part)) _missing.Add(part);
         }
 
         private void TellMissing()

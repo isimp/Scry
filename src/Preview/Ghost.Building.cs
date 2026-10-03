@@ -159,11 +159,7 @@ namespace Scry
                 if (AfterMaking.Count == 0 || BeingMade) return;
                 var waiting = AfterMaking.ToArray();
                 AfterMaking.Clear();
-                foreach (var letGo in waiting)
-                {
-                    try { letGo(); }
-                    catch (Exception ex) { Faults.Tell("letting go of a bundle", ex); }
-                }
+                foreach (var letGo in waiting) Guard.Run("letting go of a bundle", letGo);
             }
 
             /// <summary>Finishes every copy at once and lets go of what waited, as a world is left.</summary>
@@ -326,8 +322,7 @@ namespace Scry
                         Settle(_copy, falling: false);
                         if (_layer >= 0) SetLayer(_copy.transform, _layer);
                         // Its sounds at the loudness the player chose; one that cannot take it plays as the game would.
-                        try { Loudness.Add(_copy); }
-                        catch (Exception ex) { Faults.Tell("preview loudness", ex); }
+                        Guard.Run("preview loudness", Loudness.Add, _copy);
                         PutToSleep();
                         Timing.Add("copy settled", settled);
 

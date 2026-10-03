@@ -147,8 +147,7 @@ namespace Scry
             Patch();
 
             // Without the chat command F7 still opens the panel.
-            try { Commands.Register(); }
-            catch (System.Exception ex) { Faults.Tell("the /scry command", ex); }
+            Guard.Run("the /scry command", Commands.Register);
         }
 
         /// <summary>
@@ -192,17 +191,12 @@ namespace Scry
         private void Update()
         {
             var started = Timing.Start();
-            try { Session.Update(); } catch (System.Exception ex) { Faults.Tell("the frame", ex); }
+            Guard.Run("the frame", Session.Update);
             DropWatch.Save();
             Timing.Add("update", started);
         }
 
-        private void LateUpdate()
-        {
-            var started = Timing.Start();
-            try { Session.LateUpdate(); } catch (System.Exception ex) { Faults.Tell("drawing the stage", ex); }
-            Timing.Add("render", started);
-        }
+        private void LateUpdate() => Guard.Run("drawing the stage", Session.LateUpdate, "render");
 
         private void OnGUI()
         {
@@ -210,20 +204,11 @@ namespace Scry
             var kind = Event.current.type;
             // The panel catches its own sections; this is for a panel that cannot run at all,
             // which is told once rather than an error every frame.
-            try { ScryPanel.OnGUI(); }
-            catch (ExitGUIException) { throw; }
-            catch (System.Exception ex) { Faults.Tell("the panel", ex); }
-            Timing.Add("panel", started);
+            Guard.Run("the panel", ScryPanel.OnGUI, "panel");
             if (Plugin.LogPreviews) Timing.Add(EventPart(kind), started);
 
             // The resource monitor over everything, its own drawing a part of its own.
-            if (Monitor.On && kind == EventType.Repaint)
-            {
-                var drawn = Timing.Start();
-                try { ScryPanel.MonitorGUI(); }
-                catch (System.Exception ex) { Faults.Tell("the resource monitor", ex); }
-                Timing.Add("monitor", drawn);
-            }
+            if (Monitor.On && kind == EventType.Repaint) Guard.Run("the resource monitor", ScryPanel.MonitorGUI, "monitor");
         }
 
         private static readonly string[] EventParts = new string[64];
@@ -239,8 +224,7 @@ namespace Scry
         private void OnDestroy()
         {
             DropWatch.Save(now: true);
-            try { Session.Shutdown(); }
-            catch (System.Exception ex) { Faults.Tell("closing down", ex); }
+            Guard.Run("closing down", Session.Shutdown);
             _harmony?.UnpatchSelf();
         }
     }
