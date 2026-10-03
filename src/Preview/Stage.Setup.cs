@@ -80,7 +80,7 @@ namespace Scry
             // On a biome's ground the key light casts shadows, so what stands there sits on it.
             if (_key != null)
             {
-                _key.shadows = _groundOn ? LightShadows.Soft : LightShadows.None;
+                _key.shadows = TheGround.On ? LightShadows.Soft : LightShadows.None;
                 _key.shadowStrength = 0.7f;
             }
         }
