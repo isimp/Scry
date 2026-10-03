@@ -148,6 +148,12 @@ namespace Scry
 
         private static float U(float v) => Mathf.Round(v * _s);
 
+        /// <summary>A rect of the panel's, where it is on the screen: kept so a later event or a box drawn over everything finds it.</summary>
+        private static Rect OnScreen(Rect here) => new Rect(GUIUtility.GUIToScreenPoint(here.position), here.size);
+
+        /// <summary>A rect kept on the screen, back in the coordinates of what is being drawn now.</summary>
+        private static Rect Here(Rect onScreen) => new Rect(GUIUtility.ScreenToGUIPoint(onScreen.position), onScreen.size);
+
         private static float Scale() => Mathf.Clamp(Screen.height / 1080f, 0.75f, 3f) * Plugin.UiScale;
 
         /// <summary>Lets go of the lists kept for the entries of the world left, which point at its prefabs.</summary>

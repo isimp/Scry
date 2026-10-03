@@ -42,6 +42,9 @@ namespace Scry
             }
         }
 
+        /// <summary>The name it is shown by: the game's, or the prefab's where the game gives none.</summary>
+        public string ShownName => string.IsNullOrEmpty(_displayName) ? _name : _displayName;
+
         /// <summary>
         /// Where the name comes among the catalog's names, for sorting results by name without
         /// comparing the names each time; -1 until the catalog's names are put in order.

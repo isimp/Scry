@@ -146,7 +146,6 @@ namespace Scry
         {
             if (!_viewOpen || _viewFor == null) return;
             var e = Event.current;
-            Rect Here(Rect screen) => new Rect(GUIUtility.ScreenToGUIPoint(screen.position), screen.size);
             var box = Here(_viewBox);
             var rows = ViewRows(_viewFor);
             if (e.type == EventType.Repaint) Skin.Box(box, Skin.Panel, Skin.Outline);

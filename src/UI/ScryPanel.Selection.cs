@@ -178,7 +178,7 @@ namespace Scry
 
         private static float Title(Explorer explorer, Entry entry, float width, float y, bool withStage)
         {
-            var primary = string.IsNullOrEmpty(entry.DisplayName) ? entry.Name : entry.DisplayName;
+            var primary = entry.ShownName;
             var copyW = U(104f);
 
             // Volume and, while the stage shows a model, size: small icons opening their sliders.

@@ -66,7 +66,7 @@ namespace Scry
             if (hover && !open) AskTip("slide:" + kind, tip);
 
             // Where it is on the screen each frame, so the box follows the panel.
-            var screen = new Rect(GUIUtility.GUIToScreenPoint(rect.position), rect.size);
+            var screen = OnScreen(rect);
             if (open) SlidePlace(screen);
             if (!GUI.Button(rect, GUIContent.none, GUIStyle.none)) return;
             if (open)
@@ -172,7 +172,6 @@ namespace Scry
         private static void SlideDraw(Explorer explorer)
         {
             if (_slide == Slide.None || Event.current.type != EventType.Repaint) return;
-            Rect Here(Rect screen) => new Rect(GUIUtility.ScreenToGUIPoint(screen.position), screen.size);
             var modifiers = explorer.Modifiers;
             var box = Here(_slideBox);
             Skin.Box(box, Skin.Panel, Skin.Outline);

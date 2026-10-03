@@ -334,8 +334,8 @@ namespace Scry
             // A room sits indented under its dungeon in its dungeon's group.
             if (entry.Indent && oneKind) textX += U(20f);
             var textW = star.x - U(8f) - textX;
-            var primary = string.IsNullOrEmpty(entry.DisplayName) ? entry.Name : entry.DisplayName;
-            var secondary = entry.Tag ?? (string.IsNullOrEmpty(entry.DisplayName) || entry.DisplayName == entry.Name ? "" : entry.Name);
+            var primary = entry.ShownName;
+            var secondary = entry.Tag ?? (primary == entry.Name ? "" : entry.Name);
 
             var nameStyle = Skin.RowName;
             var fullW = Skin.Width(nameStyle, primary);

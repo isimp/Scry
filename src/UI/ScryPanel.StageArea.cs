@@ -66,7 +66,7 @@ namespace Scry
             {
                 var inner = new Rect(rect.x + U(3f), rect.y + U(3f), rect.width - U(6f), rect.height - U(6f));
                 if (e.type == EventType.Repaint) Stage.Request((int)inner.width, (int)inner.height);
-                _pictureScreen = new Rect(GUIUtility.GUIToScreenPoint(inner.position), inner.size);
+                _pictureScreen = OnScreen(inner);
 
                 if (Stage.Subject != null && Stage.Texture != null)
                 {
@@ -276,8 +276,8 @@ namespace Scry
 
             // How it is seen, set and mostly left, in a box of its own.
             var viewing = _viewOpen && _viewFor == entry;
-            if (Chip("View", viewing, "How it is seen: spin, backdrop, lighting and a person for size")) ViewToggle(entry, new Rect(GUIUtility.GUIToScreenPoint(last.position), last.size));
-            else if (viewing) ViewPlace(entry, new Rect(GUIUtility.GUIToScreenPoint(last.position), last.size));
+            if (Chip("View", viewing, "How it is seen: spin, backdrop, lighting and a person for size")) ViewToggle(entry, OnScreen(last));
+            else if (viewing) ViewPlace(entry, OnScreen(last));
             if (Stage.HasCreatures && Chip("Creatures", Stage.CreaturesShown,
                     Stage.CreaturesShown ? "Puts away the creatures its spawn points put here" : "Shows the creatures its spawn points put here, rolled anew with every copy"))
             {

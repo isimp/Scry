@@ -76,9 +76,8 @@ namespace Scry
                 if (GUI.Button(new Rect(0f, y, pauseW, rowH), timed && Previews.ClipPaused ? "Resume" : "Pause", timed && Previews.ClipPaused ? Skin.ChipOn : Skin.Chip)) Previews.PauseClip(!Previews.ClipPaused);
                 var readout = timed ? $"{Numbers.Fixed(time, 2)} / {Numbers.Fixed(length, 2)} s" : "";
                 var readW = Skin.Width(Skin.DimLabel, "00.00 / 00.00 s") + U(6f);
-                var slider = new Rect(pauseW + U(10f), y + (rowH - U(14f)) / 2f, Mathf.Max(U(40f), width - pauseW - readW - U(20f)), U(14f));
-                var picked = GUI.HorizontalSlider(slider, time, 0f, Mathf.Max(length, 0.01f));
-                if (timed && !Mathf.Approximately(picked, time)) Previews.SeekClip(picked);
+                var picked = TimeBar(pauseW + U(10f), y, Mathf.Max(U(40f), width - pauseW - readW - U(20f)), rowH, time, length);
+                if (picked.HasValue && timed) Previews.SeekClip(picked.Value);
                 GUI.Label(new Rect(width - readW, y, readW, rowH), readout, Skin.DimLabel);
                 GUI.enabled = enabled;
                 y += rowH + U(10f);

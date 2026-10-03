@@ -23,7 +23,7 @@ namespace Scry
 
         private static void NoteStage(Rect stage)
         {
-            _stageScreen = new Rect(GUIUtility.GUIToScreenPoint(stage.position), stage.size);
+            _stageScreen = OnScreen(stage);
             _stageFrame = Time.frameCount;
         }
 
@@ -53,7 +53,7 @@ namespace Scry
             var high = Mathf.Max(cuts[0], Stage.ModelTop) + 1f;
             _rulerLow = low;
             _rulerHigh = high;
-            _rulerScreen = new Rect(GUIUtility.GUIToScreenPoint(rect.position), rect.size);
+            _rulerScreen = OnScreen(rect);
             float Y(float height) => rect.yMax - (height - low) / Mathf.Max(0.01f, high - low) * rect.height;
             var roofY = Y(cuts[0] + 0.5f);
 

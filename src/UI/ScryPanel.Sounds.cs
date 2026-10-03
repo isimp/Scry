@@ -32,11 +32,8 @@ namespace Scry
             var rowH = U(26f);
             var labelW = U(52f);
             GUI.Label(new Rect(0f, y, labelW, rowH), Clock(time), Skin.Label);
-            var slider = new Rect(labelW, y + (rowH - U(14f)) / 2f, width - labelW * 2f - U(8f), U(14f));
-
-            GUI.changed = false;
-            var picked = GUI.HorizontalSlider(slider, time, 0f, Mathf.Max(length, 0.01f));
-            if (GUI.changed && timed) Previews.SeekSound(picked);
+            var picked = TimeBar(labelW, y, width - labelW * 2f - U(8f), rowH, time, length);
+            if (picked.HasValue && timed) Previews.SeekSound(picked.Value);
 
             var end = new Rect(width - labelW, y, labelW, rowH);
             var style = Skin.DimLabel;

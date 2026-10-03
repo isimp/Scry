@@ -61,7 +61,7 @@ namespace Scry
                 // An effect or sound is only linked: it is found among the effects under its own name.
                 if (effect) continue;
 
-                var shown = owners.Select(o => string.IsNullOrEmpty(o.DisplayName) ? o.Name : o.DisplayName).Distinct().ToList();
+                var shown = owners.Select(o => o.ShownName).Distinct().ToList();
                 leftover.DisplayName = shown.Count == 1
                     ? shown[0] + " · " + role
                     : Capital(role) + " of " + Numbers.Count(owners.Count);

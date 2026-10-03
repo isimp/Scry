@@ -61,13 +61,29 @@ namespace Scry
         /// <summary>A labelled row's label, in the column every labelled row (sliders, segments, toggles) shares.</summary>
         private static void RowLabel(string label, float labelW, float y, float rowH) => FitLabel(new Rect(0f, y, labelW - U(6f), rowH), label, Skin.DimLabel, 10f);
 
+        /// <summary>A slider's bar, as thin as every bar in the panel, across a row and in its middle.</summary>
+        private static Rect BarIn(float x, float y, float width, float rowH) => new Rect(x, y + (rowH - U(14f)) / 2f, width, U(14f));
+
+        /// <summary>
+        /// A timeline's bar, which a clip's time can be dragged along to any point, as a sound's and
+        /// an animation's have. Returns the time dragged to, or null where it was not dragged.
+        /// </summary>
+        private static float? TimeBar(float x, float y, float width, float rowH, float time, float length)
+        {
+            var changed = GUI.changed;
+            GUI.changed = false;
+            var picked = GUI.HorizontalSlider(BarIn(x, y, width, rowH), time, 0f, Mathf.Max(length, 0.01f));
+            var dragged = GUI.changed;
+            GUI.changed = changed || dragged;
+            return dragged ? picked : (float?)null;
+        }
+
         private static float SliderRow(string label, string value, float current, float min, float max, float width, float labelW, ref float y)
         {
             var rowH = U(26f);
             RowLabel(label, labelW, y, rowH);
             var valueW = U(64f);
-            var slider = new Rect(labelW, y + (rowH - U(14f)) / 2f, width - labelW - valueW - U(10f), U(14f));
-            var result = GUI.HorizontalSlider(slider, current, min, max);
+            var result = GUI.HorizontalSlider(BarIn(labelW, y, width - labelW - valueW - U(10f), rowH), current, min, max);
             GUI.Label(new Rect(width - valueW, y, valueW, rowH), value, Skin.Label);
             y += rowH + U(8f);
             return result;
