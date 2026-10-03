@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -54,7 +55,7 @@ namespace Scry
             foreach (var set in humanoid.m_randomSets)
             {
                 if (set?.m_items == null || !set.m_items.Any(i => i != null)) continue;
-                var key = string.Join(",", set.m_items.Where(i => i != null).Select(i => i.name).OrderBy(n => n));
+                var key = string.Join(",", set.m_items.Where(i => i != null).Select(i => i.name).OrderBy(n => n, StringComparer.Ordinal));
                 if (seen.Add(key)) sets.Add(set);
             }
             return sets;
@@ -261,7 +262,7 @@ namespace Scry
             if (part == null) return null;
             var meshes = part.GetComponentsInChildren<MeshFilter>(true).Select(m => m.sharedMesh != null ? m.sharedMesh.name : "")
                 .Concat(part.GetComponentsInChildren<SkinnedMeshRenderer>(true).Select(m => m.sharedMesh != null ? m.sharedMesh.name : ""))
-                .Where(n => n.Length > 0).OrderBy(n => n).ToList();
+                .Where(n => n.Length > 0).OrderBy(n => n, StringComparer.Ordinal).ToList();
             return meshes.Count > 0 ? string.Join(",", meshes) : null;
         }
 

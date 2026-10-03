@@ -221,7 +221,7 @@ namespace Scry
                     // them is kept too, so showing a person need not read its hundreds of clips.
                     named = new List<(string, GameObject)>();
                     var events = 0;
-                    var unknown = new SortedSet<string>();
+                    var unknown = new SortedSet<string>(StringComparer.Ordinal);
                     foreach (var clip in controller.animationClips)
                     {
                         if (clip == null) continue;

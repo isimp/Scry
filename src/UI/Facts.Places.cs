@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -253,7 +254,7 @@ namespace Scry
             int Order(PlaceSource p) => p.Contents?.Room == null ? 1 : p.Contents.Room.Entrance ? 0 : p.Contents.Room.EndCap ? 2 : 1;
             return catalog
                 .Where(e => e.Source is PlaceSource p && p.IsRoom && ((int)p.Room.m_theme & themes) != 0)
-                .OrderBy(e => Order((PlaceSource)e.Source)).ThenBy(e => e.DisplayName)
+                .OrderBy(e => Order((PlaceSource)e.Source)).ThenBy(e => e.DisplayName, StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
     }

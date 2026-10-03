@@ -524,7 +524,7 @@ namespace Scry
 
             var took = $"{Numbers.Count(job.Ms)} ms over {Numbers.Count(job.Frames)} frames";
             if (!job.First) Plugin.Note($"Scry saw in {took} what more triggers of {job.Key} play: {string.Join("; ", attacks)}.");
-            else Plugin.Note($"Scry saw in {took} what the animator of {job.Key} plays: attacks {(attacks.Count > 0 ? string.Join("; ", attacks) : "none")}; the game's own actions {(actions.Count > 0 ? string.Join("; ", actions) : "none")}; left alone {string.Join(", ", seen.Idle.OrderBy(c => c))}.");
+            else Plugin.Note($"Scry saw in {took} what the animator of {job.Key} plays: attacks {(attacks.Count > 0 ? string.Join("; ", attacks) : "none")}; the game's own actions {(actions.Count > 0 ? string.Join("; ", actions) : "none")}; left alone {string.Join(", ", seen.Idle.OrderBy(c => c, System.StringComparer.Ordinal))}.");
         }
 
         /// <summary>Sets the stance the copy stands in on every run.</summary>

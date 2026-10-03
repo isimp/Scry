@@ -420,7 +420,7 @@ namespace Scry
             // A label may name alternatives, "Build cost|Built near", and one ending in a space or
             // colon is the start of labels ("Hit on the "): any one of them will do.
             bool Has(Facts told, string labels) => labels.Split('|').Any(label =>
-                told.Pairs.Any(pair => pair.Key == label || ((label.EndsWith(" ") || label.EndsWith(":")) && pair.Key.StartsWith(label, StringComparison.Ordinal)))
+                told.Pairs.Any(pair => pair.Key == label || ((label.EndsWith(" ", StringComparison.Ordinal) || label.EndsWith(":", StringComparison.Ordinal)) && pair.Key.StartsWith(label, StringComparison.Ordinal)))
                 || told.Rows.Any(r => r.Title.StartsWith(label, StringComparison.Ordinal)));
             // Each kind's entries told a few a frame, so the check makes no long frame of its own.
             var checks = new List<(string What, Entry Entry, string[] Labels)>();

@@ -274,7 +274,7 @@ namespace Scry
                     others.Add((Naming.EffectListLabel(field.Name), shown ?? WeaponChoices.Readable(item.name, prefab.name), list));
                 }
             }
-            foreach (var group in others.GroupBy(o => o.Label + "|" + string.Join(",", Members(o.List).OrderBy(m => m))))
+            foreach (var group in others.GroupBy(o => o.Label + "|" + string.Join(",", Members(o.List).OrderBy(m => m, System.StringComparer.Ordinal))))
             {
                 var first = group.First();
                 if (!seen.Add(first.List)) continue;

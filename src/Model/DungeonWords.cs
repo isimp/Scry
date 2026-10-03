@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -115,7 +116,7 @@ namespace Scry
         public static string Doorways(RoomShape room)
         {
             if (room.Doorways.Count == 0) return "none";
-            var types = room.Doorways.GroupBy(d => d.Type).OrderByDescending(g => g.Count()).ThenBy(g => g.Key).Select(g => $"{Numbers.Count(g.Count())} {g.Key}");
+            var types = room.Doorways.GroupBy(d => d.Type).OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase).Select(g => $"{Numbers.Count(g.Count())} {g.Key}");
             return $"{Numbers.Count(room.Doorways.Count)}: {string.Join(", ", types)}";
         }
     }
