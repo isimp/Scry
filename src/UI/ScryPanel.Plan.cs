@@ -22,9 +22,6 @@ namespace Scry
         /// <summary>The room of the example the mouse is on the stage over, lit on the plan too.</summary>
         private static string _stageRoom;
 
-        /// <summary>How many times a plan's rooms have been drawn, and its tab while folded, for the self-test to see them draw.</summary>
-        public static int PlansDrawn { get; private set; }
-        public static int PlanTabsDrawn { get; private set; }
 
         /// <summary>Whether the plan is put away, by the fold on it, and brought back by its tab; remembered.</summary>
         public static bool PlanFolded
@@ -60,7 +57,7 @@ namespace Scry
                 var tabW = Skin.Width(Skin.Chip, "Plan") + U(4f);
                 var tab = new Rect(inner.x + U(8f), inner.yMax - U(34f) - U(22f), tabW, U(22f));
                 if (tab.Contains(e.mousePosition)) AskTip("plan:tab", "Shows the example's plan");
-                if (e.type == EventType.Repaint) PlanTabsDrawn++;
+                CountDrawn(PanelPart.PlanTab);
                 if (GUI.Button(tab, "Plan", Skin.Chip)) PlanFolded = false;
                 return tab;
             }
@@ -122,7 +119,7 @@ namespace Scry
                 var lit = room == hovered || (hovered == null && _stageRoom != null && _stageRoom == room.Room.Name);
                 PlanRoom(room, At(room.Position), scale, yaw, lit);
             }
-            if (e.type == EventType.Repaint) PlansDrawn++;
+            CountDrawn(PanelPart.Plan);
             var door = Mathf.Max(U(2f), 0.8f * scale);
             foreach (var at in example.Doors)
             {

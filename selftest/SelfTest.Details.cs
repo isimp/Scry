@@ -403,9 +403,9 @@ namespace Scry
             var cells = Facts.For(shown).Rows.First(r => r.Cells != null).Cells;
             p.Note($"{shown.Name}: {string.Join(", ", cells.Select(c => $"{c.Type} {c.Value}"))}");
             Select(shown);
-            var drawn = ScryPanel.GridsDrawn;
-            yield return Until(() => ScryPanel.GridsDrawn > drawn, 3);
-            p.Check(ScryPanel.GridsDrawn > drawn, $"{shown.Name}'s page draws its grid");
+            var drawn = ScryPanel.Drawn(PanelPart.ResistanceGrid);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.ResistanceGrid) > drawn, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.ResistanceGrid) > drawn, $"{shown.Name}'s page draws its grid");
         }
 
         /// <summary>

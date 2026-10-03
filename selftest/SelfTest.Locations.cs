@@ -84,9 +84,9 @@ namespace Scry
             p.Note($"{Numbers.Count(stones.Count)} stones, {Numbers.Count(texts.Count)} texts; the first: \"{RuneWords.Title(texts[0], stones[0].Name)}\"");
             p.Check(texts.All(t => t.Text.Length > 0 && t.Text.IndexOf('$') < 0), "every text is in words, not the game's keys");
             ScryPanel.RunesFolded = false;
-            var drawn = ScryPanel.RunesDrawn;
-            yield return Until(() => ScryPanel.RunesDrawn > drawn, 3);
-            p.Check(ScryPanel.RunesDrawn > drawn, "its page shows them under Runestone texts");
+            var drawn = ScryPanel.Drawn(PanelPart.Runes);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.Runes) > drawn, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.Runes) > drawn, "its page shows them under Runestone texts");
         }
 
         private static IEnumerator Switching(Probe p)

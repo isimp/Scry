@@ -12,8 +12,6 @@ namespace Scry
         /// <summary>Each readme as shown, by its file, read once a session.</summary>
         private static readonly Dictionary<string, string> Readmes = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
 
-        /// <summary>How often a readme has been drawn, for the self-test.</summary>
-        public static int ReadmesDrawn { get; private set; }
 
         /// <summary>Whether readmes are folded away; setting it is remembered, as clicking its heading is.</summary>
         public static bool ReadmeFolded
@@ -44,7 +42,7 @@ namespace Scry
 
             y = SectionHeading("README", width, y, null, "readme");
             if (IsFolded("readme")) return y;
-            if (Event.current.type == EventType.Repaint) ReadmesDrawn++;
+            CountDrawn(PanelPart.Readme);
             var height = Skin.Height(Skin.Wrap, text, width);
             GUI.Label(new Rect(0f, y, width, height), text, Skin.Wrap);
             return y + height + U(10f);

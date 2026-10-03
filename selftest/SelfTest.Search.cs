@@ -252,10 +252,10 @@ namespace Scry
         /// <summary>The search's help opens and draws, and closes.</summary>
         private static IEnumerator HelpOpens(Probe p)
         {
-            var drawn = ScryPanel.HelpsDrawn;
+            var drawn = ScryPanel.Drawn(PanelPart.Help);
             ScryPanel.ShowHelp(true);
-            yield return Until(() => ScryPanel.HelpsDrawn > drawn, 3);
-            p.Check(ScryPanel.HelpShown && ScryPanel.HelpsDrawn > drawn, "the search's help opens and draws");
+            yield return Until(() => ScryPanel.Drawn(PanelPart.Help) > drawn, 3);
+            p.Check(ScryPanel.HelpShown && ScryPanel.Drawn(PanelPart.Help) > drawn, "the search's help opens and draws");
             ScryPanel.ShowHelp(false);
             p.Check(!ScryPanel.HelpShown, "and closes");
         }

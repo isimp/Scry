@@ -10,8 +10,6 @@ namespace Scry
     /// </summary>
     internal static partial class ScryPanel
     {
-        /// <summary>How often the ruler has been drawn, for the self-test.</summary>
-        public static int RulersDrawn { get; private set; }
 
         /// <summary>Where the ruler and the stage were last drawn, on the screen, and the heights the ruler spans.</summary>
         private static Rect _rulerScreen;
@@ -29,8 +27,6 @@ namespace Scry
             _stageFrame = Time.frameCount;
         }
 
-        /// <summary>How many times the roof button over the ruler has been drawn, for the self-test.</summary>
-        public static int RoofButtonsDrawn { get; private set; }
 
         private static void FloorRuler(Rect stage)
         {
@@ -48,7 +44,7 @@ namespace Scry
             if (e.type == EventType.Repaint)
             {
                 Skin.Icon(roof, Skin.Roof, !Stage.Cutting ? Skin.Accent : roofOver ? Skin.Text : Skin.Dim);
-                RoofButtonsDrawn++;
+                CountDrawn(PanelPart.RoofButton);
             }
             if (roofOver) AskTip("roof", Stage.Cutting ? "Cut open over a floor: click to put the roof back on" : "Roof on: click to take it off, cutting away what is above head height over a floor");
             if (GUI.Button(roof, GUIContent.none, GUIStyle.none)) Stage.ToggleRoof();
@@ -63,7 +59,7 @@ namespace Scry
 
             if (e.type == EventType.Repaint)
             {
-                RulersDrawn++;
+                CountDrawn(PanelPart.Ruler);
                 Skin.Fill(new Rect(rect.center.x - U(1f), rect.y, U(2f), rect.height), new Color(1f, 1f, 1f, 0.22f));
                 for (var i = 0; i < floors.Count; i++)
                 {

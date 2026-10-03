@@ -106,9 +106,9 @@ namespace Scry
 
             // As a player opens it: the report in the list's place, drawn.
             ScryPanel.ShowModReport();
-            var drawn = ScryPanel.ModReportsDrawn;
-            yield return Until(() => ScryPanel.ModReportsDrawn > drawn, 3);
-            p.Check(ScryPanel.ModReportShown && ScryPanel.ModReportsDrawn > drawn, "the report opens and draws in the panel");
+            var drawn = ScryPanel.Drawn(PanelPart.ModReport);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.ModReport) > drawn, 3);
+            p.Check(ScryPanel.ModReportShown && ScryPanel.Drawn(PanelPart.ModReport) > drawn, "the report opens and draws in the panel");
             ScryPanel.HideModReport();
         }
 
@@ -194,9 +194,9 @@ namespace Scry
             p.Check(text.Length > 0 && text.IndexOf("](", StringComparison.Ordinal) < 0 && text.IndexOf("<img", StringComparison.OrdinalIgnoreCase) < 0, "its readme reads as plain text");
             Select(withReadme);
             ScryPanel.ReadmeFolded = false;
-            var drawn = ScryPanel.ReadmesDrawn;
-            yield return Until(() => ScryPanel.ReadmesDrawn > drawn, 3);
-            p.Check(ScryPanel.ReadmesDrawn > drawn, "its page shows it under README");
+            var drawn = ScryPanel.Drawn(PanelPart.Readme);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.Readme) > drawn, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.Readme) > drawn, "its page shows it under README");
         }
 
         /// <summary>

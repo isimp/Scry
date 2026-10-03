@@ -26,12 +26,10 @@ namespace Scry
         /// <summary>How tall the self-test's strip is: none while no run goes on and none has ended or it was put away.</summary>
         private static float TestNoticeHeight() => SelfTestHost.Running || (_testShown && SelfTestHost.LastHeadline != null) ? U(32f) : 0f;
 
-        /// <summary>How often the strip has been drawn, for the self-test.</summary>
-        public static int TestNoticesDrawn { get; private set; }
 
         private static void TestNotice(Rect rect)
         {
-            if (Event.current.type == EventType.Repaint) TestNoticesDrawn++;
+            CountDrawn(PanelPart.TestNotice);
             var running = SelfTestHost.Running;
             var tone = running ? Skin.Accent : SelfTestHost.LastFailed ? Skin.Warn : Skin.KindColor(Kind.StatusEffect);
             Skin.Fill(rect, new Color(tone.r, tone.g, tone.b, 0.13f));

@@ -29,9 +29,8 @@ namespace Scry
         private static Explorer _modCountFor;
         private static int _modCountOf;
 
-        /// <summary>Whether the mod report is shown, and how many times it has been drawn, for the self-test.</summary>
+        /// <summary>Whether the mod report is shown, for the self-test.</summary>
         public static bool ModReportShown => _modReport;
-        public static int ModReportsDrawn { get; private set; }
 
         /// <summary>Puts the list back in the report's place.</summary>
         public static void HideModReport() => _modReport = false;
@@ -119,7 +118,7 @@ namespace Scry
             if (Event.current.type == EventType.Repaint)
             {
                 _modHeight = y + U(16f);
-                ModReportsDrawn++;
+                CountDrawn(PanelPart.ModReport);
             }
             if (EndCard(rect, out var close)) _modReport = false;
             ReadLocationsButton(rect, close, "locations-mods");

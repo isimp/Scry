@@ -265,7 +265,7 @@ namespace Scry
                 var chip = new Rect(x, y, w, h);
                 last = chip;
                 x -= U(6f);
-                if (Event.current.type == EventType.Repaint) StageChipsDrawn++;
+                CountDrawn(PanelPart.StageChip);
                 if (chip.Contains(Event.current.mousePosition)) AskTip("stage:" + tip, tip);
                 var enabled = GUI.enabled;
                 GUI.enabled = enabled && can;
@@ -291,7 +291,5 @@ namespace Scry
             }
         }
 
-        /// <summary>How many chips the stage's row has drawn, for the self-test to count them.</summary>
-        public static int StageChipsDrawn { get; private set; }
     }
 }

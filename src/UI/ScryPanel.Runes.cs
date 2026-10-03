@@ -5,8 +5,6 @@ namespace Scry
     /// <summary>A location's runestones under its details: every text each stone can give, with its title.</summary>
     internal static partial class ScryPanel
     {
-        /// <summary>How often the runestones' texts have been drawn, for the self-test.</summary>
-        public static int RunesDrawn { get; private set; }
 
         /// <summary>Whether the runestones' texts are folded away; setting it is remembered, as clicking its heading is.</summary>
         public static bool RunesFolded
@@ -30,7 +28,7 @@ namespace Scry
 
             y = SectionHeading("RUNESTONE TEXTS", width, y, null, "runes");
             if (IsFolded("runes")) return y;
-            if (Event.current.type == EventType.Repaint) RunesDrawn++;
+            CountDrawn(PanelPart.Runes);
             if (_runeTitle == null || !ReferenceEquals(_runeTitleFrom, Skin.Wrap))
             {
                 _runeTitleFrom = Skin.Wrap;

@@ -24,9 +24,8 @@ namespace Scry
             new[] { "Tab", "Completes the word being typed with a term or a value the catalog holds, as the list under the search suggests. Tab again for the next, Shift+Tab for the one before; Enter takes the marked one." },
         };
 
-        /// <summary>Whether the search's help is shown, how many times it has been drawn, and showing or hiding it, for the self-test.</summary>
+        /// <summary>Whether the search's help is shown, and showing or hiding it, for the self-test.</summary>
         public static bool HelpShown => _help;
-        public static int HelpsDrawn { get; private set; }
         public static void ShowHelp(bool shown) => _help = shown;
 
         /// <summary>How to search, shown in place of the list while the ? button is on.</summary>
@@ -63,7 +62,7 @@ namespace Scry
             if (Event.current.type == EventType.Repaint)
             {
                 _helpHeight = y + moreH + U(12f);
-                HelpsDrawn++;
+                CountDrawn(PanelPart.Help);
             }
 
             if (EndCard(rect, out var close)) _help = false;

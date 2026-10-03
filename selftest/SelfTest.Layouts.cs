@@ -85,9 +85,9 @@ namespace Scry
             }
             p.Note(several.Count > 0 ? "with several floors: " + string.Join("; ", several) : "none with several floors");
             p.Check(wrong.Count == 0, "each has floors from the top down, cut over each, with no collider left on its copy", string.Join("; ", wrong.Take(8)));
-            var drawn = ScryPanel.RulersDrawn;
-            yield return Until(() => ScryPanel.RulersDrawn > drawn, 3);
-            p.Check(ScryPanel.RulersDrawn > drawn, "the floor ruler draws beside the stage");
+            var drawn = ScryPanel.Drawn(PanelPart.Ruler);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.Ruler) > drawn, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.Ruler) > drawn, "the floor ruler draws beside the stage");
         }
 
         private static IEnumerator DungeonExample(Probe p) => Layout(p, Crypt(), "Dungeon");
@@ -147,12 +147,12 @@ namespace Scry
                 p.Check(Stage.HasInside && Stage.Inside, "it shows the dungeon inside");
 
                 // Its row holds only View, Inside and Creatures; the roof is over the ruler.
-                var chips = ScryPanel.StageChipsDrawn;
-                var roofs = ScryPanel.RoofButtonsDrawn;
+                var chips = ScryPanel.Drawn(PanelPart.StageChip);
+                var roofs = ScryPanel.Drawn(PanelPart.RoofButton);
                 var frames = Time.frameCount;
-                yield return Until(() => Time.frameCount > frames + 1 && ScryPanel.RoofButtonsDrawn > roofs, 3);
-                var perFrame = (ScryPanel.StageChipsDrawn - chips) / Mathf.Max(1, ScryPanel.RoofButtonsDrawn - roofs);
-                p.Check(perFrame > 0 && perFrame <= 3 && ScryPanel.RoofButtonsDrawn > roofs, "its stage shows three chips at the most, the roof over its ruler", $"{Numbers.Count(perFrame)} chips a frame");
+                yield return Until(() => Time.frameCount > frames + 1 && ScryPanel.Drawn(PanelPart.RoofButton) > roofs, 3);
+                var perFrame = (ScryPanel.Drawn(PanelPart.StageChip) - chips) / Mathf.Max(1, ScryPanel.Drawn(PanelPart.RoofButton) - roofs);
+                p.Check(perFrame > 0 && perFrame <= 3 && ScryPanel.Drawn(PanelPart.RoofButton) > roofs, "its stage shows three chips at the most, the roof over its ruler", $"{Numbers.Count(perFrame)} chips a frame");
                 p.Check(Stage.Cutting, "opened on its top floor", Stage.CutLabel);
                 var cuts = new List<float> { Stage.CutAt };
                 while (Stage.CutLevel < Stage.FloorHeights.Count - 1 && cuts.Count < 40)
@@ -201,14 +201,14 @@ namespace Scry
             // Its plan in the stage's corner draws its rooms.
             ScryPanel.PlanFolded = false;
             // Folded, the plan leaves a tab that brings it back.
-            var tabs = ScryPanel.PlanTabsDrawn;
+            var tabs = ScryPanel.Drawn(PanelPart.PlanTab);
             ScryPanel.PlanFolded = true;
-            yield return Until(() => ScryPanel.PlanTabsDrawn > tabs, 3);
-            p.Check(ScryPanel.PlanTabsDrawn > tabs, "folded, the plan leaves a tab to bring it back");
+            yield return Until(() => ScryPanel.Drawn(PanelPart.PlanTab) > tabs, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.PlanTab) > tabs, "folded, the plan leaves a tab to bring it back");
             ScryPanel.PlanFolded = false;
-            var drawn = ScryPanel.PlansDrawn;
-            yield return Until(() => ScryPanel.PlansDrawn > drawn, 3);
-            p.Check(ScryPanel.PlansDrawn > drawn, "the plan draws its rooms");
+            var drawn = ScryPanel.Drawn(PanelPart.Plan);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.Plan) > drawn, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.Plan) > drawn, "the plan draws its rooms");
 
             if (algorithm != "Dungeon") yield break;
 

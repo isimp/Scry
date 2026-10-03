@@ -40,9 +40,9 @@ namespace Scry
         private static IEnumerator ProgressShown(Probe p)
         {
             if (!Session.IsOpen) Session.Show(null);
-            var drawn = ScryPanel.TestNoticesDrawn;
-            yield return Until(() => ScryPanel.TestNoticesDrawn > drawn, 3);
-            p.Check(ScryPanel.TestNoticesDrawn > drawn, "the panel's strip shows the self-test running");
+            var drawn = ScryPanel.Drawn(PanelPart.TestNotice);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.TestNotice) > drawn, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.TestNotice) > drawn, "the panel's strip shows the self-test running");
             var progress = Progress;
             p.Check(progress != null && progress.Contains(ProgressPart), "it names the part running", progress);
             p.Check(Fraction > 0f && Fraction < 1f, "and how far it has got", Numbers.Percent(Fraction));
@@ -78,18 +78,18 @@ namespace Scry
             var shown = X.Selected;
             var under = new Vector2(Screen.width / 2f, Screen.height / 2f);
 
-            var drawn = ScryPanel.ViewMenusDrawn;
+            var drawn = ScryPanel.Drawn(PanelPart.ViewMenu);
             ScryPanel.OpenViewMenu(shown, under);
-            yield return Until(() => ScryPanel.ViewMenusDrawn > drawn, 3);
-            p.Check(ScryPanel.ViewMenuOpen && ScryPanel.ViewMenusDrawn > drawn, "the View box opens and draws");
+            yield return Until(() => ScryPanel.Drawn(PanelPart.ViewMenu) > drawn, 3);
+            p.Check(ScryPanel.ViewMenuOpen && ScryPanel.Drawn(PanelPart.ViewMenu) > drawn, "the View box opens and draws");
             ScryPanel.CloseBoxes();
 
             foreach (var size in new[] { false, true })
             {
-                drawn = ScryPanel.SlidersDrawn;
+                drawn = ScryPanel.Drawn(PanelPart.Slider);
                 ScryPanel.OpenSlider(shown, size, under);
-                yield return Until(() => ScryPanel.SlidersDrawn > drawn, 3);
-                p.Check(ScryPanel.SliderOpen && ScryPanel.SlidersDrawn > drawn, size ? "the size slider opens and draws" : "the volume slider opens and draws");
+                yield return Until(() => ScryPanel.Drawn(PanelPart.Slider) > drawn, 3);
+                p.Check(ScryPanel.SliderOpen && ScryPanel.Drawn(PanelPart.Slider) > drawn, size ? "the size slider opens and draws" : "the volume slider opens and draws");
             }
 
             ScryPanel.OpenViewMenu(shown, under);
@@ -164,10 +164,10 @@ namespace Scry
         {
             var was = Plugin.ShowMonitor;
             Plugin.ShowMonitor = true;
-            var drawn = ScryPanel.MonitorsDrawn;
+            var drawn = ScryPanel.Drawn(PanelPart.Monitor);
             var from = Time.unscaledTime;
             yield return Until(() => Time.unscaledTime - from > 1.5f, 3);
-            p.Check(ScryPanel.MonitorsDrawn > drawn, "it draws over the screen", $"{Numbers.Count(ScryPanel.MonitorsDrawn - drawn)} times");
+            p.Check(ScryPanel.Drawn(PanelPart.Monitor) > drawn, "it draws over the screen", $"{Numbers.Count(ScryPanel.Drawn(PanelPart.Monitor) - drawn)} times");
             p.Check(Monitor.Window.Count > 0 && Monitor.Window.Mean > 0, "it measures Scry's frames", $"{Numbers.Count(Monitor.Window.Count)} frames, {Numbers.Fixed(Monitor.Window.Mean, 3)} ms on average");
             p.Check(Monitor.Lines.Any(l => l.StartsWith("holds ", StringComparison.Ordinal) && l.Contains($"{Numbers.Count(X.Catalog.Count)} entries")), "it tells what Scry holds", string.Join(" | ", Monitor.Lines));
             p.Note(string.Join(" | ", Monitor.Lines));

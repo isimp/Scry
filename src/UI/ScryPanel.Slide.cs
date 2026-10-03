@@ -21,9 +21,8 @@ namespace Scry
         /// <summary>Where the open slider's icon, box, track and value are, on the screen.</summary>
         private static Rect _slideIcon, _slideBox, _slideTrack, _slideValue;
 
-        /// <summary>Whether a slider is open, and how many times one has been drawn, for the self-test.</summary>
+        /// <summary>Whether a slider is open, for the self-test.</summary>
         public static bool SliderOpen => _slide != Slide.None;
-        public static int SlidersDrawn { get; private set; }
 
         /// <summary>Opens the volume or the size slider for an entry under a point of the screen, as its icon would, for the self-test.</summary>
         public static void OpenSlider(Entry entry, bool size, Vector2 under)
@@ -191,7 +190,7 @@ namespace Scry
             var value = Here(_slideValue);
             GUI.Label(value, _slide == Slide.Volume ? HeaderSliders.VolumeLabel(modifiers.Volume) : HeaderSliders.SizeLabel(modifiers.Scale), Skin.DimLabel);
             if (value.Contains(Event.current.mousePosition)) AskTip("slidevalue", "Back to its own");
-            SlidersDrawn++;
+            CountDrawn(PanelPart.Slider);
         }
     }
 }

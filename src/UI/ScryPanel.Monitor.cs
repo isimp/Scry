@@ -10,8 +10,6 @@ namespace Scry
     /// </summary>
     internal static partial class ScryPanel
     {
-        /// <summary>How many times the monitor has been drawn, for the self-test.</summary>
-        public static int MonitorsDrawn { get; private set; }
 
         public static void MonitorGUI()
         {
@@ -55,7 +53,7 @@ namespace Scry
                     GUI.Label(new Rect(box.x + U(10f), y, w - U(20f), lineH), line, Skin.DimLabel);
                     y += lineH;
                 }
-                MonitorsDrawn++;
+                CountDrawn(PanelPart.Monitor);
             }
             finally
             {

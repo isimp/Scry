@@ -18,9 +18,8 @@ namespace Scry
         /// <summary>Where the View chip and its box are, on the screen.</summary>
         private static Rect _viewChip, _viewBox;
 
-        /// <summary>Whether the View box is open, and how many times it has been drawn, for the self-test.</summary>
+        /// <summary>Whether the View box is open, for the self-test.</summary>
         public static bool ViewMenuOpen => _viewOpen;
-        public static int ViewMenusDrawn { get; private set; }
 
         /// <summary>Opens the box for an entry under a point of the screen, as its chip would, for the self-test.</summary>
         public static void OpenViewMenu(Entry entry, Vector2 under)
@@ -164,7 +163,7 @@ namespace Scry
                 var w = Skin.Width(style, value) + U(4f);
                 GUI.Label(new Rect(row.xMax - U(6f) - w, row.y + (row.height - U(22f)) / 2f, w, U(22f)), value, style);
             }
-            if (e.type == EventType.Repaint) ViewMenusDrawn++;
+            CountDrawn(PanelPart.ViewMenu);
         }
     }
 }
