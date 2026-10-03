@@ -22,7 +22,7 @@ namespace Scry.Tests
             // A manifest that is no JSON is no manifest; any other failure is a fault.
             ["src/Model/ModManifest.cs"] = "System.FormatException",
             // Scry's own types that cannot load on this game's version are left out, the rest kept.
-            ["src/Plugin.cs"] = "System.Reflection.ReflectionTypeLoadException",
+            ["src/Core/About.cs"] = "System.Reflection.ReflectionTypeLoadException",
         };
 
         [Fact]

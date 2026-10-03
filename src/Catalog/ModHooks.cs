@@ -187,7 +187,7 @@ namespace Scry
                     var transpilers = new HashSet<Patch>(info.Transpilers);
                     foreach (var patch in info.Prefixes.Concat(info.Postfixes).Concat(info.Transpilers).Concat(info.Finalizers))
                     {
-                        if (patch?.PatchMethod == null || patch.owner == Plugin.Guid) continue;
+                        if (patch?.PatchMethod == null || patch.owner == About.Guid) continue;
                         var mod = ModOf(patch, plugins);
                         // A transpiler rewrites the method itself, so what it puts there need not be in its own code.
                         var counted = mustName == null || transpilers.Contains(patch) || Names(patch.PatchMethod, mustName);

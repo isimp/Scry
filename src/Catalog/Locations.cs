@@ -113,7 +113,7 @@ namespace Scry
             if (Now != State.Reading) return "not reading the locations and dungeons.";
             var done = Done;
             Forget();
-            Plugin.Report($"Scry stopped reading the locations after {Numbers.Count(done)} of them; nothing read is kept.");
+            Log.Report($"Scry stopped reading the locations after {Numbers.Count(done)} of them; nothing read is kept.");
             return "stopped reading the locations and dungeons; nothing read so far is kept.";
         }
 
@@ -392,7 +392,7 @@ namespace Scry
                 explorer.Regrouped();
             }
             Learned.AboutAll();
-            Plugin.Report(
+            Log.Report(
                 $"Scry read {Numbers.Count(Total)} locations and dungeon rooms in {Numbers.Fixed(_clock.Elapsed.TotalSeconds, 1)} s ({Numbers.Amount(_workMs, 0)} ms of its own work over {Numbers.Count(_frames)} frames, {Numbers.Count(_failed)} could not be loaded): " +
                 $"they name {Numbers.Count(Found.Count)} prefabs, {Numbers.Count(inCatalog)} of them in the catalog; {Numbers.Count(moved)} effects, sounds and projectiles nothing else plays or fires went under \"In locations\", and {Numbers.Count(items)} items only creatures seemed to have went back to their kind of item.");
             Found.Clear();

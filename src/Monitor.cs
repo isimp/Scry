@@ -22,7 +22,7 @@ namespace Scry
 
         public static readonly MonitorWindow Window = new MonitorWindow(Frames);
 
-        public static bool On => Plugin.ShowMonitor;
+        public static bool On => Settings.ShowMonitor;
 
         private static float _figuresAt = -10f;
         private static float _holdsAt = -10f;

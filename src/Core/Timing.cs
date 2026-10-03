@@ -7,7 +7,7 @@ namespace Scry
     /// <summary>
     /// How long Scry's own work takes each frame, by part, with about how much memory each part
     /// allocated and whether the runtime's memory cleanup ran inside it (<see cref="FrameTimes"/>).
-    /// With <see cref="Plugin.LogPreviews"/> on, a frame where it took long is said in the log with
+    /// With <see cref="Settings.LogPreviews"/> on, a frame where it took long is said in the log with
     /// its parts, at most twice a second; with it off, nothing is measured.
     /// </summary>
     internal static class Timing
@@ -35,7 +35,7 @@ namespace Scry
         /// <summary>
         /// Where each frame's total goes while the self-test measures (<see cref="SelfTestHost"/>),
         /// with its slowest part; null otherwise. Slow frames are logged only with
-        /// <see cref="Plugin.LogPreviews"/> on.
+        /// <see cref="Settings.LogPreviews"/> on.
         /// </summary>
         public static FrameStats Measuring;
 
@@ -65,7 +65,10 @@ namespace Scry
             Frame.Add(part, Math.Max(0, ms - (Frame.InnerMs - innerBefore)), 0, 0);
         }
 
-        private static bool On => Plugin.LogPreviews || Measuring != null || Monitor.On;
+        private static bool On => Settings.LogPreviews || Measuring != null || Settings.ShowMonitor;
+
+        /// <summary>Told each frame of Scry's work as the next begins, with the frame's whole time, while the resource monitor shows.</summary>
+        public static event Action<FrameTimes, double> FrameDone;
 
         public static Mark Start()
         {
@@ -95,7 +98,7 @@ namespace Scry
         {
             if (Time.frameCount == _frame) return;
             ScryBytes += Frame.Bytes;
-            if (Monitor.On && _frame >= 0) Monitor.Frame(Frame, Time.unscaledDeltaTime * 1000.0);
+            if (Settings.ShowMonitor && _frame >= 0) FrameDone?.Invoke(Frame, Time.unscaledDeltaTime * 1000.0);
             if (Measuring != null && _frame >= 0)
             {
                 // Scry's own work as a player's frame has it, the self-test's own checks left out.
@@ -103,7 +106,7 @@ namespace Scry
                 Measuring.Add(Frame.TotalWithout(SelfTestPart), slowest.Name, slowest.Ms);
                 Measuring.AddTest(Frame.MsOf(SelfTestPart));
             }
-            if (!Plugin.LogPreviews)
+            if (!Settings.LogPreviews)
             {
                 Frame.Clear();
                 _frame = Time.frameCount;
@@ -112,7 +115,7 @@ namespace Scry
             if (Frame.Total >= SlowMs && Time.unscaledTime - _toldAt >= 0.5f)
             {
                 _toldAt = Time.unscaledTime;
-                Plugin.Note(Frame.Line(Time.unscaledDeltaTime * 1000f));
+                Log.Note(Frame.Line(Time.unscaledDeltaTime * 1000f));
             }
 
             Window.AddScry(Frame.Bytes, Frame.Cleanups);
@@ -125,7 +128,7 @@ namespace Scry
             }
             else if (now - _windowFrom >= WindowSeconds)
             {
-                Plugin.Note(Window.Line(now - _windowFrom));
+                Log.Note(Window.Line(now - _windowFrom));
                 Window.Reset();
                 _windowFrom = now;
             }

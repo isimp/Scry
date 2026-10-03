@@ -413,7 +413,7 @@ namespace Scry
                 if (clip != null) PlayClip(clip);
             }
 
-            if (entry != null && entry.Kind == Kind.Sound && Plugin.PlayOnSelect) PlaySound(entry);
+            if (entry != null && entry.Kind == Kind.Sound && Settings.PlayOnSelect) PlaySound(entry);
         }
 
         private static void Modified(Modifiers modifiers)

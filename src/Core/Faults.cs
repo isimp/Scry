@@ -58,7 +58,7 @@ namespace Scry
             if (GameChanged(part, ex)) return;
             var key = part + "|" + ex.GetType().Name + "|" + ex.Message + "|" + TopFrame(ex);
             if (Told.Count > 500 || !Told.Add(key)) return;
-            Plugin.Log.LogError($"Scry failed in {part} (told once): {Whole(ex)}");
+            Log.Source.LogError($"Scry failed in {part} (told once): {Whole(ex)}");
         }
 
         /// <summary>
@@ -72,8 +72,8 @@ namespace Scry
             Skipped++;
             LatestSkipped = Words(part + " of " + prefab, ex);
             if (GameChanged(part, ex)) return;
-            if (Found.Skip(part, prefab, ex)) Plugin.Log.LogWarning($"Scry left out the {part} of {prefab} (told whole once for this failure, then counted): {Whole(ex)}");
-            else Plugin.Log.LogDebug($"Scry left out the {part} of {prefab}: {ex.Message}");
+            if (Found.Skip(part, prefab, ex)) Log.Source.LogWarning($"Scry left out the {part} of {prefab} (told whole once for this failure, then counted): {Whole(ex)}");
+            else Log.Source.LogDebug($"Scry left out the {part} of {prefab}: {ex.Message}");
         }
 
         /// <summary>Tells, once a reading is done, what it left out, and starts counting again.</summary>
@@ -82,9 +82,9 @@ namespace Scry
             var any = false;
             foreach (var line in Found.Summary())
             {
-                if (!any) Plugin.Log.LogInfo("Scry could not read some parts of some prefabs, most likely mods' own, and left those parts out:");
+                if (!any) Log.Source.LogInfo("Scry could not read some parts of some prefabs, most likely mods' own, and left those parts out:");
                 any = true;
-                Plugin.Log.LogInfo("  " + line);
+                Log.Source.LogInfo("  " + line);
             }
             Found.ForgetSkips();
         }
@@ -95,7 +95,7 @@ namespace Scry
             if (!Trouble.IsGameChange(ex)) return false;
             if (Found.Changed(feature, ex))
             {
-                Plugin.Log.LogWarning($"Scry: the game has changed in a way this version does not know, so {feature} is off until Scry is updated. The rest works on. ({Innermost(ex).Message})");
+                Log.Source.LogWarning($"Scry: the game has changed in a way this version does not know, so {feature} is off until Scry is updated. The rest works on. ({Innermost(ex).Message})");
             }
             return true;
         }

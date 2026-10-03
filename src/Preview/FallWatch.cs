@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// With <see cref="Plugin.LogPreviews"/> on, watches a copy let fall for a few seconds and
+    /// With <see cref="Settings.LogPreviews"/> on, watches a copy let fall for a few seconds and
     /// tells in the log where it was made, how high and how fast it went and where it came to
     /// rest, measured from the foot of the copy it came from, with what it has to land with and
     /// what else it touched on the way (another copy, the ground, a building or a tree of the world).
@@ -29,7 +29,7 @@ namespace Scry
 
         public static void Start(GameObject piece, GameObject from, bool onStage)
         {
-            if (!Plugin.LogPreviews || piece == null || from == null) return;
+            if (!Settings.LogPreviews || piece == null || from == null) return;
             var watch = piece.AddComponent<FallWatch>();
             watch._from = from.name;
             watch._onStage = onStage;
@@ -60,7 +60,7 @@ namespace Scry
             var told = string.Join(", ", colliders.Select(c =>
                 c.GetType().Name + (c is MeshCollider mesh && !mesh.convex ? " not convex" : "") + (c.enabled ? "" : " off") + " on " + LayerMask.LayerToName(c.gameObject.layer) + "/" + Numbers.Count(c.gameObject.layer) + Reach(c)));
             var body = watch._body;
-            Plugin.Note($"Scry lets {piece.name} fall {(onStage ? "on the stage" : "in the world")} from {from.name}: made {Around(watch._start - watch._foot)} of its foot"
+            Log.Note($"Scry lets {piece.name} fall {(onStage ? "on the stage" : "in the world")} from {from.name}: made {Around(watch._start - watch._foot)} of its foot"
                 + (body != null ? $", body mass {Numbers.Amount(body.mass, 1)}{(body.isKinematic ? " kinematic" : "")}{(body.useGravity ? "" : " without gravity")}, pushed apart at most {Numbers.Amount(body.maxDepenetrationVelocity, 1)} m/s, moving {Numbers.Amount(body.linearVelocity.magnitude, 1)} m/s" : ", no body")
                 + $"; {Numbers.Count(colliders.Length)} colliders: {(colliders.Length > 0 ? told : "none")}.");
         }
@@ -108,7 +108,7 @@ namespace Scry
             {
                 var at = _body != null ? _body.transform.position : transform.position;
                 var ground = _onStage ? float.NaN : ZoneSystem.instance != null ? ZoneSystem.instance.GetGroundHeight(at) : float.NaN;
-                Plugin.Note($"Scry watched {name} from {_from} {(_onStage ? "on the stage" : "in the world")} for {Numbers.Amount(Seconds, 0)} s: highest {Numbers.Fixed(_highest - _foot.y, 1)} m above its foot, fastest {Numbers.Amount(_fastest, 1)} m/s, now {Around(at - _foot)} of it"
+                Log.Note($"Scry watched {name} from {_from} {(_onStage ? "on the stage" : "in the world")} for {Numbers.Amount(Seconds, 0)} s: highest {Numbers.Fixed(_highest - _foot.y, 1)} m above its foot, fastest {Numbers.Amount(_fastest, 1)} m/s, now {Around(at - _foot)} of it"
                     + (float.IsNaN(ground) ? "" : $", {Numbers.Fixed(at.y - ground, 1)} m above the ground there")
                     + $"; touched {(_touched.Count > 0 ? string.Join(", ", _touched) : "nothing")}.");
             });

@@ -162,8 +162,8 @@ namespace Scry
         /// </summary>
         private static IEnumerator ResourceMonitor(Probe p)
         {
-            var was = Plugin.ShowMonitor;
-            Plugin.ShowMonitor = true;
+            var was = Settings.ShowMonitor;
+            Settings.ShowMonitor = true;
             var drawn = ScryPanel.Drawn(PanelPart.Monitor);
             var from = Time.unscaledTime;
             yield return Until(() => Time.unscaledTime - from > 1.5f, 3);
@@ -171,7 +171,7 @@ namespace Scry
             p.Check(Monitor.Window.Count > 0 && Monitor.Window.Mean > 0, "it measures Scry's frames", $"{Numbers.Count(Monitor.Window.Count)} frames, {Numbers.Fixed(Monitor.Window.Mean, 3)} ms on average");
             p.Check(Monitor.Lines.Any(l => l.StartsWith("holds ", StringComparison.Ordinal) && l.Contains($"{Numbers.Count(X.Catalog.Count)} entries")), "it tells what Scry holds", string.Join(" | ", Monitor.Lines));
             p.Note(string.Join(" | ", Monitor.Lines));
-            Plugin.ShowMonitor = was;
+            Settings.ShowMonitor = was;
         }
     }
 }

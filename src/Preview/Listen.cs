@@ -38,7 +38,7 @@ namespace Scry
         /// <summary>Starts watching what something plays, the first time it plays; later plays add to it while it is watched.</summary>
         public static void Start(string what, float seconds)
         {
-            if (what == null || !Plugin.LogPreviews || Told.Contains(what) || Watching.ContainsKey(what)) return;
+            if (what == null || !Settings.LogPreviews || Told.Contains(what) || Watching.ContainsKey(what)) return;
             Watching[what] = new Watch { What = what, Until = Time.unscaledTime + Mathf.Clamp(seconds, 1.5f, 8f) };
         }
 
@@ -88,7 +88,7 @@ namespace Scry
 
                 Watching.Remove(watch.What);
                 Told.Add(watch.What);
-                Plugin.Note(Report(watch));
+                Log.Note(Report(watch));
             }
         }
 

@@ -45,7 +45,7 @@ namespace Scry
             if (rest.Equals("selftest", System.StringComparison.OrdinalIgnoreCase))
             {
                 // A tool for finding faults, off unless its setting is on; stopping one always works.
-                args.Context.OrNull()?.AddString("Scry: " + (Plugin.SelfTestAllowed
+                args.Context.OrNull()?.AddString("Scry: " + (Settings.SelfTestAllowed
                     ? SelfTestHost.Start("it was asked for with /scry selftest")
                     : "the self-test is off; SelfTest under Diagnostics in Scry's settings turns it on."));
                 return;
@@ -66,8 +66,8 @@ namespace Scry
 
             if (rest.Equals("monitor", System.StringComparison.OrdinalIgnoreCase))
             {
-                Plugin.ShowMonitor = !Plugin.ShowMonitor;
-                args.Context.OrNull()?.AddString("Scry: the resource monitor is " + (Plugin.ShowMonitor ? "on." : "off."));
+                Settings.ShowMonitor = !Settings.ShowMonitor;
+                args.Context.OrNull()?.AddString("Scry: the resource monitor is " + (Settings.ShowMonitor ? "on." : "off."));
                 return;
             }
 

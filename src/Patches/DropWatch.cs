@@ -26,7 +26,7 @@ namespace Scry
         private static readonly Dictionary<Ragdoll, string> Ragdolls = new Dictionary<Ragdoll, string>();
 
         private static float _savedAt;
-        private static string File => Path.Combine(Plugin.DataFolder, "seen-drops.txt");
+        private static string File => Path.Combine(Settings.DataFolder, "seen-drops.txt");
 
         /// <summary>What was seen, read from its file the first time it is asked for.</summary>
         public static SeenDrops Seen
@@ -109,7 +109,7 @@ namespace Scry
             _savedAt = Time.unscaledTime;
             Guard.Run("keeping the drops seen in play", () =>
             {
-                Directory.CreateDirectory(Plugin.DataFolder);
+                Directory.CreateDirectory(Settings.DataFolder);
                 System.IO.File.WriteAllText(File, _seen.Save());
             });
         }

@@ -93,7 +93,7 @@ namespace Scry
             foreach (var step in ModIcons(read)) yield return step;
 
             job.Entries = read.Entries;
-            Plugin.Note($"Scry's catalog, by part (ms): {CatalogTiming.Report()}; {Numbers.Count(GC.CollectionCount(0) - collections)} garbage collections meanwhile.");
+            Log.Note($"Scry's catalog, by part (ms): {CatalogTiming.Report()}; {Numbers.Count(GC.CollectionCount(0) - collections)} garbage collections meanwhile.");
             Faults.TellSkipped();
         }
 

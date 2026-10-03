@@ -574,7 +574,7 @@ namespace Scry
                     : "could not be copied";
                 parts.Add($"{data.m_prefab.name} ({why})");
             }
-            Plugin.Note($"Scry played nothing to see or hear of {_entry?.Name}'s \"{label}\": {(parts.Count > 0 ? string.Join("; ", parts) : "it is empty")}.");
+            Log.Note($"Scry played nothing to see or hear of {_entry?.Name}'s \"{label}\": {(parts.Count > 0 ? string.Join("; ", parts) : "it is empty")}.");
         }
 
         /// <summary>The ragdoll a creature leaves when it dies, when it has one.</summary>
@@ -631,7 +631,7 @@ namespace Scry
             var debris = new List<string>();
             foreach (var data in EffectSlots.Of(list)) if (EffectSlots.Names(data) && PrefabShapes.IsDebris(data.m_prefab)) debris.Add(data.m_prefab.name);
             var tree = prefab.GetComponent<TreeBase>();
-            Plugin.Note($"Scry destroys {prefab.name}: {(Falling.Breaks(prefab, list) ? "breaks into its own parts" : "no parts of its own")}, "
+            Log.Note($"Scry destroys {prefab.name}: {(Falling.Breaks(prefab, list) ? "breaks into its own parts" : "no parts of its own")}, "
                                + $"{(tree != null && tree.m_logPrefab != null ? "fells its log " + tree.m_logPrefab.name : "no log")}, "
                                + $"debris {(debris.Count > 0 ? string.Join(", ", debris) : "none")}.");
         }

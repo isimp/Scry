@@ -23,7 +23,7 @@ namespace Scry
         private const string SearchControl = "scry-search";
         private const string ClipControl = "scry-clip-filter";
         private const string EffectControl = "scry-effect-filter";
-        private static float TipDelay => Plugin.TooltipDelay;
+        private static float TipDelay => Settings.TooltipDelay;
 
         private static Rect _full;
         private static Rect _compactRect;
@@ -130,7 +130,7 @@ namespace Scry
 
             // In the compact view the keys walk until the search is clicked, so it is not focused on
             // opening; in the full view as the player sets it.
-            _focusSearch = !_compact && Plugin.FocusSearchOnOpen;
+            _focusSearch = !_compact && Settings.FocusSearchOnOpen;
             _reveal = true;
         }
 
@@ -154,7 +154,7 @@ namespace Scry
         /// <summary>A rect kept on the screen, back in the coordinates of what is being drawn now.</summary>
         private static Rect Here(Rect onScreen) => new Rect(GUIUtility.ScreenToGUIPoint(onScreen.position), onScreen.size);
 
-        private static float Scale() => Mathf.Clamp(Screen.height / 1080f, 0.75f, 3f) * Plugin.UiScale;
+        private static float Scale() => Mathf.Clamp(Screen.height / 1080f, 0.75f, 3f) * Settings.UiScale;
 
         /// <summary>Lets go of the lists kept for the entries of the world left, which point at its prefabs.</summary>
         public static void Forget()

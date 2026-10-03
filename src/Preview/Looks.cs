@@ -56,7 +56,7 @@ namespace Scry
         private static void Step(GameObject prefab, string what, System.Action step)
         {
             var started = Timing.Start();
-            if (Guard.Each(what, prefab.name, step) && Plugin.LogPreviews) Timing.Add("dress " + what, started);
+            if (Guard.Each(what, prefab.name, step) && Settings.LogPreviews) Timing.Add("dress " + what, started);
         }
 
         /// <summary>Show wearable items worn by a person rather than on their own.</summary>

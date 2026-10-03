@@ -366,8 +366,8 @@ namespace Scry
             _off = list.FeaturesOff;
             foreach (var line in list.Report())
             {
-                if (list.AnyTrouble) Plugin.Warn(line);
-                else Plugin.Report(line);
+                if (list.AnyTrouble) Log.Warn(line);
+                else Log.Report(line);
             }
         }
 
@@ -389,7 +389,7 @@ namespace Scry
         /// <summary>Each patch, by whether its method is there and carries Scry's patch now.</summary>
         private static void Patches(Checklist list)
         {
-            foreach (var type in Plugin.OwnTypes())
+            foreach (var type in About.OwnTypes())
             {
                 // A patch whose attribute names what the game no longer has is told missing by the list.
                 if (Steps.Run(() => type.GetCustomAttributes(typeof(HarmonyPatch), false).FirstOrDefault() as HarmonyPatch, out var attribute, null) != null)
@@ -403,7 +403,7 @@ namespace Scry
                 var name = attribute.info.methodName;
                 var feature = PatchFeatures.TryGetValue(type.Name, out var known) ? known : type.Name;
                 var method = target.GetMethods(All).FirstOrDefault(m => m.Name == name);
-                var patched = method != null && Harmony.GetPatchInfo(method)?.Owners.Contains(Plugin.Guid) == true;
+                var patched = method != null && Harmony.GetPatchInfo(method)?.Owners.Contains(About.Guid) == true;
                 list.Add($"{target.Name}.{name}", feature, patched ? Found.Present : Found.Missing);
             }
         }

@@ -165,7 +165,7 @@ namespace Scry
             var events = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.OrderBy(clip.events, e => e.time));
             Events = events;
 
-            var heard = Plugin.LogPreviews ? Heard(clip) : null;
+            var heard = Settings.LogPreviews ? Heard(clip) : null;
             Listen.Start(heard, clip.length / Mathf.Max(0.1f, speed) + 0.5f);
             if (heard != null) Listen.Note(heard, $"{Numbers.Count(events.Length)} events in the clip");
             if (_ears == null) Listen.Note(heard, "no ears on this copy: its clips send events Scry does not answer, so none are played");

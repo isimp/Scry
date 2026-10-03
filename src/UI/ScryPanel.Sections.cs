@@ -130,8 +130,8 @@ namespace Scry
         /// </summary>
         private static string FootHint()
         {
-            var walk = Plugin.WalkWhileOpen;
-            var look = Plugin.LookWithRightMouse;
+            var walk = Settings.WalkWhileOpen;
+            var look = Settings.LookWithRightMouse;
             var index = (_compact ? 4 : 0) + (walk ? 2 : 0) + (look ? 1 : 0);
             if (FootHints[index] != null) return FootHints[index];
 
@@ -262,7 +262,7 @@ namespace Scry
             if (CardButton(rect, close, "Copy for a report", out _))
             {
                 if (!Guard.Run("telling the game's version", GameVersion, out var game)) game = "of an unknown version";
-                GUIUtility.systemCopyBuffer = $"Scry {Plugin.Version}, Valheim {game}: off: {string.Join(", ", _offFeatures)}";
+                GUIUtility.systemCopyBuffer = $"Scry {About.Version}, Valheim {game}: off: {string.Join(", ", _offFeatures)}";
                 Session.Say("Copied what is off, with Scry's and the game's versions.");
             }
         }

@@ -146,7 +146,7 @@ namespace Scry
                 return _material;
             }
 
-            Plugin.Warn("Scry found no shader for the stage floor; the turntable shows without one.");
+            Log.Warn("Scry found no shader for the stage floor; the turntable shows without one.");
             return null;
         }
 

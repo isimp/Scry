@@ -202,7 +202,7 @@ namespace Scry
         /// </summary>
         private void Part(string part, Action read)
         {
-            if (!Guard.Run("the " + part + " details", read, Plugin.LogPreviews ? "facts " + part : null) && !_missing.Contains(part)) _missing.Add(part);
+            if (!Guard.Run("the " + part + " details", read, Settings.LogPreviews ? "facts " + part : null) && !_missing.Contains(part)) _missing.Add(part);
         }
 
         private void TellMissing()

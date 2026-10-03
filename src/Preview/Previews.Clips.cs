@@ -381,7 +381,7 @@ namespace Scry
             if (body != null && Told.Add("lasting:" + prefab.name))
             {
                 string Of(EffectList list) => EffectSlots.ShowsAny(list) ? string.Join(", ", EffectSlots.NamesListed(list)) : "nothing";
-                Plugin.Note($"Scry: {prefab.name} keeps going in water {Of(body.m_waterEffects)}; flying {Of(body.m_flyingContinuousEffect)}{(body.m_flying ? ", and it flies from birth" : "")}; its own scale {Numbers.Amount(prefab.transform.localScale.x, 2)}.");
+                Log.Note($"Scry: {prefab.name} keeps going in water {Of(body.m_waterEffects)}; flying {Of(body.m_flyingContinuousEffect)}{(body.m_flying ? ", and it flies from birth" : "")}; its own scale {Numbers.Amount(prefab.transform.localScale.x, 2)}.");
             }
             return plays;
         }

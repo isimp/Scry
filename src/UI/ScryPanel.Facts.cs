@@ -407,7 +407,7 @@ namespace Scry
 
             // For finding out why part of a model does not show: every part the preview draws, in the
             // log. Offered only with the preview notes on, as it is there for looking into previews.
-            if (Stage.Subject != null && Plugin.LogPreviews)
+            if (Stage.Subject != null && Settings.LogPreviews)
             {
                 y += U(4f);
                 var text = "Write its parts to the log";

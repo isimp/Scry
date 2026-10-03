@@ -26,7 +26,7 @@ namespace Scry
         private static (string Text, Kind? Kind, OriginFilter Origin, bool Favourites)? _carried;
 
         /// <summary>How long after entering a world the catalog waits before it is read, unless the panel is opened.</summary>
-        private static float QuietDelay => Plugin.CatalogDelay;
+        private static float QuietDelay => Settings.CatalogDelay;
 
         /// <summary>Scry's share of a frame for reading the catalog while nobody waits for it, and while the open panel does.</summary>
         private const double QuietBudgetMs = 4;
@@ -79,7 +79,7 @@ namespace Scry
             }
             if (Explorer == null && ReferenceEquals(_failedIn, ZNetScene.instance)) _failedIn = null;
             IsOpen = true;
-            if (Explorer != null) Explorer.RecentLimit = Plugin.RecentCount;
+            if (Explorer != null) Explorer.RecentLimit = Settings.RecentCount;
             ScryPanel.Opened();
         }
 
@@ -109,7 +109,7 @@ namespace Scry
         /// Whether the character can walk while the panel is open: whenever none of its text boxes
         /// has the keyboard, so typing a search never moves anyone.
         /// </summary>
-        public static bool Walking => IsOpen && !ScryPanel.Typing && Plugin.WalkWhileOpen;
+        public static bool Walking => IsOpen && !ScryPanel.Typing && Settings.WalkWhileOpen;
 
         private static bool _toldPreviewsStay;
 
@@ -133,14 +133,14 @@ namespace Scry
 
             Step("the key that opens the panel", () =>
             {
-                if (Input.GetKeyDown(Plugin.OpenKey) && CanToggle() && !TypingIt(Plugin.OpenKey)) Toggle();
+                if (Input.GetKeyDown(Settings.OpenKey) && CanToggle() && !TypingIt(Settings.OpenKey)) Toggle();
             });
 
             Step("looking around and stepping back", () =>
             {
                 // Looking starts only from a press outside the panel, so a right click on it stays a click.
                 if (!IsOpen || !Input.GetMouseButton(1)) Looking = false;
-                else if (Input.GetMouseButtonDown(1) && Plugin.LookWithRightMouse && !ScryPanel.Covers(Input.mousePosition)) Looking = true;
+                else if (Input.GetMouseButtonDown(1) && Settings.LookWithRightMouse && !ScryPanel.Covers(Input.mousePosition)) Looking = true;
 
                 // The mouse's own back and forward buttons step through jumps, as in a browser.
                 if (IsOpen && Explorer != null && Input.GetKeyDown(KeyCode.Mouse3)) ScryPanel.Step(Explorer, true);
@@ -232,10 +232,10 @@ namespace Scry
         private static void Made(CatalogJob job, ZNetScene scene)
         {
             var catalog = job.Entries;
-            _favourites = _favourites ?? new Favourites(Path.Combine(Plugin.DataFolder, "favourites.txt"));
+            _favourites = _favourites ?? new Favourites(Path.Combine(Settings.DataFolder, "favourites.txt"));
             if (_favourites.Problem != null) Faults.Tell("reading the favourites", _favourites.Problem);
 
-            Explorer = new Explorer(catalog, _favourites) { RecentLimit = Plugin.RecentCount };
+            Explorer = new Explorer(catalog, _favourites) { RecentLimit = Settings.RecentCount };
             if (_carried.HasValue)
             {
                 var carried = _carried.Value;
@@ -251,13 +251,13 @@ namespace Scry
             _scene = scene;
             _failedIn = null;
             var kinds = string.Join(", ", catalog.GroupBy(e => e.Kind).OrderBy(g => g.Key).Select(g => $"{Numbers.Count(g.Count())} {Kinds.Label(g.Key).ToLowerInvariant()}"));
-            Plugin.Report($"Scry read {Numbers.Count(catalog.Count)} prefabs and status effects in {Numbers.Amount(job.WorkMs, 0)} ms over {Numbers.Count(job.Frames)} frames ({Numbers.Fixed(job.ElapsedMs / 1000.0, 1)} s in all): {kinds}.");
+            Log.Report($"Scry read {Numbers.Count(catalog.Count)} prefabs and status effects in {Numbers.Amount(job.WorkMs, 0)} ms over {Numbers.Count(job.Frames)} frames ({Numbers.Fixed(job.ElapsedMs / 1000.0, 1)} s in all): {kinds}.");
 
             // Where things are found, read by itself for those who want it: the same background
             // reading the panel's button starts, a few milliseconds a frame.
-            if (Plugin.ReadLocationsAutomatically && Locations.Now == Locations.State.NotRead)
+            if (Settings.ReadLocationsAutomatically && Locations.Now == Locations.State.NotRead)
             {
-                Guard.Run("reading the locations by itself", () => Plugin.Report("Scry: " + Locations.Start()));
+                Guard.Run("reading the locations by itself", () => Log.Report("Scry: " + Locations.Start()));
             }
         }
 

@@ -95,7 +95,7 @@ namespace Scry
             if (Time.unscaledTime - _readyAt < 5f) return;
             _autoFor = explorer;
             _readyAt = -1f;
-            if (Plugin.SelfTestAllowed && File.Exists(MarkerFile)) Start("the marker file is present");
+            if (Settings.SelfTestAllowed && File.Exists(MarkerFile)) Start("the marker file is present");
         }
 
         public static string Start(string why)
@@ -105,9 +105,9 @@ namespace Scry
             if (Session.Explorer == null) return "the catalog of this world is not read yet; try again in a few seconds.";
 
             Write("");
-            Write($"==== Scry {Plugin.Version} self-test, {DateTime.Now:yyyy-MM-dd HH:mm:ss}, started because {why} ====");
+            Write($"==== Scry {About.Version} self-test, {DateTime.Now:yyyy-MM-dd HH:mm:ss}, started because {why} ====");
             Write($"World {ZNet.instance.OrNull()?.GetWorldName()}, {Numbers.Count(Session.Explorer.Catalog.Count)} entries, {Numbers.Count(BepInEx.Bootstrap.Chainloader.PluginInfos.Count)} mods loaded, panel {(Session.IsOpen ? "open" : "closed")}" +
-                  $"{(ScryPanel.Compact ? " in its compact view" : "")}, locations {Locations.Now}, LogPreviews {(Plugin.LogPreviews ? "on" : "off")}.");
+                  $"{(ScryPanel.Compact ? " in its compact view" : "")}, locations {Locations.Now}, LogPreviews {(Settings.LogPreviews ? "on" : "off")}.");
             Write("Each part uses Scry as a player would and checks what it did. START and PASS, FAIL or SKIP frame a part; within it, PASS is a check that held,");
             Write("FAIL one that did not (with what was found), and note is something worth knowing. The summary at the end lists every failed check again.");
 
@@ -177,7 +177,7 @@ namespace Scry
 
         private static void Write(string line)
         {
-            Plugin.Report($"[selftest] {line}");
+            Log.Report($"[selftest] {line}");
             // A line the file will not take is still in the log above.
             Steps.Run(() => File.AppendAllText(ResultFile, line + Environment.NewLine), null);
         }

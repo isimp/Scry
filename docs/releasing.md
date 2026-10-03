@@ -15,7 +15,7 @@ Each store needs a token stored as a repository secret. The workflow checks for 
 
 ## Cutting a release
 
-1. Set the new version in `Scry.csproj` (`<Version>`), `src/Plugin.cs` (`public const string Version`) and `packaging/manifest.json` (`version_number`). The workflow checks that all three agree.
+1. Set the new version in `Scry.csproj` (`<Version>`), `src/Core/About.cs` (`public const string Version`) and `packaging/manifest.json` (`version_number`). The workflow checks that all three agree.
 2. Add a CHANGELOG entry. It ships in the package and appears on the mod pages.
 3. Push, and wait for the Build workflow to pass.
 4. Run the Release workflow from the Actions tab. It asks for the version (without `v`), optional release notes, the draft flag, which stores to publish to (both, Hexium only or Thunderstore only), the team, and each store's categories.

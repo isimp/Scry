@@ -19,7 +19,7 @@ namespace Scry
 
         private static readonly Vector3 Origin = new Vector3(0f, 5000f, 0f);
         private const float FieldOfView = 30f;
-        private static float SpinDegreesPerSecond => Plugin.SpinSpeed;
+        private static float SpinDegreesPerSecond => Settings.SpinSpeed;
         private const float PlayedSeconds = 8f;
 
         // Prefabs face along +Z, so the camera starts in front of them, a little to one side.
@@ -146,7 +146,7 @@ namespace Scry
         public static Texture Texture => _texture;
 
         /// <summary>Whether the model turns on its own; starts as the config says.</summary>
-        public static bool Spin = Plugin.AutoSpin;
+        public static bool Spin = Settings.AutoSpin;
 
         /// <summary>Whether the floor ruled in metres is showing.</summary>
         public static bool ShowsGrid => _grid != null && _grid.activeSelf;
@@ -272,7 +272,7 @@ namespace Scry
                 lines.Add($"  {path}: {renderer.GetType().Name}, active {renderer.gameObject.activeInHierarchy}, enabled {renderer.enabled}, layer {Numbers.Count(renderer.gameObject.layer)}, mesh {(mesh != null ? mesh.name : "none")}{bones}, {material}, bounds {Figures.Point(renderer.bounds.center)} size {Figures.Point(renderer.bounds.size)}");
             }
 
-            foreach (var line in lines) Plugin.Report(line);
+            foreach (var line in lines) Log.Report(line);
             return $"Wrote {Numbers.Count(lines.Count - 1)} renderers of {_subject.name} to the log.";
         }
 

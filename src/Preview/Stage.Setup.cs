@@ -152,7 +152,7 @@ namespace Scry
                     _creatureLayer = i;
                     break;
                 }
-                Plugin.Note(_creatureLayer != _layer
+                Log.Note(_creatureLayer != _layer
                     ? $"Scry is using layer {Numbers.Count(_creatureLayer)} for the creatures standing on its stage."
                     : "Scry found no second free layer for the creatures standing on its stage, so a floor's cut cuts them too.");
                 return _creatureLayer;
@@ -175,12 +175,12 @@ namespace Scry
             {
                 if (string.IsNullOrEmpty(LayerMask.LayerToName(i)))
                 {
-                    Plugin.Note($"Scry is using layer {Numbers.Count(i)} for its preview stage.");
+                    Log.Note($"Scry is using layer {Numbers.Count(i)} for its preview stage.");
                     return i;
                 }
             }
 
-            Plugin.Warn("Scry found no free layer for its preview stage, so the panel shows no turntable. Showing in the world still works.");
+            Log.Warn("Scry found no free layer for its preview stage, so the panel shows no turntable. Showing in the world still works.");
             return -1;
         }
     }

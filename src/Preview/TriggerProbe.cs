@@ -237,7 +237,7 @@ namespace Scry
                 var kept = false;
                 foreach (var prefab in keep) kept |= prefab != null && Of(job.Key, prefab);
                 if (kept) continue;
-                Plugin.Note($"Scry stopped watching the animator of {job.Key}, as it is no longer shown.");
+                Log.Note($"Scry stopped watching the animator of {job.Key}, as it is no longer shown.");
                 Drop(job);
             }
         }
@@ -359,8 +359,8 @@ namespace Scry
         {
             seen.Busy = false;
             if (Seen.TryGetValue(key, out var kept) && ReferenceEquals(kept, seen)) Seen.Remove(key);
-            if (Failures.Failed(key)) Plugin.Note($"Scry could not see what the animator of {key} plays ({why}); it tries once more.");
-            else Plugin.Note($"Scry could not see what the animator of {key} plays ({why}), and leaves its clips unmatched.");
+            if (Failures.Failed(key)) Log.Note($"Scry could not see what the animator of {key} plays ({why}); it tries once more.");
+            else Log.Note($"Scry could not see what the animator of {key} plays ({why}), and leaves its clips unmatched.");
         }
 
         /// <summary>
@@ -518,8 +518,8 @@ namespace Scry
             }
 
             var took = $"{Numbers.Count(job.Ms)} ms over {Numbers.Count(job.Frames)} frames";
-            if (!job.First) Plugin.Note($"Scry saw in {took} what more triggers of {job.Key} play: {string.Join("; ", attacks)}.");
-            else Plugin.Note($"Scry saw in {took} what the animator of {job.Key} plays: attacks {(attacks.Count > 0 ? string.Join("; ", attacks) : "none")}; the game's own actions {(actions.Count > 0 ? string.Join("; ", actions) : "none")}; left alone {string.Join(", ", seen.Idle.OrderBy(c => c, System.StringComparer.Ordinal))}.");
+            if (!job.First) Log.Note($"Scry saw in {took} what more triggers of {job.Key} play: {string.Join("; ", attacks)}.");
+            else Log.Note($"Scry saw in {took} what the animator of {job.Key} plays: attacks {(attacks.Count > 0 ? string.Join("; ", attacks) : "none")}; the game's own actions {(actions.Count > 0 ? string.Join("; ", actions) : "none")}; left alone {string.Join(", ", seen.Idle.OrderBy(c => c, System.StringComparer.Ordinal))}.");
         }
 
         /// <summary>Sets the stance the copy stands in on every run.</summary>

@@ -113,7 +113,7 @@ namespace Scry
         {
             if (!ToldSets.Add(prefab.name)) return;
             var told = sets.Select((set, i) => $"{SetName(set, i)} ({string.Join(", ", set.m_items.Where(x => x != null).Select(x => x.name + (AttachPart(x, out _) != null ? "" : " not drawn")))})");
-            Plugin.Note($"Scry: {prefab.name} rolls one of {Numbers.Count(sets.Count)} gear sets: {string.Join("; ", told)}.");
+            Log.Note($"Scry: {prefab.name} rolls one of {Numbers.Count(sets.Count)} gear sets: {string.Join("; ", told)}.");
         }
 
         /// <summary>Puts the gear of a look on the copy: 1 is the first set, or the only one.</summary>
@@ -467,7 +467,7 @@ namespace Scry
             if (Told.Add(told))
             {
                 var hands = string.Join(", ", items.Where(i => i != null && SlotOf(i) != Slot.None && SlotOf(i) != Slot.Head && SlotOf(i) != Slot.Chest && SlotOf(i) != Slot.Legs).Select(i => i.name + (AttachPart(i, out _) != null ? "" : " (not drawn)")));
-                Plugin.Note($"Scry dressed {prefab.name}: in hand {(hands.Length > 0 ? hands : "nothing")}; stance {state}{(stood ? "" : ", which its animator does not take")}.");
+                Log.Note($"Scry dressed {prefab.name}: in hand {(hands.Length > 0 ? hands : "nothing")}; stance {state}{(stood ? "" : ", which its animator does not take")}.");
             }
         }
 
@@ -525,7 +525,7 @@ namespace Scry
                 var mesh = renderer.sharedMesh;
                 if (mesh != null && mesh.bindposes.Length != bones.Length)
                 {
-                    Plugin.Note($"Scry left {part.name} off: made for {Numbers.Count(mesh.bindposes.Length)} bones, the body has {Numbers.Count(bones.Length)}.");
+                    Log.Note($"Scry left {part.name} off: made for {Numbers.Count(mesh.bindposes.Length)} bones, the body has {Numbers.Count(bones.Length)}.");
                     renderer.enabled = false;
                     continue;
                 }

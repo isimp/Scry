@@ -88,7 +88,7 @@ namespace Scry
             foreach (var (type, name) in new[] { (typeof(CharacterDrop), "OnDeath"), (typeof(Ragdoll), "SpawnLoot"), (typeof(Ragdoll), "Setup"), (typeof(ItemDrop), "Awake") })
             {
                 var method = HarmonyLib.AccessTools.DeclaredMethod(type, name);
-                p.Check(method != null && HarmonyLib.Harmony.GetPatchInfo(method)?.Owners.Contains(Plugin.Guid) == true, $"{type.Name}.{name} is watched");
+                p.Check(method != null && HarmonyLib.Harmony.GetPatchInfo(method)?.Owners.Contains(About.Guid) == true, $"{type.Name}.{name} is watched");
             }
             var creatures = X.Catalog.Where(e => e.Kind == Kind.Creature && DropWatch.Seen.Kills(e.Name) > 0).ToList();
             p.Note($"{Numbers.Count(creatures.Count)} kinds of creature seen dying in play, {Numbers.Count(creatures.Sum(c => DropWatch.Seen.Kills(c.Name)))} kills: " + string.Join(", ", creatures.Take(10).Select(c => $"{c.Name} {Numbers.Count(DropWatch.Seen.Kills(c.Name))}")));

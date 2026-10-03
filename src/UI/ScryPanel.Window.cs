@@ -137,7 +137,7 @@ namespace Scry
             e.Use();
         }
 
-        private static string RectFile => Path.Combine(Plugin.DataFolder, "panel.txt");
+        private static string RectFile => Path.Combine(Settings.DataFolder, "panel.txt");
 
         /// <summary>Where the panel was, in both views, and how its stage was seen (<see cref="PanelPlace"/>).</summary>
         private static void LoadRects() => Guard.Run("reading where the panel was", () =>
@@ -190,7 +190,7 @@ namespace Scry
                 ListShareCompact = _listShareCompact,
                 ListHiddenCompact = _listHiddenCompact,
             };
-            Directory.CreateDirectory(Plugin.DataFolder);
+            Directory.CreateDirectory(Settings.DataFolder);
             File.WriteAllLines(RectFile, place.Lines());
         });
     }

@@ -63,16 +63,16 @@ jobs:
           want="$WANT"
 
           csproj=$(grep -oPm1 '(?<=<Version>)[^<]+' Scry.csproj)
-          plugin=$(grep -oPm1 'public const string Version = "\K[^"]+' src/Plugin.cs)
+          plugin=$(grep -oPm1 'public const string Version = "\K[^"]+' src/Core/About.cs)
           manifest=$(grep -oPm1 '"version_number"\s*:\s*"\K[^"]+' packaging/manifest.json)
 
           echo "asked for    : $want"
           echo "csproj       : $csproj"
-          echo "Plugin.cs    : $plugin"
+          echo "About.cs     : $plugin"
           echo "manifest.json: $manifest"
 
           if [ "$csproj" != "$want" ] || [ "$plugin" != "$want" ] || [ "$manifest" != "$want" ]; then
-            echo "::error::Version mismatch. Set $want in Scry.csproj (<Version>), src/Plugin.cs (Version) and packaging/manifest.json (version_number), then run this again."
+            echo "::error::Version mismatch. Set $want in Scry.csproj (<Version>), src/Core/About.cs (Version) and packaging/manifest.json (version_number), then run this again."
             exit 1
           fi
 

@@ -586,7 +586,7 @@ namespace Scry
 
             if (_body != null || _heading != null)
             {
-                Plugin.Note($"Scry panel fonts: text {(_body != null ? _body.name : "default")}, title {(_heading != null ? _heading.name : "default")}.");
+                Log.Note($"Scry panel fonts: text {(_body != null ? _body.name : "default")}, title {(_heading != null ? _heading.name : "default")}.");
             }
         }
 

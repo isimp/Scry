@@ -164,7 +164,7 @@ namespace Scry
             foreach (var info in Chainloader.PluginInfos.Values.ToList())
             {
                 var assembly = info?.Instance != null ? info.Instance.GetType().Assembly : null;
-                if (assembly == null || info.Metadata == null || info.Metadata.GUID == JotunnGuid || info.Metadata.GUID == Plugin.Guid) continue;
+                if (assembly == null || info.Metadata == null || info.Metadata.GUID == JotunnGuid || info.Metadata.GUID == About.Guid) continue;
                 if (!_pluginOf.ContainsKey(assembly)) _pluginOf[assembly] = info.Metadata.Name;
             }
             return _pluginOf;

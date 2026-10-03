@@ -81,7 +81,7 @@ namespace Scry
             var failure = Steps.Run(act, null);
             if (failure == null)
             {
-                if (watch.ElapsedMilliseconds >= 50) Plugin.Note($"Scry read {what} in {Numbers.Count(watch.ElapsedMilliseconds)} ms.");
+                if (watch.ElapsedMilliseconds >= 50) Log.Note($"Scry read {what} in {Numbers.Count(watch.ElapsedMilliseconds)} ms.");
             }
             else Faults.Tell("reading " + what, failure);
             CatalogTiming.Add(what, started);
