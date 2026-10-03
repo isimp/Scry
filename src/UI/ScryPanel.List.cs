@@ -35,18 +35,10 @@ namespace Scry
 
         private static void HelpCard(Rect rect)
         {
-            Skin.Box(rect, Skin.Panel);
-            var closeH = U(30f);
-            var area = new Rect(rect.x + U(4f), rect.y + U(6f), rect.width - U(8f), rect.height - closeH - U(20f));
-            var view = new Rect(0f, 0f, area.width - U(14f), Mathf.Max(_helpHeight, area.height));
-            _helpScroll = GUI.BeginScrollView(area, _helpScroll, view, false, false, GUIStyle.none, Skin.Gui.verticalScrollbar);
-
-            var x = U(14f);
-            var width = view.width - U(24f);
-            var y = U(10f);
-
-            GUI.Label(new Rect(x, y, width, U(26f)), "How to search", Skin.Big);
-            y += U(34f);
+            var body = BeginCard(rect, ref _helpScroll, _helpHeight, "How to search");
+            var x = body.X;
+            var width = body.Width;
+            var y = body.Y;
 
             // Side by side when there is room, the example above its meaning when not.
             var stacked = width < U(420f);
@@ -74,22 +66,10 @@ namespace Scry
                 HelpsDrawn++;
             }
 
-            GUI.EndScrollView();
-
-            var closeRect = new Rect(rect.xMax - U(96f), rect.yMax - closeH - U(10f), U(80f), closeH);
-            if (GUI.Button(closeRect, "Close", Skin.Button)) _help = false;
+            if (EndCard(rect, out var close)) _help = false;
 
             // in: needs the locations read; offered beside Close until they are.
-            if (Locations.Now == Locations.State.NotRead)
-            {
-                var w = Skin.Width(Skin.Button, LocationsButtonText) + U(10f);
-                var locRect = new Rect(closeRect.x - U(8f) - w, closeRect.y, w, closeH);
-                if (locRect.x > rect.x + U(8f))
-                {
-                    if (GUI.Button(locRect, LocationsButtonText, Skin.Button)) StartReadingLocations();
-                    if (locRect.Contains(Event.current.mousePosition)) AskTip("locations-help", LocationsButtonTip);
-                }
-            }
+            ReadLocationsButton(rect, close, "locations-help");
         }
 
         /// <summary>Whether the search asks what is in a place, with in: (not with a minus, which asks for the rest).</summary>

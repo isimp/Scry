@@ -195,19 +195,13 @@ namespace Scry
         /// <summary>The notice's details in the list's place: why, what to do, and each part that is off.</summary>
         private static void OffCard(Rect rect)
         {
-            Skin.Box(rect, Skin.Panel);
-            var closeH = U(30f);
-            var area = new Rect(rect.x + U(4f), rect.y + U(6f), rect.width - U(8f), rect.height - closeH - U(20f));
-            var width = area.width - U(38f);
+            var width = CardWidth(rect);
             var body = OffWords.Details();
             var bodyH = Skin.Height(Skin.DimWrap, body, width);
             var height = U(44f) + bodyH + U(12f) + _offFeatures.Count * U(26f) + U(12f);
-            var view = new Rect(0f, 0f, area.width - U(14f), Mathf.Max(height, area.height));
-            _offScroll = GUI.BeginScrollView(area, _offScroll, view, false, false, GUIStyle.none, Skin.Gui.verticalScrollbar);
-            var x = U(14f);
-            var y = U(10f);
-            GUI.Label(new Rect(x, y, width, U(26f)), "What is off", Skin.Big);
-            y += U(34f);
+            var card = BeginCard(rect, ref _offScroll, height, "What is off");
+            var x = card.X;
+            var y = card.Y;
             GUI.Label(new Rect(x, y, width, bodyH), body, Skin.DimWrap);
             y += bodyH + U(12f);
             foreach (var feature in _offFeatures)
@@ -216,16 +210,10 @@ namespace Scry
                 GUI.Label(new Rect(x + U(16f), y, width - U(16f), U(22f)), char.ToUpperInvariant(feature[0]) + feature.Substring(1), Skin.Label);
                 y += U(26f);
             }
-            GUI.EndScrollView();
-
-            var closeRect = new Rect(rect.xMax - U(96f), rect.yMax - closeH - U(10f), U(80f), closeH);
-            if (GUI.Button(closeRect, "Close", Skin.Button)) _offDetails = false;
+            if (EndCard(rect, out var close)) _offDetails = false;
 
             // For reporting: what is off, with the versions, ready to paste.
-            const string copy = "Copy for a report";
-            var copyW = Skin.Width(Skin.Button, copy) + U(10f);
-            var copyRect = new Rect(closeRect.x - U(8f) - copyW, closeRect.y, copyW, closeH);
-            if (copyRect.x > rect.x + U(8f) && GUI.Button(copyRect, copy, Skin.Button))
+            if (CardButton(rect, close, "Copy for a report", out _))
             {
                 string game;
                 try { game = GameVersion(); }

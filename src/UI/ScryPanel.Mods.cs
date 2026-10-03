@@ -81,18 +81,11 @@ namespace Scry
 
         private static void ModReportCard(Explorer explorer, Rect rect)
         {
-            Skin.Box(rect, Skin.Panel);
-            var closeH = U(30f);
-            var area = new Rect(rect.x + U(4f), rect.y + U(6f), rect.width - U(8f), rect.height - closeH - U(20f));
-            var view = new Rect(0f, 0f, area.width - U(14f), Mathf.Max(_modHeight, area.height));
-            _modScroll = GUI.BeginScrollView(area, _modScroll, view, false, false, GUIStyle.none, Skin.Gui.verticalScrollbar);
-            var visible = new Rect(0f, _modScroll.y, view.width, area.height);
-
-            var x = U(14f);
-            var width = view.width - U(24f);
-            var y = U(10f);
-            GUI.Label(new Rect(x, y, width, U(26f)), "Mods", Skin.Big);
-            y += U(34f);
+            var body = BeginCard(rect, ref _modScroll, _modHeight, "Mods");
+            var visible = body.Visible;
+            var x = body.X;
+            var width = body.Width;
+            var y = body.Y;
 
             y = Paragraph("What each mod adds, what Scry links for its crafting stations and build tools, which of the game's rules it hooks into, and what Scry could not place. What could not be placed may come from the mod's own code, which only the mod knows.", x, y, width);
             if (Locations.Now != Locations.State.Read) y = Paragraph("Until every location is read, what is found only in locations counts as having no source.", x, y, width);
@@ -128,20 +121,8 @@ namespace Scry
                 _modHeight = y + U(16f);
                 ModReportsDrawn++;
             }
-            GUI.EndScrollView();
-
-            var closeRect = new Rect(rect.xMax - U(96f), rect.yMax - closeH - U(10f), U(80f), closeH);
-            if (GUI.Button(closeRect, "Close", Skin.Button)) _modReport = false;
-            if (Locations.Now == Locations.State.NotRead)
-            {
-                var w = Skin.Width(Skin.Button, LocationsButtonText) + U(10f);
-                var locRect = new Rect(closeRect.x - U(8f) - w, closeRect.y, w, closeH);
-                if (locRect.x > rect.x + U(8f))
-                {
-                    if (GUI.Button(locRect, LocationsButtonText, Skin.Button)) StartReadingLocations();
-                    if (locRect.Contains(Event.current.mousePosition)) AskTip("locations-mods", LocationsButtonTip);
-                }
-            }
+            if (EndCard(rect, out var close)) _modReport = false;
+            ReadLocationsButton(rect, close, "locations-mods");
         }
 
         private static float Paragraph(string text, float x, float y, float width)

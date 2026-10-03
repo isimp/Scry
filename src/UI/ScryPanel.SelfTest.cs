@@ -75,22 +75,16 @@ namespace Scry
                 _testWarnFrom = Skin.Label;
                 _testWarn = new GUIStyle(Skin.Label) { normal = { textColor = Skin.Warn } };
             }
-            Skin.Box(rect, Skin.Panel);
-            var closeH = U(30f);
-            var area = new Rect(rect.x + U(4f), rect.y + U(6f), rect.width - U(8f), rect.height - closeH - U(20f));
-            var width = area.width - U(38f);
+            var width = CardWidth(rect);
             var headline = SelfTestHost.LastHeadline ?? "";
             var advice = SelfTestHost.LastAdvice ?? "";
             var headlineH = Skin.Height(Skin.Wrap, headline, width);
             var adviceH = Skin.Height(Skin.DimWrap, advice, width);
             var lines = SelfTestHost.LastSummary;
             var height = U(44f) + headlineH + U(10f) + lines.Count * U(22f) + U(10f) + adviceH + U(12f);
-            var view = new Rect(0f, 0f, area.width - U(14f), Mathf.Max(height, area.height));
-            _testScroll = GUI.BeginScrollView(area, _testScroll, view, false, false, GUIStyle.none, Skin.Gui.verticalScrollbar);
-            var x = U(14f);
-            var y = U(10f);
-            GUI.Label(new Rect(x, y, width, U(26f)), "Self-test", Skin.Big);
-            y += U(34f);
+            var card = BeginCard(rect, ref _testScroll, height, "Self-test");
+            var x = card.X;
+            var y = card.Y;
             GUI.Label(new Rect(x, y, width, headlineH), headline, Skin.Wrap);
             y += headlineH + U(10f);
             var inFailed = false;
@@ -102,14 +96,8 @@ namespace Scry
             }
             y += U(10f);
             GUI.Label(new Rect(x, y, width, adviceH), advice, Skin.DimWrap);
-            GUI.EndScrollView();
-
-            var closeRect = new Rect(rect.xMax - U(96f), rect.yMax - closeH - U(10f), U(80f), closeH);
-            if (GUI.Button(closeRect, "Close", Skin.Button)) _testDetails = false;
-            const string copy = "Copy summary";
-            var copyW = Skin.Width(Skin.Button, copy) + U(10f);
-            var copyRect = new Rect(closeRect.x - U(8f) - copyW, closeRect.y, copyW, closeH);
-            if (copyRect.x > rect.x + U(8f) && GUI.Button(copyRect, copy, Skin.Button))
+            if (EndCard(rect, out var close)) _testDetails = false;
+            if (CardButton(rect, close, "Copy summary", out _))
             {
                 GUIUtility.systemCopyBuffer = SelfTestHost.LastText;
                 Session.Say("Copied the self-test's summary.");
