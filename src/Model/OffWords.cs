@@ -7,7 +7,7 @@ namespace Scry
     /// does not know, or a part of it failing, needs a newer Scry either way, so it speaks of what
     /// is off rather than of the game.
     /// </summary>
-    public static class OffWords
+    internal static class OffWords
     {
         /// <summary>The notice's line, or null while nothing is off.</summary>
         public static string Line(IReadOnlyList<string> features)

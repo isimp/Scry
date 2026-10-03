@@ -5,7 +5,7 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>One effect list a sound or effect is in: who plays it, what for, and what plays along.</summary>
-    public sealed class EffectUse
+    internal sealed class EffectUse
     {
         /// <summary>The player of the list as shown, e.g. "Troll".</summary>
         public readonly string Owner;
@@ -33,7 +33,7 @@ namespace Scry
     }
 
     /// <summary>A row of <see cref="PlaysIn"/>: one list, with everything that plays it.</summary>
-    public sealed class PlaysInRow
+    internal sealed class PlaysInRow
     {
         public string Label;
         public string[] Members;
@@ -50,9 +50,9 @@ namespace Scry
     /// alike (every wooden piece breaks with the same sound and dust), so lists made for the same
     /// purpose of the same members are one row naming all of their players.
     /// </summary>
-    public static class PlaysIn
+    internal static class PlaysIn
     {
-        public static List<PlaysInRow> Rows(IEnumerable<EffectUse> uses)
+        public static List<PlaysInRow> Rows(IReadOnlyList<EffectUse> uses)
         {
             var rows = new Dictionary<string, PlaysInRow>(StringComparer.Ordinal);
             foreach (var use in uses)

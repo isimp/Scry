@@ -3,7 +3,7 @@ using System;
 namespace Scry
 {
     /// <summary>What a frame's watch of a point sought comes to (<see cref="SeekWatch.Step"/>).</summary>
-    public enum SeekStep
+    internal enum SeekStep
     {
         /// <summary>Nothing is watched.</summary>
         None,
@@ -28,7 +28,7 @@ namespace Scry
     /// and set again, a tenth of a second apart at the most, while it is before it; two seconds
     /// at most.
     /// </summary>
-    public sealed class SeekWatch
+    internal sealed class SeekWatch
     {
         /// <summary>How long a streamed clip is given to get to a point set before it is set again.</summary>
         public const float SeekAgainAfter = 0.1f;

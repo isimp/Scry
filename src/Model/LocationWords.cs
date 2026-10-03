@@ -8,7 +8,7 @@ namespace Scry
     /// The rules the world generator places a location by (<c>ZoneSystem.ZoneLocation</c>), as
     /// plain values, so they can be told without the game.
     /// </summary>
-    public sealed class LocationRules
+    internal sealed class LocationRules
     {
         /// <summary>How many the generator tries to place in a world.</summary>
         public int Quantity;
@@ -33,7 +33,7 @@ namespace Scry
         public bool Prioritized, CenterFirst, Unique;
 
         /// <summary>Its biomes by the game's names for them ("AshLands"), which say what its ground value is.</summary>
-        public string[] BiomeKeys = new string[0];
+        public string[] BiomeKeys = Array.Empty<string>();
 
         /// <summary>Whether it keeps to a range of the forest factor (<c>m_inForest</c>), and the range.</summary>
         public bool InForest;
@@ -51,7 +51,7 @@ namespace Scry
     /// A location's placement rules in words, as <c>ZoneSystem.GenerateLocationsTimeSliced</c>
     /// applies them to every point it tries, and the names and groups its entries and rooms go by.
     /// </summary>
-    public static class LocationWords
+    internal static class LocationWords
     {
         private static string Range(float min, float max) => $"{Numbers.Amount(min)}–{Numbers.Metres(max)}";
 
@@ -325,7 +325,7 @@ namespace Scry
     }
 
     /// <summary>How far the model of the location or room shown has got.</summary>
-    public enum PlaceLoad
+    internal enum PlaceLoad
     {
         None,
         Loading,

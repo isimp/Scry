@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>One creature a raid brings (<c>SpawnSystem.SpawnData</c>), as far as rolling it goes.</summary>
-    public sealed class RaidSpawn
+    internal sealed class RaidSpawn
     {
         public string Prefab;
         public bool Enabled = true;
@@ -21,7 +21,7 @@ namespace Scry
     }
 
     /// <summary>A creature of a rolled rolled: what it is, its level, and the group it came in.</summary>
-    public struct RolledCreature
+    internal struct RolledCreature
     {
         public string Prefab;
         public int Level;
@@ -36,7 +36,7 @@ namespace Scry
     /// What depends on the world is left out: the time of day, the weather and world keys a creature
     /// waits for, finding ground for it, and the distance from the world's centre its stars may wait for.
     /// </summary>
-    public static class RaidRoll
+    internal static class RaidRoll
     {
         /// <param name="spawns">The raid's spawns, in its list's order, each rolled in turn.</param>
         /// <param name="percent">A roll from 0 to 100, as <c>UnityEngine.Random.Range(0f, 100f)</c>.</param>

@@ -6,7 +6,7 @@ namespace Scry
     /// at least one a frame, so the work goes on however long a piece takes. Checking only whether
     /// the share is spent before each piece lets the last one run past it by a whole piece.
     /// </summary>
-    public sealed class FrameShare
+    internal sealed class FrameShare
     {
         /// <summary>How quickly the estimate follows what pieces take now, rather than before.</summary>
         private const double Follow = 0.25;
@@ -39,7 +39,7 @@ namespace Scry
     }
 
     /// <summary>Work that can fail, tried again until it has failed a set number of times, then given up.</summary>
-    public sealed class Attempts
+    internal sealed class Attempts
     {
         private readonly int _allowed;
         private readonly System.Collections.Generic.Dictionary<string, int> _failed = new System.Collections.Generic.Dictionary<string, int>();

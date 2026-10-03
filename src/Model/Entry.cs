@@ -7,7 +7,7 @@ namespace Scry
     /// One thing in the catalog. The game objects behind it are carried untyped, so the catalog
     /// and everything that searches it can be exercised without the game.
     /// </summary>
-    public sealed class Entry
+    internal sealed class Entry
     {
         private string _name = "";
         private string _displayName = "";
@@ -74,7 +74,7 @@ namespace Scry
         public int GroupOrder;
 
         /// <summary>For an effect or sound, the effect lists that play it, by field name (a status effect's marked "se:", the interface's "ui:").</summary>
-        public string[] PlayedIn = new string[0];
+        public string[] PlayedIn = Array.Empty<string>();
 
         /// <summary>Whether it took the kind of what leaves it behind when paired with it (a stump listed with its trees).</summary>
         public bool KindFromOwners;
@@ -118,13 +118,13 @@ namespace Scry
         public bool Registered;
 
         /// <summary>The type names of the components on the prefab, each once.</summary>
-        public string[] Components = new string[0];
+        public string[] Components = Array.Empty<string>();
 
         /// <summary>The biomes it spawns or grows in, as the game names them.</summary>
-        public string[] Biomes = new string[0];
+        public string[] Biomes = Array.Empty<string>();
 
         /// <summary>The locations and kinds of dungeon room it is found in, once they are read (<see cref="Places"/>).</summary>
-        public string[] FoundIn = new string[0];
+        public string[] FoundIn = Array.Empty<string>();
 
         /// <summary>The mod that added it, when that could be told. Empty otherwise.</summary>
         public string ModName = "";
@@ -141,7 +141,7 @@ namespace Scry
         /// <summary>Whether it is listed indented, under the first of its group (a room under its dungeon).</summary>
         public bool Indent;
 
-        private string[] _looks = new string[0];
+        private string[] _looks = Array.Empty<string>();
         private int _defaultLook;
         private Func<(string[] Names, int Default)> _readLooks;
 
@@ -159,7 +159,7 @@ namespace Scry
             set
             {
                 _readLooks = null;
-                _looks = value ?? new string[0];
+                _looks = value ?? Array.Empty<string>();
             }
         }
 
@@ -197,18 +197,18 @@ namespace Scry
             // One whose looks cannot be read offers none.
             if (Steps.Run(read, out var looks, null) == null)
             {
-                _looks = looks.Names ?? new string[0];
+                _looks = looks.Names ?? Array.Empty<string>();
                 _defaultLook = looks.Default;
             }
             else
             {
-                _looks = new string[0];
+                _looks = Array.Empty<string>();
                 _defaultLook = 0;
             }
         }
 
         /// <summary>The crafting stations it is made or built at, with the level each needs.</summary>
-        public StationUse[] Stations = new StationUse[0];
+        public StationUse[] Stations = Array.Empty<StationUse>();
 
         /// <summary>The prefab (a GameObject) or status effect behind this entry.</summary>
         public object Source;
@@ -226,7 +226,7 @@ namespace Scry
     }
 
     /// <summary>A crafting station something is made at, by its prefab name and shown name, and the level it needs.</summary>
-    public struct StationUse
+    internal struct StationUse
     {
         public string Name;
         public string Shown;

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>A group a kind's tab lists entries under, and where it comes among the others.</summary>
-    public struct Group
+    internal struct Group
     {
         public string Name;
         public int Order;
@@ -16,7 +16,7 @@ namespace Scry
     }
 
     /// <summary>What gives a status effect: its kind, and how, in the words of the field that names it ("consume", "set", "fire damage").</summary>
-    public struct Giver
+    internal struct Giver
     {
         public Kind Kind;
         public string How;
@@ -29,7 +29,7 @@ namespace Scry
     }
 
     /// <summary>What fires a projectile: its kind, the skill of the weapon, and whether only creatures carry that weapon.</summary>
-    public struct Shooter
+    internal struct Shooter
     {
         public Kind Kind;
         public string Skill;
@@ -54,7 +54,7 @@ namespace Scry
     /// play them), projectiles by what fires them, status effects by what gives them, and the
     /// rest by what they are there for.
     /// </summary>
-    public static class Groups
+    internal static class Groups
     {
         private static readonly Dictionary<string, Group> ItemTypes = new Dictionary<string, Group>
         {

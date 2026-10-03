@@ -15,7 +15,7 @@ namespace Scry
     /// creature roll nothing for that row, and is offered as nothing; an item listed more than once
     /// to make it commoner is offered once.
     /// </summary>
-    public sealed class Loadout
+    internal sealed class Loadout
     {
         /// <summary>What can be chosen: a weapon, shield and armour rolled from lists, and which of the weapons it always carries it holds.</summary>
         public enum Row { Weapon, Shield, Armour, Holding }
@@ -60,13 +60,13 @@ namespace Scry
         public Loadout(IEnumerable<string> weapons, IEnumerable<string> shields, IEnumerable<string> armours, IEnumerable<Extra> extras,
             IEnumerable<string> bothHands = null, IEnumerable<string> holding = null)
         {
-            _bothHands = new HashSet<string>(bothHands ?? new string[0]);
+            _bothHands = new HashSet<string>(bothHands ?? System.Array.Empty<string>());
             _options[(int)Row.Weapon] = Distinct(weapons);
             _options[(int)Row.Shield] = Distinct(shields);
             _options[(int)Row.Armour] = Distinct(armours);
             _options[(int)Row.Holding] = Distinct(holding);
 
-            _extras = new List<Extra>(extras ?? new Extra[0]).ToArray();
+            _extras = new List<Extra>(extras ?? System.Array.Empty<Extra>()).ToArray();
             _on = new bool[_extras.Length];
             var kinds = new HashSet<int>();
             for (var i = 0; i < _extras.Length; i++) _on[i] = kinds.Add(_extras[i].Kind);

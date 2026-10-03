@@ -107,7 +107,7 @@ namespace Scry
 
             void Each(string method, Action<string, object> take)
             {
-                var get = AccessTools.Method(registry, method, new Type[0]);
+                var get = AccessTools.Method(registry, method, Array.Empty<Type>());
                 if (get == null) return;
                 if (!(get.Invoke(null, null) is System.Collections.IEnumerable entities)) return;
                 foreach (var entity in entities)

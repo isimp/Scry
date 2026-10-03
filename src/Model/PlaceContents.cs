@@ -5,7 +5,7 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>One kind of networked part a location or room places, how many of it, and the chance each is there.</summary>
-    public sealed class PlacePart
+    internal sealed class PlacePart
     {
         public string Prefab = "";
         public int Count;
@@ -15,7 +15,7 @@ namespace Scry
     }
 
     /// <summary>What a place's part is, which row of its page it is told in, in the order the rows come.</summary>
-    public enum PartRole
+    internal enum PartRole
     {
         /// <summary>Chests and what is picked or picked up.</summary>
         Loot,
@@ -31,7 +31,7 @@ namespace Scry
     }
 
     /// <summary>What a part has, as its components tell, to know its <see cref="PartRole"/>.</summary>
-    public struct PartTraits
+    internal struct PartTraits
     {
         /// <summary>A container: a chest, remains holding loot.</summary>
         public bool Container;
@@ -60,7 +60,7 @@ namespace Scry
     /// <c>DungeonGenerator.PlaceRoom</c>): each rolled once when its zone is first built, at the
     /// chance of every <c>RandomSpawn</c> above it and the share of every <c>RandomObject</c> pick.
     /// </summary>
-    public static class PlaceParts
+    internal static class PlaceParts
     {
         /// <summary>
         /// Each part by its prefab and chance, counted together, what is always there first, then

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>What a weather does to whoever is out in it, as read from its <c>EnvSetup</c>.</summary>
-    public struct WeatherFacts
+    internal struct WeatherFacts
     {
         public bool Wet, Cold, ColdAtNight, Freezing, FreezingAtNight, AlwaysDark;
 
@@ -17,7 +17,7 @@ namespace Scry
     /// statuses, freezing outranking cold, each by day or only at night (<c>EnvMan.CalculateCold</c>,
     /// <c>CalculateFreezing</c>); some are always dark; each blows within a range of wind.
     /// </summary>
-    public static class WeatherWords
+    internal static class WeatherWords
     {
         public static string Line(string name, WeatherFacts weather) => $"{name}: {Effects(weather)}";
 

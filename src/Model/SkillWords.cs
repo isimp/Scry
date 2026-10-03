@@ -7,7 +7,7 @@ namespace Scry
     /// is only a number there, and its mod names it under the game's own word for a skill
     /// ("$skill_" and that number), which is where the game's skill screen looks too.
     /// </summary>
-    public static class SkillWords
+    internal static class SkillWords
     {
         public const string ModSkill = "a skill a mod adds";
 

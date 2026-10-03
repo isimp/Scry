@@ -10,7 +10,7 @@ namespace Scry
     /// an action leads to is its, unless an attack plays it, and a clip two actions lead to is
     /// the first one's.
     /// </summary>
-    public static class ClipActions
+    internal static class ClipActions
     {
         /// <param name="actions">Each action by name and a key to what the game plays with it.</param>
         /// <param name="seen">The clips each action was seen to lead through, in order, by action.</param>

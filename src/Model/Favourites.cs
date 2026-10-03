@@ -12,7 +12,7 @@ namespace Scry
     /// A file that cannot be read starts an empty list and one that cannot be written keeps the
     /// list for this session only; neither stops the panel from working.
     /// </summary>
-    public sealed class Favourites
+    internal sealed class Favourites
     {
         private readonly string _path;
         private readonly HashSet<string> _keys = new HashSet<string>(StringComparer.Ordinal);

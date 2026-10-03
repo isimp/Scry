@@ -5,7 +5,7 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>A creature as lists of creatures are ordered by: whether it is a boss, and its health.</summary>
-    public struct Foe
+    internal struct Foe
     {
         public bool Boss;
         public float Health;
@@ -23,7 +23,7 @@ namespace Scry
     /// gathered hardest first. Each keeps the order it was given among equals, so a list handed
     /// over by name stays by name where nothing else tells its items apart.
     /// </summary>
-    public static class ContentOrder
+    internal static class ContentOrder
     {
         /// <summary>Loot, the least likely first.</summary>
         public static List<T> RarestFirst<T>(IEnumerable<T> items, Func<T, double> chance) =>

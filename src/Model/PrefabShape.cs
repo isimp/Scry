@@ -4,7 +4,7 @@ namespace Scry
     /// What a prefab is made of, as far as telling debris and whole models apart needs: read
     /// from its components where it is read (<c>PrefabShapes</c>), decided here.
     /// </summary>
-    public struct PrefabShape
+    internal struct PrefabShape
     {
         /// <summary>A body physics moves: a rigidbody that is not kinematic.</summary>
         public bool FreeBody;

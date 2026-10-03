@@ -73,6 +73,9 @@ namespace Scry
             Touching();
         }
 
+        /// <summary>Where a touch's note says by how much, cut off to tell one touch from another.</summary>
+        private static readonly string[] ByWhat = { " by " };
+
         /// <summary>Notes each collider not its own that one of its colliders overlaps, by name, layer and what it belongs to.</summary>
         private void Touching()
         {
@@ -90,7 +93,7 @@ namespace Scry
                         other, other.transform.position, other.transform.rotation, out var away, out var depth);
                     var told = $"{other.name} ({other.GetType().Name} on {LayerMask.LayerToName(other.gameObject.layer)}/{Numbers.Count(other.gameObject.layer)}) of {other.transform.root.name}";
                     if (inside) told += $" by {Numbers.Fixed(depth, 2)} m, pushed {(away.y > 0.7f ? "up" : away.y < -0.7f ? "down" : "aside")} at {Numbers.Fixed(Time.time - (_until - Seconds), 2)} s";
-                    if (!_touched.Exists(t => t.StartsWith(told.Split(new[] { " by " }, System.StringSplitOptions.None)[0], System.StringComparison.Ordinal))) _touched.Add(told);
+                    if (!_touched.Exists(t => t.StartsWith(told.Split(ByWhat, System.StringSplitOptions.None)[0], System.StringComparison.Ordinal))) _touched.Add(told);
                     if (_touched.Count >= 6) return;
                 }
             }

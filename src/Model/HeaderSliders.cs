@@ -8,7 +8,7 @@ namespace Scry
     /// (<see cref="Modifiers.MaxVolume"/>) in steps of 5%, and its size on a curve from a tenth to
     /// ten times, so both ends are as easy to reach, caught at its own size near the middle.
     /// </summary>
-    public static class HeaderSliders
+    internal static class HeaderSliders
     {
         /// <summary>How near the middle of its track the size is caught at its own, as a share of the track.</summary>
         public const float Catch = 0.01f;

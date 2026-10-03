@@ -33,7 +33,7 @@ namespace Scry
                     }
                     shown++;
                     var size = Stage.SubjectSize;
-                    if (float.IsNaN(size.magnitude) || float.IsInfinity(size.magnitude) || size.magnitude > 2000f) odd.Add($"{entry.Name} {size}");
+                    if (float.IsNaN(size.magnitude) || float.IsInfinity(size.magnitude) || size.magnitude > 2000f) odd.Add($"{entry.Name} {Figures.Point(size)}");
                 }
             }
             p.Note($"{Numbers.Count(shown)} copies stood on the stage");

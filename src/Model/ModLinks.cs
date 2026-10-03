@@ -5,7 +5,7 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>What a loaded mod declares of other mods, and the package it was installed from.</summary>
-    public sealed class ModFacts
+    internal sealed class ModFacts
     {
         public string Name = "", Guid = "", Package = "";
 
@@ -17,7 +17,7 @@ namespace Scry
     }
 
     /// <summary>A mod's ties to the other mods loaded, each by its name, in the order of their names.</summary>
-    public sealed class ModRelations
+    internal sealed class ModRelations
     {
         public readonly List<string> Needs = new List<string>(), NeededBy = new List<string>();
         public readonly List<string> WorksWith = new List<string>(), WorkedWithBy = new List<string>();
@@ -34,7 +34,7 @@ namespace Scry
     /// itself, a library with no plugin) are left out, but a mod it will not run with is told
     /// by its id.
     /// </summary>
-    public static class ModLinks
+    internal static class ModLinks
     {
         public static Dictionary<string, ModRelations> Of(IEnumerable<ModFacts> mods)
         {

@@ -9,7 +9,7 @@ namespace Scry
     /// got while it runs, and at the end what passed, each failed part with the checks that failed
     /// in it, each skipped part with why, and what to do next.
     /// </summary>
-    public static class SelfTestWords
+    internal static class SelfTestWords
     {
         private const string FailMark = "  FAIL ";
         private const string SkipMark = "  SKIP ";

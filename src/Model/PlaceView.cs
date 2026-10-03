@@ -5,7 +5,7 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>How a location or dungeon room stands on the stage, and how it is cut open to look into.</summary>
-    public static class PlaceView
+    internal static class PlaceView
     {
         /// <summary>How far above a floor the stage cuts: over a person's head, so walls stand and the roof goes.</summary>
         public const float CutAboveFloor = 2.5f;

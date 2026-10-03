@@ -8,7 +8,7 @@ namespace Scry
     /// What the panel shows and what the player has picked: the search, the kind chips, the list,
     /// the selection and its modifiers. The panel draws this and hands it the player's input.
     /// </summary>
-    public sealed class Explorer
+    internal sealed class Explorer
     {
         private readonly IReadOnlyList<Entry> _catalog;
         private readonly Favourites _favourites;

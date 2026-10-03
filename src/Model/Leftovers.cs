@@ -5,7 +5,7 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>Something a prefab leaves behind, found in the game: its name, whose it is, and what it is to it.</summary>
-    public struct Leftover
+    internal struct Leftover
     {
         public string Name;
         public string Owner;
@@ -32,7 +32,7 @@ namespace Scry
     /// or a stump, chopped as its tree is), is paired. An effect or sound left when something is
     /// destroyed (a stalagmite's burst of ice) is only linked with it, and keeps its name and kind.
     /// </summary>
-    public static class Leftovers
+    internal static class Leftovers
     {
         public static void Pair(IList<Entry> catalog, IEnumerable<Leftover> found)
         {

@@ -15,13 +15,7 @@
     <NoWarn>$(NoWarn);CS0649</NoWarn>
   </PropertyGroup>
 
-  <!-- Doc comments are checked as Scry's are (see Scry.csproj). -->
-  <PropertyGroup>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
-    <WarningsAsErrors>$(WarningsAsErrors);CS0419;CS1570;CS1572;CS1573;CS1574;CS1580;CS1581;CS1584;CS1734</WarningsAsErrors>
-  </PropertyGroup>
-
+  <Import Project="../BuildChecks.props" />
   <Import Project="../GameReferences.props" />
 
   <ItemGroup>

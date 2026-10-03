@@ -147,6 +147,10 @@ namespace Scry
             }
         }
 
+        /// <summary>What a biome's and a mod's entries are made of, as their details list it.</summary>
+        private static readonly string[] BiomeComponents = { "BiomeEnvSetup" };
+        private static readonly string[] ModComponents = { "BaseUnityPlugin" };
+
         /// <summary>
         /// Every biome the world's weather is set up for (<c>EnvMan.m_biomes</c>), an entry of its
         /// own though it is no prefab: its weathers with their weights and its music by the time
@@ -184,7 +188,7 @@ namespace Scry
                     Group = "Biomes",
                     GroupOrder = 1,
                     GroupRank = BiomeWords.Rank(source.Name),
-                    Components = new[] { "BiomeEnvSetup" },
+                    Components = BiomeComponents,
                 });
             }
         }
@@ -244,7 +248,7 @@ namespace Scry
                         Source = source,
                         Group = group.Name,
                         GroupOrder = group.Order,
-                        Components = new[] { "BaseUnityPlugin" },
+                        Components = ModComponents,
                     };
                     entries.Add(entry);
                     mods.Add((entry, facts));
@@ -270,7 +274,7 @@ namespace Scry
                 Kind = Kinds.Of(found.Traits),
                 Group = Kinds.GroupLabel(Kinds.GroupOf(found.Traits)),
                 GroupOrder = (int)Kinds.GroupOf(found.Traits),
-                PlayedIn = asEffect != null ? asEffect.Fields.ToArray() : new string[0],
+                PlayedIn = asEffect != null ? asEffect.Fields.ToArray() : Array.Empty<string>(),
                 Empty = Kinds.IsEmpty(found.Traits),
                 ExtraLevels = found.ExtraLevels,
                 HasWear = found.HasWear,
@@ -300,7 +304,7 @@ namespace Scry
                 {
                     var names = Variants.Of(prefab, out var look);
                     return (names, look);
-                }, out var read) ? read : (new string[0], 0));
+                }, out var read) ? read : (Array.Empty<string>(), 0));
                 entry.Stations = StationsOf(found.Prefab);
             }
 

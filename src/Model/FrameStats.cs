@@ -9,7 +9,7 @@ namespace Scry
     /// work took and which part of it took longest (<see cref="FrameTimes.Slowest"/>), told as the
     /// average, the 95th percentile, the most, and the slowest frames.
     /// </summary>
-    public sealed class FrameStats
+    internal sealed class FrameStats
     {
         private readonly List<(double Ms, string Part, double PartMs)> _frames = new List<(double, string, double)>();
 

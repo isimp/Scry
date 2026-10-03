@@ -11,7 +11,7 @@ namespace Scry
     /// leaves the creatures whole: drawn again, they keep only what is above the cut
     /// (<see cref="AboveCutRow"/>).
     /// </summary>
-    public static class StageCamera
+    internal static class StageCamera
     {
         /// <summary>How near the wheel brings the camera to what it looks at, in metres, however big what is framed.</summary>
         public const float NearestMetres = 2f;

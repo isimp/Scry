@@ -9,7 +9,7 @@ namespace Scry
     /// (a prefab name, or "se:" and a status effect's name), and what the link is about, such as
     /// the gait of a footstep or the clip that plays a sound.
     /// </summary>
-    public sealed class Link
+    internal sealed class Link
     {
         public string Group;
         public string Target;
@@ -22,7 +22,7 @@ namespace Scry
     /// on a troll, "Carried by" on its club). Links to what is not in the catalog, and from
     /// anything to itself, are left out; the same link noted again only adds what it is about.
     /// </summary>
-    public sealed class LinkBook
+    internal sealed class LinkBook
     {
         public const string SameSet = "Same set";
         public const string Variants = "Variants";

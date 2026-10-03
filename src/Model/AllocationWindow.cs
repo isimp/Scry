@@ -8,7 +8,7 @@ namespace Scry
     /// use grows from frame to frame; a frame with a cleanup has its drop in memory left out,
     /// since what was allocated across it is unknown, so the total is a lower bound.
     /// </summary>
-    public sealed class AllocationWindow
+    internal sealed class AllocationWindow
     {
         private long _last;
         private int _lastCollections;

@@ -297,7 +297,7 @@ namespace Scry
                 var group = X.Catalog.Where(e => e.Kind == Kind.Location && e.Group == crypt.Group).ToList();
                 p.Note($"{crypt.Name} is listed in \"{crypt.Group}\" with {Numbers.Count(group.Count(e => e.Indent))} rooms, tagged \"{crypt.Tag}\"");
                 p.Check(crypt.Group.Contains(" \u00b7 ") && (crypt.Tag ?? "").StartsWith("dungeon", StringComparison.Ordinal), "the crypt heads a group of its own, tagged a dungeon", crypt.Group);
-                p.Check(group.Count(e => e.Indent) > 0 && group.Where(e => e.Indent).All(e => e.GroupRank > 0) && group.Where(e => !e.Indent).All(e => e.GroupRank == 0), "its rooms are indented under it and rank after it");
+                p.Check(group.Any(e => e.Indent) && group.Where(e => e.Indent).All(e => e.GroupRank > 0) && group.Where(e => !e.Indent).All(e => e.GroupRank == 0), "its rooms are indented under it and rank after it");
                 var entrance = group.FirstOrDefault(e => PlaceOf(e)?.Contents?.Room?.Entrance == true);
                 p.Check(entrance != null && entrance.GroupRank == 1 && (entrance.Tag ?? "").StartsWith("entrance room", StringComparison.Ordinal), "its entrance comes first among its rooms, tagged an entrance room", entrance?.Name ?? "none");
             }
@@ -384,7 +384,7 @@ namespace Scry
                 p.Note($"{entry.Name}: {LocationWords.Music(place.Contents.Music)}; Enter said \"{said}\"");
                 yield return null;
                 p.Check(MusicPreview.PlayingFor == entry && MusicPreview.Sounding, $"{entry.Name} plays {place.Contents.Music[0].Name}", said);
-                var game = MusicMan.instance != null ? MusicMan.instance.GetComponentsInChildren<AudioSource>(true) : new AudioSource[0];
+                var game = MusicMan.instance != null ? MusicMan.instance.GetComponentsInChildren<AudioSource>(true) : Array.Empty<AudioSource>();
                 p.Check(game.All(s => s.mute), "the game's music is muted meanwhile", $"{Numbers.Count(game.Length)} sources");
 
                 Select(Pick(Kind.Creature, "Boar", "Greyling"));
@@ -473,7 +473,7 @@ namespace Scry
                 yield return null;
                 var size = Stage.SubjectSize;
                 sizes.Add($"{entry.Name} {Numbers.Amount(Mathf.Max(size.x, size.z), 0)} m");
-                if (Mathf.Max(size.x, size.y, size.z) > 300f) wrong.Add($"{entry.Name} frames {size}");
+                if (Mathf.Max(size.x, size.y, size.z) > 300f) wrong.Add($"{entry.Name} frames {Figures.Point(size)}");
                 // A location stands on its own ground; a dungeon's example, shown inside, on its lowest floor.
                 var inside = Stage.HasInside && Stage.Inside && Stage.FloorHeights.Count > 0;
                 var ground = inside ? Stage.FloorHeights[Stage.FloorHeights.Count - 1] : 0f;

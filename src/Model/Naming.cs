@@ -4,7 +4,7 @@ using System.Text;
 namespace Scry
 {
     /// <summary>Plain names for things the game only names in code.</summary>
-    public static class Naming
+    internal static class Naming
     {
         /// <summary>The name a field goes by in the panel, e.g. "m_staminaRegenMultiplier" as "Stamina regen multiplier".</summary>
         public static string FieldLabel(string field)

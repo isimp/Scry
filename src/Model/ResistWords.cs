@@ -1,7 +1,7 @@
 namespace Scry
 {
     /// <summary>How hard a damage type lands, in the order and with the numbers of the game's own <c>HitData.DamageModifier</c>.</summary>
-    public enum Degree
+    internal enum Degree
     {
         Normal,
         Resistant,
@@ -15,7 +15,7 @@ namespace Scry
     }
 
     /// <summary>The colour a grid cell is drawn in: plain, resisting, weak, or taking nothing.</summary>
-    public enum Tone
+    internal enum Tone
     {
         Plain,
         Resists,
@@ -24,7 +24,7 @@ namespace Scry
     }
 
     /// <summary>One damage type in the resistance grid: its name, the share of it taken, and the words on hover.</summary>
-    public struct ResistCell
+    internal struct ResistCell
     {
         public string Type, Value, Tip;
         public Tone Tone;
@@ -36,7 +36,7 @@ namespace Scry
     /// as <c>HitData.ApplyModifier</c> scales it: a quarter, half or three quarters resisted, a
     /// quarter, half or all again for weakness, none for immune or unaffected.
     /// </summary>
-    public static class ResistWords
+    internal static class ResistWords
     {
         /// <summary>The damage types, in the order of the game's <c>HitData.DamageModifiers</c>.</summary>
         public static readonly string[] Types = { "Blunt", "Slash", "Pierce", "Chop", "Pickaxe", "Fire", "Frost", "Lightning", "Poison", "Spirit" };

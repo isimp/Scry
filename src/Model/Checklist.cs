@@ -4,7 +4,7 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>How a part of the game Scry relies on was found.</summary>
-    public enum Found
+    internal enum Found
     {
         /// <summary>There, as it was when this version of Scry was made.</summary>
         Present,
@@ -21,7 +21,7 @@ namespace Scry
     /// each with the feature that needs it. Told in the log as one line when all is well, and a
     /// line for each part that is missing or has changed otherwise.
     /// </summary>
-    public sealed class Checklist
+    internal sealed class Checklist
     {
         private readonly List<(string Part, string Feature, Found Found)> _parts = new List<(string, string, Found)>();
 

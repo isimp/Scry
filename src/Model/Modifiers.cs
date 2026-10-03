@@ -3,7 +3,7 @@ using System;
 namespace Scry
 {
     /// <summary>The look of a piece by the damage it has taken.</summary>
-    public enum Wear
+    internal enum Wear
     {
         New,
         Worn,
@@ -14,7 +14,7 @@ namespace Scry
     /// The adjustments applied to a preview. Each one only offers what the selected prefab has,
     /// and every change is kept inside what makes sense for it.
     /// </summary>
-    public sealed class Modifiers
+    internal sealed class Modifiers
     {
         public const float MinScale = 0.1f;
         public const float MaxScale = 10f;
@@ -75,7 +75,7 @@ namespace Scry
 
         public bool WearAvailable => _wearAvailable;
 
-        private string[] _lookNames = new string[0];
+        private string[] _lookNames = Array.Empty<string>();
         private int _defaultLook;
         private int _look;
 
@@ -102,7 +102,7 @@ namespace Scry
         {
             _maxLevel = 1 + Math.Max(0, entry?.ExtraLevels ?? 0);
             _wearAvailable = entry != null && entry.HasWear;
-            _lookNames = entry?.Looks ?? new string[0];
+            _lookNames = entry?.Looks ?? Array.Empty<string>();
             _defaultLook = _lookNames.Length == 0 ? 0 : Math.Max(0, Math.Min(_lookNames.Length - 1, entry.DefaultLook));
             Reset();
         }

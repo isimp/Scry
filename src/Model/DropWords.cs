@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>One item of a drop table: what, how many at a time, and its weight among the others.</summary>
-    public struct DropInfo
+    internal struct DropInfo
     {
         public string Item;
         public int StackMin;
@@ -20,7 +20,7 @@ namespace Scry
     }
 
     /// <summary>A drop table as the game rolls it (<c>DropTable.GetDropList</c>).</summary>
-    public sealed class DropTableInfo
+    internal sealed class DropTableInfo
     {
         /// <summary>How many times it is rolled, from and to.</summary>
         public int Min = 1;
@@ -40,7 +40,7 @@ namespace Scry
     /// is rolled and how often, and for each item how many it gives and its share of a roll. A
     /// chest's is told as what it holds.
     /// </summary>
-    public static class DropWords
+    internal static class DropWords
     {
         public static bool IsEmpty(DropTableInfo table) => table?.Drops == null || table.Drops.Count == 0;
 

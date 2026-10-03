@@ -8,7 +8,7 @@ namespace Scry
     /// reads the world tells it here, and whatever keeps details already told listens, so the
     /// readers need not know who that is.
     /// </summary>
-    public static class Learned
+    internal static class Learned
     {
         /// <summary>Told with the entry whose details changed, or null when any entry's may have.</summary>
         public static event Action<Entry> Changed;

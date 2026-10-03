@@ -7,7 +7,7 @@ namespace Scry
     /// when only clues say so, what a mod may change in code Scry cannot read, what was seen in
     /// play, and where it found nothing.
     /// </summary>
-    public static class UnsureWords
+    internal static class UnsureWords
     {
         /// <summary>What an unsure line's label starts with.</summary>
         public const string Mark = "~ ";

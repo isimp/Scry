@@ -278,6 +278,10 @@ namespace Scry
         private static GameObject _playsCopy;
         private static ClipPlays _plays;
 
+        /// <summary>The clips a body's own water and jump effects play with, by their names.</summary>
+        private static readonly string[] WaterClips = { "swim", "tread" };
+        private static readonly string[] JumpClips = { "jump" };
+
         private static ClipPlays Find(GameObject prefab, GameObject copy, bool wait)
         {
 
@@ -350,10 +354,10 @@ namespace Scry
             // Where the animator could not be seen to swim or jump, clips named so.
             var body = prefab.GetComponent<Character>();
             var named = new List<(string, string[], object)>();
-            if (body != null && HasAny(body.m_waterEffects)) named.Add(("water", new[] { "swim", "tread" }, body.m_waterEffects));
-            if (body != null && HasAny(body.m_jumpEffects)) named.Add(("jump", new[] { "jump" }, body.m_jumpEffects));
+            if (body != null && HasAny(body.m_waterEffects)) named.Add(("water", WaterClips, body.m_waterEffects));
+            if (body != null && HasAny(body.m_jumpEffects)) named.Add(("jump", JumpClips, body.m_jumpEffects));
             var tried = new Dictionary<string, IReadOnlyList<string>>();
-            IReadOnlyList<string> Saw(string action) => seen.Actions.TryGetValue(action, out var s) ? s : new string[0];
+            IReadOnlyList<string> Saw(string action) => seen.Actions.TryGetValue(action, out var s) ? s : System.Array.Empty<string>();
             tried["water"] = Saw("water").Concat(Saw("swim")).ToList();
             tried["jump"] = Saw("jump");
             plays.ByName = ClipByName.Match(named, tried, clips.Select(c => c.name), plays.Attacks.Keys.Concat(plays.Actions.Keys));

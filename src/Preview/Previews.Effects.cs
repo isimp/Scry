@@ -163,7 +163,7 @@ namespace Scry
 
         /// <summary>The prefabs an effect list plays, each once.</summary>
         private static IEnumerable<string> Members(EffectList list) =>
-            (list?.m_effectPrefabs ?? new EffectList.EffectData[0]).Where(d => d?.m_prefab != null).Select(d => d.m_prefab.name).Distinct();
+            (list?.m_effectPrefabs ?? System.Array.Empty<EffectList.EffectData>()).Where(d => d?.m_prefab != null).Select(d => d.m_prefab.name).Distinct();
 
         /// <summary>A weapon's own lists that play with a swing; its block, equip and the like do not.</summary>
         private static readonly HashSet<string> SwingLists = new HashSet<string>

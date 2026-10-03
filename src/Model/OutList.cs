@@ -4,10 +4,10 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>Where something Scry put in the world is: the order is the list's, what stays longest first.</summary>
-    public enum OutPlace { Shown, Pinned, Sound, Status, Playing }
+    internal enum OutPlace { Shown, Pinned, Sound, Status, Playing }
 
     /// <summary>One line of what is out in the world: its place, the prefab it is of, which of several, and how many.</summary>
-    public struct OutRow
+    internal struct OutRow
     {
         public OutPlace Place;
         public string Key;
@@ -23,7 +23,7 @@ namespace Scry
     /// copy is a line of its own, so one of two can go; what plays for a while (an effect, a
     /// projectile, what a felled tree leaves) is one line per prefab with how many are out.
     /// </summary>
-    public static class OutList
+    internal static class OutList
     {
         public static List<OutRow> Rows(IEnumerable<(OutPlace Place, string Key)> things)
         {

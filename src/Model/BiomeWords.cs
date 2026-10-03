@@ -10,7 +10,7 @@ namespace Scry
     /// (<c>EnvMan.SelectWeightedEnvironment</c>), the most likely first; and its music by the time
     /// of day (<c>BiomeEnvSetup</c>'s morning, day, evening and night music).
     /// </summary>
-    public static class BiomeWords
+    internal static class BiomeWords
     {
         /// <summary>Its place in the list: the order players meet the biomes, a biome a mod adds after them all.</summary>
         public static int Rank(string biome)

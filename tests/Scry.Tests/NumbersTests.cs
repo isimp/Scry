@@ -153,6 +153,13 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APointReadsAsItsFigures()
+        {
+            Assert.Equal("(1.50, -2.00)", Numbers.Point(1.5, -2, 2));
+            Assert.Equal("(1,234.5, 0.0, 3.0)", Numbers.Point(1234.5, 0, 3, 1));
+        }
+
+        [Fact]
         public void NumbersReadTheSameWhateverThePcsLanguage()
         {
             var was = CultureInfo.CurrentCulture;

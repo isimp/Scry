@@ -11,7 +11,7 @@ namespace Scry
     /// jumping with the jump. Only for actions the animator showed nothing for, never an attack's
     /// clip or one paired already, and told apart as found by name.
     /// </summary>
-    public static class ClipByName
+    internal static class ClipByName
     {
         /// <param name="actions">Each action, the words a clip's name holds for it, and a key to what it plays.</param>
         /// <param name="seen">The clips each action was seen to lead through, by action.</param>

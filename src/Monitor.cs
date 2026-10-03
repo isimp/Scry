@@ -31,7 +31,7 @@ namespace Scry
 
         /// <summary>The lines it shows, made again a few times a second, and its graph.</summary>
         public static readonly List<string> Lines = new List<string>();
-        public static double[] Graph = new double[0];
+        public static double[] Graph = Array.Empty<double>();
         public static double GraphTop = 1;
         private static string _holds = "", _made = "", _game = "";
 

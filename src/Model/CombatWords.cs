@@ -9,7 +9,7 @@ namespace Scry
     /// <c>Character.SetupMaxHealth</c>; every hit half as much again, <c>Attack.GetLevelDamageFactor</c>),
     /// what its hits do, and each attack's reach and pace as its AI uses it.
     /// </summary>
-    public static class CombatWords
+    internal static class CombatWords
     {
         /// <summary>The status effect each kind of damage puts on what it hits, as <c>Character</c> adds them.</summary>
         public static readonly IReadOnlyList<(string Damage, string Effect)> DamageEffects = new[]
@@ -116,6 +116,9 @@ namespace Scry
         /// </summary>
         public static string PassiveEnemies(bool flees) => flees ? "flees from you all the same" : "attacks unprovoked all the same";
 
+        /// <summary>What a prefab's name is split into words at.</summary>
+        private static readonly char[] NameParts = { '_', ' ' };
+
         /// <summary>
         /// A weak spot's part of the body in plain words, from the name of the object it sits on:
         /// "WEAKSPOT_HEAD" is the head. The game gives weak spots no names of their own.
@@ -127,7 +130,7 @@ namespace Scry
             if (copy >= 0) name = name.Substring(0, copy);
             const string marker = "weakspot";
             if (name.StartsWith(marker, System.StringComparison.OrdinalIgnoreCase)) name = name.Substring(marker.Length);
-            name = string.Join(" ", name.Split(new[] { '_', ' ' }, System.StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
+            name = string.Join(" ", name.Split(NameParts, System.StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
             return name.Length > 0 ? name : "weak spot";
         }
 

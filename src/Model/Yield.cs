@@ -7,7 +7,7 @@ namespace Scry
     /// grow back, in the game's days (<c>EnvMan.m_dayLengthSec</c>): so many a day, or so many
     /// every so many days.
     /// </summary>
-    public static class Yield
+    internal static class Yield
     {
         /// <summary>The words for it, or null when it never grows back.</summary>
         public static string PerDay(int amount, float respawnMinutes, float daySeconds)

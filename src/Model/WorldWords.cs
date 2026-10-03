@@ -8,7 +8,7 @@ namespace Scry
     /// level times <c>Game.m_worldLevelEnemyHPMultiplier</c>), and its resource rate scales most
     /// drops (<c>Game.ScaleDrops</c>, all but a few item types, and the rolls of a drop table).
     /// </summary>
-    public static class WorldWords
+    internal static class WorldWords
     {
         /// <summary>The note, or null when this world changes nothing the entry shows.</summary>
         public static string Note(int worldLevel, float healthMultiplier, float resourceRate, bool health, bool drops)

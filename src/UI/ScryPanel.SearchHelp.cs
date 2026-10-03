@@ -50,7 +50,7 @@ namespace Scry
             private System.Threading.Tasks.Task<TermIndex> _termsJob;
             private Explorer _jobFor;
             private Locations.State _jobAt;
-            private static readonly TermIndex NoTerms = new TermIndex(new Entry[0]);
+            private static readonly TermIndex NoTerms = new TermIndex(Array.Empty<Entry>());
 
             /// <summary>
             /// Every value the search keys can take, read once per catalog and again once the

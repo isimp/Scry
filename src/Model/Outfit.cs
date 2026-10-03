@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>Where on a character an item is worn.</summary>
-    public enum Slot
+    internal enum Slot
     {
         None,
         RightHand,
@@ -22,7 +22,7 @@ namespace Scry
     /// A two-handed weapon takes both hands, so it and anything held in either hand replace
     /// each other.
     /// </summary>
-    public sealed class Outfit
+    internal sealed class Outfit
     {
         private readonly List<KeyValuePair<string, Slot>> _items = new List<KeyValuePair<string, Slot>>();
 

@@ -9,7 +9,7 @@ namespace Scry
     /// table (<c>ItemDrop.ItemData.SharedData.m_buildPieces</c>): the hammer, the hoe, the
     /// cultivator and any mod's own. A piece may be in several tools.
     /// </summary>
-    public sealed class ToolBook
+    internal sealed class ToolBook
     {
         /// <summary>A tool a piece is built with, and the tab it is on there.</summary>
         public sealed class Use

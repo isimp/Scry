@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>Which prefabs to show, by origin.</summary>
-    public enum OriginFilter
+    internal enum OriginFilter
     {
         All,
         Vanilla,
@@ -12,7 +12,7 @@ namespace Scry
     }
 
     /// <summary>Everything that narrows the list: the typed text, a kind, favourites, origin.</summary>
-    public sealed class Query
+    internal sealed class Query
     {
         public string Text = "";
 
@@ -30,7 +30,7 @@ namespace Scry
     /// that play an effect; <c>used:</c> is its older spelling), <c>station:</c> (where it is made) and <c>in:</c> (a location or dungeon
     /// it is found in, once they are read). A minus in front of a word or a term leaves out what matches it.
     /// </summary>
-    public sealed class ParsedSearch
+    internal sealed class ParsedSearch
     {
         public readonly List<string> Words = new List<string>();
         public readonly List<string> NotWords = new List<string>();
@@ -96,7 +96,7 @@ namespace Scry
         }
     }
 
-    public static class Search
+    internal static class Search
     {
         /// <summary>The keys a term can have, as typed before the colon.</summary>
         public static readonly string[] Keys = { "kind", "has", "biome", "mod", "playedby", "station", "in" };
@@ -252,7 +252,7 @@ namespace Scry
         public static string[] Words(string text)
         {
             return string.IsNullOrEmpty(text)
-                ? new string[0]
+                ? Array.Empty<string>()
                 : text.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
         }
 

@@ -364,6 +364,9 @@ namespace Scry
             return Convert.ToString(value, CultureInfo.InvariantCulture);
         }
 
+        /// <summary>How .NET writes a set of flags: "Fire, Frost".</summary>
+        private static readonly string[] FlagSeparator = { ", " };
+
         /// <summary>
         /// A choice by its name, "OneHandedWeapon" as "One handed weapon". Null when the value has
         /// no name, which is how a mod's own categories and factions show up, as bare numbers.
@@ -373,7 +376,7 @@ namespace Scry
         {
             var text = value.ToString();
             if (text.Length > 0 && (char.IsDigit(text[0]) || text[0] == '-')) return null;
-            return string.Join(", ", text.Split(new[] { ", " }, StringSplitOptions.None).Select(Naming.FieldLabel));
+            return string.Join(", ", text.Split(FlagSeparator, StringSplitOptions.None).Select(Naming.FieldLabel));
         }
 
         private static string EffectName(StatusEffect effect)

@@ -6,16 +6,16 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>Yielded by a scenario to pause for a while. Yielding null waits for the next tick.</summary>
-    public sealed class Wait
+    internal sealed class Wait
     {
         public readonly double Seconds;
         public Wait(double seconds) { Seconds = seconds; }
     }
 
-    public enum Result { Pass, Fail, Skip }
+    internal enum Result { Pass, Fail, Skip }
 
     /// <summary>What one scenario found.</summary>
-    public sealed class ScenarioReport
+    internal sealed class ScenarioReport
     {
         public string Name;
         public Result Result;
@@ -23,7 +23,7 @@ namespace Scry
     }
 
     /// <summary>A named test that runs over time, and what to put back afterwards.</summary>
-    public sealed class Scenario
+    internal sealed class Scenario
     {
         public readonly string Name;
         public readonly Func<Probe, IEnumerator> Body;
@@ -41,13 +41,13 @@ namespace Scry
     }
 
     /// <summary>Thrown by <see cref="Probe.Skip"/> to stop a scenario that cannot run here.</summary>
-    public sealed class SkipScenario : Exception
+    internal sealed class SkipScenario : Exception
     {
         public SkipScenario(string reason) : base(reason) { }
     }
 
     /// <summary>What a scenario records its findings with.</summary>
-    public sealed class Probe
+    internal sealed class Probe
     {
         private readonly ScenarioReport _report;
         private readonly Action<string> _write;
@@ -89,7 +89,7 @@ namespace Scry
     /// scenario that never finishes fails that scenario only; its cleanup always runs, and the
     /// run goes on. When all are done, the finishing step runs once and a summary is written.
     /// </summary>
-    public sealed class ScenarioRunner
+    internal sealed class ScenarioRunner
     {
         private readonly Queue<Scenario> _pending;
         private readonly Action<string> _write;

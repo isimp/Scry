@@ -9,7 +9,7 @@ namespace Scry
     /// rays landed on within half a metre of it, the two landed on most first, with their shares;
     /// a floor no ray landed near is the location's own ground (<see cref="PlaceView.WithGround"/>).
     /// </summary>
-    public static class FloorMakers
+    internal static class FloorMakers
     {
         public const float Near = 0.5f;
         public const int Most = 2;

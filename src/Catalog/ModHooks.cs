@@ -24,8 +24,8 @@ namespace Scry
         private static readonly Dictionary<HookedRule, List<string>> ByRule = new Dictionary<HookedRule, List<string>>();
         private static readonly Dictionary<string, List<HookedRule>> ByMod = new Dictionary<string, List<HookedRule>>(StringComparer.Ordinal);
 
-        /// <summary>A hook there counts whatever its code names.</summary>
-        private static readonly Func<MemberInfo, bool> Always = null;
+        /// <summary>A hook there counts whatever its code names: no member asked for.</summary>
+        private static readonly Func<MemberInfo, bool> Always;
 
         /// <summary>The game's methods each rule is decided in, and what a hook there must name to count, if anything.</summary>
         private static readonly (HookedRule Rule, Type Type, string Method, Func<MemberInfo, bool> MustName)[] Methods =

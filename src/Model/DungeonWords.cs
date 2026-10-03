@@ -9,7 +9,7 @@ namespace Scry
     /// it: a dungeon grows room by room from its entrance (<c>GenerateDungeon</c>), a camp is laid
     /// on a grid (<c>GenerateCampGrid</c>) or scattered in a ring and walled (<c>GenerateCampRadial</c>).
     /// </summary>
-    public static class DungeonWords
+    internal static class DungeonWords
     {
         public static string Layout(DungeonPlan plan)
         {

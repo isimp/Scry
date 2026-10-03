@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>A point or size, as Unity's <c>Vector3</c> holds one, for working out layouts without the game.</summary>
-    public struct Vec3
+    internal struct Vec3
     {
         public float X, Y, Z;
 
@@ -31,7 +31,7 @@ namespace Scry
     }
 
     /// <summary>A rotation, as Unity's <c>Quaternion</c> holds one, with the few operations a layout needs.</summary>
-    public struct Quat
+    internal struct Quat
     {
         public float X, Y, Z, W;
 
@@ -87,7 +87,7 @@ namespace Scry
     }
 
     /// <summary>A room's doorway (<c>RoomConnection</c>): its type, where it sits in the room and which way it faces.</summary>
-    public sealed class Doorway
+    internal sealed class Doorway
     {
         public string Type = "";
         public bool Entrance;
@@ -98,7 +98,7 @@ namespace Scry
     }
 
     /// <summary>A dungeon room as the generator places it (<c>Room</c>): its box, its kind and its doorways.</summary>
-    public sealed class RoomShape
+    internal sealed class RoomShape
     {
         public string Name = "";
         public int Theme;
@@ -113,7 +113,7 @@ namespace Scry
     }
 
     /// <summary>How a dungeon or camp is built (<c>DungeonGenerator</c>).</summary>
-    public sealed class DungeonPlan
+    internal sealed class DungeonPlan
     {
         /// <summary>"Dungeon", "CampGrid" or "CampRadial", as the game's <c>Algorithm</c>.</summary>
         public string Algorithm = "Dungeon";
@@ -161,7 +161,7 @@ namespace Scry
     /// holds and how likely, the dungeon it builds or the room it is, and the levels it sets
     /// for its spawn points.
     /// </summary>
-    public sealed class PlaceContents
+    internal sealed class PlaceContents
     {
         public string GameName = "", Boss = "", Trader = "";
 
@@ -198,7 +198,7 @@ namespace Scry
     }
 
     /// <summary>When a place's music plays.</summary>
-    public enum MusicWhen
+    internal enum MusicWhen
     {
         /// <summary>On coming near, from a source of its own (<c>MusicLocation</c>).</summary>
         Near,
@@ -211,7 +211,7 @@ namespace Scry
     }
 
     /// <summary>A piece of music a place plays: its name, when, and how often it plays on stepping inside.</summary>
-    public sealed class PlaceMusic
+    internal sealed class PlaceMusic
     {
         public string Name = "";
         public MusicWhen When;

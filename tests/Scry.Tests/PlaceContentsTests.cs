@@ -158,9 +158,9 @@ namespace Scry.Tests
         [InlineData(PartRole.Gather, true, "To gather in its rooms")]
         [InlineData(PartRole.Other, true, "Its rooms hold")]
         [InlineData(PartRole.Built, true, "Its rooms are built of")]
-        public void EachKindOfPartHasItsRow(PartRole role, bool rooms, string title)
+        public void EachKindOfPartHasItsRow(object role, bool rooms, string title)
         {
-            Assert.Equal(title, PlaceParts.Title(role, rooms));
+            Assert.Equal(title, PlaceParts.Title((PartRole)role, rooms));
         }
 
         [Fact]

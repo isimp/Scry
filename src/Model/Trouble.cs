@@ -12,7 +12,7 @@ namespace Scry
     /// only that prefab's part: those are counted by part and told once, with an example, when
     /// the reading is done.
     /// </summary>
-    public sealed class Trouble
+    internal sealed class Trouble
     {
         private readonly Dictionary<string, (int Count, string Example)> _skips = new Dictionary<string, (int, string)>(StringComparer.Ordinal);
         private readonly List<string> _order = new List<string>();

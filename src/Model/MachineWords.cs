@@ -10,7 +10,7 @@ namespace Scry
     /// what a cart weighs (<c>Vagon.UpdateMass</c>: its own weight and its load's at a factor), and
     /// what a catapult loads (<c>Catapult.CanItemBeLoaded</c>).
     /// </summary>
-    public static class MachineWords
+    internal static class MachineWords
     {
         public static string Shoots(bool enemies, bool players, bool tamed, float range)
         {

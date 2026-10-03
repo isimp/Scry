@@ -6,7 +6,7 @@ using System.Text;
 namespace Scry
 {
     /// <summary>What is known of a location that goes into its name, each as the game shows it; empty for none.</summary>
-    public sealed class PlaceFacts
+    internal sealed class PlaceFacts
     {
         public string Prefab = "";
 
@@ -29,7 +29,7 @@ namespace Scry
     /// A place goes by the name the game gives it where it has one, and says its biome; a room
     /// goes by the dungeons built with it.
     /// </summary>
-    public static class Places
+    internal static class Places
     {
         /// <summary>Between a place's name and its biome.</summary>
         public const string BiomeMark = " · ";
@@ -153,14 +153,18 @@ namespace Scry
             return null;
         }
 
+        /// <summary>How a location's biomes are listed, and what a biome's name is split into words at.</summary>
+        private static readonly string[] BiomeSeparator = { ", " };
+        private static readonly char[] WordSeparator = { ' ' };
+
         /// <summary>The words without any whole biome's name the place is in ("Runestone_Swamps" in the swamp is a runestone).</summary>
         private static List<(string Text, bool Name)> WithoutBiome(List<(string Text, bool Name)> words, string biomes)
         {
             var left = new List<(string, bool)>(words);
             if (string.IsNullOrEmpty(biomes)) return left;
-            foreach (var biome in biomes.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries))
+            foreach (var biome in biomes.Split(BiomeSeparator, StringSplitOptions.RemoveEmptyEntries))
             {
-                var parts = biome.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                var parts = biome.Split(WordSeparator, StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length == 0) continue;
                 for (var i = 0; i + parts.Length <= left.Count; i++)
                 {
@@ -215,10 +219,10 @@ namespace Scry
         /// found to play, or a projectile nothing was found to fire, goes under "In locations" when
         /// one names it.
         /// </summary>
-        public static void Apply(IEnumerable<Entry> catalog, IDictionary<string, HashSet<string>> found)
+        public static void Apply(IReadOnlyList<Entry> catalog, IDictionary<string, HashSet<string>> found)
         {
-            var unplayed = Groups.Purpose(new string[0], false, false).Order;
-            var unfired = Groups.Projectile(new Shooter[0]).Order;
+            var unplayed = Groups.Purpose(Array.Empty<string>(), false, false).Order;
+            var unfired = Groups.Projectile(Array.Empty<Shooter>()).Order;
 
             // Each place's biome rank, from the first location going by it (LocationNamed).
             var ranks = new Dictionary<string, int>(StringComparer.Ordinal);

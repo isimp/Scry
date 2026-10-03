@@ -3,7 +3,7 @@ using System;
 namespace Scry
 {
     /// <summary>The resource monitor's figures in words: milliseconds and memory.</summary>
-    public static class MonitorWords
+    internal static class MonitorWords
     {
         /// <summary>Milliseconds: to two places under ten, to one above.</summary>
         public static string Ms(double ms) => Numbers.Fixed(ms, ms < 10 ? 2 : 1);

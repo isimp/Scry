@@ -8,7 +8,7 @@ namespace Scry
     /// kinds of Draugr) each get their prefab name after it, unless the prefab is named as it is
     /// shown. Names no other chip shares are left as they are.
     /// </summary>
-    public static class ChipNames
+    internal static class ChipNames
     {
         public static string[] Apart(IReadOnlyList<(string Key, string Shown)> chips)
         {

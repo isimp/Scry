@@ -118,7 +118,7 @@ namespace Scry
         /// <summary>The biomes something comes to only in weather a world event brings, by name (<see cref="SpawnBiomes"/>).</summary>
         private static readonly Dictionary<string, HashSet<string>> EventBiomesOf = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
 
-        public static string[] EventBiomes(string prefab) => EventBiomesOf.TryGetValue(prefab, out var set) ? set.ToArray() : new string[0];
+        public static string[] EventBiomes(string prefab) => EventBiomesOf.TryGetValue(prefab, out var set) ? set.ToArray() : Array.Empty<string>();
 
         private static void AddBiomeKey(Dictionary<string, HashSet<string>> into, string prefab, string key)
         {
@@ -256,8 +256,8 @@ namespace Scry
                 var facts = new SpawnFacts
                 {
                     Biomes = raid.m_biome != 0 ? BiomeNames(raid.m_biome) : "",
-                    Keys = perPlayer || raid.m_requiredGlobalKeys == null ? new string[0] : raid.m_requiredGlobalKeys.ToArray(),
-                    NotKeys = perPlayer || raid.m_notRequiredGlobalKeys == null ? new string[0] : raid.m_notRequiredGlobalKeys.ToArray(),
+                    Keys = perPlayer || raid.m_requiredGlobalKeys == null ? Array.Empty<string>() : raid.m_requiredGlobalKeys.ToArray(),
+                    NotKeys = perPlayer || raid.m_notRequiredGlobalKeys == null ? Array.Empty<string>() : raid.m_notRequiredGlobalKeys.ToArray(),
                 };
                 var line = SpawnWords.Line(facts.Biomes.Length > 0 ? start + ", in" : start, facts, BossOf);
                 foreach (var key in facts.Keys) Unlocks.Add(key, Unlock.RaidStarts, EntryKeys.For(Kind.Raid, raid.m_name));

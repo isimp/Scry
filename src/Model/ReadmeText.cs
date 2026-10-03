@@ -9,7 +9,7 @@ namespace Scry
     /// paragraphs, list items as bullets, table rows as their cells, code as it is; pictures,
     /// badges, markup, link targets and comments left out. A long one stops at a paragraph.
     /// </summary>
-    public static class ReadmeText
+    internal static class ReadmeText
     {
         private enum Line { Blank, Paragraph, Heading, Item, Row, Code }
 

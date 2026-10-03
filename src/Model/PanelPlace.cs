@@ -10,7 +10,7 @@ namespace Scry
     /// A setting the file does not hold, or holds in a way it cannot be read, is null and left
     /// as the panel has it; one bad line costs only itself.
     /// </summary>
-    public sealed class PanelPlace
+    internal sealed class PanelPlace
     {
         /// <summary>A window's place and size on the screen.</summary>
         public readonly struct Area : IEquatable<Area>

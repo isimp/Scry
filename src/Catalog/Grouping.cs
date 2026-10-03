@@ -46,7 +46,7 @@ namespace Scry
                 if ((i + 1) % slice == 0) yield return i + 1;
             }
             // A projectile another spawns (a cluster bomb's splinters) flies with that one.
-            Guard.Run("grouping projectiles spawned by others", () => Groups.FollowSpawners(entries, Relations.SpawnedBy, Groups.Projectile(new Shooter[0]).Name));
+            Guard.Run("grouping projectiles spawned by others", () => Groups.FollowSpawners(entries, Relations.SpawnedBy, Groups.Projectile(Array.Empty<Shooter>()).Name));
 
             // What is left behind goes with what leaves it: a stump with its trees.
             Guard.Run("grouping what is left behind", () => Leftovers.JoinOwnersGroups(entries));
@@ -61,8 +61,8 @@ namespace Scry
                 var groups = kind.GroupBy(e => e.Group).OrderBy(g => g.First().GroupOrder).Select(g => $"{g.Key} {Numbers.Count(g.Count())}");
                 Plugin.Note($"Scry groups its {Kinds.Label(kind.Key).ToLowerInvariant()}: {string.Join(", ", groups)}.");
             }
-            var unplayed = entries.Where(e => (e.Kind == Kind.Effect || e.Kind == Kind.Sound) && e.GroupOrder == Groups.Purpose(new string[0], false, false).Order).Select(e => e.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
-            var unfired = entries.Where(e => e.Kind == Kind.Projectile && e.GroupOrder == Groups.Projectile(new Shooter[0]).Order)
+            var unplayed = entries.Where(e => (e.Kind == Kind.Effect || e.Kind == Kind.Sound) && e.GroupOrder == Groups.Purpose(Array.Empty<string>(), false, false).Order).Select(e => e.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
+            var unfired = entries.Where(e => e.Kind == Kind.Projectile && e.GroupOrder == Groups.Projectile(Array.Empty<Shooter>()).Order)
                 .Select(e => e.Name + (e.Links.Count > 0 ? " (" + string.Join("/", e.Links.Select(l => l.Group).Distinct()) + ")" : "")).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
             if (unfired.Count > 0) Plugin.Note($"Scry found nothing that fires {Numbers.Count(unfired.Count)} projectiles, among them: {string.Join(", ", unfired.Take(100))}.");
             if (unplayed.Count > 0) Plugin.Note($"Scry found nothing that plays {Numbers.Count(unplayed.Count)} effects and sounds, among them: {string.Join(", ", unplayed.Take(150))}.");
@@ -120,6 +120,9 @@ namespace Scry
             return RaidGrouping.Ranks(strengths);
         }
 
+        /// <summary>One user with no name: enough to tell something is played by anything at all.</summary>
+        private static readonly string[] UnnamedUser = { "" };
+
         private static Group? Of(Entry entry, Dictionary<string, Entry> byName, Dictionary<string, Group> menus, HashSet<string> weather)
         {
             var prefab = entry.Source as GameObject;
@@ -149,7 +152,7 @@ namespace Scry
                     var purpose = Groups.Purpose(fields, footstep, animation);
 
                     // Found to be played only through a field that spawns or carries it: other.
-                    if (purpose.Order == Groups.Purpose(new string[0], false, false).Order && Users(entry).Any()) purpose = Groups.Purpose(new[] { "" }, false, false);
+                    if (purpose.Order == Groups.Purpose(Array.Empty<string>(), false, false).Order && Users(entry).Any()) purpose = Groups.Purpose(UnnamedUser, false, false);
                     return purpose;
                 case Kind.Projectile:
                     return Groups.Projectile(Shooters(entry, byName));

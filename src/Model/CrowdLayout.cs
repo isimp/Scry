@@ -5,7 +5,7 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>A group of a raid's creatures as rolled: how many, how wide each body is (its radius), and how far the game spreads the group (<c>m_groupRadius</c>).</summary>
-    public struct CrowdGroup
+    internal struct CrowdGroup
     {
         public int Count;
         public float Body;
@@ -18,7 +18,7 @@ namespace Scry
     /// of the next and the group as wide as the game spreads it where that is wider; the groups'
     /// points lie in a ring, far enough apart that no two groups touch.
     /// </summary>
-    public static class CrowdLayout
+    internal static class CrowdLayout
     {
         /// <summary>The room left between two bodies, in metres.</summary>
         public const float Gap = 0.4f;

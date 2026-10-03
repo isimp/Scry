@@ -1,7 +1,7 @@
 namespace Scry
 {
     /// <summary>A mod loaded, as its entry holds it: its name, version and id as it declares them, and the folder it was loaded from.</summary>
-    public sealed class ModSource
+    internal sealed class ModSource
     {
         public string Name = "", Version = "", Guid = "", Folder = "";
 
@@ -16,7 +16,7 @@ namespace Scry
     }
 
     /// <summary>How a mod's page words what it is.</summary>
-    public static class ModWords
+    internal static class ModWords
     {
         /// <summary>Its version and id, for its card.</summary>
         public static string Card(ModSource mod)
@@ -29,9 +29,12 @@ namespace Scry
         public static string AddedBy(string title, string mod, string own) =>
             string.IsNullOrEmpty(mod) || string.Equals(mod, own, System.StringComparison.Ordinal) ? title : $"{title}, added by {mod}";
 
+        /// <summary>What no web address holds: a space, a quote, a line break.</summary>
+        private static readonly char[] NotInAddress = { ' ', '"', '\n', '\r' };
+
         /// <summary>A website worth a link: one on the web, not a file or anything else a click could open.</summary>
         public static bool IsWebsite(string url) =>
             !string.IsNullOrEmpty(url) && (url.StartsWith("https://", System.StringComparison.OrdinalIgnoreCase) || url.StartsWith("http://", System.StringComparison.OrdinalIgnoreCase))
-            && url.IndexOfAny(new[] { ' ', '"', '\n', '\r' }) < 0;
+            && url.IndexOfAny(NotInAddress) < 0;
     }
 }

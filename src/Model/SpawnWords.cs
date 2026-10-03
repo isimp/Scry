@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>What limits where and when something spawns, for <see cref="SpawnWords.Line"/>. Unset parts are left out.</summary>
-    public sealed class SpawnFacts
+    internal sealed class SpawnFacts
     {
         /// <summary>The biomes, already in the names the game shows.</summary>
         public string Biomes = "";
@@ -23,11 +23,11 @@ namespace Scry
         public bool OutsideForest;
 
         /// <summary>The weather it needs, any one of them.</summary>
-        public string[] Weather = new string[0];
+        public string[] Weather = Array.Empty<string>();
 
         /// <summary>The world keys it waits for, and those that end it.</summary>
-        public string[] Keys = new string[0];
-        public string[] NotKeys = new string[0];
+        public string[] Keys = Array.Empty<string>();
+        public string[] NotKeys = Array.Empty<string>();
     }
 
     /// <summary>
@@ -36,7 +36,7 @@ namespace Scry
     /// drops write them, and a world key named by the creature whose defeat sets it (a boss's,
     /// or a troll's "KilledTroll").
     /// </summary>
-    public static class SpawnWords
+    internal static class SpawnWords
     {
         /// <summary>Stars from the game's levels, which count one more: "no stars", "1 star", "up to 2 stars", "1–2 stars".</summary>
         public static string Stars(int minLevel, int maxLevel)

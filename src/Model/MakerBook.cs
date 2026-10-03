@@ -8,7 +8,7 @@ namespace Scry
     /// One way a station makes an item: from what (each with how many a batch takes), how many
     /// a batch makes, and whether any one of the inputs is enough or all of them are needed.
     /// </summary>
-    public sealed class Making
+    internal sealed class Making
     {
         /// <summary>The station's prefab.</summary>
         public string Station = "";
@@ -30,7 +30,7 @@ namespace Scry
     /// is made; for a station, what it makes. A station that turns several items into the same
     /// one, each on its own, is one way to make it from any one of them.
     /// </summary>
-    public sealed class MakerBook
+    internal sealed class MakerBook
     {
         // By what is made and by where, in the order noted: every entry of the catalog asks once.
         private readonly Dictionary<string, List<Making>> _byOutput = new Dictionary<string, List<Making>>(StringComparer.Ordinal);
@@ -49,7 +49,7 @@ namespace Scry
             list.Add(making);
         }
 
-        private static readonly IReadOnlyList<Making> None = new Making[0];
+        private static readonly IReadOnlyList<Making> None = Array.Empty<Making>();
 
         /// <summary>The ways an item is made, station by station in the order noted.</summary>
         public IReadOnlyList<Making> Of(string output) =>

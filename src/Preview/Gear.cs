@@ -225,7 +225,7 @@ namespace Scry
             var loadout = humanoid == null
                 ? new Loadout(null, null, null, null)
                 : new Loadout(Choices(humanoid.m_randomWeapon), Choices(humanoid.m_randomShield), Choices(humanoid.m_randomArmor), extras,
-                    (humanoid.m_randomWeapon ?? new GameObject[0]).Concat(humanoid.m_defaultItems ?? new GameObject[0])
+                    (humanoid.m_randomWeapon ?? Array.Empty<GameObject>()).Concat(humanoid.m_defaultItems ?? Array.Empty<GameObject>())
                         .Where(w => w != null && SlotOf(w) == Slot.BothHands).Select(w => w.name),
                     Holdable(humanoid));
             Loadouts[prefab] = loadout;
@@ -245,7 +245,7 @@ namespace Scry
         /// </summary>
         private static List<string> HoldChoices(IEnumerable<GameObject> items, string creature)
         {
-            var weapons = (items ?? new GameObject[0])
+            var weapons = (items ?? Array.Empty<GameObject>())
                 .Where(i => i != null && i.GetComponent<ItemDrop>()?.m_itemData?.IsWeapon() == true)
                 .Distinct()
                 .Select(i => (i.name, Drawn(i) ?? CatalogBuilder.GameName(i) ?? WeaponChoices.Readable(i.name, creature), AttachPart(i, out _) != null));

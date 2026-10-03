@@ -11,8 +11,11 @@ namespace Scry
     /// its prefab name made readable and without the creature's own name in it, and what it may
     /// hold is only what shows in its hand.
     /// </summary>
-    public static class WeaponChoices
+    internal static class WeaponChoices
     {
+        /// <summary>What a prefab's name is split into words at.</summary>
+        private static readonly char[] NameParts = { '_', ' ', '-' };
+
         /// <summary>
         /// An item's prefab name as words, leaving out the leading words that name the creature:
         /// "troll_log_swing_v" on a troll is "Log swing v", "trollsnow_punch" on a frost troll
@@ -21,8 +24,8 @@ namespace Scry
         public static string Readable(string item, string creature)
         {
             var own = Words(creature).Select(w => w.ToLowerInvariant()).ToList();
-            var words = (item ?? "").Split(new[] { '_', ' ', '-' }, StringSplitOptions.RemoveEmptyEntries).ToList();
-            while (words.Count > 1 && own.Any(o => words[0].ToLowerInvariant().Contains(o)))
+            var words = (item ?? "").Split(NameParts, StringSplitOptions.RemoveEmptyEntries).ToList();
+            while (words.Count > 1 && own.Any(o => words[0].IndexOf(o, StringComparison.OrdinalIgnoreCase) >= 0))
             {
                 words.RemoveAt(0);
             }
@@ -47,7 +50,7 @@ namespace Scry
         private static IEnumerable<string> Words(string name)
         {
             var words = new List<string>();
-            foreach (var part in (name ?? "").Split(new[] { '_', ' ', '-' }, StringSplitOptions.RemoveEmptyEntries))
+            foreach (var part in (name ?? "").Split(NameParts, StringSplitOptions.RemoveEmptyEntries))
             {
                 var start = 0;
                 for (var i = 1; i < part.Length; i++)

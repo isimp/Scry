@@ -8,7 +8,7 @@ namespace Scry
     /// effect "se:" and its name, a raid "raid:" and its name, a location or dungeon room "loc:"
     /// and its prefab's name, a mod "mod:" and its name, a biome "biome:" and its name.
     /// </summary>
-    public static class EntryKeys
+    internal static class EntryKeys
     {
         public const string StatusEffect = "se:";
         public const string Raid = "raid:";

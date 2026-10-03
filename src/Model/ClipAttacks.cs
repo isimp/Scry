@@ -5,7 +5,7 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>What a clip plays of the attack it is part of.</summary>
-    public sealed class ClipAttack
+    internal sealed class ClipAttack
     {
         /// <summary>The attack.</summary>
         public object Key;
@@ -29,7 +29,7 @@ namespace Scry
     /// strikes in those whose events say so; where none says so, halfway through the first. A clip
     /// two attacks play is the first one's, so what the creature has now is given first.
     /// </summary>
-    public static class ClipAttacks
+    internal static class ClipAttacks
     {
         /// <param name="attacks">Each attack's trigger and a key to it, what the creature has now first.</param>
         /// <param name="seen">The clips each trigger was seen to play, in order, by trigger.</param>

@@ -9,7 +9,7 @@ namespace Scry
     /// own parts wait their turn. Parts switched off stay as they are and do not count. A copy no
     /// bigger than one such part wakes at once (none are given).
     /// </summary>
-    public static class WakeChunks
+    internal static class WakeChunks
     {
         /// <summary>
         /// The parts to wake one after another, in the order they hang in the copy, from each

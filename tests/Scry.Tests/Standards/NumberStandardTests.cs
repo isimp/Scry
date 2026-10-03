@@ -29,7 +29,11 @@ namespace Scry.Tests
             }
 
             foreach (var (hole, model) in ScrySource.All<InterpolationSyntax>())
-                if (Violations.Numeric(model.GetTypeInfo(hole.Expression).Type)) Add(hole, "a number in an interpolated string");
+            {
+                var type = model.GetTypeInfo(hole.Expression).Type;
+                if (Violations.Numeric(type)) Add(hole, "a number in an interpolated string");
+                else if (UnityNumbers(type)) Add(hole, $"a {type.Name}'s numbers in an interpolated string");
+            }
 
             foreach (var (plus, model) in ScrySource.All<BinaryExpressionSyntax>())
             {
@@ -45,6 +49,7 @@ namespace Scry.Tests
                 if (!(model.GetSymbolInfo(call).Symbol is IMethodSymbol method)) continue;
                 var owner = method.ContainingType?.ToDisplayString();
                 if (method.Name == "ToString" && Violations.Numeric(method.ContainingType)) Add(call, "a number's ToString");
+                else if (method.Name == "ToString" && UnityNumbers(method.ContainingType)) Add(call, $"a {method.ContainingType.Name}'s ToString");
                 else if (owner == "System.Convert" && method.Name == "ToString" && method.Parameters.Length > 0 && Violations.Numeric(method.Parameters[0].Type)) Add(call, "Convert.ToString of a number");
                 else if ((owner == "string" || owner == "System.Text.StringBuilder" || owner == "System.IO.TextWriter") && Formats(call, method, model))
                     Add(call, $"a number given to {method.ContainingType.Name}.{method.Name}");
@@ -91,6 +96,15 @@ namespace Scry.Tests
                 if (parameter.Type.SpecialType == SpecialType.System_Object || parameter.Name == "value") return true;
             }
             return false;
+        }
+
+        /// <summary>Unity's values made of numbers, which write them their own way when turned into text.</summary>
+        private static bool UnityNumbers(ITypeSymbol type)
+        {
+            if (type is INamedTypeSymbol named && named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T) type = named.TypeArguments[0];
+            return type?.ContainingNamespace?.ToDisplayString() == "UnityEngine"
+                   && (type.Name == "Vector2" || type.Name == "Vector3" || type.Name == "Vector4" || type.Name == "Vector2Int" || type.Name == "Vector3Int"
+                       || type.Name == "Quaternion" || type.Name == "Color" || type.Name == "Color32" || type.Name == "Rect" || type.Name == "Bounds" || type.Name == "Matrix4x4");
         }
 
         private static string Short(SyntaxNode node)

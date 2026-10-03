@@ -1,7 +1,7 @@
 namespace Scry
 {
     /// <summary>What a prefab is, as far as previewing it goes.</summary>
-    public enum Kind
+    internal enum Kind
     {
         Creature,
         Item,
@@ -27,7 +27,7 @@ namespace Scry
     }
 
     /// <summary>How a resource is gathered, the groups the Resources tab lists them in, in this order.</summary>
-    public enum ResourceGroup
+    internal enum ResourceGroup
     {
         None,
         Trees,
@@ -39,7 +39,7 @@ namespace Scry
     }
 
     /// <summary>Where a prefab comes from.</summary>
-    public enum Origin
+    internal enum Origin
     {
         Unknown,
         Vanilla,
@@ -50,7 +50,7 @@ namespace Scry
     /// The facts about a prefab that decide its kind, read from its components in the game.
     /// Kept apart from the components themselves so the rule can be checked without the game.
     /// </summary>
-    public sealed class PrefabTraits
+    internal sealed class PrefabTraits
     {
         public bool IsStatusEffect;
         public bool HasCharacter;
@@ -101,7 +101,7 @@ namespace Scry
         public bool FromEffectList;
     }
 
-    public static class Kinds
+    internal static class Kinds
     {
         /// <summary>The kind a prefab is previewed as.</summary>
         public static Kind Of(PrefabTraits traits)

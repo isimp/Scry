@@ -21,7 +21,7 @@ namespace Scry
         private sealed class Found
         {
             public Sort Sort;
-            public string[] Names = new string[0];
+            public string[] Names = System.Array.Empty<string>();
             public int Default;
         }
 
@@ -121,6 +121,33 @@ namespace Scry
         /// </summary>
         public static void Forget() => Known.Clear();
 
+        /// <summary>A fire with a low flame: unlit, low, lit.</summary>
+        private static readonly string[] FireLooksWithLow = { "Unlit", "Low", "Lit" };
+        /// <summary>A fire: unlit, lit.</summary>
+        private static readonly string[] FireLooks = { "Unlit", "Lit" };
+        /// <summary>A portal: unconnected, connected, open.</summary>
+        private static readonly string[] PortalLooks = { "Unconnected", "Connected", "Open" };
+        /// <summary>A door: shut, open either way.</summary>
+        private static readonly string[] DoorLooks = { "Shut", "Open", "Open the other way" };
+        /// <summary>A chest: shut, open.</summary>
+        private static readonly string[] ChestLooks = { "Shut", "Open" };
+        /// <summary>A windmill: still, turning.</summary>
+        private static readonly string[] WindmillLooks = { "Still", "Turning" };
+        /// <summary>A smelter: cold, loaded, working.</summary>
+        private static readonly string[] SmelterLooks = { "Cold", "Loaded", "Working" };
+        /// <summary>A fermenter: empty, fermenting, ready.</summary>
+        private static readonly string[] FermenterLooks = { "Empty", "Fermenting", "Ready" };
+        /// <summary>A sap collector: idle, working, full.</summary>
+        private static readonly string[] SapLooks = { "Idle", "Working", "Full" };
+        /// <summary>A station with a fire: cold, lit, in use.</summary>
+        private static readonly string[] StationFireLooks = { "Cold", "Fire lit", "In use" };
+        /// <summary>A station: idle, in use.</summary>
+        private static readonly string[] StationLooks = { "Idle", "In use" };
+        /// <summary>What is picked: ready, picked.</summary>
+        private static readonly string[] PickedLooks = { "Ready", "Picked" };
+        /// <summary>A creature that takes a saddle: without, saddled.</summary>
+        private static readonly string[] SaddleLooks = { "No saddle", "Saddled" };
+
         private static Found Describe(GameObject prefab)
         {
             if (prefab == null) return new Found();
@@ -158,49 +185,49 @@ namespace Scry
                         found = new Found
                         {
                             Sort = Sort.Fire,
-                            Names = hasLow ? new[] { "Unlit", "Low", "Lit" } : new[] { "Unlit", "Lit" },
+                            Names = hasLow ? FireLooksWithLow : FireLooks,
                             Default = hasLow ? 2 : 1,
                         };
                     }
                     else if (portal != null && (portal.m_model != null || portal.m_target_found != null))
                     {
-                        found = new Found { Sort = Sort.Portal, Names = new[] { "Unconnected", "Connected", "Open" }, Default = 2 };
+                        found = new Found { Sort = Sort.Portal, Names = PortalLooks, Default = 2 };
                     }
                     else if (door != null && ClipPlayer.AnimatorOf(prefab) != null)
                     {
-                        found = new Found { Sort = Sort.Door, Names = new[] { "Shut", "Open", "Open the other way" } };
+                        found = new Found { Sort = Sort.Door, Names = DoorLooks };
                     }
                     else if (chest != null && (chest.m_open != null || chest.m_closed != null))
                     {
-                        found = new Found { Sort = Sort.Chest, Names = new[] { "Shut", "Open" } };
+                        found = new Found { Sort = Sort.Chest, Names = ChestLooks };
                     }
                     else if (windmill != null && windmill.m_propeller != null)
                     {
-                        found = new Found { Sort = Sort.Windmill, Names = new[] { "Still", "Turning" }, Default = 1 };
+                        found = new Found { Sort = Sort.Windmill, Names = WindmillLooks, Default = 1 };
                     }
                     else if (smelter != null)
                     {
-                        found = new Found { Sort = Sort.Smelter, Names = new[] { "Cold", "Loaded", "Working" }, Default = 2 };
+                        found = new Found { Sort = Sort.Smelter, Names = SmelterLooks, Default = 2 };
                     }
                     else if (fermenter != null && fermenter.m_topObject != null)
                     {
-                        found = new Found { Sort = Sort.Fermenter, Names = new[] { "Empty", "Fermenting", "Ready" }, Default = 1 };
+                        found = new Found { Sort = Sort.Fermenter, Names = FermenterLooks, Default = 1 };
                     }
                     else if (sap != null && (sap.m_workingEffect != null || sap.m_notEmptyEffect != null))
                     {
-                        found = new Found { Sort = Sort.Sap, Names = new[] { "Idle", "Working", "Full" }, Default = 1 };
+                        found = new Found { Sort = Sort.Sap, Names = SapLooks, Default = 1 };
                     }
                     else if (station != null && (station.m_inUseObject != null || station.m_haveFireObject != null))
                     {
                         found = new Found
                         {
                             Sort = Sort.Station,
-                            Names = station.m_haveFireObject != null ? new[] { "Cold", "Fire lit", "In use" } : new[] { "Idle", "In use" },
+                            Names = station.m_haveFireObject != null ? StationFireLooks : StationLooks,
                         };
                     }
                     else if (pickable != null && pickable.m_hideWhenPicked != null)
                     {
-                        found = new Found { Sort = Sort.Picked, Names = new[] { "Ready", "Picked" } };
+                        found = new Found { Sort = Sort.Picked, Names = PickedLooks };
                     }
                     else if (Gear.Sets(prefab, out var sets) && sets.Count > 0)
                     {
@@ -210,7 +237,7 @@ namespace Scry
                     }
                     else if (tameable != null && tameable.m_saddle != null)
                     {
-                        found = new Found { Sort = Sort.Saddle, Names = new[] { "No saddle", "Saddled" } };
+                        found = new Found { Sort = Sort.Saddle, Names = SaddleLooks };
                     }
                     else if (drop != null && drop.m_itemData?.m_shared != null && drop.m_itemData.m_shared.m_variants > 1)
                     {

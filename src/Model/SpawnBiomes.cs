@@ -11,7 +11,7 @@ namespace Scry
     /// brings that weather (Fimbulvinter's weathers, an invasion's) sees it only during the event.
     /// A spawn asking for no weather is at home wherever it names.
     /// </summary>
-    public static class SpawnBiomes
+    internal static class SpawnBiomes
     {
         public static (List<string> Home, List<string> Events) Split(IEnumerable<string> biomes, IEnumerable<string> required, Func<string, ICollection<string>> weathersOf)
         {

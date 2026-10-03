@@ -8,7 +8,7 @@ namespace Scry
     /// keeps such things registers how it forgets them, once, as it is first used, and leaving a
     /// world forgets them all. One that fails does not keep the others from being forgotten.
     /// </summary>
-    public static class WorldCaches
+    internal static class WorldCaches
     {
         private static readonly List<(string Name, Action Forget)> All = new List<(string, Action)>();
 

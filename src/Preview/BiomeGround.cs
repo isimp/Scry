@@ -282,7 +282,7 @@ namespace Scry
                     ? $"{name} {Numbers.Amount(_material.GetFloat(name), 3)}" : $"{name} ({type})");
             }
             var renderer = _terrain != null ? _terrain.GetComponent<MeshRenderer>() : null;
-            var drawn = renderer == null ? "no renderer" : $"active {_terrain.activeInHierarchy}, layer {Numbers.Count(_terrain.layer)}, bounds {renderer.bounds.center} size {renderer.bounds.size}, in view {inView(renderer.bounds)}, drawn by a camera {renderer.isVisible}";
+            var drawn = renderer == null ? "no renderer" : $"active {_terrain.activeInHierarchy}, layer {Numbers.Count(_terrain.layer)}, bounds {Figures.Point(renderer.bounds.center)} size {Figures.Point(renderer.bounds.size)}, in view {inView(renderer.bounds)}, drawn by a camera {renderer.isVisible}";
             var path = camera != null ? $"{camera.renderingPath} ({camera.actualRenderingPath})" : "no camera";
             return $"{drawn}; the stage camera renders {path}; shader {shader?.name}, passes {Numbers.Count(_material.passCount)}, queue {Numbers.Count(_material.renderQueue)}, keywords [{string.Join(", ", _material.shaderKeywords)}], properties: {string.Join(", ", names)}";
         }

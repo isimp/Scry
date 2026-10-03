@@ -50,7 +50,7 @@ namespace Scry
         public static string Progress => _runner?.Progress;
         public static float Fraction => _runner?.Fraction ?? 0f;
         public static string LastHeadline => _runner?.LastHeadline;
-        public static IReadOnlyList<string> LastSummary => _runner?.LastSummary ?? new string[0];
+        public static IReadOnlyList<string> LastSummary => _runner?.LastSummary ?? System.Array.Empty<string>();
         public static string LastAdvice => _runner?.LastAdvice;
         public static bool LastFailed => _runner?.LastFailed ?? false;
         public static string LastText => _runner?.LastText ?? "";

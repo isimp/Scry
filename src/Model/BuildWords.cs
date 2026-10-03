@@ -9,7 +9,7 @@ namespace Scry
     /// centres, a bigger share sideways than up, and falls below its material's least. Weather
     /// follows <c>WearNTear.UpdateWear</c>.
     /// </summary>
-    public static class BuildWords
+    internal static class BuildWords
     {
 
         /// <summary>The support it has on the ground and the least it stands with; null for a material without figures.</summary>
@@ -96,7 +96,7 @@ namespace Scry
 
 namespace Scry
 {
-    public sealed class PlacementRules
+    internal sealed class PlacementRules
     {
         public bool GroundOnly, CultivatedOnly, DirtOnly, OnWater, NotInWater, NotOnWood, Level, CeilingOnly, NotOnFloor, TeleportArea, InDungeons, DeepSnowOnly;
     }
@@ -111,7 +111,7 @@ namespace Scry
     /// ground the cold does not reach (<c>Player.UpdateEnvStatusEffects</c>). A private area
     /// the game reads nowhere is not told.
     /// </summary>
-    public static class AreaWords
+    internal static class AreaWords
     {
         public static List<(string Label, string Text)> Lines(int type, float radius)
         {

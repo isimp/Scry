@@ -5,7 +5,7 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>How a room of an example shows on its plan with a floor opened.</summary>
-    public enum PlanRoomShown
+    internal enum PlanRoomShown
     {
         /// <summary>Above the floor opened, cut away as on the stage.</summary>
         None,
@@ -24,7 +24,7 @@ namespace Scry
     /// it: the plan shows only the floor's rooms, the stage those below too, dimmed. Heights are
     /// the example's own; a room's box stands centred on its pivot (<see cref="DungeonExample.Pick"/>).
     /// </summary>
-    public static class ExamplePlan
+    internal static class ExamplePlan
     {
         /// <summary>How high above a floor a room must start to be above it: a storey, as floors closer are one (<see cref="PlaceView.SameFloor"/>).</summary>
         public const float Headroom = 2f;

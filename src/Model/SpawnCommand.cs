@@ -8,7 +8,7 @@ namespace Scry
     /// up. The game reads the level as a creature's level (up to 9, one star per level above 1)
     /// or an item's quality (up to 4). Using it needs cheats, which the game only allows the host.
     /// </summary>
-    public static class SpawnCommand
+    internal static class SpawnCommand
     {
         public const int MaxCreatureLevel = 9;
         public const int MaxItemQuality = 4;

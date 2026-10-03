@@ -269,7 +269,7 @@ namespace Scry
                     : renderer.GetComponent<MeshFilter>()?.sharedMesh;
                 var bones = renderer is SkinnedMeshRenderer s ? $", bones {Numbers.Count(s.bones.Length)}, bindposes {Numbers.Count((s.sharedMesh != null ? s.sharedMesh.bindposes.Length : 0))}, root {(s.rootBone != null ? s.rootBone.name : "none")}" : "";
                 var material = renderer.sharedMaterial != null ? renderer.sharedMaterial.name + " / " + (renderer.sharedMaterial.shader != null ? renderer.sharedMaterial.shader.name : "no shader") : "no material";
-                lines.Add($"  {path}: {renderer.GetType().Name}, active {renderer.gameObject.activeInHierarchy}, enabled {renderer.enabled}, layer {Numbers.Count(renderer.gameObject.layer)}, mesh {(mesh != null ? mesh.name : "none")}{bones}, {material}, bounds {renderer.bounds.center} size {renderer.bounds.size}");
+                lines.Add($"  {path}: {renderer.GetType().Name}, active {renderer.gameObject.activeInHierarchy}, enabled {renderer.enabled}, layer {Numbers.Count(renderer.gameObject.layer)}, mesh {(mesh != null ? mesh.name : "none")}{bones}, {material}, bounds {Figures.Point(renderer.bounds.center)} size {Figures.Point(renderer.bounds.size)}");
             }
 
             foreach (var line in lines) Plugin.Report(line);

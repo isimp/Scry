@@ -5,7 +5,7 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>A creature spawn point of a location or room (<c>CreatureSpawner</c>), as the stage rolls it.</summary>
-    public struct SpawnPoint
+    internal struct SpawnPoint
     {
         public Vec3 At;
 
@@ -31,7 +31,7 @@ namespace Scry
     /// most stands on its own. Each creature's level goes up from the point's least, one at a
     /// time, while a roll under its chance holds, to its most at the highest.
     /// </summary>
-    public static class SpawnPoints
+    internal static class SpawnPoints
     {
         /// <summary>The groups the points make, each a list of their indexes; a point on its own is a group of one.</summary>
         public static List<List<int>> Groups(IReadOnlyList<SpawnPoint> points)

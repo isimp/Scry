@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>What an effect list is to the prefab it is on, where the game does something with it besides playing it.</summary>
-    public enum ListRole
+    internal enum ListRole
     {
         Other,
         TreeHit,
@@ -16,7 +16,7 @@ namespace Scry
     }
 
     /// <summary>What pressing an effect list's chip does first.</summary>
-    public enum ChipStep
+    internal enum ChipStep
     {
         /// <summary>The creature falls as its ragdoll.</summary>
         Ragdoll,
@@ -37,7 +37,7 @@ namespace Scry
     }
 
     /// <summary>What is known of an effect list when its chip is pressed.</summary>
-    public sealed class ChipFacts
+    internal sealed class ChipFacts
     {
         public ListRole Role;
 
@@ -62,7 +62,7 @@ namespace Scry
         public ChipFacts(ListRole role, params string[] parameters)
         {
             Role = role;
-            Parameters = new HashSet<string>(parameters ?? new string[0]);
+            Parameters = new HashSet<string>(parameters ?? System.Array.Empty<string>());
         }
     }
 
@@ -75,7 +75,7 @@ namespace Scry
     /// anything else just plays. Apart from the attack, whose clip plays the list as it goes, the
     /// list itself plays too.
     /// </summary>
-    public sealed class ChipPlan
+    internal sealed class ChipPlan
     {
         public ChipStep Step;
 

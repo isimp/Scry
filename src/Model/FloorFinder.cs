@@ -9,7 +9,7 @@ namespace Scry
     /// (each room of an example is probed on its own grid), its place on that grid, the height,
     /// the ground it stands for, and whether it is open, with nothing of the place above it.
     /// </summary>
-    public struct FloorHit
+    internal struct FloorHit
     {
         public int Patch, I, J;
         public float Height, Area;
@@ -22,7 +22,7 @@ namespace Scry
     /// itself. A place's floors are found from its patches added up, so an example's rooms are
     /// each read once, as they come in, however many there are.
     /// </summary>
-    public sealed class FloorPatch
+    internal sealed class FloorPatch
     {
         internal struct Band
         {
@@ -49,7 +49,7 @@ namespace Scry
     /// <see cref="PlaceView.SameFloor"/> are one floor (a step, a dais), the one with the most
     /// room standing for them.
     /// </summary>
-    public static class FloorFinder
+    internal static class FloorFinder
     {
         /// <summary>The height band rays are counted in, in metres; a spot's neighbours count within a band either way.</summary>
         public const float Band = 0.25f;

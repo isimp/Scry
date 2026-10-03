@@ -10,7 +10,7 @@ namespace Scry
     /// last seconds and a little graph of them; and each part of its work smoothed over the last
     /// couple of seconds, the largest first.
     /// </summary>
-    public sealed class MonitorWindow
+    internal sealed class MonitorWindow
     {
         private readonly double[] _scry;
         private readonly double[] _frame;

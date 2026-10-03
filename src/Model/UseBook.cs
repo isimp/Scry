@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>What an item is used for, in the order the panel lists the kinds.</summary>
-    public enum UseKind
+    internal enum UseKind
     {
         /// <summary>An ingredient of a recipe; the place is the crafting station, or "hand".</summary>
         Crafts,
@@ -29,7 +29,7 @@ namespace Scry
     }
 
     /// <summary>One use of a kind, at one place: what it goes into, and how many of the item each takes.</summary>
-    public sealed class UseGroup
+    internal sealed class UseGroup
     {
         public UseKind Kind;
 
@@ -44,7 +44,7 @@ namespace Scry
     /// turn it into, what burns it and what eats it. Noted while the catalog is read, each use
     /// once, and told back per item grouped by kind and place, always in the same order.
     /// </summary>
-    public sealed class UseBook
+    internal sealed class UseBook
     {
         private readonly Dictionary<string, List<UseGroup>> _uses = new Dictionary<string, List<UseGroup>>(StringComparer.Ordinal);
         private readonly HashSet<(string, UseKind, string, string)> _noted = new HashSet<(string, UseKind, string, string)>();

@@ -7,7 +7,7 @@ namespace Scry
     /// for whom one comes (<c>RandEventSystem.GetValidEventPoints</c>, <c>CheckBase</c>), how long
     /// it lasts, and how its creatures come (<c>SpawnSystem.UpdateSpawnList</c>).
     /// </summary>
-    public static class RaidWords
+    internal static class RaidWords
     {
         /// <summary>
         /// The roll every raid waits for: every so many minutes a chance, and on a hit one raid

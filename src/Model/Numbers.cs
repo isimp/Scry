@@ -11,7 +11,7 @@ namespace Scry
     /// number becomes shown text anywhere else; what Scry writes into its own files to read back
     /// goes through <see cref="Stored"/>.
     /// </summary>
-    public static class Numbers
+    internal static class Numbers
     {
         private static readonly CultureInfo English = CultureInfo.InvariantCulture;
 
@@ -63,6 +63,13 @@ namespace Scry
             var whole = (long)Math.Floor(Math.Max(0.0, seconds));
             return Count(whole / 60) + ":" + (whole % 60).ToString("00", English);
         }
+
+        /// <summary>A point on a picture or a plane by its figures, each to so many decimals: "(0.50, 1.25)".</summary>
+        public static string Point(double x, double y, int decimals) => "(" + Fixed(x, decimals) + ", " + Fixed(y, decimals) + ")";
+
+        /// <summary>A point in space by its figures, each to so many decimals: "(1.00, 2.50, -3.00)".</summary>
+        public static string Point(double x, double y, double z, int decimals) =>
+            "(" + Fixed(x, decimals) + ", " + Fixed(y, decimals) + ", " + Fixed(z, decimals) + ")";
 
         /// <summary>A code in hexadecimal digits, as a colour is written: "0A".</summary>
         public static string Hex(long value, int digits) => value.ToString("X" + Math.Max(1, digits).ToString(English), English);

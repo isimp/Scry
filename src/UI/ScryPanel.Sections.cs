@@ -97,6 +97,9 @@ namespace Scry
         /// <summary>The panel's foot line for each view and setting, once made.</summary>
         private static readonly string[] FootHints = new string[8];
 
+        /// <summary>The keys the full view's hint adds, which the compact view has no room for.</summary>
+        private static readonly string[] FullViewKeys = { "Enter plays", "Ctrl+F searches", "Esc leaves a box" };
+
         /// <summary>
         /// The keys that are not obvious, short, and only those the settings allow; the rest is
         /// under "?". Made once for each view and setting.
@@ -109,7 +112,7 @@ namespace Scry
             if (FootHints[index] != null) return FootHints[index];
 
             var parts = new List<string>();
-            if (!_compact) parts.AddRange(new[] { "Enter plays", "Ctrl+F searches", "Esc leaves a box" });
+            if (!_compact) parts.AddRange(FullViewKeys);
             if (walk) parts.Add("keys walk when not typing");
             if (look) parts.Add("right-drag outside to look");
             if (parts.Count == 0) parts.Add("Enter plays");

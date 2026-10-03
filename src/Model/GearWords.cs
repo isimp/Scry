@@ -9,7 +9,7 @@ namespace Scry
     /// <c>Player.AppendEquipmentModifierTooltips</c>): each as a percent up or down, the most
     /// adrenaline as a number. Movement is told on its own line already.
     /// </summary>
-    public static class GearWords
+    internal static class GearWords
     {
         private static readonly (string Field, string Label)[] Order =
         {

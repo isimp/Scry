@@ -50,7 +50,7 @@ namespace Scry
 
                 // Thrown, it hits where it lands; an attack with no hit of its own (a ground
                 // slam) lands on the ground.
-                if (attack.m_attackType == Attack.AttackType.Projectile) whole.Hit = new EffectList { m_effectPrefabs = new EffectList.EffectData[0] };
+                if (attack.m_attackType == Attack.AttackType.Projectile) whole.Hit = new EffectList { m_effectPrefabs = System.Array.Empty<EffectList.EffectData>() };
                 else if (whole.Hit.m_effectPrefabs.Length == 0)
                 {
                     whole.Hit = Join("m_hitTerrainEffect");

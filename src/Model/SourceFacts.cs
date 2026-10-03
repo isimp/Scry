@@ -3,7 +3,7 @@ using System;
 namespace Scry
 {
     /// <summary>How something gives a thing.</summary>
-    public enum SourceWay
+    internal enum SourceWay
     {
         /// <summary>A creature drops it on dying (<c>CharacterDrop</c>).</summary>
         Dropped,
@@ -34,7 +34,7 @@ namespace Scry
     }
 
     /// <summary>What a drop table belongs to, which says how it gives what it holds.</summary>
-    public enum TableOf
+    internal enum TableOf
     {
         Tree,
         Log,
@@ -52,7 +52,7 @@ namespace Scry
     /// figures that way has. Told in words by <see cref="SourceWords"/>, which also says how sure
     /// it is to give the thing.
     /// </summary>
-    public sealed class SourceFacts
+    internal sealed class SourceFacts
     {
         public SourceWay Way;
 
@@ -138,7 +138,7 @@ namespace Scry
     /// A way a thing comes from something in words, the same on every page, and how sure it is to
     /// give the thing, for telling the surest first (<see cref="ContentOrder.SurestFirst{T}"/>).
     /// </summary>
-    public static class SourceWords
+    internal static class SourceWords
     {
         /// <summary>The line telling it; a world key it waits for is named by the boss whose defeat sets it.</summary>
         public static string Line(SourceFacts source, Func<string, string> bossOf)

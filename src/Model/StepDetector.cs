@@ -7,7 +7,7 @@ namespace Scry
     /// the bottom of how high it goes, and not again within a fifth of a second. A foot that
     /// only sways, or dips high in the air, makes no step.
     /// </summary>
-    public sealed class StepDetector
+    internal sealed class StepDetector
     {
         /// <summary>A stride lower than this, in metres, is swaying rather than walking.</summary>
         private const float SmallestStride = 0.02f;

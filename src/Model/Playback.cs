@@ -8,7 +8,7 @@ namespace Scry
     /// thing started is tagged with the part it copies, so the parts of a list can be lit one by
     /// one. The button pressed last is remembered after it finishes, for showing what it played.
     /// </summary>
-    public sealed class Playback<T> where T : class
+    internal sealed class Playback<T> where T : class
     {
         private readonly Func<T, bool> _alive;
         private readonly Dictionary<object, List<(string Tag, T Thing)>> _started = new Dictionary<object, List<(string, T)>>();

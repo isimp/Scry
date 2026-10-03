@@ -1,0 +1,30 @@
+is_global = true
+
+# The .NET code analysis rules Scry turns off, each for what it misreads here. Every other rule
+# runs and fails the build (BuildChecks.props).
+
+# Unity's objects compare equal to null once destroyed, which flow analysis does not know: a
+# null check after a pattern match ("is ItemDrop drop && drop != null") is how a destroyed one
+# is skipped, not dead code.
+dotnet_diagnostic.CA1508.severity = none
+
+# Unity calls its messages (Update, OnGUI, OnAudioFilterRead) and a clip's animation events on
+# the instance, by name; they cannot be static.
+dotnet_diagnostic.CA1822.severity = none
+
+# A BepInEx plugin's id is a dotted name ("isimp.Scry"), not a GUID, whatever its parameter is
+# called, and BepInEx names it GUID.
+dotnet_diagnostic.CA2243.severity = none
+dotnet_diagnostic.CA1720.severity = none
+
+# Scry lowers case only for words it shows ("3 creatures"); it never compares by changing case,
+# and compares ordinally, as a standards test holds.
+dotnet_diagnostic.CA1308.severity = none
+
+# Random rolls follow the game's own dice for a preview; they guard nothing.
+dotnet_diagnostic.CA5394.severity = none
+
+# Scry offers no API (a standards test holds every type internal but the plugins), so its few
+# exceptions, made and caught by Scry alone, need no public type or set of constructors.
+dotnet_diagnostic.CA1032.severity = none
+dotnet_diagnostic.CA1064.severity = none

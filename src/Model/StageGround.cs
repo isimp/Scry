@@ -11,14 +11,14 @@ namespace Scry
     /// world's: there the plain floor stays.
     /// </summary>
     /// <summary>A place's paint on its ground (<c>TerrainModifier</c>): where, how far it reaches, how strongly, the colour it paints the mask and whether it clears the vegetation.</summary>
-    public struct GroundPaint
+    internal struct GroundPaint
     {
         public float X, Z, Radius, Strength;
         public (float R, float G, float B, float A) Color;
         public bool ClearsVegetation;
     }
 
-    public static class StageGround
+    internal static class StageGround
     {
         /// <summary>The backdrops, by index.</summary>
         public static readonly string[] Backdrops = { "Plain", "Sky", "Grid", "Sky and grid", "Ground", "Sky and ground" };
@@ -146,7 +146,7 @@ namespace Scry
         {
             string best = null;
             var bestRank = int.MaxValue;
-            foreach (var biome in biomes ?? new string[0])
+            foreach (var biome in biomes ?? Array.Empty<string>())
             {
                 if (string.IsNullOrEmpty(biome)) continue;
                 var rank = LocationWords.BiomeRank(biome);

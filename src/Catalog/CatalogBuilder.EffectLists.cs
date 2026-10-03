@@ -128,6 +128,9 @@ namespace Scry
 
         private static readonly Dictionary<Type, FieldInfo[]> NamingFields = new Dictionary<Type, FieldInfo[]>();
 
+        /// <summary>How .NET writes a set of flags: "Fire, Frost".</summary>
+        private static readonly string[] FlagSeparator = { ", " };
+
         /// <summary>
         /// What one entry of game data is for, by its first field that says so: an item (by its
         /// shown name), a prefab, or a kind (an enum, such as a projectile type); empty if none.
@@ -153,8 +156,8 @@ namespace Scry
                     return thing.name;
                 case Enum kind:
                     // A kind of nothing (a projectile type of None) says nothing; flags each say theirs.
-                    if (Convert.ToInt64(kind) == 0) return "";
-                    return string.Join(", ", kind.ToString().Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries).Select(Naming.FieldLabel));
+                    if (Convert.ToInt64(kind, System.Globalization.CultureInfo.InvariantCulture) == 0) return "";
+                    return string.Join(", ", kind.ToString().Split(FlagSeparator, StringSplitOptions.RemoveEmptyEntries).Select(Naming.FieldLabel));
                 default:
                     return "";
             }

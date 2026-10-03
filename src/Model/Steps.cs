@@ -9,7 +9,7 @@ namespace Scry
     /// of it, timing and telling, is <c>Guard</c>. None of the forms makes anything for the
     /// call, so a part run many times a frame costs nothing more for being run this way.
     /// </summary>
-    public static class Steps
+    internal static class Steps
     {
         /// <summary>Runs a part; null when it finished, else its failure.</summary>
         public static Exception Run(Action step, Func<Exception, bool> passes)

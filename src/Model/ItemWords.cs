@@ -6,7 +6,7 @@ namespace Scry
     /// (<c>InventoryGui.CanRepair</c>: at the station its recipe names, or its repair station,
     /// from the recipe's level) or that it cannot be.
     /// </summary>
-    public static class ItemWords
+    internal static class ItemWords
     {
         public const string NoWear = "does not wear out";
 

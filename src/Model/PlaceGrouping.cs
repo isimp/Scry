@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>What the Locations list knows of a location or dungeon room when it groups it.</summary>
-    public sealed class PlaceItem
+    internal sealed class PlaceItem
     {
         public string Key = "", Prefab = "", Shown = "";
         public bool Room;
@@ -25,7 +25,7 @@ namespace Scry
     }
 
     /// <summary>Where the Locations list puts a place: its group, its rank there, the tag beside its name, and whether it is indented under its dungeon.</summary>
-    public sealed class PlacePlacing
+    internal sealed class PlacePlacing
     {
         public Group Group;
         public int Rank;
@@ -41,7 +41,7 @@ namespace Scry
     /// share is under one of them; until a location building its theme is read, a theme's
     /// rooms wait together after every biome.
     /// </summary>
-    public static class PlaceGrouping
+    internal static class PlaceGrouping
     {
         /// <summary>A room's home theme: its lowest flag, 0 for none.</summary>
         public static int Home(int theme) => theme & -theme;

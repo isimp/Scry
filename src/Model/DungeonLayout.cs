@@ -5,7 +5,7 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>Dice rolled as Unity's <c>Random</c> rolls them, from a seed of their own.</summary>
-    public sealed class Dice
+    internal sealed class Dice
     {
         private readonly Random _random;
 
@@ -22,7 +22,7 @@ namespace Scry
     }
 
     /// <summary>Where a dungeon or camp is built: its generator's place and turn, and the box of its zone that its rooms must stay inside.</summary>
-    public sealed class DungeonSite
+    internal sealed class DungeonSite
     {
         public Vec3 Generator;
         public Quat Turn = Quat.Identity;
@@ -31,7 +31,7 @@ namespace Scry
     }
 
     /// <summary>A room as an example places it: where, how it is turned, and how far in from the entrance.</summary>
-    public sealed class PlacedRoom
+    internal sealed class PlacedRoom
     {
         public RoomShape Room;
         public Vec3 Position;
@@ -67,7 +67,7 @@ namespace Scry
     }
 
     /// <summary>One way a dungeon or camp can come out: its rooms in the order placed, and where doors went.</summary>
-    public sealed class DungeonExample
+    internal sealed class DungeonExample
     {
         public DungeonSite Site = new DungeonSite();
         public List<PlacedRoom> Rooms = new List<PlacedRoom>();
@@ -168,7 +168,7 @@ namespace Scry
     /// Whether two boxes centred on their pivots overlap, as <c>Physics.ComputePenetration</c> tells
     /// of two box colliders: boxes that only touch do not.
     /// </summary>
-    public static class Boxes
+    internal static class Boxes
     {
         private static readonly Vec3 Right = new Vec3(1f, 0f, 0f), Up = new Vec3(0f, 1f, 0f), Forward = new Vec3(0f, 0f, 1f);
 
@@ -223,7 +223,7 @@ namespace Scry
     /// placed before it nor leave its zone's box (<c>TestCollision</c>). The ground's tilt and
     /// height, which keep camp rooms off steep or low ground in a world, have no part in an example.
     /// </summary>
-    public sealed class DungeonLayout
+    internal sealed class DungeonLayout
     {
         /// <summary>A doorway of a placed room (<c>RoomConnection</c>): where it is, which way it faces, and how far in its room is.</summary>
         private sealed class Opening

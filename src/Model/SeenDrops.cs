@@ -6,7 +6,7 @@ using System.Text;
 namespace Scry
 {
     /// <summary>An item seen in a creature's loot: in how many kills, how many in all, and the fewest and most at a time.</summary>
-    public sealed class SeenDrop
+    internal sealed class SeenDrop
     {
         public string Item = "";
         public int Times, Total, Least, Most;
@@ -19,7 +19,7 @@ namespace Scry
     /// text (<see cref="Save"/>, <see cref="Load"/>). Items seen equally often are in the order of
     /// their names, so the order is the same after reading it back.
     /// </summary>
-    public sealed class SeenDrops
+    internal sealed class SeenDrops
     {
         private readonly Dictionary<string, int> _kills = new Dictionary<string, int>(StringComparer.Ordinal);
         private readonly Dictionary<string, Dictionary<string, SeenDrop>> _drops = new Dictionary<string, Dictionary<string, SeenDrop>>(StringComparer.Ordinal);
@@ -121,7 +121,7 @@ namespace Scry
     }
 
     /// <summary>How what was seen dropping is told.</summary>
-    public static class SeenWords
+    internal static class SeenWords
     {
         /// <summary>The row of a creature's loot seen in play, with how many kills it is from.</summary>
         public static string Title(int kills) => $"Seen dropping in your play ({Kills(kills)})";

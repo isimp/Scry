@@ -55,9 +55,9 @@ namespace Scry.Tests
         [InlineData(TableOf.Pickable, "Also picked from")]
         [InlineData(TableOf.Broken, "Broken out of")]
         [InlineData(TableOf.Other, "Comes out of")]
-        public void ATablesLineStartsWithHowItGives(TableOf table, string verb)
+        public void ATablesLineStartsWithHowItGives(object table, string verb)
         {
-            Assert.Equal(verb, SourceWords.Verb(table));
+            Assert.Equal(verb, SourceWords.Verb((TableOf)table));
         }
 
         [Fact]

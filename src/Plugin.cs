@@ -10,12 +10,13 @@ namespace Scry
 {
     [BepInPlugin(Guid, "Scry", Version)]
     [BepInProcess("valheim.exe")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA1001", Justification = "Unity ends a plugin with OnDestroy, which unpatches; a MonoBehaviour is never disposed.")]
     public class Plugin : BaseUnityPlugin
     {
         public const string Guid = "isimp.Scry";
         public const string Version = "0.2.0";
 
-        public static ManualLogSource Log;
+        internal static ManualLogSource Log { get; private set; }
 
         private static ConfigEntry<KeyCode> _openKey;
         private static ConfigEntry<bool> _autoSpin;

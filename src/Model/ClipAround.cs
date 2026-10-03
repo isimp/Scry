@@ -11,7 +11,7 @@ namespace Scry
     /// seen to go to count; an attack clip hears nothing around it, and what an action leads to
     /// outranks idling.
     /// </summary>
-    public static class ClipAround
+    internal static class ClipAround
     {
         /// <param name="actions">Each action by name and a key to what is heard around the clip it leads to.</param>
         /// <param name="seen">The clips each action was seen to lead through, in order, by action.</param>

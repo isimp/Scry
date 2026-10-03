@@ -10,7 +10,7 @@ namespace Scry
     /// its later words in any case, never across punctuation, the longest name at a place taken,
     /// up to <see cref="MostWords"/> words long. A possessive names its owner.
     /// </summary>
-    public static class NamesInText
+    internal static class NamesInText
     {
         public const int MostWords = 4;
 

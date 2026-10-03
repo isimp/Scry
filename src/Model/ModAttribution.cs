@@ -9,7 +9,7 @@ namespace Scry
     /// sounds, icons, materials), or whose assemblies hold its scripts, when they are one mod.
     /// Clues naming several mods leave it unnamed, as a guess would mislead.
     /// </summary>
-    public static class ModAttribution
+    internal static class ModAttribution
     {
         /// <summary>The mod named by its own name, else the one mod its other clues name, else null.</summary>
         public static string Pick(string byName, IEnumerable<string> byAssets)

@@ -9,7 +9,7 @@ namespace Scry
     /// version, website, description and the packages it depends on ("Author-Name-1.2.3"). Read
     /// with a small reader of its own, as the game ships no JSON reader Scry could use outside it.
     /// </summary>
-    public sealed class ModManifest
+    internal sealed class ModManifest
     {
         public string Name = "", Version = "", Website = "", Description = "";
         public List<string> Dependencies = new List<string>();

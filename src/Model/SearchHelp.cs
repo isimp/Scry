@@ -5,7 +5,7 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>A way to finish the word being typed: a key ("biome:") or a key with a value ("biome:swamp"), with how many it finds.</summary>
-    public struct Suggestion
+    internal struct Suggestion
     {
         /// <summary>What it is called in the list: the key, or the value as the game names it ("Black forest").</summary>
         public string Label;
@@ -23,7 +23,7 @@ namespace Scry
     }
 
     /// <summary>A word of the search: where it starts and ends, and the word itself.</summary>
-    public struct WordSpan
+    internal struct WordSpan
     {
         public int Start;
         public int End;
@@ -36,7 +36,7 @@ namespace Scry
     /// kept as the one word the search takes ("blackforest", "byhand") and as its name, with how
     /// many entries have it.
     /// </summary>
-    public sealed class TermIndex
+    internal sealed class TermIndex
     {
         internal sealed class Value
         {
@@ -83,12 +83,12 @@ namespace Scry
                 }
 
                 Add("kind", entry.Kind.ToString(), Kinds.Label(entry.Kind));
-                foreach (var part in entry.Components ?? new string[0]) Add("has", part, part);
-                foreach (var biome in entry.Biomes ?? new string[0]) Add("biome", biome, Naming.FieldLabel(biome));
+                foreach (var part in entry.Components ?? Array.Empty<string>()) Add("has", part, part);
+                foreach (var biome in entry.Biomes ?? Array.Empty<string>()) Add("biome", biome, Naming.FieldLabel(biome));
                 Add("mod", entry.ModName, entry.ModName);
                 foreach (var user in entry.UsedBy) Add("playedby", user, user);
-                foreach (var station in entry.Stations ?? new StationUse[0]) Add("station", station.Shown.Length > 0 ? station.Shown : station.Name, station.Shown.Length > 0 ? station.Shown : station.Name);
-                foreach (var place in entry.FoundIn ?? new string[0]) Add("in", Places.NameOf(place), Places.NameOf(place));
+                foreach (var station in entry.Stations ?? Array.Empty<StationUse>()) Add("station", station.Shown.Length > 0 ? station.Shown : station.Name, station.Shown.Length > 0 ? station.Shown : station.Name);
+                foreach (var place in entry.FoundIn ?? Array.Empty<string>()) Add("in", Places.NameOf(place), Places.NameOf(place));
             }
         }
 
@@ -166,7 +166,7 @@ namespace Scry
     /// nothing else was typed. A word with only one way to finish it is finished at once, so the
     /// next Tab goes on from there: "bi", Tab, "biome:", Tab, "biome:swamp".
     /// </summary>
-    public sealed class TabCycle
+    internal sealed class TabCycle
     {
         /// <summary>Which suggestion is in the search now, while cycling.</summary>
         public int Index { get; private set; }
@@ -227,7 +227,7 @@ namespace Scry
     /// Help with typing a search: the word being typed, what could finish it and how many each
     /// would find in the whole catalog, and the rest of the best one shown after it.
     /// </summary>
-    public static class SearchHelp
+    internal static class SearchHelp
     {
         /// <summary>What each key looks for, shown beside it.</summary>
         private static readonly Dictionary<string, string> KeyNotes = new Dictionary<string, string>

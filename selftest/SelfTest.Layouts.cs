@@ -179,7 +179,7 @@ namespace Scry
                 // A room of the top floor, which stands while it is opened.
                 var top = Stage.ExampleShown?.Rooms.FindIndex(r => !r.Room.EndCap && !r.Room.Divider && Stage.ExampleRoomShown(r) == PlanRoomShown.Whole) ?? -1;
                 var point = Stage.ExamplePointOf(Math.Max(0, top));
-                p.Check(point.HasValue && Stage.ExampleRoomAt(point.Value) != null, "a room on the stage is found under the mouse", point?.ToString() ?? "not in view");
+                p.Check(point.HasValue && Stage.ExampleRoomAt(point.Value) != null, "a room on the stage is found under the mouse", (point.HasValue ? Figures.Point(point.Value) : "not in view"));
                 Stage.Inside = false;
                 yield return null;
                 var outside = Stage.SubjectSize;
@@ -347,7 +347,7 @@ namespace Scry
             yield return null;
             var seen = under is Vector3 point ? Stage.PictureOf(point) : null;
             p.Check(seen is Vector2 there && (there - at).magnitude < 0.02f && Stage.LookDistance < far * 0.5f,
-                "the wheel zooms toward what is under the pointer, which stays under it", $"{(seen is Vector2 s ? s.ToString("0.000") : "not in view")} for {at:0.000}; {Numbers.Fixed(far, 1)} m to {Numbers.Fixed(Stage.LookDistance, 1)} m");
+                "the wheel zooms toward what is under the pointer, which stays under it", $"{(seen is Vector2 s ? Figures.Point(s, 3) : "not in view")} for {Figures.Point(at, 3)}; {Numbers.Fixed(far, 1)} m to {Numbers.Fixed(Stage.LookDistance, 1)} m");
 
             var from = new Vector2(0.5f, 0.5f);
             var to = new Vector2(0.62f, 0.44f);
@@ -357,7 +357,7 @@ namespace Scry
             yield return null;
             var followed = grabbed is Vector3 held ? Stage.PictureOf(held) : null;
             p.Check(followed is Vector2 now && (now - to).magnitude < 0.02f, "a drag with the right button keeps what was grabbed under the pointer",
-                $"{(followed is Vector2 f ? f.ToString("0.000") : "not in view")} for {to:0.000}");
+                $"{(followed is Vector2 f ? Figures.Point(f, 3) : "not in view")} for {Figures.Point(to, 3)}");
 
             // With the roof on, the wheel zooms toward what is under the pointer as well.
             Stage.OpenLevel(Stage.FloorHeights.Count);
@@ -371,7 +371,7 @@ namespace Scry
             yield return null;
             seen = under is Vector3 point2 ? Stage.PictureOf(point2) : null;
             p.Check(seen is Vector2 there2 && (there2 - at).magnitude < 0.02f && Stage.LookDistance < far * 0.5f,
-                "and the wheel zooms toward what is under the pointer there too", $"{(seen is Vector2 s2 ? s2.ToString("0.000") : "not in view")} for {at:0.000}");
+                "and the wheel zooms toward what is under the pointer there too", $"{(seen is Vector2 s2 ? Figures.Point(s2, 3) : "not in view")} for {Figures.Point(at, 3)}");
 
             Stage.ResetView();
             Stage.Inside = wasInside;
@@ -387,7 +387,7 @@ namespace Scry
             {
                 if (rooms[i].Room.EndCap || rooms[i].Room.Divider || Stage.ExampleRoomShown(rooms[i]) != PlanRoomShown.Whole) continue;
                 var point = Stage.ExamplePointOf(i);
-                if (!(point is Vector2 at) || at.x < -0.02f || at.x > 1.02f || at.y < -0.02f || at.y > 1.02f) outside.Add($"{rooms[i].Room.Name} at {(point?.ToString("0.00") ?? "behind")}");
+                if (!(point is Vector2 at) || at.x < -0.02f || at.x > 1.02f || at.y < -0.02f || at.y > 1.02f) outside.Add($"{rooms[i].Room.Name} at {(point.HasValue ? Figures.Point(point.Value) : "behind")}");
             }
             return outside;
         }

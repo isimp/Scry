@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>A component on a preview copy, described by what decides whether it stays.</summary>
-    public struct ComponentFacts
+    internal struct ComponentFacts
     {
         /// <summary>Full type name, e.g. <c>UnityEngine.MeshRenderer</c> or <c>Character</c>.</summary>
         public string TypeName;
@@ -28,7 +28,7 @@ namespace Scry
     /// saved has to go. Kept is a short list of what draws, animates, lights or sounds; everything
     /// else is removed, including any script a mod adds, since its needs cannot be known.
     /// </summary>
-    public static class StripPolicy
+    internal static class StripPolicy
     {
         /// <summary>Kept on the copy.</summary>
         public const int Keep = 0;

@@ -9,7 +9,7 @@ namespace Scry
     /// in every build of the game, so the raw code changes with every update; its steps only
     /// change when the method itself was rewritten. Zero means the code could not be read.
     /// </summary>
-    public static class IlShape
+    internal static class IlShape
     {
         private static readonly OpCode?[] OneByte = new OpCode?[256];
         private static readonly OpCode?[] TwoByte = new OpCode?[256];

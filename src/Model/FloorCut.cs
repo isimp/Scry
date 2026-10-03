@@ -10,7 +10,7 @@ namespace Scry
     /// off again opens, and how far the cut has been moved from its floor. A new copy of the same
     /// entry keeps its cut; another entry starts afresh.
     /// </summary>
-    public sealed class FloorCut
+    internal sealed class FloorCut
     {
         private readonly List<float> _floors = new List<float>();
         private List<float> _cuts = new List<float>();

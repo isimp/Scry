@@ -8,7 +8,7 @@ namespace Scry
     /// the PC is set to, so a file written on one PC reads on any. Numbers shown to the player or
     /// in the log go through <see cref="Numbers"/>.
     /// </summary>
-    public static class Stored
+    internal static class Stored
     {
         private static readonly CultureInfo Plain = CultureInfo.InvariantCulture;
 

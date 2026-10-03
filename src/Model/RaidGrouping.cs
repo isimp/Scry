@@ -5,7 +5,7 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>What starts an event of <c>RandEventSystem.m_events</c>, which the Raids tab groups by.</summary>
-    public enum RaidRole
+    internal enum RaidRole
     {
         /// <summary>Rolled for: by the raid roll, or on a timer of its own.</summary>
         Raid,
@@ -21,7 +21,7 @@ namespace Scry
     /// How the Raids tab lists its events: raids first, then bosses' fights, then the rest, and
     /// within each in the order the bosses are fought.
     /// </summary>
-    public static class RaidGrouping
+    internal static class RaidGrouping
     {
         /// <summary>The highest rank the list sorts by within a group (<see cref="Entry.GroupRank"/>).</summary>
         private const int MaxRank = 63;
@@ -40,7 +40,7 @@ namespace Scry
         /// </summary>
         public static string[] Biomes(RaidRole role, string[] set, string[] every)
         {
-            if (role != RaidRole.Raid) return new string[0];
+            if (role != RaidRole.Raid) return Array.Empty<string>();
             return set != null && set.Length > 0 ? set : every;
         }
 

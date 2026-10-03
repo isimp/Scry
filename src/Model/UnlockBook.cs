@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>What waits for a world key, kind by kind.</summary>
-    public enum Unlock
+    internal enum Unlock
     {
         /// <summary>A raid that may come once the key is set (<c>RandomEvent.m_requiredGlobalKeys</c>).</summary>
         RaidStarts,
@@ -27,7 +27,7 @@ namespace Scry
     /// traders, so a creature whose defeat sets a key (<c>Character.m_defeatSetGlobalKey</c>) can
     /// tell what follows it. Each thing is kept once, in the order read.
     /// </summary>
-    public sealed class UnlockBook
+    internal sealed class UnlockBook
     {
         private readonly Dictionary<(string Key, Unlock Kind), List<string>> _opens = new Dictionary<(string, Unlock), List<string>>();
         private readonly HashSet<string> _keys = new HashSet<string>(StringComparer.Ordinal);
@@ -54,7 +54,7 @@ namespace Scry
     }
 
     /// <summary>How a creature's page titles what its defeat opens.</summary>
-    public static class UnlockWords
+    internal static class UnlockWords
     {
         public static string Title(Unlock kind, int count)
         {

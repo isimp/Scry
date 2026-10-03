@@ -5,7 +5,7 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>What the mod report knows of one entry a mod added.</summary>
-    public sealed class ModEntry
+    internal sealed class ModEntry
     {
         public string Key = "", Name = "", Shown = "", Mod = "";
         public Kind Kind;
@@ -31,7 +31,7 @@ namespace Scry
     }
 
     /// <summary>One mod in the report: what it adds, its stations and tools, what it hooks into, and what Scry could not place.</summary>
-    public sealed class ModSummary
+    internal sealed class ModSummary
     {
         public string Mod = "";
         public readonly Dictionary<Kind, int> Counts = new Dictionary<Kind, int>();
@@ -50,7 +50,7 @@ namespace Scry
     /// not place. A mod that only hooks in is in it too; what no mod added is not, nor a mod
     /// adding nothing but having its page.
     /// </summary>
-    public static class ModReport
+    internal static class ModReport
     {
         public static List<ModSummary> Of(IEnumerable<ModEntry> entries, IReadOnlyDictionary<string, IReadOnlyList<HookedRule>> hooks)
         {
@@ -95,7 +95,7 @@ namespace Scry
     }
 
     /// <summary>How the mod report words what it tells.</summary>
-    public static class ModReportWords
+    internal static class ModReportWords
     {
         /// <summary>How many of each kind a mod adds, the most first and the rest in the kinds' order.</summary>
         public static string Counts(ModSummary mod)

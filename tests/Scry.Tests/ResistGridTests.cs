@@ -18,14 +18,14 @@ namespace Scry.Tests
         [InlineData(Degree.VeryWeak, "200%", "very weak to it: takes double", Tone.Weak)]
         [InlineData(Degree.Immune, "0%", "immune to it: takes none", Tone.Immune)]
         [InlineData(Degree.Ignore, "0%", "unaffected by it: takes none", Tone.Immune)]
-        public void EachDegreeIsTheShareTaken(Degree degree, string value, string word, Tone tone)
+        public void EachDegreeIsTheShareTaken(object degree, string value, string word, object tone)
         {
-            var cell = ResistWords.Cell("Fire", degree);
+            var cell = ResistWords.Cell("Fire", (Degree)degree);
 
             Assert.Equal("Fire", cell.Type);
             Assert.Equal(value, cell.Value);
             Assert.Equal("Fire: " + word, cell.Tip);
-            Assert.Equal(tone, cell.Tone);
+            Assert.Equal((Tone)tone, cell.Tone);
         }
 
         [Fact]

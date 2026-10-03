@@ -11,7 +11,7 @@ namespace Scry
     /// the one-word parts add up to the frame. A cleanup pauses whatever is running, so it is told on
     /// the part it ran in, where it would otherwise look like slow code.
     /// </summary>
-    public sealed class FrameTimes
+    internal sealed class FrameTimes
     {
         private sealed class Part
         {

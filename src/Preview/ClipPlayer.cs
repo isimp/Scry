@@ -36,7 +36,7 @@ namespace Scry
         /// events anew each time they are asked for, which on every frame of every copy playing
         /// a clip made garbage for nothing.
         /// </summary>
-        public AnimationEvent[] Events { get; private set; } = new AnimationEvent[0];
+        public AnimationEvent[] Events { get; private set; } = System.Array.Empty<AnimationEvent>();
 
         public static void Play(GameObject copy, AnimationClip clip, bool loop, float speed)
         {
@@ -176,7 +176,7 @@ namespace Scry
         {
             if (_graph.IsValid()) _graph.Destroy();
             _clip = null;
-            Events = new AnimationEvent[0];
+            Events = System.Array.Empty<AnimationEvent>();
             if (_animator != null) _animator.fireEvents = _ears != null;
             if (_ears != null) _ears.ClipEnded();
         }

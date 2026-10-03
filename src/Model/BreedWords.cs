@@ -9,7 +9,7 @@ namespace Scry
     /// what its young grows into (<c>Growup</c>). The game skips each check at the chance it
     /// calls the pregnancy chance, so a love point comes at the rest of it.
     /// </summary>
-    public static class BreedWords
+    internal static class BreedWords
     {
         /// <summary>What it needs to breed: tame, fed and calm, and a partner near unless it breeds alone too.</summary>
         public static string Needs(float partnerRange, string partner, bool alone)
@@ -53,7 +53,7 @@ namespace Scry
     }
 
     /// <summary>A ridden creature's stamina in words, as its saddle (<c>Sadle</c>) has it.</summary>
-    public static class RideWords
+    internal static class RideWords
     {
         /// <summary>How much stamina it has and regains, slower when hungry.</summary>
         public static string Stamina(float max, float regen, float hungry)

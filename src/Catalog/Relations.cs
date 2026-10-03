@@ -206,7 +206,7 @@ namespace Scry
         {
             // Only the animator the creature plays by, not an old one left switched off beside it.
             var played = ClipPlayer.AnimatorOf(prefab);
-            foreach (var animator in played != null ? new[] { played } : new Animator[0])
+            foreach (var animator in played != null ? new[] { played } : Array.Empty<Animator>())
             {
                 var controller = animator.runtimeAnimatorController;
                 if (controller == null) continue;

@@ -24,8 +24,9 @@ namespace Scry.Tests
         [Theory]
         [InlineData(Kind.Effect)]
         [InlineData(Kind.Sound)]
-        public void AnEffectLeftWhenSomethingIsDestroyedSaysWhatLeavesItAndStaysAnEffectUnderItsOwnName(Kind kind)
+        public void AnEffectLeftWhenSomethingIsDestroyedSaysWhatLeavesItAndStaysAnEffectUnderItsOwnName(object leftKind)
         {
+            var kind = (Kind)leftKind;
             var catalog = WithLeftovers();
             catalog.Add(E("stone_wall_destruction", kind, "Stone dust"));
 

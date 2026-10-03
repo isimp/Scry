@@ -108,7 +108,7 @@ namespace Scry
 
         public static string[] Biomes(string prefab)
         {
-            return BiomesOf.TryGetValue(prefab, out var set) ? set.ToArray() : new string[0];
+            return BiomesOf.TryGetValue(prefab, out var set) ? set.ToArray() : Array.Empty<string>();
         }
 
         /// <summary>Whether the world places it by itself: its spawn lists (cinder rain, fireflies) or its vegetation.</summary>

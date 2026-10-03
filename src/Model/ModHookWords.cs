@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>What part of the game a mod hooks into, as the details tell it.</summary>
-    public enum HookedRule
+    internal enum HookedRule
     {
         /// <summary>What a creature drops when it dies.</summary>
         Drops,
@@ -67,7 +67,7 @@ namespace Scry
     /// The note a detail gets when mods hook into the game's own code for it (found by
     /// <c>ModHooks</c> through Harmony): which mods, and what may differ from what is told.
     /// </summary>
-    public static class ModHookWords
+    internal static class ModHookWords
     {
         /// <summary>The note's label for a rule.</summary>
         public static string Label(HookedRule rule) => "Mods and " + Topic(rule);
@@ -108,7 +108,7 @@ namespace Scry
             foreach (var (rule, named) in hooks ?? new List<(HookedRule, IReadOnlyList<string>)>())
             {
                 var any = false;
-                foreach (var mod in named ?? new string[0])
+                foreach (var mod in named ?? System.Array.Empty<string>())
                 {
                     if (string.IsNullOrEmpty(mod)) continue;
                     any = true;

@@ -8,7 +8,7 @@ namespace Scry
     /// wakes are the game's; mods register theirs afterwards. An effect only reached through other
     /// prefabs' effect lists belongs to the game when any game prefab uses it.
     /// </summary>
-    public sealed class Provenance
+    internal sealed class Provenance
     {
         /// <summary>Stands for the game's own interface as the user of an effect.</summary>
         public const string Interface = "(interface)";

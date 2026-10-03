@@ -5,7 +5,7 @@ namespace Scry
     /// and a chip for the rest, until that is opened. A list is never shortened to hide only one
     /// or two, since the chip that says so takes their room.
     /// </summary>
-    public static class Shortlist
+    internal static class Shortlist
     {
         /// <summary>How many more than the first part a list may have and still be shown whole.</summary>
         public const int Slack = 2;
