@@ -27,6 +27,7 @@ namespace Scry
 
             Settings.Bind(Config);
             Timing.FrameDone += Monitor.Frame;
+            ScryPanel.CloseAsked += Session.Hide;
 
             _harmony = new Harmony(About.Guid);
             Patch();
@@ -71,7 +72,13 @@ namespace Scry
             if (Settings.LogPreviews) Timing.Add(EventPart(kind), started);
 
             // The resource monitor over everything, its own drawing a part of its own.
-            if (Monitor.On && kind == EventType.Repaint) Guard.Run("the resource monitor", ScryPanel.MonitorGUI, "monitor");
+            if (Monitor.On && kind == EventType.Repaint) Guard.Run("the resource monitor", DrawMonitor, "monitor");
+        }
+
+        private static void DrawMonitor()
+        {
+            Monitor.Refresh();
+            ScryPanel.MonitorGUI(Monitor.Lines, Monitor.Graph, Monitor.GraphTop);
         }
 
         private static readonly string[] EventParts = new string[64];

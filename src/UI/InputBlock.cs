@@ -32,7 +32,7 @@ namespace Scry
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool Blocks() => Session.BlocksInput;
+        private static bool Blocks() => ScryPanel.BlocksInput;
     }
 
     /// <summary>
@@ -56,7 +56,7 @@ namespace Scry
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void LetGo()
         {
-            if (Session.IsOpen && ScryPanel.Typing && ZInput.instance != null) ZInput.ResetButtonStatus("Inventory");
+            if (ScryPanel.IsOpen && ScryPanel.Typing && ZInput.instance != null) ZInput.ResetButtonStatus("Inventory");
         }
     }
 
@@ -78,10 +78,10 @@ namespace Scry
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool Looking() => Session.Looking;
+        private static bool Looking() => ScryPanel.Looking;
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool Walking() => Session.Walking;
+        private static bool Walking() => ScryPanel.Walking;
     }
 
     /// <summary>
@@ -109,7 +109,7 @@ namespace Scry
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool Open() => Session.IsOpen;
+        private static bool Open() => ScryPanel.IsOpen;
     }
 
     /// <summary>While looking around, the cursor is captured as in normal play.</summary>
@@ -127,7 +127,7 @@ namespace Scry
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void Capture()
         {
-            if (!Session.Looking) return;
+            if (!ScryPanel.Looking) return;
             ZCursor.LockState = UnityEngine.CursorLockMode.Locked;
             ZCursor.Hide();
         }
@@ -151,6 +151,6 @@ namespace Scry
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool Blocks() => Session.BlocksInput;
+        private static bool Blocks() => ScryPanel.BlocksInput;
     }
 }

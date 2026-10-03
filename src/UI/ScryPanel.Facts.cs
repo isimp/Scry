@@ -51,7 +51,7 @@ namespace Scry
                     if (GUI.Button(musicRect, GUIContent.none, GUIStyle.none))
                     {
                         var said = named == null ? Previews.PlacesMusic(entry) : Previews.NamedMusic(entry, named);
-                        if (said != null) Session.Say(said);
+                        if (said != null) Say(said);
                     }
                 }
                 // A mod's website opens in the browser.
@@ -345,7 +345,7 @@ namespace Scry
             if (GUI.Button(new Rect(box.xMax + U(8f), y, copyW, U(30f)), "Copy", Skin.Button))
             {
                 GUIUtility.systemCopyBuffer = command;
-                Session.Say($"Copied \"{command}\". Paste it into the console (F5).");
+                Say($"Copied \"{command}\". Paste it into the console (F5).");
             }
             y += U(36f);
 
@@ -412,7 +412,7 @@ namespace Scry
                 y += U(4f);
                 var text = "Write its parts to the log";
                 var w = Skin.Width(Skin.Chip, text) + U(8f);
-                if (GUI.Button(new Rect(0f, y, Mathf.Min(width, w), U(26f)), text, Skin.Chip)) Session.Say(Stage.Dump());
+                if (GUI.Button(new Rect(0f, y, Mathf.Min(width, w), U(26f)), text, Skin.Chip)) Say(Stage.Dump());
                 y += U(32f);
             }
 
@@ -494,14 +494,14 @@ namespace Scry
         private static void StopReadingLocations()
         {
             var said = Locations.Stop();
-            Session.Say(char.ToUpperInvariant(said[0]) + said.Substring(1));
+            Say(char.ToUpperInvariant(said[0]) + said.Substring(1));
         }
 
         /// <summary>Starts reading the locations, from any of the buttons that offer it, and says so.</summary>
         private static void StartReadingLocations()
         {
             var said = Locations.Start();
-            Session.Say(char.ToUpperInvariant(said[0]) + said.Substring(1));
+            Say(char.ToUpperInvariant(said[0]) + said.Substring(1));
         }
 
         private static string Components(GameObject prefab)

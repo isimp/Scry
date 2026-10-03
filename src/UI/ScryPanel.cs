@@ -124,16 +124,6 @@ namespace Scry
             }
         }
 
-        public static void Opened()
-        {
-            Skin.LookForFontsAgain();
-
-            // In the compact view the keys walk until the search is clicked, so it is not focused on
-            // opening; in the full view as the player sets it.
-            _focusSearch = !_compact && Settings.FocusSearchOnOpen;
-            _reveal = true;
-        }
-
         /// <summary>
         /// What the panel last drew: the whole window, or only the card shown while the catalog is
         /// read, so the space around that card is the world's, for looking around.
@@ -143,7 +133,7 @@ namespace Scry
         /// <summary>Whether a mouse position (in Unity's bottom-up screen coordinates) is over the panel.</summary>
         public static bool Covers(Vector3 mouse)
         {
-            return Session.IsOpen && _drawn.Contains(new Vector2(mouse.x, Screen.height - mouse.y));
+            return IsOpen && _drawn.Contains(new Vector2(mouse.x, Screen.height - mouse.y));
         }
 
         private static float U(float v) => Mathf.Round(v * _s);
@@ -161,6 +151,7 @@ namespace Scry
         {
             EffectCache.Clear();
             _effectsEntry = null;
+            _explorer = null;
             _effectsCarried = null;
             _effects = null;
             ComponentLists.Clear();
@@ -222,11 +213,11 @@ namespace Scry
         public static void OnGUI()
         {
             var scale = Scale();
-            if (!Session.IsOpen || Session.Explorer == null)
+            if (!IsOpen || _explorer == null)
             {
                 SearchFocused = false;
                 Typing = false;
-                if (Session.Reading != null) DrawReading(scale, Session.Reading);
+                if (IsOpen && _reading != null) DrawReading(scale, _reading);
 
                 // Warmed in a world only: at the main menu the game's fonts are not loaded yet, so
                 // warming there would measure a font the panel never uses, for most of a second.
@@ -262,7 +253,7 @@ namespace Scry
             if (Event.current.type == EventType.Repaint) _askedTipKey = null;
 
             Place();
-            var explorer = Session.Explorer;
+            var explorer = _explorer;
 
             // A header slider's box, or the stage's View box, takes the mouse over it before anything under it does.
             if (SlideInput(explorer) || ViewInput(explorer)) return;
@@ -272,7 +263,7 @@ namespace Scry
             if (Event.current.type == EventType.MouseDown) GUIUtility.keyboardControl = 0;
 
             Keys(explorer);
-            if (!Session.IsOpen) return;
+            if (!IsOpen) return;
 
             // A key no text box of the panel has, such as one held to walk and repeated, has
             // nothing to draw: only the panel's own keys above answer it.
@@ -321,7 +312,7 @@ namespace Scry
                 var e = Event.current;
                 if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape)
                 {
-                    Session.Hide();
+                    AskClose();
                     e.Use();
                     return;
                 }
@@ -336,7 +327,7 @@ namespace Scry
                 Skin.Box(rect, Skin.Backdrop, Skin.Outline);
                 GUI.BeginGroup(rect);
                 GUI.Label(new Rect(pad, U(10f), U(90f), U(34f)), "Scry", Skin.Title);
-                if (GUI.Button(new Rect(rect.width - pad - U(32f), U(12f), U(32f), U(32f)), "×", Skin.Close)) Session.Hide();
+                if (GUI.Button(new Rect(rect.width - pad - U(32f), U(12f), U(32f), U(32f)), "×", Skin.Close)) AskClose();
                 GUI.Label(new Rect(pad, U(58f), rect.width - 2f * pad, U(24f)), "Reading the catalog, once for this world", Skin.Label);
                 GUI.Label(new Rect(pad, U(84f), rect.width - 2f * pad, U(22f)), progress, Skin.DimLabel);
                 GUI.EndGroup();
@@ -407,13 +398,13 @@ namespace Scry
             {
                 Previews.ClearWorld();
                 _outOpen = false;
-                Session.Say("Cleared. Nothing from Scry is left in the world.");
+                Say("Cleared. Nothing from Scry is left in the world.");
             }
             OutHover(clearRect, outLines, e, new Rect(pad, 0f, w - pad * 2f, h - pad));
             OutClicks(explorer, e);
 
             if (GUI.Button(viewRect, viewText, Skin.Button)) ToggleCompact();
-            if (GUI.Button(new Rect(w - pad - U(32f), U(12f), U(32f), U(32f)), "×", Skin.Close)) Session.Hide();
+            if (GUI.Button(new Rect(w - pad - U(32f), U(12f), U(32f), U(32f)), "×", Skin.Close)) AskClose();
             if (e.type == EventType.MouseDown && e.button == 0 && header.Contains(e.mousePosition))
             {
                 _drag = Drag.Move;
@@ -508,7 +499,7 @@ namespace Scry
 
         private static void Footer(Rect rect)
         {
-            var note = Session.Note;
+            var note = Note;
             var text = note ?? FootHint();
             Ticker(new Rect(rect.x, rect.y, rect.width - U(40f), rect.height), text, note != null ? Skin.DimLabel : Skin.FaintLabel);
         }

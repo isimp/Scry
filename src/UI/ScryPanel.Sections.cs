@@ -263,7 +263,7 @@ namespace Scry
             {
                 if (!Guard.Run("telling the game's version", GameVersion, out var game)) game = "of an unknown version";
                 GUIUtility.systemCopyBuffer = $"Scry {About.Version}, Valheim {game}: off: {string.Join(", ", _offFeatures)}";
-                Session.Say("Copied what is off, with Scry's and the game's versions.");
+                Say("Copied what is off, with Scry's and the game's versions.");
             }
         }
 

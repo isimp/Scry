@@ -32,30 +32,12 @@ namespace Scry
         private const double QuietBudgetMs = 4;
         private const double WaitedBudgetMs = 14;
 
-        /// <summary>What is being read of the catalog while the open panel waits for it; null once there is nothing to wait for.</summary>
-        public static string Reading => IsOpen && Explorer == null ? _job != null ? _job.Progress : "Reading the catalog" : null;
-        private static int _closedFrame = -10;
-        private static string _note;
-        private static float _noteUntil;
+        /// <summary>What is being read of the catalog while there is no explorer yet; null once there is.</summary>
+        private static string Reading => Explorer == null ? _job != null ? _job.Progress : "Reading the catalog" : null;
 
-        public static bool IsOpen { get; private set; }
+        public static bool IsOpen => ScryPanel.IsOpen;
 
         public static Explorer Explorer { get; private set; }
-
-        /// <summary>
-        /// Whether the game should keep its hands off input. Stays true for the frame after
-        /// closing, so the Escape that closed the panel does not also open the game's menu.
-        /// </summary>
-        public static bool BlocksInput => IsOpen || Time.frameCount <= _closedFrame + 1;
-
-        /// <summary>A short line shown at the foot of the panel for a few seconds.</summary>
-        public static string Note => Time.unscaledTime < _noteUntil ? _note : null;
-
-        public static void Say(string text)
-        {
-            _note = text;
-            _noteUntil = Time.unscaledTime + 4f;
-        }
 
         public static void Toggle()
         {
@@ -78,17 +60,14 @@ namespace Scry
                 else _pendingSearch = search;
             }
             if (Explorer == null && ReferenceEquals(_failedIn, ZNetScene.instance)) _failedIn = null;
-            IsOpen = true;
             if (Explorer != null) Explorer.RecentLimit = Settings.RecentCount;
-            ScryPanel.Opened();
+            ScryPanel.Opened(Explorer, Reading);
         }
 
         public static void Hide()
         {
             if (!IsOpen) return;
-            IsOpen = false;
-            Looking = false;
-            _closedFrame = Time.frameCount;
+            ScryPanel.Closed();
             Previews.Suspend();
 
             if (Previews.AnythingInWorld && !_toldPreviewsStay)
@@ -98,18 +77,6 @@ namespace Scry
                     "Scry's previews stay in the world until you clear them in the panel or with /scry clear.");
             }
         }
-
-        /// <summary>
-        /// Whether the right mouse button is held to look around while the panel is open. Only the
-        /// camera is freed; moving, blocking and attacking stay off.
-        /// </summary>
-        public static bool Looking { get; private set; }
-
-        /// <summary>
-        /// Whether the character can walk while the panel is open: whenever none of its text boxes
-        /// has the keyboard, so typing a search never moves anyone.
-        /// </summary>
-        public static bool Walking => IsOpen && !ScryPanel.Typing && Settings.WalkWhileOpen;
 
         private static bool _toldPreviewsStay;
 
@@ -129,23 +96,14 @@ namespace Scry
             });
 
             Step("reading the catalog", () => ReadCatalog());
-            if (Explorer != null) Step("preparing the panel's lookups", () => ScryPanel.Prepare(Explorer));
 
             Step("the key that opens the panel", () =>
             {
                 if (Input.GetKeyDown(Settings.OpenKey) && CanToggle() && !TypingIt(Settings.OpenKey)) Toggle();
             });
 
-            Step("looking around and stepping back", () =>
-            {
-                // Looking starts only from a press outside the panel, so a right click on it stays a click.
-                if (!IsOpen || !Input.GetMouseButton(1)) Looking = false;
-                else if (Input.GetMouseButtonDown(1) && Settings.LookWithRightMouse && !ScryPanel.Covers(Input.mousePosition)) Looking = true;
-
-                // The mouse's own back and forward buttons step through jumps, as in a browser.
-                if (IsOpen && Explorer != null && Input.GetKeyDown(KeyCode.Mouse3)) ScryPanel.Step(Explorer, true);
-                if (IsOpen && Explorer != null && Input.GetKeyDown(KeyCode.Mouse4)) ScryPanel.Step(Explorer, false);
-            });
+            // After the key, so the panel opened by it is handed what it shows in the same frame.
+            ScryPanel.Update(Explorer, Reading);
 
             Step("the previews", () => Previews.Update(IsOpen ? Explorer : null));
             Step("the self-test", () =>

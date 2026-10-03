@@ -73,7 +73,7 @@ namespace Scry
 
                 case Kind.Biome:
                     // Everything there, as the search finds it.
-                    if (Button("Everything here", Skin.Primary) && Session.Explorer != null) SearchFor(Session.Explorer, "biome:" + entry.Name.ToLowerInvariant());
+                    if (Button("Everything here", Skin.Primary) && _explorer != null) SearchFor(_explorer, "biome:" + entry.Name.ToLowerInvariant());
                     break;
 
                 case Kind.Location:
@@ -136,7 +136,7 @@ namespace Scry
                             if (Button("Pin", Skin.Button))
                             {
                                 Previews.Pin();
-                                Session.Say("Pinned. It stays where it is until you press Clear.");
+                                Say("Pinned. It stays where it is until you press Clear.");
                             }
                         }
                     }
@@ -167,7 +167,7 @@ namespace Scry
         {
             if (!RolledNames.TryGetValue(prefab, out var name))
             {
-                var found = Session.Explorer?.Find(prefab);
+                var found = WorldCatalog.Find(prefab);
                 name = found != null && found.Kind == Kind.Creature ? found.ShownName : prefab;
                 RolledNames[prefab] = name;
             }

@@ -30,7 +30,7 @@ namespace Scry
                         GUIUtility.keyboardControl = 0;
                         Assist.ResetCycle();
                     }
-                    else Session.Hide();
+                    else AskClose();
                     e.Use();
                     break;
                 case KeyCode.UpArrow:
@@ -131,7 +131,7 @@ namespace Scry
                 case Kind.Location:
                 case Kind.Biome:
                     var said = Previews.PlacesMusic(entry);
-                    if (said != null) Session.Say(said);
+                    if (said != null) Say(said);
                     break;
                 case Kind.Raid:
                     // A raid rolls its creatures anew; a boss's fight, which brings none, plays its music.
@@ -139,7 +139,7 @@ namespace Scry
                     else
                     {
                         var music = Previews.PlacesMusic(entry);
-                        if (music != null) Session.Say(music);
+                        if (music != null) Say(music);
                     }
                     break;
                 case Kind.Item:
@@ -173,7 +173,7 @@ namespace Scry
                 Previews.LastClip = clips[i];
                 return;
             }
-            if (clips.Count > 0 && tags.Count == 0) Session.Say("Its animations are still being worked out; Enter plays its first attack once they are.");
+            if (clips.Count > 0 && tags.Count == 0) Say("Its animations are still being worked out; Enter plays its first attack once they are.");
         }
 
         /// <summary>

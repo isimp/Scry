@@ -35,7 +35,7 @@ namespace Scry
             {
                 if (NoticeStrip(rect, tone, SelfTestHost.Progress, Skin.Label, false, "Stop", false, false, chipTip: "Stops the self-test and puts back what it changed") == StripClick.Chip)
                 {
-                    Session.Say("Scry: " + SelfTestHost.Stop());
+                    Say("Scry: " + SelfTestHost.Stop());
                 }
                 Skin.Fill(new Rect(rect.x, rect.yMax - U(3f), rect.width * SelfTestHost.Fraction, U(3f)), tone);
                 return;
@@ -83,7 +83,7 @@ namespace Scry
             if (CardButton(rect, close, "Copy summary", out _))
             {
                 GUIUtility.systemCopyBuffer = SelfTestHost.LastText;
-                Session.Say("Copied the self-test's summary.");
+                Say("Copied the self-test's summary.");
             }
         }
     }

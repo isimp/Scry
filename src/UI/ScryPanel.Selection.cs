@@ -197,7 +197,7 @@ namespace Scry
             if (GUI.Button(new Rect(width - copyW - U(38f), y + U(2f), copyW, U(26f)), "Copy name", Skin.Button))
             {
                 GUIUtility.systemCopyBuffer = entry.Name;
-                Session.Say($"Copied \"{entry.Name}\".");
+                Say($"Copied \"{entry.Name}\".");
             }
             y += U(34f);
 
