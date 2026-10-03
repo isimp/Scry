@@ -167,7 +167,7 @@ namespace Scry
             foreach (var entry in entries)
             {
                 if (!(entry.Source is PlaceSource source)) continue;
-                var item = new PlaceItem { Key = entry.Key, Prefab = source.Prefab, Shown = entry.DisplayName.Length > 0 ? entry.DisplayName : source.Prefab, Room = source.IsRoom };
+                var item = new PlaceItem { Key = entry.Key, Prefab = source.Prefab, Shown = entry.ShownName, Room = source.IsRoom };
                 if (source.IsRoom)
                 {
                     item.Theme = (int)source.Room.m_theme;

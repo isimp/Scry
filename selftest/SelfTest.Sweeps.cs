@@ -89,7 +89,7 @@ namespace Scry
             var shownOf = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var each in X.Catalog)
             {
-                var shown = each.DisplayName.Length > 0 ? each.DisplayName : each.Name;
+                var shown = each.ShownName;
                 shownOf[each.Key] = shown;
                 if (each.DisplayName.Length >= 3 && each.DisplayName != "Scry" && !byName.ContainsKey(each.DisplayName)) byName[each.DisplayName] = each;
             }

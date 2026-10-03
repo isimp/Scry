@@ -535,7 +535,7 @@ namespace Scry
             var miscounted = new List<string>();
             var built = 0;
             Entry shown = null;
-            foreach (var place in places)
+            yield return Budgeted(places, place =>
             {
                 var facts = Facts.For(place);
                 var rows = facts.Rows.Where(r => titles.Contains(r.Title)).ToList();
@@ -546,7 +546,7 @@ namespace Scry
                     built++;
                     if (shown == null || rows.Count > Facts.For(shown).Rows.Count(r => titles.Contains(r.Title))) shown = place;
                 }
-            }
+            });
             p.Check(miscounted.Count == 0, "every location tells each of its parts once, in a row by what it is", miscounted.Count > 0 ? string.Join(", ", miscounted.Take(10)) : $"{Numbers.Count(places.Count)} locations");
             p.Note($"{Numbers.Count(built)} of {Numbers.Count(places.Count)} locations have building pieces apart");
             if (shown != null)
@@ -558,17 +558,18 @@ namespace Scry
 
             // Creatures' drops, rarest first: each chip's chance no more than the next's.
             var unsorted = new List<string>();
-            foreach (var creature in X.Catalog.Where(e => e.Kind == Kind.Creature && (e.Source as GameObject)?.GetComponent<CharacterDrop>() != null))
+            var droppers = X.Catalog.Where(e => e.Kind == Kind.Creature && (e.Source as GameObject)?.GetComponent<CharacterDrop>() != null).ToList();
+            yield return Budgeted(droppers, creature =>
             {
                 var drops = ((GameObject)creature.Source).GetComponent<CharacterDrop>().m_drops.Where(d => d?.m_prefab != null).ToList();
                 var row = Facts.For(creature).Rows.FirstOrDefault(r => r.Title == "Drops");
-                if (row == null) continue;
+                if (row == null) return;
                 var chances = row.Items.Select(i => drops.Where(d => d.m_prefab.name == i.Prefab).Select(d => d.m_chance).DefaultIfEmpty(1f).Min()).ToList();
                 for (var i = 1; i < chances.Count; i++)
                 {
                     if (chances[i] < chances[i - 1]) { unsorted.Add(creature.Name); break; }
                 }
-            }
+            });
             p.Check(unsorted.Count == 0, "creatures' drops come rarest first", unsorted.Count > 0 ? string.Join(", ", unsorted.Take(10)) : "");
             var greydwarf = Pick(Kind.Creature, "Greydwarf");
             var greyDrops = greydwarf != null ? Facts.For(greydwarf).Rows.FirstOrDefault(r => r.Title == "Drops") : null;
@@ -593,14 +594,14 @@ namespace Scry
 
             // Where things come from, the surest first.
             var doubtful = new List<string>();
-            foreach (var item in X.Catalog.Where(e => e.Kind == Kind.Item))
+            yield return Budgeted(X.Catalog.Where(e => e.Kind == Kind.Item).ToList(), item =>
             {
                 var lines = Facts.For(item).Where.Where(l => l.Unsure == null).ToList();
                 for (var i = 1; i < lines.Count; i++)
                 {
                     if (lines[i].Chance > lines[i - 1].Chance + 1e-9) { doubtful.Add(item.Name); break; }
                 }
-            }
+            });
             p.Check(doubtful.Count == 0, "where things come from is told surest first", doubtful.Count > 0 ? string.Join(", ", doubtful.Take(10)) : "");
             var coal = Pick(Kind.Item, "Coal");
             if (coal != null) p.Note($"{coal.Name} comes from: {string.Join(" | ", Facts.For(coal).Where.Take(5).Select(l => l.Text))}");

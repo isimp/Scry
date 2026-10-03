@@ -24,7 +24,7 @@ namespace Scry
             void Here(string title, Func<Entry, bool> which, bool home = true, Func<List<Entry>, List<Entry>> order = null)
             {
                 var found = catalog.Where(e => which(e) && (home ? e.Biomes.Contains(biome.Name) : Knowledge.EventBiomes(e.Name).Contains(biome.Name) && !e.Biomes.Contains(biome.Name)))
-                    .OrderBy(e => e.DisplayName.Length > 0 ? e.DisplayName : e.Name, StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(e => e.ShownName, StringComparer.OrdinalIgnoreCase)
                     .ToList();
                 var row = new Row();
                 foreach (var entry in order != null ? order(found) : found) row.Items.Add(EntryChip(entry));

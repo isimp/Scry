@@ -168,7 +168,7 @@ namespace Scry
         private static string PlaceName(string prefab)
         {
             var entry = Session.Explorer?.Find(EntryKeys.For(Kind.Location, prefab));
-            return entry != null && entry.DisplayName.Length > 0 ? entry.DisplayName : prefab;
+            return entry != null ? entry.ShownName : prefab;
         }
 
         /// <summary>How its dungeon or camp is built, and the rooms it is built of, each going to its entry.</summary>

@@ -82,7 +82,7 @@ namespace Scry
         private static Row ChipRow(string title, IEnumerable<Entry> entries, string unsure)
         {
             var row = new Row { Title = title, Unsure = unsure };
-            foreach (var entry in entries.OrderBy(e => e.DisplayName.Length > 0 ? e.DisplayName : e.Name, System.StringComparer.OrdinalIgnoreCase)) row.Items.Add(EntryChip(entry));
+            foreach (var entry in entries.OrderBy(e => e.ShownName, System.StringComparer.OrdinalIgnoreCase)) row.Items.Add(EntryChip(entry));
             return row;
         }
 
@@ -103,7 +103,7 @@ namespace Scry
         private static Ingredient EntryChip(Entry entry) => new Ingredient
         {
             Icon = entry.Icon is Sprite own && own != null ? own : AnyIcon(entry.Source as GameObject),
-            Name = entry.DisplayName.Length > 0 ? entry.DisplayName : entry.Name,
+            Name = entry.ShownName,
             Amount = "",
             Prefab = entry.Key,
         };

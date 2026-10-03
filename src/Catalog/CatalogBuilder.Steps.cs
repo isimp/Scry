@@ -97,19 +97,15 @@ namespace Scry
             Faults.TellSkipped();
         }
 
-        /// <summary>The scene's prefabs, each once by its name, networked and not.</summary>
+        /// <summary>The scene's prefabs, each once by its name (<see cref="FirstOfName"/>), networked and not.</summary>
         private static void Register(Reading read)
         {
             var scene = ZNetScene.instance;
             EffectLinks.Clear();
             Localized.Clear();
-            foreach (var list in new[] { scene.m_prefabs, scene.m_nonNetViewPrefabs })
+            foreach (var prefab in FirstOfName.Each(scene.m_prefabs.Concat(scene.m_nonNetViewPrefabs), p => p != null ? p.name : null))
             {
-                foreach (var prefab in list)
-                {
-                    if (prefab == null || read.Registered.ContainsKey(prefab.name)) continue;
-                    read.Registered[prefab.name] = new Found { Prefab = prefab };
-                }
+                read.Registered[prefab.name] = new Found { Prefab = prefab };
             }
             read.Prefabs = read.Registered.Values.Select(f => f.Prefab).ToList();
         }
@@ -130,14 +126,16 @@ namespace Scry
             read.Components.Clear();
         }
 
-        /// <summary>Every status effect the object database has, each an entry of its own with what it plays.</summary>
+        /// <summary>
+        /// Every status effect the object database has, each an entry of its own with what it
+        /// plays; one listed twice once, the first, the one the game finds (<see cref="FirstOfName"/>).
+        /// </summary>
         private static void StatusEffects(Reading read)
         {
             var db = ObjectDB.instance;
             if (db == null) return;
-            foreach (var effect in db.m_StatusEffects)
+            foreach (var effect in FirstOfName.Each(db.m_StatusEffects, e => e != null ? e.name : null))
             {
-                if (effect == null) continue;
                 Guard.Each("status effect entries", effect.name, () =>
                 {
                     var origin = Origins.StatusEffects.Of(effect.name);

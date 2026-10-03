@@ -270,20 +270,28 @@ namespace Scry
 
         /// <summary>
         /// The world's lights stay off the stage: a directional light made in the world, as a
-        /// lightning strike's flash is, leaves the stage's picture as it was.
+        /// lightning strike's flash is, leaves the stage's picture as it was. The stage stands
+        /// still on the plain backdrop meanwhile, as grass and water move with the wind; what
+        /// changes between two pictures with no light made is noted, and the light may change
+        /// no more than that and a hundredth.
         /// </summary>
         private static IEnumerator WorldLightsOff(Probe p)
         {
             var entry = Pick(Kind.Piece, "piece_workbench", "wood_wall_half");
             if (entry == null) p.Skip("there is no piece to stand on the stage");
             var spin = Stage.Spin;
+            var backdrop = Stage.BackdropIndex;
             Stage.Spin = false;
+            Stage.BackdropIndex = 0;
             Select(entry);
             yield return Until(() => CopyOf(entry) != null, 10);
             var settled = Time.unscaledTime;
             yield return Until(() => Time.unscaledTime - settled > 0.6f && !Stage.Gliding, 4);
             var middle = new Rect(0.3f, 0.3f, 0.4f, 0.4f);
             var before = PictureWithin(middle, out _, out _);
+            yield return null;
+            yield return null;
+            var again = PictureWithin(middle, out _, out _);
 
             var flash = new GameObject("Scry self-test flash");
             var light = flash.AddComponent<Light>();
@@ -296,11 +304,15 @@ namespace Scry
             var lit = PictureWithin(middle, out _, out _);
             UnityEngine.Object.Destroy(flash);
             Stage.Spin = spin;
+            Stage.BackdropIndex = backdrop;
 
-            var differ = before != null && lit != null && before.Length == lit.Length ? before.Where((c, i) => Apart(c, lit[i])).Count() : -1;
+            int Changed(Color32[] a, Color32[] b) => a != null && b != null && a.Length == b.Length ? a.Where((c, i) => Apart(c, b[i])).Count() : -1;
+            var still = Changed(before, again);
+            var differ = Changed(again, lit);
             var shown = before?.Count(c => c.r + c.g + c.b > 60) ?? 0;
             p.Check(before != null && shown > 0, "the piece shows in the picture", $"{Numbers.Count(shown)} bright points");
-            p.Check(differ >= 0 && differ <= (before?.Length ?? 0) / 100, "a directional light of the world, as a lightning flash is, leaves the stage's picture as it was", $"{Numbers.Count(differ)} of {Numbers.Count(before?.Length ?? 0)} points changed");
+            p.Note($"with no light made, {Numbers.Count(still)} of {Numbers.Count(before?.Length ?? 0)} points changed between two pictures");
+            p.Check(still >= 0 && differ >= 0 && differ <= still + (before?.Length ?? 0) / 100, "a directional light of the world, as a lightning flash is, leaves the stage's picture as it was", $"{Numbers.Count(differ)} of {Numbers.Count(before?.Length ?? 0)} points changed");
         }
 
         /// <summary>

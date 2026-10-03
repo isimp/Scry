@@ -47,7 +47,7 @@ namespace Scry
                 var mod = entry.ModName.Length > 0 ? entry.ModName : entry.Origin == Origin.Mod ? UnknownMod : "";
                 if (mod.Length == 0) continue;
                 var prefab = entry.Source as GameObject;
-                var one = new ModEntry { Key = entry.Key, Name = entry.Name, Shown = entry.DisplayName.Length > 0 ? entry.DisplayName : entry.Name, Kind = entry.Kind, Mod = mod };
+                var one = new ModEntry { Key = entry.Key, Name = entry.Name, Shown = entry.ShownName, Kind = entry.Kind, Mod = mod };
                 if (prefab != null && prefab.GetComponent<CraftingStation>() != null)
                 {
                     one.Station = true;
