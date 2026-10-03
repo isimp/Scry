@@ -24,7 +24,7 @@ namespace Scry
         /// <summary>The latest failure, by its part and message.</summary>
         public static string Latest { get; private set; } = "";
 
-        /// <summary>How many parts of single prefabs have been left out this session (<see cref="Skip"/>), which Scry is made to bear.</summary>
+        /// <summary>How many parts of single prefabs have been left out this session (<see cref="Skip(string, string, Exception)"/>), which Scry is made to bear.</summary>
         public static int Skipped { get; private set; }
 
         /// <summary>The latest part of a prefab left out, by its part, prefab and message.</summary>

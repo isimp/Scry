@@ -11,7 +11,7 @@ namespace Scry
     /// a status effect, fuel, a conversion), found once per type and kept. A type and its bases
     /// are looked through down to Unity's own, which declare none of the game's fields. A mod's
     /// type whose fields cannot be read has none, remembered as such, and is told once with the
-    /// rest left out (<see cref="Faults.Skip"/>).
+    /// rest left out (<see cref="Faults.Skip(string, string, Exception)"/>).
     /// </summary>
     internal static class TypeFields
     {
