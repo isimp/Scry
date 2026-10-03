@@ -109,12 +109,6 @@ namespace Scry
         private static readonly Dictionary<string, Kind> KindByKey = new Dictionary<string, Kind>();
         private static Explorer _kindsFor;
 
-        /// <summary>A small heading and a wrapping row of link chips, each going to what it names.</summary>
-        private static float LinkRow(Explorer explorer, string title, IEnumerable<string> names, float width, float y)
-        {
-            return LinkItems(explorer, title, names.Select(n => (n, ShownName(explorer, n, n), (string)null, (Action)(() => Go(explorer, n)))), width, y);
-        }
-
         /// <summary>A small heading and a wrapping row of link chips, each with its own text, tip and doing.</summary>
         private static float LinkItems(Explorer explorer, string title, IEnumerable<(string Key, string Text, string Tip, Action Click)> items, float width, float y)
         {

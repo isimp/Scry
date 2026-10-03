@@ -43,9 +43,6 @@ namespace Scry
         /// <summary>The self-test registers itself as it loads.</summary>
         public static void Register(IRunner runner) => _runner = runner;
 
-        /// <summary>Whether the self-test is installed beside Scry.</summary>
-        public static bool Installed => _runner != null;
-
         public static bool Running => _runner?.Running ?? false;
         public static void Tick() => _runner?.Tick();
         public static string Start(string why) => _runner != null ? _runner.Start(why) : NotInstalled;
