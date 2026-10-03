@@ -6,13 +6,15 @@ using Xunit;
 namespace Scry.Tests
 {
     /// <summary>
-    /// The panel's colours are the skin's: each named once in <c>Skin</c>, and any other made
-    /// from them there (one at another strength, darkened under its own colour, lifted toward
-    /// white). A part of the panel that wants a colour asks the skin for it, so the look is
-    /// changed in one place and every part keeps to it. The stage's lights, grounds and pixels
-    /// are the stage's own, not the panel's.
+    /// The panel's look is the skin's. Its colours are each named once in <c>Skin</c>, and any
+    /// other is made from them there (one at another strength, darkened under its own colour,
+    /// lifted toward white); its text styles are all made there too, together, and made again
+    /// together when the panel's scale changes. A part of the panel asks the skin for a colour
+    /// or a style, so the look is changed in one place and every part keeps to it, and no part
+    /// keeps a copy of a style that a new scale leaves behind. The stage's lights, grounds and
+    /// pixels are the stage's own, not the panel's.
     /// </summary>
-    public class ColourStandardTests
+    public class SkinStandardTests
     {
         [Fact]
         public void ThePanelMakesNoColourOutsideTheSkin()
@@ -29,6 +31,18 @@ namespace Scry.Tests
                 found.Add($"{ScrySource.Where(call)} Color.{method.Name} in {ScrySource.TopType(call)}.{ScrySource.Member(call)}");
             }
             Violations.None("take the panel's colours from Skin", found);
+        }
+
+        [Fact]
+        public void ThePanelMakesNoStyleOutsideTheSkin()
+        {
+            var found = new List<string>();
+            foreach (var (made, model) in ScrySource.All<BaseObjectCreationExpressionSyntax>())
+            {
+                if (!InPanel(made) || model.GetTypeInfo(made).Type?.ToDisplayString() != "UnityEngine.GUIStyle") continue;
+                found.Add($"{ScrySource.Where(made)} a style made in {ScrySource.TopType(made)}.{ScrySource.Member(made)}");
+            }
+            Violations.None("make the panel's styles in Skin", found);
         }
 
         private static bool InPanel(SyntaxNode node)

@@ -156,8 +156,6 @@ namespace Scry
         /// <summary>Whether the notice's details stand in the list's place.</summary>
         private static bool _offDetails;
         private static Vector2 _offScroll;
-        private static GUIStyle _offStyle;
-        private static GUIStyle _offStyleFrom;
 
         /// <summary>What is off, read again whenever how much is off changes, not every frame.</summary>
         private static void ReadOff()
@@ -184,39 +182,60 @@ namespace Scry
         private static void OffNotice(Rect rect)
         {
             if (_offLine == null) return;
-            if (_offStyle == null || !ReferenceEquals(_offStyleFrom, Skin.Label))
+            switch (NoticeStrip(rect, Skin.Warn, _offLine, Skin.WarnLabel, true, "Details", _offDetails, true, crossTip: "Put this away until more of Scry goes off"))
             {
-                _offStyleFrom = Skin.Label;
-                _offStyle = new GUIStyle(Skin.Label) { normal = { textColor = Skin.Warn } };
+                case StripClick.Chip:
+                    _offDetails = !_offDetails;
+                    _help = false;
+                    _modReport = false;
+                    break;
+                case StripClick.Cross:
+                    _offPutAway = _offFeatures.Count;
+                    _offDetails = false;
+                    break;
+            }
+        }
+
+        private enum StripClick
+        {
+            None,
+            Chip,
+            Cross,
+        }
+
+        /// <summary>
+        /// A notice under the header (the self-test's, what is off): tinted in its tone with a bar
+        /// at its left, a mark where it warns, its line sliding where it is longer than the strip,
+        /// a chip, and a cross that puts it away where it can be. Returns what was clicked.
+        /// </summary>
+        private static StripClick NoticeStrip(Rect rect, Color tone, string line, GUIStyle lineStyle, bool mark, string chip, bool chipOn, bool cross, string chipTip = null, string crossTip = null)
+        {
+            Skin.Fill(rect, Skin.Alpha(tone, 0.13f));
+            Skin.Fill(new Rect(rect.x, rect.y, U(3f), rect.height), tone);
+            var left = rect.x + U(14f);
+            if (mark)
+            {
+                var size = U(18f);
+                var markRect = new Rect(rect.x + U(12f), rect.y + (rect.height - size) / 2f, size, size);
+                Skin.Icon(markRect, Skin.Circle, tone);
+                GUI.Label(markRect, "!", Skin.Mark);
+                left = markRect.xMax + U(10f);
             }
 
-            Skin.Fill(rect, Skin.WarnSoft);
-            Skin.Fill(new Rect(rect.x, rect.y, U(3f), rect.height), Skin.Warn);
-            var mark = U(18f);
-            var markRect = new Rect(rect.x + U(12f), rect.y + (rect.height - mark) / 2f, mark, mark);
-            Skin.Icon(markRect, Skin.Circle, Skin.Warn);
-            GUI.Label(markRect, "!", new GUIStyle(Skin.Label) { alignment = TextAnchor.MiddleCenter, normal = { textColor = Skin.OnAccent }, fontStyle = FontStyle.Bold });
+            var crossW = U(24f);
+            var away = new Rect(rect.xMax - crossW - U(4f), rect.y + (rect.height - crossW) / 2f, crossW, crossW);
+            var chipW = Skin.Width(Skin.Chip, chip) + U(12f);
+            var chipH = U(24f);
+            var button = new Rect((cross ? away.x - U(6f) : rect.xMax - U(4f)) - chipW, rect.y + (rect.height - chipH) / 2f, chipW, chipH);
+            Ticker(new Rect(left, rect.y, button.x - left - U(8f), rect.height), line, lineStyle);
 
-            const string details = "Details";
-            var closeW = U(24f);
-            var detailsW = Skin.Width(Skin.Chip, details) + U(12f);
-            var close = new Rect(rect.xMax - closeW - U(4f), rect.y + (rect.height - closeW) / 2f, closeW, closeW);
-            var more = new Rect(close.x - U(6f) - detailsW, rect.y + (rect.height - U(24f)) / 2f, detailsW, U(24f));
-            var text = new Rect(markRect.xMax + U(10f), rect.y, more.x - markRect.xMax - U(18f), rect.height);
-            Ticker(text, _offLine, _offStyle);
-
-            if (GUI.Button(more, details, _offDetails ? Skin.ChipOn : Skin.Chip))
-            {
-                _offDetails = !_offDetails;
-                _help = false;
-                _modReport = false;
-            }
-            if (GUI.Button(close, "\u00D7", Skin.Close))
-            {
-                _offPutAway = _offFeatures.Count;
-                _offDetails = false;
-            }
-            if (close.Contains(Event.current.mousePosition)) AskTip("off-away", "Put this away until more of Scry goes off");
+            var clicked = StripClick.None;
+            if (GUI.Button(button, chip, chipOn ? Skin.ChipOn : Skin.Chip)) clicked = StripClick.Chip;
+            if (chipTip != null && button.Contains(Event.current.mousePosition)) AskTip("strip:" + chip, chipTip);
+            if (!cross) return clicked;
+            if (GUI.Button(away, "\u00D7", Skin.Close)) clicked = StripClick.Cross;
+            if (crossTip != null && away.Contains(Event.current.mousePosition)) AskTip("strip-away:" + chip, crossTip);
+            return clicked;
         }
 
         /// <summary>The notice's details in the list's place: why, what to do, and each part that is off.</summary>

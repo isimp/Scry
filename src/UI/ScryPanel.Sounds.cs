@@ -35,12 +35,7 @@ namespace Scry
             var picked = TimeBar(labelW, y, width - labelW * 2f - U(8f), rowH, time, length);
             if (picked.HasValue && timed) Previews.SeekSound(picked.Value);
 
-            var end = new Rect(width - labelW, y, labelW, rowH);
-            var style = Skin.DimLabel;
-            var anchor = style.alignment;
-            style.alignment = TextAnchor.MiddleRight;
-            GUI.Label(end, timed ? Clock(length) : "", style);
-            style.alignment = anchor;
+            GUI.Label(new Rect(width - labelW, y, labelW, rowH), timed ? Clock(length) : "", Skin.DimRight);
 
             return y + rowH + U(14f);
         }

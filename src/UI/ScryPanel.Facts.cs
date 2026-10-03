@@ -107,15 +107,14 @@ namespace Scry
                     var icon = PrefabIcon(source.Prefab);
                     var textX = icon != null ? U(34f) : U(12f);
                     var textW = width - textX - U(10f);
-                    var wrapped = SmallWrapped();
+                    var wrapped = Skin.SmallWrap;
                     var chipH = Mathf.Max(U(30f), Skin.Height(wrapped, text, textW) + U(10f));
                     var chip = new Rect(0f, y, width, chipH);
                     var hover = chip.Contains(Event.current.mousePosition);
                     var kind = KindOf(explorer, source.Prefab);
                     Skin.Box(chip, LinkFill(kind, hover));
                     if (icon != null) DrawSprite(icon, new Rect(U(6f), y + (chipH - U(22f)) / 2f, U(22f), U(22f)));
-                    wrapped.normal.textColor = LinkText(kind, hover);
-                    GUI.Label(new Rect(textX, y, textW, chipH), text, wrapped);
+                    Skin.LabelIn(new Rect(textX, y, textW, chipH), text, wrapped, LinkText(kind, hover));
                     if (hover) AskTip("src:" + source.Prefab + source.Unsure, (source.Unsure != null ? source.Unsure + "\n" : "") + "Go to " + ShownName(explorer, source.Prefab, source.Prefab));
                     if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(source.Prefab))
                     {
@@ -180,8 +179,6 @@ namespace Scry
         /// A titled row of chips, each an item with its amount that goes to it when clicked; the
         /// title goes to the station it names. A long row shows its first chips and one for the rest.
         /// </summary>
-        private static GUIStyle _cellType, _cellValue;
-        private static GUIStyle _cellFrom;
 
 
         /// <summary>The cells' colours: the plain share faint, resisting green, weak red, taking nothing blue.</summary>
@@ -203,13 +200,6 @@ namespace Scry
         /// </summary>
         private static float GridRow(Facts.Row row, float width, float y)
         {
-            if (_cellType == null || !ReferenceEquals(_cellFrom, Skin.Small))
-            {
-                _cellFrom = Skin.Small;
-                _cellType = new GUIStyle(Skin.Small) { alignment = TextAnchor.UpperCenter, wordWrap = false, clipping = TextClipping.Clip };
-                _cellType.normal.textColor = Skin.Faint;
-                _cellValue = new GUIStyle(Skin.Small) { alignment = TextAnchor.LowerCenter, fontStyle = FontStyle.Bold, wordWrap = false, clipping = TextClipping.Clip };
-            }
             y += U(6f);
             var titleRect = new Rect(0f, y, width, U(20f));
             GUI.Label(titleRect, row.Unsure != null ? UnsureWords.Marked(row.Title) : row.Title, Skin.DimLabel);
@@ -226,9 +216,8 @@ namespace Scry
                 var at = new Rect((i % columns) * (cellW + gap), y + (i / columns) * (cellH + gap), cellW, cellH);
                 if (OutOfSight(at)) continue;
                 Skin.Box(at, Skin.Raised);
-                GUI.Label(new Rect(at.x + U(2f), at.y + U(3f), at.width - U(4f), U(16f)), cell.Type, _cellType);
-                _cellValue.normal.textColor = ToneColor(cell.Tone);
-                GUI.Label(new Rect(at.x + U(2f), at.y, at.width - U(4f), at.height - U(4f)), cell.Value, _cellValue);
+                GUI.Label(new Rect(at.x + U(2f), at.y + U(3f), at.width - U(4f), U(16f)), cell.Type, Skin.CellType);
+                Skin.LabelIn(new Rect(at.x + U(2f), at.y, at.width - U(4f), at.height - U(4f)), cell.Value, Skin.CellValue, ToneColor(cell.Tone));
                 if (at.Contains(Event.current.mousePosition)) AskTip("cell:" + row.Title + cell.Type, cell.Tip);
             }
             CountDrawn(PanelPart.ResistanceGrid);
@@ -526,20 +515,6 @@ namespace Scry
                 counts[name] = n + 1;
             }
             return string.Join(", ", counts.Select(p => p.Value > 1 ? $"{p.Key} ×{Numbers.Count(p.Value)}" : p.Key));
-        }
-
-        private static GUIStyle _smallWrapped;
-        private static GUIStyle _smallWrappedFrom;
-
-        /// <summary>The small text style wrapping, made once for each time the styles are made, not for every chip drawn.</summary>
-        private static GUIStyle SmallWrapped()
-        {
-            if (_smallWrapped == null || !ReferenceEquals(_smallWrappedFrom, Skin.Small))
-            {
-                _smallWrappedFrom = Skin.Small;
-                _smallWrapped = new GUIStyle(Skin.Small) { wordWrap = true };
-            }
-            return _smallWrapped;
         }
     }
 }

@@ -270,7 +270,7 @@ namespace Scry
                     var ghost = SearchHelp.Ghost(typed, suggested);
                     if (ghost.Length > 0)
                     {
-                        var style = GhostStyle();
+                        var style = Skin.Ghost;
                         var field = Skin.Field;
                         var textW = field.CalcSize(new GUIContent(text)).x - field.padding.horizontal;
                         var x = box.x + field.padding.left + textW - editor.scrollOffset.x;
@@ -286,25 +286,6 @@ namespace Scry
                 _dropTakesEnter = SearchHelp.EnterTakesSuggestion(typed, false, suggested.Count);
                 var width = Mathf.Min(box.width, Mathf.Max(U(300f), box.width * 0.6f));
                 _dropRect = new Rect(box.x, box.yMax + U(2f), width, suggested.Count * DropRowH + U(8f));
-            }
-
-            private GUIStyle _ghostStyle;
-            private GUIStyle _ghostOf;
-
-            /// <summary>The search box's text, faint, without its box or left padding.</summary>
-            private GUIStyle GhostStyle()
-            {
-                if (_ghostStyle == null || !ReferenceEquals(_ghostOf, Skin.Field))
-                {
-                    _ghostOf = Skin.Field;
-                    _ghostStyle = new GUIStyle(Skin.Field);
-                    _ghostStyle.normal.background = null;
-                    _ghostStyle.hover.background = null;
-                    _ghostStyle.focused.background = null;
-                    _ghostStyle.normal.textColor = Skin.Faint;
-                    _ghostStyle.padding = new RectOffset(0, 0, Skin.Field.padding.top, Skin.Field.padding.bottom);
-                }
-                return _ghostStyle;
             }
 
             /// <summary>The list under the search box, drawn over the rest; its clicks are taken before anything below sees them.</summary>
@@ -323,21 +304,8 @@ namespace Scry
                     var nameW = Mathf.Min(row.width * 0.62f, Skin.Width(Skin.Label, name) + U(4f));
                     GUI.Label(new Rect(row.x + U(8f), row.y, nameW, row.height), name, Skin.Label);
                     var side = suggestion.IsKey ? suggestion.Note : Numbers.Count(suggestion.Count);
-                    GUI.Label(new Rect(row.x + U(8f) + nameW + U(8f), row.y, row.width - nameW - U(24f), row.height), side, suggestion.IsKey ? Skin.DimLabel : RightDim());
+                    GUI.Label(new Rect(row.x + U(8f) + nameW + U(8f), row.y, row.width - nameW - U(24f), row.height), side, suggestion.IsKey ? Skin.DimLabel : Skin.DimRight);
                 }
-            }
-
-            private GUIStyle _rightDim;
-            private GUIStyle _rightDimOf;
-
-            private GUIStyle RightDim()
-            {
-                if (_rightDim == null || !ReferenceEquals(_rightDimOf, Skin.DimLabel))
-                {
-                    _rightDimOf = Skin.DimLabel;
-                    _rightDim = new GUIStyle(Skin.DimLabel) { alignment = TextAnchor.MiddleRight };
-                }
-                return _rightDim;
             }
         }
     }

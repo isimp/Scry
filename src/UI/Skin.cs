@@ -47,7 +47,8 @@ namespace Scry
         public static readonly Color Immune = new Color(0.52f, 0.76f, 0.98f);
 
         public static GUISkin Gui;
-        public static GUIStyle Title, Subtitle, Label, Small, SmallCenter, DimLabel, FaintLabel, Heading, Big, Wrap, DimWrap;
+        public static GUIStyle Title, Subtitle, Label, Small, SmallCenter, SmallWrap, DimLabel, DimRight, FaintLabel, Heading, Big, Wrap, WrapBold, DimWrap;
+        public static GUIStyle WarnLabel, Mark, CellType, CellValue, Ghost;
         public static GUIStyle RowName, RowSub, Glyph, Center, CenterDim;
         public static GUIStyle Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close;
         public static GUIStyle Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross;
@@ -338,13 +339,19 @@ namespace Scry
             Label = Style(14f, Skin.Text);
             Small = Style(12f, Skin.Text);
             SmallCenter = Style(12f, Skin.Text, FontStyle.Normal, TextAnchor.MiddleCenter);
+            SmallWrap = Style(12f, Skin.Text);
+            SmallWrap.wordWrap = true;
             DimLabel = Style(13f, Dim);
+            DimRight = Style(13f, Dim, FontStyle.Normal, TextAnchor.MiddleRight);
             FaintLabel = Style(12f, Faint);
             Heading = Style(11f, Faint, FontStyle.Bold);
             Big = Style(19f, Skin.Text, FontStyle.Bold);
             Wrap = Style(13f, Skin.Text);
             Wrap.wordWrap = true;
             Wrap.alignment = TextAnchor.UpperLeft;
+            WrapBold = Style(13f, Skin.Text, FontStyle.Bold);
+            WrapBold.wordWrap = true;
+            WrapBold.alignment = TextAnchor.UpperLeft;
             DimWrap = Style(13f, Dim);
             DimWrap.wordWrap = true;
             DimWrap.alignment = TextAnchor.UpperLeft;
@@ -355,6 +362,12 @@ namespace Scry
             Center.wordWrap = true;
             CenterDim = Style(13f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
             CenterDim.wordWrap = true;
+            // What is off, in its warning colour, and the mark beside it.
+            WarnLabel = Style(14f, Warn);
+            Mark = Style(14f, OnAccent, FontStyle.Bold, TextAnchor.MiddleCenter);
+            // A damage cell: its type at the top, the share taken at the bottom, in how it lands.
+            CellType = Style(12f, Faint, FontStyle.Normal, TextAnchor.UpperCenter);
+            CellValue = Style(12f, Skin.Text, FontStyle.Bold, TextAnchor.LowerCenter);
 
             Button = Boxed(Style(13f, Skin.Text, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Rounded, scale);
             Primary = Boxed(Style(13f, OnAccent, FontStyle.Bold, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Rounded, scale);
@@ -368,7 +381,7 @@ namespace Scry
             Close.hover.textColor = Skin.Text;
             Close.padding = new RectOffset(0, 0, 0, 0);
 
-            // A bare � for small spots such as inside the search box, with no padding to squeeze it out.
+            // A bare × for small spots such as inside the search box, with no padding to squeeze it out.
             Cross = Style(19f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
             Cross.clipping = TextClipping.Overflow;
             IconButton = Boxed(Style(13f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Rounded, scale);
@@ -405,6 +418,15 @@ namespace Scry
             Field.normal.textColor = Field.hover.textColor = Field.focused.textColor = Skin.Text;
             Gui.settings.cursorColor = Accent;
             Gui.settings.selectionColor = Alpha(Accent, 0.35f);
+
+            // The rest of a suggestion, in the search box after what is typed: the box's text, faint,
+            // without its box or left padding.
+            Ghost = new GUIStyle(Field);
+            Ghost.normal.background = null;
+            Ghost.hover.background = null;
+            Ghost.focused.background = null;
+            Ghost.normal.textColor = Faint;
+            Ghost.padding = new RectOffset(0, 0, Field.padding.top, Field.padding.bottom);
 
             Placeholder = Style(15f, Faint);
             Placeholder.padding = new RectOffset(Px(12f), 0, 0, 0);

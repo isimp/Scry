@@ -19,9 +19,6 @@ namespace Scry
             }
         }
 
-        private static GUIStyle _runeTitle;
-        private static GUIStyle _runeTitleFrom;
-
         private static float RunesSection(Entry entry, float width, float y)
         {
             if (!(entry.Source is PlaceSource place) || place.Contents == null || place.Contents.Runestones.Count == 0) return y;
@@ -29,11 +26,6 @@ namespace Scry
             y = SectionHeading("RUNESTONE TEXTS", width, y, null, "runes");
             if (IsFolded("runes")) return y;
             CountDrawn(PanelPart.Runes);
-            if (_runeTitle == null || !ReferenceEquals(_runeTitleFrom, Skin.Wrap))
-            {
-                _runeTitleFrom = Skin.Wrap;
-                _runeTitle = new GUIStyle(Skin.Wrap) { fontStyle = FontStyle.Bold };
-            }
 
             foreach (var stone in place.Contents.Runestones)
             {
@@ -47,8 +39,8 @@ namespace Scry
                 foreach (var text in stone.Texts)
                 {
                     var title = RuneWords.Title(text, stone.Name);
-                    var titleH = Skin.Height(_runeTitle, title, width);
-                    GUI.Label(new Rect(0f, y, width, titleH), title, _runeTitle);
+                    var titleH = Skin.Height(Skin.WrapBold, title, width);
+                    GUI.Label(new Rect(0f, y, width, titleH), title, Skin.WrapBold);
                     y += titleH + U(2f);
                     var bodyH = Skin.Height(Skin.Wrap, text.Text, width);
                     GUI.Label(new Rect(0f, y, width, bodyH), text.Text, Skin.Wrap);
