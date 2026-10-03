@@ -798,7 +798,7 @@ namespace Scry
                 // else. What of them is above it is drawn again over the picture, by a projection
                 // that keeps only what is above the cut (StageCamera.AboveCutRow): nothing below
                 // the cut can stand before it, as the camera looks from above.
-                if (_aboveCut != null && CreatureLayer != _layer && CreatureCopies.Count > 0)
+                if (_aboveCut != null && CreatureLayer != _layer && Creatures.AnyMade)
                 {
                     var projection = _camera.projectionMatrix;
                     var clear = _camera.clearFlags;

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using UnityEngine;
 
@@ -13,7 +12,8 @@ namespace Scry
     /// it as it keeps at the least, facing a way of its own, with the stars it rolled, held in its first pose,
     /// muted, dimmed with its room; a few are made each frame. They stand on a layer of their own:
     /// what of them is above a floor's cut is drawn again over the picture, so a tall one stands
-    /// whole. The stage's Creatures chip puts them away and back.
+    /// whole. The stage's Creatures chip puts them away and back. Which stand and wait is kept by
+    /// <see cref="StageCreatures"/>; how each copy is made, here.
     /// </summary>
     internal static partial class Stage
     {
@@ -40,38 +40,29 @@ namespace Scry
         /// <summary>A few milliseconds a frame for making creatures, and at least one.</summary>
         private const double CreatureBudgetMs = 4.0;
 
-        /// <summary>The creatures rolled and waiting to be made, each with its point, how far above it it stands and flies, its level and the example's room it stands in, if any.</summary>
-        private static readonly List<(Transform At, float Rise, float Lift, GameObject Creature, int Level, GameObject Room)> CreaturesToMake = new List<(Transform, float, float, GameObject, int, GameObject)>();
-
-        /// <summary>How high over its ground each creature standing flies, 0 for one that walks.</summary>
-        private static readonly Dictionary<GameObject, float> CreatureLift = new Dictionary<GameObject, float>();
-
-        /// <summary>The creatures standing, each with the example's room it stands in, if any.</summary>
-        private static readonly List<KeyValuePair<GameObject, GameObject>> CreatureCopies = new List<KeyValuePair<GameObject, GameObject>>();
-
-        private static bool _creaturesShown = true;
+        /// <summary>The creatures standing on the stage and waiting to be made.</summary>
+        private static readonly StageCreatures Creatures = new StageCreatures();
 
         /// <summary>Whether the creatures stand on the stage or are put away, as the stage's chip has it.</summary>
         public static bool CreaturesShown
         {
-            get => _creaturesShown;
-            set
-            {
-                if (value == _creaturesShown) return;
-                _creaturesShown = value;
-                foreach (var pair in CreatureCopies) if (pair.Key != null) pair.Key.SetActive(value);
-            }
+            get => Creatures.Shown;
+            set => Creatures.Shown = value;
         }
 
         /// <summary>Whether the place shown puts any creature there.</summary>
-        public static bool HasCreatures => CreatureCopies.Count > 0 || CreaturesToMake.Count > 0;
+        public static bool HasCreatures => Creatures.Any;
 
         /// <summary>How many creatures stand made, and how many wait to be, for the self-test.</summary>
-        public static int CreaturesMade => CreatureCopies.Count(pair => pair.Key != null);
-        public static int CreaturesWaiting => CreaturesToMake.Count;
+        public static int CreaturesMade => Creatures.Made;
+        public static int CreaturesWaiting => Creatures.WaitingCount;
 
         /// <summary>How many creatures stand switched on, for the self-test.</summary>
-        public static int CreaturesStanding => CreatureCopies.Count(pair => pair.Key != null && pair.Key.activeSelf);
+        public static int CreaturesStanding => Creatures.Standing;
+
+        /// <summary>How many creatures rolled stand below their spawn point, dropped to the ground under it, and how many fly over it, for the self-test.</summary>
+        public static int CreaturesDropped => Creatures.Dropped;
+        public static int CreaturesFlying => Creatures.Flying;
 
         private static readonly List<Renderer> Counted = new List<Renderer>();
 
@@ -89,46 +80,31 @@ namespace Scry
         }
 
         /// <summary>Where each creature standing on the stage draws, for the self-test.</summary>
-        public static List<Bounds> CreatureBoundsNow() =>
-            CreatureCopies.Where(pair => pair.Key != null && pair.Key.activeInHierarchy).Select(pair => Measure(pair.Key)).ToList();
+        public static List<Bounds> CreatureBoundsNow() => Creatures.Copies.Where(c => c.activeInHierarchy).Select(c => Measure(c)).ToList();
 
         /// <summary>The names of the creatures made, for the self-test to tell.</summary>
-        public static IEnumerable<string> CreatureNames => CreatureCopies.Where(pair => pair.Key != null).Select(pair => pair.Key.name);
+        public static IEnumerable<string> CreatureNames => Creatures.Copies.Select(c => c.name);
+
+        /// <summary>The creatures that fly and how high over their ground, by kind, for the self-test.</summary>
+        public static string FlyersTold() => Creatures.FlyersTold();
+
+        /// <summary>How many creatures stand above the cut, cut away with their floor, for the self-test.</summary>
+        public static int CreaturesAboveCut => CreatureLayer != _layer ? Creatures.OnLayer(_layer) : 0;
 
         /// <summary>Rolls which of a copy's spawn points put their creature there, to be made over the next frames.</summary>
-        private static void Populate(List<SpawnHere> points, GameObject room)
-        {
-            if (points == null || points.Count == 0) return;
-            var facts = points.Select(p => p.Point).ToList();
-            foreach (var (point, level) in SpawnPoints.Roll(facts, CreatureDice.NextDouble))
-            {
-                var here = points[point];
-                CreaturesToMake.Add((here.At, here.Rise, here.Grounded ? here.Lift : 0f, here.Creature, level, room));
-                if (here.Lift > 0f) CreaturesFlying++;
-                else if (here.Grounded && here.Drop > 0.05f) CreaturesDropped++;
-            }
-        }
+        private static void Populate(List<SpawnHere> points, GameObject room) => Creatures.Populate(points, room, CreatureDice.NextDouble);
 
-        /// <summary>Each frame: makes a few of the creatures waiting, where their points are.</summary>
+        /// <summary>Each frame: makes a few of the creatures waiting, where their points are, dimmed with a room dimmed.</summary>
         public static void StepCreatures()
         {
-            if (CreaturesToMake.Count == 0 || _root == null) return;
+            if (Creatures.WaitingCount == 0 || _root == null) return;
             var made = Timing.Start();
-            var watch = Stopwatch.StartNew();
-            var any = false;
-            while (CreaturesToMake.Count > 0 && (!any || watch.Elapsed.TotalMilliseconds < CreatureBudgetMs))
+            Creatures.Step(CreatureBudgetMs, waiting =>
             {
-                var (at, rise, lift, creature, level, room) = CreaturesToMake[0];
-                CreaturesToMake.RemoveAt(0);
-                if (at == null || creature == null) continue;
-                any = true;
-                var copy = MakeCreature(creature, at, rise, level);
-                if (copy == null) continue;
-                if (room != null && DimmedRooms.Contains(room)) Dim.Set(copy, true);
-                if (!_creaturesShown) copy.SetActive(false);
-                CreatureCopies.Add(new KeyValuePair<GameObject, GameObject>(copy, room));
-                CreatureLift[copy] = lift;
-            }
+                var copy = MakeCreature(waiting.Creature, waiting.At, waiting.Rise, waiting.Level);
+                if (copy != null && waiting.Room != null && DimmedRooms.Contains(waiting.Room)) Dim.Set(copy, true);
+                return copy;
+            });
             Timing.Add("stage creatures", made);
         }
 
@@ -172,60 +148,24 @@ namespace Scry
 
         private static Entry EntryOf(string key) => Session.Explorer?.Find(key);
 
-        /// <summary>How many creatures rolled stand below their spawn point, dropped to the ground under it, and how many fly over it, for the self-test.</summary>
-        public static int CreaturesDropped { get; private set; }
-        public static int CreaturesFlying { get; private set; }
-
-        private static float _creaturesCutAt = float.NaN;
-        private static int _creaturesCutCount = -1;
-
         /// <summary>
         /// With a floor's cut laid, a creature standing above it, on a floor above, is cut away
-        /// with that floor rather than drawn again over the picture: it stands on the stage's own
-        /// layer while the cut is above its feet. Put right as the cut moves or creatures come.
+        /// with that floor rather than drawn again over the picture (<see cref="StageCreatures.KeepToCut"/>).
         /// </summary>
         private static void KeepCreaturesToCut()
         {
             if (CreatureLayer == _layer) return;
             var cut = Cutting && _subject != null ? Origin.y + CutAt * _scale : float.PositiveInfinity;
-            if (cut.Equals(_creaturesCutAt) && CreatureCopies.Count == _creaturesCutCount) return;
-            _creaturesCutAt = cut;
-            _creaturesCutCount = CreatureCopies.Count;
-            foreach (var pair in CreatureCopies)
-            {
-                var creature = pair.Key;
-                if (creature == null) continue;
-                CreatureLift.TryGetValue(creature, out var lift);
-                var layer = SpawnPoints.AboveCut(creature.transform.position.y, lift, cut) ? _layer : CreatureLayer;
-                if (creature.layer != layer) Ghost.SetLayer(creature.transform, layer);
-            }
+            Creatures.KeepToCut(cut, _layer, CreatureLayer);
         }
-
-        /// <summary>The creatures that fly and how high over their ground, by kind, for the self-test.</summary>
-        public static string FlyersTold() => string.Join(", ", CreatureLift.Where(pair => pair.Key != null && pair.Value > 0f)
-            .GroupBy(pair => (pair.Key.name, pair.Value)).Select(g => $"{g.Key.name} {g.Key.Value:0.#} m up x{g.Count()}"));
-
-        /// <summary>How many creatures stand above the cut, cut away with their floor, for the self-test.</summary>
-        public static int CreaturesAboveCut => CreatureCopies.Count(pair => pair.Key != null && pair.Key.layer == _layer && CreatureLayer != _layer);
 
         /// <summary>Lets go of the example's rooms' creatures, as its rooms go; the location's own stay.</summary>
-        private static void ForgetRoomCreatures()
-        {
-            CreaturesToMake.RemoveAll(c => c.Room != null);
-            foreach (var pair in CreatureCopies) if (pair.Value != null) CreatureLift.Remove(pair.Key);
-            CreatureCopies.RemoveAll(pair => pair.Value != null);
-            CreaturesDropped = 0;
-            CreaturesFlying = 0;
-        }
+        private static void ForgetRoomCreatures() => Creatures.ForgetRooms();
 
         /// <summary>Lets go of every creature, as the copy they stand on goes.</summary>
         private static void ForgetCreatures()
         {
-            CreaturesToMake.Clear();
-            CreatureCopies.Clear();
-            CreatureLift.Clear();
-            CreaturesDropped = 0;
-            CreaturesFlying = 0;
+            Creatures.Forget();
             FloorProbe.ForgetNotSolid();
         }
     }
