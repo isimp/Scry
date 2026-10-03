@@ -39,7 +39,7 @@ namespace Scry
                     {
                         foreach (var field in CatalogBuilder.EffectFields(owner.GetType()))
                         {
-                            if (System.Array.IndexOf(fields, field.Name) < 0 || !(field.GetValue(owner) is EffectList list) || list.m_effectPrefabs == null) continue;
+                            if (System.Array.IndexOf(fields, field.Name) < 0 || !(TypeFields.Value(field, owner) is EffectList list) || list.m_effectPrefabs == null) continue;
                             data.AddRange(list.m_effectPrefabs.Where(d => d != null && d.m_enabled && d.m_prefab != null));
                         }
                     }

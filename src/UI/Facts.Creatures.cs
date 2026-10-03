@@ -255,13 +255,14 @@ namespace Scry
         /// Each damage modifier that is not plain, grouped by degree from very weak to immune, as
         /// the game orders them, not by the words' spelling.
         /// </summary>
+        private static readonly Dictionary<Type, FieldInfo[]> ModifierFields = new Dictionary<Type, FieldInfo[]>();
+
         private static List<(string Words, string[] Types)> ByDegree(HitData.DamageModifiers mods)
         {
             var groups = new SortedDictionary<int, (string Words, List<string> Types)>();
-            foreach (var field in typeof(HitData.DamageModifiers).GetFields(BindingFlags.Public | BindingFlags.Instance))
+            foreach (var field in TypeFields.Matching(ModifierFields, typeof(HitData.DamageModifiers), f => f.IsPublic && f.FieldType == typeof(HitData.DamageModifier) && f.Name != "m_nonPlayer"))
             {
-                if (field.FieldType != typeof(HitData.DamageModifier) || field.Name == "m_nonPlayer") continue;
-                var modifier = (HitData.DamageModifier)field.GetValue(mods);
+                var modifier = TypeFields.Value(field, mods) is HitData.DamageModifier read ? read : HitData.DamageModifier.Normal;
                 if (modifier == HitData.DamageModifier.Normal) continue;
 
                 var order = Array.IndexOf(Degrees, modifier);

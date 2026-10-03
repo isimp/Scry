@@ -94,11 +94,11 @@ namespace Scry
         {
             foreach (var (field, name, label) in OwnLists(owner.GetType()))
             {
-                if (field.GetValue(owner) is EffectList list) yield return new ListOn { Field = name, Label = label, List = list };
+                if (TypeFields.Value(field, owner) is EffectList list) yield return new ListOn { Field = name, Label = label, List = list };
             }
             foreach (var (outer, inner) in NestedLists(owner.GetType()))
             {
-                var value = outer.GetValue(owner);
+                var value = TypeFields.Value(outer, owner);
                 if (value == null) continue;
                 if (value is IEnumerable many)
                 {
@@ -109,7 +109,7 @@ namespace Scry
                         var of = WhatFor(item);
                         foreach (var (field, name, label) in inner)
                         {
-                            if (field.GetValue(item) is EffectList list)
+                            if (TypeFields.Value(field, item) is EffectList list)
                             {
                                 yield return new ListOn { Field = name, Label = of.Length > 0 ? Naming.NestedListLabel(outer.Name, field.Name, of) : label, List = list };
                             }
@@ -120,7 +120,7 @@ namespace Scry
                 {
                     foreach (var (field, name, label) in inner)
                     {
-                        if (field.GetValue(value) is EffectList list) yield return new ListOn { Field = name, Label = label, List = list };
+                        if (TypeFields.Value(field, value) is EffectList list) yield return new ListOn { Field = name, Label = label, List = list };
                     }
                 }
             }
@@ -141,7 +141,7 @@ namespace Scry
             var naming = namings.Length > 0 ? namings[0] : null;
             if (naming == null) return "";
 
-            var value = naming.GetValue(item);
+            var value = TypeFields.Value(naming, item);
             switch (value)
             {
                 case ItemDrop drop when drop != null:

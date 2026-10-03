@@ -377,7 +377,7 @@ namespace Scry
                 var of = TableOfPart(component);
                 foreach (var field in tables)
                 {
-                    if (!(field.GetValue(component) is DropTable table) || table.m_drops == null) continue;
+                    if (!(TypeFields.Value(field, component) is DropTable table) || table.m_drops == null) continue;
                     var info = InfoOf(table);
                     foreach (var data in table.m_drops)
                     {
@@ -401,16 +401,16 @@ namespace Scry
                 if (component == null) continue;
                 foreach (var field in Conversions(component.GetType()))
                 {
-                    if (!(field.GetValue(component) is System.Collections.IEnumerable list)) continue;
+                    if (!(TypeFields.Value(field, component) is System.Collections.IEnumerable list)) continue;
                     foreach (var conversion in list)
                     {
                         if (conversion == null) continue;
                         var type = conversion.GetType();
-                        var from = type.GetField("m_from")?.GetValue(conversion) as ItemDrop;
-                        var to = type.GetField("m_to")?.GetValue(conversion) as ItemDrop;
+                        var from = Conversion(type, "m_from", conversion) as ItemDrop;
+                        var to = Conversion(type, "m_to", conversion) as ItemDrop;
                         if (from == null || to == null) continue;
                         // A fermenter's batch makes several (m_producedItems); a smelter's one.
-                        var makes = type.GetField("m_producedItems")?.GetValue(conversion) is int produced && produced > 1 ? produced : 1;
+                        var makes = Conversion(type, "m_producedItems", conversion) is int produced && produced > 1 ? produced : 1;
                         var making = new Making { Station = prefab.name, Output = to.gameObject.name, Makes = makes };
                         making.Inputs.Add((from.gameObject.name, 1));
                         Made.Add(making);
@@ -498,8 +498,15 @@ namespace Scry
         {
             var element = field.FieldType.IsArray ? field.FieldType.GetElementType()
                 : field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(List<>) ? field.FieldType.GetGenericArguments()[0] : null;
-            return element != null && element.GetField("m_from")?.FieldType == typeof(ItemDrop) && element.GetField("m_to")?.FieldType == typeof(ItemDrop);
+            return element != null && TypeFields.Named(element, "m_from")?.FieldType == typeof(ItemDrop) && TypeFields.Named(element, "m_to")?.FieldType == typeof(ItemDrop);
         });
+
+        /// <summary>A field of a conversion entry by its name, whatever type it is, or null where it has none.</summary>
+        private static object Conversion(Type type, string name, object conversion)
+        {
+            var field = TypeFields.Named(type, name);
+            return field == null ? null : TypeFields.Value(field, conversion);
+        }
 
         private static readonly List<(string Prefab, string Effect, string How)> GiverList = new List<(string, string, string)>();
         private static readonly Dictionary<Type, FieldInfo[]> EffectRefFields = new Dictionary<Type, FieldInfo[]>();
@@ -519,7 +526,7 @@ namespace Scry
                 foreach (var field in EffectRefs(owner.GetType()))
                 {
                     string name = null;
-                    var value = field.GetValue(owner);
+                    var value = TypeFields.Value(field, owner);
                     if (value is StatusEffect effect && effect != null) name = effect.name;
                     else if (value is string text && text.Length > 0) name = text;
                     if (name == null) continue;
@@ -581,7 +588,7 @@ namespace Scry
                 }
                 foreach (var field in DropTables(component.GetType()))
                 {
-                    if (!(field.GetValue(component) is DropTable table) || table.m_drops == null) continue;
+                    if (!(TypeFields.Value(field, component) is DropTable table) || table.m_drops == null) continue;
                     foreach (var data in table.m_drops) Add(data.m_item);
                 }
             }
@@ -602,7 +609,7 @@ namespace Scry
                 if (component is Pickable pickable && pickable.m_itemPrefab != null) return true;
                 foreach (var field in DropTables(component.GetType()))
                 {
-                    if (field.GetValue(component) is DropTable table && table.m_drops != null && table.m_drops.Count > 0) return true;
+                    if (TypeFields.Value(field, component) is DropTable table && table.m_drops != null && table.m_drops.Count > 0) return true;
                 }
             }
             // A shell that breaks into what is mined gives what that gives, as its details tell.

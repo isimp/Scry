@@ -338,7 +338,7 @@ namespace Scry
 
                 foreach (var field in FuelFields(component.GetType()))
                 {
-                    var value = field.GetValue(component);
+                    var value = TypeFields.Value(field, component);
                     if (value is ItemDrop fuel)
                     {
                         if (fuel != null) Uses.Add(fuel.gameObject.name, UseKind.Fuels, prefab.name, 0);

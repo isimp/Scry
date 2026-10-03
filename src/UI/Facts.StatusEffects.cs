@@ -50,16 +50,14 @@ namespace Scry
             try
             {
                 blank = ScriptableObject.CreateInstance(effect.GetType());
-                const BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
-                foreach (var field in effect.GetType().GetFields(flags))
+                foreach (var field in TypeFields.Matching(StatFields, effect.GetType(), f =>
+                    f.IsPublic && (f.FieldType == typeof(float) || f.FieldType == typeof(int) || f.FieldType == typeof(bool) || f.FieldType.IsEnum)))
                 {
                     if (Skipped.Contains(field.Name)) continue;
                     if (told && ToldByTheGame.Contains(field.Name)) continue;
-                    var type = field.FieldType;
-                    if (type != typeof(float) && type != typeof(int) && type != typeof(bool) && !type.IsEnum) continue;
 
-                    var value = field.GetValue(effect);
-                    if (Equals(value, field.GetValue(blank))) continue;
+                    var value = TypeFields.Value(field, effect);
+                    if (Equals(value, TypeFields.Value(field, blank))) continue;
                     // A time is told with its unit ("Cooldown 20 min", not 1200).
                     var shown = value is float seconds && IsTime(field.Name) ? Numbers.Duration(seconds) : Shown(value);
                     if (shown != null) Add(Naming.FieldLabel(field.Name), shown);
@@ -142,6 +140,9 @@ namespace Scry
             var name = field.ToLowerInvariant();
             return (name.Contains("cooldown") || name.Contains("duration") || name.EndsWith("time", StringComparison.Ordinal) || name.Contains("interval")) && !name.Contains("multiplier") && !name.Contains("modifier");
         }
+
+        /// <summary>The public stats of each kind of status effect, found once per type.</summary>
+        private static readonly Dictionary<Type, FieldInfo[]> StatFields = new Dictionary<Type, FieldInfo[]>();
 
         /// <summary>Settings told in their own words already (how long it lasts, its name, icon and tooltip), or that say nothing about what the effect does.</summary>
         private static readonly HashSet<string> Skipped = new HashSet<string>

@@ -152,7 +152,7 @@ namespace Scry
 
             foreach (var field in CatalogBuilder.EffectFields(effect.GetType()))
             {
-                if (!(field.GetValue(effect) is EffectList list) || !HasAny(list)) continue;
+                if (!(TypeFields.Value(field, effect) is EffectList list) || !HasAny(list)) continue;
                 lists.Add(new KeyValuePair<string, EffectList>(Naming.EffectListLabel(field.Name), list));
             }
             return lists;
@@ -247,14 +247,14 @@ namespace Scry
                     if (attack == null) continue;
                     foreach (var field in CatalogBuilder.EffectFields(typeof(Attack)))
                     {
-                        if (field.GetValue(attack) is EffectList list) AttackOf[list] = attack;
+                        if (TypeFields.Value(field, attack) is EffectList list) AttackOf[list] = attack;
                     }
                 }
                 if (own.m_attack != null)
                 {
                     foreach (var field in CatalogBuilder.EffectFields(typeof(ItemDrop.ItemData.SharedData)))
                     {
-                        if (field.GetValue(own) is EffectList list && SwingLists.Contains(field.Name)) AttackOf[list] = own.m_attack;
+                        if (TypeFields.Value(field, own) is EffectList list && SwingLists.Contains(field.Name)) AttackOf[list] = own.m_attack;
                     }
                 }
             }
@@ -270,7 +270,7 @@ namespace Scry
                 var shown = CatalogBuilder.GameName(item);
                 foreach (var field in CatalogBuilder.EffectFields(typeof(ItemDrop.ItemData.SharedData)))
                 {
-                    if (SwingLists.Contains(field.Name) || !(field.GetValue(carried) is EffectList list) || !HasAny(list)) continue;
+                    if (SwingLists.Contains(field.Name) || !(TypeFields.Value(field, carried) is EffectList list) || !HasAny(list)) continue;
                     others.Add((Naming.EffectListLabel(field.Name), shown ?? WeaponChoices.Readable(item.name, prefab.name), list));
                 }
             }

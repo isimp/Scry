@@ -50,6 +50,25 @@ namespace Scry
             return failure == null;
         }
 
+        /// <summary>A field's value on what holds it, or null where it cannot be read, left out as <see cref="Read"/> leaves it.</summary>
+        public static object Value(FieldInfo field, object owner) => Read(field, owner, out var value) ? value : null;
+
+        /// <summary>
+        /// The field of a type or its bases by its name, or null where it has none, found once and
+        /// kept: for a mod's type read by the shape of the game's own, such as a conversion with an
+        /// m_from and an m_to item.
+        /// </summary>
+        public static FieldInfo Named(Type type, string name)
+        {
+            var key = (type, name);
+            if (ByName.TryGetValue(key, out var known)) return known;
+            Guard.Each("reading of a type's fields", type.Name, () => Of(type).FirstOrDefault(field => field.Name == name), out known);
+            ByName[key] = known;
+            return known;
+        }
+
+        private static readonly Dictionary<(Type, string), FieldInfo> ByName = new Dictionary<(Type, string), FieldInfo>();
+
         private sealed class FieldRead
         {
             public FieldInfo Field;

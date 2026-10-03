@@ -331,7 +331,7 @@ namespace Scry
 
             foreach (var field in Knowledge.DropTables(component.GetType()))
             {
-                if (!(field.GetValue(component) is DropTable table) || table.m_drops == null) continue;
+                if (!(TypeFields.Value(field, component) is DropTable table) || table.m_drops == null) continue;
                 foreach (var drop in table.m_drops) if (drop.m_item != null) Add(drop.m_item.name);
             }
         }
