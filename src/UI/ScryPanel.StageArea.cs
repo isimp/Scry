@@ -1,0 +1,298 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using UnityEngine;
+
+namespace Scry
+{
+    /// <summary>The selected entry's stage in the panel: the picture, its handle, the input over it, and the chips and buttons on it.</summary>
+    internal static partial class ScryPanel
+    {
+        /// <summary>
+        /// The strip under the stage: dragged, it makes the stage taller or shorter; double-clicked,
+        /// it puts the usual height back.
+        /// </summary>
+        private static void StageHandle(Rect strip)
+        {
+            var e = Event.current;
+            var hover = strip.Contains(e.mousePosition) || _drag == Drag.StageSize;
+            var bar = new Rect(strip.center.x - U(24f), strip.y + U(4f), U(48f), U(4f));
+            Skin.Fill(bar, hover ? Skin.Dim : Skin.Outline);
+            if (strip.Contains(e.mousePosition)) AskTip("stage-size", "Drag to make the stage taller or shorter, double-click for its usual height");
+
+            if (e.type == EventType.MouseDown && e.button == 0 && strip.Contains(e.mousePosition))
+            {
+                if (e.clickCount == 2)
+                {
+                    _stageScale = 1f;
+                    SaveRects();
+                }
+                else
+                {
+                    _drag = Drag.StageSize;
+                }
+                e.Use();
+            }
+        }
+
+        /// <summary>The room of the stage's example the left button went down on, gone to if it comes up without a drag.</summary>
+        private static string _stageRoomDown;
+
+        /// <summary>How far the mouse has moved since the left button went down on the stage.</summary>
+        private static float _orbitMoved;
+
+        /// <summary>Where the stage's picture was last drawn, on the screen, for a drag to tell where on it the mouse is.</summary>
+        private static Rect _pictureScreen;
+
+        /// <summary>Where a point of the screen is on the stage's picture, 0 to 1 across and 0 to 1 up.</summary>
+        private static Vector2 OnPicture(Vector2 screen) => _pictureScreen.width <= 0f || _pictureScreen.height <= 0f ? new Vector2(0.5f, 0.5f)
+            : new Vector2((screen.x - _pictureScreen.x) / _pictureScreen.width, 1f - (screen.y - _pictureScreen.y) / _pictureScreen.height);
+
+        /// <summary>What the stage says while a dungeon's or camp's example is read and built; null once it stands.</summary>
+        private static string ExampleProgress(Entry entry)
+        {
+            if (!(entry.Source is PlaceSource place) || place.IsRoom || place.Contents?.Dungeon == null || !ExampleLayouts.Of(entry)) return null;
+            if (ExampleLayouts.Example == null) return DungeonWords.Reading(ExampleLayouts.Read, ExampleLayouts.Total);
+            var total = Stage.ExampleRoomsTotal;
+            return total > 0 && Stage.ExampleRoomsShown < total ? DungeonWords.Building(Stage.ExampleRoomsShown, total) : null;
+        }
+
+        private static void StageArea(Explorer explorer, Entry entry, Rect rect)
+        {
+            var e = Event.current;
+            Skin.Box(rect, Skin.Stage);
+
+            if (Stage.IsStaged(entry))
+            {
+                var inner = new Rect(rect.x + U(3f), rect.y + U(3f), rect.width - U(6f), rect.height - U(6f));
+                if (e.type == EventType.Repaint) Stage.Request((int)inner.width, (int)inner.height);
+                _pictureScreen = new Rect(GUIUtility.GUIToScreenPoint(inner.position), inner.size);
+
+                if (Stage.Subject != null && Stage.Texture != null)
+                {
+                    var drawn = Timing.Start();
+                    if (e.type == EventType.Repaint) GUI.DrawTexture(inner, Stage.Texture, ScaleMode.StretchToFill, false);
+                    Timing.Add("stage texture", drawn);
+                }
+                else if (entry.Kind != Kind.Effect)
+                {
+                    // A location or room is shown once its model has loaded and its copy is made.
+                    var note = entry.Source is PlaceSource place ? LocationWords.StageNote(Stage.Building ? PlaceLoad.Loading : PlaceAssets.State(place)) : null;
+                    GUI.Label(inner, note ?? "This one could not be previewed.", Skin.CenterDim);
+                }
+
+                // The example's plan in the corner, which takes the mouse where it is.
+                var plan = Stage.Subject != null ? PlanOverlay(explorer, entry, inner) : Rect.zero;
+
+                // A room of the example under the mouse is named, and a click on it that is not a
+                // drag goes to its entry.
+                string roomKey = null;
+                _stageRoom = null;
+                var still = _drag == Drag.None || (_drag == Drag.Orbit && _orbitMoved < U(5f));
+                if (Stage.ExampleRoomsShown > 0 && still && inner.Contains(e.mousePosition) && !plan.Contains(e.mousePosition))
+                {
+                    var point = new Vector2((e.mousePosition.x - inner.x) / inner.width, 1f - (e.mousePosition.y - inner.y) / inner.height);
+                    var room = Stage.ExampleRoomAt(point);
+                    if (room != null)
+                    {
+                        var key = EntryKeys.For(Kind.Location, room.Room.Name);
+                        var known = InCatalog(explorer, key);
+                        var name = ShownName(explorer, key, LocationWords.RoomName(room.Room.Name));
+                        AskTip("stageroom:" + room.Room.Name, known ? name + "\nClick to go to it" : name);
+                        if (known) roomKey = key;
+                        _stageRoom = room.Room.Name;
+                    }
+                }
+                if (e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _stageRoomDown != null && _orbitMoved < U(5f))
+                {
+                    var go = _stageRoomDown;
+                    _stageRoomDown = null;
+                    Go(explorer, go);
+                }
+
+                // The camera's buttons show only while the mouse is on the stage, as its hint does,
+                // so the model is not framed by controls while it is looked at.
+                var over = rect.Contains(e.mousePosition) || _drag == Drag.Orbit;
+                var viewsW = over ? ViewButtons(inner) : 0f;
+                var textW = inner.width - U(24f) - viewsW;
+                if (over)
+                {
+                    FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), textW, U(22f)),
+                        Stage.Cutting ? StageHintCut : StageHint, Skin.FaintLabel, 9f);
+                }
+                else if (ExampleProgress(entry) is string progress)
+                {
+                    // Not measured: the text changes as it goes, and each would be kept.
+                    GUI.Label(new Rect(inner.x + U(12f), inner.yMax - U(28f), textW, U(22f)), progress, Skin.DimLabel);
+                }
+                else if (Stage.Subject != null && Stage.ShowsGrid)
+                {
+                    // On the grid, how big the model is, in the same metres as its squares.
+                    var size = Stage.SubjectSize;
+                    string M(float v) => v.ToString(v < 10f ? "0.0" : "0", CultureInfo.InvariantCulture);
+                    FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), textW, U(22f)),
+                        $"Squares of 1 m, lines every 5 m  \u00B7  {M(size.y)} m tall, {M(size.x)} × {M(size.z)} m", Skin.DimLabel, 9f);
+                }
+
+                // The stage's own buttons and its floor ruler come before its dragging, which would otherwise take their clicks.
+                NoteStage(rect);
+                StageButtons(entry, rect);
+                FloorRuler(rect);
+
+                if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
+                {
+                    if (e.clickCount == 2) Stage.ResetView();
+                    _stageRoomDown = e.clickCount == 2 ? null : roomKey;
+                    _orbitMoved = 0f;
+                    _drag = Drag.Orbit;
+                    Stage.Dragging = true;
+                    e.Use();
+                }
+                else if (e.type == EventType.MouseDown && e.button == 1 && rect.Contains(e.mousePosition))
+                {
+                    _drag = Drag.Pan;
+                    e.Use();
+                }
+                else if (e.type == EventType.ScrollWheel && rect.Contains(e.mousePosition))
+                {
+                    // With Shift the wheel moves the cut of a place opened, down as it scrolls down.
+                    // Otherwise it zooms toward what is under the pointer.
+                    if (e.shift && Stage.Cutting) Stage.CutBy(-e.delta.y * 0.25f);
+                    else Stage.ZoomBy(e.delta.y, OnPicture(GUIUtility.GUIToScreenPoint(e.mousePosition)));
+                    e.Use();
+                }
+            }
+            else if (entry.Kind == Kind.Sound)
+            {
+                var drawn = Timing.Start();
+                SoundCard(entry, rect);
+                Timing.Add("stage card", drawn);
+            }
+            else if (entry.Kind == Kind.StatusEffect)
+            {
+                var drawn = Timing.Start();
+                StatusCard(entry, rect);
+                Timing.Add("stage card", drawn);
+            }
+            else if (entry.Kind == Kind.Mod)
+            {
+                var drawn = Timing.Start();
+                ModCard(entry, rect);
+                Timing.Add("stage card", drawn);
+            }
+            else if (entry.Kind == Kind.Biome)
+            {
+                var drawn = Timing.Start();
+                BiomeCard(entry, rect);
+                Timing.Add("stage card", drawn);
+            }
+            else if (entry.Kind == Kind.Raid)
+            {
+                var drawn = Timing.Start();
+                RaidCard(entry, rect);
+                Timing.Add("stage card", drawn);
+            }
+            else
+            {
+                var middle = new Rect(rect.x + U(30f), rect.y + rect.height / 2f - U(34f), rect.width - U(60f), U(70f));
+                GUI.Label(new Rect(middle.x, middle.y, middle.width, U(28f)), "Nothing to see or hear", Skin.Center);
+                GUI.Label(new Rect(middle.x, middle.y + U(30f), middle.width, U(40f)),
+                    "It has no model, particles, light or sound. Often a spawner or a controller.", Skin.CenterDim);
+            }
+
+            KindBadge(entry, new Vector2(rect.x + U(10f), rect.y + U(10f)));
+        }
+
+        /// <summary>
+        /// Front, side and top views and a fit, in the stage's bottom right corner. Picking a view
+        /// holds the model still, so it stays in that view. Returns the width they take.
+        /// </summary>
+        private static float ViewButtons(Rect inner)
+        {
+            var h = U(22f);
+            var y = inner.yMax - U(8f) - h;
+            var x = inner.xMax - U(8f);
+            var views = new[] { ("Fit", "Frame it whole again"), ("Top", "Look down on it"), ("Side", "Look at it from the side"), ("Front", "Look at it from the front") };
+            foreach (var (name, tip) in views)
+            {
+                var w = Skin.Width(Skin.Chip, name) + U(2f);
+                x -= w;
+                var chip = new Rect(x, y, w, h);
+                x -= U(4f);
+                if (chip.Contains(Event.current.mousePosition)) AskTip("view:" + name, tip);
+                if (!GUI.Button(chip, name, Skin.Chip)) continue;
+
+                Stage.View(name);
+                if (name != "Fit" && Stage.Spin)
+                {
+                    Stage.Spin = false;
+                    SaveRects();
+                }
+            }
+            return inner.xMax - U(8f) - x;
+        }
+
+        /// <summary>
+        /// The stage's chips in its top right corner: View, for the spin, backdrop, lighting and
+        /// person (<see cref="ViewRows"/>), and what a place shown has to show or not, its
+        /// example inside or its entrance, and its creatures. Its roof is put on and taken off
+        /// above the ruler, and its plan folds on the plan itself.
+        /// </summary>
+        private const string StageHint = "Drag to turn, right-drag to move, scroll to zoom where you point, double-click to reset";
+
+        private const string StageHintCut = "Drag to turn, right-drag to move, scroll to zoom where you point, Page Up/Down or the ruler for floors, Shift-scroll to move the cut";
+
+        private static void StageButtons(Entry entry, Rect rect)
+        {
+            var h = U(24f);
+            var y = rect.y + U(10f);
+            var x = rect.xMax - U(10f);
+
+            // Everything the row will hold, measured first, so it can move clear of the kind badge:
+            // the View chip, and what the place shown has to show or not.
+            var texts = new List<string> { "View" };
+            if (Stage.HasInside) texts.Add(Stage.Inside ? "Inside" : "Outside");
+            if (Stage.HasCreatures) texts.Add("Creatures");
+            var total = texts.Sum(t => Skin.Width(Skin.Chip, t) + U(10f));
+            if (x - total < rect.x + U(10f) + _badgeWidth + U(10f)) y += h + U(8f);
+
+            Rect last = default;
+            bool Chip(string text, bool on, string tip, bool can = true)
+            {
+                var style = on ? Skin.ChipOn : Skin.Chip;
+                var w = Skin.Width(style, text) + U(4f);
+                x -= w;
+                var chip = new Rect(x, y, w, h);
+                last = chip;
+                x -= U(6f);
+                if (Event.current.type == EventType.Repaint) StageChipsDrawn++;
+                if (chip.Contains(Event.current.mousePosition)) AskTip("stage:" + tip, tip);
+                var enabled = GUI.enabled;
+                GUI.enabled = enabled && can;
+                var clicked = GUI.Button(chip, text, style);
+                GUI.enabled = enabled;
+                return clicked && can;
+            }
+
+            // How it is seen, set and mostly left, in a box of its own.
+            var viewing = _viewOpen && _viewFor == entry;
+            if (Chip("View", viewing, "How it is seen: spin, backdrop, lighting and a person for size")) ViewToggle(entry, new Rect(GUIUtility.GUIToScreenPoint(last.position), last.size));
+            else if (viewing) ViewPlace(entry, new Rect(GUIUtility.GUIToScreenPoint(last.position), last.size));
+            if (Stage.HasCreatures && Chip("Creatures", Stage.CreaturesShown,
+                    Stage.CreaturesShown ? "Puts away the creatures its spawn points put here" : "Shows the creatures its spawn points put here, rolled anew with every copy"))
+            {
+                Stage.CreaturesShown = !Stage.CreaturesShown;
+                SaveRects();
+            }
+            if (Stage.HasInside && Chip(Stage.Inside ? "Inside" : "Outside", Stage.Inside,
+                    Stage.Inside ? "The example dungeon, laid out as the game lays out a new one; click for its entrance outside" : "Its entrance; click for the example dungeon inside"))
+            {
+                Stage.Inside = !Stage.Inside;
+            }
+        }
+
+        /// <summary>How many chips the stage's row has drawn, for the self-test to count them.</summary>
+        public static int StageChipsDrawn { get; private set; }
+    }
+}
