@@ -17,43 +17,29 @@ namespace Scry
         /// </summary>
         private void Flight(Projectile projectile)
         {
-            var shot = _entry != null && _entry.Links.Any(l => l.Group == LinkBook.ShotFrom);
-            Description = shot
-                ? "Fired by an attack, it takes that attack's damage, knockback, blocking and status effect in place of its own below, and the attack's speed."
-                : "Its speed comes from whatever launches it.";
-
-            var spawnsTheDamage = projectile.m_spawnOnHit != null && projectile.m_onlySpawnedProjectilesDealDamage;
-            var damage = Damages(projectile.m_damage);
-            if (spawnsTheDamage) Add("Own damage", "none; what it spawns on hit deals the damage");
-            else if (damage.Length > 0) Add("Own damage", damage);
-            if (projectile.m_aoe > 0f) Add("Hits", $"everything within {Numbers.Amount(projectile.m_aoe)} m of where it lands");
-            if (projectile.m_attackForce > 0f) Add("Knockback", Numbers.Amount(projectile.m_attackForce));
-
-            var can = new List<string>();
-            if (projectile.m_blockable) can.Add("blocked");
-            if (projectile.m_dodgeable) can.Add("dodged");
-            Add("Can be", can.Count > 0 ? string.Join(" or ", can) : "neither blocked nor dodged");
-
-            if (!string.IsNullOrEmpty(projectile.m_statusEffect) && ObjectDB.instance != null)
+            Description = ProjectileWords.Description(_entry != null && _entry.Links.Any(l => l.Group == LinkBook.ShotFrom));
+            var onHit = !string.IsNullOrEmpty(projectile.m_statusEffect) && ObjectDB.instance != null ? ObjectDB.instance.GetStatusEffect(projectile.m_statusEffect.GetStableHashCode()) : null;
+            AddAll(ProjectileWords.Pairs(new ProjectileFacts
             {
-                var effect = ObjectDB.instance.GetStatusEffect(projectile.m_statusEffect.GetStableHashCode());
-                if (effect != null) Add("On hit", EffectName(effect), "se:" + effect.name);
-            }
-
-            if (projectile.m_ttl > 0f) Add("Flies for", Numbers.Duration(projectile.m_ttl));
-            if (projectile.m_gravity != 0f) Add("Falls", $"{Numbers.Amount(projectile.m_gravity)} m/s²");
-            else Add("Falls", "no, it flies straight");
-            if (projectile.m_drag > 0f) Add("Slows", $"drag {Numbers.Amount(projectile.m_drag)}");
-            if (projectile.m_bounce) Add("Bounces", projectile.m_maxBounces < 99 ? $"up to {Numbers.Count(projectile.m_maxBounces)} times" : "yes");
-            if (projectile.m_stayAfterHitStatic || projectile.m_stayAfterHitDynamic)
-            {
-                Add("After a hit", $"stays where it struck for {Numbers.Duration(projectile.m_stayTTL)}");
-            }
-            if (projectile.m_respawnItemOnHit) Add("Leaves", "the weapon that threw it, where it lands");
-            if (projectile.m_spawnOnHit != null && projectile.m_spawnOnHitChance < 1f)
-            {
-                Add("Spawns on hit", DropWords.Share(projectile.m_spawnOnHitChance) + " of the time");
-            }
+                Damage = DamageFigures(projectile.m_damage),
+                SpawnDealsTheDamage = projectile.m_spawnOnHit != null && projectile.m_onlySpawnedProjectilesDealDamage,
+                AreaOfEffect = projectile.m_aoe,
+                Knockback = projectile.m_attackForce,
+                Blockable = projectile.m_blockable,
+                Dodgeable = projectile.m_dodgeable,
+                OnHit = onHit != null ? EffectName(onHit) : null,
+                OnHitKey = onHit != null ? "se:" + onHit.name : null,
+                FliesFor = projectile.m_ttl,
+                Gravity = projectile.m_gravity,
+                Drag = projectile.m_drag,
+                Bounces = projectile.m_bounce,
+                MaxBounces = projectile.m_maxBounces,
+                StaysAfterHit = projectile.m_stayAfterHitStatic || projectile.m_stayAfterHitDynamic,
+                StaysFor = projectile.m_stayTTL,
+                LeavesTheWeapon = projectile.m_respawnItemOnHit,
+                SpawnsOnHit = projectile.m_spawnOnHit != null,
+                SpawnOnHitChance = projectile.m_spawnOnHitChance,
+            }));
         }
     }
 }

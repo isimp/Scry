@@ -283,13 +283,13 @@ namespace Scry
         /// Damage by type, the biggest first, in the same words everywhere: an item's, a creature's
         /// attack's. The game's plain <c>m_damage</c>, which no resistance lessens, is "true".
         /// </summary>
-        private static string Damages(HitData.DamageTypes d)
+        private static string Damages(HitData.DamageTypes d) => CombatWords.Damage(DamageFigures(d)) ?? "";
+
+        /// <summary>A hit's damage by type, as the game keeps it, named as the panel names the types.</summary>
+        private static (string Type, float Amount)[] DamageFigures(HitData.DamageTypes d) => new[]
         {
-            return CombatWords.Damage(new[]
-            {
-                ("true", d.m_damage), ("blunt", d.m_blunt), ("slash", d.m_slash), ("pierce", d.m_pierce), ("chop", d.m_chop), ("pickaxe", d.m_pickaxe),
-                ("fire", d.m_fire), ("frost", d.m_frost), ("lightning", d.m_lightning), ("poison", d.m_poison), ("spirit", d.m_spirit),
-            }) ?? "";
-        }
+            ("true", d.m_damage), ("blunt", d.m_blunt), ("slash", d.m_slash), ("pierce", d.m_pierce), ("chop", d.m_chop), ("pickaxe", d.m_pickaxe),
+            ("fire", d.m_fire), ("frost", d.m_frost), ("lightning", d.m_lightning), ("poison", d.m_poison), ("spirit", d.m_spirit),
+        };
     }
 }

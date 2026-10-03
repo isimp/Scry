@@ -80,6 +80,16 @@ namespace Scry
             if (link != null) Links[label] = link;
         }
 
+        /// <summary>The lines a kind's words give (<see cref="FactPair"/>), in their order, each with its link and why Scry is not sure of it.</summary>
+        private void AddAll(IEnumerable<FactPair> pairs)
+        {
+            foreach (var pair in pairs)
+            {
+                if (pair.Unsure != null) AddUnsure(pair.Label, pair.Value, pair.Unsure, pair.Link);
+                else Add(pair.Label, pair.Value, pair.Link);
+            }
+        }
+
         /// <summary>A row of biomes, each going to its page; all of them told in words.</summary>
         private void BiomeRow(string title, Heightmap.Biome biomes)
         {
