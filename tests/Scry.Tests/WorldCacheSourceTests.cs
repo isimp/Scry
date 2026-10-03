@@ -42,7 +42,9 @@ namespace Scry.Tests
         private static Dictionary<string, List<string>> SourceByClass()
         {
             var byClass = new Dictionary<string, List<string>>();
-            foreach (var file in Directory.GetFiles(Path.Combine(Root(), "src"), "*.cs", SearchOption.AllDirectories))
+            var files = Directory.GetFiles(Path.Combine(Root(), "src"), "*.cs", SearchOption.AllDirectories)
+                .Concat(Directory.GetFiles(Path.Combine(Root(), "selftest"), "*.cs", SearchOption.TopDirectoryOnly));
+            foreach (var file in files)
             {
                 if (file.Replace('\\', '/').Contains("/src/Model/")) continue;
                 var text = File.ReadAllText(file);

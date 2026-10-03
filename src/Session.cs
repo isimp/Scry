@@ -152,7 +152,7 @@ namespace Scry
             {
                 var started = Timing.Start();
                 var inner = Timing.InnerMs();
-                SelfTest.Tick();
+                SelfTestHost.Tick();
                 Timing.Own(Timing.SelfTestPart, started, inner);
             });
 

@@ -24,7 +24,7 @@ namespace Scry
         }
 
         /// <summary>How tall the self-test's strip is: none while no run goes on and none has ended or it was put away.</summary>
-        private static float TestNoticeHeight() => SelfTest.Running || (_testShown && SelfTest.LastHeadline != null) ? U(32f) : 0f;
+        private static float TestNoticeHeight() => SelfTestHost.Running || (_testShown && SelfTestHost.LastHeadline != null) ? U(32f) : 0f;
 
         /// <summary>How often the strip has been drawn, for the self-test.</summary>
         public static int TestNoticesDrawn { get; private set; }
@@ -32,11 +32,11 @@ namespace Scry
         private static void TestNotice(Rect rect)
         {
             if (Event.current.type == EventType.Repaint) TestNoticesDrawn++;
-            var running = SelfTest.Running;
-            var tone = running ? Skin.Accent : SelfTest.LastFailed ? Skin.Warn : Skin.KindColor(Kind.StatusEffect);
+            var running = SelfTestHost.Running;
+            var tone = running ? Skin.Accent : SelfTestHost.LastFailed ? Skin.Warn : Skin.KindColor(Kind.StatusEffect);
             Skin.Fill(rect, new Color(tone.r, tone.g, tone.b, 0.13f));
             Skin.Fill(new Rect(rect.x, rect.y, U(3f), rect.height), tone);
-            if (running) Skin.Fill(new Rect(rect.x, rect.yMax - U(3f), rect.width * SelfTest.Fraction, U(3f)), tone);
+            if (running) Skin.Fill(new Rect(rect.x, rect.yMax - U(3f), rect.width * SelfTestHost.Fraction, U(3f)), tone);
 
             var buttonH = U(24f);
             var closeW = U(24f);
@@ -45,11 +45,11 @@ namespace Scry
             var buttonW = Skin.Width(Skin.Chip, label) + U(12f);
             var button = new Rect((running ? rect.xMax - U(4f) : close.x - U(6f)) - buttonW, rect.y + (rect.height - buttonH) / 2f, buttonW, buttonH);
             var text = new Rect(rect.x + U(14f), rect.y, button.x - rect.x - U(22f), rect.height);
-            Ticker(text, running ? SelfTest.Progress : SelfTest.LastHeadline, Skin.Label);
+            Ticker(text, running ? SelfTestHost.Progress : SelfTestHost.LastHeadline, Skin.Label);
 
             if (running)
             {
-                if (GUI.Button(button, label, Skin.Chip)) Session.Say("Scry: " + SelfTest.Stop());
+                if (GUI.Button(button, label, Skin.Chip)) Session.Say("Scry: " + SelfTestHost.Stop());
                 if (button.Contains(Event.current.mousePosition)) AskTip("test-stop", "Stops the self-test and puts back what it changed");
                 return;
             }
@@ -79,11 +79,11 @@ namespace Scry
             var closeH = U(30f);
             var area = new Rect(rect.x + U(4f), rect.y + U(6f), rect.width - U(8f), rect.height - closeH - U(20f));
             var width = area.width - U(38f);
-            var headline = SelfTest.LastHeadline ?? "";
-            var advice = SelfTest.LastAdvice ?? "";
+            var headline = SelfTestHost.LastHeadline ?? "";
+            var advice = SelfTestHost.LastAdvice ?? "";
             var headlineH = Skin.Height(Skin.Wrap, headline, width);
             var adviceH = Skin.Height(Skin.DimWrap, advice, width);
-            var lines = SelfTest.LastSummary;
+            var lines = SelfTestHost.LastSummary;
             var height = U(44f) + headlineH + U(10f) + lines.Count * U(22f) + U(10f) + adviceH + U(12f);
             var view = new Rect(0f, 0f, area.width - U(14f), Mathf.Max(height, area.height));
             _testScroll = GUI.BeginScrollView(area, _testScroll, view, false, false, GUIStyle.none, Skin.Gui.verticalScrollbar);
@@ -111,7 +111,7 @@ namespace Scry
             var copyRect = new Rect(closeRect.x - U(8f) - copyW, closeRect.y, copyW, closeH);
             if (copyRect.x > rect.x + U(8f) && GUI.Button(copyRect, copy, Skin.Button))
             {
-                GUIUtility.systemCopyBuffer = SelfTest.LastText;
+                GUIUtility.systemCopyBuffer = SelfTestHost.LastText;
                 Session.Say("Copied the self-test's summary.");
             }
         }

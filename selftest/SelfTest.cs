@@ -48,6 +48,22 @@ namespace Scry
 
         public static bool Running => _runner != null;
 
+        /// <summary>The self-test as Scry reaches it (<see cref="SelfTestHost"/>).</summary>
+        internal sealed class Runner : SelfTestHost.IRunner
+        {
+            public bool Running => SelfTest.Running;
+            public void Tick() => SelfTest.Tick();
+            public string Start(string why) => SelfTest.Start(why);
+            public string Stop() => SelfTest.Stop();
+            public string Progress => SelfTest.Progress;
+            public float Fraction => SelfTest.Fraction;
+            public string LastHeadline => SelfTest.LastHeadline;
+            public System.Collections.Generic.IReadOnlyList<string> LastSummary => SelfTest.LastSummary;
+            public string LastAdvice => SelfTest.LastAdvice;
+            public bool LastFailed => SelfTest.LastFailed;
+            public string LastText => SelfTest.LastText;
+        }
+
         /// <summary>Called every frame: runs the scenarios, and starts them by marker file once per world.</summary>
         public static void Tick()
         {

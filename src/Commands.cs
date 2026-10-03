@@ -53,14 +53,14 @@ namespace Scry
             {
                 // A tool for finding faults, off unless its setting is on; stopping one always works.
                 args.Context?.AddString("Scry: " + (Plugin.SelfTestAllowed
-                    ? SelfTest.Start("it was asked for with /scry selftest")
+                    ? SelfTestHost.Start("it was asked for with /scry selftest")
                     : "the self-test is off; SelfTest under Diagnostics in Scry's settings turns it on."));
                 return;
             }
 
             if (rest.Equals("selftest stop", System.StringComparison.OrdinalIgnoreCase))
             {
-                args.Context?.AddString("Scry: " + SelfTest.Stop());
+                args.Context?.AddString("Scry: " + SelfTestHost.Stop());
                 return;
             }
 

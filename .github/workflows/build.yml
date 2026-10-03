@@ -22,6 +22,10 @@ jobs:
       - name: Build
         run: dotnet build -c Release -p:LibsDir=lib --nologo
 
+      # The in-game self-test is a plugin of its own, never packaged; built here so it keeps up with Scry.
+      - name: Build the self-test
+        run: dotnet build selftest -c Release -p:LibsDir=lib --nologo
+
       # The tests cover the part of Scry that needs no game. Those that time the search against
       # a frame's budget (SearchLoadTests) are left to local runs, since a shared runner's speed
       # varies too much for a fixed budget to mean anything.
