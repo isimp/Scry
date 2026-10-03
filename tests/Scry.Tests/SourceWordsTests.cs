@@ -106,6 +106,23 @@ namespace Scry.Tests
             Assert.Equal(1.0, SourceWords.Sureness(later), 6);
         }
 
+        // A producer's pace and a trader's price read the same on the producer's or trader's page
+        // as on the item's.
+
+        [Fact]
+        public void APaceSaysHowOftenAndHowManyItHolds()
+        {
+            Assert.Equal("one every " + Naming.Duration(1200f) + ", holding up to 4", SourceWords.Pace(1200f, 4));
+        }
+
+        [Theory]
+        [InlineData(1, 750, "750 coins")]
+        [InlineData(50, 50, "50 for 50 coins")]
+        public void APriceSaysHowManyForHowMuch(int stack, int price, string told)
+        {
+            Assert.Equal(told, SourceWords.Price(stack, price));
+        }
+
         [Fact]
         public void YoungTellWhoTheyComeFrom()
         {

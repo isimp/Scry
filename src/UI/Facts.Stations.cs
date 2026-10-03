@@ -97,7 +97,7 @@ namespace Scry
             var hive = prefab.GetComponent<Beehive>();
             if (hive != null && hive.m_honeyItem != null)
             {
-                Add("Makes", $"{ItemName(hive.m_honeyItem.gameObject)}, one every {Naming.Duration(hive.m_secPerUnit)}, holding up to {hive.m_maxHoney}", hive.m_honeyItem.gameObject.name);
+                Add("Makes", $"{ItemName(hive.m_honeyItem.gameObject)}, {SourceWords.Pace(hive.m_secPerUnit, hive.m_maxHoney)}", hive.m_honeyItem.gameObject.name);
                 if (hive.m_biome != 0) BiomeRow("Works in", hive.m_biome);
                 // Beehive.HaveFreeSpace: it makes nothing while more of the sky around it is covered.
                 if (hive.m_maxCover > 0f) Add("Needs", $"open sky, less than {Mathf.RoundToInt(hive.m_maxCover * 100f)}% covered");
@@ -107,7 +107,7 @@ namespace Scry
             var tap = prefab.GetComponent<SapCollector>();
             if (tap != null && tap.m_spawnItem != null)
             {
-                Add("Makes", $"{ItemName(tap.m_spawnItem.gameObject)}, one every {Naming.Duration(tap.m_secPerUnit)}, holding up to {tap.m_maxLevel}", tap.m_spawnItem.gameObject.name);
+                Add("Makes", $"{ItemName(tap.m_spawnItem.gameObject)}, {SourceWords.Pace(tap.m_secPerUnit, tap.m_maxLevel)}", tap.m_spawnItem.gameObject.name);
                 // SapCollector.UpdateTick: it makes only while on its root, and no more than the root has left.
                 var root = tap.m_mustConnectTo != null ? tap.m_mustConnectTo.gameObject : null;
                 if (root != null) Add("Needs", $"to be built on {AnyName(root, root.name)}, and takes only the sap it has left", root.name);
@@ -218,8 +218,7 @@ namespace Scry
                     rows.Add((key, new Row { Title = title, TitleLink = Knowledge.BossPrefabOf(key) }));
                     at = rows.Count - 1;
                 }
-                var price = trade.m_stack > 1 ? $"{trade.m_stack} for {trade.m_price} coins" : $"{trade.m_price} coins";
-                rows[at].Row.Items.Add(Chip(trade.m_prefab, price));
+                rows[at].Row.Items.Add(Chip(trade.m_prefab, SourceWords.Price(trade.m_stack, trade.m_price)));
             }
             foreach (var (_, row) in rows) Rows.Add(row);
         }

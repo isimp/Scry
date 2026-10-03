@@ -150,14 +150,20 @@ namespace Scry
                 case SourceWay.GrowsFrom: return $"Grows from {source.Shown}";
                 case SourceWay.Table: return $"{Verb(source.Table)} {source.Shown}, {DropWords.ForItem(source.Rolls, source.Drop)}";
                 case SourceWay.Made:
-                    return $"Made by {source.Shown}, one every {Naming.Duration(source.Every)}, holding up to {source.HoldsUpTo}" + (source.In.Length > 0 ? ", in " + source.In : "");
+                    return $"Made by {source.Shown}, {Pace(source.Every, source.HoldsUpTo)}" + (source.In.Length > 0 ? ", in " + source.In : "");
                 case SourceWay.Sold:
-                    return $"Sold by {source.Shown}, {(source.Stack > 1 ? source.Stack + " for " : "")}{source.Price} coins" + (source.Key.Length > 0 ? ", " + SpawnWords.Once(source.Key, bossOf) : "");
+                    return $"Sold by {source.Shown}, {Price(source.Stack, source.Price)}" + (source.Key.Length > 0 ? ", " + SpawnWords.Once(source.Key, bossOf) : "");
                 case SourceWay.Born: return $"Born to a tame {source.Shown}" + (source.NoPartner ? " with no partner near" : "");
                 case SourceWay.GrowsUp: return $"Grows up from {source.Shown}";
                 default: return $"Hatches from {source.Shown}";
             }
         }
+
+        /// <summary>A producer's pace: one every so long, holding up to so many.</summary>
+        public static string Pace(float everySeconds, int holdsUpTo) => $"one every {Naming.Duration(everySeconds)}, holding up to {holdsUpTo}";
+
+        /// <summary>A trader's price: so many coins, for a stack where it sells more than one.</summary>
+        public static string Price(int stack, int price) => stack > 1 ? $"{stack} for {price} coins" : $"{price} coins";
 
         /// <summary>How a drop table gives what it holds, by what it belongs to, as the other side's facts tell it.</summary>
         public static string Verb(TableOf table)

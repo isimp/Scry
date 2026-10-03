@@ -327,18 +327,8 @@ namespace Scry
                 AddBiomes(name, veg.m_biome);
                 PlacedByWorld.Add(name);
 
-                var line = "Grows in " + BiomeNames(veg.m_biome);
-                if (veg.m_minAltitude > -1000f || veg.m_maxAltitude < 1000f)
-                {
-                    line += veg.m_maxAltitude < 1000f
-                        ? $", {DropWords.Range(Mathf.RoundToInt(veg.m_minAltitude), Mathf.RoundToInt(veg.m_maxAltitude))} m up"
-                        : $", from {Mathf.RoundToInt(veg.m_minAltitude)} m up";
-                }
-                if (veg.m_minOceanDepth > 0f || veg.m_maxOceanDepth > 0f) line += ", in the sea";
-                if (veg.m_inForest) line += ", in forests";
-                var group = SpawnWords.Group(veg.m_groupSizeMin, veg.m_groupSizeMax);
-                if (group != null) line += ", " + group;
-                Add(name, line);
+                Add(name, SpawnWords.Grows(BiomeNames(veg.m_biome), veg.m_minAltitude, veg.m_maxAltitude,
+                    veg.m_minOceanDepth > 0f || veg.m_maxOceanDepth > 0f, veg.m_inForest, veg.m_groupSizeMin, veg.m_groupSizeMax));
             });
         }
 

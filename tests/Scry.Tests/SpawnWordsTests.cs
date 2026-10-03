@@ -162,5 +162,39 @@ namespace Scry.Tests
             Assert.Equal("Comes in the raid \"The forest is moving\", in Black Forest, once Eikthyr is defeated, until Bonemass is defeated",
                 SpawnWords.Line("Comes in the raid \"The forest is moving\", in", raid, Boss));
         }
-    }
+    
+        // What the world grows (ZoneSystem.m_vegetation) says its biomes and every limit it has:
+        // its height above the sea, the sea itself, forests, and groups.
+
+        [Fact]
+        public void WhatGrowsAnywhereSaysOnlyItsBiomes()
+        {
+            Assert.Equal("Grows in Meadows", SpawnWords.Grows("Meadows", -1000f, 1000f, false, false, 1, 1));
+        }
+
+        [Fact]
+        public void WhatGrowsBetweenTwoHeightsSaysThem()
+        {
+            Assert.Equal("Grows in Mountain, 70–900 m up", SpawnWords.Grows("Mountain", 70.2f, 900f, false, false, 1, 1));
+        }
+
+        [Fact]
+        public void WhatGrowsAboveAHeightSaysFromWhere()
+        {
+            Assert.Equal("Grows in Meadows, from 2 m up", SpawnWords.Grows("Meadows", 1.6f, 1000f, false, false, 1, 1));
+            Assert.Equal("Grows in Meadows, from -999 m up", SpawnWords.Grows("Meadows", -999f, 1000f, false, false, 1, 1));
+        }
+
+        [Fact]
+        public void WhatGrowsBelowAHeightSaysTheRange()
+        {
+            Assert.Equal("Grows in Ocean, -1000–-5 m up", SpawnWords.Grows("Ocean", -1000f, -5f, false, false, 1, 1));
+        }
+
+        [Fact]
+        public void TheSeaForestsAndGroupsAreSaidInThatOrder()
+        {
+            Assert.Equal("Grows in Black Forest, in the sea, in forests, in groups of 2–5", SpawnWords.Grows("Black Forest", -1000f, 1000f, true, true, 2, 5));
+        }
+}
 }

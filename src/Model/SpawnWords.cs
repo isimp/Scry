@@ -52,6 +52,27 @@ namespace Scry
         /// <summary>How many come together, or null for one at a time.</summary>
         public static string Group(int min, int max) => max > 1 ? "in groups of " + DropWords.Range(min, max) : null;
 
+        /// <summary>
+        /// Where the world grows something (<c>ZoneSystem.m_vegetation</c>): its biomes, named, and
+        /// every limit it has, its height above the sea in whole metres where it is held to one
+        /// (the game's -1000 and 1000 hold it to none), the sea, forests, and groups.
+        /// </summary>
+        public static string Grows(string biomes, float minAltitude, float maxAltitude, bool inSea, bool inForest, int groupMin, int groupMax)
+        {
+            var line = "Grows in " + biomes;
+            if (minAltitude > -1000f || maxAltitude < 1000f)
+            {
+                line += maxAltitude < 1000f
+                    ? $", {DropWords.Range((int)Math.Round(minAltitude), (int)Math.Round(maxAltitude))} m up"
+                    : $", from {(int)Math.Round(minAltitude)} m up";
+            }
+            if (inSea) line += ", in the sea";
+            if (inForest) line += ", in forests";
+            var group = Group(groupMin, groupMax);
+            if (group != null) line += ", " + group;
+            return line;
+        }
+
         /// <summary>What a world key it waits for means: the creature that sets it defeated, else the key by name.</summary>
         public static string Once(string key, Func<string, string> bossOf) => "once " + KeyWords(key, bossOf);
 
