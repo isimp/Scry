@@ -632,6 +632,7 @@ namespace Scry
             var scale = _across / Mathf.Max(0.01f, _waterAcross);
             _water.transform.localScale = new Vector3(scale, 1f, scale);
             var depth = Mathf.Clamp01(over.Value / 10f);
+            // The game's time, as the game gives its own water: its waves move as the world's do.
             _waterMaterial.SetFloat("_WaterTime", Time.time);
             _waterMaterial.SetFloatArray("_depth", new[] { depth, depth, depth, depth });
             _waterMaterial.SetFloat("_UseGlobalWind", 1f);

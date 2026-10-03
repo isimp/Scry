@@ -35,6 +35,7 @@ namespace Scry
 
         private void Update()
         {
+            // The game's time: it flies as the game's own projectiles do, and stops with the world.
             var dt = Time.deltaTime;
             _age += dt;
 

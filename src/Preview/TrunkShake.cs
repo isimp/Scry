@@ -19,6 +19,7 @@ namespace Scry
                 shake = trunk.gameObject.AddComponent<TrunkShake>();
                 shake._rest = trunk.localRotation;
             }
+            // The game's time, as the log it shakes with falls under the game's physics.
             shake._from = Time.time;
         }
 

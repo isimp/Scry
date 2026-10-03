@@ -19,6 +19,7 @@ namespace Scry
 
         private void Update()
         {
+            // The game's time, as Windmill.Update turns its own.
             var dt = Time.deltaTime;
             if (Propeller != null)
             {

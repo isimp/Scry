@@ -36,6 +36,7 @@ namespace Scry
             watch._foot = from.transform.position;
             watch._start = piece.transform.position;
             watch._highest = watch._start.y;
+            // The game's time, as the fall it watches is the game's physics.
             watch._until = Time.time + Seconds;
             watch._body = piece.GetComponentInChildren<Rigidbody>();
 
