@@ -38,6 +38,7 @@ namespace Scry
     /// </summary>
     public static class RaidRoll
     {
+        /// <param name="spawns">The raid's spawns, in its list's order, each rolled in turn.</param>
         /// <param name="percent">A roll from 0 to 100, as <c>UnityEngine.Random.Range(0f, 100f)</c>.</param>
         /// <param name="range">A whole number from the first up to but not including the second, as <c>UnityEngine.Random.Range(int, int)</c>.</param>
         public static List<RolledCreature> FirstRoll(IReadOnlyList<RaidSpawn> spawns, Func<float> percent, Func<int, int, int> range)

@@ -103,6 +103,8 @@ namespace Scry
         /// An item by its item type (<c>ItemDrop.ItemData.ItemType</c>, by name), a weapon by the skill
         /// it trains; an unknown or odd one is other.
         /// </summary>
+        /// <param name="itemType">Its item type, by name.</param>
+        /// <param name="skill">The skill it trains, by name, for a weapon.</param>
         /// <param name="carriedByCreature">A creature carries it (its attacks and gear are items).</param>
         /// <param name="obtainable">A recipe makes it, or something drops, holds, sells or places it.</param>
         public static Group Item(string itemType, string skill = null, bool carriedByCreature = false, bool obtainable = true)

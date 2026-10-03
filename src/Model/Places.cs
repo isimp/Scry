@@ -48,6 +48,7 @@ namespace Scry
         /// anyway. A name with no words in it (a mod's, all digits) keeps its own, so no place
         /// goes unnamed.
         /// </summary>
+        /// <param name="place">What is known of the location: its prefab, the game's name for it, its biome, its altar's boss and its trader.</param>
         /// <param name="creatures">Creatures' shown names by their prefab names.</param>
         public static string LocationLabel(PlaceFacts place, IReadOnlyDictionary<string, string> creatures)
         {

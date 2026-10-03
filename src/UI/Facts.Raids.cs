@@ -8,7 +8,7 @@ namespace Scry
     {
         // ----- Raids -----
 
-        /// <summary>A link that plays the entry's own music rather than going anywhere (<see cref="Previews.EntryMusic"/>).</summary>
+        /// <summary>A link that plays music rather than going anywhere: the entry's own (<see cref="Previews.PlacesMusic"/>), or after a colon a piece by its name (<see cref="Previews.NamedMusic"/>).</summary>
         public const string PlayMusic = "play:music";
 
         /// <summary>A weather by name and what it does to whoever is out in it (<see cref="WeatherWords"/>); the name alone when the world has no such weather.</summary>

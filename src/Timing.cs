@@ -33,7 +33,7 @@ namespace Scry
         private static float _windowFrom = -1f;
 
         /// <summary>
-        /// Where each frame's total goes while the self-test measures (<see cref="SelfTest"/>),
+        /// Where each frame's total goes while the self-test measures (<see cref="SelfTestHost"/>),
         /// with its slowest part; null otherwise. Slow frames are logged only with
         /// <see cref="Plugin.LogPreviews"/> on.
         /// </summary>
