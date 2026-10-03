@@ -27,12 +27,12 @@ namespace Scry
         /// <summary>Notes one list: its player as shown and where clicking it goes, and what it is for.</summary>
         public static void Note(EffectList list, string owner, string ownerKey, string label)
         {
-            if (list?.m_effectPrefabs == null || !Noted.Add((list, owner))) return;
+            if (list == null || !Noted.Add((list, owner))) return;
 
             var members = new List<string>();
-            foreach (var data in list.m_effectPrefabs)
+            foreach (var slot in EffectSlots.Of(list))
             {
-                if (data != null && data.m_enabled && data.m_prefab != null) members.Add(data.m_prefab.name);
+                if (EffectSlots.Plays(slot)) members.Add(slot.m_prefab.name);
             }
             if (members.Count == 0) return;
 

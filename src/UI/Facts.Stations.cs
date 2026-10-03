@@ -11,7 +11,7 @@ namespace Scry
         /// <summary>A chip for a prefab by name, with the name and icon the game shows.</summary>
         private static Ingredient Chip(string name, string amount)
         {
-            var prefab = Looks.Prefab(name);
+            var prefab = GamePrefabs.Item(name);
             return new Ingredient { Icon = AnyIcon(prefab), Name = AnyName(prefab, name), Amount = amount ?? "", Prefab = name };
         }
 
@@ -22,7 +22,7 @@ namespace Scry
         {
             foreach (var making in Knowledge.MadeOf(item.name))
             {
-                var title = ModWords.AddedBy(MakerBook.ItemTitle(AnyName(Looks.Prefab(making.Station), making.Station), making), Knowledge.ConversionMod(making), Knowledge.ModName(item.name));
+                var title = ModWords.AddedBy(MakerBook.ItemTitle(AnyName(GamePrefabs.Item(making.Station), making.Station), making), Knowledge.ConversionMod(making), Knowledge.ModName(item.name));
                 var row = new Row { Title = title, TitleLink = making.Station };
                 foreach (var (input, amount) in making.Inputs) row.Items.Add(Chip(input, Numbers.Count(amount)));
                 Rows.Add(row);
@@ -38,7 +38,7 @@ namespace Scry
         {
             foreach (var making in Knowledge.MadeAt(prefab.name))
             {
-                var row = new Row { Title = MakerBook.StationTitle(AnyName(Looks.Prefab(making.Output), making.Output), making), TitleLink = making.Output };
+                var row = new Row { Title = MakerBook.StationTitle(AnyName(GamePrefabs.Item(making.Output), making.Output), making), TitleLink = making.Output };
                 foreach (var (input, amount) in making.Inputs) row.Items.Add(Chip(input, Numbers.Count(amount)));
                 Rows.Add(row);
             }

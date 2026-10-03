@@ -74,8 +74,7 @@ namespace Scry
                 if (playing && chip.Contains(Event.current.mousePosition)) AskTip("fx-stop:" + pair.Key, "Playing; click to stop it");
                 if (chip.Contains(Event.current.mousePosition))
                 {
-                    var names = pair.Value.m_effectPrefabs.Where(d => d?.m_prefab != null).Select(d => d.m_prefab.name);
-                    AskTip("fx:" + pair.Key, string.Join("\n", names));
+                    AskTip("fx:" + pair.Key, string.Join("\n", EffectSlots.NamesListed(pair.Value)));
                 }
             }
             if (_effectFilter.Length == 0) MoreChip("effects", matching.Count, FirstChips, width, ref flow);
@@ -86,7 +85,7 @@ namespace Scry
             if (last.Value != null)
             {
                 y += U(10f);
-                y = Members(explorer, "In " + last.Key + ":", last.Value, Members(last.Value), null, width, y);
+                y = Members(explorer, "In " + last.Key + ":", last.Value, EffectSlots.NamesPlayed(last.Value), null, width, y);
 
                 // The clips it goes with, to play from here, once they are worked out.
                 if (Previews.ClipsSorting)
@@ -142,19 +141,13 @@ namespace Scry
             Previews.PlayEffectList(_firstEffect.Key, _firstEffect.Value);
         }
 
-        /// <summary>The prefabs an effect list plays, each once.</summary>
-        private static string[] Members(EffectList list)
-        {
-            return list.m_effectPrefabs.Where(d => d != null && d.m_enabled && d.m_prefab != null).Select(d => d.m_prefab.name).Distinct().ToArray();
-        }
-
         /// <summary>
         /// The parts of a list as chips: each goes to its prefab, and is lit while the copy of it
         /// the list last started still plays. The selected prefab itself is shown but not a link.
         /// </summary>
         private static Entry _groundsFor;
 
-        private static float Members(Explorer explorer, string title, object list, string[] members, string self, float width, float y)
+        private static float Members(Explorer explorer, string title, object list, IReadOnlyList<string> members, string self, float width, float y)
         {
             if (title != null)
             {
@@ -163,7 +156,7 @@ namespace Scry
             }
             var flow = new ChipFlow(0f, width, y, U(26f), U(5f), U(5f));
             var key = MembersKey(title, list);
-            var count = ShownOf(key, members.Length);
+            var count = ShownOf(key, members.Count);
             for (var i = 0; i < count; i++)
             {
                 var member = members[i];
@@ -176,7 +169,7 @@ namespace Scry
                 if (LinkChip(chip, member, KindOf(explorer, member), lit, go)) Go(explorer, member);
                 if (go && chip.Contains(Event.current.mousePosition)) AskTip("member:" + member, "Go to " + member + (lit ? "\n(playing now)" : ""));
             }
-            MoreChip(key, members.Length, FirstChips, width, ref flow);
+            MoreChip(key, members.Count, FirstChips, width, ref flow);
             return flow.RowBottom + U(6f);
         }
 

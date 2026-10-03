@@ -124,7 +124,7 @@ namespace Scry
                 // game's item list holds) has no entry, and the panel shows it as text; only a
                 // prefab of the scene or a key of Scry's own that leads nowhere is a gap.
                 var name = EntryKeys.Split(target, out var kind);
-                if (kind == null && ZNetScene.instance?.GetPrefab(name) == null)
+                if (kind == null && GamePrefabs.Named(name) == null)
                 {
                     unregistered.Add(target);
                     return;

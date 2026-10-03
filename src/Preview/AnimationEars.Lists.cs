@@ -19,16 +19,19 @@ namespace Scry
         }
 
         /// <summary>What is heard around a clip, by prefab name, apart from what it plays itself.</summary>
-        public List<string> AroundMembers(AnimationClip clip)
+        public List<string> AroundMembers(AnimationClip clip) =>
+            MembersBesides(clip != null && _prefab != null ? Previews.AroundOfClip(_prefab, _copy, clip.name) : null, clip);
+
+        /// <summary>What a list plays with a clip, by prefab name, each once, apart from what the clip plays itself.</summary>
+        private List<string> MembersBesides(EffectList list, AnimationClip clip)
         {
             var names = new List<string>();
-            var list = clip != null && _prefab != null ? Previews.AroundOfClip(_prefab, _copy, clip.name) : null;
-            if (list?.m_effectPrefabs == null) return names;
+            if (list == null) return names;
             var own = Members(clip);
-            foreach (var data in list.m_effectPrefabs)
+            foreach (var slot in EffectSlots.Of(list))
             {
-                if (data?.m_prefab == null || !data.m_enabled || names.Contains(data.m_prefab.name) || own.Contains(data.m_prefab.name)) continue;
-                names.Add(data.m_prefab.name);
+                if (!EffectSlots.Plays(slot) || names.Contains(slot.m_prefab.name) || own.Contains(slot.m_prefab.name)) continue;
+                names.Add(slot.m_prefab.name);
             }
             return names;
         }
@@ -47,7 +50,7 @@ namespace Scry
             if (list == character?.m_jumpEffects && System.Array.Exists(clip.events, e => e.functionName == "Jump")) return;
             if (list == character?.m_deathEffects && System.Array.Exists(clip.events, e => e.functionName == "Die")) return;
 
-            if (list.m_effectPrefabs == null || !System.Array.Exists(list.m_effectPrefabs, d => d != null && d.m_enabled && d.m_prefab != null))
+            if (!EffectSlots.PlaysAny(list))
             {
                 Listen.Note(Listening, "the game plays nothing with it: this creature's list for it is empty");
                 return;
@@ -91,19 +94,8 @@ namespace Scry
         }
 
         /// <summary>What a clip plays that it was paired with by its name alone, by prefab name, apart from what it plays itself.</summary>
-        public List<string> ByNameMembers(AnimationClip clip)
-        {
-            var names = new List<string>();
-            var list = clip != null && _prefab != null ? Previews.ByNameOfClip(_prefab, _copy, clip.name, out _) : null;
-            if (list?.m_effectPrefabs == null) return names;
-            var own = Members(clip);
-            foreach (var data in list.m_effectPrefabs)
-            {
-                if (data?.m_prefab == null || !data.m_enabled || names.Contains(data.m_prefab.name) || own.Contains(data.m_prefab.name)) continue;
-                names.Add(data.m_prefab.name);
-            }
-            return names;
-        }
+        public List<string> ByNameMembers(AnimationClip clip) =>
+            MembersBesides(clip != null && _prefab != null ? Previews.ByNameOfClip(_prefab, _copy, clip.name, out _) : null, clip);
 
         private readonly List<GameObject> _lasting = new List<GameObject>();
         private Transform _lastingPoint;
@@ -139,8 +131,7 @@ namespace Scry
             }
             void AddList(EffectList list)
             {
-                if (list?.m_effectPrefabs == null) return;
-                foreach (var data in list.m_effectPrefabs) if (data != null && data.m_enabled) Add(data.m_prefab);
+                foreach (var slot in EffectSlots.Of(list)) if (EffectSlots.Plays(slot)) Add(slot.m_prefab);
             }
             if (clip == null || _prefab == null) return names;
 

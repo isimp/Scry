@@ -241,9 +241,7 @@ namespace Scry
 
             if (_person == null)
             {
-                var prefab = ZNetScene.instance != null ? ZNetScene.instance.GetPrefab("Player") : null;
-                if (prefab == null) return;
-                _person = Ghost.Make(prefab, _root.transform, Origin, Quaternion.identity, _layer);
+                _person = Looks.PersonCopy(_root.transform, Origin, Quaternion.identity, _layer, null, out var prefab);
                 if (_person == null) return;
                 Gear.Body(prefab, _person);
                 Tune(_person, audible: false);

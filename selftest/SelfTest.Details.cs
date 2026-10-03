@@ -582,7 +582,7 @@ namespace Scry
             {
                 var row = Facts.For(biome).Rows.FirstOrDefault(r => r.Title.StartsWith("Lives here", StringComparison.Ordinal));
                 if (row == null) continue;
-                var foes = row.Items.Select(i => Looks.Prefab(i.Prefab)?.GetComponent<Character>()).Where(c => c != null).Select(c => (c.m_boss ? 1 : 0, c.m_health)).ToList();
+                var foes = row.Items.Select(i => GamePrefabs.Item(i.Prefab)?.GetComponent<Character>()).Where(c => c != null).Select(c => (c.m_boss ? 1 : 0, c.m_health)).ToList();
                 for (var i = 1; i < foes.Count; i++)
                 {
                     if (foes[i].Item1 > foes[i - 1].Item1 || (foes[i].Item1 == foes[i - 1].Item1 && foes[i].Item2 > foes[i - 1].Item2)) { weaker.Add(biome.Name); break; }

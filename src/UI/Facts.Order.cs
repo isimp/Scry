@@ -19,7 +19,7 @@ namespace Scry
             return character != null ? new Foe(character.m_boss, character.m_health) : (Foe?)null;
         }
 
-        private static Foe? FoeOf(string prefab) => FoeOf(Looks.Prefab(prefab));
+        private static Foe? FoeOf(string prefab) => FoeOf(GamePrefabs.Item(prefab));
 
         /// <summary>
         /// How hard it is to gather: the tool tier it needs and its health (a piece's, for what is
@@ -69,11 +69,11 @@ namespace Scry
         /// </summary>
         private static List<T> InRow<T>(IEnumerable<T> parts, Func<T, string> prefab, Func<T, double> chance, PartRole role)
         {
-            var mine = parts.Where(p => PlaceParts.RoleOf(TraitsOf(Looks.Prefab(prefab(p)))) == role);
+            var mine = parts.Where(p => PlaceParts.RoleOf(TraitsOf(GamePrefabs.Item(prefab(p)))) == role);
             switch (role)
             {
                 case PartRole.Loot: return ContentOrder.RarestFirst(mine, chance);
-                case PartRole.Gather: return ContentOrder.HardestFirst(mine, p => ToGather(Looks.Prefab(prefab(p))));
+                case PartRole.Gather: return ContentOrder.HardestFirst(mine, p => ToGather(GamePrefabs.Item(prefab(p))));
                 default: return mine.ToList();
             }
         }

@@ -357,10 +357,10 @@ namespace Scry
                     list.Add($"status effect {effect}", $"linking damage to {effect}", found ? Found.Present : Found.Missing);
                 });
             }
-            Each("prefab Player", () =>
+            Each("prefab " + GamePrefabs.PersonName, () =>
             {
-                var player = ZNetScene.instance != null && ZNetScene.instance.GetPrefab("Player") != null;
-                list.Add("prefab Player", "the person beside the model and items tried on", player ? Found.Present : Found.Missing);
+                var player = GamePrefabs.Person != null;
+                list.Add("prefab " + GamePrefabs.PersonName, "the person beside the model and items tried on", player ? Found.Present : Found.Missing);
             });
 
             _off = list.FeaturesOff;

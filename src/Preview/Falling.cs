@@ -62,11 +62,10 @@ namespace Scry
         /// <summary>The ragdoll a creature's death list leaves behind, if it has one.</summary>
         public static global::Ragdoll RagdollIn(EffectList list)
         {
-            if (list?.m_effectPrefabs == null) return null;
-            foreach (var data in list.m_effectPrefabs)
+            foreach (var slot in EffectSlots.Of(list))
             {
-                if (data == null || !data.m_enabled || data.m_prefab == null) continue;
-                var ragdoll = data.m_prefab.GetComponent<global::Ragdoll>();
+                if (!EffectSlots.Plays(slot)) continue;
+                var ragdoll = slot.m_prefab.GetComponent<global::Ragdoll>();
                 if (ragdoll != null) return ragdoll;
             }
             return null;
@@ -101,14 +100,11 @@ namespace Scry
         public static float DebrisSeconds(EffectList list)
         {
             var longest = 0f;
-            if (list?.m_effectPrefabs != null)
+            foreach (var slot in EffectSlots.Of(list))
             {
-                foreach (var data in list.m_effectPrefabs)
-                {
-                    if (data?.m_prefab == null || !PrefabShapes.IsDebris(data.m_prefab)) continue;
-                    foreach (var timer in data.m_prefab.GetComponentsInChildren<TimedDestruction>(true)) longest = Mathf.Max(longest, timer.m_timeout);
-                    if (longest <= 0f) longest = 5f;
-                }
+                if (!EffectSlots.Names(slot) || !PrefabShapes.IsDebris(slot.m_prefab)) continue;
+                foreach (var timer in slot.m_prefab.GetComponentsInChildren<TimedDestruction>(true)) longest = Mathf.Max(longest, timer.m_timeout);
+                if (longest <= 0f) longest = 5f;
             }
             return longest > 0f ? Mathf.Clamp(longest, 3f, 10f) : 4.5f;
         }

@@ -39,8 +39,8 @@ namespace Scry
                     {
                         foreach (var field in CatalogBuilder.EffectFields(owner.GetType()))
                         {
-                            if (System.Array.IndexOf(fields, field.Name) < 0 || !(TypeFields.Value(field, owner) is EffectList list) || list.m_effectPrefabs == null) continue;
-                            data.AddRange(list.m_effectPrefabs.Where(d => d != null && d.m_enabled && d.m_prefab != null));
+                            if (System.Array.IndexOf(fields, field.Name) < 0 || !(TypeFields.Value(field, owner) is EffectList list)) continue;
+                            data.AddRange(EffectSlots.Of(list).Where(EffectSlots.Plays));
                         }
                     }
                     return new EffectList { m_effectPrefabs = data.ToArray() };
@@ -51,7 +51,7 @@ namespace Scry
                 // Thrown, it hits where it lands; an attack with no hit of its own (a ground
                 // slam) lands on the ground.
                 if (attack.m_attackType == Attack.AttackType.Projectile) whole.Hit = new EffectList { m_effectPrefabs = System.Array.Empty<EffectList.EffectData>() };
-                else if (whole.Hit.m_effectPrefabs.Length == 0)
+                else if (EffectSlots.Of(whole.Hit).Length == 0)
                 {
                     whole.Hit = Join("m_hitTerrainEffect");
                     OnGround.Add(whole.Hit);

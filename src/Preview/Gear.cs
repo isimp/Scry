@@ -87,12 +87,12 @@ namespace Scry
             foreach (var row in new[] { Loadout.Row.Weapon, Loadout.Row.Shield, Loadout.Row.Armour })
             {
                 if (loadout.Options(row).Count == 0 || !loadout.Held(row)) continue;
-                var item = Looks.Prefab(loadout.Options(row)[loadout.Chosen(row)]);
+                var item = GamePrefabs.Item(loadout.Options(row)[loadout.Chosen(row)]);
                 if (item != null) items.Add(item);
             }
             for (var i = 0; i < loadout.Extras.Count; i++)
             {
-                var extra = loadout.ExtraOn(i) ? Looks.Prefab(loadout.Extras[i].Name) : null;
+                var extra = loadout.ExtraOn(i) ? GamePrefabs.Item(loadout.Extras[i].Name) : null;
                 if (extra != null) items.Add(extra);
             }
             return items.Distinct().ToList();
@@ -153,7 +153,7 @@ namespace Scry
             // In the order GiveDefaultItems hands them out: shield, weapon, armour, set, extras.
             void Add(string name)
             {
-                var item = string.IsNullOrEmpty(name) ? null : Looks.Prefab(name);
+                var item = string.IsNullOrEmpty(name) ? null : GamePrefabs.Item(name);
                 if (item != null) items.Add(item);
             }
             foreach (var row in new[] { Loadout.Row.Shield, Loadout.Row.Weapon, Loadout.Row.Armour })

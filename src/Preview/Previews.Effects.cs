@@ -35,10 +35,9 @@ namespace Scry
         public static List<GameObject> PlayList(EffectList list, Vector3 position, Quaternion rotation, bool muted = false, float size = 1f)
         {
             var made = new List<GameObject>();
-            if (list?.m_effectPrefabs == null) return made;
-            foreach (var data in list.m_effectPrefabs)
+            foreach (var data in EffectSlots.Of(list))
             {
-                if (data == null || !data.m_enabled || data.m_prefab == null) continue;
+                if (!EffectSlots.Plays(data)) continue;
                 GameObject copy;
                 if (PrefabShapes.IsDebris(data.m_prefab))
                 {
@@ -152,7 +151,7 @@ namespace Scry
 
             foreach (var field in CatalogBuilder.EffectFields(effect.GetType()))
             {
-                if (!(TypeFields.Value(field, effect) is EffectList list) || !HasAny(list)) continue;
+                if (!(TypeFields.Value(field, effect) is EffectList list) || !EffectSlots.ShowsAny(list)) continue;
                 lists.Add(new KeyValuePair<string, EffectList>(Naming.EffectListLabel(field.Name), list));
             }
             return lists;
@@ -160,10 +159,6 @@ namespace Scry
 
         /// <summary>The attack each of a creature's attack lists belongs to, for the swing that goes with it.</summary>
         private static readonly Dictionary<EffectList, Attack> AttackOf = new Dictionary<EffectList, Attack>();
-
-        /// <summary>The prefabs an effect list plays, each once.</summary>
-        private static IEnumerable<string> Members(EffectList list) =>
-            (list?.m_effectPrefabs ?? System.Array.Empty<EffectList.EffectData>()).Where(d => d?.m_prefab != null).Select(d => d.m_prefab.name).Distinct();
 
         /// <summary>A weapon's own lists that play with a swing; its block, equip and the like do not.</summary>
         private static readonly HashSet<string> SwingLists = new HashSet<string>
@@ -231,7 +226,7 @@ namespace Scry
                 foreach (var on in CatalogBuilder.ListsOn(owner))
                 {
                     var list = on.List;
-                    if (!HasAny(list) || !seen.Add(list)) continue;
+                    if (!EffectSlots.ShowsAny(list) || !seen.Add(list)) continue;
                     var label = on.Label;
                     if (alwaysSayPart) label = part + ": " + label.ToLowerInvariant();
                     found.Add(new KeyValuePair<string, KeyValuePair<string, EffectList>>(part, new KeyValuePair<string, EffectList>(label, list)));
@@ -270,11 +265,11 @@ namespace Scry
                 var shown = CatalogBuilder.GameName(item);
                 foreach (var field in CatalogBuilder.EffectFields(typeof(ItemDrop.ItemData.SharedData)))
                 {
-                    if (SwingLists.Contains(field.Name) || !(TypeFields.Value(field, carried) is EffectList list) || !HasAny(list)) continue;
+                    if (SwingLists.Contains(field.Name) || !(TypeFields.Value(field, carried) is EffectList list) || !EffectSlots.ShowsAny(list)) continue;
                     others.Add((Naming.EffectListLabel(field.Name), shown ?? WeaponChoices.Readable(item.name, prefab.name), list));
                 }
             }
-            foreach (var group in others.GroupBy(o => o.Label + "|" + string.Join(",", Members(o.List).OrderBy(m => m, System.StringComparer.Ordinal))))
+            foreach (var group in others.GroupBy(o => o.Label + "|" + string.Join(",", EffectSlots.NamesListed(o.List).OrderBy(m => m, System.StringComparer.Ordinal))))
             {
                 var first = group.First();
                 if (!seen.Add(first.List)) continue;
@@ -566,11 +561,11 @@ namespace Scry
         /// <summary>Says once per list why playing it showed nothing, for finding out what it holds.</summary>
         private static void TellEmpty(string label, EffectList list, List<GameObject> made)
         {
-            if (list?.m_effectPrefabs == null || !ToldEmpty.Add(list)) return;
+            if (list == null || !ToldEmpty.Add(list)) return;
             var parts = new List<string>();
-            foreach (var data in list.m_effectPrefabs)
+            foreach (var data in EffectSlots.Of(list))
             {
-                if (data?.m_prefab == null) { parts.Add("an empty slot"); continue; }
+                if (!EffectSlots.Names(data)) { parts.Add("an empty slot"); continue; }
                 var copy = made.Find(m => m != null && m.name == data.m_prefab.name);
                 var kept = string.Join(" ", data.m_prefab.GetComponentsInChildren<Component>(true).Where(c => c != null && !(c is Transform)).Select(c => c.GetType().Name).Distinct().Take(12));
                 var why = !data.m_enabled ? "switched off"
@@ -634,10 +629,7 @@ namespace Scry
         {
             if (prefab == null || !Told.Add(prefab.name)) return;
             var debris = new List<string>();
-            if (list?.m_effectPrefabs != null)
-            {
-                foreach (var data in list.m_effectPrefabs) if (data?.m_prefab != null && PrefabShapes.IsDebris(data.m_prefab)) debris.Add(data.m_prefab.name);
-            }
+            foreach (var data in EffectSlots.Of(list)) if (EffectSlots.Names(data) && PrefabShapes.IsDebris(data.m_prefab)) debris.Add(data.m_prefab.name);
             var tree = prefab.GetComponent<TreeBase>();
             Plugin.Note($"Scry destroys {prefab.name}: {(Falling.Breaks(prefab, list) ? "breaks into its own parts" : "no parts of its own")}, "
                                + $"{(tree != null && tree.m_logPrefab != null ? "fells its log " + tree.m_logPrefab.name : "no log")}, "
@@ -652,16 +644,6 @@ namespace Scry
             Started(list, made);
         }
 
-        private static bool HasAny(EffectList list)
-        {
-            if (list?.m_effectPrefabs == null) return false;
-            foreach (var data in list.m_effectPrefabs)
-            {
-                if (data != null && data.m_enabled && data.m_prefab != null && !PrefabShapes.IsWholeModel(data.m_prefab)) return true;
-            }
-            return false;
-        }
-
         /// <summary>
         /// Copies of an effect list's prefabs placed on you the way the game places them: on the
         /// named part of the body when there is one, and attached when the list says so.
@@ -670,11 +652,11 @@ namespace Scry
         {
             var made = new List<GameObject>();
             var player = Player.m_localPlayer;
-            if (player == null || list?.m_effectPrefabs == null) return made;
+            if (player == null) return made;
 
-            foreach (var data in list.m_effectPrefabs)
+            foreach (var data in EffectSlots.Of(list))
             {
-                if (data == null || !data.m_enabled || data.m_prefab == null || PrefabShapes.IsWholeModel(data.m_prefab)) continue;
+                if (!EffectSlots.Shows(data)) continue;
 
                 var anchor = player.transform;
                 if (!string.IsNullOrEmpty(data.m_childTransform))

@@ -14,12 +14,12 @@ namespace Scry
         public static List<(string, GameObject)> PlayList(EffectList list, Transform part = null, string skip = null, Vector3? point = null)
         {
             var made = new List<(string, GameObject)>();
-            if (_subject == null || list?.m_effectPrefabs == null) return made;
+            if (_subject == null || list == null) return made;
 
             var center = point ?? (part != null ? part.position : Origin + (_bounds.center - Origin) * _scale);
-            foreach (var data in list.m_effectPrefabs)
+            foreach (var data in EffectSlots.Of(list))
             {
-                if (data == null || !data.m_enabled || data.m_prefab == null || data.m_prefab.name == skip) continue;
+                if (!EffectSlots.Plays(data) || data.m_prefab.name == skip) continue;
                 var debris = PrefabShapes.IsDebris(data.m_prefab);
                 if (!debris && PrefabShapes.IsWholeModel(data.m_prefab)) continue;
 

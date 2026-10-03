@@ -203,7 +203,7 @@ namespace Scry
                 if (group.Kind == UseKind.UpgradesPastTop) row.TitleLink = Knowledge.UpgradeStation;
                 foreach (var (target, amount) in group.Targets)
                 {
-                    var prefab = Looks.Prefab(target);
+                    var prefab = GamePrefabs.Item(target);
                     // A recipe that takes none of it at first needs it only to upgrade what it makes.
                     var name = AnyName(prefab, target);
                     if (amount <= 0 && group.Kind == UseKind.Crafts) name += " (upgrades)";
@@ -217,7 +217,7 @@ namespace Scry
 
         private static string UseTitle(UseGroup group)
         {
-            var place = group.Place != null && group.Place != "hand" ? AnyName(Looks.Prefab(group.Place), group.Place) : null;
+            var place = group.Place != null && group.Place != "hand" ? AnyName(GamePrefabs.Item(group.Place), group.Place) : null;
             switch (group.Kind)
             {
                 case UseKind.Crafts: return place != null ? $"Used to make at {place}" : "Used to make by hand";

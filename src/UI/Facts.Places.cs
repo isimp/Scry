@@ -160,7 +160,7 @@ namespace Scry
 
         private static Ingredient PartChip(PlacePart part)
         {
-            var prefab = Looks.Prefab(part.Prefab);
+            var prefab = GamePrefabs.Item(part.Prefab);
             return new Ingredient { Icon = AnyIcon(prefab), Name = AnyName(prefab, part.Prefab), Amount = PlaceParts.Amount(part.Count, part.Chance), Prefab = part.Prefab };
         }
 
@@ -233,7 +233,7 @@ namespace Scry
 
                 // The loot in them, in the fewest kinds of room first.
                 var loot = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Parts
-                    .SelectMany(p => Knowledge.LootOf(ZNetScene.instance != null ? ZNetScene.instance.GetPrefab(p.Prefab) : null))
+                    .SelectMany(p => Knowledge.LootOf(GamePrefabs.Named(p.Prefab)))
                     .Distinct()
                     .Select(item => new PlacePart { Prefab = item, Count = 1, Chance = 1f })
                     .ToList()));

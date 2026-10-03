@@ -337,7 +337,7 @@ namespace Scry
             // spots you (BaseAI.SetAlerted); awake, it makes its idle sound now and then
             // (BaseAI.DoIdleSound), whatever it plays.
             var ai = prefab.GetComponent<BaseAI>();
-            var alerted = ai != null && HasAny(ai.m_alertedEffects) ? ai.m_alertedEffects : null;
+            var alerted = ai != null && EffectSlots.ShowsAny(ai.m_alertedEffects) ? ai.m_alertedEffects : null;
             var around = new List<(string, object)>();
             if (alerted != null)
             {
@@ -347,22 +347,22 @@ namespace Scry
 
             // Staggered, it was hit, again and again (Character.AddStaggerDamage).
             var hit = prefab.GetComponent<Character>()?.m_hitEffects;
-            if (hit != null && HasAny(hit)) around.Add(("stagger", hit));
-            var idleSound = ai != null && HasAny(ai.m_idleSound) ? ai.m_idleSound : null;
+            if (hit != null && EffectSlots.ShowsAny(hit)) around.Add(("stagger", hit));
+            var idleSound = ai != null && EffectSlots.ShowsAny(ai.m_idleSound) ? ai.m_idleSound : null;
             plays.Around = ClipAround.Match(around, seen.Actions, seen.Idle, idleSound, plays.Attacks.Keys);
 
             // Where the animator could not be seen to swim or jump, clips named so.
             var body = prefab.GetComponent<Character>();
             var named = new List<(string, string[], object)>();
-            if (body != null && HasAny(body.m_waterEffects)) named.Add(("water", WaterClips, body.m_waterEffects));
-            if (body != null && HasAny(body.m_jumpEffects)) named.Add(("jump", JumpClips, body.m_jumpEffects));
+            if (body != null && EffectSlots.ShowsAny(body.m_waterEffects)) named.Add(("water", WaterClips, body.m_waterEffects));
+            if (body != null && EffectSlots.ShowsAny(body.m_jumpEffects)) named.Add(("jump", JumpClips, body.m_jumpEffects));
             var tried = new Dictionary<string, IReadOnlyList<string>>();
             IReadOnlyList<string> Saw(string action) => seen.Actions.TryGetValue(action, out var s) ? s : System.Array.Empty<string>();
             tried["water"] = Saw("water").Concat(Saw("swim")).ToList();
             tried["jump"] = Saw("jump");
             plays.ByName = ClipByName.Match(named, tried, clips.Select(c => c.name), plays.Attacks.Keys.Concat(plays.Actions.Keys));
 
-            if (body != null && body.m_flying && HasAny(body.m_flyingContinuousEffect) && !animator.parameters.Any(p => p.name == "flying")) plays.Flying = body.m_flyingContinuousEffect;
+            if (body != null && body.m_flying && EffectSlots.ShowsAny(body.m_flyingContinuousEffect) && !animator.parameters.Any(p => p.name == "flying")) plays.Flying = body.m_flyingContinuousEffect;
 
             // What each clip is: the attack it plays, what the animator was seen to do there,
             // what it was named for, or idling.
@@ -380,7 +380,7 @@ namespace Scry
             foreach (var clip in seen.Idle) if (!plays.Tags.ContainsKey(clip)) plays.Tags[clip] = "idles";
             if (body != null && Told.Add("lasting:" + prefab.name))
             {
-                string Of(EffectList list) => HasAny(list) ? string.Join(", ", Members(list)) : "nothing";
+                string Of(EffectList list) => EffectSlots.ShowsAny(list) ? string.Join(", ", EffectSlots.NamesListed(list)) : "nothing";
                 Plugin.Note($"Scry: {prefab.name} keeps going in water {Of(body.m_waterEffects)}; flying {Of(body.m_flyingContinuousEffect)}{(body.m_flying ? ", and it flies from birth" : "")}; its own scale {Numbers.Amount(prefab.transform.localScale.x, 2)}.");
             }
             return plays;

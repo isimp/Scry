@@ -146,7 +146,7 @@ namespace Scry
             // A character on its feet stands where the game stands it, on the bottom of its
             // capsule (Character's CapsuleCollider resting on the ground), whatever of its model
             // reaches below: a root's base is in the ground, a weapon may hang low.
-            var grounded = _subjectIsPerson ? ZNetScene.instance?.GetPrefab("Player") : _onFeet ? entry.Source as GameObject : null;
+            var grounded = _subjectIsPerson ? GamePrefabs.Person : _onFeet ? entry.Source as GameObject : null;
             var capsule = grounded != null ? grounded.GetComponent<CapsuleCollider>() : null;
             _groundFixed = capsule != null && capsule.direction == 1;
             if (_groundFixed) _bodyMinY = Origin.y + (capsule.center.y - capsule.height / 2f) * _baseScale.y;

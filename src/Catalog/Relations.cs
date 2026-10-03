@@ -178,7 +178,7 @@ namespace Scry
 
         private static bool IsItem(string name, List<GameObject> prefabs)
         {
-            var prefab = ZNetScene.instance != null ? ZNetScene.instance.GetPrefab(name) : prefabs.Find(p => p != null && p.name == name);
+            var prefab = ZNetScene.instance != null ? GamePrefabs.Named(name) : prefabs.Find(p => p != null && p.name == name);
             return prefab != null && prefab.GetComponent<ItemDrop>() != null;
         }
 

@@ -347,7 +347,7 @@ namespace Scry
             foreach (var making in Knowledge.MadeOf(prefab.name))
             {
                 if (uses.Exists(u => u.Name == making.Station)) continue;
-                var station = ZNetScene.instance != null ? ZNetScene.instance.GetPrefab(making.Station) : null;
+                var station = GamePrefabs.Named(making.Station);
                 var shown = station != null ? Localize(station.GetComponent<Piece>()?.m_name) : "";
                 uses.Add(new StationUse(making.Station, shown, 1));
             }
@@ -551,11 +551,10 @@ namespace Scry
             }
             void Thrown(EffectList list, GameObject owner, string role, bool ragdolls)
             {
-                if (list?.m_effectPrefabs == null) return;
-                foreach (var data in list.m_effectPrefabs)
+                foreach (var slot in EffectSlots.Of(list))
                 {
-                    var thing = data?.m_prefab;
-                    if (thing == null) continue;
+                    if (!EffectSlots.Names(slot)) continue;
+                    var thing = slot.m_prefab;
                     if (ragdolls && thing.GetComponent<Ragdoll>() != null) Add(thing, owner, "ragdoll");
                     else if (PrefabShapes.IsDebris(thing)) Add(thing, owner, role);
                 }

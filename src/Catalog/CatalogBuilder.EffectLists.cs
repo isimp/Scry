@@ -54,16 +54,16 @@ namespace Scry
             foreach (var on in ListsOn(owner))
             {
                 var list = on.List;
-                if (list.m_effectPrefabs == null || list.m_effectPrefabs.Length == 0) continue;
+                if (EffectSlots.Of(list).Length == 0) continue;
 
                 var label = on.Label;
                 if (part != null) label = part + ": " + label.ToLowerInvariant();
                 EffectLinks.Note(list, shown, ownerKey, label);
 
-                foreach (var data in list.m_effectPrefabs)
+                foreach (var slot in EffectSlots.Of(list))
                 {
-                    var prefab = data?.m_prefab;
-                    if (prefab == null) continue;
+                    if (!EffectSlots.Names(slot)) continue;
+                    var prefab = slot.m_prefab;
 
                     if (!effects.TryGetValue(prefab.name, out var found))
                     {

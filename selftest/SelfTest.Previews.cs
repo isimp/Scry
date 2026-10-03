@@ -265,7 +265,7 @@ namespace Scry
             if (impact == null) p.Note("its log has no impact of its own");
             else
             {
-                p.Note($"its log strikes with {string.Join(", ", impact.m_hitEffect.m_effectPrefabs.Where(e => e?.m_prefab != null).Select(e => e.m_prefab.name))}, from {Numbers.Amount(impact.m_minVelocity, 1)} m/s");
+                p.Note($"its log strikes with {string.Join(", ", EffectSlots.NamesListed(impact.m_hitEffect))}, from {Numbers.Amount(impact.m_minVelocity, 1)} m/s");
                 // The thump is the log toppling off its stump onto the ground, not its first touch.
                 bool Toppled() => Thud.Contacts.Any(c => c.Struck && c.At - felled >= 0.5f);
                 yield return Until(Toppled, 8);

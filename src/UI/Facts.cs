@@ -162,7 +162,7 @@ namespace Scry
                     facts.Where.AddRange(ContentOrder.SurestFirst(lines, l => l.Line.Chance, l => l.Biome).Select(l => l.Line));
                     foreach (var (creature, drop, kills) in DropWatch.Seen.Sources(entry.Name))
                     {
-                        facts.Where.Add(new Source(SeenWords.Line(AnyName(Looks.Prefab(creature), creature), drop, kills), creature, UnsureWords.Seen));
+                        facts.Where.Add(new Source(SeenWords.Line(AnyName(GamePrefabs.Item(creature), creature), drop, kills), creature, UnsureWords.Seen));
                     }
 
                     // An item nothing makes, drops, sells or spawns here comes from somewhere Scry cannot

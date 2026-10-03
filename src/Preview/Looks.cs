@@ -71,18 +71,28 @@ namespace Scry
             return OnPerson && entry != null && entry.Kind == Kind.Item && entry.Source is GameObject prefab && Gear.IsWearable(prefab);
         }
 
-        /// <summary>A person, the game's own player model, wearing the item in its chosen style.</summary>
-        private static GameObject Worn(GameObject item, Modifiers modifiers, Transform parent, Vector3 position, Quaternion rotation, int layer, string timing)
+        /// <summary>
+        /// A copy of the person, the game's own player model (<see cref="GamePrefabs.Person"/>),
+        /// timed as a part of <paramref name="timing"/> where one is given; null where the game has
+        /// none. What it wears, shows or answers is put on after, by what asked for it.
+        /// </summary>
+        public static GameObject PersonCopy(Transform parent, Vector3 position, Quaternion rotation, int layer, string timing, out GameObject person)
         {
-            var person = ZNetScene.instance != null ? ZNetScene.instance.GetPrefab("Player") : null;
+            person = GamePrefabs.Person;
             if (person == null) return null;
-
             var started = Timing.Start();
             var copy = Ghost.Make(person, parent, position, rotation, layer);
             if (timing != null) Timing.Add(timing + " copy", started);
+            return copy;
+        }
+
+        /// <summary>A person, the game's own player model, wearing the item in its chosen style.</summary>
+        private static GameObject Worn(GameObject item, Modifiers modifiers, Transform parent, Vector3 position, Quaternion rotation, int layer, string timing)
+        {
+            var copy = PersonCopy(parent, position, rotation, layer, timing, out var person);
             if (copy == null) return null;
 
-            started = Timing.Start();
+            var started = Timing.Start();
             Step(item, "the person's body", () => Gear.Body(person, copy));
             Step(item, "being worn", () => Gear.Wear(person, copy, WornWith(item), modifiers.LookAvailable ? modifiers.Look : -1, item));
             Step(item, "the person's animation events", () => AnimationEars.Attach(person, copy));
@@ -93,12 +103,7 @@ namespace Scry
         /// <summary>Whether a status effect shows on a person: whether its start effects have anything to see or hear.</summary>
         public static bool ShowsOnPerson(Entry entry)
         {
-            if (!(entry?.Source is StatusEffect effect) || effect.m_startEffects?.m_effectPrefabs == null) return false;
-            foreach (var data in effect.m_startEffects.m_effectPrefabs)
-            {
-                if (data != null && data.m_enabled && data.m_prefab != null && !PrefabShapes.IsWholeModel(data.m_prefab)) return true;
-            }
-            return false;
+            return entry?.Source is StatusEffect effect && EffectSlots.ShowsAny(effect.m_startEffects);
         }
 
         /// <summary>
@@ -109,22 +114,17 @@ namespace Scry
         /// </summary>
         private static GameObject Affected(StatusEffect effect, Transform parent, Vector3 position, Quaternion rotation, int layer, string timing)
         {
-            var person = ZNetScene.instance != null ? ZNetScene.instance.GetPrefab("Player") : null;
-            if (person == null) return null;
-
-            var started = Timing.Start();
-            var copy = Ghost.Make(person, parent, position, rotation, layer);
-            if (timing != null) Timing.Add(timing + " copy", started);
+            var copy = PersonCopy(parent, position, rotation, layer, timing, out var person);
             if (copy == null) return null;
 
-            started = Timing.Start();
+            var started = Timing.Start();
             Step(person, "the person's body", () => Gear.Body(person, copy));
             Step(person, "the person's animation events", () => AnimationEars.Attach(person, copy));
             Step(person, "the look of " + effect.name, () =>
             {
-                foreach (var data in effect.m_startEffects.m_effectPrefabs)
+                foreach (var data in EffectSlots.Of(effect.m_startEffects))
                 {
-                    if (data == null || !data.m_enabled || data.m_prefab == null || PrefabShapes.IsWholeModel(data.m_prefab)) continue;
+                    if (!EffectSlots.Shows(data)) continue;
                     var anchor = copy.transform;
                     if (!string.IsNullOrEmpty(data.m_childTransform))
                     {
@@ -144,19 +144,11 @@ namespace Scry
             var items = new List<GameObject>();
             foreach (var name in Outfit.With(item.name, Gear.SlotOf(item)))
             {
-                var worn = name == item.name ? item : Prefab(name);
+                var worn = name == item.name ? item : GamePrefabs.Item(name);
                 if (worn != null) items.Add(worn);
             }
             items.Sort((a, b) => (b == item).CompareTo(a == item));
             return items;
-        }
-
-        /// <summary>An item prefab by name.</summary>
-        public static GameObject Prefab(string name)
-        {
-            var item = ObjectDB.instance != null ? ObjectDB.instance.GetItemPrefab(name) : null;
-            if (item == null && ZNetScene.instance != null) item = ZNetScene.instance.GetPrefab(name);
-            return item;
         }
 
         /// <summary>Gives a creature copy the look of a level, as <c>LevelEffects</c> would.</summary>

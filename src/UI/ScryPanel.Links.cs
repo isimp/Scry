@@ -276,7 +276,7 @@ namespace Scry
         {
             if (PrefabIcons.TryGetValue(prefab, out var known)) return known;
             Sprite icon = null;
-            var go = ZNetScene.instance != null ? ZNetScene.instance.GetPrefab(prefab) : null;
+            var go = GamePrefabs.Named(prefab);
             if (go != null)
             {
                 var icons = go.GetComponent<ItemDrop>()?.m_itemData?.m_shared?.m_icons;
