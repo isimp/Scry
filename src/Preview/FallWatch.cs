@@ -98,12 +98,16 @@ namespace Scry
         private void Update()
         {
             if (Time.time < _until) return;
-            var at = _body != null ? _body.transform.position : transform.position;
-            var ground = _onStage ? float.NaN : ZoneSystem.instance != null ? ZoneSystem.instance.GetGroundHeight(at) : float.NaN;
-            Plugin.Note($"Scry watched {name} from {_from} {(_onStage ? "on the stage" : "in the world")} for {Seconds:0} s: highest {_highest - _foot.y:0.0} m above its foot, fastest {_fastest:0.#} m/s, now {Around(at - _foot)} of it"
-                + (float.IsNaN(ground) ? "" : $", {at.y - ground:0.0} m above the ground there")
-                + $"; touched {(_touched.Count > 0 ? string.Join(", ", _touched) : "nothing")}.");
+            // Gone at the frame's end whatever the note does, so a watch that fails is not tried again each frame.
             Destroy(this);
+            Guard.Run("noting a watched fall", () =>
+            {
+                var at = _body != null ? _body.transform.position : transform.position;
+                var ground = _onStage ? float.NaN : ZoneSystem.instance != null ? ZoneSystem.instance.GetGroundHeight(at) : float.NaN;
+                Plugin.Note($"Scry watched {name} from {_from} {(_onStage ? "on the stage" : "in the world")} for {Seconds:0} s: highest {_highest - _foot.y:0.0} m above its foot, fastest {_fastest:0.#} m/s, now {Around(at - _foot)} of it"
+                    + (float.IsNaN(ground) ? "" : $", {at.y - ground:0.0} m above the ground there")
+                    + $"; touched {(_touched.Count > 0 ? string.Join(", ", _touched) : "nothing")}.");
+            });
         }
 
         private static string Around(Vector3 offset)

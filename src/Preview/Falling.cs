@@ -639,14 +639,17 @@ namespace Scry
         {
             if (Time.unscaledTime < _until) return;
 
-            if (_parting != null)
+            // Gone at the frame's end whatever its parting effect does, so one that fails leaves
+            // no piece lying on and failing again each frame.
+            Destroy(gameObject);
+            if (_parting == null) return;
+            Guard.Run("playing a falling piece's parting effect", () =>
             {
                 var body = GetComponentInChildren<Rigidbody>();
                 var at = body != null ? body.transform : transform;
                 if (_onStage) Stage.PlayList(_parting, at);
                 else Previews.PlayList(_parting, at.position, Quaternion.identity);
-            }
-            Destroy(gameObject);
+            });
         }
 
         private static readonly List<Standin> All = new List<Standin>();
