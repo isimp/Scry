@@ -168,7 +168,7 @@ namespace Scry
                     // An item nothing makes, drops, sells or spawns here comes from somewhere Scry cannot
                     // see, unless the locations, once read, show where it is found. Something that
                     // spawns it (an Asksvin its egg) is told under LINKED.
-                    if (entry.Kind == Kind.Item && facts.Where.Count == 0 && entry.FoundIn.Length == 0 && !facts.Rows.Any(r => r.Title.StartsWith("Made"))
+                    if (entry.Kind == Kind.Item && facts.Where.Count == 0 && entry.FoundIn.Length == 0 && !facts.Rows.Any(r => r.Title.StartsWith("Made", StringComparison.Ordinal))
                         && !entry.Links.Any(l => l.Group == Relations.SpawnedBy))
                     {
                         facts.Where.Add(new Source("Nothing loaded makes, drops or sells it. It may come from a location, a dungeon, an event or a mod.", null, UnsureWords.NothingFound));

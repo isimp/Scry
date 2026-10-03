@@ -4,6 +4,28 @@ namespace Scry.Tests
 {
     public class NamingTests
     {
+        // Scry's text is English whatever language the PC is set to, its numbers with it: a
+        // count's thousands by commas, a fraction's point a point.
+
+        [Fact]
+        public void NumbersReadTheSameWhateverThePcsLanguage()
+        {
+            var was = System.Globalization.CultureInfo.CurrentCulture;
+            try
+            {
+                System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("de-DE");
+                Assert.Equal("1,234", Naming.Count(1234));
+                Assert.Equal("12", Naming.Count(12));
+                Assert.Equal("2.5", Naming.Number(2.5f));
+                Assert.Equal("0.4%", DropWords.Share(0.004f));
+                Assert.Equal("1,200 within 10 m, 3 within 40 m", SpawnWords.SpawnerCaps(1200, 10f, 3, 40f));
+            }
+            finally
+            {
+                System.Globalization.CultureInfo.CurrentCulture = was;
+            }
+        }
+
         [Theory]
         [InlineData("m_startEffects", "Start")]
         [InlineData("m_stopEffects", "Stop")]

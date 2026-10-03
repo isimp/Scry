@@ -106,7 +106,7 @@ namespace Scry
         /// <summary>The most of its own creatures, untamed, it lets be alive near it and farther out (<c>SpawnArea.GetInstances</c>).</summary>
         public static string SpawnerCaps(int maxNear, float nearRadius, int maxTotal, float farRadius)
         {
-            return $"{maxNear:#,0} within {Metres(nearRadius)}, {maxTotal:#,0} within {Metres(farRadius)}";
+            return $"{Naming.Count(maxNear)} within {Metres(nearRadius)}, {Naming.Count(maxTotal)} within {Metres(farRadius)}";
         }
 
         /// <summary>How far from itself it puts what it spawns, and whether only where nothing is built (<c>SpawnArea.FindSpawnPoint</c>).</summary>

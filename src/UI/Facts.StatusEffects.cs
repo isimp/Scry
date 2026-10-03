@@ -148,7 +148,7 @@ namespace Scry
         private static bool IsTime(string field)
         {
             var name = field.ToLowerInvariant();
-            return (name.Contains("cooldown") || name.Contains("duration") || name.EndsWith("time") || name.Contains("interval")) && !name.Contains("multiplier") && !name.Contains("modifier");
+            return (name.Contains("cooldown") || name.Contains("duration") || name.EndsWith("time", StringComparison.Ordinal) || name.Contains("interval")) && !name.Contains("multiplier") && !name.Contains("modifier");
         }
 
         /// <summary>Settings told in their own words already (how long it lasts, its name, icon and tooltip), or that say nothing about what the effect does.</summary>

@@ -75,7 +75,7 @@ namespace Scry
                     kind = Line.Item;
                     line = Item.Replace(line, "", 1);
                 }
-                else if (line.TrimStart().StartsWith("|"))
+                else if (line.TrimStart().StartsWith("|", System.StringComparison.Ordinal))
                 {
                     kind = Line.Row;
                 }

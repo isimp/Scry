@@ -731,7 +731,7 @@ namespace Scry
         {
             if (TabTexts.TryGetValue((label, count, on), out var text)) return text;
             if (TabTexts.Count > 2000) TabTexts.Clear();
-            text = $"{label}  <color=#{(on ? "5a4526" : "8f929c")}>{count:N0}</color>";
+            text = $"{label}  <color=#{(on ? "5a4526" : "8f929c")}>{Naming.Count(count)}</color>";
             TabTexts[(label, count, on)] = text;
             return text;
         }

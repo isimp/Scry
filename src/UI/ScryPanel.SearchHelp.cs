@@ -321,7 +321,7 @@ namespace Scry
                     var name = suggestion.Label;
                     var nameW = Mathf.Min(row.width * 0.62f, Skin.Width(Skin.Label, name) + U(4f));
                     GUI.Label(new Rect(row.x + U(8f), row.y, nameW, row.height), name, Skin.Label);
-                    var side = suggestion.IsKey ? suggestion.Note : suggestion.Count.ToString("N0");
+                    var side = suggestion.IsKey ? suggestion.Note : Naming.Count(suggestion.Count);
                     GUI.Label(new Rect(row.x + U(8f) + nameW + U(8f), row.y, row.width - nameW - U(24f), row.height), side, suggestion.IsKey ? Skin.DimLabel : RightDim());
                 }
             }

@@ -306,7 +306,7 @@ namespace Scry
                             var lower = resource.ToLowerInvariant();
                             foreach (var bundle in needed)
                             {
-                                if (lower == bundle || lower.EndsWith("." + bundle)) modOfBundle[bundle] = name;
+                                if (lower == bundle || lower.EndsWith("." + bundle, StringComparison.Ordinal)) modOfBundle[bundle] = name;
                             }
                         }
                     }

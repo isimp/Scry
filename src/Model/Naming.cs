@@ -1,3 +1,4 @@
+using System;
 using System.Text;
 
 namespace Scry
@@ -9,7 +10,7 @@ namespace Scry
         public static string FieldLabel(string field)
         {
             var name = field ?? "";
-            if (name.StartsWith("m_")) name = name.Substring(2);
+            if (name.StartsWith("m_", StringComparison.Ordinal)) name = name.Substring(2);
             return Words(name);
         }
 
@@ -17,9 +18,9 @@ namespace Scry
         public static string EffectListLabel(string field)
         {
             var name = field ?? "";
-            if (name.StartsWith("m_")) name = name.Substring(2);
-            if (name.EndsWith("Effects")) name = name.Substring(0, name.Length - "Effects".Length);
-            else if (name.EndsWith("Effect")) name = name.Substring(0, name.Length - "Effect".Length);
+            if (name.StartsWith("m_", StringComparison.Ordinal)) name = name.Substring(2);
+            if (name.EndsWith("Effects", StringComparison.Ordinal)) name = name.Substring(0, name.Length - "Effects".Length);
+            else if (name.EndsWith("Effect", StringComparison.Ordinal)) name = name.Substring(0, name.Length - "Effect".Length);
             if (name.Length == 0 || name == "effects" || name == "effect") return "Effect";
             return Words(name);
         }
@@ -45,6 +46,9 @@ namespace Scry
         /// are the one exception, written by <see cref="Duration"/> to one decimal of their unit.
         /// </summary>
         public static string Number(float value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
+        /// <summary>A count with its thousands by commas, whatever language the PC is set to: "1,234".</summary>
+        public static string Count(int value) => value.ToString("#,0", System.Globalization.CultureInfo.InvariantCulture);
 
         /// <summary>A length of time in the largest unit that reads well: "40 s", "25 min", "2.5 h".</summary>
         public static string Duration(float seconds)

@@ -89,7 +89,7 @@ namespace Scry
             Relations.Begin(registered.Keys);
             IndexRecipes();
             CatalogTiming.Add("setup", started);
-            yield return $"Reading prefabs: 0 of {registered.Count:N0}";
+            yield return $"Reading prefabs: 0 of {Naming.Count(registered.Count)}";
 
             // A prefab at a time: some are large, and a few read together could take a frame's share.
             var components = new List<Component>();
@@ -100,7 +100,7 @@ namespace Scry
             {
                 job.Piece = pair.Key;
                 ReadPrefab(pair.Key, pair.Value, effects, components, leftovers);
-                if (++read % 16 == 1) progress = $"Reading prefabs: {read:N0} of {registered.Count:N0}";
+                if (++read % 16 == 1) progress = $"Reading prefabs: {Naming.Count(read)} of {Naming.Count(registered.Count)}";
                 yield return progress;
             }
             components.Clear();
@@ -175,7 +175,7 @@ namespace Scry
                     Describe(found, name, Provenance.Combine(found.UserOrigins), effects, components);
                     CatalogTiming.Add("describe effects", started);
                     grew = true;
-                    if (++walked % 4 == 0) yield return $"Reading effects: {walked:N0}";
+                    if (++walked % 4 == 0) yield return $"Reading effects: {Naming.Count(walked)}";
                 }
 
                 if (!grew && !helpersRead)
@@ -188,7 +188,7 @@ namespace Scry
                         started = CatalogTiming.Start();
                         GatherHelper(helpers[i], registered, effects, components);
                         CatalogTiming.Add("helpers", started);
-                        if (i % 8 == 7) yield return $"Reading what prefabs spawn: {i + 1:N0} of {helpers.Count:N0}";
+                        if (i % 8 == 7) yield return $"Reading what prefabs spawn: {Naming.Count(i + 1)} of {Naming.Count(helpers.Count)}";
                     }
                     grew = true;
                 }
@@ -201,13 +201,13 @@ namespace Scry
             foreach (var pair in registered)
             {
                 MakeEntry(entries, pair.Key, pair.Value, effects, true);
-                if (++made % 16 == 0) yield return $"Making entries: {made:N0} of about {total:N0}";
+                if (++made % 16 == 0) yield return $"Making entries: {Naming.Count(made)} of about {Naming.Count(total)}";
             }
             foreach (var pair in effects)
             {
                 if (registered.ContainsKey(pair.Key)) continue;
                 MakeEntry(entries, pair.Key, pair.Value, effects, false);
-                if (++made % 16 == 0) yield return $"Making entries: {made:N0} of about {total:N0}";
+                if (++made % 16 == 0) yield return $"Making entries: {Naming.Count(made)} of about {Naming.Count(total)}";
             }
             yield return "Pairing leftovers";
 
@@ -261,7 +261,7 @@ namespace Scry
                 }
                 CatalogTiming.Add("links applied", started);
                 if (!more) break;
-                yield return $"Linking entries: {linking.Current:N0}";
+                yield return $"Linking entries: {Naming.Count(linking.Current)}";
             }
 
             yield return "Grouping entries";
@@ -288,7 +288,7 @@ namespace Scry
                 }
                 CatalogTiming.Add("grouping", started);
                 if (!more) break;
-                yield return $"Grouping entries: {grouping.Current:N0}";
+                yield return $"Grouping entries: {Naming.Count(grouping.Current)}";
             }
 
             // Locations and rooms take their names from creatures' (a Fuling camp), so they come last.
