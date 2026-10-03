@@ -37,8 +37,6 @@ namespace Scry
         /// <summary>The ways an item gives a status effect that its own facts already tell, with a link.</summary>
         private static readonly HashSet<string> ToldByItems = new HashSet<string> { "equip", "set", "consume", "attack" };
 
-        private static readonly Dictionary<RuntimeAnimatorController, List<(string Clip, GameObject Thing)>> ByController =
-            new Dictionary<RuntimeAnimatorController, List<(string, GameObject)>>();
         private static readonly Dictionary<Type, FieldInfo[]> PrefabFields = new Dictionary<Type, FieldInfo[]>();
 
         private static LinkBook _book = new LinkBook();
@@ -79,7 +77,6 @@ namespace Scry
             _book = new LinkBook();
             Sets.Clear();
             Ammo.Clear();
-            ByController.Clear();
             Made.Clear();
             Registered.Clear();
             Helpers.Clear();
@@ -92,7 +89,6 @@ namespace Scry
             _book = new LinkBook();
             Sets.Clear();
             Ammo.Clear();
-            ByController.Clear();
             Made.Clear();
             Registered.Clear();
             Registered.UnionWith(registered);
@@ -205,36 +201,9 @@ namespace Scry
         private static void Animations(GameObject prefab, LinkBook book)
         {
             // Only the animator the creature plays by, not an old one left switched off beside it.
-            var played = ClipPlayer.AnimatorOf(prefab);
-            foreach (var animator in played != null ? new[] { played } : Array.Empty<Animator>())
-            {
-                var controller = animator.runtimeAnimatorController;
-                if (controller == null) continue;
-                if (!ByController.TryGetValue(controller, out var named))
-                {
-                    // Every clip's events are read here once anyway; what a copy's ears need of
-                    // them is kept too, so showing a person need not read its hundreds of clips.
-                    named = new List<(string, GameObject)>();
-                    var events = 0;
-                    var unknown = new SortedSet<string>(StringComparer.Ordinal);
-                    foreach (var clip in controller.animationClips)
-                    {
-                        if (clip == null) continue;
-                        foreach (var e in clip.events)
-                        {
-                            events++;
-                            if (!AnimationEars.Answers(e.functionName)) unknown.Add(e.functionName);
-                            if ((e.functionName == "Effect" || e.functionName == "Attach") && e.objectReferenceParameter is GameObject thing && thing != null)
-                            {
-                                named.Add((clip.name, thing));
-                            }
-                        }
-                    }
-                    ByController[controller] = named;
-                    AnimationEars.Remember(controller, events, unknown);
-                }
-                foreach (var (clip, thing) in named) book.Add(prefab.name, AnimationSounds, thing.name, PlayedByAnimation, clip);
-            }
+            var played = Animators.Main(prefab);
+            if (played == null || played.runtimeAnimatorController == null) return;
+            foreach (var (clip, thing) in ControllerEvents.Of(played.runtimeAnimatorController).Named) book.Add(prefab.name, AnimationSounds, thing.name, PlayedByAnimation, clip);
         }
 
         /// <summary>A creature's footsteps, by how it moves and what it walks on.</summary>

@@ -19,22 +19,8 @@ namespace Scry
     /// </summary>
     internal sealed partial class AnimationEars : MonoBehaviour
     {
-        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
-        static AnimationEars() => WorldCaches.Register(nameof(AnimationEars), Forget);
-
-        /// <summary>The events <c>CharacterAnimEvent</c> and <c>AnimationEffect</c> answer, all of which are heard here.</summary>
-        private static readonly HashSet<string> Answered = new HashSet<string>
-        {
-            "FootStep", "Hit", "OnAttackTrigger", "Jump", "Land", "TakeOff", "Stop", "DodgeMortal",
-            "TrailOn", "TrailOff", "GPower", "Die", "Speed", "Chain", "ResetChain", "FreezeFrame",
-            "Effect", "Attach", "RemoveAttachments", "HideObject", "ShowObject",
-        };
-
         private static readonly HashSet<string> Told = new HashSet<string>();
         private static readonly HashSet<string> Listed = new HashSet<string>();
-
-        /// <summary>Whether Scry answers an animation event of this name.</summary>
-        public static bool Answers(string name) => Answered.Contains(name);
 
         private GameObject _prefab;
         private GameObject _copy;
@@ -58,7 +44,9 @@ namespace Scry
                 Log.Note($"Scry plays {prefab.name} by the animator on {animator.gameObject.name} ({animator.runtimeAnimatorController.name}, {Numbers.Count(all)} animators on the copy), {Numbers.Count(names.Count)} clips: {string.Join(", ", names)}. Its settings: {(settings.Length > 0 ? settings : "none")}. Its layers: {layers}.");
             }
 
-            var (events, unknown) = EventsOf(animator.runtimeAnimatorController);
+            var read = ControllerEvents.Of(animator.runtimeAnimatorController);
+            var events = read.Events;
+            var unknown = read.Unknown;
 
             // Said once per prefab, so it can be told why a creature's clips stay silent.
             if (Told.Add(prefab.name))
@@ -75,43 +63,6 @@ namespace Scry
             ears._named = () => ears._prefab != null ? ears._prefab.name : "a copy";
             animator.fireEvents = true;
         }
-
-        /// <summary>How many events a controller's clips send, and those Scry does not answer.</summary>
-        private static readonly Dictionary<RuntimeAnimatorController, (int Events, SortedSet<string> Unknown)> EventsByController =
-            new Dictionary<RuntimeAnimatorController, (int, SortedSet<string>)>();
-
-        /// <summary>
-        /// Read once per controller: every copy made asks, on the stage and in the world at each
-        /// selection, and each clip's events are made anew each time they are read (a person's
-        /// controller has hundreds of clips).
-        /// </summary>
-        private static (int Events, SortedSet<string> Unknown) EventsOf(RuntimeAnimatorController controller)
-        {
-            if (EventsByController.TryGetValue(controller, out var known)) return known;
-            var unknown = new SortedSet<string>(StringComparer.Ordinal);
-            var events = 0;
-            foreach (var clip in controller.animationClips)
-            {
-                if (clip == null) continue;
-                foreach (var e in clip.events)
-                {
-                    events++;
-                    if (!Answered.Contains(e.functionName)) unknown.Add(e.functionName);
-                }
-            }
-            known = (events, unknown);
-            EventsByController[controller] = known;
-            return known;
-        }
-
-        /// <summary>What a controller's clips send, as read while the catalog was, kept for its copies.</summary>
-        public static void Remember(RuntimeAnimatorController controller, int events, SortedSet<string> unknown)
-        {
-            if (controller != null && !EventsByController.ContainsKey(controller)) EventsByController[controller] = (events, unknown);
-        }
-
-        /// <summary>Lets go of what was read of the controllers, for a world that was left.</summary>
-        public static void Forget() => EventsByController.Clear();
 
         /// <summary>
         /// A clip starting: an attack's plays what the attack plays as it begins now, and what

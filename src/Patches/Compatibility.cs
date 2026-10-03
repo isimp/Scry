@@ -442,7 +442,7 @@ namespace Scry
             foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
             {
                 if (method.IsSpecialName || method.ReturnType != typeof(void) || method.GetParameters().Length > 1) continue;
-                if (NotEvents.Contains(method.Name) || AnimationEars.Answers(method.Name)) continue;
+                if (NotEvents.Contains(method.Name) || AnimationEvents.Answers(method.Name)) continue;
                 list.Add($"animation event {type.Name}.{method.Name}", "sounds of animations that send it", Found.Missing);
             }
         }

@@ -105,48 +105,22 @@ namespace Scry
         }
 
         /// <summary>
-        /// The animator that drives the copy, as the game finds a character's: the first one with a
-        /// controller on a part that is switched on. Some prefabs keep an old model switched off
-        /// beside the one in use (a frost troll's Visual_OLD), with an animator of its own; failing
-        /// a switched-on one, the first there is.
+        /// The animator that drives the copy (<see cref="Animators.Main"/>). Asked many times a
+        /// frame (the panel, for every clip), so the answer is kept for the frame.
         /// </summary>
         public static Animator AnimatorOf(GameObject copy)
         {
             if (copy == null) return null;
-
-            // Asked many times a frame (the panel, for every clip), so the answer is kept for the frame.
             if (_ofFrame == Time.frameCount && ReferenceEquals(_ofCopy, copy) && (_of == null || _of != null && _of.runtimeAnimatorController != null)) return _of;
-            Animator found = null, any = null;
-            foreach (var animator in copy.GetComponentsInChildren<Animator>(true))
-            {
-                if (animator.runtimeAnimatorController == null) continue;
-                if (On(animator.transform, copy.transform))
-                {
-                    found = animator;
-                    break;
-                }
-                if (any == null) any = animator;
-            }
             _ofFrame = Time.frameCount;
             _ofCopy = copy;
-            _of = found.OrNull() ?? any;
+            _of = Animators.Main(copy);
             return _of;
         }
 
         private static int _ofFrame = -1;
         private static GameObject _ofCopy;
         private static Animator _of;
-
-        /// <summary>Whether a part and every part above it, up to the copy, is switched on.</summary>
-        private static bool On(Transform part, Transform root)
-        {
-            for (var t = part; t != null; t = t.parent)
-            {
-                if (!t.gameObject.activeSelf) return false;
-                if (t == root) return true;
-            }
-            return true;
-        }
 
         private void Begin(Animator animator, AnimationClip clip, bool loop, float speed)
         {
