@@ -44,6 +44,15 @@ namespace Scry
             return set != null && set.Length > 0 ? set : every;
         }
 
+        /// <summary>
+        /// Whether a raid is put on the table by each player's own progress rather than the world's:
+        /// in a world set to pick raids by each player (the PlayerEvents world key), for a raid that
+        /// sets any condition for a player (keys any or all of which they have, items they know or
+        /// not, keys they have not).
+        /// </summary>
+        public static bool ByEachPlayer(bool worldPicksByPlayer, int keysAny, int keysAll, int knownItems, int notKnownItems, int notKeys) =>
+            worldPicksByPlayer && (keysAny > 0 || keysAll > 0 || knownItems > 0 || notKnownItems > 0 || notKeys > 0);
+
         /// <summary>How far along the game a raid comes: the health of the strongest boss whose defeat it waits for, 0 for none.</summary>
         public static float Strength(IEnumerable<string> requiredKeys, Func<string, float> bossHealth)
         {

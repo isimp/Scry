@@ -11,7 +11,7 @@ namespace Scry
     /// </summary>
     public static class DungeonWords
     {
-        private static string Number(float value) => value.ToString("#,0.##", CultureInfo.InvariantCulture);
+        private static string Number(float value) => Naming.Amount(value);
 
         public static string Layout(DungeonPlan plan)
         {

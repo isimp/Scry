@@ -87,7 +87,7 @@ namespace Scry
 
         // ----- Spawners (SpawnArea) -----
 
-        private static string Metres(float value) => value.ToString("#,0.##", System.Globalization.CultureInfo.InvariantCulture) + " m";
+        private static string Metres(float value) => Naming.Metres(value);
 
         /// <summary>
         /// How often a spawner spawns. <c>SpawnArea.UpdateSpawn</c> runs every two seconds, adds two

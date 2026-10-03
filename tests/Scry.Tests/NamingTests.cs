@@ -7,6 +7,28 @@ namespace Scry.Tests
         // Scry's text is English whatever language the PC is set to, its numbers with it: a
         // count's thousands by commas, a fraction's point a point.
 
+        // A list of names reads as a sentence: "A", "A and B", "A, B and C".
+
+        [Fact]
+        public void AListReadsAsASentence()
+        {
+            Assert.Equal("", Naming.Joined(new string[0]));
+            Assert.Equal("wood", Naming.Joined(new[] { "wood" }));
+            Assert.Equal("wood and stone", Naming.Joined(new[] { "wood", "stone" }));
+            Assert.Equal("wood, stone and resin", Naming.Joined(new[] { "wood", "stone", "resin" }));
+        }
+
+        // An amount or a length keeps up to two decimals and its thousands by commas.
+
+        [Fact]
+        public void AmountsAndLengthsKeepTwoDecimalsAndTheirThousands()
+        {
+            Assert.Equal("1,234.5", Naming.Amount(1234.5f));
+            Assert.Equal("0.25", Naming.Amount(0.25f));
+            Assert.Equal("3", Naming.Amount(3f));
+            Assert.Equal("1,500 m", Naming.Metres(1500f));
+        }
+
         [Fact]
         public void NumbersReadTheSameWhateverThePcsLanguage()
         {

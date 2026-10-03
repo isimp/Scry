@@ -334,37 +334,11 @@ namespace Scry
             Relations.PrefabsNamedBy(component, Named);
             foreach (var thing in Named) if (thing != null) Add(thing.name);
 
-            foreach (var field in DropTablesOf(component.GetType()))
+            foreach (var field in Knowledge.DropTables(component.GetType()))
             {
                 if (!(field.GetValue(component) is DropTable table) || table.m_drops == null) continue;
                 foreach (var drop in table.m_drops) if (drop.m_item != null) Add(drop.m_item.name);
             }
-        }
-
-        private static readonly Dictionary<Type, System.Reflection.FieldInfo[]> DropTableFields = new Dictionary<Type, System.Reflection.FieldInfo[]>();
-
-        /// <summary>The drop table fields of a type and its bases, found once per type.</summary>
-        private static System.Reflection.FieldInfo[] DropTablesOf(Type type)
-        {
-            if (DropTableFields.TryGetValue(type, out var known)) return known;
-            var found = new List<System.Reflection.FieldInfo>();
-            const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public
-                | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.DeclaredOnly;
-            try
-            {
-                for (var t = type; t != null && t != typeof(MonoBehaviour) && t != typeof(Component) && t != typeof(object); t = t.BaseType)
-                {
-                    foreach (var field in t.GetFields(flags)) if (field.FieldType == typeof(DropTable)) found.Add(field);
-                }
-            }
-            catch (Exception ex)
-            {
-                Faults.Skip("reading of a type's fields", type.Name, ex);
-                found.Clear();
-            }
-            known = found.ToArray();
-            DropTableFields[type] = known;
-            return known;
         }
 
         private static void Add(string name)

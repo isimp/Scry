@@ -47,6 +47,21 @@ namespace Scry
         /// </summary>
         public static string Number(float value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
+        /// <summary>An amount with up to two decimals and its thousands by commas: "1,234.5".</summary>
+        public static string Amount(float value) => value.ToString("#,0.##", System.Globalization.CultureInfo.InvariantCulture);
+
+        /// <summary>A length in metres, as an amount: "1,500 m".</summary>
+        public static string Metres(float value) => Amount(value) + " m";
+
+        /// <summary>A list of names as a sentence: "A", "A and B", "A, B and C"; nothing for none.</summary>
+        public static string Joined(System.Collections.Generic.IReadOnlyList<string> names)
+        {
+            if (names.Count <= 1) return names.Count == 1 ? names[0] : "";
+            var most = new string[names.Count - 1];
+            for (var i = 0; i < most.Length; i++) most[i] = names[i];
+            return string.Join(", ", most) + " and " + names[names.Count - 1];
+        }
+
         /// <summary>A count with its thousands by commas, whatever language the PC is set to: "1,234".</summary>
         public static string Count(int value) => value.ToString("#,0", System.Globalization.CultureInfo.InvariantCulture);
 

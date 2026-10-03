@@ -117,7 +117,7 @@ namespace Scry
                 if (any && !topics.Contains(Topic(rule))) topics.Add(Topic(rule));
             }
             if (mods.Count == 0) return null;
-            var what = topics.Count == 1 ? topics[0] : string.Join(", ", topics.GetRange(0, topics.Count - 1).ToArray()) + " and " + topics[topics.Count - 1];
+            var what = Naming.Joined(topics);
             return mods.Count == 1 ? $"A mod hooks into {what}" : $"{mods.Count} mods hook into {what}";
         }
 
@@ -141,7 +141,7 @@ namespace Scry
             foreach (var mod in mods) if (!string.IsNullOrEmpty(mod) && !names.Contains(mod)) names.Add(mod);
             if (names.Count == 0) return null;
 
-            var who = names.Count == 1 ? names[0] : string.Join(", ", names.GetRange(0, names.Count - 1).ToArray()) + " and " + names[names.Count - 1];
+            var who = Naming.Joined(names);
             var hook = names.Count == 1 ? "hooks" : "hook";
             const string working = "its pace, what it takes and what it holds may differ from what is told";
             switch (rule)

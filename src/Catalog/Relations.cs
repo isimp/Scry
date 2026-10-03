@@ -34,12 +34,6 @@ namespace Scry
         public const string Items = "Items";
         public const string ItemOf = "Item of";
 
-        /// <summary>The status effect each kind of damage puts on what it hits, as <c>Character</c> adds them.</summary>
-        private static readonly (string Damage, string Effect)[] DamageEffects =
-        {
-            ("fire", "Burning"), ("frost", "Frost"), ("lightning", "Lightning"), ("poison", "Poison"), ("spirit", "Spirit"),
-        };
-
         /// <summary>The ways an item gives a status effect that its own facts already tell, with a link.</summary>
         private static readonly HashSet<string> ToldByItems = new HashSet<string> { "equip", "set", "consume", "attack" };
 
@@ -196,7 +190,7 @@ namespace Scry
         /// <summary>The status effects a prefab's damage puts on what it hits.</summary>
         private static void Damage(GameObject prefab, HitData.DamageTypes damage, LinkBook book, string group)
         {
-            foreach (var (type, effect) in DamageEffects)
+            foreach (var (type, effect) in CombatWords.DamageEffects)
             {
                 var amount = type == "fire" ? damage.m_fire : type == "frost" ? damage.m_frost : type == "lightning" ? damage.m_lightning
                     : type == "poison" ? damage.m_poison : damage.m_spirit;

@@ -12,7 +12,7 @@ namespace Scry
     /// </summary>
     public static class BuildWords
     {
-        private static string Whole(float value) => value.ToString("#,0.##", CultureInfo.InvariantCulture);
+        private static string Whole(float value) => Naming.Amount(value);
 
         private static string Share(float value) => (value * 100f).ToString("0.#", CultureInfo.InvariantCulture) + "%";
 

@@ -18,8 +18,7 @@ namespace Scry
                 var one = features[0];
                 return char.ToUpperInvariant(one[0]) + one.Substring(1) + " is off until Scry is updated. Everything else works.";
             }
-            var list = new List<string>(features);
-            var named = string.Join(", ", list.GetRange(0, list.Count - 1)) + " and " + list[list.Count - 1];
+            var named = Naming.Joined(new List<string>(features));
             return $"{features.Count} parts of Scry are off until it is updated: {named}. Everything else works.";
         }
 

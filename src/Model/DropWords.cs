@@ -145,15 +145,8 @@ namespace Scry
             var steps = new List<string>();
             for (var stars = 1; stars <= maxStars; stars++) steps.Add($"×{1 << stars} at {stars} {(stars == 1 ? "star" : "stars")}");
             var words = "amount and chance " + string.Join(", ", steps);
-            if (unchanged != null && unchanged.Count > 0) words += $"; {Joined(unchanged)} {(unchanged.Count == 1 ? "stays" : "stay")} the same";
+            if (unchanged != null && unchanged.Count > 0) words += $"; {Naming.Joined(new List<string>(unchanged))} {(unchanged.Count == 1 ? "stays" : "stay")} the same";
             return words;
-        }
-
-        /// <summary>"A", "A and B", "A, B and C".</summary>
-        private static string Joined(IList<string> names)
-        {
-            var all = new List<string>(names);
-            return all.Count == 1 ? all[0] : string.Join(", ", all.GetRange(0, all.Count - 1).ToArray()) + " and " + all[all.Count - 1];
         }
 
         /// <summary>A range of counts, written as the rest of the panel writes them: "3", "1–4".</summary>

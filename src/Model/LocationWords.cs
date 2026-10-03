@@ -54,7 +54,7 @@ namespace Scry
     /// </summary>
     public static class LocationWords
     {
-        private static string Metres(float value) => value.ToString("#,0.##", CultureInfo.InvariantCulture) + " m";
+        private static string Metres(float value) => Naming.Metres(value);
 
         private static string Range(float min, float max) => $"{min.ToString("#,0.##", CultureInfo.InvariantCulture)}–{Metres(max)}";
 
@@ -160,7 +160,7 @@ namespace Scry
 
         private const string ForestScale = " (0 is the thickest woods, about 2.2 the most open; the Meadows are wooded below 1.15)";
 
-        private static string Number(float value) => value.ToString("#,0.##", CultureInfo.InvariantCulture);
+        private static string Number(float value) => Naming.Amount(value);
 
         /// <summary>The range of the forest factor it keeps to, or null when it keeps to none or to all of it.</summary>
         private static string Woods(LocationRules rules)

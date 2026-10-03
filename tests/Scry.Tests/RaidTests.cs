@@ -159,5 +159,30 @@ namespace Scry.Tests
             Assert.Empty(RaidGrouping.Biomes(RaidRole.BossFight, every, every));
             Assert.Empty(RaidGrouping.Biomes(RaidRole.Other, new[] { "Swamp" }, every));
         }
-    }
+    
+        // A world set to pick raids by each player's own progress (the PlayerEvents world key)
+        // checks a raid's conditions for a player where it sets any (RandEventSystem): keys any
+        // or all of which the player has, items known or not, keys the player has not.
+
+        [Fact]
+        public void ARaidComesByEachPlayersProgressOnlyInAWorldSetSoAndWhereItSetsConditionsForAPlayer()
+        {
+            Assert.False(RaidGrouping.ByEachPlayer(false, 1, 1, 1, 1, 1));
+            Assert.False(RaidGrouping.ByEachPlayer(true, 0, 0, 0, 0, 0));
+            Assert.True(RaidGrouping.ByEachPlayer(true, 1, 0, 0, 0, 0));
+            Assert.True(RaidGrouping.ByEachPlayer(true, 0, 2, 0, 0, 0));
+            Assert.True(RaidGrouping.ByEachPlayer(true, 0, 0, 1, 0, 0));
+            Assert.True(RaidGrouping.ByEachPlayer(true, 0, 0, 0, 1, 0));
+            Assert.True(RaidGrouping.ByEachPlayer(true, 0, 0, 0, 0, 3));
+        }
+
+        // What each kind of damage puts on what it hits, one table for the item's facts and its links.
+
+        [Fact]
+        public void EachElementalDamageNamesTheStatusItGives()
+        {
+            Assert.Equal(new[] { "fire", "frost", "lightning", "poison", "spirit" }, CombatWords.DamageEffects.Select(d => d.Damage));
+            Assert.Equal(new[] { "Burning", "Frost", "Lightning", "Poison", "Spirit" }, CombatWords.DamageEffects.Select(d => d.Effect));
+        }
+}
 }

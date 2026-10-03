@@ -247,16 +247,12 @@ namespace Scry
             var events = RandEventSystem.instance?.m_events;
             if (events == null) return;
 
-            // A world set to pick raids by each player's own progress checks other keys for them.
-            var byPlayer = ZoneSystem.instance != null && ZoneSystem.instance.GetGlobalKey(GlobalKeys.PlayerEvents);
             Each(events, "raids", r => r.m_name, raid =>
             {
                 if (raid.m_spawn == null || !raid.m_enabled) return;
                 var shown = CatalogBuilder.Localize(raid.m_startMessage);
                 var start = $"Comes in the raid \"{(shown.Length > 0 ? shown : raid.m_name)}\"";
-                int Count<T>(List<T> keys) => keys?.Count ?? 0;
-                var perPlayer = byPlayer && (Count(raid.m_altRequiredPlayerKeysAny) > 0 || Count(raid.m_altRequiredPlayerKeysAll) > 0 || Count(raid.m_altRequiredKnownItems) > 0
-                                             || Count(raid.m_altRequiredNotKnownItems) > 0 || Count(raid.m_altNotRequiredPlayerKeys) > 0);
+                var perPlayer = ByEachPlayer(raid);
                 var facts = new SpawnFacts
                 {
                     Biomes = raid.m_biome != 0 ? BiomeNames(raid.m_biome) : "",
@@ -273,6 +269,18 @@ namespace Scry
                     Add(data.m_prefab.name, line, EntryKeys.For(Kind.Raid, raid.m_name));
                 }
             });
+        }
+
+        /// <summary>
+        /// Whether a raid comes by each player's own progress in this world, which then checks
+        /// other keys for them (<see cref="RaidGrouping.ByEachPlayer"/>).
+        /// </summary>
+        public static bool ByEachPlayer(RandomEvent raid)
+        {
+            int Count<T>(List<T> list) => list?.Count ?? 0;
+            var world = ZoneSystem.instance != null && ZoneSystem.instance.GetGlobalKey(GlobalKeys.PlayerEvents);
+            return RaidGrouping.ByEachPlayer(world, Count(raid.m_altRequiredPlayerKeysAny), Count(raid.m_altRequiredPlayerKeysAll), Count(raid.m_altRequiredKnownItems),
+                Count(raid.m_altRequiredNotKnownItems), Count(raid.m_altNotRequiredPlayerKeys));
         }
 
         /// <summary>Spawn points read, told once every prefab is read and each boss is known by its key.</summary>
@@ -370,8 +378,7 @@ namespace Scry
                 foreach (var field in tables)
                 {
                     if (!(field.GetValue(component) is DropTable table) || table.m_drops == null) continue;
-                    var info = new DropTableInfo { Min = table.m_dropMin, Max = table.m_dropMax, Chance = table.m_dropChance, OneOfEach = table.m_oneOfEach };
-                    foreach (var data in table.m_drops) if (data.m_item != null) info.Drops.Add(new DropInfo(data.m_item.name, data.m_stackMin, data.m_stackMax, data.m_weight));
+                    var info = InfoOf(table);
                     foreach (var data in table.m_drops)
                     {
                         if (data.m_item == null) continue;
@@ -649,7 +656,17 @@ namespace Scry
             return inside != null && inside != prefab && GivesLoot(inside);
         }
 
-        private static FieldInfo[] DropTables(Type type)
+        /// <summary>A drop table as the model tells it: how it is rolled, and each item it holds, in its order.</summary>
+        internal static DropTableInfo InfoOf(DropTable table)
+        {
+            var info = new DropTableInfo { Min = table.m_dropMin, Max = table.m_dropMax, Chance = table.m_dropChance, OneOfEach = table.m_oneOfEach };
+            if (table.m_drops == null) return info;
+            foreach (var data in table.m_drops) if (data.m_item != null) info.Drops.Add(new DropInfo(data.m_item.name, data.m_stackMin, data.m_stackMax, data.m_weight));
+            return info;
+        }
+
+        /// <summary>The drop table fields of a type and its bases, found once per type; none for a mod's type whose fields cannot be read.</summary>
+        internal static FieldInfo[] DropTables(Type type)
         {
             if (DropTableFields.TryGetValue(type, out var known)) return known;
             var found = new List<FieldInfo>();

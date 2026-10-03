@@ -73,7 +73,7 @@ namespace Scry
                 Add("Set bonus", EffectName(shared.m_setStatusEffect) + pieces, "se:" + shared.m_setStatusEffect.name);
             }
             else if (worn) Add("Set bonus", "none");
-            foreach (var (damageType, name) in DamageEffects)
+            foreach (var (damageType, name) in CombatWords.DamageEffects)
             {
                 var amount = damageType == "fire" ? shared.m_damages.m_fire : damageType == "frost" ? shared.m_damages.m_frost : damageType == "lightning" ? shared.m_damages.m_lightning
                     : damageType == "poison" ? shared.m_damages.m_poison : shared.m_damages.m_spirit;

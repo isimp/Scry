@@ -181,16 +181,10 @@ namespace Scry
         private void Drops(DropTable table, string lead, bool holds = false)
         {
             if (table?.m_drops == null) return;
-            var info = new DropTableInfo { Min = table.m_dropMin, Max = table.m_dropMax, Chance = table.m_dropChance, OneOfEach = table.m_oneOfEach };
-            var items = new List<(DropInfo Drop, GameObject Item)>();
-            foreach (var drop in table.m_drops)
-            {
-                if (drop.m_item == null) continue;
-                var each = new DropInfo(drop.m_item.name, drop.m_stackMin, drop.m_stackMax, drop.m_weight);
-                info.Drops.Add(each);
-                items.Add((each, drop.m_item));
-            }
+            var info = Knowledge.InfoOf(table);
             if (DropWords.IsEmpty(info)) return;
+            var items = new List<(DropInfo Drop, GameObject Item)>();
+            foreach (var drop in table.m_drops) if (drop.m_item != null) items.Add((info.Drops[items.Count], drop.m_item));
 
             // The rarest first: within one table, the least weight.
             var title = holds ? DropWords.HoldsTitle(info) : DropWords.Title(info);

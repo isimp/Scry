@@ -12,6 +12,12 @@ namespace Scry
     /// </summary>
     public static class CombatWords
     {
+        /// <summary>The status effect each kind of damage puts on what it hits, as <c>Character</c> adds them.</summary>
+        public static readonly IReadOnlyList<(string Damage, string Effect)> DamageEffects = new[]
+        {
+            ("fire", "Burning"), ("frost", "Frost"), ("lightning", "Lightning"), ("poison", "Poison"), ("spirit", "Spirit"),
+        };
+
         /// <summary>Stars in figures, as the Adjust choices and the spawn lines count them.</summary>
         private static string Stars(int stars) => stars.ToString(CultureInfo.InvariantCulture) + (stars == 1 ? " star" : " stars");
 

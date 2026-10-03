@@ -54,6 +54,6 @@ namespace Scry
         }
 
         private static string And(List<string> parts) =>
-            parts.Count <= 1 ? string.Join("", parts) : string.Join(", ", parts.GetRange(0, parts.Count - 1)) + " and " + parts[parts.Count - 1];
+            Naming.Joined(parts);
     }
 }

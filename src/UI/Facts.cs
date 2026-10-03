@@ -376,12 +376,6 @@ namespace Scry
             return string.Join(", ", text.Split(new[] { ", " }, StringSplitOptions.None).Select(Naming.FieldLabel));
         }
 
-        /// <summary>The status effect each kind of damage puts on what it hits, as <c>Character</c> adds them.</summary>
-        private static readonly (string Damage, string Effect)[] DamageEffects =
-        {
-            ("fire", "Burning"), ("frost", "Frost"), ("lightning", "Lightning"), ("poison", "Poison"), ("spirit", "Spirit"),
-        };
-
         private static string EffectName(StatusEffect effect)
         {
             var name = CatalogBuilder.Localize(effect.m_name);

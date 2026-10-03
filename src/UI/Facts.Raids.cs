@@ -47,10 +47,7 @@ namespace Scry
             Add("Comes for", RaidWords.ComesFor(raid.m_biome != 0 ? Knowledge.BiomeNames(raid.m_biome) : "", raid.m_nearBaseOnly));
 
             // A world set to pick raids by each player's own progress checks other keys for them.
-            var byPlayer = ZoneSystem.instance != null && ZoneSystem.instance.GetGlobalKey(GlobalKeys.PlayerEvents);
-            int Count<T>(List<T> list) => list?.Count ?? 0;
-            var perPlayer = byPlayer && (Count(raid.m_altRequiredPlayerKeysAny) > 0 || Count(raid.m_altRequiredPlayerKeysAll) > 0 || Count(raid.m_altRequiredKnownItems) > 0
-                                         || Count(raid.m_altRequiredNotKnownItems) > 0 || Count(raid.m_altNotRequiredPlayerKeys) > 0);
+            var perPlayer = Knowledge.ByEachPlayer(raid);
             // The first boss it waits for, or else stops at, goes to its page.
             var waitsFor = perPlayer ? null : (raid.m_requiredGlobalKeys ?? new List<string>()).Concat(raid.m_notRequiredGlobalKeys ?? new List<string>()).Select(Knowledge.BossPrefabOf).FirstOrDefault(b => b != null);
             Add("On the table", perPlayer ? "for a player whose own progress calls for it" : RaidWords.Starts(raid.m_requiredGlobalKeys, raid.m_notRequiredGlobalKeys, Knowledge.BossOf), waitsFor);
