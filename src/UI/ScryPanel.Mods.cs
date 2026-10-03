@@ -82,7 +82,7 @@ namespace Scry
                 var page = EntryKeys.For(Kind.Mod, mod.Mod);
                 if (mod.Mod != ModReportReader.UnknownMod && InCatalog(explorer, page))
                 {
-                    if (heading.Contains(Event.current.mousePosition)) AskTip("mod:" + mod.Mod, "Go to its page: what it adds and changes");
+                    if (heading.Contains(Event.current.mousePosition)) AskTip("mod-heading:" + mod.Mod, "Go to its page: what it adds and changes");
                     if (GUI.Button(heading, GUIContent.none, GUIStyle.none)) Go(explorer, page);
                 }
                 y += headingH + U(2f);

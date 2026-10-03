@@ -147,7 +147,7 @@ namespace Scry
                     var fields = entry.PlayedIn.ToList();
                     if (weather.Contains(entry.Name)) fields.Add("weather");
                     if (Knowledge.IsPlacedByWorld(entry.Name)) fields.Add("ambience");
-                    if (entry.Links.Any(l => l.Group == Relations.SpawnedBy && l.Target.StartsWith("se:", StringComparison.Ordinal))) fields.Add("se:spawned");
+                    if (entry.Links.Any(l => l.Group == Relations.SpawnedBy && l.Target.StartsWith(EntryKeys.StatusEffect, StringComparison.Ordinal))) fields.Add(Groups.StatusEffectField + "spawned");
                     if (entry.LeftBy.Count > 0) fields.Add("left when destroyed");
                     var purpose = Groups.Purpose(fields, footstep, animation);
 

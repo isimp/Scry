@@ -143,7 +143,7 @@ namespace Scry
                 {
                     var page = EntryKeys.For(Kind.Biome, b);
                     if (InCatalog(explorer, page)) Go(explorer, page);
-                    else SearchFor(explorer, "biome:" + b.ToLowerInvariant());
+                    else SearchFor(explorer, SearchHelp.Term("biome", b));
                 })), width, y);
             }
             var users = Users(explorer, entry);
@@ -243,7 +243,7 @@ namespace Scry
                 var titleW = Mathf.Min(width, Skin.Width(Skin.DimLabel, row.Title) + U(4f));
                 var titleRect = new Rect(0f, y, titleW, U(20f));
                 LinkLabel(titleRect, row.Title, Skin.DimLabel, LinkText(KindOf(explorer, row.TitleLink), false));
-                if (titleRect.Contains(Event.current.mousePosition)) AskTip("station:" + row.TitleLink, "Go to " + ShownName(explorer, row.TitleLink, row.TitleLink));
+                if (titleRect.Contains(Event.current.mousePosition)) AskTip("row-title:" + row.TitleLink, "Go to " + ShownName(explorer, row.TitleLink, row.TitleLink));
                 if (GUI.Button(titleRect, GUIContent.none, GUIStyle.none)) Go(explorer, row.TitleLink);
             }
             else
@@ -475,7 +475,7 @@ namespace Scry
                 }
                 else
                 {
-                    var search = "in:" + name.Replace(" ", "").ToLowerInvariant();
+                    var search = SearchHelp.Term("in", name);
                     FoundInItems.Add((search, place, "Search for what is found in " + name, () => SearchFor(explorer, search)));
                 }
             }

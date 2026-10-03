@@ -28,7 +28,7 @@ namespace Scry
                 Blockable = projectile.m_blockable,
                 Dodgeable = projectile.m_dodgeable,
                 OnHit = onHit != null ? EffectName(onHit) : null,
-                OnHitKey = onHit != null ? "se:" + onHit.name : null,
+                OnHitKey = onHit != null ? EntryKeys.For(Kind.StatusEffect, onHit.name) : null,
                 FliesFor = projectile.m_ttl,
                 Gravity = projectile.m_gravity,
                 Drag = projectile.m_drag,

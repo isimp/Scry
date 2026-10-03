@@ -77,7 +77,7 @@ namespace Scry
 
             // Only prefabs are followed so far; a status effect's helpers would need its shown name.
             var user = helper.User;
-            if (user.StartsWith("se:", StringComparison.Ordinal)) return;
+            if (user.StartsWith(EntryKeys.StatusEffect, StringComparison.Ordinal)) return;
 
             components.Clear();
             if (!Guard.Each("effects of what prefabs spawn", prefab.name, () => prefab.GetComponentsInChildren(true, components))) return;

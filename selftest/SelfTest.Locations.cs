@@ -311,7 +311,7 @@ namespace Scry
 
             if (crypt != null)
             {
-                var term = "in:" + crypt.DisplayName.Replace(" ", "").ToLowerInvariant();
+                var term = SearchHelp.Term("in", crypt.DisplayName);
                 X.SearchEverything("kind:location " + term);
                 p.Check(X.Results.Any(e => PlaceOf(e)?.IsRoom == true), $"\"kind:location {term}\" finds its rooms", $"{Numbers.Count(X.Results.Count)} results");
                 X.SearchEverything(crypt.DisplayName);

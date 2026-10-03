@@ -62,14 +62,14 @@ namespace Scry
             {
                 var lines = GearWords.Lines(GearValues(shared));
                 foreach (var (label, value) in lines) Add(label, value);
-                if (shared.m_fullAdrenalineSE != null) Add("At full adrenaline", EffectName(shared.m_fullAdrenalineSE), "se:" + shared.m_fullAdrenalineSE.name);
+                if (shared.m_fullAdrenalineSE != null) Add("At full adrenaline", EffectName(shared.m_fullAdrenalineSE), EntryKeys.For(Kind.StatusEffect, shared.m_fullAdrenalineSE.name));
                 if (wornFor && lines.Count == 0 && shared.m_fullAdrenalineSE == null && shared.m_equipStatusEffect == null) Add("Other changes while worn", "none");
             });
             // The set's own name is an id the game never shows; the rest of the set is linked under LINKED.
             if (shared.m_setStatusEffect != null)
             {
                 var pieces = shared.m_setSize > 0 ? $" ({Numbers.Count(shared.m_setSize)} pieces)" : "";
-                Add("Set bonus", EffectName(shared.m_setStatusEffect) + pieces, "se:" + shared.m_setStatusEffect.name);
+                Add("Set bonus", EffectName(shared.m_setStatusEffect) + pieces, EntryKeys.For(Kind.StatusEffect, shared.m_setStatusEffect.name));
             }
             else if (worn) Add("Set bonus", "none");
             foreach (var (damageType, name) in CombatWords.DamageEffects)
@@ -77,11 +77,11 @@ namespace Scry
                 var amount = damageType == "fire" ? shared.m_damages.m_fire : damageType == "frost" ? shared.m_damages.m_frost : damageType == "lightning" ? shared.m_damages.m_lightning
                     : damageType == "poison" ? shared.m_damages.m_poison : shared.m_damages.m_spirit;
                 var effect = amount > 0f && ObjectDB.instance != null ? ObjectDB.instance.GetStatusEffect(name.GetStableHashCode()) : null;
-                if (effect != null) Add(Naming.FieldLabel(damageType) + " damage causes", EffectName(effect), "se:" + effect.name);
+                if (effect != null) Add(Naming.FieldLabel(damageType) + " damage causes", EffectName(effect), EntryKeys.For(Kind.StatusEffect, effect.name));
             }
-            if (shared.m_equipStatusEffect != null) Add("When worn", EffectName(shared.m_equipStatusEffect), "se:" + shared.m_equipStatusEffect.name);
-            if (shared.m_consumeStatusEffect != null) Add("When used", EffectName(shared.m_consumeStatusEffect), "se:" + shared.m_consumeStatusEffect.name);
-            if (shared.m_attackStatusEffect != null) Add("On hit", EffectName(shared.m_attackStatusEffect), "se:" + shared.m_attackStatusEffect.name);
+            if (shared.m_equipStatusEffect != null) Add("When worn", EffectName(shared.m_equipStatusEffect), EntryKeys.For(Kind.StatusEffect, shared.m_equipStatusEffect.name));
+            if (shared.m_consumeStatusEffect != null) Add("When used", EffectName(shared.m_consumeStatusEffect), EntryKeys.For(Kind.StatusEffect, shared.m_consumeStatusEffect.name));
+            if (shared.m_attackStatusEffect != null) Add("On hit", EffectName(shared.m_attackStatusEffect), EntryKeys.For(Kind.StatusEffect, shared.m_attackStatusEffect.name));
 
             // An egg hatches where it is kept right (EggGrow.CanGrow).
             var egg = prefab.GetComponent<EggGrow>();

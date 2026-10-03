@@ -95,7 +95,7 @@ namespace Scry
             e.Use();
         }
 
-        private static string OutTarget(OutRow row) => row.Place == OutPlace.Status ? "se:" + row.Key : row.Key;
+        private static string OutTarget(OutRow row) => row.Place == OutPlace.Status ? EntryKeys.For(Kind.StatusEffect, row.Key) : row.Key;
 
         private static string OutPlaceWord(OutPlace place)
         {

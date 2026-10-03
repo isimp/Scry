@@ -140,7 +140,7 @@ namespace Scry
                 {
                     var origin = Origins.StatusEffects.Of(effect.name);
                     var shown = Localize(effect.m_name);
-                    Gather(effect, "status effect " + effect.name, origin, read.Effects, "se:" + effect.name, shown.Length > 0 ? shown : effect.name);
+                    Gather(effect, "status effect " + effect.name, origin, read.Effects, EntryKeys.For(Kind.StatusEffect, effect.name), shown.Length > 0 ? shown : effect.name);
                     Relations.ReadStatusEffect(effect);
 
                     read.Entries.Add(new Entry

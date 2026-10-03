@@ -117,7 +117,7 @@ namespace Scry
         /// </summary>
         internal int Finds(string key, string token)
         {
-            var term = key + ":" + token;
+            var term = SearchHelp.Term(key, token);
             if (_finds.TryGetValue(term, out var known)) return known;
 
             int count;
@@ -229,6 +229,20 @@ namespace Scry
     /// </summary>
     internal static class SearchHelp
     {
+        /// <summary>A term the search reads: its key, and a value as one word (<see cref="TermIndex.Token"/>), "mod:coolstatues".</summary>
+        public static string Term(string key, string value) => key + ":" + TermIndex.Token(value);
+
+        /// <summary>Whether a search asks by a key, whatever its letters' size; a term left out with a minus ("-in:") asks for the rest, so it does not.</summary>
+        public static bool Asks(string text, string key)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+            foreach (var word in text.Split(' '))
+            {
+                if (word.StartsWith(key + ":", StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
+        }
+
         /// <summary>What each key looks for, shown beside it.</summary>
         private static readonly Dictionary<string, string> KeyNotes = new Dictionary<string, string>
         {
@@ -306,7 +320,7 @@ namespace Scry
 
             foreach (var (_, value) in ranked.Take(max))
             {
-                var term = name + ":" + value.Token;
+                var term = Term(name, value.Token);
                 found.Add(new Suggestion
                 {
                     Label = value.Label,

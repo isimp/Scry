@@ -72,15 +72,7 @@ namespace Scry
         }
 
         /// <summary>Whether the search asks what is in a place, with in: (not with a minus, which asks for the rest).</summary>
-        private static bool SearchesPlaces(string text)
-        {
-            if (string.IsNullOrEmpty(text)) return false;
-            foreach (var word in text.Split(' '))
-            {
-                if (word.StartsWith("in:", StringComparison.OrdinalIgnoreCase)) return true;
-            }
-            return false;
-        }
+        private static bool SearchesPlaces(string text) => SearchHelp.Asks(text, "in");
 
         private static void NoPlacesYet(Rect inner)
         {

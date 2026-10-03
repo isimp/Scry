@@ -73,7 +73,7 @@ namespace Scry
 
                 case Kind.Biome:
                     // Everything there, as the search finds it.
-                    if (Button("Everything here", Skin.Primary) && _explorer != null) SearchFor(_explorer, "biome:" + entry.Name.ToLowerInvariant());
+                    if (Button("Everything here", Skin.Primary) && _explorer != null) SearchFor(_explorer, SearchHelp.Term("biome", entry.Name));
                     break;
 
                 case Kind.Location:

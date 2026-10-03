@@ -287,7 +287,7 @@ namespace Scry
             // The Forsaken power a trophy gives on its boss stone.
             var (power, stone) = Knowledge.PowerOf(prefab.name);
             var powerEffect = power != null && ObjectDB.instance != null ? ObjectDB.instance.GetStatusEffect(power.GetStableHashCode()) : null;
-            if (powerEffect != null) Add("On its boss stone", $"gives {EffectName(powerEffect)}", "se:" + power);
+            if (powerEffect != null) Add("On its boss stone", $"gives {EffectName(powerEffect)}", EntryKeys.For(Kind.StatusEffect, power));
 
             Part("machines", () => Machines(prefab));
 
@@ -301,7 +301,7 @@ namespace Scry
                     var radius = sphere != null ? sphere.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z)) : 0f;
                     foreach (var (label, text) in AreaWords.Lines((int)area.m_type, radius)) Add(label, text);
                     var given = !string.IsNullOrEmpty(area.m_statusEffect) && ObjectDB.instance != null ? ObjectDB.instance.GetStatusEffect(area.m_statusEffect.GetStableHashCode()) : null;
-                    if (given != null) Add("Gives those in it", EffectName(given), "se:" + given.name);
+                    if (given != null) Add("Gives those in it", EffectName(given), EntryKeys.For(Kind.StatusEffect, given.name));
                 }
             });
 

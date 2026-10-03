@@ -99,7 +99,7 @@ namespace Scry
             var mod = X.Catalog.Where(e => e.Origin == Origin.Mod && e.ModName.Length > 0 && e.Kind != Kind.Mod).Select(e => e.ModName).FirstOrDefault();
             if (mod != null)
             {
-                var ofMod = Find("mod:" + mod.Replace(" ", "").ToLowerInvariant());
+                var ofMod = Find(SearchHelp.Term("mod", mod));
                 p.Check(ofMod.Count > 0 && ofMod.All(e => e.ModName == mod), $"\"mod:\" finds only what {mod} added", $"{Numbers.Count(ofMod.Count)} results");
             }
             else p.Note("no mod adds anything, so mod: is not tried");

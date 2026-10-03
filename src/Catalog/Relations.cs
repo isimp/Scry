@@ -143,7 +143,7 @@ namespace Scry
             Following.Clear();
             Guard.Each("links of status effects", effect.name, () =>
             {
-                Named(effect, "se:" + effect.name, null, _book, 0);
+                Named(effect, EntryKeys.For(Kind.StatusEffect, effect.name), null, _book, 0);
             });
         }
 
@@ -165,7 +165,7 @@ namespace Scry
             {
                 // What an item gives when worn, used, as a set or on hit is in its own facts already.
                 var item = ToldByItems.Contains(giver.How) && IsItem(giver.Prefab, prefabs);
-                book.Add(giver.Prefab, item ? null : StatusEffects, "se:" + giver.Effect, GivenBy, giver.How);
+                book.Add(giver.Prefab, item ? null : StatusEffects, EntryKeys.For(Kind.StatusEffect, giver.Effect), GivenBy, giver.How);
             }
             Sets.Clear();
             Ammo.Clear();
@@ -185,7 +185,7 @@ namespace Scry
             {
                 var amount = type == "fire" ? damage.m_fire : type == "frost" ? damage.m_frost : type == "lightning" ? damage.m_lightning
                     : type == "poison" ? damage.m_poison : damage.m_spirit;
-                if (amount > 0f) book.Add(prefab.name, group, "se:" + effect, GivenBy, type + " damage");
+                if (amount > 0f) book.Add(prefab.name, group, EntryKeys.For(Kind.StatusEffect, effect), GivenBy, type + " damage");
             }
         }
 

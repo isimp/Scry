@@ -77,7 +77,7 @@ namespace Scry
                 {
                     var power = drop?.m_prefab != null ? Knowledge.PowerOf(drop.m_prefab.name).Power : null;
                     var effect = power != null && ObjectDB.instance != null ? ObjectDB.instance.GetStatusEffect(power.GetStableHashCode()) : null;
-                    if (effect != null) Add("Forsaken power", EffectName(effect), "se:" + power);
+                    if (effect != null) Add("Forsaken power", EffectName(effect), EntryKeys.For(Kind.StatusEffect, power));
                 }
                 if (row.Items.Count > 0)
                 {

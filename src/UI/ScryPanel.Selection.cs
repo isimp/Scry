@@ -219,7 +219,7 @@ namespace Scry
                     if (GUI.Button(subRect, GUIContent.none, GUIStyle.none))
                     {
                         if (known) Go(explorer, page);
-                        else SearchFor(explorer, "mod:" + entry.ModName.Replace(" ", "").ToLowerInvariant());
+                        else SearchFor(explorer, SearchHelp.Term("mod", entry.ModName));
                     }
                 }
                 y += U(26f);

@@ -248,6 +248,11 @@ namespace Scry
         /// <summary>A projectile nothing was found to fire, but a location or dungeon room names, once they are read.</summary>
         public static readonly Group ProjectilesInLocations = new Group("In locations", 6);
 
+        /// <summary>The mark before the name of a status effect's effect list ("se:m_startEffects"); the interface's carry <see cref="InterfaceField"/>.</summary>
+        public const string StatusEffectField = "se:";
+
+        public const string InterfaceField = "ui:";
+
         /// <summary>
         /// What an effect or sound is for: by the names of the effect lists it is in (a status
         /// effect's marked "se:", the interface's "ui:"), and whether it is a footstep or played by
@@ -267,8 +272,8 @@ namespace Scry
         private static Group PurposeOf(string field)
         {
             if (string.IsNullOrEmpty(field)) return OtherPurpose;
-            if (field.StartsWith("se:", System.StringComparison.Ordinal)) return StatusEffects;
-            if (field.StartsWith("ui:", System.StringComparison.Ordinal)) return Interface;
+            if (field.StartsWith(StatusEffectField, System.StringComparison.Ordinal)) return StatusEffects;
+            if (field.StartsWith(InterfaceField, System.StringComparison.Ordinal)) return Interface;
             var name = field.StartsWith("m_", System.StringComparison.Ordinal) ? field.Substring(2) : field;
             name = name.ToLowerInvariant();
             foreach (var (purpose, order, words) in PurposeWords)

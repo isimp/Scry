@@ -72,7 +72,7 @@ namespace Scry
                     }
 
                     if (found.Users.Add(ownerName)) found.UserOrigins.Add(ownerOrigin);
-                    found.Fields.Add((ownerName == Provenance.Interface ? "ui:" : ownerName.StartsWith("status effect ", StringComparison.Ordinal) ? "se:" : "") + on.Field);
+                    found.Fields.Add((ownerName == Provenance.Interface ? Groups.InterfaceField : ownerName.StartsWith("status effect ", StringComparison.Ordinal) ? Groups.StatusEffectField : "") + on.Field);
                 }
             }
         }

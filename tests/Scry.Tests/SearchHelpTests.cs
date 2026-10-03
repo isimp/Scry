@@ -257,6 +257,26 @@ namespace Scry.Tests
         // ----- Terms written as one word -----
 
         [Fact]
+        public void ATermIsItsKeyAndItsValueAsOneWord()
+        {
+            // A chip that searches (a biome without a page, a mod by its name) writes the term the
+            // search reads, as a suggestion would.
+            Assert.Equal("mod:coolstatues", SearchHelp.Term("mod", "Cool Statues"));
+            Assert.Equal("biome:blackforest", SearchHelp.Term("biome", "BlackForest"));
+            Assert.Equal(new[] { "CoolMod_TrollStatue" }, Find(SearchHelp.Term("mod", "Cool Statues")));
+        }
+
+        [Theory]
+        [InlineData("in:crypt", true)]
+        [InlineData("kind:location IN:Crypt", true)]
+        [InlineData("-in:crypt", false)]
+        [InlineData("inside", false)]
+        [InlineData("kind:location", false)]
+        [InlineData("", false)]
+        [InlineData(null, false)]
+        public void ASearchThatAsksByAKeyIsKnownByItAndOneThatLeavesItOutIsNot(string text, bool asks) => Assert.Equal(asks, SearchHelp.Asks(text, "in"));
+
+        [Fact]
         public void ModAndUsedMatchWithTheSpacesOfTheNameLeftOut()
         {
             Assert.Equal(new[] { "CoolMod_TrollStatue" }, Find("mod:coolstatues"));
