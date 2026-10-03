@@ -22,6 +22,7 @@ namespace Scry
             yield return S("both views draw, and /scry searches", PanelViews, 10);
             yield return S("the arrow keys move, Game and Mods filter, and an empty tab shows every kind", ListKeysAndFilters, 10, ResetList);
             yield return S("the search's help opens and closes", HelpOpens, 5, () => ScryPanel.ShowHelp(false));
+            yield return S("the View box and the sliders open, draw, and close on another selection", BoxesOpen, 10, ScryPanel.CloseBoxes);
             yield return S("the catalog is sound: keys, names, groups and counts", CatalogSound, 10);
             yield return S("every search is quick enough to run as you type", SearchSpeed, 10, ResetList);
 

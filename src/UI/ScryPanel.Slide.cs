@@ -21,8 +21,25 @@ namespace Scry
         /// <summary>Where the open slider's icon, box, track and value are, on the screen.</summary>
         private static Rect _slideIcon, _slideBox, _slideTrack, _slideValue;
 
-        /// <summary>Whether a slider is open, for the self-test.</summary>
+        /// <summary>Whether a slider is open, and how many times one has been drawn, for the self-test.</summary>
         public static bool SliderOpen => _slide != Slide.None;
+        public static int SlidersDrawn { get; private set; }
+
+        /// <summary>Opens the volume or the size slider for an entry under a point of the screen, as its icon would, for the self-test.</summary>
+        public static void OpenSlider(Entry entry, bool size, Vector2 under)
+        {
+            _slide = size ? Slide.Size : Slide.Volume;
+            _slideFor = entry;
+            SlidePlace(new Rect(under, Vector2.zero));
+        }
+
+        /// <summary>Closes the View box and any slider.</summary>
+        public static void CloseBoxes()
+        {
+            _slide = Slide.None;
+            _sliding = false;
+            _viewOpen = false;
+        }
 
         /// <summary>The icons beside the name, right to left from <paramref name="right"/>: size while the stage shows a model, then volume. Returns the width they take.</summary>
         private static float SlideIcons(Entry entry, Modifiers modifiers, float right, float y, bool sized)
@@ -174,6 +191,7 @@ namespace Scry
             var value = Here(_slideValue);
             GUI.Label(value, _slide == Slide.Volume ? HeaderSliders.VolumeLabel(modifiers.Volume) : HeaderSliders.SizeLabel(modifiers.Scale), Skin.DimLabel);
             if (value.Contains(Event.current.mousePosition)) AskTip("slidevalue", "Back to its own");
+            SlidersDrawn++;
         }
     }
 }

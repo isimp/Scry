@@ -292,6 +292,37 @@ namespace Scry
             p.Check(!ScryPanel.HelpShown, "and closes");
         }
 
+        /// <summary>The stage's View box and the header's volume and size sliders open and draw, and another selection closes them.</summary>
+        private static IEnumerator BoxesOpen(Probe p)
+        {
+            var troll = Pick(Kind.Creature, "Troll", "Greydwarf");
+            var sword = Pick(Kind.Item, "SwordIron", "AxeBronze");
+            if (troll == null || sword == null) p.Skip("there is no creature or no item");
+            Select(troll);
+            yield return null;
+            var shown = X.Selected;
+            var under = new Vector2(Screen.width / 2f, Screen.height / 2f);
+
+            var drawn = ScryPanel.ViewMenusDrawn;
+            ScryPanel.OpenViewMenu(shown, under);
+            yield return Until(() => ScryPanel.ViewMenusDrawn > drawn, 3);
+            p.Check(ScryPanel.ViewMenuOpen && ScryPanel.ViewMenusDrawn > drawn, "the View box opens and draws");
+            ScryPanel.CloseBoxes();
+
+            foreach (var size in new[] { false, true })
+            {
+                drawn = ScryPanel.SlidersDrawn;
+                ScryPanel.OpenSlider(shown, size, under);
+                yield return Until(() => ScryPanel.SlidersDrawn > drawn, 3);
+                p.Check(ScryPanel.SliderOpen && ScryPanel.SlidersDrawn > drawn, size ? "the size slider opens and draws" : "the volume slider opens and draws");
+            }
+
+            ScryPanel.OpenViewMenu(shown, under);
+            Select(sword);
+            yield return Until(() => !ScryPanel.ViewMenuOpen && !ScryPanel.SliderOpen, 3);
+            p.Check(!ScryPanel.ViewMenuOpen && !ScryPanel.SliderOpen, "another selection closes them");
+        }
+
         /// <summary>Closing the panel takes the copy down and quiets it; opening it again brings the selection back.</summary>
         private static IEnumerator CloseAndOpen(Probe p)
         {

@@ -207,6 +207,8 @@ namespace Scry
             _modCountFor = null;
             _planOf = null;
             PlanRooms.Clear();
+            // A box left open would still match the new world's empty selection and draw on.
+            CloseBoxes();
             _slideFor = null;
             _viewFor = null;
         }
