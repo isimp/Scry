@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -341,5 +342,30 @@ namespace Scry
 
         /// <summary>The value of the facts' pair of that title, or null.</summary>
         private static string Value(Facts facts, string title) => facts.Pairs.FirstOrDefault(pair => pair.Key == title).Value;
+
+        private static PlaceSource PlaceOf(Entry entry) => entry?.Source as PlaceSource;
+
+        private static Entry LocationNamed(params string[] names) => Pick(Kind.Location, names);
+
+        /// <summary>Does something to each item, yielding a frame whenever this frame's share is used up, so a sweep over thousands does not stall the game.</summary>
+        private static IEnumerator Budgeted<T>(IReadOnlyList<T> items, Action<T> each, double ms = 8)
+        {
+            var watch = Stopwatch.StartNew();
+            foreach (var item in items)
+            {
+                each(item);
+                if (watch.Elapsed.TotalMilliseconds < ms) continue;
+                yield return null;
+                watch.Restart();
+            }
+        }
+
+        /// <summary>Up to so many of a list, spread evenly over it rather than its first few.</summary>
+        private static List<T> Spread<T>(IReadOnlyList<T> all, int count)
+        {
+            if (all.Count <= count) return all.ToList();
+            var step = (double)all.Count / count;
+            return Enumerable.Range(0, count).Select(i => all[(int)(i * step)]).ToList();
+        }
     }
 }
