@@ -221,5 +221,76 @@ namespace Scry.Tests
             Assert.Null(StageCamera.AboveCutRow(0f, 1f, 0f, 0f, 0.1f));
             Assert.Null(StageCamera.AboveCutRow(0f, 1f, 0f, -2f, 0.1f));
         }
+
+        [Fact]
+        public void EachTurnOfTheWheelZoomsByAStep()
+        {
+            Assert.Equal(1.08f, StageCamera.Zoomed(1f, 1f, 100f, 0f), 4);
+            Assert.Equal(0.92f, StageCamera.Zoomed(1f, -1f, 100f, 0f), 4);
+            Assert.Equal(1.16f, StageCamera.Zoomed(1f, 2f, 100f, 0f), 4);
+        }
+
+        [Fact]
+        public void TheWheelZoomsOutNoFartherThanSixTimesTheFraming()
+        {
+            Assert.Equal(6f, StageCamera.Zoomed(6f, 1f, 100f, 0f), 4);
+            Assert.Equal(6f, StageCamera.Zoomed(5.9f, 3f, 100f, 0f), 4);
+        }
+
+        [Fact]
+        public void TheWheelZoomsInNoNearerThanTwoMetres()
+        {
+            // Framed from 100 m, two metres is a fiftieth.
+            Assert.Equal(0.02f, StageCamera.Zoomed(0.021f, -1f, 100f, 0f), 4);
+        }
+
+        [Fact]
+        public void OverACutTheWheelZoomsInNoNearerThanKeepsTheCameraOverIt()
+        {
+            Assert.Equal(0.5f, StageCamera.Zoomed(0.6f, -5f, 100f, 50f), 4);
+            // A cut farther off than the wheel reaches keeps it at its farthest.
+            Assert.Equal(6f, StageCamera.Zoomed(1f, -1f, 10f, 100f), 4);
+            // Before anything is framed, only the wheel's own limits hold.
+            Assert.Equal(0.92f, StageCamera.Zoomed(1f, -1f, 0f, 50f), 4);
+        }
+
+        [Fact]
+        public void DraggingTurnsTheViewAndTiltsItNoFurtherThanNearlyStraightDownOrALittleUp()
+        {
+            Assert.Equal((4f, 3f), StageCamera.Orbit(0f, 0f, 10f, 10f));
+            Assert.Equal((-4f, 77f), StageCamera.Orbit(0f, 80f, -10f, -10f));
+            Assert.Equal(85f, StageCamera.Orbit(0f, 80f, 0f, 100f).Pitch);
+            Assert.Equal(-20f, StageCamera.Orbit(0f, 0f, 0f, -100f).Pitch);
+        }
+
+        [Fact]
+        public void APointOfThePictureIsSeenAlongItsRay()
+        {
+            // The middle straight ahead; a corner as far out as the view reaches, wider by its shape.
+            var tan = (float)Math.Tan(30.0 * Math.PI / 180.0);
+            Near(new Vec3(0f, 0f, 1f), StageCamera.Through(0.5f, 0.5f, 60f, 2f));
+            Near(new Vec3(tan * 2f, tan, 1f), StageCamera.Through(1f, 1f, 60f, 2f));
+            Near(new Vec3(-tan * 2f, -tan, 1f), StageCamera.Through(0f, 0f, 60f, 2f));
+        }
+
+        [Fact]
+        public void WhatIsSeenAlongAPointsRayShowsAtThatPoint()
+        {
+            foreach (var (x, y) in new[] { (0.5f, 0.5f), (0.1f, 0.9f), (0.75f, 0.2f) })
+            {
+                var seen = StageCamera.Through(x, y, 30f, 16f / 9f) * 12f;
+                var shown = StageCamera.PictureOf(seen, 30f, 16f / 9f);
+                Assert.NotNull(shown);
+                Assert.Equal(x, shown.Value.X, 4);
+                Assert.Equal(y, shown.Value.Y, 4);
+            }
+        }
+
+        [Fact]
+        public void WhatIsBehindTheCameraShowsNowhereInThePicture()
+        {
+            Assert.Null(StageCamera.PictureOf(new Vec3(0f, 0f, -1f), 30f, 1f));
+            Assert.Null(StageCamera.PictureOf(new Vec3(1f, 1f, 0f), 30f, 1f));
+        }
     }
 }

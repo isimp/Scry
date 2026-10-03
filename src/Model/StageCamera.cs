@@ -16,6 +16,17 @@ namespace Scry
         /// <summary>How near the wheel brings the camera to what it looks at, in metres, however big what is framed.</summary>
         public const float NearestMetres = 2f;
 
+        /// <summary>How far out the wheel takes the camera, as a share of the distance it frames from.</summary>
+        public const float FarthestZoom = 6f;
+
+        /// <summary>How much one turn of the wheel zooms, as a share of the zoom.</summary>
+        public const float WheelStep = 0.08f;
+
+        /// <summary>How far the view tilts, in degrees: up to nearly straight down, and a little up from below.</summary>
+        public const float LowestPitch = -20f;
+
+        public const float HighestPitch = 85f;
+
         /// <summary>
         /// How near the wheel brings the camera, as a share of the distance it frames from: as
         /// near as <see cref="NearestMetres"/>, never nearer than a five-hundredth, and a small
@@ -23,6 +34,41 @@ namespace Scry
         /// </summary>
         public static float LeastZoom(float framedDistance) =>
             framedDistance > 0f ? Math.Max(0.002f, Math.Min(0.15f, NearestMetres / framedDistance)) : 0.15f;
+
+        /// <summary>
+        /// The zoom after turns of the wheel: a step a turn, out no farther than
+        /// <see cref="FarthestZoom"/>, in no nearer than <see cref="LeastZoom"/> nor than keeps the
+        /// camera <paramref name="overCut"/> metres off, over a floor's cut.
+        /// </summary>
+        public static float Zoomed(float zoom, float wheel, float framedDistance, float overCut)
+        {
+            var least = Math.Max(LeastZoom(framedDistance), framedDistance > 0f ? overCut / framedDistance : 0f);
+            var zoomed = zoom * (1f + wheel * WheelStep);
+            return Math.Min(Math.Max(zoomed, least), FarthestZoom);
+        }
+
+        /// <summary>The camera's turn and tilt, in degrees, after a drag across and up by some pixels.</summary>
+        public static (float Yaw, float Pitch) Orbit(float yaw, float pitch, float across, float up) =>
+            (yaw + across * 0.4f, Math.Min(Math.Max(pitch + up * 0.3f, LowestPitch), HighestPitch));
+
+        /// <summary>
+        /// The way, in the camera's own space (looking along +Z), through a point of its picture
+        /// (0 to 1 across, 0 to 1 up) seen through a field of view in degrees and a shape (width
+        /// over height).
+        /// </summary>
+        public static Vec3 Through(float across, float up, float fieldOfView, float aspect)
+        {
+            var tan = (float)Math.Tan(fieldOfView * 0.5 * Math.PI / 180.0);
+            return new Vec3((across * 2f - 1f) * tan * aspect, (up * 2f - 1f) * tan, 1f);
+        }
+
+        /// <summary>Where a point in the camera's own space shows in its picture (0 to 1 across, 0 to 1 up), as <see cref="Through"/> sees it; null behind the camera.</summary>
+        public static (float X, float Y)? PictureOf(Vec3 local, float fieldOfView, float aspect)
+        {
+            if (local.Z <= 0f) return null;
+            var tan = (float)Math.Tan(fieldOfView * 0.5 * Math.PI / 180.0);
+            return ((local.X / (local.Z * tan * aspect) + 1f) / 2f, (local.Y / (local.Z * tan) + 1f) / 2f);
+        }
 
         /// <summary>
         /// The point the camera circles once zoomed toward <paramref name="point"/> by
@@ -72,7 +118,7 @@ namespace Scry
         /// </summary>
         public static (float Right, float Up) Drag(float across, float up, float distance, float fieldOfView, float aspect)
         {
-            var tall = 2f * distance * (float)Math.Tan(fieldOfView * 0.5 * Math.PI / 180.0);
+            var tall = StageFraming.Tall(distance, fieldOfView);
             return (-across * tall * aspect, -up * tall);
         }
 
@@ -103,10 +149,11 @@ namespace Scry
                 maxZ = Math.Max(maxZ, corner.Z);
             }
             if (float.IsPositiveInfinity(minX)) return null;
-            var wide = maxX - minX;
-            var deep = maxZ - minZ;
-            return ((minX + maxX) / 2f, (minZ + maxZ) / 2f, (float)Math.Sqrt(wide * wide + deep * deep) / 2f);
+            return ((minX + maxX) / 2f, (minZ + maxZ) / 2f, HalfAcross(maxX - minX, maxZ - minZ));
         }
+
+        /// <summary>Half the way from corner to corner of what is so wide and so deep.</summary>
+        public static float HalfAcross(float wide, float deep) => (float)Math.Sqrt(wide * wide + deep * deep) / 2f;
 
         /// <summary>
         /// The depth row of a projection that draws only what is above a cut, its far end laid

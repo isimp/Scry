@@ -49,24 +49,14 @@ namespace Scry
         public static Vector2? PictureOf(Vector3 world)
         {
             if (_camera == null) return null;
-            var local = _camera.transform.InverseTransformPoint(world);
-            if (local.z <= 0f) return null;
-            var tan = Mathf.Tan(FieldOfView * 0.5f * Mathf.Deg2Rad);
-            return new Vector2((local.x / (local.z * tan * _camera.aspect) + 1f) / 2f, (local.y / (local.z * tan) + 1f) / 2f);
+            var shown = StageCamera.PictureOf(V(_camera.transform.InverseTransformPoint(world)), FieldOfView, _camera.aspect);
+            return shown.HasValue ? new Vector2(shown.Value.X, shown.Value.Y) : (Vector2?)null;
         }
 
         /// <summary>The way from the camera through a point of its picture (0 to 1 across, 0 to 1 up).</summary>
-        private static Vector3 RayAt(Vector2 point)
-        {
-            var tan = Mathf.Tan(FieldOfView * 0.5f * Mathf.Deg2Rad);
-            return _camera.transform.rotation * new Vector3((point.x * 2f - 1f) * tan * _camera.aspect, (point.y * 2f - 1f) * tan, 1f);
-        }
+        private static Vector3 RayAt(Vector2 point) => _camera.transform.rotation * U(StageCamera.Through(point.x, point.y, FieldOfView, _camera.aspect));
 
-        public static void Orbit(Vector2 delta)
-        {
-            Yaw += delta.x * 0.4f;
-            Pitch = Mathf.Clamp(Pitch + delta.y * 0.3f, -20f, 85f);
-        }
+        public static void Orbit(Vector2 delta) => (Yaw, Pitch) = StageCamera.Orbit(Yaw, Pitch, delta.x, delta.y);
 
         /// <summary>
         /// Zooms by the wheel toward what is under the pointer at a point of the picture (0 to 1
@@ -75,11 +65,9 @@ namespace Scry
         /// </summary>
         public static void ZoomBy(float wheel, Vector2? point = null)
         {
-            var framed = _frameRadius > 0f ? _frameRadius / Mathf.Sin(FieldOfView * 0.5f * Mathf.Deg2Rad) : 0f;
             var before = Zoom;
             // No nearer than keeps it over a floor's cut.
-            var least = Mathf.Max(StageCamera.LeastZoom(framed), framed > 0f ? OverCutDistance() / framed : 0f);
-            Zoom = Mathf.Clamp(Zoom * (1f + wheel * 0.08f), Mathf.Min(least, 6f), 6f);
+            Zoom = StageCamera.Zoomed(Zoom, wheel, StageFraming.FramedDistance(_frameRadius, FieldOfView), OverCutDistance());
             if (point == null || _camera == null || before <= 0f || Mathf.Approximately(Zoom, before)) return;
             if (!(PointUnder(point.Value) is Vector3 toward)) return;
 

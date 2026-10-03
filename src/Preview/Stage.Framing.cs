@@ -26,9 +26,6 @@ namespace Scry
         /// <summary>With a floor opened, the height on the stage of the floor the camera looks at; null for none.</summary>
         private static float? _lookedFloor;
 
-        /// <summary>How quickly the camera glides to what it is to frame, such as a floor stepped to.</summary>
-        private const float GlideRate = 6f;
-
         /// <summary>Whether the camera is still gliding to what it is to frame, for the self-test to wait on.</summary>
         public static bool Gliding { get; private set; }
 
@@ -77,7 +74,7 @@ namespace Scry
                     if (_followEffect || (played.Key != null && played.Key.GetComponentInChildren<Rigidbody>() != null)) Reach(played.Key, center, ref reach);
                 }
                 target = framed.center;
-                wantRadius = Mathf.Min(reach, _followEffect ? 25f : own * 1.6f);
+                wantRadius = StageFraming.ModelRadius(own, reach, _followEffect);
             }
 
             // Measuring leaves out what has no usable bounds, but should anything still come out
@@ -88,7 +85,7 @@ namespace Scry
                 _pan = Vector3.zero;
                 var fallback = Unmeasured(Origin);
                 target = fallback.center;
-                wantRadius = fallback.extents.magnitude * 1.6f;
+                wantRadius = fallback.extents.magnitude * StageFraming.ModelReach;
                 _frameRadius = -1f;
                 floor = null;
             }
@@ -102,24 +99,24 @@ namespace Scry
             {
                 // Out quickly, so nothing leaves the picture; back in slowly, once it settles; to a
                 // floor stepped to quickly either way.
-                var rate = floor != null || wantRadius > _frameRadius ? 5f : 1f;
-                _frameRadius = Mathf.Lerp(_frameRadius, wantRadius, 1f - Mathf.Exp(-rate * Time.unscaledDeltaTime));
-                _frameCenter = Vector3.Lerp(_frameCenter, target, 1f - Mathf.Exp(-GlideRate * Time.unscaledDeltaTime));
+                _frameRadius = StageFraming.Glide(_frameRadius, wantRadius, floor != null, Time.unscaledDeltaTime);
+                _frameCenter = Vector3.Lerp(_frameCenter, target, StageFraming.CentreShare(Time.unscaledDeltaTime));
             }
-            Gliding = Mathf.Abs(_frameRadius - wantRadius) > Mathf.Max(0.01f, wantRadius * 0.005f) || Vector3.Distance(_frameCenter, target) > 0.02f;
+            Gliding = StageFraming.StillGliding(_frameRadius, wantRadius, Vector3.Distance(_frameCenter, target));
 
             // Looking at a floor, the view keeps to its height however it is moved.
             _lookedFloor = floor?.y;
             _lookAt = _frameCenter + (floor != null ? new Vector3(_pan.x, 0f, _pan.z) : _pan);
             var radius = _frameRadius;
-            var distance = Mathf.Max(radius / Mathf.Sin(FieldOfView * 0.5f * Mathf.Deg2Rad) * Zoom, OverCutDistance());
+            var distance = StageFraming.Distance(radius, FieldOfView, Zoom, OverCutDistance());
 
             var rotation = Quaternion.Euler(Pitch, Yaw, 0f);
             var t = _camera.transform;
             t.rotation = rotation;
             t.position = _lookAt - rotation * Vector3.forward * distance;
-            _camera.nearClipPlane = Mathf.Max(0.01f, distance * 0.01f);
-            _camera.farClipPlane = distance + radius * 6f + 10f;
+            var (near, far) = StageFraming.Clipping(distance, radius);
+            _camera.nearClipPlane = near;
+            _camera.farClipPlane = far;
             _camera.aspect = (float)_width / _height;
 
             var groundY = Mathf.Min(FloorY, _person != null && _person.activeSelf ? _personBounds.min.y : FloorY);
@@ -127,7 +124,7 @@ namespace Scry
             if (_sky != null && _sky.activeSelf)
             {
                 var depth = _camera.farClipPlane * 0.95f;
-                var tall = 2f * depth * Mathf.Tan(FieldOfView * 0.5f * Mathf.Deg2Rad) * 1.05f;
+                var tall = StageFraming.SkyHeight(depth, FieldOfView);
                 _sky.transform.localPosition = new Vector3(0f, 0f, depth);
                 _sky.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
                 _sky.transform.localScale = new Vector3(tall * _camera.aspect, 1f, tall);
@@ -136,7 +133,7 @@ namespace Scry
             {
                 // Whole tiles of five metres, an even number of them, so a five-metre line runs
                 // under the middle of the model.
-                var metres = Mathf.Max(10f, Mathf.Ceil(radius * 4f / 10f) * 10f);
+                var metres = StageFraming.GridMetres(radius);
                 _grid.transform.position = new Vector3(Origin.x, groundY - 0.004f, Origin.z);
                 _grid.transform.localScale = new Vector3(metres, 1f, metres);
                 if (!Mathf.Approximately(metres, _gridMetres))
@@ -154,7 +151,7 @@ namespace Scry
             {
                 var floorY = groundY - 0.005f;
                 _floor.transform.position = new Vector3(_lookAt.x, floorY, _lookAt.z);
-                var size = radius * 3.2f;
+                var size = StageFraming.FloorSize(radius);
                 _floor.transform.localScale = new Vector3(size, size, size);
             }
 
@@ -184,10 +181,10 @@ namespace Scry
                 var shown = Shown;
                 var middle = Origin + (shown.center - Origin) * _scale;
                 var extents = shown.extents * _scale;
-                across = new Vector3(middle.x, middle.z, Mathf.Sqrt(extents.x * extents.x + extents.z * extents.z));
+                across = new Vector3(middle.x, middle.z, StageCamera.HalfAcross(extents.x * 2f, extents.z * 2f));
             }
             var a = across.Value;
-            return new Vector4(a.x, y, a.y, Mathf.Max(2f, a.z));
+            return new Vector4(a.x, y, a.y, StageFraming.FloorReach(a.z));
         }
 
         /// <summary>Takes in what the model draws while its animation first plays, as if at size one.</summary>
@@ -261,7 +258,7 @@ namespace Scry
             // Its right side a little to the left of the model, its feet on the model's ground.
             var subjectMin = Origin + (_bounds.min - Origin) * _scale;
             var subjectCenter = Origin + (_bounds.center - Origin) * _scale;
-            var wanted = new Vector3(subjectMin.x - 0.4f - _personLocal.extents.x, FloorY + _personLocal.extents.y, subjectCenter.z);
+            var wanted = new Vector3(StageFraming.PersonX(subjectMin.x, _personLocal.extents.x), FloorY + _personLocal.extents.y, subjectCenter.z);
             _person.transform.position = wanted - _personLocal.center;
             _personBounds = new Bounds(wanted, _personLocal.size);
         }

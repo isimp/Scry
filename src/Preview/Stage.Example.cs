@@ -232,8 +232,7 @@ namespace Scry
             var placed = TheExample.Placed;
             if (holderObject == null || !holderObject.activeInHierarchy || _camera == null || placed == null || TheExample.Copies == 0) return null;
             var eye = _camera.transform;
-            var tan = Mathf.Tan(FieldOfView * 0.5f * Mathf.Deg2Rad);
-            var ray = eye.rotation * new Vector3((point.x * 2f - 1f) * tan * _camera.aspect, (point.y * 2f - 1f) * tan, 1f);
+            var ray = RayAt(point);
 
             var holder = holderObject.transform;
             var from = holder.InverseTransformPoint(eye.position);
