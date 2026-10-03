@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Text;
 
 namespace Scry
@@ -148,7 +147,7 @@ namespace Scry
                         case 'b': text.Append('\b'); break;
                         case 'f': text.Append('\f'); break;
                         case 'u':
-                            if (_at + 4 > _text.Length || !int.TryParse(_text.Substring(_at, 4), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var code)) throw new FormatException();
+                            if (_at + 4 > _text.Length || !Stored.TryHex(_text.Substring(_at, 4), out var code)) throw new FormatException();
                             text.Append((char)code);
                             _at += 4;
                             break;

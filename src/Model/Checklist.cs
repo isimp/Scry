@@ -36,10 +36,10 @@ namespace Scry
         {
             var missing = _parts.Count(p => p.Found == Found.Missing);
             var changed = _parts.Count(p => p.Found == Found.Changed);
-            var head = $"Scry checked {_parts.Count} parts of the game it relies on";
+            var head = $"Scry checked {Numbers.Count(_parts.Count)} parts of the game it relies on";
             if (missing == 0 && changed == 0) return new List<string> { head + ": all as expected." };
 
-            var lines = new List<string> { $"{head}: {missing} missing, {changed} changed." };
+            var lines = new List<string> { $"{head}: {Numbers.Count(missing)} missing, {Numbers.Count(changed)} changed." };
             foreach (var part in _parts.Where(p => p.Found == Found.Missing)) lines.Add($"  {part.Part} is missing: {part.Feature} is off.");
             foreach (var part in _parts.Where(p => p.Found == Found.Changed)) lines.Add($"  {part.Part} changed since this version of Scry: {part.Feature} may be slightly off.");
             return lines;

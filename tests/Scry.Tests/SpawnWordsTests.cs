@@ -190,7 +190,7 @@ namespace Scry.Tests
         [Fact]
         public void WhatGrowsBelowAHeightSaysTheRange()
         {
-            Assert.Equal("Grows in Ocean, -1000–-5 m up", SpawnWords.Grows("Ocean", -1000f, -5f, false, false, 1, 1));
+            Assert.Equal("Grows in Ocean, -1,000–-5 m up",SpawnWords.Grows("Ocean", -1000f, -5f, false, false, 1, 1));
         }
 
         [Fact]

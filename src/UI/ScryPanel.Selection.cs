@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using UnityEngine;
 
@@ -31,7 +30,7 @@ namespace Scry
         {
             if (!Shortlist.Long(total, first)) return;
             var open = OpenLists.Contains(key);
-            var text = open ? "Show fewer" : $"{Shortlist.Hidden(total, first, false)} more";
+            var text = open ? "Show fewer" : $"{Numbers.Count(Shortlist.Hidden(total, first, false))} more";
             var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(16f));
             if (x + w > width && x > 0f)
             {

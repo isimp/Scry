@@ -23,9 +23,9 @@ namespace Scry
             var maxLevel = isItem ? MaxItemQuality : entry.Kind == Kind.Creature ? MaxCreatureLevel : 1;
             level = Math.Max(1, Math.Min(maxLevel, level));
 
-            if (isItem && give) return $"spawn {entry.Name} {amount} {level} p";
+            if (isItem && give) return $"spawn {entry.Name} {Numbers.Count(amount)} {Numbers.Count(level)} p";
             if (amount == 1 && level == 1) return "spawn " + entry.Name;
-            return $"spawn {entry.Name} {amount} {level}";
+            return $"spawn {entry.Name} {Numbers.Count(amount)} {Numbers.Count(level)}";
         }
     }
 }

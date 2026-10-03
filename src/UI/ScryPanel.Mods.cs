@@ -72,7 +72,7 @@ namespace Scry
             const string open = "Mod report";
             var w = Skin.Width(Skin.Chip, open) + U(12f);
             GUI.Label(new Rect(inner.x + U(10f), inner.y + U(2f), inner.width - w - U(24f), U(24f)),
-                _modCount == 1 ? "What 1 mod adds" : $"What {_modCount} mods add", Skin.DimLabel);
+                _modCount == 1 ? "What 1 mod adds" : $"What {Numbers.Count(_modCount)} mods add", Skin.DimLabel);
             var button = new Rect(inner.xMax - w - U(6f), inner.y, w, U(26f));
             if (GUI.Button(button, open, Skin.Chip)) ShowModReport();
             if (button.Contains(Event.current.mousePosition)) AskTip("mod-report", "What each mod adds, what Scry links for its stations and tools, what it hooks into, and what Scry could not place");
@@ -153,7 +153,7 @@ namespace Scry
             if (entries.Count == 0) return y;
             // What Scry could not place may yet be placed by the mod's own code: marked, with why on hover.
             var titleRect = new Rect(x, y, width, U(20f));
-            GUI.Label(titleRect, UnsureWords.Marked($"{title} ({entries.Count})"), Skin.DimLabel);
+            GUI.Label(titleRect, UnsureWords.Marked($"{title} ({Numbers.Count(entries.Count)})"), Skin.DimLabel);
             if (titleRect.Contains(Event.current.mousePosition)) AskTip("unsure:" + mod + title, "Scry found nothing for these; the mod's own code may still place them");
             y += U(24f);
             var rowH = U(26f);
@@ -182,7 +182,7 @@ namespace Scry
             if (Shortlist.Long(entries.Count, FirstChips))
             {
                 var open = OpenLists.Contains(key);
-                var text = open ? "Show fewer" : $"{Shortlist.Hidden(entries.Count, FirstChips, false)} more";
+                var text = open ? "Show fewer" : $"{Numbers.Count(Shortlist.Hidden(entries.Count, FirstChips, false))} more";
                 var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(16f));
                 if (cx + w > width && cx > 0f)
                 {

@@ -17,7 +17,7 @@ namespace Scry
         {
             var raids = X.Catalog.Where(e => e.Kind == Kind.Raid && e.Source is RandomEvent).ToList();
             var fights = raids.Where(e => BossFight(e) != null).ToList();
-            p.Note(string.Join("; ", raids.GroupBy(e => e.Group).Select(g => $"{g.Key}: {g.Count()}")));
+            p.Note(string.Join("; ", raids.GroupBy(e => e.Group).Select(g => $"{g.Key}: {Numbers.Count(g.Count())}")));
             if (fights.Count == 0) p.Skip("no boss names an event of its own");
             var astray = fights.Where(e => e.Group != "Boss fights").Select(e => $"{e.Name} under {e.Group}").ToList();
             p.Check(astray.Count == 0, "every boss's own event is under Boss fights", string.Join(", ", astray));
@@ -57,7 +57,7 @@ namespace Scry
             var crowd = CopyOf(raid);
             if (!p.Check(crowd != null, $"{raid.DisplayName} stands on the stage")) yield break;
             p.Note(RaidWords.FirstRoll(RaidCrowd.LastRoll, name => name));
-            p.Check(RaidCrowd.LastFor == raid && crowd.transform.childCount == RaidCrowd.LastRoll.Count, "every creature rolled stands there", $"{crowd.transform.childCount} stand, {RaidCrowd.LastRoll.Count} rolled");
+            p.Check(RaidCrowd.LastFor == raid && crowd.transform.childCount == RaidCrowd.LastRoll.Count, "every creature rolled stands there", $"{Numbers.Count(crowd.transform.childCount)} stand, {Numbers.Count(RaidCrowd.LastRoll.Count)} rolled");
 
             var spawns = ((RandomEvent)raid.Source).m_spawn.Where(s => s?.m_prefab != null).ToList();
             var counts = new List<int>();
@@ -69,18 +69,18 @@ namespace Scry
                 crowd = CopyOf(raid);
                 if (crowd == null)
                 {
-                    wrong.Add($"roll {i + 1} stands nowhere");
+                    wrong.Add($"roll {Numbers.Count(i + 1)} stands nowhere");
                     continue;
                 }
                 counts.Add(RaidCrowd.LastRoll.Count);
-                if (crowd.transform.childCount != RaidCrowd.LastRoll.Count) wrong.Add($"roll {i + 1}: {crowd.transform.childCount} of {RaidCrowd.LastRoll.Count} stand");
+                if (crowd.transform.childCount != RaidCrowd.LastRoll.Count) wrong.Add($"roll {Numbers.Count(i + 1)}: {Numbers.Count(crowd.transform.childCount)} of {Numbers.Count(RaidCrowd.LastRoll.Count)} stand");
                 foreach (var creature in RaidCrowd.LastRoll)
                 {
                     var spawn = spawns.FirstOrDefault(s => s.m_prefab.name == creature.Prefab);
-                    if (spawn != null && (creature.Level < spawn.m_minLevel || creature.Level > Math.Max(spawn.m_minLevel, spawn.m_maxLevel))) wrong.Add($"{creature.Prefab} at level {creature.Level}");
+                    if (spawn != null && (creature.Level < spawn.m_minLevel || creature.Level > Math.Max(spawn.m_minLevel, spawn.m_maxLevel))) wrong.Add($"{creature.Prefab} at level {Numbers.Count(creature.Level)}");
                 }
             }
-            p.Note($"8 more rolls brought {string.Join(", ", counts)} creatures");
+            p.Note($"8 more rolls brought {string.Join(", ", counts.Select(c => Numbers.Count(c)))} creatures");
             p.Check(wrong.Count == 0, "Roll again rolls them anew each time, whole and at the levels it allows", string.Join("; ", wrong.Take(6)));
         }
 
@@ -96,9 +96,9 @@ namespace Scry
                 yield return Until(() => CopyOf(raid) != null, 10);
                 var crowd = CopyOf(raid);
                 if (crowd == null) wrong.Add($"{raid.Name} stands nowhere");
-                else if (crowd.transform.childCount != RaidCrowd.LastRoll.Count) wrong.Add($"{raid.Name}: {crowd.transform.childCount} of {RaidCrowd.LastRoll.Count} stand");
+                else if (crowd.transform.childCount != RaidCrowd.LastRoll.Count) wrong.Add($"{raid.Name}: {Numbers.Count(crowd.transform.childCount)} of {Numbers.Count(RaidCrowd.LastRoll.Count)} stand");
             }
-            p.Note($"{raids.Count} raids bring creatures");
+            p.Note($"{Numbers.Count(raids.Count)} raids bring creatures");
             p.Check(wrong.Count == 0, "each stands as rolled", string.Join("; ", wrong.Take(8)));
         }
 

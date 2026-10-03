@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Linq;
 using UnityEngine;
 
@@ -16,7 +15,7 @@ namespace Scry
             {
                 // SE_Rested.CalculateComfortLevel counts, within 10 m, only the best of each comfort
                 // group, and a piece of the same name once.
-                Add("Comfort", piece.m_comfort.ToString(CultureInfo.InvariantCulture));
+                Add("Comfort", Numbers.Count(piece.m_comfort));
                 Add("Comfort group", piece.m_comfortGroup != global::Piece.ComfortGroup.None
                     ? $"{Word(piece.m_comfortGroup)}: only the best of these within 10 m counts"
                     : "none: a second one within 10 m adds nothing");
@@ -26,7 +25,7 @@ namespace Scry
             else if (piece.m_category == global::Piece.PieceCategory.Furniture) Add("Comfort", "none");
             if (wear != null)
             {
-                Add("Health", Number(wear.m_health));
+                Add("Health", Numbers.Amount(wear.m_health));
                 Add("Material", Word(wear.m_materialType));
                 Part("support", () => Support(wear));
                 Part("weather", () =>
@@ -46,8 +45,8 @@ namespace Scry
             if (extension != null && extension.m_craftingStation != null)
             {
                 var upgraded = extension.m_craftingStation.gameObject;
-                var apart = piece.m_spaceRequirement > 0f ? $", {Number(piece.m_spaceRequirement)} m from its other upgrades" : "";
-                Add("Upgrades", $"{AnyName(upgraded, upgraded.name)}, within {Number(extension.m_maxStationDistance)} m of it{apart}", upgraded.name);
+                var apart = piece.m_spaceRequirement > 0f ? $", {Numbers.Amount(piece.m_spaceRequirement)} m from its other upgrades" : "";
+                Add("Upgrades", $"{AnyName(upgraded, upgraded.name)}, within {Numbers.Amount(extension.m_maxStationDistance)} m of it{apart}", upgraded.name);
             }
 
             // Bed.Interact: claiming and sleeping, each needing a roof and 80% cover (CheckExposure).
@@ -124,7 +123,7 @@ namespace Scry
         {
             foreach (var (tab, pieces) in Knowledge.Tools.PiecesOf(tool))
             {
-                var row = new Row { Title = $"Builds on its {tab} tab ({pieces.Count})" };
+                var row = new Row { Title = $"Builds on its {tab} tab ({Numbers.Count(pieces.Count)})" };
                 foreach (var piece in pieces) row.Items.Add(Chip(piece, ""));
                 Rows.Add(row);
             }
@@ -183,8 +182,8 @@ namespace Scry
             foreach (var need in requirements)
             {
                 if (need?.m_resItem == null || need.m_upgraderResource) continue;
-                var amount = need.m_amount.ToString(CultureInfo.InvariantCulture);
-                if (upgradable && need.m_amountPerLevel > 0) amount += $", +{need.m_amountPerLevel} per quality";
+                var amount = Numbers.Count(need.m_amount);
+                if (upgradable && need.m_amountPerLevel > 0) amount += $", +{Numbers.Count(need.m_amountPerLevel)} per quality";
                 row.Items.Add(new Ingredient
                 {
                     Icon = Icon(need.m_resItem.gameObject), Name = ItemName(need.m_resItem.gameObject), Amount = amount, Prefab = need.m_resItem.gameObject.name,
@@ -208,7 +207,7 @@ namespace Scry
                     // A recipe that takes none of it at first needs it only to upgrade what it makes.
                     var name = AnyName(prefab, target);
                     if (amount <= 0 && group.Kind == UseKind.Crafts) name += " (upgrades)";
-                    var shown = amount > 0 ? amount.ToString(CultureInfo.InvariantCulture) : "";
+                    var shown = amount > 0 ? Numbers.Count(amount) : "";
                     row.Items.Add(new Ingredient { Icon = AnyIcon(prefab), Name = name, Amount = shown, Prefab = target });
                 }
                 if (row.Items.Count > 0) UseRows.Add(row);

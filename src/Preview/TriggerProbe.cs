@@ -210,7 +210,7 @@ namespace Scry
         private static string KeyOf(string prefab, List<(string Name, AnimatorControllerParameterType Type, float Value)> stance)
         {
             var key = prefab;
-            foreach (var (name, _, value) in stance) key += $"|{name}={value}";
+            foreach (var (name, _, value) in stance) key += $"|{name}={Numbers.Amount(value)}";
             return key;
         }
 
@@ -522,7 +522,7 @@ namespace Scry
                 }
             }
 
-            var took = $"{job.Ms} ms over {job.Frames} frames";
+            var took = $"{Numbers.Count(job.Ms)} ms over {Numbers.Count(job.Frames)} frames";
             if (!job.First) Plugin.Note($"Scry saw in {took} what more triggers of {job.Key} play: {string.Join("; ", attacks)}.");
             else Plugin.Note($"Scry saw in {took} what the animator of {job.Key} plays: attacks {(attacks.Count > 0 ? string.Join("; ", attacks) : "none")}; the game's own actions {(actions.Count > 0 ? string.Join("; ", actions) : "none")}; left alone {string.Join(", ", seen.Idle.OrderBy(c => c))}.");
         }

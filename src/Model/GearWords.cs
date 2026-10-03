@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 
 namespace Scry
 {
@@ -35,11 +34,11 @@ namespace Scry
             {
                 if (!values.TryGetValue(field, out var value)) continue;
                 var percent = (int)Math.Round(value * 100f, MidpointRounding.AwayFromZero);
-                if (percent != 0) lines.Add((label, (percent > 0 ? "+" : "") + percent.ToString(CultureInfo.InvariantCulture) + "%"));
+                if (percent != 0) lines.Add((label, Numbers.Count(percent, signed: true) + "%"));
             }
             if (values.TryGetValue("m_maxAdrenaline", out var adrenaline) && Math.Abs(adrenaline) >= 0.5f)
             {
-                lines.Add(("Most adrenaline", (adrenaline > 0f ? "+" : "") + Naming.Number(adrenaline)));
+                lines.Add(("Most adrenaline", (adrenaline > 0f ? "+" : "") + Numbers.Amount(adrenaline)));
             }
             return lines;
         }

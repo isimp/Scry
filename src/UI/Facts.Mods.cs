@@ -55,8 +55,8 @@ namespace Scry
                 var label = Kinds.Label(kind.Key).ToLowerInvariant();
                 var sure = kind.Where(e => UnsureWords.IsSureClue(e.ModClue)).ToList();
                 var guessed = kind.Where(e => !UnsureWords.IsSureClue(e.ModClue)).ToList();
-                if (sure.Count > 0) Rows.Add(ChipRow($"Adds {label} ({sure.Count})", sure, null));
-                if (guessed.Count > 0) Rows.Add(ChipRow($"Adds {label}, matched by clues ({guessed.Count})", guessed, "Scry matched these to this mod by the scripts they carry or the assets they use; the mod does not say so itself"));
+                if (sure.Count > 0) Rows.Add(ChipRow($"Adds {label} ({Numbers.Count(sure.Count)})", sure, null));
+                if (guessed.Count > 0) Rows.Add(ChipRow($"Adds {label}, matched by clues ({Numbers.Count(guessed.Count)})", guessed, "Scry matched these to this mod by the scripts they carry or the assets they use; the mod does not say so itself"));
             }
 
             GapRow("Stations nothing is made or built at", summary.IdleStations, explorer);
@@ -69,7 +69,7 @@ namespace Scry
         private void ModRow(string title, List<string> mods, Explorer explorer)
         {
             if (mods == null || mods.Count == 0) return;
-            var row = new Row { Title = $"{title} ({mods.Count})" };
+            var row = new Row { Title = $"{title} ({Numbers.Count(mods.Count)})" };
             foreach (var name in mods)
             {
                 var entry = explorer.Find(EntryKeys.For(Kind.Mod, name));
@@ -90,7 +90,7 @@ namespace Scry
         private void GapRow(string title, List<ModEntry> entries, Explorer explorer)
         {
             if (entries.Count == 0) return;
-            var row = new Row { Title = $"{title} ({entries.Count})", Unsure = "Scry found nothing for these; the mod's own code may still place them" };
+            var row = new Row { Title = $"{title} ({Numbers.Count(entries.Count)})", Unsure = "Scry found nothing for these; the mod's own code may still place them" };
             foreach (var one in entries)
             {
                 var entry = explorer.Find(one.Key);

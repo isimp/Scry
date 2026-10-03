@@ -21,7 +21,7 @@ namespace Scry
             var from = ScryPanel.Repaints;
             yield return Until(() => ScryPanel.Repaints >= from + 5, 5);
             p.Check(Session.IsOpen, "the panel is open");
-            p.Check(ScryPanel.Repaints >= from + 5, "it draws, frame after frame", $"{ScryPanel.Repaints - from} repaints");
+            p.Check(ScryPanel.Repaints >= from + 5, "it draws, frame after frame", $"{Numbers.Count(ScryPanel.Repaints - from)} repaints");
 
             // The stage is drawn only in the full view; the view it was in is put back afterwards.
             KeepView();
@@ -45,7 +45,7 @@ namespace Scry
             p.Check(ScryPanel.TestNoticesDrawn > drawn, "the panel's strip shows the self-test running");
             var progress = Progress;
             p.Check(progress != null && progress.Contains(ProgressPart), "it names the part running", progress);
-            p.Check(Fraction > 0f && Fraction < 1f, "and how far it has got", $"{Fraction:P0}");
+            p.Check(Fraction > 0f && Fraction < 1f, "and how far it has got", Numbers.Percent(Fraction));
         }
 
         /// <summary>Both views draw, and /scry with words searches for them.</summary>
@@ -134,11 +134,11 @@ namespace Scry
             var count = Math.Max(1, Time.frameCount - frames);
             var allocated = Timing.ScryBytes - bytes;
             p.Note(idle != null
-                ? $"idling {idle.Frames} frames: Scry's own work {idle.Mean:0.000} ms a frame on average, {idle.Percentile(0.95):0.000} ms at the 95th percentile, {idle.Max:0.000} ms at the most; it allocated about {allocated / 1024} KB, {allocated / count} bytes a frame"
+                ? $"idling {Numbers.Count(idle.Frames)} frames: Scry's own work {Numbers.Fixed(idle.Mean, 3)} ms a frame on average, {Numbers.Fixed(idle.Percentile(0.95), 3)} ms at the 95th percentile, {Numbers.Fixed(idle.Max, 3)} ms at the most; it allocated about {Numbers.Count(allocated / 1024)} KB, {Numbers.Count(allocated / count)} bytes a frame"
                 : "frames were not measured");
             p.Note("it keeps: " + KeptTold());
-            if (idle != null) p.Check(idle.Mean < 0.25, "idling, Scry's own work is a quarter of a millisecond a frame at the most on average", $"{idle.Mean:0.000} ms");
-            p.Check(allocated / count < 1024, "idling, Scry allocates under a kilobyte a frame", $"{allocated / count} bytes");
+            if (idle != null) p.Check(idle.Mean < 0.25, "idling, Scry's own work is a quarter of a millisecond a frame at the most on average", $"{Numbers.Fixed(idle.Mean, 3)} ms");
+            p.Check(allocated / count < 1024, "idling, Scry allocates under a kilobyte a frame", $"{Numbers.Count(allocated / count)} bytes");
             if (wasOpen) Session.Show(null);
         }
 
@@ -150,10 +150,10 @@ namespace Scry
             var textures = Resources.FindObjectsOfTypeAll<Texture2D>().Where(t => t != null && t.name.StartsWith("Scry", StringComparison.Ordinal)).ToList();
             var renders = Resources.FindObjectsOfTypeAll<RenderTexture>().Where(t => t != null && t.name.StartsWith("Scry", StringComparison.Ordinal)).ToList();
             var meshes = Resources.FindObjectsOfTypeAll<Mesh>().Where(m => m != null && m.name.StartsWith("Scry", StringComparison.Ordinal)).ToList();
-            var byName = textures.GroupBy(t => t.name).OrderByDescending(g => g.Sum(Size)).Take(6).Select(g => $"{g.Key} x{g.Count()} {g.Sum(Size) / 1024} KB");
+            var byName = textures.GroupBy(t => t.name).OrderByDescending(g => g.Sum(Size)).Take(6).Select(g => $"{g.Key} x{Numbers.Count(g.Count())} {Numbers.Count(g.Sum(Size) / 1024)} KB");
             var mb = 1024.0 * 1024.0;
-            return $"{textures.Count} textures, {textures.Sum(Size) / mb:0.0} MB ({string.Join(", ", byName)}); {renders.Count} render textures, {renders.Sum(Size) / mb:0.0} MB; {meshes.Count} meshes, {meshes.Sum(Size) / mb:0.0} MB; "
-                   + $"{X.Catalog.Count} entries; the game's managed memory in use {GC.GetTotalMemory(false) / mb:0} MB, its native memory {UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong() / mb:0} MB";
+            return $"{Numbers.Count(textures.Count)} textures, {Numbers.Fixed(textures.Sum(Size) / mb, 1)} MB ({string.Join(", ", byName)}); {Numbers.Count(renders.Count)} render textures, {Numbers.Fixed(renders.Sum(Size) / mb, 1)} MB; {Numbers.Count(meshes.Count)} meshes, {Numbers.Fixed(meshes.Sum(Size) / mb, 1)} MB; "
+                   + $"{Numbers.Count(X.Catalog.Count)} entries; the game's managed memory in use {Numbers.Amount(GC.GetTotalMemory(false) / mb, 0)} MB, its native memory {Numbers.Amount(UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong() / mb, 0)} MB";
         }
 
         /// <summary>
@@ -167,9 +167,9 @@ namespace Scry
             var drawn = ScryPanel.MonitorsDrawn;
             var from = Time.unscaledTime;
             yield return Until(() => Time.unscaledTime - from > 1.5f, 3);
-            p.Check(ScryPanel.MonitorsDrawn > drawn, "it draws over the screen", $"{ScryPanel.MonitorsDrawn - drawn} times");
-            p.Check(Monitor.Window.Count > 0 && Monitor.Window.Mean > 0, "it measures Scry's frames", $"{Monitor.Window.Count} frames, {Monitor.Window.Mean:0.000} ms on average");
-            p.Check(Monitor.Lines.Any(l => l.StartsWith("holds ", StringComparison.Ordinal) && l.Contains($"{X.Catalog.Count} entries")), "it tells what Scry holds", string.Join(" | ", Monitor.Lines));
+            p.Check(ScryPanel.MonitorsDrawn > drawn, "it draws over the screen", $"{Numbers.Count(ScryPanel.MonitorsDrawn - drawn)} times");
+            p.Check(Monitor.Window.Count > 0 && Monitor.Window.Mean > 0, "it measures Scry's frames", $"{Numbers.Count(Monitor.Window.Count)} frames, {Numbers.Fixed(Monitor.Window.Mean, 3)} ms on average");
+            p.Check(Monitor.Lines.Any(l => l.StartsWith("holds ", StringComparison.Ordinal) && l.Contains($"{Numbers.Count(X.Catalog.Count)} entries")), "it tells what Scry holds", string.Join(" | ", Monitor.Lines));
             p.Note(string.Join(" | ", Monitor.Lines));
             Plugin.ShowMonitor = was;
         }

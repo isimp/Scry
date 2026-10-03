@@ -29,7 +29,7 @@ namespace Scry
             var tags = Previews.ClipTags();
             var clips = Previews.Clips();
             var names = Previews.ClipNames();
-            p.Note($"{clips.Count} clips, {tags.Count(t => t.Value.StartsWith("attack", StringComparison.Ordinal))} of them attacks");
+            p.Note($"{Numbers.Count(clips.Count)} clips, {Numbers.Count(tags.Count(t => t.Value.StartsWith("attack", StringComparison.Ordinal)))} of them attacks");
             AnimationClip attack = null;
             for (var i = 0; i < clips.Count && attack == null; i++)
             {
@@ -53,7 +53,7 @@ namespace Scry
             Select(troll);
             yield return Until(() => CopyOf(troll) != null && Previews.Clips().Count > 0, 10);
             var clips = Previews.Clips();
-            if (!p.Check(clips.Count > 0, "its clips are known", $"{clips.Count}")) yield break;
+            if (!p.Check(clips.Count > 0, "its clips are known", $"{Numbers.Count(clips.Count)}")) yield break;
             var clip = clips.OrderByDescending(c => c.length).First();
             Previews.PlayClip(clip);
             yield return new Wait(0.2);
@@ -63,7 +63,7 @@ namespace Scry
             p.Check(Previews.ClipPaused, "it pauses");
             Previews.SeekClip(clip.length / 2f);
             yield return null;
-            p.Check(Previews.ClipPosition(out var time, out var length) && Mathf.Abs(time - length / 2f) < length * 0.15f + 0.05f, "it seeks to its middle", $"{time:0.00} of {length:0.00} s");
+            p.Check(Previews.ClipPosition(out var time, out var length) && Mathf.Abs(time - length / 2f) < length * 0.15f + 0.05f, "it seeks to its middle", $"{Numbers.Fixed(time, 2)} of {Numbers.Fixed(length, 2)} s");
             Previews.PauseClip(false);
             var loops = Previews.LoopClips;
             Previews.ToggleLoopClips();
@@ -102,7 +102,7 @@ namespace Scry
                 break;
             }
             if (sound == null) p.Skip("no sound of the game's has two variants");
-            p.Note($"{sound.Name}: {variants.Count} variants");
+            p.Note($"{sound.Name}: {Numbers.Count(variants.Count)} variants");
             Select(sound);
             yield return null;
             var chosen = variants[variants.Count - 1];
@@ -139,14 +139,14 @@ namespace Scry
             p.Check(Previews.SoundPaused, "it pauses");
             Previews.SeekSound(1f);
             yield return null;
-            p.Check(Previews.SoundPosition(out var time, out _) && Mathf.Abs(time - 1f) < 0.2f, "it seeks", $"{time:0.00} s");
+            p.Check(Previews.SoundPosition(out var time, out _) && Mathf.Abs(time - 1f) < 0.2f, "it seeks", $"{Numbers.Fixed(time, 2)} s");
             p.Note("plays through " + Previews.SoundSourceTold());
             Previews.PauseSound(false);
             yield return new Wait(0.3);
-            p.Check(Previews.SoundPosition(out var later, out _) && later > time, "and goes on from there", $"{later:0.00} s");
+            p.Check(Previews.SoundPosition(out var later, out _) && later > time, "and goes on from there", $"{Numbers.Fixed(later, 2)} s");
             yield return new Wait(1.0);
             Previews.SoundPosition(out var after, out _);
-            p.Note($"a second on it is at {after:0.00} s; frame by frame after going on: {string.Join("; ", Previews.SeekTrail)}");
+            p.Note($"a second on it is at {Numbers.Fixed(after, 2)} s; frame by frame after going on: {string.Join("; ", Previews.SeekTrail)}");
             Previews.StopSound();
         }
 
@@ -170,13 +170,13 @@ namespace Scry
             var again = first != null && CopyOf(effect) != null && CopyOf(effect) != first;
             // What still plays, when it has not played out: the stage waits for every particle and sound.
             var still = again || first == null ? "" : string.Join(", ",
-                first.GetComponentsInChildren<ParticleSystem>(false).Where(s => s.IsAlive(false)).Select(s => $"{s.name} (loops {s.main.loop}, lasts {s.main.duration:0.#} s)")
+                first.GetComponentsInChildren<ParticleSystem>(false).Where(s => s.IsAlive(false)).Select(s => $"{s.name} (loops {s.main.loop}, lasts {Numbers.Amount(s.main.duration, 1)} s)")
                     .Concat(first.GetComponentsInChildren<AudioSource>(false).Where(s => s.isPlaying).Select(s => $"{s.name} sound (loops {s.loop})")));
             // Any second copy the stage made is the effect played again, however short it lives.
             again |= Stage.CopiesMade - made >= 2;
             var twins = X.Catalog.Count(e => e.Key == effect.Key);
             var why = first == null
-                ? $"{twins} entries of its key; the stage showed {(Stage.Showing != null ? Stage.Showing.Name : "nothing")}{(Stage.IsStaged(effect) ? "" : ", having nothing of it to show")}, asked {Stage.Shows - shows} times, a copy made {Stage.CopiesMade - made} times, none seen; on you {Looks.OnPerson}, in the world {Previews.InWorld}, compact {ScryPanel.Compact}, panel {(Session.IsOpen ? "open" : "closed")}"
+                ? $"{Numbers.Count(twins)} entries of its key; the stage showed {(Stage.Showing != null ? Stage.Showing.Name : "nothing")}{(Stage.IsStaged(effect) ? "" : ", having nothing of it to show")}, asked {Numbers.Count(Stage.Shows - shows)} times, a copy made {Numbers.Count(Stage.CopiesMade - made)} times, none seen; on you {Looks.OnPerson}, in the world {Previews.InWorld}, compact {ScryPanel.Compact}, panel {(Session.IsOpen ? "open" : "closed")}"
                 : still.Length > 0 ? "still playing: " + still : null;
             p.Check(again, "with Repeat on, the stage plays it again once it has played out", why);
             Previews.LoopEffects = false;
@@ -235,12 +235,12 @@ namespace Scry
             yield return Until(() => CopyOf(armour) != null, 10);
             var worn = CopyOf(armour);
             var wornParts = Renderers(worn);
-            p.Check(worn != null && worn.GetComponentInChildren<Animator>(true) != null, $"{armour.Name} is shown worn by a person", $"{wornParts} parts");
+            p.Check(worn != null && worn.GetComponentInChildren<Animator>(true) != null, $"{armour.Name} is shown worn by a person", $"{Numbers.Count(wornParts)} parts");
             Looks.OnPerson = false;
             Previews.Rebuild();
             yield return Until(() => CopyOf(armour) != null && CopyOf(armour) != worn, 10);
             var alone = CopyOf(armour);
-            p.Check(alone != null && Renderers(alone) < wornParts, "and on its own once taken off", $"{Renderers(alone)} parts");
+            p.Check(alone != null && Renderers(alone) < wornParts, "and on its own once taken off", $"{Numbers.Count(Renderers(alone))} parts");
             Looks.OnPerson = was;
         }
 
@@ -257,7 +257,7 @@ namespace Scry
             var felled = Time.unscaledTime;
             Previews.PlayEffectList(list.Key, list.Value);
             yield return Until(() => Stage.PlayedCount > 0, 2);
-            p.Check(Stage.PlayedCount > 0, $"felling it plays {list.Key}", $"{Stage.PlayedCount} things");
+            p.Check(Stage.PlayedCount > 0, $"felling it plays {list.Key}", $"{Numbers.Count(Stage.PlayedCount)} things");
 
             // Its log strikes the ground as the game's does, with its impact's sound (ImpactEffect).
             var log = ((GameObject)tree.Source).GetComponent<TreeBase>()?.m_logPrefab;
@@ -265,13 +265,13 @@ namespace Scry
             if (impact == null) p.Note("its log has no impact of its own");
             else
             {
-                p.Note($"its log strikes with {string.Join(", ", impact.m_hitEffect.m_effectPrefabs.Where(e => e?.m_prefab != null).Select(e => e.m_prefab.name))}, from {impact.m_minVelocity:0.#} m/s");
+                p.Note($"its log strikes with {string.Join(", ", impact.m_hitEffect.m_effectPrefabs.Where(e => e?.m_prefab != null).Select(e => e.m_prefab.name))}, from {Numbers.Amount(impact.m_minVelocity, 1)} m/s");
                 // The thump is the log toppling off its stump onto the ground, not its first touch.
                 bool Toppled() => Thud.Contacts.Any(c => c.Struck && c.At - felled >= 0.5f);
                 yield return Until(Toppled, 8);
-                var contacts = string.Join(", ", Thud.Contacts.Where(c => c.At >= felled).Select(c => $"{c.Speed:0.#} m/s after {c.At - felled:0.0} s{(c.Struck ? ", heard" : "")}"));
+                var contacts = string.Join(", ", Thud.Contacts.Where(c => c.At >= felled).Select(c => $"{Numbers.Amount(c.Speed, 1)} m/s after {Numbers.Fixed(c.At - felled, 1)} s{(c.Struck ? ", heard" : "")}"));
                 p.Note("its log touched: " + (contacts.Length > 0 ? contacts : "nothing"));
-                p.Check(Thud.Played > thuds && Toppled(), "its log is heard striking the ground as it topples off its stump", $"{Thud.Played - thuds} strikes");
+                p.Check(Thud.Played > thuds && Toppled(), "its log is heard striking the ground as it topples off its stump", $"{Numbers.Count(Thud.Played - thuds)} strikes");
             }
             yield return Until(() => Stage.PlayedCount == 0, 20);
             p.Check(Stage.PlayedCount == 0, "and what it left goes again");
@@ -320,7 +320,7 @@ namespace Scry
             yield return Until(() => Previews.AnythingInWorld, 3);
             Previews.Pin();
             yield return null;
-            p.Check(Previews.PinnedCount > 0 && Previews.OutLines > 0, "a copy stands pinned in the world", $"{Previews.PinnedCount} pinned, {Previews.OutLines} lines out");
+            p.Check(Previews.PinnedCount > 0 && Previews.OutLines > 0, "a copy stands pinned in the world", $"{Numbers.Count(Previews.PinnedCount)} pinned, {Numbers.Count(Previews.OutLines)} lines out");
             Previews.ClearWorld();
             yield return null;
             p.Check(!Previews.AnythingInWorld && Previews.PinnedCount == 0 && Previews.OutLines == 0, "Clear world takes all of it away");

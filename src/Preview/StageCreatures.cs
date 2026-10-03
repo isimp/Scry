@@ -125,7 +125,7 @@ namespace Scry
 
         /// <summary>The creatures that fly and how high over their ground, by kind.</summary>
         public string FlyersTold() => string.Join(", ", _lift.Where(pair => pair.Key != null && pair.Value > 0f)
-            .GroupBy(pair => (pair.Key.name, pair.Value)).Select(g => $"{g.Key.name} {g.Key.Value:0.#} m up x{g.Count()}"));
+            .GroupBy(pair => (pair.Key.name, pair.Value)).Select(g => $"{g.Key.name} {Numbers.Amount(g.Key.Value, 1)} m up x{Numbers.Count(g.Count())}"));
 
         /// <summary>Lets go of the example's rooms' creatures, as its rooms go; the location's own stay.</summary>
         public void ForgetRooms()

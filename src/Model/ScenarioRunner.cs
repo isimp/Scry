@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 
 namespace Scry
@@ -120,9 +119,9 @@ namespace Scry
         public double Seconds => _firstAt < 0 || _lastEnd < 0 ? 0 : _lastEnd - _firstAt;
 
         public string Summary =>
-            $"{_reports.Count(r => r.Result == Result.Pass)} passed, " +
-            $"{_reports.Count(r => r.Result == Result.Fail)} failed, " +
-            $"{_reports.Count(r => r.Result == Result.Skip)} skipped";
+            $"{Numbers.Count(_reports.Count(r => r.Result == Result.Pass))} passed, " +
+            $"{Numbers.Count(_reports.Count(r => r.Result == Result.Fail))} failed, " +
+            $"{Numbers.Count(_reports.Count(r => r.Result == Result.Skip))} skipped";
 
         public ScenarioRunner(IEnumerable<Scenario> scenarios, Action<string> write, Action finish = null)
         {
@@ -145,7 +144,7 @@ namespace Scry
 
             if (now - _startedAt > _current.Timeout)
             {
-                End(now, Result.Fail, $"  FAIL timed out after {_current.Timeout:0.#} s");
+                End(now, Result.Fail, $"  FAIL timed out after {Numbers.Amount(_current.Timeout, 1)} s");
                 return true;
             }
 
@@ -226,7 +225,7 @@ namespace Scry
             _report.Result = result;
             _reports.Add(_report);
             _lastEnd = now;
-            _write(string.Format(CultureInfo.InvariantCulture, "{0} {1} ({2:0.0} s)", result.ToString().ToUpperInvariant(), _current.Name, now - _startedAt));
+            _write($"{result.ToString().ToUpperInvariant()} {_current.Name} ({Numbers.Fixed(now - _startedAt, 1)} s)");
 
             _current = null;
             _body = null;

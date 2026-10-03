@@ -249,7 +249,7 @@ namespace Scry
             var materials = (Material[])original.Clone();
             if (materials.Length == 0 || materials[0] == null) return materials;
 
-            var key = prefabName + "#" + level;
+            var key = prefabName + "#" + Stored.Count(level);
             if (!LevelMaterials.TryGetValue(key, out var tinted) || tinted == null)
             {
                 tinted = new Material(materials[0]);

@@ -36,7 +36,7 @@ namespace Scry
                     if (float.IsNaN(size.magnitude) || float.IsInfinity(size.magnitude) || size.magnitude > 2000f) odd.Add($"{entry.Name} {size}");
                 }
             }
-            p.Note($"{shown} copies stood on the stage");
+            p.Note($"{Numbers.Count(shown)} copies stood on the stage");
             var game = failed.Where(f => f.EndsWith("(game)", StringComparison.Ordinal)).ToList();
             if (failed.Count > game.Count) p.Note("mods' prefabs that did not stand: " + string.Join(", ", failed.Except(game)));
             p.Check(game.Count == 0, "every one of the game's stands on the stage", string.Join(", ", game));
@@ -63,7 +63,7 @@ namespace Scry
                 var missing = brings.Where(b => !keys.Contains(b)).ToList();
                 if (missing.Count > 0) wrong.Add($"{raid.Name} brings {string.Join(", ", missing)}, not in the catalog");
             }
-            p.Note($"{raids.Count} raids");
+            p.Note($"{Numbers.Count(raids.Count)} raids");
             p.Check(wrong.Count == 0, "every raid tells what it brings, each an entry", string.Join("; ", wrong.Take(6)));
             yield break;
         }
@@ -172,20 +172,20 @@ namespace Scry
             }, 10);
             Facts.Forget();
 
-            p.Note($"{X.Catalog.Count} entries told, {chips} chips, links and lines followed");
+            p.Note($"{Numbers.Count(X.Catalog.Count)} entries told, {Numbers.Count(chips)} chips, links and lines followed");
             if (unlinked.Count > 0)
             {
-                p.Note($"{unlinked.Count} kinds of name are told as text where a chip could go, the most told first: " +
-                       string.Join("; ", unlinked.OrderByDescending(u => u.Value.Count).ThenBy(u => u.Key, StringComparer.Ordinal).Take(40).Select(u => $"{u.Key} ({u.Value.Count}, as in {u.Value.Example})")));
+                p.Note($"{Numbers.Count(unlinked.Count)} kinds of name are told as text where a chip could go, the most told first: " +
+                       string.Join("; ", unlinked.OrderByDescending(u => u.Value.Count).ThenBy(u => u.Key, StringComparer.Ordinal).Take(40).Select(u => $"{u.Key} ({Numbers.Count(u.Value.Count)}, as in {u.Value.Example})")));
             }
-            if (unregistered.Count > 0) p.Note($"{unregistered.Count} prefabs named are not among the scene's, so have no entry and show as text: " + string.Join(", ", unregistered.Take(10)));
-            if (slow.Count > 0) p.Note("slowest to tell: " + string.Join(", ", slow.OrderByDescending(s => s.Ms).Take(6).Select(s => $"{s.Name} {s.Ms:0} ms")));
+            if (unregistered.Count > 0) p.Note($"{Numbers.Count(unregistered.Count)} prefabs named are not among the scene's, so have no entry and show as text: " + string.Join(", ", unregistered.Take(10)));
+            if (slow.Count > 0) p.Note("slowest to tell: " + string.Join(", ", slow.OrderByDescending(s => s.Ms).Take(6).Select(s => $"{s.Name} {Numbers.Amount(s.Ms, 0)} ms")));
             var gameNotShown = notShown.Where(n => X.Catalog.FirstOrDefault(e => n.StartsWith(e.Name + " ", StringComparison.Ordinal))?.Origin == Origin.Vanilla).ToList();
-            if (notShown.Count > gameNotShown.Count) p.Note($"{notShown.Count - gameNotShown.Count} mods' entries could not tell all their details: " + string.Join("; ", notShown.Except(gameNotShown).Take(6)));
+            if (notShown.Count > gameNotShown.Count) p.Note($"{Numbers.Count(notShown.Count - gameNotShown.Count)} mods' entries could not tell all their details: " + string.Join("; ", notShown.Except(gameNotShown).Take(6)));
             p.Check(gameNotShown.Count == 0, "every entry of the game's tells all its details", string.Join("; ", gameNotShown.Take(6)));
-            if (dangling.TryGetValue("mods", out var mods)) p.Note($"{mods.Count} chips in mods' entries lead nowhere: " + string.Join("; ", mods.Where(m => m != null)));
+            if (dangling.TryGetValue("mods", out var mods)) p.Note($"{Numbers.Count(mods.Count)} chips in mods' entries lead nowhere: " + string.Join("; ", mods.Where(m => m != null)));
             var game = dangling.TryGetValue("game", out var g) ? g : new List<string>();
-            p.Check(game.Count == 0, "every chip, link and line in the game's entries leads to an entry", $"{game.Count}: " + string.Join("; ", game.Where(m => m != null)));
+            p.Check(game.Count == 0, "every chip, link and line in the game's entries leads to an entry", $"{Numbers.Count(game.Count)}: " + string.Join("; ", game.Where(m => m != null)));
         }
     }
 }

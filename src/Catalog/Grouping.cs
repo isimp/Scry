@@ -104,14 +104,14 @@ namespace Scry
         {
             foreach (var kind in entries.Where(e => e.Group.Length > 0).GroupBy(e => e.Kind))
             {
-                var groups = kind.GroupBy(e => e.Group).OrderBy(g => g.First().GroupOrder).Select(g => $"{g.Key} {g.Count()}");
+                var groups = kind.GroupBy(e => e.Group).OrderBy(g => g.First().GroupOrder).Select(g => $"{g.Key} {Numbers.Count(g.Count())}");
                 Plugin.Note($"Scry groups its {Kinds.Label(kind.Key).ToLowerInvariant()}: {string.Join(", ", groups)}.");
             }
             var unplayed = entries.Where(e => (e.Kind == Kind.Effect || e.Kind == Kind.Sound) && e.GroupOrder == Groups.Purpose(new string[0], false, false).Order).Select(e => e.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
             var unfired = entries.Where(e => e.Kind == Kind.Projectile && e.GroupOrder == Groups.Projectile(new Shooter[0]).Order)
                 .Select(e => e.Name + (e.Links.Count > 0 ? " (" + string.Join("/", e.Links.Select(l => l.Group).Distinct()) + ")" : "")).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
-            if (unfired.Count > 0) Plugin.Note($"Scry found nothing that fires {unfired.Count} projectiles, among them: {string.Join(", ", unfired.Take(100))}.");
-            if (unplayed.Count > 0) Plugin.Note($"Scry found nothing that plays {unplayed.Count} effects and sounds, among them: {string.Join(", ", unplayed.Take(150))}.");
+            if (unfired.Count > 0) Plugin.Note($"Scry found nothing that fires {Numbers.Count(unfired.Count)} projectiles, among them: {string.Join(", ", unfired.Take(100))}.");
+            if (unplayed.Count > 0) Plugin.Note($"Scry found nothing that plays {Numbers.Count(unplayed.Count)} effects and sounds, among them: {string.Join(", ", unplayed.Take(150))}.");
         }
 
         /// <summary>An item's group: by its type, a weapon by its skill, or with what only creatures have.</summary>

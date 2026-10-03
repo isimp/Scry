@@ -1,5 +1,3 @@
-using System;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -141,69 +139,59 @@ namespace Scry
 
         private static string RectFile => Path.Combine(Plugin.DataFolder, "panel.txt");
 
-        /// <summary>
-        /// Where the panel was, in both views, and which view was in use. One line each:
-        /// "full x y w h", "compact x y w h" and "view full|compact".
-        /// </summary>
-        private static void LoadRects()
+        /// <summary>Where the panel was, in both views, and how its stage was seen (<see cref="PanelPlace"/>).</summary>
+        private static void LoadRects() => Guard.Run("reading where the panel was", () =>
         {
-            try
-            {
-                if (!File.Exists(RectFile)) return;
-                foreach (var line in File.ReadAllLines(RectFile))
-                {
-                    var parts = line.Split(' ');
-                    if (parts.Length == 2 && parts[0] == "view") _compact = parts[1] == "compact";
-                    if (parts.Length == 2 && parts[0] == "light" && int.TryParse(parts[1], out var light)) Stage.LightingIndex = light;
-                    if (parts.Length == 2 && parts[0] == "backdrop" && int.TryParse(parts[1], out var backdrop)) Stage.BackdropIndex = backdrop;
-                    if (parts.Length == 2 && parts[0] == "ground") Stage.GroundChoice = parts[1];
-                    if (parts.Length == 2 && parts[0] == "person") Stage.ShowPerson = parts[1] == "1";
-                    if (parts.Length == 2 && parts[0] == "worn") Looks.OnPerson = parts[1] == "1";
-                    if (parts.Length == 2 && parts[0] == "spin") Stage.Spin = parts[1] == "1";
-                    if (parts.Length == 2 && parts[0] == "creatures") Stage.CreaturesShown = parts[1] == "1";
-                    if (parts.Length == 2 && parts[0] == "stage" && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var stage)) _stageScale = Mathf.Clamp(stage, 0.4f, 2.4f);
-                    if (parts.Length == 2 && parts[0] == "list" && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var share)) _listShareFull = Mathf.Clamp(share, ListNarrowest, ListWidest);
-                    if (parts.Length == 2 && parts[0] == "listhidden") _listHiddenFull = parts[1] == "1";
-                    if (parts.Length == 2 && parts[0] == "clist" && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var cshare)) _listShareCompact = Mathf.Clamp(cshare, ListNarrowest, ListWidest);
-                    if (parts.Length == 2 && parts[0] == "clisthidden") _listHiddenCompact = parts[1] == "1";
-                    if (parts.Length >= 1 && parts[0] == "folded")
-                    {
-                        Folded.Clear();
-                        foreach (var key in parts.Skip(1)) if (key.Length > 0) Folded.Add(key);
-                    }
-                    if (parts.Length != 5) continue;
+            if (!File.Exists(RectFile)) return;
+            var place = PanelPlace.Read(File.ReadAllLines(RectFile));
+            Rect RectOf(PanelPlace.Area area) => new Rect(area.X, area.Y, area.Width, area.Height);
 
-                    var v = parts.Skip(1).Select(p => float.Parse(p, CultureInfo.InvariantCulture)).ToArray();
-                    var rect = new Rect(v[0], v[1], v[2], v[3]);
-                    if (parts[0] == "full") _full = rect;
-                    else if (parts[0] == "compact") _compactRect = rect;
-                }
-            }
-            catch (Exception ex)
+            if (place.Full.HasValue) _full = RectOf(place.Full.Value);
+            if (place.Compact.HasValue) _compactRect = RectOf(place.Compact.Value);
+            if (place.CompactView.HasValue) _compact = place.CompactView.Value;
+            if (place.Lighting.HasValue) Stage.LightingIndex = place.Lighting.Value;
+            if (place.Backdrop.HasValue) Stage.BackdropIndex = place.Backdrop.Value;
+            if (place.Ground != null) Stage.GroundChoice = place.Ground;
+            if (place.Person.HasValue) Stage.ShowPerson = place.Person.Value;
+            if (place.Worn.HasValue) Looks.OnPerson = place.Worn.Value;
+            if (place.Spin.HasValue) Stage.Spin = place.Spin.Value;
+            if (place.Creatures.HasValue) Stage.CreaturesShown = place.Creatures.Value;
+            if (place.Folded != null)
             {
-                Plugin.Log.LogDebug($"Scry could not read where the panel was: {ex.Message}");
+                Folded.Clear();
+                foreach (var key in place.Folded) Folded.Add(key);
             }
-        }
+            if (place.StageScale.HasValue) _stageScale = Mathf.Clamp(place.StageScale.Value, 0.4f, 2.4f);
+            if (place.ListShareFull.HasValue) _listShareFull = Mathf.Clamp(place.ListShareFull.Value, ListNarrowest, ListWidest);
+            if (place.ListHiddenFull.HasValue) _listHiddenFull = place.ListHiddenFull.Value;
+            if (place.ListShareCompact.HasValue) _listShareCompact = Mathf.Clamp(place.ListShareCompact.Value, ListNarrowest, ListWidest);
+            if (place.ListHiddenCompact.HasValue) _listHiddenCompact = place.ListHiddenCompact.Value;
+        });
 
-        private static void SaveRects()
+        private static void SaveRects() => Guard.Run("remembering where the panel is", () =>
         {
-            try
+            PanelPlace.Area AreaOf(Rect r) => new PanelPlace.Area(r.x, r.y, r.width, r.height);
+            var place = new PanelPlace
             {
-                string Line(string name, Rect r) => name + " " + string.Join(" ", new[] { r.x, r.y, r.width, r.height }
-                    .Select(v => Mathf.Round(v).ToString(CultureInfo.InvariantCulture)));
-
-                Directory.CreateDirectory(Plugin.DataFolder);
-                File.WriteAllLines(RectFile, new[] { Line("full", _full), Line("compact", _compactRect), "view " + (_compact ? "compact" : "full"),
-                    "light " + Stage.LightingIndex, "backdrop " + Stage.BackdropIndex, "ground " + Stage.GroundChoice, "person " + (Stage.ShowPerson ? "1" : "0"), "worn " + (Looks.OnPerson ? "1" : "0"),
-                    "spin " + (Stage.Spin ? "1" : "0"), "creatures " + (Stage.CreaturesShown ? "1" : "0"), "folded " + string.Join(" ", Folded),
-                    "stage " + _stageScale.ToString("0.00", CultureInfo.InvariantCulture),
-                    "list " + _listShareFull.ToString("0.00", CultureInfo.InvariantCulture), "listhidden " + (_listHiddenFull ? "1" : "0"),
-                    "clist " + _listShareCompact.ToString("0.00", CultureInfo.InvariantCulture), "clisthidden " + (_listHiddenCompact ? "1" : "0") });
-            }
-            catch (Exception ex)
-            {
-                Plugin.Log.LogDebug($"Scry could not remember the panel's place: {ex.Message}");
-            }
-        }
+                Full = AreaOf(_full),
+                Compact = AreaOf(_compactRect),
+                CompactView = _compact,
+                Lighting = Stage.LightingIndex,
+                Backdrop = Stage.BackdropIndex,
+                Ground = Stage.GroundChoice,
+                Person = Stage.ShowPerson,
+                Worn = Looks.OnPerson,
+                Spin = Stage.Spin,
+                Creatures = Stage.CreaturesShown,
+                Folded = Folded.ToArray(),
+                StageScale = _stageScale,
+                ListShareFull = _listShareFull,
+                ListHiddenFull = _listHiddenFull,
+                ListShareCompact = _listShareCompact,
+                ListHiddenCompact = _listHiddenCompact,
+            };
+            Directory.CreateDirectory(Plugin.DataFolder);
+            File.WriteAllLines(RectFile, place.Lines());
+        });
     }
 }

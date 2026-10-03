@@ -64,7 +64,7 @@ namespace Scry
                 var shown = owners.Select(o => string.IsNullOrEmpty(o.DisplayName) ? o.Name : o.DisplayName).Distinct().ToList();
                 leftover.DisplayName = shown.Count == 1
                     ? shown[0] + " · " + role
-                    : Capital(role) + " of " + owners.Count;
+                    : Capital(role) + " of " + Numbers.Count(owners.Count);
 
                 var kinds = owners.Select(o => o.Kind).Distinct().ToList();
                 if (kinds.Count == 1 && leftover.Kind != kinds[0])

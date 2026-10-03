@@ -153,7 +153,7 @@ namespace Scry
                     break;
                 }
                 Plugin.Note(_creatureLayer != _layer
-                    ? $"Scry is using layer {_creatureLayer} for the creatures standing on its stage."
+                    ? $"Scry is using layer {Numbers.Count(_creatureLayer)} for the creatures standing on its stage."
                     : "Scry found no second free layer for the creatures standing on its stage, so a floor's cut cuts them too.");
                 return _creatureLayer;
             }
@@ -163,7 +163,7 @@ namespace Scry
         private static readonly int[] SpareLayers = { 7, 6, 3 };
 
         /// <summary>Which layer the creatures stand on, for the self-test to tell.</summary>
-        public static string CreatureLayerTold => _layer < 0 ? "no stage layer" : CreatureLayer == _layer ? $"the stage's own, {_layer}: no second free layer" : $"{CreatureLayer}, the stage's {_layer}";
+        public static string CreatureLayerTold => _layer < 0 ? "no stage layer" : CreatureLayer == _layer ? $"the stage's own, {Numbers.Count(_layer)}: no second free layer" : $"{Numbers.Count(CreatureLayer)}, the stage's {Numbers.Count(_layer)}";
 
         /// <summary>The stage's layers: its own and its creatures'.</summary>
         private static int StageMask => _layer < 0 ? 0 : (1 << _layer) | (1 << CreatureLayer);
@@ -175,7 +175,7 @@ namespace Scry
             {
                 if (string.IsNullOrEmpty(LayerMask.LayerToName(i)))
                 {
-                    Plugin.Note($"Scry is using layer {i} for its preview stage.");
+                    Plugin.Note($"Scry is using layer {Numbers.Count(i)} for its preview stage.");
                     return i;
                 }
             }

@@ -148,7 +148,7 @@ namespace Scry
                     var names = new List<string> { "Growing" };
                     for (var i = 0; i < plant.m_grownPrefabs.Length; i++)
                     {
-                        names.Add(plant.m_grownPrefabs.Length == 1 ? "Grown" : $"Grown {i + 1}");
+                        names.Add(plant.m_grownPrefabs.Length == 1 ? "Grown" : $"Grown {Numbers.Count(i + 1)}");
                     }
                     found = new Found { Sort = Sort.Growth, Names = names.ToArray() };
                 }
@@ -215,7 +215,7 @@ namespace Scry
                 else if (drop != null && drop.m_itemData?.m_shared != null && drop.m_itemData.m_shared.m_variants > 1)
                 {
                     var names = new List<string>();
-                    for (var i = 0; i < drop.m_itemData.m_shared.m_variants; i++) names.Add($"Style {i + 1}");
+                    for (var i = 0; i < drop.m_itemData.m_shared.m_variants; i++) names.Add($"Style {Numbers.Count(i + 1)}");
                     found = new Found { Sort = Sort.Style, Names = names.ToArray() };
                 }
             }

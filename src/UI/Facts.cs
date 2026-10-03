@@ -358,7 +358,7 @@ namespace Scry
         /// <summary>A value as text, or null for a choice the game has no name for (a mod's own numbered one).</summary>
         private static string Shown(object value)
         {
-            if (value is float f) return Number(f);
+            if (value is float f) return Numbers.Amount(f);
             if (value is bool b) return b ? "yes" : "no";
             if (value is Enum e) return Word(e)?.ToLowerInvariant();
             return Convert.ToString(value, CultureInfo.InvariantCulture);
@@ -382,20 +382,5 @@ namespace Scry
             return name.Length > 0 ? name : effect.name;
         }
 
-        private static string Number(float value)
-        {
-            return Naming.Number(value);
-        }
-
-        private static string Percent(float value)
-        {
-            var percent = Mathf.RoundToInt(value * 100f);
-            return (percent > 0 ? "+" : "") + percent + "%";
-        }
-
-        private static string Minutes(float seconds)
-        {
-            return Naming.Duration(seconds);
-        }
     }
 }

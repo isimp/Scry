@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 
 namespace Scry
 {
@@ -18,10 +17,10 @@ namespace Scry
             if (respawnSeconds <= daySeconds)
             {
                 var perDay = (int)Math.Round(amount * daySeconds / respawnSeconds);
-                return $"about {perDay} a day";
+                return $"about {Numbers.Count(perDay)} a day";
             }
             var days = Math.Round(respawnSeconds / daySeconds * 2.0) / 2.0;
-            return $"{amount} every {days.ToString("0.#", CultureInfo.InvariantCulture)} days";
+            return $"{Numbers.Count(amount)} every {Numbers.Amount(days, 1)} days";
         }
     }
 }

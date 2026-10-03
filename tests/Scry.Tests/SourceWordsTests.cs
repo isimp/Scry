@@ -87,8 +87,8 @@ namespace Scry.Tests
             var honey = SourceFacts.Made("piece_beehive", "Beehive", 1200f, 4, "Meadows");
             var sap = SourceFacts.Made("piece_sapcollector", "Sap extractor", 60f, 10, "");
 
-            Assert.Equal("Made by Beehive, one every " + Naming.Duration(1200f) + ", holding up to 4, in Meadows", SourceWords.Line(honey, NoBoss));
-            Assert.Equal("Made by Sap extractor, one every " + Naming.Duration(60f) + ", holding up to 10", SourceWords.Line(sap, NoBoss));
+            Assert.Equal("Made by Beehive, one every " + Numbers.Duration(1200f) + ", holding up to 4, in Meadows", SourceWords.Line(honey, NoBoss));
+            Assert.Equal("Made by Sap extractor, one every " + Numbers.Duration(60f) + ", holding up to 10", SourceWords.Line(sap, NoBoss));
             Assert.Equal(1.0, SourceWords.Sureness(honey), 6);
         }
 
@@ -112,7 +112,7 @@ namespace Scry.Tests
         [Fact]
         public void APaceSaysHowOftenAndHowManyItHolds()
         {
-            Assert.Equal("one every " + Naming.Duration(1200f) + ", holding up to 4", SourceWords.Pace(1200f, 4));
+            Assert.Equal("one every " + Numbers.Duration(1200f) + ", holding up to 4", SourceWords.Pace(1200f, 4));
         }
 
         [Theory]

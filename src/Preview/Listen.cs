@@ -102,12 +102,12 @@ namespace Scry
                 var what = new List<string>();
                 if (seen.Sounded) what.Add("sounded");
                 else if (seen.Muted) what.Add("muted");
-                if (seen.Particles > 0) what.Add($"{seen.Particles} particles");
+                if (seen.Particles > 0) what.Add($"{Numbers.Count(seen.Particles)} particles");
                 if (seen.Drawn) what.Add("drawn");
                 if (what.Count == 0) what.Add("nothing to see or hear" + (thing != null ? " (" + Inside(thing) + ")" : ""));
                 parts.Add($"{name} {where}: {string.Join(", ", what)}");
             }
-            var notes = watch.Notes.Select(n => n.Value > 1 ? $"{n.Key} ×{n.Value}" : n.Key).ToList();
+            var notes = watch.Notes.Select(n => n.Value > 1 ? $"{n.Key} ×{Numbers.Count(n.Value)}" : n.Key).ToList();
             var made = parts.Count > 0 ? string.Join("; ", parts) : "no copies";
             return $"Scry played {watch.What}: {made}{(notes.Count > 0 ? ". " + string.Join("; ", notes) : "")}.";
         }
@@ -125,16 +125,16 @@ namespace Scry
             var playing = systems.Count(p => p.isPlaying);
             var sounds = thing.GetComponentsInChildren<AudioSource>(true).Length;
             var unseen = renderers.Where(r => r.enabled && r.gameObject.activeInHierarchy && !r.isVisible)
-                .Select(r => $"{r.GetType().Name} {r.bounds.size.magnitude:0.0} m{(r.GetComponentInParent<LODGroup>() != null ? " in a level-of-detail group" : "")}{(Stage.InView(r.bounds) ? ", in the stage's view" : ", outside the stage's view")}").ToList();
+                .Select(r => $"{r.GetType().Name} {Numbers.Fixed(r.bounds.size.magnitude, 1)} m{(r.GetComponentInParent<LODGroup>() != null ? " in a level-of-detail group" : "")}{(Stage.InView(r.bounds) ? ", in the stage's view" : ", outside the stage's view")}").ToList();
             var off = thing.activeInHierarchy ? "" : thing.activeSelf ? "; switched off above it" : "; switched off in itself, as saved";
             var listener = Object.FindAnyObjectByType<AudioListener>();
             var quiet = thing.GetComponentsInChildren<AudioSource>(true).Select(s =>
             {
                 var sfx = s.GetComponent<ZSFX>();
-                var far = listener != null ? $", {Vector3.Distance(listener.transform.position, s.transform.position):0} m from the ears of {s.maxDistance:0}" : "";
-                return $"{(s.clip != null ? s.clip.name : "no clip")} {(s.isPlaying ? "playing" : "not playing")}{(s.enabled ? "" : ", off")}, volume {s.volume:0.##}{far}, {(sfx == null ? "no ZSFX" : (sfx.enabled ? "ZSFX on" : "ZSFX off") + (sfx.m_playOnAwake ? "" : ", not played on waking"))}";
+                var far = listener != null ? $", {Numbers.Amount(Vector3.Distance(listener.transform.position, s.transform.position), 0)} m from the ears of {Numbers.Amount(s.maxDistance, 0)}" : "";
+                return $"{(s.clip != null ? s.clip.name : "no clip")} {(s.isPlaying ? "playing" : "not playing")}{(s.enabled ? "" : ", off")}, volume {Numbers.Amount(s.volume, 2)}{far}, {(sfx == null ? "no ZSFX" : (sfx.enabled ? "ZSFX on" : "ZSFX off") + (sfx.m_playOnAwake ? "" : ", not played on waking"))}";
             }).ToList();
-            return $"{renderers.Count} renderers, {on} on, {seen} seen; {systems.Length} particle systems, {playing} playing; {sounds} sounds{off}{(unseen.Count > 0 ? "; unseen: " + string.Join(", ", unseen) : "")}{(quiet.Count > 0 ? "; sounds: " + string.Join(", ", quiet) : "")}";
+            return $"{Numbers.Count(renderers.Count)} renderers, {Numbers.Count(on)} on, {Numbers.Count(seen)} seen; {Numbers.Count(systems.Length)} particle systems, {Numbers.Count(playing)} playing; {Numbers.Count(sounds)} sounds{off}{(unseen.Count > 0 ? "; unseen: " + string.Join(", ", unseen) : "")}{(quiet.Count > 0 ? "; sounds: " + string.Join(", ", quiet) : "")}";
         }
 
         /// <summary>On the stage or in the world, and how far from the camera there.</summary>
@@ -142,7 +142,7 @@ namespace Scry
         {
             if (thing.layer == Stage.Layer) return "on the stage";
             var camera = GameCamera.instance != null ? GameCamera.instance.transform.position : thing.transform.position;
-            return $"in the world {Vector3.Distance(camera, thing.transform.position):0} m away";
+            return $"in the world {Numbers.Amount(Vector3.Distance(camera, thing.transform.position), 0)} m away";
         }
     }
 }

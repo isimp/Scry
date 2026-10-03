@@ -102,7 +102,7 @@ namespace Scry
         {
             if (!string.IsNullOrEmpty(set.m_name)) return Naming.FieldLabel(set.m_name);
             var drawn = set.m_items.Where(i => i != null && AttachPart(i, out _) != null).Select(CatalogBuilder.AttackName).Distinct().ToList();
-            return drawn.Count > 0 ? string.Join(" + ", drawn) : $"Set {index + 1}, nothing drawn";
+            return drawn.Count > 0 ? string.Join(" + ", drawn) : $"Set {Numbers.Count(index + 1)}, nothing drawn";
         }
 
         private static readonly HashSet<string> ToldSets = new HashSet<string>();
@@ -112,7 +112,7 @@ namespace Scry
         {
             if (!ToldSets.Add(prefab.name)) return;
             var told = sets.Select((set, i) => $"{SetName(set, i)} ({string.Join(", ", set.m_items.Where(x => x != null).Select(x => x.name + (AttachPart(x, out _) != null ? "" : " not drawn")))})");
-            Plugin.Note($"Scry: {prefab.name} rolls one of {sets.Count} gear sets: {string.Join("; ", told)}.");
+            Plugin.Note($"Scry: {prefab.name} rolls one of {Numbers.Count(sets.Count)} gear sets: {string.Join("; ", told)}.");
         }
 
         /// <summary>Puts the gear of a look on the copy: 1 is the first set, or the only one.</summary>
@@ -524,7 +524,7 @@ namespace Scry
                 var mesh = renderer.sharedMesh;
                 if (mesh != null && mesh.bindposes.Length != bones.Length)
                 {
-                    Plugin.Log.LogDebug($"Scry left {part.name} off: made for {mesh.bindposes.Length} bones, the body has {bones.Length}.");
+                    Plugin.Log.LogDebug($"Scry left {part.name} off: made for {Numbers.Count(mesh.bindposes.Length)} bones, the body has {Numbers.Count(bones.Length)}.");
                     renderer.enabled = false;
                     continue;
                 }

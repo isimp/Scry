@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 
 namespace Scry
@@ -35,7 +34,7 @@ namespace Scry
                     continue;
                 }
                 told.Add(string.Join(", ", counts.OrderByDescending(c => c.Value).ThenBy(c => c.Key, StringComparer.Ordinal).Take(Most)
-                    .Select(c => c.Key + " " + ((int)Math.Round(c.Value * 100.0 / total, MidpointRounding.AwayFromZero)).ToString(CultureInfo.InvariantCulture) + "%")));
+                    .Select(c => c.Key + " " + Numbers.Percent((double)c.Value / total))));
             }
             return told;
         }

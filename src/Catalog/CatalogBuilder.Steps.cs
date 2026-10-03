@@ -78,13 +78,13 @@ namespace Scry
 
             var linking = book == null ? null : Stepped(() => book.ApplyInSteps(read.Entries, 400), "links applied",
                 "Scry could not link entries, and shows them without links", "Scry could not link all entries, and shows some without links");
-            if (linking != null) foreach (var done in linking) yield return $"Linking entries: {Naming.Count(done)}";
+            if (linking != null) foreach (var done in linking) yield return $"Linking entries: {Numbers.Count(done)}";
 
             yield return "Grouping entries";
             foreach (var done in Stepped(() => Grouping.Apply(read.Entries, 400), "grouping",
                 "Scry could not group entries, and lists them ungrouped", "Scry could not group all entries, and lists some ungrouped"))
             {
-                yield return $"Grouping entries: {Naming.Count(done)}";
+                yield return $"Grouping entries: {Numbers.Count(done)}";
             }
 
             // Locations and rooms take their names from creatures' (a Fuling camp), so they come
@@ -95,7 +95,7 @@ namespace Scry
             foreach (var step in ModIcons(read)) yield return step;
 
             job.Entries = read.Entries;
-            Plugin.Note($"Scry's catalog, by part (ms): {CatalogTiming.Report()}; {GC.CollectionCount(0) - collections} garbage collections meanwhile.");
+            Plugin.Note($"Scry's catalog, by part (ms): {CatalogTiming.Report()}; {Numbers.Count(GC.CollectionCount(0) - collections)} garbage collections meanwhile.");
             Faults.TellSkipped();
         }
 
@@ -119,14 +119,14 @@ namespace Scry
         /// <summary>A prefab at a time: some are large, and a few read together could take a frame's share.</summary>
         private static IEnumerable<string> ReadPrefabs(Reading read)
         {
-            yield return $"Reading prefabs: 0 of {Naming.Count(read.Registered.Count)}";
+            yield return $"Reading prefabs: 0 of {Numbers.Count(read.Registered.Count)}";
             var done = 0;
             var progress = "";
             foreach (var pair in read.Registered)
             {
                 read.Job.Piece = pair.Key;
                 ReadPrefab(pair.Key, pair.Value, read.Effects, read.Components, read.Leftovers);
-                if (++done % 16 == 1) progress = $"Reading prefabs: {Naming.Count(done)} of {Naming.Count(read.Registered.Count)}";
+                if (++done % 16 == 1) progress = $"Reading prefabs: {Numbers.Count(done)} of {Numbers.Count(read.Registered.Count)}";
                 yield return progress;
             }
             read.Components.Clear();
@@ -192,7 +192,7 @@ namespace Scry
                     Describe(found, name, Provenance.Combine(found.UserOrigins), read.Effects, read.Components);
                     CatalogTiming.Add("describe effects", started);
                     grew = true;
-                    if (++walked % 4 == 0) yield return $"Reading effects: {Naming.Count(walked)}";
+                    if (++walked % 4 == 0) yield return $"Reading effects: {Numbers.Count(walked)}";
                 }
 
                 if (!grew && !helpersRead)
@@ -205,7 +205,7 @@ namespace Scry
                         var started = CatalogTiming.Start();
                         GatherHelper(helpers[i], read.Registered, read.Effects, read.Components);
                         CatalogTiming.Add("helpers", started);
-                        if (i % 8 == 7) yield return $"Reading what prefabs spawn: {Naming.Count(i + 1)} of {Naming.Count(helpers.Count)}";
+                        if (i % 8 == 7) yield return $"Reading what prefabs spawn: {Numbers.Count(i + 1)} of {Numbers.Count(helpers.Count)}";
                     }
                     grew = true;
                 }
@@ -222,13 +222,13 @@ namespace Scry
             foreach (var pair in read.Registered)
             {
                 MakeEntry(read.Entries, pair.Key, pair.Value, read.Effects, true);
-                if (++made % 16 == 0) yield return $"Making entries: {Naming.Count(made)} of about {Naming.Count(total)}";
+                if (++made % 16 == 0) yield return $"Making entries: {Numbers.Count(made)} of about {Numbers.Count(total)}";
             }
             foreach (var pair in read.Effects)
             {
                 if (read.Registered.ContainsKey(pair.Key)) continue;
                 MakeEntry(read.Entries, pair.Key, pair.Value, read.Effects, false);
-                if (++made % 16 == 0) yield return $"Making entries: {Naming.Count(made)} of about {Naming.Count(total)}";
+                if (++made % 16 == 0) yield return $"Making entries: {Numbers.Count(made)} of about {Numbers.Count(total)}";
             }
         }
 

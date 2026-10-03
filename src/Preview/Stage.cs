@@ -261,19 +261,19 @@ namespace Scry
         {
             if (_subject == null) return "Nothing is on the stage.";
 
-            var lines = new List<string> { $"Scry stage copy {_subject.name}, layer {_layer}, scale {_scale}:" };
+            var lines = new List<string> { $"Scry stage copy {_subject.name}, layer {Numbers.Count(_layer)}, scale {Numbers.Amount(_scale)}:" };
             foreach (var renderer in _subject.GetComponentsInChildren<Renderer>(true))
             {
                 var path = renderer.transform == _subject.transform ? renderer.name : Path(renderer.transform);
                 var mesh = renderer is SkinnedMeshRenderer skinned ? skinned.sharedMesh
                     : renderer.GetComponent<MeshFilter>()?.sharedMesh;
-                var bones = renderer is SkinnedMeshRenderer s ? $", bones {s.bones.Length}, bindposes {(s.sharedMesh != null ? s.sharedMesh.bindposes.Length : 0)}, root {(s.rootBone != null ? s.rootBone.name : "none")}" : "";
+                var bones = renderer is SkinnedMeshRenderer s ? $", bones {Numbers.Count(s.bones.Length)}, bindposes {Numbers.Count((s.sharedMesh != null ? s.sharedMesh.bindposes.Length : 0))}, root {(s.rootBone != null ? s.rootBone.name : "none")}" : "";
                 var material = renderer.sharedMaterial != null ? renderer.sharedMaterial.name + " / " + (renderer.sharedMaterial.shader != null ? renderer.sharedMaterial.shader.name : "no shader") : "no material";
-                lines.Add($"  {path}: {renderer.GetType().Name}, active {renderer.gameObject.activeInHierarchy}, enabled {renderer.enabled}, layer {renderer.gameObject.layer}, mesh {(mesh != null ? mesh.name : "none")}{bones}, {material}, bounds {renderer.bounds.center} size {renderer.bounds.size}");
+                lines.Add($"  {path}: {renderer.GetType().Name}, active {renderer.gameObject.activeInHierarchy}, enabled {renderer.enabled}, layer {Numbers.Count(renderer.gameObject.layer)}, mesh {(mesh != null ? mesh.name : "none")}{bones}, {material}, bounds {renderer.bounds.center} size {renderer.bounds.size}");
             }
 
             foreach (var line in lines) Plugin.Log.LogInfo(line);
-            return $"Wrote {lines.Count - 1} renderers of {_subject.name} to the log.";
+            return $"Wrote {Numbers.Count(lines.Count - 1)} renderers of {_subject.name} to the log.";
         }
 
         private static string Path(Transform t)

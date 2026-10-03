@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using UnityEngine;
 
@@ -346,10 +345,10 @@ namespace Scry
                 var x = U(80f);
                 foreach (var step in new[] { -10, -1, 1, 10 })
                 {
-                    var text = step > 0 ? "+" + step : step.ToString(CultureInfo.InvariantCulture);
+                    var text = Numbers.Count(step, signed: true);
                     if (step == 1)
                     {
-                        GUI.Label(new Rect(x, y, U(48f), rowH), _commandAmount.ToString(CultureInfo.InvariantCulture), Skin.Center);
+                        GUI.Label(new Rect(x, y, U(48f), rowH), Numbers.Count(_commandAmount), Skin.Center);
                         x += U(52f);
                     }
                     if (GUI.Button(new Rect(x, y, U(40f), rowH), text, Skin.Segment)) _commandAmount = Mathf.Clamp(_commandAmount + step, 1, 999);
@@ -361,7 +360,7 @@ namespace Scry
                 var maxQuality = Mathf.Min(SpawnCommand.MaxItemQuality, drop?.m_itemData?.m_shared?.m_maxQuality ?? 1);
                 if (maxQuality > 1)
                 {
-                    var names = Enumerable.Range(1, maxQuality).Select(q => q.ToString(CultureInfo.InvariantCulture)).ToList();
+                    var names = Enumerable.Range(1, maxQuality).Select(q => Numbers.Count(q)).ToList();
                     var chosen = Segments("Quality", names, _commandQuality - 1, width, U(80f), ref y);
                     if (chosen >= 0) _commandQuality = chosen + 1;
                 }
@@ -402,7 +401,7 @@ namespace Scry
             _users = entry.UsedBy.Count == 0 || EffectLinks.For(entry.Name).Count > 0
                 ? new List<(string, string, string, Action)>()
                 : entry.UsedBy.Where(u => InCatalog(explorer, u)).Select(n => (n, ShownName(explorer, n, n), (string)null, (Action)(() => Go(explorer, n)))).ToList();
-            _usersTitle = $"Played by ({_users.Count})";
+            _usersTitle = $"Played by ({Numbers.Count(_users.Count)})";
             return _users;
         }
 
@@ -414,7 +413,7 @@ namespace Scry
             var lines = new List<string> { "Prefab name: " + entry.Name };
             lines.Add("Origin: " + (entry.Origin == Origin.Vanilla ? "the game" : entry.Origin == Origin.Mod ? (entry.ModName.Length > 0 ? entry.ModName : "a mod, not named") : "unknown"));
 
-            if (entry.ExtraLevels > 0) lines.Add($"Star looks: {entry.ExtraLevels}");
+            if (entry.ExtraLevels > 0) lines.Add($"Star looks: {Numbers.Count(entry.ExtraLevels)}");
 
 
 
@@ -466,7 +465,7 @@ namespace Scry
                     // Not measured: the text changes every frame, and each would be kept.
                     const string stop = "Stop";
                     var stopW = Skin.Width(Skin.Chip, stop) + U(12f);
-                    GUI.Label(new Rect(0f, y, width - stopW - U(8f), U(24f)), $"Reading locations and dungeons: {Locations.Done} of {Locations.Total}", Skin.DimLabel);
+                    GUI.Label(new Rect(0f, y, width - stopW - U(8f), U(24f)), $"Reading locations and dungeons: {Numbers.Count(Locations.Done)} of {Numbers.Count(Locations.Total)}", Skin.DimLabel);
                     if (GUI.Button(new Rect(width - stopW, y, stopW, U(24f)), stop, Skin.Chip)) StopReadingLocations();
                     return y + U(30f);
 
@@ -544,7 +543,7 @@ namespace Scry
                 counts.TryGetValue(name, out var n);
                 counts[name] = n + 1;
             }
-            return string.Join(", ", counts.Select(p => p.Value > 1 ? $"{p.Key} ×{p.Value}" : p.Key));
+            return string.Join(", ", counts.Select(p => p.Value > 1 ? $"{p.Key} ×{Numbers.Count(p.Value)}" : p.Key));
         }
 
         private static GUIStyle _smallWrapped;

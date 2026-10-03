@@ -36,7 +36,7 @@ namespace Scry
                 Listen.Note(heard, "feet not watched: the clip does not move the creature along");
                 return;
             }
-            Listen.Note(heard, $"watching {step.m_feet.Length} feet");
+            Listen.Note(heard, $"watching {Numbers.Count(step.m_feet.Length)} feet");
 
             // A foot the game names in an old model kept switched off beside the body (a frost
             // troll's) never moves; the body's bone of that name does.
@@ -57,7 +57,7 @@ namespace Scry
                 }
                 if (twin != null) feet.Add(twin);
             }
-            if (moved > 0) Listen.Note(heard, $"{moved} feet found by name in the body, the ones named being in a part switched off");
+            if (moved > 0) Listen.Note(heard, $"{Numbers.Count(moved)} feet found by name in the body, the ones named being in a part switched off");
             if (feet.Count == 0) return;
 
             _feet = feet.ToArray();

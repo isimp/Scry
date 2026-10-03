@@ -118,7 +118,7 @@ namespace Scry
             }
             if (mods.Count == 0) return null;
             var what = Naming.Joined(topics);
-            return mods.Count == 1 ? $"A mod hooks into {what}" : $"{mods.Count} mods hook into {what}";
+            return mods.Count == 1 ? $"A mod hooks into {what}" : $"{Numbers.Count(mods.Count)} mods hook into {what}";
         }
 
         /// <summary>The line's hover: each rule's note, naming its mods and what they may change; null for none.</summary>

@@ -14,11 +14,9 @@ namespace Scry
         public static string Note(int worldLevel, float healthMultiplier, float resourceRate, bool health, bool drops)
         {
             var parts = new List<string>();
-            if (health && worldLevel > 0) parts.Add($"health ×{Number(worldLevel * healthMultiplier)} (world level {worldLevel})");
-            if (drops && resourceRate > 0f && System.Math.Abs(resourceRate - 1f) > 0.001f) parts.Add($"most drops ×{Number(resourceRate)} (resource rate)");
+            if (health && worldLevel > 0) parts.Add($"health ×{Numbers.Amount(worldLevel * healthMultiplier)} (world level {Numbers.Count(worldLevel)})");
+            if (drops && resourceRate > 0f && System.Math.Abs(resourceRate - 1f) > 0.001f) parts.Add($"most drops ×{Numbers.Amount(resourceRate)} (resource rate)");
             return parts.Count > 0 ? string.Join(" and ", parts) + ", not counted in these figures" : null;
         }
-
-        private static string Number(float value) => Naming.Number(value);
     }
 }

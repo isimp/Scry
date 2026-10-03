@@ -27,8 +27,8 @@ namespace Scry
         private static string ClearText(int lines)
         {
             if (lines <= 1) return "Clear world";
-            if (lines >= ClearTexts.Length) return $"Clear world  {lines}";
-            return ClearTexts[lines] ?? (ClearTexts[lines] = $"Clear world  {lines}");
+            if (lines >= ClearTexts.Length) return $"Clear world  {Numbers.Count(lines)}";
+            return ClearTexts[lines] ?? (ClearTexts[lines] = $"Clear world  {Numbers.Count(lines)}");
         }
 
         /// <summary>
@@ -127,7 +127,7 @@ namespace Scry
 
                 var placeW = U(64f);
                 GUI.Label(new Rect(line.x + U(8f), line.y, placeW, line.height), OutPlaceWord(r.Place), Skin.DimLabel);
-                var name = ShownName(explorer, OutTarget(r), r.Key) + (r.Count > 1 ? $"  ×{r.Count}" : "");
+                var name = ShownName(explorer, OutTarget(r), r.Key) + (r.Count > 1 ? $"  ×{Numbers.Count(r.Count)}" : "");
                 var nameX = line.x + U(8f) + placeW;
                 GUI.Label(new Rect(nameX, line.y, line.xMax - OutCrossW - nameX, line.height), name, Skin.Label);
 
@@ -140,7 +140,7 @@ namespace Scry
             {
                 var more = _outRows.Count - _outFits;
                 GUI.Label(new Rect(_outRect.x + U(12f), _outRect.y + OutTop + _outFits * OutRowH, _outRect.width - U(24f), OutRowH),
-                    $"and {more} more; Clear world takes them all", Skin.FaintLabel);
+                    $"and {Numbers.Count(more)} more; Clear world takes them all", Skin.FaintLabel);
             }
         }
     }

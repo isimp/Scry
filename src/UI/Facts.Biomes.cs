@@ -28,7 +28,7 @@ namespace Scry
                     .ToList();
                 var row = new Row();
                 foreach (var entry in order != null ? order(found) : found) row.Items.Add(EntryChip(entry));
-                row.Title = $"{title} ({row.Items.Count})";
+                row.Title = $"{title} ({Numbers.Count(row.Items.Count)})";
                 if (row.Items.Count > 0) Rows.Add(row);
             }
             bool Fish(Entry e) => e.Kind == Kind.Item && e.Source is UnityEngine.GameObject prefab && prefab.GetComponent<global::Fish>() != null;

@@ -16,7 +16,7 @@ namespace Scry
 
         private void Creature(GameObject prefab, Character character)
         {
-            Add("Health", Number(character.m_health));
+            Add("Health", Numbers.Amount(character.m_health));
             Add("Faction", Groups.FactionName(character.m_faction.ToString()));
             if (character.m_boss) Add("Boss", "yes");
             if (!string.IsNullOrEmpty(character.m_bossEvent) && Knowledge.BossOfEvent(character.m_bossEvent) == prefab)
@@ -136,16 +136,16 @@ namespace Scry
         private void Behaviour(GameObject prefab, Character character)
         {
             var moves = new List<string>();
-            if (character.m_flying) moves.Add($"flies {Number(character.m_flySlowSpeed)}–{Number(character.m_flyFastSpeed)} m/s");
-            else moves.Add($"walks {Number(character.m_walkSpeed)} m/s, runs {Number(character.m_runSpeed)} m/s");
-            if (character.m_canSwim) moves.Add($"swims {Number(character.m_swimSpeed)} m/s");
+            if (character.m_flying) moves.Add($"flies {Numbers.Amount(character.m_flySlowSpeed)}–{Numbers.Amount(character.m_flyFastSpeed)} m/s");
+            else moves.Add($"walks {Numbers.Amount(character.m_walkSpeed)} m/s, runs {Numbers.Amount(character.m_runSpeed)} m/s");
+            if (character.m_canSwim) moves.Add($"swims {Numbers.Amount(character.m_swimSpeed)} m/s");
             Add("Moves", string.Join(", ", moves));
 
             var ai = prefab.GetComponent<BaseAI>();
             if (ai != null)
             {
                 Add("Sees", CombatWords.Sight(ai.m_viewRange, ai.m_viewAngle));
-                if (ai.m_hearRange < 9000f) Add("Hears", $"{Number(ai.m_hearRange)} m");
+                if (ai.m_hearRange < 9000f) Add("Hears", $"{Numbers.Amount(ai.m_hearRange)} m");
                 if (ai.m_afraidOfFire) Add("Fire", "afraid of it");
                 else if (ai.m_avoidFire) Add("Fire", "keeps away from it");
                 // AnimalAI.UpdateAI only ever flees from what it senses.
@@ -155,7 +155,7 @@ namespace Scry
                 {
                     Add("Turns on you", CombatWords.Alerted(monster.m_alertRange));
                     Add("Gives up chasing", CombatWords.Chase(monster.m_maxChaseDistance));
-                    if (monster.m_fleeIfLowHealth > 0f) Add("Flees", $"below {Mathf.RoundToInt(monster.m_fleeIfLowHealth * 100f)}% health, right after being hurt");
+                    if (monster.m_fleeIfLowHealth > 0f) Add("Flees", $"below {Numbers.Count(Mathf.RoundToInt(monster.m_fleeIfLowHealth * 100f))}% health, right after being hurt");
                     if (!monster.m_attackPlayerObjects) Add("Leaves alone", "what players build");
                 }
             }
@@ -163,8 +163,8 @@ namespace Scry
             var tame = prefab.GetComponent<Tameable>();
             if (tame != null)
             {
-                Add("Takes to tame", Minutes(tame.m_tamingTime));
-                Add("Stays fed", Minutes(tame.m_fedDuration));
+                Add("Takes to tame", Numbers.Duration(tame.m_tamingTime));
+                Add("Stays fed", Numbers.Duration(tame.m_fedDuration));
                 Part("riding", () => Riding(tame));
                 var breed = prefab.GetComponent<Procreation>();
                 if (breed != null) Part("breeding", () => Breeding(breed));
@@ -216,7 +216,7 @@ namespace Scry
             var partner = breed.m_seperatePartner != null ? AnyName(breed.m_seperatePartner, breed.m_seperatePartner.name) : null;
             Add("Breeds when", BreedWords.Needs(breed.m_partnerCheckRange, partner, breed.m_noPartnerOffspring != null));
             Add("Love", BreedWords.Love(breed.m_updateInterval, breed.m_pregnancyChance, breed.m_requiredLovePoints));
-            Add("Pregnant for", Naming.Duration(breed.m_pregnancyDuration));
+            Add("Pregnant for", Numbers.Duration(breed.m_pregnancyDuration));
             Add("Stops breeding", BreedWords.Crowd(breed.m_maxCreatures, breed.m_totalCheckRange));
             if (breed.m_offspring != null) Rows.Add(new Row { Title = "Has young, " + BreedWords.Stars(breed.m_minOffspringLevel), Items = { Chip(breed.m_offspring.name, "") } });
             if (breed.m_noPartnerOffspring != null) Rows.Add(new Row { Title = "With no partner near, has", Items = { Chip(breed.m_noPartnerOffspring.name, "") } });
@@ -225,7 +225,7 @@ namespace Scry
         /// <summary>What a young one grows up into, and when (<c>Growup</c>).</summary>
         private void GrowingUp(Growup grow)
         {
-            Add("Grows up in", Naming.Duration(grow.m_growTime));
+            Add("Grows up in", Numbers.Duration(grow.m_growTime));
             var grown = Knowledge.GrownOf(grow);
             if (grown.Count == 0) return;
             var row = new Row { Title = (grown.Count > 1 ? "Grows into one of these" : "Grows into") + (grow.m_inheritTame ? ", staying tame" : "") };

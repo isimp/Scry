@@ -27,7 +27,7 @@ namespace Scry
 
         public static Vec3 Cross(Vec3 a, Vec3 b) => new Vec3(a.Y * b.Z - a.Z * b.Y, a.Z * b.X - a.X * b.Z, a.X * b.Y - a.Y * b.X);
 
-        public override string ToString() => $"({X:0.##}, {Y:0.##}, {Z:0.##})";
+        public override string ToString() => $"({Numbers.Amount(X, 2)}, {Numbers.Amount(Y, 2)}, {Numbers.Amount(Z, 2)})";
     }
 
     /// <summary>A rotation, as Unity's <c>Quaternion</c> holds one, with the few operations a layout needs.</summary>

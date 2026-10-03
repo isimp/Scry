@@ -113,14 +113,14 @@ namespace Scry
             if (Now != State.Reading) return "not reading the locations and dungeons.";
             var done = Done;
             Forget();
-            Plugin.Log.LogInfo($"Scry stopped reading the locations after {done} of them; nothing read is kept.");
+            Plugin.Log.LogInfo($"Scry stopped reading the locations after {Numbers.Count(done)} of them; nothing read is kept.");
             return "stopped reading the locations and dungeons; nothing read so far is kept.";
         }
 
         /// <summary>Starts reading, and says what it does.</summary>
         public static string Start()
         {
-            if (Now == State.Reading) return $"already reading the locations and dungeons, {Done} of {Total} so far.";
+            if (Now == State.Reading) return $"already reading the locations and dungeons, {Numbers.Count(Done)} of {Numbers.Count(Total)} so far.";
             if (Now == State.Read) return "the locations and dungeons of this world are read already.";
             var zones = ZoneSystem.instance;
             if (zones == null || Session.Explorer == null) return "the catalog of this world is not read yet.";
@@ -167,7 +167,7 @@ namespace Scry
             _workMs = 0.0;
             _frames = 0;
             _clock = Stopwatch.StartNew();
-            return $"reading {Queue.Count} locations and dungeon rooms in the background.";
+            return $"reading {Numbers.Count(Queue.Count)} locations and dungeon rooms in the background.";
         }
 
         /// <summary>Reads on for a few milliseconds; called every frame.</summary>
@@ -400,8 +400,8 @@ namespace Scry
             }
             Learned.AboutAll();
             Plugin.Log.LogInfo(
-                $"Scry read {Total} locations and dungeon rooms in {_clock.Elapsed.TotalSeconds:0.0} s ({_workMs:0} ms of its own work over {_frames} frames, {_failed} could not be loaded): " +
-                $"they name {Found.Count} prefabs, {inCatalog} of them in the catalog; {moved} effects, sounds and projectiles nothing else plays or fires went under \"In locations\", and {items} items only creatures seemed to have went back to their kind of item.");
+                $"Scry read {Numbers.Count(Total)} locations and dungeon rooms in {Numbers.Fixed(_clock.Elapsed.TotalSeconds, 1)} s ({Numbers.Amount(_workMs, 0)} ms of its own work over {Numbers.Count(_frames)} frames, {Numbers.Count(_failed)} could not be loaded): " +
+                $"they name {Numbers.Count(Found.Count)} prefabs, {Numbers.Count(inCatalog)} of them in the catalog; {Numbers.Count(moved)} effects, sounds and projectiles nothing else plays or fires went under \"In locations\", and {Numbers.Count(items)} items only creatures seemed to have went back to their kind of item.");
             Found.Clear();
             Named.Clear();
             ReadLocations.Clear();

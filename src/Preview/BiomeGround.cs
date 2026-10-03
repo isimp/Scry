@@ -279,12 +279,12 @@ namespace Scry
                 var name = shader.GetPropertyName(i);
                 var type = shader.GetPropertyType(i);
                 names.Add(type == ShaderPropertyType.Float || type == ShaderPropertyType.Range
-                    ? $"{name} {_material.GetFloat(name):0.###}" : $"{name} ({type})");
+                    ? $"{name} {Numbers.Amount(_material.GetFloat(name), 3)}" : $"{name} ({type})");
             }
             var renderer = _terrain != null ? _terrain.GetComponent<MeshRenderer>() : null;
-            var drawn = renderer == null ? "no renderer" : $"active {_terrain.activeInHierarchy}, layer {_terrain.layer}, bounds {renderer.bounds.center} size {renderer.bounds.size}, in view {inView(renderer.bounds)}, drawn by a camera {renderer.isVisible}";
+            var drawn = renderer == null ? "no renderer" : $"active {_terrain.activeInHierarchy}, layer {Numbers.Count(_terrain.layer)}, bounds {renderer.bounds.center} size {renderer.bounds.size}, in view {inView(renderer.bounds)}, drawn by a camera {renderer.isVisible}";
             var path = camera != null ? $"{camera.renderingPath} ({camera.actualRenderingPath})" : "no camera";
-            return $"{drawn}; the stage camera renders {path}; shader {shader?.name}, passes {_material.passCount}, queue {_material.renderQueue}, keywords [{string.Join(", ", _material.shaderKeywords)}], properties: {string.Join(", ", names)}";
+            return $"{drawn}; the stage camera renders {path}; shader {shader?.name}, passes {Numbers.Count(_material.passCount)}, queue {Numbers.Count(_material.renderQueue)}, keywords [{string.Join(", ", _material.shaderKeywords)}], properties: {string.Join(", ", names)}";
         }
 
         /// <summary>A flat round piece a metre across, in rings, facing up, its texture's corners at its square's.</summary>

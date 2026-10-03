@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Text;
 
 namespace Scry
@@ -54,9 +53,7 @@ namespace Scry
     /// </summary>
     public static class LocationWords
     {
-        private static string Metres(float value) => Naming.Metres(value);
-
-        private static string Range(float min, float max) => $"{min.ToString("#,0.##", CultureInfo.InvariantCulture)}–{Metres(max)}";
+        private static string Range(float min, float max) => $"{Numbers.Amount(min)}–{Numbers.Metres(max)}";
 
         /// <summary>Each rule that is not at its default, a row each.</summary>
         public static List<KeyValuePair<string, string>> Rows(LocationRules rules)
@@ -67,7 +64,7 @@ namespace Scry
                 if (!string.IsNullOrEmpty(value)) rows.Add(new KeyValuePair<string, string>(label, value));
             }
 
-            Add("Per world", "up to " + rules.Quantity.ToString("#,0", CultureInfo.InvariantCulture));
+            Add("Per world", "up to " + Numbers.Count(rules.Quantity));
             Add("Biome", Biome(rules));
             Add("From the centre", FromCentre(rules));
             Add("Above the sea", Altitude(rules));
@@ -86,7 +83,7 @@ namespace Scry
         /// <summary>The same rules as one line, for a prefab placed by several rule sets.</summary>
         public static string Line(LocationRules rules)
         {
-            var parts = new List<string> { "up to " + rules.Quantity.ToString("#,0", CultureInfo.InvariantCulture) + (string.IsNullOrEmpty(rules.Biomes) ? "" : " in " + Biome(rules)) };
+            var parts = new List<string> { "up to " + Numbers.Count(rules.Quantity) + (string.IsNullOrEmpty(rules.Biomes) ? "" : " in " + Biome(rules)) };
             var centre = FromCentre(rules);
             if (centre != null) parts.Add(centre + " from the centre");
             var altitude = Altitude(rules);
@@ -112,8 +109,8 @@ namespace Scry
             var min = Math.Max(rules.MinDistance, rules.MinDistanceFromCenter);
             var max = Tighter(rules.MaxDistance, rules.MaxDistanceFromCenter);
             if (min > 0f && max > 0f) return Range(min, max);
-            if (max > 0f) return "within " + Metres(max);
-            if (min > 0f) return "beyond " + Metres(min);
+            if (max > 0f) return "within " + Numbers.Metres(max);
+            if (min > 0f) return "beyond " + Numbers.Metres(min);
             return null;
         }
 
@@ -124,8 +121,8 @@ namespace Scry
             var low = rules.MinAltitude > -1000f;
             var high = rules.MaxAltitude < 1000f;
             if (low && high) return Range(rules.MinAltitude, rules.MaxAltitude);
-            if (low) return "at least " + Metres(rules.MinAltitude);
-            if (high) return "at most " + Metres(rules.MaxAltitude);
+            if (low) return "at least " + Numbers.Metres(rules.MinAltitude);
+            if (high) return "at most " + Numbers.Metres(rules.MaxAltitude);
             return null;
         }
 
@@ -133,25 +130,25 @@ namespace Scry
         {
             if (rules.MinSimilar <= 0f) return null;
             var other = string.IsNullOrEmpty(rules.Group) ? "another of its kind" : $"another of the group \"{rules.Group}\"";
-            return $"at least {Metres(rules.MinSimilar)} from {other}";
+            return $"at least {Numbers.Metres(rules.MinSimilar)} from {other}";
         }
 
         private static string Near(LocationRules rules)
         {
             if (rules.MaxSimilar <= 0f) return null;
             var other = string.IsNullOrEmpty(rules.GroupMax) ? "another of its kind" : $"one of the group \"{rules.GroupMax}\"";
-            return $"within {Metres(rules.MaxSimilar)} of {other}";
+            return $"within {Numbers.Metres(rules.MaxSimilar)} of {other}";
         }
 
         /// <summary>How much the ground may rise within its outer radius (<c>WorldGenerator.GetTerrainDelta</c>); 1000 and more is no limit.</summary>
         private static string Ground(LocationRules rules)
         {
-            var within = $" within {Metres(rules.ExteriorRadius)} of it";
+            var within = $" within {Numbers.Metres(rules.ExteriorRadius)} of it";
             var low = rules.MinTerrainDelta > 0f;
             var high = rules.MaxTerrainDelta < 1000f;
             if (low && high) return "rising " + Range(rules.MinTerrainDelta, rules.MaxTerrainDelta) + within;
-            if (low) return "rising at least " + Metres(rules.MinTerrainDelta) + within;
-            if (high) return "rising at most " + Metres(rules.MaxTerrainDelta) + within;
+            if (low) return "rising at least " + Numbers.Metres(rules.MinTerrainDelta) + within;
+            if (high) return "rising at most " + Numbers.Metres(rules.MaxTerrainDelta) + within;
             return null;
         }
 
@@ -160,21 +157,17 @@ namespace Scry
 
         private const string ForestScale = " (0 is the thickest woods, about 2.2 the most open; the Meadows are wooded below 1.15)";
 
-        private static string Number(float value) => Naming.Amount(value);
-
         /// <summary>The range of the forest factor it keeps to, or null when it keeps to none or to all of it.</summary>
         private static string Woods(LocationRules rules)
         {
             if (!rules.InForest) return null;
             var low = rules.ForestMin > 0f;
             var high = rules.ForestMax < ForestTop;
-            if (low && high) return $"forest factor {Number(rules.ForestMin)}–{Number(rules.ForestMax)}";
-            if (high) return "forest factor at most " + Number(rules.ForestMax);
-            if (low) return "forest factor at least " + Number(rules.ForestMin);
+            if (low && high) return $"forest factor {Numbers.Amount(rules.ForestMin)}–{Numbers.Amount(rules.ForestMax)}";
+            if (high) return "forest factor at most " + Numbers.Amount(rules.ForestMax);
+            if (low) return "forest factor at least " + Numbers.Amount(rules.ForestMin);
             return null;
         }
-
-        private static string Percent(float value) => (value * 100f).ToString("0.#", CultureInfo.InvariantCulture) + "%";
 
         private static bool Only(LocationRules rules, string biome) => rules.BiomeKeys.Length > 0 && Array.TrueForAll(rules.BiomeKeys, b => b == biome);
 
@@ -195,12 +188,12 @@ namespace Scry
             }
             if (Only(rules, "AshLands"))
             {
-                var lava = low && high ? $"{Percent(rules.MinVegetation)}–{Percent(rules.MaxVegetation)}".Replace("%–", "–")
-                    : low ? "more than " + Percent(rules.MinVegetation) : "less than " + Percent(rules.MaxVegetation);
+                var lava = low && high ? $"{Numbers.Percent(rules.MinVegetation, 1)}–{Numbers.Percent(rules.MaxVegetation, 1)}".Replace("%–", "–")
+                    : low ? "more than " + Numbers.Percent(rules.MinVegetation, 1) : "less than " + Numbers.Percent(rules.MaxVegetation, 1);
                 return ("Lava", $"only on ground {lava} lava", " (the game counts 60% and more as lava)");
             }
-            var range = low && high ? $"{Number(rules.MinVegetation)}–{Number(rules.MaxVegetation)}"
-                : low ? "over " + Number(rules.MinVegetation) : "under " + Number(rules.MaxVegetation);
+            var range = low && high ? $"{Numbers.Amount(rules.MinVegetation)}–{Numbers.Amount(rules.MaxVegetation)}"
+                : low ? "over " + Numbers.Amount(rules.MinVegetation) : "under " + Numbers.Amount(rules.MaxVegetation);
             if (Only(rules, "Mistlands")) return ("Growth", "only where the Mistlands' growth value, which their plants grow by, is " + range, "");
             return ("Ground value", range, " (lava in the Ashlands, growth in the Mistlands, none elsewhere)");
         }
@@ -214,9 +207,9 @@ namespace Scry
         {
             if (!rules.SurroundCheck || !HasValue(rules)) return null;
             var what = Only(rules, "AshLands") ? "lava" : Only(rules, "Mistlands") ? "Mistlands growth" : "lava or Mistlands growth";
-            var within = $"within {Metres(rules.SurroundDistance)}";
+            var within = $"within {Numbers.Metres(rules.SurroundDistance)}";
             if (rules.SurroundBetter <= 0f) return $"more {what} {within} than the average spot that meets its other rules";
-            return $"{what} {within} at least {Percent(rules.SurroundBetter)} of the way from the average spot that meets its other rules to the most found";
+            return $"{what} {within} at least {Numbers.Percent(rules.SurroundBetter, 1)} of the way from the average spot that meets its other rules to the most found";
         }
 
         /// <summary>
@@ -316,7 +309,7 @@ namespace Scry
                     case MusicWhen.Inside:
                         lines.Add(tune.Chance >= 1f
                             ? tune.Name + " each time you step inside"
-                            : tune.Name + " on " + (tune.Chance * 100f).ToString("0.#", CultureInfo.InvariantCulture) + "% of the times you step inside");
+                            : tune.Name + " on " + Numbers.Percent(tune.Chance, 1) + " of the times you step inside");
                         break;
                     default:
                         lines.Add(tune.Name + " while you are inside");

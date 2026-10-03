@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using UnityEngine;
 
@@ -58,7 +57,7 @@ namespace Scry
             if (open && stars)
             {
                 var names = new List<string>();
-                for (var level = 1; level <= modifiers.MaxLevel; level++) names.Add(level == 1 ? "No stars" : level == 2 ? "1 star" : $"{level - 1} stars");
+                for (var level = 1; level <= modifiers.MaxLevel; level++) names.Add(level == 1 ? "No stars" : level == 2 ? "1 star" : $"{Numbers.Count(level - 1)} stars");
                 var chosen = Segments("Stars", names, modifiers.Level - 1, width, labelW, ref y);
                 if (chosen >= 0) modifiers.Level = chosen + 1;
             }
@@ -78,7 +77,7 @@ namespace Scry
 
             if (open && projectile)
             {
-                Previews.ProjectileSpeed = SliderRow("Speed", $"{Mathf.RoundToInt(Previews.ProjectileSpeed)} m/s", Previews.ProjectileSpeed, 5f, 120f, width, labelW, ref y);
+                Previews.ProjectileSpeed = SliderRow("Speed", $"{Numbers.Count(Mathf.RoundToInt(Previews.ProjectileSpeed))} m/s", Previews.ProjectileSpeed, 5f, 120f, width, labelW, ref y);
             }
 
             // Space after it only when open: a folded heading already leaves the same gap as every other.

@@ -169,14 +169,14 @@ namespace Scry
         }
 
         /// <summary>How widespread a thing is among a dungeon's kinds of room, as a chip's amount.</summary>
-        public static string InRooms(int rooms) => rooms == 1 ? "in 1 kind of room" : $"in {rooms} kinds of room";
+        public static string InRooms(int rooms) => rooms == 1 ? "in 1 kind of room" : $"in {Numbers.Count(rooms)} kinds of room";
 
         /// <summary>How many and how likely, as a chip's amount: nothing for one that is always there.</summary>
         public static string Amount(int count, float chance)
         {
             var always = chance >= 0.9995f;
-            if (always) return count > 1 ? count.ToString() : "";
-            return count > 1 ? $"{count}, {DropWords.Share(chance)} each" : DropWords.Share(chance);
+            if (always) return count > 1 ? Numbers.Count(count) : "";
+            return count > 1 ? $"{Numbers.Count(count)}, {DropWords.Share(chance)} each" : DropWords.Share(chance);
         }
     }
 }

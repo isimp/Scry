@@ -32,7 +32,7 @@ namespace Scry.Tests
         private static List<string> SourceFiles()
         {
             var root = Root();
-            return new[] { "src", "selftest", "tools" }
+            return new[] { "src", "selftest", "tools", "tests" }
                 .Where(d => Directory.Exists(Path.Combine(root, d)))
                 .SelectMany(d => Directory.GetFiles(Path.Combine(root, d), "*.cs", SearchOption.AllDirectories))
                 .Where(f => !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar) && !f.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar))

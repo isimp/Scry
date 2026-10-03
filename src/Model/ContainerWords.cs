@@ -9,7 +9,7 @@ namespace Scry
             if (width <= 0 || height <= 0) return null;
             var slots = width * height;
             if (slots == 1) return "1";
-            return height == 1 ? $"{slots}, in one row" : $"{slots}, in {height} rows of {width}";
+            return height == 1 ? $"{Numbers.Count(slots)}, in one row" : $"{Numbers.Count(slots)}, in {Numbers.Count(height)} rows of {Numbers.Count(width)}";
         }
     }
 }

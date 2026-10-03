@@ -12,13 +12,13 @@ namespace Scry
 
         public static string Portals(bool teleportable) => teleportable ? "can go through" : "cannot go through";
 
-        public static string Quality(int maxQuality) => maxQuality > 1 ? $"up to {maxQuality}" : "1 only: it cannot be upgraded";
+        public static string Quality(int maxQuality) => maxQuality > 1 ? $"up to {Numbers.Count(maxQuality)}" : "1 only: it cannot be upgraded";
 
         public static string Repair(bool canBeRepaired, string station, int level)
         {
             if (!canBeRepaired) return "cannot be repaired";
             if (string.IsNullOrEmpty(station)) return "cannot be repaired: no recipe names a station for it";
-            return level > 1 ? $"{station} level {level}" : station;
+            return level > 1 ? $"{station} level {Numbers.Count(level)}" : station;
         }
     }
 }

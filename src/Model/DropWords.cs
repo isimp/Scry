@@ -50,11 +50,11 @@ namespace Scry
             string title;
             if (table.OneOfEach)
             {
-                title = table.Min >= table.Drops.Count ? "Drops each of these once" : $"Drops {Range(table.Min, table.Max)} of these, each at most once";
+                title = table.Min >= table.Drops.Count ? "Drops each of these once" : $"Drops {Numbers.CountRange(table.Min, table.Max)} of these, each at most once";
             }
             else
             {
-                title = table.Max <= 1 ? "Drops" : $"Drops {Range(table.Min, table.Max)} times";
+                title = table.Max <= 1 ? "Drops" : $"Drops {Numbers.CountRange(table.Min, table.Max)} times";
             }
             if (table.Chance < 1f) title += $", {Share(table.Chance)} of the time";
             return title;
@@ -69,11 +69,11 @@ namespace Scry
             string title;
             if (table.OneOfEach)
             {
-                title = table.Min >= table.Drops.Count ? "Holds each of these once" : $"Holds {Range(table.Min, table.Max)} of these, each at most once";
+                title = table.Min >= table.Drops.Count ? "Holds each of these once" : $"Holds {Numbers.CountRange(table.Min, table.Max)} of these, each at most once";
             }
             else if (table.Max > 1)
             {
-                title = $"Holds {Range(table.Min, table.Max)} of these";
+                title = $"Holds {Numbers.CountRange(table.Min, table.Max)} of these";
             }
             else
             {
@@ -86,7 +86,7 @@ namespace Scry
         /// <summary>How many of an item a roll gives, and its share of a roll where there is a choice.</summary>
         public static string Amount(DropTableInfo table, DropInfo drop)
         {
-            var amount = Range(drop.StackMin, drop.StackMax);
+            var amount = Numbers.CountRange(drop.StackMin, drop.StackMax);
             if (table.OneOfEach || table.Drops.Count < 2) return amount;
 
             var total = 0f;
@@ -102,18 +102,18 @@ namespace Scry
         /// </summary>
         public static string ForItem(DropTableInfo table, DropInfo drop)
         {
-            var amount = Range(drop.StackMin, drop.StackMax);
+            var amount = Numbers.CountRange(drop.StackMin, drop.StackMax);
             var odds = new List<string>();
             if (table.OneOfEach)
             {
-                if (table.Min < table.Drops.Count) odds.Add($"at most once, {Range(table.Min, table.Max)} of {table.Drops.Count} picked");
+                if (table.Min < table.Drops.Count) odds.Add($"at most once, {Numbers.CountRange(table.Min, table.Max)} of {Numbers.Count(table.Drops.Count)} picked");
             }
             else
             {
                 var total = 0f;
                 foreach (var each in table.Drops) total += each.Weight;
                 if (table.Drops.Count > 1 && total > 0f) odds.Add(Share(drop.Weight / total) + " a roll");
-                if (table.Max > 1) odds.Add($"{Range(table.Min, table.Max)} rolls");
+                if (table.Max > 1) odds.Add($"{Numbers.CountRange(table.Min, table.Max)} rolls");
             }
             if (table.Chance < 1f) odds.Add(Share(table.Chance) + " of the time");
             return odds.Count > 0 ? $"{amount} ({string.Join(", ", odds.ToArray())})" : amount;
@@ -125,7 +125,7 @@ namespace Scry
         /// 3 gives one or two; one set to drop per player gives one for each player online.
         /// </summary>
         public static string CreatureAmount(int min, int max, bool onePerPlayer) =>
-            onePerPlayer ? "1 per player" : Range(min, max - 1);
+            onePerPlayer ? "1 per player" : Numbers.CountRange(min, max - 1);
 
         /// <summary>
         /// A creature's drop as its chip and its line tell it: how many, and how often where it is
@@ -143,14 +143,11 @@ namespace Scry
         {
             if (maxStars <= 0) return null;
             var steps = new List<string>();
-            for (var stars = 1; stars <= maxStars; stars++) steps.Add($"×{1 << stars} at {stars} {(stars == 1 ? "star" : "stars")}");
+            for (var stars = 1; stars <= maxStars; stars++) steps.Add($"×{Numbers.Count(1 << stars)} at {Numbers.Count(stars)} {(stars == 1 ? "star" : "stars")}");
             var words = "amount and chance " + string.Join(", ", steps);
             if (unchanged != null && unchanged.Count > 0) words += $"; {Naming.Joined(new List<string>(unchanged))} {(unchanged.Count == 1 ? "stays" : "stay")} the same";
             return words;
         }
-
-        /// <summary>A range of counts, written as the rest of the panel writes them: "3", "1–4".</summary>
-        public static string Range(int min, int max) => max <= min ? min.ToString() : $"{min}–{max}";
 
         /// <summary>
         /// A share as a percentage: whole where that says enough, with a decimal near none or all,
@@ -161,8 +158,7 @@ namespace Scry
             var percent = share * 100f;
             if (percent > 0f && percent < 0.05f) return "under 0.1%";
             if (percent < 100f && percent > 99.95f) return "over 99.9%";
-            var format = percent < 10f || percent > 90f ? "0.#" : "0";
-            return percent.ToString(format, System.Globalization.CultureInfo.InvariantCulture) + "%";
+            return Numbers.Percent(share, percent < 10f || percent > 90f ? 1 : 0);
         }
     }
 }

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Globalization;
 
 namespace Scry
 {
@@ -12,25 +11,22 @@ namespace Scry
     /// </summary>
     public static class BuildWords
     {
-        private static string Whole(float value) => Naming.Amount(value);
-
-        private static string Share(float value) => (value * 100f).ToString("0.#", CultureInfo.InvariantCulture) + "%";
 
         /// <summary>The support it has on the ground and the least it stands with; null for a material without figures.</summary>
         public static string Support(float max, float min, bool needsSupport)
         {
             if (max <= 0f) return null;
-            return $"{Whole(max)} on the ground, " + (needsSupport ? $"falls below {Whole(min)}" : "stands without it");
+            return $"{Numbers.Amount(max)} on the ground, " + (needsSupport ? $"falls below {Numbers.Amount(min)}" : "stands without it");
         }
 
         /// <summary>The share of support lost for each metre sideways and up; null when none is lost.</summary>
         public static string SupportLoss(float sideways, float up)
         {
             if (sideways <= 0f && up <= 0f) return null;
-            if (Share(sideways) == Share(up)) return $"{Share(sideways)} a metre either way";
+            if (Numbers.Percent(sideways, 1) == Numbers.Percent(up, 1)) return $"{Numbers.Percent(sideways, 1)} a metre either way";
             var parts = new List<string>();
-            if (sideways > 0f) parts.Add($"{Share(sideways)} a metre sideways");
-            if (up > 0f) parts.Add($"{Share(up)} a metre up");
+            if (sideways > 0f) parts.Add($"{Numbers.Percent(sideways, 1)} a metre sideways");
+            if (up > 0f) parts.Add($"{Numbers.Percent(up, 1)} a metre up");
             return string.Join(", ", parts);
         }
 
@@ -80,23 +76,21 @@ namespace Scry
         /// The title over the pieces one is kept apart from (<c>Piece.m_blockingPieces</c>), each a
         /// chip; none without a radius, which the game keeps them apart by.
         /// </summary>
-        public static string KeptApart(float radius) => radius > 0f ? $"Not within {Naming.Number(radius)} m of" : null;
+        public static string KeptApart(float radius) => radius > 0f ? $"Not within {Numbers.Amount(radius)} m of" : null;
 
         /// <summary>The label over the piece one must stand near (<c>Piece.m_mustConnectTo</c>), or on top of.</summary>
         public static string Near(float radius, bool above) =>
-            above ? $"On top of, within {Naming.Number(radius)} m" : $"Within {Naming.Number(radius)} m of";
+            above ? $"On top of, within {Numbers.Amount(radius)} m" : $"Within {Numbers.Amount(radius)} m of";
 
         /// <summary>How far from a station its pieces may be built (<c>CraftingStation.m_rangeBuild</c>), more with each upgrade.</summary>
         public static string Range(float range, float perUpgrade) =>
-            perUpgrade > 0f ? $"{Naming.Number(range)} m, {Naming.Number(perUpgrade)} m more for each upgrade" : $"{Naming.Number(range)} m";
+            perUpgrade > 0f ? $"{Numbers.Amount(range)} m, {Numbers.Amount(perUpgrade)} m more for each upgrade" : $"{Numbers.Amount(range)} m";
 
         /// <summary>What claiming a bed does and needs (<c>Bed.Interact</c>, <c>CheckExposure</c>).</summary>
-        public static string BedClaim(float cover) => $"where you come back to after dying; it needs a roof and at least {Percent(cover)} cover";
+        public static string BedClaim(float cover) => $"where you come back to after dying; it needs a roof and at least {Numbers.Percent(cover)} cover";
 
         /// <summary>What sleeping in one's own bed needs (<c>Bed.Interact</c>: night, <c>CheckEnemies</c>, <c>CheckExposure</c>, <c>CheckFire</c>, <c>CheckWet</c>).</summary>
-        public static string BedSleep(float cover) => $"at night, with no enemy sensing you, under a roof with at least {Percent(cover)} cover, by a fire, and dry";
-
-        private static string Percent(float share) => ((int)System.Math.Round(share * 100f, System.MidpointRounding.AwayFromZero)).ToString(CultureInfo.InvariantCulture) + "%";
+        public static string BedSleep(float cover) => $"at night, with no enemy sensing you, under a roof with at least {Numbers.Percent(cover)} cover, by a fire, and dry";
     }
 }
 
@@ -123,7 +117,7 @@ namespace Scry
         {
             var lines = new List<(string, string)>();
             var known = radius > 0f;
-            var r = Naming.Number(radius);
+            var r = Numbers.Amount(radius);
             var within = known ? $"within {r} m" : "near it";
             if ((type & 0x01) != 0) lines.Add(("Warmth", $"{within} you are by a fire, which resting and sleeping need"));
             if ((type & 0x02) != 0) lines.Add(("Fire", known ? $"creatures afraid of fire keep away from within {r} m" : "creatures afraid of fire keep away from it"));

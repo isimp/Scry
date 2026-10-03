@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 
 namespace Scry
 {
@@ -51,9 +50,9 @@ namespace Scry
 
         public string Line(double seconds)
         {
-            string Mb(long bytes) => Math.Round(bytes / (1024.0 * 1024.0)).ToString("0", CultureInfo.InvariantCulture);
-            var share = AllBytes > 0 ? $" ({Math.Round(100.0 * ScryBytes / AllBytes).ToString("0", CultureInfo.InvariantCulture)}%)" : "";
-            return $"In the last {seconds.ToString("0", CultureInfo.InvariantCulture)} s: {Cleanups} memory cleanups, {ScryCleanups} of them during Scry's work; "
+            string Mb(long bytes) => Numbers.Amount(bytes / (1024.0 * 1024.0), 0);
+            var share = AllBytes > 0 ? $" ({Numbers.Percent((double)ScryBytes / AllBytes)})" : "";
+            return $"In the last {Numbers.Amount(seconds, 0)} s: {Numbers.Count(Cleanups)} memory cleanups, {Numbers.Count(ScryCleanups)} of them during Scry's work; "
                 + $"Scry allocated about {Mb(ScryBytes)} MB of the {Mb(AllBytes)} MB allocated in all{share}.";
         }
     }

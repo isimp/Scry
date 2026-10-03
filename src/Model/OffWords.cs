@@ -19,7 +19,7 @@ namespace Scry
                 return char.ToUpperInvariant(one[0]) + one.Substring(1) + " is off until Scry is updated. Everything else works.";
             }
             var named = Naming.Joined(new List<string>(features));
-            return $"{features.Count} parts of Scry are off until it is updated: {named}. Everything else works.";
+            return $"{Numbers.Count(features.Count)} parts of Scry are off until it is updated: {named}. Everything else works.";
         }
 
         /// <summary>What the details card says above the list of what is off.</summary>

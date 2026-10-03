@@ -56,7 +56,7 @@ namespace Scry
                 case Degree.VeryWeak: value = "200%"; word = "very weak to it: takes double"; tone = Tone.Weak; break;
                 case Degree.Immune: value = "0%"; word = "immune to it: takes none"; tone = Tone.Immune; break;
                 case Degree.Ignore: value = "0%"; word = "unaffected by it: takes none"; tone = Tone.Immune; break;
-                default: value = "?"; word = $"a degree Scry does not know ({(int)degree})"; break;
+                default: value = "?"; word = $"a degree Scry does not know ({Numbers.Count((int)degree)})"; break;
             }
             return new ResistCell { Type = type, Value = value, Tip = $"{type}: {word}", Tone = tone };
         }

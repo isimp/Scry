@@ -20,7 +20,7 @@ namespace Scry
             Description = CatalogBuilder.Localize(effect.m_tooltip);
 
             // Told here as well as on the card, since an effect seen on a person has no card.
-            Add("Lasts", effect.m_ttl > 0f ? Naming.Duration(effect.m_ttl) : "no time limit of its own");
+            Add("Lasts", effect.m_ttl > 0f ? Numbers.Duration(effect.m_ttl) : "no time limit of its own");
 
             // Its category is an id the game never shows; what it means is that nothing giving
             // another effect of the same category can be eaten or drunk while it lasts
@@ -61,7 +61,7 @@ namespace Scry
                     var value = field.GetValue(effect);
                     if (Equals(value, field.GetValue(blank))) continue;
                     // A time is told with its unit ("Cooldown 20 min", not 1200).
-                    var shown = value is float seconds && IsTime(field.Name) ? Naming.Duration(seconds) : Shown(value);
+                    var shown = value is float seconds && IsTime(field.Name) ? Numbers.Duration(seconds) : Shown(value);
                     if (shown != null) Add(Naming.FieldLabel(field.Name), shown);
                 }
 

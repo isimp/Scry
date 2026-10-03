@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 
 namespace Scry
@@ -45,8 +44,8 @@ namespace Scry
         public string Line(double budgetMs)
         {
             if (_frames.Count == 0) return "no frames measured";
-            return $"{_frames.Count} frames: Scry's own work {Number(Mean)} ms on average, {Number(Percentile(0.95))} ms at the 95th percentile, " +
-                   $"{Number(Max)} ms at the most; {Over(budgetMs)} frames over {Number(budgetMs)} ms";
+            return $"{Numbers.Count(_frames.Count)} frames: Scry's own work {Numbers.Amount(Mean, 1)} ms on average, {Numbers.Amount(Percentile(0.95), 1)} ms at the 95th percentile, " +
+                   $"{Numbers.Amount(Max, 1)} ms at the most; {Numbers.Count(Over(budgetMs))} frames over {Numbers.Amount(budgetMs, 1)} ms";
         }
 
         public void Clear()
@@ -62,7 +61,5 @@ namespace Scry
             for (var i = Math.Max(0, first); i < _frames.Count; i++) part._frames.Add(_frames[i]);
             return part;
         }
-
-        private static string Number(double value) => value.ToString("0.#", CultureInfo.InvariantCulture);
     }
 }

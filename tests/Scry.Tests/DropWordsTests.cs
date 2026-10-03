@@ -155,9 +155,9 @@ namespace Scry.Tests
         [Fact]
         public void RangesAreWrittenTheSameEverywhere()
         {
-            Assert.Equal("3", DropWords.Range(3, 3));
-            Assert.Equal("1–4", DropWords.Range(1, 4));
-            Assert.Equal("2", DropWords.Range(2, 1));
+            Assert.Equal("3", Numbers.CountRange(3, 3));
+            Assert.Equal("1–4", Numbers.CountRange(1, 4));
+            Assert.Equal("2", Numbers.CountRange(2, 1));
         }
     }
 }

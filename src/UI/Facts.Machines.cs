@@ -18,11 +18,11 @@ namespace Scry
                 var fires = new Row { Title = "Fires" };
                 if (turret.m_allowedAmmo != null) foreach (var ammo in turret.m_allowedAmmo) if (ammo.m_ammo != null) fires.Items.Add(Chip(ammo.m_ammo.gameObject.name, ""));
                 if (fires.Items.Count > 0) Rows.Add(fires);
-                Add("Holds", $"{turret.m_maxAmmo} shots");
+                Add("Holds", $"{Numbers.Count(turret.m_maxAmmo)} shots");
                 Add("Shoots", MachineWords.Shoots(turret.m_targetEnemies, turret.m_targetPlayers, turret.m_targetTamed, turret.m_viewDistance));
-                Add("Shoots every", Naming.Duration(turret.m_attackCooldown));
+                Add("Shoots every", Numbers.Duration(turret.m_attackCooldown));
                 // Given trophies, it shoots only their creatures (Turret.UseItem, UpdateTarget).
-                var trophies = new Row { Title = $"Given these trophies, up to {turret.m_maxConfigTargets} at once, it shoots only their creatures" };
+                var trophies = new Row { Title = $"Given these trophies, up to {Numbers.Count(turret.m_maxConfigTargets)} at once, it shoots only their creatures" };
                 if (turret.m_configTargets != null) foreach (var target in turret.m_configTargets) if (target.m_item != null) trophies.Items.Add(Chip(target.m_item.gameObject.name, ""));
                 if (trophies.Items.Count > 0) Rows.Add(trophies);
             }
@@ -31,7 +31,7 @@ namespace Scry
             if (trap != null)
             {
                 Add("Springs on", MachineWords.Springs(trap.m_triggeredByEnemies, trap.m_triggeredByPlayers));
-                Add("Rearms after", Naming.Duration(trap.m_rearmCooldown));
+                Add("Rearms after", Numbers.Duration(trap.m_rearmCooldown));
                 var hit = trap.m_AOE != null ? trap.m_AOE.GetComponentInChildren<Aoe>(true) : null;
                 var damage = hit != null ? Damages(hit.m_damage) : "";
                 if (damage.Length > 0) Add("Damage", damage);
@@ -54,7 +54,7 @@ namespace Scry
                 var types = (catapult.m_includeExcludeTypesList ?? new System.Collections.Generic.List<ItemDrop.ItemData.ItemType>())
                     .Select(t => Groups.ItemTypeName(t.ToString()).ToLowerInvariant()).Distinct().ToArray();
                 Add("Loads", MachineWords.Loads(catapult.m_defaultIncludeAndListExclude, types, catapult.m_onlyUseIncludedProjectiles));
-                if (catapult.m_maxLoadStack > 1) Add("At a time", $"up to {catapult.m_maxLoadStack}");
+                if (catapult.m_maxLoadStack > 1) Add("At a time", $"up to {Numbers.Count(catapult.m_maxLoadStack)}");
                 var always = new Row { Title = "Loads these whatever their type" };
                 if (catapult.m_includeItemsOverride != null) foreach (var item in catapult.m_includeItemsOverride) if (item != null) always.Items.Add(Chip(item.gameObject.name, ""));
                 if (always.Items.Count > 0) Rows.Add(always);

@@ -160,10 +160,10 @@ namespace Scry
         }
 
         /// <summary>A producer's pace: one every so long, holding up to so many.</summary>
-        public static string Pace(float everySeconds, int holdsUpTo) => $"one every {Naming.Duration(everySeconds)}, holding up to {holdsUpTo}";
+        public static string Pace(float everySeconds, int holdsUpTo) => $"one every {Numbers.Duration(everySeconds)}, holding up to {Numbers.Count(holdsUpTo)}";
 
         /// <summary>A trader's price: so many coins, for a stack where it sells more than one.</summary>
-        public static string Price(int stack, int price) => stack > 1 ? $"{stack} for {price} coins" : $"{price} coins";
+        public static string Price(int stack, int price) => stack > 1 ? $"{Numbers.Count(stack)} for {Numbers.Count(price)} coins" : $"{Numbers.Count(price)} coins";
 
         /// <summary>How a drop table gives what it holds, by what it belongs to, as the other side's facts tell it.</summary>
         public static string Verb(TableOf table)

@@ -25,14 +25,14 @@ namespace Scry
             if (!p.Check(Stage.Cutting, $"{room.Name} opens cut", Stage.CutLabel)) yield break;
             var at = Stage.CutAt;
             Stage.CutBy(1f);
-            p.Check(Mathf.Abs(Stage.CutAt - (at + 1f)) < 0.01f, "Shift and the wheel move the cut up", $"{at:0.0} to {Stage.CutAt:0.0} m");
+            p.Check(Mathf.Abs(Stage.CutAt - (at + 1f)) < 0.01f, "Shift and the wheel move the cut up", $"{Numbers.Fixed(at, 1)} to {Numbers.Fixed(Stage.CutAt, 1)} m");
             Stage.CutBy(-2f);
-            p.Check(Mathf.Abs(Stage.CutAt - (at - 1f)) < 0.01f, "and down", $"{Stage.CutAt:0.0} m");
+            p.Check(Mathf.Abs(Stage.CutAt - (at - 1f)) < 0.01f, "and down", $"{Numbers.Fixed(Stage.CutAt, 1)} m");
             Select(other);
             yield return Until(() => CopyOf(other) != null, 20);
             Select(room);
             yield return Until(() => CopyOf(room) != null, 20);
-            p.Check(Stage.Cutting && Mathf.Abs(Stage.CutAt - at) < 0.01f, "going away and back opens it afresh on its top floor", $"{Stage.CutAt:0.0} m");
+            p.Check(Stage.Cutting && Mathf.Abs(Stage.CutAt - at) < 0.01f, "going away and back opens it afresh on its top floor", $"{Numbers.Fixed(Stage.CutAt, 1)} m");
 
             var location = LocationNamed("WoodHouse1", "WoodHouse2", "Ruin1", "StoneHouse3");
             if (location == null) yield break;
@@ -43,7 +43,7 @@ namespace Scry
             p.Check(Stage.Cutting, "until its chip takes it off", Stage.CutLabel);
             var height = (Stage.ModelBottom + Stage.ModelTop) / 2f;
             Stage.CutTo(height);
-            p.Check(Mathf.Abs(Stage.CutAt - height) < 0.01f && Stage.CutLevel == PlaceView.LevelAt(Stage.FloorHeights, height), "the ruler sets the cut anywhere, over the floor below it", $"{Stage.CutAt:0.0} m, {Stage.CutLabel}");
+            p.Check(Mathf.Abs(Stage.CutAt - height) < 0.01f && Stage.CutLevel == PlaceView.LevelAt(Stage.FloorHeights, height), "the ruler sets the cut anywhere, over the floor below it", $"{Numbers.Fixed(Stage.CutAt, 1)} m, {Stage.CutLabel}");
             Stage.ToggleRoof();
             p.Check(!Stage.Cutting, "and the chip puts the roof back on", Stage.CutLabel);
         }
@@ -75,13 +75,13 @@ namespace Scry
                 var floors = Stage.FloorHeights.ToList();
                 var cuts = Stage.CutHeights.ToList();
                 if (floors.Count == 0) wrong.Add($"{entry.Name} has no floor");
-                else if (floors.Zip(floors.Skip(1), (above, below) => above > below).Any(ordered => !ordered)) wrong.Add($"{entry.Name}'s floors are out of order: {string.Join(", ", floors)}");
+                else if (floors.Zip(floors.Skip(1), (above, below) => above > below).Any(ordered => !ordered)) wrong.Add($"{entry.Name}'s floors are out of order: {string.Join(", ", floors.Select(f => Numbers.Amount(f)))}");
                 else if (cuts.Zip(floors, (cut, floor) => cut > floor).Any(over => !over)) wrong.Add($"{entry.Name} is cut below a floor");
                 var left = CopyOf(entry) != null ? CopyOf(entry).GetComponentsInChildren<Collider>(true).Length : 0;
-                if (left > 0) wrong.Add($"{entry.Name} keeps {left} colliders");
+                if (left > 0) wrong.Add($"{entry.Name} keeps {Numbers.Count(left)} colliders");
                 // Each floor with what its rays landed on, to see what is taken for a floor.
                 var makers = Stage.FloorMakersNow();
-                if (floors.Count > 1) several.Add($"{entry.Name} ({string.Join("; ", floors.Select((f, i) => $"{f:0.0} m on {(i < makers.Count ? makers[i] : "?")}"))})");
+                if (floors.Count > 1) several.Add($"{entry.Name} ({string.Join("; ", floors.Select((f, i) => $"{Numbers.Fixed(f, 1)} m on {(i < makers.Count ? makers[i] : "?")}"))})");
             }
             p.Note(several.Count > 0 ? "with several floors: " + string.Join("; ", several) : "none with several floors");
             p.Check(wrong.Count == 0, "each has floors from the top down, cut over each, with no collider left on its copy", string.Join("; ", wrong.Take(8)));
@@ -108,10 +108,10 @@ namespace Scry
 
             yield return Until(() => ExampleLayouts.Of(entry) && ExampleLayouts.Example != null, 150);
             var example = ExampleLayouts.Of(entry) ? ExampleLayouts.Example : null;
-            if (!p.Check(example != null, "an example has been laid out", $"{ExampleLayouts.Read} of {ExampleLayouts.Total} kinds of room read")) yield break;
-            p.Note($"{DungeonWords.Example(example, ExampleLayouts.Failed)}, its {ExampleLayouts.Total} kinds of room read and laid out {Time.unscaledTime - asked:0.0} s after selecting it");
-            p.Check(ExampleLayouts.Failed == 0, "every kind of room could be loaded", $"{ExampleLayouts.Failed} could not");
-            p.Check(example.Rooms.Count > 1, "it has rooms", $"{example.Rooms.Count}");
+            if (!p.Check(example != null, "an example has been laid out", $"{Numbers.Count(ExampleLayouts.Read)} of {Numbers.Count(ExampleLayouts.Total)} kinds of room read")) yield break;
+            p.Note($"{DungeonWords.Example(example, ExampleLayouts.Failed)}, its {Numbers.Count(ExampleLayouts.Total)} kinds of room read and laid out {Numbers.Fixed(Time.unscaledTime - asked, 1)} s after selecting it");
+            p.Check(ExampleLayouts.Failed == 0, "every kind of room could be loaded", $"{Numbers.Count(ExampleLayouts.Failed)} could not");
+            p.Check(example.Rooms.Count > 1, "it has rooms", $"{Numbers.Count(example.Rooms.Count)}");
             if (algorithm == "Dungeon")
             {
                 p.Check(example.Rooms[0].Room.Entrance, "it starts at an entrance", example.Rooms[0].Room.Name);
@@ -128,7 +128,7 @@ namespace Scry
             // Its page tells what its rooms hold, the loot in them and what their spawn points place.
             var page = Facts.For(entry);
             var holds = page.Rows.Where(r => PlaceParts.Roles.Any(role => r.Title.StartsWith(PlaceParts.Title(role, true), StringComparison.Ordinal))).ToList();
-            p.Check(holds.Sum(r => r.Items.Count) > 0, "its page tells what its rooms hold", holds.Count > 0 ? string.Join("; ", holds.Select(r => $"{r.Title} {r.Items.Count}")) : string.Join("; ", page.Rows.Select(r => r.Title)));
+            p.Check(holds.Sum(r => r.Items.Count) > 0, "its page tells what its rooms hold", holds.Count > 0 ? string.Join("; ", holds.Select(r => $"{r.Title} {Numbers.Count(r.Items.Count)}")) : string.Join("; ", page.Rows.Select(r => r.Title)));
             var loot = page.Rows.FirstOrDefault(r => r.Title.StartsWith("Loot in its rooms", StringComparison.Ordinal));
             p.Note(loot != null ? $"loot in its rooms: {string.Join(", ", loot.Items.Take(12).Select(i => i.Prefab + " " + i.Amount))}" : "no loot in its rooms");
             if (algorithm == "Dungeon") p.Check(loot != null && loot.Items.Count > 0, "and the loot in them");
@@ -138,10 +138,10 @@ namespace Scry
             var wasInside = Stage.Inside;
             Stage.Inside = true;
             yield return Until(() => Stage.ExampleRoomsTotal == example.Rooms.Count && Stage.ExampleRoomsShown == example.Rooms.Count, 30);
-            p.Check(Stage.ExampleRoomsShown == example.Rooms.Count, "it is built on the stage, room by room", $"{Stage.ExampleRoomsShown} of {example.Rooms.Count}");
+            p.Check(Stage.ExampleRoomsShown == example.Rooms.Count, "it is built on the stage, room by room", $"{Numbers.Count(Stage.ExampleRoomsShown)} of {Numbers.Count(example.Rooms.Count)}");
             yield return null;
             var size = Stage.SubjectSize;
-            p.Note($"the stage shows it {size.x:0} × {size.z:0} m, {size.y:0} m high");
+            p.Note($"the stage shows it {Numbers.Amount(size.x, 0)} × {Numbers.Amount(size.z, 0)} m, {Numbers.Amount(size.y, 0)} m high");
             if (algorithm == "Dungeon")
             {
                 p.Check(Stage.HasInside && Stage.Inside, "it shows the dungeon inside");
@@ -152,7 +152,7 @@ namespace Scry
                 var frames = Time.frameCount;
                 yield return Until(() => Time.frameCount > frames + 1 && ScryPanel.RoofButtonsDrawn > roofs, 3);
                 var perFrame = (ScryPanel.StageChipsDrawn - chips) / Mathf.Max(1, ScryPanel.RoofButtonsDrawn - roofs);
-                p.Check(perFrame > 0 && perFrame <= 3 && ScryPanel.RoofButtonsDrawn > roofs, "its stage shows three chips at the most, the roof over its ruler", $"{perFrame} chips a frame");
+                p.Check(perFrame > 0 && perFrame <= 3 && ScryPanel.RoofButtonsDrawn > roofs, "its stage shows three chips at the most, the roof over its ruler", $"{Numbers.Count(perFrame)} chips a frame");
                 p.Check(Stage.Cutting, "opened on its top floor", Stage.CutLabel);
                 var cuts = new List<float> { Stage.CutAt };
                 while (Stage.CutLevel < Stage.FloorHeights.Count - 1 && cuts.Count < 40)
@@ -161,21 +161,21 @@ namespace Scry
                     cuts.Add(Stage.CutAt);
                 }
                 var down = cuts.Zip(cuts.Skip(1), (above, below) => below < above).All(lower => lower);
-                p.Note($"{Stage.FloorHeights.Count} floors found in its rooms");
-                p.Check(cuts.Count > 0 && down, "it steps down floor by floor", string.Join(", ", cuts.Select(c => c.ToString("0.0"))) + " m");
+                p.Note($"{Numbers.Count(Stage.FloorHeights.Count)} floors found in its rooms");
+                p.Check(cuts.Count > 0 && down, "it steps down floor by floor", string.Join(", ", cuts.Select(c => Numbers.Fixed(c, 1))) + " m");
                 if (Stage.FloorHeights.Count > 1)
                 {
                     // On its lowest floor the rooms above are put away; with the roof on, all stand again.
                     yield return Until(() => Stage.ExampleRoomsAway > 0, 3);
                     var label = PlaceView.FloorLabel(Stage.CutLevel, Stage.FloorHeights.Count, Stage.ExampleRoomsOnFloor);
-                    p.Check(Stage.ExampleRoomsAway > 0 && label != null, "on its lowest floor the rooms above are put away, the floor named by the ruler", $"{Stage.ExampleRoomsAway} rooms put away; {label ?? "no label"}");
+                    p.Check(Stage.ExampleRoomsAway > 0 && label != null, "on its lowest floor the rooms above are put away, the floor named by the ruler", $"{Numbers.Count(Stage.ExampleRoomsAway)} rooms put away; {label ?? "no label"}");
                     Stage.OpenLevel(Stage.FloorHeights.Count);
                     yield return Until(() => Stage.ExampleRoomsAway == 0, 3);
-                    p.Check(Stage.ExampleRoomsAway == 0, "with the roof on every room stands", $"{Stage.ExampleRoomsAway} still away");
+                    p.Check(Stage.ExampleRoomsAway == 0, "with the roof on every room stands", $"{Numbers.Count(Stage.ExampleRoomsAway)} still away");
                 }
                 Stage.OpenLevel(0);
                 yield return Until(() => Stage.ExampleRoomsKept, 3);
-                if (Stage.FloorHeights.Count > 1) p.Check(Stage.ExampleRoomsDimmed > 0, "on its top floor the rooms below stand dimmed", $"{Stage.ExampleRoomsDimmed} dimmed, {Stage.ExampleRoomsAway} put away");
+                if (Stage.FloorHeights.Count > 1) p.Check(Stage.ExampleRoomsDimmed > 0, "on its top floor the rooms below stand dimmed", $"{Numbers.Count(Stage.ExampleRoomsDimmed)} dimmed, {Numbers.Count(Stage.ExampleRoomsAway)} put away");
                 // A room of the top floor, which stands while it is opened.
                 var top = Stage.ExampleShown?.Rooms.FindIndex(r => !r.Room.EndCap && !r.Room.Divider && Stage.ExampleRoomShown(r) == PlanRoomShown.Whole) ?? -1;
                 var point = Stage.ExamplePointOf(Math.Max(0, top));
@@ -183,13 +183,13 @@ namespace Scry
                 Stage.Inside = false;
                 yield return null;
                 var outside = Stage.SubjectSize;
-                p.Check(Mathf.Max(outside.x, outside.z) < Mathf.Max(size.x, size.z), "outside it shows its entrance", $"{outside.x:0} × {outside.z:0} m");
+                p.Check(Mathf.Max(outside.x, outside.z) < Mathf.Max(size.x, size.z), "outside it shows its entrance", $"{Numbers.Amount(outside.x, 0)} × {Numbers.Amount(outside.z, 0)} m");
                 Stage.Inside = true;
             }
             else
             {
                 p.Check(!Stage.HasInside, "a camp has no inside to go into");
-                p.Check(Mathf.Max(size.x, size.z) > 15f, "the camp stands around the location", $"{size.x:0} × {size.z:0} m");
+                p.Check(Mathf.Max(size.x, size.z) > 15f, "the camp stands around the location", $"{Numbers.Amount(size.x, 0)} × {Numbers.Amount(size.z, 0)} m");
             }
             Stage.Inside = wasInside;
 
@@ -280,15 +280,15 @@ namespace Scry
                         Stage.OpenLevel(level);
                         yield return Until(() => Stage.ExampleRoomsKept, 5);
                         var rooms = Stage.ExampleRoomsOnFloor;
-                        told.Add($"{Stage.FloorHeights[level]:0.0} m, {rooms} rooms, {Stage.ExampleRoomsShown - Stage.ExampleRoomsAway} standing, {Stage.CreaturesAboveCut} creatures above the cut");
-                        if (rooms == 0) empty.Add($"{entry.Name} at {Stage.FloorHeights[level]:0.0} m");
-                        if (Stage.ExampleRoomsAway >= Stage.ExampleRoomsShown) blank.Add($"{entry.Name} at {Stage.FloorHeights[level]:0.0} m");
+                        told.Add($"{Numbers.Fixed(Stage.FloorHeights[level], 1)} m, {Numbers.Count(rooms)} rooms, {Numbers.Count(Stage.ExampleRoomsShown - Stage.ExampleRoomsAway)} standing, {Numbers.Count(Stage.CreaturesAboveCut)} creatures above the cut");
+                        if (rooms == 0) empty.Add($"{entry.Name} at {Numbers.Fixed(Stage.FloorHeights[level], 1)} m");
+                        if (Stage.ExampleRoomsAway >= Stage.ExampleRoomsShown) blank.Add($"{entry.Name} at {Numbers.Fixed(Stage.FloorHeights[level], 1)} m");
                         if (rooms > 0) foreach (var room in Stage.ExampleShown.Rooms) if (Stage.ExampleRoomShown(room) == PlanRoomShown.Whole) reached.Add(room);
                     }
-                    var never = Stage.ExampleShown?.Rooms.Where(r => !r.Room.EndCap && !r.Room.Divider && !reached.Contains(r)).Select(r => $"{r.Room.Name} at {r.Position.Y:0.0} m").ToList() ?? new List<string>();
+                    var never = Stage.ExampleShown?.Rooms.Where(r => !r.Room.EndCap && !r.Room.Divider && !reached.Contains(r)).Select(r => $"{r.Room.Name} at {Numbers.Fixed(r.Position.Y, 1)} m").ToList() ?? new List<string>();
                     if (never.Count > 0) unreached.Add($"{entry.Name}: {string.Join(", ", never.Take(6))}");
-                    p.Note($"{entry.Name} ({entry.DisplayName}), {Stage.ExampleRoomsTotal} rooms, {Stage.FloorHeights.Count} floors: " + string.Join("; ", told)
-                           + $"; creatures {Stage.CreaturesMade}, {Stage.CreaturesDropped} dropped to the ground under their points, {Stage.CreaturesFlying} flying ({Stage.FlyersTold()})");
+                    p.Note($"{entry.Name} ({entry.DisplayName}), {Numbers.Count(Stage.ExampleRoomsTotal)} rooms, {Numbers.Count(Stage.FloorHeights.Count)} floors: " + string.Join("; ", told)
+                           + $"; creatures {Numbers.Count(Stage.CreaturesMade)}, {Numbers.Count(Stage.CreaturesDropped)} dropped to the ground under their points, {Numbers.Count(Stage.CreaturesFlying)} flying ({Stage.FlyersTold()})");
                     if (example == 0 && entry.Name == "MorkBorg") p.Note("its rooms' own floors, as each is shown alone: " + string.Join("; ", Stage.ExampleRoomFloorsTold()));
                 }
             }
@@ -313,18 +313,18 @@ namespace Scry
             Stage.Inside = true;
             Select(entry);
             yield return Until(() => CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
-            if (!p.Check(CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.HasFloors, "its example stands on the stage", $"{entry.Name}, {Stage.ExampleRoomsShown} rooms"))
+            if (!p.Check(CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.HasFloors, "its example stands on the stage", $"{entry.Name}, {Numbers.Count(Stage.ExampleRoomsShown)} rooms"))
             {
                 Stage.Inside = wasInside;
                 yield break;
             }
-            p.Note($"{entry.Name} ({entry.DisplayName}), {Stage.ExampleRoomsTotal} rooms, {Stage.FloorHeights.Count} floors");
+            p.Note($"{entry.Name} ({entry.DisplayName}), {Numbers.Count(Stage.ExampleRoomsTotal)} rooms, {Numbers.Count(Stage.FloorHeights.Count)} floors");
 
             Stage.OpenLevel(0);
             yield return Until(() => Stage.ExampleRoomsKept, 5);
             yield return Settled();
             p.Check(Stage.LookedFloor is float top && Mathf.Abs(top - Stage.FloorOnStage(0)) < 0.01f && Mathf.Abs(Stage.LookAt.y - top) < 0.05f,
-                "with a floor opened the camera looks at that floor", $"looks at {Stage.LookAt.y:0.0} m, the floor at {Stage.FloorOnStage(0):0.0} m");
+                "with a floor opened the camera looks at that floor", $"looks at {Numbers.Fixed(Stage.LookAt.y, 1)} m, the floor at {Numbers.Fixed(Stage.FloorOnStage(0), 1)} m");
             var outside = RoomsOutOfPicture();
             p.Check(outside.Count == 0, "and every room on it is in the picture", string.Join(", ", outside.Take(8)));
 
@@ -334,7 +334,7 @@ namespace Scry
                 yield return Until(() => Stage.ExampleRoomsKept, 5);
                 yield return Settled();
                 p.Check(Mathf.Abs(Stage.LookAt.y - Stage.FloorOnStage(Stage.CutLevel)) < 0.05f, "a floor down, it looks at that floor",
-                    $"looks at {Stage.LookAt.y:0.0} m, the floor at {Stage.FloorOnStage(Stage.CutLevel):0.0} m");
+                    $"looks at {Numbers.Fixed(Stage.LookAt.y, 1)} m, the floor at {Numbers.Fixed(Stage.FloorOnStage(Stage.CutLevel), 1)} m");
                 outside = RoomsOutOfPicture();
                 p.Check(outside.Count == 0, "and every room on that one is in the picture", string.Join(", ", outside.Take(8)));
             }
@@ -347,7 +347,7 @@ namespace Scry
             yield return null;
             var seen = under is Vector3 point ? Stage.PictureOf(point) : null;
             p.Check(seen is Vector2 there && (there - at).magnitude < 0.02f && Stage.LookDistance < far * 0.5f,
-                "the wheel zooms toward what is under the pointer, which stays under it", $"{(seen is Vector2 s ? s.ToString("0.000") : "not in view")} for {at:0.000}; {far:0.0} m to {Stage.LookDistance:0.0} m");
+                "the wheel zooms toward what is under the pointer, which stays under it", $"{(seen is Vector2 s ? s.ToString("0.000") : "not in view")} for {at:0.000}; {Numbers.Fixed(far, 1)} m to {Numbers.Fixed(Stage.LookDistance, 1)} m");
 
             var from = new Vector2(0.5f, 0.5f);
             var to = new Vector2(0.62f, 0.44f);
@@ -431,9 +431,9 @@ namespace Scry
                         }
                     }
                 }
-                told.Add($"{entry.Name} {string.Join("/", counts)}");
+                told.Add($"{entry.Name} {string.Join("/", counts.Select(c => Numbers.Count(c)))}");
             }
-            p.Note($"{dungeons.Count} dungeons and camps, rooms in three examples each: " + string.Join(", ", told));
+            p.Note($"{Numbers.Count(dungeons.Count)} dungeons and camps, rooms in three examples each: " + string.Join(", ", told));
             p.Check(wrong.Count == 0, "every one lays out, dungeons from an entrance with no room in another", string.Join("; ", wrong.Distinct().Take(8)));
             yield break;
         }
@@ -452,7 +452,7 @@ namespace Scry
             {
                 if (!places.Any(e => e.Group == group.Key && !e.Indent && !PlaceOf(e).IsRoom)) wrong.Add($"\"{group.Key}\" has rooms but no location heading it");
             }
-            p.Note($"{places.Count(e => e.Indent)} rooms under {places.Where(e => e.Indent).Select(e => e.Group).Distinct().Count()} dungeons and camps");
+            p.Note($"{Numbers.Count(places.Count(e => e.Indent))} rooms under {Numbers.Count(places.Where(e => e.Indent).Select(e => e.Group).Distinct().Count())} dungeons and camps");
             p.Check(wrong.Count == 0, "every dungeon and camp heads its group, its rooms under it", string.Join("; ", wrong.Take(6)));
             yield break;
         }

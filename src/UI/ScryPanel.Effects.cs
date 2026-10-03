@@ -42,7 +42,7 @@ namespace Scry
             }
             if (lists.Count == 0) return y;
 
-            y = SectionHeading($"EFFECTS  {lists.Count}", width, y, null, "effects");
+            y = SectionHeading($"EFFECTS  {Numbers.Count(lists.Count)}", width, y, null, "effects");
             if (IsFolded("effects")) return y;
             var rowH = U(26f);
 
@@ -213,14 +213,14 @@ namespace Scry
         {
             if (MemberKeys.TryGetValue((title, list), out var key)) return key;
             if (MemberKeys.Count > 5000) MemberKeys.Clear();
-            return MemberKeys[(title, list)] = "members:" + (title ?? "") + (list != null ? list.GetHashCode().ToString() : "");
+            return MemberKeys[(title, list)] = "members:" + (title ?? "") + (list != null ? Stored.Count(list.GetHashCode()) : "");
         }
 
         private static readonly List<string> OwnerKeys = new List<string>();
 
         private static string OwnersKey(int index)
         {
-            while (OwnerKeys.Count <= index) OwnerKeys.Add("owners:" + OwnerKeys.Count);
+            while (OwnerKeys.Count <= index) OwnerKeys.Add("owners:" + Stored.Count(OwnerKeys.Count));
             return OwnerKeys[index];
         }
 
@@ -257,7 +257,7 @@ namespace Scry
             var rows = _playsInRows;
             if (rows.Count == 0) return y;
 
-            y = SectionHeading($"PLAYS IN  {rows.Count}", width, y, null, "playsin");
+            y = SectionHeading($"PLAYS IN  {Numbers.Count(rows.Count)}", width, y, null, "playsin");
             if (IsFolded("playsin")) return y;
             // Each row is a list of its own, so fewer show before the rest are asked for.
             const int firstRows = 8;

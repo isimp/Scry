@@ -79,10 +79,10 @@ namespace Scry
             foreach (var mod in report)
             {
                 var gaps = new List<string>();
-                if (mod.IdleStations.Count > 0) gaps.Add($"{mod.IdleStations.Count} idle stations");
-                if (mod.Sourceless.Count > 0) gaps.Add($"{mod.Sourceless.Count} items with no source ({string.Join(", ", mod.Sourceless.Take(4).Select(e => e.Name))})");
-                if (mod.Unspawned.Count > 0) gaps.Add($"{mod.Unspawned.Count} creatures spawning nowhere seen ({string.Join(", ", mod.Unspawned.Take(4).Select(e => e.Name))})");
-                if (mod.Unbuilt.Count > 0) gaps.Add($"{mod.Unbuilt.Count} pieces in no build menu");
+                if (mod.IdleStations.Count > 0) gaps.Add($"{Numbers.Count(mod.IdleStations.Count)} idle stations");
+                if (mod.Sourceless.Count > 0) gaps.Add($"{Numbers.Count(mod.Sourceless.Count)} items with no source ({string.Join(", ", mod.Sourceless.Take(4).Select(e => e.Name))})");
+                if (mod.Unspawned.Count > 0) gaps.Add($"{Numbers.Count(mod.Unspawned.Count)} creatures spawning nowhere seen ({string.Join(", ", mod.Unspawned.Take(4).Select(e => e.Name))})");
+                if (mod.Unbuilt.Count > 0) gaps.Add($"{Numbers.Count(mod.Unbuilt.Count)} pieces in no build menu");
                 p.Note($"{mod.Mod}: {ModReportWords.Counts(mod)}" + (mod.Hooks.Count > 0 ? $"; hooks into {ModReportWords.Hooks(mod.Hooks)}" : "")
                        + string.Concat(mod.Stations.Select(s => $"; station {s.Name}: {ModReportWords.Station(s)}"))
                        + string.Concat(mod.Tools.Select(t => $"; tool {t.Name}: {ModReportWords.Tool(t)}"))
@@ -99,7 +99,7 @@ namespace Scry
                 var builtNear = new HashSet<string>(linked.Where(e => e.Kind == Kind.Piece && e.Stations.Any(s => s.Name == station.Name)).Select(e => e.Name));
                 var madeHere = new HashSet<string>(linked.Where(e => e.Kind != Kind.Piece && e.Stations.Any(s => s.Name == station.Name)).Select(e => e.Name));
                 var unlinked = pieces.Where(n => !builtNear.Contains(n)).Concat(recipes.Where(n => !madeHere.Contains(n))).ToList();
-                p.Note($"{station.Name}: the game names it for {pieces.Count} pieces and {recipes.Count} recipes; Scry links {builtNear.Count} built near and {madeHere.Count} made here");
+                p.Note($"{station.Name}: the game names it for {Numbers.Count(pieces.Count)} pieces and {Numbers.Count(recipes.Count)} recipes; Scry links {Numbers.Count(builtNear.Count)} built near and {Numbers.Count(madeHere.Count)} made here");
                 if (unlinked.Count > 0) wrong.Add($"{station.Name} misses {string.Join(", ", unlinked.Take(5))}");
             }
             p.Check(wrong.Count == 0, "every piece and recipe the game names a mod's station for is linked to it", string.Join("; ", wrong));
@@ -122,7 +122,7 @@ namespace Scry
             var pages = X.Catalog.Where(e => e.Kind == Kind.Mod).ToList();
             var missing = loaded.Where(n => !pages.Any(e => e.Name == n)).ToList();
             p.Check(missing.Count == 0, "every mod loaded has a page", string.Join(", ", missing.Take(5)));
-            foreach (var group in pages.GroupBy(e => e.Group)) p.Note($"{group.Key}: {group.Count()}");
+            foreach (var group in pages.GroupBy(e => e.Group)) p.Note($"{group.Key}: {Numbers.Count(group.Count())}");
 
             var busiest = pages.OrderByDescending(e => X.Catalog.Count(c => c.ModName == e.Name && c.Kind != Kind.Mod)).FirstOrDefault();
             if (busiest == null || X.Catalog.All(c => c.ModName != busiest.Name || c.Kind == Kind.Mod))
@@ -148,8 +148,8 @@ namespace Scry
             var pages = X.Catalog.Where(e => e.Kind == Kind.Mod && e.Source is ModSource).ToList();
             var mods = pages.Select(e => (Entry: e, Mod: (ModSource)e.Source)).ToList();
             var packaged = mods.Where(m => m.Mod.Description.Length > 0 || m.Mod.IconPath.Length > 0 || m.Mod.ReadmePath.Length > 0).ToList();
-            p.Note($"{mods.Count} mods, {packaged.Count} from a package: {mods.Count(m => m.Mod.Description.Length > 0)} described, {mods.Count(m => m.Mod.Author.Length > 0)} with an author, "
-                   + $"{mods.Count(m => ModWords.IsWebsite(m.Mod.Website))} with a website, {mods.Count(m => m.Mod.IconPath.Length > 0)} with an icon, {mods.Count(m => m.Mod.ReadmePath.Length > 0)} with a readme");
+            p.Note($"{Numbers.Count(mods.Count)} mods, {Numbers.Count(packaged.Count)} from a package: {Numbers.Count(mods.Count(m => m.Mod.Description.Length > 0))} described, {Numbers.Count(mods.Count(m => m.Mod.Author.Length > 0))} with an author, "
+                   + $"{Numbers.Count(mods.Count(m => ModWords.IsWebsite(m.Mod.Website)))} with a website, {Numbers.Count(mods.Count(m => m.Mod.IconPath.Length > 0))} with an icon, {Numbers.Count(mods.Count(m => m.Mod.ReadmePath.Length > 0))} with a readme");
             if (packaged.Count == 0) p.Skip("no mod was installed by a mod manager");
 
             var iconless = mods.Where(m => m.Mod.IconPath.Length > 0 && !(m.Entry.Icon is Sprite)).Select(m => m.Mod.Name).ToList();
@@ -179,9 +179,9 @@ namespace Scry
                 .SelectMany(i => i.Dependencies.Where(d => (d.Flags & BepInEx.BepInDependency.DependencyFlags.HardDependency) != 0 && BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(d.DependencyGUID))
                     .Select(d => (Mod: i.Metadata.Name, Needs: BepInEx.Bootstrap.Chainloader.PluginInfos[d.DependencyGUID].Metadata.Name))).ToList();
             var missed = declared.Where(d => d.Mod != d.Needs && byName.TryGetValue(d.Mod, out var r) && !r.Needs.Contains(d.Needs)).Select(d => $"{d.Mod} needs {d.Needs}").ToList();
-            p.Check(missed.Count == 0, $"every mod a mod declares it needs is told ({declared.Count} declared)", string.Join("; ", missed.Take(5)));
+            p.Check(missed.Count == 0, $"every mod a mod declares it needs is told ({Numbers.Count(declared.Count)} declared)", string.Join("; ", missed.Take(5)));
             var mostNeeded = mods.OrderByDescending(m => m.Mod.Relations.NeededBy.Count).First();
-            p.Note($"{mostNeeded.Mod.Name} is needed by {mostNeeded.Mod.Relations.NeededBy.Count}; {mods.Count(m => m.Mod.Relations.WorksWith.Count > 0)} mods work with others when there; {mods.Count(m => m.Mod.Relations.WillNotRunWith.Count > 0)} will not run with some");
+            p.Note($"{mostNeeded.Mod.Name} is needed by {Numbers.Count(mostNeeded.Mod.Relations.NeededBy.Count)}; {Numbers.Count(mods.Count(m => m.Mod.Relations.WorksWith.Count > 0))} mods work with others when there; {Numbers.Count(mods.Count(m => m.Mod.Relations.WillNotRunWith.Count > 0))} will not run with some");
 
             var withReadme = mods.Where(m => m.Mod.ReadmePath.Length > 0).OrderBy(m => m.Mod.Name, StringComparer.Ordinal).Select(m => m.Entry).FirstOrDefault();
             if (withReadme == null)
@@ -190,7 +190,7 @@ namespace Scry
                 yield break;
             }
             var text = ScryPanel.ReadmeOf((ModSource)withReadme.Source);
-            p.Note($"{withReadme.Name}'s readme: {text.Length} characters, starting \"{text.Substring(0, Math.Min(60, text.Length)).Replace('\n', ' ')}\"");
+            p.Note($"{withReadme.Name}'s readme: {Numbers.Count(text.Length)} characters, starting \"{text.Substring(0, Math.Min(60, text.Length)).Replace('\n', ' ')}\"");
             p.Check(text.Length > 0 && text.IndexOf("](", StringComparison.Ordinal) < 0 && text.IndexOf("<img", StringComparison.OrdinalIgnoreCase) < 0, "its readme reads as plain text");
             Select(withReadme);
             ScryPanel.ReadmeFolded = false;
@@ -207,12 +207,12 @@ namespace Scry
         /// </summary>
         private static IEnumerator ModClues(Probe p)
         {
-            p.Note("named by " + (Knowledge.NamedBy.Count == 0 ? "nothing" : string.Join(", ", Knowledge.NamedBy.OrderByDescending(n => n.Value).Select(n => $"{n.Key}: {n.Value}")))
-                   + $"; recipes named {Knowledge.RecipesNamed}, conversions named {Knowledge.ConversionsNamed}");
+            p.Note("named by " + (Knowledge.NamedBy.Count == 0 ? "nothing" : string.Join(", ", Knowledge.NamedBy.OrderByDescending(n => n.Value).Select(n => $"{n.Key}: {Numbers.Count(n.Value)}")))
+                   + $"; recipes named {Numbers.Count(Knowledge.RecipesNamed)}, conversions named {Numbers.Count(Knowledge.ConversionsNamed)}");
             var unnamed = X.Catalog.Where(e => e.Origin == Origin.Mod && e.ModName.Length == 0 && e.Kind != Kind.Mod).ToList();
             foreach (var kind in unnamed.GroupBy(e => e.Kind).OrderByDescending(g => g.Count()))
             {
-                p.Note($"still unnamed, {Kinds.Label(kind.Key).ToLowerInvariant()}: {kind.Count()} ({string.Join(", ", kind.Take(8).Select(e => e.Name))})");
+                p.Note($"still unnamed, {Kinds.Label(kind.Key).ToLowerInvariant()}: {Numbers.Count(kind.Count())} ({string.Join(", ", kind.Take(8).Select(e => e.Name))})");
             }
             var wrong = X.Catalog.Where(e => e.Origin == Origin.Vanilla && e.ModName.Length > 0 && e.Kind != Kind.Mod).Select(e => $"{e.Name} ({e.ModName})").ToList();
             p.Check(wrong.Count == 0, "nothing of the game's own is put down to a mod", string.Join(", ", wrong.Take(8)));

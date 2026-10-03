@@ -25,7 +25,7 @@ namespace Scry
 
             var copy = CopyOf(entry);
             p.Check(copy != null, "a copy stands on the stage");
-            if (entry.Kind != Kind.Effect) p.Check(Renderers(copy) > 0, "it has something to draw", $"{Renderers(copy)} renderers");
+            if (entry.Kind != Kind.Effect) p.Check(Renderers(copy) > 0, "it has something to draw", $"{Numbers.Count(Renderers(copy))} renderers");
             if (ScryPanel.Compact) p.Note("the panel is in its compact view, which has no stage to draw");
             else
             {
@@ -36,7 +36,7 @@ namespace Scry
             if (!facts) yield break;
             var told = Facts.For(entry);
             p.Check(!told.IsEmpty, "its details tell something");
-            p.Note($"{told.Pairs.Count} facts, {told.Rows.Count} rows: {Pairs(told).Substring(0, Math.Min(160, Pairs(told).Length))}");
+            p.Note($"{Numbers.Count(told.Pairs.Count)} facts, {Numbers.Count(told.Rows.Count)} rows: {Pairs(told).Substring(0, Math.Min(160, Pairs(told).Length))}");
         }
 
         private static Entry StatusOnPerson() =>
@@ -82,10 +82,10 @@ namespace Scry
                 Stage.Spin = spin;
                 Stage.View("Top");
                 yield return null;
-                p.Check(Stage.Pitch > 60f, "Top looks down on it", $"{Stage.Pitch:0} degrees");
+                p.Check(Stage.Pitch > 60f, "Top looks down on it", $"{Numbers.Amount(Stage.Pitch, 0)} degrees");
                 Stage.View("Side");
                 yield return null;
-                p.Check(Mathf.Abs(Mathf.DeltaAngle(Stage.Yaw, 90f)) < 1f, "Side looks at it from the side", $"{Stage.Yaw:0} degrees");
+                p.Check(Mathf.Abs(Mathf.DeltaAngle(Stage.Yaw, 90f)) < 1f, "Side looks at it from the side", $"{Numbers.Amount(Stage.Yaw, 0)} degrees");
                 Stage.View("Front");
                 yield return null;
                 Stage.View("Fit");
@@ -118,11 +118,11 @@ namespace Scry
             yield return null;
             yield return null;
             var bigger = Stage.SubjectSize.magnitude;
-            p.Check(bigger > before * 1.8f, "twice the size makes it about twice as big", $"{before:0.0} m, then {bigger:0.0} m");
+            p.Check(bigger > before * 1.8f, "twice the size makes it about twice as big", $"{Numbers.Fixed(before, 1)} m, then {Numbers.Fixed(bigger, 1)} m");
             X.Modifiers.Scale = scale;
             yield return null;
             yield return null;
-            p.Check(Mathf.Abs(Stage.SubjectSize.magnitude - before) < before * 0.05f + 0.01f, "and back again", $"{Stage.SubjectSize.magnitude:0.0} m");
+            p.Check(Mathf.Abs(Stage.SubjectSize.magnitude - before) < before * 0.05f + 0.01f, "and back again", $"{Numbers.Fixed(Stage.SubjectSize.magnitude, 1)} m");
         }
 
         /// <summary>A creature shown with stars, and in each of its looks, still stands; its details tell what stars do.</summary>
@@ -134,13 +134,13 @@ namespace Scry
             yield return Until(() => CopyOf(creature) != null, 10);
             if (!p.Check(CopyOf(creature) != null, "a copy stands on the stage")) yield break;
             var mods = X.Modifiers;
-            p.Note($"{creature.Name}: up to {mods.MaxLevel} levels, {mods.LookNames.Length} looks");
+            p.Note($"{creature.Name}: up to {Numbers.Count(mods.MaxLevel)} levels, {Numbers.Count(mods.LookNames.Length)} looks");
             if (mods.MaxLevel > 1)
             {
                 var before = CopyOf(creature);
                 mods.Level = mods.MaxLevel;
                 yield return Until(() => CopyOf(creature) != null && CopyOf(creature) != before, 5);
-                p.Check(CopyOf(creature) != null, $"it stands with {mods.MaxLevel - 1} stars");
+                p.Check(CopyOf(creature) != null, $"it stands with {Numbers.Count(mods.MaxLevel - 1)} stars");
                 p.Check(Tells(Facts.For(creature), "Health with stars"), "its details tell what stars add");
                 mods.Level = 1;
             }
@@ -164,7 +164,7 @@ namespace Scry
             yield return null;
             yield return null;
             var animator = CopyOf(creature)?.GetComponentInChildren<Animator>();
-            p.Check(animator != null && Mathf.Abs(animator.speed - 0.5f) < 0.01f, "half the speed slows its animator to half", animator != null ? $"{animator.speed}" : "no animator");
+            p.Check(animator != null && Mathf.Abs(animator.speed - 0.5f) < 0.01f, "half the speed slows its animator to half", animator != null ? $"{Numbers.Amount(animator.speed)}" : "no animator");
             X.Modifiers.AnimationSpeed = 1f;
 
             var wall = Pick(Kind.Piece, "wood_wall_half", "wood_wall", "stone_wall_1x1");
@@ -195,10 +195,10 @@ namespace Scry
             X.Modifiers.Volume = 0.5f;
             X.Modifiers.Scale = 2f;
             yield return null;
-            p.Check(Mathf.Abs(Loudness.Gain - 0.5f) < 0.01f, "half the loudness is what previews play at", $"{Loudness.Gain}");
+            p.Check(Mathf.Abs(Loudness.Gain - 0.5f) < 0.01f, "half the loudness is what previews play at", $"{Numbers.Amount(Loudness.Gain)}");
             Select(neck);
             yield return null;
-            p.Check(Mathf.Abs(X.Modifiers.Scale - 1f) < 0.001f && Mathf.Abs(X.Modifiers.Volume - 1f) < 0.001f, "selecting another starts at its own size and loudness", $"size {X.Modifiers.Scale}, loudness {X.Modifiers.Volume}");
+            p.Check(Mathf.Abs(X.Modifiers.Scale - 1f) < 0.001f && Mathf.Abs(X.Modifiers.Volume - 1f) < 0.001f, "selecting another starts at its own size and loudness", $"size {Numbers.Amount(X.Modifiers.Scale)}, loudness {Numbers.Amount(X.Modifiers.Volume)}");
             yield return null;
             p.Check(Mathf.Abs(Loudness.Gain - 1f) < 0.01f, "and previews play at the game's own loudness again");
         }
@@ -218,9 +218,9 @@ namespace Scry
             {
                 Select(last);
                 yield return Until(() => CopyOf(last) != null, 5);
-                p.Check(CopyOf(last) != null, $"after {picks.Count} in as many frames, the last shows");
+                p.Check(CopyOf(last) != null, $"after {Numbers.Count(picks.Count)} in as many frames, the last shows");
             }
-            else p.Check(X.Selected == picks.Last(), $"after {picks.Count} in as many frames, the last is selected");
+            else p.Check(X.Selected == picks.Last(), $"after {Numbers.Count(picks.Count)} in as many frames, the last is selected");
         }
 
         /// <summary>After many other entries, the stage holds no more than it held before.</summary>
@@ -243,7 +243,7 @@ namespace Scry
             Select(boar);
             yield return Until(() => CopyOf(boar) != null, 10);
             yield return Until(() => Stage.Held <= held, 10);
-            p.Check(Stage.Held == held, $"after {others.Count} others, the stage holds what it held before", $"{Stage.Held} things, {held} before");
+            p.Check(Stage.Held == held, $"after {Numbers.Count(others.Count)} others, the stage holds what it held before", $"{Numbers.Count(Stage.Held)} things, {Numbers.Count(held)} before");
         }
 
         // ----- The ground, the light and the picture -----
@@ -263,7 +263,7 @@ namespace Scry
             if (!p.Check(ground != null && ground.m_material != null, "the world's ground has a material")) yield break;
             var material = ground.m_material;
             var textures = material.GetTexturePropertyNames()
-                .Select(name => { var texture = material.GetTexture(name); return $"{name}: {(texture != null ? $"{texture.name} ({texture.GetType().Name}, {texture.width}x{texture.height})" : "none")}"; });
+                .Select(name => { var texture = material.GetTexture(name); return $"{name}: {(texture != null ? $"{texture.name} ({texture.GetType().Name}, {Numbers.Count(texture.width)}x{Numbers.Count(texture.height)})" : "none")}"; });
             p.Note($"shader {(material.shader != null ? material.shader.name : "none")}; textures {string.Join("; ", textures)}");
             yield break;
         }
@@ -299,8 +299,8 @@ namespace Scry
 
             var differ = before != null && lit != null && before.Length == lit.Length ? before.Where((c, i) => Apart(c, lit[i])).Count() : -1;
             var shown = before?.Count(c => c.r + c.g + c.b > 60) ?? 0;
-            p.Check(before != null && shown > 0, "the piece shows in the picture", $"{shown} bright points");
-            p.Check(differ >= 0 && differ <= (before?.Length ?? 0) / 100, "a directional light of the world, as a lightning flash is, leaves the stage's picture as it was", $"{differ} of {before?.Length ?? 0} points changed");
+            p.Check(before != null && shown > 0, "the piece shows in the picture", $"{Numbers.Count(shown)} bright points");
+            p.Check(differ >= 0 && differ <= (before?.Length ?? 0) / 100, "a directional light of the world, as a lightning flash is, leaves the stage's picture as it was", $"{Numbers.Count(differ)} of {Numbers.Count(before?.Length ?? 0)} points changed");
         }
 
         /// <summary>
@@ -344,7 +344,7 @@ namespace Scry
                 yield return null;
                 var below = PictureWithin(new Rect(0f, 0f, 1f, 0.15f), out _, out _);
                 var bare = below?.Count(c => !Apart(c, below[0])) ?? 0;
-                tried.Add($"{(distance?.ToString() ?? "the material's own")}: {(below == null ? "no picture" : below.Length - bare > below.Length / 10 ? "draws" : "nothing")}");
+                tried.Add($"{(distance.HasValue ? Numbers.Amount(distance.Value) : "the material's own")}: {(below == null ? "no picture" : below.Length - bare > below.Length / 10 ? "draws" : "nothing")}");
             }
             // And with the stage's camera rendering each way.
             foreach (var path in new[] { RenderingPath.DeferredShading, RenderingPath.Forward })
@@ -391,14 +391,14 @@ namespace Scry
                 }
                 var look = new Color32((byte)(r / front.Length), (byte)(g / front.Length), (byte)(b / front.Length), 255);
                 looks.Add(look);
-                told.Add($"{biome} #{look.r:X2}{look.g:X2}{look.b:X2}, {grass[biome]} grass{(water[biome] ? ", water" : "")}");
+                told.Add($"{biome} #{Numbers.Hex(look.r, 2)}{Numbers.Hex(look.g, 2)}{Numbers.Hex(look.b, 2)}, {Numbers.Count(grass[biome])} grass{(water[biome] ? ", water" : "")}");
             }
             Stage.GroundBiomeOverride = null;
-            p.Check(grass["Meadows"] > 0, "grass grows on the Meadows' ground", $"{grass["Meadows"]}");
+            p.Check(grass["Meadows"] > 0, "grass grows on the Meadows' ground", $"{Numbers.Count(grass["Meadows"])}");
             p.Check(water["Ocean"] && !water["Meadows"], "the sea's floor has water over it, and only it");
             p.Note($"the ground before it, by biome: {string.Join("; ", told)}; pictures in {folder}");
             var distinct = looks.Where((look, i) => !looks.Take(i).Any(other => !Apart(look, other))).Count();
-            p.Check(distinct >= 5, "each biome's ground looks its own", $"{distinct} looks among {looks.Count} biomes");
+            p.Check(distinct >= 5, "each biome's ground looks its own", $"{Numbers.Count(distinct)} looks among {Numbers.Count(looks.Count)} biomes");
 
             // A place paints its paths, dirt and paving on the ground under it.
             var painted = new List<string>();
@@ -410,7 +410,7 @@ namespace Scry
                 yield return Until(() => CopyOf(place) != null && Stage.GroundShown != null, 20);
                 yield return null;
                 yield return null;
-                painted.Add($"{name} {Stage.GroundPaintCount}");
+                painted.Add($"{name} {Numbers.Count(Stage.GroundPaintCount)}");
                 if (Stage.GroundPaintCount == 0) continue;
                 var whole = PictureWithin(new Rect(0f, 0f, 1f, 1f), out var width, out var height);
                 if (whole != null) WriteTga(System.IO.Path.Combine(folder, $"stage-paths-{name}.tga"), width, height, whole);
@@ -421,7 +421,7 @@ namespace Scry
                 yield return null;
                 Stage.GroundBiomeOverride = null;
                 yield return null;
-                p.Check(Faults.Count == faults && Stage.GroundShown != null, "another biome over a place's painted ground lays it all the same", $"{Faults.Count - faults} faults");
+                p.Check(Faults.Count == faults && Stage.GroundShown != null, "another biome over a place's painted ground lays it all the same", $"{Numbers.Count(Faults.Count - faults)} faults");
                 break;
             }
             p.Note("paints on their ground: " + string.Join(", ", painted));

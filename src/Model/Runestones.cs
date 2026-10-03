@@ -41,7 +41,7 @@ namespace Scry
         /// (<c>RuneStone.GetRandomText</c>), so always the same for a stone; null for one text.
         /// </summary>
         public static string Caption(PlaceRunestone stone) =>
-            stone.Texts.Count > 1 ? $"Each stone gives one of these {stone.Texts.Count}, always the same one for where it stands." : null;
+            stone.Texts.Count > 1 ? $"Each stone gives one of these {Numbers.Count(stone.Texts.Count)}, always the same one for where it stands." : null;
 
         /// <summary>A text's title, or its stone's name when it has none.</summary>
         public static string Title(RuneText text, string stone) => string.IsNullOrEmpty(text.Topic) ? stone : text.Topic;

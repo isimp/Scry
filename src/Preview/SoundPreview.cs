@@ -181,7 +181,7 @@ namespace Scry
         public string SourceTold()
         {
             var source = Source();
-            return source == null ? "none" : $"{source.name}, {source.clip.name} ({source.clip.loadType}), {Copy.GetComponentsInChildren<AudioSource>().Length} sources";
+            return source == null ? "none" : $"{source.name}, {source.clip.name} ({source.clip.loadType}), {Numbers.Count(Copy.GetComponentsInChildren<AudioSource>().Length)} sources";
         }
 
         /// <summary>Where it is and how long its clip is, for the panel's timeline.</summary>
@@ -224,7 +224,7 @@ namespace Scry
                 return;
             }
             var step = _seek.Step(source.time, source.isPlaying, Time.unscaledTime);
-            if (step != SeekStep.Expired && trail.Count < 60) trail.Add($"{source.time:0.00} s, sample {source.timeSamples}{(source.isPlaying ? "" : ", not playing")}");
+            if (step != SeekStep.Expired && trail.Count < 60) trail.Add($"{Numbers.Fixed(source.time, 2)} s, sample {Numbers.Count(source.timeSamples)}{(source.isPlaying ? "" : ", not playing")}");
             if (step == SeekStep.SetAgain) SetPoint(source, point);
         }
 

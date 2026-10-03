@@ -15,15 +15,15 @@ namespace Scry
         /// </summary>
         public static string Roll(float intervalMinutes, float chance)
         {
-            return $"every {Naming.Duration(intervalMinutes * 60f)}, {Naming.Number(chance)}% each time, one picked among the raids that can start";
+            return $"every {Numbers.Duration(intervalMinutes * 60f)}, {Numbers.Amount(chance)}% each time, one picked among the raids that can start";
         }
 
         /// <summary>A raid with a timer of its own (<c>m_standaloneInterval</c>), rolled besides; null for one without.</summary>
         public static string OwnRoll(float intervalSeconds, float chance)
         {
             if (intervalSeconds <= 0f) return null;
-            var words = "on its own every " + Naming.Duration(intervalSeconds);
-            return chance < 100f ? $"{words}, {Naming.Number(chance)}% each time" : words;
+            var words = "on its own every " + Numbers.Duration(intervalSeconds);
+            return chance < 100f ? $"{words}, {Numbers.Amount(chance)}% each time" : words;
         }
 
         /// <summary>
@@ -54,8 +54,8 @@ namespace Scry
         /// <summary>How long it lasts, and whether its clock stops while no one is inside its range.</summary>
         public static string Lasts(float duration, bool pauses, float range)
         {
-            var words = Naming.Duration(duration);
-            return pauses ? $"{words}, paused while nobody is within {Naming.Number(range)} m" : words;
+            var words = Numbers.Duration(duration);
+            return pauses ? $"{words}, paused while nobody is within {Numbers.Amount(range)} m" : words;
         }
 
         /// <summary>
@@ -65,15 +65,15 @@ namespace Scry
         public static string Spawn(int maxSpawned, float interval, float chance, string stars)
         {
             var parts = new List<string>();
-            var pace = Naming.Duration(interval);
+            var pace = Numbers.Duration(interval);
             if (maxSpawned > 0)
             {
-                parts.Add($"up to {maxSpawned} at once");
-                parts.Add(chance < 100f ? $"every {pace} at {Naming.Number(chance)}%" : $"every {pace}");
+                parts.Add($"up to {Numbers.Count(maxSpawned)} at once");
+                parts.Add(chance < 100f ? $"every {pace} at {Numbers.Amount(chance)}%" : $"every {pace}");
             }
             else
             {
-                parts.Add(chance < 100f ? $"one every {pace} at {Naming.Number(chance)}%" : $"one every {pace}");
+                parts.Add(chance < 100f ? $"one every {pace} at {Numbers.Amount(chance)}%" : $"one every {pace}");
             }
             if (!string.IsNullOrEmpty(stars)) parts.Add(stars);
             return string.Join(", ", parts);
@@ -108,7 +108,7 @@ namespace Scry
             foreach (var prefab in order)
             {
                 var count = counts[prefab];
-                parts.Add($"{nameOf(prefab)} × {count.All}" + (count.Starred > 0 ? $" ({count.Starred} with stars)" : ""));
+                parts.Add($"{nameOf(prefab)} × {Numbers.Count(count.All)}" + (count.Starred > 0 ? $" ({Numbers.Count(count.Starred)} with stars)" : ""));
             }
             return "The first roll of each, as the game rolls it: " + string.Join(", ", parts) + ".";
         }
@@ -121,6 +121,6 @@ namespace Scry
         /// boss is alerted within so many metres (<c>RandEventSystem.GetForcedEvent</c>,
         /// <c>EnemyHud.TestShow</c>).
         /// </summary>
-        public static string WhileFighting(string boss, float range) => $"while {boss} is alerted within {Naming.Number(range)} m of you, its health bar showing";
+        public static string WhileFighting(string boss, float range) => $"while {boss} is alerted within {Numbers.Amount(range)} m of you, its health bar showing";
     }
 }

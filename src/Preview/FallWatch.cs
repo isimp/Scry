@@ -53,15 +53,15 @@ namespace Scry
             {
                 var b = c.bounds;
                 var ground = !onStage && ZoneSystem.instance != null ? ZoneSystem.instance.GetGroundHeight(b.center) : float.NaN;
-                return $" from {b.min.y - foot:0.0} to {b.max.y - foot:0.0} m, {b.size.x:0.0} by {b.size.z:0.0} m across"
-                       + (float.IsNaN(ground) ? "" : $", ground beneath at {ground - foot:0.0} m");
+                return $" from {Numbers.Fixed(b.min.y - foot, 1)} to {Numbers.Fixed(b.max.y - foot, 1)} m, {Numbers.Fixed(b.size.x, 1)} by {Numbers.Fixed(b.size.z, 1)} m across"
+                       + (float.IsNaN(ground) ? "" : $", ground beneath at {Numbers.Fixed(ground - foot, 1)} m");
             }
             var told = string.Join(", ", colliders.Select(c =>
-                c.GetType().Name + (c is MeshCollider mesh && !mesh.convex ? " not convex" : "") + (c.enabled ? "" : " off") + " on " + LayerMask.LayerToName(c.gameObject.layer) + "/" + c.gameObject.layer + Reach(c)));
+                c.GetType().Name + (c is MeshCollider mesh && !mesh.convex ? " not convex" : "") + (c.enabled ? "" : " off") + " on " + LayerMask.LayerToName(c.gameObject.layer) + "/" + Numbers.Count(c.gameObject.layer) + Reach(c)));
             var body = watch._body;
             Plugin.Note($"Scry lets {piece.name} fall {(onStage ? "on the stage" : "in the world")} from {from.name}: made {Around(watch._start - watch._foot)} of its foot"
-                + (body != null ? $", body mass {body.mass:0.#}{(body.isKinematic ? " kinematic" : "")}{(body.useGravity ? "" : " without gravity")}, pushed apart at most {body.maxDepenetrationVelocity:0.#} m/s, moving {body.linearVelocity.magnitude:0.#} m/s" : ", no body")
-                + $"; {colliders.Length} colliders: {(colliders.Length > 0 ? told : "none")}.");
+                + (body != null ? $", body mass {Numbers.Amount(body.mass, 1)}{(body.isKinematic ? " kinematic" : "")}{(body.useGravity ? "" : " without gravity")}, pushed apart at most {Numbers.Amount(body.maxDepenetrationVelocity, 1)} m/s, moving {Numbers.Amount(body.linearVelocity.magnitude, 1)} m/s" : ", no body")
+                + $"; {Numbers.Count(colliders.Length)} colliders: {(colliders.Length > 0 ? told : "none")}.");
         }
 
         private void FixedUpdate()
@@ -87,8 +87,8 @@ namespace Scry
                     if (other == null || System.Array.IndexOf(_own, other) >= 0) continue;
                     var inside = Physics.ComputePenetration(mine, mine.transform.position, mine.transform.rotation,
                         other, other.transform.position, other.transform.rotation, out var away, out var depth);
-                    var told = $"{other.name} ({other.GetType().Name} on {LayerMask.LayerToName(other.gameObject.layer)}/{other.gameObject.layer}) of {other.transform.root.name}";
-                    if (inside) told += $" by {depth:0.00} m, pushed {(away.y > 0.7f ? "up" : away.y < -0.7f ? "down" : "aside")} at {Time.time - (_until - Seconds):0.00} s";
+                    var told = $"{other.name} ({other.GetType().Name} on {LayerMask.LayerToName(other.gameObject.layer)}/{Numbers.Count(other.gameObject.layer)}) of {other.transform.root.name}";
+                    if (inside) told += $" by {Numbers.Fixed(depth, 2)} m, pushed {(away.y > 0.7f ? "up" : away.y < -0.7f ? "down" : "aside")} at {Numbers.Fixed(Time.time - (_until - Seconds), 2)} s";
                     if (!_touched.Exists(t => t.StartsWith(told.Split(new[] { " by " }, System.StringSplitOptions.None)[0], System.StringComparison.Ordinal))) _touched.Add(told);
                     if (_touched.Count >= 6) return;
                 }
@@ -104,8 +104,8 @@ namespace Scry
             {
                 var at = _body != null ? _body.transform.position : transform.position;
                 var ground = _onStage ? float.NaN : ZoneSystem.instance != null ? ZoneSystem.instance.GetGroundHeight(at) : float.NaN;
-                Plugin.Note($"Scry watched {name} from {_from} {(_onStage ? "on the stage" : "in the world")} for {Seconds:0} s: highest {_highest - _foot.y:0.0} m above its foot, fastest {_fastest:0.#} m/s, now {Around(at - _foot)} of it"
-                    + (float.IsNaN(ground) ? "" : $", {at.y - ground:0.0} m above the ground there")
+                Plugin.Note($"Scry watched {name} from {_from} {(_onStage ? "on the stage" : "in the world")} for {Numbers.Amount(Seconds, 0)} s: highest {Numbers.Fixed(_highest - _foot.y, 1)} m above its foot, fastest {Numbers.Amount(_fastest, 1)} m/s, now {Around(at - _foot)} of it"
+                    + (float.IsNaN(ground) ? "" : $", {Numbers.Fixed(at.y - ground, 1)} m above the ground there")
                     + $"; touched {(_touched.Count > 0 ? string.Join(", ", _touched) : "nothing")}.");
             });
         }
@@ -113,7 +113,7 @@ namespace Scry
         private static string Around(Vector3 offset)
         {
             var aside = new Vector2(offset.x, offset.z).magnitude;
-            return $"{offset.y:0.0} m {(offset.y >= 0f ? "above" : "below")} and {aside:0.0} m aside";
+            return $"{Numbers.Fixed(offset.y, 1)} m {(offset.y >= 0f ? "above" : "below")} and {Numbers.Fixed(aside, 1)} m aside";
         }
     }
 }

@@ -93,7 +93,7 @@ namespace Scry
                 _steps.Dispose();
                 if (_long.Count > 0)
                 {
-                    Plugin.Note($"Scry's catalog pieces over {LongPieceMs:0} ms ({_long.Count}): {string.Join(", ", _long.OrderByDescending(p => p.Ms).Take(25).Select(p => $"{p.What} {p.Ms:0}"))}.");
+                    Plugin.Note($"Scry's catalog pieces over {Numbers.Amount(LongPieceMs, 0)} ms ({Numbers.Count(_long.Count)}): {string.Join(", ", _long.OrderByDescending(p => p.Ms).Take(25).Select(p => $"{p.What} {Numbers.Amount(p.Ms, 0)}"))}.");
                 }
             }
             return Done;
@@ -117,6 +117,6 @@ namespace Scry
         public static void Reset() => Parts.Clear();
 
         /// <summary>The parts, longest first.</summary>
-        public static string Report() => string.Join(", ", Parts.OrderByDescending(p => p.Value).Select(p => $"{p.Key} {p.Value:0}"));
+        public static string Report() => string.Join(", ", Parts.OrderByDescending(p => p.Value).Select(p => $"{p.Key} {Numbers.Amount(p.Value, 0)}"));
     }
 }

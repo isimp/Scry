@@ -26,8 +26,8 @@ namespace Scry
             var damage = Damages(projectile.m_damage);
             if (spawnsTheDamage) Add("Own damage", "none; what it spawns on hit deals the damage");
             else if (damage.Length > 0) Add("Own damage", damage);
-            if (projectile.m_aoe > 0f) Add("Hits", $"everything within {Number(projectile.m_aoe)} m of where it lands");
-            if (projectile.m_attackForce > 0f) Add("Knockback", Number(projectile.m_attackForce));
+            if (projectile.m_aoe > 0f) Add("Hits", $"everything within {Numbers.Amount(projectile.m_aoe)} m of where it lands");
+            if (projectile.m_attackForce > 0f) Add("Knockback", Numbers.Amount(projectile.m_attackForce));
 
             var can = new List<string>();
             if (projectile.m_blockable) can.Add("blocked");
@@ -40,14 +40,14 @@ namespace Scry
                 if (effect != null) Add("On hit", EffectName(effect), "se:" + effect.name);
             }
 
-            if (projectile.m_ttl > 0f) Add("Flies for", Naming.Duration(projectile.m_ttl));
-            if (projectile.m_gravity != 0f) Add("Falls", $"{Number(projectile.m_gravity)} m/s²");
+            if (projectile.m_ttl > 0f) Add("Flies for", Numbers.Duration(projectile.m_ttl));
+            if (projectile.m_gravity != 0f) Add("Falls", $"{Numbers.Amount(projectile.m_gravity)} m/s²");
             else Add("Falls", "no, it flies straight");
-            if (projectile.m_drag > 0f) Add("Slows", $"drag {Number(projectile.m_drag)}");
-            if (projectile.m_bounce) Add("Bounces", projectile.m_maxBounces < 99 ? $"up to {projectile.m_maxBounces} times" : "yes");
+            if (projectile.m_drag > 0f) Add("Slows", $"drag {Numbers.Amount(projectile.m_drag)}");
+            if (projectile.m_bounce) Add("Bounces", projectile.m_maxBounces < 99 ? $"up to {Numbers.Count(projectile.m_maxBounces)} times" : "yes");
             if (projectile.m_stayAfterHitStatic || projectile.m_stayAfterHitDynamic)
             {
-                Add("After a hit", $"stays where it struck for {Naming.Duration(projectile.m_stayTTL)}");
+                Add("After a hit", $"stays where it struck for {Numbers.Duration(projectile.m_stayTTL)}");
             }
             if (projectile.m_respawnItemOnHit) Add("Leaves", "the weapon that threw it, where it lands");
             if (projectile.m_spawnOnHit != null && projectile.m_spawnOnHitChance < 1f)

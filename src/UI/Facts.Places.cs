@@ -120,7 +120,7 @@ namespace Scry
             Add("Is", DungeonWords.Role(shape));
             Add("Size", DungeonWords.Size(shape));
             Add("Doorways", DungeonWords.Doorways(shape));
-            if (shape.MinPlaceOrder > 0) Add("Not before", $"{shape.MinPlaceOrder} rooms from the entrance");
+            if (shape.MinPlaceOrder > 0) Add("Not before", $"{Numbers.Count(shape.MinPlaceOrder)} rooms from the entrance");
         }
 
         /// <summary>
@@ -132,7 +132,7 @@ namespace Scry
         private void PlaceHolds(Entry entry, PlaceContents contents)
         {
             Add("Levels at its spawn points", SpawnWords.LocationLevels(contents.EnemyMinLevel, contents.EnemyMaxLevel, contents.EnemyLevelUpChance, contents.LevelOverrideExceptions));
-            if (contents.NoBuild && contents.NoBuildRadius > 0f) Add("Building", $"not within {Naming.Number(contents.NoBuildRadius)} m");
+            if (contents.NoBuild && contents.NoBuildRadius > 0f) Add("Building", $"not within {Numbers.Amount(contents.NoBuildRadius)} m");
             Add("Music", LocationWords.Music(contents.Music), contents.Music.Count > 0 ? PlayMusic : null);
 
             foreach (var role in PlaceParts.Roles)
@@ -184,7 +184,7 @@ namespace Scry
 
             var rooms = RoomsOf(plan.Themes);
             if (rooms.Count == 0) return;
-            var row = new Row { Title = $"Built of {rooms.Count} kinds of room" };
+            var row = new Row { Title = $"Built of {Numbers.Count(rooms.Count)} kinds of room" };
             foreach (var room in rooms) row.Items.Add(new Ingredient { Name = room.DisplayName, Amount = "", Prefab = room.Key });
             Rows.Add(row);
             RoomsHold(rooms);
@@ -206,7 +206,7 @@ namespace Scry
                 Add("What its rooms hold", "read once its rooms have loaded for its example layout");
                 return;
             }
-            var of = read.Count < rooms.Count ? $", {read.Count} of {rooms.Count} kinds of room read" : "";
+            var of = read.Count < rooms.Count ? $", {Numbers.Count(read.Count)} of {Numbers.Count(rooms.Count)} kinds of room read" : "";
 
             var parts = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Parts));
             foreach (var role in PlaceParts.Roles)

@@ -45,12 +45,12 @@ namespace Scry
             var least = Math.Max(0, minLevel - 1);
             if (most == 0) return "no stars";
             var noun = most == 1 ? "star" : "stars";
-            if (least == most) return $"{most} {noun}";
-            return least == 0 ? $"up to {most} {noun}" : $"{DropWords.Range(least, most)} {noun}";
+            if (least == most) return $"{Numbers.Count(most)} {noun}";
+            return least == 0 ? $"up to {Numbers.Count(most)} {noun}" : $"{Numbers.CountRange(least, most)} {noun}";
         }
 
         /// <summary>How many come together, or null for one at a time.</summary>
-        public static string Group(int min, int max) => max > 1 ? "in groups of " + DropWords.Range(min, max) : null;
+        public static string Group(int min, int max) => max > 1 ? "in groups of " + Numbers.CountRange(min, max) : null;
 
         /// <summary>
         /// Where the world grows something (<c>ZoneSystem.m_vegetation</c>): its biomes, named, and
@@ -63,8 +63,8 @@ namespace Scry
             if (minAltitude > -1000f || maxAltitude < 1000f)
             {
                 line += maxAltitude < 1000f
-                    ? $", {DropWords.Range((int)Math.Round(minAltitude), (int)Math.Round(maxAltitude))} m up"
-                    : $", from {(int)Math.Round(minAltitude)} m up";
+                    ? $", {Numbers.CountRange((int)Math.Round(minAltitude), (int)Math.Round(maxAltitude))} m up"
+                    : $", from {Numbers.Count((int)Math.Round(minAltitude))} m up";
             }
             if (inSea) line += ", in the sea";
             if (inForest) line += ", in forests";
@@ -87,7 +87,7 @@ namespace Scry
 
         // ----- Spawners (SpawnArea) -----
 
-        private static string Metres(float value) => Naming.Metres(value);
+        private static string Metres(float value) => Numbers.Metres(value);
 
         /// <summary>
         /// How often a spawner spawns. <c>SpawnArea.UpdateSpawn</c> runs every two seconds, adds two
@@ -97,7 +97,7 @@ namespace Scry
         public static string SpawnerPace(float interval)
         {
             var seconds = 2f * ((float)Math.Floor(Math.Max(0f, interval) / 2f) + 1f);
-            return "one every " + Naming.Duration(seconds);
+            return "one every " + Numbers.Duration(seconds);
         }
 
         /// <summary>A spawner works only while a player is within its trigger distance.</summary>
@@ -106,7 +106,7 @@ namespace Scry
         /// <summary>The most of its own creatures, untamed, it lets be alive near it and farther out (<c>SpawnArea.GetInstances</c>).</summary>
         public static string SpawnerCaps(int maxNear, float nearRadius, int maxTotal, float farRadius)
         {
-            return $"{Naming.Count(maxNear)} within {Metres(nearRadius)}, {Naming.Count(maxTotal)} within {Metres(farRadius)}";
+            return $"{Numbers.Count(maxNear)} within {Metres(nearRadius)}, {Numbers.Count(maxTotal)} within {Metres(farRadius)}";
         }
 
         /// <summary>How far from itself it puts what it spawns, and whether only where nothing is built (<c>SpawnArea.FindSpawnPoint</c>).</summary>
@@ -135,7 +135,7 @@ namespace Scry
         {
             var parts = new List<string>();
             if (maxLevel >= 0) parts.Add(Stars(Math.Max(1, minLevel), maxLevel));
-            else if (minLevel > 1) parts.Add($"at least {minLevel - 1} {(minLevel == 2 ? "star" : "stars")}");
+            else if (minLevel > 1) parts.Add($"at least {Numbers.Count(minLevel - 1)} {(minLevel == 2 ? "star" : "stars")}");
             if (levelUpChance > 0f) parts.Add(StarChance(levelUpChance));
             else if (levelUpChance == 0f) parts.Add("never a star above the least");
             if (parts.Count == 0) return null;
@@ -144,7 +144,7 @@ namespace Scry
         }
 
         /// <summary>The chance of each star beyond the least, each rolled on its own until one misses (<c>SpawnArea.SpawnOne</c>).</summary>
-        public static string StarChance(float levelUpChance) => levelUpChance > 0f ? $"{Naming.Number(levelUpChance)}% for each star" : null;
+        public static string StarChance(float levelUpChance) => levelUpChance > 0f ? $"{Numbers.Amount(levelUpChance)}% for each star" : null;
 
         /// <summary>A whole line: how it starts ("Spawns in"), then the biomes and every limit it has.</summary>
         public static string Line(string start, SpawnFacts spawn, Func<string, string> bossOf)

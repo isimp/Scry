@@ -162,7 +162,7 @@ namespace Scry
             {
                 var noteH = U(26f);
                 GUI.Label(new Rect(inner.x + U(10f), inner.y, inner.width - U(20f), noteH),
-                    $"Nothing in {Kinds.Label(picked)}, showing all {results.Count}", Skin.DimLabel);
+                    $"Nothing in {Kinds.Label(picked)}, showing all {Numbers.Count(results.Count)}", Skin.DimLabel);
                 inner = new Rect(inner.x, inner.y + noteH, inner.width, inner.height - noteH);
                 _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
             }
@@ -287,7 +287,7 @@ namespace Scry
                         var count = 1;
                         while (i + count < results.Count && results[i + count].Group == results[i].Group) count++;
                         var name = results[i].Group.Length > 0 ? results[i].Group : "Ungrouped";
-                        _listRows.Add(new ListRow { Entry = -1, Heading = $"{name}  {count}", Group = results[i].Group, Folded = folded });
+                        _listRows.Add(new ListRow { Entry = -1, Heading = $"{name}  {Numbers.Count(count)}", Group = results[i].Group, Folded = folded });
                     }
                 }
                 if (folded)

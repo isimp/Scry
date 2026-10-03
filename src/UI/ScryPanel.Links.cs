@@ -157,7 +157,7 @@ namespace Scry
                 _linksIn = explorer;
                 LinkRows.Clear();
                 MakeLinkRows(explorer, entry);
-                _linkedHeading = $"LINKED  {LinkRows.Sum(r => r.Items.Count)}";
+                _linkedHeading = $"LINKED  {Numbers.Count(LinkRows.Sum(r => r.Items.Count))}";
             }
             if (LinkRows.Count == 0) return y;
 

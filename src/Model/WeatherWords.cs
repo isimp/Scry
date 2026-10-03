@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Globalization;
 
 namespace Scry
 {
@@ -40,10 +39,8 @@ namespace Scry
             else parts.Add($"{day}, {night} at night");
 
             if (weather.AlwaysDark) parts.Add("always dark");
-            parts.Add(weather.WindMax <= 0f ? "no wind" : $"wind {Percent(weather.WindMin)}–{Percent(weather.WindMax)}%");
+            parts.Add(weather.WindMax <= 0f ? "no wind" : $"wind {Numbers.Amount(weather.WindMin * 100.0, 0)}–{Numbers.Percent(weather.WindMax)}");
             return string.Join(", ", parts);
         }
-
-        private static string Percent(float share) => (share * 100f).ToString("0", CultureInfo.InvariantCulture);
     }
 }

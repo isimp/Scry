@@ -18,7 +18,7 @@ namespace Scry
             if (enemies) who.Add("enemies");
             if (players) who.Add("players");
             if (tamed) who.Add("tame creatures");
-            return who.Count == 0 ? "nothing" : $"{And(who)} within {Naming.Number(range)} m";
+            return who.Count == 0 ? "nothing" : $"{And(who)} within {Numbers.Amount(range)} m";
         }
 
         public static string Springs(bool enemies, bool players)
@@ -33,15 +33,15 @@ namespace Scry
 
         /// <summary>What it takes while upside down, or null when nothing.</summary>
         public static string Capsized(float damage, float interval) =>
-            damage > 0f ? $"takes {Naming.Number(damage)} damage every {Naming.Duration(interval)}" : null;
+            damage > 0f ? $"takes {Numbers.Amount(damage)} damage every {Numbers.Duration(interval)}" : null;
 
         public static string CartWeight(float baseMass, float factor)
         {
-            var own = Naming.Number(baseMass);
+            var own = Numbers.Amount(baseMass);
             if (factor <= 0f) return $"{own}, whatever it carries";
             if (Math.Abs(factor - 1f) < 0.001f) return $"{own} empty, and all it carries";
             if (Math.Abs(factor - 0.5f) < 0.001f) return $"{own} empty, and half of what it carries";
-            return $"{own} empty, and {(int)Math.Round(factor * 100f, MidpointRounding.AwayFromZero)}% of what it carries";
+            return $"{own} empty, and {Numbers.Count((int)Math.Round(factor * 100f, MidpointRounding.AwayFromZero))}% of what it carries";
         }
 
         /// <summary>What a catapult loads: anything (it can hold) but the types listed, or only those.</summary>

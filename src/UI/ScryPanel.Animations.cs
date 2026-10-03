@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using UnityEngine;
 
@@ -27,10 +26,10 @@ namespace Scry
         {
             _groundsFor = explorer.Selected;
             var playing = Previews.PlayingClip();
-            y = SectionHeading($"ANIMATIONS  {clips.Count}", width, y, null, "animations");
+            y = SectionHeading($"ANIMATIONS  {Numbers.Count(clips.Count)}", width, y, null, "animations");
             if (IsFolded("animations")) return y;
 
-            var speed = SliderRow("Speed", $"×{modifiers.AnimationSpeed.ToString("0.0", CultureInfo.InvariantCulture)}", modifiers.AnimationSpeed, 0f, Modifiers.MaxAnimationSpeed, width, labelW, ref y);
+            var speed = SliderRow("Speed", $"×{Numbers.Fixed(modifiers.AnimationSpeed, 1)}", modifiers.AnimationSpeed, 0f, Modifiers.MaxAnimationSpeed, width, labelW, ref y);
             if (!Mathf.Approximately(speed, modifiers.AnimationSpeed)) modifiers.AnimationSpeed = speed;
 
             // The ground footsteps sound on, when the creature sounds different on some.
@@ -75,7 +74,7 @@ namespace Scry
                 GUI.enabled = enabled && timed;
                 var pauseW = U(84f);
                 if (GUI.Button(new Rect(0f, y, pauseW, rowH), timed && Previews.ClipPaused ? "Resume" : "Pause", timed && Previews.ClipPaused ? Skin.ChipOn : Skin.Chip)) Previews.PauseClip(!Previews.ClipPaused);
-                var readout = timed ? $"{time.ToString("0.00", CultureInfo.InvariantCulture)} / {length.ToString("0.00", CultureInfo.InvariantCulture)} s" : "";
+                var readout = timed ? $"{Numbers.Fixed(time, 2)} / {Numbers.Fixed(length, 2)} s" : "";
                 var readW = Skin.Width(Skin.DimLabel, "00.00 / 00.00 s") + U(6f);
                 var slider = new Rect(pauseW + U(10f), y + (rowH - U(14f)) / 2f, Mathf.Max(U(40f), width - pauseW - readW - U(20f)), U(14f));
                 var picked = GUI.HorizontalSlider(slider, time, 0f, Mathf.Max(length, 0.01f));
@@ -109,12 +108,12 @@ namespace Scry
                 var clip = row.Clip;
                 if (row.Group != group)
                 {
-                    if (group >= 0 && !filtering) MoreChip("clips:" + group, totals[group], FirstChips, width, rowH, U(5f), ref x, ref y);
+                    if (group >= 0 && !filtering) MoreChip("clips:" + Stored.Count(group), totals[group], FirstChips, width, rowH, U(5f), ref x, ref y);
                     if (x > 0f) y += rowH + U(4f);
                     x = 0f;
                     group = row.Group;
                     inGroup = 0;
-                    limit = filtering ? totals[group] : ShownOf("clips:" + group, totals[group]);
+                    limit = filtering ? totals[group] : ShownOf("clips:" + Stored.Count(group), totals[group]);
                     GUI.Label(new Rect(0f, y, width, U(20f)), group < 3 ? ClipHeadings[group] : "Working out what each clip plays" + Dots(), Skin.DimLabel);
                     y += U(22f);
                 }
@@ -155,11 +154,11 @@ namespace Scry
                 }
                 if (chip.Contains(Event.current.mousePosition))
                 {
-                    AskTip("clip:" + row.Name + (clip == ownNow ? ":now" : ""), $"{row.Name}\n{clip.length.ToString("0.0", CultureInfo.InvariantCulture)} s{(clip.isLooping ? ", loops" : "")}{(clip == ownNow ? "\nPlaying on its own now" : "")}");
+                    AskTip("clip:" + row.Name + (clip == ownNow ? ":now" : ""), $"{row.Name}\n{Numbers.Fixed(clip.length, 1)} s{(clip.isLooping ? ", loops" : "")}{(clip == ownNow ? "\nPlaying on its own now" : "")}");
                 }
                 x += w + U(5f);
             }
-            if (group >= 0 && !filtering) MoreChip("clips:" + group, totals[group], FirstChips, width, rowH, U(5f), ref x, ref y);
+            if (group >= 0 && !filtering) MoreChip("clips:" + Stored.Count(group), totals[group], FirstChips, width, rowH, U(5f), ref x, ref y);
             if (x > 0f) y += rowH;
 
             var last = Previews.LastClip;

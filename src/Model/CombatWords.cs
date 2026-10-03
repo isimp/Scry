@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 
 namespace Scry
@@ -19,28 +18,26 @@ namespace Scry
         };
 
         /// <summary>Stars in figures, as the Adjust choices and the spawn lines count them.</summary>
-        private static string Stars(int stars) => stars.ToString(CultureInfo.InvariantCulture) + (stars == 1 ? " star" : " stars");
-
-        private static string Number(float value) => Naming.Number(value);
+        private static string Stars(int stars) => Numbers.Count(stars) + (stars == 1 ? " star" : " stars");
 
         /// <summary>Health at each star up to the highest, or null without stars.</summary>
         public static string StarHealth(float health, int maxStars)
         {
             if (maxStars <= 0) return null;
-            return string.Join(", ", Enumerable.Range(1, maxStars).Select(s => $"{Stars(s)} {Number(health * (s + 1))}"));
+            return string.Join(", ", Enumerable.Range(1, maxStars).Select(s => $"{Stars(s)} {Numbers.Amount(health * (s + 1))}"));
         }
 
         /// <summary>How much harder it hits at each star up to the highest, or null without stars.</summary>
         public static string StarDamage(int maxStars)
         {
             if (maxStars <= 0) return null;
-            return string.Join(", ", Enumerable.Range(1, maxStars).Select(s => $"{Stars(s)} ×{Number(1f + s * 0.5f)}"));
+            return string.Join(", ", Enumerable.Range(1, maxStars).Select(s => $"{Stars(s)} ×{Numbers.Amount(1f + s * 0.5f)}"));
         }
 
         /// <summary>The damage of a hit by type, the biggest first; null when it does none.</summary>
         public static string Damage(IEnumerable<(string Type, float Amount)> damage)
         {
-            var parts = damage.Where(d => d.Amount > 0f).OrderByDescending(d => d.Amount).Select(d => $"{Number(d.Amount)} {d.Type}").ToList();
+            var parts = damage.Where(d => d.Amount > 0f).OrderByDescending(d => d.Amount).Select(d => $"{Numbers.Amount(d.Amount)} {d.Type}").ToList();
             return parts.Count > 0 ? string.Join(", ", parts) : null;
         }
 
@@ -71,10 +68,10 @@ namespace Scry
                     how = "an attack";
                     break;
             }
-            if (range > 0f) how += rangeMin > 0f ? $", from {Number(rangeMin)} to {Number(range)} m" : $", reaching {Number(range)} m";
+            if (range > 0f) how += rangeMin > 0f ? $", from {Numbers.Amount(rangeMin)} to {Numbers.Amount(range)} m" : $", reaching {Numbers.Amount(range)} m";
             parts.Add(how);
 
-            if (interval > 0f) parts.Add($"every {Number(interval)} s");
+            if (interval > 0f) parts.Add($"every {Numbers.Amount(interval)} s");
             return string.Join(" · ", parts);
         }
 
@@ -86,7 +83,7 @@ namespace Scry
         public static string Sight(float range, float halfAngle)
         {
             var field = halfAngle * 2f;
-            return field >= 360f ? $"{Number(range)} m, all round" : $"{Number(range)} m, {Number(field)}° ahead, all round once alerted";
+            return field >= 360f ? $"{Numbers.Amount(range)} m, all round" : $"{Numbers.Amount(range)} m, {Numbers.Amount(field)}° ahead, all round once alerted";
         }
 
         /// <summary>
@@ -99,7 +96,7 @@ namespace Scry
         {
             if (alertRange >= 9000f) return null;
             if (alertRange <= 0f) return "never on sight alone";
-            return $"on seeing you within {Number(alertRange)} m, nearer while you sneak";
+            return $"on seeing you within {Numbers.Amount(alertRange)} m, nearer while you sneak";
         }
 
         /// <summary>
@@ -109,7 +106,7 @@ namespace Scry
         /// </summary>
         public static string Chase(float maxChaseDistance)
         {
-            return maxChaseDistance > 0f ? $"beyond {Number(maxChaseDistance)} m from where it spawned, once it has lost you" : null;
+            return maxChaseDistance > 0f ? $"beyond {Numbers.Amount(maxChaseDistance)} m from where it spawned, once it has lost you" : null;
         }
 
         /// <summary>
@@ -138,10 +135,10 @@ namespace Scry
         public static List<string> Costs(float stamina, float eitr, float health, float healthPercent)
         {
             var costs = new List<string>();
-            if (stamina > 0f) costs.Add($"{Number(stamina)} stamina");
-            if (eitr > 0f) costs.Add($"{Number(eitr)} eitr");
-            if (health > 0f) costs.Add($"{Number(health)} health");
-            if (healthPercent > 0f) costs.Add($"{Number(healthPercent)}% health");
+            if (stamina > 0f) costs.Add($"{Numbers.Amount(stamina)} stamina");
+            if (eitr > 0f) costs.Add($"{Numbers.Amount(eitr)} eitr");
+            if (health > 0f) costs.Add($"{Numbers.Amount(health)} health");
+            if (healthPercent > 0f) costs.Add($"{Numbers.Amount(healthPercent)}% health");
             return costs;
         }
 
@@ -149,9 +146,9 @@ namespace Scry
         public static string SecondaryAttack(float damage, float force, float stagger, IReadOnlyList<string> costs)
         {
             var parts = new List<string>();
-            if (Math.Abs(damage - 1f) > 0.001f) parts.Add($"\u00d7{Number(damage)} damage");
-            if (Math.Abs(force - 1f) > 0.001f) parts.Add($"\u00d7{Number(force)} knockback");
-            if (Math.Abs(stagger - 1f) > 0.001f) parts.Add($"\u00d7{Number(stagger)} stagger");
+            if (Math.Abs(damage - 1f) > 0.001f) parts.Add($"\u00d7{Numbers.Amount(damage)} damage");
+            if (Math.Abs(force - 1f) > 0.001f) parts.Add($"\u00d7{Numbers.Amount(force)} knockback");
+            if (Math.Abs(stagger - 1f) > 0.001f) parts.Add($"\u00d7{Numbers.Amount(stagger)} stagger");
             var line = parts.Count > 0 ? string.Join(", ", parts) : "as hard as the first";
             return costs != null && costs.Count > 0 ? line + "; costs " + string.Join(", ", costs) : line;
         }

@@ -33,7 +33,7 @@ namespace Scry
                 if (facts.Pairs.Any(pair => pair.Key.StartsWith("Hit on the ", StringComparison.Ordinal))) weak++;
                 if (++n % 3 == 0) yield return null;
             }
-            p.Note($"of {creatures.Count} of the game's creatures, {alert} tell when they turn on you, {chase} how far they chase, {weak} a weak spot");
+            p.Note($"of {Numbers.Count(creatures.Count)} of the game's creatures, {Numbers.Count(alert)} tell when they turn on you, {Numbers.Count(chase)} how far they chase, {Numbers.Count(weak)} a weak spot");
             p.Check(alert + chase > 0, "some tell when they turn on you or how far they chase");
             p.Check(weak > 0, "some tell a weak spot");
         }
@@ -69,12 +69,12 @@ namespace Scry
             p.Check(builds.Any(r => r.Items.Any(i => i.Prefab == "piece_workbench")), "the hammer lists the workbench among what it builds", string.Join("; ", builds.Select(r => r.Title)));
 
             var tools = X.Catalog.Where(e => e.Kind == Kind.Item && Knowledge.Tools.IsTool(e.Name)).ToList();
-            p.Note($"{tools.Count} build tools: " + string.Join(", ", tools.Select(t => $"{t.Name} ({Knowledge.Tools.PiecesOf(t.Name).Sum(tab => tab.Pieces.Count)} pieces{(t.Origin == Origin.Vanilla ? "" : ", " + t.ModName)})")));
+            p.Note($"{Numbers.Count(tools.Count)} build tools: " + string.Join(", ", tools.Select(t => $"{t.Name} ({Numbers.Count(Knowledge.Tools.PiecesOf(t.Name).Sum(tab => tab.Pieces.Count))} pieces{(t.Origin == Origin.Vanilla ? "" : ", " + t.ModName)})")));
             var empty = tools.Where(t => !Facts.For(t).Rows.Any(r => r.Title.StartsWith("Builds on its", StringComparison.Ordinal))).Select(t => t.Name).ToList();
             p.Check(empty.Count == 0, "every tool lists what it builds", string.Join(", ", empty));
             var pieces = X.Catalog.Where(e => e.Kind == Kind.Piece).ToList();
             var withTool = pieces.Count(e => Knowledge.Tools.ToolsOf(e.Name).Count > 0);
-            p.Note($"{withTool} of {pieces.Count} pieces are built with a tool; the rest are in no build menu");
+            p.Note($"{Numbers.Count(withTool)} of {Numbers.Count(pieces.Count)} pieces are built with a tool; the rest are in no build menu");
             yield break;
         }
 
@@ -91,7 +91,7 @@ namespace Scry
                 p.Check(method != null && HarmonyLib.Harmony.GetPatchInfo(method)?.Owners.Contains(Plugin.Guid) == true, $"{type.Name}.{name} is watched");
             }
             var creatures = X.Catalog.Where(e => e.Kind == Kind.Creature && DropWatch.Seen.Kills(e.Name) > 0).ToList();
-            p.Note($"{creatures.Count} kinds of creature seen dying in play, {creatures.Sum(c => DropWatch.Seen.Kills(c.Name))} kills: " + string.Join(", ", creatures.Take(10).Select(c => $"{c.Name} {DropWatch.Seen.Kills(c.Name)}")));
+            p.Note($"{Numbers.Count(creatures.Count)} kinds of creature seen dying in play, {Numbers.Count(creatures.Sum(c => DropWatch.Seen.Kills(c.Name)))} kills: " + string.Join(", ", creatures.Take(10).Select(c => $"{c.Name} {Numbers.Count(DropWatch.Seen.Kills(c.Name))}")));
             var seen = creatures.FirstOrDefault(c => DropWatch.Seen.Of(c.Name).Count > 0);
             if (seen == null)
             {
@@ -137,7 +137,7 @@ namespace Scry
                 var (entry, _) = found[0];
                 var gearFacts = Facts.For(entry);
                 var value = Value(gearFacts, label) ?? (gearFacts.Rows.Any(r => r.Title == label && r.Cells != null) ? string.Join(", ", gearFacts.Rows.First(r => r.Title == label).Cells.Where(c => c.Tone != Tone.Plain).Select(c => c.Type + " " + c.Value)) : null);
-                p.Check(value != null, $"{entry.Name}, {what} ({found.Count} such), tells it under {label}", value ?? "not told");
+                p.Check(value != null, $"{entry.Name}, {what} ({Numbers.Count(found.Count)} such), tells it under {label}", value ?? "not told");
                 if (value != null) p.Note($"{entry.Name}: {label} {value}");
             }
             yield break;
@@ -152,7 +152,7 @@ namespace Scry
         {
             GameObject Of(Entry e) => e.Source as GameObject;
             var breeders = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<Procreation>() != null && Of(e).GetComponent<Tameable>() != null).ToList();
-            p.Note($"{breeders.Count} creatures breed: {string.Join(", ", breeders.Take(10).Select(e => e.Name))}");
+            p.Note($"{Numbers.Count(breeders.Count)} creatures breed: {string.Join(", ", breeders.Take(10).Select(e => e.Name))}");
             var untold = new List<string>();
             var unborn = new List<string>();
             foreach (var breeder in breeders)
@@ -170,7 +170,7 @@ namespace Scry
 
             var growing = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<Growup>() != null).ToList();
             var ungrown = growing.Where(e => Value(Facts.For(e), "Grows up in") == null || !Facts.For(e).Rows.Any(r => r.Title.StartsWith("Grows into", StringComparison.Ordinal))).Select(e => e.Name).ToList();
-            p.Check(ungrown.Count == 0, $"every young one ({growing.Count}) tells what it grows into and when", string.Join(", ", ungrown.Take(5)));
+            p.Check(ungrown.Count == 0, $"every young one ({Numbers.Count(growing.Count)}) tells what it grows into and when", string.Join(", ", ungrown.Take(5)));
 
             var egg = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && Of(e)?.GetComponent<EggGrow>()?.m_grownPrefab != null);
             if (egg == null) p.Note("no egg hatches in this game");
@@ -195,7 +195,7 @@ namespace Scry
         {
             GameObject Of(Entry e) => e.Source as GameObject;
             var fish = X.Catalog.Where(e => Of(e)?.GetComponent<Fish>()?.m_baits?.Any(b => b?.m_bait != null) == true).ToList();
-            p.Note($"{fish.Count} fish with baits");
+            p.Note($"{Numbers.Count(fish.Count)} fish with baits");
             if (fish.Count > 0)
             {
                 var one = fish[0];
@@ -206,7 +206,7 @@ namespace Scry
             }
 
             var doors = X.Catalog.Where(e => Of(e)?.GetComponent<Door>()?.m_keyItem != null).ToList();
-            p.Note($"{doors.Count} locked doors: {string.Join(", ", doors.Take(6).Select(e => e.Name))}");
+            p.Note($"{Numbers.Count(doors.Count)} locked doors: {string.Join(", ", doors.Take(6).Select(e => e.Name))}");
             if (doors.Count > 0)
             {
                 var door = doors[0];
@@ -217,7 +217,7 @@ namespace Scry
             }
 
             var bosses = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<CharacterDrop>()?.m_drops?.Any(d => d?.m_prefab != null && Knowledge.PowerOf(d.m_prefab.name).Power != null) == true).ToList();
-            p.Note($"{bosses.Count} creatures drop a trophy with a Forsaken power: {string.Join(", ", bosses.Take(8).Select(e => e.Name))}");
+            p.Note($"{Numbers.Count(bosses.Count)} creatures drop a trophy with a Forsaken power: {string.Join(", ", bosses.Take(8).Select(e => e.Name))}");
             var unpowered = bosses.Where(b => Value(Facts.For(b), "Forsaken power") == null).Select(b => b.Name).ToList();
             p.Check(bosses.Count > 0 && unpowered.Count == 0, "every one names its power", string.Join(", ", unpowered));
             var trophy = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && Knowledge.PowerOf(e.Name).Power != null);
@@ -248,7 +248,7 @@ namespace Scry
                     continue;
                 }
                 var value = Value(Facts.For(found[0]), label);
-                p.Check(value != null, $"{found[0].Name}, {what} ({found.Count} such), tells it under {label}", value ?? "not told");
+                p.Check(value != null, $"{found[0].Name}, {what} ({Numbers.Count(found.Count)} such), tells it under {label}", value ?? "not told");
                 if (value != null) p.Note($"{found[0].Name}: {label} {value}");
             }
             yield break;
@@ -277,7 +277,7 @@ namespace Scry
                 }
                 var told = Facts.For(found[0]);
                 var value = Value(told, label);
-                p.Check(value != null, $"{found[0].Name}, {what} ({found.Count} such), tells it under {label}", value ?? "not told");
+                p.Check(value != null, $"{found[0].Name}, {what} ({Numbers.Count(found.Count)} such), tells it under {label}", value ?? "not told");
                 p.Note($"{found[0].Name}: {Pairs(told)}");
             }
             yield break;
@@ -291,7 +291,7 @@ namespace Scry
         {
             var keyed = X.Catalog.Where(e => e.Kind == Kind.Creature && e.Source is GameObject g && g.GetComponent<Character>() is Character c && !string.IsNullOrEmpty(c.m_defeatSetGlobalKey))
                 .Select(e => (Entry: e, Key: ((GameObject)e.Source).GetComponent<Character>().m_defeatSetGlobalKey)).ToList();
-            p.Note($"{keyed.Count} creatures set a world key when they fall: {string.Join(", ", keyed.Take(12).Select(k => $"{k.Entry.Name} ({k.Key})"))}");
+            p.Note($"{Numbers.Count(keyed.Count)} creatures set a world key when they fall: {string.Join(", ", keyed.Take(12).Select(k => $"{k.Entry.Name} ({k.Key})"))}");
             var silent = keyed.Where(k => Knowledge.Unlocks.Any(k.Key) && !Facts.For(k.Entry).Rows.Any(r => r.Title.StartsWith("After it falls", StringComparison.Ordinal))).Select(k => k.Entry.Name).ToList();
             p.Check(silent.Count == 0, "each one something waits for tells what follows", string.Join(", ", silent.Take(5)));
             foreach (var (entry, key) in keyed.Take(3))
@@ -320,16 +320,16 @@ namespace Scry
         private static IEnumerator BiomePages(Probe p)
         {
             var biomes = X.Catalog.Where(e => e.Kind == Kind.Biome).ToList();
-            p.Note($"{biomes.Count} biomes: {string.Join(", ", biomes.Select(b => b.DisplayName))}");
+            p.Note($"{Numbers.Count(biomes.Count)} biomes: {string.Join(", ", biomes.Select(b => b.DisplayName))}");
             var bare = biomes.Where(b => !Facts.For(b).Pairs.Any(pair => pair.Key.EndsWith("of the time", StringComparison.Ordinal))).Select(b => b.Name).ToList();
             p.Check(biomes.Count > 0 && bare.Count == 0, "each tells its weathers", string.Join(", ", bare));
             var empty = biomes.Where(b => b.Name != "Ocean" && !Facts.For(b).Rows.Any(r => r.Title.StartsWith("Lives here", StringComparison.Ordinal))).Select(b => b.Name).ToList();
             p.Note(empty.Count == 0 ? "each but the ocean tells what lives there" : $"no creature told living in {string.Join(", ", empty)}");
             // What spans most biomes, and what of other kinds claims a biome at all, kind by kind, for a look at what is mixed in.
             var wide = X.Catalog.Where(e => e.Kind != Kind.Biome && e.Biomes.Length >= 6).ToList();
-            foreach (var kind in wide.GroupBy(e => e.Kind)) p.Note($"{Kinds.Label(kind.Key).ToLowerInvariant()} in 6 or more biomes ({kind.Count()}): {string.Join(", ", kind.Take(12).Select(e => $"{e.Name} ({e.Biomes.Length}{(e.ModName.Length > 0 ? ", " + e.ModName : "")})"))}");
+            foreach (var kind in wide.GroupBy(e => e.Kind)) p.Note($"{Kinds.Label(kind.Key).ToLowerInvariant()} in 6 or more biomes ({Numbers.Count(kind.Count())}): {string.Join(", ", kind.Take(12).Select(e => $"{e.Name} ({Numbers.Count(e.Biomes.Length)}{(e.ModName.Length > 0 ? ", " + e.ModName : "")})"))}");
             var others = X.Catalog.Where(e => e.Biomes.Length > 0 && e.Kind != Kind.Biome && e.Kind != Kind.Creature && e.Kind != Kind.Resource && e.Kind != Kind.Location && e.Kind != Kind.Raid).ToList();
-            foreach (var kind in others.GroupBy(e => e.Kind)) p.Note($"{Kinds.Label(kind.Key).ToLowerInvariant()} with biomes ({kind.Count()}): {string.Join(", ", kind.Take(12).Select(e => $"{e.Name} ({string.Join("/", e.Biomes)})"))}");
+            foreach (var kind in others.GroupBy(e => e.Kind)) p.Note($"{Kinds.Label(kind.Key).ToLowerInvariant()} with biomes ({Numbers.Count(kind.Count())}): {string.Join(", ", kind.Take(12).Select(e => $"{e.Name} ({string.Join("/", e.Biomes)})"))}");
             var named = X.Catalog.Where(e => e.Kind != Kind.Biome).SelectMany(e => e.Biomes).Distinct().ToList();
             var pageless = named.Where(b => !X.Catalog.Any(e => e.Key == EntryKeys.For(Kind.Biome, b))).ToList();
             p.Check(pageless.Count == 0, "every biome an entry names has a page", string.Join(", ", pageless));
@@ -367,7 +367,7 @@ namespace Scry
 
             var named = X.Catalog.Where(e => e.ModName.Length > 0 && e.Kind != Kind.Mod).ToList();
             var guessed = named.Where(e => !UnsureWords.IsSureClue(e.ModClue)).ToList();
-            p.Note($"{named.Count} entries named for their mod: {named.Count - guessed.Count} by the mod's own word, {guessed.Count} by clues ({string.Join(", ", guessed.GroupBy(e => e.ModClue).Select(g => $"{g.Key}: {g.Count()}"))})");
+            p.Note($"{Numbers.Count(named.Count)} entries named for their mod: {Numbers.Count(named.Count - guessed.Count)} by the mod's own word, {Numbers.Count(guessed.Count)} by clues ({string.Join(", ", guessed.GroupBy(e => e.ModClue).Select(g => $"{g.Key}: {Numbers.Count(g.Count())}"))})");
             if (guessed.Count > 0)
             {
                 var one = guessed[0];
@@ -391,12 +391,12 @@ namespace Scry
             var creatures = X.Catalog.Where(e => e.Kind == Kind.Creature && Of(e)?.GetComponent<Character>() != null && !(Of(e).GetComponent<Character>() is Player)).ToList();
             var gridless = new List<string>();
             yield return Budgeted(creatures, e => { if (!HasGrid(e)) gridless.Add(e.Name); }, 8);
-            p.Check(creatures.Count > 0 && gridless.Count == 0, $"every creature ({creatures.Count}) has the grid", string.Join(", ", gridless.Take(5)));
+            p.Check(creatures.Count > 0 && gridless.Count == 0, $"every creature ({Numbers.Count(creatures.Count)}) has the grid", string.Join(", ", gridless.Take(5)));
             var pieces = Spread(X.Catalog.Where(e => e.Kind == Kind.Piece && Of(e)?.GetComponent<WearNTear>() != null && Of(e).GetComponent<Piece>()?.enabled == true).OrderBy(e => e.Name, StringComparer.Ordinal).ToList(), 40);
             var pieceless = pieces.Where(e => !HasGrid(e)).Select(e => e.Name).ToList();
-            p.Check(pieceless.Count == 0, $"a spread of {pieces.Count} pieces each have it", string.Join(", ", pieceless.Take(5)));
+            p.Check(pieceless.Count == 0, $"a spread of {Numbers.Count(pieces.Count)} pieces each have it", string.Join(", ", pieceless.Take(5)));
             var rocks = Spread(X.Catalog.Where(e => e.Kind == Kind.Resource && (Of(e)?.GetComponent<Destructible>() != null || Of(e)?.GetComponent<MineRock5>() != null)).OrderBy(e => e.Name, StringComparer.Ordinal).ToList(), 20);
-            p.Note($"{rocks.Count(HasGrid)} of a spread of {rocks.Count} rocks and trees have it");
+            p.Note($"{Numbers.Count(rocks.Count(HasGrid))} of a spread of {Numbers.Count(rocks.Count)} rocks and trees have it");
 
             var shown = creatures.FirstOrDefault(e => e.Name == "Troll") ?? creatures.FirstOrDefault();
             if (shown == null) yield break;
@@ -459,7 +459,7 @@ namespace Scry
             foreach (var (what, count, labels) in groups)
             {
                 var gaps = missing.TryGetValue(what, out var list) ? list : new List<string>();
-                p.Check(gaps.Count == 0, $"every {what} ({count}) shows {string.Join(", ", labels)}", string.Join("; ", gaps.Take(6)));
+                p.Check(gaps.Count == 0, $"every {what} ({Numbers.Count(count)}) shows {string.Join(", ", labels)}", string.Join("; ", gaps.Take(6)));
             }
         }
 
@@ -485,7 +485,7 @@ namespace Scry
         {
             var items = X.Catalog.Where(e => e.Kind == Kind.Item && e.Origin == Origin.Vanilla).ToList();
             var withOdds = items.Where(e => Knowledge.SourceLines(e.Name).Any(s => s.Text.Contains("% a roll"))).ToList();
-            p.Note($"{withOdds.Count} of {items.Count} of the game's items tell their share of a roll somewhere");
+            p.Note($"{Numbers.Count(withOdds.Count)} of {Numbers.Count(items.Count)} of the game's items tell their share of a roll somewhere");
             p.Check(withOdds.Count > 0, "items tell their share of a roll in the tables that give them");
             var amber = items.FirstOrDefault(e => e.Name == "Amber");
             if (amber != null)
@@ -540,19 +540,19 @@ namespace Scry
                 var facts = Facts.For(place);
                 var rows = facts.Rows.Where(r => titles.Contains(r.Title)).ToList();
                 var told = rows.Sum(r => r.Items.Count);
-                if (told != PlaceOf(place).Contents.Parts.Count) miscounted.Add($"{place.Name} {told} of {PlaceOf(place).Contents.Parts.Count}");
+                if (told != PlaceOf(place).Contents.Parts.Count) miscounted.Add($"{place.Name} {Numbers.Count(told)} of {Numbers.Count(PlaceOf(place).Contents.Parts.Count)}");
                 if (rows.Any(r => r.Title == PlaceParts.Title(PartRole.Built, false)))
                 {
                     built++;
                     if (shown == null || rows.Count > Facts.For(shown).Rows.Count(r => titles.Contains(r.Title))) shown = place;
                 }
             }
-            p.Check(miscounted.Count == 0, "every location tells each of its parts once, in a row by what it is", miscounted.Count > 0 ? string.Join(", ", miscounted.Take(10)) : $"{places.Count} locations");
-            p.Note($"{built} of {places.Count} locations have building pieces apart");
+            p.Check(miscounted.Count == 0, "every location tells each of its parts once, in a row by what it is", miscounted.Count > 0 ? string.Join(", ", miscounted.Take(10)) : $"{Numbers.Count(places.Count)} locations");
+            p.Note($"{Numbers.Count(built)} of {Numbers.Count(places.Count)} locations have building pieces apart");
             if (shown != null)
             {
                 p.Note($"{shown.Name}: " + string.Join("; ", Facts.For(shown).Rows.Where(r => titles.Contains(r.Title) || r.Title == "Its spawn points place")
-                    .Select(r => $"{r.Title} ({r.Items.Count}): {string.Join(", ", r.Items.Take(6).Select(i => i.Prefab))}")));
+                    .Select(r => $"{r.Title} ({Numbers.Count(r.Items.Count)}): {string.Join(", ", r.Items.Take(6).Select(i => i.Prefab))}")));
             }
             yield return null;
 

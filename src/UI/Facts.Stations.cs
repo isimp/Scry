@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using UnityEngine;
 
@@ -25,7 +24,7 @@ namespace Scry
             {
                 var title = ModWords.AddedBy(MakerBook.ItemTitle(AnyName(Looks.Prefab(making.Station), making.Station), making), Knowledge.ConversionMod(making), Knowledge.ModName(item.name));
                 var row = new Row { Title = title, TitleLink = making.Station };
-                foreach (var (input, amount) in making.Inputs) row.Items.Add(Chip(input, amount.ToString(CultureInfo.InvariantCulture)));
+                foreach (var (input, amount) in making.Inputs) row.Items.Add(Chip(input, Numbers.Count(amount)));
                 Rows.Add(row);
             }
         }
@@ -40,7 +39,7 @@ namespace Scry
             foreach (var making in Knowledge.MadeAt(prefab.name))
             {
                 var row = new Row { Title = MakerBook.StationTitle(AnyName(Looks.Prefab(making.Output), making.Output), making), TitleLink = making.Output };
-                foreach (var (input, amount) in making.Inputs) row.Items.Add(Chip(input, amount.ToString(CultureInfo.InvariantCulture)));
+                foreach (var (input, amount) in making.Inputs) row.Items.Add(Chip(input, Numbers.Count(amount)));
                 Rows.Add(row);
             }
 
@@ -48,9 +47,9 @@ namespace Scry
             if (smelter != null)
             {
                 var fuel = smelter.m_fuelItem;
-                if (fuel != null) Add("Burns", $"{ItemName(fuel.gameObject)}, {smelter.m_fuelPerProduct} for each", fuel.gameObject.name);
-                Add("Holds", fuel != null ? $"{smelter.m_maxOre} to process, {smelter.m_maxFuel} fuel" : $"{smelter.m_maxOre} to process");
-                Add("Each takes", Naming.Duration(smelter.m_secPerProduct));
+                if (fuel != null) Add("Burns", $"{ItemName(fuel.gameObject)}, {Numbers.Count(smelter.m_fuelPerProduct)} for each", fuel.gameObject.name);
+                Add("Holds", fuel != null ? $"{Numbers.Count(smelter.m_maxOre)} to process, {Numbers.Count(smelter.m_maxFuel)} fuel" : $"{Numbers.Count(smelter.m_maxOre)} to process");
+                Add("Each takes", Numbers.Duration(smelter.m_secPerProduct));
                 if (smelter.m_requiresRoof) Add("Needs", "a roof");
                 Hooked(HookedRule.Smelting);
             }
@@ -58,13 +57,13 @@ namespace Scry
             var cooking = prefab.GetComponent<CookingStation>();
             if (cooking != null)
             {
-                if (cooking.m_slots != null && cooking.m_slots.Length > 0) Add("Cooks", $"{cooking.m_slots.Length} at a time");
+                if (cooking.m_slots != null && cooking.m_slots.Length > 0) Add("Cooks", $"{Numbers.Count(cooking.m_slots.Length)} at a time");
                 var times = cooking.m_conversion?.Where(c => c?.m_from != null && c.m_to != null).Select(c => c.m_cookTime).ToList();
                 if (times != null && times.Count > 0)
                 {
                     var least = times.Min();
                     var most = times.Max();
-                    Add("Each takes", Naming.DurationRange(least, most));
+                    Add("Each takes", Numbers.DurationRange(least, most));
                 }
                 if (cooking.m_canOvercookItems && cooking.m_overCookedItem != null)
                 {
@@ -72,8 +71,8 @@ namespace Scry
                 }
                 if (cooking.m_useFuel && cooking.m_fuelItem != null)
                 {
-                    Add("Burns", $"{ItemName(cooking.m_fuelItem.gameObject)}, one every {Naming.Duration(cooking.m_secPerFuel)}", cooking.m_fuelItem.gameObject.name);
-                    Add("Holds", $"{cooking.m_maxFuel} fuel");
+                    Add("Burns", $"{ItemName(cooking.m_fuelItem.gameObject)}, one every {Numbers.Duration(cooking.m_secPerFuel)}", cooking.m_fuelItem.gameObject.name);
+                    Add("Holds", $"{Numbers.Count(cooking.m_maxFuel)} fuel");
                 }
                 if (cooking.m_requireFire) Add("Needs", "a fire under it");
                 Hooked(HookedRule.Cooking);
@@ -82,7 +81,7 @@ namespace Scry
             var fermenter = prefab.GetComponent<Fermenter>();
             if (fermenter != null)
             {
-                Add("Each takes", Naming.Duration(fermenter.m_fermentationDuration));
+                Add("Each takes", Numbers.Duration(fermenter.m_fermentationDuration));
                 // Fermenter.UpdateCover restarts the batch without a roof or with less than 70% cover.
                 Add("Needs", "a roof, and cover on most sides");
                 Hooked(HookedRule.Fermenting);
@@ -91,7 +90,7 @@ namespace Scry
             var incinerator = prefab.GetComponent<Incinerator>();
             if (incinerator != null && incinerator.m_defaultResult != null && incinerator.m_defaultCost > 0)
             {
-                Add("Anything else", $"becomes {ItemName(incinerator.m_defaultResult.gameObject)}, one for every {incinerator.m_defaultCost}", incinerator.m_defaultResult.gameObject.name);
+                Add("Anything else", $"becomes {ItemName(incinerator.m_defaultResult.gameObject)}, one for every {Numbers.Count(incinerator.m_defaultCost)}", incinerator.m_defaultResult.gameObject.name);
             }
 
             var hive = prefab.GetComponent<Beehive>();
@@ -100,7 +99,7 @@ namespace Scry
                 Add("Makes", $"{ItemName(hive.m_honeyItem.gameObject)}, {SourceWords.Pace(hive.m_secPerUnit, hive.m_maxHoney)}", hive.m_honeyItem.gameObject.name);
                 if (hive.m_biome != 0) BiomeRow("Works in", hive.m_biome);
                 // Beehive.HaveFreeSpace: it makes nothing while more of the sky around it is covered.
-                if (hive.m_maxCover > 0f) Add("Needs", $"open sky, less than {Mathf.RoundToInt(hive.m_maxCover * 100f)}% covered");
+                if (hive.m_maxCover > 0f) Add("Needs", $"open sky, less than {Numbers.Count(Mathf.RoundToInt(hive.m_maxCover * 100f))}% covered");
                 Hooked(HookedRule.Producing);
             }
 
@@ -117,8 +116,8 @@ namespace Scry
             var fire = prefab.GetComponent<Fireplace>();
             if (fire != null && fire.m_fuelItem != null && !fire.m_infiniteFuel)
             {
-                Add("Burns", $"{ItemName(fire.m_fuelItem.gameObject)}, one every {Naming.Duration(fire.m_secPerFuel)}", fire.m_fuelItem.gameObject.name);
-                Add("Holds", $"{Number(fire.m_maxFuel)} fuel");
+                Add("Burns", $"{ItemName(fire.m_fuelItem.gameObject)}, one every {Numbers.Duration(fire.m_secPerFuel)}", fire.m_fuelItem.gameObject.name);
+                Add("Holds", $"{Numbers.Amount(fire.m_maxFuel)} fuel");
                 Hooked(HookedRule.Burning);
             }
 
@@ -128,7 +127,7 @@ namespace Scry
                 var row = new Row { Title = shield.m_fuelItems.Count > 1 ? "Burns any one of these" : "Burns" };
                 foreach (var each in shield.m_fuelItems.Where(f => f != null)) row.Items.Add(Chip(each, ""));
                 if (row.Items.Count > 0) Rows.Add(row);
-                Add("Holds", $"{shield.m_maxFuel} fuel");
+                Add("Holds", $"{Numbers.Count(shield.m_maxFuel)} fuel");
             }
 
             var craft = prefab.GetComponent<CraftingStation>();
@@ -156,7 +155,7 @@ namespace Scry
             if (bowl != null && bowl.m_bossPrefab != null && bowl.m_bossItem != null)
             {
                 var row = new Row { Title = $"Summons {AnyName(bowl.m_bossPrefab, bowl.m_bossPrefab.name)} with", TitleLink = bowl.m_bossPrefab.name };
-                row.Items.Add(Chip(bowl.m_bossItem, Mathf.Max(1, bowl.m_bossItems).ToString(CultureInfo.InvariantCulture)));
+                row.Items.Add(Chip(bowl.m_bossItem, Numbers.Count(Mathf.Max(1, bowl.m_bossItems))));
                 Rows.Add(row);
             }
         }
@@ -175,7 +174,7 @@ namespace Scry
                 var name = recipe.m_item.gameObject.name;
                 if (recipe.m_craftingStation != null && recipe.m_craftingStation.gameObject.name == station)
                 {
-                    if (seen.Add(name)) made.Items.Add(Chip(recipe.m_item, recipe.m_amount > 1 ? recipe.m_amount.ToString(CultureInfo.InvariantCulture) : ""));
+                    if (seen.Add(name)) made.Items.Add(Chip(recipe.m_item, recipe.m_amount > 1 ? Numbers.Count(recipe.m_amount) : ""));
                 }
                 else if (recipe.m_craftingStation == null && recipe.m_repairStation != null && recipe.m_repairStation.gameObject.name == station)
                 {
@@ -229,7 +228,7 @@ namespace Scry
             foreach (var summon in Knowledge.Summons().Where(s => s.Boss == boss.name && s.Item != null))
             {
                 var row = new Row { Title = summon.OnStands ? $"Summoned at {summon.Place} with these on its item stands" : $"Summoned at {summon.Place} with", TitleLink = summon.PlacePrefab };
-                row.Items.Add(Chip(summon.Item, summon.Count.ToString(CultureInfo.InvariantCulture)));
+                row.Items.Add(Chip(summon.Item, Numbers.Count(summon.Count)));
                 if (!Rows.Any(r => r.Title == row.Title && r.Items.Count == 1 && r.Items[0].Prefab == summon.Item)) Rows.Add(row);
             }
         }
@@ -241,7 +240,7 @@ namespace Scry
             foreach (var summon in Knowledge.Summons().Where(s => s.Item == item && s.Boss != null))
             {
                 if (row.Items.Any(i => i.Prefab == summon.Boss)) continue;
-                row.Items.Add(Chip(summon.Boss, summon.Count.ToString(CultureInfo.InvariantCulture)));
+                row.Items.Add(Chip(summon.Boss, Numbers.Count(summon.Count)));
             }
             if (row.Items.Count > 0) UseRows.Add(row);
         }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 
 namespace Scry
@@ -110,10 +109,10 @@ namespace Scry
             var cleanups = Cleanups;
             var kb = Kilobytes(Bytes);
 
-            var head = $"Scry took {Whole(Total)} ms of a {Whole(frameMs)} ms frame";
+            var head = $"Scry took {Numbers.Amount(Total, 0)} ms of a {Numbers.Amount(frameMs, 0)} ms frame";
             if (cleanups == 1) head += ", a memory cleanup ran inside it";
-            else if (cleanups > 1) head += $", {cleanups} memory cleanups ran inside it";
-            if (kb > 0) head += $", allocating about {kb} KB";
+            else if (cleanups > 1) head += $", {Numbers.Count(cleanups)} memory cleanups ran inside it";
+            if (kb > 0) head += $", allocating about {Numbers.Count(kb)} KB";
 
             var told = _parts
                 .Where(p => Math.Round(p.Ms) >= 1 || Kilobytes(p.Bytes) > 0 || p.Cleanups > 0)
@@ -124,15 +123,13 @@ namespace Scry
 
         private static string Told(Part part)
         {
-            var text = $"{part.Name} {Whole(part.Ms)}";
+            var text = $"{part.Name} {Numbers.Amount(part.Ms, 0)}";
             if (part.Cleanups == 1) return text + " [memory cleanup]";
-            if (part.Cleanups > 1) return text + $" [{part.Cleanups} memory cleanups]";
+            if (part.Cleanups > 1) return text + $" [{Numbers.Count(part.Cleanups)} memory cleanups]";
             var kb = Kilobytes(part.Bytes);
-            return kb > 0 ? text + $" [{kb} KB]" : text;
+            return kb > 0 ? text + $" [{Numbers.Count(kb)} KB]" : text;
         }
 
         private static long Kilobytes(long bytes) => (long)Math.Round(bytes / 1024.0);
-
-        private static string Whole(double value) => value.ToString("0", CultureInfo.InvariantCulture);
     }
 }

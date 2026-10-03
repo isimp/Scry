@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using UnityEngine;
 
@@ -65,7 +64,7 @@ namespace Scry
         private static void BiomeCard(Entry entry, Rect rect)
         {
             var weathers = entry.Source is BiomeSource biome ? BiomeWords.Weathers(biome.Weathers).Count : 0;
-            GUI.Label(new Rect(rect.x + U(20f), rect.y + U(40f), rect.width - U(40f), U(24f)), weathers == 1 ? "One weather" : $"{weathers} weathers", Skin.Center);
+            GUI.Label(new Rect(rect.x + U(20f), rect.y + U(40f), rect.width - U(40f), U(24f)), weathers == 1 ? "One weather" : $"{Numbers.Count(weathers)} weathers", Skin.Center);
             GUI.Label(new Rect(rect.x + U(20f), rect.y + U(68f), rect.width - U(40f), U(40f)), "Enter plays its music", Skin.CenterDim);
         }
 
@@ -75,7 +74,7 @@ namespace Scry
             {
                 var raid = entry.Source as RandomEvent;
                 var brings = raid?.m_spawn?.Where(s => s?.m_prefab != null).Select(s => ShownNameOf(s.m_prefab)).Distinct().ToList() ?? new List<string>();
-                card = (raid != null ? "Lasts " + Naming.Duration(raid.m_duration) : "", brings.Count > 0 ? "Brings " + string.Join(", ", brings) : "Brings nothing");
+                card = (raid != null ? "Lasts " + Numbers.Duration(raid.m_duration) : "", brings.Count > 0 ? "Brings " + string.Join(", ", brings) : "Brings nothing");
                 RaidCardCache[entry] = card;
             }
             GUI.Label(new Rect(rect.x + U(20f), rect.y + U(40f), rect.width - U(40f), U(24f)), card.Lasts, Skin.Center);
@@ -135,8 +134,8 @@ namespace Scry
             if (clips.Count == 0) return loops ? "Loops" : "No clips found";
 
             var longest = clips.Max(c => c.length);
-            var what = clips.Count == 1 ? "1 clip" : $"{clips.Count} clips, one picked at random";
-            return $"{what}, {longest.ToString("0.0", CultureInfo.InvariantCulture)} s{(loops ? ", loops" : "")}";
+            var what = clips.Count == 1 ? "1 clip" : $"{Numbers.Count(clips.Count)} clips, one picked at random";
+            return $"{what}, {Numbers.Fixed(longest, 1)} s{(loops ? ", loops" : "")}";
         }
 
         private static readonly Dictionary<Entry, List<KeyValuePair<string, EffectList>>> StatusListCache =
@@ -155,7 +154,7 @@ namespace Scry
         private static string StatusFacts(StatusEffect effect)
         {
             var parts = new List<string>();
-            parts.Add(effect.m_ttl > 0f ? "Lasts " + Naming.Duration(effect.m_ttl) : "No time limit of its own");
+            parts.Add(effect.m_ttl > 0f ? "Lasts " + Numbers.Duration(effect.m_ttl) : "No time limit of its own");
             return string.Join("    ", parts);
         }
 

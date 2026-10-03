@@ -63,7 +63,7 @@ namespace Scry
             }
 
             Lines.Clear();
-            Lines.Add($"{MonitorWords.Ms(Window.Last)} ms a frame now, {MonitorWords.Ms(Window.Mean)} on average, {MonitorWords.Ms(Window.Max)} at the most; {Window.Share * 100:0.0}% of the frames");
+            Lines.Add($"{MonitorWords.Ms(Window.Last)} ms a frame now, {MonitorWords.Ms(Window.Mean)} on average, {MonitorWords.Ms(Window.Max)} at the most; {Numbers.Fixed(Window.Share * 100, 1)}% of the frames");
             var outer = new List<string>();
             var inner = new List<string>();
             foreach (var (name, ms) in Window.Parts(20))
@@ -73,7 +73,7 @@ namespace Scry
             }
             Lines.Add(outer.Count > 0 ? string.Join(" · ", outer) : "nothing measured");
             if (inner.Count > 0) Lines.Add(string.Join(" · ", inner));
-            Lines.Add($"allocates {MonitorWords.Bytes((long)Window.BytesPerSecond)} a second; {Window.Cleanups} memory cleanups in its work, {cleanups - _gameCleanupsFrom} in all in {now - _gameCleanupsSince:0} s");
+            Lines.Add($"allocates {MonitorWords.Bytes((long)Window.BytesPerSecond)} a second; {Numbers.Count(Window.Cleanups)} memory cleanups in its work, {Numbers.Count(cleanups - _gameCleanupsFrom)} in all in {Numbers.Amount(now - _gameCleanupsSince, 0)} s");
             Lines.Add(_holds);
             Lines.Add(_made);
             Lines.Add(_game);
@@ -88,9 +88,9 @@ namespace Scry
         {
             var catalog = Session.Explorer?.Catalog.Count ?? 0;
             var bundles = (PlaceAssets.Held != null ? 1 : 0) + ExampleLayouts.HeldCount;
-            _holds = $"holds {catalog} entries, {bundles} bundles loaded; on the stage {Stage.PartsOnStage} parts, {Stage.CreaturesMade} creatures, {Stage.GrassCount} grass; {(Previews.AnythingInWorld ? "previews in the world" : "nothing in the world")}";
+            _holds = $"holds {Numbers.Count(catalog)} entries, {Numbers.Count(bundles)} bundles loaded; on the stage {Numbers.Count(Stage.PartsOnStage)} parts, {Numbers.Count(Stage.CreaturesMade)} creatures, {Numbers.Count(Stage.GrassCount)} grass; {(Previews.AnythingInWorld ? "previews in the world" : "nothing in the world")}";
             var kept = Kept.Tally();
-            _made = $"made {kept.Textures} textures {MonitorWords.Bytes(kept.TextureBytes)}, {kept.Renders} render textures {MonitorWords.Bytes(kept.RenderBytes)}, {kept.Meshes} meshes {MonitorWords.Bytes(kept.MeshBytes)}";
+            _made = $"made {Numbers.Count(kept.Textures)} textures {MonitorWords.Bytes(kept.TextureBytes)}, {Numbers.Count(kept.Renders)} render textures {MonitorWords.Bytes(kept.RenderBytes)}, {Numbers.Count(kept.Meshes)} meshes {MonitorWords.Bytes(kept.MeshBytes)}";
             _game = $"the game's managed memory {MonitorWords.Bytes(GC.GetTotalMemory(false))}, native {MonitorWords.Bytes(UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong())}";
         }
     }

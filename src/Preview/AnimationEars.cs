@@ -54,8 +54,8 @@ namespace Scry
                 var all = copy.GetComponentsInChildren<Animator>(true).Length;
                 var names = animator.runtimeAnimatorController.animationClips.Where(c => c != null).Select(c => c.name).Distinct().OrderBy(n => n).ToList();
                 var settings = string.Join(", ", animator.parameters.Select(p => $"{p.name} ({p.type.ToString().ToLowerInvariant()})"));
-                var layers = string.Join(", ", Enumerable.Range(0, animator.layerCount).Select(l => $"{animator.GetLayerName(l)} at {animator.GetLayerWeight(l):0.##}"));
-                Plugin.Note($"Scry plays {prefab.name} by the animator on {animator.gameObject.name} ({animator.runtimeAnimatorController.name}, {all} animators on the copy), {names.Count} clips: {string.Join(", ", names)}. Its settings: {(settings.Length > 0 ? settings : "none")}. Its layers: {layers}.");
+                var layers = string.Join(", ", Enumerable.Range(0, animator.layerCount).Select(l => $"{animator.GetLayerName(l)} at {Numbers.Amount(animator.GetLayerWeight(l), 2)}"));
+                Plugin.Note($"Scry plays {prefab.name} by the animator on {animator.gameObject.name} ({animator.runtimeAnimatorController.name}, {Numbers.Count(all)} animators on the copy), {Numbers.Count(names.Count)} clips: {string.Join(", ", names)}. Its settings: {(settings.Length > 0 ? settings : "none")}. Its layers: {layers}.");
             }
 
             var (events, unknown) = EventsOf(animator.runtimeAnimatorController);
@@ -65,7 +65,7 @@ namespace Scry
             {
                 if (unknown.Count > 0) Plugin.Note($"Scry leaves the animations of {prefab.name} silent: its clips send events it cannot answer ({string.Join(", ", unknown)}).");
                 else if (events == 0) Plugin.Note($"Scry: the animations of {prefab.name} send no events, so they have no sounds of their own.");
-                else Plugin.Note($"Scry answers the {events} animation events of {prefab.name}.");
+                else Plugin.Note($"Scry answers the {Numbers.Count(events)} animation events of {prefab.name}.");
             }
             if (unknown.Count > 0) return;
 

@@ -118,7 +118,7 @@ namespace Scry
         {
             if (level >= floors) return "Roof on";
             if (floors == 1) return "Roof off";
-            return level == 0 ? "Roof off, top floor" : $"Roof off, floor {level + 1} of {floors}";
+            return level == 0 ? "Roof off, top floor" : $"Roof off, floor {Numbers.Count(level + 1)} of {Numbers.Count(floors)}";
         }
 
         /// <summary>
@@ -130,8 +130,8 @@ namespace Scry
         {
             if (level >= floors) return null;
             var parts = new List<string>();
-            if (floors > 1) parts.Add(level == 0 ? "Top floor" : $"Floor {level + 1} of {floors}");
-            if (rooms >= 0) parts.Add(rooms == 0 ? "no rooms" : rooms == 1 ? "1 room" : $"{rooms} rooms");
+            if (floors > 1) parts.Add(level == 0 ? "Top floor" : $"Floor {Numbers.Count(level + 1)} of {Numbers.Count(floors)}");
+            if (rooms >= 0) parts.Add(rooms == 0 ? "no rooms" : rooms == 1 ? "1 room" : $"{Numbers.Count(rooms)} rooms");
             return parts.Count == 0 ? null : string.Join(", ", parts);
         }
 

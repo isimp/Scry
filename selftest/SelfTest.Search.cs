@@ -28,21 +28,21 @@ namespace Scry
         private static IEnumerator Catalog(Probe p)
         {
             var counts = X.Catalog.GroupBy(e => e.Kind).ToDictionary(g => g.Key, g => g.Count());
-            p.Note(string.Join(", ", counts.OrderBy(c => c.Key).Select(c => $"{c.Value} {Kinds.Label(c.Key).ToLowerInvariant()}")));
+            p.Note(string.Join(", ", counts.OrderBy(c => c.Key).Select(c => $"{Numbers.Count(c.Value)} {Kinds.Label(c.Key).ToLowerInvariant()}")));
             foreach (Kind kind in Enum.GetValues(typeof(Kind)))
             {
                 if (kind == Kind.Other) continue;
                 p.Check(counts.TryGetValue(kind, out var n) && n > 0, $"there are {Kinds.Label(kind).ToLowerInvariant()}");
             }
             var rooms = X.Catalog.Count(e => e.Source is PlaceSource place && place.IsRoom);
-            p.Check(rooms > 0, "the locations include dungeon rooms", $"{rooms} rooms");
-            p.Note($"{rooms} of the locations are dungeon rooms");
+            p.Check(rooms > 0, "the locations include dungeon rooms", $"{Numbers.Count(rooms)} rooms");
+            p.Note($"{Numbers.Count(rooms)} of the locations are dungeon rooms");
 
             // What the game has of its own, as the origin switch tells it.
             foreach (var kind in new[] { Kind.Location, Kind.Raid })
             {
                 var of = X.Catalog.Where(e => e.Kind == kind).ToList();
-                p.Note($"{Kinds.Label(kind).ToLowerInvariant()}: {of.Count(e => e.Origin == Origin.Vanilla)} the game's, {of.Count(e => e.Origin == Origin.Mod)} mods', {of.Count(e => e.Origin == Origin.Unknown)} not told");
+                p.Note($"{Kinds.Label(kind).ToLowerInvariant()}: {Numbers.Count(of.Count(e => e.Origin == Origin.Vanilla))} the game's, {Numbers.Count(of.Count(e => e.Origin == Origin.Mod))} mods', {Numbers.Count(of.Count(e => e.Origin == Origin.Unknown))} not told");
             }
             var temple = LocationNamed("StartTemple");
             if (temple != null) p.Check(temple.Origin == Origin.Vanilla, "the start temple counts as the game's own", temple.Origin.ToString());
@@ -57,13 +57,13 @@ namespace Scry
             p.Check(X.Results.Any(e => e.Kind == Kind.Creature && e.Name == "Troll"), "\"troll\" finds the troll");
 
             X.SearchEverything("kind:location");
-            p.Check(X.Results.Count > 0 && X.Results.All(e => e.Kind == Kind.Location), "\"kind:location\" finds locations only", $"{X.Results.Count} results");
+            p.Check(X.Results.Count > 0 && X.Results.All(e => e.Kind == Kind.Location), "\"kind:location\" finds locations only", $"{Numbers.Count(X.Results.Count)} results");
 
             X.SearchEverything("kind:location biome:swamp");
-            p.Check(X.Results.Count > 0 && X.Results.All(e => e.Kind == Kind.Location && e.Biomes.Contains("Swamp")), "\"kind:location biome:swamp\" finds the swamp's locations", $"{X.Results.Count} results");
+            p.Check(X.Results.Count > 0 && X.Results.All(e => e.Kind == Kind.Location && e.Biomes.Contains("Swamp")), "\"kind:location biome:swamp\" finds the swamp's locations", $"{Numbers.Count(X.Results.Count)} results");
 
             X.SearchEverything("kind:raid");
-            p.Check(X.Results.Count > 0 && X.Results.All(e => e.Kind == Kind.Raid), "\"kind:raid\" finds raids only", $"{X.Results.Count} results");
+            p.Check(X.Results.Count > 0 && X.Results.All(e => e.Kind == Kind.Raid), "\"kind:raid\" finds raids only", $"{Numbers.Count(X.Results.Count)} results");
             X.SearchEverything("");
             yield break;
         }
@@ -78,29 +78,29 @@ namespace Scry
             }
 
             var troll = Find("troll");
-            p.Check(troll.Any(e => e.Name == "Troll"), "\"troll\" finds the troll", $"{troll.Count} results");
+            p.Check(troll.Any(e => e.Name == "Troll"), "\"troll\" finds the troll", $"{Numbers.Count(troll.Count)} results");
             var noRagdoll = Find("troll -ragdoll");
-            p.Check(noRagdoll.Count > 0 && noRagdoll.All(e => e.Name.IndexOf("ragdoll", StringComparison.OrdinalIgnoreCase) < 0), "a minus leaves out what matches it", $"{noRagdoll.Count} results");
+            p.Check(noRagdoll.Count > 0 && noRagdoll.All(e => e.Name.IndexOf("ragdoll", StringComparison.OrdinalIgnoreCase) < 0), "a minus leaves out what matches it", $"{Numbers.Count(noRagdoll.Count)} results");
             var lights = Find("has:light");
-            p.Check(lights.Count > 0 && lights.All(e => e.Components.Any(c => c.IndexOf("Light", StringComparison.OrdinalIgnoreCase) >= 0)), "\"has:light\" finds what has a light", $"{lights.Count} results");
+            p.Check(lights.Count > 0 && lights.All(e => e.Components.Any(c => c.IndexOf("Light", StringComparison.OrdinalIgnoreCase) >= 0)), "\"has:light\" finds what has a light", $"{Numbers.Count(lights.Count)} results");
             var swamp = Find("biome:swamp");
-            p.Check(swamp.Count > 0 && swamp.All(e => e.Biomes.Any(b => b.IndexOf("swamp", StringComparison.OrdinalIgnoreCase) >= 0)), "\"biome:swamp\" finds what lives in the swamp", $"{swamp.Count} results");
+            p.Check(swamp.Count > 0 && swamp.All(e => e.Biomes.Any(b => b.IndexOf("swamp", StringComparison.OrdinalIgnoreCase) >= 0)), "\"biome:swamp\" finds what lives in the swamp", $"{Numbers.Count(swamp.Count)} results");
             var played = Find("playedby:troll");
-            p.Note("\"playedby:troll\": " + string.Join(", ", played.GroupBy(e => e.Kind).Select(g => $"{g.Count()} {Kinds.Label(g.Key).ToLowerInvariant()}")));
+            p.Note("\"playedby:troll\": " + string.Join(", ", played.GroupBy(e => e.Kind).Select(g => $"{Numbers.Count(g.Count())} {Kinds.Label(g.Key).ToLowerInvariant()}")));
             p.Check(played.Count > 0 && played.All(e => e.UsedBy.Any(u => u.IndexOf("troll", StringComparison.OrdinalIgnoreCase) >= 0))
                     && played.Any(e => e.Kind == Kind.Sound) && played.Any(e => e.Kind == Kind.Effect),
-                    "\"playedby:troll\" finds what the troll's effect lists play, its sounds and effects among them", $"{played.Count} results");
+                    "\"playedby:troll\" finds what the troll's effect lists play, its sounds and effects among them", $"{Numbers.Count(played.Count)} results");
             var forge = Find("station:forge");
-            p.Check(forge.Count > 0 && forge.All(e => e.Stations.Any(s => s.Name.IndexOf("forge", StringComparison.OrdinalIgnoreCase) >= 0 || s.Shown.IndexOf("forge", StringComparison.OrdinalIgnoreCase) >= 0)), "\"station:forge\" finds what is made at a forge", $"{forge.Count} results");
+            p.Check(forge.Count > 0 && forge.All(e => e.Stations.Any(s => s.Name.IndexOf("forge", StringComparison.OrdinalIgnoreCase) >= 0 || s.Shown.IndexOf("forge", StringComparison.OrdinalIgnoreCase) >= 0)), "\"station:forge\" finds what is made at a forge", $"{Numbers.Count(forge.Count)} results");
             var hand = Find("station:hand");
-            p.Check(hand.Count > 0, "\"station:hand\" finds what needs no station", $"{hand.Count} results");
+            p.Check(hand.Count > 0, "\"station:hand\" finds what needs no station", $"{Numbers.Count(hand.Count)} results");
             var creatures = Find("-has:ragdoll kind:c");
-            p.Check(creatures.Count > 0 && creatures.All(e => e.Kind == Kind.Creature), "terms combine and shorten (\"-has:ragdoll kind:c\")", $"{creatures.Count} results");
+            p.Check(creatures.Count > 0 && creatures.All(e => e.Kind == Kind.Creature), "terms combine and shorten (\"-has:ragdoll kind:c\")", $"{Numbers.Count(creatures.Count)} results");
             var mod = X.Catalog.Where(e => e.Origin == Origin.Mod && e.ModName.Length > 0 && e.Kind != Kind.Mod).Select(e => e.ModName).FirstOrDefault();
             if (mod != null)
             {
                 var ofMod = Find("mod:" + mod.Replace(" ", "").ToLowerInvariant());
-                p.Check(ofMod.Count > 0 && ofMod.All(e => e.ModName == mod), $"\"mod:\" finds only what {mod} added", $"{ofMod.Count} results");
+                p.Check(ofMod.Count > 0 && ofMod.All(e => e.ModName == mod), $"\"mod:\" finds only what {mod} added", $"{Numbers.Count(ofMod.Count)} results");
             }
             else p.Note("no mod adds anything, so mod: is not tried");
             p.Check(Find("zzqqxxnothing").Count == 0, "a search matching nothing finds nothing");
@@ -154,7 +154,7 @@ namespace Scry
                 if (count == 0) continue;
                 X.KindFilter = kind;
                 yield return null;
-                if (X.Results.Count != count) broken.Add($"{kind} lists {X.Results.Count} of {count}");
+                if (X.Results.Count != count) broken.Add($"{kind} lists {Numbers.Count(X.Results.Count)} of {Numbers.Count(count)}");
                 var seen = new HashSet<string>();
                 string last = null;
                 foreach (var entry in X.Results)
@@ -164,7 +164,7 @@ namespace Scry
                     if (!seen.Add(group)) broken.Add($"{kind}: \"{group}\" comes twice");
                     last = group;
                 }
-                p.Note($"{Kinds.Label(kind)}: {count} in {seen.Count} groups");
+                p.Note($"{Kinds.Label(kind)}: {Numbers.Count(count)} in {Numbers.Count(seen.Count)} groups");
             }
             X.KindFilter = null;
             p.Check(broken.Count == 0, "every tab lists all it counts, each group in one run", string.Join("; ", broken.Take(6)));
@@ -176,13 +176,13 @@ namespace Scry
             var twice = X.Catalog.GroupBy(e => e.Key).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
             p.Check(twice.Count == 0, "every entry has a key of its own", string.Join(", ", twice.Take(8)));
             var nameless = X.Catalog.Where(e => string.IsNullOrEmpty(e.Name)).Count();
-            p.Check(nameless == 0, "every entry has a name", $"{nameless}");
+            p.Check(nameless == 0, "every entry has a name", $"{Numbers.Count(nameless)}");
             var ungrouped = X.Catalog.Where(e => string.IsNullOrEmpty(e.Group)).Select(e => e.Name).ToList();
             p.Check(ungrouped.Count == 0, "every entry is in a group of its tab", string.Join(", ", ungrouped.Take(8)));
             X.SearchEverything("");
             yield return null;
             var sum = Enum.GetValues(typeof(Kind)).Cast<Kind>().Sum(k => X.CountOf(k));
-            p.Check(sum == X.CountAll, "the tabs' counts add up to all of them", $"{sum} and {X.CountAll}");
+            p.Check(sum == X.CountAll, "the tabs' counts add up to all of them", $"{Numbers.Count(sum)} and {Numbers.Count(X.CountAll)}");
         }
 
         /// <summary>Searching the whole catalog is quick enough to run on every key typed.</summary>
@@ -203,8 +203,8 @@ namespace Scry
                 yield return null;
             }
             X.SearchEverything("");
-            p.Note($"the slowest search took {slowest:0.0} ms (\"{slowestText}\")");
-            p.Check(slowest < 50, "every search takes under 50 ms", $"{slowest:0.0} ms for \"{slowestText}\"");
+            p.Note($"the slowest search took {Numbers.Fixed(slowest, 1)} ms (\"{slowestText}\")");
+            p.Check(slowest < 50, "every search takes under 50 ms", $"{Numbers.Fixed(slowest, 1)} ms for \"{slowestText}\"");
         }
 
         // ----- The list -----
@@ -225,7 +225,7 @@ namespace Scry
             X.Origin = OriginFilter.Vanilla;
             p.Check(X.Results.Count > 0 && X.Results.All(e => e.Origin != Origin.Mod), "Game shows only the game's own");
             X.Origin = OriginFilter.Mods;
-            p.Check(X.Results.All(e => e.Origin == Origin.Mod), "Mods shows only what mods added", $"{X.Results.Count}");
+            p.Check(X.Results.All(e => e.Origin == Origin.Mod), "Mods shows only what mods added", $"{Numbers.Count(X.Results.Count)}");
             X.Origin = OriginFilter.All;
 
             X.SearchEverything("greydwarf");
@@ -235,7 +235,7 @@ namespace Scry
             {
                 X.KindFilter = empty;
                 yield return null;
-                p.Check(X.ShowingEveryKind && X.Results.Count == X.CountAll, $"the {empty} tab, with nothing for \"greydwarf\", shows every kind's matches instead", $"{X.Results.Count} of {X.CountAll}");
+                p.Check(X.ShowingEveryKind && X.Results.Count == X.CountAll, $"the {empty} tab, with nothing for \"greydwarf\", shows every kind's matches instead", $"{Numbers.Count(X.Results.Count)} of {Numbers.Count(X.CountAll)}");
                 X.KindFilter = null;
             }
             X.SearchEverything("");

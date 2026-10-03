@@ -99,7 +99,7 @@ namespace Scry
         public static string ItemTitle(string station, Making making)
         {
             var title = "Made in " + station;
-            if (making.Makes > 1) title += $", makes {making.Makes}";
+            if (making.Makes > 1) title += $", makes {Numbers.Count(making.Makes)}";
             if (making.AnyOne) title += ", from any one of these";
             return title;
         }
@@ -107,7 +107,7 @@ namespace Scry
         /// <summary>A station's row title: "Makes Copper from", "Makes 6 Mead from", "Makes Copper from any one of these".</summary>
         public static string StationTitle(string output, Making making)
         {
-            var count = making.Makes > 1 ? $"{making.Makes} " : "";
+            var count = making.Makes > 1 ? $"{Numbers.Count(making.Makes)} " : "";
             return $"Makes {count}{output} from" + (making.AnyOne ? " any one of these" : "");
         }
     }

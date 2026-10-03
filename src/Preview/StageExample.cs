@@ -225,7 +225,7 @@ namespace Scry
             {
                 if (!_roomGround.TryGetValue(room, out var ground)) continue;
                 var alone = FloorFinder.Floors(new[] { ground }, ground.Ground, PlaceView.Storey);
-                told.Add($"{room.Room.Name} at {room.Position.Y:0.0} m: {(alone.Count > 0 ? string.Join(", ", alone.Select(f => f.ToString("0.0"))) : "none")}");
+                told.Add($"{room.Room.Name} at {Numbers.Fixed(room.Position.Y, 1)} m: {(alone.Count > 0 ? string.Join(", ", alone.Select(f => Numbers.Fixed(f, 1))) : "none")}");
             }
             return told;
         }

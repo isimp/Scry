@@ -106,7 +106,7 @@ namespace Scry
 
             Write("");
             Write($"==== Scry {Plugin.Version} self-test, {DateTime.Now:yyyy-MM-dd HH:mm:ss}, started because {why} ====");
-            Write($"World {ZNet.instance?.GetWorldName()}, {Session.Explorer.Catalog.Count} entries, {BepInEx.Bootstrap.Chainloader.PluginInfos.Count} mods loaded, panel {(Session.IsOpen ? "open" : "closed")}" +
+            Write($"World {ZNet.instance?.GetWorldName()}, {Numbers.Count(Session.Explorer.Catalog.Count)} entries, {Numbers.Count(BepInEx.Bootstrap.Chainloader.PluginInfos.Count)} mods loaded, panel {(Session.IsOpen ? "open" : "closed")}" +
                   $"{(ScryPanel.Compact ? " in its compact view" : "")}, locations {Locations.Now}, LogPreviews {(Plugin.LogPreviews ? "on" : "off")}.");
             Write("Each part uses Scry as a player would and checks what it did. START and PASS, FAIL or SKIP frame a part; within it, PASS is a check that held,");
             Write("FAIL one that did not (with what was found), and note is something worth knowing. The summary at the end lists every failed check again.");
@@ -154,7 +154,7 @@ namespace Scry
         private static void Finish(ScenarioRunner runner, string stopped)
         {
             var reports = runner?.Reports ?? new List<ScenarioReport>();
-            LastHeadline = stopped == null ? SelfTestWords.Finished(reports, runner?.Seconds) : $"Self-test stopped after {reports.Count} of {runner?.Total ?? 0} parts, as {stopped}.";
+            LastHeadline = stopped == null ? SelfTestWords.Finished(reports, runner?.Seconds) : $"Self-test stopped after {Numbers.Count(reports.Count)} of {Numbers.Count(runner?.Total ?? 0)} parts, as {stopped}.";
             LastSummary = SelfTestWords.Summary(reports);
             LastAdvice = SelfTestWords.Advice(reports, "BepInEx/Scry-selftest.log");
             LastFailed = reports.Any(r => r.Result == Result.Fail);
@@ -280,12 +280,12 @@ namespace Scry
             }
 
             var failed = Faults.Count - faults;
-            p.Check(failed == 0, "no part of Scry failed meanwhile", $"{failed} failures, the latest in {Faults.Latest}");
+            p.Check(failed == 0, "no part of Scry failed meanwhile", $"{Numbers.Count(failed)} failures, the latest in {Faults.Latest}");
             var turnedOff = Faults.ChangedFeatures.Count - off;
             p.Check(turnedOff == 0, "no feature went off for a game change meanwhile", string.Join("; ", Faults.ChangedFeatures.Skip(off)));
             var left = Faults.Skipped - skipped;
-            if (left > 0 && bearsSkips) p.Note($"{left} parts of single prefabs were left out, the latest {Faults.LatestSkipped}");
-            else p.Check(left == 0, "no part of a prefab was left out meanwhile", $"{left} left out, the latest {Faults.LatestSkipped}");
+            if (left > 0 && bearsSkips) p.Note($"{Numbers.Count(left)} parts of single prefabs were left out, the latest {Faults.LatestSkipped}");
+            else p.Check(left == 0, "no part of a prefab was left out meanwhile", $"{Numbers.Count(left)} left out, the latest {Faults.LatestSkipped}");
             var mine = Frames.Since(from);
             if (mine.Frames > 0) p.Note(mine.Line(Budget) + Slowest(mine, 1));
         }
@@ -294,7 +294,7 @@ namespace Scry
         {
             var slowest = stats.Slowest(count).Where(s => s.Ms >= 1).ToList();
             if (slowest.Count == 0) return "";
-            return "; slowest " + string.Join(", ", slowest.Select(s => $"{s.Ms:0.#} ms ({s.Part} {s.PartMs:0.#})"));
+            return "; slowest " + string.Join(", ", slowest.Select(s => $"{Numbers.Amount(s.Ms, 1)} ms ({s.Part} {Numbers.Amount(s.PartMs, 1)})"));
         }
 
         /// <summary>Waits a frame at a time until something holds, for up to so many seconds.</summary>

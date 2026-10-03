@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using UnityEngine;
 
@@ -94,14 +93,14 @@ namespace Scry
                 picked.Items.Add(new Ingredient
                 {
                     Icon = Icon(pickable.m_itemPrefab), Name = ItemName(pickable.m_itemPrefab),
-                    Amount = pickable.m_amount.ToString(CultureInfo.InvariantCulture), Prefab = pickable.m_itemPrefab.name,
+                    Amount = Numbers.Count(pickable.m_amount), Prefab = pickable.m_itemPrefab.name,
                 });
                 Rows.Add(picked);
                 _drops = true;
-                if (pickable.m_respawnTimeMinutes > 0f) Add("Grows back in", Minutes(pickable.m_respawnTimeMinutes * 60f));
+                if (pickable.m_respawnTimeMinutes > 0f) Add("Grows back in", Numbers.Duration(pickable.m_respawnTimeMinutes * 60f));
                 var day = EnvMan.instance != null ? EnvMan.instance.m_dayLengthSec : 1200L;
                 var yields = Yield.PerDay(pickable.m_amount, pickable.m_respawnTimeMinutes, day);
-                if (yields != null) Add("Gives", yields + $" (a day is {Minutes(day)})");
+                if (yields != null) Add("Gives", yields + $" (a day is {Numbers.Duration(day)})");
                 Drops(pickable.m_extraDrops, "Also ");
                 if (pickable.m_respawnTimeMinutes > 0f) Hooked(HookedRule.Growth);
             }
@@ -116,13 +115,13 @@ namespace Scry
                     {
                         if (random.m_itemPrefab == null) continue;
                         var item = random.m_itemPrefab.gameObject;
-                        row.Items.Add(new Ingredient { Icon = Icon(item), Name = ItemName(item), Amount = DropWords.Range(random.m_stackMin, random.m_stackMax), Prefab = item.name });
+                        row.Items.Add(new Ingredient { Icon = Icon(item), Name = ItemName(item), Amount = Numbers.CountRange(random.m_stackMin, random.m_stackMax), Prefab = item.name });
                     }
                 }
                 else if (found.m_itemPrefab != null)
                 {
                     var item = found.m_itemPrefab.gameObject;
-                    row.Items.Add(new Ingredient { Icon = Icon(item), Name = ItemName(item), Amount = Math.Max(1, found.m_stack).ToString(CultureInfo.InvariantCulture), Prefab = item.name });
+                    row.Items.Add(new Ingredient { Icon = Icon(item), Name = ItemName(item), Amount = Numbers.Count(Math.Max(1, found.m_stack)), Prefab = item.name });
                 }
                 if (row.Items.Count > 0)
                 {
@@ -134,7 +133,7 @@ namespace Scry
             var plant = prefab.GetComponent<Plant>();
             if (plant != null)
             {
-                Add("Takes to grow", Naming.DurationRange(plant.m_growTime, Math.Max(plant.m_growTime, plant.m_growTimeMax)));
+                Add("Takes to grow", Numbers.DurationRange(plant.m_growTime, Math.Max(plant.m_growTime, plant.m_growTimeMax)));
                 if (plant.m_biome != 0) BiomeRow("Grows in", plant.m_biome);
                 if (plant.m_needCultivatedGround) Add("Needs", "cultivated ground");
                 Hooked(HookedRule.Growth);
@@ -161,7 +160,7 @@ namespace Scry
             foreach (var (part, count) in parts)
             {
                 if (part == null || count <= 0) continue;
-                row.Items.Add(new Ingredient { Icon = AnyIcon(part), Name = AnyName(part, part.name), Amount = count > 1 ? count.ToString(CultureInfo.InvariantCulture) : "", Prefab = part.name });
+                row.Items.Add(new Ingredient { Icon = AnyIcon(part), Name = AnyName(part, part.name), Amount = count > 1 ? Numbers.Count(count) : "", Prefab = part.name });
             }
             if (row.Items.Count > 0) Rows.Add(row);
         }
@@ -169,8 +168,8 @@ namespace Scry
         /// <summary>How much it takes to break, with what tool, and what it resists.</summary>
         private void Hits(float health, bool perPiece, int toolTier, HitData.DamageModifiers resists)
         {
-            if (health > 0f) Add("Health", Number(health) + (perPiece ? " a piece" : ""));
-            Add("Needs tool tier", toolTier > 0 ? toolTier.ToString(CultureInfo.InvariantCulture) : "any");
+            if (health > 0f) Add("Health", Numbers.Amount(health) + (perPiece ? " a piece" : ""));
+            Add("Needs tool tier", toolTier > 0 ? Numbers.Count(toolTier) : "any");
             Resists(resists);
         }
 

@@ -101,7 +101,7 @@ namespace Scry
         public static string Counts(ModSummary mod)
         {
             var parts = mod.Counts.Where(c => c.Value > 0).OrderByDescending(c => c.Value).ThenBy(c => (int)c.Key)
-                .Select(c => $"{c.Value} {Noun(c.Key, c.Value)}").ToList();
+                .Select(c => $"{Numbers.Count(c.Value)} {Noun(c.Key, c.Value)}").ToList();
             return parts.Count == 0 ? "adds nothing of its own" : And(parts);
         }
 
@@ -109,9 +109,9 @@ namespace Scry
         public static string Station(ModEntry station)
         {
             var parts = new List<string>();
-            if (station.MadeHere > 0) parts.Add($"{station.MadeHere} made here");
-            if (station.BuiltNear > 0) parts.Add($"{station.BuiltNear} built near it");
-            if (station.Upgrades > 0) parts.Add($"{station.Upgrades} upgrading it");
+            if (station.MadeHere > 0) parts.Add($"{Numbers.Count(station.MadeHere)} made here");
+            if (station.BuiltNear > 0) parts.Add($"{Numbers.Count(station.BuiltNear)} built near it");
+            if (station.Upgrades > 0) parts.Add($"{Numbers.Count(station.Upgrades)} upgrading it");
             return parts.Count == 0 ? "nothing is made or built at it" : And(parts);
         }
 
@@ -141,7 +141,7 @@ namespace Scry
             }
         }
 
-        public static string Tool(ModEntry tool) => $"builds {tool.Builds} {(tool.Builds == 1 ? "piece" : "pieces")}";
+        public static string Tool(ModEntry tool) => $"builds {Numbers.Count(tool.Builds)} {(tool.Builds == 1 ? "piece" : "pieces")}";
 
         /// <summary>The rules a mod hooks into, as the report names them.</summary>
         public static string Hooks(IReadOnlyList<HookedRule> rules)

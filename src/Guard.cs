@@ -44,7 +44,7 @@ namespace Scry
             var failure = Steps.Run(act, null);
             if (failure == null)
             {
-                if (watch.ElapsedMilliseconds >= 50) Plugin.Note($"Scry read {what} in {watch.ElapsedMilliseconds} ms.");
+                if (watch.ElapsedMilliseconds >= 50) Plugin.Note($"Scry read {what} in {Numbers.Count(watch.ElapsedMilliseconds)} ms.");
             }
             else if (Trouble.IsGameChange(failure)) Faults.Skip(what, "this world", failure);
             else Plugin.Log.LogWarning($"Scry could not read {what}, and leaves it out: {failure.Message}");

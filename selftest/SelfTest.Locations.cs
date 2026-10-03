@@ -33,23 +33,23 @@ namespace Scry
             yield return Until(() => PlaceAssets.State(place) != PlaceLoad.Loading, 30);
             p.Check(PlaceAssets.State(place) == PlaceLoad.Ready, "its model has loaded", PlaceAssets.State(place).ToString());
             yield return Until(() => CopyOf(crypt) != null, 5);
-            p.Note($"loaded and shown in {Time.unscaledTime - asked:0.0} s");
+            p.Note($"loaded and shown in {Numbers.Fixed(Time.unscaledTime - asked, 1)} s");
             p.Check(CopyOf(crypt) != null, "a copy stands on the stage");
 
             // A location keeps far-off parts of its own (its dungeon is built high above it), which
             // must not be what the stage frames: framing both would measure too far to frame, and
             // leave the 2 m box of something with nothing to measure.
             var size = Stage.SubjectSize;
-            p.Note($"the stage shows it {size.x:0} × {size.z:0} m, {size.y:0} m high");
-            p.Check(Mathf.Max(size.x, Mathf.Max(size.y, size.z)) < 300f, "the stage frames the place itself", $"{size.x:0} × {size.z:0} × {size.y:0} m");
-            p.Check(Mathf.Max(size.x, size.z) > 4f, "and takes in its entrance", $"{size.x:0.0} × {size.z:0.0} m");
-            p.Check(Mathf.Abs(Stage.Ground) < 0.01f, "it stands on its own ground", $"{Stage.Ground:0.00} m");
+            p.Note($"the stage shows it {Numbers.Amount(size.x, 0)} × {Numbers.Amount(size.z, 0)} m, {Numbers.Amount(size.y, 0)} m high");
+            p.Check(Mathf.Max(size.x, Mathf.Max(size.y, size.z)) < 300f, "the stage frames the place itself", $"{Numbers.Amount(size.x, 0)} × {Numbers.Amount(size.z, 0)} × {Numbers.Amount(size.y, 0)} m");
+            p.Check(Mathf.Max(size.x, size.z) > 4f, "and takes in its entrance", $"{Numbers.Fixed(size.x, 1)} × {Numbers.Fixed(size.z, 1)} m");
+            p.Check(Mathf.Abs(Stage.Ground) < 0.01f, "it stands on its own ground", $"{Numbers.Fixed(Stage.Ground, 2)} m");
 
             var contents = place.Contents;
             if (!p.Check(contents != null, "what it holds has been read")) yield break;
             p.Check(contents.GameName.Length > 0 || contents.Boss.Length > 0 || contents.Trader.Length > 0, "the game has a name for it", crypt.DisplayName);
             if (contents.GameName.Length > 0) p.Check(crypt.DisplayName == contents.GameName, "and it goes by it", crypt.DisplayName);
-            p.Note($"{contents.Parts.Sum(x => x.Count)} parts of {contents.Parts.Count} kinds, {contents.Creatures.Count} kinds of creature, name \"{crypt.DisplayName}\"");
+            p.Note($"{Numbers.Count(contents.Parts.Sum(x => x.Count))} parts of {Numbers.Count(contents.Parts.Count)} kinds, {Numbers.Count(contents.Creatures.Count)} kinds of creature, name \"{crypt.DisplayName}\"");
             var told = Facts.For(crypt);
             p.Check(Tells(told, "Per world"), "its details tell where the world places it");
             p.Check(PlaceParts.Roles.Any(r => Tells(told, PlaceParts.Title(r, false))) || Tells(told, "Its spawn points place"), "and what it holds");
@@ -81,7 +81,7 @@ namespace Scry
             var stones = place.Contents?.Runestones;
             if (!p.Check(stones != null && stones.Count > 0, $"{stone.Name} holds a runestone with texts")) yield break;
             var texts = stones.SelectMany(s => s.Texts).ToList();
-            p.Note($"{stones.Count} stones, {texts.Count} texts; the first: \"{RuneWords.Title(texts[0], stones[0].Name)}\"");
+            p.Note($"{Numbers.Count(stones.Count)} stones, {Numbers.Count(texts.Count)} texts; the first: \"{RuneWords.Title(texts[0], stones[0].Name)}\"");
             p.Check(texts.All(t => t.Text.Length > 0 && t.Text.IndexOf('$') < 0), "every text is in words, not the game's keys");
             ScryPanel.RunesFolded = false;
             var drawn = ScryPanel.RunesDrawn;
@@ -138,13 +138,13 @@ namespace Scry
             p.Check(shape.Name == place.Prefab, "its prefab goes by the name its entry has", $"{shape.Name} and {place.Prefab}");
             p.Note($"{DungeonWords.Role(shape)}, {DungeonWords.Size(shape)}, doorways {DungeonWords.Doorways(shape)}");
             var floor = PlaceView.Ground(place.Contents, true);
-            p.Check(Mathf.Abs(Stage.Ground - floor) < 0.01f, "it stands on the floor it is walked into on", $"{Stage.Ground:0.00} m, its lowest doorway {floor:0.00} m");
+            p.Check(Mathf.Abs(Stage.Ground - floor) < 0.01f, "it stands on the floor it is walked into on", $"{Numbers.Fixed(Stage.Ground, 2)} m, its lowest doorway {Numbers.Fixed(floor, 2)} m");
 
             // It opens on its top floor to be looked into; the arrows step down to the lowest and up to the roof, and the chip takes the roof off again.
             var floors = Stage.FloorHeights.ToList();
-            p.Note($"floors found in it at {string.Join(", ", floors.Select(f => f.ToString("0.0")))} m; its doorways at {string.Join(", ", PlaceView.RoomFloors(shape).Select(f => f.ToString("0.0")))} m");
+            p.Note($"floors found in it at {string.Join(", ", floors.Select(f => Numbers.Fixed(f, 1)))} m; its doorways at {string.Join(", ", PlaceView.RoomFloors(shape).Select(f => Numbers.Fixed(f, 1)))} m");
             p.Check(Stage.HasFloors && Stage.Cutting, "it is cut open", Stage.CutLabel);
-            p.Check(floors.Count > 0 && Mathf.Abs(Stage.CutAt - Stage.CutHeights[0]) < 0.01f && Stage.CutAt > floors[0], "over its top floor", $"cut at {Stage.CutAt:0.0} m");
+            p.Check(floors.Count > 0 && Mathf.Abs(Stage.CutAt - Stage.CutHeights[0]) < 0.01f && Stage.CutAt > floors[0], "over its top floor", $"cut at {Numbers.Fixed(Stage.CutAt, 1)} m");
             var labels = new List<string>();
             for (var i = 0; i <= floors.Count; i++)
             {
@@ -174,14 +174,14 @@ namespace Scry
             Stage.CreaturesShown = true;
             Select(place);
             yield return Until(() => CopyOf(place) != null && Stage.CreaturesMade > 0 && Stage.CreaturesWaiting == 0, 20);
-            p.Note($"{place.Name}: {Stage.CreaturesMade} creatures, {string.Join(", ", Stage.CreatureNames.Take(10))}; its spawn points can put {string.Join(", ", PlaceOf(place).Contents.Creatures.Select(c => c.Prefab))}");
-            p.Check(Stage.CreaturesMade > 0, "its spawn points' creatures stand on the stage with it", $"{Stage.CreaturesMade} made, {Stage.CreaturesWaiting} waiting");
+            p.Note($"{place.Name}: {Numbers.Count(Stage.CreaturesMade)} creatures, {string.Join(", ", Stage.CreatureNames.Take(10))}; its spawn points can put {string.Join(", ", PlaceOf(place).Contents.Creatures.Select(c => c.Prefab))}");
+            p.Check(Stage.CreaturesMade > 0, "its spawn points' creatures stand on the stage with it", $"{Numbers.Count(Stage.CreaturesMade)} made, {Numbers.Count(Stage.CreaturesWaiting)} waiting");
             p.Note("they stand on layer " + Stage.CreatureLayerTold);
 
             Stage.CreaturesShown = false;
-            p.Check(Stage.CreaturesStanding == 0, "the chip puts them away", $"{Stage.CreaturesStanding} still standing");
+            p.Check(Stage.CreaturesStanding == 0, "the chip puts them away", $"{Numbers.Count(Stage.CreaturesStanding)} still standing");
             Stage.CreaturesShown = true;
-            p.Check(Stage.CreaturesStanding == Stage.CreaturesMade, "and back", $"{Stage.CreaturesStanding} of {Stage.CreaturesMade}");
+            p.Check(Stage.CreaturesStanding == Stage.CreaturesMade, "and back", $"{Numbers.Count(Stage.CreaturesStanding)} of {Numbers.Count(Stage.CreaturesMade)}");
 
             // Cut through the tallest of them, what of it is above the cut is still drawn: the
             // picture there changes as the creatures are put away.
@@ -207,7 +207,7 @@ namespace Scry
                 var differ = with != null && without != null && with.Length == without.Length ? with.Where((c, i) => Apart(c, without[i])).Count() : 0;
                 p.Check(Stage.CutLaid && differ >= Math.Max(12, (with?.Length ?? 0) / 50),
                     "cut through by a floor's cut, a creature stands whole above it",
-                    $"{differ} of {with?.Length ?? 0} points above the cut changed with it put away; cut laid {Stage.CutLaid}, {tallest.size.y:0.0} m tall, cut at {cut - tallest.min.y:0.0} m up it");
+                    $"{Numbers.Count(differ)} of {Numbers.Count(with?.Length ?? 0)} points above the cut changed with it put away; cut laid {Stage.CutLaid}, {Numbers.Fixed(tallest.size.y, 1)} m tall, cut at {Numbers.Fixed(cut - tallest.min.y, 1)} m up it");
                 Stage.OpenLevel(Stage.FloorHeights.Count);
                 Stage.ResetView();
             }
@@ -216,7 +216,7 @@ namespace Scry
             var before = CopyOf(place);
             Previews.Rebuild();
             yield return Until(() => CopyOf(place) != null && CopyOf(place) != before && Stage.CreaturesMade > 0 && Stage.CreaturesWaiting == 0, 20);
-            p.Check(CopyOf(place) != before && Stage.CreaturesMade > 0, "Roll again rolls them anew with it", $"{Stage.CreaturesMade} made");
+            p.Check(CopyOf(place) != before && Stage.CreaturesMade > 0, "Roll again rolls them anew with it", $"{Numbers.Count(Stage.CreaturesMade)} made");
             Stage.CreaturesShown = shown;
         }
 
@@ -258,32 +258,32 @@ namespace Scry
                                          && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
                 copy = CopyOf(shown);
                 brokenBefore = Broken(copy);
-                if (brokenBefore > 0) p.Note($"before reading, {shown.Name} stands with {brokenBefore} missing: {string.Join(", ", BrokenParts(copy).Take(8))}; {OwnMissing(copy)}");
+                if (brokenBefore > 0) p.Note($"before reading, {shown.Name} stands with {Numbers.Count(brokenBefore)} missing: {string.Join(", ", BrokenParts(copy).Take(8))}; {OwnMissing(copy)}");
             }
 
             var asked = Time.unscaledTime;
             p.Note(Locations.Start());
             yield return Until(() => Locations.Now == Locations.State.Read, 400);
-            if (!p.Check(Locations.Now == Locations.State.Read, "every location and room has been read", $"{Locations.Done} of {Locations.Total}")) yield break;
-            p.Note($"read in {Time.unscaledTime - asked:0} s");
+            if (!p.Check(Locations.Now == Locations.State.Read, "every location and room has been read", $"{Numbers.Count(Locations.Done)} of {Numbers.Count(Locations.Total)}")) yield break;
+            p.Note($"read in {Numbers.Amount(Time.unscaledTime - asked, 0)} s");
 
             if (copy != null)
             {
                 p.Check(Stage.Subject == copy, $"{shown.Name} stayed on the stage meanwhile");
-                p.Check(copy != null && Broken(copy) == brokenBefore, "and kept every mesh and material", $"{Broken(copy)} missing, {brokenBefore} before: {string.Join(", ", BrokenParts(copy).Take(8))}");
+                p.Check(copy != null && Broken(copy) == brokenBefore, "and kept every mesh and material", $"{Numbers.Count(Broken(copy))} missing, {Numbers.Count(brokenBefore)} before: {string.Join(", ", BrokenParts(copy).Take(8))}");
             }
 
             var places = X.Catalog.Where(e => PlaceOf(e) != null).ToList();
             var read = places.Count(e => PlaceOf(e).Contents != null);
-            p.Check(read >= places.Count * 0.9, "nearly every location and room knows what it holds", $"{read} of {places.Count}");
-            p.Check(Locations.Summons.Count > 0, "the altars' bosses are known", $"{Locations.Summons.Count}");
+            p.Check(read >= places.Count * 0.9, "nearly every location and room knows what it holds", $"{Numbers.Count(read)} of {Numbers.Count(places.Count)}");
+            p.Check(Locations.Summons.Count > 0, "the altars' bosses are known", $"{Numbers.Count(Locations.Summons.Count)}");
             p.Check(X.Catalog.Any(e => e.Kind == Kind.Item && e.FoundIn.Length > 0), "items tell where they are found");
 
             // Each place an item is found in goes to its location.
             var found = X.Catalog.Where(e => e.Kind == Kind.Item && e.FoundIn.Length > 0).SelectMany(e => e.FoundIn).Distinct().ToList();
             var named = found.Count(place => Places.LocationNamed(X.Catalog, place) != null);
-            p.Note($"{named} of the {found.Count} places items are found in go to a location");
-            p.Check(named >= found.Count * 0.9, "nearly every place items are found in goes to its location", $"{named} of {found.Count}");
+            p.Note($"{Numbers.Count(named)} of the {Numbers.Count(found.Count)} places items are found in go to a location");
+            p.Check(named >= found.Count * 0.9, "nearly every place items are found in goes to its location", $"{Numbers.Count(named)} of {Numbers.Count(found.Count)}");
 
             // Every place goes by its name, and rooms by the dungeons built with them.
             var crypt = Crypt();
@@ -295,25 +295,25 @@ namespace Scry
             if (crypt != null)
             {
                 var group = X.Catalog.Where(e => e.Kind == Kind.Location && e.Group == crypt.Group).ToList();
-                p.Note($"{crypt.Name} is listed in \"{crypt.Group}\" with {group.Count(e => e.Indent)} rooms, tagged \"{crypt.Tag}\"");
+                p.Note($"{crypt.Name} is listed in \"{crypt.Group}\" with {Numbers.Count(group.Count(e => e.Indent))} rooms, tagged \"{crypt.Tag}\"");
                 p.Check(crypt.Group.Contains(" \u00b7 ") && (crypt.Tag ?? "").StartsWith("dungeon", StringComparison.Ordinal), "the crypt heads a group of its own, tagged a dungeon", crypt.Group);
                 p.Check(group.Count(e => e.Indent) > 0 && group.Where(e => e.Indent).All(e => e.GroupRank > 0) && group.Where(e => !e.Indent).All(e => e.GroupRank == 0), "its rooms are indented under it and rank after it");
                 var entrance = group.FirstOrDefault(e => PlaceOf(e)?.Contents?.Room?.Entrance == true);
                 p.Check(entrance != null && entrance.GroupRank == 1 && (entrance.Tag ?? "").StartsWith("entrance room", StringComparison.Ordinal), "its entrance comes first among its rooms, tagged an entrance room", entrance?.Name ?? "none");
             }
             var waiting = rooms.Where(e => !e.Indent).ToList();
-            p.Note($"{rooms.Count - waiting.Count} of {rooms.Count} rooms are under their dungeon; {waiting.Count} wait in theme groups: {string.Join(", ", waiting.Select(e => e.Group).Distinct().Take(6))}");
+            p.Note($"{Numbers.Count(rooms.Count - waiting.Count)} of {Numbers.Count(rooms.Count)} rooms are under their dungeon; {Numbers.Count(waiting.Count)} wait in theme groups: {string.Join(", ", waiting.Select(e => e.Group).Distinct().Take(6))}");
             var homes = rooms.Where(e => e.Indent).GroupBy(e => e.Name).Count(g => g.Select(e => e.Group).Distinct().Count() > 1);
             p.Check(homes == 0, "each room has one home");
             var placed = rooms.Count(e => e.FoundIn.Length > 0 && e.FoundIn[0] != Places.AnyDungeon);
-            p.Note($"{placed} of {rooms.Count} rooms are listed under the dungeons built with them");
-            p.Check(placed >= rooms.Count / 2, "most rooms are listed under their dungeons", $"{placed} of {rooms.Count}");
+            p.Note($"{Numbers.Count(placed)} of {Numbers.Count(rooms.Count)} rooms are listed under the dungeons built with them");
+            p.Check(placed >= rooms.Count / 2, "most rooms are listed under their dungeons", $"{Numbers.Count(placed)} of {Numbers.Count(rooms.Count)}");
 
             if (crypt != null)
             {
                 var term = "in:" + crypt.DisplayName.Replace(" ", "").ToLowerInvariant();
                 X.SearchEverything("kind:location " + term);
-                p.Check(X.Results.Any(e => PlaceOf(e)?.IsRoom == true), $"\"kind:location {term}\" finds its rooms", $"{X.Results.Count} results");
+                p.Check(X.Results.Any(e => PlaceOf(e)?.IsRoom == true), $"\"kind:location {term}\" finds its rooms", $"{Numbers.Count(X.Results.Count)} results");
                 X.SearchEverything(crypt.DisplayName);
                 p.Check(X.Results.Contains(crypt), $"\"{crypt.DisplayName}\" finds it by name");
                 X.SearchEverything("");
@@ -344,7 +344,7 @@ namespace Scry
             foreach (var renderer in copy.GetComponentsInChildren<Renderer>(true))
             {
                 var none = renderer.sharedMaterials.Count(m => m == null);
-                if (none > 0) parts.Add(Path(renderer.transform) + $" {none} material{(none > 1 ? "s" : "")}");
+                if (none > 0) parts.Add(Path(renderer.transform) + $" {Numbers.Count(none)} material{(none > 1 ? "s" : "")}");
             }
             return parts;
         }
@@ -357,7 +357,7 @@ namespace Scry
             {
                 var entry = X.Catalog.FirstOrDefault(e => PlaceOf(e) is PlaceSource place && place.IsRoom && place.Prefab == room);
                 var asset = entry != null && PlaceOf(entry).Reference.IsLoaded ? PlaceOf(entry).Reference.Asset : null;
-                told.Add(asset != null ? $"{room}'s own prefab lacks {Broken(asset)}" : $"{room}'s own prefab is not loaded");
+                told.Add(asset != null ? $"{room}'s own prefab lacks {Numbers.Count(Broken(asset))}" : $"{room}'s own prefab is not loaded");
             }
             return told.Count > 0 ? string.Join("; ", told) : "none in the example's rooms";
         }
@@ -370,7 +370,7 @@ namespace Scry
         private static IEnumerator PlaysMusic(Probe p)
         {
             var withMusic = X.Catalog.Where(e => PlaceOf(e)?.Contents?.Music.Count > 0).ToList();
-            p.Note($"{withMusic.Count} locations and rooms play music: " + string.Join(", ", withMusic.Take(8).Select(e => e.Name)));
+            p.Note($"{Numbers.Count(withMusic.Count)} locations and rooms play music: " + string.Join(", ", withMusic.Take(8).Select(e => e.Name)));
             if (withMusic.Count == 0) p.Skip("no location read plays music");
             var near = withMusic.FirstOrDefault(e => PlaceOf(e).Contents.Music[0].When == MusicWhen.Near) ?? withMusic[0];
 
@@ -385,7 +385,7 @@ namespace Scry
                 yield return null;
                 p.Check(MusicPreview.PlayingFor == entry && MusicPreview.Sounding, $"{entry.Name} plays {place.Contents.Music[0].Name}", said);
                 var game = MusicMan.instance != null ? MusicMan.instance.GetComponentsInChildren<AudioSource>(true) : new AudioSource[0];
-                p.Check(game.All(s => s.mute), "the game's music is muted meanwhile", $"{game.Length} sources");
+                p.Check(game.All(s => s.mute), "the game's music is muted meanwhile", $"{Numbers.Count(game.Length)} sources");
 
                 Select(Pick(Kind.Creature, "Boar", "Greyling"));
                 yield return Until(() => MusicPreview.PlayingFor == null, 2);
@@ -406,11 +406,11 @@ namespace Scry
                 if (entry == null) continue;
                 if (!Facts.For(entry).Rows.Any(r => r.Title.StartsWith("Summoned at", StringComparison.Ordinal))) wrong.Add($"{boss} tells no altar");
             }
-            p.Note($"{bosses.Count} bosses summoned at altars");
+            p.Note($"{Numbers.Count(bosses.Count)} bosses summoned at altars");
             p.Check(bosses.Count > 0 && wrong.Count == 0, "every boss tells where it is summoned and with what", string.Join("; ", wrong));
             var traders = X.Catalog.Where(e => e.Source is GameObject g && g.GetComponent<Trader>() != null).ToList();
             var quiet = traders.Where(t => !Facts.For(t).Rows.Any(r => r.Title.StartsWith("Sells", StringComparison.Ordinal))).Select(t => t.Name).ToList();
-            p.Note($"{traders.Count} traders: {string.Join(", ", traders.Select(t => t.Name))}");
+            p.Note($"{Numbers.Count(traders.Count)} traders: {string.Join(", ", traders.Select(t => t.Name))}");
             p.Check(quiet.Count == 0, "every trader tells what it sells", string.Join(", ", quiet));
             yield break;
         }
@@ -421,7 +421,7 @@ namespace Scry
             if (Locations.Now != Locations.State.Read) p.Skip("the locations are not read");
             var holding = X.Catalog.Where(e => PlaceOf(e)?.Contents?.Runestones.Count > 0).ToList();
             var texts = holding.SelectMany(e => PlaceOf(e).Contents.Runestones.SelectMany(s => s.Texts.Select(t => (e.Name, Text: t)))).ToList();
-            p.Note($"{holding.Count} locations and rooms hold runestones, with {texts.Select(t => t.Text.Text).Distinct().Count()} texts between them: " + string.Join(", ", holding.Take(12).Select(e => e.Name)));
+            p.Note($"{Numbers.Count(holding.Count)} locations and rooms hold runestones, with {Numbers.Count(texts.Select(t => t.Text.Text).Distinct().Count())} texts between them: " + string.Join(", ", holding.Take(12).Select(e => e.Name)));
             p.Check(holding.Count > 0, "some locations hold runestones");
             var raw = texts.Where(t => t.Text.Text.IndexOf('$') >= 0 || t.Text.Topic.IndexOf('$') >= 0).Select(t => t.Name).Distinct().ToList();
             p.Check(raw.Count == 0, "every text and title is in words", string.Join(", ", raw.Take(8)));
@@ -445,7 +445,7 @@ namespace Scry
                 if (MusicPreview.PlayingFor != entry || !MusicPreview.Sounding) silent.Add($"{entry.Name} ({place.Contents.Music[0].Name}: {said})");
                 Previews.StopSound();
             }
-            p.Note($"{withMusic.Count} play music: " + string.Join(", ", withMusic.Take(12).Select(e => e.Name)));
+            p.Note($"{Numbers.Count(withMusic.Count)} play music: " + string.Join(", ", withMusic.Take(12).Select(e => e.Name)));
             p.Check(silent.Count == 0, "each plays its music", string.Join(", ", silent));
         }
 
@@ -472,12 +472,12 @@ namespace Scry
                 }
                 yield return null;
                 var size = Stage.SubjectSize;
-                sizes.Add($"{entry.Name} {Mathf.Max(size.x, size.z):0} m");
+                sizes.Add($"{entry.Name} {Numbers.Amount(Mathf.Max(size.x, size.z), 0)} m");
                 if (Mathf.Max(size.x, size.y, size.z) > 300f) wrong.Add($"{entry.Name} frames {size}");
                 // A location stands on its own ground; a dungeon's example, shown inside, on its lowest floor.
                 var inside = Stage.HasInside && Stage.Inside && Stage.FloorHeights.Count > 0;
                 var ground = inside ? Stage.FloorHeights[Stage.FloorHeights.Count - 1] : 0f;
-                if (float.IsNaN(Stage.Ground) || Mathf.Abs(Stage.Ground - ground) > 0.01f) wrong.Add($"{entry.Name} stands at {Stage.Ground:0.0} m{(inside ? $", its example's lowest floor at {ground:0.0} m" : "")}");
+                if (float.IsNaN(Stage.Ground) || Mathf.Abs(Stage.Ground - ground) > 0.01f) wrong.Add($"{entry.Name} stands at {Numbers.Fixed(Stage.Ground, 1)} m{(inside ? $", its example's lowest floor at {Numbers.Fixed(ground, 1)} m" : "")}");
             }
             p.Note(string.Join(", ", sizes));
             p.Check(wrong.Count == 0, "each loads, is framed to a sane size and stands on its own ground", string.Join("; ", wrong));
@@ -513,8 +513,8 @@ namespace Scry
                     continue;
                 }
                 var frames = Frames.Since(from);
-                p.Note($"{entry.Name}, {PartsOf(entry)} pieces, {Stage.LastBuildParts} parts, made over {Stage.LastBuildFrames} frames, the slowest whole frame {whole:0} ms: {frames.Line(Budget)}{Slowest(frames, 1)}");
-                if (frames.Max >= 250) wrong.Add($"{entry.Name} took {frames.Max:0} ms in a frame");
+                p.Note($"{entry.Name}, {Numbers.Count(PartsOf(entry))} pieces, {Numbers.Count(Stage.LastBuildParts)} parts, made over {Numbers.Count(Stage.LastBuildFrames)} frames, the slowest whole frame {Numbers.Amount(whole, 0)} ms: {frames.Line(Budget)}{Slowest(frames, 1)}");
+                if (frames.Max >= 250) wrong.Add($"{entry.Name} took {Numbers.Amount(frames.Max, 0)} ms in a frame");
             }
             p.Check(wrong.Count == 0, "each is made over several frames, none of them a quarter of a second", string.Join("; ", wrong));
         }
@@ -536,7 +536,7 @@ namespace Scry
                     continue;
                 }
                 var floor = PlaceView.Ground(place.Contents, true);
-                if (Mathf.Abs(Stage.Ground - floor) > 0.01f) wrong.Add($"{entry.Name} stands at {Stage.Ground:0.0}, its floor {floor:0.0}");
+                if (Mathf.Abs(Stage.Ground - floor) > 0.01f) wrong.Add($"{entry.Name} stands at {Numbers.Fixed(Stage.Ground, 1)}, its floor {Numbers.Fixed(floor, 1)}");
                 if (!Stage.Cutting) wrong.Add($"{entry.Name} is not opened");
             }
             p.Check(wrong.Count == 0, "each stands on its floor, opened to look into", string.Join("; ", wrong));

@@ -258,8 +258,8 @@ namespace Scry
 
             _scene = scene;
             _failedIn = null;
-            var kinds = string.Join(", ", catalog.GroupBy(e => e.Kind).OrderBy(g => g.Key).Select(g => $"{g.Count()} {Kinds.Label(g.Key).ToLowerInvariant()}"));
-            Plugin.Log.LogInfo($"Scry read {catalog.Count} prefabs and status effects in {job.WorkMs:0} ms over {job.Frames} frames ({job.ElapsedMs / 1000.0:0.0} s in all): {kinds}.");
+            var kinds = string.Join(", ", catalog.GroupBy(e => e.Kind).OrderBy(g => g.Key).Select(g => $"{Numbers.Count(g.Count())} {Kinds.Label(g.Key).ToLowerInvariant()}"));
+            Plugin.Log.LogInfo($"Scry read {Numbers.Count(catalog.Count)} prefabs and status effects in {Numbers.Amount(job.WorkMs, 0)} ms over {Numbers.Count(job.Frames)} frames ({Numbers.Fixed(job.ElapsedMs / 1000.0, 1)} s in all): {kinds}.");
 
             // Where things are found, read by itself for those who want it: the same background
             // reading the panel's button starts, a few milliseconds a frame.

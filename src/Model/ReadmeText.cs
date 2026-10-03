@@ -140,7 +140,7 @@ namespace Scry
             if (entity[0] == '#')
             {
                 var hex = entity.Length > 1 && (entity[1] == 'x' || entity[1] == 'X');
-                if (int.TryParse(hex ? entity.Substring(2) : entity.Substring(1), hex ? System.Globalization.NumberStyles.HexNumber : System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var code)
+                if ((hex ? Stored.TryHex(entity.Substring(2), out var code) : Stored.TryCount(entity.Substring(1), out code))
                     && code > 0 && code < 0x110000 && (code < 0xD800 || code > 0xDFFF))
                 {
                     return char.ConvertFromUtf32(code);

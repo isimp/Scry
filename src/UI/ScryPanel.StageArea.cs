@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using UnityEngine;
 
@@ -130,7 +129,7 @@ namespace Scry
                 {
                     // On the grid, how big the model is, in the same metres as its squares.
                     var size = Stage.SubjectSize;
-                    string M(float v) => v.ToString(v < 10f ? "0.0" : "0", CultureInfo.InvariantCulture);
+                    string M(float v) => v < 10f ? Numbers.Fixed(v, 1) : Numbers.Amount(v, 0);
                     FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), textW, U(22f)),
                         $"Squares of 1 m, lines every 5 m  \u00B7  {M(size.y)} m tall, {M(size.x)} × {M(size.z)} m", Skin.DimLabel, 9f);
                 }

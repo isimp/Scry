@@ -15,13 +15,13 @@ namespace Scry
         private const string SkipMark = "  SKIP ";
 
         public static string Started(int parts) =>
-            $"self-test started: {parts} parts, about five to fifteen minutes. Stand still and leave the panel be; it shows how far the test has got. /scry selftest stop stops it.";
+            $"self-test started: {Numbers.Count(parts)} parts, about five to fifteen minutes. Stand still and leave the panel be; it shows how far the test has got. /scry selftest stop stops it.";
 
         /// <summary>The line the panel shows while the test runs: the part running now, or how many are done between parts.</summary>
         public static string Progress(int done, int total, string current, int failed)
         {
-            var at = current != null ? $"Self-test, part {done + 1} of {total}: {current}." : $"Self-test, {done} of {total} parts done.";
-            var so = failed > 0 ? $" {failed} failed so far." : "";
+            var at = current != null ? $"Self-test, part {Numbers.Count(done + 1)} of {Numbers.Count(total)}: {current}." : $"Self-test, {Numbers.Count(done)} of {Numbers.Count(total)} parts done.";
+            var so = failed > 0 ? $" {Numbers.Count(failed)} failed so far." : "";
             return at + so + " Stand still until it is done.";
         }
 
@@ -32,10 +32,10 @@ namespace Scry
             var failed = reports.Count(r => r.Result == Result.Fail);
             var skipped = reports.Count(r => r.Result == Result.Skip);
             var done = seconds.HasValue ? $"Self-test done in {Duration(seconds.Value)}" : "Self-test done";
-            if (passed == reports.Count) return $"{done}: all {reports.Count} parts passed.";
-            var told = $"{done}: {passed} of {reports.Count} parts passed";
-            if (failed > 0) told += $", {failed} failed";
-            if (skipped > 0) told += $", {skipped} skipped";
+            if (passed == reports.Count) return $"{done}: all {Numbers.Count(reports.Count)} parts passed.";
+            var told = $"{done}: {Numbers.Count(passed)} of {Numbers.Count(reports.Count)} parts passed";
+            if (failed > 0) told += $", {Numbers.Count(failed)} failed";
+            if (skipped > 0) told += $", {Numbers.Count(skipped)} skipped";
             return told + ".";
         }
 
@@ -46,7 +46,7 @@ namespace Scry
             var failed = reports.Where(r => r.Result == Result.Fail).ToList();
             if (failed.Count > 0)
             {
-                lines.Add($"Failed ({failed.Count}):");
+                lines.Add($"Failed ({Numbers.Count(failed.Count)}):");
                 foreach (var report in failed)
                 {
                     lines.Add("  " + report.Name);
@@ -56,14 +56,14 @@ namespace Scry
             var skipped = reports.Where(r => r.Result == Result.Skip).ToList();
             if (skipped.Count > 0)
             {
-                lines.Add($"Skipped ({skipped.Count}):");
+                lines.Add($"Skipped ({Numbers.Count(skipped.Count)}):");
                 foreach (var report in skipped)
                 {
                     var why = report.Lines.FirstOrDefault(l => l.StartsWith(SkipMark, System.StringComparison.Ordinal));
                     lines.Add("  " + report.Name + (why != null ? ": " + why.Substring(SkipMark.Length) : ""));
                 }
             }
-            lines.Add($"Passed: {reports.Count(r => r.Result == Result.Pass)}.");
+            lines.Add($"Passed: {Numbers.Count(reports.Count(r => r.Result == Result.Pass))}.");
             return lines;
         }
 
@@ -71,8 +71,8 @@ namespace Scry
         public static string Duration(double seconds)
         {
             var whole = (int)Math.Round(seconds, MidpointRounding.AwayFromZero);
-            if (whole < 60) return $"{whole} s";
-            return whole % 60 == 0 ? $"{whole / 60} min" : $"{whole / 60} min {whole % 60} s";
+            if (whole < 60) return $"{Numbers.Count(whole)} s";
+            return whole % 60 == 0 ? $"{Numbers.Count(whole / 60)} min" : $"{Numbers.Count(whole / 60)} min {Numbers.Count(whole % 60)} s";
         }
 
         /// <summary>What to do next: nothing when all went well, else send the log.</summary>

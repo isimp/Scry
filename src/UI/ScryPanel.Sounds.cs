@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Globalization;
 using UnityEngine;
 
 namespace Scry
@@ -51,9 +50,7 @@ namespace Scry
 
         private static string Clock(float seconds)
         {
-            var whole = Mathf.Max(0, Mathf.FloorToInt(seconds));
-            if (seconds < 10f) return seconds.ToString("0.0", CultureInfo.InvariantCulture) + " s";
-            return $"{whole / 60}:{whole % 60:00}";
+            return seconds < 10f ? Numbers.Fixed(seconds, 1) + " s" : Numbers.Clock(seconds);
         }
 
         private static readonly Dictionary<Entry, List<AudioClip>> VariantCache = new Dictionary<Entry, List<AudioClip>>();
@@ -77,7 +74,7 @@ namespace Scry
             var clips = Variants(entry);
             if (clips.Count < 2) return y;
 
-            y = SectionHeading($"VARIANTS  {clips.Count}", width, y, null, "variants");
+            y = SectionHeading($"VARIANTS  {Numbers.Count(clips.Count)}", width, y, null, "variants");
             if (IsFolded("variants")) return y;
             var now = Previews.SoundClipNow();
             var x = 0f;
@@ -86,7 +83,7 @@ namespace Scry
             for (var i = 0; i < clips.Count; i++)
             {
                 var clip = clips[i];
-                var text = $"{i + 1}   {clip.name}";
+                var text = $"{Numbers.Count(i + 1)}   {clip.name}";
                 var style = clip == now ? Skin.ChipOn : Skin.Chip;
                 var w = Mathf.Min(width, Skin.Width(style, text) + U(8f));
                 if (x + w > width && x > 0f)
@@ -103,7 +100,7 @@ namespace Scry
                 if (GUI.Button(chip, text, style)) Previews.PlaySound(entry, clip);
                 if (chip.Contains(Event.current.mousePosition))
                 {
-                    AskTip("variant:" + clip.name, $"{clip.name}\n{clip.length.ToString("0.00", CultureInfo.InvariantCulture)} s");
+                    AskTip("variant:" + clip.name, $"{clip.name}\n{Numbers.Fixed(clip.length, 2)} s");
                 }
                 x += w + U(5f);
             }

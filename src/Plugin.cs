@@ -183,7 +183,7 @@ namespace Scry
             }
             catch (System.Reflection.ReflectionTypeLoadException ex)
             {
-                Log.LogWarning($"Scry: {ex.Types.Count(t => t == null)} of its own parts cannot be loaded on this version of the game, and are off; the rest work on. ({ex.LoaderExceptions.FirstOrDefault()?.Message})");
+                Log.LogWarning($"Scry: {Numbers.Count(ex.Types.Count(t => t == null))} of its own parts cannot be loaded on this version of the game, and are off; the rest work on. ({ex.LoaderExceptions.FirstOrDefault()?.Message})");
                 return ex.Types.Where(t => t != null).ToArray();
             }
         }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 
@@ -84,11 +83,11 @@ namespace Scry
             var text = new StringBuilder();
             foreach (var creature in _kills.Keys.OrderBy(k => k, StringComparer.Ordinal))
             {
-                text.Append("kills\t").Append(creature).Append('\t').Append(_kills[creature].ToString(CultureInfo.InvariantCulture)).Append('\n');
+                text.Append("kills\t").Append(creature).Append('\t').Append(Stored.Count(_kills[creature])).Append('\n');
                 foreach (var drop in Of(creature))
                 {
                     text.Append("drop\t").Append(creature).Append('\t').Append(drop.Item);
-                    foreach (var n in new[] { drop.Times, drop.Total, drop.Least, drop.Most }) text.Append('\t').Append(n.ToString(CultureInfo.InvariantCulture));
+                    foreach (var n in new[] { drop.Times, drop.Total, drop.Least, drop.Most }) text.Append('\t').Append(Stored.Count(n));
                     text.Append('\n');
                 }
             }
@@ -118,7 +117,7 @@ namespace Scry
             return seen;
         }
 
-        private static bool Int(string text, out int value) => int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value) && value >= 0;
+        private static bool Int(string text, out int value) => Stored.TryCount(text, out value) && value >= 0;
     }
 
     /// <summary>How what was seen dropping is told.</summary>
@@ -130,22 +129,22 @@ namespace Scry
         /// <summary>How often an item came, and how many at a time when that is more than one.</summary>
         public static string Amount(SeenDrop drop, int kills)
         {
-            var told = $"in {drop.Times} of {Kills(kills)}";
+            var told = $"in {Numbers.Count(drop.Times)} of {Kills(kills)}";
             if (drop.Most <= 1) return told;
-            return drop.Least == drop.Most ? $"{told}, {drop.Most} each time" : $"{told}, {drop.Least} to {drop.Most} each time";
+            return drop.Least == drop.Most ? $"{told}, {Numbers.Count(drop.Most)} each time" : $"{told}, {Numbers.Count(drop.Least)} to {Numbers.Count(drop.Most)} each time";
         }
 
         /// <summary>An item's chip in a creature's row, whose title tells the kills: how many at a time when more than one, and in how many kills.</summary>
         public static string Chip(SeenDrop drop, int kills)
         {
-            var often = $"{drop.Times} of {kills}";
+            var often = $"{Numbers.Count(drop.Times)} of {Numbers.Count(kills)}";
             if (drop.Most <= 1) return often;
-            return drop.Least == drop.Most ? $"{drop.Most}, {often}" : $"{drop.Least} to {drop.Most}, {often}";
+            return drop.Least == drop.Most ? $"{Numbers.Count(drop.Most)}, {often}" : $"{Numbers.Count(drop.Least)} to {Numbers.Count(drop.Most)}, {often}";
         }
 
         /// <summary>An item's line among where it comes from.</summary>
         public static string Line(string creature, SeenDrop drop, int kills) => $"Seen dropped by {creature} in your play, {Amount(drop, kills)}";
 
-        private static string Kills(int kills) => kills == 1 ? "1 kill" : $"{kills} kills";
+        private static string Kills(int kills) => kills == 1 ? "1 kill" : $"{Numbers.Count(kills)} kills";
     }
 }
