@@ -54,7 +54,7 @@ namespace Scry
             }
 
             // A long list shows its first chips and one for the rest; while filtering, every match.
-            var x = 0f;
+            var flow = new ChipFlow(0f, width, y, rowH, U(5f), U(5f));
             var matching = _effectFilter.Length > 0 ? lists.Where(p => p.Key.IndexOf(_effectFilter, StringComparison.OrdinalIgnoreCase) >= 0).ToList() : lists;
             _firstEffect = matching.Count > 0 ? matching[0] : default;
             var count = _effectFilter.Length > 0 ? matching.Count : ShownOf("effects", matching.Count);
@@ -62,17 +62,9 @@ namespace Scry
             {
                 var pair = matching[i];
                 var w = Mathf.Min(width, Skin.Width(Skin.Chip, pair.Key) + U(8f));
-                if (x + w > width && x > 0f)
-                {
-                    x = 0f;
-                    y += rowH + U(5f);
-                }
-                var chip = new Rect(x, y, w, rowH);
-                if (OutOfSight(chip))
-                {
-                    x += w + U(5f);
-                    continue;
-                }
+                var at = flow.Place(w);
+                var chip = new Rect(at.X, at.Y, w, rowH);
+                if (OutOfSight(chip)) continue;
                 var playing = Previews.Playing.IsPlaying(pair.Value);
                 if (GUI.Button(chip, pair.Key, playing ? Skin.ChipOn : Skin.Chip))
                 {
@@ -85,10 +77,9 @@ namespace Scry
                     var names = pair.Value.m_effectPrefabs.Where(d => d?.m_prefab != null).Select(d => d.m_prefab.name);
                     AskTip("fx:" + pair.Key, string.Join("\n", names));
                 }
-                x += w + U(5f);
             }
-            if (_effectFilter.Length == 0) MoreChip("effects", matching.Count, FirstChips, width, rowH, U(5f), ref x, ref y);
-            if (x > 0f) y += rowH;
+            if (_effectFilter.Length == 0) MoreChip("effects", matching.Count, FirstChips, width, ref flow);
+            y = flow.Below;
 
             // What the list played last is made of, each part lit while its copy plays.
             var last = lists.FirstOrDefault(l => ReferenceEquals(l.Value, Previews.Playing.Last));
@@ -120,9 +111,7 @@ namespace Scry
         private static float ClipLinks(List<(AnimationClip Clip, string How)> clips, float width, float y)
         {
             GUI.Label(new Rect(0f, y, width, U(20f)), clips.Count > 1 ? "With its clips:" : "With its clip:", Skin.DimLabel);
-            y += U(24f);
-            var rowH = U(26f);
-            var x = 0f;
+            var flow = new ChipFlow(0f, width, y + U(24f), U(26f), U(5f), U(5f));
             var playing = Previews.PlayingClip();
             foreach (var (clip, how) in clips)
             {
@@ -130,12 +119,8 @@ namespace Scry
                 var on = playing == clip;
                 var style = on ? Skin.ChipOn : Skin.Chip;
                 var w = Mathf.Min(width, Skin.Width(style, text) + U(8f));
-                if (x + w > width && x > 0f)
-                {
-                    x = 0f;
-                    y += rowH + U(5f);
-                }
-                if (GUI.Button(new Rect(x, y, w, rowH), text, style))
+                var at = flow.Place(w);
+                if (GUI.Button(new Rect(at.X, at.Y, w, flow.RowHeight), text, style))
                 {
                     if (on) Previews.StopClip();
                     else
@@ -144,9 +129,8 @@ namespace Scry
                         Previews.LastClip = clip;
                     }
                 }
-                x += w + U(5f);
             }
-            return y + rowH + U(6f);
+            return flow.RowBottom + U(6f);
         }
 
         /// <summary>The effect list the filter shows first, for Enter in the filter box.</summary>
@@ -177,8 +161,7 @@ namespace Scry
                 GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
                 y += U(24f);
             }
-            var x = 0f;
-            var rowH = U(26f);
+            var flow = new ChipFlow(0f, width, y, U(26f), U(5f), U(5f));
             var key = MembersKey(title, list);
             var count = ShownOf(key, members.Length);
             for (var i = 0; i < count; i++)
@@ -186,24 +169,15 @@ namespace Scry
                 var member = members[i];
                 var go = member != self && InCatalog(explorer, member);
                 var w = Mathf.Min(width, LinkChipWidth(member, go));
-                if (x + w > width && x > 0f)
-                {
-                    x = 0f;
-                    y += rowH + U(5f);
-                }
-                var chip = new Rect(x, y, w, rowH);
-                if (OutOfSight(chip))
-                {
-                    x += w + U(5f);
-                    continue;
-                }
+                var at = flow.Place(w);
+                var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
+                if (OutOfSight(chip)) continue;
                 var lit = Previews.Playing.IsPlaying(list, member);
                 if (LinkChip(chip, member, KindOf(explorer, member), lit, go)) Go(explorer, member);
                 if (go && chip.Contains(Event.current.mousePosition)) AskTip("member:" + member, "Go to " + member + (lit ? "\n(playing now)" : ""));
-                x += w + U(5f);
             }
-            MoreChip(key, members.Length, FirstChips, width, rowH, U(5f), ref x, ref y);
-            return y + rowH + U(6f);
+            MoreChip(key, members.Length, FirstChips, width, ref flow);
+            return flow.RowBottom + U(6f);
         }
 
         private static readonly Dictionary<(string, object), string> MemberKeys = new Dictionary<(string, object), string>();
@@ -294,35 +268,30 @@ namespace Scry
                 const int firstOwners = 4;
                 var ownersKey = OwnersKey(index);
                 var shownOwners = Mathf.Min(ShownOf(ownersKey, row.Owners.Count, firstOwners), row.Owners.Count);
+                var owners = new ChipFlow(0f, width, y, rowH, U(5f), U(5f), start: x);
                 for (var o = 0; o < shownOwners; o++)
                 {
                     var owner = row.Owners[o];
                     var shown = row.Names != null && o < row.Names.Length ? row.Names[o] : ShownName(explorer, owner.Key, owner.Shown);
                     var go = owner.Key != null && InCatalog(explorer, owner.Key);
                     var w = Mathf.Min(width, LinkChipWidth(shown, go));
-                    if (x + w > width && x > 0f)
-                    {
-                        x = 0f;
-                        y += rowH + U(5f);
-                    }
-                    var chip = new Rect(x, y, w, rowH);
+                    var at = owners.Place(w);
+                    var chip = new Rect(at.X, at.Y, w, rowH);
                     var kind = KindOf(explorer, owner.Key);
                     if (LinkChip(chip, shown, kind, false, go)) Go(explorer, owner.Key);
                     if (go && chip.Contains(Event.current.mousePosition)) AskTip("owner:" + owner.Key, "Go to " + shown);
-                    x += w + U(5f);
                 }
-                MoreChip(ownersKey, row.Owners.Count, firstOwners, width, rowH, U(5f), ref x, ref y);
-                y += rowH + U(5f);
+                MoreChip(ownersKey, row.Owners.Count, firstOwners, width, ref owners);
+                y = owners.RowBottom + U(5f);
 
                 // What plays along.
                 if (list != null) y = Members(explorer, null, list, row.Members, entry.Name, width, y);
                 y += U(6f);
             }
 
-            var mx = 0f;
-            MoreChip("playsin", rows.Count, firstRows, width, rowH, U(5f), ref mx, ref y);
-            if (mx > 0f) y += rowH;
-            return y + U(14f);
+            var more = new ChipFlow(0f, width, y, rowH, U(5f), U(5f));
+            MoreChip("playsin", rows.Count, firstRows, width, ref more);
+            return more.Below + U(14f);
         }
 
         private static readonly Dictionary<string, string> ShownNames = new Dictionary<string, string>();

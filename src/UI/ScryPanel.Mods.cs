@@ -137,7 +137,7 @@ namespace Scry
             var rowH = U(26f);
             var w = Mathf.Min(width * 0.5f, LinkChipWidth(entry.Shown, true));
             var chip = new Rect(x, y, w, rowH);
-            if (chip.yMax >= visible.yMin && chip.yMin <= visible.yMax)
+            if (!OutOfSight(chip, visible))
             {
                 if (LinkChip(chip, entry.Shown, entry.Kind, false, true)) Go(explorer, entry.Key);
                 if (chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, "Go to " + entry.Shown);
@@ -155,47 +155,23 @@ namespace Scry
             GUI.Label(titleRect, UnsureWords.Marked($"{title} ({Numbers.Count(entries.Count)})"), Skin.DimLabel);
             if (titleRect.Contains(Event.current.mousePosition)) AskTip("unsure:" + mod + title, "Scry found nothing for these; the mod's own code may still place them");
             y += U(24f);
-            var rowH = U(26f);
             var key = "mods:" + mod + ":" + title;
             var count = ShownOf(key, entries.Count);
-            var cx = 0f;
+            var flow = new ChipFlow(x, x + width, y, U(26f), U(5f), U(5f));
             for (var i = 0; i < count; i++)
             {
                 var entry = entries[i];
                 var w = Mathf.Min(width, LinkChipWidth(entry.Shown, true));
-                if (cx + w > width && cx > 0f)
-                {
-                    cx = 0f;
-                    y += rowH + U(5f);
-                }
-                var chip = new Rect(x + cx, y, w, rowH);
-                if (chip.yMax >= visible.yMin && chip.yMin <= visible.yMax)
-                {
-                    if (LinkChip(chip, entry.Shown, entry.Kind, false, true)) Go(explorer, entry.Key);
-                    if (chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, "Go to " + entry.Shown);
-                }
-                cx += w + U(5f);
+                var at = flow.Place(w);
+                var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
+                if (OutOfSight(chip, visible)) continue;
+                if (LinkChip(chip, entry.Shown, entry.Kind, false, true)) Go(explorer, entry.Key);
+                if (chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, "Go to " + entry.Shown);
             }
-            // The rest behind a chip of their own, as the details' long rows have, drawn here
-            // against the report's own scrolling.
-            if (Shortlist.Long(entries.Count, FirstChips))
-            {
-                var open = OpenLists.Contains(key);
-                var text = open ? "Show fewer" : $"{Numbers.Count(Shortlist.Hidden(entries.Count, FirstChips, false))} more";
-                var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(16f));
-                if (cx + w > width && cx > 0f)
-                {
-                    cx = 0f;
-                    y += rowH + U(5f);
-                }
-                var more = new Rect(x + cx, y, w, rowH);
-                if (more.yMax >= visible.yMin && more.yMin <= visible.yMax && GUI.Button(more, text, Skin.Chip))
-                {
-                    if (open) OpenLists.Remove(key);
-                    else OpenLists.Add(key);
-                }
-            }
-            return y + rowH + U(10f);
+            // The rest behind a chip of their own, as the details' long rows have, against the
+            // report's own scrolling.
+            MoreChip(key, entries.Count, FirstChips, width, ref flow, visible);
+            return flow.RowBottom + U(10f);
         }
     }
 }

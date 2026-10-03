@@ -136,28 +136,5 @@ namespace Scry
             var shown = shared != null ? CatalogBuilder.Localize(shared.m_name) : "";
             return shown.Length > 0 ? shown : prefabName;
         }
-
-        /// <summary>Like <see cref="Segments"/>, but any number can be on; returns the one clicked.</summary>
-        private static int Toggles(string label, List<string> names, Func<int, bool> on, float width, float labelW, ref float y)
-        {
-            var rowH = U(28f);
-            FitLabel(new Rect(0f, y, labelW - U(6f), rowH), label, Skin.DimLabel, 10f);
-            var x = labelW;
-            var clicked = -1;
-            for (var i = 0; i < names.Count; i++)
-            {
-                var style = on(i) ? Skin.SegmentOn : Skin.Segment;
-                var w = Skin.Width(style, names[i]) + U(10f);
-                if (x + w > width && x > labelW)
-                {
-                    x = labelW;
-                    y += rowH + U(4f);
-                }
-                if (GUI.Button(new Rect(x, y, w, rowH), names[i], style)) clicked = i;
-                x += w + U(4f);
-            }
-            y += rowH + U(8f);
-            return clicked;
-        }
     }
 }

@@ -10,9 +10,7 @@ namespace Scry
     {
         private static float Actions(Entry entry, float width, float y, bool withStage)
         {
-            var x = 0f;
-            var rowH = U(32f);
-            var any = false;
+            var flow = new ChipFlow(0f, width, y, U(32f), U(8f), U(6f));
 
             bool Button(string text, GUIStyle style) => Shown(text, style, true);
 
@@ -20,18 +18,12 @@ namespace Scry
             // does not shift as it comes and goes.
             bool Shown(string text, GUIStyle style, bool can)
             {
-                any = true;
                 var w = Skin.Width(style, text) + U(12f);
-                if (x + w > width && x > 0f)
-                {
-                    x = 0f;
-                    y += rowH + U(6f);
-                }
+                var at = flow.Place(w);
                 var enabled = GUI.enabled;
                 GUI.enabled = enabled && can;
-                var clicked = GUI.Button(new Rect(x, y, w, rowH), text, style);
+                var clicked = GUI.Button(new Rect(at.X, at.Y, w, flow.RowHeight), text, style);
                 GUI.enabled = enabled;
-                x += w + U(8f);
                 return clicked && can;
             }
 
@@ -152,7 +144,7 @@ namespace Scry
             }
 
 
-            if (any) y += rowH;
+            y = flow.Below;
 
             if (note == null && (Previews.InWorld || Previews.PinnedCount > 0))
             {
@@ -234,8 +226,7 @@ namespace Scry
             }, "kept");
             if (IsFolded("kept")) return y;
 
-            var x = 0f;
-            var chipH = U(30f);
+            var flow = new ChipFlow(0f, width, y, U(30f), U(6f), U(5f));
             foreach (var key in kept.ToList())
             {
                 var prefab = Looks.Prefab(key);
@@ -244,13 +235,9 @@ namespace Scry
                 if (name.Length == 0) name = key;
 
                 var w = Mathf.Min(width, Skin.Width(Skin.Chip, name) + U(58f));
-                if (x + w > width && x > 0f)
-                {
-                    x = 0f;
-                    y += chipH + U(5f);
-                }
-                var chip = new Rect(x, y, w, chipH);
-                var cross = new Rect(chip.xMax - U(26f), chip.y, U(24f), chipH);
+                var at = flow.Place(w);
+                var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
+                var cross = new Rect(chip.xMax - U(26f), chip.y, U(24f), chip.height);
                 var hover = chip.Contains(Event.current.mousePosition);
                 Skin.PillBox(chip, LinkFill(Kind.Item, hover));
                 var icon = PrefabIcon(key);
@@ -273,10 +260,9 @@ namespace Scry
                     _sideScroll = Vector2.zero;
                 }
                 if (hover) AskTip("kept:" + key, cross.Contains(Event.current.mousePosition) ? "Take it off" : "Go to " + name);
-                x += w + U(6f);
             }
 
-            return y + chipH + U(16f);
+            return flow.RowBottom + U(16f);
         }
 
         private static string OriginText(Entry entry)

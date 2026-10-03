@@ -11,7 +11,10 @@ namespace Scry
         /// <summary>What of the scrolled side can be seen, in its own terms, so rows of chips out of sight are only counted, not drawn.</summary>
         private static Rect _sideVisible;
 
-        private static bool OutOfSight(Rect rect) => rect.yMax < _sideVisible.yMin || rect.yMin > _sideVisible.yMax;
+        private static bool OutOfSight(Rect rect) => OutOfSight(rect, _sideVisible);
+
+        /// <summary>Whether a row lies wholly above or below what of its scrolled view can be seen.</summary>
+        private static bool OutOfSight(Rect rect, Rect visible) => rect.yMax < visible.yMin || rect.yMin > visible.yMax;
 
         /// <summary>How many chips of a list show before the rest are left to a "more" chip.</summary>
         private const int FirstChips = 18;
@@ -26,24 +29,21 @@ namespace Scry
         /// The chip at the end of a long list, placed as its own chips are: "N more" shows the
         /// rest, "Show fewer" folds it again. Every long list in the panel ends with it.
         /// </summary>
-        private static void MoreChip(string key, int total, int first, float width, float rowH, float gap, ref float x, ref float y)
+        private static void MoreChip(string key, int total, int first, float width, ref ChipFlow flow) => MoreChip(key, total, first, width, ref flow, _sideVisible);
+
+        private static void MoreChip(string key, int total, int first, float width, ref ChipFlow flow, Rect visible)
         {
             if (!Shortlist.Long(total, first)) return;
             var open = OpenLists.Contains(key);
             var text = open ? "Show fewer" : $"{Numbers.Count(Shortlist.Hidden(total, first, false))} more";
             var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(16f));
-            if (x + w > width && x > 0f)
-            {
-                x = 0f;
-                y += rowH + gap;
-            }
-            var rect = new Rect(x, y, w, rowH);
-            if (!OutOfSight(rect) && GUI.Button(rect, text, Skin.Chip))
+            var at = flow.Place(w);
+            var rect = new Rect(at.X, at.Y, w, flow.RowHeight);
+            if (!OutOfSight(rect, visible) && GUI.Button(rect, text, Skin.Chip))
             {
                 if (open) OpenLists.Remove(key);
                 else OpenLists.Add(key);
             }
-            x += w + gap;
         }
 
         /// <summary>Room kept at the end of the name's second line for the link that folds every section.</summary>

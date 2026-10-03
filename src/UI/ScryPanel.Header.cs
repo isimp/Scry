@@ -261,26 +261,18 @@ namespace Scry
         /// <summary>One tab per kind with what the search holds of it, wrapping when the row is full.</summary>
         private static float Tabs(Explorer explorer, Rect rect)
         {
-            var x = rect.x;
-            var y = rect.y;
-            var tabH = rect.height;
-            var gap = U(4f);
+            var flow = new ChipFlow(rect.x, rect.xMax, rect.y, rect.height, U(4f), U(4f));
 
             bool Tab(string label, int count, Color dot, bool on)
             {
                 var style = on ? Skin.TabOn : Skin.Tab;
                 var text = TabText(label, count, on);
                 var width = Skin.Width(style, text) + U(2f);
-                if (x + width > rect.xMax && x > rect.x)
-                {
-                    x = rect.x;
-                    y += tabH + gap;
-                }
-                var tab = new Rect(x, y, width, tabH);
+                var at = flow.Place(width);
+                var tab = new Rect(at.X, at.Y, width, flow.RowHeight);
                 var clicked = GUI.Button(tab, text, style);
                 var size = U(8f);
-                Skin.Icon(new Rect(tab.x + U(10f), tab.y + (tabH - size) / 2f, size, size), Skin.Circle, on ? Skin.OnAccent : dot);
-                x += width + gap;
+                Skin.Icon(new Rect(tab.x + U(10f), tab.y + (tab.height - size) / 2f, size, size), Skin.Circle, on ? Skin.OnAccent : dot);
                 return clicked;
             }
 
@@ -292,7 +284,7 @@ namespace Scry
                 if (Tab(Kinds.Label(kind), count, Skin.KindColor(kind), explorer.KindFilter == kind)) Filter(explorer, kind);
             }
 
-            return y + tabH;
+            return flow.RowBottom;
         }
 
         private static void Filter(Explorer explorer, Kind? kind)

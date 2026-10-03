@@ -77,8 +77,7 @@ namespace Scry
             y = SectionHeading($"VARIANTS  {Numbers.Count(clips.Count)}", width, y, null, "variants");
             if (IsFolded("variants")) return y;
             var now = Previews.SoundClipNow();
-            var x = 0f;
-            var rowH = U(28f);
+            var flow = new ChipFlow(0f, width, y, U(28f), U(5f), U(5f));
 
             for (var i = 0; i < clips.Count; i++)
             {
@@ -86,26 +85,17 @@ namespace Scry
                 var text = $"{Numbers.Count(i + 1)}   {clip.name}";
                 var style = clip == now ? Skin.ChipOn : Skin.Chip;
                 var w = Mathf.Min(width, Skin.Width(style, text) + U(8f));
-                if (x + w > width && x > 0f)
-                {
-                    x = 0f;
-                    y += rowH + U(5f);
-                }
-                var chip = new Rect(x, y, w, rowH);
-                if (OutOfSight(chip))
-                {
-                    x += w + U(5f);
-                    continue;
-                }
+                var at = flow.Place(w);
+                var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
+                if (OutOfSight(chip)) continue;
                 if (GUI.Button(chip, text, style)) Previews.PlaySound(entry, clip);
                 if (chip.Contains(Event.current.mousePosition))
                 {
                     AskTip("variant:" + clip.name, $"{clip.name}\n{Numbers.Fixed(clip.length, 2)} s");
                 }
-                x += w + U(5f);
             }
 
-            return y + rowH + U(16f);
+            return flow.RowBottom + U(16f);
         }
     }
 }

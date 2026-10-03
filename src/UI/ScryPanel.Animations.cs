@@ -102,20 +102,21 @@ namespace Scry
             var group = -1;
             var inGroup = 0;
             var limit = 0;
-            x = 0f;
+            var flow = new ChipFlow(0f, width, y, rowH, U(5f), U(5f));
             foreach (var row in shown)
             {
                 var clip = row.Clip;
                 if (row.Group != group)
                 {
-                    if (group >= 0 && !filtering) MoreChip("clips:" + Stored.Count(group), totals[group], FirstChips, width, rowH, U(5f), ref x, ref y);
-                    if (x > 0f) y += rowH + U(4f);
-                    x = 0f;
+                    if (group >= 0 && !filtering) MoreChip("clips:" + Stored.Count(group), totals[group], FirstChips, width, ref flow);
+                    y = flow.Below;
+                    if (flow.InRow) y += U(4f);
                     group = row.Group;
                     inGroup = 0;
                     limit = filtering ? totals[group] : ShownOf("clips:" + Stored.Count(group), totals[group]);
                     GUI.Label(new Rect(0f, y, width, U(20f)), group < 3 ? ClipHeadings[group] : "Working out what each clip plays" + Dots(), Skin.DimLabel);
                     y += U(22f);
+                    flow = new ChipFlow(0f, width, y, rowH, U(5f), U(5f));
                 }
 
                 if (inGroup++ >= limit) continue;
@@ -129,20 +130,12 @@ namespace Scry
                 // Rows below what shows are measured a few a frame; until then their width is told
                 // from their length, which only moves rows out of sight.
                 started = Timing.Start();
-                var below = y > _sideVisible.yMax;
+                var below = flow.Y > _sideVisible.yMax;
                 var w = Mathf.Min(width, (below ? Skin.WidthSoon(style, text) : Skin.Width(style, text)) + U(8f));
                 Timing.Add("clips measured", started);
-                if (x + w > width && x > 0f)
-                {
-                    x = 0f;
-                    y += rowH + U(5f);
-                }
-                var chip = new Rect(x, y, w, rowH);
-                if (OutOfSight(chip))
-                {
-                    x += w + U(5f);
-                    continue;
-                }
+                var at = flow.Place(w);
+                var chip = new Rect(at.X, at.Y, w, rowH);
+                if (OutOfSight(chip)) continue;
                 if (GUI.Button(chip, text, style))
                 {
                     if (on) Previews.StopClip();
@@ -156,10 +149,9 @@ namespace Scry
                 {
                     AskTip("clip:" + row.Name + (clip == ownNow ? ":now" : ""), $"{row.Name}\n{Numbers.Fixed(clip.length, 1)} s{(clip.isLooping ? ", loops" : "")}{(clip == ownNow ? "\nPlaying on its own now" : "")}");
                 }
-                x += w + U(5f);
             }
-            if (group >= 0 && !filtering) MoreChip("clips:" + Stored.Count(group), totals[group], FirstChips, width, rowH, U(5f), ref x, ref y);
-            if (x > 0f) y += rowH;
+            if (group >= 0 && !filtering) MoreChip("clips:" + Stored.Count(group), totals[group], FirstChips, width, ref flow);
+            y = flow.Below;
 
             var last = Previews.LastClip;
             if (last != null && clips.Contains(last) && !sorting)

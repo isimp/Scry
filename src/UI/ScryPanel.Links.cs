@@ -113,9 +113,7 @@ namespace Scry
         private static float LinkItems(Explorer explorer, string title, IEnumerable<(string Key, string Text, string Tip, Action Click)> items, float width, float y)
         {
             GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
-            y += U(24f);
-            var x = 0f;
-            var rowH = U(26f);
+            var flow = new ChipFlow(0f, width, y + U(24f), U(26f), U(5f), U(5f));
             var all = items as IList<(string Key, string Text, string Tip, Action Click)> ?? items.ToList();
             var key = "links:" + title;
             var count = ShownOf(key, all.Count);
@@ -123,23 +121,14 @@ namespace Scry
             {
                 var item = all[i];
                 var w = Mathf.Min(width, LinkChipWidth(item.Text, true));
-                if (x + w > width && x > 0f)
-                {
-                    x = 0f;
-                    y += rowH + U(5f);
-                }
-                var chip = new Rect(x, y, w, rowH);
-                if (OutOfSight(chip))
-                {
-                    x += w + U(5f);
-                    continue;
-                }
+                var at = flow.Place(w);
+                var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
+                if (OutOfSight(chip)) continue;
                 if (LinkChip(chip, item.Text, KindOf(explorer, item.Key), false, true)) item.Click();
                 if (chip.Contains(Event.current.mousePosition)) AskTip("link:" + title + item.Key + item.Text, item.Tip ?? "Go to " + item.Text);
-                x += w + U(5f);
             }
-            MoreChip(key, all.Count, FirstChips, width, rowH, U(5f), ref x, ref y);
-            return y + rowH + U(10f);
+            MoreChip(key, all.Count, FirstChips, width, ref flow);
+            return flow.RowBottom + U(10f);
         }
 
         /// <summary>
@@ -227,25 +216,18 @@ namespace Scry
         private static float ChipRow(string title, IEnumerable<KeyValuePair<string, Action>> chips, float width, float y)
         {
             GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
-            y += U(24f);
-            var x = 0f;
-            var rowH = U(26f);
+            var flow = new ChipFlow(0f, width, y + U(24f), U(26f), U(5f), U(5f));
             var all = chips.ToList();
             var key = "chips:" + title;
             foreach (var chip in all.Take(ShownOf(key, all.Count)))
             {
                 var w = Mathf.Min(width, Skin.Width(Skin.Chip, chip.Key) + U(8f));
-                if (x + w > width && x > 0f)
-                {
-                    x = 0f;
-                    y += rowH + U(5f);
-                }
-                var rect = new Rect(x, y, w, rowH);
+                var at = flow.Place(w);
+                var rect = new Rect(at.X, at.Y, w, flow.RowHeight);
                 if (!OutOfSight(rect) && GUI.Button(rect, chip.Key, Skin.Chip)) chip.Value();
-                x += w + U(5f);
             }
-            MoreChip(key, all.Count, FirstChips, width, rowH, U(5f), ref x, ref y);
-            return y + rowH + U(10f);
+            MoreChip(key, all.Count, FirstChips, width, ref flow);
+            return flow.RowBottom + U(10f);
         }
 
         private static readonly Dictionary<string, Sprite> PrefabIcons = new Dictionary<string, Sprite>();

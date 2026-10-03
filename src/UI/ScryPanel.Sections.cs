@@ -58,10 +58,13 @@ namespace Scry
             return y + U(folded ? 36f : 30f);
         }
 
+        /// <summary>A labelled row's label, in the column every labelled row (sliders, segments, toggles) shares.</summary>
+        private static void RowLabel(string label, float labelW, float y, float rowH) => FitLabel(new Rect(0f, y, labelW - U(6f), rowH), label, Skin.DimLabel, 10f);
+
         private static float SliderRow(string label, string value, float current, float min, float max, float width, float labelW, ref float y)
         {
             var rowH = U(26f);
-            FitLabel(new Rect(0f, y, labelW - U(6f), rowH), label, Skin.DimLabel, 10f);
+            RowLabel(label, labelW, y, rowH);
             var valueW = U(64f);
             var slider = new Rect(labelW, y + (rowH - U(14f)) / 2f, width - labelW - valueW - U(10f), U(14f));
             var result = GUI.HorizontalSlider(slider, current, min, max);
@@ -70,26 +73,31 @@ namespace Scry
             return result;
         }
 
-        private static int Segments(string label, List<string> names, int selected, float width, float labelW, ref float y)
+        /// <summary>A labelled row of segments, one of them on; returns the one clicked, or -1.</summary>
+        private static int Segments(string label, List<string> names, int selected, float width, float labelW, ref float y) => SegmentRow(label, names, selected, null, width, labelW, ref y);
+
+        /// <summary>Like <see cref="Segments"/>, but any number can be on; returns the one clicked, or -1.</summary>
+        private static int Toggles(string label, List<string> names, Func<int, bool> on, float width, float labelW, ref float y) => SegmentRow(label, names, -1, on, width, labelW, ref y);
+
+        /// <summary>
+        /// The segments after their label, wrapping back to the label's edge; lit where
+        /// <paramref name="on"/> says, or the one <paramref name="selected"/> without it.
+        /// </summary>
+        private static int SegmentRow(string label, List<string> names, int selected, Func<int, bool> on, float width, float labelW, ref float y)
         {
-            var rowH = U(28f);
-            FitLabel(new Rect(0f, y, labelW - U(6f), rowH), label, Skin.DimLabel, 10f);
-            var x = labelW;
-            var chosen = -1;
+            var flow = new ChipFlow(labelW, width, y, U(28f), U(4f), U(4f));
+            RowLabel(label, labelW, y, flow.RowHeight);
+            var clicked = -1;
             for (var i = 0; i < names.Count; i++)
             {
-                var style = i == selected ? Skin.SegmentOn : Skin.Segment;
+                var lit = on != null ? on(i) : i == selected;
+                var style = lit ? Skin.SegmentOn : Skin.Segment;
                 var w = Skin.Width(style, names[i]) + U(10f);
-                if (x + w > width && x > labelW)
-                {
-                    x = labelW;
-                    y += rowH + U(4f);
-                }
-                if (GUI.Button(new Rect(x, y, w, rowH), names[i], style)) chosen = i;
-                x += w + U(4f);
+                var at = flow.Place(w);
+                if (GUI.Button(new Rect(at.X, at.Y, w, flow.RowHeight), names[i], style)) clicked = i;
             }
-            y += rowH + U(8f);
-            return chosen;
+            y = flow.RowBottom + U(8f);
+            return clicked;
         }
 
         // ----- Tooltips -----

@@ -125,9 +125,9 @@ namespace Scry
                     }
                     y += chipH + U(5f);
                 }
-                var lx = 0f;
-                MoreChip("where", facts.Where.Count, firstLines, width, U(26f), U(5f), ref lx, ref y);
-                if (lx > 0f) y += U(26f) + U(5f);
+                var more = new ChipFlow(0f, width, y, U(26f), U(5f), U(5f));
+                MoreChip("where", facts.Where.Count, firstLines, width, ref more);
+                if (more.InRow) y = more.RowBottom + U(5f);
             }
 
             if (places)
@@ -263,24 +263,15 @@ namespace Scry
             }
             y += U(24f);
 
-            var x = 0f;
-            var chipH = U(30f);
+            var flow = new ChipFlow(0f, width, y, U(30f), U(6f), U(5f));
             for (var i = 0; i < count; i++)
             {
                 var item = row.Items[i];
                 var text = string.IsNullOrEmpty(item.Amount) ? item.Name : $"{item.Amount}  {item.Name}";
                 var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(30f));
-                if (x + w > width && x > 0f)
-                {
-                    x = 0f;
-                    y += chipH + U(5f);
-                }
-                var chip = new Rect(x, y, w, chipH);
-                if (OutOfSight(chip))
-                {
-                    x += w + U(6f);
-                    continue;
-                }
+                var at = flow.Place(w);
+                var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
+                if (OutOfSight(chip)) continue;
                 var hover = chip.Contains(Event.current.mousePosition);
                 var goes = !string.IsNullOrEmpty(item.Prefab) && InCatalog(explorer, item.Prefab);
                 var kind = goes ? KindOf(explorer, item.Prefab) : null;
@@ -303,12 +294,9 @@ namespace Scry
                         _help = false;
                     }
                 }
-                x += w + U(6f);
             }
-            MoreChip(key, row.Items.Count, FirstChips, width, chipH, U(5f), ref x, ref y);
-            y += chipH + U(6f);
-
-            return y;
+            MoreChip(key, row.Items.Count, FirstChips, width, ref flow);
+            return flow.RowBottom + U(6f);
         }
 
         private static int _commandAmount = 1;
