@@ -209,17 +209,29 @@ namespace Scry
 
         /// <summary>
         /// Puts what was found where on the catalog's entries (by prefab name; a status effect is
-        /// no prefab), each place once, in order. An effect or sound nothing was found to play, or a
-        /// projectile nothing was found to fire, goes under "In locations" when one names it.
+        /// no prefab), each place once, by the biome players reach first of the location going by
+        /// it, then by name; a place no location goes by comes last. An effect or sound nothing was
+        /// found to play, or a projectile nothing was found to fire, goes under "In locations" when
+        /// one names it.
         /// </summary>
         public static void Apply(IEnumerable<Entry> catalog, IDictionary<string, HashSet<string>> found)
         {
             var unplayed = Groups.Purpose(new string[0], false, false).Order;
             var unfired = Groups.Projectile(new Shooter[0]).Order;
+
+            // Each place's biome rank, from the first location going by it (LocationNamed).
+            var ranks = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var entry in catalog)
+            {
+                if (entry.Kind != Kind.Location || entry.FoundIn.Length == 0 || !entry.Components.Contains("Location") || ranks.ContainsKey(entry.FoundIn[0])) continue;
+                ranks[entry.FoundIn[0]] = ContentOrder.Earliest(entry.Biomes);
+            }
+            int RankOf(string place) => ranks.TryGetValue(place, out var rank) ? rank : int.MaxValue;
+
             foreach (var entry in catalog)
             {
                 if (EntryKeys.HasOwnNamespace(entry.Kind) || !found.TryGetValue(entry.Name, out var places) || places.Count == 0) continue;
-                entry.FoundIn = places.Distinct().OrderBy(p => p, StringComparer.OrdinalIgnoreCase).ToArray();
+                entry.FoundIn = places.Distinct().OrderBy(RankOf).ThenBy(p => p, StringComparer.OrdinalIgnoreCase).ToArray();
 
                 Group? group = null;
                 if ((entry.Kind == Kind.Effect || entry.Kind == Kind.Sound) && entry.GroupOrder == unplayed) group = Groups.EffectsInLocations;

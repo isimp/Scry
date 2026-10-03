@@ -13,11 +13,15 @@ namespace Scry
         public string Prefab;
         public string Unsure;
 
-        public Source(string text, string prefab, string unsure = null)
+        /// <summary>How often it gives the thing, from 0 to 1, for telling the surest first (<see cref="ContentOrder.SurestFirst{T}"/>).</summary>
+        public double Chance;
+
+        public Source(string text, string prefab, string unsure = null, double chance = 1.0)
         {
             Text = text;
             Prefab = prefab;
             Unsure = unsure;
+            Chance = chance;
         }
     }
 
@@ -417,7 +421,7 @@ namespace Scry
             Try("world spawners", WorldSpawners);
             Try("raids", Raids);
             Try("spawn points", TellSpawnPoints);
-            Try("nests and spawn points", () => Merge(SpawnPointLines, (prefab, line) => Add(prefab, line.Text, line.Prefab)));
+            Try("nests and spawn points", () => Merge(SpawnPointLines, (prefab, line) => Add(prefab, line.Text, line.Prefab, line.Chance)));
             Try("vegetation", Vegetation);
             yield return "where things live";
 
@@ -484,12 +488,12 @@ namespace Scry
             if (!lines.Exists(l => l.Text == line.Text)) lines.Add(line);
         }
 
-        /// <summary>A line kept to be put together later.</summary>
-        private static void Keep(Dictionary<string, List<Source>> lines, GameObject item, string line, string target)
+        /// <summary>A line kept to be put together later, with how often it gives the thing.</summary>
+        private static void Keep(Dictionary<string, List<Source>> lines, GameObject item, string line, string target, double chance = 1.0)
         {
             if (item == null) return;
             if (!lines.TryGetValue(item.name, out var list)) lines[item.name] = list = new List<Source>();
-            list.Add(new Source(line, target));
+            list.Add(new Source(line, target, chance: chance));
         }
     }
 }

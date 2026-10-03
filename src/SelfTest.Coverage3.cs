@@ -436,6 +436,91 @@ namespace Scry
         }
 
         /// <summary>
+        /// Content lists in their order, once every location is read: each location's parts told
+        /// once, in a row by what each is, building pieces apart; creatures' drops rarest first;
+        /// each biome's creatures toughest first; where things come from surest first. Examples
+        /// are noted.
+        /// </summary>
+        private static IEnumerator ContentOrders(Probe p)
+        {
+            var titles = PlaceParts.Roles.Select(r => PlaceParts.Title(r, false)).ToList();
+            var places = X.Catalog.Where(e => PlaceOf(e) is PlaceSource place && !place.IsRoom && place.Contents != null && place.Contents.Dungeon == null).ToList();
+            if (places.Count == 0) p.Skip("no location has been read");
+            var miscounted = new List<string>();
+            var built = 0;
+            Entry shown = null;
+            foreach (var place in places)
+            {
+                var facts = Facts.For(place);
+                var rows = facts.Rows.Where(r => titles.Contains(r.Title)).ToList();
+                var told = rows.Sum(r => r.Items.Count);
+                if (told != PlaceOf(place).Contents.Parts.Count) miscounted.Add($"{place.Name} {told} of {PlaceOf(place).Contents.Parts.Count}");
+                if (rows.Any(r => r.Title == PlaceParts.Title(PartRole.Built, false)))
+                {
+                    built++;
+                    if (shown == null || rows.Count > Facts.For(shown).Rows.Count(r => titles.Contains(r.Title))) shown = place;
+                }
+            }
+            p.Check(miscounted.Count == 0, "every location tells each of its parts once, in a row by what it is", miscounted.Count > 0 ? string.Join(", ", miscounted.Take(10)) : $"{places.Count} locations");
+            p.Note($"{built} of {places.Count} locations have building pieces apart");
+            if (shown != null)
+            {
+                p.Note($"{shown.Name}: " + string.Join("; ", Facts.For(shown).Rows.Where(r => titles.Contains(r.Title) || r.Title == "Its spawn points place")
+                    .Select(r => $"{r.Title} ({r.Items.Count}): {string.Join(", ", r.Items.Take(6).Select(i => i.Prefab))}")));
+            }
+            yield return null;
+
+            // Creatures' drops, rarest first: each chip's chance no more than the next's.
+            var unsorted = new List<string>();
+            foreach (var creature in X.Catalog.Where(e => e.Kind == Kind.Creature && (e.Source as GameObject)?.GetComponent<CharacterDrop>() != null))
+            {
+                var drops = ((GameObject)creature.Source).GetComponent<CharacterDrop>().m_drops.Where(d => d?.m_prefab != null).ToList();
+                var row = Facts.For(creature).Rows.FirstOrDefault(r => r.Title == "Drops");
+                if (row == null) continue;
+                var chances = row.Items.Select(i => drops.Where(d => d.m_prefab.name == i.Prefab).Select(d => d.m_chance).DefaultIfEmpty(1f).Min()).ToList();
+                for (var i = 1; i < chances.Count; i++)
+                {
+                    if (chances[i] < chances[i - 1]) { unsorted.Add(creature.Name); break; }
+                }
+            }
+            p.Check(unsorted.Count == 0, "creatures' drops come rarest first", unsorted.Count > 0 ? string.Join(", ", unsorted.Take(10)) : "");
+            var greydwarf = Pick(Kind.Creature, "Greydwarf");
+            var greyDrops = greydwarf != null ? Facts.For(greydwarf).Rows.FirstOrDefault(r => r.Title == "Drops") : null;
+            if (greyDrops != null) p.Note($"{greydwarf.Name} drops: {string.Join(", ", greyDrops.Items.Select(i => $"{i.Prefab} {i.Amount}"))}");
+            yield return null;
+
+            // Each biome's creatures, toughest first: bosses, then the most health.
+            var weaker = new List<string>();
+            foreach (var biome in X.Catalog.Where(e => e.Kind == Kind.Biome))
+            {
+                var row = Facts.For(biome).Rows.FirstOrDefault(r => r.Title.StartsWith("Lives here", StringComparison.Ordinal));
+                if (row == null) continue;
+                var foes = row.Items.Select(i => Looks.Prefab(i.Prefab)?.GetComponent<Character>()).Where(c => c != null).Select(c => (c.m_boss ? 1 : 0, c.m_health)).ToList();
+                for (var i = 1; i < foes.Count; i++)
+                {
+                    if (foes[i].Item1 > foes[i - 1].Item1 || (foes[i].Item1 == foes[i - 1].Item1 && foes[i].Item2 > foes[i - 1].Item2)) { weaker.Add(biome.Name); break; }
+                }
+                if (biome.Name == "Meadows" || biome.Name == "BlackForest") p.Note($"{biome.Name} lives: {string.Join(", ", row.Items.Take(6).Select(i => i.Prefab))}");
+            }
+            p.Check(weaker.Count == 0, "each biome's creatures come toughest first", string.Join(", ", weaker));
+            yield return null;
+
+            // Where things come from, the surest first.
+            var doubtful = new List<string>();
+            foreach (var item in X.Catalog.Where(e => e.Kind == Kind.Item))
+            {
+                var lines = Facts.For(item).Where.Where(l => l.Unsure == null).ToList();
+                for (var i = 1; i < lines.Count; i++)
+                {
+                    if (lines[i].Chance > lines[i - 1].Chance + 1e-9) { doubtful.Add(item.Name); break; }
+                }
+            }
+            p.Check(doubtful.Count == 0, "where things come from is told surest first", doubtful.Count > 0 ? string.Join(", ", doubtful.Take(10)) : "");
+            var coal = Pick(Kind.Item, "Coal");
+            if (coal != null) p.Note($"{coal.Name} comes from: {string.Join(" | ", Facts.For(coal).Where.Take(5).Select(l => l.Text))}");
+        }
+
+        /// <summary>
         /// The resource monitor, switched on: it draws over the screen, measures Scry's frames,
         /// and tells what Scry holds, its catalog among it; its lines are noted.
         /// </summary>

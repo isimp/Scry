@@ -124,9 +124,10 @@ namespace Scry
         }
 
         /// <summary>
-        /// What it holds: the levels it sets for its spawn points, where nothing can be built, the
-        /// creatures its spawn points place, every networked part with how many and how likely,
-        /// and where its vegvisirs point.
+        /// What it holds: the levels it sets for its spawn points, where nothing can be built, every
+        /// networked part with how many and how likely, a row for each kind of part
+        /// (<see cref="PlaceParts.RoleOf"/>), the creatures its spawn points place, toughest first,
+        /// before its building pieces, and where its vegvisirs point.
         /// </summary>
         private void PlaceHolds(Entry entry, PlaceContents contents)
         {
@@ -134,16 +135,18 @@ namespace Scry
             if (contents.NoBuild && contents.NoBuildRadius > 0f) Add("Building", $"not within {Naming.Number(contents.NoBuildRadius)} m");
             Add("Music", LocationWords.Music(contents.Music), contents.Music.Count > 0 ? PlayMusic : null);
 
-            if (contents.Creatures.Count > 0)
+            foreach (var role in PlaceParts.Roles)
             {
-                var row = new Row { Title = "Its spawn points place" };
-                foreach (var part in contents.Creatures) row.Items.Add(PartChip(part));
-                Rows.Add(row);
-            }
-            if (contents.Parts.Count > 0)
-            {
-                var row = new Row { Title = "Holds" };
-                foreach (var part in contents.Parts) row.Items.Add(PartChip(part));
+                if (role == PartRole.Built && contents.Creatures.Count > 0)
+                {
+                    var creatures = new Row { Title = "Its spawn points place" };
+                    foreach (var part in ContentOrder.ToughestFirst(contents.Creatures, c => FoeOf(c.Prefab))) creatures.Items.Add(PartChip(part));
+                    Rows.Add(creatures);
+                }
+                var parts = InRow(contents.Parts, p => p.Prefab, p => p.Chance, role);
+                if (parts.Count == 0) continue;
+                var row = new Row { Title = PlaceParts.Title(role, false) };
+                foreach (var part in parts) row.Items.Add(PartChip(part));
                 Rows.Add(row);
             }
             if (contents.Vegvisirs.Count > 0)
@@ -189,10 +192,12 @@ namespace Scry
         }
 
         /// <summary>
-        /// What a dungeon's or camp's rooms hold, as its own prefab holds little: every part, the
-        /// loot those give (a chest's filling, what a pickable or a pile of remains yields), and the
-        /// creatures their spawn points place, each with in how many of its kinds of room it is.
-        /// Its rooms are read as its example is laid out, or with every location.
+        /// What a dungeon's or camp's rooms hold, as its own prefab holds little: every part, a row
+        /// for each kind of part as on a location's page, the loot those give (a chest's filling,
+        /// what a pickable or a pile of remains yields) right after its chests, rarest first, and
+        /// the creatures their spawn points place, toughest first, before its building pieces; each
+        /// with in how many of its kinds of room it is. Its rooms are read as its example is laid
+        /// out, or with every location.
         /// </summary>
         private void RoomsHold(List<Entry> rooms)
         {
@@ -205,31 +210,39 @@ namespace Scry
             var of = read.Count < rooms.Count ? $", {read.Count} of {rooms.Count} kinds of room read" : "";
 
             var parts = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Parts));
-            if (parts.Count > 0)
+            foreach (var role in PlaceParts.Roles)
             {
-                var row = new Row { Title = $"Its rooms hold{of}" };
-                foreach (var (prefab, count) in parts) row.Items.Add(Chip(prefab, PlaceParts.InRooms(count)));
-                Rows.Add(row);
-            }
+                if (role == PartRole.Built)
+                {
+                    var creatures = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Creatures));
+                    if (creatures.Count > 0)
+                    {
+                        var spawned = new Row { Title = $"Its rooms' spawn points place{of}" };
+                        foreach (var (creature, count) in ContentOrder.ToughestFirst(creatures, c => FoeOf(c.Prefab))) spawned.Items.Add(Chip(creature, PlaceParts.InRooms(count)));
+                        Rows.Add(spawned);
+                    }
+                }
+                var inRow = InRow(parts, p => p.Prefab, p => p.Rooms, role);
+                if (inRow.Count > 0)
+                {
+                    var row = new Row { Title = PlaceParts.Title(role, true) + of };
+                    foreach (var (prefab, count) in inRow) row.Items.Add(Chip(prefab, PlaceParts.InRooms(count)));
+                    Rows.Add(row);
+                }
+                if (role != PartRole.Loot) continue;
 
-            var loot = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Parts
-                .SelectMany(p => Knowledge.LootOf(ZNetScene.instance != null ? ZNetScene.instance.GetPrefab(p.Prefab) : null))
-                .Distinct()
-                .Select(item => new PlacePart { Prefab = item, Count = 1, Chance = 1f })
-                .ToList()));
-            if (loot.Count > 0)
-            {
-                var row = new Row { Title = $"Loot in its rooms{of}" };
-                foreach (var (item, count) in loot) row.Items.Add(Chip(item, PlaceParts.InRooms(count)));
-                Rows.Add(row);
-            }
-
-            var creatures = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Creatures));
-            if (creatures.Count > 0)
-            {
-                var row = new Row { Title = $"Its rooms' spawn points place{of}" };
-                foreach (var (creature, count) in creatures) row.Items.Add(Chip(creature, PlaceParts.InRooms(count)));
-                Rows.Add(row);
+                // The loot in them, in the fewest kinds of room first.
+                var loot = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Parts
+                    .SelectMany(p => Knowledge.LootOf(ZNetScene.instance != null ? ZNetScene.instance.GetPrefab(p.Prefab) : null))
+                    .Distinct()
+                    .Select(item => new PlacePart { Prefab = item, Count = 1, Chance = 1f })
+                    .ToList()));
+                if (loot.Count > 0)
+                {
+                    var row = new Row { Title = $"Loot in its rooms{of}" };
+                    foreach (var (item, count) in ContentOrder.RarestFirst(loot, l => l.Rooms)) row.Items.Add(Chip(item, PlaceParts.InRooms(count)));
+                    Rows.Add(row);
+                }
             }
         }
 

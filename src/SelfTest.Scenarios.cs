@@ -103,6 +103,7 @@ namespace Scry
             yield return S("placement details tell the woods and lava a location keeps to", PlacementDetails, 20);
             yield return S("reading every location fills their details", ReadLocations, 450, bearsSkips: true);
             yield return S("every dungeon and camp lays out", EveryDungeonLaysOut, 60, bearsSkips: true);
+            yield return S("content lists come in their order, a place's parts by what they are", ContentOrders, 60, bearsSkips: true);
             yield return S("every dungeon heads its group, its rooms under it", EveryDungeonHeadsItsGroup, 10);
             yield return S("a spread of locations stands on the stage", LocationsOnStage, 200, bearsSkips: true);
             yield return S("every entry's details are told, every chip leading somewhere", EveryDetail, 300, bearsSkips: true);
@@ -1142,7 +1143,7 @@ namespace Scry
             p.Note($"{contents.Parts.Sum(x => x.Count)} parts of {contents.Parts.Count} kinds, {contents.Creatures.Count} kinds of creature, name \"{crypt.DisplayName}\"");
             var told = Facts.For(crypt);
             p.Check(Tells(told, "Per world"), "its details tell where the world places it");
-            p.Check(Tells(told, "Holds") || Tells(told, "Its spawn points place"), "and what it holds");
+            p.Check(PlaceParts.Roles.Any(r => Tells(told, PlaceParts.Title(r, false))) || Tells(told, "Its spawn points place"), "and what it holds");
 
             if (!contents.LeftToChance)
             {
@@ -1263,8 +1264,8 @@ namespace Scry
 
             // Its page tells what its rooms hold, the loot in them and what their spawn points place.
             var page = Facts.For(entry);
-            var holds = page.Rows.FirstOrDefault(r => r.Title.StartsWith("Its rooms hold", StringComparison.Ordinal));
-            p.Check(holds != null && holds.Items.Count > 0, "its page tells what its rooms hold", holds != null ? $"{holds.Items.Count} things" : string.Join("; ", page.Rows.Select(r => r.Title)));
+            var holds = page.Rows.Where(r => PlaceParts.Roles.Any(role => r.Title.StartsWith(PlaceParts.Title(role, true), StringComparison.Ordinal))).ToList();
+            p.Check(holds.Sum(r => r.Items.Count) > 0, "its page tells what its rooms hold", holds.Count > 0 ? string.Join("; ", holds.Select(r => $"{r.Title} {r.Items.Count}")) : string.Join("; ", page.Rows.Select(r => r.Title)));
             var loot = page.Rows.FirstOrDefault(r => r.Title.StartsWith("Loot in its rooms", StringComparison.Ordinal));
             p.Note(loot != null ? $"loot in its rooms: {string.Join(", ", loot.Items.Take(12).Select(i => i.Prefab + " " + i.Amount))}" : "no loot in its rooms");
             if (algorithm == "Dungeon") p.Check(loot != null && loot.Items.Count > 0, "and the loot in them");

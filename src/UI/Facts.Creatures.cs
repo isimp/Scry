@@ -67,9 +67,8 @@ namespace Scry
             if (drops != null && drops.m_drops.Count > 0)
             {
                 var row = new Row { Title = "Drops" };
-                foreach (var drop in drops.m_drops)
+                foreach (var drop in ContentOrder.RarestFirst(drops.m_drops.Where(d => d?.m_prefab != null), d => d.m_chance))
                 {
-                    if (drop?.m_prefab == null) continue;
                     var amount = DropWords.CreatureAmount(drop.m_amountMin, drop.m_amountMax, drop.m_onePerPlayer);
                     if (drop.m_chance < 1f) amount += $" ({Mathf.RoundToInt(drop.m_chance * 100f)}%)";
                     row.Items.Add(new Ingredient { Icon = Icon(drop.m_prefab), Name = ItemName(drop.m_prefab), Amount = amount, Prefab = drop.m_prefab.name });

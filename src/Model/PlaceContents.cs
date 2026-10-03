@@ -14,6 +14,47 @@ namespace Scry
         public float Chance;
     }
 
+    /// <summary>What a place's part is, which row of its page it is told in, in the order the rows come.</summary>
+    public enum PartRole
+    {
+        /// <summary>Chests and what is picked or picked up.</summary>
+        Loot,
+
+        /// <summary>What is mined, felled or broken for what it gives.</summary>
+        Gather,
+
+        /// <summary>The rest: spawners, creatures, altars, stations and the like.</summary>
+        Other,
+
+        /// <summary>Building pieces.</summary>
+        Built,
+    }
+
+    /// <summary>What a part has, as its components tell, to know its <see cref="PartRole"/>.</summary>
+    public struct PartTraits
+    {
+        /// <summary>A container: a chest, remains holding loot.</summary>
+        public bool Container;
+
+        /// <summary>Picked or picked up: a pickable, a pickable item, an item lying there.</summary>
+        public bool Pickup;
+
+        /// <summary>Mined or felled: a rock, an ore vein, a tree, a log.</summary>
+        public bool Gathered;
+
+        /// <summary>Broken for what it drops.</summary>
+        public bool Breaks;
+
+        /// <summary>A building piece: a piece, or something that wears as one.</summary>
+        public bool Built;
+
+        /// <summary>Used for what it does: a station, a bed, a fire, an altar, an item stand, a vegvisir, a runestone, a portal, a trader.</summary>
+        public bool Used;
+
+        /// <summary>A spawner, or a creature itself.</summary>
+        public bool Spawns;
+    }
+
     /// <summary>
     /// The networked parts of a location or room as the game places them (<c>ZoneSystem.SpawnLocation</c>,
     /// <c>DungeonGenerator.PlaceRoom</c>): each rolled once when its zone is first built, at the
@@ -39,6 +80,36 @@ namespace Scry
                 .OrderByDescending(p => (int)Math.Round(p.Chance * 1000f))
                 .ThenBy(p => p.Prefab, StringComparer.OrdinalIgnoreCase)
                 .ToList();
+        }
+
+        /// <summary>The rows a place's parts are told in, in their order.</summary>
+        public static readonly PartRole[] Roles = { PartRole.Loot, PartRole.Gather, PartRole.Other, PartRole.Built };
+
+        /// <summary>
+        /// The row a part is told in: chests and pickups whatever else they are; spawners and what
+        /// is used for what it does with the rest, built or not; what is mined or felled gathered;
+        /// other building pieces built, breaking or not; what only breaks gathered; anything else
+        /// with the rest.
+        /// </summary>
+        public static PartRole RoleOf(PartTraits part)
+        {
+            if (part.Container || part.Pickup) return PartRole.Loot;
+            if (part.Spawns || part.Used) return PartRole.Other;
+            if (part.Gathered) return PartRole.Gather;
+            if (part.Built) return PartRole.Built;
+            return part.Breaks ? PartRole.Gather : PartRole.Other;
+        }
+
+        /// <summary>A row's title on a location's page, or across a dungeon's or camp's rooms.</summary>
+        public static string Title(PartRole role, bool rooms)
+        {
+            switch (role)
+            {
+                case PartRole.Loot: return rooms ? "Chests and pickups in its rooms" : "Chests and pickups";
+                case PartRole.Gather: return rooms ? "To gather in its rooms" : "To gather";
+                case PartRole.Built: return rooms ? "Its rooms are built of" : "Built of";
+                default: return rooms ? "Its rooms hold" : "Holds";
+            }
         }
 
         /// <summary>

@@ -12,11 +12,11 @@ namespace Scry
     {
         // ----- Where things live -----
 
-        private static void Add(string prefab, string line, string target = null)
+        private static void Add(string prefab, string line, string target = null, double chance = 1.0)
         {
             if (string.IsNullOrEmpty(prefab)) return;
             if (!Where.TryGetValue(prefab, out var lines)) Where[prefab] = lines = new List<Source>();
-            if (!lines.Exists(l => l.Text == line)) lines.Add(new Source(line, target));
+            if (!lines.Exists(l => l.Text == line)) lines.Add(new Source(line, target, chance: chance));
         }
 
         /// <summary>
@@ -293,7 +293,8 @@ namespace Scry
                 foreach (var data in area.m_prefabs)
                 {
                     if (data?.m_prefab == null) continue;
-                    Keep(SpawnPointLines, data.m_prefab, $"Comes from {Shown(prefab)}, {SpawnWords.PoolShare(data.m_weight, total, data.m_minLevel, data.m_maxLevel)}", prefab.name);
+                    Keep(SpawnPointLines, data.m_prefab, $"Comes from {Shown(prefab)}, {SpawnWords.PoolShare(data.m_weight, total, data.m_minLevel, data.m_maxLevel)}", prefab.name,
+                        total > 0f ? data.m_weight / total : 0.0);
                 }
             }
             foreach (var component in components)
@@ -356,7 +357,7 @@ namespace Scry
                         if (drop?.m_prefab == null) continue;
                         var amount = DropWords.CreatureAmount(drop.m_amountMin, drop.m_amountMax, drop.m_onePerPlayer);
                         var chance = drop.m_chance < 1f ? $" ({Mathf.RoundToInt(drop.m_chance * 100f)}%)" : "";
-                        Keep(DropLines, drop.m_prefab, $"Dropped by {Shown(prefab)}, {amount}{chance}", prefab.name);
+                        Keep(DropLines, drop.m_prefab, $"Dropped by {Shown(prefab)}, {amount}{chance}", prefab.name, Mathf.Clamp01(drop.m_chance));
                     }
                     continue;
                 }
@@ -381,10 +382,12 @@ namespace Scry
                     shown = shown ?? $"{FromVerb(component)} {Shown(prefab)}";
                     var info = new DropTableInfo { Min = table.m_dropMin, Max = table.m_dropMax, Chance = table.m_dropChance, OneOfEach = table.m_oneOfEach };
                     foreach (var data in table.m_drops) if (data.m_item != null) info.Drops.Add(new DropInfo(data.m_item.name, data.m_stackMin, data.m_stackMax, data.m_weight));
+                    var weights = info.Drops.Sum(d => d.Weight);
                     foreach (var data in table.m_drops)
                     {
                         if (data.m_item == null) continue;
-                        Keep(DropLines, data.m_item, $"{shown}, {DropWords.ForItem(info, new DropInfo(data.m_item.name, data.m_stackMin, data.m_stackMax, data.m_weight))}", prefab.name);
+                        var sure = ContentOrder.AtLeastOnce(weights > 0f ? data.m_weight / weights : 0.0, info.Min, info.Max, info.Chance, info.OneOfEach, info.Drops.Count);
+                        Keep(DropLines, data.m_item, $"{shown}, {DropWords.ForItem(info, new DropInfo(data.m_item.name, data.m_stackMin, data.m_stackMax, data.m_weight))}", prefab.name, sure);
                     }
                 }
             }

@@ -71,9 +71,8 @@ namespace Scry
             }
             Hooked(HookedRule.Raids);
 
-            foreach (var data in raid.m_spawn ?? new List<SpawnSystem.SpawnData>())
+            foreach (var data in ContentOrder.ToughestFirst((raid.m_spawn ?? new List<SpawnSystem.SpawnData>()).Where(d => d?.m_prefab != null), d => FoeOf(d.m_prefab)))
             {
-                if (data?.m_prefab == null) continue;
                 var key = "Brings " + AnyName(data.m_prefab, data.m_prefab.name);
                 if (Pairs.Any(p => p.Key == key)) continue;
                 var more = new List<string>();

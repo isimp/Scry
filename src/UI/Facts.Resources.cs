@@ -182,21 +182,23 @@ namespace Scry
         {
             if (table?.m_drops == null) return;
             var info = new DropTableInfo { Min = table.m_dropMin, Max = table.m_dropMax, Chance = table.m_dropChance, OneOfEach = table.m_oneOfEach };
-            var items = new List<GameObject>();
+            var items = new List<(DropInfo Drop, GameObject Item)>();
             foreach (var drop in table.m_drops)
             {
                 if (drop.m_item == null) continue;
-                info.Drops.Add(new DropInfo(drop.m_item.name, drop.m_stackMin, drop.m_stackMax, drop.m_weight));
-                items.Add(drop.m_item);
+                var each = new DropInfo(drop.m_item.name, drop.m_stackMin, drop.m_stackMax, drop.m_weight);
+                info.Drops.Add(each);
+                items.Add((each, drop.m_item));
             }
             if (DropWords.IsEmpty(info)) return;
 
+            // The rarest first: within one table, the least weight.
             var title = holds ? DropWords.HoldsTitle(info) : DropWords.Title(info);
             if (lead != null) title = lead + char.ToLowerInvariant(title[0]) + title.Substring(1);
             var row = new Row { Title = title };
-            for (var i = 0; i < items.Count; i++)
+            foreach (var (each, item) in ContentOrder.RarestFirst(items, i => i.Drop.Weight))
             {
-                row.Items.Add(new Ingredient { Icon = Icon(items[i]), Name = ItemName(items[i]), Amount = DropWords.Amount(info, info.Drops[i]), Prefab = items[i].name });
+                row.Items.Add(new Ingredient { Icon = Icon(item), Name = ItemName(item), Amount = DropWords.Amount(info, each), Prefab = item.name });
             }
             Rows.Add(row);
             _drops = true;

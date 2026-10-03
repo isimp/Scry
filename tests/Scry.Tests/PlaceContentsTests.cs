@@ -111,6 +111,64 @@ namespace Scry.Tests
             Assert.Equal(new[] { 0f, 0f }, PlaceParts.Shares(new[] { 0f, 0f }));
         }
 
+        // A place's parts are told by what each is: chests and pickups first, then what is mined,
+        // felled or broken, then the rest (spawners, altars, stations), building pieces last.
+
+        [Fact]
+        public void AChestOrAPickupIsLootWhateverElseItIs()
+        {
+            Assert.Equal(PartRole.Loot, PlaceParts.RoleOf(new PartTraits { Container = true, Built = true }));
+            Assert.Equal(PartRole.Loot, PlaceParts.RoleOf(new PartTraits { Pickup = true, Breaks = true }));
+            Assert.Equal(PartRole.Loot, PlaceParts.RoleOf(new PartTraits { Container = true, Used = true, Spawns = true }));
+        }
+
+        [Fact]
+        public void ASpawnerOrSomethingUsedIsTheRestEvenWhenBuilt()
+        {
+            Assert.Equal(PartRole.Other, PlaceParts.RoleOf(new PartTraits { Spawns = true, Built = true, Breaks = true }));
+            Assert.Equal(PartRole.Other, PlaceParts.RoleOf(new PartTraits { Used = true, Built = true, Gathered = true }));
+        }
+
+        [Fact]
+        public void WhatIsMinedOrFelledIsGatheredEvenWhenBuilt()
+        {
+            Assert.Equal(PartRole.Gather, PlaceParts.RoleOf(new PartTraits { Gathered = true, Built = true }));
+        }
+
+        [Fact]
+        public void ABuildingPieceIsBuiltEvenWhenItBreaks()
+        {
+            Assert.Equal(PartRole.Built, PlaceParts.RoleOf(new PartTraits { Built = true }));
+            Assert.Equal(PartRole.Built, PlaceParts.RoleOf(new PartTraits { Built = true, Breaks = true }));
+        }
+
+        [Fact]
+        public void WhatOnlyBreaksIsGatheredAndAnythingElseIsTheRest()
+        {
+            Assert.Equal(PartRole.Gather, PlaceParts.RoleOf(new PartTraits { Breaks = true }));
+            Assert.Equal(PartRole.Other, PlaceParts.RoleOf(new PartTraits()));
+        }
+
+        [Theory]
+        [InlineData(PartRole.Loot, false, "Chests and pickups")]
+        [InlineData(PartRole.Gather, false, "To gather")]
+        [InlineData(PartRole.Other, false, "Holds")]
+        [InlineData(PartRole.Built, false, "Built of")]
+        [InlineData(PartRole.Loot, true, "Chests and pickups in its rooms")]
+        [InlineData(PartRole.Gather, true, "To gather in its rooms")]
+        [InlineData(PartRole.Other, true, "Its rooms hold")]
+        [InlineData(PartRole.Built, true, "Its rooms are built of")]
+        public void EachKindOfPartHasItsRow(PartRole role, bool rooms, string title)
+        {
+            Assert.Equal(title, PlaceParts.Title(role, rooms));
+        }
+
+        [Fact]
+        public void TheRowsGoChestsThenGatheringThenTheRestThenBuilding()
+        {
+            Assert.Equal(new[] { PartRole.Loot, PartRole.Gather, PartRole.Other, PartRole.Built }, PlaceParts.Roles);
+        }
+
         // Roll again shows a place otherwise only where the game rolls: a RandomSpawn between
         // never and always, or a RandomObject with two or more entries it can pick.
 

@@ -17,7 +17,7 @@ namespace Scry
             var pool = area.m_prefabs?.Where(p => p?.m_prefab != null).ToList();
             if (pool == null || pool.Count == 0) return;
             var total = pool.Sum(p => p.m_weight);
-            foreach (var data in pool)
+            foreach (var data in ContentOrder.ToughestFirst(pool, d => FoeOf(d.m_prefab)))
             {
                 var key = "Spawns " + AnyName(data.m_prefab, data.m_prefab.name);
                 if (Pairs.Any(p => p.Key == key)) continue;

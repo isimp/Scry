@@ -144,8 +144,12 @@ namespace Scry
                 if (entry.Kind == Kind.Creature) facts.WhereTitle = "Where it lives";
                 facts.Part("where it comes from", () =>
                 {
-                    facts.Where.AddRange(Knowledge.WhereLines(entry.Name));
-                    facts.Where.AddRange(Knowledge.SourceLines(entry.Name));
+                    // The surest first; among equally sure ones, what stands in the biome players
+                    // reach first: where it lives or grows by its own biomes, what gives it by the giver's.
+                    var own = ContentOrder.Earliest(Knowledge.Biomes(entry.Name));
+                    var lines = Knowledge.WhereLines(entry.Name).Select(l => (Line: l, Biome: own))
+                        .Concat(Knowledge.SourceLines(entry.Name).Select(l => (Line: l, Biome: l.Prefab != null ? ContentOrder.Earliest(Knowledge.Biomes(l.Prefab)) : int.MaxValue)));
+                    facts.Where.AddRange(ContentOrder.SurestFirst(lines, l => l.Line.Chance, l => l.Biome).Select(l => l.Line));
                     foreach (var (creature, drop, kills) in DropWatch.Seen.Sources(entry.Name))
                     {
                         facts.Where.Add(new Source(SeenWords.Line(AnyName(Looks.Prefab(creature), creature), drop, kills), creature, UnsureWords.Seen));

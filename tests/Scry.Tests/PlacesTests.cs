@@ -200,6 +200,50 @@ namespace Scry.Tests
             Assert.Equal("TrollCave02", Places.LocationNamed(catalog, "Troll cave" + Places.BiomeMark + "Black Forest")?.Name);
         }
 
+        // The places a thing is found in go by the biome players reach first, those whose
+        // location is not known (a mod's rooms no dungeon here is built with) last, then by name.
+
+        [Fact]
+        public void PlacesAThingIsFoundInGoByTheBiomeReachedFirst()
+        {
+            var ruin = PlaceEntry("Ruin3", "Ruin" + Places.BiomeMark + "Meadows", "Location");
+            ruin.Biomes = new[] { "Meadows" };
+            var crypt = PlaceEntry("Crypt2", Chambers, "Location");
+            crypt.Biomes = new[] { "BlackForest" };
+            var cave = PlaceEntry("MountainCave02", "Frost caves" + Places.BiomeMark + "Mountain", "Location");
+            cave.Biomes = new[] { "Mountain" };
+            var amber = E("Amber", Kind.Item);
+
+            // Only the first location going by a place ranks it: not a room carrying its dungeon's
+            // label, not another kind of entry with a Location on it, not a later location.
+            var room = PlaceEntry("forestcrypt_room1", Chambers, "Room");
+            var marker = E("mod_marker", Kind.Other);
+            marker.Components = new[] { "Location" };
+            marker.FoundIn = new[] { ruin.FoundIn[0] };
+            marker.Biomes = new[] { "DeepNorth" };
+            var lowCave = PlaceEntry("MountainCave01", cave.FoundIn[0], "Location");
+            lowCave.Biomes = new[] { "Meadows" };
+            var catalog = new List<Entry> { room, marker, cave, lowCave, crypt, ruin, amber };
+
+            Places.Apply(catalog, Found(("Amber", cave.FoundIn[0]), ("Amber", Places.AnyDungeon), ("Amber", Chambers), ("Amber", ruin.FoundIn[0])));
+
+            Assert.Equal(new[] { ruin.FoundIn[0], Chambers, cave.FoundIn[0], Places.AnyDungeon }, amber.FoundIn);
+        }
+
+        [Fact]
+        public void PlacesOfOneBiomeGoByName()
+        {
+            var crypt = PlaceEntry("Crypt2", Chambers, "Location");
+            crypt.Biomes = new[] { "BlackForest" };
+            var tower = PlaceEntry("StoneTowerRuins03", "Abandoned tower" + Places.BiomeMark + "Black Forest", "Location");
+            tower.Biomes = new[] { "BlackForest" };
+            var amber = E("Amber", Kind.Item);
+
+            Places.Apply(new List<Entry> { crypt, tower, amber }, Found(("Amber", Chambers), ("Amber", tower.FoundIn[0])));
+
+            Assert.Equal(new[] { tower.FoundIn[0], Chambers }, amber.FoundIn);
+        }
+
         [Fact]
         public void APlaceSeveralLocationsGoByGoesToTheFirstOfThem()
         {
