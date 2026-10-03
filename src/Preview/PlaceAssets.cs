@@ -78,13 +78,15 @@ namespace Scry
             if (_source.Reference.IsLoaded)
             {
                 _told = true;
-                if (_source.Reference.Asset != null) return PlaceLoad.Ready;
+                _source.LoadFailed = _source.Reference.Asset == null;
+                if (!_source.LoadFailed) return PlaceLoad.Ready;
             }
             else if (_source.Reference.IsLoading)
             {
                 return PlaceLoad.None;
             }
             Failed = true;
+            _source.LoadFailed = true;
             Faults.Skip("previews of places", _source.Prefab, "it did not load");
             return PlaceLoad.Failed;
         }

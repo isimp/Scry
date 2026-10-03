@@ -21,7 +21,7 @@ namespace Scry
             var contents = place.Contents;
             if (contents == null)
             {
-                Add("What it holds", LocationWords.HoldsNote(PlaceAssets.State(place)));
+                Add("What it holds", LocationWords.HoldsNote(place.LoadFailed ? PlaceLoad.Failed : PlaceLoad.Loading));
                 return;
             }
             Part("location", () => PlaceHolds(entry, contents));

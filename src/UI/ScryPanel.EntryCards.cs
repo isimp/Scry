@@ -81,7 +81,7 @@ namespace Scry
         private static void ModCard(Entry entry, Rect rect)
         {
             if (!(entry.Source is ModSource mod)) return;
-            var summary = Session.Explorer != null ? Report(Session.Explorer).FirstOrDefault(m => m.Mod == mod.Name) : null;
+            var summary = Session.Explorer != null ? ModReportReader.Of(Session.Explorer.Catalog).FirstOrDefault(m => m.Mod == mod.Name) : null;
             var adds = summary != null ? ModReportWords.Counts(summary) : "adds nothing of its own";
             // Its package's icon above, where it has one.
             var top = rect.y + U(40f);

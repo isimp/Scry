@@ -27,6 +27,9 @@ namespace Scry
         /// <summary>What was read of it once its bundle was loaded (on selecting it, or reading all the locations); null before.</summary>
         public PlaceContents Contents;
 
+        /// <summary>Whether its bundle failed to load when it was last asked for, so what it holds cannot be read.</summary>
+        public bool LoadFailed;
+
         /// <summary>The biomes its rule sets place it in, all together.</summary>
         public Heightmap.Biome Biomes
         {

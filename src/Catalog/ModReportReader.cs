@@ -16,6 +16,38 @@ namespace Scry
         /// <summary>What an entry from a mod whose name is not known goes under.</summary>
         public const string UnknownMod = "A mod not known by name";
 
+        private static List<ModSummary> _report;
+        private static IReadOnlyList<Entry> _reportOf;
+        private static int _reportCount;
+        private static Locations.State _reportLocations;
+        private static int _reportSeen;
+
+        /// <summary>Leaving a world forgets the report made of it (<see cref="WorldCaches"/>).</summary>
+        static ModReportReader()
+        {
+            WorldCaches.Register(nameof(ModReportReader), Forget);
+        }
+
+        /// <summary>The report of a catalog, read again once the catalog, the locations or the drops seen in play have changed, not each time it is asked for.</summary>
+        public static List<ModSummary> Of(IReadOnlyList<Entry> catalog)
+        {
+            if (_report == null || !ReferenceEquals(_reportOf, catalog) || _reportCount != catalog.Count || _reportLocations != Locations.Now || _reportSeen != DropWatch.Version)
+            {
+                _reportOf = catalog;
+                _reportCount = catalog.Count;
+                _reportLocations = Locations.Now;
+                _reportSeen = DropWatch.Version;
+                _report = Read(catalog);
+            }
+            return _report;
+        }
+
+        public static void Forget()
+        {
+            _report = null;
+            _reportOf = null;
+        }
+
         public static List<ModSummary> Read(IReadOnlyList<Entry> catalog)
         {
             // What each station has made at it, built near it and upgrading it, by its prefab name.

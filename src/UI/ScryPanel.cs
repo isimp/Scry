@@ -207,8 +207,6 @@ namespace Scry
             _foundInOf = null;
             _foundInIn = null;
             FoundInItems.Clear();
-            _reportFor = null;
-            _report = null;
             _modCountFor = null;
             _planOf = null;
             PlanRooms.Clear();

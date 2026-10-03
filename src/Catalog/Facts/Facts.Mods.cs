@@ -37,7 +37,7 @@ namespace Scry
             ModRow("Works with, when there", relations.WorksWith, explorer);
             ModRow("Works with it, when there", relations.WorkedWithBy, explorer);
 
-            var summary = ScryPanel.Report(explorer).FirstOrDefault(m => m.Mod == mod.Name);
+            var summary = ModReportReader.Of(explorer.Catalog).FirstOrDefault(m => m.Mod == mod.Name);
             if (summary == null)
             {
                 Add("Adds", "nothing Scry can see, and it hooks into none of what Scry tells");

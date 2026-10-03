@@ -18,11 +18,6 @@ namespace Scry
         private static float _modHeight;
 
         /// <summary>The report shown, made when opened for a catalog and a state of the locations, not every frame.</summary>
-        private static List<ModSummary> _report;
-        private static Explorer _reportFor;
-        private static int _reportCount;
-        private static Locations.State _reportLocations;
-        private static int _reportSeen;
 
         /// <summary>How many mods added to the catalog, for the bar above the list.</summary>
         private static int _modCount;
@@ -42,20 +37,6 @@ namespace Scry
             _help = false;
             _offDetails = false;
             _modScroll = Vector2.zero;
-        }
-
-        /// <summary>The report of the explorer's catalog, made again once the catalog, the locations or the drops seen in play have changed.</summary>
-        public static List<ModSummary> Report(Explorer explorer)
-        {
-            if (_report == null || !ReferenceEquals(_reportFor, explorer) || _reportCount != explorer.Catalog.Count || _reportLocations != Locations.Now || _reportSeen != DropWatch.Version)
-            {
-                _reportFor = explorer;
-                _reportCount = explorer.Catalog.Count;
-                _reportLocations = Locations.Now;
-                _reportSeen = DropWatch.Version;
-                _report = ModReportReader.Read(explorer.Catalog);
-            }
-            return _report;
         }
 
         /// <summary>Above a list showing only mods' entries: how many mods there are, and the report.</summary>
@@ -89,7 +70,7 @@ namespace Scry
             y = Paragraph("What each mod adds, what Scry links for its crafting stations and build tools, which of the game's rules it hooks into, and what Scry could not place. What could not be placed may come from the mod's own code, which only the mod knows.", x, y, width);
             if (Locations.Now != Locations.State.Read) y = Paragraph("Until every location is read, what is found only in locations counts as having no source.", x, y, width);
 
-            var report = Report(explorer);
+            var report = ModReportReader.Of(explorer.Catalog);
             if (report.Count == 0) y = Paragraph("No mod adds anything or hooks into the game's drops or spawning.", x, y + U(6f), width);
             foreach (var mod in report)
             {
