@@ -30,7 +30,7 @@ namespace Scry
             var relations = mod.Relations ?? new ModRelations();
             // Those here go to their pages; the rest, which are not, are named.
             ModRow("Will not run with", relations.WillNotRunWith, explorer);
-            var away = relations.WillNotRunWith.Where(name => !explorer.Catalog.Any(e => e.Kind == Kind.Mod && e.Name == name)).ToArray();
+            var away = relations.WillNotRunWith.Where(name => explorer.Find(EntryKeys.For(Kind.Mod, name)) == null).ToArray();
             if (away.Length > 0) Add("Will not run with", string.Join(", ", away));
             ModRow("Needs", relations.Needs, explorer);
             ModRow("Needed by", relations.NeededBy, explorer);
@@ -72,7 +72,7 @@ namespace Scry
             var row = new Row { Title = $"{title} ({mods.Count})" };
             foreach (var name in mods)
             {
-                var entry = explorer.Catalog.FirstOrDefault(e => e.Kind == Kind.Mod && e.Name == name);
+                var entry = explorer.Find(EntryKeys.For(Kind.Mod, name));
                 if (entry != null) row.Items.Add(EntryChip(entry));
             }
             if (row.Items.Count > 0) Rows.Add(row);
@@ -93,7 +93,7 @@ namespace Scry
             var row = new Row { Title = $"{title} ({entries.Count})", Unsure = "Scry found nothing for these; the mod's own code may still place them" };
             foreach (var one in entries)
             {
-                var entry = explorer.Catalog.FirstOrDefault(e => e.Key == one.Key);
+                var entry = explorer.Find(one.Key);
                 if (entry != null) row.Items.Add(EntryChip(entry));
             }
             if (row.Items.Count > 0) Rows.Add(row);

@@ -40,12 +40,12 @@ namespace Scry
             {
                 if (data == null || !data.m_enabled || data.m_prefab == null) continue;
                 GameObject copy;
-                if (Ghost.IsDebris(data.m_prefab))
+                if (PrefabShapes.IsDebris(data.m_prefab))
                 {
                     if (!Falling.Ready(Stage.Layer)) continue;
                     copy = Falling.Debris(data.m_prefab, null, position, rotation, -1, Stage.Layer);
                 }
-                else if (Ghost.IsWholeModel(data.m_prefab)) continue;
+                else if (PrefabShapes.IsWholeModel(data.m_prefab)) continue;
                 else
                 {
                     copy = Ghost.Make(data.m_prefab, null, position, rotation);
@@ -579,7 +579,7 @@ namespace Scry
                 var kept = string.Join(" ", data.m_prefab.GetComponentsInChildren<Component>(true).Where(c => c != null && !(c is Transform)).Select(c => c.GetType().Name).Distinct().Take(12));
                 var why = !data.m_enabled ? "switched off"
                     : copy != null ? "copied, but it has nothing that draws or sounds once its scripts are off: " + kept
-                    : Ghost.IsWholeModel(data.m_prefab) && !Ghost.IsDebris(data.m_prefab) ? "a whole model, left out"
+                    : PrefabShapes.IsWholeModel(data.m_prefab) && !PrefabShapes.IsDebris(data.m_prefab) ? "a whole model, left out"
                     : "could not be copied";
                 parts.Add($"{data.m_prefab.name} ({why})");
             }
@@ -640,7 +640,7 @@ namespace Scry
             var debris = new List<string>();
             if (list?.m_effectPrefabs != null)
             {
-                foreach (var data in list.m_effectPrefabs) if (data?.m_prefab != null && Ghost.IsDebris(data.m_prefab)) debris.Add(data.m_prefab.name);
+                foreach (var data in list.m_effectPrefabs) if (data?.m_prefab != null && PrefabShapes.IsDebris(data.m_prefab)) debris.Add(data.m_prefab.name);
             }
             var tree = prefab.GetComponent<TreeBase>();
             Plugin.Note($"Scry destroys {prefab.name}: {(Falling.Breaks(prefab, list) ? "breaks into its own parts" : "no parts of its own")}, "
@@ -661,7 +661,7 @@ namespace Scry
             if (list?.m_effectPrefabs == null) return false;
             foreach (var data in list.m_effectPrefabs)
             {
-                if (data != null && data.m_enabled && data.m_prefab != null && !Ghost.IsWholeModel(data.m_prefab)) return true;
+                if (data != null && data.m_enabled && data.m_prefab != null && !PrefabShapes.IsWholeModel(data.m_prefab)) return true;
             }
             return false;
         }
@@ -678,7 +678,7 @@ namespace Scry
 
             foreach (var data in list.m_effectPrefabs)
             {
-                if (data == null || !data.m_enabled || data.m_prefab == null || Ghost.IsWholeModel(data.m_prefab)) continue;
+                if (data == null || !data.m_enabled || data.m_prefab == null || PrefabShapes.IsWholeModel(data.m_prefab)) continue;
 
                 var anchor = player.transform;
                 if (!string.IsNullOrEmpty(data.m_childTransform))

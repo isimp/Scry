@@ -108,7 +108,7 @@ namespace Scry
             if (!(entry?.Source is StatusEffect effect) || effect.m_startEffects?.m_effectPrefabs == null) return false;
             foreach (var data in effect.m_startEffects.m_effectPrefabs)
             {
-                if (data != null && data.m_enabled && data.m_prefab != null && !Ghost.IsWholeModel(data.m_prefab)) return true;
+                if (data != null && data.m_enabled && data.m_prefab != null && !PrefabShapes.IsWholeModel(data.m_prefab)) return true;
             }
             return false;
         }
@@ -136,7 +136,7 @@ namespace Scry
             {
                 foreach (var data in effect.m_startEffects.m_effectPrefabs)
                 {
-                    if (data == null || !data.m_enabled || data.m_prefab == null || Ghost.IsWholeModel(data.m_prefab)) continue;
+                    if (data == null || !data.m_enabled || data.m_prefab == null || PrefabShapes.IsWholeModel(data.m_prefab)) continue;
                     var anchor = copy.transform;
                     if (!string.IsNullOrEmpty(data.m_childTransform))
                     {

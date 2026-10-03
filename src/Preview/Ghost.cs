@@ -137,34 +137,10 @@ namespace Scry
             return copy;
         }
 
-        /// <summary>
-        /// Whether a prefab an effect list points at is a model rather than an effect: a ragdoll
-        /// that takes a creature's place when it dies, a creature it splits into, an item, a
-        /// skinned body, or pieces that fly apart under physics. A copy keeps none of its physics,
-        /// so such a thing would only stand frozen beside the preview, and effects leave it out.
-        /// </summary>
-        public static bool IsWholeModel(GameObject prefab)
-        {
-            if (prefab == null) return false;
-            if (!Known.TryGetValue(prefab, out var model))
-            {
-                model = prefab.GetComponentInChildren<Ragdoll>(true) != null
-                        || prefab.GetComponentInChildren<Character>(true) != null
-                        || prefab.GetComponent<ItemDrop>() != null
-                        || prefab.GetComponentInChildren<SkinnedMeshRenderer>(true) != null
-                        || HasFreeBody(prefab);
-                Known[prefab] = model;
-            }
-            return model;
-        }
-
-        private static readonly Dictionary<GameObject, bool> Known = new Dictionary<GameObject, bool>();
-
         /// <summary>Lets go of what was found out about the prefabs of a world that was left.</summary>
         public static void Forget()
         {
             Building.Flush();
-            Known.Clear();
             foreach (var template in Templates.Values) if (template != null) Object.Destroy(template);
             Templates.Clear();
             Used.Clear();
@@ -193,28 +169,6 @@ namespace Scry
                 if (Templates.TryGetValue(oldest, out var gone) && gone != null) Object.Destroy(gone);
                 Templates.Remove(oldest);
             }
-        }
-
-        /// <summary>
-        /// Whether a prefab an effect list points at is debris: loose parts that fly apart under
-        /// physics (planks, splinters, stones), which a falling copy can show as the game does.
-        /// </summary>
-        public static bool IsDebris(GameObject prefab)
-        {
-            return prefab != null
-                   && HasFreeBody(prefab)
-                   && prefab.GetComponentInChildren<Ragdoll>(true) == null
-                   && prefab.GetComponentInChildren<Character>(true) == null
-                   && prefab.GetComponent<ItemDrop>() == null;
-        }
-
-        private static bool HasFreeBody(GameObject prefab)
-        {
-            foreach (var body in prefab.GetComponentsInChildren<Rigidbody>(true))
-            {
-                if (!body.isKinematic) return true;
-            }
-            return false;
         }
 
         public static void SetLayer(Transform t, int layer)

@@ -105,7 +105,7 @@ namespace Scry
             {
                 foreach (var data in list.m_effectPrefabs)
                 {
-                    if (data?.m_prefab == null || !Ghost.IsDebris(data.m_prefab)) continue;
+                    if (data?.m_prefab == null || !PrefabShapes.IsDebris(data.m_prefab)) continue;
                     foreach (var timer in data.m_prefab.GetComponentsInChildren<TimedDestruction>(true)) longest = Mathf.Max(longest, timer.m_timeout);
                     if (longest <= 0f) longest = 5f;
                 }

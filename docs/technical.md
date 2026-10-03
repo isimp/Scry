@@ -4,7 +4,7 @@ How Scry works, what it copies from the game, and what to do when the game updat
 
 ## Layout of the code
 
-`src/Model` holds everything that needs no game: kinds, search and suggestions, the list's groups, the rules for preview copies, adjustments, looks and outfits, favourites and history, links, leftovers, place names, location rules, example dungeon layouts and the startup check's fingerprints. The tests in `tests/Scry.Tests` cover that part and nothing else. `src/Catalog` reads the game into the model, `src/Preview` makes and plays the copies, `src/UI` draws the panel, and `src/Patches` holds the few Harmony patches and the startup check.
+`src/Model` holds everything that needs no game: kinds, search and suggestions, the list's groups, the rules for preview copies, adjustments, looks and outfits, favourites and history, links, leftovers, place names, location rules, example dungeon layouts and the startup check's fingerprints. The tests in `tests/Scry.Tests` cover that part and nothing else. `src/Catalog` reads the game into the model, `src/Preview` makes and plays the copies, `src/UI` draws the panel, and `src/Patches` holds the few Harmony patches and the startup check. Each leans only on those before it: what reads the world never calls the panel, but says when an entry's details change (`Learned`: a place's contents read, a dungeon's rooms read, every location read), and the details kept for the panel listen. Entries are found by their key through the explorer's index (`Explorer.Find`), not by going through the catalog.
 
 ## The catalog
 

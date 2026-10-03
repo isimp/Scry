@@ -424,7 +424,7 @@ namespace Scry
                 PlaceEntries.Arrange(explorer.Catalog);
                 explorer.Regrouped();
             }
-            Facts.Forget();
+            Learned.AboutAll();
             Plugin.Log.LogInfo(
                 $"Scry read {Total} locations and dungeon rooms in {_clock.Elapsed.TotalSeconds:0.0} s ({_workMs:0} ms of its own work over {_frames} frames, {_failed} could not be loaded): " +
                 $"they name {Found.Count} prefabs, {inCatalog} of them in the catalog; {moved} effects, sounds and projectiles nothing else plays or fires went under \"In locations\", and {items} items only creatures seemed to have went back to their kind of item.");

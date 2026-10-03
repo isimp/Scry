@@ -781,7 +781,8 @@ namespace Scry
         {
             if (!RolledNames.TryGetValue(prefab, out var name))
             {
-                var shown = Session.Explorer?.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && e.Name == prefab)?.DisplayName;
+                var found = Session.Explorer?.Find(prefab);
+                var shown = found != null && found.Kind == Kind.Creature ? found.DisplayName : null;
                 name = string.IsNullOrEmpty(shown) ? prefab : shown;
                 RolledNames[prefab] = name;
             }

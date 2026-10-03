@@ -269,14 +269,14 @@ namespace Scry
             // loading has got, so they are told again as that changes.
             try
             {
-                if (PlaceAssets.Hold(explorer.Selected?.Source as PlaceSource)) Facts.Forget(explorer.Selected);
+                if (PlaceAssets.Hold(explorer.Selected?.Source as PlaceSource)) Learned.About(explorer.Selected);
                 switch (PlaceAssets.Update())
                 {
                     case PlaceLoad.Ready:
                         PlaceLoaded(explorer, explorer.Selected);
                         break;
                     case PlaceLoad.Failed:
-                        Facts.Forget(explorer.Selected);
+                        Learned.About(explorer.Selected);
                         break;
                 }
             }
@@ -384,7 +384,7 @@ namespace Scry
                     };
                     PlaceEntries.Named(entry, new[] { Places.LocationLabel(facts, PlaceEntries.CreatureNames(explorer.Catalog)) });
                 }
-                Facts.Forget(entry);
+                Learned.About(entry);
 
                 // A dungeon or camp read now gathers its rooms into its group.
                 PlaceEntries.Arrange(explorer.Catalog);

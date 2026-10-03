@@ -14,6 +14,56 @@ namespace Scry.Tests
 
         private static Entry Named(Explorer explorer, string name) => explorer.Catalog.First(e => e.Name == name);
 
+        // Every entry is found by its key (EntryKeys) at once, however large the catalog.
+
+        private static Explorer Of(params Entry[] entries) =>
+            new Explorer(entries.ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+
+        [Fact]
+        public void AnEntryIsFoundByItsKey()
+        {
+            var troll = E("Troll", Kind.Creature);
+            var rested = E("Rested", Kind.StatusEffect);
+            var crypt = E("Crypt2", Kind.Location);
+            var explorer = Of(troll, rested, crypt);
+
+            Assert.Same(troll, explorer.Find("Troll"));
+            Assert.Same(rested, explorer.Find(EntryKeys.For(Kind.StatusEffect, "Rested")));
+            Assert.Same(crypt, explorer.Find(EntryKeys.For(Kind.Location, "Crypt2")));
+        }
+
+        [Fact]
+        public void AKeyFindsOnlyWhatItsNamespaceHolds()
+        {
+            var explorer = Of(E("Troll", Kind.Creature), E("Rested", Kind.StatusEffect));
+
+            // A status effect's name is no prefab's key, nor a prefab's name a status effect's.
+            Assert.Null(explorer.Find("Rested"));
+            Assert.Null(explorer.Find(EntryKeys.For(Kind.StatusEffect, "Troll")));
+            Assert.Null(explorer.Find("Nothing"));
+            Assert.Null(explorer.Find(null));
+        }
+
+        [Fact]
+        public void OfTwoEntriesUnderOneKeyTheFirstIsFound()
+        {
+            var first = E("Troll", Kind.Creature);
+            var second = E("Troll", Kind.Other);
+
+            Assert.Same(first, Of(first, second).Find("Troll"));
+        }
+
+        [Fact]
+        public void JumpingByKeyGoesToTheFirstEntryUnderIt()
+        {
+            var first = E("Troll", Kind.Creature);
+            var explorer = Of(E("Rested", Kind.StatusEffect), first, E("Troll", Kind.Other));
+
+            Assert.True(explorer.Jump("Troll"));
+            Assert.Same(first, explorer.Selected);
+            Assert.False(explorer.Jump("Nothing"));
+        }
+
         [Fact]
         public void TheResourcesTabListsTreesThenLogsThenRocksThenPlantsThenBushesThenTheRest()
         {

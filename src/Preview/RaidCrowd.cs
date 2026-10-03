@@ -54,15 +54,13 @@ namespace Scry
 
             // Each group around a point of its own with room for every body, the groups apart
             // (CrowdLayout): the copies cannot push each other aside as live creatures do.
-            var catalog = Session.Explorer?.Catalog;
             var entries = new Dictionary<string, Entry>();
             Entry EntryOf(string prefab)
             {
                 if (!entries.TryGetValue(prefab, out var found))
                 {
-                    // What a raid brings is mostly creatures; some bring spawners (the Ashlands' charred spawners).
-                    found = catalog?.FirstOrDefault(e => e.Kind == Kind.Creature && e.Name == prefab)
-                            ?? catalog?.FirstOrDefault(e => !EntryKeys.HasOwnNamespace(e.Kind) && e.Name == prefab);
+                    // Mostly creatures; some raids bring spawners (the Ashlands' charred spawners).
+                    found = Session.Explorer?.Find(prefab);
                     entries[prefab] = found;
                 }
                 return found;

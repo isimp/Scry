@@ -166,8 +166,7 @@ namespace Scry
         /// <summary>A location's name as its entry shows it, by its prefab name.</summary>
         private static string PlaceName(string prefab)
         {
-            var catalog = Session.Explorer?.Catalog;
-            var entry = catalog?.FirstOrDefault(e => e.Kind == Kind.Location && e.Name == prefab);
+            var entry = Session.Explorer?.Find(EntryKeys.For(Kind.Location, prefab));
             return entry != null && entry.DisplayName.Length > 0 ? entry.DisplayName : prefab;
         }
 

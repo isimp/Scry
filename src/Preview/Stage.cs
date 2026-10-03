@@ -531,8 +531,8 @@ namespace Scry
             foreach (var data in list.m_effectPrefabs)
             {
                 if (data == null || !data.m_enabled || data.m_prefab == null || data.m_prefab.name == skip) continue;
-                var debris = Ghost.IsDebris(data.m_prefab);
-                if (!debris && Ghost.IsWholeModel(data.m_prefab)) continue;
+                var debris = PrefabShapes.IsDebris(data.m_prefab);
+                if (!debris && PrefabShapes.IsWholeModel(data.m_prefab)) continue;
 
                 // The game looks for the named part and hangs the effect on it only when it
                 // gives a parent; what it places at a point (a hit, a thrown thing's release) it

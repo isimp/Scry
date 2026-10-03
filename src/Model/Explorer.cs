@@ -26,8 +26,15 @@ namespace Scry
         {
             _catalog = catalog;
             _favourites = favourites;
+            foreach (var entry in catalog) if (!_byKey.ContainsKey(entry.Key)) _byKey[entry.Key] = entry;
             Refresh();
         }
+
+        /// <summary>Every entry by its key, the first in the catalog where several share one.</summary>
+        private readonly Dictionary<string, Entry> _byKey = new Dictionary<string, Entry>(StringComparer.Ordinal);
+
+        /// <summary>The entry kept under a key (<see cref="EntryKeys"/>), the first in the catalog where several are; null for none.</summary>
+        public Entry Find(string key) => key != null && _byKey.TryGetValue(key, out var entry) ? entry : null;
 
         public IReadOnlyList<Entry> Catalog => _catalog;
         public Favourites Favourites => _favourites;
@@ -194,17 +201,7 @@ namespace Scry
         /// </summary>
         public bool Jump(string key)
         {
-            var name = EntryKeys.Split(key, out var kind);
-            Entry target = null;
-            foreach (var entry in _catalog)
-            {
-                var matches = kind != null ? entry.Kind == kind : !EntryKeys.HasOwnNamespace(entry.Kind);
-                if (matches && entry.Name == name)
-                {
-                    target = entry;
-                    break;
-                }
-            }
+            var target = Find(key);
             if (target == null) return false;
             if (target != _selected && _here != null)
             {

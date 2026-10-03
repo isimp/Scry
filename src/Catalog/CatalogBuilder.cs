@@ -909,7 +909,7 @@ namespace Scry
                     var thing = data?.m_prefab;
                     if (thing == null) continue;
                     if (ragdolls && thing.GetComponent<Ragdoll>() != null) Add(thing, owner, "ragdoll");
-                    else if (Ghost.IsDebris(thing)) Add(thing, owner, role);
+                    else if (PrefabShapes.IsDebris(thing)) Add(thing, owner, role);
                 }
             }
 

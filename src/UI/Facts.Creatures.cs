@@ -182,7 +182,6 @@ namespace Scry
         /// </summary>
         private void AfterItFalls(string key)
         {
-            var catalog = Session.Explorer?.Catalog;
             foreach (Unlock kind in Enum.GetValues(typeof(Unlock)))
             {
                 var targets = Knowledge.Unlocks.Of(key, kind);
@@ -192,7 +191,7 @@ namespace Scry
                 {
                     if (kind == Unlock.RaidStarts || kind == Unlock.RaidEnds)
                     {
-                        var raid = catalog?.FirstOrDefault(e => e.Key == target);
+                        var raid = EntryOf(target);
                         if (raid != null) row.Items.Add(EntryChip(raid));
                     }
                     else row.Items.Add(Chip(target, ""));

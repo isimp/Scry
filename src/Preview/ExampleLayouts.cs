@@ -131,7 +131,7 @@ namespace Scry
                     try
                     {
                         _loading.Contents = PlaceReader.Read(asset, true);
-                        Facts.Forget(Rooms[_next]);
+                        Learned.About(Rooms[_next]);
                     }
                     catch (Exception ex)
                     {
@@ -243,7 +243,7 @@ namespace Scry
             // under their dungeon as entrances, rooms and end caps.
             if (wasNone)
             {
-                Facts.Forget(_entry);
+                Learned.About(_entry);
                 var explorer = Session.Explorer;
                 if (explorer != null)
                 {

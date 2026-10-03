@@ -15,7 +15,17 @@ namespace Scry
     internal sealed partial class Facts
     {
         /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
-        static Facts() => WorldCaches.Register(nameof(Facts), Forget);
+        static Facts()
+        {
+            WorldCaches.Register(nameof(Facts), Forget);
+
+            // What reads the world says when an entry's details change (Learned).
+            Learned.Changed += entry =>
+            {
+                if (entry == null) Forget();
+                else Forget(entry);
+            };
+        }
 
         /// <summary>A row of items with amounts, such as a recipe or a creature's drops.</summary>
         public sealed class Row
@@ -90,7 +100,7 @@ namespace Scry
         }
 
         /// <summary>The entry of a key, or null when the catalog has none.</summary>
-        private static Entry EntryOf(string key) => Session.Explorer?.Catalog.FirstOrDefault(e => e.Key == key);
+        private static Entry EntryOf(string key) => Session.Explorer?.Find(key);
 
         /// <summary>Why Scry is not sure of a pair, by its label (<see cref="UnsureWords"/>).</summary>
         public readonly Dictionary<string, string> Unsure = new Dictionary<string, string>();

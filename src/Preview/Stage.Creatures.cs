@@ -170,7 +170,7 @@ namespace Scry
             return copy;
         }
 
-        private static Entry EntryOf(string key) => Session.Explorer?.Catalog.FirstOrDefault(e => e.Key == key);
+        private static Entry EntryOf(string key) => Session.Explorer?.Find(key);
 
         /// <summary>How many creatures rolled stand below their spawn point, dropped to the ground under it, and how many fly over it, for the self-test.</summary>
         public static int CreaturesDropped { get; private set; }
