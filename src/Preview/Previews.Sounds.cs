@@ -27,8 +27,7 @@ namespace Scry
             _soundEntry = entry;
             _soundChosen = only;
             _soundPaused = false;
-            _seekWhilePaused = null;
-            _seekOnGoing = null;
+            Seek.Forget();
             _held = null;
             _soundTakenOver = false;
             _soundWaitUntil = Time.unscaledTime + MaxDelay(prefab) + 0.5f;
@@ -156,8 +155,7 @@ namespace Scry
             MusicPreview.Stop();
             _soundEntry = null;
             _soundPaused = false;
-            _seekWhilePaused = null;
-            _seekOnGoing = null;
+            Seek.Forget();
             _held = null;
             _soundChosen = null;
             Destroy(ref _sound);
@@ -248,7 +246,7 @@ namespace Scry
             length = 0f;
             var source = SoundSource();
             if (source == null || source.clip == null || (!source.isPlaying && !_soundPaused)) return false;
-            time = _soundPaused && _seekWhilePaused.HasValue ? _seekWhilePaused.Value : source.time;
+            time = _soundPaused && Seek.WhilePaused.HasValue ? Seek.WhilePaused.Value : source.time;
             length = source.clip.length;
             return length > 0f;
         }
@@ -259,25 +257,15 @@ namespace Scry
             var source = SoundSource();
             if (source == null || source.clip == null) return;
             TakeOverSound();
-            var at = Mathf.Clamp(time, 0f, Mathf.Max(0f, source.clip.length - 0.05f));
+            var at = SeekWatch.Clamp(time, source.clip.length);
             source.time = at;
             // A point set while paused is kept and played from on going on, as a streamed clip
             // (music) can lose it otherwise.
-            _seekWhilePaused = _soundPaused ? at : (float?)null;
+            Seek.Sought(at, _soundPaused);
         }
 
-        private static float? _seekWhilePaused;
-
-        /// <summary>A point sought while paused, set again as the sound goes on until the clip is there, for two seconds at most.</summary>
-        private static float? _seekOnGoing;
-        private static float _seekOnGoingUntil;
-        private static float _seekAgainAt;
-
-        /// <summary>How long a streamed clip is given to get to a point set before it is set again.</summary>
-        private const float SeekAgainAfter = 0.1f;
-
-        /// <summary>How far past the point sought the sound must have played for the point to have held.</summary>
-        private const float HeldPast = 0.3f;
+        /// <summary>A point sought while paused, kept, played from on going on, and watched until it holds.</summary>
+        private static readonly SeekWatch Seek = new SeekWatch();
 
         /// <summary>Where the sound was each frame while a point sought while paused was being settled, for the self-test to tell.</summary>
         public static readonly List<string> SeekTrail = new List<string>();
@@ -289,23 +277,17 @@ namespace Scry
         /// </summary>
         public static void SettleSeek()
         {
-            if (_seekOnGoing == null) return;
+            if (Seek.Watching == null) return;
+            var point = Seek.Watching.Value;
             var source = SoundSource();
-            if (source == null || source.clip == null || Time.unscaledTime > _seekOnGoingUntil)
+            if (source == null || source.clip == null)
             {
-                _seekOnGoing = null;
+                Seek.StopWatching();
                 return;
             }
-            if (SeekTrail.Count < 60) SeekTrail.Add($"{source.time:0.00} s, sample {source.timeSamples}{(source.isPlaying ? "" : ", not playing")}");
-            if (!source.isPlaying) return;
-            if (source.time >= _seekOnGoing.Value + HeldPast)
-            {
-                _seekOnGoing = null;
-                return;
-            }
-            if (source.time + 0.1f >= _seekOnGoing.Value || Time.unscaledTime < _seekAgainAt) return;
-            SetPoint(source, _seekOnGoing.Value);
-            _seekAgainAt = Time.unscaledTime + SeekAgainAfter;
+            var step = Seek.Step(source.time, source.isPlaying, Time.unscaledTime);
+            if (step != SeekStep.Expired && SeekTrail.Count < 60) SeekTrail.Add($"{source.time:0.00} s, sample {source.timeSamples}{(source.isPlaying ? "" : ", not playing")}");
+            if (step == SeekStep.SetAgain) SetPoint(source, point);
         }
 
         /// <summary>Sets where a source plays from, by its samples as well as its time: a streamed clip may keep only the one.</summary>
@@ -330,18 +312,14 @@ namespace Scry
             if (pause && !source.isPlaying) return;
             TakeOverSound();
             if (pause) source.Pause();
-            else if (_seekWhilePaused.HasValue)
+            else if (Seek.GoOn(Time.unscaledTime) is float at)
             {
                 // Played again from the point sought, set again once playing and each frame after
                 // until the clip is there: a streamed clip (music) can start over from its beginning.
                 source.Stop();
-                SetPoint(source, _seekWhilePaused.Value);
+                SetPoint(source, at);
                 source.Play();
-                SetPoint(source, _seekWhilePaused.Value);
-                _seekOnGoing = _seekWhilePaused.Value;
-                _seekOnGoingUntil = Time.unscaledTime + 2f;
-                _seekAgainAt = Time.unscaledTime + SeekAgainAfter;
-                _seekWhilePaused = null;
+                SetPoint(source, at);
                 SeekTrail.Clear();
             }
             else source.UnPause();
