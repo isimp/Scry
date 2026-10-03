@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Scry
@@ -81,6 +82,12 @@ namespace Scry
         /// How far across the ground reaches from what is framed, by its radius: several times it,
         /// and with the sky far out toward a horizon, never less than some way.
         /// </summary>
+        /// <summary>
+        /// How many points the ground's paint mask has across: two while nothing is painted on
+        /// it, else half a metre a point, at least 32 and at most 256, however wide the ground.
+        /// </summary>
+        public static int MaskSize(int paints, float across) => paints == 0 ? 2 : Math.Max(32, Math.Min(256, (int)Math.Ceiling(across * 2f)));
+
         public static float Across(float radius, bool sky) =>
             sky ? System.Math.Max(160f, radius * 20f) : System.Math.Max(24f, radius * 6f);
 

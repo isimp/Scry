@@ -372,7 +372,7 @@ namespace Scry
             var ground = Heightmap.m_paintMaskNothing;
             ground.a = StageGround.MaskShare(Biome);
             var paints = PaintsNow();
-            var size = paints.Count == 0 ? 2 : Mathf.Clamp(Mathf.CeilToInt(_across * 2f), 32, 256);
+            var size = StageGround.MaskSize(paints.Count, _across);
             if (_mask.width != size) _mask.Reinitialize(size, size);
             var pixels = new Color[size * size];
             var bare = (ground.r, ground.g, ground.b, ground.a);

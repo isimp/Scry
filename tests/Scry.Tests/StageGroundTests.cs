@@ -167,5 +167,19 @@ namespace Scry.Tests
             Assert.Equal("Meadows", StageGround.BiomeFor(new string[0]));
             Assert.Equal("Meadows", StageGround.BiomeFor(null));
         }
+
+        // The ground's paint mask: two points while nothing is painted on it, else half a metre a
+        // point, at least 32 and at most 256 across, however wide the ground.
+
+        [Theory]
+        [InlineData(0, 300f, 2)]
+        [InlineData(3, 24f, 48)]
+        [InlineData(3, 10f, 32)]
+        [InlineData(3, 160f, 256)]
+        [InlineData(1, 47.6f, 96)]
+        public void TheMaskIsHalfAMetreAPointWhereSomethingIsPainted(int paints, float across, int size)
+        {
+            Assert.Equal(size, StageGround.MaskSize(paints, across));
+        }
     }
 }
