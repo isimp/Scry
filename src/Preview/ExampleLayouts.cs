@@ -124,7 +124,7 @@ namespace Scry
                 if (asset == null)
                 {
                     Failed++;
-                    Plugin.Log.LogWarning($"Scry could not load the dungeon room {_loading.Prefab} for an example layout.");
+                    Faults.Skip("example layouts", _loading.Prefab, "its room did not load");
                 }
                 else
                 {

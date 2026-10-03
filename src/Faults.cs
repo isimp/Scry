@@ -30,7 +30,24 @@ namespace Scry
         /// <summary>The latest part of a prefab left out, by its part, prefab and message.</summary>
         public static string LatestSkipped { get; private set; } = "";
 
-        private static string Words(string part, Exception ex) => part + ": " + ex.GetType().Name + ": " + ex.Message;
+        private static string Words(string part, Exception ex) => part + ": " + (ex is Failure ? "" : ex.GetType().Name + ": ") + ex.Message;
+
+        /// <summary>A failure found by checking, not thrown: something that did not load, a file that could not be read.</summary>
+        private sealed class Failure : Exception
+        {
+            public Failure(string why) : base(why)
+            {
+            }
+        }
+
+        /// <summary>A failure told whole: one found by checking by its words alone, one thrown with where it came from.</summary>
+        private static string Whole(Exception ex) => ex is Failure ? ex.Message : ex.ToString();
+
+        /// <summary>A part failed, found by checking rather than thrown; told as <see cref="Tell(string, Exception)"/> tells.</summary>
+        public static void Tell(string part, string why) => Tell(part, new Failure(why));
+
+        /// <summary>A part of one item left out, found by checking rather than thrown; told as <see cref="Skip(string, string, Exception)"/> tells.</summary>
+        public static void Skip(string part, string prefab, string why) => Skip(part, prefab, new Failure(why));
 
         /// <summary>Tells a failure in the log the first time this part fails this way.</summary>
         public static void Tell(string part, Exception ex)
@@ -41,7 +58,7 @@ namespace Scry
             if (GameChanged(part, ex)) return;
             var key = part + "|" + ex.GetType().Name + "|" + ex.Message + "|" + TopFrame(ex);
             if (Told.Count > 500 || !Told.Add(key)) return;
-            Plugin.Log.LogError($"Scry failed in {part} (told once): {ex}");
+            Plugin.Log.LogError($"Scry failed in {part} (told once): {Whole(ex)}");
         }
 
         /// <summary>
@@ -55,7 +72,7 @@ namespace Scry
             Skipped++;
             LatestSkipped = Words(part + " of " + prefab, ex);
             if (GameChanged(part, ex)) return;
-            if (Found.Skip(part, prefab, ex)) Plugin.Log.LogWarning($"Scry left out the {part} of {prefab} (told whole once for this failure, then counted): {ex}");
+            if (Found.Skip(part, prefab, ex)) Plugin.Log.LogWarning($"Scry left out the {part} of {prefab} (told whole once for this failure, then counted): {Whole(ex)}");
             else Plugin.Log.LogDebug($"Scry left out the {part} of {prefab}: {ex.Message}");
         }
 

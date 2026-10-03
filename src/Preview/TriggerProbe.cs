@@ -360,7 +360,7 @@ namespace Scry
             seen.Busy = false;
             if (Seen.TryGetValue(key, out var kept) && ReferenceEquals(kept, seen)) Seen.Remove(key);
             if (Failures.Failed(key)) Plugin.Note($"Scry could not see what the animator of {key} plays ({why}); it tries once more.");
-            else Plugin.Log.LogWarning($"Scry could not see what the animator of {key} plays ({why}), and leaves its clips unmatched.");
+            else Plugin.Note($"Scry could not see what the animator of {key} plays ({why}), and leaves its clips unmatched.");
         }
 
         /// <summary>

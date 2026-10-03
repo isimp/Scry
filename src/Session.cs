@@ -233,7 +233,7 @@ namespace Scry
         {
             var catalog = job.Entries;
             _favourites = _favourites ?? new Favourites(Path.Combine(Plugin.DataFolder, "favourites.txt"));
-            if (_favourites.Problem != null) Plugin.Log.LogWarning($"Scry could not read its favourites: {_favourites.Problem}");
+            if (_favourites.Problem != null) Faults.Tell("reading the favourites", _favourites.Problem);
 
             Explorer = new Explorer(catalog, _favourites) { RecentLimit = Plugin.RecentCount };
             if (_carried.HasValue)
@@ -251,20 +251,20 @@ namespace Scry
             _scene = scene;
             _failedIn = null;
             var kinds = string.Join(", ", catalog.GroupBy(e => e.Kind).OrderBy(g => g.Key).Select(g => $"{Numbers.Count(g.Count())} {Kinds.Label(g.Key).ToLowerInvariant()}"));
-            Plugin.Log.LogInfo($"Scry read {Numbers.Count(catalog.Count)} prefabs and status effects in {Numbers.Amount(job.WorkMs, 0)} ms over {Numbers.Count(job.Frames)} frames ({Numbers.Fixed(job.ElapsedMs / 1000.0, 1)} s in all): {kinds}.");
+            Plugin.Report($"Scry read {Numbers.Count(catalog.Count)} prefabs and status effects in {Numbers.Amount(job.WorkMs, 0)} ms over {Numbers.Count(job.Frames)} frames ({Numbers.Fixed(job.ElapsedMs / 1000.0, 1)} s in all): {kinds}.");
 
             // Where things are found, read by itself for those who want it: the same background
             // reading the panel's button starts, a few milliseconds a frame.
             if (Plugin.ReadLocationsAutomatically && Locations.Now == Locations.State.NotRead)
             {
-                Guard.Run("reading the locations by itself", () => Plugin.Log.LogInfo("Scry: " + Locations.Start()));
+                Guard.Run("reading the locations by itself", () => Plugin.Report("Scry: " + Locations.Start()));
             }
         }
 
         private static void Failed(string why, ZNetScene scene)
         {
             _failedIn = scene;
-            Plugin.Log.LogError($"Scry could not read the game's prefabs: {why}");
+            Faults.Tell("reading the game's prefabs", why);
             if (!IsOpen) return;
             Hide();
             Chat.instance?.AddString("Scry could not read the game's prefabs; the log has the details.");

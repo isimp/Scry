@@ -177,7 +177,7 @@ namespace Scry
 
         private static void Write(string line)
         {
-            Plugin.Log.LogInfo($"[selftest] {line}");
+            Plugin.Report($"[selftest] {line}");
             // A line the file will not take is still in the log above.
             Steps.Run(() => File.AppendAllText(ResultFile, line + Environment.NewLine), null);
         }

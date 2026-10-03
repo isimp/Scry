@@ -328,8 +328,8 @@ namespace Scry
             _off = list.FeaturesOff;
             foreach (var line in list.Report())
             {
-                if (list.AnyTrouble) Plugin.Log.LogWarning(line);
-                else Plugin.Log.LogInfo(line);
+                if (list.AnyTrouble) Plugin.Warn(line);
+                else Plugin.Report(line);
             }
         }
 

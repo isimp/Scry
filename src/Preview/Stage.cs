@@ -272,7 +272,7 @@ namespace Scry
                 lines.Add($"  {path}: {renderer.GetType().Name}, active {renderer.gameObject.activeInHierarchy}, enabled {renderer.enabled}, layer {Numbers.Count(renderer.gameObject.layer)}, mesh {(mesh != null ? mesh.name : "none")}{bones}, {material}, bounds {renderer.bounds.center} size {renderer.bounds.size}");
             }
 
-            foreach (var line in lines) Plugin.Log.LogInfo(line);
+            foreach (var line in lines) Plugin.Report(line);
             return $"Wrote {Numbers.Count(lines.Count - 1)} renderers of {_subject.name} to the log.";
         }
 

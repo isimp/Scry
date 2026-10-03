@@ -112,7 +112,7 @@ namespace Scry
             if (Frame.Total >= SlowMs && Time.unscaledTime - _toldAt >= 0.5f)
             {
                 _toldAt = Time.unscaledTime;
-                Plugin.Log.LogInfo(Frame.Line(Time.unscaledDeltaTime * 1000f));
+                Plugin.Note(Frame.Line(Time.unscaledDeltaTime * 1000f));
             }
 
             Window.AddScry(Frame.Bytes, Frame.Cleanups);
@@ -125,7 +125,7 @@ namespace Scry
             }
             else if (now - _windowFrom >= WindowSeconds)
             {
-                Plugin.Log.LogInfo(Window.Line(now - _windowFrom));
+                Plugin.Note(Window.Line(now - _windowFrom));
                 Window.Reset();
                 _windowFrom = now;
             }

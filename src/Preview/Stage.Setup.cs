@@ -180,7 +180,7 @@ namespace Scry
                 }
             }
 
-            Plugin.Log.LogWarning("Scry found no free layer for its preview stage, so the panel shows no turntable. Showing in the world still works.");
+            Plugin.Warn("Scry found no free layer for its preview stage, so the panel shows no turntable. Showing in the world still works.");
             return -1;
         }
     }

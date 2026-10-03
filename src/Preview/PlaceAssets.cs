@@ -85,7 +85,7 @@ namespace Scry
                 return PlaceLoad.None;
             }
             Failed = true;
-            Plugin.Log.LogWarning($"Scry could not load the location or dungeon room {_source.Prefab} to show it.");
+            Faults.Skip("previews of places", _source.Prefab, "it did not load");
             return PlaceLoad.Failed;
         }
     }

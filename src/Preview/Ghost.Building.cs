@@ -98,7 +98,7 @@ namespace Scry
 
                 if (_doomed.Count > 0)
                 {
-                    Plugin.Log.LogDebug($"Scry left {Numbers.Count(_doomed.Count)} part(s) on the preview of {_copy.name} that something else needs.");
+                    Plugin.Note($"Scry left {Numbers.Count(_doomed.Count)} part(s) on the preview of {_copy.name} that something else needs.");
                 }
                 return true;
             }

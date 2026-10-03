@@ -47,7 +47,7 @@ namespace Scry
                 if (_toldKey != key)
                 {
                     _toldKey = key;
-                    Log.LogWarning($"Scry cannot open on {key}, which the game or the panel already uses; F7 opens it instead.");
+                    Warn($"Scry cannot open on {key}, which the game or the panel already uses; F7 opens it instead.");
                 }
                 return KeyCode.F7;
             }
@@ -82,6 +82,16 @@ namespace Scry
 
         /// <summary>Whether the self-test may run (<c>/scry selftest</c>, or the marker file), for finding faults rather than for play.</summary>
         public static bool SelfTestAllowed => _selfTest?.Value ?? false;
+
+        // The log is written one way: a failure through Faults; and here, a line Scry always
+        // writes, something a player should know about their game or PC, and a note of what a
+        // preview did, written only with LogPreviews on.
+
+        /// <summary>A line Scry always writes: the startup check, how long reading took, what was asked for.</summary>
+        public static void Report(string line) => Log.LogInfo(line);
+
+        /// <summary>Something about the game or the PC a player should know, not a fault of Scry's: a key taken, no free layer.</summary>
+        public static void Warn(string line) => Log.LogWarning(line);
 
         /// <summary>A note for the log about what a preview did, written only when <see cref="LogPreviews"/> is on.</summary>
         public static void Note(string line)

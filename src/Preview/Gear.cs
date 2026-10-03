@@ -525,7 +525,7 @@ namespace Scry
                 var mesh = renderer.sharedMesh;
                 if (mesh != null && mesh.bindposes.Length != bones.Length)
                 {
-                    Plugin.Log.LogDebug($"Scry left {part.name} off: made for {Numbers.Count(mesh.bindposes.Length)} bones, the body has {Numbers.Count(bones.Length)}.");
+                    Plugin.Note($"Scry left {part.name} off: made for {Numbers.Count(mesh.bindposes.Length)} bones, the body has {Numbers.Count(bones.Length)}.");
                     renderer.enabled = false;
                     continue;
                 }
