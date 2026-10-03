@@ -72,7 +72,7 @@ namespace Scry
             {
                 var chosen = Segments("Look", new List<string>(modifiers.LookNames), modifiers.Look, width, labelW, ref y);
                 if (chosen >= 0) modifiers.Look = chosen;
-                if (modifiers.Look > 0 && entry.Source is GameObject creature && Scry.Variants.IsGear(creature)) LoadoutRows(creature, modifiers.Look, width, labelW, ref y);
+                if (modifiers.Look > 0 && entry.Source is GameObject creature && PrefabLooks.IsGear(creature)) LoadoutRows(creature, modifiers.Look, width, labelW, ref y);
             }
 
             if (open && projectile)
@@ -92,7 +92,7 @@ namespace Scry
         private static void LoadoutRows(GameObject creature, int look, float width, float labelW, ref float y)
         {
             var loadout = Gear.LoadoutOf(creature);
-            loadout.Carrying(Gear.SetWeapons(creature, look));
+            loadout.Carrying(PrefabGear.SetWeapons(creature, look));
             var rows = new[] { Loadout.Row.Holding, Loadout.Row.Weapon, Loadout.Row.Shield, Loadout.Row.Armour };
             var labels = new[] { "Holding", "Weapon", "Shield", "Armour" };
             for (var i = 0; i < rows.Length; i++)

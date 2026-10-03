@@ -143,7 +143,7 @@ namespace Scry
                     }
                     break;
                 case Kind.Item:
-                    if (entry.Source is GameObject item && Gear.IsWearable(item))
+                    if (entry.Source is GameObject item && PrefabGear.IsWearable(item))
                     {
                         Looks.OnPerson = !Looks.OnPerson;
                         Previews.Rebuild();

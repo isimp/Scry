@@ -302,7 +302,7 @@ namespace Scry
                 var prefab = found.Prefab;
                 entry.LooksFrom(() => Guard.Each("looks", name, () =>
                 {
-                    var names = Variants.Of(prefab, out var look);
+                    var names = PrefabLooks.Of(prefab, out var look);
                     return (names, look);
                 }, out var read) ? read : (Array.Empty<string>(), 0));
                 entry.Stations = StationsOf(found.Prefab);

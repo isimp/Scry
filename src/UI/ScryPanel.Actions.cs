@@ -98,7 +98,7 @@ namespace Scry
                     if (entry.Kind == Kind.Projectile && Button("Fire where you look", Skin.Primary)) Previews.Fire(entry);
                     // Wearing it and keeping it on are one idea, side by side under the stage in
                     // both views; the stage's own chips only change how it is seen.
-                    if (entry.Kind == Kind.Item && entry.Source is GameObject wearable && Gear.IsWearable(wearable)
+                    if (entry.Kind == Kind.Item && entry.Source is GameObject wearable && PrefabGear.IsWearable(wearable)
                         && Button("Wear it", Looks.OnPerson ? Skin.On : Skin.Button))
                     {
                         Looks.OnPerson = !Looks.OnPerson;
@@ -111,7 +111,7 @@ namespace Scry
                         if (Button("Keep it on", kept ? Skin.On : Skin.Button))
                         {
                             if (kept) Looks.Outfit.TakeOff(entry.Name);
-                            else Looks.Outfit.Keep(entry.Name, Gear.SlotOf((GameObject)entry.Source));
+                            else Looks.Outfit.Keep(entry.Name, PrefabGear.SlotOf((GameObject)entry.Source));
                             Previews.Rebuild();
                         }
                     }

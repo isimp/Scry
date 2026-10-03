@@ -226,8 +226,8 @@ namespace Scry
         /// <summary>An item put on shows on the person, and on its own again once taken off.</summary>
         private static IEnumerator WearIt(Probe p)
         {
-            var armour = X.Catalog.FirstOrDefault(e => e.Name == "ArmorBronzeChest" && e.Source is GameObject g && Gear.IsWearable(g))
-                         ?? X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && e.Origin == Origin.Vanilla && e.Source is GameObject g && Gear.IsWearable(g));
+            var armour = X.Catalog.FirstOrDefault(e => e.Name == "ArmorBronzeChest" && e.Source is GameObject g && PrefabGear.IsWearable(g))
+                         ?? X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && e.Origin == Origin.Vanilla && e.Source is GameObject g && PrefabGear.IsWearable(g));
             if (armour == null) p.Skip("there is nothing wearable");
             var was = Looks.OnPerson;
             Looks.OnPerson = true;

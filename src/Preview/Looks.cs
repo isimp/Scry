@@ -68,7 +68,7 @@ namespace Scry
         /// <summary>Whether this entry is shown worn by a person right now.</summary>
         public static bool IsWorn(Entry entry)
         {
-            return OnPerson && entry != null && entry.Kind == Kind.Item && entry.Source is GameObject prefab && Gear.IsWearable(prefab);
+            return OnPerson && entry != null && entry.Kind == Kind.Item && entry.Source is GameObject prefab && PrefabGear.IsWearable(prefab);
         }
 
         /// <summary>
@@ -142,7 +142,7 @@ namespace Scry
         public static List<GameObject> WornWith(GameObject item)
         {
             var items = new List<GameObject>();
-            foreach (var name in Outfit.With(item.name, Gear.SlotOf(item)))
+            foreach (var name in Outfit.With(item.name, PrefabGear.SlotOf(item)))
             {
                 var worn = name == item.name ? item : GamePrefabs.Item(name);
                 if (worn != null) items.Add(worn);

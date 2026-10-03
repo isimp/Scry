@@ -191,7 +191,7 @@ namespace Scry
         {
             var prefab = entry?.Source as GameObject;
             var modifiers = _explorer?.Modifiers;
-            if (prefab == null || modifiers == null || !modifiers.LookAvailable || !Variants.IsGear(prefab)) return null;
+            if (prefab == null || modifiers == null || !modifiers.LookAvailable || !PrefabLooks.IsGear(prefab)) return null;
 
             // It carries its weapons whether they are drawn or not, and uses any of them, so what
             // it has is all it carries in the look, even while it is shown without gear. Asked on

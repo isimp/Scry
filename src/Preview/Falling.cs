@@ -384,7 +384,7 @@ namespace Scry
             var worn = new List<GameObject>();
             foreach (var item in gear)
             {
-                var slot = Gear.SlotOf(item);
+                var slot = PrefabGear.SlotOf(item);
                 if (slot != Slot.RightHand && slot != Slot.LeftHand && slot != Slot.BothHands) worn.Add(item);
             }
             if (worn.Count > 0) Gear.Wear(prefab, fallen, worn);

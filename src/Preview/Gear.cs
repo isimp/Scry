@@ -17,60 +17,6 @@ namespace Scry
         static Gear() => WorldCaches.Register(nameof(Gear), Forget);
 
         /// <summary>
-        /// The gear choices a creature has: "Gear" when it always carries the same things, or one
-        /// entry per set when it is given one of several.
-        /// </summary>
-        public static bool Sets(GameObject prefab, out List<string> sets)
-        {
-            sets = new List<string>();
-            var humanoid = prefab.GetComponent<Humanoid>();
-            if (humanoid == null || prefab.GetComponentInChildren<VisEquipment>(true) == null) return false;
-
-            // Every set it may roll, also one with nothing drawn: a troll given the set without a
-            // log fights with its hands, and is a look of its own.
-            var rolled = RolledSets(humanoid);
-            if (rolled.Count > 0)
-            {
-                foreach (var set in rolled) sets.Add(SetName(set, rolled.IndexOf(set)));
-                Tell(prefab, rolled);
-                return true;
-            }
-
-            if (AnyVisible(humanoid.m_defaultItems) || AnyVisible(humanoid.m_randomWeapon)
-                || AnyVisible(humanoid.m_randomArmor) || AnyVisible(humanoid.m_randomShield)
-                || LoadoutOf(prefab).HasChoices)
-            {
-                sets.Add("Gear");
-            }
-            return sets.Count > 0;
-        }
-
-        /// <summary>The sets a humanoid rolls one of when it spawns, those with anything in them.</summary>
-        private static List<Humanoid.ItemSet> RolledSets(Humanoid humanoid)
-        {
-            // A set listed twice (to be rolled more often) is one look.
-            var sets = new List<Humanoid.ItemSet>();
-            var seen = new HashSet<string>();
-            if (humanoid.m_randomSets == null) return sets;
-            foreach (var set in humanoid.m_randomSets)
-            {
-                if (set?.m_items == null || !set.m_items.Any(i => i != null)) continue;
-                var key = string.Join(",", set.m_items.Where(i => i != null).Select(i => i.name).OrderBy(n => n, StringComparer.Ordinal));
-                if (seen.Add(key)) sets.Add(set);
-            }
-            return sets;
-        }
-
-        /// <summary>The weapons of the set a look shows, those that show in the hand first.</summary>
-        public static List<string> SetWeapons(GameObject prefab, int look)
-        {
-            var humanoid = prefab != null ? prefab.GetComponent<Humanoid>() : null;
-            var sets = humanoid != null ? RolledSets(humanoid) : new List<Humanoid.ItemSet>();
-            if (sets.Count == 0 || look <= 0) return new List<string>();
-            return HoldChoices(sets[Mathf.Clamp(look - 1, 0, sets.Count - 1)].m_items, prefab.name);
-        }
-
-        /// <summary>
         /// Everything a creature carries in a look, as the game gives it at spawn: what it always
         /// has, the set it rolled, and the weapon, shield, armour and extras it rolled. All of it,
         /// not only what is in its hand, since its AI takes any of its weapons in a fight.
@@ -81,7 +27,7 @@ namespace Scry
             var humanoid = prefab != null ? prefab.GetComponent<Humanoid>() : null;
             if (humanoid == null) return items;
             if (humanoid.m_defaultItems != null) items.AddRange(humanoid.m_defaultItems.Where(i => i != null));
-            var sets = RolledSets(humanoid);
+            var sets = PrefabGear.RolledSets(humanoid);
             if (sets.Count > 0) items.AddRange(sets[Mathf.Clamp(Mathf.Max(1, look) - 1, 0, sets.Count - 1)].m_items.Where(i => i != null));
             var loadout = LoadoutOf(prefab);
             foreach (var row in new[] { Loadout.Row.Weapon, Loadout.Row.Shield, Loadout.Row.Armour })
@@ -96,24 +42,6 @@ namespace Scry
                 if (extra != null) items.Add(extra);
             }
             return items.Distinct().ToList();
-        }
-
-        /// <summary>A set by its own name, else by what of it is drawn, else by its number.</summary>
-        private static string SetName(Humanoid.ItemSet set, int index)
-        {
-            if (!string.IsNullOrEmpty(set.m_name)) return Naming.FieldLabel(set.m_name);
-            var drawn = set.m_items.Where(i => i != null && AttachPart(i, out _) != null).Select(CatalogBuilder.AttackName).Distinct().ToList();
-            return drawn.Count > 0 ? string.Join(" + ", drawn) : $"Set {Numbers.Count(index + 1)}, nothing drawn";
-        }
-
-        private static readonly HashSet<string> ToldSets = new HashSet<string>();
-
-        /// <summary>Says once per creature which sets it rolls from and what is in each, drawn or not.</summary>
-        private static void Tell(GameObject prefab, List<Humanoid.ItemSet> sets)
-        {
-            if (!ToldSets.Add(prefab.name)) return;
-            var told = sets.Select((set, i) => $"{SetName(set, i)} ({string.Join(", ", set.m_items.Where(x => x != null).Select(x => x.name + (AttachPart(x, out _) != null ? "" : " not drawn")))})");
-            Log.Note($"Scry: {prefab.name} rolls one of {Numbers.Count(sets.Count)} gear sets: {string.Join("; ", told)}.");
         }
 
         /// <summary>Puts the gear of a look on the copy: 1 is the first set, or the only one.</summary>
@@ -136,7 +64,7 @@ namespace Scry
 
             // Of the weapons it always carries it holds one, the one chosen; the rest are put away.
             var loadout = LoadoutOf(prefab);
-            loadout.Carrying(SetWeapons(prefab, look));
+            loadout.Carrying(PrefabGear.SetWeapons(prefab, look));
             var holding = loadout.Options(Loadout.Row.Holding);
             var held = holding.Count > 0 ? holding[loadout.Chosen(Loadout.Row.Holding)] : null;
             if (humanoid.m_defaultItems != null)
@@ -148,7 +76,7 @@ namespace Scry
             }
             var chosen = loadout.Worn();
 
-            var visibleSets = RolledSets(humanoid);
+            var visibleSets = PrefabGear.RolledSets(humanoid);
 
             // In the order GiveDefaultItems hands them out: shield, weapon, armour, set, extras.
             void Add(string name)
@@ -177,7 +105,7 @@ namespace Scry
             }
             // What draws nothing (a creature's unseen attacks) has no place on the copy, and must
             // not take the hand from a weapon that shows.
-            items.RemoveAll(i => i == null || !Draws(i));
+            items.RemoveAll(i => i == null || !PrefabGear.Shows(i));
 
             // Each item is equipped as it is handed out, taking the place of one worn in the same
             // slot, so what comes later is what shows.
@@ -185,7 +113,7 @@ namespace Scry
             var slotless = new List<GameObject>();
             foreach (var item in items)
             {
-                var slot = SlotOf(item);
+                var slot = PrefabGear.SlotOf(item);
                 if (slot == Slot.None) slotless.Add(item);
                 else outfit.Keep(item.name, slot);
             }
@@ -210,60 +138,9 @@ namespace Scry
             if (prefab == null) return new Loadout(null, null, null, null);
             if (Loadouts.TryGetValue(prefab, out var known)) return known;
 
-            var humanoid = prefab.GetComponent<Humanoid>();
-            var extras = new List<Loadout.Extra>();
-            if (humanoid.OrNull()?.m_randomItems != null)
-            {
-                foreach (var random in humanoid.m_randomItems)
-                {
-                    var item = random?.m_prefab;
-                    var shared = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
-                    if (shared != null && Shows(item)) extras.Add(new Loadout.Extra(item.name, (int)shared.m_itemType));
-                }
-            }
-
-            var loadout = humanoid == null
-                ? new Loadout(null, null, null, null)
-                : new Loadout(Choices(humanoid.m_randomWeapon), Choices(humanoid.m_randomShield), Choices(humanoid.m_randomArmor), extras,
-                    (humanoid.m_randomWeapon ?? Array.Empty<GameObject>()).Concat(humanoid.m_defaultItems ?? Array.Empty<GameObject>())
-                        .Where(w => w != null && SlotOf(w) == Slot.BothHands).Select(w => w.name),
-                    Holdable(humanoid));
+            var loadout = PrefabGear.ReadLoadout(prefab);
             Loadouts[prefab] = loadout;
             return loadout;
-        }
-
-        /// <summary>
-        /// The weapons a creature always carries: with the one it rolls, it holds one at a time,
-        /// as its AI picks them in a fight. One that shows in the hand comes first, as it is the
-        /// one to see.
-        /// </summary>
-        private static List<string> Holdable(Humanoid humanoid) => HoldChoices(humanoid.m_defaultItems, humanoid.gameObject.name);
-
-        /// <summary>
-        /// Of some items, the weapons that are choices to hold (<see cref="WeaponChoices.Holdable"/>):
-        /// only those that show in the hand, one of each that shows alike.
-        /// </summary>
-        private static List<string> HoldChoices(IEnumerable<GameObject> items, string creature)
-        {
-            var weapons = (items ?? Array.Empty<GameObject>())
-                .Where(i => i != null && i.GetComponent<ItemDrop>().OrNull()?.m_itemData?.IsWeapon() == true)
-                .Distinct()
-                .Select(i => (i.name, Drawn(i) ?? CatalogBuilder.GameName(i) ?? WeaponChoices.Readable(i.name, creature), AttachPart(i, out _) != null));
-            return WeaponChoices.Holdable(weapons);
-        }
-
-        /// <summary>
-        /// What an item draws in the hand, by the meshes of its part: two items drawing the same
-        /// (a troll's log for either swing) are the same weapon to see. Null when it draws none.
-        /// </summary>
-        private static string Drawn(GameObject item)
-        {
-            var part = AttachPart(item, out _);
-            if (part == null) return null;
-            var meshes = part.GetComponentsInChildren<MeshFilter>(true).Select(m => m.sharedMesh != null ? m.sharedMesh.name : "")
-                .Concat(part.GetComponentsInChildren<SkinnedMeshRenderer>(true).Select(m => m.sharedMesh != null ? m.sharedMesh.name : ""))
-                .Where(n => n.Length > 0).OrderBy(n => n, StringComparer.Ordinal).ToList();
-            return meshes.Count > 0 ? string.Join(",", meshes) : null;
         }
 
         /// <summary>Whether a creature's loadout differs from the first of each.</summary>
@@ -287,72 +164,12 @@ namespace Scry
             foreach (var prefab in Loadouts.Keys.Where(p => p == null).ToList()) Loadouts.Remove(prefab);
         }
 
-        /// <summary>A list's items by name, an empty entry kept as nothing, items that do not show left out.</summary>
-        private static List<string> Choices(GameObject[] items)
-        {
-            var names = new List<string>();
-            if (items == null) return names;
-            foreach (var item in items)
-            {
-                if (item == null) names.Add(null);
-                else if (Shows(item)) names.Add(item.name);
-            }
-            return names;
-        }
-
-        private static bool Shows(GameObject item)
-        {
-            var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
-            return AttachPart(item, out _) != null || shared?.m_armorMaterial != null;
-        }
-
         private static readonly int ChestTex = Shader.PropertyToID("_ChestTex");
         private static readonly int ChestBumpMap = Shader.PropertyToID("_ChestBumpMap");
         private static readonly int ChestMetal = Shader.PropertyToID("_ChestMetal");
         private static readonly int LegsTex = Shader.PropertyToID("_LegsTex");
         private static readonly int LegsBumpMap = Shader.PropertyToID("_LegsBumpMap");
         private static readonly int LegsMetal = Shader.PropertyToID("_LegsMetal");
-
-        /// <summary>
-        /// Whether an item can be shown worn: one the game equips (held, or worn on the head or
-        /// body) that has something to show when it is. Materials and trophies also carry an
-        /// attach part, for item stands, but have no slot.
-        /// </summary>
-        public static bool IsWearable(GameObject item)
-        {
-            if (SlotOf(item) == Slot.None) return false;
-            var shared = item.GetComponent<ItemDrop>().m_itemData.m_shared;
-            if (AttachPart(item, out _) != null) return true;
-            var type = shared.m_itemType;
-            return shared.m_armorMaterial != null
-                   && (type == ItemDrop.ItemData.ItemType.Chest || type == ItemDrop.ItemData.ItemType.Legs);
-        }
-
-        /// <summary>Where the game equips an item, by its type.</summary>
-        public static Slot SlotOf(GameObject item)
-        {
-            var shared = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
-            if (shared == null) return Slot.None;
-            switch (shared.m_itemType)
-            {
-                case ItemDrop.ItemData.ItemType.OneHandedWeapon:
-                case ItemDrop.ItemData.ItemType.Torch:
-                case ItemDrop.ItemData.ItemType.Tool:
-                    return Slot.RightHand;
-                case ItemDrop.ItemData.ItemType.Shield:
-                    return Slot.LeftHand;
-                case ItemDrop.ItemData.ItemType.TwoHandedWeapon:
-                case ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft:
-                case ItemDrop.ItemData.ItemType.Bow:
-                    return Slot.BothHands;
-                case ItemDrop.ItemData.ItemType.Helmet: return Slot.Head;
-                case ItemDrop.ItemData.ItemType.Chest: return Slot.Chest;
-                case ItemDrop.ItemData.ItemType.Legs: return Slot.Legs;
-                case ItemDrop.ItemData.ItemType.Shoulder: return Slot.Shoulders;
-                case ItemDrop.ItemData.ItemType.Utility: return Slot.Utility;
-                default: return Slot.None;
-            }
-        }
 
         /// <summary>
         /// Puts items on a copy of a character, as <c>VisEquipment</c> does: held and head items
@@ -381,7 +198,7 @@ namespace Scry
 
                 if (body != null && shared.m_armorMaterial != null) Paint(body, shared, copy);
 
-                var part = AttachPart(item, out var skin);
+                var part = PrefabGear.AttachPart(item, out var skin);
                 if (part == null) continue;
 
                 GameObject worn = null;
@@ -447,7 +264,7 @@ namespace Scry
                 if (shared == null) continue;
                 var type = shared.m_itemType;
                 if (type == ItemDrop.ItemData.ItemType.Shield || type == ItemDrop.ItemData.ItemType.Bow || type == ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft) left = shared;
-                else if (SlotOf(item) == Slot.RightHand || SlotOf(item) == Slot.BothHands) right = shared;
+                else if (PrefabGear.SlotOf(item) == Slot.RightHand || PrefabGear.SlotOf(item) == Slot.BothHands) right = shared;
             }
 
             var unarmed = prefab.GetComponent<Humanoid>().OrNull()?.m_unarmedWeapon.OrNull()?.m_itemData?.m_shared;
@@ -466,7 +283,7 @@ namespace Scry
             var told = $"{prefab.name}|{string.Join(",", items.Where(i => i != null).Select(i => i.name))}";
             if (Told.Add(told))
             {
-                var hands = string.Join(", ", items.Where(i => i != null && SlotOf(i) != Slot.None && SlotOf(i) != Slot.Head && SlotOf(i) != Slot.Chest && SlotOf(i) != Slot.Legs).Select(i => i.name + (AttachPart(i, out _) != null ? "" : " (not drawn)")));
+                var hands = string.Join(", ", items.Where(i => i != null && PrefabGear.SlotOf(i) != Slot.None && PrefabGear.SlotOf(i) != Slot.Head && PrefabGear.SlotOf(i) != Slot.Chest && PrefabGear.SlotOf(i) != Slot.Legs).Select(i => i.name + (PrefabGear.AttachPart(i, out _) != null ? "" : " (not drawn)")));
                 Log.Note($"Scry dressed {prefab.name}: in hand {(hands.Length > 0 ? hands : "nothing")}; stance {state}{(stood ? "" : ", which its animator does not take")}.");
             }
         }
@@ -563,41 +380,6 @@ namespace Scry
             worn.AddComponent<Hung>();
             worn.SetActive(true);
             return worn;
-        }
-
-        /// <summary>Whether an item shows when worn: it has a part to hang, or armour that paints the body.</summary>
-        private static bool Draws(GameObject item)
-        {
-            if (AttachPart(item, out _) != null) return true;
-            return item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_armorMaterial != null;
-        }
-
-        /// <summary>The part of an item worn on the body, found as <c>VisEquipment.AttachItem</c> finds it.</summary>
-        private static GameObject AttachPart(GameObject item, out bool skin)
-        {
-            skin = false;
-            var t = item.transform;
-            for (var i = 0; i < t.childCount; i++)
-            {
-                var child = t.GetChild(i);
-                if (child.name == "attach") return child.gameObject;
-                if (child.name == "attach_skin")
-                {
-                    skin = true;
-                    return child.gameObject;
-                }
-            }
-            return null;
-        }
-
-        private static bool AnyVisible(GameObject[] items)
-        {
-            if (items == null) return false;
-            foreach (var item in items)
-            {
-                if (item != null && AttachPart(item, out _) != null) return true;
-            }
-            return false;
         }
 
     }
