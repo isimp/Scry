@@ -180,10 +180,10 @@ namespace Scry
             var track = Here(_slideTrack);
             var line = new Rect(track.x, track.center.y - U(1.5f), track.width, U(3f));
             var share = SlideShare(modifiers);
-            Skin.Fill(line, new Color(Skin.Text.r, Skin.Text.g, Skin.Text.b, 0.25f));
+            Skin.Fill(line, Skin.Alpha(Skin.Text, 0.25f));
             Skin.Fill(new Rect(line.x, line.y, line.width * share, line.height), Skin.Accent);
             // The selection's own size, a mark in the middle of the track.
-            if (_slide == Slide.Size) Skin.Fill(new Rect(track.center.x - U(0.5f), track.center.y - U(5f), U(1f), U(10f)), new Color(Skin.Text.r, Skin.Text.g, Skin.Text.b, 0.4f));
+            if (_slide == Slide.Size) Skin.Fill(new Rect(track.center.x - U(0.5f), track.center.y - U(5f), U(1f), U(10f)), Skin.Alpha(Skin.Text, 0.4f));
             var knob = U(12f);
             Skin.Icon(new Rect(track.x + track.width * share - knob / 2f, track.center.y - knob / 2f, knob, knob), Skin.Circle, Skin.Text);
 

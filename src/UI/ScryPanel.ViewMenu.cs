@@ -156,7 +156,7 @@ namespace Scry
                 var hover = row.Contains(e.mousePosition);
                 if (hover) AskTip("view:" + rows[i].Name, rows[i].Tip);
                 if (e.type != EventType.Repaint) continue;
-                if (hover) Skin.Fill(row, new Color(Skin.Text.r, Skin.Text.g, Skin.Text.b, 0.08f));
+                if (hover) Skin.Fill(row, Skin.Alpha(Skin.Text, 0.08f));
                 GUI.Label(new Rect(row.x + U(8f), row.y, ViewNameWidth() + U(4f), row.height), rows[i].Name, Skin.Label);
                 var value = rows[i].Value;
                 var style = rows[i].On ? Skin.ChipOn : Skin.Chip;

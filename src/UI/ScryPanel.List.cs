@@ -338,12 +338,9 @@ namespace Scry
             var secondary = entry.Tag ?? (string.IsNullOrEmpty(entry.DisplayName) || entry.DisplayName == entry.Name ? "" : entry.Name);
 
             var nameStyle = Skin.RowName;
-            var was = nameStyle.normal.textColor;
-            if (entry.Empty) nameStyle.normal.textColor = Skin.Faint;
             var fullW = Skin.Width(nameStyle, primary);
             var nameW = Mathf.Min(textW, fullW);
-            GUI.Label(new Rect(textX, inner.y, nameW, inner.height), primary, nameStyle);
-            nameStyle.normal.textColor = was;
+            Skin.LabelIn(new Rect(textX, inner.y, nameW, inner.height), primary, nameStyle, entry.Empty ? Skin.Faint : Skin.Text);
 
             var cut = fullW > textW;
             if (secondary.Length > 0)
@@ -396,12 +393,8 @@ namespace Scry
             }
 
             var color = Skin.KindColor(entry.Kind);
-            Skin.Box(rect, new Color(color.r, color.g, color.b, 0.20f));
-            var style = Skin.Glyph;
-            var was = style.normal.textColor;
-            style.normal.textColor = color;
-            GUI.Label(rect, Skin.KindMark(entry.Kind), style);
-            style.normal.textColor = was;
+            Skin.Box(rect, Skin.Alpha(color, 0.20f));
+            Skin.LabelIn(rect, Skin.KindMark(entry.Kind), Skin.Glyph, color);
         }
     }
 }

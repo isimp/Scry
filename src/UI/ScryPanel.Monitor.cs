@@ -27,12 +27,12 @@ namespace Scry
                 var w = U(430f);
                 var h = U(30f) + graphH + U(8f) + Monitor.Lines.Count * lineH + U(10f);
                 var box = new Rect(Screen.width - w - U(12f), Screen.height * 0.32f, w, h);
-                Skin.Box(box, new Color(Skin.Backdrop.r, Skin.Backdrop.g, Skin.Backdrop.b, 0.86f), Skin.Outline);
+                Skin.Box(box, Skin.Alpha(Skin.Backdrop, 0.86f), Skin.Outline);
                 GUI.Label(new Rect(box.x + U(10f), box.y + U(6f), w - U(20f), U(20f)), "Scry resource monitor", Skin.Label);
 
                 // The graph, a faint line at its top telling what its top stands for.
                 var graph = new Rect(box.x + U(10f), box.y + U(30f), w - U(20f), graphH);
-                Skin.Fill(graph, new Color(1f, 1f, 1f, 0.05f));
+                Skin.Fill(graph, Skin.Light(0.05f));
                 var columns = Monitor.Graph;
                 if (columns.Length > 0)
                 {
@@ -42,7 +42,7 @@ namespace Scry
                         var share = (float)(columns[i] / Monitor.GraphTop);
                         if (share <= 0f) continue;
                         var ch = Mathf.Max(U(1f), graph.height * share);
-                        Skin.Fill(new Rect(graph.x + i * cw, graph.yMax - ch, Mathf.Max(U(1f), cw - U(1f)), ch), new Color(Skin.Accent.r, Skin.Accent.g, Skin.Accent.b, 0.8f));
+                        Skin.Fill(new Rect(graph.x + i * cw, graph.yMax - ch, Mathf.Max(U(1f), cw - U(1f)), ch), Skin.Alpha(Skin.Accent, 0.8f));
                     }
                 }
                 GUI.Label(new Rect(graph.xMax - U(120f), graph.y, U(118f), U(16f)), MonitorWords.Ms(Monitor.GraphTop) + " ms", Skin.FaintLabel);

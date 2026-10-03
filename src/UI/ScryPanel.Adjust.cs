@@ -107,7 +107,7 @@ namespace Scry
                 // A shield the weapon leaves no hand for is shown put away, and still chosen for later.
                 var held = loadout.Held(rows[i]);
                 var was = GUI.color;
-                if (!held) GUI.color = new Color(was.r, was.g, was.b, was.a * 0.4f);
+                if (!held) GUI.color = Skin.Alpha(was, was.a * 0.4f);
                 var top = y;
                 var chosen = Segments(labels[i], names, loadout.Chosen(rows[i]), width, labelW, ref y);
                 GUI.color = was;

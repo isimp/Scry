@@ -317,7 +317,7 @@ namespace Scry
                 {
                     var suggestion = _dropList[i];
                     var row = new Rect(_dropRect.x + U(4f), _dropRect.y + U(4f) + i * DropRowH, _dropRect.width - U(8f), DropRowH);
-                    if (i == _dropMark || row.Contains(mouse)) Skin.Fill(row, i == _dropMark ? new Color(0.96f, 0.72f, 0.34f, 0.18f) : new Color(1f, 1f, 1f, 0.06f));
+                    if (i == _dropMark || row.Contains(mouse)) Skin.Fill(row, i == _dropMark ? Skin.Alpha(Skin.Accent, 0.18f) : Skin.Light(0.06f));
 
                     var name = suggestion.Label;
                     var nameW = Mathf.Min(row.width * 0.62f, Skin.Width(Skin.Label, name) + U(4f));

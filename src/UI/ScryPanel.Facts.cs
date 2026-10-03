@@ -189,9 +189,9 @@ namespace Scry
         {
             switch (tone)
             {
-                case Tone.Resists: return new Color(0.56f, 0.82f, 0.52f);
-                case Tone.Weak: return new Color(0.95f, 0.52f, 0.44f);
-                case Tone.Immune: return new Color(0.52f, 0.76f, 0.98f);
+                case Tone.Resists: return Skin.Resisting;
+                case Tone.Weak: return Skin.Weak;
+                case Tone.Immune: return Skin.Immune;
                 default: return Skin.Faint;
             }
         }
@@ -277,11 +277,7 @@ namespace Scry
                 var kind = goes ? KindOf(explorer, item.Prefab) : null;
                 Skin.PillBox(chip, goes ? LinkFill(kind, hover) : Skin.Raised);
                 if (item.Icon != null) DrawSprite(item.Icon, new Rect(chip.x + U(6f), chip.y + U(4f), U(22f), U(22f)));
-                var small = Skin.Small;
-                var smallWas = small.normal.textColor;
-                if (goes) small.normal.textColor = LinkText(kind, hover);
-                GUI.Label(new Rect(chip.x + U(32f), chip.y, chip.width - U(36f), chip.height), text, small);
-                small.normal.textColor = smallWas;
+                Skin.LabelIn(new Rect(chip.x + U(32f), chip.y, chip.width - U(36f), chip.height), text, Skin.Small, goes ? LinkText(kind, hover) : Skin.Text);
 
                 // Clicking an ingredient or a drop goes to it.
                 if (!string.IsNullOrEmpty(item.Prefab))
@@ -354,7 +350,7 @@ namespace Scry
 
             var copyW = U(70f);
             var box = new Rect(0f, y, width - copyW - U(8f), U(30f));
-            Skin.Box(box, new Color(0.055f, 0.060f, 0.073f, 1f), Skin.Outline);
+            Skin.Box(box, Skin.Sunken, Skin.Outline);
             var commandRect = new Rect(box.x + U(10f), box.y, box.width - U(14f), box.height);
             if (!FitLabel(commandRect, command, Skin.Label, 10f) && commandRect.Contains(Event.current.mousePosition)) AskTip("command", command);
             if (GUI.Button(new Rect(box.xMax + U(8f), y, copyW, U(30f)), "Copy", Skin.Button))

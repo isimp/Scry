@@ -242,11 +242,7 @@ namespace Scry
                 Skin.PillBox(chip, LinkFill(Kind.Item, hover));
                 var icon = PrefabIcon(key);
                 if (icon != null) DrawSprite(icon, new Rect(chip.x + U(6f), chip.y + U(4f), U(22f), U(22f)));
-                var small = Skin.Small;
-                var smallWas = small.normal.textColor;
-                small.normal.textColor = LinkText(Kind.Item, hover);
-                GUI.Label(new Rect(chip.x + U(32f), chip.y, chip.width - U(62f), chip.height), name, small);
-                small.normal.textColor = smallWas;
+                Skin.LabelIn(new Rect(chip.x + U(32f), chip.y, chip.width - U(62f), chip.height), name, Skin.Small, LinkText(Kind.Item, hover));
                 GUI.Label(cross, "\u00d7", Skin.Cross);
 
                 if (GUI.Button(cross, GUIContent.none, GUIStyle.none))

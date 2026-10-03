@@ -168,15 +168,17 @@ namespace Scry
                 return value;
             }
 
-            var hover = clear.Contains(e.mousePosition);
-            if (hover) Skin.Icon(clear, Skin.Circle, new Color(1f, 1f, 1f, 0.12f));
-            var style = Skin.Cross;
-            var was = style.normal.textColor;
-            style.normal.textColor = hover ? Skin.Text : Skin.Dim;
-            GUI.Label(new Rect(clear.x, clear.y - U(1f), clear.width, clear.height), "×", style);
-            style.normal.textColor = was;
-            if (hover) AskTip("clear-filter:" + control, "Clear the filter");
+            ClearCross(clear, "clear-filter:" + control, "Clear the filter");
             return value;
+        }
+
+        /// <summary>The cross that clears a box while it holds anything, lit under the mouse.</summary>
+        private static void ClearCross(Rect clear, string tipKey, string tip)
+        {
+            var hover = clear.Contains(Event.current.mousePosition);
+            if (hover) Skin.Icon(clear, Skin.Circle, Skin.Light(0.12f));
+            Skin.LabelIn(new Rect(clear.x, clear.y - U(1f), clear.width, clear.height), "×", Skin.Cross, hover ? Skin.Text : Skin.Dim);
+            if (hover) AskTip(tipKey, tip);
         }
 
         private static void Search(Explorer explorer, Rect rect)
@@ -221,14 +223,7 @@ namespace Scry
             }
             else
             {
-                var hover = clear.Contains(e.mousePosition);
-                if (hover) Skin.Icon(clear, Skin.Circle, new Color(1f, 1f, 1f, 0.12f));
-                var style = Skin.Cross;
-                var was = style.normal.textColor;
-                style.normal.textColor = hover ? Skin.Text : Skin.Dim;
-                GUI.Label(new Rect(clear.x, clear.y - U(1f), clear.width, clear.height), "×", style);
-                style.normal.textColor = was;
-                if (hover) AskTip("clear-search", "Clear the search");
+                ClearCross(clear, "clear-search", "Clear the search");
             }
 
             Assist.Suggestions(explorer, rect);

@@ -32,7 +32,7 @@ namespace Scry
             CountDrawn(PanelPart.TestNotice);
             var running = SelfTestHost.Running;
             var tone = running ? Skin.Accent : SelfTestHost.LastFailed ? Skin.Warn : Skin.KindColor(Kind.StatusEffect);
-            Skin.Fill(rect, new Color(tone.r, tone.g, tone.b, 0.13f));
+            Skin.Fill(rect, Skin.Alpha(tone, 0.13f));
             Skin.Fill(new Rect(rect.x, rect.y, U(3f), rect.height), tone);
             if (running) Skin.Fill(new Rect(rect.x, rect.yMax - U(3f), rect.width * SelfTestHost.Fraction, U(3f)), tone);
 

@@ -16,12 +16,8 @@ namespace Scry
             var width = Skin.Width(Skin.Glyph, label) + U(20f);
             var badge = new Rect(at.x, at.y, width, U(22f));
             _badgeWidth = width;
-            Skin.PillBox(badge, new Color(color.r * 0.28f, color.g * 0.28f, color.b * 0.28f, 0.95f));
-            var style = Skin.Glyph;
-            var was = style.normal.textColor;
-            style.normal.textColor = Color.Lerp(color, Color.white, 0.25f);
-            GUI.Label(badge, label, style);
-            style.normal.textColor = was;
+            Skin.PillBox(badge, Skin.Alpha(Skin.Shade(color, 0.28f), 0.95f));
+            Skin.LabelIn(badge, label, Skin.Glyph, Skin.Lift(color, 0.25f));
             return badge.xMax;
         }
 

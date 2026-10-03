@@ -60,11 +60,11 @@ namespace Scry
             if (e.type == EventType.Repaint)
             {
                 CountDrawn(PanelPart.Ruler);
-                Skin.Fill(new Rect(rect.center.x - U(1f), rect.y, U(2f), rect.height), new Color(1f, 1f, 1f, 0.22f));
+                Skin.Fill(new Rect(rect.center.x - U(1f), rect.y, U(2f), rect.height), Skin.Light(0.22f));
                 for (var i = 0; i < floors.Count; i++)
                 {
                     var y = Y(floors[i]);
-                    Skin.Fill(new Rect(rect.x, y - U(1f), rect.width, U(2f)), i == Stage.CutLevel ? Skin.Accent : new Color(1f, 1f, 1f, 0.6f));
+                    Skin.Fill(new Rect(rect.x, y - U(1f), rect.width, U(2f)), i == Stage.CutLevel ? Skin.Accent : Skin.Light(0.6f));
                 }
                 var cutY = Stage.Cutting ? Y(Stage.CutAt) : rect.y;
                 Skin.Fill(new Rect(rect.x - U(4f), cutY - U(1.5f), rect.width + U(8f), U(3f)), Skin.Accent);
@@ -75,7 +75,7 @@ namespace Scry
                 {
                     var labelW = Skin.Width(Skin.DimLabel, named) + U(12f);
                     var label = new Rect(rect.x - U(8f) - labelW, Mathf.Clamp(cutY - U(11f), stage.y, stage.yMax - U(22f)), labelW, U(22f));
-                    Skin.Fill(label, new Color(Skin.Stage.r, Skin.Stage.g, Skin.Stage.b, 0.75f));
+                    Skin.Fill(label, Skin.Alpha(Skin.Stage, 0.75f));
                     GUI.Label(new Rect(label.x + U(6f), label.y, label.width - U(6f), label.height), named, Skin.DimLabel);
                 }
             }

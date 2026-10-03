@@ -33,10 +33,7 @@ namespace Scry
         /// <summary>Text that can be clicked: in its colour, brighter under the mouse.</summary>
         private static void LinkLabel(Rect rect, string text, GUIStyle style, Color colour)
         {
-            var was = style.normal.textColor;
-            style.normal.textColor = rect.Contains(Event.current.mousePosition) ? Color.Lerp(colour, Color.white, 0.35f) : colour;
-            GUI.Label(rect, text, style);
-            style.normal.textColor = was;
+            Skin.LabelIn(rect, text, style, rect.Contains(Event.current.mousePosition) ? Skin.Lift(colour, 0.35f) : colour);
         }
 
         /// <summary>
@@ -47,16 +44,9 @@ namespace Scry
         private static bool LinkChip(Rect rect, string text, Kind? kind, bool lit, bool go)
         {
             var hover = go && rect.Contains(Event.current.mousePosition);
-            Skin.PillBox(rect, go || lit ? LinkFill(kind, hover, lit) : new Color(0.2f, 0.2f, 0.22f, 0.45f));
+            Skin.PillBox(rect, go || lit ? LinkFill(kind, hover, lit) : Skin.Unlinked);
 
-            var style = Skin.Small;
-            var was = style.normal.textColor;
-            var alignment = style.alignment;
-            style.normal.textColor = go || lit ? LinkText(kind, hover || lit) : Skin.Dim;
-            style.alignment = TextAnchor.MiddleCenter;
-            GUI.Label(rect, go ? GoText(text) : text, style);
-            style.normal.textColor = was;
-            style.alignment = alignment;
+            Skin.LabelIn(rect, go ? GoText(text) : text, Skin.SmallCenter, go || lit ? LinkText(kind, hover || lit) : Skin.Dim);
 
             return go && GUI.Button(rect, GUIContent.none, GUIStyle.none);
         }
@@ -66,14 +56,14 @@ namespace Scry
         {
             var colour = kind.HasValue ? Skin.KindColor(kind.Value) : Skin.Neutral;
             var fill = lit ? 0.55f : hover ? 0.36f : 0.22f;
-            return new Color(colour.r * fill, colour.g * fill, colour.b * fill, 0.95f);
+            return Skin.Alpha(Skin.Shade(colour, fill), 0.95f);
         }
 
         /// <summary>The text of anything that goes to an entry: its kind's colour, lighter.</summary>
         private static Color LinkText(Kind? kind, bool hover)
         {
             var colour = kind.HasValue ? Skin.KindColor(kind.Value) : Skin.Neutral;
-            return Color.Lerp(colour, Color.white, hover ? 0.6f : 0.35f);
+            return Skin.Lift(colour, hover ? 0.6f : 0.35f);
         }
 
         /// <summary>

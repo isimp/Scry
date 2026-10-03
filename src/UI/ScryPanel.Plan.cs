@@ -87,7 +87,7 @@ namespace Scry
                 return new Vector2(area.x + pad + (right - extent.MinRight) * scale, area.y + pad + (extent.MaxUp - up) * scale);
             }
 
-            Skin.Box(area, new Color(Skin.Stage.r, Skin.Stage.g, Skin.Stage.b, 0.82f), Skin.Outline);
+            Skin.Box(area, Skin.Alpha(Skin.Stage, 0.82f), Skin.Outline);
 
             // Its fold, in its top right corner.
             var fold = new Rect(area.xMax - U(18f), area.y + U(2f), U(16f), U(16f));
@@ -125,7 +125,7 @@ namespace Scry
             {
                 if (!ExamplePlan.DoorShown(at, floor)) continue;
                 var p = At(at);
-                Skin.Fill(new Rect(p.x - door / 2f, p.y - door / 2f, door, door), new Color(Skin.Accent.r, Skin.Accent.g, Skin.Accent.b, 0.85f));
+                Skin.Fill(new Rect(p.x - door / 2f, p.y - door / 2f, door, door), Skin.Alpha(Skin.Accent, 0.85f));
             }
 
             if (area.Contains(e.mousePosition))
@@ -157,13 +157,13 @@ namespace Scry
             var w = Mathf.Max(U(2f), shape.Size.X * scale);
             var h = Mathf.Max(U(2f), shape.Size.Z * scale);
             var tone = shape.Entrance ? Skin.Accent : shape.EndCap || shape.Divider ? Skin.Faint : Skin.KindColor(Kind.Location);
-            var fill = new Color(tone.r, tone.g, tone.b, shape.EndCap || shape.Divider ? 0.3f : hovered ? 0.7f : 0.4f);
+            var fill = Skin.Alpha(tone, shape.EndCap || shape.Divider ? 0.3f : hovered ? 0.7f : 0.4f);
 
             var was = GUI.matrix;
             GUIUtility.RotateAroundPivot(room.Rotation.YawDegrees - yaw, centre);
             var rect = new Rect(centre.x - w / 2f, centre.y - h / 2f, w, h);
             Skin.Fill(rect, fill);
-            PlanFrame(rect, hovered ? Skin.Accent : new Color(Skin.Text.r, Skin.Text.g, Skin.Text.b, 0.35f), hovered ? 2f : 1f);
+            PlanFrame(rect, hovered ? Skin.Accent : Skin.Alpha(Skin.Text, 0.35f), hovered ? 2f : 1f);
             GUI.matrix = was;
         }
 

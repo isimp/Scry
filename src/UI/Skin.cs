@@ -29,8 +29,25 @@ namespace Scry
         public static readonly Color WarnSoft = new Color(0.985f, 0.600f, 0.260f, 0.13f);
         public static readonly Color OnAccent = new Color(0.110f, 0.080f, 0.040f, 1f);
 
+        /// <summary>A well below the panel: a text box, a command shown to copy.</summary>
+        public static readonly Color Sunken = new Color(0.055f, 0.060f, 0.073f, 1f);
+
+        public static readonly Color SunkenHover = new Color(0.060f, 0.065f, 0.080f, 1f);
+
+        public static readonly Color TipFill = new Color(0.13f, 0.14f, 0.17f, 0.98f);
+
+        /// <summary>A chip that goes nowhere: the entry itself, or something not in the catalog.</summary>
+        public static readonly Color Unlinked = new Color(0.2f, 0.2f, 0.22f, 0.45f);
+
+        /// <summary>A creature's damage cells: resisting green, weak red, taking nothing blue.</summary>
+        public static readonly Color Resisting = new Color(0.56f, 0.82f, 0.52f);
+
+        public static readonly Color Weak = new Color(0.95f, 0.52f, 0.44f);
+
+        public static readonly Color Immune = new Color(0.52f, 0.76f, 0.98f);
+
         public static GUISkin Gui;
-        public static GUIStyle Title, Subtitle, Label, Small, DimLabel, FaintLabel, Heading, Big, Wrap, DimWrap;
+        public static GUIStyle Title, Subtitle, Label, Small, SmallCenter, DimLabel, FaintLabel, Heading, Big, Wrap, DimWrap;
         public static GUIStyle RowName, RowSub, Glyph, Center, CenterDim;
         public static GUIStyle Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close;
         public static GUIStyle Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross;
@@ -320,6 +337,7 @@ namespace Scry
             Subtitle = Style(13f, Faint);
             Label = Style(14f, Skin.Text);
             Small = Style(12f, Skin.Text);
+            SmallCenter = Style(12f, Skin.Text, FontStyle.Normal, TextAnchor.MiddleCenter);
             DimLabel = Style(13f, Dim);
             FaintLabel = Style(12f, Faint);
             Heading = Style(11f, Faint, FontStyle.Bold);
@@ -340,13 +358,13 @@ namespace Scry
 
             Button = Boxed(Style(13f, Skin.Text, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Rounded, scale);
             Primary = Boxed(Style(13f, OnAccent, FontStyle.Bold, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Rounded, scale);
-            On = Boxed(Style(13f, Accent, FontStyle.Bold, TextAnchor.MiddleCenter), new Color(0.96f, 0.72f, 0.34f, 0.20f), new Color(0.96f, 0.72f, 0.34f, 0.28f), new Color(0.96f, 0.72f, 0.34f, 0.36f), Rounded, scale);
+            On = Boxed(Style(13f, Accent, FontStyle.Bold, TextAnchor.MiddleCenter), Alpha(Accent, 0.20f), Alpha(Accent, 0.28f), Alpha(Accent, 0.36f), Rounded, scale);
             Chip = Boxed(Style(12f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Pill, scale);
             // Lit by its colour alone: bolder text would no longer fit a chip measured unlit.
             ChipOn = Boxed(Style(12f, OnAccent, FontStyle.Normal, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Pill, scale);
             Segment = Boxed(Style(12f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Rounded, scale);
             SegmentOn = Boxed(Style(12f, OnAccent, FontStyle.Bold, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Rounded, scale);
-            Close = Boxed(Style(20f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), new Color(0, 0, 0, 0), RaisedHover, Shade(RaisedHover, 1.3f), Rounded, scale);
+            Close = Boxed(Style(20f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Color.clear, RaisedHover, Shade(RaisedHover, 1.3f), Rounded, scale);
             Close.hover.textColor = Skin.Text;
             Close.padding = new RectOffset(0, 0, 0, 0);
 
@@ -357,7 +375,7 @@ namespace Scry
             IconButton.padding = new RectOffset(0, 0, 0, 0);
 
             // Kind tabs: flat until hovered, filled when chosen. The left padding leaves room for the kind's dot.
-            Tab = Boxed(Style(13f, Dim, FontStyle.Normal, TextAnchor.MiddleLeft), new Color(0, 0, 0, 0), RaisedHover, Shade(RaisedHover, 1.3f), Pill, scale);
+            Tab = Boxed(Style(13f, Dim, FontStyle.Normal, TextAnchor.MiddleLeft), Color.clear, RaisedHover, Shade(RaisedHover, 1.3f), Pill, scale);
             Tab.padding = new RectOffset(Px(24f), Px(12f), 0, 0);
             Tab.hover.textColor = Skin.Text;
             TabOn = Boxed(Style(13f, OnAccent, FontStyle.Bold, TextAnchor.MiddleLeft), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Pill, scale);
@@ -365,8 +383,8 @@ namespace Scry
             Tab.richText = true;
             TabOn.richText = true;
 
-            Tip = Boxed(Style(13f, Skin.Text), new Color(0.13f, 0.14f, 0.17f, 0.98f), new Color(0.13f, 0.14f, 0.17f, 0.98f), new Color(0.13f, 0.14f, 0.17f, 0.98f), Rounded, scale);
-            Tip.normal.background = Tint(Rounded, new Color(0.13f, 0.14f, 0.17f, 0.98f), new Color(1f, 1f, 1f, 0.16f));
+            Tip = Boxed(Style(13f, Skin.Text), TipFill, TipFill, TipFill, Rounded, scale);
+            Tip.normal.background = Tint(Rounded, TipFill, Light(0.16f));
             Tip.wordWrap = true;
             Tip.alignment = TextAnchor.UpperLeft;
             Tip.padding = new RectOffset(Px(10f), Px(10f), Px(7f), Px(7f));
@@ -380,13 +398,13 @@ namespace Scry
                 border = new RectOffset(10, 10, 10, 10),
                 clipping = TextClipping.Clip,
             };
-            Field.normal.background = Tint(Rounded, new Color(0.055f, 0.060f, 0.073f, 1f), Outline);
-            Field.hover.background = Tint(Rounded, new Color(0.060f, 0.065f, 0.080f, 1f), new Color(1f, 1f, 1f, 0.14f));
-            Field.focused.background = Tint(Rounded, new Color(0.060f, 0.065f, 0.080f, 1f), new Color(0.96f, 0.72f, 0.34f, 0.65f));
+            Field.normal.background = Tint(Rounded, Sunken, Outline);
+            Field.hover.background = Tint(Rounded, SunkenHover, Light(0.14f));
+            Field.focused.background = Tint(Rounded, SunkenHover, Alpha(Accent, 0.65f));
             Field.onNormal.background = Field.normal.background;
             Field.normal.textColor = Field.hover.textColor = Field.focused.textColor = Skin.Text;
             Gui.settings.cursorColor = Accent;
-            Gui.settings.selectionColor = new Color(0.96f, 0.72f, 0.34f, 0.35f);
+            Gui.settings.selectionColor = Alpha(Accent, 0.35f);
 
             Placeholder = Style(15f, Faint);
             Placeholder.padding = new RectOffset(Px(12f), 0, 0, 0);
@@ -398,7 +416,7 @@ namespace Scry
                 border = new RectOffset(4, 4, 4, 4),
                 margin = new RectOffset(Px(4f), 0, 0, 0),
             };
-            Gui.verticalScrollbar.normal.background = Tint(Pill, new Color(1f, 1f, 1f, 0.03f), null);
+            Gui.verticalScrollbar.normal.background = Tint(Pill, Light(0.03f), null);
             // IMGUI makes a thumb its share of the track plus its padding, and moves it over what
             // is left, so the padding is its shortest length: a long list keeps a thumb that can
             // be seen and caught rather than a dot.
@@ -408,9 +426,9 @@ namespace Scry
                 border = new RectOffset(4, 4, 4, 4),
                 padding = new RectOffset(0, 0, Px(16f), Px(16f)),
             };
-            Gui.verticalScrollbarThumb.normal.background = Tint(Pill, new Color(1f, 1f, 1f, 0.16f), null);
-            Gui.verticalScrollbarThumb.hover.background = Tint(Pill, new Color(1f, 1f, 1f, 0.26f), null);
-            Gui.verticalScrollbarThumb.active.background = Tint(Pill, new Color(0.96f, 0.72f, 0.34f, 0.7f), null);
+            Gui.verticalScrollbarThumb.normal.background = Tint(Pill, Light(0.16f), null);
+            Gui.verticalScrollbarThumb.hover.background = Tint(Pill, Light(0.26f), null);
+            Gui.verticalScrollbarThumb.active.background = Tint(Pill, Alpha(Accent, 0.7f), null);
             Gui.verticalScrollbarUpButton = new GUIStyle { fixedHeight = 0f, fixedWidth = 0f };
             Gui.verticalScrollbarDownButton = new GUIStyle { fixedHeight = 0f, fixedWidth = 0f };
 
@@ -504,10 +522,29 @@ namespace Scry
             return style;
         }
 
-        private static Color Shade(Color color, float factor)
+        /// <summary>A colour darkened (or brightened) by a factor, its strength kept: a fill under its own colour.</summary>
+        public static Color Shade(Color color, float factor)
         {
             return new Color(Mathf.Clamp01(color.r * factor), Mathf.Clamp01(color.g * factor), Mathf.Clamp01(color.b * factor), color.a);
         }
+
+        /// <summary>A label in a colour of its own; the style is left as it was for all else drawn in it.</summary>
+        public static void LabelIn(Rect rect, string text, GUIStyle style, Color color)
+        {
+            var was = style.normal.textColor;
+            style.normal.textColor = color;
+            GUI.Label(rect, text, style);
+            style.normal.textColor = was;
+        }
+
+        /// <summary>A colour at another strength, its hue kept: a fill under text, a mark over the stage.</summary>
+        public static Color Alpha(Color color, float alpha) => new Color(color.r, color.g, color.b, alpha);
+
+        /// <summary>White at a strength, laid over the panel's dark to lift what is under it: a hover, a track, a graph's ground.</summary>
+        public static Color Light(float alpha) => new Color(1f, 1f, 1f, alpha);
+
+        /// <summary>A colour lifted toward white by a share: text in its kind's colour, brighter under the mouse.</summary>
+        public static Color Lift(Color color, float share) => Color.Lerp(color, Color.white, share);
 
         /// <summary>
         /// The game's own fonts when they are loaded: its serif for text and its runic face for
