@@ -83,7 +83,7 @@ namespace Scry
             get
             {
                 if (_exampleHolder == null || !Cutting || _exampleIsDungeon && !_exampleHolder.activeSelf) return null;
-                return Floors[_cutLevel] - _exampleHolder.transform.localPosition.y;
+                return Floors[TheCut.Level] - _exampleHolder.transform.localPosition.y;
             }
         }
 
@@ -422,7 +422,7 @@ namespace Scry
             var outside = _lastShown?.Source is PlaceSource place ? PlaceView.Ground(place.Contents, place.IsRoom) : 0f;
             _bodyMinY = Origin.y + (inside ? floors[floors.Count - 1] : outside) * _baseScale.y;
             _bounds = Unscaled(Measure(_subject));
-            _cutFor = null;
+            TheCut.ForgetEntry();
             SetFloors(_lastShown, floors, open: inside);
             _frameRadius = -1f;
             _pan = Vector3.zero;

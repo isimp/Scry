@@ -14,49 +14,38 @@ namespace Scry
     /// off and puts it back, its arrows, Page Up and Down and the ruler step a floor up or down,
     /// the ruler sets the cut anywhere, and Shift with the wheel moves it. Looked at from below
     /// the cut, nothing is cut. With a floor opened the camera looks at that floor, framed on
-    /// what stands on it (<see cref="FloorFrame"/>).
+    /// what stands on it (<see cref="FloorFrame"/>). Which floor is opened and where it is cut
+    /// is kept by <see cref="FloorCut"/>; the camera tilts down to look in as one is opened.
     /// </summary>
     internal static partial class Stage
     {
+        /// <summary>The floors of the place shown and the cut opening one of them.</summary>
+        private static readonly FloorCut TheCut = new FloorCut();
+
         /// <summary>The floors of the place shown, from the top down, above its root as if at size one; none for anything else.</summary>
-        private static readonly List<float> Floors = new List<float>();
-
-        /// <summary>Where each floor is cut (<see cref="PlaceView.CutHeights"/>).</summary>
-        private static List<float> _cuts = new List<float>();
-
-        /// <summary>The floor last opened, which taking the roof off again opens.</summary>
-        private static int _lastOpen;
-
-        /// <summary>Which floor is opened; one past the last for none.</summary>
-        private static int _cutLevel;
-
-        /// <summary>How far the cut has been moved from its floor's height, in metres.</summary>
-        private static float _cutShift;
-
-        /// <summary>The entry the floors are of, so a new copy of the same keeps its cut.</summary>
-        private static Entry _cutFor;
+        private static IReadOnlyList<float> Floors => TheCut.Floors;
 
         /// <summary>How steeply the camera looks down on a place opened, to see in over its walls.</summary>
         private const float CutPitch = 40f;
 
         /// <summary>Whether the model shown can be cut open.</summary>
-        public static bool HasFloors => Floors.Count > 0;
+        public static bool HasFloors => TheCut.HasFloors;
 
         /// <summary>Whether it is cut open now.</summary>
-        public static bool Cutting => _cutLevel < Floors.Count;
+        public static bool Cutting => TheCut.Cutting;
 
         /// <summary>What the cut's chip says.</summary>
-        public static string CutLabel => PlaceView.CutLabel(_cutLevel, Floors.Count);
+        public static string CutLabel => TheCut.Label;
 
         /// <summary>Where it is cut, above its root as if at size one.</summary>
-        public static float CutAt => Cutting ? _cuts[_cutLevel] + _cutShift : float.PositiveInfinity;
+        public static float CutAt => TheCut.At;
 
         /// <summary>The floors, from the top down, and where each is cut, for the ruler.</summary>
-        public static IReadOnlyList<float> FloorHeights => Floors;
-        public static IReadOnlyList<float> CutHeights => _cuts;
+        public static IReadOnlyList<float> FloorHeights => TheCut.Floors;
+        public static IReadOnlyList<float> CutHeights => TheCut.Cuts;
 
         /// <summary>Which floor is opened, from the top; <see cref="FloorHeights"/>' count for the roof on.</summary>
-        public static int CutLevel => _cutLevel;
+        public static int CutLevel => TheCut.Level;
 
         /// <summary>How low and how high the model reaches, above its root as if at size one.</summary>
         public static float ModelBottom => _subject == null ? 0f : _bounds.min.y - Origin.y;
@@ -65,44 +54,41 @@ namespace Scry
         /// <summary>Opens the floor below, or the top floor from the roof; goes up a floor, or puts the roof back from the top floor.</summary>
         public static void StepCut(bool down)
         {
-            if (Floors.Count == 0) return;
-            OpenLevel(PlaceView.StepCut(_cutLevel, Floors.Count, down));
+            TheCut.Step(down);
+            TiltToCut();
         }
 
         /// <summary>Takes the roof off, opening the floor last opened, or puts it back.</summary>
         public static void ToggleRoof()
         {
-            if (Floors.Count == 0) return;
-            OpenLevel(Cutting ? Floors.Count : Mathf.Clamp(_lastOpen, 0, Floors.Count - 1));
+            TheCut.ToggleRoof();
+            TiltToCut();
         }
 
         /// <summary>Opens a floor (from the top), or puts the roof on past the last.</summary>
         public static void OpenLevel(int level)
         {
-            if (Floors.Count == 0) return;
-            _cutLevel = Mathf.Clamp(level, 0, Floors.Count);
-            _cutShift = 0f;
-            if (Cutting)
-            {
-                _lastOpen = _cutLevel;
-                if (Pitch < CutPitch / 2f) Pitch = CutPitch;
-            }
+            TheCut.Open(level);
+            TiltToCut();
         }
 
-        /// <summary>Cuts at a height set by hand, opening the floor it is over (<see cref="PlaceView.LevelAt"/>).</summary>
+        /// <summary>With a floor opened, the camera looks down into it when it looks along it.</summary>
+        private static void TiltToCut()
+        {
+            if (TheCut.Cutting && Pitch < CutPitch / 2f) Pitch = CutPitch;
+        }
+
+        /// <summary>Cuts at a height set by hand, opening the floor it is over (<see cref="PlaceView.LevelAt"/>), the camera tilting only as one is opened.</summary>
         public static void CutTo(float height)
         {
-            if (Floors.Count == 0) return;
-            var level = PlaceView.LevelAt(Floors, height);
-            if (level != _cutLevel || !Cutting) OpenLevel(level);
-            _cutShift = height - _cuts[_cutLevel];
+            if (!TheCut.HasFloors) return;
+            var opens = !TheCut.Cutting || PlaceView.LevelAt(TheCut.Floors, height) != TheCut.Level;
+            TheCut.CutTo(height);
+            if (opens) TiltToCut();
         }
 
         /// <summary>Moves the cut up or down.</summary>
-        public static void CutBy(float metres)
-        {
-            if (Cutting) _cutShift += metres;
-        }
+        public static void CutBy(float metres) => TheCut.CutBy(metres);
 
         /// <summary>
         /// Takes the floors of the place shown. The first time for an entry, a room is opened on
@@ -111,30 +97,11 @@ namespace Scry
         /// </summary>
         private static void SetFloors(Entry entry, IEnumerable<float> floors, bool open)
         {
-            Floors.Clear();
-            if (floors != null) Floors.AddRange(floors);
-            _cuts = PlaceView.CutHeights(Floors);
-            if (ReferenceEquals(_cutFor, entry))
-            {
-                _cutLevel = Mathf.Min(_cutLevel, Floors.Count);
-                return;
-            }
-            _cutFor = entry;
-            _cutShift = 0f;
-            _lastOpen = 0;
-            _cutLevel = open ? 0 : Floors.Count;
-            if (Cutting) Pitch = CutPitch;
+            if (TheCut.Take(entry, floors, open) && TheCut.Cutting) Pitch = CutPitch;
         }
 
         /// <summary>Takes floors found anew for the place shown (an example's, as its rooms come in), keeping the floor opened where it can.</summary>
-        private static void RefreshFloors(IEnumerable<float> floors)
-        {
-            var roofOn = !Cutting;
-            Floors.Clear();
-            Floors.AddRange(floors);
-            _cuts = PlaceView.CutHeights(Floors);
-            _cutLevel = roofOn ? Floors.Count : Mathf.Min(_cutLevel, Math.Max(0, Floors.Count - 1));
-        }
+        private static void RefreshFloors(IEnumerable<float> floors) => TheCut.Refresh(floors);
 
         /// <summary>
         /// The floors of a place's copy, made with its colliders: found in the model, a location's
@@ -157,15 +124,7 @@ namespace Scry
             return PlaceView.WithGround(found);
         }
 
-        private static void ClearFloors()
-        {
-            Floors.Clear();
-            _cuts.Clear();
-            _cutFor = null;
-            _cutLevel = 0;
-            _lastOpen = 0;
-            _cutShift = 0f;
-        }
+        private static void ClearFloors() => TheCut.Clear();
 
         /// <summary>
         /// Lays the camera's near plane along the cut, once the camera is placed for the frame,

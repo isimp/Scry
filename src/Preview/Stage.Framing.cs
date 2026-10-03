@@ -177,8 +177,8 @@ namespace Scry
         /// </summary>
         private static Vector4? FloorFrame()
         {
-            if (!Cutting || _subject == null || _cutLevel >= Floors.Count) return null;
-            var y = Origin.y + Floors[_cutLevel] * _scale;
+            if (!Cutting || _subject == null || TheCut.Level >= Floors.Count) return null;
+            var y = Origin.y + Floors[TheCut.Level] * _scale;
             var across = ExampleFloorAcross();
             if (across == null)
             {
