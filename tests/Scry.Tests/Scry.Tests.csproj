@@ -25,4 +25,18 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
 
+  <!-- The standards tests compile Scry's whole source as the build does, with the reference
+       copies in lib/ and the .NET Framework 4.7.2 reference assemblies, and read it with the
+       compiler's own types (the compiler version the SDK builds with). -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3" GeneratePathProperty="true" ExcludeAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>Net472References</_Parameter1>
+      <_Parameter2>$(PkgMicrosoft_NETFramework_ReferenceAssemblies_net472)/build/.NETFramework/v4.7.2</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>
