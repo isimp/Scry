@@ -151,9 +151,12 @@ namespace Scry
             /// <summary>Each frame: copies dropped are taken down once made, and what waited for no copy to be made is let go of.</summary>
             public static void Tick()
             {
-                foreach (var made in Dropped.Where(d => d.isDone).ToArray())
+                // Every frame, the panel open or not: nothing is made for it while nothing waits.
+                for (var i = Dropped.Count - 1; i >= 0; i--)
                 {
-                    Dropped.Remove(made);
+                    var made = Dropped[i];
+                    if (!made.isDone) continue;
+                    Dropped.RemoveAt(i);
                     TakeDown(made);
                 }
                 if (AfterMaking.Count == 0 || BeingMade) return;

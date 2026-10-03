@@ -76,7 +76,7 @@ namespace Scry.Tests
             var kept = WorldCollections().Where(c => !LetGoOtherwise.Contains(c.Class + "." + c.Field)).ToList();
             Assert.NotEmpty(kept);
 
-            var never = kept.Where(c => !Regex.IsMatch(c.Source, $@"\b{c.Field}\s*(\.Clear\(\)|\.Remove\(|=\s*(null|new)\b)"))
+            var never = kept.Where(c => !Regex.IsMatch(c.Source, $@"\b{c.Field}\s*(\.Clear\(\)|\.Remove(At|All)?\(|=\s*(null|new)\b)"))
                 .Select(c => c.Class + "." + c.Field).ToList();
             Assert.True(never.Count == 0, "Never let go of: " + string.Join(", ", never));
         }
