@@ -194,6 +194,21 @@ namespace Scry
             // The search help's index holds the whole catalog.
             MemberKeys.Clear();
             Assist.Forget();
+
+            // What the panel last drew for, which would keep the world left alive until drawn again.
+            _firstClip = null;
+            _firstEffect = default;
+            _foundInFor = null;
+            _foundInOf = null;
+            _foundInIn = null;
+            FoundInItems.Clear();
+            _reportFor = null;
+            _report = null;
+            _modCountFor = null;
+            _planOf = null;
+            PlanRooms.Clear();
+            _slideFor = null;
+            _viewFor = null;
         }
 
         /// <summary>How many times the open panel has been drawn this session.</summary>

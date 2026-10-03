@@ -81,6 +81,35 @@ namespace Scry.Tests
             Assert.True(never.Count == 0, "Never let go of: " + string.Join(", ", never));
         }
 
+        /// <summary>A field holding one thing of a world: an entry, the explorer over the catalog, a prefab or a part of one.</summary>
+        private static readonly Regex SingleField = new Regex(
+            @"^\s+(?:private|internal|public)\s+static\s+(?!readonly)(Entry|Explorer|GameObject|EffectList|AnimationClip|StatusEffect|DungeonExample|PlaceSource|KeyValuePair<string, EffectList>)\s+(\w+)\s*(?:=(?!>)|;)", RegexOptions.Multiline);
+
+        /// <summary>What holds one thing but is Scry's own, made once and kept from world to world, with why.</summary>
+        private static readonly HashSet<string> OwnAcrossWorlds = new HashSet<string>
+        {
+            "Ghost._holder",          // the sleeping holder copies are made under, Scry's own
+            "MusicPreview._player",   // the music player, Scry's own, which plays nothing between worlds
+            "ClipPlayer._ofCopy",     // a frame's answer, asked again for any other copy or frame
+        };
+
+        [Fact]
+        public void WhatIsKeptOfAWorldInASingleFieldIsLetGoOfToo()
+        {
+            var never = new List<string>();
+            foreach (var pair in SourceByClass())
+            {
+                var all = string.Join("\n", pair.Value);
+                foreach (Match field in SingleField.Matches(all))
+                {
+                    var name = field.Groups[2].Value;
+                    if (OwnAcrossWorlds.Contains(pair.Key + "." + name)) continue;
+                    if (!Regex.IsMatch(all, $@"\b{name}\s*=\s*(null|default)\b|Destroy\(ref {name}\)")) never.Add(pair.Key + "." + name);
+                }
+            }
+            Assert.True(never.Count == 0, "Never let go of: " + string.Join(", ", never));
+        }
+
         [Fact]
         public void EveryClassKeepingSomethingOfAWorldIsForgottenWhenItIsLeft()
         {
