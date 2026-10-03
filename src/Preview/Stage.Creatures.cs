@@ -102,7 +102,7 @@ namespace Scry
             Creatures.Step(CreatureBudgetMs, waiting =>
             {
                 var copy = MakeCreature(waiting.Creature, waiting.At, waiting.Rise, waiting.Level);
-                if (copy != null && waiting.Room != null && DimmedRooms.Contains(waiting.Room)) Dim.Set(copy, true);
+                if (copy != null && waiting.Room != null && ExampleRoomDimmed(waiting.Room)) Dim.Set(copy, true);
                 return copy;
             });
             Timing.Add("stage creatures", made);

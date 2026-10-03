@@ -49,8 +49,7 @@ namespace Scry
         public static bool WaterShown => TheGround.WaterShown;
 
         /// <summary>Whether what is shown is underground: a dungeon's inside, or a room of one.</summary>
-        private static bool Underground =>
-            (_lastShown?.Source is PlaceSource place && place.IsRoom) || (_exampleIsDungeon && _exampleHolder != null && _exampleHolder.activeSelf);
+        private static bool Underground => (_lastShown?.Source is PlaceSource place && place.IsRoom) || ExampleInside;
 
         /// <summary>Each frame: the ground or the plain floor as the backdrop has it, of the biome of what is shown.</summary>
         private static void KeepGround()
