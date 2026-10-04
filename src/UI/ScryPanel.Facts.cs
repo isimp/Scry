@@ -431,9 +431,8 @@ namespace Scry
                     return y + U(30f);
 
                 default:
-                    const string text = "Find it in locations and dungeons";
-                    var w = Skin.Width(Skin.Chip, text) + U(8f);
-                    if (GUI.Button(new Rect(0f, y, Mathf.Min(width, w), U(26f)), text, Skin.Chip)) StartReadingLocations();
+                    var w = Skin.Width(Skin.Chip, LocationsButtonText) + U(8f);
+                    if (GUI.Button(new Rect(0f, y, Mathf.Min(width, w), U(26f)), LocationsButtonText, Skin.Chip)) StartReadingLocations();
                     y += U(30f);
                     const string note = "Reads each of this world's locations and dungeon rooms once, in the background, over a few minutes.";
                     var height = Skin.Height(Skin.DimWrap, note, width);

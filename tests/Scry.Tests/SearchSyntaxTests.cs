@@ -145,6 +145,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheHelpNamesEveryKindByAWordThatPicksIt()
+        {
+            var line = Kinds.HelpLine();
+            foreach (Kind kind in System.Enum.GetValues(typeof(Kind)))
+            {
+                var word = Kinds.TermWord(kind);
+                Assert.Contains(word, line);
+                foreach (Kind other in System.Enum.GetValues(typeof(Kind))) Assert.Equal(other == kind, Search.KindMatches(other, word));
+            }
+            Assert.StartsWith("Only one kind: creature, item, piece,", line);
+            Assert.Contains("se (status effect)", line);
+        }
+
+        [Fact]
         public void AnEmptyTermMatchesNothingInsteadOfEverything()
         {
             Assert.Empty(Find("has:"));

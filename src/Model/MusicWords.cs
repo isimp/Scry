@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Scry
 {
     /// <summary>How music played for an entry is stopped, by where it was started.</summary>
@@ -27,6 +29,20 @@ namespace Scry
 
         /// <summary>Said for a place whose model, which holds its music, has not loaded yet.</summary>
         public const string NotLoaded = "Its music is known once its model has loaded.";
+
+        /// <summary>A piece of music in words, whatever the game calls it: "BlackForestLocationMusic" as "Black forest location music", "boss_eikthyr" as "Boss eikthyr".</summary>
+        public static string Name(string music)
+        {
+            if (string.IsNullOrEmpty(music)) return "";
+            var words = new StringBuilder();
+            foreach (var c in music)
+            {
+                var apart = c == '_' || c == ' ';
+                if ((apart || char.IsUpper(c)) && words.Length > 0 && words[words.Length - 1] != ' ') words.Append(' ');
+                if (!apart) words.Append(char.ToLowerInvariant(c));
+            }
+            return Naming.Capital(words.ToString().Trim());
+        }
 
         /// <summary>The tip of a piece of music named in a thing's facts, which a click plays or stops.</summary>
         public static string Tip(bool playing) => playing ? "Stop it" : "Play it";

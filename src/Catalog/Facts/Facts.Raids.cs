@@ -35,7 +35,7 @@ namespace Scry
             {
                 var range = EnemyHud.instance != null ? EnemyHud.instance.m_maxShowDistanceBoss : 100f;
                 Add("On", RaidWords.WhileFighting(AnyName(boss, boss.name), range), boss.name);
-                Add("Music", Naming.FieldLabel(raid.m_forceMusic), EntryKeys.PlayMusic);
+                Add("Music", MusicWords.Name(raid.m_forceMusic), EntryKeys.PlayMusic);
                 Add("Weather", Weather(raid.m_forceEnvironment));
                 if (!string.IsNullOrEmpty(raid.m_forceEnvironment)) Hooked(HookedRule.Weather);
                 if (!raid.m_random && raid.m_standaloneInterval <= 0f) return;
@@ -59,7 +59,7 @@ namespace Scry
             Add("Ends with", CatalogBuilder.Localize(raid.m_endMessage));
             if (boss == null)
             {
-                Add("Music", Naming.FieldLabel(raid.m_forceMusic), EntryKeys.PlayMusic);
+                Add("Music", MusicWords.Name(raid.m_forceMusic), EntryKeys.PlayMusic);
                 Add("Weather", Weather(raid.m_forceEnvironment));
                 if (!string.IsNullOrEmpty(raid.m_forceEnvironment)) Hooked(HookedRule.Weather);
             }

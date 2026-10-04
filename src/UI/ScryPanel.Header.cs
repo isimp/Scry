@@ -133,8 +133,8 @@ namespace Scry
             GUI.enabled = was && explorer.CanGoForward;
             if (GUI.Button(forward, "\u203A", Skin.IconButton)) Step(explorer, false);
             GUI.enabled = was;
-            if (back.Contains(Event.current.mousePosition)) AskTip("back", "Back to the entry shown before (mouse back button)");
-            if (forward.Contains(Event.current.mousePosition)) AskTip("forward", "Forward again (mouse forward button)");
+            if (back.Contains(Event.current.mousePosition)) AskTip("back", "Back to the entry shown before (Alt+← or the mouse's back button)");
+            if (forward.Contains(Event.current.mousePosition)) AskTip("forward", "Forward again (Alt+→ or the mouse's forward button)");
         }
 
         /// <summary>Goes back or forward, and shows where it lands.</summary>
@@ -218,7 +218,7 @@ namespace Scry
 
             if (!hasText)
             {
-                GUI.Label(rect, "Search by name", Skin.Placeholder);
+                GUI.Label(rect, "Search by name or kind:, in:, has:…", Skin.Placeholder);
             }
             else
             {

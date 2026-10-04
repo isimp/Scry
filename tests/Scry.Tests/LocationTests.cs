@@ -25,26 +25,26 @@ namespace Scry.Tests
         [Fact]
         public void APlacesOwnMusicPlaysWhenYouComeNear()
         {
-            Assert.Equal("Music_FulingCamp when you come near. Enter plays it", LocationWords.Music(new[] { Tune("Music_FulingCamp", MusicWhen.Near) }));
+            Assert.Equal("Music fuling camp when you come near. Enter plays it", LocationWords.Music(new[] { Tune("Music_FulingCamp", MusicWhen.Near) }));
         }
 
         [Fact]
         public void MusicOnSteppingInsideTellsHowOftenItPlays()
         {
-            Assert.Equal("Location_Crypt each time you step inside. Enter plays it", LocationWords.Music(new[] { Tune("Location_Crypt", MusicWhen.Inside) }));
-            Assert.Equal("Location_Crypt on 70% of the times you step inside. Enter plays it", LocationWords.Music(new[] { Tune("Location_Crypt", MusicWhen.Inside, 0.7f) }));
+            Assert.Equal("Location crypt each time you step inside. Enter plays it", LocationWords.Music(new[] { Tune("Location_Crypt", MusicWhen.Inside) }));
+            Assert.Equal("Location crypt on 70% of the times you step inside. Enter plays it", LocationWords.Music(new[] { Tune("Location_Crypt", MusicWhen.Inside, 0.7f) }));
         }
 
         [Fact]
         public void TheMusicOfTheWeatherInsidePlaysWhileYouAreInside()
         {
-            Assert.Equal("crypt while you are inside. Enter plays it", LocationWords.Music(new[] { Tune("crypt", MusicWhen.Weather) }));
+            Assert.Equal("Crypt while you are inside. Enter plays it", LocationWords.Music(new[] { Tune("crypt", MusicWhen.Weather) }));
         }
 
         [Fact]
         public void SeveralPiecesOfMusicAreToldInTurnAndEnterPlaysTheFirst()
         {
-            Assert.Equal("Music_StoneHenge when you come near; crypt while you are inside. Enter plays the first",
+            Assert.Equal("Music stone henge when you come near; Crypt while you are inside. Enter plays the first",
                 LocationWords.Music(new[] { Tune("Music_StoneHenge", MusicWhen.Near), Tune("crypt", MusicWhen.Weather) }));
         }
 

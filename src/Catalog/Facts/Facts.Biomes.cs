@@ -16,7 +16,7 @@ namespace Scry
         {
             foreach (var (weather, share) in BiomeWords.Weathers(biome.Weathers)) Add(BiomeWords.ShareOfTime(share), Weather(weather));
             if (biome.Weathers.Count > 0) Hooked(HookedRule.Weather);
-            foreach (var (label, music) in BiomeWords.Music(biome.Morning, biome.Evening, biome.Day, biome.Night)) Add(label, Naming.FieldLabel(music), EntryKeys.PlayMusicNamed(music));
+            foreach (var (label, music) in BiomeWords.Music(biome.Morning, biome.Evening, biome.Day, biome.Night)) Add(label, MusicWords.Name(music), EntryKeys.PlayMusicNamed(music));
 
             var catalog = WorldCatalog.Current?.All;
             if (catalog == null) return;

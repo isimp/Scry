@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+
 namespace Scry
 {
     /// <summary>What a prefab is, as far as previewing it goes.</summary>
@@ -163,6 +166,16 @@ namespace Scry
         {
             if (traits.IsStatusEffect) return false;
             return !(traits.HasRenderer || traits.HasParticles || traits.HasLight || traits.HasAudio);
+        }
+
+        /// <summary>The word that picks a kind in a search's kind: term, as the search's help gives it.</summary>
+        public static string TermWord(Kind kind) => kind == Kind.StatusEffect ? "se" : kind.ToString().ToLowerInvariant();
+
+        /// <summary>The search help's line for the kind: term, naming every kind by the word that picks it.</summary>
+        public static string HelpLine()
+        {
+            var words = ((Kind[])Enum.GetValues(typeof(Kind))).Select(k => k == Kind.StatusEffect ? TermWord(k) + " (status effect)" : TermWord(k));
+            return $"Only one kind: {Naming.Commas(words)}.";
         }
 
         /// <summary>The name a kind goes by in the panel, in the plural.</summary>

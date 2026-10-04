@@ -304,15 +304,15 @@ namespace Scry
                 switch (tune.When)
                 {
                     case MusicWhen.Near:
-                        lines.Add(tune.Name + " when you come near");
+                        lines.Add(MusicWords.Name(tune.Name) + " when you come near");
                         break;
                     case MusicWhen.Inside:
                         lines.Add(tune.Chance >= 1f
-                            ? tune.Name + " each time you step inside"
-                            : tune.Name + " on " + Numbers.Percent(tune.Chance, 1) + " of the times you step inside");
+                            ? MusicWords.Name(tune.Name) + " each time you step inside"
+                            : MusicWords.Name(tune.Name) + " on " + Numbers.Percent(tune.Chance, 1) + " of the times you step inside");
                         break;
                     default:
-                        lines.Add(tune.Name + " while you are inside");
+                        lines.Add(MusicWords.Name(tune.Name) + " while you are inside");
                         break;
                 }
             }

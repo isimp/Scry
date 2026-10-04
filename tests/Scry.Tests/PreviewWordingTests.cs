@@ -37,6 +37,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APieceOfMusicIsNamedInWordsWhateverTheGameCallsIt()
+        {
+            Assert.Equal("Black forest location music", MusicWords.Name("BlackForestLocationMusic"));
+            Assert.Equal("Music fuling camp", MusicWords.Name("Music_FulingCamp"));
+            Assert.Equal("Boss eikthyr", MusicWords.Name("boss_eikthyr"));
+            Assert.Equal("Crypt", MusicWords.Name("crypt"));
+            Assert.Equal("", MusicWords.Name(null));
+        }
+
+        [Fact]
         public void PlayingMusicSaysHowToStopItWhereItWasStarted()
         {
             Assert.Equal("Playing Meadows; Enter again stops it.", MusicWords.Playing("Meadows", MusicStop.Enter));

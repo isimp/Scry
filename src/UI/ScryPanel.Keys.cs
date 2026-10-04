@@ -33,6 +33,13 @@ namespace Scry
                     else AskClose();
                     e.Use();
                     break;
+                case KeyCode.LeftArrow:
+                case KeyCode.RightArrow:
+                    // Alt and an arrow go back and forward, as in a browser; without Alt the arrows are the text box's.
+                    if (!e.alt) break;
+                    Step(explorer, e.keyCode == KeyCode.LeftArrow);
+                    e.Use();
+                    break;
                 case KeyCode.UpArrow:
                     Step(explorer, -1);
                     e.Use();
