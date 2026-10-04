@@ -37,10 +37,7 @@ namespace Scry
         public readonly List<KeyValuePair<string, string>> Terms = new List<KeyValuePair<string, string>>();
         public readonly List<KeyValuePair<string, string>> NotTerms = new List<KeyValuePair<string, string>>();
 
-        /// <summary>A term with nothing after its colon, which nothing can match.</summary>
-        public bool Unanswerable;
-
-        public bool IsEmpty => Words.Count == 0 && NotWords.Count == 0 && Terms.Count == 0 && NotTerms.Count == 0 && !Unanswerable;
+        public bool IsEmpty => Words.Count == 0 && NotWords.Count == 0 && Terms.Count == 0 && NotTerms.Count == 0;
 
         private Matcher _matcher;
 
@@ -58,11 +55,9 @@ namespace Scry
         public readonly List<string> NotWords = new List<string>();
         public readonly List<Term> Terms = new List<Term>();
         public readonly List<Term> NotTerms = new List<Term>();
-        public readonly bool Unanswerable;
 
         public Matcher(ParsedSearch search)
         {
-            Unanswerable = search.Unanswerable;
             foreach (var word in search.Words) Words.Add(word.ToUpperInvariant());
             foreach (var word in search.NotWords) NotWords.Add(word.ToUpperInvariant());
             foreach (var term in search.Terms) Terms.Add(new Term(term.Key, term.Value));
@@ -128,12 +123,9 @@ namespace Scry
                 if (key != null && OldKeys.TryGetValue(key, out var current)) key = current;
                 if (key != null && Array.IndexOf(Keys, key) >= 0)
                 {
+                    // A term still being typed, its value not yet there, is left out until it has one.
                     var value = word.Substring(colon + 1);
-                    if (value.Length == 0)
-                    {
-                        if (!not) parsed.Unanswerable = true;
-                        continue;
-                    }
+                    if (value.Length == 0) continue;
                     (not ? parsed.NotTerms : parsed.Terms).Add(new KeyValuePair<string, string>(key, value));
                     continue;
                 }
@@ -261,8 +253,6 @@ namespace Scry
         /// </summary>
         private static int Score(Entry entry, Matcher search)
         {
-            if (search.Unanswerable) return Miss;
-
             foreach (var term in search.Terms) if (!TermMatches(entry, term)) return Miss;
             foreach (var term in search.NotTerms) if (TermMatches(entry, term)) return Miss;
             foreach (var word in search.NotWords)

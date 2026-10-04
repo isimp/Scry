@@ -159,9 +159,13 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void AnEmptyTermMatchesNothingInsteadOfEverything()
+        public void AnUnfinishedTermIsLeftOutUntilItHasAValue()
         {
-            Assert.Empty(Find("has:"));
+            // While "kind:" is typed, before its value, the list stays as it was and the suggestions show.
+            Assert.Equal(Find(""), Find("has:"));
+            Assert.Equal(Find("troll"), Find("troll kind:"));
+            Assert.Equal(Find("troll"), Find("troll -has:"));
+            Assert.NotEmpty(Find("kind:"));
         }
 
         [Fact]
