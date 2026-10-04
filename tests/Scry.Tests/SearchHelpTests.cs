@@ -76,6 +76,20 @@ namespace Scry.Tests
         // ----- What is suggested -----
 
         [Fact]
+        public void AfterACommaTheNextValueIsSuggestedKeepingTheOnesBefore()
+        {
+            var first = Suggest("biome:swamp,bl").First();
+            Assert.Equal("biome:swamp,blackforest", first.Insert);
+            Assert.Equal("Black forest", first.Label);
+            // It finds what either finds.
+            Assert.Equal(Find("biome:swamp,blackforest").Count, first.Count);
+            Assert.Equal("-kind:creature,item", Suggest("-kind:creature,it").First().Insert);
+            // A value already there is not offered again.
+            Assert.DoesNotContain("biome:swamp,swamp", Suggest("biome:swamp,").Select(s => s.Insert));
+            Assert.Contains("biome:swamp,blackforest", Suggest("biome:swamp,").Select(s => s.Insert));
+        }
+
+        [Fact]
         public void NothingTypedYetOffersEveryKeyWithWhatItLooksFor()
         {
             var keys = Suggest("");

@@ -159,6 +159,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ACommaInATermReadsAsOr()
+        {
+            Assert.Equal(new[] { "Draugr", "BlobElite", "foresttrolls", "Troll" }, Find("biome:swamp,blackforest"));
+            Assert.Equal(new[] { "Draugr", "BlobElite", "foresttrolls", "Troll" }, Find("kind:creature,raid"));
+            Assert.Equal(new[] { "Draugr", "Troll" }, Find("has:humanoid,piece kind:creature"));
+            // Left out with a minus, whatever matches any of them is left out.
+            Assert.Empty(Find("kind:creature -biome:swamp,blackforest"));
+            // A comma with nothing after it yet is passed over while the next value is typed.
+            Assert.Equal(Find("biome:swamp"), Find("biome:swamp,"));
+            Assert.Equal(Find(""), Find("biome:,"));
+        }
+
+        [Fact]
         public void AnUnfinishedTermIsLeftOutUntilItHasAValue()
         {
             // While "kind:" is typed, before its value, the list stays as it was and the suggestions show.

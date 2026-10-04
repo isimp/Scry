@@ -71,6 +71,7 @@ namespace Scry
             new[] { "mod:epic", "What a mod added, by the start or any part of its name." },
             new[] { "playedby:troll", "The sounds and effects a prefab plays." },
             new[] { "station:forge3", "What is made at that station, here what a forge at level 3 can make. station:forge for any level, station:hand for what needs none." },
+            new[] { "biome:swamp,plains", "A comma reads as or, in any term." },
             new[] { "-has:ragdoll kind:c", "Terms combine, can be left out with a minus, and can be shortened." },
             new[] { "Tab", "Completes the word being typed with a term or a value the catalog holds, as the list under the search suggests. Tab again for the next, Shift+Tab for the one before; Enter takes the marked one." },
         };

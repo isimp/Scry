@@ -28,7 +28,8 @@ namespace Scry
     /// results. A word with a known key and a colon narrows the list by something else:
     /// <c>kind:</c>, <c>has:</c> (a component), <c>biome:</c>, <c>mod:</c>, <c>playedby:</c> (the prefabs
     /// that play an effect; <c>used:</c> is its older spelling), <c>station:</c> (where it is made) and <c>in:</c> (a location or dungeon
-    /// it is found in, once they are read). A minus in front of a word or a term leaves out what matches it.
+    /// it is found in, once they are read). A comma in a term's value reads as or: <c>biome:swamp,plains</c>.
+    /// A minus in front of a word or a term leaves out what matches it.
     /// </summary>
     internal sealed class ParsedSearch
     {
@@ -65,28 +66,36 @@ namespace Scry
         }
     }
 
-    /// <summary>One term, with what its value stands for: the kinds it names, or a station's name and level.</summary>
+    /// <summary>
+    /// One term, with what its value stands for: the values its commas part it into, any of
+    /// which may match; the kinds they name; or each one's station name and level.
+    /// </summary>
     internal sealed class Term
     {
         public readonly string Key;
-        public readonly string Value;
+        public readonly string[] Values;
         public readonly bool[] Kinds;
-        public readonly string Station;
-        public readonly int Level;
+        public readonly string[] Stations;
+        public readonly int[] Levels;
 
         public Term(string key, string value)
         {
             Key = key;
-            Value = value;
+            Values = Search.Values(value);
             if (key == "kind")
             {
                 var kinds = (Kind[])Enum.GetValues(typeof(Kind));
                 Kinds = new bool[kinds.Length];
-                foreach (var kind in kinds) Kinds[(int)kind] = Search.KindMatches(kind, value);
+                foreach (var kind in kinds)
+                {
+                    foreach (var one in Values) Kinds[(int)kind] |= Search.KindMatches(kind, one);
+                }
             }
             else if (key == "station")
             {
-                Search.StationParts(value, out Station, out Level);
+                Stations = new string[Values.Length];
+                Levels = new int[Values.Length];
+                for (var i = 0; i < Values.Length; i++) Search.StationParts(Values[i], out Stations[i], out Levels[i]);
             }
         }
     }
@@ -100,6 +109,8 @@ namespace Scry
         private static readonly Dictionary<string, string> OldKeys = new Dictionary<string, string> { ["used"] = "playedby" };
 
         private static readonly char[] Separators = { ' ', '\t' };
+
+        private static readonly char[] Commas = { ',' };
 
         // How well one word matches one name, best first.
         private const int Exact = 0;
@@ -125,7 +136,7 @@ namespace Scry
                 {
                     // A term still being typed, its value not yet there, is left out until it has one.
                     var value = word.Substring(colon + 1);
-                    if (value.Length == 0) continue;
+                    if (Values(value).Length == 0) continue;
                     (not ? parsed.NotTerms : parsed.Terms).Add(new KeyValuePair<string, string>(key, value));
                     continue;
                 }
@@ -240,6 +251,9 @@ namespace Scry
             return true;
         }
 
+        /// <summary>A term's values, parted by its commas, each read as one way to match; what stands empty between them is passed over.</summary>
+        public static string[] Values(string value) => value.Split(Commas, StringSplitOptions.RemoveEmptyEntries);
+
         public static string[] Words(string text)
         {
             return string.IsNullOrEmpty(text)
@@ -270,19 +284,30 @@ namespace Scry
             return total;
         }
 
+        /// <summary>Whether any of a term's values matches the entry.</summary>
         private static bool TermMatches(Entry entry, Term term)
         {
-            switch (term.Key)
+            if (term.Key == "kind")
             {
-                case "kind":
-                    var kind = (int)entry.Kind;
-                    return kind >= 0 && kind < term.Kinds.Length && term.Kinds[kind];
-                case "has": return AnyContains(entry.Components, term.Value);
-                case "biome": return AnyContains(entry.Biomes, term.Value);
-                case "in": return AnyPlaceNamed(entry.FoundIn, term.Value);
-                case "mod": return ContainsLeavingOutSpaces(entry.ModName, term.Value);
-                case "playedby": return AnyContainsLeavingOutSpaces(entry.UsedBy, term.Value);
-                case "station": return StationMatches(entry.Stations, term.Station, term.Level);
+                var kind = (int)entry.Kind;
+                return kind >= 0 && kind < term.Kinds.Length && term.Kinds[kind];
+            }
+            for (var i = 0; i < term.Values.Length; i++)
+            {
+                if (term.Key == "station" ? StationMatches(entry.Stations, term.Stations[i], term.Levels[i]) : ValueMatches(entry, term.Key, term.Values[i])) return true;
+            }
+            return false;
+        }
+
+        private static bool ValueMatches(Entry entry, string key, string value)
+        {
+            switch (key)
+            {
+                case "has": return AnyContains(entry.Components, value);
+                case "biome": return AnyContains(entry.Biomes, value);
+                case "in": return AnyPlaceNamed(entry.FoundIn, value);
+                case "mod": return ContainsLeavingOutSpaces(entry.ModName, value);
+                case "playedby": return AnyContainsLeavingOutSpaces(entry.UsedBy, value);
                 default: return false;
             }
         }

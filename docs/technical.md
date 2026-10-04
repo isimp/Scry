@@ -44,7 +44,7 @@ What is no prefab is kept under a key of its own kind (`EntryKeys`: a status eff
 
 ## Search and keys
 
-The search matches names and takes terms (`kind:`, `has:`, `biome:`, `mod:`, `playedby:`, `station:` and `in:`), each value matched anywhere in what it names, spaces left out. Suggestions come from an index of every value each key can take, built on a worker thread once the catalog is read, each with how many entries it finds. The best one shows faint after the text; Tab takes it, and further presses cycle through the rest.
+The search matches names and takes terms (`kind:`, `has:`, `biome:`, `mod:`, `playedby:`, `station:` and `in:`), each value matched anywhere in what it names, spaces left out; commas part a value into several, any of which may match (`biome:swamp,plains`), and after a comma the next value is suggested. Suggestions come from an index of every value each key can take, built on a worker thread once the catalog is read, each with how many entries it finds. The best one shows faint after the text; Tab takes it, and further presses cycle through the rest.
 
 Enter takes a suggestion while one is offered for a word being typed. Otherwise it does the selection's main thing, as a double click does: a sound or effect plays, a projectile flies, a status effect shows on the person, a creature makes its first attack, a wearable item is put on or taken off, a location or room plays its music or stops it, a raid rolls its creatures anew, and a tree, log, rock or piece is felled or broken. In the clip and effect filters Enter plays the first match. Escape leaves a text box first and closes the panel the second time; Ctrl+F goes to the search.
 

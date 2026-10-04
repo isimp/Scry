@@ -109,8 +109,9 @@ namespace Scry
         internal static string Token(string word) => (word ?? "").Replace(" ", "").ToLowerInvariant();
 
         /// <summary>
-        /// How many entries a term of one of the index's values finds, as the search finds them:
-        /// every entry with a value of that key holding the term's word, each once. Read from the
+        /// How many entries a term of the index's values finds, as the search finds them: every
+        /// entry with a value of that key holding the term's word, or any of its words where
+        /// commas part it, each once. Read from the
         /// index rather than the catalog, as suggestions count up to eight terms a keystroke. The
         /// kinds and stations, whose words the search reads in ways of their own, are counted by
         /// searching; every count is kept once found.
@@ -136,9 +137,10 @@ namespace Scry
                     _round = 1;
                 }
                 count = 0;
+                var words = Search.Values(token);
                 foreach (var value in ValuesOf(key))
                 {
-                    if (value.Token.IndexOf(token, StringComparison.Ordinal) < 0) continue;
+                    if (!Array.Exists(words, w => value.Token.IndexOf(w, StringComparison.Ordinal) >= 0)) continue;
                     foreach (var at in value.Entries)
                     {
                         if (_counted[at] == _round) continue;
@@ -277,8 +279,10 @@ namespace Scry
         /// <summary>
         /// What could finish the word being typed. Nothing typed yet gets every key, to show what
         /// the search can do; a word without a colon that starts a key gets the key; after a known key's colon, the values in the catalog that start with (or else
-        /// hold) what is typed after it, those most entries have first, whichever tab is open. A
-        /// minus in front stays in front. Each finds as many as its count says.
+        /// hold) what is typed after it, those most entries have first, whichever tab is open;
+        /// after a comma, the same for the value being typed, keeping those before it and leaving
+        /// them out of what is offered. A minus in front stays in front. Each finds as many as
+        /// its count says, the values before the comma with it.
         /// </summary>
         public static List<Suggestion> Suggest(string word, TermIndex index, int max = 8)
         {
@@ -302,11 +306,16 @@ namespace Scry
 
             var name = typed.Substring(0, colon).ToLowerInvariant();
             if (Array.IndexOf(Search.Keys, name) < 0) return found;
-            var partial = TermIndex.Token(typed.Substring(colon + 1));
+            var after = typed.Substring(colon + 1);
+            var comma = after.LastIndexOf(',');
+            var before = comma >= 0 ? TermIndex.Token(after.Substring(0, comma + 1)) : "";
+            var taken = Search.Values(before);
+            var partial = TermIndex.Token(after.Substring(comma + 1));
 
             var ranked = new List<(int Rank, TermIndex.Value Value)>();
             foreach (var value in index.ValuesOf(name))
             {
+                if (Array.IndexOf(taken, value.Token) >= 0) continue;
                 var rank = Rank(value, partial);
                 if (rank >= 0) ranked.Add((rank, value));
             }
@@ -320,12 +329,12 @@ namespace Scry
 
             foreach (var (_, value) in ranked.Take(max))
             {
-                var term = Term(name, value.Token);
+                var term = Term(name, before + value.Token);
                 found.Add(new Suggestion
                 {
                     Label = value.Label,
                     Insert = minus + term,
-                    Count = index.Finds(name, value.Token),
+                    Count = index.Finds(name, before + value.Token),
                 });
             }
             return found;
