@@ -12,18 +12,20 @@ namespace Scry
         {
             var flow = new ChipFlow(0f, width, y, U(32f), U(8f), U(6f));
 
-            bool Button(string text, GUIStyle style) => Shown(text, style, true);
+            bool Button(string text, GUIStyle style, string tip) => Shown(text, style, true, tip);
 
             // A button that is always there, greyed out while it can do nothing, so the row
-            // does not shift as it comes and goes.
-            bool Shown(string text, GUIStyle style, bool can)
+            // does not shift as it comes and goes. Each says on hover what it does.
+            bool Shown(string text, GUIStyle style, bool can, string tip)
             {
                 var w = Skin.Width(style, text) + U(12f);
                 var at = flow.Place(w);
+                var rect = new Rect(at.X, at.Y, w, flow.RowHeight);
                 var enabled = GUI.enabled;
                 GUI.enabled = enabled && can;
-                var clicked = GUI.Button(new Rect(at.X, at.Y, w, flow.RowHeight), text, style);
+                var clicked = GUI.Button(rect, text, style);
                 GUI.enabled = enabled;
+                if (rect.Contains(Event.current.mousePosition)) AskTip("action:" + text, tip);
                 return clicked && can;
             }
 
@@ -31,30 +33,30 @@ namespace Scry
             switch (entry.Kind)
             {
                 case Kind.Sound:
-                    if (Button(SoundWords.Play(Variants(entry).Count), Skin.Primary)) Previews.PlaySound(entry);
+                    if (Button(SoundWords.Play(Variants(entry).Count), Skin.Primary, ActionWords.PlaySound(Variants(entry).Count))) Previews.PlaySound(entry);
                     var sounding = Previews.SoundPlaying;
-                    if (Shown(PanelWords.Pause(sounding && Previews.SoundPaused), Skin.Button, sounding)) Previews.PauseSound(!Previews.SoundPaused);
-                    if (Shown("Stop", Skin.Button, sounding)) Previews.StopSound();
-                    if (Button("Repeat", Previews.LoopSounds ? Skin.On : Skin.Button)) Previews.LoopSounds = !Previews.LoopSounds;
+                    if (Shown(PanelWords.Pause(sounding && Previews.SoundPaused), Skin.Button, sounding, ActionWords.PauseSound(Previews.SoundPaused))) Previews.PauseSound(!Previews.SoundPaused);
+                    if (Shown("Stop", Skin.Button, sounding, ActionWords.StopSound)) Previews.StopSound();
+                    if (Button("Repeat", Previews.LoopSounds ? Skin.On : Skin.Button, ActionWords.Repeat(Previews.LoopSounds))) Previews.LoopSounds = !Previews.LoopSounds;
                     break;
 
                 case Kind.Effect:
                     var there = Previews.Playing.IsPlaying(PlayKey.There(entry.Name));
-                    if (Button("Play where you look", there ? Skin.On : Skin.Primary))
+                    if (Button("Play where you look", there ? Skin.On : Skin.Primary, ActionWords.PlayThere(there)))
                     {
                         if (there) Previews.Stop(PlayKey.There(entry.Name));
                         else Previews.PlayEffect(entry, onYou: false);
                     }
                     var onYou = Previews.Playing.IsPlaying(PlayKey.OnYou(entry.Name));
-                    if (Button("Play on you", onYou ? Skin.On : Skin.Button))
+                    if (Button("Play on you", onYou ? Skin.On : Skin.Button, ActionWords.PlayOnYou(onYou)))
                     {
                         if (onYou) Previews.Stop(PlayKey.OnYou(entry.Name));
                         else Previews.PlayEffect(entry, onYou: true);
                     }
                     if (!_compact)
                     {
-                        if (Button("Replay", Skin.Button)) Previews.Replay();
-                        if (Button("Repeat", Previews.LoopEffects ? Skin.On : Skin.Button)) Previews.LoopEffects = !Previews.LoopEffects;
+                        if (Button("Replay", Skin.Button, ActionWords.Replay)) Previews.Replay();
+                        if (Button("Repeat", Previews.LoopEffects ? Skin.On : Skin.Button, ActionWords.Repeat(Previews.LoopEffects))) Previews.LoopEffects = !Previews.LoopEffects;
                     }
                     break;
 
@@ -66,20 +68,20 @@ namespace Scry
                     // What a raid's roll brought, rolled again on a new copy.
                     if (withStage && Stage.IsStaged(entry))
                     {
-                        if (Shown("Roll again", Skin.Primary, Stage.Subject != null)) Previews.Rebuild();
+                        if (Shown("Roll again", Skin.Primary, Stage.Subject != null, ActionWords.RollRaid)) Previews.Rebuild();
                         if (RaidCrowd.LastFor == entry && Stage.Subject != null) note = RaidWords.FirstRoll(RaidCrowd.LastRoll, RolledName);
                     }
                     break;
 
                 case Kind.Biome:
                     // Everything there, as the search finds it.
-                    if (Button("Everything here", Skin.Primary) && _explorer != null) SearchFor(_explorer, SearchHelp.Term("biome", entry.Name));
+                    if (Button("Everything here", Skin.Primary, ActionWords.EverythingHere) && _explorer != null) SearchFor(_explorer, SearchHelp.Term("biome", entry.Name));
                     break;
 
                 case Kind.Location:
                     // What the game leaves to chance, rolled again on a new copy; only where something is.
                     if (withStage && entry.Source is PlaceSource place && place.Contents != null && place.Contents.LeftToChance
-                        && Shown("Roll again", Skin.Primary, Stage.Subject != null))
+                        && Shown("Roll again", Skin.Primary, Stage.Subject != null, ActionWords.RollPlace))
                     {
                         Previews.Rebuild();
                     }
@@ -87,7 +89,7 @@ namespace Scry
                     if (withStage && entry.Source is PlaceSource laid && !laid.IsRoom && laid.Contents?.Dungeon != null)
                     {
                         var example = ExampleOf(entry);
-                        if (Shown("Another example", Skin.Button, example != null)) ExampleLayouts.Another();
+                        if (Shown("Another layout", Skin.Button, example != null, ActionWords.AnotherLayout)) ExampleLayouts.Another();
                         note = example != null
                             ? DungeonWords.ExampleNote(DungeonWords.Example(example, ExampleLayouts.Failed), example.Rooms.Count > 0)
                             : ExampleLayouts.Of(entry) ? DungeonWords.Reading(ExampleLayouts.Read, ExampleLayouts.Total) : null;
@@ -95,11 +97,11 @@ namespace Scry
                     break;
 
                 default:
-                    if (entry.Kind == Kind.Projectile && Button("Fire where you look", Skin.Primary)) Previews.Fire(entry);
+                    if (entry.Kind == Kind.Projectile && Button("Fire where you look", Skin.Primary, ActionWords.Fire)) Previews.Fire(entry);
                     // Wearing it and keeping it on are one idea, side by side under the stage in
                     // both views; the stage's own chips only change how it is seen.
                     if (entry.Kind == Kind.Item && entry.Source is GameObject wearable && PrefabGear.IsWearable(wearable)
-                        && Button("Wear it", Looks.OnPerson ? Skin.On : Skin.Button))
+                        && Button("Wear it", Looks.OnPerson ? Skin.On : Skin.Button, ActionWords.Wear(Looks.OnPerson)))
                     {
                         Looks.OnPerson = !Looks.OnPerson;
                         Previews.Rebuild();
@@ -108,7 +110,7 @@ namespace Scry
                     if (Looks.IsWorn(entry))
                     {
                         var kept = Looks.Outfit.Contains(entry.Name);
-                        if (Button("Keep it on", kept ? Skin.On : Skin.Button))
+                        if (Button("Keep it on", kept ? Skin.On : Skin.Button, ActionWords.Keep(kept)))
                         {
                             if (kept) Looks.Outfit.TakeOff(entry.Name);
                             else Looks.Outfit.Keep(entry.Name, PrefabGear.SlotOf((GameObject)entry.Source));
@@ -116,24 +118,24 @@ namespace Scry
                         }
                     }
                     var fallen = Previews.Playing.IsPlaying(PlayKey.Ragdoll);
-                    if (Previews.RagdollOf(entry) != null && Shown("Ragdoll", fallen ? Skin.On : Skin.Button, Stage.Subject != null))
+                    if (Previews.RagdollOf(entry) != null && Shown("Ragdoll", fallen ? Skin.On : Skin.Button, Stage.Subject != null, ActionWords.Ragdoll(fallen)))
                     {
                         if (fallen) Previews.Stop(PlayKey.Ragdoll);
                         else Previews.Ragdoll();
                     }
                     var loose = Previews.Playing.IsPlaying(PlayKey.LetFall);
-                    if (Previews.CanLetFall(entry) && Shown("Let it fall", loose ? Skin.On : Skin.Button, Stage.Subject != null))
+                    if (Previews.CanLetFall(entry) && Shown("Let it fall", loose ? Skin.On : Skin.Button, Stage.Subject != null, ActionWords.LetFall(loose)))
                     {
                         if (loose) Previews.Stop(PlayKey.LetFall);
                         else Previews.LetFall();
                     }
                     if (Previews.IsModel(entry))
                     {
-                        if (Button("Show in the world", Previews.InWorld ? Skin.On : Skin.Button)) Previews.ToggleWorld();
+                        if (Button("Show in the world", Previews.InWorld ? Skin.On : Skin.Button, ActionWords.InWorld(Previews.InWorld))) Previews.ToggleWorld();
                         if (Previews.InWorld)
                         {
-                            if (Button("Move to where you look", Skin.Button)) Previews.PlaceHere();
-                            if (Button("Pin", Skin.Button))
+                            if (Button("Move to where you look", Skin.Button, ActionWords.MoveHere)) Previews.PlaceHere();
+                            if (Button("Pin", Skin.Button, ActionWords.Pin))
                             {
                                 Previews.Pin();
                                 Say("Pinned. It stays where it is until you press Clear.");
@@ -178,7 +180,7 @@ namespace Scry
         /// A status effect's buttons: show its start visuals on you and take them off again, and
         /// play any other list it has once. Returns the note to show under them.
         /// </summary>
-        private static string StatusActions(Entry entry, Func<string, GUIStyle, bool> button)
+        private static string StatusActions(Entry entry, Func<string, GUIStyle, string, bool> button)
         {
             var effect = entry.Source as StatusEffect;
             var lists = StatusLists(entry);
@@ -188,7 +190,7 @@ namespace Scry
             if (hasStart)
             {
                 // One button that lights while it is on you, as every switch in the panel does.
-                if (button("Show it on you", Previews.StatusShowing ? Skin.On : Skin.Primary))
+                if (button("Show it on you", Previews.StatusShowing ? Skin.On : Skin.Primary, ActionWords.ShowStatus(Previews.StatusShowing)))
                 {
                     if (Previews.StatusShowing) Previews.StopStatus(true);
                     else Previews.ShowStatus(entry);
@@ -198,8 +200,9 @@ namespace Scry
             foreach (var list in lists)
             {
                 if (list.Value == effect.m_startEffects) continue;
-                var style = Previews.Playing.IsPlaying(list.Value) ? Skin.On : hasStart ? Skin.Button : Skin.Primary;
-                if (button(PanelWords.PlayList(list.Key), style))
+                var playing = Previews.Playing.IsPlaying(list.Value);
+                var style = playing ? Skin.On : hasStart ? Skin.Button : Skin.Primary;
+                if (button(PanelWords.PlayList(list.Key), style, ActionWords.PlayStatusList(playing)))
                 {
                     if (Previews.Playing.IsPlaying(list.Value)) Previews.Stop(list.Value);
                     else Previews.PlayOnYou(list.Value);

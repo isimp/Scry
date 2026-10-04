@@ -202,7 +202,9 @@ namespace Scry
             if (GUI.Button(starRect, GUIContent.none, GUIStyle.none)) explorer.ToggleFavourite(entry);
             if (starRect.Contains(Event.current.mousePosition)) AskTip("star", DetailWords.StarTip(favourite));
 
-            if (GUI.Button(new Rect(width - copyW - U(38f), y + U(2f), copyW, U(26f)), "Copy name", Skin.Button))
+            var copyRect = new Rect(width - copyW - U(38f), y + U(2f), copyW, U(26f));
+            if (copyRect.Contains(Event.current.mousePosition)) AskTip("copy-name", ActionWords.CopyName(entry.Name));
+            if (GUI.Button(copyRect, "Copy name", Skin.Button))
             {
                 GUIUtility.systemCopyBuffer = entry.Name;
                 Say(PanelWords.Copied(entry.Name));

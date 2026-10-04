@@ -121,7 +121,7 @@ namespace Scry
 
             ExampleLayouts.Another();
             var another = ExampleLayouts.Example;
-            p.Check(another != null && another != example && another.Rooms.Count > 0, "Another example lays out a new one");
+            p.Check(another != null && another != example && another.Rooms.Count > 0, "Another layout lays out a new one");
             if (another == null) yield break;
             example = another;
 
