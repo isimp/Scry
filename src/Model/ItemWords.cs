@@ -20,5 +20,11 @@ namespace Scry
             if (string.IsNullOrEmpty(station)) return "cannot be repaired: no recipe names a station for it";
             return level > 1 ? $"{station} level {Numbers.Count(level)}" : station;
         }
+
+        /// <summary>The title over an item's upgrade kits: the station that takes it past its top quality.</summary>
+        public static string PastTop(string upgradeStation) => "Past its top quality, at " + UpgradeStation(upgradeStation);
+
+        /// <summary>The upgrade station by the name the game shows, or said plainly where no prefab is one.</summary>
+        public static string UpgradeStation(string shown) => shown ?? "an upgrade station";
     }
 }

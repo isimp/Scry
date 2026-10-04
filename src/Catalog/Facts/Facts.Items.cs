@@ -265,7 +265,7 @@ namespace Scry
         /// </summary>
         private static Row UpgradeKits(Recipe recipe, int maxQuality)
         {
-            var row = new Row { Title = "Past its top quality, at " + UpgradeStationName, TitleLink = Knowledge.UpgradeStation };
+            var row = new Row { Title = ItemWords.PastTop(Knowledge.UpgradeStationName), TitleLink = Knowledge.UpgradeStation };
             if (recipe.m_resources == null || maxQuality <= 1) return row;
             foreach (var need in recipe.m_resources)
             {

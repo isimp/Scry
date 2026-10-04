@@ -3,14 +3,45 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>
-    /// What holds a piece up and what wears it down, in words. Support follows
-    /// <c>WearNTear.UpdateSupport</c>: a piece on the ground has its material's full support, and
-    /// one resting on another has that one's support less a share for each metre between their
-    /// centres, a bigger share sideways than up, and falls below its material's least. Weather
-    /// follows <c>WearNTear.UpdateWear</c>.
+    /// A piece in words: what holds it up and what wears it down, where it may be placed and
+    /// what it stands near or apart from, the comfort it gives, the station it upgrades, and what
+    /// building it costs and with which tool. Support follows <c>WearNTear.UpdateSupport</c>: a
+    /// piece on the ground has its material's full support, and one resting on another has that
+    /// one's support less a share for each metre between their centres, a bigger share sideways
+    /// than up, and falls below its material's least. Weather follows <c>WearNTear.UpdateWear</c>.
     /// </summary>
     internal static class BuildWords
     {
+        /// <summary>
+        /// A piece's comfort group, or that it has none (<c>SE_Rested.CalculateComfortLevel</c>
+        /// counts, within 10 m, only the best of each group and a piece of the same name once).
+        /// </summary>
+        public static string ComfortGroup(string group) =>
+            group != null ? $"{group}: only the best of these within 10 m counts" : "none: a second one within 10 m adds nothing";
+
+        /// <summary>The station an upgrade upgrades, how near it must stand and how far from its other upgrades.</summary>
+        public static string Upgrades(string station, float within, float apart) =>
+            $"{station}, within {Numbers.Metres(within)} of it" + (apart > 0f ? $", {Numbers.Metres(apart)} from its other upgrades" : "");
+
+        /// <summary>The title of what building it costs, with the station it is built near where it needs one.</summary>
+        public static string Cost(string station) => string.IsNullOrEmpty(station) ? "Build cost" : "Built near " + station;
+
+        /// <summary>The mod one of the game's own prefabs is made buildable through.</summary>
+        public static string Through(string mod) => "through " + mod;
+
+        /// <summary>The title of what building it through a mod costs, with the station it is built near where it needs one.</summary>
+        public static string CostThrough(string mod, string station) =>
+            string.IsNullOrEmpty(station) ? $"Built through {mod} with" : $"Built through {mod} near {station}";
+
+        /// <summary>The build tool a piece is built with, and the tab it is on there.</summary>
+        public static string OnTab(string tool, string tab) => $"{tool}, on its {tab} tab";
+
+        /// <summary>The title of a build tool's tab, with how many pieces are on it.</summary>
+        public static string BuildsOnTab(string tab, int pieces) => $"Builds on its {tab} tab ({Numbers.Count(pieces)})";
+
+        /// <summary>How many of an ingredient it needs, and how many more each quality, where it goes up.</summary>
+        public static string Needs(int amount, int perQuality) =>
+            Numbers.Count(amount) + (perQuality > 0 ? $", +{Numbers.Count(perQuality)} per quality" : "");
 
         /// <summary>The support it has on the ground and the least it stands with; null for a material without figures.</summary>
         public static string Support(float max, float min, bool needsSupport)
@@ -52,9 +83,9 @@ namespace Scry
 
         /// <summary>
         /// Where a piece may be placed, as <c>Player.UpdatePlacementGhost</c> refuses it, in the
-        /// order the game checks; nothing for a piece placed anywhere.
+        /// order the game checks; null for a piece placed anywhere.
         /// </summary>
-        public static List<string> Placement(PlacementRules rules)
+        public static string Placement(PlacementRules rules)
         {
             var lines = new List<string>();
             if (rules.GroundOnly) lines.Add("on the ground only");
@@ -69,7 +100,7 @@ namespace Scry
             if (rules.TeleportArea) lines.Add("in a teleport area only");
             if (rules.DeepSnowOnly) lines.Add("in the Deep North's deep snow only");
             if (rules.InDungeons) lines.Add("in dungeons too");
-            return lines;
+            return lines.Count > 0 ? string.Join(", ", lines) : null;
         }
 
         /// <summary>

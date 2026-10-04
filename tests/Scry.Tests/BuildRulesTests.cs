@@ -20,17 +20,16 @@ namespace Scry.Tests
                 CeilingOnly = true, NotOnFloor = true, TeleportArea = true, InDungeons = true, DeepSnowOnly = true,
             };
 
-            Assert.Equal(new[]
-            {
-                "on the ground only", "on cultivated ground only", "on dirt only", "on water only", "not in water", "not on wood", "not on a slope",
-                "under a ceiling only", "not on a floor", "in a teleport area only", "in the Deep North's deep snow only", "in dungeons too",
-            }, BuildWords.Placement(rules));
+            Assert.Equal(
+                "on the ground only, on cultivated ground only, on dirt only, on water only, not in water, not on wood, not on a slope, "
+                + "under a ceiling only, not on a floor, in a teleport area only, in the Deep North's deep snow only, in dungeons too",
+                BuildWords.Placement(rules));
         }
 
         [Fact]
         public void APieceWithNoRulesHasNoLine()
         {
-            Assert.Empty(BuildWords.Placement(new PlacementRules()));
+            Assert.Null(BuildWords.Placement(new PlacementRules()));
         }
 
         [Fact]

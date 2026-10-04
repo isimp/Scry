@@ -13,12 +13,8 @@ namespace Scry
             Description = CatalogBuilder.Localize(piece.m_description);
             if (piece.m_comfort > 0)
             {
-                // SE_Rested.CalculateComfortLevel counts, within 10 m, only the best of each comfort
-                // group, and a piece of the same name once.
                 Add("Comfort", Numbers.Count(piece.m_comfort));
-                Add("Comfort group", piece.m_comfortGroup != global::Piece.ComfortGroup.None
-                    ? $"{Word(piece.m_comfortGroup)}: only the best of these within 10 m counts"
-                    : "none: a second one within 10 m adds nothing");
+                Add("Comfort group", BuildWords.ComfortGroup(piece.m_comfortGroup != global::Piece.ComfortGroup.None ? Word(piece.m_comfortGroup) : null));
                 Hooked(HookedRule.Comfort);
             }
             // Furniture, where comfort is sought, says when it gives none.
@@ -45,8 +41,7 @@ namespace Scry
             if (extension != null && extension.m_craftingStation != null)
             {
                 var upgraded = extension.m_craftingStation.gameObject;
-                var apart = piece.m_spaceRequirement > 0f ? $", {Numbers.Amount(piece.m_spaceRequirement)} m from its other upgrades" : "";
-                Add("Upgrades", $"{AnyName(upgraded, upgraded.name)}, within {Numbers.Amount(extension.m_maxStationDistance)} m of it{apart}", upgraded.name);
+                Add("Upgrades", BuildWords.Upgrades(AnyName(upgraded, upgraded.name), extension.m_maxStationDistance, piece.m_spaceRequirement), upgraded.name);
             }
 
             // Bed.Interact: claiming and sleeping, each needing a roof and 80% cover (CheckExposure).
@@ -59,7 +54,7 @@ namespace Scry
             if (piece.m_resources != null && piece.m_resources.Length > 0)
             {
                 var station = piece.m_craftingStation != null ? CatalogBuilder.Localize(piece.m_craftingStation.m_name) : "";
-                var row = Requirements(station.Length > 0 ? "Built near " + station : "Build cost", piece.m_resources, false);
+                var row = Requirements(BuildWords.Cost(station), piece.m_resources, false);
                 row.TitleLink = piece.m_craftingStation != null ? piece.m_craftingStation.gameObject.name : null;
                 Rows.Add(row);
                 Hooked(HookedRule.Crafting);
@@ -81,8 +76,7 @@ namespace Scry
                 CeilingOnly = piece.m_inCeilingOnly, NotOnFloor = piece.m_notOnFloor, TeleportArea = piece.m_onlyInTeleportArea, InDungeons = piece.m_allowedInDungeons,
                 DeepSnowOnly = piece.m_requireDeepSnow,
             };
-            var lines = BuildWords.Placement(rules);
-            if (lines.Count > 0) Add("Placed", string.Join(", ", lines));
+            Add("Placed", BuildWords.Placement(rules));
 
             if (piece.m_mustConnectTo != null)
             {
@@ -110,7 +104,7 @@ namespace Scry
             }
             if (tools.Count == 1)
             {
-                Add("Built with", $"{tools[0].ToolName}, on its {tools[0].Tab} tab", tools[0].Tool);
+                Add("Built with", BuildWords.OnTab(tools[0].ToolName, tools[0].Tab), tools[0].Tool);
                 return;
             }
             var row = new Row { Title = "Built with" };
@@ -123,7 +117,7 @@ namespace Scry
         {
             foreach (var (tab, pieces) in Knowledge.Tools.PiecesOf(tool))
             {
-                var row = new Row { Title = $"Builds on its {tab} tab ({Numbers.Count(pieces.Count)})" };
+                var row = new Row { Title = BuildWords.BuildsOnTab(tab, pieces.Count) };
                 foreach (var piece in pieces) row.Items.Add(Chip(piece, ""));
                 Rows.Add(row);
             }
@@ -158,10 +152,10 @@ namespace Scry
         {
             var by = BepInEx.Bootstrap.Chainloader.PluginInfos.TryGetValue(BuildPrefabsGuid, out var mod) && mod?.Metadata != null ? mod.Metadata.Name : "a mod";
             // The mod goes to its page where it has one.
-            Add("Buildable", "through " + by, EntryOf(EntryKeys.For(Kind.Mod, by)) != null ? EntryKeys.For(Kind.Mod, by) : null);
+            Add("Buildable", BuildWords.Through(by), EntryOf(EntryKeys.For(Kind.Mod, by)) != null ? EntryKeys.For(Kind.Mod, by) : null);
             if (piece.m_resources == null || piece.m_resources.Length == 0) return;
             var station = piece.m_craftingStation != null ? CatalogBuilder.Localize(piece.m_craftingStation.m_name) : "";
-            var row = Requirements(station.Length > 0 ? $"Built through {by} near {station}" : $"Built through {by} with", piece.m_resources, false);
+            var row = Requirements(BuildWords.CostThrough(by, station), piece.m_resources, false);
             row.TitleLink = piece.m_craftingStation != null ? piece.m_craftingStation.gameObject.name : null;
             if (row.Items.Count > 0) Rows.Add(row);
         }
@@ -182,8 +176,7 @@ namespace Scry
             foreach (var need in requirements)
             {
                 if (need?.m_resItem == null || need.m_upgraderResource) continue;
-                var amount = Numbers.Count(need.m_amount);
-                if (upgradable && need.m_amountPerLevel > 0) amount += $", +{Numbers.Count(need.m_amountPerLevel)} per quality";
+                var amount = BuildWords.Needs(need.m_amount, upgradable ? need.m_amountPerLevel : 0);
                 row.Items.Add(new Ingredient
                 {
                     Icon = Icon(need.m_resItem.gameObject), Name = ItemName(need.m_resItem.gameObject), Amount = amount, Prefab = need.m_resItem.gameObject.name,
@@ -205,8 +198,7 @@ namespace Scry
                 {
                     var prefab = GamePrefabs.Item(target);
                     // A recipe that takes none of it at first needs it only to upgrade what it makes.
-                    var name = AnyName(prefab, target);
-                    if (amount <= 0 && group.Kind == UseKind.Crafts) name += " (upgrades)";
+                    var name = UseWords.Target(AnyName(prefab, target), amount <= 0 && group.Kind == UseKind.Crafts);
                     var shown = amount > 0 ? Numbers.Count(amount) : "";
                     row.Items.Add(new Ingredient { Icon = AnyIcon(prefab), Name = name, Amount = shown, Prefab = target });
                 }
@@ -218,19 +210,8 @@ namespace Scry
         private static string UseTitle(UseGroup group)
         {
             var place = group.Place != null && group.Place != "hand" ? AnyName(GamePrefabs.Item(group.Place), group.Place) : null;
-            switch (group.Kind)
-            {
-                case UseKind.Crafts: return place != null ? $"Used to make at {place}" : "Used to make by hand";
-                case UseKind.UpgradesPastTop: return "Takes these past their top quality, at " + UpgradeStationName;
-                case UseKind.Builds: return place != null ? $"Used to build near {place}" : "Used to build";
-                case UseKind.TurnsInto: return place != null ? $"{place} turns it into" : "Turned into";
-                case UseKind.Fuels: return "Burnt as fuel by";
-                default: return "Eaten by";
-            }
+            return UseWords.Title(group.Kind, place, Knowledge.UpgradeStationName);
         }
-
-        /// <summary>The upgrade station by the name the game shows, or said plainly when no prefab is one.</summary>
-        private static string UpgradeStationName => Knowledge.UpgradeStationName ?? "an upgrade station";
 
         /// <summary>A prefab's name as the game shows it: an item's, a piece's or a creature's, else the prefab's own.</summary>
         private static string AnyName(GameObject prefab, string fallback)

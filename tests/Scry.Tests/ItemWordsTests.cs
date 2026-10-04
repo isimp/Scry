@@ -38,5 +38,12 @@ namespace Scry.Tests
             Assert.Equal("cannot be repaired: no recipe names a station for it", ItemWords.Repair(true, null, 1));
             Assert.Equal("cannot be repaired: no recipe names a station for it", ItemWords.Repair(true, "", 1));
         }
+
+        [Fact]
+        public void TheUpgradeKitsSayTheStationThatTakesItPastItsTopQuality()
+        {
+            Assert.Equal("Past its top quality, at Black forge", ItemWords.PastTop("Black forge"));
+            Assert.Equal("Past its top quality, at an upgrade station", ItemWords.PastTop(null));
+        }
     }
 }
