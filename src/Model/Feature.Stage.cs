@@ -62,6 +62,7 @@ namespace Scry
         public static readonly Feature LastingEffects = Listed("water and flying effects kept going");
         public static readonly Feature SwimmingAnimations = Listed("swimming animations");
         public static readonly Feature WhichStepCreatureMakes = Listed("which step a creature makes");
+        public static readonly Feature GroundStepsSoundOn = Listed("the ground footsteps sound on");
         public static readonly Feature SleepingAnimations = Listed("sleeping animations");
         public static readonly Feature WhatIsHeardAfterWaking = Listed("what is heard after waking");
         public static readonly Feature IdleSounds = Listed("idle sounds heard around idle clips");

@@ -30,15 +30,6 @@ namespace Scry
             y = SectionHeading(PanelWords.Heading("ANIMATIONS", clips.Count), width, y, null, "animations");
             if (IsFolded("animations")) return y;
 
-            // The ground footsteps sound on, when the creature sounds different on some.
-            var grounds = Previews.Grounds(explorer.Selected?.Source as GameObject);
-            if (grounds.Count > 1)
-            {
-                var names = grounds.Select(g => g == FootStep.GroundMaterial.Default ? "Plain" : g == FootStep.GroundMaterial.GenericGround ? "Ground" : Naming.FieldLabel(g.ToString())).ToList();
-                var chosen = Segments("Ground", names, Mathf.Max(0, grounds.IndexOf(Previews.StepGround)), width, labelW, ref y);
-                if (chosen >= 0) Previews.StepGround = grounds[chosen];
-            }
-
             var x = 0f;
             var rowH = U(26f);
 

@@ -50,6 +50,9 @@ namespace Scry
         public static int GrassCount => TheGround.GrassCount;
         public static bool WaterShown => TheGround.WaterShown;
 
+        /// <summary>The biome whose ground the model stands on, or null on the plain floor or the grid.</summary>
+        public static string GroundUnderfoot => TheGround.On ? TheGround.Biome : null;
+
         /// <summary>Whether what is shown is underground: a dungeon's inside, or a room of one.</summary>
         private static bool Underground => (_lastShown?.Source is PlaceSource place && place.IsRoom) || ExampleInside;
 

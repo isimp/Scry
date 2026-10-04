@@ -81,29 +81,8 @@ namespace Scry
         /// <summary>The clip whose chip was pressed last, for showing what it plays.</summary>
         public static AnimationClip LastClip { get; set; }
 
-        /// <summary>The ground footsteps are heard on.</summary>
-        public static FootStep.GroundMaterial StepGround { get; set; } = FootStep.GroundMaterial.Default;
-
-        /// <summary>The grounds a creature's footsteps sound different on, each once.</summary>
-        public static List<FootStep.GroundMaterial> Grounds(GameObject prefab)
-        {
-            // Asked on every event the panel draws; worked out once per prefab.
-            if (prefab == null) return NoGrounds;
-            if (GroundsOf.TryGetValue(prefab, out var known)) return known;
-            var grounds = new List<FootStep.GroundMaterial>();
-            GroundsOf[prefab] = grounds;
-            var step = prefab.GetComponentInChildren<FootStep>(true);
-            if (step == null || step.m_effects == null) return grounds;
-            foreach (FootStep.GroundMaterial ground in System.Enum.GetValues(typeof(FootStep.GroundMaterial)))
-            {
-                if (ground == FootStep.GroundMaterial.None || ground == FootStep.GroundMaterial.Everything) continue;
-                if (step.m_effects.Exists(e => e != null && (e.m_material & ground) != 0 && (e.m_material & FootStep.GroundMaterial.Everything) != FootStep.GroundMaterial.Everything)) grounds.Add(ground);
-            }
-            return grounds;
-        }
-
-        private static readonly Dictionary<GameObject, List<FootStep.GroundMaterial>> GroundsOf = new Dictionary<GameObject, List<FootStep.GroundMaterial>>();
-        private static readonly List<FootStep.GroundMaterial> NoGrounds = new List<FootStep.GroundMaterial>();
+        /// <summary>The ground footsteps are heard on: the one the stage shows (<see cref="StageGround.Footsteps"/>).</summary>
+        public static FootStep.GroundMaterial StepGround => (FootStep.GroundMaterial)StageGround.Footsteps(Stage.GroundUnderfoot, Stage.GroundUnderfoot != null);
 
         /// <summary>
         /// Whether a copy is still playing: while it is new (a sound starts a frame or a delay
@@ -257,7 +236,6 @@ namespace Scry
             _entry = null;
             _selectionVersion = -1;
             TheSound.ForgetEntry();
-            GroundsOf.Clear();
             Born.Clear();
             ForgetEffects();
             ForgetClips();

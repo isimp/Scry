@@ -10,6 +10,62 @@ namespace Scry.Tests
         // plain floor stays. Sky goes with ground as it goes with the grid.
 
         [Fact]
+        public void FootstepsSoundOnTheGroundTheStageShows()
+        {
+            // The plain floor is the game's default ground; a biome's ground by the game's rule for flat ground.
+            Assert.Equal(StepGround.Default, StageGround.Footsteps("Meadows", groundShown: false));
+            Assert.Equal(StepGround.Snow, StageGround.Footsteps("Mountain", groundShown: true));
+            Assert.Equal(StepGround.Snow, StageGround.Footsteps("DeepNorth", groundShown: true));
+            Assert.Equal(StepGround.Mud, StageGround.Footsteps("Swamp", groundShown: true));
+            Assert.Equal(StepGround.Grass, StageGround.Footsteps("Meadows", groundShown: true));
+            Assert.Equal(StepGround.Grass, StageGround.Footsteps("BlackForest", groundShown: true));
+            Assert.Equal(StepGround.Ashlands, StageGround.Footsteps("AshLands", groundShown: true));
+            Assert.Equal(StepGround.GenericGround, StageGround.Footsteps("Plains", groundShown: true));
+
+            // On the sea's floor the feet stand in its water, and the game steps on water before any ground.
+            Assert.Equal(StepGround.Water, StageGround.Footsteps("Ocean", groundShown: true));
+            Assert.Equal(StepGround.GenericGround, StageGround.Footsteps(null, groundShown: true));
+        }
+
+        [Fact]
+        public void TheStepPlayedIsTheOneTheGameWouldPlay()
+        {
+            // Of the steps fitting the way of moving, the last made for the ground, wherever a default one stands.
+            var made = new[] { StepGround.Default, StepGround.Snow, StepGround.Snow | StepGround.Mud, StepGround.Default };
+            var fits = new[] { true, true, true, true };
+            Assert.Equal(2, StageGround.GameStep(made, fits, StepGround.Snow));
+            Assert.Equal(2, StageGround.StageStep(made, fits, StepGround.Snow));
+            Assert.Equal(3, StageGround.GameStep(made, fits, StepGround.Default));
+
+            // With none made for the ground, the first default one.
+            Assert.Equal(0, StageGround.GameStep(made, fits, StepGround.Grass));
+            Assert.Equal(0, StageGround.StageStep(made, fits, StepGround.Grass));
+
+            // A step made for the ground but not for the way of moving is passed over for a default one that is.
+            var running = new[] { StepGround.Snow, StepGround.Default };
+            var walking = new[] { false, true };
+            Assert.Equal(1, StageGround.GameStep(running, walking, StepGround.Snow));
+            Assert.Equal(1, StageGround.StageStep(running, walking, StepGround.Snow));
+        }
+
+        [Fact]
+        public void ACreatureWithNoStepForTheGroundIsNeverMuteOnTheStage()
+        {
+            // Where the game falls silent: ground in general, then any way of moving, then the first step there is.
+            var general = new[] { StepGround.Grass, StepGround.GenericGround };
+            Assert.Equal(-1, StageGround.GameStep(general, new[] { true, true }, StepGround.Snow));
+            Assert.Equal(1, StageGround.StageStep(general, new[] { true, true }, StepGround.Snow));
+
+            var runningOnly = new[] { StepGround.Grass, StepGround.Snow };
+            Assert.Equal(-1, StageGround.GameStep(runningOnly, new[] { false, false }, StepGround.Snow));
+            Assert.Equal(1, StageGround.StageStep(runningOnly, new[] { false, false }, StepGround.Snow));
+            Assert.Equal(1, StageGround.StageStep(general, new[] { false, false }, StepGround.Snow));
+
+            Assert.Equal(0, StageGround.StageStep(new[] { StepGround.Water, StepGround.Wood }, new[] { false, true }, StepGround.Snow));
+            Assert.Equal(-1, StageGround.StageStep(new StepGround[0], new bool[0], StepGround.Snow));
+        }
+
+        [Fact]
         public void GrassKeepsOffWhatStandsOnTheStageAndWhatLiesSmallInIt()
         {
             // A bear: its footprint and a margin round it.

@@ -119,7 +119,7 @@ namespace Scry
 
         /// <summary>
         /// What a clip plays of itself, by prefab name: the effects and props its events name,
-        /// its jump and death, its footsteps on the chosen ground when it moves the feet, and its
+        /// its jump and death, its footsteps on the stage's ground when it moves the feet, and its
         /// attack's start and swing when it is an attack.
         /// </summary>
         public List<string> Members(AnimationClip clip)

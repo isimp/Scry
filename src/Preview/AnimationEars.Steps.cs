@@ -109,40 +109,28 @@ namespace Scry
         }
 
         /// <summary>
-        /// The step made on the chosen ground in this way of moving; failing that, any on that
-        /// ground; failing those, the same on plain ground; failing that, the first there is. Ways
-        /// of moving and grounds are sets of flags in the game.
+        /// The step made on the stage's ground in this way of moving, as the model picks it
+        /// (<see cref="StageGround.StageStep"/>), from the steps that have something to play.
+        /// Ways of moving and grounds are sets of flags in the game.
         /// </summary>
         private static global::FootStep.StepEffect Step(global::FootStep step, global::FootStep.MotionType motion, global::FootStep.GroundMaterial ground)
         {
-            // In water the game steps on water, and only where a creature has a swimming step
-            // (FootStep.FindBestStepEffect: the motion must match; the last match wins).
-            if ((motion & global::FootStep.MotionType.Swimming) != 0)
+            var playable = new List<global::FootStep.StepEffect>();
+            var made = new List<StepGround>();
+            var fits = new List<bool>();
+            foreach (var effect in step.m_effects)
             {
-                global::FootStep.StepEffect swim = null;
-                foreach (var effect in step.m_effects)
-                {
-                    if (effect?.m_effectPrefabs == null || (effect.m_motionType & global::FootStep.MotionType.Swimming) == 0) continue;
-                    if ((effect.m_material & global::FootStep.GroundMaterial.Water) != 0 || (swim == null && (effect.m_material & global::FootStep.GroundMaterial.Default) != 0)) swim = effect;
-                }
-                return swim;
+                if (effect?.m_effectPrefabs == null || effect.m_effectPrefabs.Length == 0) continue;
+                playable.Add(effect);
+                made.Add((StepGround)effect.m_material);
+                fits.Add((effect.m_motionType & motion) != 0);
             }
 
-            global::FootStep.StepEffect Find(global::FootStep.GroundMaterial on, bool matchMotion)
-            {
-                foreach (var effect in step.m_effects)
-                {
-                    if (effect?.m_effectPrefabs == null || effect.m_effectPrefabs.Length == 0) continue;
-                    if ((effect.m_material & on) == 0) continue;
-                    if (matchMotion && (effect.m_motionType & motion) == 0) continue;
-                    return effect;
-                }
-                return null;
-            }
-
-            return Find(ground, true) ?? Find(ground, false)
-                   ?? Find(global::FootStep.GroundMaterial.Default, true) ?? Find(global::FootStep.GroundMaterial.Default, false)
-                   ?? step.m_effects.Find(e => e?.m_effectPrefabs != null && e.m_effectPrefabs.Length > 0);
+            // In water the game steps on water, and only where a creature has a swimming step.
+            var at = (motion & global::FootStep.MotionType.Swimming) != 0
+                ? StageGround.GameStep(made, fits, StepGround.Water)
+                : StageGround.StageStep(made, fits, (StepGround)ground);
+            return at >= 0 ? playable[at] : null;
         }
     }
 }

@@ -103,6 +103,8 @@ namespace Scry
             ("Character", "UpdateContinousEffects", 0, 0xABFA49E2, Feature.LastingEffects),
             ("Character", "UpdateSwimming", 1, 0x0FCF0647, Feature.SwimmingAnimations),
             ("FootStep", "FindBestStepEffect", 2, 0x2A458304, Feature.WhichStepCreatureMakes),
+            ("FootStep", "GetGroundMaterial", 2, 0xC71EB3B5, Feature.GroundStepsSoundOn),
+            ("Heightmap", "GetGroundMaterial", 3, 0x1318A01F, Feature.GroundStepsSoundOn),
             ("MonsterAI", "Sleep", 0, 0x76D7B742, Feature.SleepingAnimations),
             ("MonsterAI", "UpdateSleep", 1, 0x0849E9C0, Feature.WhatIsHeardAfterWaking),
             ("BaseAI", "DoIdleSound", 0, 0xEAD56C82, Feature.IdleSounds),

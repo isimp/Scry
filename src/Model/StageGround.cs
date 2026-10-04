@@ -45,6 +45,77 @@ namespace Scry
         public static float? WaterOver(string biome) => biome == "Ocean" ? 4f : (float?)null;
 
         /// <summary>
+        /// The ground a creature's footsteps sound on, standing on the stage: the plain floor is
+        /// the game's default ground (<c>FootStep.GetGroundMaterial</c> off the terrain); the
+        /// sea's floor is water, as the feet stand in the water over it and the game steps on
+        /// water first; and a biome's ground follows the game's rule for flat terrain
+        /// (<c>Heightmap.GetGroundMaterial</c>): snow in the mountains and the deep north, mud in
+        /// the swamp, grass in the meadows and the black forest, ash in the Ashlands, ground in
+        /// general elsewhere.
+        /// </summary>
+        public static StepGround Footsteps(string biome, bool groundShown)
+        {
+            if (!groundShown) return StepGround.Default;
+            if (WaterOver(biome) != null) return StepGround.Water;
+            switch (biome)
+            {
+                case "Mountain":
+                case "DeepNorth":
+                    return StepGround.Snow;
+                case "Swamp":
+                    return StepGround.Mud;
+                case "Meadows":
+                case "BlackForest":
+                    return StepGround.Grass;
+                case "AshLands":
+                    return StepGround.Ashlands;
+                default:
+                    return StepGround.GenericGround;
+            }
+        }
+
+        /// <summary>
+        /// The step the game plays from a creature's step table, by its place there, or -1 for
+        /// none (<c>FootStep.FindBestStepEffect</c>): of the steps fitting the way of moving, the
+        /// last made for the ground, else the first made for the default ground.
+        /// </summary>
+        /// <param name="made">The grounds each step is made for, in the table's order.</param>
+        /// <param name="fits">Whether each step is made for the way of moving.</param>
+        /// <param name="ground">The ground stepped on.</param>
+        public static int GameStep(IReadOnlyList<StepGround> made, IReadOnlyList<bool> fits, StepGround ground) => Step(made, fits, ground, anyWay: false);
+
+        /// <summary>
+        /// The step the stage plays from a creature's steps that have something to play: the one
+        /// the game would play (<see cref="GameStep"/>); past the game, where it would fall
+        /// silent, one made for ground in general, then the same two whatever way of moving
+        /// they are made for, then the first, so a creature is never mute on the stage.
+        /// </summary>
+        /// <param name="made">The grounds each step is made for, in the table's order.</param>
+        /// <param name="fits">Whether each step is made for the way of moving.</param>
+        /// <param name="ground">The ground stepped on.</param>
+        public static int StageStep(IReadOnlyList<StepGround> made, IReadOnlyList<bool> fits, StepGround ground)
+        {
+            foreach (var anyWay in new[] { false, true })
+            {
+                var step = Step(made, fits, ground, anyWay);
+                if (step < 0) step = Step(made, fits, StepGround.GenericGround, anyWay);
+                if (step >= 0) return step;
+            }
+            return made.Count > 0 ? 0 : -1;
+        }
+
+        private static int Step(IReadOnlyList<StepGround> made, IReadOnlyList<bool> fits, StepGround ground, bool anyWay)
+        {
+            var best = -1;
+            for (var i = 0; i < made.Count; i++)
+            {
+                if (!anyWay && !fits[i]) continue;
+                if ((made[i] & ground) != 0 || (best < 0 && (made[i] & StepGround.Default) != 0)) best = i;
+            }
+            return best;
+        }
+
+        /// <summary>
         /// How far round the model the stage's grass is kept off, in metres: the ground it stands
         /// on and a margin (its footprint, half its widest side, a fifth more and 0.3 m); and for
         /// something lower than grass grows (under 0.6 m), at least 1.5 m, so the grass between it
