@@ -52,6 +52,28 @@ namespace Scry
         }
 
         /// <summary>How long it lasts, and whether its clock stops while no one is inside its range.</summary>
+        /// <summary>When it is on the table: by the world's keys it waits for and stops at, or by each player's own progress where the world picks raids that way.</summary>
+        public static string OnTheTable(bool byEachPlayer, IEnumerable<string> keys, IEnumerable<string> endingKeys, System.Func<string, string> bossOf) =>
+            byEachPlayer ? "for a player whose own progress calls for it" : Starts(keys, endingKeys, bossOf);
+
+        /// <summary>How a raid only something else starts is rolled.</summary>
+        public const string NeverRolled = "never by the raid roll; only something else starts it";
+
+        /// <summary>The label of the line telling a creature a raid brings.</summary>
+        public static string Brings(string creature) => "Brings " + creature;
+
+        /// <summary>What a creature a raid brings is like: its stars, its groups, a time of day of its own, whether it hunts you; empty for none.</summary>
+        public static string Traits(int minLevel, int maxLevel, int groupMin, int groupMax, bool night, bool day, bool hunts)
+        {
+            var traits = new List<string>();
+            if (maxLevel > 1) traits.Add(SpawnWords.Stars(minLevel, maxLevel));
+            var group = SpawnWords.Group(groupMin, groupMax);
+            if (group != null) traits.Add(group);
+            if (night != day) traits.Add(night ? "at night" : "by day");
+            if (hunts) traits.Add("hunting you");
+            return string.Join(", ", traits);
+        }
+
         public static string Lasts(float duration, bool pauses, float range)
         {
             var words = Numbers.Duration(duration);

@@ -14,7 +14,7 @@ namespace Scry
     {
         private void Biome(BiomeSource biome)
         {
-            foreach (var (weather, share) in BiomeWords.Weathers(biome.Weathers)) Add($"{share} of the time", Weather(weather));
+            foreach (var (weather, share) in BiomeWords.Weathers(biome.Weathers)) Add(BiomeWords.ShareOfTime(share), Weather(weather));
             if (biome.Weathers.Count > 0) Hooked(HookedRule.Weather);
             foreach (var (label, music) in BiomeWords.Music(biome.Morning, biome.Evening, biome.Day, biome.Night)) Add(label, Naming.FieldLabel(music), PlayMusic + ":" + music);
 
@@ -28,7 +28,7 @@ namespace Scry
                     .ToList();
                 var row = new Row();
                 foreach (var entry in order != null ? order(found) : found) row.Items.Add(EntryChip(entry));
-                row.Title = $"{title} ({Numbers.Count(row.Items.Count)})";
+                row.Title = Naming.Counted(title, row.Items.Count);
                 if (row.Items.Count > 0) Rows.Add(row);
             }
             bool Fish(Entry e) => e.Kind == Kind.Item && e.Source is UnityEngine.GameObject prefab && prefab.GetComponent<global::Fish>() != null;

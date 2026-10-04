@@ -69,7 +69,7 @@ namespace Scry
         private void ModRow(string title, List<string> mods, EntryCatalog catalog)
         {
             if (mods == null || mods.Count == 0) return;
-            var row = new Row { Title = $"{title} ({Numbers.Count(mods.Count)})" };
+            var row = new Row { Title = Naming.Counted(title, mods.Count) };
             foreach (var name in mods)
             {
                 var entry = catalog.Find(EntryKeys.For(Kind.Mod, name));
@@ -90,7 +90,7 @@ namespace Scry
         private void GapRow(string title, List<ModEntry> entries, EntryCatalog catalog)
         {
             if (entries.Count == 0) return;
-            var row = new Row { Title = $"{title} ({Numbers.Count(entries.Count)})", Unsure = "Scry found nothing for these; the mod's own code may still place them" };
+            var row = new Row { Title = Naming.Counted(title, entries.Count), Unsure = "Scry found nothing for these; the mod's own code may still place them" };
             foreach (var one in entries)
             {
                 var entry = catalog.Find(one.Key);

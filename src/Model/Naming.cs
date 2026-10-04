@@ -42,6 +42,9 @@ namespace Scry
             System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
         /// <summary>A list of names as a sentence: "A", "A and B", "A, B and C"; nothing for none.</summary>
+        /// <summary>A row's title with how many it holds: "Lives here (12)".</summary>
+        public static string Counted(string title, int count) => $"{title} ({Numbers.Count(count)})";
+
         public static string Joined(System.Collections.Generic.IReadOnlyList<string> names)
         {
             if (names.Count <= 1) return names.Count == 1 ? names[0] : "";

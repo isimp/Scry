@@ -35,6 +35,9 @@ namespace Scry
         }
 
         /// <summary>Its music by the time of day, each that it has.</summary>
+        /// <summary>A weather's line, by how much of the time the biome has it.</summary>
+        public static string ShareOfTime(string share) => share + " of the time";
+
         public static List<(string Label, string Music)> Music(string morning, string evening, string day, string night)
         {
             var music = new List<(string, string)>();

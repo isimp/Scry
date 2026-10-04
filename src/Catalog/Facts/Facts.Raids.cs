@@ -50,12 +50,12 @@ namespace Scry
             var perPlayer = Knowledge.ByEachPlayer(raid);
             // The first boss it waits for, or else stops at, goes to its page.
             var waitsFor = perPlayer ? null : (raid.m_requiredGlobalKeys ?? new List<string>()).Concat(raid.m_notRequiredGlobalKeys ?? new List<string>()).Select(Knowledge.BossPrefabOf).FirstOrDefault(b => b != null);
-            Add("On the table", perPlayer ? "for a player whose own progress calls for it" : RaidWords.Starts(raid.m_requiredGlobalKeys, raid.m_notRequiredGlobalKeys, Knowledge.BossOf), waitsFor);
+            Add("On the table", RaidWords.OnTheTable(perPlayer, raid.m_requiredGlobalKeys, raid.m_notRequiredGlobalKeys, Knowledge.BossOf), waitsFor);
 
             var system = RandEventSystem.instance;
             if (raid.m_random && system != null) Add("Rolled", RaidWords.Roll(system.m_eventIntervalMin, system.m_eventChance));
             Add("Also rolled", RaidWords.OwnRoll(raid.m_standaloneInterval, raid.m_standaloneChance));
-            if (!raid.m_random && raid.m_standaloneInterval <= 0f) Add("Rolled", "never by the raid roll; only something else starts it");
+            if (!raid.m_random && raid.m_standaloneInterval <= 0f) Add("Rolled", RaidWords.NeverRolled);
             Add("Lasts", RaidWords.Lasts(raid.m_duration, raid.m_pauseIfNoPlayerInArea, raid.m_eventRange));
             var brought = (raid.m_spawn ?? new List<SpawnSystem.SpawnData>()).Where(d => d != null && d.m_enabled && d.m_prefab != null).ToList();
             Add("Keeps coming", RaidWords.KeepsComing(brought.Count(d => d.m_maxSpawned > 0), brought.Count));
@@ -70,15 +70,10 @@ namespace Scry
 
             foreach (var data in ContentOrder.ToughestFirst((raid.m_spawn ?? new List<SpawnSystem.SpawnData>()).Where(d => d?.m_prefab != null), d => FoeOf(d.m_prefab)))
             {
-                var key = "Brings " + AnyName(data.m_prefab, data.m_prefab.name);
+                var key = RaidWords.Brings(AnyName(data.m_prefab, data.m_prefab.name));
                 if (Pairs.Any(p => p.Key == key)) continue;
-                var more = new List<string>();
-                if (data.m_maxLevel > 1) more.Add(SpawnWords.Stars(data.m_minLevel, data.m_maxLevel));
-                var group = SpawnWords.Group(data.m_groupSizeMin, data.m_groupSizeMax);
-                if (group != null) more.Add(group);
-                if (data.m_spawnAtNight != data.m_spawnAtDay) more.Add(data.m_spawnAtNight ? "at night" : "by day");
-                if (data.m_huntPlayer) more.Add("hunting you");
-                Add(key, RaidWords.Spawn(data.m_maxSpawned, data.m_spawnInterval, data.m_spawnChance, string.Join(", ", more)), data.m_prefab.name);
+                var traits = RaidWords.Traits(data.m_minLevel, data.m_maxLevel, data.m_groupSizeMin, data.m_groupSizeMax, data.m_spawnAtNight, data.m_spawnAtDay, data.m_huntPlayer);
+                Add(key, RaidWords.Spawn(data.m_maxSpawned, data.m_spawnInterval, data.m_spawnChance, traits), data.m_prefab.name);
             }
         }
     }

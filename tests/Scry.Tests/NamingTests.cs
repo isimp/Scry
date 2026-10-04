@@ -73,5 +73,12 @@ namespace Scry.Tests
         {
             Assert.Equal(shown, Naming.NestedListLabel(outer, inner, of));
         }
+
+        [Fact]
+        public void ARowOfChipsIsTitledWithHowManyItHolds()
+        {
+            Assert.Equal("Lives here (1,234)", Naming.Counted("Lives here", 1234));
+            Assert.Equal("Needs (0)", Naming.Counted("Needs", 0));
+        }
     }
 }

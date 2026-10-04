@@ -46,6 +46,9 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void EachWeatherIsToldByItsShareOfTheTime() => Assert.Equal("40% of the time", BiomeWords.ShareOfTime("40%"));
+
+        [Fact]
         public void MusicIsToldByTheTimeOfDay()
         {
             Assert.Equal(new[] { ("Music in the morning", "morning"), ("Music by day", "meadows"), ("Music at night", "night") },
