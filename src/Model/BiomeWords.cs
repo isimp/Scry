@@ -34,6 +34,9 @@ namespace Scry
             return merged.OrderByDescending(w => w.Weight).Select(w => (w.Name, DropWords.Share(w.Weight / total))).ToList();
         }
 
+        /// <summary>How many weathers a biome has, on its card.</summary>
+        public static string WeatherCount(int weathers) => weathers == 1 ? "One weather" : $"{Numbers.Count(weathers)} weathers";
+
         /// <summary>A weather's line, by how much of the time the biome has it.</summary>
         public static string ShareOfTime(string share) => share + " of the time";
 

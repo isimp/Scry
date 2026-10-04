@@ -133,9 +133,7 @@ namespace Scry
         private static void NoPlacesYet(Rect inner)
         {
             var reading = Locations.Now == Locations.State.Reading;
-            var message = reading
-                ? "Reading this world's locations and dungeons. What is found in them shows here once they are read."
-                : "Nothing is known to be in a location yet: this world's locations and dungeons are read only when asked.";
+            var message = LocationWords.NoPlacesYet(reading);
             var textW = Mathf.Min(inner.width - U(24f), U(420f));
             var height = Skin.Height(Skin.CenterDim, message, textW);
             var top = inner.y + Mathf.Max(U(20f), (inner.height - height - U(44f)) / 2f);
@@ -188,11 +186,7 @@ namespace Scry
                     NoPlacesYet(inner);
                     return;
                 }
-                var message = explorer.FavouritesOnly && explorer.Favourites.Keys.Count == 0
-                    ? "No favourites yet. Star something to keep it here."
-                    : explorer.RecentOnly && explorer.RecentKeys.Count == 0
-                        ? "Nothing looked at yet. What you select is kept here."
-                        : "Nothing matches.";
+                var message = ListWords.Nothing(explorer.FavouritesOnly && explorer.Favourites.Keys.Count == 0, explorer.RecentOnly && explorer.RecentKeys.Count == 0);
                 GUI.Label(inner, message, Skin.CenterDim);
                 return;
             }
@@ -209,7 +203,7 @@ namespace Scry
             {
                 var noteH = U(26f);
                 GUI.Label(new Rect(inner.x + U(10f), inner.y, inner.width - U(20f), noteH),
-                    $"Nothing in {Kinds.Label(picked)}, showing all {Numbers.Count(results.Count)}", Skin.DimLabel);
+                    ListWords.NothingIn(Kinds.Label(picked), results.Count), Skin.DimLabel);
                 inner = new Rect(inner.x, inner.y + noteH, inner.width, inner.height - noteH);
                 _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
             }
@@ -271,9 +265,9 @@ namespace Scry
         {
             var hover = at.Contains(Event.current.mousePosition) && visible.Contains(Event.current.mousePosition) && _drag == Drag.None;
             if (hover) Skin.Box(new Rect(at.x + U(2f), at.y + U(1f), at.width - U(4f), at.height - U(2f)), Skin.Hover);
-            var text = (row.Folded ? "▸ " : "▾ ") + row.Heading;
+            var text = ListWords.Group(row.Heading, row.Folded);
             GUI.Label(new Rect(at.x + U(10f), at.y + U(8f), at.width - U(20f), at.height - U(8f)), text, Skin.DimLabel);
-            if (hover) AskTip("group:" + row.Group, row.Folded ? "Show this group" : "Fold this group away");
+            if (hover) AskTip("group:" + row.Group, ListWords.GroupTip(row.Folded));
             if (GUI.Button(at, GUIContent.none, GUIStyle.none))
             {
                 var key = FoldKey(explorer, row.Group);
@@ -334,7 +328,7 @@ namespace Scry
                         var count = 1;
                         while (i + count < results.Count && results[i + count].Group == results[i].Group) count++;
                         var name = results[i].Group.Length > 0 ? results[i].Group : "Ungrouped";
-                        _listRows.Add(new ListRow { Entry = -1, Heading = $"{name}  {Numbers.Count(count)}", Group = results[i].Group, Folded = folded });
+                        _listRows.Add(new ListRow { Entry = -1, Heading = PanelWords.Heading(name, count), Group = results[i].Group, Folded = folded });
                     }
                 }
                 if (folded)
@@ -407,7 +401,7 @@ namespace Scry
 
             if (hover && cut && !star.Contains(e.mousePosition))
             {
-                AskTip(entry.Key, secondary.Length > 0 ? primary + "\n" + secondary : primary);
+                AskTip(entry.Key, Naming.Lines(primary, secondary));
             }
             Timing.Add("list names", named);
 

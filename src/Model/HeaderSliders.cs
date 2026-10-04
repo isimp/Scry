@@ -35,6 +35,12 @@ namespace Scry
 
         public static string SizeLabel(float scale) => Numbers.TimesFixed(scale, 2);
 
+        /// <summary>The size icon's tip.</summary>
+        public static string SizeTip(float scale) => $"Size {SizeLabel(scale)}: click to change it";
+
+        /// <summary>The volume icon's tip.</summary>
+        public static string VolumeTip(float volume) => $"Volume {VolumeLabel(volume)}: click to change it";
+
         private static float Clamp01(float value) => float.IsNaN(value) ? 0f : Math.Max(0f, Math.Min(1f, value));
     }
 }

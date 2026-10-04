@@ -12,6 +12,9 @@ namespace Scry.Tests
         {
             Assert.Equal("attack club", ClipWords.Attack("club", second: false));
             Assert.Equal("attack club, second", ClipWords.Attack("club", second: true));
+            Assert.True(ClipWords.IsAttack(ClipWords.Attack("club", second: true)));
+            Assert.False(ClipWords.IsAttack("jumps, by name"));
+            Assert.False(ClipWords.IsAttack(null));
         }
 
         [Fact]

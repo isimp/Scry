@@ -47,7 +47,7 @@ namespace Scry
             const string open = "Mod report";
             var w = Skin.Width(Skin.Chip, open) + U(12f);
             GUI.Label(new Rect(inner.x + U(10f), inner.y + U(2f), inner.width - w - U(24f), U(24f)),
-                _modCount == 1 ? "What 1 mod adds" : $"What {Numbers.Count(_modCount)} mods add", Skin.DimLabel);
+                ModReportWords.Bar(_modCount), Skin.DimLabel);
             var button = new Rect(inner.xMax - w - U(6f), inner.y, w, U(26f));
             if (GUI.Button(button, open, Skin.Chip)) ShowModReport();
             if (button.Contains(Event.current.mousePosition)) AskTip("mod-report", "What each mod adds, what Scry links for its stations and tools, what it hooks into, and what Scry could not place");
@@ -81,8 +81,8 @@ namespace Scry
                     if (GUI.Button(heading, GUIContent.none, GUIStyle.none)) Go(explorer, page);
                 }
                 y += headingH + U(2f);
-                y = Paragraph(Naming.Capital(ModReportWords.Counts(mod)) + ".", x, y, width);
-                if (mod.Hooks.Count > 0) y = Paragraph("Hooks into " + ModReportWords.Hooks(mod.Hooks) + ".", x, y, width);
+                y = Paragraph(Naming.Sentence(ModReportWords.Counts(mod)), x, y, width);
+                if (mod.Hooks.Count > 0) y = Paragraph(ModReportWords.HooksLine(mod.Hooks), x, y, width);
 
                 foreach (var station in mod.Stations) y = ChipLine(explorer, station, ModReportWords.Station(station), x, y, width, visible);
                 foreach (var tool in mod.Tools) y = ChipLine(explorer, tool, ModReportWords.Tool(tool), x, y, width, visible);
@@ -116,7 +116,7 @@ namespace Scry
             if (!OutOfSight(chip, visible))
             {
                 if (LinkChip(chip, entry.Shown, entry.Kind, false, true)) Go(explorer, entry.Key);
-                if (chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, "Go to " + entry.Shown);
+                if (chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, PanelWords.GoTo(entry.Shown));
                 GUI.Label(new Rect(x + w + U(8f), y + U(3f), width - w - U(8f), U(22f)), told, Skin.DimLabel);
             }
             return y + rowH + U(5f);
@@ -142,7 +142,7 @@ namespace Scry
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
                 if (OutOfSight(chip, visible)) continue;
                 if (LinkChip(chip, entry.Shown, entry.Kind, false, true)) Go(explorer, entry.Key);
-                if (chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, "Go to " + entry.Shown);
+                if (chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, PanelWords.GoTo(entry.Shown));
             }
             // The rest behind a chip of their own, as the details' long rows have, against the
             // report's own scrolling.

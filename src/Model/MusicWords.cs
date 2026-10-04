@@ -28,6 +28,9 @@ namespace Scry
         /// <summary>Said for a place whose model, which holds its music, has not loaded yet.</summary>
         public const string NotLoaded = "Its music is known once its model has loaded.";
 
+        /// <summary>The tip of a piece of music named in a thing's facts, which a click plays or stops.</summary>
+        public static string Tip(bool playing) => playing ? "Stop it" : "Play it";
+
         /// <summary>What plays, and how to stop it where it was started.</summary>
         public static string Playing(string name, MusicStop stop)
         {

@@ -31,9 +31,9 @@ namespace Scry
             switch (entry.Kind)
             {
                 case Kind.Sound:
-                    if (Button(Variants(entry).Count > 1 ? "Play a random one" : "Play", Skin.Primary)) Previews.PlaySound(entry);
+                    if (Button(SoundWords.Play(Variants(entry).Count), Skin.Primary)) Previews.PlaySound(entry);
                     var sounding = Previews.SoundPlaying;
-                    if (Shown(sounding && Previews.SoundPaused ? "Resume" : "Pause", Skin.Button, sounding)) Previews.PauseSound(!Previews.SoundPaused);
+                    if (Shown(PanelWords.Pause(sounding && Previews.SoundPaused), Skin.Button, sounding)) Previews.PauseSound(!Previews.SoundPaused);
                     if (Shown("Stop", Skin.Button, sounding)) Previews.StopSound();
                     if (Button("Repeat", Previews.LoopSounds ? Skin.On : Skin.Button)) Previews.LoopSounds = !Previews.LoopSounds;
                     break;
@@ -89,7 +89,7 @@ namespace Scry
                         var example = ExampleOf(entry);
                         if (Shown("Another example", Skin.Button, example != null)) ExampleLayouts.Another();
                         note = example != null
-                            ? DungeonWords.Example(example, ExampleLayouts.Failed) + (example.Rooms.Count > 0 ? ". One way it can come out; each world lays out its own." : ".")
+                            ? DungeonWords.ExampleNote(DungeonWords.Example(example, ExampleLayouts.Failed), example.Rooms.Count > 0)
                             : ExampleLayouts.Of(entry) ? DungeonWords.Reading(ExampleLayouts.Read, ExampleLayouts.Total) : null;
                     }
                     break;
@@ -199,7 +199,7 @@ namespace Scry
             {
                 if (list.Value == effect.m_startEffects) continue;
                 var style = Previews.Playing.IsPlaying(list.Value) ? Skin.On : hasStart ? Skin.Button : Skin.Primary;
-                if (button("Play " + list.Key.ToLowerInvariant(), style))
+                if (button(PanelWords.PlayList(list.Key), style))
                 {
                     if (Previews.Playing.IsPlaying(list.Value)) Previews.Stop(list.Value);
                     else Previews.PlayOnYou(list.Value);
@@ -253,19 +253,11 @@ namespace Scry
                 {
                     AfterGoing();
                 }
-                if (hover) AskTip("kept:" + key, cross.Contains(Event.current.mousePosition) ? "Take it off" : "Go to " + name);
+                if (hover) AskTip("kept:" + key, cross.Contains(Event.current.mousePosition) ? "Take it off" : PanelWords.GoTo(name));
             }
 
             return flow.RowBottom + U(16f);
         }
 
-        private static string OriginText(Entry entry)
-        {
-            if (entry.Kind == Kind.Mod) return "a mod loaded";
-            if (entry.Origin == Origin.Vanilla) return "from the game";
-            if (entry.Origin != Origin.Mod) return "";
-            if (entry.ModName.Length == 0) return "added by a mod";
-            return UnsureWords.IsSureClue(entry.ModClue) ? "added by " + entry.ModName : UnsureWords.Marked("added by " + entry.ModName);
-        }
     }
 }

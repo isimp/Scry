@@ -11,6 +11,9 @@ namespace Scry
     {
         public static string Lasts(float seconds) => seconds > 0f ? Numbers.Duration(seconds) : "no time limit of its own";
 
+        /// <summary>What its card says of how long it lasts.</summary>
+        public static string Card(float seconds) => seconds > 0f ? PanelWords.Lasts(seconds) : Naming.Capital(Lasts(seconds));
+
         /// <summary>
         /// The tooltip's lines as lines of the page: each "Label: value", or a skill's "Swords +15"
         /// by the skill. The description it starts with is left out, as the page shows it, and so

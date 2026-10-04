@@ -45,7 +45,7 @@ namespace Scry
                 Skin.Icon(roof, Skin.Roof, !Stage.Cutting ? Skin.Accent : roofOver ? Skin.Text : Skin.Dim);
                 CountDrawn(PanelPart.RoofButton);
             }
-            if (roofOver) AskTip("roof", Stage.Cutting ? "Cut open over a floor: click to put the roof back on" : "Roof on: click to take it off, cutting away what is above head height over a floor");
+            if (roofOver) AskTip("roof", StageWords.RoofTip(Stage.Cutting));
             if (GUI.Button(roof, GUIContent.none, GUIStyle.none)) Stage.ToggleRoof();
 
             var low = Mathf.Min(floors[floors.Count - 1], Stage.ModelBottom) - 0.5f;
@@ -86,8 +86,7 @@ namespace Scry
             {
                 if (Mathf.Abs(Y(floors[i]) - e.mousePosition.y) <= U(6f)) near = i;
             }
-            AskTip("ruler", near >= 0 ? PlaceView.CutLabel(near, floors.Count) + ": click to open it"
-                : e.mousePosition.y < roofY ? "Click to put the roof on" : "Click or drag to cut here; the wheel or Page Up and Down step a floor");
+            AskTip("ruler", near >= 0 ? StageWords.FloorTip(PlaceView.CutLabel(near, floors.Count)) : StageWords.RulerTip(e.mousePosition.y < roofY));
             if (e.type == EventType.MouseDown && e.button == 0)
             {
                 if (near >= 0) Stage.OpenLevel(near);

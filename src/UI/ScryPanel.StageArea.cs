@@ -91,7 +91,7 @@ namespace Scry
                         var key = EntryKeys.For(Kind.Location, room.Room.Name);
                         var known = InCatalog(explorer, key);
                         var name = ShownName(explorer, key, LocationWords.RoomName(room.Room.Name));
-                        AskTip("stageroom:" + room.Room.Name, known ? name + "\nClick to go to it" : name);
+                        AskTip("stageroom:" + room.Room.Name, StageWords.RoomTip(name, known));
                         if (known) roomKey = key;
                         _stageRoom = room.Room.Name;
                     }
@@ -122,9 +122,7 @@ namespace Scry
                 {
                     // On the grid, how big the model is, in the same metres as its squares.
                     var size = Stage.SubjectSize;
-                    string M(float v) => v < 10f ? Numbers.Fixed(v, 1) : Numbers.Amount(v, 0);
-                    FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), textW, U(22f)),
-                        $"Squares of 1 m, lines every 5 m  \u00B7  {M(size.y)} m tall, {M(size.x)} × {M(size.z)} m", Skin.DimLabel, 9f);
+                    FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), textW, U(22f)), StageWords.Grid(size.x, size.y, size.z), Skin.DimLabel, 9f);
                 }
 
                 // The stage's own buttons and its floor ruler come before its dragging, which would otherwise take their clicks.
@@ -243,7 +241,7 @@ namespace Scry
             // Everything the row will hold, measured first, so it can move clear of the kind badge:
             // the View chip, and what the place shown has to show or not.
             var texts = new List<string> { "View" };
-            if (Stage.HasInside) texts.Add(Stage.Inside ? "Inside" : "Outside");
+            if (Stage.HasInside) texts.Add(StageWords.Inside(Stage.Inside));
             if (Stage.HasCreatures) texts.Add("Creatures");
             var total = texts.Sum(t => Skin.Width(Skin.Chip, t) + U(10f));
             if (x - total < rect.x + U(10f) + _badgeWidth + U(10f)) y += h + U(8f);
@@ -271,13 +269,12 @@ namespace Scry
             if (Chip("View", viewing, "How it is seen: spin, backdrop, lighting and a person for size")) ViewToggle(entry, OnScreen(last));
             else if (viewing) ViewPlace(entry, OnScreen(last));
             if (Stage.HasCreatures && Chip("Creatures", Stage.CreaturesShown,
-                    Stage.CreaturesShown ? "Puts away the creatures its spawn points put here" : "Shows the creatures its spawn points put here, rolled anew with every copy"))
+                    StageWords.CreaturesTip(Stage.CreaturesShown)))
             {
                 Stage.CreaturesShown = !Stage.CreaturesShown;
                 SaveRects();
             }
-            if (Stage.HasInside && Chip(Stage.Inside ? "Inside" : "Outside", Stage.Inside,
-                    Stage.Inside ? "The example dungeon, laid out as the game lays out a new one; click for its entrance outside" : "Its entrance; click for the example dungeon inside"))
+            if (Stage.HasInside && Chip(StageWords.Inside(Stage.Inside), Stage.Inside, StageWords.InsideTip(Stage.Inside)))
             {
                 Stage.Inside = !Stage.Inside;
             }

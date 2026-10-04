@@ -20,7 +20,28 @@ namespace Scry
         public static bool Action(string action, out string word) => Actions.TryGetValue(action, out word);
 
         /// <summary>The clip of an attack, by the weapon it is made with, and whether it is the weapon's second.</summary>
-        public static string Attack(string weapon, bool second) => "attack " + weapon + (second ? ", second" : "");
+        public static string Attack(string weapon, bool second) => AttackStart + weapon + (second ? ", second" : "");
+
+        /// <summary>Whether a clip's tag is an attack's (<see cref="Attack"/>).</summary>
+        public static bool IsAttack(string tag) => tag != null && tag.StartsWith(AttackStart, StringComparison.Ordinal);
+
+        private const string AttackStart = "attack ";
+
+        /// <summary>A clip's chip: its name, and what it is where that is known.</summary>
+        public static string Row(string name, string what) => string.IsNullOrEmpty(what) ? name : name + "  \u00B7  " + what;
+
+        /// <summary>The chip of the clip playing on its own, marked so.</summary>
+        public static string Now(string chip) => "\u25B6 " + chip;
+
+        /// <summary>A clip's tip: its name, its length, whether it loops, and whether it plays on its own now.</summary>
+        public static string Tip(string name, float length, bool loops, bool now) =>
+            $"{name}\n{Numbers.Fixed(length, 1)} s{(loops ? ", loops" : "")}{(now ? "\nPlaying on its own now" : "")}";
+
+        /// <summary>How far a clip has played of its length.</summary>
+        public static string Readout(float time, float length) => $"{Numbers.Fixed(time, 2)} / {Numbers.Fixed(length, 2)} s";
+
+        /// <summary>The note over the chips of the clips an effect list goes with.</summary>
+        public static string With(int clips) => clips > 1 ? "With its clips:" : "With its clip:";
 
         /// <summary>A clip found by its name to go with jumping, swimming or being in water, which it says.</summary>
         public static string ByName(string clip)

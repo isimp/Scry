@@ -31,6 +31,9 @@ namespace Scry
         /// <summary>What a missing status effect turns off: linking the damage that puts it on to it.</summary>
         public static string DamageLink(string effect) => $"linking damage to {effect}";
 
+        /// <summary>What is off with Scry's and the game's versions, copied for a report.</summary>
+        public static string Report(string scry, string game, IEnumerable<string> features) => $"Scry {scry}, Valheim {game}: off: {Naming.Commas(features)}";
+
         /// <summary>What the details card says above the list of what is off.</summary>
         public static string Details() =>
             "This version of Scry does not know something it relies on in this version of the game, or a part of it failed, so the parts below are off. " +

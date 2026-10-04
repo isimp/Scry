@@ -27,7 +27,7 @@ namespace Scry
         private static float Clips(Explorer explorer, List<AnimationClip> clips, Modifiers modifiers, float width, float labelW, float y)
         {
             var playing = Previews.PlayingClip();
-            y = SectionHeading($"ANIMATIONS  {Numbers.Count(clips.Count)}", width, y, null, "animations");
+            y = SectionHeading(PanelWords.Heading("ANIMATIONS", clips.Count), width, y, null, "animations");
             if (IsFolded("animations")) return y;
 
             var speed = SliderRow("Speed", Numbers.TimesFixed(modifiers.AnimationSpeed, 1), modifiers.AnimationSpeed, 0f, Modifiers.MaxAnimationSpeed, width, labelW, ref y);
@@ -74,8 +74,8 @@ namespace Scry
                 var enabled = GUI.enabled;
                 GUI.enabled = enabled && timed;
                 var pauseW = U(84f);
-                if (GUI.Button(new Rect(0f, y, pauseW, rowH), timed && Previews.ClipPaused ? "Resume" : "Pause", timed && Previews.ClipPaused ? Skin.ChipOn : Skin.Chip)) Previews.PauseClip(!Previews.ClipPaused);
-                var readout = timed ? $"{Numbers.Fixed(time, 2)} / {Numbers.Fixed(length, 2)} s" : "";
+                if (GUI.Button(new Rect(0f, y, pauseW, rowH), PanelWords.Pause(timed && Previews.ClipPaused), timed && Previews.ClipPaused ? Skin.ChipOn : Skin.Chip)) Previews.PauseClip(!Previews.ClipPaused);
+                var readout = timed ? ClipWords.Readout(time, length) : "";
                 var readW = Skin.Width(Skin.DimLabel, "00.00 / 00.00 s") + U(6f);
                 var picked = TimeBar(pauseW + U(10f), y, Mathf.Max(U(40f), width - pauseW - readW - U(20f)), rowH, time, length);
                 if (picked.HasValue && timed) Previews.SeekClip(picked.Value);
@@ -114,7 +114,7 @@ namespace Scry
                     group = row.Group;
                     inGroup = 0;
                     limit = filtering ? totals[group] : ShownOf("clips:" + Stored.Count(group), totals[group]);
-                    GUI.Label(new Rect(0f, y, width, U(20f)), group < 3 ? ClipHeadings[group] : "Working out what each clip plays" + Dots(), Skin.DimLabel);
+                    GUI.Label(new Rect(0f, y, width, U(20f)), group < 3 ? ClipHeadings[group] : PanelWords.Waiting("Working out what each clip plays", Time.unscaledTime), Skin.DimLabel);
                     y += U(22f);
                     flow = new ChipFlow(0f, width, y, rowH, U(5f), U(5f));
                 }
@@ -123,7 +123,7 @@ namespace Scry
 
                 // Named by the modelers; what it is follows, as far as Scry saw. The one the
                 // animator plays on its own right now is marked.
-                var text = clip == ownNow ? "\u25B6 " + row.Text : row.Text;
+                var text = clip == ownNow ? ClipWords.Now(row.Text) : row.Text;
 
                 var on = playing == clip;
                 var style = on ? Skin.ChipOn : Skin.Chip;
@@ -147,7 +147,7 @@ namespace Scry
                 }
                 if (chip.Contains(Event.current.mousePosition))
                 {
-                    AskTip("clip:" + row.Name + (clip == ownNow ? ":now" : ""), $"{row.Name}\n{Numbers.Fixed(clip.length, 1)} s{(clip.isLooping ? ", loops" : "")}{(clip == ownNow ? "\nPlaying on its own now" : "")}");
+                    AskTip("clip:" + row.Name + (clip == ownNow ? ":now" : ""), ClipWords.Tip(row.Name, clip.length, clip.isLooping, clip == ownNow));
                 }
             }
             if (group >= 0 && !filtering) MoreChip("clips:" + Stored.Count(group), totals[group], FirstChips, width, ref flow);
@@ -160,7 +160,7 @@ namespace Scry
                 if (members.Length > 0)
                 {
                     y += U(10f);
-                    y = Members(explorer, "In " + last.name + ":", last, members, null, width, y);
+                    y = Members(explorer, PanelWords.In(last.name), last, members, null, width, y);
                 }
 
                 // Paired by the clip's name alone, where the animator could not be seen to go there.
@@ -218,9 +218,9 @@ namespace Scry
                 var clip = clips[i];
                 var name = i < names.Count ? names[i] : clip.name;
                 var tagged = tags.TryGetValue(name, out var tag);
-                var text = tagged ? name + "  \u00B7  " + tag : name;
+                var text = ClipWords.Row(name, tag);
                 if (_clipFilter.Length > 0 && text.IndexOf(_clipFilter, StringComparison.OrdinalIgnoreCase) < 0) continue;
-                var group = sorting ? 3 : tagged && tag.StartsWith("attack", StringComparison.Ordinal) ? 0 : Previews.ClipSounds(clip) ? 1 : 2;
+                var group = sorting ? 3 : tagged && ClipWords.IsAttack(tag) ? 0 : Previews.ClipSounds(clip) ? 1 : 2;
                 rows.Add(new ClipRow { Clip = clip, Name = name, Text = text, Group = group * 2 + (tagged ? 0 : 1) });
             }
             rows = rows.OrderBy(r => r.Group).ToList();
@@ -233,9 +233,6 @@ namespace Scry
             _rowsFilter = _clipFilter;
             return rows;
         }
-
-        /// <summary>One to three dots, going round, for something still being worked out.</summary>
-        private static string Dots() => new string('.', 1 + (int)(Time.unscaledTime * 3f) % 3);
 
         /// <summary>Lets go of the clip rows made of the world left, and of the clip they were last drawn for.</summary>
         private static void ForgetAnimations()

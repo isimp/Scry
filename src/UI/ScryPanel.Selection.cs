@@ -43,7 +43,7 @@ namespace Scry
         {
             if (!Shortlist.Long(total, first)) return;
             var open = OpenLists.Contains(key);
-            var text = open ? "Show fewer" : $"{Numbers.Count(Shortlist.Hidden(total, first, false))} more";
+            var text = open ? "Show fewer" : PanelWords.More(Shortlist.Hidden(total, first, false));
             var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(16f));
             var at = flow.Place(w);
             var rect = new Rect(at.X, at.Y, w, flow.RowHeight);
@@ -67,7 +67,7 @@ namespace Scry
         private static void FoldAllLink(Rect link, string text, bool anyOpen)
         {
             LinkLabel(link, text, Skin.FaintLabel, Skin.Faint);
-            if (link.Contains(Event.current.mousePosition)) AskTip("fold-all", anyOpen ? "Fold every section away" : "Open every section");
+            if (link.Contains(Event.current.mousePosition)) AskTip("fold-all", PanelWords.FoldAllTip(anyOpen));
             if (GUI.Button(link, GUIContent.none, GUIStyle.none)) FoldAll(anyOpen);
         }
 
@@ -117,7 +117,7 @@ namespace Scry
             // to never leaves the selection unnamed.
             var titleArea = new Rect(rect.x, top, rect.width - U(14f), U(68f));
             var anyOpen = AnyOpen();
-            var foldText = anyOpen ? "fold all" : "open all";
+            var foldText = PanelWords.FoldAll(anyOpen);
             _foldAllW = Skin.Width(Skin.FaintLabel, foldText) + U(16f);
             GUI.BeginGroup(titleArea);
             var titleH = Section("side title", 0f, at => Title(explorer, entry, titleArea.width, at, withStage));
@@ -200,19 +200,19 @@ namespace Scry
             var starRect = new Rect(width - U(28f), y + U(4f), U(22f), U(22f));
             Skin.Icon(starRect, favourite ? Skin.Star : Skin.StarHollow, favourite ? Skin.Accent : Skin.Dim);
             if (GUI.Button(starRect, GUIContent.none, GUIStyle.none)) explorer.ToggleFavourite(entry);
-            if (starRect.Contains(Event.current.mousePosition)) AskTip("star", favourite ? "Remove from favourites" : "Add to favourites");
+            if (starRect.Contains(Event.current.mousePosition)) AskTip("star", DetailWords.StarTip(favourite));
 
             if (GUI.Button(new Rect(width - copyW - U(38f), y + U(2f), copyW, U(26f)), "Copy name", Skin.Button))
             {
                 GUIUtility.systemCopyBuffer = entry.Name;
-                Say($"Copied \"{entry.Name}\".");
+                Say(PanelWords.Copied(entry.Name));
             }
             y += U(34f);
 
             // Kind in colour, then the prefab name (when the game shows another) and where it comes from.
             var x = _compact ? KindBadge(entry, new Vector2(0f, y)) + U(10f) : 0f;
-            var origin = OriginText(entry);
-            var sub = entry.Name == primary ? origin : entry.Name + (origin.Length > 0 ? "   ·   " + origin : "");
+            var origin = DetailWords.From(entry);
+            var sub = entry.Name == primary ? origin : DetailWords.Sub(entry.Name, origin);
             // The second line is kept even when empty: the link to fold every section sits at its end.
             {
                 var subRect = new Rect(x, y, width - x - _foldAllW, U(22f));
@@ -222,8 +222,8 @@ namespace Scry
                 {
                     var page = EntryKeys.For(Kind.Mod, entry.ModName);
                     var known = InCatalog(explorer, page);
-                    var guess = UnsureWords.IsSureClue(entry.ModClue) ? "" : UnsureWords.ModClue(entry.ModClue) + "\n";
-                    if (subRect.Contains(Event.current.mousePosition)) AskTip("mod" + guess, guess + (known ? "Go to " + entry.ModName + ": what it adds and changes" : "Show everything " + entry.ModName + " added"));
+                    var clue = UnsureWords.IsSureClue(entry.ModClue) ? null : UnsureWords.ModClue(entry.ModClue);
+                    if (subRect.Contains(Event.current.mousePosition)) AskTip("mod" + clue, DetailWords.ModTip(clue, entry.ModName, known));
                     if (GUI.Button(subRect, GUIContent.none, GUIStyle.none))
                     {
                         if (known) Go(explorer, page);

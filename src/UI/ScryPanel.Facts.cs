@@ -46,7 +46,7 @@ namespace Scry
                     var musicW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
                     var musicRect = new Rect(valueRect.x, valueRect.y, musicW, height);
                     LinkLabel(musicRect, pair.Value, Skin.Wrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);
-                    if (musicRect.Contains(Event.current.mousePosition)) AskTip("music:" + entry.Key + ":" + named, playing ? "Stop it" : "Play it");
+                    if (musicRect.Contains(Event.current.mousePosition)) AskTip("music:" + entry.Key + ":" + named, MusicWords.Tip(playing));
                     if (GUI.Button(musicRect, GUIContent.none, GUIStyle.none))
                     {
                         var said = named == null ? Previews.PlacesMusic(entry) : Previews.NamedMusic(entry, named);
@@ -68,7 +68,7 @@ namespace Scry
                     var linkW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
                     var linkRect = new Rect(valueRect.x, valueRect.y, linkW, height);
                     LinkLabel(linkRect, pair.Value, Skin.Wrap, LinkText(KindOf(explorer, link), false));
-                    if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, "Go to " + ShownName(explorer, link, pair.Value));
+                    if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, PanelWords.GoTo(ShownName(explorer, link, pair.Value)));
                     if (GUI.Button(linkRect, GUIContent.none, GUIStyle.none)) Go(explorer, link);
                 }
                 else
@@ -114,7 +114,7 @@ namespace Scry
                     Skin.Box(chip, LinkFill(kind, hover));
                     if (icon != null) DrawSprite(icon, new Rect(U(6f), y + (chipH - U(22f)) / 2f, U(22f), U(22f)));
                     Skin.LabelIn(new Rect(textX, y, textW, chipH), text, wrapped, LinkText(kind, hover));
-                    if (hover) AskTip("src:" + source.Prefab + source.Unsure, (source.Unsure != null ? source.Unsure + "\n" : "") + "Go to " + ShownName(explorer, source.Prefab, source.Prefab));
+                    if (hover) AskTip("src:" + source.Prefab + source.Unsure, Naming.Lines(source.Unsure, PanelWords.GoTo(ShownName(explorer, source.Prefab, source.Prefab))));
                     if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(source.Prefab))
                     {
                         AfterGoing();
@@ -165,7 +165,7 @@ namespace Scry
                 var text = UnsureWords.Marked(hooks);
                 var hooksRect = new Rect(0f, y, width, Skin.Height(Skin.DimWrap, text, width));
                 GUI.Label(hooksRect, text, Skin.DimWrap);
-                if (hooksRect.Contains(Event.current.mousePosition)) AskTip("hooks:" + entry.Key, ModHookWords.Tip(facts.Hooks) + "\n" + UnsureWords.Hooked);
+                if (hooksRect.Contains(Event.current.mousePosition)) AskTip("hooks:" + entry.Key, Naming.Lines(ModHookWords.Tip(facts.Hooks), UnsureWords.Hooked));
                 y = hooksRect.yMax;
             }
 
@@ -238,7 +238,7 @@ namespace Scry
                 var titleW = Mathf.Min(width, Skin.Width(Skin.DimLabel, row.Title) + U(4f));
                 var titleRect = new Rect(0f, y, titleW, U(20f));
                 LinkLabel(titleRect, row.Title, Skin.DimLabel, LinkText(KindOf(explorer, row.TitleLink), false));
-                if (titleRect.Contains(Event.current.mousePosition)) AskTip("row-title:" + row.TitleLink, "Go to " + ShownName(explorer, row.TitleLink, row.TitleLink));
+                if (titleRect.Contains(Event.current.mousePosition)) AskTip("row-title:" + row.TitleLink, PanelWords.GoTo(ShownName(explorer, row.TitleLink, row.TitleLink)));
                 if (GUI.Button(titleRect, GUIContent.none, GUIStyle.none)) Go(explorer, row.TitleLink);
             }
             else
@@ -251,7 +251,7 @@ namespace Scry
             for (var i = 0; i < count; i++)
             {
                 var item = row.Items[i];
-                var text = string.IsNullOrEmpty(item.Amount) ? item.Name : $"{item.Amount}  {item.Name}";
+                var text = DetailWords.Amounted(item.Amount, item.Name);
                 var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(30f));
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
@@ -266,7 +266,7 @@ namespace Scry
                 // Clicking an ingredient or a drop goes to it.
                 if (!string.IsNullOrEmpty(item.Prefab))
                 {
-                    if (hover && goes) AskTip("goto:" + item.Prefab, $"Go to {item.Name}");
+                    if (hover && goes) AskTip("goto:" + item.Prefab, PanelWords.GoTo(item.Name));
                     if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(item.Prefab))
                     {
                         AfterGoing();
@@ -299,7 +299,7 @@ namespace Scry
             var command = SpawnCommand.For(entry, _commandAmount, level, give: isItem);
             if (command == null) return y;
 
-            y = SectionHeading(isItem ? "GIVE COMMAND" : "SPAWN COMMAND", width, y, null, "command");
+            y = SectionHeading(DetailWords.CommandHeading(isItem), width, y, null, "command");
             if (IsFolded("command")) return y;
             var rowH = U(28f);
 
@@ -338,7 +338,7 @@ namespace Scry
             if (GUI.Button(new Rect(box.xMax + U(8f), y, copyW, U(30f)), "Copy", Skin.Button))
             {
                 GUIUtility.systemCopyBuffer = command;
-                Say($"Copied \"{command}\". Paste it into the console (F5).");
+                Say(DetailWords.CopiedCommand(command));
             }
             y += U(36f);
 
@@ -374,10 +374,9 @@ namespace Scry
             y = SectionHeading("DETAILS", width, y, null, "details");
             if (IsFolded("details")) return y;
 
-            var lines = new List<string> { "Prefab name: " + entry.Name };
-            lines.Add("Origin: " + (entry.Origin == Origin.Vanilla ? "the game" : entry.Origin == Origin.Mod ? (entry.ModName.Length > 0 ? entry.ModName : "a mod, not named") : "unknown"));
+            var lines = new List<string> { DetailWords.PrefabName(entry.Name), DetailWords.OriginLine(entry) };
 
-            if (entry.ExtraLevels > 0) lines.Add($"Star looks: {Numbers.Count(entry.ExtraLevels)}");
+            if (entry.ExtraLevels > 0) lines.Add(DetailWords.StarLooks(entry.ExtraLevels));
 
             if (entry.Source is GameObject prefab)
             {
@@ -386,7 +385,7 @@ namespace Scry
                     components = Components(prefab);
                     ComponentLists[entry] = components;
                 }
-                lines.Add("Made of: " + components);
+                lines.Add(DetailWords.MadeOf(components));
             }
 
             foreach (var line in lines)
@@ -427,7 +426,7 @@ namespace Scry
                     // Not measured: the text changes every frame, and each would be kept.
                     const string stop = "Stop";
                     var stopW = Skin.Width(Skin.Chip, stop) + U(12f);
-                    GUI.Label(new Rect(0f, y, width - stopW - U(8f), U(24f)), $"Reading locations and dungeons: {Numbers.Count(Locations.Done)} of {Numbers.Count(Locations.Total)}", Skin.DimLabel);
+                    GUI.Label(new Rect(0f, y, width - stopW - U(8f), U(24f)), LocationWords.ReadingProgress(Locations.Done, Locations.Total), Skin.DimLabel);
                     if (GUI.Button(new Rect(width - stopW, y, stopW, U(24f)), stop, Skin.Chip)) StopReadingLocations();
                     return y + U(30f);
 
@@ -462,12 +461,12 @@ namespace Scry
                 if (location != null)
                 {
                     var key = location.Key;
-                    FoundInItems.Add((key, place, "Go to " + name, () => Go(explorer, key)));
+                    FoundInItems.Add((key, place, PanelWords.GoTo(name), () => Go(explorer, key)));
                 }
                 else
                 {
                     var search = SearchHelp.Term("in", name);
-                    FoundInItems.Add((search, place, "Search for what is found in " + name, () => SearchFor(explorer, search)));
+                    FoundInItems.Add((search, place, LocationWords.SearchFoundIn(name), () => SearchFor(explorer, search)));
                 }
             }
             return FoundInItems;
@@ -505,7 +504,7 @@ namespace Scry
                 counts.TryGetValue(name, out var n);
                 counts[name] = n + 1;
             }
-            return string.Join(", ", counts.Select(p => Naming.Repeated(p.Key, p.Value)));
+            return Naming.Commas(counts.Select(p => Naming.Repeated(p.Key, p.Value)));
         }
 
         /// <summary>Lets go of the details' lists, and of what they were last drawn for.</summary>

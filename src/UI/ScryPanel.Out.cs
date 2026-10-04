@@ -26,9 +26,8 @@ namespace Scry
         /// <summary>The button's text for so many lines out, made once for each count.</summary>
         private static string ClearText(int lines)
         {
-            if (lines <= 1) return "Clear world";
-            if (lines >= ClearTexts.Length) return $"Clear world  {Numbers.Count(lines)}";
-            return ClearTexts[lines] ?? (ClearTexts[lines] = $"Clear world  {Numbers.Count(lines)}");
+            if (lines <= 1 || lines >= ClearTexts.Length) return OutWords.ClearWorld(lines);
+            return ClearTexts[lines] ?? (ClearTexts[lines] = OutWords.ClearWorld(lines));
         }
 
         /// <summary>Takes everything of Scry's out of the world, as the header's button does, and says so.</summary>
@@ -135,7 +134,7 @@ namespace Scry
 
                 var placeW = U(64f);
                 GUI.Label(new Rect(line.x + U(8f), line.y, placeW, line.height), OutPlaceWord(r.Place), Skin.DimLabel);
-                var name = ShownName(explorer, OutTarget(r), r.Key) + (r.Count > 1 ? "  " + Numbers.Times(r.Count) : "");
+                var name = OutWords.Row(ShownName(explorer, OutTarget(r), r.Key), r.Count);
                 var nameX = line.x + U(8f) + placeW;
                 GUI.Label(new Rect(nameX, line.y, line.xMax - OutCrossW - nameX, line.height), name, Skin.Label);
 
@@ -148,7 +147,7 @@ namespace Scry
             {
                 var more = _outRows.Count - _outFits;
                 GUI.Label(new Rect(_outRect.x + U(12f), _outRect.y + OutTop + _outFits * OutRowH, _outRect.width - U(24f), OutRowH),
-                    $"and {Numbers.Count(more)} more; Clear world takes them all", Skin.FaintLabel);
+                    OutWords.More(more), Skin.FaintLabel);
             }
         }
     }

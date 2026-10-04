@@ -76,7 +76,7 @@ namespace Scry
         {
             if (GoTexts.TryGetValue(text, out var shown)) return shown;
             if (GoTexts.Count > 20000) GoTexts.Clear();
-            return GoTexts[text] = text + "  \u203A";
+            return GoTexts[text] = PanelWords.GoArrow(text);
         }
 
         /// <summary>The kind of the entry a key goes to (a prefab's name, or a key in a namespace), when it is in the catalog.</summary>
@@ -111,7 +111,7 @@ namespace Scry
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
                 if (OutOfSight(chip)) continue;
                 if (LinkChip(chip, item.Text, KindOf(explorer, item.Key), false, true)) item.Click();
-                if (chip.Contains(Event.current.mousePosition)) AskTip("link:" + title + item.Key + item.Text, item.Tip ?? "Go to " + item.Text);
+                if (chip.Contains(Event.current.mousePosition)) AskTip("link:" + title + item.Key + item.Text, item.Tip ?? PanelWords.GoTo(item.Text));
             }
             MoreChip(key, all.Count, FirstChips, width, ref flow);
             return flow.RowBottom + U(10f);
@@ -132,7 +132,7 @@ namespace Scry
                 _linksIn = explorer;
                 LinkRows.Clear();
                 MakeLinkRows(explorer, entry);
-                _linkedHeading = $"LINKED  {Numbers.Count(LinkRows.Sum(r => r.Items.Count))}";
+                _linkedHeading = PanelWords.Heading("LINKED", LinkRows.Sum(r => r.Items.Count));
             }
             if (LinkRows.Count == 0) return y;
 
@@ -174,8 +174,8 @@ namespace Scry
                         .Select(p =>
                         {
                             var shown = ShownName(explorer, p.Target, p.Target);
-                            var text = p.Item2.Length > 0 ? shown + " \u00b7 " + p.Item2 : shown;
-                            var tip = p.Item2.Length > 0 ? $"Go to {shown} and play its {p.Item2} animation" : "Go to " + shown;
+                            var text = LinkWords.Animation(shown, p.Item2);
+                            var tip = LinkWords.AnimationTip(shown, p.Item2);
                             return (p.Target, text, tip, (Action)(() =>
                             {
                                 if (p.Item2.Length > 0) Previews.PlayClipOnShow(p.Item2);
@@ -192,9 +192,7 @@ namespace Scry
                 {
                     var shown = ShownName(explorer, l.Target, l.Target);
                     var notes = giver ? l.Notes.Select(Groups.GiverWords).ToList() : l.Notes;
-                    var note = notes.Count == 1 && notes[0].Length > 0 && notes[0].Length <= 28 ? " \u00b7 " + notes[0] : "";
-                    var tip = "Go to " + shown + (notes.Count > 0 ? "\n" + string.Join("\n", notes.Take(12)) : "");
-                    return (l.Target, shown + note, tip, (Action)(() => Go(explorer, l.Target)));
+                    return (l.Target, LinkWords.Chip(shown, notes), LinkWords.Tip(shown, notes), (Action)(() => Go(explorer, l.Target)));
                 }).ToList()));
             }
         }

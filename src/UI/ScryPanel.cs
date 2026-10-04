@@ -248,7 +248,7 @@ namespace Scry
             var e = Event.current;
 
             // Header: the name, the catalog size, the view switch and a close button. It drags the panel.
-            var viewText = _compact ? "Full view" : "Compact";
+            var viewText = PanelWords.ViewButton(_compact);
             var viewW = Skin.Width(Skin.Button, viewText) + U(10f);
             // Clear world sits in the header so it is in the same place whatever is selected, and
             // only while something of Scry's is in the world.
@@ -262,7 +262,7 @@ namespace Scry
             // offered here too until it is done; while reading it shows how far it has got. Its
             // width is fixed while reading, as the text changes every frame and is not measured.
             var reading = Locations.Now == Locations.State.Reading;
-            var locText = reading ? $"Stop reading  {Numbers.Count(Locations.Done)} of {Numbers.Count(Locations.Total)}" : LocationsButtonText;
+            var locText = reading ? LocationWords.StopReading(Locations.Done, Locations.Total) : LocationsButtonText;
             var locW = Skin.Width(Skin.Button, reading ? "Stop reading  000 of 000" : LocationsButtonText) + U(10f);
             var locRect = new Rect(clearRect.x - U(8f) - locW, clearRect.y, locW, clearRect.height);
             var showLoc = Locations.Now != Locations.State.Read && locRect.x > pad + U(98f);

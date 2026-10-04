@@ -57,7 +57,7 @@ namespace Scry
             if (open && stars)
             {
                 var names = new List<string>();
-                for (var level = 1; level <= modifiers.MaxLevel; level++) names.Add(level == 1 ? "No stars" : level == 2 ? "1 star" : $"{Numbers.Count(level - 1)} stars");
+                for (var level = 1; level <= modifiers.MaxLevel; level++) names.Add(CombatWords.StarChoice(level - 1));
                 var chosen = Segments("Stars", names, modifiers.Level - 1, width, labelW, ref y);
                 if (chosen >= 0) modifiers.Level = chosen + 1;
             }
@@ -77,7 +77,7 @@ namespace Scry
 
             if (open && projectile)
             {
-                Previews.ProjectileSpeed = SliderRow("Speed", $"{Numbers.Count(Mathf.RoundToInt(Previews.ProjectileSpeed))} m/s", Previews.ProjectileSpeed, 5f, 120f, width, labelW, ref y);
+                Previews.ProjectileSpeed = SliderRow("Speed", ProjectileWords.Speed(Previews.ProjectileSpeed), Previews.ProjectileSpeed, 5f, 120f, width, labelW, ref y);
             }
 
             // Space after it only when open: a folded heading already leaves the same gap as every other.
@@ -101,7 +101,7 @@ namespace Scry
                 var names = loadout.Options(rows[i]).Select(ItemName).ToList();
                 for (var n = 0; n < names.Count; n++)
                 {
-                    if (names.Count(other => other == names[n]) > 1) names[n] = names[n] + " (" + loadout.Options(rows[i])[n] + ")";
+                    if (names.Count(other => other == names[n]) > 1) names[n] = Naming.WithPrefab(names[n], loadout.Options(rows[i])[n]);
                 }
 
                 // A shield the weapon leaves no hand for is shown put away, and still chosen for later.

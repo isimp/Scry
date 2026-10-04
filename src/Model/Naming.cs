@@ -53,6 +53,25 @@ namespace Scry
         /// <summary>The word that goes with a count: one's for one, many's otherwise ("stays", "stay").</summary>
         public static string Noun(int count, string one, string many) => count == 1 ? one : many;
 
+        /// <summary>Lines one under another, leaving out those with nothing: a tip's.</summary>
+        public static string Lines(params string[] lines) => Lines((System.Collections.Generic.IEnumerable<string>)lines);
+
+        /// <summary>Lines one under another, leaving out those with nothing.</summary>
+        public static string Lines(System.Collections.Generic.IEnumerable<string> lines)
+        {
+            var text = new StringBuilder();
+            foreach (var line in lines)
+            {
+                if (string.IsNullOrEmpty(line)) continue;
+                if (text.Length > 0) text.Append('\n');
+                text.Append(line);
+            }
+            return text.ToString();
+        }
+
+        /// <summary>A text as a sentence: begun with a capital, ended with a full stop.</summary>
+        public static string Sentence(string text) => Capital(text) + ".";
+
         /// <summary>Names one after another with commas: "A, B, C".</summary>
         public static string Commas(System.Collections.Generic.IEnumerable<string> names) => string.Join(", ", names);
 

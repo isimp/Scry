@@ -49,12 +49,12 @@ namespace Scry
             {
                 x -= size;
                 SlideIcon(Slide.Size, entry, new Rect(x, y, size, size), Skin.Resize, !Mathf.Approximately(modifiers.Scale, 1f),
-                    $"Size {HeaderSliders.SizeLabel(modifiers.Scale)}: click to change it");
+                    HeaderSliders.SizeTip(modifiers.Scale));
                 x -= U(4f);
             }
             x -= size;
             SlideIcon(Slide.Volume, entry, new Rect(x, y, size, size), Skin.Speaker, !Mathf.Approximately(modifiers.Volume, 1f),
-                $"Volume {HeaderSliders.VolumeLabel(modifiers.Volume)}: click to change it");
+                HeaderSliders.VolumeTip(modifiers.Volume));
             return right - x;
         }
 

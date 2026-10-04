@@ -40,10 +40,7 @@ namespace Scry
             return y + rowH + U(14f);
         }
 
-        private static string Clock(float seconds)
-        {
-            return seconds < 10f ? Numbers.Fixed(seconds, 1) + " s" : Numbers.Clock(seconds);
-        }
+        private static string Clock(float seconds) => SoundWords.Clock(seconds);
 
         private static readonly Dictionary<Entry, List<AudioClip>> VariantCache = new Dictionary<Entry, List<AudioClip>>();
 
@@ -66,7 +63,7 @@ namespace Scry
             var clips = Variants(entry);
             if (clips.Count < 2) return y;
 
-            y = SectionHeading($"VARIANTS  {Numbers.Count(clips.Count)}", width, y, null, "variants");
+            y = SectionHeading(PanelWords.Heading("VARIANTS", clips.Count), width, y, null, "variants");
             if (IsFolded("variants")) return y;
             var now = Previews.SoundClipNow();
             var flow = new ChipFlow(0f, width, y, U(28f), U(5f), U(5f));
@@ -74,7 +71,7 @@ namespace Scry
             for (var i = 0; i < clips.Count; i++)
             {
                 var clip = clips[i];
-                var text = $"{Numbers.Count(i + 1)}   {clip.name}";
+                var text = SoundWords.Variant(i, clip.name);
                 var style = clip == now ? Skin.ChipOn : Skin.Chip;
                 var w = Mathf.Min(width, Skin.Width(style, text) + U(8f));
                 var at = flow.Place(w);
@@ -83,7 +80,7 @@ namespace Scry
                 if (GUI.Button(chip, text, style)) Previews.PlaySound(entry, clip);
                 if (chip.Contains(Event.current.mousePosition))
                 {
-                    AskTip("variant:" + clip.name, $"{clip.name}\n{Numbers.Fixed(clip.length, 2)} s");
+                    AskTip("variant:" + clip.name, SoundWords.VariantTip(clip.name, clip.length));
                 }
             }
 

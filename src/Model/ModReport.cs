@@ -100,6 +100,12 @@ namespace Scry
         /// <summary>What a mod's page says it adds when Scry sees nothing it adds or hooks into.</summary>
         public const string NothingAdded = "nothing Scry can see, and it hooks into none of what Scry tells";
 
+        /// <summary>The bar over the list of what mods add: how many mods add something.</summary>
+        public static string Bar(int mods) => mods == 1 ? "What 1 mod adds" : $"What {Numbers.Count(mods)} mods add";
+
+        /// <summary>The report's line for which of the rules Scry tells a mod hooks into.</summary>
+        public static string HooksLine(IReadOnlyList<HookedRule> rules) => Naming.Sentence("hooks into " + Hooks(rules));
+
         /// <summary>Which of the rules Scry tells a mod hooks into, and that what Scry tells of them may differ.</summary>
         public static string HooksInto(IReadOnlyList<HookedRule> rules) => Hooks(rules) + ", so what Scry tells of these may differ from what happens";
 

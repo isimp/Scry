@@ -75,7 +75,7 @@ namespace Scry
             }
             var icon = new Rect(star.x + star.width * 0.22f, star.y + star.height * 0.22f, star.width * 0.56f, star.height * 0.56f);
             Skin.Icon(icon, explorer.FavouritesOnly ? Skin.Star : Skin.StarHollow, explorer.FavouritesOnly ? Skin.Accent : Skin.Dim);
-            if (star.Contains(Event.current.mousePosition)) AskTip("fav", explorer.FavouritesOnly ? "Showing only favourites" : "Show only favourites");
+            if (star.Contains(Event.current.mousePosition)) AskTip("fav", ListWords.FavouritesTip(explorer.FavouritesOnly));
 
             var recent = new Rect(star.xMax + gap, row, recentW, rect.height);
             if (GUI.Button(recent, GUIContent.none, explorer.RecentOnly ? Skin.On : Skin.IconButton))
@@ -85,7 +85,7 @@ namespace Scry
             }
             var clock = new Rect(recent.x + recent.width * 0.22f, recent.y + recent.height * 0.22f, recent.width * 0.56f, recent.height * 0.56f);
             Skin.Icon(clock, Skin.Clock, explorer.RecentOnly ? Skin.Accent : Skin.Dim);
-            if (recent.Contains(Event.current.mousePosition)) AskTip("recent", explorer.RecentOnly ? "Showing what you looked at last, newest first" : "Show what you looked at last, newest first");
+            if (recent.Contains(Event.current.mousePosition)) AskTip("recent", ListWords.RecentTip(explorer.RecentOnly));
 
             var originX = recent.xMax + gap * 2f;
             var originRow = row;
@@ -119,7 +119,7 @@ namespace Scry
             if (GUI.Button(button, GUIContent.none, ListHidden ? Skin.On : Skin.IconButton)) ToggleList();
             var icon = new Rect(button.x + button.width * 0.24f, button.y + button.height * 0.24f, button.width * 0.52f, button.height * 0.52f);
             Skin.Icon(icon, Skin.ListMark, ListHidden ? Skin.Accent : Skin.Dim);
-            if (button.Contains(Event.current.mousePosition)) AskTip("list-button", ListHidden ? "Bring the list back" : "Fold the list away, leaving the room to the details");
+            if (button.Contains(Event.current.mousePosition)) AskTip("list-button", ListWords.ListButtonTip(ListHidden));
         }
 
         private static int _steppedFrame = -1;
@@ -247,7 +247,7 @@ namespace Scry
         {
             if (TabTexts.TryGetValue((label, count, on), out var text)) return text;
             if (TabTexts.Count > 2000) TabTexts.Clear();
-            text = $"{label}  <color=#{(on ? "5a4526" : "8f929c")}>{Numbers.Count(count)}</color>";
+            text = ListWords.Tab(label, count, on ? Skin.TabCountOn : Skin.TabCountOff);
             TabTexts[(label, count, on)] = text;
             return text;
         }

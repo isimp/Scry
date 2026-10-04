@@ -9,6 +9,9 @@ namespace Scry
         /// <summary>Milliseconds: to two places under ten, to one above.</summary>
         public static string Ms(double ms) => Numbers.Fixed(ms, ms < 10 ? 2 : 1);
 
+        /// <summary>Milliseconds with their unit.</summary>
+        public static string Milliseconds(double ms) => Ms(ms) + " ms";
+
         /// <summary>Memory in bytes, kilobytes, megabytes or gigabytes, whichever reads best.</summary>
         public static string Bytes(long bytes)
         {

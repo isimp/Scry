@@ -120,6 +120,9 @@ namespace Scry
             return text;
         }
 
+        /// <summary>What an example holds (<see cref="Example"/>), and that it is one way of many where it has rooms.</summary>
+        public static string ExampleNote(string holds, bool hasRooms) => holds + (hasRooms ? ". One way it can come out; each world lays out its own." : ".");
+
         /// <summary>How many doorways and of which types, the commonest first.</summary>
         public static string Doorways(RoomShape room)
         {

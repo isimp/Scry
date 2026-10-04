@@ -64,6 +64,9 @@ namespace Scry
         /// <summary>The label of the line telling a creature a raid brings.</summary>
         public static string Brings(string creature) => "Brings " + creature;
 
+        /// <summary>What a raid's card says it brings: the creatures by name, or nothing.</summary>
+        public static string Brings(IReadOnlyList<string> creatures) => creatures.Count > 0 ? Brings(Naming.Commas(creatures)) : "Brings nothing";
+
         /// <summary>What a creature a raid brings is like: its stars, its groups, a time of day of its own, whether it hunts you; empty for none.</summary>
         public static string Traits(int minLevel, int maxLevel, int groupMin, int groupMax, bool night, bool day, bool hunts)
         {

@@ -40,6 +40,9 @@ namespace Scry
         /// <summary>The game's own figure for bouncing without end.</summary>
         private const int EndlessBounces = 99;
 
+        /// <summary>A speed in whole metres a second.</summary>
+        public static string Speed(float metresPerSecond) => $"{Numbers.Count((long)System.Math.Round(metresPerSecond))} m/s";
+
         public static string Description(bool shotFromAnAttack) => shotFromAnAttack
             ? "Fired by an attack, it takes that attack's damage, knockback, blocking and status effect in place of its own below, and the attack's speed."
             : "Its speed comes from whatever launches it.";

@@ -29,6 +29,12 @@ namespace Scry
         public static readonly Color WarnSoft = new Color(0.985f, 0.600f, 0.260f, 0.13f);
         public static readonly Color OnAccent = new Color(0.110f, 0.080f, 0.040f, 1f);
 
+        /// <summary>A tab's count on the picked tab, as rich text takes a colour.</summary>
+        public const string TabCountOn = "5a4526";
+
+        /// <summary>A tab's count on the other tabs, as rich text takes a colour.</summary>
+        public const string TabCountOff = "8f929c";
+
         /// <summary>A well below the panel: a text box, a command shown to copy.</summary>
         public static readonly Color Sunken = new Color(0.055f, 0.060f, 0.073f, 1f);
 

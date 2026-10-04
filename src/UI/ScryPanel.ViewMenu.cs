@@ -35,7 +35,7 @@ namespace Scry
         {
             var rows = new List<(string, string, bool, string, System.Action)>
             {
-                ("Spin", Stage.Spin ? "On" : "Off", Stage.Spin, Stage.Spin ? "Turning; click to hold it still" : "Held still; click to turn it", () => Stage.Spin = !Stage.Spin),
+                ("Spin", PanelWords.OnOff(Stage.Spin), Stage.Spin, StageWords.SpinTip(Stage.Spin), () => Stage.Spin = !Stage.Spin),
                 ("Backdrop", Stage.BackdropNames[Stage.BackdropIndex], false, "Click for the next backdrop", () => Stage.BackdropIndex = (Stage.BackdropIndex + 1) % Stage.BackdropNames.Length),
                 ("Light", Stage.LightingNames[Stage.LightingIndex], false, "Click for the next lighting", () => Stage.LightingIndex = (Stage.LightingIndex + 1) % Stage.LightingNames.Length),
             };
@@ -45,7 +45,7 @@ namespace Scry
                 rows.Add(("Ground", GroundLabel(Stage.GroundChoice), false, "The ground's biome: Auto for its own; click for the next",
                     () => Stage.GroundChoice = StageGround.Next(Stage.GroundChoice)));
             }
-            if (!Looks.IsWorn(entry)) rows.Add(("Person", Stage.ShowPerson ? "On" : "Off", Stage.ShowPerson, "A person beside it, to judge its size", () => Stage.ShowPerson = !Stage.ShowPerson));
+            if (!Looks.IsWorn(entry)) rows.Add(("Person", PanelWords.OnOff(Stage.ShowPerson), Stage.ShowPerson, "A person beside it, to judge its size", () => Stage.ShowPerson = !Stage.ShowPerson));
             return rows;
         }
 

@@ -145,8 +145,8 @@ namespace Scry
 
             if (ListHidden)
             {
-                if (GUI.Button(gap, upright ? "\u203A" : "Show the list  \u25BE", Skin.Button)) ToggleList();
-                if (inside) AskTip("list-gap", "Bring the list back");
+                if (GUI.Button(gap, ListWords.ShowList(upright), Skin.Button)) ToggleList();
+                if (inside) AskTip("list-gap", ListWords.BringBack);
                 return;
             }
 

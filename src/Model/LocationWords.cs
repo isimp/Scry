@@ -327,6 +327,14 @@ namespace Scry
         /// <summary>How far reading the locations has got, where something waits on it (<see cref="CatalogWords.Progress(string, int, int)"/>).</summary>
         public static string ReadingProgress(int done, int total) => CatalogWords.Progress("Reading locations and dungeons", done, total);
 
+        /// <summary>A place's link where it has no page: a search for what is found in it.</summary>
+        public static string SearchFoundIn(string place) => "Search for what is found in " + place;
+
+        /// <summary>Why a search for what is in a place finds nothing: the locations are being read, or have not been.</summary>
+        public static string NoPlacesYet(bool reading) => reading
+            ? "Reading this world's locations and dungeons. What is found in them shows here once they are read."
+            : "Nothing is known to be in a location yet: this world's locations and dungeons are read only when asked.";
+
         /// <summary>The header's button while the locations are read, which stops it.</summary>
         public static string StopReading(int done, int total) => $"Stop reading  {Numbers.Count(done)} of {Numbers.Count(total)}";
 

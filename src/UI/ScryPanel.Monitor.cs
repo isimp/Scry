@@ -43,7 +43,7 @@ namespace Scry
                         Skin.Fill(new Rect(graph.x + i * cw, graph.yMax - ch, Mathf.Max(U(1f), cw - U(1f)), ch), Skin.Alpha(Skin.Accent, 0.8f));
                     }
                 }
-                GUI.Label(new Rect(graph.xMax - U(120f), graph.y, U(118f), U(16f)), MonitorWords.Ms(graphTop) + " ms", Skin.FaintLabel);
+                GUI.Label(new Rect(graph.xMax - U(120f), graph.y, U(118f), U(16f)), MonitorWords.Milliseconds(graphTop), Skin.FaintLabel);
 
                 var y = graph.yMax + U(8f);
                 foreach (var line in lines)

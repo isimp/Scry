@@ -24,8 +24,8 @@ namespace Scry
         /// <summary>How tall the self-test's strip is: none while no run goes on and none has ended or it was put away.</summary>
         private static float TestNoticeHeight() => SelfTestHost.Running || (_testShown && SelfTestHost.LastHeadline != null) ? U(32f) : 0f;
 
-
         /// <summary>The self-test's strip: what runs and how far it has got, with Stop; once done, its headline, its details and a cross.</summary>
+        [Diagnostic]
         private static void TestNotice(Rect rect)
         {
             CountDrawn(PanelPart.TestNotice);

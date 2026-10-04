@@ -43,7 +43,7 @@ namespace Scry
             }
             if (lists.Count == 0) return y;
 
-            y = SectionHeading($"EFFECTS  {Numbers.Count(lists.Count)}", width, y, null, "effects");
+            y = SectionHeading(PanelWords.Heading("EFFECTS", lists.Count), width, y, null, "effects");
             if (IsFolded("effects")) return y;
             var rowH = U(26f);
 
@@ -75,7 +75,7 @@ namespace Scry
                 if (playing && chip.Contains(Event.current.mousePosition)) AskTip("fx-stop:" + pair.Key, "Playing; click to stop it");
                 if (chip.Contains(Event.current.mousePosition))
                 {
-                    AskTip("fx:" + pair.Key, string.Join("\n", EffectSlots.NamesPlayed(pair.Value)));
+                    AskTip("fx:" + pair.Key, Naming.Lines(EffectSlots.NamesPlayed(pair.Value)));
                 }
             }
             if (_effectFilter.Length == 0) MoreChip("effects", matching.Count, FirstChips, width, ref flow);
@@ -86,12 +86,12 @@ namespace Scry
             if (last.Value != null)
             {
                 y += U(10f);
-                y = Members(explorer, "In " + last.Key + ":", last.Value, EffectSlots.NamesPlayed(last.Value), null, width, y);
+                y = Members(explorer, PanelWords.In(last.Key), last.Value, EffectSlots.NamesPlayed(last.Value), null, width, y);
 
                 // The clips it goes with, to play from here, once they are worked out.
                 if (Previews.ClipsSorting)
                 {
-                    GUI.Label(new Rect(0f, y + U(2f), width, U(20f)), "Finding the clips it goes with" + Dots(), Skin.DimLabel);
+                    GUI.Label(new Rect(0f, y + U(2f), width, U(20f)), PanelWords.Waiting("Finding the clips it goes with", Time.unscaledTime), Skin.DimLabel);
                     y += U(24f);
                 }
                 else
@@ -110,12 +110,12 @@ namespace Scry
         /// </summary>
         private static float ClipLinks(List<(AnimationClip Clip, string How)> clips, float width, float y)
         {
-            GUI.Label(new Rect(0f, y, width, U(20f)), clips.Count > 1 ? "With its clips:" : "With its clip:", Skin.DimLabel);
+            GUI.Label(new Rect(0f, y, width, U(20f)), ClipWords.With(clips.Count), Skin.DimLabel);
             var flow = new ChipFlow(0f, width, y + U(24f), U(26f), U(5f), U(5f));
             var playing = Previews.PlayingClip();
             foreach (var (clip, how) in clips)
             {
-                var text = how.Length > 0 ? clip.name + "  ·  " + how : clip.name;
+                var text = ClipWords.Row(clip.name, how);
                 var on = playing == clip;
                 var style = on ? Skin.ChipOn : Skin.Chip;
                 var w = Mathf.Min(width, Skin.Width(style, text) + U(8f));
@@ -166,7 +166,7 @@ namespace Scry
                 if (OutOfSight(chip)) continue;
                 var lit = Previews.Playing.IsPlaying(list, member);
                 if (LinkChip(chip, member, KindOf(explorer, member), lit, go)) Go(explorer, member);
-                if (go && chip.Contains(Event.current.mousePosition)) AskTip("member:" + member, "Go to " + member + (lit ? "\n(playing now)" : ""));
+                if (go && chip.Contains(Event.current.mousePosition)) AskTip("member:" + member, PanelWords.GoTo(member, lit));
             }
             MoreChip(key, members.Count, FirstChips, width, ref flow);
             return flow.RowBottom + U(6f);
@@ -223,7 +223,7 @@ namespace Scry
             var rows = _playsInRows;
             if (rows.Count == 0) return y;
 
-            y = SectionHeading($"PLAYS IN  {Numbers.Count(rows.Count)}", width, y, null, "playsin");
+            y = SectionHeading(PanelWords.Heading("PLAYS IN", rows.Count), width, y, null, "playsin");
             if (IsFolded("playsin")) return y;
             // Each row is a list of its own, so fewer show before the rest are asked for.
             const int firstRows = 8;
@@ -271,7 +271,7 @@ namespace Scry
                     var chip = new Rect(at.X, at.Y, w, rowH);
                     var kind = KindOf(explorer, owner.Key);
                     if (LinkChip(chip, shown, kind, false, go)) Go(explorer, owner.Key);
-                    if (go && chip.Contains(Event.current.mousePosition)) AskTip("owner:" + owner.Key, "Go to " + shown);
+                    if (go && chip.Contains(Event.current.mousePosition)) AskTip("owner:" + owner.Key, PanelWords.GoTo(shown));
                 }
                 MoreChip(ownersKey, row.Owners.Count, firstOwners, width, ref owners);
                 y = owners.RowBottom + U(5f);

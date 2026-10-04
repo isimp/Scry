@@ -48,7 +48,7 @@ namespace Scry
         private static float SectionHeading(string text, float width, float y, Action reset, string key = null)
         {
             var folded = IsFolded(key);
-            var shown = key == null ? text : text + (folded ? "  \u25B8" : "  \u25BE");
+            var shown = key == null ? text : PanelWords.SectionTitle(text, folded);
             var textW = Skin.Width(Skin.Heading, shown);
             var head = new Rect(0f, y, textW + U(4f), U(20f));
             if (key == null)
@@ -58,7 +58,7 @@ namespace Scry
             else
             {
                 LinkLabel(head, shown, Skin.Heading, Skin.Heading.normal.textColor);
-                if (head.Contains(Event.current.mousePosition)) AskTip("fold:" + key, (folded ? "Open this section" : "Fold this section away") + "\nShift-click: every section");
+                if (head.Contains(Event.current.mousePosition)) AskTip("fold:" + key, PanelWords.SectionTip(folded));
                 if (GUI.Button(head, GUIContent.none, GUIStyle.none))
                 {
                     if (Event.current.shift) FoldAll(!folded);
@@ -137,27 +137,13 @@ namespace Scry
         /// <summary>The panel's foot line for each view and setting, once made.</summary>
         private static readonly string[] FootHints = new string[8];
 
-        /// <summary>The keys the full view's hint adds, which the compact view has no room for.</summary>
-        private static readonly string[] FullViewKeys = { "Enter plays", "Ctrl+F searches", "Esc leaves a box" };
-
-        /// <summary>
-        /// The keys that are not obvious, short, and only those the settings allow; the rest is
-        /// under "?". Made once for each view and setting.
-        /// </summary>
+        /// <summary>The foot's hint for the view and settings now (<see cref="PanelWords.FootHint"/>), made once for each.</summary>
         private static string FootHint()
         {
             var walk = Settings.WalkWhileOpen;
             var look = Settings.LookWithRightMouse;
             var index = (_compact ? 4 : 0) + (walk ? 2 : 0) + (look ? 1 : 0);
-            if (FootHints[index] != null) return FootHints[index];
-
-            var parts = new List<string>();
-            if (!_compact) parts.AddRange(FullViewKeys);
-            if (walk) parts.Add("keys walk when not typing");
-            if (look) parts.Add("right-drag outside to look");
-            if (parts.Count == 0) parts.Add("Enter plays");
-            parts[0] = Naming.Capital(parts[0]);
-            return FootHints[index] = string.Join("  ·  ", parts);
+            return FootHints[index] ?? (FootHints[index] = PanelWords.FootHint(!_compact, walk, look));
         }
 
         // ----- What is off -----
@@ -273,7 +259,7 @@ namespace Scry
             if (CardButton(rect, close, "Copy for a report", out _))
             {
                 if (!Guard.Run("telling the game's version", GameVersion, out var game)) game = "of an unknown version";
-                GUIUtility.systemCopyBuffer = $"Scry {About.Version}, Valheim {game}: off: {string.Join(", ", _offFeatures)}";
+                GUIUtility.systemCopyBuffer = OffWords.Report(About.Version, game, _offFeatures);
                 Say("Copied what is off, with Scry's and the game's versions.");
             }
         }
