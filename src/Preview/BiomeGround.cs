@@ -63,6 +63,9 @@ namespace Scry
         private bool _sky;
         private float _across = 24f;
         private float _basis;
+
+        /// <summary>How far round the model its grass was kept off when scattered, in metres.</summary>
+        private float _clear;
         private Vector3 _at;
         private int _paintsLaid = -1;
 
@@ -143,10 +146,11 @@ namespace Scry
 
         /// <summary>
         /// Lays the ground under the model at its height: again for another entry, biome, sky or
-        /// paint, or as what is framed grows; its grass goes up and down with it. Its edge fades
-        /// into the colour given, what is behind it.
+        /// paint, or as what is framed grows; its grass goes up and down with it, kept off the
+        /// ground round the model (<paramref name="clear"/> metres, <see cref="StageGround.ClearOfGrass"/>).
+        /// Its edge fades into the colour given, what is behind it.
         /// </summary>
-        public void Lay(float groundY, Entry shown, bool sky, float frameRadius, Vector3 origin, Color edge, GameObject root, int layer)
+        public void Lay(float groundY, Entry shown, bool sky, float frameRadius, float clear, Vector3 origin, Color edge, GameObject root, int layer)
         {
             var on = On && _terrain != null && _terrain.activeSelf;
             if (_fade != null && _fade.activeSelf != on) _fade.SetActive(on);
@@ -160,7 +164,7 @@ namespace Scry
 
             var basis = Mathf.Max(0.5f, frameRadius);
             var at = new Vector3(origin.x, groundY - Below, origin.z);
-            var another = !ReferenceEquals(_for, shown) || _laidBiome != Biome || _sky != sky || _paintsLaid != _paintsVersion;
+            var another = !ReferenceEquals(_for, shown) || _laidBiome != Biome || _sky != sky || _paintsLaid != _paintsVersion || Mathf.Abs(clear - _clear) > 0.1f;
             if (another || basis > _basis * 1.25f)
             {
                 _basis = another ? basis : Mathf.Max(basis, _basis);
@@ -169,6 +173,7 @@ namespace Scry
                 _sky = sky;
                 _paintsLaid = _paintsVersion;
                 _across = StageGround.Across(_basis, sky);
+                _clear = clear;
                 _at = at;
                 PaintMask();
                 ScatterGrass(root, layer);
@@ -497,6 +502,7 @@ namespace Scry
                             {
                                 var point = new Vector3(UnityEngine.Random.Range(cx - half, cx + half), 0f, UnityEngine.Random.Range(cz - half, cz + half));
                                 float yaw = UnityEngine.Random.Range(0, 360);
+                                if (new Vector2(point.x - _at.x, point.z - _at.z).magnitude < _clear) continue;
                                 if (!Grows(clutter, point, offset, altitude, depth, bare, paints)) continue;
                                 point.y = clutter.m_snapToWater ? _at.y + depth : _at.y + Below;
                                 if (clutter.m_randomOffset != 0f) point.y += UnityEngine.Random.Range(0f - clutter.m_randomOffset, clutter.m_randomOffset);

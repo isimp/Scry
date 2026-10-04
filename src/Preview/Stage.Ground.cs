@@ -84,7 +84,9 @@ namespace Scry
             var sky = StageGround.Sky(_backdrop);
             var edge = sky ? look.Horizon : look.Backdrop;
             edge.a = 1f;
-            TheGround.Lay(groundY, _lastShown, sky, _frameRadius, Origin, edge, _root, _layer);
+            var size = SubjectSize;
+            var clear = StageGround.ClearOfGrass(Mathf.Max(size.x, size.z) / 2f, size.y);
+            TheGround.Lay(groundY, _lastShown, sky, _frameRadius, clear, Origin, edge, _root, _layer);
         }
 
         private static void DrawGrass() => TheGround.DrawGrass(_camera, _layer);

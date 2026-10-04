@@ -10,6 +10,20 @@ namespace Scry.Tests
         // plain floor stays. Sky goes with ground as it goes with the grid.
 
         [Fact]
+        public void GrassKeepsOffWhatStandsOnTheStageAndWhatLiesSmallInIt()
+        {
+            // A bear: its footprint and a margin round it.
+            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 1f, height: 1.5f), 3);
+            // A tree: wider, and as tall as it likes.
+            Assert.Equal(2.7f, StageGround.ClearOfGrass(footprint: 2f, height: 10f), 3);
+            // A sword lying down or a pebble: low enough for grass to hide it, so a wider ring.
+            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 0.6f, height: 0.1f), 3);
+            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 0.05f, height: 0.05f), 3);
+            // Something small but standing taller than grass needs only its own margin.
+            Assert.Equal(0.54f, StageGround.ClearOfGrass(footprint: 0.2f, height: 1f), 3);
+        }
+
+        [Fact]
         public void TheBackdropsAreThePlainOnesTheGridAndTheGround()
         {
             Assert.Equal(new[] { "Plain", "Sky", "Grid", "Sky and grid", "Ground", "Sky and ground" }, StageGround.Backdrops);

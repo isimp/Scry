@@ -45,6 +45,18 @@ namespace Scry
         public static float? WaterOver(string biome) => biome == "Ocean" ? 4f : (float?)null;
 
         /// <summary>
+        /// How far round the model the stage's grass is kept off, in metres: the ground it stands
+        /// on and a margin (its footprint, half its widest side, a fifth more and 0.3 m); and for
+        /// something lower than grass grows (under 0.6 m), at least 1.5 m, so the grass between it
+        /// and the camera does not hide it.
+        /// </summary>
+        public static float ClearOfGrass(float footprint, float height)
+        {
+            var margin = footprint * 1.2f + 0.3f;
+            return height < 0.6f ? Math.Max(margin, 1.5f) : margin;
+        }
+
+        /// <summary>
         /// The height over the sea a biome's ground is taken at, for the game's rules for where
         /// grass grows (<c>ClutterSystem</c>, its heights over the sea): the stage stands at none,
         /// so one typical of the biome, the mountains high, the swamp low, the sea's floor under
