@@ -8,6 +8,9 @@ namespace Scry
     /// <summary>The selected entry's stage in the panel: the picture, its handle, the input over it, and the chips and buttons on it.</summary>
     internal static partial class ScryPanel
     {
+        /// <summary>The room of the example the mouse is on the stage over, lit on the plan too.</summary>
+        private static string _stageRoom;
+
         /// <summary>
         /// The strip under the stage: dragged, it makes the stage taller or shorter; double-clicked,
         /// it puts the usual height back.
@@ -22,24 +25,14 @@ namespace Scry
 
             if (e.type == EventType.MouseDown && e.button == 0 && strip.Contains(e.mousePosition))
             {
-                if (e.clickCount == 2)
-                {
-                    _stageScale = 1f;
-                    SaveRects();
-                }
-                else
-                {
-                    _drag = Drag.StageSize;
-                }
+                if (e.clickCount == 2) ResetStageSize();
+                else StartDrag(Drag.StageSize);
                 e.Use();
             }
         }
 
         /// <summary>The room of the stage's example the left button went down on, gone to if it comes up without a drag.</summary>
         private static string _stageRoomDown;
-
-        /// <summary>How far the mouse has moved since the left button went down on the stage.</summary>
-        private static float _orbitMoved;
 
         /// <summary>Where the stage's picture was last drawn, on the screen, for a drag to tell where on it the mouse is.</summary>
         private static Rect _pictureScreen;
@@ -88,7 +81,7 @@ namespace Scry
                 // drag goes to its entry.
                 string roomKey = null;
                 _stageRoom = null;
-                var still = _drag == Drag.None || (_drag == Drag.Orbit && _orbitMoved < U(5f));
+                var still = _drag == Drag.None || (_drag == Drag.Orbit && _dragMoved < U(5f));
                 if (Stage.ExampleRoomsShown > 0 && still && inner.Contains(e.mousePosition) && !plan.Contains(e.mousePosition))
                 {
                     var point = new Vector2((e.mousePosition.x - inner.x) / inner.width, 1f - (e.mousePosition.y - inner.y) / inner.height);
@@ -103,7 +96,7 @@ namespace Scry
                         _stageRoom = room.Room.Name;
                     }
                 }
-                if (e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _stageRoomDown != null && _orbitMoved < U(5f))
+                if (e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _stageRoomDown != null && _dragMoved < U(5f))
                 {
                     var go = _stageRoomDown;
                     _stageRoomDown = null;
@@ -143,14 +136,13 @@ namespace Scry
                 {
                     if (e.clickCount == 2) Stage.ResetView();
                     _stageRoomDown = e.clickCount == 2 ? null : roomKey;
-                    _orbitMoved = 0f;
-                    _drag = Drag.Orbit;
+                    StartDrag(Drag.Orbit);
                     Stage.Dragging = true;
                     e.Use();
                 }
                 else if (e.type == EventType.MouseDown && e.button == 1 && rect.Contains(e.mousePosition))
                 {
-                    _drag = Drag.Pan;
+                    StartDrag(Drag.Pan);
                     e.Use();
                 }
                 else if (e.type == EventType.ScrollWheel && rect.Contains(e.mousePosition))

@@ -89,5 +89,11 @@ namespace Scry
 
             return flow.RowBottom + U(16f);
         }
+
+        /// <summary>Lets go of the sound variants found in the world left.</summary>
+        private static void ForgetSounds()
+        {
+            VariantCache.Clear();
+        }
     }
 }

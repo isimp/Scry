@@ -8,6 +8,8 @@ namespace Scry
     /// <summary>The selected entry's card where it has no stage, or beside it in the compact view: a biome's, a raid's, a mod's, a sound's or a status effect's, and its kind's badge.</summary>
     internal static partial class ScryPanel
     {
+        private static float _badgeWidth;
+
         /// <summary>The kind, in its colour, as a small pill.</summary>
         private static float KindBadge(Entry entry, Vector2 at)
         {
@@ -165,6 +167,14 @@ namespace Scry
 
             if (effect == null) return;
             GUI.Label(new Rect(rect.x + U(20f), icon.yMax + U(10f), rect.width - U(40f), U(22f)), StatusFacts(effect), Skin.CenterDim);
+        }
+
+        /// <summary>Lets go of the cards made of the world left's entries.</summary>
+        private static void ForgetEntryCards()
+        {
+            SoundFactCache.Clear();
+            StatusListCache.Clear();
+            RaidCardCache.Clear();
         }
     }
 }

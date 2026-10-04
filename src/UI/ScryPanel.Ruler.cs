@@ -27,7 +27,6 @@ namespace Scry
             _stageFrame = Time.frameCount;
         }
 
-
         private static void FloorRuler(Rect stage)
         {
             var floors = Stage.FloorHeights;
@@ -93,7 +92,7 @@ namespace Scry
             {
                 if (near >= 0) Stage.OpenLevel(near);
                 else RulerAt(GUIUtility.GUIToScreenPoint(e.mousePosition).y);
-                _drag = Drag.Ruler;
+                StartDrag(Drag.Ruler);
                 e.Use();
             }
             else if (e.type == EventType.ScrollWheel)

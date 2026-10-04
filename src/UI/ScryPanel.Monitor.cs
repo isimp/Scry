@@ -16,11 +16,10 @@ namespace Scry
         {
             var scale = Scale();
             Skin.Ensure(scale);
-            var was = _s;
             var skin = GUI.skin;
+            var was = SwapScale(scale);
             try
             {
-                _s = scale;
                 GUI.skin = Skin.Gui;
                 var lineH = U(17f);
                 var graphH = U(36f);
@@ -57,7 +56,7 @@ namespace Scry
             finally
             {
                 GUI.skin = skin;
-                _s = was;
+                SwapScale(was);
             }
         }
     }

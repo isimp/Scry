@@ -383,8 +383,6 @@ namespace Scry
 
             if (entry.ExtraLevels > 0) lines.Add($"Star looks: {Numbers.Count(entry.ExtraLevels)}");
 
-
-
             if (entry.Source is GameObject prefab)
             {
                 if (!ComponentLists.TryGetValue(entry, out var components))
@@ -512,6 +510,19 @@ namespace Scry
                 counts[name] = n + 1;
             }
             return string.Join(", ", counts.Select(p => Naming.Repeated(p.Key, p.Value)));
+        }
+
+        /// <summary>Lets go of the details' lists, and of what they were last drawn for.</summary>
+        private static void ForgetFacts()
+        {
+            ComponentLists.Clear();
+            _usersFor = null;
+            _users = new List<(string, string, string, Action)>();
+            _commandFor = null;
+            _foundInFor = null;
+            _foundInOf = null;
+            _foundInIn = null;
+            FoundInItems.Clear();
         }
     }
 }

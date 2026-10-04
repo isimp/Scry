@@ -149,6 +149,7 @@ namespace Scry
 
         private static Entry _linksFor;
         private static Explorer _linksIn;
+
         /// <summary>The section's heading with how many things it links, made with its rows.</summary>
         private static string _linkedHeading = "LINKED";
 
@@ -307,6 +308,21 @@ namespace Scry
             rect = sprite.textureRect;
             uv = new Rect(rect.x / t.width, rect.y / t.height, rect.width / t.width, rect.height / t.height);
             return true;
+        }
+
+        /// <summary>Lets go of the linked rows, icons and names made of the world left.</summary>
+        private static void ForgetLinks()
+        {
+            PrefabIcons.Clear();
+            KindByKey.Clear();
+            _catalogNames = null;
+            _preparing = null;
+            _prepared = null;
+            _linksFor = null;
+            _linksIn = null;
+            LinkRows.Clear();
+            _kindsFor = null;
+            _namesFor = null;
         }
     }
 }

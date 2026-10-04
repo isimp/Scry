@@ -31,6 +31,14 @@ namespace Scry
             return ClearTexts[lines] ?? (ClearTexts[lines] = $"Clear world  {Numbers.Count(lines)}");
         }
 
+        /// <summary>Takes everything of Scry's out of the world, as the header's button does, and says so.</summary>
+        private static void ClearWorld()
+        {
+            Previews.ClearWorld();
+            _outOpen = false;
+            Say("Cleared. Nothing from Scry is left in the world.");
+        }
+
         /// <summary>
         /// Opens the list while the mouse is on the button or on the list (with a little room
         /// between them), and works out its lines once a frame while open.

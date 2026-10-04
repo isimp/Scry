@@ -21,6 +21,8 @@ namespace Scry
         /// <summary>Whether the View box is open, for the self-test.</summary>
         public static bool ViewMenuOpen => _viewOpen;
 
+        private static void CloseViewMenu() => _viewOpen = false;
+
         /// <summary>Opens the box for an entry under a point of the screen, as its chip would, for the self-test.</summary>
         public static void OpenViewMenu(Entry entry, Vector2 under)
         {
@@ -163,6 +165,12 @@ namespace Scry
                 GUI.Label(new Rect(row.xMax - U(6f) - w, row.y + (row.height - U(22f)) / 2f, w, U(22f)), value, style);
             }
             CountDrawn(PanelPart.ViewMenu);
+        }
+
+        /// <summary>Lets go of the entry the View box was last opened for.</summary>
+        private static void ForgetViewMenu()
+        {
+            _viewFor = null;
         }
     }
 }

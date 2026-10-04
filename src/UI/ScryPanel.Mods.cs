@@ -152,5 +152,11 @@ namespace Scry
             MoreChip(key, entries.Count, FirstChips, width, ref flow, visible);
             return flow.RowBottom + U(10f);
         }
+
+        /// <summary>Lets go of the catalog the mods were last counted for.</summary>
+        private static void ForgetMods()
+        {
+            _modCountFor = null;
+        }
     }
 }

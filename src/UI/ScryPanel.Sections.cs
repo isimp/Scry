@@ -15,6 +15,22 @@ namespace Scry
 
         private static bool IsFolded(string key) => key != null && Folded.Contains(key);
 
+        /// <summary>Folds a section shut or opens it, remembered with where the panel is.</summary>
+        private static void SetFolded(string key, bool folded)
+        {
+            if (folded == IsFolded(key)) return;
+            if (folded) Folded.Add(key);
+            else Folded.Remove(key);
+            SaveRects();
+        }
+
+        /// <summary>Folds these sections shut and opens every other, as remembered.</summary>
+        private static void FoldOnly(IEnumerable<string> keys)
+        {
+            Folded.Clear();
+            foreach (var key in keys) Folded.Add(key);
+        }
+
         /// <summary>Every section that folds, by key.</summary>
         private static readonly string[] Foldable = { "kept", "variants", "adjust", "animations", "effects", "playsin", "links", "facts", "runes", "command", "details" };
 
@@ -270,41 +286,5 @@ namespace Scry
         /// <summary>The game's version, in a method of its own so that an update renaming it fails only here.</summary>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static string GameVersion() => global::Version.GetVersionString();
-
-        /// <summary>Asks for a tooltip at the mouse, shown once the mouse has rested on the same thing for a moment.</summary>
-        private static void AskTip(string key, string text)
-        {
-            if (Event.current.type != EventType.Repaint || _drag != Drag.None || string.IsNullOrEmpty(text)) return;
-            _askedTipKey = key;
-            _askedTipText = text;
-            _askedTipAt = GUIUtility.GUIToScreenPoint(Event.current.mousePosition);
-        }
-
-        private static void Tooltip()
-        {
-            if (Event.current.type != EventType.Repaint) return;
-
-            if (_askedTipKey == null)
-            {
-                _tipKey = null;
-                return;
-            }
-
-            if (_askedTipKey != _tipKey)
-            {
-                _tipKey = _askedTipKey;
-                _tipSince = Time.unscaledTime;
-            }
-            if (Time.unscaledTime - _tipSince < TipDelay) return;
-
-            var content = new GUIContent(_askedTipText);
-            var maxW = U(420f);
-            var width = Mathf.Min(maxW, Skin.Width(Skin.Tip, _askedTipText) + U(2f));
-            var height = Skin.Height(Skin.Tip, _askedTipText, width);
-            var x = Mathf.Min(_askedTipAt.x + U(16f), Screen.width - width - U(4f));
-            var y = _askedTipAt.y + U(20f);
-            if (y + height > Screen.height - U(4f)) y = _askedTipAt.y - height - U(8f);
-            Skin.Tip.Draw(new Rect(x, y, width, height), content, false, false, false, false);
-        }
     }
 }

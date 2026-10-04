@@ -248,12 +248,13 @@ namespace Scry
             return degrees.Select((degree, i) => ResistWords.Cell(ResistWords.Types[i], DegreeOf(degree))).ToList();
         }
 
+        /// <summary>The damage modifier fields of each type, found once per type.</summary>
+        private static readonly Dictionary<Type, FieldInfo[]> ModifierFields = new Dictionary<Type, FieldInfo[]>();
+
         /// <summary>
         /// Each damage modifier that is not plain, grouped by degree from very weak to immune, as
         /// the game orders them, not by the words' spelling.
         /// </summary>
-        private static readonly Dictionary<Type, FieldInfo[]> ModifierFields = new Dictionary<Type, FieldInfo[]>();
-
         private static List<(string Words, string[] Types)> ByDegree(HitData.DamageModifiers mods)
         {
             var modifiers = new List<(string, Degree)>();

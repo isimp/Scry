@@ -8,6 +8,7 @@ namespace Scry
     /// <summary>The Effects section and the Plays in rows: effect lists, what they are made of and the clips they go with.</summary>
     internal static partial class ScryPanel
     {
+        private static string _effectFilter = "";
         private static Entry _effectsEntry;
         private static List<GameObject> _effectsCarried;
         private static List<KeyValuePair<string, EffectList>> _effects;
@@ -145,8 +146,6 @@ namespace Scry
         /// The parts of a list as chips: each goes to its prefab, and is lit while the copy of it
         /// the list last started still plays. The selected prefab itself is shown but not a link.
         /// </summary>
-        private static Entry _groundsFor;
-
         private static float Members(Explorer explorer, string title, object list, IReadOnlyList<string> members, string self, float width, float y)
         {
             if (title != null)
@@ -304,6 +303,21 @@ namespace Scry
                 }
             }
             return ShownNames.TryGetValue(key, out var shown) ? shown : fallback;
+        }
+
+        /// <summary>Lets go of the effect lists made of the world left, and of what they were last drawn for.</summary>
+        private static void ForgetEffects()
+        {
+            EffectCache.Clear();
+            _effectsEntry = null;
+            _effectsCarried = null;
+            _effects = null;
+            ShownNames.Clear();
+            _playsInRows = new List<PlaysInRow>();
+            _playsInFor = null;
+            _shownFor = null;
+            MemberKeys.Clear();
+            _firstEffect = default;
         }
     }
 }

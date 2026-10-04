@@ -19,21 +19,11 @@ namespace Scry
         private static float _planWidest;
         private static readonly List<PlacedRoom> PlanRooms = new List<PlacedRoom>();
 
-        /// <summary>The room of the example the mouse is on the stage over, lit on the plan too.</summary>
-        private static string _stageRoom;
-
-
         /// <summary>Whether the plan is put away, by the fold on it, and brought back by its tab; remembered.</summary>
         public static bool PlanFolded
         {
             get => IsFolded("plan");
-            set
-            {
-                if (value == IsFolded("plan")) return;
-                if (value) Folded.Add("plan");
-                else Folded.Remove("plan");
-                SaveRects();
-            }
+            set => SetFolded("plan", value);
         }
 
         /// <summary>The example shown for the entry, or null.</summary>
@@ -174,6 +164,13 @@ namespace Scry
             Skin.Fill(new Rect(rect.x, rect.yMax - thickness, rect.width, thickness), color);
             Skin.Fill(new Rect(rect.x, rect.y, thickness, rect.height), color);
             Skin.Fill(new Rect(rect.xMax - thickness, rect.y, thickness, rect.height), color);
+        }
+
+        /// <summary>Lets go of the dungeon plan last drawn and its rooms.</summary>
+        private static void ForgetPlan()
+        {
+            _planOf = null;
+            PlanRooms.Clear();
         }
     }
 }

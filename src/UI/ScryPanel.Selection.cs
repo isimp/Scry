@@ -8,6 +8,9 @@ namespace Scry
     /// <summary>The selected entry beside the list: its sections laid out, folded and scrolled, and its title.</summary>
     internal static partial class ScryPanel
     {
+        private static float _sideHeight;
+        private static float _stageBaseH = 300f;
+
         /// <summary>What of the scrolled side can be seen, in its own terms, so rows of chips out of sight are only counted, not drawn.</summary>
         private static Rect _sideVisible;
 
@@ -245,6 +248,12 @@ namespace Scry
             GUI.Label(rect, text, style);
             style.fontSize = original;
             return fits;
+        }
+
+        /// <summary>Lets go of the entry the details were last drawn for.</summary>
+        private static void ForgetSelection()
+        {
+            _sideFor = null;
         }
     }
 }

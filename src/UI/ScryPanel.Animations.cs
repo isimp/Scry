@@ -8,6 +8,8 @@ namespace Scry
     /// <summary>The Animations section: clips, their timeline and what each plays.</summary>
     internal static partial class ScryPanel
     {
+        private static string _clipFilter = "";
+
         /// <summary>The clip the filter shows first, for Enter in the filter box.</summary>
         private static AnimationClip _firstClip;
 
@@ -24,7 +26,6 @@ namespace Scry
         /// </summary>
         private static float Clips(Explorer explorer, List<AnimationClip> clips, Modifiers modifiers, float width, float labelW, float y)
         {
-            _groundsFor = explorer.Selected;
             var playing = Previews.PlayingClip();
             y = SectionHeading($"ANIMATIONS  {Numbers.Count(clips.Count)}", width, y, null, "animations");
             if (IsFolded("animations")) return y;
@@ -33,7 +34,7 @@ namespace Scry
             if (!Mathf.Approximately(speed, modifiers.AnimationSpeed)) modifiers.AnimationSpeed = speed;
 
             // The ground footsteps sound on, when the creature sounds different on some.
-            var grounds = Previews.Grounds(_groundsFor?.Source as GameObject);
+            var grounds = Previews.Grounds(explorer.Selected?.Source as GameObject);
             if (grounds.Count > 1)
             {
                 var names = grounds.Select(g => g == FootStep.GroundMaterial.Default ? "Plain" : g == FootStep.GroundMaterial.GenericGround ? "Ground" : Naming.FieldLabel(g.ToString())).ToList();
@@ -235,5 +236,14 @@ namespace Scry
 
         /// <summary>One to three dots, going round, for something still being worked out.</summary>
         private static string Dots() => new string('.', 1 + (int)(Time.unscaledTime * 3f) % 3);
+
+        /// <summary>Lets go of the clip rows made of the world left, and of the clip they were last drawn for.</summary>
+        private static void ForgetAnimations()
+        {
+            _clipRows = new List<ClipRow>();
+            _rowsClips = null;
+            _rowsTags = null;
+            _firstClip = null;
+        }
     }
 }

@@ -9,6 +9,90 @@ namespace Scry
     {
         // ----- Window -----
 
+        private static Rect _full;
+        private static Rect _compactRect;
+        private static bool _compact;
+        private static bool _placed;
+
+        // The list's share of the room it shares with the details (the full view's width, the
+        // compact view's height), set by dragging the gap between them, and whether it is folded
+        // away; each view keeps its own.
+        private static float _listShareFull = 0.40f;
+        private static float _listShareCompact = 0.46f;
+        private static bool _listHiddenFull;
+        private static bool _listHiddenCompact;
+
+        private static float ListShare
+        {
+            get => _compact ? _listShareCompact : _listShareFull;
+            set
+            {
+                if (_compact) _listShareCompact = Mathf.Clamp(value, ListNarrowest, ListWidest);
+                else _listShareFull = Mathf.Clamp(value, ListNarrowest, ListWidest);
+            }
+        }
+
+        private static bool ListHidden
+        {
+            get => _compact ? _listHiddenCompact : _listHiddenFull;
+            set
+            {
+                if (_compact) _listHiddenCompact = value;
+                else _listHiddenFull = value;
+            }
+        }
+
+        /// <summary>Where a drag of the gap has got to, below the list's smallest when it would fold away.</summary>
+        private static float _listDragged;
+
+        private const float ListNarrowest = 0.20f;
+        private const float ListWidest = 0.72f;
+        private const float ListFolds = 0.12f;
+
+        /// <summary>The stage's height against its usual one, set by dragging its bottom edge.</summary>
+        private static float _stageScale = 1f;
+
+        private enum Drag { None, Move, Resize, Orbit, StageSize, Pan, ListSize, Ruler }
+
+        private static Drag _drag;
+
+        /// <summary>How far the mouse has moved in the drag going on, which tells a click on the stage from turning it.</summary>
+        private static float _dragMoved;
+
+        /// <summary>Starts a drag where the mouse went down: of the window, its corner, the stage, its picture, the ruler or the gap.</summary>
+        private static void StartDrag(Drag drag)
+        {
+            _drag = drag;
+            _dragMoved = 0f;
+        }
+
+        /// <summary>Puts the stage back to its usual height, as a double-click on its bottom edge does.</summary>
+        private static void ResetStageSize()
+        {
+            _stageScale = 1f;
+            SaveRects();
+        }
+
+        /// <summary>Whether the panel is in its compact view; setting it switches views, as the header's button does.</summary>
+        public static bool Compact
+        {
+            get => _compact;
+            set
+            {
+                if (value != _compact) ToggleCompact();
+            }
+        }
+
+        private static Rect Win
+        {
+            get => _compact ? _compactRect : _full;
+            set
+            {
+                if (_compact) _compactRect = value;
+                else _full = value;
+            }
+        }
+
         private static void Place()
         {
             if (!_placed)
@@ -81,7 +165,7 @@ namespace Scry
             else
             {
                 _listDragged = ListShare;
-                _drag = Drag.ListSize;
+                StartDrag(Drag.ListSize);
             }
             e.Use();
         }
@@ -112,7 +196,7 @@ namespace Scry
                     win.height += e.delta.y;
                     break;
                 case Drag.Orbit:
-                    _orbitMoved += e.delta.magnitude;
+                    _dragMoved += e.delta.magnitude;
                     Stage.Orbit(e.delta);
                     break;
                 case Drag.Pan:
@@ -156,11 +240,7 @@ namespace Scry
             if (place.Worn.HasValue) Looks.OnPerson = place.Worn.Value;
             if (place.Spin.HasValue) Stage.Spin = place.Spin.Value;
             if (place.Creatures.HasValue) Stage.CreaturesShown = place.Creatures.Value;
-            if (place.Folded != null)
-            {
-                Folded.Clear();
-                foreach (var key in place.Folded) Folded.Add(key);
-            }
+            if (place.Folded != null) FoldOnly(place.Folded);
             if (place.StageScale.HasValue) _stageScale = Mathf.Clamp(place.StageScale.Value, 0.4f, 2.4f);
             if (place.ListShareFull.HasValue) _listShareFull = Mathf.Clamp(place.ListShareFull.Value, ListNarrowest, ListWidest);
             if (place.ListHiddenFull.HasValue) _listHiddenFull = place.ListHiddenFull.Value;

@@ -10,13 +10,7 @@ namespace Scry
         public static bool RunesFolded
         {
             get => IsFolded("runes");
-            set
-            {
-                if (value == IsFolded("runes")) return;
-                if (value) Folded.Add("runes");
-                else Folded.Remove("runes");
-                SaveRects();
-            }
+            set => SetFolded("runes", value);
         }
 
         private static float RunesSection(Entry entry, float width, float y)

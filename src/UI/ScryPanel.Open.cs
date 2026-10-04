@@ -101,5 +101,11 @@ namespace Scry
             if (IsOpen && _explorer != null && Input.GetKeyDown(KeyCode.Mouse3)) Step(_explorer, true);
             if (IsOpen && _explorer != null && Input.GetKeyDown(KeyCode.Mouse4)) Step(_explorer, false);
         }
+
+        /// <summary>Lets go of the explorer of the world left.</summary>
+        private static void ForgetOpen()
+        {
+            _explorer = null;
+        }
     }
 }

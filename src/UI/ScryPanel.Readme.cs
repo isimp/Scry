@@ -12,18 +12,11 @@ namespace Scry
         /// <summary>Each readme as shown, by its file, read once a session.</summary>
         private static readonly Dictionary<string, string> Readmes = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
 
-
         /// <summary>Whether readmes are folded away; setting it is remembered, as clicking its heading is.</summary>
         public static bool ReadmeFolded
         {
             get => IsFolded("readme");
-            set
-            {
-                if (value == IsFolded("readme")) return;
-                if (value) Folded.Add("readme");
-                else Folded.Remove("readme");
-                SaveRects();
-            }
+            set => SetFolded("readme", value);
         }
 
         /// <summary>A mod's readme as its page shows it, or "" for none.</summary>

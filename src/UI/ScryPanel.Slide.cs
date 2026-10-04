@@ -37,7 +37,7 @@ namespace Scry
         {
             _slide = Slide.None;
             _sliding = false;
-            _viewOpen = false;
+            CloseViewMenu();
         }
 
         /// <summary>The icons beside the name, right to left from <paramref name="right"/>: size while the stage shows a model, then volume. Returns the width they take.</summary>
@@ -190,6 +190,12 @@ namespace Scry
             GUI.Label(value, _slide == Slide.Volume ? HeaderSliders.VolumeLabel(modifiers.Volume) : HeaderSliders.SizeLabel(modifiers.Scale), Skin.DimLabel);
             if (value.Contains(Event.current.mousePosition)) AskTip("slidevalue", "Back to its own");
             CountDrawn(PanelPart.Slider);
+        }
+
+        /// <summary>Lets go of the entry a slider was last opened for.</summary>
+        private static void ForgetSlide()
+        {
+            _slideFor = null;
         }
     }
 }

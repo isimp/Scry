@@ -8,6 +8,8 @@ namespace Scry
     /// <summary>The catalog list, its rows and icons, and the help card over it.</summary>
     internal static partial class ScryPanel
     {
+        private static int _rowsInView = 10;
+
         private static readonly string[][] HelpLines =
         {
             new[] { "troll", "Names containing it, in the game's words or the prefab's. Best matches first." },
@@ -387,6 +389,15 @@ namespace Scry
             var color = Skin.KindColor(entry.Kind);
             Skin.Box(rect, Skin.Alpha(color, 0.20f));
             Skin.LabelIn(rect, Skin.KindMark(entry.Kind), Skin.Glyph, color);
+        }
+
+        /// <summary>Lets go of the list's rows, which hold the world left's entries.</summary>
+        private static void ForgetList()
+        {
+            _rowsFor = null;
+            _foldChecked = null;
+            _listRows.Clear();
+            _rowOfEntry.Clear();
         }
     }
 }

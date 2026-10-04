@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -23,77 +20,15 @@ namespace Scry
         private const string SearchControl = "scry-search";
         private const string ClipControl = "scry-clip-filter";
         private const string EffectControl = "scry-effect-filter";
-        private static float TipDelay => Settings.TooltipDelay;
-
-        private static Rect _full;
-        private static Rect _compactRect;
-        private static bool _compact;
-        private static bool _placed;
         private static float _s = 1f;
-
         private static Vector2 _listScroll;
         private static Vector2 _sideScroll;
-        private static float _sideHeight;
-        private static int _rowsInView = 10;
-
         private static bool _focusSearch;
         private static bool _reveal;
-        private static string _clipFilter = "";
         private static bool _help;
-        private static float _badgeWidth;
-        private static string _effectFilter = "";
-
-        private enum Drag { None, Move, Resize, Orbit, StageSize, Pan, ListSize, Ruler }
-
-        // The list's share of the room it shares with the details (the full view's width, the
-        // compact view's height), set by dragging the gap between them, and whether it is folded
-        // away; each view keeps its own.
-        private static float _listShareFull = 0.40f;
-        private static float _listShareCompact = 0.46f;
-        private static bool _listHiddenFull;
-        private static bool _listHiddenCompact;
-
-        private static float ListShare
-        {
-            get => _compact ? _listShareCompact : _listShareFull;
-            set
-            {
-                if (_compact) _listShareCompact = Mathf.Clamp(value, ListNarrowest, ListWidest);
-                else _listShareFull = Mathf.Clamp(value, ListNarrowest, ListWidest);
-            }
-        }
-
-        private static bool ListHidden
-        {
-            get => _compact ? _listHiddenCompact : _listHiddenFull;
-            set
-            {
-                if (_compact) _listHiddenCompact = value;
-                else _listHiddenFull = value;
-            }
-        }
-
-        /// <summary>Where a drag of the gap has got to, below the list's smallest when it would fold away.</summary>
-        private static float _listDragged;
 
         /// <summary>The length the list's share is of, in the view drawn last, for a drag of the gap.</summary>
         private static float _listSpan = 1f;
-
-        private const float ListNarrowest = 0.20f;
-        private const float ListWidest = 0.72f;
-        private const float ListFolds = 0.12f;
-
-        /// <summary>The stage's height against its usual one, set by dragging its bottom edge.</summary>
-        private static float _stageScale = 1f;
-        private static float _stageBaseH = 300f;
-        private static Drag _drag;
-
-        // A tooltip asked for during this repaint, and the one showing.
-        private static string _askedTipKey;
-        private static string _askedTipText;
-        private static Vector2 _askedTipAt;
-        private static string _tipKey;
-        private static float _tipSince;
 
         /// <summary>Whether the search box has the keyboard, so a letter key does not close the panel.</summary>
         public static bool SearchFocused { get; private set; }
@@ -103,26 +38,6 @@ namespace Scry
 
         /// <summary>The filter box that had the keyboard at the end of the last pass, or null.</summary>
         private static string FocusedFilter;
-
-        /// <summary>Whether the panel is in its compact view; setting it switches views, as the header's button does.</summary>
-        public static bool Compact
-        {
-            get => _compact;
-            set
-            {
-                if (value != _compact) ToggleCompact();
-            }
-        }
-
-        private static Rect Win
-        {
-            get => _compact ? _compactRect : _full;
-            set
-            {
-                if (_compact) _compactRect = value;
-                else _full = value;
-            }
-        }
 
         /// <summary>
         /// What the panel last drew: the whole window, or only the card shown while the catalog is
@@ -138,6 +53,14 @@ namespace Scry
 
         private static float U(float v) => Mathf.Round(v * _s);
 
+        /// <summary>Draws at another scale from here on, for the monitor drawn beside the panel; gives back the one before.</summary>
+        private static float SwapScale(float scale)
+        {
+            var was = _s;
+            _s = scale;
+            return was;
+        }
+
         /// <summary>A rect of the panel's, where it is on the screen: kept so a later event or a box drawn over everything finds it.</summary>
         private static Rect OnScreen(Rect here) => new Rect(GUIUtility.GUIToScreenPoint(here.position), here.size);
 
@@ -146,65 +69,32 @@ namespace Scry
 
         private static float Scale() => Mathf.Clamp(Screen.height / 1080f, 0.75f, 3f) * Settings.UiScale;
 
-        /// <summary>Lets go of the lists kept for the entries of the world left, which point at its prefabs.</summary>
+        /// <summary>
+        /// Lets go of what the panel keeps of the world left, which points at its prefabs: each
+        /// part lets go of its own lists, and of what it last drew for, which would keep the world
+        /// left alive until drawn again.
+        /// </summary>
         public static void Forget()
         {
-            EffectCache.Clear();
-            _effectsEntry = null;
-            _explorer = null;
-            _effectsCarried = null;
-            _effects = null;
-            ComponentLists.Clear();
-            SoundFactCache.Clear();
-            StatusListCache.Clear();
-            RaidCardCache.Clear();
-            VariantCache.Clear();
-            PrefabIcons.Clear();
-            KindByKey.Clear();
-            ShownNames.Clear();
-            _catalogNames = null;
-            _rowsFor = null;
-            _foldChecked = null;
-            _preparing = null;
-            _prepared = null;
-            _playsInRows = new List<PlaysInRow>();
-            _playsInFor = null;
-            _linksFor = null;
-            _linksIn = null;
-            _usersFor = null;
-            _users = new List<(string, string, string, Action)>();
-            LinkRows.Clear();
-            _listRows.Clear();
-            _rowOfEntry.Clear();
-            _shownFor = null;
-            _kindsFor = null;
-            _namesFor = null;
-            _clipRows = new List<ClipRow>();
-            _rowsClips = null;
-            _rowsTags = null;
-
-            _groundsFor = null;
-            _commandFor = null;
-            _sideFor = null;
+            ForgetOpen();
+            ForgetList();
+            ForgetSelection();
+            ForgetFacts();
+            ForgetLinks();
+            ForgetEffects();
+            ForgetAnimations();
+            ForgetSounds();
+            ForgetEntryCards();
+            ForgetMods();
+            ForgetPlan();
+            ForgetSlide();
+            ForgetViewMenu();
 
             // The search help's index holds the whole catalog.
-            MemberKeys.Clear();
             Assist.Forget();
 
-            // What the panel last drew for, which would keep the world left alive until drawn again.
-            _firstClip = null;
-            _firstEffect = default;
-            _foundInFor = null;
-            _foundInOf = null;
-            _foundInIn = null;
-            FoundInItems.Clear();
-            _modCountFor = null;
-            _planOf = null;
-            PlanRooms.Clear();
             // A box left open would still match the new world's empty selection and draw on.
             CloseBoxes();
-            _slideFor = null;
-            _viewFor = null;
         }
 
         /// <summary>How many times the open panel has been drawn this session.</summary>
@@ -250,7 +140,7 @@ namespace Scry
             Skin.Ensure(scale);
             _s = scale;
             GUI.skin = Skin.Gui;
-            if (Event.current.type == EventType.Repaint) _askedTipKey = null;
+            AskTipsAfresh();
 
             Place();
             var explorer = _explorer;
@@ -335,7 +225,7 @@ namespace Scry
                 // Anywhere but the close button, which has taken its own click by now.
                 if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
                 {
-                    _drag = Drag.Move;
+                    StartDrag(Drag.Move);
                     e.Use();
                 }
 
@@ -394,12 +284,7 @@ namespace Scry
                 if (locRect.Contains(e.mousePosition)) AskTip("locations", reading ? "Stop reading the locations and dungeons; nothing read so far is kept" : LocationsButtonTip);
             }
 
-            if (outLines > 0 && GUI.Button(clearRect, clearText, Skin.Primary))
-            {
-                Previews.ClearWorld();
-                _outOpen = false;
-                Say("Cleared. Nothing from Scry is left in the world.");
-            }
+            if (outLines > 0 && GUI.Button(clearRect, clearText, Skin.Primary)) ClearWorld();
             OutHover(clearRect, outLines, e, new Rect(pad, 0f, w - pad * 2f, h - pad));
             OutClicks(explorer, e);
 
@@ -407,7 +292,7 @@ namespace Scry
             if (GUI.Button(new Rect(w - pad - U(32f), U(12f), U(32f), U(32f)), "×", Skin.Close)) AskClose();
             if (e.type == EventType.MouseDown && e.button == 0 && header.Contains(e.mousePosition))
             {
-                _drag = Drag.Move;
+                StartDrag(Drag.Move);
                 e.Use();
             }
 
@@ -490,7 +375,7 @@ namespace Scry
             }
             if (e.type == EventType.MouseDown && e.button == 0 && grip.Contains(e.mousePosition))
             {
-                _drag = Drag.Resize;
+                StartDrag(Drag.Resize);
                 e.Use();
             }
 

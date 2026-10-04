@@ -244,14 +244,15 @@ namespace Scry
             Stance(prefab, copy, items);
         }
 
+        /// <summary>Each prefab and what it holds that a dressing was noted for in the log, each once.</summary>
+        private static readonly HashSet<string> Told = new HashSet<string>();
+
         /// <summary>
         /// Sets the stance the items in hand call for on the copy's animator, as
         /// <c>Humanoid.SetupAnimationState</c> does: the left hand's item decides (a torch there
         /// is held as one), else the right hand's, else the bare hands'. A draugr stands with its
         /// bow as with a bow, and a person tried on with an axe holds it as an axe.
         /// </summary>
-        private static readonly HashSet<string> Told = new HashSet<string>();
-
         private static void Stance(GameObject prefab, GameObject copy, IList<GameObject> items)
         {
             var animator = ClipPlayer.AnimatorOf(copy);
