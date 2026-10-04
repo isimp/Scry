@@ -30,7 +30,7 @@ namespace Scry
                 words.RemoveAt(0);
             }
             var text = string.Join(" ", words.SelectMany(Words)).ToLowerInvariant();
-            return text.Length > 0 ? char.ToUpperInvariant(text[0]) + text.Substring(1) : item ?? "";
+            return text.Length > 0 ? Naming.Capital(text) : item ?? "";
         }
 
         /// <summary>The weapons that are choices to hold: those that show, one of each shown alike.</summary>

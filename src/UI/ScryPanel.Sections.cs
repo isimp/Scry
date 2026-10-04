@@ -140,7 +140,7 @@ namespace Scry
             if (walk) parts.Add("keys walk when not typing");
             if (look) parts.Add("right-drag outside to look");
             if (parts.Count == 0) parts.Add("Enter plays");
-            parts[0] = char.ToUpperInvariant(parts[0][0]) + parts[0].Substring(1);
+            parts[0] = Naming.Capital(parts[0]);
             return FootHints[index] = string.Join("  ·  ", parts);
         }
 
@@ -253,7 +253,7 @@ namespace Scry
             foreach (var feature in _offFeatures)
             {
                 Skin.Fill(new Rect(x, y + U(8f), U(6f), U(6f)), Skin.Warn);
-                GUI.Label(new Rect(x + U(16f), y, width - U(16f), U(22f)), char.ToUpperInvariant(feature[0]) + feature.Substring(1), Skin.Label);
+                GUI.Label(new Rect(x + U(16f), y, width - U(16f), U(22f)), Naming.Capital(feature), Skin.Label);
                 y += U(26f);
             }
             if (EndCard(rect, out var close)) _offDetails = false;

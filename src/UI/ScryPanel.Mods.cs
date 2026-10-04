@@ -84,7 +84,7 @@ namespace Scry
                     if (GUI.Button(heading, GUIContent.none, GUIStyle.none)) Go(explorer, page);
                 }
                 y += headingH + U(2f);
-                y = Paragraph(char.ToUpperInvariant(ModReportWords.Counts(mod)[0]) + ModReportWords.Counts(mod).Substring(1) + ".", x, y, width);
+                y = Paragraph(Naming.Capital(ModReportWords.Counts(mod)) + ".", x, y, width);
                 if (mod.Hooks.Count > 0) y = Paragraph("Hooks into " + ModReportWords.Hooks(mod.Hooks) + ".", x, y, width);
 
                 foreach (var station in mod.Stations) y = ChipLine(explorer, station, ModReportWords.Station(station), x, y, width, visible);

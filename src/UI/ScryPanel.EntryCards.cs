@@ -92,7 +92,7 @@ namespace Scry
                 top = rect.y + U(96f);
             }
             GUI.Label(new Rect(rect.x + U(20f), top, rect.width - U(40f), U(24f)), ModWords.Card(mod), Skin.Center);
-            GUI.Label(new Rect(rect.x + U(20f), top + U(28f), rect.width - U(40f), U(40f)), char.ToUpperInvariant(adds[0]) + adds.Substring(1), Skin.CenterDim);
+            GUI.Label(new Rect(rect.x + U(20f), top + U(28f), rect.width - U(40f), U(40f)), Naming.Capital(adds), Skin.CenterDim);
         }
 
         /// <summary>A creature's name as the game shows it, else its prefab's.</summary>

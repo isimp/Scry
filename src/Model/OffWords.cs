@@ -16,7 +16,7 @@ namespace Scry
             if (features.Count == 1)
             {
                 var one = features[0];
-                return char.ToUpperInvariant(one[0]) + one.Substring(1) + " is off until Scry is updated. Everything else works.";
+                return Naming.Capital(one) + " is off until Scry is updated. Everything else works.";
             }
             var named = Naming.Joined(new List<string>(features));
             return $"{Numbers.Count(features.Count)} parts of Scry are off until it is updated: {named}. Everything else works.";

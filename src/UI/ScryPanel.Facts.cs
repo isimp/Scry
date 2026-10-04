@@ -491,14 +491,14 @@ namespace Scry
         private static void StopReadingLocations()
         {
             var said = Locations.Stop();
-            Say(char.ToUpperInvariant(said[0]) + said.Substring(1));
+            Say(Naming.Capital(said));
         }
 
         /// <summary>Starts reading the locations, from any of the buttons that offer it, and says so.</summary>
         private static void StartReadingLocations()
         {
             var said = Locations.Start();
-            Say(char.ToUpperInvariant(said[0]) + said.Substring(1));
+            Say(Naming.Capital(said));
         }
 
         private static string Components(GameObject prefab)

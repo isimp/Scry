@@ -129,7 +129,7 @@ namespace Scry
                 var capitals = text.Length > 1 && text.All(char.IsUpper);
                 if (shown.Length > 0) shown.Append(' ');
                 if (name || capitals) shown.Append(text);
-                else if (shown.Length == 0) shown.Append(char.ToUpperInvariant(text[0]) + text.Substring(1).ToLowerInvariant());
+                else if (shown.Length == 0) shown.Append(Naming.Capital(text.ToLowerInvariant()));
                 else shown.Append(text.ToLowerInvariant());
             }
             return shown.ToString();

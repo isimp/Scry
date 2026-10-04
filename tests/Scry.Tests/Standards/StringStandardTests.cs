@@ -18,6 +18,22 @@ namespace Scry.Tests
         private static readonly HashSet<string> Comparing = new HashSet<string> { "StartsWith", "EndsWith", "IndexOf", "LastIndexOf", "Compare", "CompareTo", "Equals" };
         private static readonly HashSet<string> Sorting = new HashSet<string> { "OrderBy", "OrderByDescending", "ThenBy", "ThenByDescending", "Min", "Max" };
 
+        /// <summary>A text is begun with a capital one way, <c>Naming.Capital</c>, rather than by raising its first letter by hand.</summary>
+        [Fact]
+        public void TextIsBegunWithACapitalOnlyThroughNaming()
+        {
+            var found = new List<string>();
+            foreach (var (call, model) in ScrySource.All<InvocationExpressionSyntax>())
+            {
+                if (!(model.GetSymbolInfo(call).Symbol is IMethodSymbol method) || method.ContainingType?.SpecialType != SpecialType.System_Char) continue;
+                if (method.Name != "ToUpperInvariant" && method.Name != "ToUpper") continue;
+                if (call.ArgumentList.Arguments.Count == 1 && call.ArgumentList.Arguments[0].Expression is ElementAccessExpressionSyntax first
+                    && first.ArgumentList.Arguments.Count == 1 && first.ArgumentList.Arguments[0].Expression.ToString() == "0" && !Violations.In(call, "Naming.cs"))
+                    found.Add($"{ScrySource.Where(call)} {call}");
+            }
+            Violations.None("begin a text with a capital outside Naming.Capital", found);
+        }
+
         [Fact]
         public void TextComparesAndSortsByItsCharacters()
         {
