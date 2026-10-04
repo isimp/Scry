@@ -42,13 +42,15 @@ namespace Scry
         }
 
         /// <summary>
-        /// A section's heading and rule. With a key, the heading folds the section shut or opens
-        /// it when clicked, and the choice is remembered; the caller skips its body while folded.
+        /// A section's heading and rule, with how many the section holds where
+        /// <paramref name="count"/> is 0 or more. With a key, the heading folds the section shut or
+        /// opens it when clicked, and the choice is remembered; the caller skips its body while
+        /// folded; and the line under the title names it (<see cref="MarkSection"/>).
         /// </summary>
-        private static float SectionHeading(string text, float width, float y, Action reset, string key = null)
+        private static float SectionHeading(string text, float width, float y, Action reset, string key = null, int count = -1)
         {
             var folded = IsFolded(key);
-            var shown = key == null ? text : PanelWords.SectionTitle(text, folded);
+            var shown = key == null ? text : PanelWords.SectionTitle(MarkSection(key, text, count, y), folded);
             var textW = Skin.Width(Skin.Heading, shown);
             var head = new Rect(0f, y, textW + U(4f), U(20f));
             if (key == null)

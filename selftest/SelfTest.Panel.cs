@@ -98,6 +98,38 @@ namespace Scry
             p.Check(!ScryPanel.ViewMenuOpen && !ScryPanel.SliderOpen, "another selection closes them");
         }
 
+        /// <summary>
+        /// The line under a page's title names its sections, the animations with their count, and
+        /// lights the first at the top; going to a section lights it, the last one too, where the
+        /// page scrolls no further than its end. Only open sections are gone to, so the folds
+        /// a player keeps are left as they were.
+        /// </summary>
+        private static IEnumerator SectionLineGoes(Probe p)
+        {
+            var troll = Pick(Kind.Creature, "Troll", "Greydwarf");
+            if (troll == null) p.Skip("there is no creature");
+            Select(troll);
+            var drawn = ScryPanel.Drawn(PanelPart.SectionLine);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.SectionLine) > drawn + 1, 5);
+            var links = ScryPanel.SectionLinks().ToList();
+            p.Check(links.Count >= 2 && ScryPanel.Drawn(PanelPart.SectionLine) > drawn, "a creature's page draws a line of its sections", string.Join(", ", links.Select(l => l.Link)));
+            p.Check(links.Any(l => l.Key == "animations" && l.Link.StartsWith("Animations ", StringComparison.Ordinal)), "the line counts the animations");
+            p.Check(links.Count > 0 && ScryPanel.SectionLit == links[0].Key, "at the page's top its first section is lit", ScryPanel.SectionLit ?? "none lit");
+
+            var open = links.Where(l => ScryPanel.SectionOpen(l.Key)).Select(l => l.Key).ToList();
+            if (open.Count < 2)
+            {
+                p.Note("fewer than two of its sections are open: going to them is not tried");
+                yield break;
+            }
+            foreach (var key in new[] { open[open.Count / 2], open[open.Count - 1], open[0] })
+            {
+                ScryPanel.GoToSection(key);
+                yield return Until(() => ScryPanel.SectionLit == key, 2);
+                p.Check(ScryPanel.SectionLit == key, $"going to {key} lights it", ScryPanel.SectionLit ?? "none lit");
+            }
+        }
+
         /// <summary>Closing the panel takes the copy down and quiets it; opening it again brings the selection back.</summary>
         private static IEnumerator CloseAndOpen(Probe p)
         {

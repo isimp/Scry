@@ -63,7 +63,7 @@ namespace Scry
             var clips = Variants(entry);
             if (clips.Count < 2) return y;
 
-            y = SectionHeading(PanelWords.Heading("VARIANTS", clips.Count), width, y, null, "variants");
+            y = SectionHeading("VARIANTS", width, y, null, "variants", clips.Count);
             if (IsFolded("variants")) return y;
             var now = Previews.SoundClipNow();
             var flow = new ChipFlow(0f, width, y, U(28f), U(5f), U(5f));

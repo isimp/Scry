@@ -43,7 +43,7 @@ namespace Scry
             }
             if (lists.Count == 0) return y;
 
-            y = SectionHeading(PanelWords.Heading("EFFECTS", lists.Count), width, y, null, "effects");
+            y = SectionHeading("EFFECTS", width, y, null, "effects", lists.Count);
             if (IsFolded("effects")) return y;
             var rowH = U(26f);
 
@@ -224,7 +224,7 @@ namespace Scry
             var rows = _playsInRows;
             if (rows.Count == 0) return y;
 
-            y = SectionHeading(PanelWords.Heading("PLAYS IN", rows.Count), width, y, null, "playsin");
+            y = SectionHeading("PLAYS IN", width, y, null, "playsin", rows.Count);
             if (IsFolded("playsin")) return y;
             // Each row is a list of its own, so fewer show before the rest are asked for.
             const int firstRows = 8;

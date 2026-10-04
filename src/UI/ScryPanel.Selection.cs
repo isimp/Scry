@@ -82,6 +82,7 @@ namespace Scry
                 _sideFor = entry;
                 _sideScroll = Vector2.zero;
                 OpenLists.Clear();
+                ForgetSectionLine();
             }
 
             // What a world's catalog points at is gone once the world is: nothing to show then.
@@ -114,14 +115,17 @@ namespace Scry
             }
 
             // The name stays in sight while what is below it scrolls, so a long section scrolled
-            // to never leaves the selection unnamed.
-            var titleArea = new Rect(rect.x, top, rect.width - U(14f), U(68f));
+            // to never leaves the selection unnamed; under it a line of the sections goes to each.
+            var lineH = SectionLineHeight(rect.width - U(14f));
+            var titleArea = new Rect(rect.x, top, rect.width - U(14f), U(68f) + lineH);
+            var shown = rect.yMax - titleArea.yMax;
             var anyOpen = AnyOpen();
             var foldText = PanelWords.FoldAll(anyOpen);
             _foldAllW = Skin.Width(Skin.FaintLabel, foldText) + U(16f);
             GUI.BeginGroup(titleArea);
             var titleH = Section("side title", 0f, at => Title(explorer, entry, titleArea.width, at, withStage));
             FoldAllLink(new Rect(titleArea.width - _foldAllW + U(12f), U(34f), _foldAllW - U(12f), U(22f)), foldText, anyOpen);
+            titleH = Section("side sections", titleH, at => SectionLineRow(titleArea.width, at, shown, Mathf.Max(0f, _sideHeight - shown)));
             GUI.EndGroup();
             top += titleH;
 
@@ -132,6 +136,7 @@ namespace Scry
 
             var cw = content.width;
             var y = 0f;
+            StartMarking();
             // Without a stage a sound says what it is here; a status effect's card would only repeat In the game.
             if (!withStage && entry.Kind == Kind.Sound) y = Section("side card", y, at => CompactCard(entry, cw, at));
             y = Section("side actions", y, at => Actions(entry, cw, at, withStage));
@@ -156,11 +161,14 @@ namespace Scry
             y = Section("side links", y, at => LinksSection(explorer, entry, cw, at));
             y = Section("side command", y, at => Command(explorer, entry, cw, at));
             y = Section("side details", y, at => Details(explorer, entry, cw, at));
+            EndMarking();
             // The height as this draw found it, so the scroll range is right from the next event on,
             // and a scroll left past the end by content that shrank comes back to the end.
             _sideHeight = y + U(8f);
             GUI.EndScrollView();
-            _sideScroll.y = Mathf.Clamp(_sideScroll.y, 0f, Mathf.Max(0f, _sideHeight - below.height));
+            var maxScroll = Mathf.Max(0f, _sideHeight - below.height);
+            if (ArriveAtSection(maxScroll) is float section) _sideScroll.y = section;
+            _sideScroll.y = Mathf.Clamp(_sideScroll.y, 0f, maxScroll);
         }
 
         /// <summary>
@@ -276,6 +284,7 @@ namespace Scry
         private static void ForgetSelection()
         {
             _sideFor = null;
+            ForgetSectionLine();
         }
     }
 }

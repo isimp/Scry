@@ -27,6 +27,14 @@ namespace Scry
         /// <summary>A folding heading's tip: what a click does, and a shift-click.</summary>
         public static string SectionTip(bool folded) => (folded ? "Open this section" : "Fold this section away") + "\nShift-click: every section";
 
+        /// <summary>A section's name on the line under the details' title, from its heading, with how many it holds where the heading tells it: "Animations 12".</summary>
+        public static string SectionLink(string heading, int count) => count >= 0 ? SectionName(heading) + " " + Numbers.Count(count) : SectionName(heading);
+
+        /// <summary>The tip of a section's name on that line, from its heading: where a click goes, and that it opens a folded section.</summary>
+        public static string SectionLinkTip(string heading, bool folded) => folded ? "Open " + SectionName(heading) + " and go to it" : GoTo(SectionName(heading));
+
+        private static string SectionName(string heading) => Naming.Capital(heading.ToLowerInvariant());
+
         /// <summary>The link that folds or opens every section, by whether any is open.</summary>
         public static string FoldAll(bool anyOpen) => anyOpen ? "fold all" : "open all";
 

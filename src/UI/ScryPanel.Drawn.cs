@@ -16,6 +16,7 @@ namespace Scry
         RoofButton,
         Runes,
         ResistanceGrid,
+        SectionLine,
         TestNotice,
         Slider,
         StageChip,

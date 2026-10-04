@@ -27,7 +27,7 @@ namespace Scry
         private static float Clips(Explorer explorer, List<AnimationClip> clips, Modifiers modifiers, float width, float labelW, float y)
         {
             var playing = Previews.PlayingClip();
-            y = SectionHeading(PanelWords.Heading("ANIMATIONS", clips.Count), width, y, null, "animations");
+            y = SectionHeading("ANIMATIONS", width, y, null, "animations", clips.Count);
             if (IsFolded("animations")) return y;
 
             var x = 0f;

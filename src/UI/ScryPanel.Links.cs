@@ -132,11 +132,11 @@ namespace Scry
                 _linksIn = explorer;
                 LinkRows.Clear();
                 MakeLinkRows(explorer, entry);
-                _linkedHeading = PanelWords.Heading("LINKED", LinkRows.Sum(r => r.Items.Count));
+                _linkedCount = LinkRows.Sum(r => r.Items.Count);
             }
             if (LinkRows.Count == 0) return y;
 
-            y = SectionHeading(_linkedHeading, width, y, null, "links");
+            y = SectionHeading("LINKED", width, y, null, "links", _linkedCount);
             if (IsFolded("links")) return y;
 
             foreach (var (title, items) in LinkRows) y = LinkItems(explorer, title, items, width, y);
@@ -146,8 +146,8 @@ namespace Scry
         private static Entry _linksFor;
         private static Explorer _linksIn;
 
-        /// <summary>The section's heading with how many things it links, made with its rows.</summary>
-        private static string _linkedHeading = "LINKED";
+        /// <summary>How many things the section links, counted with its rows.</summary>
+        private static int _linkedCount;
 
         private static readonly List<(string Title, List<(string Key, string Text, string Tip, Action Click)> Items)> LinkRows =
             new List<(string, List<(string, string, string, Action)>)>();
