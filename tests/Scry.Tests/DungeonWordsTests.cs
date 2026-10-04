@@ -180,5 +180,18 @@ namespace Scry.Tests
             Assert.Equal("3: 2 crypt, 1 large", DungeonWords.Doorways(room));
             Assert.Equal("none", DungeonWords.Doorways(new RoomShape()));
         }
+
+        [Fact]
+        public void ARoomSaysHowFarFromTheEntranceItMayStand() => Assert.Equal("1,200 rooms from the entrance", DungeonWords.NotBefore(1200));
+
+        [Fact]
+        public void ADungeonSaysHowManyKindsOfRoomItIsBuiltOf() => Assert.Equal("Built of 12 kinds of room", DungeonWords.BuiltOf(12));
+
+        [Fact]
+        public void WhatItsRoomsHoldSaysHowManyOfThemAreReadUntilAllAre()
+        {
+            Assert.Equal("Loot in its rooms, 3 of 1,000 kinds of room read", DungeonWords.RoomsRead("Loot in its rooms", 3, 1000));
+            Assert.Equal("Loot in its rooms", DungeonWords.RoomsRead("Loot in its rooms", 12, 12));
+        }
     }
 }

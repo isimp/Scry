@@ -350,5 +350,23 @@ namespace Scry.Tests
             Assert.Equal("Burial Chamber rooms", rooms.Name);
             Assert.True(rooms.Order > LocationWords.Group(new[] { "Meadows", "Swamp" }).Order);
         }
+
+        [Fact]
+        public void APlaceKeptToOnePartOfItsBiomeSaysWhich()
+        {
+            Assert.Equal("the mountain part of its biome", LocationWords.OnlyInPart("Mountain"));
+            Assert.Equal("1 in the world, only in the black forest part of it", LocationWords.WithPart("1 in the world", "BlackForest"));
+            Assert.Equal("1 in the world", LocationWords.WithPart("1 in the world", ""));
+        }
+
+        [Fact]
+        public void EachSetAfterTheFirstIsAlsoPlaced()
+        {
+            Assert.Equal("Placed", LocationWords.Placed(first: true));
+            Assert.Equal("Also placed", LocationWords.Placed(first: false));
+        }
+
+        [Fact]
+        public void NothingIsBuiltNearAPlaceThatForbidsIt() => Assert.Equal("not within 1,500 m", LocationWords.NoBuild(1500f));
     }
 }

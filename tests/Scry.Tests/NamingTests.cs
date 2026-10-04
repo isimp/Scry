@@ -82,6 +82,13 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void NamesAreListedWithCommas()
+        {
+            Assert.Equal("Crypt, Burial chamber", Naming.Commas(new[] { "Crypt", "Burial chamber" }));
+            Assert.Equal("", Naming.Commas(new string[0]));
+        }
+
+        [Fact]
         public void SomethingFoundMoreThanOnceSaysHowManyTimes()
         {
             Assert.Equal("Collider ×1,234", Naming.Repeated("Collider", 1234));

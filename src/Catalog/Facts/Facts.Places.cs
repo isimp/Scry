@@ -39,14 +39,12 @@ namespace Scry
                     if (row.Key == "Biome") BiomeLine(row.Value, sets[0].m_biome);
                     else Add(row.Key, row.Value);
                 }
-                if (!string.IsNullOrEmpty(sets[0].AltBiomeParent)) Add("Only in", $"the {Naming.FieldLabel(sets[0].AltBiomeParent).ToLowerInvariant()} part of its biome");
+                if (!string.IsNullOrEmpty(sets[0].AltBiomeParent)) Add("Only in", LocationWords.OnlyInPart(sets[0].AltBiomeParent));
                 return;
             }
             for (var i = 0; i < sets.Count; i++)
             {
-                var line = LocationWords.Line(RulesOf(sets[i]));
-                if (!string.IsNullOrEmpty(sets[i].AltBiomeParent)) line += $", only in the {Naming.FieldLabel(sets[i].AltBiomeParent).ToLowerInvariant()} part of it";
-                Add(i == 0 ? "Placed" : "Also placed", line);
+                Add(LocationWords.Placed(i == 0), LocationWords.WithPart(LocationWords.Line(RulesOf(sets[i])), sets[i].AltBiomeParent));
             }
         }
 
@@ -114,14 +112,14 @@ namespace Scry
                     if (location != null && row.Items.All(i => i.Prefab != location.Key)) row.Items.Add(EntryChip(location));
                 }
                 if (row.Items.Count > 0) Rows.Add(row);
-                else Add("Built into", string.Join(", ", _entry.FoundIn.Select(Places.NameOf)));
+                else Add("Built into", Naming.Commas(_entry.FoundIn.Select(Places.NameOf)));
             }
             var shape = place.Contents?.Room;
             if (shape == null) return;
             Add("Is", DungeonWords.Role(shape));
             Add("Size", DungeonWords.Size(shape));
             Add("Doorways", DungeonWords.Doorways(shape));
-            if (shape.MinPlaceOrder > 0) Add("Not before", $"{Numbers.Count(shape.MinPlaceOrder)} rooms from the entrance");
+            if (shape.MinPlaceOrder > 0) Add("Not before", DungeonWords.NotBefore(shape.MinPlaceOrder));
         }
 
         /// <summary>
@@ -133,7 +131,7 @@ namespace Scry
         private void PlaceHolds(Entry entry, PlaceContents contents)
         {
             Add("Levels at its spawn points", SpawnWords.LocationLevels(contents.EnemyMinLevel, contents.EnemyMaxLevel, contents.EnemyLevelUpChance, contents.LevelOverrideExceptions));
-            if (contents.NoBuild && contents.NoBuildRadius > 0f) Add("Building", $"not within {Numbers.Amount(contents.NoBuildRadius)} m");
+            if (contents.NoBuild && contents.NoBuildRadius > 0f) Add("Building", LocationWords.NoBuild(contents.NoBuildRadius));
             Add("Music", LocationWords.Music(contents.Music), contents.Music.Count > 0 ? PlayMusic : null);
 
             foreach (var role in PlaceParts.Roles)
@@ -185,7 +183,7 @@ namespace Scry
 
             var rooms = RoomsOf(plan.Themes);
             if (rooms.Count == 0) return;
-            var row = new Row { Title = $"Built of {Numbers.Count(rooms.Count)} kinds of room" };
+            var row = new Row { Title = DungeonWords.BuiltOf(rooms.Count) };
             foreach (var room in rooms) row.Items.Add(new Ingredient { Name = room.DisplayName, Amount = "", Prefab = room.Key });
             Rows.Add(row);
             RoomsHold(rooms);
@@ -207,7 +205,7 @@ namespace Scry
                 Add("What its rooms hold", "read once its rooms have loaded for its example layout");
                 return;
             }
-            var of = read.Count < rooms.Count ? $", {Numbers.Count(read.Count)} of {Numbers.Count(rooms.Count)} kinds of room read" : "";
+            string Read(string title) => DungeonWords.RoomsRead(title, read.Count, rooms.Count);
 
             var parts = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Parts));
             foreach (var role in PlaceParts.Roles)
@@ -217,7 +215,7 @@ namespace Scry
                     var creatures = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Creatures));
                     if (creatures.Count > 0)
                     {
-                        var spawned = new Row { Title = $"Its rooms' spawn points place{of}" };
+                        var spawned = new Row { Title = Read("Its rooms' spawn points place") };
                         foreach (var (creature, count) in ContentOrder.ToughestFirst(creatures, c => FoeOf(c.Prefab))) spawned.Items.Add(Chip(creature, PlaceParts.InRooms(count)));
                         Rows.Add(spawned);
                     }
@@ -225,7 +223,7 @@ namespace Scry
                 var inRow = InRow(parts, p => p.Prefab, p => p.Rooms, role);
                 if (inRow.Count > 0)
                 {
-                    var row = new Row { Title = PlaceParts.Title(role, true) + of };
+                    var row = new Row { Title = Read(PlaceParts.Title(role, true)) };
                     foreach (var (prefab, count) in inRow) row.Items.Add(Chip(prefab, PlaceParts.InRooms(count)));
                     Rows.Add(row);
                 }
@@ -239,7 +237,7 @@ namespace Scry
                     .ToList()));
                 if (loot.Count > 0)
                 {
-                    var row = new Row { Title = $"Loot in its rooms{of}" };
+                    var row = new Row { Title = Read("Loot in its rooms") };
                     foreach (var (item, count) in ContentOrder.RarestFirst(loot, l => l.Rooms)) row.Items.Add(Chip(item, PlaceParts.InRooms(count)));
                     Rows.Add(row);
                 }

@@ -82,6 +82,15 @@ namespace Scry
             return "a room";
         }
 
+        /// <summary>How many rooms from the entrance a room may stand at the nearest (<c>Room.m_minPlaceOrder</c>).</summary>
+        public static string NotBefore(int order) => $"{Numbers.Count(order)} rooms from the entrance";
+
+        public static string BuiltOf(int kinds) => $"Built of {Numbers.Count(kinds)} kinds of room";
+
+        /// <summary>A title over what its rooms hold, with how many of its kinds of room are read where not all are yet.</summary>
+        public static string RoomsRead(string title, int read, int kinds) =>
+            read < kinds ? $"{title}, {Numbers.Count(read)} of {Numbers.Count(kinds)} kinds of room read" : title;
+
         /// <summary>What a dungeon's plan says while the rooms it is built of are read.</summary>
         public static string Reading(int read, int total) => $"Reading the {Numbers.Count(total)} kinds of room it is built of, {Numbers.Count(read)} so far";
 

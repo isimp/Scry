@@ -41,6 +41,9 @@ namespace Scry
             @"</?(color|b|i|size|material|quad|sprite|u|s|sup|sub|mark|font|align|alpha|cspace|indent|line-height|lowercase|uppercase|smallcaps|noparse|nobr|space|voffset|width|link|style|rotate|pos)(=[^>]*)?>",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
+        /// <summary>Names one after another with commas: "A, B, C".</summary>
+        public static string Commas(System.Collections.Generic.IEnumerable<string> names) => string.Join(", ", names);
+
         /// <summary>A row's title with how many it holds: "Lives here (12)".</summary>
         public static string Counted(string title, int count) => $"{title} ({Numbers.Count(count)})";
 

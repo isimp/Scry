@@ -322,6 +322,19 @@ namespace Scry
         /// <summary>What its details say it holds before it has been read.</summary>
         public static string HoldsNote(PlaceLoad load) =>
             load == PlaceLoad.Failed ? "not known, its model could not be loaded" : "read once its model has loaded";
+
+        /// <summary>The part of its biome a place placed by one set keeps to (<c>ZoneLocation.m_biomeArea</c>'s alternative biome).</summary>
+        public static string OnlyInPart(string part) => $"the {Naming.FieldLabel(part).ToLowerInvariant()} part of its biome";
+
+        /// <summary>One set's line, with the part of its biome it keeps to where it keeps to one.</summary>
+        public static string WithPart(string line, string part) =>
+            string.IsNullOrEmpty(part) ? line : $"{line}, only in the {Naming.FieldLabel(part).ToLowerInvariant()} part of it";
+
+        /// <summary>The label of a set's line: the first placed, each after it also placed.</summary>
+        public static string Placed(bool first) => first ? "Placed" : "Also placed";
+
+        /// <summary>How near a place nothing can be built.</summary>
+        public static string NoBuild(float radius) => $"not within {Numbers.Metres(radius)}";
     }
 
     /// <summary>How far the model of the location or room shown has got.</summary>
