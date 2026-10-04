@@ -86,10 +86,7 @@ namespace Scry
 
                 foreach (var station in mod.Stations) y = ChipLine(explorer, station, ModReportWords.Station(station), x, y, width, visible);
                 foreach (var tool in mod.Tools) y = ChipLine(explorer, tool, ModReportWords.Tool(tool), x, y, width, visible);
-                y = ReportChips(explorer, mod.Mod, "Stations nothing is made or built at", mod.IdleStations, x, y, width, visible);
-                y = ReportChips(explorer, mod.Mod, "Items with no source Scry can see", mod.Sourceless, x, y, width, visible);
-                y = ReportChips(explorer, mod.Mod, "Creatures that spawn nowhere Scry can see", mod.Unspawned, x, y, width, visible);
-                y = ReportChips(explorer, mod.Mod, "Pieces in no build menu", mod.Unbuilt, x, y, width, visible);
+                foreach (var (title, entries) in mod.Gaps()) y = ReportChips(explorer, mod.Mod, title, entries, x, y, width, visible);
             }
             if (Event.current.type == EventType.Repaint)
             {

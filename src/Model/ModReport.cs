@@ -42,6 +42,17 @@ namespace Scry
         public readonly List<ModEntry> Unspawned = new List<ModEntry>();
         public readonly List<ModEntry> Unbuilt = new List<ModEntry>();
         public readonly List<HookedRule> Hooks = new List<HookedRule>();
+
+        private List<(string Title, List<ModEntry> Entries)> _gaps;
+
+        /// <summary>What Scry could not place, a row for each kind with its title, in the order the mod's page and the report show them.</summary>
+        public IReadOnlyList<(string Title, List<ModEntry> Entries)> Gaps() => _gaps ?? (_gaps = new List<(string, List<ModEntry>)>
+        {
+            ("Stations nothing is made or built at", IdleStations),
+            ("Items with no source Scry can see", Sourceless),
+            ("Creatures that spawn nowhere Scry can see", Unspawned),
+            ("Pieces in no build menu", Unbuilt),
+        });
     }
 
     /// <summary>

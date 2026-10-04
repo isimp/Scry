@@ -23,6 +23,17 @@ namespace Scry.Tests
         };
 
         [Fact]
+        public void WhatScryCouldNotPlaceIsToldInTheSameRowsOnThePageAndInTheReport()
+        {
+            var mod = new ModSummary();
+            Assert.Equal(new[] { "Stations nothing is made or built at", "Items with no source Scry can see", "Creatures that spawn nowhere Scry can see", "Pieces in no build menu" },
+                mod.Gaps().Select(g => g.Title));
+            Assert.Same(mod.IdleStations, mod.Gaps()[0].Entries);
+            Assert.Same(mod.Unspawned, mod.Gaps()[2].Entries);
+            Assert.Same(mod.Unbuilt, mod.Gaps()[3].Entries);
+        }
+
+        [Fact]
         public void EachModTellsHowManyOfEachKindItAdds()
         {
             var report = ModReport.Of(Bamboo(), NoHooks);
@@ -105,6 +116,7 @@ namespace Scry.Tests
             var bamboo = ModReport.Of(entries, NoHooks)[0];
 
             Assert.Equal(new[] { "GemstoneRed" }, bamboo.Sourceless.Select(e => e.Key));
+            Assert.Contains(bamboo.Gaps(), g => g.Title == "Items with no source Scry can see" && g.Entries == bamboo.Sourceless);
             Assert.Equal(new[] { "Asmodeus_TW" }, bamboo.Unspawned.Select(e => e.Key));
             Assert.Equal(new[] { "OP_Bamboo_Secret" }, bamboo.Unbuilt.Select(e => e.Key));
         }
@@ -165,6 +177,7 @@ namespace Scry.Tests
             var bamboo = ModReport.Of(entries, NoHooks)[0];
 
             Assert.Equal(new[] { "GemstoneRed" }, bamboo.Sourceless.Select(e => e.Key));
+            Assert.Contains(bamboo.Gaps(), g => g.Title == "Items with no source Scry can see" && g.Entries == bamboo.Sourceless);
         }
 
         private static readonly Dictionary<string, IReadOnlyList<HookedRule>> NoHooks = new Dictionary<string, IReadOnlyList<HookedRule>>();

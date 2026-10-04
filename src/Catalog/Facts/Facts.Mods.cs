@@ -56,10 +56,7 @@ namespace Scry
                 if (guessed.Count > 0) Rows.Add(ChipRow(ModReportWords.Adds(label, guessed.Count, byClues: true), guessed, UnsureWords.MatchedByClues));
             }
 
-            GapRow("Stations nothing is made or built at", summary.IdleStations, catalog);
-            GapRow("Items with no source Scry can see", summary.Sourceless, catalog);
-            GapRow("Creatures that spawn nowhere Scry can see", summary.Unspawned, catalog);
-            GapRow("Pieces in no build menu", summary.Unbuilt, catalog);
+            foreach (var (title, entries) in summary.Gaps()) GapRow(title, entries, catalog);
         }
 
         /// <summary>A row of other mods, each going to its page.</summary>
