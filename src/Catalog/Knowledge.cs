@@ -87,11 +87,7 @@ namespace Scry
         /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
         static Knowledge() => WorldCaches.Register(nameof(Knowledge), Begin);
 
-        private static readonly Dictionary<string, List<Source>> Where = new Dictionary<string, List<Source>>(StringComparer.Ordinal);
-        private static readonly Dictionary<string, HashSet<string>> BiomesOf = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
-        private static readonly Dictionary<string, string> ModOf = new Dictionary<string, string>(StringComparer.Ordinal);
         private static readonly Dictionary<string, List<Source>> ComesFrom = new Dictionary<string, List<Source>>(StringComparer.Ordinal);
-        private static readonly HashSet<string> PlacedByWorld = new HashSet<string>(StringComparer.Ordinal);
         private static readonly Dictionary<Type, FieldInfo[]> DropTableFields = new Dictionary<Type, FieldInfo[]>();
 
         /// <summary>Lines saying what drops or yields an item, or none.</summary>
@@ -131,7 +127,6 @@ namespace Scry
 
         /// <summary>What a station makes.</summary>
         public static IReadOnlyList<Making> MadeAt(string station) => Made.At(station);
-        private static readonly Dictionary<GameObject, string> ShownNames = new Dictionary<GameObject, string>();
 
         /// <summary>
         /// The creature whose defeat sets each world key (<c>Character.m_defeatSetGlobalKey</c>): a
@@ -226,29 +221,18 @@ namespace Scry
         /// <summary>Starts reading it all again for the current world.</summary>
         public static void Begin()
         {
-            Where.Clear();
-            BiomesOf.Clear();
-            ModOf.Clear();
+            ForgetSpawns();
             ForgetMods();
-            Baits.Clear();
-            Keys.Clear();
-            Powers.Clear();
-            Unlocks.Clear();
-            EventBiomesOf.Clear();
             ComesFrom.Clear();
-            PlacedByWorld.Clear();
-            GiverList.Clear();
             SpawnPointLines.Clear();
             DropLines.Clear();
             Made.Clear();
-            ShownNames.Clear();
             Uses.Clear();
             Tools.Clear();
             Bosses.Clear();
             BossEvents.Clear();
             Altars.Clear();
             Turned.Clear();
-            SpawnPointsLeft.Clear();
             UpgradeStation = null;
             UpgradeStationName = null;
         }

@@ -10,6 +10,11 @@ namespace Scry
     /// <summary>Where things live and what gives them: spawn lists, raids, spawn points, what grows where, and what drops each item.</summary>
     internal static partial class Knowledge
     {
+        private static readonly Dictionary<string, List<Source>> Where = new Dictionary<string, List<Source>>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, HashSet<string>> BiomesOf = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        private static readonly HashSet<string> PlacedByWorld = new HashSet<string>(StringComparer.Ordinal);
+        private static readonly Dictionary<GameObject, string> ShownNames = new Dictionary<GameObject, string>();
+
         // ----- Where things live -----
 
         private static void Add(string prefab, string line, string target = null, double chance = 1.0) => Add(prefab, new Source(line, target, chance: chance));
@@ -662,6 +667,22 @@ namespace Scry
 
             var shown = CatalogBuilder.Localize(token);
             return shown.Length > 0 && shown != prefab.name ? $"{shown} ({prefab.name})" : prefab.name;
+        }
+
+        /// <summary>Lets go of where things live and what gives them, as reading starts again.</summary>
+        private static void ForgetSpawns()
+        {
+            Where.Clear();
+            BiomesOf.Clear();
+            EventBiomesOf.Clear();
+            PlacedByWorld.Clear();
+            Baits.Clear();
+            Keys.Clear();
+            Powers.Clear();
+            Unlocks.Clear();
+            GiverList.Clear();
+            ShownNames.Clear();
+            SpawnPointsLeft.Clear();
         }
     }
 }

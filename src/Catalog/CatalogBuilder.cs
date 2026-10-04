@@ -595,10 +595,13 @@ namespace Scry
         }
 
         /// <summary>
-        /// Tokens translated so far, kept from one reading of the catalog to the next: the same
-        /// names come up again and again, and the game keeps only its last hundred.
+        /// Tokens translated so far in a reading of the catalog, from its start: the same names
+        /// come up again and again, and the game keeps only its last hundred.
         /// </summary>
         private static readonly Dictionary<string, string> Localized = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>Forgets the tokens translated, as a reading of the catalog starts.</summary>
+        private static void ForgetTranslations() => Localized.Clear();
 
         /// <summary>The game's text for a name token, or nothing when it has none.</summary>
         public static string Localize(string token)

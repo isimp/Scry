@@ -102,7 +102,7 @@ namespace Scry
         {
             var scene = ZNetScene.instance;
             EffectLinks.Clear();
-            Localized.Clear();
+            ForgetTranslations();
             foreach (var prefab in FirstOfName.Each(scene.m_prefabs.Concat(scene.m_nonNetViewPrefabs), p => p != null ? p.name : null))
             {
                 read.Registered[prefab.name] = new Found { Prefab = prefab };

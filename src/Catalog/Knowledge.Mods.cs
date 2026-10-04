@@ -17,6 +17,8 @@ namespace Scry
     /// </summary>
     internal static partial class Knowledge
     {
+        private static readonly Dictionary<string, string> ModOf = new Dictionary<string, string>(StringComparer.Ordinal);
+
         // ----- Which mod -----
 
         /// <summary>Jotunn's plugin id, as it loads (Jotunn 2.30: "Loading [Jotunn 2.30.2] (com.jotunn.jotunn)").</summary>
@@ -68,6 +70,7 @@ namespace Scry
 
         private static void ForgetMods()
         {
+            ModOf.Clear();
             RecipeMods.Clear();
             ConversionMods.Clear();
             ScriptsOf.Clear();
