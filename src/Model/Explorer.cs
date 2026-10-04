@@ -18,6 +18,10 @@ namespace Scry
         private readonly int[] _counts = new int[Enum.GetValues(typeof(Kind)).Length];
 
         private List<Entry> _results = new List<Entry>();
+
+        /// <summary>The results moved right under what leaves them behind, for the list to indent (<see cref="Leftovers.UnderOwners"/>).</summary>
+        private readonly HashSet<Entry> _underOwner = new HashSet<Entry>();
+
         private int _countAll;
         private Entry _selected;
         private int _selectedIndex = -1;
@@ -133,6 +137,9 @@ namespace Scry
 
         /// <summary>What the list shows now, best match first.</summary>
         public IReadOnlyList<Entry> Results => _results;
+
+        /// <summary>Whether a result sits right under what leaves it behind, and is indented there.</summary>
+        public bool UnderOwner(Entry entry) => _underOwner.Contains(entry);
 
         /// <summary>How many of what the text and the other filters let through are of this kind.</summary>
         public int CountOf(Kind kind) => _counts[(int)kind];
@@ -414,12 +421,14 @@ namespace Scry
                 _query.Kind = kind;
             }
 
+            _underOwner.Clear();
+
             // Newest first, whatever the search ranking would be.
             if (order != null) _results.Sort((a, b) => order[a.Key].CompareTo(order[b.Key]));
 
             // Within a kind's tab, by its groups (resources by how they are gathered), each
             // group in the order the search gave it.
-            else if (_query.Kind != null && !_showingEveryKind) _results = ByGroup(_results);
+            else if (_query.Kind != null && !_showingEveryKind) _results = Leftovers.UnderOwners(ByGroup(_results), _underOwner);
 
             if (_selected == null) return;
 

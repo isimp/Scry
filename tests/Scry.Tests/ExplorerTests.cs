@@ -108,6 +108,29 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void InAKindsTabWhatACreatureLeavesSitsIndentedRightUnderIt()
+        {
+            Entry C(string name, params string[] leftBy)
+            {
+                var entry = new Entry { Name = name, Kind = Kind.Creature, Origin = Origin.Vanilla, Group = "Forest monsters", GroupOrder = 3 };
+                entry.LeftBy.AddRange(leftBy);
+                return entry;
+            }
+            var catalog = new System.Collections.Generic.List<Entry> { C("Greydwarf"), C("Bjorn_ragdoll", "Bjorn"), C("Bjorn"), C("Troll") };
+            var explorer = new Explorer(catalog, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+
+            explorer.KindFilter = Kind.Creature;
+
+            var listed = explorer.Results.Select(e => e.Name).ToList();
+            Assert.Equal(listed.IndexOf("Bjorn") + 1, listed.IndexOf("Bjorn_ragdoll"));
+            Assert.True(explorer.UnderOwner(catalog[1]));
+            Assert.False(explorer.UnderOwner(catalog[2]));
+
+            explorer.KindFilter = null;
+            Assert.False(explorer.UnderOwner(catalog[1]));
+        }
+
+        [Fact]
         public void ARankOrdersOnlyWithinItsGroupNeverAcrossGroups()
         {
             Entry L(string name, string group, int rank) => new Entry { Name = name, Kind = Kind.Location, Origin = Origin.Vanilla, Group = group, GroupOrder = 11, GroupRank = rank };

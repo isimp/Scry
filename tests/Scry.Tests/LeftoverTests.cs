@@ -41,6 +41,30 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatACreatureLeavesSitsRightUnderItInTheList()
+        {
+            Entry Made(string name, string group, params string[] leftBy)
+            {
+                var entry = new Entry { Name = name, Kind = Kind.Creature, Group = group };
+                entry.LeftBy.AddRange(leftBy);
+                return entry;
+            }
+            var bear = Made("Bjorn", "Forest monsters");
+            var boar = Made("Boar", "Meadows");
+            var bearRagdoll = Made("Bjorn_ragdoll", "Forest monsters", "Bjorn");
+            var boarRagdoll = Made("boar_ragdoll", "Meadows", "Boar");
+            var lone = Made("Neck_Ragdoll", "Meadows", "Neck");
+            var stump = Made("Beech_Stub", "Stumps", "Boar");
+            var under = new HashSet<Entry> { Made("left from before", "Meadows") };
+
+            var listed = Leftovers.UnderOwners(new List<Entry> { bearRagdoll, boar, lone, stump, bear, boarRagdoll }, under);
+
+            // A leftover whose owner is in another group stays in its own place.
+            Assert.Equal(new[] { boar, boarRagdoll, lone, stump, bear, bearRagdoll }, listed);
+            Assert.Equal(new HashSet<Entry> { bearRagdoll, boarRagdoll }, under);
+        }
+
+        [Fact]
         public void AnEffectLeftBehindStaysInItsOwnGroup()
         {
             var catalog = WithLeftovers();

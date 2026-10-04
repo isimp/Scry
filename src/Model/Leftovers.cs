@@ -76,6 +76,42 @@ namespace Scry
         }
 
         /// <summary>
+        /// A list with what each entry leaves behind (a ragdoll, debris) moved right under it,
+        /// where its owner is in the list in the same group, in the order they came; what has no
+        /// owner there stays where it was. Those moved are kept in <paramref name="under"/>, for
+        /// the list to indent them.
+        /// </summary>
+        public static List<Entry> UnderOwners(List<Entry> listed, HashSet<Entry> under)
+        {
+            under.Clear();
+            var byName = new Dictionary<string, Entry>(StringComparer.Ordinal);
+            foreach (var entry in listed) if (!byName.ContainsKey(entry.Name)) byName[entry.Name] = entry;
+
+            var left = new Dictionary<Entry, List<Entry>>();
+            foreach (var entry in listed)
+            {
+                foreach (var name in entry.LeftBy)
+                {
+                    if (!byName.TryGetValue(name, out var owner) || owner == entry || owner.Group != entry.Group) continue;
+                    if (!left.TryGetValue(owner, out var its)) left[owner] = its = new List<Entry>();
+                    its.Add(entry);
+                    under.Add(entry);
+                    break;
+                }
+            }
+            if (under.Count == 0) return listed;
+
+            var placed = new List<Entry>(listed.Count);
+            void Place(Entry entry)
+            {
+                placed.Add(entry);
+                if (left.TryGetValue(entry, out var its)) foreach (var leftover in its) Place(leftover);
+            }
+            foreach (var entry in listed) if (!under.Contains(entry)) Place(entry);
+            return placed;
+        }
+
+        /// <summary>
         /// Lists what took the kind of what leaves it behind in the group of that, once every
         /// entry has its group: a stump with its trees, a ragdoll with its creature's faction.
         /// One that was of that kind already (a log, a resource of its own) keeps its own group,

@@ -374,7 +374,7 @@ namespace Scry
             var named = Timing.Start();
             var textX = oneKind && !_listHasIcons ? inner.x + U(12f) : icon.xMax + U(10f);
             // A room sits indented under its dungeon in its dungeon's group.
-            if (entry.Indent && oneKind) textX += U(20f);
+            if ((entry.Indent || explorer.UnderOwner(entry)) && oneKind) textX += U(20f);
             var textW = star.x - U(8f) - textX;
             var primary = entry.ShownName;
             var secondary = entry.Tag ?? (primary == entry.Name ? "" : entry.Name);
