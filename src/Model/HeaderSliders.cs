@@ -35,6 +35,23 @@ namespace Scry
 
         public static string SizeLabel(float scale) => Numbers.TimesFixed(scale, 2);
 
+        /// <summary>The animation speed at a share of its track, from still to <see cref="Modifiers.MaxAnimationSpeed"/>, caught at its own a third of the way along.</summary>
+        public static float SpeedAt(float share)
+        {
+            var at = Clamp01(share);
+            var own = 1f / Modifiers.MaxAnimationSpeed;
+            return Math.Abs(at - own) <= Catch ? 1f : at * Modifiers.MaxAnimationSpeed;
+        }
+
+        /// <summary>Where an animation speed is along its track.</summary>
+        public static float SpeedShare(float speed) => Clamp01(speed / Modifiers.MaxAnimationSpeed);
+
+        /// <summary>An animation speed as a multiple of its own.</summary>
+        public static string SpeedLabel(float speed) => Numbers.TimesFixed(speed, 1);
+
+        /// <summary>The speed icon's tip.</summary>
+        public static string SpeedTip(float speed) => $"Animation speed {SpeedLabel(speed)}: click to change it";
+
         /// <summary>The size icon's tip.</summary>
         public static string SizeTip(float scale) => $"Size {SizeLabel(scale)}: click to change it";
 

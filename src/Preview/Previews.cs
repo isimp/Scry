@@ -145,11 +145,21 @@ namespace Scry
             return alive;
         }
 
-        /// <summary>Plays an effect on the stage again as soon as it ends.</summary>
-        public static bool LoopEffects { get; set; } = true;
+        /// <summary>
+        /// Whether what plays (a clip, an effect, a sound) plays again as soon as it ends: one
+        /// switch for all of them, remembered by the panel. Setting it sets the clip playing too.
+        /// </summary>
+        public static bool Repeat
+        {
+            get => _repeat;
+            set
+            {
+                _repeat = value;
+                LoopPlayingClip(value);
+            }
+        }
 
-        /// <summary>Plays a sound again as soon as it ends.</summary>
-        public static bool LoopSounds { get; set; }
+        private static bool _repeat;
 
         public static float ProjectileSpeed { get; set; } = 40f;
 
@@ -217,7 +227,7 @@ namespace Scry
                 Guard.Run(Feature.Stage, "showing the stage", m => Stage.Show(_entry, m), modifiers);
             }
 
-            Guard.Run(Feature.Previews, "repeating", Repeat, modifiers);
+            Guard.Run(Feature.Previews, "repeating", PlayAgain, modifiers);
         }
 
         /// <summary>The selected location's or room's bundle held and loaded, what it holds read once it is in.</summary>
@@ -351,11 +361,11 @@ namespace Scry
         }
 
         /// <summary>Loops a finished effect on the stage, and a finished sound, while the panel is open.</summary>
-        private static void Repeat(Modifiers modifiers)
+        private static void PlayAgain(Modifiers modifiers)
         {
             if (_entry == null) return;
 
-            if (LoopEffects && _entry.Kind == Kind.Effect && Stage.Finished)
+            if (Repeat && _entry.Kind == Kind.Effect && Stage.Finished)
             {
                 if (_replayAt < 0f) _replayAt = Time.unscaledTime + 0.4f;
                 else if (Time.unscaledTime >= _replayAt)
@@ -367,7 +377,7 @@ namespace Scry
 
             // A sound stopped by hand is not replayed; one that ran out is.
             // A chosen variant repeats as itself; a random play picks again each time, as in the game.
-            if (LoopSounds && _entry.Kind == Kind.Sound && TheSound.Entry == _entry && TheSound.Copy == null) PlaySound(_entry, TheSound.Chosen);
+            if (Repeat && _entry.Kind == Kind.Sound && TheSound.Entry == _entry && TheSound.Copy == null) PlaySound(_entry, TheSound.Chosen);
         }
 
         // ----- Making again -----

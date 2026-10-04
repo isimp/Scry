@@ -12,7 +12,7 @@ namespace Scry
     /// </summary>
     internal static partial class ScryPanel
     {
-        private enum Slide { None, Volume, Size }
+        private enum Slide { None, Volume, Size, Speed }
 
         private static Slide _slide;
         private static Entry _slideFor;
@@ -40,7 +40,11 @@ namespace Scry
             CloseViewMenu();
         }
 
-        /// <summary>The icons beside the name, right to left from <paramref name="right"/>: size while the stage shows a model, then volume. Returns the width they take.</summary>
+        /// <summary>
+        /// The icons beside the name, right to left from <paramref name="right"/>: size while the
+        /// stage shows a model, volume, animation speed where it has animations, and the one
+        /// Repeat for whatever plays. Returns the width they take.
+        /// </summary>
         private static float SlideIcons(Entry entry, Modifiers modifiers, float right, float y, bool sized)
         {
             var size = U(22f);
@@ -55,7 +59,30 @@ namespace Scry
             x -= size;
             SlideIcon(Slide.Volume, entry, new Rect(x, y, size, size), Skin.Speaker, !Mathf.Approximately(modifiers.Volume, 1f),
                 HeaderSliders.VolumeTip(modifiers.Volume));
+            var animated = Previews.Clips().Count > 0;
+            if (animated)
+            {
+                x -= U(4f) + size;
+                SlideIcon(Slide.Speed, entry, new Rect(x, y, size, size), Skin.Speed, !Mathf.Approximately(modifiers.AnimationSpeed, 1f),
+                    HeaderSliders.SpeedTip(modifiers.AnimationSpeed));
+            }
+            if (animated || entry.Kind == Kind.Sound || entry.Kind == Kind.Effect)
+            {
+                x -= U(4f) + size;
+                RepeatIcon(new Rect(x, y, size, size));
+            }
             return right - x;
+        }
+
+        /// <summary>The one Repeat for whatever plays: lit while on, a click switching it and remembering it.</summary>
+        private static void RepeatIcon(Rect rect)
+        {
+            var hover = rect.Contains(Event.current.mousePosition);
+            if (Event.current.type == EventType.Repaint) Skin.Icon(rect, Skin.Repeat, Previews.Repeat ? Skin.Accent : hover ? Skin.Text : Skin.Dim);
+            if (hover) AskTip("repeat", ActionWords.Repeat(Previews.Repeat));
+            if (!GUI.Button(rect, GUIContent.none, GUIStyle.none)) return;
+            Previews.Repeat = !Previews.Repeat;
+            SaveRects();
         }
 
         private static void SlideIcon(Slide kind, Entry entry, Rect rect, Texture2D icon, bool changed, string tip)
@@ -91,7 +118,13 @@ namespace Scry
         }
 
         private static float SlideShare(Modifiers modifiers) =>
-            _slide == Slide.Volume ? HeaderSliders.VolumeShare(modifiers.Volume) : HeaderSliders.SizeShare(modifiers.Scale);
+            _slide == Slide.Volume ? HeaderSliders.VolumeShare(modifiers.Volume)
+            : _slide == Slide.Speed ? HeaderSliders.SpeedShare(modifiers.AnimationSpeed)
+            : HeaderSliders.SizeShare(modifiers.Scale);
+
+        /// <summary>Where the selection's own value is along the open slider's track: where a click on the value puts it back.</summary>
+        private static float OwnShare() =>
+            _slide == Slide.Volume ? HeaderSliders.VolumeShare(1f) : _slide == Slide.Speed ? HeaderSliders.SpeedShare(1f) : 0.5f;
 
         private static void SlideTo(Modifiers modifiers, float share)
         {
@@ -99,6 +132,10 @@ namespace Scry
             {
                 modifiers.Volume = HeaderSliders.VolumeAt(share);
                 Loudness.Gain = modifiers.Volume;
+            }
+            else if (_slide == Slide.Speed)
+            {
+                modifiers.AnimationSpeed = HeaderSliders.SpeedAt(share);
             }
             else
             {
@@ -139,7 +176,7 @@ namespace Scry
                         if (!_slideIcon.Contains(mouse)) _slide = Slide.None;
                         return false;
                     }
-                    if (_slideValue.Contains(mouse)) SlideTo(modifiers, _slide == Slide.Volume ? HeaderSliders.VolumeShare(1f) : 0.5f);
+                    if (_slideValue.Contains(mouse)) SlideTo(modifiers, OwnShare());
                     else
                     {
                         _sliding = true;
@@ -181,13 +218,15 @@ namespace Scry
             var share = SlideShare(modifiers);
             Skin.Fill(line, Skin.Alpha(Skin.Text, 0.25f));
             Skin.Fill(new Rect(line.x, line.y, line.width * share, line.height), Skin.Accent);
-            // The selection's own size, a mark in the middle of the track.
-            if (_slide == Slide.Size) Skin.Fill(new Rect(track.center.x - U(0.5f), track.center.y - U(5f), U(1f), U(10f)), Skin.Alpha(Skin.Text, 0.4f));
+            // The selection's own size or speed, a mark where it is on the track.
+            if (_slide != Slide.Volume) Skin.Fill(new Rect(track.x + track.width * OwnShare() - U(0.5f), track.center.y - U(5f), U(1f), U(10f)), Skin.Alpha(Skin.Text, 0.4f));
             var knob = U(12f);
             Skin.Icon(new Rect(track.x + track.width * share - knob / 2f, track.center.y - knob / 2f, knob, knob), Skin.Circle, Skin.Text);
 
             var value = Here(_slideValue);
-            GUI.Label(value, _slide == Slide.Volume ? HeaderSliders.VolumeLabel(modifiers.Volume) : HeaderSliders.SizeLabel(modifiers.Scale), Skin.DimLabel);
+            GUI.Label(value, _slide == Slide.Volume ? HeaderSliders.VolumeLabel(modifiers.Volume)
+                : _slide == Slide.Speed ? HeaderSliders.SpeedLabel(modifiers.AnimationSpeed)
+                : HeaderSliders.SizeLabel(modifiers.Scale), Skin.DimLabel);
             if (value.Contains(Event.current.mousePosition)) AskTip("slidevalue", "Back to its own");
             CountDrawn(PanelPart.Slider);
         }

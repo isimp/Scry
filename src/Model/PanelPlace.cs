@@ -39,6 +39,9 @@ namespace Scry
         public float? StageScale, ListShareFull, ListShareCompact;
         public bool? ListHiddenFull, ListHiddenCompact;
 
+        /// <summary>Whether what plays (clips, effects, sounds) plays again each time it ends.</summary>
+        public bool? Repeat;
+
         /// <summary>The settings in the file's lines.</summary>
         public static PanelPlace Read(IEnumerable<string> lines)
         {
@@ -66,6 +69,7 @@ namespace Scry
                     case "listhidden" when value != null: place.ListHiddenFull = value == "1"; break;
                     case "clist" when Stored.TryNumber(value, out var compactList): place.ListShareCompact = compactList; break;
                     case "clisthidden" when value != null: place.ListHiddenCompact = value == "1"; break;
+                    case "repeat" when value != null: place.Repeat = value == "1"; break;
                 }
             }
             return place;
@@ -91,6 +95,7 @@ namespace Scry
             if (ListHiddenFull.HasValue) yield return "listhidden " + Flag(ListHiddenFull.Value);
             if (ListShareCompact.HasValue) yield return "clist " + Stored.Number(ListShareCompact.Value);
             if (ListHiddenCompact.HasValue) yield return "clisthidden " + Flag(ListHiddenCompact.Value);
+            if (Repeat.HasValue) yield return "repeat " + Flag(Repeat.Value);
         }
 
         private static Area? AreaOf(string[] parts)

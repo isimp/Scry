@@ -30,9 +30,6 @@ namespace Scry
             y = SectionHeading(PanelWords.Heading("ANIMATIONS", clips.Count), width, y, null, "animations");
             if (IsFolded("animations")) return y;
 
-            var speed = SliderRow("Speed", Numbers.TimesFixed(modifiers.AnimationSpeed, 1), modifiers.AnimationSpeed, 0f, Modifiers.MaxAnimationSpeed, width, labelW, ref y);
-            if (!Mathf.Approximately(speed, modifiers.AnimationSpeed)) modifiers.AnimationSpeed = speed;
-
             // The ground footsteps sound on, when the creature sounds different on some.
             var grounds = Previews.Grounds(explorer.Selected?.Source as GameObject);
             if (grounds.Count > 1)
@@ -45,8 +42,6 @@ namespace Scry
             var x = 0f;
             var rowH = U(26f);
 
-            if (GUI.Button(new Rect(x, y, U(84f), rowH), "Repeat", Previews.LoopClips ? Skin.ChipOn : Skin.Chip)) Previews.ToggleLoopClips();
-            x += U(90f);
             var stopEnabled = GUI.enabled;
             GUI.enabled = stopEnabled && playing != null;
             if (GUI.Button(new Rect(x, y, U(60f), rowH), "Stop", Skin.Chip) && playing != null) Previews.StopClip();

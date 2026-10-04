@@ -188,7 +188,7 @@ namespace Scry
         {
             public Explorer Explorer;
             public Explorer.Kept Kept;
-            public bool Open, InWorld, LoopSounds, LoopEffects, LoopClips, OnPerson, PlanFolded, RunesFolded, ReadmeFolded;
+            public bool Open, InWorld, Repeat, OnPerson, PlanFolded, RunesFolded, ReadmeFolded;
             public Locations.State LocationsWere;
 
             /// <summary>The view the panel was in when the test first opened it, for the full view the stage is drawn in.</summary>
@@ -200,9 +200,7 @@ namespace Scry
                 Kept = Session.Explorer.Keep(),
                 Open = Session.IsOpen,
                 InWorld = Previews.InWorld,
-                LoopSounds = Previews.LoopSounds,
-                LoopEffects = Previews.LoopEffects,
-                LoopClips = Previews.LoopClips,
+                Repeat = Previews.Repeat,
                 OnPerson = Looks.OnPerson,
                 PlanFolded = ScryPanel.PlanFolded,
                 RunesFolded = ScryPanel.RunesFolded,
@@ -224,9 +222,7 @@ namespace Scry
             Previews.StopSound();
             Previews.StopStatus(false);
             if (Previews.InWorld != before.InWorld) Previews.ToggleWorld();
-            Previews.LoopSounds = before.LoopSounds;
-            Previews.LoopEffects = before.LoopEffects;
-            Previews.LoopClips = before.LoopClips;
+            Previews.Repeat = before.Repeat;
             Looks.OnPerson = before.OnPerson;
             ScryPanel.PlanFolded = before.PlanFolded;
             ScryPanel.RunesFolded = before.RunesFolded;

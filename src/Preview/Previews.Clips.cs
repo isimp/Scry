@@ -435,9 +435,6 @@ namespace Scry
             return false;
         }
 
-        /// <summary>Plays the clip again as soon as it ends.</summary>
-        public static bool LoopClips { get; set; }
-
         /// <summary>What the stage copy's animation clip plays of itself, by prefab name.</summary>
         public static List<string> ClipMembers(AnimationClip clip)
         {
@@ -555,8 +552,8 @@ namespace Scry
         {
             _litWith = (clip, litWith);
             var speed = _explorer != null ? _explorer.Modifiers.AnimationSpeed : 1f;
-            ClipPlayer.Play(Stage.Subject, clip, LoopClips, speed);
-            ClipPlayer.Play(_world, clip, LoopClips, speed);
+            ClipPlayer.Play(Stage.Subject, clip, Repeat, speed);
+            ClipPlayer.Play(_world, clip, Repeat, speed);
             _startedClip = clip;
         }
 
@@ -617,11 +614,11 @@ namespace Scry
             ClipPlayer.Stop(_world);
         }
 
-        public static void ToggleLoopClips()
+        /// <summary>Makes the clip playing on the stage and in the world play again as it ends, or not.</summary>
+        private static void LoopPlayingClip(bool loop)
         {
-            LoopClips = !LoopClips;
-            ClipPlayer.SetLoop(Stage.Subject, LoopClips);
-            ClipPlayer.SetLoop(_world, LoopClips);
+            ClipPlayer.SetLoop(Stage.Subject, loop);
+            ClipPlayer.SetLoop(_world, loop);
         }
     }
 }

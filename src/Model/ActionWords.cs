@@ -15,8 +15,10 @@ namespace Scry
         /// <summary>A sound's stop button.</summary>
         public const string StopSound = "Stops it";
 
-        /// <summary>The repeat switch of sounds and effects.</summary>
-        public static string Repeat(bool on) => on ? "Repeating: it plays again each time it ends. Click to stop repeating" : "Plays it again each time it ends";
+        /// <summary>The one repeat switch, for whatever plays.</summary>
+        public static string Repeat(bool on) => on
+            ? "Repeating: clips, effects and sounds play again each time they end. Click to stop repeating"
+            : "Plays clips, effects and sounds again each time they end";
 
         /// <summary>An effect played where you look.</summary>
         public static string PlayThere(bool playing) => playing ? "Stops it" : "Plays it in the world where you look";

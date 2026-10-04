@@ -37,7 +37,6 @@ namespace Scry
                     var sounding = Previews.SoundPlaying;
                     if (Shown(PanelWords.Pause(sounding && Previews.SoundPaused), Skin.Button, sounding, ActionWords.PauseSound(Previews.SoundPaused))) Previews.PauseSound(!Previews.SoundPaused);
                     if (Shown("Stop", Skin.Button, sounding, ActionWords.StopSound)) Previews.StopSound();
-                    if (Button("Repeat", Previews.LoopSounds ? Skin.On : Skin.Button, ActionWords.Repeat(Previews.LoopSounds))) Previews.LoopSounds = !Previews.LoopSounds;
                     break;
 
                 case Kind.Effect:
@@ -56,7 +55,6 @@ namespace Scry
                     if (!_compact)
                     {
                         if (Button("Replay", Skin.Button, ActionWords.Replay)) Previews.Replay();
-                        if (Button("Repeat", Previews.LoopEffects ? Skin.On : Skin.Button, ActionWords.Repeat(Previews.LoopEffects))) Previews.LoopEffects = !Previews.LoopEffects;
                     }
                     break;
 

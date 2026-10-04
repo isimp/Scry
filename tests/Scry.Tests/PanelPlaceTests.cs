@@ -26,6 +26,7 @@ namespace Scry.Tests
             ListHiddenFull = false,
             ListShareCompact = 0.46f,
             ListHiddenCompact = true,
+            Repeat = true,
         };
 
         [Fact]
@@ -38,6 +39,7 @@ namespace Scry.Tests
             Assert.Equal(all.CompactView, read.CompactView);
             Assert.Equal(all.Lighting, read.Lighting);
             Assert.Equal(all.Backdrop, read.Backdrop);
+            Assert.Equal(all.Repeat, read.Repeat);
             Assert.Equal(all.Ground, read.Ground);
             Assert.Equal(all.Person, read.Person);
             Assert.Equal(all.Worn, read.Worn);

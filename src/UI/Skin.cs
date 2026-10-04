@@ -64,7 +64,7 @@ namespace Scry
         public static GUIStyle RowName, RowSub, Glyph, Center, CenterDim;
         public static GUIStyle Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close;
         public static GUIStyle Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross;
-        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof;
+        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat;
 
         private static float _builtScale = -1f;
         private static bool _warmed;
@@ -621,6 +621,29 @@ namespace Scry
             Speaker = Shape(32, 32, SpeakerCoverage);
             Resize = Shape(32, 32, ResizeCoverage);
             Roof = Shape(32, 32, RoofCoverage);
+            Speed = Shape(32, 32, SpeedCoverage);
+            Repeat = Shape(32, 32, RepeatCoverage);
+        }
+
+        /// <summary>Two arrowheads pointing on, one after the other: faster or slower.</summary>
+        private static bool SpeedCoverage(float x, float y)
+        {
+            var dy = Mathf.Abs(y - 16f);
+            return (x >= 5f && x <= 16f && dy <= (16f - x) * 0.85f) || (x >= 16f && x <= 27f && dy <= (27f - x) * 0.85f);
+        }
+
+        /// <summary>A ring broken at its top right, an arrowhead at the break: round again.</summary>
+        private static bool RepeatCoverage(float x, float y)
+        {
+            var dx = x - 16f;
+            var dy = y - 16f;
+            var r = Mathf.Sqrt(dx * dx + dy * dy);
+            var angle = Mathf.Atan2(dy, dx) * Mathf.Rad2Deg;
+            if (Mathf.Abs(r - 10f) <= 1.8f && !(angle > 10f && angle < 80f)) return true;
+            // The arrowhead at the ring's end on the right, pointing down along it.
+            var ax = x - 26f;
+            var ay = y - 17f;
+            return ay <= 4.5f && ay >= -4f && Mathf.Abs(ax) <= (ay + 4f) * 0.75f;
         }
 
         /// <summary>A house: a roof over its walls, a door in them.</summary>

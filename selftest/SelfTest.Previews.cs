@@ -65,10 +65,10 @@ namespace Scry
             yield return null;
             p.Check(Previews.ClipPosition(out var time, out var length) && Mathf.Abs(time - length / 2f) < length * 0.15f + 0.05f, "it seeks to its middle", $"{Numbers.Fixed(time, 2)} of {Numbers.Fixed(length, 2)} s");
             Previews.PauseClip(false);
-            var loops = Previews.LoopClips;
-            Previews.ToggleLoopClips();
-            p.Check(Previews.LoopClips != loops, "looping can be switched");
-            Previews.ToggleLoopClips();
+            var loops = Previews.Repeat;
+            Previews.Repeat = !loops;
+            p.Check(Previews.Repeat != loops, "repeating can be switched");
+            Previews.Repeat = loops;
             Previews.StopClip();
             yield return null;
             p.Check(Previews.PlayingClip() == null, "and it stops");
@@ -162,8 +162,8 @@ namespace Scry
             var made = Stage.CopiesMade;
             Select(effect);
             yield return null;
-            var loops = Previews.LoopEffects;
-            Previews.LoopEffects = true;
+            var loops = Previews.Repeat;
+            Previews.Repeat = true;
             yield return Until(() => CopyOf(effect) != null, 5);
             var first = CopyOf(effect);
             yield return Until(() => CopyOf(effect) != null && CopyOf(effect) != first, 8);
@@ -179,7 +179,7 @@ namespace Scry
                 ? $"{Numbers.Count(twins)} entries of its key; the stage showed {(Stage.Showing != null ? Stage.Showing.Name : "nothing")}{(Stage.IsStaged(effect) ? "" : ", having nothing of it to show")}, asked {Numbers.Count(Stage.Shows - shows)} times, a copy made {Numbers.Count(Stage.CopiesMade - made)} times, none seen; on you {Looks.OnPerson}, in the world {Previews.InWorld}, compact {ScryPanel.Compact}, panel {(Session.IsOpen ? "open" : "closed")}"
                 : still.Length > 0 ? "still playing: " + still : null;
             p.Check(again, "with Repeat on, the stage plays it again once it has played out", why);
-            Previews.LoopEffects = false;
+            Previews.Repeat = false;
             var last = CopyOf(effect);
             yield return Until(() => Stage.Finished, 8);
             yield return new Wait(1.0);
@@ -191,7 +191,7 @@ namespace Scry
             Previews.Stop(key);
             yield return null;
             p.Check(!Previews.Playing.IsPlaying(key), "and stops when asked");
-            Previews.LoopEffects = loops;
+            Previews.Repeat = loops;
         }
 
         private static IEnumerator EffectOnYou(Probe p)

@@ -246,6 +246,7 @@ namespace Scry
             if (place.ListHiddenFull.HasValue) _listHiddenFull = place.ListHiddenFull.Value;
             if (place.ListShareCompact.HasValue) _listShareCompact = Mathf.Clamp(place.ListShareCompact.Value, ListNarrowest, ListWidest);
             if (place.ListHiddenCompact.HasValue) _listHiddenCompact = place.ListHiddenCompact.Value;
+            if (place.Repeat.HasValue) Previews.Repeat = place.Repeat.Value;
         });
 
         private static void SaveRects() => Guard.Run(Feature.PanelPlace, "remembering where the panel is", () =>
@@ -269,6 +270,7 @@ namespace Scry
                 ListHiddenFull = _listHiddenFull,
                 ListShareCompact = _listShareCompact,
                 ListHiddenCompact = _listHiddenCompact,
+                Repeat = Previews.Repeat,
             };
             Directory.CreateDirectory(Settings.DataFolder);
             File.WriteAllLines(RectFile, place.Lines());

@@ -22,6 +22,7 @@ namespace Scry.Tests
             Assert.Equal("Stops it", ActionWords.PlayOnYou(playing: true));
             Assert.Contains("stop repeating", ActionWords.Repeat(on: true));
             Assert.DoesNotContain("stop", ActionWords.Repeat(on: false));
+            Assert.Contains("clips, effects and sounds", ActionWords.Repeat(on: false));
             Assert.Contains("never applied", ActionWords.ShowStatus(showing: false));
             Assert.Equal("Takes its look off you", ActionWords.ShowStatus(showing: true));
             Assert.Equal("Goes on from where it was paused", ActionWords.PauseSound(paused: true));

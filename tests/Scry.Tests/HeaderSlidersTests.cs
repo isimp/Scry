@@ -9,6 +9,20 @@ namespace Scry.Tests
         // ten times, so both ends are as easy to reach, caught at its own size near the middle.
 
         [Fact]
+        public void TheSpeedSliderGoesFromStillToThreeTimesCaughtAtItsOwn()
+        {
+            // Its own speed sits a third of the way along, and a share near it is caught there.
+            Assert.Equal(0f, HeaderSliders.SpeedAt(0f), 3);
+            Assert.Equal(3f, HeaderSliders.SpeedAt(1f), 3);
+            Assert.Equal(1f, HeaderSliders.SpeedAt(1f / 3f), 3);
+            Assert.Equal(1f, HeaderSliders.SpeedAt(1f / 3f + 0.008f), 3);
+            Assert.Equal(1.5f, HeaderSliders.SpeedAt(0.5f), 3);
+            Assert.Equal(0.5f, HeaderSliders.SpeedShare(1.5f), 3);
+            Assert.Equal("×1.5", HeaderSliders.SpeedLabel(1.5f));
+            Assert.Equal("Animation speed ×1.0: click to change it", HeaderSliders.SpeedTip(1f));
+        }
+
+        [Fact]
         public void TheVolumeSliderGoesFromSilentToTwiceInStepsOfFive()
         {
             Assert.Equal(0f, HeaderSliders.VolumeAt(0f), 3);
