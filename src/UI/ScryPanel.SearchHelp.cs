@@ -138,9 +138,7 @@ namespace Scry
             /// </summary>
             private void SetSearch(Explorer explorer, string text, int caret)
             {
-                explorer.Text = text;
-                ListFiltered();
-                RevealSelected();
+                Searched(explorer, text);
                 var editor = SearchEditor();
                 if (editor != null)
                 {
@@ -194,9 +192,7 @@ namespace Scry
                 }
                 if (_dropMark < 0 || _dropMark >= _dropList.Count) return false;
                 var taken = SearchHelp.Replace(text, _dropSpan, _dropList[_dropMark].Insert, out var caret);
-                explorer.Text = taken;
-                ListFiltered();
-                RevealSelected();
+                Searched(explorer, taken);
                 editor.text = taken;
                 editor.cursorIndex = editor.selectIndex = caret;
                 return true;

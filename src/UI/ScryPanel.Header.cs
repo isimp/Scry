@@ -17,6 +17,18 @@ namespace Scry
         private static void FocusSearch(bool focus) => _focusSearch = focus;
 
         /// <summary>
+        /// Puts new text in the search, however it came (typed, cleared, completed): the list is
+        /// filtered anew from its top, the search's help and the mod report give way to it, and
+        /// the selection is shown in it.
+        /// </summary>
+        private static void Searched(Explorer explorer, string text)
+        {
+            explorer.Text = text;
+            ListFiltered();
+            RevealSelected();
+        }
+
+        /// <summary>
         /// The search box, then which list is shown (help, favourites, recent), then apart from
         /// those the origin switch, labelled so its "All" is not taken for the kind tabs' own.
         /// </summary>
@@ -184,9 +196,7 @@ namespace Scry
             // The text field takes every click inside it, so the clear button is handled before it.
             if (hasText && e.type == EventType.MouseDown && e.button == 0 && clear.Contains(e.mousePosition))
             {
-                explorer.Text = "";
-                ListFromTop();
-                RevealSelected();
+                Searched(explorer, "");
 
                 // A focused field keeps showing its own copy of the text until it lets go of the keyboard.
                 GUIUtility.keyboardControl = 0;
@@ -199,9 +209,7 @@ namespace Scry
             var text = GUI.TextField(rect, explorer.Text, 80, Skin.Field);
             if (text != explorer.Text)
             {
-                explorer.Text = text;
-                ListFiltered();
-                RevealSelected();
+                Searched(explorer, text);
             }
 
             // After the typed text is taken: what Tab puts in must not be undone by it.
