@@ -22,6 +22,15 @@ namespace Scry
             return $"{Numbers.Count(features.Count)} parts of Scry are off until it is updated: {named}. Everything else works.";
         }
 
+        /// <summary>What a missing layer turns off: falling copies landing on it.</summary>
+        public static string FallingCopies(string layer) => $"falling copies landing on {layer}";
+
+        /// <summary>What a missing script turns off: the effects that keep it.</summary>
+        public static string KeptScript(string script) => $"effects keeping their {script}";
+
+        /// <summary>What a missing status effect turns off: linking the damage that puts it on to it.</summary>
+        public static string DamageLink(string effect) => $"linking damage to {effect}";
+
         /// <summary>What the details card says above the list of what is off.</summary>
         public static string Details() =>
             "This version of Scry does not know something it relies on in this version of the game, or a part of it failed, so the parts below are off. " +

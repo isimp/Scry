@@ -98,13 +98,6 @@ namespace Scry
             return sounds;
         }
 
-        /// <summary>What the game's own actions are called on a clip's chip.</summary>
-        private static readonly Dictionary<string, string> ActionWords = new Dictionary<string, string>
-        {
-            ["jump"] = "jumps", ["consume"] = "eats", ["sleep"] = "sleeps", ["wake"] = "wakes", ["alert"] = "alerted",
-            ["spawn"] = "spawns", ["stagger"] = "staggers", ["water"] = "in water", ["swim"] = "swims", ["fly"] = "flies", ["dead"] = "dies",
-        };
-
         private static readonly Dictionary<string, string> NoTags = new Dictionary<string, string>();
 
         /// <summary>What each clip of the stage copy is, in a few words, by clip name: the attack it plays or what the creature does in it.</summary>
@@ -322,7 +315,7 @@ namespace Scry
                     WeaponOf[attack] = shared;
                     attacks.Add((trigger, attack));
                     var name = (CatalogBuilder.GameName(item) ?? WeaponChoices.Readable(item.name, prefab.name)).ToLowerInvariant();
-                    names[attack] = "attack " + name + (attack == shared.m_secondaryAttack ? ", second" : "");
+                    names[attack] = ClipWords.Attack(name, attack == shared.m_secondaryAttack);
                 }
             }
 
@@ -375,15 +368,14 @@ namespace Scry
             foreach (var part in plays.Attacks) if (part.Value.Key is Attack attack && names.TryGetValue(attack, out var name)) plays.Tags[part.Key] = name;
             foreach (var pair in seen.Actions)
             {
-                if (pair.Value.Count > 0 && ActionWords.TryGetValue(pair.Key, out var word) && !plays.Tags.ContainsKey(pair.Value[0])) plays.Tags[pair.Value[0]] = word;
+                if (pair.Value.Count > 0 && ClipWords.Action(pair.Key, out var word) && !plays.Tags.ContainsKey(pair.Value[0])) plays.Tags[pair.Value[0]] = word;
             }
             foreach (var pair in plays.ByName)
             {
                 if (plays.Tags.ContainsKey(pair.Key)) continue;
-                var lower = pair.Key.ToLowerInvariant();
-                plays.Tags[pair.Key] = (lower.Contains("jump") ? "jumps" : lower.Contains("swim") ? "swims" : "in water") + ", by name";
+                plays.Tags[pair.Key] = ClipWords.ByName(pair.Key);
             }
-            foreach (var clip in seen.Idle) if (!plays.Tags.ContainsKey(clip)) plays.Tags[clip] = "idles";
+            foreach (var clip in seen.Idle) if (!plays.Tags.ContainsKey(clip)) plays.Tags[clip] = ClipWords.Idles;
             if (body != null && FirstTime("lasting:" + prefab.name)) TellLasting(prefab, body);
             return plays;
         }

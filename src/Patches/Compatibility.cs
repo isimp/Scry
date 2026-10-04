@@ -343,18 +343,18 @@ namespace Scry
             Each("AnimationEffect", () => Events(list, "AnimationEffect"));
             foreach (var layer in new[] { "Default", "terrain", "static_solid", "piece" })
             {
-                Each($"layer {layer}", () => list.Add($"layer {layer}", $"falling copies landing on {layer}", LayerMask.NameToLayer(layer) >= 0 ? Found.Present : Found.Missing));
+                Each($"layer {layer}", () => list.Add($"layer {layer}", OffWords.FallingCopies(layer), LayerMask.NameToLayer(layer) >= 0 ? Found.Present : Found.Missing));
             }
             foreach (var script in StripPolicy.KeptScriptNames)
             {
-                Each($"script {script}", () => list.Add($"script {script}", $"effects keeping their {script}", GameType(script) != null ? Found.Present : Found.Missing));
+                Each($"script {script}", () => list.Add($"script {script}", OffWords.KeptScript(script), GameType(script) != null ? Found.Present : Found.Missing));
             }
-            foreach (var effect in new[] { "Burning", "Frost", "Lightning", "Poison", "Spirit" })
+            foreach (var (_, effect) in CombatWords.DamageEffects)
             {
                 Each($"status effect {effect}", () =>
                 {
                     var found = ObjectDB.instance != null && ObjectDB.instance.GetStatusEffect(effect.GetStableHashCode()) != null;
-                    list.Add($"status effect {effect}", $"linking damage to {effect}", found ? Found.Present : Found.Missing);
+                    list.Add($"status effect {effect}", OffWords.DamageLink(effect), found ? Found.Present : Found.Missing);
                 });
             }
             Each("prefab " + GamePrefabs.PersonName, () =>

@@ -26,34 +26,34 @@ namespace Scry
             if (rest.Equals("clear", System.StringComparison.OrdinalIgnoreCase))
             {
                 Previews.ClearWorld();
-                args.Context.OrNull()?.AddString("Scry: previews cleared.");
+                args.Context.OrNull()?.AddString(ConsoleWords.Reply(ConsoleWords.Cleared));
                 return;
             }
 
             if (rest.Equals("locations", System.StringComparison.OrdinalIgnoreCase))
             {
-                args.Context.OrNull()?.AddString("Scry: " + Locations.Start());
+                args.Context.OrNull()?.AddString(ConsoleWords.Reply(Locations.Start()));
                 return;
             }
 
             if (rest.Equals("locations stop", System.StringComparison.OrdinalIgnoreCase))
             {
-                args.Context.OrNull()?.AddString("Scry: " + Locations.Stop());
+                args.Context.OrNull()?.AddString(ConsoleWords.Reply(Locations.Stop()));
                 return;
             }
 
             if (rest.Equals("selftest", System.StringComparison.OrdinalIgnoreCase))
             {
                 // A tool for finding faults, off unless its setting is on; stopping one always works.
-                args.Context.OrNull()?.AddString("Scry: " + (Settings.SelfTestAllowed
+                args.Context.OrNull()?.AddString(ConsoleWords.Reply(Settings.SelfTestAllowed
                     ? SelfTestHost.Start("it was asked for with /scry selftest")
-                    : "the self-test is off; SelfTest under Diagnostics in Scry's settings turns it on."));
+                    : ConsoleWords.SelfTestOff));
                 return;
             }
 
             if (rest.Equals("selftest stop", System.StringComparison.OrdinalIgnoreCase))
             {
-                args.Context.OrNull()?.AddString("Scry: " + SelfTestHost.Stop());
+                args.Context.OrNull()?.AddString(ConsoleWords.Reply(SelfTestHost.Stop()));
                 return;
             }
 
@@ -67,13 +67,13 @@ namespace Scry
             if (rest.Equals("monitor", System.StringComparison.OrdinalIgnoreCase))
             {
                 Settings.ShowMonitor = !Settings.ShowMonitor;
-                args.Context.OrNull()?.AddString("Scry: the resource monitor is " + (Settings.ShowMonitor ? "on." : "off."));
+                args.Context.OrNull()?.AddString(ConsoleWords.Monitor(Settings.ShowMonitor));
                 return;
             }
 
             if (rest.Equals("dump", System.StringComparison.OrdinalIgnoreCase))
             {
-                args.Context.OrNull()?.AddString("Scry: " + Stage.Dump());
+                args.Context.OrNull()?.AddString(ConsoleWords.Reply(Stage.Dump()));
                 return;
             }
 

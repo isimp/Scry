@@ -24,6 +24,14 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatTheStartupCheckFindsMissingIsNamedByWhatItTurnsOff()
+        {
+            Assert.Equal("falling copies landing on terrain", OffWords.FallingCopies("terrain"));
+            Assert.Equal("effects keeping their LightFlicker", OffWords.KeptScript("LightFlicker"));
+            Assert.Equal("linking damage to Burning", OffWords.DamageLink("Burning"));
+        }
+
+        [Fact]
         public void NothingOffSaysNothing()
         {
             Assert.Null(OffWords.Line(new string[0]));

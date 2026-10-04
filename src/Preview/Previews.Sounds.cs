@@ -38,21 +38,21 @@ namespace Scry
                 if (MusicPreview.PlayingFor == entry)
                 {
                     StopSound();
-                    return "Stopped its music.";
+                    return MusicWords.Stopped;
                 }
-                return first != null ? NamedMusic(entry, first) : "It has no music of its own.";
+                return first != null ? NamedMusic(entry, first) : MusicWords.None;
             }
             if (!(entry?.Source is PlaceSource place)) return null;
             if (MusicPreview.PlayingFor == entry)
             {
                 StopSound();
-                return "Stopped its music.";
+                return MusicWords.Stopped;
             }
-            if (place.Contents == null) return "Its music is known once its model has loaded.";
-            if (place.Contents.Music.Count == 0) return "It has no music of its own.";
+            if (place.Contents == null) return MusicWords.NotLoaded;
+            if (place.Contents.Music.Count == 0) return MusicWords.None;
             StopSound();
             var played = MusicPreview.Play(entry, PlaceAssets.Asset(place), place.Contents.Music);
-            return played != null ? $"Playing {played}; Enter again stops it." : "Its music could not be found.";
+            return played != null ? MusicWords.Playing(played, MusicStop.Enter) : MusicWords.NotFound;
         }
 
         /// <summary>A piece of the game's music by its name, played for an entry, or stopped when it plays already.</summary>
@@ -61,11 +61,11 @@ namespace Scry
             if (MusicPreview.PlayingFor == entry && MusicPreview.Playing == name)
             {
                 StopSound();
-                return "Stopped its music.";
+                return MusicWords.Stopped;
             }
             StopSound();
             var played = MusicPreview.Play(entry, null, new List<PlaceMusic> { new PlaceMusic { Name = name, When = MusicWhen.Inside } });
-            return played != null ? $"Playing {Naming.FieldLabel(played)}; click it again to stop it." : "Its music could not be found.";
+            return played != null ? MusicWords.Playing(Naming.FieldLabel(played), MusicStop.Click) : MusicWords.NotFound;
         }
 
         /// <summary>The music a raid or a boss's fight forces (<c>RandomEvent.m_forceMusic</c>), from the game's music list, or stopped when it plays already.</summary>
@@ -74,12 +74,12 @@ namespace Scry
             if (MusicPreview.PlayingFor == entry)
             {
                 StopSound();
-                return "Stopped its music.";
+                return MusicWords.Stopped;
             }
-            if (string.IsNullOrEmpty(raid.m_forceMusic)) return "It has no music of its own.";
+            if (string.IsNullOrEmpty(raid.m_forceMusic)) return MusicWords.None;
             StopSound();
             var played = MusicPreview.Play(entry, null, new List<PlaceMusic> { new PlaceMusic { Name = raid.m_forceMusic, When = MusicWhen.Inside } });
-            return played != null ? $"Playing {Naming.FieldLabel(played)}; click it or press Enter again to stop it." : "Its music could not be found.";
+            return played != null ? MusicWords.Playing(Naming.FieldLabel(played), MusicStop.ClickOrEnter) : MusicWords.NotFound;
         }
 
         public static void StopSound()
