@@ -110,19 +110,17 @@ namespace Scry
                 var textW = inner.width - U(24f) - viewsW;
                 if (over)
                 {
-                    FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), textW, U(22f)),
-                        Stage.Cutting ? StageHintCut : StageHint, Skin.FaintLabel, 9f);
+                    PictureNote(inner, textW, Stage.Cutting ? StageHintCut : StageHint);
                 }
                 else if (ExampleProgress(entry) is string progress)
                 {
-                    // Not measured: the text changes as it goes, and each would be kept.
-                    GUI.Label(new Rect(inner.x + U(12f), inner.yMax - U(28f), textW, U(22f)), progress, Skin.DimLabel);
+                    PictureNote(inner, textW, progress);
                 }
                 else if (Stage.Subject != null && Stage.ShowsGrid)
                 {
                     // On the grid, how big the model is, in the same metres as its squares.
                     var size = Stage.SubjectSize;
-                    FitLabel(new Rect(inner.x + U(12f), inner.yMax - U(28f), textW, U(22f)), StageWords.Grid(size.x, size.y, size.z), Skin.DimLabel, 9f);
+                    PictureNote(inner, textW, StageWords.Grid(size.x, size.y, size.z));
                 }
 
                 // The stage's own buttons and its floor ruler come before its dragging, which would otherwise take their clicks.
@@ -191,6 +189,19 @@ namespace Scry
             }
 
             KindBadge(entry, new Vector2(rect.x + U(10f), rect.y + U(10f)));
+        }
+
+        /// <summary>
+        /// A note at the bottom left of the stage's picture, clear of the camera's buttons, on a
+        /// dark backing so it reads over any ground or sky; a long one wraps rather than shrinks.
+        /// </summary>
+        private static void PictureNote(Rect inner, float width, string text)
+        {
+            var textW = Mathf.Min(width - U(12f), Skin.Width(Skin.PictureNote, text) + U(2f));
+            var h = Skin.Height(Skin.PictureNote, text, textW);
+            var box = new Rect(inner.x + U(8f), inner.yMax - U(8f) - h - U(6f), textW + U(12f), h + U(6f));
+            if (Event.current.type == EventType.Repaint) Skin.Fill(box, Skin.PictureBacking);
+            GUI.Label(new Rect(box.x + U(6f), box.y + U(3f), textW, h), text, Skin.PictureNote);
         }
 
         /// <summary>

@@ -54,6 +54,12 @@ namespace Scry
 
         public static GUISkin Gui;
         public static GUIStyle Title, Subtitle, Label, Small, SmallCenter, SmallWrap, DimLabel, DimRight, FaintLabel, Heading, Big, Wrap, WrapBold, DimWrap;
+
+        /// <summary>A note over the stage's picture, wrapping rather than shrinking.</summary>
+        public static GUIStyle PictureNote;
+
+        /// <summary>The backing of a note over the stage's picture, dark enough to read over any ground or sky.</summary>
+        public static Color PictureBacking => Alpha(Stage, 0.8f);
         public static GUIStyle WarnLabel, Mark, CellType, CellValue, Ghost;
         public static GUIStyle RowName, RowSub, Glyph, Center, CenterDim;
         public static GUIStyle Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close;
@@ -161,7 +167,7 @@ namespace Scry
                     // warming itself never stalls one.
                     var styles = new[]
                     {
-                        Title, Subtitle, Label, Small, DimLabel, FaintLabel, Heading, Big, Wrap, DimWrap, RowName, RowSub, Glyph, Center, CenterDim,
+                        Title, Subtitle, Label, Small, DimLabel, FaintLabel, Heading, Big, Wrap, DimWrap, PictureNote, RowName, RowSub, Glyph, Center, CenterDim,
                         Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close, Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross,
                     };
                     if (_warmNext >= styles.Length)
@@ -361,6 +367,9 @@ namespace Scry
             DimWrap = Style(13f, Dim);
             DimWrap.wordWrap = true;
             DimWrap.alignment = TextAnchor.UpperLeft;
+            PictureNote = Style(12f, Dim);
+            PictureNote.wordWrap = true;
+            PictureNote.alignment = TextAnchor.UpperLeft;
             RowName = Style(14f, Skin.Text);
             RowSub = Style(12f, Faint);
             Glyph = Style(11f, Skin.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
