@@ -71,14 +71,19 @@ namespace Scry
             {
                 y += U(10f);
                 var headingH = U(26f);
-                var heading = new Rect(x, y, width, headingH);
-                GUI.Label(heading, mod.Mod, Skin.Heading);
-                // A mod's name goes to its own page; the report stays for the next.
+                // A mod's name heads its part of the report, and goes to its own page as a link does; the report stays for the next.
                 var page = EntryKeys.For(Kind.Mod, mod.Mod);
-                if (mod.Mod != ModReportReader.UnknownMod && InCatalog(explorer, page))
+                var goes = mod.Mod != ModReportReader.UnknownMod && InCatalog(explorer, page);
+                var heading = new Rect(x, y, goes ? Mathf.Min(width, Skin.Width(Skin.Label, mod.Mod) + U(4f)) : width, headingH);
+                if (goes)
                 {
+                    LinkLabel(heading, mod.Mod, Skin.Label, Skin.KindColor(Kind.Mod));
                     if (heading.Contains(Event.current.mousePosition)) AskTip("mod-heading:" + mod.Mod, "Go to its page: what it adds and changes");
                     if (GUI.Button(heading, GUIContent.none, GUIStyle.none)) Go(explorer, page);
+                }
+                else
+                {
+                    GUI.Label(heading, mod.Mod, Skin.Label);
                 }
                 y += headingH + U(2f);
                 y = Paragraph(Naming.Sentence(ModReportWords.Counts(mod)), x, y, width);

@@ -218,24 +218,39 @@ namespace Scry
             // The second line is kept even when empty: the link to fold every section sits at its end.
             {
                 var subRect = new Rect(x, y, width - x - _foldAllW, U(22f));
-                if (!FitLabel(subRect, sub, Skin.DimLabel, 10f) && subRect.Contains(Event.current.mousePosition)) AskTip("sub", sub);
-                // Where a mod added it, the line goes to the mod's own page, or else shows everything it added.
-                if (entry.Origin == Origin.Mod && entry.ModName.Length > 0 && entry.Kind != Kind.Mod)
+                // Where a mod added it, where it comes from is a link to the mod's own page, or else
+                // shows everything it added, drawn as a link; the prefab's name before it is not.
+                var linked = entry.Origin == Origin.Mod && entry.ModName.Length > 0 && entry.Kind != Kind.Mod;
+                var lead = entry.Name == primary ? "" : DetailWords.SubLead(entry.Name);
+                var leadW = lead.Length > 0 ? Skin.Width(Skin.DimLabel, lead) : 0f;
+                if (linked && leadW + Skin.Width(Skin.DimLabel, origin) <= subRect.width)
                 {
-                    var page = EntryKeys.For(Kind.Mod, entry.ModName);
-                    var known = InCatalog(explorer, page);
-                    var clue = UnsureWords.IsSureClue(entry.ModClue) ? null : UnsureWords.ModClue(entry.ModClue);
-                    if (subRect.Contains(Event.current.mousePosition)) AskTip("mod" + clue, DetailWords.ModTip(clue, entry.ModName, known));
-                    if (GUI.Button(subRect, GUIContent.none, GUIStyle.none))
-                    {
-                        if (known) Go(explorer, page);
-                        else SearchFor(explorer, SearchHelp.Term("mod", entry.ModName));
-                    }
+                    if (lead.Length > 0) GUI.Label(new Rect(subRect.x, subRect.y, leadW, subRect.height), lead, Skin.DimLabel);
+                    var link = new Rect(subRect.x + leadW, subRect.y, Skin.Width(Skin.DimLabel, origin) + U(2f), subRect.height);
+                    LinkLabel(link, origin, Skin.DimLabel, Skin.KindColor(Kind.Mod));
+                    ModLink(explorer, entry, link);
+                }
+                else
+                {
+                    if (!FitLabel(subRect, sub, Skin.DimLabel, 10f) && subRect.Contains(Event.current.mousePosition)) AskTip("sub", sub);
+                    if (linked) ModLink(explorer, entry, subRect);
                 }
                 y += U(26f);
             }
 
             return y + U(8f);
+        }
+
+        /// <summary>Where a mod added the entry: a click on the line saying so goes to the mod's own page, or else shows everything it added.</summary>
+        private static void ModLink(Explorer explorer, Entry entry, Rect rect)
+        {
+            var page = EntryKeys.For(Kind.Mod, entry.ModName);
+            var known = InCatalog(explorer, page);
+            var clue = UnsureWords.IsSureClue(entry.ModClue) ? null : UnsureWords.ModClue(entry.ModClue);
+            if (rect.Contains(Event.current.mousePosition)) AskTip("mod" + clue, DetailWords.ModTip(clue, entry.ModName, known));
+            if (!GUI.Button(rect, GUIContent.none, GUIStyle.none)) return;
+            if (known) Go(explorer, page);
+            else SearchFor(explorer, SearchHelp.Term("mod", entry.ModName));
         }
 
         /// <summary>

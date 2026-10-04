@@ -13,8 +13,14 @@ namespace Scry
             return UnsureWords.IsSureClue(entry.ModClue) ? "added by " + entry.ModName : UnsureWords.Marked("added by " + entry.ModName);
         }
 
+        /// <summary>What stands between the prefab's name and where it comes from, on the line under the name.</summary>
+        public const string SubSeparator = "   \u00B7   ";
+
         /// <summary>The line under the name: the prefab's name where the game shows another, and where it comes from.</summary>
-        public static string Sub(string name, string from) => from.Length > 0 ? name + "   \u00B7   " + from : name;
+        public static string Sub(string name, string from) => from.Length > 0 ? SubLead(name) + from : name;
+
+        /// <summary>The line under the name up to where it comes from: the prefab's name and the separator.</summary>
+        public static string SubLead(string name) => name + SubSeparator;
 
         /// <summary>The tip of the line that goes to a thing's mod: how Scry matched it where unsure, then where a click goes.</summary>
         public static string ModTip(string clue, string mod, bool known) =>

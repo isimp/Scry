@@ -155,6 +155,7 @@ namespace Scry.Tests
                 DetailWords.From(new Entry { Name = "Bamboo_stick", Kind = Kind.Item, Origin = Origin.Mod, ModName = "Bamboozled", ModClue = "its scripts" }));
             Assert.Equal("Bamboo_stick   ·   added by Bamboozled", DetailWords.Sub("Bamboo_stick", "added by Bamboozled"));
             Assert.Equal("Bamboo_stick", DetailWords.Sub("Bamboo_stick", ""));
+            Assert.Equal(DetailWords.Sub("Bamboo_stick", "added by Bamboozled"), DetailWords.SubLead("Bamboo_stick") + "added by Bamboozled");
             Assert.Equal("Go to Bamboozled: what it adds and changes", DetailWords.ModTip(null, "Bamboozled", known: true));
             Assert.Equal("clue\nShow everything Bamboozled added", DetailWords.ModTip("clue", "Bamboozled", known: false));
             Assert.Equal("Remove from favourites", DetailWords.StarTip(favourite: true));
