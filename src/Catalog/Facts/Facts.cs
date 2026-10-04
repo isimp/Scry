@@ -339,13 +339,13 @@ namespace Scry
             if (row.Items.Count > 0) Rows.Add(row);
         }
 
-        /// <summary>The note naming the mods that hook into a rule told here, when any do (<see cref="ModHooks"/>).</summary>
         /// <summary>
         /// The rules mods hook into on this page, with the mods, told in one soft line after
         /// everything else, who and what on hover (<see cref="ModHookWords.Line"/>).
         /// </summary>
         public readonly List<(HookedRule Rule, IReadOnlyList<string> Mods)> Hooks = new List<(HookedRule, IReadOnlyList<string>)>();
 
+        /// <summary>The note naming the mods that hook into a rule told here, when any do (<see cref="ModHooks"/>).</summary>
         private void Hooked(HookedRule rule)
         {
             var mods = ModHooks.Mods(rule);

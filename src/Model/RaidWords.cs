@@ -51,7 +51,6 @@ namespace Scry
             return string.Join(", ", parts);
         }
 
-        /// <summary>How long it lasts, and whether its clock stops while no one is inside its range.</summary>
         /// <summary>When it is on the table: by the world's keys it waits for and stops at, or by each player's own progress where the world picks raids that way.</summary>
         public static string OnTheTable(bool byEachPlayer, IEnumerable<string> keys, IEnumerable<string> endingKeys, System.Func<string, string> bossOf) =>
             byEachPlayer ? "for a player whose own progress calls for it" : Starts(keys, endingKeys, bossOf);
@@ -74,6 +73,7 @@ namespace Scry
             return string.Join(", ", traits);
         }
 
+        /// <summary>How long it lasts, and whether its clock stops while no one is inside its range.</summary>
         public static string Lasts(float duration, bool pauses, float range)
         {
             var words = Numbers.Duration(duration);

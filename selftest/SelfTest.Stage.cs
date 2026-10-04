@@ -249,10 +249,6 @@ namespace Scry
         // ----- The ground, the light and the picture -----
 
         /// <summary>
-        /// Every biome is an entry whose page tells its weathers and what lives there; every biome
-        /// an entry names has a page to go to; a biome's music plays and stops.
-        /// </summary>
-        /// <summary>
         /// What the world's ground is drawn with (Heightmap.m_material): its shader and every
         /// texture it takes, by name, for laying a biome's ground under the stage.
         /// </summary>

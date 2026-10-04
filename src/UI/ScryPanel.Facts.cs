@@ -175,12 +175,6 @@ namespace Scry
             return y + U(14f);
         }
 
-        /// <summary>
-        /// A titled row of chips, each an item with its amount that goes to it when clicked; the
-        /// title goes to the station it names. A long row shows its first chips and one for the rest.
-        /// </summary>
-
-
         /// <summary>The cells' colours: the plain share faint, resisting green, weak red, taking nothing blue.</summary>
         private static Color ToneColor(Tone tone)
         {
@@ -225,6 +219,10 @@ namespace Scry
             return y + lines * (cellH + gap) + U(4f);
         }
 
+        /// <summary>
+        /// A titled row of chips, each an item with its amount that goes to it when clicked; the
+        /// title goes to the station it names. A long row shows its first chips and one for the rest.
+        /// </summary>
         private static float FactRow(Explorer explorer, Facts.Row row, float width, float y)
         {
             if (row.Cells != null) return GridRow(row, width, y);

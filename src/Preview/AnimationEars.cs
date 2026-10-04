@@ -122,7 +122,6 @@ namespace Scry
             }
         }
 
-        /// <summary>One thing answered for a clip or an event; one that fails is left out and told once, and the rest still go on.</summary>
         /// <summary>The copy's name, worked out only for a failure to name it.</summary>
         private Func<string> _named;
 

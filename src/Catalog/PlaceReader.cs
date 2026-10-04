@@ -281,7 +281,6 @@ namespace Scry
             return shape;
         }
 
-        /// <summary>What the place's own <c>Location</c> says: the levels it sets for its spawn points, and how near it nothing can be built (<c>Location.IsInside</c> with its build check).</summary>
         /// <summary>
         /// The music a place plays: a source of its own that starts on coming near
         /// (<c>MusicLocation</c>), one of the game's pieces by name on stepping inside
@@ -315,6 +314,7 @@ namespace Scry
             }
         }
 
+        /// <summary>What the place's own <c>Location</c> says: the levels it sets for its spawn points, and how near it nothing can be built (<c>Location.IsInside</c> with its build check).</summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void Location(GameObject prefab, PlaceContents contents)
         {

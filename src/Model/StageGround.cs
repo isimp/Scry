@@ -3,13 +3,6 @@ using System.Collections.Generic;
 
 namespace Scry
 {
-    /// <summary>
-    /// What the stage's backdrop puts behind and under a model: the plain floor, the sky, the
-    /// grid ruled in metres, or with the Ground backdrop its own biome's ground, painted by the
-    /// world's terrain as the game paints it. Of the biomes it is in, the first players meet
-    /// stands for it, Meadows for none. A dungeon's inside or a room of one has no ground of the
-    /// world's: there the plain floor stays.
-    /// </summary>
     /// <summary>A place's paint on its ground (<c>TerrainModifier</c>): where, how far it reaches, how strongly, the colour it paints the mask and whether it clears the vegetation.</summary>
     internal struct GroundPaint
     {
@@ -18,6 +11,13 @@ namespace Scry
         public bool ClearsVegetation;
     }
 
+    /// <summary>
+    /// What the stage's backdrop puts behind and under a model: the plain floor, the sky, the
+    /// grid ruled in metres, or with the Ground backdrop its own biome's ground, painted by the
+    /// world's terrain as the game paints it. Of the biomes it is in, the first players meet
+    /// stands for it, Meadows for none. A dungeon's inside or a room of one has no ground of the
+    /// world's: there the plain floor stays.
+    /// </summary>
     internal static class StageGround
     {
         /// <summary>The backdrops, by index.</summary>
@@ -79,15 +79,15 @@ namespace Scry
         }
 
         /// <summary>
-        /// How far across the ground reaches from what is framed, by its radius: several times it,
-        /// and with the sky far out toward a horizon, never less than some way.
-        /// </summary>
-        /// <summary>
         /// How many points the ground's paint mask has across: two while nothing is painted on
         /// it, else half a metre a point, at least 32 and at most 256, however wide the ground.
         /// </summary>
         public static int MaskSize(int paints, float across) => paints == 0 ? 2 : Math.Max(32, Math.Min(256, (int)Math.Ceiling(across * 2f)));
 
+        /// <summary>
+        /// How far across the ground reaches from what is framed, by its radius: several times it,
+        /// and with the sky far out toward a horizon, never less than some way.
+        /// </summary>
         public static float Across(float radius, bool sky) =>
             sky ? System.Math.Max(160f, radius * 20f) : System.Math.Max(24f, radius * 6f);
 

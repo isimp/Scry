@@ -17,8 +17,6 @@ namespace Scry
         private static Vector2 _modScroll;
         private static float _modHeight;
 
-        /// <summary>The report shown, made when opened for a catalog and a state of the locations, not every frame.</summary>
-
         /// <summary>How many mods added to the catalog, for the bar above the list.</summary>
         private static int _modCount;
         private static Explorer _modCountFor;

@@ -16,8 +16,6 @@ namespace Scry
 
         private static readonly Dictionary<string, Material> LevelMaterials = new Dictionary<string, Material>();
 
-        /// <summary>What went wrong dressing a copy, each told once.</summary>
-
         /// <summary>
         /// A copy of an entry in the look its modifiers ask for: grown or not, its body, its
         /// level, its wear, and its fire, picked state, gear or style. With <paramref name="timing"/>,

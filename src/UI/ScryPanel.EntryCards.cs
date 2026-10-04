@@ -55,7 +55,6 @@ namespace Scry
 
         private static readonly Dictionary<Entry, (string Lasts, string Brings)> RaidCardCache = new Dictionary<Entry, (string, string)>();
 
-        /// <summary>A raid has nothing to show on the stage: how long it lasts and what it brings, the rest under In the game.</summary>
         /// <summary>A biome has nothing to show on the stage: its weathers, music and what is there are under In the game.</summary>
         private static void BiomeCard(Entry entry, Rect rect)
         {
@@ -64,6 +63,7 @@ namespace Scry
             GUI.Label(new Rect(rect.x + U(20f), rect.y + U(68f), rect.width - U(40f), U(40f)), "Enter plays its music", Skin.CenterDim);
         }
 
+        /// <summary>A raid has nothing to show on the stage: how long it lasts and what it brings, the rest under In the game.</summary>
         private static void RaidCard(Entry entry, Rect rect)
         {
             if (!RaidCardCache.TryGetValue(entry, out var card))

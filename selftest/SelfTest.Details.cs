@@ -317,6 +317,10 @@ namespace Scry
             yield break;
         }
 
+        /// <summary>
+        /// Every biome is an entry whose page tells its weathers and what lives there; every biome
+        /// an entry names has a page to go to; a biome's music plays and stops.
+        /// </summary>
         private static IEnumerator BiomePages(Probe p)
         {
             var biomes = X.Catalog.Where(e => e.Kind == Kind.Biome).ToList();

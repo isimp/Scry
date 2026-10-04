@@ -320,6 +320,7 @@ namespace Scry
             }
         }
 
+        /// <summary>How many meshes and materials a copy is missing, which a bundle unloaded under it would take.</summary>
         private static int Broken(GameObject copy)
         {
             if (copy == null) return 0;
@@ -328,7 +329,6 @@ namespace Scry
             return missing;
         }
 
-        /// <summary>How many meshes and materials a copy is missing, which a bundle unloaded under it would take.</summary>
         /// <summary>Where a copy's missing meshes and materials are, from its root, and whether the part is switched on.</summary>
         private static List<string> BrokenParts(GameObject copy)
         {

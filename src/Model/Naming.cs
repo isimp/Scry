@@ -41,13 +41,13 @@ namespace Scry
             @"</?(color|b|i|size|material|quad|sprite|u|s|sup|sub|mark|font|align|alpha|cspace|indent|line-height|lowercase|uppercase|smallcaps|noparse|nobr|space|voffset|width|link|style|rotate|pos)(=[^>]*)?>",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
-        /// <summary>A list of names as a sentence: "A", "A and B", "A, B and C"; nothing for none.</summary>
         /// <summary>A row's title with how many it holds: "Lives here (12)".</summary>
         public static string Counted(string title, int count) => $"{title} ({Numbers.Count(count)})";
 
         /// <summary>Something found more than once, with how many times: "Collider ×3"; once, its name alone.</summary>
         public static string Repeated(string name, int count) => count > 1 ? name + " " + Numbers.Times(count) : name;
 
+        /// <summary>A list of names as a sentence: "A", "A and B", "A, B and C"; nothing for none.</summary>
         public static string Joined(System.Collections.Generic.IReadOnlyList<string> names)
         {
             if (names.Count <= 1) return names.Count == 1 ? names[0] : "";
