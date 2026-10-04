@@ -39,10 +39,6 @@ namespace Scry
         /// <summary>The title of a build tool's tab, with how many pieces are on it.</summary>
         public static string BuildsOnTab(string tab, int pieces) => Naming.Counted($"Builds on its {tab} tab", pieces);
 
-        /// <summary>How many of an ingredient it needs, and how many more each quality, where it goes up.</summary>
-        public static string Needs(int amount, int perQuality) =>
-            Numbers.Count(amount) + (perQuality > 0 ? $", +{Numbers.Count(perQuality)} per quality" : "");
-
         /// <summary>The support it has on the ground and the least it stands with; null for a material without figures.</summary>
         public static string Support(float max, float min, bool needsSupport)
         {

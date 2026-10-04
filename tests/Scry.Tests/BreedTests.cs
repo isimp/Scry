@@ -61,6 +61,13 @@ namespace Scry.Tests
             Assert.Equal("lying on its own", BreedWords.Hatches(false, false, 0.7f));
         }
 
+        [Fact]
+        public void AnEggSaysWhatHatchesAndWhetherItIsTame()
+        {
+            Assert.Equal("Hen, tame", BreedWords.HatchesInto("Hen", tame: true));
+            Assert.Equal("Hen", BreedWords.HatchesInto("Hen", tame: false));
+        }
+
         // Ridden, a creature has stamina of its own (Sadle): it regains it, slower when hungry,
         // and running and swimming drain it.
         [Fact]

@@ -136,9 +136,9 @@ namespace Scry.Tests
         [Fact]
         public void AnAttackCostsWhatItTakes()
         {
-            Assert.Equal(new[] { "20 stamina", "5 eitr", "10 health", "25% health" }, CombatWords.Costs(20f, 5f, 10f, 25f));
-            Assert.Equal(new[] { "12.5 stamina" }, CombatWords.Costs(12.5f, 0f, 0f, 0f));
-            Assert.Empty(CombatWords.Costs(0f, 0f, 0f, 0f));
+            Assert.Equal("20 stamina, 5 eitr, 10 health, 25% health", CombatWords.Costs(20f, 5f, 10f, 25f));
+            Assert.Equal("12.5 stamina", CombatWords.Costs(12.5f, 0f, 0f, 0f));
+            Assert.Null(CombatWords.Costs(0f, 0f, 0f, 0f));
         }
 
         // A weapon's second attack (Attack, as m_secondaryAttack) hits harder or softer than its
@@ -146,10 +146,16 @@ namespace Scry.Tests
         [Fact]
         public void ASecondAttackTellsHowItDiffersAndWhatItCosts()
         {
-            Assert.Equal("\u00d73 damage, \u00d72 knockback, \u00d71.5 stagger; costs 20 stamina, 4 eitr", CombatWords.SecondaryAttack(3f, 2f, 1.5f, new[] { "20 stamina", "4 eitr" }));
-            Assert.Equal("\u00d72 damage", CombatWords.SecondaryAttack(2f, 1f, 1f, new string[0]));
-            Assert.Equal("as hard as the first; costs 15 stamina", CombatWords.SecondaryAttack(1f, 1f, 1f, new[] { "15 stamina" }));
+            Assert.Equal("\u00d73 damage, \u00d72 knockback, \u00d71.5 stagger; costs 20 stamina, 4 eitr", CombatWords.SecondaryAttack(3f, 2f, 1.5f, "20 stamina, 4 eitr"));
+            Assert.Equal("\u00d72 damage", CombatWords.SecondaryAttack(2f, 1f, 1f, ""));
+            Assert.Equal("as hard as the first; costs 15 stamina", CombatWords.SecondaryAttack(1f, 1f, 1f, "15 stamina"));
             Assert.Equal("as hard as the first", CombatWords.SecondaryAttack(1f, 1f, 1f, null));
         }
+
+        [Fact]
+        public void DrawingABowCostsStaminaASecond() => Assert.Equal("1.5 stamina a second", CombatWords.DrawCost(1.5f));
+
+        [Fact]
+        public void EachKindOfDamageSaysWhatItCauses() => Assert.Equal("Fire damage causes", CombatWords.DamageCauses("fire"));
     }
 }

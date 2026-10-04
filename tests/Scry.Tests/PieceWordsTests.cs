@@ -44,13 +44,6 @@ namespace Scry.Tests
             Assert.Equal("Builds on its Crafting tab (1,234)", BuildWords.BuildsOnTab("Crafting", 1234));
         }
 
-        [Fact]
-        public void AnIngredientSaysHowManyMoreEachQualityNeeds()
-        {
-            Assert.Equal("1,000, +5 per quality", BuildWords.Needs(1000, 5));
-            Assert.Equal("3", BuildWords.Needs(3, 0));
-        }
-
         [Theory]
         [InlineData(UseKind.Crafts, "Forge", "Used to make at Forge")]
         [InlineData(UseKind.Crafts, null, "Used to make by hand")]

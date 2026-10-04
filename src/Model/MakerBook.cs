@@ -96,13 +96,7 @@ namespace Scry
             a.Station == b.Station && a.Output == b.Output && a.Makes == b.Makes && a.Inputs.SequenceEqual(b.Inputs);
 
         /// <summary>An item's row title: "Made in Smelter", "Made in Fermenter, makes 6", "…, from any one of these".</summary>
-        public static string ItemTitle(string station, Making making)
-        {
-            var title = "Made in " + station;
-            if (making.Makes > 1) title += $", makes {Numbers.Count(making.Makes)}";
-            if (making.AnyOne) title += ", from any one of these";
-            return title;
-        }
+        public static string ItemTitle(string station, Making making) => "Made in " + station + ItemWords.Makes(making.Makes, making.AnyOne);
 
         /// <summary>A station's row title: "Makes Copper from", "Makes 6 Mead from", "Makes Copper from any one of these".</summary>
         public static string StationTitle(string output, Making making)

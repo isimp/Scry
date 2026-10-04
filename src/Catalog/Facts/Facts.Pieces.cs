@@ -176,7 +176,7 @@ namespace Scry
             foreach (var need in requirements)
             {
                 if (need?.m_resItem == null || need.m_upgraderResource) continue;
-                var amount = BuildWords.Needs(need.m_amount, upgradable ? need.m_amountPerLevel : 0);
+                var amount = ItemWords.PerQuality(need.m_amount, upgradable ? need.m_amountPerLevel : 0);
                 row.Items.Add(new Ingredient
                 {
                     Icon = Icon(need.m_resItem.gameObject), Name = ItemName(need.m_resItem.gameObject), Amount = amount, Prefab = need.m_resItem.gameObject.name,

@@ -16,7 +16,7 @@ namespace Scry
 
             Add("Type", Groups.ItemTypeName(shared.m_itemType.ToString()));
             Add("Weight", Numbers.Amount(shared.m_weight));
-            if (shared.m_value > 0) Add("Worth", $"{Numbers.Count(shared.m_value)} coins");
+            if (shared.m_value > 0) Add("Worth", ItemWords.Coins(shared.m_value));
             if (shared.m_maxStackSize > 1) Add("Stacks to", Numbers.Count(shared.m_maxStackSize));
             // Gear tells how far it upgrades even when it cannot; anything else only when it can.
             var gear = IsGear(shared.m_itemType);
@@ -36,19 +36,15 @@ namespace Scry
             // The slots whose armour counts (Player.GetBodyArmor); gloves' does not.
             var worn = type == ItemDrop.ItemData.ItemType.Helmet || type == ItemDrop.ItemData.ItemType.Chest
                        || type == ItemDrop.ItemData.ItemType.Legs || type == ItemDrop.ItemData.ItemType.Shoulder;
-            if (worn) Add("Armour", shared.m_armor > 0f ? Numbers.Amount(shared.m_armor) + (upgradable && shared.m_armorPerLevel > 0f ? $", +{Numbers.Amount(shared.m_armorPerLevel)} per quality" : "") : "none");
+            if (worn) Add("Armour", ItemWords.Armour(shared.m_armor, upgradable ? shared.m_armorPerLevel : 0f));
             Part("item stats", () => Combat(prefab, shared));
             Part("resistances", () => GearResists(shared, worn));
             if (damage.Length > 0 || (worn && shared.m_armor > 0f) || shared.m_blockPower > 1f) Hooked(HookedRule.ItemStats);
 
             if (shared.m_food > 0f || shared.m_foodStamina > 0f || shared.m_foodEitr > 0f)
             {
-                var food = new List<string>();
-                if (shared.m_food > 0f) food.Add($"{Numbers.Amount(shared.m_food)} health");
-                if (shared.m_foodStamina > 0f) food.Add($"{Numbers.Amount(shared.m_foodStamina)} stamina");
-                if (shared.m_foodEitr > 0f) food.Add($"{Numbers.Amount(shared.m_foodEitr)} eitr");
-                Add("Food", string.Join(", ", food));
-                if (shared.m_foodRegen > 0f) Add("Heals", $"{Numbers.Amount(shared.m_foodRegen)} a tick");
+                Add("Food", ItemWords.Food(shared.m_food, shared.m_foodStamina, shared.m_foodEitr));
+                if (shared.m_foodRegen > 0f) Add("Heals", ItemWords.Heals(shared.m_foodRegen));
                 if (shared.m_foodBurnTime > 0f) Add("Lasts", Numbers.Duration(shared.m_foodBurnTime));
                 Hooked(HookedRule.Food);
             }
@@ -68,8 +64,7 @@ namespace Scry
             // The set's own name is an id the game never shows; the rest of the set is linked under LINKED.
             if (shared.m_setStatusEffect != null)
             {
-                var pieces = shared.m_setSize > 0 ? $" ({Numbers.Count(shared.m_setSize)} pieces)" : "";
-                Add("Set bonus", EffectName(shared.m_setStatusEffect) + pieces, EntryKeys.For(Kind.StatusEffect, shared.m_setStatusEffect.name));
+                Add("Set bonus", ItemWords.SetBonus(EffectName(shared.m_setStatusEffect), shared.m_setSize), EntryKeys.For(Kind.StatusEffect, shared.m_setStatusEffect.name));
             }
             else if (worn) Add("Set bonus", "none");
             foreach (var (damageType, name) in CombatWords.DamageEffects)
@@ -77,7 +72,7 @@ namespace Scry
                 var amount = damageType == "fire" ? shared.m_damages.m_fire : damageType == "frost" ? shared.m_damages.m_frost : damageType == "lightning" ? shared.m_damages.m_lightning
                     : damageType == "poison" ? shared.m_damages.m_poison : shared.m_damages.m_spirit;
                 var effect = amount > 0f && ObjectDB.instance != null ? ObjectDB.instance.GetStatusEffect(name.GetStableHashCode()) : null;
-                if (effect != null) Add(Naming.FieldLabel(damageType) + " damage causes", EffectName(effect), EntryKeys.For(Kind.StatusEffect, effect.name));
+                if (effect != null) Add(CombatWords.DamageCauses(damageType), EffectName(effect), EntryKeys.For(Kind.StatusEffect, effect.name));
             }
             if (shared.m_equipStatusEffect != null) Add("When worn", EffectName(shared.m_equipStatusEffect), EntryKeys.For(Kind.StatusEffect, shared.m_equipStatusEffect.name));
             if (shared.m_consumeStatusEffect != null) Add("When used", EffectName(shared.m_consumeStatusEffect), EntryKeys.For(Kind.StatusEffect, shared.m_consumeStatusEffect.name));
@@ -87,7 +82,7 @@ namespace Scry
             var egg = prefab.GetComponent<EggGrow>();
             if (egg != null && egg.m_grownPrefab != null)
             {
-                Add("Hatches into", AnyName(egg.m_grownPrefab, egg.m_grownPrefab.name) + (egg.m_tamed ? ", tame" : ""), egg.m_grownPrefab.name);
+                Add("Hatches into", BreedWords.HatchesInto(AnyName(egg.m_grownPrefab, egg.m_grownPrefab.name), egg.m_tamed), egg.m_grownPrefab.name);
                 Add("Hatches in", Numbers.Duration(egg.m_growTime));
                 Add("Hatches when", BreedWords.Hatches(egg.m_requireNearbyFire, egg.m_requireUnderRoof, egg.m_requireCoverPercentige));
             }
@@ -107,12 +102,8 @@ namespace Scry
                 if (recipe == null || recipe.m_item == null || recipe.m_item.gameObject.name != prefab.name || !recipe.m_enabled) continue;
 
                 var station = recipe.m_craftingStation != null ? CatalogBuilder.Localize(recipe.m_craftingStation.m_name) : "";
-                var title = station.Length > 0
-                    ? $"Made at {station}{(recipe.m_minStationLevel > 1 ? $" level {Numbers.Count(recipe.m_minStationLevel)}" : "")}"
-                    : "Made by hand";
-                if (recipe.m_amount > 1) title += $", makes {Numbers.Count(recipe.m_amount)}";
-                if (recipe.m_requireOnlyOneIngredient) title += ", from any one of these";
-                title = ModWords.AddedBy(title, Knowledge.RecipeMod(recipe.name), Knowledge.ModName(prefab.name));
+                var title = ModWords.AddedBy(ItemWords.RecipeTitle(station, recipe.m_minStationLevel, recipe.m_amount, recipe.m_requireOnlyOneIngredient),
+                    Knowledge.RecipeMod(recipe.name), Knowledge.ModName(prefab.name));
                 var row = Requirements(title, recipe.m_resources, shared.m_maxQuality > 1);
                 row.TitleLink = recipe.m_craftingStation != null ? recipe.m_craftingStation.gameObject.name : null;
                 Rows.Add(row);
@@ -139,7 +130,7 @@ namespace Scry
             var ammo = type == ItemDrop.ItemData.ItemType.Ammo || type == ItemDrop.ItemData.ItemType.AmmoNonEquipable;
             var shield = type == ItemDrop.ItemData.ItemType.Shield;
             var upgradable = shared.m_maxQuality > 1;
-            string PerQuality(float perLevel) => upgradable && perLevel > 0f ? $", +{Numbers.Amount(perLevel)} per quality" : "";
+            float PerQuality(float perLevel) => upgradable ? perLevel : 0f;
 
             if ((weapon || ammo || shield || type == ItemDrop.ItemData.ItemType.Tool) && shared.m_skillType != Skills.SkillType.None)
             {
@@ -151,8 +142,8 @@ namespace Scry
             if (weapon || shield)
             {
                 // The game tells blocking only above 1, as AddBlockTooltip does; below that it cannot block.
-                Add("Block", shared.m_blockPower > 1f ? Numbers.Amount(shared.m_blockPower) + PerQuality(shared.m_blockPowerPerLevel) : "none");
-                if (shared.m_deflectionForce > 1f) Add("Block force", Numbers.Amount(shared.m_deflectionForce) + PerQuality(shared.m_deflectionForcePerLevel));
+                Add("Block", ItemWords.Block(shared.m_blockPower, PerQuality(shared.m_blockPowerPerLevel)));
+                if (shared.m_deflectionForce > 1f) Add("Block force", ItemWords.PerQuality(shared.m_deflectionForce, PerQuality(shared.m_deflectionForcePerLevel)));
                 if (shared.m_timedBlockBonus > 1f) Add("Parry bonus", Numbers.Times(shared.m_timedBlockBonus));
             }
 
@@ -163,8 +154,8 @@ namespace Scry
             if (weapon && attack != null)
             {
                 var costs = CombatWords.Costs(attack.m_attackStamina, attack.m_attackEitr, attack.m_attackHealth, attack.m_attackHealthPercentage);
-                if (costs.Count > 0) Add("Each attack costs", string.Join(", ", costs));
-                if (attack.m_drawStaminaDrain > 0f) Add("Drawing costs", $"{Numbers.Amount(attack.m_drawStaminaDrain)} stamina a second");
+                Add("Each attack costs", costs);
+                if (attack.m_drawStaminaDrain > 0f) Add("Drawing costs", CombatWords.DrawCost(attack.m_drawStaminaDrain));
 
                 // A second attack the game offers only with an animation of its own (ItemData.HaveSecondaryAttack), told against the first.
                 var second = shared.m_secondaryAttack;
@@ -180,7 +171,7 @@ namespace Scry
             var recipe = ObjectDB.instance != null ? ObjectDB.instance.m_recipes.FirstOrDefault(r => r != null && r.m_enabled && r.m_item != null && r.m_item.gameObject.name == prefab.name) : null;
             if (shared.m_useDurability)
             {
-                Add("Durability", Numbers.Amount(shared.m_maxDurability) + PerQuality(shared.m_durabilityPerLevel));
+                Add("Durability", ItemWords.PerQuality(shared.m_maxDurability, PerQuality(shared.m_durabilityPerLevel)));
                 // Repaired where it is made or at its repair station, from the recipe's station level (InventoryGui.CanRepair);
                 // where it cannot be, that is said too. Unity's own null check, not ??, which a destroyed reference would pass.
                 var at = recipe == null ? null : recipe.m_repairStation != null ? recipe.m_repairStation : recipe.m_craftingStation;
@@ -194,7 +185,7 @@ namespace Scry
             {
                 var first = recipe.GetRequiredStationLevel(2);
                 var last = recipe.GetRequiredStationLevel(shared.m_maxQuality);
-                Add("Upgrades need", $"{CatalogBuilder.Localize(station.m_name)} level {Numbers.CountRange(first, last)}, one more for each quality", station.gameObject.name);
+                Add("Upgrades need", ItemWords.UpgradesNeed(CatalogBuilder.Localize(station.m_name), first, last), station.gameObject.name);
             }
         }
 
@@ -212,8 +203,8 @@ namespace Scry
             if (!worn && !blocks) return;
             var mods = default(HitData.DamageModifiers);
             mods.Apply(shared.m_damageModifiers);
-            if (ByDegree(mods).Count > 0) Resists(mods, worn ? "Damage it takes while worn" : "Damage it takes while blocking");
-            else if (worn || type == ItemDrop.ItemData.ItemType.Shield) Add(worn ? "Resists while worn" : "Resists while blocking", "nothing");
+            if (ByDegree(mods).Count > 0) Resists(mods, ItemWords.DamageTaken(worn));
+            else if (worn || type == ItemDrop.ItemData.ItemType.Shield) Add(ItemWords.ResistsNothing(worn), "nothing");
         }
 
         /// <summary>What is worn or wielded: weapons, shields, tools, torches, armour, belts and trinkets.</summary>

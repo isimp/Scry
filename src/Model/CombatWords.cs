@@ -134,26 +134,32 @@ namespace Scry
             return name.Length > 0 ? name : "weak spot";
         }
 
-        /// <summary>What an attack takes: stamina, eitr, health and a share of health, each only when it takes some.</summary>
-        public static List<string> Costs(float stamina, float eitr, float health, float healthPercent)
+        /// <summary>What an attack takes: stamina, eitr, health and a share of health, each only when it takes some; null for nothing.</summary>
+        public static string Costs(float stamina, float eitr, float health, float healthPercent)
         {
             var costs = new List<string>();
             if (stamina > 0f) costs.Add($"{Numbers.Amount(stamina)} stamina");
             if (eitr > 0f) costs.Add($"{Numbers.Amount(eitr)} eitr");
             if (health > 0f) costs.Add($"{Numbers.Amount(health)} health");
             if (healthPercent > 0f) costs.Add($"{Numbers.Amount(healthPercent)}% health");
-            return costs;
+            return costs.Count > 0 ? string.Join(", ", costs) : null;
         }
 
-        /// <summary>A weapon's second attack: how much harder its damage, knockback and stagger are than the first's, and what it costs.</summary>
-        public static string SecondaryAttack(float damage, float force, float stagger, IReadOnlyList<string> costs)
+        /// <summary>What drawing a bow takes while it is drawn.</summary>
+        public static string DrawCost(float staminaPerSecond) => $"{Numbers.Amount(staminaPerSecond)} stamina a second";
+
+        /// <summary>The label for the status effect a kind of damage puts on what it hits (<see cref="DamageEffects"/>).</summary>
+        public static string DamageCauses(string damageType) => Naming.FieldLabel(damageType) + " damage causes";
+
+        /// <summary>A weapon's second attack: how much harder its damage, knockback and stagger are than the first's, and what it costs (<see cref="Costs"/>).</summary>
+        public static string SecondaryAttack(float damage, float force, float stagger, string costs)
         {
             var parts = new List<string>();
             if (Math.Abs(damage - 1f) > 0.001f) parts.Add($"{Numbers.Times(damage)} damage");
             if (Math.Abs(force - 1f) > 0.001f) parts.Add($"{Numbers.Times(force)} knockback");
             if (Math.Abs(stagger - 1f) > 0.001f) parts.Add($"{Numbers.Times(stagger)} stagger");
             var line = parts.Count > 0 ? string.Join(", ", parts) : "as hard as the first";
-            return costs != null && costs.Count > 0 ? line + "; costs " + string.Join(", ", costs) : line;
+            return string.IsNullOrEmpty(costs) ? line : line + "; costs " + costs;
         }
 
         /// <summary>
