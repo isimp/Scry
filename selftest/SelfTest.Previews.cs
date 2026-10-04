@@ -184,7 +184,7 @@ namespace Scry
             yield return Until(() => Stage.Finished, 8);
             yield return new Wait(1.0);
             p.Check(CopyOf(effect) == last, "with Repeat off, it is not played again");
-            var key = "on you:" + effect.Name;
+            var key = PlayKey.OnYou(effect.Name);
             Previews.PlayEffect(effect, onYou: true);
             yield return null;
             p.Check(Previews.Playing.IsPlaying(key), "played on you, it plays");
@@ -201,7 +201,7 @@ namespace Scry
             p.Note(effect.Name);
             Select(effect);
             yield return null;
-            var key = "on you:" + effect.Name;
+            var key = PlayKey.OnYou(effect.Name);
             Previews.PlayEffect(effect, onYou: true);
             yield return Until(() => Previews.Playing.IsPlaying(key), 2);
             p.Check(Previews.Playing.IsPlaying(key), "it plays on you");

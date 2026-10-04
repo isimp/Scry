@@ -32,7 +32,7 @@ namespace Scry
                 copy = Ghost.Make(prefab, null, _spot, _facing);
             }
             Remember(copy, EffectSeconds);
-            Started((onYou ? "on you:" : "there:") + prefab.name, new[] { copy });
+            Started(onYou ? PlayKey.OnYou(prefab.name) : PlayKey.There(prefab.name), new[] { copy });
         }
 
         /// <summary>
@@ -659,9 +659,9 @@ namespace Scry
         public static void LetFall()
         {
             if (!CanLetFall(_entry)) return;
-            Stop("let fall");
+            Stop(PlayKey.LetFall);
             var prefab = (GameObject)_entry.Source;
-            Started("let fall", new[] { Stage.LetFall(prefab), LetFallInWorld(prefab) });
+            Started(PlayKey.LetFall, new[] { Stage.LetFall(prefab), LetFallInWorld(prefab) });
         }
 
         /// <summary>Lets the creature fall as its ragdoll, on the stage and in the world, without its death effects.</summary>
@@ -669,12 +669,12 @@ namespace Scry
         {
             var ragdoll = RagdollOf(_entry);
             if (ragdoll == null) return;
-            Stop("ragdoll");
+            Stop(PlayKey.Ragdoll);
             var prefab = (GameObject)_entry.Source;
             var modifiers = _explorer?.Modifiers;
             var level = modifiers != null ? modifiers.Level : 1;
             var gear = modifiers != null && modifiers.LookAvailable ? Variants.GearOf(prefab, modifiers.Look) : new List<GameObject>();
-            Started("ragdoll", new[] { Stage.Fall(ragdoll, prefab, level, gear), FallInWorld(ragdoll, prefab, level, gear) });
+            Started(PlayKey.Ragdoll, new[] { Stage.Fall(ragdoll, prefab, level, gear), FallInWorld(ragdoll, prefab, level, gear) });
         }
 
         /// <summary>Plays an effect list on the stage copy, and on the copy in the world when there is one.</summary>

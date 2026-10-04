@@ -13,6 +13,7 @@ namespace Scry.Tests
     /// <c>SearchHelp.Term</c> ("mod:coolstatues"), and the marks before an effect list's field name
     /// by <c>Groups</c>. A prefix written out anywhere else is a key made by hand, which drifts from
     /// the one the rest of Scry reads; a whole term written out, such as a search example, is text.
+    /// What a play button started is keyed by the thing played or a <c>PlayKey</c>, never by text.
     /// </summary>
     public class KeyStandardTests
     {
@@ -33,6 +34,27 @@ namespace Scry.Tests
                 found.Add($"{ScrySource.Where(literal)} \"{literal.Token.ValueText}\" in {ScrySource.TopType(literal)}.{ScrySource.Member(literal)}");
             }
             Violations.None("make keys with EntryKeys and terms with SearchHelp.Term", found);
+        }
+
+        /// <summary>The methods that start, ask after or stop what a play button started, by its key.</summary>
+        private static readonly HashSet<string> PlaybackMethods = new HashSet<string>(System.StringComparer.Ordinal) { "Started", "IsPlaying", "Take", "Stop" };
+
+        [Fact]
+        public void PlaybackIsKeyedByWhatPlaysNotByText()
+        {
+            // The previews start what plays and the panel asks after it: a key spelled out on both
+            // sides drifts apart without either failing, a PlayKey or the thing played cannot.
+            var found = new List<string>();
+            foreach (var (call, model) in ScrySource.All<InvocationExpressionSyntax>())
+            {
+                if (!(model.GetSymbolInfo(call).Symbol is IMethodSymbol method) || !PlaybackMethods.Contains(method.Name)) continue;
+                var owner = method.ContainingType?.Name;
+                if (owner != "Playback" && owner != "Previews") continue;
+                var key = call.ArgumentList.Arguments.FirstOrDefault();
+                if (key == null || model.GetTypeInfo(key.Expression).Type?.SpecialType != SpecialType.System_String) continue;
+                found.Add($"{ScrySource.Where(call)} {owner}.{method.Name}({key})");
+            }
+            Violations.None("key playback by text", found);
         }
     }
 }

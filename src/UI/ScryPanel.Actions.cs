@@ -39,16 +39,16 @@ namespace Scry
                     break;
 
                 case Kind.Effect:
-                    var there = Previews.Playing.IsPlaying("there:" + entry.Name);
+                    var there = Previews.Playing.IsPlaying(PlayKey.There(entry.Name));
                     if (Button("Play where you look", there ? Skin.On : Skin.Primary))
                     {
-                        if (there) Previews.Stop("there:" + entry.Name);
+                        if (there) Previews.Stop(PlayKey.There(entry.Name));
                         else Previews.PlayEffect(entry, onYou: false);
                     }
-                    var onYou = Previews.Playing.IsPlaying("on you:" + entry.Name);
+                    var onYou = Previews.Playing.IsPlaying(PlayKey.OnYou(entry.Name));
                     if (Button("Play on you", onYou ? Skin.On : Skin.Button))
                     {
-                        if (onYou) Previews.Stop("on you:" + entry.Name);
+                        if (onYou) Previews.Stop(PlayKey.OnYou(entry.Name));
                         else Previews.PlayEffect(entry, onYou: true);
                     }
                     if (!_compact)
@@ -115,16 +115,16 @@ namespace Scry
                             Previews.Rebuild();
                         }
                     }
-                    var fallen = Previews.Playing.IsPlaying("ragdoll");
+                    var fallen = Previews.Playing.IsPlaying(PlayKey.Ragdoll);
                     if (Previews.RagdollOf(entry) != null && Shown("Ragdoll", fallen ? Skin.On : Skin.Button, Stage.Subject != null))
                     {
-                        if (fallen) Previews.Stop("ragdoll");
+                        if (fallen) Previews.Stop(PlayKey.Ragdoll);
                         else Previews.Ragdoll();
                     }
-                    var loose = Previews.Playing.IsPlaying("let fall");
+                    var loose = Previews.Playing.IsPlaying(PlayKey.LetFall);
                     if (Previews.CanLetFall(entry) && Shown("Let it fall", loose ? Skin.On : Skin.Button, Stage.Subject != null))
                     {
-                        if (loose) Previews.Stop("let fall");
+                        if (loose) Previews.Stop(PlayKey.LetFall);
                         else Previews.LetFall();
                     }
                     if (Previews.IsModel(entry))
