@@ -89,6 +89,10 @@ namespace Scry
                 foreach (var user in entry.UsedBy) Add("playedby", user, user);
                 foreach (var station in entry.Stations ?? Array.Empty<StationUse>()) Add("station", station.Shown.Length > 0 ? station.Shown : station.Name, station.Shown.Length > 0 ? station.Shown : station.Name);
                 foreach (var place in entry.FoundIn ?? Array.Empty<string>()) Add("in", Places.NameOf(place), Places.NameOf(place));
+                foreach (var key in Search.WordKeys)
+                {
+                    foreach (var word in entry.TermWords(key)) Add(key, word, word);
+                }
             }
         }
 
@@ -255,6 +259,7 @@ namespace Scry
             ["playedby"] = "what plays it",
             ["station"] = "where it is made",
             ["in"] = "a location or dungeon it is found in",
+            ["is"] = "what it is: a boss, food, a weapon",
         };
 
         /// <summary>The word the caret is in (or at the end of), from space to space.</summary>

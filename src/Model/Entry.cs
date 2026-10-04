@@ -135,6 +135,23 @@ namespace Scry
         /// <summary>The clue its mod was named by; a clue that is not the mod's own word makes it Scry's best guess (<see cref="UnsureWords"/>).</summary>
         public string ModClue = "";
 
+        private Dictionary<string, string[]> _termWords;
+
+        /// <summary>The words a search term of what it is answers to, by the term's key: is: "boss", "food"; none until the catalog has read them.</summary>
+        public string[] TermWords(string key) => _termWords != null && _termWords.TryGetValue(key, out var words) ? words : Array.Empty<string>();
+
+        /// <summary>Sets the words a search term answers to for it; none forgets them.</summary>
+        public void SetTermWords(string key, string[] words)
+        {
+            if (words == null || words.Length == 0)
+            {
+                _termWords?.Remove(key);
+                return;
+            }
+            if (_termWords == null) _termWords = new Dictionary<string, string[]>(StringComparer.Ordinal);
+            _termWords[key] = words;
+        }
+
         /// <summary>Its place within its group, lower first (a dungeon's location before its rooms); 0 for most.</summary>
         public int GroupRank;
 

@@ -16,6 +16,7 @@ namespace Scry
         public static readonly Feature ResourceMonitor = Listed("the resource monitor");
         public static readonly Feature Favourites = Listed("favourites");
         public static readonly Feature SearchSuggestions = Listed("search suggestions");
+        public static readonly Feature SearchTerms = Listed("search terms of what things are and do");
         public static readonly Feature GameNames = Listed("names as the game shows them");
         public static readonly Feature Groups = Listed("the list's groups");
         public static readonly Feature Links = Listed("links between entries");

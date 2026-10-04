@@ -28,7 +28,8 @@ namespace Scry
     /// results. A word with a known key and a colon narrows the list by something else:
     /// <c>kind:</c>, <c>has:</c> (a component), <c>biome:</c>, <c>mod:</c>, <c>playedby:</c> (the prefabs
     /// that play an effect; <c>used:</c> is its older spelling), <c>station:</c> (where it is made) and <c>in:</c> (a location or dungeon
-    /// it is found in, once they are read). A comma in a term's value reads as or: <c>biome:swamp,plains</c>.
+    /// it is found in, once they are read) and <c>is:</c> (what it is, <see cref="SearchFlags"/>, by the
+    /// start of the word). A comma in a term's value reads as or: <c>biome:swamp,plains</c>.
     /// A minus in front of a word or a term leaves out what matches it.
     /// </summary>
     internal sealed class ParsedSearch
@@ -103,7 +104,10 @@ namespace Scry
     internal static class Search
     {
         /// <summary>The keys a term can have, as typed before the colon.</summary>
-        public static readonly string[] Keys = { "kind", "has", "biome", "mod", "playedby", "station", "in" };
+        public static readonly string[] Keys = { "kind", "has", "biome", "mod", "playedby", "station", "in", "is" };
+
+        /// <summary>The keys whose values are words the catalog reads into each entry (<see cref="Entry.TermWords"/>), each matched by its start.</summary>
+        public static readonly string[] WordKeys = { "is" };
 
         /// <summary>Older spellings of a key, still read: "used:" was taken for what an item is used for.</summary>
         private static readonly Dictionary<string, string> OldKeys = new Dictionary<string, string> { ["used"] = "playedby" };
@@ -308,6 +312,7 @@ namespace Scry
                 case "in": return AnyPlaceNamed(entry.FoundIn, value);
                 case "mod": return ContainsLeavingOutSpaces(entry.ModName, value);
                 case "playedby": return AnyContainsLeavingOutSpaces(entry.UsedBy, value);
+                case "is": return AnyStartsWith(entry.TermWords(key), value);
                 default: return false;
             }
         }
@@ -361,6 +366,12 @@ namespace Scry
                 var digit = value[i] - '0';
                 level = level > (int.MaxValue - digit) / 10 ? int.MaxValue : level * 10 + digit;
             }
+        }
+
+        private static bool AnyStartsWith(string[] words, string value)
+        {
+            foreach (var word in words) if (word.StartsWith(value, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
         }
 
         private static bool AnyContains(string[] values, string value)

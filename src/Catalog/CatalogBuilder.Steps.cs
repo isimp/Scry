@@ -92,6 +92,13 @@ namespace Scry
             Timed("mods", () => Guard.Run(Feature.ModPages, "the mods' own entries", Mods, read.Entries));
             foreach (var step in ModIcons(read)) yield return step;
 
+            // The search's terms read what every entry is and how it ties to others, so they come last.
+            yield return "Reading search terms";
+            foreach (var done in Stepped(() => SearchTerms(read.Entries, 400), Feature.SearchTerms, "search terms", "reading search terms"))
+            {
+                yield return CatalogWords.Progress("Reading search terms", done, read.Entries.Count);
+            }
+
             job.Entries = read.Entries;
             Log.Note($"Scry's catalog, by part (ms): {CatalogTiming.Report()}; {Numbers.Count(GC.CollectionCount(0) - collections)} garbage collections meanwhile.");
             Faults.TellSkipped();

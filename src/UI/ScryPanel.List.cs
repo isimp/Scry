@@ -70,6 +70,7 @@ namespace Scry
             new[] { "in:crypt", "What is found in a location or dungeon, once they are read with Read all locations (at the top of the panel, or below)." },
             new[] { "mod:epic", "What a mod added, by the start or any part of its name." },
             new[] { "playedby:troll", "The sounds and effects a prefab plays." },
+            new[] { "is:boss", SearchFlags.HelpLine() },
             new[] { "station:forge3", "What is made at that station, here what a forge at level 3 can make. station:forge for any level, station:hand for what needs none." },
             new[] { "biome:swamp,plains", "A comma reads as or, in any term." },
             new[] { "-has:ragdoll kind:c", "Terms combine, can be left out with a minus, and can be shortened." },

@@ -103,6 +103,25 @@ namespace Scry
                 p.Check(ofMod.Count > 0 && ofMod.All(e => e.ModName == mod), $"\"mod:\" finds only what {mod} added", $"{Numbers.Count(ofMod.Count)} results");
             }
             else p.Note("no mod adds anything, so mod: is not tried");
+            var either = Find("biome:swamp,mountain kind:creature");
+            p.Check(either.Any(e => e.Biomes.Contains("Swamp")) && either.Any(e => e.Biomes.Contains("Mountain")), "a comma reads as or (\"biome:swamp,mountain\")", $"{Numbers.Count(either.Count)} results");
+
+            // What is: finds, each as the details tell it.
+            var bosses = Find("is:boss");
+            p.Check(bosses.Any(e => e.Name == "Eikthyr") && bosses.All(e => (e.Source as GameObject).OrNull()?.GetComponent<Character>().OrNull()?.m_boss == true), "\"is:boss\" finds Eikthyr and only bosses", string.Join(", ", bosses.Take(12).Select(e => e.Name)));
+            var tame = Find("is:tameable");
+            p.Check(tame.Any(e => e.Name == "Boar") && tame.Any(e => e.Name == "Wolf") && tame.All(e => (e.Source as GameObject).OrNull()?.GetComponent<Tameable>() != null), "\"is:tameable\" finds the boar and the wolf, and only what can be tamed", string.Join(", ", tame.Take(12).Select(e => e.Name)));
+            var flying = Find("is:flying");
+            p.Note("\"is:flying\": " + string.Join(", ", flying.Take(12).Select(e => e.Name)));
+            p.Check(flying.Any(e => e.Name == "Deathsquito"), "\"is:flying\" finds the deathsquito");
+            foreach (var (flag, named) in new[] { ("wearable", "HelmetBronze"), ("weapon", "SwordIron"), ("ammo", "ArrowWood"), ("food", "CookedMeat"), ("craftable", "SwordIron"), ("buildable", "piece_workbench") })
+            {
+                var flagged = Find(SearchHelp.Term("is", flag));
+                p.Check(flagged.Any(e => e.Name == named), $"\"is:{flag}\" finds {named}", $"{Numbers.Count(flagged.Count)} results");
+            }
+            p.Check(Find("is:weapon kind:creature").Count == 0, "no creature is a weapon");
+            p.Note($"\"is:silent\": {Numbers.Count(Find("is:silent").Count)}, \"is:unsure\": {Numbers.Count(Find("is:unsure").Count)}");
+
             p.Check(Find("zzqqxxnothing").Count == 0, "a search matching nothing finds nothing");
             X.SearchEverything("");
             yield break;
