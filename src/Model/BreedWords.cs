@@ -35,6 +35,12 @@ namespace Scry
         /// <summary>Its young's stars: its parent's, and at least so many (the young's level less one).</summary>
         public static string Stars(int minLevel) => minLevel > 1 ? $"with its parent's stars, at least {Numbers.Count(minLevel - 1)}" : "with its parent's stars";
 
+        /// <summary>The title over its young, with the stars they have.</summary>
+        public static string Young(int minLevel) => "Has young, " + Stars(minLevel);
+
+        /// <summary>The title over what a young one grows into, one of several where it may grow into more than one, and whether it stays tame.</summary>
+        public static string GrowsInto(bool oneOf, bool staysTame) => (oneOf ? "Grows into one of these" : "Grows into") + (staysTame ? ", staying tame" : "");
+
         /// <summary>What an egg hatches into, and that it hatches tame where it does.</summary>
         public static string HatchesInto(string creature, bool tame) => tame ? creature + ", tame" : creature;
 

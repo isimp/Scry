@@ -157,5 +157,39 @@ namespace Scry.Tests
 
         [Fact]
         public void EachKindOfDamageSaysWhatItCauses() => Assert.Equal("Fire damage causes", CombatWords.DamageCauses("fire"));
+
+        [Fact]
+        public void EachAttackIsLabelledByTheItemItIsMadeWith()
+        {
+            Assert.Equal("Attack: Troll club", CombatWords.AttackLabel("Troll club"));
+            Assert.True(CombatWords.IsAttackLabel(CombatWords.AttackLabel("Troll club")));
+            Assert.False(CombatWords.IsAttackLabel("Attacks"));
+        }
+
+        [Fact]
+        public void ACreatureSaysHowFastItWalksRunsFliesAndSwims()
+        {
+            Assert.Equal("walks 2 m/s, runs 6.5 m/s, swims 1,200 m/s", CombatWords.Moves(false, 0f, 0f, 2f, 6.5f, true, 1200f));
+            Assert.Equal("walks 2 m/s, runs 6 m/s", CombatWords.Moves(false, 5f, 9f, 2f, 6f, false, 3f));
+            Assert.Equal("flies 5–9 m/s", CombatWords.Moves(true, 5f, 9f, 2f, 6f, false, 3f));
+        }
+
+        [Fact]
+        public void HearingIsToldOnlyWhereItHasALimit()
+        {
+            // BaseAI's default of 9,999 is no limit.
+            Assert.Equal("30 m", CombatWords.Hears(30f));
+            Assert.Null(CombatWords.Hears(9999f));
+        }
+
+        [Fact]
+        public void ACreatureSaysWhenItFlees()
+        {
+            Assert.Equal("below 25% health, right after being hurt", CombatWords.Flees(0.25f));
+            Assert.Null(CombatWords.Flees(0f));
+        }
+
+        [Fact]
+        public void AWeakSpotIsLabelledByItsPartOfTheBody() => Assert.Equal("Hit on the left horn", CombatWords.WeakSpot("weakspot_left_horn"));
     }
 }

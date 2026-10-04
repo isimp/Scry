@@ -38,10 +38,10 @@ namespace Scry
             Part("attacks", () => Attacks(prefab));
             // Whether it can be tamed, fought or looted is worth telling when it cannot.
             var person = character is Player;
-            if (!person && !Pairs.Any(pair => pair.Key.StartsWith("Attack: ", StringComparison.Ordinal)))
+            if (!person && !Pairs.Any(pair => CombatWords.IsAttackLabel(pair.Key)))
             {
                 // One that hunts yet carries no attack Scry can read may still have one in code.
-                if (prefab.GetComponent<MonsterAI>() != null) AddUnsure("Attacks", "none Scry can see", "It hunts, yet carries no attack item Scry can read; code of the game or a mod may still give it one");
+                if (prefab.GetComponent<MonsterAI>() != null) AddUnsure("Attacks", "none Scry can see", UnsureWords.NoAttackItem);
                 else Add("Attacks", "none");
             }
             Part("behaviour", () => Behaviour(prefab, character));
@@ -125,7 +125,7 @@ namespace Scry
                 if (attack == null) continue;
                 var name = ItemName(item);
                 var damage = Damages(shared.m_damages);
-                var key = "Attack: " + name;
+                var key = CombatWords.AttackLabel(name);
                 if (Pairs.Any(p => p.Key == key)) continue;
                 Add(key, CombatWords.Attack(damage, attack.m_attackType.ToString(), shared.m_aiAttackRangeMin, shared.m_aiAttackRange, shared.m_aiAttackInterval));
                 Links[key] = item.name;
@@ -135,17 +135,14 @@ namespace Scry
         /// <summary>How it moves, sees and hears, what it fears, when it flees, and how long it takes to tame.</summary>
         private void Behaviour(GameObject prefab, Character character)
         {
-            var moves = new List<string>();
-            if (character.m_flying) moves.Add($"flies {Numbers.Amount(character.m_flySlowSpeed)}–{Numbers.Amount(character.m_flyFastSpeed)} m/s");
-            else moves.Add($"walks {Numbers.Amount(character.m_walkSpeed)} m/s, runs {Numbers.Amount(character.m_runSpeed)} m/s");
-            if (character.m_canSwim) moves.Add($"swims {Numbers.Amount(character.m_swimSpeed)} m/s");
-            Add("Moves", string.Join(", ", moves));
+            Add("Moves", CombatWords.Moves(character.m_flying, character.m_flySlowSpeed, character.m_flyFastSpeed, character.m_walkSpeed, character.m_runSpeed,
+                character.m_canSwim, character.m_swimSpeed));
 
             var ai = prefab.GetComponent<BaseAI>();
             if (ai != null)
             {
                 Add("Sees", CombatWords.Sight(ai.m_viewRange, ai.m_viewAngle));
-                if (ai.m_hearRange < 9000f) Add("Hears", $"{Numbers.Amount(ai.m_hearRange)} m");
+                Add("Hears", CombatWords.Hears(ai.m_hearRange));
                 if (ai.m_afraidOfFire) Add("Fire", "afraid of it");
                 else if (ai.m_avoidFire) Add("Fire", "keeps away from it");
                 // AnimalAI.UpdateAI only ever flees from what it senses.
@@ -155,7 +152,7 @@ namespace Scry
                 {
                     Add("Turns on you", CombatWords.Alerted(monster.m_alertRange));
                     Add("Gives up chasing", CombatWords.Chase(monster.m_maxChaseDistance));
-                    if (monster.m_fleeIfLowHealth > 0f) Add("Flees", $"below {Numbers.Count(Mathf.RoundToInt(monster.m_fleeIfLowHealth * 100f))}% health, right after being hurt");
+                    Add("Flees", CombatWords.Flees(monster.m_fleeIfLowHealth));
                     if (!monster.m_attackPlayerObjects) Add("Leaves alone", "what players build");
                 }
             }
@@ -218,7 +215,7 @@ namespace Scry
             Add("Love", BreedWords.Love(breed.m_updateInterval, breed.m_pregnancyChance, breed.m_requiredLovePoints));
             Add("Pregnant for", Numbers.Duration(breed.m_pregnancyDuration));
             Add("Stops breeding", BreedWords.Crowd(breed.m_maxCreatures, breed.m_totalCheckRange));
-            if (breed.m_offspring != null) Rows.Add(new Row { Title = "Has young, " + BreedWords.Stars(breed.m_minOffspringLevel), Items = { Chip(breed.m_offspring.name, "") } });
+            if (breed.m_offspring != null) Rows.Add(new Row { Title = BreedWords.Young(breed.m_minOffspringLevel), Items = { Chip(breed.m_offspring.name, "") } });
             if (breed.m_noPartnerOffspring != null) Rows.Add(new Row { Title = "With no partner near, has", Items = { Chip(breed.m_noPartnerOffspring.name, "") } });
         }
 
@@ -228,7 +225,7 @@ namespace Scry
             Add("Grows up in", Numbers.Duration(grow.m_growTime));
             var grown = Knowledge.GrownOf(grow);
             if (grown.Count == 0) return;
-            var row = new Row { Title = (grown.Count > 1 ? "Grows into one of these" : "Grows into") + (grow.m_inheritTame ? ", staying tame" : "") };
+            var row = new Row { Title = BreedWords.GrowsInto(grown.Count > 1, grow.m_inheritTame) };
             if (grown.Count > 1)
             {
                 var shares = BreedWords.Shares(grow.m_altGrownPrefabs.Where(a => a?.m_prefab != null).GroupBy(a => a.m_prefab).Select(g => g.Sum(a => a.m_weight)).ToArray());
@@ -284,7 +281,7 @@ namespace Scry
             foreach (var spot in character.m_weakSpots)
             {
                 if (spot == null) continue;
-                var key = "Hit on the " + CombatWords.PartName(spot.gameObject.name);
+                var key = CombatWords.WeakSpot(spot.gameObject.name);
                 if (Pairs.Any(p => p.Key == key)) continue;
                 Add(key, CombatWords.Resistances(ByDegree(spot.m_damageModifiers)));
             }

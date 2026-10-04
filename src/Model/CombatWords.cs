@@ -7,7 +7,8 @@ namespace Scry
     /// <summary>
     /// A creature's fight in words: what its stars add (health the base once more for each,
     /// <c>Character.SetupMaxHealth</c>; every hit half as much again, <c>Attack.GetLevelDamageFactor</c>),
-    /// what its hits do, and each attack's reach and pace as its AI uses it.
+    /// what its hits do, each attack's reach and pace as its AI uses it, how it moves, what it
+    /// senses, when it gives up or flees, and where it is weak; and what a weapon's attacks cost.
     /// </summary>
     internal static class CombatWords
     {
@@ -40,6 +41,14 @@ namespace Scry
             var parts = damage.Where(d => d.Amount > 0f).OrderByDescending(d => d.Amount).Select(d => $"{Numbers.Amount(d.Amount)} {d.Type}").ToList();
             return parts.Count > 0 ? string.Join(", ", parts) : null;
         }
+
+        /// <summary>The label of an attack, by the item it is made with.</summary>
+        public static string AttackLabel(string item) => AttackStart + item;
+
+        /// <summary>Whether a label is an attack's (<see cref="AttackLabel"/>).</summary>
+        public static bool IsAttackLabel(string label) => label != null && label.StartsWith(AttackStart, StringComparison.Ordinal);
+
+        private const string AttackStart = "Attack: ";
 
         /// <summary>
         /// An attack: what it does, how (a swing, a shot, around it), from how near and how far
@@ -74,6 +83,22 @@ namespace Scry
             if (interval > 0f) parts.Add($"every {Numbers.Amount(interval)} s");
             return string.Join(" · ", parts);
         }
+
+        /// <summary>How fast it moves: flying, from its slow to its fast speed, else walking and running; and swimming where it swims.</summary>
+        public static string Moves(bool flying, float flySlow, float flyFast, float walk, float run, bool swims, float swim)
+        {
+            var moves = new List<string>();
+            if (flying) moves.Add($"flies {Numbers.Amount(flySlow)}–{Numbers.Amount(flyFast)} m/s");
+            else moves.Add($"walks {Numbers.Amount(walk)} m/s, runs {Numbers.Amount(run)} m/s");
+            if (swims) moves.Add($"swims {Numbers.Amount(swim)} m/s");
+            return string.Join(", ", moves);
+        }
+
+        /// <summary>How far it hears; the field's default of 9,999 is no limit, and is not told.</summary>
+        public static string Hears(float range) => range >= 9000f ? null : Numbers.Metres(range);
+
+        /// <summary>When it flees: below this share of its health, right after it is hurt (<c>MonsterAI.m_fleeIfLowHealth</c>); null for never.</summary>
+        public static string Flees(float healthShare) => healthShare > 0f ? $"below {Numbers.Percent(healthShare)} health, right after being hurt" : null;
 
         /// <summary>
         /// How far and how wide it sees. <c>BaseAI.CanSeeTarget</c> turns away a target more than
@@ -133,6 +158,9 @@ namespace Scry
             name = string.Join(" ", name.Split(NameParts, System.StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
             return name.Length > 0 ? name : "weak spot";
         }
+
+        /// <summary>The label of what a hit on a weak spot does, by the part of the body it sits on (<see cref="PartName"/>).</summary>
+        public static string WeakSpot(string objectName) => "Hit on the " + PartName(objectName);
 
         /// <summary>What an attack takes: stamina, eitr, health and a share of health, each only when it takes some; null for nothing.</summary>
         public static string Costs(float stamina, float eitr, float health, float healthPercent)

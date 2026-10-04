@@ -79,5 +79,15 @@ namespace Scry.Tests
             Assert.Equal("running 10 a second", RideWords.Drains(10f, 0f));
             Assert.Null(RideWords.Drains(0f, 0f));
         }
+
+        [Fact]
+        public void ItsYoungAreTitledWithTheStarsTheyHave() => Assert.Equal("Has young, with its parent's stars, at least 1", BreedWords.Young(2));
+
+        [Fact]
+        public void AYoungOneSaysWhatItGrowsIntoAndWhetherItStaysTame()
+        {
+            Assert.Equal("Grows into", BreedWords.GrowsInto(oneOf: false, staysTame: false));
+            Assert.Equal("Grows into one of these, staying tame", BreedWords.GrowsInto(oneOf: true, staysTame: true));
+        }
     }
 }
