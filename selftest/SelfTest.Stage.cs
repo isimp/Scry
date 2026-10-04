@@ -328,8 +328,11 @@ namespace Scry
             Stage.GroundChoice = "Auto";
             Select(entry);
             yield return Until(() => CopyOf(entry) != null, 10);
+            // A ground already laid under the backdrop before (with a chosen biome) shows at once;
+            // it is the ground laid under these settings that is waited for.
             Stage.BackdropIndex = 4;
-            yield return Until(() => Stage.GroundShown != null, 3);
+            var own = StageGround.BiomeFor(entry.Biomes);
+            yield return Until(() => Stage.GroundShown == own, 3);
             if (!p.Check(Stage.GroundShown != null, "with the Ground backdrop it stands on ground", "the world's terrain had no material to borrow"))
             {
                 Stage.BackdropIndex = backdrop;
@@ -337,7 +340,7 @@ namespace Scry
                 Stage.GroundChoice = choice;
                 yield break;
             }
-            p.Check(Stage.GroundShown == StageGround.BiomeFor(entry.Biomes), "the ground of its own biome", $"{Stage.GroundShown} for {string.Join(", ", entry.Biomes)}");
+            p.Check(Stage.GroundShown == own, "the ground of its own biome", $"{Stage.GroundShown} for {(entry.Biomes.Length > 0 ? string.Join(", ", entry.Biomes) : "no biome of its own, so " + own)}");
             p.Note("its material: " + Stage.GroundMaterialTold());
 
             // Whether it draws with each distance its shader may hide it by: the material's own, none, and far.
