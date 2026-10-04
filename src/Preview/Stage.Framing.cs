@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Scry
@@ -5,6 +6,97 @@ namespace Scry
     /// <summary>Framing the model: what it draws, where the camera looks from, and the person standing beside it.</summary>
     internal static partial class Stage
     {
+        private static GameObject _person;
+        private static Bounds _personBounds;
+        private static Bounds _personLocal;
+        private static Bounds _bounds;
+
+        // Filled again on each use, so looking through a copy each frame makes no garbage.
+        private static readonly List<Renderer> Renderers = new List<Renderer>();
+        private static readonly List<Renderer> SolidRenderers = new List<Renderer>();
+        private static readonly List<Renderer> LooseRenderers = new List<Renderer>();
+        private static float _gridMetres = -1f;
+
+        // What the camera frames, eased towards what is to be seen, so it does not jump about.
+        private static float _frameRadius = -1f;
+
+        // A model's resting pose is not always where its animation takes it (a bat flies lower
+        // than it hangs), so what it draws is measured again while its animation first plays.
+        private static float _settleUntil;
+        private static float _settleFrom;
+        private static bool _settled;
+
+        /// <summary>The lowest point of the model's body, or where it stands, as if at size one.</summary>
+        private static float _bodyMinY;
+
+        /// <summary>Whether the floor is where the character stands, which what it draws does not move.</summary>
+        private static bool _groundFixed;
+
+        /// <summary>
+        /// Measures a copy newly shown, and where it stands: measured again while its animation
+        /// first plays, as its first pose can stand far from where it stands after (lying,
+        /// raised, off to a side), a flyer over its flight a while longer.
+        /// </summary>
+        private static void MeasureNew(Entry entry)
+        {
+            _settleFrom = Time.unscaledTime + 0.25f;
+            _settled = false;
+            _settleUntil = _followEffect ? 0f : Time.unscaledTime + (_onFeet ? 0.5f : 1.5f);
+            _bounds = Measure(_subject);
+            _bodyMinY = Measure(_subject, body: true).min.y;
+
+            // A character on its feet stands where the game stands it, on the bottom of its
+            // capsule (Character's CapsuleCollider resting on the ground), whatever of its model
+            // reaches below: a root's base is in the ground, a weapon may hang low.
+            var grounded = _subjectIsPerson ? GamePrefabs.Person : _onFeet ? entry.Source as GameObject : null;
+            var capsule = grounded != null ? grounded.GetComponent<CapsuleCollider>() : null;
+            _groundFixed = capsule != null && capsule.direction == 1;
+            if (_groundFixed) _bodyMinY = Origin.y + (capsule.center.y - capsule.height / 2f) * _baseScale.y;
+
+            // A raid's creatures stand where they were put, on the stage's ground.
+            if (entry.Source is RandomEvent)
+            {
+                _groundFixed = true;
+                _bodyMinY = Origin.y;
+            }
+
+            // A location stands on the ground the game stands it on, a room on the floor it is
+            // walked into on (PlaceView.Ground), not on the lowest thing it holds.
+            if (entry.Source is PlaceSource shown)
+            {
+                _groundFixed = true;
+                _bodyMinY = Origin.y + PlaceView.Ground(shown.Contents, shown.IsRoom) * _baseScale.y;
+            }
+        }
+
+        /// <summary>Measures the copy again standing at a height of its own, as an example does inside or out.</summary>
+        private static void MeasureStanding(float bodyMinY)
+        {
+            _bodyMinY = bodyMinY;
+            _bounds = Unscaled(Measure(_subject));
+        }
+
+        /// <summary>Frames what is shown anew, from its whole size, rather than easing from what was framed.</summary>
+        private static void FrameAnew() => _frameRadius = -1f;
+
+        /// <summary>Has the grid tiled again for its size at the next frame, as a new grid is.</summary>
+        private static void TileGridAnew() => _gridMetres = -1f;
+
+        /// <summary>Lets go of the person standing beside the model, as the stage is taken down.</summary>
+        private static void ForgetPerson() => _person = null;
+
+        /// <summary>
+        /// Moves what the camera looks at, and the camera with it at once, nearer or farther by a
+        /// factor, so a zoom in the same frame starts from where this one left it.
+        /// </summary>
+        private static void MoveLook(Vector3 move, float factor)
+        {
+            var t = _camera.transform;
+            var distance = Vector3.Distance(t.position, _lookAt) * factor;
+            _lookAt += move;
+            t.position = _lookAt - t.forward * distance;
+        }
+
         /// <summary>What the model shows, as if at size one: above where it stands, a root's base in the ground left out.</summary>
         private static Bounds Shown
         {
@@ -82,7 +174,7 @@ namespace Scry
             // with nothing to measure, rather than being put nowhere.
             if (!Finite(target) || !Finite(wantRadius) || !Finite(_frameRadius) || !Finite(_pan) || !Finite(_frameCenter))
             {
-                _pan = Vector3.zero;
+                CenterView();
                 var fallback = Unmeasured(Origin);
                 target = fallback.center;
                 wantRadius = fallback.extents.magnitude * StageFraming.ModelReach;

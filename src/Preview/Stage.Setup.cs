@@ -6,6 +6,53 @@ namespace Scry
     /// <summary>Setting the stage up: its layer, camera, lights and texture.</summary>
     internal static partial class Stage
     {
+        private static GameObject _root;
+        private static Camera _camera;
+        private static RenderTexture _texture;
+        private static int _layer = -2;
+
+        /// <summary>The layer nothing in the game uses, which the stage is drawn on and falling copies land with.</summary>
+        public static int Layer
+        {
+            get
+            {
+                if (_layer == -2) _layer = FreeLayer();
+                return _layer;
+            }
+        }
+
+        private static GameObject _floor;
+        private static GameObject _ground;
+        private static Light _key, _fill, _rim;
+        private static GameObject _sky;
+        private static GameObject _grid;
+
+        /// <summary>Takes the whole stage down; it is built again the next time it is needed.</summary>
+        public static void Clear()
+        {
+            ClearSubject();
+            if (_root != null) Object.Destroy(_root);
+            _root = null;
+            _camera = null;
+            _floor = null;
+            ForgetGround();
+            _ground = null;
+            _grid = null;
+            _sky = null;
+            _key = _fill = _rim = null;
+            ForgetShown();
+            ForgetPerson();
+            Floor.Release();
+            if (_texture != null)
+            {
+                _texture.Release();
+                Object.Destroy(_texture);
+                _texture = null;
+            }
+
+            GiveLayerBack();
+        }
+
         private static bool Ensure()
         {
             if (_root != null && _camera != null) return true;
@@ -44,7 +91,7 @@ namespace Scry
             _ground.AddComponent<BoxCollider>();
 
             _grid = Floor.Surface("Scry stage grid", _layer, Floor.GridTexture());
-            _gridMetres = -1f;
+            TileGridAnew();
             if (_grid != null) _grid.transform.SetParent(_root.transform, true);
 
             _sky = Floor.Surface("Scry stage sky", _layer, null);
@@ -59,7 +106,7 @@ namespace Scry
         private static void ApplyLighting()
         {
             if (_camera == null) return;
-            var preset = _look = Look();
+            var preset = LookNow();
 
             Set(_key, preset.KeyAngle, preset.Key, preset.KeyPower);
             Set(_fill, new Vector3(15f, 55f, 0f), preset.Fill, preset.FillPower);

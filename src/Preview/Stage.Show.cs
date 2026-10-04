@@ -6,6 +6,50 @@ namespace Scry
     /// <summary>What the stage shows: the entry asked for, made at once or a little each frame for a large place, then presented on its ground with its floors, creatures and paints.</summary>
     internal static partial class Stage
     {
+        /// <summary>The floors found in the place shown, kept for when a dungeon's example is left for its entrance.</summary>
+        private static List<float> _placeFloors = new List<float>();
+
+        private static Entry _lastShown;
+        private static GameObject _subject;
+        private static bool _subjectIsPerson;
+        private static Vector3 _baseScale = Vector3.one;
+        private static float _scale = 1f;
+        private static float _madeAt;
+        private static int _wantedFrame = -10;
+        private static int _width = 512;
+        private static int _height = 512;
+        private static float _sizeSince;
+        private static readonly List<ParticleSystem> Particles = new List<ParticleSystem>();
+        private static readonly List<AudioSource> Sources = new List<AudioSource>();
+        private static readonly List<Animator> Animators = new List<Animator>();
+
+        // A creature that walks is measured for a short moment once its animation runs, a flyer
+        // over its flight; the floor is under what it draws then.
+        private static bool _onFeet;
+        private static bool _followEffect;
+
+        /// <summary>Takes the copy shown off the stage, with what plays on it and a place still being built.</summary>
+        public static void ClearSubject()
+        {
+            _building?.Cancel();
+            _buildingSpawns = null;
+            ForgetCreatures();
+            _building = null;
+            _buildingWith = null;
+            ForgetExample();
+            ForgetGroundPaints(rooms: false);
+            if (_subject != null) Object.Destroy(_subject);
+            _subject = null;
+            ClearPlayed();
+        }
+
+        /// <summary>Lets go of the entry last shown and the paints of a place being built, as the stage is taken down.</summary>
+        private static void ForgetShown()
+        {
+            _lastShown = null;
+            _buildingPaints = null;
+        }
+
         /// <summary>Asked by the panel on each frame it shows the stage, with the size it shows it at.</summary>
         public static void Request(int width, int height)
         {
@@ -74,7 +118,6 @@ namespace Scry
         private const double BuildBudgetMs = 8.0;
 
         private static Ghost.Building _building;
-
         private static Modifiers _buildingWith;
 
         /// <summary>The spawn points of the location or room being made, its creatures rolled once it stands.</summary>
@@ -136,38 +179,11 @@ namespace Scry
             // The first pose, before the animation has run, can stand far from where the model
             // stands after (lying, raised, off to a side), so the size is taken again once it
             // has run a moment; a flying creature is measured over its flight a while longer.
-            _settleFrom = Time.unscaledTime + 0.25f;
-            _settled = false;
-            _settleUntil = _followEffect ? 0f : Time.unscaledTime + (_onFeet ? 0.5f : 1.5f);
             _baseScale = _subject.transform.localScale;
-            _bounds = Measure(_subject);
-            _bodyMinY = Measure(_subject, body: true).min.y;
+            MeasureNew(entry);
 
-            // A character on its feet stands where the game stands it, on the bottom of its
-            // capsule (Character's CapsuleCollider resting on the ground), whatever of its model
-            // reaches below: a root's base is in the ground, a weapon may hang low.
-            var grounded = _subjectIsPerson ? GamePrefabs.Person : _onFeet ? entry.Source as GameObject : null;
-            var capsule = grounded != null ? grounded.GetComponent<CapsuleCollider>() : null;
-            _groundFixed = capsule != null && capsule.direction == 1;
-            if (_groundFixed) _bodyMinY = Origin.y + (capsule.center.y - capsule.height / 2f) * _baseScale.y;
-
-            // A raid's creatures stand where they were put, on the stage's ground.
-            if (entry.Source is RandomEvent)
-            {
-                _groundFixed = true;
-                _bodyMinY = Origin.y;
-            }
-
-            // A location stands on the ground the game stands it on, a room on the floor it is
-            // walked into on (PlaceView.Ground), not on the lowest thing it holds.
-            if (entry.Source is PlaceSource shown)
-            {
-                _groundFixed = true;
-                _bodyMinY = Origin.y + PlaceView.Ground(shown.Contents, shown.IsRoom) * _baseScale.y;
-
-                // A room opens on its top floor to be looked into; a location keeps its roof.
-                SetFloors(entry, _placeFloors, open: shown.IsRoom);
-            }
+            // A room opens on its top floor to be looked into; a location keeps its roof.
+            if (entry.Source is PlaceSource shown) SetFloors(entry, _placeFloors, open: shown.IsRoom);
             else
             {
                 ClearFloors();

@@ -214,12 +214,11 @@ namespace Scry
             // Inside, the example stands on its lowest floor; outside, the location stands on the
             // ground the game stands it on, not on a sunken part of it.
             var outside = _lastShown?.Source is PlaceSource place ? PlaceView.Ground(place.Contents, place.IsRoom) : 0f;
-            _bodyMinY = Origin.y + (inside ? floors[floors.Count - 1] : outside) * _baseScale.y;
-            _bounds = Unscaled(Measure(_subject));
+            MeasureStanding(Origin.y + (inside ? floors[floors.Count - 1] : outside) * _baseScale.y);
             TheCut.ForgetEntry();
             SetFloors(_lastShown, floors, open: inside);
-            _frameRadius = -1f;
-            _pan = Vector3.zero;
+            FrameAnew();
+            CenterView();
         }
 
         /// <summary>

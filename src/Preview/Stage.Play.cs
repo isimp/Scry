@@ -6,6 +6,37 @@ namespace Scry
     /// <summary>What plays on the stage: an effect list on the model, what hangs on it, falls from it or breaks off it, and the ground what falls lands on.</summary>
     internal static partial class Stage
     {
+        private static readonly List<KeyValuePair<GameObject, float>> Played = new List<KeyValuePair<GameObject, float>>();
+
+        /// <summary>How many things played on the model are still about, for the self-test.</summary>
+        public static int PlayedCount
+        {
+            get
+            {
+                var count = 0;
+                foreach (var played in Played) if (played.Key != null) count++;
+                return count;
+            }
+        }
+
+        private static void Expire()
+        {
+            var now = Time.unscaledTime;
+            for (var i = Played.Count - 1; i >= 0; i--)
+            {
+                if (Played[i].Key != null && now < Played[i].Value) continue;
+                if (Played[i].Key != null) Object.Destroy(Played[i].Key);
+                Played.RemoveAt(i);
+            }
+        }
+
+        /// <summary>Takes away everything that played on the model, as it leaves the stage.</summary>
+        private static void ClearPlayed()
+        {
+            foreach (var played in Played) if (played.Key != null) Object.Destroy(played.Key);
+            Played.Clear();
+        }
+
         /// <summary>
         /// Plays an effect list on the stage copy, as the game would play it on the prefab: on the
         /// named part of its body when there is one, attached when the list says so. Heard as if

@@ -14,6 +14,8 @@ namespace Scry
     /// </summary>
     internal static partial class Stage
     {
+        private static readonly Texture2D[] SkyTextures = new Texture2D[5];
+
         /// <summary>The biome's ground under the model, with what is painted, grows and lies on it.</summary>
         private static readonly BiomeGround TheGround = new BiomeGround();
 
@@ -27,10 +29,10 @@ namespace Scry
         private static string _groundChoice = "Auto";
 
         /// <summary>For the self-test: a biome whose ground to lay whatever is shown; null for the shown entry's own.</summary>
-        public static string GroundBiomeOverride;
+        public static string GroundBiomeOverride { get; set; }
 
         /// <summary>For the self-test: a rendering path for the stage's camera to try; null for the game's own setting.</summary>
-        public static RenderingPath? PathOverride;
+        public static RenderingPath? PathOverride { get; set; }
 
         /// <summary>For the self-test: the distance the terrain's shader is given to hide the ground by (<see cref="BiomeGround.HideDistance"/>).</summary>
         public static float? GroundHideDistance
@@ -104,6 +106,9 @@ namespace Scry
 
         /// <summary>The lighting as the stage stands now: the preset chosen, in the colours of the biome laid with the Ground backdrop.</summary>
         private static Lighting _look;
+
+        /// <summary>Works out the lighting as the stage stands now, and keeps it.</summary>
+        private static Lighting LookNow() => _look = Look();
 
         private static readonly Dictionary<string, Texture2D> BiomeSkies = new Dictionary<string, Texture2D>();
 

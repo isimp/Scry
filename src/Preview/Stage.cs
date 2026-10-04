@@ -70,74 +70,21 @@ namespace Scry
         };
 
         public static readonly string[] LightingNames = { "Studio", "Day", "Dusk", "Night", "Cave" };
+
         /// <summary>
         /// What stands behind and under the model: the lighting's own colour, a sky with a horizon
         /// in the lighting's colours, a floor ruled in one-metre squares for judging size, or both.
         /// </summary>
         public static readonly string[] BackdropNames = StageGround.Backdrops;
 
-        private static GameObject _root;
-
-        /// <summary>The floors found in the place shown, kept for when a dungeon's example is left for its entrance.</summary>
-        private static List<float> _placeFloors = new List<float>();
-        private static Camera _camera;
-        private static RenderTexture _texture;
-        private static int _layer = -2;
-        private static GameObject _floor;
-        private static GameObject _ground;
-        private static Light _key, _fill, _rim;
-        private static GameObject _sky;
-        private static GameObject _grid;
-        private static readonly Texture2D[] SkyTextures = new Texture2D[5];
-        private static Entry _lastShown;
-
-        private static GameObject _subject;
-        private static GameObject _person;
-        private static bool _subjectIsPerson;
-        private static Bounds _personBounds;
-        private static Bounds _personLocal;
-        private static Vector3 _baseScale = Vector3.one;
-        private static Bounds _bounds;
-        private static float _scale = 1f;
-        private static float _madeAt;
-        private static int _wantedFrame = -10;
-        private static int _width = 512;
-        private static int _height = 512;
-        private static float _sizeSince;
-        private static readonly List<KeyValuePair<GameObject, float>> Played = new List<KeyValuePair<GameObject, float>>();
-
         /// <summary>How many things the stage holds (its copy, what played on it), for the self-test.</summary>
         public static int Held => _root != null ? _root.transform.childCount : 0;
-
-        /// <summary>How many things played on the model are still about, for the self-test.</summary>
-        public static int PlayedCount
-        {
-            get
-            {
-                var count = 0;
-                foreach (var played in Played) if (played.Key != null) count++;
-                return count;
-            }
-        }
 
         /// <summary>How long the size the panel asks for must hold still before the texture is made again at it.</summary>
         private const float ResizeAfter = 0.15f;
 
-        /// <summary>The main camera Scry took the stage's layer from, to give it back when the stage is taken down.</summary>
-        private static Camera _hiddenFrom;
-
-        // Filled again on each use, so looking through a copy each frame makes no garbage.
-        private static readonly List<Renderer> Renderers = new List<Renderer>();
-        private static readonly List<Renderer> SolidRenderers = new List<Renderer>();
-        private static readonly List<Renderer> LooseRenderers = new List<Renderer>();
-        private static readonly List<ParticleSystem> Particles = new List<ParticleSystem>();
-        private static readonly List<AudioSource> Sources = new List<AudioSource>();
-        private static readonly List<Animator> Animators = new List<Animator>();
-
-        public static float Yaw = FrontYaw;
-        public static float Pitch = FrontPitch;
-        public static float Zoom = 1f;
-        public static bool Dragging;
+        /// <summary>Whether the stage is turned by hand, which stops it spinning meanwhile.</summary>
+        public static bool Dragging { get; set; }
 
         private static int _lighting;
         private static int _backdrop;
@@ -146,31 +93,13 @@ namespace Scry
         public static Texture Texture => _texture;
 
         /// <summary>Whether the model turns on its own; starts as the config says.</summary>
-        public static bool Spin = Settings.AutoSpin;
+        public static bool Spin { get; set; } = Settings.AutoSpin;
 
         /// <summary>Whether the floor ruled in metres is showing.</summary>
         public static bool ShowsGrid => _grid != null && _grid.activeSelf;
 
         /// <summary>The size of the model as shown, in metres.</summary>
         public static Vector3 SubjectSize => _bounds.size * _scale;
-
-        private static float _gridMetres = -1f;
-
-        // What the camera frames, eased towards what is to be seen, so it does not jump about.
-        private static float _frameRadius = -1f;
-
-        // A model's resting pose is not always where its animation takes it (a bat flies lower
-        // than it hangs), so what it draws is measured again while its animation first plays.
-        private static float _settleUntil;
-        private static float _settleFrom;
-        private static bool _settled;
-
-        // A creature that walks is measured for a short moment once its animation runs, a flyer
-        // over its flight; the floor is under what it draws then.
-        private static bool _onFeet;
-
-        /// <summary>How far the view is moved off what it frames, by dragging with the right button or zooming toward the pointer.</summary>
-        private static Vector3 _pan;
 
         /// <summary>What the camera looks at and how far it is from it, and the height of the floor it looks at with one opened, for the self-test.</summary>
         public static Vector3 LookAt => _lookAt;
@@ -196,22 +125,6 @@ namespace Scry
         /// <summary>Where the model stands, from its root, as if at size one, for the self-test to see a place stands on its own ground.</summary>
         public static float Ground => _bodyMinY - Origin.y;
 
-        /// <summary>The lowest point of the model's body, or where it stands, as if at size one.</summary>
-        private static float _bodyMinY;
-
-        /// <summary>Whether the floor is where the character stands, which what it draws does not move.</summary>
-        private static bool _groundFixed;
-        private static bool _followEffect;
-
-        /// <summary>The layer nothing in the game uses, which the stage is drawn on and falling copies land with.</summary>
-        public static int Layer
-        {
-            get
-            {
-                if (_layer == -2) _layer = FreeLayer();
-                return _layer;
-            }
-        }
         public static GameObject Subject => _subject;
 
         /// <summary>Which of <see cref="LightingNames"/> lights the stage.</summary>
@@ -282,61 +195,6 @@ namespace Scry
             for (; t != null && t != _subject.transform; t = t.parent) parts.Add(t.name);
             parts.Reverse();
             return string.Join("/", parts);
-        }
-
-        public static void ClearSubject()
-        {
-            _building?.Cancel();
-            _buildingSpawns = null;
-            ForgetCreatures();
-            _building = null;
-            _buildingWith = null;
-            ForgetExample();
-            ForgetGroundPaints(rooms: false);
-            if (_subject != null) Object.Destroy(_subject);
-            _subject = null;
-            foreach (var played in Played) if (played.Key != null) Object.Destroy(played.Key);
-            Played.Clear();
-        }
-
-        /// <summary>Takes the whole stage down; it is built again the next time it is needed.</summary>
-        public static void Clear()
-        {
-            ClearSubject();
-            if (_root != null) Object.Destroy(_root);
-            _root = null;
-            _camera = null;
-            _floor = null;
-            ForgetGround();
-            _buildingPaints = null;
-            _ground = null;
-            _person = null;
-            _grid = null;
-            _sky = null;
-            _key = _fill = _rim = null;
-            _lastShown = null;
-            Floor.Release();
-            if (_texture != null)
-            {
-                _texture.Release();
-                Object.Destroy(_texture);
-                _texture = null;
-            }
-
-            // The main camera sees the layer again, as it did before Scry took it.
-            if (_hiddenFrom != null && _layer >= 0) _hiddenFrom.cullingMask |= StageMask;
-            _hiddenFrom = null;
-        }
-
-        private static void Expire()
-        {
-            var now = Time.unscaledTime;
-            for (var i = Played.Count - 1; i >= 0; i--)
-            {
-                if (Played[i].Key != null && now < Played[i].Value) continue;
-                if (Played[i].Key != null) Object.Destroy(Played[i].Key);
-                Played.RemoveAt(i);
-            }
         }
 
         /// <summary>

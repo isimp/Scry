@@ -75,7 +75,7 @@ namespace Scry
         /// <summary>With a floor opened, the camera looks down into it when it looks along it.</summary>
         private static void TiltToCut()
         {
-            if (TheCut.Cutting && Pitch < CutPitch / 2f) Pitch = CutPitch;
+            if (TheCut.Cutting && Pitch < CutPitch / 2f) TurnTo(Yaw, CutPitch);
         }
 
         /// <summary>Cuts at a height set by hand, opening the floor it is over (<see cref="PlaceView.LevelAt"/>), the camera tilting only as one is opened.</summary>
@@ -97,7 +97,7 @@ namespace Scry
         /// </summary>
         private static void SetFloors(Entry entry, IEnumerable<float> floors, bool open)
         {
-            if (TheCut.Take(entry, floors, open) && TheCut.Cutting) Pitch = CutPitch;
+            if (TheCut.Take(entry, floors, open) && TheCut.Cutting) TurnTo(Yaw, CutPitch);
         }
 
         /// <summary>Takes floors found anew for the place shown (an example's, as its rooms come in), keeping the floor opened where it can.</summary>

@@ -6,6 +6,13 @@ namespace Scry
     /// <summary>Moving the stage's view by hand: turning it, zooming toward a point, dragging it along, and what is under a point of its picture.</summary>
     internal static partial class Stage
     {
+        public static float Yaw { get; private set; } = FrontYaw;
+        public static float Pitch { get; private set; } = FrontPitch;
+        public static float Zoom { get; private set; } = 1f;
+
+        /// <summary>How far the view is moved off what it frames, by dragging with the right button or zooming toward the pointer.</summary>
+        private static Vector3 _pan;
+
         /// <summary>
         /// Moves the view as the mouse drags it with the right button, from one point of the
         /// picture to another (0 to 1 across, 0 to 1 up): what was under the pointer stays under
@@ -75,13 +82,7 @@ namespace Scry
             var move = U(StageCamera.ZoomToward(V(_lookAt), V(toward), factor)) - _lookAt;
             if (_lookedFloor != null) move.y = 0f;
             _pan += move;
-
-            // The camera goes along at once, so the next turn of the wheel in the same frame
-            // starts from where this one left it.
-            var t = _camera.transform;
-            var distance = Vector3.Distance(t.position, _lookAt) * factor;
-            _lookAt += move;
-            t.position = _lookAt - t.forward * distance;
+            MoveLook(move, factor);
         }
 
         public static void ResetView()
@@ -89,9 +90,19 @@ namespace Scry
             Yaw = FrontYaw;
             Pitch = Cutting ? CutPitch : FrontPitch;
             Zoom = 1f;
-            _frameRadius = -1f;
-            _pan = Vector3.zero;
+            FrameAnew();
+            CenterView();
         }
+
+        /// <summary>Turns the camera to look from these angles, as spinning, opening a floor or the self-test does.</summary>
+        public static void TurnTo(float yaw, float pitch)
+        {
+            Yaw = yaw;
+            Pitch = pitch;
+        }
+
+        /// <summary>Takes the view back onto what it frames, undoing a drag or a zoom toward the pointer.</summary>
+        private static void CenterView() => _pan = Vector3.zero;
 
         /// <summary>Turns the camera to a view: "Front", "Side", "Top", or "Fit" to frame it whole again.</summary>
         public static void View(string name)

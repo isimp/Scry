@@ -98,8 +98,7 @@ namespace Scry
                 Stage.BackdropIndex = backdrop;
                 Stage.ShowPerson = person;
                 Stage.Spin = spin;
-                Stage.Pitch = pitch;
-                Stage.Yaw = yaw;
+                Stage.TurnTo(yaw, pitch);
             }
         }
 

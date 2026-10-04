@@ -7,6 +7,16 @@ namespace Scry
     /// <summary>Filming the stage each frame: its ground, framing and cut, the fog, ambient light and world's lights kept off it while its camera renders, its grass, and its creatures above a cut drawn again.</summary>
     internal static partial class Stage
     {
+        /// <summary>The main camera Scry took the stage's layer from, to give it back when the stage is taken down.</summary>
+        private static Camera _hiddenFrom;
+
+        /// <summary>The main camera sees the stage's layer again, as it did before Scry took it, as the stage is taken down.</summary>
+        private static void GiveLayerBack()
+        {
+            if (_hiddenFrom != null && _layer >= 0) _hiddenFrom.cullingMask |= StageMask;
+            _hiddenFrom = null;
+        }
+
         /// <summary>Films the stage, when the panel showed it in the last couple of frames.</summary>
         public static void Render()
         {
@@ -17,7 +27,7 @@ namespace Scry
             // only while a copy is on it.
             if (_subject == null && Played.Count == 0) return;
 
-            if (Spin && !Dragging && _subject != null) Yaw += SpinDegreesPerSecond * Time.unscaledDeltaTime;
+            if (Spin && !Dragging && _subject != null) TurnTo(Yaw + SpinDegreesPerSecond * Time.unscaledDeltaTime, Pitch);
 
             EnsureTexture();
             Settle();
