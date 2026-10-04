@@ -30,7 +30,7 @@ namespace Scry
             if (tree != null)
             {
                 Hits(tree.m_health, false, tree.m_minToolTier, tree.m_damageModifiers);
-                Drops(tree.m_dropWhenDestroyed, "When felled, ");
+                Drops(tree.m_dropWhenDestroyed, GatherWords.WhenFelled);
                 Leads("Felled, falls as", new[] { (tree.m_logPrefab, 1) });
                 Leads("Leaves", new[] { (tree.m_stubPrefab, 1) });
             }
@@ -48,13 +48,13 @@ namespace Scry
             if (rock != null)
             {
                 Hits(rock.m_health, true, rock.m_minToolTier, rock.m_damageModifiers);
-                Drops(rock.m_dropItems, "Each piece ");
+                Drops(rock.m_dropItems, GatherWords.EachPiece);
             }
             var vein = prefab.GetComponent<MineRock5>();
             if (vein != null)
             {
                 Hits(vein.m_health, true, vein.m_minToolTier, vein.m_damageModifiers);
-                Drops(vein.m_dropItems, "Each piece ");
+                Drops(vein.m_dropItems, GatherWords.EachPiece);
             }
 
             var breaks = prefab.GetComponent<Destructible>();
@@ -63,33 +63,33 @@ namespace Scry
             {
                 // A shell that, struck once, turns into what is mined (a silver vein, a copper
                 // deposit): what that takes and gives is what the vein takes and gives.
-                Add("Breaks into", AnyName(inside, inside.name) + ", mined a piece at a time", inside.name);
+                Add("Breaks into", GatherWords.BreaksInto(AnyName(inside, inside.name)), inside.name);
                 var innerRock = inside.GetComponent<MineRock>();
                 var innerVein = inside.GetComponent<MineRock5>();
                 if (innerVein != null)
                 {
                     Hits(innerVein.m_health, true, Math.Max(breaks.m_minToolTier, innerVein.m_minToolTier), innerVein.m_damageModifiers);
-                    Drops(innerVein.m_dropItems, "Each piece ");
+                    Drops(innerVein.m_dropItems, GatherWords.EachPiece);
                 }
                 else if (innerRock != null)
                 {
                     Hits(innerRock.m_health, true, Math.Max(breaks.m_minToolTier, innerRock.m_minToolTier), innerRock.m_damageModifiers);
-                    Drops(innerRock.m_dropItems, "Each piece ");
+                    Drops(innerRock.m_dropItems, GatherWords.EachPiece);
                 }
             }
             else if (breaks != null && tree == null && log == null)
             {
                 Hits(breaks.m_health, false, breaks.m_minToolTier, breaks.m_damages);
                 var dropping = prefab.GetComponent<DropOnDestroyed>();
-                if (dropping != null) Drops(dropping.m_dropWhenDestroyed, "When broken, ");
+                if (dropping != null) Drops(dropping.m_dropWhenDestroyed, GatherWords.WhenBroken);
             }
             // What breaks and gives nothing says so.
-            if (broken && Gives() == giving) Add("Gives", "nothing when broken");
+            if (broken && Gives() == giving) Add("Gives", GatherWords.NothingWhenBroken);
 
             var pickable = prefab.GetComponent<Pickable>();
             if (pickable != null && pickable.m_itemPrefab != null)
             {
-                var picked = new Row { Title = "Picked" };
+                var picked = new Row { Title = GatherWords.Picked(oneOf: false) };
                 picked.Items.Add(new Ingredient
                 {
                     Icon = Icon(pickable.m_itemPrefab), Name = ItemName(pickable.m_itemPrefab),
@@ -100,15 +100,15 @@ namespace Scry
                 if (pickable.m_respawnTimeMinutes > 0f) Add("Grows back in", Numbers.Duration(pickable.m_respawnTimeMinutes * 60f));
                 var day = EnvMan.instance != null ? EnvMan.instance.m_dayLengthSec : 1200L;
                 var yields = Yield.PerDay(pickable.m_amount, pickable.m_respawnTimeMinutes, day);
-                if (yields != null) Add("Gives", yields + $" (a day is {Numbers.Duration(day)})");
-                Drops(pickable.m_extraDrops, "Also ");
+                if (yields != null) Add("Gives", GatherWords.PerDay(yields, day));
+                Drops(pickable.m_extraDrops, GatherWords.AlsoDrops);
                 if (pickable.m_respawnTimeMinutes > 0f) Hooked(HookedRule.Growth);
             }
 
             var found = prefab.GetComponent<PickableItem>();
             if (found != null)
             {
-                var row = new Row { Title = found.m_randomItemPrefabs != null && found.m_randomItemPrefabs.Length > 1 ? "Picked, one of" : "Picked" };
+                var row = new Row { Title = GatherWords.Picked(oneOf: found.m_randomItemPrefabs != null && found.m_randomItemPrefabs.Length > 1) };
                 if (found.m_randomItemPrefabs != null && found.m_randomItemPrefabs.Length > 0)
                 {
                     foreach (var random in found.m_randomItemPrefabs)
@@ -135,15 +135,12 @@ namespace Scry
             {
                 Add("Takes to grow", Numbers.DurationRange(plant.m_growTime, Math.Max(plant.m_growTime, plant.m_growTimeMax)));
                 if (plant.m_biome != 0) BiomeRow("Grows in", plant.m_biome);
-                if (plant.m_needCultivatedGround) Add("Needs", "cultivated ground");
+                if (plant.m_needCultivatedGround) Add("Needs", GatherWords.CultivatedGround);
                 Hooked(HookedRule.Growth);
-                var tolerates = new List<string>();
-                if (plant.m_tolerateHeat) tolerates.Add("heat");
-                if (plant.m_tolerateCold) tolerates.Add("cold");
-                if (tolerates.Count > 0) Add("Tolerates", string.Join(", ", tolerates));
+                Add("Tolerates", GatherWords.Tolerates(plant.m_tolerateHeat, plant.m_tolerateCold));
                 if (plant.m_grownPrefabs != null && plant.m_grownPrefabs.Length > 0)
                 {
-                    var grows = new Row { Title = plant.m_grownPrefabs.Length > 1 ? "Grows into one of" : "Grows into" };
+                    var grows = new Row { Title = GatherWords.GrowsInto(oneOf: plant.m_grownPrefabs.Length > 1) };
                     foreach (var grown in plant.m_grownPrefabs.Where(g => g != null).GroupBy(g => g.name).Select(g => g.First()))
                     {
                         grows.Items.Add(new Ingredient { Icon = AnyIcon(grown), Name = AnyName(grown, grown.name), Amount = "", Prefab = grown.name });
@@ -168,8 +165,8 @@ namespace Scry
         /// <summary>How much it takes to break, with what tool, and what it resists.</summary>
         private void Hits(float health, bool perPiece, int toolTier, HitData.DamageModifiers resists)
         {
-            if (health > 0f) Add("Health", Numbers.Amount(health) + (perPiece ? " a piece" : ""));
-            Add("Needs tool tier", toolTier > 0 ? Numbers.Count(toolTier) : "any");
+            if (health > 0f) Add("Health", GatherWords.Health(health, perPiece));
+            Add("Needs tool tier", GatherWords.ToolTier(toolTier));
             Resists(resists);
         }
 
@@ -187,7 +184,7 @@ namespace Scry
 
             // The rarest first: within one table, the least weight.
             var title = holds ? DropWords.HoldsTitle(info) : DropWords.Title(info);
-            if (lead != null) title = lead + char.ToLowerInvariant(title[0]) + title.Substring(1);
+            title = DropWords.Led(lead, title);
             var row = new Row { Title = title };
             foreach (var (each, item) in ContentOrder.RarestFirst(items, i => i.Drop.Weight))
             {
@@ -197,28 +194,7 @@ namespace Scry
             _drops = true;
         }
 
-        /// <summary>The degrees of a damage modifier, from the most harm taken to the least.</summary>
-        private static readonly HitData.DamageModifier[] Degrees =
-        {
-            HitData.DamageModifier.VeryWeak, HitData.DamageModifier.Weak, HitData.DamageModifier.SlightlyWeak, HitData.DamageModifier.SlightlyResistant,
-            HitData.DamageModifier.Resistant, HitData.DamageModifier.VeryResistant, HitData.DamageModifier.Immune, HitData.DamageModifier.Ignore,
-        };
-
-        /// <summary>How a damage modifier reads as a label, e.g. "Weak to".</summary>
-        private static string ModifierWords(HitData.DamageModifier modifier)
-        {
-            switch (modifier)
-            {
-                case HitData.DamageModifier.VeryWeak: return "Very weak to";
-                case HitData.DamageModifier.Weak: return "Weak to";
-                case HitData.DamageModifier.SlightlyWeak: return "Slightly weak to";
-                case HitData.DamageModifier.SlightlyResistant: return "Slightly resists";
-                case HitData.DamageModifier.Resistant: return "Resists";
-                case HitData.DamageModifier.VeryResistant: return "Strongly resists";
-                case HitData.DamageModifier.Immune: return "Immune to";
-                case HitData.DamageModifier.Ignore: return "Unaffected by";
-                default: return Naming.FieldLabel(modifier.ToString());
-            }
-        }
+        /// <summary>The game's damage modifier as the model's degree, whose values it keeps (<see cref="Degree"/>).</summary>
+        private static Degree DegreeOf(HitData.DamageModifier modifier) => (Degree)(int)modifier;
     }
 }

@@ -153,6 +153,10 @@ namespace Scry
         /// A share as a percentage: whole where that says enough, with a decimal near none or all,
         /// so a rare drop never reads as 0% nor a likely one as 100%.
         /// </summary>
+        /// <summary>A drop row's title led by when it drops ("When felled, drops 3 times"); the title as it is for no lead.</summary>
+        public static string Led(string lead, string title) =>
+            string.IsNullOrEmpty(lead) || string.IsNullOrEmpty(title) ? title : lead + char.ToLowerInvariant(title[0]) + title.Substring(1);
+
         public static string Share(float share)
         {
             var percent = share * 100f;

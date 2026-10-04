@@ -248,7 +248,7 @@ namespace Scry
         private static List<ResistCell> Cells(HitData.DamageModifiers mods)
         {
             var degrees = new[] { mods.m_blunt, mods.m_slash, mods.m_pierce, mods.m_chop, mods.m_pickaxe, mods.m_fire, mods.m_frost, mods.m_lightning, mods.m_poison, mods.m_spirit };
-            return degrees.Select((degree, i) => ResistWords.Cell(ResistWords.Types[i], (Degree)(int)degree)).ToList();
+            return degrees.Select((degree, i) => ResistWords.Cell(ResistWords.Types[i], DegreeOf(degree))).ToList();
         }
 
         /// <summary>
@@ -259,18 +259,13 @@ namespace Scry
 
         private static List<(string Words, string[] Types)> ByDegree(HitData.DamageModifiers mods)
         {
-            var groups = new SortedDictionary<int, (string Words, List<string> Types)>();
+            var modifiers = new List<(string, Degree)>();
             foreach (var field in TypeFields.Matching(ModifierFields, typeof(HitData.DamageModifiers), f => f.IsPublic && f.FieldType == typeof(HitData.DamageModifier) && f.Name != "m_nonPlayer"))
             {
                 var modifier = TypeFields.Value(field, mods) is HitData.DamageModifier read ? read : HitData.DamageModifier.Normal;
-                if (modifier == HitData.DamageModifier.Normal) continue;
-
-                var order = Array.IndexOf(Degrees, modifier);
-                if (order < 0) order = Degrees.Length + (int)modifier;
-                if (!groups.TryGetValue(order, out var group)) groups[order] = group = (ModifierWords(modifier), new List<string>());
-                group.Types.Add(Naming.FieldLabel(field.Name).ToLowerInvariant());
+                modifiers.Add((Naming.FieldLabel(field.Name).ToLowerInvariant(), DegreeOf(modifier)));
             }
-            return groups.Values.Select(g => (g.Words, g.Types.ToArray())).ToList();
+            return ResistWords.ByDegree(modifiers);
         }
 
         /// <summary>

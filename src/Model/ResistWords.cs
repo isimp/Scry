@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Scry
 {
     /// <summary>How hard a damage type lands, in the order and with the numbers of the game's own <c>HitData.DamageModifier</c>.</summary>
@@ -38,6 +40,48 @@ namespace Scry
     /// </summary>
     internal static class ResistWords
     {
+        /// <summary>The degrees from the most harm taken to the least, the order resistances are told in.</summary>
+        private static readonly Degree[] FromWeakest =
+        {
+            Degree.VeryWeak, Degree.Weak, Degree.SlightlyWeak, Degree.SlightlyResistant, Degree.Resistant, Degree.VeryResistant, Degree.Immune, Degree.Ignore,
+        };
+
+        /// <summary>How a degree reads as a label: "Weak to", "Resists".</summary>
+        public static string Label(Degree degree)
+        {
+            switch (degree)
+            {
+                case Degree.VeryWeak: return "Very weak to";
+                case Degree.Weak: return "Weak to";
+                case Degree.SlightlyWeak: return "Slightly weak to";
+                case Degree.SlightlyResistant: return "Slightly resists";
+                case Degree.Resistant: return "Resists";
+                case Degree.VeryResistant: return "Strongly resists";
+                case Degree.Immune: return "Immune to";
+                case Degree.Ignore: return "Unaffected by";
+                default: return Naming.FieldLabel(degree.ToString());
+            }
+        }
+
+        /// <summary>
+        /// Each damage type that is not taken plainly, grouped by its degree, the groups from the
+        /// most harm taken to the least, as the game orders them rather than by their words.
+        /// </summary>
+        public static List<(string Words, string[] Types)> ByDegree(IEnumerable<(string Type, Degree Degree)> modifiers)
+        {
+            var groups = new SortedDictionary<int, (string Words, List<string> Types)>();
+            foreach (var (type, degree) in modifiers)
+            {
+                if (degree == Degree.Normal) continue;
+                var order = System.Array.IndexOf(FromWeakest, degree);
+                if (order < 0) order = FromWeakest.Length + (int)degree;
+                if (!groups.TryGetValue(order, out var group)) groups[order] = group = (Label(degree), new List<string>());
+                group.Types.Add(type);
+            }
+            var told = new List<(string, string[])>();
+            foreach (var group in groups.Values) told.Add((group.Words, group.Types.ToArray()));
+            return told;
+        }
         /// <summary>The damage types, in the order of the game's <c>HitData.DamageModifiers</c>.</summary>
         public static readonly string[] Types = { "Blunt", "Slash", "Pierce", "Chop", "Pickaxe", "Fire", "Frost", "Lightning", "Poison", "Spirit" };
 

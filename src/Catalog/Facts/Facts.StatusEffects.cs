@@ -68,7 +68,7 @@ namespace Scry
                     foreach (var pair in stats.m_mods)
                     {
                         var damage = Word(pair.m_type);
-                        if (damage != null) Add(ModifierWords(pair.m_modifier), damage.ToLowerInvariant());
+                        if (damage != null) Add(ResistWords.Label(DegreeOf(pair.m_modifier)), damage.ToLowerInvariant());
                     }
                 }
             }
