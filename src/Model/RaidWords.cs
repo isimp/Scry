@@ -130,7 +130,7 @@ namespace Scry
             foreach (var prefab in order)
             {
                 var count = counts[prefab];
-                parts.Add($"{nameOf(prefab)} × {Numbers.Count(count.All)}" + (count.Starred > 0 ? $" ({Numbers.Count(count.Starred)} with stars)" : ""));
+                parts.Add(Naming.Repeated(nameOf(prefab), count.All) + (count.Starred > 0 ? $" ({Numbers.Count(count.Starred)} with stars)" : ""));
             }
             return "The first roll of each, as the game rolls it: " + string.Join(", ", parts) + ".";
         }

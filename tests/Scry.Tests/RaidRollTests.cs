@@ -126,7 +126,7 @@ namespace Scry.Tests
             };
             string Name(string prefab) => prefab == "Greydwarf" ? "Greydwarf" : "Greydwarf brute";
 
-            Assert.Equal("The first roll of each, as the game rolls it: Greydwarf × 3 (1 with stars), Greydwarf brute × 1.", RaidWords.FirstRoll(wave, Name));
+            Assert.Equal("The first roll of each, as the game rolls it: Greydwarf ×3 (1 with stars), Greydwarf brute.", RaidWords.FirstRoll(wave, Name));
             Assert.Equal("This roll brought nothing; roll again.", RaidWords.FirstRoll(new List<RolledCreature>(), Name));
         }
     }
