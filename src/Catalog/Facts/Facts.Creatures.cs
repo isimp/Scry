@@ -33,7 +33,7 @@ namespace Scry
                 if (hits != null) Add("Damage with stars", hits);
             }
 
-            Part("resistances", () => Resists(character.m_damageModifiers));
+            Part("resistances", () => Rows.Add(new Row { Title = "Damage it takes", Cells = ResistWords.ForCreature(Cells(character.m_damageModifiers)) }));
             Part("weak spots", () => WeakSpots(character));
             Part("attacks", () => Attacks(prefab));
             // Whether it can be tamed, fought or looted is worth telling when it cannot.

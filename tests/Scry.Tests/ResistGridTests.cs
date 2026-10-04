@@ -1,3 +1,4 @@
+using System.Linq;
 using Xunit;
 
 namespace Scry.Tests
@@ -26,6 +27,20 @@ namespace Scry.Tests
             Assert.Equal(value, cell.Value);
             Assert.Equal("Fire: " + word, cell.Tip);
             Assert.Equal((Tone)tone, cell.Tone);
+        }
+
+        [Fact]
+        public void ACreaturesGridQuietsToolDamageItTakesNoneOf()
+        {
+            // Chop and pickaxe are for trees and rocks: a creature immune to them need not stand out
+            // for it, but the cells keep their places so the grid's rows stay the same.
+            var cells = new[] { ResistWords.Cell("Blunt", Degree.Resistant), ResistWords.Cell("Chop", Degree.Immune), ResistWords.Cell("Pickaxe", Degree.Ignore), ResistWords.Cell("Fire", Degree.Immune) };
+            var creature = ResistWords.ForCreature(cells);
+            Assert.Equal(new[] { "Blunt", "Chop", "Pickaxe", "Fire" }, creature.Select(c => c.Type));
+            Assert.Equal(new[] { Tone.Resists, Tone.Quiet, Tone.Quiet, Tone.Immune }, creature.Select(c => c.Tone));
+            Assert.Contains("trees and rocks", creature[1].Tip);
+            var takesChop = new[] { ResistWords.Cell("Chop", Degree.Normal), ResistWords.Cell("Pickaxe", Degree.Immune) };
+            Assert.Equal(new[] { Tone.Plain, Tone.Quiet }, ResistWords.ForCreature(takesChop).Select(c => c.Tone));
         }
 
         [Fact]

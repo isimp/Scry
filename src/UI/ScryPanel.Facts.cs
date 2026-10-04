@@ -172,7 +172,7 @@ namespace Scry
             return y + U(14f);
         }
 
-        /// <summary>The cells' colours: the plain share faint, resisting green, weak red, taking nothing blue.</summary>
+        /// <summary>The cells' colours: the plain share faint, resisting green, weak red, taking nothing blue, a quiet one faint.</summary>
         private static Color ToneColor(Tone tone)
         {
             switch (tone)
@@ -206,7 +206,8 @@ namespace Scry
                 var cell = row.Cells[i];
                 var at = new Rect((i % columns) * (cellW + gap), y + (i / columns) * (cellH + gap), cellW, cellH);
                 if (OutOfSight(at)) continue;
-                Skin.Box(at, Skin.Raised);
+                // A quiet cell (tools' damage a creature takes none of) keeps its place but stands back.
+                Skin.Box(at, cell.Tone == Tone.Quiet ? Skin.Panel : Skin.Raised);
                 GUI.Label(new Rect(at.x + U(2f), at.y + U(3f), at.width - U(4f), U(16f)), cell.Type, Skin.CellType);
                 Skin.LabelIn(new Rect(at.x + U(2f), at.y, at.width - U(4f), at.height - U(4f)), cell.Value, Skin.CellValue, ToneColor(cell.Tone));
                 if (at.Contains(Event.current.mousePosition)) AskTip("cell:" + row.Title + cell.Type, cell.Tip);

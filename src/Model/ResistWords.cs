@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -23,6 +25,9 @@ namespace Scry
         Resists,
         Weak,
         Immune,
+
+        /// <summary>Taking none of a damage that does not concern it, such as a creature and the tools' damage: drawn quietly.</summary>
+        Quiet,
     }
 
     /// <summary>One damage type in the resistance grid: its name, the share of it taken, and the words on hover.</summary>
@@ -84,6 +89,19 @@ namespace Scry
         }
         /// <summary>The damage types, in the order of the game's <c>HitData.DamageModifiers</c>.</summary>
         public static readonly string[] Types = { "Blunt", "Slash", "Pierce", "Chop", "Pickaxe", "Fire", "Frost", "Lightning", "Poison", "Spirit" };
+
+        /// <summary>The damage of tools, which fell trees and break rocks.</summary>
+        private static readonly string[] ToolTypes = { "Chop", "Pickaxe" };
+
+        /// <summary>
+        /// A creature's grid: the tools' damage, which is for trees and rocks, is drawn quietly
+        /// where the creature takes none of it, keeping its place so the grid's rows stay the
+        /// same; any it does take shows as the rest.
+        /// </summary>
+        public static List<ResistCell> ForCreature(IEnumerable<ResistCell> cells) =>
+            cells.Select(c => c.Tone == Tone.Immune && Array.IndexOf(ToolTypes, c.Type) >= 0
+                ? new ResistCell { Type = c.Type, Value = c.Value, Tip = c.Type + ": takes none; tools are for trees and rocks", Tone = Tone.Quiet }
+                : c).ToList();
 
         public static ResistCell Cell(string type, Degree degree)
         {
