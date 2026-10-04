@@ -94,9 +94,22 @@ namespace Scry
         }
     }
 
-    /// <summary>How the mod report words what it tells.</summary>
+    /// <summary>How the mod report, and a mod's page, word what they tell.</summary>
     internal static class ModReportWords
     {
+        /// <summary>What a mod's page says it adds when Scry sees nothing it adds or hooks into.</summary>
+        public const string NothingAdded = "nothing Scry can see, and it hooks into none of what Scry tells";
+
+        /// <summary>Which of the rules Scry tells a mod hooks into, and that what Scry tells of them may differ.</summary>
+        public static string HooksInto(IReadOnlyList<HookedRule> rules) => Hooks(rules) + ", so what Scry tells of these may differ from what happens";
+
+        public static string StationLabel(string station) => "Station: " + station;
+
+        public static string ToolLabel(string tool) => "Tool: " + tool;
+
+        /// <summary>The title of a row of what a mod adds of a kind, those only clues match to it apart.</summary>
+        public static string Adds(string kind, int count, bool byClues) => Naming.Counted(byClues ? $"Adds {kind}, matched by clues" : $"Adds {kind}", count);
+
         /// <summary>How many of each kind a mod adds, the most first and the rest in the kinds' order.</summary>
         public static string Counts(ModSummary mod)
         {

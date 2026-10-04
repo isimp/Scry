@@ -20,6 +20,8 @@ namespace Scry
         public const string NothingFound = "Scry found nothing that gives it; a location, an event or a mod's own code still may";
         public const string NowhereFound = "Scry found nothing that places it; a location, an event, another creature or a mod's own code still may";
         public const string ModSkill = "The mod adding this skill names it nowhere Scry can read";
+        public const string MatchedByClues = "Scry matched these to this mod by the scripts they carry or the assets they use; the mod does not say so itself";
+        public const string NotPlaced = "Scry found nothing for these; the mod's own code may still place them";
 
         public static string Marked(string label) => Mark + label;
 

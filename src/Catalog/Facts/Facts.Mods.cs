@@ -40,13 +40,13 @@ namespace Scry
             var summary = ModReportReader.Of(catalog.All).FirstOrDefault(m => m.Mod == mod.Name);
             if (summary == null)
             {
-                Add("Adds", "nothing Scry can see, and it hooks into none of what Scry tells");
+                Add("Adds", ModReportWords.NothingAdded);
                 return;
             }
             Add("Adds", ModReportWords.Counts(summary));
-            if (summary.Hooks.Count > 0) Add("Hooks into", ModReportWords.Hooks(summary.Hooks) + ", so what Scry tells of these may differ from what happens");
-            foreach (var station in summary.Stations) Add("Station: " + station.Shown, ModReportWords.Station(station), station.Key);
-            foreach (var tool in summary.Tools) Add("Tool: " + tool.Shown, ModReportWords.Tool(tool), tool.Key);
+            if (summary.Hooks.Count > 0) Add("Hooks into", ModReportWords.HooksInto(summary.Hooks));
+            foreach (var station in summary.Stations) Add(ModReportWords.StationLabel(station.Shown), ModReportWords.Station(station), station.Key);
+            foreach (var tool in summary.Tools) Add(ModReportWords.ToolLabel(tool.Shown), ModReportWords.Tool(tool), tool.Key);
 
             // What it adds, a row for each kind, in the tabs' order; what only clues match to it
             // in a row of its own, as Scry's best guess.
@@ -55,8 +55,8 @@ namespace Scry
                 var label = Kinds.Label(kind.Key).ToLowerInvariant();
                 var sure = kind.Where(e => UnsureWords.IsSureClue(e.ModClue)).ToList();
                 var guessed = kind.Where(e => !UnsureWords.IsSureClue(e.ModClue)).ToList();
-                if (sure.Count > 0) Rows.Add(ChipRow($"Adds {label} ({Numbers.Count(sure.Count)})", sure, null));
-                if (guessed.Count > 0) Rows.Add(ChipRow($"Adds {label}, matched by clues ({Numbers.Count(guessed.Count)})", guessed, "Scry matched these to this mod by the scripts they carry or the assets they use; the mod does not say so itself"));
+                if (sure.Count > 0) Rows.Add(ChipRow(ModReportWords.Adds(label, sure.Count, byClues: false), sure, null));
+                if (guessed.Count > 0) Rows.Add(ChipRow(ModReportWords.Adds(label, guessed.Count, byClues: true), guessed, UnsureWords.MatchedByClues));
             }
 
             GapRow("Stations nothing is made or built at", summary.IdleStations, catalog);
@@ -90,7 +90,7 @@ namespace Scry
         private void GapRow(string title, List<ModEntry> entries, EntryCatalog catalog)
         {
             if (entries.Count == 0) return;
-            var row = new Row { Title = Naming.Counted(title, entries.Count), Unsure = "Scry found nothing for these; the mod's own code may still place them" };
+            var row = new Row { Title = Naming.Counted(title, entries.Count), Unsure = UnsureWords.NotPlaced };
             foreach (var one in entries)
             {
                 var entry = catalog.Find(one.Key);

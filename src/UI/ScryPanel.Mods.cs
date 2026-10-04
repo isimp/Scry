@@ -134,7 +134,7 @@ namespace Scry
             // What Scry could not place may yet be placed by the mod's own code: marked, with why on hover.
             var titleRect = new Rect(x, y, width, U(20f));
             GUI.Label(titleRect, UnsureWords.Marked(Naming.Counted(title, entries.Count)), Skin.DimLabel);
-            if (titleRect.Contains(Event.current.mousePosition)) AskTip("unsure:" + mod + title, "Scry found nothing for these; the mod's own code may still place them");
+            if (titleRect.Contains(Event.current.mousePosition)) AskTip("unsure:" + mod + title, UnsureWords.NotPlaced);
             y += U(24f);
             var key = "mods:" + mod + ":" + title;
             var count = ShownOf(key, entries.Count);

@@ -168,5 +168,31 @@ namespace Scry.Tests
         }
 
         private static readonly Dictionary<string, IReadOnlyList<HookedRule>> NoHooks = new Dictionary<string, IReadOnlyList<HookedRule>>();
+
+        // A mod's page, in words.
+
+        [Fact]
+        public void AModAddingNothingSaysSo() => Assert.Equal("nothing Scry can see, and it hooks into none of what Scry tells", ModReportWords.NothingAdded);
+
+        [Fact]
+        public void WhatItHooksIntoWarnsThatScryMayTellOtherwise()
+        {
+            var rules = new[] { HookedRule.Loot };
+            Assert.Equal(ModReportWords.Hooks(rules) + ", so what Scry tells of these may differ from what happens", ModReportWords.HooksInto(rules));
+        }
+
+        [Fact]
+        public void ItsStationsAndToolsAreEachALine()
+        {
+            Assert.Equal("Station: Forge", ModReportWords.StationLabel("Forge"));
+            Assert.Equal("Tool: Hammer", ModReportWords.ToolLabel("Hammer"));
+        }
+
+        [Fact]
+        public void WhatItAddsIsARowForEachKindAndWhatCluesMatchIsApart()
+        {
+            Assert.Equal("Adds items (1,200)", ModReportWords.Adds("items", 1200, byClues: false));
+            Assert.Equal("Adds pieces, matched by clues (3)", ModReportWords.Adds("pieces", 3, byClues: true));
+        }
     }
 }
