@@ -89,6 +89,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ANoteStaysLongEnoughToBeRead()
+        {
+            Assert.Equal(3.0f, NoteTime.Seconds("Copied \"Bjorn\"."), 3);
+            Assert.Equal(2.5f, NoteTime.Seconds(""), 3);
+            Assert.Equal(2.5f, NoteTime.Seconds(null), 3);
+            Assert.True(NoteTime.Seconds("Playing Black forest location music; click it again to stop it.") > NoteTime.Seconds("Copied \"Bjorn\"."));
+            Assert.Equal(10f, NoteTime.Seconds(string.Join(" ", new string('w', 1).PadRight(400, 'w').ToCharArray())), 3);
+        }
+
+        [Fact]
         public void TipsHoldTheirLinesOneUnderAnother()
         {
             Assert.Equal("a\nb", Naming.Lines("a", null, "b", ""));

@@ -170,6 +170,7 @@ namespace Scry
             SlideDraw(explorer);
             ViewDraw();
             Tooltip();
+            PointerNote();
 
             // The panel is solid: clicks and the wheel over it stop here.
             var e = Event.current;
