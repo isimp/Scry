@@ -399,9 +399,10 @@ namespace Scry
                 }
             }
 
-            if (hover && cut && !star.Contains(e.mousePosition))
+            // A cut name shows whole on hover, and a faint row says why it is faint.
+            if (hover && (cut || entry.Empty) && !star.Contains(e.mousePosition))
             {
-                AskTip(entry.Key, Naming.Lines(primary, secondary));
+                AskTip(entry.Key, Naming.Lines(primary, secondary, entry.Empty ? ListWords.Silent : null));
             }
             Timing.Add("list names", named);
 

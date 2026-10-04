@@ -29,6 +29,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ACreaturesInvisibleAttackItemIsGroupedApartFromThePlayersWeapons()
+        {
+            // A creature's attack is an item with nothing to see or hear; it is kept out of Swords
+            // and the rest even where a mod gives it a recipe or a source.
+            Assert.Equal("Creature attacks", Groups.Item("OneHandedWeapon", "Swords", carriedByCreature: true, obtainable: true, silent: true).Name);
+            Assert.Equal("Creature attacks", Groups.Item("OneHandedWeapon", "Swords", carriedByCreature: true, obtainable: false, silent: true).Name);
+            Assert.Equal("Swords", Groups.Item("OneHandedWeapon", "Swords", carriedByCreature: false, obtainable: true, silent: true).Name);
+            Assert.Equal("Carried by creatures", Groups.Item("Helmet", null, carriedByCreature: true, obtainable: false, silent: false).Name);
+            Assert.Equal("Swords", Groups.Item("OneHandedWeapon", "Swords", carriedByCreature: true, obtainable: true, silent: false).Name);
+            Assert.True(Groups.Item("OneHandedWeapon", "Swords", true, true, true).Order > Groups.Item("Shield").Order);
+            Assert.Contains("Nothing to see or hear", ListWords.Silent);
+        }
+
+        [Fact]
         public void WeaponGroupsComeMeleeThenRangedThenMagicThenPickaxesAllBeforeShields()
         {
             var order = new[] { "Swords", "Axes", "Clubs", "Knives", "Spears", "Polearms", "Unarmed", "Bows", "Crossbows", "ElementalMagic", "Pickaxes", "None" }

@@ -107,8 +107,12 @@ namespace Scry
         /// <param name="skill">The skill it trains, by name, for a weapon.</param>
         /// <param name="carriedByCreature">A creature carries it (its attacks and gear are items).</param>
         /// <param name="obtainable">A recipe makes it, or something drops, holds, sells or places it.</param>
-        public static Group Item(string itemType, string skill = null, bool carriedByCreature = false, bool obtainable = true)
+        /// <param name="silent">It has nothing to see or hear: no model, particles, light or sound.</param>
+        public static Group Item(string itemType, string skill = null, bool carriedByCreature = false, bool obtainable = true, bool silent = false)
         {
+            // A creature's attack is an item with nothing to see or hear, kept apart from the
+            // player's weapons even where a mod gives it a recipe or a source.
+            if (carriedByCreature && silent) return CreatureAttacks;
             if (carriedByCreature && !obtainable) return CarriedByCreatures;
             if (itemType != null && WeaponTypes.Contains(itemType))
             {
@@ -117,8 +121,11 @@ namespace Scry
             return itemType != null && ItemTypes.TryGetValue(itemType, out var group) ? group : new Group("Other", 150);
         }
 
-        /// <summary>What only creatures have: their attacks and gear no player can get, after every other group.</summary>
+        /// <summary>What only creatures have: their gear no player can get, after every other group.</summary>
         public static Group CarriedByCreatures => new Group("Carried by creatures", 160);
+
+        /// <summary>Creatures' attacks, items with nothing to see or hear that creatures carry, before what only creatures wear.</summary>
+        public static Group CreatureAttacks => new Group("Creature attacks", 159);
 
         /// <summary>One item's type, in the words of its group ("Capes" holds a "Cape").</summary>
         private static readonly Dictionary<string, string> ItemTypeNames = new Dictionary<string, string>

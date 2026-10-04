@@ -3,6 +3,9 @@ namespace Scry
     /// <summary>What the list and the controls above it say: its tabs, its filters, its groups and why it is empty.</summary>
     internal static class ListWords
     {
+        /// <summary>The line a faint row's tip adds: why it is faint.</summary>
+        public const string Silent = "Nothing to see or hear: it has no model, particles, light or sound";
+
         /// <summary>The tip of what brings the folded list back.</summary>
         public const string BringBack = "Bring the list back";
 
