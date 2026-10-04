@@ -20,7 +20,7 @@ namespace Scry
             Description = CatalogBuilder.Localize(effect.m_tooltip);
 
             // Told here as well as on the card, since an effect seen on a person has no card.
-            Add("Lasts", effect.m_ttl > 0f ? Numbers.Duration(effect.m_ttl) : "no time limit of its own");
+            Add("Lasts", StatusEffectWords.Lasts(effect.m_ttl));
 
             // Its category is an id the game never shows; what it means is that nothing giving
             // another effect of the same category can be eaten or drunk while it lasts
@@ -59,7 +59,7 @@ namespace Scry
                     var value = TypeFields.Value(field, effect);
                     if (Equals(value, TypeFields.Value(field, blank))) continue;
                     // A time is told with its unit ("Cooldown 20 min", not 1,200).
-                    var shown = value is float seconds && IsTime(field.Name) ? Numbers.Duration(seconds) : Shown(value);
+                    var shown = value is float seconds && StatusEffectWords.IsTime(field.Name) ? Numbers.Duration(seconds) : Shown(value);
                     if (shown != null) Add(Naming.FieldLabel(field.Name), shown);
                 }
 
@@ -79,47 +79,19 @@ namespace Scry
         }
 
         /// <summary>
-        /// The game's own tooltip lines, each "Label: value" as a pair, and a skill's "Swords +15"
-        /// by the skill; the description it starts with is left out, as the card shows it, and so
-        /// is its duration. False where the tooltip cannot be read or tells nothing more.
+        /// The game's own tooltip lines as lines of the page (<see cref="StatusEffectWords.TooltipPairs"/>);
+        /// its duration and resistances are told apart, resistances as a creature's are, in the rows
+        /// below. False where the tooltip cannot be read or tells nothing more.
         /// </summary>
         private bool GameWords(StatusEffect effect)
         {
             // A mod's effect that needs a character to describe itself is told by its fields instead.
             if (Steps.Run(() => Localization.instance != null ? Localization.instance.Localize(effect.GetTooltipString()) : null, out var text, null) != null) return false;
             if (string.IsNullOrEmpty(text)) return false;
-            text = Naming.Plain(text).Replace("\r", "");
-            // The tooltip starts with the description, which may hold blank lines of its own.
-            var intro = Naming.Plain(Localization.instance.Localize(effect.m_tooltip ?? "")).Replace("\r", "");
-            if (intro.Length > 0 && text.StartsWith(intro, StringComparison.Ordinal)) text = text.Substring(intro.Length);
-            var lines = text.Split('\n').ToList();
-            var duration = Localization.instance.Localize("$se_ttl");
-            // Resistances are told as a creature's are, in the rows below.
-            var modifier = Localization.instance.Localize("$inventory_dmgmod");
-            var added = 0;
-            foreach (var raw in lines)
-            {
-                var line = raw.Trim();
-                if (line.Length == 0) continue;
-                var colon = line.IndexOf(':');
-                var space = line.LastIndexOf(' ');
-                string label, value;
-                if (colon > 0)
-                {
-                    label = line.Substring(0, colon).Trim();
-                    value = line.Substring(colon + 1).Trim();
-                }
-                else if (space > 0)
-                {
-                    label = line.Substring(0, space).Trim();
-                    value = line.Substring(space + 1).Trim();
-                }
-                else continue;
-                if (label.Length == 0 || value.Length == 0 || label == duration || label == modifier) continue;
-                Add(label, value);
-                added++;
-            }
-            return added > 0;
+            var pairs = StatusEffectWords.TooltipPairs(Naming.Plain(text), Naming.Plain(Localization.instance.Localize(effect.m_tooltip ?? "")),
+                Localization.instance.Localize("$se_ttl"), Localization.instance.Localize("$inventory_dmgmod"));
+            AddAll(pairs);
+            return pairs.Count > 0;
         }
 
         /// <summary>The fields <c>SE_Stats.GetTooltipString</c> tells.</summary>
@@ -133,13 +105,6 @@ namespace Scry
             "m_sneakStaminaUseModifier", "m_speedModifier", "m_staggerModifier", "m_staminaOverTime", "m_staminaRegenMultiplier", "m_staminaUpFront",
             "m_stealthModifier", "m_swimSpeedModifier", "m_swimStaminaUseModifier", "m_timedBlockBonus",
         };
-
-        /// <summary>A field that holds a time in seconds, by its name.</summary>
-        private static bool IsTime(string field)
-        {
-            var name = field.ToLowerInvariant();
-            return (name.Contains("cooldown") || name.Contains("duration") || name.EndsWith("time", StringComparison.Ordinal) || name.Contains("interval")) && !name.Contains("multiplier") && !name.Contains("modifier");
-        }
 
         /// <summary>The public stats of each kind of status effect, found once per type.</summary>
         private static readonly Dictionary<Type, FieldInfo[]> StatFields = new Dictionary<Type, FieldInfo[]>();
