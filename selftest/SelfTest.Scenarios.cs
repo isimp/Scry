@@ -130,7 +130,7 @@ namespace Scry
         private static IEnumerator WholeRun(Probe p)
         {
             p.Note(Frames.Line(Budget));
-            foreach (var frame in Frames.Slowest(5)) p.Note($"a slow frame: {Numbers.Amount(frame.Ms, 1)} ms, the slowest part {frame.Part} {Numbers.Amount(frame.PartMs, 1)} ms");
+            foreach (var frame in Frames.Slowest(5)) p.Note(FrameStats.Told(frame));
             p.Note($"the self-test's own checks, left out of these figures, took up to {Numbers.Amount(Frames.TestMax, 0)} ms in a frame");
             p.Check(Frames.Frames > 0, "Scry's own work was measured");
             p.Check(Frames.Max < 250, "no frame of Scry's own work took a quarter of a second", $"{Numbers.Amount(Frames.Max, 0)} ms at the most");

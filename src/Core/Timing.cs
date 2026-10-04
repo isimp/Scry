@@ -103,7 +103,8 @@ namespace Scry
             {
                 // Scry's own work as a player's frame has it, the self-test's own checks left out.
                 var slowest = Frame.SlowestWithout(SelfTestPart);
-                Measuring.Add(Frame.TotalWithout(SelfTestPart), slowest.Name, slowest.Ms);
+                var outer = Frame.SlowestOuter;
+                Measuring.Add(Frame.TotalWithout(SelfTestPart), slowest.Name, slowest.Ms, outer.Name, outer.Ms, Frame.Cleanups);
                 Measuring.AddTest(Frame.MsOf(SelfTestPart));
             }
             if (!Settings.LogPreviews)

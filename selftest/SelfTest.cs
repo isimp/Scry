@@ -289,7 +289,7 @@ namespace Scry
         {
             var slowest = stats.Slowest(count).Where(s => s.Ms >= 1).ToList();
             if (slowest.Count == 0) return "";
-            return "; slowest " + string.Join(", ", slowest.Select(s => $"{Numbers.Amount(s.Ms, 1)} ms ({s.Part} {Numbers.Amount(s.PartMs, 1)})"));
+            return "; slowest " + string.Join(", ", slowest.Select(s => $"{Numbers.Amount(s.Ms, 1)} ms ({s.Part} {Numbers.Amount(s.PartMs, 1)}{(s.Cleanups > 0 ? ", a memory cleanup in it" : "")})"));
         }
 
         /// <summary>Waits a frame at a time until something holds, for up to so many seconds.</summary>

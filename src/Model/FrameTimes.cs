@@ -46,6 +46,17 @@ namespace Scry
         /// <summary>The part that took longest: of the inner parts, which say more about what was slow, else of the outer ones.</summary>
         public (string Name, double Ms) Slowest => SlowestWithout(null);
 
+        /// <summary>The outer part that took longest, all inner parts in it included; nothing for an empty frame.</summary>
+        public (string Name, double Ms) SlowestOuter
+        {
+            get
+            {
+                Part outer = null;
+                foreach (var part in _parts) if (part.Outer && part.Ms > 0 && (outer == null || part.Ms > outer.Ms)) outer = part;
+                return outer == null ? ("", 0.0) : (outer.Name, outer.Ms);
+            }
+        }
+
         /// <summary>The part that took longest, as <see cref="Slowest"/>, leaving one part out.</summary>
         public (string Name, double Ms) SlowestWithout(string left)
         {

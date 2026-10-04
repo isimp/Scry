@@ -93,6 +93,40 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ASlowFrameSaysWhereItsTimeWentAndWhetherAMemoryCleanupRanInIt()
+        {
+            // The slowest inner part may be small beside the frame: the rest is in an outer part,
+            // in no inner part named, which a memory cleanup in it may explain.
+            var stats = new FrameStats();
+            stats.Add(386.6, "facts item", 7.6, "update", 1391.25, 1);
+            stats.Add(40, "panel list", 30, "panel", 35, 0);
+            stats.Add(30, "facts item", 20, "update", 25, 2);
+
+            var slowest = stats.Slowest(3);
+            Assert.Equal("a slow frame: 386.6 ms, the slowest part facts item 7.6 ms, in update 1,391.3 ms, a memory cleanup ran in it", FrameStats.Told(slowest[0]));
+            Assert.Equal("a slow frame: 40 ms, the slowest part panel list 30 ms, in panel 35 ms", FrameStats.Told(slowest[1]));
+            Assert.Equal("a slow frame: 30 ms, the slowest part facts item 20 ms, in update 25 ms, 2 memory cleanups ran in it", FrameStats.Told(slowest[2]));
+        }
+
+        [Fact]
+        public void AFrameTellsItsSlowestOuterPart()
+        {
+            var frame = new FrameTimes();
+            frame.Add("update", 12, 0, 0);
+            frame.Add("update catalog", 11, 0, 0);
+            frame.Add("render", 5, 0, 0);
+
+            Assert.Equal(("update", 12.0), frame.SlowestOuter);
+            frame.Clear();
+            Assert.Equal(("", 0.0), frame.SlowestOuter);
+
+            // An inner part, however long, is no outer part.
+            frame.Add("render", 5, 0, 0);
+            frame.Add("panel list", 8, 0, 0);
+            Assert.Equal(("render", 5.0), frame.SlowestOuter);
+        }
+
+        [Fact]
         public void WithoutInnerPartsTheSlowestOuterOneIsTold()
         {
             var frame = new FrameTimes();
