@@ -34,7 +34,7 @@ namespace Scry
         {
             var own = EffectListLabel(inner);
             var label = own == "Effect" ? EffectListLabel(outer) : own;
-            return string.IsNullOrEmpty(of) ? label : of + ": " + label.ToLowerInvariant();
+            return string.IsNullOrEmpty(of) ? label : OfPart(of, label);
         }
 
         private static readonly System.Text.RegularExpressions.Regex Markup = new System.Text.RegularExpressions.Regex(
@@ -55,6 +55,16 @@ namespace Scry
 
         /// <summary>Names one after another with commas: "A, B, C".</summary>
         public static string Commas(System.Collections.Generic.IEnumerable<string> names) => string.Join(", ", names);
+
+        /// <summary>An effect list's label led by the part it is on, where the part must be said: "Troll club: hit".</summary>
+        public static string OfPart(string part, string label) => part + ": " + label.ToLowerInvariant();
+
+        /// <summary>An effect list's label followed by the part it is on, where two lists share a label: "Hit (item drop)".</summary>
+        public static string WithPart(string label, string part) => $"{label} ({FieldLabel(part).ToLowerInvariant()})";
+
+        /// <summary>A name as the game shows it, with its prefab's where they differ: "Greydwarf nest (Spawner_GreydwarfNest)"; the prefab's alone without one.</summary>
+        public static string WithPrefab(string shown, string prefab) =>
+            !string.IsNullOrEmpty(shown) && shown != prefab ? $"{shown} ({prefab})" : prefab;
 
         /// <summary>A row's title with how many it holds: "Lives here (12)".</summary>
         public static string Counted(string title, int count) => $"{title} ({Numbers.Count(count)})";

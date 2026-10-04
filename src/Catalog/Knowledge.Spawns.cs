@@ -169,7 +169,7 @@ namespace Scry
             if (all.Count == 0) return "no biome";
             if (all.Count >= every) return "every biome";
 
-            return string.Join(", ", all.Select(b => BiomeName(b.ToString())));
+            return Naming.Commas(all.Select(b => BiomeName(b.ToString())));
         }
 
         private static AccessTools.FieldRef<List<SpawnSystem>> _spawnSystems;
@@ -256,7 +256,6 @@ namespace Scry
             {
                 if (raid.m_spawn == null || !raid.m_enabled) return;
                 var shown = CatalogBuilder.Localize(raid.m_startMessage);
-                var start = $"Comes in the raid \"{(shown.Length > 0 ? shown : raid.m_name)}\"";
                 var perPlayer = ByEachPlayer(raid);
                 var facts = new SpawnFacts
                 {
@@ -264,10 +263,9 @@ namespace Scry
                     Keys = perPlayer || raid.m_requiredGlobalKeys == null ? Array.Empty<string>() : raid.m_requiredGlobalKeys.ToArray(),
                     NotKeys = perPlayer || raid.m_notRequiredGlobalKeys == null ? Array.Empty<string>() : raid.m_notRequiredGlobalKeys.ToArray(),
                 };
-                var line = SpawnWords.Line(facts.Biomes.Length > 0 ? start + ", in" : start, facts, BossOf);
+                var line = SpawnWords.Raid(shown.Length > 0 ? shown : raid.m_name, facts, perPlayer, BossOf);
                 foreach (var key in facts.Keys) Unlocks.Add(key, Unlock.RaidStarts, EntryKeys.For(Kind.Raid, raid.m_name));
                 foreach (var key in facts.NotKeys) Unlocks.Add(key, Unlock.RaidEnds, EntryKeys.For(Kind.Raid, raid.m_name));
-                if (perPlayer) line += ", for a player whose own progress calls for it";
                 foreach (var data in raid.m_spawn)
                 {
                     if (data?.m_prefab == null) continue;
@@ -295,7 +293,7 @@ namespace Scry
         {
             foreach (var (point, creature, spawn) in SpawnPointsLeft)
             {
-                Keep(SpawnPointLines, creature, SpawnWords.Line($"In dungeons or locations, from the spawn point {Shown(point)}", spawn, BossOf), point.name);
+                Keep(SpawnPointLines, creature, SpawnWords.FromSpawnPoint(Shown(point), spawn, BossOf), point.name);
             }
             SpawnPointsLeft.Clear();
         }
@@ -309,7 +307,7 @@ namespace Scry
                 foreach (var data in area.m_prefabs)
                 {
                     if (data?.m_prefab == null) continue;
-                    Keep(SpawnPointLines, data.m_prefab, $"Comes from {Shown(prefab)}, {SpawnWords.PoolShare(data.m_weight, total, data.m_minLevel, data.m_maxLevel)}", prefab.name,
+                    Keep(SpawnPointLines, data.m_prefab, SpawnWords.FromSpawner(Shown(prefab), data.m_weight, total, data.m_minLevel, data.m_maxLevel), prefab.name,
                         total > 0f ? data.m_weight / total : 0.0);
                 }
             }
@@ -666,7 +664,7 @@ namespace Scry
             if (token == null && hover != null) token = hover.m_text;
 
             var shown = CatalogBuilder.Localize(token);
-            return shown.Length > 0 && shown != prefab.name ? $"{shown} ({prefab.name})" : prefab.name;
+            return Naming.WithPrefab(shown, prefab.name);
         }
 
         /// <summary>Lets go of where things live and what gives them, as reading starts again.</summary>

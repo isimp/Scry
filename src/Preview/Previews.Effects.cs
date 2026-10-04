@@ -235,7 +235,7 @@ namespace Scry
                     var list = on.List;
                     if (!EffectSlots.ShowsAny(list) || !seen.Add(list)) continue;
                     var label = on.Label;
-                    if (alwaysSayPart) label = part + ": " + label.ToLowerInvariant();
+                    if (alwaysSayPart) label = Naming.OfPart(part, label);
                     found.Add(new KeyValuePair<string, KeyValuePair<string, EffectList>>(part, new KeyValuePair<string, EffectList>(label, list)));
                 }
             }
@@ -281,7 +281,7 @@ namespace Scry
                 var first = group.First();
                 if (!seen.Add(first.List)) continue;
                 var clash = others.Any(o => o.Label == first.Label && !group.Contains(o));
-                var label = clash ? first.Owner + ": " + first.Label.ToLowerInvariant() : first.Label;
+                var label = clash ? Naming.OfPart(first.Owner, first.Label) : first.Label;
                 found.Add(new KeyValuePair<string, KeyValuePair<string, EffectList>>(label, new KeyValuePair<string, EffectList>(label, first.List)));
             }
 
@@ -303,7 +303,7 @@ namespace Scry
             foreach (var item in found) counts[item.Value.Key] = counts.TryGetValue(item.Value.Key, out var n) ? n + 1 : 1;
             foreach (var item in found)
             {
-                var label = counts[item.Value.Key] > 1 ? $"{item.Value.Key} ({Naming.FieldLabel(item.Key).ToLowerInvariant()})" : item.Value.Key;
+                var label = counts[item.Value.Key] > 1 ? Naming.WithPart(item.Value.Key, item.Key) : item.Value.Key;
                 lists.Add(new KeyValuePair<string, EffectList>(label, item.Value.Value));
             }
             return lists;

@@ -149,6 +149,22 @@ namespace Scry
         /// <summary>The chance of each star beyond the least, each rolled on its own until one misses (<c>SpawnArea.SpawnOne</c>).</summary>
         public static string StarChance(float levelUpChance) => levelUpChance > 0f ? $"{Numbers.Amount(levelUpChance)}% for each star" : null;
 
+        /// <summary>A creature's line for a raid it comes in: the raid's name, its biomes and limits, and for whom it comes where the world picks it by each player's progress.</summary>
+        public static string Raid(string raid, SpawnFacts spawn, bool perPlayer, Func<string, string> bossOf)
+        {
+            var start = $"Comes in the raid \"{raid}\"";
+            var line = Line(spawn.Biomes.Length > 0 ? start + ", in" : start, spawn, bossOf);
+            return perPlayer ? line + ", " + RaidWords.ForEachPlayer : line;
+        }
+
+        /// <summary>A creature's line for a spawn point of a dungeon or location that places it.</summary>
+        public static string FromSpawnPoint(string point, SpawnFacts spawn, Func<string, string> bossOf) =>
+            Line("In dungeons or locations, from the spawn point " + point, spawn, bossOf);
+
+        /// <summary>A creature's line for a spawner that spawns it (<see cref="PoolShare"/>).</summary>
+        public static string FromSpawner(string spawner, float weight, float totalWeight, int minLevel, int maxLevel) =>
+            $"Comes from {spawner}, {PoolShare(weight, totalWeight, minLevel, maxLevel)}";
+
         /// <summary>A whole line: how it starts ("Spawns in"), then the biomes and every limit it has.</summary>
         public static string Line(string start, SpawnFacts spawn, Func<string, string> bossOf)
         {

@@ -53,7 +53,10 @@ namespace Scry
 
         /// <summary>When it is on the table: by the world's keys it waits for and stops at, or by each player's own progress where the world picks raids that way.</summary>
         public static string OnTheTable(bool byEachPlayer, IEnumerable<string> keys, IEnumerable<string> endingKeys, System.Func<string, string> bossOf) =>
-            byEachPlayer ? "for a player whose own progress calls for it" : Starts(keys, endingKeys, bossOf);
+            byEachPlayer ? ForEachPlayer : Starts(keys, endingKeys, bossOf);
+
+        /// <summary>For whom a raid the world picks by each player's own progress comes.</summary>
+        public const string ForEachPlayer = "for a player whose own progress calls for it";
 
         /// <summary>How a raid only something else starts is rolled.</summary>
         public const string NeverRolled = "never by the raid roll; only something else starts it";

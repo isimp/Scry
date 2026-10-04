@@ -324,7 +324,7 @@ namespace Scry
                 if (ModOf.ContainsKey(pair.Key)) continue;
                 var byName = ModAttribution.Pick(null, ModsHolding(pair.Value[0]));
                 var mod = ModAttribution.Pick(byName, pair.Value.Skip(1).SelectMany(ModsHolding));
-                Named(pair.Key, mod, byName != null ? "a bundle holding it" : "the bundles holding what it uses");
+                Named(pair.Key, mod, UnsureWords.BundleClue(byName != null));
             }
         }
 

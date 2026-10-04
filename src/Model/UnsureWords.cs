@@ -29,6 +29,9 @@ namespace Scry
         /// <summary>Whether the clue a mod was named by is the mod's own word; no clue (a mod's own page) is too.</summary>
         public static bool IsSureClue(string clue) => string.IsNullOrEmpty(clue) || clue == RegistryClue;
 
+        /// <summary>The clue a mod was found by in the bundles: one holding the thing itself, else those holding what it uses.</summary>
+        public static string BundleClue(bool byName) => byName ? "a bundle holding it" : "the bundles holding what it uses";
+
         /// <summary>Why a mod named by a clue is not sure, by the clue.</summary>
         public static string ModClue(string clue)
         {

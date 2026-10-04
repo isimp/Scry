@@ -71,8 +71,7 @@ namespace Scry
         public static string SetName(Humanoid.ItemSet set, int index)
         {
             if (!string.IsNullOrEmpty(set.m_name)) return Naming.FieldLabel(set.m_name);
-            var drawn = set.m_items.Where(i => i != null && AttachPart(i, out _) != null).Select(CatalogBuilder.AttackName).Distinct().ToList();
-            return drawn.Count > 0 ? string.Join(" + ", drawn) : $"Set {Numbers.Count(index + 1)}, nothing drawn";
+            return GearWords.Set(set.m_items.Where(i => i != null && AttachPart(i, out _) != null).Select(CatalogBuilder.AttackName).Distinct().ToList(), index);
         }
 
         private static readonly HashSet<string> ToldSets = new HashSet<string>();
@@ -117,7 +116,7 @@ namespace Scry
             var meshes = part.GetComponentsInChildren<MeshFilter>(true).Select(m => m.sharedMesh != null ? m.sharedMesh.name : "")
                 .Concat(part.GetComponentsInChildren<SkinnedMeshRenderer>(true).Select(m => m.sharedMesh != null ? m.sharedMesh.name : ""))
                 .Where(n => n.Length > 0).OrderBy(n => n, StringComparer.Ordinal).ToList();
-            return meshes.Count > 0 ? string.Join(",", meshes) : null;
+            return GearWords.Meshes(meshes);
         }
 
         /// <summary>A list's items by name, an empty entry kept as nothing, items that do not show left out.</summary>

@@ -319,6 +319,17 @@ namespace Scry
             return string.Join("; ", lines) + (music.Count == 1 ? ". Enter plays it" : ". Enter plays the first");
         }
 
+        /// <summary>Reading the locations, asked for again while it reads, and how far it has got.</summary>
+        public static string AlreadyReading(int done, int total) => $"already reading the locations and dungeons, {Numbers.Count(done)} of {Numbers.Count(total)} so far.";
+
+        public static string ReadingInBackground(int queued) => $"reading {Numbers.Count(queued)} locations and dungeon rooms in the background.";
+
+        /// <summary>How far reading the locations has got, where something waits on it (<see cref="CatalogWords.Progress(string, int, int)"/>).</summary>
+        public static string ReadingProgress(int done, int total) => CatalogWords.Progress("Reading locations and dungeons", done, total);
+
+        /// <summary>The header's button while the locations are read, which stops it.</summary>
+        public static string StopReading(int done, int total) => $"Stop reading  {Numbers.Count(done)} of {Numbers.Count(total)}";
+
         /// <summary>What its details say it holds before it has been read.</summary>
         public static string HoldsNote(PlaceLoad load) =>
             load == PlaceLoad.Failed ? "not known, its model could not be loaded" : "read once its model has loaded";

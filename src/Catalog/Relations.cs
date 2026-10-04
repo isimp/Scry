@@ -185,7 +185,7 @@ namespace Scry
             {
                 var amount = type == "fire" ? damage.m_fire : type == "frost" ? damage.m_frost : type == "lightning" ? damage.m_lightning
                     : type == "poison" ? damage.m_poison : damage.m_spirit;
-                if (amount > 0f) book.Add(prefab.name, group, EntryKeys.For(Kind.StatusEffect, effect), GivenBy, type + " damage");
+                if (amount > 0f) book.Add(prefab.name, group, EntryKeys.For(Kind.StatusEffect, effect), GivenBy, CombatWords.OfDamage(type));
             }
         }
 
@@ -214,27 +214,18 @@ namespace Scry
             foreach (var effect in step.m_effects)
             {
                 if (effect?.m_effectPrefabs == null) continue;
-                var note = Gait(effect.m_motionType) + " on " + Ground(effect.m_material);
+                var note = StepWords.Note(Gaits(effect.m_motionType), Grounds(effect.m_material), (effect.m_material & FootStep.GroundMaterial.Everything) == FootStep.GroundMaterial.Everything);
                 foreach (var thing in effect.m_effectPrefabs) if (thing != null) book.Add(prefab.name, Footsteps, thing.name, FootstepOf, note);
             }
         }
 
-        private static string Gait(FootStep.MotionType motion)
-        {
-            var names = Enum.GetValues(typeof(FootStep.MotionType)).Cast<FootStep.MotionType>()
-                .Where(m => (motion & m) != 0).Select(m => m.ToString().ToLowerInvariant()).ToList();
-            return names.Count > 0 ? string.Join("/", names) : "any gait";
-        }
+        /// <summary>The gaits a footstep is for, by the game's names.</summary>
+        private static List<string> Gaits(FootStep.MotionType motion) => Enum.GetValues(typeof(FootStep.MotionType)).Cast<FootStep.MotionType>()
+            .Where(m => (motion & m) != 0).Select(m => m.ToString()).ToList();
 
-        private static string Ground(FootStep.GroundMaterial material)
-        {
-            if ((material & FootStep.GroundMaterial.Everything) == FootStep.GroundMaterial.Everything) return "any ground";
-            var names = Enum.GetValues(typeof(FootStep.GroundMaterial)).Cast<FootStep.GroundMaterial>()
-                .Where(m => m != FootStep.GroundMaterial.None && m != FootStep.GroundMaterial.Everything && (material & m) != 0)
-                .Select(m => m == FootStep.GroundMaterial.Default ? "plain ground" : m == FootStep.GroundMaterial.GenericGround ? "ground" : m.ToString().ToLowerInvariant())
-                .ToList();
-            return names.Count > 0 ? string.Join("/", names) : "nothing";
-        }
+        /// <summary>The grounds a footstep is for, by the game's names.</summary>
+        private static List<string> Grounds(FootStep.GroundMaterial material) => Enum.GetValues(typeof(FootStep.GroundMaterial)).Cast<FootStep.GroundMaterial>()
+            .Where(m => m != FootStep.GroundMaterial.None && m != FootStep.GroundMaterial.Everything && (material & m) != 0).Select(m => m.ToString()).ToList();
 
         /// <summary>Everything a humanoid may be handed when it spawns.</summary>
         public static List<GameObject> CarriedItems(GameObject prefab)

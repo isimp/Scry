@@ -25,6 +25,13 @@ namespace Scry
             ("m_runStaminaModifier", "Run stamina"),
         };
 
+        /// <summary>A creature's gear set by what of it is drawn (its attacks' names), else by its number.</summary>
+        public static string Set(IReadOnlyList<string> drawn, int index) =>
+            drawn.Count > 0 ? string.Join(" + ", drawn) : $"Set {Numbers.Count(index + 1)}, nothing drawn";
+
+        /// <summary>The meshes an item draws in the hand, by name, or null for none.</summary>
+        public static string Meshes(IReadOnlyList<string> meshes) => meshes.Count > 0 ? string.Join(",", meshes) : null;
+
         /// <summary>The lines for what the gear changes, by the shared data's field names; none for what it leaves alone.</summary>
         public static List<(string Label, string Value)> Lines(IReadOnlyDictionary<string, float> values)
         {

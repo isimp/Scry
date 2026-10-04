@@ -57,7 +57,7 @@ namespace Scry
                 if (EffectSlots.Of(list).Length == 0) continue;
 
                 var label = on.Label;
-                if (part != null) label = part + ": " + label.ToLowerInvariant();
+                if (part != null) label = Naming.OfPart(part, label);
                 EffectLinks.Note(list, shown, ownerKey, label);
 
                 foreach (var slot in EffectSlots.Of(list))

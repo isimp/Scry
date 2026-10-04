@@ -176,6 +176,9 @@ namespace Scry
         /// <summary>What drawing a bow takes while it is drawn.</summary>
         public static string DrawCost(float staminaPerSecond) => $"{Numbers.Amount(staminaPerSecond)} stamina a second";
 
+        /// <summary>A kind of damage by its type, as a link to the status effect it puts on names it: "fire damage".</summary>
+        public static string OfDamage(string damageType) => damageType + " damage";
+
         /// <summary>The label for the status effect a kind of damage puts on what it hits (<see cref="DamageEffects"/>).</summary>
         public static string DamageCauses(string damageType) => Naming.FieldLabel(damageType) + " damage causes";
 

@@ -120,7 +120,7 @@ namespace Scry
         /// <summary>Starts reading, and says what it does.</summary>
         public static string Start()
         {
-            if (Now == State.Reading) return $"already reading the locations and dungeons, {Numbers.Count(Done)} of {Numbers.Count(Total)} so far.";
+            if (Now == State.Reading) return LocationWords.AlreadyReading(Done, Total);
             if (Now == State.Read) return "the locations and dungeons of this world are read already.";
             var zones = ZoneSystem.instance;
             var catalog = WorldCatalog.Current;
@@ -168,7 +168,7 @@ namespace Scry
             _workMs = 0.0;
             _frames = 0;
             _clock = Stopwatch.StartNew();
-            return $"reading {Numbers.Count(Queue.Count)} locations and dungeon rooms in the background.";
+            return LocationWords.ReadingInBackground(Queue.Count);
         }
 
         /// <summary>Reads on for a few milliseconds; called every frame.</summary>
