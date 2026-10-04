@@ -168,7 +168,7 @@ namespace Scry
             for (var i = 0; i < clips.Count; i++)
             {
                 var name = i < names.Count ? names[i] : clips[i].name;
-                if (!tags.TryGetValue(name, out var tag) || !tag.StartsWith("attack", StringComparison.Ordinal)) continue;
+                if (!tags.TryGetValue(name, out var tag) || !ClipWords.IsAttack(tag)) continue;
                 Previews.PlayClip(clips[i]);
                 Previews.LastClip = clips[i];
                 return;

@@ -169,7 +169,8 @@ namespace Scry
                 if (go && chip.Contains(Event.current.mousePosition)) AskTip("member:" + member, PanelWords.GoTo(member, lit));
             }
             MoreChip(key, members.Count, FirstChips, width, ref flow);
-            return flow.RowBottom + U(6f);
+            // No row is kept for parts there are none of.
+            return members.Count > 0 ? flow.Below + U(6f) : flow.Below;
         }
 
         private static readonly Dictionary<(string, object), string> MemberKeys = new Dictionary<(string, object), string>();
