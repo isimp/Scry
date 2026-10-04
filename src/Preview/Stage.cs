@@ -170,6 +170,7 @@ namespace Scry
         /// Writes every renderer on the stage copy to the log: where it sits, whether it is on,
         /// what it draws and how big it is. For finding out why part of a model does not show.
         /// </summary>
+        [Diagnostic]
         public static string Dump()
         {
             if (_subject == null) return "Nothing is on the stage.";
@@ -189,6 +190,7 @@ namespace Scry
             return $"Wrote {Numbers.Count(lines.Count - 1)} renderers of {_subject.name} to the log.";
         }
 
+        [Diagnostic]
         private static string Path(Transform t)
         {
             var parts = new List<string>();

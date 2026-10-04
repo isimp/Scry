@@ -20,6 +20,7 @@ namespace Scry
         public static void Reset() => Parts.Clear();
 
         /// <summary>The parts, longest first.</summary>
+        [Diagnostic]
         public static string Report() => string.Join(", ", Parts.OrderByDescending(p => p.Value).Select(p => $"{p.Key} {Numbers.Amount(p.Value, 0)}"));
     }
 }

@@ -426,13 +426,16 @@ namespace Scry
             job.Seen.Busy = false;
         }
 
+        /// <summary>What a trigger or action played, for the log.</summary>
+        [Diagnostic]
+        private static string Told(string name, List<string> clips) => clips.Count > 0 ? $"{name} plays {string.Join(" then ", clips)}" : $"{name} plays no clip of its own";
+
         /// <summary>The runs of a probe, each yielded after: left alone, each trigger, each of the game's actions.</summary>
         private static IEnumerator<bool> Work(Job job)
         {
             var probe = job.Probe;
             var seen = job.Seen;
             bool Has(string name, AnimatorControllerParameterType type) => probe.parameters.Any(p => p.type == type && p.name == name);
-            string Tell(string name, List<string> clips) => clips.Count > 0 ? $"{name} plays {string.Join(" then ", clips)}" : $"{name} plays no clip of its own";
 
             var alone = new List<Frame>();
             foreach (var _ in Trace(alone, probe, null, false, null, -1, job.First ? 2 * ActionPatience + Settle : 160)) yield return true;
@@ -467,7 +470,7 @@ namespace Scry
                         if (at >= 0 && run[at].Clip != null) clips.Add(run[at].Clip.name);
                     }
                     seen.Triggers[trigger] = clips;
-                    attacks.Add(Tell(trigger, clips));
+                    attacks.Add(Told(trigger, clips));
                     yield return true;
                 }
                 if (actionsDone) break;
@@ -512,7 +515,7 @@ namespace Scry
                         if (woke >= 0 && back[woke].Clip != null) clips.Add(back[woke].Clip.name);
                     }
                     seen.Actions[action] = clips;
-                    actions.Add(Tell(action, clips));
+                    actions.Add(Told(action, clips));
                     yield return true;
                 }
             }

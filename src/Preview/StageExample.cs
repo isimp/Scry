@@ -217,6 +217,7 @@ namespace Scry
         }
 
         /// <summary>Each room read so far with the floors found in it alone, for the self-test to tell.</summary>
+        [Diagnostic]
         public List<string> RoomFloorsTold()
         {
             var told = new List<string>();

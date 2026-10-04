@@ -35,14 +35,7 @@ namespace Scry
 
             // Said once per prefab: which animator plays it and every clip it has, for finding out
             // why a clip seems missing.
-            if (Settings.LogPreviews && Listed.Add(prefab.name))
-            {
-                var all = copy.GetComponentsInChildren<Animator>(true).Length;
-                var names = animator.runtimeAnimatorController.animationClips.Where(c => c != null).Select(c => c.name).Distinct().OrderBy(n => n, StringComparer.Ordinal).ToList();
-                var settings = string.Join(", ", animator.parameters.Select(p => $"{p.name} ({p.type.ToString().ToLowerInvariant()})"));
-                var layers = string.Join(", ", Enumerable.Range(0, animator.layerCount).Select(l => $"{animator.GetLayerName(l)} at {Numbers.Amount(animator.GetLayerWeight(l), 2)}"));
-                Log.Note($"Scry plays {prefab.name} by the animator on {animator.gameObject.name} ({animator.runtimeAnimatorController.name}, {Numbers.Count(all)} animators on the copy), {Numbers.Count(names.Count)} clips: {string.Join(", ", names)}. Its settings: {(settings.Length > 0 ? settings : "none")}. Its layers: {layers}.");
-            }
+            if (Settings.LogPreviews && Listed.Add(prefab.name)) TellClips(prefab, animator, copy);
 
             var read = ControllerEvents.Of(animator.runtimeAnimatorController);
             var events = read.Events;
@@ -348,6 +341,17 @@ namespace Scry
             foreach (var prefab in prefabs) if (prefab != null) data.Add(new EffectList.EffectData { m_prefab = prefab });
             list.m_effectPrefabs = data.ToArray();
             return list;
+        }
+
+        /// <summary>Which animator plays a prefab and every clip it has, said once per prefab, for finding out why a clip seems missing.</summary>
+        [Diagnostic]
+        private static void TellClips(GameObject prefab, Animator animator, GameObject copy)
+        {
+            var all = copy.GetComponentsInChildren<Animator>(true).Length;
+            var names = animator.runtimeAnimatorController.animationClips.Where(c => c != null).Select(c => c.name).Distinct().OrderBy(n => n, StringComparer.Ordinal).ToList();
+            var settings = string.Join(", ", animator.parameters.Select(p => $"{p.name} ({p.type.ToString().ToLowerInvariant()})"));
+            var layers = string.Join(", ", Enumerable.Range(0, animator.layerCount).Select(l => $"{animator.GetLayerName(l)} at {Numbers.Amount(animator.GetLayerWeight(l), 2)}"));
+            Log.Note($"Scry plays {prefab.name} by the animator on {animator.gameObject.name} ({animator.runtimeAnimatorController.name}, {Numbers.Count(all)} animators on the copy), {Numbers.Count(names.Count)} clips: {string.Join(", ", names)}. Its settings: {(settings.Length > 0 ? settings : "none")}. Its layers: {layers}.");
         }
     }
 }

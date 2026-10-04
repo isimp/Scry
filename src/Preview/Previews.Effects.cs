@@ -276,7 +276,7 @@ namespace Scry
                     others.Add((Naming.EffectListLabel(field.Name), shown ?? WeaponChoices.Readable(item.name, prefab.name), list));
                 }
             }
-            foreach (var group in others.GroupBy(o => o.Label + "|" + string.Join(",", EffectSlots.NamesPlayed(o.List).OrderBy(m => m, System.StringComparer.Ordinal))))
+            foreach (var group in others.GroupBy(o => ListKey(o.Label, o.List)))
             {
                 var first = group.First();
                 if (!seen.Add(first.List)) continue;
@@ -337,7 +337,7 @@ namespace Scry
             var things = new List<GameObject>();
             Stop(list);
             ForgetStartedClip();
-            var heard = $"{_entry?.Name}'s \"{label}\"";
+            var heard = HeardOf(label);
             Listen.Start(heard, 3f);
             _heard = heard;
 
@@ -595,7 +595,16 @@ namespace Scry
             return false;
         }
 
+        /// <summary>How a list played from the panel is named in the log: the entry's name and the list's label.</summary>
+        [Diagnostic]
+        private static string HeardOf(string label) => $"{_entry?.Name}'s \"{label}\"";
+
+        /// <summary>A list by its label and what it plays, so lists alike are told once.</summary>
+        private static string ListKey(string label, EffectList list) =>
+            label + "|" + string.Join(",", EffectSlots.NamesPlayed(list).OrderBy(m => m, System.StringComparer.Ordinal));
+
         /// <summary>The animator's triggers by name, for the log.</summary>
+        [Diagnostic]
         private static string Triggers(Animator animator)
         {
             var names = new List<string>();
@@ -613,6 +622,7 @@ namespace Scry
         }
 
         /// <summary>Says once per list why playing it showed nothing, for finding out what it holds.</summary>
+        [Diagnostic]
         private static void TellEmpty(string label, EffectList list, List<GameObject> made)
         {
             if (list == null || !ToldEmpty.Add(list)) return;

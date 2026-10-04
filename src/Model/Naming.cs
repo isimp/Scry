@@ -44,6 +44,9 @@ namespace Scry
         /// <summary>A text begun with a capital: "health ×2" as "Health ×2".</summary>
         public static string Capital(string text) => string.IsNullOrEmpty(text) ? text : char.ToUpperInvariant(text[0]) + text.Substring(1);
 
+        /// <summary>A member by the type or field it is in: "m_attack.m_hitEffect".</summary>
+        public static string MemberPath(string owner, string member) => owner + "." + member;
+
         /// <summary>A count with its noun in the number it takes: "1 star", "1,234 stars".</summary>
         public static string Count(int count, string one, string many) => Numbers.Count(count) + " " + Noun(count, one, many);
 

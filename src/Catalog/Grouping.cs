@@ -54,6 +54,7 @@ namespace Scry
         }
 
         /// <summary>For the log: how many each group holds, and a sample of what nothing was found to play.</summary>
+        [Diagnostic]
         private static void Report(List<Entry> entries)
         {
             foreach (var kind in entries.Where(e => e.Group.Length > 0).GroupBy(e => e.Kind))
@@ -147,7 +148,7 @@ namespace Scry
                     var fields = entry.PlayedIn.ToList();
                     if (weather.Contains(entry.Name)) fields.Add("weather");
                     if (Knowledge.IsPlacedByWorld(entry.Name)) fields.Add("ambience");
-                    if (entry.Links.Any(l => l.Group == Relations.SpawnedBy && l.Target.StartsWith(EntryKeys.StatusEffect, StringComparison.Ordinal))) fields.Add(Groups.StatusEffectField + "spawned");
+                    if (entry.Links.Any(l => l.Group == Relations.SpawnedBy && l.Target.StartsWith(EntryKeys.StatusEffect, StringComparison.Ordinal))) fields.Add(Groups.StatusEffectSpawned);
                     if (entry.LeftBy.Count > 0) fields.Add("left when destroyed");
                     var purpose = Groups.Purpose(fields, footstep, animation);
 

@@ -71,7 +71,7 @@ namespace Scry
                     var more = _steps.MoveNext();
                     var took = frame.Elapsed.TotalMilliseconds - before;
                     _share.Took(took);
-                    if (took > LongPieceMs && Settings.LogPreviews) _long.Add((Piece != null ? "the prefab " + Piece : what, took));
+                    if (took > LongPieceMs && Settings.LogPreviews) _long.Add((LongPiece(Piece, what), took));
                     done++;
                     if (!more)
                     {
@@ -95,5 +95,9 @@ namespace Scry
             }
             return Done;
         }
+
+        /// <summary>A long piece of the work by the prefab it read, else by its step, for the log.</summary>
+        [Diagnostic]
+        private static string LongPiece(string prefab, string step) => prefab != null ? "the prefab " + prefab : step;
     }
 }

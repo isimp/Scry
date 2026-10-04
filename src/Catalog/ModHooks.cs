@@ -191,7 +191,7 @@ namespace Scry
                         var mod = ModOf(patch, plugins);
                         // A transpiler rewrites the method itself, so what it puts there need not be in its own code.
                         var counted = mustName == null || transpilers.Contains(patch) || Names(patch.PatchMethod, mustName);
-                        Seen.Add((mod, type.Name + "." + name, counted));
+                        Seen.Add((mod, Naming.MemberPath(type.Name, name), counted));
                         if (counted) Note(rule, mod);
                     }
                 }

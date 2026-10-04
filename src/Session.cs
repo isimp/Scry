@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -187,6 +188,14 @@ namespace Scry
             else if (job.Failure != "the world was left") Failed(job.Failure, scene);
         }
 
+        /// <summary>How long reading the catalog took and what it holds, kind by kind, for the log.</summary>
+        [Diagnostic]
+        private static void TellRead(List<Entry> catalog, CatalogJob job)
+        {
+            var kinds = string.Join(", ", catalog.GroupBy(e => e.Kind).OrderBy(g => g.Key).Select(g => $"{Numbers.Count(g.Count())} {Kinds.Label(g.Key).ToLowerInvariant()}"));
+            Log.Report($"Scry read {Numbers.Count(catalog.Count)} prefabs and status effects in {Numbers.Amount(job.WorkMs, 0)} ms over {Numbers.Count(job.Frames)} frames ({Numbers.Fixed(job.ElapsedMs / 1000.0, 1)} s in all): {kinds}.");
+        }
+
         private static void Made(CatalogJob job, ZNetScene scene)
         {
             var catalog = job.Entries;
@@ -209,8 +218,7 @@ namespace Scry
 
             _scene = scene;
             _failedIn = null;
-            var kinds = string.Join(", ", catalog.GroupBy(e => e.Kind).OrderBy(g => g.Key).Select(g => $"{Numbers.Count(g.Count())} {Kinds.Label(g.Key).ToLowerInvariant()}"));
-            Log.Report($"Scry read {Numbers.Count(catalog.Count)} prefabs and status effects in {Numbers.Amount(job.WorkMs, 0)} ms over {Numbers.Count(job.Frames)} frames ({Numbers.Fixed(job.ElapsedMs / 1000.0, 1)} s in all): {kinds}.");
+            TellRead(catalog, job);
 
             // Where things are found, read by itself for those who want it: the same background
             // reading the panel's button starts, a few milliseconds a frame.

@@ -23,7 +23,7 @@ namespace Scry
         private static readonly HashSet<string> Told = new HashSet<string>();
 
         /// <summary>Whether a note is new this session, noting it as told.</summary>
-        private static bool FirstTime(string note) => Told.Add(note);
+        private static bool FirstTime(string key) => Told.Add(key);
 
         private static Explorer _explorer;
         private static int _selectionVersion = -1;

@@ -181,6 +181,7 @@ namespace Scry
         }
 
         /// <summary>How a clip is named in the log: the prefab it is on and its name.</summary>
+        [Diagnostic]
         public string Heard(AnimationClip clip) => clip == null ? null : $"{name}'s clip {clip.name}";
 
         /// <summary>Sends the events the clip passed since it was last looked at.</summary>

@@ -78,6 +78,7 @@ namespace Scry
         private static readonly HashSet<string> ToldSets = new HashSet<string>();
 
         /// <summary>Says once per creature which sets it rolls from and what is in each, drawn or not.</summary>
+        [Diagnostic]
         private static void Tell(GameObject prefab, List<Humanoid.ItemSet> sets)
         {
             if (!ToldSets.Add(prefab.name)) return;

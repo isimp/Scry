@@ -72,7 +72,7 @@ namespace Scry
                     }
 
                     if (found.Users.Add(ownerName)) found.UserOrigins.Add(ownerOrigin);
-                    found.Fields.Add((ownerName == Provenance.Interface ? Groups.InterfaceField : ownerName.StartsWith("status effect ", StringComparison.Ordinal) ? Groups.StatusEffectField : "") + on.Field);
+                    found.Fields.Add(Groups.FieldOf(on.Field, ownerName == Provenance.Interface, Provenance.IsStatusEffect(ownerName)));
                 }
             }
         }
@@ -128,9 +128,6 @@ namespace Scry
 
         private static readonly Dictionary<Type, FieldInfo[]> NamingFields = new Dictionary<Type, FieldInfo[]>();
 
-        /// <summary>How .NET writes a set of flags: "Fire, Frost".</summary>
-        private static readonly string[] FlagSeparator = { ", " };
-
         /// <summary>
         /// What one entry of game data is for, by its first field that says so: an item (by its
         /// shown name), a prefab, or a kind (an enum, such as a projectile type); empty if none.
@@ -157,7 +154,7 @@ namespace Scry
                 case Enum kind:
                     // A kind of nothing (a projectile type of None) says nothing; flags each say theirs.
                     if (Convert.ToInt64(kind, System.Globalization.CultureInfo.InvariantCulture) == 0) return "";
-                    return string.Join(", ", kind.ToString().Split(FlagSeparator, StringSplitOptions.RemoveEmptyEntries).Select(Naming.FieldLabel));
+                    return FactWords.Choice(kind) ?? "";
                 default:
                     return "";
             }
@@ -184,7 +181,7 @@ namespace Scry
                     : ft.IsGenericType && ft.GetGenericTypeDefinition() == typeof(List<>) ? ft.GetGenericArguments()[0]
                     : ft;
                 if (!HoldsLists(element)) return Array.Empty<(FieldInfo, (FieldInfo, string, string)[])>();
-                var inner = EffectFields(element).Select(f => (f, outer.Name + "." + f.Name, Naming.NestedListLabel(outer.Name, f.Name))).ToArray();
+                var inner = EffectFields(element).Select(f => (f, Naming.MemberPath(outer.Name, f.Name), Naming.NestedListLabel(outer.Name, f.Name))).ToArray();
                 return inner.Length > 0 ? new[] { (outer, inner) } : Array.Empty<(FieldInfo, (FieldInfo, string, string)[])>();
             });
 

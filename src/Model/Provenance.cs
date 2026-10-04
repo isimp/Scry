@@ -13,6 +13,13 @@ namespace Scry
         /// <summary>Stands for the game's own interface as the user of an effect.</summary>
         public const string Interface = "(interface)";
 
+        /// <summary>A status effect as the owner of the effect lists it plays.</summary>
+        public static string StatusEffect(string name) => StatusEffectOwner + name;
+
+        public static bool IsStatusEffect(string owner) => owner != null && owner.StartsWith(StatusEffectOwner, System.StringComparison.Ordinal);
+
+        private const string StatusEffectOwner = "status effect ";
+
         private HashSet<string> _original;
 
         /// <summary>Records the names present before any mod added its own.</summary>

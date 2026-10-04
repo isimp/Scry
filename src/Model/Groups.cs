@@ -253,6 +253,13 @@ namespace Scry
 
         public const string InterfaceField = "ui:";
 
+        /// <summary>The mark of what a status effect spawns, among the fields something is played in.</summary>
+        public const string StatusEffectSpawned = StatusEffectField + "spawned";
+
+        /// <summary>An effect list's field, marked by what it is on: the interface's, a status effect's, or neither.</summary>
+        public static string FieldOf(string field, bool onInterface, bool onStatusEffect) =>
+            (onInterface ? InterfaceField : onStatusEffect ? StatusEffectField : "") + field;
+
         /// <summary>
         /// What an effect or sound is for: by the names of the effect lists it is in (a status
         /// effect's marked "se:", the interface's "ui:"), and whether it is a footstep or played by

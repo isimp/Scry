@@ -10,6 +10,7 @@ namespace Scry
     /// for a clip the events that arrived and the footsteps heard. For finding out why something
     /// seems to play nothing, without guessing.
     /// </summary>
+    [Diagnostic]
     internal static class Listen
     {
         /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>

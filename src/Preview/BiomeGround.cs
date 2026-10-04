@@ -269,6 +269,7 @@ namespace Scry
         }
 
         /// <summary>The value the terrain's material holds for each of its properties, without the stage's, and how it is drawn, for the self-test to tell.</summary>
+        [Diagnostic]
         public string MaterialTold(Camera camera, Func<Bounds, bool> inView)
         {
             if (_material == null) return "no material";

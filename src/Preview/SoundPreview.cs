@@ -178,6 +178,7 @@ namespace Scry
         }
 
         /// <summary>Its source and how its clip loads, for the self-test to tell.</summary>
+        [Diagnostic]
         public string SourceTold()
         {
             var source = Source();
@@ -224,9 +225,14 @@ namespace Scry
                 return;
             }
             var step = _seek.Step(source.time, source.isPlaying, Time.unscaledTime);
-            if (step != SeekStep.Expired && trail.Count < 60) trail.Add($"{Numbers.Fixed(source.time, 2)} s, sample {Numbers.Count(source.timeSamples)}{(source.isPlaying ? "" : ", not playing")}");
+            if (step != SeekStep.Expired && trail.Count < 60) trail.Add(TrailLine(source));
             if (step == SeekStep.SetAgain) SetPoint(source, point);
         }
+
+        /// <summary>Where a source is, for the self-test's trail of a seek.</summary>
+        [Diagnostic]
+        private static string TrailLine(AudioSource source) =>
+            $"{Numbers.Fixed(source.time, 2)} s, sample {Numbers.Count(source.timeSamples)}{(source.isPlaying ? "" : ", not playing")}";
 
         /// <summary>Sets where a source plays from, by its samples as well as its time: a streamed clip may keep only the one.</summary>
         private static void SetPoint(AudioSource source, float time)

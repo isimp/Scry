@@ -384,11 +384,7 @@ namespace Scry
                 plays.Tags[pair.Key] = (lower.Contains("jump") ? "jumps" : lower.Contains("swim") ? "swims" : "in water") + ", by name";
             }
             foreach (var clip in seen.Idle) if (!plays.Tags.ContainsKey(clip)) plays.Tags[clip] = "idles";
-            if (body != null && FirstTime("lasting:" + prefab.name))
-            {
-                string Of(EffectList list) => EffectSlots.ShowsAny(list) ? string.Join(", ", EffectSlots.NamesPlayed(list)) : "nothing";
-                Log.Note($"Scry: {prefab.name} keeps going in water {Of(body.m_waterEffects)}; flying {Of(body.m_flyingContinuousEffect)}{(body.m_flying ? ", and it flies from birth" : "")}; its own scale {Numbers.Amount(prefab.transform.localScale.x, 2)}.");
-            }
+            if (body != null && FirstTime("lasting:" + prefab.name)) TellLasting(prefab, body);
             return plays;
         }
 
@@ -420,13 +416,22 @@ namespace Scry
             if (character.OrNull()?.m_deathEffects != null) yield return ("dead", character.m_deathEffects);
         }
 
+        /// <summary>What a creature keeps going in water and in flight, and its own scale, said once per prefab.</summary>
+        [Diagnostic]
+        private static void TellLasting(GameObject prefab, Character body)
+        {
+            string Of(EffectList list) => EffectSlots.ShowsAny(list) ? string.Join(", ", EffectSlots.NamesPlayed(list)) : "nothing";
+            Log.Note($"Scry: {prefab.name} keeps going in water {Of(body.m_waterEffects)}; flying {Of(body.m_flyingContinuousEffect)}{(body.m_flying ? ", and it flies from birth" : "")}; its own scale {Numbers.Amount(prefab.transform.localScale.x, 2)}.");
+        }
+
         /// <summary>The trigger an attack starts by on this animator, as <c>Attack.Start</c> pulls it, or null when it has none.</summary>
         private static string TriggerOf(Animator animator, Attack attack)
         {
             var anim = attack.m_attackAnimation;
             if (string.IsNullOrEmpty(anim)) return null;
             if (HasTrigger(animator, anim)) return anim;
-            return attack.m_attackChainLevels > 1 && HasTrigger(animator, anim + "0") ? anim + "0" : null;
+            var first = ClipAttacks.ChainStart(anim);
+            return attack.m_attackChainLevels > 1 && HasTrigger(animator, first) ? first : null;
         }
 
         private static bool HasTrigger(Animator animator, string name)

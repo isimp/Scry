@@ -281,12 +281,16 @@ namespace Scry
                 if (parameter.name == "statef" && parameter.type == AnimatorControllerParameterType.Float) { animator.SetFloat("statef", (float)state); stood = true; }
             }
 
-            var told = $"{prefab.name}|{string.Join(",", items.Where(i => i != null).Select(i => i.name))}";
-            if (Told.Add(told))
-            {
-                var hands = string.Join(", ", items.Where(i => i != null && PrefabGear.SlotOf(i) != Slot.None && PrefabGear.SlotOf(i) != Slot.Head && PrefabGear.SlotOf(i) != Slot.Chest && PrefabGear.SlotOf(i) != Slot.Legs).Select(i => i.name + (PrefabGear.AttachPart(i, out _) != null ? "" : " (not drawn)")));
-                Log.Note($"Scry dressed {prefab.name}: in hand {(hands.Length > 0 ? hands : "nothing")}; stance {state}{(stood ? "" : ", which its animator does not take")}.");
-            }
+            TellDressed(prefab, items, state, stood);
+        }
+
+        /// <summary>What a copy holds and the stance it took, said once for each prefab and what it holds.</summary>
+        [Diagnostic]
+        private static void TellDressed(GameObject prefab, IList<GameObject> items, ItemDrop.ItemData.AnimationState state, bool stood)
+        {
+            if (!Told.Add($"{prefab.name}|{string.Join(",", items.Where(i => i != null).Select(i => i.name))}")) return;
+            var hands = string.Join(", ", items.Where(i => i != null && PrefabGear.SlotOf(i) != Slot.None && PrefabGear.SlotOf(i) != Slot.Head && PrefabGear.SlotOf(i) != Slot.Chest && PrefabGear.SlotOf(i) != Slot.Legs).Select(i => i.name + (PrefabGear.AttachPart(i, out _) != null ? "" : " (not drawn)")));
+            Log.Note($"Scry dressed {prefab.name}: in hand {(hands.Length > 0 ? hands : "nothing")}; stance {state}{(stood ? "" : ", which its animator does not take")}.");
         }
 
         /// <summary>

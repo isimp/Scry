@@ -51,10 +51,10 @@ namespace Scry
         /// One step of dressing a copy. A step that fails, as one can on a mod's prefab laid out
         /// in a way it does not expect, is left out, and each distinct failure is told once.
         /// </summary>
-        private static void Step(GameObject prefab, string what, System.Action step)
+        private static void Step(GameObject prefab, string part, System.Action step)
         {
             var started = Timing.Start();
-            if (Guard.Each(what, prefab.name, step) && Settings.LogPreviews) Timing.Add("dress " + what, started);
+            if (Guard.Each(part, prefab.name, step) && Settings.LogPreviews) Timing.Add("dress " + part, started);
         }
 
         /// <summary>Show wearable items worn by a person rather than on their own.</summary>
@@ -221,20 +221,20 @@ namespace Scry
         }
 
         /// <summary>The level's material, made once per creature and level and reused after.</summary>
-        private static Material[] Tinted(string prefabName, int level, Material[] original, LevelEffects.LevelSetup setup)
+        private static Material[] Tinted(string key, int level, Material[] original, LevelEffects.LevelSetup setup)
         {
             var materials = (Material[])original.Clone();
             if (materials.Length == 0 || materials[0] == null) return materials;
 
-            var key = prefabName + "#" + Stored.Count(level);
-            if (!LevelMaterials.TryGetValue(key, out var tinted) || tinted == null)
+            var levelKey = key + "#" + Stored.Count(level);
+            if (!LevelMaterials.TryGetValue(levelKey, out var tinted) || tinted == null)
             {
                 tinted = new Material(materials[0]);
                 tinted.SetFloat("_Hue", setup.m_hue);
                 tinted.SetFloat("_Saturation", setup.m_saturation);
                 tinted.SetFloat("_Value", setup.m_value);
                 if (setup.m_setEmissiveColor) tinted.SetColor("_EmissionColor", setup.m_emissiveColor);
-                LevelMaterials[key] = tinted;
+                LevelMaterials[levelKey] = tinted;
             }
 
             materials[0] = tinted;

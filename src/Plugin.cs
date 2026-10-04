@@ -84,6 +84,7 @@ namespace Scry
         private static readonly string[] EventParts = new string[64];
 
         /// <summary>The timing part for a kind of GUI event ("panel repaint"), made once.</summary>
+        [Diagnostic]
         private static string EventPart(EventType kind)
         {
             var index = (int)kind;

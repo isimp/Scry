@@ -31,6 +31,9 @@ namespace Scry
     /// </summary>
     internal static class ClipAttacks
     {
+        /// <summary>The trigger a chain attack starts with, its animation's name and 0, as the game numbers a chain's steps (<c>Attack.m_attackChainLevels</c>).</summary>
+        public static string ChainStart(string animation) => animation + "0";
+
         /// <param name="attacks">Each attack's trigger and a key to it, what the creature has now first.</param>
         /// <param name="seen">The clips each trigger was seen to play, in order, by trigger.</param>
         /// <param name="clips">The names of all the clips the creature has.</param>

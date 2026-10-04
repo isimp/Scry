@@ -10,6 +10,7 @@ namespace Scry
     /// member an update renamed) is told as the feature it turns off, and the panel shows those
     /// features; one odd prefab's part is counted and told with the others once the catalog is read.
     /// </summary>
+    [Diagnostic]
     internal static class Faults
     {
         private static readonly HashSet<string> Told = new HashSet<string>();

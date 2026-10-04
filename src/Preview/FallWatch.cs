@@ -10,6 +10,7 @@ namespace Scry
     /// rest, measured from the foot of the copy it came from, with what it has to land with and
     /// what else it touched on the way (another copy, the ground, a building or a tree of the world).
     /// </summary>
+    [Diagnostic]
     internal sealed class FallWatch : MonoBehaviour
     {
         private const float Seconds = 3f;

@@ -124,6 +124,7 @@ namespace Scry
         public int OnLayer(int layer) => _copies.Count(pair => pair.Key != null && pair.Key.layer == layer);
 
         /// <summary>The creatures that fly and how high over their ground, by kind.</summary>
+        [Diagnostic]
         public string FlyersTold() => string.Join(", ", _lift.Where(pair => pair.Key != null && pair.Value > 0f)
             .GroupBy(pair => (pair.Key.name, pair.Value)).Select(g => $"{g.Key.name} {Numbers.Amount(g.Key.Value, 1)} m up x{Numbers.Count(g.Count())}"));
 
