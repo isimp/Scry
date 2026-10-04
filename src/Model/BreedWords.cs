@@ -38,8 +38,8 @@ namespace Scry
         /// <summary>The title over its young, with the stars they have.</summary>
         public static string Young(int minLevel) => "Has young, " + Stars(minLevel);
 
-        /// <summary>The title over what a young one grows into, one of several where it may grow into more than one, and whether it stays tame.</summary>
-        public static string GrowsInto(bool oneOf, bool staysTame) => (oneOf ? "Grows into one of these" : "Grows into") + (staysTame ? ", staying tame" : "");
+        /// <summary>The title over what a young one grows into, worded as a plant's (<see cref="GatherWords.GrowsInto"/>), and whether it stays tame.</summary>
+        public static string GrowsInto(bool oneOf, bool staysTame) => GatherWords.GrowsInto(oneOf) + (staysTame ? ", staying tame" : "");
 
         /// <summary>What an egg hatches into, and that it hatches tame where it does.</summary>
         public static string HatchesInto(string creature, bool tame) => tame ? creature + ", tame" : creature;

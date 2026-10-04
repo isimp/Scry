@@ -87,7 +87,8 @@ namespace Scry.Tests
         public void AYoungOneSaysWhatItGrowsIntoAndWhetherItStaysTame()
         {
             Assert.Equal("Grows into", BreedWords.GrowsInto(oneOf: false, staysTame: false));
-            Assert.Equal("Grows into one of these, staying tame", BreedWords.GrowsInto(oneOf: true, staysTame: true));
+            Assert.Equal("Grows into one of, staying tame", BreedWords.GrowsInto(oneOf: true, staysTame: true));
+            Assert.Equal("Grows into one of", BreedWords.GrowsInto(oneOf: true, staysTame: false));
         }
     }
 }
