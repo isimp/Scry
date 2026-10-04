@@ -23,6 +23,24 @@ namespace Scry.Tests
         };
 
         [Fact]
+        public void TheReportCanBeNarrowedToModsByNameOrToThoseThatAddSomething()
+        {
+            var adds = new ModSummary { Mod = "Bamboozled" };
+            adds.Counts[Kind.Item] = 2;
+            var hooks = new ModSummary { Mod = "DropThat" };
+            hooks.Hooks.Add(HookedRule.Drops);
+            var report = new List<ModSummary> { adds, hooks };
+
+            Assert.Equal(new[] { "Bamboozled", "DropThat" }, ModReport.Narrowed(report, "", onlyAdding: false).Select(m => m.Mod));
+            Assert.Equal(new[] { "Bamboozled" }, ModReport.Narrowed(report, "", onlyAdding: true).Select(m => m.Mod));
+            Assert.Equal(new[] { "DropThat" }, ModReport.Narrowed(report, "drop", onlyAdding: false).Select(m => m.Mod));
+            Assert.Equal(new[] { "DropThat" }, ModReport.Narrowed(report, "  DROP that ", onlyAdding: false).Select(m => m.Mod));
+            Assert.Empty(ModReport.Narrowed(report, "drop", onlyAdding: true));
+            Assert.Contains("only hook", ModReportWords.AddingTip(on: false));
+            Assert.StartsWith("Showing only", ModReportWords.AddingTip(on: true));
+        }
+
+        [Fact]
         public void WhatScryCouldNotPlaceIsToldInTheSameRowsOnThePageAndInTheReport()
         {
             var mod = new ModSummary();

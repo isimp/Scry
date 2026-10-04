@@ -16,6 +16,13 @@ namespace Scry
         private static Vector2 _modScroll;
         private static float _modHeight;
 
+        /// <summary>The report's filter by mod name, and whether it shows only mods that add something.</summary>
+        private static string _modFilter = "";
+
+        private static bool _modsAddingOnly;
+
+        private const string ModFilterControl = "ScryModFilter";
+
         /// <summary>How many mods added to the catalog, for the bar above the list.</summary>
         private static int _modCount;
         private static Explorer _modCountFor;
@@ -65,8 +72,24 @@ namespace Scry
             y = Paragraph("What each mod adds, what Scry links for its crafting stations and build tools, which of the game's rules it hooks into, and what Scry could not place. What could not be placed may come from the mod's own code, which only the mod knows.", x, y, width);
             if (Locations.Now != Locations.State.Read) y = Paragraph("Until every location is read, what is found only in locations counts as having no source.", x, y, width);
 
-            var report = ModReportReader.Of(explorer.Catalog);
-            if (report.Count == 0) y = Paragraph("No mod adds anything or hooks into the game's drops or spawning.", x, y + U(6f), width);
+            var all = ModReportReader.Of(explorer.Catalog);
+            if (all.Count == 0) y = Paragraph("No mod adds anything or hooks into the game's drops or spawning.", x, y + U(6f), width);
+
+            // Narrowed by a mod's name, or to the mods that add something of their own.
+            if (all.Count > 0)
+            {
+                y += U(8f);
+                const string adding = "Only mods that add something";
+                var chipW = Skin.Width(Skin.Chip, adding) + U(12f);
+                var filterW = Mathf.Min(U(260f), width - chipW - U(10f));
+                _modFilter = FilterField(ModFilterControl, _modFilter, new Rect(x, y, filterW, U(28f)));
+                var chip = new Rect(x + filterW + U(10f), y + U(1f), chipW, U(26f));
+                if (GUI.Button(chip, adding, _modsAddingOnly ? Skin.ChipOn : Skin.Chip)) _modsAddingOnly = !_modsAddingOnly;
+                if (chip.Contains(Event.current.mousePosition)) AskTip("mods-adding", ModReportWords.AddingTip(_modsAddingOnly));
+                y += U(36f);
+            }
+            var report = ModReport.Narrowed(all, _modFilter, _modsAddingOnly);
+            if (all.Count > 0 && report.Count == 0) y = Paragraph("No mod matches.", x, y, width);
             foreach (var mod in report)
             {
                 y += U(10f);

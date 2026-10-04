@@ -63,6 +63,19 @@ namespace Scry
     /// </summary>
     internal static class ModReport
     {
+        /// <summary>
+        /// The report narrowed to the mods whose name holds the text typed (whatever its case and
+        /// spaces), and, when asked, to those that add something of their own rather than only
+        /// hooking into the game's rules.
+        /// </summary>
+        public static List<ModSummary> Narrowed(IReadOnlyList<ModSummary> report, string name, bool onlyAdding)
+        {
+            var typed = Squeezed(name);
+            return report.Where(m => Squeezed(m.Mod).Contains(typed) && (!onlyAdding || m.Counts.Count > 0)).ToList();
+        }
+
+        private static string Squeezed(string text) => (text ?? "").Replace(" ", "").ToLowerInvariant();
+
         public static List<ModSummary> Of(IEnumerable<ModEntry> entries, IReadOnlyDictionary<string, IReadOnlyList<HookedRule>> hooks)
         {
             var mods = new Dictionary<string, ModSummary>(StringComparer.Ordinal);
@@ -110,6 +123,11 @@ namespace Scry
     {
         /// <summary>What a mod's page says it adds when Scry sees nothing it adds or hooks into.</summary>
         public const string NothingAdded = "nothing Scry can see, and it hooks into none of what Scry tells";
+
+        /// <summary>The tip of the report's switch to show only mods that add something.</summary>
+        public static string AddingTip(bool on) => on
+            ? "Showing only mods that add something; click to show those that only hook in too"
+            : "Leaves out mods that only hook into the game's rules";
 
         /// <summary>The bar over the list of what mods add: how many mods add something.</summary>
         public static string Bar(int mods) => mods == 1 ? "What 1 mod adds" : $"What {Numbers.Count(mods)} mods add";
