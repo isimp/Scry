@@ -212,13 +212,13 @@ namespace Scry
         /// </summary>
         private void Part(string part, Action read)
         {
-            if (!Guard.Run("the " + part + " details", read, Settings.LogPreviews ? "facts " + part : null) && !_missing.Contains(part)) _missing.Add(part);
+            if (!Guard.Run(FactWords.Part(part), read, Settings.LogPreviews ? FactWords.PartTiming(part) : null) && !_missing.Contains(part)) _missing.Add(part);
         }
 
         private void TellMissing()
         {
             if (_missing.Count == 0) return;
-            Add("Not shown", $"the {string.Join(", ", _missing)} details could not be read (the log says why)");
+            Add("Not shown", FactWords.NotShown(_missing));
         }
 
         /// <summary>Forgets everything read, for a new world.</summary>
@@ -275,7 +275,7 @@ namespace Scry
 
             // What a door is opened with, and what a key opens.
             var door = prefab.GetComponent<Door>();
-            if (door != null && door.m_keyItem != null) Add("Opened with", ItemName(door.m_keyItem.gameObject) + (door.m_consumeKey ? ", used up" : ""), door.m_keyItem.gameObject.name);
+            if (door != null && door.m_keyItem != null) Add("Opened with", BuildWords.OpenedWith(ItemName(door.m_keyItem.gameObject), door.m_consumeKey), door.m_keyItem.gameObject.name);
             var opens = Knowledge.Opens(prefab.name);
             if (opens.Count > 0)
             {
@@ -287,7 +287,7 @@ namespace Scry
             // The Forsaken power a trophy gives on its boss stone.
             var (power, stone) = Knowledge.PowerOf(prefab.name);
             var powerEffect = power != null && ObjectDB.instance != null ? ObjectDB.instance.GetStatusEffect(power.GetStableHashCode()) : null;
-            if (powerEffect != null) Add("On its boss stone", $"gives {EffectName(powerEffect)}", EntryKeys.For(Kind.StatusEffect, power));
+            if (powerEffect != null) Add("On its boss stone", ItemWords.Gives(EffectName(powerEffect)), EntryKeys.For(Kind.StatusEffect, power));
 
             Part("machines", () => Machines(prefab));
 
@@ -319,7 +319,7 @@ namespace Scry
                 var game = Game.instance;
                 var enemy = character != null && !(character is Player);
                 var note = WorldWords.Note(Game.m_worldLevel, game != null ? game.m_worldLevelEnemyHPMultiplier : 1f, Game.m_resourceRate, enemy, _drops);
-                if (note != null) Add("In this world", char.ToUpperInvariant(note[0]) + note.Substring(1));
+                Add("In this world", Naming.Capital(note));
             });
         }
 
@@ -363,30 +363,6 @@ namespace Scry
         {
             var icons = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_icons : null;
             return icons != null && icons.Length > 0 ? icons[0] : null;
-        }
-
-        /// <summary>A value as text, or null for a choice the game has no name for (a mod's own numbered one).</summary>
-        private static string Shown(object value)
-        {
-            if (value is float f) return Numbers.Amount(f);
-            if (value is bool b) return b ? "yes" : "no";
-            if (value is Enum e) return Word(e)?.ToLowerInvariant();
-            return Convert.ToString(value, CultureInfo.InvariantCulture);
-        }
-
-        /// <summary>How .NET writes a set of flags: "Fire, Frost".</summary>
-        private static readonly string[] FlagSeparator = { ", " };
-
-        /// <summary>
-        /// A choice by its name, "OneHandedWeapon" as "One handed weapon". Null when the value has
-        /// no name, which is how a mod's own categories and factions show up, as bare numbers.
-        /// Flags that combine several names are joined.
-        /// </summary>
-        private static string Word(Enum value)
-        {
-            var text = value.ToString();
-            if (text.Length > 0 && (char.IsDigit(text[0]) || text[0] == '-')) return null;
-            return string.Join(", ", text.Split(FlagSeparator, StringSplitOptions.None).Select(Naming.FieldLabel));
         }
 
         private static string EffectName(StatusEffect effect)

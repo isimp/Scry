@@ -162,7 +162,7 @@ namespace Scry
                 p.Check(told.Description == described.Mod.Description && Value(told, "By") == described.Mod.Author, $"{described.Mod.Name}'s page tells what it is and who made it", $"{told.Description} / {Value(told, "By")}");
                 if (ModWords.IsWebsite(described.Mod.Website))
                 {
-                    p.Check(told.Links.TryGetValue("Website", out var web) && web == Facts.OpenWebsite + described.Mod.Website, "its website opens in the browser");
+                    p.Check(told.Links.TryGetValue("Website", out var web) && EntryKeys.WebsiteOf(web) == described.Mod.Website, "its website opens in the browser");
                 }
             }
 

@@ -49,6 +49,9 @@ namespace Scry
             return least == 0 ? $"up to {Numbers.Count(most)} {noun}" : $"{Numbers.CountRange(least, most)} {noun}";
         }
 
+        /// <summary>The label of a creature a spawner spawns.</summary>
+        public static string Spawns(string creature) => "Spawns " + creature;
+
         /// <summary>How many come together, or null for one at a time.</summary>
         public static string Group(int min, int max) => max > 1 ? "in groups of " + Numbers.CountRange(min, max) : null;
 

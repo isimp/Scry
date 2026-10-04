@@ -19,7 +19,7 @@ namespace Scry
             var total = pool.Sum(p => p.m_weight);
             foreach (var data in ContentOrder.ToughestFirst(pool, d => FoeOf(d.m_prefab)))
             {
-                var key = "Spawns " + AnyName(data.m_prefab, data.m_prefab.name);
+                var key = SpawnWords.Spawns(AnyName(data.m_prefab, data.m_prefab.name));
                 if (Pairs.Any(p => p.Key == key)) continue;
                 Add(key, SpawnWords.PoolShare(data.m_weight, total, data.m_minLevel, data.m_maxLevel), data.m_prefab.name);
             }

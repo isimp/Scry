@@ -40,9 +40,8 @@ namespace Scry
                 var valueRect = new Rect(labelW + U(10f), y, valueW, height);
                 if (unsure && new Rect(0f, y, width, height).Contains(Event.current.mousePosition)) AskTip("unsure:" + pair.Key, why);
                 // Music plays where it is named: the entry's own, or one by its name (a biome has one for each time of day).
-                if (facts.Links.TryGetValue(pair.Key, out var music) && music.StartsWith(Facts.PlayMusic, StringComparison.Ordinal))
+                if (facts.Links.TryGetValue(pair.Key, out var music) && EntryKeys.PlaysMusic(music, out var named))
                 {
-                    var named = music.Length > Facts.PlayMusic.Length ? music.Substring(Facts.PlayMusic.Length + 1) : null;
                     var playing = MusicPreview.PlayingFor == entry && (named == null || MusicPreview.Playing == named);
                     var musicW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
                     var musicRect = new Rect(valueRect.x, valueRect.y, musicW, height);
@@ -55,13 +54,13 @@ namespace Scry
                     }
                 }
                 // A mod's website opens in the browser.
-                else if (facts.Links.TryGetValue(pair.Key, out var web) && web.StartsWith(Facts.OpenWebsite, StringComparison.Ordinal))
+                else if (facts.Links.TryGetValue(pair.Key, out var web) && EntryKeys.WebsiteOf(web) is string url)
                 {
                     var webW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
                     var webRect = new Rect(valueRect.x, valueRect.y, webW, height);
                     LinkLabel(webRect, pair.Value, Skin.Wrap, Skin.Accent);
                     if (webRect.Contains(Event.current.mousePosition)) AskTip("web:" + entry.Key, "Open it in your browser");
-                    if (GUI.Button(webRect, GUIContent.none, GUIStyle.none)) Application.OpenURL(web.Substring(Facts.OpenWebsite.Length));
+                    if (GUI.Button(webRect, GUIContent.none, GUIStyle.none)) Application.OpenURL(url);
                 }
                 // A link only to what is in the catalog: a creature's own attack items are not.
                 else if (facts.Links.TryGetValue(pair.Key, out var link) && InCatalog(explorer, link))

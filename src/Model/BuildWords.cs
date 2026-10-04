@@ -26,6 +26,9 @@ namespace Scry
         /// <summary>The title of what building it costs, with the station it is built near where it needs one.</summary>
         public static string Cost(string station) => string.IsNullOrEmpty(station) ? "Build cost" : "Built near " + station;
 
+        /// <summary>The key a door is opened with, and that opening it uses the key up where it does.</summary>
+        public static string OpenedWith(string key, bool usedUp) => usedUp ? key + ", used up" : key;
+
         /// <summary>The mod one of the game's own prefabs is made buildable through.</summary>
         public static string Through(string mod) => "through " + mod;
 

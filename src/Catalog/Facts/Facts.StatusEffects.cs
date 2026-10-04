@@ -59,7 +59,7 @@ namespace Scry
                     var value = TypeFields.Value(field, effect);
                     if (Equals(value, TypeFields.Value(field, blank))) continue;
                     // A time is told with its unit ("Cooldown 20 min", not 1,200).
-                    var shown = value is float seconds && StatusEffectWords.IsTime(field.Name) ? Numbers.Duration(seconds) : Shown(value);
+                    var shown = value is float seconds && StatusEffectWords.IsTime(field.Name) ? Numbers.Duration(seconds) : FactWords.Value(value);
                     if (shown != null) Add(Naming.FieldLabel(field.Name), shown);
                 }
 
@@ -67,7 +67,7 @@ namespace Scry
                 {
                     foreach (var pair in stats.m_mods)
                     {
-                        var damage = Word(pair.m_type);
+                        var damage = FactWords.Choice(pair.m_type);
                         if (damage != null) Add(ResistWords.Label(DegreeOf(pair.m_modifier)), damage.ToLowerInvariant());
                     }
                 }

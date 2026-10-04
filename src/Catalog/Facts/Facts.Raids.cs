@@ -8,9 +8,6 @@ namespace Scry
     {
         // ----- Raids -----
 
-        /// <summary>A link that plays music rather than going anywhere: the entry's own (<see cref="Previews.PlacesMusic"/>), or after a colon a piece by its name (<see cref="Previews.NamedMusic"/>).</summary>
-        public const string PlayMusic = "play:music";
-
         /// <summary>A weather by name and what it does to whoever is out in it (<see cref="WeatherWords"/>); the name alone when the world has no such weather.</summary>
         private static string Weather(string name)
         {
@@ -38,7 +35,7 @@ namespace Scry
             {
                 var range = EnemyHud.instance != null ? EnemyHud.instance.m_maxShowDistanceBoss : 100f;
                 Add("On", RaidWords.WhileFighting(AnyName(boss, boss.name), range), boss.name);
-                Add("Music", Naming.FieldLabel(raid.m_forceMusic), PlayMusic);
+                Add("Music", Naming.FieldLabel(raid.m_forceMusic), EntryKeys.PlayMusic);
                 Add("Weather", Weather(raid.m_forceEnvironment));
                 if (!string.IsNullOrEmpty(raid.m_forceEnvironment)) Hooked(HookedRule.Weather);
                 if (!raid.m_random && raid.m_standaloneInterval <= 0f) return;
@@ -62,7 +59,7 @@ namespace Scry
             Add("Ends with", CatalogBuilder.Localize(raid.m_endMessage));
             if (boss == null)
             {
-                Add("Music", Naming.FieldLabel(raid.m_forceMusic), PlayMusic);
+                Add("Music", Naming.FieldLabel(raid.m_forceMusic), EntryKeys.PlayMusic);
                 Add("Weather", Weather(raid.m_forceEnvironment));
                 if (!string.IsNullOrEmpty(raid.m_forceEnvironment)) Hooked(HookedRule.Weather);
             }

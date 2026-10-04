@@ -41,6 +41,9 @@ namespace Scry
             @"</?(color|b|i|size|material|quad|sprite|u|s|sup|sub|mark|font|align|alpha|cspace|indent|line-height|lowercase|uppercase|smallcaps|noparse|nobr|space|voffset|width|link|style|rotate|pos)(=[^>]*)?>",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
+        /// <summary>A text begun with a capital: "health ×2" as "Health ×2".</summary>
+        public static string Capital(string text) => string.IsNullOrEmpty(text) ? text : char.ToUpperInvariant(text[0]) + text.Substring(1);
+
         /// <summary>Names one after another with commas: "A, B, C".</summary>
         public static string Commas(System.Collections.Generic.IEnumerable<string> names) => string.Join(", ", names);
 

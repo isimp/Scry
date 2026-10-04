@@ -132,7 +132,7 @@ namespace Scry
         {
             Add("Levels at its spawn points", SpawnWords.LocationLevels(contents.EnemyMinLevel, contents.EnemyMaxLevel, contents.EnemyLevelUpChance, contents.LevelOverrideExceptions));
             if (contents.NoBuild && contents.NoBuildRadius > 0f) Add("Building", LocationWords.NoBuild(contents.NoBuildRadius));
-            Add("Music", LocationWords.Music(contents.Music), contents.Music.Count > 0 ? PlayMusic : null);
+            Add("Music", LocationWords.Music(contents.Music), contents.Music.Count > 0 ? EntryKeys.PlayMusic : null);
 
             foreach (var role in PlaceParts.Roles)
             {

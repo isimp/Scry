@@ -27,6 +27,9 @@ namespace Scry
 
         public static string Coins(int coins) => $"{Numbers.Count(coins)} coins";
 
+        /// <summary>The Forsaken power a trophy gives on its boss stone.</summary>
+        public static string Gives(string power) => "gives " + power;
+
         /// <summary>A figure, and how much each quality adds to it where it adds any (the caller passes none for what cannot be upgraded).</summary>
         public static string PerQuality(double value, double perQuality) =>
             Numbers.Amount(value) + (perQuality > 0.0 ? $", +{Numbers.Amount(perQuality)} per quality" : "");

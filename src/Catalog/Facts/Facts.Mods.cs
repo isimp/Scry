@@ -13,14 +13,11 @@ namespace Scry
     /// </summary>
     internal sealed partial class Facts
     {
-        /// <summary>A link that opens a website in the browser, ahead of its address.</summary>
-        public const string OpenWebsite = "web:";
-
         private void Mod(ModSource mod)
         {
             if (!string.IsNullOrEmpty(mod.Description)) Description = mod.Description;
             Add("By", mod.Author);
-            if (ModWords.IsWebsite(mod.Website)) Add("Website", mod.Website, OpenWebsite + mod.Website);
+            if (ModWords.IsWebsite(mod.Website)) Add("Website", mod.Website, EntryKeys.Website(mod.Website));
             Add("Version", mod.Version);
             Add("Id", mod.Guid);
             Add("Folder", mod.Folder);
@@ -31,7 +28,7 @@ namespace Scry
             // Those here go to their pages; the rest, which are not, are named.
             ModRow("Will not run with", relations.WillNotRunWith, catalog);
             var away = relations.WillNotRunWith.Where(name => catalog.Find(EntryKeys.For(Kind.Mod, name)) == null).ToArray();
-            if (away.Length > 0) Add("Will not run with", string.Join(", ", away));
+            if (away.Length > 0) Add("Will not run with", Naming.Commas(away));
             ModRow("Needs", relations.Needs, catalog);
             ModRow("Needed by", relations.NeededBy, catalog);
             ModRow("Works with, when there", relations.WorksWith, catalog);

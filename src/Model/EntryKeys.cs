@@ -16,6 +16,29 @@ namespace Scry
         public const string Mod = "mod:";
         public const string Biome = "biome:";
 
+        /// <summary>A value's link that plays the entry's own music rather than going to an entry.</summary>
+        public const string PlayMusic = "play:music";
+
+        /// <summary>A value's link that plays music by its name (a biome has one for each time of day).</summary>
+        public static string PlayMusicNamed(string music) => PlayMusic + ":" + music;
+
+        /// <summary>Whether a link plays music, and which by its name; null for the entry's own.</summary>
+        public static bool PlaysMusic(string link, out string named)
+        {
+            named = null;
+            if (link == null || !link.StartsWith(PlayMusic, StringComparison.Ordinal)) return false;
+            if (link.Length > PlayMusic.Length + 1) named = link.Substring(PlayMusic.Length + 1);
+            return true;
+        }
+
+        /// <summary>A value's link that opens a website in the browser.</summary>
+        public static string Website(string url) => Web + url;
+
+        /// <summary>The address a website's link opens; null for a link that opens none.</summary>
+        public static string WebsiteOf(string link) => link != null && link.StartsWith(Web, StringComparison.Ordinal) ? link.Substring(Web.Length) : null;
+
+        private const string Web = "web:";
+
         /// <summary>The key of an entry of this kind and name.</summary>
         public static string For(Kind kind, string name)
         {

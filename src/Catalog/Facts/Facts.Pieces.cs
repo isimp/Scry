@@ -14,7 +14,7 @@ namespace Scry
             if (piece.m_comfort > 0)
             {
                 Add("Comfort", Numbers.Count(piece.m_comfort));
-                Add("Comfort group", BuildWords.ComfortGroup(piece.m_comfortGroup != global::Piece.ComfortGroup.None ? Word(piece.m_comfortGroup) : null));
+                Add("Comfort group", BuildWords.ComfortGroup(piece.m_comfortGroup != global::Piece.ComfortGroup.None ? FactWords.Choice(piece.m_comfortGroup) : null));
                 Hooked(HookedRule.Comfort);
             }
             // Furniture, where comfort is sought, says when it gives none.
@@ -22,7 +22,7 @@ namespace Scry
             if (wear != null)
             {
                 Add("Health", Numbers.Amount(wear.m_health));
-                Add("Material", Word(wear.m_materialType));
+                Add("Material", FactWords.Choice(wear.m_materialType));
                 Part("support", () => Support(wear));
                 Part("weather", () =>
                 {
