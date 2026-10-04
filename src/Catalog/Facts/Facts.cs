@@ -41,6 +41,18 @@ namespace Scry
             /// <summary>A grid in place of chips: every damage type and the share of it taken (<see cref="ResistWords"/>).</summary>
             public List<ResistCell> Cells;
             public readonly List<Ingredient> Items = new List<Ingredient>();
+
+            /// <summary>Gives the items of one name with different prefabs their prefab's name too, so they can be told apart (<see cref="Naming.TellApart"/>).</summary>
+            public void TellApart()
+            {
+                var told = Naming.TellApart(Items.Select(i => (i.Name, i.Prefab)).ToList());
+                for (var i = 0; i < Items.Count; i++)
+                {
+                    var item = Items[i];
+                    item.Name = told[i];
+                    Items[i] = item;
+                }
+            }
         }
 
         public struct Ingredient
@@ -194,6 +206,7 @@ namespace Scry
                 facts.Part("uses", () => facts.Uses(entry.Name));
             }
             facts.TellMissing();
+            foreach (var row in facts.Rows.Concat(facts.UseRows)) row.TellApart();
 
             Cache[entry] = facts;
             return facts;

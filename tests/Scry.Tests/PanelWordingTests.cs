@@ -79,6 +79,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ThingsOfOneNameInARowAreToldApartByTheirPrefabs()
+        {
+            var named = Naming.TellApart(new[] { ("bjorn bite", "bjorn_bite"), ("bjorn bite", "bjorn_slam"), ("Club", "Club"), ("Troll", "Troll") });
+            Assert.Equal(new[] { "bjorn bite (bjorn_bite)", "bjorn bite (bjorn_slam)", "Club", "Troll" }, named);
+            Assert.Equal(new[] { "Troll", "Troll" }, Naming.TellApart(new[] { ("Troll", "Troll"), ("Troll", "Troll") }));
+            Assert.Equal(new[] { "bjorn bite", "bjorn bite" }, Naming.TellApart(new[] { ("bjorn bite", "bjorn_bite"), ("bjorn bite", "bjorn_bite") }));
+            Assert.Empty(Naming.TellApart(new (string, string)[0]));
+        }
+
+        [Fact]
         public void TipsHoldTheirLinesOneUnderAnother()
         {
             Assert.Equal("a\nb", Naming.Lines("a", null, "b", ""));
@@ -193,6 +203,13 @@ namespace Scry.Tests
         public void AClipsChipAndTipSayWhatItIsAndHowLong()
         {
             Assert.Equal("Attack1  ·  attack club", ClipWords.Row("Attack1", "attack club"));
+            Assert.Equal("Attack Bite", ClipWords.Row("Attack Bite", "attack bite"));
+            Assert.Equal("Swim Forward", ClipWords.Row("Swim Forward", "swims"));
+            Assert.Equal("Sleeping", ClipWords.Row("Sleeping", "sleeps"));
+            Assert.Equal("Swim", ClipWords.Row("Swim", "swims in"));
+            Assert.Equal("Idle Swim  ·  in water", ClipWords.Row("Idle Swim", "in water"));
+            Assert.Equal("Jump  ·  jumps, by name", ClipWords.Row("Jump", "jumps, by name"));
+            Assert.Equal("Attack2  ·  attack club, second", ClipWords.Row("Attack2", "attack club, second"));
             Assert.Equal("Attack1", ClipWords.Row("Attack1", null));
             Assert.Equal("Attack1", ClipWords.Row("Attack1", ""));
             Assert.Equal("▶ Attack1", ClipWords.Now("Attack1"));

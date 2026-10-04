@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Scry
 {
@@ -27,8 +29,33 @@ namespace Scry
 
         private const string AttackStart = "attack ";
 
-        /// <summary>A clip's chip: its name, and what it is where that is known.</summary>
-        public static string Row(string name, string what) => string.IsNullOrEmpty(what) ? name : name + "  \u00B7  " + what;
+        /// <summary>A clip's chip: its name, and what it is where that is known and says more than the name does.</summary>
+        public static string Row(string name, string what) => string.IsNullOrEmpty(what) || !SaysMore(name, what) ? name : name + "  \u00B7  " + what;
+
+        /// <summary>
+        /// Whether what a clip is says anything its name does not: a word of three letters or more
+        /// that no word of the name is akin to ("swims" is said by "Swim Forward", "in water" is not
+        /// said by "Idle Swim").
+        /// </summary>
+        private static bool SaysMore(string name, string what)
+        {
+            var named = Words(name);
+            foreach (var word in Words(what))
+            {
+                if (word.Length >= 3 && !named.Any(n => Akin(n, word))) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Two words alike in their first four letters, or the whole of a shorter one: "swim" and "swims", "sleeping" and "sleeps".</summary>
+        private static bool Akin(string a, string b)
+        {
+            var n = Math.Min(Math.Min(a.Length, b.Length), 4);
+            return n < 3 ? a == b : string.CompareOrdinal(a, 0, b, 0, n) == 0;
+        }
+
+        /// <summary>The words of a text, in lower case, letters only.</summary>
+        private static List<string> Words(string text) => Regex.Matches(text.ToLowerInvariant(), "[a-z]+").Cast<Match>().Select(m => m.Value).ToList();
 
         /// <summary>The chip of the clip playing on its own, marked so.</summary>
         public static string Now(string chip) => "\u25B6 " + chip;

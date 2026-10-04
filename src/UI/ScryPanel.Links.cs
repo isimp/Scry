@@ -155,9 +155,10 @@ namespace Scry
         /// <summary>The rows of the LINKED section, each chip with its text, tip and what it does.</summary>
         private static void MakeLinkRows(Explorer explorer, Entry entry)
         {
-            void Plain(string title, IEnumerable<string> names)
+            void Plain(string title, List<string> names)
             {
-                LinkRows.Add((title, names.Select(n => (n, ShownName(explorer, n, n), (string)null, (Action)(() => Go(explorer, n)))).ToList()));
+                var told = Naming.TellApart(names.Select(n => (ShownName(explorer, n, n), n)).ToList());
+                LinkRows.Add((title, names.Select((n, i) => (n, told[i], (string)null, (Action)(() => Go(explorer, n)))).ToList()));
             }
             if (entry.LeftBy.Count > 0) Plain("Left behind by", entry.LeftBy);
             if (entry.LeavesBehind.Count > 0) Plain("Leaves behind", entry.LeavesBehind);
@@ -188,9 +189,10 @@ namespace Scry
 
                 // How an item gives an effect is told in its facts' words; the notes keep the field's for grouping.
                 var giver = group.Key == Relations.GivenBy;
-                LinkRows.Add((title, links.Select(l =>
+                var told = Naming.TellApart(links.Select(l => (ShownName(explorer, l.Target, l.Target), l.Target)).ToList());
+                LinkRows.Add((title, links.Select((l, i) =>
                 {
-                    var shown = ShownName(explorer, l.Target, l.Target);
+                    var shown = told[i];
                     var notes = giver ? l.Notes.Select(Groups.GiverWords).ToList() : l.Notes;
                     return (l.Target, LinkWords.Chip(shown, notes), LinkWords.Tip(shown, notes), (Action)(() => Go(explorer, l.Target)));
                 }).ToList()));

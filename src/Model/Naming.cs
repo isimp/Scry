@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace Scry
@@ -84,6 +85,20 @@ namespace Scry
         /// <summary>A name as the game shows it, with its prefab's where they differ: "Greydwarf nest (Spawner_GreydwarfNest)"; the prefab's alone without one.</summary>
         public static string WithPrefab(string shown, string prefab) =>
             !string.IsNullOrEmpty(shown) && shown != prefab ? $"{shown} ({prefab})" : prefab;
+
+        /// <summary>Names shown side by side, each a thing's name with its prefab: one whose name another of them shares, with a different prefab, says its prefab too ("bjorn bite (bjorn_slam)").</summary>
+        public static List<string> TellApart(IReadOnlyList<(string Shown, string Prefab)> named)
+        {
+            var told = new List<string>(named.Count);
+            for (var i = 0; i < named.Count; i++)
+            {
+                var shared = false;
+                for (var j = 0; j < named.Count && !shared; j++)
+                    shared = named[j].Shown == named[i].Shown && named[j].Prefab != named[i].Prefab;
+                told.Add(shared ? WithPrefab(named[i].Shown, named[i].Prefab) : named[i].Shown);
+            }
+            return told;
+        }
 
         /// <summary>A row's title with how many it holds: "Lives here (12)".</summary>
         public static string Counted(string title, int count) => $"{title} ({Numbers.Count(count)})";
