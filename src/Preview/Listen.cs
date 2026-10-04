@@ -107,7 +107,7 @@ namespace Scry
                 if (what.Count == 0) what.Add("nothing to see or hear" + (thing != null ? " (" + Inside(thing) + ")" : ""));
                 parts.Add($"{name} {where}: {string.Join(", ", what)}");
             }
-            var notes = watch.Notes.Select(n => n.Value > 1 ? $"{n.Key} ×{Numbers.Count(n.Value)}" : n.Key).ToList();
+            var notes = watch.Notes.Select(n => Naming.Repeated(n.Key, n.Value)).ToList();
             var made = parts.Count > 0 ? string.Join("; ", parts) : "no copies";
             return $"Scry played {watch.What}: {made}{(notes.Count > 0 ? ". " + string.Join("; ", notes) : "")}.";
         }

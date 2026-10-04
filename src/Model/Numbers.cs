@@ -30,6 +30,12 @@ namespace Scry
         public static string Percent(double share, int decimals = 0, bool signed = false) =>
             Amount(share * 100.0, decimals, signed) + "%";
 
+        /// <summary>A multiplier, with up to so many decimals: "×1.5", "×2".</summary>
+        public static string Times(double value, int decimals = 2) => "×" + Amount(value, decimals);
+
+        /// <summary>A multiplier readout that always shows its decimals, keeping its width as it changes: "×1.50".</summary>
+        public static string TimesFixed(double value, int decimals) => "×" + Fixed(value, decimals);
+
         /// <summary>A length in metres: "1,500 m".</summary>
         public static string Metres(double value, int decimals = 2) => Amount(value, decimals) + " m";
 

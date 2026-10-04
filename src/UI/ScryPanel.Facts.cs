@@ -514,7 +514,7 @@ namespace Scry
                 counts.TryGetValue(name, out var n);
                 counts[name] = n + 1;
             }
-            return string.Join(", ", counts.Select(p => p.Value > 1 ? $"{p.Key} ×{Numbers.Count(p.Value)}" : p.Key));
+            return string.Join(", ", counts.Select(p => Naming.Repeated(p.Key, p.Value)));
         }
     }
 }

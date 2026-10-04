@@ -56,7 +56,7 @@ namespace Scry
             {
                 var point = Previews.StrikePoint(_copy, attack, Previews.LandsOnGround(_clipHit));
                 var ahead = Vector3.Dot(point - _copy.transform.position, _copy.transform.forward);
-                if (Settings.LogPreviews) Listen.Note(Listening, $"hits {Numbers.Fixed(ahead, 1)} m ahead and {Numbers.Fixed(point.y - _copy.transform.position.y, 1)} m up of a copy shown at ×{Numbers.Fixed(Previews.SizeOf(_copy), 2)}, its scale {Numbers.Fixed(_copy.transform.lossyScale.x, 2)}");
+                if (Settings.LogPreviews) Listen.Note(Listening, $"hits {Numbers.Fixed(ahead, 1)} m ahead and {Numbers.Fixed(point.y - _copy.transform.position.y, 1)} m up of a copy shown at {Numbers.TimesFixed(Previews.SizeOf(_copy), 2)}, its scale {Numbers.Fixed(_copy.transform.lossyScale.x, 2)}");
                 Report(Previews.PlayOnCopyAt(_copy, _clipHit, point));
             }
             if (attack.m_spawnOnTrigger != null && (Previews.IsMelee(attack) || attack.m_attackType == Attack.AttackType.Area))

@@ -29,7 +29,7 @@ namespace Scry
             y = SectionHeading($"ANIMATIONS  {Numbers.Count(clips.Count)}", width, y, null, "animations");
             if (IsFolded("animations")) return y;
 
-            var speed = SliderRow("Speed", $"×{Numbers.Fixed(modifiers.AnimationSpeed, 1)}", modifiers.AnimationSpeed, 0f, Modifiers.MaxAnimationSpeed, width, labelW, ref y);
+            var speed = SliderRow("Speed", Numbers.TimesFixed(modifiers.AnimationSpeed, 1), modifiers.AnimationSpeed, 0f, Modifiers.MaxAnimationSpeed, width, labelW, ref y);
             if (!Mathf.Approximately(speed, modifiers.AnimationSpeed)) modifiers.AnimationSpeed = speed;
 
             // The ground footsteps sound on, when the creature sounds different on some.

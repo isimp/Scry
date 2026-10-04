@@ -127,7 +127,7 @@ namespace Scry
 
                 var placeW = U(64f);
                 GUI.Label(new Rect(line.x + U(8f), line.y, placeW, line.height), OutPlaceWord(r.Place), Skin.DimLabel);
-                var name = ShownName(explorer, OutTarget(r), r.Key) + (r.Count > 1 ? $"  ×{Numbers.Count(r.Count)}" : "");
+                var name = ShownName(explorer, OutTarget(r), r.Key) + (r.Count > 1 ? "  " + Numbers.Times(r.Count) : "");
                 var nameX = line.x + U(8f) + placeW;
                 GUI.Label(new Rect(nameX, line.y, line.xMax - OutCrossW - nameX, line.height), name, Skin.Label);
 

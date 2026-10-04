@@ -80,5 +80,12 @@ namespace Scry.Tests
             Assert.Equal("Lives here (1,234)", Naming.Counted("Lives here", 1234));
             Assert.Equal("Needs (0)", Naming.Counted("Needs", 0));
         }
+
+        [Fact]
+        public void SomethingFoundMoreThanOnceSaysHowManyTimes()
+        {
+            Assert.Equal("Collider ×1,234", Naming.Repeated("Collider", 1234));
+            Assert.Equal("Collider", Naming.Repeated("Collider", 1));
+        }
     }
 }

@@ -153,11 +153,11 @@ namespace Scry
                 // The game tells blocking only above 1, as AddBlockTooltip does; below that it cannot block.
                 Add("Block", shared.m_blockPower > 1f ? Numbers.Amount(shared.m_blockPower) + PerQuality(shared.m_blockPowerPerLevel) : "none");
                 if (shared.m_deflectionForce > 1f) Add("Block force", Numbers.Amount(shared.m_deflectionForce) + PerQuality(shared.m_deflectionForcePerLevel));
-                if (shared.m_timedBlockBonus > 1f) Add("Parry bonus", $"\u00d7{Numbers.Amount(shared.m_timedBlockBonus)}");
+                if (shared.m_timedBlockBonus > 1f) Add("Parry bonus", Numbers.Times(shared.m_timedBlockBonus));
             }
 
             if ((weapon || ammo) && shared.m_attackForce > 0f) Add("Knockback", Numbers.Amount(shared.m_attackForce));
-            if (weapon && shared.m_backstabBonus > 1f) Add("Backstab", $"\u00d7{Numbers.Amount(shared.m_backstabBonus)}");
+            if (weapon && shared.m_backstabBonus > 1f) Add("Backstab", Numbers.Times(shared.m_backstabBonus));
 
             var attack = shared.m_attack;
             if (weapon && attack != null)

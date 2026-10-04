@@ -31,7 +31,7 @@ namespace Scry
         public static string StarDamage(int maxStars)
         {
             if (maxStars <= 0) return null;
-            return string.Join(", ", Enumerable.Range(1, maxStars).Select(s => $"{Stars(s)} ×{Numbers.Amount(1f + s * 0.5f)}"));
+            return string.Join(", ", Enumerable.Range(1, maxStars).Select(s => $"{Stars(s)} {Numbers.Times(1f + s * 0.5f)}"));
         }
 
         /// <summary>The damage of a hit by type, the biggest first; null when it does none.</summary>
@@ -149,9 +149,9 @@ namespace Scry
         public static string SecondaryAttack(float damage, float force, float stagger, IReadOnlyList<string> costs)
         {
             var parts = new List<string>();
-            if (Math.Abs(damage - 1f) > 0.001f) parts.Add($"\u00d7{Numbers.Amount(damage)} damage");
-            if (Math.Abs(force - 1f) > 0.001f) parts.Add($"\u00d7{Numbers.Amount(force)} knockback");
-            if (Math.Abs(stagger - 1f) > 0.001f) parts.Add($"\u00d7{Numbers.Amount(stagger)} stagger");
+            if (Math.Abs(damage - 1f) > 0.001f) parts.Add($"{Numbers.Times(damage)} damage");
+            if (Math.Abs(force - 1f) > 0.001f) parts.Add($"{Numbers.Times(force)} knockback");
+            if (Math.Abs(stagger - 1f) > 0.001f) parts.Add($"{Numbers.Times(stagger)} stagger");
             var line = parts.Count > 0 ? string.Join(", ", parts) : "as hard as the first";
             return costs != null && costs.Count > 0 ? line + "; costs " + string.Join(", ", costs) : line;
         }

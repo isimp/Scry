@@ -33,7 +33,7 @@ namespace Scry
 
         public static float SizeShare(float scale) => scale <= 0f ? 0f : Clamp01(((float)Math.Log10(scale) + 1f) / 2f);
 
-        public static string SizeLabel(float scale) => "\u00d7" + Numbers.Fixed(scale, 2);
+        public static string SizeLabel(float scale) => Numbers.TimesFixed(scale, 2);
 
         private static float Clamp01(float value) => float.IsNaN(value) ? 0f : Math.Max(0f, Math.Min(1f, value));
     }

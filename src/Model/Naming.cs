@@ -45,6 +45,9 @@ namespace Scry
         /// <summary>A row's title with how many it holds: "Lives here (12)".</summary>
         public static string Counted(string title, int count) => $"{title} ({Numbers.Count(count)})";
 
+        /// <summary>Something found more than once, with how many times: "Collider ×3"; once, its name alone.</summary>
+        public static string Repeated(string name, int count) => count > 1 ? name + " " + Numbers.Times(count) : name;
+
         public static string Joined(System.Collections.Generic.IReadOnlyList<string> names)
         {
             if (names.Count <= 1) return names.Count == 1 ? names[0] : "";

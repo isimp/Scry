@@ -181,5 +181,18 @@ namespace Scry.Tests
                 CultureInfo.CurrentCulture = was;
             }
         }
+
+        [Fact]
+        public void AMultiplierReadsAsTimesItsAmount()
+        {
+            Assert.Equal("×1.5", Numbers.Times(1.5));
+            Assert.Equal("×2", Numbers.Times(2));
+            Assert.Equal("×1,234.5", Numbers.Times(1234.5));
+            Assert.Equal("×1.25", Numbers.Times(1.254));
+            Assert.Equal("×1.3", Numbers.Times(1.254, 1));
+        }
+
+        [Fact]
+        public void AMultiplierReadoutKeepsItsDecimals() => Assert.Equal("×1.50", Numbers.TimesFixed(1.5, 2));
     }
 }

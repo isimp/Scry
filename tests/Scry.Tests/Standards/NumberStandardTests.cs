@@ -57,6 +57,32 @@ namespace Scry.Tests
             Violations.None("turn a number into text outside Numbers and Stored", found);
         }
 
+        /// <summary>
+        /// A multiplier reads "×1.5" everywhere, written only by <c>Numbers.Times</c>: a × written
+        /// right before a number anywhere else is one way more of saying it.
+        /// </summary>
+        [Fact]
+        public void MultipliersAreWrittenOnlyThroughNumbers()
+        {
+            var found = new List<string>();
+            foreach (var (text, _) in ScrySource.All<InterpolatedStringTextSyntax>())
+            {
+                if (Violations.In(text, Formatters)) continue;
+                var parts = ((InterpolatedStringExpressionSyntax)text.Parent).Contents;
+                var at = parts.IndexOf(text);
+                if (text.TextToken.ValueText.EndsWith(Times) && at + 1 < parts.Count && parts[at + 1] is InterpolationSyntax)
+                    found.Add($"{ScrySource.Where(text)} {Short(text.Parent)}");
+            }
+            foreach (var (plus, _) in ScrySource.All<BinaryExpressionSyntax>())
+            {
+                if (!plus.IsKind(SyntaxKind.AddExpression) || Violations.In(plus, Formatters)) continue;
+                if (plus.Left is LiteralExpressionSyntax literal && literal.Token.ValueText.EndsWith(Times)) found.Add($"{ScrySource.Where(plus)} {Short(plus)}");
+            }
+            Violations.None("write a multiplier outside Numbers.Times", found);
+        }
+
+        private static readonly string Times = ((char)0xD7).ToString();
+
         [Fact]
         public void NumbersAreReadFromTextOnlyThroughStored()
         {
