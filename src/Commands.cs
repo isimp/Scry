@@ -15,7 +15,7 @@ namespace Scry
                 {
                     // A command that fails says so in the chat, and once in the log, rather than
                     // leaving the game's console to show the error.
-                    if (!Guard.Run("the /scry command", Run, args)) args.Context.OrNull()?.AddString("Scry: that did not work; the log says why.");
+                    if (!Guard.Run(Feature.Command, "the /scry command", Run, args)) args.Context.OrNull()?.AddString("Scry: that did not work; the log says why.");
                 });
         }
 

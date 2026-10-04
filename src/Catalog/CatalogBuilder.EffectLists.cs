@@ -30,7 +30,7 @@ namespace Scry
                 foreach (var component in root.GetComponentsInChildren<Component>(true))
                 {
                     if (component == null) continue;
-                    Guard.Each("interface sounds", Provenance.Interface, () =>
+                    Guard.Each(Feature.EffectLists, "interface sounds", Provenance.Interface, () =>
                     {
                         Gather(component, Provenance.Interface, Origin.Vanilla, effects, null, Provenance.Interface);
                     });

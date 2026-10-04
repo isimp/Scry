@@ -11,30 +11,22 @@ namespace Scry.Tests
         [Fact]
         public void OnePartOffIsNamed()
         {
-            Assert.Equal("Location music is off until Scry is updated. Everything else works.", OffWords.Line(new[] { "location music" }));
+            Assert.Equal("Location music is off until Scry is updated. Everything else works.", OffWords.Line(new[] { Feature.LocationMusic }));
         }
 
         [Fact]
         public void SeveralPartsOffAreCountedAndNamed()
         {
-            Assert.Equal("3 parts of Scry are off until it is updated: location music, mods' hooks and drops seen in play. Everything else works.",
-                OffWords.Line(new[] { "location music", "mods' hooks", "drops seen in play" }));
-            Assert.Equal("2 parts of Scry are off until it is updated: location music and mods' hooks. Everything else works.",
-                OffWords.Line(new[] { "location music", "mods' hooks" }));
-        }
-
-        [Fact]
-        public void WhatTheStartupCheckFindsMissingIsNamedByWhatItTurnsOff()
-        {
-            Assert.Equal("falling copies landing on terrain", OffWords.FallingCopies("terrain"));
-            Assert.Equal("effects keeping their LightFlicker", OffWords.KeptScript("LightFlicker"));
-            Assert.Equal("linking damage to Burning", OffWords.DamageLink("Burning"));
+            Assert.Equal("3 parts of Scry are off until it is updated: location music, mods' hooks, in the details and drops seen in play. Everything else works.",
+                OffWords.Line(new[] { Feature.LocationMusic, Feature.ModHooks, Feature.DropsSeenInPlay }));
+            Assert.Equal("2 parts of Scry are off until it is updated: location music and drops seen in play. Everything else works.",
+                OffWords.Line(new[] { Feature.LocationMusic, Feature.DropsSeenInPlay }));
         }
 
         [Fact]
         public void NothingOffSaysNothing()
         {
-            Assert.Null(OffWords.Line(new string[0]));
+            Assert.Null(OffWords.Line(new Feature[0]));
             Assert.Null(OffWords.Line(null));
         }
 

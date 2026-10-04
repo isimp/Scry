@@ -309,7 +309,7 @@ namespace Scry
         {
             var animator = job.Source;
             GameObject holder = null;
-            if (Guard.Each("probes of what animators play", job.Key, () =>
+            if (Guard.Each(Feature.Animations, "probes of what animators play", job.Key, () =>
             {
                     // Drawn by nothing, heard by nothing, sending no events, touching nothing: only
                     // the animator runs. Its scripts go before it wakes, which would wake them even
@@ -394,7 +394,7 @@ namespace Scry
             bool more;
             try
             {
-                if (!Guard.Each("probes of what animators play", job.Key, job.Work.MoveNext, out more))
+                if (!Guard.Each(Feature.Animations, "probes of what animators play", job.Key, job.Work.MoveNext, out more))
                 {
                     failure = "it failed, as the log says";
                     more = false;

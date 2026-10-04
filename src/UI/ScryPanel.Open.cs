@@ -87,8 +87,8 @@ namespace Scry
         {
             _explorer = explorer;
             _reading = reading;
-            if (explorer != null) Guard.Run("preparing the panel's lookups", Prepare, explorer);
-            Guard.Run("looking around and stepping back", LookAndStep);
+            if (explorer != null) Guard.Run(Feature.Panel, "preparing the panel's lookups", Prepare, explorer);
+            Guard.Run(Feature.LookAndWalkWhileOpen, "looking around and stepping back", LookAndStep);
         }
 
         private static void LookAndStep()

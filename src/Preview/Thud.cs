@@ -52,7 +52,7 @@ namespace Scry
             _next = Time.unscaledTime + _interval;
             var point = collision.GetContact(0).point;
             Played++;
-            Guard.Run("playing a piece's thud", () =>
+            Guard.Run(Feature.FelledLogsStrikingGround, "playing a piece's thud", () =>
             {
                 if (_onStage) Stage.PlayList(_hit, null, null, point);
                 else Previews.PlayList(_hit, point, transform.rotation);

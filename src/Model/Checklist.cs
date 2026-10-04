@@ -23,14 +23,14 @@ namespace Scry
     /// </summary>
     internal sealed class Checklist
     {
-        private readonly List<(string Part, string Feature, Found Found)> _parts = new List<(string, string, Found)>();
+        private readonly List<(string Part, Feature Feature, Found Found)> _parts = new List<(string, Feature, Found)>();
 
-        public void Add(string part, string feature, Found found) => _parts.Add((part, feature, found));
+        public void Add(string part, Feature feature, Found found) => _parts.Add((part, feature, found));
 
         public bool AnyTrouble => _parts.Any(p => p.Found != Found.Present);
 
         /// <summary>The features a missing part turns off, each once, for the panel to show.</summary>
-        public List<string> FeaturesOff => _parts.Where(p => p.Found == Found.Missing).Select(p => p.Feature).Distinct().ToList();
+        public List<Feature> FeaturesOff => _parts.Where(p => p.Found == Found.Missing).Select(p => p.Feature).Distinct().ToList();
 
         public List<string> Report()
         {
@@ -40,8 +40,8 @@ namespace Scry
             if (missing == 0 && changed == 0) return new List<string> { head + ": all as expected." };
 
             var lines = new List<string> { $"{head}: {Numbers.Count(missing)} missing, {Numbers.Count(changed)} changed." };
-            foreach (var part in _parts.Where(p => p.Found == Found.Missing)) lines.Add($"  {part.Part} is missing: {part.Feature} is off.");
-            foreach (var part in _parts.Where(p => p.Found == Found.Changed)) lines.Add($"  {part.Part} changed since this version of Scry: {part.Feature} may be slightly off.");
+            foreach (var part in _parts.Where(p => p.Found == Found.Missing)) lines.Add($"  {part.Part} is missing: {part.Feature.Name} is off.");
+            foreach (var part in _parts.Where(p => p.Found == Found.Changed)) lines.Add($"  {part.Part} changed since this version of Scry: {part.Feature.Name} may be slightly off.");
             return lines;
         }
     }

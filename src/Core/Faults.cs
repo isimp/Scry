@@ -17,7 +17,7 @@ namespace Scry
         private static readonly Trouble Found = new Trouble();
 
         /// <summary>The features a game update has turned off in this session, for the panel.</summary>
-        public static IReadOnlyList<string> ChangedFeatures => Found.ChangedFeatures;
+        public static IReadOnlyList<Feature> ChangedFeatures => Found.ChangedFeatures;
 
         /// <summary>How many failures of a part there have been this session, told or not, for the self-test to see any during a scenario.</summary>
         public static int Count { get; private set; }
@@ -25,7 +25,7 @@ namespace Scry
         /// <summary>The latest failure, by its part and message.</summary>
         public static string Latest { get; private set; } = "";
 
-        /// <summary>How many parts of single prefabs have been left out this session (<see cref="Skip(string, string, Exception)"/>), which Scry is made to bear.</summary>
+        /// <summary>How many parts of single prefabs have been left out this session (<see cref="Skip(Feature, string, string, Exception)"/>), which Scry is made to bear.</summary>
         public static int Skipped { get; private set; }
 
         /// <summary>The latest part of a prefab left out, by its part, prefab and message.</summary>
@@ -44,19 +44,19 @@ namespace Scry
         /// <summary>A failure told whole: one found by checking by its words alone, one thrown with where it came from.</summary>
         private static string Whole(Exception ex) => ex is Failure ? ex.Message : ex.ToString();
 
-        /// <summary>A part failed, found by checking rather than thrown; told as <see cref="Tell(string, Exception)"/> tells.</summary>
-        public static void Tell(string part, string why) => Tell(part, new Failure(why));
+        /// <summary>A part failed, found by checking rather than thrown; told as <see cref="Tell(Feature, string, Exception)"/> tells.</summary>
+        public static void Tell(Feature feature, string part, string why) => Tell(feature, part, new Failure(why));
 
-        /// <summary>A part of one item left out, found by checking rather than thrown; told as <see cref="Skip(string, string, Exception)"/> tells.</summary>
-        public static void Skip(string part, string prefab, string why) => Skip(part, prefab, new Failure(why));
+        /// <summary>A part of one item left out, found by checking rather than thrown; told as <see cref="Skip(Feature, string, string, Exception)"/> tells.</summary>
+        public static void Skip(Feature feature, string part, string prefab, string why) => Skip(feature, part, prefab, new Failure(why));
 
-        /// <summary>Tells a failure in the log the first time this part fails this way.</summary>
-        public static void Tell(string part, Exception ex)
+        /// <summary>Tells a failure in the log the first time this part fails this way; a game change, as the feature the part belongs to being off.</summary>
+        public static void Tell(Feature feature, string part, Exception ex)
         {
             if (ex == null) return;
             Count++;
             Latest = Words(part, ex);
-            if (GameChanged(part, ex)) return;
+            if (GameChanged(feature, ex)) return;
             var key = part + "|" + ex.GetType().Name + "|" + ex.Message + "|" + TopFrame(ex);
             if (Told.Count > 500 || !Told.Add(key)) return;
             Log.Source.LogError($"Scry failed in {part} (told once): {Whole(ex)}");
@@ -67,12 +67,12 @@ namespace Scry
         /// told at once as the feature it turns off; anything else is told whole the first time
         /// that part fails that way, then only counted, and summed up by <see cref="TellSkipped"/>.
         /// </summary>
-        public static void Skip(string part, string prefab, Exception ex)
+        public static void Skip(Feature feature, string part, string prefab, Exception ex)
         {
             if (ex == null) return;
             Skipped++;
             LatestSkipped = Words(part + " of " + prefab, ex);
-            if (GameChanged(part, ex)) return;
+            if (GameChanged(feature, ex)) return;
             if (Found.Skip(part, prefab, ex)) Log.Source.LogWarning($"Scry left out the {part} of {prefab} (told whole once for this failure, then counted): {Whole(ex)}");
             else Log.Source.LogDebug($"Scry left out the {part} of {prefab}: {ex.Message}");
         }
@@ -91,12 +91,12 @@ namespace Scry
         }
 
         /// <summary>Whether the failure is the game having changed; if so, told once as the feature it turns off.</summary>
-        private static bool GameChanged(string feature, Exception ex)
+        private static bool GameChanged(Feature feature, Exception ex)
         {
             if (!Trouble.IsGameChange(ex)) return false;
             if (Found.Changed(feature, ex))
             {
-                Log.Source.LogWarning($"Scry: the game has changed in a way this version does not know, so {feature} is off until Scry is updated. The rest works on. ({Innermost(ex).Message})");
+                Log.Source.LogWarning($"Scry: the game has changed in a way this version does not know, so {feature.Name} is off until Scry is updated. The rest works on. ({Innermost(ex).Message})");
             }
             return true;
         }

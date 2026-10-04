@@ -21,7 +21,7 @@ namespace Scry
             }
             catch (System.Reflection.ReflectionTypeLoadException ex)
             {
-                Faults.Tell(Numbers.Count(ex.Types.Count(t => t == null)) + " of Scry's own parts", ex.LoaderExceptions.FirstOrDefault(e => e != null) ?? ex);
+                Faults.Tell(Feature.World, Numbers.Count(ex.Types.Count(t => t == null)) + " of Scry's own parts", ex.LoaderExceptions.FirstOrDefault(e => e != null) ?? ex);
                 return ex.Types.Where(t => t != null).ToArray();
             }
         }

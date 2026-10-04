@@ -80,12 +80,12 @@ namespace Scry
             if (user.StartsWith(EntryKeys.StatusEffect, StringComparison.Ordinal)) return;
 
             components.Clear();
-            if (!Guard.Each("effects of what prefabs spawn", prefab.name, () => prefab.GetComponentsInChildren(true, components))) return;
+            if (!Guard.Each(Feature.EffectLists, "effects of what prefabs spawn", prefab.name, () => prefab.GetComponentsInChildren(true, components))) return;
             var origin = Origins.Prefabs.Of(user);
             foreach (var component in components)
             {
                 if (component == null) continue;
-                Guard.Each("effects of what prefabs spawn", prefab.name, () =>
+                Guard.Each(Feature.EffectLists, "effects of what prefabs spawn", prefab.name, () =>
                 {
                     Gather(component, user, origin, effects, user, user, helper.Part);
                 });
@@ -95,7 +95,7 @@ namespace Scry
         private static void MakeEntry(List<Entry> entries, string name, Found found, Dictionary<string, Found> effects, bool registeredOrigin)
         {
             var started = CatalogTiming.Start();
-            Guard.Each("entries", name, () =>
+            Guard.Each(Feature.Catalog, "entries", name, () =>
             {
                 entries.Add(ToEntry(name, found, effects, registeredOrigin));
             });
@@ -124,7 +124,7 @@ namespace Scry
             foreach (var raid in events)
             {
                 if (raid == null || string.IsNullOrEmpty(raid.m_name) || !raid.m_enabled || !seen.Add(raid.m_name)) continue;
-                Guard.Each("raid entries", raid.m_name, () =>
+                Guard.Each(Feature.Raids, "raid entries", raid.m_name, () =>
                 {
                     var shown = Localize(raid.m_startMessage);
                     var boss = Knowledge.BossOfEvent(raid.m_name);
@@ -208,9 +208,9 @@ namespace Scry
             {
                 var name = info?.Metadata?.Name;
                 if (string.IsNullOrEmpty(name)) continue;
-                Guard.Each("mod entries", name, () =>
+                Guard.Each(Feature.ModPages, "mod entries", name, () =>
                 {
-                    if (!Guard.Each("mods' folders", name, () => System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(info.Location) ?? ""), out var folder)) folder = "";
+                    if (!Guard.Each(Feature.ModPages, "mods' folders", name, () => System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(info.Location) ?? ""), out var folder)) folder = "";
                     var source = new ModSource { Name = name, Version = info.Metadata.Version?.ToString() ?? "", Guid = info.Metadata.GUID ?? "", Folder = folder };
                     var facts = new ModFacts { Name = name, Guid = source.Guid };
                     if (info.Dependencies != null)
@@ -300,7 +300,7 @@ namespace Scry
             {
                 // Its looks are read off the prefab when it is first selected, not for every prefab here.
                 var prefab = found.Prefab;
-                entry.LooksFrom(() => Guard.Each("looks", name, () =>
+                entry.LooksFrom(() => Guard.Each(Feature.Looks, "looks", name, () =>
                 {
                     var names = PrefabLooks.Of(prefab, out var look);
                     return (names, look);
@@ -376,7 +376,7 @@ namespace Scry
             var traits = new PrefabTraits();
             found.Traits = traits;
 
-            if (!Guard.Each("effect lists", owner, () => found.Prefab.GetComponentsInChildren(true, components)))
+            if (!Guard.Each(Feature.EffectLists, "effect lists", owner, () => found.Prefab.GetComponentsInChildren(true, components)))
             {
                 components.Clear();
                 return;
@@ -387,7 +387,7 @@ namespace Scry
                 // A missing script shows up as a null component.
                 if (component == null) continue;
 
-                Guard.Each("effect lists", owner, () =>
+                Guard.Each(Feature.EffectLists, "effect lists", owner, () =>
                 {
                     Note(component, found, traits);
                     found.Components.Add(component.GetType().Name);
@@ -561,7 +561,7 @@ namespace Scry
             }
 
             if (prefab == null) return;
-            Guard.Each("what things leave behind", prefab.name, () =>
+            Guard.Each(Feature.WhatThingsLeaveWhenBroken, "what things leave behind", prefab.name, () =>
             {
                 var character = prefab.GetComponent<Character>();
                 if (character != null) Thrown(character.m_deathEffects, prefab, "remains", true);
@@ -609,7 +609,7 @@ namespace Scry
             if (string.IsNullOrEmpty(token)) return "";
             if (Localized.TryGetValue(token, out var known)) return known;
 
-            if (!Guard.Each("names in the game's language", token, () => Naming.Plain(Localization.instance != null ? Localization.instance.Localize(token) : token).Trim(), out var text)
+            if (!Guard.Each(Feature.GameNames, "names in the game's language", token, () => Naming.Plain(Localization.instance != null ? Localization.instance.Localize(token) : token).Trim(), out var text)
                 || string.IsNullOrEmpty(text) || text.StartsWith("[", StringComparison.Ordinal) || text.StartsWith("$", StringComparison.Ordinal))
             {
                 text = "";

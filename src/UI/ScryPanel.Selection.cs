@@ -173,7 +173,7 @@ namespace Scry
             var started = Timing.Start();
             try
             {
-                if (Guard.Run(part, () => draw(y), out var after)) return after;
+                if (Guard.Run(Feature.DetailsShown, part, () => draw(y), out var after)) return after;
                 GUI.enabled = true;
                 GUI.color = Color.white;
                 return y;

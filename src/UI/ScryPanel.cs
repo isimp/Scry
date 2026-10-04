@@ -115,7 +115,7 @@ namespace Scry
             var skin = GUI.skin;
             try
             {
-                if (!Guard.Run("the panel", DrawPanel, scale))
+                if (!Guard.Run(Feature.Panel, "the panel", DrawPanel, scale))
                 {
                     // Told once for each way it fails; the groups and scroll views left open are
                     // closed by leaving this event the way Unity provides for it.

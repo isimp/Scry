@@ -27,7 +27,7 @@ namespace Scry
         private static void Postfix(ref bool __result)
         {
             if (_off) return;
-            if (!Guard.Run("keeping the game's keys away while the panel is open", Blocks, out var blocks)) _off = true;
+            if (!Guard.Run(Feature.KeysKeptFromGame, "blocking the game's keys", Blocks, out var blocks)) _off = true;
             else if (blocks) __result = true;
         }
 
@@ -50,7 +50,7 @@ namespace Scry
         private static void Prefix()
         {
             if (_off) return;
-            if (!Guard.Run("keeping Tab from opening the inventory while typing in the panel", LetGo)) _off = true;
+            if (!Guard.Run(Feature.TabKeptFromInventory, "blocking Tab", LetGo)) _off = true;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -73,7 +73,7 @@ namespace Scry
         private static void Postfix(bool look, ref bool __result)
         {
             if (_off) return;
-            if (!Guard.Run("looking around and walking while the panel is open", look ? (Func<bool>)Looking : Walking, out var lets)) _off = true;
+            if (!Guard.Run(Feature.LookAndWalkWhileOpen, "letting the look and walking through", look ? (Func<bool>)Looking : Walking, out var lets)) _off = true;
             else if (lets) __result = true;
         }
 
@@ -98,7 +98,7 @@ namespace Scry
             ref bool block, ref bool blockHold, ref bool dodge)
         {
             if (_off) return;
-            if (!Guard.Run("keeping attacks, blocks and dodges from going off while the panel is open", Open, out var open))
+            if (!Guard.Run(Feature.NoCombatWhileOpen, "blocking attacks", Open, out var open))
             {
                 _off = true;
                 return;
@@ -121,7 +121,7 @@ namespace Scry
         private static void Postfix()
         {
             if (_off) return;
-            if (!Guard.Run("holding the cursor while looking around", Capture)) _off = true;
+            if (!Guard.Run(Feature.CursorHeldWhileLooking, "holding the cursor", Capture)) _off = true;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -146,7 +146,7 @@ namespace Scry
         private static void Postfix(ref float __result)
         {
             if (_off) return;
-            if (!Guard.Run("keeping the mouse wheel from zooming the game camera while over the panel", Blocks, out var blocks)) _off = true;
+            if (!Guard.Run(Feature.WheelKeptFromCamera, "blocking the mouse wheel", Blocks, out var blocks)) _off = true;
             else if (blocks) __result = 0f;
         }
 

@@ -80,7 +80,7 @@ namespace Scry
                     else
                     {
                         // Told as a failure, then read here on the main thread instead.
-                        Faults.Tell("reading the search terms on a worker thread", _termsJob.Exception?.GetBaseException());
+                        Faults.Tell(Feature.SearchSuggestions, "reading the search terms on a worker thread", _termsJob.Exception?.GetBaseException());
                         _terms = new TermIndex(explorer.Catalog);
                     }
                     _termsFor = _jobFor;

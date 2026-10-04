@@ -28,7 +28,7 @@ namespace Scry
             // Runs inside the game's own Awake: whatever goes wrong here must not stop it. The work
             // is in a method of its own, so that a list an update renamed, which fails the method
             // naming it before it runs, is caught here too.
-            Guard.Run("telling the game's prefabs from those mods add", () =>
+            Guard.Run(Feature.PrefabOrigins, "telling the game's prefabs from those mods add", () =>
             {
                 Record(__instance);
             });
@@ -52,7 +52,7 @@ namespace Scry
         private static void Prefix(ObjectDB __instance)
         {
             // Runs inside the game's own Awake: as above, nothing here may stop it.
-            Guard.Run("telling the game's status effects from those mods add", () =>
+            Guard.Run(Feature.StatusEffectOrigins, "telling the game's status effects from those mods add", () =>
             {
                 Record(__instance);
             });
@@ -78,7 +78,7 @@ namespace Scry
         private static void Prefix(RandEventSystem __instance)
         {
             // Runs inside the game's own Awake: as above, nothing here may stop it.
-            Guard.Run("telling the game's raids from those mods add", () =>
+            Guard.Run(Feature.RaidOrigins, "telling the game's raids from those mods add", () =>
             {
                 Record(__instance);
             });
@@ -107,7 +107,7 @@ namespace Scry
         private static void Prefix()
         {
             // Runs inside the game's own setup: as above, nothing here may stop it.
-            Guard.Run("telling the game's raids from those mods add", () =>
+            Guard.Run(Feature.RaidOrigins, "telling the game's raids from those mods add", () =>
             {
                 _raidsBefore = RaidNames();
             });
@@ -116,7 +116,7 @@ namespace Scry
         [HarmonyPriority(Priority.First)]
         private static void Postfix(ZoneSystem __instance)
         {
-            Guard.Run("telling the game's locations from those mods add", () =>
+            Guard.Run(Feature.LocationOrigins, "telling the game's locations from those mods add", () =>
             {
                 Record(__instance);
             });
@@ -153,7 +153,7 @@ namespace Scry
         [HarmonyPriority(Priority.First)]
         private static void Postfix()
         {
-            Guard.Run("telling the game's dungeon rooms from those mods add", () =>
+            Guard.Run(Feature.RoomOrigins, "telling the game's dungeon rooms from those mods add", () =>
             {
                 Record();
             });

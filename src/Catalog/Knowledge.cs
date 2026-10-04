@@ -246,25 +246,25 @@ namespace Scry
         public static void Read(GameObject prefab, List<Component> components)
         {
             var started = CatalogTiming.Start();
-            Guard.Each("nests and spawn points", prefab.name, () => SpawnPoints(prefab, components));
+            Guard.Each(Feature.WhereCreaturesSpawn, "nests and spawn points", prefab.name, () => SpawnPoints(prefab, components));
             CatalogTiming.Add("spawn points", started);
             started = CatalogTiming.Start();
-            Guard.Each("drops", prefab.name, () => Drops(prefab, components));
+            Guard.Each(Feature.Drops, "drops", prefab.name, () => Drops(prefab, components));
             CatalogTiming.Add("drops", started);
             started = CatalogTiming.Start();
-            Guard.Each("makers", prefab.name, () => Makers(prefab, components));
+            Guard.Each(Feature.Makers, "makers", prefab.name, () => Makers(prefab, components));
             CatalogTiming.Add("makers", started);
             started = CatalogTiming.Start();
-            Guard.Each("status effect givers", prefab.name, () => Givers(prefab, components));
+            Guard.Each(Feature.EffectGivers, "status effect givers", prefab.name, () => Givers(prefab, components));
             CatalogTiming.Add("givers", started);
             started = CatalogTiming.Start();
-            Guard.Each("uses of items", prefab.name, () => UsesIn(prefab, components));
-            Guard.Each("which mod added what", prefab.name, () => Scripts(prefab, components));
-            Guard.Each("breeding", prefab.name, () => Breeding(prefab, components));
-            Guard.Each("baits, keys and powers", prefab.name, () => BaitsKeysAndPowers(prefab, components));
+            Guard.Each(Feature.ItemUses, "uses of items", prefab.name, () => UsesIn(prefab, components));
+            Guard.Each(Feature.ModAttribution, "which mod added what", prefab.name, () => Scripts(prefab, components));
+            Guard.Each(Feature.HowTameCreaturesBreed, "breeding", prefab.name, () => Breeding(prefab, components));
+            Guard.Each(Feature.BaitsKeysAndPowers, "baits, keys and powers", prefab.name, () => BaitsKeysAndPowers(prefab, components));
             CatalogTiming.Add("uses", started);
             started = CatalogTiming.Start();
-            Guard.Each("what things turn into", prefab.name, () => Turns(prefab, components));
+            Guard.Each(Feature.TurnsInto, "what things turn into", prefab.name, () => Turns(prefab, components));
             CatalogTiming.Add("turns into", started);
 
             foreach (var component in components)
@@ -379,21 +379,21 @@ namespace Scry
         /// </summary>
         public static IEnumerable<string> Finish(List<GameObject> prefabs)
         {
-            Guard.Read("world spawners", WorldSpawners);
-            Guard.Read("raids", Raids);
-            Guard.Read("spawn points", TellSpawnPoints);
-            Guard.Read("nests and spawn points", () => Merge(SpawnPointLines, (prefab, line) => Add(prefab, line.Text, line.Prefab, line.Chance)));
-            Guard.Read("vegetation", Vegetation);
+            Guard.Read(Feature.WhereCreaturesSpawn, "world spawners", WorldSpawners);
+            Guard.Read(Feature.Raids, "raids", Raids);
+            Guard.Read(Feature.WhereCreaturesSpawn, "spawn points", TellSpawnPoints);
+            Guard.Read(Feature.WhereCreaturesSpawn, "nests and spawn points", () => Merge(SpawnPointLines, (prefab, line) => Add(prefab, line.Text, line.Prefab, line.Chance)));
+            Guard.Read(Feature.WhereThingsGrow, "vegetation", Vegetation);
             yield return "where things live";
 
-            Guard.Read("drops", () => Merge(DropLines, From));
-            Guard.Read("recipes items go into", Recipes);
-            Guard.Read("traders", Traders);
+            Guard.Read(Feature.Drops, "drops", () => Merge(DropLines, From));
+            Guard.Read(Feature.ItemUses, "recipes items go into", Recipes);
+            Guard.Read(Feature.WhatTradersSellAndWhen, "traders", Traders);
             yield return "what makes things";
 
-            Guard.Read("Jotunn's registry", JotunnMods);
-            Guard.Read("mods' scripts", ScriptMods);
-            Guard.Read("mods' hooks", ModHooks.Read);
+            Guard.Read(Feature.ModAttribution, "Jotunn's registry", JotunnMods);
+            Guard.Read(Feature.ModAttribution, "mods' scripts", ScriptMods);
+            Guard.Read(Feature.ModHooks, "mods' hooks", ModHooks.Read);
             yield return "which mod added what";
 
             foreach (var step in BundleMods(prefabs)) yield return step;
@@ -408,13 +408,13 @@ namespace Scry
         /// Each of a list on its own, for the world-wide steps: one odd entry (a mod's spawn with
         /// something missing) costs only itself, not the rest of the list after it.
         /// </summary>
-        private static void Each<T>(IEnumerable<T> list, string what, Func<T, string> name, Action<T> read) where T : class
+        private static void Each<T>(IEnumerable<T> list, Feature feature, string what, Func<T, string> name, Action<T> read) where T : class
         {
             if (list == null) return;
             foreach (var item in list)
             {
                 if (item == null) continue;
-                Guard.Each(what, () => name(item), () => read(item));
+                Guard.Each(feature, what, () => name(item), () => read(item));
             }
         }
 

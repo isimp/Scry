@@ -27,7 +27,7 @@ namespace Scry
         public static string PackageFolder(string location)
         {
             if (string.IsNullOrEmpty(location)) return null;
-            Guard.Each("mods' folders", location, () =>
+            Guard.Each(Feature.ModPages, "mods' folders", location, () =>
             {
                 var root = Path.GetFullPath(BepInEx.Paths.PluginPath).TrimEnd('\\', '/');
                 var folder = Path.GetDirectoryName(Path.GetFullPath(location));
@@ -44,14 +44,14 @@ namespace Scry
         /// <summary>A package folder's manifest, or null when it cannot be read.</summary>
         public static ModManifest Manifest(string folder)
         {
-            Guard.Each("mods' folders", folder, () => ModManifest.Parse(File.ReadAllText(Path.Combine(folder, "manifest.json"))), out var manifest);
+            Guard.Each(Feature.ModPages, "mods' folders", folder, () => ModManifest.Parse(File.ReadAllText(Path.Combine(folder, "manifest.json"))), out var manifest);
             return manifest;
         }
 
         /// <summary>A file of the folder by its name, whatever its case ("readme.md" too), or "" when there is none.</summary>
         public static string FileIn(string folder, string name)
         {
-            Guard.Each("mods' folders", folder, () =>
+            Guard.Each(Feature.ModPages, "mods' folders", folder, () =>
                 Directory.GetFiles(folder).FirstOrDefault(file => string.Equals(Path.GetFileName(file), name, StringComparison.OrdinalIgnoreCase)), out var found);
             return found ?? "";
         }
@@ -60,7 +60,7 @@ namespace Scry
         public static string Readme(string path, int limit)
         {
             if (string.IsNullOrEmpty(path)) return "";
-            return Guard.Each("mods' readmes", path, () => ReadmeText.Plain(File.ReadAllText(path), limit), out var text) ? text : "";
+            return Guard.Each(Feature.ModPages, "mods' readmes", path, () => ReadmeText.Plain(File.ReadAllText(path), limit), out var text) ? text : "";
         }
 
         /// <summary>
@@ -72,7 +72,7 @@ namespace Scry
             if (string.IsNullOrEmpty(path)) return null;
             if (Icons.TryGetValue(path, out var known)) return known;
             Sprite sprite = null;
-            Guard.Each("mods' icons", path, () =>
+            Guard.Each(Feature.ModPages, "mods' icons", path, () =>
             {
                 sprite = Read(path);
             });
@@ -93,7 +93,7 @@ namespace Scry
             {
                 _lookedForLoadImage = true;
                 _loadImage = Type.GetType("UnityEngine.ImageConversion, UnityEngine.ImageConversionModule", false)?.GetMethod("LoadImage", new[] { typeof(Texture2D), typeof(byte[]) });
-                if (_loadImage == null) Faults.Tell("reading the mods' icons", new MissingMethodException("ImageConversion", "LoadImage"));
+                if (_loadImage == null) Faults.Tell(Feature.ModPages, "reading the mods' icons", new MissingMethodException("ImageConversion", "LoadImage"));
             }
             return _loadImage != null && _loadImage.Invoke(null, new object[] { texture, bytes }) is bool read && read;
         }

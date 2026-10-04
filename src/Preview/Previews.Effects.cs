@@ -288,7 +288,7 @@ namespace Scry
             foreach (var component in prefab.GetComponentsInChildren<Component>(true))
             {
                 if (component == null) continue;
-                Guard.Each("effects shown", prefab.name, () =>
+                Guard.Each(Feature.EffectLists, "effects shown", prefab.name, () =>
                 {
                         Collect(component, component.GetType().Name, false);
                         var shared = (component as ItemDrop).OrNull()?.m_itemData?.m_shared;
@@ -438,7 +438,7 @@ namespace Scry
                 if (Time.unscaledTime < LaterOn[i].At) continue;
                 var act = LaterOn[i].Act;
                 LaterOn.RemoveAt(i);
-                Guard.Run("a later step", act);
+                Guard.Run(Feature.Previews, "a later step", act);
             }
         }
 

@@ -64,11 +64,11 @@ namespace Scry.Tests
         public void AFeatureTheGameChangedIsKeptForThePanelOnce()
         {
             var trouble = new Trouble();
-            Assert.True(trouble.Changed("item stats", new MissingFieldException("x")));
-            Assert.False(trouble.Changed("item stats", new MissingFieldException("y")));
-            trouble.Changed("links", new MissingMethodException("z"));
+            Assert.True(trouble.Changed(Feature.ItemStats, new MissingFieldException("x")));
+            Assert.False(trouble.Changed(Feature.ItemStats, new MissingFieldException("y")));
+            trouble.Changed(Feature.Links, new MissingMethodException("z"));
 
-            Assert.Equal(new[] { "item stats", "links" }, trouble.ChangedFeatures);
+            Assert.Equal(new[] { Feature.ItemStats, Feature.Links }, trouble.ChangedFeatures);
         }
 
         [Fact]
@@ -83,7 +83,7 @@ namespace Scry.Tests
         {
             var trouble = new Trouble();
             trouble.Skip("links", "Troll", new NullReferenceException());
-            trouble.Changed("links", new MissingFieldException());
+            trouble.Changed(Feature.Links, new MissingFieldException());
             trouble.Forget();
 
             Assert.Empty(trouble.Summary());

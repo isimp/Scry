@@ -83,8 +83,8 @@ namespace Scry.Tests
         public void WhenAllIsInPlaceOneLineSaysSo()
         {
             var list = new Checklist();
-            list.Add("SpawnSystem.m_instances", "where creatures spawn", Found.Present);
-            list.Add("VisEquipment.AttachItem", "gear on creatures", Found.Present);
+            list.Add("SpawnSystem.m_instances", Feature.WhereCreaturesSpawn, Found.Present);
+            list.Add("VisEquipment.AttachItem", Feature.GearOnCreaturesAndPerson, Found.Present);
 
             var report = list.Report();
 
@@ -97,8 +97,8 @@ namespace Scry.Tests
         public void AMissingPartSaysWhichFeatureIsOff()
         {
             var list = new Checklist();
-            list.Add("SpawnSystem.m_instances", "where creatures spawn", Found.Missing);
-            list.Add("VisEquipment.AttachItem", "gear on creatures", Found.Present);
+            list.Add("SpawnSystem.m_instances", Feature.WhereCreaturesSpawn, Found.Missing);
+            list.Add("VisEquipment.AttachItem", Feature.GearOnCreaturesAndPerson, Found.Present);
 
             var report = list.Report();
 
@@ -112,11 +112,11 @@ namespace Scry.Tests
         public void AChangedPartSaysItsFeatureMayBeSlightlyOff()
         {
             var list = new Checklist();
-            list.Add("VisEquipment.AttachItem", "gear on creatures", Found.Changed);
+            list.Add("VisEquipment.AttachItem", Feature.GearOnCreaturesAndPerson, Found.Changed);
 
             var report = list.Report();
 
-            Assert.Contains(report, l => l.Contains("VisEquipment.AttachItem") && l.Contains("gear on creatures may be slightly off"));
+            Assert.Contains(report, l => l.Contains("VisEquipment.AttachItem") && l.Contains("gear on creatures and the person may be slightly off"));
         }
 
         [Fact]
@@ -124,22 +124,22 @@ namespace Scry.Tests
         {
             // A changed part still works, perhaps a little off, and stays in the log; a missing one turns its feature off.
             var list = new Checklist();
-            list.Add("A", "gear on creatures", Found.Missing);
-            list.Add("B", "gear on creatures", Found.Missing);
-            list.Add("C", "saddles", Found.Changed);
-            list.Add("D", "footsteps", Found.Present);
+            list.Add("A", Feature.GearOnCreaturesAndPerson, Found.Missing);
+            list.Add("B", Feature.GearOnCreaturesAndPerson, Found.Missing);
+            list.Add("C", Feature.Saddles, Found.Changed);
+            list.Add("D", Feature.Footsteps, Found.Present);
 
-            Assert.Equal(new[] { "gear on creatures" }, list.FeaturesOff);
+            Assert.Equal(new[] { Feature.GearOnCreaturesAndPerson }, list.FeaturesOff);
         }
 
         [Fact]
         public void TheSummaryCountsWhatIsMissingAndWhatChanged()
         {
             var list = new Checklist();
-            list.Add("A", "a", Found.Missing);
-            list.Add("B", "b", Found.Changed);
-            list.Add("C", "c", Found.Changed);
-            list.Add("D", "d", Found.Present);
+            list.Add("A", Feature.Saddles, Found.Missing);
+            list.Add("B", Feature.Footsteps, Found.Changed);
+            list.Add("C", Feature.FireLooks, Found.Changed);
+            list.Add("D", Feature.DoorLooks, Found.Present);
 
             Assert.Contains("1 missing", list.Report()[0]);
             Assert.Contains("2 changed", list.Report()[0]);

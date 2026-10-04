@@ -639,7 +639,7 @@ namespace Scry
             // no piece lying on and failing again each frame.
             Destroy(gameObject);
             if (_parting == null) return;
-            Guard.Run("playing a falling piece's parting effect", () =>
+            Guard.Run(Feature.LetFall, "playing a falling piece's parting effect", () =>
             {
                 var body = GetComponentInChildren<Rigidbody>();
                 var at = body != null ? body.transform : transform;

@@ -149,7 +149,7 @@ namespace Scry
         // ----- What is off -----
 
         private static int _offCount = -1;
-        private static List<string> _offFeatures = new List<string>();
+        private static List<Feature> _offFeatures = new List<Feature>();
         private static string _offLine;
 
         /// <summary>How much was off when the notice was put away; it comes back when more goes off.</summary>
@@ -162,7 +162,7 @@ namespace Scry
             var count = Compatibility.OffCount;
             if (count == _offCount) return;
             _offCount = count;
-            _offFeatures = count > 0 ? Compatibility.FeaturesOff() : new List<string>();
+            _offFeatures = count > 0 ? Compatibility.FeaturesOff() : new List<Feature>();
             _offLine = OffWords.Line(_offFeatures);
         }
 
@@ -250,7 +250,7 @@ namespace Scry
             foreach (var feature in _offFeatures)
             {
                 Skin.Fill(new Rect(x, y + U(8f), U(6f), U(6f)), Skin.Warn);
-                GUI.Label(new Rect(x + U(16f), y, width - U(16f), U(22f)), Naming.Capital(feature), Skin.Label);
+                GUI.Label(new Rect(x + U(16f), y, width - U(16f), U(22f)), Naming.Capital(feature.Name), Skin.Label);
                 y += U(26f);
             }
             if (EndCard(rect, out var close)) CloseCard(ListCard.Off);
@@ -258,7 +258,7 @@ namespace Scry
             // For reporting: what is off, with the versions, ready to paste.
             if (CardButton(rect, close, "Copy for a report", out _))
             {
-                if (!Guard.Run("telling the game's version", GameVersion, out var game)) game = "of an unknown version";
+                if (!Guard.Run(Feature.Panel, "telling the game's version", GameVersion, out var game)) game = "of an unknown version";
                 GUIUtility.systemCopyBuffer = OffWords.Report(About.Version, game, _offFeatures);
                 Say("Copied what is off, with Scry's and the game's versions.");
             }

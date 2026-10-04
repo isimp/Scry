@@ -224,7 +224,7 @@ namespace Scry
         private static string RectFile => Path.Combine(Settings.DataFolder, "panel.txt");
 
         /// <summary>Where the panel was, in both views, and how its stage was seen (<see cref="PanelPlace"/>).</summary>
-        private static void LoadRects() => Guard.Run("reading where the panel was", () =>
+        private static void LoadRects() => Guard.Run(Feature.PanelPlace, "reading where the panel was", () =>
         {
             if (!File.Exists(RectFile)) return;
             var place = PanelPlace.Read(File.ReadAllLines(RectFile));
@@ -248,7 +248,7 @@ namespace Scry
             if (place.ListHiddenCompact.HasValue) _listHiddenCompact = place.ListHiddenCompact.Value;
         });
 
-        private static void SaveRects() => Guard.Run("remembering where the panel is", () =>
+        private static void SaveRects() => Guard.Run(Feature.PanelPlace, "remembering where the panel is", () =>
         {
             PanelPlace.Area AreaOf(Rect r) => new PanelPlace.Area(r.x, r.y, r.width, r.height);
             var place = new PanelPlace

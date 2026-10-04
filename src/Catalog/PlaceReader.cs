@@ -22,7 +22,7 @@ namespace Scry
             var root = prefab.transform;
             var factors = Factors(prefab);
 
-            Guard.Each("names of locations", prefab.name, () => NameFacts(prefab, contents));
+            Guard.Each(Feature.Locations, "names of locations", prefab.name, () => NameFacts(prefab, contents));
 
             var parts = new List<(string, float)>();
             foreach (var view in prefab.GetComponentsInChildren<ZNetView>(false))
@@ -33,20 +33,20 @@ namespace Scry
             contents.Parts = PlaceParts.Group(parts);
             contents.LeftToChance = LeftToChance(prefab);
 
-            Guard.Each("creatures of locations", prefab.name, () => Creatures(prefab, root, factors, contents));
+            Guard.Each(Feature.Locations, "creatures of locations", prefab.name, () => Creatures(prefab, root, factors, contents));
 
-            Guard.Each("dungeons of locations", prefab.name, () => Dungeon(prefab, contents));
+            Guard.Each(Feature.Locations, "dungeons of locations", prefab.name, () => Dungeon(prefab, contents));
 
             if (room)
             {
-                Guard.Each("dungeon rooms", prefab.name, () => contents.Room = Shape(prefab));
+                Guard.Each(Feature.Locations, "dungeon rooms", prefab.name, () => contents.Room = Shape(prefab));
             }
 
-            Guard.Each("locations", prefab.name, () => Location(prefab, contents));
+            Guard.Each(Feature.Locations, "locations", prefab.name, () => Location(prefab, contents));
 
-            Guard.Each("music of locations", prefab.name, () => Music(prefab, contents));
+            Guard.Each(Feature.LocationMusic, "music of locations", prefab.name, () => Music(prefab, contents));
 
-            Guard.Each("runestones of locations", prefab.name, () => Runestones(prefab, contents));
+            Guard.Each(Feature.RunestoneTexts, "runestones of locations", prefab.name, () => Runestones(prefab, contents));
             return contents;
         }
 

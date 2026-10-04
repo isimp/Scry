@@ -89,7 +89,7 @@ namespace Scry
             if (Known.TryGetValue(prefab, out var known)) return known;
 
             var found = new Found();
-            if (!Guard.Each("looks", prefab.name, () =>
+            if (!Guard.Each(Feature.Looks, "looks", prefab.name, () =>
             {
                     var plant = prefab.GetComponentInChildren<Plant>(true);
                     var fire = prefab.GetComponentInChildren<Fireplace>(true);

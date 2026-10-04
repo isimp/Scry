@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine;
@@ -29,12 +31,33 @@ namespace Scry
             Timing.FrameDone += Monitor.Frame;
             ScryPanel.CloseAsked += Session.Hide;
 
+            Compatibility.PatchFeatures = PatchFeatures;
             _harmony = new Harmony(About.Guid);
             Patch();
 
             // Without the chat command F7 still opens the panel.
-            Guard.Run("the /scry command", Commands.Register);
+            Guard.Run(Feature.Command, "the /scry command", Commands.Register);
         }
+
+        /// <summary>What each patch is for, by the class that makes it, so a patch the game no longer allows names the feature it turns off.</summary>
+        private static readonly Dictionary<Type, Feature> PatchFeatures = new Dictionary<Type, Feature>
+        {
+            { typeof(TextInputBlock), Feature.KeysKeptFromGame },
+            { typeof(InventoryKeyBlock), Feature.TabKeptFromInventory },
+            { typeof(LookThrough), Feature.LookAndWalkWhileOpen },
+            { typeof(NoCombatWhileOpen), Feature.NoCombatWhileOpen },
+            { typeof(LookCapture), Feature.CursorHeldWhileLooking },
+            { typeof(WheelBlock), Feature.WheelKeptFromCamera },
+            { typeof(SceneOrigins), Feature.PrefabOrigins },
+            { typeof(StatusEffectOrigins), Feature.StatusEffectOrigins },
+            { typeof(RaidOrigins), Feature.RaidOrigins },
+            { typeof(LocationOrigins), Feature.LocationOrigins },
+            { typeof(RoomOrigins), Feature.RoomOrigins },
+            { typeof(DeathLoot), Feature.DropsSeenInPlay },
+            { typeof(RagdollLootSetUp), Feature.DropsSeenInPlay },
+            { typeof(RagdollLoot), Feature.DropsSeenInPlay },
+            { typeof(ItemMade), Feature.DropsSeenInPlay },
+        };
 
         /// <summary>
         /// Applies each patch class on its own. A game update that renames a patched method then
@@ -45,7 +68,7 @@ namespace Scry
         {
             foreach (var type in About.OwnTypes())
             {
-                Guard.Each("patching the game", type.Name, () =>
+                Guard.Each(Compatibility.FeatureOfPatch(type), "patching the game", type.Name, () =>
                 {
                     if (type.GetCustomAttributes(typeof(HarmonyPatch), false).Length > 0) _harmony.CreateClassProcessor(type).Patch();
                 });
@@ -55,12 +78,12 @@ namespace Scry
         private void Update()
         {
             var started = Timing.Start();
-            Guard.Run("the frame", Session.Update);
+            Guard.Run(Feature.World, "the frame", Session.Update);
             DropWatch.Save();
             Timing.Add("update", started);
         }
 
-        private void LateUpdate() => Guard.Run("drawing the stage", Session.LateUpdate, "render");
+        private void LateUpdate() => Guard.Run(Feature.Stage, "drawing the stage", Session.LateUpdate, "render");
 
         private void OnGUI()
         {
@@ -68,11 +91,11 @@ namespace Scry
             var kind = Event.current.type;
             // The panel catches its own sections; this is for a panel that cannot run at all,
             // which is told once rather than an error every frame.
-            Guard.Run("the panel", ScryPanel.OnGUI, "panel");
+            Guard.Run(Feature.Panel, "the panel", ScryPanel.OnGUI, "panel");
             if (Settings.LogPreviews) Timing.Add(EventPart(kind), started);
 
             // The resource monitor over everything, its own drawing a part of its own.
-            if (Monitor.On && kind == EventType.Repaint) Guard.Run("the resource monitor", DrawMonitor, "monitor");
+            if (Monitor.On && kind == EventType.Repaint) Guard.Run(Feature.ResourceMonitor, "the resource monitor", DrawMonitor, "monitor");
         }
 
         private static void DrawMonitor()
@@ -95,7 +118,7 @@ namespace Scry
         private void OnDestroy()
         {
             DropWatch.Save(now: true);
-            Guard.Run("closing down", Session.Shutdown);
+            Guard.Run(Feature.Leaving, "closing down", Session.Shutdown);
             _harmony?.UnpatchSelf();
         }
     }

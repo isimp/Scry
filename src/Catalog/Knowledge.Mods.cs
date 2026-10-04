@@ -239,7 +239,7 @@ namespace Scry
             foreach (var prefab in prefabs)
             {
                 if (prefab == null || ModOf.ContainsKey(prefab.name) || Origins.Prefabs.Of(prefab.name) != Origin.Mod || clues.ContainsKey(prefab.name)) continue;
-                Guard.Each("which mod added what", prefab.name, () => clues[prefab.name] = AssetsOf(prefab));
+                Guard.Each(Feature.ModAttribution, "which mod added what", prefab.name, () => clues[prefab.name] = AssetsOf(prefab));
             }
             foreach (var effect in ModStatusEffects())
             {
@@ -254,11 +254,11 @@ namespace Scry
 
             // A bundle, or a mod's folder, at a time: looking through them all took some 150 ms.
             var bundlesOf = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
-            if (!Guard.Run("reading the loaded asset bundles", () => AssetBundle.GetAllLoadedAssetBundles().ToList(), out var bundles)) yield break;
+            if (!Guard.Run(Feature.ModAttribution, "reading the loaded asset bundles", () => AssetBundle.GetAllLoadedAssetBundles().ToList(), out var bundles)) yield break;
             foreach (var bundle in bundles)
             {
                 started = CatalogTiming.Start();
-                Guard.Each("which mod added what", "a bundle", () =>
+                Guard.Each(Feature.ModAttribution, "which mod added what", "a bundle", () =>
                 {
                     if (bundle != null && !bundle.isStreamedSceneAssetBundle)
                     {
@@ -285,7 +285,7 @@ namespace Scry
                 if (string.IsNullOrEmpty(name)) continue;
                 started = CatalogTiming.Start();
 
-                Guard.Each("which mod added what", name, () =>
+                Guard.Each(Feature.ModAttribution, "which mod added what", name, () =>
                 {
                     var assembly = info.Instance != null ? info.Instance.GetType().Assembly : null;
                     if (assembly != null)

@@ -87,7 +87,7 @@ namespace Scry
             }
             Failed = true;
             _source.LoadFailed = true;
-            Faults.Skip("previews of places", _source.Prefab, "it did not load");
+            Faults.Skip(Feature.LocationsOnStage, "previews of places", _source.Prefab, "it did not load");
             return PlaceLoad.Failed;
         }
     }

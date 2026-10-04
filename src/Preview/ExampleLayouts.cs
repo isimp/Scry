@@ -124,13 +124,13 @@ namespace Scry
                 if (asset == null)
                 {
                     Failed++;
-                    Faults.Skip("example layouts", _loading.Prefab, "its room did not load");
+                    Faults.Skip(Feature.ExampleDungeonAndCampLayouts, "example layouts", _loading.Prefab, "its room did not load");
                 }
                 else
                 {
                     var reading = _loading;
                     var room = Rooms[_next];
-                    if (!Guard.Each("dungeon rooms", reading.Prefab, () =>
+                    if (!Guard.Each(Feature.ExampleDungeonAndCampLayouts, "dungeon rooms", reading.Prefab, () =>
                     {
                         reading.Contents = PlaceReader.Read(asset, true);
                         Learned.About(room);

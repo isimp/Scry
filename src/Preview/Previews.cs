@@ -162,17 +162,17 @@ namespace Scry
             Loudness.Gain = explorer != null ? explorer.Modifiers.Volume : 1f;
 
             // Each part on its own: one that fails does not keep the others from running.
-            Guard.Run("expiring previews", Expire);
-            Guard.Run("listening", Listen.Update);
-            Guard.Run("playing a location's music", MusicPreview.Update);
-            Guard.Run("seeking a sound", SettleSeek);
-            Guard.Run("making a copy", Ghost.Building.Tick);
+            Guard.Run(Feature.Previews, "expiring previews", Expire);
+            Guard.Run(Feature.Previews, "listening", Listen.Update);
+            Guard.Run(Feature.LocationMusic, "playing a location's music", MusicPreview.Update);
+            Guard.Run(Feature.SoundsAfterSeek, "seeking a sound", SettleSeek);
+            Guard.Run(Feature.Previews, "making a copy", Ghost.Building.Tick);
             // Working out what clips play waits while the panel is closed, and goes on when it opens.
             var started = Timing.Start();
             if (explorer != null)
             {
-                Guard.Run("watching an animator", TriggerProbe.Update);
-                Guard.Run("sorting clips", SortSomeClips);
+                Guard.Run(Feature.Animations, "watching an animator", TriggerProbe.Update);
+                Guard.Run(Feature.Animations, "sorting clips", SortSomeClips);
             }
             Timing.Add("update probe", started);
             RunLaterSteps();
@@ -191,33 +191,33 @@ namespace Scry
                 _selectionVersion = explorer.SelectionVersion;
                 _modifierVersion = modifiers.Version;
                 _stageStale = false;
-                Guard.Run("showing the selection", e => Selected(e.Selected, e.Modifiers), explorer, "update selection");
+                Guard.Run(Feature.Previews, "showing the selection", e => Selected(e.Selected, e.Modifiers), explorer, "update selection");
             }
             else if (modifiers.Version != _modifierVersion)
             {
                 _modifierVersion = modifiers.Version;
-                Guard.Run("changing the preview", Modified, modifiers, "update modifiers");
+                Guard.Run(Feature.Previews, "changing the preview", Modified, modifiers, "update modifiers");
             }
 
             // A location or room selected: its bundle is loaded and held while it is shown, what it
             // holds read once it is in, and its stage copy made then. Its details say how far the
             // loading has got, so they are told again as that changes.
-            Guard.Run("loading a location", LoadPlace, explorer);
+            Guard.Run(Feature.LocationsOnStage, "loading a location", LoadPlace, explorer);
 
             // A location or room is put on the stage a little each frame, shown once it is made, and its creatures after.
-            Guard.Run("showing a location", Stage.StepBuild);
-            Guard.Run("putting a place's creatures on the stage", Stage.StepCreatures);
+            Guard.Run(Feature.LocationsOnStage, "showing a location", Stage.StepBuild);
+            Guard.Run(Feature.PlacesCreaturesOnStage, "putting a place's creatures on the stage", Stage.StepCreatures);
 
             // A dungeon or camp selected: its rooms are read for an example layout.
-            Guard.Run("laying out an example dungeon", ExampleLayouts.Update, explorer);
+            Guard.Run(Feature.ExampleDungeonAndCampLayouts, "laying out an example dungeon", ExampleLayouts.Update, explorer);
 
             if (_stageStale)
             {
                 _stageStale = false;
-                Guard.Run("showing the stage", m => Stage.Show(_entry, m), modifiers);
+                Guard.Run(Feature.Stage, "showing the stage", m => Stage.Show(_entry, m), modifiers);
             }
 
-            Guard.Run("repeating", Repeat, modifiers);
+            Guard.Run(Feature.Previews, "repeating", Repeat, modifiers);
         }
 
         /// <summary>The selected location's or room's bundle held and loaded, what it holds read once it is in.</summary>

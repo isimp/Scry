@@ -119,7 +119,7 @@ namespace Scry
         private Func<string> _named;
 
         /// <summary>One part of what a copy's animations play, on its own: a failure leaves out only that part of that copy.</summary>
-        private void Safely(string part, Action act) => Guard.Each(part, _named, act);
+        private void Safely(string part, Action act) => Guard.Each(Feature.SoundsAndEffectsAnimationsName, part, _named, act);
 
         // ----- Clips -----
 

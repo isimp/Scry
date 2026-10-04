@@ -16,7 +16,7 @@ namespace Scry
     {
         private readonly Dictionary<string, (int Count, string Example)> _skips = new Dictionary<string, (int, string)>(StringComparer.Ordinal);
         private readonly List<string> _order = new List<string>();
-        private readonly List<string> _changed = new List<string>();
+        private readonly List<Feature> _changed = new List<Feature>();
         private readonly HashSet<string> _kinds = new HashSet<string>(StringComparer.Ordinal);
 
         /// <summary>Whether a failure means the game no longer has something Scry names, however it is wrapped.</summary>
@@ -31,12 +31,12 @@ namespace Scry
         }
 
         /// <summary>The features a game change has turned off, in the order found.</summary>
-        public IReadOnlyList<string> ChangedFeatures => _changed;
+        public IReadOnlyList<Feature> ChangedFeatures => _changed;
 
         /// <summary>Notes a feature the game change turned off; true the first time, to be told then.</summary>
-        public bool Changed(string feature, Exception ex)
+        public bool Changed(Feature feature, Exception ex)
         {
-            if (string.IsNullOrEmpty(feature) || _changed.Contains(feature)) return false;
+            if (feature == null || _changed.Contains(feature)) return false;
             _changed.Add(feature);
             return true;
         }

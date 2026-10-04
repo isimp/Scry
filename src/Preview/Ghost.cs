@@ -38,7 +38,7 @@ namespace Scry
             try
             {
                 // One that cannot be copied, as a mod's odd prefab may be, shows nothing; what was made of it goes.
-                if (Guard.Each("previews", prefab.name, () =>
+                if (Guard.Each(Feature.Previews, "previews", prefab.name, () =>
                 {
                     // A large prefab (the person, with hundreds of parts) is stripped once and kept
                     // stripped under the sleeping holder; later copies are made from that.
@@ -65,7 +65,7 @@ namespace Scry
                     if (falling) Thud.Add(prefab, copy, onStage: layer >= 0);
 
                     // Its sounds at the loudness the player chose; one that cannot take it plays as the game would.
-                    Guard.Run("preview loudness", Loudness.Add, copy);
+                    Guard.Run(Feature.PreviewsHeardAsIfBesideYou, "preview loudness", Loudness.Add, copy);
                     Place(copy, parent, position, rotation);
                     Awake(prefab, copy);
 

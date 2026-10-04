@@ -26,14 +26,14 @@ namespace Scry
                 if (!EntryKeys.HasOwnNamespace(entry.Kind) && !byName.ContainsKey(entry.Name)) byName[entry.Name] = entry;
             }
             var weather = new HashSet<string>(StringComparer.Ordinal);
-            Guard.Run("grouping by the weather", () => Weather(weather));
-            if (!Guard.Run("grouping by the build menus", Menus, out var menus)) menus = new Dictionary<string, Group>();
-            if (!Guard.Run("ordering the raids", () => RaidRanks(entries), out var raidRanks)) raidRanks = new Dictionary<string, int>();
+            Guard.Run(Feature.Groups, "grouping by the weather", () => Weather(weather));
+            if (!Guard.Run(Feature.Groups, "grouping by the build menus", Menus, out var menus)) menus = new Dictionary<string, Group>();
+            if (!Guard.Run(Feature.Groups, "ordering the raids", () => RaidRanks(entries), out var raidRanks)) raidRanks = new Dictionary<string, int>();
 
             for (var i = 0; i < entries.Count; i++)
             {
                 var entry = entries[i];
-                Guard.Each("grouping", entry.Name, () =>
+                Guard.Each(Feature.Groups, "grouping", entry.Name, () =>
                 {
                     if (entry.Kind == Kind.Raid && raidRanks.TryGetValue(entry.Name, out var rank)) entry.GroupRank = rank;
                     var group = Of(entry, byName, menus, weather);
@@ -46,10 +46,10 @@ namespace Scry
                 if ((i + 1) % slice == 0) yield return i + 1;
             }
             // A projectile another spawns (a cluster bomb's splinters) flies with that one.
-            Guard.Run("grouping projectiles spawned by others", () => Groups.FollowSpawners(entries, Relations.SpawnedBy, Groups.Projectile(Array.Empty<Shooter>()).Name));
+            Guard.Run(Feature.Groups, "grouping projectiles spawned by others", () => Groups.FollowSpawners(entries, Relations.SpawnedBy, Groups.Projectile(Array.Empty<Shooter>()).Name));
 
             // What is left behind goes with what leaves it: a stump with its trees.
-            Guard.Run("grouping what is left behind", () => Leftovers.JoinOwnersGroups(entries));
+            Guard.Run(Feature.Groups, "grouping what is left behind", () => Leftovers.JoinOwnersGroups(entries));
             if (Settings.LogPreviews) Report(entries);
         }
 
@@ -93,7 +93,7 @@ namespace Scry
             foreach (var entry in entries)
             {
                 if (entry.Kind != Kind.Item || entry.GroupOrder != carried || entry.FoundIn.Length == 0) continue;
-                Guard.Each("grouping", entry.Name, () =>
+                Guard.Each(Feature.Groups, "grouping", entry.Name, () =>
                 {
                     var group = Item(entry, entry.Source as GameObject);
                     if (group.Order == carried) return;
@@ -286,7 +286,7 @@ namespace Scry
             if (_categoryNames == null)
             {
                 _categoryNames = new Dictionary<Piece.PieceCategory, string>();
-                Guard.Run("naming the build tabs", () =>
+                Guard.Run(Feature.Groups, "naming the build tabs", () =>
                 {
                     var names = Enum.GetNames(typeof(Piece.PieceCategory));
                     var values = Enum.GetValues(typeof(Piece.PieceCategory));

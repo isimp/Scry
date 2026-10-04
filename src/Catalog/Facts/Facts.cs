@@ -212,7 +212,7 @@ namespace Scry
         /// </summary>
         private void Part(string part, Action read)
         {
-            if (!Guard.Run(FactWords.Part(part), read, Settings.LogPreviews ? FactWords.PartTiming(part) : null) && !_missing.Contains(part)) _missing.Add(part);
+            if (!Guard.Run(Feature.Details(part), FactWords.Part(part), read, Settings.LogPreviews ? FactWords.PartTiming(part) : null) && !_missing.Contains(part)) _missing.Add(part);
         }
 
         private void TellMissing()

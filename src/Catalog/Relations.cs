@@ -110,7 +110,7 @@ namespace Scry
             // update changed what it reads, costs only that kind.
             void Part(string links, Action read)
             {
-                Guard.Each(links, prefab.name, () => read());
+                Guard.Each(Feature.Links, links, prefab.name, () => read());
             }
             Part("links of animations", () => Animations(prefab, _book));
             Part("links of footsteps", () => Steps(prefab, _book));
@@ -141,7 +141,7 @@ namespace Scry
         {
             if (effect == null) return;
             Following.Clear();
-            Guard.Each("links of status effects", effect.name, () =>
+            Guard.Each(Feature.Links, "links of status effects", effect.name, () =>
             {
                 Named(effect, EntryKeys.For(Kind.StatusEffect, effect.name), null, _book, 0);
             });
@@ -427,7 +427,7 @@ namespace Scry
             foreach (var component in parts)
             {
                 if (Skipped(component)) continue;
-                Guard.Each("links of what prefabs spawn", target.name, () =>
+                Guard.Each(Feature.Links, "links of what prefabs spawn", target.name, () =>
                 {
                     Named(component, key, self, book, 0, null, part);
                 });

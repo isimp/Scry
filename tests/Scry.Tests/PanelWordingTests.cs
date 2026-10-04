@@ -272,8 +272,8 @@ namespace Scry.Tests
         [Fact]
         public void AReportOfWhatIsOffNamesTheVersions()
         {
-            Assert.Equal("Scry 0.2.0, Valheim 0.221.4: off: location music, mods' hooks",
-                OffWords.Report("0.2.0", "0.221.4", new[] { "location music", "mods' hooks" }));
+            Assert.Equal("Scry 0.2.0, Valheim 0.221.4: off: location music, drops seen in play",
+                OffWords.Report("0.2.0", "0.221.4", new[] { Feature.LocationMusic, Feature.DropsSeenInPlay }));
         }
     }
 }

@@ -179,7 +179,7 @@ namespace Scry
             {
                 // A method a game update renamed would leave its mods unnamed without a word, so it is told.
                 var methods = AccessTools.GetDeclaredMethods(type).Where(m => m.Name == name).ToList();
-                if (methods.Count == 0) Faults.Skip("mods' hooks", type.Name + "." + name, new MissingMethodException(type.Name, name));
+                if (methods.Count == 0) Faults.Skip(Feature.ModHooks, "mods' hooks", type.Name + "." + name, new MissingMethodException(type.Name, name));
                 foreach (var method in methods)
                 {
                     var info = Harmony.GetPatchInfo(method);
@@ -209,7 +209,7 @@ namespace Scry
 
         /// <summary>Whether a hook's own code names a member the rule is decided by (<see cref="IlShape.Names"/>).</summary>
         private static bool Names(MethodInfo hook, Func<MemberInfo, bool> wanted) =>
-            Guard.Each("mods' hooks", hook.DeclaringType?.FullName ?? hook.Name, () => NamesIn(hook, wanted), out var names) && names;
+            Guard.Each(Feature.ModHooks, "mods' hooks", hook.DeclaringType?.FullName ?? hook.Name, () => NamesIn(hook, wanted), out var names) && names;
 
         private static bool NamesIn(MethodInfo hook, Func<MemberInfo, bool> wanted)
         {

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -10,29 +11,16 @@ namespace Scry
     internal static class OffWords
     {
         /// <summary>The notice's line, or null while nothing is off.</summary>
-        public static string Line(IReadOnlyList<string> features)
+        public static string Line(IReadOnlyList<Feature> features)
         {
             if (features == null || features.Count == 0) return null;
-            if (features.Count == 1)
-            {
-                var one = features[0];
-                return Naming.Capital(one) + " is off until Scry is updated. Everything else works.";
-            }
-            var named = Naming.Joined(new List<string>(features));
+            if (features.Count == 1) return Naming.Capital(features[0].Name) + " is off until Scry is updated. Everything else works.";
+            var named = Naming.Joined(features.Select(f => f.Name).ToList());
             return $"{Numbers.Count(features.Count)} parts of Scry are off until it is updated: {named}. Everything else works.";
         }
 
-        /// <summary>What a missing layer turns off: falling copies landing on it.</summary>
-        public static string FallingCopies(string layer) => $"falling copies landing on {layer}";
-
-        /// <summary>What a missing script turns off: the effects that keep it.</summary>
-        public static string KeptScript(string script) => $"effects keeping their {script}";
-
-        /// <summary>What a missing status effect turns off: linking the damage that puts it on to it.</summary>
-        public static string DamageLink(string effect) => $"linking damage to {effect}";
-
         /// <summary>What is off with Scry's and the game's versions, copied for a report.</summary>
-        public static string Report(string scry, string game, IEnumerable<string> features) => $"Scry {scry}, Valheim {game}: off: {Naming.Commas(features)}";
+        public static string Report(string scry, string game, IEnumerable<Feature> features) => $"Scry {scry}, Valheim {game}: off: {Naming.Commas(features.Select(f => f.Name))}";
 
         /// <summary>What the details card says above the list of what is off.</summary>
         public static string Details() =>

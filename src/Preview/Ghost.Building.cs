@@ -162,7 +162,7 @@ namespace Scry
                 if (AfterMaking.Count == 0 || BeingMade) return;
                 var waiting = AfterMaking.ToArray();
                 AfterMaking.Clear();
-                foreach (var letGo in waiting) Guard.Run("letting go of a bundle", letGo);
+                foreach (var letGo in waiting) Guard.Run(Feature.Previews, "letting go of a bundle", letGo);
             }
 
             /// <summary>Finishes every copy at once and lets go of what waited, as a world is left.</summary>
@@ -170,7 +170,7 @@ namespace Scry
             {
                 foreach (var making in Making.Concat(Dropped).ToArray())
                 {
-                    Guard.Run("finishing a copy", () => { if (!making.isDone) making.WaitForCompletion(); });
+                    Guard.Run(Feature.Previews, "finishing a copy", () => { if (!making.isDone) making.WaitForCompletion(); });
                 }
                 Tick();
             }
@@ -178,7 +178,7 @@ namespace Scry
             /// <summary>Takes down what an operation made.</summary>
             private static void TakeDown(AsyncInstantiateOperation<GameObject> making)
             {
-                Guard.Run("taking down a copy", () =>
+                Guard.Run(Feature.Previews, "taking down a copy", () =>
                 {
                     if (making.Result != null) foreach (var made in making.Result) if (made != null) Object.Destroy(made);
                 });
@@ -237,7 +237,7 @@ namespace Scry
                 _waiting = false;
                 try
                 {
-                    if (!Guard.Each("previews", _name, () =>
+                    if (!Guard.Each(Feature.Previews, "previews", _name, () =>
                     {
                         do Next(watch, budgetMs);
                         while (_step != Step.Done && !_waiting && watch.Elapsed.TotalMilliseconds < budgetMs);
@@ -318,7 +318,7 @@ namespace Scry
                         Settle(_copy, falling: false);
                         if (_layer >= 0) SetLayer(_copy.transform, _layer);
                         // Its sounds at the loudness the player chose; one that cannot take it plays as the game would.
-                        Guard.Run("preview loudness", Loudness.Add, _copy);
+                        Guard.Run(Feature.PreviewsHeardAsIfBesideYou, "preview loudness", Loudness.Add, _copy);
                         PutToSleep();
                         Timing.Add("copy settled", settled);
 

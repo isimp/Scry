@@ -61,7 +61,7 @@ namespace Scry
             _all.Start();
             var frame = System.Diagnostics.Stopwatch.StartNew();
             var done = 0;
-            var finished = Guard.Run("reading the catalog", () =>
+            var finished = Guard.Run(Feature.Catalog, "reading the catalog", () =>
             {
                 while (_share.MayBegin(frame.Elapsed.TotalMilliseconds, done, budgetMs))
                 {

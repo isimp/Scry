@@ -192,7 +192,7 @@ namespace Scry
             {
                 if (e.time <= after) continue;
                 if (e.time > upTo) break;
-                Guard.Run($"answering the event {e.functionName} of the clip {_clip.name}", () =>
+                Guard.Run(Feature.SoundsAndEffectsAnimationsName, $"answering the event {e.functionName} of the clip {_clip.name}", () =>
                 {
                     _ears.Answer(e);
                 });

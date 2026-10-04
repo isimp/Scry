@@ -11,7 +11,7 @@ namespace Scry
     /// a status effect, fuel, a conversion), found once per type and kept. A type and its bases
     /// are looked through down to Unity's own, which declare none of the game's fields. A mod's
     /// type whose fields cannot be read has none, remembered as such, and is told once with the
-    /// rest left out (<see cref="Faults.Skip(string, string, Exception)"/>).
+    /// rest left out (<see cref="Faults.Skip(Feature, string, string, Exception)"/>).
     /// </summary>
     internal static class TypeFields
     {
@@ -46,7 +46,7 @@ namespace Scry
             Reading.Field = null;
             Reading.Owner = null;
             Reading.Value = null;
-            if (failure != null) Faults.Skip("reading of a type's fields", field.DeclaringType?.Name + "." + field.Name, failure);
+            if (failure != null) Faults.Skip(Feature.GameFigures, "reading of a type's fields", field.DeclaringType?.Name + "." + field.Name, failure);
             return failure == null;
         }
 
@@ -62,7 +62,7 @@ namespace Scry
         {
             var key = (type, name);
             if (ByName.TryGetValue(key, out var known)) return known;
-            Guard.Each("reading of a type's fields", type.Name, () => Of(type).FirstOrDefault(field => field.Name == name), out known);
+            Guard.Each(Feature.GameFigures, "reading of a type's fields", type.Name, () => Of(type).FirstOrDefault(field => field.Name == name), out known);
             ByName[key] = known;
             return known;
         }
@@ -83,7 +83,7 @@ namespace Scry
         public static T[] Picked<T>(Dictionary<Type, T[]> cache, Type type, Func<FieldInfo, IEnumerable<T>> pick)
         {
             if (cache.TryGetValue(type, out var known)) return known;
-            if (!Guard.Each("reading of a type's fields", type.Name, () => Of(type).SelectMany(pick).ToArray(), out known)) known = Array.Empty<T>();
+            if (!Guard.Each(Feature.GameFigures, "reading of a type's fields", type.Name, () => Of(type).SelectMany(pick).ToArray(), out known)) known = Array.Empty<T>();
             cache[type] = known;
             return known;
         }

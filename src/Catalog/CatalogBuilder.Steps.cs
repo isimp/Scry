@@ -41,7 +41,7 @@ namespace Scry
             var collections = GC.CollectionCount(0);
             var read = new Reading(job);
 
-            Timed("startup check", () => Guard.Run("the startup check", Compatibility.Check));
+            Timed("startup check", () => Guard.Run(Feature.StartupCheck, "the startup check", Compatibility.Check));
             yield return "Reading the prefabs";
 
             Timed("setup", () => Register(read));
@@ -69,27 +69,27 @@ namespace Scry
             foreach (var step in MakeEntries(read)) yield return step;
             yield return "Pairing leftovers";
 
-            Timed("leftovers", () => Guard.Run("pairing what things leave behind", () => Leftovers.Pair(read.Entries, read.Leftovers)));
+            Timed("leftovers", () => Guard.Run(Feature.WhatThingsLeaveWhenBroken, "pairing what things leave behind", () => Leftovers.Pair(read.Entries, read.Leftovers)));
             yield return "Linking entries";
 
             LinkBook book = null;
-            Timed("links finished", () => Guard.Run("linking entries", () => book = Relations.Finish(read.Prefabs)));
+            Timed("links finished", () => Guard.Run(Feature.Links, "linking entries", () => book = Relations.Finish(read.Prefabs)));
             yield return "Linking entries";
 
-            var linking = book == null ? null : Stepped(() => book.ApplyInSteps(read.Entries, 400), "links applied", "linking entries");
+            var linking = book == null ? null : Stepped(() => book.ApplyInSteps(read.Entries, 400), Feature.Links, "links applied", "linking entries");
             if (linking != null) foreach (var done in linking) yield return CatalogWords.Progress("Linking entries", done);
 
             yield return "Grouping entries";
-            foreach (var done in Stepped(() => Grouping.Apply(read.Entries, 400), "grouping", "grouping entries"))
+            foreach (var done in Stepped(() => Grouping.Apply(read.Entries, 400), Feature.Groups, "grouping", "grouping entries"))
             {
                 yield return CatalogWords.Progress("Grouping entries", done);
             }
 
             // Locations and rooms take their names from creatures' (a Fuling camp), so they come
             // last but for the mods, which come once every entry knows the mod that added it.
-            Timed("locations", () => Guard.Run("the locations and dungeon rooms", PlaceEntries.Add, read.Entries));
-            Timed("biomes", () => Guard.Run("the biomes", Biomes, read.Entries));
-            Timed("mods", () => Guard.Run("the mods' own entries", Mods, read.Entries));
+            Timed("locations", () => Guard.Run(Feature.Locations, "the locations and dungeon rooms", PlaceEntries.Add, read.Entries));
+            Timed("biomes", () => Guard.Run(Feature.Biomes, "the biomes", Biomes, read.Entries));
+            Timed("mods", () => Guard.Run(Feature.ModPages, "the mods' own entries", Mods, read.Entries));
             foreach (var step in ModIcons(read)) yield return step;
 
             job.Entries = read.Entries;
@@ -136,7 +136,7 @@ namespace Scry
             if (db == null) return;
             foreach (var effect in FirstOfName.Each(db.m_StatusEffects, e => e != null ? e.name : null))
             {
-                Guard.Each("status effect entries", effect.name, () =>
+                Guard.Each(Feature.Catalog, "status effect entries", effect.name, () =>
                 {
                     var origin = Origins.StatusEffects.Of(effect.name);
                     var shown = Localize(effect.m_name);
@@ -250,17 +250,17 @@ namespace Scry
         /// A step done a piece at a time, each piece timed as a part of the catalog's reading,
         /// handing on how far it has got; failing to begin or part way, it stops, told as what it was doing.
         /// </summary>
-        private static IEnumerable<int> Stepped(Func<IEnumerable<int>> begin, string part, string doing)
+        private static IEnumerable<int> Stepped(Func<IEnumerable<int>> begin, Feature feature, string part, string doing)
         {
             var started = CatalogTiming.Start();
             IEnumerator<int> steps = null;
-            Guard.Run(doing, () => steps = begin().GetEnumerator());
+            Guard.Run(feature, doing, () => steps = begin().GetEnumerator());
             CatalogTiming.Add(part, started);
             while (steps != null)
             {
                 started = CatalogTiming.Start();
                 var more = false;
-                Guard.Run(doing, () => more = steps.MoveNext());
+                Guard.Run(feature, doing, () => more = steps.MoveNext());
                 CatalogTiming.Add(part, started);
                 if (!more) yield break;
                 yield return steps.Current;

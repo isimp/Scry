@@ -224,7 +224,7 @@ namespace Scry
 
             foreach (var list in lists)
             {
-                Each(list.m_spawners, "world spawns", d => d.m_name.Length > 0 ? d.m_name : d.m_prefab != null ? d.m_prefab.name : "a spawn", data =>
+                Each(list.m_spawners, Feature.WhereCreaturesSpawn, "world spawns", d => d.m_name.Length > 0 ? d.m_name : d.m_prefab != null ? d.m_prefab.name : "a spawn", data =>
                 {
                     if (data.m_prefab == null || !data.m_enabled) return;
                     var name = data.m_prefab.name;
@@ -252,7 +252,7 @@ namespace Scry
             var events = RandEventSystem.instance.OrNull()?.m_events;
             if (events == null) return;
 
-            Each(events, "raids", r => r.m_name, raid =>
+            Each(events, Feature.Raids, "raids", r => r.m_name, raid =>
             {
                 if (raid.m_spawn == null || !raid.m_enabled) return;
                 var shown = CatalogBuilder.Localize(raid.m_startMessage);
@@ -331,7 +331,7 @@ namespace Scry
             var vegetation = ZoneSystem.instance.OrNull()?.m_vegetation;
             if (vegetation == null) return;
 
-            Each(vegetation, "vegetation", v => v.m_name, veg =>
+            Each(vegetation, Feature.WhereThingsGrow, "vegetation", v => v.m_name, veg =>
             {
                 if (veg.m_prefab == null || !veg.m_enable) return;
                 var name = veg.m_prefab.name;
@@ -478,7 +478,7 @@ namespace Scry
         /// <summary>What traders sell. They stand in locations, so only those loaded are found.</summary>
         private static void Traders()
         {
-            Each(Resources.FindObjectsOfTypeAll<Trader>(), "traders", t => t.name, trader =>
+            Each(Resources.FindObjectsOfTypeAll<Trader>(), Feature.WhatTradersSellAndWhen, "traders", t => t.name, trader =>
             {
                 if (trader.m_items == null) return;
                 var name = CatalogBuilder.Localize(trader.m_name);

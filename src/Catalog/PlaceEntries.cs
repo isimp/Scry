@@ -82,7 +82,7 @@ namespace Scry
                 }
                 foreach (var source in order)
                 {
-                    Guard.Each("location entries", source.Prefab, () => entries.Add(LocationEntry(source, creatures)));
+                    Guard.Each(Feature.Locations, "location entries", source.Prefab, () => entries.Add(LocationEntry(source, creatures)));
                 }
             }
 
@@ -96,7 +96,7 @@ namespace Scry
             foreach (var room in rooms)
             {
                 if (room == null || !room.m_enabled || !room.m_prefab.IsValid || !seen.Add(room.m_prefab.Name)) continue;
-                Guard.Each("dungeon room entries", room.m_prefab.Name, () => entries.Add(RoomEntry(new PlaceSource { Prefab = room.m_prefab.Name, Reference = room.m_prefab, Room = room }, creatures)));
+                Guard.Each(Feature.Locations, "dungeon room entries", room.m_prefab.Name, () => entries.Add(RoomEntry(new PlaceSource { Prefab = room.m_prefab.Name, Reference = room.m_prefab, Room = room }, creatures)));
             }
             Arrange(entries);
         }

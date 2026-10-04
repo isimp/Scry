@@ -184,7 +184,7 @@ namespace Scry
             var watch = Stopwatch.StartNew();
             _frames++;
             // One odd location costs only itself.
-            if (!Guard.Each("locations", () => _current.Name, () => Step(watch)))
+            if (!Guard.Each(Feature.Locations, "locations", () => _current.Name, () => Step(watch)))
             {
                 _failed++;
                 Next();
@@ -249,12 +249,12 @@ namespace Scry
         {
             Here.Clear();
             PlaceContents contents = null;
-            Guard.Each("locations", _current.Name, () => contents = PlaceReader.Read(prefab, _current.Room));
+            Guard.Each(Feature.Locations, "locations", _current.Name, () => contents = PlaceReader.Read(prefab, _current.Room));
 
             if (_current.Room)
             {
                 var theme = 0;
-                Guard.Each("names of dungeon rooms", _current.Name, () => theme = ThemeOf(prefab));
+                Guard.Each(Feature.Locations, "names of dungeon rooms", _current.Name, () => theme = ThemeOf(prefab));
                 Here.AddRange(Places.RoomLabels(theme, Dungeons));
                 if (contents != null) ReadRooms[_current.Name] = contents;
                 PlaceLabels["room:" + _current.Name] = Here.ToArray();
@@ -269,7 +269,7 @@ namespace Scry
                 facts.Trader = contents.Trader;
             }
             var themes = new List<int>();
-            Guard.Each("names of locations", _current.Name, () => DungeonThemes(prefab, themes));
+            Guard.Each(Feature.Locations, "names of locations", _current.Name, () => DungeonThemes(prefab, themes));
             var label = Places.LocationLabel(facts, _creatures);
             Here.Add(label);
             foreach (var kinds in themes) Dungeons.Add(new KeyValuePair<int, string>(kinds, label));

@@ -105,7 +105,7 @@ namespace Scry
             if (Time.time < _until) return;
             // Gone at the frame's end whatever the note does, so a watch that fails is not tried again each frame.
             Destroy(this);
-            Guard.Run("noting a watched fall", () =>
+            Guard.Run(Feature.LetFall, "noting a watched fall", () =>
             {
                 var at = _body != null ? _body.transform.position : transform.position;
                 var ground = _onStage ? float.NaN : ZoneSystem.instance != null ? ZoneSystem.instance.GetGroundHeight(at) : float.NaN;

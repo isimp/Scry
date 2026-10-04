@@ -34,7 +34,7 @@ namespace Scry
             get
             {
                 if (_seen != null) return _seen;
-                if (!Guard.Run("reading the drops seen in play", () => SeenDrops.Load(System.IO.File.Exists(File) ? System.IO.File.ReadAllText(File) : null), out _seen)) _seen = new SeenDrops();
+                if (!Guard.Run(Feature.DropsSeenInPlay, "reading the drops seen in play", () => SeenDrops.Load(System.IO.File.Exists(File) ? System.IO.File.ReadAllText(File) : null), out _seen)) _seen = new SeenDrops();
                 return _seen;
             }
         }
@@ -54,7 +54,7 @@ namespace Scry
             if (!_triedField)
             {
                 _triedField = true;
-                Guard.Each("drops seen in play", "CharacterDrop.m_dropsEnabled", () => _dropsEnabled = AccessTools.FieldRefAccess<CharacterDrop, bool>("m_dropsEnabled"));
+                Guard.Each(Feature.DropsSeenInPlay, "drops seen in play", "CharacterDrop.m_dropsEnabled", () => _dropsEnabled = AccessTools.FieldRefAccess<CharacterDrop, bool>("m_dropsEnabled"));
             }
             if (_dropsEnabled != null && _dropsEnabled(drops)) Begin(Utils.GetPrefabName(drops.gameObject));
         }
@@ -107,7 +107,7 @@ namespace Scry
         {
             if (_seen == null || !_seen.Changed || (!now && Time.unscaledTime - _savedAt < 30f)) return;
             _savedAt = Time.unscaledTime;
-            Guard.Run("keeping the drops seen in play", () =>
+            Guard.Run(Feature.DropsSeenInPlay, "keeping the drops seen in play", () =>
             {
                 Directory.CreateDirectory(Settings.DataFolder);
                 System.IO.File.WriteAllText(File, _seen.Save());
@@ -128,14 +128,14 @@ namespace Scry
         [HarmonyPriority(Priority.First)]
         private static void Prefix(CharacterDrop __instance)
         {
-            Guard.Run("watching what creatures drop", () => DropWatch.BeginDeath(__instance));
+            Guard.Run(Feature.DropsSeenInPlay, "watching what creatures drop", () => DropWatch.BeginDeath(__instance));
         }
 
         // Last, after any mod's own hook here has spawned what it adds.
         [HarmonyPriority(Priority.Last)]
         private static void Postfix()
         {
-            Guard.Run("watching what creatures drop", () => DropWatch.End());
+            Guard.Run(Feature.DropsSeenInPlay, "watching what creatures drop", () => DropWatch.End());
         }
     }
 
@@ -144,7 +144,7 @@ namespace Scry
     {
         private static void Postfix(Ragdoll __instance, CharacterDrop characterDrop)
         {
-            Guard.Run("watching what creatures drop", () => DropWatch.RagdollSetUp(__instance, characterDrop));
+            Guard.Run(Feature.DropsSeenInPlay, "watching what creatures drop", () => DropWatch.RagdollSetUp(__instance, characterDrop));
         }
     }
 
@@ -154,13 +154,13 @@ namespace Scry
         [HarmonyPriority(Priority.First)]
         private static void Prefix(Ragdoll __instance)
         {
-            Guard.Run("watching what creatures drop", () => DropWatch.BeginRagdoll(__instance));
+            Guard.Run(Feature.DropsSeenInPlay, "watching what creatures drop", () => DropWatch.BeginRagdoll(__instance));
         }
 
         [HarmonyPriority(Priority.Last)]
         private static void Postfix()
         {
-            Guard.Run("watching what creatures drop", () => DropWatch.End());
+            Guard.Run(Feature.DropsSeenInPlay, "watching what creatures drop", () => DropWatch.End());
         }
     }
 

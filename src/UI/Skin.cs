@@ -152,7 +152,7 @@ namespace Scry
         {
             if (_warmed) return;
 
-            Guard.Run("warming the panel's text", () =>
+            Guard.Run(Feature.Panel, "warming the panel's text", () =>
             {
                     Ensure(scale);
 

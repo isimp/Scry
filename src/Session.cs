@@ -85,7 +85,7 @@ namespace Scry
         {
             // Each step on its own: one that fails (a game update renamed what it reads) is told
             // once and costs only itself, never the key that opens the panel or the steps after it.
-            Step("noticing a world left", () =>
+            Step(Feature.Leaving, "noticing a world left", () =>
             {
                 // Leaving a world destroys every prefab the catalog points at. Compared as references:
                 // once the scene is destroyed, Unity's own comparison calls it null, the same as the
@@ -96,9 +96,9 @@ namespace Scry
                 if (IsOpen && Player.m_localPlayer == null) Hide();
             });
 
-            Step("reading the catalog", () => ReadCatalog());
+            Step(Feature.Catalog, "reading the catalog", () => ReadCatalog());
 
-            Step("the key that opens the panel", () =>
+            Step(Feature.OpenKey, "the key that opens the panel", () =>
             {
                 if (Input.GetKeyDown(Settings.OpenKey) && CanToggle() && !TypingIt(Settings.OpenKey)) Toggle();
             });
@@ -106,8 +106,8 @@ namespace Scry
             // After the key, so the panel opened by it is handed what it shows in the same frame.
             ScryPanel.Update(Explorer, Reading);
 
-            Step("the previews", () => Previews.Update(IsOpen ? Explorer : null));
-            Step("the self-test", () =>
+            Step(Feature.Previews, "the previews", () => Previews.Update(IsOpen ? Explorer : null));
+            Step(Feature.SelfTest, "the self-test", () =>
             {
                 var started = Timing.Start();
                 var inner = Timing.InnerMs();
@@ -115,10 +115,10 @@ namespace Scry
                 Timing.Own(Timing.SelfTestPart, started, inner);
             });
 
-            if (!Guard.Run("reading the locations", Locations.Update, "update locations")) Locations.Forget();
+            if (!Guard.Run(Feature.Locations, "reading the locations", Locations.Update, "update locations")) Locations.Forget();
         }
 
-        private static void Step(string part, Action step) => Guard.Run(part, step);
+        private static void Step(Feature feature, string part, Action step) => Guard.Run(feature, part, step);
 
         public static void LateUpdate()
         {
@@ -145,7 +145,7 @@ namespace Scry
         private static bool CanToggle()
         {
             if (IsOpen) return true;
-            return !Guard.Run("telling whether the chat, console or menu is up", GameAllowsToggle, out var allows) || allows;
+            return !Guard.Run(Feature.OpenKey, "telling whether the chat, console or menu is up", GameAllowsToggle, out var allows) || allows;
         }
 
         private static bool GameAllowsToggle()
@@ -200,7 +200,7 @@ namespace Scry
         {
             var catalog = job.Entries;
             _favourites = _favourites ?? new Favourites(Path.Combine(Settings.DataFolder, "favourites.txt"));
-            if (_favourites.Problem != null) Faults.Tell("reading the favourites", _favourites.Problem);
+            if (_favourites.Problem != null) Faults.Tell(Feature.Favourites, "reading the favourites", _favourites.Problem);
 
             Explorer = new Explorer(catalog, _favourites) { RecentLimit = Settings.RecentCount };
             WorldCatalog.Set(Explorer.Entries);
@@ -224,14 +224,14 @@ namespace Scry
             // reading the panel's button starts, a few milliseconds a frame.
             if (Settings.ReadLocationsAutomatically && Locations.Now == Locations.State.NotRead)
             {
-                Guard.Run("reading the locations by itself", () => Log.Report("Scry: " + Locations.Start()));
+                Guard.Run(Feature.Locations, "reading the locations by itself", () => Log.Report("Scry: " + Locations.Start()));
             }
         }
 
         private static void Failed(string why, ZNetScene scene)
         {
             _failedIn = scene;
-            Faults.Tell("reading the game's prefabs", why);
+            Faults.Tell(Feature.Catalog, "reading the game's prefabs", why);
             if (!IsOpen) return;
             Hide();
             Chat.instance.OrNull()?.AddString("Scry could not read the game's prefabs; the log has the details.");
@@ -247,14 +247,14 @@ namespace Scry
             _job = null;
             _failedIn = null;
             _inWorldSince = -1f;
-            Guard.Run("closing on leaving a world", Hide);
-            Guard.Run("clearing the world's previews", Previews.ClearWorld);
+            Guard.Run(Feature.Leaving, "closing on leaving a world", Hide);
+            Guard.Run(Feature.Leaving, "clearing the world's previews", Previews.ClearWorld);
 
             // Everything else kept of the world, each class having registered how it forgets.
-            WorldCaches.ForgetAll((name, ex) => Faults.Tell("forgetting " + name, ex));
+            WorldCaches.ForgetAll((name, ex) => Faults.Tell(Feature.Leaving, "forgetting " + name, ex));
 
             // The search and filters carry over to the next world; the entries cannot.
-            Guard.Run("letting go of the selection", () => Explorer?.Select(null));
+            Guard.Run(Feature.Leaving, "letting go of the selection", () => Explorer?.Select(null));
             if (Explorer != null) _carried = (Explorer.Text, Explorer.KindFilter, Explorer.Origin, Explorer.FavouritesOnly);
             Explorer = null;
         }
