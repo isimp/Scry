@@ -62,7 +62,7 @@ namespace Scry
 
                 foreach (var slot in EffectSlots.Of(list))
                 {
-                    if (!EffectSlots.Names(slot)) continue;
+                    if (!EffectSlots.Plays(slot)) continue;
                     var prefab = slot.m_prefab;
 
                     if (!effects.TryGetValue(prefab.name, out var found))

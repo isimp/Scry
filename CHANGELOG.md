@@ -58,6 +58,8 @@ Volume and size are two small icons beside the selection's name, each opening a 
 
 Every number Scry shows has its thousands by commas, 5,000 as much in a creature's health as in a count, and reads the same whatever language the PC is set to. The panel's place is read line by line, so one damaged line no longer loses the rest.
 
+Who plays an effect or a sound, what a thing leaves behind, what a place holds and what an effect list's chip names count only what the game plays: a slot a list leaves switched off counts nowhere.
+
 ## 0.1.0
 
 First release.

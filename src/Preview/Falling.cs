@@ -102,7 +102,7 @@ namespace Scry
             var longest = 0f;
             foreach (var slot in EffectSlots.Of(list))
             {
-                if (!EffectSlots.Names(slot) || !PrefabShapes.IsDebris(slot.m_prefab)) continue;
+                if (!EffectSlots.Plays(slot) || !PrefabShapes.IsDebris(slot.m_prefab)) continue;
                 foreach (var timer in slot.m_prefab.GetComponentsInChildren<TimedDestruction>(true)) longest = Mathf.Max(longest, timer.m_timeout);
                 if (longest <= 0f) longest = 5f;
             }

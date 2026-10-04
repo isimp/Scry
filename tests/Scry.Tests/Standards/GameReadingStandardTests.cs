@@ -28,6 +28,25 @@ namespace Scry.Tests
             Violations.None("read an effect list's slots through EffectSlots", found);
         }
 
+        /// <summary>
+        /// What Scry tells and plays of an effect list is what the game plays of it, its switched-on
+        /// slots (<c>EffectList.Create</c>): who plays a prefab, what a thing leaves behind, what a
+        /// place holds. Only telling why a list showed nothing names the slots it leaves out.
+        /// </summary>
+        [Fact]
+        public void OnlyTheSlotsTheGamePlaysAreTold()
+        {
+            var found = new List<string>();
+            foreach (var (name, model) in ScrySource.All<IdentifierNameSyntax>())
+            {
+                if (name.Identifier.Text != "Names" && name.Identifier.Text != "NamesListed") continue;
+                if (!(model.GetSymbolInfo(name).Symbol is IMethodSymbol method) || method.ContainingType?.Name != "EffectSlots") continue;
+                if (Violations.In(name, "EffectSlots.cs") || ScrySource.Member(name) == "TellEmpty") continue;
+                found.Add($"{ScrySource.Where(name)} EffectSlots.{method.Name} in {ScrySource.TopType(name)}.{ScrySource.Member(name)}");
+            }
+            Violations.None("tell an effect list's switched-off slots other than where a list that showed nothing is explained", found);
+        }
+
         [Fact]
         public void PrefabsAreLookedUpByNameOnlyByGamePrefabs()
         {

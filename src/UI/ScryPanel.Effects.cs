@@ -75,7 +75,7 @@ namespace Scry
                 if (playing && chip.Contains(Event.current.mousePosition)) AskTip("fx-stop:" + pair.Key, "Playing; click to stop it");
                 if (chip.Contains(Event.current.mousePosition))
                 {
-                    AskTip("fx:" + pair.Key, string.Join("\n", EffectSlots.NamesListed(pair.Value)));
+                    AskTip("fx:" + pair.Key, string.Join("\n", EffectSlots.NamesPlayed(pair.Value)));
                 }
             }
             if (_effectFilter.Length == 0) MoreChip("effects", matching.Count, FirstChips, width, ref flow);

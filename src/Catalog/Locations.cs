@@ -321,7 +321,7 @@ namespace Scry
 
             foreach (var on in CatalogBuilder.ListsOn(component))
             {
-                foreach (var slot in EffectSlots.Of(on.List)) if (EffectSlots.Names(slot)) Add(slot.m_prefab.name);
+                foreach (var slot in EffectSlots.Of(on.List)) if (EffectSlots.Plays(slot)) Add(slot.m_prefab.name);
             }
 
             Named.Clear();

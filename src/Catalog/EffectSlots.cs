@@ -5,9 +5,10 @@ namespace Scry
     /// <summary>
     /// A game effect list's slots, read one way. The game plays a list's switched-on slots, each
     /// its prefab where the slot says (<c>EffectList.Create</c>); a slot can also be switched off,
-    /// or left with no prefab. What plays a list, or tells what a list plays, reads
-    /// <see cref="Plays"/>; what tells every prefab a list names, played or not, reads
-    /// <see cref="Names"/>; a slot that <see cref="Shows"/> is one played on what plays it rather
+    /// or left with no prefab. Whatever plays a list or tells of it (who plays a prefab, what a
+    /// thing leaves behind, what a place holds) reads <see cref="Plays"/>, so a switched-off slot
+    /// counts nowhere; only telling why a list showed nothing reads <see cref="Names"/>, every
+    /// slot with a prefab. A slot that <see cref="Shows"/> is one played on what plays it rather
     /// than a whole model of its own. Nothing else reads a list's slots.
     /// </summary>
     internal static class EffectSlots
@@ -18,7 +19,7 @@ namespace Scry
         /// <summary>Whether the game plays a slot: switched on, with a prefab.</summary>
         public static bool Plays(EffectList.EffectData slot) => slot != null && slot.m_enabled && slot.m_prefab != null;
 
-        /// <summary>Whether a slot names a prefab, played or not.</summary>
+        /// <summary>Whether a slot names a prefab, played or not, for telling why a list showed nothing.</summary>
         public static bool Names(EffectList.EffectData slot) => slot != null && slot.m_prefab != null;
 
         /// <summary>Whether a slot the game plays shows on what plays it: not a whole model standing on its own (<see cref="PrefabShapes.IsWholeModel"/>).</summary>
@@ -39,17 +40,12 @@ namespace Scry
         }
 
         /// <summary>The prefabs a list plays, by name, each once, in its order.</summary>
-        public static List<string> NamesPlayed(EffectList list) => NamesOf(list, played: true);
-
-        /// <summary>The prefabs a list names, played or not, by name, each once, in its order.</summary>
-        public static List<string> NamesListed(EffectList list) => NamesOf(list, played: false);
-
-        private static List<string> NamesOf(EffectList list, bool played)
+        public static List<string> NamesPlayed(EffectList list)
         {
             var names = new List<string>();
             foreach (var slot in Of(list))
             {
-                if ((played ? Plays(slot) : Names(slot)) && !names.Contains(slot.m_prefab.name)) names.Add(slot.m_prefab.name);
+                if (Plays(slot) && !names.Contains(slot.m_prefab.name)) names.Add(slot.m_prefab.name);
             }
             return names;
         }

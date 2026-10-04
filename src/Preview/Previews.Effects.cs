@@ -276,7 +276,7 @@ namespace Scry
                     others.Add((Naming.EffectListLabel(field.Name), shown ?? WeaponChoices.Readable(item.name, prefab.name), list));
                 }
             }
-            foreach (var group in others.GroupBy(o => o.Label + "|" + string.Join(",", EffectSlots.NamesListed(o.List).OrderBy(m => m, System.StringComparer.Ordinal))))
+            foreach (var group in others.GroupBy(o => o.Label + "|" + string.Join(",", EffectSlots.NamesPlayed(o.List).OrderBy(m => m, System.StringComparer.Ordinal))))
             {
                 var first = group.First();
                 if (!seen.Add(first.List)) continue;
@@ -681,7 +681,7 @@ namespace Scry
         {
             if (prefab == null || !FirstTime(prefab.name)) return;
             var debris = new List<string>();
-            foreach (var data in EffectSlots.Of(list)) if (EffectSlots.Names(data) && PrefabShapes.IsDebris(data.m_prefab)) debris.Add(data.m_prefab.name);
+            foreach (var data in EffectSlots.Of(list)) if (EffectSlots.Plays(data) && PrefabShapes.IsDebris(data.m_prefab)) debris.Add(data.m_prefab.name);
             var tree = prefab.GetComponent<TreeBase>();
             Log.Note($"Scry destroys {prefab.name}: {(Falling.Breaks(prefab, list) ? "breaks into its own parts" : "no parts of its own")}, "
                                + $"{(tree != null && tree.m_logPrefab != null ? "fells its log " + tree.m_logPrefab.name : "no log")}, "

@@ -386,7 +386,7 @@ namespace Scry
             foreach (var clip in seen.Idle) if (!plays.Tags.ContainsKey(clip)) plays.Tags[clip] = "idles";
             if (body != null && FirstTime("lasting:" + prefab.name))
             {
-                string Of(EffectList list) => EffectSlots.ShowsAny(list) ? string.Join(", ", EffectSlots.NamesListed(list)) : "nothing";
+                string Of(EffectList list) => EffectSlots.ShowsAny(list) ? string.Join(", ", EffectSlots.NamesPlayed(list)) : "nothing";
                 Log.Note($"Scry: {prefab.name} keeps going in water {Of(body.m_waterEffects)}; flying {Of(body.m_flyingContinuousEffect)}{(body.m_flying ? ", and it flies from birth" : "")}; its own scale {Numbers.Amount(prefab.transform.localScale.x, 2)}.");
             }
             return plays;
