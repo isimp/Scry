@@ -65,7 +65,7 @@ namespace Scry
                 case KeyCode.F:
                     if (e.control)
                     {
-                        _focusSearch = true;
+                        FocusSearch(true);
                         e.Use();
                     }
                     break;
@@ -89,7 +89,7 @@ namespace Scry
                 explorer.Move(step);
                 if (explorer.SelectedIndex == before) break;
             }
-            _reveal = true;
+            RevealSelected();
         }
 
         private static bool InFoldedGroup(Explorer explorer)

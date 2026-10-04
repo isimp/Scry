@@ -13,7 +13,6 @@ namespace Scry
     /// </summary>
     internal static partial class ScryPanel
     {
-        private static bool _modReport;
         private static Vector2 _modScroll;
         private static float _modHeight;
 
@@ -23,17 +22,15 @@ namespace Scry
         private static int _modCountOf;
 
         /// <summary>Whether the mod report is shown, for the self-test.</summary>
-        public static bool ModReportShown => _modReport;
+        public static bool ModReportShown => _card == ListCard.ModReport;
 
         /// <summary>Puts the list back in the report's place.</summary>
-        public static void HideModReport() => _modReport = false;
+        public static void HideModReport() => CloseCard(ListCard.ModReport);
 
         /// <summary>Shows the mod report in the list's place.</summary>
         public static void ShowModReport()
         {
-            _modReport = true;
-            _help = false;
-            _offDetails = false;
+            ShowCard(ListCard.ModReport);
             _modScroll = Vector2.zero;
         }
 
@@ -99,7 +96,7 @@ namespace Scry
                 _modHeight = y + U(16f);
                 CountDrawn(PanelPart.ModReport);
             }
-            if (EndCard(rect, out var close)) _modReport = false;
+            if (EndCard(rect, out var close)) CloseCard(ListCard.ModReport);
             ReadLocationsButton(rect, close, "locations-mods");
         }
 

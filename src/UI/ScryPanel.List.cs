@@ -10,6 +10,55 @@ namespace Scry
     {
         private static int _rowsInView = 10;
 
+        /// <summary>Where the list is scrolled to.</summary>
+        private static Vector2 _listScroll;
+
+        /// <summary>Whether the list scrolls the selected entry into sight at its next repaint.</summary>
+        private static bool _reveal;
+
+        /// <summary>A card shown in the list's place: the search's help, the mod report or what is off.</summary>
+        private enum ListCard { None, Help, ModReport, Off }
+
+        private static ListCard _card;
+
+        private static void ShowCard(ListCard card) => _card = card;
+
+        /// <summary>Shows a card in the list's place, or puts it away if it is the one showing.</summary>
+        private static void ToggleCard(ListCard card) => _card = _card == card ? ListCard.None : card;
+
+        /// <summary>Puts a card away if it is the one showing.</summary>
+        private static void CloseCard(ListCard card)
+        {
+            if (_card == card) _card = ListCard.None;
+        }
+
+        /// <summary>Puts away whatever card is showing, for the list.</summary>
+        private static void CloseCards() => _card = ListCard.None;
+
+        /// <summary>Scrolls the selected entry into sight at the list's next repaint.</summary>
+        private static void RevealSelected() => _reveal = true;
+
+        private static void ListFromTop() => _listScroll = Vector2.zero;
+
+        /// <summary>
+        /// The list was filtered anew: it shows from its top, and the search's help and the mod
+        /// report give way to it; the notice of what is off stays.
+        /// </summary>
+        private static void ListFiltered()
+        {
+            ListFromTop();
+            CloseCard(ListCard.Help);
+            CloseCard(ListCard.ModReport);
+        }
+
+        /// <summary>Went to an entry: the list shows it, its details start at their top, and the search's help gives way.</summary>
+        private static void AfterGoing()
+        {
+            RevealSelected();
+            DetailsFromTop();
+            CloseCard(ListCard.Help);
+        }
+
         private static readonly string[][] HelpLines =
         {
             new[] { "troll", "Names containing it, in the game's words or the prefab's. Best matches first." },
@@ -27,8 +76,13 @@ namespace Scry
         };
 
         /// <summary>Whether the search's help is shown, and showing or hiding it, for the self-test.</summary>
-        public static bool HelpShown => _help;
-        public static void ShowHelp(bool shown) => _help = shown;
+        public static bool HelpShown => _card == ListCard.Help;
+
+        public static void ShowHelp(bool shown)
+        {
+            if (shown) ShowCard(ListCard.Help);
+            else CloseCard(ListCard.Help);
+        }
 
         /// <summary>How to search, shown in place of the list while the ? button is on.</summary>
         private static Vector2 _helpScroll;
@@ -67,7 +121,7 @@ namespace Scry
                 CountDrawn(PanelPart.Help);
             }
 
-            if (EndCard(rect, out var close)) _help = false;
+            if (EndCard(rect, out var close)) CloseCard(ListCard.Help);
 
             // in: needs the locations read; offered beside Close until they are.
             ReadLocationsButton(rect, close, "locations-help");
@@ -104,17 +158,17 @@ namespace Scry
                 TestCard(rect);
                 return;
             }
-            if (_help)
+            if (_card == ListCard.Help)
             {
                 HelpCard(rect);
                 return;
             }
-            if (_modReport)
+            if (_card == ListCard.ModReport)
             {
                 ModReportCard(explorer, rect);
                 return;
             }
-            if (_offDetails)
+            if (_card == ListCard.Off)
             {
                 OffCard(rect);
                 return;

@@ -44,9 +44,7 @@ namespace Scry
             {
                 case StripClick.Chip:
                     _testDetails = !_testDetails;
-                    _help = false;
-                    _modReport = false;
-                    _offDetails = false;
+                    CloseCards();
                     break;
                 case StripClick.Cross:
                     _testShown = false;

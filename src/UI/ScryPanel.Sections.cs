@@ -168,9 +168,6 @@ namespace Scry
 
         /// <summary>How much was off when the notice was put away; it comes back when more goes off.</summary>
         private static int _offPutAway;
-
-        /// <summary>Whether the notice's details stand in the list's place.</summary>
-        private static bool _offDetails;
         private static Vector2 _offScroll;
 
         /// <summary>What is off, read again whenever how much is off changes, not every frame.</summary>
@@ -198,16 +195,14 @@ namespace Scry
         private static void OffNotice(Rect rect)
         {
             if (_offLine == null) return;
-            switch (NoticeStrip(rect, Skin.Warn, _offLine, Skin.WarnLabel, true, "Details", _offDetails, true, crossTip: "Put this away until more of Scry goes off"))
+            switch (NoticeStrip(rect, Skin.Warn, _offLine, Skin.WarnLabel, true, "Details", _card == ListCard.Off, true, crossTip: "Put this away until more of Scry goes off"))
             {
                 case StripClick.Chip:
-                    _offDetails = !_offDetails;
-                    _help = false;
-                    _modReport = false;
+                    ToggleCard(ListCard.Off);
                     break;
                 case StripClick.Cross:
                     _offPutAway = _offFeatures.Count;
-                    _offDetails = false;
+                    CloseCard(ListCard.Off);
                     break;
             }
         }
@@ -272,7 +267,7 @@ namespace Scry
                 GUI.Label(new Rect(x + U(16f), y, width - U(16f), U(22f)), Naming.Capital(feature), Skin.Label);
                 y += U(26f);
             }
-            if (EndCard(rect, out var close)) _offDetails = false;
+            if (EndCard(rect, out var close)) CloseCard(ListCard.Off);
 
             // For reporting: what is off, with the versions, ready to paste.
             if (CardButton(rect, close, "Copy for a report", out _))

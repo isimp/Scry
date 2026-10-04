@@ -251,8 +251,8 @@ namespace Scry
                 }
                 else if (GUI.Button(new Rect(chip.x, chip.y, chip.width - U(26f), chip.height), GUIContent.none, GUIStyle.none) && explorer.Jump(key))
                 {
-                    _reveal = true;
-                    _sideScroll = Vector2.zero;
+                    RevealSelected();
+                    DetailsFromTop();
                 }
                 if (hover) AskTip("kept:" + key, cross.Contains(Event.current.mousePosition) ? "Take it off" : "Go to " + name);
             }

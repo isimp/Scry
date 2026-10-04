@@ -117,9 +117,7 @@ namespace Scry
                     if (hover) AskTip("src:" + source.Prefab + source.Unsure, (source.Unsure != null ? source.Unsure + "\n" : "") + "Go to " + ShownName(explorer, source.Prefab, source.Prefab));
                     if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(source.Prefab))
                     {
-                        _reveal = true;
-                        _sideScroll = Vector2.zero;
-                        _help = false;
+                        AfterGoing();
                     }
                     y += chipH + U(5f);
                 }
@@ -271,9 +269,7 @@ namespace Scry
                     if (hover && goes) AskTip("goto:" + item.Prefab, $"Go to {item.Name}");
                     if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(item.Prefab))
                     {
-                        _reveal = true;
-                        _sideScroll = Vector2.zero;
-                        _help = false;
+                        AfterGoing();
                     }
                 }
             }

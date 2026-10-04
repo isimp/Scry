@@ -119,8 +119,8 @@ namespace Scry
         private static void ToggleCompact()
         {
             _compact = !_compact;
-            _sideScroll = Vector2.zero;
-            _reveal = true;
+            DetailsFromTop();
+            RevealSelected();
             SaveRects();
         }
 
@@ -128,7 +128,7 @@ namespace Scry
         private static void ToggleList()
         {
             ListHidden = !ListHidden;
-            _reveal = true;
+            RevealSelected();
             SaveRects();
         }
 

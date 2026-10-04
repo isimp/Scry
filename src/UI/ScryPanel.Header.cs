@@ -10,6 +10,12 @@ namespace Scry
     {
         private static readonly string[] OriginNames = { "All", "Game", "Mods" };
 
+        /// <summary>Whether the search box takes the keyboard at its next repaint.</summary>
+        private static bool _focusSearch;
+
+        /// <summary>Gives the search box the keyboard at its next repaint, or not.</summary>
+        private static void FocusSearch(bool focus) => _focusSearch = focus;
+
         /// <summary>
         /// The search box, then which list is shown (help, favourites, recent), then apart from
         /// those the origin switch, labelled so its "All" is not taken for the kind tabs' own.
@@ -46,21 +52,14 @@ namespace Scry
 
             // Help for the search terms.
             var help = new Rect(startX + gap, row, starW, rect.height);
-            if (GUI.Button(help, "?", _help ? Skin.On : Skin.IconButton))
-            {
-                _help = !_help;
-                _modReport = false;
-                _offDetails = false;
-            }
+            if (GUI.Button(help, "?", _card == ListCard.Help ? Skin.On : Skin.IconButton)) ToggleCard(ListCard.Help);
             if (help.Contains(Event.current.mousePosition)) AskTip("help", "How to search");
 
             var star = new Rect(help.xMax + gap, row, starW, rect.height);
             if (GUI.Button(star, GUIContent.none, explorer.FavouritesOnly ? Skin.On : Skin.IconButton))
             {
                 explorer.FavouritesOnly = !explorer.FavouritesOnly;
-                _listScroll = Vector2.zero;
-                _help = false;
-                _modReport = false;
+                ListFiltered();
             }
             var icon = new Rect(star.x + star.width * 0.22f, star.y + star.height * 0.22f, star.width * 0.56f, star.height * 0.56f);
             Skin.Icon(icon, explorer.FavouritesOnly ? Skin.Star : Skin.StarHollow, explorer.FavouritesOnly ? Skin.Accent : Skin.Dim);
@@ -70,9 +69,7 @@ namespace Scry
             if (GUI.Button(recent, GUIContent.none, explorer.RecentOnly ? Skin.On : Skin.IconButton))
             {
                 explorer.RecentOnly = !explorer.RecentOnly;
-                _listScroll = Vector2.zero;
-                _help = false;
-                _modReport = false;
+                ListFiltered();
             }
             var clock = new Rect(recent.x + recent.width * 0.22f, recent.y + recent.height * 0.22f, recent.width * 0.56f, recent.height * 0.56f);
             Skin.Icon(clock, Skin.Clock, explorer.RecentOnly ? Skin.Accent : Skin.Dim);
@@ -94,9 +91,7 @@ namespace Scry
                 if (GUI.Button(new Rect(x, originRow, widths[i], rect.height), names[i], on ? Skin.SegmentOn : Skin.Segment))
                 {
                     explorer.Origin = (OriginFilter)i;
-                    _listScroll = Vector2.zero;
-                    _help = false;
-                    _modReport = false;
+                    ListFiltered();
                 }
                 x += widths[i] + U(4f);
             }
@@ -137,9 +132,7 @@ namespace Scry
             if (explorer == null || _steppedFrame == Time.frameCount) return;
             _steppedFrame = Time.frameCount;
             if (!(back ? explorer.Back() : explorer.Forward())) return;
-            _reveal = true;
-            _sideScroll = Vector2.zero;
-            _help = false;
+            AfterGoing();
         }
 
         /// <summary>
@@ -192,8 +185,8 @@ namespace Scry
             if (hasText && e.type == EventType.MouseDown && e.button == 0 && clear.Contains(e.mousePosition))
             {
                 explorer.Text = "";
-                _listScroll = Vector2.zero;
-                _reveal = true;
+                ListFromTop();
+                RevealSelected();
 
                 // A focused field keeps showing its own copy of the text until it lets go of the keyboard.
                 GUIUtility.keyboardControl = 0;
@@ -207,10 +200,8 @@ namespace Scry
             if (text != explorer.Text)
             {
                 explorer.Text = text;
-                _listScroll = Vector2.zero;
-                _reveal = true;
-                _help = false;
-                _modReport = false;
+                ListFiltered();
+                RevealSelected();
             }
 
             // After the typed text is taken: what Tab puts in must not be undone by it.
@@ -285,10 +276,8 @@ namespace Scry
         private static void Filter(Explorer explorer, Kind? kind)
         {
             explorer.KindFilter = kind;
-            _listScroll = Vector2.zero;
-            _help = false;
-            _modReport = false;
-            _reveal = true;
+            ListFiltered();
+            RevealSelected();
         }
     }
 }

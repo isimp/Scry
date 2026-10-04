@@ -12,19 +12,15 @@ namespace Scry
         private static void Go(Explorer explorer, string target)
         {
             if (!explorer.Jump(target)) return;
-            _reveal = true;
-            _sideScroll = Vector2.zero;
-            _help = false;
+            AfterGoing();
         }
 
         /// <summary>Puts a search in the box, with every other filter cleared so it shows all it finds.</summary>
         private static void SearchFor(Explorer explorer, string text)
         {
-            _modReport = false;
             explorer.SearchEverything(text);
-            _listScroll = Vector2.zero;
-            _reveal = true;
-            _help = false;
+            ListFiltered();
+            RevealSelected();
         }
 
         /// <summary>Text drawn as a link: accent coloured, brighter under the mouse.</summary>

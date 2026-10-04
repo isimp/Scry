@@ -67,8 +67,8 @@ namespace Scry
 
             // In the compact view the keys walk until the search is clicked, so it is not focused on
             // opening; in the full view as the player sets it.
-            _focusSearch = !_compact && Settings.FocusSearchOnOpen;
-            _reveal = true;
+            FocusSearch(!_compact && Settings.FocusSearchOnOpen);
+            RevealSelected();
         }
 
         public static void Closed()

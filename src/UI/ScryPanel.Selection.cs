@@ -11,6 +11,11 @@ namespace Scry
         private static float _sideHeight;
         private static float _stageBaseH = 300f;
 
+        /// <summary>Where the details are scrolled to.</summary>
+        private static Vector2 _sideScroll;
+
+        private static void DetailsFromTop() => _sideScroll = Vector2.zero;
+
         /// <summary>What of the scrolled side can be seen, in its own terms, so rows of chips out of sight are only counted, not drawn.</summary>
         private static Rect _sideVisible;
 

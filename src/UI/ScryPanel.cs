@@ -20,12 +20,9 @@ namespace Scry
         private const string SearchControl = "scry-search";
         private const string ClipControl = "scry-clip-filter";
         private const string EffectControl = "scry-effect-filter";
+
+        /// <summary>The scale the panel is drawn at, design units to pixels (<see cref="U"/>).</summary>
         private static float _s = 1f;
-        private static Vector2 _listScroll;
-        private static Vector2 _sideScroll;
-        private static bool _focusSearch;
-        private static bool _reveal;
-        private static bool _help;
 
         /// <summary>The length the list's share is of, in the view drawn last, for a drag of the gap.</summary>
         private static float _listSpan = 1f;

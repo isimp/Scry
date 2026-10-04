@@ -139,9 +139,9 @@ namespace Scry
             private void SetSearch(Explorer explorer, string text, int caret)
             {
                 explorer.Text = text;
-                _listScroll = Vector2.zero;
-                _reveal = true;
-                _help = false;
+                ListFromTop();
+                RevealSelected();
+                CloseCard(ListCard.Help);
                 var editor = SearchEditor();
                 if (editor != null)
                 {
@@ -151,7 +151,7 @@ namespace Scry
                 else
                 {
                     // A click took the keyboard; the box gets it back, and the caret, on the next frames.
-                    _focusSearch = true;
+                    FocusSearch(true);
                     _caretTo = caret;
                 }
             }
@@ -196,9 +196,9 @@ namespace Scry
                 if (_dropMark < 0 || _dropMark >= _dropList.Count) return false;
                 var taken = SearchHelp.Replace(text, _dropSpan, _dropList[_dropMark].Insert, out var caret);
                 explorer.Text = taken;
-                _listScroll = Vector2.zero;
-                _reveal = true;
-                _help = false;
+                ListFromTop();
+                RevealSelected();
+                CloseCard(ListCard.Help);
                 editor.text = taken;
                 editor.cursorIndex = editor.selectIndex = caret;
                 return true;
