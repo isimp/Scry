@@ -46,7 +46,7 @@ namespace Scry
             var failed = reports.Where(r => r.Result == Result.Fail).ToList();
             if (failed.Count > 0)
             {
-                lines.Add($"Failed ({Numbers.Count(failed.Count)}):");
+                lines.Add(Naming.Counted("Failed", failed.Count) + ":");
                 foreach (var report in failed)
                 {
                     lines.Add("  " + report.Name);
@@ -56,7 +56,7 @@ namespace Scry
             var skipped = reports.Where(r => r.Result == Result.Skip).ToList();
             if (skipped.Count > 0)
             {
-                lines.Add($"Skipped ({Numbers.Count(skipped.Count)}):");
+                lines.Add(Naming.Counted("Skipped", skipped.Count) + ":");
                 foreach (var report in skipped)
                 {
                     var why = report.Lines.FirstOrDefault(l => l.StartsWith(SkipMark, System.StringComparison.Ordinal));

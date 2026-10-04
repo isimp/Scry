@@ -37,7 +37,7 @@ namespace Scry
         public static string OnTab(string tool, string tab) => $"{tool}, on its {tab} tab";
 
         /// <summary>The title of a build tool's tab, with how many pieces are on it.</summary>
-        public static string BuildsOnTab(string tab, int pieces) => $"Builds on its {tab} tab ({Numbers.Count(pieces)})";
+        public static string BuildsOnTab(string tab, int pieces) => Naming.Counted($"Builds on its {tab} tab", pieces);
 
         /// <summary>How many of an ingredient it needs, and how many more each quality, where it goes up.</summary>
         public static string Needs(int amount, int perQuality) =>

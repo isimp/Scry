@@ -90,7 +90,7 @@ namespace Scry
                 _steps.Dispose();
                 if (_long.Count > 0)
                 {
-                    Log.Note($"Scry's catalog pieces over {Numbers.Amount(LongPieceMs, 0)} ms ({Numbers.Count(_long.Count)}): {string.Join(", ", _long.OrderByDescending(p => p.Ms).Take(25).Select(p => $"{p.What} {Numbers.Amount(p.Ms, 0)}"))}.");
+                    Log.Note($"{Naming.Counted($"Scry's catalog pieces over {Numbers.Amount(LongPieceMs, 0)} ms", _long.Count)}: {string.Join(", ", _long.OrderByDescending(p => p.Ms).Take(25).Select(p => $"{p.What} {Numbers.Amount(p.Ms, 0)}"))}.");
                 }
             }
             return Done;

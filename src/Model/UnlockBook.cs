@@ -56,15 +56,17 @@ namespace Scry
     /// <summary>How a creature's page titles what its defeat opens.</summary>
     internal static class UnlockWords
     {
-        public static string Title(Unlock kind, int count)
+        public static string Title(Unlock kind, int count) => Naming.Counted(Opens(kind), count);
+
+        private static string Opens(Unlock kind)
         {
             switch (kind)
             {
-                case Unlock.RaidStarts: return $"After it falls, raids that may come ({Numbers.Count(count)})";
-                case Unlock.RaidEnds: return $"After it falls, raids that stop ({Numbers.Count(count)})";
-                case Unlock.Spawns: return $"After it falls, these spawn ({Numbers.Count(count)})";
-                case Unlock.StopsSpawning: return $"After it falls, spawners stop placing these ({Numbers.Count(count)})";
-                default: return $"After it falls, traders sell ({Numbers.Count(count)})";
+                case Unlock.RaidStarts: return "After it falls, raids that may come";
+                case Unlock.RaidEnds: return "After it falls, raids that stop";
+                case Unlock.Spawns: return "After it falls, these spawn";
+                case Unlock.StopsSpawning: return "After it falls, spawners stop placing these";
+                default: return "After it falls, traders sell";
             }
         }
     }

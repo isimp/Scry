@@ -372,7 +372,7 @@ namespace Scry
             _users = entry.UsedBy.Count == 0 || EffectLinks.For(entry.Name).Count > 0
                 ? new List<(string, string, string, Action)>()
                 : entry.UsedBy.Where(u => InCatalog(explorer, u)).Select(n => (n, ShownName(explorer, n, n), (string)null, (Action)(() => Go(explorer, n)))).ToList();
-            _usersTitle = $"Played by ({Numbers.Count(_users.Count)})";
+            _usersTitle = Naming.Counted("Played by", _users.Count);
             return _users;
         }
 
