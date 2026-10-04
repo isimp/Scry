@@ -7,6 +7,12 @@ namespace Scry
     /// <summary>Animation clips: playing them, and what each plays of an attack, of the game's own actions, by its name or heard around it.</summary>
     internal static partial class Previews
     {
+        private static readonly Dictionary<Attack, ItemDrop.ItemData.SharedData> WeaponOf = new Dictionary<Attack, ItemDrop.ItemData.SharedData>();
+        private static AnimationClip _startedClip;
+
+        /// <summary>A clip an effect list's button started, whose parts light that button too.</summary>
+        private static (AnimationClip Clip, object Key) _litWith;
+
         /// <summary>What a creature's clips play: of its attacks, and what the game plays with its own actions.</summary>
         private sealed class ClipPlays
         {
@@ -378,7 +384,7 @@ namespace Scry
                 plays.Tags[pair.Key] = (lower.Contains("jump") ? "jumps" : lower.Contains("swim") ? "swims" : "in water") + ", by name";
             }
             foreach (var clip in seen.Idle) if (!plays.Tags.ContainsKey(clip)) plays.Tags[clip] = "idles";
-            if (body != null && Told.Add("lasting:" + prefab.name))
+            if (body != null && FirstTime("lasting:" + prefab.name))
             {
                 string Of(EffectList list) => EffectSlots.ShowsAny(list) ? string.Join(", ", EffectSlots.NamesListed(list)) : "nothing";
                 Log.Note($"Scry: {prefab.name} keeps going in water {Of(body.m_waterEffects)}; flying {Of(body.m_flyingContinuousEffect)}{(body.m_flying ? ", and it flies from birth" : "")}; its own scale {Numbers.Amount(prefab.transform.localScale.x, 2)}.");
@@ -433,7 +439,7 @@ namespace Scry
         }
 
         /// <summary>Plays the clip again as soon as it ends.</summary>
-        public static bool LoopClips;
+        public static bool LoopClips { get; set; }
 
         /// <summary>What the stage copy's animation clip plays of itself, by prefab name.</summary>
         public static List<string> ClipMembers(AnimationClip clip)
@@ -561,6 +567,34 @@ namespace Scry
 
         /// <summary>Plays the clip of that name once the next selection is shown, as when going to a creature from one of its animation's sounds.</summary>
         public static void PlayClipOnShow(string name) => _clipOnShow = name;
+
+        /// <summary>Plays the clip asked for by name as the selection showed, once (<see cref="PlayClipOnShow"/>).</summary>
+        private static void PlayClipAsked()
+        {
+            if (_clipOnShow == null) return;
+            var clip = ClipNamed(_clipOnShow);
+            _clipOnShow = null;
+            if (clip != null) PlayClip(clip);
+        }
+
+        /// <summary>Forgets the clip started last, so what a list's button starts next can be told.</summary>
+        private static void ForgetStartedClip() => _startedClip = null;
+
+        /// <summary>Lets go of what was found out about the clips of the world left's prefabs.</summary>
+        private static void ForgetClips()
+        {
+            ClipPlaysCache.Clear();
+            WeaponOf.Clear();
+            _clipsOf = null;
+            _clips = null;
+            _ofList = null;
+            _ofListPlays = null;
+            _ofListCopy = null;
+            _ofListClips = null;
+            _plays = null;
+            _playsPrefab = null;
+            _playsCopy = null;
+        }
 
         /// <summary>Where the clip on the stage is, and how long it is.</summary>
         public static bool ClipPosition(out float time, out float length) => ClipPlayer.Position(Stage.Subject, out time, out length);

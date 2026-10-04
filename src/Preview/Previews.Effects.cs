@@ -7,6 +7,13 @@ namespace Scry
     /// <summary>Effect lists played on the stage and in the world, with what the game does alongside: ragdolls, breaking, the animator's own switches; a prefab's lists, status effects and projectiles.</summary>
     internal static partial class Previews
     {
+        private static readonly List<GameObject> StatusVisuals = new List<GameObject>();
+        private static StatusEffect _status;
+
+        public static bool StatusShowing => _status != null && StatusVisuals.Count > 0;
+
+        private static readonly Dictionary<object, AnimationClip> ClipOf = new Dictionary<object, AnimationClip>();
+
         /// <summary>Plays an effect where you are looking, or on you.</summary>
         public static void PlayEffect(Entry entry, bool onYou)
         {
@@ -329,7 +336,7 @@ namespace Scry
             var prefab = _entry?.Source as GameObject;
             var things = new List<GameObject>();
             Stop(list);
-            _startedClip = null;
+            ForgetStartedClip();
             var heard = $"{_entry?.Name}'s \"{label}\"";
             Listen.Start(heard, 3f);
             _heard = heard;
@@ -422,7 +429,54 @@ namespace Scry
         }
 
         private static readonly List<(float At, System.Action Act)> LaterOn = new List<(float, System.Action)>();
+
+        /// <summary>Runs the steps put off until later whose time has come, each on its own.</summary>
+        private static void RunLaterSteps()
+        {
+            for (var i = LaterOn.Count - 1; i >= 0; i--)
+            {
+                if (Time.unscaledTime < LaterOn[i].At) continue;
+                var act = LaterOn[i].Act;
+                LaterOn.RemoveAt(i);
+                Guard.Run("a later step", act);
+            }
+        }
+
         private static readonly Dictionary<object, System.Action> Undo = new Dictionary<object, System.Action>();
+
+        /// <summary>Undoes what a lit button started: a fallen or broken copy stands again, and an animation it started ends.</summary>
+        private static void UndoStarted(object key)
+        {
+            if (key == null) return;
+            if (Undo.TryGetValue(key, out var undo))
+            {
+                Undo.Remove(key);
+                undo();
+            }
+            if (ClipOf.TryGetValue(key, out var clip))
+            {
+                ClipOf.Remove(key);
+                if (PlayingClip() == clip) StopClip();
+            }
+        }
+
+        /// <summary>Takes away a status effect's visuals that have gone by themselves.</summary>
+        private static void ExpireStatus()
+        {
+            for (var i = StatusVisuals.Count - 1; i >= 0; i--) if (StatusVisuals[i] == null) StatusVisuals.RemoveAt(i);
+        }
+
+        /// <summary>Lets go of what was found out about the effects of the world left's prefabs, and the status effect shown.</summary>
+        private static void ForgetEffects()
+        {
+            _status = null;
+            Undo.Clear();
+            ClipOf.Clear();
+            AttackOf.Clear();
+            ToldEmpty.Clear();
+            _carriedPrefab = null;
+            _carried = null;
+        }
 
         /// <summary>
         /// What an effect list is to its prefab, where the game does more with it than play it: a
@@ -622,12 +676,10 @@ namespace Scry
             return things;
         }
 
-        private static readonly HashSet<string> Told = new HashSet<string>();
-
         /// <summary>Says once per prefab what destroying it leaves behind, for finding out why nothing falls.</summary>
         private static void Tell(GameObject prefab, EffectList list)
         {
-            if (prefab == null || !Told.Add(prefab.name)) return;
+            if (prefab == null || !FirstTime(prefab.name)) return;
             var debris = new List<string>();
             foreach (var data in EffectSlots.Of(list)) if (EffectSlots.Names(data) && PrefabShapes.IsDebris(data.m_prefab)) debris.Add(data.m_prefab.name);
             var tree = prefab.GetComponent<TreeBase>();

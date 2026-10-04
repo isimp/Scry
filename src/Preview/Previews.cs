@@ -19,14 +19,11 @@ namespace Scry
 
         private const float EffectSeconds = 10f;
 
-        private struct Timed
-        {
-            public GameObject Thing;
-            public float Until;
+        /// <summary>What the previews have noted in the log, each once a session.</summary>
+        private static readonly HashSet<string> Told = new HashSet<string>();
 
-            /// <summary>The prefab it is of, or came from (what a felled tree leaves is the tree's).</summary>
-            public string Key;
-        }
+        /// <summary>Whether a note is new this session, noting it as told.</summary>
+        private static bool FirstTime(string note) => Told.Add(note);
 
         private static Explorer _explorer;
         private static int _selectionVersion = -1;
@@ -37,15 +34,6 @@ namespace Scry
         private static int _builtLook;
         private static float _replayAt = -1f;
         private static bool _stageStale;
-
-        private static GameObject _world;
-        private static readonly List<GameObject> Pinned = new List<GameObject>();
-        private static Vector3 _spot;
-        private static Quaternion _facing = Quaternion.identity;
-
-        private static readonly List<Timed> Played = new List<Timed>();
-        private static readonly List<GameObject> StatusVisuals = new List<GameObject>();
-        private static StatusEffect _status;
 
         /// <summary>What each play button started, so it stays lit until all of it has finished.</summary>
         public static readonly Playback<GameObject> Playing = new Playback<GameObject>(Alive);
@@ -71,9 +59,6 @@ namespace Scry
             Playing.Started(key, tagged, pressed);
         }
 
-        private static readonly Dictionary<object, AnimationClip> ClipOf = new Dictionary<object, AnimationClip>();
-        private static AnimationClip _startedClip;
-
         /// <summary>
         /// Stops what a lit button started: its copies go, a fallen or broken copy stands again,
         /// and an animation it started ends.
@@ -81,16 +66,7 @@ namespace Scry
         public static void Stop(object key)
         {
             foreach (var thing in Playing.Take(key)) if (thing != null) Object.Destroy(thing);
-            if (key != null && Undo.TryGetValue(key, out var undo))
-            {
-                Undo.Remove(key);
-                undo();
-            }
-            if (key != null && ClipOf.TryGetValue(key, out var clip))
-            {
-                ClipOf.Remove(key);
-                if (PlayingClip() == clip) StopClip();
-            }
+            UndoStarted(key);
         }
 
         /// <summary>What a playing animation made of itself, lit under its clip.</summary>
@@ -102,14 +78,11 @@ namespace Scry
             if (_litWith.Clip == clip && _litWith.Key != null) Started(_litWith.Key, made, pressed: false);
         }
 
-        /// <summary>A clip an effect list's button started, whose parts light that button too.</summary>
-        private static (AnimationClip Clip, object Key) _litWith;
-
         /// <summary>The clip whose chip was pressed last, for showing what it plays.</summary>
-        public static AnimationClip LastClip;
+        public static AnimationClip LastClip { get; set; }
 
         /// <summary>The ground footsteps are heard on.</summary>
-        public static FootStep.GroundMaterial StepGround = FootStep.GroundMaterial.Default;
+        public static FootStep.GroundMaterial StepGround { get; set; } = FootStep.GroundMaterial.Default;
 
         /// <summary>The grounds a creature's footsteps sound different on, each once.</summary>
         public static List<FootStep.GroundMaterial> Grounds(GameObject prefab)
@@ -172,43 +145,15 @@ namespace Scry
             return alive;
         }
 
-        /// <summary>Whether the selected model is also shown in the world, where you were looking.</summary>
-        public static bool InWorld { get; private set; }
-
         /// <summary>Plays an effect on the stage again as soon as it ends.</summary>
-        public static bool LoopEffects = true;
+        public static bool LoopEffects { get; set; } = true;
 
         /// <summary>Plays a sound again as soon as it ends.</summary>
-        public static bool LoopSounds;
+        public static bool LoopSounds { get; set; }
 
-        public static float ProjectileSpeed = 40f;
+        public static float ProjectileSpeed { get; set; } = 40f;
 
         public static bool SoundPlaying => TheSound.Copy != null;
-        public static bool StatusShowing => _status != null && StatusVisuals.Count > 0;
-        public static int PinnedCount => Pinned.Count;
-        public static bool AnythingInWorld => _world != null || Pinned.Count > 0 || Played.Count > 0 || TheSound.Copy != null || StatusVisuals.Count > 0;
-
-        /// <summary>
-        /// How many lines <see cref="Out"/> would list, counted without making the list, since the
-        /// button showing it is drawn several times a frame.
-        /// </summary>
-        public static int OutLines
-        {
-            get
-            {
-                var lines = (_world != null ? 1 : 0) + (TheSound.Copy != null ? 1 : 0) + (_status != null && StatusVisuals.Count > 0 ? 1 : 0);
-                foreach (var pinned in Pinned) if (pinned != null) lines++;
-                for (var i = 0; i < Played.Count; i++)
-                {
-                    if (Played[i].Thing == null) continue;
-                    var first = true;
-                    for (var j = 0; j < i && first; j++) first = Played[j].Thing == null || Played[j].Key != Played[i].Key;
-                    if (first) lines++;
-                }
-                return lines;
-            }
-        }
-
         public static void Update(Explorer explorer)
         {
             // How loud previews play follows the selection, which starts every one at the game's
@@ -230,13 +175,7 @@ namespace Scry
                 Guard.Run("sorting clips", SortSomeClips);
             }
             Timing.Add("update probe", started);
-            for (var i = LaterOn.Count - 1; i >= 0; i--)
-            {
-                if (Time.unscaledTime < LaterOn[i].At) continue;
-                var act = LaterOn[i].Act;
-                LaterOn.RemoveAt(i);
-                Guard.Run("a later step", act);
-            }
+            RunLaterSteps();
 
             if (explorer == null) return;
 
@@ -306,30 +245,13 @@ namespace Scry
             // the panel is open, so it is let go here rather than kept into the next world.
             _explorer = null;
             _entry = null;
-            TheSound.ForgetEntry();
-            _status = null;
             _selectionVersion = -1;
-            Undo.Clear();
-            ClipPlaysCache.Clear();
-            Wholes.Clear();
-            WeaponOf.Clear();
-            OnGround.Clear();
-            ClipOf.Clear();
-            AttackOf.Clear();
-            ToldEmpty.Clear();
+            TheSound.ForgetEntry();
             GroundsOf.Clear();
             Born.Clear();
-            _carriedPrefab = null;
-            _carried = null;
-            _clipsOf = null;
-            _clips = null;
-            _ofList = null;
-            _ofListPlays = null;
-            _ofListCopy = null;
-            _ofListClips = null;
-            _plays = null;
-            _playsPrefab = null;
-            _playsCopy = null;
+            ForgetEffects();
+            ForgetClips();
+            ForgetAttacks();
         }
 
         /// <summary>
@@ -387,7 +309,7 @@ namespace Scry
             LastClip = null;
             _builtLevel = modifiers.Level;
             _builtWear = modifiers.Wear;
-                _builtLook = modifiers.Look;
+            _builtLook = modifiers.Look;
             _replayAt = -1f;
 
             StopSound();
@@ -407,12 +329,7 @@ namespace Scry
             }
             TriggerProbe.CancelAllBut(shown);
 
-            if (_clipOnShow != null)
-            {
-                var clip = ClipNamed(_clipOnShow);
-                _clipOnShow = null;
-                if (clip != null) PlayClip(clip);
-            }
+            PlayClipAsked();
 
             if (entry != null && entry.Kind == Kind.Sound && Settings.PlayOnSelect) PlaySound(entry);
         }
@@ -423,7 +340,7 @@ namespace Scry
             {
                 _builtLevel = modifiers.Level;
                 _builtWear = modifiers.Wear;
-                _builtLook = modifiers.Look;
+            _builtLook = modifiers.Look;
                 Stage.Show(_entry, modifiers);
                 if (InWorld) RebuildWorld(modifiers);
                 return;
@@ -467,85 +384,6 @@ namespace Scry
         public static void Replay()
         {
             if (_explorer != null) Stage.Show(_entry, _explorer.Modifiers);
-        }
-
-        // ----- Housekeeping -----
-
-        private static void Remember(GameObject thing, float seconds, string key = null)
-        {
-            if (thing != null) Played.Add(new Timed { Thing = thing, Until = Time.unscaledTime + seconds, Key = key ?? thing.name });
-        }
-
-        /// <summary>What Scry has in the world, a line per thing (<see cref="OutList"/>), for taking them away one at a time.</summary>
-        public static List<OutRow> Out()
-        {
-            var things = new List<(OutPlace, string)>();
-            if (_world != null) things.Add((OutPlace.Shown, _world.name));
-            foreach (var pinned in Pinned) if (pinned != null) things.Add((OutPlace.Pinned, pinned.name));
-            if (TheSound.Copy != null) things.Add((OutPlace.Sound, TheSound.Copy.name));
-            if (_status != null && StatusVisuals.Count > 0) things.Add((OutPlace.Status, _status.name));
-            foreach (var played in Played) if (played.Thing != null) things.Add((OutPlace.Playing, played.Key));
-            return OutList.Rows(things);
-        }
-
-        /// <summary>Takes one line of <see cref="Out"/> out of the world: a pinned copy alone, or every copy of what plays.</summary>
-        public static void TakeAway(OutRow row)
-        {
-            switch (row.Place)
-            {
-                case OutPlace.Shown:
-                    InWorld = false;
-                    Destroy(ref _world);
-                    break;
-                case OutPlace.Pinned:
-                    var nth = 0;
-                    for (var i = 0; i < Pinned.Count; i++)
-                    {
-                        if (Pinned[i] == null || Pinned[i].name != row.Key) continue;
-                        if (nth++ != row.Nth) continue;
-                        Object.Destroy(Pinned[i]);
-                        Pinned.RemoveAt(i);
-                        break;
-                    }
-                    break;
-                case OutPlace.Sound:
-                    StopSound();
-                    break;
-                case OutPlace.Status:
-                    StopStatus(false);
-                    break;
-                case OutPlace.Playing:
-                    for (var i = Played.Count - 1; i >= 0; i--)
-                    {
-                        if (Played[i].Key != row.Key) continue;
-                        if (Played[i].Thing != null) Object.Destroy(Played[i].Thing);
-                        Played.RemoveAt(i);
-                    }
-                    break;
-            }
-            if (!AnythingInWorld) Playing.Forget();
-        }
-
-        private static void Expire()
-        {
-            var now = Time.unscaledTime;
-            for (var i = Played.Count - 1; i >= 0; i--)
-            {
-                var played = Played[i];
-                if (played.Thing != null && now < played.Until) continue;
-                if (played.Thing != null) Object.Destroy(played.Thing);
-                Played.RemoveAt(i);
-            }
-
-            if (TheSound.Copy != null && !TheSound.Alive(now)) TheSound.Drop();
-            for (var i = StatusVisuals.Count - 1; i >= 0; i--) if (StatusVisuals[i] == null) StatusVisuals.RemoveAt(i);
-            Pinned.RemoveAll(p => p == null);
-        }
-
-        private static void Destroy(ref GameObject thing)
-        {
-            if (thing != null) Object.Destroy(thing);
-            thing = null;
         }
     }
 }

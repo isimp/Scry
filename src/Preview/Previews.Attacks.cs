@@ -16,7 +16,6 @@ namespace Scry
         }
 
         private static readonly Dictionary<Attack, WholeAttack> Wholes = new Dictionary<Attack, WholeAttack>();
-        private static readonly Dictionary<Attack, ItemDrop.ItemData.SharedData> WeaponOf = new Dictionary<Attack, ItemDrop.ItemData.SharedData>();
 
         /// <summary>
         /// All an attack plays, as the game plays it, made once per attack: as it begins, the
@@ -150,6 +149,13 @@ namespace Scry
             if (onStage) Stage.Adopt(copy, flight.Lifetime + 1f);
             else Remember(copy, flight.Lifetime + 1f);
             return copy;
+        }
+
+        /// <summary>Lets go of what was found out about the attacks of the world left's prefabs.</summary>
+        private static void ForgetAttacks()
+        {
+            Wholes.Clear();
+            OnGround.Clear();
         }
     }
 }
