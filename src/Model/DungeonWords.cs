@@ -95,7 +95,7 @@ namespace Scry
         public static string Reading(int read, int total) => $"Reading the {Numbers.Count(total)} kinds of room it is built of, {Numbers.Count(read)} so far";
 
         /// <summary>How far the example has been built on the stage, room by room.</summary>
-        public static string Building(int shown, int total) => $"Building the example on the stage, {Numbers.Count(shown)} of its {Numbers.Count(total)} {(total == 1 ? "room" : "rooms")} so far";
+        public static string Building(int shown, int total) => $"Building the example on the stage, {Numbers.Count(shown)} of its {Naming.Count(total, "room", "rooms")} so far";
 
         /// <summary>
         /// What an example holds: its rooms (the entrance among them), end caps, dividers, pieces
@@ -104,20 +104,19 @@ namespace Scry
         /// </summary>
         public static string Example(DungeonExample example, int failed)
         {
-            string Count(int n, string one, string many) => n == 1 ? "1 " + one : $"{Numbers.Count(n)} {many}";
             var rooms = example.Rooms.Count(r => !r.Room.EndCap && !r.Room.Divider && !r.Room.Perimeter);
             var parts = new List<string>();
-            if (rooms > 0) parts.Add(Count(rooms, "room", "rooms"));
+            if (rooms > 0) parts.Add(Naming.Count(rooms, "room", "rooms"));
             var caps = example.Rooms.Count(r => r.Room.EndCap);
-            if (caps > 0) parts.Add(Count(caps, "end cap", "end caps"));
+            if (caps > 0) parts.Add(Naming.Count(caps, "end cap", "end caps"));
             var dividers = example.Rooms.Count(r => r.Room.Divider);
-            if (dividers > 0) parts.Add(Count(dividers, "divider", "dividers"));
+            if (dividers > 0) parts.Add(Naming.Count(dividers, "divider", "dividers"));
             var wall = example.Rooms.Count(r => r.Room.Perimeter);
-            if (wall > 0) parts.Add(Count(wall, "piece of wall", "pieces of wall"));
-            if (example.Doors.Count > 0) parts.Add(Count(example.Doors.Count, "door", "doors"));
+            if (wall > 0) parts.Add(Naming.Count(wall, "piece of wall", "pieces of wall"));
+            if (example.Doors.Count > 0) parts.Add(Naming.Count(example.Doors.Count, "door", "doors"));
 
             var text = parts.Count > 0 ? string.Join(", ", parts) : "Nothing could be laid out";
-            if (failed > 0) text += failed == 1 ? "; 1 kind of room could not be loaded and is left out" : $"; {Numbers.Count(failed)} kinds of room could not be loaded and are left out";
+            if (failed > 0) text += $"; {Naming.Count(failed, "kind of room", "kinds of room")} could not be loaded and {Naming.Noun(failed, "is", "are")} left out";
             return text;
         }
 

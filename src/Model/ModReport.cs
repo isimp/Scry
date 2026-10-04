@@ -154,7 +154,7 @@ namespace Scry
             }
         }
 
-        public static string Tool(ModEntry tool) => $"builds {Numbers.Count(tool.Builds)} {(tool.Builds == 1 ? "piece" : "pieces")}";
+        public static string Tool(ModEntry tool) => "builds " + Naming.Count(tool.Builds, "piece", "pieces");
 
         /// <summary>The rules a mod hooks into, as the report names them.</summary>
         public static string Hooks(IReadOnlyList<HookedRule> rules)

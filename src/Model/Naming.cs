@@ -44,6 +44,12 @@ namespace Scry
         /// <summary>A text begun with a capital: "health ×2" as "Health ×2".</summary>
         public static string Capital(string text) => string.IsNullOrEmpty(text) ? text : char.ToUpperInvariant(text[0]) + text.Substring(1);
 
+        /// <summary>A count with its noun in the number it takes: "1 star", "1,234 stars".</summary>
+        public static string Count(int count, string one, string many) => Numbers.Count(count) + " " + Noun(count, one, many);
+
+        /// <summary>The word that goes with a count: one's for one, many's otherwise ("stays", "stay").</summary>
+        public static string Noun(int count, string one, string many) => count == 1 ? one : many;
+
         /// <summary>Names one after another with commas: "A, B, C".</summary>
         public static string Commas(System.Collections.Generic.IEnumerable<string> names) => string.Join(", ", names);
 

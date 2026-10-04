@@ -145,6 +145,6 @@ namespace Scry
         /// <summary>An item's line among where it comes from.</summary>
         public static string Line(string creature, SeenDrop drop, int kills) => $"Seen dropped by {creature} in your play, {Amount(drop, kills)}";
 
-        private static string Kills(int kills) => kills == 1 ? "1 kill" : $"{Numbers.Count(kills)} kills";
+        private static string Kills(int kills) => Naming.Count(kills, "kill", "kills");
     }
 }

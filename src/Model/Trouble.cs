@@ -64,7 +64,7 @@ namespace Scry
             foreach (var part in _order)
             {
                 var (count, example) = _skips[part];
-                yield return $"{part}: {Numbers.Count(count)} {(count == 1 ? "prefab" : "prefabs")}, the first {example}";
+                yield return $"{part}: {Naming.Count(count, "prefab", "prefabs")}, the first {example}";
             }
         }
 

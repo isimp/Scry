@@ -19,7 +19,7 @@ namespace Scry
         };
 
         /// <summary>Stars in figures, as the Adjust choices and the spawn lines count them.</summary>
-        private static string Stars(int stars) => Numbers.Count(stars) + (stars == 1 ? " star" : " stars");
+        private static string Stars(int stars) => Naming.Count(stars, "star", "stars");
 
         /// <summary>Health at each star up to the highest, or null without stars.</summary>
         public static string StarHealth(float health, int maxStars)

@@ -142,7 +142,7 @@ namespace Scry
             if (names.Count == 0) return null;
 
             var who = Naming.Joined(names);
-            var hook = names.Count == 1 ? "hooks" : "hook";
+            var hook = Naming.Noun(names.Count, "hooks", "hook");
             const string working = "its pace, what it takes and what it holds may differ from what is told";
             switch (rule)
             {

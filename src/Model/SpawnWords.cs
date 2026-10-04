@@ -44,7 +44,7 @@ namespace Scry
             var most = Math.Max(0, maxLevel - 1);
             var least = Math.Max(0, minLevel - 1);
             if (most == 0) return "no stars";
-            var noun = most == 1 ? "star" : "stars";
+            var noun = Naming.Noun(most, "star", "stars");
             if (least == most) return $"{Numbers.Count(most)} {noun}";
             return least == 0 ? $"up to {Numbers.Count(most)} {noun}" : $"{Numbers.CountRange(least, most)} {noun}";
         }
@@ -138,7 +138,7 @@ namespace Scry
         {
             var parts = new List<string>();
             if (maxLevel >= 0) parts.Add(Stars(Math.Max(1, minLevel), maxLevel));
-            else if (minLevel > 1) parts.Add($"at least {Numbers.Count(minLevel - 1)} {(minLevel == 2 ? "star" : "stars")}");
+            else if (minLevel > 1) parts.Add("at least " + Naming.Count(minLevel - 1, "star", "stars"));
             if (levelUpChance > 0f) parts.Add(StarChance(levelUpChance));
             else if (levelUpChance == 0f) parts.Add("never a star above the least");
             if (parts.Count == 0) return null;

@@ -82,6 +82,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ACountSaysItsNounInTheNumberItTakes()
+        {
+            Assert.Equal("1 star", Naming.Count(1, "star", "stars"));
+            Assert.Equal("0 stars", Naming.Count(0, "star", "stars"));
+            Assert.Equal("1,234 kinds of room", Naming.Count(1234, "kind of room", "kinds of room"));
+            Assert.Equal("stays", Naming.Noun(1, "stays", "stay"));
+            Assert.Equal("stay", Naming.Noun(2, "stays", "stay"));
+        }
+
+        [Fact]
         public void NamesAreListedWithCommas()
         {
             Assert.Equal("Crypt, Burial chamber", Naming.Commas(new[] { "Crypt", "Burial chamber" }));

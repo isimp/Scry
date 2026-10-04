@@ -143,9 +143,9 @@ namespace Scry
         {
             if (maxStars <= 0) return null;
             var steps = new List<string>();
-            for (var stars = 1; stars <= maxStars; stars++) steps.Add($"{Numbers.Times(1 << stars)} at {Numbers.Count(stars)} {(stars == 1 ? "star" : "stars")}");
+            for (var stars = 1; stars <= maxStars; stars++) steps.Add($"{Numbers.Times(1 << stars)} at {Naming.Count(stars, "star", "stars")}");
             var words = "amount and chance " + string.Join(", ", steps);
-            if (unchanged != null && unchanged.Count > 0) words += $"; {Naming.Joined(new List<string>(unchanged))} {(unchanged.Count == 1 ? "stays" : "stay")} the same";
+            if (unchanged != null && unchanged.Count > 0) words += $"; {Naming.Joined(new List<string>(unchanged))} {Naming.Noun(unchanged.Count, "stays", "stay")} the same";
             return words;
         }
 
