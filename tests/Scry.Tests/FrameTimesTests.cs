@@ -119,6 +119,25 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatTheSelfTestAllocatesInsideAnOuterPartIsLeftOutOfScrysOwn()
+        {
+            // The self-test steps inside the frame's update: what its own checks allocate is no part
+            // of what Scry costs a player, as its time is not.
+            var frame = new FrameTimes();
+            frame.Add("update", 5, 1500, 0);
+            frame.Add("update self-test", 1, 1200, 0);
+            frame.Add("panel", 2, 300, 0);
+
+            Assert.Equal(1800, frame.Bytes);
+            Assert.Equal(600, frame.BytesWithout("update self-test"));
+            // An outer part or one not there is not taken out, and none goes below nothing.
+            Assert.Equal(1800, frame.BytesWithout("panel"));
+            Assert.Equal(1800, frame.BytesWithout("update nothing"));
+            frame.Add("update self-test", 0, 1000, 0);
+            Assert.Equal(0, frame.BytesWithout("update self-test"));
+        }
+
+        [Fact]
         public void LeavingOutAnOuterPartOrOneNotThereChangesNothing()
         {
             var frame = new FrameTimes();

@@ -61,8 +61,10 @@ namespace Scry
         {
             if (!On || started.Ticks == 0) return;
             var ms = (Stopwatch.GetTimestamp() - started.Ticks) * 1000.0 / Stopwatch.Frequency;
+            // All it allocated, inner parts and all, so what it asked of Scry is left out with it.
+            var bytes = GC.CollectionCount(0) > started.Cleanups ? 0 : GC.GetTotalMemory(false) - started.Bytes;
             Roll();
-            Frame.Add(part, Math.Max(0, ms - (Frame.InnerMs - innerBefore)), 0, 0);
+            Frame.Add(part, Math.Max(0, ms - (Frame.InnerMs - innerBefore)), Math.Max(0, bytes), 0);
         }
 
         private static bool On => Settings.LogPreviews || Measuring != null || Settings.ShowMonitor;
@@ -97,7 +99,8 @@ namespace Scry
         private static void Roll()
         {
             if (Time.frameCount == _frame) return;
-            ScryBytes += Frame.Bytes;
+            // What Scry allocated, the self-test's own checks left out as their time is.
+            ScryBytes += Frame.BytesWithout(SelfTestPart);
             if (Settings.ShowMonitor && _frame >= 0) FrameDone?.Invoke(Frame, Time.unscaledDeltaTime * 1000.0);
             if (Measuring != null && _frame >= 0)
             {

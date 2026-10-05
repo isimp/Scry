@@ -40,6 +40,17 @@ namespace Scry
         /// <summary>The time of one part, 0 when it has none.</summary>
         public double MsOf(string part) => part != null && _byName.TryGetValue(part, out var known) ? known.Ms : 0;
 
+        /// <summary>
+        /// What the frame's outer parts allocated less what one inner part did inside them (the
+        /// self-test's own checks), never below none; an outer part is not taken out.
+        /// </summary>
+        public long BytesWithout(string inner)
+        {
+            var left = Bytes;
+            if (inner != null && _byName.TryGetValue(inner, out var part) && !part.Outer) left -= part.Bytes;
+            return Math.Max(0, left);
+        }
+
         /// <summary>The frame's time less one inner part's, which runs inside an outer part; an outer part is not taken out.</summary>
         public double TotalWithout(string inner) => Total - (inner != null && _byName.TryGetValue(inner, out var part) && !part.Outer ? part.Ms : 0);
 

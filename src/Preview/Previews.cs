@@ -165,6 +165,8 @@ namespace Scry
             }
             Timing.Add("update probe", started);
             RunLaterSteps();
+            // An attack asked for before its clip was known plays once it is.
+            if (explorer != null) Guard.Run(Feature.Animations, "playing an attack asked for", PlayAttackAsked);
 
             if (explorer == null) return;
 
@@ -318,7 +320,6 @@ namespace Scry
             TriggerProbe.CancelAllBut(shown);
 
             PlayClipAsked();
-            PlayAttackAsked();
 
             if (entry != null && entry.Kind == Kind.Sound && Settings.PlayOnSelect) PlaySound(entry);
         }
