@@ -55,6 +55,8 @@ namespace Scry
             public readonly Dictionary<string, string> Parts = new Dictionary<string, string>(StringComparer.Ordinal);
             public readonly Dictionary<string, string> Notes = new Dictionary<string, string>(StringComparer.Ordinal);
             public readonly Dictionary<FactBlock, string> Blocks = new Dictionary<FactBlock, string>();
+            /// <summary>Topic orders for what a page tells, the first whose key fact or row is told taken over <see cref="Topics"/>' own.</summary>
+            public readonly List<(string Key, string[] Ids)> Orders = new List<(string, string[])>();
             /// <summary>Groups of the entry's links shown in a topic, not under Linked, by the topic.</summary>
             public readonly Dictionary<string, string> LinkGroups = new Dictionary<string, string>(StringComparer.Ordinal);
         }
@@ -82,10 +84,14 @@ namespace Scry
             {
                 Topics = new[]
                 {
-                    ("overview", (string)null), ("fight", "Fight"), ("senses", "Senses and behaviour"), ("loot", "Loot"), ("lives", "Where it lives"),
-                    ("taming", "Taming and breeding"), ("riding", "Riding"), ("after", "After it falls"), (More, "More"), ("hooks", null),
+                    ("overview", (string)null), ("fight", "Fight"), ("loot", "Loot"), ("lives", "Where it lives"), ("taming", "Taming and breeding"),
+                    ("riding", "Riding"), ("senses", "Senses and behaviour"), ("after", "After it falls"), (More, "More"), ("hooks", null),
                 },
             };
+            // A boss: how to summon it (under where it lives) and what its fall opens, before its loot.
+            Order(plan, "Boss", "overview", "fight", "lives", "after", "loot", "senses");
+            // A tameable one: its taming and riding first.
+            Order(plan, "Takes to tame", "overview", "taming", "riding", "fight", "loot", "lives", "senses");
             Tile(plan, "overview", null, "Health", "Faction", "Moves", "Tameable", "Boss");
             Tile(plan, "senses", null, "Sees", "Hears", "Turns on you", "Fire");
             Label(plan, "fight", "Attacks", CombatWords.StarsTitle, "Its fight", "Fights", "Damage it takes");
@@ -161,6 +167,8 @@ namespace Scry
                     ("from", "Where it comes from"), (More, "More"), ("hooks", null),
                 },
             };
+            Tile(plan, "overview", "Slots", "Slots", "Health", "Material");
+            Tile(plan, "overview", "Building reach", "Building reach", "Health", "Material");
             Tile(plan, "overview", null, "Health", "Comfort", "Material", "Support");
             Label(plan, "building", "Build cost", "Built with", "Placed", "Upgrades", "Claiming it");
             // What it is for: a station's making, a machine's work, an area's, what it holds and opens with.
@@ -221,8 +229,9 @@ namespace Scry
         {
             var plan = new KindPlan
             {
-                Topics = new[] { ("overview", (string)null), ("placement", "Placement"), ("layout", "Layout"), ("contents", "Contents"), ("music", "Music"), (More, "More"), ("hooks", null) },
+                Topics = new[] { ("overview", (string)null), ("contents", "Contents"), ("layout", "Layout"), ("music", "Music"), ("placement", "Placement"), (More, "More"), ("hooks", null) },
             };
+            Order(plan, "Built into", "overview", "layout");
             Tile(plan, "overview", null, "Biome", "Per world", "Size");
             Label(plan, "placement", "Is", "Not before");
             Label(plan, "layout", "Building", "Doorways", "Built into");
@@ -342,6 +351,14 @@ namespace Scry
             foreach (var part in parts) plan.Parts[part] = topic;
         }
 
+        /// <summary>A topic order for pages that tell a key fact or row: the topics named first, then the rest in their own order.</summary>
+        private static void Order(KindPlan plan, string key, params string[] first)
+        {
+            var ids = new List<string>(first);
+            foreach (var (id, _) in plan.Topics) if (!ids.Contains(id)) ids.Add(id);
+            plan.Orders.Add((key, ids.ToArray()));
+        }
+
         private static void Links(KindPlan plan, string topic, params string[] groups)
         {
             foreach (var group in groups) plan.LinkGroups[group] = topic;
@@ -455,8 +472,22 @@ namespace Scry
                 else topics[TopicOf(anchor, pairs[i].Part)].Bits.Add(new FactBit { Pair = i });
             }
 
+            var order = new List<string>();
+            foreach (var (id, _) in plan.Topics) order.Add(id);
+            foreach (var (key, ids) in plan.Orders)
+            {
+                if (!Told(key) && !RowTold(key)) continue;
+                order = new List<string>(ids);
+                break;
+            }
+            bool RowTold(string title)
+            {
+                for (var i = 0; i < rows.Count; i++) if (rows[i].Title == title) return true;
+                return false;
+            }
+
             var laid = new List<FactTopicPlan>();
-            foreach (var (id, _) in plan.Topics)
+            foreach (var id in order)
             {
                 var topic = topics[id];
                 if (topic.Tiles.Count + topic.Bits.Count > 0) laid.Add(topic);

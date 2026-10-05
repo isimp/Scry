@@ -29,23 +29,48 @@ namespace Scry.Tests
         private static string Bit(FactBit bit) => bit.Pair >= 0 ? Pair(bit.Pair) : bit.Row >= 0 ? "row " + TrollRows[bit.Row].Title : "block " + bit.Block;
 
         [Fact]
-        public void ACreatureTellsItsFightFirstThenItsSensesLootHomeAndTaming()
+        public void ATameableCreatureTellsItsTamingFirstThenItsFightLootHomeAndSenses()
         {
+            // Taming is why a tameable one's page is opened: right under its tiles.
             var plan = Troll();
-            Assert.Equal(new[] { null, "Fight", "Senses and behaviour", "Loot", "Where it lives", "Taming and breeding", "Riding", "After it falls", "More", null }, plan.Select(t => t.Heading));
+            Assert.Equal(new[] { null, "Taming and breeding", "Riding", "Fight", "Loot", "Where it lives", "Senses and behaviour", "After it falls", "More", null }, plan.Select(t => t.Heading));
 
             // Its headline numbers as tiles, the boss and moves among them where told.
             Assert.Equal(new[] { "Health", "Faction", "Moves", "Tameable" }, plan[0].Tiles.Select(Pair));
-            Assert.Equal(new[] { "Attack: Club", "Hit on the head", "row With stars", "row Damage it takes" }, plan[1].Bits.Select(Bit));
-            Assert.Equal(new[] { "Sees" }, plan[2].Tiles.Select(Pair));
+            Assert.Equal(new[] { "Takes to tame", "Love", "row Eats" }, plan[1].Bits.Select(Bit));
+            Assert.Equal(new[] { "Ridden with" }, plan[2].Bits.Select(Bit));
+            Assert.Equal(new[] { "Attack: Club", "Hit on the head", "row With stars", "row Damage it takes" }, plan[3].Bits.Select(Bit));
+            Assert.Equal(new[] { "block Where", "block Biomes" }, plan[5].Bits.Select(Bit));
+            Assert.Equal(new[] { "Sees" }, plan[6].Tiles.Select(Pair));
             // A new fact of a reader's part goes where that part's facts go.
-            Assert.Equal(new[] { "Gives up chasing", "Keeps its distance" }, plan[2].Bits.Select(Bit));
-            Assert.Equal(new[] { "block Where", "block Biomes" }, plan[4].Bits.Select(Bit));
-            Assert.Equal(new[] { "Takes to tame", "Love", "row Eats" }, plan[5].Bits.Select(Bit));
-            Assert.Equal(new[] { "Ridden with" }, plan[6].Bits.Select(Bit));
+            Assert.Equal(new[] { "Gives up chasing", "Keeps its distance" }, plan[6].Bits.Select(Bit));
             Assert.Equal(new[] { "Forsaken power" }, plan[7].Bits.Select(Bit));
             Assert.Equal(new[] { "Something new" }, plan[8].Bits.Select(Bit));
             Assert.Equal(new[] { "block Hooks" }, plan[9].Bits.Select(Bit));
+        }
+
+        [Fact]
+        public void ACreatureTellsItsFightThenItsLootAndHomeTogetherThenItsSenses()
+        {
+            // What it drops and where it lives answer one question, where to farm it; how it
+            // notices you comes after.
+            var pairs = new[] { ("Health", ""), ("Weak spots", "weak spots"), ("Gives up chasing", "behaviour"), ("Drops", ""), ("Forsaken power", "") };
+            var plan = FactLayout.Plan(Kind.Creature, pairs, new (string, string)[0], new[] { FactBlock.Where });
+            Assert.Equal(new[] { null, "Fight", "Loot", "Where it lives", "Senses and behaviour", "After it falls" }, plan.Select(t => t.Heading));
+        }
+
+        [Fact]
+        public void ABossTellsHowToSummonItAndWhatItsFallOpensBeforeItsLoot()
+        {
+            var pairs = new[] { ("Health", ""), ("Boss", ""), ("Weak spots", "weak spots"), ("Gives up chasing", "behaviour"), ("Drops", ""), ("Forsaken power", "") };
+            var rows = new[] { ("Summoned at Eikthyr's altar", "summoning") };
+            var plan = FactLayout.Plan(Kind.Creature, pairs, rows, new[] { FactBlock.Where });
+            Assert.Equal(new[] { null, "Fight", "Where it lives", "After it falls", "Loot", "Senses and behaviour" }, plan.Select(t => t.Heading));
+            Assert.Contains(plan[0].Tiles, i => pairs[i].Item1 == "Boss");
+
+            // One that is both a boss and tameable takes the boss's order, the first of the two.
+            var both = FactLayout.Plan(Kind.Creature, pairs.Append(("Takes to tame", "taming")).ToArray(), rows, new[] { FactBlock.Where });
+            Assert.Equal(new[] { null, "Fight", "Where it lives", "After it falls", "Loot", "Senses and behaviour", "Taming and breeding" }, both.Select(t => t.Heading));
         }
 
         [Fact]
@@ -183,6 +208,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APiecesTilesAreWhatMattersForWhatItIs()
+        {
+            // A chest, cart or ship by what it holds; a station by its reach; the rest by health, comfort, material and support.
+            var chest = Piece(new[] { ("Health", "piece"), ("Material", "piece"), ("Support", "support"), ("Slots", "") }, new (string, string)[0]);
+            Assert.Equal(new[] { "Slots", "Health", "Material" }, chest[0].Shown);
+            var bench = Piece(new[] { ("Health", "piece"), ("Material", "piece"), ("Support", "support"), ("Building reach", "station") }, new (string, string)[0]);
+            Assert.Equal(new[] { "Building reach", "Health", "Material" }, bench[0].Shown);
+            var wall = Piece(new[] { ("Health", "piece"), ("Material", "piece"), ("Support", "support") }, new (string, string)[0]);
+            Assert.Equal(new[] { "Health", "Material", "Support" }, wall[0].Shown);
+        }
+
+        [Fact]
         public void WhatAMachineAChestADoorOrAFireDoesIsToldFirstNotUnderMore()
         {
             // A ship: its slots and how it fares at sea.
@@ -247,13 +284,14 @@ namespace Scry.Tests
             };
             var plan = FactLayout.Plan(Kind.Location, pairs, rows, new[] { FactBlock.Biomes, FactBlock.Hooks });
             string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
-            Assert.Equal(new[] { null, "Placement", "Layout", "Contents", "Music", null }, plan.Select(t => t.Heading));
+            // What it holds first, the reason to go; where it may be placed last, for the curious.
+            Assert.Equal(new[] { null, "Contents", "Layout", "Music", "Placement", null }, plan.Select(t => t.Heading));
             Assert.Equal(new[] { "Biome", "Per world" }, plan[0].Tiles.Select(i => pairs[i].Item1));
-            Assert.Equal(new[] { "Above the sea", "Placed", "block Biomes" }, plan[1].Bits.Select(Name));
-            Assert.Equal(new[] { "Building", "Laid out", "Picks rooms", "row Doors in half of doorways", "row Built of 12 kinds of room" }, plan[2].Bits.Select(Name));
             Assert.Equal(new[] { "Levels at its spawn points", "What its rooms hold", "row Its spawn points place", "row Chests and pickups", "row Built of",
-                "row Its rooms hold, 3 of 12 kinds of room read", "row Loot in its rooms", "row Chests and pickups in its rooms" }, plan[3].Bits.Select(Name));
-            Assert.Equal(new[] { "Music" }, plan[4].Bits.Select(Name));
+                "row Its rooms hold, 3 of 12 kinds of room read", "row Loot in its rooms", "row Chests and pickups in its rooms" }, plan[1].Bits.Select(Name));
+            Assert.Equal(new[] { "Building", "Laid out", "Picks rooms", "row Doors in half of doorways", "row Built of 12 kinds of room" }, plan[2].Bits.Select(Name));
+            Assert.Equal(new[] { "Music" }, plan[3].Bits.Select(Name));
+            Assert.Equal(new[] { "Above the sea", "Placed", "block Biomes" }, plan[4].Bits.Select(Name));
         }
 
         [Fact]
@@ -261,10 +299,14 @@ namespace Scry.Tests
         {
             var pairs = new[] { ("Is", "room"), ("Size", "room"), ("Doorways", "room"), ("Not before", "room"), ("Built into", "room") };
             var plan = FactLayout.Plan(Kind.Location, pairs, new (string, string)[0], new FactBlock[0]);
-            Assert.Equal(new[] { null, "Placement", "Layout" }, plan.Select(t => t.Heading));
+            // The dungeon it is built into comes first.
+            Assert.Equal(new[] { null, "Layout", "Placement" }, plan.Select(t => t.Heading));
             Assert.Equal(new[] { "Size" }, plan[0].Tiles.Select(i => pairs[i].Item1));
-            Assert.Equal(new[] { "Is", "Not before" }, plan[1].Bits.Select(b => pairs[b.Pair].Item1));
-            Assert.Equal(new[] { "Doorways", "Built into" }, plan[2].Bits.Select(b => pairs[b.Pair].Item1));
+            Assert.Equal(new[] { "Doorways", "Built into" }, plan[1].Bits.Select(b => pairs[b.Pair].Item1));
+            Assert.Equal(new[] { "Is", "Not before" }, plan[2].Bits.Select(b => pairs[b.Pair].Item1));
+            // Told as a row of the dungeons it is built into, the same; before what the room holds, where a dungeon's own come first.
+            var asRow = FactLayout.Plan(Kind.Location, new[] { ("Is", "room"), ("Size", "room"), ("What it holds", "location") }, new[] { ("Built into", "room") }, new FactBlock[0]);
+            Assert.Equal(new[] { null, "Layout", "Contents", "Placement" }, asRow.Select(t => t.Heading));
         }
 
         [Fact]
