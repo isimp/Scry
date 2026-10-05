@@ -54,10 +54,27 @@ namespace Scry
             Playing = null;
         }
 
-        /// <summary>Gives the game's music back once this has played through.</summary>
+        /// <summary>
+        /// Gives the game's music back once this has played through; until then keeps it muted,
+        /// a source a mod unmutes or adds meanwhile too.
+        /// </summary>
         public static void Update()
         {
-            if (Playing != null && !Sounding) Stop();
+            if (Playing == null) return;
+            if (!Sounding) Stop();
+            else MuteGame();
+        }
+
+        /// <summary>Mutes the game's music sources not muted yet, noting them to give back.</summary>
+        private static void MuteGame()
+        {
+            if (MusicMan.instance == null) return;
+            foreach (var game in MusicMan.instance.GetComponentsInChildren<AudioSource>(true))
+            {
+                if (game == null || game.mute) continue;
+                game.mute = true;
+                if (!Muted.Contains(game)) Muted.Add(game);
+            }
         }
 
         private static bool Find(PlaceMusic tune, GameObject model, out AudioClip clip, out float volume)
@@ -99,16 +116,8 @@ namespace Scry
                 _source.priority = 0;
                 _source.bypassReverbZones = true;
             }
-            if (MusicMan.instance != null)
-            {
-                _source.outputAudioMixerGroup = MusicMan.instance.m_musicMixer;
-                foreach (var game in MusicMan.instance.GetComponentsInChildren<AudioSource>(true))
-                {
-                    if (game == null || game.mute) continue;
-                    game.mute = true;
-                    Muted.Add(game);
-                }
-            }
+            if (MusicMan.instance != null) _source.outputAudioMixerGroup = MusicMan.instance.m_musicMixer;
+            MuteGame();
             _source.clip = clip;
             _source.volume = volume * MusicMan.m_masterMusicVolume;
             _source.time = 0f;

@@ -77,11 +77,15 @@ namespace Scry
             // Only creatures have it when one carries it and nothing a player meets gives it:
             // no recipe or station, nothing that drops, holds, sells, spawns or places it.
             var carried = entry.Links.Any(l => l.Group == Relations.CarriedBy);
-            var obtainable = entry.Stations.Length > 0 || Knowledge.SourceLines(entry.Name).Count > 0 || entry.FoundIn.Length > 0
-                || Knowledge.IsPlacedByWorld(entry.Name) || entry.Links.Any(l => l.Group == Relations.SpawnedBy);
+            var obtainable = Obtainable(entry);
             var iconless = shared != null && (shared.m_icons == null || shared.m_icons.Length == 0);
             return Groups.Item(shared?.m_itemType.ToString(), shared?.m_skillType.ToString(), carried, obtainable, entry.Empty, iconless);
         }
+
+        /// <summary>Whether a player can get it: a recipe or station makes it, or something drops, holds, sells, spawns or places it.</summary>
+        public static bool Obtainable(Entry entry) =>
+            entry.Stations.Length > 0 || Knowledge.SourceLines(entry.Name).Count > 0 || entry.FoundIn.Length > 0
+            || Knowledge.IsPlacedByWorld(entry.Name) || entry.Links.Any(l => l.Group == Relations.SpawnedBy);
 
         /// <summary>
         /// Groups again the items only creatures seemed to have that the locations turned out to

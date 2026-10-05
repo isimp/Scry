@@ -269,6 +269,8 @@ namespace Scry
                 // The thump is the log toppling off its stump onto the ground, not its first touch.
                 bool Toppled() => Thud.Contacts.Any(c => c.Struck && c.At - felled >= 0.5f);
                 yield return Until(Toppled, 8);
+                // A strike noted in a contact plays in the copy's next update, which may come after this one in the frame.
+                yield return Until(() => Thud.Played > thuds, 1);
                 var contacts = string.Join(", ", Thud.Contacts.Where(c => c.At >= felled).Select(c => $"{Numbers.Amount(c.Speed, 1)} m/s after {Numbers.Fixed(c.At - felled, 1)} s{(c.Struck ? ", heard" : "")}"));
                 p.Note("its log touched: " + (contacts.Length > 0 ? contacts : "nothing"));
                 p.Check(Thud.Played > thuds && Toppled(), "its log is heard striking the ground as it topples off its stump", $"{Numbers.Count(Thud.Played - thuds)} strikes");

@@ -384,13 +384,16 @@ namespace Scry
                 p.Note($"{entry.Name}: {LocationWords.Music(place.Contents.Music)}; Enter said \"{said}\"");
                 yield return null;
                 p.Check(MusicPreview.PlayingFor == entry && MusicPreview.Sounding, $"{entry.Name} plays {place.Contents.Music[0].Name}", said);
-                var game = MusicMan.instance != null ? MusicMan.instance.GetComponentsInChildren<AudioSource>(true) : Array.Empty<AudioSource>();
-                p.Check(game.All(s => s.mute), "the game's music is muted meanwhile", $"{Numbers.Count(game.Length)} sources");
+                AudioSource[] Game() => MusicMan.instance != null ? MusicMan.instance.GetComponentsInChildren<AudioSource>(true) : Array.Empty<AudioSource>();
+                // Muted again in the music's own update, which may come after this one in the frame.
+                yield return Until(() => Game().All(s => s.mute), 1);
+                var loud = Game().Where(s => !s.mute).Select(s => $"{s.name} ({(s.clip != null ? s.clip.name : "no clip")})").ToList();
+                p.Check(loud.Count == 0, "the game's music is muted meanwhile", $"{Numbers.Count(Game().Length)} sources, not muted: {string.Join(", ", loud)}");
 
                 Select(Pick(Kind.Creature, "Boar", "Greyling"));
                 yield return Until(() => MusicPreview.PlayingFor == null, 2);
                 p.Check(!MusicPreview.Sounding && MusicPreview.PlayingFor == null, "selecting something else stops it");
-                p.Check(game.All(s => s == null || !s.mute), "and gives the game's music back");
+                p.Check(Game().All(s => s == null || !s.mute), "and gives the game's music back");
             }
         }
 

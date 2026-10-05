@@ -431,6 +431,11 @@ namespace Scry
                     p.Note("none of " + string.Join(", ", names));
                     continue;
                 }
+                if (title == ChainWords.Summoning && !Knowledge.Summons().Any(s => s.Boss == entry.Name))
+                {
+                    p.Note($"{entry.Name}'s altar is known once the locations are read; not read yet");
+                    continue;
+                }
                 var row = Facts.For(entry).Rows.FirstOrDefault(r => r.Chain != null && r.Title == title);
                 p.Check(row != null, $"{entry.Name} shows its chain {title.ToLowerInvariant()}");
                 if (row == null) continue;
