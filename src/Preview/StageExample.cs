@@ -32,6 +32,9 @@ namespace Scry
         /// <summary>Whether it is a dungeon's, standing in place of its entrance, rather than a camp's around its location.</summary>
         public bool IsDungeon { get; private set; }
 
+        /// <summary>Whether the location has nothing to show outside, no part of it drawn but the example (the sealed tower's), so the inside shows however the switch is left.</summary>
+        public bool NothingOutside { get; private set; }
+
         /// <summary>The room being copied, with the spawn points and paints read off it.</summary>
         public Ghost.Building Build;
         public List<Stage.SpawnHere> BuildSpawns;
@@ -97,6 +100,7 @@ namespace Scry
             {
                 if (part != holder && part.gameObject.activeSelf) _outside.Add(part.gameObject);
             }
+            NothingOutside = !_outside.Any(part => part.GetComponentsInChildren<Renderer>(true).Any(r => r.enabled));
             if (IsDungeon) Holder.SetActive(false);
         }
 
@@ -224,6 +228,14 @@ namespace Scry
             return _across;
         }
 
+        /// <summary>What the location draws outside, its parts with something drawn and how many, for the self-test to tell.</summary>
+        [Diagnostic]
+        public string OutsideTold()
+        {
+            var drawn = _outside.Where(part => part != null && part.GetComponentsInChildren<Renderer>(true).Any(r => r.enabled)).Select(part => part.name).ToList();
+            return drawn.Count == 0 ? "nothing" : $"{Numbers.Count(drawn.Count)} parts: {string.Join(", ", drawn.Take(6))}";
+        }
+
         /// <summary>Each room read so far with the floors found in it alone, for the self-test to tell.</summary>
         [Diagnostic]
         public List<string> RoomFloorsTold()
@@ -344,6 +356,7 @@ namespace Scry
             Holder = null;
             Of = null;
             Placed = null;
+            NothingOutside = false;
             Next = 0;
             Copies = 0;
             _patches.Clear();

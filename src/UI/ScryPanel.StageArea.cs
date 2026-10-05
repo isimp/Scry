@@ -260,7 +260,7 @@ namespace Scry
             // Everything the row will hold, measured first, so it can move clear of the kind badge:
             // the View chip, and what the place shown has to show or not.
             var texts = new List<string> { "View" };
-            if (Stage.HasInside) texts.Add(StageWords.Inside(Stage.Inside));
+            if (Stage.HasOutside) texts.Add(StageWords.Inside(Stage.Inside));
             if (Stage.HasCreatures) texts.Add("Creatures");
             var total = texts.Sum(t => Skin.Width(Skin.Chip, t) + U(10f));
             if (x - total < rect.x + U(10f) + _badgeWidth + U(10f)) y += h + U(8f);
@@ -293,7 +293,8 @@ namespace Scry
                 Stage.CreaturesShown = !Stage.CreaturesShown;
                 SaveRects();
             }
-            if (Stage.HasInside && Chip(StageWords.Inside(Stage.Inside), Stage.Inside, StageWords.InsideTip(Stage.Inside)))
+            // A dungeon with nothing outside shows its inside, with no switch to the outside.
+            if (Stage.HasOutside && Chip(StageWords.Inside(Stage.Inside), Stage.Inside, StageWords.InsideTip(Stage.Inside)))
             {
                 Stage.Inside = !Stage.Inside;
             }

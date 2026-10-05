@@ -39,7 +39,7 @@ namespace Scry
             // The example as the stage holds it, so the plan turns as the stage is looked at; a
             // dungeon's plan is of its inside, so none while its entrance is shown from outside.
             var example = ExampleOf(entry) != null ? Stage.ExampleShown : null;
-            if (example == null || example.Rooms.Count == 0 || Stage.HasInside && !Stage.Inside) return Rect.zero;
+            if (example == null || example.Rooms.Count == 0 || Stage.HasInside && !Stage.ShowsInside) return Rect.zero;
             var e = Event.current;
 
             // Folded, a small tab where it stands, which brings it back.

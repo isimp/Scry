@@ -297,6 +297,16 @@ namespace Scry
                         p.Note($"{entry.Name}: no example stood on the stage");
                         break;
                     }
+                    if (example == 0 && entry.Name == "Hildir_plainsfortress")
+                    {
+                        // With nothing outside, it shows its inside though Outside was left chosen.
+                        Stage.Inside = false;
+                        yield return null;
+                        yield return null;
+                        p.Check(Stage.ShowsInside && !Stage.HasOutside, "the sealed tower, with nothing outside, shows its inside though Outside is chosen", "outside: " + Stage.OutsideTold());
+                        Stage.Inside = true;
+                        yield return null;
+                    }
                     var (now, before, withOpen) = Stage.ExampleFloorsFoundThreeWays();
                     p.Note($"{entry.Name}: floors found {Told(now)}; by the rules before {Told(before)}; with open ground within reach of the doorways {Told(withOpen)}");
                     if (example == 0 && entry.Name == "MorkBorg") p.Note("its rooms with open ground within reach: " + string.Join("; ", Stage.ExampleRoomGroundTold(withOpen: true)));

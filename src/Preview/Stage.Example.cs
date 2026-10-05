@@ -64,6 +64,15 @@ namespace Scry
         /// <summary>Whether the location shown is a dungeon whose example can be gone into.</summary>
         public static bool HasInside => TheExample.Holder != null && TheExample.IsDungeon;
 
+        /// <summary>Whether it has an outside to switch to as well: the sealed tower has nothing outside but its inside.</summary>
+        public static bool HasOutside => HasInside && !TheExample.NothingOutside;
+
+        /// <summary>Whether its inside is shown: as the switch is left, or always where it has nothing outside.</summary>
+        public static bool ShowsInside => HasInside && (_inside || TheExample.NothingOutside);
+
+        /// <summary>What the location draws outside, for the self-test to tell.</summary>
+        public static string OutsideTold() => TheExample.OutsideTold();
+
         /// <summary>Whether the example is shown, as the stage's chip switches it.</summary>
         public static bool Inside
         {
@@ -212,7 +221,7 @@ namespace Scry
         private static void ShowInsideOrOut()
         {
             if (TheExample.Holder == null || !TheExample.IsDungeon || _subject == null) return;
-            var inside = _inside && TheExample.Copies > 0;
+            var inside = (_inside || TheExample.NothingOutside) && TheExample.Copies > 0;
             TheExample.ShowInside(inside);
 
             var floors = inside ? TheExample.FloorsNow() : new List<float>(_placeFloors);
