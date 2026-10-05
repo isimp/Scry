@@ -509,7 +509,7 @@ namespace Scry
         }
 
         /// <summary>
-        /// The status effects damage puts on whatever it hits say what they do, as Kevin asked:
+        /// The status effects damage puts on whatever it hits say what they do:
         /// burning and spirit dealt over their time, poison over a time it tells in a table,
         /// frost's slowing in tables, lightning's mark; none tells the settings it reads that from.
         /// </summary>

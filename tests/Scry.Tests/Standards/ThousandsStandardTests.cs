@@ -30,7 +30,7 @@ namespace Scry.Tests
         public void CommentsWriteThousandsWithCommas()
         {
             var found = new List<string>();
-            foreach (var tree in SourceTrees())
+            foreach (var tree in ScrySource.WrittenTrees())
             {
                 foreach (var trivia in tree.GetRoot().DescendantTrivia(descendIntoTrivia: true))
                 {
@@ -111,25 +111,6 @@ namespace Scry.Tests
         /// <summary>Each bare amount in a text, where it stands in it; what is not prose is blanked, keeping every place.</summary>
         private static IEnumerable<Match> Bares(string text) =>
             Bare.Matches(NotProse.Replace(text, m => new string(' ', m.Length))).Cast<Match>();
-
-        /// <summary>Scry's source and the self-test's as compiled, and the tests' own, read as written.</summary>
-        private static IEnumerable<SyntaxTree> SourceTrees()
-        {
-            foreach (var compilation in ScrySource.Compilations)
-            {
-                foreach (var tree in compilation.SyntaxTrees)
-                {
-                    if (!string.IsNullOrEmpty(tree.FilePath)) yield return tree;
-                }
-            }
-            var tests = Path.Combine(ScrySource.Root(), "tests");
-            var separator = Path.DirectorySeparatorChar;
-            foreach (var file in Directory.EnumerateFiles(tests, "*.cs", SearchOption.AllDirectories))
-            {
-                if (file.Contains(separator + "bin" + separator) || file.Contains(separator + "obj" + separator)) continue;
-                yield return CSharpSyntaxTree.ParseText(File.ReadAllText(file), path: file);
-            }
-        }
 
         private static string Where(SyntaxTree tree, int position) =>
             $"{Path.GetRelativePath(ScrySource.Root(), tree.FilePath).Replace('\\', '/')}:{tree.GetLineSpan(new Microsoft.CodeAnalysis.Text.TextSpan(position, 0)).StartLinePosition.Line + 1}";

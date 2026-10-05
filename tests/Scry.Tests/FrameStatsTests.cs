@@ -19,7 +19,7 @@ namespace Scry.Tests
         public void FramesUpToWhatItWasMadeForAreKeptWithoutAllocating()
         {
             // The self-test notes every frame inside the update it measures; a list growing as
-            // the run goes on copied itself in some frame and was counted as Scry's own.
+            // the run goes on would copy itself in a frame measured and count as Scry's own.
             var stats = new FrameStats(1000);
             stats.Add(1, "update", 1);
             var before = System.GC.GetAllocatedBytesForCurrentThread();

@@ -64,7 +64,7 @@ namespace Scry
         /// <summary>Whether the location shown is a dungeon whose example can be gone into.</summary>
         public static bool HasInside => TheExample.Holder != null && TheExample.IsDungeon;
 
-        /// <summary>Whether it has an outside to switch to as well: the sealed tower has nothing outside but its inside.</summary>
+        /// <summary>Whether it has an outside to switch to as well: a location drawing nothing but its example has none.</summary>
         public static bool HasOutside => HasInside && !TheExample.NothingOutside;
 
         /// <summary>Whether its inside is shown: as the switch is left, or always where it has nothing outside.</summary>
@@ -193,9 +193,6 @@ namespace Scry
 
         /// <summary>Each room of the example read so far with the floors found in it alone, for the self-test to tell.</summary>
         public static List<string> ExampleRoomFloorsTold() => TheExample.RoomFloorsTold();
-
-        /// <summary>The floors the example's rooms' ground makes now and as the rules before read it, for the self-test to tell.</summary>
-        public static (List<float> Now, List<float> Before) ExampleFloorsFoundBothWays() => TheExample.FloorsFoundBothWays();
 
         /// <summary>Each room of the example read so far with its box, doorways, ground and the floors it stands on, for the self-test to tell.</summary>
         public static List<string> ExampleRoomGroundTold() => TheExample.RoomGroundTold(FloorHeights);

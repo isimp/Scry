@@ -173,7 +173,7 @@ namespace Scry.Tests
         public void ReadingAFramesTotalsAllocatesNothingSoTheMeasuringIsNotTakenForScrysOwn()
         {
             // The measuring reads a frame's totals several times a frame, inside the update it
-            // measures: what it allocated was counted as Scry's idling (1,170 bytes a frame).
+            // measures, so whatever reading them allocated would be counted as Scry's own.
             var frame = new FrameTimes();
             frame.Add("update", 1, 10, 0);
             frame.Add("update probe", 1, 5, 0);

@@ -6,8 +6,9 @@ namespace Scry
     /// How a pill (a box with fully round ends: a chip, a tab, a loot mark) is drawn at a
     /// height: from a picture of a pill that high, its round ends kept as they are and the
     /// straight between them stretched to the length drawn. The IMGUI keeps a sliced picture's
-    /// ends at their own size, so one picture's ends broke up into stray lines on a pill drawn
-    /// lower than they were tall; each height drawn has its own picture.
+    /// ends at their own size, so one picture for all heights would draw its ends overlapping,
+    /// with stray lines beside them, on a pill lower than they are tall; each height drawn has
+    /// its own picture.
     /// </summary>
     internal static class PillShape
     {

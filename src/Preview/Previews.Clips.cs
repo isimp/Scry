@@ -271,8 +271,8 @@ namespace Scry
 
         /// <summary>
         /// Plays a weapon's attack once the person wearing it is on the stage and its clip is
-        /// known, as asked from its attacks table while it was shown on its own; given up when
-        /// something else is selected or after a while.
+        /// known, after a click on its attacks table while it is shown on its own put it on the
+        /// person; given up when something else is selected or after a while.
         /// </summary>
         public static void PlayAttackWhenKnown(string item, bool secondary)
         {

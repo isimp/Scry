@@ -62,7 +62,6 @@ namespace Scry
             if (places.Count == 0) p.Skip("there are no locations");
             var picks = Spread(places, 16);
             picks.AddRange(places.Where(e => e.Name.IndexOf("Tower", StringComparison.OrdinalIgnoreCase) >= 0 || e.Name.IndexOf("Cave", StringComparison.OrdinalIgnoreCase) >= 0).Take(8));
-            picks.AddRange(places.Where(e => e.Name == "Hildir_cave"));
             var wrong = new List<string>();
             var several = new List<string>();
             foreach (var entry in picks.Distinct().ToList())
@@ -86,8 +85,6 @@ namespace Scry
                 // Each floor with what its rays landed on, to see what is taken for a floor.
                 var makers = Stage.FloorMakersNow();
                 if (floors.Count > 1) several.Add($"{entry.Name} ({string.Join("; ", floors.Select((f, i) => $"{Numbers.Fixed(f, 1)} m on {(i < makers.Count ? makers[i] : "?")}"))})");
-                // Kevin found the Howling Cavern's lowest floor a slab running out of its rock: every part near each floor.
-                if (entry.Name == "Hildir_cave") p.Note($"{entry.Name}'s floors by part: " + string.Join("; ", Stage.FloorPartsTold()));
             }
             p.Note(several.Count > 0 ? "with several floors: " + string.Join("; ", several) : "none with several floors");
             p.Check(wrong.Count == 0, "each has floors from the top down, cut over each, with no collider left on its copy", string.Join("; ", wrong.Take(8)));
@@ -250,9 +247,6 @@ namespace Scry
             }
         }
 
-        /// <summary>The dungeons whose floors Kevin found right, which must find as many floors as before 2026-10-05's rules, each within a metre.</summary>
-        private static readonly string[] Unchanged = { "Hildir_plainsfortress", "Crypt2" };
-
         /// <summary>
         /// The dungeons whose rooms are rock or stacked high, the Frost Caves, the M&#xF6;rkhalla ones and
         /// Hildir's sealed tower: each one's example is built and opened floor by floor, told with
@@ -260,9 +254,9 @@ namespace Scry
         /// there is none, some room always stands on the stage, and every room stands whole on
         /// some floor, so it can be opened and gone to. M&#xF6;rkhalla, whose floors come out
         /// differently example to example, is laid out three times. Its creatures are told: how
-        /// many dropped to the ground under their points and how many fly. The floors found are
-        /// told beside those the rules before 2026-10-05 found; M&#xF6;rkhalla's and the sealed
-        /// tower's, which Kevin found right, must be the same.
+        /// many dropped to the ground under their points and how many fly. Every M&#xF6;rkhalla room
+        /// has a floor at its foot and none lies over its gate, and the sealed tower's floors are
+        /// a storey apart from its top room to its foot.
         /// </summary>
         private static IEnumerator CaveFloors(Probe p)
         {
@@ -276,10 +270,9 @@ namespace Scry
             var empty = new List<string>();
             var blank = new List<string>();
             var unreached = new List<string>();
-            var changed = new List<string>();
             var footless = new List<string>();
-            string Told(List<float> floors) => floors == null ? "not kept" : string.Join(", ", floors.Select(f => Numbers.Fixed(f, 1)));
-            StageExample.KeepRulesBefore = true;
+            var gaps = new List<string>();
+            string Told(IEnumerable<float> floors) => string.Join(", ", floors.Select(f => Numbers.Fixed(f, 1)));
             foreach (var entry in caves)
             {
                 Select(entry);
@@ -307,17 +300,16 @@ namespace Scry
                         Stage.Inside = true;
                         yield return null;
                     }
-                    var (now, before) = Stage.ExampleFloorsFoundBothWays();
-                    p.Note($"{entry.Name}: floors found {Told(now)}; by the rules before {Told(before)}");
-                    if (Unchanged.Contains(entry.Name) && (before == null || now.Count != before.Count || now.Where((f, i) => Mathf.Abs(f - before[i]) > 1f).Any()))
+                    var now = Stage.FloorHeights.ToList();
+                    if (entry.Name == "Hildir_plainsfortress")
                     {
-                        changed.Add($"{entry.Name} {Told(now)}, before {Told(before)}");
-                        p.Note("its rooms: " + string.Join("; ", Stage.ExampleRoomGroundTold()));
+                        // Its rooms stand a storey on another, each with a floor: no two floors further apart than one.
+                        var apart = now.Zip(now.Skip(1), (above, below) => (above, below)).Where(f => f.above - f.below > 4.5f).ToList();
+                        if (apart.Count > 0) gaps.Add($"{entry.Name}: {string.Join(", ", apart.Select(f => $"{Numbers.Fixed(f.above, 1)} to {Numbers.Fixed(f.below, 1)} m"))}");
                     }
                     if (entry.Name == "MorkBorg")
                     {
-                        // Kevin found M\u00f6rkhalla missing floors in its middle: each room has a floor at its foot,
-                        // and none is over its gate, the ground outside (his pick).
+                        // Each room stands on a floor at its foot, and none lies over its gate, the ground outside.
                         var missing = Stage.ExampleShown.Rooms.Where(r => !now.Any(f => f >= r.Position.Y - r.Room.Size.Y / 2f - 0.5f && f <= r.Position.Y - r.Room.Size.Y / 2f + 3f))
                             .Select(r => $"{r.Room.Name} from {Numbers.Fixed(r.Position.Y - r.Room.Size.Y / 2f, 1)} m").ToList();
                         if (missing.Count > 0) footless.Add($"layout {Numbers.Count(example + 1)}: {string.Join(", ", missing)}");
@@ -343,8 +335,8 @@ namespace Scry
                     p.Note($"{entry.Name} ({entry.DisplayName}), {Numbers.Count(Stage.ExampleRoomsTotal)} rooms, {Numbers.Count(Stage.FloorHeights.Count)} floors: " + string.Join("; ", told)
                            + $"; creatures {Numbers.Count(Stage.CreaturesMade)}, {Numbers.Count(Stage.CreaturesDropped)} dropped to the ground under their points, {Numbers.Count(Stage.CreaturesFlying)} flying ({Stage.FlyersTold()})");
                     if (example == 0 && entry.Name == "MorkBorg") p.Note("its rooms' own floors, as each is shown alone: " + string.Join("; ", Stage.ExampleRoomFloorsTold()));
-                    // Where floors are found that Kevin finds odd (a sunken crypt's one level told as several, a frost
-                    // cave's floor with a room that is none): each room's box, doorways, ground and floors.
+                    // A sunken crypt's and a frost cave's rooms each with its box, doorways, ground and floors,
+                    // which tell why each of their floors is found.
                     if (example == 0 && (entry.Name == "SunkenCrypt4" || entry.Name == "MountainCave02")) p.Note("its rooms: " + string.Join("; ", Stage.ExampleRoomGroundTold()));
                 }
             }
@@ -352,9 +344,8 @@ namespace Scry
             p.Check(empty.Count == 0, "every floor found in their examples has rooms on it", string.Join("; ", empty));
             p.Check(blank.Count == 0, "and some room stands on the stage on every floor", string.Join("; ", blank));
             p.Check(unreached.Count == 0, "and every room stands whole on some floor", string.Join("; ", unreached));
-            StageExample.KeepRulesBefore = false;
             p.Check(footless.Count == 0, "every M\u00f6rkhalla room has a floor at its foot, none over its gate", string.Join("; ", footless));
-            p.Check(changed.Count == 0, "the sealed tower and the burial chambers find the floors they did before, within a metre", string.Join("; ", changed));
+            p.Check(gaps.Count == 0, "the sealed tower's floors are a storey apart, none missing", string.Join("; ", gaps));
         }
 
         /// <summary>

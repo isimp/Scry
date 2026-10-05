@@ -475,8 +475,8 @@ namespace Scry.Tests
         [Fact]
         public void AStatusEffectSaysWhatItDoesThenHowYouGetIt()
         {
-            // What it does first, right under how long it lasts (Kevin: burning's or poison's
-            // section should sit more prominent); what gives it next, no longer only under Linked.
+            // What it does is what a status effect is looked up for, so it comes first under how
+            // long it lasts; what gives it comes next, as a topic of its own.
             var plan = FactLayout.Plan(Kind.StatusEffect, new[] { ("Lasts", "status effect"), ("Health regen", "status effect") }, new (string, string)[0], new FactBlock[0],
                 new[] { LinkWords.GivenBy });
             Assert.Equal(new[] { null, "What it does", "How you get it" }, plan.Select(t => t.Heading));

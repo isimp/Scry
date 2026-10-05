@@ -47,6 +47,25 @@ namespace Scry.Tests
             throw new InvalidOperationException("Scry.csproj not found above the test run.");
         }
 
+        /// <summary>Scry's source and the self-test's as compiled, and the tests' own, read as written: every file whose comments a standard reads.</summary>
+        public static IEnumerable<SyntaxTree> WrittenTrees()
+        {
+            foreach (var compilation in Compilations)
+            {
+                foreach (var tree in compilation.SyntaxTrees)
+                {
+                    if (!string.IsNullOrEmpty(tree.FilePath)) yield return tree;
+                }
+            }
+            var tests = Path.Combine(Root(), "tests");
+            var separator = Path.DirectorySeparatorChar;
+            foreach (var file in Directory.EnumerateFiles(tests, "*.cs", SearchOption.AllDirectories))
+            {
+                if (file.Contains(separator + "bin" + separator) || file.Contains(separator + "obj" + separator)) continue;
+                yield return CSharpSyntaxTree.ParseText(File.ReadAllText(file), path: file);
+            }
+        }
+
         /// <summary>A file's path from the repository's root, with forward slashes: "src/UI/Facts.cs".</summary>
         public static string Relative(SyntaxTree tree) => Path.GetRelativePath(Root(), tree.FilePath).Replace('\\', '/');
 

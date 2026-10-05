@@ -9,7 +9,7 @@ namespace Scry.Tests
         // of whose damage gets past its resistances (HitData.CheckToolTier, then the damage left).
         // Of all that break it, the tools made for it are told, by the skill the game trains with
         // them: axes for what is chopped, pickaxes for what is mined, the weakest first. A weapon
-        // that happens to deal a little chop, as a crossbow can, is no tool for a tree (Kevin).
+        // that happens to deal a little chop, as a crossbow can, is no tool for a tree.
 
         private static readonly (string Name, int Tier, string Skill, (string Type, float Amount)[] Deals)[] Tools =
         {

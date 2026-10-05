@@ -5,8 +5,8 @@ namespace Scry.Tests
     public class PillShapeTests
     {
         // A pill (a chip, a tab, a loot mark, a kind's badge) has round ends as high as it is,
-        // however high it is drawn: a picture's ends sliced at one fixed size broke up into
-        // stray lines on a pill drawn lower than they were tall.
+        // however high it is drawn: a picture's ends sliced at one fixed size would overlap on a
+        // pill drawn lower than they are tall.
 
         [Fact]
         public void APillsRoundEndsAreAsHighAsThePillAtAnyHeight()

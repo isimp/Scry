@@ -44,25 +44,6 @@ namespace Scry
         public float Door = float.PositiveInfinity;
     }
 
-    /// <summary>The rules a dungeon room's own ground is read by: the room a level of its own needs, and how far over its highest doorway its ground is out of reach.</summary>
-    internal readonly struct FloorRules
-    {
-        public FloorRules(float ownRoom, float aboveDoors)
-        {
-            OwnRoom = ownRoom;
-            AboveDoors = aboveDoors;
-        }
-
-        public float OwnRoom { get; }
-        public float AboveDoors { get; }
-
-        /// <summary>The rules now (<see cref="FloorFinder.OwnLevelRoom"/>, <see cref="FloorFinder.AboveDoors"/>).</summary>
-        public static readonly FloorRules Now = new FloorRules(FloorFinder.OwnLevelRoom, FloorFinder.AboveDoors);
-
-        /// <summary>The rules before 2026-10-05: a level of a room's own 2 square metres at the least, its ground at any height; the self-test tells what they found, with the room's open ground left out as it was, beside those now.</summary>
-        public static readonly FloorRules Before = new FloorRules(FloorFinder.MinRoom, float.PositiveInfinity);
-    }
-
     /// <summary>
     /// A place's floors found in the place itself: rays cast straight down over it on a grid land
     /// on what is flat, floors, landings and platforms, but also tables, beds and beams. Only
@@ -99,9 +80,9 @@ namespace Scry
         /// <summary>How far under an entrance's doorway out open ground is still the ground outside, in metres.</summary>
         public const float Outdoors = 1f;
 
-        /// <summary>Whether a band of a patch is ground of its room: no more than <see cref="FloorRules.AboveDoors"/> over its highest doorway.</summary>
-        private static bool Stands(FloorPatch patch, FloorPatch.Band band, FloorRules rules) =>
-            band.Count > 0 && band.Sum / band.Count <= patch.Door + rules.AboveDoors;
+        /// <summary>Whether a band of a patch is ground of its room: no more than <see cref="AboveDoors"/> over its highest doorway.</summary>
+        private static bool Stands(FloorPatch patch, FloorPatch.Band band) =>
+            band.Count > 0 && band.Sum / band.Count <= patch.Door + AboveDoors;
 
         /// <summary>
         /// A dungeon room's hits with what is open, nothing of the room over it, taken as its
@@ -124,8 +105,8 @@ namespace Scry
         }
 
         /// <summary>Whether a band of a patch is a level of its room's own: ground of it, with its share of the room's ground and room to stand.</summary>
-        private static bool OwnLevel(FloorPatch patch, FloorPatch.Band band, FloorRules rules) =>
-            band.Room >= Math.Max(rules.OwnRoom, patch.Ground * MinShare) && Stands(patch, band, rules);
+        private static bool OwnLevel(FloorPatch patch, FloorPatch.Band band) =>
+            band.Room >= Math.Max(OwnLevelRoom, patch.Ground * MinShare) && Stands(patch, band);
 
         /// <summary>Rays cast no closer than this, and at most this many along a side.</summary>
         public const float Spacing = 0.5f;
@@ -195,19 +176,19 @@ namespace Scry
         /// </summary>
         public static float? MainFloor(FloorPatch patch)
         {
-            if (!(MainBand(patch, FloorRules.Now) is int main)) return null;
+            if (!(MainBand(patch) is int main)) return null;
             var band = patch.Bands[main];
             return (float)(band.Sum / band.Count);
         }
 
-        private static int? MainBand(FloorPatch patch, FloorRules rules)
+        private static int? MainBand(FloorPatch patch)
         {
             int? best = null;
             var most = 0f;
             foreach (var pair in patch.Bands)
             {
                 var band = pair.Value;
-                if (!band.Landed || !Stands(patch, band, rules) || band.Room < MinRoom || band.Room <= most) continue;
+                if (!band.Landed || !Stands(patch, band) || band.Room < MinRoom || band.Room <= most) continue;
                 best = pair.Key;
                 most = band.Room;
             }
@@ -227,7 +208,7 @@ namespace Scry
             // A patch keeps only bands its rays found ground in.
             foreach (var band in patch.Bands.Values)
             {
-                if (Stands(patch, band, FloorRules.Now) && Math.Abs(band.Sum / band.Count - floor) <= Holding) return true;
+                if (Stands(patch, band) && Math.Abs(band.Sum / band.Count - floor) <= Holding) return true;
             }
             return false;
         }
@@ -243,28 +224,24 @@ namespace Scry
         /// (<see cref="MainFloor"/>), and with its own ground known, each level with its share of
         /// that, as big as <see cref="OwnLevelRoom"/>. In a big example, a deep chamber's floor or
         /// a hall's gallery is a sliver of the ground of all its rooms, but a level of its own
-        /// room. A dungeon room's ground high over its doorways is none of it but in its entrance
-        /// (<see cref="FloorPatch.Door"/>).
+        /// room. A dungeon room's ground more than <see cref="AboveDoors"/> over its highest
+        /// doorway is none of it (<see cref="FloorPatch.Door"/>).
         /// </summary>
-        public static List<float> Floors(IEnumerable<FloorPatch> patches, float footprint, float storey = 0f) =>
-            Floors(patches, footprint, storey, FloorRules.Now);
-
-        /// <summary>The floors as <see cref="Floors(IEnumerable{FloorPatch}, float, float)"/> finds them by other rules, for the self-test to tell what the rules before found.</summary>
-        public static List<float> Floors(IEnumerable<FloorPatch> patches, float footprint, float storey, FloorRules rules)
+        public static List<float> Floors(IEnumerable<FloorPatch> patches, float footprint, float storey = 0f)
         {
             var least = Math.Max(MinRoom, footprint * MinShare);
             var total = new Dictionary<int, FloorPatch.Band>();
             var mains = new HashSet<int>();
             foreach (var patch in patches)
             {
-                if (MainBand(patch, rules) is int main) mains.Add(main);
+                if (MainBand(patch) is int main) mains.Add(main);
                 if (patch.Ground > 0f)
                 {
-                    foreach (var pair in patch.Bands) if (OwnLevel(patch, pair.Value, rules)) mains.Add(pair.Key);
+                    foreach (var pair in patch.Bands) if (OwnLevel(patch, pair.Value)) mains.Add(pair.Key);
                 }
                 foreach (var pair in patch.Bands)
                 {
-                    if (!Stands(patch, pair.Value, rules)) continue;
+                    if (!Stands(patch, pair.Value)) continue;
                     total.TryGetValue(pair.Key, out var sum);
                     sum.Room += pair.Value.Room;
                     sum.Sum += pair.Value.Sum;

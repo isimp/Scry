@@ -32,7 +32,7 @@ namespace Scry
         /// <summary>Whether it is a dungeon's, standing in place of its entrance, rather than a camp's around its location.</summary>
         public bool IsDungeon { get; private set; }
 
-        /// <summary>Whether the location has nothing to show outside, no part of it drawn but the example (the sealed tower's), so the inside shows however the switch is left.</summary>
+        /// <summary>Whether the location draws nothing outside but the example (the sealed tower's): then its outside would show an empty stage, so the inside shows however the switch is left.</summary>
         public bool NothingOutside { get; private set; }
 
         /// <summary>The room being copied, with the spawn points and paints read off it.</summary>
@@ -52,13 +52,6 @@ namespace Scry
         /// <summary>The location's own parts beside the example, put away while a dungeon's example is shown.</summary>
         private readonly List<GameObject> _outside = new List<GameObject>();
 
-        /// <summary>
-        /// While the self-test compares them: each room's ground as the rules before read it, its
-        /// open ground left out (<see cref="FloorRules.Before"/>), beside what is read now.
-        /// </summary>
-        public static bool KeepRulesBefore;
-
-        private readonly List<FloorPatch> _patchesBefore = new List<FloorPatch>();
 
         /// <summary>What each room's rays found and the ground they were cast over; the rays of the room being read.</summary>
         private readonly List<FloorPatch> _patches = new List<FloorPatch>();
@@ -316,22 +309,10 @@ namespace Scry
             ground.Door = door;
             _patches.Add(ground);
             _roomGround[room] = ground;
-            if (KeepRulesBefore)
-            {
-                var before = FloorFinder.Patch(_hits);
-                before.Ground = cast;
-                _patchesBefore.Add(before);
-            }
             _hits.Clear();
             if (asleep) copy.transform.SetParent(Holder.transform, false);
             Timing.Add("example floors", read);
         }
-
-        /// <summary>The floors its rooms' ground makes now, and as the rules before read it (<see cref="FloorRules.Before"/>; null where it was not kept for every room), for the self-test to tell.</summary>
-        [Diagnostic]
-        public (List<float> Now, List<float> Before) FloorsFoundBothWays() =>
-            (FloorFinder.Floors(_patches, _ground, PlaceView.Storey),
-             _patchesBefore.Count == _patches.Count && _patches.Count > 0 ? FloorFinder.Floors(_patchesBefore, _ground, PlaceView.Storey, FloorRules.Before) : null);
 
         /// <summary>The example's floors: found in its rooms, with one for each room no floor reaches, or where their doorways are while none are found.</summary>
         public List<float> FloorsNow()
@@ -358,7 +339,6 @@ namespace Scry
             Next = 0;
             Copies = 0;
             _patches.Clear();
-            _patchesBefore.Clear();
             _rooms.Clear();
             _dimmed.Clear();
             _roomGround.Clear();

@@ -38,7 +38,7 @@ namespace Scry
             yield return Until(() => Second() != null && Previews.PlayingClip() == Second(), 30);
             p.Check(Second() != null && Previews.PlayingClip() == Second(), $"asked on its own, {weapon.Name} is worn and its second attack plays", Second() != null ? Second().name : "no clip known");
 
-            // A weapon of one attack has its line too, which plays it (Kevin's ask).
+            // A weapon of one attack has its line too, which plays it.
             var single = Pick(Kind.Item, "Bow", "PickaxeAntler", "Torch");
             if (single != null)
             {

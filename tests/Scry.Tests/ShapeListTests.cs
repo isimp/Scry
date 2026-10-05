@@ -37,8 +37,8 @@ namespace Scry.Tests
         [Fact]
         public void AnEntryNamingItsFeatureByTheModelsFieldIsReadToo()
         {
-            // The list names each feature by its field (Feature.WhatTradersPay) since features
-            // became the model's; read as text alone, the check compared none of them.
+            // The list names each feature by its field (Feature.WhatTradersPay), which is read as
+            // well as a feature named in words.
             var entries = ShapeList.Parse(@"            (""StoreGui"", ""SellItem"", 0, 0x95E83F76, Feature.WhatTradersPay),");
             var entry = Assert.Single(entries);
             Assert.Equal("StoreGui", entry.Type);
