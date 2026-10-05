@@ -96,7 +96,8 @@ namespace Scry
                 if (IsOpen && Player.m_localPlayer == null) Hide();
             });
 
-            Step(Feature.Catalog, "reading the catalog", "update catalog", () => ReadCatalog());
+            // Timed by itself, as "update catalog", where it reads.
+            Step(Feature.Catalog, "reading the catalog", null, () => ReadCatalog());
 
             Step(Feature.OpenKey, "the key that opens the panel", "update key", () =>
             {
