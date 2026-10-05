@@ -202,13 +202,6 @@ namespace Scry.Tests
         /// A dungeon room as its rays found it: the ground they were cast over, its highest
         /// doorway, and each height with the room to stand there, in square metres.
         /// </summary>
-        /// <summary>A dungeon room that opens to the outside: its entrance.</summary>
-        private static FloorPatch Entrance(FloorPatch room)
-        {
-            room.Entrance = true;
-            return room;
-        }
-
         private static FloorPatch Room(float ground, float door, params (float Height, float Room)[] levels)
         {
             var patch = new FloorPatch { Ground = ground, Door = door };
@@ -230,12 +223,11 @@ namespace Scry.Tests
             // (the first at 0 m, from the stairs down), with walkways a metre up, water channels
             // below, and ledges or tomb tops of 3 to 6 square metres 2 m up, 4 m over every
             // doorway of their room, and in the dead ends' caps. Those made a floor of their own;
-            // so high over every doorway of a room that does not open to the outside, they are
-            // out of its reach.
+            // so high over every doorway of their room, they are out of its reach.
             var endcap = Room(11f, -2f);
             var rooms = new List<FloorPatch>
             {
-                Entrance(Room(125f, 0f, (2f, 3f), (-1f, 10f), (-2f, 67f))),
+                Room(125f, 0f, (2f, 3f), (-1f, 10f), (-2f, 67f)),
                 Room(178f, -2f, (2f, 3f), (-1f, 30f), (-2f, 70f)),
                 Room(178f, -2f, (-1f, 30f), (-2f, 70f)),
                 Room(98f, -2f, (0.7f, 5f), (-2f, 15f), (-3.5f, 14f)),
@@ -256,9 +248,8 @@ namespace Scry.Tests
             // As a frost cave's rooms were read in game: a crossroads walked into at -20.8 and
             // -3 m found ground at 6.8 and 5.1 m, the top of its rock, which made a top floor of
             // one room that is none. Ground more than 2 m over every doorway of its room is out of
-            // its reach; in the entrance, which opens to the outside, it is the entrance's only
-            // as a tenth of its ground.
-            var entrance = Entrance(Room(540f, 0f, (6.8f, 8f), (-0.2f, 57f), (-1.7f, 2f), (-3.3f, 77f), (-3.8f, 4f), (-5.8f, 10f)));
+            // its reach.
+            var entrance = Room(540f, 0f, (6.8f, 8f), (-0.2f, 57f), (-1.7f, 2f), (-3.3f, 77f), (-3.8f, 4f), (-5.8f, 10f));
             var crossroads = Room(272f, -3f, (6.8f, 32f), (5.1f, 14f), (-3.3f, 4f), (-20.2f, 126f));
             var shrine = Room(408f, -18.5f, (-10.7f, 6f), (-14.6f, 3f), (-18.5f, 77f), (-19.3f, 62f), (-20.3f, 119f), (-23.6f, 12f));
             var rooms = new List<FloorPatch> { entrance, crossroads, shrine };
@@ -270,8 +261,8 @@ namespace Scry.Tests
             // Nor does the room stand on it by its own ground.
             Assert.False(FloorFinder.Holds(crossroads, 6.8f));
             Assert.True(FloorFinder.Holds(crossroads, -20.2f));
-            // An entrance's rock top over its doorways, a small part of its ground, is no floor either.
-            Assert.DoesNotContain(FloorFinder.Floors(new[] { Entrance(Room(540f, 0f, (6.8f, 30f), (-0.2f, 57f), (-3.3f, 77f))) }, 540f, PlaceView.Storey), f => f > 0f);
+            // Nor an entrance's, high over its doorways.
+            Assert.DoesNotContain(FloorFinder.Floors(new[] { Room(540f, 0f, (6.8f, 30f), (-0.2f, 57f), (-3.3f, 77f)) }, 540f, PlaceView.Storey), f => f > 0f);
             // However wide its rock's top, its main floor is where it is walked.
             Assert.Equal(-20.2f, FloorFinder.MainFloor(Room(272f, -3f, (6.8f, 200f), (-20.2f, 126f))).Value, 2);
             // A raised floor a step or two over its doorway is the room's all the same.
@@ -309,16 +300,15 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void MorkhallasGroundOverItsEntrancesDoorwayIsAFloorAsBefore()
+        public void MorkhallasGroundOverItsGateIsNoFloorOfItsInside()
         {
-            // As Morkhalla's rooms were read in game: its entrance walked into at 0 m, its top
-            // 1,400 square metres at 7.2 m, reached from outside, not by its doorways; in the room
-            // that opens to the outside, a third of its ground and far under its top, it is a
-            // floor as before. The same ground in a room within would be out of reach.
-            var entrance = Entrance(Room(4417f, 0f, (7.2f, 1400f), (-2.8f, 1574f), (-11.1f, 22f), (-12.8f, 1502f)));
+            // As Morkhalla's rooms were read in game: its entrance walked into at 0 m from its gate,
+            // its top 1,400 square metres at 7.2 m round the gate, outside; the inside shown is
+            // what lies under the gate (Kevin's pick), its levels at -2.8 and -12.8 m and the rooms
+            // below, each a floor.
             var rooms = new List<FloorPatch>
             {
-                entrance,
+                Room(4417f, 0f, (7.2f, 1400f), (-2.8f, 1574f), (-11.1f, 22f), (-12.8f, 1502f)),
                 Room(4033f, -13.3f, (-22.8f, 52f)),
                 Room(4016f, -23.3f, (-32.8f, 70f)),
                 Room(4033f, -33.3f, (-42.8f, 62f)),
@@ -327,10 +317,34 @@ namespace Scry.Tests
                 Room(4340f, -83.3f, (-92.8f, 3f), (-102.8f, 1313f)),
             };
             var floors = FloorFinder.Floors(rooms, rooms.Sum(r => r.Ground), PlaceView.Storey);
-            Assert.Equal(new[] { 7.2f, -2.8f, -12.8f, -22.8f, -32.8f, -42.8f, -52.8f, -62.8f, -72.8f, -82.8f, -102.8f }, floors.Select(f => (float)System.Math.Round(f, 1)));
-            Assert.Equal(FloorsBefore(rooms), floors);
-            entrance.Entrance = false;
-            Assert.DoesNotContain(7.2f, FloorFinder.Floors(rooms, rooms.Sum(r => r.Ground), PlaceView.Storey).Select(f => (float)System.Math.Round(f, 1)));
+            Assert.Equal(new[] { -2.8f, -12.8f, -22.8f, -32.8f, -42.8f, -52.8f, -62.8f, -72.8f, -82.8f, -102.8f }, floors.Select(f => (float)System.Math.Round(f, 1)));
+            Assert.Contains(7.2f, FloorsBefore(rooms).Select(f => (float)System.Math.Round(f, 1)));
+        }
+
+        [Fact]
+        public void ADungeonRoomsGroundCountsThoughNothingOfTheRoomIsOverItButOutdoorsAndOutOfReach()
+        {
+            // Read alone, a room whose ceiling is the room above has nothing of its own over its
+            // floor: Morkhalla's middle rooms found 50 to 80 of some 4,000 square metres, their
+            // floors coming and going. Within reach of its doorways such ground counts; high over
+            // them it is the top of its rock; in the entrance, near or over the doorway out, it is
+            // the ground outside.
+            var hits = Patch(0, 0, 20, 20, -22.8f, open: true).Concat(Patch(0, 0, 20, 20, 5f, open: true)).Concat(Patch(0, 0, 10, 10, -30f)).ToList();
+            var inside = FloorFinder.Inside(hits, door: -13.3f, outerDoor: float.PositiveInfinity);
+            Assert.Equal(hits.Count, inside.Count);
+            Assert.All(inside.Where(h => h.Height < -20f && h.Height > -25f), h => Assert.False(h.Open));
+            Assert.All(inside.Where(h => h.Height > 0f), h => Assert.True(h.Open));
+            Assert.Equal(-22.8f, FloorFinder.MainFloor(FloorFinder.Patch(inside)).Value, 2);
+            Assert.Equal(-30f, FloorFinder.MainFloor(FloorFinder.Patch(hits)).Value, 2);
+
+            // The burial chambers' entrance, its doorway out at 0.5 m: the open ground round it
+            // stays outside, its covered stairs down are its own.
+            var entrance = Patch(0, 0, 20, 20, 0.5f, open: true).Concat(Patch(0, 0, 10, 10, -4f)).ToList();
+            var gate = FloorFinder.Inside(entrance, door: 0.5f, outerDoor: 0.5f);
+            Assert.All(gate.Where(h => h.Height > 0f), h => Assert.True(h.Open));
+            Assert.Equal(-4f, FloorFinder.MainFloor(FloorFinder.Patch(gate)).Value, 2);
+            // Open ground a storey down inside the gate is its own.
+            Assert.All(FloorFinder.Inside(Patch(0, 0, 5, 5, -3f, open: true), door: 0.5f, outerDoor: 0.5f), h => Assert.False(h.Open));
         }
 
         [Fact]
@@ -348,22 +362,6 @@ namespace Scry.Tests
             var floors = FloorFinder.Floors(tower, tower.Sum(r => r.Ground), PlaceView.Storey);
             Assert.Equal(new[] { 23.3f, 20f, 15.3f, 12f, 7.3f, 4f, 0.3f }, floors.Select(f => (float)System.Math.Round(f, 1)));
             Assert.Equal(FloorsBefore(tower), floors);
-        }
-
-        [Fact]
-        public void OpenGroundOfADungeonRoomWithinReachOfItsDoorwaysCanBeTriedAsGround()
-        {
-            // A dungeon room read alone has no ceiling where the room above is its ceiling:
-            // Morkhalla's middle rooms found 50 to 80 of some 4,000 square metres. Ground with
-            // nothing of the room over it, within reach of its doorways, is tried as ground; high
-            // over every doorway it stays open, the top of its rock.
-            var hits = Patch(0, 0, 20, 20, -22.8f, open: true).Concat(Patch(0, 0, 4, 4, -13.5f, open: true)).Concat(Patch(0, 0, 20, 20, 5f, open: true)).ToList();
-            var tried = FloorFinder.OpenInReach(hits, door: -13.3f, aboveDoors: FloorFinder.AboveDoors);
-            Assert.All(tried.Where(h => h.Height < 0f), h => Assert.False(h.Open));
-            Assert.All(tried.Where(h => h.Height > 0f), h => Assert.True(h.Open));
-            Assert.Equal(hits.Count, tried.Count);
-            Assert.Equal(-22.8f, FloorFinder.MainFloor(FloorFinder.Patch(tried)).Value, 2);
-            Assert.Null(FloorFinder.MainFloor(FloorFinder.Patch(hits)));
         }
 
         [Fact]

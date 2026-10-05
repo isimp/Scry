@@ -53,13 +53,12 @@ namespace Scry
         private readonly List<GameObject> _outside = new List<GameObject>();
 
         /// <summary>
-        /// While the self-test tries it: each room's ground with what is open within reach of its
-        /// doorways taken as ground too (<see cref="FloorFinder.OpenInReach"/>), beside what it found.
+        /// While the self-test compares them: each room's ground as the rules before read it, its
+        /// open ground left out (<see cref="FloorRules.Before"/>), beside what is read now.
         /// </summary>
-        public static bool TryOpenGround;
+        public static bool KeepRulesBefore;
 
-        private readonly List<FloorPatch> _openPatches = new List<FloorPatch>();
-        private readonly Dictionary<PlacedRoom, FloorPatch> _roomOpen = new Dictionary<PlacedRoom, FloorPatch>();
+        private readonly List<FloorPatch> _patchesBefore = new List<FloorPatch>();
 
         /// <summary>What each room's rays found and the ground they were cast over; the rays of the room being read.</summary>
         private readonly List<FloorPatch> _patches = new List<FloorPatch>();
@@ -258,11 +257,11 @@ namespace Scry
         /// itself), and the floors it stands on, by its box or by its ground, for the self-test.
         /// </summary>
         [Diagnostic]
-        public List<string> RoomGroundTold(IReadOnlyList<float> floors, bool withOpen = false)
+        public List<string> RoomGroundTold(IReadOnlyList<float> floors)
         {
             var told = new List<string>();
             if (Placed == null) return told;
-            var grounds = withOpen ? _roomOpen : _roomGround;
+            var grounds = _roomGround;
             foreach (var room in Placed.Rooms)
             {
                 var half = room.Room.Size.Y / 2f;
@@ -300,40 +299,39 @@ namespace Scry
             _hits.Clear();
             var cast = FloorProbe.Read(copy, subject, layer, _hits, Copies, spawns: spawns);
             _ground += cast;
-            var ground = FloorFinder.Patch(_hits);
-            ground.Ground = cast;
-            // Its highest doorway where its ground was measured, and whether it opens to the outside: ground high over it is out of its reach but in the entrance.
-            if (room.Room.Doorways.Count > 0)
+            // Its highest doorway and its doorway out, the entrance's, where its ground was measured:
+            // ground high over the one is out of its reach, open ground by the other the ground outside.
+            float Measured(Vec3 at) => subject.InverseTransformPoint(Holder.transform.TransformPoint(new Vector3(at.X, at.Y, at.Z))).y;
+            var door = float.PositiveInfinity;
+            var outerDoor = float.PositiveInfinity;
+            for (var i = 0; i < room.Room.Doorways.Count; i++)
             {
-                var door = Enumerable.Range(0, room.Room.Doorways.Count).Select(room.DoorwayAt).OrderByDescending(d => d.Y).First();
-                ground.Door = subject.InverseTransformPoint(Holder.transform.TransformPoint(new Vector3(door.X, door.Y, door.Z))).y;
+                var height = Measured(room.DoorwayAt(i));
+                door = float.IsPositiveInfinity(door) ? height : Mathf.Max(door, height);
+                if (room.Room.Doorways[i].Entrance) outerDoor = height;
             }
-            ground.Entrance = room.Room.Entrance;
+            // Read alone, a room whose ceiling is the room above has nothing of its own over its floor.
+            var ground = FloorFinder.Patch(FloorFinder.Inside(_hits, door, outerDoor));
+            ground.Ground = cast;
+            ground.Door = door;
             _patches.Add(ground);
             _roomGround[room] = ground;
-            if (TryOpenGround)
+            if (KeepRulesBefore)
             {
-                var open = FloorFinder.Patch(FloorFinder.OpenInReach(_hits, ground.Door, FloorFinder.AboveDoors));
-                open.Ground = cast;
-                open.Door = ground.Door;
-                open.Entrance = ground.Entrance;
-                _openPatches.Add(open);
-                _roomOpen[room] = open;
+                var before = FloorFinder.Patch(_hits);
+                before.Ground = cast;
+                _patchesBefore.Add(before);
             }
             _hits.Clear();
             if (asleep) copy.transform.SetParent(Holder.transform, false);
             Timing.Add("example floors", read);
         }
 
-        /// <summary>
-        /// The floors its rooms' ground makes now, by the rules before (<see cref="FloorRules.Before"/>),
-        /// and with open ground within reach of each room's doorways tried as ground (null where
-        /// that was not tried for every room), for the self-test to tell.
-        /// </summary>
+        /// <summary>The floors its rooms' ground makes now, and as the rules before read it (<see cref="FloorRules.Before"/>; null where it was not kept for every room), for the self-test to tell.</summary>
         [Diagnostic]
-        public (List<float> Now, List<float> Before, List<float> WithOpen) FloorsFoundThreeWays() =>
-            (FloorFinder.Floors(_patches, _ground, PlaceView.Storey), FloorFinder.Floors(_patches, _ground, PlaceView.Storey, FloorRules.Before),
-             _openPatches.Count == _patches.Count && _patches.Count > 0 ? FloorFinder.Floors(_openPatches, _ground, PlaceView.Storey) : null);
+        public (List<float> Now, List<float> Before) FloorsFoundBothWays() =>
+            (FloorFinder.Floors(_patches, _ground, PlaceView.Storey),
+             _patchesBefore.Count == _patches.Count && _patches.Count > 0 ? FloorFinder.Floors(_patchesBefore, _ground, PlaceView.Storey, FloorRules.Before) : null);
 
         /// <summary>The example's floors: found in its rooms, with one for each room no floor reaches, or where their doorways are while none are found.</summary>
         public List<float> FloorsNow()
@@ -360,8 +358,7 @@ namespace Scry
             Next = 0;
             Copies = 0;
             _patches.Clear();
-            _openPatches.Clear();
-            _roomOpen.Clear();
+            _patchesBefore.Clear();
             _rooms.Clear();
             _dimmed.Clear();
             _roomGround.Clear();

@@ -38,38 +38,29 @@ namespace Scry
         public float Ground;
 
         /// <summary>
-        /// The highest doorway of the dungeon room its rays were cast over, and whether it is the
-        /// entrance, which opens to the outside: ground high over every doorway
-        /// (<see cref="FloorFinder.AboveDoors"/>) is out of the room's reach, but in the entrance
-        /// as a share of its ground (<see cref="FloorFinder.HighLevelShare"/>). None for a location.
+        /// The highest doorway of the dungeon room its rays were cast over: ground more than
+        /// <see cref="FloorFinder.AboveDoors"/> over it is out of the room's reach. None for a location.
         /// </summary>
         public float Door = float.PositiveInfinity;
-        public bool Entrance;
     }
 
-    /// <summary>
-    /// The rules a dungeon room's own ground is read by: the room a level of its own needs, how
-    /// far over its highest doorway its ground is out of reach, and the share of an entrance's
-    /// ground its high ground needs.
-    /// </summary>
+    /// <summary>The rules a dungeon room's own ground is read by: the room a level of its own needs, and how far over its highest doorway its ground is out of reach.</summary>
     internal readonly struct FloorRules
     {
-        public FloorRules(float ownRoom, float aboveDoors, float highShare)
+        public FloorRules(float ownRoom, float aboveDoors)
         {
             OwnRoom = ownRoom;
             AboveDoors = aboveDoors;
-            HighShare = highShare;
         }
 
         public float OwnRoom { get; }
         public float AboveDoors { get; }
-        public float HighShare { get; }
 
-        /// <summary>The rules now (<see cref="FloorFinder.OwnLevelRoom"/>, <see cref="FloorFinder.AboveDoors"/>, <see cref="FloorFinder.HighLevelShare"/>).</summary>
-        public static readonly FloorRules Now = new FloorRules(FloorFinder.OwnLevelRoom, FloorFinder.AboveDoors, FloorFinder.HighLevelShare);
+        /// <summary>The rules now (<see cref="FloorFinder.OwnLevelRoom"/>, <see cref="FloorFinder.AboveDoors"/>).</summary>
+        public static readonly FloorRules Now = new FloorRules(FloorFinder.OwnLevelRoom, FloorFinder.AboveDoors);
 
-        /// <summary>The rules before 2026-10-05: a level of a room's own 2 square metres at the least, its ground at any height; the self-test tells what they found beside those now.</summary>
-        public static readonly FloorRules Before = new FloorRules(FloorFinder.MinRoom, float.PositiveInfinity, 0f);
+        /// <summary>The rules before 2026-10-05: a level of a room's own 2 square metres at the least, its ground at any height; the self-test tells what they found, with the room's open ground left out as it was, beside those now.</summary>
+        public static readonly FloorRules Before = new FloorRules(FloorFinder.MinRoom, float.PositiveInfinity);
     }
 
     /// <summary>
@@ -99,51 +90,42 @@ namespace Scry
         public const float OwnLevelRoom = 6f;
 
         /// <summary>
-        /// How far over a dungeon room's highest doorway its ground is high, out of its reach, in
-        /// metres: a sealed tower's storey stands by its doorway up, while a frost cave's rock top
-        /// or a sunken crypt's ledge is far over every one; M&#xF6;rkhalla's top too, in its
-        /// entrance, reached from outside.
+        /// How far over a dungeon room's highest doorway its ground is its own, in metres: a sealed
+        /// tower's storey stands by its doorway up, while a frost cave's rock top, a sunken crypt's
+        /// ledge or the ground round M&#xF6;rkhalla's gate is far over every one.
         /// </summary>
         public const float AboveDoors = 2f;
 
-        /// <summary>The share of an entrance's ground its high ground needs to be its own: M&#xF6;rkhalla's top is a third of its entrance's, a frost cave entrance's rock top a seventieth.</summary>
-        public const float HighLevelShare = 0.1f;
+        /// <summary>How far under an entrance's doorway out open ground is still the ground outside, in metres.</summary>
+        public const float Outdoors = 1f;
 
-        /// <summary>Whether ground of a patch is high over every doorway of its room.</summary>
-        private static bool High(FloorPatch patch, double height, FloorRules rules) => height > patch.Door + rules.AboveDoors;
+        /// <summary>Whether a band of a patch is ground of its room: no more than <see cref="FloorRules.AboveDoors"/> over its highest doorway.</summary>
+        private static bool Stands(FloorPatch patch, FloorPatch.Band band, FloorRules rules) =>
+            band.Count > 0 && band.Sum / band.Count <= patch.Door + rules.AboveDoors;
 
         /// <summary>
-        /// Whether a band of a patch is ground of its room: high over every doorway, only in the
-        /// entrance, reached from outside, and as a tenth of its ground; elsewhere high ground is
-        /// the top of its rock, a ledge or a tomb's top.
+        /// A dungeon room's hits with what is open, nothing of the room over it, taken as its
+        /// ground where it is inside: read alone, a room whose ceiling is the room above (each of
+        /// M&#xF6;rkhalla's) has nothing of its own over its floor. Open ground stays open high over
+        /// every doorway (<see cref="AboveDoors"/>, the top of its rock) and, in the entrance, near
+        /// or over its doorway out (<see cref="Outdoors"/>, the ground outside); none for a room
+        /// with no doorway out (<paramref name="outerDoor"/> infinite).
         /// </summary>
-        private static bool Stands(FloorPatch patch, FloorPatch.Band band, FloorRules rules)
+        public static List<FloorHit> Inside(IEnumerable<FloorHit> hits, float door, float outerDoor)
         {
-            if (band.Count == 0) return false;
-            return !High(patch, band.Sum / band.Count, rules) || patch.Entrance && band.Room >= patch.Ground * rules.HighShare;
+            var inside = new List<FloorHit>();
+            foreach (var hit in hits)
+            {
+                var each = hit;
+                if (each.Open && each.Height <= door + AboveDoors && each.Height < outerDoor - Outdoors) each.Open = false;
+                inside.Add(each);
+            }
+            return inside;
         }
 
         /// <summary>Whether a band of a patch is a level of its room's own: ground of it, with its share of the room's ground and room to stand.</summary>
         private static bool OwnLevel(FloorPatch patch, FloorPatch.Band band, FloorRules rules) =>
             band.Room >= Math.Max(rules.OwnRoom, patch.Ground * MinShare) && Stands(patch, band, rules);
-
-        /// <summary>
-        /// A dungeon room's hits with what is open, nothing of the room over it, taken as covered
-        /// where it is within reach of its doorways: read alone, a room whose ceiling is the room
-        /// above has no ceiling of its own. High over every doorway open ground stays open, the
-        /// top of its rock. For the self-test to try beside the floors found now.
-        /// </summary>
-        public static List<FloorHit> OpenInReach(IEnumerable<FloorHit> hits, float door, float aboveDoors)
-        {
-            var tried = new List<FloorHit>();
-            foreach (var hit in hits)
-            {
-                var each = hit;
-                if (each.Open && each.Height <= door + aboveDoors) each.Open = false;
-                tried.Add(each);
-            }
-            return tried;
-        }
 
         /// <summary>Rays cast no closer than this, and at most this many along a side.</summary>
         public const float Spacing = 0.5f;

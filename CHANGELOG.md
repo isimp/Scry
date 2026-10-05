@@ -72,7 +72,7 @@ What breaks a rock, vein or tree tells the tools made for it, axes for trees and
 
 The effects damage puts on you say what they do: burning and spirit deal what a hit leaves over a few seconds rather than at once, and Wet puts burning out sooner; poison lasts longer the more of it there is, longest on you, with a table of how long; frost slows, harder what is weak to it, for a time by the share of health it took, with tables; lightning's effect changes nothing itself.
 
-A sunken crypt's one level of rooms is one floor rather than two or three, its ledges and tombs' tops no floors of their own, and a frost cave no longer has floors on top of its rock or on the ledges down its shafts, each holding one room that was none.
+Mörkhalla no longer misses floors in its middle, and its floors start under its gate. A sunken crypt's one level of rooms is one floor rather than two or three, its ledges and tombs' tops no floors of their own, and a frost cave no longer has floors on top of its rock or on the ledges down its shafts, each holding one room that was none.
 
 ## 0.1.0
 

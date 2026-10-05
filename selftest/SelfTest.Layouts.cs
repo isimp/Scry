@@ -250,8 +250,8 @@ namespace Scry
             }
         }
 
-        /// <summary>The dungeons whose floors Kevin found right, which must find the floors they did before 2026-10-05's rules.</summary>
-        private static readonly string[] Unchanged = { "MorkBorg", "Hildir_plainsfortress", "Crypt2" };
+        /// <summary>The dungeons whose floors Kevin found right, which must find as many floors as before 2026-10-05's rules, each within a metre.</summary>
+        private static readonly string[] Unchanged = { "Hildir_plainsfortress", "Crypt2" };
 
         /// <summary>
         /// The dungeons whose rooms are rock or stacked high, the Frost Caves, the M&#xF6;rkhalla ones and
@@ -277,9 +277,9 @@ namespace Scry
             var blank = new List<string>();
             var unreached = new List<string>();
             var changed = new List<string>();
-            string Told(List<float> floors) => floors == null ? "not tried" : string.Join(", ", floors.Select(f => Numbers.Fixed(f, 1)));
-            // Morkhalla's middle floors come and go: its rooms' ground with nothing of the room over it is tried as ground too.
-            StageExample.TryOpenGround = true;
+            var footless = new List<string>();
+            string Told(List<float> floors) => floors == null ? "not kept" : string.Join(", ", floors.Select(f => Numbers.Fixed(f, 1)));
+            StageExample.KeepRulesBefore = true;
             foreach (var entry in caves)
             {
                 Select(entry);
@@ -307,16 +307,22 @@ namespace Scry
                         Stage.Inside = true;
                         yield return null;
                     }
-                    var (now, before, withOpen) = Stage.ExampleFloorsFoundThreeWays();
-                    p.Note($"{entry.Name}: floors found {Told(now)}; by the rules before {Told(before)}; with open ground within reach of the doorways {Told(withOpen)}");
-                    if (example == 0 && entry.Name == "MorkBorg") p.Note("its rooms with open ground within reach: " + string.Join("; ", Stage.ExampleRoomGroundTold(withOpen: true)));
-                    if (now.Count != before.Count || now.Where((f, i) => Mathf.Abs(f - before[i]) > 0.05f).Any())
+                    var (now, before) = Stage.ExampleFloorsFoundBothWays();
+                    p.Note($"{entry.Name}: floors found {Told(now)}; by the rules before {Told(before)}");
+                    if (Unchanged.Contains(entry.Name) && (before == null || now.Count != before.Count || now.Where((f, i) => Mathf.Abs(f - before[i]) > 1f).Any()))
                     {
-                        if (Unchanged.Contains(entry.Name))
-                        {
-                            changed.Add($"{entry.Name} {Told(now)}, before {Told(before)}");
-                            p.Note("its rooms: " + string.Join("; ", Stage.ExampleRoomGroundTold()));
-                        }
+                        changed.Add($"{entry.Name} {Told(now)}, before {Told(before)}");
+                        p.Note("its rooms: " + string.Join("; ", Stage.ExampleRoomGroundTold()));
+                    }
+                    if (entry.Name == "MorkBorg")
+                    {
+                        // Kevin found M\u00f6rkhalla missing floors in its middle: each room has a floor at its foot,
+                        // and none is over its gate, the ground outside (his pick).
+                        var missing = Stage.ExampleShown.Rooms.Where(r => !now.Any(f => f >= r.Position.Y - r.Room.Size.Y / 2f - 0.5f && f <= r.Position.Y - r.Room.Size.Y / 2f + 3f))
+                            .Select(r => $"{r.Room.Name} from {Numbers.Fixed(r.Position.Y - r.Room.Size.Y / 2f, 1)} m").ToList();
+                        if (missing.Count > 0) footless.Add($"layout {Numbers.Count(example + 1)}: {string.Join(", ", missing)}");
+                        if (now.Any(f => f > 0.5f)) footless.Add($"layout {Numbers.Count(example + 1)}: a floor over its gate at {Told(now.Where(f => f > 0.5f).ToList())} m");
+                        if (missing.Count > 0) p.Note("its rooms: " + string.Join("; ", Stage.ExampleRoomGroundTold()));
                     }
                     var told = new List<string>();
                     var reached = new HashSet<PlacedRoom>();
@@ -346,8 +352,9 @@ namespace Scry
             p.Check(empty.Count == 0, "every floor found in their examples has rooms on it", string.Join("; ", empty));
             p.Check(blank.Count == 0, "and some room stands on the stage on every floor", string.Join("; ", blank));
             p.Check(unreached.Count == 0, "and every room stands whole on some floor", string.Join("; ", unreached));
-            StageExample.TryOpenGround = false;
-            p.Check(changed.Count == 0, "M\u00f6rkhalla, the sealed tower and the burial chambers find the floors they did before", string.Join("; ", changed));
+            StageExample.KeepRulesBefore = false;
+            p.Check(footless.Count == 0, "every M\u00f6rkhalla room has a floor at its foot, none over its gate", string.Join("; ", footless));
+            p.Check(changed.Count == 0, "the sealed tower and the burial chambers find the floors they did before, within a metre", string.Join("; ", changed));
         }
 
         /// <summary>
