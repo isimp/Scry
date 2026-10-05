@@ -167,7 +167,9 @@ namespace Scry
         /// The floors from the top down from what each patch of rays found, and the ground they
         /// were cast over. With <paramref name="storey"/>, ground less than that below the next,
         /// step after step, is one floor, at the ground with the most room (an example's rooms,
-        /// <see cref="PlaceView.Storey"/>). A patch's own floors are floors however little of all
+        /// <see cref="PlaceView.Storey"/>), as far down as <see cref="PlaceView.LevelSpan"/> from
+        /// its top: a cave's long slope is a floor that much apart, so none of its ground stands
+        /// above its floor's cut. A patch's own floors are floors however little of all
         /// the ground they are, as they are when its room is shown alone: its main ground
         /// (<see cref="MainFloor"/>), and with its own ground known, each level with its share of
         /// that. In a big example, a deep chamber's floor or a hall's gallery is a sliver of the
@@ -206,21 +208,24 @@ namespace Scry
                 candidates.Add((pair.Key, band.Room, (float)(band.Sum / band.Count)));
             }
 
-            // Ground stepping down less than a storey at a time: the one with the most room stands for it.
+            // Ground stepping down less than a storey at a time, within a level's span of its top:
+            // the one with the most room stands for it.
             if (candidates.Count > 1)
             {
                 var steps = candidates.OrderByDescending(c => c.Height).ToList();
                 var kept = new List<(int Band, float Room, float Height)>();
                 var best = steps[0];
+                var top = steps[0].Height;
                 for (var i = 1; i < steps.Count; i++)
                 {
-                    if (steps[i - 1].Height - steps[i].Height < storey)
+                    if (steps[i - 1].Height - steps[i].Height < storey && top - steps[i].Height < PlaceView.LevelSpan)
                     {
                         if (steps[i].Room > best.Room) best = steps[i];
                         continue;
                     }
                     kept.Add(best);
                     best = steps[i];
+                    top = steps[i].Height;
                 }
                 kept.Add(best);
                 candidates = kept;

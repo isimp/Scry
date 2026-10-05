@@ -20,6 +20,13 @@ namespace Scry
         /// </summary>
         public const float Storey = 3f;
 
+        /// <summary>
+        /// How far above a floor its ground may reach and still be one floor with it: the cut
+        /// stands <see cref="CutAboveFloor"/> over the floor, so ground up to this above it stays
+        /// half a metre under the cut. A cave's long slope is a floor this much apart.
+        /// </summary>
+        public const float LevelSpan = CutAboveFloor - 0.5f;
+
         /// <summary>How far under the floor above the cut stays, to take that floor away whole.</summary>
         public const float UnderFloorAbove = 0.6f;
 
