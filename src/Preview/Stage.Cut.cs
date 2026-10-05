@@ -50,40 +50,23 @@ namespace Scry
         public static float ModelBottom => _subject == null ? 0f : _bounds.min.y - Origin.y;
         public static float ModelTop => _subject == null ? 0f : _bounds.max.y - Origin.y;
 
+        // Opening or stepping to a floor leaves the camera where it was put: turning it by itself
+        // was more confusing than helpful (Kevin). Only a room shown alone opens looked down into
+        // the first time (SetFloors).
+
         /// <summary>Opens the floor below, or the top floor from the roof; goes up a floor, or puts the roof back from the top floor.</summary>
-        public static void StepCut(bool down)
-        {
-            TheCut.Step(down);
-            TiltToCut();
-        }
+        public static void StepCut(bool down) => TheCut.Step(down);
 
         /// <summary>Takes the roof off, opening the floor last opened, or puts it back.</summary>
-        public static void ToggleRoof()
-        {
-            TheCut.ToggleRoof();
-            TiltToCut();
-        }
+        public static void ToggleRoof() => TheCut.ToggleRoof();
 
         /// <summary>Opens a floor (from the top), or puts the roof on past the last.</summary>
-        public static void OpenLevel(int level)
-        {
-            TheCut.Open(level);
-            TiltToCut();
-        }
+        public static void OpenLevel(int level) => TheCut.Open(level);
 
-        /// <summary>With a floor opened, the camera looks down into it when it looks along it.</summary>
-        private static void TiltToCut()
-        {
-            if (TheCut.Cutting && Pitch < CutPitch / 2f) TurnTo(Yaw, CutPitch);
-        }
-
-        /// <summary>Cuts at a height set by hand, opening the floor it is over (<see cref="PlaceView.LevelAt"/>), the camera tilting only as one is opened.</summary>
+        /// <summary>Cuts at a height set by hand, opening the floor it is over (<see cref="PlaceView.LevelAt"/>).</summary>
         public static void CutTo(float height)
         {
-            if (!TheCut.HasFloors) return;
-            var opens = !TheCut.Cutting || PlaceView.LevelAt(TheCut.Floors, height) != TheCut.Level;
-            TheCut.CutTo(height);
-            if (opens) TiltToCut();
+            if (TheCut.HasFloors) TheCut.CutTo(height);
         }
 
         /// <summary>Moves the cut up or down.</summary>
