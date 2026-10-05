@@ -16,6 +16,9 @@ namespace Scry
             _hiddenFrom = null;
         }
 
+        /// <summary>How often the stage has been filmed, for the self-test to tell it still is.</summary>
+        public static int Filmed { get; private set; }
+
         /// <summary>Films the stage, when the panel showed it in the last couple of frames.</summary>
         public static void Render()
         {
@@ -23,8 +26,8 @@ namespace Scry
             if (_camera == null || Time.frameCount - _wantedFrame > 2) return;
 
             // With nothing on the stage there is nothing to film: the panel draws the texture
-            // only while a copy is on it.
-            if (_subject == null && Played.Count == 0) return;
+            // only while a copy is on it, or an effect's stage once its copy has played out.
+            if (_subject == null && Played.Count == 0 && _lastShown?.Kind != Kind.Effect) return;
 
             if (Spin && !Dragging && _subject != null) TurnTo(Yaw + SpinDegreesPerSecond * Time.unscaledDeltaTime, Pitch);
 
@@ -64,6 +67,7 @@ namespace Scry
                 _camera.depthTextureMode = WaterShown ? DepthTextureMode.Depth : DepthTextureMode.None;
                 DrawGrass();
                 _camera.Render();
+                Filmed++;
 
                 // A floor's cut is the near plane laid along it, which cut the creatures with all
                 // else. What of them is above it is drawn again over the picture, by a projection

@@ -60,7 +60,8 @@ namespace Scry
                 if (e.type == EventType.Repaint) Stage.Request((int)inner.width, (int)inner.height);
                 _pictureScreen = OnScreen(inner);
 
-                if (Stage.Subject != null && Stage.Texture != null)
+                // An effect's stage stands once its copy has played out, empty.
+                if ((Stage.Subject != null || entry.Kind == Kind.Effect) && Stage.Texture != null)
                 {
                     var drawn = Timing.Start();
                     if (e.type == EventType.Repaint) GUI.DrawTexture(inner, Stage.Texture, ScaleMode.StretchToFill, false);
@@ -102,12 +103,20 @@ namespace Scry
                     Go(explorer, go);
                 }
 
+                // An effect that has played out plays again on a click of its stage that is not a drag.
+                var playedOut = entry.Kind == Kind.Effect && !Previews.Repeat && Stage.Finished;
+                if (playedOut && e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _dragMoved < U(5f) && rect.Contains(e.mousePosition)) Previews.Replay();
+
                 // The camera's buttons show only while the mouse is on the stage, as its hint does,
                 // so the model is not framed by controls while it is looked at.
                 var over = rect.Contains(e.mousePosition) || _drag == Drag.Orbit;
                 var viewsW = over ? ViewButtons(inner) : 0f;
                 var textW = inner.width - U(24f) - viewsW;
-                if (over)
+                if (playedOut)
+                {
+                    PictureNote(inner, textW, StageWords.PlayedOut);
+                }
+                else if (over)
                 {
                     PictureNote(inner, textW, Stage.Cutting ? StageHintCut : StageHint);
                 }

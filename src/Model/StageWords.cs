@@ -41,5 +41,8 @@ namespace Scry
 
         /// <summary>The spin's tip.</summary>
         public static string SpinTip(bool spinning) => spinning ? "Turning; click to hold it still" : "Held still; click to turn it";
+
+        /// <summary>What an effect's stage says once it has played out, its stage left standing.</summary>
+        public const string PlayedOut = "It has played out: click the stage to play it again";
     }
 }

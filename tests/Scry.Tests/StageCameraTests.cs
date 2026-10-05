@@ -45,6 +45,27 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ASingleThingZoomedTowardThePointerKeepsTurningAboutItsMiddle()
+        {
+            // Zoomed toward a point beside and above its middle, the point a spinning model
+            // turns about moves up toward it, as far as zooming toward it would, never sideways:
+            // the model stays in view as it turns.
+            var pivot = new Vec3(0f, 1f, 0f);
+            var point = new Vec3(2f, 3f, 1f);
+            var zoomed = StageCamera.ZoomTowardHeight(pivot, point, 0.5f);
+            Assert.Equal(0f, zoomed.X, 3);
+            Assert.Equal(0f, zoomed.Z, 3);
+            Assert.Equal(2f, zoomed.Y, 3);
+            Assert.Equal(StageCamera.ZoomToward(pivot, point, 0.5f).Y, zoomed.Y, 3);
+            // Zooming out lowers it back the same way.
+            Assert.Equal(1f, StageCamera.ZoomTowardHeight(zoomed, point, 2f).Y, 3);
+            // A view moved aside by hand stays aside.
+            var aside = StageCamera.ZoomTowardHeight(new Vec3(1f, 1f, -1f), point, 0.5f);
+            Assert.Equal(1f, aside.X, 3);
+            Assert.Equal(-1f, aside.Z, 3);
+        }
+
+        [Fact]
         public void WithShiftHeldTheWheelsTurnCountsWhicheverWayItComes()
         {
             // Shift with the wheel moves a floor's cut; held, the turn can come sideways, as a

@@ -5,7 +5,8 @@ namespace Scry
 {
     /// <summary>
     /// The stage camera's moves. It circles a point it looks at from a distance. The wheel zooms
-    /// toward what is under the pointer, which stays under it; a drag with the right button moves
+    /// toward what is under the pointer, which stays under it, over a single thing only up or
+    /// down, so it keeps turning about its middle; a drag with the right button moves
     /// the view so what was grabbed follows the pointer, along the floor where one is opened; with
     /// a floor opened the camera looks at that floor, framed on what stands on it. A floor's cut
     /// leaves the creatures whole: drawn again, they keep only what is above the cut
@@ -82,6 +83,15 @@ namespace Scry
         /// in the picture, as the camera keeps its turn.
         /// </summary>
         public static Vec3 ZoomToward(Vec3 pivot, Vec3 point, float factor) => point + (pivot - point) * factor;
+
+        /// <summary>
+        /// The point the camera circles once zoomed toward <paramref name="point"/> by
+        /// <paramref name="factor"/> over a single thing, which turns about its middle: up or down
+        /// as far as <see cref="ZoomToward"/> takes it, never sideways, so a spinning model stays
+        /// in view as it turns.
+        /// </summary>
+        public static Vec3 ZoomTowardHeight(Vec3 pivot, Vec3 point, float factor) =>
+            new Vec3(pivot.X, ZoomToward(pivot, point, factor).Y, pivot.Z);
 
         /// <summary>
         /// Where a ray meets the level at height <paramref name="y"/>, no farther off than

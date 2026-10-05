@@ -220,6 +220,15 @@ namespace Scry
             yield return Until(() => Stage.Finished, 8);
             yield return new Wait(1.0);
             p.Check(CopyOf(effect) == last, "with Repeat off, it is not played again");
+            // Played out, its stage stands empty rather than going blank, and Replay plays it again.
+            var filmed = Stage.Filmed;
+            yield return null;
+            yield return null;
+            p.Check(Stage.Filmed > filmed && Stage.Texture != null, "played out, its stage still stands", $"filmed {Numbers.Count(Stage.Filmed - filmed)} times in two frames");
+            var shown = Stage.CopiesMade;
+            Previews.Replay();
+            yield return Until(() => Stage.CopiesMade > shown, 5);
+            p.Check(Stage.CopiesMade > shown, "and it plays again when asked");
             var key = PlayKey.OnYou(effect.Name);
             Previews.PlayEffect(effect, onYou: true);
             yield return null;

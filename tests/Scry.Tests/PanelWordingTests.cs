@@ -55,6 +55,8 @@ namespace Scry.Tests
             Assert.Equal("Stop it", MusicWords.Tip(playing: true));
             Assert.Equal("Play it", MusicWords.Tip(playing: false));
             Assert.Equal("Turning; click to hold it still", StageWords.SpinTip(spinning: true));
+            // An effect played out leaves its stage standing, saying how to play it again.
+            Assert.Equal("It has played out: click the stage to play it again", StageWords.PlayedOut);
             Assert.Equal("Held still; click to turn it", StageWords.SpinTip(spinning: false));
         }
 

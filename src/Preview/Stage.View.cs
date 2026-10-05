@@ -66,8 +66,10 @@ namespace Scry
 
         /// <summary>
         /// Zooms by the wheel toward what is under the pointer at a point of the picture (0 to 1
-        /// across, 0 to 1 up), which stays under it (<see cref="StageCamera.ZoomToward"/>); in as
-        /// far as a couple of metres however big what is framed (<see cref="StageCamera.LeastZoom"/>).
+        /// across, 0 to 1 up), which stays under it (<see cref="StageCamera.ZoomToward"/>); over a
+        /// single thing rather than a place only up or down, so it keeps turning about its middle
+        /// (<see cref="StageCamera.ZoomTowardHeight"/>); in as far as a couple of metres however
+        /// big what is framed (<see cref="StageCamera.LeastZoom"/>).
         /// </summary>
         public static void ZoomBy(float wheel, Vector2? point = null)
         {
@@ -78,7 +80,8 @@ namespace Scry
             if (!(PointUnder(point.Value) is Vector3 toward)) return;
 
             var factor = Zoom / before;
-            var move = U(StageCamera.ZoomToward(V(_lookAt), V(toward), factor)) - _lookAt;
+            var place = _lastShown?.Source is PlaceSource;
+            var move = U(place ? StageCamera.ZoomToward(V(_lookAt), V(toward), factor) : StageCamera.ZoomTowardHeight(V(_lookAt), V(toward), factor)) - _lookAt;
             if (_lookedFloor != null) move.y = 0f;
             _pan += move;
             MoveLook(move, factor);
