@@ -232,6 +232,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ABiomeShowsItsWeathersItsMusicAndWhatIsThere()
+        {
+            var pairs = new[] { ("Half of the time", "biome"), ("12% of the time", "biome"), ("Music in the morning", "biome"), ("Music at night", "biome") };
+            var rows = new[] { ("Lives here (12)", "biome"), ("Grows here (8)", "biome") };
+            var plan = FactLayout.Plan(Kind.Biome, pairs, rows, new[] { FactBlock.Hooks });
+            string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
+            Assert.Equal(new[] { "Weather", "Music", "What is there", null }, plan.Select(t => t.Heading));
+            Assert.Equal(new[] { "Half of the time", "12% of the time" }, plan[0].Bits.Select(Name));
+            Assert.Equal(new[] { "Music in the morning", "Music at night" }, plan[1].Bits.Select(Name));
+            Assert.Equal(new[] { "row Lives here (12)", "row Grows here (8)" }, plan[2].Bits.Select(Name));
+        }
+
+        [Fact]
         public void ANoteReadsItsLabelThenItsValue()
         {
             Assert.Equal("Drops with stars: more with each star", FactWords.Note("Drops with stars", "more with each star"));

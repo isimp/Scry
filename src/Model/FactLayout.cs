@@ -65,6 +65,7 @@ namespace Scry
             [Kind.Projectile] = Projectile(),
             [Kind.Location] = Location(),
             [Kind.Raid] = Raid(),
+            [Kind.Biome] = Biome(),
         };
 
         private static KindPlan Creature()
@@ -245,6 +246,21 @@ namespace Scry
             plan.Blocks[FactBlock.FoundIn] = More;
             plan.Blocks[FactBlock.Uses] = More;
             plan.Blocks[FactBlock.Users] = More;
+            plan.Blocks[FactBlock.Hooks] = "hooks";
+            return plan;
+        }
+
+        private static KindPlan Biome()
+        {
+            var plan = new KindPlan
+            {
+                Topics = new[] { ("overview", (string)null), ("weather", "Weather"), ("music", "Music"), ("there", "What is there"), (More, "More"), ("hooks", null) },
+            };
+            Label(plan, More, "Not shown");
+            // Each weather by its share of the time, the music by the time of day.
+            plan.Starts.Add((l => l.EndsWith(" of the time", StringComparison.Ordinal), "weather"));
+            plan.Starts.Add((l => l.StartsWith("Music", StringComparison.Ordinal), "music"));
+            Part(plan, "there", "biome");
             plan.Blocks[FactBlock.Hooks] = "hooks";
             return plan;
         }
