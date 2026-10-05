@@ -430,13 +430,18 @@ namespace Scry
             p.Check(shown.SequenceEqual(Enumerable.Range(0, pairs.Count)), "every fact read is shown once", $"{Numbers.Count(shown.Count)} of {Numbers.Count(pairs.Count)}");
             var more = plan.FirstOrDefault(t => t.Heading == "More");
             p.Note("left to More: " + (more == null ? "nothing" : string.Join(", ", more.Bits.Select(b => b.Pair >= 0 ? pairs[b.Pair].Key : b.Row >= 0 ? rows[b.Row].Title : b.Block.ToString()))));
+            var attacks = facts.Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle);
+            p.Check(attacks?.Columns != null && attacks.Lines.Count > 0 && attacks.Lines.All(l => l.Cells.Length == CombatWords.AttackColumns.Length),
+                "its attacks are a table, a line each", attacks == null ? "no attacks" : string.Join(" | ", attacks.Lines.Select(l => string.Join(", ", l.Cells))));
             var drops = plan.SelectMany(t => t.Bits).FirstOrDefault(b => b.Row >= 0 && rows[b.Row].Title == "Drops");
             if (drops != null) p.Note("under its drops: " + string.Join(", ", drops.Notes.Select(n => pairs[n].Key)));
 
             Select(troll);
             var drawn = ScryPanel.Drawn(PanelPart.FactTiles);
-            yield return Until(() => ScryPanel.Drawn(PanelPart.FactTiles) > drawn, 3);
+            var tables = ScryPanel.Drawn(PanelPart.FactTable);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.FactTiles) > drawn && ScryPanel.Drawn(PanelPart.FactTable) > tables, 3);
             p.Check(ScryPanel.Drawn(PanelPart.FactTiles) > drawn, $"{troll.Name}'s page draws its tiles");
+            p.Check(ScryPanel.Drawn(PanelPart.FactTable) > tables, $"{troll.Name}'s page draws its attacks table");
         }
 
         /// <summary>

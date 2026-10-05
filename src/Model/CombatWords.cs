@@ -45,23 +45,19 @@ namespace Scry
             return parts.Count > 0 ? string.Join(", ", parts) : null;
         }
 
-        /// <summary>The label of an attack, by the item it is made with.</summary>
-        public static string AttackLabel(string item) => AttackStart + item;
+        /// <summary>The title of a creature's attacks table.</summary>
+        public const string AttacksTitle = "Attacks";
 
-        /// <summary>Whether a label is an attack's (<see cref="AttackLabel"/>).</summary>
-        public static bool IsAttackLabel(string label) => label != null && label.StartsWith(AttackStart, StringComparison.Ordinal);
-
-        private const string AttackStart = "Attack: ";
+        /// <summary>The columns of a creature's attacks table.</summary>
+        public static readonly string[] AttackColumns = { "Attack", "Damage", "How", "Reach", "Every" };
 
         /// <summary>
-        /// An attack: what it does, how (a swing, a shot, around it), from how near and how far
-        /// its AI uses it, and how often. Parts it has nothing for are left out.
+        /// An attack as a line of its table: the item it is made with, what it does, how (a
+        /// swing, a shot, around it), from how near to how far its AI uses it, and how often; a
+        /// dash where it tells none.
         /// </summary>
-        public static string Attack(string damage, string attackType, float rangeMin, float range, float interval)
+        public static string[] AttackCells(string name, string damage, string attackType, float rangeMin, float range, float interval)
         {
-            var parts = new List<string>();
-            if (!string.IsNullOrEmpty(damage)) parts.Add(damage);
-
             string how;
             switch (attackType)
             {
@@ -80,12 +76,13 @@ namespace Scry
                     how = "an attack";
                     break;
             }
-            if (range > 0f) how += rangeMin > 0f ? $", from {Numbers.Amount(rangeMin)} to {Numbers.Amount(range)} m" : $", reaching {Numbers.Amount(range)} m";
-            parts.Add(how);
-
-            if (interval > 0f) parts.Add($"every {Numbers.Amount(interval)} s");
-            return string.Join(" · ", parts);
+            var reach = range <= 0f ? None : rangeMin > 0f ? $"{Numbers.Amount(rangeMin)}–{Numbers.Amount(range)} m" : $"{Numbers.Amount(range)} m";
+            var every = interval > 0f ? $"{Numbers.Amount(interval)} s" : None;
+            return new[] { name, string.IsNullOrEmpty(damage) ? None : damage, how, reach, every };
         }
+
+        /// <summary>What a table's cell says where it has nothing to tell.</summary>
+        private const string None = "–";
 
         /// <summary>How fast it moves: flying, from its slow to its fast speed, else walking and running; and swimming where it swims.</summary>
         public static string Moves(bool flying, float flySlow, float flyFast, float walk, float run, bool swims, float swim)

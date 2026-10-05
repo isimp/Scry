@@ -42,6 +42,10 @@ namespace Scry
 
             /// <summary>A grid in place of chips: every damage type and the share of it taken (<see cref="ResistWords"/>).</summary>
             public List<ResistCell> Cells;
+
+            /// <summary>A table in place of chips: its columns' headings, and its lines, each its cells and what its first cell goes to; null for none.</summary>
+            public string[] Columns;
+            public readonly List<(string[] Cells, string Link)> Lines = new List<(string[], string)>();
             public readonly List<Ingredient> Items = new List<Ingredient>();
 
             /// <summary>Gives the items of one name with different prefabs their prefab's name too, so they can be told apart (<see cref="Naming.TellApart"/>).</summary>

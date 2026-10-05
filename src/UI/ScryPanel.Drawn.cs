@@ -17,6 +17,7 @@ namespace Scry
         Runes,
         ResistanceGrid,
         FactTiles,
+        FactTable,
         SectionLine,
         TestNotice,
         Slider,

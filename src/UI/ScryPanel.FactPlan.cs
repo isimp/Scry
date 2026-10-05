@@ -96,6 +96,69 @@ namespace Scry
             return y + U(2f);
         }
 
+        /// <summary>The widths of a table's columns as it is drawn, kept for every table so none makes a new list each frame.</summary>
+        private static readonly List<float> ColumnWidths = new List<float>();
+
+        /// <summary>
+        /// A table: its title, a faint line of column headings, then a line for each of its
+        /// lines, the first cell going to what it names. Columns are as wide as what they hold,
+        /// narrowed together where the side is narrower, a cell wrapping where it must.
+        /// </summary>
+        private static float TableRow(Explorer explorer, Facts.Row row, float width, float y)
+        {
+            y += U(6f);
+            GUI.Label(new Rect(0f, y, width, U(20f)), row.Title, Skin.DimLabel);
+            y += U(24f);
+
+            var gap = U(12f);
+            ColumnWidths.Clear();
+            var sum = 0f;
+            for (var c = 0; c < row.Columns.Length; c++)
+            {
+                var w = Skin.Width(Skin.FaintLabel, row.Columns[c]);
+                foreach (var (cells, _) in row.Lines) if (c < cells.Length) w = Mathf.Max(w, Skin.Width(Skin.Small, cells[c]));
+                ColumnWidths.Add(w + U(2f));
+                sum += w + U(2f);
+            }
+            var room = width - gap * (row.Columns.Length - 1);
+            if (sum > room && sum > 0f) for (var c = 0; c < ColumnWidths.Count; c++) ColumnWidths[c] *= room / sum;
+
+            var x = 0f;
+            for (var c = 0; c < row.Columns.Length; c++)
+            {
+                GUI.Label(new Rect(x, y, ColumnWidths[c], U(18f)), row.Columns[c], Skin.FaintLabel);
+                x += ColumnWidths[c] + gap;
+            }
+            y += U(22f);
+
+            foreach (var (cells, link) in row.Lines)
+            {
+                var height = U(20f);
+                for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++) height = Mathf.Max(height, Skin.Height(Skin.SmallWrap, cells[c], ColumnWidths[c]));
+                var line = new Rect(0f, y, width, height);
+                if (!OutOfSight(line))
+                {
+                    x = 0f;
+                    for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++)
+                    {
+                        var cell = new Rect(x, y, ColumnWidths[c], height);
+                        if (c == 0 && !string.IsNullOrEmpty(link) && InCatalog(explorer, link))
+                        {
+                            LinkLabel(cell, cells[c], Skin.SmallWrap, LinkText(KindOf(explorer, link), false));
+                            if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + link, PanelWords.GoTo(cells[c]));
+                            if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, link);
+                        }
+                        else GUI.Label(cell, cells[c], Skin.SmallWrap);
+                        x += ColumnWidths[c] + gap;
+                    }
+                    Skin.Fill(new Rect(0f, y + height + U(2f), width, U(1f)), Skin.Outline);
+                }
+                y += height + U(6f);
+            }
+            CountDrawn(PanelPart.FactTable);
+            return y + U(4f);
+        }
+
         /// <summary>A fact that qualifies what stands above it, told under it in a soft line.</summary>
         private static float FactNote(Facts facts, KeyValuePair<string, string> pair, float width, float y)
         {

@@ -36,11 +36,18 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void AnAttackSaysWhatItDoesHowFarAndHowOften()
+        public void AnAttackIsALineOfItsTableSayingWhatItDoesHowFarAndHowOften()
         {
-            Assert.Equal("40 blunt · a swing, reaching 2.5 m · every 3 s", CombatWords.Attack("40 blunt", "Horizontal", 0f, 2.5f, 3f));
-            Assert.Equal("a shot, from 5 to 30 m · every 10 s", CombatWords.Attack(null, "Projectile", 5f, 30f, 10f));
-            Assert.Equal("20 fire · around it, reaching 4 m", CombatWords.Attack("20 fire", "Area", 0f, 4f, 0f));
+            // Its name, its damage, how it is made, its reach and how often its AI uses it; a dash where it tells none.
+            Assert.Equal(new[] { "Attack", "Damage", "How", "Reach", "Every" }, CombatWords.AttackColumns);
+            Assert.Equal(new[] { "Troll club", "40 blunt", "a swing", "2.5 m", "3 s" }, CombatWords.AttackCells("Troll club", "40 blunt", "Horizontal", 0f, 2.5f, 3f));
+            Assert.Equal(new[] { "Spit", "–", "a shot", "5–30 m", "10 s" }, CombatWords.AttackCells("Spit", null, "Projectile", 5f, 30f, 10f));
+            Assert.Equal(new[] { "Stomp", "20 fire", "around it", "4 m", "–" }, CombatWords.AttackCells("Stomp", "20 fire", "Area", 0f, 4f, 0f));
+            Assert.Equal(new[] { "Bite", "5 slash", "an attack", "–", "–" }, CombatWords.AttackCells("Bite", "5 slash", "Other", 0f, 0f, 0f));
+            Assert.Equal("Attacks", CombatWords.AttacksTitle);
+            // Every kind of swing and of shot the game has reads as one.
+            Assert.Equal("a swing", CombatWords.AttackCells("Slam", null, "Vertical", 0f, 0f, 0f)[2]);
+            Assert.Equal("a shot", CombatWords.AttackCells("Throw", null, "TriggerProjectile", 0f, 0f, 0f)[2]);
         }
 
         [Fact]
@@ -157,14 +164,6 @@ namespace Scry.Tests
 
         [Fact]
         public void EachKindOfDamageSaysWhatItCauses() => Assert.Equal("Fire damage causes", CombatWords.DamageCauses("fire"));
-
-        [Fact]
-        public void EachAttackIsLabelledByTheItemItIsMadeWith()
-        {
-            Assert.Equal("Attack: Troll club", CombatWords.AttackLabel("Troll club"));
-            Assert.True(CombatWords.IsAttackLabel(CombatWords.AttackLabel("Troll club")));
-            Assert.False(CombatWords.IsAttackLabel("Attacks"));
-        }
 
         [Fact]
         public void ACreatureSaysHowFastItWalksRunsFliesAndSwims()

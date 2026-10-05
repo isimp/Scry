@@ -285,6 +285,7 @@ namespace Scry
         private static float FactRow(Explorer explorer, Facts.Row row, float width, float y)
         {
             if (row.Cells != null) return GridRow(row, width, y);
+            if (row.Columns != null) return TableRow(explorer, row, width, y);
             var key = "facts:" + row.Title;
             var count = ShownOf(key, row.Items.Count);
             y += U(6f);

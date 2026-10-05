@@ -38,7 +38,7 @@ namespace Scry
             Part("attacks", () => Attacks(prefab));
             // Whether it can be tamed, fought or looted is worth telling when it cannot.
             var person = character is Player;
-            if (!person && !Pairs.Any(pair => CombatWords.IsAttackLabel(pair.Key)))
+            if (!person && !Rows.Any(row => row.Title == CombatWords.AttacksTitle))
             {
                 // One that hunts yet carries no attack Scry can read may still have one in code.
                 if (prefab.GetComponent<MonsterAI>() != null) AddUnsure("Attacks", "none Scry can see", UnsureWords.NoAttackItem);
@@ -113,23 +113,23 @@ namespace Scry
         /// <summary>
         /// Each attack it has, from the items it may carry (a creature fights with items of its
         /// own, as a person does): what a hit does, how, and from how near and far and how often
-        /// its AI uses it (<c>m_aiAttackRange</c>, <c>m_aiAttackRangeMin</c>, <c>m_aiAttackInterval</c>).
-        /// Each goes to its item.
+        /// its AI uses it (<c>m_aiAttackRange</c>, <c>m_aiAttackRangeMin</c>, <c>m_aiAttackInterval</c>),
+        /// a line of its attacks table each, its name going to its item.
         /// </summary>
         private void Attacks(GameObject prefab)
         {
+            var table = new Row { Title = CombatWords.AttacksTitle, Columns = CombatWords.AttackColumns };
             foreach (var item in Relations.CarriedItems(prefab))
             {
                 var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
                 var attack = shared?.m_attack;
                 if (attack == null) continue;
                 var name = ItemName(item);
-                var damage = Damages(shared.m_damages);
-                var key = CombatWords.AttackLabel(name);
-                if (Pairs.Any(p => p.Key == key)) continue;
-                Add(key, CombatWords.Attack(damage, attack.m_attackType.ToString(), shared.m_aiAttackRangeMin, shared.m_aiAttackRange, shared.m_aiAttackInterval));
-                Links[key] = item.name;
+                if (table.Lines.Any(l => l.Cells[0] == name)) continue;
+                var cells = CombatWords.AttackCells(name, Damages(shared.m_damages), attack.m_attackType.ToString(), shared.m_aiAttackRangeMin, shared.m_aiAttackRange, shared.m_aiAttackInterval);
+                table.Lines.Add((cells, item.name));
             }
+            if (table.Lines.Count > 0) Rows.Add(table);
         }
 
         /// <summary>How it moves, sees and hears, what it fears, when it flees, and how long it takes to tame.</summary>
