@@ -136,7 +136,11 @@ namespace Scry
                 }
                 var (entry, _) = found[0];
                 var gearFacts = Facts.For(entry);
-                var value = Value(gearFacts, label) ?? (gearFacts.Rows.Any(r => r.Title == label && r.Cells != null) ? string.Join(", ", gearFacts.Rows.First(r => r.Title == label).Cells.Where(c => c.Tone != Tone.Plain).Select(c => c.Type + " " + c.Value)) : null);
+                // Told as a fact, a grid or a table.
+                var row = gearFacts.Rows.FirstOrDefault(r => r.Title == label);
+                var value = Value(gearFacts, label)
+                    ?? (row?.Cells != null ? string.Join(", ", row.Cells.Where(c => c.Tone != Tone.Plain).Select(c => c.Type + " " + c.Value))
+                    : row?.Columns != null && row.Lines.Count > 0 ? string.Join(" | ", row.Lines.Select(l => string.Join(", ", l.Cells))) : null);
                 p.Check(value != null, $"{entry.Name}, {what} ({Numbers.Count(found.Count)} such), tells it under {label}", value ?? "not told");
                 if (value != null) p.Note($"{entry.Name}: {label} {value}");
             }
