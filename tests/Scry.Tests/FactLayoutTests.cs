@@ -164,6 +164,21 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AProjectileShowsItsDamageThenHowItHitsAndFlies()
+        {
+            var pairs = new[]
+            {
+                ("Own damage", "projectile"), ("Hits", "projectile"), ("Knockback", "projectile"), ("Can be", "projectile"), ("On hit", "projectile"),
+                ("Flies for", "projectile"), ("Falls", "projectile"), ("Bounces", "projectile"), ("After a hit", "projectile"), ("Leaves", "projectile"),
+            };
+            var plan = FactLayout.Plan(Kind.Projectile, pairs, new (string, string)[0], new FactBlock[0]);
+            Assert.Equal(new[] { null, "Hit", "Flight" }, plan.Select(t => t.Heading));
+            Assert.Equal(new[] { "Own damage", "Flies for" }, plan[0].Tiles.Select(i => pairs[i].Item1));
+            Assert.Equal(new[] { "Hits", "Knockback", "Can be", "On hit", "After a hit" }, plan[1].Bits.Select(b => pairs[b.Pair].Item1));
+            Assert.Equal(new[] { "Falls", "Bounces", "Leaves" }, plan[2].Bits.Select(b => pairs[b.Pair].Item1));
+        }
+
+        [Fact]
         public void ANoteReadsItsLabelThenItsValue()
         {
             Assert.Equal("Drops with stars: more with each star", FactWords.Note("Drops with stars", "more with each star"));
