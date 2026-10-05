@@ -28,7 +28,8 @@ namespace Scry
             if (!character.m_boss)
             {
                 var stars = new Row { Title = CombatWords.StarsTitle, Columns = CombatWords.StarColumns(_stars) };
-                foreach (var line in CombatWords.StarLines(character.m_health, _stars)) stars.Lines.Add((line, null));
+                var grow = prefab.GetComponent<CharacterDrop>().OrNull()?.m_drops?.Any(d => d?.m_prefab != null && d.m_levelMultiplier && !d.m_onePerPlayer) == true;
+                foreach (var line in CombatWords.StarLines(character.m_health, _stars, grow)) stars.Lines.Add((line, null));
                 if (stars.Lines.Count > 0) Rows.Add(stars);
             }
 

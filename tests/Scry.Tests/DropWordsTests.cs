@@ -122,15 +122,15 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void StarsDoubleACreaturesDropsForEachStarSaveThoseThatStayTheSame()
+        public void UnderItsDropsACreatureNamesWhatStarsLeaveAsItIs()
         {
-            // CharacterDrop.GenerateDropList multiplies the chance and the amount by 2 to the power
-            // of the stars, for each drop with m_levelMultiplier set; a troll's trophy has it off.
-            Assert.Equal("amount and chance ×2 at 1 star, ×4 at 2 stars; Troll trophy stays the same",
-                DropWords.StarDrops(2, new[] { "Troll trophy" }));
-            Assert.Equal("amount and chance ×2 at 1 star, ×4 at 2 stars, ×8 at 3 stars", DropWords.StarDrops(3, new string[0]));
-            Assert.Equal("amount and chance ×2 at 1 star; Deer trophy and Raw meat stay the same", DropWords.StarDrops(1, new[] { "Deer trophy", "Raw meat" }));
-            Assert.Null(DropWords.StarDrops(0, new string[0]));
+            // The stars table tells how stars grow its drops; a troll's trophy has m_levelMultiplier
+            // off, and stays the same, which is told under its drops.
+            Assert.Equal("Troll trophy stays the same", DropWords.StarDrops(2, new[] { "Troll trophy" }));
+            Assert.Equal("Deer trophy and Raw meat stay the same", DropWords.StarDrops(1, new[] { "Deer trophy", "Raw meat" }));
+            // With all of them growing, or no stars, nothing is said.
+            Assert.Null(DropWords.StarDrops(3, new string[0]));
+            Assert.Null(DropWords.StarDrops(0, new[] { "Troll trophy" }));
         }
 
         [Theory]

@@ -135,18 +135,14 @@ namespace Scry
             CreatureAmount(min, max, onePerPlayer) + (chance < 1f ? $" ({Share(chance)})" : "");
 
         /// <summary>
-        /// What stars do to a creature's drops: <c>CharacterDrop.GenerateDropList</c> multiplies
-        /// the chance and the amount of each drop with <c>m_levelMultiplier</c> by 2 to the power
-        /// of its stars; those without it, named, stay the same. Null without stars.
+        /// What stars leave as it is among a creature's drops, told under them: the stars table
+        /// tells how the rest grow (<see cref="CombatWords.StarLines"/>), and those without
+        /// <c>m_levelMultiplier</c>, named, stay the same. Null where none does, or without stars.
         /// </summary>
         public static string StarDrops(int maxStars, IList<string> unchanged)
         {
-            if (maxStars <= 0) return null;
-            var steps = new List<string>();
-            for (var stars = 1; stars <= maxStars; stars++) steps.Add($"{Numbers.Times(1 << stars)} at {Naming.Count(stars, "star", "stars")}");
-            var words = "amount and chance " + string.Join(", ", steps);
-            if (unchanged != null && unchanged.Count > 0) words += $"; {Naming.Joined(new List<string>(unchanged))} {Naming.Noun(unchanged.Count, "stays", "stay")} the same";
-            return words;
+            if (maxStars <= 0 || unchanged == null || unchanged.Count == 0) return null;
+            return $"{Naming.Joined(new List<string>(unchanged))} {Naming.Noun(unchanged.Count, "stays", "stay")} the same";
         }
 
         /// <summary>A drop row's title led by when it drops ("When felled, drops 3 times"); the title as it is for no lead.</summary>

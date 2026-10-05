@@ -32,10 +32,11 @@ namespace Scry
 
         /// <summary>
         /// That table's lines: its health at no star and each star, the base once more for each
-        /// (<c>Character.SetupMaxHealth</c>), and how much harder it hits, half again for each
-        /// (<c>Attack.GetLevelDamageFactor</c>); none without stars.
+        /// (<c>Character.SetupMaxHealth</c>), how much harder it hits, half again for each
+        /// (<c>Attack.GetLevelDamageFactor</c>), and where its drops grow with stars, their amount
+        /// and chance, doubled for each (<c>CharacterDrop.GenerateDropList</c>); none without stars.
         /// </summary>
-        public static List<string[]> StarLines(float health, int maxStars)
+        public static List<string[]> StarLines(float health, int maxStars, bool dropsGrow = false)
         {
             var lines = new List<string[]>();
             if (maxStars <= 0) return lines;
@@ -48,6 +49,12 @@ namespace Scry
             }
             lines.Add(hp.ToArray());
             lines.Add(hits.ToArray());
+            if (dropsGrow)
+            {
+                var drops = new List<string> { "Drops" };
+                for (var s = 0; s <= maxStars; s++) drops.Add(Numbers.Times(1 << s));
+                lines.Add(drops.ToArray());
+            }
             return lines;
         }
 

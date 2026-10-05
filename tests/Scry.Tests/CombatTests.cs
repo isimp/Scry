@@ -17,6 +17,18 @@ namespace Scry.Tests
             Assert.Equal(new[] { "Health", "200", "400", "600" }, lines[0]);
             Assert.Equal(new[] { "Damage", "×1", "×1.5", "×2" }, lines[1]);
             Assert.Equal(new[] { "Damage", "×1", "×1.5", "×2", "×2.5" }, CombatWords.StarLines(200f, 3)[1]);
+            Assert.Equal(2, lines.Count);
+        }
+
+        [Fact]
+        public void ACreatureWhoseDropsGrowWithStarsHasThemInItsStarsTable()
+        {
+            // CharacterDrop.GenerateDropList doubles a drop's amount and chance for each star,
+            // for each drop with m_levelMultiplier set.
+            var lines = CombatWords.StarLines(200f, 2, dropsGrow: true);
+            Assert.Equal(3, lines.Count);
+            Assert.Equal(new[] { "Drops", "×1", "×2", "×4" }, lines[2]);
+            Assert.Equal(new[] { "Drops", "×1", "×2", "×4", "×8" }, CombatWords.StarLines(200f, 3, dropsGrow: true)[2]);
         }
 
         [Fact]
