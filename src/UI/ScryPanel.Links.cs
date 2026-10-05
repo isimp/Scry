@@ -253,7 +253,7 @@ namespace Scry
                 var w = Mathf.Min(width, Skin.Width(Skin.Chip, chip.Key) + U(8f));
                 var at = flow.Place(w);
                 var rect = new Rect(at.X, at.Y, w, flow.RowHeight);
-                if (!OutOfSight(rect) && GUI.Button(rect, chip.Key, Skin.Chip)) chip.Value();
+                if (!OutOfSight(rect) && GUI.Button(rect, chip.Key, Skin.Fitted(Skin.Chip, rect))) chip.Value();
             }
             MoreChip(key, all.Count, FirstChips, width, ref flow);
             return flow.RowBottom + U(10f);

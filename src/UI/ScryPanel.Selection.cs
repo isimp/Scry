@@ -45,7 +45,7 @@ namespace Scry
             var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(16f));
             var at = flow.Place(w);
             var rect = new Rect(at.X, at.Y, w, flow.RowHeight);
-            if (!OutOfSight(rect, visible) && GUI.Button(rect, text, Skin.Chip))
+            if (!OutOfSight(rect, visible) && GUI.Button(rect, text, Skin.Fitted(Skin.Chip, rect)))
             {
                 if (open) OpenLists.Remove(key);
                 else OpenLists.Add(key);

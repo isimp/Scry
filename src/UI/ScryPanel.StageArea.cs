@@ -220,7 +220,7 @@ namespace Scry
                 var chip = new Rect(x, y, w, h);
                 x -= U(4f);
                 if (chip.Contains(Event.current.mousePosition)) AskTip("view:" + name, tip);
-                if (!GUI.Button(chip, name, Skin.Chip)) continue;
+                if (!GUI.Button(chip, name, Skin.Fitted(Skin.Chip, chip))) continue;
 
                 Stage.View(name);
                 if (name != "Fit" && Stage.Spin)
@@ -269,7 +269,7 @@ namespace Scry
                 if (chip.Contains(Event.current.mousePosition)) AskTip("stage:" + tip, tip);
                 var enabled = GUI.enabled;
                 GUI.enabled = enabled && can;
-                var clicked = GUI.Button(chip, text, style);
+                var clicked = GUI.Button(chip, text, Skin.Fitted(style, chip));
                 GUI.enabled = enabled;
                 return clicked && can;
             }

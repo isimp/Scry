@@ -67,7 +67,7 @@ namespace Scry
                 var chip = new Rect(at.X, at.Y, w, rowH);
                 if (OutOfSight(chip)) continue;
                 var playing = Previews.Playing.IsPlaying(pair.Value);
-                if (GUI.Button(chip, pair.Key, playing ? Skin.ChipOn : Skin.Chip))
+                if (GUI.Button(chip, pair.Key, Skin.Fitted(playing ? Skin.ChipOn : Skin.Chip, chip)))
                 {
                     if (playing) Previews.Stop(pair.Value);
                     else Previews.PlayEffectList(pair.Key, pair.Value);
@@ -120,7 +120,8 @@ namespace Scry
                 var style = on ? Skin.ChipOn : Skin.Chip;
                 var w = Mathf.Min(width, Skin.Width(style, text) + U(8f));
                 var at = flow.Place(w);
-                if (GUI.Button(new Rect(at.X, at.Y, w, flow.RowHeight), text, style))
+                var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
+                if (GUI.Button(chip, text, Skin.Fitted(style, chip)))
                 {
                     if (on) Previews.StopClip();
                     else
@@ -247,7 +248,8 @@ namespace Scry
                 var x = 0f;
                 var playText = "\u25B6 Play";
                 var playW = Skin.Width(Skin.Chip, playText) + U(12f);
-                if (list != null && GUI.Button(new Rect(x, y, playW, rowH), playText, playing ? Skin.ChipOn : Skin.Chip))
+                var playChip = new Rect(x, y, playW, rowH);
+                if (list != null && GUI.Button(playChip, playText, Skin.Fitted(playing ? Skin.ChipOn : Skin.Chip, playChip)))
                 {
                     if (playing) Previews.Stop(list);
                     else Previews.PlayWhole(entry, list);

@@ -56,7 +56,7 @@ namespace Scry
             GUI.Label(new Rect(inner.x + U(10f), inner.y + U(2f), inner.width - w - U(24f), U(24f)),
                 ModReportWords.Bar(_modCount), Skin.DimLabel);
             var button = new Rect(inner.xMax - w - U(6f), inner.y, w, U(26f));
-            if (GUI.Button(button, open, Skin.Chip)) ShowModReport();
+            if (GUI.Button(button, open, Skin.Fitted(Skin.Chip, button))) ShowModReport();
             if (button.Contains(Event.current.mousePosition)) AskTip("mod-report", "What each mod adds, what Scry links for its stations and tools, what it hooks into, and what Scry could not place");
             return new Rect(inner.x, inner.y + barH, inner.width, inner.height - barH);
         }
@@ -84,7 +84,7 @@ namespace Scry
                 var filterW = Mathf.Min(U(260f), width - chipW - U(10f));
                 _modFilter = FilterField(ModFilterControl, _modFilter, new Rect(x, y, filterW, U(28f)));
                 var chip = new Rect(x + filterW + U(10f), y + U(1f), chipW, U(26f));
-                if (GUI.Button(chip, adding, _modsAddingOnly ? Skin.ChipOn : Skin.Chip)) _modsAddingOnly = !_modsAddingOnly;
+                if (GUI.Button(chip, adding, Skin.Fitted(_modsAddingOnly ? Skin.ChipOn : Skin.Chip, chip))) _modsAddingOnly = !_modsAddingOnly;
                 if (chip.Contains(Event.current.mousePosition)) AskTip("mods-adding", ModReportWords.AddingTip(_modsAddingOnly));
                 y += U(36f);
             }

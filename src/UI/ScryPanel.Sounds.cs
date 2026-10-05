@@ -77,7 +77,7 @@ namespace Scry
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
                 if (OutOfSight(chip)) continue;
-                if (GUI.Button(chip, text, style)) Previews.PlaySound(entry, clip);
+                if (GUI.Button(chip, text, Skin.Fitted(style, chip))) Previews.PlaySound(entry, clip);
                 if (chip.Contains(Event.current.mousePosition))
                 {
                     AskTip("variant:" + clip.name, SoundWords.VariantTip(clip.name, clip.length));

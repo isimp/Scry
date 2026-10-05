@@ -48,7 +48,7 @@ namespace Scry
                 var tab = new Rect(inner.x + U(8f), inner.yMax - U(34f) - U(22f), tabW, U(22f));
                 if (tab.Contains(e.mousePosition)) AskTip("plan:tab", "Shows the example's plan");
                 CountDrawn(PanelPart.PlanTab);
-                if (GUI.Button(tab, "Plan", Skin.Chip)) PlanFolded = false;
+                if (GUI.Button(tab, "Plan", Skin.Fitted(Skin.Chip, tab))) PlanFolded = false;
                 return tab;
             }
 

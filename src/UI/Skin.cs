@@ -64,7 +64,7 @@ namespace Scry
         /// <summary>A topic's name in the details' In the game, bright and bold in the top left of its box.</summary>
         public static GUIStyle TopicName;
 
-        /// <summary>A loot chip's mark (only here, what a trader pays): small, centred in its outlined pill.</summary>
+        /// <summary>A loot chip's mark (only here, what a trader pays): small and dark, centred on its accent pill.</summary>
         public static GUIStyle Badge;
 
         /// <summary>A note over the stage's picture, wrapping rather than shrinking.</summary>
@@ -337,6 +337,7 @@ namespace Scry
 
             if (Gui == null) Gui = UnityEngine.Object.Instantiate(GUI.skin);
             Gui.font = _body;
+            PillStyles.Clear();
 
             int Px(float v) => Mathf.Max(1, Mathf.RoundToInt(v * scale));
 
@@ -379,7 +380,7 @@ namespace Scry
             WrapBold.wordWrap = true;
             WrapBold.alignment = TextAnchor.UpperLeft;
             TopicName = Style(13f, Skin.Text, FontStyle.Bold);
-            Badge = Style(11f, Accent, FontStyle.Normal, TextAnchor.MiddleCenter);
+            Badge = Style(11f, OnAccent, FontStyle.Normal, TextAnchor.MiddleCenter);
             DimWrap = Style(13f, Dim);
             DimWrap.wordWrap = true;
             DimWrap.alignment = TextAnchor.UpperLeft;
@@ -532,18 +533,81 @@ namespace Scry
             DrawSliced(rect, Tint(Rounded, color, outline), 10);
         }
 
-        /// <summary>A pill (fully rounded ends) filled with a colour.</summary>
+        /// <summary>A pill (fully rounded ends, as high as it is) filled with a colour.</summary>
         public static void PillBox(Rect rect, Color color)
         {
             if (Event.current.type != EventType.Repaint) return;
-            DrawSliced(rect, Tint(Pill, color, null), 15);
+            DrawPill(rect, color);
         }
 
-        /// <summary>A pill drawn as its outline alone, what is under it showing through.</summary>
-        public static void PillLine(Rect rect, Color outline)
+        /// <summary>
+        /// A pill from the picture made for its height (<see cref="PillShape"/>): its round ends
+        /// as they are, the straight between stretched; one too short for both ends is its
+        /// whole picture squeezed.
+        /// </summary>
+        private static void DrawPill(Rect rect, Color fill)
         {
-            if (Event.current.type != EventType.Repaint) return;
-            DrawSliced(rect, Tint(Pill, Color.clear, outline), 15);
+            var height = PillShape.Height(rect.height);
+            var picture = Tint(PillOf(height), fill, null);
+            if (!PillShape.Stretches(rect.width, height))
+            {
+                GUI.DrawTexture(rect, picture, ScaleMode.StretchToFill, true);
+                return;
+            }
+            Sliced.normal.background = picture;
+            Sliced.border = PillEnds(height);
+            Sliced.Draw(rect, false, false, false, false);
+        }
+
+        /// <summary>White pills, one for each height drawn, and the ends each keeps as it stretches.</summary>
+        private static readonly Dictionary<int, Texture2D> Pills = new Dictionary<int, Texture2D>();
+        private static readonly Dictionary<int, RectOffset> PillBorders = new Dictionary<int, RectOffset>();
+
+        /// <summary>The white pill as high as this, made the first time it is drawn so high.</summary>
+        private static Texture2D PillOf(int height)
+        {
+            if (Pills.TryGetValue(height, out var known) && known != null) return known;
+            var width = PillShape.Width(height);
+            return Pills[height] = Shape(width, height, (x, y) => RoundedCoverage(x, y, width, height, height / 2f));
+        }
+
+        /// <summary>The ends a pill as high as this keeps as it stretches: its round ends, none above or below, as its picture is its height.</summary>
+        private static RectOffset PillEnds(int height)
+        {
+            if (!PillBorders.TryGetValue(height, out var ends))
+            {
+                var end = PillShape.End(height);
+                PillBorders[height] = ends = new RectOffset(end, end, 0, 0);
+            }
+            return ends;
+        }
+
+        /// <summary>The fills of a pill style (a chip, a tab), normal, under the mouse and pressed, and the height its pictures are made for.</summary>
+        private sealed class PillFills
+        {
+            public Color Normal, Hover, Active;
+            public int Height;
+        }
+
+        /// <summary>Every pill style, to make its pictures for the height it is drawn at (<see cref="Fitted"/>); made again with the styles.</summary>
+        private static readonly Dictionary<GUIStyle, PillFills> PillStyles = new Dictionary<GUIStyle, PillFills>();
+
+        /// <summary>
+        /// A pill style (a chip, a tab) with its pictures made for the height it is drawn at, so
+        /// its round ends are as high as it is; any other style as it is.
+        /// </summary>
+        public static GUIStyle Fitted(GUIStyle style, Rect rect)
+        {
+            if (style == null || !PillStyles.TryGetValue(style, out var fills)) return style;
+            var height = PillShape.Height(rect.height);
+            if (fills.Height == height) return style;
+            var shape = PillOf(height);
+            style.normal.background = Tint(shape, fills.Normal, null);
+            style.hover.background = Tint(shape, fills.Hover, null);
+            style.active.background = Tint(shape, fills.Active, null);
+            style.border = PillEnds(height);
+            fills.Height = height;
+            return style;
         }
 
         public static void Icon(Rect rect, Texture2D texture, Color color)
@@ -560,25 +624,30 @@ namespace Scry
         private static void DrawSliced(Rect rect, Texture2D texture, int border)
         {
             Sliced.normal.background = texture;
-            Sliced.border = border == 15 ? PillBorder : border == 10 ? BoxBorder : new RectOffset(border, border, border, border);
+            Sliced.border = border == 10 ? BoxBorder : new RectOffset(border, border, border, border);
             Sliced.Draw(rect, false, false, false, false);
         }
 
         private static readonly RectOffset BoxBorder = new RectOffset(10, 10, 10, 10);
-        private static readonly RectOffset PillBorder = new RectOffset(15, 15, 15, 15);
 
         private static GUIStyle Boxed(GUIStyle text, Color normal, Color hover, Color active, Texture2D shape, float scale)
         {
             var style = new GUIStyle(text)
             {
-                border = shape == Pill ? new RectOffset(15, 15, 15, 15) : new RectOffset(10, 10, 10, 10),
+                border = new RectOffset(10, 10, 10, 10),
                 padding = new RectOffset(Mathf.RoundToInt(12 * scale), Mathf.RoundToInt(12 * scale), Mathf.RoundToInt(4 * scale), Mathf.RoundToInt(4 * scale)),
             };
+            style.hover.textColor = text.normal.textColor;
+            style.active.textColor = text.normal.textColor;
+            if (shape == Pill)
+            {
+                // A pill's pictures are made for the height it is drawn at; until it is fitted, a chip's.
+                PillStyles[style] = new PillFills { Normal = normal, Hover = hover, Active = active };
+                return Fitted(style, new Rect(0f, 0f, 0f, Mathf.Round(26f * scale)));
+            }
             style.normal.background = Tint(shape, normal, null);
             style.hover.background = Tint(shape, hover, null);
             style.active.background = Tint(shape, active, null);
-            style.hover.textColor = text.normal.textColor;
-            style.active.textColor = text.normal.textColor;
             return style;
         }
 

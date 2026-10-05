@@ -259,7 +259,7 @@ namespace Scry
                 var width = Skin.Width(style, text) + U(2f);
                 var at = flow.Place(width);
                 var tab = new Rect(at.X, at.Y, width, flow.RowHeight);
-                var clicked = GUI.Button(tab, text, style);
+                var clicked = GUI.Button(tab, text, Skin.Fitted(style, tab));
                 var size = U(8f);
                 Skin.Icon(new Rect(tab.x + U(10f), tab.y + (tab.height - size) / 2f, size, size), Skin.Circle, on ? Skin.OnAccent : dot);
                 return clicked;

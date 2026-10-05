@@ -35,7 +35,8 @@ namespace Scry
 
             var stopEnabled = GUI.enabled;
             GUI.enabled = stopEnabled && playing != null;
-            if (GUI.Button(new Rect(x, y, U(60f), rowH), "Stop", Skin.Chip) && playing != null) Previews.StopClip();
+            var stopChip = new Rect(x, y, U(60f), rowH);
+            if (GUI.Button(stopChip, "Stop", Skin.Fitted(Skin.Chip, stopChip)) && playing != null) Previews.StopClip();
             GUI.enabled = stopEnabled;
             x += U(66f);
 
@@ -60,7 +61,8 @@ namespace Scry
                 var enabled = GUI.enabled;
                 GUI.enabled = enabled && timed;
                 var pauseW = U(84f);
-                if (GUI.Button(new Rect(0f, y, pauseW, rowH), PanelWords.Pause(timed && Previews.ClipPaused), timed && Previews.ClipPaused ? Skin.ChipOn : Skin.Chip)) Previews.PauseClip(!Previews.ClipPaused);
+                var pauseChip = new Rect(0f, y, pauseW, rowH);
+                if (GUI.Button(pauseChip, PanelWords.Pause(timed && Previews.ClipPaused), Skin.Fitted(timed && Previews.ClipPaused ? Skin.ChipOn : Skin.Chip, pauseChip))) Previews.PauseClip(!Previews.ClipPaused);
                 var readout = timed ? ClipWords.Readout(time, length) : "";
                 var readW = Skin.Width(Skin.DimLabel, "00.00 / 00.00 s") + U(6f);
                 var picked = TimeBar(pauseW + U(10f), y, Mathf.Max(U(40f), width - pauseW - readW - U(20f)), rowH, time, length);
@@ -122,7 +124,7 @@ namespace Scry
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, rowH);
                 if (OutOfSight(chip)) continue;
-                if (GUI.Button(chip, text, style))
+                if (GUI.Button(chip, text, Skin.Fitted(style, chip)))
                 {
                     if (on) Previews.StopClip();
                     else

@@ -64,6 +64,8 @@ A creature's attacks are a table, each attack's damage, how it is made (naming t
 
 The items creatures attack with stay out of the weapons' groups: an item no inventory can show, one without an icon, is under *Creature attacks*, or *Attacks no creature carries* where no creature carries it, even where a mod gives it a source.
 
+Chips, tabs and badges keep round ends however low they are drawn; one lower than 30 pixels showed stray lines at its ends. A loot mark is a solid amber pill with dark words.
+
 ## 0.1.0
 
 First release.

@@ -71,7 +71,8 @@ namespace Scry
             var lineEnd = reset != null ? width - U(74f) : width;
 
             Skin.Fill(new Rect(textW + U(12f), y + U(10f), Mathf.Max(0f, lineEnd - textW - U(12f)), U(1f)), Skin.Outline);
-            if (reset != null && GUI.Button(new Rect(width - U(64f), y - U(2f), U(64f), U(24f)), "Reset", Skin.Chip)) reset();
+            var resetChip = new Rect(width - U(64f), y - U(2f), U(64f), U(24f));
+            if (reset != null && GUI.Button(resetChip, "Reset", Skin.Fitted(Skin.Chip, resetChip))) reset();
             return y + U(folded ? 36f : 30f);
         }
 
@@ -228,7 +229,7 @@ namespace Scry
             Ticker(new Rect(left, rect.y, button.x - left - U(8f), rect.height), line, lineStyle);
 
             var clicked = StripClick.None;
-            if (GUI.Button(button, chip, chipOn ? Skin.ChipOn : Skin.Chip)) clicked = StripClick.Chip;
+            if (GUI.Button(button, chip, Skin.Fitted(chipOn ? Skin.ChipOn : Skin.Chip, button))) clicked = StripClick.Chip;
             if (chipTip != null && button.Contains(Event.current.mousePosition)) AskTip("strip:" + chip, chipTip);
             if (!cross) return clicked;
             if (GUI.Button(away, "\u00D7", Skin.Close)) clicked = StripClick.Cross;

@@ -327,10 +327,10 @@ namespace Scry
                 Skin.LabelIn(new Rect(chip.x + U(32f), chip.y, chip.width - U(36f) - markW, chip.height), text, Skin.Small, goes ? LinkText(kind, hover) : Skin.Text);
                 if (item.Mark != null)
                 {
-                    // A thin accent outline round it, the chip showing through, its words in the accent.
+                    // A solid accent pill, its words dark on it.
                     var mark = new Rect(chip.xMax - markW - U(4f), chip.y + U(5f), markW, chip.height - U(10f));
-                    Skin.PillLine(mark, Skin.Accent);
-                    Skin.LabelIn(mark, item.Mark, Skin.Badge, Skin.Accent);
+                    Skin.PillBox(mark, Skin.Accent);
+                    GUI.Label(mark, item.Mark, Skin.Badge);
                 }
 
                 // Clicking an ingredient or a drop goes to it.
@@ -373,7 +373,7 @@ namespace Scry
                     if (OutOfSight(chip)) continue;
                     if (here)
                     {
-                        GUI.Label(chip, name, Skin.ChipOn);
+                        GUI.Label(chip, name, Skin.Fitted(Skin.ChipOn, chip));
                         continue;
                     }
                     var goes = InCatalog(explorer, key);
@@ -509,7 +509,8 @@ namespace Scry
                 y += U(4f);
                 var text = "Write its parts to the log";
                 var w = Skin.Width(Skin.Chip, text) + U(8f);
-                if (GUI.Button(new Rect(0f, y, Mathf.Min(width, w), U(26f)), text, Skin.Chip)) Say(Stage.Dump());
+                var dump = new Rect(0f, y, Mathf.Min(width, w), U(26f));
+                if (GUI.Button(dump, text, Skin.Fitted(Skin.Chip, dump))) Say(Stage.Dump());
                 y += U(32f);
             }
 
@@ -534,12 +535,14 @@ namespace Scry
                     const string stop = "Stop";
                     var stopW = Skin.Width(Skin.Chip, stop) + U(12f);
                     GUI.Label(new Rect(0f, y, width - stopW - U(8f), U(24f)), LocationWords.ReadingProgress(Locations.Done, Locations.Total), Skin.DimLabel);
-                    if (GUI.Button(new Rect(width - stopW, y, stopW, U(24f)), stop, Skin.Chip)) StopReadingLocations();
+                    var stopChip = new Rect(width - stopW, y, stopW, U(24f));
+                    if (GUI.Button(stopChip, stop, Skin.Fitted(Skin.Chip, stopChip))) StopReadingLocations();
                     return y + U(30f);
 
                 default:
                     var w = Skin.Width(Skin.Chip, LocationsButtonText) + U(8f);
-                    if (GUI.Button(new Rect(0f, y, Mathf.Min(width, w), U(26f)), LocationsButtonText, Skin.Chip)) StartReadingLocations();
+                    var readChip = new Rect(0f, y, Mathf.Min(width, w), U(26f));
+                    if (GUI.Button(readChip, LocationsButtonText, Skin.Fitted(Skin.Chip, readChip))) StartReadingLocations();
                     y += U(30f);
                     const string note = "Reads each of this world's locations and dungeon rooms once, in the background, over a few minutes.";
                     var height = Skin.Height(Skin.DimWrap, note, width);

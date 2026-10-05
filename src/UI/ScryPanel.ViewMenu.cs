@@ -162,7 +162,8 @@ namespace Scry
                 var value = rows[i].Value;
                 var style = rows[i].On ? Skin.ChipOn : Skin.Chip;
                 var w = Skin.Width(style, value) + U(4f);
-                GUI.Label(new Rect(row.xMax - U(6f) - w, row.y + (row.height - U(22f)) / 2f, w, U(22f)), value, style);
+                var valueChip = new Rect(row.xMax - U(6f) - w, row.y + (row.height - U(22f)) / 2f, w, U(22f));
+                GUI.Label(valueChip, value, Skin.Fitted(style, valueChip));
             }
             CountDrawn(PanelPart.ViewMenu);
         }
