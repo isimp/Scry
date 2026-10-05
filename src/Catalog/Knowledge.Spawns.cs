@@ -514,7 +514,7 @@ namespace Scry
         private static readonly List<(string Prefab, string Effect, string How)> GiverList = new List<(string, string, string)>();
         private static readonly Dictionary<Type, FieldInfo[]> EffectRefFields = new Dictionary<Type, FieldInfo[]>();
 
-        /// <summary>Each prefab that gives a status effect, which one, and how (worn, eaten, a set, an attack).</summary>
+        /// <summary>Each prefab that gives a status effect, which one, and how (worn, eaten, a set, an attack, or by the game's own code: <see cref="CodeGivers"/>); a status effect that gives another is told by its key.</summary>
         public static IReadOnlyList<(string Prefab, string Effect, string How)> Givers() => GiverList;
 
         /// <summary>
