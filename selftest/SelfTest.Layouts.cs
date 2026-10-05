@@ -303,8 +303,10 @@ namespace Scry
                     var now = Stage.FloorHeights.ToList();
                     if (entry.Name == "Hildir_plainsfortress")
                     {
-                        // Its rooms stand a storey on another, each with a floor: no two floors further apart than one.
-                        var apart = now.Zip(now.Skip(1), (above, below) => (above, below)).Where(f => f.above - f.below > 4.5f).ToList();
+                        // Its rooms stand a storey (4 m) on another, each with a floor. A floor found
+                        // under a deck's top rather than on it sits up to 0.7 m lower, so floors stand
+                        // 3.3 to 4.7 m apart; a storey without one leaves 8 m.
+                        var apart = now.Zip(now.Skip(1), (above, below) => (above, below)).Where(f => f.above - f.below > 6f).ToList();
                         if (apart.Count > 0) gaps.Add($"{entry.Name}: {string.Join(", ", apart.Select(f => $"{Numbers.Fixed(f.above, 1)} to {Numbers.Fixed(f.below, 1)} m"))}");
                     }
                     if (entry.Name == "MorkBorg")
