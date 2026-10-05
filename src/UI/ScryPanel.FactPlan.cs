@@ -192,8 +192,21 @@ namespace Scry
                     for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++)
                     {
                         var cell = new Rect(x, y, ColumnWidths[c], height);
+                        // An attack's name plays its animation on the stage, as its clip's chip does.
+                        if (c == 0 && EntryKeys.PlaysAttack(link, out var item))
+                        {
+                            var clip = Previews.ClipOfAttackItem(item);
+                            var lit = clip != null && Previews.LastClip == clip;
+                            LinkLabel(cell, cells[c], Skin.SmallWrap, lit ? Skin.KindColor(Kind.Sound) : Skin.Accent);
+                            if (cell.Contains(Event.current.mousePosition)) AskTip("table-attack:" + item + (clip != null), ClipWords.PlayAttackTip(clip != null));
+                            if (GUI.Button(cell, GUIContent.none, GUIStyle.none) && clip != null)
+                            {
+                                Previews.PlayClip(clip);
+                                Previews.LastClip = clip;
+                            }
+                        }
                         // A line naming music plays it, as a fact naming music does.
-                        if (c == 0 && !string.IsNullOrEmpty(link) && EntryKeys.PlaysMusic(link, out var named) && explorer.Selected is Entry shown)
+                        else if (c == 0 && !string.IsNullOrEmpty(link) && EntryKeys.PlaysMusic(link, out var named) && explorer.Selected is Entry shown)
                         {
                             var playing = MusicPreview.PlayingFor == shown && (named == null || MusicPreview.Playing == named);
                             LinkLabel(cell, cells[c], Skin.SmallWrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);

@@ -31,6 +31,18 @@ namespace Scry
             return true;
         }
 
+        /// <summary>A table line's link that plays a creature's attack on the stage, by the item the attack is made with.</summary>
+        public static string PlayAttack(string item) => AttackPlay + item;
+
+        /// <summary>Whether a link plays an attack, and by which item.</summary>
+        public static bool PlaysAttack(string link, out string item)
+        {
+            item = link != null && link.StartsWith(AttackPlay, StringComparison.Ordinal) ? link.Substring(AttackPlay.Length) : null;
+            return item != null;
+        }
+
+        private const string AttackPlay = "play-attack:";
+
         /// <summary>A value's link that opens a website in the browser.</summary>
         public static string Website(string url) => Web + url;
 

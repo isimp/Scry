@@ -442,6 +442,14 @@ namespace Scry
             yield return Until(() => ScryPanel.Drawn(PanelPart.FactTiles) > drawn && ScryPanel.Drawn(PanelPart.FactTable) > tables, 3);
             p.Check(ScryPanel.Drawn(PanelPart.FactTiles) > drawn, $"{troll.Name}'s page draws its tiles");
             p.Check(ScryPanel.Drawn(PanelPart.FactTable) > tables, $"{troll.Name}'s page draws its attacks table");
+            if (attacks != null)
+            {
+                var items = attacks.Lines.Select(l => EntryKeys.PlaysAttack(l.Link, out var item) ? item : null).ToList();
+                p.Check(items.All(i => i != null), "each attack's name plays it");
+                yield return Until(() => items.Any(i => i != null && Previews.ClipOfAttackItem(i) != null), 15);
+                p.Note("attack clips: " + string.Join(", ", items.Select(i => i + " " + (i != null ? Previews.ClipOfAttackItem(i).OrNull()?.name ?? "none" : "none"))));
+                p.Check(items.Any(i => i != null && Previews.ClipOfAttackItem(i) != null), "its attacks find the clips that play them");
+            }
         }
 
         /// <summary>

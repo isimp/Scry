@@ -240,6 +240,32 @@ namespace Scry
         }
 
         /// <summary>
+        /// The stage copy's clip that begins the attack of an item its creature carries, by the
+        /// item's name; null where it carries none of that name or the clip is not known yet.
+        /// </summary>
+        public static AnimationClip ClipOfAttackItem(string item)
+        {
+            // Asked for each line of the table on every event the panel draws: found once for the copy.
+            if (!ReferenceEquals(_attackClipsOf, Stage.Subject))
+            {
+                _attackClipsOf = Stage.Subject;
+                AttackClips.Clear();
+            }
+            if (AttackClips.TryGetValue(item, out var known)) return known;
+            var prefab = ClipPlayer.AnimatorOf(Stage.Subject).OrNull()?.GetComponent<AnimationEars>().OrNull()?.Prefab;
+            var carried = prefab != null ? Relations.CarriedItems(prefab).Find(i => i.name == item) : null;
+            var attack = carried != null ? carried.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_attack : null;
+            var clip = attack != null ? AttackClipOf(attack) : null;
+            // Not kept until found: the clips are worked out a while after the copy is shown.
+            if (clip != null) AttackClips[item] = clip;
+            return clip;
+        }
+
+        /// <summary>The copy whose attacks' clips are kept below, and those clips by the item each is made with.</summary>
+        private static GameObject _attackClipsOf;
+        private static readonly Dictionary<string, AnimationClip> AttackClips = new Dictionary<string, AnimationClip>();
+
+        /// <summary>
         /// Whether what a copy's clips play is known, without waiting for it: false while its
         /// animator is still being watched, when a clip started now has to wait for its attack and
         /// lists rather than stall the game until the watching is done.
@@ -588,6 +614,8 @@ namespace Scry
             _plays = null;
             _playsPrefab = null;
             _playsCopy = null;
+            _attackClipsOf = null;
+            AttackClips.Clear();
         }
 
         /// <summary>Where the clip on the stage is, and how long it is.</summary>

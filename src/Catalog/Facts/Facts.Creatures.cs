@@ -113,7 +113,7 @@ namespace Scry
         /// Each attack it has, from the items it may carry (a creature fights with items of its
         /// own, as a person does): what a hit does, how, and from how near and far and how often
         /// its AI uses it (<c>m_aiAttackRange</c>, <c>m_aiAttackRangeMin</c>, <c>m_aiAttackInterval</c>),
-        /// a line of its attacks table each, its name going to its item.
+        /// a line of its attacks table each, its name playing the attack on the stage.
         /// </summary>
         private void Attacks(GameObject prefab)
         {
@@ -126,7 +126,7 @@ namespace Scry
                 var name = ItemName(item);
                 if (table.Lines.Any(l => l.Cells[0] == name)) continue;
                 var cells = CombatWords.AttackCells(name, Damages(shared.m_damages), attack.m_attackType.ToString(), shared.m_aiAttackRangeMin, shared.m_aiAttackRange, shared.m_aiAttackInterval);
-                table.Lines.Add((cells, item.name));
+                table.Lines.Add((cells, EntryKeys.PlayAttack(item.name)));
             }
             if (table.Lines.Count > 0) Rows.Add(table);
         }
