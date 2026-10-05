@@ -49,6 +49,15 @@ namespace Scry
         /// <summary>The location's own parts beside the example, put away while a dungeon's example is shown.</summary>
         private readonly List<GameObject> _outside = new List<GameObject>();
 
+        /// <summary>
+        /// While the self-test tries it: each room's ground with what is open within reach of its
+        /// doorways taken as ground too (<see cref="FloorFinder.OpenInReach"/>), beside what it found.
+        /// </summary>
+        public static bool TryOpenGround;
+
+        private readonly List<FloorPatch> _openPatches = new List<FloorPatch>();
+        private readonly Dictionary<PlacedRoom, FloorPatch> _roomOpen = new Dictionary<PlacedRoom, FloorPatch>();
+
         /// <summary>What each room's rays found and the ground they were cast over; the rays of the room being read.</summary>
         private readonly List<FloorPatch> _patches = new List<FloorPatch>();
         private readonly List<FloorHit> _hits = new List<FloorHit>();
@@ -237,16 +246,17 @@ namespace Scry
         /// itself), and the floors it stands on, by its box or by its ground, for the self-test.
         /// </summary>
         [Diagnostic]
-        public List<string> RoomGroundTold(IReadOnlyList<float> floors)
+        public List<string> RoomGroundTold(IReadOnlyList<float> floors, bool withOpen = false)
         {
             var told = new List<string>();
             if (Placed == null) return told;
+            var grounds = withOpen ? _roomOpen : _roomGround;
             foreach (var room in Placed.Rooms)
             {
                 var half = room.Room.Size.Y / 2f;
                 var doors = string.Join("/", Enumerable.Range(0, room.Room.Doorways.Count).Select(i => Numbers.Fixed(room.DoorwayAt(i).Y, 1)));
                 var line = $"{room.Room.Name} {Numbers.Fixed(room.Position.Y - half, 1)} to {Numbers.Fixed(room.Position.Y + half, 1)} m, doors {doors}";
-                if (_roomGround.TryGetValue(room, out var ground))
+                if (grounds.TryGetValue(room, out var ground))
                 {
                     // Each band counts its neighbours' rays too: the most room within half a metre stands for them.
                     var own = System.Math.Max(FloorFinder.MinRoom, ground.Ground * FloorFinder.MinShare);
@@ -289,15 +299,29 @@ namespace Scry
             ground.Entrance = room.Room.Entrance;
             _patches.Add(ground);
             _roomGround[room] = ground;
+            if (TryOpenGround)
+            {
+                var open = FloorFinder.Patch(FloorFinder.OpenInReach(_hits, ground.Door, FloorFinder.AboveDoors));
+                open.Ground = cast;
+                open.Door = ground.Door;
+                open.Entrance = ground.Entrance;
+                _openPatches.Add(open);
+                _roomOpen[room] = open;
+            }
             _hits.Clear();
             if (asleep) copy.transform.SetParent(Holder.transform, false);
             Timing.Add("example floors", read);
         }
 
-        /// <summary>The floors its rooms' ground makes now, and by the rules before (<see cref="FloorRules.Before"/>), for the self-test to tell.</summary>
+        /// <summary>
+        /// The floors its rooms' ground makes now, by the rules before (<see cref="FloorRules.Before"/>),
+        /// and with open ground within reach of each room's doorways tried as ground (null where
+        /// that was not tried for every room), for the self-test to tell.
+        /// </summary>
         [Diagnostic]
-        public (List<float> Now, List<float> Before) FloorsFoundBothWays() =>
-            (FloorFinder.Floors(_patches, _ground, PlaceView.Storey), FloorFinder.Floors(_patches, _ground, PlaceView.Storey, FloorRules.Before));
+        public (List<float> Now, List<float> Before, List<float> WithOpen) FloorsFoundThreeWays() =>
+            (FloorFinder.Floors(_patches, _ground, PlaceView.Storey), FloorFinder.Floors(_patches, _ground, PlaceView.Storey, FloorRules.Before),
+             _openPatches.Count == _patches.Count && _patches.Count > 0 ? FloorFinder.Floors(_openPatches, _ground, PlaceView.Storey) : null);
 
         /// <summary>The example's floors: found in its rooms, with one for each room no floor reaches, or where their doorways are while none are found.</summary>
         public List<float> FloorsNow()
@@ -323,6 +347,8 @@ namespace Scry
             Next = 0;
             Copies = 0;
             _patches.Clear();
+            _openPatches.Clear();
+            _roomOpen.Clear();
             _rooms.Clear();
             _dimmed.Clear();
             _roomGround.Clear();

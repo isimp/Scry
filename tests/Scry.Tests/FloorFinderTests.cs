@@ -351,6 +351,22 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void OpenGroundOfADungeonRoomWithinReachOfItsDoorwaysCanBeTriedAsGround()
+        {
+            // A dungeon room read alone has no ceiling where the room above is its ceiling:
+            // Morkhalla's middle rooms found 50 to 80 of some 4,000 square metres. Ground with
+            // nothing of the room over it, within reach of its doorways, is tried as ground; high
+            // over every doorway it stays open, the top of its rock.
+            var hits = Patch(0, 0, 20, 20, -22.8f, open: true).Concat(Patch(0, 0, 4, 4, -13.5f, open: true)).Concat(Patch(0, 0, 20, 20, 5f, open: true)).ToList();
+            var tried = FloorFinder.OpenInReach(hits, door: -13.3f, aboveDoors: FloorFinder.AboveDoors);
+            Assert.All(tried.Where(h => h.Height < 0f), h => Assert.False(h.Open));
+            Assert.All(tried.Where(h => h.Height > 0f), h => Assert.True(h.Open));
+            Assert.Equal(hits.Count, tried.Count);
+            Assert.Equal(-22.8f, FloorFinder.MainFloor(FloorFinder.Patch(tried)).Value, 2);
+            Assert.Null(FloorFinder.MainFloor(FloorFinder.Patch(hits)));
+        }
+
+        [Fact]
         public void ARoomsMainFloorIsWhereItHasTheMostRoomToStand()
         {
             var room = FloorFinder.Patch(Patch(0, 0, 20, 20, -40f).Concat(Patch(30, 30, 6, 6, -36f)));

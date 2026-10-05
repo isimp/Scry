@@ -185,11 +185,11 @@ namespace Scry
         /// <summary>Each room of the example read so far with the floors found in it alone, for the self-test to tell.</summary>
         public static List<string> ExampleRoomFloorsTold() => TheExample.RoomFloorsTold();
 
-        /// <summary>The floors the example's rooms' ground makes now and by the rules before, for the self-test to tell.</summary>
-        public static (List<float> Now, List<float> Before) ExampleFloorsFoundBothWays() => TheExample.FloorsFoundBothWays();
+        /// <summary>The floors the example's rooms' ground makes now, by the rules before and with open ground within reach tried, for the self-test to tell.</summary>
+        public static (List<float> Now, List<float> Before, List<float> WithOpen) ExampleFloorsFoundThreeWays() => TheExample.FloorsFoundThreeWays();
 
-        /// <summary>Each room of the example read so far with its box, doorways, ground and the floors it stands on, for the self-test to tell.</summary>
-        public static List<string> ExampleRoomGroundTold() => TheExample.RoomGroundTold(FloorHeights);
+        /// <summary>Each room of the example read so far with its box, doorways, ground (or that ground with open ground within reach tried) and the floors it stands on, for the self-test to tell.</summary>
+        public static List<string> ExampleRoomGroundTold(bool withOpen = false) => TheExample.RoomGroundTold(FloorHeights, withOpen);
 
         /// <summary>How a room of the example shows with the floor opened: whole on it, else as its box says, below faintly or above not at all.</summary>
         public static PlanRoomShown ExampleRoomShown(PlacedRoom room) => TheExample.RoomShown(room, ExamplePlanFloor);

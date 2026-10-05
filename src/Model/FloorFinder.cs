@@ -127,6 +127,24 @@ namespace Scry
         private static bool OwnLevel(FloorPatch patch, FloorPatch.Band band, FloorRules rules) =>
             band.Room >= Math.Max(rules.OwnRoom, patch.Ground * MinShare) && Stands(patch, band, rules);
 
+        /// <summary>
+        /// A dungeon room's hits with what is open, nothing of the room over it, taken as covered
+        /// where it is within reach of its doorways: read alone, a room whose ceiling is the room
+        /// above has no ceiling of its own. High over every doorway open ground stays open, the
+        /// top of its rock. For the self-test to try beside the floors found now.
+        /// </summary>
+        public static List<FloorHit> OpenInReach(IEnumerable<FloorHit> hits, float door, float aboveDoors)
+        {
+            var tried = new List<FloorHit>();
+            foreach (var hit in hits)
+            {
+                var each = hit;
+                if (each.Open && each.Height <= door + aboveDoors) each.Open = false;
+                tried.Add(each);
+            }
+            return tried;
+        }
+
         /// <summary>Rays cast no closer than this, and at most this many along a side.</summary>
         public const float Spacing = 0.5f;
         public const int MostPerSide = 40;
