@@ -14,6 +14,9 @@ namespace Scry
         private static List<FactTopicPlan> _plan;
 
         private static readonly FactBlock[] EveryBlock = (FactBlock[])Enum.GetValues(typeof(FactBlock));
+
+        /// <summary>How tall each topic's box was when last drawn, so the box is drawn behind what it holds; 0 where it is not yet known.</summary>
+        private static readonly List<float> TopicHeights = new List<float>();
         private static readonly List<(string, string)> PlanPairs = new List<(string, string)>();
         private static readonly List<(string, string)> PlanRows = new List<(string, string)>();
         private static readonly List<FactBlock> PlanBlocks = new List<FactBlock>();
@@ -40,7 +43,64 @@ namespace Scry
             _plan = FactLayout.Plan(entry.Kind, PlanPairs, PlanRows, PlanBlocks);
             _planFacts = facts;
             _planBlocks = blocks;
+            TopicHeights.Clear();
             return _plan;
+        }
+
+        /// <summary>
+        /// The page's topics: the headline tiles as they are, and each named topic in a box of
+        /// its own, its name bright in the box's top left and what it holds inset under it, so a
+        /// topic is told apart from the page's sections at a glance. A box is drawn behind what it
+        /// holds at the height that held last time; the first time it shows, it is drawn the
+        /// time after.
+        /// </summary>
+        private static float Topics(Explorer explorer, Entry entry, Facts facts, List<FactTopicPlan> plan, bool places, float width, float y)
+        {
+            while (TopicHeights.Count < plan.Count) TopicHeights.Add(0f);
+            var pad = U(10f);
+            var inner = width - pad * 2f;
+            var labelW = Mathf.Min(U(130f), inner * 0.36f);
+            for (var i = 0; i < plan.Count; i++)
+            {
+                var topic = plan[i];
+                if (topic.Heading == null)
+                {
+                    y = TopicBody(explorer, entry, facts, topic, places, width, Mathf.Min(U(130f), width * 0.36f), y);
+                    continue;
+                }
+
+                var top = y + U(6f);
+                if (TopicHeights[i] > 0f) Skin.Box(new Rect(0f, top, width, TopicHeights[i]), Skin.TopicFill);
+                GUI.Label(new Rect(pad, top + U(6f), inner, U(20f)), topic.Heading, Skin.TopicName);
+                y = top + U(30f);
+                GUI.BeginGroup(new Rect(pad, 0f, inner, y + U(100000f)));
+                try
+                {
+                    y = TopicBody(explorer, entry, facts, topic, places, inner, labelW, y);
+                }
+                finally
+                {
+                    GUI.EndGroup();
+                }
+                y += U(4f);
+                if (Event.current.type == EventType.Repaint) TopicHeights[i] = y - top;
+                y += U(4f);
+            }
+            return y;
+        }
+
+        /// <summary>What a topic holds: its tiles, then its facts, rows and blocks, each with the notes under it.</summary>
+        private static float TopicBody(Explorer explorer, Entry entry, Facts facts, FactTopicPlan topic, bool places, float width, float labelW, float y)
+        {
+            if (topic.Tiles.Count > 0) y = Tiles(facts, topic.Tiles, width, y);
+            foreach (var bit in topic.Bits)
+            {
+                if (bit.Pair >= 0) y = FactPair(explorer, entry, facts, facts.Pairs[bit.Pair], width, labelW, y);
+                else if (bit.Row >= 0) y = FactRow(explorer, facts.Rows[bit.Row], width, y);
+                else if (bit.Block is FactBlock block) y = FactBlockOf(explorer, entry, facts, block, places, false, width, y);
+                foreach (var note in bit.Notes) y = FactNote(facts, facts.Pairs[note], width, y);
+            }
+            return y;
         }
 
         /// <summary>Lets go of the plan and the facts it was made for, for another world.</summary>
@@ -49,16 +109,6 @@ namespace Scry
             _planFacts = null;
             _plan = null;
             _planBlocks = -1;
-        }
-
-        /// <summary>A topic's small heading and a faint rule after it.</summary>
-        private static float TopicHeading(string heading, float width, float y)
-        {
-            y += U(8f);
-            var textW = Skin.Width(Skin.DimLabel, heading);
-            GUI.Label(new Rect(0f, y, textW + U(4f), U(20f)), heading, Skin.DimLabel);
-            Skin.Fill(new Rect(textW + U(10f), y + U(10f), Mathf.Max(0f, width - textW - U(10f)), U(1f)), Skin.Outline);
-            return y + U(26f);
         }
 
         /// <summary>
@@ -86,7 +136,7 @@ namespace Scry
                     // A tile Scry is not sure of is marked, softer, and says why on hover.
                     var unsure = facts.Unsure.TryGetValue(pair.Key, out var why);
                     Skin.Box(at, Skin.Raised);
-                    GUI.Label(new Rect(at.x + U(8f), at.y + U(4f), valueW, U(20f)), unsure ? UnsureWords.Marked(pair.Key) : pair.Key, Skin.FaintLabel);
+                    GUI.Label(new Rect(at.x + U(8f), at.y + U(4f), valueW, U(20f)), unsure ? UnsureWords.Marked(pair.Key) : pair.Key, Skin.DimLabel);
                     GUI.Label(new Rect(at.x + U(8f), at.y + U(24f), valueW, valueH), pair.Value, unsure ? Skin.DimWrap : Skin.Wrap);
                     if (unsure && at.Contains(Event.current.mousePosition)) AskTip("unsure:" + pair.Key, why);
                 }
@@ -115,7 +165,7 @@ namespace Scry
             var sum = 0f;
             for (var c = 0; c < row.Columns.Length; c++)
             {
-                var w = Skin.Width(Skin.FaintLabel, row.Columns[c]);
+                var w = Skin.Width(Skin.DimLabel, row.Columns[c]);
                 foreach (var (cells, _) in row.Lines) if (c < cells.Length) w = Mathf.Max(w, Skin.Width(Skin.Small, cells[c]));
                 ColumnWidths.Add(w + U(2f));
                 sum += w + U(2f);
@@ -126,7 +176,7 @@ namespace Scry
             var x = 0f;
             for (var c = 0; c < row.Columns.Length; c++)
             {
-                GUI.Label(new Rect(x, y, ColumnWidths[c], U(18f)), row.Columns[c], Skin.FaintLabel);
+                GUI.Label(new Rect(x, y, ColumnWidths[c], U(18f)), row.Columns[c], Skin.DimLabel);
                 x += ColumnWidths[c] + gap;
             }
             y += U(22f);

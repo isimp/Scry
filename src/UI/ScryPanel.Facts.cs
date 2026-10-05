@@ -41,19 +41,7 @@ namespace Scry
                 return y + U(14f);
             }
 
-            foreach (var topic in plan)
-            {
-                if (topic.Heading != null) y = TopicHeading(topic.Heading, width, y);
-                if (topic.Tiles.Count > 0) y = Tiles(facts, topic.Tiles, width, y);
-                foreach (var bit in topic.Bits)
-                {
-                    if (bit.Pair >= 0) y = FactPair(explorer, entry, facts, facts.Pairs[bit.Pair], width, labelW, y);
-                    else if (bit.Row >= 0) y = FactRow(explorer, facts.Rows[bit.Row], width, y);
-                    else if (bit.Block is FactBlock block) y = FactBlockOf(explorer, entry, facts, block, places, false, width, y);
-                    foreach (var note in bit.Notes) y = FactNote(facts, facts.Pairs[note], width, y);
-                }
-            }
-            return y + U(14f);
+            return Topics(explorer, entry, facts, plan, places, width, y) + U(14f);
         }
 
         /// <summary>One labelled fact: its label in the left column, its value at its right, a link, music or a website where it is one.</summary>

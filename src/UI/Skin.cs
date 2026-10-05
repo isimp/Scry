@@ -16,11 +16,14 @@ namespace Scry
         public static readonly Color Stage = new Color(0.105f, 0.112f, 0.135f, 1f);
         public static readonly Color Raised = new Color(0.150f, 0.160f, 0.190f, 1f);
         public static readonly Color RaisedHover = new Color(0.190f, 0.200f, 0.240f, 1f);
+
+        /// <summary>Behind a topic of the details' In the game: between the panel and a raised tile, so tiles in it still stand out.</summary>
+        public static readonly Color TopicFill = new Color(0.124f, 0.132f, 0.158f, 1f);
         public static readonly Color Hover = new Color(1f, 1f, 1f, 0.045f);
         public static readonly Color Outline = new Color(1f, 1f, 1f, 0.08f);
         public static readonly Color Text = new Color(0.930f, 0.910f, 0.870f, 1f);
-        public static readonly Color Dim = new Color(0.760f, 0.755f, 0.775f, 1f);
-        public static readonly Color Faint = new Color(0.600f, 0.605f, 0.640f, 1f);
+        public static readonly Color Dim = new Color(0.840f, 0.835f, 0.855f, 1f);
+        public static readonly Color Faint = new Color(0.700f, 0.705f, 0.740f, 1f);
         public static readonly Color Accent = new Color(0.960f, 0.720f, 0.340f, 1f);
         public static readonly Color AccentSoft = new Color(0.960f, 0.720f, 0.340f, 0.16f);
 
@@ -57,6 +60,9 @@ namespace Scry
 
         public static GUISkin Gui;
         public static GUIStyle Title, Subtitle, Label, Small, SmallCenter, SmallWrap, DimLabel, DimRight, FaintLabel, Heading, Big, Wrap, WrapBold, DimWrap;
+
+        /// <summary>A topic's name in the details' In the game, bright and bold in the top left of its box.</summary>
+        public static GUIStyle TopicName;
 
         /// <summary>A note over the stage's picture, wrapping rather than shrinking.</summary>
         public static GUIStyle PictureNote;
@@ -172,7 +178,7 @@ namespace Scry
                     // warming itself never stalls one.
                     var styles = new[]
                     {
-                        Title, Subtitle, Label, Small, DimLabel, FaintLabel, Heading, Big, Wrap, DimWrap, PictureNote, RowName, RowSub, Glyph, Center, CenterDim,
+                        Title, Subtitle, Label, Small, DimLabel, FaintLabel, Heading, Big, Wrap, DimWrap, TopicName, PictureNote, RowName, RowSub, Glyph, Center, CenterDim,
                         Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close, Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross,
                     };
                     if (_warmNext >= styles.Length)
@@ -369,6 +375,7 @@ namespace Scry
             WrapBold = Style(13f, Skin.Text, FontStyle.Bold);
             WrapBold.wordWrap = true;
             WrapBold.alignment = TextAnchor.UpperLeft;
+            TopicName = Style(13f, Skin.Text, FontStyle.Bold);
             DimWrap = Style(13f, Dim);
             DimWrap.wordWrap = true;
             DimWrap.alignment = TextAnchor.UpperLeft;
