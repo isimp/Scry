@@ -8,23 +8,21 @@ namespace Scry.Tests
         // level above the first. A hit at a level is 1 + half a star each (Attack.GetLevelDamageFactor).
 
         [Fact]
-        public void EachStarAddsTheBaseHealthOnceMore()
+        public void WhatStarsAddIsATableOfHealthAndDamageByStar()
         {
-            Assert.Equal("1 star 400, 2 stars 600", CombatWords.StarHealth(200f, 2));
-        }
-
-        [Fact]
-        public void EachStarAddsHalfOfEveryHit()
-        {
-            Assert.Equal("1 star ×1.5, 2 stars ×2", CombatWords.StarDamage(2));
-            Assert.Equal("1 star ×1.5, 2 stars ×2, 3 stars ×2.5", CombatWords.StarDamage(3));
+            Assert.Equal("With stars", CombatWords.StarsTitle);
+            Assert.Equal(new[] { "", "No stars", "1 star", "2 stars" }, CombatWords.StarColumns(2));
+            var lines = CombatWords.StarLines(200f, 2);
+            // Each star adds the base health once more, and half of every hit.
+            Assert.Equal(new[] { "Health", "200", "400", "600" }, lines[0]);
+            Assert.Equal(new[] { "Damage", "×1", "×1.5", "×2" }, lines[1]);
+            Assert.Equal(new[] { "Damage", "×1", "×1.5", "×2", "×2.5" }, CombatWords.StarLines(200f, 3)[1]);
         }
 
         [Fact]
         public void WithoutStarsThereIsNothingToSay()
         {
-            Assert.Null(CombatWords.StarHealth(200f, 0));
-            Assert.Null(CombatWords.StarDamage(0));
+            Assert.Empty(CombatWords.StarLines(200f, 0));
         }
 
         [Fact]

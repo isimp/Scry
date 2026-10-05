@@ -27,10 +27,9 @@ namespace Scry
             // What stars add: its health once more for each, and half as much again to each hit.
             if (!character.m_boss)
             {
-                var health = CombatWords.StarHealth(character.m_health, _stars);
-                if (health != null) Add("Health with stars", health);
-                var hits = CombatWords.StarDamage(_stars);
-                if (hits != null) Add("Damage with stars", hits);
+                var stars = new Row { Title = CombatWords.StarsTitle, Columns = CombatWords.StarColumns(_stars) };
+                foreach (var line in CombatWords.StarLines(character.m_health, _stars)) stars.Lines.Add((line, null));
+                if (stars.Lines.Count > 0) Rows.Add(stars);
             }
 
             Part("resistances", () => Rows.Add(new Row { Title = "Damage it takes", Cells = ResistWords.ForCreature(Cells(character.m_damageModifiers)) }));

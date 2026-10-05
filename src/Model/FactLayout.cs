@@ -82,7 +82,7 @@ namespace Scry
             };
             Tile(plan, "overview", null, "Health", "Faction", "Moves", "Tameable", "Boss");
             Tile(plan, "senses", null, "Sees", "Hears", "Turns on you", "Fire");
-            Label(plan, "fight", "Attacks", "Health with stars", "Damage with stars", "Its fight", "Fights", "Damage it takes");
+            Label(plan, "fight", "Attacks", CombatWords.StarsTitle, "Its fight", "Fights", "Damage it takes");
             Label(plan, "senses", "Gives up chasing", "Flees", "Leaves alone", "With Passive enemies");
             Label(plan, "loot", "Drops");
             Label(plan, "taming", "Takes to tame", "Stays fed", "Eats");

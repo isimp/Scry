@@ -140,7 +140,7 @@ namespace Scry
                 mods.Level = mods.MaxLevel;
                 yield return Until(() => CopyOf(creature) != null && CopyOf(creature) != before, 5);
                 p.Check(CopyOf(creature) != null, $"it stands with {Numbers.Count(mods.MaxLevel - 1)} stars");
-                p.Check(Tells(Facts.For(creature), "Health with stars"), "its details tell what stars add");
+                p.Check(Facts.For(creature).Rows.Any(r => r.Title == CombatWords.StarsTitle && r.Lines.Count > 0), "its details tell what stars add");
                 mods.Level = 1;
             }
             var looks = mods.LookNames.Length;

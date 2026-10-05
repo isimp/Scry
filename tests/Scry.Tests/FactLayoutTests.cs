@@ -12,14 +12,14 @@ namespace Scry.Tests
 
         private static readonly (string Label, string Part)[] TrollPairs =
         {
-            ("Health", ""), ("Faction", ""), ("Health with stars", ""), ("Damage with stars", ""),
+            ("Health", ""), ("Faction", ""),
             ("Attack: Club", "attacks"), ("Hit on the head", "weak spots"), ("Moves", "behaviour"), ("Sees", "behaviour"),
             ("Gives up chasing", "behaviour"), ("Takes to tame", "behaviour"), ("Tameable", ""), ("Forsaken power", ""),
             ("Drops with stars", ""), ("In this world", "world settings"), ("Something new", "a mod's part"),
             ("Love", "breeding"), ("Ridden with", "riding"), ("Keeps its distance", "behaviour"),
         };
 
-        private static readonly (string Title, string Part)[] TrollRows = { ("Damage it takes", "resistances"), ("Eats", ""), ("Drops", ""), ("Seen dropping in your play (3 kills)", "") };
+        private static readonly (string Title, string Part)[] TrollRows = { ("With stars", ""), ("Damage it takes", "resistances"), ("Eats", ""), ("Drops", ""), ("Seen dropping in your play (3 kills)", "") };
 
         private static List<FactTopicPlan> Troll(params FactBlock[] blocks) =>
             FactLayout.Plan(Kind.Creature, TrollPairs, TrollRows, blocks.Length > 0 ? blocks : new[] { FactBlock.Where, FactBlock.Biomes, FactBlock.Hooks });
@@ -36,7 +36,7 @@ namespace Scry.Tests
 
             // Its headline numbers as tiles, the boss and moves among them where told.
             Assert.Equal(new[] { "Health", "Faction", "Moves", "Tameable" }, plan[0].Tiles.Select(Pair));
-            Assert.Equal(new[] { "Health with stars", "Damage with stars", "Attack: Club", "Hit on the head", "row Damage it takes" }, plan[1].Bits.Select(Bit));
+            Assert.Equal(new[] { "Attack: Club", "Hit on the head", "row With stars", "row Damage it takes" }, plan[1].Bits.Select(Bit));
             Assert.Equal(new[] { "Sees" }, plan[2].Tiles.Select(Pair));
             // A new fact of a reader's part goes where that part's facts go.
             Assert.Equal(new[] { "Gives up chasing", "Keeps its distance" }, plan[2].Bits.Select(Bit));

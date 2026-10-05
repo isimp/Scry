@@ -24,18 +24,31 @@ namespace Scry
         /// <summary>A choice of stars to show a creature with.</summary>
         public static string StarChoice(int stars) => stars == 0 ? "No stars" : Stars(stars);
 
-        /// <summary>Health at each star up to the highest, or null without stars.</summary>
-        public static string StarHealth(float health, int maxStars)
-        {
-            if (maxStars <= 0) return null;
-            return string.Join(", ", Enumerable.Range(1, maxStars).Select(s => $"{Stars(s)} {Numbers.Amount(health * (s + 1))}"));
-        }
+        /// <summary>The title of the table of what stars add.</summary>
+        public const string StarsTitle = "With stars";
 
-        /// <summary>How much harder it hits at each star up to the highest, or null without stars.</summary>
-        public static string StarDamage(int maxStars)
+        /// <summary>That table's columns: a blank over the lines' names, then none and each star up to the highest.</summary>
+        public static string[] StarColumns(int maxStars) => new[] { "", StarChoice(0) }.Concat(Enumerable.Range(1, maxStars).Select(Stars)).ToArray();
+
+        /// <summary>
+        /// That table's lines: its health at no star and each star, the base once more for each
+        /// (<c>Character.SetupMaxHealth</c>), and how much harder it hits, half again for each
+        /// (<c>Attack.GetLevelDamageFactor</c>); none without stars.
+        /// </summary>
+        public static List<string[]> StarLines(float health, int maxStars)
         {
-            if (maxStars <= 0) return null;
-            return string.Join(", ", Enumerable.Range(1, maxStars).Select(s => $"{Stars(s)} {Numbers.Times(1f + s * 0.5f)}"));
+            var lines = new List<string[]>();
+            if (maxStars <= 0) return lines;
+            var hp = new List<string> { "Health" };
+            var hits = new List<string> { "Damage" };
+            for (var s = 0; s <= maxStars; s++)
+            {
+                hp.Add(Numbers.Amount(health * (s + 1)));
+                hits.Add(Numbers.Times(1f + s * 0.5f));
+            }
+            lines.Add(hp.ToArray());
+            lines.Add(hits.ToArray());
+            return lines;
         }
 
         /// <summary>The damage of a hit by type, the biggest first; null when it does none.</summary>
