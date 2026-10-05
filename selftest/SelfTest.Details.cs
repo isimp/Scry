@@ -512,8 +512,9 @@ namespace Scry
         /// </summary>
         private static IEnumerator DamageEffects(Probe p)
         {
+            // The settings their pages say in words.
             var wanted = new[] { ("Burning", "Fire damage", 0), ("Spirit", "Spirit damage", 0), ("Poison", "Poison damage", 1), ("Frost", "Slows", 2), ("Lightning", "This effect", 0) };
-            var settings = new[] { "m_damageInterval", "m_baseTTL", "m_TTLPerDamagePlayer", "m_TTLPerDamage", "m_TTLPower", "m_freezeTimeEnemy", "m_freezeTimePlayer", "m_minSpeedFactor" }.Select(Naming.FieldLabel).ToList();
+            var settings = DamageSettings.Select(Naming.FieldLabel).ToList();
             foreach (var (name, label, tables) in wanted)
             {
                 var entry = X.Catalog.FirstOrDefault(e => e.Kind == Kind.StatusEffect && e.Name == name);
@@ -533,6 +534,9 @@ namespace Scry
             }
             yield break;
         }
+
+        /// <summary>The settings of the effects damage puts on you, which their pages say in words rather than as they are.</summary>
+        private static readonly string[] DamageSettings = { "m_damageInterval", "m_baseTTL", "m_TTLPerDamagePlayer", "m_TTLPerDamage", "m_TTLPower", "m_freezeTimeEnemy", "m_freezeTimePlayer", "m_minSpeedFactor" };
 
         /// <summary>What gives Rested shows under its page's How you get it, not under Linked as well.</summary>
         private static IEnumerator HowYouGetIt(Probe p)
