@@ -151,6 +151,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AResourceShowsItsHealthAndToolThenWhatGatheringItGivesAndWhereItGrows()
+        {
+            var pairs = new[] { ("Health", "resource"), ("Needs tool tier", "resource"), ("Breaks into", "resource"), ("Grows back in", "resource") };
+            var rows = new[] { ("Gives", "resource"), ("Damage it takes", "resource") };
+            var plan = FactLayout.Plan(Kind.Resource, pairs, rows, new[] { FactBlock.Where, FactBlock.Biomes, FactBlock.Hooks });
+            string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
+            Assert.Equal(new[] { null, "Gathering", "Where it lives", null }, plan.Select(t => t.Heading));
+            Assert.Equal(new[] { "Health", "Needs tool tier" }, plan[0].Tiles.Select(i => pairs[i].Item1));
+            Assert.Equal(new[] { "Breaks into", "Grows back in", "row Gives", "row Damage it takes" }, plan[1].Bits.Select(Name));
+            Assert.Equal(new[] { "block Where", "block Biomes" }, plan[2].Bits.Select(Name));
+        }
+
+        [Fact]
         public void ANoteReadsItsLabelThenItsValue()
         {
             Assert.Equal("Drops with stars: more with each star", FactWords.Note("Drops with stars", "more with each star"));

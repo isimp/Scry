@@ -61,6 +61,7 @@ namespace Scry
             [Kind.Creature] = Creature(),
             [Kind.Item] = Item(),
             [Kind.Piece] = Piece(),
+            [Kind.Resource] = Resource(),
         };
 
         private static KindPlan Creature()
@@ -155,6 +156,24 @@ namespace Scry
             plan.Blocks[FactBlock.Where] = "from";
             plan.Blocks[FactBlock.FoundIn] = "from";
             plan.Blocks[FactBlock.Biomes] = "from";
+            plan.Blocks[FactBlock.Uses] = More;
+            plan.Blocks[FactBlock.Users] = More;
+            plan.Blocks[FactBlock.Hooks] = "hooks";
+            return plan;
+        }
+
+        private static KindPlan Resource()
+        {
+            var plan = new KindPlan
+            {
+                Topics = new[] { ("overview", (string)null), ("gathering", "Gathering"), ("lives", "Where it lives"), (More, "More"), ("hooks", null) },
+            };
+            Tile(plan, "overview", null, "Health", "Needs tool tier");
+            Label(plan, More, "Not shown");
+            Part(plan, "gathering", "resource");
+            plan.Blocks[FactBlock.Where] = "lives";
+            plan.Blocks[FactBlock.FoundIn] = "lives";
+            plan.Blocks[FactBlock.Biomes] = "lives";
             plan.Blocks[FactBlock.Uses] = More;
             plan.Blocks[FactBlock.Users] = More;
             plan.Blocks[FactBlock.Hooks] = "hooks";
