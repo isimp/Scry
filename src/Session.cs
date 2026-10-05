@@ -85,7 +85,7 @@ namespace Scry
         {
             // Each step on its own: one that fails (a game update renamed what it reads) is told
             // once and costs only itself, never the key that opens the panel or the steps after it.
-            Step(Feature.Leaving, "noticing a world left", () =>
+            Step(Feature.Leaving, "noticing a world left", "update leaving", () =>
             {
                 // Leaving a world destroys every prefab the catalog points at. Compared as references:
                 // once the scene is destroyed, Unity's own comparison calls it null, the same as the
@@ -96,18 +96,20 @@ namespace Scry
                 if (IsOpen && Player.m_localPlayer == null) Hide();
             });
 
-            Step(Feature.Catalog, "reading the catalog", () => ReadCatalog());
+            Step(Feature.Catalog, "reading the catalog", "update catalog", () => ReadCatalog());
 
-            Step(Feature.OpenKey, "the key that opens the panel", () =>
+            Step(Feature.OpenKey, "the key that opens the panel", "update key", () =>
             {
                 if (Input.GetKeyDown(Settings.OpenKey) && CanToggle() && !TypingIt(Settings.OpenKey)) Toggle();
             });
 
             // After the key, so the panel opened by it is handed what it shows in the same frame.
+            var panel = Timing.Start();
             ScryPanel.Update(Explorer, Reading);
+            Timing.Add("update panel", panel);
 
-            Step(Feature.Previews, "the previews", () => Previews.Update(IsOpen ? Explorer : null));
-            Step(Feature.SelfTest, "the self-test", () =>
+            Step(Feature.Previews, "the previews", "update previews", () => Previews.Update(IsOpen ? Explorer : null));
+            Step(Feature.SelfTest, "the self-test", null, () =>
             {
                 var started = Timing.Start();
                 var inner = Timing.InnerMs();
@@ -118,7 +120,8 @@ namespace Scry
             if (!Guard.Run(Feature.Locations, "reading the locations", Locations.Update, "update locations")) Locations.Forget();
         }
 
-        private static void Step(Feature feature, string part, Action step) => Guard.Run(feature, part, step);
+        /// <summary>One step of the frame, timed as a part of its own inside the update (<paramref name="timed"/>), so what it costs is told apart.</summary>
+        private static void Step(Feature feature, string part, string timed, Action step) => Guard.Run(feature, part, step, timed);
 
         public static void LateUpdate()
         {

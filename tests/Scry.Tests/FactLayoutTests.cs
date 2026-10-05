@@ -427,7 +427,7 @@ namespace Scry.Tests
             var rows = new[] { ("While it lasts, cannot take", "status effect") };
             var plan = FactLayout.Plan(Kind.StatusEffect, pairs, rows, new[] { FactBlock.Users, FactBlock.Hooks });
             string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
-            Assert.Equal(new[] { null, "Changes", "With other effects", "More", null }, plan.Select(t => t.Heading));
+            Assert.Equal(new[] { null, "What it does", "With other effects", "More", null }, plan.Select(t => t.Heading));
             Assert.Equal(new[] { "Lasts" }, plan[0].Tiles.Select(i => pairs[i].Item1));
             Assert.Equal(new[] { "Health regen", "Resists" }, plan[1].Bits.Select(Name));
             Assert.Equal(new[] { "row While it lasts, cannot take" }, plan[2].Bits.Select(Name));
@@ -473,13 +473,14 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void AStatusEffectSaysHowYouGetItRightUnderHowLongItLasts()
+        public void AStatusEffectSaysWhatItDoesThenHowYouGetIt()
         {
-            // What gives it was only under Linked, sections below; it is the second thing anyone asks.
+            // What it does first, right under how long it lasts (Kevin: burning's or poison's
+            // section should sit more prominent); what gives it next, no longer only under Linked.
             var plan = FactLayout.Plan(Kind.StatusEffect, new[] { ("Lasts", "status effect"), ("Health regen", "status effect") }, new (string, string)[0], new FactBlock[0],
                 new[] { LinkWords.GivenBy });
-            Assert.Equal(new[] { null, "How you get it", "Changes" }, plan.Select(t => t.Heading));
-            Assert.Equal(LinkWords.GivenBy, Assert.Single(plan[1].Bits).LinkGroup);
+            Assert.Equal(new[] { null, "What it does", "How you get it" }, plan.Select(t => t.Heading));
+            Assert.Equal(LinkWords.GivenBy, Assert.Single(plan[2].Bits).LinkGroup);
             Assert.True(FactLayout.Places(Kind.StatusEffect, LinkWords.GivenBy));
         }
 

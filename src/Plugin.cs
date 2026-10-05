@@ -79,7 +79,9 @@ namespace Scry
         {
             var started = Timing.Start();
             Guard.Run(Feature.World, "the frame", Session.Update);
+            var drops = Timing.Start();
             DropWatch.Save();
+            Timing.Add("update drops", drops);
             Timing.Add("update", started);
         }
 

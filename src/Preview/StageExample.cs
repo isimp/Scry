@@ -280,9 +280,12 @@ namespace Scry
             _ground += cast;
             var ground = FloorFinder.Patch(_hits);
             ground.Ground = cast;
-            // The top of its box where its ground was measured: what is near it is its rock's top.
-            var top = room.Position.Y + room.Room.Size.Y / 2f;
-            ground.Top = subject.InverseTransformPoint(Holder.transform.TransformPoint(new Vector3(room.Position.X, top, room.Position.Z))).y;
+            // Its highest doorway where its ground was measured: ground far over it is out of its reach.
+            if (room.Room.Doorways.Count > 0)
+            {
+                var door = Enumerable.Range(0, room.Room.Doorways.Count).Select(room.DoorwayAt).OrderByDescending(d => d.Y).First();
+                ground.Door = subject.InverseTransformPoint(Holder.transform.TransformPoint(new Vector3(door.X, door.Y, door.Z))).y;
+            }
             _patches.Add(ground);
             _roomGround[room] = ground;
             _hits.Clear();
@@ -290,10 +293,10 @@ namespace Scry
             Timing.Add("example floors", read);
         }
 
-        /// <summary>The floors its rooms' ground makes now, and by the rules before (a room's own level from 2 square metres, its ground at any height), for the self-test to tell.</summary>
+        /// <summary>The floors its rooms' ground makes now, and by the rules before (<see cref="FloorRules.Before"/>), for the self-test to tell.</summary>
         [Diagnostic]
         public (List<float> Now, List<float> Before) FloorsFoundBothWays() =>
-            (FloorFinder.Floors(_patches, _ground, PlaceView.Storey), FloorFinder.Floors(_patches, _ground, PlaceView.Storey, FloorFinder.MinRoom, float.NegativeInfinity));
+            (FloorFinder.Floors(_patches, _ground, PlaceView.Storey), FloorFinder.Floors(_patches, _ground, PlaceView.Storey, FloorRules.Before));
 
         /// <summary>The example's floors: found in its rooms, with one for each room no floor reaches, or where their doorways are while none are found.</summary>
         public List<float> FloorsNow()

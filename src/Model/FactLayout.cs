@@ -324,7 +324,8 @@ namespace Scry
         {
             var plan = new KindPlan
             {
-                Topics = new[] { ("overview", (string)null), ("given", "How you get it"), ("changes", "Changes"), ("others", "With other effects"), (More, "More"), ("hooks", null) },
+                // What it does first, then how you get it.
+                Topics = new[] { ("overview", (string)null), ("changes", "What it does"), ("given", "How you get it"), ("others", "With other effects"), (More, "More"), ("hooks", null) },
             };
             Tile(plan, "overview", null, "Lasts");
             Links(plan, "given", LinkWords.GivenBy);
