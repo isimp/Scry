@@ -63,6 +63,7 @@ namespace Scry
             [Kind.Piece] = Piece(),
             [Kind.Resource] = Resource(),
             [Kind.Projectile] = Projectile(),
+            [Kind.Location] = Location(),
         };
 
         private static KindPlan Creature()
@@ -194,6 +195,32 @@ namespace Scry
             plan.Blocks[FactBlock.Where] = "from";
             plan.Blocks[FactBlock.FoundIn] = "from";
             plan.Blocks[FactBlock.Biomes] = "from";
+            plan.Blocks[FactBlock.Uses] = More;
+            plan.Blocks[FactBlock.Users] = More;
+            plan.Blocks[FactBlock.Hooks] = "hooks";
+            return plan;
+        }
+
+        private static KindPlan Location()
+        {
+            var plan = new KindPlan
+            {
+                Topics = new[] { ("overview", (string)null), ("placement", "Placement"), ("layout", "Layout"), ("contents", "Contents"), ("music", "Music"), (More, "More"), ("hooks", null) },
+            };
+            Tile(plan, "overview", null, "Biome", "Per world", "Size");
+            Label(plan, "placement", "Is", "Not before");
+            Label(plan, "layout", "Building", "Doorways", "Built into");
+            Label(plan, "contents", "What it holds", "What its rooms hold", "Levels at its spawn points");
+            Label(plan, "music", "Music");
+            Label(plan, More, "Not shown");
+            // What a dungeon's rooms hold, read with its example: "Its rooms hold", "Loot in its rooms" and the like.
+            plan.Starts.Add((l => l.StartsWith("Its rooms", StringComparison.Ordinal) || l.Contains(" in its rooms"), "contents"));
+            Part(plan, "placement", "placement");
+            Part(plan, "layout", "room", "dungeon");
+            Part(plan, "contents", "location");
+            plan.Blocks[FactBlock.Biomes] = "placement";
+            plan.Blocks[FactBlock.Where] = "contents";
+            plan.Blocks[FactBlock.FoundIn] = "layout";
             plan.Blocks[FactBlock.Uses] = More;
             plan.Blocks[FactBlock.Users] = More;
             plan.Blocks[FactBlock.Hooks] = "hooks";

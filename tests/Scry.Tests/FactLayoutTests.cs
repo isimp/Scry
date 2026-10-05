@@ -179,6 +179,42 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ADungeonShowsWhereItIsPlacedHowItIsLaidOutWhatItHoldsAndItsMusic()
+        {
+            var pairs = new[]
+            {
+                ("Per world", "placement"), ("Biome", "placement"), ("Above the sea", "placement"), ("Placed", "placement"),
+                ("Levels at its spawn points", "location"), ("Building", "location"), ("Music", "location"),
+                ("Laid out", "dungeon"), ("Picks rooms", "dungeon"), ("What its rooms hold", "dungeon"),
+            };
+            var rows = new[]
+            {
+                ("Its spawn points place", "location"), ("Chests and pickups", "location"), ("Built of", "location"), ("Doors in half of doorways", "dungeon"),
+                ("Built of 12 kinds of room", "dungeon"), ("Its rooms hold, 3 of 12 kinds of room read", "dungeon"), ("Loot in its rooms", "dungeon"), ("Chests and pickups in its rooms", "dungeon"),
+            };
+            var plan = FactLayout.Plan(Kind.Location, pairs, rows, new[] { FactBlock.Biomes, FactBlock.Hooks });
+            string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
+            Assert.Equal(new[] { null, "Placement", "Layout", "Contents", "Music", null }, plan.Select(t => t.Heading));
+            Assert.Equal(new[] { "Biome", "Per world" }, plan[0].Tiles.Select(i => pairs[i].Item1));
+            Assert.Equal(new[] { "Above the sea", "Placed", "block Biomes" }, plan[1].Bits.Select(Name));
+            Assert.Equal(new[] { "Building", "Laid out", "Picks rooms", "row Doors in half of doorways", "row Built of 12 kinds of room" }, plan[2].Bits.Select(Name));
+            Assert.Equal(new[] { "Levels at its spawn points", "What its rooms hold", "row Its spawn points place", "row Chests and pickups", "row Built of",
+                "row Its rooms hold, 3 of 12 kinds of room read", "row Loot in its rooms", "row Chests and pickups in its rooms" }, plan[3].Bits.Select(Name));
+            Assert.Equal(new[] { "Music" }, plan[4].Bits.Select(Name));
+        }
+
+        [Fact]
+        public void ARoomShowsItsSizeThenWhatItIsAndHowItJoinsTheRest()
+        {
+            var pairs = new[] { ("Is", "room"), ("Size", "room"), ("Doorways", "room"), ("Not before", "room"), ("Built into", "room") };
+            var plan = FactLayout.Plan(Kind.Location, pairs, new (string, string)[0], new FactBlock[0]);
+            Assert.Equal(new[] { null, "Placement", "Layout" }, plan.Select(t => t.Heading));
+            Assert.Equal(new[] { "Size" }, plan[0].Tiles.Select(i => pairs[i].Item1));
+            Assert.Equal(new[] { "Is", "Not before" }, plan[1].Bits.Select(b => pairs[b.Pair].Item1));
+            Assert.Equal(new[] { "Doorways", "Built into" }, plan[2].Bits.Select(b => pairs[b.Pair].Item1));
+        }
+
+        [Fact]
         public void ANoteReadsItsLabelThenItsValue()
         {
             Assert.Equal("Drops with stars: more with each star", FactWords.Note("Drops with stars", "more with each star"));
