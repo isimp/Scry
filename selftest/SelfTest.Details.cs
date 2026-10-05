@@ -415,6 +415,26 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.ResistanceGrid) > drawn, $"{shown.Name}'s page draws its grid");
         }
 
+        /// <summary>A copper deposit is broken with pickaxes from bronze up, a beech with axes; neither with a sword.</summary>
+        private static IEnumerator WhatBreaksIt(Probe p)
+        {
+            foreach (var (names, tool) in new[] { (new[] { "rock4_copper", "MineRock_Copper" }, "Pickaxe"), (new[] { "Beech1", "Birch1" }, "Axe") })
+            {
+                var entry = Pick(Kind.Resource, names);
+                if (entry == null)
+                {
+                    p.Note("none of " + string.Join(", ", names));
+                    continue;
+                }
+                var row = Facts.For(entry).Rows.FirstOrDefault(r => r.Title == GatherWords.BrokenWithTitle);
+                var with = row?.Items.Select(i => i.Prefab).ToList() ?? new List<string>();
+                p.Note($"{entry.Name} needs tier {Facts.For(entry).Pairs.FirstOrDefault(x => x.Key == "Needs tool tier").Value}, broken with: {string.Join(", ", with)}");
+                p.Check(with.Any(n => n.StartsWith(tool, StringComparison.Ordinal)), $"{entry.Name} is broken with a {tool.ToLowerInvariant()}");
+                p.Check(!with.Any(n => n.StartsWith("Sword", StringComparison.Ordinal)), $"{entry.Name} is not broken with a sword");
+            }
+            yield break;
+        }
+
         /// <summary>What gives Rested shows under its page's How you get it, not under Linked as well.</summary>
         private static IEnumerator HowYouGetIt(Probe p)
         {

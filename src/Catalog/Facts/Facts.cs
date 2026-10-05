@@ -276,6 +276,7 @@ namespace Scry
         public static void Forget()
         {
             Cache.Clear();
+            _tools = null;
         }
 
         /// <summary>Forgets what was told of one entry, which knows more now (a location, once read).</summary>

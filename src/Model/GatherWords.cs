@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -23,6 +24,24 @@ namespace Scry
 
         /// <summary>The tool tier it needs; any for none.</summary>
         public static string ToolTier(int tier) => tier > 0 ? Numbers.Count(tier) : "any";
+
+        /// <summary>The title of the row of what breaks a rock, vein or tree.</summary>
+        public const string BrokenWithTitle = "Broken with";
+
+        /// <summary>
+        /// What breaks a rock, vein or tree, the weakest first: a hit breaks it when its tool tier
+        /// is at least the thing's (<c>HitData.CheckToolTier</c>, the tier the weapon's own) and
+        /// some of its damage is of a type the thing takes, the rest coming to nothing against
+        /// its resistances.
+        /// </summary>
+        /// <param name="minTier">The tool tier it needs.</param>
+        /// <param name="taken">The damage types it takes any of.</param>
+        /// <param name="tools">The items players hit with: each with its tool tier and the damage types it deals.</param>
+        public static List<string> BreaksIt(int minTier, IEnumerable<string> taken, IEnumerable<(string Name, int Tier, string[] Deals)> tools)
+        {
+            var takes = new HashSet<string>(taken);
+            return tools.Where(t => t.Tier >= minTier && t.Deals.Any(takes.Contains)).OrderBy(t => t.Tier).Select(t => t.Name).ToList();
+        }
 
         /// <summary>What a shell turns into when struck once, as a silver vein's does.</summary>
         public static string BreaksInto(string inside) => inside + ", mined a piece at a time";

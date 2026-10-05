@@ -168,7 +168,34 @@ namespace Scry
             if (health > 0f) Add("Health", GatherWords.Health(health, perPiece));
             Add("Needs tool tier", GatherWords.ToolTier(toolTier));
             Resists(resists);
+
+            // What breaks it, told once, by its outer part where it has an inside.
+            if (Rows.Any(r => r.Title == GatherWords.BrokenWithTitle)) return;
+            var cells = Cells(resists);
+            var immune = SearchFight.Taking(cells, Tone.Immune);
+            var taken = cells.Select(c => c.Type.ToLowerInvariant()).Where(t => !immune.Contains(t));
+            var row = new Row { Title = GatherWords.BrokenWithTitle };
+            foreach (var tool in GatherWords.BreaksIt(toolTier, taken, Tools())) row.Items.Add(Chip(tool, ""));
+            if (row.Items.Count > 0) Rows.Add(row);
         }
+
+        /// <summary>The items players hit with, each with its tool tier and the damage types it deals; read once a world.</summary>
+        private static List<(string Name, int Tier, string[] Deals)> Tools()
+        {
+            if (_tools != null) return _tools;
+            _tools = new List<(string, int, string[])>();
+            foreach (var entry in WorldCatalog.Current?.All ?? Enumerable.Empty<Entry>())
+            {
+                if (entry.Kind != Kind.Item || !(entry.Source is GameObject prefab)) continue;
+                var shared = prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
+                // One no inventory can show is a creature's attack, not a player's tool.
+                if (shared?.m_attack == null || shared.m_icons == null || shared.m_icons.Length == 0) continue;
+                _tools.Add((prefab.name, shared.m_toolTier, SearchFight.Dealt(DamageFigures(shared.m_damages))));
+            }
+            return _tools;
+        }
+
+        private static List<(string Name, int Tier, string[] Deals)> _tools;
 
         /// <summary>
         /// A drop table as a row: its title says how often and how many times, each chip how many

@@ -63,6 +63,7 @@ namespace Scry
             yield return S("resistances show as a grid of every damage type on every creature, piece and rock", ResistanceGrids, 10);
             yield return S("a creature's page is laid out by topic, its fight first, every fact shown once", CreatureTopics, 10);
             yield return S("a status effect's page says how you get it, and Linked does not say it again", HowYouGetIt, 10);
+            yield return S("a rock and a tree say what breaks them, by tier and by the damage they take", WhatBreaksIt, 10);
             yield return S("every creature, piece of gear and buildable piece shows its standard rows, saying none where it has none", StandardRows, 20);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
