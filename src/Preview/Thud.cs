@@ -20,6 +20,10 @@ namespace Scry
         private float _next;
         private bool _onStage;
 
+        /// <summary>A strike noted in a physics contact, played in the next update: making the effect's copies strips them, which Unity forbids during a contact.</summary>
+        private bool _struck;
+        private Vector3 _struckAt;
+
         /// <summary>How many strikes have played, for the self-test.</summary>
         public static int Played { get; private set; }
 
@@ -50,12 +54,19 @@ namespace Scry
             if (Contacts.Count > 24) Contacts.RemoveAt(0);
             if (!struck) return;
             _next = Time.unscaledTime + _interval;
-            var point = collision.GetContact(0).point;
+            _struck = true;
+            _struckAt = collision.GetContact(0).point;
+        }
+
+        private void Update()
+        {
+            if (!_struck) return;
+            _struck = false;
             Played++;
             Guard.Run(Feature.FelledLogsStrikingGround, "playing a piece's thud", () =>
             {
-                if (_onStage) Stage.PlayList(_hit, null, null, point);
-                else Previews.PlayList(_hit, point, transform.rotation);
+                if (_onStage) Stage.PlayList(_hit, null, null, _struckAt);
+                else Previews.PlayList(_hit, _struckAt, transform.rotation);
             });
         }
     }
