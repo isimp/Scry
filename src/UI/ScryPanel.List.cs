@@ -82,6 +82,7 @@ namespace Scry
             new[] { "spawns:greydwarf", "What spawns or brings it: nests, spawners, raids and the like." },
             new[] { "station:forge3", "What is made at that station, here what a forge at level 3 can make. station:forge for any level, station:hand for what needs none." },
             new[] { "biome:swamp,plains", "A comma reads as or, in any term." },
+            new[] { "greydwraf", "When nothing matches, a word one slip from a name's word (a letter wrong, missing, extra or swapped) is read as that word, and the list says so." },
             new[] { "-has:ragdoll kind:c", "Terms combine, can be left out with a minus, and can be shortened." },
             new[] { "Tab", "Completes the word being typed with a term or a value the catalog holds, as the list under the search suggests. Tab again for the next, Shift+Tab for the one before; Enter takes the marked one." },
         };
@@ -206,6 +207,15 @@ namespace Scry
             if (explorer.Origin == OriginFilter.Mods)
             {
                 inner = ModsBar(explorer, inner);
+                _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
+            }
+
+            // A search whose slips were mended says what it shows instead.
+            if (explorer.Mended.Count > 0)
+            {
+                var noteH = U(26f);
+                GUI.Label(new Rect(inner.x + U(10f), inner.y, inner.width - U(20f), noteH), ListWords.Mended(explorer.Mended), Skin.DimLabel);
+                inner = new Rect(inner.x, inner.y + noteH, inner.width, inner.height - noteH);
                 _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
             }
 
@@ -394,7 +404,7 @@ namespace Scry
             var fullW = Skin.Width(nameStyle, primary);
             var nameW = Mathf.Min(textW, fullW);
             var nameRect = new Rect(textX, inner.y, nameW, inner.height);
-            var lit = ReadLit(explorer.Text);
+            var lit = ReadLit(explorer.MendedText ?? explorer.Text);
             if (lit) LightMatches(nameRect, primary, nameStyle);
             Skin.LabelIn(nameRect, primary, nameStyle, entry.Empty ? Skin.Faint : Skin.Text);
 

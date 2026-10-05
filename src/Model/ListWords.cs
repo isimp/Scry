@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Linq;
+
 namespace Scry
 {
     /// <summary>What the list and the controls above it say: its tabs, its filters, its groups and why it is empty.</summary>
@@ -38,5 +41,9 @@ namespace Scry
 
         /// <summary>The note above every kind's matches, where the picked tab has none.</summary>
         public static string NothingIn(string kind, int all) => $"Nothing in {kind}, showing all {Numbers.Count(all)}";
+
+        /// <summary>The note over a list shown for a search whose slips were mended (<see cref="SearchSlip"/>): what was typed, and what is shown instead.</summary>
+        public static string Mended(IReadOnlyList<(string Typed, string Used)> mended) =>
+            $"No match for {string.Join(", ", mended.Select(m => m.Typed))}; showing {string.Join(", ", mended.Select(m => m.Used))}";
     }
 }

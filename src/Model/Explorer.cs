@@ -23,6 +23,14 @@ namespace Scry
         private readonly HashSet<Entry> _underOwner = new HashSet<Entry>();
 
         private int _countAll;
+
+        /// <summary>The catalog's name words, for mending slips (<see cref="SearchSlip"/>), read when first needed.</summary>
+        private HashSet<string> _slipWords;
+
+        private readonly List<(string Typed, string Used)> _mended = new List<(string, string)>();
+        private string _mendedText;
+        private readonly Query _mendedQuery = new Query();
+
         private Entry _selected;
         private int _selectedIndex = -1;
         private int _selectionVersion;
@@ -153,6 +161,12 @@ namespace Scry
         /// the list goes back to it once it has matches again.
         /// </summary>
         public bool ShowingEveryKind => _showingEveryKind;
+
+        /// <summary>The words of a search that found nothing at all that were read as others one slip away, and those others; none for most searches.</summary>
+        public IReadOnlyList<(string Typed, string Used)> Mended => _mended;
+
+        /// <summary>The search as the list shows it when slips were mended; null when they were not.</summary>
+        public string MendedText => _mendedText;
 
         private bool _showingEveryKind;
 
@@ -410,15 +424,41 @@ namespace Scry
             _countAll = 0;
             foreach (var count in _counts) _countAll += count;
 
+            // Nothing found at all: a word one slip from a name's word is read as that word, if
+            // that finds anything; the list says so.
+            var query = _query;
+            _mendedText = null;
+            _mended.Clear();
+            if (_countAll == 0 && !string.IsNullOrEmpty(_query.Text))
+            {
+                if (_slipWords == null) _slipWords = SearchSlip.Words(_catalog);
+                var mended = SearchSlip.Mend(_query.Text, _catalog, _slipWords, _mended);
+                if (mended != null)
+                {
+                    _mendedQuery.Text = mended;
+                    _mendedQuery.Kind = _query.Kind;
+                    _mendedQuery.FavouritesOnly = _query.FavouritesOnly;
+                    _mendedQuery.Origin = _query.Origin;
+                    _results = Search.Run(_catalog, _mendedQuery, _favourites.Keys, order?.Keys, _counts);
+                    foreach (var count in _counts) _countAll += count;
+                    if (_countAll > 0)
+                    {
+                        query = _mendedQuery;
+                        _mendedText = mended;
+                    }
+                    else _mended.Clear();
+                }
+            }
+
             // A picked kind with nothing to show while others have matches lists those instead,
             // so typing never ends on an empty list with the matches a tab away.
-            _showingEveryKind = _results.Count == 0 && _query.Kind != null && _countAll > 0;
+            _showingEveryKind = _results.Count == 0 && query.Kind != null && _countAll > 0;
             if (_showingEveryKind)
             {
-                var kind = _query.Kind;
-                _query.Kind = null;
-                _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, null);
-                _query.Kind = kind;
+                var kind = query.Kind;
+                query.Kind = null;
+                _results = Search.Run(_catalog, query, _favourites.Keys, order?.Keys, null);
+                query.Kind = kind;
             }
 
             _underOwner.Clear();

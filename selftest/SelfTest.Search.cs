@@ -147,6 +147,8 @@ namespace Scry
             else p.Note("nothing gives a status effect that is listed, so gives: is not tried");
             p.Note($"\"is:silent\": {Numbers.Count(Find("is:silent").Count)}, \"is:unsure\": {Numbers.Count(Find("is:unsure").Count)}");
 
+            var slipped = Find("greydwraf");
+            p.Check(slipped.Any(e => e.Name == "Greydwarf") && X.Mended.Count == 1, "a slip is mended where nothing matches (\"greydwraf\" shows greydwarfs)", X.Mended.Count > 0 ? ListWords.Mended(X.Mended) : "nothing mended");
             p.Check(Find("zzqqxxnothing").Count == 0, "a search matching nothing finds nothing");
             X.SearchEverything("");
             yield break;
