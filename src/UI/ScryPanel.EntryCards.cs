@@ -144,7 +144,8 @@ namespace Scry
             return lists;
         }
 
-        private static string StatusFacts(StatusEffect effect) => StatusEffectWords.Card(effect.m_ttl);
+        private static string StatusFacts(StatusEffect effect) =>
+            effect is SE_Poison || effect is SE_Frost ? Facts.Lasting(effect) : StatusEffectWords.Card(effect.m_ttl);
 
         private static void StatusCard(Entry entry, Rect rect)
         {

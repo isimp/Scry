@@ -505,6 +505,35 @@ namespace Scry
             X.KindFilter = null;
         }
 
+        /// <summary>
+        /// The status effects damage puts on whatever it hits say what they do, as Kevin asked:
+        /// burning and spirit dealt over their time, poison over a time it tells in a table,
+        /// frost's slowing in tables, lightning's mark; none tells the settings it reads that from.
+        /// </summary>
+        private static IEnumerator DamageEffects(Probe p)
+        {
+            var wanted = new[] { ("Burning", "Fire damage", 0), ("Spirit", "Spirit damage", 0), ("Poison", "Poison damage", 1), ("Frost", "Slows", 2), ("Lightning", "This effect", 0) };
+            var settings = new[] { "m_damageInterval", "m_baseTTL", "m_TTLPerDamagePlayer", "m_TTLPerDamage", "m_TTLPower", "m_freezeTimeEnemy", "m_freezeTimePlayer", "m_minSpeedFactor" }.Select(Naming.FieldLabel).ToList();
+            foreach (var (name, label, tables) in wanted)
+            {
+                var entry = X.Catalog.FirstOrDefault(e => e.Kind == Kind.StatusEffect && e.Name == name);
+                if (entry == null)
+                {
+                    p.Note($"there is no {name}");
+                    continue;
+                }
+                var facts = Facts.For(entry);
+                var told = facts.Rows.Where(r => r.Columns != null).ToList();
+                p.Note($"{name}: " + string.Join("; ", facts.Pairs.Select(pair => $"{pair.Key}: {pair.Value}"))
+                       + string.Concat(told.Select(r => $" | {r.Title}: " + string.Join(", ", r.Lines.Select(l => string.Join(" ", l.Cells))))));
+                p.Check(facts.Pairs.Any(pair => pair.Key == label), $"{name} says its {label.ToLowerInvariant()}");
+                p.Check(told.Count == tables, $"and has {Numbers.Count(tables)} tables", Numbers.Count(told.Count));
+                var raw = facts.Pairs.Where(pair => settings.Contains(pair.Key)).Select(pair => pair.Key).ToList();
+                p.Check(raw.Count == 0, "and none of the settings it says that from", string.Join(", ", raw));
+            }
+            yield break;
+        }
+
         /// <summary>What gives Rested shows under its page's How you get it, not under Linked as well.</summary>
         private static IEnumerator HowYouGetIt(Probe p)
         {

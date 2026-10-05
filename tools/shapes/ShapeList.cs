@@ -28,7 +28,7 @@ namespace Scry
     public static class ShapeList
     {
         private static readonly Regex Entry = new Regex(
-            @"\(\s*""(?<type>[^""]+)""\s*,\s*""(?<method>[^""]+)""\s*,\s*(?<params>\d+)\s*,\s*0x(?<shape>[0-9A-Fa-f]{8})\s*,\s*""(?<feature>[^""]*)""\s*\)",
+            @"\(\s*""(?<type>[^""]+)""\s*,\s*""(?<method>[^""]+)""\s*,\s*(?<params>\d+)\s*,\s*0x(?<shape>[0-9A-Fa-f]{8})\s*,\s*(?:""(?<feature>[^""]*)""|(?<feature>Feature\.\w+))\s*\)",
             RegexOptions.Compiled);
 
         public static List<ShapeEntry> Parse(string source)

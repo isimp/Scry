@@ -35,6 +35,28 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AnEntryNamingItsFeatureByTheModelsFieldIsReadToo()
+        {
+            // The list names each feature by its field (Feature.WhatTradersPay) since features
+            // became the model's; read as text alone, the check compared none of them.
+            var entries = ShapeList.Parse(@"            (""StoreGui"", ""SellItem"", 0, 0x95E83F76, Feature.WhatTradersPay),");
+            var entry = Assert.Single(entries);
+            Assert.Equal("StoreGui", entry.Type);
+            Assert.Equal(0x95E83F76u, entry.Shape);
+            Assert.Equal("Feature.WhatTradersPay", entry.Feature);
+        }
+
+        [Fact]
+        public void TheWatchListInScrysSourceIsReadWhole()
+        {
+            // Every entry of the startup check's list, as many as name a shape there.
+            var source = System.IO.File.ReadAllText(System.IO.Path.Combine(ScrySource.Root(), "src", "Patches", "Compatibility.cs"));
+            var shapes = System.Text.RegularExpressions.Regex.Matches(source, @"\d+, 0x[0-9A-F]{8}, Feature\.").Count;
+            Assert.True(shapes > 200, $"{shapes} shapes in the list");
+            Assert.Equal(shapes, ShapeList.Parse(source).Count);
+        }
+
+        [Fact]
         public void AChangedShapeIsWrittenInItsPlaceAndNothingElseMoves()
         {
             var shapes = new Dictionary<string, uint>

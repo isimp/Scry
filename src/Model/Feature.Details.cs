@@ -36,6 +36,7 @@ namespace Scry
         public static readonly Feature ComfortGroups = Listed("comfort groups in the details");
         public static readonly Feature CodeGiven = Listed("status effects the game's own code gives");
         public static readonly Feature StatusEffectStats = Listed("status effect stats in the details");
+        public static readonly Feature DamageEffects = Listed("what burning, poison, frost and lightning do, in the details");
         public static readonly Feature ExclusiveEffects = Listed("effects that cannot be taken together, in the details");
         public static readonly Feature WhatObliteratorMakes = Listed("what the obliterator makes, in the details");
         public static readonly Feature WhatRaidsWaitFor = Listed("what raids wait for, in the details");
