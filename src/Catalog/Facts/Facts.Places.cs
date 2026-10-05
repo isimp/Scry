@@ -229,7 +229,9 @@ namespace Scry
                 }
                 if (role != PartRole.Loot) continue;
 
-                // The loot in them, in the fewest kinds of room first.
+                // The loot in them: what only this dungeon gives first, then what a trader pays
+                // for, then the rest, each by the best chance a chest or pickup in its rooms gives it.
+                var givers = read.SelectMany(c => c.Parts).Select(p => p.Prefab).Where(p => p != null).Distinct().ToList();
                 var loot = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Parts
                     .SelectMany(p => Knowledge.LootOf(GamePrefabs.Named(p.Prefab)))
                     .Distinct()
@@ -237,8 +239,14 @@ namespace Scry
                     .ToList()));
                 if (loot.Count > 0)
                 {
+                    var here = new HashSet<string>(givers) { _entry?.Name ?? "", _entry?.Key ?? "" };
+                    double Best(string item) => Knowledge.SourceLines(item).Where(s => s.Prefab != null && givers.Contains(s.Prefab)).Select(s => s.Chance).DefaultIfEmpty(0.0).Max();
+                    var told = loot.Select(l => (l.Prefab, l.Rooms, Best: Best(l.Prefab), Notable: Notable(l.Prefab, here)));
                     var row = new Row { Title = Read("Loot in its rooms") };
-                    foreach (var (item, count) in ContentOrder.RarestFirst(loot, l => l.Rooms)) row.Items.Add(Chip(item, PlaceParts.InRooms(count)));
+                    foreach (var (item, count, best, notable) in ContentOrder.LootFirst(told, l => l.Best, l => l.Notable.Only, l => l.Notable.Worth))
+                    {
+                        row.Items.Add(Marked(Chip(item, PlaceParts.InRooms(count, best)), notable));
+                    }
                     Rows.Add(row);
                 }
             }

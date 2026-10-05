@@ -75,6 +75,10 @@ namespace Scry
 
             /// <summary>The prefab, so the panel can jump to it.</summary>
             public string Prefab;
+
+            /// <summary>What marks it as worth having beyond its odds, and why, or nulls (<see cref="LootMarks"/>).</summary>
+            public string Mark;
+            public string MarkTip;
         }
 
         /// <summary>The text the game describes it with, if any.</summary>
@@ -142,6 +146,37 @@ namespace Scry
 
         /// <summary>The entry of a key, or null when the catalog has none.</summary>
         private static Entry EntryOf(string key) => WorldCatalog.Find(key);
+
+        /// <summary>
+        /// Whether nothing else in the world gives an item, of what a page lists as its loot, and
+        /// what a trader pays for one (its value; the coins themselves none).
+        /// </summary>
+        private static (bool Only, int Worth) Notable(string item, ICollection<string> here)
+        {
+            var givers = Knowledge.SourceLines(item).Select(s => s.Prefab).Where(p => p != null).Distinct().ToList();
+            var entry = EntryOf(item);
+            var elsewhere = Knowledge.MadeOf(item).Count > 0 || Knowledge.IsPlacedByWorld(item)
+                || (entry != null && (entry.Stations.Length > 0 || entry.FoundIn.Any(f => !here.Contains(f))));
+            var shared = GamePrefabs.Item(item).OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
+            var worth = shared != null && item != "Coins" ? shared.m_value : 0;
+            return (LootMarks.OnlyHere(givers, elsewhere, here), worth);
+        }
+
+        /// <summary>A loot chip marked as worth having where it is.</summary>
+        private static Ingredient Marked(Ingredient chip, (bool Only, int Worth) notable)
+        {
+            if (notable.Only)
+            {
+                chip.Mark = DropWords.OnlyHereMark;
+                chip.MarkTip = DropWords.OnlyHereTip;
+            }
+            else if (notable.Worth > 0)
+            {
+                chip.Mark = DropWords.WorthMark(notable.Worth);
+                chip.MarkTip = DropWords.WorthTip(notable.Worth);
+            }
+            return chip;
+        }
 
         /// <summary>Why Scry is not sure of a pair, by its label (<see cref="UnsureWords"/>).</summary>
         public readonly Dictionary<string, string> Unsure = new Dictionary<string, string>();

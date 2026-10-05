@@ -194,6 +194,7 @@ namespace Scry
             ("ItemDrop+ItemData", "GetDamage", 2, 0xB0CFE930, Feature.ItemStats),
             ("ItemDrop+ItemData", "GetIcon", 0, 0x3E1CE944, Feature.AttackItems),
             ("HitData", "CheckToolTier", 2, 0x07F6BFAD, Feature.WhatBreaksRocksAndTrees),
+            ("StoreGui", "SellItem", 0, 0x95E83F76, Feature.WhatTradersPay),
             ("Player", "SetSleeping", 1, 0x83CCF121, Feature.CodeGiven),
             ("Player", "UpdateEnvStatusEffects", 1, 0x771FB54F, Feature.CodeGiven),
             ("EffectArea", "CustomFixedUpdate", 1, 0x89002AE3, Feature.CodeGiven),

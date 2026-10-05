@@ -171,6 +171,9 @@ namespace Scry
         /// <summary>How widespread a thing is among a dungeon's kinds of room, as a chip's amount.</summary>
         public static string InRooms(int rooms) => "in " + Naming.Count(rooms, "kind of room", "kinds of room");
 
+        /// <summary>The same for loot, with the best chance a chest or pickup there gives it.</summary>
+        public static string InRooms(int rooms, double best) => best > 0.0 ? $"{InRooms(rooms)}, at best {DropWords.Share((float)best)}" : InRooms(rooms);
+
         /// <summary>How many and how likely, as a chip's amount: nothing for one that is always there.</summary>
         public static string Amount(int count, float chance)
         {

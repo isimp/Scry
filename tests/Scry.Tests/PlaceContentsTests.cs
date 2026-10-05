@@ -47,6 +47,14 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void LootInADungeonsRoomsTellsTheBestChanceAChestThereGivesIt()
+        {
+            // Rarity by a real chance, not by how many kinds of room hold it.
+            Assert.Equal("in 3 kinds of room, at best 12%", PlaceParts.InRooms(3, 0.12));
+            Assert.Equal("in 1 kind of room", PlaceParts.InRooms(1, 0.0));
+        }
+
+        [Fact]
         public void PartsOfOnePrefabAtOneChanceAreCountedTogether()
         {
             var parts = PlaceParts.Group(new[] { ("MushroomYellow", 0.2f), ("MushroomYellow", 0.2f), ("MushroomYellow", 0.2f), ("Spawner_Skeleton", 0.33f) });

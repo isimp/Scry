@@ -544,6 +544,8 @@ namespace Scry
             }
             if (bring != null) p.Note("what to bring: " + string.Join(", ", bring.Items.Select(i => $"{i.Name} finds {Numbers.Count(Found(EntryKeys.SearchOf(i.Prefab)))}")));
             X.SearchEverything("");
+            var dropRow = facts.Rows.FirstOrDefault(r => r.Title == "Drops");
+            if (dropRow != null) p.Note("its drops in order: " + string.Join(", ", dropRow.Items.Select(i => $"{i.Name} {i.Amount}{(i.Mark != null ? " [" + i.Mark + "]" : "")}")));
             var drops = plan.SelectMany(t => t.Bits).FirstOrDefault(b => b.Row >= 0 && rows[b.Row].Title == "Drops");
             if (drops != null) p.Note("under its drops: " + string.Join(", ", drops.Notes.Select(n => pairs[n].Key)));
 

@@ -68,10 +68,13 @@ namespace Scry
             if (drops != null && drops.m_drops.Count > 0)
             {
                 var row = new Row { Title = "Drops" };
-                foreach (var drop in ContentOrder.RarestFirst(drops.m_drops.Where(d => d?.m_prefab != null), d => d.m_chance))
+                // What only it drops first, then what a trader pays for, then the rest, each the least likely first.
+                var here = new[] { prefab.name };
+                var told = drops.m_drops.Where(d => d?.m_prefab != null).Select(d => (Drop: d, Notable: Notable(d.m_prefab.name, here)));
+                foreach (var (drop, notable) in ContentOrder.LootFirst(told, d => d.Drop.m_chance, d => d.Notable.Only, d => d.Notable.Worth))
                 {
                     var amount = DropWords.CreatureDrop(drop.m_amountMin, drop.m_amountMax, drop.m_onePerPlayer, drop.m_chance);
-                    row.Items.Add(new Ingredient { Icon = Icon(drop.m_prefab), Name = ItemName(drop.m_prefab), Amount = amount, Prefab = drop.m_prefab.name });
+                    row.Items.Add(Marked(new Ingredient { Icon = Icon(drop.m_prefab), Name = ItemName(drop.m_prefab), Amount = amount, Prefab = drop.m_prefab.name }, notable));
                 }
                 // A boss's trophy gives its Forsaken power on its boss stone.
                 foreach (var drop in drops.m_drops)

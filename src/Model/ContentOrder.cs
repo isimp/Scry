@@ -29,6 +29,13 @@ namespace Scry
         public static List<T> RarestFirst<T>(IEnumerable<T> items, Func<T, double> chance) =>
             items.OrderBy(chance).ToList();
 
+        /// <summary>
+        /// Loot by what it is worth having: what nothing else gives first, then what a trader
+        /// pays for, the most first, then the rest; each the least likely first.
+        /// </summary>
+        public static List<T> LootFirst<T>(IEnumerable<T> items, Func<T, double> chance, Func<T, bool> onlyHere, Func<T, int> worth) =>
+            items.OrderBy(i => onlyHere(i) ? 0 : 1).ThenByDescending(worth).ThenBy(chance).ToList();
+
         /// <summary>Creatures, bosses first, then the most health; what is no creature (null) after them all.</summary>
         public static List<T> ToughestFirst<T>(IEnumerable<T> items, Func<T, Foe?> foe)
         {

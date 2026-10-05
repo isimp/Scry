@@ -64,6 +64,7 @@ namespace Scry
         public static readonly Feature WhatChestsHold = Listed("what chests hold, in the details");
         public static readonly Feature RockHealthPerPiece = Listed("a rock's health per piece, in the details");
         public static readonly Feature WhatBreaksRocksAndTrees = Listed("what breaks rocks and trees, in the details");
+        public static readonly Feature WhatTradersPay = Listed("what a trader pays for loot, in the details");
         public static readonly Feature HowPlantsGrow = Listed("how plants grow, in the details");
         public static readonly Feature WhenWhatIsPickedGrowsBack = Listed("when what is picked grows back, in the details");
         public static readonly Feature TamingAndFeeding = Listed("taming and feeding in the details");

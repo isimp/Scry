@@ -213,9 +213,11 @@ namespace Scry
             var title = holds ? DropWords.HoldsTitle(info) : DropWords.Title(info);
             title = DropWords.Led(lead, title);
             var row = new Row { Title = title };
-            foreach (var (each, item) in ContentOrder.RarestFirst(items, i => i.Drop.Weight))
+            // What only this gives first, then what a trader pays for, then the rest, each the least likely first.
+            var here = new[] { _entry?.Name ?? "" };
+            foreach (var (each, item, notable) in ContentOrder.LootFirst(items.Select(i => (i.Drop, i.Item, Notable: Notable(i.Item.name, here))), i => i.Drop.Weight, i => i.Notable.Only, i => i.Notable.Worth))
             {
-                row.Items.Add(new Ingredient { Icon = Icon(item), Name = ItemName(item), Amount = DropWords.Amount(info, each), Prefab = item.name });
+                row.Items.Add(Marked(new Ingredient { Icon = Icon(item), Name = ItemName(item), Amount = DropWords.Amount(info, each), Prefab = item.name }, notable));
             }
             Rows.Add(row);
             _drops = true;

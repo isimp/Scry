@@ -149,6 +149,18 @@ namespace Scry
         public static string Led(string lead, string title) =>
             string.IsNullOrEmpty(lead) || string.IsNullOrEmpty(title) ? title : lead + char.ToLowerInvariant(title[0]) + title.Substring(1);
 
+        /// <summary>The mark of loot nothing else in the world gives.</summary>
+        public const string OnlyHereMark = "only here";
+
+        /// <summary>That mark's tip.</summary>
+        public const string OnlyHereTip = "Nothing else in the world gives it, and nothing makes it";
+
+        /// <summary>The mark of loot a trader pays for: what one is worth (<c>StoreGui.SellItem</c>: its value for each one sold).</summary>
+        public static string WorthMark(int coins) => Naming.Count(coins, "coin", "coins");
+
+        /// <summary>That mark's tip.</summary>
+        public static string WorthTip(int coins) => $"A trader pays {Naming.Count(coins, "coin", "coins")} for one";
+
         /// <summary>
         /// A share as a percentage: whole where that says enough, with a decimal near none or all,
         /// so a rare drop never reads as 0% nor a likely one as 100%.
