@@ -87,13 +87,8 @@ namespace Scry
             Skin.Icon(clock, Skin.Clock, explorer.RecentOnly ? Skin.Accent : Skin.Dim);
             if (recent.Contains(Event.current.mousePosition)) AskTip("recent", ListWords.RecentTip(explorer.RecentOnly));
 
-            var originX = recent.xMax + gap * 2f;
-            var originRow = row;
-            if (originX + originW > rect.xMax)
-            {
-                originX = rect.x;
-                originRow = row + rect.height + U(6f);
-            }
+            var (originX, nextRow) = HeaderLayout.OriginSwitch(_compact, recent.xMax + gap * 2f, originW, rect.x, rect.xMax);
+            var originRow = nextRow ? row + rect.height + U(6f) : row;
 
             GUI.Label(new Rect(originX, originRow, fromW, rect.height), fromText, Skin.FaintLabel);
             var x = originX + fromW;
