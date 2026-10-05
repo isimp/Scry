@@ -289,6 +289,12 @@ namespace Scry
             };
 
             // Something none of the other kinds is grouped by what it is there for.
+            if (entry.Kind == Kind.Spawner)
+            {
+                var spawns = Groups.Spawner(found.Traits);
+                entry.Group = spawns.Name;
+                entry.GroupOrder = spawns.Order;
+            }
             if (entry.Kind == Kind.Other)
             {
                 var role = Groups.Role(found.Traits);
@@ -504,6 +510,9 @@ namespace Scry
                     if (dropping.m_dropWhenDestroyed?.m_drops != null && dropping.m_dropWhenDestroyed.m_drops.Count > 0) traits.HasDrops = true;
                     break;
                 case SpawnArea _:
+                    traits.HasSpawner = true;
+                    traits.IsNest = true;
+                    break;
                 case CreatureSpawner _:
                     traits.HasSpawner = true;
                     break;

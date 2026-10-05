@@ -48,6 +48,8 @@ namespace Scry
             // What grows wild counts whatever kind a mod made it, as a piece one can plant too.
             Here("Grows here", e => e.Kind == Kind.Resource || (e.Kind == Kind.Piece && Knowledge.IsPlacedByWorld(e.Name)),
                 order: found => ContentOrder.HardestFirst(found, e => ToGather(e.Source as UnityEngine.GameObject)));
+            // The nests the world places there, which were among what else is placed before spawners were a kind of their own.
+            Here("Spawners here", e => e.Kind == Kind.Spawner);
             // Places the fewest the world places first, by every set of rules it is placed by.
             Here("Places here", e => e.Kind == Kind.Location && !(e.Source is PlaceSource place && place.IsRoom),
                 order: found => ContentOrder.FewestFirst(found, e => e.Source is PlaceSource place ? place.Rules.Sum(r => r.m_quantity) : 0));

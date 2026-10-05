@@ -276,6 +276,24 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ASpawnerShowsItsPaceThenWhatItSpawnsHowItBreaksAndWhereItIs()
+        {
+            var pairs = new[]
+            {
+                ("Spawns Greydwarf", "spawner"), ("Spawns Greydwarf brute", "spawner"), ("Star chance", "spawner"), ("Works", "spawner"), ("Pace", "spawner"),
+                ("Keeps alive", "spawner"), ("Puts them", "spawner"), ("Health", "resource"), ("Needs tool tier", "resource"),
+            };
+            var rows = new[] { ("Drops", "resource"), ("Damage it takes", "resource") };
+            var plan = FactLayout.Plan(Kind.Spawner, pairs, rows, new[] { FactBlock.Where, FactBlock.Biomes, FactBlock.Hooks });
+            string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
+            Assert.Equal(new[] { null, "Spawns", "Breaking it", "Where it is", null }, plan.Select(t => t.Heading));
+            Assert.Equal(new[] { "Pace", "Keeps alive", "Health" }, plan[0].Tiles.Select(i => pairs[i].Item1));
+            Assert.Equal(new[] { "Spawns Greydwarf", "Spawns Greydwarf brute", "Star chance", "Works", "Puts them" }, plan[1].Bits.Select(Name));
+            Assert.Equal(new[] { "Needs tool tier", "row Drops", "row Damage it takes" }, plan[2].Bits.Select(Name));
+            Assert.Equal(new[] { "block Where", "block Biomes" }, plan[3].Bits.Select(Name));
+        }
+
+        [Fact]
         public void ANoteReadsItsLabelThenItsValue()
         {
             Assert.Equal("Drops with stars: more with each star", FactWords.Note("Drops with stars", "more with each star"));

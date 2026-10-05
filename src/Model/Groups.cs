@@ -413,10 +413,13 @@ namespace Scry
 
                 // ----- Other by role -----
 
+        /// <summary>A spawner's group: nests, which keep some alive near them, then spawn points, one creature each.</summary>
+        public static Group Spawner(PrefabTraits traits) => traits.IsNest ? new Group("Nests", 1) : new Group("Spawn points", 2);
+
         /// <summary>What something that is none of the other kinds is there for, by what it has.</summary>
         public static Group Role(PrefabTraits traits)
         {
-            if (traits.HasSpawner || traits.IsAltar) return new Group("Spawners and altars", 1);
+            if (traits.IsAltar) return new Group("Altars", 1);
             if (traits.HasRagdoll) return new Group("Remains", 2);
             if (traits.HasContainer) return new Group("Chests and containers", 3);
             if (traits.IsUsable) return new Group("Things you can use", 4);

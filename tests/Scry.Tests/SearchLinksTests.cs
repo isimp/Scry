@@ -17,7 +17,7 @@ namespace Scry.Tests
             var troll = E("Troll", Kind.Creature, "Troll");
             var greydwarf = E("Greydwarf", Kind.Creature, "Greydwarf");
             var brute = E("Greydwarf_Elite", Kind.Creature, "Greydwarf brute");
-            var nest = E("Spawner_GreydwarfNest", Kind.Other, "Greydwarf nest");
+            var nest = E("Spawner_GreydwarfNest", Kind.Spawner, "Greydwarf nest");
             var raid = E("foresttrolls", Kind.Raid, "The ground is shaking");
             var resin = E("Resin", Kind.Item, "Resin");
             var hide = E("TrollHide", Kind.Item, "Troll hide");

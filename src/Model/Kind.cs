@@ -10,6 +10,9 @@ namespace Scry
         Item,
         Piece,
         Resource,
+
+        /// <summary>Spawns creatures: a nest (<c>SpawnArea</c>) or a spawn point (<c>CreatureSpawner</c>).</summary>
+        Spawner,
         Projectile,
         Effect,
         Sound,
@@ -85,8 +88,11 @@ namespace Scry
         /// <summary>Turns, when broken, into something mined or chopped (a silver vein into the vein itself).</summary>
         public bool BreaksIntoResource;
 
-        /// <summary>Spawns creatures, as a nest does.</summary>
+        /// <summary>Spawns creatures, as a nest or a spawn point does.</summary>
         public bool HasSpawner;
+
+        /// <summary>Spawns them as a nest does, keeping some alive near it (<c>SpawnArea</c>), rather than one at a spawn point.</summary>
+        public bool IsNest;
 
         /// <summary>Summons a boss when offered to (<c>OfferingBowl</c>).</summary>
         public bool IsAltar;
@@ -116,6 +122,10 @@ namespace Scry
             if (traits.HasCharacter) return Kind.Creature;
             if (traits.HasProjectile) return Kind.Projectile;
             if (traits.HasItemDrop) return Kind.Item;
+
+            // A nest or a spawn point is a spawner, though a nest breaks into drops; one a mod makes
+            // buildable is built like any piece.
+            if (traits.HasSpawner && !traits.HasPiece) return Kind.Spawner;
 
             // What is chopped, mined or picked stays a resource when a mod makes it buildable too
             // (MoreVanillaBuildPrefabs does so for hundreds of the game's own prefabs); a crop
@@ -187,6 +197,7 @@ namespace Scry
                 case Kind.Item: return "Items";
                 case Kind.Piece: return "Pieces";
                 case Kind.Resource: return "Resources";
+                case Kind.Spawner: return "Spawners";
                 case Kind.Projectile: return "Projectiles";
                 case Kind.Effect: return "Effects";
                 case Kind.Sound: return "Sounds";

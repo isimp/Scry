@@ -505,6 +505,9 @@ namespace Scry
                        ?? X.Catalog.FirstOrDefault(e => e.Source is GameObject prefab && prefab.GetComponentInChildren<SpawnArea>(true) != null);
             if (nest == null) p.Skip("there is no spawner");
             p.Note($"{nest.Name} ({nest.DisplayName})");
+            p.Check(nest.Kind == Kind.Spawner && nest.Group == "Nests", "a nest is a spawner, listed with the nests", $"{Kinds.Label(nest.Kind)}, {nest.Group}");
+            var points = X.Catalog.Count(e => e.Kind == Kind.Spawner && e.Group == "Spawn points");
+            p.Note($"{Numbers.Count(X.Catalog.Count(e => e.Kind == Kind.Spawner))} spawners, {Numbers.Count(points)} of them spawn points");
             var told = Facts.For(nest);
             foreach (var row in new[] { "Works", "Pace", "Keeps alive", "Puts them" }) p.Check(Tells(told, row), $"it tells {row.ToLowerInvariant()}", Pairs(told));
             p.Check(told.Pairs.Any(pair => pair.Key.StartsWith("Spawns ", StringComparison.Ordinal)), "it tells what it spawns and how often", Pairs(told));

@@ -19,7 +19,7 @@ namespace Scry
             var failed = new List<string>();
             var odd = new List<string>();
             var shown = 0;
-            foreach (var kind in new[] { Kind.Creature, Kind.Item, Kind.Piece, Kind.Resource, Kind.Projectile, Kind.Effect, Kind.Other })
+            foreach (var kind in new[] { Kind.Creature, Kind.Item, Kind.Piece, Kind.Resource, Kind.Spawner, Kind.Projectile, Kind.Effect, Kind.Other })
             {
                 var all = X.Catalog.Where(e => e.Kind == kind && e.Source is GameObject && Stage.IsStaged(e)).OrderBy(e => e.Name, StringComparer.Ordinal).ToList();
                 foreach (var entry in Spread(all, 10))

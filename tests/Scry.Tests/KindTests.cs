@@ -67,12 +67,27 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ANestIsNoResourceThoughItBreaksIntoDrops()
+        public void ANestIsASpawnerThoughItBreaksIntoDrops()
         {
-            // A greydwarf nest spawns creatures; it is found with the other spawners.
-            var nest = new PrefabTraits { HasDestructible = true, HasDrops = true, HasSpawner = true, HasRenderer = true, HasSolidCollider = true };
+            // A greydwarf nest spawns creatures; it is found with the other spawners, in a kind of their own.
+            var nest = new PrefabTraits { HasDestructible = true, HasDrops = true, HasSpawner = true, IsNest = true, HasRenderer = true, HasSolidCollider = true };
+            Assert.Equal(Kind.Spawner, Kinds.Of(nest));
+            Assert.Equal(Kind.Spawner, Kinds.Of(new PrefabTraits { HasSpawner = true }));
+            // A spawner a mod makes buildable is a piece, as anything built is.
+            Assert.Equal(Kind.Piece, Kinds.Of(new PrefabTraits { HasSpawner = true, HasPiece = true, HasRenderer = true }));
+        }
 
-            Assert.Equal(Kind.Other, Kinds.Of(nest));
+        [Fact]
+        public void SpawnersAreGroupedIntoNestsAndSpawnPoints()
+        {
+            var nests = Groups.Spawner(new PrefabTraits { HasSpawner = true, IsNest = true });
+            var points = Groups.Spawner(new PrefabTraits { HasSpawner = true });
+            Assert.Equal("Nests", nests.Name);
+            Assert.Equal("Spawn points", points.Name);
+            Assert.True(nests.Order < points.Order);
+            Assert.Equal("Spawners", Kinds.Label(Kind.Spawner));
+            Assert.Equal("spawner", Kinds.TermWord(Kind.Spawner));
+            Assert.True(Search.KindMatches(Kind.Spawner, "spawners"));
         }
 
         [Fact]

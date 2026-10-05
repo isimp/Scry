@@ -195,8 +195,8 @@ namespace Scry.Tests
         [Fact]
         public void OtherThingsGoByWhatTheyAreThere()
         {
-            Assert.Equal("Spawners and altars", Groups.Role(new PrefabTraits { HasSpawner = true, HasRenderer = true }).Name);
-            Assert.Equal("Spawners and altars", Groups.Role(new PrefabTraits { IsAltar = true, HasRenderer = true }).Name);
+            // Spawners are a kind of their own, so the first of the rest are altars.
+            Assert.Equal("Altars", Groups.Role(new PrefabTraits { IsAltar = true, HasRenderer = true }).Name);
             Assert.Equal("Remains", Groups.Role(new PrefabTraits { HasRagdoll = true, HasRenderer = true }).Name);
             Assert.Equal("Chests and containers", Groups.Role(new PrefabTraits { HasContainer = true, IsUsable = true, HasRenderer = true }).Name);
             Assert.Equal("Things you can use", Groups.Role(new PrefabTraits { IsUsable = true, HasRenderer = true, HasSolidCollider = true }).Name);
@@ -206,9 +206,9 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void RolesComeSpawnersFirstAndNothingToShowLast()
+        public void RolesComeAltarsFirstAndNothingToShowLast()
         {
-            var spawner = Groups.Role(new PrefabTraits { HasSpawner = true, HasRenderer = true });
+            var spawner = Groups.Role(new PrefabTraits { IsAltar = true, HasRenderer = true });
             var scenery = Groups.Role(new PrefabTraits { HasRenderer = true, HasSolidCollider = true });
             var nothing = Groups.Role(new PrefabTraits());
             Assert.True(spawner.Order < scenery.Order);
