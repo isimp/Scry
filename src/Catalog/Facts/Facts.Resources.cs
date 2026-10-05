@@ -175,15 +175,15 @@ namespace Scry
             var immune = SearchFight.Taking(cells, Tone.Immune);
             var taken = cells.Select(c => c.Type.ToLowerInvariant()).Where(t => !immune.Contains(t));
             var row = new Row { Title = GatherWords.BrokenWithTitle };
-            foreach (var tool in GatherWords.BreaksIt(toolTier, taken, Tools())) row.Items.Add(Chip(tool, ""));
+            foreach (var (tool, tier) in GatherWords.BreaksIt(toolTier, taken, Tools())) row.Items.Add(Chip(tool, GatherWords.TierChip(tier)));
             if (row.Items.Count > 0) Rows.Add(row);
         }
 
-        /// <summary>The weapons, pickaxes and torches players hit with and can get, each with its tool tier and the damage types it deals; read once a world.</summary>
-        private static List<(string Name, int Tier, string[] Deals)> Tools()
+        /// <summary>The weapons, pickaxes and torches players hit with and can get, each with its tool tier and the damage it deals by type; read once a world.</summary>
+        private static List<(string Name, int Tier, (string Type, float Amount)[] Deals)> Tools()
         {
             if (_tools != null) return _tools;
-            _tools = new List<(string, int, string[])>();
+            _tools = new List<(string, int, (string, float)[])>();
             foreach (var entry in WorldCatalog.Current?.All ?? Enumerable.Empty<Entry>())
             {
                 if (entry.Kind != Kind.Item || !(entry.Source is GameObject prefab)) continue;
@@ -193,12 +193,12 @@ namespace Scry
                 // damage figure is never dealt. One no inventory can show is a creature's attack, and one nothing gives a
                 // player (the game's cheat sword) is no tool either.
                 if (shared?.m_attack == null || !item.IsWeapon() || shared.m_icons == null || shared.m_icons.Length == 0 || !Grouping.Obtainable(entry)) continue;
-                _tools.Add((prefab.name, shared.m_toolTier, SearchFight.Dealt(DamageFigures(shared.m_damages))));
+                _tools.Add((prefab.name, shared.m_toolTier, DamageFigures(shared.m_damages)));
             }
             return _tools;
         }
 
-        private static List<(string Name, int Tier, string[] Deals)> _tools;
+        private static List<(string Name, int Tier, (string Type, float Amount)[] Deals)> _tools;
 
         /// <summary>
         /// A drop table as a row: its title says how often and how many times, each chip how many

@@ -38,6 +38,15 @@ namespace Scry
             yield return Until(() => Second() != null && Previews.PlayingClip() == Second(), 30);
             p.Check(Second() != null && Previews.PlayingClip() == Second(), $"asked on its own, {weapon.Name} is worn and its second attack plays", Second() != null ? Second().name : "no clip known");
 
+            // A weapon of one attack has its line too, which plays it (Kevin's ask).
+            var single = Pick(Kind.Item, "Bow", "PickaxeAntler", "Torch");
+            if (single != null)
+            {
+                var one = Facts.For(single).Rows.FirstOrDefault(r => r.Title == CombatWords.WeaponAttacksTitle);
+                p.Check(one != null && one.Lines.Count == 1 && EntryKeys.PlaysAttack(one.Lines[0].Link, out var oneItem, out var oneSecond) && oneItem == single.Name && !oneSecond,
+                    $"{single.Name}, of one attack, has a line for it that plays it");
+            }
+
             var first = Previews.ClipOfAttackItem(weapon.Name);
             p.Note($"{weapon.Name}: first attack {(first != null ? first.name : "none")}, second {(Second() != null ? Second().name : "none")}");
             p.Check(first != null && first != Second(), "its first attack is a clip of its own");

@@ -26,7 +26,7 @@ A chest, cart or ship tells how many slots it holds.
 
 What details name goes there as a chip in more places: the biomes a plant grows in, a beehive works in and a piece may be placed in, the pieces a piece keeps its distance from and the one it must stand near, the status effects one cannot take while another lasts, the mods present that a mod will not run with, and the boss a raid waits for.
 
-Armour tells what it resists while worn and a shield what it resists while blocking. Gear tells what it changes while worn, as the game's tooltip does: heat resistance, eitr regeneration, the stamina of each kind of action, the most adrenaline, and what full adrenaline gives. A weapon with a second attack shows both as a table, each its damage, knockback, stagger and cost, its name playing the attack on the person wearing it and stopping it again; shown on its own, a click puts it on the person first.
+Armour tells what it resists while worn and a shield what it resists while blocking. Gear tells what it changes while worn, as the game's tooltip does: heat resistance, eitr regeneration, the stamina of each kind of action, the most adrenaline, and what full adrenaline gives. A weapon shows its attacks as a table, each its damage, knockback, stagger and cost, a weapon of one attack its one line, its name playing the attack on the person wearing it and stopping it again; shown on its own, a click puts it on the person first.
 
 A tame creature tells how it breeds: what it needs, how its love points come, how long it is pregnant, when too many near stop it, and its young. A young one tells what it grows into and when, an egg what hatches from it and where it must lie, and each names where it comes from. A creature with a saddle tells what it is ridden with and its stamina while ridden.
 
@@ -67,6 +67,8 @@ The items creatures attack with stay out of the weapons' groups: an item no inve
 The search's `is:` finds dungeons, camps and their rooms, as the Locations list tags them: `is:dungeon`, `is:camp` and `is:room`; a location is a dungeon or camp once it is read.
 
 Chips, tabs and badges keep round ends however low they are drawn; one lower than 30 pixels showed stray lines at its ends. A loot mark is a solid amber pill with dark words.
+
+What breaks a rock, vein or tree tells the weakest tool of each tier, each with its tier, rather than every tool that would. Opening a floor of a place turns the camera to look down into it wherever it looked at it less steeply.
 
 The effects damage puts on you say what they do: burning and spirit deal what a hit leaves over a few seconds rather than at once, and Wet puts burning out sooner; poison lasts longer the more of it there is, longest on you, with a table of how long; frost slows, harder what is weak to it, for a time by the share of health it took, with tables; lightning's effect changes nothing itself.
 

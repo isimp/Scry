@@ -469,6 +469,9 @@ namespace Scry
                 // Only what is swung in hand: no trophy, mead or building tool.
                 var unswung = with.Where(n => !(GamePrefabs.Item(n).OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData?.IsWeapon() ?? false)).ToList();
                 p.Check(unswung.Count == 0, $"{entry.Name} is broken only with what is swung in hand", string.Join(", ", unswung.Take(8)));
+                // The weakest of each tier, each chip saying its tier.
+                var tiers = row?.Items.Select(i => i.Amount).ToList() ?? new List<string>();
+                p.Check(tiers.Count > 0 && tiers.Distinct().Count() == tiers.Count && tiers.All(t => t.StartsWith("Tier ", StringComparison.Ordinal)), "one tool a tier, each saying its tier", string.Join(", ", tiers));
             }
             yield break;
         }

@@ -148,31 +148,26 @@ namespace Scry
             // A second attack the game offers only with an animation of its own (ItemData.HaveSecondaryAttack).
             var second = weapon && attack != null ? shared.m_secondaryAttack : null;
             var twoAttacks = second != null && !string.IsNullOrEmpty(second.m_attackAnimation);
-            if ((weapon || ammo) && shared.m_attackForce > 0f && !twoAttacks) Add("Knockback", Numbers.Amount(shared.m_attackForce));
+            // A weapon's knockback is in its attacks table.
+            if ((ammo || weapon && attack == null) && shared.m_attackForce > 0f) Add("Knockback", Numbers.Amount(shared.m_attackForce));
             if (weapon && shared.m_backstabBonus > 1f) Add("Backstab", Numbers.Times(shared.m_backstabBonus));
 
             if (weapon && attack != null)
             {
                 if (attack.m_drawStaminaDrain > 0f) Add("Drawing costs", CombatWords.DrawCost(attack.m_drawStaminaDrain));
-                if (twoAttacks)
+                // Each attack a line, side by side: what it deals at the first quality, knocks back,
+                // staggers and costs. One with no second attack has its line too, so it can be played.
+                var table = new Row { Title = CombatWords.WeaponAttacksTitle, Columns = CombatWords.WeaponAttackColumns };
+                foreach (var (each, isSecond) in twoAttacks ? new[] { (attack, false), (second, true) } : new[] { (attack, false) })
                 {
-                    // Both attacks side by side: what each deals at the first quality, knocks back, staggers and costs.
-                    var table = new Row { Title = CombatWords.WeaponAttacksTitle, Columns = CombatWords.WeaponAttackColumns };
-                    foreach (var (each, isSecond) in new[] { (attack, false), (second, true) })
-                    {
-                        var dealt = CombatWords.Damage(DamageFigures(shared.m_damages).Select(d => (d.Type, d.Amount * each.m_damageMultiplier)));
-                        var costs = CombatWords.Costs(each.m_attackStamina, each.m_attackEitr, each.m_attackHealth, each.m_attackHealthPercentage);
-                        // Its name plays it on the person wearing it, as a creature's attack plays from its table.
-                        table.Lines.Add((CombatWords.WeaponAttack(isSecond, dealt, shared.m_attackForce * each.m_forceMultiplier, each.m_staggerMultiplier, costs),
-                            EntryKeys.PlayAttack(prefab.name, isSecond)));
-                    }
-                    Rows.Add(table);
+                    var dealt = CombatWords.Damage(DamageFigures(shared.m_damages).Select(d => (d.Type, d.Amount * each.m_damageMultiplier)));
+                    var costs = CombatWords.Costs(each.m_attackStamina, each.m_attackEitr, each.m_attackHealth, each.m_attackHealthPercentage);
+                    // Its name plays it on the person wearing it, as a creature's attack plays from its table; one with no animation plays nothing.
+                    table.Lines.Add((CombatWords.WeaponAttack(isSecond, dealt, shared.m_attackForce * each.m_forceMultiplier, each.m_staggerMultiplier, costs),
+                        string.IsNullOrEmpty(each.m_attackAnimation) ? null : EntryKeys.PlayAttack(prefab.name, isSecond)));
                 }
-                else
-                {
-                    Add("Each attack costs", CombatWords.Costs(attack.m_attackStamina, attack.m_attackEitr, attack.m_attackHealth, attack.m_attackHealthPercentage));
-                    Add("Secondary attack", "none");
-                }
+                Rows.Add(table);
+                if (!twoAttacks) Add("Secondary attack", "none");
             }
 
             var recipe = RecipeOf(prefab);
