@@ -142,9 +142,9 @@ namespace Scry
                 }
                 else if (e.type == EventType.ScrollWheel && rect.Contains(e.mousePosition))
                 {
-                    // With Shift the wheel moves the cut of a place opened, down as it scrolls down.
-                    // Otherwise it zooms toward what is under the pointer.
-                    if (e.shift && Stage.Cutting) Stage.CutBy(-e.delta.y * 0.25f);
+                    // With Shift the wheel moves the cut of a place opened, down as it scrolls down;
+                    // held, the turn can come sideways. Otherwise it zooms toward what is under the pointer.
+                    if (e.shift && Stage.Cutting) Stage.CutBy(-StageCamera.WheelTurn(e.delta.x, e.delta.y) * 0.25f);
                     else Stage.ZoomBy(e.delta.y, OnPicture(GUIUtility.GUIToScreenPoint(e.mousePosition)));
                     e.Use();
                 }

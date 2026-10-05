@@ -47,6 +47,12 @@ namespace Scry
             return Math.Min(Math.Max(zoomed, least), FarthestZoom);
         }
 
+        /// <summary>
+        /// How far the wheel turned, up and down or, as it can come with Shift held, sideways:
+        /// the larger of the two, so Shift with the wheel moves a floor's cut however it comes.
+        /// </summary>
+        public static float WheelTurn(float across, float up) => Math.Abs(up) >= Math.Abs(across) ? up : across;
+
         /// <summary>The camera's turn and tilt, in degrees, after a drag across and up by some pixels.</summary>
         public static (float Yaw, float Pitch) Orbit(float yaw, float pitch, float across, float up) =>
             (yaw + across * 0.4f, Math.Min(Math.Max(pitch + up * 0.3f, LowestPitch), HighestPitch));

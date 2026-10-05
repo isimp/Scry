@@ -45,6 +45,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WithShiftHeldTheWheelsTurnCountsWhicheverWayItComes()
+        {
+            // Shift with the wheel moves a floor's cut; held, the turn can come sideways, as a
+            // horizontal scroll, and the cut must move all the same rather than not at all.
+            Assert.Equal(3f, StageCamera.WheelTurn(0f, 3f));
+            Assert.Equal(3f, StageCamera.WheelTurn(3f, 0f));
+            Assert.Equal(-3f, StageCamera.WheelTurn(-3f, 0f));
+            Assert.Equal(-2f, StageCamera.WheelTurn(1f, -2f));
+            Assert.Equal(0f, StageCamera.WheelTurn(0f, 0f));
+        }
+
+        [Fact]
         public void TheWheelComesAsNearAsTwoMetresHoweverBigWhatIsFramed()
         {
             Assert.Equal(0.02f, StageCamera.LeastZoom(100f), 4);
