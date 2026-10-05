@@ -201,6 +201,8 @@ namespace Scry
                 entry.GroupRank = placing.Rank;
                 entry.Tag = placing.Tag;
                 entry.Indent = placing.Indent;
+                // What the search's is: finds it as, told again as it is read.
+                entry.SetTermWords("is", SearchFlags.WithPlace(entry.TermWords("is"), placing.Is));
             }
         }
 

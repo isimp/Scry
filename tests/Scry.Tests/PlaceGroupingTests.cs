@@ -37,6 +37,29 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ALocationIsADungeonOrACampOnceReadAndARoomIsARoom()
+        {
+            // As the search's is: takes them, from what tags them in the list.
+            var placed = PlaceGrouping.Arrange(new[]
+            {
+                Place("Crypt2", "Burial Chambers", Forest, 8),
+                Place("GoblinCamp2", "Fuling camp", Forest, 16, "CampRadial"),
+                Place("Runestone", "Runestone", Forest),
+                Room("forestcrypt_Bend1", 8, "Forest crypt", Shape(entrance: true)),
+                Room("forestcrypt_wall", 8, "Forest crypt", Shape(perimeter: true)),
+                Room("sunkencrypt_room1", 4096, "Sunken crypt"),
+            });
+
+            Assert.Equal("dungeon", placed["loc:Crypt2"].Is);
+            Assert.Equal("camp", placed["loc:GoblinCamp2"].Is);
+            // A location building neither, or not read yet, is no place word.
+            Assert.Null(placed["loc:Runestone"].Is);
+            Assert.Equal("room", placed["loc:forestcrypt_Bend1"].Is);
+            Assert.Equal("room", placed["loc:forestcrypt_wall"].Is);
+            Assert.Equal("room", placed["loc:sunkencrypt_room1"].Is);
+        }
+
+        [Fact]
         public void ADungeonAndItsRoomsAreOneGroupInItsBiome()
         {
             var placed = PlaceGrouping.Arrange(new[]

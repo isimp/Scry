@@ -148,6 +148,11 @@ namespace Scry
         private static FlagFacts FlagFactsOf(Entry entry)
         {
             var facts = new FlagFacts { Silent = entry.Empty, Unsure = entry.Origin == Origin.Mod && !UnsureWords.IsSureClue(entry.ModClue) };
+            if (entry.Source is PlaceSource place)
+            {
+                var dungeon = place.Contents?.Dungeon;
+                facts.Place = PlaceGrouping.Is(place.IsRoom, dungeon?.Themes ?? 0, dungeon?.Algorithm);
+            }
             if (!(entry.Source is GameObject prefab) || prefab == null || EntryKeys.HasOwnNamespace(entry.Kind)) return facts;
 
             var character = prefab.GetComponent<Character>();

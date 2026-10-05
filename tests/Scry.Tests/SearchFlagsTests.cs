@@ -8,8 +8,9 @@ namespace Scry.Tests
     public class SearchFlagsTests
     {
         // is: asks what a thing is, in one word: a boss, something to tame, to wear, to eat, to
-        // fight or shoot with, to build or craft, or what Scry has nothing to show of or is not
-        // sure of. Each flag is read as the details tell the same thing.
+        // fight or shoot with, to build or craft, a dungeon, a camp or one of their rooms, or what
+        // Scry has nothing to show of or is not sure of. Each flag is read as the details or the
+        // Locations list tell the same thing.
 
         [Fact]
         public void ACreatureIsABossTameableOrFlyingAsItsDetailsSay()
@@ -45,6 +46,26 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APlaceIsADungeonACampOrARoomAsTheLocationsListTagsIt()
+        {
+            Assert.Equal(new[] { "dungeon" }, SearchFlags.Of(new FlagFacts { Place = "dungeon" }));
+            Assert.Equal(new[] { "camp" }, SearchFlags.Of(new FlagFacts { Place = "camp" }));
+            Assert.Equal(new[] { "room", "silent" }, SearchFlags.Of(new FlagFacts { Place = "room", Silent = true }));
+            // Only those three words: anything else a place could be called is no flag.
+            Assert.Empty(SearchFlags.Of(new FlagFacts { Place = "village" }));
+        }
+
+        [Fact]
+        public void APlaceReadLaterIsToldWhatItIsWithItsOtherFlagsKept()
+        {
+            // A location's dungeon or camp is known once it is read, after the catalog's flags.
+            Assert.Equal(new[] { "camp", "silent" }, SearchFlags.WithPlace(new[] { "silent" }, "camp"));
+            Assert.Equal(new[] { "dungeon", "unsure" }, SearchFlags.WithPlace(new[] { "camp", "unsure" }, "dungeon"));
+            Assert.Equal(new[] { "unsure" }, SearchFlags.WithPlace(new[] { "room", "unsure" }, null));
+            Assert.Empty(SearchFlags.WithPlace(new string[0], null));
+        }
+
+        [Fact]
         public void TheHelpNamesEveryFlag()
         {
             var line = SearchFlags.HelpLine();
@@ -64,7 +85,13 @@ namespace Scry.Tests
             helmet.SetTermWords("is", new[] { "wearable", "craftable" });
             var spark = E("vfx_spark", Kind.Effect);
             spark.SetTermWords("is", new[] { "silent" });
-            return new List<Entry> { troll, eikthyr, boar, helmet, spark };
+            var crypt = E("SunkenCrypt4", Kind.Location, "Sunken Crypts");
+            crypt.SetTermWords("is", new[] { "dungeon" });
+            var camp = E("GoblinCamp2", Kind.Location, "Fuling camp");
+            camp.SetTermWords("is", new[] { "camp" });
+            var room = E("sunken_crypt_room1", Kind.Location);
+            room.SetTermWords("is", new[] { "room" });
+            return new List<Entry> { troll, eikthyr, boar, helmet, spark, crypt, camp, room };
         }
 
         private static List<string> Find(string text) =>
@@ -79,6 +106,15 @@ namespace Scry.Tests
             Assert.Equal(new[] { "Troll" }, Find("kind:creature -is:boss,tameable"));
             // The start of the word, not any part of it: "oss" is no flag's start.
             Assert.Empty(Find("is:oss"));
+        }
+
+        [Fact]
+        public void IsFindsTheDungeonsCampsAndRoomsTheLocationsListTags()
+        {
+            Assert.Equal(new[] { "SunkenCrypt4" }, Find("is:dungeon"));
+            Assert.Equal(new[] { "GoblinCamp2" }, Find("is:camp"));
+            Assert.Equal(new[] { "sunken_crypt_room1" }, Find("is:room"));
+            Assert.Equal(new[] { "GoblinCamp2", "SunkenCrypt4" }, Find("is:dungeon,camp").OrderBy(n => n).ToList());
         }
 
         [Fact]

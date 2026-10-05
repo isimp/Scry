@@ -31,6 +31,9 @@ namespace Scry
         public int Rank;
         public string Tag;
         public bool Indent;
+
+        /// <summary>What it is, as the search's is: takes it: "dungeon", "camp" or "room"; null for none.</summary>
+        public string Is;
     }
 
     /// <summary>
@@ -45,6 +48,18 @@ namespace Scry
     {
         /// <summary>A room's home theme: its lowest flag, 0 for none.</summary>
         public static int Home(int theme) => theme & -theme;
+
+        /// <summary>
+        /// What a place is, as its tag says and the search's is: takes it: a room of a dungeon or
+        /// camp; a location building one with its rooms, once it is read, a dungeon or a camp by
+        /// its way of laying out; null for any other.
+        /// </summary>
+        public static string Is(bool room, int theme, string algorithm)
+        {
+            if (room) return "room";
+            if (theme == 0) return null;
+            return algorithm == "Dungeon" ? "dungeon" : "camp";
+        }
 
         public static Dictionary<string, PlacePlacing> Arrange(IReadOnlyList<PlaceItem> items)
         {
@@ -65,8 +80,9 @@ namespace Scry
             {
                 if (!item.Room)
                 {
-                    placed[item.Key] = item.Theme != 0
-                        ? new PlacePlacing { Group = dungeons[Home(item.Theme)], Tag = (item.Algorithm == "Dungeon" ? "dungeon" : "camp") + " \u00b7 " + item.Prefab }
+                    var builds = Is(false, item.Theme, item.Algorithm);
+                    placed[item.Key] = builds != null
+                        ? new PlacePlacing { Group = dungeons[Home(item.Theme)], Tag = builds + " \u00b7 " + item.Prefab, Is = builds }
                         : new PlacePlacing { Group = item.Biome };
                     continue;
                 }
@@ -77,6 +93,7 @@ namespace Scry
                     Rank = Rank(item.Shape),
                     Tag = Role(item.Shape) + " \u00b7 " + item.Prefab,
                     Indent = home,
+                    Is = Is(true, item.Theme, item.Algorithm),
                 };
             }
             return placed;
