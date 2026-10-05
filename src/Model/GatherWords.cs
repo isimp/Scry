@@ -26,33 +26,36 @@ namespace Scry
         public static string ToolTier(int tier) => tier > 0 ? Numbers.Count(tier) : "any";
 
         /// <summary>The title of the row of what breaks a rock, vein or tree.</summary>
-        public const string BrokenWithTitle = "Broken with, the weakest of each tier";
+        public const string BrokenWithTitle = "Broken with";
 
-        /// <summary>A tool's chip beside its name: its tier, which it stands for with every tier up.</summary>
-        public static string TierChip(int tier) => "Tier " + Numbers.Count(tier);
+        /// <summary>The damage each kind of tool is made to deal, by the skill the game trains with it: axes chop, pickaxes mine.</summary>
+        private static readonly Dictionary<string, string> MadeToDeal = new Dictionary<string, string>(System.StringComparer.Ordinal)
+        {
+            ["Axes"] = "chop",
+            ["Pickaxes"] = "pickaxe",
+        };
 
         /// <summary>
-        /// What breaks a rock, vein or tree, the lowest tier first, one tool a tier: a hit breaks
-        /// it when its tool tier is at least the thing's (<c>HitData.CheckToolTier</c>, the tier the
-        /// weapon's own) and some of its damage is of a type the thing takes, the rest coming to
-        /// nothing against its resistances. Of each tier the weakest is told, dealing least of
-        /// what the thing takes (ties by name): a modded game's 32 axes say no more than one of
-        /// each tier.
+        /// What breaks a rock, vein or tree, the weakest first: a hit breaks it when its tool tier
+        /// is at least the thing's (<c>HitData.CheckToolTier</c>, the tier the weapon's own) and
+        /// some of its damage is of a type the thing takes, the rest coming to nothing against its
+        /// resistances. Of those, the tools made for it, by the skill the game trains with them:
+        /// axes for what is chopped, pickaxes for what is mined; a weapon dealing a little chop,
+        /// as a crossbow can, is no tool for a tree. Where none is made for it, all that break it.
+        /// Weakest by what it deals of what the thing takes, ties by name.
         /// </summary>
         /// <param name="minTier">The tool tier it needs.</param>
         /// <param name="taken">The damage types it takes any of.</param>
-        /// <param name="tools">The items players hit with: each with its tool tier and the damage it deals by type.</param>
-        public static List<(string Name, int Tier)> BreaksIt(int minTier, IEnumerable<string> taken, IEnumerable<(string Name, int Tier, (string Type, float Amount)[] Deals)> tools)
+        /// <param name="tools">The items players hit with: each with its tool tier, the skill it trains and the damage it deals by type.</param>
+        public static List<string> BreaksIt(int minTier, IEnumerable<string> taken, IEnumerable<(string Name, int Tier, string Skill, (string Type, float Amount)[] Deals)> tools)
         {
             var takes = new HashSet<string>(taken);
-            return tools
-                .Select(t => (t.Name, t.Tier, Dealt: t.Deals.Where(d => d.Amount > 0f && takes.Contains(d.Type)).Sum(d => d.Amount)))
+            var breaking = tools
+                .Select(t => (t.Name, t.Tier, t.Skill, Dealt: t.Deals.Where(d => d.Amount > 0f && takes.Contains(d.Type)).Sum(d => d.Amount)))
                 .Where(t => t.Tier >= minTier && t.Dealt > 0f)
-                .GroupBy(t => t.Tier)
-                .OrderBy(g => g.Key)
-                .Select(g => g.OrderBy(t => t.Dealt).ThenBy(t => t.Name, System.StringComparer.Ordinal).First())
-                .Select(t => (t.Name, t.Tier))
                 .ToList();
+            var made = breaking.Where(t => t.Skill != null && MadeToDeal.TryGetValue(t.Skill, out var deals) && takes.Contains(deals)).ToList();
+            return (made.Count > 0 ? made : breaking).OrderBy(t => t.Dealt).ThenBy(t => t.Name, System.StringComparer.Ordinal).Select(t => t.Name).ToList();
         }
 
         /// <summary>What a shell turns into when struck once, as a silver vein's does.</summary>
