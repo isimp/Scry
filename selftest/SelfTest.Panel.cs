@@ -130,6 +130,18 @@ namespace Scry
             }
         }
 
+        /// <summary>An example of the search's help, clicked, goes into the search and the help gives way to what it finds.</summary>
+        private static IEnumerator HelpExamplesTried(Probe p)
+        {
+            ScryPanel.ShowHelp(true);
+            yield return null;
+            var example = SearchHelp.Lines.First(l => l.Tries && l.Example == SearchHelp.Term("is", "boss")).Example;
+            ScryPanel.TryExample(X, example);
+            yield return null;
+            p.Check(X.Text == example && !ScryPanel.HelpShown && X.Results.Count > 0, "a help example clicked goes into the search, and the help gives way", $"{X.Text}: {Numbers.Count(X.Results.Count)} results");
+            X.SearchEverything("");
+        }
+
         /// <summary>Closing the panel takes the copy down and quiets it; opening it again brings the selection back.</summary>
         private static IEnumerator CloseAndOpen(Probe p)
         {

@@ -239,6 +239,41 @@ namespace Scry
     /// </summary>
     internal static class SearchHelp
     {
+        /// <summary>
+        /// The search's help, line by line: an example, what it finds, and whether a click on it
+        /// tries it in the search (Tab is a key, not a search).
+        /// </summary>
+        public static readonly (string Example, string Finds, bool Tries)[] Lines =
+        {
+            ("troll", "Names containing it, in the game's words or the prefab's. Best matches first.", true),
+            ("troll hat", "Every word has to match.", true),
+            ("-ragdoll", "A minus leaves out whatever matches.", true),
+            ("\"troll\"", "A name in quotes finds only what is called exactly that, by the game's name or the prefab's: not Troll hat.", true),
+            ("kind:creature", Kinds.HelpLine(), true),
+            ("has:aoe", "Prefabs with a part of that type, such as has:light, has:pickable, has:fireplace.", true),
+            ("biome:swamp", "What spawns or grows in that biome.", true),
+            ("in:crypt", "What is found in a location or dungeon, once they are read with Read all locations (at the top of the panel, or below).", true),
+            ("mod:epic", "What a mod added, by the start or any part of its name.", true),
+            ("playedby:troll", "The sounds and effects a prefab plays.", true),
+            ("is:boss", SearchFlags.HelpLine(), true),
+            ("weak:fire", "Creatures weak to a damage type, as their resistance grid shows, and armour leaving you weak to it while worn; resists: and immune: the same for less and none.", true),
+            ("damage:spirit", "What deals a damage type: weapons, ammo, projectiles, and creatures by their attacks. Blunt, slash, pierce, chop, pickaxe, fire, frost, lightning, poison, spirit, or true for plain damage.", true),
+            ("skill:axes", "Weapons, ammo, shields and tools that train a skill.", true),
+            ("drops:resin", "What drops it, or gives it broken, picked or opened: creatures, chests, rocks, trees, pickables.", true),
+            ("from:troll", "What a creature, chest, rock, tree or pickable drops or gives.", true),
+            ("needs:bronze", "What is crafted, built or smelted with it.", true),
+            ("gives:poison", "What gives a status effect, as the effect's page lists it under Given by: food, meads, armour sets, areas, attacks.", true),
+            ("spawns:greydwarf", "What spawns or brings it: nests, spawners, raids and the like.", true),
+            ("station:forge3", "What is made at that station, here what a forge at level 3 can make. station:forge for any level, station:hand for what needs none.", true),
+            ("biome:swamp,plains", "A comma reads as or, in any term.", true),
+            ("greydwraf", "When nothing matches, a word one slip from a name's word (a letter wrong, missing, extra or swapped) is read as that word, and the list says so.", true),
+            ("-has:ragdoll kind:c", "Terms combine, can be left out with a minus, and can be shortened.", true),
+            ("Tab", "Completes the word being typed with a term or a value the catalog holds, as the list under the search suggests. Tab again for the next, Shift+Tab for the one before; Enter takes the marked one.", false),
+        };
+
+        /// <summary>The help's first line, over its examples.</summary>
+        public const string ClickToTry = "Click an example to try it.";
+
         /// <summary>A term the search reads: its key, and a value as one word (<see cref="TermIndex.Token"/>), "mod:coolstatues".</summary>
         public static string Term(string key, string value) => key + ":" + TermIndex.Token(value);
 

@@ -73,6 +73,35 @@ namespace Scry.Tests
             Assert.Equal(12, caret);
         }
 
+        // ----- The help card -----
+
+        [Fact]
+        public void EveryExampleInTheHelpSearchesAsItShows()
+        {
+            foreach (var (example, finds, tries) in SearchHelp.Lines)
+            {
+                Assert.False(string.IsNullOrEmpty(finds), example);
+                if (!tries) continue;
+                var parsed = Search.Parse(example);
+                Assert.False(parsed.IsEmpty, example);
+                // A word with a colon in an example is a term the search reads, never left to match names.
+                Assert.DoesNotContain(parsed.Words.Concat(parsed.NotWords), w => w.Contains(":"));
+            }
+            // Tab is a key to press, not a search to try.
+            Assert.Contains(SearchHelp.Lines, l => !l.Tries && l.Example == "Tab");
+            Assert.Equal(1, SearchHelp.Lines.Count(l => !l.Tries));
+            Assert.Equal("Search for is:boss", PanelWords.TryInSearch("is:boss"));
+        }
+
+        [Fact]
+        public void TheHelpNamesEveryKey()
+        {
+            foreach (var key in Search.Keys)
+            {
+                Assert.Contains(SearchHelp.Lines, l => l.Example.Contains(key + ":") || l.Finds.Contains(key + ":"));
+            }
+        }
+
         // ----- What is suggested -----
 
         [Fact]

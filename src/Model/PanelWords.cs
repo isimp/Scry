@@ -35,6 +35,9 @@ namespace Scry
 
         private static string SectionName(string heading) => Naming.Capital(heading.ToLowerInvariant());
 
+        /// <summary>The tip of an example in the search's help.</summary>
+        public static string TryInSearch(string example) => $"Search for {example}";
+
         /// <summary>The link that folds or opens every section, by whether any is open.</summary>
         public static string FoldAll(bool anyOpen) => anyOpen ? "fold all" : "open all";
 

@@ -59,34 +59,6 @@ namespace Scry
             CloseCard(ListCard.Help);
         }
 
-        private static readonly string[][] HelpLines =
-        {
-            new[] { "troll", "Names containing it, in the game's words or the prefab's. Best matches first." },
-            new[] { "troll hat", "Every word has to match." },
-            new[] { "-ragdoll", "A minus leaves out whatever matches." },
-            new[] { "\"troll\"", "A name in quotes finds only what is called exactly that, by the game's name or the prefab's: not Troll hat." },
-            new[] { "kind:creature", Kinds.HelpLine() },
-            new[] { "has:aoe", "Prefabs with a part of that type, such as has:light, has:pickable, has:fireplace." },
-            new[] { "biome:swamp", "What spawns or grows in that biome." },
-            new[] { "in:crypt", "What is found in a location or dungeon, once they are read with Read all locations (at the top of the panel, or below)." },
-            new[] { "mod:epic", "What a mod added, by the start or any part of its name." },
-            new[] { "playedby:troll", "The sounds and effects a prefab plays." },
-            new[] { "is:boss", SearchFlags.HelpLine() },
-            new[] { "weak:fire", "Creatures weak to a damage type, as their resistance grid shows, and armour leaving you weak to it while worn; resists: and immune: the same for less and none." },
-            new[] { "damage:spirit", "What deals a damage type: weapons, ammo, projectiles, and creatures by their attacks. Blunt, slash, pierce, chop, pickaxe, fire, frost, lightning, poison, spirit, or true for plain damage." },
-            new[] { "skill:axes", "Weapons, ammo, shields and tools that train a skill." },
-            new[] { "drops:resin", "What drops it, or gives it broken, picked or opened: creatures, chests, rocks, trees, pickables." },
-            new[] { "from:troll", "What a creature, chest, rock, tree or pickable drops or gives." },
-            new[] { "needs:bronze", "What is crafted, built or smelted with it." },
-            new[] { "gives:poison", "What gives a status effect, as the effect's page lists it under Given by: food, meads, armour sets, areas, attacks." },
-            new[] { "spawns:greydwarf", "What spawns or brings it: nests, spawners, raids and the like." },
-            new[] { "station:forge3", "What is made at that station, here what a forge at level 3 can make. station:forge for any level, station:hand for what needs none." },
-            new[] { "biome:swamp,plains", "A comma reads as or, in any term." },
-            new[] { "greydwraf", "When nothing matches, a word one slip from a name's word (a letter wrong, missing, extra or swapped) is read as that word, and the list says so." },
-            new[] { "-has:ragdoll kind:c", "Terms combine, can be left out with a minus, and can be shortened." },
-            new[] { "Tab", "Completes the word being typed with a term or a value the catalog holds, as the list under the search suggests. Tab again for the next, Shift+Tab for the one before; Enter takes the marked one." },
-        };
-
         /// <summary>Whether the search's help is shown, and showing or hiding it, for the self-test.</summary>
         public static bool HelpShown => _card == ListCard.Help;
 
@@ -100,27 +72,35 @@ namespace Scry
         private static Vector2 _helpScroll;
         private static float _helpHeight;
 
-        private static void HelpCard(Rect rect)
+        /// <summary>The help card: each example beside what it finds, a click on one trying it in the search, which puts the help away as any search does.</summary>
+        private static void HelpCard(Explorer explorer, Rect rect)
         {
             var body = BeginCard(rect, ref _helpScroll, _helpHeight, "How to search");
             var x = body.X;
             var width = body.Width;
             var y = body.Y;
+            GUI.Label(new Rect(x, y, width, U(22f)), SearchHelp.ClickToTry, Skin.DimLabel);
+            y += U(32f);
 
             // Side by side when there is room, the example above its meaning when not.
             var stacked = width < U(420f);
             var keyW = stacked ? width : Mathf.Min(U(190f), width * 0.42f);
-            foreach (var line in HelpLines)
+            string tried = null;
+            foreach (var (example, finds, tries) in SearchHelp.Lines)
             {
-                var boxW = Mathf.Min(keyW, Skin.Width(Skin.Label, line[0]) + U(16f));
-                Skin.Box(new Rect(x - U(4f), y - U(1f), boxW, U(24f)), Skin.Raised);
-                GUI.Label(new Rect(x + U(4f), y, boxW - U(8f), U(22f)), line[0], Skin.Label);
+                var boxW = Mathf.Min(keyW, Skin.Width(Skin.Label, example) + U(16f));
+                var box = new Rect(x - U(4f), y - U(1f), boxW, U(24f));
+                var hover = tries && box.Contains(Event.current.mousePosition);
+                Skin.Box(box, hover ? Skin.RaisedHover : Skin.Raised);
+                GUI.Label(new Rect(x + U(4f), y, boxW - U(8f), U(22f)), example, Skin.Label);
+                if (hover) AskTip("try:" + example, PanelWords.TryInSearch(example));
+                if (tries && GUI.Button(box, GUIContent.none, GUIStyle.none)) tried = example;
 
                 var textX = stacked ? x : x + keyW + U(10f);
                 var textY = stacked ? y + U(28f) : y + U(2f);
                 var textW = stacked ? width : width - keyW - U(10f);
-                var height = Skin.Height(Skin.DimWrap, line[1], textW);
-                GUI.Label(new Rect(textX, textY, textW, height), line[1], Skin.DimWrap);
+                var height = Skin.Height(Skin.DimWrap, finds, textW);
+                GUI.Label(new Rect(textX, textY, textW, height), finds, Skin.DimWrap);
                 y = Mathf.Max(y + U(24f), textY + height) + U(12f);
             }
 
@@ -137,6 +117,15 @@ namespace Scry
 
             // in: needs the locations read; offered beside Close until they are.
             ReadLocationsButton(rect, close, "locations-help");
+
+            if (tried != null) TryExample(explorer, tried);
+        }
+
+        /// <summary>Puts an example of the help into the search, as a click on it does: the help gives way to what it finds.</summary>
+        public static void TryExample(Explorer explorer, string example)
+        {
+            Searched(explorer, example);
+            FocusSearch(true);
         }
 
         /// <summary>Whether the search asks what is in a place, with in: (not with a minus, which asks for the rest).</summary>
@@ -170,7 +159,7 @@ namespace Scry
             }
             if (_card == ListCard.Help)
             {
-                HelpCard(rect);
+                HelpCard(explorer, rect);
                 return;
             }
             if (_card == ListCard.ModReport)
