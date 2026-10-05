@@ -192,9 +192,11 @@ namespace Scry
         {
             var plan = new KindPlan
             {
-                Topics = new[] { ("overview", (string)null), ("gathering", "Gathering"), ("lives", "Where it lives"), (More, "More"), ("hooks", null) },
+                Topics = new[] { ("overview", (string)null), ("gathering", "Gathering"), ("growing", "Growing"), ("lives", "Where it lives"), (More, "More"), ("hooks", null) },
             };
             Tile(plan, "overview", null, "Health", "Needs tool tier");
+            // A plant's growing, apart from what gathering it gives.
+            Label(plan, "growing", "Takes to grow", "Needs", "Tolerates", GatherWords.GrowsInto(false), GatherWords.GrowsInto(true));
             Label(plan, More, "Not shown");
             Part(plan, "gathering", "resource");
             plan.Blocks[FactBlock.Where] = "lives";
@@ -210,7 +212,7 @@ namespace Scry
         {
             var plan = new KindPlan
             {
-                Topics = new[] { ("overview", (string)null), ("hit", "Hit"), ("flight", "Flight"), ("from", "Where it comes from"), (More, "More"), ("hooks", null) },
+                Topics = new[] { ("overview", (string)null), ("from", "Where it comes from"), ("hit", "Hit"), ("flight", "Flight"), (More, "More"), ("hooks", null) },
             };
             Tile(plan, "overview", null, "Own damage", "Flies for");
             Label(plan, "flight", "Falls", "Slows", "Bounces", "Leaves");
@@ -256,7 +258,7 @@ namespace Scry
         {
             var plan = new KindPlan
             {
-                Topics = new[] { ("overview", (string)null), ("when", "When"), ("comes", "What comes"), ("music", "Music"), (More, "More"), ("hooks", null) },
+                Topics = new[] { ("overview", (string)null), ("comes", "What comes"), ("when", "When"), ("music", "Music"), (More, "More"), ("hooks", null) },
             };
             Tile(plan, "overview", null, "Lasts", "Weather", "Comes for");
             Label(plan, "when", "On the table", "Rolled", "Also rolled", "Ends with", "On");
@@ -277,8 +279,9 @@ namespace Scry
         {
             var plan = new KindPlan
             {
-                Topics = new[] { ("overview", (string)null), ("weather", "Weather"), ("music", "Music"), ("there", "What is there"), (More, "More"), ("hooks", null) },
+                Topics = new[] { ("overview", (string)null), ("there", "What is there"), ("weather", "Weather"), ("music", "Music"), (More, "More"), ("hooks", null) },
             };
+            Tile(plan, "overview", null, "Puts on you", "Creatures", "Places");
             Label(plan, "weather", BiomeWords.WeathersTitle);
             Links(plan, "weather", LinkWords.StatusEffects);
             Label(plan, "music", BiomeWords.MusicTitle);
@@ -292,10 +295,11 @@ namespace Scry
         {
             var plan = new KindPlan
             {
-                Topics = new[] { ("overview", (string)null), ("given", "How you get it"), ("changes", "Changes"), (More, "More"), ("hooks", null) },
+                Topics = new[] { ("overview", (string)null), ("given", "How you get it"), ("changes", "Changes"), ("others", "With other effects"), (More, "More"), ("hooks", null) },
             };
             Tile(plan, "overview", null, "Lasts");
             Links(plan, "given", LinkWords.GivenBy);
+            Label(plan, "others", "While it lasts, cannot take");
             Label(plan, More, "Not shown");
             Part(plan, "changes", "status effect");
             plan.Blocks[FactBlock.Users] = More;
@@ -307,10 +311,14 @@ namespace Scry
         {
             var plan = new KindPlan
             {
-                Topics = new[] { ("overview", (string)null), ("about", "About"), ("ties", "Ties to other mods"), ("adds", "What it adds"), (More, "More"), ("hooks", null) },
+                Topics = new[]
+                {
+                    ("overview", (string)null), ("adds", "What it adds"), ("hooksinto", "What it hooks into"), ("ties", "Ties to other mods"), ("about", "About"), (More, "More"), ("hooks", null),
+                },
             };
             Tile(plan, "overview", null, "Version", "By");
             Label(plan, "about", "Website", "Id", "Folder");
+            Label(plan, "hooksinto", "Hooks into");
             Label(plan, More, "Not shown");
             // Its ties, each a row counting the mods: "Needs (2)", "Works with, when there (1)".
             plan.Starts.Add((l => l.StartsWith("Will not run with", StringComparison.Ordinal) || l.StartsWith("Needs", StringComparison.Ordinal)

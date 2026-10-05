@@ -241,16 +241,22 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void AResourceShowsItsHealthAndToolThenWhatGatheringItGivesAndWhereItGrows()
+        public void AResourceShowsItsHealthAndToolThenWhatGatheringItGivesHowItGrowsAndWhereItLives()
         {
-            var pairs = new[] { ("Health", "resource"), ("Needs tool tier", "resource"), ("Breaks into", "resource"), ("Grows back in", "resource") };
-            var rows = new[] { ("Gives", "resource"), ("Damage it takes", "resource") };
+            var pairs = new[]
+            {
+                ("Health", "resource"), ("Needs tool tier", "resource"), ("Breaks into", "resource"), ("Grows back in", "resource"),
+                ("Takes to grow", "resource"), ("Needs", "resource"), ("Tolerates", "resource"),
+            };
+            var rows = new[] { ("Gives", "resource"), ("Damage it takes", "resource"), (GatherWords.GrowsInto(false), "resource"), (GatherWords.GrowsInto(true), "resource") };
             var plan = FactLayout.Plan(Kind.Resource, pairs, rows, new[] { FactBlock.Where, FactBlock.Biomes, FactBlock.Hooks });
             string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
-            Assert.Equal(new[] { null, "Gathering", "Where it lives", null }, plan.Select(t => t.Heading));
+            // A plant's growing apart from what gathering it gives: the farmer's facts, not the woodcutter's.
+            Assert.Equal(new[] { null, "Gathering", "Growing", "Where it lives", null }, plan.Select(t => t.Heading));
             Assert.Equal(new[] { "Health", "Needs tool tier" }, plan[0].Tiles.Select(i => pairs[i].Item1));
             Assert.Equal(new[] { "Breaks into", "Grows back in", "row Gives", "row Damage it takes" }, plan[1].Bits.Select(Name));
-            Assert.Equal(new[] { "block Where", "block Biomes" }, plan[2].Bits.Select(Name));
+            Assert.Equal(new[] { "Takes to grow", "Needs", "Tolerates", "row Grows into", "row Grows into one of" }, plan[2].Bits.Select(Name));
+            Assert.Equal(new[] { "block Where", "block Biomes" }, plan[3].Bits.Select(Name));
         }
 
         [Fact]
@@ -261,11 +267,12 @@ namespace Scry.Tests
                 ("Own damage", "projectile"), ("Hits", "projectile"), ("Knockback", "projectile"), ("Can be", "projectile"), ("On hit", "projectile"),
                 ("Flies for", "projectile"), ("Falls", "projectile"), ("Bounces", "projectile"), ("After a hit", "projectile"), ("Leaves", "projectile"),
             };
-            var plan = FactLayout.Plan(Kind.Projectile, pairs, new (string, string)[0], new FactBlock[0]);
-            Assert.Equal(new[] { null, "Hit", "Flight" }, plan.Select(t => t.Heading));
+            var plan = FactLayout.Plan(Kind.Projectile, pairs, new (string, string)[0], new[] { FactBlock.Where });
+            // What fires it is where a visitor comes from, so it comes first.
+            Assert.Equal(new[] { null, "Where it comes from", "Hit", "Flight" }, plan.Select(t => t.Heading));
             Assert.Equal(new[] { "Own damage", "Flies for" }, plan[0].Tiles.Select(i => pairs[i].Item1));
-            Assert.Equal(new[] { "Hits", "Knockback", "Can be", "On hit", "After a hit" }, plan[1].Bits.Select(b => pairs[b.Pair].Item1));
-            Assert.Equal(new[] { "Falls", "Bounces", "Leaves" }, plan[2].Bits.Select(b => pairs[b.Pair].Item1));
+            Assert.Equal(new[] { "Hits", "Knockback", "Can be", "On hit", "After a hit" }, plan[2].Bits.Select(b => pairs[b.Pair].Item1));
+            Assert.Equal(new[] { "Falls", "Bounces", "Leaves" }, plan[3].Bits.Select(b => pairs[b.Pair].Item1));
         }
 
         [Fact]
@@ -318,25 +325,28 @@ namespace Scry.Tests
                 ("Ends with", "raid"), ("Music", "raid"), ("Weather", "raid"), ("Troll", "raid"),
             };
             var plan = FactLayout.Plan(Kind.Raid, pairs, new (string, string)[0], new[] { FactBlock.Biomes });
-            Assert.Equal(new[] { null, "When", "What comes", "Music" }, plan.Select(t => t.Heading));
+            // A raid's page is opened while it comes: what comes first, then why now.
+            Assert.Equal(new[] { null, "What comes", "When", "Music" }, plan.Select(t => t.Heading));
             Assert.Equal(new[] { "Lasts", "Weather", "Comes for" }, plan[0].Tiles.Select(i => pairs[i].Item1));
-            Assert.Equal(new[] { "On the table", "Rolled", "Also rolled", "Ends with" }, plan[1].Bits.Where(b => b.Pair >= 0).Select(b => pairs[b.Pair].Item1));
-            Assert.Equal(FactBlock.Biomes, plan[1].Bits.Last().Block);
-            Assert.Equal(new[] { "Keeps coming", "Troll" }, plan[2].Bits.Select(b => pairs[b.Pair].Item1));
+            Assert.Equal(new[] { "Keeps coming", "Troll" }, plan[1].Bits.Select(b => pairs[b.Pair].Item1));
+            Assert.Equal(new[] { "On the table", "Rolled", "Also rolled", "Ends with" }, plan[2].Bits.Where(b => b.Pair >= 0).Select(b => pairs[b.Pair].Item1));
+            Assert.Equal(FactBlock.Biomes, plan[2].Bits.Last().Block);
             Assert.Equal(new[] { "Music" }, plan[3].Bits.Select(b => pairs[b.Pair].Item1));
         }
 
         [Fact]
-        public void ABiomeShowsItsWeathersItsMusicAndWhatIsThere()
+        public void ABiomeShowsWhatItPutsOnYouAndHowManyLiveThereThenWhatIsThereItsWeathersAndMusic()
         {
-            var pairs = new (string, string)[0];
+            var pairs = new[] { ("Creatures", "biome"), ("Puts on you", "biome"), ("Places", "biome") };
             var rows = new[] { ("Weathers", "biome"), ("Music", "biome"), ("Lives here (12)", "biome"), ("Grows here (8)", "biome") };
             var plan = FactLayout.Plan(Kind.Biome, pairs, rows, new[] { FactBlock.Hooks });
             string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
-            Assert.Equal(new[] { "Weather", "Music", "What is there", null }, plan.Select(t => t.Heading));
-            Assert.Equal(new[] { "row Weathers" }, plan[0].Bits.Select(Name));
-            Assert.Equal(new[] { "row Music" }, plan[1].Bits.Select(Name));
-            Assert.Equal(new[] { "row Lives here (12)", "row Grows here (8)" }, plan[2].Bits.Select(Name));
+            // How dangerous it is and what is there first; its weathers' shares and music are flavour.
+            Assert.Equal(new[] { null, "What is there", "Weather", "Music", null }, plan.Select(t => t.Heading));
+            Assert.Equal(new[] { "Puts on you", "Creatures", "Places" }, plan[0].Tiles.Select(i => pairs[i].Item1));
+            Assert.Equal(new[] { "row Lives here (12)", "row Grows here (8)" }, plan[1].Bits.Select(Name));
+            Assert.Equal(new[] { "row Weathers" }, plan[2].Bits.Select(Name));
+            Assert.Equal(new[] { "row Music" }, plan[3].Bits.Select(Name));
         }
 
         [Fact]
@@ -346,10 +356,11 @@ namespace Scry.Tests
             var rows = new[] { ("While it lasts, cannot take", "status effect") };
             var plan = FactLayout.Plan(Kind.StatusEffect, pairs, rows, new[] { FactBlock.Users, FactBlock.Hooks });
             string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
-            Assert.Equal(new[] { null, "Changes", "More", null }, plan.Select(t => t.Heading));
+            Assert.Equal(new[] { null, "Changes", "With other effects", "More", null }, plan.Select(t => t.Heading));
             Assert.Equal(new[] { "Lasts" }, plan[0].Tiles.Select(i => pairs[i].Item1));
-            Assert.Equal(new[] { "Health regen", "Resists", "row While it lasts, cannot take" }, plan[1].Bits.Select(Name));
-            Assert.Equal(new[] { "block Users" }, plan[2].Bits.Select(Name));
+            Assert.Equal(new[] { "Health regen", "Resists" }, plan[1].Bits.Select(Name));
+            Assert.Equal(new[] { "row While it lasts, cannot take" }, plan[2].Bits.Select(Name));
+            Assert.Equal(new[] { "block Users" }, plan[3].Bits.Select(Name));
         }
 
         [Fact]
@@ -363,11 +374,13 @@ namespace Scry.Tests
             var rows = new[] { ("Will not run with (1)", "mod"), ("Needs (2)", "mod"), ("Needed by (3)", "mod"), ("Works with, when there (1)", "mod"), ("Adds 12 items", "mod") };
             var plan = FactLayout.Plan(Kind.Mod, pairs, rows, new[] { FactBlock.Hooks });
             string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
-            Assert.Equal(new[] { null, "About", "Ties to other mods", "What it adds", null }, plan.Select(t => t.Heading));
+            // What it adds, and what it hooks into, which is the question when something breaks.
+            Assert.Equal(new[] { null, "What it adds", "What it hooks into", "Ties to other mods", "About", null }, plan.Select(t => t.Heading));
             Assert.Equal(new[] { "Version", "By" }, plan[0].Tiles.Select(i => pairs[i].Item1));
-            Assert.Equal(new[] { "Website", "Id", "Folder" }, plan[1].Bits.Select(Name));
-            Assert.Equal(new[] { "Will not run with", "row Will not run with (1)", "row Needs (2)", "row Needed by (3)", "row Works with, when there (1)" }, plan[2].Bits.Select(Name));
-            Assert.Equal(new[] { "Adds", "Hooks into", "Station: Forge", "row Adds 12 items" }, plan[3].Bits.Select(Name));
+            Assert.Equal(new[] { "Adds", "Station: Forge", "row Adds 12 items" }, plan[1].Bits.Select(Name));
+            Assert.Equal(new[] { "Hooks into" }, plan[2].Bits.Select(Name));
+            Assert.Equal(new[] { "Will not run with", "row Will not run with (1)", "row Needs (2)", "row Needed by (3)", "row Works with, when there (1)" }, plan[3].Bits.Select(Name));
+            Assert.Equal(new[] { "Website", "Id", "Folder" }, plan[4].Bits.Select(Name));
         }
 
         [Fact]

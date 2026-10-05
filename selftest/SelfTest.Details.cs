@@ -327,6 +327,9 @@ namespace Scry
             p.Note($"{Numbers.Count(biomes.Count)} biomes: {string.Join(", ", biomes.Select(b => b.DisplayName))}");
             var bare = biomes.Where(b => !Facts.For(b).Rows.Any(r => r.Title == BiomeWords.WeathersTitle && r.Lines.Count > 0)).Select(b => b.Name).ToList();
             p.Check(biomes.Count > 0 && bare.Count == 0, "each tells its weathers", string.Join(", ", bare));
+            var untold = biomes.Where(b => !Tells(Facts.For(b), "Puts on you") || !Tells(Facts.For(b), "Creatures")).Select(b => b.Name).ToList();
+            p.Check(untold.Count == 0, "each tells what its weather puts on you and how many creatures live there", string.Join(", ", untold));
+            p.Note("puts on you: " + string.Join("; ", biomes.Select(b => $"{b.Name} {Facts.For(b).Pairs.FirstOrDefault(x => x.Key == "Puts on you").Value}")));
             var empty = biomes.Where(b => b.Name != "Ocean" && !Facts.For(b).Rows.Any(r => r.Title.StartsWith("Lives here", StringComparison.Ordinal))).Select(b => b.Name).ToList();
             p.Note(empty.Count == 0 ? "each but the ocean tells what lives there" : $"no creature told living in {string.Join(", ", empty)}");
             // What spans most biomes, and what of other kinds claims a biome at all, kind by kind, for a look at what is mixed in.

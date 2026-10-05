@@ -15,12 +15,15 @@ namespace Scry
         private void Biome(BiomeSource biome)
         {
             var weathers = new Row { Title = BiomeWords.WeathersTitle, Columns = BiomeWords.WeatherColumns };
+            var known = new List<WeatherFacts>();
             foreach (var (weather, share) in BiomeWords.Weathers(biome.Weathers))
             {
-                var does = WeatherFactsOf(weather) is WeatherFacts known ? WeatherWords.Effects(known) : "";
-                weathers.Lines.Add((new[] { Naming.FieldLabel(weather), share, does }, null));
+                var facts = WeatherFactsOf(weather);
+                if (facts is WeatherFacts each) known.Add(each);
+                weathers.Lines.Add((new[] { Naming.FieldLabel(weather), share, facts is WeatherFacts read ? WeatherWords.Effects(read) : "" }, null));
             }
             if (weathers.Lines.Count > 0) Rows.Add(weathers);
+            if (known.Count > 0) Add("Puts on you", WeatherWords.PutsOnYou(known));
             if (biome.Weathers.Count > 0) Hooked(HookedRule.Weather);
 
             // Each music plays where it is named, as a fact naming music does.
@@ -30,8 +33,8 @@ namespace Scry
 
             var catalog = WorldCatalog.Current?.All;
             if (catalog == null) return;
-            // Each row by name, then in its own order where it has one.
-            void Here(string title, Func<Entry, bool> which, bool home = true, Func<List<Entry>, List<Entry>> order = null)
+            // Each row by name, then in its own order where it has one; how many it holds.
+            int Here(string title, Func<Entry, bool> which, bool home = true, Func<List<Entry>, List<Entry>> order = null)
             {
                 var found = catalog.Where(e => which(e) && (home ? e.Biomes.Contains(biome.Name) : Knowledge.EventBiomes(e.Name).Contains(biome.Name) && !e.Biomes.Contains(biome.Name)))
                     .OrderBy(e => e.ShownName, StringComparer.OrdinalIgnoreCase)
@@ -40,10 +43,11 @@ namespace Scry
                 foreach (var entry in order != null ? order(found) : found) row.Items.Add(EntryChip(entry));
                 row.Title = Naming.Counted(title, row.Items.Count);
                 if (row.Items.Count > 0) Rows.Add(row);
+                return row.Items.Count;
             }
             bool Fish(Entry e) => e.Kind == Kind.Item && e.Source is UnityEngine.GameObject prefab && prefab.GetComponent<global::Fish>() != null;
             List<Entry> Toughest(List<Entry> found) => ContentOrder.ToughestFirst(found, e => FoeOf(e.Source as UnityEngine.GameObject));
-            Here("Lives here", e => e.Kind == Kind.Creature, order: Toughest);
+            var creatures = Here("Lives here", e => e.Kind == Kind.Creature, order: Toughest);
             Here("Fish here", Fish);
             // What grows wild counts whatever kind a mod made it, as a piece one can plant too.
             Here("Grows here", e => e.Kind == Kind.Resource || (e.Kind == Kind.Piece && Knowledge.IsPlacedByWorld(e.Name)),
@@ -51,12 +55,15 @@ namespace Scry
             // The nests the world places there, which were among what else is placed before spawners were a kind of their own.
             Here("Spawners here", e => e.Kind == Kind.Spawner);
             // Places the fewest the world places first, by every set of rules it is placed by.
-            Here("Places here", e => e.Kind == Kind.Location && !(e.Source is PlaceSource place && place.IsRoom),
+            var places = Here("Places here", e => e.Kind == Kind.Location && !(e.Source is PlaceSource place && place.IsRoom),
                 order: found => ContentOrder.FewestFirst(found, e => e.Source is PlaceSource place ? place.Rules.Sum(r => r.m_quantity) : 0));
             // Raids in the order they come, as the Raids tab lists them.
             Here("Raids here", e => e.Kind == Kind.Raid, order: found => found.OrderBy(e => e.GroupOrder).ThenBy(e => e.GroupRank).ToList());
             Here("Also placed here", e => (e.Kind == Kind.Other || e.Kind == Kind.Effect || e.Kind == Kind.Projectile || (e.Kind == Kind.Item && !Fish(e))) && Knowledge.IsPlacedByWorld(e.Name));
             Here("Here only in weather a world event brings", e => e.Kind != Kind.Biome, home: false, order: Toughest);
+            // How many live and are placed there, as the page's headline tiles.
+            Add("Creatures", Numbers.Count(creatures));
+            Add("Places", Numbers.Count(places));
         }
     }
 }

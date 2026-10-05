@@ -25,7 +25,36 @@ namespace Scry
         {
             var parts = new List<string>();
             if (weather.Wet) parts.Add("wet outside without a roof");
+            AddTemperature(parts, weather);
+            if (weather.AlwaysDark) parts.Add("always dark");
+            parts.Add(weather.WindMax <= 0f ? "no wind" : $"wind {Numbers.Amount(weather.WindMin * 100.0, 0)}–{Numbers.Percent(weather.WindMax)}");
+            return string.Join(", ", parts);
+        }
 
+        /// <summary>
+        /// What a biome's weathers put on you in all, the worst of them by day and at night:
+        /// "Wet, cold, freezing at night"; "Nothing" where none puts anything on you.
+        /// </summary>
+        public static string PutsOnYou(IEnumerable<WeatherFacts> weathers)
+        {
+            var all = new WeatherFacts();
+            foreach (var weather in weathers)
+            {
+                all.Wet |= weather.Wet;
+                all.Cold |= weather.Cold;
+                all.ColdAtNight |= weather.ColdAtNight;
+                all.Freezing |= weather.Freezing;
+                all.FreezingAtNight |= weather.FreezingAtNight;
+            }
+            var parts = new List<string>();
+            if (all.Wet) parts.Add("wet");
+            AddTemperature(parts, all);
+            return parts.Count == 0 ? "Nothing" : Naming.Capital(string.Join(", ", parts));
+        }
+
+        /// <summary>Cold or freezing, by day and at night, freezing outranking cold.</summary>
+        private static void AddTemperature(List<string> parts, WeatherFacts weather)
+        {
             string Temperature(bool night)
             {
                 if (weather.Freezing || night && weather.FreezingAtNight) return "freezing";
@@ -37,10 +66,6 @@ namespace Scry
             if (day == night) { if (day != null) parts.Add(day); }
             else if (day == null) parts.Add(night + " at night");
             else parts.Add($"{day}, {night} at night");
-
-            if (weather.AlwaysDark) parts.Add("always dark");
-            parts.Add(weather.WindMax <= 0f ? "no wind" : $"wind {Numbers.Amount(weather.WindMin * 100.0, 0)}–{Numbers.Percent(weather.WindMax)}");
-            return string.Join(", ", parts);
         }
     }
 }

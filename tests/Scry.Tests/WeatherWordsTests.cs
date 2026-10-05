@@ -21,6 +21,19 @@ namespace Scry.Tests
         {
             Assert.Equal("freezing, wind 0–20%", WeatherWords.Effects(new WeatherFacts { Freezing = true, Cold = true, ColdAtNight = true, WindMax = 0.2f }));
             Assert.Equal("cold, freezing at night, wind 0–20%", WeatherWords.Effects(new WeatherFacts { Cold = true, FreezingAtNight = true, WindMax = 0.2f }));
+        }
+
+        [Fact]
+        public void ABiomeSaysWhatItsWeathersPutOnYouInAllTheWorstByDayAndAtNight()
+        {
+            // The Mountain's: one weather freezing, another only cold.
+            Assert.Equal("Freezing", WeatherWords.PutsOnYou(new[] { new WeatherFacts { Freezing = true, Cold = true }, new WeatherFacts { Cold = true } }));
+            // The Swamp's rain soaks you; the Deep North's clear sky is cold by day and freezing at night.
+            Assert.Equal("Wet", WeatherWords.PutsOnYou(new[] { new WeatherFacts { Wet = true }, new WeatherFacts() }));
+            Assert.Equal("Wet, cold, freezing at night", WeatherWords.PutsOnYou(new[] { new WeatherFacts { Wet = true }, new WeatherFacts { Cold = true, FreezingAtNight = true } }));
+            Assert.Equal("Cold at night", WeatherWords.PutsOnYou(new[] { new WeatherFacts { ColdAtNight = true } }));
+            Assert.Equal("Nothing", WeatherWords.PutsOnYou(new[] { new WeatherFacts { WindMax = 1f } }));
+            Assert.Equal("Nothing", WeatherWords.PutsOnYou(new WeatherFacts[0]));
             Assert.Equal("freezing at night, wind 0–20%", WeatherWords.Effects(new WeatherFacts { ColdAtNight = true, FreezingAtNight = true, WindMax = 0.2f }));
             Assert.Equal("cold, wind 0–20%", WeatherWords.Effects(new WeatherFacts { Cold = true, ColdAtNight = true, WindMax = 0.2f }));
         }
