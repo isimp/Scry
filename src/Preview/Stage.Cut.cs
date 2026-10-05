@@ -71,10 +71,10 @@ namespace Scry
             TiltToCut();
         }
 
-        /// <summary>With a floor opened, the camera looks down into it, over its walls, when it looks at it less steeply.</summary>
+        /// <summary>With a floor opened, the camera looks down into it when it looks along it.</summary>
         private static void TiltToCut()
         {
-            if (TheCut.Cutting && Pitch < CutPitch) TurnTo(Yaw, CutPitch);
+            if (TheCut.Cutting && Pitch < CutPitch / 2f) TurnTo(Yaw, CutPitch);
         }
 
         /// <summary>Cuts at a height set by hand, opening the floor it is over (<see cref="PlaceView.LevelAt"/>), the camera tilting only as one is opened.</summary>

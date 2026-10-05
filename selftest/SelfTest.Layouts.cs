@@ -39,11 +39,8 @@ namespace Scry
             Select(location);
             yield return Until(() => CopyOf(location) != null, 20);
             p.Check(Stage.HasFloors && !Stage.Cutting, $"{location.Name} keeps its roof on", Stage.CutLabel);
-            // Looked at from a low angle, a floor opened turns the camera to look down into it.
-            Stage.TurnTo(Stage.Yaw, 30f);
             Stage.ToggleRoof();
             p.Check(Stage.Cutting, "until its chip takes it off", Stage.CutLabel);
-            p.Check(Stage.Pitch >= 39.9f, "and the camera looks down into it", $"{Numbers.Fixed(Stage.Pitch, 0)} degrees");
             var height = (Stage.ModelBottom + Stage.ModelTop) / 2f;
             Stage.CutTo(height);
             p.Check(Mathf.Abs(Stage.CutAt - height) < 0.01f && Stage.CutLevel == PlaceView.LevelAt(Stage.FloorHeights, height), "the ruler sets the cut anywhere, over the floor below it", $"{Numbers.Fixed(Stage.CutAt, 1)} m, {Stage.CutLabel}");
@@ -151,6 +148,15 @@ namespace Scry
             if (algorithm == "Dungeon")
             {
                 p.Check(Stage.HasInside && Stage.Inside, "it shows the dungeon inside");
+
+                // Its plan is of the inside: none while its entrance is shown from outside.
+                Stage.Inside = false;
+                var planned = ScryPanel.Drawn(PanelPart.Plan) + ScryPanel.Drawn(PanelPart.PlanTab);
+                var outsideFrom = Time.frameCount;
+                yield return Until(() => Time.frameCount > outsideFrom + 2, 3);
+                p.Check(ScryPanel.Drawn(PanelPart.Plan) + ScryPanel.Drawn(PanelPart.PlanTab) == planned, "shown from outside, it draws no plan of its inside");
+                Stage.Inside = true;
+                yield return null;
 
                 // Its row holds only View, Inside and Creatures; the roof is over the ruler.
                 var chips = ScryPanel.Drawn(PanelPart.StageChip);

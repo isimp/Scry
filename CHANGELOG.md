@@ -68,7 +68,7 @@ The search's `is:` finds dungeons, camps and their rooms, as the Locations list 
 
 Chips, tabs and badges keep round ends however low they are drawn; one lower than 30 pixels showed stray lines at its ends. A loot mark is a solid amber pill with dark words.
 
-What breaks a rock, vein or tree tells the weakest tool of each tier, each with its tier, rather than every tool that would. Opening a floor of a place turns the camera to look down into it wherever it looked at it less steeply.
+What breaks a rock, vein or tree tells the weakest tool of each tier, each with its tier, rather than every tool that would.
 
 The effects damage puts on you say what they do: burning and spirit deal what a hit leaves over a few seconds rather than at once, and Wet puts burning out sooner; poison lasts longer the more of it there is, longest on you, with a table of how long; frost slows, harder what is weak to it, for a time by the share of health it took, with tables; lightning's effect changes nothing itself.
 
