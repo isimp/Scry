@@ -24,6 +24,9 @@ namespace Scry
         public static readonly Color Accent = new Color(0.960f, 0.720f, 0.340f, 1f);
         public static readonly Color AccentSoft = new Color(0.960f, 0.720f, 0.340f, 0.16f);
 
+        /// <summary>Behind the part of a list name the search matched.</summary>
+        public static readonly Color MatchLit = new Color(0.960f, 0.720f, 0.340f, 0.30f);
+
         /// <summary>What is off, in a warmer amber than the accent, so it is not taken for a selection.</summary>
         public static readonly Color Warn = new Color(0.985f, 0.600f, 0.260f, 1f);
         public static readonly Color WarnSoft = new Color(0.985f, 0.600f, 0.260f, 0.13f);

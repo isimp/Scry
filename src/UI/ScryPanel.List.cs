@@ -393,7 +393,10 @@ namespace Scry
             var nameStyle = Skin.RowName;
             var fullW = Skin.Width(nameStyle, primary);
             var nameW = Mathf.Min(textW, fullW);
-            Skin.LabelIn(new Rect(textX, inner.y, nameW, inner.height), primary, nameStyle, entry.Empty ? Skin.Faint : Skin.Text);
+            var nameRect = new Rect(textX, inner.y, nameW, inner.height);
+            var lit = ReadLit(explorer.Text);
+            if (lit) LightMatches(nameRect, primary, nameStyle);
+            Skin.LabelIn(nameRect, primary, nameStyle, entry.Empty ? Skin.Faint : Skin.Text);
 
             var cut = fullW > textW;
             if (secondary.Length > 0)
@@ -401,7 +404,9 @@ namespace Scry
                 var room = textW - nameW - U(8f);
                 if (room > U(40f))
                 {
-                    GUI.Label(new Rect(textX + nameW + U(8f), inner.y + U(1f), room, inner.height), secondary, Skin.RowSub);
+                    var subRect = new Rect(textX + nameW + U(8f), inner.y + U(1f), room, inner.height);
+                    if (lit) LightMatches(subRect, secondary, Skin.RowSub);
+                    GUI.Label(subRect, secondary, Skin.RowSub);
                     cut |= Skin.Width(Skin.RowSub, secondary) > room;
                 }
                 else
