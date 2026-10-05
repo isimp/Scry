@@ -292,6 +292,9 @@ namespace Scry
                     p.Note($"{entry.Name} ({entry.DisplayName}), {Numbers.Count(Stage.ExampleRoomsTotal)} rooms, {Numbers.Count(Stage.FloorHeights.Count)} floors: " + string.Join("; ", told)
                            + $"; creatures {Numbers.Count(Stage.CreaturesMade)}, {Numbers.Count(Stage.CreaturesDropped)} dropped to the ground under their points, {Numbers.Count(Stage.CreaturesFlying)} flying ({Stage.FlyersTold()})");
                     if (example == 0 && entry.Name == "MorkBorg") p.Note("its rooms' own floors, as each is shown alone: " + string.Join("; ", Stage.ExampleRoomFloorsTold()));
+                    // Where floors are found that Kevin finds odd (a sunken crypt's one level told as several, a frost
+                    // cave's floor with a room that is none): each room's box, doorways, ground and floors.
+                    if (example == 0 && (entry.Name == "SunkenCrypt4" || entry.Name == "MountainCave02")) p.Note("its rooms: " + string.Join("; ", Stage.ExampleRoomGroundTold()));
                 }
             }
             Stage.Inside = wasInside;

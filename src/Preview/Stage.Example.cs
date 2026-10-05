@@ -185,6 +185,9 @@ namespace Scry
         /// <summary>Each room of the example read so far with the floors found in it alone, for the self-test to tell.</summary>
         public static List<string> ExampleRoomFloorsTold() => TheExample.RoomFloorsTold();
 
+        /// <summary>Each room of the example read so far with its box, doorways, ground and the floors it stands on, for the self-test to tell.</summary>
+        public static List<string> ExampleRoomGroundTold() => TheExample.RoomGroundTold(FloorHeights);
+
         /// <summary>How a room of the example shows with the floor opened: whole on it, else as its box says, below faintly or above not at all.</summary>
         public static PlanRoomShown ExampleRoomShown(PlacedRoom room) => TheExample.RoomShown(room, ExamplePlanFloor);
 

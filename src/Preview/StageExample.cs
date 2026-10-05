@@ -231,6 +231,41 @@ namespace Scry
         }
 
         /// <summary>
+        /// Each room read so far as the floors are found from it: the height its box stands over,
+        /// its doorways' heights, the ground its own rays found (each height with its square
+        /// metres, ! where that is a level of the room's own, ~ where no ray landed in the band
+        /// itself), and the floors it stands on, by its box or by its ground, for the self-test.
+        /// </summary>
+        [Diagnostic]
+        public List<string> RoomGroundTold(IReadOnlyList<float> floors)
+        {
+            var told = new List<string>();
+            if (Placed == null) return told;
+            foreach (var room in Placed.Rooms)
+            {
+                var half = room.Room.Size.Y / 2f;
+                var doors = string.Join("/", Enumerable.Range(0, room.Room.Doorways.Count).Select(i => Numbers.Fixed(room.DoorwayAt(i).Y, 1)));
+                var line = $"{room.Room.Name} {Numbers.Fixed(room.Position.Y - half, 1)} to {Numbers.Fixed(room.Position.Y + half, 1)} m, doors {doors}";
+                if (_roomGround.TryGetValue(room, out var ground))
+                {
+                    // Each band counts its neighbours' rays too: the most room within half a metre stands for them.
+                    var own = System.Math.Max(FloorFinder.MinRoom, ground.Ground * FloorFinder.MinShare);
+                    var kept = new List<KeyValuePair<int, FloorPatch.Band>>();
+                    foreach (var band in ground.Bands.Where(b => b.Value.Room >= FloorFinder.MinRoom).OrderByDescending(b => b.Value.Room))
+                    {
+                        if (kept.All(k => System.Math.Abs(k.Key - band.Key) > 2)) kept.Add(band);
+                    }
+                    var bands = kept.OrderByDescending(b => b.Key).Select(b =>
+                        $"{Numbers.Fixed((float)(b.Value.Sum / b.Value.Count), 1)}:{Numbers.Amount(b.Value.Room, 0)}{(b.Value.Room >= own ? "!" : "")}{(b.Value.Landed ? "" : "~")}");
+                    line += $", ground {Numbers.Amount(ground.Ground, 0)} m\u00b2: {string.Join(" ", bands)}";
+                }
+                var on = floors.Where(f => OnFloor(room, f)).Select(f => Numbers.Fixed(f, 1) + (ExamplePlan.Shown(room, f) == PlanRoomShown.Whole ? "" : " by ground"));
+                told.Add(line + $", on {string.Join(" ", on)}");
+            }
+            return told;
+        }
+
+        /// <summary>
         /// Reads a dungeon room's floors, once, as it stands. While the entrance is shown, the
         /// example sleeps, and the room alone is woken for it beside the example: a dungeon's
         /// example stands where its location does, so the room stands the same in either.
