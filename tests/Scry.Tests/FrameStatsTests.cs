@@ -16,6 +16,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void FramesUpToWhatItWasMadeForAreKeptWithoutAllocating()
+        {
+            // The self-test notes every frame inside the update it measures; a list growing as
+            // the run goes on copied itself in some frame and was counted as Scry's own.
+            var stats = new FrameStats(1000);
+            stats.Add(1, "update", 1);
+            var before = System.GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 1; i < 1000; i++) stats.Add(2, "update probe", 1, "update", 2, 0);
+            Assert.Equal(0, System.GC.GetAllocatedBytesForCurrentThread() - before);
+            Assert.Equal(1000, stats.Frames);
+        }
+
+        [Fact]
         public void ItTellsTheAverageThe95thPercentileAndTheMost()
         {
             var stats = OneToAHundred();

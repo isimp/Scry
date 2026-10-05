@@ -238,6 +238,9 @@ namespace Scry
             }
         }
 
+        /// <summary>The dungeons whose floors Kevin found right, which must find the floors they did before 2026-10-05's rules.</summary>
+        private static readonly string[] Unchanged = { "MorkBorg", "Hildir_plainsfortress", "Crypt2", "TheHole01" };
+
         /// <summary>
         /// The dungeons whose rooms are rock or stacked high, the Frost Caves, the M&#xF6;rkhalla ones and
         /// Hildir's sealed tower: each one's example is built and opened floor by floor, told with
@@ -251,7 +254,7 @@ namespace Scry
         /// </summary>
         private static IEnumerator CaveFloors(Probe p)
         {
-            var named = new[] { "MountainCave02", "MorkBorg", "TheHole01", "Hildir_plainsfortress", "SunkenCrypt4" };
+            var named = new[] { "MountainCave02", "MorkBorg", "TheHole01", "Hildir_plainsfortress", "SunkenCrypt4", "Crypt2" };
             var caves = X.Catalog.Where(e => PlaceOf(e) != null && !PlaceOf(e).IsRoom
                                              && (named.Contains(e.Name) || e.DisplayName.IndexOf("rkhalla", StringComparison.OrdinalIgnoreCase) >= 0))
                 .OrderBy(e => e.Name, StringComparer.Ordinal).ToList();
@@ -284,7 +287,7 @@ namespace Scry
                     if (now.Count != before.Count || now.Where((f, i) => Mathf.Abs(f - before[i]) > 0.05f).Any())
                     {
                         p.Note($"{entry.Name}: floors found {Told(now)}; by the rules before {Told(before)}");
-                        if (entry.Name == "MorkBorg" || entry.Name == "Hildir_plainsfortress")
+                        if (Unchanged.Contains(entry.Name))
                         {
                             changed.Add($"{entry.Name} {Told(now)}, before {Told(before)}");
                             p.Note("its rooms: " + string.Join("; ", Stage.ExampleRoomGroundTold()));
@@ -318,7 +321,7 @@ namespace Scry
             p.Check(empty.Count == 0, "every floor found in their examples has rooms on it", string.Join("; ", empty));
             p.Check(blank.Count == 0, "and some room stands on the stage on every floor", string.Join("; ", blank));
             p.Check(unreached.Count == 0, "and every room stands whole on some floor", string.Join("; ", unreached));
-            p.Check(changed.Count == 0, "M\u00f6rkhalla and the sealed tower find the floors they did before", string.Join("; ", changed));
+            p.Check(changed.Count == 0, "M\u00f6rkhalla, the sealed tower, the burial chambers and the winding tunnels find the floors they did before", string.Join("; ", changed));
         }
 
         /// <summary>

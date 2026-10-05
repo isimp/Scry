@@ -12,8 +12,13 @@ namespace Scry
     /// </summary>
     internal sealed class FrameStats
     {
-        private readonly List<(double Ms, string Part, double PartMs, string Outer, double OuterMs, int Cleanups)> _frames =
-            new List<(double, string, double, string, double, int)>();
+        private readonly List<(double Ms, string Part, double PartMs, string Outer, double OuterMs, int Cleanups)> _frames;
+
+        /// <summary>
+        /// Stats made room for so many frames at once, so noting them allocates nothing until
+        /// there are more: the self-test notes every frame inside the update it measures.
+        /// </summary>
+        public FrameStats(int frames = 0) => _frames = new List<(double, string, double, string, double, int)>(Math.Max(0, frames));
 
         /// <summary>A frame: its time, its slowest part, its slowest outer part (<see cref="FrameTimes.SlowestOuter"/>) and the memory cleanups that ran in it.</summary>
         public void Add(double ms, string slowestPart, double slowestMs, string outer = null, double outerMs = 0, int cleanups = 0) =>

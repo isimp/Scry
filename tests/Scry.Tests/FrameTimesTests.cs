@@ -170,6 +170,25 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ReadingAFramesTotalsAllocatesNothingSoTheMeasuringIsNotTakenForScrysOwn()
+        {
+            // The measuring reads a frame's totals several times a frame, inside the update it
+            // measures: what it allocated was counted as Scry's idling (1,170 bytes a frame).
+            var frame = new FrameTimes();
+            frame.Add("update", 1, 10, 0);
+            frame.Add("update probe", 1, 5, 0);
+            frame.Add("update self-test", 1, 5, 0);
+            double Read() => frame.Total + frame.Bytes + frame.Cleanups + frame.InnerMs + frame.BytesWithout("update self-test") + frame.TotalWithout("update self-test")
+                             + frame.SlowestWithout("update self-test").Ms + frame.SlowestOuter.Ms;
+            Read();
+            var before = System.GC.GetAllocatedBytesForCurrentThread();
+            var sum = 0.0;
+            for (var i = 0; i < 100; i++) sum += Read();
+            Assert.Equal(0, System.GC.GetAllocatedBytesForCurrentThread() - before);
+            Assert.True(sum > 0);
+        }
+
+        [Fact]
         public void ClearingStartsTheNextFrameEmpty()
         {
             var frame = new FrameTimes();

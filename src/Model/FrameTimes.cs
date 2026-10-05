@@ -25,17 +25,52 @@ namespace Scry
         private readonly List<Part> _parts = new List<Part>();
         private readonly Dictionary<string, Part> _byName = new Dictionary<string, Part>(StringComparer.Ordinal);
 
+        // The sums below are read several times a frame inside the update they measure, so they
+        // walk the parts by hand: what they allocated would be counted as Scry's own.
+
         /// <summary>The time of the outer parts, in milliseconds.</summary>
-        public double Total => _parts.Where(p => p.Outer).Sum(p => p.Ms);
+        public double Total
+        {
+            get
+            {
+                var sum = 0.0;
+                foreach (var part in _parts) if (part.Outer) sum += part.Ms;
+                return sum;
+            }
+        }
 
         /// <summary>What the outer parts allocated, in bytes.</summary>
-        public long Bytes => _parts.Where(p => p.Outer).Sum(p => p.Bytes);
+        public long Bytes
+        {
+            get
+            {
+                var sum = 0L;
+                foreach (var part in _parts) if (part.Outer) sum += part.Bytes;
+                return sum;
+            }
+        }
 
         /// <summary>The cleanups that ran inside the outer parts.</summary>
-        public int Cleanups => _parts.Where(p => p.Outer).Sum(p => p.Cleanups);
+        public int Cleanups
+        {
+            get
+            {
+                var sum = 0;
+                foreach (var part in _parts) if (part.Outer) sum += part.Cleanups;
+                return sum;
+            }
+        }
 
         /// <summary>The time of the inner parts so far, in milliseconds.</summary>
-        public double InnerMs => _parts.Where(p => !p.Outer).Sum(p => p.Ms);
+        public double InnerMs
+        {
+            get
+            {
+                var sum = 0.0;
+                foreach (var part in _parts) if (!part.Outer) sum += part.Ms;
+                return sum;
+            }
+        }
 
         /// <summary>The time of one part, 0 when it has none.</summary>
         public double MsOf(string part) => part != null && _byName.TryGetValue(part, out var known) ? known.Ms : 0;

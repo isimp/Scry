@@ -280,12 +280,13 @@ namespace Scry
             _ground += cast;
             var ground = FloorFinder.Patch(_hits);
             ground.Ground = cast;
-            // Its highest doorway where its ground was measured: ground far over it is out of its reach.
+            // Its highest doorway where its ground was measured, and whether it opens to the outside: ground high over it is out of its reach but in the entrance.
             if (room.Room.Doorways.Count > 0)
             {
                 var door = Enumerable.Range(0, room.Room.Doorways.Count).Select(room.DoorwayAt).OrderByDescending(d => d.Y).First();
                 ground.Door = subject.InverseTransformPoint(Holder.transform.TransformPoint(new Vector3(door.X, door.Y, door.Z))).y;
             }
+            ground.Entrance = room.Room.Entrance;
             _patches.Add(ground);
             _roomGround[room] = ground;
             _hits.Clear();

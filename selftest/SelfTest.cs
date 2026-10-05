@@ -41,8 +41,12 @@ namespace Scry
         private static ScenarioRunner _runner;
         private static Before _before;
 
-        /// <summary>Scry's own work in every frame of the run (<see cref="Timing.Measuring"/>).</summary>
-        private static readonly FrameStats Frames = new FrameStats();
+        /// <summary>
+        /// Scry's own work in every frame of the run (<see cref="Timing.Measuring"/>), room made
+        /// for a run of seven minutes at 144 frames a second (3 MB), so noting them allocates
+        /// nothing in the frames measured.
+        /// </summary>
+        private static readonly FrameStats Frames = new FrameStats(1 << 16);
 
         private static Explorer _autoFor;
         private static float _readyAt = -1f;
