@@ -33,7 +33,8 @@ namespace Scry
 
     /// <summary>
     /// How In the game is laid out for a kind: topics in a fixed order, each under a small
-    /// heading; the headline numbers as tiles; what qualifies a row (its drops' stars, the
+    /// heading; the headline numbers as tiles, a set of them chosen by what the thing is (a
+    /// weapon's damage, armour's armour, food's food); what qualifies a row (its drops' stars, the
     /// world's rate) told under it as notes. A fact goes to a topic by its label, else by the
     /// part of the reader that told it, else to More at the end, so every fact read is shown
     /// once whatever reader told it. Within a topic its facts come in the order read, then
@@ -44,7 +45,8 @@ namespace Scry
         private sealed class KindPlan
         {
             public (string Id, string Heading)[] Topics;
-            public readonly List<(string Label, string Topic)> Tiles = new List<(string, string)>();
+            /// <summary>Each topic's tiles: sets of labels, the first whose key fact is told taken (one with no key always).</summary>
+            public readonly List<(string Topic, string Key, string[] Labels)> Tiles = new List<(string, string, string[])>();
             public readonly Dictionary<string, string> Labels = new Dictionary<string, string>(StringComparer.Ordinal);
             public readonly List<(Func<string, bool> Matches, string Topic)> Starts = new List<(Func<string, bool>, string)>();
             public readonly Dictionary<string, string> Parts = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -57,6 +59,7 @@ namespace Scry
         private static readonly Dictionary<Kind, KindPlan> Kinds = new Dictionary<Kind, KindPlan>
         {
             [Kind.Creature] = Creature(),
+            [Kind.Item] = Item(),
         };
 
         private static KindPlan Creature()
@@ -69,8 +72,8 @@ namespace Scry
                     ("taming", "Taming and breeding"), ("riding", "Riding"), ("after", "After it falls"), (More, "More"), ("hooks", null),
                 },
             };
-            foreach (var tile in new[] { "Health", "Faction", "Moves", "Tameable", "Boss" }) plan.Tiles.Add((tile, "overview"));
-            foreach (var tile in new[] { "Sees", "Hears", "Turns on you", "Fire" }) plan.Tiles.Add((tile, "senses"));
+            Tile(plan, "overview", null, "Health", "Faction", "Moves", "Tameable", "Boss");
+            Tile(plan, "senses", null, "Sees", "Hears", "Turns on you", "Fire");
             Label(plan, "fight", "Attacks", "Health with stars", "Damage with stars", "Its fight", "Fights", "Damage it takes");
             Label(plan, "senses", "Gives up chasing", "Flees", "Leaves alone", "With Passive enemies");
             Label(plan, "loot", "Drops");
@@ -95,6 +98,42 @@ namespace Scry
             plan.Blocks[FactBlock.Hooks] = "hooks";
             return plan;
         }
+
+        private static KindPlan Item()
+        {
+            var plan = new KindPlan
+            {
+                Topics = new[]
+                {
+                    ("overview", (string)null), ("fight", "Fight"), ("wearing", "Wearing"), ("food", "Food"), ("hatching", "Hatching"), ("making", "Making"),
+                    ("from", "Where it comes from"), ("uses", "What it is used for"), (More, "More"), ("hooks", null),
+                },
+            };
+            Tile(plan, "overview", "Damage", "Damage", "Weight", "Quality", "Durability");
+            Tile(plan, "overview", "Armour", "Armour", "Weight", "Quality", "Movement");
+            Tile(plan, "overview", "Food", "Food", "Heals", "Lasts", "Weight");
+            Tile(plan, "overview", null, "Type", "Weight", "Stacks to", "Worth");
+            Label(plan, "fight", "Damage", "Per quality", "Secondary attack", "Block", "Block force", "Parry bonus", "Backstab", "Knockback", "Each attack costs", "Drawing costs",
+                "At full adrenaline", "On hit", ItemWords.DamageTaken(false), ItemWords.ResistsNothing(false));
+            Label(plan, "wearing", "Armour", "Movement", "When worn", "Set bonus", "Other changes while worn", ItemWords.DamageTaken(true), ItemWords.ResistsNothing(true));
+            Label(plan, "food", "Food", "Heals", "Lasts", "When used");
+            Label(plan, "hatching", "Hatches into", "Hatches in", "Hatches when");
+            Label(plan, "making", "Type", "Weight", "Quality", "Durability", "Repaired at", "Upgrades need", "Skill", "Tool tier", "Stacks to", "Worth", "Portals");
+            Label(plan, More, "Not shown");
+            plan.Starts.Add((l => l.EndsWith(" damage causes", StringComparison.Ordinal), "fight"));
+            Part(plan, "fight", "item stats");
+            Part(plan, "wearing", "gear", "resistances");
+            Part(plan, "making", "recipe", "made at stations");
+            plan.Blocks[FactBlock.Where] = "from";
+            plan.Blocks[FactBlock.FoundIn] = "from";
+            plan.Blocks[FactBlock.Biomes] = "from";
+            plan.Blocks[FactBlock.Uses] = "uses";
+            plan.Blocks[FactBlock.Users] = More;
+            plan.Blocks[FactBlock.Hooks] = "hooks";
+            return plan;
+        }
+
+        private static void Tile(KindPlan plan, string topic, string key, params string[] labels) => plan.Tiles.Add((topic, key, labels));
 
         private static void Label(KindPlan plan, string topic, params string[] labels)
         {
@@ -130,10 +169,27 @@ namespace Scry
                 return part != null && plan.Parts.TryGetValue(part, out var byPart) ? byPart : More;
             }
 
-            // Tiles in the plan's order, whatever order they were read in.
-            foreach (var (label, topic) in plan.Tiles)
+            // Each topic's tiles, from the first set whose key fact is told, in the set's order
+            // whatever order they were read in.
+            var tiled = new HashSet<int>();
+            var chosen = new HashSet<string>(StringComparer.Ordinal);
+            bool Told(string label)
             {
-                for (var i = 0; i < pairs.Count; i++) if (pairs[i].Label == label) topics[topic].Tiles.Add(i);
+                for (var i = 0; i < pairs.Count; i++) if (pairs[i].Label == label) return true;
+                return false;
+            }
+            foreach (var (topic, key, labels) in plan.Tiles)
+            {
+                if (chosen.Contains(topic) || (key != null && !Told(key))) continue;
+                chosen.Add(topic);
+                foreach (var label in labels)
+                {
+                    for (var i = 0; i < pairs.Count; i++)
+                    {
+                        if (pairs[i].Label != label || !tiled.Add(i)) continue;
+                        topics[topic].Tiles.Add(i);
+                    }
+                }
             }
 
             var anchors = new Dictionary<string, FactBit>(StringComparer.Ordinal);
@@ -141,7 +197,7 @@ namespace Scry
             for (var i = 0; i < pairs.Count; i++)
             {
                 var (label, part) = pairs[i];
-                if (plan.Tiles.Exists(t => t.Label == label)) continue;
+                if (tiled.Contains(i)) continue;
                 if (plan.Notes.ContainsKey(label))
                 {
                     notes.Add(i);

@@ -37,7 +37,7 @@ namespace Scry
             {
                 foreach (var pair in facts.Pairs) y = FactPair(explorer, entry, facts, pair, width, labelW, y);
                 foreach (var row in facts.Rows) y = FactRow(explorer, row, width, y);
-                foreach (var block in EveryBlock) y = FactBlockOf(explorer, entry, facts, block, places, width, y);
+                foreach (var block in EveryBlock) y = FactBlockOf(explorer, entry, facts, block, places, true, width, y);
                 return y + U(14f);
             }
 
@@ -49,7 +49,7 @@ namespace Scry
                 {
                     if (bit.Pair >= 0) y = FactPair(explorer, entry, facts, facts.Pairs[bit.Pair], width, labelW, y);
                     else if (bit.Row >= 0) y = FactRow(explorer, facts.Rows[bit.Row], width, y);
-                    else if (bit.Block is FactBlock block) y = FactBlockOf(explorer, entry, facts, block, places, width, y);
+                    else if (bit.Block is FactBlock block) y = FactBlockOf(explorer, entry, facts, block, places, false, width, y);
                     foreach (var note in bit.Notes) y = FactNote(facts, facts.Pairs[note], width, y);
                 }
             }
@@ -107,13 +107,13 @@ namespace Scry
             return y + height + U(6f);
         }
 
-        /// <summary>What a page tells besides its labelled facts and rows, each where it has any.</summary>
-        private static float FactBlockOf(Explorer explorer, Entry entry, Facts facts, FactBlock block, bool places, float width, float y)
+        /// <summary>What a page tells besides its labelled facts and rows, each where it has any; under a topic's heading, without a title of its own.</summary>
+        private static float FactBlockOf(Explorer explorer, Entry entry, Facts facts, FactBlock block, bool places, bool titled, float width, float y)
         {
             switch (block)
             {
                 case FactBlock.Where:
-                    return facts.Where.Count > 0 ? WhereBlock(explorer, facts, width, y) : y;
+                    return facts.Where.Count > 0 ? WhereBlock(explorer, facts, titled, width, y) : y;
                 case FactBlock.FoundIn:
                     return places ? FoundIn(explorer, entry, width, y + U(6f)) : y;
                 case FactBlock.Biomes:
@@ -122,18 +122,21 @@ namespace Scry
                     var users = Users(explorer, entry);
                     return users.Count > 0 ? LinkItems(explorer, _usersTitle, users, width, y) : y;
                 case FactBlock.Uses:
-                    return UsesBlock(explorer, facts, width, y);
+                    return UsesBlock(explorer, facts, titled, width, y);
                 default:
                     return HooksBlock(entry, facts, width, y);
             }
         }
 
         /// <summary>Where it lives, comes from, or what gives it: a line naming a prefab in the catalog a chip that goes there.</summary>
-        private static float WhereBlock(Explorer explorer, Facts facts, float width, float y)
+        private static float WhereBlock(Explorer explorer, Facts facts, bool titled, float width, float y)
         {
-            y += U(6f);
-            GUI.Label(new Rect(0f, y, width, U(20f)), facts.WhereTitle, Skin.DimLabel);
-            y += U(24f);
+            if (titled)
+            {
+                y += U(6f);
+                GUI.Label(new Rect(0f, y, width, U(20f)), facts.WhereTitle, Skin.DimLabel);
+                y += U(24f);
+            }
             const int firstLines = 8;
             var lines = ShownOf("where", facts.Where.Count, firstLines);
             foreach (var source in facts.Where.Take(lines))
@@ -194,15 +197,18 @@ namespace Scry
         }
 
         /// <summary>What it is used for, a row for each kind of use and place.</summary>
-        private static float UsesBlock(Explorer explorer, Facts facts, float width, float y)
+        private static float UsesBlock(Explorer explorer, Facts facts, bool titled, float width, float y)
         {
             // What it is used for, under a heading of its own; a long row (wood builds a hundred
             // pieces) shows its first few until asked for the rest.
             if (facts.UseRows.Count > 0)
             {
-                y += U(6f);
-                GUI.Label(new Rect(0f, y, width, U(20f)), "What it is used for", Skin.DimLabel);
-                y += U(22f);
+                if (titled)
+                {
+                    y += U(6f);
+                    GUI.Label(new Rect(0f, y, width, U(20f)), "What it is used for", Skin.DimLabel);
+                    y += U(22f);
+                }
                 foreach (var row in facts.UseRows) y = FactRow(explorer, row, width, y);
             }
             return y;

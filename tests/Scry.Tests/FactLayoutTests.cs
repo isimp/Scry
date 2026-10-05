@@ -81,6 +81,55 @@ namespace Scry.Tests
             Assert.Equal(1, Assert.Single(loot.Bits).Pair);
         }
 
+        private static List<(string Heading, string[] Shown)> Item((string, string)[] pairs, (string, string)[] rows, params FactBlock[] blocks)
+        {
+            var plan = FactLayout.Plan(Kind.Item, pairs, rows, blocks);
+            string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
+            return plan.Select(t => (t.Heading, t.Tiles.Select(i => pairs[i].Item1).Concat(t.Bits.Select(Name)).ToArray())).ToList();
+        }
+
+        [Fact]
+        public void AWeaponShowsItsDamageWeightQualityAndWearThenHowItFightsAndIsMade()
+        {
+            var weapon = Item(
+                new[] { ("Type", ""), ("Weight", ""), ("Quality", ""), ("Portals", ""), ("Damage", ""), ("Per quality", ""), ("Skill", "item stats"), ("Block", "item stats"),
+                    ("Durability", "item stats"), ("Repaired at", "item stats"), ("Fire damage causes", "") },
+                new[] { ("Made at forge", "recipe") },
+                FactBlock.Where, FactBlock.Uses, FactBlock.Hooks);
+            Assert.Equal(new[] { null, "Fight", "Making", "Where it comes from", "What it is used for", null }, weapon.Select(t => t.Heading));
+            Assert.Equal(new[] { "Damage", "Weight", "Quality", "Durability" }, weapon[0].Shown);
+            Assert.Equal(new[] { "Per quality", "Block", "Fire damage causes" }, weapon[1].Shown);
+            Assert.Equal(new[] { "Type", "Portals", "Skill", "Repaired at", "row Made at forge" }, weapon[2].Shown);
+            Assert.Equal(new[] { "block Where" }, weapon[3].Shown);
+            Assert.Equal(new[] { "block Uses" }, weapon[4].Shown);
+        }
+
+        [Fact]
+        public void ArmourShowsItsArmourAndMovementAndWhatItDoesWorn()
+        {
+            var armour = Item(
+                new[] { ("Type", ""), ("Weight", ""), ("Quality", ""), ("Armour", ""), ("Durability", "item stats"), ("Movement", ""), ("Set bonus", ""), ("When worn", ""), ("Stamina use", "gear") },
+                new[] { (ItemWords.DamageTaken(true), "resistances") });
+            Assert.Equal(new[] { null, "Wearing", "Making" }, armour.Select(t => t.Heading));
+            Assert.Equal(new[] { "Armour", "Weight", "Quality", "Movement" }, armour[0].Shown);
+            Assert.Equal(new[] { "Set bonus", "When worn", "Stamina use", "row " + ItemWords.DamageTaken(true) }, armour[1].Shown);
+            Assert.Equal(new[] { "Type", "Durability" }, armour[2].Shown);
+        }
+
+        [Fact]
+        public void FoodShowsWhatItGivesAndAMaterialItsWeightAndStack()
+        {
+            var food = Item(new[] { ("Type", ""), ("Weight", ""), ("Food", ""), ("Heals", ""), ("Lasts", ""), ("When used", "") }, new (string, string)[0]);
+            Assert.Equal(new[] { "Food", "Heals", "Lasts", "Weight" }, food[0].Shown);
+            Assert.Equal("Food", food[1].Heading);
+            Assert.Equal(new[] { "When used" }, food[1].Shown);
+
+            var wood = Item(new[] { ("Type", ""), ("Weight", ""), ("Worth", ""), ("Stacks to", ""), ("Portals", "") }, new (string, string)[0]);
+            Assert.Equal(new[] { "Type", "Weight", "Stacks to", "Worth" }, wood[0].Shown);
+            Assert.Equal("Making", wood[1].Heading);
+            Assert.Equal(new[] { "Portals" }, wood[1].Shown);
+        }
+
         [Fact]
         public void ANoteReadsItsLabelThenItsValue()
         {
