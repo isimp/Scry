@@ -159,6 +159,35 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ANameInQuotesMatchesOnlyThatName()
+        {
+            var catalog = new List<Entry>
+            {
+                E("Troll", Kind.Creature, "Troll"),
+                E("Troll_Summoned", Kind.Creature, "Troll"),
+                E("HelmetTrollLeather", Kind.Item, "Troll leather helmet"),
+                E("TrollHat", Kind.Item, "Troll hat"),
+                E("vfx_troll_death", Kind.Effect),
+            };
+            List<string> In(string text) => Search.Run(catalog, new Query { Text = text }, new List<string>()).Select(e => e.Name).ToList();
+
+            // The game's name or the prefab's, whatever the case, and nothing that only holds it.
+            Assert.Equal(new[] { "Troll", "Troll_Summoned" }, In("\"troll\""));
+            Assert.Equal(new[] { "Troll_Summoned" }, In("\"troll_summoned\""));
+            // A name of several words in one pair of quotes, and a minus leaving one out.
+            Assert.Equal(new[] { "TrollHat" }, In("\"troll hat\""));
+            Assert.Equal(new[] { "TrollHat", "HelmetTrollLeather", "vfx_troll_death" }, In("troll -\"troll\""));
+            // Quotes not yet closed read as plain words while the name is typed.
+            Assert.Equal(In("troll ha"), In("\"troll ha"));
+            Assert.Equal(In(""), In("\"\""));
+            // Spaces just inside the quotes are no part of the name, and a quote ends a word before it.
+            Assert.Equal(In("\"troll\""), In("\" troll \""));
+            Assert.Equal(new[] { "TrollHat" }, In("hat\"troll hat\""));
+            Assert.False(Search.Parse("\"troll\"").IsEmpty);
+            Assert.False(Search.Parse("-\"troll\"").IsEmpty);
+        }
+
+        [Fact]
         public void ACommaInATermReadsAsOr()
         {
             Assert.Equal(new[] { "Draugr", "BlobElite", "foresttrolls", "Troll" }, Find("biome:swamp,blackforest"));

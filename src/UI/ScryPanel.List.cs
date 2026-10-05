@@ -64,6 +64,7 @@ namespace Scry
             new[] { "troll", "Names containing it, in the game's words or the prefab's. Best matches first." },
             new[] { "troll hat", "Every word has to match." },
             new[] { "-ragdoll", "A minus leaves out whatever matches." },
+            new[] { "\"troll\"", "A name in quotes finds only what is called exactly that, by the game's name or the prefab's: not Troll hat." },
             new[] { "kind:creature", Kinds.HelpLine() },
             new[] { "has:aoe", "Prefabs with a part of that type, such as has:light, has:pickable, has:fireplace." },
             new[] { "biome:swamp", "What spawns or grows in that biome." },

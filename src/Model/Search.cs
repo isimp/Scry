@@ -33,8 +33,9 @@ namespace Scry
     /// (<see cref="SearchFight"/>), these six by the start of a word; and the link terms
     /// <c>drops:</c>, <c>from:</c>, <c>needs:</c>, <c>gives:</c> and <c>spawns:</c>, by what the catalog
     /// links (<see cref="Entry.TermLinks"/>), named by the game's or the prefab's name. A comma in a
-    /// term's value reads as or: <c>biome:swamp,plains</c>.
-    /// A minus in front of a word or a term leaves out what matches it.
+    /// term's value reads as or: <c>biome:swamp,plains</c>. A name in quotes matches only what is
+    /// called exactly that, by the game's name or the prefab's: <c>"troll"</c>, not Troll hat.
+    /// A minus in front of a word, a term or a name in quotes leaves out what matches it.
     /// </summary>
     internal sealed class ParsedSearch
     {
@@ -43,7 +44,11 @@ namespace Scry
         public readonly List<KeyValuePair<string, string>> Terms = new List<KeyValuePair<string, string>>();
         public readonly List<KeyValuePair<string, string>> NotTerms = new List<KeyValuePair<string, string>>();
 
-        public bool IsEmpty => Words.Count == 0 && NotWords.Count == 0 && Terms.Count == 0 && NotTerms.Count == 0;
+        /// <summary>The names in quotes, to match exactly, and those to leave out.</summary>
+        public readonly List<string> Names = new List<string>();
+        public readonly List<string> NotNames = new List<string>();
+
+        public bool IsEmpty => Words.Count == 0 && NotWords.Count == 0 && Terms.Count == 0 && NotTerms.Count == 0 && Names.Count == 0 && NotNames.Count == 0;
 
         private Matcher _matcher;
 
@@ -61,9 +66,13 @@ namespace Scry
         public readonly List<string> NotWords = new List<string>();
         public readonly List<Term> Terms = new List<Term>();
         public readonly List<Term> NotTerms = new List<Term>();
+        public readonly List<string> Names;
+        public readonly List<string> NotNames;
 
         public Matcher(ParsedSearch search)
         {
+            Names = search.Names;
+            NotNames = search.NotNames;
             foreach (var word in search.Words) Words.Add(word.ToUpperInvariant());
             foreach (var word in search.NotWords) NotWords.Add(word.ToUpperInvariant());
             foreach (var term in search.Terms) Terms.Add(new Term(term.Key, term.Value));
@@ -133,8 +142,13 @@ namespace Scry
         public static ParsedSearch Parse(string text)
         {
             var parsed = new ParsedSearch();
-            foreach (var raw in Words(text))
+            foreach (var (raw, quoted, leftOut) in Tokens(text))
             {
+                if (quoted)
+                {
+                    (leftOut ? parsed.NotNames : parsed.Names).Add(raw);
+                    continue;
+                }
                 var word = raw;
                 var not = word.Length > 1 && word[0] == '-';
                 if (not) word = word.Substring(1);
@@ -265,11 +279,43 @@ namespace Scry
         /// <summary>A term's values, parted by its commas, each read as one way to match; what stands empty between them is passed over.</summary>
         public static string[] Values(string value) => value.Split(Commas, StringSplitOptions.RemoveEmptyEntries);
 
-        public static string[] Words(string text)
+        /// <summary>
+        /// The search's words, a name in quotes kept whole as one, with whether it was quoted and,
+        /// for a quoted one, whether a minus stood before it. A quote not yet closed is still
+        /// being typed: what follows it reads as plain words until it is.
+        /// </summary>
+        public static List<(string Word, bool Quoted, bool LeftOut)> Tokens(string text)
         {
-            return string.IsNullOrEmpty(text)
-                ? Array.Empty<string>()
-                : text.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
+            var tokens = new List<(string, bool, bool)>();
+            if (string.IsNullOrEmpty(text)) return tokens;
+            var quotes = 0;
+            foreach (var c in text) if (c == '"') quotes++;
+            if (quotes % 2 == 1) text = text.Remove(text.LastIndexOf('"'), 1);
+
+            var at = 0;
+            while (at < text.Length)
+            {
+                if (Array.IndexOf(Separators, text[at]) >= 0)
+                {
+                    at++;
+                    continue;
+                }
+                var leftOut = text[at] == '-' && at + 1 < text.Length && text[at + 1] == '"';
+                var open = leftOut ? at + 1 : at;
+                if (text[open] == '"')
+                {
+                    var close = text.IndexOf('"', open + 1);
+                    var name = text.Substring(open + 1, close - open - 1).Trim();
+                    if (name.Length > 0) tokens.Add((name, true, leftOut));
+                    at = close + 1;
+                    continue;
+                }
+                var end = at;
+                while (end < text.Length && Array.IndexOf(Separators, text[end]) < 0 && text[end] != '"') end++;
+                tokens.Add((text.Substring(at, end - at), false, false));
+                at = end;
+            }
+            return tokens;
         }
 
         /// <summary>
@@ -278,6 +324,8 @@ namespace Scry
         /// </summary>
         private static int Score(Entry entry, Matcher search)
         {
+            foreach (var name in search.Names) if (!NamedExactly(entry, name)) return Miss;
+            foreach (var name in search.NotNames) if (NamedExactly(entry, name)) return Miss;
             foreach (var term in search.Terms) if (!TermMatches(entry, term)) return Miss;
             foreach (var term in search.NotTerms) if (TermMatches(entry, term)) return Miss;
             foreach (var word in search.NotWords)
@@ -373,6 +421,10 @@ namespace Scry
                 level = level > (int.MaxValue - digit) / 10 ? int.MaxValue : level * 10 + digit;
             }
         }
+
+        /// <summary>Whether it is called exactly that, by the game's name or the prefab's, whatever the case.</summary>
+        private static bool NamedExactly(Entry entry, string name) =>
+            string.Equals(entry.Name, name, StringComparison.OrdinalIgnoreCase) || string.Equals(entry.DisplayName, name, StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Whether any of the linked entries goes by the value: held in the game's name, spaces left out, or in the prefab's.</summary>
         private static bool AnyLinked(IReadOnlyList<Entry> linked, string value)

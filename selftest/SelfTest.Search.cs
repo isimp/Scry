@@ -103,6 +103,8 @@ namespace Scry
                 p.Check(ofMod.Count > 0 && ofMod.All(e => e.ModName == mod), $"\"mod:\" finds only what {mod} added", $"{Numbers.Count(ofMod.Count)} results");
             }
             else p.Note("no mod adds anything, so mod: is not tried");
+            var exact = Find("\"troll\"");
+            p.Check(exact.Any(e => e.Name == "Troll") && exact.All(e => string.Equals(e.Name, "troll", StringComparison.OrdinalIgnoreCase) || string.Equals(e.DisplayName, "troll", StringComparison.OrdinalIgnoreCase)), "a name in quotes finds only what is called exactly that", string.Join(", ", exact.Select(e => e.Name)));
             var either = Find("biome:swamp,mountain kind:creature");
             p.Check(either.Any(e => e.Biomes.Contains("Swamp")) && either.Any(e => e.Biomes.Contains("Mountain")), "a comma reads as or (\"biome:swamp,mountain\")", $"{Numbers.Count(either.Count)} results");
 
