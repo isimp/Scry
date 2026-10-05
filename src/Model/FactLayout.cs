@@ -59,6 +59,8 @@ namespace Scry
             public readonly List<(string Key, string[] Ids)> Orders = new List<(string, string[])>();
             /// <summary>Groups of the entry's links shown in a topic, not under Linked, by the topic.</summary>
             public readonly Dictionary<string, string> LinkGroups = new Dictionary<string, string>(StringComparer.Ordinal);
+            /// <summary>The fact a group of links stands right under in its topic, where that is told; else it ends the topic.</summary>
+            public readonly Dictionary<string, string> LinkAnchors = new Dictionary<string, string>(StringComparer.Ordinal);
         }
 
         private const string More = "more";
@@ -164,6 +166,9 @@ namespace Scry
             Part(plan, "fight", "item stats");
             Part(plan, "wearing", "gear", "resistances");
             Part(plan, "making", "recipe", "made at stations");
+            // A set's other pieces, right under its bonus.
+            Links(plan, "wearing", LinkBook.SameSet);
+            plan.LinkAnchors[LinkBook.SameSet] = "Set bonus";
             plan.Blocks[FactBlock.Where] = "from";
             plan.Blocks[FactBlock.FoundIn] = "from";
             plan.Blocks[FactBlock.Biomes] = "from";
@@ -485,7 +490,10 @@ namespace Scry
             }
             foreach (var group in linkGroups ?? Array.Empty<string>())
             {
-                if (plan.LinkGroups.TryGetValue(group, out var topic)) topics[topic].Bits.Add(new FactBit { LinkGroup = group });
+                if (!plan.LinkGroups.TryGetValue(group, out var topic)) continue;
+                var bits = topics[topic].Bits;
+                var after = plan.LinkAnchors.TryGetValue(group, out var anchor) ? bits.FindIndex(b => b.Pair >= 0 && pairs[b.Pair].Label == anchor) : -1;
+                bits.Insert(after >= 0 ? after + 1 : bits.Count, new FactBit { LinkGroup = group });
             }
 
             // A note goes under what it qualifies; with nothing of that to stand under, it is a fact of its own there.

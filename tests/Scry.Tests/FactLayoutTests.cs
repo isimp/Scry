@@ -461,6 +461,25 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ASetPieceShowsTheSetsOtherPiecesRightUnderItsSetBonus()
+        {
+            // Whoever looks at one piece of a set wants the others at hand, not under Linked below.
+            var pairs = new[] { ("Armour", ""), ("Set bonus", "gear"), ("When worn", "gear") };
+            var rows = new[] { (ItemWords.DamageTaken(true), "resistances") };
+            var plan = FactLayout.Plan(Kind.Item, pairs, rows, new FactBlock[0], new[] { LinkBook.Variants, LinkBook.SameSet });
+            var wearing = plan.Single(t => t.Heading == "Wearing");
+            string Name(FactBit b) => b.LinkGroup ?? (b.Pair >= 0 ? pairs[b.Pair].Item1 : "row " + rows[b.Row].Item1);
+            Assert.Equal(new[] { "Set bonus", LinkBook.SameSet, "When worn", "row " + ItemWords.DamageTaken(true) }, wearing.Bits.Select(Name));
+            Assert.True(FactLayout.Places(Kind.Item, LinkBook.SameSet));
+            // Its copies, a mod's or the game's, stay under Linked.
+            Assert.False(FactLayout.Places(Kind.Item, LinkBook.Variants));
+
+            // Without a set bonus told, the pieces still show with what it does worn, at the end.
+            var bare = FactLayout.Plan(Kind.Item, new[] { ("Armour", ""), ("When worn", "gear") }, new (string, string)[0], new FactBlock[0], new[] { LinkBook.SameSet });
+            Assert.Equal(LinkBook.SameSet, bare.Single(t => t.Heading == "Wearing").Bits.Last().LinkGroup);
+        }
+
+        [Fact]
         public void LinkedShowsEachLinkOnceLeavingOutWhatTheTopicsShow()
         {
             var shown = new HashSet<string> { "Wood", "se:Rested" };

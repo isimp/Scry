@@ -461,6 +461,21 @@ namespace Scry
             yield break;
         }
 
+        /// <summary>A troll leather piece shows the set's other pieces under its Wearing, not under Linked as well.</summary>
+        private static IEnumerator SetPieces(Probe p)
+        {
+            var piece = Pick(Kind.Item, "ArmorTrollLeatherChest", "ArmorBronzeChest");
+            if (piece == null) p.Skip("there is no troll leather or bronze chest piece");
+            var others = piece.Links.Where(l => l.Group == LinkBook.SameSet).Select(l => l.Target).ToList();
+            p.Note($"{piece.Name}'s set: {string.Join(", ", others)}");
+            p.Check(others.Count > 0, $"{piece.Name} has other pieces in its set");
+            Select(piece);
+            var drawn = ScryPanel.Drawn(PanelPart.TopicLinks);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.TopicLinks) > drawn, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.TopicLinks) > drawn, $"{piece.Name}'s page draws its set's pieces in In the game");
+            p.Check(!ScryPanel.LinkedShows(LinkBook.SameSet), "Linked does not show them again");
+        }
+
         /// <summary>What gives Rested shows under its page's How you get it, not under Linked as well.</summary>
         private static IEnumerator HowYouGetIt(Probe p)
         {
