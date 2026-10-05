@@ -240,10 +240,11 @@ namespace Scry
         }
 
         /// <summary>
-        /// The stage copy's clip that begins the attack of an item its creature carries, by the
-        /// item's name; null where it carries none of that name or the clip is not known yet.
+        /// The stage copy's clip that begins an attack of an item, by the item's name: one its
+        /// creature carries, or a weapon the person on the stage wears, its first attack or its
+        /// second; null where it has none of that name or the clip is not known yet.
         /// </summary>
-        public static AnimationClip ClipOfAttackItem(string item)
+        public static AnimationClip ClipOfAttackItem(string item, bool secondary = false)
         {
             // Asked for each line of the table on every event the panel draws: found once for the copy.
             if (!ReferenceEquals(_attackClipsOf, Stage.Subject))
@@ -251,14 +252,48 @@ namespace Scry
                 _attackClipsOf = Stage.Subject;
                 AttackClips.Clear();
             }
-            if (AttackClips.TryGetValue(item, out var known)) return known;
+            var key = item + (secondary ? "#2" : "");
+            if (AttackClips.TryGetValue(key, out var known)) return known;
             var prefab = ClipPlayer.AnimatorOf(Stage.Subject).OrNull()?.GetComponent<AnimationEars>().OrNull()?.Prefab;
-            var carried = prefab != null ? Relations.CarriedItems(prefab).Find(i => i.name == item) : null;
-            var attack = carried != null ? carried.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_attack : null;
+            var worn = Looks.IsWorn(_entry) && _entry.Source is GameObject source ? Looks.WornWith(source) : null;
+            var carried = worn != null ? worn.Find(i => i != null && i.name == item) : prefab != null ? Relations.CarriedItems(prefab).Find(i => i.name == item) : null;
+            var shared = carried != null ? carried.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
+            var attack = secondary ? shared?.m_secondaryAttack : shared?.m_attack;
             var clip = attack != null ? AttackClipOf(attack) : null;
             // Not kept until found: the clips are worked out a while after the copy is shown.
-            if (clip != null) AttackClips[item] = clip;
+            if (clip != null) AttackClips[key] = clip;
             return clip;
+        }
+
+        /// <summary>
+        /// Plays a weapon's attack once the person wearing it is on the stage and its clip is
+        /// known, as asked from its attacks table while it was shown on its own; given up when
+        /// something else is selected or after a while.
+        /// </summary>
+        public static void PlayAttackWhenKnown(string item, bool secondary)
+        {
+            _attackAsked = (item, secondary, _entry, Time.unscaledTime + AttackWait);
+        }
+
+        /// <summary>An attack asked for before its clip was known, for whom and until when; null item for none.</summary>
+        private static (string Item, bool Secondary, Entry For, float Until) _attackAsked;
+
+        private const float AttackWait = 20f;
+
+        /// <summary>Plays the attack asked for once its clip is known (<see cref="PlayAttackWhenKnown"/>).</summary>
+        private static void PlayAttackAsked()
+        {
+            if (_attackAsked.Item == null) return;
+            if (!ReferenceEquals(_attackAsked.For, _entry) || Time.unscaledTime > _attackAsked.Until)
+            {
+                _attackAsked = default;
+                return;
+            }
+            var clip = ClipOfAttackItem(_attackAsked.Item, _attackAsked.Secondary);
+            if (clip == null) return;
+            _attackAsked = default;
+            PlayClip(clip);
+            LastClip = clip;
         }
 
         /// <summary>The copy whose attacks' clips are kept below, and those clips by the item each is made with.</summary>
@@ -616,6 +651,7 @@ namespace Scry
             _playsCopy = null;
             _attackClipsOf = null;
             AttackClips.Clear();
+            _attackAsked = default;
         }
 
         /// <summary>Where the clip on the stage is, and how long it is.</summary>

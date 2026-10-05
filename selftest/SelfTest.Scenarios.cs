@@ -92,6 +92,11 @@ namespace Scry
             yield return S("an effect plays on you and stops", EffectOnYou, 10);
             yield return S("a status effect shows on you and comes off", StatusOnYou, 10);
             yield return S("an item is worn by the person and taken off", WearIt, 25, () => Looks.OnPerson = _before?.OnPerson ?? false);
+            yield return S("a weapon's attacks play from its table, put on the person first", WeaponAttacksPlay, 40, () =>
+            {
+                Looks.OnPerson = _before?.OnPerson ?? false;
+                Previews.StopClip();
+            });
             yield return S("a tree felled leaves what it leaves, which goes again", TreeFalls, 40);
             yield return S("a model stands in the world and goes again", ModelInWorld, 10);
             yield return S("a projectile flies where you look", ProjectileFlies, 15);

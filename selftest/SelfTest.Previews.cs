@@ -16,6 +16,42 @@ namespace Scry
         // Each waits a frame after selecting, for the selection to be shown: showing it stops what
         // plays, and plays a sound by itself only when PlayOnSelect is on.
 
+        /// <summary>
+        /// A weapon with two attacks, shown on its own, asked from its table for its second: it is
+        /// put on the person and the attack plays once its clip is known; its first plays too.
+        /// </summary>
+        private static IEnumerator WeaponAttacksPlay(Probe p)
+        {
+            var weapon = Pick(Kind.Item, "AtgeirBlackmetal", "SwordIron", "AxeBronze");
+            if (weapon == null) p.Skip("there is no weapon with two attacks");
+            var table = Facts.For(weapon).Rows.FirstOrDefault(r => r.Title == CombatWords.WeaponAttacksTitle);
+            p.Check(table != null && table.Lines.Count == 2 && table.Lines.All(l => EntryKeys.PlaysAttack(l.Link, out var item, out _) && item == weapon.Name),
+                $"{weapon.Name}'s attacks each play from its table");
+
+            Looks.OnPerson = false;
+            Select(weapon);
+            yield return Until(() => CopyOf(weapon) != null, 10);
+            Looks.OnPerson = true;
+            Previews.Rebuild();
+            Previews.PlayAttackWhenKnown(weapon.Name, true);
+            AnimationClip Second() => Previews.ClipOfAttackItem(weapon.Name, true);
+            yield return Until(() => Second() != null && Previews.PlayingClip() == Second(), 30);
+            p.Check(Second() != null && Previews.PlayingClip() == Second(), $"asked on its own, {weapon.Name} is worn and its second attack plays", Second() != null ? Second().name : "no clip known");
+
+            var first = Previews.ClipOfAttackItem(weapon.Name);
+            p.Note($"{weapon.Name}: first attack {(first != null ? first.name : "none")}, second {(Second() != null ? Second().name : "none")}");
+            p.Check(first != null && first != Second(), "its first attack is a clip of its own");
+            if (first != null)
+            {
+                Previews.PlayClip(first);
+                yield return null;
+                p.Check(Previews.PlayingClip() == first, "and plays");
+                Previews.StopClip();
+                yield return null;
+                p.Check(Previews.PlayingClip() != first, "and stops again");
+            }
+        }
+
         private static IEnumerator CreatureAttacks(Probe p)
         {
             var troll = Pick(Kind.Creature, "Troll", "Greydwarf");

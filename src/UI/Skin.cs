@@ -64,6 +64,9 @@ namespace Scry
         /// <summary>A topic's name in the details' In the game, bright and bold in the top left of its box.</summary>
         public static GUIStyle TopicName;
 
+        /// <summary>A loot chip's mark (only here, what a trader pays): small and bold, centred in its pill.</summary>
+        public static GUIStyle Badge;
+
         /// <summary>A note over the stage's picture, wrapping rather than shrinking.</summary>
         public static GUIStyle PictureNote;
 
@@ -376,6 +379,7 @@ namespace Scry
             WrapBold.wordWrap = true;
             WrapBold.alignment = TextAnchor.UpperLeft;
             TopicName = Style(13f, Skin.Text, FontStyle.Bold);
+            Badge = Style(11f, OnAccent, FontStyle.Bold, TextAnchor.MiddleCenter);
             DimWrap = Style(13f, Dim);
             DimWrap.wordWrap = true;
             DimWrap.alignment = TextAnchor.UpperLeft;

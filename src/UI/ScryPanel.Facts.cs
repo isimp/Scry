@@ -305,7 +305,7 @@ namespace Scry
                 var item = row.Items[i];
                 var text = DetailWords.Amounted(item.Amount, item.Name);
                 // A mark (only here, what a trader pays) in a pill of its own at the chip's end.
-                var markW = item.Mark != null ? Skin.Width(Skin.Small, item.Mark) + U(12f) : 0f;
+                var markW = item.Mark != null ? Skin.Width(Skin.Badge, item.Mark) + U(16f) : 0f;
                 var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(30f) + markW);
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
@@ -327,9 +327,11 @@ namespace Scry
                 Skin.LabelIn(new Rect(chip.x + U(32f), chip.y, chip.width - U(36f) - markW, chip.height), text, Skin.Small, goes ? LinkText(kind, hover) : Skin.Text);
                 if (item.Mark != null)
                 {
-                    var mark = new Rect(chip.xMax - markW - U(2f), chip.y + U(5f), markW - U(2f), chip.height - U(10f));
-                    Skin.PillBox(mark, Skin.TopicFill);
-                    Skin.LabelIn(new Rect(mark.x + U(6f), mark.y, mark.width - U(8f), mark.height), item.Mark, Skin.Small, Skin.Accent);
+                    // What only this gives on a solid pill, bright; what a trader pays for on a soft one.
+                    var only = item.Mark == DropWords.OnlyHereMark;
+                    var mark = new Rect(chip.xMax - markW - U(3f), chip.y + U(4f), markW, chip.height - U(8f));
+                    Skin.PillBox(mark, only ? Skin.Accent : Skin.AccentSoft);
+                    Skin.LabelIn(mark, item.Mark, Skin.Badge, only ? Skin.OnAccent : Skin.Accent);
                 }
 
                 // Clicking an ingredient or a drop goes to it.

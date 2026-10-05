@@ -47,13 +47,20 @@ namespace Scry.Tests
             Assert.False(EntryKeys.PlaysMusic("se:Rested", out _));
 
             // An attack's line in a creature's attacks table plays its animation, by the item it is made with.
-            Assert.True(EntryKeys.PlaysAttack(EntryKeys.PlayAttack("troll_groundslam"), out var item));
+            Assert.True(EntryKeys.PlaysAttack(EntryKeys.PlayAttack("troll_groundslam"), out var item, out var second));
             Assert.Equal("troll_groundslam", item);
-            Assert.False(EntryKeys.PlaysAttack("troll_groundslam", out _));
+            Assert.False(second);
+            Assert.False(EntryKeys.PlaysAttack("troll_groundslam", out _, out _));
             Assert.False(EntryKeys.PlaysMusic(EntryKeys.PlayAttack("troll_groundslam"), out _));
+            // A weapon's second attack, played on the person wearing it.
+            Assert.True(EntryKeys.PlaysAttack(EntryKeys.PlayAttack("AtgeirBlackmetal", secondary: true), out item, out second));
+            Assert.Equal("AtgeirBlackmetal", item);
+            Assert.True(second);
             Assert.Equal("Play this attack", ClipWords.PlayAttackTip(known: true, playing: false));
             Assert.Equal("Stop this attack", ClipWords.PlayAttackTip(known: true, playing: true));
             Assert.Equal("Its animations are still being worked out; this plays once they are", ClipWords.PlayAttackTip(known: false, playing: false));
+            // A weapon shown on its own is put on the person first.
+            Assert.Equal("Put it on the person and play this attack", ClipWords.PlayAttackTip(known: false, playing: false, wearFirst: true));
             Assert.False(EntryKeys.PlaysMusic(null, out _));
         }
 

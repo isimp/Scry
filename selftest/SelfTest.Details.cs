@@ -561,7 +561,7 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.FactTable) > tables, $"{troll.Name}'s page draws its attacks table");
             if (attacks != null)
             {
-                var items = attacks.Lines.Select(l => EntryKeys.PlaysAttack(l.Link, out var item) ? item : null).ToList();
+                var items = attacks.Lines.Select(l => EntryKeys.PlaysAttack(l.Link, out var item, out _) ? item : null).ToList();
                 p.Check(items.All(i => i != null), "each attack's name plays it");
                 p.Note("attack links: " + string.Join(", ", attacks.CellLinks.Select(kv => $"{attacks.Lines[kv.Key.Line].Cells[0]} {attacks.Columns[kv.Key.Cell]} {kv.Value}")));
                 yield return Until(() => items.Any(i => i != null && Previews.ClipOfAttackItem(i) != null), 15);

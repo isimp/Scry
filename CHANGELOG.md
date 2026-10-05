@@ -26,7 +26,7 @@ A chest, cart or ship tells how many slots it holds.
 
 What details name goes there as a chip in more places: the biomes a plant grows in, a beehive works in and a piece may be placed in, the pieces a piece keeps its distance from and the one it must stand near, the status effects one cannot take while another lasts, the mods present that a mod will not run with, and the boss a raid waits for.
 
-Armour tells what it resists while worn and a shield what it resists while blocking. Gear tells what it changes while worn, as the game's tooltip does: heat resistance, eitr regeneration, the stamina of each kind of action, the most adrenaline, and what full adrenaline gives. A weapon with a second attack shows both as a table, each its damage, knockback, stagger and cost.
+Armour tells what it resists while worn and a shield what it resists while blocking. Gear tells what it changes while worn, as the game's tooltip does: heat resistance, eitr regeneration, the stamina of each kind of action, the most adrenaline, and what full adrenaline gives. A weapon with a second attack shows both as a table, each its damage, knockback, stagger and cost, its name playing the attack on the person wearing it and stopping it again; shown on its own, a click puts it on the person first.
 
 A tame creature tells how it breeds: what it needs, how its love points come, how long it is pregnant, when too many near stop it, and its young. A young one tells what it grows into and when, an egg what hatches from it and where it must lie, and each names where it comes from. A creature with a saddle tells what it is ridden with and its stamina while ridden.
 

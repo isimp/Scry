@@ -62,7 +62,7 @@ namespace Scry.Tests
             Assert.Equal("damage:fire is:weapon", EntryKeys.SearchOf(link));
             Assert.Null(EntryKeys.SearchOf("Troll"));
             Assert.Null(EntryKeys.SearchOf(null));
-            Assert.False(EntryKeys.PlaysAttack(link, out _));
+            Assert.False(EntryKeys.PlaysAttack(link, out _, out _));
         }
 
         [Fact]

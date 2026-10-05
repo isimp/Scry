@@ -162,7 +162,9 @@ namespace Scry
                     {
                         var dealt = CombatWords.Damage(DamageFigures(shared.m_damages).Select(d => (d.Type, d.Amount * each.m_damageMultiplier)));
                         var costs = CombatWords.Costs(each.m_attackStamina, each.m_attackEitr, each.m_attackHealth, each.m_attackHealthPercentage);
-                        table.Lines.Add((CombatWords.WeaponAttack(isSecond, dealt, shared.m_attackForce * each.m_forceMultiplier, each.m_staggerMultiplier, costs), null));
+                        // Its name plays it on the person wearing it, as a creature's attack plays from its table.
+                        table.Lines.Add((CombatWords.WeaponAttack(isSecond, dealt, shared.m_attackForce * each.m_forceMultiplier, each.m_staggerMultiplier, costs),
+                            EntryKeys.PlayAttack(prefab.name, isSecond)));
                     }
                     Rows.Add(table);
                 }

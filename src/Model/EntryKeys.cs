@@ -31,17 +31,20 @@ namespace Scry
             return true;
         }
 
-        /// <summary>A table line's link that plays a creature's attack on the stage, by the item the attack is made with.</summary>
-        public static string PlayAttack(string item) => AttackPlay + item;
+        /// <summary>A table line's link that plays an attack on the stage, by the item it is made with: a creature's, or a weapon's first or second on the person wearing it.</summary>
+        public static string PlayAttack(string item, bool secondary = false) => AttackPlay + item + (secondary ? SecondAttack : "");
 
-        /// <summary>Whether a link plays an attack, and by which item.</summary>
-        public static bool PlaysAttack(string link, out string item)
+        /// <summary>Whether a link plays an attack, by which item, and whether its second.</summary>
+        public static bool PlaysAttack(string link, out string item, out bool secondary)
         {
             item = link != null && link.StartsWith(AttackPlay, StringComparison.Ordinal) ? link.Substring(AttackPlay.Length) : null;
+            secondary = item != null && item.EndsWith(SecondAttack, StringComparison.Ordinal);
+            if (secondary) item = item.Substring(0, item.Length - SecondAttack.Length);
             return item != null;
         }
 
         private const string AttackPlay = "play-attack:";
+        private const string SecondAttack = "#2";
 
         /// <summary>A chip's link that runs a search, such as for what to bring against a creature.</summary>
         public static string Search(string query) => RunSearch + query;

@@ -318,6 +318,7 @@ namespace Scry
             TriggerProbe.CancelAllBut(shown);
 
             PlayClipAsked();
+            PlayAttackAsked();
 
             if (entry != null && entry.Kind == Kind.Sound && Settings.PlayOnSelect) PlaySound(entry);
         }

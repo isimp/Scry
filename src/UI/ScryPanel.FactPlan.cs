@@ -198,20 +198,29 @@ namespace Scry
                     {
                         var cell = new Rect(x, y, ColumnWidths[c], height);
                         // An attack's name plays its animation on the stage and stops it again, lit
-                        // while it plays, as its clip's chip does.
-                        if (c == 0 && EntryKeys.PlaysAttack(link, out var item))
+                        // while it plays, as its clip's chip does: a creature's, or a weapon's on the
+                        // person wearing it, put on the person first where it is shown on its own.
+                        if (c == 0 && EntryKeys.PlaysAttack(link, out var item, out var second))
                         {
-                            var clip = Previews.ClipOfAttackItem(item);
+                            var clip = Previews.ClipOfAttackItem(item, second);
                             var playing = clip != null && Previews.PlayingClip() == clip;
+                            var wearFirst = clip == null && explorer.Selected is Entry weapon && weapon.Kind == Kind.Item && weapon.Name == item && !Looks.IsWorn(weapon);
                             LinkLabel(cell, cells[c], Skin.SmallWrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);
-                            if (cell.Contains(Event.current.mousePosition)) AskTip("table-attack:" + item + (clip != null) + playing, ClipWords.PlayAttackTip(clip != null, playing));
-                            if (GUI.Button(cell, GUIContent.none, GUIStyle.none) && clip != null)
+                            if (cell.Contains(Event.current.mousePosition)) AskTip("table-attack:" + link + (clip != null) + playing + wearFirst, ClipWords.PlayAttackTip(clip != null, playing, wearFirst));
+                            if (GUI.Button(cell, GUIContent.none, GUIStyle.none))
                             {
                                 if (playing) Previews.StopClip();
-                                else
+                                else if (clip != null)
                                 {
                                     Previews.PlayClip(clip);
                                     Previews.LastClip = clip;
+                                }
+                                else if (wearFirst)
+                                {
+                                    Looks.OnPerson = true;
+                                    Previews.Rebuild();
+                                    Previews.PlayAttackWhenKnown(item, second);
+                                    SaveRects();
                                 }
                             }
                         }

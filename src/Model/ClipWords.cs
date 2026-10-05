@@ -29,8 +29,13 @@ namespace Scry
 
         private const string AttackStart = "attack ";
 
-        /// <summary>The tip of an attack's name in a creature's attacks table, by whether its clip is known yet and is playing.</summary>
-        public static string PlayAttackTip(bool known, bool playing) => !known ? "Its animations are still being worked out; this plays once they are" : playing ? "Stop this attack" : "Play this attack";
+        /// <summary>
+        /// The tip of an attack's name in an attacks table, by whether its clip is known yet and is
+        /// playing; a weapon shown on its own is put on the person first.
+        /// </summary>
+        public static string PlayAttackTip(bool known, bool playing, bool wearFirst = false) =>
+            !known ? (wearFirst ? "Put it on the person and play this attack" : "Its animations are still being worked out; this plays once they are")
+            : playing ? "Stop this attack" : "Play this attack";
 
         /// <summary>A clip's chip: its name, and what it is where that is known and says more than the name does.</summary>
         public static string Row(string name, string what) => string.IsNullOrEmpty(what) || !SaysMore(name, what) ? name : name + "  \u00B7  " + what;
