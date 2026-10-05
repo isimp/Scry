@@ -308,6 +308,15 @@ namespace Scry
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
                 if (OutOfSight(chip)) continue;
                 var hover = chip.Contains(Event.current.mousePosition);
+                // A chip that runs a search, such as for what to bring against a creature.
+                if (EntryKeys.SearchOf(item.Prefab) is string query)
+                {
+                    Skin.PillBox(chip, hover ? Skin.RaisedHover : Skin.Raised);
+                    Skin.LabelIn(new Rect(chip.x + U(10f), chip.y, chip.width - U(14f), chip.height), text, Skin.Small, Skin.Accent);
+                    if (hover) AskTip("search:" + query, PanelWords.TryInSearch(query));
+                    if (GUI.Button(chip, GUIContent.none, GUIStyle.none)) SearchFor(explorer, query);
+                    continue;
+                }
                 var goes = !string.IsNullOrEmpty(item.Prefab) && InCatalog(explorer, item.Prefab);
                 var kind = goes ? KindOf(explorer, item.Prefab) : null;
                 Skin.PillBox(chip, goes ? LinkFill(kind, hover) : Skin.Raised);

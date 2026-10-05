@@ -50,6 +50,13 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatToBringIsPartOfACreaturesFight()
+        {
+            var plan = FactLayout.Plan(Kind.Creature, new[] { ("Health", "") }, new[] { ("Damage it takes", "resistances"), (SearchFight.BringTitle, "what to bring") }, new FactBlock[0]);
+            Assert.Equal(new[] { 0, 1 }, plan.Single(t => t.Heading == "Fight").Bits.Select(b => b.Row));
+        }
+
+        [Fact]
         public void ACreatureTellsItsFightThenItsLootAndHomeTogetherThenItsSenses()
         {
             // What it drops and where it lives answer one question, where to farm it; how it

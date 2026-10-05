@@ -43,6 +43,29 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ACreatureSaysWhatToBringAsSearchesForWeaponsItIsWeakToAndGearAgainstItsAttacks()
+        {
+            // The weapons dealing what it takes more of; the gear resisting the elements its attacks deal.
+            var bring = SearchFight.Bring(new[] { "fire", "spirit" }, new[] { "blunt", "poison", "true", "frost" });
+            Assert.Equal(new[] { "Weapons dealing fire", "Weapons dealing spirit", "Gear resisting poison", "Gear resisting frost" }, bring.Select(b => b.Text));
+            Assert.Equal(SearchHelp.Term("damage", "fire") + " " + SearchHelp.Term("is", "weapon"), bring[0].Query);
+            Assert.Equal(SearchHelp.Term("resists", "poison") + " " + SearchHelp.Term("is", "wearable"), bring[2].Query);
+            Assert.Equal("What to bring", SearchFight.BringTitle);
+            // Nothing it is weak to and nothing elemental dealt: nothing to say.
+            Assert.Empty(SearchFight.Bring(new string[0], new[] { "slash", "pierce" }));
+        }
+
+        [Fact]
+        public void ALinkCanRunASearch()
+        {
+            var link = EntryKeys.Search("damage:fire is:weapon");
+            Assert.Equal("damage:fire is:weapon", EntryKeys.SearchOf(link));
+            Assert.Null(EntryKeys.SearchOf("Troll"));
+            Assert.Null(EntryKeys.SearchOf(null));
+            Assert.False(EntryKeys.PlaysAttack(link, out _));
+        }
+
+        [Fact]
         public void ASkillIsItsNameInSmallLetters()
         {
             Assert.Equal(new[] { "elemental magic" }, SearchFight.Skill("Elemental magic"));

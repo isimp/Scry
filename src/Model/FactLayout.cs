@@ -101,7 +101,7 @@ namespace Scry
             Label(plan, "after", "Forsaken power", "On its boss stone");
             Label(plan, More, "Not shown");
             plan.Starts.Add((l => l.StartsWith("Seen dropping", StringComparison.Ordinal), "loot"));
-            Part(plan, "fight", "attacks", "weak spots", "resistances");
+            Part(plan, "fight", "attacks", "weak spots", "resistances", "what to bring");
             Links(plan, "fight", LinkWords.Carries, LinkWords.StatusEffects);
             Part(plan, "senses", "behaviour");
             Part(plan, "taming", "breeding", "growing up");

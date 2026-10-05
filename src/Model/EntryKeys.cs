@@ -43,6 +43,14 @@ namespace Scry
 
         private const string AttackPlay = "play-attack:";
 
+        /// <summary>A chip's link that runs a search, such as for what to bring against a creature.</summary>
+        public static string Search(string query) => RunSearch + query;
+
+        /// <summary>The search a link runs; null for one that runs none.</summary>
+        public static string SearchOf(string link) => link != null && link.StartsWith(RunSearch, StringComparison.Ordinal) ? link.Substring(RunSearch.Length) : null;
+
+        private const string RunSearch = "search:";
+
         /// <summary>A value's link that opens a website in the browser.</summary>
         public static string Website(string url) => Web + url;
 

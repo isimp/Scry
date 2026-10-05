@@ -451,6 +451,16 @@ namespace Scry
             var attacks = facts.Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle);
             p.Check(attacks?.Columns != null && attacks.Lines.Count > 0 && attacks.Lines.All(l => l.Cells.Length == attacks.Columns.Length),
                 "its attacks are a table, a line each", attacks == null ? "no attacks" : string.Join(" | ", attacks.Lines.Select(l => string.Join(", ", l.Cells))));
+            var bring = facts.Rows.FirstOrDefault(r => r.Title == SearchFight.BringTitle);
+            p.Check(bring == null || bring.Items.All(i => EntryKeys.SearchOf(i.Prefab) != null), "what to bring against it runs searches",
+                bring == null ? "nothing to bring" : string.Join(", ", bring.Items.Select(i => $"{i.Name} ({EntryKeys.SearchOf(i.Prefab)})")));
+            int Found(string query)
+            {
+                X.SearchEverything(query);
+                return X.Results.Count;
+            }
+            if (bring != null) p.Note("what to bring: " + string.Join(", ", bring.Items.Select(i => $"{i.Name} finds {Numbers.Count(Found(EntryKeys.SearchOf(i.Prefab)))}")));
+            X.SearchEverything("");
             var drops = plan.SelectMany(t => t.Bits).FirstOrDefault(b => b.Row >= 0 && rows[b.Row].Title == "Drops");
             if (drops != null) p.Note("under its drops: " + string.Join(", ", drops.Notes.Select(n => pairs[n].Key)));
 

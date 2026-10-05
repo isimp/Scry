@@ -36,6 +36,7 @@ namespace Scry
             Part("resistances", () => Rows.Add(new Row { Title = "Damage it takes", Cells = ResistWords.ForCreature(Cells(character.m_damageModifiers)) }));
             Part("weak spots", () => WeakSpots(character));
             Part("attacks", () => Attacks(prefab));
+            Part("what to bring", () => Bring(prefab, character));
             // Whether it can be tamed, fought or looted is worth telling when it cannot.
             var person = character is Player;
             if (!person && !Rows.Any(row => row.Title == CombatWords.AttacksTitle))
@@ -142,6 +143,21 @@ namespace Scry
                 if (effect != null) table.CellLinks[(line, 3)] = EntryKeys.For(Kind.StatusEffect, effect.name);
             }
             if (table.Lines.Count > 0) Rows.Add(table);
+        }
+
+        /// <summary>What to bring against it, each a search: weapons dealing what it is weak to, gear resisting the elements its attacks deal.</summary>
+        private void Bring(GameObject prefab, Character character)
+        {
+            var weak = SearchFight.Taking(ResistWords.ForCreature(Cells(character.m_damageModifiers)), Tone.Weak);
+            var dealt = new List<(string, float)>();
+            foreach (var item in Relations.CarriedItems(prefab))
+            {
+                var carried = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
+                if (carried?.m_attack != null) dealt.AddRange(DamageFigures(carried.m_damages));
+            }
+            var row = new Row { Title = SearchFight.BringTitle };
+            foreach (var (text, query) in SearchFight.Bring(weak, SearchFight.Dealt(dealt))) row.Items.Add(new Ingredient { Name = text, Amount = "", Prefab = EntryKeys.Search(query) });
+            if (row.Items.Count > 0) Rows.Add(row);
         }
 
         /// <summary>How it moves, sees and hears, what it fears, when it flees, and how long it takes to tame.</summary>
