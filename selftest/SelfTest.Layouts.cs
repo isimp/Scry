@@ -242,7 +242,9 @@ namespace Scry
         /// there is none, some room always stands on the stage, and every room stands whole on
         /// some floor, so it can be opened and gone to. M&#xF6;rkhalla, whose floors come out
         /// differently example to example, is laid out three times. Its creatures are told: how
-        /// many dropped to the ground under their points and how many fly.
+        /// many dropped to the ground under their points and how many fly. The floors found are
+        /// told beside those the rules before 2026-10-05 found; M&#xF6;rkhalla's and the sealed
+        /// tower's, which Kevin found right, must be the same.
         /// </summary>
         private static IEnumerator CaveFloors(Probe p)
         {
@@ -256,6 +258,8 @@ namespace Scry
             var empty = new List<string>();
             var blank = new List<string>();
             var unreached = new List<string>();
+            var changed = new List<string>();
+            string Told(List<float> floors) => string.Join(", ", floors.Select(f => Numbers.Fixed(f, 1)));
             foreach (var entry in caves)
             {
                 Select(entry);
@@ -272,6 +276,16 @@ namespace Scry
                     {
                         p.Note($"{entry.Name}: no example stood on the stage");
                         break;
+                    }
+                    var (now, before) = Stage.ExampleFloorsFoundBothWays();
+                    if (now.Count != before.Count || now.Where((f, i) => Mathf.Abs(f - before[i]) > 0.05f).Any())
+                    {
+                        p.Note($"{entry.Name}: floors found {Told(now)}; by the rules before {Told(before)}");
+                        if (entry.Name == "MorkBorg" || entry.Name == "Hildir_plainsfortress")
+                        {
+                            changed.Add($"{entry.Name} {Told(now)}, before {Told(before)}");
+                            p.Note("its rooms: " + string.Join("; ", Stage.ExampleRoomGroundTold()));
+                        }
                     }
                     var told = new List<string>();
                     var reached = new HashSet<PlacedRoom>();
@@ -301,6 +315,7 @@ namespace Scry
             p.Check(empty.Count == 0, "every floor found in their examples has rooms on it", string.Join("; ", empty));
             p.Check(blank.Count == 0, "and some room stands on the stage on every floor", string.Join("; ", blank));
             p.Check(unreached.Count == 0, "and every room stands whole on some floor", string.Join("; ", unreached));
+            p.Check(changed.Count == 0, "M\u00f6rkhalla and the sealed tower find the floors they did before", string.Join("; ", changed));
         }
 
         /// <summary>

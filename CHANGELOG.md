@@ -68,6 +68,8 @@ The search's `is:` finds dungeons, camps and their rooms, as the Locations list 
 
 Chips, tabs and badges keep round ends however low they are drawn; one lower than 30 pixels showed stray lines at its ends. A loot mark is a solid amber pill with dark words.
 
+A sunken crypt's one level of rooms is one floor rather than two or three, its ledges and tombs' tops no floors of their own, and a frost cave no longer has floors on top of its rock or on the ledges down its shafts, each holding one room that was none.
+
 ## 0.1.0
 
 First release.

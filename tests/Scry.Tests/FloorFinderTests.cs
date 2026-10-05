@@ -198,6 +198,100 @@ namespace Scry.Tests
             Assert.Equal(new[] { 0f, -40f, -60f, -80f }, FloorFinder.Floors(rooms.Concat(new[] { big, small }), footprint + big.Ground + small.Ground, PlaceView.Storey));
         }
 
+        /// <summary>
+        /// A dungeon room as its rays found it: the ground they were cast over, the top of its box,
+        /// and each height with the room to stand there, in square metres.
+        /// </summary>
+        private static FloorPatch Room(float ground, float top, params (float Height, float Room)[] levels)
+        {
+            var patch = new FloorPatch { Ground = ground, Top = top };
+            foreach (var (height, room) in levels)
+            {
+                patch.Bands[(int)System.Math.Round(height / FloorFinder.Band)] = new FloorPatch.Band { Room = room, Sum = height, Count = 1, Landed = true };
+            }
+            return patch;
+        }
+
+        /// <summary>The floors as the rules before 2026-10-05 18:40 found them: a room's own level from 2 square metres, and its ground at any height.</summary>
+        private static List<float> FloorsBefore(List<FloorPatch> rooms) =>
+            FloorFinder.Floors(rooms, rooms.Sum(r => r.Ground), PlaceView.Storey, FloorFinder.MinRoom, float.NegativeInfinity);
+
+        [Fact]
+        public void ASunkenCryptsOneLevelOfRoomsIsOneFloor()
+        {
+            // As a sunken crypt's rooms were read in game: all on one level, walked into at -2 m,
+            // with walkways a metre up, water channels below, and a few ledges or tomb tops of
+            // 3 to 5 square metres 2 m up. Those ledges made a floor of their own; they are too
+            // small to stand on as a level of a room.
+            var endcap = Room(11f, 5.5f);
+            var rooms = new List<FloorPatch>
+            {
+                Room(125f, 5.5f, (2f, 3f), (-1f, 10f), (-2f, 67f)),
+                Room(178f, 5.5f, (2f, 3f), (-1f, 30f), (-2f, 70f)),
+                Room(178f, 5.5f, (-1f, 30f), (-2f, 70f)),
+                Room(98f, 4.5f, (0.7f, 5f), (-2f, 15f), (-3.5f, 14f)),
+                Room(138f, 5.5f, (2f, 4f), (-1f, 5f), (-2f, 67f)),
+                Room(264f, 5.5f, (-1f, 12f), (-2f, 99f), (-3.5f, 9f)),
+                Room(208f, 5.5f, (-1f, 31f), (-2f, 77f)),
+                Room(18f, 5.5f, (-3.5f, 7f)),
+                endcap, endcap, endcap,
+            };
+            Assert.Equal(new[] { -2f }, FloorFinder.Floors(rooms, rooms.Sum(r => r.Ground), PlaceView.Storey));
+            Assert.Equal(new[] { 2f, -2f }, FloorsBefore(rooms));
+        }
+
+        [Fact]
+        public void TheTopOfARoomsRockOverItsBoxIsNoFloor()
+        {
+            // As a frost cave's rooms were read in game: a crossroads whose box ends at 6.3 m found
+            // ground at 6.8 and 5.1 m, the top of its rock, which made a top floor of one room that
+            // is none. A person cannot stand less than their height under the top of a room's box.
+            var entrance = Room(540f, 9f, (6.8f, 8f), (-0.2f, 57f), (-1.7f, 2f), (-3.3f, 77f), (-3.8f, 4f), (-5.8f, 10f));
+            var crossroads = Room(272f, 6.3f, (6.8f, 32f), (5.1f, 14f), (-3.3f, 4f), (-20.2f, 126f));
+            var shrine = Room(408f, -10.8f, (-10.7f, 6f), (-14.6f, 3f), (-18.5f, 77f), (-19.3f, 62f), (-20.3f, 119f), (-23.6f, 12f));
+            var rooms = new List<FloorPatch> { entrance, crossroads, shrine };
+
+            var floors = FloorFinder.Floors(rooms, rooms.Sum(r => r.Ground), PlaceView.Storey);
+            Assert.Equal(-0.2f, floors[0], 2);
+            Assert.DoesNotContain(floors, f => f < -9.5f && f > -12f || f > 0f);
+            Assert.Contains(6.8f, FloorsBefore(rooms));
+            // Nor does the room stand on it by its own ground.
+            Assert.False(FloorFinder.Holds(crossroads, 6.8f));
+            Assert.True(FloorFinder.Holds(crossroads, -20.2f));
+            // However wide its rock's top, its main floor is inside it.
+            Assert.Equal(-20.2f, FloorFinder.MainFloor(Room(272f, 6.3f, (6.8f, 200f), (-20.2f, 126f))).Value, 2);
+        }
+
+        [Fact]
+        public void LedgesDownAShaftAreNoFloorsOfTheirOwn()
+        {
+            // A frost cave's shaft down from -18.5 to -36.3 m, its ground ledges of 3 to 5 square
+            // metres on the way: each made a floor with one room on it. A level of the room's
+            // own as big as a landing still is one (the shaft's 9 at -24.5 m).
+            var shaft = Room(184f, -9.3f, (-9.9f, 8f), (-18.5f, 50f), (-24.5f, 9f), (-28.5f, 3f), (-30.4f, 5f), (-34.3f, 4f), (-36.3f, 116f));
+            var halls = new List<FloorPatch> { Room(400f, -12f, (-18.5f, 120f)), Room(400f, -30f, (-36.3f, 120f)), shaft };
+
+            var floors = FloorFinder.Floors(halls, halls.Sum(r => r.Ground), PlaceView.Storey);
+            Assert.Equal(new[] { -18.5f, -24.5f, -36.3f }, floors);
+            Assert.Contains(-30.4f, FloorsBefore(halls));
+        }
+
+        [Fact]
+        public void ATowersFloorsAndAHallsGalleryAreFoundAsBefore()
+        {
+            // Rooms stacked a storey apart, and a hall with a gallery of its own: the same floors
+            // by the rules now as before.
+            var tower = new List<FloorPatch>
+            {
+                Room(144f, 5f, (0f, 30f)),
+                Room(144f, 12f, (7f, 30f)),
+                Room(144f, 20f, (15f, 30f)),
+                Room(400f, -30f, (-40f, 90f), (-34f, 9f)),
+            };
+            Assert.Equal(new[] { 15f, 7f, 0f, -34f, -40f }, FloorFinder.Floors(tower, tower.Sum(r => r.Ground), PlaceView.Storey));
+            Assert.Equal(FloorsBefore(tower), FloorFinder.Floors(tower, tower.Sum(r => r.Ground), PlaceView.Storey));
+        }
+
         [Fact]
         public void ARoomsMainFloorIsWhereItHasTheMostRoomToStand()
         {

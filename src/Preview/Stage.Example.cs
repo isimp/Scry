@@ -185,6 +185,9 @@ namespace Scry
         /// <summary>Each room of the example read so far with the floors found in it alone, for the self-test to tell.</summary>
         public static List<string> ExampleRoomFloorsTold() => TheExample.RoomFloorsTold();
 
+        /// <summary>The floors the example's rooms' ground makes now and by the rules before, for the self-test to tell.</summary>
+        public static (List<float> Now, List<float> Before) ExampleFloorsFoundBothWays() => TheExample.FloorsFoundBothWays();
+
         /// <summary>Each room of the example read so far with its box, doorways, ground and the floors it stands on, for the self-test to tell.</summary>
         public static List<string> ExampleRoomGroundTold() => TheExample.RoomGroundTold(FloorHeights);
 
