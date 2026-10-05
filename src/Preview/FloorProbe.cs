@@ -53,6 +53,14 @@ namespace Scry
         /// <summary>Forgets the colliders noted, as the stage is cleared.</summary>
         public static void ForgetNotSolid() => NotSolid.Clear();
 
+        /// <summary>What a ray landed on, for the self-test to tell: its collider's object and the one it is under, as many are called "default".</summary>
+        [Diagnostic]
+        private static string PartName(Transform part)
+        {
+            string Plain(Transform t) => t.gameObject.name.Replace("(Clone)", "").Trim();
+            return part.parent != null ? Plain(part.parent) + "/" + Plain(part) : Plain(part);
+        }
+
         /// <summary>How far down the game looks for a spawned creature's floor, from a metre above its point (<c>ZoneSystem.FindFloor</c>).</summary>
         private const float FloorBelow = 1000f;
 
@@ -137,7 +145,7 @@ namespace Scry
                             Patch = patch, I = i, J = j, Height = space.InverseTransformPoint(hit.point).y, Area = cell,
                             Open = highest - hit.point.y < Covered,
                         });
-                        names?.Add(hit.collider.gameObject.name.Replace("(Clone)", "").Trim());
+                        names?.Add(PartName(hit.collider.transform));
                     }
                 }
                 return rays * cell;

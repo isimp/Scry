@@ -59,6 +59,7 @@ namespace Scry
             if (places.Count == 0) p.Skip("there are no locations");
             var picks = Spread(places, 16);
             picks.AddRange(places.Where(e => e.Name.IndexOf("Tower", StringComparison.OrdinalIgnoreCase) >= 0 || e.Name.IndexOf("Cave", StringComparison.OrdinalIgnoreCase) >= 0).Take(8));
+            picks.AddRange(places.Where(e => e.Name == "Hildir_cave"));
             var wrong = new List<string>();
             var several = new List<string>();
             foreach (var entry in picks.Distinct().ToList())
@@ -82,6 +83,8 @@ namespace Scry
                 // Each floor with what its rays landed on, to see what is taken for a floor.
                 var makers = Stage.FloorMakersNow();
                 if (floors.Count > 1) several.Add($"{entry.Name} ({string.Join("; ", floors.Select((f, i) => $"{Numbers.Fixed(f, 1)} m on {(i < makers.Count ? makers[i] : "?")}"))})");
+                // Kevin found the Howling Cavern's lowest floor a slab running out of its rock: every part near each floor.
+                if (entry.Name == "Hildir_cave") p.Note($"{entry.Name}'s floors by part: " + string.Join("; ", Stage.FloorPartsTold()));
             }
             p.Note(several.Count > 0 ? "with several floors: " + string.Join("; ", several) : "none with several floors");
             p.Check(wrong.Count == 0, "each has floors from the top down, cut over each, with no collider left on its copy", string.Join("; ", wrong.Take(8)));

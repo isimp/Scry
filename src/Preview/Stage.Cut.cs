@@ -109,6 +109,32 @@ namespace Scry
         private static List<FloorHit> _floorHits = new List<FloorHit>();
         private static List<string> _floorNames = new List<string>();
 
+        /// <summary>
+        /// Each floor of the location or room shown with every part its rays landed on near it:
+        /// how many rays, how many of them under open sky, and which of the grid's rows and
+        /// columns they span, to tell a floor inside the place from a slab running out of it.
+        /// </summary>
+        [Diagnostic]
+        public static List<string> FloorPartsTold()
+        {
+            var told = new List<string>();
+            if (_floorHits.Count == 0) return told;
+            var wide = _floorHits.Max(h => h.I) + 1;
+            var deep = _floorHits.Max(h => h.J) + 1;
+            foreach (var floor in Floors)
+            {
+                var parts = new List<string>();
+                var near = Enumerable.Range(0, Mathf.Min(_floorHits.Count, _floorNames.Count)).Where(i => Mathf.Abs(_floorHits[i].Height - floor) <= FloorMakers.Near).ToList();
+                foreach (var part in near.GroupBy(i => _floorNames[i]).OrderByDescending(g => g.Count()))
+                {
+                    var hits = part.Select(i => _floorHits[i]).ToList();
+                    parts.Add($"{part.Key} {Numbers.Count(hits.Count)} rays, {Numbers.Count(hits.Count(h => h.Open))} open, across {Numbers.Count(hits.Min(h => h.I))}-{Numbers.Count(hits.Max(h => h.I))} of {Numbers.Count(wide)}, {Numbers.Count(hits.Min(h => h.J))}-{Numbers.Count(hits.Max(h => h.J))} of {Numbers.Count(deep)}");
+                }
+                told.Add($"{Numbers.Fixed(floor, 1)} m: " + (parts.Count > 0 ? string.Join(", ", parts) : "the ground"));
+            }
+            return told;
+        }
+
         /// <summary>What each floor of the location or room shown stands on, from its rays, for the self-test to tell (<see cref="FloorMakers"/>).</summary>
         public static List<string> FloorMakersNow() => FloorMakers.Tell(_floorHits.Select(h => h.Height).ToList(), _floorNames, Floors);
 
