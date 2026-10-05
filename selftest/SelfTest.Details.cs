@@ -449,7 +449,7 @@ namespace Scry
             var more = plan.FirstOrDefault(t => t.Heading == "More");
             p.Note("left to More: " + (more == null ? "nothing" : string.Join(", ", more.Bits.Select(b => b.Pair >= 0 ? pairs[b.Pair].Key : b.Row >= 0 ? rows[b.Row].Title : b.Block.ToString()))));
             var attacks = facts.Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle);
-            p.Check(attacks?.Columns != null && attacks.Lines.Count > 0 && attacks.Lines.All(l => l.Cells.Length == CombatWords.AttackColumns.Length),
+            p.Check(attacks?.Columns != null && attacks.Lines.Count > 0 && attacks.Lines.All(l => l.Cells.Length == attacks.Columns.Length),
                 "its attacks are a table, a line each", attacks == null ? "no attacks" : string.Join(" | ", attacks.Lines.Select(l => string.Join(", ", l.Cells))));
             var drops = plan.SelectMany(t => t.Bits).FirstOrDefault(b => b.Row >= 0 && rows[b.Row].Title == "Drops");
             if (drops != null) p.Note("under its drops: " + string.Join(", ", drops.Notes.Select(n => pairs[n].Key)));
@@ -464,6 +464,7 @@ namespace Scry
             {
                 var items = attacks.Lines.Select(l => EntryKeys.PlaysAttack(l.Link, out var item) ? item : null).ToList();
                 p.Check(items.All(i => i != null), "each attack's name plays it");
+                p.Note("attack links: " + string.Join(", ", attacks.CellLinks.Select(kv => $"{attacks.Lines[kv.Key.Line].Cells[0]} {attacks.Columns[kv.Key.Cell]} {kv.Value}")));
                 yield return Until(() => items.Any(i => i != null && Previews.ClipOfAttackItem(i) != null), 15);
                 p.Note("attack clips: " + string.Join(", ", items.Select(i => i + " " + (i != null ? Previews.ClipOfAttackItem(i).OrNull()?.name ?? "none" : "none"))));
                 p.Check(items.Any(i => i != null && Previews.ClipOfAttackItem(i) != null), "its attacks find the clips that play them");

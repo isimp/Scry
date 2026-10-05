@@ -53,6 +53,21 @@ namespace Scry.Tests
             Assert.Equal(new[] { "Troll club", "40 blunt", "a swing", "2.5 m", "3 s" }, CombatWords.AttackCells("Troll club", "40 blunt", "Horizontal", 0f, 2.5f, 3f));
             Assert.Equal(new[] { "Spit", "–", "a shot", "5–30 m", "10 s" }, CombatWords.AttackCells("Spit", null, "Projectile", 5f, 30f, 10f));
             Assert.Equal(new[] { "Stomp", "20 fire", "around it", "4 m", "–" }, CombatWords.AttackCells("Stomp", "20 fire", "Area", 0f, 4f, 0f));
+        }
+
+        [Fact]
+        public void AnAttackNamesWhatItFiresAndWhatItPutsOnYou()
+        {
+            // An attack that fires a projectile names it, whatever kind of attack it is.
+            Assert.Equal(new[] { "Throw", "–", "fires Troll rock", "5–30 m", "10 s" }, CombatWords.AttackCells("Throw", null, "Projectile", 5f, 30f, 10f, fires: "Troll rock"));
+            Assert.Equal("fires Spit", CombatWords.AttackCells("Spit", null, "Horizontal", 0f, 3f, 2f, fires: "Spit")[2]);
+
+            // The table has a column of what each puts on you only where one does.
+            Assert.Equal(CombatWords.AttackColumns, CombatWords.AttackColumnsFor(onHit: false));
+            Assert.Equal(new[] { "Attack", "Damage", "How", "On hit", "Reach", "Every" }, CombatWords.AttackColumnsFor(onHit: true));
+            var cells = CombatWords.AttackCells("Bite", "30 poison", "Horizontal", 0f, 2f, 3f);
+            Assert.Equal(new[] { "Bite", "30 poison", "a swing", "Poison", "2 m", "3 s" }, CombatWords.OnHitCells(cells, "Poison"));
+            Assert.Equal(new[] { "Bite", "30 poison", "a swing", "–", "2 m", "3 s" }, CombatWords.OnHitCells(cells, null));
             Assert.Equal(new[] { "Bite", "5 slash", "an attack", "–", "–" }, CombatWords.AttackCells("Bite", "5 slash", "Other", 0f, 0f, 0f));
             Assert.Equal("Attacks", CombatWords.AttacksTitle);
             // Every kind of swing and of shot the game has reads as one.

@@ -71,12 +71,25 @@ namespace Scry
         /// <summary>The columns of a creature's attacks table.</summary>
         public static readonly string[] AttackColumns = { "Attack", "Damage", "How", "Reach", "Every" };
 
+        /// <summary>The columns of a creature's attacks table, with what each puts on you where one does.</summary>
+        public static string[] AttackColumnsFor(bool onHit) => onHit ? AttackColumnsOnHit : AttackColumns;
+
+        private static readonly string[] AttackColumnsOnHit = { "Attack", "Damage", "How", "On hit", "Reach", "Every" };
+
+        /// <summary>An attack's line with what it puts on you after how it is made; a dash for nothing.</summary>
+        public static string[] OnHitCells(string[] cells, string onHit)
+        {
+            var with = new List<string>(cells);
+            with.Insert(3, string.IsNullOrEmpty(onHit) ? None : onHit);
+            return with.ToArray();
+        }
+
         /// <summary>
         /// An attack as a line of its table: the item it is made with, what it does, how (a
-        /// swing, a shot, around it), from how near to how far its AI uses it, and how often; a
-        /// dash where it tells none.
+        /// swing, a shot, around it, or the projectile it fires), from how near to how far its
+        /// AI uses it, and how often; a dash where it tells none.
         /// </summary>
-        public static string[] AttackCells(string name, string damage, string attackType, float rangeMin, float range, float interval)
+        public static string[] AttackCells(string name, string damage, string attackType, float rangeMin, float range, float interval, string fires = null)
         {
             string how;
             switch (attackType)
@@ -96,6 +109,7 @@ namespace Scry
                     how = "an attack";
                     break;
             }
+            if (!string.IsNullOrEmpty(fires)) how = "fires " + fires;
             var reach = range <= 0f ? None : rangeMin > 0f ? $"{Numbers.Amount(rangeMin)}–{Numbers.Amount(range)} m" : $"{Numbers.Amount(range)} m";
             var every = interval > 0f ? $"{Numbers.Amount(interval)} s" : None;
             return new[] { name, string.IsNullOrEmpty(damage) ? None : damage, how, reach, every };

@@ -118,16 +118,28 @@ namespace Scry
         /// </summary>
         private void Attacks(GameObject prefab)
         {
-            var table = new Row { Title = CombatWords.AttacksTitle, Columns = CombatWords.AttackColumns };
+            // Each attack with the projectile it fires and what it puts on you, each a link.
+            var attacks = new List<(string[] Cells, string Item, GameObject Fires, StatusEffect OnHit)>();
             foreach (var item in Relations.CarriedItems(prefab))
             {
                 var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
                 var attack = shared?.m_attack;
                 if (attack == null) continue;
                 var name = ItemName(item);
-                if (table.Lines.Any(l => l.Cells[0] == name)) continue;
-                var cells = CombatWords.AttackCells(name, Damages(shared.m_damages), attack.m_attackType.ToString(), shared.m_aiAttackRangeMin, shared.m_aiAttackRange, shared.m_aiAttackInterval);
-                table.Lines.Add((cells, EntryKeys.PlayAttack(item.name)));
+                if (attacks.Any(a => a.Cells[0] == name)) continue;
+                var fires = attack.m_attackProjectile;
+                var cells = CombatWords.AttackCells(name, Damages(shared.m_damages), attack.m_attackType.ToString(), shared.m_aiAttackRangeMin, shared.m_aiAttackRange, shared.m_aiAttackInterval,
+                    fires != null ? AnyName(fires, fires.name) : null);
+                attacks.Add((cells, item.name, fires, shared.m_attackStatusEffect));
+            }
+            var onHit = attacks.Any(a => a.OnHit != null);
+            var table = new Row { Title = CombatWords.AttacksTitle, Columns = CombatWords.AttackColumnsFor(onHit) };
+            foreach (var (cells, item, fires, effect) in attacks)
+            {
+                var line = table.Lines.Count;
+                table.Lines.Add((onHit ? CombatWords.OnHitCells(cells, effect != null ? EffectName(effect) : null) : cells, EntryKeys.PlayAttack(item)));
+                if (fires != null) table.CellLinks[(line, 2)] = fires.name;
+                if (effect != null) table.CellLinks[(line, 3)] = EntryKeys.For(Kind.StatusEffect, effect.name);
             }
             if (table.Lines.Count > 0) Rows.Add(table);
         }

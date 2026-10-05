@@ -46,6 +46,9 @@ namespace Scry
             /// <summary>A table in place of chips: its columns' headings, and its lines, each its cells and what its first cell goes to; null for none.</summary>
             public string[] Columns;
             public readonly List<(string[] Cells, string Link)> Lines = new List<(string[], string)>();
+
+            /// <summary>What a table's cell past the first goes to, by its line and column: an attack's projectile and what it puts on you.</summary>
+            public readonly Dictionary<(int Line, int Cell), string> CellLinks = new Dictionary<(int, int), string>();
             public readonly List<Ingredient> Items = new List<Ingredient>();
 
             /// <summary>Gives the items of one name with different prefabs their prefab's name too, so they can be told apart (<see cref="Naming.TellApart"/>).</summary>
@@ -237,6 +240,7 @@ namespace Scry
                 if (!string.IsNullOrEmpty(row.TitleLink)) linked.Add(row.TitleLink);
                 foreach (var item in row.Items) if (!string.IsNullOrEmpty(item.Prefab)) linked.Add(item.Prefab);
                 foreach (var (_, link) in row.Lines) if (!string.IsNullOrEmpty(link)) linked.Add(link);
+                foreach (var link in row.CellLinks.Values) linked.Add(link);
             }
             foreach (var source in Where) if (!string.IsNullOrEmpty(source.Prefab)) linked.Add(source.Prefab);
             return linked;
