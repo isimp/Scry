@@ -46,11 +46,11 @@ namespace Scry.Tests
             // Three axes of tier 2 and two of tier 4: the one chopping least of each, the lowest tier first.
             var axes = new (string Name, int Tier, (string Type, float Amount)[] Deals)[]
             {
+                ("CrossbowArbalest", 2, new[] { ("pierce", 90f), ("chop", 40f) }),
                 ("BattleaxeBronze", 2, new[] { ("slash", 30f), ("chop", 60f) }),
                 ("AxeBronze", 2, new[] { ("slash", 20f), ("chop", 40f) }),
                 ("AxeBerzerkr", 4, new[] { ("slash", 50f), ("chop", 90f) }),
                 ("AxeBlackMetal", 4, new[] { ("slash", 40f), ("chop", 80f) }),
-                ("CrossbowArbalest", 2, new[] { ("pierce", 90f), ("chop", 40f) }),
                 ("AxeStone", 0, new[] { ("slash", 10f), ("chop", 20f) }),
             };
             Assert.Equal(new[] { "AxeStone", "AxeBronze", "AxeBlackMetal" }, Names(GatherWords.BreaksIt(0, new[] { "chop" }, axes)));
