@@ -125,6 +125,14 @@ namespace Scry
 
         public static string[] EventBiomes(string prefab) => EventBiomesOf.TryGetValue(prefab, out var set) ? set.ToArray() : Array.Empty<string>();
 
+        /// <summary>The biomes a creature comes to only once a world key is set, beyond those it lives in without one (<see cref="SpawnBiomes.Later"/>).</summary>
+        private static readonly Dictionary<string, HashSet<string>> LaterBiomesOf = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
+        /// <summary>The home biomes of each creature's spawns that wait for a world key, settled once every spawn list is read.</summary>
+        private static readonly Dictionary<string, HashSet<string>> KeyedBiomesOf = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
+        public static string[] LaterBiomes(string prefab) => LaterBiomesOf.TryGetValue(prefab, out var set) ? set.ToArray() : Array.Empty<string>();
+
         private static void AddBiomeKey(Dictionary<string, HashSet<string>> into, string prefab, string key)
         {
             if (!into.TryGetValue(prefab, out var set)) into[prefab] = set = new HashSet<string>();
@@ -228,8 +236,9 @@ namespace Scry
                 {
                     if (data.m_prefab == null || !data.m_enabled) return;
                     var name = data.m_prefab.name;
-                    var (home, events) = SpawnBiomes.Split(BiomeKeys(data.m_biome), data.m_requiredEnvironments, b => weathers.TryGetValue(b, out var own) ? own : null);
-                    foreach (var key in home) AddBiomeKey(BiomesOf, name, key);
+                    var (home, events) = SpawnBiomes.Split(BiomeKeys(data.m_biome), data.m_requiredEnvironments, b => weathers.TryGetValue(b, out var own) ? own : null,
+                        data.m_requiredPersistentEvent);
+                    foreach (var key in home) AddBiomeKey(string.IsNullOrEmpty(data.m_requiredGlobalKey) ? BiomesOf : KeyedBiomesOf, name, key);
                     foreach (var key in events) AddBiomeKey(EventBiomesOf, name, key);
                     PlacedByWorld.Add(name);
 
@@ -240,11 +249,38 @@ namespace Scry
                         InForest = data.m_inForest, OutsideForest = data.m_outsideForest,
                         Weather = (data.m_requiredEnvironments ?? new List<string>()).Where(e => !string.IsNullOrEmpty(e)).Select(Naming.FieldLabel).ToArray(),
                         Keys = new[] { data.m_requiredGlobalKey },
+                        Event = EventName(data.m_requiredPersistentEvent),
                     };
                     Add(name, SpawnWords.Line("Spawns in", spawn, BossOf), BossPrefabOf(data.m_requiredGlobalKey));
                     Unlocks.Add(data.m_requiredGlobalKey, Unlock.Spawns, name);
                 });
             }
+            SettleKeyedBiomes();
+        }
+
+        /// <summary>
+        /// Settles each creature's home once every spawn list is read: the biomes its keyed spawns
+        /// add are its home only where it has no spawn without a key (<see cref="SpawnBiomes.Later"/>).
+        /// </summary>
+        private static void SettleKeyedBiomes()
+        {
+            foreach (var pair in KeyedBiomesOf)
+            {
+                var unkeyed = BiomesOf.TryGetValue(pair.Key, out var own) ? own.ToList() : new List<string>();
+                var (home, later) = SpawnBiomes.Later(unkeyed, pair.Value);
+                foreach (var key in home) AddBiomeKey(BiomesOf, pair.Key, key);
+                foreach (var key in later) AddBiomeKey(LaterBiomesOf, pair.Key, key);
+            }
+            KeyedBiomesOf.Clear();
+        }
+
+        /// <summary>A world event by the name the game shows on its map token, else its own name in words; null for none.</summary>
+        private static string EventName(string internalName)
+        {
+            if (string.IsNullOrEmpty(internalName)) return null;
+            var known = PersistentEventSystem.instance.OrNull()?.m_possibleEvents?.Find(e => e != null && string.Equals(e.internalName, internalName, StringComparison.OrdinalIgnoreCase));
+            var shown = known != null ? CatalogBuilder.Localize(known.mapTokenString) : "";
+            return shown.Length > 0 && !shown.StartsWith("$", StringComparison.Ordinal) && !shown.StartsWith("[", StringComparison.Ordinal) ? shown : Naming.FieldLabel(internalName);
         }
 
         private static void Raids()
@@ -685,6 +721,8 @@ namespace Scry
             Where.Clear();
             BiomesOf.Clear();
             EventBiomesOf.Clear();
+            LaterBiomesOf.Clear();
+            KeyedBiomesOf.Clear();
             PlacedByWorld.Clear();
             Baits.Clear();
             Keys.Clear();

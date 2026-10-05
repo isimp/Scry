@@ -25,6 +25,9 @@ namespace Scry
         /// <summary>The weather it needs, any one of them.</summary>
         public string[] Weather = Array.Empty<string>();
 
+        /// <summary>The world event it waits for, by the name the game shows; null for none.</summary>
+        public string Event;
+
         /// <summary>The world keys it waits for, and those that end it.</summary>
         public string[] Keys = Array.Empty<string>();
         public string[] NotKeys = Array.Empty<string>();
@@ -184,6 +187,7 @@ namespace Scry
             if (spawn.Weather != null && spawn.Weather.Length > 0) parts.Add("in weather " + string.Join(" or ", spawn.Weather));
             if (spawn.Keys != null) foreach (var key in spawn.Keys) if (!string.IsNullOrEmpty(key)) parts.Add(Once(key, bossOf));
             if (spawn.NotKeys != null) foreach (var key in spawn.NotKeys) if (!string.IsNullOrEmpty(key)) parts.Add(Until(key, bossOf));
+            if (!string.IsNullOrEmpty(spawn.Event)) parts.Add("only during " + spawn.Event);
             return string.Join(", ", parts);
         }
     }

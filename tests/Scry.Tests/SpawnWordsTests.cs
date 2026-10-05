@@ -138,6 +138,9 @@ namespace Scry.Tests
 
             Assert.Equal("Spawns in Swamp, at night, up to 2 stars, in groups of 2–3, in forests, in weather Rain or Thunder storm, once Eikthyr is defeated",
                 SpawnWords.Line("Spawns in", spawn, Boss));
+            // One waiting for a world event says so.
+            spawn.Event = "Fimbulvinter";
+            Assert.EndsWith("once Eikthyr is defeated, only during Fimbulvinter", SpawnWords.Line("Spawns in", spawn, Boss));
         }
 
         [Fact]

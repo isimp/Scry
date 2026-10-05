@@ -33,10 +33,11 @@ namespace Scry
 
             var catalog = WorldCatalog.Current?.All;
             if (catalog == null) return;
-            // Each row by name, then in its own order where it has one; how many it holds.
-            int Here(string title, Func<Entry, bool> which, bool home = true, Func<List<Entry>, List<Entry>> order = null)
+            // Each row by name, then in its own order where it has one; how many it holds. A row
+            // of what comes only in a world event or later in the game names what has no home here.
+            int Here(string title, Func<Entry, bool> which, Func<Entry, string[]> also = null, Func<List<Entry>, List<Entry>> order = null)
             {
-                var found = catalog.Where(e => which(e) && (home ? e.Biomes.Contains(biome.Name) : Knowledge.EventBiomes(e.Name).Contains(biome.Name) && !e.Biomes.Contains(biome.Name)))
+                var found = catalog.Where(e => which(e) && (also == null ? e.Biomes.Contains(biome.Name) : also(e).Contains(biome.Name) && !e.Biomes.Contains(biome.Name)))
                     .OrderBy(e => e.ShownName, StringComparer.OrdinalIgnoreCase)
                     .ToList();
                 var row = new Row();
@@ -60,7 +61,8 @@ namespace Scry
             // Raids in the order they come, as the Raids tab lists them.
             Here("Raids here", e => e.Kind == Kind.Raid, order: found => found.OrderBy(e => e.GroupOrder).ThenBy(e => e.GroupRank).ToList());
             Here("Also placed here", e => (e.Kind == Kind.Other || e.Kind == Kind.Effect || e.Kind == Kind.Projectile || (e.Kind == Kind.Item && !Fish(e))) && Knowledge.IsPlacedByWorld(e.Name));
-            Here("Here only in weather a world event brings", e => e.Kind != Kind.Biome, home: false, order: Toughest);
+            Here("Here only during a world event", e => e.Kind != Kind.Biome, e => Knowledge.EventBiomes(e.Name), Toughest);
+            Here("Comes here later in the game", e => e.Kind != Kind.Biome, e => Knowledge.LaterBiomes(e.Name), Toughest);
             // How many live and are placed there, as the page's headline tiles.
             Add("Creatures", Numbers.Count(creatures));
             Add("Places", Numbers.Count(places));

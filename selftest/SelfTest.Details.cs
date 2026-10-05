@@ -719,7 +719,8 @@ namespace Scry
             }
             yield return null;
 
-            // Creatures' drops, rarest first: each chip's chance no more than the next's.
+            // Creatures' drops by what they are worth having: what only it drops first, then what a
+            // trader pays for, the most first, then the rest; each the least likely first.
             var unsorted = new List<string>();
             var droppers = X.Catalog.Where(e => e.Kind == Kind.Creature && (e.Source as GameObject).OrNull()?.GetComponent<CharacterDrop>() != null).ToList();
             yield return Budgeted(droppers, creature =>
@@ -727,13 +728,16 @@ namespace Scry
                 var drops = ((GameObject)creature.Source).GetComponent<CharacterDrop>().m_drops.Where(d => d?.m_prefab != null).ToList();
                 var row = Facts.For(creature).Rows.FirstOrDefault(r => r.Title == "Drops");
                 if (row == null) return;
-                var chances = row.Items.Select(i => drops.Where(d => d.m_prefab.name == i.Prefab).Select(d => d.m_chance).DefaultIfEmpty(1f).Min()).ToList();
-                for (var i = 1; i < chances.Count; i++)
+                int Worth(string prefab) => prefab == "Coins" ? 0 : GamePrefabs.Item(prefab).OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_value ?? 0;
+                var keys = row.Items.Select(i => (Only: i.Mark == DropWords.OnlyHereMark ? 0 : 1, Worth: Worth(i.Prefab),
+                    Chance: drops.Where(d => d.m_prefab.name == i.Prefab).Select(d => d.m_chance).DefaultIfEmpty(1f).Min())).ToList();
+                for (var i = 1; i < keys.Count; i++)
                 {
-                    if (chances[i] < chances[i - 1]) { unsorted.Add(creature.Name); break; }
+                    var (a, b) = (keys[i - 1], keys[i]);
+                    if (b.Only < a.Only || (b.Only == a.Only && (b.Worth > a.Worth || (b.Worth == a.Worth && b.Chance < a.Chance)))) { unsorted.Add(creature.Name); break; }
                 }
             });
-            p.Check(unsorted.Count == 0, "creatures' drops come rarest first", unsorted.Count > 0 ? string.Join(", ", unsorted.Take(10)) : "");
+            p.Check(unsorted.Count == 0, "creatures' drops come by worth, then rarest first", unsorted.Count > 0 ? string.Join(", ", unsorted.Take(10)) : "");
             var greydwarf = Pick(Kind.Creature, "Greydwarf");
             var greyDrops = greydwarf != null ? Facts.For(greydwarf).Rows.FirstOrDefault(r => r.Title == "Drops") : null;
             if (greyDrops != null) p.Note($"{greydwarf.Name} drops: {string.Join(", ", greyDrops.Items.Select(i => $"{i.Prefab} {i.Amount}"))}");
@@ -752,6 +756,18 @@ namespace Scry
                 }
                 if (biome.Name == "Meadows" || biome.Name == "BlackForest") p.Note($"{biome.Name} lives: {string.Join(", ", row.Items.Take(6).Select(i => i.Prefab))}");
             }
+
+            // What comes only in a world event or once a boss falls lives elsewhere: Fimbulvinter's
+            // Jotun warriors and Elakingar, the Charred once Fader is defeated.
+            var astray = new List<string>();
+            foreach (var name in new[] { "JotunWarrior", "JotunWitch", "Elaking", "Charred_Melee", "Charred_Archer" })
+            {
+                var creature = X.Find(name);
+                if (creature == null) continue;
+                p.Note($"{name} lives in {string.Join("/", creature.Biomes)}; comes later to {string.Join("/", Knowledge.LaterBiomes(name))}; in a world event to {string.Join("/", Knowledge.EventBiomes(name))}");
+                if (creature.Biomes.Contains("Meadows")) astray.Add(name);
+            }
+            p.Check(astray.Count == 0, "no creature lives in the Meadows that only an event or a later key brings there", string.Join(", ", astray));
             p.Check(weaker.Count == 0, "each biome's creatures come toughest first", string.Join(", ", weaker));
             yield return null;
 

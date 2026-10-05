@@ -43,6 +43,35 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ASpawnWaitingForAWorldEventMakesNoHome()
+        {
+            // Fimbulvinter's Jotun warriors spawn in every biome only while the jotun_invasion
+            // event is on where they would spawn (SpawnSystem, m_requiredPersistentEvent).
+            var (home, events) = SpawnBiomes.Split(new[] { "Meadows", "Swamp" }, new string[0], Of, persistentEvent: "jotun_invasion");
+            Assert.Empty(home);
+            Assert.Equal(new[] { "Meadows", "Swamp" }, events);
+            Assert.Equal(new[] { "Meadows" }, SpawnBiomes.Split(new[] { "Meadows" }, new string[0], Of, persistentEvent: "").Home);
+        }
+
+        [Fact]
+        public void WhereACreatureComesOnlyOnceAKeyIsSetIsNoHomeWhereItLivesWithoutOne()
+        {
+            // Charred warriors live in the Ashlands, and come to the other biomes once Fader is defeated.
+            var (home, later) = SpawnBiomes.Later(new[] { "AshLands" }, new[] { "Meadows", "BlackForest", "AshLands" });
+            Assert.Equal(new[] { "AshLands" }, home);
+            Assert.Equal(new[] { "Meadows", "BlackForest" }, later);
+        }
+
+        [Fact]
+        public void ACreatureThatComesOnlyOnceAKeyIsSetLivesWhereItThenComes()
+        {
+            // The Jotun warriors' patrols in the Deep North wait for a Jotun's fall; that is still their home.
+            var (home, later) = SpawnBiomes.Later(new string[0], new[] { "DeepNorth" });
+            Assert.Equal(new[] { "DeepNorth" }, home);
+            Assert.Empty(later);
+        }
+
+        [Fact]
         public void BlankWeathersAskForNothing()
         {
             var (home, events) = SpawnBiomes.Split(new[] { "Mountain" }, new[] { "", null }, Of);
