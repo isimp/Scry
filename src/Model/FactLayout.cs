@@ -64,6 +64,7 @@ namespace Scry
             [Kind.Resource] = Resource(),
             [Kind.Projectile] = Projectile(),
             [Kind.Location] = Location(),
+            [Kind.Raid] = Raid(),
         };
 
         private static KindPlan Creature()
@@ -221,6 +222,27 @@ namespace Scry
             plan.Blocks[FactBlock.Biomes] = "placement";
             plan.Blocks[FactBlock.Where] = "contents";
             plan.Blocks[FactBlock.FoundIn] = "layout";
+            plan.Blocks[FactBlock.Uses] = More;
+            plan.Blocks[FactBlock.Users] = More;
+            plan.Blocks[FactBlock.Hooks] = "hooks";
+            return plan;
+        }
+
+        private static KindPlan Raid()
+        {
+            var plan = new KindPlan
+            {
+                Topics = new[] { ("overview", (string)null), ("when", "When"), ("comes", "What comes"), ("music", "Music"), (More, "More"), ("hooks", null) },
+            };
+            Tile(plan, "overview", null, "Lasts", "Weather", "Comes for");
+            Label(plan, "when", "On the table", "Rolled", "Also rolled", "Ends with", "On");
+            Label(plan, "music", "Music");
+            Label(plan, More, "Not shown");
+            // What it brings is told creature by creature, each by its name.
+            Part(plan, "comes", "raid");
+            plan.Blocks[FactBlock.Biomes] = "when";
+            plan.Blocks[FactBlock.Where] = More;
+            plan.Blocks[FactBlock.FoundIn] = More;
             plan.Blocks[FactBlock.Uses] = More;
             plan.Blocks[FactBlock.Users] = More;
             plan.Blocks[FactBlock.Hooks] = "hooks";

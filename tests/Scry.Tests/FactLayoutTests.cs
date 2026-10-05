@@ -215,6 +215,23 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ARaidShowsHowLongItLastsThenWhenItComesWhatItBringsAndItsMusic()
+        {
+            var pairs = new[]
+            {
+                ("Comes for", "raid"), ("On the table", "raid"), ("Rolled", "raid"), ("Also rolled", "raid"), ("Lasts", "raid"), ("Keeps coming", "raid"),
+                ("Ends with", "raid"), ("Music", "raid"), ("Weather", "raid"), ("Troll", "raid"),
+            };
+            var plan = FactLayout.Plan(Kind.Raid, pairs, new (string, string)[0], new[] { FactBlock.Biomes });
+            Assert.Equal(new[] { null, "When", "What comes", "Music" }, plan.Select(t => t.Heading));
+            Assert.Equal(new[] { "Lasts", "Weather", "Comes for" }, plan[0].Tiles.Select(i => pairs[i].Item1));
+            Assert.Equal(new[] { "On the table", "Rolled", "Also rolled", "Ends with" }, plan[1].Bits.Where(b => b.Pair >= 0).Select(b => pairs[b.Pair].Item1));
+            Assert.Equal(FactBlock.Biomes, plan[1].Bits.Last().Block);
+            Assert.Equal(new[] { "Keeps coming", "Troll" }, plan[2].Bits.Select(b => pairs[b.Pair].Item1));
+            Assert.Equal(new[] { "Music" }, plan[3].Bits.Select(b => pairs[b.Pair].Item1));
+        }
+
+        [Fact]
         public void ANoteReadsItsLabelThenItsValue()
         {
             Assert.Equal("Drops with stars: more with each star", FactWords.Note("Drops with stars", "more with each star"));
