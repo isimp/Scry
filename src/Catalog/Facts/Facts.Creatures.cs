@@ -241,8 +241,8 @@ namespace Scry
             Rows.Add(new Row { Title = title, Cells = Cells(mods) });
         }
 
-        /// <summary>Every damage type in the game's order with the share of it taken (<see cref="ResistWords"/>).</summary>
-        private static List<ResistCell> Cells(HitData.DamageModifiers mods)
+        /// <summary>Every damage type in the game's order with the share of it taken (<see cref="ResistWords"/>); the search reads the same cells.</summary>
+        internal static List<ResistCell> Cells(HitData.DamageModifiers mods)
         {
             var degrees = new[] { mods.m_blunt, mods.m_slash, mods.m_pierce, mods.m_chop, mods.m_pickaxe, mods.m_fire, mods.m_frost, mods.m_lightning, mods.m_poison, mods.m_spirit };
             return degrees.Select((degree, i) => ResistWords.Cell(ResistWords.Types[i], DegreeOf(degree))).ToList();

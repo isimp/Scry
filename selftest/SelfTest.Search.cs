@@ -120,6 +120,15 @@ namespace Scry
                 p.Check(flagged.Any(e => e.Name == named), $"\"is:{flag}\" finds {named}", $"{Numbers.Count(flagged.Count)} results");
             }
             p.Check(Find("is:weapon kind:creature").Count == 0, "no creature is a weapon");
+
+            // The fight terms, each against the details' own grid and figures.
+            var weak = Find("weak:fire kind:creature");
+            var notWeak = weak.Take(15).Where(e => !Facts.For(e).Rows.Any(r => r.Cells != null && r.Cells.Any(c => c.Type == "Fire" && c.Tone == Tone.Weak))).Select(e => e.Name).ToList();
+            p.Check(weak.Count > 0 && notWeak.Count == 0, "\"weak:fire\" finds creatures whose grid shows them weak to fire", $"{Numbers.Count(weak.Count)} results; not so: {string.Join(", ", notWeak)}");
+            p.Note("\"immune:chop kind:creature\": " + Numbers.Count(Find("immune:chop kind:creature").Count) + ", \"resists:frost kind:item\": " + string.Join(", ", Find("resists:frost kind:item").Take(8).Select(e => e.Name)));
+            p.Check(Find("damage:spirit").Any(e => e.Name == "SwordSilver"), "\"damage:spirit\" finds the silver sword");
+            p.Check(Find("damage:poison kind:creature").Any(e => e.Name == "BlobElite" || e.Name == "Blob"), "\"damage:poison kind:creature\" finds an oozer by its attack");
+            p.Check(Find("skill:axes").Any(e => e.Name == "AxeBronze"), "\"skill:axes\" finds the bronze axe");
             p.Note($"\"is:silent\": {Numbers.Count(Find("is:silent").Count)}, \"is:unsure\": {Numbers.Count(Find("is:unsure").Count)}");
 
             p.Check(Find("zzqqxxnothing").Count == 0, "a search matching nothing finds nothing");

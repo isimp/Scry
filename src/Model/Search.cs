@@ -28,8 +28,10 @@ namespace Scry
     /// results. A word with a known key and a colon narrows the list by something else:
     /// <c>kind:</c>, <c>has:</c> (a component), <c>biome:</c>, <c>mod:</c>, <c>playedby:</c> (the prefabs
     /// that play an effect; <c>used:</c> is its older spelling), <c>station:</c> (where it is made) and <c>in:</c> (a location or dungeon
-    /// it is found in, once they are read) and <c>is:</c> (what it is, <see cref="SearchFlags"/>, by the
-    /// start of the word). A comma in a term's value reads as or: <c>biome:swamp,plains</c>.
+    /// it is found in, once they are read), <c>is:</c> (what it is, <see cref="SearchFlags"/>) and the
+    /// fight terms <c>weak:</c>, <c>resists:</c>, <c>immune:</c>, <c>damage:</c> and <c>skill:</c>
+    /// (<see cref="SearchFight"/>), these last six by the start of a word. A comma in a term's
+    /// value reads as or: <c>biome:swamp,plains</c>.
     /// A minus in front of a word or a term leaves out what matches it.
     /// </summary>
     internal sealed class ParsedSearch
@@ -104,10 +106,10 @@ namespace Scry
     internal static class Search
     {
         /// <summary>The keys a term can have, as typed before the colon.</summary>
-        public static readonly string[] Keys = { "kind", "has", "biome", "mod", "playedby", "station", "in", "is" };
+        public static readonly string[] Keys = { "kind", "has", "biome", "mod", "playedby", "station", "in", "is", "weak", "resists", "immune", "damage", "skill" };
 
         /// <summary>The keys whose values are words the catalog reads into each entry (<see cref="Entry.TermWords"/>), each matched by its start.</summary>
-        public static readonly string[] WordKeys = { "is" };
+        public static readonly string[] WordKeys = { "is", "weak", "resists", "immune", "damage", "skill" };
 
         /// <summary>Older spellings of a key, still read: "used:" was taken for what an item is used for.</summary>
         private static readonly Dictionary<string, string> OldKeys = new Dictionary<string, string> { ["used"] = "playedby" };
@@ -312,8 +314,7 @@ namespace Scry
                 case "in": return AnyPlaceNamed(entry.FoundIn, value);
                 case "mod": return ContainsLeavingOutSpaces(entry.ModName, value);
                 case "playedby": return AnyContainsLeavingOutSpaces(entry.UsedBy, value);
-                case "is": return AnyStartsWith(entry.TermWords(key), value);
-                default: return false;
+                default: return AnyWordStarts(entry.TermWords(key), value);
             }
         }
 
@@ -368,9 +369,17 @@ namespace Scry
             }
         }
 
-        private static bool AnyStartsWith(string[] words, string value)
+        /// <summary>Whether a value starts any of the words, read whole without their spaces ("elementalmagic") or each part alone ("magic").</summary>
+        private static bool AnyWordStarts(string[] words, string value)
         {
-            foreach (var word in words) if (word.StartsWith(value, StringComparison.OrdinalIgnoreCase)) return true;
+            foreach (var word in words)
+            {
+                if (TermIndex.Token(word).StartsWith(value, StringComparison.OrdinalIgnoreCase)) return true;
+                foreach (var part in word.Split(Separators, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (part.StartsWith(value, StringComparison.OrdinalIgnoreCase)) return true;
+                }
+            }
             return false;
         }
 

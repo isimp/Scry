@@ -60,7 +60,7 @@ Every number Scry shows has its thousands by commas, 5,000 as much in a creature
 
 Who plays an effect or a sound, what a thing leaves behind, what a place holds and what an effect list's chip names count only what the game plays: a slot a list leaves switched off counts nowhere.
 
-The search takes more: `is:` asks what a thing is (`is:boss`, `is:tameable`, `is:food`, `is:weapon`, `is:buildable` and more, listed in the search's help); a comma in a term reads as or, so `biome:swamp,plains` finds what lives in either, and Tab after the comma suggests the next value.
+The search takes more: `is:` asks what a thing is (`is:boss`, `is:tameable`, `is:food`, `is:weapon`, `is:buildable` and more, listed in the search's help); `weak:fire`, `resists:frost` and `immune:poison` find what takes more, less or none of a damage type, creatures and worn armour alike, `damage:spirit` what deals it, creatures by their attacks, and `skill:axes` what trains a skill; a comma in a term reads as or, so `biome:swamp,plains` finds what lives in either, and Tab after the comma suggests the next value.
 
 ## 0.1.0
 

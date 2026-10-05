@@ -276,8 +276,8 @@ namespace Scry
         /// </summary>
         private static string Damages(HitData.DamageTypes d) => CombatWords.Damage(DamageFigures(d)) ?? "";
 
-        /// <summary>A hit's damage by type, as the game keeps it, named as the panel names the types.</summary>
-        private static (string Type, float Amount)[] DamageFigures(HitData.DamageTypes d) => new[]
+        /// <summary>A hit's damage by type, as the game keeps it, named as the panel names the types; the search reads the same figures.</summary>
+        internal static (string Type, float Amount)[] DamageFigures(HitData.DamageTypes d) => new[]
         {
             ("true", d.m_damage), ("blunt", d.m_blunt), ("slash", d.m_slash), ("pierce", d.m_pierce), ("chop", d.m_chop), ("pickaxe", d.m_pickaxe),
             ("fire", d.m_fire), ("frost", d.m_frost), ("lightning", d.m_lightning), ("poison", d.m_poison), ("spirit", d.m_spirit),

@@ -91,7 +91,7 @@ namespace Scry
                 foreach (var place in entry.FoundIn ?? Array.Empty<string>()) Add("in", Places.NameOf(place), Places.NameOf(place));
                 foreach (var key in Search.WordKeys)
                 {
-                    foreach (var word in entry.TermWords(key)) Add(key, word, word);
+                    foreach (var word in entry.TermWords(key)) Add(key, word, Naming.Capital(word));
                 }
             }
         }
@@ -260,6 +260,11 @@ namespace Scry
             ["station"] = "where it is made",
             ["in"] = "a location or dungeon it is found in",
             ["is"] = "what it is: a boss, food, a weapon",
+            ["weak"] = "a damage type it takes more of",
+            ["resists"] = "a damage type it takes less of",
+            ["immune"] = "a damage type it takes none of",
+            ["damage"] = "a damage type it deals",
+            ["skill"] = "the skill it trains",
         };
 
         /// <summary>The word the caret is in (or at the end of), from space to space.</summary>
@@ -283,7 +288,7 @@ namespace Scry
 
         /// <summary>
         /// What could finish the word being typed. Nothing typed yet gets every key, to show what
-        /// the search can do; a word without a colon that starts a key gets the key; after a known key's colon, the values in the catalog that start with (or else
+        /// the search can do, however many there are; a word without a colon that starts a key gets the key; after a known key's colon, the values in the catalog that start with (or else
         /// hold) what is typed after it, those most entries have first, whichever tab is open;
         /// after a comma, the same for the value being typed, keeping those before it and leaving
         /// them out of what is offered. A minus in front stays in front. Each finds as many as
@@ -303,7 +308,7 @@ namespace Scry
                 var start = typed.ToLowerInvariant();
                 foreach (var key in Search.Keys)
                 {
-                    if (!key.StartsWith(start, StringComparison.Ordinal) || found.Count >= max) continue;
+                    if (!key.StartsWith(start, StringComparison.Ordinal)) continue;
                     found.Add(new Suggestion { Label = key + ":", Insert = minus + key + ":", Note = KeyNotes[key], IsKey = true });
                 }
                 return found;
