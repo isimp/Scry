@@ -149,6 +149,7 @@ namespace Scry
                     var shown = Localize(effect.m_name);
                     Gather(effect, Provenance.StatusEffect(effect.name), origin, read.Effects, EntryKeys.For(Kind.StatusEffect, effect.name), shown.Length > 0 ? shown : effect.name);
                     Relations.ReadStatusEffect(effect);
+                    Knowledge.FromStatusEffect(effect);
 
                     read.Entries.Add(new Entry
                     {

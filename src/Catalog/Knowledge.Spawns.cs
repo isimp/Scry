@@ -550,6 +550,18 @@ namespace Scry
                 if (shared.m_attack != null) Note(shared.m_attack);
                 if (shared.m_secondaryAttack != null) Note(shared.m_secondaryAttack);
             }
+        
+            // What the game's own code gives in or near it, which no field names (CodeGivers).
+            var bed = components.Exists(c => c is Bed b && b != null);
+            var seat = components.Exists(c => c is Chair chair && chair != null);
+            var heat = components.Exists(c => c is EffectArea area && area != null && (area.m_type & EffectArea.Type.Heat) != 0);
+            foreach (var (effect, how) in CodeGivers.Of(bed, heat, seat)) GiverList.Add((prefab.name, effect, how));
+        }
+
+        /// <summary>A status effect that gives the one it names after a while, as Resting gives Rested (<see cref="CodeGivers.AfterAWhile"/>).</summary>
+        public static void FromStatusEffect(StatusEffect effect)
+        {
+            if (effect is SE_Cozy cozy && !string.IsNullOrEmpty(cozy.m_statusEffect)) GiverList.Add((EntryKeys.For(Kind.StatusEffect, effect.name), cozy.m_statusEffect, CodeGivers.AfterAWhile));
         }
 
         /// <summary>Fields holding a status effect, or a status effect's name.</summary>

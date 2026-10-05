@@ -34,6 +34,7 @@ namespace Scry
         public static readonly Feature WhichArmourCounts = Listed("which armour counts, in the details");
         public static readonly Feature TrueDamage = Listed("true damage in the details");
         public static readonly Feature ComfortGroups = Listed("comfort groups in the details");
+        public static readonly Feature CodeGiven = Listed("status effects the game's own code gives");
         public static readonly Feature StatusEffectStats = Listed("status effect stats in the details");
         public static readonly Feature ExclusiveEffects = Listed("effects that cannot be taken together, in the details");
         public static readonly Feature WhatObliteratorMakes = Listed("what the obliterator makes, in the details");

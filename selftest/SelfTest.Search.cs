@@ -131,6 +131,8 @@ namespace Scry
             p.Check(Find("damage:spirit").Any(e => e.Name == "SwordSilver"), "\"damage:spirit\" finds the silver sword");
             p.Check(Find("damage:poison kind:creature").Any(e => e.Name == "BlobElite" || e.Name == "Blob"), "\"damage:poison kind:creature\" finds an oozer by its attack");
             p.Check(Find("skill:axes").Any(e => e.Name == "AxeBronze"), "\"skill:axes\" finds the bronze axe");
+            p.Check(Find(SearchHelp.Term("gives", "rested")).Any(e => e.Name == "bed"), "\"gives:rested\" finds the bed, as the game's code gives Rested on waking in one");
+            p.Check(Find(SearchHelp.Term("gives", "resting")).Any(e => e.Name == "fire_pit"), "\"gives:resting\" finds the campfire");
             p.Note("\"gives:poison\": " + string.Join(", ", Find("gives:poison").Take(10).Select(e => e.Name)));
 
             // The link terms, each with something sure to be linked that way.
