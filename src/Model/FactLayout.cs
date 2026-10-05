@@ -20,6 +20,9 @@ namespace Scry
         public int Pair = -1;
         public int Row = -1;
         public FactBlock? Block;
+
+        /// <summary>A group of the entry's links shown in this topic rather than under Linked (<see cref="LinkWords.GivenBy"/> and the like); null for none.</summary>
+        public string LinkGroup;
         public readonly List<int> Notes = new List<int>();
     }
 
@@ -52,6 +55,8 @@ namespace Scry
             public readonly Dictionary<string, string> Parts = new Dictionary<string, string>(StringComparer.Ordinal);
             public readonly Dictionary<string, string> Notes = new Dictionary<string, string>(StringComparer.Ordinal);
             public readonly Dictionary<FactBlock, string> Blocks = new Dictionary<FactBlock, string>();
+            /// <summary>Groups of the entry's links shown in a topic, not under Linked, by the topic.</summary>
+            public readonly Dictionary<string, string> LinkGroups = new Dictionary<string, string>(StringComparer.Ordinal);
         }
 
         private const string More = "more";
@@ -91,6 +96,7 @@ namespace Scry
             Label(plan, More, "Not shown");
             plan.Starts.Add((l => l.StartsWith("Seen dropping", StringComparison.Ordinal), "loot"));
             Part(plan, "fight", "attacks", "weak spots", "resistances");
+            Links(plan, "fight", LinkWords.Carries, LinkWords.StatusEffects);
             Part(plan, "senses", "behaviour");
             Part(plan, "taming", "breeding", "growing up");
             Part(plan, "riding", "riding");
@@ -265,6 +271,7 @@ namespace Scry
                 Topics = new[] { ("overview", (string)null), ("weather", "Weather"), ("music", "Music"), ("there", "What is there"), (More, "More"), ("hooks", null) },
             };
             Label(plan, "weather", BiomeWords.WeathersTitle);
+            Links(plan, "weather", LinkWords.StatusEffects);
             Label(plan, "music", BiomeWords.MusicTitle);
             Label(plan, More, "Not shown");
             Part(plan, "there", "biome");
@@ -276,9 +283,10 @@ namespace Scry
         {
             var plan = new KindPlan
             {
-                Topics = new[] { ("overview", (string)null), ("changes", "Changes"), (More, "More"), ("hooks", null) },
+                Topics = new[] { ("overview", (string)null), ("given", "How you get it"), ("changes", "Changes"), (More, "More"), ("hooks", null) },
             };
             Tile(plan, "overview", null, "Lasts");
+            Links(plan, "given", LinkWords.GivenBy);
             Label(plan, More, "Not shown");
             Part(plan, "changes", "status effect");
             plan.Blocks[FactBlock.Users] = More;
@@ -334,8 +342,33 @@ namespace Scry
             foreach (var part in parts) plan.Parts[part] = topic;
         }
 
+        private static void Links(KindPlan plan, string topic, params string[] groups)
+        {
+            foreach (var group in groups) plan.LinkGroups[group] = topic;
+        }
+
         /// <summary>Whether a kind's page is laid out by topic yet.</summary>
         public static bool LaysOut(Kind kind) => Kinds.ContainsKey(kind);
+
+        /// <summary>Whether a group of a kind's links shows in a topic of In the game, and so not under Linked.</summary>
+        public static bool Places(Kind kind, string group) => Kinds.TryGetValue(kind, out var plan) && plan.LinkGroups.ContainsKey(group);
+
+        /// <summary>
+        /// Which of a Linked row's chips still show there, by their place in it: none of a group
+        /// a topic places; of the rest, those In the game does not link already, so each link
+        /// shows once on the page.
+        /// </summary>
+        /// <param name="kind">The kind of entry.</param>
+        /// <param name="group">The row's group.</param>
+        /// <param name="targets">What each chip goes to, in the row's order.</param>
+        /// <param name="shown">What In the game links.</param>
+        public static List<int> LeftInLinked(Kind kind, string group, IReadOnlyList<string> targets, ICollection<string> shown)
+        {
+            var left = new List<int>();
+            if (Places(kind, group)) return left;
+            for (var i = 0; i < targets.Count; i++) if (!shown.Contains(targets[i])) left.Add(i);
+            return left;
+        }
 
         /// <summary>
         /// The page's topics in their order, those with nothing left out; null for a kind not
@@ -345,7 +378,9 @@ namespace Scry
         /// <param name="pairs">The labelled facts read, each with the reader part that told it ("" for none).</param>
         /// <param name="rows">The rows read, by title, each with its part.</param>
         /// <param name="blocks">The blocks the page has.</param>
-        public static List<FactTopicPlan> Plan(Kind kind, IReadOnlyList<(string Label, string Part)> pairs, IReadOnlyList<(string Title, string Part)> rows, IReadOnlyCollection<FactBlock> blocks)
+        /// <param name="linkGroups">The groups of links the entry has, by name; those a topic shows go there.</param>
+        public static List<FactTopicPlan> Plan(Kind kind, IReadOnlyList<(string Label, string Part)> pairs, IReadOnlyList<(string Title, string Part)> rows, IReadOnlyCollection<FactBlock> blocks,
+            IReadOnlyCollection<string> linkGroups = null)
         {
             if (!Kinds.TryGetValue(kind, out var plan)) return null;
             var topics = new Dictionary<string, FactTopicPlan>(StringComparer.Ordinal);
@@ -406,6 +441,10 @@ namespace Scry
             foreach (var block in blocks)
             {
                 topics[plan.Blocks.TryGetValue(block, out var topic) ? topic : More].Bits.Add(new FactBit { Block = block });
+            }
+            foreach (var group in linkGroups ?? Array.Empty<string>())
+            {
+                if (plan.LinkGroups.TryGetValue(group, out var topic)) topics[topic].Bits.Add(new FactBit { LinkGroup = group });
             }
 
             // A note goes under what it qualifies; with nothing of that to stand under, it is a fact of its own there.

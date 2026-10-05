@@ -19,20 +19,21 @@ namespace Scry
         /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
         static Relations() => WorldCaches.Register(nameof(Relations), Forget);
 
-        public const string AnimationSounds = "Animation sounds and effects";
-        public const string PlayedByAnimation = "Played by an animation of";
-        public const string Footsteps = "Footsteps";
-        public const string FootstepOf = "Footstep of";
-        public const string Carries = "Carries";
-        public const string CarriedBy = "Carried by";
-        public const string Spawns = "Spawns";
-        public const string SpawnedBy = "Spawned by";
-        public const string StatusEffects = "Status effects";
-        public const string GivenBy = "Given by";
-        public const string Upgrades = "Upgrades";
-        public const string UpgradeOf = "Upgrade of";
-        public const string Items = "Items";
-        public const string ItemOf = "Item of";
+        // The groups' names, each a heading under Linked.
+        public const string AnimationSounds = LinkWords.AnimationSounds;
+        public const string PlayedByAnimation = LinkWords.PlayedByAnimation;
+        public const string Footsteps = LinkWords.Footsteps;
+        public const string FootstepOf = LinkWords.FootstepOf;
+        public const string Carries = LinkWords.Carries;
+        public const string CarriedBy = LinkWords.CarriedBy;
+        public const string Spawns = LinkWords.Spawns;
+        public const string SpawnedBy = LinkWords.SpawnedBy;
+        public const string StatusEffects = LinkWords.StatusEffects;
+        public const string GivenBy = LinkWords.GivenBy;
+        public const string Upgrades = LinkWords.Upgrades;
+        public const string UpgradeOf = LinkWords.UpgradeOf;
+        public const string Items = LinkWords.Items;
+        public const string ItemOf = LinkWords.ItemOf;
 
         /// <summary>The ways an item gives a status effect that its own facts already tell, with a link.</summary>
         private static readonly HashSet<string> ToldByItems = new HashSet<string> { "equip", "set", "consume", "attack" };

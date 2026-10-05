@@ -228,6 +228,20 @@ namespace Scry
         /// <summary>What had been seen dropping in play when these facts were told (<see cref="DropWatch.Version"/>).</summary>
         private int _seenVersion;
 
+        /// <summary>What these facts link to: their values', their rows' and tables', and where it comes from; so Linked shows each link once.</summary>
+        public HashSet<string> LinkedTargets()
+        {
+            var linked = new HashSet<string>(Links.Values, StringComparer.Ordinal);
+            foreach (var row in Rows.Concat(UseRows))
+            {
+                if (!string.IsNullOrEmpty(row.TitleLink)) linked.Add(row.TitleLink);
+                foreach (var item in row.Items) if (!string.IsNullOrEmpty(item.Prefab)) linked.Add(item.Prefab);
+                foreach (var (_, link) in row.Lines) if (!string.IsNullOrEmpty(link)) linked.Add(link);
+            }
+            foreach (var source in Where) if (!string.IsNullOrEmpty(source.Prefab)) linked.Add(source.Prefab);
+            return linked;
+        }
+
         /// <summary>The parts of these facts that could not be read, told at their end.</summary>
         private readonly List<string> _missing = new List<string>();
 

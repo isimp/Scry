@@ -95,11 +95,11 @@ namespace Scry
         private static readonly Dictionary<string, Kind> KindByKey = new Dictionary<string, Kind>();
         private static Explorer _kindsFor;
 
-        /// <summary>A small heading and a wrapping row of link chips, each with its own text, tip and doing.</summary>
-        private static float LinkItems(Explorer explorer, string title, IEnumerable<(string Key, string Text, string Tip, Action Click)> items, float width, float y)
+        /// <summary>A small heading and a wrapping row of link chips, each with its own text, tip and doing; without the heading where the topic it stands in names it already.</summary>
+        private static float LinkItems(Explorer explorer, string title, IEnumerable<(string Key, string Text, string Tip, Action Click)> items, float width, float y, bool titled = true)
         {
-            GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
-            var flow = new ChipFlow(0f, width, y + U(24f), U(26f), U(5f), U(5f));
+            if (titled) GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
+            var flow = new ChipFlow(0f, width, titled ? y + U(24f) : y, U(26f), U(5f), U(5f));
             var all = items as IList<(string Key, string Text, string Tip, Action Click)> ?? items.ToList();
             var key = "links:" + title;
             var count = ShownOf(key, all.Count);
@@ -125,15 +125,7 @@ namespace Scry
         /// </summary>
         private static float LinksSection(Explorer explorer, Entry entry, float width, float y)
         {
-            // Made once for the entry shown, not for every event the panel draws.
-            if (!ReferenceEquals(_linksFor, entry) || !ReferenceEquals(_linksIn, explorer))
-            {
-                _linksFor = entry;
-                _linksIn = explorer;
-                LinkRows.Clear();
-                MakeLinkRows(explorer, entry);
-                _linkedCount = LinkRows.Sum(r => r.Items.Count);
-            }
+            MakeLinkRowsFor(explorer, entry);
             if (LinkRows.Count == 0) return y;
 
             y = SectionHeading("LINKED", width, y, null, "links", _linkedCount);
@@ -142,6 +134,53 @@ namespace Scry
             foreach (var (title, items) in LinkRows) y = LinkItems(explorer, title, items, width, y);
             return y + U(4f);
         }
+
+        /// <summary>
+        /// The link rows of the entry shown: those for LINKED, and those a topic of In the game
+        /// shows instead (<see cref="FactLayout.Places"/>). Made once for the entry shown, not for
+        /// every event the panel draws.
+        /// </summary>
+        private static void MakeLinkRowsFor(Explorer explorer, Entry entry)
+        {
+            if (ReferenceEquals(_linksFor, entry) && ReferenceEquals(_linksIn, explorer)) return;
+            _linksFor = entry;
+            _linksIn = explorer;
+            LinkRows.Clear();
+            PlacedLinkRows.Clear();
+            MakeLinkRows(explorer, entry);
+            _linkedCount = LinkRows.Sum(r => r.Items.Count);
+        }
+
+        /// <summary>A group of links a topic of In the game shows, its heading left out where it is all the topic holds.</summary>
+        private static float PlacedLinks(Explorer explorer, Entry entry, string group, bool titled, float width, float y)
+        {
+            MakeLinkRowsFor(explorer, entry);
+            if (!PlacedLinkRows.TryGetValue(group, out var items)) return y;
+            CountDrawn(PanelPart.TopicLinks);
+            return LinkItems(explorer, group, items, width, y, titled);
+        }
+
+        /// <summary>Whether LINKED shows a group of the entry shown, for the self-test.</summary>
+        public static bool LinkedShows(string group) => LinkRows.Exists(r => r.Title == group);
+
+        /// <summary>
+        /// Adds a row of links: to In the game's where a topic shows its group, else to LINKED
+        /// without what In the game links already, and not at all with nothing left.
+        /// </summary>
+        private static void AddLinkRow(Entry entry, string title, List<(string Key, string Text, string Tip, Action Click)> items, ICollection<string> shown)
+        {
+            if (FactLayout.Places(entry.Kind, title))
+            {
+                PlacedLinkRows[title] = items;
+                return;
+            }
+            var left = FactLayout.LeftInLinked(entry.Kind, title, items.Select(i => i.Key).ToList(), shown);
+            if (left.Count > 0) LinkRows.Add((title, left.Select(i => items[i]).ToList()));
+        }
+
+        /// <summary>The link rows a topic of In the game shows, by their group.</summary>
+        private static readonly Dictionary<string, List<(string Key, string Text, string Tip, Action Click)>> PlacedLinkRows =
+            new Dictionary<string, List<(string, string, string, Action)>>(StringComparer.Ordinal);
 
         private static Entry _linksFor;
         private static Explorer _linksIn;
@@ -155,10 +194,12 @@ namespace Scry
         /// <summary>The rows of the LINKED section, each chip with its text, tip and what it does.</summary>
         private static void MakeLinkRows(Explorer explorer, Entry entry)
         {
+            // What In the game links already is not linked again.
+            var shown = Facts.For(entry).LinkedTargets();
             void Plain(string title, List<string> names)
             {
                 var told = Naming.TellApart(names.Select(n => (ShownName(explorer, n, n), n)).ToList());
-                LinkRows.Add((title, names.Select((n, i) => (n, told[i], (string)null, (Action)(() => Go(explorer, n)))).ToList()));
+                AddLinkRow(entry, title, names.Select((n, i) => (n, told[i], (string)null, (Action)(() => Go(explorer, n)))).ToList(), shown);
             }
             if (entry.LeftBy.Count > 0) Plain("Left behind by", entry.LeftBy);
             if (entry.LeavesBehind.Count > 0) Plain("Leaves behind", entry.LeavesBehind);
@@ -183,19 +224,20 @@ namespace Scry
                                 Go(explorer, p.Target);
                             }));
                         });
-                    LinkRows.Add((title, items.ToList()));
+                    // A chip here plays an animation too, which nothing in In the game does.
+                    AddLinkRow(entry, title, items.ToList(), Array.Empty<string>());
                     continue;
                 }
 
                 // How an item gives an effect is told in its facts' words; the notes keep the field's for grouping.
                 var giver = group.Key == Relations.GivenBy;
                 var told = Naming.TellApart(links.Select(l => (ShownName(explorer, l.Target, l.Target), l.Target)).ToList());
-                LinkRows.Add((title, links.Select((l, i) =>
+                AddLinkRow(entry, title, links.Select((l, i) =>
                 {
-                    var shown = told[i];
+                    var name = told[i];
                     var notes = giver ? l.Notes.Select(Groups.GiverWords).ToList() : l.Notes;
-                    return (l.Target, LinkWords.Chip(shown, notes), LinkWords.Tip(shown, notes), (Action)(() => Go(explorer, l.Target)));
-                }).ToList()));
+                    return (l.Target, LinkWords.Chip(name, notes), LinkWords.Tip(name, notes), (Action)(() => Go(explorer, l.Target)));
+                }).ToList(), shown);
             }
         }
 

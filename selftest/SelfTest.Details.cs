@@ -412,6 +412,21 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.ResistanceGrid) > drawn, $"{shown.Name}'s page draws its grid");
         }
 
+        /// <summary>What gives Rested shows under its page's How you get it, not under Linked as well.</summary>
+        private static IEnumerator HowYouGetIt(Probe p)
+        {
+            var rested = Pick(Kind.StatusEffect, "Rested", "Warm");
+            if (rested == null) p.Skip("there is no Rested or Warm");
+            var givers = rested.Links.Where(l => l.Group == Relations.GivenBy).Select(l => l.Target).ToList();
+            p.Note($"{rested.Name} is given by: {string.Join(", ", givers.Take(10))}");
+            p.Check(givers.Count > 0, $"something gives {rested.Name}");
+            Select(rested);
+            var drawn = ScryPanel.Drawn(PanelPart.TopicLinks);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.TopicLinks) > drawn, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.TopicLinks) > drawn, $"{rested.Name}'s page draws what gives it in In the game");
+            p.Check(!ScryPanel.LinkedShows(Relations.GivenBy), "Linked does not show it again");
+        }
+
         /// <summary>
         /// A creature's In the game is laid out by topic, its fight first after its headline
         /// tiles, its drops' notes under them, every fact read shown once; and its tiles draw.

@@ -20,6 +20,7 @@ namespace Scry
         private static readonly List<(string, string)> PlanPairs = new List<(string, string)>();
         private static readonly List<(string, string)> PlanRows = new List<(string, string)>();
         private static readonly List<FactBlock> PlanBlocks = new List<FactBlock>();
+        private static readonly List<string> PlanLinks = new List<string>();
 
         /// <summary>The page's topics for an entry, or null for a kind not laid out by topic yet.</summary>
         private static List<FactTopicPlan> PlanOf(Explorer explorer, Entry entry, Facts facts, bool places)
@@ -40,7 +41,9 @@ namespace Scry
             for (var i = 0; i < facts.Pairs.Count; i++) PlanPairs.Add((facts.Pairs[i].Key, facts.PairParts[i]));
             PlanRows.Clear();
             foreach (var row in facts.Rows) PlanRows.Add((row.Title, row.Part ?? ""));
-            _plan = FactLayout.Plan(entry.Kind, PlanPairs, PlanRows, PlanBlocks);
+            PlanLinks.Clear();
+            foreach (var group in entry.LinkGroups()) PlanLinks.Add(group.Key);
+            _plan = FactLayout.Plan(entry.Kind, PlanPairs, PlanRows, PlanBlocks, PlanLinks);
             _planFacts = facts;
             _planBlocks = blocks;
             TopicHeights.Clear();
@@ -89,7 +92,7 @@ namespace Scry
             return y;
         }
 
-        /// <summary>What a topic holds: its tiles, then its facts, rows and blocks, each with the notes under it.</summary>
+        /// <summary>What a topic holds: its tiles, then its facts, rows, blocks and links, each with the notes under it.</summary>
         private static float TopicBody(Explorer explorer, Entry entry, Facts facts, FactTopicPlan topic, bool places, float width, float labelW, float y)
         {
             if (topic.Tiles.Count > 0) y = Tiles(facts, topic.Tiles, width, y);
@@ -98,6 +101,7 @@ namespace Scry
                 if (bit.Pair >= 0) y = FactPair(explorer, entry, facts, facts.Pairs[bit.Pair], width, labelW, y);
                 else if (bit.Row >= 0) y = FactRow(explorer, facts.Rows[bit.Row], width, y);
                 else if (bit.Block is FactBlock block) y = FactBlockOf(explorer, entry, facts, block, places, false, width, y);
+                else if (bit.LinkGroup != null) y = PlacedLinks(explorer, entry, bit.LinkGroup, topic.Bits.Count > 1, width, y);
                 foreach (var note in bit.Notes) y = FactNote(facts, facts.Pairs[note], width, y);
             }
             return y;

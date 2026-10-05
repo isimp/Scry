@@ -347,6 +347,49 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AStatusEffectSaysHowYouGetItRightUnderHowLongItLasts()
+        {
+            // What gives it was only under Linked, sections below; it is the second thing anyone asks.
+            var plan = FactLayout.Plan(Kind.StatusEffect, new[] { ("Lasts", "status effect"), ("Health regen", "status effect") }, new (string, string)[0], new FactBlock[0],
+                new[] { LinkWords.GivenBy });
+            Assert.Equal(new[] { null, "How you get it", "Changes" }, plan.Select(t => t.Heading));
+            Assert.Equal(LinkWords.GivenBy, Assert.Single(plan[1].Bits).LinkGroup);
+            Assert.True(FactLayout.Places(Kind.StatusEffect, LinkWords.GivenBy));
+        }
+
+        [Fact]
+        public void LinkGroupsGoToTheTopicTheyBelongToAndTheRestStayInLinked()
+        {
+            // A creature's carried items and what its attacks put on you are part of its fight,
+            // after the attacks table; its footsteps stay under Linked.
+            var creature = FactLayout.Plan(Kind.Creature, new[] { ("Health", "") }, new[] { (CombatWords.AttacksTitle, "attacks") }, new FactBlock[0],
+                new[] { LinkWords.Footsteps, LinkWords.Carries, LinkWords.StatusEffects });
+            var fight = creature.Single(t => t.Heading == "Fight");
+            Assert.Equal(new[] { null, LinkWords.Carries, LinkWords.StatusEffects }, fight.Bits.Select(b => b.LinkGroup));
+            Assert.False(FactLayout.Places(Kind.Creature, LinkWords.Footsteps));
+            Assert.DoesNotContain(creature.SelectMany(t => t.Bits), b => b.LinkGroup == LinkWords.Footsteps);
+
+            // What a biome's weather puts on you goes with its weathers.
+            var biome = FactLayout.Plan(Kind.Biome, new (string, string)[0], new[] { (BiomeWords.WeathersTitle, "biome") }, new FactBlock[0], new[] { LinkWords.StatusEffects });
+            Assert.Equal(new[] { null, LinkWords.StatusEffects }, biome.Single(t => t.Heading == "Weather").Bits.Select(b => b.LinkGroup));
+
+            // A kind with no plan places none.
+            Assert.False(FactLayout.Places(Kind.Sound, LinkWords.Carries));
+        }
+
+        [Fact]
+        public void LinkedShowsEachLinkOnceLeavingOutWhatTheTopicsShow()
+        {
+            var shown = new HashSet<string> { "Wood", "se:Rested" };
+            // A group a topic places shows there, not under Linked too.
+            Assert.Empty(FactLayout.LeftInLinked(Kind.StatusEffect, LinkWords.GivenBy, new[] { "Bed", "Fire" }, shown));
+            // Of the rest, what In the game already links is left out; a row left with none goes.
+            Assert.Equal(new[] { 0, 2 }, FactLayout.LeftInLinked(Kind.Piece, LinkWords.Upgrades, new[] { "Chopping block", "Wood", "Tanning rack" }, shown));
+            Assert.Empty(FactLayout.LeftInLinked(Kind.Item, LinkWords.Items, new[] { "se:Rested", "Wood" }, shown));
+            Assert.Equal(new[] { 0, 1 }, FactLayout.LeftInLinked(Kind.Item, LinkWords.Items, new[] { "Stone", "Flint" }, shown));
+        }
+
+        [Fact]
         public void ANoteReadsItsLabelThenItsValue()
         {
             Assert.Equal("Drops with stars: more with each star", FactWords.Note("Drops with stars", "more with each star"));

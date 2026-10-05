@@ -18,6 +18,7 @@ namespace Scry
         ResistanceGrid,
         FactTiles,
         FactTable,
+        TopicLinks,
         SectionLine,
         TestNotice,
         Slider,
