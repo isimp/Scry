@@ -173,17 +173,6 @@ namespace Scry.Tests
             Assert.Null(CombatWords.Costs(0f, 0f, 0f, 0f));
         }
 
-        // A weapon's second attack (Attack, as m_secondaryAttack) hits harder or softer than its
-        // first by its own multipliers, and costs what it takes.
-        [Fact]
-        public void ASecondAttackTellsHowItDiffersAndWhatItCosts()
-        {
-            Assert.Equal("\u00d73 damage, \u00d72 knockback, \u00d71.5 stagger; costs 20 stamina, 4 eitr", CombatWords.SecondaryAttack(3f, 2f, 1.5f, "20 stamina, 4 eitr"));
-            Assert.Equal("\u00d72 damage", CombatWords.SecondaryAttack(2f, 1f, 1f, ""));
-            Assert.Equal("as hard as the first; costs 15 stamina", CombatWords.SecondaryAttack(1f, 1f, 1f, "15 stamina"));
-            Assert.Equal("as hard as the first", CombatWords.SecondaryAttack(1f, 1f, 1f, null));
-        }
-
         [Fact]
         public void DrawingABowCostsStaminaASecond() => Assert.Equal("1.5 stamina a second", CombatWords.DrawCost(1.5f));
 
@@ -215,5 +204,16 @@ namespace Scry.Tests
 
         [Fact]
         public void AWeakSpotIsLabelledByItsPartOfTheBody() => Assert.Equal("Hit on the left horn", CombatWords.WeakSpot("weakspot_left_horn"));
+
+        [Fact]
+        public void AWeaponsTwoAttacksAreATableOfWhatEachDoesAndCosts()
+        {
+            Assert.Equal("Its attacks", CombatWords.WeaponAttacksTitle);
+            Assert.Equal(new[] { "", "Damage", "Knockback", "Stagger", "Costs" }, CombatWords.WeaponAttackColumns);
+            Assert.Equal(new[] { "Primary", "35 slash", "40", "×1", "8 stamina" }, CombatWords.WeaponAttack(false, "35 slash", 40f, 1f, "8 stamina"));
+            Assert.Equal(new[] { "Secondary", "105 slash", "80", "×3", "16 stamina, 4 eitr" }, CombatWords.WeaponAttack(true, "105 slash", 80f, 3f, "16 stamina, 4 eitr"));
+            // A dash where an attack tells none.
+            Assert.Equal(new[] { "Primary", "–", "–", "×1", "–" }, CombatWords.WeaponAttack(false, null, 0f, 1f, null));
+        }
     }
 }

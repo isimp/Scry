@@ -111,7 +111,9 @@ namespace Scry
             yield return null;
             var told = Facts.For(raid);
             foreach (var row in new[] { "Comes for", "On the table", "Lasts" }) p.Check(Tells(told, row), $"it tells {row.ToLowerInvariant()}", Pairs(told));
-            p.Check(told.Pairs.Any(pair => pair.Key.StartsWith("Brings ", StringComparison.Ordinal)), "it tells what it brings", Pairs(told));
+            var brought = told.Rows.FirstOrDefault(r => r.Title == RaidWords.BringsTitle);
+            p.Check(brought != null && brought.Lines.Count > 0, "it tells what it brings, a creature a line", Pairs(told));
+            if (brought != null) p.Note("its creatures: " + string.Join(" | ", brought.Lines.Select(l => string.Join(", ", l.Cells))));
             p.Check(Stage.IsStaged(raid), "it stands on the stage as the first roll of what it brings");
 
             var prefab = (raid.Source as RandomEvent)?.m_spawn?.Select(s => s?.m_prefab).FirstOrDefault(x => x != null);

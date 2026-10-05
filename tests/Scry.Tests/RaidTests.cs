@@ -55,15 +55,6 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void EachCreatureOfARaidSaysHowManyHowOftenAndHowLikely()
-        {
-            // SpawnSystem.UpdateSpawnList: every m_spawnInterval, m_spawnChance, while fewer than
-            // m_maxSpawned are near.
-            Assert.Equal("up to 8 at once, every 10 s at 58%, up to 2 stars", RaidWords.Spawn(8, 10f, 58f, "up to 2 stars"));
-            Assert.Equal("up to 2 at once, every 20 s", RaidWords.Spawn(2, 20f, 100f, null));
-        }
-
-        [Fact]
         public void ARaidIsOnTheTableFromItsKeyUntilItsEndingKey()
         {
             // RandEventSystem.HaveGlobalKeys: every required key set, none of the others.
@@ -72,13 +63,6 @@ namespace Scry.Tests
             Assert.Equal("from the start, until Eikthyr is defeated", RaidWords.Starts(new string[0], new[] { "defeated_eikthyr" }, Boss));
             Assert.Equal("once Eikthyr is defeated, until The Elder is defeated", RaidWords.Starts(new[] { "defeated_eikthyr" }, new[] { "defeated_gdking" }, Boss));
             Assert.Equal("once the world key \"KilledTroll\" is set", RaidWords.Starts(new[] { "KilledTroll", "" }, null, Boss));
-        }
-
-        [Fact]
-        public void ACreatureWithNoCapComesOneEachTime()
-        {
-            // With m_maxSpawned at 0 the game spawns at most one each interval and counts none.
-            Assert.Equal("one every 5 s", RaidWords.Spawn(0, 5f, 100f, null));
         }
 
         [Fact]
@@ -184,5 +168,17 @@ namespace Scry.Tests
             Assert.Equal(new[] { "fire", "frost", "lightning", "poison", "spirit" }, CombatWords.DamageEffects.Select(d => d.Damage));
             Assert.Equal(new[] { "Burning", "Frost", "Lightning", "Poison", "Spirit" }, CombatWords.DamageEffects.Select(d => d.Effect));
         }
-}
+
+        [Fact]
+        public void WhatARaidBringsIsATableACreatureALine()
+        {
+            Assert.Equal("Its creatures", RaidWords.BringsTitle);
+            Assert.Equal(new[] { "Creature", "At once", "Every", "Chance", "Stars", "Also" }, RaidWords.BringColumns);
+            Assert.Equal(new[] { "Troll", "up to 2", "60 s", "58%", "up to 2 stars", "in groups of 2–3, at night, hunting you" },
+                RaidWords.BringLine("Troll", 2, 60f, 58f, 1, 3, 2, 3, night: true, day: false, hunts: true));
+            // Without a most the game spawns one each roll; a dash for nothing more to say.
+            Assert.Equal(new[] { "Draugr", "one each roll", "5 s", "100%", "no stars", "–" },
+                RaidWords.BringLine("Draugr", 0, 5f, 100f, 1, 1, 1, 1, night: true, day: true, hunts: false));
+        }
+    }
 }

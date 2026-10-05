@@ -65,6 +65,16 @@ namespace Scry
             return parts.Count > 0 ? string.Join(", ", parts) : null;
         }
 
+        /// <summary>The title of a weapon's table of its two attacks.</summary>
+        public const string WeaponAttacksTitle = "Its attacks";
+
+        /// <summary>That table's columns: a blank over the attacks' names, then what each does and costs.</summary>
+        public static readonly string[] WeaponAttackColumns = { "", "Damage", "Knockback", "Stagger", "Costs" };
+
+        /// <summary>A line of that table: the first attack or the second, its damage, knockback, stagger and cost; a dash where it tells none.</summary>
+        public static string[] WeaponAttack(bool secondary, string damage, float knockback, float stagger, string costs) =>
+            new[] { secondary ? "Secondary" : "Primary", damage ?? None, knockback > 0f ? Numbers.Amount(knockback) : None, Numbers.Times(stagger), costs ?? None };
+
         /// <summary>The title of a creature's attacks table.</summary>
         public const string AttacksTitle = "Attacks";
 
@@ -215,17 +225,6 @@ namespace Scry
 
         /// <summary>The label for the status effect a kind of damage puts on what it hits (<see cref="DamageEffects"/>).</summary>
         public static string DamageCauses(string damageType) => Naming.FieldLabel(damageType) + " damage causes";
-
-        /// <summary>A weapon's second attack: how much harder its damage, knockback and stagger are than the first's, and what it costs (<see cref="Costs"/>).</summary>
-        public static string SecondaryAttack(float damage, float force, float stagger, string costs)
-        {
-            var parts = new List<string>();
-            if (Math.Abs(damage - 1f) > 0.001f) parts.Add($"{Numbers.Times(damage)} damage");
-            if (Math.Abs(force - 1f) > 0.001f) parts.Add($"{Numbers.Times(force)} knockback");
-            if (Math.Abs(stagger - 1f) > 0.001f) parts.Add($"{Numbers.Times(stagger)} stagger");
-            var line = parts.Count > 0 ? string.Join(", ", parts) : "as hard as the first";
-            return string.IsNullOrEmpty(costs) ? line : line + "; costs " + costs;
-        }
 
         /// <summary>
         /// Resistances as one line, each degree with the damage it applies to, in the order given

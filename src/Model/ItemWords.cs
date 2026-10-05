@@ -54,14 +54,34 @@ namespace Scry
             return line.ToArray();
         }
 
+        /// <summary>
+        /// A line of the table by quality: a figure at each quality level, its base and what each
+        /// level adds; null where quality adds nothing or it has one level.
+        /// </summary>
+        public static string[] ByQuality(string label, float value, float perLevel, int maxQuality)
+        {
+            if (maxQuality <= 1 || perLevel <= 0f) return null;
+            var line = new List<string> { label };
+            for (var q = 1; q <= maxQuality; q++) line.Add(Numbers.Amount(value + perLevel * (q - 1)));
+            return line.ToArray();
+        }
+
+        /// <summary>The line of the station level each quality needs, the first its crafting's (<c>Recipe.GetRequiredStationLevel</c>).</summary>
+        public static string[] StationLevels(string station, IReadOnlyList<int> levels)
+        {
+            var line = new List<string> { station + " level" };
+            foreach (var level in levels) line.Add(Numbers.Count(level));
+            return line.ToArray();
+        }
+
         /// <summary>A figure, and how much each quality adds to it where it adds any (the caller passes none for what cannot be upgraded).</summary>
         public static string PerQuality(double value, double perQuality) =>
             Numbers.Amount(value) + (perQuality > 0.0 ? $", +{Numbers.Amount(perQuality)} per quality" : "");
 
-        public static string Armour(float armour, float perQuality) => armour > 0f ? PerQuality(armour, perQuality) : "none";
+        public static string Armour(float armour) => armour > 0f ? Numbers.Amount(armour) : "none";
 
         /// <summary>Its block, told only above 1 as <c>ItemDrop.ItemData.AddBlockTooltip</c> tells it; below that it cannot block.</summary>
-        public static string Block(float power, float perQuality) => power > 1f ? PerQuality(power, perQuality) : "none";
+        public static string Block(float power) => power > 1f ? Numbers.Amount(power) : "none";
 
         /// <summary>What a food gives, or null for nothing.</summary>
         public static string Food(float health, float stamina, float eitr)
@@ -86,8 +106,6 @@ namespace Scry
         public static string Makes(int makes, bool anyOne) =>
             (makes > 1 ? $", makes {Numbers.Count(makes)}" : "") + (anyOne ? ", from any one of these" : "");
 
-        /// <summary>The station levels upgrading needs, from the second quality to the top (<c>Recipe.GetRequiredStationLevel</c>).</summary>
-        public static string UpgradesNeed(string station, int first, int last) => $"{station} level {Numbers.CountRange(first, last)}, one more for each quality";
 
         /// <summary>The title over what gear resists: armour while worn, a shield or weapon while blocking.</summary>
         public static string DamageTaken(bool worn) => worn ? "Damage it takes while worn" : "Damage it takes while blocking";

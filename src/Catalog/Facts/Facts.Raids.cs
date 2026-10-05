@@ -72,13 +72,16 @@ namespace Scry
             }
             Hooked(HookedRule.Raids);
 
+            // The creatures it brings, the toughest first, a line each going to its page.
+            var table = new Row { Title = RaidWords.BringsTitle, Columns = RaidWords.BringColumns };
             foreach (var data in ContentOrder.ToughestFirst((raid.m_spawn ?? new List<SpawnSystem.SpawnData>()).Where(d => d?.m_prefab != null), d => FoeOf(d.m_prefab)))
             {
-                var key = RaidWords.Brings(AnyName(data.m_prefab, data.m_prefab.name));
-                if (Pairs.Any(p => p.Key == key)) continue;
-                var traits = RaidWords.Traits(data.m_minLevel, data.m_maxLevel, data.m_groupSizeMin, data.m_groupSizeMax, data.m_spawnAtNight, data.m_spawnAtDay, data.m_huntPlayer);
-                Add(key, RaidWords.Spawn(data.m_maxSpawned, data.m_spawnInterval, data.m_spawnChance, traits), data.m_prefab.name);
+                var name = AnyName(data.m_prefab, data.m_prefab.name);
+                if (table.Lines.Any(l => l.Cells[0] == name)) continue;
+                table.Lines.Add((RaidWords.BringLine(name, data.m_maxSpawned, data.m_spawnInterval, data.m_spawnChance, data.m_minLevel, data.m_maxLevel, data.m_groupSizeMin, data.m_groupSizeMax,
+                    data.m_spawnAtNight, data.m_spawnAtDay, data.m_huntPlayer), data.m_prefab.name));
             }
+            if (table.Lines.Count > 0) Rows.Add(table);
         }
     }
 }

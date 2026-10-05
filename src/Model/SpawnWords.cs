@@ -49,9 +49,6 @@ namespace Scry
             return least == 0 ? $"up to {Numbers.Count(most)} {noun}" : $"{Numbers.CountRange(least, most)} {noun}";
         }
 
-        /// <summary>The label of a creature a spawner spawns.</summary>
-        public static string Spawns(string creature) => "Spawns " + creature;
-
         /// <summary>How many come together, or null for one at a time.</summary>
         public static string Group(int min, int max) => max > 1 ? "in groups of " + Numbers.CountRange(min, max) : null;
 
@@ -128,6 +125,16 @@ namespace Scry
             var share = weight < totalWeight ? DropWords.Share(weight / totalWeight) + " of the spawns" : "every spawn";
             return share + ", " + Stars(minLevel, maxLevel);
         }
+
+        /// <summary>The title of a spawner's table of the creatures it spawns.</summary>
+        public const string PoolTitle = "Its creatures";
+
+        /// <summary>That table's columns.</summary>
+        public static readonly string[] PoolColumns = { "Creature", "Share", "Stars" };
+
+        /// <summary>A creature of a spawner's pool as a line of that table: its share of the spawns (<see cref="PoolShare"/>) and its stars.</summary>
+        public static string[] PoolLine(string creature, float weight, float totalWeight, int minLevel, int maxLevel) =>
+            new[] { creature, weight < totalWeight ? DropWords.Share(weight / totalWeight) : "every spawn", Stars(minLevel, maxLevel) };
 
         /// <summary>
         /// The levels a location sets for its spawn points (<c>CreatureSpawner.Spawn</c>): each of

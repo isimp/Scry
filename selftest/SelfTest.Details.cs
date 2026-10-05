@@ -124,7 +124,7 @@ namespace Scry
                 ("gear adding adrenaline", s => s.m_maxAdrenaline >= 0.5f, "Most adrenaline"),
                 ("gear giving something at full adrenaline", s => s.m_fullAdrenalineSE != null, "At full adrenaline"),
                 ("a weapon with a second attack", s => s.m_secondaryAttack != null && !string.IsNullOrEmpty(s.m_secondaryAttack.m_attackAnimation) && s.m_attack != null
-                    && (s.m_itemType == ItemDrop.ItemData.ItemType.OneHandedWeapon || s.m_itemType == ItemDrop.ItemData.ItemType.TwoHandedWeapon), "Secondary attack"),
+                    && (s.m_itemType == ItemDrop.ItemData.ItemType.OneHandedWeapon || s.m_itemType == ItemDrop.ItemData.ItemType.TwoHandedWeapon), CombatWords.WeaponAttacksTitle),
             };
             foreach (var (what, has, label) in cases)
             {
@@ -575,7 +575,7 @@ namespace Scry
             Every("piece of armour", shared.Where(s => Is(s.Type, ItemDrop.ItemData.ItemType.Helmet, ItemDrop.ItemData.ItemType.Chest, ItemDrop.ItemData.ItemType.Legs, ItemDrop.ItemData.ItemType.Shoulder)).Select(s => s.Entry),
                 "Quality", "Durability", "Armour", "Movement", "Set bonus");
             Every("weapon", shared.Where(s => Is(s.Type, ItemDrop.ItemData.ItemType.OneHandedWeapon, ItemDrop.ItemData.ItemType.TwoHandedWeapon, ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft, ItemDrop.ItemData.ItemType.Bow)).Select(s => s.Entry),
-                "Quality", "Durability", "Block", "Secondary attack");
+                "Quality", "Durability", "Block", "Secondary attack|" + CombatWords.WeaponAttacksTitle);
             var built = X.Catalog.Where(e => e.Kind == Kind.Piece && Of(e).OrNull()?.GetComponent<Piece>().OrNull()?.enabled == true && Knowledge.Tools.ToolsOf(e.Name).Count > 0);
             Every("buildable piece", built, "Build cost|Built near", "Built with");
 
@@ -608,7 +608,9 @@ namespace Scry
             p.Note($"{Numbers.Count(X.Catalog.Count(e => e.Kind == Kind.Spawner))} spawners, {Numbers.Count(points)} of them spawn points");
             var told = Facts.For(nest);
             foreach (var row in new[] { "Works", "Pace", "Keeps alive", "Puts them" }) p.Check(Tells(told, row), $"it tells {row.ToLowerInvariant()}", Pairs(told));
-            p.Check(told.Pairs.Any(pair => pair.Key.StartsWith("Spawns ", StringComparison.Ordinal)), "it tells what it spawns and how often", Pairs(told));
+            var pool = told.Rows.FirstOrDefault(r => r.Title == SpawnWords.PoolTitle);
+            p.Check(pool != null && pool.Lines.Count > 0, "it tells what it spawns and how often, a creature a line", Pairs(told));
+            if (pool != null) p.Note("its creatures: " + string.Join(" | ", pool.Lines.Select(l => string.Join(", ", l.Cells))));
 
             var area = ((GameObject)nest.Source).GetComponentInChildren<SpawnArea>(true);
             var first = area.OrNull()?.m_prefabs?.FirstOrDefault(d => d?.m_prefab != null)?.m_prefab;

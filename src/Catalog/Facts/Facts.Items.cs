@@ -26,24 +26,15 @@ namespace Scry
             // The game fills in per-quality numbers everywhere; they mean something only for what can be upgraded.
             var upgradable = shared.m_maxQuality > 1;
             var damage = Damages(shared.m_damages);
-            if (damage.Length > 0)
-            {
-                Add("Damage", damage);
-                var perLevel = DamageFigures(shared.m_damagesPerLevel);
-                var byQuality = ItemWords.DamageByQuality(DamageFigures(shared.m_damages).Select((d, i) => (d.Type, d.Amount, perLevel[i].Amount)).ToList(), shared.m_maxQuality);
-                if (byQuality != null)
-                {
-                    var table = new Row { Title = ItemWords.ByQualityTitle, Columns = ItemWords.QualityColumns(shared.m_maxQuality) };
-                    table.Lines.Add((byQuality, null));
-                    Rows.Add(table);
-                }
-            }
+            if (damage.Length > 0) Add("Damage", damage);
 
             var type = shared.m_itemType;
             // The slots whose armour counts (Player.GetBodyArmor); gloves' does not.
             var worn = type == ItemDrop.ItemData.ItemType.Helmet || type == ItemDrop.ItemData.ItemType.Chest
                        || type == ItemDrop.ItemData.ItemType.Legs || type == ItemDrop.ItemData.ItemType.Shoulder;
-            if (worn) Add("Armour", ItemWords.Armour(shared.m_armor, upgradable ? shared.m_armorPerLevel : 0f));
+            // What grows with quality is told in its table, each figure here at the first level.
+            if (worn) Add("Armour", ItemWords.Armour(shared.m_armor));
+            if (upgradable) Part(worn ? "gear" : "item stats", () => QualityTable(prefab, shared, worn));
             Part("item stats", () => Combat(prefab, shared));
             Part("resistances", () => GearResists(shared, worn));
             if (damage.Length > 0 || (worn && shared.m_armor > 0f) || shared.m_blockPower > 1f) Hooked(HookedRule.ItemStats);
@@ -136,8 +127,6 @@ namespace Scry
                          || type == ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft || type == ItemDrop.ItemData.ItemType.Bow || type == ItemDrop.ItemData.ItemType.Torch;
             var ammo = type == ItemDrop.ItemData.ItemType.Ammo || type == ItemDrop.ItemData.ItemType.AmmoNonEquipable;
             var shield = type == ItemDrop.ItemData.ItemType.Shield;
-            var upgradable = shared.m_maxQuality > 1;
-            float PerQuality(float perLevel) => upgradable ? perLevel : 0f;
 
             if ((weapon || ammo || shield || type == ItemDrop.ItemData.ItemType.Tool) && shared.m_skillType != Skills.SkillType.None)
             {
@@ -149,36 +138,45 @@ namespace Scry
             if (weapon || shield)
             {
                 // The game tells blocking only above 1, as AddBlockTooltip does; below that it cannot block.
-                Add("Block", ItemWords.Block(shared.m_blockPower, PerQuality(shared.m_blockPowerPerLevel)));
-                if (shared.m_deflectionForce > 1f) Add("Block force", ItemWords.PerQuality(shared.m_deflectionForce, PerQuality(shared.m_deflectionForcePerLevel)));
+                // Each at the first quality; what each level adds is in the table by quality.
+                Add("Block", ItemWords.Block(shared.m_blockPower));
+                if (shared.m_deflectionForce > 1f) Add("Block force", Numbers.Amount(shared.m_deflectionForce));
                 if (shared.m_timedBlockBonus > 1f) Add("Parry bonus", Numbers.Times(shared.m_timedBlockBonus));
             }
 
-            if ((weapon || ammo) && shared.m_attackForce > 0f) Add("Knockback", Numbers.Amount(shared.m_attackForce));
+            var attack = shared.m_attack;
+            // A second attack the game offers only with an animation of its own (ItemData.HaveSecondaryAttack).
+            var second = weapon && attack != null ? shared.m_secondaryAttack : null;
+            var twoAttacks = second != null && !string.IsNullOrEmpty(second.m_attackAnimation);
+            if ((weapon || ammo) && shared.m_attackForce > 0f && !twoAttacks) Add("Knockback", Numbers.Amount(shared.m_attackForce));
             if (weapon && shared.m_backstabBonus > 1f) Add("Backstab", Numbers.Times(shared.m_backstabBonus));
 
-            var attack = shared.m_attack;
             if (weapon && attack != null)
             {
-                var costs = CombatWords.Costs(attack.m_attackStamina, attack.m_attackEitr, attack.m_attackHealth, attack.m_attackHealthPercentage);
-                Add("Each attack costs", costs);
                 if (attack.m_drawStaminaDrain > 0f) Add("Drawing costs", CombatWords.DrawCost(attack.m_drawStaminaDrain));
-
-                // A second attack the game offers only with an animation of its own (ItemData.HaveSecondaryAttack), told against the first.
-                var second = shared.m_secondaryAttack;
-                if (second != null && !string.IsNullOrEmpty(second.m_attackAnimation))
+                if (twoAttacks)
                 {
-                    float Against(float mine, float first) => mine / Math.Max(0.001f, first);
-                    Add("Secondary attack", CombatWords.SecondaryAttack(Against(second.m_damageMultiplier, attack.m_damageMultiplier), Against(second.m_forceMultiplier, attack.m_forceMultiplier),
-                        Against(second.m_staggerMultiplier, attack.m_staggerMultiplier), CombatWords.Costs(second.m_attackStamina, second.m_attackEitr, second.m_attackHealth, second.m_attackHealthPercentage)));
+                    // Both attacks side by side: what each deals at the first quality, knocks back, staggers and costs.
+                    var table = new Row { Title = CombatWords.WeaponAttacksTitle, Columns = CombatWords.WeaponAttackColumns };
+                    foreach (var (each, isSecond) in new[] { (attack, false), (second, true) })
+                    {
+                        var dealt = CombatWords.Damage(DamageFigures(shared.m_damages).Select(d => (d.Type, d.Amount * each.m_damageMultiplier)));
+                        var costs = CombatWords.Costs(each.m_attackStamina, each.m_attackEitr, each.m_attackHealth, each.m_attackHealthPercentage);
+                        table.Lines.Add((CombatWords.WeaponAttack(isSecond, dealt, shared.m_attackForce * each.m_forceMultiplier, each.m_staggerMultiplier, costs), null));
+                    }
+                    Rows.Add(table);
                 }
-                else Add("Secondary attack", "none");
+                else
+                {
+                    Add("Each attack costs", CombatWords.Costs(attack.m_attackStamina, attack.m_attackEitr, attack.m_attackHealth, attack.m_attackHealthPercentage));
+                    Add("Secondary attack", "none");
+                }
             }
 
-            var recipe = ObjectDB.instance != null ? ObjectDB.instance.m_recipes.FirstOrDefault(r => r != null && r.m_enabled && r.m_item != null && r.m_item.gameObject.name == prefab.name) : null;
+            var recipe = RecipeOf(prefab);
             if (shared.m_useDurability)
             {
-                Add("Durability", ItemWords.PerQuality(shared.m_maxDurability, PerQuality(shared.m_durabilityPerLevel)));
+                Add("Durability", Numbers.Amount(shared.m_maxDurability));
                 // Repaired where it is made or at its repair station, from the recipe's station level (InventoryGui.CanRepair);
                 // where it cannot be, that is said too. Unity's own null check, not ??, which a destroyed reference would pass.
                 var at = recipe == null ? null : recipe.m_repairStation != null ? recipe.m_repairStation : recipe.m_craftingStation;
@@ -187,13 +185,42 @@ namespace Scry
             }
             else if (IsGear(shared.m_itemType)) Add("Durability", ItemWords.NoWear);
 
-            var station = recipe == null ? null : recipe.m_craftingStation != null ? recipe.m_craftingStation : recipe.m_repairStation;
-            if (upgradable && station != null)
+        }
+
+        /// <summary>The recipe that makes an item, the first enabled one, or null.</summary>
+        private static Recipe RecipeOf(GameObject prefab) =>
+            ObjectDB.instance != null ? ObjectDB.instance.m_recipes.FirstOrDefault(r => r != null && r.m_enabled && r.m_item != null && r.m_item.gameObject.name == prefab.name) : null;
+
+        /// <summary>
+        /// What grows with quality, a line each: its damage (<c>ItemData.GetDamage</c>), armour,
+        /// block and block force, durability, each its base and what each level adds; and the
+        /// station level each quality needs (<c>Recipe.GetRequiredStationLevel</c>).
+        /// </summary>
+        private void QualityTable(GameObject prefab, ItemDrop.ItemData.SharedData shared, bool worn)
+        {
+            var most = shared.m_maxQuality;
+            var type = shared.m_itemType;
+            var blocks = type == ItemDrop.ItemData.ItemType.Shield || type == ItemDrop.ItemData.ItemType.OneHandedWeapon || type == ItemDrop.ItemData.ItemType.TwoHandedWeapon
+                         || type == ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft || type == ItemDrop.ItemData.ItemType.Bow || type == ItemDrop.ItemData.ItemType.Torch;
+            var perLevel = DamageFigures(shared.m_damagesPerLevel);
+            var lines = new List<(string[] Cells, string Link)>
             {
-                var first = recipe.GetRequiredStationLevel(2);
-                var last = recipe.GetRequiredStationLevel(shared.m_maxQuality);
-                Add("Upgrades need", ItemWords.UpgradesNeed(CatalogBuilder.Localize(station.m_name), first, last), station.gameObject.name);
+                (ItemWords.DamageByQuality(DamageFigures(shared.m_damages).Select((d, i) => (d.Type, d.Amount, perLevel[i].Amount)).ToList(), most), null),
+                (worn ? ItemWords.ByQuality("Armour", shared.m_armor, shared.m_armorPerLevel, most) : null, null),
+                (blocks && shared.m_blockPower > 1f ? ItemWords.ByQuality("Block", shared.m_blockPower, shared.m_blockPowerPerLevel, most) : null, null),
+                (blocks && shared.m_deflectionForce > 1f ? ItemWords.ByQuality("Block force", shared.m_deflectionForce, shared.m_deflectionForcePerLevel, most) : null, null),
+                (shared.m_useDurability ? ItemWords.ByQuality("Durability", shared.m_maxDurability, shared.m_durabilityPerLevel, most) : null, null),
+            };
+            var recipe = RecipeOf(prefab);
+            var station = recipe == null ? null : recipe.m_craftingStation != null ? recipe.m_craftingStation : recipe.m_repairStation;
+            if (station != null)
+            {
+                var levels = Enumerable.Range(1, most).Select(q => recipe.GetRequiredStationLevel(q)).ToList();
+                lines.Add((ItemWords.StationLevels(CatalogBuilder.Localize(station.m_name), levels), station.gameObject.name));
             }
+            var table = new Row { Title = ItemWords.ByQualityTitle, Columns = ItemWords.QualityColumns(most) };
+            foreach (var line in lines) if (line.Cells != null) table.Lines.Add(line);
+            if (table.Lines.Count > 0) Rows.Add(table);
         }
 
         /// <summary>

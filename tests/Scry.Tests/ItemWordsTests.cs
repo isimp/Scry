@@ -63,11 +63,12 @@ namespace Scry.Tests
         [Fact]
         public void ArmourAndBlockingSayNoneWhereThereIsNone()
         {
-            Assert.Equal("24, +2 per quality", ItemWords.Armour(24f, 2f));
-            Assert.Equal("none", ItemWords.Armour(0f, 2f));
+            // Each at the first quality: what each level adds is in the table by quality.
+            Assert.Equal("24", ItemWords.Armour(24f));
+            Assert.Equal("none", ItemWords.Armour(0f));
             // AddBlockTooltip tells blocking only above 1.
-            Assert.Equal("10, +5 per quality", ItemWords.Block(10f, 5f));
-            Assert.Equal("none", ItemWords.Block(1f, 5f));
+            Assert.Equal("10", ItemWords.Block(10f));
+            Assert.Equal("none", ItemWords.Block(1f));
         }
 
         [Fact]
@@ -98,10 +99,6 @@ namespace Scry.Tests
             Assert.Equal(title, ItemWords.RecipeTitle(station, level, makes, anyOne));
 
         [Fact]
-        public void UpgradesSayTheStationLevelsEachQualityNeeds() =>
-            Assert.Equal("Forge level 2–4, one more for each quality", ItemWords.UpgradesNeed("Forge", 2, 4));
-
-        [Fact]
         public void GearResistsWhileWornOrWhileBlocking()
         {
             Assert.Equal("Damage it takes while worn", ItemWords.DamageTaken(worn: true));
@@ -115,6 +112,24 @@ namespace Scry.Tests
         {
             Assert.Equal("Past its top quality, at Black forge", ItemWords.PastTop("Black forge"));
             Assert.Equal("Past its top quality, at an upgrade station", ItemWords.PastTop(null));
+        }
+
+        [Fact]
+        public void WhatGrowsWithQualityIsALineOfTheQualityTable()
+        {
+            // Block 10, +5 a level, at four levels: what it is at each, as the game's tooltip shows it upgraded.
+            Assert.Equal(new[] { "Block", "10", "15", "20", "25" }, ItemWords.ByQuality("Block", 10f, 5f, 4));
+            Assert.Equal(new[] { "Durability", "200", "250", "300" }, ItemWords.ByQuality("Durability", 200f, 50f, 3));
+            // Nothing to show where quality adds nothing, or there is one level.
+            Assert.Null(ItemWords.ByQuality("Block", 10f, 0f, 4));
+            Assert.Null(ItemWords.ByQuality("Block", 10f, 5f, 1));
+        }
+
+        [Fact]
+        public void TheStationLevelEachQualityNeedsIsALineOfTheQualityTable()
+        {
+            // Recipe.GetRequiredStationLevel: the crafting level, one more for each quality.
+            Assert.Equal(new[] { "Forge level", "1", "2", "3", "4" }, ItemWords.StationLevels("Forge", new[] { 1, 2, 3, 4 }));
         }
     }
 }

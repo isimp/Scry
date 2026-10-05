@@ -198,5 +198,14 @@ namespace Scry.Tests
         {
             Assert.Equal("Grows in Black Forest, in the sea, in forests, in groups of 2–5", SpawnWords.Grows("Black Forest", -1000f, 1000f, true, true, 2, 5));
         }
-}
+
+        [Fact]
+        public void ASpawnersPoolIsATableACreatureALine()
+        {
+            Assert.Equal("Its creatures", SpawnWords.PoolTitle);
+            Assert.Equal(new[] { "Creature", "Share", "Stars" }, SpawnWords.PoolColumns);
+            Assert.Equal(new[] { "Greydwarf", "71%", "up to 2 stars" }, SpawnWords.PoolLine("Greydwarf", 5f, 7f, 1, 3));
+            Assert.Equal(new[] { "Skeleton", "every spawn", "no stars" }, SpawnWords.PoolLine("Skeleton", 2f, 2f, 1, 1));
+        }
+    }
 }

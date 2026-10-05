@@ -64,14 +64,34 @@ namespace Scry
         /// <summary>The label of the line telling a creature a raid brings.</summary>
         public static string Brings(string creature) => "Brings " + creature;
 
+        /// <summary>The title of a raid's table of the creatures it brings.</summary>
+        public const string BringsTitle = "Its creatures";
+
+        /// <summary>That table's columns.</summary>
+        public static readonly string[] BringColumns = { "Creature", "At once", "Every", "Chance", "Stars", "Also" };
+
+        /// <summary>
+        /// A creature it brings as a line of that table: how many near at once (without a most the
+        /// game spawns one each roll and counts none), how often it is rolled and at what chance,
+        /// its stars, and the rest of what it is like; a dash for nothing more.
+        /// </summary>
+        public static string[] BringLine(string creature, int maxSpawned, float interval, float chance, int minLevel, int maxLevel, int groupMin, int groupMax, bool night, bool day, bool hunts)
+        {
+            var also = Also(groupMin, groupMax, night, day, hunts);
+            return new[]
+            {
+                creature, maxSpawned > 0 ? "up to " + Numbers.Count(maxSpawned) : "one each roll", Numbers.Duration(interval), Numbers.Amount(chance) + "%",
+                SpawnWords.Stars(minLevel, maxLevel), also.Length > 0 ? also : "–",
+            };
+        }
+
         /// <summary>What a raid's card says it brings: the creatures by name, or nothing.</summary>
         public static string Brings(IReadOnlyList<string> creatures) => creatures.Count > 0 ? Brings(Naming.Commas(creatures)) : "Brings nothing";
 
-        /// <summary>What a creature a raid brings is like: its stars, its groups, a time of day of its own, whether it hunts you; empty for none.</summary>
-        public static string Traits(int minLevel, int maxLevel, int groupMin, int groupMax, bool night, bool day, bool hunts)
+        /// <summary>What else a creature a raid brings is like: its groups, a time of day of its own, whether it hunts you; empty for none.</summary>
+        private static string Also(int groupMin, int groupMax, bool night, bool day, bool hunts)
         {
             var traits = new List<string>();
-            if (maxLevel > 1) traits.Add(SpawnWords.Stars(minLevel, maxLevel));
             var group = SpawnWords.Group(groupMin, groupMax);
             if (group != null) traits.Add(group);
             if (night != day) traits.Add(night ? "at night" : "by day");
@@ -84,27 +104,6 @@ namespace Scry
         {
             var words = Numbers.Duration(duration);
             return pauses ? $"{words}, paused while nobody is within {Numbers.Amount(range)} m" : words;
-        }
-
-        /// <summary>
-        /// How one of its creatures comes: up to so many near at once, a roll every so often at a
-        /// chance, and its stars. Without a cap the game spawns one each time and counts none.
-        /// </summary>
-        public static string Spawn(int maxSpawned, float interval, float chance, string stars)
-        {
-            var parts = new List<string>();
-            var pace = Numbers.Duration(interval);
-            if (maxSpawned > 0)
-            {
-                parts.Add($"up to {Numbers.Count(maxSpawned)} at once");
-                parts.Add(chance < 100f ? $"every {pace} at {Numbers.Amount(chance)}%" : $"every {pace}");
-            }
-            else
-            {
-                parts.Add(chance < 100f ? $"one every {pace} at {Numbers.Amount(chance)}%" : $"one every {pace}");
-            }
-            if (!string.IsNullOrEmpty(stars)) parts.Add(stars);
-            return string.Join(", ", parts);
         }
 
         /// <summary>

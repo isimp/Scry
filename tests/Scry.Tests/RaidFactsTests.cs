@@ -24,17 +24,19 @@ namespace Scry.Tests
         public void EachCreatureItBringsIsALineOfItsOwn() => Assert.Equal("Brings Troll", RaidWords.Brings("Troll"));
 
         [Fact]
-        public void WhatItBringsTellsItsStarsGroupsTimeOfDayAndHunting()
+        public void WhatItBringsTellsItsStarsThenItsGroupsTimeOfDayAndHunting()
         {
-            Assert.Equal($"{SpawnWords.Stars(1, 3)}, {SpawnWords.Group(2, 4)}, at night, hunting you", RaidWords.Traits(1, 3, 2, 4, night: true, day: false, hunts: true));
-            Assert.Equal("by day", RaidWords.Traits(1, 1, 1, 1, night: false, day: true, hunts: false));
+            var line = RaidWords.BringLine("Troll", 2, 60f, 50f, 1, 3, 2, 4, night: true, day: false, hunts: true);
+            Assert.Equal(SpawnWords.Stars(1, 3), line[4]);
+            Assert.Equal($"{SpawnWords.Group(2, 4)}, at night, hunting you", line[5]);
+            Assert.Equal("by day", RaidWords.BringLine("Boar", 2, 60f, 50f, 1, 1, 1, 1, night: false, day: true, hunts: false)[5]);
         }
 
         [Fact]
-        public void ACreatureWithoutStarsGroupsOrATimeOfItsOwnHasNoTraits()
+        public void ACreatureWithoutGroupsOrATimeOfItsOwnHasNothingMoreToSay()
         {
             // Coming by day and by night alike is no time of its own.
-            Assert.Equal("", RaidWords.Traits(1, 1, 1, 1, night: true, day: true, hunts: false));
+            Assert.Equal("\u2013", RaidWords.BringLine("Neck", 2, 60f, 50f, 1, 1, 1, 1, night: true, day: true, hunts: false)[5]);
         }
     }
 }

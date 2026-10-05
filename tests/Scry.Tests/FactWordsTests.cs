@@ -65,8 +65,6 @@ namespace Scry.Tests
             Assert.Null(EntryKeys.WebsiteOf(null));
         }
 
-        [Fact]
-        public void ASpawnerLabelsEachCreatureItSpawns() => Assert.Equal("Spawns Greydwarf", SpawnWords.Spawns("Greydwarf"));
 
         [Fact]
         public void ADoorSaysItsKeyAndWhetherOpeningUsesItUp()

@@ -17,12 +17,14 @@ namespace Scry
             var pool = area.m_prefabs?.Where(p => p?.m_prefab != null).ToList();
             if (pool == null || pool.Count == 0) return;
             var total = pool.Sum(p => p.m_weight);
+            var table = new Row { Title = SpawnWords.PoolTitle, Columns = SpawnWords.PoolColumns };
             foreach (var data in ContentOrder.ToughestFirst(pool, d => FoeOf(d.m_prefab)))
             {
-                var key = SpawnWords.Spawns(AnyName(data.m_prefab, data.m_prefab.name));
-                if (Pairs.Any(p => p.Key == key)) continue;
-                Add(key, SpawnWords.PoolShare(data.m_weight, total, data.m_minLevel, data.m_maxLevel), data.m_prefab.name);
+                var name = AnyName(data.m_prefab, data.m_prefab.name);
+                if (table.Lines.Any(l => l.Cells[0] == name)) continue;
+                table.Lines.Add((SpawnWords.PoolLine(name, data.m_weight, total, data.m_minLevel, data.m_maxLevel), data.m_prefab.name));
             }
+            if (table.Lines.Count > 0) Rows.Add(table);
             if (pool.Any(p => p.m_maxLevel > p.m_minLevel)) Add("Star chance", SpawnWords.StarChance(area.m_levelupChance));
             Add("Works", SpawnWords.SpawnerWakes(area.m_triggerDistance));
             Add("Pace", SpawnWords.SpawnerPace(area.m_spawnIntervalSec));

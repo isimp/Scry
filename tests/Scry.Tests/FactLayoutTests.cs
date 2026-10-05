@@ -147,7 +147,7 @@ namespace Scry.Tests
             var weapon = Item(
                 new[] { ("Type", ""), ("Weight", ""), ("Quality", ""), ("Portals", ""), ("Damage", ""), ("Skill", "item stats"), ("Block", "item stats"),
                     ("Durability", "item stats"), ("Repaired at", "item stats"), ("Fire damage causes", "") },
-                new[] { ("By quality", ""), ("Made at forge", "recipe") },
+                new[] { ("By quality", "item stats"), ("Made at forge", "recipe") },
                 FactBlock.Where, FactBlock.Uses, FactBlock.Hooks);
             Assert.Equal(new[] { null, "Fight", "Making", "Where it comes from", "What it is used for", null }, weapon.Select(t => t.Heading));
             Assert.Equal(new[] { "Damage", "Weight", "Quality", "Durability" }, weapon[0].Shown);
@@ -190,6 +190,9 @@ namespace Scry.Tests
                 new[] { (ItemWords.DamageTaken(true), "resistances") });
             Assert.Equal(new[] { null, "Wearing", "Making" }, armour.Select(t => t.Heading));
             Assert.Equal(new[] { "Armour", "Weight", "Quality", "Movement" }, armour[0].Shown);
+            // Armour's table by quality is about wearing it, a weapon's about fighting.
+            var upgraded = Item(new[] { ("Armour", ""), ("Set bonus", "") }, new[] { (ItemWords.ByQualityTitle, "gear") });
+            Assert.Contains("row " + ItemWords.ByQualityTitle, upgraded.Single(t => t.Heading == "Wearing").Shown);
             Assert.Equal(new[] { "Set bonus", "When worn", "Stamina use", "row " + ItemWords.DamageTaken(true) }, armour[1].Shown);
             Assert.Equal(new[] { "Type", "Durability" }, armour[2].Shown);
         }

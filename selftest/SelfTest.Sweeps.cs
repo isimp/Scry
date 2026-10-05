@@ -59,7 +59,7 @@ namespace Scry
                 {
                     if (!Tells(told, "On")) wrong.Add($"{raid.Name} tells not when it is on");
                 }
-                else if (!Tells(told, "Lasts") || brings.Count > 0 && !told.Pairs.Any(pair => pair.Key.StartsWith("Brings ", StringComparison.Ordinal))) wrong.Add($"{raid.Name} tells too little");
+                else if (!Tells(told, "Lasts") || brings.Count > 0 && !told.Rows.Any(r => r.Title == RaidWords.BringsTitle && r.Lines.Count > 0)) wrong.Add($"{raid.Name} tells too little");
                 var missing = brings.Where(b => !keys.Contains(b)).ToList();
                 if (missing.Count > 0) wrong.Add($"{raid.Name} brings {string.Join(", ", missing)}, not in the catalog");
             }

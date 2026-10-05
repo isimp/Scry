@@ -152,7 +152,8 @@ namespace Scry
             Tile(plan, "overview", "Armour", "Armour", "Weight", "Quality", "Movement");
             Tile(plan, "overview", "Food", "Food", "Heals", "Lasts", "Weight");
             Tile(plan, "overview", null, "Type", "Weight", "Stacks to", "Worth");
-            Label(plan, "fight", "Damage", ItemWords.ByQualityTitle, "Secondary attack", "Block", "Block force", "Parry bonus", "Backstab", "Knockback", "Each attack costs", "Drawing costs",
+            // The table by quality goes with what it is about, by the part that told it: a weapon's fight, armour's wearing.
+            Label(plan, "fight", "Damage", CombatWords.WeaponAttacksTitle, "Secondary attack", "Block", "Block force", "Parry bonus", "Backstab", "Knockback", "Each attack costs", "Drawing costs",
                 "At full adrenaline", "On hit", ItemWords.DamageTaken(false), ItemWords.ResistsNothing(false));
             Label(plan, "wearing", "Armour", "Movement", "When worn", "Set bonus", "Other changes while worn", ItemWords.DamageTaken(true), ItemWords.ResistsNothing(true));
             Label(plan, "food", "Food", "Heals", "Lasts", "When used");
