@@ -60,6 +60,7 @@ namespace Scry
         {
             [Kind.Creature] = Creature(),
             [Kind.Item] = Item(),
+            [Kind.Piece] = Piece(),
         };
 
         private static KindPlan Creature()
@@ -128,6 +129,33 @@ namespace Scry
             plan.Blocks[FactBlock.FoundIn] = "from";
             plan.Blocks[FactBlock.Biomes] = "from";
             plan.Blocks[FactBlock.Uses] = "uses";
+            plan.Blocks[FactBlock.Users] = More;
+            plan.Blocks[FactBlock.Hooks] = "hooks";
+            return plan;
+        }
+
+        private static KindPlan Piece()
+        {
+            var plan = new KindPlan
+            {
+                Topics = new[]
+                {
+                    ("overview", (string)null), ("building", "Building"), ("standing", "Standing"), ("comfort", "Comfort"), ("sleeping", "Sleeping"),
+                    ("station", "As a station"), ("from", "Where it comes from"), (More, "More"), ("hooks", null),
+                },
+            };
+            Tile(plan, "overview", null, "Health", "Comfort", "Material", "Support");
+            Label(plan, "building", "Build cost", "Built with", "Placed", "Upgrades", "Claiming it");
+            Label(plan, "comfort", "Comfort group");
+            Label(plan, "sleeping", "Sleeping in it");
+            Label(plan, More, "Not shown");
+            Part(plan, "building", "piece", "placement", "built with", "build cost");
+            Part(plan, "standing", "support", "weather", "resistances");
+            Part(plan, "station", "station");
+            plan.Blocks[FactBlock.Where] = "from";
+            plan.Blocks[FactBlock.FoundIn] = "from";
+            plan.Blocks[FactBlock.Biomes] = "from";
+            plan.Blocks[FactBlock.Uses] = More;
             plan.Blocks[FactBlock.Users] = More;
             plan.Blocks[FactBlock.Hooks] = "hooks";
             return plan;

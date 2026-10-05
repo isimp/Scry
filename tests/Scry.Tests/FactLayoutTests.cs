@@ -131,6 +131,26 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APieceShowsHowItIsBuiltThenHowItStandsItsComfortAndWhatItDoesAsAStation()
+        {
+            var pairs = new[]
+            {
+                ("Comfort", "piece"), ("Comfort group", "piece"), ("Health", "piece"), ("Material", "piece"), ("Support", "support"), ("Support lost", "support"),
+                ("Rain", "weather"), ("Placed", "placement"), ("Stands near a fire", "placement"), ("Upgrades", "piece"), ("Sleeping in it", "piece"), ("Built with", "built with"), ("Makes", "station"),
+            };
+            var rows = new[] { ("Build cost", "piece"), ("Damage it takes", "resistances"), ("Made here", "station") };
+            var plan = FactLayout.Plan(Kind.Piece, pairs, rows, new[] { FactBlock.Where, FactBlock.Hooks });
+            string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
+            Assert.Equal(new[] { null, "Building", "Standing", "Comfort", "Sleeping", "As a station", "Where it comes from", null }, plan.Select(t => t.Heading));
+            Assert.Equal(new[] { "Health", "Comfort", "Material", "Support" }, plan[0].Tiles.Select(i => pairs[i].Item1));
+            Assert.Equal(new[] { "Placed", "Stands near a fire", "Upgrades", "Built with", "row Build cost" }, plan[1].Bits.Select(Name));
+            Assert.Equal(new[] { "Support lost", "Rain", "row Damage it takes" }, plan[2].Bits.Select(Name));
+            Assert.Equal(new[] { "Comfort group" }, plan[3].Bits.Select(Name));
+            Assert.Equal(new[] { "Sleeping in it" }, plan[4].Bits.Select(Name));
+            Assert.Equal(new[] { "Makes", "row Made here" }, plan[5].Bits.Select(Name));
+        }
+
+        [Fact]
         public void ANoteReadsItsLabelThenItsValue()
         {
             Assert.Equal("Drops with stars: more with each star", FactWords.Note("Drops with stars", "more with each star"));
