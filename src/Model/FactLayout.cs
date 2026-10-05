@@ -258,10 +258,9 @@ namespace Scry
             {
                 Topics = new[] { ("overview", (string)null), ("weather", "Weather"), ("music", "Music"), ("there", "What is there"), (More, "More"), ("hooks", null) },
             };
+            Label(plan, "weather", BiomeWords.WeathersTitle);
+            Label(plan, "music", BiomeWords.MusicTitle);
             Label(plan, More, "Not shown");
-            // Each weather by its share of the time, the music by the time of day.
-            plan.Starts.Add((l => l.EndsWith(" of the time", StringComparison.Ordinal), "weather"));
-            plan.Starts.Add((l => l.StartsWith("Music", StringComparison.Ordinal), "music"));
             Part(plan, "there", "biome");
             plan.Blocks[FactBlock.Hooks] = "hooks";
             return plan;

@@ -46,13 +46,20 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void EachWeatherIsToldByItsShareOfTheTime() => Assert.Equal("40% of the time", BiomeWords.ShareOfTime("40%"));
+        public void ItsWeathersAreATableOfEachWeatherItsShareAndWhatItDoes()
+        {
+            Assert.Equal("Weathers", BiomeWords.WeathersTitle);
+            Assert.Equal(new[] { "Weather", "Of the time", "What it does" }, BiomeWords.WeatherColumns);
+        }
 
         [Fact]
-        public void MusicIsToldByTheTimeOfDay()
+        public void ItsMusicIsATableByTheTimeOfDay()
         {
-            Assert.Equal(new[] { ("Music in the morning", "morning"), ("Music by day", "meadows"), ("Music at night", "night") },
+            Assert.Equal("Music", BiomeWords.MusicTitle);
+            Assert.Equal(new[] { "Music", "When" }, BiomeWords.MusicColumns);
+            Assert.Equal(new[] { ("In the morning", "morning"), ("By day", "meadows"), ("At night", "night") },
                 BiomeWords.Music("morning", "", "meadows", "night"));
+            Assert.Equal(("In the evening", "evening"), BiomeWords.Music(null, "evening", null, null)[0]);
             Assert.Empty(BiomeWords.Music(null, "", null, ""));
         }
     }

@@ -37,17 +37,24 @@ namespace Scry
         /// <summary>How many weathers a biome has, on its card.</summary>
         public static string WeatherCount(int weathers) => weathers == 1 ? "One weather" : $"{Numbers.Count(weathers)} weathers";
 
-        /// <summary>A weather's line, by how much of the time the biome has it.</summary>
-        public static string ShareOfTime(string share) => share + " of the time";
+        /// <summary>The title and columns of a biome's weathers table: each weather, its share of the time and what it does.</summary>
+        public const string WeathersTitle = "Weathers";
+
+        public static readonly string[] WeatherColumns = { "Weather", "Of the time", "What it does" };
+
+        /// <summary>The title and columns of a biome's music table: each music and when it plays.</summary>
+        public const string MusicTitle = "Music";
+
+        public static readonly string[] MusicColumns = { "Music", "When" };
 
         /// <summary>Its music by the time of day, each that it has.</summary>
-        public static List<(string Label, string Music)> Music(string morning, string evening, string day, string night)
+        public static List<(string When, string Music)> Music(string morning, string evening, string day, string night)
         {
             var music = new List<(string, string)>();
-            if (!string.IsNullOrEmpty(morning)) music.Add(("Music in the morning", morning));
-            if (!string.IsNullOrEmpty(day)) music.Add(("Music by day", day));
-            if (!string.IsNullOrEmpty(evening)) music.Add(("Music in the evening", evening));
-            if (!string.IsNullOrEmpty(night)) music.Add(("Music at night", night));
+            if (!string.IsNullOrEmpty(morning)) music.Add(("In the morning", morning));
+            if (!string.IsNullOrEmpty(day)) music.Add(("By day", day));
+            if (!string.IsNullOrEmpty(evening)) music.Add(("In the evening", evening));
+            if (!string.IsNullOrEmpty(night)) music.Add(("At night", night));
             return music;
         }
     }

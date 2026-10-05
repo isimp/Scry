@@ -12,9 +12,16 @@ namespace Scry
         private static string Weather(string name)
         {
             if (string.IsNullOrEmpty(name)) return null;
+            var facts = WeatherFactsOf(name);
+            return facts is WeatherFacts known ? WeatherWords.Line(Naming.FieldLabel(name), known) : Naming.FieldLabel(name);
+        }
+
+        /// <summary>What a weather does, read from the world's setup of it; null where the world has none by that name.</summary>
+        private static WeatherFacts? WeatherFactsOf(string name)
+        {
             var env = EnvMan.instance.OrNull()?.m_environments?.Find(e => e != null && e.m_name == name);
-            if (env == null) return Naming.FieldLabel(name);
-            return WeatherWords.Line(Naming.FieldLabel(name), new WeatherFacts
+            if (env == null) return null;
+            return new WeatherFacts
             {
                 Wet = env.m_isWet,
                 Cold = env.m_isCold,
@@ -24,7 +31,7 @@ namespace Scry
                 AlwaysDark = env.m_alwaysDark,
                 WindMin = env.m_windMin,
                 WindMax = env.m_windMax,
-            });
+            };
         }
 
         private void Raid(RandomEvent raid)

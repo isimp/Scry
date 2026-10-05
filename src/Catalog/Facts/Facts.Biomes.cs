@@ -14,9 +14,19 @@ namespace Scry
     {
         private void Biome(BiomeSource biome)
         {
-            foreach (var (weather, share) in BiomeWords.Weathers(biome.Weathers)) Add(BiomeWords.ShareOfTime(share), Weather(weather));
+            var weathers = new Row { Title = BiomeWords.WeathersTitle, Columns = BiomeWords.WeatherColumns };
+            foreach (var (weather, share) in BiomeWords.Weathers(biome.Weathers))
+            {
+                var does = WeatherFactsOf(weather) is WeatherFacts known ? WeatherWords.Effects(known) : "";
+                weathers.Lines.Add((new[] { Naming.FieldLabel(weather), share, does }, null));
+            }
+            if (weathers.Lines.Count > 0) Rows.Add(weathers);
             if (biome.Weathers.Count > 0) Hooked(HookedRule.Weather);
-            foreach (var (label, music) in BiomeWords.Music(biome.Morning, biome.Evening, biome.Day, biome.Night)) Add(label, MusicWords.Name(music), EntryKeys.PlayMusicNamed(music));
+
+            // Each music plays where it is named, as a fact naming music does.
+            var tunes = new Row { Title = BiomeWords.MusicTitle, Columns = BiomeWords.MusicColumns };
+            foreach (var (when, music) in BiomeWords.Music(biome.Morning, biome.Evening, biome.Day, biome.Night)) tunes.Lines.Add((new[] { MusicWords.Name(music), when }, EntryKeys.PlayMusicNamed(music)));
+            if (tunes.Lines.Count > 0) Rows.Add(tunes);
 
             var catalog = WorldCatalog.Current?.All;
             if (catalog == null) return;

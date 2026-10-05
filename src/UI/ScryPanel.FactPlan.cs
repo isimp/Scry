@@ -142,7 +142,19 @@ namespace Scry
                     for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++)
                     {
                         var cell = new Rect(x, y, ColumnWidths[c], height);
-                        if (c == 0 && !string.IsNullOrEmpty(link) && InCatalog(explorer, link))
+                        // A line naming music plays it, as a fact naming music does.
+                        if (c == 0 && !string.IsNullOrEmpty(link) && EntryKeys.PlaysMusic(link, out var named) && explorer.Selected is Entry shown)
+                        {
+                            var playing = MusicPreview.PlayingFor == shown && (named == null || MusicPreview.Playing == named);
+                            LinkLabel(cell, cells[c], Skin.SmallWrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);
+                            if (cell.Contains(Event.current.mousePosition)) AskTip("table-music:" + named, MusicWords.Tip(playing));
+                            if (GUI.Button(cell, GUIContent.none, GUIStyle.none))
+                            {
+                                var said = named == null ? Previews.PlacesMusic(shown) : Previews.NamedMusic(shown, named);
+                                if (said != null) Say(said);
+                            }
+                        }
+                        else if (c == 0 && !string.IsNullOrEmpty(link) && InCatalog(explorer, link))
                         {
                             LinkLabel(cell, cells[c], Skin.SmallWrap, LinkText(KindOf(explorer, link), false));
                             if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + link, PanelWords.GoTo(cells[c]));

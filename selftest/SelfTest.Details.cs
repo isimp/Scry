@@ -325,7 +325,7 @@ namespace Scry
         {
             var biomes = X.Catalog.Where(e => e.Kind == Kind.Biome).ToList();
             p.Note($"{Numbers.Count(biomes.Count)} biomes: {string.Join(", ", biomes.Select(b => b.DisplayName))}");
-            var bare = biomes.Where(b => !Facts.For(b).Pairs.Any(pair => pair.Key.EndsWith("of the time", StringComparison.Ordinal))).Select(b => b.Name).ToList();
+            var bare = biomes.Where(b => !Facts.For(b).Rows.Any(r => r.Title == BiomeWords.WeathersTitle && r.Lines.Count > 0)).Select(b => b.Name).ToList();
             p.Check(biomes.Count > 0 && bare.Count == 0, "each tells its weathers", string.Join(", ", bare));
             var empty = biomes.Where(b => b.Name != "Ocean" && !Facts.For(b).Rows.Any(r => r.Title.StartsWith("Lives here", StringComparison.Ordinal))).Select(b => b.Name).ToList();
             p.Note(empty.Count == 0 ? "each but the ocean tells what lives there" : $"no creature told living in {string.Join(", ", empty)}");
