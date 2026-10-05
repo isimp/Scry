@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -57,10 +58,10 @@ namespace Scry
             public readonly Dictionary<FactBlock, string> Blocks = new Dictionary<FactBlock, string>();
             /// <summary>Topic orders for what a page tells, the first whose key fact or row is told taken over <see cref="Topics"/>' own.</summary>
             public readonly List<(string Key, string[] Ids)> Orders = new List<(string, string[])>();
+            /// <summary>What leads a topic, in this order, ahead of the rest in the order placed: a fact's label, a row's title or a group of links.</summary>
+            public readonly Dictionary<string, string[]> Leads = new Dictionary<string, string[]>(StringComparer.Ordinal);
             /// <summary>Groups of the entry's links shown in a topic, not under Linked, by the topic.</summary>
             public readonly Dictionary<string, string> LinkGroups = new Dictionary<string, string>(StringComparer.Ordinal);
-            /// <summary>The fact a group of links stands right under in its topic, where that is told; else it ends the topic.</summary>
-            public readonly Dictionary<string, string> LinkAnchors = new Dictionary<string, string>(StringComparer.Ordinal);
         }
 
         private const string More = "more";
@@ -120,6 +121,8 @@ namespace Scry
             Label(plan, More, "Not shown");
             plan.Starts.Add((l => l.StartsWith("Seen dropping", StringComparison.Ordinal), "loot"));
             Part(plan, "fight", "attacks", "weak spots", "resistances", "what to bring");
+            // What it deals and what stars add to it first, then what hurts it.
+            Lead(plan, "fight", CombatWords.AttacksTitle, CombatWords.StarsTitle);
             Links(plan, "fight", LinkWords.Carries, LinkWords.StatusEffects);
             Part(plan, "senses", "behaviour");
             Part(plan, "taming", "breeding", "growing up");
@@ -167,9 +170,12 @@ namespace Scry
             Part(plan, "fight", "item stats");
             Part(plan, "wearing", "gear", "resistances");
             Part(plan, "making", "recipe", "made at stations");
-            // A set's other pieces, right under its bonus.
+            // A weapon's damage first, by attack and by quality, then what attacking costs; its blocking after.
+            Lead(plan, "fight", CombatWords.WeaponAttacksTitle, ItemWords.ByQualityTitle, "Each attack costs", "Drawing costs", "Secondary attack");
+            // Armour by quality first, then its set.
+            Lead(plan, "wearing", ItemWords.ByQualityTitle, "Set bonus", LinkBook.SameSet);
+            // A set's other pieces, led right under its bonus below.
             Links(plan, "wearing", LinkBook.SameSet);
-            plan.LinkAnchors[LinkBook.SameSet] = "Set bonus";
             plan.Blocks[FactBlock.Where] = "from";
             plan.Blocks[FactBlock.FoundIn] = "from";
             plan.Blocks[FactBlock.Biomes] = "from";
@@ -288,6 +294,7 @@ namespace Scry
             Label(plan, More, "Not shown");
             // What it brings is told creature by creature, each by its name.
             Part(plan, "comes", "raid");
+            Lead(plan, "comes", RaidWords.BringsTitle);
             plan.Blocks[FactBlock.Biomes] = "when";
             plan.Blocks[FactBlock.Where] = More;
             plan.Blocks[FactBlock.FoundIn] = More;
@@ -359,6 +366,7 @@ namespace Scry
             Tile(plan, "overview", null, "Pace", "Keeps alive", "Health");
             Label(plan, More, "Not shown");
             Part(plan, "spawns", "spawner");
+            Lead(plan, "spawns", SpawnWords.PoolTitle);
             Part(plan, "breaking", "resource");
             plan.Blocks[FactBlock.Where] = "where";
             plan.Blocks[FactBlock.FoundIn] = "where";
@@ -388,6 +396,8 @@ namespace Scry
             foreach (var (id, _) in plan.Topics) if (!ids.Contains(id)) ids.Add(id);
             plan.Orders.Add((key, ids.ToArray()));
         }
+
+        private static void Lead(KindPlan plan, string topic, params string[] first) => plan.Leads[topic] = first;
 
         private static void Links(KindPlan plan, string topic, params string[] groups)
         {
@@ -491,10 +501,23 @@ namespace Scry
             }
             foreach (var group in linkGroups ?? Array.Empty<string>())
             {
-                if (!plan.LinkGroups.TryGetValue(group, out var topic)) continue;
-                var bits = topics[topic].Bits;
-                var after = plan.LinkAnchors.TryGetValue(group, out var anchor) ? bits.FindIndex(b => b.Pair >= 0 && pairs[b.Pair].Label == anchor) : -1;
-                bits.Insert(after >= 0 ? after + 1 : bits.Count, new FactBit { LinkGroup = group });
+                if (plan.LinkGroups.TryGetValue(group, out var topic)) topics[topic].Bits.Add(new FactBit { LinkGroup = group });
+            }
+
+            // What leads a topic comes first, in the lead's order; the rest keep theirs.
+            foreach (var pair in plan.Leads)
+            {
+                var first = pair.Value;
+                string NameOf(FactBit b) => b.LinkGroup ?? (b.Pair >= 0 ? pairs[b.Pair].Label : b.Row >= 0 ? rows[b.Row].Title : null);
+                int Rank(FactBit b)
+                {
+                    var at = Array.IndexOf(first, NameOf(b));
+                    return at < 0 ? first.Length : at;
+                }
+                var bits = topics[pair.Key].Bits;
+                var led = bits.Select((b, i) => (Bit: b, At: i)).OrderBy(x => Rank(x.Bit)).ThenBy(x => x.At).Select(x => x.Bit).ToList();
+                bits.Clear();
+                bits.AddRange(led);
             }
 
             // A note goes under what it qualifies; with nothing of that to stand under, it is a fact of its own there.

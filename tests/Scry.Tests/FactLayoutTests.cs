@@ -39,7 +39,7 @@ namespace Scry.Tests
             Assert.Equal(new[] { "Health", "Faction", "Moves", "Tameable" }, plan[0].Tiles.Select(Pair));
             Assert.Equal(new[] { "Takes to tame", "Love", "row Eats" }, plan[1].Bits.Select(Bit));
             Assert.Equal(new[] { "Ridden with" }, plan[2].Bits.Select(Bit));
-            Assert.Equal(new[] { "Attack: Club", "Hit on the head", "row With stars", "row Damage it takes" }, plan[3].Bits.Select(Bit));
+            Assert.Equal(new[] { "row With stars", "Attack: Club", "Hit on the head", "row Damage it takes" }, plan[3].Bits.Select(Bit));
             Assert.Equal(new[] { "block Where", "block Biomes" }, plan[5].Bits.Select(Bit));
             Assert.Equal(new[] { "Sees" }, plan[6].Tiles.Select(Pair));
             // A new fact of a reader's part goes where that part's facts go.
@@ -151,10 +151,50 @@ namespace Scry.Tests
                 FactBlock.Where, FactBlock.Uses, FactBlock.Hooks);
             Assert.Equal(new[] { null, "Fight", "Making", "Where it comes from", "What it is used for", null }, weapon.Select(t => t.Heading));
             Assert.Equal(new[] { "Damage", "Weight", "Quality", "Durability" }, weapon[0].Shown);
-            Assert.Equal(new[] { "Block", "Fire damage causes", "row By quality" }, weapon[1].Shown);
+            Assert.Equal(new[] { "row By quality", "Block", "Fire damage causes" }, weapon[1].Shown);
             Assert.Equal(new[] { "Type", "Portals", "Skill", "Repaired at", "row Made at forge" }, weapon[2].Shown);
             Assert.Equal(new[] { "block Where" }, weapon[3].Shown);
             Assert.Equal(new[] { "block Uses" }, weapon[4].Shown);
+        }
+
+        [Fact]
+        public void AWeaponsFightLeadsWithWhatItDealsThenWhatItCostsThenHowItBlocks()
+        {
+            // Its damage is what a weapon is looked at for, not its block.
+            var weapon = Item(
+                new[] { ("Damage", ""), ("Block", "item stats"), ("Block force", "item stats"), ("Parry bonus", "item stats"), ("Backstab", "item stats"), ("Each attack costs", "item stats"), ("Fire damage causes", "") },
+                new[] { (ItemWords.ByQualityTitle, "item stats"), (CombatWords.WeaponAttacksTitle, "item stats") });
+            Assert.Equal(new[] { "row " + CombatWords.WeaponAttacksTitle, "row " + ItemWords.ByQualityTitle, "Each attack costs", "Block", "Block force", "Parry bonus", "Backstab", "Fire damage causes" },
+                weapon.Single(t => t.Heading == "Fight").Shown);
+        }
+
+        [Fact]
+        public void ArmoursWearingLeadsWithHowItGrowsThenItsSet()
+        {
+            var plan = FactLayout.Plan(Kind.Item, new[] { ("Armour", ""), ("When worn", "gear"), ("Stamina use", "gear"), ("Set bonus", "gear") },
+                new[] { (ItemWords.DamageTaken(true), "resistances"), (ItemWords.ByQualityTitle, "gear") }, new FactBlock[0], new[] { LinkBook.SameSet });
+            var wearing = plan.Single(t => t.Heading == "Wearing");
+            string Name(FactBit b) => b.LinkGroup ?? (b.Pair >= 0 ? new[] { "Armour", "When worn", "Stamina use", "Set bonus" }[b.Pair] : "row " + new[] { ItemWords.DamageTaken(true), ItemWords.ByQualityTitle }[b.Row]);
+            Assert.Equal(new[] { "row " + ItemWords.ByQualityTitle, "Set bonus", LinkBook.SameSet, "When worn", "Stamina use", "row " + ItemWords.DamageTaken(true) }, wearing.Bits.Select(Name));
+        }
+
+        [Fact]
+        public void ACreaturesFightLeadsWithWhatItDealsThenWhatStarsAddThenWhatHurtsIt()
+        {
+            var pairs = new[] { ("Health", ""), ("Weak spots", "weak spots") };
+            var rows = new[] { ("Damage it takes", "resistances"), (CombatWords.AttacksTitle, "attacks"), (CombatWords.StarsTitle, ""), (SearchFight.BringTitle, "what to bring") };
+            var fight = FactLayout.Plan(Kind.Creature, pairs, rows, new FactBlock[0]).Single(t => t.Heading == "Fight");
+            Assert.Equal(new[] { "row Attacks", "row With stars", "Weak spots", "row Damage it takes", "row What to bring" },
+                fight.Bits.Select(b => b.Pair >= 0 ? pairs[b.Pair].Item1 : "row " + rows[b.Row].Item1));
+        }
+
+        [Fact]
+        public void ARaidAndASpawnerLeadWithTheirCreatures()
+        {
+            var raid = FactLayout.Plan(Kind.Raid, new[] { ("Keeps coming", "raid"), ("Lasts", "raid") }, new[] { (RaidWords.BringsTitle, "raid") }, new FactBlock[0]);
+            Assert.Equal(0, raid.Single(t => t.Heading == "What comes").Bits[0].Row);
+            var spawner = FactLayout.Plan(Kind.Spawner, new[] { ("Star chance", "spawner"), ("Pace", "spawner") }, new[] { (SpawnWords.PoolTitle, "spawner") }, new FactBlock[0]);
+            Assert.Equal(0, spawner.Single(t => t.Heading == "Spawns").Bits[0].Row);
         }
 
         [Fact]
@@ -477,9 +517,9 @@ namespace Scry.Tests
             // Its copies, a mod's or the game's, stay under Linked.
             Assert.False(FactLayout.Places(Kind.Item, LinkBook.Variants));
 
-            // Without a set bonus told, the pieces still show with what it does worn, at the end.
+            // Without a set bonus told, the pieces still show, leading what it does worn.
             var bare = FactLayout.Plan(Kind.Item, new[] { ("Armour", ""), ("When worn", "gear") }, new (string, string)[0], new FactBlock[0], new[] { LinkBook.SameSet });
-            Assert.Equal(LinkBook.SameSet, bare.Single(t => t.Heading == "Wearing").Bits.Last().LinkGroup);
+            Assert.Equal(LinkBook.SameSet, bare.Single(t => t.Heading == "Wearing").Bits.First().LinkGroup);
         }
 
         [Fact]
