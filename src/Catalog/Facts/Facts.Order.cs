@@ -64,15 +64,23 @@ namespace Scry
         }
 
         /// <summary>
-        /// The parts of a place told in one row, in that row's order: chests and pickups rarest
-        /// first, what is gathered hardest first, the rest and building pieces as given.
+        /// The parts of a place told in one row, in that row's order: chests and pickups by what
+        /// they can give (<see cref="ContentOrder.GiversFirst"/>), what is gathered hardest first,
+        /// the rest and building pieces as given.
         /// </summary>
-        private static List<T> InRow<T>(IEnumerable<T> parts, Func<T, string> prefab, Func<T, double> chance, PartRole role)
+        /// <param name="parts">The place's parts.</param>
+        /// <param name="prefab">Each part's prefab.</param>
+        /// <param name="chance">How likely each is there, or how widespread among a dungeon's rooms.</param>
+        /// <param name="role">The row's kind of part.</param>
+        /// <param name="here">The place and all it holds, for what only it gives.</param>
+        private static List<T> InRow<T>(IEnumerable<T> parts, Func<T, string> prefab, Func<T, double> chance, PartRole role, ICollection<string> here)
         {
             var mine = parts.Where(p => PlaceParts.RoleOf(TraitsOf(GamePrefabs.Item(prefab(p)))) == role);
             switch (role)
             {
-                case PartRole.Loot: return ContentOrder.RarestFirst(mine, chance);
+                case PartRole.Loot:
+                    var gives = mine.Select(p => (Part: p, Gives: Gives(prefab(p), here))).ToList();
+                    return ContentOrder.GiversFirst(gives, g => chance(g.Part), g => g.Gives.Only, g => g.Gives.Worth, g => g.Gives.Kinds).Select(g => g.Part).ToList();
                 case PartRole.Gather: return ContentOrder.HardestFirst(mine, p => ToGather(GamePrefabs.Item(prefab(p))));
                 default: return mine.ToList();
             }

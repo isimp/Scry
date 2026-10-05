@@ -142,10 +142,20 @@ namespace Scry
                     foreach (var part in ContentOrder.ToughestFirst(contents.Creatures, c => FoeOf(c.Prefab))) creatures.Items.Add(PartChip(part));
                     Rows.Add(creatures);
                 }
-                var parts = InRow(contents.Parts, p => p.Prefab, p => p.Chance, role);
+                var here = new HashSet<string>(contents.Parts.Select(p => p.Prefab).Where(p => p != null)) { entry.Name, entry.Key };
+                var parts = InRow(contents.Parts, p => p.Prefab, p => p.Chance, role, here);
                 if (parts.Count == 0) continue;
                 var row = new Row { Title = PlaceParts.Title(role, false) };
-                foreach (var part in parts) row.Items.Add(PartChip(part));
+                foreach (var part in parts)
+                {
+                    var chip = PartChip(part);
+                    if (role == PartRole.Loot)
+                    {
+                        var gives = Gives(part.Prefab, here);
+                        chip = Marked(chip, (gives.Only, gives.Worth), gives: true);
+                    }
+                    row.Items.Add(chip);
+                }
                 Rows.Add(row);
             }
             if (contents.Vegvisirs.Count > 0)
@@ -220,11 +230,21 @@ namespace Scry
                         Rows.Add(spawned);
                     }
                 }
-                var inRow = InRow(parts, p => p.Prefab, p => p.Rooms, role);
+                var inDungeon = new HashSet<string>(parts.Select(p => p.Prefab).Where(p => p != null)) { _entry?.Name ?? "", _entry?.Key ?? "" };
+                var inRow = InRow(parts, p => p.Prefab, p => p.Rooms, role, inDungeon);
                 if (inRow.Count > 0)
                 {
                     var row = new Row { Title = Read(PlaceParts.Title(role, true)) };
-                    foreach (var (prefab, count) in inRow) row.Items.Add(Chip(prefab, PlaceParts.InRooms(count)));
+                    foreach (var (prefab, count) in inRow)
+                    {
+                        var chip = Chip(prefab, PlaceParts.InRooms(count));
+                        if (role == PartRole.Loot)
+                        {
+                            var gives = Gives(prefab, inDungeon);
+                            chip = Marked(chip, (gives.Only, gives.Worth), gives: true);
+                        }
+                        row.Items.Add(chip);
+                    }
                     Rows.Add(row);
                 }
                 if (role != PartRole.Loot) continue;

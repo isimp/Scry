@@ -161,6 +161,12 @@ namespace Scry
         /// <summary>That mark's tip.</summary>
         public static string WorthTip(int coins) => $"A trader pays {Naming.Count(coins, "coin", "coins")} for one";
 
+        /// <summary>The tip of a chest's or pickup's mark of only here, where it is what gives the loot.</summary>
+        public const string OnlyHereGivesTip = "It can give what nothing else in the world gives";
+
+        /// <summary>The tip of a chest's or pickup's mark of coins: the most a trader pays for anything it can give.</summary>
+        public static string WorthGivesTip(int coins) => $"It can give something a trader pays {Naming.Count(coins, "coin", "coins")} for";
+
         /// <summary>
         /// A share as a percentage: whole where that says enough, with a decimal near none or all,
         /// so a rare drop never reads as 0% nor a likely one as 100%.

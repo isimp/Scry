@@ -162,20 +162,38 @@ namespace Scry
             return (LootMarks.OnlyHere(givers, elsewhere, here), worth);
         }
 
-        /// <summary>A loot chip marked as worth having where it is.</summary>
-        private static Ingredient Marked(Ingredient chip, (bool Only, int Worth) notable)
+        /// <summary>A loot chip marked as worth having where it is; a chest's or pickup's by what it can give.</summary>
+        private static Ingredient Marked(Ingredient chip, (bool Only, int Worth) notable, bool gives = false)
         {
             if (notable.Only)
             {
                 chip.Mark = DropWords.OnlyHereMark;
-                chip.MarkTip = DropWords.OnlyHereTip;
+                chip.MarkTip = gives ? DropWords.OnlyHereGivesTip : DropWords.OnlyHereTip;
             }
             else if (notable.Worth > 0)
             {
                 chip.Mark = DropWords.WorthMark(notable.Worth);
-                chip.MarkTip = DropWords.WorthTip(notable.Worth);
+                chip.MarkTip = gives ? DropWords.WorthGivesTip(notable.Worth) : DropWords.WorthTip(notable.Worth);
             }
             return chip;
+        }
+
+        /// <summary>
+        /// What a chest or pickup can give, by its loot: whether any of it only this place gives,
+        /// the most a trader pays for any of it, and how many kinds of loot it gives.
+        /// </summary>
+        private static (bool Only, int Worth, int Kinds) Gives(string part, ICollection<string> here)
+        {
+            var loot = Knowledge.LootOf(GamePrefabs.Named(part));
+            var only = false;
+            var worth = 0;
+            foreach (var item in loot)
+            {
+                var notable = Notable(item, here);
+                only |= notable.Only;
+                worth = Math.Max(worth, notable.Worth);
+            }
+            return (only, worth, loot.Count);
         }
 
         /// <summary>Why Scry is not sure of a pair, by its label (<see cref="UnsureWords"/>).</summary>

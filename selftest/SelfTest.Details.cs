@@ -716,6 +716,10 @@ namespace Scry
             });
             p.Check(miscounted.Count == 0, "every location tells each of its parts once, in a row by what it is", miscounted.Count > 0 ? string.Join(", ", miscounted.Take(10)) : $"{Numbers.Count(places.Count)} locations");
             p.Note($"{Numbers.Count(built)} of {Numbers.Count(places.Count)} locations have building pieces apart");
+            // A place's chests and pickups by what they can give, marked: one with the most of them shown.
+            var lootTitle = PlaceParts.Title(PartRole.Loot, false);
+            var richest = places.Select(e => (Place: e, Row: Facts.For(e).Rows.FirstOrDefault(r => r.Title == lootTitle))).Where(x => x.Row != null).OrderByDescending(x => x.Row.Items.Count).FirstOrDefault();
+            if (richest.Row != null) p.Note($"{richest.Place.Name}'s chests and pickups: {string.Join(", ", richest.Row.Items.Take(8).Select(i => i.Prefab + (i.Mark != null ? " [" + i.Mark + "]" : "")))}");
             if (shown != null)
             {
                 p.Note($"{shown.Name}: " + string.Join("; ", Facts.For(shown).Rows.Where(r => titles.Contains(r.Title) || r.Title == "Its spawn points place")

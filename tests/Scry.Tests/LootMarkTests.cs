@@ -45,6 +45,30 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APlacesChestsAndPickupsAreToldByWhatTheyCanGiveAChestBeforeBarley()
+        {
+            // What only this place gives first, then what holds what a trader pays most for, then
+            // what gives more kinds of loot, then the least likely there.
+            var parts = new[]
+            {
+                (Name: "Pickable_Barley", Chance: 1.0, Only: false, Worth: 0, Kinds: 1),
+                (Name: "TreasureChest_plains", Chance: 1.0, Only: false, Worth: 0, Kinds: 6),
+                (Name: "Pickable_Flax", Chance: 0.5, Only: false, Worth: 0, Kinds: 1),
+                (Name: "TreasureChest_rich", Chance: 0.8, Only: false, Worth: 30, Kinds: 4),
+                (Name: "Pickable_Relic", Chance: 1.0, Only: true, Worth: 0, Kinds: 1),
+            };
+            var told = ContentOrder.GiversFirst(parts, p => p.Chance, p => p.Only, p => p.Worth, p => p.Kinds).Select(p => p.Name);
+            Assert.Equal(new[] { "Pickable_Relic", "TreasureChest_rich", "TreasureChest_plains", "Pickable_Flax", "Pickable_Barley" }, told);
+        }
+
+        [Fact]
+        public void APartsMarkSaysWhatItCanGive()
+        {
+            Assert.Equal("It can give what nothing else in the world gives", DropWords.OnlyHereGivesTip);
+            Assert.Equal("It can give something a trader pays 30 coins for", DropWords.WorthGivesTip(30));
+        }
+
+        [Fact]
         public void AMarkSaysWhyAndItsTipSaysMore()
         {
             Assert.Equal("only here", DropWords.OnlyHereMark);

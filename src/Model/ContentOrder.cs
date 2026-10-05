@@ -36,6 +36,14 @@ namespace Scry
         public static List<T> LootFirst<T>(IEnumerable<T> items, Func<T, double> chance, Func<T, bool> onlyHere, Func<T, int> worth) =>
             items.OrderBy(i => onlyHere(i) ? 0 : 1).ThenByDescending(worth).ThenBy(chance).ToList();
 
+        /// <summary>
+        /// What gives loot, a place's chests and pickups, by what it can give: what gives what
+        /// nothing else does first, then what gives what a trader pays most for, then what gives
+        /// more kinds of loot (a chest before barley), each the least likely first.
+        /// </summary>
+        public static List<T> GiversFirst<T>(IEnumerable<T> items, Func<T, double> chance, Func<T, bool> onlyHere, Func<T, int> worth, Func<T, int> kinds) =>
+            items.OrderBy(i => onlyHere(i) ? 0 : 1).ThenByDescending(worth).ThenByDescending(kinds).ThenBy(chance).ToList();
+
         /// <summary>Creatures, bosses first, then the most health; what is no creature (null) after them all.</summary>
         public static List<T> ToughestFirst<T>(IEnumerable<T> items, Func<T, Foe?> foe)
         {
