@@ -114,8 +114,8 @@ namespace Scry
             {
                 Topics = new[]
                 {
-                    ("overview", (string)null), ("fight", "Fight"), ("wearing", "Wearing"), ("food", "Food"), ("hatching", "Hatching"), ("making", "Making"),
-                    ("from", "Where it comes from"), ("uses", "What it is used for"), (More, "More"), ("hooks", null),
+                    ("overview", (string)null), ("does", "What it does"), ("hatching", "Hatching"), ("fight", "Fight"), ("wearing", "Wearing"), ("food", "Food"),
+                    ("making", "Making"), ("from", "Where it comes from"), ("uses", "What it is used for"), (More, "More"), ("hooks", null),
                 },
             };
             Tile(plan, "overview", "Damage", "Damage", "Weight", "Quality", "Durability");
@@ -127,6 +127,9 @@ namespace Scry
             Label(plan, "wearing", "Armour", "Movement", "When worn", "Set bonus", "Other changes while worn", ItemWords.DamageTaken(true), ItemWords.ResistsNothing(true));
             Label(plan, "food", "Food", "Heals", "Lasts", "When used");
             Label(plan, "hatching", "Hatches into", "Hatches in", "Hatches when");
+            // What a trophy, a key, a fish, a bait or a building tool is for.
+            Label(plan, "does", "On its boss stone", "Opens");
+            Part(plan, "does", "builds", "fishing", "bait");
             Label(plan, "making", "Type", "Weight", "Quality", "Durability", "Repaired at", "Upgrades need", "Skill", "Tool tier", "Stacks to", "Worth", "Portals");
             Label(plan, More, "Not shown");
             plan.Starts.Add((l => l.EndsWith(" damage causes", StringComparison.Ordinal), "fight"));
@@ -148,18 +151,20 @@ namespace Scry
             {
                 Topics = new[]
                 {
-                    ("overview", (string)null), ("building", "Building"), ("standing", "Standing"), ("comfort", "Comfort"), ("sleeping", "Sleeping"),
-                    ("station", "As a station"), ("from", "Where it comes from"), (More, "More"), ("hooks", null),
+                    ("overview", (string)null), ("does", "What it does"), ("building", "Building"), ("resting", "Resting"), ("standing", "Standing"),
+                    ("from", "Where it comes from"), (More, "More"), ("hooks", null),
                 },
             };
             Tile(plan, "overview", null, "Health", "Comfort", "Material", "Support");
             Label(plan, "building", "Build cost", "Built with", "Placed", "Upgrades", "Claiming it");
-            Label(plan, "comfort", "Comfort group");
-            Label(plan, "sleeping", "Sleeping in it");
+            // What it is for: a station's making, a machine's work, an area's, what it holds and opens with.
+            Label(plan, "does", "Slots", "Opened with");
+            Part(plan, "does", "station", "machines", "areas", "chest");
+            // What feeds being rested: comfort and sleeping.
+            Label(plan, "resting", "Comfort", "Comfort group", "Sleeping in it");
             Label(plan, More, "Not shown");
             Part(plan, "building", "piece", "placement", "built with", "build cost");
             Part(plan, "standing", "support", "weather", "resistances");
-            Part(plan, "station", "station");
             plan.Blocks[FactBlock.Where] = "from";
             plan.Blocks[FactBlock.FoundIn] = "from";
             plan.Blocks[FactBlock.Biomes] = "from";

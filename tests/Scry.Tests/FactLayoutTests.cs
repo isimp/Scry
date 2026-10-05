@@ -105,6 +105,31 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatAnItemIsForComesRightUnderItsTiles()
+        {
+            // What a trophy, a building tool, a fish, a bait or a key is for is the point of its
+            // page; told first, not under More at the bottom.
+            var trophy = Item(new[] { ("Type", ""), ("Weight", ""), ("On its boss stone", "") }, new (string, string)[0], FactBlock.Where);
+            Assert.Equal(new[] { null, "What it does", "Where it comes from" }, trophy.Select(t => t.Heading));
+            Assert.Equal(new[] { "On its boss stone" }, trophy[1].Shown);
+
+            var hammer = Item(new[] { ("Type", ""), ("Weight", ""), ("Durability", "item stats") }, new[] { ("Builds on the Misc tab (12)", "builds"), ("Made at workbench", "recipe") });
+            Assert.Equal(new[] { null, "What it does", "Making" }, hammer.Select(t => t.Heading));
+            Assert.Equal(new[] { "row Builds on the Misc tab (12)" }, hammer[1].Shown);
+
+            var fish = Item(new[] { ("Type", "") }, new[] { ("Bites on, when it reaches the hook", "fishing") });
+            Assert.Equal(new[] { "row Bites on, when it reaches the hook" }, fish.Single(t => t.Heading == "What it does").Shown);
+            var bait = Item(new[] { ("Type", "") }, new[] { ("Catches, when one reaches the hook", "bait") });
+            Assert.Equal(new[] { "row Catches, when one reaches the hook" }, bait.Single(t => t.Heading == "What it does").Shown);
+            var key = Item(new[] { ("Type", "") }, new[] { ("Opens", "") });
+            Assert.Equal(new[] { "row Opens" }, key.Single(t => t.Heading == "What it does").Shown);
+
+            // An egg's hatching comes next, before what a weapon or armour would show.
+            var egg = Item(new[] { ("Type", ""), ("Hatches into", ""), ("Block", "item stats") }, new (string, string)[0]);
+            Assert.Equal(new[] { null, "Hatching", "Fight" }, egg.Select(t => t.Heading));
+        }
+
+        [Fact]
         public void ArmourShowsItsArmourAndMovementAndWhatItDoesWorn()
         {
             var armour = Item(
@@ -130,24 +155,52 @@ namespace Scry.Tests
             Assert.Equal(new[] { "Portals" }, wood[1].Shown);
         }
 
-        [Fact]
-        public void APieceShowsHowItIsBuiltThenHowItStandsItsComfortAndWhatItDoesAsAStation()
+        private static List<(string Heading, string[] Shown)> Piece((string, string)[] pairs, (string, string)[] rows, params FactBlock[] blocks)
         {
-            var pairs = new[]
-            {
-                ("Comfort", "piece"), ("Comfort group", "piece"), ("Health", "piece"), ("Material", "piece"), ("Support", "support"), ("Support lost", "support"),
-                ("Rain", "weather"), ("Placed", "placement"), ("Stands near a fire", "placement"), ("Upgrades", "piece"), ("Sleeping in it", "piece"), ("Built with", "built with"), ("Makes", "station"),
-            };
-            var rows = new[] { ("Build cost", "piece"), ("Damage it takes", "resistances"), ("Made here", "station") };
-            var plan = FactLayout.Plan(Kind.Piece, pairs, rows, new[] { FactBlock.Where, FactBlock.Hooks });
+            var plan = FactLayout.Plan(Kind.Piece, pairs, rows, blocks);
             string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
-            Assert.Equal(new[] { null, "Building", "Standing", "Comfort", "Sleeping", "As a station", "Where it comes from", null }, plan.Select(t => t.Heading));
-            Assert.Equal(new[] { "Health", "Comfort", "Material", "Support" }, plan[0].Tiles.Select(i => pairs[i].Item1));
-            Assert.Equal(new[] { "Placed", "Stands near a fire", "Upgrades", "Built with", "row Build cost" }, plan[1].Bits.Select(Name));
-            Assert.Equal(new[] { "Support lost", "Rain", "row Damage it takes" }, plan[2].Bits.Select(Name));
-            Assert.Equal(new[] { "Comfort group" }, plan[3].Bits.Select(Name));
-            Assert.Equal(new[] { "Sleeping in it" }, plan[4].Bits.Select(Name));
-            Assert.Equal(new[] { "Makes", "row Made here" }, plan[5].Bits.Select(Name));
+            return plan.Select(t => (t.Heading, t.Tiles.Select(i => pairs[i].Item1).Concat(t.Bits.Select(Name)).ToArray())).ToList();
+        }
+
+        [Fact]
+        public void APieceShowsWhatItDoesThenHowItIsBuiltWhatItGivesForRestAndHowItStands()
+        {
+            var plan = Piece(
+                new[]
+                {
+                    ("Comfort", "piece"), ("Comfort group", "piece"), ("Health", "piece"), ("Material", "piece"), ("Support", "support"), ("Support lost", "support"),
+                    ("Rain", "weather"), ("Placed", "placement"), ("Stands near a fire", "placement"), ("Upgrades", "piece"), ("Sleeping in it", "piece"), ("Built with", "built with"), ("Makes", "station"),
+                },
+                new[] { ("Build cost", "piece"), ("Damage it takes", "resistances"), ("Made here", "station") },
+                FactBlock.Where, FactBlock.Hooks);
+            Assert.Equal(new[] { null, "What it does", "Building", "Resting", "Standing", "Where it comes from", null }, plan.Select(t => t.Heading));
+            Assert.Equal(new[] { "Health", "Comfort", "Material", "Support" }, plan[0].Shown);
+            Assert.Equal(new[] { "Makes", "row Made here" }, plan[1].Shown);
+            Assert.Equal(new[] { "Placed", "Stands near a fire", "Upgrades", "Built with", "row Build cost" }, plan[2].Shown);
+            // Comfort, its group and sleeping all go to resting.
+            Assert.Equal(new[] { "Comfort group", "Sleeping in it" }, plan[3].Shown);
+            Assert.Equal(new[] { "Support lost", "Rain", "row Damage it takes" }, plan[4].Shown);
+        }
+
+        [Fact]
+        public void WhatAMachineAChestADoorOrAFireDoesIsToldFirstNotUnderMore()
+        {
+            // A ship: its slots and how it fares at sea.
+            var ship = Piece(new[] { ("Health", "piece"), ("Slots", ""), ("Ashlands", "machines"), ("Capsized", "machines") }, new[] { ("Build cost", "piece") });
+            Assert.Equal(new[] { null, "What it does", "Building" }, ship.Select(t => t.Heading));
+            Assert.Equal(new[] { "Ashlands", "Capsized" }, ship[1].Shown.Where(s => s != "Slots").ToArray());
+            Assert.Contains("Slots", ship.SelectMany(t => t.Shown));
+            Assert.DoesNotContain("More", ship.Select(t => t.Heading));
+
+            // A ballista's ammo, a fire's warmth, a door's key, a chest's contents.
+            var ballista = Piece(new[] { ("Health", "piece"), ("Targets", "machines") }, new[] { ("Fires", "machines") });
+            Assert.Equal(new[] { "Targets", "row Fires" }, ballista.Single(t => t.Heading == "What it does").Shown);
+            var fire = Piece(new[] { ("Health", "piece"), ("Burns", "station"), ("Warmth", "areas"), ("Gives those in it", "areas") }, new (string, string)[0]);
+            Assert.Equal(new[] { "Burns", "Warmth", "Gives those in it" }, fire.Single(t => t.Heading == "What it does").Shown);
+            var door = Piece(new[] { ("Health", "piece"), ("Opened with", "") }, new (string, string)[0]);
+            Assert.Equal(new[] { "Opened with" }, door.Single(t => t.Heading == "What it does").Shown);
+            var chest = Piece(new[] { ("Health", "piece"), ("Slots", "") }, new[] { ("Holds", "chest") });
+            Assert.Contains("row Holds", chest.Single(t => t.Heading == "What it does").Shown);
         }
 
         [Fact]
