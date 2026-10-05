@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -44,6 +46,20 @@ namespace Scry
 
         /// <summary>The self-test's own checks, taken out of the frame it measures (<see cref="Own"/>).</summary>
         public const string SelfTestPart = "update self-test";
+
+        /// <summary>What each part allocated while the self-test measures, to tell which part allocates.</summary>
+        private static readonly Dictionary<string, long> BytesByPart = new Dictionary<string, long>(StringComparer.Ordinal);
+
+        /// <summary>Forgets what each part allocated, as the self-test starts counting afresh.</summary>
+        public static void ForgetBytesByPart() => BytesByPart.Clear();
+
+        /// <summary>The parts that allocated most since the self-test last forgot them, inner ones too and its own left out, each with its kilobytes.</summary>
+        [Diagnostic]
+        public static string BytesByPartTold(int most)
+        {
+            var told = BytesByPart.Where(p => p.Key != SelfTestPart).OrderByDescending(p => p.Value).Take(most).Select(p => $"{p.Key} {Numbers.Fixed(p.Value / 1024f, 1)} KB").ToList();
+            return told.Count > 0 ? string.Join(", ", told) : "none";
+        }
 
         /// <summary>The time of the inner parts so far this frame, for <see cref="Own"/>.</summary>
         public static double InnerMs()
@@ -109,6 +125,7 @@ namespace Scry
                 var outer = Frame.SlowestOuter;
                 Measuring.Add(Frame.TotalWithout(SelfTestPart), slowest.Name, slowest.Ms, outer.Name, outer.Ms, Frame.Cleanups);
                 Measuring.AddTest(Frame.MsOf(SelfTestPart));
+                Frame.AddBytesTo(BytesByPart);
             }
             if (!Settings.LogPreviews)
             {

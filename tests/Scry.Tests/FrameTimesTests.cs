@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Xunit;
 
 namespace Scry.Tests
@@ -146,6 +147,26 @@ namespace Scry.Tests
 
             Assert.Equal(50, frame.TotalWithout("panel"), 3);
             Assert.Equal(50, frame.TotalWithout("update self-test"), 3);
+        }
+
+        [Fact]
+        public void WhatEachPartAllocatesAddsUpFrameByFrameToTellWhichAllocates()
+        {
+            // Idling, Scry's allocation is told by part, inner ones too, so a run says which part it is.
+            var byPart = new Dictionary<string, long>();
+            var frame = new FrameTimes();
+            frame.Add("update", 1, 600, 0);
+            frame.Add("update probe", 1, 400, 0);
+            frame.Add("render", 1, 0, 0);
+            frame.AddBytesTo(byPart);
+            frame.Clear();
+            frame.Add("update", 1, 300, 0);
+            frame.AddBytesTo(byPart);
+
+            Assert.Equal(900, byPart["update"]);
+            Assert.Equal(400, byPart["update probe"]);
+            // A part that allocated nothing is not counted.
+            Assert.False(byPart.ContainsKey("render"));
         }
 
         [Fact]

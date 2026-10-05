@@ -88,6 +88,17 @@ namespace Scry
             foreach (var part in _parts) if (part.Ms > 0) each(part.Name, part.Ms);
         }
 
+        /// <summary>Adds what each part allocated this frame, inner parts too, to a count by part; a part that allocated nothing is left out.</summary>
+        public void AddBytesTo(Dictionary<string, long> byPart)
+        {
+            foreach (var part in _parts)
+            {
+                if (part.Bytes <= 0) continue;
+                byPart.TryGetValue(part.Name, out var sum);
+                byPart[part.Name] = sum + part.Bytes;
+            }
+        }
+
         /// <summary>Adds to a part: its time, what it allocated, and how many cleanups ran inside it.</summary>
         public void Add(string part, double ms, long bytes, int cleanups)
         {

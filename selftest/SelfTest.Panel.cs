@@ -173,6 +173,7 @@ namespace Scry
             var first = Timing.Measuring?.Frames ?? 0;
             var bytes = Timing.ScryBytes;
             var frames = Time.frameCount;
+            Timing.ForgetBytesByPart();
             yield return new Wait(5.0);
             var idle = Timing.Measuring?.Since(first);
             var count = Math.Max(1, Time.frameCount - frames);
@@ -180,6 +181,8 @@ namespace Scry
             p.Note(idle != null
                 ? $"idling {Numbers.Count(idle.Frames)} frames: Scry's own work {Numbers.Fixed(idle.Mean, 3)} ms a frame on average, {Numbers.Fixed(idle.Percentile(0.95), 3)} ms at the 95th percentile, {Numbers.Fixed(idle.Max, 3)} ms at the most; it allocated about {Numbers.Count(allocated / 1024)} KB, {Numbers.Count(allocated / count)} bytes a frame"
                 : "frames were not measured");
+            // By part, an outer one with the inner ones in it, to tell which allocates.
+            p.Note("by part: " + Timing.BytesByPartTold(8));
             p.Note("it keeps: " + KeptTold());
             if (idle != null) p.Check(idle.Mean < 0.25, "idling, Scry's own work is a quarter of a millisecond a frame at the most on average", $"{Numbers.Fixed(idle.Mean, 3)} ms");
             p.Check(allocated / count < 1024, "idling, Scry allocates under a kilobyte a frame", $"{Numbers.Count(allocated / count)} bytes");
