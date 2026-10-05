@@ -133,6 +133,10 @@ namespace Scry
             p.Check(Find("skill:axes").Any(e => e.Name == "AxeBronze"), "\"skill:axes\" finds the bronze axe");
             p.Check(Find(SearchHelp.Term("gives", "rested")).Any(e => e.Name == "bed"), "\"gives:rested\" finds the bed, as the game's code gives Rested on waking in one");
             p.Check(Find(SearchHelp.Term("gives", "resting")).Any(e => e.Name == "fire_pit"), "\"gives:resting\" finds the campfire");
+            var wets = Find(SearchHelp.Term("gives", "wet"));
+            p.Check(wets.Any(e => e.Kind == Kind.Biome && e.Name == "Meadows"), "\"gives:wet\" finds the Meadows by their rain", string.Join(", ", wets.Take(10).Select(e => e.Name)));
+            var freezing = Find(SearchHelp.Term("gives", "freezing"));
+            p.Check(freezing.Any(e => e.Kind == Kind.Biome && e.Name == "Mountain"), "\"gives:freezing\" finds the mountains", string.Join(", ", freezing.Take(10).Select(e => e.Name)));
             p.Note("\"gives:poison\": " + string.Join(", ", Find("gives:poison").Take(10).Select(e => e.Name)));
 
             // The link terms, each with something sure to be linked that way.

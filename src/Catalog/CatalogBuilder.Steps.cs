@@ -89,6 +89,7 @@ namespace Scry
             // last but for the mods, which come once every entry knows the mod that added it.
             Timed("locations", () => Guard.Run(Feature.Locations, "the locations and dungeon rooms", PlaceEntries.Add, read.Entries));
             Timed("biomes", () => Guard.Run(Feature.Biomes, "the biomes", Biomes, read.Entries));
+            Timed("weather givers", () => Guard.Run(Feature.CodeGiven, "what the weather gives", WeatherGivers, read.Entries));
             Timed("mods", () => Guard.Run(Feature.ModPages, "the mods' own entries", Mods, read.Entries));
             foreach (var step in ModIcons(read)) yield return step;
 
