@@ -19,9 +19,6 @@ namespace Scry
             foreach (var entry in entries) if (!byKey.ContainsKey(entry.Key)) byKey[entry.Key] = entry;
             Entry Of(string key) => key != null && byKey.TryGetValue(key, out var found) ? found : null;
 
-            // What gives each status effect, as the effect's page lists it under Given by.
-            foreach (var (prefab, effect, _) in Knowledge.Givers()) Of(prefab)?.AddTermLink("gives", Of(EntryKeys.For(Kind.StatusEffect, effect)));
-
             for (var i = 0; i < entries.Count; i++)
             {
                 var entry = entries[i];
@@ -43,8 +40,9 @@ namespace Scry
 
         /// <summary>
         /// The link terms of one entry: what drops it and what it drops, from the lines its page
-        /// tells where it comes from; what is made with it, from its Used in rows; what it spawns,
-        /// from its Spawns links, and for a raid the creatures it brings (<c>RandomEvent.m_spawn</c>).
+        /// tells where it comes from; what is made with it, from its Used in rows; what gives a
+        /// status effect, from the effect's Given by links, damage that puts it on included; what
+        /// it spawns, from its Spawns links, and for a raid the creatures it brings (<c>RandomEvent.m_spawn</c>).
         /// </summary>
         private static void Linked(Entry entry, Func<string, Entry> of)
         {
@@ -67,6 +65,7 @@ namespace Scry
             foreach (var link in entry.Links)
             {
                 if (link.Group == Relations.Spawns) entry.AddTermLink("spawns", of(link.Target));
+                else if (link.Group == Relations.GivenBy) of(link.Target)?.AddTermLink("gives", entry);
             }
             if (entry.Source is RandomEvent raid && raid.m_spawn != null)
             {

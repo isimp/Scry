@@ -131,6 +131,7 @@ namespace Scry
             p.Check(Find("damage:spirit").Any(e => e.Name == "SwordSilver"), "\"damage:spirit\" finds the silver sword");
             p.Check(Find("damage:poison kind:creature").Any(e => e.Name == "BlobElite" || e.Name == "Blob"), "\"damage:poison kind:creature\" finds an oozer by its attack");
             p.Check(Find("skill:axes").Any(e => e.Name == "AxeBronze"), "\"skill:axes\" finds the bronze axe");
+            p.Note("\"gives:poison\": " + string.Join(", ", Find("gives:poison").Take(10).Select(e => e.Name)));
 
             // The link terms, each with something sure to be linked that way.
             foreach (var (text, named) in new[] { ("drops:resin", "Greydwarf"), ("from:troll", "TrollHide"), ("needs:bronze", "AxeBronze"), ("spawns:greydwarf", "Spawner_GreydwarfNest"), ("spawns:troll kind:raid", "foresttrolls") })
@@ -138,7 +139,7 @@ namespace Scry
                 var linked = Find(text);
                 p.Check(linked.Any(e => e.Name == named), $"\"{text}\" finds {named}", $"{Numbers.Count(linked.Count)} results: {string.Join(", ", linked.Take(8).Select(e => e.Name))}");
             }
-            var given = Knowledge.Givers().Select(g => (Giver: X.Find(g.Prefab), Effect: X.Find(EntryKeys.For(Kind.StatusEffect, g.Effect)))).FirstOrDefault(g => g.Giver != null && g.Effect != null && g.Effect.ShownName.Length > 0);
+            var given = X.Catalog.Where(e => e.Kind == Kind.StatusEffect && e.ShownName.Length > 0).SelectMany(e => e.Links.Where(l => l.Group == Relations.GivenBy).Select(l => (Giver: X.Find(l.Target), Effect: e))).FirstOrDefault(g => g.Giver != null);
             if (given.Giver != null)
             {
                 var givers = Find(SearchHelp.Term("gives", given.Effect.ShownName));
