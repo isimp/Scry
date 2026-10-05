@@ -129,6 +129,20 @@ namespace Scry
             p.Check(Find("damage:spirit").Any(e => e.Name == "SwordSilver"), "\"damage:spirit\" finds the silver sword");
             p.Check(Find("damage:poison kind:creature").Any(e => e.Name == "BlobElite" || e.Name == "Blob"), "\"damage:poison kind:creature\" finds an oozer by its attack");
             p.Check(Find("skill:axes").Any(e => e.Name == "AxeBronze"), "\"skill:axes\" finds the bronze axe");
+
+            // The link terms, each with something sure to be linked that way.
+            foreach (var (text, named) in new[] { ("drops:resin", "Greydwarf"), ("from:troll", "TrollHide"), ("needs:bronze", "AxeBronze"), ("spawns:greydwarf", "Spawner_GreydwarfNest"), ("spawns:troll kind:raid", "foresttrolls") })
+            {
+                var linked = Find(text);
+                p.Check(linked.Any(e => e.Name == named), $"\"{text}\" finds {named}", $"{Numbers.Count(linked.Count)} results: {string.Join(", ", linked.Take(8).Select(e => e.Name))}");
+            }
+            var given = Knowledge.Givers().Select(g => (Giver: X.Find(g.Prefab), Effect: X.Find(EntryKeys.For(Kind.StatusEffect, g.Effect)))).FirstOrDefault(g => g.Giver != null && g.Effect != null && g.Effect.ShownName.Length > 0);
+            if (given.Giver != null)
+            {
+                var givers = Find(SearchHelp.Term("gives", given.Effect.ShownName));
+                p.Check(givers.Contains(given.Giver), $"\"gives:\" finds {given.Giver.Name} by {given.Effect.ShownName}", $"{Numbers.Count(givers.Count)} results");
+            }
+            else p.Note("nothing gives a status effect that is listed, so gives: is not tried");
             p.Note($"\"is:silent\": {Numbers.Count(Find("is:silent").Count)}, \"is:unsure\": {Numbers.Count(Find("is:unsure").Count)}");
 
             p.Check(Find("zzqqxxnothing").Count == 0, "a search matching nothing finds nothing");

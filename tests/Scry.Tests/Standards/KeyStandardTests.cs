@@ -19,7 +19,7 @@ namespace Scry.Tests
     {
         private static readonly HashSet<string> Prefixes = new HashSet<string>(System.StringComparer.Ordinal)
         {
-            "se:", "raid:", "loc:", "mod:", "biome:", "ui:", "kind:", "has:", "playedby:", "station:", "in:", "is:", "weak:", "resists:", "immune:", "damage:", "skill:",
+            "se:", "raid:", "loc:", "mod:", "biome:", "ui:", "kind:", "has:", "playedby:", "station:", "in:", "is:", "weak:", "resists:", "immune:", "damage:", "skill:", "drops:", "from:", "needs:", "gives:", "spawns:",
         };
 
         private static readonly string[] Makers = { "EntryKeys.cs", "SearchHelp.cs", "Search.cs", "Groups.cs" };

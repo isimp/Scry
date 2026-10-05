@@ -140,6 +140,22 @@ namespace Scry
         /// <summary>The words a search term of what it is answers to, by the term's key: is: "boss", "food"; none until the catalog has read them.</summary>
         public string[] TermWords(string key) => _termWords != null && _termWords.TryGetValue(key, out var words) ? words : Array.Empty<string>();
 
+        private Dictionary<string, List<Entry>> _termLinks;
+
+        private static readonly List<Entry> NoLinks = new List<Entry>();
+
+        /// <summary>The entries a search link term finds it by, by the term's key: drops: what it drops, from: what drops it, and the like; none until the catalog has read them.</summary>
+        public IReadOnlyList<Entry> TermLinks(string key) => _termLinks != null && _termLinks.TryGetValue(key, out var links) ? links : NoLinks;
+
+        /// <summary>Links it to another entry for a search link term, each once, never to itself.</summary>
+        public void AddTermLink(string key, Entry other)
+        {
+            if (other == null || ReferenceEquals(other, this)) return;
+            if (_termLinks == null) _termLinks = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
+            if (!_termLinks.TryGetValue(key, out var links)) _termLinks[key] = links = new List<Entry>();
+            if (!links.Contains(other)) links.Add(other);
+        }
+
         /// <summary>Sets the words a search term answers to for it; none forgets them.</summary>
         public void SetTermWords(string key, string[] words)
         {

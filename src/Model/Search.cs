@@ -30,8 +30,10 @@ namespace Scry
     /// that play an effect; <c>used:</c> is its older spelling), <c>station:</c> (where it is made) and <c>in:</c> (a location or dungeon
     /// it is found in, once they are read), <c>is:</c> (what it is, <see cref="SearchFlags"/>) and the
     /// fight terms <c>weak:</c>, <c>resists:</c>, <c>immune:</c>, <c>damage:</c> and <c>skill:</c>
-    /// (<see cref="SearchFight"/>), these last six by the start of a word. A comma in a term's
-    /// value reads as or: <c>biome:swamp,plains</c>.
+    /// (<see cref="SearchFight"/>), these six by the start of a word; and the link terms
+    /// <c>drops:</c>, <c>from:</c>, <c>needs:</c>, <c>gives:</c> and <c>spawns:</c>, by what the catalog
+    /// links (<see cref="Entry.TermLinks"/>), named by the game's or the prefab's name. A comma in a
+    /// term's value reads as or: <c>biome:swamp,plains</c>.
     /// A minus in front of a word or a term leaves out what matches it.
     /// </summary>
     internal sealed class ParsedSearch
@@ -106,10 +108,13 @@ namespace Scry
     internal static class Search
     {
         /// <summary>The keys a term can have, as typed before the colon.</summary>
-        public static readonly string[] Keys = { "kind", "has", "biome", "mod", "playedby", "station", "in", "is", "weak", "resists", "immune", "damage", "skill" };
+        public static readonly string[] Keys = { "kind", "has", "biome", "mod", "playedby", "station", "in", "is", "weak", "resists", "immune", "damage", "skill", "drops", "from", "needs", "gives", "spawns" };
 
         /// <summary>The keys whose values are words the catalog reads into each entry (<see cref="Entry.TermWords"/>), each matched by its start.</summary>
         public static readonly string[] WordKeys = { "is", "weak", "resists", "immune", "damage", "skill" };
+
+        /// <summary>The keys whose values name other entries the catalog links each entry to (<see cref="Entry.TermLinks"/>).</summary>
+        public static readonly string[] LinkKeys = { "drops", "from", "needs", "gives", "spawns" };
 
         /// <summary>Older spellings of a key, still read: "used:" was taken for what an item is used for.</summary>
         private static readonly Dictionary<string, string> OldKeys = new Dictionary<string, string> { ["used"] = "playedby" };
@@ -314,7 +319,7 @@ namespace Scry
                 case "in": return AnyPlaceNamed(entry.FoundIn, value);
                 case "mod": return ContainsLeavingOutSpaces(entry.ModName, value);
                 case "playedby": return AnyContainsLeavingOutSpaces(entry.UsedBy, value);
-                default: return AnyWordStarts(entry.TermWords(key), value);
+                default: return Array.IndexOf(LinkKeys, key) >= 0 ? AnyLinked(entry.TermLinks(key), value) : AnyWordStarts(entry.TermWords(key), value);
             }
         }
 
@@ -367,6 +372,16 @@ namespace Scry
                 var digit = value[i] - '0';
                 level = level > (int.MaxValue - digit) / 10 ? int.MaxValue : level * 10 + digit;
             }
+        }
+
+        /// <summary>Whether any of the linked entries goes by the value: held in the game's name, spaces left out, or in the prefab's.</summary>
+        private static bool AnyLinked(IReadOnlyList<Entry> linked, string value)
+        {
+            foreach (var other in linked)
+            {
+                if (ContainsLeavingOutSpaces(other.ShownName, value) || Contains(other.Name, value)) return true;
+            }
+            return false;
         }
 
         /// <summary>Whether a value starts any of the words, read whole without their spaces ("elementalmagic") or each part alone ("magic").</summary>

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -5,14 +6,22 @@ namespace Scry
 {
     /// <summary>
     /// What the search's own terms read of each entry, once every entry is made, linked and
-    /// grouped: what it is (is:, <see cref="SearchFlags"/>) and how it fights (weak:, resists:,
-    /// immune:, damage:, skill:, <see cref="SearchFight"/>), as its details tell the same.
+    /// grouped: what it is (is:, <see cref="SearchFlags"/>), how it fights (weak:, resists:,
+    /// immune:, damage:, skill:, <see cref="SearchFight"/>), and what it is linked to (drops:,
+    /// from:, needs:, gives:, spawns:), as its details tell the same.
     /// </summary>
     internal static partial class CatalogBuilder
     {
         /// <summary>Reads the terms' words into every entry, a slice of entries a step.</summary>
         private static IEnumerable<int> SearchTerms(List<Entry> entries, int slice)
         {
+            var byKey = new Dictionary<string, Entry>(StringComparer.Ordinal);
+            foreach (var entry in entries) if (!byKey.ContainsKey(entry.Key)) byKey[entry.Key] = entry;
+            Entry Of(string key) => key != null && byKey.TryGetValue(key, out var found) ? found : null;
+
+            // What gives each status effect, as the effect's page lists it under Given by.
+            foreach (var (prefab, effect, _) in Knowledge.Givers()) Of(prefab)?.AddTermLink("gives", Of(EntryKeys.For(Kind.StatusEffect, effect)));
+
             for (var i = 0; i < entries.Count; i++)
             {
                 var entry = entries[i];
@@ -20,8 +29,51 @@ namespace Scry
                 {
                     entry.SetTermWords("is", SearchFlags.Of(FlagFactsOf(entry)));
                     if (entry.Source is GameObject prefab && prefab != null && !EntryKeys.HasOwnNamespace(entry.Kind)) Fight(entry, prefab);
+                    Linked(entry, Of);
                 });
                 if ((i + 1) % slice == 0) yield return i + 1;
+            }
+        }
+
+        /// <summary>The ways of coming by an item that drops: and from: follow: a creature's drops, a drop table's (a chest, a rock, a tree) and picking.</summary>
+        private static readonly SourceWay[] DropWays = { SourceWay.Dropped, SourceWay.Table, SourceWay.Picked };
+
+        /// <summary>The uses needs: follows: what is crafted, upgraded past its top, built or turned into with it.</summary>
+        private static readonly UseKind[] MadeWith = { UseKind.Crafts, UseKind.UpgradesPastTop, UseKind.Builds, UseKind.TurnsInto };
+
+        /// <summary>
+        /// The link terms of one entry: what drops it and what it drops, from the lines its page
+        /// tells where it comes from; what is made with it, from its Used in rows; what it spawns,
+        /// from its Spawns links, and for a raid the creatures it brings (<c>RandomEvent.m_spawn</c>).
+        /// </summary>
+        private static void Linked(Entry entry, Func<string, Entry> of)
+        {
+            if (!EntryKeys.HasOwnNamespace(entry.Kind))
+            {
+                foreach (var source in Knowledge.SourceLines(entry.Name))
+                {
+                    if (source.Record == null || Array.IndexOf(DropWays, source.Record.Way) < 0) continue;
+                    var giver = of(source.Record.Giver);
+                    if (giver == null) continue;
+                    entry.AddTermLink("from", giver);
+                    giver.AddTermLink("drops", entry);
+                }
+                foreach (var use in Knowledge.UsesOf(entry.Name))
+                {
+                    if (Array.IndexOf(MadeWith, use.Kind) < 0) continue;
+                    foreach (var (target, _) in use.Targets) of(target)?.AddTermLink("needs", entry);
+                }
+            }
+            foreach (var link in entry.Links)
+            {
+                if (link.Group == Relations.Spawns) entry.AddTermLink("spawns", of(link.Target));
+            }
+            if (entry.Source is RandomEvent raid && raid.m_spawn != null)
+            {
+                foreach (var data in raid.m_spawn)
+                {
+                    if (data != null && data.m_enabled && data.m_prefab != null) entry.AddTermLink("spawns", of(data.m_prefab.name));
+                }
             }
         }
 

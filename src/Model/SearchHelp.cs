@@ -93,6 +93,10 @@ namespace Scry
                 {
                     foreach (var word in entry.TermWords(key)) Add(key, word, Naming.Capital(word));
                 }
+                foreach (var key in Search.LinkKeys)
+                {
+                    foreach (var other in entry.TermLinks(key)) Add(key, other.ShownName, other.ShownName);
+                }
             }
         }
 
@@ -265,6 +269,11 @@ namespace Scry
             ["immune"] = "a damage type it takes none of",
             ["damage"] = "a damage type it deals",
             ["skill"] = "the skill it trains",
+            ["drops"] = "something it drops or gives",
+            ["from"] = "what drops or gives it",
+            ["needs"] = "an item it is made or built with",
+            ["gives"] = "a status effect it gives",
+            ["spawns"] = "something it spawns or brings",
         };
 
         /// <summary>The word the caret is in (or at the end of), from space to space.</summary>
