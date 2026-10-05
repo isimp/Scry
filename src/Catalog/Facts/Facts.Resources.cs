@@ -179,7 +179,7 @@ namespace Scry
             if (row.Items.Count > 0) Rows.Add(row);
         }
 
-        /// <summary>The items players hit with and can get, each with its tool tier and the damage types it deals; read once a world.</summary>
+        /// <summary>The weapons, pickaxes and torches players hit with and can get, each with its tool tier and the damage types it deals; read once a world.</summary>
         private static List<(string Name, int Tier, string[] Deals)> Tools()
         {
             if (_tools != null) return _tools;
@@ -187,9 +187,12 @@ namespace Scry
             foreach (var entry in WorldCatalog.Current?.All ?? Enumerable.Empty<Entry>())
             {
                 if (entry.Kind != Kind.Item || !(entry.Source is GameObject prefab)) continue;
-                var shared = prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
-                // One no inventory can show is a creature's attack, not a player's tool; one nothing gives a player (the game's cheat sword) is none either.
-                if (shared?.m_attack == null || shared.m_icons == null || shared.m_icons.Length == 0 || !Grouping.Obtainable(entry)) continue;
+                var item = prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData;
+                var shared = item?.m_shared;
+                // Only what a player swings hits: a weapon, a pickaxe or a torch in hand (ItemData.IsWeapon); a trophy's
+                // damage figure is never dealt. One no inventory can show is a creature's attack, and one nothing gives a
+                // player (the game's cheat sword) is no tool either.
+                if (shared?.m_attack == null || !item.IsWeapon() || shared.m_icons == null || shared.m_icons.Length == 0 || !Grouping.Obtainable(entry)) continue;
                 _tools.Add((prefab.name, shared.m_toolTier, SearchFight.Dealt(DamageFigures(shared.m_damages))));
             }
             return _tools;

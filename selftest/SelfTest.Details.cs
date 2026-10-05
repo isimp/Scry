@@ -466,6 +466,9 @@ namespace Scry
                 p.Note($"{entry.Name} needs tier {Facts.For(entry).Pairs.FirstOrDefault(x => x.Key == "Needs tool tier").Value}, broken with: {string.Join(", ", with)}");
                 p.Check(with.Any(n => n.StartsWith(tool, StringComparison.Ordinal)), $"{entry.Name} is broken with a {tool.ToLowerInvariant()}");
                 p.Check(!with.Any(n => n.StartsWith("Sword", StringComparison.Ordinal)), $"{entry.Name} is not broken with a sword");
+                // Only what is swung in hand: no trophy, mead or building tool.
+                var unswung = with.Where(n => !(GamePrefabs.Item(n).OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData?.IsWeapon() ?? false)).ToList();
+                p.Check(unswung.Count == 0, $"{entry.Name} is broken only with what is swung in hand", string.Join(", ", unswung.Take(8)));
             }
             yield break;
         }
