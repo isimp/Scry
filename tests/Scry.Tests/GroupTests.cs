@@ -35,7 +35,13 @@ namespace Scry.Tests
             // and the rest even where a mod gives it a recipe or a source.
             Assert.Equal("Creature attacks", Groups.Item("OneHandedWeapon", "Swords", carriedByCreature: true, obtainable: true, silent: true).Name);
             Assert.Equal("Creature attacks", Groups.Item("OneHandedWeapon", "Swords", carriedByCreature: true, obtainable: false, silent: true).Name);
-            Assert.Equal("Swords", Groups.Item("OneHandedWeapon", "Swords", carriedByCreature: false, obtainable: true, silent: true).Name);
+            // One no creature carries, left in the game's data, goes to a group of its own right after them.
+            Assert.Equal("Attacks no creature carries", Groups.Item("OneHandedWeapon", "Swords", carriedByCreature: false, obtainable: true, silent: true).Name);
+            Assert.Equal("Attacks no creature carries", Groups.Item("Bow", "Bows", carriedByCreature: false, obtainable: false, silent: true).Name);
+            Assert.Equal(Groups.CreatureAttacks.Order + 1, Groups.UnusedAttacks.Order);
+            Assert.True(Groups.UnusedAttacks.Order < Groups.CarriedByCreatures.Order);
+            // Silent gear that is no weapon is not an attack.
+            Assert.Equal("Shields", Groups.Item("Shield", null, carriedByCreature: false, obtainable: true, silent: true).Name);
             Assert.Equal("Carried by creatures", Groups.Item("Helmet", null, carriedByCreature: true, obtainable: false, silent: false).Name);
             Assert.Equal("Swords", Groups.Item("OneHandedWeapon", "Swords", carriedByCreature: true, obtainable: true, silent: false).Name);
             Assert.True(Groups.Item("OneHandedWeapon", "Swords", true, true, true).Order > Groups.Item("Shield").Order);

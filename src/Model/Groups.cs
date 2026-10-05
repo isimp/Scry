@@ -113,6 +113,9 @@ namespace Scry
             // A creature's attack is an item with nothing to see or hear, kept apart from the
             // player's weapons even where a mod gives it a recipe or a source.
             if (carriedByCreature && silent) return CreatureAttacks;
+            // A weapon with nothing to see or hear that no creature carries is an attack left in the
+            // game's data (the Jotun warriors' first ones): no weapon a player wields lacks a model.
+            if (!carriedByCreature && silent && itemType != null && WeaponTypes.Contains(itemType)) return UnusedAttacks;
             if (carriedByCreature && !obtainable) return CarriedByCreatures;
             if (itemType != null && WeaponTypes.Contains(itemType))
             {
@@ -125,7 +128,10 @@ namespace Scry
         public static Group CarriedByCreatures => new Group("Carried by creatures", 160);
 
         /// <summary>Creatures' attacks, items with nothing to see or hear that creatures carry, before what only creatures wear.</summary>
-        public static Group CreatureAttacks => new Group("Creature attacks", 159);
+        public static Group CreatureAttacks => new Group("Creature attacks", 158);
+
+        /// <summary>Attack items no creature carries, left in the game's data, right after the creatures' own.</summary>
+        public static Group UnusedAttacks => new Group("Attacks no creature carries", 159);
 
         /// <summary>One item's type, in the words of its group ("Capes" holds a "Cape").</summary>
         private static readonly Dictionary<string, string> ItemTypeNames = new Dictionary<string, string>
