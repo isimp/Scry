@@ -159,5 +159,15 @@ namespace Scry.Tests
             // Rooms are counted only for an example; with the roof on nothing is named.
             Assert.Equal(said, PlaceView.FloorLabel(level, floors, rooms));
         }
+
+        [Fact]
+        public void TheRulerPutsTheRoofOnOnlyAboveAllThePlaceHas()
+        {
+            // A sunken crypt's upper part stands above its top floor's cut: dragging the cut there
+            // cuts there, rather than putting the roof on, so that part can be opened by hand.
+            Assert.Equal(14f, PlaceView.RoofAbove(topCut: 9.2f, modelTop: 14f));
+            // A place whose top floor's cut is near its top keeps the roof half a metre over that cut.
+            Assert.Equal(9.7f, PlaceView.RoofAbove(topCut: 9.2f, modelTop: 8f), 3);
+        }
     }
 }

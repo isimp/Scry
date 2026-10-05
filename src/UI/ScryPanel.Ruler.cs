@@ -6,7 +6,7 @@ namespace Scry
     /// The floor ruler at the stage's right edge, while a place is shown with floors: a tick for
     /// each floor, the one opened lit, and a bar where the cut is (at the top with the roof on).
     /// A click on a tick opens that floor, a click or drag elsewhere sets the cut there, above
-    /// the top floor puts the roof on, and the wheel over it steps a floor up or down.
+    /// all the place has puts the roof on, and the wheel over it steps a floor up or down.
     /// </summary>
     internal static partial class ScryPanel
     {
@@ -54,7 +54,7 @@ namespace Scry
             _rulerHigh = high;
             _rulerScreen = OnScreen(rect);
             float Y(float height) => rect.yMax - (height - low) / Mathf.Max(0.01f, high - low) * rect.height;
-            var roofY = Y(cuts[0] + 0.5f);
+            var roofY = Y(PlaceView.RoofAbove(cuts[0], Stage.ModelTop));
 
             if (e.type == EventType.Repaint)
             {
@@ -101,14 +101,14 @@ namespace Scry
             }
         }
 
-        /// <summary>The cut set at a height on the ruler, by the mouse's place on the screen; above the top floor's cut, the roof on.</summary>
+        /// <summary>The cut set at a height on the ruler, by the mouse's place on the screen; above all the place has, the roof on.</summary>
         private static void RulerAt(float screenY)
         {
             var cuts = Stage.CutHeights;
             if (cuts.Count == 0 || _rulerScreen.height <= 0f) return;
             var share = Mathf.Clamp01((_rulerScreen.yMax - screenY) / _rulerScreen.height);
             var height = _rulerLow + share * (_rulerHigh - _rulerLow);
-            if (height > cuts[0] + 0.5f) Stage.OpenLevel(cuts.Count);
+            if (height > PlaceView.RoofAbove(cuts[0], Stage.ModelTop)) Stage.OpenLevel(cuts.Count);
             else Stage.CutTo(height);
         }
     }

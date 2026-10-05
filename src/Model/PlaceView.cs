@@ -42,6 +42,13 @@ namespace Scry
             floors.Select((floor, i) => CutHeight(floor, i == 0 ? (float?)null : floors[i - 1])).ToList();
 
         /// <summary>
+        /// The height on the floor ruler above which a click puts the roof on: half a metre over
+        /// the top floor's cut, or the place's top where it stands higher (a sunken crypt's upper
+        /// part, found as no floor of its own), so all it has can be cut into by hand.
+        /// </summary>
+        public static float RoofAbove(float topCut, float modelTop) => Math.Max(topCut + 0.5f, modelTop);
+
+        /// <summary>
         /// The cut a floor down or up: down from the roof opens the top floor and stays on the
         /// lowest; up from the top floor puts the roof back on. <paramref name="level"/> is the
         /// floor opened, from the top, or <paramref name="floors"/> for the roof on.

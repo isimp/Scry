@@ -246,7 +246,7 @@ namespace Scry
         /// </summary>
         private static IEnumerator CaveFloors(Probe p)
         {
-            var named = new[] { "MountainCave02", "MorkBorg", "TheHole01", "Hildir_plainsfortress" };
+            var named = new[] { "MountainCave02", "MorkBorg", "TheHole01", "Hildir_plainsfortress", "SunkenCrypt4" };
             var caves = X.Catalog.Where(e => PlaceOf(e) != null && !PlaceOf(e).IsRoom
                                              && (named.Contains(e.Name) || e.DisplayName.IndexOf("rkhalla", StringComparison.OrdinalIgnoreCase) >= 0))
                 .OrderBy(e => e.Name, StringComparer.Ordinal).ToList();
@@ -285,6 +285,8 @@ namespace Scry
                         if (Stage.ExampleRoomsAway >= Stage.ExampleRoomsShown) blank.Add($"{entry.Name} at {Numbers.Fixed(Stage.FloorHeights[level], 1)} m");
                         if (rooms > 0) foreach (var room in Stage.ExampleShown.Rooms) if (Stage.ExampleRoomShown(room) == PlanRoomShown.Whole) reached.Add(room);
                     }
+                    // What stands above the top floor's cut is reached only by moving the cut up by hand.
+                    if (Stage.CutHeights.Count > 0) p.Note($"{entry.Name}: top floor's cut {Numbers.Fixed(Stage.CutHeights[0], 1)} m, the place's top {Numbers.Fixed(Stage.ModelTop, 1)} m, the ruler's roof above {Numbers.Fixed(PlaceView.RoofAbove(Stage.CutHeights[0], Stage.ModelTop), 1)} m");
                     var never = Stage.ExampleShown?.Rooms.Where(r => !r.Room.EndCap && !r.Room.Divider && !reached.Contains(r)).Select(r => $"{r.Room.Name} at {Numbers.Fixed(r.Position.Y, 1)} m").ToList() ?? new List<string>();
                     if (never.Count > 0) unreached.Add($"{entry.Name}: {string.Join(", ", never.Take(6))}");
                     p.Note($"{entry.Name} ({entry.DisplayName}), {Numbers.Count(Stage.ExampleRoomsTotal)} rooms, {Numbers.Count(Stage.FloorHeights.Count)} floors: " + string.Join("; ", told)
