@@ -413,6 +413,33 @@ namespace Scry
         }
 
         /// <summary>
+        /// A creature's In the game is laid out by topic, its fight first after its headline
+        /// tiles, its drops' notes under them, every fact read shown once; and its tiles draw.
+        /// </summary>
+        private static IEnumerator CreatureTopics(Probe p)
+        {
+            var troll = Pick(Kind.Creature, "Troll", "Greydwarf");
+            if (troll == null) p.Skip("there is no creature");
+            var facts = Facts.For(troll);
+            var pairs = facts.Pairs.Select((pair, i) => (pair.Key, facts.PairParts[i])).ToList();
+            var rows = facts.Rows.Select(r => (r.Title, r.Part ?? "")).ToList();
+            var plan = FactLayout.Plan(Kind.Creature, pairs, rows, new[] { FactBlock.Where, FactBlock.Biomes, FactBlock.Hooks });
+            p.Note(troll.Name + ": " + string.Join(" | ", plan.Select(t => (t.Heading ?? "tiles") + " " + Numbers.Count(t.Tiles.Count + t.Bits.Count))));
+            p.Check(plan.Count > 2 && plan[0].Heading == null && plan[0].Tiles.Count >= 2 && plan[1].Heading == "Fight", "its headline tiles come first, then its fight");
+            var shown = plan.SelectMany(t => t.Tiles.Concat(t.Bits.Where(b => b.Pair >= 0).Select(b => b.Pair)).Concat(t.Bits.SelectMany(b => b.Notes))).OrderBy(i => i).ToList();
+            p.Check(shown.SequenceEqual(Enumerable.Range(0, pairs.Count)), "every fact read is shown once", $"{Numbers.Count(shown.Count)} of {Numbers.Count(pairs.Count)}");
+            var more = plan.FirstOrDefault(t => t.Heading == "More");
+            p.Note("left to More: " + (more == null ? "nothing" : string.Join(", ", more.Bits.Select(b => b.Pair >= 0 ? pairs[b.Pair].Key : b.Row >= 0 ? rows[b.Row].Title : b.Block.ToString()))));
+            var drops = plan.SelectMany(t => t.Bits).FirstOrDefault(b => b.Row >= 0 && rows[b.Row].Title == "Drops");
+            if (drops != null) p.Note("under its drops: " + string.Join(", ", drops.Notes.Select(n => pairs[n].Key)));
+
+            Select(troll);
+            var drawn = ScryPanel.Drawn(PanelPart.FactTiles);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.FactTiles) > drawn, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.FactTiles) > drawn, $"{troll.Name}'s page draws its tiles");
+        }
+
+        /// <summary>
         /// The rows a player looks for show on every page of a type, with "none" or "no" where
         /// that is the answer: a creature's attacks, weak spots, taming and drops; gear's quality,
         /// portals and wear; armour's armour, movement and set; a weapon's block and second

@@ -14,6 +14,9 @@ namespace Scry
         /// <summary>A part of the facts, as a failure to read it names it.</summary>
         public static string Part(string part) => $"the {part} details";
 
+        /// <summary>A fact told as a note under what it qualifies: "Drops with stars: twice as many with 1 star".</summary>
+        public static string Note(string label, string value) => $"{label}: {value}";
+
         /// <summary>A part of the facts among the timings, while previews are logged.</summary>
         public static string PartTiming(string part) => "facts " + part;
 

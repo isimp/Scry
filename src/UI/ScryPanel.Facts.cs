@@ -28,110 +28,157 @@ namespace Scry
 
             // A two-column table: what it is on the left, its value on the right.
             var labelW = Mathf.Min(U(130f), width * 0.36f);
-            foreach (var pair in facts.Pairs)
+
+            // A kind laid out by topic (FactLayout) shows its facts topic by topic, each under a
+            // small heading, its headline numbers as tiles and what qualifies a row under it;
+            // the others keep their facts, rows and blocks in the order they always had.
+            var plan = PlanOf(explorer, entry, facts, places);
+            if (plan == null)
             {
-                var valueW = width - labelW - U(10f);
-                // A line Scry is not sure of is marked, softer, and says why on hover.
-                var unsure = facts.Unsure.TryGetValue(pair.Key, out var why);
-                var label = unsure ? UnsureWords.Marked(pair.Key) : pair.Key;
-                var labelH = Skin.Height(Skin.DimWrap, label, labelW);
-                var height = Mathf.Max(U(20f), Mathf.Max(labelH, Skin.Height(Skin.Wrap, pair.Value, valueW)));
-                GUI.Label(new Rect(0f, y, labelW, labelH), label, Skin.DimWrap);
-                var valueRect = new Rect(labelW + U(10f), y, valueW, height);
-                if (unsure && new Rect(0f, y, width, height).Contains(Event.current.mousePosition)) AskTip("unsure:" + pair.Key, why);
-                // Music plays where it is named: the entry's own, or one by its name (a biome has one for each time of day).
-                if (facts.Links.TryGetValue(pair.Key, out var music) && EntryKeys.PlaysMusic(music, out var named))
-                {
-                    var playing = MusicPreview.PlayingFor == entry && (named == null || MusicPreview.Playing == named);
-                    var musicW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
-                    var musicRect = new Rect(valueRect.x, valueRect.y, musicW, height);
-                    LinkLabel(musicRect, pair.Value, Skin.Wrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);
-                    if (musicRect.Contains(Event.current.mousePosition)) AskTip("music:" + entry.Key + ":" + named, MusicWords.Tip(playing));
-                    if (GUI.Button(musicRect, GUIContent.none, GUIStyle.none))
-                    {
-                        var said = named == null ? Previews.PlacesMusic(entry) : Previews.NamedMusic(entry, named);
-                        if (said != null) Say(said);
-                    }
-                }
-                // A mod's website opens in the browser.
-                else if (facts.Links.TryGetValue(pair.Key, out var web) && EntryKeys.WebsiteOf(web) is string url)
-                {
-                    var webW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
-                    var webRect = new Rect(valueRect.x, valueRect.y, webW, height);
-                    LinkLabel(webRect, pair.Value, Skin.Wrap, Skin.Accent);
-                    if (webRect.Contains(Event.current.mousePosition)) AskTip("web:" + entry.Key, "Open it in your browser");
-                    if (GUI.Button(webRect, GUIContent.none, GUIStyle.none)) Application.OpenURL(url);
-                }
-                // A link only to what is in the catalog: a creature's own attack items are not.
-                else if (facts.Links.TryGetValue(pair.Key, out var link) && InCatalog(explorer, link))
-                {
-                    var linkW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
-                    var linkRect = new Rect(valueRect.x, valueRect.y, linkW, height);
-                    LinkLabel(linkRect, pair.Value, Skin.Wrap, LinkText(KindOf(explorer, link), false));
-                    if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, PanelWords.GoTo(ShownName(explorer, link, pair.Value)));
-                    if (GUI.Button(linkRect, GUIContent.none, GUIStyle.none)) Go(explorer, link);
-                }
-                else
-                {
-                    GUI.Label(valueRect, pair.Value, unsure ? Skin.DimWrap : Skin.Wrap);
-                }
-                y += height + U(6f);
+                foreach (var pair in facts.Pairs) y = FactPair(explorer, entry, facts, pair, width, labelW, y);
+                foreach (var row in facts.Rows) y = FactRow(explorer, row, width, y);
+                foreach (var block in EveryBlock) y = FactBlockOf(explorer, entry, facts, block, places, width, y);
+                return y + U(14f);
             }
 
-            foreach (var row in facts.Rows) y = FactRow(explorer, row, width, y);
-
-            if (facts.Where.Count > 0)
+            foreach (var topic in plan)
             {
-                y += U(6f);
-                GUI.Label(new Rect(0f, y, width, U(20f)), facts.WhereTitle, Skin.DimLabel);
-                y += U(24f);
-                const int firstLines = 8;
-                var lines = ShownOf("where", facts.Where.Count, firstLines);
-                foreach (var source in facts.Where.Take(lines))
+                if (topic.Heading != null) y = TopicHeading(topic.Heading, width, y);
+                if (topic.Tiles.Count > 0) y = Tiles(facts, topic.Tiles, width, y);
+                foreach (var bit in topic.Bits)
                 {
-                    // A line naming a prefab in the catalog is a chip that goes there; the rest is text.
-                    // A line Scry is not sure of is marked and says why on hover.
-                    var text = source.Unsure != null ? UnsureWords.Marked(source.Text) : source.Text;
-                    if (string.IsNullOrEmpty(source.Prefab) || !InCatalog(explorer, source.Prefab))
-                    {
-                        var style = source.Unsure != null ? Skin.DimWrap : Skin.Wrap;
-                        var height = Skin.Height(style, text, width);
-                        var line = new Rect(0f, y, width, height);
-                        GUI.Label(line, text, style);
-                        if (source.Unsure != null && line.Contains(Event.current.mousePosition)) AskTip("unsure:" + source.Text, source.Unsure);
-                        y += height + U(4f);
-                        continue;
-                    }
-
-                    var icon = PrefabIcon(source.Prefab);
-                    var textX = icon != null ? U(34f) : U(12f);
-                    var textW = width - textX - U(10f);
-                    var wrapped = Skin.SmallWrap;
-                    var chipH = Mathf.Max(U(30f), Skin.Height(wrapped, text, textW) + U(10f));
-                    var chip = new Rect(0f, y, width, chipH);
-                    var hover = chip.Contains(Event.current.mousePosition);
-                    var kind = KindOf(explorer, source.Prefab);
-                    Skin.Box(chip, LinkFill(kind, hover));
-                    if (icon != null) DrawSprite(icon, new Rect(U(6f), y + (chipH - U(22f)) / 2f, U(22f), U(22f)));
-                    Skin.LabelIn(new Rect(textX, y, textW, chipH), text, wrapped, LinkText(kind, hover));
-                    if (hover) AskTip("src:" + source.Prefab + source.Unsure, Naming.Lines(source.Unsure, PanelWords.GoTo(ShownName(explorer, source.Prefab, source.Prefab))));
-                    if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(source.Prefab))
-                    {
-                        AfterGoing();
-                    }
-                    y += chipH + U(5f);
+                    if (bit.Pair >= 0) y = FactPair(explorer, entry, facts, facts.Pairs[bit.Pair], width, labelW, y);
+                    else if (bit.Row >= 0) y = FactRow(explorer, facts.Rows[bit.Row], width, y);
+                    else if (bit.Block is FactBlock block) y = FactBlockOf(explorer, entry, facts, block, places, width, y);
+                    foreach (var note in bit.Notes) y = FactNote(facts, facts.Pairs[note], width, y);
                 }
-                var more = new ChipFlow(0f, width, y, U(26f), U(5f), U(5f));
-                MoreChip("where", facts.Where.Count, firstLines, width, ref more);
-                if (more.InRow) y = more.RowBottom + U(5f);
             }
+            return y + U(14f);
+        }
 
-            if (places)
+        /// <summary>One labelled fact: its label in the left column, its value at its right, a link, music or a website where it is one.</summary>
+        private static float FactPair(Explorer explorer, Entry entry, Facts facts, KeyValuePair<string, string> pair, float width, float labelW, float y)
+        {
+            var valueW = width - labelW - U(10f);
+            // A line Scry is not sure of is marked, softer, and says why on hover.
+            var unsure = facts.Unsure.TryGetValue(pair.Key, out var why);
+            var label = unsure ? UnsureWords.Marked(pair.Key) : pair.Key;
+            var labelH = Skin.Height(Skin.DimWrap, label, labelW);
+            var height = Mathf.Max(U(20f), Mathf.Max(labelH, Skin.Height(Skin.Wrap, pair.Value, valueW)));
+            GUI.Label(new Rect(0f, y, labelW, labelH), label, Skin.DimWrap);
+            var valueRect = new Rect(labelW + U(10f), y, valueW, height);
+            if (unsure && new Rect(0f, y, width, height).Contains(Event.current.mousePosition)) AskTip("unsure:" + pair.Key, why);
+            // Music plays where it is named: the entry's own, or one by its name (a biome has one for each time of day).
+            if (facts.Links.TryGetValue(pair.Key, out var music) && EntryKeys.PlaysMusic(music, out var named))
             {
-                y += U(6f);
-                y = FoundIn(explorer, entry, width, y);
+                var playing = MusicPreview.PlayingFor == entry && (named == null || MusicPreview.Playing == named);
+                var musicW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
+                var musicRect = new Rect(valueRect.x, valueRect.y, musicW, height);
+                LinkLabel(musicRect, pair.Value, Skin.Wrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);
+                if (musicRect.Contains(Event.current.mousePosition)) AskTip("music:" + entry.Key + ":" + named, MusicWords.Tip(playing));
+                if (GUI.Button(musicRect, GUIContent.none, GUIStyle.none))
+                {
+                    var said = named == null ? Previews.PlacesMusic(entry) : Previews.NamedMusic(entry, named);
+                    if (said != null) Say(said);
+                }
             }
+            // A mod's website opens in the browser.
+            else if (facts.Links.TryGetValue(pair.Key, out var web) && EntryKeys.WebsiteOf(web) is string url)
+            {
+                var webW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
+                var webRect = new Rect(valueRect.x, valueRect.y, webW, height);
+                LinkLabel(webRect, pair.Value, Skin.Wrap, Skin.Accent);
+                if (webRect.Contains(Event.current.mousePosition)) AskTip("web:" + entry.Key, "Open it in your browser");
+                if (GUI.Button(webRect, GUIContent.none, GUIStyle.none)) Application.OpenURL(url);
+            }
+            // A link only to what is in the catalog: a creature's own attack items are not.
+            else if (facts.Links.TryGetValue(pair.Key, out var link) && InCatalog(explorer, link))
+            {
+                var linkW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
+                var linkRect = new Rect(valueRect.x, valueRect.y, linkW, height);
+                LinkLabel(linkRect, pair.Value, Skin.Wrap, LinkText(KindOf(explorer, link), false));
+                if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, PanelWords.GoTo(ShownName(explorer, link, pair.Value)));
+                if (GUI.Button(linkRect, GUIContent.none, GUIStyle.none)) Go(explorer, link);
+            }
+            else
+            {
+                GUI.Label(valueRect, pair.Value, unsure ? Skin.DimWrap : Skin.Wrap);
+            }
+            return y + height + U(6f);
+        }
 
+        /// <summary>What a page tells besides its labelled facts and rows, each where it has any.</summary>
+        private static float FactBlockOf(Explorer explorer, Entry entry, Facts facts, FactBlock block, bool places, float width, float y)
+        {
+            switch (block)
+            {
+                case FactBlock.Where:
+                    return facts.Where.Count > 0 ? WhereBlock(explorer, facts, width, y) : y;
+                case FactBlock.FoundIn:
+                    return places ? FoundIn(explorer, entry, width, y + U(6f)) : y;
+                case FactBlock.Biomes:
+                    return BiomesBlock(explorer, entry, width, y);
+                case FactBlock.Users:
+                    var users = Users(explorer, entry);
+                    return users.Count > 0 ? LinkItems(explorer, _usersTitle, users, width, y) : y;
+                case FactBlock.Uses:
+                    return UsesBlock(explorer, facts, width, y);
+                default:
+                    return HooksBlock(entry, facts, width, y);
+            }
+        }
+
+        /// <summary>Where it lives, comes from, or what gives it: a line naming a prefab in the catalog a chip that goes there.</summary>
+        private static float WhereBlock(Explorer explorer, Facts facts, float width, float y)
+        {
+            y += U(6f);
+            GUI.Label(new Rect(0f, y, width, U(20f)), facts.WhereTitle, Skin.DimLabel);
+            y += U(24f);
+            const int firstLines = 8;
+            var lines = ShownOf("where", facts.Where.Count, firstLines);
+            foreach (var source in facts.Where.Take(lines))
+            {
+                // A line naming a prefab in the catalog is a chip that goes there; the rest is text.
+                // A line Scry is not sure of is marked and says why on hover.
+                var text = source.Unsure != null ? UnsureWords.Marked(source.Text) : source.Text;
+                if (string.IsNullOrEmpty(source.Prefab) || !InCatalog(explorer, source.Prefab))
+                {
+                    var style = source.Unsure != null ? Skin.DimWrap : Skin.Wrap;
+                    var height = Skin.Height(style, text, width);
+                    var line = new Rect(0f, y, width, height);
+                    GUI.Label(line, text, style);
+                    if (source.Unsure != null && line.Contains(Event.current.mousePosition)) AskTip("unsure:" + source.Text, source.Unsure);
+                    y += height + U(4f);
+                    continue;
+                }
+
+                var icon = PrefabIcon(source.Prefab);
+                var textX = icon != null ? U(34f) : U(12f);
+                var textW = width - textX - U(10f);
+                var wrapped = Skin.SmallWrap;
+                var chipH = Mathf.Max(U(30f), Skin.Height(wrapped, text, textW) + U(10f));
+                var chip = new Rect(0f, y, width, chipH);
+                var hover = chip.Contains(Event.current.mousePosition);
+                var kind = KindOf(explorer, source.Prefab);
+                Skin.Box(chip, LinkFill(kind, hover));
+                if (icon != null) DrawSprite(icon, new Rect(U(6f), y + (chipH - U(22f)) / 2f, U(22f), U(22f)));
+                Skin.LabelIn(new Rect(textX, y, textW, chipH), text, wrapped, LinkText(kind, hover));
+                if (hover) AskTip("src:" + source.Prefab + source.Unsure, Naming.Lines(source.Unsure, PanelWords.GoTo(ShownName(explorer, source.Prefab, source.Prefab))));
+                if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(source.Prefab))
+                {
+                    AfterGoing();
+                }
+                y += chipH + U(5f);
+            }
+            var more = new ChipFlow(0f, width, y, U(26f), U(5f), U(5f));
+            MoreChip("where", facts.Where.Count, firstLines, width, ref more);
+            if (more.InRow) y = more.RowBottom + U(5f);
+            return y;
+        }
+
+        /// <summary>Its biomes as chips.</summary>
+        private static float BiomesBlock(Explorer explorer, Entry entry, float width, float y)
+        {
             // Its biomes, each going to its page (which can search for everything there), else
             // searching; a biome's own page names none.
             if (entry.Biomes.Length > 0 && entry.Kind != Kind.Biome)
@@ -143,9 +190,12 @@ namespace Scry
                     else SearchFor(explorer, SearchHelp.Term("biome", b));
                 })), width, y);
             }
-            var users = Users(explorer, entry);
-            if (users.Count > 0) y = LinkItems(explorer, _usersTitle, users, width, y);
+            return y;
+        }
 
+        /// <summary>What it is used for, a row for each kind of use and place.</summary>
+        private static float UsesBlock(Explorer explorer, Facts facts, float width, float y)
+        {
             // What it is used for, under a heading of its own; a long row (wood builds a hundred
             // pieces) shows its first few until asked for the rest.
             if (facts.UseRows.Count > 0)
@@ -155,7 +205,12 @@ namespace Scry
                 y += U(22f);
                 foreach (var row in facts.UseRows) y = FactRow(explorer, row, width, y);
             }
+            return y;
+        }
 
+        /// <summary>The mods hooking into what the page tells, in one soft line.</summary>
+        private static float HooksBlock(Entry entry, Facts facts, float width, float y)
+        {
             // Mods hooking into what the page tells, in one soft line after the rest; who they
             // are and what each may change on hover.
             var hooks = ModHookWords.Line(facts.Hooks);
@@ -169,7 +224,7 @@ namespace Scry
                 y = hooksRect.yMax;
             }
 
-            return y + U(14f);
+            return y;
         }
 
         /// <summary>The cells' colours: the plain share faint, resisting green, weak red, taking nothing blue, a quiet one faint.</summary>

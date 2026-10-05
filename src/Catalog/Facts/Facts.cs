@@ -37,6 +37,9 @@ namespace Scry
             /// <summary>Why Scry is not sure of the row, or null when it is (<see cref="UnsureWords"/>).</summary>
             public string Unsure;
 
+            /// <summary>The reader part that told it, for the page's layout (<see cref="FactLayout"/>); "" for none.</summary>
+            public string Part;
+
             /// <summary>A grid in place of chips: every damage type and the share of it taken (<see cref="ResistWords"/>).</summary>
             public List<ResistCell> Cells;
             public readonly List<Ingredient> Items = new List<Ingredient>();
@@ -70,6 +73,12 @@ namespace Scry
         /// <summary>Named values, shown as a two-column table.</summary>
         public readonly List<KeyValuePair<string, string>> Pairs = new List<KeyValuePair<string, string>>();
 
+        /// <summary>The reader part that told each of <see cref="Pairs"/>, in the same order, for the page's layout; "" for none.</summary>
+        public readonly List<string> PairParts = new List<string>();
+
+        /// <summary>The reader part being read, the innermost, while one is.</summary>
+        private string _part = "";
+
         public readonly List<Row> Rows = new List<Row>();
 
         /// <summary>Where it lives, comes from, or what gives it, under <see cref="WhereTitle"/>.</summary>
@@ -88,6 +97,7 @@ namespace Scry
         {
             if (string.IsNullOrEmpty(value)) return;
             Pairs.Add(new KeyValuePair<string, string>(label, value));
+            PairParts.Add(_part);
             if (link != null) Links[label] = link;
         }
 
@@ -224,7 +234,14 @@ namespace Scry
         /// </summary>
         private void Part(string part, Action read)
         {
+            // What it tells is noted as its own, for the page's layout: its rows when they are
+            // read, as a part inside another notes them first.
+            var outer = _part;
+            var rows = Rows.Count;
+            _part = part;
             if (!Guard.Run(Feature.Details(part), FactWords.Part(part), read, Settings.LogPreviews ? FactWords.PartTiming(part) : null) && !_missing.Contains(part)) _missing.Add(part);
+            _part = outer;
+            for (var i = rows; i < Rows.Count; i++) if (Rows[i].Part == null) Rows[i].Part = part;
         }
 
         private void TellMissing()
