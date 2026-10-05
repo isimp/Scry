@@ -47,6 +47,9 @@ namespace Scry
             public string[] Columns;
             public readonly List<(string[] Cells, string Link)> Lines = new List<(string[], string)>();
 
+            /// <summary>A chain the entry is a step of, drawn as its steps with the entry's lit; null for none.</summary>
+            public Chain Chain;
+
             /// <summary>What a table's cell past the first goes to, by its line and column: an attack's projectile and what it puts on you.</summary>
             public readonly Dictionary<(int Line, int Cell), string> CellLinks = new Dictionary<(int, int), string>();
             public readonly List<Ingredient> Items = new List<Ingredient>();
@@ -221,6 +224,11 @@ namespace Scry
                 });
                 facts.Part("uses", () => facts.Uses(entry.Name));
             }
+            // The chains it is a step of, by its prefab or its key.
+            facts.Part("chain", () =>
+            {
+                foreach (var chain in Chains.Of(entry.Name).Concat(Chains.Of(entry.Key)).Distinct()) facts.Rows.Add(new Row { Title = chain.Title, Chain = chain });
+            });
             facts.TellMissing();
             foreach (var row in facts.Rows.Concat(facts.UseRows)) row.TellApart();
 
@@ -241,6 +249,7 @@ namespace Scry
                 foreach (var item in row.Items) if (!string.IsNullOrEmpty(item.Prefab)) linked.Add(item.Prefab);
                 foreach (var (_, link) in row.Lines) if (!string.IsNullOrEmpty(link)) linked.Add(link);
                 foreach (var link in row.CellLinks.Values) linked.Add(link);
+                if (row.Chain != null) foreach (var step in row.Chain.Steps) linked.UnionWith(step);
             }
             foreach (var source in Where) if (!string.IsNullOrEmpty(source.Prefab)) linked.Add(source.Prefab);
             return linked;

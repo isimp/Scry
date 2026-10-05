@@ -50,6 +50,27 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AChainAThingIsAStepOfComesRightUnderItsTilesOnEveryKindLaidOut()
+        {
+            // Where it sits among what comes before and after it, before anything else it tells.
+            foreach (var kind in new[] { Kind.Creature, Kind.Item, Kind.Piece, Kind.Resource, Kind.StatusEffect, Kind.Location })
+            {
+                var plan = FactLayout.Plan(kind, new[] { ("Health", ""), ("Lasts", ""), ("Biome", "") }, new[] { ("Drops", ""), (ChainWords.Breeding, "chain") }, new FactBlock[0]);
+                var chain = plan.Single(t => t.Bits.Any(b => b.Row == 1));
+                var at = plan.IndexOf(chain);
+                Assert.Null(chain.Heading);
+                Assert.Single(chain.Bits);
+                // First, or right after the tiles.
+                Assert.True(at == 0 || (at == 1 && plan[0].Heading == null && plan[0].Tiles.Count > 0), kind.ToString());
+            }
+
+            // The same in an order of its own: a boss's chain from offering to power.
+            var boss = FactLayout.Plan(Kind.Creature, new[] { ("Health", ""), ("Boss", ""), ("Weak spots", "weak spots") }, new[] { (ChainWords.Summoning, "chain") }, new FactBlock[0]);
+            Assert.Equal(new[] { null, null, "Fight" }, boss.Select(t => t.Heading));
+            Assert.Equal(0, Assert.Single(boss[1].Bits).Row);
+        }
+
+        [Fact]
         public void WhatToBringIsPartOfACreaturesFight()
         {
             var plan = FactLayout.Plan(Kind.Creature, new[] { ("Health", "") }, new[] { ("Damage it takes", "resistances"), (SearchFight.BringTitle, "what to bring") }, new FactBlock[0]);

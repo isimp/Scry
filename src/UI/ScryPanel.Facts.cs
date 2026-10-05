@@ -274,6 +274,7 @@ namespace Scry
         {
             if (row.Cells != null) return GridRow(row, width, y);
             if (row.Columns != null) return TableRow(explorer, row, width, y);
+            if (row.Chain != null) return ChainRow(explorer, row, width, y);
             var key = "facts:" + row.Title;
             var count = ShownOf(key, row.Items.Count);
             y += U(6f);
@@ -334,6 +335,43 @@ namespace Scry
                 }
             }
             MoreChip(key, row.Items.Count, FirstChips, width, ref flow);
+            return flow.RowBottom + U(6f);
+        }
+
+        /// <summary>A chain's steps, an arrow between each, the page's own lit and each other one going to its page.</summary>
+        private static float ChainRow(Explorer explorer, Facts.Row row, float width, float y)
+        {
+            y += U(6f);
+            GUI.Label(new Rect(0f, y, width, U(20f)), row.Title, Skin.DimLabel);
+            y += U(24f);
+            var shown = explorer.Selected as Entry;
+            var flow = new ChipFlow(0f, width, y, U(26f), U(4f), U(5f));
+            for (var s = 0; s < row.Chain.Steps.Count; s++)
+            {
+                if (s > 0)
+                {
+                    var arrowW = Skin.Width(Skin.Small, ChainWords.Arrow) + U(4f);
+                    var arrow = flow.Place(arrowW);
+                    GUI.Label(new Rect(arrow.X, arrow.Y, arrowW, flow.RowHeight), ChainWords.Arrow, Skin.Small);
+                }
+                foreach (var key in row.Chain.Steps[s])
+                {
+                    var name = ShownName(explorer, key, key);
+                    var here = shown != null && (shown.Name == key || shown.Key == key);
+                    var w = Mathf.Min(width, LinkChipWidth(name, true));
+                    var at = flow.Place(w);
+                    var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
+                    if (OutOfSight(chip)) continue;
+                    if (here)
+                    {
+                        GUI.Label(chip, name, Skin.ChipOn);
+                        continue;
+                    }
+                    var goes = InCatalog(explorer, key);
+                    if (LinkChip(chip, name, goes ? KindOf(explorer, key) : null, false, goes) && goes) Go(explorer, key);
+                    if (goes && chip.Contains(Event.current.mousePosition)) AskTip("chain:" + key, PanelWords.GoTo(name));
+                }
+            }
             return flow.RowBottom + U(6f);
         }
 

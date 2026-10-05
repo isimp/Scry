@@ -415,6 +415,32 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.ResistanceGrid) > drawn, $"{shown.Name}'s page draws its grid");
         }
 
+        /// <summary>A hen's egg, a carrot's seeds and Eikthyr's offering each show their chain, with every step a page of its own.</summary>
+        private static IEnumerator ChainsShown(Probe p)
+        {
+            foreach (var (kind, names, title) in new[]
+            {
+                (Kind.Item, new[] { "ChickenEgg", "AsksvinEgg" }, ChainWords.Breeding),
+                (Kind.Item, new[] { "CarrotSeeds", "TurnipSeeds" }, ChainWords.Planting),
+                (Kind.Creature, new[] { "Eikthyr", "gd_king" }, ChainWords.Summoning),
+            })
+            {
+                var entry = Pick(kind, names);
+                if (entry == null)
+                {
+                    p.Note("none of " + string.Join(", ", names));
+                    continue;
+                }
+                var row = Facts.For(entry).Rows.FirstOrDefault(r => r.Chain != null && r.Title == title);
+                p.Check(row != null, $"{entry.Name} shows its chain {title.ToLowerInvariant()}");
+                if (row == null) continue;
+                p.Note($"{entry.Name}: {string.Join(" > ", row.Chain.Steps.Select(s => string.Join("/", s)))}");
+                var pageless = row.Chain.Steps.SelectMany(s => s).Where(k => X.Find(k) == null).ToList();
+                p.Check(pageless.Count == 0, $"every step of {entry.Name}'s chain has a page", string.Join(", ", pageless));
+            }
+            yield break;
+        }
+
         /// <summary>A copper deposit is broken with pickaxes from bronze up, a beech with axes; neither with a sword.</summary>
         private static IEnumerator WhatBreaksIt(Probe p)
         {

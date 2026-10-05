@@ -65,18 +65,34 @@ namespace Scry
 
         private static readonly Dictionary<Kind, KindPlan> Kinds = new Dictionary<Kind, KindPlan>
         {
-            [Kind.Creature] = Creature(),
-            [Kind.Item] = Item(),
-            [Kind.Piece] = Piece(),
-            [Kind.Resource] = Resource(),
-            [Kind.Projectile] = Projectile(),
-            [Kind.Location] = Location(),
-            [Kind.Raid] = Raid(),
-            [Kind.Biome] = Biome(),
-            [Kind.StatusEffect] = StatusEffect(),
-            [Kind.Mod] = Mod(),
-            [Kind.Spawner] = Spawner(),
+            [Kind.Creature] = WithChain(Creature()),
+            [Kind.Item] = WithChain(Item()),
+            [Kind.Piece] = WithChain(Piece()),
+            [Kind.Resource] = WithChain(Resource()),
+            [Kind.Projectile] = WithChain(Projectile()),
+            [Kind.Location] = WithChain(Location()),
+            [Kind.Raid] = WithChain(Raid()),
+            [Kind.Biome] = WithChain(Biome()),
+            [Kind.StatusEffect] = WithChain(StatusEffect()),
+            [Kind.Mod] = WithChain(Mod()),
+            [Kind.Spawner] = WithChain(Spawner()),
         };
+
+        /// <summary>A kind's plan with the chains it is a step of right under its tiles, without a heading of their own (<see cref="ChainBook"/>).</summary>
+        private static KindPlan WithChain(KindPlan plan)
+        {
+            var topics = new List<(string, string)>(plan.Topics);
+            topics.Insert(1, ("chain", null));
+            plan.Topics = topics.ToArray();
+            for (var i = 0; i < plan.Orders.Count; i++)
+            {
+                var ids = new List<string>(plan.Orders[i].Ids);
+                ids.Insert(1, "chain");
+                plan.Orders[i] = (plan.Orders[i].Key, ids.ToArray());
+            }
+            Part(plan, "chain", "chain");
+            return plan;
+        }
 
         private static KindPlan Creature()
         {
