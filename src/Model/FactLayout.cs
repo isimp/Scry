@@ -67,6 +67,7 @@ namespace Scry
             [Kind.Raid] = Raid(),
             [Kind.Biome] = Biome(),
             [Kind.StatusEffect] = StatusEffect(),
+            [Kind.Mod] = Mod(),
         };
 
         private static KindPlan Creature()
@@ -276,6 +277,23 @@ namespace Scry
             Label(plan, More, "Not shown");
             Part(plan, "changes", "status effect");
             plan.Blocks[FactBlock.Users] = More;
+            plan.Blocks[FactBlock.Hooks] = "hooks";
+            return plan;
+        }
+
+        private static KindPlan Mod()
+        {
+            var plan = new KindPlan
+            {
+                Topics = new[] { ("overview", (string)null), ("about", "About"), ("ties", "Ties to other mods"), ("adds", "What it adds"), (More, "More"), ("hooks", null) },
+            };
+            Tile(plan, "overview", null, "Version", "By");
+            Label(plan, "about", "Website", "Id", "Folder");
+            Label(plan, More, "Not shown");
+            // Its ties, each a row counting the mods: "Needs (2)", "Works with, when there (1)".
+            plan.Starts.Add((l => l.StartsWith("Will not run with", StringComparison.Ordinal) || l.StartsWith("Needs", StringComparison.Ordinal)
+                || l.StartsWith("Needed by", StringComparison.Ordinal) || l.StartsWith("Works with", StringComparison.Ordinal), "ties"));
+            Part(plan, "adds", "mod");
             plan.Blocks[FactBlock.Hooks] = "hooks";
             return plan;
         }

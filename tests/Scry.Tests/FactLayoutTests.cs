@@ -258,6 +258,24 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AModShowsItsVersionAndMakerThenAboutItItsTiesAndWhatItAdds()
+        {
+            var pairs = new[]
+            {
+                ("By", "mod"), ("Website", "mod"), ("Version", "mod"), ("Id", "mod"), ("Folder", "mod"), ("Will not run with", "mod"),
+                ("Adds", "mod"), ("Hooks into", "mod"), ("Station: Forge", "mod"),
+            };
+            var rows = new[] { ("Will not run with (1)", "mod"), ("Needs (2)", "mod"), ("Needed by (3)", "mod"), ("Works with, when there (1)", "mod"), ("Adds 12 items", "mod") };
+            var plan = FactLayout.Plan(Kind.Mod, pairs, rows, new[] { FactBlock.Hooks });
+            string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
+            Assert.Equal(new[] { null, "About", "Ties to other mods", "What it adds", null }, plan.Select(t => t.Heading));
+            Assert.Equal(new[] { "Version", "By" }, plan[0].Tiles.Select(i => pairs[i].Item1));
+            Assert.Equal(new[] { "Website", "Id", "Folder" }, plan[1].Bits.Select(Name));
+            Assert.Equal(new[] { "Will not run with", "row Will not run with (1)", "row Needs (2)", "row Needed by (3)", "row Works with, when there (1)" }, plan[2].Bits.Select(Name));
+            Assert.Equal(new[] { "Adds", "Hooks into", "Station: Forge", "row Adds 12 items" }, plan[3].Bits.Select(Name));
+        }
+
+        [Fact]
         public void ANoteReadsItsLabelThenItsValue()
         {
             Assert.Equal("Drops with stars: more with each star", FactWords.Note("Drops with stars", "more with each star"));
