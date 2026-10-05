@@ -1,41 +1,36 @@
-using System.Collections.Generic;
+using UnityEngine;
 
 namespace Scry
 {
     /// <summary>
     /// Where the in-game self-test plugs in. The self-test is a plugin of its own
-    /// (<c>Scry.SelfTest.dll</c>), built and deployed with a development build of Scry and never
-    /// packaged with a release; as it loads it registers here, and the frame, the command and
-    /// the panel's strip reach it through here. Without it, nothing of it runs or shows, and
-    /// <c>/scry selftest</c> says it is not installed.
+    /// (<c>Scry.SelfTest.dll</c>), deployed with a development build of Scry and never packaged
+    /// with a release, so everything of it lives there: its runner, its words, the /scry words it
+    /// answers and how it is drawn in the panel. As it loads it registers here, and Scry reaches
+    /// it only through here: each frame, the words typed after /scry, and its strip under the
+    /// panel's header with its details in the list's place, which it draws itself. Without it
+    /// none of these do anything, and nothing of it shows.
     /// </summary>
     internal static class SelfTestHost
     {
         /// <summary>What the self-test offers Scry.</summary>
         public interface IRunner
         {
-            bool Running { get; }
-
-            /// <summary>Called every frame: runs the scenarios, and starts them by marker file once per world.</summary>
+            /// <summary>Called every frame.</summary>
             void Tick();
 
-            string Start(string why);
-            string Stop();
+            /// <summary>The reply to the words typed after /scry where they are the self-test's; null where they are Scry's.</summary>
+            string Answer(string typed);
 
-            /// <summary>The run's progress while it runs, for the panel's strip; null when none runs.</summary>
-            string Progress { get; }
+            /// <summary>Whether it has a strip to show under the panel's header.</summary>
+            bool StripShown { get; }
 
-            /// <summary>How much of the run is done, from 0 to 1.</summary>
-            float Fraction { get; }
+            void DrawStrip(Rect rect);
 
-            /// <summary>The last run's headline, failed and skipped parts with their checks, and what to do; null before any run this session.</summary>
-            string LastHeadline { get; }
-            IReadOnlyList<string> LastSummary { get; }
-            string LastAdvice { get; }
-            bool LastFailed { get; }
+            /// <summary>Whether its details stand in the list's place.</summary>
+            bool CardShown { get; }
 
-            /// <summary>The whole of the last run's outcome as text, for copying.</summary>
-            string LastText { get; }
+            void DrawCard(Rect rect);
         }
 
         private static IRunner _runner;
@@ -43,18 +38,11 @@ namespace Scry
         /// <summary>The self-test registers itself as it loads.</summary>
         public static void Register(IRunner runner) => _runner = runner;
 
-        public static bool Running => _runner?.Running ?? false;
         public static void Tick() => _runner?.Tick();
-        public static string Start(string why) => _runner != null ? _runner.Start(why) : NotInstalled;
-        public static string Stop() => _runner != null ? _runner.Stop() : NotInstalled;
-        public static string Progress => _runner?.Progress;
-        public static float Fraction => _runner?.Fraction ?? 0f;
-        public static string LastHeadline => _runner?.LastHeadline;
-        public static IReadOnlyList<string> LastSummary => _runner?.LastSummary ?? System.Array.Empty<string>();
-        public static string LastAdvice => _runner?.LastAdvice;
-        public static bool LastFailed => _runner?.LastFailed ?? false;
-        public static string LastText => _runner?.LastText ?? "";
-
-        private const string NotInstalled = "the self-test is not installed with this copy of Scry; it comes with a development build.";
+        public static string Answer(string typed) => _runner?.Answer(typed);
+        public static bool StripShown => _runner?.StripShown ?? false;
+        public static void DrawStrip(Rect rect) => _runner?.DrawStrip(rect);
+        public static bool CardShown => _runner?.CardShown ?? false;
+        public static void DrawCard(Rect rect) => _runner?.DrawCard(rect);
     }
 }

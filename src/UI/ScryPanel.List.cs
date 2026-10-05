@@ -33,7 +33,7 @@ namespace Scry
         }
 
         /// <summary>Puts away whatever card is showing, for the list.</summary>
-        private static void CloseCards() => _card = ListCard.None;
+        internal static void CloseCards() => _card = ListCard.None;
 
         /// <summary>Scrolls the selected entry into sight at the list's next repaint.</summary>
         private static void RevealSelected() => _reveal = true;
@@ -152,9 +152,9 @@ namespace Scry
 
         private static void List(Explorer explorer, Rect rect)
         {
-            if (_testDetails)
+            if (SelfTestHost.CardShown)
             {
-                TestCard(rect);
+                SelfTestHost.DrawCard(rect);
                 return;
             }
             if (_card == ListCard.Help)

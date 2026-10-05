@@ -26,7 +26,6 @@ namespace Scry
         private static ConfigEntry<int> _recentCount;
         private static ConfigEntry<float> _spinSpeed;
         private static ConfigEntry<bool> _readLocations;
-        private static ConfigEntry<bool> _selfTest;
 
         /// <summary>
         /// The key that opens the panel. One the game or the panel already uses for something
@@ -75,9 +74,6 @@ namespace Scry
             }
         }
 
-        /// <summary>Whether the self-test may run (<c>/scry selftest</c>, or the marker file), for finding faults rather than for play.</summary>
-        public static bool SelfTestAllowed => _selfTest?.Value ?? false;
-
         /// <summary>
         /// Where Scry keeps its own files, favourites and the panel's place on screen: beside its
         /// settings, in a folder of BepInEx's config folder named for it, so they go with the
@@ -121,8 +117,6 @@ namespace Scry
                 "Writes to the log what each preview played and what Scry found out about each prefab (its animator, its gear, what it leaves behind), for finding out why something looks or sounds wrong. Off, the log only says when the game has changed in a way Scry notices, and how long reading the catalog took.");
             _showMonitor = config.Bind("3 - Diagnostics", "ResourceMonitor", false,
                 "Shows a small box in the screen's corner, also with the panel closed, telling what Scry costs and holds: its own time each frame with a graph of the last ten seconds and its parts, what it allocates, the bundles, copies, textures and meshes it holds, beside the game's memory. /scry monitor switches it. For finding faults, not for play.");
-            _selfTest = config.Bind("3 - Diagnostics", "SelfTest", false,
-                "Allows /scry selftest, which tries Scry out by itself for a few minutes in the world you are in (opening the panel, playing previews, loading and reading every location) and writes what worked and how fast to BepInEx/Scry-selftest.log; with the file BepInEx/Scry-selftest.run present it also starts by itself once in each world. For finding faults, not for play.");
         }
     }
 }

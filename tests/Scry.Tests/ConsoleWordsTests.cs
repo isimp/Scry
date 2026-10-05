@@ -11,7 +11,6 @@ namespace Scry.Tests
         public void EveryReplyIsLedByScrysName()
         {
             Assert.Equal("Scry: previews cleared.", ConsoleWords.Reply(ConsoleWords.Cleared));
-            Assert.Equal("Scry: the self-test is off; SelfTest under Diagnostics in Scry's settings turns it on.", ConsoleWords.Reply(ConsoleWords.SelfTestOff));
         }
 
         [Fact]

@@ -42,18 +42,11 @@ namespace Scry
                 return;
             }
 
-            if (rest.Equals("selftest", System.StringComparison.OrdinalIgnoreCase))
+            // The self-test, where it is installed, answers the words that are its own.
+            var answer = SelfTestHost.Answer(rest);
+            if (answer != null)
             {
-                // A tool for finding faults, off unless its setting is on; stopping one always works.
-                args.Context.OrNull()?.AddString(ConsoleWords.Reply(Settings.SelfTestAllowed
-                    ? SelfTestHost.Start("it was asked for with /scry selftest")
-                    : ConsoleWords.SelfTestOff));
-                return;
-            }
-
-            if (rest.Equals("selftest stop", System.StringComparison.OrdinalIgnoreCase))
-            {
-                args.Context.OrNull()?.AddString(ConsoleWords.Reply(SelfTestHost.Stop()));
+                args.Context.OrNull()?.AddString(ConsoleWords.Reply(answer));
                 return;
             }
 

@@ -19,9 +19,9 @@ namespace Scry
     /// recent entries and history are put back as they were, it closes again if it was closed,
     /// and a copy the player had standing in the world is left alone.
     ///
-    /// Runs only with the SelfTest setting on: it starts with <c>/scry selftest</c>, or by itself a
-    /// few seconds after the catalog is read when the file <c>BepInEx/Scry-selftest.run</c> exists;
-    /// <c>/scry selftest stop</c> stops it.
+    /// Runs wherever this plugin is installed: it starts with <c>/scry selftest</c>, or by itself
+    /// a few seconds after the catalog is read when the file <c>BepInEx/Scry-selftest.run</c>
+    /// exists; <c>/scry selftest stop</c> stops it.
     /// </summary>
     internal static partial class SelfTest
     {
@@ -56,17 +56,22 @@ namespace Scry
         /// <summary>The self-test as Scry reaches it (<see cref="SelfTestHost"/>).</summary>
         internal sealed class Runner : SelfTestHost.IRunner
         {
-            public bool Running => SelfTest.Running;
             public void Tick() => SelfTest.Tick();
-            public string Start(string why) => SelfTest.Start(why);
-            public string Stop() => SelfTest.Stop();
-            public string Progress => SelfTest.Progress;
-            public float Fraction => SelfTest.Fraction;
-            public string LastHeadline => SelfTest.LastHeadline;
-            public System.Collections.Generic.IReadOnlyList<string> LastSummary => SelfTest.LastSummary;
-            public string LastAdvice => SelfTest.LastAdvice;
-            public bool LastFailed => SelfTest.LastFailed;
-            public string LastText => SelfTest.LastText;
+
+            public string Answer(string typed)
+            {
+                switch (SelfTestCommand.Of(typed))
+                {
+                    case SelfTestAsk.Start: return SelfTest.Start("it was asked for with /scry selftest");
+                    case SelfTestAsk.Stop: return SelfTest.Stop();
+                    default: return null;
+                }
+            }
+
+            public bool StripShown => SelfTestPanel.StripShown;
+            public void DrawStrip(UnityEngine.Rect rect) => SelfTestPanel.Strip(rect);
+            public bool CardShown => SelfTestPanel.CardShown;
+            public void DrawCard(UnityEngine.Rect rect) => SelfTestPanel.Card(rect);
         }
 
         /// <summary>Called every frame: runs the scenarios, and starts them by marker file once per world.</summary>
@@ -99,7 +104,7 @@ namespace Scry
             if (Time.unscaledTime - _readyAt < 5f) return;
             _autoFor = explorer;
             _readyAt = -1f;
-            if (Settings.SelfTestAllowed && File.Exists(MarkerFile)) Start("the marker file is present");
+            if (File.Exists(MarkerFile)) Start("the marker file is present");
         }
 
         public static string Start(string why)
@@ -119,7 +124,7 @@ namespace Scry
             Frames.Clear();
             Timing.Measuring = Frames;
             _runner = new ScenarioRunner(Scenarios(), Write, Finish);
-            ScryPanel.ShowTestResult();
+            SelfTestPanel.ShowResult();
             return SelfTestWords.Started(_runner.Total);
         }
 
@@ -175,7 +180,7 @@ namespace Scry
             Write(LastHeadline);
             foreach (var line in LastSummary) Write(line);
             Write(LastAdvice);
-            ScryPanel.ShowTestResult();
+            SelfTestPanel.ShowResult();
             Chat.instance.OrNull()?.AddString($"Scry: {LastHeadline} Open Scry for the details; BepInEx/Scry-selftest.log has everything.");
         }
 

@@ -10,7 +10,7 @@ namespace Scry
     internal static partial class ScryPanel
     {
         /// <summary>Where a card's body is drawn inside its scroll view: its left edge, its first line, the width its text takes, and how much of it shows.</summary>
-        private struct CardBody
+        internal struct CardBody
         {
             public float X, Y, Width;
 
@@ -24,10 +24,10 @@ namespace Scry
         private static Rect CardArea(Rect rect) => new Rect(rect.x + U(4f), rect.y + U(6f), rect.width - U(8f), rect.height - CardFootHeight - U(20f));
 
         /// <summary>The width a card's text takes, known before the card is begun, for working out its height.</summary>
-        private static float CardWidth(Rect rect) => CardArea(rect).width - U(38f);
+        internal static float CardWidth(Rect rect) => CardArea(rect).width - U(38f);
 
         /// <summary>Draws a card's panel and begins its scrolled body, as tall as given, under its title.</summary>
-        private static CardBody BeginCard(Rect rect, ref Vector2 scroll, float height, string title)
+        internal static CardBody BeginCard(Rect rect, ref Vector2 scroll, float height, string title)
         {
             Skin.Box(rect, Skin.Panel);
             var area = CardArea(rect);
@@ -41,7 +41,7 @@ namespace Scry
         }
 
         /// <summary>Ends a card's body and draws its Close; true when it is clicked. Where Close stands, for buttons beside it.</summary>
-        private static bool EndCard(Rect rect, out Rect close)
+        internal static bool EndCard(Rect rect, out Rect close)
         {
             GUI.EndScrollView();
             var height = CardFootHeight;
@@ -50,7 +50,7 @@ namespace Scry
         }
 
         /// <summary>A button at a card's foot, left of the one given, while there is room; true when it is clicked.</summary>
-        private static bool CardButton(Rect rect, Rect beside, string text, out Rect button)
+        internal static bool CardButton(Rect rect, Rect beside, string text, out Rect button)
         {
             var width = Skin.Width(Skin.Button, text) + U(10f);
             button = new Rect(beside.x - U(8f) - width, beside.y, width, beside.height);

@@ -48,7 +48,7 @@ namespace Scry
             return IsOpen && _drawn.Contains(new Vector2(mouse.x, Screen.height - mouse.y));
         }
 
-        private static float U(float v) => Mathf.Round(v * _s);
+        internal static float U(float v) => Mathf.Round(v * _s);
 
         /// <summary>Draws at another scale from here on, for the monitor drawn beside the panel; gives back the one before.</summary>
         private static float SwapScale(float scale)
@@ -303,8 +303,12 @@ namespace Scry
             }
 
             // The self-test and what is off, in strips under the header, the rest moved down to make room.
-            var testH = TestNoticeHeight();
-            if (testH > 0f) TestNotice(new Rect(pad, U(54f), w - pad * 2f, testH - U(4f)));
+            var testH = SelfTestHost.StripShown ? U(32f) : 0f;
+            if (testH > 0f)
+            {
+                CountDrawn(PanelPart.TestNotice);
+                SelfTestHost.DrawStrip(new Rect(pad, U(54f), w - pad * 2f, testH - U(4f)));
+            }
             var noticeH = OffNoticeHeight();
             if (noticeH > 0f) OffNotice(new Rect(pad, U(54f) + testH, w - pad * 2f, noticeH - U(4f)));
             noticeH += testH;

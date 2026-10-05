@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <Compile Include="../../src/Model/*.cs" />
+    <Compile Include="../../selftest/Model/*.cs" />
     <Compile Include="../../tools/shapes/ShapeList.cs" />
   </ItemGroup>
 

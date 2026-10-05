@@ -195,7 +195,7 @@ namespace Scry
             }
         }
 
-        private enum StripClick
+        internal enum StripClick
         {
             None,
             Chip,
@@ -207,7 +207,7 @@ namespace Scry
         /// at its left, a mark where it warns, its line sliding where it is longer than the strip,
         /// a chip, and a cross that puts it away where it can be. Returns what was clicked.
         /// </summary>
-        private static StripClick NoticeStrip(Rect rect, Color tone, string line, GUIStyle lineStyle, bool mark, string chip, bool chipOn, bool cross, string chipTip = null, string crossTip = null)
+        internal static StripClick NoticeStrip(Rect rect, Color tone, string line, GUIStyle lineStyle, bool mark, string chip, bool chipOn, bool cross, string chipTip = null, string crossTip = null)
         {
             Skin.Fill(rect, Skin.Alpha(tone, 0.13f));
             Skin.Fill(new Rect(rect.x, rect.y, U(3f), rect.height), tone);
