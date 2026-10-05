@@ -226,11 +226,13 @@ namespace Scry
         /// <summary>
         /// The clip an item's attack plays first on the person trying it on, as the person's
         /// animator plays it for the attack's trigger in the stance the item gives; null for none.
+        /// Asked without waiting, it is null while the animator is still watched, rather than
+        /// watching the rest of it in this one frame.
         /// </summary>
-        private static AnimationClip AttackClipOf(Attack attack)
+        private static AnimationClip AttackClipOf(Attack attack, bool wait = true)
         {
             var ears = ClipPlayer.AnimatorOf(Stage.Subject).OrNull()?.GetComponent<AnimationEars>();
-            var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject) : null;
+            var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject, wait) : null;
             if (plays == null) return null;
             foreach (var part in plays.Attacks)
             {
@@ -259,7 +261,9 @@ namespace Scry
             var carried = worn != null ? worn.Find(i => i != null && i.name == item) : prefab != null ? Relations.CarriedItems(prefab).Find(i => i.name == item) : null;
             var shared = carried != null ? carried.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
             var attack = secondary ? shared?.m_secondaryAttack : shared?.m_attack;
-            var clip = attack != null ? AttackClipOf(attack) : null;
+            // Asked for every line of a table each time the panel draws: never made to watch the
+            // rest of the animator in one frame (a troll's took 380 ms); known once watched.
+            var clip = attack != null ? AttackClipOf(attack, wait: false) : null;
             // Not kept until found: the clips are worked out a while after the copy is shown.
             if (clip != null) AttackClips[key] = clip;
             return clip;
