@@ -245,6 +245,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AStatusEffectShowsHowLongItLastsThenWhatItChanges()
+        {
+            var pairs = new[] { ("Lasts", "status effect"), ("Health regen", "status effect"), ("Resists", "status effect") };
+            var rows = new[] { ("While it lasts, cannot take", "status effect") };
+            var plan = FactLayout.Plan(Kind.StatusEffect, pairs, rows, new[] { FactBlock.Users, FactBlock.Hooks });
+            string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
+            Assert.Equal(new[] { null, "Changes", "More", null }, plan.Select(t => t.Heading));
+            Assert.Equal(new[] { "Lasts" }, plan[0].Tiles.Select(i => pairs[i].Item1));
+            Assert.Equal(new[] { "Health regen", "Resists", "row While it lasts, cannot take" }, plan[1].Bits.Select(Name));
+            Assert.Equal(new[] { "block Users" }, plan[2].Bits.Select(Name));
+        }
+
+        [Fact]
         public void ANoteReadsItsLabelThenItsValue()
         {
             Assert.Equal("Drops with stars: more with each star", FactWords.Note("Drops with stars", "more with each star"));

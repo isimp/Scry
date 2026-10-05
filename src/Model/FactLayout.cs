@@ -66,6 +66,7 @@ namespace Scry
             [Kind.Location] = Location(),
             [Kind.Raid] = Raid(),
             [Kind.Biome] = Biome(),
+            [Kind.StatusEffect] = StatusEffect(),
         };
 
         private static KindPlan Creature()
@@ -261,6 +262,20 @@ namespace Scry
             plan.Starts.Add((l => l.EndsWith(" of the time", StringComparison.Ordinal), "weather"));
             plan.Starts.Add((l => l.StartsWith("Music", StringComparison.Ordinal), "music"));
             Part(plan, "there", "biome");
+            plan.Blocks[FactBlock.Hooks] = "hooks";
+            return plan;
+        }
+
+        private static KindPlan StatusEffect()
+        {
+            var plan = new KindPlan
+            {
+                Topics = new[] { ("overview", (string)null), ("changes", "Changes"), (More, "More"), ("hooks", null) },
+            };
+            Tile(plan, "overview", null, "Lasts");
+            Label(plan, More, "Not shown");
+            Part(plan, "changes", "status effect");
+            plan.Blocks[FactBlock.Users] = More;
             plan.Blocks[FactBlock.Hooks] = "hooks";
             return plan;
         }
