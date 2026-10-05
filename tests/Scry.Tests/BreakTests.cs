@@ -16,10 +16,10 @@ namespace Scry.Tests
             ("PickaxeIron", 3, "Pickaxes", new[] { ("pickaxe", 33f), ("pierce", 33f) }),
             ("PickaxeAntler", 1, "Pickaxes", new[] { ("pickaxe", 22f), ("pierce", 22f) }),
             ("CrossbowArbalest", 5, "Crossbows", new[] { ("pierce", 90f), ("chop", 10f) }),
+            ("BattleaxeCrystal", 3, "Axes", new[] { ("slash", 50f), ("chop", 40f) }),
             ("AxeBronze", 2, "Axes", new[] { ("slash", 20f), ("chop", 40f) }),
             ("PickaxeBronze", 2, "Pickaxes", new[] { ("pickaxe", 27f), ("pierce", 27f) }),
             ("SwordIron", 3, "Swords", new[] { ("slash", 55f) }),
-            ("BattleaxeCrystal", 3, "Axes", new[] { ("slash", 50f), ("chop", 40f) }),
             ("AxeStone", 0, "Axes", new[] { ("slash", 10f), ("chop", 20f) }),
             ("SledgeIron", 2, "Clubs", new[] { ("blunt", 70f), ("pickaxe", 10f) }),
         };
