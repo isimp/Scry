@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -29,6 +30,29 @@ namespace Scry
 
         /// <summary>The Forsaken power a trophy gives on its boss stone.</summary>
         public static string Gives(string power) => "gives " + power;
+
+        /// <summary>The title of an item's table by quality level.</summary>
+        public const string ByQualityTitle = "By quality";
+
+        /// <summary>That table's columns: a blank over the lines' names, then each quality level.</summary>
+        public static string[] QualityColumns(int maxQuality)
+        {
+            var columns = new List<string> { "" };
+            for (var q = 1; q <= maxQuality; q++) columns.Add(Numbers.Count(q));
+            return columns.ToArray();
+        }
+
+        /// <summary>
+        /// A line of that table: its damage at each quality level, each type its base and what
+        /// each level adds (<c>ItemData.GetDamage</c>); null where quality adds nothing or it has one level.
+        /// </summary>
+        public static string[] DamageByQuality(IReadOnlyList<(string Type, float Base, float PerLevel)> damage, int maxQuality)
+        {
+            if (maxQuality <= 1 || !damage.Any(d => d.PerLevel > 0f)) return null;
+            var line = new List<string> { "Damage" };
+            for (var q = 1; q <= maxQuality; q++) line.Add(CombatWords.Damage(damage.Select(d => (d.Type, d.Base + d.PerLevel * (q - 1)))) ?? "");
+            return line.ToArray();
+        }
 
         /// <summary>A figure, and how much each quality adds to it where it adds any (the caller passes none for what cannot be upgraded).</summary>
         public static string PerQuality(double value, double perQuality) =>

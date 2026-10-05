@@ -8,6 +8,19 @@ namespace Scry.Tests
         // portals, whether gear can be upgraded, whether it wears out, and where it is repaired.
 
         [Fact]
+        public void AWeaponsDamageIsATableByQualityLevel()
+        {
+            Assert.Equal("By quality", ItemWords.ByQualityTitle);
+            Assert.Equal(new[] { "", "1", "2", "3", "4" }, ItemWords.QualityColumns(4));
+            // The base, then each level's added: the game's damage at a quality (ItemData.GetDamage).
+            var damage = new[] { ("blunt", 40f, 6f), ("fire", 0f, 0f), ("spirit", 10f, 5f) };
+            Assert.Equal(new[] { "Damage", "40 blunt, 10 spirit", "46 blunt, 15 spirit", "52 blunt, 20 spirit" }, ItemWords.DamageByQuality(damage, 3));
+            // Nothing added by quality, nothing to tell by it.
+            Assert.Null(ItemWords.DamageByQuality(new[] { ("slash", 20f, 0f) }, 3));
+            Assert.Null(ItemWords.DamageByQuality(new[] { ("slash", 20f, 5f) }, 1));
+        }
+
+        [Fact]
         public void AnItemSaysWhetherItGoesThroughPortals()
         {
             Assert.Equal("can go through", ItemWords.Portals(true));

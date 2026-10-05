@@ -191,6 +191,7 @@ namespace Scry
             ("Recipe", "GetRequiredStationLevel", 1, 0x7AD112DA, Feature.StationLevelsForUpgrades),
             ("ItemDrop+ItemData", "GetTooltip", 6, 0xE717E1A4, Feature.ItemStats),
             ("ItemDrop+ItemData", "AddBlockTooltip", 3, 0xDF722134, Feature.BlockAndParry),
+            ("ItemDrop+ItemData", "GetDamage", 2, 0xB0CFE930, Feature.ItemStats),
             ("Player", "GetBodyArmor", 0, 0x03C09085, Feature.WhichArmourCounts),
             ("HitData", "ApplyResistance", 2, 0x8BB9A7D5, Feature.TrueDamage),
             ("SE_Rested", "CalculateComfortLevel", 2, 0x71FEE0E8, Feature.ComfortGroups),

@@ -92,13 +92,13 @@ namespace Scry.Tests
         public void AWeaponShowsItsDamageWeightQualityAndWearThenHowItFightsAndIsMade()
         {
             var weapon = Item(
-                new[] { ("Type", ""), ("Weight", ""), ("Quality", ""), ("Portals", ""), ("Damage", ""), ("Per quality", ""), ("Skill", "item stats"), ("Block", "item stats"),
+                new[] { ("Type", ""), ("Weight", ""), ("Quality", ""), ("Portals", ""), ("Damage", ""), ("Skill", "item stats"), ("Block", "item stats"),
                     ("Durability", "item stats"), ("Repaired at", "item stats"), ("Fire damage causes", "") },
-                new[] { ("Made at forge", "recipe") },
+                new[] { ("By quality", ""), ("Made at forge", "recipe") },
                 FactBlock.Where, FactBlock.Uses, FactBlock.Hooks);
             Assert.Equal(new[] { null, "Fight", "Making", "Where it comes from", "What it is used for", null }, weapon.Select(t => t.Heading));
             Assert.Equal(new[] { "Damage", "Weight", "Quality", "Durability" }, weapon[0].Shown);
-            Assert.Equal(new[] { "Per quality", "Block", "Fire damage causes" }, weapon[1].Shown);
+            Assert.Equal(new[] { "Block", "Fire damage causes", "row By quality" }, weapon[1].Shown);
             Assert.Equal(new[] { "Type", "Portals", "Skill", "Repaired at", "row Made at forge" }, weapon[2].Shown);
             Assert.Equal(new[] { "block Where" }, weapon[3].Shown);
             Assert.Equal(new[] { "block Uses" }, weapon[4].Shown);

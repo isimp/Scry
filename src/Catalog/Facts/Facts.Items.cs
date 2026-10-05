@@ -29,7 +29,14 @@ namespace Scry
             if (damage.Length > 0)
             {
                 Add("Damage", damage);
-                if (upgradable) Add("Per quality", Damages(shared.m_damagesPerLevel));
+                var perLevel = DamageFigures(shared.m_damagesPerLevel);
+                var byQuality = ItemWords.DamageByQuality(DamageFigures(shared.m_damages).Select((d, i) => (d.Type, d.Amount, perLevel[i].Amount)).ToList(), shared.m_maxQuality);
+                if (byQuality != null)
+                {
+                    var table = new Row { Title = ItemWords.ByQualityTitle, Columns = ItemWords.QualityColumns(shared.m_maxQuality) };
+                    table.Lines.Add((byQuality, null));
+                    Rows.Add(table);
+                }
             }
 
             var type = shared.m_itemType;
