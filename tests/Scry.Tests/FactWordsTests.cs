@@ -51,8 +51,9 @@ namespace Scry.Tests
             Assert.Equal("troll_groundslam", item);
             Assert.False(EntryKeys.PlaysAttack("troll_groundslam", out _));
             Assert.False(EntryKeys.PlaysMusic(EntryKeys.PlayAttack("troll_groundslam"), out _));
-            Assert.Equal("Play this attack", ClipWords.PlayAttackTip(known: true));
-            Assert.Equal("Its animations are still being worked out; this plays once they are", ClipWords.PlayAttackTip(known: false));
+            Assert.Equal("Play this attack", ClipWords.PlayAttackTip(known: true, playing: false));
+            Assert.Equal("Stop this attack", ClipWords.PlayAttackTip(known: true, playing: true));
+            Assert.Equal("Its animations are still being worked out; this plays once they are", ClipWords.PlayAttackTip(known: false, playing: false));
             Assert.False(EntryKeys.PlaysMusic(null, out _));
         }
 

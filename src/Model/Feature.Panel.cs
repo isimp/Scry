@@ -19,6 +19,7 @@ namespace Scry
         public static readonly Feature SearchTerms = Listed("search terms of what things are and do");
         public static readonly Feature GameNames = Listed("names as the game shows them");
         public static readonly Feature Groups = Listed("the list's groups");
+        public static readonly Feature AttackItems = Listed("telling creatures' attacks from players' weapons in the list");
         public static readonly Feature Links = Listed("links between entries");
         public static readonly Feature DetailsShown = Listed("the details");
     }

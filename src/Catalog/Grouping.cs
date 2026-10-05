@@ -79,7 +79,8 @@ namespace Scry
             var carried = entry.Links.Any(l => l.Group == Relations.CarriedBy);
             var obtainable = entry.Stations.Length > 0 || Knowledge.SourceLines(entry.Name).Count > 0 || entry.FoundIn.Length > 0
                 || Knowledge.IsPlacedByWorld(entry.Name) || entry.Links.Any(l => l.Group == Relations.SpawnedBy);
-            return Groups.Item(shared?.m_itemType.ToString(), shared?.m_skillType.ToString(), carried, obtainable, entry.Empty);
+            var iconless = shared != null && (shared.m_icons == null || shared.m_icons.Length == 0);
+            return Groups.Item(shared?.m_itemType.ToString(), shared?.m_skillType.ToString(), carried, obtainable, entry.Empty, iconless);
         }
 
         /// <summary>

@@ -192,17 +192,22 @@ namespace Scry
                     for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++)
                     {
                         var cell = new Rect(x, y, ColumnWidths[c], height);
-                        // An attack's name plays its animation on the stage, as its clip's chip does.
+                        // An attack's name plays its animation on the stage and stops it again, lit
+                        // while it plays, as its clip's chip does.
                         if (c == 0 && EntryKeys.PlaysAttack(link, out var item))
                         {
                             var clip = Previews.ClipOfAttackItem(item);
-                            var lit = clip != null && Previews.LastClip == clip;
-                            LinkLabel(cell, cells[c], Skin.SmallWrap, lit ? Skin.KindColor(Kind.Sound) : Skin.Accent);
-                            if (cell.Contains(Event.current.mousePosition)) AskTip("table-attack:" + item + (clip != null), ClipWords.PlayAttackTip(clip != null));
+                            var playing = clip != null && Previews.PlayingClip() == clip;
+                            LinkLabel(cell, cells[c], Skin.SmallWrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);
+                            if (cell.Contains(Event.current.mousePosition)) AskTip("table-attack:" + item + (clip != null) + playing, ClipWords.PlayAttackTip(clip != null, playing));
                             if (GUI.Button(cell, GUIContent.none, GUIStyle.none) && clip != null)
                             {
-                                Previews.PlayClip(clip);
-                                Previews.LastClip = clip;
+                                if (playing) Previews.StopClip();
+                                else
+                                {
+                                    Previews.PlayClip(clip);
+                                    Previews.LastClip = clip;
+                                }
                             }
                         }
                         // A line naming music plays it, as a fact naming music does.

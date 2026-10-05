@@ -223,6 +223,9 @@ namespace Scry
             p.Check(broken.Count == 0, "every tab lists all it counts, each group in one run", string.Join("; ", broken.Take(6)));
         }
 
+        /// <summary>Attack items once grouped with the players' weapons, noted with where they are now.</summary>
+        private static readonly string[] AttackItemsNoted = { "SeekerQueen_Call", "SeekerQueen_Teleport", "Axe1h_JotunWarrior", "Sword2h_JotunWarrior" };
+
         /// <summary>The catalog is sound: every key once, every entry named and grouped in its tab, the counts adding up.</summary>
         private static IEnumerator CatalogSound(Probe p)
         {
@@ -232,6 +235,13 @@ namespace Scry
             p.Check(nameless == 0, "every entry has a name", $"{Numbers.Count(nameless)}");
             var ungrouped = X.Catalog.Where(e => string.IsNullOrEmpty(e.Group)).Select(e => e.Name).ToList();
             p.Check(ungrouped.Count == 0, "every entry is in a group of its tab", string.Join(", ", ungrouped.Take(8)));
+
+            // A weapon with no icon is a creature's attack, never in the weapons' groups, which come before the shields.
+            var weaponsEnd = Groups.Item("Shield").Order;
+            bool Iconless(Entry e) => e.Source is GameObject go && go.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared is ItemDrop.ItemData.SharedData s && (s.m_icons == null || s.m_icons.Length == 0);
+            var strays = X.Catalog.Where(e => e.Kind == Kind.Item && e.GroupOrder < weaponsEnd && Iconless(e)).Select(e => $"{e.Name} ({e.Group})").ToList();
+            p.Check(strays.Count == 0, "no weapon group holds an attack no inventory can show", string.Join(", ", strays.Take(8)));
+            p.Note("attack items: " + string.Join(", ", AttackItemsNoted.Select(n => X.Find(n)).Where(e => e != null).Select(e => $"{e.Name} in {e.Group}")));
             X.SearchEverything("");
             yield return null;
             var sum = Enum.GetValues(typeof(Kind)).Cast<Kind>().Sum(k => X.CountOf(k));

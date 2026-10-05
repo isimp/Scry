@@ -49,6 +49,23 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AWeaponNoInventoryCanShowIsACreaturesAttackWhateverItLooksLike()
+        {
+            // No icon, so no inventory can hold it: the Seeker Queen's call, which a mod's list
+            // makes look obtainable, is still her attack.
+            Assert.Equal("Creature attacks", Groups.Item("OneHandedWeapon", "Swords", carriedByCreature: true, obtainable: true, silent: false, iconless: true).Name);
+            // The Jotun warriors' clubs, with a model but no icon and no creature carrying them.
+            Assert.Equal("Attacks no creature carries", Groups.Item("OneHandedWeapon", "Swords", carriedByCreature: false, obtainable: false, silent: false, iconless: true).Name);
+            Assert.Equal("Attacks no creature carries", Groups.Item("TwoHandedWeapon", "Axes", carriedByCreature: false, obtainable: true, silent: false, iconless: true).Name);
+            // Gear without an icon that a creature wears is what only creatures have, even with a source.
+            Assert.Equal("Carried by creatures", Groups.Item("Helmet", null, carriedByCreature: true, obtainable: true, silent: false, iconless: true).Name);
+            // A player's weapon has an icon, and stays with its skill.
+            Assert.Equal("Swords", Groups.Item("OneHandedWeapon", "Swords", carriedByCreature: true, obtainable: true, silent: false, iconless: false).Name);
+            // An iconless thing that is no weapon and no creature's stays with its type.
+            Assert.Equal("Helmets", Groups.Item("Helmet", null, carriedByCreature: false, obtainable: false, silent: false, iconless: true).Name);
+        }
+
+        [Fact]
         public void WeaponGroupsComeMeleeThenRangedThenMagicThenPickaxesAllBeforeShields()
         {
             var order = new[] { "Swords", "Axes", "Clubs", "Knives", "Spears", "Polearms", "Unarmed", "Bows", "Crossbows", "ElementalMagic", "Pickaxes", "None" }

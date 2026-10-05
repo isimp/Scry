@@ -108,15 +108,16 @@ namespace Scry
         /// <param name="carriedByCreature">A creature carries it (its attacks and gear are items).</param>
         /// <param name="obtainable">A recipe makes it, or something drops, holds, sells or places it.</param>
         /// <param name="silent">It has nothing to see or hear: no model, particles, light or sound.</param>
-        public static Group Item(string itemType, string skill = null, bool carriedByCreature = false, bool obtainable = true, bool silent = false)
+        /// <param name="iconless">It has no icon, so no inventory can show it (<c>ItemData.GetIcon</c> reads its icon by its variant).</param>
+        public static Group Item(string itemType, string skill = null, bool carriedByCreature = false, bool obtainable = true, bool silent = false, bool iconless = false)
         {
-            // A creature's attack is an item with nothing to see or hear, kept apart from the
-            // player's weapons even where a mod gives it a recipe or a source.
-            if (carriedByCreature && silent) return CreatureAttacks;
-            // A weapon with nothing to see or hear that no creature carries is an attack left in the
-            // game's data (the Jotun warriors' first ones): no weapon a player wields lacks a model.
-            if (!carriedByCreature && silent && itemType != null && WeaponTypes.Contains(itemType)) return UnusedAttacks;
-            if (carriedByCreature && !obtainable) return CarriedByCreatures;
+            // A creature's attack is an item with nothing to see or hear, or a weapon no inventory
+            // can show; kept apart from the player's weapons even where a mod gives it a recipe or
+            // a source. One no creature carries is an attack left in the game's data (the Jotun
+            // warriors' clubs).
+            var weapon = itemType != null && WeaponTypes.Contains(itemType);
+            if ((carriedByCreature && silent) || (weapon && (silent || iconless))) return carriedByCreature ? CreatureAttacks : UnusedAttacks;
+            if (carriedByCreature && (!obtainable || iconless)) return CarriedByCreatures;
             if (itemType != null && WeaponTypes.Contains(itemType))
             {
                 return skill != null && WeaponSkills.TryGetValue(skill, out var weapons) ? weapons : new Group("Other weapons", 12);
