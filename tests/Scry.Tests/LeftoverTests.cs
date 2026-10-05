@@ -65,6 +65,28 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AVariantOfAnItemIsListedRightUnderTheItemItCopies()
+        {
+            // A set piece's copy (a mod's, or the game's own under another prefab) sits under the
+            // piece it copies, indented, rather than apart by its name.
+            Entry Item(string name, string group, string copies = null)
+            {
+                var entry = new Entry { Name = name, Kind = Kind.Item, Group = group };
+                if (copies != null) entry.Links.Add(new Link { Group = LinkBook.VariantOf, Target = copies });
+                return entry;
+            }
+            var bronze = Item("ArmorBronzeChest", "Chest armour");
+            var copy = Item("ArmorBronzeChest_Mod", "Chest armour", "ArmorBronzeChest");
+            var iron = Item("ArmorIronChest", "Chest armour");
+            var elsewhere = Item("HelmetBronze_Mod", "Helmets", "ArmorBronzeChest");
+            var under = new HashSet<Entry>();
+
+            var listed = Leftovers.UnderOwners(new List<Entry> { copy, iron, bronze, elsewhere }, under);
+            Assert.Equal(new[] { iron, bronze, copy, elsewhere }, listed);
+            Assert.Equal(new HashSet<Entry> { copy }, under);
+        }
+
+        [Fact]
         public void AnEffectLeftBehindStaysInItsOwnGroup()
         {
             var catalog = WithLeftovers();

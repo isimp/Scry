@@ -474,6 +474,23 @@ namespace Scry
             yield return Until(() => ScryPanel.Drawn(PanelPart.TopicLinks) > drawn, 3);
             p.Check(ScryPanel.Drawn(PanelPart.TopicLinks) > drawn, $"{piece.Name}'s page draws its set's pieces in In the game");
             p.Check(!ScryPanel.LinkedShows(LinkBook.SameSet), "Linked does not show them again");
+
+            // A piece's variants stand right under it in the Items tab, indented.
+            var copies = X.Catalog.Where(e => e.Kind == Kind.Item && e.Links.Any(l => l.Group == LinkBook.VariantOf)).ToList();
+            X.SearchEverything("");
+            X.KindFilter = Kind.Item;
+            yield return null;
+            var results = X.Results.ToList();
+            var placed = copies.Where(c => X.UnderOwner(c)).ToList();
+            var astray = placed.Where(c =>
+            {
+                var at = results.IndexOf(c);
+                var owner = c.Links.First(l => l.Group == LinkBook.VariantOf).Target;
+                return at <= 0 || results.Take(at).LastOrDefault(e => !X.UnderOwner(e))?.Name != owner;
+            }).Select(c => c.Name).ToList();
+            p.Note($"variants: {Numbers.Count(copies.Count)}, {Numbers.Count(placed.Count)} under the piece they copy: {string.Join(", ", placed.Take(8).Select(c => c.Name))}");
+            p.Check(astray.Count == 0, "each variant stands right under the piece it copies", string.Join(", ", astray.Take(8)));
+            X.KindFilter = null;
         }
 
         /// <summary>What gives Rested shows under its page's How you get it, not under Linked as well.</summary>

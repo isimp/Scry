@@ -76,10 +76,10 @@ namespace Scry
         }
 
         /// <summary>
-        /// A list with what each entry leaves behind (a ragdoll, debris) moved right under it,
-        /// where its owner is in the list in the same group, in the order they came; what has no
-        /// owner there stays where it was. Those moved are kept in <paramref name="under"/>, for
-        /// the list to indent them.
+        /// A list with what each entry leaves behind (a ragdoll, debris) and its variants (a set
+        /// piece's copy, <see cref="LinkBook.VariantOf"/>) moved right under it, where it is in the
+        /// list in the same group, in the order they came; what has no owner there stays where it
+        /// was. Those moved are kept in <paramref name="under"/>, for the list to indent them.
         /// </summary>
         public static List<Entry> UnderOwners(List<Entry> listed, HashSet<Entry> under)
         {
@@ -90,7 +90,7 @@ namespace Scry
             var left = new Dictionary<Entry, List<Entry>>();
             foreach (var entry in listed)
             {
-                foreach (var name in entry.LeftBy)
+                foreach (var name in entry.LeftBy.Concat(entry.Links.Where(l => l.Group == LinkBook.VariantOf).Select(l => l.Target)))
                 {
                     if (!byName.TryGetValue(name, out var owner) || owner == entry || owner.Group != entry.Group) continue;
                     if (!left.TryGetValue(owner, out var its)) left[owner] = its = new List<Entry>();
