@@ -327,11 +327,10 @@ namespace Scry
                 Skin.LabelIn(new Rect(chip.x + U(32f), chip.y, chip.width - U(36f) - markW, chip.height), text, Skin.Small, goes ? LinkText(kind, hover) : Skin.Text);
                 if (item.Mark != null)
                 {
-                    // What only this gives on a solid pill, bright; what a trader pays for on a soft one.
-                    var only = item.Mark == DropWords.OnlyHereMark;
-                    var mark = new Rect(chip.xMax - markW - U(3f), chip.y + U(4f), markW, chip.height - U(8f));
-                    Skin.PillBox(mark, only ? Skin.Accent : Skin.AccentSoft);
-                    Skin.LabelIn(mark, item.Mark, Skin.Badge, only ? Skin.OnAccent : Skin.Accent);
+                    // A thin accent outline round it, the chip showing through, its words in the accent.
+                    var mark = new Rect(chip.xMax - markW - U(4f), chip.y + U(5f), markW, chip.height - U(10f));
+                    Skin.PillLine(mark, Skin.Accent);
+                    Skin.LabelIn(mark, item.Mark, Skin.Badge, Skin.Accent);
                 }
 
                 // Clicking an ingredient or a drop goes to it.
