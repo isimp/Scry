@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
 using UnityEngine;
 
 namespace Scry
@@ -181,10 +180,13 @@ namespace Scry
             p.Check(!X.Favourites.Contains(a), "starring it again takes it away");
             if (was) X.ToggleFavourite(a);
 
-            // The first page drawn this session: Scry's code is compiled ahead of it, to tell how
-            // much of a first page's time is the runtime compiling code the first time it runs.
-            var (methods, failed, ms) = CompileAhead();
-            p.Note($"Scry's code compiled ahead of the first page: {Numbers.Count(methods)} methods in {Numbers.Amount(ms, 0)} ms, {Numbers.Count(failed)} could not be");
+            // The first page drawn this session finds Scry's code compiled ahead (CodeWarmup).
+            yield return Until(() => Session.Warmup?.Done == true, 30);
+            var warmed = Session.Warmup;
+            if (p.Check(warmed?.Done == true, "Scry's code is compiled ahead of the first page", warmed == null ? "not begun" : $"{Numbers.Count(warmed.Compiled)} methods so far"))
+            {
+                p.Note($"compiled ahead: {Numbers.Count(warmed.Compiled)} methods, {Numbers.Count(warmed.Failed)} could not be");
+            }
 
             Select(a);
             yield return null;
@@ -200,29 +202,6 @@ namespace Scry
             p.Check(X.Back() && X.Selected == b, "Back goes to the one before");
             p.Check(X.Back() && X.Selected == a, "and again to the one before that");
             p.Check(X.Forward() && X.Selected == b, "Forward goes on again");
-        }
-
-        /// <summary>
-        /// Compiles every method of Scry with a body that is no generic one, as its first call
-        /// would: how many, how many could not be, and how long it took.
-        /// </summary>
-        private static (int Methods, int Failed, double Ms) CompileAhead()
-        {
-            const BindingFlags all = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-            var watch = Stopwatch.StartNew();
-            var methods = 0;
-            var failed = 0;
-            foreach (var type in typeof(ScryPanel).Assembly.GetTypes())
-            {
-                if (type.ContainsGenericParameters) continue;
-                foreach (var method in type.GetMethods(all).Cast<MethodBase>().Concat(type.GetConstructors(all)))
-                {
-                    if (method.IsAbstract || method.ContainsGenericParameters || method.IsStatic && method.IsConstructor) continue;
-                    if (Steps.Run(() => method.MethodHandle.GetFunctionPointer(), null) == null) methods++;
-                    else failed++;
-                }
-            }
-            return (methods, failed, watch.Elapsed.TotalMilliseconds);
         }
 
         /// <summary>Each kind's tab lists as many as its count says, each group of it in one run.</summary>

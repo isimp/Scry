@@ -110,6 +110,7 @@ namespace Scry
             Timing.Add("update panel", panel);
 
             Step(Feature.Previews, "the previews", "update previews", () => Previews.Update(IsOpen ? Explorer : null));
+            Step(Feature.World, "compiling Scry's code ahead", "update warmup", Warm);
             Step(Feature.SelfTest, "the self-test", null, () =>
             {
                 var started = Timing.Start();
@@ -119,6 +120,22 @@ namespace Scry
             });
 
             if (!Guard.Run(Feature.Locations, "reading the locations", Locations.Update, "update locations")) Locations.Forget();
+        }
+
+        /// <summary>Scry's code compiled ahead (<see cref="CodeWarmup"/>), once a session, made once a world's catalog is read; for the self-test to see it done.</summary>
+        public static CodeWarmup Warmup { get; private set; }
+
+        /// <summary>How much of a frame compiling ahead takes, beyond the one method each frame always compiles.</summary>
+        private const double WarmupShareMs = 2.0;
+
+        /// <summary>Compiles on within the frame's share, the panel's code first, until all of Scry's is compiled.</summary>
+        private static void Warm()
+        {
+            if (Explorer == null || Warmup?.Done == true) return;
+            if (Warmup == null) Warmup = new CodeWarmup(CodeWarmup.MethodsOf(typeof(Session).Assembly.GetTypes(), typeof(ScryPanel), typeof(Skin), typeof(Facts)));
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            Warmup.Step(() => watch.Elapsed.TotalMilliseconds, WarmupShareMs, method => Steps.Run(() => method.MethodHandle.GetFunctionPointer(), null) == null);
+            if (Warmup.Done) Log.Note($"Scry compiled its code ahead: {Numbers.Count(Warmup.Compiled)} methods, {Numbers.Count(Warmup.Failed)} could not be.");
         }
 
         /// <summary>One step of the frame, timed as a part of its own inside the update (<paramref name="timed"/>), so what it costs is told apart.</summary>
