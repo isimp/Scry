@@ -175,8 +175,12 @@ namespace Scry
                 _across = StageGround.Across(_basis, sky);
                 _clear = clear;
                 _at = at;
+                var step = Timing.Start();
                 PaintMask();
+                Timing.Add("render frame ground paint", step);
+                step = Timing.Start();
                 ScatterGrass(root, layer);
+                Timing.Add("render frame ground grass", step);
             }
             else if (Mathf.Abs(at.y - _at.y) > 0.005f)
             {
