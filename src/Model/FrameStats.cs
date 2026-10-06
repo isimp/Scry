@@ -8,11 +8,16 @@ namespace Scry
     /// Scry's own work in each of many frames, as the self-test measures it: how long each frame's
     /// work took, which part of it took longest (<see cref="FrameTimes.Slowest"/>), the outer part
     /// it ran in and how many memory cleanups ran in the frame, told as the average, the 95th
-    /// percentile, the most, and the slowest frames.
+    /// percentile, the most, and the slowest frames. A frame given its parts as it told them keeps
+    /// them, so a slow frame says where all its time went, not only in its slowest part, which
+    /// may hold others: the panel's repaint holds a page's facts.
     /// </summary>
     internal sealed class FrameStats
     {
         private readonly List<(double Ms, string Part, double PartMs, string Outer, double OuterMs, int Cleanups)> _frames;
+
+        /// <summary>The parts of the frames given them, by the frame's place in the run.</summary>
+        private readonly Dictionary<int, string> _parts = new Dictionary<int, string>();
 
         /// <summary>
         /// Stats made room for so many frames at once, so noting them allocates nothing until
@@ -20,9 +25,12 @@ namespace Scry
         /// </summary>
         public FrameStats(int frames = 0) => _frames = new List<(double, string, double, string, double, int)>(Math.Max(0, frames));
 
-        /// <summary>A frame: its time, its slowest part, its slowest outer part (<see cref="FrameTimes.SlowestOuter"/>) and the memory cleanups that ran in it.</summary>
-        public void Add(double ms, string slowestPart, double slowestMs, string outer = null, double outerMs = 0, int cleanups = 0) =>
+        /// <summary>A frame: its time, its slowest part, its slowest outer part (<see cref="FrameTimes.SlowestOuter"/>), the memory cleanups that ran in it, and its parts as it told them where it was slow enough to tell.</summary>
+        public void Add(double ms, string slowestPart, double slowestMs, string outer = null, double outerMs = 0, int cleanups = 0, string parts = null)
+        {
+            if (parts != null) _parts[_frames.Count] = parts;
             _frames.Add((ms, slowestPart ?? "", slowestMs, outer ?? "", outerMs, cleanups));
+        }
 
         /// <summary>
         /// A slow frame in words: its time, its slowest part, the outer part it ran in, and the
@@ -62,7 +70,14 @@ namespace Scry
 
         /// <summary>The slowest frames, slowest first, each with its slowest part.</summary>
         public List<(double Ms, string Part, double PartMs, string Outer, double OuterMs, int Cleanups)> Slowest(int count) =>
-            _frames.OrderByDescending(f => f.Ms).Take(count).ToList();
+            SlowestPlaces(count).Select(i => _frames[i]).ToList();
+
+        /// <summary>The parts of the slowest frames, in the order of <see cref="Slowest"/>; null for a frame given none.</summary>
+        public List<string> PartsOfSlowest(int count) =>
+            SlowestPlaces(count).Select(i => _parts.TryGetValue(i, out var parts) ? parts : null).ToList();
+
+        private IEnumerable<int> SlowestPlaces(int count) =>
+            Enumerable.Range(0, _frames.Count).OrderByDescending(i => _frames[i].Ms).Take(count);
 
         public string Line(double budgetMs)
         {
@@ -74,6 +89,7 @@ namespace Scry
         public void Clear()
         {
             _frames.Clear();
+            _parts.Clear();
             TestMax = 0;
         }
 
@@ -81,7 +97,11 @@ namespace Scry
         public FrameStats Since(int first)
         {
             var part = new FrameStats();
-            for (var i = Math.Max(0, first); i < _frames.Count; i++) part._frames.Add(_frames[i]);
+            for (var i = Math.Max(0, first); i < _frames.Count; i++)
+            {
+                if (_parts.TryGetValue(i, out var parts)) part._parts[part._frames.Count] = parts;
+                part._frames.Add(_frames[i]);
+            }
             return part;
         }
     }

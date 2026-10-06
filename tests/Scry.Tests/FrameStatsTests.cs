@@ -150,5 +150,50 @@ namespace Scry.Tests
             frame.Clear();
             Assert.Equal(("", 0.0), frame.Slowest);
         }
+
+        // A slow frame's slowest part alone does not say where its time went when that part
+        // holds others, such as the panel's repaint holding a page's facts; a slow frame keeps
+        // every part of it as the frame told them, for the self-test to tell.
+
+        [Fact]
+        public void ASlowFrameKeepsEveryPartOfIt()
+        {
+            var stats = new FrameStats();
+            stats.Add(5, "panel list", 2);
+            stats.Add(163, "panel repaint", 161.6, "panel", 161.6, parts: "panel repaint 161, side facts 120, facts uses 90");
+            stats.Add(8, "update previews", 4);
+
+            Assert.Equal("panel repaint 161, side facts 120, facts uses 90", stats.PartsOfSlowest(1)[0]);
+        }
+
+        [Fact]
+        public void TheSlowestFramesComeWithTheirPartsInTheSameOrder()
+        {
+            var stats = new FrameStats();
+            stats.Add(40, "a", 40, parts: "forty");
+            stats.Add(90, "b", 90, parts: "ninety");
+            stats.Add(60, "c", 60);
+
+            Assert.Equal(new[] { 90.0, 60.0, 40.0 }, stats.Slowest(3).Select(f => f.Ms));
+            Assert.Equal(new[] { "ninety", null, "forty" }, stats.PartsOfSlowest(3));
+        }
+
+        [Fact]
+        public void APartOfTheRunKeepsOnlyItsOwnFramesParts()
+        {
+            var stats = new FrameStats();
+            stats.Add(200, "before", 200, parts: "earlier");
+            var from = stats.Frames;
+            stats.Add(30, "mine", 30, parts: "my own");
+            stats.Add(10, "mine too", 10);
+
+            var mine = stats.Since(from);
+            Assert.Equal(new[] { "my own", null }, mine.PartsOfSlowest(2));
+            // A new run's frames carry none of the last run's parts.
+            stats.Clear();
+            Assert.Empty(stats.PartsOfSlowest(1));
+            stats.Add(50, "new", 50);
+            Assert.Equal(new string[] { null }, stats.PartsOfSlowest(1));
+        }
     }
 }

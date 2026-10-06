@@ -38,6 +38,9 @@ namespace Scry
         /// <summary>Scry's share of a frame above which a frame counts as heavy in the notes, in milliseconds.</summary>
         private const double Budget = 16;
 
+        /// <summary>A frame of Scry's own work this long has all its parts told.</summary>
+        private const double SlowFrame = 50;
+
         private static ScenarioRunner _runner;
         private static Before _before;
 
@@ -288,6 +291,8 @@ namespace Scry
             else p.Check(left == 0, "no part of a prefab was left out meanwhile", $"{Numbers.Count(left)} left out, the latest {Faults.LatestSkipped}");
             var mine = Frames.Since(from);
             if (mine.Frames > 0) p.Note(mine.Line(Budget) + Slowest(mine, 1));
+            // Where a part's slowest frame was slow, every part of it: the slowest alone may hold others.
+            if (mine.Max >= SlowFrame && mine.PartsOfSlowest(1)[0] is string parts) p.Note("its slowest frame: " + parts);
         }
 
         private static string Slowest(FrameStats stats, int count)

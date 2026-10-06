@@ -121,9 +121,11 @@ namespace Scry
             if (Measuring != null && _frame >= 0)
             {
                 // Scry's own work as a player's frame has it, the self-test's own checks left out.
+                // A slow frame keeps all its parts, as the log tells them, to say where its time went.
                 var slowest = Frame.SlowestWithout(SelfTestPart);
                 var outer = Frame.SlowestOuter;
-                Measuring.Add(Frame.TotalWithout(SelfTestPart), slowest.Name, slowest.Ms, outer.Name, outer.Ms, Frame.Cleanups);
+                var total = Frame.TotalWithout(SelfTestPart);
+                Measuring.Add(total, slowest.Name, slowest.Ms, outer.Name, outer.Ms, Frame.Cleanups, total >= SlowMs ? Frame.Line(Time.unscaledDeltaTime * 1000f) : null);
                 Measuring.AddTest(Frame.MsOf(SelfTestPart));
                 Frame.AddBytesTo(BytesByPart);
             }
