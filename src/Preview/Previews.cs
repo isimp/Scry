@@ -160,8 +160,12 @@ namespace Scry
             var started = Timing.Start();
             if (explorer != null)
             {
+                var step = Timing.Start();
                 Guard.Run(Feature.Animations, "watching an animator", TriggerProbe.Update);
+                Timing.Add("probe watch", step);
+                step = Timing.Start();
                 Guard.Run(Feature.Animations, "sorting clips", SortSomeClips);
+                Timing.Add("probe clips", step);
             }
             Timing.Add("update probe", started);
             RunLaterSteps();

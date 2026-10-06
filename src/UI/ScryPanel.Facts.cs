@@ -32,16 +32,22 @@ namespace Scry
             // A kind laid out by topic (FactLayout) shows its facts topic by topic, each under a
             // small heading, its headline numbers as tiles and what qualifies a row under it;
             // the others keep their facts, rows and blocks in the order they always had.
+            var step = Timing.Start();
             var plan = PlanOf(explorer, entry, facts, places);
+            Timing.Add("side facts plan", step);
+            step = Timing.Start();
             if (plan == null)
             {
                 foreach (var pair in facts.Pairs) y = FactPair(explorer, entry, facts, pair, width, labelW, y);
                 foreach (var row in facts.Rows) y = FactRow(explorer, row, width, y);
                 foreach (var block in EveryBlock) y = FactBlockOf(explorer, entry, facts, block, places, true, width, y);
+                Timing.Add("side facts drawn", step);
                 return y + U(14f);
             }
 
-            return Topics(explorer, entry, facts, plan, places, width, y) + U(14f);
+            y = Topics(explorer, entry, facts, plan, places, width, y);
+            Timing.Add("side facts drawn", step);
+            return y + U(14f);
         }
 
         /// <summary>One labelled fact: its label in the left column, its value at its right, a link, music or a website where it is one.</summary>

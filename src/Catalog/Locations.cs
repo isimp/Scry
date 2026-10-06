@@ -229,9 +229,14 @@ namespace Scry
                         Next();
                         continue;
                     }
+                    // Timed apart: each reads the whole location in one go, outside the frame's share.
+                    var step = Timing.Start();
                     PlacesOf(prefab);
+                    Timing.Add("locations contents", step);
+                    step = Timing.Start();
                     _root = prefab.transform;
                     _parts = prefab.GetComponentsInChildren<Component>(true);
+                    Timing.Add("locations parts", step);
                     continue;
                 }
 

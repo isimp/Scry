@@ -31,12 +31,21 @@ namespace Scry
 
             if (Spin && !Dragging && _subject != null) TurnTo(Yaw + SpinDegreesPerSecond * Time.unscaledDeltaTime, Pitch);
 
+            // Each step timed on its own, so a slow film says which step it was.
+            var step = Timing.Start();
             EnsureTexture();
             Settle();
+            Timing.Add("render settle", step);
             _camera.renderingPath = PathOverride ?? RenderingPath.UsePlayerSettings;
+            step = Timing.Start();
             if (!Guard.Run(Feature.StageGround, GroundPart, KeepGround)) PutGroundAway();
+            Timing.Add("render ground", step);
+            step = Timing.Start();
             Frame();
+            Timing.Add("render frame", step);
+            step = Timing.Start();
             KeepCreaturesToCut();
+            Timing.Add("render creatures", step);
 
             var mask = StageMask;
             var main = GameCamera.instance != null ? GameCamera.instance.GetComponent<Camera>() : null;
@@ -65,8 +74,12 @@ namespace Scry
                 _camera.cullingMask = mask;
                 // The water reads the depth of what is under it.
                 _camera.depthTextureMode = WaterShown ? DepthTextureMode.Depth : DepthTextureMode.None;
+                step = Timing.Start();
                 DrawGrass();
+                Timing.Add("render grass", step);
+                step = Timing.Start();
                 _camera.Render();
+                Timing.Add("render film", step);
                 Filmed++;
 
                 // A floor's cut is the near plane laid along it, which cut the creatures with all
@@ -86,7 +99,9 @@ namespace Scry
                         _camera.projectionMatrix = above;
                         _camera.cullingMask = 1 << CreatureLayer;
                         _camera.clearFlags = CameraClearFlags.Depth;
+                        step = Timing.Start();
                         _camera.Render();
+                        Timing.Add("render above cut", step);
                     }
                     finally
                     {
