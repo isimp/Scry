@@ -136,7 +136,9 @@ namespace Scry
         private static void Frame()
         {
             // With a floor opened, the camera looks at that floor, framed on what stands on it.
+            var step = Timing.Start();
             var floor = FloorFrame();
+            Timing.Add("render frame floor", step);
             Vector3 target;
             float wantRadius;
             if (floor is Vector4 opened)
@@ -237,7 +239,9 @@ namespace Scry
 
             // A biome's ground under the model, under the plain floor's height by as much as the
             // terrain's shader raises its bumps, so the model's feet stay on it.
+            step = Timing.Start();
             if (!Guard.Run(Feature.StageGround, GroundPart, LayGround, groundY)) PutGroundAway();
+            Timing.Add("render frame ground", step);
 
             if (_floor != null)
             {
@@ -247,7 +251,9 @@ namespace Scry
                 _floor.transform.localScale = new Vector3(size, size, size);
             }
 
+            step = Timing.Start();
             ApplyCut();
+            Timing.Add("render frame cut", step);
         }
 
         /// <summary>
