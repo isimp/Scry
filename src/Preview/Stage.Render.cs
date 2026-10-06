@@ -19,10 +19,8 @@ namespace Scry
         /// <summary>How often the stage has been filmed, for the self-test to tell it still is.</summary>
         public static int Filmed { get; private set; }
 
-        /// <summary>How long the camera took to film the stage the last time, and the rendering path it filmed by, for the self-test.</summary>
+        /// <summary>How long the camera took to film the stage the last time, for the self-test.</summary>
         public static double LastFilmMs { get; private set; }
-
-        public static RenderingPath FilmedPath { get; private set; }
 
         /// <summary>Films the stage, when the panel showed it in the last couple of frames.</summary>
         public static void Render()
@@ -86,7 +84,6 @@ namespace Scry
                 var filming = System.Diagnostics.Stopwatch.GetTimestamp();
                 _camera.Render();
                 LastFilmMs = (System.Diagnostics.Stopwatch.GetTimestamp() - filming) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                FilmedPath = _camera.actualRenderingPath;
                 Timing.Add("render film", step);
                 Filmed++;
 

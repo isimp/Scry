@@ -34,12 +34,6 @@ namespace Scry
         /// <summary>For the self-test: a rendering path for the stage's camera to try; null for the game's own setting.</summary>
         public static RenderingPath? PathOverride { get; set; }
 
-        /// <summary>For the self-test: how many samples the stage's picture takes a point, to film it without smoothed edges; null for its own.</summary>
-        public static int? SamplesOverride { get; set; }
-
-        /// <summary>How many samples the stage's picture takes a point, smoothing its edges.</summary>
-        private const int Samples = 4;
-
         /// <summary>For the self-test: the distance the terrain's shader is given to hide the ground by (<see cref="BiomeGround.HideDistance"/>).</summary>
         public static float? GroundHideDistance
         {

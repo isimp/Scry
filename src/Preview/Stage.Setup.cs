@@ -153,16 +153,14 @@ namespace Scry
 
         private static void EnsureTexture()
         {
-            var samples = SamplesOverride ?? Samples;
             if (_texture != null)
             {
-                var sized = _texture.width == _width && _texture.height == _height;
-                if (sized && _texture.antiAliasing == samples) return;
+                if (_texture.width == _width && _texture.height == _height) return;
 
                 // While the panel or the stage is being resized the size changes on every frame;
                 // the texture there is drawn stretched until the size holds still, rather than one
                 // made and let go on each of them. The camera films at the size's shape meanwhile.
-                if (!sized && _texture.antiAliasing == samples && Time.unscaledTime - _sizeSince < ResizeAfter) return;
+                if (Time.unscaledTime - _sizeSince < ResizeAfter) return;
 
                 if (_camera != null) _camera.targetTexture = null;
                 _texture.Release();
@@ -171,7 +169,7 @@ namespace Scry
 
             _texture = Kept.Add(new RenderTexture(_width, _height, 24, RenderTextureFormat.ARGB32)
             {
-                antiAliasing = samples,
+                antiAliasing = 4,
                 name = "Scry stage",
             });
             _texture.Create();

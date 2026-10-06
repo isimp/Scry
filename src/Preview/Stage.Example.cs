@@ -191,17 +191,7 @@ namespace Scry
             return TheExample.FloorAcross(ExamplePlanFloor);
         }
 
-        /// <summary>The lights of what is shown, its example's rooms' too, switched on now, for the self-test to film it without them.</summary>
-        public static List<Light> ShownLights()
-        {
-            var lights = new List<Light>();
-            if (_subject != null) lights.AddRange(_subject.GetComponentsInChildren<Light>());
-            if (TheExample.Holder != null) lights.AddRange(TheExample.Holder.GetComponentsInChildren<Light>());
-            lights.RemoveAll(l => !l.enabled);
-            return lights;
-        }
-
-        /// <summary>The lights of the example's rooms dimmed below the floor opened, switched on now, for the self-test to film the floor opened with its own lights alone.</summary>
+        /// <summary>The lights switched on in the example's rooms dimmed below the floor opened, for the self-test.</summary>
         public static List<Light> DimmedLights() => TheExample.DimmedLights();
 
         /// <summary>Each room of the example read so far with the floors found in it alone, for the self-test to tell.</summary>

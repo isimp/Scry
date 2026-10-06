@@ -4,7 +4,7 @@
 
 Locations have a tab of their own: every location and dungeon room the world can place, grouped by biome, each telling where it is placed and what it holds. A location stands on the turntable as a new zone would roll it, its creatures included, and *Roll again* rolls it anew.
 
-A dungeon or camp is built on the turntable as an example layout, with its floor plan in the corner, and a click on a room goes to it. Places can be cut open floor by floor with the ruler beside the stage, Page Up and Page Down, or Shift with the wheel.
+A dungeon or camp is built on the turntable as an example layout, with its floor plan in the corner, and a click on a room goes to it. Places can be cut open floor by floor with the ruler beside the stage, Page Up and Page Down, or Shift with the wheel. The rooms below a floor opened are dimmed and unlit; `LightDimmedRooms` keeps their lights.
 
 Raids, biomes, spawners and mods have tabs of their own: what a raid brings and for whom, a biome's weathers, music and what lives there, a spawner's creatures and pace, and what each mod adds and which of the game's rules it hooks into.
 

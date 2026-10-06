@@ -126,6 +126,7 @@ namespace Scry
         public void KeepToFloor(float? planFloor)
         {
             if (!IsDungeon || Holder == null || _rooms.Count == 0) return;
+            KeepDimmedLights();
             var watch = Stopwatch.StartNew();
             foreach (var pair in _rooms)
             {
@@ -139,11 +140,64 @@ namespace Scry
                 if (_dimmed.Contains(copy) != dimmed)
                 {
                     Dim.Set(copy, dimmed);
-                    if (dimmed) _dimmed.Add(copy);
-                    else _dimmed.Remove(copy);
+                    if (dimmed)
+                    {
+                        _dimmed.Add(copy);
+                        if (!_lightsKept) Unlight(copy);
+                    }
+                    else
+                    {
+                        _dimmed.Remove(copy);
+                        Relight(copy);
+                    }
                 }
                 if (watch.Elapsed.TotalMilliseconds >= KeepBudgetMs) break;
             }
+        }
+
+        /// <summary>
+        /// The lights each dimmed room had switched on, switched off while it is dimmed: a big
+        /// dungeon's rooms below the floor opened hold more than a hundred lights, and the stage
+        /// draws a part again for each light on it, so they took about half of each film. The
+        /// rooms keep them where the setting says so (<see cref="Settings.LightDimmedRooms"/>).
+        /// </summary>
+        private readonly Dictionary<GameObject, List<Light>> _unlit = new Dictionary<GameObject, List<Light>>();
+
+        /// <summary>Whether the dimmed rooms keep their lights, as the setting was when they were last dimmed or lit.</summary>
+        private bool _lightsKept;
+
+        /// <summary>Follows the setting: as it changes, the dimmed rooms' lights go off or on again.</summary>
+        private void KeepDimmedLights()
+        {
+            var kept = Settings.LightDimmedRooms;
+            if (kept == _lightsKept) return;
+            _lightsKept = kept;
+            foreach (var room in _dimmed)
+            {
+                if (room == null) continue;
+                if (kept) Relight(room);
+                else Unlight(room);
+            }
+        }
+
+        private void Unlight(GameObject room)
+        {
+            if (_unlit.ContainsKey(room)) return;
+            var lights = new List<Light>();
+            foreach (var light in room.GetComponentsInChildren<Light>())
+            {
+                if (!light.enabled) continue;
+                light.enabled = false;
+                lights.Add(light);
+            }
+            if (lights.Count > 0) _unlit[room] = lights;
+        }
+
+        private void Relight(GameObject room)
+        {
+            if (!_unlit.TryGetValue(room, out var lights)) return;
+            foreach (var light in lights) if (light != null) light.enabled = true;
+            _unlit.Remove(room);
         }
 
         /// <summary>How many of the rooms are dimmed, for the self-test.</summary>
@@ -350,6 +404,7 @@ namespace Scry
             _patches.Clear();
             _rooms.Clear();
             _dimmed.Clear();
+            _unlit.Clear();
             _roomGround.Clear();
             _countedAt = -1;
             _ground = 0f;

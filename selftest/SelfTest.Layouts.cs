@@ -350,20 +350,32 @@ namespace Scry
             p.Check(gaps.Count == 0, "the sealed tower's floors are a storey apart, none missing", string.Join("; ", gaps));
         }
 
-        /// <summary>The lights switched off to film a place without them, switched on again after.</summary>
-        private static readonly List<Light> FilmLightsOff = new List<Light>();
+        /// <summary>The setting for the dimmed rooms' lights as it was before the self-test set it; null while it is as it was.</summary>
+        private static bool? _lightsWere;
 
-        /// <summary>How many lights the game lights each part by pixel, as it had it before the self-test filmed with fewer; -1 while none is kept.</summary>
-        private static int _filmPixelLights = -1;
-
-        /// <summary>Films the stage as it is again: its own rendering path and smoothed edges, the game's pixel lights, the place's lights on.</summary>
-        private static void FilmAsItIs()
+        /// <summary>Puts the setting for the dimmed rooms' lights back as it was.</summary>
+        private static void LightsAsTheyWere()
         {
-            Stage.PathOverride = null;
-            Stage.SamplesOverride = null;
-            if (_filmPixelLights >= 0) QualitySettings.pixelLightCount = _filmPixelLights;
-            foreach (var light in FilmLightsOff) if (light != null) light.enabled = true;
-            FilmLightsOff.Clear();
+            if (_lightsWere is bool was) Settings.LightDimmedRooms = was;
+            _lightsWere = null;
+        }
+
+        /// <summary>How long the stage's films took over ten frames, after three to settle.</summary>
+        private sealed class FilmTimes
+        {
+            public double Mean { get; private set; }
+
+            public IEnumerator Take()
+            {
+                for (var i = 0; i < 3; i++) yield return null;
+                var sum = 0.0;
+                for (var i = 0; i < 10; i++)
+                {
+                    yield return null;
+                    sum += Stage.LastFilmMs;
+                }
+                Mean = sum / 10;
+            }
         }
 
         /// <summary>
@@ -402,43 +414,23 @@ namespace Scry
             for (var i = 0; i < 30; i++) yield return null;
             p.Check(ClipPlayer.Walks - walks < 10, "a dungeon that stays as it is is not searched for its animator every frame", $"{Numbers.Count(ClipPlayer.Walks - walks)} times in 30 frames");
 
-            // What filming the dungeon costs, and how much of it the stage's rendering path, its
-            // smoothed edges and the place's own lights each take: filmed ten frames each way.
-            var films = new List<string>();
-            var path = Stage.FilmedPath;
-            var lights = Stage.ShownLights();
-            var below = Stage.DimmedLights();
-            _filmPixelLights = QualitySettings.pixelLightCount;
-            var ways = new (string Way, Action Set)[]
-            {
-                ("as it is", () => { }),
-                ("forward", () => Stage.PathOverride = RenderingPath.Forward),
-                ("deferred", () => Stage.PathOverride = RenderingPath.DeferredShading),
-                ("without smoothed edges", () => Stage.SamplesOverride = 1),
-                ("deferred without smoothed edges", () =>
-                {
-                    Stage.PathOverride = RenderingPath.DeferredShading;
-                    Stage.SamplesOverride = 1;
-                }),
-                ($"at most 2 pixel lights, of the game's {Numbers.Count(_filmPixelLights)}", () => QualitySettings.pixelLightCount = Math.Min(2, _filmPixelLights)),
-                ("at most 1 pixel light", () => QualitySettings.pixelLightCount = Math.Min(1, _filmPixelLights)),
-                ($"without the {Numbers.Count(below.Count)} lights of the rooms dimmed below", () => { FilmLightsOff.AddRange(below); foreach (var light in below) light.enabled = false; }),
-                ($"without its {Numbers.Count(lights.Count)} lights", () => { FilmLightsOff.AddRange(lights); foreach (var light in lights) light.enabled = false; }),
-            };
-            foreach (var (way, set) in ways)
-            {
-                set();
-                for (var i = 0; i < 3; i++) yield return null;
-                var sum = 0.0;
-                for (var i = 0; i < 10; i++)
-                {
-                    yield return null;
-                    sum += Stage.LastFilmMs;
-                }
-                films.Add($"{way} {Numbers.Fixed(sum / 10, 1)} ms ({Stage.FilmedPath})");
-                FilmAsItIs();
-            }
-            p.Note($"filming it, the stage filming by {path}: " + string.Join(", ", films));
+            // The rooms dimmed below the floor opened are filmed without their own lights, which
+            // cost about half of each film, unless the setting keeps them; filmed ten frames each way.
+            _lightsWere = Settings.LightDimmedRooms;
+            Settings.LightDimmedRooms = false;
+            var unlit = new FilmTimes();
+            yield return unlit.Take();
+            var lit = Stage.DimmedLights().Count;
+            p.Check(Stage.ExampleRoomsDimmed > 0 && lit == 0, "the rooms dimmed below the floor opened are filmed without their own lights",
+                $"{Numbers.Count(Stage.ExampleRoomsDimmed)} rooms dimmed, {Numbers.Count(lit)} lights on");
+            Settings.LightDimmedRooms = true;
+            var kept = new FilmTimes();
+            yield return kept.Take();
+            var relit = Stage.DimmedLights().Count;
+            // Mörkhalla's rooms below its top floor hold lights; another dungeon's may hold none.
+            if (entry.Name == "MorkBorg") p.Check(relit > 0, "with LightDimmedRooms on they keep them", "none came on again");
+            LightsAsTheyWere();
+            p.Note($"filming it: {Numbers.Fixed(unlit.Mean, 1)} ms with the dimmed rooms unlit, {Numbers.Fixed(kept.Mean, 1)} ms with their {Numbers.Count(relit)} lights");
 
             if (Stage.FloorHeights.Count > 1)
             {

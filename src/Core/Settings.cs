@@ -15,6 +15,7 @@ namespace Scry
         private static ConfigEntry<KeyCode> _openKey;
         private static ConfigEntry<bool> _autoSpin;
         private static ConfigEntry<bool> _playOnSelect;
+        private static ConfigEntry<bool> _lightDimmedRooms;
         private static ConfigEntry<float> _uiScale;
         private static ConfigEntry<bool> _logPreviews;
         private static ConfigEntry<bool> _showMonitor;
@@ -63,6 +64,16 @@ namespace Scry
 
         /// <summary>Whether the log tells what previews play and what Scry saw of each prefab, for finding out why something looks or sounds wrong.</summary>
         public static bool LogPreviews => _logPreviews?.Value ?? false;
+
+        /// <summary>Whether the rooms dimmed below a dungeon's opened floor keep their own lights; settable for the self-test to see both.</summary>
+        public static bool LightDimmedRooms
+        {
+            get => _lightDimmedRooms?.Value ?? false;
+            set
+            {
+                if (_lightDimmedRooms != null) _lightDimmedRooms.Value = value;
+            }
+        }
 
         /// <summary>Whether the resource monitor shows; <c>/scry monitor</c> switches it.</summary>
         public static bool ShowMonitor
@@ -113,6 +124,8 @@ namespace Scry
                     new AcceptableValueRange<float>(1f, 90f)));
             _playOnSelect = config.Bind("2 - Preview", "PlayOnSelect", true,
                 "Plays a sound as soon as it is selected, so the list can be auditioned with the arrow keys.");
+            _lightDimmedRooms = config.Bind("2 - Preview", "LightDimmedRooms", false,
+                "Lets the rooms shown dimmed below a dungeon's opened floor keep their own lights, as the game lights them. Off, only the stage's light reaches them, and a big dungeon is filmed in about half the time.");
             _logPreviews = config.Bind("3 - Diagnostics", "LogPreviews", false,
                 "Writes to the log what each preview played and what Scry found out about each prefab (its animator, its gear, what it leaves behind), for finding out why something looks or sounds wrong. Off, the log only says when the game has changed in a way Scry notices, and how long reading the catalog took.");
             _showMonitor = config.Bind("3 - Diagnostics", "ResourceMonitor", false,
