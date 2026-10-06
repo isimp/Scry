@@ -228,6 +228,58 @@ namespace Scry
                     Learned.About(explorer.Selected);
                     break;
             }
+            ReadPlaceOn(explorer);
+        }
+
+        /// <summary>
+        /// The selected place whose contents are being read, a part of the reading at a time within
+        /// a share of each frame (<see cref="PlaceReader.Steps"/>), its copy shown once they are
+        /// read: a place of tens of thousands of parts read at once took a frame of its own.
+        /// </summary>
+        private static Entry _readingEntry;
+        private static PlaceContents _readContents;
+        private static IEnumerator<bool> _readSteps;
+
+        /// <summary>How much of a frame reading a selected place's contents takes, beyond the part of the reading always done.</summary>
+        private const double PlaceReadShareMs = 3.0;
+
+        /// <summary>Whether the selected place's contents are still being read, its model loaded but not yet shown.</summary>
+        public static bool ReadingPlace => _readSteps != null;
+
+        /// <summary>Reads on the selected place's contents; once read, names it, tells its page and shows its copy.</summary>
+        private static void ReadPlaceOn(Explorer explorer)
+        {
+            if (_readSteps == null) return;
+            var place = _readingEntry?.Source as PlaceSource;
+            var asset = place != null ? PlaceAssets.Asset(place) : null;
+            if (!ReferenceEquals(explorer.Selected, _readingEntry) || asset == null)
+            {
+                _readSteps = null;
+                return;
+            }
+
+            var started = Timing.Start();
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var more = true;
+            while (more && watch.Elapsed.TotalMilliseconds < PlaceReadShareMs)
+            {
+                if (!Guard.Each(Feature.LocationsOnStage, "previews of places", place.Prefab, () => more = _readSteps.MoveNext()))
+                {
+                    _readSteps = null;
+                    Timing.Add("selection contents", started);
+                    return;
+                }
+            }
+            Timing.Add("selection contents", started);
+            if (more) return;
+
+            _readSteps = null;
+            var entry = _readingEntry;
+            place.Contents = _readContents;
+            _readingEntry = null;
+            _readContents = null;
+            Named(explorer, entry, place);
+            Stage.Show(entry, explorer.Modifiers);
         }
 
         /// <summary>
@@ -241,6 +293,9 @@ namespace Scry
             _explorer = null;
             _entry = null;
             _selectionVersion = -1;
+            _readSteps = null;
+            _readingEntry = null;
+            _readContents = null;
             TheSound.ForgetEntry();
             Born.Clear();
             ForgetEffects();
@@ -278,23 +333,33 @@ namespace Scry
             if (asset == null) return;
             if (place.Contents == null)
             {
-                place.Contents = PlaceReader.Read(asset, place.IsRoom);
-                if (!place.IsRoom)
-                {
-                    var facts = new PlaceFacts
-                    {
-                        Prefab = place.Prefab, Biome = PlaceEntries.BiomeWords(place.Biomes),
-                        GameName = place.Contents.GameName, Boss = place.Contents.Boss, Trader = place.Contents.Trader,
-                    };
-                    PlaceEntries.Named(entry, new[] { Places.LocationLabel(facts, PlaceEntries.CreatureNames(explorer.Catalog)) });
-                }
-                Learned.About(entry);
-
-                // A dungeon or camp read now gathers its rooms into its group.
-                PlaceEntries.Arrange(explorer.Catalog);
-                explorer.Entries.Regroup();
+                // Read over the next frames; its copy is shown once it is (ReadPlaceOn).
+                _readingEntry = entry;
+                _readContents = new PlaceContents();
+                _readSteps = PlaceReader.Steps(asset, place.IsRoom, _readContents).GetEnumerator();
+                return;
             }
             Stage.Show(entry, explorer.Modifiers);
+        }
+
+        /// <summary>A place whose contents are read: named as the game names it, its page told again, a dungeon or camp gathering its rooms into its group.</summary>
+        private static void Named(Explorer explorer, Entry entry, PlaceSource place)
+        {
+            var started = Timing.Start();
+            if (!place.IsRoom)
+            {
+                var facts = new PlaceFacts
+                {
+                    Prefab = place.Prefab, Biome = PlaceEntries.BiomeWords(place.Biomes),
+                    GameName = place.Contents.GameName, Boss = place.Contents.Boss, Trader = place.Contents.Trader,
+                };
+                PlaceEntries.Named(entry, new[] { Places.LocationLabel(facts, PlaceEntries.CreatureNames(explorer.Catalog)) });
+            }
+            Learned.About(entry);
+
+            PlaceEntries.Arrange(explorer.Catalog);
+            explorer.Entries.Regroup();
+            Timing.Add("selection arrange", started);
         }
 
         private static void Selected(Entry entry, Modifiers modifiers)
