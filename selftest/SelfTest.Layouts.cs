@@ -353,11 +353,15 @@ namespace Scry
         /// <summary>The lights switched off to film a place without them, switched on again after.</summary>
         private static readonly List<Light> FilmLightsOff = new List<Light>();
 
-        /// <summary>Films the stage as it is again: its own rendering path and smoothed edges, the place's lights on.</summary>
+        /// <summary>How many lights the game lights each part by pixel, as it had it before the self-test filmed with fewer; -1 while none is kept.</summary>
+        private static int _filmPixelLights = -1;
+
+        /// <summary>Films the stage as it is again: its own rendering path and smoothed edges, the game's pixel lights, the place's lights on.</summary>
         private static void FilmAsItIs()
         {
             Stage.PathOverride = null;
             Stage.SamplesOverride = null;
+            if (_filmPixelLights >= 0) QualitySettings.pixelLightCount = _filmPixelLights;
             foreach (var light in FilmLightsOff) if (light != null) light.enabled = true;
             FilmLightsOff.Clear();
         }
@@ -403,12 +407,22 @@ namespace Scry
             var films = new List<string>();
             var path = Stage.FilmedPath;
             var lights = Stage.ShownLights();
+            var below = Stage.DimmedLights();
+            _filmPixelLights = QualitySettings.pixelLightCount;
             var ways = new (string Way, Action Set)[]
             {
                 ("as it is", () => { }),
                 ("forward", () => Stage.PathOverride = RenderingPath.Forward),
                 ("deferred", () => Stage.PathOverride = RenderingPath.DeferredShading),
                 ("without smoothed edges", () => Stage.SamplesOverride = 1),
+                ("deferred without smoothed edges", () =>
+                {
+                    Stage.PathOverride = RenderingPath.DeferredShading;
+                    Stage.SamplesOverride = 1;
+                }),
+                ($"at most 2 pixel lights, of the game's {Numbers.Count(_filmPixelLights)}", () => QualitySettings.pixelLightCount = Math.Min(2, _filmPixelLights)),
+                ("at most 1 pixel light", () => QualitySettings.pixelLightCount = Math.Min(1, _filmPixelLights)),
+                ($"without the {Numbers.Count(below.Count)} lights of the rooms dimmed below", () => { FilmLightsOff.AddRange(below); foreach (var light in below) light.enabled = false; }),
                 ($"without its {Numbers.Count(lights.Count)} lights", () => { FilmLightsOff.AddRange(lights); foreach (var light in lights) light.enabled = false; }),
             };
             foreach (var (way, set) in ways)

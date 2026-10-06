@@ -102,6 +102,15 @@ namespace Scry
         /// <summary>Whether a room's copy is dimmed, below the floor opened.</summary>
         public bool IsDimmed(GameObject room) => _dimmed.Contains(room);
 
+        /// <summary>The lights switched on in the rooms dimmed below the floor opened.</summary>
+        public List<Light> DimmedLights()
+        {
+            var lights = new List<Light>();
+            foreach (var room in _dimmed) if (room != null) lights.AddRange(room.GetComponentsInChildren<Light>());
+            lights.RemoveAll(l => !l.enabled);
+            return lights;
+        }
+
         /// <summary>Shows a dungeon's example inside, its location's own parts put away, or its entrance outside.</summary>
         public void ShowInside(bool inside)
         {

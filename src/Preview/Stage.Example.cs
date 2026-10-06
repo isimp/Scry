@@ -201,6 +201,9 @@ namespace Scry
             return lights;
         }
 
+        /// <summary>The lights of the example's rooms dimmed below the floor opened, switched on now, for the self-test to film the floor opened with its own lights alone.</summary>
+        public static List<Light> DimmedLights() => TheExample.DimmedLights();
+
         /// <summary>Each room of the example read so far with the floors found in it alone, for the self-test to tell.</summary>
         public static List<string> ExampleRoomFloorsTold() => TheExample.RoomFloorsTold();
 
