@@ -35,9 +35,12 @@ namespace Scry
             if (catalog == null) return;
             // Each row by name, then in its own order where it has one; how many it holds. A row
             // of what comes only in a world event or later in the game names what has no home here.
+            // What is at home here is found once, so a row's own test, some of which look into
+            // the prefab, runs on the biome's entries rather than on every entry of the game.
+            var home = catalog.Where(e => e.Biomes.Contains(biome.Name)).ToList();
             int Here(string title, Func<Entry, bool> which, Func<Entry, string[]> also = null, Func<List<Entry>, List<Entry>> order = null)
             {
-                var found = catalog.Where(e => which(e) && (also == null ? e.Biomes.Contains(biome.Name) : also(e).Contains(biome.Name) && !e.Biomes.Contains(biome.Name)))
+                var found = (also == null ? home.Where(which) : catalog.Where(e => also(e).Contains(biome.Name) && !e.Biomes.Contains(biome.Name) && which(e)))
                     .OrderBy(e => e.ShownName, StringComparer.OrdinalIgnoreCase)
                     .ToList();
                 var row = new Row();
