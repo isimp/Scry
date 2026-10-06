@@ -104,7 +104,10 @@ namespace Scry
             try
             {
                 // Made and moved this frame: physics learns where its colliders are before they are measured.
+                var timed = Timing.Start();
                 Physics.SyncTransforms();
+                Timing.Add("floor probe sync", timed);
+                timed = Timing.Start();
                 Bounds? around = null;
                 foreach (var collider in Colliders)
                 {
@@ -148,11 +151,13 @@ namespace Scry
                         names?.Add(PartName(hit.collider.transform));
                     }
                 }
+                Timing.Add("floor probe rays", timed);
                 return rays * cell;
             }
             finally
             {
                 // Nothing else of the copy should meet anything; its colliders go once read.
+                var gone = Timing.Start();
                 copy.GetComponentsInChildren(true, Colliders);
                 foreach (var collider in Colliders)
                 {
@@ -161,6 +166,7 @@ namespace Scry
                     Object.Destroy(collider);
                 }
                 Colliders.Clear();
+                Timing.Add("floor probe colliders", gone);
             }
         }
     }
