@@ -351,7 +351,9 @@ namespace Scry
         {
             var read = Timing.Start();
             var asleep = !Holder.activeSelf;
+            var step = Timing.Start();
             if (asleep) copy.transform.SetParent(subject, false);
+            Timing.Add("example floors wake", step);
             _hits.Clear();
             var cast = FloorProbe.Read(copy, subject, layer, _hits, Copies, spawns: spawns);
             _ground += cast;
@@ -367,13 +369,17 @@ namespace Scry
                 if (room.Room.Doorways[i].Entrance) outerDoor = height;
             }
             // Read alone, a room whose ceiling is the room above has nothing of its own over its floor.
+            step = Timing.Start();
             var ground = FloorFinder.Patch(FloorFinder.Inside(_hits, door, outerDoor));
+            Timing.Add("example floors found", step);
             ground.Ground = cast;
             ground.Door = door;
             _patches.Add(ground);
             _roomGround[room] = ground;
             _hits.Clear();
+            step = Timing.Start();
             if (asleep) copy.transform.SetParent(Holder.transform, false);
+            Timing.Add("example floors sleep", step);
             Timing.Add("example floors", read);
         }
 
