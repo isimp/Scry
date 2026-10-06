@@ -153,6 +153,21 @@ namespace Scry
         /// </summary>
         private static (bool Only, int Worth) Notable(string item, ICollection<string> here)
         {
+            if (_notables != null && _notables.TryGetValue(item, out var known) && ReferenceEquals(known.Here, here)) return (known.Only, known.Worth);
+            var found = NotableNow(item, here);
+            if (_notables != null) _notables[item] = (here, found.Only, found.Worth);
+            return found;
+        }
+
+        /// <summary>
+        /// While one page is told, what <see cref="Notable"/> found of each item and the places it
+        /// was asked for: a dungeon's page asks it of the same loot for each of its chests and again
+        /// for its loot row, each answer reading every source of the item. Null between pages.
+        /// </summary>
+        private static Dictionary<string, (ICollection<string> Here, bool Only, int Worth)> _notables;
+
+        private static (bool Only, int Worth) NotableNow(string item, ICollection<string> here)
+        {
             var givers = Knowledge.SourceLines(item).Select(s => s.Prefab).Where(p => p != null).Distinct().ToList();
             var entry = EntryOf(item);
             var elsewhere = Knowledge.MadeOf(item).Count > 0 || Knowledge.IsPlacedByWorld(item)
@@ -216,6 +231,23 @@ namespace Scry
             if (Cache.TryGetValue(entry, out var known) && (known._seenVersion == DropWatch.Version || (entry.Kind != Kind.Creature && entry.Kind != Kind.Item && entry.Kind != Kind.Mod))) return known;
 
             var facts = new Facts { _seenVersion = DropWatch.Version };
+            _notables = new Dictionary<string, (ICollection<string>, bool, int)>(StringComparer.Ordinal);
+            try
+            {
+                facts.Tell(entry);
+            }
+            finally
+            {
+                _notables = null;
+            }
+            Cache[entry] = facts;
+            return facts;
+        }
+
+        /// <summary>Tells an entry's facts, part by part.</summary>
+        private void Tell(Entry entry)
+        {
+            var facts = this;
             if (entry.Source is StatusEffect effect)
             {
                 facts.Part("status effect", () => facts.StatusEffect(effect));
@@ -284,9 +316,6 @@ namespace Scry
             });
             facts.TellMissing();
             foreach (var row in facts.Rows.Concat(facts.UseRows)) row.TellApart();
-
-            Cache[entry] = facts;
-            return facts;
         }
 
         /// <summary>What had been seen dropping in play when these facts were told (<see cref="DropWatch.Version"/>).</summary>

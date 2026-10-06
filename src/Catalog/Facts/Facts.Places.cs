@@ -218,6 +218,7 @@ namespace Scry
             string Read(string title) => DungeonWords.RoomsRead(title, read.Count, rooms.Count);
 
             var parts = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Parts));
+            var inDungeon = new HashSet<string>(parts.Select(p => p.Prefab).Where(p => p != null)) { _entry?.Name ?? "", _entry?.Key ?? "" };
             foreach (var role in PlaceParts.Roles)
             {
                 if (role == PartRole.Built)
@@ -230,7 +231,6 @@ namespace Scry
                         Rows.Add(spawned);
                     }
                 }
-                var inDungeon = new HashSet<string>(parts.Select(p => p.Prefab).Where(p => p != null)) { _entry?.Name ?? "", _entry?.Key ?? "" };
                 var inRow = InRow(parts, p => p.Prefab, p => p.Rooms, role, inDungeon);
                 if (inRow.Count > 0)
                 {
@@ -260,7 +260,8 @@ namespace Scry
                 if (loot.Count > 0)
                 {
                     var here = new HashSet<string>(givers) { _entry?.Name ?? "", _entry?.Key ?? "" };
-                    double Best(string item) => Knowledge.SourceLines(item).Where(s => s.Prefab != null && givers.Contains(s.Prefab)).Select(s => s.Chance).DefaultIfEmpty(0.0).Max();
+                    var giving = new HashSet<string>(givers, StringComparer.Ordinal);
+                    double Best(string item) => Knowledge.SourceLines(item).Where(s => s.Prefab != null && giving.Contains(s.Prefab)).Select(s => s.Chance).DefaultIfEmpty(0.0).Max();
                     var told = loot.Select(l => (l.Prefab, l.Rooms, Best: Best(l.Prefab), Notable: Notable(l.Prefab, here)));
                     var row = new Row { Title = Read("Loot in its rooms") };
                     foreach (var (item, count, best, notable) in ContentOrder.LootFirst(told, l => l.Best, l => l.Notable.Only, l => l.Notable.Worth))
