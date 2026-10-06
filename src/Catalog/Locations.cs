@@ -78,9 +78,12 @@ namespace Scry
         // The one being read: held from its load until it is released.
         private static bool _holding;
         private static Asset _current;
-        private static Component[] _parts;
         private static Transform _root;
-        private static int _part;
+
+        /// <summary>Its contents being read a part of the reading at a time, then its parts walked a few at a time.</summary>
+        private static IEnumerator<bool> _reading;
+        private static PreOrderWalk<Transform> _walk;
+        private static readonly List<Component> Components = new List<Component>();
 
         private static Stopwatch _clock;
         private static double _workMs;
@@ -205,15 +208,15 @@ namespace Scry
                         return;
                     }
                     _current = Queue[_next++];
-                    _parts = null;
-                    _part = 0;
+                    _reading = null;
+                    _walk = null;
                     // Holds a reference until released, as Load does; loads over the next frames.
                     _holding = true;
                     _current.Reference.LoadAsync();
                     return;
                 }
 
-                if (_parts == null)
+                if (_walk == null && _reading == null)
                 {
                     if (!_current.Reference.IsLoaded)
                     {
@@ -229,20 +232,32 @@ namespace Scry
                         Next();
                         continue;
                     }
-                    // Timed apart: each reads the whole location in one go, outside the frame's share.
-                    var step = Timing.Start();
-                    PlacesOf(prefab);
-                    Timing.Add("locations contents", step);
-                    step = Timing.Start();
                     _root = prefab.transform;
-                    _parts = prefab.GetComponentsInChildren<Component>(true);
-                    Timing.Add("locations parts", step);
+                    _reading = PlacesOf(prefab).GetEnumerator();
                     continue;
                 }
 
-                var end = Math.Min(_parts.Length, _part + 32);
-                while (_part < end) Read(_parts[_part++]);
-                if (_part >= _parts.Length) Next();
+                // What it holds, a part of the reading at a time; each part of it walks the whole
+                // location for one kind of part, so it is timed on its own.
+                if (_reading != null)
+                {
+                    var step = Timing.Start();
+                    var more = _reading.MoveNext();
+                    Timing.Add("locations contents", step);
+                    if (more) continue;
+                    _reading = null;
+                    _walk = new PreOrderWalk<Transform>(_root, t => t.childCount, (t, i) => t.GetChild(i));
+                    continue;
+                }
+
+                // Then each of its parts, a few at a time, in the order the prefab holds them.
+                for (var n = 0; n < 8 && _walk.Next(out var part); n++)
+                {
+                    part.GetComponents(Components);
+                    foreach (var component in Components) Read(component);
+                }
+                Components.Clear();
+                if (_walk.Done) Next();
             }
         }
 
@@ -250,11 +265,22 @@ namespace Scry
         /// The places the one being read stands for: a location by its name (<see cref="Places"/>),
         /// noting the kinds of room any dungeon in it is built with; a room by those dungeons.
         /// </summary>
-        private static void PlacesOf(GameObject prefab)
+        private static IEnumerable<bool> PlacesOf(GameObject prefab)
         {
             Here.Clear();
-            PlaceContents contents = null;
-            Guard.Each(Feature.Locations, "locations", _current.Name, () => contents = PlaceReader.Read(prefab, _current.Room));
+            var contents = new PlaceContents();
+            var steps = PlaceReader.Steps(prefab, _current.Room, contents).GetEnumerator();
+            while (true)
+            {
+                var more = false;
+                if (!Guard.Each(Feature.Locations, "locations", _current.Name, () => more = steps.MoveNext()))
+                {
+                    contents = null;
+                    break;
+                }
+                if (!more) break;
+                yield return true;
+            }
 
             if (_current.Room)
             {
@@ -263,7 +289,7 @@ namespace Scry
                 Here.AddRange(Places.RoomLabels(theme, Dungeons));
                 if (contents != null) ReadRooms[_current.Name] = contents;
                 PlaceLabels["room:" + _current.Name] = Here.ToArray();
-                return;
+                yield break;
             }
 
             var facts = new PlaceFacts { Prefab = _current.Name, Biome = BiomeOf(_current.Biome) };
@@ -362,7 +388,8 @@ namespace Scry
 
         private static void ReleaseCurrent()
         {
-            _parts = null;
+            _reading = null;
+            _walk = null;
             _root = null;
             if (!_holding) return;
             _holding = false;
