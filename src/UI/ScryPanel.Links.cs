@@ -265,8 +265,8 @@ namespace Scry
 
         /// <summary>
         /// Builds the lookups the side pane uses over the whole catalog (names in it, their kinds,
-        /// the names the game shows, the status effects) one a frame after the catalog is read,
-        /// so the first entry selected does not build them all at once.
+        /// the names the game shows, the status effects, the chains) one a frame after the catalog
+        /// is read, so the first entry selected does not build them all at once.
         /// </summary>
         public static void Prepare(Explorer explorer)
         {
@@ -290,6 +290,7 @@ namespace Scry
                 case 1: KindOf(explorer, "-"); break;
                 case 2: ShownName(explorer, "-", ""); break;
                 case 3: Assist.TermsFor(explorer); break;
+                case 4: Chains.Of(""); break;
                 default: _prepared = explorer; break;
             }
         }
