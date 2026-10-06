@@ -384,24 +384,25 @@ namespace Scry
             var paints = PaintsNow();
             var size = StageGround.MaskSize(paints.Count, _across);
             if (_mask.width != size) _mask.Reinitialize(size, size);
-            var pixels = new Color[size * size];
-            var bare = (ground.r, ground.g, ground.b, ground.a);
-            var near = new List<GroundPaint>();
-            for (var j = 0; j < size; j++)
+            // Kept from one painting to the next, so laying the ground anew makes no new ones.
+            if (_maskPoints.Length != size * size)
             {
-                var z = _at.z + ((j + 0.5f) / size - 0.5f) * _across;
-                for (var i = 0; i < size; i++)
-                {
-                    var x = _at.x + ((i + 0.5f) / size - 0.5f) * _across;
-                    near.Clear();
-                    foreach (var paint in paints) if (Mathf.Abs(x - paint.X) <= paint.Radius && Mathf.Abs(z - paint.Z) <= paint.Radius) near.Add(paint);
-                    var (r, g, b, a) = near.Count == 0 ? bare : StageGround.Painted(bare, x, z, near);
-                    pixels[j * size + i] = new Color(r, g, b, a);
-                }
+                _maskPoints = new (float, float, float, float)[size * size];
+                _maskPixels = new Color[size * size];
             }
-            _mask.SetPixels(pixels);
+            StageGround.PaintMask(size, _at.x, _at.z, _across, paints, (ground.r, ground.g, ground.b, ground.a), _maskPoints);
+            for (var p = 0; p < _maskPoints.Length; p++)
+            {
+                var (r, g, b, a) = _maskPoints[p];
+                _maskPixels[p] = new Color(r, g, b, a);
+            }
+            _mask.SetPixels(_maskPixels);
             _mask.Apply(false);
         }
+
+        /// <summary>The mask's points as painted, and as colours for its texture.</summary>
+        private (float R, float G, float B, float A)[] _maskPoints = Array.Empty<(float, float, float, float)>();
+        private Color[] _maskPixels = Array.Empty<Color>();
 
         /// <summary>The paints as they stand now, in the order the game applies them.</summary>
         private List<GroundPaint> PaintsNow()

@@ -224,6 +224,68 @@ namespace Scry
             return color;
         }
 
+        /// <summary>The cells each side of the ground's mask is split into, to note which paints reach each.</summary>
+        private const int MaskCells = 32;
+
+        /// <summary>
+        /// The ground's mask, a point at a time as <see cref="Painted"/> paints each: size by size
+        /// points across a square <paramref name="across"/> wide around a middle, written row by
+        /// row into the points given. Each paint is first noted in the cells of a coarse grid it
+        /// may reach, in the game's order, so a point weighs only the paints of its cell rather
+        /// than every one of a camp's hundreds; the mask is the same.
+        /// </summary>
+        public static void PaintMask(int size, float middleX, float middleZ, float across, IReadOnlyList<GroundPaint> paints, (float R, float G, float B, float A) bare, (float R, float G, float B, float A)[] into)
+        {
+            var cells = Math.Min(size, MaskCells);
+            var reach = new List<int>[cells * cells];
+            for (var n = 0; n < paints.Count; n++)
+            {
+                var paint = paints[n];
+                if (!(paint.Radius >= 0f)) continue;
+                var (i0, i1) = Span(paint.X, paint.Radius, middleX, across, size);
+                var (j0, j1) = Span(paint.Z, paint.Radius, middleZ, across, size);
+                if (i0 > i1 || j0 > j1) continue;
+                for (var cj = j0 * cells / size; cj <= j1 * cells / size; cj++)
+                {
+                    for (var ci = i0 * cells / size; ci <= i1 * cells / size; ci++)
+                    {
+                        var cell = cj * cells + ci;
+                        (reach[cell] ?? (reach[cell] = new List<int>())).Add(n);
+                    }
+                }
+            }
+
+            var near = new List<GroundPaint>();
+            for (var j = 0; j < size; j++)
+            {
+                var z = middleZ + ((j + 0.5f) / size - 0.5f) * across;
+                var row = j * cells / size * cells;
+                for (var i = 0; i < size; i++)
+                {
+                    var x = middleX + ((i + 0.5f) / size - 0.5f) * across;
+                    near.Clear();
+                    var those = reach[row + i * cells / size];
+                    if (those != null)
+                    {
+                        foreach (var n in those)
+                        {
+                            var paint = paints[n];
+                            if (Math.Abs(x - paint.X) <= paint.Radius && Math.Abs(z - paint.Z) <= paint.Radius) near.Add(paint);
+                        }
+                    }
+                    into[j * size + i] = near.Count == 0 ? bare : Painted(bare, x, z, near);
+                }
+            }
+        }
+
+        /// <summary>The points along one side of the mask a paint may reach; from past to where it reaches none, kept within the mask before counting so a paint far off cannot overflow.</summary>
+        private static (int From, int To) Span(float at, float radius, float middle, float across, int size)
+        {
+            var from = Math.Floor(((at - radius - middle) / (double)across + 0.5) * size - 0.5);
+            var to = Math.Ceiling(((at + radius - middle) / (double)across + 0.5) * size - 0.5);
+            return ((int)Math.Max(0, Math.Min(size, from)), (int)Math.Max(-1, Math.Min(size - 1, to)));
+        }
+
         /// <summary>The biome whose ground it stands on: the first of its own players meet, a mod's after the game's; Meadows for none.</summary>
         public static string BiomeFor(IEnumerable<string> biomes)
         {
