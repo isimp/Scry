@@ -10,13 +10,16 @@ namespace Scry
     /// </summary>
     internal static class Animators
     {
-        public static Animator Main(GameObject root)
+        public static Animator Main(GameObject root) => root == null ? null : Main(root, root.GetComponentsInChildren<Animator>(true));
+
+        /// <summary>The same among a root's animators found before, in the order found; one taken away since is passed over.</summary>
+        public static Animator Main(GameObject root, Animator[] animators)
         {
-            if (root == null) return null;
+            if (root == null || animators == null) return null;
             Animator any = null;
-            foreach (var animator in root.GetComponentsInChildren<Animator>(true))
+            foreach (var animator in animators)
             {
-                if (animator.runtimeAnimatorController == null) continue;
+                if (animator == null || animator.runtimeAnimatorController == null) continue;
                 if (SwitchedOn(animator.transform, root.transform)) return animator;
                 if (any == null) any = animator;
             }

@@ -380,6 +380,12 @@ namespace Scry
             var outside = RoomsOutOfPicture();
             p.Check(outside.Count == 0, "and every room on it is in the picture", string.Join(", ", outside.Take(8)));
 
+            // The stage asks for the copy's animator every frame; a copy that stays as it is is
+            // walked for it only when it gains or loses a part, as creatures still being placed do.
+            var walks = ClipPlayer.Walks;
+            for (var i = 0; i < 30; i++) yield return null;
+            p.Check(ClipPlayer.Walks - walks < 10, "a dungeon that stays as it is is not searched for its animator every frame", $"{Numbers.Count(ClipPlayer.Walks - walks)} times in 30 frames");
+
             if (Stage.FloorHeights.Count > 1)
             {
                 Stage.StepCut(true);

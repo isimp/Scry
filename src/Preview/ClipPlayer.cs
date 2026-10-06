@@ -105,8 +105,11 @@ namespace Scry
         }
 
         /// <summary>
-        /// The animator that drives the copy (<see cref="Animators.Main"/>). Asked many times a
-        /// frame (the panel, for every clip), so the answer is kept for the frame.
+        /// The animator that drives the copy (<see cref="Animators.Main(GameObject)"/>). Asked many times a
+        /// frame (the panel, for every clip), so the answer is kept for the frame. Its animators
+        /// are found by walking the whole copy, thousands of parts for a dungeon's example, so
+        /// they are kept until the copy changes or gains or loses a part (its hierarchy's count of
+        /// parts); which of them is switched on is read anew, as rooms are put away and back.
         /// </summary>
         public static Animator AnimatorOf(GameObject copy)
         {
@@ -114,13 +117,38 @@ namespace Scry
             if (_ofFrame == Time.frameCount && ReferenceEquals(_ofCopy, copy) && (_of == null || _of != null && _of.runtimeAnimatorController != null)) return _of;
             _ofFrame = Time.frameCount;
             _ofCopy = copy;
-            _of = Animators.Main(copy);
+            var parts = copy.transform.hierarchyCount;
+            if (!ReferenceEquals(_animatorsOf, copy) || _animatorsParts != parts)
+            {
+                _animatorsOf = copy;
+                _animatorsParts = parts;
+                _animators = copy.GetComponentsInChildren<Animator>(true);
+                Walks++;
+            }
+            _of = Animators.Main(copy, _animators);
             return _of;
         }
 
         private static int _ofFrame = -1;
         private static GameObject _ofCopy;
         private static Animator _of;
+
+        /// <summary>The copy whose animators were last found, its count of parts then, and the animators.</summary>
+        private static GameObject _animatorsOf;
+        private static int _animatorsParts;
+        private static Animator[] _animators;
+
+        /// <summary>How often a copy was walked for its animators, for the self-test to see a copy that stays as it is walked once.</summary>
+        public static int Walks { get; private set; }
+
+        /// <summary>Leaving a world lets go of the copy whose animators were kept (<see cref="WorldCaches"/>).</summary>
+        static ClipPlayer() => WorldCaches.Register(nameof(ClipPlayer), Forget);
+
+        private static void Forget()
+        {
+            _animatorsOf = null;
+            _animators = null;
+        }
 
         private void Begin(Animator animator, AnimationClip clip, bool loop, float speed)
         {
