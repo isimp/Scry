@@ -2,7 +2,7 @@
 
 Look up anything in Valheim and see it, without spawning a thing. Press F7 or type /scry in chat, search for a creature, item, piece, sound, effect or location, and it appears on a turntable inside the panel.
 
-![A creature on the Scry turntable with its details](https://raw.githubusercontent.com/isimp/Scry/main/docs/images/screenshot.webp)
+![A camp on the Scry stage with its plan and what its rooms hold](https://raw.githubusercontent.com/isimp/Scry/main/docs/images/screenshot.webp)
 
 ## AI notice
 
