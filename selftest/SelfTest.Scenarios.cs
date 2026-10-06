@@ -115,7 +115,7 @@ namespace Scry
             yield return S("a camp lays out an example, drawn", CampExample, 150, bearsSkips: true);
             yield return S("the cave and tower dungeons find floors with rooms on each", CaveFloors, 300, bearsSkips: true);
             yield return S("a place's creatures stand on the stage with it", PlaceCreatures, 60, bearsSkips: true);
-            yield return S("the stage's camera looks at the floor opened, zooms toward the pointer and drags with it", CameraMoves, 90, bearsSkips: true);
+            yield return S("the stage's camera looks at the floor opened, zooms toward the pointer and drags with it", CameraMoves, 90, FilmAsItIs, bearsSkips: true);
             yield return S("the world's lights stay off the stage", WorldLightsOff, 20);
             yield return S("the Ground backdrop lays each biome's own ground", GroundBackdrop, 120, bearsSkips: true);
             yield return S("Scry costs next to nothing idling with the panel closed", IdleCost, 20);

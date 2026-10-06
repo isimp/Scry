@@ -350,6 +350,18 @@ namespace Scry
             p.Check(gaps.Count == 0, "the sealed tower's floors are a storey apart, none missing", string.Join("; ", gaps));
         }
 
+        /// <summary>The lights switched off to film a place without them, switched on again after.</summary>
+        private static readonly List<Light> FilmLightsOff = new List<Light>();
+
+        /// <summary>Films the stage as it is again: its own rendering path and smoothed edges, the place's lights on.</summary>
+        private static void FilmAsItIs()
+        {
+            Stage.PathOverride = null;
+            Stage.SamplesOverride = null;
+            foreach (var light in FilmLightsOff) if (light != null) light.enabled = true;
+            FilmLightsOff.Clear();
+        }
+
         /// <summary>
         /// The stage's camera with a floor opened in a tall dungeon's example: it looks at that
         /// floor, every room on it in the picture, and goes down with it a floor down; the wheel
@@ -385,6 +397,34 @@ namespace Scry
             var walks = ClipPlayer.Walks;
             for (var i = 0; i < 30; i++) yield return null;
             p.Check(ClipPlayer.Walks - walks < 10, "a dungeon that stays as it is is not searched for its animator every frame", $"{Numbers.Count(ClipPlayer.Walks - walks)} times in 30 frames");
+
+            // What filming the dungeon costs, and how much of it the stage's rendering path, its
+            // smoothed edges and the place's own lights each take: filmed ten frames each way.
+            var films = new List<string>();
+            var path = Stage.FilmedPath;
+            var lights = Stage.ShownLights();
+            var ways = new (string Way, Action Set)[]
+            {
+                ("as it is", () => { }),
+                ("forward", () => Stage.PathOverride = RenderingPath.Forward),
+                ("deferred", () => Stage.PathOverride = RenderingPath.DeferredShading),
+                ("without smoothed edges", () => Stage.SamplesOverride = 1),
+                ($"without its {Numbers.Count(lights.Count)} lights", () => { FilmLightsOff.AddRange(lights); foreach (var light in lights) light.enabled = false; }),
+            };
+            foreach (var (way, set) in ways)
+            {
+                set();
+                for (var i = 0; i < 3; i++) yield return null;
+                var sum = 0.0;
+                for (var i = 0; i < 10; i++)
+                {
+                    yield return null;
+                    sum += Stage.LastFilmMs;
+                }
+                films.Add($"{way} {Numbers.Fixed(sum / 10, 1)} ms ({Stage.FilmedPath})");
+                FilmAsItIs();
+            }
+            p.Note($"filming it, the stage filming by {path}: " + string.Join(", ", films));
 
             if (Stage.FloorHeights.Count > 1)
             {
