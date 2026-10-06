@@ -54,6 +54,63 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AFontTextureRebuiltIsToldOnThePartsItHappenedInAndCountedForTheFrame()
+        {
+            // A font out of room in its texture draws all its letters again, and the text drawn
+            // after it pays too: told on its parts, they are not taken for slow code.
+            var frame = new FrameTimes();
+            frame.Add("panel", 100, 16 * 1024, 0, 2);
+            frame.Add("panel controls", 98, 16 * 1024, 0, 1);
+            frame.Add("panel list", 1, 0, 0, 1);
+            frame.Add("update", 1, 0, 0);
+
+            Assert.Equal("Scry took 101 ms of a 120 ms frame, a font's texture was rebuilt 2 times inside it, allocating about 16 KB: panel 100 [2 font rebuilds, 16 KB], panel controls 98 [font rebuilt, 16 KB], panel list 1 [font rebuilt], update 1.",
+                frame.Line(120));
+        }
+
+        [Fact]
+        public void APartOfNoTimeIsToldWhereAFontWasRebuiltInIt()
+        {
+            var frame = new FrameTimes();
+            frame.Add("panel", 5, 0, 0, 1);
+            frame.Add("panel title", 0.2, 0, 0, 1);
+
+            Assert.Equal("Scry took 5 ms of a 20 ms frame, a font's texture was rebuilt inside it: panel 5 [font rebuilt], panel title 0 [font rebuilt].", frame.Line(20));
+        }
+
+        [Fact]
+        public void WhatAPartAllocatedIsNotToldOnceACleanupRanInIt()
+        {
+            // A cleanup frees memory as it runs, so what was allocated around it cannot be told.
+            var frame = new FrameTimes();
+            frame.Add("panel", 3, 40 * 1024, 0);
+            frame.Add("panel", 30, 0, 1);
+
+            Assert.Equal("Scry took 33 ms of a 50 ms frame, a memory cleanup ran inside it, allocating about 40 KB: panel 33 [memory cleanup].", frame.Line(50));
+        }
+
+        [Fact]
+        public void TheNextFrameStartsWithNoFontRebuilds()
+        {
+            var frame = new FrameTimes();
+            frame.Add("panel", 30, 0, 0, 1);
+            frame.Clear();
+            frame.Add("panel", 3, 0, 0);
+
+            Assert.Equal("Scry took 3 ms of a 16 ms frame: panel 3.", frame.Line(16));
+        }
+
+        [Fact]
+        public void ACleanupAndAFontRebuildInOnePartAreBothTold()
+        {
+            var frame = new FrameTimes();
+            frame.Add("panel", 70, 0, 1, 1);
+
+            Assert.Equal("Scry took 70 ms of a 90 ms frame, a memory cleanup ran inside it, a font's texture was rebuilt inside it: panel 70 [memory cleanup, font rebuilt].",
+                frame.Line(90));
+        }
+
+        [Fact]
         public void WhatAPartAllocatedIsToldInKilobytesAndTheFrameSumsItsOuterParts()
         {
             var frame = new FrameTimes();

@@ -19,6 +19,7 @@ namespace Scry
             public double Ms;
             public long Bytes;
             public int Cleanups;
+            public int Rebuilds;
             public bool Outer => Name.IndexOf(' ') < 0;
         }
 
@@ -46,6 +47,17 @@ namespace Scry
             {
                 var sum = 0L;
                 foreach (var part in _parts) if (part.Outer) sum += part.Bytes;
+                return sum;
+            }
+        }
+
+        /// <summary>How often a font's texture was rebuilt inside the outer parts.</summary>
+        public int Rebuilds
+        {
+            get
+            {
+                var sum = 0;
+                foreach (var part in _parts) if (part.Outer) sum += part.Rebuilds;
                 return sum;
             }
         }
@@ -134,8 +146,8 @@ namespace Scry
             }
         }
 
-        /// <summary>Adds to a part: its time, what it allocated, and how many cleanups ran inside it.</summary>
-        public void Add(string part, double ms, long bytes, int cleanups)
+        /// <summary>Adds to a part: its time, what it allocated, how many cleanups ran inside it, and how often a font's texture was rebuilt in it.</summary>
+        public void Add(string part, double ms, long bytes, int cleanups, int rebuilds = 0)
         {
             if (!_byName.TryGetValue(part, out var known))
             {
@@ -146,6 +158,7 @@ namespace Scry
             known.Ms += ms;
             known.Bytes += Math.Max(0, bytes);
             known.Cleanups += Math.Max(0, cleanups);
+            known.Rebuilds += Math.Max(0, rebuilds);
         }
 
         /// <summary>
@@ -159,6 +172,7 @@ namespace Scry
                 part.Ms = 0;
                 part.Bytes = 0;
                 part.Cleanups = 0;
+                part.Rebuilds = 0;
             }
             if (_parts.Count > 500)
             {
@@ -175,27 +189,35 @@ namespace Scry
         public string Line(double frameMs)
         {
             var cleanups = Cleanups;
+            var rebuilds = Rebuilds;
             var kb = Kilobytes(Bytes);
 
             var head = $"Scry took {Numbers.Amount(Total, 0)} ms of a {Numbers.Amount(frameMs, 0)} ms frame";
             if (cleanups == 1) head += ", a memory cleanup ran inside it";
             else if (cleanups > 1) head += $", {Numbers.Count(cleanups)} memory cleanups ran inside it";
+            if (rebuilds == 1) head += ", a font's texture was rebuilt inside it";
+            else if (rebuilds > 1) head += $", a font's texture was rebuilt {Numbers.Count(rebuilds)} times inside it";
             if (kb > 0) head += $", allocating about {Numbers.Count(kb)} KB";
 
             var told = _parts
-                .Where(p => Math.Round(p.Ms) >= 1 || Kilobytes(p.Bytes) > 0 || p.Cleanups > 0)
+                .Where(p => Math.Round(p.Ms) >= 1 || Kilobytes(p.Bytes) > 0 || p.Cleanups > 0 || p.Rebuilds > 0)
                 .OrderByDescending(p => p.Ms)
                 .Select(Told);
             return head + ": " + string.Join(", ", told) + ".";
         }
 
+        /// <summary>A part as a slow frame tells it: its time, then the cleanups and font rebuilds in it, and what it allocated where no cleanup hides that.</summary>
         private static string Told(Part part)
         {
             var text = $"{part.Name} {Numbers.Amount(part.Ms, 0)}";
-            if (part.Cleanups == 1) return text + " [memory cleanup]";
-            if (part.Cleanups > 1) return text + $" [{Numbers.Count(part.Cleanups)} memory cleanups]";
+            var marks = new List<string>();
+            if (part.Cleanups == 1) marks.Add("memory cleanup");
+            else if (part.Cleanups > 1) marks.Add($"{Numbers.Count(part.Cleanups)} memory cleanups");
+            if (part.Rebuilds == 1) marks.Add("font rebuilt");
+            else if (part.Rebuilds > 1) marks.Add($"{Numbers.Count(part.Rebuilds)} font rebuilds");
             var kb = Kilobytes(part.Bytes);
-            return kb > 0 ? text + $" [{Numbers.Count(kb)} KB]" : text;
+            if (part.Cleanups == 0 && kb > 0) marks.Add($"{Numbers.Count(kb)} KB");
+            return marks.Count == 0 ? text : text + " [" + string.Join(", ", marks) + "]";
         }
 
         private static long Kilobytes(long bytes) => (long)Math.Round(bytes / 1024.0);

@@ -23,7 +23,17 @@ namespace Scry
             public long Ticks;
             public long Bytes;
             public int Cleanups;
+            public int Rebuilds;
         }
+
+        /// <summary>
+        /// How often a font's texture has been rebuilt this session. A font out of room in its
+        /// texture draws all its letters again, and the text drawn after it in the frame pays
+        /// too; counted as it happens, a part it happened in is told so (<see cref="FrameTimes"/>).
+        /// </summary>
+        private static int _fontRebuilds;
+
+        static Timing() => Font.textureRebuilt += _ => _fontRebuilds++;
 
         /// <summary>How often the counts of memory cleanups and allocation are told, in seconds.</summary>
         private const float WindowSeconds = 30f;
@@ -91,7 +101,7 @@ namespace Scry
         public static Mark Start()
         {
             if (!On) return default;
-            return new Mark { Ticks = Stopwatch.GetTimestamp(), Bytes = GC.GetTotalMemory(false), Cleanups = GC.CollectionCount(0) };
+            return new Mark { Ticks = Stopwatch.GetTimestamp(), Bytes = GC.GetTotalMemory(false), Cleanups = GC.CollectionCount(0), Rebuilds = _fontRebuilds };
         }
 
         /// <summary>
@@ -105,7 +115,7 @@ namespace Scry
             var cleanups = GC.CollectionCount(0) - started.Cleanups;
             var bytes = cleanups > 0 ? 0 : GC.GetTotalMemory(false) - started.Bytes;
             Roll();
-            Frame.Add(part, ms, bytes, cleanups);
+            Frame.Add(part, ms, bytes, cleanups, _fontRebuilds - started.Rebuilds);
         }
 
         /// <summary>
