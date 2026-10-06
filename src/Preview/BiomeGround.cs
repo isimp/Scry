@@ -164,7 +164,8 @@ namespace Scry
 
             var basis = Mathf.Max(0.5f, frameRadius);
             var at = new Vector3(origin.x, groundY - Below, origin.z);
-            var another = !ReferenceEquals(_for, shown) || _laidBiome != Biome || _sky != sky || _paintsLaid != _paintsVersion || Mathf.Abs(clear - _clear) > 0.1f;
+            var afresh = !ReferenceEquals(_for, shown) || _laidBiome != Biome || _sky != sky;
+            var another = afresh || _paintsLaid != _paintsVersion || Mathf.Abs(clear - _clear) > 0.1f;
             if (another || basis > _basis * 1.25f)
             {
                 _basis = another ? basis : Mathf.Max(basis, _basis);
@@ -178,9 +179,14 @@ namespace Scry
                 var step = Timing.Start();
                 PaintMask();
                 Timing.Add("render frame ground paint", step);
-                step = Timing.Start();
-                ScatterGrass(root, layer);
-                Timing.Add("render frame ground grass", step);
+                // The grass at once for another entry, biome or sky; for what changes as a place's
+                // rooms come in one by one (its paints, its size, its reach), once they have stopped.
+                if (afresh)
+                {
+                    _grassWait.Done();
+                    Scatter(root, layer);
+                }
+                else _grassWait.Changed(Time.unscaledTime);
             }
             else if (Mathf.Abs(at.y - _at.y) > 0.005f)
             {
@@ -188,9 +194,23 @@ namespace Scry
                 _at = at;
             }
 
+            if (_grassWait.Due(Time.unscaledTime)) Scatter(root, layer);
+
             PlaceAt(_at, _across);
             PlaceWater(root, layer);
             PlaceFade(edge, root, layer);
+        }
+
+        /// <summary>How long what the ground holds must stay as it is before its grass is scattered again.</summary>
+        private const float GrassSettleSeconds = 0.3f;
+
+        private readonly AfterQuiet _grassWait = new AfterQuiet(GrassSettleSeconds);
+
+        private void Scatter(GameObject root, int layer)
+        {
+            var step = Timing.Start();
+            ScatterGrass(root, layer);
+            Timing.Add("render frame ground grass", step);
         }
 
         /// <summary>Makes the piece of ground once the world's terrain has a material to borrow, trying again a second apart.</summary>
