@@ -217,6 +217,7 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.Monitor) > drawn, "it draws over the screen", $"{Numbers.Count(ScryPanel.Drawn(PanelPart.Monitor) - drawn)} times");
             p.Check(Monitor.Window.Count > 0 && Monitor.Window.Mean > 0, "it measures Scry's frames", $"{Numbers.Count(Monitor.Window.Count)} frames, {Numbers.Fixed(Monitor.Window.Mean, 3)} ms on average");
             p.Check(Monitor.Lines.Any(l => l.StartsWith("holds ", StringComparison.Ordinal) && l.Contains($"{Numbers.Count(X.Catalog.Count)} entries")), "it tells what Scry holds", string.Join(" | ", Monitor.Lines));
+            p.Check(Monitor.Lines.Any(l => l.StartsWith("kept for next time: ", StringComparison.Ordinal) && l.Contains($"the floors of {Numbers.Count(FloorRecords.Count)} kinds")), "and what it keeps for the next session", string.Join(" | ", Monitor.Lines));
             p.Note(string.Join(" | ", Monitor.Lines));
             Settings.ShowMonitor = was;
         }

@@ -58,5 +58,12 @@ namespace Scry.Tests
                 MonitorWords.Made(3, 14 * 1024, 1, 512, 2, (long)(6.2 * 1024 * 1024)));
             Assert.Equal("the game's managed memory 512 B, native 14 KB", MonitorWords.Game(512, 14 * 1024));
         }
+
+        [Fact]
+        public void WhatIsKeptForTheNextSessionIsCountedAndSaysWhileItsFilesAreReadOrWritten()
+        {
+            Assert.Equal("kept for next time: 550 places read, the floors of 142 kinds of place", MonitorWords.KeptForNextTime(550, 142, busy: false));
+            Assert.Equal("kept for next time: 1 places read, the floors of 0 kinds of place; their files being read or written", MonitorWords.KeptForNextTime(1, 0, busy: true));
+        }
     }
 }

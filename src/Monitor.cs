@@ -33,7 +33,7 @@ namespace Scry
         public static readonly List<string> Lines = new List<string>();
         public static double[] Graph = Array.Empty<double>();
         public static double GraphTop = 1;
-        private static string _holds = "", _made = "", _game = "";
+        private static string _holds = "", _made = "", _kept = "", _game = "";
 
         /// <summary>A frame of Scry's work is done: its time and the frame's, what it allocated, and its parts.</summary>
         public static void Frame(FrameTimes frame, double frameMs)
@@ -76,6 +76,7 @@ namespace Scry
             Lines.Add(MonitorWords.Allocates(Window.BytesPerSecond, Window.Cleanups, cleanups - _gameCleanupsFrom, now - _gameCleanupsSince));
             Lines.Add(_holds);
             Lines.Add(_made);
+            Lines.Add(_kept);
             Lines.Add(_game);
 
             Graph = Window.Columns(60);
@@ -91,6 +92,7 @@ namespace Scry
             _holds = MonitorWords.Holds(catalog, bundles, Stage.PartsOnStage, Stage.CreaturesMade, Stage.GrassCount, Previews.AnythingInWorld);
             var kept = Kept.Tally();
             _made = MonitorWords.Made(kept.Textures, kept.TextureBytes, kept.Renders, kept.RenderBytes, kept.Meshes, kept.MeshBytes);
+            _kept = MonitorWords.KeptForNextTime(PlaceRecords.Kept.Records.Count, FloorRecords.Count, PlaceRecords.Busy || FloorRecords.Busy);
             _game = MonitorWords.Game(GC.GetTotalMemory(false), UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong());
         }
     }

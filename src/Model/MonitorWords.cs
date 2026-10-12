@@ -44,6 +44,10 @@ namespace Scry
         public static string Made(int textures, long textureBytes, int renders, long renderBytes, int meshes, long meshBytes) =>
             $"made {Numbers.Count(textures)} textures {Bytes(textureBytes)}, {Numbers.Count(renders)} render textures {Bytes(renderBytes)}, {Numbers.Count(meshes)} meshes {Bytes(meshBytes)}";
 
+        /// <summary>What Scry keeps in the cache folder for the next session (<c>PlaceRecords</c>, <c>FloorRecords</c>), and whether its files are being read or written.</summary>
+        public static string KeptForNextTime(int places, int floors, bool busy) =>
+            $"kept for next time: {Numbers.Count(places)} places read, the floors of {Numbers.Count(floors)} kinds of place{(busy ? "; their files being read or written" : "")}";
+
         /// <summary>The game's memory: managed and native.</summary>
         public static string Game(long managed, long native) => $"the game's managed memory {Bytes(managed)}, native {Bytes(native)}";
     }
