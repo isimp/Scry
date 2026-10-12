@@ -35,9 +35,9 @@ namespace Scry
         /// <summary>Whether the location draws nothing outside but the example (the sealed tower's): then its outside would show an empty stage, so the inside shows however the switch is left.</summary>
         public bool NothingOutside { get; private set; }
 
-        /// <summary>The room being copied, with the spawn points and paints read off it.</summary>
+        /// <summary>The room being copied, with what it was rolled to and the paints read off it.</summary>
         public Ghost.Building Build;
-        public List<Stage.SpawnHere> BuildSpawns;
+        public PlaceRoll BuildRoll;
         public List<GroundPaintAt> BuildPaints;
 
         /// <summary>The rooms standing, each with its copy, to dim or put away those off the floor opened.</summary>
@@ -348,7 +348,7 @@ namespace Scry
         /// example sleeps, and the room alone is woken for it beside the example: a dungeon's
         /// example stands where its location does, so the room stands the same in either.
         /// </summary>
-        public void ReadFloors(GameObject copy, PlacedRoom room, List<Stage.SpawnHere> spawns, Transform subject, int layer)
+        public void ReadFloors(GameObject copy, PlacedRoom room, PlaceRoll roll, Transform subject, int layer)
         {
             var read = Timing.Start();
             var asleep = !Holder.activeSelf;
@@ -365,7 +365,7 @@ namespace Scry
                 Timing.Add("example floors sleep", slept);
             }
             _hits.Clear();
-            var cast = FloorProbe.Read(copy, subject, layer, _hits, Copies, room.Room.Name, true, spawns: spawns, wake: asleep ? Wake : (System.Action)null, sleep: asleep ? Sleep : (System.Action)null);
+            var cast = FloorProbe.Read(copy, subject, layer, _hits, Copies, room.Room.Name, true, roll, wake: asleep ? Wake : (System.Action)null, sleep: asleep ? Sleep : (System.Action)null);
             _ground += cast;
             // Its highest doorway and its doorway out, the entrance's, where its ground was measured:
             // ground high over the one is out of its reach, open ground by the other the ground outside.
@@ -405,7 +405,7 @@ namespace Scry
         {
             Build?.Cancel();
             Build = null;
-            BuildSpawns = null;
+            BuildRoll = null;
             BuildPaints = null;
             if (Holder != null) Object.Destroy(Holder);
             Holder = null;

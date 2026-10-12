@@ -32,7 +32,7 @@ namespace Scry
         public static void ClearSubject()
         {
             _building?.Cancel();
-            _buildingSpawns = null;
+            _buildingRoll = null;
             ForgetCreatures();
             _building = null;
             _buildingWith = null;
@@ -92,9 +92,9 @@ namespace Scry
             {
                 var asset = PlaceAssets.Asset(place);
                 if (asset == null) return;
-                _buildingSpawns = new List<SpawnHere>();
+                _buildingRoll = new PlaceRoll();
                 _buildingPaints = new List<GroundPaintAt>();
-                _building = PlaceCopy.Begin(asset, _root.transform, Origin, Quaternion.identity, _layer, keepColliders: true, spawns: _buildingSpawns, paints: _buildingPaints);
+                _building = PlaceCopy.Begin(asset, _root.transform, Origin, Quaternion.identity, _layer, keepColliders: true, roll: _buildingRoll, paints: _buildingPaints);
                 _buildingWith = modifiers;
                 StepBuild();
                 return;
@@ -120,8 +120,8 @@ namespace Scry
         private static Ghost.Building _building;
         private static Modifiers _buildingWith;
 
-        /// <summary>The spawn points of the location or room being made, its creatures rolled once it stands.</summary>
-        private static List<SpawnHere> _buildingSpawns;
+        /// <summary>What the location or room being made was rolled to: its spawn points, its creatures rolled once it stands, and what its floors are found by.</summary>
+        private static PlaceRoll _buildingRoll;
 
         /// <summary>The paints on the ground read off the location's copy as it is made.</summary>
         private static List<GroundPaintAt> _buildingPaints;
@@ -156,11 +156,11 @@ namespace Scry
             if (_subject == null || !(_lastShown?.Source is PlaceSource place)) return;
 
             var probed = Timing.Start();
-            _placeFloors = FloorsOf(_subject, place);
+            _placeFloors = FloorsOf(_subject, place, _buildingRoll);
             Timing.Add("selection floors", probed);
             Present(_lastShown, modifiers);
-            Populate(_buildingSpawns, null);
-            _buildingSpawns = null;
+            Populate(_buildingRoll.Spawns, null);
+            _buildingRoll = null;
             TakeGroundPaints(_buildingPaints, null);
             _buildingPaints = null;
         }

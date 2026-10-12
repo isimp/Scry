@@ -22,9 +22,6 @@ namespace Scry
     /// </summary>
     internal static class FloorProbe
     {
-        /// <summary>Leaving a world forgets the copies noted (<see cref="WorldCaches"/>).</summary>
-        static FloorProbe() => WorldCaches.Register(nameof(FloorProbe), ForgetNotSolid);
-
         /// <summary>How flat a surface must be to count as floor: about 18 degrees at the steepest.</summary>
         private const float Flat = 0.95f;
 
@@ -33,16 +30,6 @@ namespace Scry
         /// <summary>How many surfaces one ray goes through at the most, and how far past each it goes on.</summary>
         private const int MostSurfaces = 48;
         private const float Past = 0.02f;
-
-        /// <summary>
-        /// The colliders of copies with spawn points that are on none of the layers the game finds
-        /// a spawned creature's floor on (<c>ZoneSystem.m_solidRayMask</c>), noted while the copy
-        /// sleeps with its own layers, as the stage's layer is all it has once awake.
-        /// </summary>
-        private static readonly HashSet<Collider> NotSolid = new HashSet<Collider>();
-
-        /// <summary>The objects each copy's rolls switch on or off (<see cref="PlaceCopy"/>), noted as it is rolled: the parts a roll can bring.</summary>
-        private static readonly Dictionary<GameObject, HashSet<Transform>> Switches = new Dictionary<GameObject, HashSet<Transform>>();
 
         private static int _solidLayers;
 
@@ -70,25 +57,19 @@ namespace Scry
         [Diagnostic]
         public static string LastDiffered { get; private set; } = "";
 
-        /// <summary>Notes which of a sleeping copy's colliders the game's floor rays pass through.</summary>
-        public static void NoteNotSolid(GameObject copy)
+        /// <summary>
+        /// Notes which of a sleeping copy's colliders are on none of the layers the game finds a
+        /// spawned creature's floor on (<c>ZoneSystem.m_solidRayMask</c>): known by their own
+        /// layers, as the stage's layer is all the copy has once awake.
+        /// </summary>
+        public static void NoteNotSolid(GameObject copy, HashSet<Collider> into)
         {
             copy.GetComponentsInChildren(true, Colliders);
             foreach (var collider in Colliders)
             {
-                if (collider != null && (SolidLayers & (1 << collider.gameObject.layer)) == 0) NotSolid.Add(collider);
+                if (collider != null && (SolidLayers & (1 << collider.gameObject.layer)) == 0) into.Add(collider);
             }
             Colliders.Clear();
-        }
-
-        /// <summary>Notes the objects a copy's rolls switched on or off.</summary>
-        public static void NoteSwitches(GameObject copy, HashSet<Transform> switches) => Switches[copy] = switches;
-
-        /// <summary>Forgets the colliders and copies noted, as the stage is cleared.</summary>
-        public static void ForgetNotSolid()
-        {
-            NotSolid.Clear();
-            Switches.Clear();
         }
 
         /// <summary>What a ray landed on, for the self-test to tell: its collider's object and the one it is under, as many are called "default".</summary>
@@ -104,24 +85,25 @@ namespace Scry
 
         /// <summary>
         /// The copy's floors, as patch <paramref name="patch"/> of <paramref name="hits"/>, with the
-        /// name of what each landed on in <paramref name="names"/>, when given, and where each
-        /// spawn point's creature stands; the ground the rays were cast over, 0 for a copy with
+        /// name of what each landed on in <paramref name="names"/>, when given, and where each of
+        /// its spawn points' creature stands, by what it was rolled to (<paramref name="roll"/>,
+        /// noted as it was made); the ground the rays were cast over, 0 for a copy with
         /// nothing to land on. From what was kept of the place where that tells the copy's roll,
         /// else by rays cast over the copy, woken for them by <paramref name="wake"/> and put back
         /// by <paramref name="sleep"/> where it sleeps; its colliders go either way.
         /// </summary>
-        public static float Read(GameObject copy, Transform space, int layer, List<FloorHit> hits, int patch, string prefab, bool room,
-            List<string> names = null, List<Stage.SpawnHere> spawns = null, Action wake = null, Action sleep = null)
+        public static float Read(GameObject copy, Transform space, int layer, List<FloorHit> hits, int patch, string prefab, bool room, PlaceRoll roll,
+            List<string> names = null, Action wake = null, Action sleep = null)
         {
             if (copy == null) return 0f;
             var root = copy.transform;
             try
             {
                 var timed = Timing.Start();
-                var parts = PartsOf(copy, out var transforms);
+                var parts = PartsOf(copy, roll, out var transforms);
                 var present = new HashSet<int>();
                 for (var i = 0; i < transforms.Count; i++) if (There(transforms[i], root)) present.Add(i);
-                var placed = (spawns ?? new List<Stage.SpawnHere>()).Where(s => s.At != null && s.At.IsChildOf(root)).ToList();
+                var placed = roll.Spawns.Where(s => s.At != null && s.At.IsChildOf(root)).ToList();
                 var keys = placed.Select(s => KeyOf(s.At, root)).ToList();
                 var upright = root.up.y > 0.9999f;
                 var stamp = PlaceRecords.StampOf(prefab, room);
@@ -146,7 +128,7 @@ namespace Scry
                     // Made and moved this frame: physics learns where its colliders are before they are measured.
                     Physics.SyncTransforms();
                     Timing.Add("floor probe sync", timed);
-                    if (!upright) return ByStageGrid(copy, space, layer, hits, patch, names, placed);
+                    if (!upright) return ByStageGrid(copy, space, layer, hits, patch, names, placed, roll.NotSolid);
 
                     timed = Timing.Start();
                     var record = kept ?? New(prefab, room, stamp, root, transforms, parts);
@@ -177,12 +159,9 @@ namespace Scry
                 copy.GetComponentsInChildren(true, Colliders);
                 foreach (var collider in Colliders)
                 {
-                    if (collider == null) continue;
-                    NotSolid.Remove(collider);
-                    UnityEngine.Object.Destroy(collider);
+                    if (collider != null) UnityEngine.Object.Destroy(collider);
                 }
                 Colliders.Clear();
-                Switches.Remove(copy);
                 Timing.Add("floor probe colliders", gone);
             }
         }
@@ -193,10 +172,9 @@ namespace Scry
         /// switched on, or one of those its rolls switch), named, and solid where the game's floor
         /// rays for what it drops meet it.
         /// </summary>
-        private static List<RayPart> PartsOf(GameObject copy, out List<Transform> transforms)
+        private static List<RayPart> PartsOf(GameObject copy, PlaceRoll roll, out List<Transform> transforms)
         {
             var root = copy.transform;
-            var switches = Switches.TryGetValue(copy, out var noted) ? noted : new HashSet<Transform>();
             var parts = new List<RayPart>();
             transforms = new List<Transform>();
             var seen = new HashSet<Transform>();
@@ -209,7 +187,7 @@ namespace Scry
                 var possible = true;
                 for (var t = part; t != null && t != root; t = t.parent)
                 {
-                    if (!t.gameObject.activeSelf && !switches.Contains(t))
+                    if (!t.gameObject.activeSelf && !roll.Switched.Contains(t))
                     {
                         possible = false;
                         break;
@@ -217,7 +195,7 @@ namespace Scry
                 }
                 if (!possible) continue;
                 transforms.Add(part);
-                parts.Add(new RayPart { Name = PartName(part), Solid = !NotSolid.Contains(collider) });
+                parts.Add(new RayPart { Name = PartName(part), Solid = !roll.NotSolid.Contains(collider) });
             }
             Colliders.Clear();
             return parts;
@@ -418,7 +396,7 @@ namespace Scry
         /// kept: rays over the world box of its colliders, and where each spawn point's creature
         /// stands found by the game's floor rays.
         /// </summary>
-        private static float ByStageGrid(GameObject copy, Transform space, int layer, List<FloorHit> hits, int patch, List<string> names, List<Stage.SpawnHere> placed)
+        private static float ByStageGrid(GameObject copy, Transform space, int layer, List<FloorHit> hits, int patch, List<string> names, List<Stage.SpawnHere> placed, HashSet<Collider> notSolid)
         {
             var timed = Timing.Start();
             copy.GetComponentsInChildren(false, Colliders);
@@ -442,7 +420,7 @@ namespace Scry
             var length = bounds.size.y + 2f;
             var mask = layer >= 0 ? 1 << layer : Physics.DefaultRaycastLayers;
             var root = copy.transform;
-            DropSpawns(root, mask, placed);
+            DropSpawns(root, mask, placed, notSolid);
             var grid = FloorFinder.Grid(bounds.min.x, bounds.max.x, bounds.min.z, bounds.max.z);
             var cell = FloorFinder.CellArea(bounds.min.x, bounds.max.x, bounds.min.z, bounds.max.z, grid.Count);
             foreach (var (i, j, x, z) in grid)
@@ -472,14 +450,14 @@ namespace Scry
         /// straight down from a metre above the point, which can be a little above it; where
         /// nothing is, at the point. Set as how far it drops, so it holds wherever the copy goes.
         /// </summary>
-        private static void DropSpawns(Transform root, int mask, List<Stage.SpawnHere> spawns)
+        private static void DropSpawns(Transform root, int mask, List<Stage.SpawnHere> spawns, HashSet<Collider> notSolid)
         {
             foreach (var spawn in spawns)
             {
                 var point = spawn.At.position;
                 foreach (var hit in Down(point + Vector3.up, FloorBelow, mask))
                 {
-                    if (hit.collider == null || !hit.collider.transform.IsChildOf(root) || NotSolid.Contains(hit.collider)) continue;
+                    if (hit.collider == null || !hit.collider.transform.IsChildOf(root) || notSolid.Contains(hit.collider)) continue;
                     spawn.Drop = point.y - hit.point.y;
                     spawn.Grounded = true;
                     break;

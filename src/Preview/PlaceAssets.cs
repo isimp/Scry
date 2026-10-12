@@ -114,30 +114,29 @@ namespace Scry
 
         /// <summary>
         /// Starts the copy, made over the next frames as <see cref="Ghost.Building"/> goes on; its
-        /// pose in the world, or in its parent's space. Its creature spawn points that are there
-        /// once rolled go into <paramref name="spawns"/>, by the rules of the location they are
-        /// in (<paramref name="rules"/>, else the copy's own).
+        /// pose in the world, or in its parent's space. What it is rolled to goes into
+        /// <paramref name="roll"/>: its creature spawn points that are there, by the rules of the
+        /// location they are in (<paramref name="rules"/>, else the copy's own), and what its
+        /// floors are found by.
         /// </summary>
         public static Ghost.Building Begin(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer, bool keepColliders = false, bool local = false,
-            List<Stage.SpawnHere> spawns = null, Location rules = null, List<GroundPaintAt> paints = null)
+            PlaceRoll roll = null, Location rules = null, List<GroundPaintAt> paints = null)
         {
-            return new Ghost.Building(prefab, parent, position, rotation, layer, copy => Prepare(copy, spawns, rules, paints), keepColliders, local);
+            return new Ghost.Building(prefab, parent, position, rotation, layer, copy => Prepare(copy, roll, rules, paints), keepColliders, local);
         }
 
-        private static void Prepare(GameObject copy, List<Stage.SpawnHere> spawns, Location rules, List<GroundPaintAt> paints = null)
+        private static void Prepare(GameObject copy, PlaceRoll roll, Location rules, List<GroundPaintAt> paints = null)
         {
-            var switches = new HashSet<Transform>();
-            Roll(copy, switches);
+            Roll(copy, roll != null ? roll.Switched : new HashSet<Transform>());
             LeaveOutInterior(copy);
-            if (spawns != null)
+            if (roll != null)
             {
                 foreach (var spawn in PlaceSpawns.Of(copy, rules != null ? rules : copy.GetComponent<Location>()))
                 {
-                    spawns.Add(new Stage.SpawnHere { At = spawn.At, Creature = spawn.Creature, Lift = spawn.Lift, Point = spawn.Point });
+                    roll.Spawns.Add(new Stage.SpawnHere { At = spawn.At, Creature = spawn.Creature, Lift = spawn.Lift, Point = spawn.Point });
                 }
-                // For its floors and creatures, which of its colliders what drops lands on and what its rolls can bring.
-                FloorProbe.NoteNotSolid(copy);
-                FloorProbe.NoteSwitches(copy, switches);
+                // For its floors and creatures, which of its colliders what drops lands on.
+                FloorProbe.NoteNotSolid(copy, roll.NotSolid);
             }
             if (paints != null) ReadPaints(copy, paints);
             foreach (var zone in copy.GetComponentsInChildren<EnvZone>(true))

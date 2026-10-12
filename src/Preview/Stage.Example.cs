@@ -122,11 +122,11 @@ namespace Scry
                     var at = new Vector3(room.Position.X, room.Position.Y, room.Position.Z);
                     var turn = new Quaternion(room.Rotation.X, room.Rotation.Y, room.Rotation.Z, room.Rotation.W);
                     // A room's spawn points go by the rules of the location it is built in.
-                    TheExample.BuildSpawns = new List<SpawnHere>();
+                    TheExample.BuildRoll = new PlaceRoll();
                     TheExample.BuildPaints = TheExample.IsDungeon ? null : new List<GroundPaintAt>();
                     var rules = _lastShown?.Source is PlaceSource shown ? PlaceAssets.Asset(shown).OrNull()?.GetComponent<Location>() : null;
                     TheExample.Build = PlaceCopy.Begin(prefab, TheExample.Holder.transform, at, turn, _layer, keepColliders: TheExample.IsDungeon, local: true,
-                        spawns: TheExample.BuildSpawns, rules: rules, paints: TheExample.BuildPaints);
+                        roll: TheExample.BuildRoll, rules: rules, paints: TheExample.BuildPaints);
                 }
                 stepped = true;
                 if (!TheExample.Build.Go(ExampleBudgetMs - watch.Elapsed.TotalMilliseconds)) break;
@@ -139,10 +139,10 @@ namespace Scry
                 TheExample.Add(placed, copy);
 
                 // A dungeon room's floors; a camp keeps its location's.
-                if (TheExample.IsDungeon) TheExample.ReadFloors(copy, placed, TheExample.BuildSpawns, _subject.transform, _layer);
+                if (TheExample.IsDungeon) TheExample.ReadFloors(copy, placed, TheExample.BuildRoll, _subject.transform, _layer);
                 Tune(copy, audible: false);
-                Populate(TheExample.BuildSpawns, copy);
-                TheExample.BuildSpawns = null;
+                Populate(TheExample.BuildRoll.Spawns, copy);
+                TheExample.BuildRoll = null;
                 // A camp's rooms paint the ground around it; a dungeon's stand under it.
                 TakeGroundPaints(TheExample.BuildPaints, copy);
                 TheExample.BuildPaints = null;

@@ -96,11 +96,11 @@ namespace Scry
         /// <summary>What each floor of the location or room shown stands on, from its rays, for the self-test to tell (<see cref="FloorMakers"/>).</summary>
         public static List<string> FloorMakersNow() => FloorMakers.Tell(_floorHits.Select(h => h.Height).ToList(), _floorNames, Floors);
 
-        private static List<float> FloorsOf(GameObject copy, PlaceSource place)
+        private static List<float> FloorsOf(GameObject copy, PlaceSource place, PlaceRoll roll)
         {
             var hits = new List<FloorHit>();
             var names = new List<string>();
-            var found = FloorFinder.Floors(hits, FloorProbe.Read(copy, copy.transform, _layer, hits, 0, place.Prefab, place.IsRoom, names, _buildingSpawns));
+            var found = FloorFinder.Floors(hits, FloorProbe.Read(copy, copy.transform, _layer, hits, 0, place.Prefab, place.IsRoom, roll, names));
             _floorHits = hits;
             _floorNames = names;
             if (place.IsRoom) return found.Count > 0 ? found : PlaceView.RoomFloors(place.Contents?.Room);

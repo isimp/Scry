@@ -163,10 +163,6 @@ namespace Scry
         private static void ForgetRoomCreatures() => Creatures.ForgetRooms();
 
         /// <summary>Lets go of every creature, as the copy they stand on goes.</summary>
-        private static void ForgetCreatures()
-        {
-            Creatures.Forget();
-            FloorProbe.ForgetNotSolid();
-        }
+        private static void ForgetCreatures() => Creatures.Forget();
     }
 }
