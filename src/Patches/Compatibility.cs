@@ -27,7 +27,7 @@ namespace Scry
 
         /// <summary>
         /// The game methods whose rules Scry follows, with the shape of their code in
-        /// Valheim 1.0.16, read from the game's own assembly.
+        /// Valheim 1.0.17, read from the game's own assembly.
         /// </summary>
         private static readonly (string Type, string Method, int Params, uint Shape, Feature Feature)[] Watched =
         {
@@ -192,7 +192,7 @@ namespace Scry
             ("ItemDrop+ItemData", "GetTooltip", 6, 0xE717E1A4, Feature.ItemStats),
             ("ItemDrop+ItemData", "AddBlockTooltip", 3, 0xDF722134, Feature.BlockAndParry),
             ("ItemDrop+ItemData", "GetDamage", 2, 0xB0CFE930, Feature.ItemStats),
-            ("ItemDrop+ItemData", "GetIcon", 0, 0x3E1CE944, Feature.AttackItems),
+            ("ItemDrop+ItemData", "GetIcon", 0, 0xA560A1EB, Feature.AttackItems),
             ("HitData", "CheckToolTier", 2, 0x07F6BFAD, Feature.WhatBreaksRocksAndTrees),
             ("ItemDrop+ItemData", "IsWeapon", 0, 0x036E96C3, Feature.WhatBreaksRocksAndTrees),
             ("StoreGui", "SellItem", 0, 0x95E83F76, Feature.WhatTradersPay),
