@@ -100,6 +100,17 @@ namespace Scry
         /// <summary>Keeps a place read, in the place of what was kept of it.</summary>
         public static void Put(PlaceRecord record) => _kept.Put(record);
 
+        /// <summary>
+        /// Forgets every place kept, this world's and others', and removes the file once anything
+        /// written before is; the world's stamps stay known, for what is read again.
+        /// </summary>
+        public static void Clear()
+        {
+            _kept = new KeptPlaces();
+            var path = FilePath;
+            Files.Then("forgetting the places kept", () => FileSwap.Remove(path));
+        }
+
         /// <summary>Writes every place kept to the file, as they are now, on a worker thread after anything still being found or written.</summary>
         public static void Write()
         {

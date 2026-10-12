@@ -10,9 +10,10 @@ namespace Scry
     /// goes under "In locations" (<see cref="Places.Apply"/>). Each telling starts from the
     /// catalog as it was made, each entry's group as it was before the places were first told and
     /// found nowhere, so telling again, with what a step after it regrouped, leaves the catalog as
-    /// telling once would. It is worked out a slice at a time (<see cref="Steps"/>), the catalog
-    /// left as it was meanwhile, and put on it at once (<see cref="Publish"/>), so a telling spread
-    /// over frames shows no half of it. One is kept for a catalog; a new world's catalog wants a new one.
+    /// telling once would, and a place no longer named goes by what it went by as made. It is
+    /// worked out a slice at a time (<see cref="Steps"/>), the catalog left as it was meanwhile,
+    /// and put on it at once (<see cref="Publish"/>), so a telling spread over frames shows no
+    /// half of it. One is kept for a catalog; a new world's catalog wants a new one.
     /// </summary>
     internal sealed class PlaceFinds
     {
@@ -21,6 +22,9 @@ namespace Scry
 
         /// <summary>The groups of the entries as the catalog made them, before the places were told.</summary>
         private readonly Dictionary<Entry, (string Group, int Order)> _made = new Dictionary<Entry, (string, int)>();
+
+        /// <summary>What each place entry went by as the catalog made it, before its place was read: told again where it is no longer named.</summary>
+        private readonly Dictionary<Entry, (string[] FoundIn, string Name)> _madePlaces = new Dictionary<Entry, (string[], string)>();
 
         // The telling worked out and not yet put on the catalog.
         private IReadOnlyList<Entry> _catalog;
@@ -53,7 +57,7 @@ namespace Scry
             _catalog = null;
             // Each place's biome rank, from the locations as they will go by the names read:
             // where things are found is ordered by the biome of the location going by each.
-            var ranks = Places.Ranks(catalog, entry => Named(entry, labels, placeOf) ?? entry.FoundIn);
+            var ranks = Places.Ranks(catalog, entry => Named(entry, labels, placeOf) ?? (_madePlaces.TryGetValue(entry, out var made) ? made.FoundIn : entry.FoundIn));
             yield return true;
 
             var ordered = new Dictionary<string, string[]>(found.Count, StringComparer.Ordinal);
@@ -88,6 +92,12 @@ namespace Scry
                 var place = _placeOf(entry);
                 if (place != null)
                 {
+                    if (_madePlaces.TryGetValue(entry, out var made))
+                    {
+                        entry.FoundIn = made.FoundIn;
+                        entry.DisplayName = made.Name;
+                    }
+                    else _madePlaces[entry] = (entry.FoundIn, entry.DisplayName);
                     if (_labels.TryGetValue(place.Value, out var named)) Places.Named(entry, named, place.Value.Room);
                 }
                 else

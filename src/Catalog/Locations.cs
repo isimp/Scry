@@ -39,6 +39,12 @@ namespace Scry
         /// <summary>Whether places are being read, what was kept of them found, or what they hold told on the catalog, in the background.</summary>
         public static bool Busy => _reading || PlaceRecords.Finding || _telling != null;
 
+        /// <summary>Told as what was kept of the places is forgotten (<see cref="ForgetKept"/>), for what else is kept of them, their floors, to go with it.</summary>
+        public static event Action Forgetting;
+
+        /// <summary>Whether places are being read, the first time or again.</summary>
+        public static bool Reading => _reading;
+
         /// <summary>Whether what was read is still being written to the cache folder.</summary>
         public static bool Saving => PlaceRecords.Busy;
 
@@ -220,6 +226,28 @@ namespace Scry
             if (Now == State.Read) return "stopped reading the locations and dungeons again; what was known of them stays shown.";
             Now = State.NotRead;
             return "stopped reading the locations and dungeons; nothing read so far is kept.";
+        }
+
+        /// <summary>
+        /// Forgets everything kept of the places, what each holds and where its floors are, in this
+        /// session and in the cache folder, for when what is kept seems wrong: the world's places are
+        /// told as never read and every one is read afresh in the background; says what it does.
+        /// </summary>
+        public static string ForgetKept()
+        {
+            if (PlaceRecords.Finding) return "still finding what is kept of this world's locations from before; ask again in a moment.";
+            if (ZoneSystem.instance == null || WorldCatalog.Current == null) return "the catalog of this world is not read yet.";
+            PlaceRecords.Clear();
+            Forgetting?.Invoke();
+            StopReading();
+            Unkept.Clear();
+            if (World.Count == 0) List();
+            Now = State.Reading;
+            _telling = Telling(new List<PlaceRecord>(), new HashSet<(string, bool)>(), null, forgetting: true).GetEnumerator();
+            Read(Enumerable.Range(0, World.Count));
+            if (Total == 0) Now = State.NotRead;
+            Log.Report($"Scry forgot what it kept of the locations and their floors, and reads {Numbers.Count(Total)} of them afresh.");
+            return LocationWords.ReadingAfresh(Total);
         }
 
         /// <summary>Starts reading every place, or reads every one again where they are known, and says what it does.</summary>
@@ -558,12 +586,12 @@ namespace Scry
         /// altars; on the catalog (<see cref="PlaceFinds"/>), each place's name and where each thing
         /// they name is found, from the catalog as it was made, so telling anew leaves nothing of what
         /// was told before; each place's contents on its entry, where it has none or was read just now
-        /// (<paramref name="read"/>). Nothing of it shows until its last step, which puts it all on
-        /// the catalog at once in a frame of its own, and gives <paramref name="told"/> how many
-        /// prefabs the places name, entries are found in them, went under "In locations" and items
-        /// went back to their kind.
+        /// (<paramref name="read"/>), or, <paramref name="forgetting"/> what was kept, on none. Nothing
+        /// of it shows until its last step, which puts it all on the catalog at once in a frame of its
+        /// own, and gives <paramref name="told"/> how many prefabs the places name, entries are found
+        /// in them, went under "In locations" and items went back to their kind.
         /// </summary>
-        private static IEnumerable<bool> Telling(List<PlaceRecord> records, HashSet<(string, bool)> read, Action<(int Prefabs, int InCatalog, int Moved, int Items)> told)
+        private static IEnumerable<bool> Telling(List<PlaceRecord> records, HashSet<(string, bool)> read, Action<(int Prefabs, int InCatalog, int Moved, int Items)> told, bool forgetting = false)
         {
             var world = WorldCatalog.Current;
             if (world == null) yield break;
@@ -619,7 +647,8 @@ namespace Scry
             {
                 if (!(entry.Source is PlaceSource place)) continue;
                 var key = (place.Prefab, place.IsRoom);
-                if (byPlace.TryGetValue(key, out var record) && !Unkept.Contains(key) && (place.Contents == null || read.Contains(key))) place.Contents = record.Contents;
+                if (forgetting) place.Contents = null;
+                else if (byPlace.TryGetValue(key, out var record) && !Unkept.Contains(key) && (place.Contents == null || read.Contains(key))) place.Contents = record.Contents;
             }
             Summoned.Clear();
             Summoned.AddRange(summons);
@@ -630,7 +659,7 @@ namespace Scry
             world.Regroup();
             Timing.Add("locations arranged", arranged);
             Applied++;
-            Now = State.Read;
+            if (!forgetting) Now = State.Read;
             var learned = Timing.Start();
             Learned.AboutAll();
             Timing.Add("locations learned", learned);

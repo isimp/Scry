@@ -300,6 +300,56 @@ namespace Scry
             p.Check(differ.Count == 0, "every entry tells the same of the places as straight after reading them", $"{Numbers.Count(differ.Count)} differ: {string.Join(", ", differ.Take(6).Select(k => k + " [" + before[k] + "] now [" + (after.TryGetValue(k, out var now) ? now : "none") + "]"))}");
         }
 
+        /// <summary>
+        /// Forgetting what was kept, as Read again above the Locations tab's list does: its files
+        /// go, every place is told as never read meanwhile, and once read afresh every entry tells
+        /// of the places what it told before, and what was read is kept again.
+        /// </summary>
+        private static IEnumerator ForgottenAndReadAfresh(Probe p)
+        {
+            if (Locations.Now != Locations.State.Read) p.Skip("the locations are not read");
+            yield return Until(() => !Locations.Saving && !Locations.Busy && !FloorRecords.Busy, 60);
+            if (!Session.IsOpen) Session.Show(null);
+            X.SearchEverything("");
+            X.KindFilter = Kind.Location;
+            var drawn = ScryPanel.Drawn(PanelPart.PlacesBar);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.PlacesBar) > drawn, 5);
+            p.Check(ScryPanel.Drawn(PanelPart.PlacesBar) > drawn, "the Locations tab offers Read again above its list once the places are known");
+
+            var before = ToldOfPlaces();
+            var applied = Locations.Applied;
+            ScryPanel.ReadPlacesAgain();
+            yield return Until(() => Locations.Applied > applied && !Locations.Saving && !FloorRecords.Busy, 10);
+            var places = Path.Combine(Settings.CacheFolder, "places.dat");
+            var floors = Path.Combine(Settings.CacheFolder, "floors");
+            var floorFiles = Directory.Exists(floors) ? Directory.GetFiles(floors).Length : 0;
+            p.Check(!File.Exists(places) && floorFiles == 0, "what was kept is gone from the cache folder", $"the places file {(File.Exists(places) ? "is still there" : "is gone")}, {Numbers.Count(floorFiles)} floor files");
+            p.Check(PlaceRecords.Kept.Records.Count == 0 && FloorRecords.Count == 0, "and from what Scry holds", $"{Numbers.Count(PlaceRecords.Kept.Records.Count)} places, the floors of {Numbers.Count(FloorRecords.Count)} kinds");
+            var told = X.Catalog.Where(e => PlaceOf(e)?.Contents != null).Select(e => e.Name).ToList();
+            var foundIn = X.Catalog.Where(e => PlaceOf(e) == null && e.FoundIn.Length > 0).Select(e => e.Name).ToList();
+            p.Check(told.Count == 0 && foundIn.Count == 0, "every place is told as never read meanwhile, nothing found in one",
+                $"{Numbers.Count(told.Count)} places tell what they hold ({string.Join(", ", told.Take(4))}), {Numbers.Count(foundIn.Count)} entries are found in one ({string.Join(", ", foundIn.Take(4))})");
+            p.Check(Locations.Reading && Locations.Now == Locations.State.Reading, "and every one is read afresh", $"{Locations.Now}, {Numbers.Count(Locations.Total)} to read");
+            drawn = ScryPanel.Drawn(PanelPart.PlacesBar);
+            yield return null;
+            yield return null;
+            p.Check(ScryPanel.Drawn(PanelPart.PlacesBar) == drawn, "Read again is not offered while they are read afresh");
+
+            var asked = Time.unscaledTime;
+            yield return Until(() => !Locations.Busy && Locations.Now == Locations.State.Read, 400);
+            if (!p.Check(!Locations.Busy && Locations.Now == Locations.State.Read, "every location and room has been read afresh", $"{Numbers.Count(Locations.Done)} of {Numbers.Count(Locations.Total)}")) yield break;
+            p.Note($"read afresh in {Numbers.Amount(Time.unscaledTime - asked, 0)} s");
+            var after = ToldOfPlaces();
+            var differ = before.Keys.Where(k => !after.TryGetValue(k, out var now) || now != before[k]).ToList();
+            p.Check(differ.Count == 0, "every entry tells the same of the places as before they were forgotten", $"{Numbers.Count(differ.Count)} differ: {string.Join(", ", differ.Take(6).Select(k => k + " [" + before[k] + "] now [" + (after.TryGetValue(k, out var now) ? now : "none") + "]"))}");
+            yield return Until(() => !Locations.Saving, 30);
+            p.Check(File.Exists(places), "and what was read is kept again");
+            X.KindFilter = null;
+        }
+
+        /// <summary>Lists every kind again, as a part left with the Locations tab open.</summary>
+        private static void EveryKindListed() => X.KindFilter = null;
+
         private static IEnumerator ReadLocations(Probe p)
         {
             // What was kept from before is found, and any reading under way done, before reading anew.

@@ -10,7 +10,7 @@ namespace Scry
         {
             // The game keeps a command as it is made.
             _ = new Terminal.ConsoleCommand("scry",
-                "[text] - opens the prefab previewer, searching for the text if given. 'scry clear' removes every preview from the world; 'scry locations' reads where things are found in locations and dungeons, 'scry locations stop' stops it; 'scry mods' shows what each mod adds and what Scry links for it; 'scry monitor' shows or hides the resource monitor.",
+                "[text] - opens the prefab previewer, searching for the text if given. 'scry clear' removes every preview from the world; 'scry locations' reads where things are found in locations and dungeons, 'scry locations stop' stops it; 'scry forget' forgets what Scry kept of the locations and their floors and reads them afresh; 'scry mods' shows what each mod adds and what Scry links for it; 'scry monitor' shows or hides the resource monitor.",
                 args =>
                 {
                     // A command that fails says so in the chat, and once in the log, rather than
@@ -39,6 +39,12 @@ namespace Scry
             if (rest.Equals("locations stop", System.StringComparison.OrdinalIgnoreCase))
             {
                 args.Context.OrNull()?.AddString(ConsoleWords.Reply(Locations.Stop()));
+                return;
+            }
+
+            if (rest.Equals("forget", System.StringComparison.OrdinalIgnoreCase))
+            {
+                args.Context.OrNull()?.AddString(ConsoleWords.Reply(Locations.ForgetKept()));
                 return;
             }
 

@@ -199,6 +199,13 @@ namespace Scry
                 _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
             }
 
+            // The places, once known: that they are kept, and reading them afresh.
+            if (explorer.KindFilter == Kind.Location && Locations.Now == Locations.State.Read)
+            {
+                inner = PlacesBar(inner);
+                _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
+            }
+
             // A search whose slips were mended says what it shows instead.
             if (explorer.Mended.Count > 0)
             {

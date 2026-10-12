@@ -327,6 +327,16 @@ namespace Scry
         /// <summary>Reading places again that are known already, kept from before or read: what is known stays shown meanwhile.</summary>
         public static string ReadingAgain(int queued) => $"reading {Numbers.Count(queued)} locations and dungeon rooms again in the background; what is known of them stays shown until then.";
 
+        /// <summary>What was kept of the places forgotten (<c>/scry forget</c>, <i>Read again</i>): every one read afresh, shown as never read until then.</summary>
+        public static string ReadingAfresh(int queued) => queued > 0
+            ? $"forgot what was kept of the locations, dungeon rooms and their floors; reading {Numbers.Count(queued)} of them afresh in the background."
+            : "forgot what was kept of the locations, dungeon rooms and their floors; this world has none to read.";
+
+        /// <summary>Above the Locations tab's list once the places are known: that they are kept, or how far reading them again has got.</summary>
+        public static string PlacesBar(bool readingAgain, int done, int total) => readingAgain
+            ? $"Reading them again, {Numbers.Count(done)} of {Numbers.Count(total)}; what was known shows until then."
+            : "What every location and dungeon room holds is known, and kept for next time.";
+
         /// <summary>How far reading the locations has got, where something waits on it (<see cref="CatalogWords.Progress(string, int, int)"/>).</summary>
         public static string ReadingProgress(int done, int total) => CatalogWords.Progress("Reading locations and dungeons", done, total);
 

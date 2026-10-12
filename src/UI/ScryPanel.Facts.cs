@@ -595,6 +595,30 @@ namespace Scry
         private const string LocationsButtonText = "Read all locations";
         private const string LocationsButtonTip = "Reads what every location and dungeon room in this world holds, in the background over a few minutes, so things tell where they are found and in: finds them. What is read is kept, and known at once the next time. A location selected is read by itself.";
 
+        private const string ReadAgainText = "Read again";
+        private const string ReadAgainTip = "Forgets what Scry kept of every location and dungeon room, what each holds and where its floors are, and reads them all afresh in the background, for when what is shown seems wrong or out of date. Until then they show as never read.";
+
+        /// <summary>Above the Locations tab's list once the places are known: that they are kept, or how far reading them again has got, and Read again.</summary>
+        private static Rect PlacesBar(Rect inner)
+        {
+            CountDrawn(PanelPart.PlacesBar);
+            var barH = U(30f);
+            var w = Skin.Width(Skin.Chip, ReadAgainText) + U(12f);
+            GUI.Label(new Rect(inner.x + U(10f), inner.y + U(2f), inner.width - w - U(24f), U(24f)),
+                LocationWords.PlacesBar(Locations.Reading, Locations.Done, Locations.Total), Skin.DimLabel);
+            var button = new Rect(inner.xMax - w - U(6f), inner.y, w, U(26f));
+            if (GUI.Button(button, ReadAgainText, Skin.Fitted(Skin.Chip, button))) ReadPlacesAgain();
+            if (button.Contains(Event.current.mousePosition)) AskTip("read-again", ReadAgainTip);
+            return new Rect(inner.x, inner.y + barH, inner.width, inner.height - barH);
+        }
+
+        /// <summary>Forgets what was kept of the places and reads them afresh, as Read again does, and says so.</summary>
+        internal static void ReadPlacesAgain()
+        {
+            var said = Locations.ForgetKept();
+            Say(Naming.Capital(said));
+        }
+
         /// <summary>Stops reading the locations, from any of the buttons that offer it, and says so.</summary>
         private static void StopReadingLocations()
         {

@@ -28,6 +28,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ForgettingWhatWasKeptSaysItReadsEveryPlaceAfresh()
+        {
+            Assert.Equal("forgot what was kept of the locations, dungeon rooms and their floors; reading 1,400 of them afresh in the background.", LocationWords.ReadingAfresh(1400));
+            Assert.Equal("forgot what was kept of the locations, dungeon rooms and their floors; this world has none to read.", LocationWords.ReadingAfresh(0));
+        }
+
+        [Fact]
+        public void TheLocationsTabSaysWhatIsKnownOfThePlacesAndHowFarReadingThemAgainHasGot()
+        {
+            Assert.Equal("What every location and dungeon room holds is known, and kept for next time.", LocationWords.PlacesBar(false, 0, 0));
+            Assert.Equal("Reading them again, 12 of 1,400; what was known shows until then.", LocationWords.PlacesBar(true, 12, 1400));
+        }
+
+        [Fact]
         public void ARaidSaysItsNameWhereAndForWhomItComes()
         {
             var facts = new SpawnFacts { Biomes = "Meadows" };

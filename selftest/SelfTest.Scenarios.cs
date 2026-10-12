@@ -124,6 +124,7 @@ namespace Scry
             yield return S("placement details tell the woods and lava a location keeps to", PlacementDetails, 20);
             yield return S("reading every location fills their details", ReadLocations, 450, bearsSkips: true);
             yield return S("what was read of the locations is kept and known at once the next time", KeptLocations, 90);
+            yield return S("Read again forgets what was kept and reads every location afresh, told as never read meanwhile", ForgottenAndReadAfresh, 480, EveryKindListed, bearsSkips: true);
             yield return S("every dungeon and camp lays out", EveryDungeonLaysOut, 60, bearsSkips: true);
             yield return S("content lists come in their order, a place's parts by what they are", ContentOrders, 60, bearsSkips: true);
             yield return S("every dungeon heads its group, its rooms under it", EveryDungeonHeadsItsGroup, 10);

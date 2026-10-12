@@ -8,6 +8,7 @@ namespace Scry
     {
         Help,
         ModReport,
+        PlacesBar,
         Monitor,
         Plan,
         PlanTab,

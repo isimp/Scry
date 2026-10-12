@@ -137,6 +137,35 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void PlacesNoLongerToldGoBackToWhatTheyWentByAsMade()
+        {
+            // What was kept forgotten: every place is told as never read until read again.
+            var catalog = World();
+            var before = catalog.Select(Told).ToList();
+            var finds = new PlaceFinds();
+            finds.Tell(catalog, Found(("Amber", Chambers), ("Music_Crypt", Chambers)), Read(), PlaceOf);
+            Assert.Equal("Burial Chambers", Of(catalog, "Crypt2").DisplayName);
+
+            var told = finds.Tell(catalog, Found(), Labels(), PlaceOf);
+
+            Assert.Equal(before, catalog.Select(Told));
+            Assert.Equal((0, 0), told);
+        }
+
+        [Fact]
+        public void APlaceNoLongerNamedRanksWhereThingsAreFoundByWhatItWentByAsMade()
+        {
+            var catalog = World();
+            var finds = new PlaceFinds();
+            finds.Tell(catalog, Found(), Read(), PlaceOf);
+
+            finds.Tell(catalog, Found(("Amber", Label("Mountain cave", "Mountain")), ("Amber", Label("Crypt", "Black Forest"))),
+                Labels(("MountainCave02", false, new[] { Label("Mountain cave", "Mountain") })), PlaceOf);
+
+            Assert.Equal(new[] { Label("Crypt", "Black Forest"), Label("Mountain cave", "Mountain") }, Of(catalog, "Amber").FoundIn);
+        }
+
+        [Fact]
         public void APlaceReadWithNoNameRanksWhereThingsAreFoundByWhatItWentBy()
         {
             var catalog = World();

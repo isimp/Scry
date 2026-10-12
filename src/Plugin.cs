@@ -30,6 +30,7 @@ namespace Scry
             Settings.Bind(Config);
             Timing.FrameDone += Monitor.Frame;
             ScryPanel.CloseAsked += Session.Hide;
+            Locations.Forgetting += FloorRecords.Clear;
 
             Compatibility.PatchFeatures = PatchFeatures;
             _harmony = new Harmony(About.Guid);
