@@ -92,10 +92,32 @@ namespace Scry.Tests
         {
             var record = Empty(Parts).With(Seen(new[] { Floor }, new[] { At(0f, Floor) }));
             var landings = record.Landings(Roll(Floor));
-            var grid = FloorFinder.Grid(0f, 2f, 0f, 2f);
-            Assert.Equal(grid.Select(g => (g.I, g.J, g.X, g.Z)), landings.Select(l => (l.I, l.J, l.X, l.Z)));
+            Assert.Equal(record.Grid.Select(g => (g.I, g.J, g.X, g.Z)), landings.Select(l => (l.I, l.J, l.X, l.Z)));
+            Assert.Equal(FloorFinder.Grid(0f, 2f, 0f, 2f).Select(g => (g.I, g.J)), record.Grid.Select(g => (g.I, g.J)));
             Assert.Equal(FloorFinder.CellArea(0f, 2f, 0f, 2f, 25), record.Cell);
             Assert.Equal(25 * record.Cell, record.Ground);
+        }
+
+        [Fact]
+        public void RaysGoBesideTheLinesARoomIsBuiltOn()
+        {
+            // A room's walls and floors stand on half-metre lines from its edge. A ray right on an
+            // edge meets or misses it by the last digit of where the copy stands, so one copy's
+            // rays found a wall's top that another's did not: the rays go a little beside them.
+            var record = FloorRecord.New("forestcrypt_Corridor3", true, "stamp", 0f, 8f, -2f, 2f, 6f, -2f, new[] { new RayPart { Name = "stonewall" } });
+            bool OffTheLines(float along)
+            {
+                var past = along % 0.5f;
+                return past >= 0.01f && past <= 0.49f;
+            }
+
+            Assert.Equal(17 * 9, record.Grid.Count);
+            foreach (var (i, j, x, z) in record.Grid)
+            {
+                Assert.InRange(x, 0f, 8f);
+                Assert.InRange(z, -2f, 2f);
+                Assert.True(OffTheLines(x) && OffTheLines(z + 2f), $"{i},{j} at {x}, {z}");
+            }
         }
 
         [Fact]

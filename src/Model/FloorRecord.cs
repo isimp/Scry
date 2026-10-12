@@ -68,8 +68,16 @@ namespace Scry
 
         public IReadOnlyList<RayPart> Parts => _parts;
 
-        /// <summary>Where the rays are cast, each with its place on the grid (<see cref="FloorFinder.Grid"/>).</summary>
-        public IReadOnlyList<(int I, int J, float X, float Z)> Grid => _grid ?? (_grid = FloorFinder.Grid(MinX, MaxX, MinZ, MaxZ));
+        /// <summary>
+        /// How far beside the grid's lines the rays go: a room's walls and floors stand on
+        /// half-metre lines from its edge, and a ray right on an edge meets or misses it by the
+        /// last digit of where its copy stands.
+        /// </summary>
+        public const float Beside = 0.0137f;
+
+        /// <summary>Where the rays are cast, each with its place on the grid (<see cref="FloorFinder.Grid"/>), <see cref="Beside"/> off its lines and inside its edges.</summary>
+        public IReadOnlyList<(int I, int J, float X, float Z)> Grid => _grid ?? (_grid = FloorFinder.Grid(MinX, MaxX, MinZ, MaxZ)
+            .Select(g => (g.I, g.J, Math.Min(g.X + Beside, MaxX - Beside), Math.Min(g.Z + Beside, MaxZ - Beside))).ToList());
 
         /// <summary>The ground each ray stands for, and all the rays cover.</summary>
         public float Cell => FloorFinder.CellArea(MinX, MaxX, MinZ, MaxZ, Grid.Count);
