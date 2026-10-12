@@ -107,6 +107,7 @@ namespace Scry
             picks.AddRange(places.Where(e => e.Name.IndexOf("Tower", StringComparison.OrdinalIgnoreCase) >= 0 || e.Name.IndexOf("Cave", StringComparison.OrdinalIgnoreCase) >= 0).Take(4));
             picks = picks.Distinct().ToList();
             var crypt = Crypt();
+            var begun = DateTime.UtcNow.AddSeconds(-1);
             var verified = 0;
             var differed = 0;
             var lastDiffered = "";
@@ -153,8 +154,9 @@ namespace Scry
             p.Check(told > 0 && told >= cast, "a dungeon's next layout finds most of its rooms' floors in what was kept", $"{Numbers.Count(told)} kept, {Numbers.Count(cast)} probed");
             yield return Until(() => !FloorRecords.Busy, 10);
             var folder = System.IO.Path.Combine(Settings.CacheFolder, "floors");
-            var files = System.IO.Directory.Exists(folder) ? System.IO.Directory.GetFiles(folder, "*.dat").Length : 0;
-            p.Check(files > 0, "and they are kept in the cache folder for the next time", $"{Numbers.Count(files)} files");
+            var files = System.IO.Directory.Exists(folder) ? System.IO.Directory.GetFiles(folder, "*.dat").Count(f => System.IO.File.GetLastWriteTimeUtc(f) >= begun) : 0;
+            p.Check(files > 0, "and they are kept in the cache folder for the next time", $"{Numbers.Count(files)} files written");
+            p.Note($"the floors of {Numbers.Count(FloorRecords.Count)} kinds of place kept, {Numbers.Count(FloorRecords.Held)} of them held now");
         }
 
         /// <summary>Puts the floor probe back to telling from what was kept alone.</summary>

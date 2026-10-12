@@ -23,6 +23,9 @@ namespace Scry
         /// <summary>How many kinds of place have their floors kept, for the resource monitor and the self-test.</summary>
         public static int Count => _kept?.Count ?? 0;
 
+        /// <summary>How many kinds of place have their record held, those shown in this session, for the self-test.</summary>
+        public static int Held => _kept?.Held ?? 0;
+
         /// <summary>Whether a file is still being listed, found or written.</summary>
         public static bool Busy => Files.Busy;
 
