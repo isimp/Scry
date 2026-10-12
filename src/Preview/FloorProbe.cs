@@ -322,15 +322,11 @@ namespace Scry
             for (var i = 0; i < transforms.Count; i++) index[transforms[i]] = i;
             var mask = layer >= 0 ? 1 << layer : Physics.DefaultRaycastLayers;
 
-            List<RaySurface> Down(Vector3 from, float length)
+            List<RaySurface> Surfaces(Vector3 from, float length)
             {
                 var surfaces = new List<RaySurface>();
-                var top = from.y;
-                var bottom = from.y - length;
-                for (var step = 0; step < MostSurfaces && top > bottom; step++)
+                foreach (var hit in Down(from, length, mask))
                 {
-                    if (!Physics.Raycast(new Vector3(from.x, top, from.z), Vector3.down, out var hit, top - bottom, mask, QueryTriggerInteraction.Ignore)) break;
-                    top = hit.point.y - Past;
                     if (hit.collider == null || !index.TryGetValue(hit.collider.transform, out var part)) continue;
                     surfaces.Add(new RaySurface { Height = root.InverseTransformPoint(hit.point).y, Flat = hit.normal.y >= Flat, Part = part });
                 }
@@ -340,10 +336,10 @@ namespace Scry
             var grid = record.Grid;
             for (var ray = 0; ray < grid.Count; ray++)
             {
-                var surfaces = Down(root.TransformPoint(new Vector3(grid[ray].X, record.Top, grid[ray].Z)), record.Top - record.Bottom);
+                var surfaces = Surfaces(root.TransformPoint(new Vector3(grid[ray].X, record.Top, grid[ray].Z)), record.Top - record.Bottom);
                 if (surfaces.Count > 0) seen.Rays[ray] = surfaces;
             }
-            for (var i = 0; i < placed.Count; i++) seen.Spawns[keys[i]] = Down(placed[i].At.position + Vector3.up, FloorBelow);
+            for (var i = 0; i < placed.Count; i++) seen.Spawns[keys[i]] = Surfaces(placed[i].At.position + Vector3.up, FloorBelow);
             return seen;
         }
 
@@ -401,6 +397,23 @@ namespace Scry
         }
 
         /// <summary>
+        /// Each surface a ray straight down from <paramref name="from"/> meets within
+        /// <paramref name="length"/>, top down: it goes on past each, as one collider (a cave
+        /// room's rock) can be met more than once.
+        /// </summary>
+        private static IEnumerable<RaycastHit> Down(Vector3 from, float length, int mask)
+        {
+            var top = from.y;
+            var bottom = from.y - length;
+            for (var step = 0; step < MostSurfaces && top > bottom; step++)
+            {
+                if (!Physics.Raycast(new Vector3(from.x, top, from.z), Vector3.down, out var hit, top - bottom, mask, QueryTriggerInteraction.Ignore)) yield break;
+                top = hit.point.y - Past;
+                yield return hit;
+            }
+        }
+
+        /// <summary>
         /// A copy not standing upright, probed as it stands on the stage's own grid and nothing
         /// kept: rays over the world box of its colliders, and where each spawn point's creature
         /// stands found by the game's floor rays.
@@ -432,15 +445,11 @@ namespace Scry
             DropSpawns(root, mask, placed);
             var grid = FloorFinder.Grid(bounds.min.x, bounds.max.x, bounds.min.z, bounds.max.z);
             var cell = FloorFinder.CellArea(bounds.min.x, bounds.max.x, bounds.min.z, bounds.max.z, grid.Count);
-            var bottom = top - length;
             foreach (var (i, j, x, z) in grid)
             {
-                var from = top;
                 var highest = float.NaN;
-                for (var step = 0; step < MostSurfaces && from > bottom; step++)
+                foreach (var hit in Down(new Vector3(x, top, z), length, mask))
                 {
-                    if (!Physics.Raycast(new Vector3(x, from, z), Vector3.down, out var hit, from - bottom, mask, QueryTriggerInteraction.Ignore)) break;
-                    from = hit.point.y - Past;
                     if (hit.collider == null || !hit.collider.transform.IsChildOf(root)) continue;
                     if (float.IsNaN(highest)) highest = hit.point.y;
                     if (hit.normal.y < Flat) continue;
@@ -468,12 +477,8 @@ namespace Scry
             foreach (var spawn in spawns)
             {
                 var point = spawn.At.position;
-                var from = point.y + 1f;
-                var bottom = from - FloorBelow;
-                for (var step = 0; step < MostSurfaces && from > bottom; step++)
+                foreach (var hit in Down(point + Vector3.up, FloorBelow, mask))
                 {
-                    if (!Physics.Raycast(new Vector3(point.x, from, point.z), Vector3.down, out var hit, from - bottom, mask, QueryTriggerInteraction.Ignore)) break;
-                    from = hit.point.y - Past;
                     if (hit.collider == null || !hit.collider.transform.IsChildOf(root) || NotSolid.Contains(hit.collider)) continue;
                     spawn.Drop = point.y - hit.point.y;
                     spawn.Grounded = true;
