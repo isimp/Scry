@@ -107,9 +107,17 @@ namespace Scry
             picks.AddRange(places.Where(e => e.Name.IndexOf("Tower", StringComparison.OrdinalIgnoreCase) >= 0 || e.Name.IndexOf("Cave", StringComparison.OrdinalIgnoreCase) >= 0).Take(4));
             picks = picks.Distinct().ToList();
             var crypt = Crypt();
-            var verified = FloorProbe.Verified;
-            var differed = FloorProbe.Differed;
-            FloorProbe.Verify = true;
+            var verified = 0;
+            var differed = 0;
+            var lastDiffered = "";
+            FloorProbe.Checked = (kept, rays, present, keys) =>
+            {
+                verified++;
+                var check = FloorCheck.Of(kept, rays, present, keys);
+                if (check.Same) return;
+                differed++;
+                lastDiffered = check.Told;
+            };
             for (var pass = 0; pass < 2; pass++)
             {
                 foreach (var entry in picks)
@@ -124,11 +132,11 @@ namespace Scry
                 yield return Until(() => CopyOf(crypt) != null && ExampleLayouts.Of(crypt) && ExampleLayouts.Example != null
                                          && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 90);
             }
-            FloorProbe.Verify = false;
-            p.Note($"{Numbers.Count(FloorRecords.Count)} kinds of place have their floors kept; {Numbers.Count(FloorProbe.Verified - verified)} told from what was kept and checked against their rays");
+            FloorProbe.Checked = null;
+            p.Note($"{Numbers.Count(FloorRecords.Count)} kinds of place have their floors kept; {Numbers.Count(verified)} told from what was kept and checked against their rays");
             p.Check(FloorRecords.Count > 0, "the floors of the places shown are kept");
-            p.Check(FloorProbe.Verified > verified, "shown again, places' floors are told from what was kept");
-            p.Check(FloorProbe.Differed == differed, "what was kept tells each roll's floors and creatures' ground as its own rays find them", FloorProbe.LastDiffered);
+            p.Check(verified > 0, "shown again, places' floors are told from what was kept");
+            p.Check(differed == 0, "what was kept tells each roll's floors and creatures' ground as its own rays find them", $"{Numbers.Count(differed)} of {Numbers.Count(verified)} differ; {lastDiffered}");
 
             // The dungeon's next layout: every room's floors from what was kept, none woken.
             if (crypt == null) yield break;
@@ -150,7 +158,7 @@ namespace Scry
         }
 
         /// <summary>Puts the floor probe back to telling from what was kept alone.</summary>
-        private static void KeptFloorsUnverified() => FloorProbe.Verify = false;
+        private static void KeptFloorsUnverified() => FloorProbe.Checked = null;
 
         private static IEnumerator DungeonExample(Probe p) => Layout(p, Crypt(), "Dungeon");
 

@@ -42,20 +42,11 @@ namespace Scry
         public static int Probed { get; private set; }
 
         /// <summary>
-        /// While set, a copy whose floors the record tells is probed too, and the two compared, for
-        /// the self-test: how many were compared, how many differed, and the last that did.
+        /// For the self-test: while set, a copy whose floors the record tells is probed too, and
+        /// given with the record, what its rays found, the parts there and its spawn points' keys.
         /// </summary>
         [Diagnostic]
-        public static bool Verify { get; set; }
-
-        [Diagnostic]
-        public static int Verified { get; private set; }
-
-        [Diagnostic]
-        public static int Differed { get; private set; }
-
-        [Diagnostic]
-        public static string LastDiffered { get; private set; } = "";
+        public static Action<FloorRecord, FloorRecord, HashSet<int>, List<string>> Checked { get; set; }
 
         /// <summary>
         /// Notes which of a sleeping copy's colliders are on none of the layers the game finds a
@@ -112,7 +103,7 @@ namespace Scry
                 var covered = kept != null && kept.Covers(present, keys);
                 Timing.Add("floor probe parts", timed);
 
-                if (covered && !Verify)
+                if (covered && Checked == null)
                 {
                     FromKept++;
                     timed = Timing.Start();
@@ -138,7 +129,7 @@ namespace Scry
                     Timing.Add("floor probe rays", timed);
                     if (covered)
                     {
-                        Compare(kept, FloorRecord.New(prefab, room, stamp, kept.MinX, kept.MaxX, kept.MinZ, kept.MaxZ, kept.Top, kept.Bottom, parts).With(seen), present, keys);
+                        Checked?.Invoke(kept, FloorRecord.New(prefab, room, stamp, kept.MinX, kept.MaxX, kept.MinZ, kept.MaxZ, kept.Top, kept.Bottom, parts).With(seen), present, keys);
                         Tell(kept, present, root, space, patch, hits, names, placed, keys);
                         return kept.Ground;
                     }
@@ -337,41 +328,6 @@ namespace Scry
                 placed[i].Drop = root.InverseTransformPoint(placed[i].At.position).y - ground;
                 placed[i].Grounded = true;
             }
-        }
-
-        /// <summary>
-        /// How far apart what was kept and a roll's own rays may put the same surface: a ray's hit
-        /// is off by a millimetre or so where a dungeon's rooms stand, high over the world, and
-        /// the copy stands elsewhere each time.
-        /// </summary>
-        private const float SameHeight = 0.01f;
-
-        /// <summary>For the self-test: whether what a record tells of a roll is what that roll's own rays found, each surface at about the same height.</summary>
-        [Diagnostic]
-        private static void Compare(FloorRecord kept, FloorRecord fresh, HashSet<int> present, List<string> keys)
-        {
-            Verified++;
-            string Told(FloorLanding l) => Stored.Count(l.I) + "," + Stored.Count(l.J) + " at " + Stored.Number(l.Height, 3) + (l.Open ? " open" : "");
-            var onlyKept = new List<string>();
-            var unmatched = fresh.Landings(present).ToList();
-            foreach (var landing in kept.Landings(present))
-            {
-                var match = unmatched.FindIndex(l => l.I == landing.I && l.J == landing.J && l.Open == landing.Open && Math.Abs(l.Height - landing.Height) <= SameHeight);
-                if (match >= 0) unmatched.RemoveAt(match);
-                else onlyKept.Add(Told(landing));
-            }
-            var onlyRays = unmatched.Select(Told).ToList();
-            foreach (var key in keys)
-            {
-                var was = kept.GroundUnder(key, present, out var wasGround);
-                var now = fresh.GroundUnder(key, present, out var nowGround);
-                if (was == now && (!was || Math.Abs(wasGround - nowGround) <= SameHeight)) continue;
-                onlyKept.Add("spawn " + key + (was ? " on " + Stored.Number(wasGround, 3) : " on nothing"));
-                onlyRays.Add("spawn " + key + (now ? " on " + Stored.Number(nowGround, 3) : " on nothing"));
-            }
-            if (onlyKept.Count == 0 && onlyRays.Count == 0) return;
-            Differed++;
-            LastDiffered = kept.Prefab + ": only kept " + Stored.Count(onlyKept.Count) + " (" + string.Join("; ", onlyKept.Take(3)) + "), only by rays " + Stored.Count(onlyRays.Count) + " (" + string.Join("; ", onlyRays.Take(3)) + ")";
         }
 
         /// <summary>
