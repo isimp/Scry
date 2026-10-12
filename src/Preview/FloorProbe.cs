@@ -365,23 +365,38 @@ namespace Scry
             }
         }
 
-        /// <summary>For the self-test: whether what a record tells of a roll is what that roll's own rays found.</summary>
+        /// <summary>
+        /// How far apart what was kept and a roll's own rays may put the same surface: a ray's hit
+        /// is off by a millimetre or so where a dungeon's rooms stand, high over the world, and
+        /// the copy stands elsewhere each time.
+        /// </summary>
+        private const float SameHeight = 0.01f;
+
+        /// <summary>For the self-test: whether what a record tells of a roll is what that roll's own rays found, each surface at about the same height.</summary>
         [Diagnostic]
         private static void Compare(FloorRecord kept, FloorRecord fresh, HashSet<int> present, List<string> keys)
         {
             Verified++;
-            HashSet<string> Told(FloorRecord record)
+            string Told(FloorLanding l) => Stored.Count(l.I) + "," + Stored.Count(l.J) + " at " + Stored.Number(l.Height, 3) + (l.Open ? " open" : "");
+            var onlyKept = new List<string>();
+            var unmatched = fresh.Landings(present).ToList();
+            foreach (var landing in kept.Landings(present))
             {
-                var told = new HashSet<string>(record.Landings(present).Select(l => Stored.Count(l.I) + "," + Stored.Count(l.J) + " at " + Stored.Number(l.Height, 2) + (l.Open ? " open" : "")), StringComparer.Ordinal);
-                foreach (var key in keys) told.Add("spawn " + key + (record.GroundUnder(key, present, out var g) ? " on " + Stored.Number(g, 2) : " on nothing"));
-                return told;
+                var match = unmatched.FindIndex(l => l.I == landing.I && l.J == landing.J && l.Open == landing.Open && Math.Abs(l.Height - landing.Height) <= SameHeight);
+                if (match >= 0) unmatched.RemoveAt(match);
+                else onlyKept.Add(Told(landing));
             }
-            var was = Told(kept);
-            var now = Told(fresh);
-            if (was.SetEquals(now)) return;
+            var onlyRays = unmatched.Select(Told).ToList();
+            foreach (var key in keys)
+            {
+                var was = kept.GroundUnder(key, present, out var wasGround);
+                var now = fresh.GroundUnder(key, present, out var nowGround);
+                if (was == now && (!was || Math.Abs(wasGround - nowGround) <= SameHeight)) continue;
+                onlyKept.Add("spawn " + key + (was ? " on " + Stored.Number(wasGround, 3) : " on nothing"));
+                onlyRays.Add("spawn " + key + (now ? " on " + Stored.Number(nowGround, 3) : " on nothing"));
+            }
+            if (onlyKept.Count == 0 && onlyRays.Count == 0) return;
             Differed++;
-            var onlyKept = was.Where(s => !now.Contains(s)).ToList();
-            var onlyRays = now.Where(s => !was.Contains(s)).ToList();
             LastDiffered = kept.Prefab + ": only kept " + Stored.Count(onlyKept.Count) + " (" + string.Join("; ", onlyKept.Take(3)) + "), only by rays " + Stored.Count(onlyRays.Count) + " (" + string.Join("; ", onlyRays.Take(3)) + ")";
         }
 

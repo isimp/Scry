@@ -135,6 +135,9 @@ namespace Scry
             var fromKept = FloorProbe.FromKept;
             var probed = FloorProbe.Probed;
             ExampleLayouts.Another();
+            // The stage takes up the new layout on its next frames.
+            yield return null;
+            yield return null;
             yield return Until(() => Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 90);
             var told = FloorProbe.FromKept - fromKept;
             var cast = FloorProbe.Probed - probed;
