@@ -11,9 +11,9 @@ namespace Scry
     /// off by a millimetre or so where a dungeon's rooms stand, high over the world, and the copy
     /// stands elsewhere each time, so heights within <see cref="SameHeight"/> are the same. A ray
     /// steps two centimetres past each surface it meets, so a surface less than that under another
-    /// part, or under another room's collider beside the copy, goes unmet; a record keeps what the
-    /// copy it was probed on met, with other parts and rooms about it, so a surface found by one
-    /// of them only, within <see cref="Hidden"/> under something else the other met, is the same floor.
+    /// part goes unmet; a record keeps what the rolls it was probed on met, with other parts about
+    /// it, so a surface found by one of them only, within <see cref="Hidden"/> under something of
+    /// another part the other met (or, given, another copy's collider: -1), is the same floor.
     /// </summary>
     internal sealed class FloorCheck
     {

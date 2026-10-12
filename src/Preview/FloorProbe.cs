@@ -44,7 +44,7 @@ namespace Scry
         /// <summary>
         /// For the self-test: while set, a copy whose floors the record tells is probed too, and
         /// given with the record, what its rays found, the parts there, its spawn points' keys, and
-        /// everything each ray met by its place in the grid's list, a part or another copy's collider (-1).
+        /// every part each ray met by its place in the grid's list.
         /// </summary>
         [Diagnostic]
         public static Action<FloorRecord, FloorRecord, HashSet<int>, List<string>, Dictionary<int, List<(float Height, int Part)>>> Checked { get; set; }
@@ -284,7 +284,9 @@ namespace Scry
         /// Casts the record's rays over the copy, and one down from a metre above each spawn point
         /// the game drops its creature from (<c>ZoneSystem.FindFloor</c>), noting every surface of
         /// a part each meets, in the copy's own frame; into <paramref name="met"/>, when given,
-        /// everything each of the record's rays met, a part or another copy's collider (-1).
+        /// every part each of the record's rays met. The rays pass through other copies on the
+        /// stage (<see cref="OwnDown"/>), so what is kept of a kind of place is the same whatever
+        /// stood beside the copy it was probed on.
         /// </summary>
         private static ProbeSeen Cast(FloorRecord record, Transform root, int layer, List<Transform> transforms, HashSet<int> present, List<Stage.SpawnHere> placed, List<string> keys,
             Dictionary<int, List<(float Height, int Part)>> met = null)
@@ -298,13 +300,12 @@ namespace Scry
             List<RaySurface> Surfaces(Vector3 from, float length, List<(float Height, int Part)> all = null)
             {
                 var surfaces = new List<RaySurface>();
-                foreach (var hit in Down(from, length, mask))
+                foreach (var hit in OwnDown(from, length, mask, c => index.ContainsKey(c.transform)))
                 {
-                    if (hit.collider == null) continue;
-                    var own = index.TryGetValue(hit.collider.transform, out var part);
+                    var part = index[hit.collider.transform];
                     var height = root.InverseTransformPoint(hit.point).y;
-                    all?.Add((height, own ? part : -1));
-                    if (own) surfaces.Add(new RaySurface { Height = height, Flat = hit.normal.y >= Flat, Part = part });
+                    all?.Add((height, part));
+                    surfaces.Add(new RaySurface { Height = height, Flat = hit.normal.y >= Flat, Part = part });
                 }
                 return surfaces;
             }
@@ -352,6 +353,50 @@ namespace Scry
                 if (!Physics.Raycast(new Vector3(from.x, top, from.z), Vector3.down, out var hit, top - bottom, mask, QueryTriggerInteraction.Ignore)) yield break;
                 top = hit.point.y - Past;
                 yield return hit;
+            }
+        }
+
+        /// <summary>Every hit of one step of <see cref="OwnDown"/>; more than this, and that step goes one hit at a time.</summary>
+        private static readonly RaycastHit[] StepHits = new RaycastHit[128];
+
+        /// <summary>
+        /// Each surface of the copy's own (<paramref name="own"/>) a ray straight down from
+        /// <paramref name="from"/> meets within <paramref name="length"/>, top down, as
+        /// <see cref="Down"/> meets them but passing through every other collider: each step takes
+        /// the nearest of all it hits that is the copy's own, so another room's floor beside or
+        /// over the copy's, even at the same height, neither ends the ray nor hides what is under it.
+        /// </summary>
+        private static IEnumerable<RaycastHit> OwnDown(Vector3 from, float length, int mask, System.Func<Collider, bool> own)
+        {
+            var top = from.y;
+            var bottom = from.y - length;
+            for (var step = 0; step < MostSurfaces && top > bottom; step++)
+            {
+                var origin = new Vector3(from.x, top, from.z);
+                var count = Physics.RaycastNonAlloc(origin, Vector3.down, StepHits, top - bottom, mask, QueryTriggerInteraction.Ignore);
+                RaycastHit? nearest = null;
+                if (count < StepHits.Length)
+                {
+                    for (var i = 0; i < count; i++)
+                    {
+                        var hit = StepHits[i];
+                        if (hit.collider == null || !own(hit.collider)) continue;
+                        if (nearest == null || hit.distance < nearest.Value.distance) nearest = hit;
+                    }
+                }
+                else
+                {
+                    // Too many to be sure of the nearest: one hit at a time, past the others.
+                    foreach (var hit in Down(origin, top - bottom, mask))
+                    {
+                        if (hit.collider == null || !own(hit.collider)) continue;
+                        nearest = hit;
+                        break;
+                    }
+                }
+                if (nearest == null) yield break;
+                top = nearest.Value.point.y - Past;
+                yield return nearest.Value;
             }
         }
 
