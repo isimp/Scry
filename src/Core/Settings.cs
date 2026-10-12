@@ -92,6 +92,13 @@ namespace Scry
         /// </summary>
         public static string DataFolder => Path.Combine(Paths.ConfigPath, About.Guid);
 
+        /// <summary>
+        /// Where Scry keeps what it has read and could read again, what the places hold: in a folder
+        /// of BepInEx's cache folder named for it, which a profile's sync and export leave out, as
+        /// they take the config folders and files of the kinds settings are written in.
+        /// </summary>
+        public static string CacheFolder => Path.Combine(Paths.CachePath, About.Guid);
+
         /// <summary>Binds every setting to BepInEx's config file, with its section, default, range and description.</summary>
         public static void Bind(ConfigFile config)
         {

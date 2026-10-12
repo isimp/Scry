@@ -23,7 +23,7 @@ namespace Scry
         private sealed class SearchAssist
         {
             /// <summary>Whether the terms for this catalog, with the locations as they are read, are in.</summary>
-            public bool HasTermsFor(Explorer explorer) => _terms != null && ReferenceEquals(_termsFor, explorer) && _termsAt == Locations.Now;
+            public bool HasTermsFor(Explorer explorer) => _terms != null && ReferenceEquals(_termsFor, explorer) && _termsAt == Locations.Applied;
 
             /// <summary>Ends Tab's cycling.</summary>
             public void ResetCycle() => _cycle.Reset();
@@ -45,11 +45,11 @@ namespace Scry
 
             private TermIndex _terms;
             private Explorer _termsFor;
-            private Locations.State _termsAt;
+            private int _termsAt;
 
             private System.Threading.Tasks.Task<TermIndex> _termsJob;
             private Explorer _jobFor;
-            private Locations.State _jobAt;
+            private int _jobAt;
             private static readonly TermIndex NoTerms = new TermIndex(Array.Empty<Entry>());
 
             /// <summary>
@@ -60,13 +60,13 @@ namespace Scry
             /// </summary>
             public TermIndex TermsFor(Explorer explorer)
             {
-                if (_terms != null && ReferenceEquals(explorer, _termsFor) && _termsAt == Locations.Now) return _terms;
+                if (_terms != null && ReferenceEquals(explorer, _termsFor) && _termsAt == Locations.Applied) return _terms;
 
-                if (_termsJob == null || !ReferenceEquals(_jobFor, explorer) || _jobAt != Locations.Now)
+                if (_termsJob == null || !ReferenceEquals(_jobFor, explorer) || _jobAt != Locations.Applied)
                 {
                     var catalog = explorer.Catalog;
                     _jobFor = explorer;
-                    _jobAt = Locations.Now;
+                    _jobAt = Locations.Applied;
                     _termsJob = System.Threading.Tasks.Task.Run(() => new TermIndex(catalog));
                 }
 
@@ -102,7 +102,7 @@ namespace Scry
             /// <summary>What could finish the word, kept while the word stays the same.</summary>
             private List<Suggestion> SuggestFor(Explorer explorer, string word)
             {
-                if (word != _suggestFor || !ReferenceEquals(_termsFor, explorer) || _termsAt != Locations.Now)
+                if (word != _suggestFor || !ReferenceEquals(_termsFor, explorer) || _termsAt != Locations.Applied)
                 {
                     var terms = TermsFor(explorer);
                     _suggested = SearchHelp.Suggest(word, terms);

@@ -19,7 +19,7 @@ namespace Scry
         private static List<ModSummary> _report;
         private static IReadOnlyList<Entry> _reportOf;
         private static int _reportCount;
-        private static Locations.State _reportLocations;
+        private static int _reportLocations;
         private static int _reportSeen;
 
         /// <summary>Leaving a world forgets the report made of it (<see cref="WorldCaches"/>).</summary>
@@ -31,11 +31,11 @@ namespace Scry
         /// <summary>The report of a catalog, read again once the catalog, the locations or the drops seen in play have changed, not each time it is asked for.</summary>
         public static List<ModSummary> Of(IReadOnlyList<Entry> catalog)
         {
-            if (_report == null || !ReferenceEquals(_reportOf, catalog) || _reportCount != catalog.Count || _reportLocations != Locations.Now || _reportSeen != DropWatch.Version)
+            if (_report == null || !ReferenceEquals(_reportOf, catalog) || _reportCount != catalog.Count || _reportLocations != Locations.Applied || _reportSeen != DropWatch.Version)
             {
                 _reportOf = catalog;
                 _reportCount = catalog.Count;
-                _reportLocations = Locations.Now;
+                _reportLocations = Locations.Applied;
                 _reportSeen = DropWatch.Version;
                 _report = Read(catalog);
             }

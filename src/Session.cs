@@ -241,12 +241,10 @@ namespace Scry
             _failedIn = null;
             TellRead(catalog, job);
 
-            // Where things are found, read by itself for those who want it: the same background
-            // reading the panel's button starts, a few milliseconds a frame.
-            if (Settings.ReadLocationsAutomatically && Locations.Now == Locations.State.NotRead)
-            {
-                Guard.Run(Feature.Locations, "reading the locations by itself", () => Log.Report("Scry: " + Locations.Start()));
-            }
+            // Where things are found: what was kept of the world's places from before, shown once
+            // found, and what may have changed read again; with nothing kept, read by itself for
+            // those who want it, the same background reading the panel's button starts.
+            Guard.Run(Feature.Locations, "finding what the locations hold", () => Locations.Begin(Settings.ReadLocationsAutomatically));
         }
 
         private static void Failed(string why, ZNetScene scene)

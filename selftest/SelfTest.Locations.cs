@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEngine;
 
@@ -242,9 +243,69 @@ namespace Scry
 
         // ----- Once every location is read -----
 
+        /// <summary>What every entry tells of the places: where it is found, its name and group, and what a place is told to hold.</summary>
+        private static Dictionary<string, string> ToldOfPlaces()
+        {
+            var told = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var entry in X.Catalog) told[entry.Key] = string.Join("|", entry.FoundIn) + " # " + entry.DisplayName + " # " + entry.Group + " # " + Told(PlaceOf(entry)?.Contents);
+            return told;
+        }
+
+        /// <summary>What a place is told to hold, in short: its names, whether it is left to chance, its parts, music, runestones, room and dungeon.</summary>
+        private static string Told(PlaceContents c) => c == null ? "" :
+            $"{c.GameName}/{c.Boss}/{c.Trader}/{c.LeftToChance}/{string.Join(",", c.Parts.Select(x => x.Prefab + "x" + Stored.Count(x.Count)))}/{string.Join(",", c.Creatures.Select(x => x.Prefab))}"
+            + $"/{string.Join(",", c.Music.Select(m => m.Name + ":" + m.When))}/{string.Join(",", c.Runestones.SelectMany(s => s.Texts).Select(t => t.Topic + ":" + t.Text))}"
+            + $"/{Stored.Count(c.Room?.Doorways.Count ?? -1)}/{Stored.Count(c.Dungeon?.Themes ?? -1)}/{string.Join(",", c.Vegvisirs)}/{Stored.Count(c.EnemyMinLevel)}-{Stored.Count(c.EnemyMaxLevel)}/{Stored.Exact(c.NoBuildRadius)}";
+
+        private static IEnumerator KeptLocations(Probe p)
+        {
+            if (Locations.Now != Locations.State.Read) p.Skip("the locations are not read");
+            yield return Until(() => !Locations.Saving && !Locations.Busy, 60);
+            var path = Path.Combine(Settings.CacheFolder, "places.dat");
+            if (!p.Check(File.Exists(path), "what was read is kept in BepInEx's cache folder", path)) yield break;
+            var kept = KeptPlaces.Load(File.ReadAllText(path));
+            p.Note($"{Numbers.Count(kept.Records.Count)} places kept, {Numbers.Amount(new FileInfo(path).Length / 1024.0, 0)} KB");
+
+            // Each place's contents as kept, told now, as its entry tells them.
+            var terms = PlaceReader.TermsNow();
+            var places = X.Catalog.Where(e => PlaceOf(e)?.Contents != null).ToList();
+            var unlike = new List<string>();
+            foreach (var entry in places)
+            {
+                var place = PlaceOf(entry);
+                var record = kept.Find(place.Prefab, place.IsRoom);
+                if (record == null)
+                {
+                    unlike.Add(entry.Name + " (not kept)");
+                    continue;
+                }
+                record.Contents.Tell(terms);
+                if (Told(record.Contents) != Told(place.Contents)) unlike.Add(entry.Name);
+            }
+            p.Check(unlike.Count == 0, "every place read comes back from the file holding what it was read to hold", $"{Numbers.Count(unlike.Count)} of {Numbers.Count(places.Count)}: {string.Join(", ", unlike.Take(8))}");
+
+            // Entering the world again: every place known at once from the file, none read again,
+            // and every entry telling of them what it told straight after they were read.
+            var before = ToldOfPlaces();
+            var applied = Locations.Applied;
+            var started = Time.unscaledTime;
+            Locations.Begin(false);
+            yield return Until(() => !Locations.Busy && Locations.Applied > applied, 60);
+            p.Note($"known from the file in {Numbers.Amount((Time.unscaledTime - started) * 1000f, 0)} ms");
+            var found = Locations.Found;
+            p.Check(found.Fresh > 0 && found.Stale == 0 && found.Missing == 0, "on entering the world again every place is known from the file as it is", $"{Numbers.Count(found.Fresh)} the same, {Numbers.Count(found.Stale)} to read again, {Numbers.Count(found.Missing)} never read");
+            p.Check(!Locations.Busy && Locations.Now == Locations.State.Read, "and none is read again");
+            var after = ToldOfPlaces();
+            var differ = before.Keys.Where(k => !after.TryGetValue(k, out var now) || now != before[k]).ToList();
+            p.Check(differ.Count == 0, "every entry tells the same of the places as straight after reading them", $"{Numbers.Count(differ.Count)} differ: {string.Join(", ", differ.Take(6).Select(k => k + " [" + before[k] + "] now [" + (after.TryGetValue(k, out var now) ? now : "none") + "]"))}");
+        }
+
         private static IEnumerator ReadLocations(Probe p)
         {
-            if (Locations.Now != Locations.State.NotRead) p.Skip($"the locations are {(Locations.Now == Locations.State.Read ? "already read" : "being read")} in this world");
+            // What was kept from before is found, and any reading under way done, before reading anew.
+            yield return Until(() => !Locations.Busy, 400);
+            if (!p.Check(!Locations.Busy, "no reading of the locations is under way", $"{Numbers.Count(Locations.Done)} of {Numbers.Count(Locations.Total)}")) yield break;
+            var known = Locations.Now == Locations.State.Read;
 
             // A location stands on the stage throughout, from a bundle the reading loads and lets go of too.
             var shown = Camp() ?? Crypt();
@@ -261,10 +322,11 @@ namespace Scry
                 if (brokenBefore > 0) p.Note($"before reading, {shown.Name} stands with {Numbers.Count(brokenBefore)} missing: {string.Join(", ", BrokenParts(copy).Take(8))}; {OwnMissing(copy)}");
             }
 
+            // Read every one, or every one again where they are known from before.
             var asked = Time.unscaledTime;
-            p.Note(Locations.Start());
-            yield return Until(() => Locations.Now == Locations.State.Read, 400);
-            if (!p.Check(Locations.Now == Locations.State.Read, "every location and room has been read", $"{Numbers.Count(Locations.Done)} of {Numbers.Count(Locations.Total)}")) yield break;
+            p.Note((known ? "known from before; " : "") + Locations.Start());
+            yield return Until(() => !Locations.Busy && Locations.Now == Locations.State.Read, 400);
+            if (!p.Check(!Locations.Busy && Locations.Now == Locations.State.Read, "every location and room has been read", $"{Numbers.Count(Locations.Done)} of {Numbers.Count(Locations.Total)}")) yield break;
             p.Note($"read in {Numbers.Amount(Time.unscaledTime - asked, 0)} s");
 
             if (copy != null)

@@ -2,7 +2,7 @@
 
 ## 0.3.0
 
-In development.
+What *Read all locations* reads is kept, so the next time it is known as soon as the world's catalog is. After an update of the game only the locations it changed are read again, and after a change of mods or of Scry all of them, in the background, with what was known shown meanwhile. `/scry locations` reads them all again.
 
 ## 0.2.0
 

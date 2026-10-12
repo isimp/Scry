@@ -324,6 +324,9 @@ namespace Scry
 
         public static string ReadingInBackground(int queued) => $"reading {Numbers.Count(queued)} locations and dungeon rooms in the background.";
 
+        /// <summary>Reading places again that are known already, kept from before or read: what is known stays shown meanwhile.</summary>
+        public static string ReadingAgain(int queued) => $"reading {Numbers.Count(queued)} locations and dungeon rooms again in the background; what is known of them stays shown until then.";
+
         /// <summary>How far reading the locations has got, where something waits on it (<see cref="CatalogWords.Progress(string, int, int)"/>).</summary>
         public static string ReadingProgress(int done, int total) => CatalogWords.Progress("Reading locations and dungeons", done, total);
 

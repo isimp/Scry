@@ -22,6 +22,7 @@ namespace Scry.Tests
         {
             Assert.Equal("already reading the locations and dungeons, 12 of 1,400 so far.", LocationWords.AlreadyReading(12, 1400));
             Assert.Equal("reading 1,400 locations and dungeon rooms in the background.", LocationWords.ReadingInBackground(1400));
+            Assert.Equal("reading 3 locations and dungeon rooms again in the background; what is known of them stays shown until then.", LocationWords.ReadingAgain(3));
             Assert.Equal("Reading locations and dungeons: 12 of 1,400", LocationWords.ReadingProgress(12, 1400));
             Assert.Equal("Stop reading  12 of 1,400", LocationWords.StopReading(12, 1400));
         }

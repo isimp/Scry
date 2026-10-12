@@ -550,7 +550,7 @@ namespace Scry
                     var readChip = new Rect(0f, y, Mathf.Min(width, w), U(26f));
                     if (GUI.Button(readChip, LocationsButtonText, Skin.Fitted(Skin.Chip, readChip))) StartReadingLocations();
                     y += U(30f);
-                    const string note = "Reads each of this world's locations and dungeon rooms once, in the background, over a few minutes.";
+                    const string note = "Reads each of this world's locations and dungeon rooms once, in the background, over a few minutes, and keeps what they hold for the next time.";
                     var height = Skin.Height(Skin.DimWrap, note, width);
                     GUI.Label(new Rect(0f, y, width, height), note, Skin.DimWrap);
                     return y + height + U(6f);
@@ -593,7 +593,7 @@ namespace Scry
         private static Explorer _foundInIn;
 
         private const string LocationsButtonText = "Read all locations";
-        private const string LocationsButtonTip = "Reads what every location and dungeon room in this world holds, in the background over a few minutes, so things tell where they are found and in: finds them. A location selected is read by itself.";
+        private const string LocationsButtonTip = "Reads what every location and dungeon room in this world holds, in the background over a few minutes, so things tell where they are found and in: finds them. What is read is kept, and known at once the next time. A location selected is read by itself.";
 
         /// <summary>Stops reading the locations, from any of the buttons that offer it, and says so.</summary>
         private static void StopReadingLocations()
