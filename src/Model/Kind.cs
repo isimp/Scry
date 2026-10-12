@@ -178,6 +178,13 @@ namespace Scry
             return !(traits.HasRenderer || traits.HasParticles || traits.HasLight || traits.HasAudio);
         }
 
+        /// <summary>
+        /// Whether a kind's details offer the animations of what stands on the stage: not a status
+        /// effect (it stands on the person), a raid (it is its creatures) or a place (its doors,
+        /// gates and creatures are not it), none of whose clips are its own.
+        /// </summary>
+        public static bool OffersClips(Kind kind) => kind != Kind.StatusEffect && kind != Kind.Raid && kind != Kind.Location;
+
         /// <summary>The word that picks a kind in a search's kind: term, as the search's help gives it.</summary>
         public static string TermWord(Kind kind) => kind == Kind.StatusEffect ? "se" : kind.ToString().ToLowerInvariant();
 

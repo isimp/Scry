@@ -179,7 +179,12 @@ namespace Scry
             p.Check(Stage.CreaturesMade > 0, "its spawn points' creatures stand on the stage with it", $"{Numbers.Count(Stage.CreaturesMade)} made, {Numbers.Count(Stage.CreaturesWaiting)} waiting");
             p.Note("they stand on layer " + Stage.CreatureLayerTold);
             var mover = ClipPlayer.AnimatorOf(Stage.Subject);
-            p.Check(mover == null || !Stage.CreatureHolds(mover.transform), "the place offers no clips of its creatures as its own", mover != null ? mover.name : "");
+            p.Check(mover == null || !Stage.CreatureHolds(mover.transform), "the stage takes none of its creatures for the place's own animator", mover != null ? mover.name : "");
+            var animations = ScryPanel.Drawn(PanelPart.Animations);
+            yield return null;
+            yield return null;
+            p.Check(ScryPanel.Drawn(PanelPart.Animations) == animations, "its details offer no animations, of its creatures or of its doors", $"{Numbers.Count(Previews.Clips().Count)} clips found on its copy");
+            yield return Until(() => Stage.DetailWaiting == 0, 10);
             var groups = Stage.Subject.GetComponentsInChildren<LODGroup>(true);
             var culled = groups.Count(g => g.GetLODs().LastOrDefault().screenRelativeTransitionHeight > 0f);
             p.Check(culled == 0, "every part of it and of its creatures stays drawn however small on the stage", $"{Numbers.Count(culled)} of {Numbers.Count(groups.Length)} level-of-detail groups would be culled");

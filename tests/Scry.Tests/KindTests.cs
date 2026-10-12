@@ -4,6 +4,22 @@ namespace Scry.Tests
 {
     public class KindTests
     {
+        [Theory]
+        [InlineData("Creature", true)]
+        [InlineData("Item", true)]
+        [InlineData("Piece", true)]
+        [InlineData("Resource", true)]
+        [InlineData("Effect", true)]
+        [InlineData("StatusEffect", false)]
+        [InlineData("Raid", false)]
+        [InlineData("Location", false)]
+        public void OnlyWhatIsShownOnItsOwnOffersItsAnimations(string kind, bool offers)
+        {
+            // A status effect stands on the person, a raid is its creatures, and a place holds
+            // doors, gates and its creatures: none of their clips are its own to play.
+            Assert.Equal(offers, Kinds.OffersClips((Kind)System.Enum.Parse(typeof(Kind), kind)));
+        }
+
         [Fact]
         public void ACreatureIsPreviewedAsACreature()
         {

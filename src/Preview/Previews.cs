@@ -202,6 +202,7 @@ namespace Scry
             // A location or room is put on the stage a little each frame, shown once it is made, and its creatures after.
             Guard.Run(Feature.LocationsOnStage, "showing a location", Stage.StepBuild);
             Guard.Run(Feature.PlacesCreaturesOnStage, "putting a place's creatures on the stage", Stage.StepCreatures);
+            Guard.Run(Feature.Stage, "keeping the stage's parts drawn", Stage.StepDetail);
 
             // A dungeon or camp selected: its rooms are read for an example layout.
             Guard.Run(Feature.ExampleDungeonAndCampLayouts, "laying out an example dungeon", ExampleLayouts.Update, explorer);

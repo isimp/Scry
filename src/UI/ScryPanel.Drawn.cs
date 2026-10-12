@@ -6,6 +6,7 @@ namespace Scry
     /// <summary>The parts of the panel the self-test watches draw: each counted as it is drawn.</summary>
     internal enum PanelPart
     {
+        Animations,
         Help,
         ModReport,
         PlacesBar,

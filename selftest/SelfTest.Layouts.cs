@@ -478,10 +478,14 @@ namespace Scry
             p.Check(outside.Count == 0, "and every room on it is in the picture", string.Join(", ", outside.Take(8)));
 
             // The stage asks for the copy's animator every frame; a copy that stays as it is is
-            // walked for it only when it gains or loses a part, as creatures still being placed do.
+            // walked for it only when it gains or loses a part, as creatures still being placed
+            // do, so it is counted once they all stand.
+            var waiting = Stage.CreaturesWaiting;
+            yield return Until(() => Stage.CreaturesWaiting == 0, 10);
             var walks = ClipPlayer.Walks;
             for (var i = 0; i < 30; i++) yield return null;
-            p.Check(ClipPlayer.Walks - walks < 10, "a dungeon that stays as it is is not searched for its animator every frame", $"{Numbers.Count(ClipPlayer.Walks - walks)} times in 30 frames");
+            p.Check(ClipPlayer.Walks - walks < 10, "a dungeon that stays as it is is not searched for its animator every frame",
+                $"{Numbers.Count(ClipPlayer.Walks - walks)} times in 30 frames; {Numbers.Count(waiting)} creatures were still to be placed, {Numbers.Count(Stage.CreaturesWaiting)} after");
 
             // The rooms dimmed below the floor opened are filmed without their own lights, which
             // cost about half of each film, unless the setting keeps them; filmed ten frames each way.

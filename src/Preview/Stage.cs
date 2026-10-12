@@ -217,17 +217,38 @@ namespace Scry
             foreach (var sfx in copy.GetComponentsInChildren<ZSFX>(true)) sfx.enabled = false;
         }
 
+        /// <summary>A millisecond a frame for keeping parts drawn (<see cref="StepDetail"/>).</summary>
+        private const double DetailBudgetMs = 1.0;
+
+        /// <summary>The level-of-detail groups of the copies made, each to keep its last level (<see cref="StepDetail"/>).</summary>
+        private static readonly Queue<LODGroup> DetailToKeep = new Queue<LODGroup>();
+
+        /// <summary>How many level-of-detail groups still wait to keep their last level, for the self-test.</summary>
+        public static int DetailWaiting => DetailToKeep.Count;
+
         /// <summary>
         /// Keeps every part of a copy drawn however small it is on the stage, its last level of
         /// detail never culled (<see cref="DetailLevels"/>): a place zoomed out on lost its rooms
         /// piece by piece, the game culling a cave's rocks once they fill less than a tenth to a
-        /// third of the picture's height.
+        /// third of the picture's height. A big place has thousands of such groups, so they are
+        /// changed a millisecond's worth a frame (<see cref="StepDetail"/>).
         /// </summary>
         private static void KeepEveryLevel(GameObject copy)
         {
             var timed = Timing.Start();
-            foreach (var group in copy.GetComponentsInChildren<LODGroup>(true))
+            foreach (var group in copy.GetComponentsInChildren<LODGroup>(true)) DetailToKeep.Enqueue(group);
+            Timing.Add("stage detail found", timed);
+        }
+
+        /// <summary>Each frame: keeps the last level of a millisecond's worth of the groups waiting; one gone meanwhile is passed over.</summary>
+        public static void StepDetail()
+        {
+            if (DetailToKeep.Count == 0) return;
+            var timed = Timing.Start();
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            while (DetailToKeep.Count > 0 && watch.Elapsed.TotalMilliseconds < DetailBudgetMs)
             {
+                var group = DetailToKeep.Dequeue();
                 if (group == null) continue;
                 var lods = group.GetLODs();
                 var heights = new float[lods.Length];

@@ -27,8 +27,9 @@ namespace Scry
         private static float Animations(Explorer explorer, Entry entry, float width, float y, bool withStage)
         {
             var model = Adjustable(entry, withStage, out var staged);
-            var clips = model && staged && entry.Kind != Kind.StatusEffect && entry.Kind != Kind.Raid ? Previews.Clips() : NoClips;
+            var clips = model && staged && Kinds.OffersClips(entry.Kind) ? Previews.Clips() : NoClips;
             if (clips.Count == 0) return y;
+            CountDrawn(PanelPart.Animations);
             y = Clips(explorer, clips, explorer.Modifiers, width, U(_compact ? 100f : 120f), y);
             return IsFolded("animations") ? y : y + U(10f);
         }
