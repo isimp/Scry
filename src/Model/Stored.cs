@@ -23,6 +23,9 @@ namespace Scry
         /// <summary>Reads a whole number written by <see cref="Count"/>; false for anything else.</summary>
         public static bool TryCount(string text, out int value) => int.TryParse(text, NumberStyles.AllowLeadingSign, Plain, out value);
 
+        /// <summary>A 64-bit value as sixteen hexadecimal digits: "00000000000000e9".</summary>
+        public static string Hex(ulong value) => value.ToString("x16", Plain);
+
         /// <summary>Reads hexadecimal digits, as a file's escaped character gives its code ("00e9"); false for anything else.</summary>
         public static bool TryHex(string text, out int value) => int.TryParse(text, NumberStyles.AllowHexSpecifier, Plain, out value);
 
