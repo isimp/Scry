@@ -91,6 +91,9 @@ namespace Scry
         /// <summary>How many creatures stand above the cut, cut away with their floor, for the self-test.</summary>
         public static int CreaturesAboveCut => CreatureLayer != _layer ? Creatures.OnLayer(_layer) : 0;
 
+        /// <summary>Whether a part of the copy shown belongs to one of its place's creatures, which hang on its spawn points inside it.</summary>
+        public static bool CreatureHolds(Transform part) => Creatures.Holds(part);
+
         /// <summary>Rolls which of a copy's spawn points put their creature there, to be made over the next frames.</summary>
         private static void Populate(List<SpawnHere> points, GameObject room) => Creatures.Populate(points, room, CreatureDice.NextDouble);
 

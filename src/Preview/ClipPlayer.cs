@@ -122,7 +122,10 @@ namespace Scry
             {
                 _animatorsOf = copy;
                 _animatorsParts = parts;
-                _animators = copy.GetComponentsInChildren<Animator>(true);
+                // A place's creatures hang on its spawn points inside its copy, held in their
+                // first pose: their clips are not the place's to play.
+                var all = copy.GetComponentsInChildren<Animator>(true);
+                _animators = System.Array.FindAll(all, a => a != null && !Stage.CreatureHolds(a.transform));
                 Walks++;
             }
             _of = Animators.Main(copy, _animators);

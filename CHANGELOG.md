@@ -8,6 +8,8 @@ Where a place's floors are is kept too, so a dungeon's rooms no longer each stal
 
 *Read again* above the Locations tab's list, or `/scry forget`, forgets everything Scry kept and reads the locations afresh, for when what is shown seems out of date.
 
+A place zoomed out on the stage keeps all its rooms; the game's level of detail dropped their pieces one by one as they grew small. A location with creatures no longer offers their animations as its own, which played nothing.
+
 ## 0.2.0
 
 Locations have a tab of their own: every location and dungeon room the world can place, grouped by biome, each telling where it is placed and what it holds. A location stands on the turntable as a new zone would roll it, its creatures included, and *Roll again* rolls it anew.

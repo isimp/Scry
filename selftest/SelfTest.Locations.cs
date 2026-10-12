@@ -178,6 +178,11 @@ namespace Scry
             p.Note($"{place.Name}: {Numbers.Count(Stage.CreaturesMade)} creatures, {string.Join(", ", Stage.CreatureNames.Take(10))}; its spawn points can put {string.Join(", ", PlaceOf(place).Contents.Creatures.Select(c => c.Prefab))}");
             p.Check(Stage.CreaturesMade > 0, "its spawn points' creatures stand on the stage with it", $"{Numbers.Count(Stage.CreaturesMade)} made, {Numbers.Count(Stage.CreaturesWaiting)} waiting");
             p.Note("they stand on layer " + Stage.CreatureLayerTold);
+            var mover = ClipPlayer.AnimatorOf(Stage.Subject);
+            p.Check(mover == null || !Stage.CreatureHolds(mover.transform), "the place offers no clips of its creatures as its own", mover != null ? mover.name : "");
+            var groups = Stage.Subject.GetComponentsInChildren<LODGroup>(true);
+            var culled = groups.Count(g => g.GetLODs().LastOrDefault().screenRelativeTransitionHeight > 0f);
+            p.Check(culled == 0, "every part of it and of its creatures stays drawn however small on the stage", $"{Numbers.Count(culled)} of {Numbers.Count(groups.Length)} level-of-detail groups would be culled");
 
             Stage.CreaturesShown = false;
             p.Check(Stage.CreaturesStanding == 0, "the chip puts them away", $"{Numbers.Count(Stage.CreaturesStanding)} still standing");

@@ -66,6 +66,17 @@ namespace Scry
         /// <summary>The creature copies standing, made and not gone.</summary>
         public IEnumerable<GameObject> Copies => _copies.Where(pair => pair.Key != null).Select(pair => pair.Key);
 
+        /// <summary>Whether a part belongs to one of the creatures standing, each hanging on its spawn point inside the copy of its place.</summary>
+        public bool Holds(Transform part)
+        {
+            if (_copies.Count == 0) return false;
+            for (var t = part; t != null; t = t.parent)
+            {
+                foreach (var pair in _copies) if (pair.Key != null && pair.Key.transform == t) return true;
+            }
+            return false;
+        }
+
         /// <summary>Rolls which of a copy's spawn points put their creature there, to be made over the next frames.</summary>
         public void Populate(List<Stage.SpawnHere> points, GameObject room, Func<double> dice)
         {

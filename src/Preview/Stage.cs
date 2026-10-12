@@ -207,6 +207,7 @@ namespace Scry
         /// </summary>
         private static void Tune(GameObject copy, bool audible)
         {
+            KeepEveryLevel(copy);
             foreach (var source in copy.GetComponentsInChildren<AudioSource>(true))
             {
                 if (audible) source.spatialBlend = 0f;
@@ -214,6 +215,29 @@ namespace Scry
             }
             if (audible) return;
             foreach (var sfx in copy.GetComponentsInChildren<ZSFX>(true)) sfx.enabled = false;
+        }
+
+        /// <summary>
+        /// Keeps every part of a copy drawn however small it is on the stage, its last level of
+        /// detail never culled (<see cref="DetailLevels"/>): a place zoomed out on lost its rooms
+        /// piece by piece, the game culling a cave's rocks once they fill less than a tenth to a
+        /// third of the picture's height.
+        /// </summary>
+        private static void KeepEveryLevel(GameObject copy)
+        {
+            var timed = Timing.Start();
+            foreach (var group in copy.GetComponentsInChildren<LODGroup>(true))
+            {
+                if (group == null) continue;
+                var lods = group.GetLODs();
+                var heights = new float[lods.Length];
+                for (var i = 0; i < lods.Length; i++) heights[i] = lods[i].screenRelativeTransitionHeight;
+                var kept = DetailLevels.NeverCulled(heights);
+                if (kept == null) continue;
+                for (var i = 0; i < lods.Length; i++) lods[i].screenRelativeTransitionHeight = kept[i];
+                group.SetLODs(lods);
+            }
+            Timing.Add("stage detail kept", timed);
         }
     }
 }
