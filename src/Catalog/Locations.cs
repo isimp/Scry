@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using SoftReferenceableAssets;
 using UnityEngine;
 
@@ -17,7 +15,7 @@ namespace Scry
     /// the game for seconds, so one at a time is loaded in the background, read a few milliseconds
     /// a frame, and released. A release unloads the bundle with everything in it once nothing else
     /// holds it, so only names and figures are kept: a record of each place (<see cref="PlaceRecord"/>),
-    /// kept from one session to the next in BepInEx's cache folder (<see cref="KeptPlaces"/>). On
+    /// kept from one session to the next in BepInEx's cache folder (<see cref="PlaceRecords"/>). On
     /// entering a world what was kept is shown at once and only what may have changed is read again
     /// (<see cref="PlacePlan"/>); with nothing kept, the places are read when asked (the panel's
     /// "Read all locations" buttons, or <c>/scry locations</c>) or by themselves with
@@ -39,10 +37,10 @@ namespace Scry
         public static State Now { get; private set; }
 
         /// <summary>Whether places are being read, or what was kept of them found, in the background.</summary>
-        public static bool Busy => _reading || _loading != null;
+        public static bool Busy => _reading || PlaceRecords.Finding;
 
         /// <summary>Whether what was read is still being written to the cache folder.</summary>
-        public static bool Saving => Files.Busy;
+        public static bool Saving => PlaceRecords.Busy;
 
         /// <summary>How often what the places hold was put on the catalog's entries in this session, for what is worked out from it to know when to work it out again.</summary>
         public static int Applied { get; private set; }
@@ -58,8 +56,6 @@ namespace Scry
         /// <summary>A few milliseconds a frame, as the catalog is read in the background.</summary>
         private const double BudgetMs = 3.0;
 
-        private const string KeptFile = "places.dat";
-
         private struct Asset
         {
             public string Name;
@@ -69,7 +65,7 @@ namespace Scry
             /// <summary>The biomes the world's list places a location in, all of its entries together.</summary>
             public Heightmap.Biome Biome;
 
-            /// <summary>The build of Scry, the mods and the bundle it is read from (<see cref="PlaceStamps"/>); empty while not known.</summary>
+            /// <summary>The build of Scry, the mods and the bundle it is read from (<see cref="PlaceStamps"/>), once found (<see cref="PlaceRecords"/>); empty while not known.</summary>
             public string Stamp;
         }
 
@@ -79,28 +75,13 @@ namespace Scry
         /// <summary>Those being read, by their place in <see cref="World"/>.</summary>
         private static readonly List<int> ToRead = new List<int>();
 
-        /// <summary>Every place kept, this world's and others', from the cache folder and the readings since.</summary>
-        private static KeptPlaces _kept = new KeptPlaces();
-
         /// <summary>What the reading under way has read so far, kept once it is done.</summary>
         private static readonly List<PlaceRecord> Fresh = new List<PlaceRecord>();
 
         /// <summary>Places whose contents could not be read whole: told this session, kept for none, so they are read again.</summary>
         private static readonly HashSet<(string Prefab, bool Room)> Unkept = new HashSet<(string, bool)>();
 
-        /// <summary>What was kept, and each of the world's places' stamps, found on a worker thread on entering it.</summary>
-        private static Task<(KeptPlaces Kept, string[] Stamps)> _loading;
-
         private static bool _automatically;
-
-        /// <summary>The cache folder's file, found and written on a worker thread.</summary>
-        private static readonly FileQueue Files = new FileQueue();
-
-        /// <summary>The stamp of each of the world's places, by prefab and whether a room, once found on entering it.</summary>
-        private static readonly Dictionary<(string Prefab, bool Room), string> StampsOf = new Dictionary<(string, bool), string>();
-
-        /// <summary>A place's stamp (<see cref="PlaceStamps"/>), for what else is kept of it; empty while not known.</summary>
-        public static string StampOf(string prefab, bool room) => StampsOf.TryGetValue((prefab, room), out var stamp) ? stamp : "";
 
         /// <summary>The altars found in the locations: which boss each summons, with what, and where it stands.</summary>
         private static readonly List<Summon> Summoned = new List<Summon>();
@@ -142,15 +123,12 @@ namespace Scry
         public static void Forget()
         {
             StopReading();
-            _loading = null;
             World.Clear();
-            StampsOf.Clear();
             Summoned.Clear();
             _finds = new PlaceFinds();
             CatalogNames.Clear();
             Unkept.Clear();
             Named.Clear();
-            _kept = new KeptPlaces();
             Now = State.NotRead;
             Found = (0, 0, 0);
         }
@@ -168,24 +146,20 @@ namespace Scry
 
         /// <summary>
         /// On entering a world, once its catalog is read: what was kept of its places is found on a
-        /// worker thread (<see cref="Update"/> takes it), then shown, and what may have changed read
+        /// worker thread (<see cref="PlaceRecords"/>; <see cref="Update"/> takes it), then shown, and what may have changed read
         /// again in the background; with nothing kept, they wait to be asked for, or are read by
         /// themselves when <paramref name="automatically"/>.
         /// </summary>
         public static void Begin(bool automatically)
         {
             StopReading();
-            _loading = null;
             _automatically = automatically;
-            if (!List()) return;
-
-            var path = Path.Combine(Settings.CacheFolder, KeptFile);
-            var manifest = Path.Combine(SoftReferenceableAssets.Shared.GetBuildDirectory(), "manifest");
-            var ids = World.Select(a => a.Reference.m_assetID).ToArray();
-            var build = typeof(Locations).Assembly.ManifestModule.ModuleVersionId.ToString("N");
-            var mods = BepInEx.Bootstrap.Chainloader.PluginInfos.Values
-                .Where(i => i?.Metadata != null).Select(i => (i.Metadata.GUID ?? "", i.Metadata.Version?.ToString() ?? "")).ToList();
-            _loading = Files.Then(() => (ReadKept(path), Stamps(manifest, ids, build, mods)));
+            if (!List())
+            {
+                PlaceRecords.Forget();
+                return;
+            }
+            PlaceRecords.Begin(World.Select(a => (a.Name, a.Room, a.Reference.m_assetID)).ToList());
         }
 
         /// <summary>Lists the world's places, each once, its locations first; false for a world with none or no catalog yet.</summary>
@@ -228,42 +202,6 @@ namespace Scry
             return World.Count > 0;
         }
 
-        /// <summary>What was kept in the cache folder; nothing for a file of another kind or none. On a worker thread.</summary>
-        private static KeptPlaces ReadKept(string path)
-        {
-            var file = FileSwap.ToRead(path);
-            return KeptPlaces.Load(file != null ? File.ReadAllText(file) : null);
-        }
-
-        /// <summary>
-        /// Each place's stamp: the bundle the game's own list of them names for it (its <c>SoftRef</c>
-        /// manifest, read as <c>AssetBundleManifest.DeserializeFromDisk</c> reads it), by its file's
-        /// size and when it was written, or "mod" for one the list does not have, which a mod adds;
-        /// none where the list or the file cannot be read. On a worker thread.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private static string[] Stamps(string manifestPath, AssetID[] ids, string build, List<(string, string)> mods)
-        {
-            var stamps = new string[ids.Length];
-            var manifest = File.Exists(manifestPath) ? SoftReferenceableAssets.AssetBundleManifest.DeserializeFromDisk(manifestPath) : null;
-            var folder = manifest?.GetAbsoluteBundlesDirectory();
-            for (var i = 0; i < ids.Length; i++)
-            {
-                var source = "";
-                if (manifest != null)
-                {
-                    if (!manifest.m_assetToLocationMap.TryGetValue(ids[i], out var at)) source = "mod";
-                    else
-                    {
-                        var file = new FileInfo(Path.Combine(folder, at.m_bundleName));
-                        if (file.Exists) source = PlaceStamps.Bundle(at.m_bundleName, file.Length, file.LastWriteTimeUtc.Ticks);
-                    }
-                }
-                stamps[i] = PlaceStamps.Of(build, mods, source);
-            }
-            return stamps;
-        }
-
         /// <summary>
         /// Stops reading and says so. Nothing read in it is kept: what it reads shows only once all is
         /// read, so a reading stopped leaves the world as it was before it.
@@ -283,7 +221,7 @@ namespace Scry
         public static string Start()
         {
             if (_reading) return LocationWords.AlreadyReading(Done, Total);
-            if (_loading != null) return "still finding what is kept of this world's locations from before; ask again in a moment.";
+            if (PlaceRecords.Finding) return "still finding what is kept of this world's locations from before; ask again in a moment.";
             if (ZoneSystem.instance == null || WorldCatalog.Current == null) return "the catalog of this world is not read yet.";
             if (World.Count == 0 && !List()) return "this world has no locations or dungeon rooms to read.";
 
@@ -309,14 +247,12 @@ namespace Scry
         /// <summary>Takes what was kept once it is found, and reads on for a few milliseconds; called every frame.</summary>
         public static void Update()
         {
-            foreach (var (doing, error) in Files.Failures()) Faults.Tell(Feature.PlacesKept, doing, error);
-
-            if (_loading != null)
+            PlaceRecords.Update();
+            if (PlaceRecords.Finding)
             {
-                if (!_loading.IsCompleted) return;
-                var loading = _loading;
-                _loading = null;
-                Guard.Run(Feature.PlacesKept, "showing the places kept", () => Loaded(loading));
+                var stamps = PlaceRecords.Take();
+                if (stamps == null) return;
+                Guard.Run(Feature.PlacesKept, "showing the places kept", () => Loaded(stamps));
             }
 
             if (!_reading) return;
@@ -338,30 +274,22 @@ namespace Scry
         }
 
         /// <summary>What was kept, found: shown, and what may have changed read again; with nothing kept, read only by itself or when asked.</summary>
-        private static void Loaded(Task<(KeptPlaces Kept, string[] Stamps)> loading)
+        private static void Loaded(string[] stamps)
         {
-            if (loading.Status == TaskStatus.RanToCompletion)
+            for (var i = 0; i < World.Count; i++)
             {
-                _kept = loading.Result.Kept;
-                for (var i = 0; i < World.Count; i++)
-                {
-                    var asset = World[i];
-                    asset.Stamp = loading.Result.Stamps[i];
-                    World[i] = asset;
-                    StampsOf[(asset.Name, asset.Room)] = asset.Stamp;
-                }
-            }
-            else
-            {
-                Faults.Tell(Feature.PlacesKept, "finding the places kept", loading.Exception?.GetBaseException());
-                _kept = new KeptPlaces();
+                var asset = World[i];
+                asset.Stamp = stamps[i];
+                World[i] = asset;
             }
 
-            var plan = PlacePlan.Of(_kept, World.Select(a => (a.Name, a.Room, a.Stamp)).ToList(), CatalogNames.Contains);
+            var plan = PlacePlan.Of(PlaceRecords.Kept, World.Select(a => (a.Name, a.Room, a.Stamp)).ToList(), CatalogNames.Contains);
             Found = (plan.Fresh, plan.Stale, plan.Missing);
             if (plan.Shown.Count > 0)
             {
+                var timed = Timing.Start();
                 Apply(Records(), new HashSet<(string, bool)>());
+                Timing.Add("locations told", timed);
                 Now = State.Read;
                 Log.Report($"Scry knows what {Numbers.Count(plan.Shown.Count)} locations and dungeon rooms hold from before ({Numbers.Count(plan.Fresh)} the same, {Numbers.Count(plan.Stale)} to read again, {Numbers.Count(plan.Missing)} never read).");
             }
@@ -559,7 +487,7 @@ namespace Scry
         /// <summary>
         /// The reading is done: what it read takes the place of what was kept of the same, is told
         /// on the catalog's entries with everything else kept of the world's places, and is written
-        /// to the cache folder on a worker thread.
+        /// to the cache folder on a worker thread (<see cref="PlaceRecords.Write"/>).
         /// </summary>
         private static void Finish()
         {
@@ -568,14 +496,13 @@ namespace Scry
             foreach (var record in Fresh)
             {
                 read.Add((record.Prefab, record.Room));
-                if (!Unkept.Contains((record.Prefab, record.Room))) _kept.Put(record);
+                if (!Unkept.Contains((record.Prefab, record.Room))) PlaceRecords.Put(record);
             }
+            var timed = Timing.Start();
             var named = Apply(Records(), read);
+            Timing.Add("locations told", timed);
             Now = State.Read;
-
-            var text = _kept.Save();
-            var path = Path.Combine(Settings.CacheFolder, KeptFile);
-            Files.Then("saving the places read", () => FileSwap.Write(path, aside => File.WriteAllText(aside, text)));
+            PlaceRecords.Write();
 
             Log.Report(
                 $"Scry read {Numbers.Count(Total)} locations and dungeon rooms in {Numbers.Fixed(_clock.Elapsed.TotalSeconds, 1)} s ({Numbers.Amount(_workMs, 0)} ms of its own work over {Numbers.Count(_frames)} frames, {Numbers.Count(_failed)} could not be loaded) and keeps them for the next time: " +
@@ -591,7 +518,7 @@ namespace Scry
             var records = new List<PlaceRecord>();
             foreach (var asset in World)
             {
-                var record = fresh.TryGetValue((asset.Name, asset.Room), out var now) ? now : _kept.Find(asset.Name, asset.Room);
+                var record = fresh.TryGetValue((asset.Name, asset.Room), out var now) ? now : PlaceRecords.Kept.Find(asset.Name, asset.Room);
                 if (record != null) records.Add(record);
             }
             return records;

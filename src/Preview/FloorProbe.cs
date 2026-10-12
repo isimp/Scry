@@ -124,7 +124,7 @@ namespace Scry
                 var placed = (spawns ?? new List<Stage.SpawnHere>()).Where(s => s.At != null && s.At.IsChildOf(root)).ToList();
                 var keys = placed.Select(s => KeyOf(s.At, root)).ToList();
                 var upright = root.up.y > 0.9999f;
-                var stamp = Locations.StampOf(prefab, room);
+                var stamp = PlaceRecords.StampOf(prefab, room);
                 var kept = upright ? FloorRecords.Find(prefab, room, stamp) : null;
                 if (kept != null && !kept.Fits(parts)) kept = null;
                 var covered = kept != null && kept.Covers(present, keys);

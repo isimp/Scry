@@ -234,5 +234,22 @@ namespace Scry.Tests
             kept.Put(again);
             Assert.Equal("newer", Assert.Single(kept.Records).Stamp);
         }
+
+        [Fact]
+        public void WhatIsWrittenIsThePlacesAsTheyWereWhenAskedForThoughMoreAreReadMeanwhile()
+        {
+            // Written on a worker thread while the places are read again.
+            var kept = Of(Crypt());
+            var written = kept.Copy();
+            var again = Crypt();
+            again.Stamp = "newer";
+            kept.Put(again);
+            kept.Put(Room());
+
+            var back = KeptPlaces.Load(written.Save());
+
+            Assert.Equal("bundle 7f3a91c2 3043 638640000000000000", Assert.Single(back.Records).Stamp);
+            Assert.Equal(2, kept.Records.Count);
+        }
     }
 }

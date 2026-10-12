@@ -77,6 +77,17 @@ namespace Scry
             _records.Add(record);
         }
 
+        /// <summary>
+        /// The places kept now, to be written on a worker thread while more are read: a place
+        /// read again takes another's place by a new record, so what each holds stays as it was.
+        /// </summary>
+        public KeptPlaces Copy()
+        {
+            var copy = new KeptPlaces();
+            foreach (var record in _records) copy.Put(record);
+            return copy;
+        }
+
         public string Save()
         {
             var text = new StringBuilder();
