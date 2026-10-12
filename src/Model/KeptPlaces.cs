@@ -24,7 +24,10 @@ namespace Scry
         public string Prefab = "";
         public bool Room;
 
-        /// <summary>What it was read from (its bundle's file, or the mods it may come from), as <see cref="KeptPlaces"/> compares it.</summary>
+        /// <summary>
+        /// The build of Scry that read it and what it was read from (its bundle's file, or the mods
+        /// it may come from): a place whose stamp is the same now holds the same (<see cref="PlacePlan"/>).
+        /// </summary>
         public string Stamp = "";
 
         public PlaceContents Contents = new PlaceContents();
@@ -40,7 +43,7 @@ namespace Scry
 
     /// <summary>
     /// The places read so far, kept from one session to the next as text (<see cref="Save"/>,
-    /// <see cref="Load"/>), with the build of Scry that read them. Each place is a run of lines
+    /// <see cref="Load"/>), each with its stamp. Each place is a run of lines
     /// closed by an end line, so a place cut short, or with a line that cannot be read, is left
     /// out and read again, and the rest kept; a file of another kind gives nothing. Text is
     /// written with its tabs, line breaks and backslashes escaped, numbers exactly.
@@ -49,9 +52,6 @@ namespace Scry
     {
         /// <summary>The first line, which a file of these places begins with; another format is another first line.</summary>
         private const string Header = "Scry places 1";
-
-        /// <summary>The build of Scry that read the places (its module's id), compared with the build reading the file.</summary>
-        public string Build = "";
 
         private readonly List<PlaceRecord> _records = new List<PlaceRecord>();
         private readonly Dictionary<(string Prefab, bool Room), int> _at = new Dictionary<(string Prefab, bool Room), int>();
@@ -78,7 +78,6 @@ namespace Scry
         {
             var text = new StringBuilder();
             text.Append(Header).Append('\n');
-            Line(text, "build", Build);
             foreach (var record in _records) Write(text, record);
             return text.ToString();
         }
@@ -152,7 +151,7 @@ namespace Scry
 
         private static string[] Turn(Quat q) => new[] { Stored.Exact(q.X), Stored.Exact(q.Y), Stored.Exact(q.Z), Stored.Exact(q.W) };
 
-        /// <summary>The places kept in a file's text; none, and no build, for a file of another kind or none.</summary>
+        /// <summary>The places kept in a file's text; none for a file of another kind or none.</summary>
         public static KeptPlaces Load(string text)
         {
             var kept = new KeptPlaces();
@@ -172,11 +171,6 @@ namespace Scry
                 for (var f = 1; f < raw.Length; f++) read &= Stored.TryUnescaped(raw[f], out fields[f - 1]);
                 var kind = raw[0];
 
-                if (kind == "build")
-                {
-                    if (read && fields.Length == 1) kept.Build = fields[0];
-                    continue;
-                }
                 if (kind == "place")
                 {
                     // A place begun before this one and never ended is cut short: left out.

@@ -8,9 +8,9 @@ namespace Scry.Tests
     {
         // What every location and dungeon room was read to hold is kept from one session to the
         // next, so a world's places are known as soon as its catalog is, without loading their
-        // bundles again. The file holds what each place's bundle holds, as read, and which build
-        // of Scry read it; a file Scry cannot read, or a place in it cut short, costs only a
-        // reading of what is missing.
+        // bundles again. The file holds what each place's bundle holds, as read, with the stamp of
+        // the build of Scry that read it and what it was read from; a file Scry cannot read, or a
+        // place in it cut short, costs only a reading of what is missing.
 
         private static PlaceRecord Crypt()
         {
@@ -65,7 +65,7 @@ namespace Scry.Tests
 
         private static KeptPlaces Of(params PlaceRecord[] records)
         {
-            var kept = new KeptPlaces { Build = "c0ffee-build" };
+            var kept = new KeptPlaces();
             foreach (var record in records) kept.Put(record);
             return kept;
         }
@@ -76,7 +76,6 @@ namespace Scry.Tests
             var text = Of(Crypt(), Room()).Save();
             var back = KeptPlaces.Load(text);
 
-            Assert.Equal("c0ffee-build", back.Build);
             Assert.Equal(2, back.Records.Count);
             var crypt = back.Find("Crypt2", false);
             Assert.NotNull(crypt);
@@ -148,12 +147,10 @@ namespace Scry.Tests
         [InlineData(null)]
         [InlineData("")]
         [InlineData("kills\tBoar\t3\n")]
-        [InlineData("Scry places 999\nbuild\tx\n")]
+        [InlineData("Scry places 999\nplace\tx\t0\ts\nend\n")]
         public void AFileOfAnotherKindOrNoneGivesNothing(string text)
         {
-            var kept = KeptPlaces.Load(text);
-            Assert.Empty(kept.Records);
-            Assert.Equal("", kept.Build);
+            Assert.Empty(KeptPlaces.Load(text).Records);
         }
 
         [Fact]
