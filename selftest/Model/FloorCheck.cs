@@ -26,12 +26,16 @@ namespace Scry
         public readonly List<string> OnlyKept = new List<string>();
         public readonly List<string> OnlyRays = new List<string>();
 
+        /// <summary>The parts whose surfaces differ, by name, each once.</summary>
+        public readonly List<string> Parts = new List<string>();
+
         private string _place = "";
 
         public bool Same => OnlyKept.Count == 0 && OnlyRays.Count == 0;
 
         /// <summary>What differed, in a line naming the place: how much of each, and the first few.</summary>
-        public string Told => _place + ": only kept " + Stored.Count(OnlyKept.Count) + " (" + string.Join("; ", OnlyKept.Take(3)) + "), only by rays " + Stored.Count(OnlyRays.Count) + " (" + string.Join("; ", OnlyRays.Take(3)) + ")";
+        public string Told => _place + ": only kept " + Stored.Count(OnlyKept.Count) + " (" + string.Join("; ", OnlyKept.Take(3)) + "), only by rays " + Stored.Count(OnlyRays.Count) + " (" + string.Join("; ", OnlyRays.Take(3)) + ")"
+                              + (Parts.Count > 0 ? "; parts " + string.Join(", ", Parts.Take(4)) : "");
 
         /// <summary>
         /// Checks the roll of <paramref name="present"/> parts, with its spawn points' <paramref name="keys"/>,
@@ -42,7 +46,12 @@ namespace Scry
         public static FloorCheck Of(FloorRecord kept, FloorRecord rays, ISet<int> present, IList<string> keys, IReadOnlyDictionary<int, List<(float Height, int Part)>> met = null)
         {
             var check = new FloorCheck { _place = kept.Prefab };
-            string Told(FloorLanding l) => Stored.Count(l.I) + "," + Stored.Count(l.J) + " at " + Stored.Number(l.Height, 3) + (l.Open ? " open" : "");
+            string Told(FloorLanding l)
+            {
+                var part = l.Part >= 0 && l.Part < kept.Parts.Count ? kept.Parts[l.Part].Name : "?";
+                if (!check.Parts.Contains(part)) check.Parts.Add(part);
+                return Stored.Count(l.I) + "," + Stored.Count(l.J) + " at " + Stored.Number(l.Height, 3) + (l.Open ? " open" : "");
+            }
 
             var rayOf = new Dictionary<(int, int), int>();
             for (var ray = 0; ray < kept.Grid.Count; ray++) rayOf[(kept.Grid[ray].I, kept.Grid[ray].J)] = ray;

@@ -105,10 +105,11 @@ namespace Scry
             p.Check(wrong.Count == 0, "every piece and recipe the game names a mod's station for is linked to it", string.Join("; ", wrong));
 
             // As a player opens it: the report in the list's place, drawn.
+            if (!Session.IsOpen) Session.Show(null);
             ScryPanel.ShowModReport();
             var drawn = ScryPanel.Drawn(PanelPart.ModReport);
             yield return Until(() => ScryPanel.Drawn(PanelPart.ModReport) > drawn, 3);
-            p.Check(ScryPanel.ModReportShown && ScryPanel.Drawn(PanelPart.ModReport) > drawn, "the report opens and draws in the panel");
+            p.Check(ScryPanel.ModReportShown && ScryPanel.Drawn(PanelPart.ModReport) > drawn, "the report opens and draws in the panel", $"panel {(Session.IsOpen ? "open" : "closed")}, report {(ScryPanel.ModReportShown ? "shown" : "put away")}");
             ScryPanel.HideModReport();
         }
 

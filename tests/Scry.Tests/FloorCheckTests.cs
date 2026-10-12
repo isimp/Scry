@@ -211,7 +211,7 @@ namespace Scry.Tests
             var kept = Probed(new[] { At(2.7f, Platform), At(0f, Floor) });
             var rays = Probed(new[] { At(0f, Floor) });
 
-            Assert.Equal("forestcrypt_Corridor1: only kept 50 (0,0 at 2.7 open; 0,0 at 0; 0,1 at 2.7 open), only by rays 25 (0,0 at 0 open; 0,1 at 0 open; 0,2 at 0 open)",
+            Assert.Equal("forestcrypt_Corridor1: only kept 50 (0,0 at 2.7 open; 0,0 at 0; 0,1 at 2.7 open), only by rays 25 (0,0 at 0 open; 0,1 at 0 open; 0,2 at 0 open); parts platform, floor",
                 FloorCheck.Of(kept, rays, Both, new string[0]).Told);
         }
     }

@@ -324,7 +324,8 @@ namespace Scry
             X.KindFilter = Kind.Location;
             var drawn = ScryPanel.Drawn(PanelPart.PlacesBar);
             yield return Until(() => ScryPanel.Drawn(PanelPart.PlacesBar) > drawn, 5);
-            p.Check(ScryPanel.Drawn(PanelPart.PlacesBar) > drawn, "the Locations tab offers Read again above its list once the places are known");
+            p.Check(ScryPanel.Drawn(PanelPart.PlacesBar) > drawn, "the Locations tab offers Read again above its list once the places are known",
+                $"panel {(Session.IsOpen ? "open" : "closed")}, tab {X.KindFilter?.ToString() ?? "every kind"}, {Numbers.Count(X.Results.Count)} listed, locations {Locations.Now}");
 
             var before = ToldOfPlaces();
             var applied = Locations.Applied;
