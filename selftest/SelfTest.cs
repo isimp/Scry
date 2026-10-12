@@ -19,9 +19,11 @@ namespace Scry
     /// recent entries and history are put back as they were, it closes again if it was closed,
     /// and a copy the player had standing in the world is left alone.
     ///
-    /// Runs wherever this plugin is installed: it starts with <c>/scry selftest</c>, or by itself
-    /// a few seconds after the catalog is read when the file <c>BepInEx/Scry-selftest.run</c>
-    /// exists; <c>/scry selftest stop</c> stops it.
+    /// Runs wherever this plugin is installed: it starts with <c>/scry selftest</c>, a quick run
+    /// leaving out the parts of minutes (reading every place again), or <c>/scry selftest full</c>
+    /// with every part, or by itself a few seconds after the catalog is read when the file
+    /// <c>BepInEx/Scry-selftest.run</c> exists, a full run where it says <c>full</c>;
+    /// <c>/scry selftest stop</c> stops it.
     /// </summary>
     internal static partial class SelfTest
     {
@@ -65,7 +67,8 @@ namespace Scry
             {
                 switch (SelfTestCommand.Of(typed))
                 {
-                    case SelfTestAsk.Start: return SelfTest.Start("it was asked for with /scry selftest");
+                    case SelfTestAsk.Start: return SelfTest.Start("it was asked for with /scry selftest", full: false);
+                    case SelfTestAsk.StartFull: return SelfTest.Start("it was asked for with /scry selftest full", full: true);
                     case SelfTestAsk.Stop: return SelfTest.Stop();
                     default: return null;
                 }
@@ -107,17 +110,18 @@ namespace Scry
             if (Time.unscaledTime - _readyAt < 5f) return;
             _autoFor = explorer;
             _readyAt = -1f;
-            if (File.Exists(MarkerFile)) Start("the marker file is present");
+            if (File.Exists(MarkerFile)) Start("the marker file is present", SelfTestCommand.OfMarker(File.ReadAllText(MarkerFile)) == SelfTestAsk.StartFull);
         }
 
-        public static string Start(string why)
+        /// <summary>Starts a run, a full one with every part or a quick one leaving out those only a full run takes (<see cref="Scenario.Full"/>), and says so.</summary>
+        public static string Start(string why, bool full)
         {
             if (_runner != null) return "the self-test is already running.";
             if (Player.m_localPlayer == null) return "the self-test runs in a world.";
             if (Session.Explorer == null) return "the catalog of this world is not read yet; try again in a few seconds.";
 
             Write("");
-            Write($"==== Scry {About.Version} self-test, {DateTime.Now:yyyy-MM-dd HH:mm:ss}, started because {why} ====");
+            Write($"==== Scry {About.Version} {(full ? "full" : "quick")} self-test, {DateTime.Now:yyyy-MM-dd HH:mm:ss}, started because {why} ====");
             Write($"World {ZNet.instance.OrNull()?.GetWorldName()}, {Numbers.Count(Session.Explorer.Catalog.Count)} entries, {Numbers.Count(BepInEx.Bootstrap.Chainloader.PluginInfos.Count)} mods loaded, panel {(Session.IsOpen ? "open" : "closed")}" +
                   $"{(ScryPanel.Compact ? " in its compact view" : "")}, locations {Locations.Now}, LogPreviews {(Settings.LogPreviews ? "on" : "off")}.");
             Write("Each part uses Scry as a player would and checks what it did. START and PASS, FAIL or SKIP frame a part; within it, PASS is a check that held,");
@@ -126,9 +130,9 @@ namespace Scry
             _before = Before.Take();
             Frames.Clear();
             Timing.Measuring = Frames;
-            _runner = new ScenarioRunner(Scenarios(), Write, Finish);
+            _runner = new ScenarioRunner(Scenario.ForRun(Scenarios(), full), Write, Finish);
             SelfTestPanel.ShowResult();
-            return SelfTestWords.Started(_runner.Total);
+            return SelfTestWords.Started(_runner.Total, full);
         }
 
         public static string Stop()
@@ -253,10 +257,11 @@ namespace Scry
         /// off for a game change, and notes how long Scry's own work took in its frames. A part of
         /// a single prefab left out fails it too, unless it reads what mods add as well
         /// (<paramref name="bearsSkips"/>), where Scry is made to bear that and it is only noted.
-        /// Its body may yield another's steps, which run in place.
+        /// Its body may yield another's steps, which run in place. Only a full run takes one
+        /// marked <paramref name="full"/>.
         /// </summary>
-        private static Scenario S(string name, Func<Probe, IEnumerator> body, double timeout = 20, Action cleanup = null, bool bearsSkips = false) =>
-            new Scenario(name, p => Watched(p, body, bearsSkips), cleanup) { Timeout = timeout };
+        private static Scenario S(string name, Func<Probe, IEnumerator> body, double timeout = 20, Action cleanup = null, bool bearsSkips = false, bool full = false) =>
+            new Scenario(name, p => Watched(p, body, bearsSkips), cleanup) { Timeout = timeout, Full = full };
 
         private static IEnumerator Watched(Probe p, Func<Probe, IEnumerator> body, bool bearsSkips)
         {

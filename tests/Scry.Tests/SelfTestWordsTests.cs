@@ -28,10 +28,17 @@ namespace Scry.Tests
         [Fact]
         public void StartingSaysHowLongAndHowToStop()
         {
-            var said = SelfTestWords.Started(60);
+            var said = SelfTestWords.Started(60, full: false);
+            Assert.Contains("quick self-test", said);
             Assert.Contains("60 parts", said);
             Assert.Contains("Stand still", said);
             Assert.Contains("/scry selftest stop", said);
+            Assert.Contains("/scry selftest full", said);
+
+            var full = SelfTestWords.Started(70, full: true);
+            Assert.Contains("full self-test", full);
+            Assert.Contains("70 parts", full);
+            Assert.DoesNotContain("/scry selftest full", full);
         }
 
         [Fact]

@@ -164,6 +164,9 @@ namespace Scry
             return landings;
         }
 
+        /// <summary>What a ray (by its place in the grid's list) met of any roll probed, top down.</summary>
+        public IEnumerable<RaySurface> On(int ray) => _rays.TryGetValue(ray, out var surfaces) ? surfaces : Enumerable.Empty<RaySurface>();
+
         /// <summary>What a ray (by its place in the grid's list) met of a roll with these parts there, top down.</summary>
         public IEnumerable<RaySurface> On(int ray, ISet<int> present) =>
             _rays.TryGetValue(ray, out var surfaces) ? surfaces.Where(s => present.Contains(s.Part)) : Enumerable.Empty<RaySurface>();

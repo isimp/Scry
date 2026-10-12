@@ -14,8 +14,9 @@ namespace Scry
         private const string FailMark = "  FAIL ";
         private const string SkipMark = "  SKIP ";
 
-        public static string Started(int parts) =>
-            $"self-test started: {Numbers.Count(parts)} parts, about five to fifteen minutes. Stand still and leave the panel be; it shows how far the test has got. /scry selftest stop stops it.";
+        public static string Started(int parts, bool full) => full
+            ? $"full self-test started: {Numbers.Count(parts)} parts, reading every location again among them, about ten to fifteen minutes. Stand still and leave the panel be; it shows how far the test has got. /scry selftest stop stops it."
+            : $"quick self-test started: {Numbers.Count(parts)} parts, about five minutes. Stand still and leave the panel be; it shows how far the test has got. /scry selftest stop stops it; /scry selftest full also reads every location again.";
 
         /// <summary>The line the panel shows while the test runs: the part running now, or how many are done between parts.</summary>
         public static string Progress(int done, int total, string current, int failed)

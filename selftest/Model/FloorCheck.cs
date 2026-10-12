@@ -58,7 +58,9 @@ namespace Scry
             bool Under(FloorLanding l, IEnumerable<(float Height, int Part)> others) =>
                 others.Any(o => o.Part != l.Part && o.Height - l.Height >= 0f && o.Height - l.Height <= Hidden);
             bool HiddenFromRays(FloorLanding l) => met != null && rayOf.TryGetValue((l.I, l.J), out var ray) && met.TryGetValue(ray, out var hits) && Under(l, hits);
-            bool HiddenFromKept(FloorLanding l) => met != null && rayOf.TryGetValue((l.I, l.J), out var ray) && Under(l, kept.On(ray, present).Select(s => (s.Height, s.Part)));
+            // The record keeps a part from the roll it was first seen in, where another part may
+            // have hidden it, whether or not that one is there now.
+            bool HiddenFromKept(FloorLanding l) => met != null && rayOf.TryGetValue((l.I, l.J), out var ray) && Under(l, kept.On(ray).Select(s => (s.Height, s.Part)));
 
             var unmatched = rays.Landings(present);
             foreach (var landing in kept.Landings(present))

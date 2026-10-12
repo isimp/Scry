@@ -32,6 +32,12 @@ namespace Scry
         /// <summary>Seconds before a scenario that has not finished counts as stuck.</summary>
         public double Timeout = 30;
 
+        /// <summary>Whether only a full run takes it: a part of minutes, such as reading every place again.</summary>
+        public bool Full;
+
+        /// <summary>The scenarios a run takes, in their order: every one in a full run, a quick one leaving out those only a full run takes.</summary>
+        public static List<Scenario> ForRun(IEnumerable<Scenario> all, bool full) => all.Where(s => full || !s.Full).ToList();
+
         public Scenario(string name, Func<Probe, IEnumerator> body, Action cleanup = null)
         {
             Name = name;

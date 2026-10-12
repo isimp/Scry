@@ -33,6 +33,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AQuickRunLeavesOutThePartsOnlyAFullRunTakesInTheirOrder()
+        {
+            // Reading every place takes minutes: a quick run leaves it to a full one.
+            var all = new[] { Passing("a"), new Scenario("every place read", probe => Body(probe, "read", null)) { Full = true }, Passing("c") };
+
+            Assert.Equal(new[] { "a", "c" }, Scenario.ForRun(all, full: false).Select(s => s.Name));
+            Assert.Equal(new[] { "a", "every place read", "c" }, Scenario.ForRun(all, full: true).Select(s => s.Name));
+        }
+
+        [Fact]
         public void ScenariosRunInOrderAndEachIsReported()
         {
             var order = new List<string>();

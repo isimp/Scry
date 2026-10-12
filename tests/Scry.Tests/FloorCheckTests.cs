@@ -195,6 +195,17 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AFloorTheRecordMissedUnderAPartAnotherRollBroughtIsTheSame()
+        {
+            // The record kept the floor's part from a roll with the platform 2 cm over it there;
+            // this roll has no platform, so its rays meet the floor the record never kept.
+            var kept = Probed(new[] { At(0.02f, Platform) });
+            var rays = Probed(new[] { At(0f, Floor) });
+
+            Assert.True(FloorCheck.Of(kept, rays, new HashSet<int> { Floor }, new string[0], Met((0f, Floor))).Same);
+        }
+
+        [Fact]
         public void WhatIsMetHigherUpOrBelowOrIsTheFloorItselfHidesNothing()
         {
             var kept = Probed(new[] { At(0f, Floor) });
