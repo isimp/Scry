@@ -35,8 +35,11 @@ namespace Scry
         /// <summary>For a location, the kinds of room each dungeon in it is built with (<c>DungeonGenerator.m_themes</c>); for a room, its own kind (<c>Room.m_theme</c>).</summary>
         public List<int> Themes = new List<int>();
 
-        /// <summary>The prefabs of the catalog it names: placed there, named by a field, in a drop table or played by an effect list.</summary>
+        /// <summary>The prefabs it names: placed there, named by a field, in a drop table or played by an effect list.</summary>
         public List<string> Names = new List<string>();
+
+        /// <summary>How many of its names the catalog held when it was read.</summary>
+        public int Known;
 
         public List<PlaceAltar> Altars = new List<PlaceAltar>();
     }
@@ -133,6 +136,7 @@ namespace Scry
                 }
             }
             foreach (var theme in record.Themes) Line(text, "theme", Stored.Count(theme));
+            Line(text, "known", Stored.Count(record.Known));
             foreach (var name in record.Names) Line(text, "named", name);
             foreach (var altar in record.Altars) Line(text, "altar", altar.Boss, altar.Item, Stored.Count(altar.Count), Flag(altar.OnStands));
             Line(text, "end");
@@ -264,6 +268,10 @@ namespace Scry
                 case "theme":
                     if (f.Length != 1 || !Stored.TryCount(f[0], out var theme)) return false;
                     record.Themes.Add(theme);
+                    return true;
+                case "known":
+                    if (f.Length != 1 || !Count(f[0], out var known)) return false;
+                    record.Known = known;
                     return true;
                 case "named":
                     if (f.Length != 1) return false;

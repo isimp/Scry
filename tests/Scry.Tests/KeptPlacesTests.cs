@@ -44,7 +44,7 @@ namespace Scry.Tests
             return new PlaceRecord
             {
                 Prefab = "Crypt2", Room = false, Stamp = "bundle 7f3a91c2 3043 638640000000000000",
-                Contents = contents, Themes = { 1, 0x40000 }, Names = { "TreasureChest_forestcrypt", "Skeleton", "vfx_skeleton_hit" },
+                Contents = contents, Themes = { 1, 0x40000 }, Names = { "TreasureChest_forestcrypt", "Skeleton", "vfx_skeleton_hit" }, Known = 2,
                 Altars = { new PlaceAltar { Boss = "Bonemass", Item = "WitheredBone", Count = 10, OnStands = false } },
             };
         }
@@ -94,6 +94,7 @@ namespace Scry.Tests
             Assert.Equal(new[] { "$lore_text", "Line one\nline two" }, Assert.Single(crypt.Contents.Stones).Texts.Select(t => t.Text));
             Assert.Equal(new[] { 1, 0x40000 }, crypt.Themes);
             Assert.Equal(new[] { "TreasureChest_forestcrypt", "Skeleton", "vfx_skeleton_hit" }, crypt.Names);
+            Assert.Equal(2, crypt.Known);
             var altar = Assert.Single(crypt.Altars);
             Assert.Equal(("Bonemass", "WitheredBone", 10, false), (altar.Boss, altar.Item, altar.Count, altar.OnStands));
 
