@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace Scry
 {
@@ -28,5 +29,62 @@ namespace Scry
         /// <summary>Reads a number written by <see cref="Number"/>; false for anything else, a value that is no number among it.</summary>
         public static bool TryNumber(string text, out float value) =>
             float.TryParse(text, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, Plain, out value) && !float.IsNaN(value) && !float.IsInfinity(value);
+
+        /// <summary>A number with every digit it needs to read back as the very same number: "0.333333343".</summary>
+        public static string Exact(float value) => value.ToString("G9", Plain);
+
+        /// <summary>Reads a number written by <see cref="Exact"/>; false for anything else, a value that is no number among it.</summary>
+        public static bool TryExact(string text, out float value) =>
+            float.TryParse(text, NumberStyles.Float, Plain, out value) && !float.IsNaN(value) && !float.IsInfinity(value);
+
+        /// <summary>A text as one field of a line split at tabs: its backslashes, tabs and line breaks written as \\, \t, \n and \r.</summary>
+        public static string Escaped(string text)
+        {
+            var written = new StringBuilder(text.Length);
+            foreach (var c in text)
+            {
+                switch (c)
+                {
+                    case '\\': written.Append("\\\\"); break;
+                    case '\t': written.Append("\\t"); break;
+                    case '\n': written.Append("\\n"); break;
+                    case '\r': written.Append("\\r"); break;
+                    default: written.Append(c); break;
+                }
+            }
+            return written.ToString();
+        }
+
+        /// <summary>Reads a field written by <see cref="Escaped"/>; false for a backslash that starts nothing it writes.</summary>
+        public static bool TryUnescaped(string field, out string text)
+        {
+            var read = new StringBuilder(field.Length);
+            for (var i = 0; i < field.Length; i++)
+            {
+                var c = field[i];
+                if (c != '\\')
+                {
+                    read.Append(c);
+                    continue;
+                }
+                if (++i >= field.Length)
+                {
+                    text = "";
+                    return false;
+                }
+                switch (field[i])
+                {
+                    case '\\': read.Append('\\'); break;
+                    case 't': read.Append('\t'); break;
+                    case 'n': read.Append('\n'); break;
+                    case 'r': read.Append('\r'); break;
+                    default:
+                        text = "";
+                        return false;
+                }
+            }
+            text = read.ToString();
+            return true;
+        }
     }
 }
