@@ -168,6 +168,11 @@ namespace Scry
         {
             var wasOpen = Session.IsOpen;
             Session.Hide();
+            // Places kept by another build of Scry, or with other mods, are read again in the
+            // background on entering the world: idling is measured once that is done.
+            var waited = Time.unscaledTime;
+            yield return Until(() => !Locations.Busy && !Locations.Saving && !FloorRecords.Busy, 300);
+            if (Time.unscaledTime - waited > 1f) p.Note($"waited {Numbers.Amount(Time.unscaledTime - waited, 0)} s for the places being read again in the background");
             yield return null;
             yield return null;
             var first = Timing.Measuring?.Frames ?? 0;

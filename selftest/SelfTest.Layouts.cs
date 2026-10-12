@@ -111,10 +111,10 @@ namespace Scry
             var verified = 0;
             var differed = 0;
             var lastDiffered = "";
-            FloorProbe.Checked = (kept, rays, present, keys) =>
+            FloorProbe.Checked = (kept, rays, present, keys, met) =>
             {
                 verified++;
-                var check = FloorCheck.Of(kept, rays, present, keys);
+                var check = FloorCheck.Of(kept, rays, present, keys, met);
                 if (check.Same) return;
                 differed++;
                 lastDiffered = check.Told;

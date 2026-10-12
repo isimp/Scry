@@ -154,6 +154,57 @@ namespace Scry.Tests
             Assert.Equal(new[] { "spawn 0.3 on 0.52" }, check.OnlyRays);
         }
 
+        // A ray steps two centimetres past each surface it meets, so a surface less than that
+        // under another part, or under another room's collider beside the copy, goes unmet by it.
+        // What a record keeps comes from whichever copy was probed, with other parts and rooms
+        // about it, so such a surface is the same floor whichever of them found it.
+
+        /// <summary>What each fresh ray met, on every ray: a part of the copy, or another copy's collider (-1).</summary>
+        private static Dictionary<int, List<(float Height, int Part)>> Met(params (float Height, int Part)[] hits) =>
+            Enumerable.Range(0, 25).ToDictionary(ray => ray, ray => hits.ToList());
+
+        private const int Beside = -1;
+
+        [Fact]
+        public void AFloorWithinTwoCentimetresUnderAnotherPartTheRaysMetIsTheSame()
+        {
+            var kept = Probed(new[] { At(0.02f, Platform), At(0f, Floor) });
+            var rays = Probed(new[] { At(0.02f, Platform) });
+
+            Assert.True(FloorCheck.Of(kept, rays, Both, new string[0], Met((0.02f, Platform))).Same);
+            Assert.False(FloorCheck.Of(kept, rays, Both, new string[0]).Same);
+        }
+
+        [Fact]
+        public void AFloorUnderAnotherRoomsColliderTheRaysMetIsTheSame()
+        {
+            var kept = Probed(new[] { At(0f, Floor) });
+            var rays = Probed(new RaySurface[0]);
+
+            Assert.True(FloorCheck.Of(kept, rays, Both, new string[0], Met((0.01f, Beside))).Same);
+            Assert.True(FloorCheck.Of(kept, rays, Both, new string[0], Met((0f, Beside))).Same);
+        }
+
+        [Fact]
+        public void AFloorTheRecordHasUnderAnotherOfItsPartsIsTheSameAsTheRaysMissedIt()
+        {
+            var kept = Probed(new[] { At(0.02f, Platform) });
+            var rays = Probed(new[] { At(0.02f, Platform), At(0f, Floor) });
+
+            Assert.True(FloorCheck.Of(kept, rays, Both, new string[0], Met((0.02f, Platform), (0f, Floor))).Same);
+        }
+
+        [Fact]
+        public void WhatIsMetHigherUpOrBelowOrIsTheFloorItselfHidesNothing()
+        {
+            var kept = Probed(new[] { At(0f, Floor) });
+            var rays = Probed(new RaySurface[0]);
+
+            Assert.False(FloorCheck.Of(kept, rays, Both, new string[0], Met((0.05f, Beside))).Same);
+            Assert.False(FloorCheck.Of(kept, rays, Both, new string[0], Met((-0.01f, Beside))).Same);
+            Assert.False(FloorCheck.Of(kept, rays, Both, new string[0], Met((0.01f, Floor))).Same);
+        }
+
         [Fact]
         public void WhatDifferedIsToldInALineNamingThePlace()
         {

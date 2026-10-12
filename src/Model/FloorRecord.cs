@@ -156,6 +156,10 @@ namespace Scry
             return landings;
         }
 
+        /// <summary>What a ray (by its place in the grid's list) met of a roll with these parts there, top down.</summary>
+        public IEnumerable<RaySurface> On(int ray, ISet<int> present) =>
+            _rays.TryGetValue(ray, out var surfaces) ? surfaces.Where(s => present.Contains(s.Part)) : Enumerable.Empty<RaySurface>();
+
         /// <summary>The height a spawn point's creature drops onto for a roll with these parts there: the first solid part under it; false where none is.</summary>
         public bool GroundUnder(string spawn, ISet<int> present, out float height)
         {

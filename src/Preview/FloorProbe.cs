@@ -43,10 +43,11 @@ namespace Scry
 
         /// <summary>
         /// For the self-test: while set, a copy whose floors the record tells is probed too, and
-        /// given with the record, what its rays found, the parts there and its spawn points' keys.
+        /// given with the record, what its rays found, the parts there, its spawn points' keys, and
+        /// everything each ray met by its place in the grid's list, a part or another copy's collider (-1).
         /// </summary>
         [Diagnostic]
-        public static Action<FloorRecord, FloorRecord, HashSet<int>, List<string>> Checked { get; set; }
+        public static Action<FloorRecord, FloorRecord, HashSet<int>, List<string>, Dictionary<int, List<(float Height, int Part)>>> Checked { get; set; }
 
         /// <summary>
         /// Notes which of a sleeping copy's colliders are on none of the layers the game finds a
@@ -124,12 +125,13 @@ namespace Scry
                     timed = Timing.Start();
                     var record = kept ?? New(prefab, room, stamp, root, transforms, parts);
                     if (record == null) return 0f;
-                    var seen = Cast(record, root, layer, transforms, present, placed, keys);
+                    var met = covered && Checked != null ? new Dictionary<int, List<(float Height, int Part)>>() : null;
+                    var seen = Cast(record, root, layer, transforms, present, placed, keys, met);
                     Probed++;
                     Timing.Add("floor probe rays", timed);
                     if (covered)
                     {
-                        Checked?.Invoke(kept, FloorRecord.New(prefab, room, stamp, kept.MinX, kept.MaxX, kept.MinZ, kept.MaxZ, kept.Top, kept.Bottom, parts).With(seen), present, keys);
+                        Checked?.Invoke(kept, FloorRecord.New(prefab, room, stamp, kept.MinX, kept.MaxX, kept.MinZ, kept.MaxZ, kept.Top, kept.Bottom, parts).With(seen), present, keys, met);
                         Tell(kept, present, root, space, patch, hits, names, placed, keys);
                         return kept.Ground;
                     }
@@ -281,9 +283,11 @@ namespace Scry
         /// <summary>
         /// Casts the record's rays over the copy, and one down from a metre above each spawn point
         /// the game drops its creature from (<c>ZoneSystem.FindFloor</c>), noting every surface of
-        /// a part each meets, in the copy's own frame.
+        /// a part each meets, in the copy's own frame; into <paramref name="met"/>, when given,
+        /// everything each of the record's rays met, a part or another copy's collider (-1).
         /// </summary>
-        private static ProbeSeen Cast(FloorRecord record, Transform root, int layer, List<Transform> transforms, HashSet<int> present, List<Stage.SpawnHere> placed, List<string> keys)
+        private static ProbeSeen Cast(FloorRecord record, Transform root, int layer, List<Transform> transforms, HashSet<int> present, List<Stage.SpawnHere> placed, List<string> keys,
+            Dictionary<int, List<(float Height, int Part)>> met = null)
         {
             var seen = new ProbeSeen();
             seen.Present.UnionWith(present);
@@ -291,13 +295,16 @@ namespace Scry
             for (var i = 0; i < transforms.Count; i++) index[transforms[i]] = i;
             var mask = layer >= 0 ? 1 << layer : Physics.DefaultRaycastLayers;
 
-            List<RaySurface> Surfaces(Vector3 from, float length)
+            List<RaySurface> Surfaces(Vector3 from, float length, List<(float Height, int Part)> all = null)
             {
                 var surfaces = new List<RaySurface>();
                 foreach (var hit in Down(from, length, mask))
                 {
-                    if (hit.collider == null || !index.TryGetValue(hit.collider.transform, out var part)) continue;
-                    surfaces.Add(new RaySurface { Height = root.InverseTransformPoint(hit.point).y, Flat = hit.normal.y >= Flat, Part = part });
+                    if (hit.collider == null) continue;
+                    var own = index.TryGetValue(hit.collider.transform, out var part);
+                    var height = root.InverseTransformPoint(hit.point).y;
+                    all?.Add((height, own ? part : -1));
+                    if (own) surfaces.Add(new RaySurface { Height = height, Flat = hit.normal.y >= Flat, Part = part });
                 }
                 return surfaces;
             }
@@ -305,7 +312,8 @@ namespace Scry
             var grid = record.Grid;
             for (var ray = 0; ray < grid.Count; ray++)
             {
-                var surfaces = Surfaces(root.TransformPoint(new Vector3(grid[ray].X, record.Top, grid[ray].Z)), record.Top - record.Bottom);
+                var all = met != null ? met[ray] = new List<(float Height, int Part)>() : null;
+                var surfaces = Surfaces(root.TransformPoint(new Vector3(grid[ray].X, record.Top, grid[ray].Z)), record.Top - record.Bottom, all);
                 if (surfaces.Count > 0) seen.Rays[ray] = surfaces;
             }
             for (var i = 0; i < placed.Count; i++) seen.Spawns[keys[i]] = Surfaces(placed[i].At.position + Vector3.up, FloorBelow);
