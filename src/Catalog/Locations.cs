@@ -94,6 +94,12 @@ namespace Scry
         private static bool _automatically;
         private static Task _saving;
 
+        /// <summary>The stamp of each of the world's places, by prefab and whether a room, once found on entering it.</summary>
+        private static readonly Dictionary<(string Prefab, bool Room), string> StampsOf = new Dictionary<(string, bool), string>();
+
+        /// <summary>A place's stamp (<see cref="PlaceStamps"/>), for what else is kept of it; empty while not known.</summary>
+        public static string StampOf(string prefab, bool room) => StampsOf.TryGetValue((prefab, room), out var stamp) ? stamp : "";
+
         /// <summary>The altars found in the locations: which boss each summons, with what, and where it stands.</summary>
         private static readonly List<Summon> Summoned = new List<Summon>();
 
@@ -136,6 +142,7 @@ namespace Scry
             StopReading();
             _loading = null;
             World.Clear();
+            StampsOf.Clear();
             Summoned.Clear();
             GroupsBefore.Clear();
             CatalogNames.Clear();
@@ -343,6 +350,7 @@ namespace Scry
                     var asset = World[i];
                     asset.Stamp = loading.Result.Stamps[i];
                     World[i] = asset;
+                    StampsOf[(asset.Name, asset.Room)] = asset.Stamp;
                 }
             }
             else

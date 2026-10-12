@@ -168,6 +168,17 @@ namespace Scry.Tests
             Assert.Equal(text, back.Save());
         }
 
+        [Fact]
+        public void EachKindOfPlaceIsKeptInAFileOfItsOwnWhateverItsName()
+        {
+            Assert.Equal(FloorRecord.FileName("Crypt2", false), FloorRecord.FileName("Crypt2", false));
+            Assert.NotEqual(FloorRecord.FileName("Crypt2", false), FloorRecord.FileName("Crypt2", true));
+            Assert.NotEqual(FloorRecord.FileName("Crypt2", false), FloorRecord.FileName("Crypt3", false));
+            var odd = FloorRecord.FileName("a/b:c*?\"<>|\t", true);
+            Assert.EndsWith(".dat", odd);
+            Assert.True(odd.All(c => char.IsLetterOrDigit(c) || c == '.'), odd);
+        }
+
         [Theory]
         [InlineData(null)]
         [InlineData("")]

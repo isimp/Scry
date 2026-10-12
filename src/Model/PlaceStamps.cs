@@ -20,22 +20,10 @@ namespace Scry
             if (string.IsNullOrEmpty(source)) return "";
             var list = new StringBuilder();
             foreach (var mod in mods.Select(m => m.Id + "@" + m.Version).OrderBy(m => m, StringComparer.Ordinal)) list.Append(mod).Append('\n');
-            return build + " " + Hash(list.ToString()) + " " + source;
+            return build + " " + Stored.Hash(list.ToString()) + " " + source;
         }
 
         /// <summary>A bundle's file as a stamp's source: its name, its size and when it was written, in ticks.</summary>
         public static string Bundle(string name, long length, long writtenTicks) => name + " " + Stored.Count(length) + " " + Stored.Count(writtenTicks);
-
-        /// <summary>A hash of the text that reads the same on every machine and run (64-bit FNV-1a over its characters), in hexadecimal.</summary>
-        private static string Hash(string text)
-        {
-            var hash = 14695981039346656037UL;
-            foreach (var c in text)
-            {
-                hash ^= c;
-                hash *= 1099511628211UL;
-            }
-            return Stored.Hex(hash);
-        }
     }
 }

@@ -26,6 +26,18 @@ namespace Scry
         /// <summary>A 64-bit value as sixteen hexadecimal digits: "00000000000000e9".</summary>
         public static string Hex(ulong value) => value.ToString("x16", Plain);
 
+        /// <summary>A hash of a text that reads the same on every machine and run (64-bit FNV-1a over its characters), as <see cref="Hex"/> writes it.</summary>
+        public static string Hash(string text)
+        {
+            var hash = 14695981039346656037UL;
+            foreach (var c in text)
+            {
+                hash ^= c;
+                hash *= 1099511628211UL;
+            }
+            return Hex(hash);
+        }
+
         /// <summary>Reads hexadecimal digits, as a file's escaped character gives its code ("00e9"); false for anything else.</summary>
         public static bool TryHex(string text, out int value) => int.TryParse(text, NumberStyles.AllowHexSpecifier, Plain, out value);
 

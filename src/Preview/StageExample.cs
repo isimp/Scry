@@ -343,7 +343,8 @@ namespace Scry
         }
 
         /// <summary>
-        /// Reads a dungeon room's floors, once, as it stands. While the entrance is shown, the
+        /// Reads a dungeon room's floors, once, as it stands, from what was kept of its kind where
+        /// that tells its roll (<see cref="FloorProbe"/>). Probed while the entrance is shown, the
         /// example sleeps, and the room alone is woken for it beside the example: a dungeon's
         /// example stands where its location does, so the room stands the same in either.
         /// </summary>
@@ -351,11 +352,20 @@ namespace Scry
         {
             var read = Timing.Start();
             var asleep = !Holder.activeSelf;
-            var step = Timing.Start();
-            if (asleep) copy.transform.SetParent(subject, false);
-            Timing.Add("example floors wake", step);
+            void Wake()
+            {
+                var woken = Timing.Start();
+                copy.transform.SetParent(subject, false);
+                Timing.Add("example floors wake", woken);
+            }
+            void Sleep()
+            {
+                var slept = Timing.Start();
+                copy.transform.SetParent(Holder.transform, false);
+                Timing.Add("example floors sleep", slept);
+            }
             _hits.Clear();
-            var cast = FloorProbe.Read(copy, subject, layer, _hits, Copies, spawns: spawns);
+            var cast = FloorProbe.Read(copy, subject, layer, _hits, Copies, room.Room.Name, true, spawns: spawns, wake: asleep ? Wake : (System.Action)null, sleep: asleep ? Sleep : (System.Action)null);
             _ground += cast;
             // Its highest doorway and its doorway out, the entrance's, where its ground was measured:
             // ground high over the one is out of its reach, open ground by the other the ground outside.
@@ -369,7 +379,7 @@ namespace Scry
                 if (room.Room.Doorways[i].Entrance) outerDoor = height;
             }
             // Read alone, a room whose ceiling is the room above has nothing of its own over its floor.
-            step = Timing.Start();
+            var step = Timing.Start();
             var ground = FloorFinder.Patch(FloorFinder.Inside(_hits, door, outerDoor));
             Timing.Add("example floors found", step);
             ground.Ground = cast;
@@ -377,9 +387,6 @@ namespace Scry
             _patches.Add(ground);
             _roomGround[room] = ground;
             _hits.Clear();
-            step = Timing.Start();
-            if (asleep) copy.transform.SetParent(Holder.transform, false);
-            Timing.Add("example floors sleep", step);
             Timing.Add("example floors", read);
         }
 

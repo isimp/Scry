@@ -120,6 +120,7 @@ namespace Scry
             });
 
             if (!Guard.Run(Feature.Locations, "reading the locations", Locations.Update, "update locations")) Locations.Forget();
+            Step(Feature.FloorsKept, "the floors kept", null, FloorRecords.Update);
         }
 
         /// <summary>Scry's code compiled ahead (<see cref="CodeWarmup"/>), once a session, made once a world's catalog is read; for the self-test to see it done.</summary>
@@ -245,6 +246,7 @@ namespace Scry
             // found, and what may have changed read again; with nothing kept, read by itself for
             // those who want it, the same background reading the panel's button starts.
             Guard.Run(Feature.Locations, "finding what the locations hold", () => Locations.Begin(Settings.ReadLocationsAutomatically));
+            Guard.Run(Feature.FloorsKept, "finding the floors kept", FloorRecords.Begin);
         }
 
         private static void Failed(string why, ZNetScene scene)

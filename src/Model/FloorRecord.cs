@@ -20,10 +20,10 @@ namespace Scry
         public bool Solid = true;
     }
 
-    /// <summary>Where a ray of a kept place lands on something flat for a roll: its place on the grid, the height, and whether nothing of the place is above it.</summary>
+    /// <summary>Where a ray of a kept place lands on something flat for a roll: its place on the grid, the height, whether nothing of the place is above it, and the part it is on.</summary>
     internal struct FloorLanding
     {
-        public int I, J;
+        public int I, J, Part;
         public float X, Z, Height;
         public bool Open;
     }
@@ -75,6 +75,9 @@ namespace Scry
         public float Cell => FloorFinder.CellArea(MinX, MaxX, MinZ, MaxZ, Grid.Count);
 
         public float Ground => Grid.Count * Cell;
+
+        /// <summary>The file a kind of place is kept in, named by a hash of it, as a prefab's name may hold anything.</summary>
+        public static string FileName(string prefab, bool room) => Stored.Hash(prefab + "\n" + (room ? "room" : "location")) + ".dat";
 
         public static FloorRecord New(string prefab, bool room, string stamp, float minX, float maxX, float minZ, float maxZ, float top, float bottom, IReadOnlyList<RayPart> parts) => new FloorRecord
         {
@@ -147,7 +150,7 @@ namespace Scry
                     if (float.IsNaN(highest)) highest = surface.Height;
                     if (!surface.Flat) continue;
                     var at = Grid[ray];
-                    landings.Add(new FloorLanding { I = at.I, J = at.J, X = at.X, Z = at.Z, Height = surface.Height, Open = highest - surface.Height < Covered });
+                    landings.Add(new FloorLanding { I = at.I, J = at.J, X = at.X, Z = at.Z, Height = surface.Height, Open = highest - surface.Height < Covered, Part = surface.Part });
                 }
             }
             return landings;

@@ -16,6 +16,7 @@ namespace Scry
         public static readonly Feature RaidsRolledOnStage = Listed("raids rolled on the stage");
         public static readonly Feature Locations = Listed("the Locations tab");
         public static readonly Feature PlacesKept = Listed("keeping what locations hold from one session to the next");
+        public static readonly Feature FloorsKept = Listed("keeping where places' floors are from one session to the next");
         public static readonly Feature LocationsOnStage = Listed("locations on the stage");
         public static readonly Feature Biomes = Listed("the Biomes tab");
         public static readonly Feature Raids = Listed("the Raids tab");

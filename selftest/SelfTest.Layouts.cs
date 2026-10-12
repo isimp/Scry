@@ -93,6 +93,62 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.Ruler) > drawn, "the floor ruler draws beside the stage");
         }
 
+        /// <summary>
+        /// The floors of a spread of places and a dungeon's rooms, shown twice: the first time
+        /// found by rays and kept, the second told from what was kept, which is checked against
+        /// rays cast over the same roll; then a dungeon's next layout told from what was kept
+        /// alone, waking no room.
+        /// </summary>
+        private static IEnumerator FloorsKept(Probe p)
+        {
+            var places = X.Catalog.Where(e => PlaceOf(e) != null).OrderBy(e => e.Name, StringComparer.Ordinal).ToList();
+            if (places.Count == 0) p.Skip("there are no locations");
+            var picks = Spread(places, 10);
+            picks.AddRange(places.Where(e => e.Name.IndexOf("Tower", StringComparison.OrdinalIgnoreCase) >= 0 || e.Name.IndexOf("Cave", StringComparison.OrdinalIgnoreCase) >= 0).Take(4));
+            picks = picks.Distinct().ToList();
+            var crypt = Crypt();
+            var verified = FloorProbe.Verified;
+            var differed = FloorProbe.Differed;
+            FloorProbe.Verify = true;
+            for (var pass = 0; pass < 2; pass++)
+            {
+                foreach (var entry in picks)
+                {
+                    var place = PlaceOf(entry);
+                    Select(entry);
+                    yield return Until(() => PlaceAssets.State(place) != PlaceLoad.Loading && CopyOf(entry) != null, 20);
+                    yield return null;
+                }
+                if (crypt == null) continue;
+                Select(crypt);
+                yield return Until(() => CopyOf(crypt) != null && ExampleLayouts.Of(crypt) && ExampleLayouts.Example != null
+                                         && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 90);
+            }
+            FloorProbe.Verify = false;
+            p.Note($"{Numbers.Count(FloorRecords.Count)} kinds of place have their floors kept; {Numbers.Count(FloorProbe.Verified - verified)} told from what was kept and checked against their rays");
+            p.Check(FloorRecords.Count > 0, "the floors of the places shown are kept");
+            p.Check(FloorProbe.Verified > verified, "shown again, places' floors are told from what was kept");
+            p.Check(FloorProbe.Differed == differed, "what was kept tells each roll's floors and creatures' ground as its own rays find them", FloorProbe.LastDiffered);
+
+            // The dungeon's next layout: every room's floors from what was kept, none woken.
+            if (crypt == null) yield break;
+            var fromKept = FloorProbe.FromKept;
+            var probed = FloorProbe.Probed;
+            ExampleLayouts.Another();
+            yield return Until(() => Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 90);
+            var told = FloorProbe.FromKept - fromKept;
+            var cast = FloorProbe.Probed - probed;
+            p.Note($"{crypt.Name}'s next layout: {Numbers.Count(told)} rooms' floors from what was kept, {Numbers.Count(cast)} probed (a roll bringing a part not yet seen)");
+            p.Check(told > 0 && told >= cast, "a dungeon's next layout finds most of its rooms' floors in what was kept", $"{Numbers.Count(told)} kept, {Numbers.Count(cast)} probed");
+            yield return Until(() => !FloorRecords.Busy, 10);
+            var folder = System.IO.Path.Combine(Settings.CacheFolder, "floors");
+            var files = System.IO.Directory.Exists(folder) ? System.IO.Directory.GetFiles(folder, "*.dat").Length : 0;
+            p.Check(files > 0, "and they are kept in the cache folder for the next time", $"{Numbers.Count(files)} files");
+        }
+
+        /// <summary>Puts the floor probe back to telling from what was kept alone.</summary>
+        private static void KeptFloorsUnverified() => FloorProbe.Verify = false;
+
         private static IEnumerator DungeonExample(Probe p) => Layout(p, Crypt(), "Dungeon");
 
         private static IEnumerator CampExample(Probe p) => Layout(p, Camp(), "CampRadial");

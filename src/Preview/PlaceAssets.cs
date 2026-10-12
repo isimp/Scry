@@ -126,7 +126,8 @@ namespace Scry
 
         private static void Prepare(GameObject copy, List<Stage.SpawnHere> spawns, Location rules, List<GroundPaintAt> paints = null)
         {
-            Roll(copy);
+            var switches = new HashSet<Transform>();
+            Roll(copy, switches);
             LeaveOutInterior(copy);
             if (spawns != null)
             {
@@ -134,7 +135,9 @@ namespace Scry
                 {
                     spawns.Add(new Stage.SpawnHere { At = spawn.At, Creature = spawn.Creature, Lift = spawn.Lift, Point = spawn.Point });
                 }
-                if (spawns.Count > 0) FloorProbe.NoteNotSolid(copy);
+                // For its floors and creatures, which of its colliders what drops lands on and what its rolls can bring.
+                FloorProbe.NoteNotSolid(copy);
+                FloorProbe.NoteSwitches(copy, switches);
             }
             if (paints != null) ReadPaints(copy, paints);
             foreach (var zone in copy.GetComponentsInChildren<EnvZone>(true))
@@ -161,7 +164,8 @@ namespace Scry
             }
         }
 
-        private static void Roll(GameObject copy)
+        /// <summary>Rolls the copy's chance parts, noting in <paramref name="switches"/> every object a roll switches on or off.</summary>
+        private static void Roll(GameObject copy, HashSet<Transform> switches)
         {
             var root = copy.transform;
             foreach (var spawn in copy.GetComponentsInChildren<RandomSpawn>(true))
@@ -170,6 +174,8 @@ namespace Scry
                 var there = Dice.NextDouble() * 100.0 <= spawn.m_chanceToSpawn;
                 if (!there) spawn.gameObject.SetActive(false);
                 if (spawn.m_OffObject != null) spawn.m_OffObject.SetActive(!there);
+                switches.Add(spawn.transform);
+                if (spawn.m_OffObject != null) switches.Add(spawn.m_OffObject.transform);
             }
             foreach (var pick in copy.GetComponentsInChildren<RandomObject>(true))
             {
@@ -177,8 +183,14 @@ namespace Scry
                 // An entry without an object weighs in too, and picking it leaves the whole pick out.
                 var at = PlaceParts.Pick(pick.m_objects.Select(e => e?.m_weight ?? 0f).ToList(), Dice.NextDouble());
                 var chosen = at >= 0 ? pick.m_objects[at]?.m_object : null;
-                foreach (var entry in pick.m_objects) if (entry?.m_object != null) entry.m_object.SetActive(entry.m_object == chosen);
+                foreach (var entry in pick.m_objects)
+                {
+                    if (entry?.m_object == null) continue;
+                    entry.m_object.SetActive(entry.m_object == chosen);
+                    switches.Add(entry.m_object.transform);
+                }
                 if (chosen == null) pick.gameObject.SetActive(false);
+                switches.Add(pick.transform);
             }
         }
 
