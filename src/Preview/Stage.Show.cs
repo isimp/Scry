@@ -92,6 +92,8 @@ namespace Scry
             {
                 var asset = PlaceAssets.Asset(place);
                 if (asset == null) return;
+                // What is kept of its floors is found while it is made.
+                FloorRecords.Want(place.Prefab, place.IsRoom);
                 _buildingRoll = new PlaceRoll();
                 _buildingPaints = new List<GroundPaintAt>();
                 _building = PlaceCopy.Begin(asset, _root.transform, Origin, Quaternion.identity, _layer, keepColliders: true, roll: _buildingRoll, paints: _buildingPaints);

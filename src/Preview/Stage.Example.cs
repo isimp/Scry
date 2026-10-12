@@ -99,6 +99,8 @@ namespace Scry
             {
                 ForgetExample();
                 TheExample.Begin(example, plan, _subject.transform, _layer);
+                // What is kept of a dungeon's rooms' floors is found while they are made.
+                if (TheExample.IsDungeon) foreach (var room in TheExample.Placed.Rooms) FloorRecords.Want(room.Room.Name, true);
             }
             TheExample.KeepToFloor(ExamplePlanFloor);
             var placedRooms = TheExample.Placed.Rooms;
