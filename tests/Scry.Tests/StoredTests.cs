@@ -72,6 +72,28 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AYesOrNoIsWrittenAsOneOrNoughtAndReadsBack()
+        {
+            Assert.Equal("1", Stored.Flag(true));
+            Assert.Equal("0", Stored.Flag(false));
+            Assert.True(Stored.TryFlag("1", out var yes));
+            Assert.True(yes);
+            Assert.True(Stored.TryFlag("0", out var no));
+            Assert.False(no);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("2")]
+        [InlineData("true")]
+        [InlineData(" 1")]
+        [InlineData(null)]
+        public void WhatIsNoYesOrNoIsRefused(string text)
+        {
+            Assert.False(Stored.TryFlag(text, out _));
+        }
+
+        [Fact]
         public void AFileWrittenOnAGermanPcReadsTheSameAnywhere()
         {
             var was = CultureInfo.CurrentCulture;

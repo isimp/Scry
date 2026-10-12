@@ -176,13 +176,13 @@ namespace Scry
         {
             var text = new StringBuilder();
             text.Append(Header).Append('\n');
-            Line(text, "place", Stored.Escaped(Prefab), Room ? "1" : "0", Stored.Escaped(Stamp));
+            Line(text, "place", Stored.Escaped(Prefab), Stored.Flag(Room), Stored.Escaped(Stamp));
             Line(text, "grid", Stored.Exact(MinX), Stored.Exact(MaxX), Stored.Exact(MinZ), Stored.Exact(MaxZ), Stored.Exact(Top), Stored.Exact(Bottom));
-            foreach (var part in _parts) Line(text, "part", part.Solid ? "1" : "0", Stored.Escaped(part.Name));
+            foreach (var part in _parts) Line(text, "part", Stored.Flag(part.Solid), Stored.Escaped(part.Name));
             Line(text, "seen", string.Join(",", _seen.OrderBy(p => p).Select(p => Stored.Count(p))));
             foreach (var ray in _rays.OrderBy(r => r.Key))
             {
-                Line(text, "ray", Stored.Count(ray.Key), string.Join(";", ray.Value.Select(s => Stored.Number(s.Height, 3) + ":" + (s.Flat ? "1" : "0") + ":" + Stored.Count(s.Part))));
+                Line(text, "ray", Stored.Count(ray.Key), string.Join(";", ray.Value.Select(s => Stored.Number(s.Height, 3) + ":" + Stored.Flag(s.Flat) + ":" + Stored.Count(s.Part))));
             }
             foreach (var spawn in _spawns.OrderBy(s => s.Key, StringComparer.Ordinal))
             {
@@ -215,7 +215,7 @@ namespace Scry
                 switch (f[0])
                 {
                     case "place":
-                        if (f.Length != 4 || !Stored.TryUnescaped(f[1], out record.Prefab) || !Flag(f[2], out record.Room) || !Stored.TryUnescaped(f[3], out record.Stamp)) return null;
+                        if (f.Length != 4 || !Stored.TryUnescaped(f[1], out record.Prefab) || !Stored.TryFlag(f[2], out record.Room) || !Stored.TryUnescaped(f[3], out record.Stamp)) return null;
                         placed = true;
                         break;
                     case "grid":
@@ -224,7 +224,7 @@ namespace Scry
                         gridded = true;
                         break;
                     case "part":
-                        if (f.Length != 3 || !Flag(f[1], out var solid) || !Stored.TryUnescaped(f[2], out var name)) return null;
+                        if (f.Length != 3 || !Stored.TryFlag(f[1], out var solid) || !Stored.TryUnescaped(f[2], out var name)) return null;
                         record._parts.Add(new RayPart { Name = name, Solid = solid });
                         break;
                     case "seen":
@@ -244,12 +244,6 @@ namespace Scry
                 }
             }
             return placed && gridded ? record : null;
-        }
-
-        private static bool Flag(string text, out bool value)
-        {
-            value = text == "1";
-            return text == "1" || text == "0";
         }
 
         private static bool Indexes(string text, int parts, out List<int> indexes)
@@ -273,7 +267,7 @@ namespace Scry
                 var f = each.Split(':');
                 if (f.Length != (flat ? 3 : 2) || !Stored.TryNumber(f[0], out var height)) return false;
                 var surface = new RaySurface { Height = height };
-                if (flat && !Flag(f[1], out surface.Flat)) return false;
+                if (flat && !Stored.TryFlag(f[1], out surface.Flat)) return false;
                 if (!Stored.TryCount(f[flat ? 2 : 1], out surface.Part) || surface.Part < 0 || surface.Part >= parts) return false;
                 surfaces.Add(surface);
             }

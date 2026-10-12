@@ -23,6 +23,16 @@ namespace Scry
         /// <summary>Reads a whole number written by <see cref="Count"/>; false for anything else.</summary>
         public static bool TryCount(string text, out int value) => int.TryParse(text, NumberStyles.AllowLeadingSign, Plain, out value);
 
+        /// <summary>A yes or no: "1" or "0".</summary>
+        public static string Flag(bool value) => value ? "1" : "0";
+
+        /// <summary>Reads a yes or no written by <see cref="Flag"/>; false for anything else.</summary>
+        public static bool TryFlag(string text, out bool value)
+        {
+            value = text == "1";
+            return text == "1" || text == "0";
+        }
+
         /// <summary>A 64-bit value as sixteen hexadecimal digits: "00000000000000e9".</summary>
         public static string Hex(ulong value) => value.ToString("x16", Plain);
 

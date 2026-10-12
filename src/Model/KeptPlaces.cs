@@ -99,14 +99,14 @@ namespace Scry
         private static void Write(StringBuilder text, PlaceRecord record)
         {
             var c = record.Contents;
-            Line(text, "place", record.Prefab, Flag(record.Room), record.Stamp);
+            Line(text, "place", record.Prefab, Stored.Flag(record.Room), record.Stamp);
             Line(text, "names", c.GameNameKey, c.TraderKey, c.BossPrefab);
             foreach (var part in c.Parts) Line(text, "part", part.Prefab, Stored.Count(part.Count), Stored.Exact(part.Chance));
             foreach (var creature in c.Creatures) Line(text, "creature", creature.Prefab, Stored.Count(creature.Count), Stored.Exact(creature.Chance));
             foreach (var vegvisir in c.Vegvisirs) Line(text, "vegvisir", vegvisir);
-            Line(text, "levels", Stored.Count(c.EnemyMinLevel), Stored.Count(c.EnemyMaxLevel), Stored.Exact(c.EnemyLevelUpChance), Flag(c.LevelOverrideExceptions));
-            Line(text, "nobuild", Flag(c.NoBuild), Stored.Exact(c.NoBuildRadius));
-            Line(text, "rolls", Flag(c.PartsRolled), Flag(c.StarsRolled), Flag(c.GroupsRolled));
+            Line(text, "levels", Stored.Count(c.EnemyMinLevel), Stored.Count(c.EnemyMaxLevel), Stored.Exact(c.EnemyLevelUpChance), Stored.Flag(c.LevelOverrideExceptions));
+            Line(text, "nobuild", Stored.Flag(c.NoBuild), Stored.Exact(c.NoBuildRadius));
+            Line(text, "rolls", Stored.Flag(c.PartsRolled), Stored.Flag(c.StarsRolled), Stored.Flag(c.GroupsRolled));
             foreach (var music in c.OwnMusic) Line(text, "music", music.When.ToString(), music.Name, Stored.Exact(music.Chance));
             foreach (var weather in c.Weathers) Line(text, "weather", weather);
             foreach (var stone in c.Stones)
@@ -119,9 +119,9 @@ namespace Scry
                 var d = c.Dungeon;
                 var fields = new List<string>
                 {
-                    d.Algorithm, Stored.Count(d.Themes), Stored.Count(d.MinRooms), Stored.Count(d.MaxRooms), Stored.Count(d.MinRequiredRooms), Flag(d.Weighted),
+                    d.Algorithm, Stored.Count(d.Themes), Stored.Count(d.MinRooms), Stored.Count(d.MaxRooms), Stored.Count(d.MinRequiredRooms), Stored.Flag(d.Weighted),
                     Stored.Exact(d.DoorChance), Stored.Count(d.GridSize), Stored.Exact(d.TileWidth), Stored.Exact(d.SpawnChance), Stored.Exact(d.CampRadiusMin),
-                    Stored.Exact(d.CampRadiusMax), Stored.Count(d.PerimeterSections), Stored.Exact(d.PerimeterBuffer), Flag(d.CustomInterior),
+                    Stored.Exact(d.CampRadiusMax), Stored.Count(d.PerimeterSections), Stored.Exact(d.PerimeterBuffer), Stored.Flag(d.CustomInterior),
                 };
                 fields.AddRange(Vector(d.ZoneSize));
                 fields.AddRange(Vector(d.ZoneFromGenerator));
@@ -136,11 +136,11 @@ namespace Scry
                 var r = c.Room;
                 var fields = new List<string> { r.Name, Stored.Count(r.Theme) };
                 fields.AddRange(Vector(r.Size));
-                fields.AddRange(new[] { Flag(r.Entrance), Flag(r.EndCap), Flag(r.Divider), Flag(r.Perimeter), Flag(r.FaceCenter), Stored.Count(r.EndCapPrio), Stored.Count(r.MinPlaceOrder), Stored.Exact(r.Weight) });
+                fields.AddRange(new[] { Stored.Flag(r.Entrance), Stored.Flag(r.EndCap), Stored.Flag(r.Divider), Stored.Flag(r.Perimeter), Stored.Flag(r.FaceCenter), Stored.Count(r.EndCapPrio), Stored.Count(r.MinPlaceOrder), Stored.Exact(r.Weight) });
                 Line(text, "room", fields.ToArray());
                 foreach (var doorway in r.Doorways)
                 {
-                    var way = new List<string> { doorway.Type, Flag(doorway.Entrance), Flag(doorway.AllowDoor), Flag(doorway.DoorOnlyIfOtherAllows) };
+                    var way = new List<string> { doorway.Type, Stored.Flag(doorway.Entrance), Stored.Flag(doorway.AllowDoor), Stored.Flag(doorway.DoorOnlyIfOtherAllows) };
                     way.AddRange(Vector(doorway.Position));
                     way.AddRange(Turn(doorway.Rotation));
                     Line(text, "doorway", way.ToArray());
@@ -149,7 +149,7 @@ namespace Scry
             foreach (var theme in record.Themes) Line(text, "theme", Stored.Count(theme));
             Line(text, "known", Stored.Count(record.Known));
             foreach (var name in record.Names) Line(text, "named", name);
-            foreach (var altar in record.Altars) Line(text, "altar", altar.Boss, altar.Item, Stored.Count(altar.Count), Flag(altar.OnStands));
+            foreach (var altar in record.Altars) Line(text, "altar", altar.Boss, altar.Item, Stored.Count(altar.Count), Stored.Flag(altar.OnStands));
             Line(text, "end");
         }
 
@@ -159,8 +159,6 @@ namespace Scry
             foreach (var field in fields) text.Append('\t').Append(Stored.Escaped(field ?? ""));
             text.Append('\n');
         }
-
-        private static string Flag(bool value) => value ? "1" : "0";
 
         private static string[] Vector(Vec3 v) => new[] { Stored.Exact(v.X), Stored.Exact(v.Y), Stored.Exact(v.Z) };
 
@@ -190,7 +188,7 @@ namespace Scry
                 {
                     // A place begun before this one and never ended is cut short: left out.
                     record = null;
-                    if (!read || fields.Length != 3 || !Flag(fields[1], out var room)) continue;
+                    if (!read || fields.Length != 3 || !Stored.TryFlag(fields[1], out var room)) continue;
                     record = new PlaceRecord { Prefab = fields[0], Room = room, Stamp = fields[2] };
                     whole = true;
                     continue;
@@ -229,19 +227,19 @@ namespace Scry
                     c.Vegvisirs.Add(f[0]);
                     return true;
                 case "levels":
-                    if (f.Length != 4 || !Stored.TryCount(f[0], out var min) || !Stored.TryCount(f[1], out var max) || !Stored.TryExact(f[2], out var up) || !Flag(f[3], out var exceptions)) return false;
+                    if (f.Length != 4 || !Stored.TryCount(f[0], out var min) || !Stored.TryCount(f[1], out var max) || !Stored.TryExact(f[2], out var up) || !Stored.TryFlag(f[3], out var exceptions)) return false;
                     c.EnemyMinLevel = min;
                     c.EnemyMaxLevel = max;
                     c.EnemyLevelUpChance = up;
                     c.LevelOverrideExceptions = exceptions;
                     return true;
                 case "nobuild":
-                    if (f.Length != 2 || !Flag(f[0], out var noBuild) || !Stored.TryExact(f[1], out var radius)) return false;
+                    if (f.Length != 2 || !Stored.TryFlag(f[0], out var noBuild) || !Stored.TryExact(f[1], out var radius)) return false;
                     c.NoBuild = noBuild;
                     c.NoBuildRadius = radius;
                     return true;
                 case "rolls":
-                    if (f.Length != 3 || !Flag(f[0], out var parts) || !Flag(f[1], out var stars) || !Flag(f[2], out var groups)) return false;
+                    if (f.Length != 3 || !Stored.TryFlag(f[0], out var parts) || !Stored.TryFlag(f[1], out var stars) || !Stored.TryFlag(f[2], out var groups)) return false;
                     c.PartsRolled = parts;
                     c.StarsRolled = stars;
                     c.GroupsRolled = groups;
@@ -289,7 +287,7 @@ namespace Scry
                     record.Names.Add(f[0]);
                     return true;
                 case "altar":
-                    if (f.Length != 4 || !Count(f[2], out var items) || !Flag(f[3], out var onStands)) return false;
+                    if (f.Length != 4 || !Count(f[2], out var items) || !Stored.TryFlag(f[3], out var onStands)) return false;
                     record.Altars.Add(new PlaceAltar { Boss = f[0], Item = f[1], Count = items, OnStands = onStands });
                     return true;
                 default:
@@ -301,10 +299,10 @@ namespace Scry
         {
             var d = new DungeonPlan { Algorithm = f[0] };
             var read = Stored.TryCount(f[1], out d.Themes) & Stored.TryCount(f[2], out d.MinRooms) & Stored.TryCount(f[3], out d.MaxRooms)
-                       & Stored.TryCount(f[4], out d.MinRequiredRooms) & Flag(f[5], out d.Weighted) & Stored.TryExact(f[6], out d.DoorChance)
+                       & Stored.TryCount(f[4], out d.MinRequiredRooms) & Stored.TryFlag(f[5], out d.Weighted) & Stored.TryExact(f[6], out d.DoorChance)
                        & Stored.TryCount(f[7], out d.GridSize) & Stored.TryExact(f[8], out d.TileWidth) & Stored.TryExact(f[9], out d.SpawnChance)
                        & Stored.TryExact(f[10], out d.CampRadiusMin) & Stored.TryExact(f[11], out d.CampRadiusMax) & Stored.TryCount(f[12], out d.PerimeterSections)
-                       & Stored.TryExact(f[13], out d.PerimeterBuffer) & Flag(f[14], out d.CustomInterior)
+                       & Stored.TryExact(f[13], out d.PerimeterBuffer) & Stored.TryFlag(f[14], out d.CustomInterior)
                        & Vector(f, 15, out d.ZoneSize) & Vector(f, 18, out d.ZoneFromGenerator) & Vector(f, 21, out d.GeneratorAt) & Turn(f, 24, out d.GeneratorTurn);
             if (!read) return false;
             c.Dungeon = d;
@@ -314,8 +312,8 @@ namespace Scry
         private static bool RoomOf(PlaceContents c, string[] f)
         {
             var r = new RoomShape { Name = f[0] };
-            var read = Stored.TryCount(f[1], out r.Theme) & Vector(f, 2, out r.Size) & Flag(f[5], out r.Entrance) & Flag(f[6], out r.EndCap)
-                       & Flag(f[7], out r.Divider) & Flag(f[8], out r.Perimeter) & Flag(f[9], out r.FaceCenter) & Stored.TryCount(f[10], out r.EndCapPrio)
+            var read = Stored.TryCount(f[1], out r.Theme) & Vector(f, 2, out r.Size) & Stored.TryFlag(f[5], out r.Entrance) & Stored.TryFlag(f[6], out r.EndCap)
+                       & Stored.TryFlag(f[7], out r.Divider) & Stored.TryFlag(f[8], out r.Perimeter) & Stored.TryFlag(f[9], out r.FaceCenter) & Stored.TryCount(f[10], out r.EndCapPrio)
                        & Stored.TryCount(f[11], out r.MinPlaceOrder) & Stored.TryExact(f[12], out r.Weight);
             if (!read) return false;
             c.Room = r;
@@ -325,17 +323,11 @@ namespace Scry
         private static bool DoorwayOf(RoomShape room, string[] f)
         {
             var way = new Doorway { Type = f[0] };
-            var read = Flag(f[1], out way.Entrance) & Flag(f[2], out way.AllowDoor) & Flag(f[3], out way.DoorOnlyIfOtherAllows)
+            var read = Stored.TryFlag(f[1], out way.Entrance) & Stored.TryFlag(f[2], out way.AllowDoor) & Stored.TryFlag(f[3], out way.DoorOnlyIfOtherAllows)
                        & Vector(f, 4, out way.Position) & Turn(f, 7, out way.Rotation);
             if (!read) return false;
             room.Doorways.Add(way);
             return true;
-        }
-
-        private static bool Flag(string text, out bool value)
-        {
-            value = text == "1";
-            return text == "1" || text == "0";
         }
 
         private static bool Count(string text, out int value) => Stored.TryCount(text, out value) && value >= 0;
