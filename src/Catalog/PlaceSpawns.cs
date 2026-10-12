@@ -69,6 +69,9 @@ namespace Scry
             return ai != null ? Mathf.Max(0f, ai.m_flyAltitudeMin) : 0f;
         }
 
+        /// <summary>Whether the world rolls its creatures' stars at all: a chance of each star more above nothing, its own or 10%, as the world has it.</summary>
+        public static bool StarsRoll => LevelUpChance(10f) > 0f;
+
         /// <summary>
         /// A spawn point's chance of each star more, as the world has it (<c>SpawnSystem.GetLevelUpChance</c>):
         /// its own or 10%, by the world's enemy level-up rate or its world level; the share a

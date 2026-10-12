@@ -159,11 +159,21 @@ namespace Scry
     /// <summary>
     /// What was read of a location or room once its bundle was loaded: what names it, what it
     /// holds and how likely, the dungeon it builds or the room it is, and the levels it sets
-    /// for its spawn points.
+    /// for its spawn points. What its bundle holds is kept as read (the game's keys for its
+    /// names and texts, the weathers it sets, which of its rolls can come out otherwise), and
+    /// what is told of it in the world and language it is shown in is worked out from that by
+    /// <see cref="Tell"/>.
     /// </summary>
     internal sealed class PlaceContents
     {
+        /// <summary>As told: its name as the game shows it, the boss its altar summons and its trader, each in the game's language; empty for none.</summary>
         public string GameName = "", Boss = "", Trader = "";
+
+        /// <summary>As read: the game's key for the name shown on entering or discovering it (<c>Teleport.m_enterText</c>, <c>Location.m_discoverLabel</c>) and for its trader's name (<c>Trader.m_name</c>).</summary>
+        public string GameNameKey = "", TraderKey = "";
+
+        /// <summary>As read: the prefab of the boss its altar summons (<c>OfferingBowl.m_bossPrefab</c>); empty for none.</summary>
+        public string BossPrefab = "";
 
         /// <summary>Its networked parts, with how many and how likely (<see cref="PlaceParts"/>).</summary>
         public List<PlacePart> Parts = new List<PlacePart>();
@@ -187,14 +197,62 @@ namespace Scry
         public bool NoBuild;
         public float NoBuildRadius;
 
-        /// <summary>Whether anything in it is there only by chance, so another roll can show it otherwise (<see cref="PlaceParts.LeftToChance"/>).</summary>
+        /// <summary>As told: whether anything in it is there only by chance, so another roll can show it otherwise.</summary>
         public bool LeftToChance;
 
-        /// <summary>The music it plays, in the order Enter tries them.</summary>
+        /// <summary>
+        /// As read: whether a part is there only by chance (<see cref="PlaceParts.LeftToChance"/>),
+        /// whether a spawn point's creature can come with more stars than its least, and whether a
+        /// spawn group has more points than it keeps (<see cref="SpawnPoints.GroupsLeftToChance"/>).
+        /// </summary>
+        public bool PartsRolled, StarsRolled, GroupsRolled;
+
+        /// <summary>As told: the music it plays, in the order Enter tries them.</summary>
         public List<PlaceMusic> Music = new List<PlaceMusic>();
 
-        /// <summary>Its runestones with every text each can give (<see cref="PlaceRunes"/>).</summary>
+        /// <summary>As read: the music of its own, from a source that starts on coming near and by name on stepping inside, in that order.</summary>
+        public List<PlaceMusic> OwnMusic = new List<PlaceMusic>();
+
+        /// <summary>As read: the weathers it sets inside (<c>EnvZone.m_environment</c>), whose music it plays there.</summary>
+        public List<string> Weathers = new List<string>();
+
+        /// <summary>As told: its runestones with every text each can give, in the game's language (<see cref="PlaceRunes"/>).</summary>
         public List<PlaceRunestone> Runestones = new List<PlaceRunestone>();
+
+        /// <summary>As read: each of its runestones with the game's keys for its name and every text it can give.</summary>
+        public List<PlaceRunestone> Stones = new List<PlaceRunestone>();
+
+        /// <summary>
+        /// Tells what it holds in the world and language it is shown in: its names and runestones
+        /// in the game's words now, its music with the music of each weather it sets after its
+        /// own, and whether it is left to chance, its creatures' stars only where the world rolls
+        /// them. Told again, it tells the same.
+        /// </summary>
+        public void Tell(PlaceTerms terms)
+        {
+            GameName = terms.Words(GameNameKey) ?? "";
+            Trader = terms.Words(TraderKey) ?? "";
+            Boss = BossPrefab.Length > 0 ? terms.CreatureName(BossPrefab) ?? "" : "";
+
+            Runestones = new List<PlaceRunestone>();
+            foreach (var stone in Stones)
+            {
+                var told = new PlaceRunestone { Name = terms.Words(stone.Name) ?? "" };
+                foreach (var text in stone.Texts) told.Texts.Add(new RuneText { Topic = terms.Words(text.Topic) ?? "", Text = terms.Words(text.Text) ?? "" });
+                PlaceRunes.Add(Runestones, told);
+            }
+
+            Music = new List<PlaceMusic>();
+            void Add(string name, MusicWhen when, float chance)
+            {
+                if (string.IsNullOrEmpty(name) || Music.Exists(m => m.Name == name && m.When == when)) return;
+                Music.Add(new PlaceMusic { Name = name, When = when, Chance = chance });
+            }
+            foreach (var own in OwnMusic) Add(own.Name, own.When, own.Chance);
+            foreach (var weather in Weathers) Add(terms.WeatherMusic(weather), MusicWhen.Weather, 1f);
+
+            LeftToChance = PartsRolled || GroupsRolled || (StarsRolled && terms.StarsRoll);
+        }
     }
 
     /// <summary>When a place's music plays.</summary>

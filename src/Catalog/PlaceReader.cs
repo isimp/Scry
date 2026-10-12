@@ -8,7 +8,9 @@ namespace Scry
 {
     /// <summary>
     /// Reads a loaded location or dungeon room into what Scry keeps of it (<see cref="PlaceContents"/>),
-    /// names and figures only, so its bundle can be let go of afterwards. A part's chance follows
+    /// names and figures only, so its bundle can be let go of afterwards: what the bundle itself
+    /// holds, the game's keys for its names and texts rather than their words, then told in the
+    /// world and language it is read in (<see cref="PlaceContents.Tell"/>). A part's chance follows
     /// how the game places it (<c>ZoneSystem.SpawnLocation</c>, <c>DungeonGenerator.PlaceRoom</c>):
     /// every <c>RandomSpawn</c> above it rolls its chance, every <c>RandomObject</c> above it picks
     /// one of its objects by weight, and a <c>RandomSpawn</c>'s object for when it is off shows
@@ -46,7 +48,7 @@ namespace Scry
             }
             contents.Parts = PlaceParts.Group(parts);
             yield return true;
-            contents.LeftToChance = LeftToChance(prefab);
+            LeftToChance(prefab, contents);
             yield return true;
 
             Guard.Each(Feature.Locations, "creatures of locations", prefab.name, () => Creatures(prefab, root, factors, contents));
@@ -68,6 +70,38 @@ namespace Scry
             yield return true;
 
             Guard.Each(Feature.RunestoneTexts, "runestones of locations", prefab.name, () => Runestones(prefab, contents));
+            yield return true;
+
+            Guard.Each(Feature.Locations, "telling places", prefab.name, () => contents.Tell(TermsNow()));
+        }
+
+        /// <summary>
+        /// What a place is told with now that its bundle does not hold: the game's words in its
+        /// language, a boss's name from its prefab, the music of each weather from the game's
+        /// weathers (<c>EnvSetup</c>: its day music, else its night, morning or evening music),
+        /// and whether the world rolls creatures' stars (<see cref="PlaceSpawns.StarsRoll"/>).
+        /// </summary>
+        public static PlaceTerms TermsNow() => new PlaceTerms
+        {
+            Words = CatalogBuilder.Localize,
+            CreatureName = CreatureName,
+            WeatherMusic = WeatherMusic,
+            StarsRoll = PlaceSpawns.StarsRoll,
+        };
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static string CreatureName(string prefab)
+        {
+            var creature = GamePrefabs.Named(prefab).OrNull()?.GetComponent<Character>();
+            return creature != null ? CatalogBuilder.Localize(creature.m_name) : "";
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static string WeatherMusic(string environment)
+        {
+            var setup = EnvMan.instance != null ? EnvMan.instance.m_environments?.Find(e => e != null && e.m_name == environment) : null;
+            if (setup == null) return "";
+            return new[] { setup.m_musicDay, setup.m_musicNight, setup.m_musicMorning, setup.m_musicEvening }.FirstOrDefault(m => !string.IsNullOrEmpty(m)) ?? "";
         }
 
         /// <summary>
@@ -79,16 +113,16 @@ namespace Scry
             foreach (var rune in prefab.GetComponentsInChildren<RuneStone>(true))
             {
                 if (rune == null) continue;
-                var stone = new PlaceRunestone { Name = CatalogBuilder.Localize(rune.m_name) };
+                var stone = new PlaceRunestone { Name = rune.m_name ?? "" };
                 if (rune.m_randomTexts != null && rune.m_randomTexts.Count > 0)
                 {
                     foreach (var text in rune.m_randomTexts)
                     {
-                        if (text != null) stone.Texts.Add(new RuneText { Topic = CatalogBuilder.Localize(text.m_topic), Text = CatalogBuilder.Localize(text.m_text) });
+                        if (text != null) stone.Texts.Add(new RuneText { Topic = text.m_topic ?? "", Text = text.m_text ?? "" });
                     }
                 }
-                else stone.Texts.Add(new RuneText { Topic = CatalogBuilder.Localize(rune.m_topic), Text = CatalogBuilder.Localize(rune.m_text) });
-                PlaceRunes.Add(contents.Runestones, stone);
+                else stone.Texts.Add(new RuneText { Topic = rune.m_topic ?? "", Text = rune.m_text ?? "" });
+                contents.Stones.Add(stone);
             }
         }
 
@@ -126,15 +160,17 @@ namespace Scry
             return factors;
         }
 
-        /// <summary>Whether a copy of it can come out otherwise, by the rolls its copy is made with (<see cref="PlaceCopy"/>).</summary>
-        private static bool LeftToChance(GameObject prefab)
+        /// <summary>Which of the rolls its copy is made with can come out otherwise (<see cref="PlaceCopy"/>): its parts, its creatures' stars and its spawn groups.</summary>
+        private static void LeftToChance(GameObject prefab, PlaceContents contents)
         {
             var spawns = prefab.GetComponentsInChildren<RandomSpawn>(false).Where(s => s != null && s.enabled).Select(s => s.m_chanceToSpawn);
             var picks = prefab.GetComponentsInChildren<RandomObject>(false)
                 .Where(p => p.OrNull()?.m_objects != null && p.enabled)
                 .Select(p => (IReadOnlyList<float>)p.m_objects.Select(e => e?.m_weight ?? 0f).ToList());
-            // Its creatures too: a star to roll, or a spawn group keeping fewer than it has points.
-            return PlaceParts.LeftToChance(spawns.ToList(), picks.ToList()) || SpawnPoints.LeftToChance(PlaceSpawns.Of(prefab, prefab.GetComponent<Location>()).Select(s => s.Point).ToList());
+            contents.PartsRolled = PlaceParts.LeftToChance(spawns.ToList(), picks.ToList());
+            var points = PlaceSpawns.Of(prefab, prefab.GetComponent<Location>()).Select(s => s.Point).ToList();
+            contents.StarsRolled = SpawnPoints.StarsLeftToChance(points);
+            contents.GroupsRolled = SpawnPoints.GroupsLeftToChance(points);
         }
 
         /// <summary>The chance a part is there: every roll on it and above it, up to the prefab's root, multiplied.</summary>
@@ -155,22 +191,24 @@ namespace Scry
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void NameFacts(GameObject prefab, PlaceContents contents)
         {
+            // The first of each the game has words for.
+            bool Said(string key) => CatalogBuilder.Localize(key).Length > 0;
             foreach (var door in prefab.GetComponentsInChildren<Teleport>(true))
             {
-                if (contents.GameName.Length == 0 && door != null) contents.GameName = CatalogBuilder.Localize(door.m_enterText);
+                if (contents.GameNameKey.Length == 0 && door != null && Said(door.m_enterText)) contents.GameNameKey = door.m_enterText;
             }
             foreach (var location in prefab.GetComponentsInChildren<Location>(true))
             {
-                if (contents.GameName.Length == 0 && location != null) contents.GameName = CatalogBuilder.Localize(location.m_discoverLabel);
+                if (contents.GameNameKey.Length == 0 && location != null && Said(location.m_discoverLabel)) contents.GameNameKey = location.m_discoverLabel;
             }
             foreach (var bowl in prefab.GetComponentsInChildren<OfferingBowl>(true))
             {
                 var boss = bowl != null && bowl.m_bossPrefab != null ? bowl.m_bossPrefab.GetComponent<Character>() : null;
-                if (contents.Boss.Length == 0 && boss != null) contents.Boss = CatalogBuilder.Localize(boss.m_name);
+                if (contents.BossPrefab.Length == 0 && boss != null && Said(boss.m_name)) contents.BossPrefab = bowl.m_bossPrefab.name;
             }
             foreach (var trader in prefab.GetComponentsInChildren<Trader>(true))
             {
-                if (contents.Trader.Length == 0 && trader != null) contents.Trader = CatalogBuilder.Localize(trader.m_name);
+                if (contents.TraderKey.Length == 0 && trader != null && Said(trader.m_name)) contents.TraderKey = trader.m_name;
             }
         }
 
@@ -313,8 +351,8 @@ namespace Scry
         {
             void Add(string name, MusicWhen when, float chance)
             {
-                if (string.IsNullOrEmpty(name) || contents.Music.Exists(m => m.Name == name && m.When == when)) return;
-                contents.Music.Add(new PlaceMusic { Name = name, When = when, Chance = Mathf.Clamp01(chance) });
+                if (string.IsNullOrEmpty(name) || contents.OwnMusic.Exists(m => m.Name == name && m.When == when)) return;
+                contents.OwnMusic.Add(new PlaceMusic { Name = name, When = when, Chance = Mathf.Clamp01(chance) });
             }
             foreach (var near in prefab.GetComponentsInChildren<MusicLocation>(false))
             {
@@ -324,13 +362,9 @@ namespace Scry
             {
                 if (inside != null) Add(inside.m_musicName, MusicWhen.Inside, inside.m_fadeByProximity ? 1f : inside.m_musicChance);
             }
-            var environments = EnvMan.instance != null ? EnvMan.instance.m_environments : null;
             foreach (var zone in prefab.GetComponentsInChildren<EnvZone>(false))
             {
-                var setup = zone != null ? environments?.Find(e => e != null && e.m_name == zone.m_environment) : null;
-                if (setup == null) continue;
-                var name = new[] { setup.m_musicDay, setup.m_musicNight, setup.m_musicMorning, setup.m_musicEvening }.FirstOrDefault(m => !string.IsNullOrEmpty(m));
-                Add(name, MusicWhen.Weather, 1f);
+                if (zone != null && !string.IsNullOrEmpty(zone.m_environment)) contents.Weathers.Add(zone.m_environment);
             }
         }
 

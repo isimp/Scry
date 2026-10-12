@@ -122,10 +122,15 @@ namespace Scry
         /// </summary>
         public static bool AboveCut(float feet, float lift, float cut) => feet - lift > cut;
 
-        /// <summary>Whether rolling the points can come out more than one way: a star to roll, or a group with more points than it keeps.</summary>
-        public static bool LeftToChance(IReadOnlyList<SpawnPoint> points) =>
-            points.Any(p => p.MaxLevel > p.MinLevel && p.LevelUpChance > 0f)
-            || Groups(points).Any(g => g.Count > 1 && g.Count > g.Max(i => points[i].MaxInGroup));
+        /// <summary>
+        /// Whether a point's creature can come with more stars than its least, where the world
+        /// rolls stars at all (<see cref="PlaceTerms.StarsRoll"/>): its levels span more than one.
+        /// </summary>
+        public static bool StarsLeftToChance(IReadOnlyList<SpawnPoint> points) => points.Any(p => p.MaxLevel > p.MinLevel);
+
+        /// <summary>Whether which points spawn is rolled: a group with more points than it keeps.</summary>
+        public static bool GroupsLeftToChance(IReadOnlyList<SpawnPoint> points) =>
+            Groups(points).Any(g => g.Count > 1 && g.Count > g.Max(i => points[i].MaxInGroup));
 
         private static bool Grouped(SpawnPoint point) => point.GroupRadius > 0f && point.MaxInGroup >= 1;
 

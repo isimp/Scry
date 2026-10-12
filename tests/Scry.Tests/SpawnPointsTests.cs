@@ -104,15 +104,17 @@ namespace Scry.Tests
         [Fact]
         public void APlacesCreaturesAreLeftToChanceWhereAStarOrAPickIsRolled()
         {
-            // Roll again shows for a place whose creatures can come out more than one way.
-            Assert.True(SpawnPoints.LeftToChance(new[] { Point(0f, max: 3, chance: 10f) }));
-            Assert.True(SpawnPoints.LeftToChance(new[] { Point(0f, 7, 2f), Point(1f, 7, 2f), Point(2f, 7, 2f) }));
+            // Roll again shows for a place whose creatures can come out more than one way: stars
+            // where the world rolls them (PlaceTellingTests), or which points of a group spawn.
+            Assert.True(SpawnPoints.StarsLeftToChance(new[] { Point(0f, max: 3, chance: 10f) }));
+            Assert.True(SpawnPoints.GroupsLeftToChance(new[] { Point(0f, 7, 2f), Point(1f, 7, 2f), Point(2f, 7, 2f) }));
 
-            // Stars fixed, every point of a group kept, or a chance of none: one way only.
-            Assert.False(SpawnPoints.LeftToChance(new[] { Point(0f, min: 2, max: 2, chance: 50f), Point(5f) }));
-            Assert.False(SpawnPoints.LeftToChance(new[] { Point(0f, 7, 2f, most: 2), Point(1f, 7, 2f, most: 2) }));
-            Assert.False(SpawnPoints.LeftToChance(new[] { Point(0f, max: 3, chance: 0f) }));
-            Assert.False(SpawnPoints.LeftToChance(new SpawnPoint[0]));
+            // Stars fixed, or every point of a group kept: one way only.
+            Assert.False(SpawnPoints.StarsLeftToChance(new[] { Point(0f, min: 2, max: 2, chance: 50f), Point(5f) }));
+            Assert.False(SpawnPoints.GroupsLeftToChance(new[] { Point(0f, min: 2, max: 2, chance: 50f), Point(5f) }));
+            Assert.False(SpawnPoints.GroupsLeftToChance(new[] { Point(0f, 7, 2f, most: 2), Point(1f, 7, 2f, most: 2) }));
+            Assert.False(SpawnPoints.StarsLeftToChance(new SpawnPoint[0]));
+            Assert.False(SpawnPoints.GroupsLeftToChance(new SpawnPoint[0]));
         }
 
         [Fact]
