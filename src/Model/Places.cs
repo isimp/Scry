@@ -233,30 +233,45 @@ namespace Scry
         /// </summary>
         public static void Apply(IReadOnlyList<Entry> catalog, IDictionary<string, HashSet<string>> found)
         {
-            var unplayed = Groups.Purpose(Array.Empty<string>(), false, false).Order;
-            var unfired = Groups.Projectile(Array.Empty<Shooter>()).Order;
-
-            // Each place's biome rank, from the first location going by it (LocationNamed).
-            var ranks = new Dictionary<string, int>(StringComparer.Ordinal);
-            foreach (var entry in catalog)
-            {
-                if (entry.Kind != Kind.Location || entry.FoundIn.Length == 0 || !entry.Components.Contains("Location") || ranks.ContainsKey(entry.FoundIn[0])) continue;
-                ranks[entry.FoundIn[0]] = ContentOrder.Earliest(entry.Biomes);
-            }
-            int RankOf(string place) => ranks.TryGetValue(place, out var rank) ? rank : int.MaxValue;
-
+            var ranks = Ranks(catalog, entry => entry.FoundIn);
             foreach (var entry in catalog)
             {
                 if (EntryKeys.HasOwnNamespace(entry.Kind) || !found.TryGetValue(entry.Name, out var places) || places.Count == 0) continue;
-                entry.FoundIn = places.Distinct().OrderBy(RankOf).ThenBy(p => p, StringComparer.OrdinalIgnoreCase).ToArray();
-
-                Group? group = null;
-                if ((entry.Kind == Kind.Effect || entry.Kind == Kind.Sound) && entry.GroupOrder == unplayed) group = Groups.EffectsInLocations;
-                else if (entry.Kind == Kind.Projectile && entry.GroupOrder == unfired) group = Groups.ProjectilesInLocations;
-                if (group == null) continue;
-                entry.Group = group.Value.Name;
-                entry.GroupOrder = group.Value.Order;
+                entry.FoundIn = Ordered(places, ranks);
+                FoundOnlyThere(entry);
             }
+        }
+
+        /// <summary>
+        /// Each place's biome rank, from the first location going by it (<see cref="LocationNamed"/>),
+        /// by what each location entry goes by (<paramref name="goesBy"/>, its <c>FoundIn</c>).
+        /// </summary>
+        public static Dictionary<string, int> Ranks(IReadOnlyList<Entry> catalog, Func<Entry, string[]> goesBy)
+        {
+            var ranks = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var entry in catalog)
+            {
+                if (entry.Kind != Kind.Location || !entry.Components.Contains("Location")) continue;
+                var names = goesBy(entry);
+                if (names.Length == 0 || ranks.ContainsKey(names[0])) continue;
+                ranks[names[0]] = ContentOrder.Earliest(entry.Biomes);
+            }
+            return ranks;
+        }
+
+        /// <summary>The places something is found in, each once, by the biome rank of the location going by it, then by name; a place no location goes by last.</summary>
+        public static string[] Ordered(IEnumerable<string> places, Dictionary<string, int> ranks) =>
+            places.Distinct().OrderBy(p => ranks.TryGetValue(p, out var rank) ? rank : int.MaxValue).ThenBy(p => p, StringComparer.OrdinalIgnoreCase).ToArray();
+
+        /// <summary>Puts an effect or sound nothing else plays, or a projectile nothing else fires, under "In locations", as places name it.</summary>
+        public static void FoundOnlyThere(Entry entry)
+        {
+            Group? group = null;
+            if ((entry.Kind == Kind.Effect || entry.Kind == Kind.Sound) && entry.GroupOrder == Groups.Purpose(Array.Empty<string>(), false, false).Order) group = Groups.EffectsInLocations;
+            else if (entry.Kind == Kind.Projectile && entry.GroupOrder == Groups.Projectile(Array.Empty<Shooter>()).Order) group = Groups.ProjectilesInLocations;
+            if (group == null) return;
+            entry.Group = group.Value.Name;
+            entry.GroupOrder = group.Value.Order;
         }
     }
 }

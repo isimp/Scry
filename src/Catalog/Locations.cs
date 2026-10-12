@@ -36,8 +36,8 @@ namespace Scry
         /// <summary>What is known of what the places hold: nothing yet, nothing yet while they are read, or known (kept from before, or read), some perhaps being read again meanwhile.</summary>
         public static State Now { get; private set; }
 
-        /// <summary>Whether places are being read, or what was kept of them found, in the background.</summary>
-        public static bool Busy => _reading || PlaceRecords.Finding;
+        /// <summary>Whether places are being read, what was kept of them found, or what they hold told on the catalog, in the background.</summary>
+        public static bool Busy => _reading || PlaceRecords.Finding || _telling != null;
 
         /// <summary>Whether what was read is still being written to the cache folder.</summary>
         public static bool Saving => PlaceRecords.Busy;
@@ -94,6 +94,9 @@ namespace Scry
         /// <summary>What the places hold, told on this world's catalog each time from the catalog as it was made.</summary>
         private static PlaceFinds _finds = new PlaceFinds();
 
+        /// <summary>What the places hold being told on the catalog, a few milliseconds a frame (<see cref="Telling"/>); null while nothing is.</summary>
+        private static IEnumerator<bool> _telling;
+
         /// <summary>The names of the catalog's prefabs, for how many of what a place names the catalog holds.</summary>
         private static readonly HashSet<string> CatalogNames = new HashSet<string>(StringComparer.Ordinal);
 
@@ -123,6 +126,7 @@ namespace Scry
         public static void Forget()
         {
             StopReading();
+            _telling = null;
             World.Clear();
             Summoned.Clear();
             _finds = new PlaceFinds();
@@ -153,6 +157,7 @@ namespace Scry
         public static void Begin(bool automatically)
         {
             StopReading();
+            _telling = null;
             _automatically = automatically;
             if (!List())
             {
@@ -255,6 +260,12 @@ namespace Scry
                 Guard.Run(Feature.PlacesKept, "showing the places kept", () => Loaded(stamps));
             }
 
+            // A reading waits while what the places hold is told.
+            if (_telling != null)
+            {
+                if (!Guard.Run(Feature.Locations, "telling what the places hold", TellOn)) _telling = null;
+                return;
+            }
             if (!_reading) return;
             if (ZoneSystem.instance == null)
             {
@@ -287,10 +298,7 @@ namespace Scry
             Found = (plan.Fresh, plan.Stale, plan.Missing);
             if (plan.Shown.Count > 0)
             {
-                var timed = Timing.Start();
-                Apply(Records(), new HashSet<(string, bool)>());
-                Timing.Add("locations told", timed);
-                Now = State.Read;
+                _telling = Telling(Records(), new HashSet<(string, bool)>(), null).GetEnumerator();
                 Log.Report($"Scry knows what {Numbers.Count(plan.Shown.Count)} locations and dungeon rooms hold from before ({Numbers.Count(plan.Fresh)} the same, {Numbers.Count(plan.Stale)} to read again, {Numbers.Count(plan.Missing)} never read).");
             }
             if (plan.ToRead.Count > 0 && (plan.Shown.Count > 0 || _automatically))
@@ -486,8 +494,9 @@ namespace Scry
 
         /// <summary>
         /// The reading is done: what it read takes the place of what was kept of the same, is told
-        /// on the catalog's entries with everything else kept of the world's places, and is written
-        /// to the cache folder on a worker thread (<see cref="PlaceRecords.Write"/>).
+        /// on the catalog's entries with everything else kept of the world's places over the next
+        /// frames (<see cref="Telling"/>), and is written to the cache folder on a worker thread
+        /// (<see cref="PlaceRecords.Write"/>).
         /// </summary>
         private static void Finish()
         {
@@ -498,17 +507,34 @@ namespace Scry
                 read.Add((record.Prefab, record.Room));
                 if (!Unkept.Contains((record.Prefab, record.Room))) PlaceRecords.Put(record);
             }
-            var timed = Timing.Start();
-            var named = Apply(Records(), read);
-            Timing.Add("locations told", timed);
-            Now = State.Read;
+            var records = Records();
+            Fresh.Clear();
             PlaceRecords.Write();
 
-            Log.Report(
-                $"Scry read {Numbers.Count(Total)} locations and dungeon rooms in {Numbers.Fixed(_clock.Elapsed.TotalSeconds, 1)} s ({Numbers.Amount(_workMs, 0)} ms of its own work over {Numbers.Count(_frames)} frames, {Numbers.Count(_failed)} could not be loaded) and keeps them for the next time: " +
-                $"the world's places name {Numbers.Count(named.Prefabs)} prefabs, {Numbers.Count(named.InCatalog)} entries of the catalog are found in them; {Numbers.Count(named.Moved)} effects, sounds and projectiles nothing else plays or fires went under \"In locations\", and {Numbers.Count(named.Items)} items only creatures seemed to have went back to their kind of item.");
-            Fresh.Clear();
-            Faults.TellSkipped();
+            var reading = $"Scry read {Numbers.Count(Total)} locations and dungeon rooms in {Numbers.Fixed(_clock.Elapsed.TotalSeconds, 1)} s ({Numbers.Amount(_workMs, 0)} ms of its own work over {Numbers.Count(_frames)} frames, {Numbers.Count(_failed)} could not be loaded) and keeps them for the next time: ";
+            _telling = Telling(records, read, named =>
+            {
+                Log.Report(reading +
+                    $"the world's places name {Numbers.Count(named.Prefabs)} prefabs, {Numbers.Count(named.InCatalog)} entries of the catalog are found in them; {Numbers.Count(named.Moved)} effects, sounds and projectiles nothing else plays or fires went under \"In locations\", and {Numbers.Count(named.Items)} items only creatures seemed to have went back to their kind of item.");
+                Faults.TellSkipped();
+            }).GetEnumerator();
+        }
+
+        /// <summary>Tells on within the frame's share; a step asking for a frame of its own starts the next.</summary>
+        private static void TellOn()
+        {
+            var watch = Stopwatch.StartNew();
+            var timed = Timing.Start();
+            while (watch.Elapsed.TotalMilliseconds < BudgetMs)
+            {
+                if (!_telling.MoveNext())
+                {
+                    _telling = null;
+                    break;
+                }
+                if (!_telling.Current) break;
+            }
+            Timing.Add("locations told", timed);
         }
 
         /// <summary>What is known of the world's places, in its order: each one read in this reading, else as kept.</summary>
@@ -525,27 +551,32 @@ namespace Scry
         }
 
         /// <summary>
-        /// Tells what the places hold on the catalog's entries, from their records in the world's
-        /// order, each told in this session's terms (<see cref="PlaceContents.Tell"/>): a location by
-        /// its name (<see cref="Places.LocationLabel"/>), noting the kinds of room its dungeons are
-        /// built with, then a room by those dungeons; its altars; on the catalog (<see cref="PlaceFinds"/>),
-        /// each place's name and where each thing they name is found, from the catalog as it was
-        /// made, so telling anew leaves nothing of what was told before; each place's contents on
-        /// its entry, where it has none or was read just now (<paramref name="read"/>).
+        /// Tells what the places hold on the catalog's entries, a step at a time (<see cref="TellOn"/>),
+        /// from their records in the world's order, each told in this session's terms
+        /// (<see cref="PlaceContents.Tell"/>): a location by its name (<see cref="Places.LocationLabel"/>),
+        /// noting the kinds of room its dungeons are built with, then a room by those dungeons; its
+        /// altars; on the catalog (<see cref="PlaceFinds"/>), each place's name and where each thing
+        /// they name is found, from the catalog as it was made, so telling anew leaves nothing of what
+        /// was told before; each place's contents on its entry, where it has none or was read just now
+        /// (<paramref name="read"/>). Nothing of it shows until its last step, which puts it all on
+        /// the catalog at once in a frame of its own, and gives <paramref name="told"/> how many
+        /// prefabs the places name, entries are found in them, went under "In locations" and items
+        /// went back to their kind.
         /// </summary>
-        private static (int Prefabs, int InCatalog, int Moved, int Items) Apply(List<PlaceRecord> records, HashSet<(string, bool)> read)
+        private static IEnumerable<bool> Telling(List<PlaceRecord> records, HashSet<(string, bool)> read, Action<(int Prefabs, int InCatalog, int Moved, int Items)> told)
         {
             var world = WorldCatalog.Current;
-            if (world == null) return (0, 0, 0, 0);
+            if (world == null) yield break;
             var catalog = world.All;
             var creatures = PlaceEntries.CreatureNames(catalog);
             var terms = PlaceReader.TermsNow();
             var biomes = World.Where(a => !a.Room).GroupBy(a => a.Name).ToDictionary(g => g.Key, g => g.First().Biome);
+            yield return true;
 
             var dungeons = new List<KeyValuePair<int, string>>();
             var found = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
             var labels = new Dictionary<(string, bool), string[]>();
-            Summoned.Clear();
+            var summons = new List<Summon>();
             foreach (var record in records)
             {
                 Guard.Each(Feature.Locations, "telling places", record.Prefab, () => record.Contents.Tell(terms));
@@ -564,7 +595,7 @@ namespace Scry
                     foreach (var altar in record.Altars)
                     {
                         var summon = new Summon { Boss = altar.Boss, Item = altar.Item.Length > 0 ? altar.Item : null, Count = altar.Count, OnStands = altar.OnStands, Place = label };
-                        if (!Summoned.Exists(s => s.Boss == summon.Boss && s.Item == summon.Item && s.Place == summon.Place)) Summoned.Add(summon);
+                        if (!summons.Exists(s => s.Boss == summon.Boss && s.Item == summon.Item && s.Place == summon.Place)) summons.Add(summon);
                     }
                 }
                 labels[(record.Prefab, record.Room)] = here;
@@ -573,11 +604,16 @@ namespace Scry
                     if (!found.TryGetValue(name, out var places)) found[name] = places = new HashSet<string>(StringComparer.Ordinal);
                     foreach (var place in here) places.Add(place);
                 }
+                yield return true;
             }
 
-            var (inCatalog, moved) = _finds.Tell(catalog, found, labels, PlaceEntries.PlaceOf);
-            var items = Grouping.FoundInLocations(catalog);
+            foreach (var _ in _finds.Steps(catalog, found, labels, PlaceEntries.PlaceOf)) yield return true;
 
+            // All of it put on the catalog at once, in a frame of its own.
+            yield return false;
+            var published = Timing.Start();
+            var (inCatalog, moved) = _finds.Publish();
+            var items = Grouping.FoundInLocations(catalog);
             var byPlace = records.ToDictionary(r => (r.Prefab, r.Room));
             foreach (var entry in catalog)
             {
@@ -585,11 +621,20 @@ namespace Scry
                 var key = (place.Prefab, place.IsRoom);
                 if (byPlace.TryGetValue(key, out var record) && !Unkept.Contains(key) && (place.Contents == null || read.Contains(key))) place.Contents = record.Contents;
             }
+            Summoned.Clear();
+            Summoned.AddRange(summons);
+            Timing.Add("locations published", published);
+
+            var arranged = Timing.Start();
             PlaceEntries.Arrange(catalog);
             world.Regroup();
+            Timing.Add("locations arranged", arranged);
             Applied++;
+            Now = State.Read;
+            var learned = Timing.Start();
             Learned.AboutAll();
-            return (found.Count, inCatalog, moved, items);
+            Timing.Add("locations learned", learned);
+            told?.Invoke((found.Count, inCatalog, moved, items));
         }
     }
 }

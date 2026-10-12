@@ -137,6 +137,31 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APlaceReadWithNoNameRanksWhereThingsAreFoundByWhatItWentBy()
+        {
+            var catalog = World();
+
+            new PlaceFinds().Tell(catalog, Found(("Amber", Label("Mountain cave", "Mountain")), ("Amber", Label("Crypt", "Black Forest"))),
+                Labels(("Crypt2", false, new string[0]), ("MountainCave02", false, new[] { Label("Mountain cave", "Mountain") })), PlaceOf);
+
+            Assert.Equal(new[] { Label("Crypt", "Black Forest"), Label("Mountain cave", "Mountain") }, Of(catalog, "Amber").FoundIn);
+        }
+
+        [Fact]
+        public void WhatSomethingElseFiresOrAStatusEffectOfTheSameNameStaysAsItWas()
+        {
+            var catalog = World();
+            catalog.Add(Grouped("bow_projectile", Kind.Projectile, ("Bows and crossbows", 1)));
+            catalog.Add(E("Crypt_Projectile", Kind.StatusEffect));
+
+            new PlaceFinds().Tell(catalog, Found(("bow_projectile", Chambers), ("Crypt_Projectile", Chambers)), Read(), PlaceOf);
+
+            Assert.Equal("Bows and crossbows", Of(catalog, "bow_projectile").Group);
+            Assert.Equal(new[] { Chambers }, catalog.Single(e => e.Name == "Crypt_Projectile" && e.Kind == Kind.Projectile).FoundIn);
+            Assert.Empty(catalog.Single(e => e.Name == "Crypt_Projectile" && e.Kind == Kind.StatusEffect).FoundIn);
+        }
+
+        [Fact]
         public void TellingAgainLeavesEveryEntryAsTellingOnce()
         {
             // First as kept, the crypt not yet read and naming more; then as read again.
@@ -174,6 +199,64 @@ namespace Scry.Tests
             Assert.Equal(carried.Name, coins.Group);
             Assert.Equal(carried.Order, coins.GroupOrder);
             Assert.Empty(coins.FoundIn);
+        }
+
+        [Fact]
+        public void ToldInStepsTheCatalogStaysAsItWasUntilPublishedThenIsAsToldAtOnce()
+        {
+            // Told over several frames: no frame shows half of it.
+            var found = Found(("Amber", Label("Mountain cave", "Mountain")), ("Amber", Chambers), ("Amber", Label("Ruin", "Meadows")), ("Music_Crypt", Chambers), ("Crypt_Projectile", Chambers));
+            var catalog = World();
+            var before = catalog.Select(Told).ToList();
+            var finds = new PlaceFinds();
+
+            foreach (var _ in finds.Steps(catalog, found, Read(), PlaceOf)) Assert.Equal(before, catalog.Select(Told));
+            Assert.Equal(before, catalog.Select(Told));
+            var told = finds.Publish();
+
+            var once = World();
+            var toldOnce = new PlaceFinds().Tell(once, found, Read(), PlaceOf);
+            Assert.Equal(once.Select(Told), catalog.Select(Told));
+            Assert.Equal(toldOnce, told);
+        }
+
+        [Fact]
+        public void ManyThingsFoundAreOrderedASliceAtATime()
+        {
+            var found = Found(Enumerable.Range(0, 2000).Select(i => ("Thing" + i, Chambers)).ToArray());
+
+            var steps = new PlaceFinds().Steps(World(), found, Read(), PlaceOf).Count();
+
+            Assert.True(steps >= 4, steps.ToString());
+        }
+
+        [Fact]
+        public void TellingAgainBeforeTheLastWasPublishedTellsOnlyTheNew()
+        {
+            var catalog = World();
+            var finds = new PlaceFinds();
+            foreach (var _ in finds.Steps(catalog, Found(("Coins", Chambers)), Read(), PlaceOf)) { }
+
+            foreach (var _ in finds.Steps(catalog, Found(("Amber", Chambers)), Read(), PlaceOf)) { }
+            finds.Publish();
+
+            Assert.Empty(Of(catalog, "Coins").FoundIn);
+            Assert.Equal(new[] { Chambers }, Of(catalog, "Amber").FoundIn);
+        }
+
+        [Fact]
+        public void ATellingBegunAgainAndNotWorkedOutPutsNothingOn()
+        {
+            // The world left, or the places read again, while it was being worked out.
+            var catalog = World();
+            var before = catalog.Select(Told).ToList();
+            var finds = new PlaceFinds();
+            foreach (var _ in finds.Steps(catalog, Found(("Coins", Chambers)), Read(), PlaceOf)) { }
+
+            using (var again = finds.Steps(catalog, Found(("Amber", Chambers)), Read(), PlaceOf).GetEnumerator()) again.MoveNext();
+
+            Assert.Equal((0, 0), finds.Publish());
+            Assert.Equal(before, catalog.Select(Told));
         }
 
         [Fact]
