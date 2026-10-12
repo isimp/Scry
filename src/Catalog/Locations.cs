@@ -665,6 +665,12 @@ namespace Scry
             GroupsBefore.Clear();
             foreach (var entry in catalog) if (!(entry.Source is PlaceSource)) entry.FoundIn = Array.Empty<string>();
 
+            // Each place goes by its name first: where things are found is ordered by the biome of the location going by each.
+            foreach (var entry in catalog)
+            {
+                if (entry.Source is PlaceSource place && labels.TryGetValue((place.Prefab, place.IsRoom), out var named)) PlaceEntries.Named(entry, named);
+            }
+
             var before = catalog.Select(e => (e.Group, e.GroupOrder)).ToList();
             Places.Apply(catalog, found);
             var moved = 0;
@@ -687,7 +693,6 @@ namespace Scry
                 if (!(entry.Source is PlaceSource place)) continue;
                 var key = (place.Prefab, place.IsRoom);
                 if (byPlace.TryGetValue(key, out var record) && !Unkept.Contains(key) && (place.Contents == null || read.Contains(key))) place.Contents = record.Contents;
-                if (labels.TryGetValue(key, out var named)) PlaceEntries.Named(entry, named);
             }
             PlaceEntries.Arrange(catalog);
             world.Regroup();
