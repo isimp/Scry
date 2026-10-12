@@ -213,6 +213,18 @@ namespace Scry
         }
 
         /// <summary>
+        /// Gives a location or room entry the names its place was read to have: a location its
+        /// label (its game name, boss or trader, with its biome) and the name in it, a room the
+        /// dungeons built with it; none given, it keeps what it went by.
+        /// </summary>
+        public static void Named(Entry entry, string[] labels, bool room)
+        {
+            if (labels == null || labels.Length == 0) return;
+            entry.FoundIn = labels;
+            if (!room) entry.DisplayName = NameOf(labels[0]);
+        }
+
+        /// <summary>
         /// Puts what was found where on the catalog's entries (by prefab name; a status effect is
         /// no prefab), each place once, by the biome players reach first of the location going by
         /// it, then by name; a place no location goes by comes last. An effect or sound nothing was

@@ -145,16 +145,16 @@ namespace Scry
         }
 
         /// <summary>
-        /// Gives a location or room entry the names its places were read to have: a location its
-        /// label (its game name, boss or trader, with its biome), a room the dungeons built with
-        /// it. Where either is listed is left to <see cref="Arrange"/>.
+        /// Gives a location or room entry the names its places were read to have (<see cref="Places.Named"/>).
+        /// Where either is listed is left to <see cref="Arrange"/>.
         /// </summary>
         public static void Named(Entry entry, string[] labels)
         {
-            if (labels == null || labels.Length == 0 || !(entry.Source is PlaceSource place)) return;
-            entry.FoundIn = labels;
-            if (!place.IsRoom) entry.DisplayName = Places.NameOf(labels[0]);
+            if (entry.Source is PlaceSource place) Places.Named(entry, labels, place.IsRoom);
         }
+
+        /// <summary>The place an entry stands for, by its prefab and whether a room; null for any other entry.</summary>
+        public static (string Prefab, bool Room)? PlaceOf(Entry entry) => entry.Source is PlaceSource place ? (place.Prefab, place.IsRoom) : ((string, bool)?)null;
 
         /// <summary>
         /// Puts every location and room where the Locations list shows it (<see cref="PlaceGrouping"/>),

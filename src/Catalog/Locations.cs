@@ -108,8 +108,8 @@ namespace Scry
 
         private static readonly List<Summon> NoSummons = new List<Summon>();
 
-        /// <summary>The groups of the entries what the places hold moved to another (effects only places play, items only creatures seemed to have), as they were, to be put back before it is told anew.</summary>
-        private static readonly Dictionary<Entry, (string Group, int Order)> GroupsBefore = new Dictionary<Entry, (string, int)>();
+        /// <summary>What the places hold, told on this world's catalog each time from the catalog as it was made.</summary>
+        private static PlaceFinds _finds = new PlaceFinds();
 
         /// <summary>The names of the catalog's prefabs, for how many of what a place names the catalog holds.</summary>
         private static readonly HashSet<string> CatalogNames = new HashSet<string>(StringComparer.Ordinal);
@@ -144,7 +144,7 @@ namespace Scry
             World.Clear();
             StampsOf.Clear();
             Summoned.Clear();
-            GroupsBefore.Clear();
+            _finds = new PlaceFinds();
             CatalogNames.Clear();
             Unkept.Clear();
             Named.Clear();
@@ -609,10 +609,10 @@ namespace Scry
         /// Tells what the places hold on the catalog's entries, from their records in the world's
         /// order, each told in this session's terms (<see cref="PlaceContents.Tell"/>): a location by
         /// its name (<see cref="Places.LocationLabel"/>), noting the kinds of room its dungeons are
-        /// built with, then a room by those dungeons; where each thing they name is found; its
-        /// altars; each place's contents on its entry, where it has none or was read just now
-        /// (<paramref name="read"/>). What was told before is put back first, so telling anew
-        /// leaves nothing of it.
+        /// built with, then a room by those dungeons; its altars; on the catalog (<see cref="PlaceFinds"/>),
+        /// each place's name and where each thing they name is found, from the catalog as it was
+        /// made, so telling anew leaves nothing of what was told before; each place's contents on
+        /// its entry, where it has none or was read just now (<paramref name="read"/>).
         /// </summary>
         private static (int Prefabs, int InCatalog, int Moved, int Items) Apply(List<PlaceRecord> records, HashSet<(string, bool)> read)
         {
@@ -656,36 +656,8 @@ namespace Scry
                 }
             }
 
-            // What was told before goes back to how it was.
-            foreach (var pair in GroupsBefore)
-            {
-                pair.Key.Group = pair.Value.Group;
-                pair.Key.GroupOrder = pair.Value.Order;
-            }
-            GroupsBefore.Clear();
-            foreach (var entry in catalog) if (!(entry.Source is PlaceSource)) entry.FoundIn = Array.Empty<string>();
-
-            // Each place goes by its name first: where things are found is ordered by the biome of the location going by each.
-            foreach (var entry in catalog)
-            {
-                if (entry.Source is PlaceSource place && labels.TryGetValue((place.Prefab, place.IsRoom), out var named)) PlaceEntries.Named(entry, named);
-            }
-
-            var before = catalog.Select(e => (e.Group, e.GroupOrder)).ToList();
-            Places.Apply(catalog, found);
-            var moved = 0;
-            var inCatalog = 0;
-            for (var i = 0; i < before.Count; i++)
-            {
-                if (catalog[i].FoundIn.Length > 0) inCatalog++;
-                if (before[i].Group != catalog[i].Group) moved++;
-            }
+            var (inCatalog, moved) = _finds.Tell(catalog, found, labels, PlaceEntries.PlaceOf);
             var items = Grouping.FoundInLocations(catalog);
-            for (var i = 0; i < before.Count; i++)
-            {
-                var entry = catalog[i];
-                if (before[i].Group != entry.Group || before[i].GroupOrder != entry.GroupOrder) GroupsBefore[entry] = before[i];
-            }
 
             var byPlace = records.ToDictionary(r => (r.Prefab, r.Room));
             foreach (var entry in catalog)
