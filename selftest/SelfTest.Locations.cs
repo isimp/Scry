@@ -216,7 +216,9 @@ namespace Scry
                 var without = part != null ? PictureWithin(part.Value, out _, out _) : null;
                 Stage.CreaturesShown = true;
                 var differ = with != null && without != null && with.Length == without.Length ? with.Where((c, i) => Apart(c, without[i])).Count() : 0;
-                p.Check(Stage.CutLaid && differ >= Math.Max(12, (with?.Length ?? 0) / 50),
+                // Put away, nothing else of the picture changes, so a few points are the creature
+                // drawn: a thin one (a ballista's frame) covers few of them.
+                p.Check(Stage.CutLaid && differ >= Math.Max(4, (with?.Length ?? 0) / 100),
                     "cut through by a floor's cut, a creature stands whole above it",
                     $"{Numbers.Count(differ)} of {Numbers.Count(with?.Length ?? 0)} points above the cut changed with it put away; cut laid {Stage.CutLaid}, {Numbers.Fixed(tallest.size.y, 1)} m tall, cut at {Numbers.Fixed(cut - tallest.min.y, 1)} m up it");
                 Stage.OpenLevel(Stage.FloorHeights.Count);

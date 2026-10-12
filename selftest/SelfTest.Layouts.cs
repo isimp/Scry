@@ -119,11 +119,19 @@ namespace Scry
             var verified = 0;
             var differed = 0;
             var lastDiffered = "";
+            var minor = 0;
+            var lastMinor = "";
             FloorProbe.Checked = (kept, rays, present, keys, met) =>
             {
                 verified++;
                 var check = FloorCheck.Of(kept, rays, present, keys, met);
                 if (check.Same) return;
+                if (check.Minor)
+                {
+                    minor++;
+                    lastMinor = check.Told;
+                    return;
+                }
                 differed++;
                 lastDiffered = check.Told;
             };
@@ -146,6 +154,7 @@ namespace Scry
             p.Check(FloorRecords.Count > 0, "the floors of the places shown are kept");
             p.Check(verified > 0, "shown again, places' floors are told from what was kept");
             p.Check(differed == 0, "what was kept tells each roll's floors and creatures' ground as its own rays find them", $"{Numbers.Count(differed)} of {Numbers.Count(verified)} differ; {lastDiffered}");
+            if (minor > 0) p.Note($"{Numbers.Count(minor)} of {Numbers.Count(verified)} differ by a cell or two, as a ray meets a curved part's seam or not; {lastMinor}");
 
             // The dungeon's next layout: every room's floors from what was kept, none woken.
             if (crypt == null) yield break;

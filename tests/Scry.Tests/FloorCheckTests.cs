@@ -136,6 +136,7 @@ namespace Scry.Tests
             var back = FloorCheck.Of(rays, kept, Both, new[] { "0.3" });
 
             Assert.False(check.Same);
+            Assert.False(check.Minor);
             Assert.Equal(new[] { "spawn 0.3 on 0.5" }, check.OnlyKept);
             Assert.Equal(new[] { "spawn 0.3 on nothing" }, check.OnlyRays);
             Assert.Equal(new[] { "spawn 0.3 on nothing" }, back.OnlyKept);
@@ -214,6 +215,32 @@ namespace Scry.Tests
             Assert.False(FloorCheck.Of(kept, rays, Both, new string[0], Met((0.05f, Beside))).Same);
             Assert.False(FloorCheck.Of(kept, rays, Both, new string[0], Met((-0.01f, Beside))).Same);
             Assert.False(FloorCheck.Of(kept, rays, Both, new string[0], Met((0.01f, Floor))).Same);
+        }
+
+        [Fact]
+        public void ACellOrTwoOfDifferenceIsMinorAndMoreIsNot()
+        {
+            // A ray meets a curved part's mesh, or misses it, by its last digit at a seam: a cell
+            // or two apart is told, a part found in one and not the other differs across many.
+            RaySurface[] Arch(bool there) => there ? new[] { At(2.7f, Platform), At(0f, Floor) } : new[] { At(0f, Floor) };
+            var one = FloorCheck.Of(Probed((i, j) => Arch(i == 0 && j == 0)), Probed((i, j) => Arch(false)), Both, new string[0]);
+            var many = FloorCheck.Of(Probed((i, j) => Arch(i == 0)), Probed((i, j) => Arch(false)), Both, new string[0]);
+
+            Assert.False(one.Same);
+            Assert.True(one.Minor, one.Told);
+            Assert.False(many.Minor, many.Told);
+        }
+
+        [Fact]
+        public void ADifferenceTellsHowManySurfacesItsFreshRayMet()
+        {
+            // A ray stops after its most surfaces: one that met as many may have stopped short.
+            var kept = Probed(new[] { At(0f, Floor) });
+            var rays = Probed(new RaySurface[0]);
+
+            var check = FloorCheck.Of(kept, rays, Both, new string[0], Met((0.5f, Platform), (0.4f, Platform)));
+
+            Assert.Contains("; its ray met 2", check.Told);
         }
 
         [Fact]
