@@ -80,8 +80,16 @@ namespace Scry
                 if (floors.Count == 0) wrong.Add($"{entry.Name} has no floor");
                 else if (floors.Zip(floors.Skip(1), (above, below) => above > below).Any(ordered => !ordered)) wrong.Add($"{entry.Name}'s floors are out of order: {string.Join(", ", floors.Select(f => Numbers.Amount(f)))}");
                 else if (cuts.Zip(floors, (cut, floor) => cut > floor).Any(over => !over)) wrong.Add($"{entry.Name} is cut below a floor");
-                var left = CopyOf(entry) != null ? CopyOf(entry).GetComponentsInChildren<Collider>(true).Length : 0;
-                if (left > 0) wrong.Add($"{entry.Name} keeps {Numbers.Count(left)} colliders");
+                // A dungeon's or camp's example is built room by room after it, each room's
+                // colliders let go of only at the end of the frame it is read in: they are
+                // counted once every room stands.
+                if (PlaceOf(entry)?.Contents?.Dungeon != null)
+                {
+                    yield return Until(() => ExampleLayouts.Of(entry) && ExampleLayouts.Example != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 30);
+                    yield return null;
+                }
+                var left = CopyOf(entry) != null ? CopyOf(entry).GetComponentsInChildren<Collider>(true) : Array.Empty<Collider>();
+                if (left.Length > 0) wrong.Add($"{entry.Name} keeps {Numbers.Count(left.Length)} colliders, on {string.Join(", ", left.Take(3).Select(c => c.transform.parent != null ? c.transform.parent.name + "/" + c.name : c.name))}");
                 // Each floor with what its rays landed on, to see what is taken for a floor.
                 var makers = Stage.FloorMakersNow();
                 if (floors.Count > 1) several.Add($"{entry.Name} ({string.Join("; ", floors.Select((f, i) => $"{Numbers.Fixed(f, 1)} m on {(i < makers.Count ? makers[i] : "?")}"))})");
