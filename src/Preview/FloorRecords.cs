@@ -9,8 +9,8 @@ namespace Scry
     /// <summary>
     /// Where the places' floors are, kept from one session to the next (<see cref="FloorRecord"/>):
     /// a file for each kind of place in <c>floors</c> under Scry's cache folder, found on a
-    /// worker thread on entering a world and written on one as a record grows, each written
-    /// aside and swapped into place (<see cref="FileSwap"/>). A record whose stamp is not the
+    /// worker thread on entering a world and written on one as a record grows (<see cref="FileQueue"/>),
+    /// each written aside and swapped into place (<see cref="FileSwap"/>). A record whose stamp is not the
     /// place's now is passed over, and its file written anew once the place is probed again.
     /// </summary>
     internal static class FloorRecords
@@ -19,8 +19,8 @@ namespace Scry
 
         private static readonly Dictionary<(string Prefab, bool Room), FloorRecord> Kept = new Dictionary<(string, bool), FloorRecord>();
 
+        private static readonly FileQueue Files = new FileQueue();
         private static Task<List<FloorRecord>> _loading;
-        private static Task _saving;
 
         private static string Folder => Path.Combine(Settings.CacheFolder, "floors");
 
@@ -31,7 +31,7 @@ namespace Scry
         public static int Count => Kept.Count;
 
         /// <summary>Whether what was kept is still being found or written.</summary>
-        public static bool Busy => _loading != null || (_saving != null && !_saving.IsCompleted);
+        public static bool Busy => _loading != null || Files.Busy;
 
         /// <summary>Forgets what is held, on leaving a world; what is being written is written still.</summary>
         public static void Forget()
@@ -45,11 +45,8 @@ namespace Scry
         {
             Forget();
             var folder = Folder;
-            var before = _saving;
-            _loading = Task.Run(() =>
+            _loading = Files.Then(() =>
             {
-                // What is still being written is read once written.
-                ((IAsyncResult)before)?.AsyncWaitHandle.WaitOne();
                 var found = new List<FloorRecord>();
                 if (!Directory.Exists(folder)) return found;
                 foreach (var file in Directory.GetFiles(folder, "*.dat"))
@@ -87,28 +84,21 @@ namespace Scry
             return record.Stamp == stamp ? record : null;
         }
 
-        /// <summary>Keeps a record, and writes it to its file on a worker thread after anything still being written; held only, while what was kept is still being found, so a fuller record found is not written over.</summary>
+        /// <summary>Keeps a record, and writes it to its file on a worker thread; held only, while what was kept is still being found, so a fuller record found is not written over.</summary>
         public static void Put(FloorRecord record)
         {
             Take();
             Kept[(record.Prefab, record.Room)] = record;
             if (_loading != null || record.Stamp.Length == 0) return;
             var path = FileOf(record.Prefab, record.Room);
-            var before = _saving;
-            _saving = Task.Run(() =>
-            {
-                ((IAsyncResult)before)?.AsyncWaitHandle.WaitOne();
-                FileSwap.Write(path, aside => File.WriteAllText(aside, record.Save()));
-            });
+            Files.Then("writing the floors kept", () => FileSwap.Write(path, aside => File.WriteAllText(aside, record.Save())));
         }
 
-        /// <summary>Tells a failure of the last writing, once done; called each frame.</summary>
+        /// <summary>Takes what was found, and tells any writing that failed; called each frame.</summary>
         public static void Update()
         {
             Take();
-            if (_saving == null || !_saving.IsCompleted) return;
-            if (_saving.IsFaulted) Faults.Tell(Feature.FloorsKept, "writing the floors kept", _saving.Exception?.GetBaseException());
-            _saving = null;
+            foreach (var (doing, error) in Files.Failures()) Faults.Tell(Feature.FloorsKept, doing, error);
         }
 
         /// <summary>The kinds of place whose floors are kept, for the self-test.</summary>

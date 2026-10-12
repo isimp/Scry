@@ -42,7 +42,7 @@ namespace Scry
         public static bool Busy => _reading || _loading != null;
 
         /// <summary>Whether what was read is still being written to the cache folder.</summary>
-        public static bool Saving => _saving != null;
+        public static bool Saving => Files.Busy;
 
         /// <summary>How often what the places hold was put on the catalog's entries in this session, for what is worked out from it to know when to work it out again.</summary>
         public static int Applied { get; private set; }
@@ -92,7 +92,9 @@ namespace Scry
         private static Task<(KeptPlaces Kept, string[] Stamps)> _loading;
 
         private static bool _automatically;
-        private static Task _saving;
+
+        /// <summary>The cache folder's file, found and written on a worker thread.</summary>
+        private static readonly FileQueue Files = new FileQueue();
 
         /// <summary>The stamp of each of the world's places, by prefab and whether a room, once found on entering it.</summary>
         private static readonly Dictionary<(string Prefab, bool Room), string> StampsOf = new Dictionary<(string, bool), string>();
@@ -183,7 +185,7 @@ namespace Scry
             var build = typeof(Locations).Assembly.ManifestModule.ModuleVersionId.ToString("N");
             var mods = BepInEx.Bootstrap.Chainloader.PluginInfos.Values
                 .Where(i => i?.Metadata != null).Select(i => (i.Metadata.GUID ?? "", i.Metadata.Version?.ToString() ?? "")).ToList();
-            _loading = Task.Run(() => (ReadKept(path), Stamps(manifest, ids, build, mods)));
+            _loading = Files.Then(() => (ReadKept(path), Stamps(manifest, ids, build, mods)));
         }
 
         /// <summary>Lists the world's places, each once, its locations first; false for a world with none or no catalog yet.</summary>
@@ -307,11 +309,7 @@ namespace Scry
         /// <summary>Takes what was kept once it is found, and reads on for a few milliseconds; called every frame.</summary>
         public static void Update()
         {
-            if (_saving != null && _saving.IsCompleted)
-            {
-                if (_saving.IsFaulted) Faults.Tell(Feature.PlacesKept, "saving the places read", _saving.Exception?.GetBaseException());
-                _saving = null;
-            }
+            foreach (var (doing, error) in Files.Failures()) Faults.Tell(Feature.PlacesKept, doing, error);
 
             if (_loading != null)
             {
@@ -575,15 +573,9 @@ namespace Scry
             var named = Apply(Records(), read);
             Now = State.Read;
 
-            // Written after any saving still under way, so the newest is the one left in place.
             var text = _kept.Save();
             var path = Path.Combine(Settings.CacheFolder, KeptFile);
-            var before = _saving;
-            _saving = Task.Run(() =>
-            {
-                ((IAsyncResult)before)?.AsyncWaitHandle.WaitOne();
-                FileSwap.Write(path, aside => File.WriteAllText(aside, text));
-            });
+            Files.Then("saving the places read", () => FileSwap.Write(path, aside => File.WriteAllText(aside, text)));
 
             Log.Report(
                 $"Scry read {Numbers.Count(Total)} locations and dungeon rooms in {Numbers.Fixed(_clock.Elapsed.TotalSeconds, 1)} s ({Numbers.Amount(_workMs, 0)} ms of its own work over {Numbers.Count(_frames)} frames, {Numbers.Count(_failed)} could not be loaded) and keeps them for the next time: " +
