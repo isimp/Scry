@@ -135,7 +135,7 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void AWorldsMapIsCaughtUpOnceAndTheServerAskedOnlyWithLeave()
+        public void AWorldsMapIsCaughtUpOnce()
         {
             var book = new CompendiumBook();
 
@@ -143,17 +143,11 @@ namespace Scry.Tests
             book.MarkMapped("123");
             Assert.True(book.Mapped("123"));
             Assert.False(book.Mapped("456"));
-
-            Assert.Null(book.ServerAnswer("123"));
-            book.Answer("123", true);
-            book.Answer("456", false);
-            Assert.True(book.ServerAnswer("123"));
-            Assert.False(book.ServerAnswer("456"));
             Assert.True(book.Changed);
         }
 
         [Fact]
-        public void MarkingAWorldOrAnsweringForItMarksTheBookToBeKeptOnlyWhenItChangesSomething()
+        public void MarkingAWorldMarksTheBookToBeKeptOnlyWhenItChangesSomething()
         {
             var book = new CompendiumBook();
             book.MarkMapped("123");
@@ -161,33 +155,22 @@ namespace Scry.Tests
             book.Save();
             book.MarkMapped("123");
             Assert.False(book.Changed);
-            book.Answer("123", true);
-            Assert.True(book.Changed);
-            book.Save();
             book.Unmap("123");
-            Assert.True(book.Changed);
-
-            // A world caught up with but never asked about is forgotten as well.
-            book.MarkMapped("456");
-            book.Save();
-            book.Unmap("456");
             Assert.True(book.Changed);
         }
 
         [Fact]
-        public void AWorldsCatchUpAndItsAnswerCanBeForgottenToRunAndAskAgain()
+        public void AWorldsCatchUpCanBeForgottenToRunAgain()
         {
             var book = new CompendiumBook();
             book.MarkMapped("123");
-            book.Answer("123", false);
-            book.Answer("456", true);
+            book.MarkMapped("456");
             book.Save();
 
             book.Unmap("123");
 
             Assert.False(book.Mapped("123"));
-            Assert.Null(book.ServerAnswer("123"));
-            Assert.True(book.ServerAnswer("456"));
+            Assert.True(book.Mapped("456"));
             Assert.True(book.Changed);
 
             book.Save();
@@ -205,8 +188,6 @@ namespace Scry.Tests
             book.Raise("odd\tname", KnownLevel.HeardOf);
             book.Raise("Boar", KnownLevel.Known);
             book.MarkMapped("123");
-            book.Answer("456", true);
-            book.Answer("789", false);
 
             var back = CompendiumBook.Load(book.Save());
 
@@ -215,8 +196,6 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.HeardOf, back.Level("odd\tname"));
             Assert.Equal(book.Lately, back.Lately);
             Assert.True(back.Mapped("123"));
-            Assert.True(back.ServerAnswer("456"));
-            Assert.False(back.ServerAnswer("789"));
             Assert.False(back.Changed);
             Assert.Equal(book.Save(), back.Save());
         }
@@ -224,14 +203,15 @@ namespace Scry.Tests
         [Fact]
         public void ALineThatCannotBeReadIsPassedOver()
         {
-            var back = CompendiumBook.Load("know\tTroll\t3\nknow\tBoar\tlots\nknow\t\t2\nknow\tWood\t9\nknow\tStone\t0\nsomething\nmapped\t\nasked\t1\tmaybe\nknow\tDeer\t2");
+            // "asked" lines kept a question no longer asked: read past and not written again.
+            var back = CompendiumBook.Load("know\tTroll\t3\nknow\tBoar\tlots\nknow\t\t2\nknow\tWood\t9\nknow\tStone\t0\nsomething\nmapped\t\nasked\t1\tmaybe\nasked\t2\t1\nknow\tDeer\t2");
 
             Assert.Equal(KnownLevel.Known, back.Level("Troll"));
             Assert.Equal(KnownLevel.Seen, back.Level("Deer"));
             Assert.Equal(KnownLevel.Unknown, back.Level("Boar"));
             Assert.Equal(KnownLevel.Unknown, back.Level("Wood"));
             Assert.Equal(KnownLevel.Unknown, back.Level("Stone"));
-            Assert.Null(back.ServerAnswer("1"));
+            Assert.DoesNotContain("asked", back.Save());
             Assert.Equal(2, back.Count(KnownLevel.HeardOf));
             Assert.DoesNotContain(back.All, p => p.Key == "Stone");
         }

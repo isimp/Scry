@@ -36,7 +36,6 @@ namespace Scry
         private readonly Dictionary<string, KnownLevel> _levels = new Dictionary<string, KnownLevel>(StringComparer.Ordinal);
         private readonly List<string> _lately = new List<string>();
         private readonly HashSet<string> _mapped = new HashSet<string>(StringComparer.Ordinal);
-        private readonly Dictionary<string, bool> _answers = new Dictionary<string, bool>(StringComparer.Ordinal);
 
         /// <summary>Counts up with every entry learned more of, so what tells the compendium tells it again.</summary>
         public int Version { get; private set; }
@@ -93,25 +92,13 @@ namespace Scry
             Changed = true;
         }
 
-        /// <summary>Forgets that a world's map was caught up with, and the player's answer for it, so the catch-up runs again and asks again.</summary>
+        /// <summary>Forgets that a world's map was caught up with, so the catch-up runs again.</summary>
         public void Unmap(string world)
         {
-            if (world == null) return;
-            var removed = _mapped.Remove(world);
-            if (_answers.Remove(world) || removed) Changed = true;
+            if (world != null && _mapped.Remove(world)) Changed = true;
         }
 
-        /// <summary>Whether the player let a server world be asked where its places are; null while not asked.</summary>
-        public bool? ServerAnswer(string world) => world != null && _answers.TryGetValue(world, out var yes) ? yes : (bool?)null;
-
-        public void Answer(string world, bool yes)
-        {
-            if (string.IsNullOrEmpty(world)) return;
-            _answers[world] = yes;
-            Changed = true;
-        }
-
-        /// <summary>Everything known, a line an entry, then the latest learned in order, the worlds mapped and the answers.</summary>
+        /// <summary>Everything known, a line an entry, then the latest learned in order and the worlds mapped.</summary>
         public string Save()
         {
             var text = new StringBuilder();
@@ -121,10 +108,6 @@ namespace Scry
             }
             foreach (var key in _lately) text.Append("lately\t").Append(Stored.Escaped(key)).Append('\n');
             foreach (var world in _mapped.OrderBy(w => w, StringComparer.Ordinal)) text.Append("mapped\t").Append(Stored.Escaped(world)).Append('\n');
-            foreach (var pair in _answers.OrderBy(p => p.Key, StringComparer.Ordinal))
-            {
-                text.Append("asked\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Flag(pair.Value)).Append('\n');
-            }
             Changed = false;
             return text.ToString();
         }
@@ -132,7 +115,7 @@ namespace Scry
         /// <summary>The file a character's book is kept in: by the character's own file and where that lives (on this PC or in the cloud), so two characters never share one.</summary>
         public static string FileName(string characterFile, string source) => $"{characterFile}-{source}.dat";
 
-        /// <summary>What was saved; a line that cannot be read is passed over.</summary>
+        /// <summary>What was saved; a line that cannot be read is passed over, as are those of a question no longer asked ("asked").</summary>
         public static CompendiumBook Load(string text)
         {
             var book = new CompendiumBook();
@@ -151,9 +134,6 @@ namespace Scry
                         break;
                     case "mapped" when parts.Length == 2:
                         book._mapped.Add(name);
-                        break;
-                    case "asked" when parts.Length == 3 && Stored.TryFlag(parts[2], out var yes):
-                        book._answers[name] = yes;
                         break;
                 }
             }
