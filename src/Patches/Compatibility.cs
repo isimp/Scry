@@ -272,6 +272,7 @@ namespace Scry
             ("BaseAI", "CanSenseTarget", 10, 0x0BBA2297, Feature.PassiveEnemies),
             ("BaseAI", "FindClosestCreature", 12, 0x067AD711, Feature.WhatBallistaShoots),
             ("Bed", "CheckFire", 1, 0xA250F4AB, Feature.WhatBedNeeds),
+            ("BiomeSector", "GetBiomeName", 1, 0x1889C0A4, Feature.CompendiumCatchUp),
             ("Character", "IsFlying", 0, 0x962D60EC, Feature.FlyerEffectsOnStage),
             ("Character", "OnNearFire", 1, 0x2776BA6F, Feature.FiresWarmth),
             ("ClutterSystem", "GenerateVegPatch", 2, 0xFE9EE3D6, Feature.GrassOnStageGround),

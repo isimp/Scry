@@ -36,6 +36,13 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ABiomeGoesByTheNameTheGameRecordsItEnteredUnder()
+        {
+            Assert.Equal("$biome_blackforest", BiomeWords.Token("BlackForest"));
+            Assert.Equal("$biome_", BiomeWords.Token(null));
+        }
+
+        [Fact]
         public void EachWeatherTellsHowLikelyItIsMostLikelyFirst()
         {
             var weathers = BiomeWords.Weathers(new List<(string, float)> { ("Rain", 1f), ("Clear", 2.5f), ("Misty", 0.5f), ("Rain", 1f) });

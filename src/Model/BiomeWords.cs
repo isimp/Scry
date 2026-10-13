@@ -19,6 +19,9 @@ namespace Scry
             return at >= 0 ? at : Math.Min(63, LocationWords.BiomeCount);
         }
 
+        /// <summary>The name a biome goes by before it is translated, by its enum name, as the game's records keep the biomes a character entered (<c>BiomeSector.GetBiomeName</c>).</summary>
+        public static string Token(string biome) => "$biome_" + (biome ?? "").ToLowerInvariant();
+
         /// <summary>Each weather once, with its share of the weights, the most likely first; none weighing nothing.</summary>
         public static List<(string Weather, string Share)> Weathers(IEnumerable<(string Name, float Weight)> weathers)
         {

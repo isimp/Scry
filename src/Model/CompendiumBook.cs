@@ -47,14 +47,20 @@ namespace Scry
         /// <summary>How much is known of an entry; unknown for one never met or none.</summary>
         public KnownLevel Level(string key) => !string.IsNullOrEmpty(key) && _levels.TryGetValue(key, out var level) ? level : KnownLevel.Unknown;
 
-        /// <summary>Learns of an entry up to a level; true when that is more than was known.</summary>
-        public bool Raise(string key, KnownLevel level)
+        /// <summary>
+        /// Learns of an entry up to a level; true when that is more than was known. Quietly, it is
+        /// not counted among the latest learned: it was known before, only not yet written down.
+        /// </summary>
+        public bool Raise(string key, KnownLevel level, bool quietly = false)
         {
             if (string.IsNullOrEmpty(key) || level <= Level(key)) return false;
             _levels[key] = level;
-            _lately.Remove(key);
-            _lately.Insert(0, key);
-            if (_lately.Count > LatelyKept) _lately.RemoveRange(LatelyKept, _lately.Count - LatelyKept);
+            if (!quietly)
+            {
+                _lately.Remove(key);
+                _lately.Insert(0, key);
+                if (_lately.Count > LatelyKept) _lately.RemoveRange(LatelyKept, _lately.Count - LatelyKept);
+            }
             Version++;
             Changed = true;
             return true;

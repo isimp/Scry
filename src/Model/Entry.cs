@@ -123,6 +123,13 @@ namespace Scry
         /// <summary>The type names of the components on the prefab, each once.</summary>
         public string[] Components = Array.Empty<string>();
 
+        /// <summary>
+        /// The names the game's own records of a character know it by (<c>$item_wood</c>,
+        /// <c>$enemy_troll</c>, <c>$piece_forge</c>, <c>$biome_meadows</c>); several prefabs can
+        /// share one, a skeleton and its variant without a bow.
+        /// </summary>
+        public string[] Tokens = Array.Empty<string>();
+
         /// <summary>The biomes it spawns or grows in, as the game names them.</summary>
         public string[] Biomes = Array.Empty<string>();
 

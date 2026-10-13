@@ -27,6 +27,9 @@ namespace Scry
             public GameObject Prefab;
             public PrefabTraits Traits;
             public string Token;
+
+            /// <summary>Every name the game's records may know it by: its creature's, item's, piece's and station's.</summary>
+            public readonly HashSet<string> Tokens = new HashSet<string>(StringComparer.Ordinal);
             public object Icon;
             public int ExtraLevels;
             public bool HasWear;
@@ -185,6 +188,7 @@ namespace Scry
                     Origin = Origin.Vanilla,
                     Source = source,
                     Biomes = new[] { source.Name },
+                    Tokens = new[] { BiomeWords.Token(source.Name) },
                     Group = "Biomes",
                     GroupOrder = 1,
                     GroupRank = BiomeWords.Rank(source.Name),
@@ -283,6 +287,7 @@ namespace Scry
                 Origin = registeredOrigin ? Origins.Prefabs.Of(name) : Provenance.Combine(found.UserOrigins),
                 Registered = registeredOrigin,
                 Components = found.Components.ToArray(),
+                Tokens = found.Tokens.ToArray(),
                 Biomes = Knowledge.Biomes(name),
                 ModName = Knowledge.ModName(name),
                 ModClue = Knowledge.ModClue(name),
@@ -424,6 +429,11 @@ namespace Scry
             }
         }
 
+        private static void Named(Found found, string token)
+        {
+            if (!string.IsNullOrEmpty(token)) found.Tokens.Add(token);
+        }
+
         private static void Note(Component component, Found found, PrefabTraits traits)
         {
             if (component is Interactable) traits.IsUsable = true;
@@ -441,6 +451,7 @@ namespace Scry
                 case Character character:
                     traits.HasCharacter = true;
                     found.Token = found.Token ?? character.m_name;
+                    Named(found, character.m_name);
                     break;
                 case ItemDrop drop:
                     traits.HasItemDrop = true;
@@ -448,6 +459,7 @@ namespace Scry
                     if (shared != null)
                     {
                         found.Token = found.Token ?? shared.m_name;
+                        Named(found, shared.m_name);
                         if (found.Icon == null && shared.m_icons != null && shared.m_icons.Length > 0) found.Icon = shared.m_icons[0];
                     }
                     break;
@@ -457,7 +469,11 @@ namespace Scry
                     // game's own 25,802 pieces in its bundles is), and leaves the prefab what it was.
                     if (piece.enabled) traits.HasPiece = true;
                     found.Token = found.Token ?? piece.m_name;
+                    Named(found, piece.m_name);
                     found.Icon = found.Icon ?? piece.m_icon;
+                    break;
+                case CraftingStation station:
+                    Named(found, station.m_name);
                     break;
                 case Projectile _:
                     traits.HasProjectile = true;

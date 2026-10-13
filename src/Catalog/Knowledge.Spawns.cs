@@ -165,7 +165,7 @@ namespace Scry
         /// <summary>One biome, by its enum name, as the game shows it: "BlackForest" as "Black Forest".</summary>
         public static string BiomeName(string biome)
         {
-            var shown = CatalogBuilder.Localize("$biome_" + (biome ?? "").ToLowerInvariant());
+            var shown = CatalogBuilder.Localize(BiomeWords.Token(biome));
             return shown.Length > 0 ? shown : Naming.FieldLabel(biome ?? "");
         }
 

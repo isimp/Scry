@@ -78,6 +78,23 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatIsWrittenDownQuietlyIsKnownAndKeptButNotAmongTheLatest()
+        {
+            var book = new CompendiumBook();
+            book.Raise("Boar", KnownLevel.Seen);
+            book.Save();
+            var version = book.Version;
+
+            Assert.True(book.Raise("Troll", KnownLevel.Known, quietly: true));
+            Assert.True(book.Raise("Boar", KnownLevel.Known, quietly: true));
+
+            Assert.Equal(KnownLevel.Known, book.Level("Troll"));
+            Assert.Equal(new[] { "Boar" }, book.Lately.ToArray());
+            Assert.True(book.Version > version);
+            Assert.True(book.Changed);
+        }
+
+        [Fact]
         public void HowManyAreKnownAtLeastSoFar()
         {
             var book = new CompendiumBook();
