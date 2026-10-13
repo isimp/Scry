@@ -136,13 +136,16 @@ namespace Scry
             yield return Until(() => ReferenceEquals(X.Compendium, view), 3);
             if (!p.Check(ReferenceEquals(X.Compendium, view) && X.CompendiumOn, "the list is the made-up character's")) yield break;
 
-            // The creatures' tab: the two met, nothing standing in for the rest.
+            // The creatures' tab: the two met and what came along with them (their ragdolls), nothing standing in for the rest.
             X.SearchEverything("");
             X.KindFilter = Kind.Creature;
             var creatures = X.Catalog.Count(e => e.Kind == Kind.Creature);
-            p.Check(X.FoundOf(Kind.Creature) == 2, "the creatures' tab counts the two met as found", Numbers.Count(X.FoundOf(Kind.Creature)));
+            var along = X.Catalog.Where(e => e.Kind == Kind.Creature && e != fought && e != spotted && view.Of(e) >= KnownLevel.Seen).ToList();
+            var strays = along.Where(e => !view.Chain(e).Any(o => o == fought || o == spotted)).ToList();
+            p.Check(strays.Count == 0, $"the creatures known along with them ({Numbers.Count(along.Count)}) came by way of the two", string.Join(", ", strays.Take(10).Select(e => e.Name)));
+            p.Check(X.FoundOf(Kind.Creature) == 2 + along.Count, "the creatures' tab counts them as found", Numbers.Count(X.FoundOf(Kind.Creature)));
             p.Check(X.TotalOf(Kind.Creature) == creatures, "of all there are", $"{Numbers.Count(X.TotalOf(Kind.Creature))} of {Numbers.Count(creatures)}");
-            p.Check(X.Results.Count == 2 && X.Results.Contains(fought) && X.Results.Contains(spotted), "and lists only those two", string.Join(", ", X.Results.Take(10).Select(e => e.Name)));
+            p.Check(X.Results.Count == 2 + along.Count && X.Results.Contains(fought) && X.Results.Contains(spotted), "and lists only those", string.Join(", ", X.Results.Take(10).Select(e => e.Name)));
 
             // No search finds what was not met, by its name or by any term.
             var leaks = new List<string>();
@@ -184,6 +187,21 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.ClosedPage) == closed, $"{fought.Name}, fought, shows its whole page");
             p.Check(drop != null && !X.Reaches(drop.Key), $"what it drops, not seen, is no link: {drop?.Name}");
             p.Check(ScryPanel.Drawn(PanelPart.UnseenName) > unseenNames, "its page tells the names of what was not seen as plain text");
+
+            // Knowing what something gives does not make known what else gives it: bees give Poison, bile bombs too, and Burning, as Fader's fire does.
+            var hive = X.Find("piece_beehive");
+            var bile = X.Find("bilebomb_explosion");
+            var poison = X.Find(EntryKeys.For(Kind.StatusEffect, "Poison"));
+            if (p.Check(hive != null && bile != null && poison != null, "a beehive, a bile bomb and Poison to try it with"))
+            {
+                var bees = new CompendiumBook();
+                bees.Raise(hive.Key, KnownLevel.Known);
+                var beesView = new CompendiumView(X.Entries);
+                beesView.Tell(bees, CompendiumRule.Loose);
+                var fader = X.Catalog.Where(e => e.Name.StartsWith("Fader", StringComparison.Ordinal) && beesView.Of(e) == KnownLevel.Known).ToList();
+                p.Check(beesView.Of(poison) == KnownLevel.Known, "a character that knows only a beehive knows the Poison its bees give");
+                p.Check(beesView.Of(bile) < KnownLevel.Known && fader.Count == 0, "but no bile bomb, nor anything of Fader's", string.Join(", ", fader.Take(5).Select(e => e.Name)));
+            }
 
             // Off: everything as before.
             view.Tell(book, CompendiumRule.Off);

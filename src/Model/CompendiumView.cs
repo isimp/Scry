@@ -15,10 +15,11 @@ namespace Scry
     /// the ruleset. Off, everything is known. Under <see cref="CompendiumRule.Loose"/> an entry is
     /// what the book holds of it, mods are always known, and what an entry seen or known owns is
     /// known with it: the effects and sounds it plays (<see cref="Entry.UsedBy"/>), what it leaves
-    /// behind, and the status effects, effects, sounds and projectiles it links to. Whatever else
-    /// a known entry's page names, by its links, its link terms, its stations or the places it is
-    /// found in, is heard of. Told again only when the book, its version or the rule changes; while
-    /// it stays off, only when the rule does.
+    /// behind, and the status effects, effects, sounds and projectiles it links to, never what
+    /// links to it (<see cref="Link.Back"/>: knowing Poison does not make known all that gives
+    /// it). Whatever else a known entry's page names, by its links, its link terms, its stations
+    /// or the places it is found in, is heard of. Told again only when the book, its version or
+    /// the rule changes; while it stays off, only when the rule does.
     /// </summary>
     internal sealed class CompendiumView
     {
@@ -129,7 +130,7 @@ namespace Scry
             }
         }
 
-        /// <summary>What an entry owns: what it plays, what it leaves behind, and what it links to that is not a thing of its own.</summary>
+        /// <summary>What an entry owns: what it plays, what it leaves behind, and what it links to that is not a thing of its own, by its own links, not those back from what links to it.</summary>
         private IEnumerable<Entry> Owned(Entry owner)
         {
             if (_played.TryGetValue(owner.Name, out var played)) foreach (var entry in played) yield return entry;
@@ -141,6 +142,7 @@ namespace Scry
             }
             foreach (var link in owner.Links)
             {
+                if (link.Back) continue;
                 var entry = _catalog.Find(link.Target);
                 if (entry != null && Belongs(entry.Kind)) yield return entry;
             }

@@ -14,6 +14,13 @@ namespace Scry
         public string Group;
         public string Target;
         public List<string> Notes = new List<string>();
+
+        /// <summary>
+        /// Whether this is the far end of a link noted from its target, under the heading the
+        /// target's link is shown by here ("Given by" on a status effect, "Spawned by" on what a
+        /// projectile leaves): it tells what leads to the entry, not what the entry has.
+        /// </summary>
+        public bool Back;
     }
 
     /// <summary>
@@ -30,7 +37,7 @@ namespace Scry
         public const string Shoots = "Shoots";
         public const string ShotFrom = "Shot from";
 
-        private readonly List<(string From, string Group, string To, string Note)> _links = new List<(string, string, string, string)>();
+        private readonly List<(string From, string Group, string To, string Note, bool Back)> _links = new List<(string, string, string, string, bool)>();
 
         /// <summary>
         /// Notes a link from one entry to another, with the heading each end shows it under. Without
@@ -39,8 +46,8 @@ namespace Scry
         public void Add(string from, string group, string to, string backGroup, string note = null)
         {
             if (string.IsNullOrEmpty(from) || string.IsNullOrEmpty(to)) return;
-            if (group != null) _links.Add((from, group, to, note));
-            if (backGroup != null) _links.Add((to, backGroup, from, note));
+            if (group != null) _links.Add((from, group, to, note, false));
+            if (backGroup != null) _links.Add((to, backGroup, from, note, true));
         }
 
         /// <summary>
@@ -63,7 +70,7 @@ namespace Scry
                 }
                 foreach (var item in pieces)
                 {
-                    foreach (var other in pieces) _links.Add((item, SameSet, other, null));
+                    foreach (var other in pieces) _links.Add((item, SameSet, other, null, false));
                 }
             }
         }
@@ -99,7 +106,7 @@ namespace Scry
             foreach (var entry in catalog) if (!byKey.ContainsKey(entry.Key)) byKey[entry.Key] = entry;
 
             var copyOf = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var (from, group, to, _) in _links) if (group == VariantOf) copyOf[from] = to;
+            foreach (var (from, group, to, _, _) in _links) if (group == VariantOf) copyOf[from] = to;
             var listed = new HashSet<(string, string, string)>(_links.Select(l => (l.From, l.Group, l.To)));
 
             // Each entry's links by heading and target, so a link noted again is found at once
@@ -109,7 +116,7 @@ namespace Scry
             yield return 0;
 
             var done = 0;
-            foreach (var (from, group, to, note) in _links)
+            foreach (var (from, group, to, note, back) in _links)
             {
                 if (++done % perStep == 0) yield return done;
                 if (from == to || !byKey.TryGetValue(from, out var entry) || !byKey.ContainsKey(to)) continue;
@@ -121,7 +128,7 @@ namespace Scry
                 }
                 if (!index.TryGetValue((entry, group, to), out var link))
                 {
-                    link = new Link { Group = group, Target = to };
+                    link = new Link { Group = group, Target = to, Back = back };
                     entry.Links.Add(link);
                     index[(entry, group, to)] = link;
                 }

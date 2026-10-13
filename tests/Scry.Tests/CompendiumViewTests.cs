@@ -171,6 +171,36 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void KnowingWhatSomethingGivesDoesNotMakeKnownWhatElseGivesIt()
+        {
+            // Bees give Poison; a bile bomb gives it too, and Burning, which Fader's fire gives as
+            // well. Only what the hive itself gives comes along with it; Poison's page names the
+            // bile bomb, heard of.
+            var hive = E(Kind.Piece, "piece_beehive");
+            var poison = E(Kind.StatusEffect, "Poison");
+            var bile = E(Kind.Projectile, "bilebomb_explosion");
+            var burning = E(Kind.StatusEffect, "Burning");
+            var fire = E(Kind.Other, "Fader_WallOfFire_AOE");
+            var all = new[] { hive, poison, bile, burning, fire };
+            var links = new LinkBook();
+            links.Add(hive.Key, LinkWords.StatusEffects, poison.Key, LinkWords.GivenBy);
+            links.Add(bile.Key, LinkWords.StatusEffects, poison.Key, LinkWords.GivenBy);
+            links.Add(bile.Key, LinkWords.StatusEffects, burning.Key, LinkWords.GivenBy);
+            links.Add(fire.Key, LinkWords.StatusEffects, burning.Key, LinkWords.GivenBy);
+            links.Apply(all);
+            var view = View(all);
+            var book = new CompendiumBook();
+            book.Raise(hive.Key, KnownLevel.Known);
+
+            view.Tell(book, CompendiumRule.Loose);
+
+            Assert.Equal(KnownLevel.Known, view.Of(poison));
+            Assert.Equal(KnownLevel.HeardOf, view.Of(bile));
+            Assert.Equal(KnownLevel.Unknown, view.Of(burning));
+            Assert.Equal(KnownLevel.Unknown, view.Of(fire));
+        }
+
+        [Fact]
         public void WhatAKnownPageNamesIsHeardOfButNotWhatOnlyASeenOneNames()
         {
             var troll = E(Kind.Creature, "Troll");
