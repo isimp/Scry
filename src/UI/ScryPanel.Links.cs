@@ -323,9 +323,35 @@ namespace Scry
         /// <summary>Whether a key names an entry of the catalog the character has not seen: told by its name only, without an icon, going nowhere.</summary>
         private static bool Unseen(Explorer explorer, string key)
         {
-            if (!InCatalog(explorer, key) || explorer.Reaches(key)) return false;
+            if (!LeftOut(explorer, key)) return false;
             CountDrawn(PanelPart.UnseenName);
             return true;
+        }
+
+        /// <summary>Whether a list of what there is leaves out the entry a key names: one in the catalog the character has not seen.</summary>
+        private static bool LeftOut(Explorer explorer, string key) => InCatalog(explorer, key) && !explorer.Reaches(key);
+
+        private static readonly Dictionary<object, object> ListedLists = new Dictionary<object, object>();
+        private static Explorer _listedIn;
+        private static int _listedStamp;
+
+        /// <summary>
+        /// What a list of what there is shows: all of it, or with the compendium on only what the
+        /// character has seen, worked out once for each list while what it knows stays the same.
+        /// </summary>
+        private static List<T> Listed<T>(Explorer explorer, List<T> items, Func<T, string> key)
+        {
+            if (!explorer.CompendiumOn) return items;
+            if (!ReferenceEquals(_listedIn, explorer) || _listedStamp != explorer.KnowStamp || ListedLists.Count > 256)
+            {
+                _listedIn = explorer;
+                _listedStamp = explorer.KnowStamp;
+                ListedLists.Clear();
+            }
+            if (ListedLists.TryGetValue(items, out var had)) return (List<T>)had;
+            var kept = items.Where(i => !LeftOut(explorer, key(i))).ToList();
+            ListedLists[items] = kept;
+            return kept;
         }
 
         /// <summary>The icon of an item or piece prefab by name, or null.</summary>
@@ -379,6 +405,8 @@ namespace Scry
             LinkRows.Clear();
             _kindsFor = null;
             _namesFor = null;
+            ListedLists.Clear();
+            _listedIn = null;
         }
     }
 }

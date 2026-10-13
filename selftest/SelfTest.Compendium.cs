@@ -206,6 +206,25 @@ namespace Scry
             p.Check(drop != null && !X.Reaches(drop.Key), $"what it drops, not seen, is no link: {drop?.Name}");
             p.Check(ScryPanel.Drawn(PanelPart.UnseenName) > unseenNames, "its page tells the names of what was not seen as plain text");
 
+            // A mod's page and the mod report list only what the character has seen of what a mod adds.
+            var adder = X.Catalog.Where(e => e.Kind != Kind.Mod && e.ModName.Length > 0).GroupBy(e => e.ModName).OrderByDescending(g => g.Count())
+                .Select(g => X.Find(EntryKeys.For(Kind.Mod, g.Key))).FirstOrDefault(m => m != null);
+            if (adder != null)
+            {
+                var plain = ScryPanel.Drawn(PanelPart.UnseenName);
+                X.Select(adder);
+                repaints = ScryPanel.Repaints;
+                yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
+                p.Check(ScryPanel.Drawn(PanelPart.UnseenName) == plain, $"{adder.Name}'s page names nothing it adds that was not seen", Numbers.Count(ScryPanel.Drawn(PanelPart.UnseenName) - plain));
+                ScryPanel.ShowModReport();
+                var reported = ScryPanel.Drawn(PanelPart.ModReport);
+                plain = ScryPanel.Drawn(PanelPart.UnseenName);
+                yield return Until(() => ScryPanel.Drawn(PanelPart.ModReport) > reported + 2, 3);
+                p.Check(ScryPanel.Drawn(PanelPart.ModReport) > reported && ScryPanel.Drawn(PanelPart.UnseenName) == plain, "nor does the mod report", Numbers.Count(ScryPanel.Drawn(PanelPart.UnseenName) - plain));
+                ScryPanel.HideModReport();
+            }
+            else p.Note("no mod adds anything: mod pages not tried");
+
             // Knowing what something gives does not make known what else gives it: bees give Poison, bile bombs too, and Burning, as Fader's fire does.
             var hive = X.Find("piece_beehive");
             var bile = X.Find("bilebomb_explosion");

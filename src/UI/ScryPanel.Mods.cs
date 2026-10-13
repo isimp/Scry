@@ -135,6 +135,8 @@ namespace Scry
         /// <summary>A chip for a station or tool, going to it, and what Scry links for it beside it.</summary>
         private static float ChipLine(Explorer explorer, ModEntry entry, string told, float x, float y, float width, Rect visible)
         {
+            // Not seen, a station or tool the mod adds is left out, as its page leaves it out.
+            if (LeftOut(explorer, entry.Key)) return y;
             var rowH = U(26f);
             var go = Goes(explorer, entry.Key);
             var w = Mathf.Min(width * 0.5f, LinkChipWidth(entry.Shown, go));
@@ -148,13 +150,15 @@ namespace Scry
             return y + rowH + U(5f);
         }
 
-        /// <summary>A heading and a wrapping row of chips, each going to its entry, the first few until asked for the rest.</summary>
-        private static float ReportChips(Explorer explorer, string mod, string title, List<ModEntry> entries, float x, float y, float width, Rect visible)
+        /// <summary>A heading and a wrapping row of chips, each going to its entry, the first few until asked for the rest; with the compendium on, only what the character has seen.</summary>
+        private static float ReportChips(Explorer explorer, string mod, string title, List<ModEntry> all, float x, float y, float width, Rect visible)
         {
+            var entries = Listed(explorer, all, e => e.Key);
             if (entries.Count == 0) return y;
             // What Scry could not place may yet be placed by the mod's own code: marked, with why on hover.
             var titleRect = new Rect(x, y, width, U(20f));
-            GUI.Label(titleRect, UnsureWords.Marked(Naming.Counted(title, entries.Count)), Skin.DimLabel);
+            var counted = Naming.Counted(title, all.Count);
+            GUI.Label(titleRect, UnsureWords.Marked(explorer.CompendiumOn ? CompendiumWords.Found(counted, entries.Count) : counted), Skin.DimLabel);
             if (titleRect.Contains(Event.current.mousePosition)) AskTip("unsure:" + mod + title, UnsureWords.NotPlaced);
             y += U(24f);
             var key = "mods:" + mod + ":" + title;

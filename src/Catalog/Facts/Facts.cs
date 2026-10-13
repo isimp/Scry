@@ -54,6 +54,12 @@ namespace Scry
             public readonly Dictionary<(int Line, int Cell), string> CellLinks = new Dictionary<(int, int), string>();
             public readonly List<Ingredient> Items = new List<Ingredient>();
 
+            /// <summary>
+            /// Whether the row lists what there is, as a mod's page lists what it adds: with the
+            /// compendium on it shows only what the character has seen, its title saying how many.
+            /// </summary>
+            public bool Lists;
+
             /// <summary>Gives the items of one name with different prefabs their prefab's name too, so they can be told apart (<see cref="Naming.TellApart"/>).</summary>
             public void TellApart()
             {
@@ -106,6 +112,13 @@ namespace Scry
 
         /// <summary>Values that name something in the catalog, by their label: a prefab name, or "se:" and a status effect's.</summary>
         public readonly Dictionary<string, string> Links = new Dictionary<string, string>();
+
+        /// <summary>
+        /// The labels of lines that only name what the page lists, as a mod's page names the
+        /// stations it adds: with the compendium on, such a line shows once the character has
+        /// seen what it links to.
+        /// </summary>
+        public readonly HashSet<string> Listing = new HashSet<string>(StringComparer.Ordinal);
 
         private void Add(string label, string value, string link = null)
         {

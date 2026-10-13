@@ -53,6 +53,8 @@ namespace Scry
         /// <summary>One labelled fact: its label in the left column, its value at its right, a link, music or a website where it is one.</summary>
         private static float FactPair(Explorer explorer, Entry entry, Facts facts, KeyValuePair<string, string> pair, float width, float labelW, float y)
         {
+            // A line only naming what the page lists waits until the character has seen it.
+            if (facts.Listing.Contains(pair.Key) && facts.Links.TryGetValue(pair.Key, out var listed) && LeftOut(explorer, listed)) return y;
             var valueW = width - labelW - U(10f);
             // A line Scry is not sure of is marked, softer, and says why on hover.
             var unsure = facts.Unsure.TryGetValue(pair.Key, out var why);
@@ -283,34 +285,39 @@ namespace Scry
             if (row.Cells != null) return GridRow(row, width, y);
             if (row.Columns != null) return TableRow(explorer, row, width, y);
             if (row.Chain != null) return ChainRow(explorer, row, width, y);
+            // A list of what there is shows only what the character has seen, and nothing where it saw none.
+            var listing = row.Lists && explorer.CompendiumOn;
+            var items = row.Lists ? Listed(explorer, row.Items, i => i.Prefab) : row.Items;
+            if (listing && items.Count == 0) return y;
+            var title = listing ? CompendiumWords.Found(row.Title, items.Count) : row.Title;
             var key = "facts:" + row.Title;
-            var count = ShownOf(key, row.Items.Count);
+            var count = ShownOf(key, items.Count);
             y += U(6f);
             // A row Scry is not sure of is marked and says why on hover.
             if (row.Unsure != null)
             {
                 var unsureRect = new Rect(0f, y, width, U(20f));
-                GUI.Label(unsureRect, UnsureWords.Marked(row.Title), Skin.DimLabel);
+                GUI.Label(unsureRect, UnsureWords.Marked(title), Skin.DimLabel);
                 if (unsureRect.Contains(Event.current.mousePosition)) AskTip("unsure:" + row.Title, row.Unsure);
             }
             else if (!string.IsNullOrEmpty(row.TitleLink) && Goes(explorer, row.TitleLink))
             {
-                var titleW = Mathf.Min(width, Skin.Width(Skin.DimLabel, row.Title) + U(4f));
+                var titleW = Mathf.Min(width, Skin.Width(Skin.DimLabel, title) + U(4f));
                 var titleRect = new Rect(0f, y, titleW, U(20f));
-                LinkLabel(titleRect, row.Title, Skin.DimLabel, LinkText(KindOf(explorer, row.TitleLink), false));
+                LinkLabel(titleRect, title, Skin.DimLabel, LinkText(KindOf(explorer, row.TitleLink), false));
                 if (titleRect.Contains(Event.current.mousePosition)) AskTip("row-title:" + row.TitleLink, PanelWords.GoTo(ShownName(explorer, row.TitleLink, row.TitleLink)));
                 if (GUI.Button(titleRect, GUIContent.none, GUIStyle.none)) Go(explorer, row.TitleLink);
             }
             else
             {
-                GUI.Label(new Rect(0f, y, width, U(20f)), row.Title, Skin.DimLabel);
+                GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
             }
             y += U(24f);
 
             var flow = new ChipFlow(0f, width, y, U(30f), U(6f), U(5f));
             for (var i = 0; i < count; i++)
             {
-                var item = row.Items[i];
+                var item = items[i];
                 var text = DetailWords.Amounted(item.Amount, item.Name);
                 // A mark (only here, what a trader pays) in a pill of its own at the chip's end.
                 var markW = item.Mark != null ? Skin.Width(Skin.Badge, item.Mark) + U(16f) : 0f;
@@ -351,7 +358,7 @@ namespace Scry
                     }
                 }
             }
-            MoreChip(key, row.Items.Count, FirstChips, width, ref flow);
+            MoreChip(key, items.Count, FirstChips, width, ref flow);
             return flow.RowBottom + U(6f);
         }
 

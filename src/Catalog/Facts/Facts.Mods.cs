@@ -42,8 +42,8 @@ namespace Scry
             }
             Add("Adds", ModReportWords.Counts(summary));
             if (summary.Hooks.Count > 0) Add("Hooks into", ModReportWords.HooksInto(summary.Hooks));
-            foreach (var station in summary.Stations) Add(ModReportWords.StationLabel(station.Shown), ModReportWords.Station(station), station.Key);
-            foreach (var tool in summary.Tools) Add(ModReportWords.ToolLabel(tool.Shown), ModReportWords.Tool(tool), tool.Key);
+            foreach (var station in summary.Stations) AddListed(ModReportWords.StationLabel(station.Shown), ModReportWords.Station(station), station.Key);
+            foreach (var tool in summary.Tools) AddListed(ModReportWords.ToolLabel(tool.Shown), ModReportWords.Tool(tool), tool.Key);
 
             // What it adds, a row for each kind, in the tabs' order; what only clues match to it
             // in a row of its own, as Scry's best guess.
@@ -57,6 +57,13 @@ namespace Scry
             }
 
             foreach (var (title, entries) in summary.Gaps()) GapRow(title, entries, catalog);
+        }
+
+        /// <summary>A line that only names something the mod adds, shown with the compendium on once the character has seen it (<see cref="Listing"/>).</summary>
+        private void AddListed(string label, string value, string link)
+        {
+            Add(label, value, link);
+            Listing.Add(label);
         }
 
         /// <summary>A row of other mods, each going to its page.</summary>
@@ -75,7 +82,7 @@ namespace Scry
         /// <summary>A row of entries, each going to it, sorted by the name shown.</summary>
         private static Row ChipRow(string title, IEnumerable<Entry> entries, string unsure)
         {
-            var row = new Row { Title = title, Unsure = unsure };
+            var row = new Row { Title = title, Unsure = unsure, Lists = true };
             foreach (var entry in entries.OrderBy(e => e.ShownName, System.StringComparer.OrdinalIgnoreCase)) row.Items.Add(EntryChip(entry));
             return row;
         }
@@ -84,7 +91,7 @@ namespace Scry
         private void GapRow(string title, List<ModEntry> entries, EntryCatalog catalog)
         {
             if (entries.Count == 0) return;
-            var row = new Row { Title = Naming.Counted(title, entries.Count), Unsure = UnsureWords.NotPlaced };
+            var row = new Row { Title = Naming.Counted(title, entries.Count), Unsure = UnsureWords.NotPlaced, Lists = true };
             foreach (var one in entries)
             {
                 var entry = catalog.Find(one.Key);

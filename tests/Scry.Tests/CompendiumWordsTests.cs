@@ -25,6 +25,13 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AListOfWhatThereIsSaysHowManyOfItWereFound()
+        {
+            // A mod's page lists what it adds; only what the character has seen is shown.
+            Assert.Equal("Adds items (1,200), 3 found", CompendiumWords.Found("Adds items (1,200)", 3));
+        }
+
+        [Fact]
         public void AClosedPageSaysHowMuchIsKnownAndWhatWouldOpenIt()
         {
             Assert.Equal("Not met yet", CompendiumWords.Closed(KnownLevel.Unknown));

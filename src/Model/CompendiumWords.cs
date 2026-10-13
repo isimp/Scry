@@ -25,6 +25,9 @@ namespace Scry
         public static string Tab(string label, int found, int total, string colour) =>
             $"{label}  <color=#{colour}>{Numbers.Count(found)}/{Numbers.Count(total)}</color>";
 
+        /// <summary>The title of a list of what there is (what a mod adds) with the compendium on: how many of it the character has seen, which are all it shows.</summary>
+        public static string Found(string title, int found) => $"{title}, {Numbers.Count(found)} found";
+
         /// <summary>The first line of a page not yet open, by how much the character knows of it.</summary>
         public static string Closed(KnownLevel level)
         {
