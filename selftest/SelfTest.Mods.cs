@@ -140,6 +140,30 @@ namespace Scry
         }
 
         /// <summary>
+        /// An item a section of a mod's settings is named after shows them on its page, a table
+        /// under the mod's name that goes to its page; each item found so is named in the log.
+        /// </summary>
+        private static IEnumerator ModSettingsOfItems(Probe p)
+        {
+            var named = X.Catalog.Where(e => e.Kind == Kind.Item && e.Source is GameObject)
+                .Select(e => (Entry: e, Sections: ModConfigs.About(e.DisplayName, e.Name)))
+                .Where(f => f.Sections.Count > 0).ToList();
+            p.Note($"{Numbers.Count(named.Count)} items have settings of their own in a mod");
+            foreach (var (entry, sections) in named.Take(20))
+            {
+                p.Note($"{entry.Name}: {string.Join("; ", sections.Select(s => $"{s.Mod}, {s.Section}, {Naming.Count(s.Settings.Count, "setting", "settings")}"))}");
+            }
+            if (named.Count == 0) p.Skip("no mod has a section of settings named after an item");
+
+            var (item, found) = named[0];
+            var rows = Facts.For(item).Rows.Where(r => r.Columns == ModSettingWords.Columns).ToList();
+            p.Check(rows.Count == found.Count(s => s.Settings.Count > 0) && rows.All(r => r.Lines.Count > 0 && r.Unsure == UnsureWords.ModSettings),
+                $"{item.Name}'s page shows each section of settings named after it", string.Join("; ", rows.Select(r => r.Title)));
+            p.Check(rows.All(r => r.TitleLink == null || X.Catalog.Any(e => e.Key == r.TitleLink)), "each goes to its mod's page", string.Join(", ", rows.Select(r => r.TitleLink)));
+            yield break;
+        }
+
+        /// <summary>
         /// What mod managers put beside a mod is read: its package's description, author,
         /// website, icon and readme, each told on its page; and the mods each needs and works
         /// with are told both ways, as BepInEx and the packages declare them.

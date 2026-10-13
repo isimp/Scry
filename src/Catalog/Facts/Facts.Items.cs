@@ -87,6 +87,27 @@ namespace Scry
 
             Part("recipe", () => Recipes(prefab, shared));
             Part("made at stations", () => MadeIn(prefab));
+            Part("mod settings", () => ModSettings(prefab, shared));
+        }
+
+        /// <summary>
+        /// The mods' settings for an item, by sections of their configs named after it
+        /// (<see cref="ModConfigs"/>): each a table of its settings as the config holds them now,
+        /// under the mod's name, which goes to its page. Only the mod knows what it does with them.
+        /// </summary>
+        private void ModSettings(GameObject prefab, ItemDrop.ItemData.SharedData shared)
+        {
+            foreach (var (mod, section, settings) in ModConfigs.About(CatalogBuilder.Localize(shared.m_name), prefab.name))
+            {
+                var page = EntryKeys.For(Kind.Mod, mod);
+                var row = new Row
+                {
+                    Title = ModSettingWords.Title(mod, section), TitleLink = EntryOf(page) != null ? page : null,
+                    Columns = ModSettingWords.Columns, Unsure = UnsureWords.ModSettings,
+                };
+                foreach (var (key, value) in settings) row.Lines.Add((new[] { key, ModSettingWords.Value(value) }, null));
+                if (row.Lines.Count > 0) Rows.Add(row);
+            }
         }
 
         /// <summary>Each enabled recipe that makes the item, with its upgrade kits.</summary>

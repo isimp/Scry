@@ -227,10 +227,11 @@ namespace Scry
         public static Facts For(Entry entry)
         {
             if (entry == null) return new Facts();
-            // A creature's or item's facts tell what was seen dropping in play, which grows as you play.
-            if (Cache.TryGetValue(entry, out var known) && (known._seenVersion == DropWatch.Version || (entry.Kind != Kind.Creature && entry.Kind != Kind.Item && entry.Kind != Kind.Mod))) return known;
+            // A creature's or item's facts tell what was seen dropping in play, which grows as you
+            // play, and an item's the mods' settings for it, which change as they are set.
+            if (Cache.TryGetValue(entry, out var known) && (known._toldWith == Freshness || (entry.Kind != Kind.Creature && entry.Kind != Kind.Item && entry.Kind != Kind.Mod))) return known;
 
-            var facts = new Facts { _seenVersion = DropWatch.Version };
+            var facts = new Facts { _toldWith = Freshness };
             _notables = new Dictionary<string, (ICollection<string>, bool, int)>(StringComparer.Ordinal);
             try
             {
@@ -318,8 +319,11 @@ namespace Scry
             foreach (var row in facts.Rows.Concat(facts.UseRows)) row.TellApart();
         }
 
-        /// <summary>What had been seen dropping in play when these facts were told (<see cref="DropWatch.Version"/>).</summary>
-        private int _seenVersion;
+        /// <summary>What had been seen in play and how the mods were set when these facts were told (<see cref="Freshness"/>).</summary>
+        private (int Drops, int Settings) _toldWith;
+
+        /// <summary>What has been seen in play and how the mods are set now, by their counts of changes.</summary>
+        private static (int Drops, int Settings) Freshness => (DropWatch.Version, ModConfigs.Version);
 
         /// <summary>What these facts link to: their values', their rows' and tables', and where it comes from; so Linked shows each link once.</summary>
         public HashSet<string> LinkedTargets()

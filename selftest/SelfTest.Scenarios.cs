@@ -50,6 +50,7 @@ namespace Scry
             yield return S("what creatures drop in play is watched", DropsWatched, 5);
             yield return S("every mod has a page of what it adds and changes", ModPages, 10);
             yield return S("a mod's page tells what its package says and how it ties to other mods", ModPackages, 10);
+            yield return S("an item a mod's settings are named after shows them", ModSettingsOfItems, 10);
             yield return S("which mod added what is found from every clue, and nothing of the game's is put down to a mod", ModClues, 10);
             yield return S("gear tells its resistances, what it changes while worn, and a weapon its second attack", GearFacts, 10);
             yield return S("tame creatures tell how they breed and are ridden, their young where they come from and what they grow into", BreedingFacts, 10);

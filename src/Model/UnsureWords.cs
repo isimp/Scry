@@ -23,6 +23,7 @@ namespace Scry
         public const string NoAttackItem = "It hunts, yet carries no attack item Scry can read; code of the game or a mod may still give it one";
         public const string MatchedByClues = "Scry matched these to this mod by the scripts they carry or the assets they use; the mod does not say so itself";
         public const string NotPlaced = "Scry found nothing for these; the mod's own code may still place them";
+        public const string ModSettings = "The mod's own settings, as its config holds them now; only the mod knows what it does with them";
 
         public static string Marked(string label) => Mark + label;
 
