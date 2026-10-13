@@ -160,7 +160,7 @@ namespace Scry
             for (var i = 0; i < count; i++)
             {
                 var member = members[i];
-                var go = member != self && InCatalog(explorer, member);
+                var go = member != self && Goes(explorer, member);
                 var w = Mathf.Min(width, LinkChipWidth(member, go));
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
@@ -268,7 +268,7 @@ namespace Scry
                 {
                     var owner = row.Owners[o];
                     var shown = row.Names != null && o < row.Names.Length ? row.Names[o] : ShownName(explorer, owner.Key, owner.Shown);
-                    var go = owner.Key != null && InCatalog(explorer, owner.Key);
+                    var go = owner.Key != null && Goes(explorer, owner.Key);
                     var w = Mathf.Min(width, LinkChipWidth(shown, go));
                     var at = owners.Place(w);
                     var chip = new Rect(at.X, at.Y, w, rowH);

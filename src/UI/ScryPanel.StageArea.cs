@@ -89,7 +89,7 @@ namespace Scry
                     if (room != null)
                     {
                         var key = EntryKeys.For(Kind.Location, room.Room.Name);
-                        var known = InCatalog(explorer, key);
+                        var known = Goes(explorer, key);
                         var name = ShownName(explorer, key, LocationWords.RoomName(room.Room.Name));
                         AskTip("stageroom:" + room.Room.Name, StageWords.RoomTip(name, known));
                         if (known) roomKey = key;

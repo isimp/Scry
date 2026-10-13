@@ -124,7 +124,7 @@ namespace Scry
                 if (hovered != null)
                 {
                     var key = EntryKeys.For(Kind.Location, hovered.Room.Name);
-                    var known = InCatalog(explorer, key);
+                    var known = Goes(explorer, key);
                     var name = ShownName(explorer, key, LocationWords.RoomName(hovered.Room.Name));
                     AskTip("plan:" + hovered.Room.Name, StageWords.RoomTip(name, known));
                     if (known && e.type == EventType.MouseDown && e.button == 0)

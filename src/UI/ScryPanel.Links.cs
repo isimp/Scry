@@ -106,12 +106,13 @@ namespace Scry
             for (var i = 0; i < count; i++)
             {
                 var item = all[i];
-                var w = Mathf.Min(width, LinkChipWidth(item.Text, true));
+                var go = !Unseen(explorer, item.Key);
+                var w = Mathf.Min(width, LinkChipWidth(item.Text, go));
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
                 if (OutOfSight(chip)) continue;
-                if (LinkChip(chip, item.Text, KindOf(explorer, item.Key), false, true)) item.Click();
-                if (chip.Contains(Event.current.mousePosition)) AskTip("link:" + title + item.Key + item.Text, item.Tip ?? PanelWords.GoTo(item.Text));
+                if (LinkChip(chip, item.Text, go ? KindOf(explorer, item.Key) : null, false, go)) item.Click();
+                if (go && chip.Contains(Event.current.mousePosition)) AskTip("link:" + title + item.Key + item.Text, item.Tip ?? PanelWords.GoTo(item.Text));
             }
             MoreChip(key, all.Count, FirstChips, width, ref flow);
             return flow.RowBottom + U(10f);
@@ -241,7 +242,7 @@ namespace Scry
             }
         }
 
-        /// <summary>A small heading and a wrapping row of chips, each doing its own thing when clicked.</summary>
+        /// <summary>A small heading and a wrapping row of chips, each doing its own thing when clicked; one with nothing to do is plain.</summary>
         private static float ChipRow(string title, IEnumerable<KeyValuePair<string, Action>> chips, float width, float y)
         {
             GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
@@ -253,7 +254,9 @@ namespace Scry
                 var w = Mathf.Min(width, Skin.Width(Skin.Chip, chip.Key) + U(8f));
                 var at = flow.Place(w);
                 var rect = new Rect(at.X, at.Y, w, flow.RowHeight);
-                if (!OutOfSight(rect) && GUI.Button(rect, chip.Key, Skin.Fitted(Skin.Chip, rect))) chip.Value();
+                if (OutOfSight(rect)) continue;
+                if (chip.Value == null) LinkChip(rect, chip.Key, null, false, false);
+                else if (GUI.Button(rect, chip.Key, Skin.Fitted(Skin.Chip, rect))) chip.Value();
             }
             MoreChip(key, all.Count, FirstChips, width, ref flow);
             return flow.RowBottom + U(10f);
@@ -309,6 +312,20 @@ namespace Scry
                 PrefabIcons.Clear();
             }
             return key != null && _catalogNames.Contains(key);
+        }
+
+        /// <summary>
+        /// Whether a chip naming the entry a key names goes there: it is in the catalog and the
+        /// character has seen it (<see cref="Explorer.Reaches"/>). Else the name is plain text.
+        /// </summary>
+        private static bool Goes(Explorer explorer, string key) => InCatalog(explorer, key) && !Unseen(explorer, key);
+
+        /// <summary>Whether a key names an entry of the catalog the character has not seen: told by its name only, without an icon, going nowhere.</summary>
+        private static bool Unseen(Explorer explorer, string key)
+        {
+            if (!InCatalog(explorer, key) || explorer.Reaches(key)) return false;
+            CountDrawn(PanelPart.UnseenName);
+            return true;
         }
 
         /// <summary>The icon of an item or piece prefab by name, or null.</summary>

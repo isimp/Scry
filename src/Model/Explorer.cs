@@ -173,6 +173,17 @@ namespace Scry
         /// <summary>How much the character knows of an entry; all of it while the compendium is off.</summary>
         public KnownLevel LevelOf(Entry entry) => CompendiumOn ? _view.Of(entry) : KnownLevel.Known;
 
+        /// <summary>
+        /// Whether a page may go to the entry a key names (<see cref="EntryKeys"/>): one in the
+        /// catalog the character has seen or knows, any of them while the compendium is off. A
+        /// name it may not go to is told as plain text.
+        /// </summary>
+        public bool Reaches(string key)
+        {
+            var entry = Find(key);
+            return entry != null && LevelOf(entry) >= KnownLevel.Seen;
+        }
+
         /// <summary>How many of a kind the character has met (seen or known), whatever is typed.</summary>
         public int FoundOf(Kind kind) => _found[(int)kind];
 

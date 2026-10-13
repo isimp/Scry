@@ -236,14 +236,14 @@ namespace Scry
                                 if (said != null) Say(said);
                             }
                         }
-                        else if (c == 0 && !string.IsNullOrEmpty(link) && InCatalog(explorer, link))
+                        else if (c == 0 && !string.IsNullOrEmpty(link) && Goes(explorer, link))
                         {
                             LinkLabel(cell, cells[c], Skin.SmallWrap, LinkText(KindOf(explorer, link), false));
                             if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + link, PanelWords.GoTo(cells[c]));
                             if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, link);
                         }
                         // A later cell naming something in the catalog goes there: an attack's projectile, what it puts on you.
-                        else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var to) && InCatalog(explorer, to))
+                        else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var to) && Goes(explorer, to))
                         {
                             LinkLabel(cell, cells[c], Skin.SmallWrap, LinkText(KindOf(explorer, to), false));
                             if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + to, PanelWords.GoTo(cells[c]));

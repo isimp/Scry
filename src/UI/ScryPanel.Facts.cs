@@ -86,7 +86,7 @@ namespace Scry
                 if (GUI.Button(webRect, GUIContent.none, GUIStyle.none)) Shell.OpenWebsite(url);
             }
             // A link only to what is in the catalog: a creature's own attack items are not.
-            else if (facts.Links.TryGetValue(pair.Key, out var link) && InCatalog(explorer, link))
+            else if (facts.Links.TryGetValue(pair.Key, out var link) && Goes(explorer, link))
             {
                 var linkW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
                 var linkRect = new Rect(valueRect.x, valueRect.y, linkW, height);
@@ -138,7 +138,7 @@ namespace Scry
                 // A line naming a prefab in the catalog is a chip that goes there; the rest is text.
                 // A line Scry is not sure of is marked and says why on hover.
                 var text = source.Unsure != null ? UnsureWords.Marked(source.Text) : source.Text;
-                if (string.IsNullOrEmpty(source.Prefab) || !InCatalog(explorer, source.Prefab))
+                if (string.IsNullOrEmpty(source.Prefab) || !Goes(explorer, source.Prefab))
                 {
                     var style = source.Unsure != null ? Skin.DimWrap : Skin.Wrap;
                     var height = Skin.Height(style, text, width);
@@ -180,12 +180,14 @@ namespace Scry
             // searching; a biome's own page names none.
             if (entry.Biomes.Length > 0 && entry.Kind != Kind.Biome)
             {
-                y = ChipRow("Biomes", entry.Biomes.Select(b => new KeyValuePair<string, Action>(Knowledge.BiomeName(b), () =>
+                y = ChipRow("Biomes", entry.Biomes.Select(b =>
                 {
                     var page = EntryKeys.For(Kind.Biome, b);
-                    if (InCatalog(explorer, page)) Go(explorer, page);
-                    else SearchFor(explorer, SearchHelp.Term("biome", b));
-                })), width, y);
+                    Action go = Unseen(explorer, page) ? null
+                        : Goes(explorer, page) ? () => Go(explorer, page)
+                        : (Action)(() => SearchFor(explorer, SearchHelp.Term("biome", b)));
+                    return new KeyValuePair<string, Action>(Knowledge.BiomeName(b), go);
+                }), width, y);
             }
             return y;
         }
@@ -291,7 +293,7 @@ namespace Scry
                 GUI.Label(unsureRect, UnsureWords.Marked(row.Title), Skin.DimLabel);
                 if (unsureRect.Contains(Event.current.mousePosition)) AskTip("unsure:" + row.Title, row.Unsure);
             }
-            else if (!string.IsNullOrEmpty(row.TitleLink) && InCatalog(explorer, row.TitleLink))
+            else if (!string.IsNullOrEmpty(row.TitleLink) && Goes(explorer, row.TitleLink))
             {
                 var titleW = Mathf.Min(width, Skin.Width(Skin.DimLabel, row.Title) + U(4f));
                 var titleRect = new Rect(0f, y, titleW, U(20f));
@@ -326,10 +328,10 @@ namespace Scry
                     if (GUI.Button(chip, GUIContent.none, GUIStyle.none)) SearchFor(explorer, query);
                     continue;
                 }
-                var goes = !string.IsNullOrEmpty(item.Prefab) && InCatalog(explorer, item.Prefab);
+                var goes = !string.IsNullOrEmpty(item.Prefab) && Goes(explorer, item.Prefab);
                 var kind = goes ? KindOf(explorer, item.Prefab) : null;
                 Skin.PillBox(chip, goes ? LinkFill(kind, hover) : Skin.Raised);
-                if (item.Icon != null) DrawSprite(item.Icon, new Rect(chip.x + U(6f), chip.y + U(4f), U(22f), U(22f)));
+                if (item.Icon != null && !Unseen(explorer, item.Prefab)) DrawSprite(item.Icon, new Rect(chip.x + U(6f), chip.y + U(4f), U(22f), U(22f)));
                 Skin.LabelIn(new Rect(chip.x + U(32f), chip.y, chip.width - U(36f) - markW, chip.height), text, Skin.Small, goes ? LinkText(kind, hover) : Skin.Text);
                 if (item.Mark != null)
                 {
@@ -382,7 +384,7 @@ namespace Scry
                         GUI.Label(chip, name, Skin.Fitted(Skin.ChipOn, chip));
                         continue;
                     }
-                    var goes = InCatalog(explorer, key);
+                    var goes = Goes(explorer, key);
                     if (LinkChip(chip, name, goes ? KindOf(explorer, key) : null, false, goes) && goes) Go(explorer, key);
                     if (goes && chip.Contains(Event.current.mousePosition)) AskTip("chain:" + key, PanelWords.GoTo(name));
                 }

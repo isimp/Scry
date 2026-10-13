@@ -96,7 +96,7 @@ namespace Scry
                 var headingH = U(26f);
                 // A mod's name heads its part of the report, and goes to its own page as a link does; the report stays for the next.
                 var page = EntryKeys.For(Kind.Mod, mod.Mod);
-                var goes = mod.Mod != ModReportReader.UnknownMod && InCatalog(explorer, page);
+                var goes = mod.Mod != ModReportReader.UnknownMod && Goes(explorer, page);
                 var heading = new Rect(x, y, goes ? Mathf.Min(width, Skin.Width(Skin.Label, mod.Mod) + U(4f)) : width, headingH);
                 if (goes)
                 {
@@ -136,12 +136,13 @@ namespace Scry
         private static float ChipLine(Explorer explorer, ModEntry entry, string told, float x, float y, float width, Rect visible)
         {
             var rowH = U(26f);
-            var w = Mathf.Min(width * 0.5f, LinkChipWidth(entry.Shown, true));
+            var go = Goes(explorer, entry.Key);
+            var w = Mathf.Min(width * 0.5f, LinkChipWidth(entry.Shown, go));
             var chip = new Rect(x, y, w, rowH);
             if (!OutOfSight(chip, visible))
             {
-                if (LinkChip(chip, entry.Shown, entry.Kind, false, true)) Go(explorer, entry.Key);
-                if (chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, PanelWords.GoTo(entry.Shown));
+                if (LinkChip(chip, entry.Shown, go ? entry.Kind : (Kind?)null, false, go)) Go(explorer, entry.Key);
+                if (go && chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, PanelWords.GoTo(entry.Shown));
                 GUI.Label(new Rect(x + w + U(8f), y + U(3f), width - w - U(8f), U(22f)), told, Skin.DimLabel);
             }
             return y + rowH + U(5f);
@@ -162,12 +163,13 @@ namespace Scry
             for (var i = 0; i < count; i++)
             {
                 var entry = entries[i];
-                var w = Mathf.Min(width, LinkChipWidth(entry.Shown, true));
+                var go = Goes(explorer, entry.Key);
+                var w = Mathf.Min(width, LinkChipWidth(entry.Shown, go));
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
                 if (OutOfSight(chip, visible)) continue;
-                if (LinkChip(chip, entry.Shown, entry.Kind, false, true)) Go(explorer, entry.Key);
-                if (chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, PanelWords.GoTo(entry.Shown));
+                if (LinkChip(chip, entry.Shown, go ? entry.Kind : (Kind?)null, false, go)) Go(explorer, entry.Key);
+                if (go && chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, PanelWords.GoTo(entry.Shown));
             }
             // The rest behind a chip of their own, as the details' long rows have, against the
             // report's own scrolling.

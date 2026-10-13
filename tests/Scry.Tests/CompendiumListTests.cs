@@ -223,5 +223,30 @@ namespace Scry.Tests
             Assert.True(world.Explorer.Jump(world.Boar.Key));
             Assert.Same(world.Boar, world.Explorer.Selected);
         }
+
+        [Fact]
+        public void APageLeadsOnlyToWhatTheCharacterHasSeen()
+        {
+            // The troll's page names its hide, heard of: the name is told as plain text, going nowhere.
+            var world = new World().Rule(CompendiumRule.Loose);
+            var explorer = world.Explorer;
+
+            Assert.True(explorer.Reaches(world.Troll.Key));
+            Assert.True(explorer.Reaches(world.Boar.Key));
+            Assert.False(explorer.Reaches(world.Hide.Key));
+            Assert.False(explorer.Reaches(world.Fenring.Key));
+            Assert.False(explorer.Reaches("Draugr"));
+            Assert.False(explorer.Reaches(null));
+        }
+
+        [Fact]
+        public void WithTheCompendiumOffAPageLeadsToEverythingInTheCatalog()
+        {
+            var world = new World().Rule(CompendiumRule.Off);
+
+            Assert.True(world.Explorer.Reaches(world.Fenring.Key));
+            Assert.True(world.Explorer.Reaches(world.Hide.Key));
+            Assert.False(world.Explorer.Reaches("Draugr"));
+        }
     }
 }

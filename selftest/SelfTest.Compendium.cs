@@ -173,13 +173,17 @@ namespace Scry
             p.Check(Stage.Showing == spotted, $"{spotted.Name}, only seen, stands on the stage", Stage.Showing?.Name);
             p.Check(ScryPanel.Drawn(PanelPart.ClosedPage) > closed, "with its page closed");
 
-            // Fought: the whole page.
+            // Fought: the whole page, naming what was not seen, its drops among them, by name only.
+            var drop = fought.TermLinks("drops").FirstOrDefault(d => X.LevelOf(d) < KnownLevel.Seen);
+            var unseenNames = ScryPanel.Drawn(PanelPart.UnseenName);
             X.Select(fought);
             yield return Until(() => Stage.Showing == fought, 5);
             closed = ScryPanel.Drawn(PanelPart.ClosedPage);
             var repaints = ScryPanel.Repaints;
             yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
             p.Check(ScryPanel.Drawn(PanelPart.ClosedPage) == closed, $"{fought.Name}, fought, shows its whole page");
+            p.Check(drop != null && !X.Reaches(drop.Key), $"what it drops, not seen, is no link: {drop?.Name}");
+            p.Check(ScryPanel.Drawn(PanelPart.UnseenName) > unseenNames, "its page tells the names of what was not seen as plain text");
 
             // Off: everything as before.
             view.Tell(book, CompendiumRule.Off);

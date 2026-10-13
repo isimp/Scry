@@ -284,7 +284,7 @@ namespace Scry
         private static void ModLink(Explorer explorer, Entry entry, Rect rect)
         {
             var page = EntryKeys.For(Kind.Mod, entry.ModName);
-            var known = InCatalog(explorer, page);
+            var known = Goes(explorer, page);
             var clue = UnsureWords.IsSureClue(entry.ModClue) ? null : UnsureWords.ModClue(entry.ModClue);
             if (rect.Contains(Event.current.mousePosition)) AskTip("mod" + clue, DetailWords.ModTip(clue, entry.ModName, known));
             if (!GUI.Button(rect, GUIContent.none, GUIStyle.none)) return;

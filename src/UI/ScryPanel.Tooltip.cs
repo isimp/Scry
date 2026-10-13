@@ -203,7 +203,7 @@ namespace Scry
             foreach (var mod in mods)
             {
                 var page = EntryKeys.For(Kind.Mod, mod);
-                var go = InCatalog(explorer, page);
+                var go = Goes(explorer, page);
                 var w = Mathf.Min(width, LinkChipWidth(mod, go));
                 var place = flow.Place(w);
                 var chip = new Rect(place.X, place.Y, w, flow.RowHeight);
