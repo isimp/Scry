@@ -10,8 +10,9 @@ namespace Scry
     /// <see cref="CompendiumBook.FileName"/>, which Gale's profile sync leaves alone), caught up
     /// with what the game keeps of the character (<see cref="CharacterRecords"/>) once the catalog
     /// is read, quietly the first time and then whenever those records grow, looked at once a
-    /// second; and written back once it changed, at most every half minute, on leaving a world and
-    /// on quitting. A book that could not be read is never written over.
+    /// second along with what the character has, is in and points at (<see cref="Look"/>); and
+    /// written back once it changed, at most every half minute, on leaving a world and on
+    /// quitting. A book that could not be read is never written over.
     /// </summary>
     internal static class CompendiumKeeper
     {
@@ -69,8 +70,33 @@ namespace Scry
                     _catchUp.Fill(Records, _book, quietly: !_caughtUp);
                     _caughtUp = true;
                 }
+                Look(player);
             }
             Save();
+        }
+
+        /// <summary>
+        /// What the character has and is in, as news: what it carries, the status effects on it,
+        /// the raid around it (<c>RandEventSystem.GetActiveEvent</c>, the one the game plays for
+        /// it) and the place it stands in are known; what it points at is seen.
+        /// </summary>
+        private static void Look(Player player)
+        {
+            foreach (var item in player.GetInventory().GetAllItems())
+            {
+                if (item?.m_dropPrefab != null) _catchUp.Met(item.m_dropPrefab.name, KnownLevel.Known, _book);
+            }
+            foreach (var effect in player.GetSEMan().GetStatusEffects())
+            {
+                if (effect != null) _catchUp.Met(EntryKeys.For(Kind.StatusEffect, Utils.GetPrefabName(effect.name)), KnownLevel.Known, _book);
+            }
+            var raid = RandEventSystem.instance.OrNull()?.GetActiveEvent();
+            if (raid != null) _catchUp.Met(EntryKeys.For(Kind.Raid, raid.m_name), KnownLevel.Known, _book);
+            var place = Location.GetLocation(player.transform.position);
+            if (place != null) _catchUp.Met(EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)), KnownLevel.Known, _book);
+            var hovered = player.GetHoverObject();
+            var thing = hovered != null ? hovered.GetComponentInParent<ZNetView>() : null;
+            if (thing != null) _catchUp.Met(Utils.GetPrefabName(thing.gameObject), KnownLevel.Seen, _book);
         }
 
         /// <summary>Writes the book once it changed, at most every half minute unless asked to now, on a worker thread.</summary>

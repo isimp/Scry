@@ -194,6 +194,24 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatTheCharacterMeetsInPlayIsLearnedAsNewsAndWhatTheCatalogLacksIsPassedOver()
+        {
+            var troll = E(Kind.Creature, "Troll", "$enemy_troll");
+            var rested = new Entry { Kind = Kind.StatusEffect, Name = "Rested" };
+            var (catchUp, book) = Fresh(troll, rested);
+
+            Assert.True(catchUp.Met(troll.Key, KnownLevel.Seen, book));
+            Assert.True(catchUp.Met(rested.Key, KnownLevel.Known, book));
+            Assert.False(catchUp.Met(troll.Key, KnownLevel.HeardOf, book));
+            Assert.False(catchUp.Met("SomethingNoCatalogHas", KnownLevel.Known, book));
+            Assert.False(catchUp.Met(null, KnownLevel.Known, book));
+
+            Assert.Equal(KnownLevel.Seen, book.Level(troll.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level("SomethingNoCatalogHas"));
+            Assert.Equal(new[] { rested.Key, troll.Key }, book.Lately.ToArray());
+        }
+
+        [Fact]
         public void WhatTheCharacterKnewBeforeIsNoNewsWhenReadQuietly()
         {
             // The first reading after a character loads: all of it was known before, none of it

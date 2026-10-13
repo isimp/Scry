@@ -55,6 +55,9 @@ namespace Scry
                 + Raise(book, Named(records.Recipes, Kind.Item), KnownLevel.HeardOf, quietly);
         }
 
+        /// <summary>Learns of an entry met in play, by its key, as news; true when that is more than was known. What the catalog has no entry for is passed over.</summary>
+        public bool Met(string key, KnownLevel level, CompendiumBook book) => _catalog.Find(key) != null && book.Raise(key, level);
+
         /// <summary>The entries of a kind going by any of these names.</summary>
         private IEnumerable<Entry> Named(IEnumerable<string> tokens, Kind kind)
         {
