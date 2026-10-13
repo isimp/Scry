@@ -60,6 +60,8 @@ namespace Scry
             { typeof(ItemMade), Feature.DropsSeenInPlay },
             { typeof(EquipWatched), Feature.WhatEquippingDid },
             { typeof(UnequipWatched), Feature.WhatEquippingDid },
+            { typeof(HitWatched), Feature.CompendiumFought },
+            { typeof(HitByWatched), Feature.CompendiumFought },
             { typeof(UnmoddedTooltip), Feature.TooltipFromMods },
         };
 

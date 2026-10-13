@@ -99,6 +99,13 @@ namespace Scry
             if (thing != null) _catchUp.Met(Utils.GetPrefabName(thing.gameObject), KnownLevel.Seen, _book);
         }
 
+        /// <summary>Learns of a creature the character fought, hitting it or hit by it, as news.</summary>
+        public static void Fought(Character creature)
+        {
+            if (_book == null || _catchUp == null || creature == null || creature == Player.m_localPlayer) return;
+            _catchUp.Met(Utils.GetPrefabName(creature.gameObject), KnownLevel.Known, _book);
+        }
+
         /// <summary>Writes the book once it changed, at most every half minute unless asked to now, on a worker thread.</summary>
         public static void Save(bool now = false)
         {
