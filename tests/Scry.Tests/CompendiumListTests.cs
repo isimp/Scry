@@ -255,6 +255,69 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void FavouritesAndRecentListOnlyWhatTheCharacterHasSeen()
+        {
+            // Both were kept while the compendium was off, or by another character.
+            var world = new World().Rule(CompendiumRule.Off);
+            var explorer = world.Explorer;
+            explorer.ToggleFavourite(world.Fenring);
+            explorer.ToggleFavourite(world.Troll);
+            explorer.Select(world.Fenring);
+            explorer.Select(world.Boar);
+
+            world.Rule(CompendiumRule.Loose);
+
+            explorer.FavouritesOnly = true;
+            Assert.Equal(new[] { world.Troll }, explorer.Results.ToArray());
+            explorer.FavouritesOnly = false;
+            explorer.RecentOnly = true;
+            Assert.Equal(new[] { world.Boar }, explorer.Results.ToArray());
+        }
+
+        [Fact]
+        public void GoingBackNeverLeadsToWhatTheCharacterHasNotSeen()
+        {
+            // Looked at with the compendium off, the fenring is no step back once it is on.
+            var world = new World().Rule(CompendiumRule.Off);
+            var explorer = world.Explorer;
+            explorer.Select(world.Troll);
+            explorer.Select(world.Fenring);
+            explorer.Select(world.Hide);
+            explorer.Select(world.Boar);
+
+            world.Rule(CompendiumRule.Loose);
+
+            Assert.True(explorer.Back());
+            Assert.Same(world.Troll, explorer.Selected);
+            Assert.False(explorer.CanGoBack);
+            Assert.True(explorer.Forward());
+            Assert.Same(world.Boar, explorer.Selected);
+            Assert.False(explorer.CanGoForward);
+        }
+
+        [Fact]
+        public void GoingForwardAgainLeadsOnlyToWhatTheCharacterHasSeen()
+        {
+            // The boar, only seen, is a step still; the fenring and the hide are not.
+            var world = new World().Rule(CompendiumRule.Off);
+            var explorer = world.Explorer;
+            explorer.Select(world.Troll);
+            explorer.Select(world.Boar);
+            explorer.Select(world.Fenring);
+            explorer.Select(world.Hide);
+            explorer.Back();
+            explorer.Back();
+            explorer.Back();
+
+            world.Rule(CompendiumRule.Loose);
+
+            Assert.Same(world.Troll, explorer.Selected);
+            Assert.True(explorer.Forward());
+            Assert.Same(world.Boar, explorer.Selected);
+            Assert.False(explorer.CanGoForward);
+        }
+
+        [Fact]
         public void WithTheCompendiumOffAPageLeadsToEverythingInTheCatalog()
         {
             var world = new World().Rule(CompendiumRule.Off);

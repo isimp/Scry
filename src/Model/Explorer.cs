@@ -195,7 +195,8 @@ namespace Scry
 
         /// <summary>
         /// Shows what the character knows (<see cref="CompendiumView"/>): the list again, with what
-        /// was found of each kind counted, whenever the view or what it holds changed.
+        /// was found of each kind counted, and the steps back and forward without what it has not
+        /// seen, whenever the view or what it holds changed.
         /// </summary>
         public void Know(CompendiumView view)
         {
@@ -218,9 +219,14 @@ namespace Scry
                     if (level >= KnownLevel.Seen) _found[(int)entry.Kind]++;
                     if (level >= KnownLevel.Seen) _visible.Add(entry);
                 }
+                // Steps back and forward lead only to what the character has seen.
+                _back.RemoveAll(Unmet);
+                _forward.RemoveAll(Unmet);
             }
             Refresh();
         }
+
+        private bool Unmet(Place place) => place.Selected != null && LevelOf(place.Selected) < KnownLevel.Seen;
 
         /// <summary>The selection as the stage may show it: none while the character has not seen it.</summary>
         public Entry Shown => _selected != null && LevelOf(_selected) >= KnownLevel.Seen ? _selected : null;

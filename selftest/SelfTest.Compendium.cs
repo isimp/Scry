@@ -132,12 +132,22 @@ namespace Scry
             book.Raise(spotted.Key, KnownLevel.Seen);
             var view = new CompendiumView(X.Entries);
             view.Tell(book, CompendiumRule.Loose);
+            // Looked at before, as with the compendium off: no step back leads there once it is on.
+            var stranger = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && view.Of(e) == KnownLevel.Unknown && e.Source is GameObject);
+            X.Select(stranger);
+            X.Select(fought);
             Session.ShowKnownInstead(view);
             if (!Session.IsOpen) Session.Show(null);
             KeepView();
             ScryPanel.Compact = false;
             yield return Until(() => ReferenceEquals(X.Compendium, view), 3);
             if (!p.Check(ReferenceEquals(X.Compendium, view) && X.CompendiumOn, "the list is the made-up character's")) yield break;
+            var stepped = new List<string>();
+            for (var steps = 0; steps < 60 && X.Back(); steps++)
+            {
+                if (X.Selected != null && X.LevelOf(X.Selected) < KnownLevel.Seen) stepped.Add(X.Selected.Name);
+            }
+            p.Check(stranger != null && stepped.Count == 0, $"going back never leads to what it has not seen, {stranger?.Name} looked at before among them", string.Join(", ", stepped.Take(10)));
 
             // The creatures' tab: the two met and what came along with them (their ragdolls), nothing standing in for the rest.
             X.SearchEverything("");
