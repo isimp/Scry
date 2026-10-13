@@ -28,6 +28,20 @@ namespace Scry
         /// <summary>The title of a list of what there is (what a mod adds) with the compendium on: how many of it the character has seen, which are all it shows.</summary>
         public static string Found(string title, int found) => $"{title}, {Numbers.Count(found)} found";
 
+        /// <summary>The chip that shows everything for now, though the compendium is on.</summary>
+        public const string Peek = "Peek";
+
+        /// <summary>The peek chip's tip, by whether it is peeking.</summary>
+        public static string PeekTip(bool peeking) => peeking
+            ? "Show only what this character has met again"
+            : "Show everything for now, not only what this character has met; it stops when the panel closes";
+
+        /// <summary>The warning strip while peeking.</summary>
+        public const string Peeking = "Peeking: everything shows, not only what this character has met, until the panel closes";
+
+        /// <summary>The strip's chip that stops peeking.</summary>
+        public const string StopPeeking = "Stop";
+
         /// <summary>The first line of a page not yet open, by how much the character knows of it.</summary>
         public static string Closed(KnownLevel level)
         {

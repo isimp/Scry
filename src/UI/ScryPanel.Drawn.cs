@@ -30,6 +30,7 @@ namespace Scry
         ClosedPage,
         UnseenName,
         ListLeftOut,
+        PeekStrip,
     }
 
     internal static partial class ScryPanel

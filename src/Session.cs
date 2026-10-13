@@ -70,6 +70,8 @@ namespace Scry
             if (!IsOpen) return;
             ScryPanel.Closed();
             Previews.Suspend();
+            // A peek lasts while the panel is open.
+            if (Explorer != null) Explorer.Peeking = false;
 
             if (Previews.AnythingInWorld && !_toldPreviewsStay)
             {

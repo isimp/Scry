@@ -280,6 +280,16 @@ namespace Scry
                 if (Tab(Kinds.Label(kind), count, total, Skin.KindColor(kind), explorer.KindFilter == kind)) Filter(explorer, kind);
             }
 
+            // With the compendium on: Peek, to show everything for now.
+            if (explorer.CompendiumSet)
+            {
+                var peekW = Skin.Width(Skin.Chip, CompendiumWords.Peek) + U(16f);
+                var at = flow.Place(peekW);
+                var peek = new Rect(at.X, at.Y, peekW, flow.RowHeight);
+                if (GUI.Button(peek, CompendiumWords.Peek, Skin.Fitted(explorer.Peeking ? Skin.ChipOn : Skin.Chip, peek))) Peek(explorer, !explorer.Peeking);
+                if (peek.Contains(Event.current.mousePosition)) AskTip("peek", CompendiumWords.PeekTip(explorer.Peeking));
+            }
+
             return flow.RowBottom;
         }
 

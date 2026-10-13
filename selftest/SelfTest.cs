@@ -262,6 +262,7 @@ namespace Scry
             ScryPanel.HideModReport();
             if (before.Compact.HasValue) ScryPanel.Compact = before.Compact.Value;
             Session.ShowKnownInstead(null);
+            if (Session.Explorer != null) Session.Explorer.Peeking = false;
             if (Session.Explorer != null && Session.Explorer == before.Explorer) before.Explorer.Restore(before.Kept);
             if (!before.Open) Session.Hide();
             else Previews.Rebuild();

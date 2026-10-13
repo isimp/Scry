@@ -170,8 +170,30 @@ namespace Scry
         /// <summary>Counts up each time what the character knows is handed over anew, so what is made from it can tell it is out of date.</summary>
         public int KnowStamp { get; private set; }
 
-        /// <summary>Whether the compendium is on: the list shows only what the character has seen or knows.</summary>
-        public bool CompendiumOn => _view != null && _view.Rule != CompendiumRule.Off;
+        /// <summary>Whether the compendium is on: the list shows only what the character has seen or knows. Not while peeking.</summary>
+        public bool CompendiumOn => CompendiumSet && !_peeking;
+
+        /// <summary>Whether the compendium is set on, peeking or not: what Peek and the list of what was learned lately go with.</summary>
+        public bool CompendiumSet => _view != null && _view.Rule != CompendiumRule.Off;
+
+        private bool _peeking;
+
+        /// <summary>
+        /// Whether everything shows for now though the compendium is on, for checking something or
+        /// helping a friend, until it is stopped; what was looked at meanwhile and not seen is no
+        /// step back after. Never with the compendium off.
+        /// </summary>
+        public bool Peeking
+        {
+            get => _peeking;
+            set
+            {
+                var peek = value && CompendiumSet;
+                if (peek == _peeking) return;
+                _peeking = peek;
+                Retell();
+            }
+        }
 
         /// <summary>How much the character knows of an entry; all of it while the compendium is off.</summary>
         public KnownLevel LevelOf(Entry entry) => CompendiumOn ? _view.Of(entry) : KnownLevel.Known;
@@ -204,6 +226,14 @@ namespace Scry
             if (ReferenceEquals(view, _view) && version == _viewVersion) return;
             _view = view;
             _viewVersion = version;
+            // A peek ends with the compendium turned off.
+            if (!CompendiumSet) _peeking = false;
+            Retell();
+        }
+
+        /// <summary>Counts what was found of each kind, drops the steps to what was not seen and lists again, for the view as it is now.</summary>
+        private void Retell()
+        {
             KnowStamp++;
             _slipWords = null;
             _visible = null;

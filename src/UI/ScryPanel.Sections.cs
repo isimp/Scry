@@ -195,6 +195,24 @@ namespace Scry
             }
         }
 
+        /// <summary>The compendium's strip under the header: a warning while peeking; none otherwise.</summary>
+        private static float CompendiumStripHeight(Explorer explorer) => explorer.Peeking ? U(32f) : 0f;
+
+        /// <summary>Warns that everything shows while peeking, with a chip that stops it.</summary>
+        private static void CompendiumStrip(Explorer explorer, Rect rect)
+        {
+            CountDrawn(PanelPart.PeekStrip);
+            if (NoticeStrip(rect, Skin.Warn, CompendiumWords.Peeking, Skin.WarnLabel, true, CompendiumWords.StopPeeking, false, false) == StripClick.Chip) Peek(explorer, false);
+        }
+
+        /// <summary>Starts or stops showing everything though the compendium is on (<see cref="Explorer.Peeking"/>), keeping the list where it was.</summary>
+        private static void Peek(Explorer explorer, bool peek)
+        {
+            explorer.Peeking = peek;
+            ListFiltered();
+            RevealSelected();
+        }
+
         internal enum StripClick
         {
             None,

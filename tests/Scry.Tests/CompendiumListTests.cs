@@ -318,6 +318,48 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void PeekingShowsEverythingUntilItStops()
+        {
+            // For checking something, or helping a friend; what was looked at meanwhile is no step back after.
+            var world = new World().Rule(CompendiumRule.Loose);
+            var explorer = world.Explorer;
+            explorer.Select(world.Troll);
+
+            explorer.Peeking = true;
+            Assert.True(explorer.Peeking);
+            Assert.False(explorer.CompendiumOn);
+            Assert.True(explorer.CompendiumSet);
+            Assert.Equal(5, explorer.Results.Count);
+            Assert.True(explorer.Reaches(world.Fenring.Key));
+            explorer.Select(world.Fenring);
+            explorer.Select(world.Boar);
+
+            explorer.Peeking = false;
+            Assert.True(explorer.CompendiumOn);
+            Assert.Equal(2, explorer.Results.Count);
+            Assert.False(explorer.Reaches(world.Fenring.Key));
+            Assert.True(explorer.Back());
+            Assert.Same(world.Troll, explorer.Selected);
+        }
+
+        [Fact]
+        public void ThereIsNoPeekingWithTheCompendiumOff()
+        {
+            var world = new World().Rule(CompendiumRule.Off);
+            world.Explorer.Peeking = true;
+            Assert.False(world.Explorer.Peeking);
+            Assert.False(world.Explorer.CompendiumSet);
+
+            // Nor does a peek left on outlast the compendium being turned off and on again.
+            world.Rule(CompendiumRule.Loose);
+            world.Explorer.Peeking = true;
+            world.Rule(CompendiumRule.Off);
+            world.Rule(CompendiumRule.Loose);
+            Assert.False(world.Explorer.Peeking);
+            Assert.True(world.Explorer.CompendiumOn);
+        }
+
+        [Fact]
         public void WithTheCompendiumOffAPageLeadsToEverythingInTheCatalog()
         {
             var world = new World().Rule(CompendiumRule.Off);

@@ -278,6 +278,20 @@ namespace Scry
             }
             else p.Note("no dungeon with rooms read: rooms known with their dungeon not tried");
 
+            // Peek: everything shows, with a warning, until stopped or the panel closes.
+            var strip = ScryPanel.Drawn(PanelPart.PeekStrip);
+            X.Peeking = true;
+            X.SearchEverything("");
+            X.KindFilter = Kind.Creature;
+            yield return Until(() => ScryPanel.Drawn(PanelPart.PeekStrip) > strip + 1, 3);
+            p.Check(X.Peeking && X.Results.Contains(unseen) && ScryPanel.Drawn(PanelPart.PeekStrip) > strip, $"peeking, {unseen.Name} is listed, under a warning");
+            X.Peeking = false;
+            p.Check(!X.Results.Contains(unseen), "stopped, it is not");
+            X.Peeking = true;
+            Session.Hide();
+            p.Check(!X.Peeking, "closing the panel ends a peek");
+            Session.Show(null);
+
             // Off: everything as before.
             view.Tell(book, CompendiumRule.Off);
             yield return Until(() => !X.CompendiumOn, 3);

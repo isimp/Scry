@@ -32,6 +32,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void PeekingWarnsThatEverythingShowsAndUntilWhen()
+        {
+            Assert.Equal("Peek", CompendiumWords.Peek);
+            Assert.Equal("Show everything for now, not only what this character has met; it stops when the panel closes", CompendiumWords.PeekTip(false));
+            Assert.Equal("Show only what this character has met again", CompendiumWords.PeekTip(true));
+            Assert.Equal("Peeking: everything shows, not only what this character has met, until the panel closes", CompendiumWords.Peeking);
+            Assert.Equal("Stop", CompendiumWords.StopPeeking);
+        }
+
+        [Fact]
         public void AClosedPageSaysHowMuchIsKnownAndWhatWouldOpenIt()
         {
             Assert.Equal("Not met yet", CompendiumWords.Closed(KnownLevel.Unknown));
