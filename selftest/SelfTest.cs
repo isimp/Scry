@@ -123,11 +123,12 @@ namespace Scry
             Write("");
             Write($"==== Scry {About.Version} {(full ? "full" : "quick")} self-test, {DateTime.Now:yyyy-MM-dd HH:mm:ss}, started because {why} ====");
             Write($"World {ZNet.instance.OrNull()?.GetWorldName()}, {Numbers.Count(Session.Explorer.Catalog.Count)} entries, {Numbers.Count(BepInEx.Bootstrap.Chainloader.PluginInfos.Count)} mods loaded, panel {(Session.IsOpen ? "open" : "closed")}" +
-                  $"{(ScryPanel.Compact ? " in its compact view" : "")}, locations {Locations.Now}, LogPreviews {(Settings.LogPreviews ? "on" : "off")}.");
+                  $"{(ScryPanel.Compact ? " in its compact view" : "")}, locations {Locations.Now}, LogPreviews {(Settings.LogPreviews ? "on" : "off")}, Compendium {Settings.Compendium} (shown off while the test runs).");
             Write("Each part uses Scry as a player would and checks what it did. START and PASS, FAIL or SKIP frame a part; within it, PASS is a check that held,");
             Write("FAIL one that did not (with what was found), and note is something worth knowing. The summary at the end lists every failed check again.");
 
             _before = Before.Take();
+            AllKnown();
             Frames.Clear();
             Timing.Measuring = Frames;
             _runner = new ScenarioRunner(Scenario.ForRun(Scenarios(), full), Write, Finish);
@@ -226,6 +227,19 @@ namespace Scry
             };
         }
 
+        /// <summary>
+        /// Shows everything as known while the test runs, whatever the Compendium setting, so every
+        /// part sees the whole catalog; the parts that check the compendium show a made-up
+        /// character's knowledge and come back to this. Putting back shows the played one again.
+        /// </summary>
+        private static void AllKnown()
+        {
+            var view = new CompendiumView(Session.Explorer.Entries);
+            view.Tell(null, CompendiumRule.Off);
+            Session.ShowKnownInstead(view);
+            Session.Explorer.Know(view);
+        }
+
         /// <summary>Remembers the view the panel is in, once, the first time the test has it open.</summary>
         private static void KeepView()
         {
@@ -247,6 +261,7 @@ namespace Scry
             ScryPanel.TooltipFolded = before.TooltipFolded;
             ScryPanel.HideModReport();
             if (before.Compact.HasValue) ScryPanel.Compact = before.Compact.Value;
+            Session.ShowKnownInstead(null);
             if (Session.Explorer != null && Session.Explorer == before.Explorer) before.Explorer.Restore(before.Kept);
             if (!before.Open) Session.Hide();
             else Previews.Rebuild();

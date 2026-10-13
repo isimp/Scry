@@ -280,15 +280,15 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheMainKindsShowUnknownEntriesAsSilhouettesAndTheRestHideThem()
+        public void TheMainKindsCountWhatWasFoundOfAllThereIs()
         {
             foreach (var kind in new[] { Kind.Creature, Kind.Item, Kind.Piece, Kind.Resource, Kind.Spawner, Kind.StatusEffect, Kind.Location, Kind.Raid, Kind.Biome })
             {
-                Assert.True(CompendiumView.Silhouetted(kind), kind.ToString());
+                Assert.True(CompendiumView.Counted(kind), kind.ToString());
             }
             foreach (var kind in new[] { Kind.Effect, Kind.Sound, Kind.Projectile, Kind.Other, Kind.Mod })
             {
-                Assert.False(CompendiumView.Silhouetted(kind), kind.ToString());
+                Assert.False(CompendiumView.Counted(kind), kind.ToString());
             }
         }
     }

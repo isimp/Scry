@@ -184,7 +184,7 @@ namespace Scry
         }
 
         /// <summary>
-        /// A page the character has not opened yet: what it is named (a silhouette only by its
+        /// A page the character has not opened yet: what it is named (something never met only by its
         /// kind), how much is known of it and what would open it. What was seen stands on the
         /// stage; nothing else does.
         /// </summary>

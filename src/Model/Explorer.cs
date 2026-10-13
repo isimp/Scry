@@ -26,9 +26,6 @@ namespace Scry
         /// <summary>The entries the character has seen or knows, while the compendium is on.</summary>
         private List<Entry> _visible;
 
-        /// <summary>What the stage could show of the selection when the explorer was last told what the character knows.</summary>
-        private Entry _shownKnown;
-
         private List<Entry> _results = new List<Entry>();
 
         /// <summary>The results moved right under what leaves them behind, for the list to indent (<see cref="Leftovers.UnderOwners"/>).</summary>
@@ -167,7 +164,10 @@ namespace Scry
         /// <summary>How many the text and the other filters let through, all kinds together.</summary>
         public int CountAll => _countAll;
 
-        /// <summary>Whether the compendium is on: the list shows only what the character has met or heard of.</summary>
+        /// <summary>The view of what the character knows the explorer was last handed; none before.</summary>
+        public CompendiumView Compendium => _view;
+
+        /// <summary>Whether the compendium is on: the list shows only what the character has seen or knows.</summary>
         public bool CompendiumOn => _view != null && _view.Rule != CompendiumRule.Off;
 
         /// <summary>How much the character knows of an entry; all of it while the compendium is off.</summary>
@@ -204,9 +204,6 @@ namespace Scry
                     if (level >= KnownLevel.Seen) _visible.Add(entry);
                 }
             }
-            // The selection coming into sight, or out of it, is shown anew.
-            if (!ReferenceEquals(Shown, _shownKnown)) _selectionVersion++;
-            _shownKnown = Shown;
             Refresh();
         }
 
@@ -249,7 +246,6 @@ namespace Scry
             }
 
             _selected = entry;
-            _shownKnown = Shown;
             _selectedIndex = entry == null ? -1 : _results.IndexOf(entry);
             _selectionVersion++;
             _modifiers.ResetFor(entry);
@@ -284,11 +280,8 @@ namespace Scry
         public bool Jump(string key)
         {
             var target = Find(key);
-            if (target == null) return false;
-            // What was only heard of is listed among its kind's silhouettes, its page closed; what
-            // was never met at all leads nowhere.
-            var level = LevelOf(target);
-            if (level == KnownLevel.Unknown || (level < KnownLevel.Seen && !CompendiumView.Silhouetted(target.Kind))) return false;
+            // What the character has not seen is listed nowhere, a heard-of name only on its page.
+            if (target == null || LevelOf(target) < KnownLevel.Seen) return false;
             if (target != _selected && _here != null)
             {
                 Remember(_back);
@@ -298,7 +291,7 @@ namespace Scry
             if (!_results.Contains(target))
             {
                 _query.Text = "";
-                _query.Kind = level < KnownLevel.Seen ? target.Kind : (Kind?)null;
+                _query.Kind = null;
                 _query.FavouritesOnly = false;
                 _query.Origin = OriginFilter.All;
                 _recentOnly = false;
@@ -482,11 +475,9 @@ namespace Scry
 
             // One pass over the catalog lists what matches and counts it by kind for the chips,
             // across every kind, so picking one still shows what the others hold.
-            // With the compendium on, a kind's tab with nothing typed lists what is not met yet too.
             var view = CompendiumOn ? _view : null;
-            var silhouettes = view != null && _query.Kind != null && string.IsNullOrEmpty(_query.Text);
             Array.Clear(_counts, 0, _counts.Length);
-            _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, _counts, view, silhouettes);
+            _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, _counts, view);
             _countAll = 0;
             foreach (var count in _counts) _countAll += count;
 

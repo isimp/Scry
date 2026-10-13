@@ -195,12 +195,10 @@ namespace Scry
         /// the kind chips count across every kind while one is picked.
         /// With the compendium (<paramref name="view"/>), only what the character has seen or knows
         /// matches, and what it has only seen only by its name and kind, since any other term would
-        /// tell what its closed page holds. With <paramref name="silhouettes"/>, the rest of a kind
-        /// shown as silhouettes (<see cref="CompendiumView.Silhouetted"/>), what is heard of
-        /// included, is listed too, uncounted.
+        /// tell what its closed page holds.
         /// </summary>
         public static List<Entry> Run(IReadOnlyList<Entry> all, Query query, ICollection<string> favourites,
-            ICollection<string> only, int[] kindCounts, CompendiumView view = null, bool silhouettes = false)
+            ICollection<string> only, int[] kindCounts, CompendiumView view = null)
         {
             var search = Parse(query.Text).Matcher;
             var found = new List<Entry>();
@@ -214,13 +212,7 @@ namespace Scry
                 if (only != null && !only.Contains(entry.Key)) continue;
 
                 var level = view != null ? view.Of(entry) : KnownLevel.Known;
-                if (level < KnownLevel.Seen)
-                {
-                    if (!silhouettes || !CompendiumView.Silhouetted(entry.Kind) || (query.Kind.HasValue && entry.Kind != query.Kind.Value)) continue;
-                    found.Add(entry);
-                    scores.Add(0);
-                    continue;
-                }
+                if (level < KnownLevel.Seen) continue;
 
                 var score = Score(entry, search, level == KnownLevel.Known);
                 if (score == Miss) continue;

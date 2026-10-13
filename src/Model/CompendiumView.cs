@@ -54,8 +54,8 @@ namespace Scry
         /// <summary>The ruleset last told; with it off, everything is known.</summary>
         public CompendiumRule Rule => _rule;
 
-        /// <summary>Whether a kind shows an entry not known as a silhouette in its place; the others leave it out.</summary>
-        public static bool Silhouetted(Kind kind) =>
+        /// <summary>Whether a kind's tab counts what was found of all there is; the others count only what was found.</summary>
+        public static bool Counted(Kind kind) =>
             kind == Kind.Creature || kind == Kind.Item || kind == Kind.Piece || kind == Kind.Resource || kind == Kind.Spawner
             || kind == Kind.StatusEffect || kind == Kind.Location || kind == Kind.Raid || kind == Kind.Biome;
 

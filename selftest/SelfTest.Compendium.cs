@@ -99,11 +99,10 @@ namespace Scry
 
         /// <summary>
         /// With the compendium on, a made-up character who has fought one creature and seen
-        /// another sees only that: every creature listed in its tab, what was not met as
-        /// silhouettes, counted as found of all; no search finds what was not met; a silhouette's
-        /// page is closed with nothing on the stage, a creature only seen stands on the stage with
-        /// its page closed, and the creature fought shows its whole page. Off, all is as before.
-        /// The played character's book is not touched.
+        /// another sees only that: its creatures' tab lists those two, counted as found of all; no
+        /// search finds anything not seen, and nothing not seen can be gone to; a creature only
+        /// seen stands on the stage with its page closed, and the creature fought shows its whole
+        /// page. Off, all is as before. The played character's book is not touched.
         /// </summary>
         private static IEnumerator CompendiumShown(Probe p)
         {
@@ -120,21 +119,16 @@ namespace Scry
             if (!Session.IsOpen) Session.Show(null);
             KeepView();
             ScryPanel.Compact = false;
-            yield return Until(() => X.CompendiumOn, 3);
-            if (!p.Check(X.CompendiumOn, "the list is the made-up character's")) yield break;
+            yield return Until(() => ReferenceEquals(X.Compendium, view), 3);
+            if (!p.Check(ReferenceEquals(X.Compendium, view) && X.CompendiumOn, "the list is the made-up character's")) yield break;
 
-            // The creatures' tab: every creature, what was not met as a silhouette.
+            // The creatures' tab: the two met, nothing standing in for the rest.
             X.SearchEverything("");
             X.KindFilter = Kind.Creature;
             var creatures = X.Catalog.Count(e => e.Kind == Kind.Creature);
             p.Check(X.FoundOf(Kind.Creature) == 2, "the creatures' tab counts the two met as found", Numbers.Count(X.FoundOf(Kind.Creature)));
             p.Check(X.TotalOf(Kind.Creature) == creatures, "of all there are", $"{Numbers.Count(X.TotalOf(Kind.Creature))} of {Numbers.Count(creatures)}");
-            p.Check(X.Results.Count == creatures, "every creature is listed in it", $"{Numbers.Count(X.Results.Count)} of {Numbers.Count(creatures)}");
-            var silhouettes = X.Results.Count(e => X.LevelOf(e) < KnownLevel.Seen);
-            p.Check(silhouettes > 0 && silhouettes < creatures, "what was not seen, heard of or not, is a silhouette", $"{Numbers.Count(silhouettes)} silhouettes");
-            var drawn = ScryPanel.Drawn(PanelPart.Silhouette);
-            yield return Until(() => ScryPanel.Drawn(PanelPart.Silhouette) > drawn, 3);
-            p.Check(ScryPanel.Drawn(PanelPart.Silhouette) > drawn, "silhouettes are drawn in the list");
+            p.Check(X.Results.Count == 2 && X.Results.Contains(fought) && X.Results.Contains(spotted), "and lists only those two", string.Join(", ", X.Results.Take(10).Select(e => e.Name)));
 
             // No search finds what was not met, by its name or by any term.
             var leaks = new List<string>();
@@ -148,15 +142,14 @@ namespace Scry
             X.SearchEverything("has:Character");
             p.Check(!X.Results.Contains(spotted), $"a term telling what a page holds does not find {spotted.Name}, only seen");
 
-            // A silhouette: page closed, nothing on the stage.
-            X.SearchEverything("");
-            X.KindFilter = Kind.Creature;
-            var silhouette = X.Results.FirstOrDefault(e => X.LevelOf(e) == KnownLevel.Unknown && e.Source is GameObject);
-            if (!p.Check(silhouette != null, "a silhouette to pick")) yield break;
+            // Not seen: no link leads to it, and picked some other way its page is closed with nothing on the stage.
+            var unseen = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && X.LevelOf(e) == KnownLevel.Unknown && e.Source is GameObject);
+            if (!p.Check(unseen != null, "a creature not seen")) yield break;
+            p.Check(!X.Jump(unseen.Key), $"going to {unseen.Name}, not seen, leads nowhere");
             var closed = ScryPanel.Drawn(PanelPart.ClosedPage);
-            X.Select(silhouette);
+            X.Select(unseen);
             yield return Until(() => ScryPanel.Drawn(PanelPart.ClosedPage) > closed + 2, 3);
-            p.Check(ScryPanel.Drawn(PanelPart.ClosedPage) > closed, $"{silhouette.Name}, not met, shows a closed page");
+            p.Check(ScryPanel.Drawn(PanelPart.ClosedPage) > closed, "picked anyway, it shows a closed page");
             p.Check(X.Shown == null && Stage.Showing == null && Stage.Subject == null, "and nothing on the stage", Stage.Showing?.Name);
 
             // Only seen: on the stage, page closed.
@@ -177,7 +170,7 @@ namespace Scry
             // Off: everything as before.
             view.Tell(book, CompendiumRule.Off);
             yield return Until(() => !X.CompendiumOn, 3);
-            p.Check(!X.CompendiumOn && X.LevelOf(silhouette) == KnownLevel.Known, "with the compendium off, everything shows as before");
+            p.Check(!X.CompendiumOn && X.LevelOf(unseen) == KnownLevel.Known, "with the compendium off, everything shows as before");
         }
     }
 }

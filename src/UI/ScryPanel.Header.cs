@@ -268,15 +268,15 @@ namespace Scry
             }
 
             if (Tab("All", explorer.CountAll, -1, Skin.Text, explorer.KindFilter == null)) Filter(explorer, null);
-            // With the compendium on and nothing narrowing the list, a kind shown as silhouettes
-            // counts what was found of all there is, and has its tab before anything is found.
+            // With the compendium on and nothing narrowing the list, a kind counted so tells what
+            // was found of all there is.
             var collecting = explorer.CompendiumOn && string.IsNullOrEmpty(explorer.Text) && !explorer.FavouritesOnly && !explorer.RecentOnly && explorer.Origin == OriginFilter.All;
             foreach (var kind in EveryKind)
             {
-                var collected = collecting && CompendiumView.Silhouetted(kind);
+                var collected = collecting && CompendiumView.Counted(kind);
                 var count = collected ? explorer.FoundOf(kind) : explorer.CountOf(kind);
                 var total = collected ? explorer.TotalOf(kind) : -1;
-                if ((collected ? total : count) == 0 && explorer.KindFilter != kind) continue;
+                if (count == 0 && explorer.KindFilter != kind) continue;
                 if (Tab(Kinds.Label(kind), count, total, Skin.KindColor(kind), explorer.KindFilter == kind)) Filter(explorer, kind);
             }
 

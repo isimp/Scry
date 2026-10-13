@@ -1,9 +1,9 @@
 namespace Scry
 {
-    /// <summary>What the panel says of the compendium: a silhouette's name, a tab's count of what was found, a page not yet open.</summary>
+    /// <summary>What the panel says of the compendium: a tab's count of what was found, a page not yet open and what it names.</summary>
     internal static class CompendiumWords
     {
-        /// <summary>The name a silhouette shows in the list and on its closed page: what kind of thing it is, nothing more.</summary>
+        /// <summary>The name a closed page gives what was never met: what kind of thing it is, nothing more.</summary>
         public static string Unknown(Kind kind)
         {
             switch (kind)

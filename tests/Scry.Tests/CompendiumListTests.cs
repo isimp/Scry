@@ -8,8 +8,8 @@ namespace Scry.Tests
     public class CompendiumListTests
     {
         // With the compendium on, the list and the search show what the character has met or
-        // heard of; a kind's tab with nothing typed shows what it has not met yet as silhouettes,
-        // so the tab reads as a collection to complete, and counts what was found of all there is.
+        // heard of; nothing stands in for the rest, and each kind counts what was found of all
+        // there is.
 
         private sealed class World
         {
@@ -86,27 +86,20 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void AKindsTabWithNothingTypedListsWhatIsNotMetYetAsSilhouettes()
+        public void AKindsTabListsOnlyWhatWasSeenOrKnownNothingStandingInForTheRest()
         {
+            // No row hints at what was not seen, nor its group's name at what that group holds.
             var world = new World().Rule(CompendiumRule.Loose);
             var explorer = world.Explorer;
 
             explorer.KindFilter = Kind.Creature;
-            Assert.Contains(world.Fenring, explorer.Results);
-            Assert.Equal(KnownLevel.Unknown, explorer.LevelOf(world.Fenring));
-            // What is only heard of is a silhouette there too.
+            Assert.Equal(new[] { world.Boar, world.Troll }.OrderBy(e => e.Name), explorer.Results.OrderBy(e => e.Name));
+            // A tab with nothing to show lists every kind's instead, as it always has: still nothing unseen.
             explorer.KindFilter = Kind.Item;
-            Assert.Equal(new[] { world.Hide }, explorer.Results.ToArray());
-            explorer.KindFilter = Kind.Creature;
-
-            // Typing finds only what is met; the kinds that show no silhouettes leave the unknown out.
-            explorer.Text = "f";
-            Assert.DoesNotContain(world.Fenring, explorer.Results);
-            explorer.Text = "";
+            Assert.DoesNotContain(world.Hide, explorer.Results);
+            Assert.All(explorer.Results, e => Assert.True(explorer.LevelOf(e) >= KnownLevel.Seen));
             explorer.KindFilter = Kind.Effect;
             Assert.DoesNotContain(world.Splash, explorer.Results);
-            explorer.KindFilter = null;
-            Assert.DoesNotContain(world.Fenring, explorer.Results);
         }
 
         [Fact]
@@ -116,7 +109,7 @@ namespace Scry.Tests
             var explorer = world.Explorer;
             explorer.KindFilter = Kind.Creature;
 
-            // The tab's own count is what the character has met; silhouettes are not counted as found.
+            // The tab's own count is what the character has met.
             Assert.Equal(2, explorer.CountOf(Kind.Creature));
             Assert.Equal(2, explorer.FoundOf(Kind.Creature));
             Assert.Equal(3, explorer.TotalOf(Kind.Creature));
@@ -205,70 +198,30 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ASilhouetteSelectedComesOnStageOnceTheCharacterSeesIt()
+        public void WhatWasSelectedUnseenLeavesTheListOnceTheCompendiumIsOn()
         {
-            var world = new World().Rule(CompendiumRule.Loose);
-            var explorer = world.Explorer;
-            explorer.KindFilter = Kind.Creature;
-            explorer.Select(world.Fenring);
-            var version = explorer.SelectionVersion;
+            var world = new World().Rule(CompendiumRule.Off);
+            world.Explorer.Select(world.Fenring);
 
-            world.Book.Raise(world.Troll.Key, KnownLevel.Known);
-            world.Book.Raise(world.Splash.Key, KnownLevel.Seen);
             world.Rule(CompendiumRule.Loose);
-            Assert.Equal(version, explorer.SelectionVersion);
 
-            world.Book.Raise(world.Fenring.Key, KnownLevel.Seen);
-            world.Rule(CompendiumRule.Loose);
-            Assert.NotEqual(version, explorer.SelectionVersion);
-            Assert.Same(world.Fenring, explorer.Shown);
-
-            // Shown once: learning something else leaves it as it is.
-            version = explorer.SelectionVersion;
-            world.Book.Raise(world.Hide.Key, KnownLevel.Seen);
-            world.Rule(CompendiumRule.Loose);
-            Assert.Equal(version, explorer.SelectionVersion);
-
-            // Something else picked meanwhile is shown once, not again when more is learned.
-            explorer.Select(world.Boar);
-            version = explorer.SelectionVersion;
-            world.Book.Raise(world.Splash.Key, KnownLevel.Known);
-            world.Rule(CompendiumRule.Loose);
-            Assert.Equal(version, explorer.SelectionVersion);
+            Assert.Null(world.Explorer.Selected);
+            Assert.Null(world.Explorer.Shown);
         }
 
         [Fact]
-        public void GoingToSomethingNotMetLeadsNowhereButWhatWasHeardOfOpensAmongItsKindsSilhouettes()
+        public void GoingToSomethingNotSeenLeadsNowhereHeardOfOrNot()
         {
-            // A heard-of name on a page leads to its closed page, in its kind's tab where it is listed.
+            // A heard-of name stays a name on the page that mentions it.
             var world = new World().Rule(CompendiumRule.Loose);
-            world.Explorer.Text = "troll";
+            world.Explorer.Text = "fenring";
 
             Assert.False(world.Explorer.Jump(world.Fenring.Key));
-            Assert.True(world.Explorer.Jump(world.Hide.Key));
-            Assert.Same(world.Hide, world.Explorer.Selected);
-            Assert.Equal(Kind.Item, world.Explorer.KindFilter);
-            Assert.Equal("", world.Explorer.Text);
-            Assert.Contains(world.Hide, world.Explorer.Results);
-            Assert.False(world.Explorer.Jump(world.Splash.Key));
-        }
-
-        [Fact]
-        public void AHeardOfThingOfAKindShowingNoSilhouettesLeadsNowhere()
-        {
-            // Such kinds list nothing not seen, so there is nowhere to open it.
-            var troll = E("Troll", Kind.Creature);
-            var rock = E("troll_groundslam_rock", Kind.Other);
-            troll.AddTermLink("spawns", rock);
-            var explorer = new Explorer(new[] { troll, rock }.ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
-            var view = new CompendiumView(explorer.Entries);
-            var book = new CompendiumBook();
-            book.Raise(troll.Key, KnownLevel.Known);
-            view.Tell(book, CompendiumRule.Loose);
-            explorer.Know(view);
-
-            Assert.Equal(KnownLevel.HeardOf, explorer.LevelOf(rock));
-            Assert.False(explorer.Jump(rock.Key));
+            Assert.False(world.Explorer.Jump(world.Hide.Key));
+            Assert.Null(world.Explorer.Selected);
+            Assert.Equal("fenring", world.Explorer.Text);
+            Assert.True(world.Explorer.Jump(world.Boar.Key));
+            Assert.Same(world.Boar, world.Explorer.Selected);
         }
     }
 }

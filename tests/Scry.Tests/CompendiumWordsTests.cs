@@ -5,17 +5,17 @@ namespace Scry.Tests
 {
     public class CompendiumWordsTests
     {
-        // A silhouette tells only what kind of thing it is; a page not yet open says how much the
+        // A page not yet open names something not met only by its kind, and says how much the
         // character knows and what would open it.
 
-        private static readonly Kind[] Silhouetted = { Kind.Creature, Kind.Item, Kind.Piece, Kind.Resource, Kind.Spawner, Kind.StatusEffect, Kind.Location, Kind.Raid, Kind.Biome };
+        private static readonly Kind[] Counted = { Kind.Creature, Kind.Item, Kind.Piece, Kind.Resource, Kind.Spawner, Kind.StatusEffect, Kind.Location, Kind.Raid, Kind.Biome };
 
         [Fact]
-        public void ASilhouetteIsNamedOnlyByItsKindEachKindInItsOwnWords()
+        public void SomethingNotMetIsNamedOnlyByItsKindEachKindInItsOwnWords()
         {
             Assert.Equal("Unknown creature", CompendiumWords.Unknown(Kind.Creature));
             Assert.Equal("Unknown place", CompendiumWords.Unknown(Kind.Location));
-            Assert.Equal(Silhouetted.Length, Silhouetted.Select(CompendiumWords.Unknown).Distinct().Count());
+            Assert.Equal(Counted.Length, Counted.Select(CompendiumWords.Unknown).Distinct().Count());
         }
 
         [Fact]
@@ -31,7 +31,7 @@ namespace Scry.Tests
             Assert.Equal("Heard of, not met yet", CompendiumWords.Closed(KnownLevel.HeardOf));
             Assert.Equal("Seen, not yet come to know", CompendiumWords.Closed(KnownLevel.Seen));
             Assert.Equal("Fight it to learn all about it.", CompendiumWords.HowToKnow(Kind.Creature));
-            Assert.Equal(Silhouetted.Length, Silhouetted.Select(CompendiumWords.HowToKnow).Distinct().Count());
+            Assert.Equal(Counted.Length, Counted.Select(CompendiumWords.HowToKnow).Distinct().Count());
         }
     }
 }

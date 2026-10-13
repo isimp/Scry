@@ -28,7 +28,6 @@ namespace Scry
         StageChip,
         ViewMenu,
         ClosedPage,
-        Silhouette,
     }
 
     internal static partial class ScryPanel
