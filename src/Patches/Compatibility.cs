@@ -365,6 +365,9 @@ namespace Scry
             Each("Player.m_knownStations", () => Member(list, "Player", "m_knownStations", Feature.CompendiumCatchUp));
             Each("Player.m_knownBiome", () => Member(list, "Player", "m_knownBiome", Feature.CompendiumCatchUp));
             Each("Player.m_trophies", () => Member(list, "Player", "m_trophies", Feature.CompendiumCatchUp));
+            Each("ItemDrop.s_instances", () => Member(list, "ItemDrop", "s_instances", Feature.CompendiumSeen));
+            Each("Location.s_allLocations", () => Member(list, "Location", "s_allLocations", Feature.CompendiumSeen));
+            Each("InventoryGui.m_currentContainer", () => Member(list, "InventoryGui", "m_currentContainer", Feature.CompendiumSeen));
             Each("the patches", () => Patches(list));
             foreach (var watched in Watched)
             {

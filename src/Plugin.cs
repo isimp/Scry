@@ -62,6 +62,11 @@ namespace Scry
             { typeof(UnequipWatched), Feature.WhatEquippingDid },
             { typeof(HitWatched), Feature.CompendiumFought },
             { typeof(HitByWatched), Feature.CompendiumFought },
+            { typeof(DestructibleHitWatched), Feature.CompendiumHit },
+            { typeof(TreeHitWatched), Feature.CompendiumHit },
+            { typeof(LogHitWatched), Feature.CompendiumHit },
+            { typeof(RockHitWatched), Feature.CompendiumHit },
+            { typeof(VeinHitWatched), Feature.CompendiumHit },
             { typeof(UnmoddedTooltip), Feature.TooltipFromMods },
         };
 

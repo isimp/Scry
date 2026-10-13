@@ -10,7 +10,8 @@ namespace Scry
     /// <see cref="CompendiumBook.FileName"/>, which Gale's profile sync leaves alone), caught up
     /// with what the game keeps of the character (<see cref="CharacterRecords"/>) once the catalog
     /// is read, quietly the first time and then whenever those records grow, looked at once a
-    /// second along with what the character has, is in and points at (<see cref="Look"/>); and
+    /// second along with what the character has, is in, points at and sees (<see cref="Look"/>,
+    /// <see cref="CompendiumSight"/>), and fed what it fights and hits as it happens; and
     /// written back once it changed, at most every half minute, on leaving a world and on
     /// quitting. A book that could not be read is never written over.
     /// </summary>
@@ -97,6 +98,7 @@ namespace Scry
             var hovered = player.GetHoverObject();
             var thing = hovered != null ? hovered.GetComponentInParent<ZNetView>() : null;
             if (thing != null) _catchUp.Met(Utils.GetPrefabName(thing.gameObject), KnownLevel.Seen, _book);
+            Guard.Run(Feature.CompendiumSeen, "looking at what the character sees", () => CompendiumSight.Look(player, _catchUp, _book));
         }
 
         /// <summary>Learns of a creature the character fought, hitting it or hit by it, as news.</summary>
@@ -104,6 +106,13 @@ namespace Scry
         {
             if (_book == null || _catchUp == null || creature == null || creature == Player.m_localPlayer) return;
             _catchUp.Met(Utils.GetPrefabName(creature.gameObject), KnownLevel.Known, _book);
+        }
+
+        /// <summary>Learns of a resource the character hit, as news.</summary>
+        public static void Hit(Component resource)
+        {
+            if (_book == null || _catchUp == null || resource == null) return;
+            _catchUp.Met(Utils.GetPrefabName(resource.gameObject), KnownLevel.Known, _book);
         }
 
         /// <summary>Writes the book once it changed, at most every half minute unless asked to now, on a worker thread.</summary>
