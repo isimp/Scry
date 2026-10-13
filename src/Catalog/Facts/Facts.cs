@@ -373,6 +373,7 @@ namespace Scry
         {
             Cache.Clear();
             _tools = null;
+            Tooltips.Forget();
         }
 
         /// <summary>Forgets what was told of one entry, which knows more now (a location, once read).</summary>

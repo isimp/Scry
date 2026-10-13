@@ -31,7 +31,7 @@ namespace Scry
         }
 
         /// <summary>Every section that folds, by key.</summary>
-        private static readonly string[] Foldable = { "kept", "variants", "adjust", "animations", "effects", "playsin", "links", "facts", "runes", "command", "details" };
+        private static readonly string[] Foldable = { "kept", "variants", "adjust", "animations", "effects", "playsin", "links", "facts", "tooltip", "runes", "command", "details" };
 
         private static void FoldAll(bool fold)
         {

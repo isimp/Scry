@@ -164,6 +164,48 @@ namespace Scry
         }
 
         /// <summary>
+        /// The game's own item tooltip is read apart from the mods' hooks; items whose tooltip
+        /// mods add to are named, and the first one's page shows it with the mods' lines marked.
+        /// Items a mod added are looked at first, a few a frame.
+        /// </summary>
+        private static IEnumerator TooltipsFromMods(Probe p)
+        {
+            var hooking = ModHooks.Hooking(typeof(ItemDrop.ItemData), nameof(ItemDrop.ItemData.GetTooltip));
+            p.Note("hooking the item tooltip: " + (hooking.Count > 0 ? string.Join(", ", hooking) : "no mod"));
+            var sword = Pick(Kind.Item, "SwordIron", "AxeBronze");
+            if (sword != null && sword.Source is GameObject swordPrefab)
+            {
+                var own = UnmoddedTooltip.Of(swordPrefab.GetComponent<ItemDrop>().m_itemData.Clone(), 1, false, Game.m_worldLevel, -1, false);
+                p.Check(!string.IsNullOrEmpty(own), $"{sword.Name}'s tooltip is read as the game has it, without the mods' hooks", own == null ? "no copy of the game's tooltip" : "");
+                var mine = Tooltips.Of(swordPrefab, 1);
+                p.Note($"{sword.Name}: " + (mine == null ? "no tooltip" : string.Join(" | ", mine.Lines.Where(l => l.Line.Length > 0).Select(l => (l.FromMods ? "+ " : "") + l.Line))));
+            }
+
+            var found = new List<Entry>();
+            var looked = 0;
+            foreach (var entry in X.Catalog.Where(e => e.Kind == Kind.Item && e.Source is GameObject).OrderBy(e => e.ModName.Length == 0).ThenBy(e => e.Name, StringComparer.Ordinal))
+            {
+                if (Tooltips.Of((GameObject)entry.Source, 1)?.FromMods == true) found.Add(entry);
+                if (++looked % 20 == 0) yield return null;
+                if (found.Count >= 10 || looked >= 600) break;
+            }
+            p.Note($"{Numbers.Count(found.Count)} of {Numbers.Count(looked)} items looked at have lines from mods in their tooltip: {string.Join(", ", found.Select(e => e.Name))}");
+            if (found.Count == 0)
+            {
+                p.Note("no item's tooltip has a line a mod added, so no page shows one");
+                yield break;
+            }
+            var item = found[0];
+            var shown = Tooltips.Of((GameObject)item.Source, 1);
+            p.Note($"{item.Name}: " + string.Join(" | ", shown.Lines.Where(l => l.Line.Length > 0).Select(l => (l.FromMods ? "+ " : "") + l.Line)));
+            Select(item);
+            ScryPanel.TooltipFolded = false;
+            var drawn = ScryPanel.Drawn(PanelPart.Tooltip);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.Tooltip) > drawn, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.Tooltip) > drawn, $"{item.Name}'s page shows its tooltip with the mods' lines marked");
+        }
+
+        /// <summary>
         /// What mod managers put beside a mod is read: its package's description, author,
         /// website, icon and readme, each told on its page; and the mods each needs and works
         /// with are told both ways, as BepInEx and the packages declare them.

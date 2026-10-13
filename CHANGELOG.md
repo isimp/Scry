@@ -16,6 +16,8 @@ What equipping something changes on you is noted as you play, whichever mod made
 
 An item that a mod's settings are named after, such as a backpack whose size and carry bonus a mod sets in a section of its own, shows those settings on its page under *Set by mods*, as the mod's config holds them now.
 
+An item whose tooltip in the game mods add lines to shows that tooltip on its page under *Tooltip in the game*, at each quality, with the lines the mods added marked by a bar beside them.
+
 ## 0.2.0
 
 Locations have a tab of their own: every location and dungeon room the world can place, grouped by biome, each telling where it is placed and what it holds. A location stands on the turntable as a new zone would roll it, its creatures included, and *Roll again* rolls it anew.

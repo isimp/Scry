@@ -204,7 +204,7 @@ namespace Scry
         {
             public Explorer Explorer;
             public Explorer.Kept Kept;
-            public bool Open, InWorld, Repeat, OnPerson, PlanFolded, RunesFolded, ReadmeFolded;
+            public bool Open, InWorld, Repeat, OnPerson, PlanFolded, RunesFolded, ReadmeFolded, TooltipFolded;
             public Locations.State LocationsWere;
 
             /// <summary>The view the panel was in when the test first opened it, for the full view the stage is drawn in.</summary>
@@ -221,6 +221,7 @@ namespace Scry
                 PlanFolded = ScryPanel.PlanFolded,
                 RunesFolded = ScryPanel.RunesFolded,
                 ReadmeFolded = ScryPanel.ReadmeFolded,
+                TooltipFolded = ScryPanel.TooltipFolded,
                 LocationsWere = Locations.Now,
             };
         }
@@ -243,6 +244,7 @@ namespace Scry
             ScryPanel.PlanFolded = before.PlanFolded;
             ScryPanel.RunesFolded = before.RunesFolded;
             ScryPanel.ReadmeFolded = before.ReadmeFolded;
+            ScryPanel.TooltipFolded = before.TooltipFolded;
             ScryPanel.HideModReport();
             if (before.Compact.HasValue) ScryPanel.Compact = before.Compact.Value;
             if (Session.Explorer != null && Session.Explorer == before.Explorer) before.Explorer.Restore(before.Kept);

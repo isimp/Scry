@@ -244,6 +244,25 @@ namespace Scry
             }
         }
 
+        /// <summary>The mods hooking a game method of this name, by the mod each hook belongs to, Scry left out.</summary>
+        public static IReadOnlyList<string> Hooking(Type type, string name)
+        {
+            var mods = new List<string>();
+            var plugins = PluginsByAssembly();
+            foreach (var method in AccessTools.GetDeclaredMethods(type).Where(m => m.Name == name))
+            {
+                var info = Harmony.GetPatchInfo(method);
+                if (info == null) continue;
+                foreach (var patch in info.Prefixes.Concat(info.Postfixes).Concat(info.Transpilers).Concat(info.Finalizers))
+                {
+                    if (patch?.PatchMethod == null || patch.owner == About.Guid) continue;
+                    var mod = ModOf(patch, plugins);
+                    if (!string.IsNullOrEmpty(mod) && !mods.Contains(mod)) mods.Add(mod);
+                }
+            }
+            return mods;
+        }
+
         /// <summary>The name of the mod a patch belongs to: the plugin whose assembly holds its method, else the plugin its Harmony id names, else the id.</summary>
         private static string ModOf(Patch patch, Dictionary<Assembly, string> plugins)
         {

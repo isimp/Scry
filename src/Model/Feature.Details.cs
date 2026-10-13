@@ -97,6 +97,7 @@ namespace Scry
         public static readonly Feature ModHooks = Listed("mods' hooks, in the details");
         public static readonly Feature ModPages = Listed("mod pages and the mod report");
         public static readonly Feature ModSettings = Listed("mods' settings for an item, in the details");
+        public static readonly Feature TooltipFromMods = Listed("an item's tooltip as the game shows it, with what mods add to it");
         public static readonly Feature ModAttribution = Listed("which mod added what");
     }
 }

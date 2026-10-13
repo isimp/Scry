@@ -14,6 +14,7 @@ namespace Scry
         Plan,
         PlanTab,
         Readme,
+        Tooltip,
         Ruler,
         RoofButton,
         Runes,

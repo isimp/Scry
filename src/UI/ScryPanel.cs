@@ -81,6 +81,7 @@ namespace Scry
             ForgetEffects();
             ForgetAnimations();
             ForgetSounds();
+            ForgetTooltip();
             ForgetEntryCards();
             ForgetMods();
             ForgetPlan();
