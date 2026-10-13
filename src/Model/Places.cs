@@ -89,11 +89,14 @@ namespace Scry
             if (string.IsNullOrEmpty(place)) return null;
             foreach (var entry in catalog)
             {
-                if (entry.Kind != Kind.Location || entry.FoundIn.Length == 0 || !entry.Components.Contains("Location")) continue;
-                if (string.Equals(entry.FoundIn[0], place, StringComparison.Ordinal)) return entry;
+                if (string.Equals(LabelOf(entry), place, StringComparison.Ordinal)) return entry;
             }
             return null;
         }
+
+        /// <summary>The label a location goes by, the one what is found there names it with; null for anything else, a dungeon's rooms included.</summary>
+        public static string LabelOf(Entry entry) =>
+            entry.Kind == Kind.Location && entry.FoundIn.Length > 0 && entry.Components.Contains("Location") ? entry.FoundIn[0] : null;
 
         /// <summary>A place's name without its biome, as the search and its suggestions take it.</summary>
         public static string NameOf(string place)
