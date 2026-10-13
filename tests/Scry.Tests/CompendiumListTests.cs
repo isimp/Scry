@@ -383,6 +383,49 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ANoticeTellsWhatWasLearnedSinceItLastToldOfWhatWasMet()
+        {
+            // What was only heard of is not named; with the compendium off or peeking, nothing is told.
+            var world = new World().Rule(CompendiumRule.Loose);
+            var notice = new LearnedNotice();
+
+            Assert.Equal(new[] { world.Boar, world.Troll }, notice.New(world.Explorer));
+            notice.Told();
+            Assert.Empty(notice.New(world.Explorer));
+
+            world.Book.Raise(world.Fenring.Key, KnownLevel.Seen);
+            world.Book.Raise(world.Hide.Key, KnownLevel.HeardOf);
+            world.Rule(CompendiumRule.Loose);
+            Assert.Equal(new[] { world.Fenring }, notice.New(world.Explorer));
+
+            world.Explorer.Peeking = true;
+            Assert.Empty(notice.New(world.Explorer));
+            world.Explorer.Peeking = false;
+            world.Rule(CompendiumRule.Off);
+            Assert.Empty(notice.New(world.Explorer));
+        }
+
+        [Fact]
+        public void EachCharactersNoticeKeepsItsOwnPlace()
+        {
+            // The self-test shows a made-up character for a while; the one played is not told again.
+            var world = new World().Rule(CompendiumRule.Loose);
+            var notice = new LearnedNotice();
+            notice.New(world.Explorer);
+            notice.Told();
+
+            var other = new CompendiumBook();
+            other.Raise(world.Fenring.Key, KnownLevel.Known);
+            var otherView = new CompendiumView(world.Explorer.Entries);
+            otherView.Tell(other, CompendiumRule.Loose);
+            world.Explorer.Know(otherView);
+            Assert.Equal(new[] { world.Fenring }, notice.New(world.Explorer));
+
+            world.Explorer.Know(world.View);
+            Assert.Empty(notice.New(world.Explorer));
+        }
+
+        [Fact]
         public void WithTheCompendiumOffAPageLeadsToEverythingInTheCatalog()
         {
             var world = new World().Rule(CompendiumRule.Off);

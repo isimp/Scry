@@ -90,6 +90,7 @@ namespace Scry
 
             // The search help's index holds the whole catalog.
             Assist.Forget();
+            ForgetNews();
 
             // A box left open would still match the new world's empty selection and draw on.
             CloseBoxes();

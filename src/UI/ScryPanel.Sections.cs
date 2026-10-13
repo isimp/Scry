@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -195,14 +196,54 @@ namespace Scry
             }
         }
 
-        /// <summary>The compendium's strip under the header: a warning while peeking; none otherwise.</summary>
-        private static float CompendiumStripHeight(Explorer explorer) => explorer.Peeking ? U(32f) : 0f;
+        /// <summary>What the character learned since the panel last told of it (<see cref="LearnedNotice"/>).</summary>
+        private static readonly LearnedNotice LearnedNews = new LearnedNotice();
 
-        /// <summary>Warns that everything shows while peeking, with a chip that stops it.</summary>
+        private static List<Entry> _newsFor;
+        private static string _newsLine;
+
+        /// <summary>Lets go of the book and entries the notice of what was learned holds, as on leaving a world.</summary>
+        private static void ForgetNews()
+        {
+            LearnedNews.Forget();
+            _newsFor = null;
+        }
+
+        /// <summary>The compendium's strip under the header: a warning while peeking, else what was newly learned; none otherwise.</summary>
+        private static float CompendiumStripHeight(Explorer explorer) => explorer.Peeking || LearnedNews.New(explorer).Count > 0 ? U(32f) : 0f;
+
+        /// <summary>
+        /// Warns that everything shows while peeking, with a chip that stops it; else names what
+        /// the character learned since last told, with a chip listing what it learned lately and
+        /// a cross putting the notice away until it learns more.
+        /// </summary>
         private static void CompendiumStrip(Explorer explorer, Rect rect)
         {
-            CountDrawn(PanelPart.PeekStrip);
-            if (NoticeStrip(rect, Skin.Warn, CompendiumWords.Peeking, Skin.WarnLabel, true, CompendiumWords.StopPeeking, false, false) == StripClick.Chip) Peek(explorer, false);
+            if (explorer.Peeking)
+            {
+                CountDrawn(PanelPart.PeekStrip);
+                if (NoticeStrip(rect, Skin.Warn, CompendiumWords.Peeking, Skin.WarnLabel, true, CompendiumWords.StopPeeking, false, false) == StripClick.Chip) Peek(explorer, false);
+                return;
+            }
+
+            var news = LearnedNews.New(explorer);
+            if (!ReferenceEquals(news, _newsFor))
+            {
+                _newsFor = news;
+                _newsLine = CompendiumWords.NewlyLearned(news.Select(e => e.ShownName).ToList());
+            }
+            CountDrawn(PanelPart.LearnedStrip);
+            switch (NoticeStrip(rect, Skin.Accent, _newsLine, Skin.Label, false, CompendiumWords.ShowLearned, explorer.LearnedOnly, true,
+                chipTip: CompendiumWords.LearnedTip(false), crossTip: CompendiumWords.PutNewsAway))
+            {
+                case StripClick.Chip:
+                    LearnedNews.Told();
+                    ShowLearned(explorer, true);
+                    break;
+                case StripClick.Cross:
+                    LearnedNews.Told();
+                    break;
+            }
         }
 
         /// <summary>Starts or stops showing everything though the compendium is on (<see cref="Explorer.Peeking"/>), keeping the list where it was.</summary>

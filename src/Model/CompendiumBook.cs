@@ -57,6 +57,7 @@ namespace Scry
             _levels[key] = level;
             if (!quietly)
             {
+                _learnedAt[key] = ++Learned;
                 _lately.Remove(key);
                 _lately.Insert(0, key);
                 if (_lately.Count > LatelyKept) _lately.RemoveRange(LatelyKept, _lately.Count - LatelyKept);
@@ -68,6 +69,14 @@ namespace Scry
 
         /// <summary>The keys learned more of lately, newest first.</summary>
         public IEnumerable<string> Lately => _lately;
+
+        private readonly Dictionary<string, int> _learnedAt = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        /// <summary>Counts what was learned since the book was made or read, not quietly: a count taken now marks what is new after it. Not kept.</summary>
+        public int Learned { get; private set; }
+
+        /// <summary>The keys learned more of after a count of <see cref="Learned"/> taken before, newest first, as far as <see cref="Lately"/> keeps them.</summary>
+        public IEnumerable<string> LearnedSince(int mark) => _lately.Where(key => _learnedAt.TryGetValue(key, out var at) && at > mark);
 
         /// <summary>Every entry known of at all, with its level.</summary>
         public IEnumerable<KeyValuePair<string, KnownLevel>> All => _levels;

@@ -142,6 +142,11 @@ namespace Scry
             ScryPanel.Compact = false;
             yield return Until(() => ReferenceEquals(X.Compendium, view), 3);
             if (!p.Check(ReferenceEquals(X.Compendium, view) && X.CompendiumOn, "the list is the made-up character's")) yield break;
+            // What it learned is told in a notice under the header.
+            var news = ScryPanel.Drawn(PanelPart.LearnedStrip);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.LearnedStrip) > news + 1, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.LearnedStrip) > news, "a notice under the header tells what it learned");
+
             var stepped = new List<string>();
             for (var steps = 0; steps < 60 && X.Back(); steps++)
             {

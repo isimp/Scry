@@ -42,6 +42,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheNoticeNamesTheFirstThingsLearnedAndCountsTheRest()
+        {
+            Assert.Equal("Newly learned: Troll", CompendiumWords.NewlyLearned(new[] { "Troll" }));
+            Assert.Equal("Newly learned: Troll, Neck and Boar", CompendiumWords.NewlyLearned(new[] { "Troll", "Neck", "Boar" }));
+            Assert.Equal("Newly learned: Troll, Neck, Boar and 1,200 more", CompendiumWords.NewlyLearned(new[] { "Troll", "Neck", "Boar" }.Concat(Enumerable.Repeat("x", 1200)).ToArray()));
+            Assert.Equal("Show", CompendiumWords.ShowLearned);
+            Assert.Equal("Put this away until more is learned", CompendiumWords.PutNewsAway);
+        }
+
+        [Fact]
         public void TheListOfWhatWasLearnedLatelySaysWhatItHolds()
         {
             Assert.Equal("Learned lately", CompendiumWords.LearnedLately);

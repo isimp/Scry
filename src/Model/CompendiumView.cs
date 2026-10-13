@@ -70,6 +70,9 @@ namespace Scry
         /// <summary>The catalog it tells of.</summary>
         public EntryCatalog Catalog => _catalog;
 
+        /// <summary>The book told last; none before.</summary>
+        public CompendiumBook Book => _book;
+
         /// <summary>What the book told last learned lately, newest first; none before it was told.</summary>
         public IEnumerable<string> Lately => _book?.Lately ?? Array.Empty<string>();
 

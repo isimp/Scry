@@ -59,6 +59,26 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatWasLearnedSinceACountTakenBeforeIsToldNewestFirst()
+        {
+            // The panel tells what is new since it last told; what was known before, only written
+            // down now, is nothing new, and a creature seen before and fought since is.
+            var book = new CompendiumBook();
+            book.Raise("Troll", KnownLevel.Seen);
+            book.Raise("Boar", KnownLevel.Known);
+            var mark = book.Learned;
+
+            book.Raise("Neck", KnownLevel.Seen);
+            book.Raise("Wood", KnownLevel.Known, quietly: true);
+            book.Raise("Troll", KnownLevel.Known);
+            book.Raise("Boar", KnownLevel.Known);
+
+            Assert.Equal(new[] { "Troll", "Neck" }, book.LearnedSince(mark).ToArray());
+            Assert.Empty(book.LearnedSince(book.Learned));
+            Assert.Equal(new[] { "Troll", "Neck", "Boar" }, book.LearnedSince(0).ToArray());
+        }
+
+        [Fact]
         public void WhatWasLearnedLatelyComesNewestFirstAndOnlyTheLatestAreKept()
         {
             var book = new CompendiumBook();

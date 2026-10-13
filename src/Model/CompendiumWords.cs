@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Linq;
+
 namespace Scry
 {
     /// <summary>What the panel says of the compendium: a tab's count of what was found, a page not yet open and what it names.</summary>
@@ -41,6 +44,23 @@ namespace Scry
 
         /// <summary>The strip's chip that stops peeking.</summary>
         public const string StopPeeking = "Stop";
+
+        /// <summary>The notice of what the character learned since it was last told: the first three by name, the rest counted.</summary>
+        public static string NewlyLearned(IReadOnlyList<string> names)
+        {
+            var shown = names.Take(3).ToList();
+            var more = names.Count - shown.Count;
+            var listed = more > 0 ? string.Join(", ", shown) + $" and {Numbers.Count(more)} more"
+                : shown.Count == 1 ? shown[0]
+                : string.Join(", ", shown.Take(shown.Count - 1)) + " and " + shown[shown.Count - 1];
+            return "Newly learned: " + listed;
+        }
+
+        /// <summary>The tip of the notice's cross.</summary>
+        public const string PutNewsAway = "Put this away until more is learned";
+
+        /// <summary>The notice's chip, listing what was learned lately.</summary>
+        public const string ShowLearned = "Show";
 
         /// <summary>The chip listing what the character learned lately.</summary>
         public const string LearnedLately = "Learned lately";
