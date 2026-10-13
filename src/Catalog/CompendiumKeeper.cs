@@ -40,6 +40,9 @@ namespace Scry
         /// <summary>What the character being played knows; none before its file is read.</summary>
         public static CompendiumBook Book => _book;
 
+        /// <summary>Where the book of the character being played is kept; none before a character is played.</summary>
+        public static string FilePath => _file != null ? PathOf(_file) : null;
+
         /// <summary>Reads, catches up and writes as due; called each frame.</summary>
         public static void Update()
         {

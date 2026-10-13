@@ -128,13 +128,19 @@ namespace Scry
         /// <summary>What the character knows of the explorer's catalog, for the compendium; made with the explorer.</summary>
         private static CompendiumView _known;
 
+        /// <summary>A made-up character's knowledge shown in place of the one played, by the self-test; none otherwise.</summary>
+        private static CompendiumView _knownInstead;
+
+        /// <summary>Shows a made-up character's knowledge in place of the one played, for the self-test; none puts the played one back.</summary>
+        public static void ShowKnownInstead(CompendiumView view) => _knownInstead = view;
+
         /// <summary>Hands the explorer what the character knows under the rules set, which lists again only when either changed.</summary>
         private static void ShowKnown()
         {
             if (Explorer == null) return;
             if (_known == null || !ReferenceEquals(_known.Catalog, Explorer.Entries)) _known = new CompendiumView(Explorer.Entries);
             _known.Tell(CompendiumKeeper.Book, Settings.Compendium);
-            Explorer.Know(_known);
+            Explorer.Know(_knownInstead ?? _known);
         }
 
         /// <summary>Scry's code compiled ahead (<see cref="CodeWarmup"/>), once a session, made once a world's catalog is read; for the self-test to see it done.</summary>
@@ -293,6 +299,7 @@ namespace Scry
             if (Explorer != null) _carried = (Explorer.Text, Explorer.KindFilter, Explorer.Origin, Explorer.FavouritesOnly);
             Explorer = null;
             _known = null;
+            _knownInstead = null;
         }
     }
 }

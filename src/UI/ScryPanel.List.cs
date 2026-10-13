@@ -368,6 +368,7 @@ namespace Scry
             // and what is only heard of is named faintly.
             var level = explorer.LevelOf(entry);
             var unknown = level == KnownLevel.Unknown;
+            if (unknown) CountDrawn(PanelPart.Silhouette);
 
             if (selected) Skin.Box(inner, Skin.AccentSoft);
             else if (hover) Skin.Box(inner, Skin.Hover);

@@ -190,6 +190,7 @@ namespace Scry
         /// </summary>
         private static void ClosedPage(Explorer explorer, Entry entry, KnownLevel level, Rect rect, bool withStage)
         {
+            CountDrawn(PanelPart.ClosedPage);
             var top = rect.y;
             if (withStage && level == KnownLevel.Seen && CardHeight(entry) <= 0f) top += SideStage(explorer, entry, rect);
             Skin.Box(new Rect(rect.x, top, rect.width, rect.yMax - top), Skin.Panel);
