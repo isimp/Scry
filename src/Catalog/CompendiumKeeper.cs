@@ -75,6 +75,7 @@ namespace Scry
                     _caughtUp = true;
                 }
                 Look(player);
+                Guard.Run(Feature.CompendiumMap, "catching up from the explored map", () => CompendiumMap.Update(_book));
             }
             Save();
         }

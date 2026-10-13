@@ -283,6 +283,15 @@ namespace Scry
             // With the compendium on: what was learned lately, and Peek, to show everything for now.
             if (explorer.CompendiumSet)
             {
+                // With the places' tab picked: reading the explored map again.
+                if (explorer.KindFilter == Kind.Location)
+                {
+                    var mapW = Skin.Width(Skin.Chip, CompendiumWords.ReadMap) + U(16f);
+                    var mapAt = flow.Place(mapW);
+                    var map = new Rect(mapAt.X, mapAt.Y, mapW, flow.RowHeight);
+                    if (GUI.Button(map, CompendiumWords.ReadMap, Skin.Fitted(Skin.Chip, map))) Say(CompendiumMap.Again(CompendiumKeeper.Book));
+                    if (map.Contains(Event.current.mousePosition)) AskTip("readmap", CompendiumWords.ReadMapTip);
+                }
                 var learnedW = Skin.Width(Skin.Chip, CompendiumWords.LearnedLately) + U(16f);
                 var place = flow.Place(learnedW);
                 var learned = new Rect(place.X, place.Y, learnedW, flow.RowHeight);

@@ -3,24 +3,36 @@ using System.Collections.Generic;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Scry
 {
     /// <summary>
     /// What BepInEx loads: it gives the log and the settings to the layers below, patches the
     /// game, registers the command, and hands each frame, its drawing and its end to the session
-    /// and the panel.
+    /// and the panel. On a dedicated server (no graphics) it does none of that and only answers
+    /// players' explored maps (<see cref="CompendiumLink"/>).
     /// </summary>
     [BepInPlugin(About.Guid, About.Name, About.Version)]
     [BepInProcess("valheim.exe")]
+    [BepInProcess("valheim_server.exe")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA1001", Justification = "Unity ends a plugin with OnDestroy, which unpatches; a MonoBehaviour is never disposed.")]
     public class Plugin : BaseUnityPlugin
     {
         private Harmony _harmony;
 
+        /// <summary>Whether this is a dedicated server, where Scry only answers players' explored maps.</summary>
+        private bool _server;
+
         private void Awake()
         {
             Log.Source = Logger;
+            _server = SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null;
+            if (_server)
+            {
+                Log.Report(CompendiumWords.ServerPart);
+                return;
+            }
 
             // The panel places everything itself and uses no automatic layout, so the layout pass
             // Unity would otherwise run before every event, drawing the whole panel once more, is
@@ -88,6 +100,8 @@ namespace Scry
 
         private void Update()
         {
+            Guard.Run(Feature.CompendiumMap, "Scry's messages with the server", CompendiumLink.Update);
+            if (_server) return;
             var started = Timing.Start();
             Guard.Run(Feature.World, "the frame", Session.Update);
             var drops = Timing.Start();
@@ -97,10 +111,14 @@ namespace Scry
             Timing.Add("update", started);
         }
 
-        private void LateUpdate() => Guard.Run(Feature.Stage, "drawing the stage", Session.LateUpdate, "render");
+        private void LateUpdate()
+        {
+            if (!_server) Guard.Run(Feature.Stage, "drawing the stage", Session.LateUpdate, "render");
+        }
 
         private void OnGUI()
         {
+            if (_server) return;
             var started = Timing.Start();
             var kind = Event.current.type;
             // The panel catches its own sections; this is for a panel that cannot run at all,
@@ -131,6 +149,7 @@ namespace Scry
 
         private void OnDestroy()
         {
+            if (_server) return;
             DropWatch.Save(now: true);
             WornWatch.Save(now: true);
             Guard.Run(Feature.CompendiumCatchUp, "keeping what the character knows", CompendiumKeeper.Finish);

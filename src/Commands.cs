@@ -42,6 +42,12 @@ namespace Scry
                 return;
             }
 
+            if (rest.Equals("map", System.StringComparison.OrdinalIgnoreCase))
+            {
+                args.Context.OrNull()?.AddString(ConsoleWords.Reply(CompendiumMap.Again(CompendiumKeeper.Book)));
+                return;
+            }
+
             if (rest.Equals("forget", System.StringComparison.OrdinalIgnoreCase))
             {
                 args.Context.OrNull()?.AddString(ConsoleWords.Reply(Locations.ForgetKept()));

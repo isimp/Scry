@@ -52,6 +52,7 @@ namespace Scry
             yield return S("what the character knows is kept, caught up with its records and with what it carries", CompendiumKept, 30);
             yield return S("the compendium watches fights, hits and sight without fault", CompendiumWatched, 10);
             yield return S("with the compendium on, a made-up character sees only what it met", CompendiumShown, 60, () => { AllKnown(); ResetList(); });
+            yield return S("the explored map tells which kinds of place were seen", CompendiumMapRead, 30);
             yield return S("every mod has a page of what it adds and changes", ModPages, 10);
             yield return S("a mod's page tells what its package says and how it ties to other mods", ModPackages, 10);
             yield return S("an item a mod's settings are named after shows them", ModSettingsOfItems, 10);

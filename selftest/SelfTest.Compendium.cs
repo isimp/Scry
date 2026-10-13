@@ -76,6 +76,44 @@ namespace Scry
         /// <summary>Keys besides the link keys whose offered values name entries: none may name what a made-up character has not seen.</summary>
         private static readonly string[] OfferKeys = { "playedby", "station" };
 
+        /// <summary>
+        /// The explored map is read: the ground the character stands on is explored, the places
+        /// this game holds lie partly in it, and where this game is the world's server it answers
+        /// a map sent to itself as it would a player's, with as many kinds as read here. The book
+        /// of the character played is caught up once, after a while in the world.
+        /// </summary>
+        private static IEnumerator CompendiumMapRead(Probe p)
+        {
+            var player = Player.m_localPlayer;
+            if (!p.Check(player != null && ZNet.instance != null, "a character is played in a world")) yield break;
+            var packed = CompendiumMap.PackedMap();
+            if (!p.Check(packed != null, "its explored map is read")) yield break;
+            var grid = ExploredGrid.Unpack(packed);
+            p.Check(grid != null && grid.Explored(player.transform.position.x, player.transform.position.z), "the ground it stands on is explored", grid != null ? $"cells of {Numbers.Count(grid.Factor)} pixels a side" : null);
+            var world = CompendiumMap.World;
+            var book = CompendiumKeeper.Book;
+            if (!ZNet.instance.IsServer())
+            {
+                p.Note(book != null && book.Mapped(world) ? "a server world, caught up with its server's answer" : "a server world not caught up: its server answers no map (no Scry there)");
+                yield break;
+            }
+
+            var places = CompendiumMap.Places();
+            var kinds = MapCatchUp.Kinds(grid, places);
+            p.Check(places.Count > 0, $"this game holds the world's {Numbers.Count(places.Count)} places");
+            p.Note($"{Numbers.Count(kinds.Count)} kinds of place lie in explored ground");
+            yield return Until(() => book != null && book.Mapped(world), 15);
+            p.Check(book != null && book.Mapped(world), "the character's book is caught up from its map in this world");
+            var missing = kinds.Where(k => book != null && book.Level(EntryKeys.For(Kind.Location, k)) < KnownLevel.Seen).ToList();
+            p.Check(missing.Count == 0, "and has every kind of place in explored ground as seen at least", string.Join(", ", missing.Take(5)));
+
+            // As a server: a map sent to this game comes back answered, as a player's would.
+            var answered = CompendiumLink.Answered;
+            CompendiumLink.Ask(world);
+            yield return Until(() => CompendiumLink.Answered > answered && CompendiumLink.LastTold >= 0, 10);
+            p.Check(CompendiumLink.Answered > answered && CompendiumLink.LastTold == kinds.Count, "a map sent to the world's server is answered with the same kinds", $"{Numbers.Count(CompendiumLink.LastTold)} told, {Numbers.Count(kinds.Count)} read here");
+        }
+
         /// <summary>Terms tried on a made-up character, each of which must not find what it has not met.</summary>
         private static readonly string[] CompendiumTerms = { "kind:creature", "is:boss", "biome:meadows", "drops:wood", "has:Character", "in:crypt" };
 

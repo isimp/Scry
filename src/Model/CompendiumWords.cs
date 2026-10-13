@@ -62,6 +62,31 @@ namespace Scry
         /// <summary>The notice's chip, listing what was learned lately.</summary>
         public const string ShowLearned = "Show";
 
+        /// <summary>The reply to <c>/scry map</c> in a world.</summary>
+        public const string MapAgain = "the explored map will be read again for this character in this world";
+
+        /// <summary>The reply to <c>/scry map</c> outside a world.</summary>
+        public const string MapNoWorld = "the explored map can be read only in a world";
+
+        /// <summary>The log's line once the map was read.</summary>
+        public static string MapRead(int kinds, int raised, bool fromServer) =>
+            $"caught up from the explored map{(fromServer ? " with the server's answer" : "")}: {Numbers.Count(kinds)} kinds of place lie in explored ground, {Numbers.Count(raised)} of them new to the compendium";
+
+        /// <summary>The server's log line on answering a player's map.</summary>
+        public static string MapAnswered(int kinds) => $"answered a player's explored map: {Numbers.Count(kinds)} kinds of place lie in it";
+
+        /// <summary>The log's line when the server never answered.</summary>
+        public static string MapNoServerScry => "the server did not answer on the explored map (it has no Scry, or one too old): places count as the character meets them";
+
+        /// <summary>The chip reading the explored map again, with the Locations tab picked.</summary>
+        public const string ReadMap = "Read the map again";
+
+        /// <summary>That chip's tip.</summary>
+        public const string ReadMapTip = "Counts the kinds of place in the ground this character explored in this world as seen, as on its first visit with Scry";
+
+        /// <summary>The log's line on a dedicated server.</summary>
+        public static string ServerPart => "on a dedicated server Scry only answers players' explored maps, for their compendium";
+
         /// <summary>The chip listing what the character learned lately.</summary>
         public const string LearnedLately = "Learned lately";
 
