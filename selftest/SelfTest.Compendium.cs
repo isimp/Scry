@@ -130,21 +130,21 @@ namespace Scry
             p.Check(X.FoundOf(Kind.Creature) == 2, "the creatures' tab counts the two met as found", Numbers.Count(X.FoundOf(Kind.Creature)));
             p.Check(X.TotalOf(Kind.Creature) == creatures, "of all there are", $"{Numbers.Count(X.TotalOf(Kind.Creature))} of {Numbers.Count(creatures)}");
             p.Check(X.Results.Count == creatures, "every creature is listed in it", $"{Numbers.Count(X.Results.Count)} of {Numbers.Count(creatures)}");
-            var silhouettes = X.Results.Count(e => X.LevelOf(e) == KnownLevel.Unknown);
-            p.Check(silhouettes > 0 && silhouettes < creatures, "what was not met is a silhouette", $"{Numbers.Count(silhouettes)} silhouettes");
+            var silhouettes = X.Results.Count(e => X.LevelOf(e) < KnownLevel.Seen);
+            p.Check(silhouettes > 0 && silhouettes < creatures, "what was not seen, heard of or not, is a silhouette", $"{Numbers.Count(silhouettes)} silhouettes");
             var drawn = ScryPanel.Drawn(PanelPart.Silhouette);
             yield return Until(() => ScryPanel.Drawn(PanelPart.Silhouette) > drawn, 3);
             p.Check(ScryPanel.Drawn(PanelPart.Silhouette) > drawn, "silhouettes are drawn in the list");
 
             // No search finds what was not met, by its name or by any term.
             var leaks = new List<string>();
-            var unmet = X.Catalog.Where(e => view.Of(e) == KnownLevel.Unknown && e.ShownName.Length > 2).Take(60).ToList();
+            var unmet = X.Catalog.Where(e => view.Of(e) < KnownLevel.Seen && e.ShownName.Length > 2).Take(60).ToList();
             foreach (var text in unmet.Select(e => e.ShownName).Concat(CompendiumTerms))
             {
                 X.SearchEverything(text);
-                if (X.Results.Any(e => X.LevelOf(e) == KnownLevel.Unknown)) leaks.Add(text);
+                if (X.Results.Any(e => X.LevelOf(e) < KnownLevel.Seen)) leaks.Add(text);
             }
-            p.Check(leaks.Count == 0, $"no search finds what was not met ({Numbers.Count(unmet.Count)} names and {Numbers.Count(CompendiumTerms.Length)} terms tried)", string.Join(", ", leaks.Take(10)));
+            p.Check(leaks.Count == 0, $"no search finds what was not seen ({Numbers.Count(unmet.Count)} names and {Numbers.Count(CompendiumTerms.Length)} terms tried)", string.Join(", ", leaks.Take(10)));
             X.SearchEverything("has:Character");
             p.Check(!X.Results.Contains(spotted), $"a term telling what a page holds does not find {spotted.Name}, only seen");
 

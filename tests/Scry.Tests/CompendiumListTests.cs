@@ -53,19 +53,20 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void UnderLooseTheListHoldsOnlyWhatTheCharacterHasMetOrHeardOf()
+        public void UnderLooseTheListHoldsOnlyWhatTheCharacterHasSeenOrKnows()
         {
+            // The troll's hide is named on the troll's page, heard of: that is no reason to list it.
             var world = new World().Rule(CompendiumRule.Loose);
             var explorer = world.Explorer;
 
             Assert.True(explorer.CompendiumOn);
-            Assert.Equal(new[] { world.Boar, world.Troll, world.Hide }.OrderBy(e => e.Name), explorer.Results.OrderBy(e => e.Name));
+            Assert.Equal(KnownLevel.HeardOf, explorer.LevelOf(world.Hide));
+            Assert.Equal(new[] { world.Boar, world.Troll }.OrderBy(e => e.Name), explorer.Results.OrderBy(e => e.Name));
 
             explorer.Text = "fenring";
             Assert.Empty(explorer.Results);
             explorer.Text = "troll";
-            Assert.Contains(world.Troll, explorer.Results);
-            Assert.Contains(world.Hide, explorer.Results);
+            Assert.Equal(new[] { world.Troll }, explorer.Results.ToArray());
         }
 
         [Fact]
@@ -93,6 +94,10 @@ namespace Scry.Tests
             explorer.KindFilter = Kind.Creature;
             Assert.Contains(world.Fenring, explorer.Results);
             Assert.Equal(KnownLevel.Unknown, explorer.LevelOf(world.Fenring));
+            // What is only heard of is a silhouette there too.
+            explorer.KindFilter = Kind.Item;
+            Assert.Equal(new[] { world.Hide }, explorer.Results.ToArray());
+            explorer.KindFilter = Kind.Creature;
 
             // Typing finds only what is met; the kinds that show no silhouettes leave the unknown out.
             explorer.Text = "f";
@@ -115,8 +120,8 @@ namespace Scry.Tests
             Assert.Equal(2, explorer.CountOf(Kind.Creature));
             Assert.Equal(2, explorer.FoundOf(Kind.Creature));
             Assert.Equal(3, explorer.TotalOf(Kind.Creature));
-            // Heard of is not found.
-            Assert.Equal(1, explorer.CountOf(Kind.Item));
+            // Heard of is neither listed nor found.
+            Assert.Equal(0, explorer.CountOf(Kind.Item));
             Assert.Equal(0, explorer.FoundOf(Kind.Item));
             Assert.Equal(1, explorer.TotalOf(Kind.Item));
         }
@@ -233,13 +238,37 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void GoingToSomethingNotMetLeadsNowhereButWhatWasHeardOfOpens()
+        public void GoingToSomethingNotMetLeadsNowhereButWhatWasHeardOfOpensAmongItsKindsSilhouettes()
         {
+            // A heard-of name on a page leads to its closed page, in its kind's tab where it is listed.
             var world = new World().Rule(CompendiumRule.Loose);
+            world.Explorer.Text = "troll";
 
             Assert.False(world.Explorer.Jump(world.Fenring.Key));
             Assert.True(world.Explorer.Jump(world.Hide.Key));
             Assert.Same(world.Hide, world.Explorer.Selected);
+            Assert.Equal(Kind.Item, world.Explorer.KindFilter);
+            Assert.Equal("", world.Explorer.Text);
+            Assert.Contains(world.Hide, world.Explorer.Results);
+            Assert.False(world.Explorer.Jump(world.Splash.Key));
+        }
+
+        [Fact]
+        public void AHeardOfThingOfAKindShowingNoSilhouettesLeadsNowhere()
+        {
+            // Such kinds list nothing not seen, so there is nowhere to open it.
+            var troll = E("Troll", Kind.Creature);
+            var rock = E("troll_groundslam_rock", Kind.Other);
+            troll.AddTermLink("spawns", rock);
+            var explorer = new Explorer(new[] { troll, rock }.ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            var book = new CompendiumBook();
+            book.Raise(troll.Key, KnownLevel.Known);
+            view.Tell(book, CompendiumRule.Loose);
+            explorer.Know(view);
+
+            Assert.Equal(KnownLevel.HeardOf, explorer.LevelOf(rock));
+            Assert.False(explorer.Jump(rock.Key));
         }
     }
 }

@@ -23,7 +23,7 @@ namespace Scry
         private CompendiumView _view;
         private int _viewVersion = -1;
 
-        /// <summary>The entries the character has met or heard of, while the compendium is on.</summary>
+        /// <summary>The entries the character has seen or knows, while the compendium is on.</summary>
         private List<Entry> _visible;
 
         /// <summary>What the stage could show of the selection when the explorer was last told what the character knows.</summary>
@@ -201,7 +201,7 @@ namespace Scry
                     var level = _view.Of(entry);
                     _total[(int)entry.Kind]++;
                     if (level >= KnownLevel.Seen) _found[(int)entry.Kind]++;
-                    if (level >= KnownLevel.HeardOf) _visible.Add(entry);
+                    if (level >= KnownLevel.Seen) _visible.Add(entry);
                 }
             }
             // The selection coming into sight, or out of it, is shown anew.
@@ -284,7 +284,11 @@ namespace Scry
         public bool Jump(string key)
         {
             var target = Find(key);
-            if (target == null || LevelOf(target) == KnownLevel.Unknown) return false;
+            if (target == null) return false;
+            // What was only heard of is listed among its kind's silhouettes, its page closed; what
+            // was never met at all leads nowhere.
+            var level = LevelOf(target);
+            if (level == KnownLevel.Unknown || (level < KnownLevel.Seen && !CompendiumView.Silhouetted(target.Kind))) return false;
             if (target != _selected && _here != null)
             {
                 Remember(_back);
@@ -294,7 +298,7 @@ namespace Scry
             if (!_results.Contains(target))
             {
                 _query.Text = "";
-                _query.Kind = null;
+                _query.Kind = level < KnownLevel.Seen ? target.Kind : (Kind?)null;
                 _query.FavouritesOnly = false;
                 _query.Origin = OriginFilter.All;
                 _recentOnly = false;

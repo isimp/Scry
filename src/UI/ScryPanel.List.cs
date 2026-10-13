@@ -364,10 +364,10 @@ namespace Scry
             var e = Event.current;
             var hover = rect.Contains(e.mousePosition) && visible.Contains(e.mousePosition) && _drag == Drag.None;
             var inner = new Rect(rect.x + U(2f), rect.y + U(1f), rect.width - U(4f), rect.height - U(2f));
-            // With the compendium on, what is not met yet is a silhouette named by its kind alone,
-            // and what is only heard of is named faintly.
+            // With the compendium on, what was not seen yet, heard of or not, is a silhouette named
+            // by its kind alone.
             var level = explorer.LevelOf(entry);
-            var unknown = level == KnownLevel.Unknown;
+            var unknown = level < KnownLevel.Seen;
             if (unknown) CountDrawn(PanelPart.Silhouette);
 
             if (selected) Skin.Box(inner, Skin.AccentSoft);
@@ -407,7 +407,7 @@ namespace Scry
             var nameRect = new Rect(textX, inner.y, nameW, inner.height);
             var lit = ReadLit(explorer.MendedText ?? explorer.Text);
             if (lit && !unknown) LightMatches(nameRect, primary, nameStyle);
-            Skin.LabelIn(nameRect, primary, nameStyle, entry.Empty || unknown || level == KnownLevel.HeardOf ? Skin.Faint : Skin.Text);
+            Skin.LabelIn(nameRect, primary, nameStyle, entry.Empty || unknown ? Skin.Faint : Skin.Text);
 
             var cut = fullW > textW;
             if (secondary.Length > 0)
