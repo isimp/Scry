@@ -112,6 +112,21 @@ namespace Scry
         private readonly List<string> _recent = new List<string>();
         private bool _recentOnly;
 
+        private bool _learnedOnly;
+
+        /// <summary>Only what the character learned lately (<see cref="CompendiumBook.Lately"/>), newest first; not with the recent list.</summary>
+        public bool LearnedOnly
+        {
+            get => _learnedOnly;
+            set
+            {
+                if (value == _learnedOnly) return;
+                _learnedOnly = value;
+                if (value) _recentOnly = false;
+                Refresh();
+            }
+        }
+
         /// <summary>Only what was looked at recently, newest first.</summary>
         public bool RecentOnly
         {
@@ -120,6 +135,7 @@ namespace Scry
             {
                 if (value == _recentOnly) return;
                 _recentOnly = value;
+                if (value) _learnedOnly = false;
                 Refresh();
             }
         }
@@ -147,6 +163,7 @@ namespace Scry
             _query.Kind = null;
             _query.FavouritesOnly = false;
             _recentOnly = false;
+            _learnedOnly = false;
             _query.Origin = OriginFilter.All;
             _query.Text = text ?? "";
             Refresh();
@@ -346,6 +363,7 @@ namespace Scry
                 _query.FavouritesOnly = false;
                 _query.Origin = OriginFilter.All;
                 _recentOnly = false;
+                _learnedOnly = false;
                 Refresh();
             }
 
@@ -365,6 +383,7 @@ namespace Scry
             public Kind? Kind;
             public bool FavouritesOnly;
             public bool RecentOnly;
+            public bool LearnedOnly;
             public OriginFilter Origin;
             public Entry Selected;
         }
@@ -396,6 +415,7 @@ namespace Scry
             _query.FavouritesOnly = place.FavouritesOnly;
             _query.Origin = place.Origin;
             _recentOnly = place.RecentOnly;
+            _learnedOnly = place.LearnedOnly;
             Refresh();
             Select(place.Selected, false);
             return true;
@@ -418,6 +438,7 @@ namespace Scry
             Kind = _query.Kind,
             FavouritesOnly = _query.FavouritesOnly,
             RecentOnly = _recentOnly,
+            LearnedOnly = _learnedOnly,
             Origin = _query.Origin,
             Selected = selected,
         };
@@ -439,7 +460,7 @@ namespace Scry
         {
             private readonly string _text;
             private readonly Kind? _kind;
-            private readonly bool _favouritesOnly, _recentOnly;
+            private readonly bool _favouritesOnly, _recentOnly, _learnedOnly;
             private readonly OriginFilter _origin;
             private readonly Entry _selected;
             private readonly Place _here;
@@ -453,6 +474,7 @@ namespace Scry
                 _favouritesOnly = explorer._query.FavouritesOnly;
                 _origin = explorer._query.Origin;
                 _recentOnly = explorer._recentOnly;
+                _learnedOnly = explorer._learnedOnly;
                 _selected = explorer._selected;
                 _here = explorer._here;
                 _recent = new List<string>(explorer._recent);
@@ -467,6 +489,7 @@ namespace Scry
                 explorer._query.FavouritesOnly = _favouritesOnly;
                 explorer._query.Origin = _origin;
                 explorer._recentOnly = _recentOnly;
+                explorer._learnedOnly = _learnedOnly;
                 explorer._recent.Clear();
                 explorer._recent.AddRange(_recent);
                 explorer.Refresh();
@@ -522,6 +545,11 @@ namespace Scry
             {
                 order = new Dictionary<string, int>();
                 for (var i = 0; i < _recent.Count; i++) order[_recent[i]] = i;
+            }
+            else if (_learnedOnly && _view != null)
+            {
+                order = new Dictionary<string, int>();
+                foreach (var key in _view.Lately) if (!order.ContainsKey(key)) order[key] = order.Count;
             }
 
             // One pass over the catalog lists what matches and counts it by kind for the chips,

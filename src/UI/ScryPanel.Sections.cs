@@ -213,6 +213,14 @@ namespace Scry
             RevealSelected();
         }
 
+        /// <summary>Lists what the character learned lately, newest first, or the list as before.</summary>
+        private static void ShowLearned(Explorer explorer, bool on)
+        {
+            explorer.LearnedOnly = on;
+            ListFiltered();
+            RevealSelected();
+        }
+
         internal enum StripClick
         {
             None,

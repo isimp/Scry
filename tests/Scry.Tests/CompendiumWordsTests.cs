@@ -42,6 +42,14 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheListOfWhatWasLearnedLatelySaysWhatItHolds()
+        {
+            Assert.Equal("Learned lately", CompendiumWords.LearnedLately);
+            Assert.Equal("Show what this character learned lately, newest first", CompendiumWords.LearnedTip(false));
+            Assert.Equal("Showing what this character learned lately, newest first", CompendiumWords.LearnedTip(true));
+        }
+
+        [Fact]
         public void AClosedPageSaysHowMuchIsKnownAndWhatWouldOpenIt()
         {
             Assert.Equal("Not met yet", CompendiumWords.Closed(KnownLevel.Unknown));

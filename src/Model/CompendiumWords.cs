@@ -42,6 +42,12 @@ namespace Scry
         /// <summary>The strip's chip that stops peeking.</summary>
         public const string StopPeeking = "Stop";
 
+        /// <summary>The chip listing what the character learned lately.</summary>
+        public const string LearnedLately = "Learned lately";
+
+        /// <summary>That chip's tip, by whether the list shows it.</summary>
+        public static string LearnedTip(bool on) => (on ? "Showing" : "Show") + " what this character learned lately, newest first";
+
         /// <summary>The first line of a page not yet open, by how much the character knows of it.</summary>
         public static string Closed(KnownLevel level)
         {

@@ -360,6 +360,29 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void LearnedLatelyListsWhatTheCharacterCameToMeetNewestFirst()
+        {
+            // What was only heard of is no more listed here than anywhere.
+            var world = new World().Rule(CompendiumRule.Loose);
+            var explorer = world.Explorer;
+
+            explorer.LearnedOnly = true;
+            Assert.Equal(new[] { world.Boar, world.Troll }, explorer.Results.ToArray());
+
+            world.Book.Raise(world.Fenring.Key, KnownLevel.Seen);
+            world.Book.Raise(world.Hide.Key, KnownLevel.HeardOf);
+            world.Rule(CompendiumRule.Loose);
+            Assert.Equal(new[] { world.Fenring, world.Boar, world.Troll }, explorer.Results.ToArray());
+
+            explorer.RecentOnly = true;
+            Assert.False(explorer.LearnedOnly);
+            explorer.LearnedOnly = true;
+            Assert.False(explorer.RecentOnly);
+            explorer.SearchEverything("troll");
+            Assert.False(explorer.LearnedOnly);
+        }
+
+        [Fact]
         public void WithTheCompendiumOffAPageLeadsToEverythingInTheCatalog()
         {
             var world = new World().Rule(CompendiumRule.Off);

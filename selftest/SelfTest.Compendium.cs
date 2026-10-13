@@ -278,6 +278,13 @@ namespace Scry
             }
             else p.Note("no dungeon with rooms read: rooms known with their dungeon not tried");
 
+            // Learned lately: what it met, newest first, nothing only heard of.
+            X.SearchEverything("");
+            X.LearnedOnly = true;
+            var learned = view.Lately.Select(k => X.Find(k)).Where(e => e != null && view.Of(e) >= KnownLevel.Seen).ToList();
+            p.Check(learned.Count > 0 && X.Results.SequenceEqual(learned), $"learned lately lists the {Numbers.Count(learned.Count)} things it met, newest first", string.Join(", ", X.Results.Take(10).Select(e => e.Name)));
+            X.LearnedOnly = false;
+
             // Peek: everything shows, with a warning, until stopped or the panel closes.
             var strip = ScryPanel.Drawn(PanelPart.PeekStrip);
             X.Peeking = true;

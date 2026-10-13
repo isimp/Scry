@@ -270,7 +270,7 @@ namespace Scry
             if (Tab("All", explorer.CountAll, -1, Skin.Text, explorer.KindFilter == null)) Filter(explorer, null);
             // With the compendium on and nothing narrowing the list, a kind counted so tells what
             // was found of all there is.
-            var collecting = explorer.CompendiumOn && string.IsNullOrEmpty(explorer.Text) && !explorer.FavouritesOnly && !explorer.RecentOnly && explorer.Origin == OriginFilter.All;
+            var collecting = explorer.CompendiumOn && string.IsNullOrEmpty(explorer.Text) && !explorer.FavouritesOnly && !explorer.RecentOnly && !explorer.LearnedOnly && explorer.Origin == OriginFilter.All;
             foreach (var kind in EveryKind)
             {
                 var collected = collecting && CompendiumView.Counted(kind);
@@ -280,9 +280,15 @@ namespace Scry
                 if (Tab(Kinds.Label(kind), count, total, Skin.KindColor(kind), explorer.KindFilter == kind)) Filter(explorer, kind);
             }
 
-            // With the compendium on: Peek, to show everything for now.
+            // With the compendium on: what was learned lately, and Peek, to show everything for now.
             if (explorer.CompendiumSet)
             {
+                var learnedW = Skin.Width(Skin.Chip, CompendiumWords.LearnedLately) + U(16f);
+                var place = flow.Place(learnedW);
+                var learned = new Rect(place.X, place.Y, learnedW, flow.RowHeight);
+                if (GUI.Button(learned, CompendiumWords.LearnedLately, Skin.Fitted(explorer.LearnedOnly ? Skin.ChipOn : Skin.Chip, learned))) ShowLearned(explorer, !explorer.LearnedOnly);
+                if (learned.Contains(Event.current.mousePosition)) AskTip("learned", CompendiumWords.LearnedTip(explorer.LearnedOnly));
+
                 var peekW = Skin.Width(Skin.Chip, CompendiumWords.Peek) + U(16f);
                 var at = flow.Place(peekW);
                 var peek = new Rect(at.X, at.Y, peekW, flow.RowHeight);
