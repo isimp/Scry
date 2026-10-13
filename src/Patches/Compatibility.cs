@@ -360,6 +360,11 @@ namespace Scry
             Each("SpawnSystem.m_instances", () => Member(list, "SpawnSystem", "m_instances", Feature.WhereCreaturesSpawn));
             Each("ZSFX.m_fadeOutTimer", () => Member(list, "ZSFX", "m_fadeOutTimer", Feature.SoundsAfterSeek));
             Each("CharacterDrop.m_dropsEnabled", () => Member(list, "CharacterDrop", "m_dropsEnabled", Feature.DropsSeenInPlay));
+            Each("Player.m_knownMaterial", () => Member(list, "Player", "m_knownMaterial", Feature.CompendiumCatchUp));
+            Each("Player.m_knownRecipes", () => Member(list, "Player", "m_knownRecipes", Feature.CompendiumCatchUp));
+            Each("Player.m_knownStations", () => Member(list, "Player", "m_knownStations", Feature.CompendiumCatchUp));
+            Each("Player.m_knownBiome", () => Member(list, "Player", "m_knownBiome", Feature.CompendiumCatchUp));
+            Each("Player.m_trophies", () => Member(list, "Player", "m_trophies", Feature.CompendiumCatchUp));
             Each("the patches", () => Patches(list));
             foreach (var watched in Watched)
             {

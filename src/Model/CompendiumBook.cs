@@ -120,6 +120,9 @@ namespace Scry
             return text.ToString();
         }
 
+        /// <summary>The file a character's book is kept in: by the character's own file and where that lives (on this PC or in the cloud), so two characters never share one.</summary>
+        public static string FileName(string characterFile, string source) => $"{characterFile}-{source}.dat";
+
         /// <summary>What was saved; a line that cannot be read is passed over.</summary>
         public static CompendiumBook Load(string text)
         {

@@ -95,6 +95,13 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void EachCharacterIsKeptInAFileNamedByItsOwnFileAndWhereThatLives()
+        {
+            Assert.Equal("Kevin-Local.dat", CompendiumBook.FileName("Kevin", "Local"));
+            Assert.NotEqual(CompendiumBook.FileName("Kevin", "Local"), CompendiumBook.FileName("Kevin", "Cloud"));
+        }
+
+        [Fact]
         public void HowManyAreKnownAtLeastSoFar()
         {
             var book = new CompendiumBook();

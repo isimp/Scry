@@ -121,6 +121,7 @@ namespace Scry
 
             if (!Guard.Run(Feature.Locations, "reading the locations", Locations.Update, "update locations")) Locations.Forget();
             Step(Feature.FloorsKept, "the floors kept", null, FloorRecords.Update);
+            Step(Feature.CompendiumCatchUp, "what the character knows", "update compendium", CompendiumKeeper.Update);
         }
 
         /// <summary>Scry's code compiled ahead (<see cref="CodeWarmup"/>), once a session, made once a world's catalog is read; for the self-test to see it done.</summary>
