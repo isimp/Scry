@@ -54,7 +54,7 @@ namespace Scry
             else if (wornFor) Add("Movement", "no change");
             Part("gear", () =>
             {
-                var lines = GearWords.Lines(GearValues(shared));
+                var lines = GearWords.Lines(GearModifiers.Of(shared));
                 foreach (var (label, value) in lines) Add(label, value);
                 if (shared.m_fullAdrenalineSE != null) Add("At full adrenaline", EffectName(shared.m_fullAdrenalineSE), EntryKeys.For(Kind.StatusEffect, shared.m_fullAdrenalineSE.name));
                 if (wornFor && lines.Count == 0 && shared.m_fullAdrenalineSE == null && shared.m_equipStatusEffect == null) Add("Other changes while worn", "none");
@@ -88,6 +88,21 @@ namespace Scry
             Part("recipe", () => Recipes(prefab, shared));
             Part("made at stations", () => MadeIn(prefab));
             Part("mod settings", () => ModSettings(prefab, shared));
+            Part("seen equipped", () => SeenEquipped(prefab, shared));
+        }
+
+        /// <summary>
+        /// What equipping it was seen to change on you in your play (<see cref="WornWatch"/>),
+        /// whichever mod made it so: a table with a column for each quality seen.
+        /// </summary>
+        private void SeenEquipped(GameObject prefab, ItemDrop.ItemData.SharedData shared)
+        {
+            var seen = WornWatch.Seen.Of(prefab.name);
+            if (seen.Count == 0) return;
+            var (columns, lines) = WornWords.Table(seen, shared.m_maxQuality);
+            var row = new Row { Title = WornWords.Title, Columns = columns, Unsure = UnsureWords.SeenWorn };
+            foreach (var line in lines) row.Lines.Add((line, null));
+            Rows.Add(row);
         }
 
         /// <summary>
@@ -283,22 +298,6 @@ namespace Scry
                     return false;
             }
         }
-
-        /// <summary>What gear changes while worn, by its field names, for <see cref="GearWords"/>.</summary>
-        private static Dictionary<string, float> GearValues(ItemDrop.ItemData.SharedData shared) => new Dictionary<string, float>
-        {
-            ["m_eitrRegenModifier"] = shared.m_eitrRegenModifier,
-            ["m_homeItemsStaminaModifier"] = shared.m_homeItemsStaminaModifier,
-            ["m_heatResistanceModifier"] = shared.m_heatResistanceModifier,
-            ["m_jumpStaminaModifier"] = shared.m_jumpStaminaModifier,
-            ["m_attackStaminaModifier"] = shared.m_attackStaminaModifier,
-            ["m_blockStaminaModifier"] = shared.m_blockStaminaModifier,
-            ["m_dodgeStaminaModifier"] = shared.m_dodgeStaminaModifier,
-            ["m_swimStaminaModifier"] = shared.m_swimStaminaModifier,
-            ["m_sneakStaminaModifier"] = shared.m_sneakStaminaModifier,
-            ["m_runStaminaModifier"] = shared.m_runStaminaModifier,
-            ["m_maxAdrenaline"] = shared.m_maxAdrenaline,
-        };
 
         /// <summary>
         /// The upgrade kits a recipe names. The game asks for them only at a station marked as an

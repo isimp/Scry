@@ -292,6 +292,7 @@ namespace Scry
             ("OfferingBowl", "Interact", 3, 0xE0D1BB7B, Feature.AltarsItemStands),
             ("Player", "HaveRequirements", 4, 0x23C01547, Feature.UpgradeKits),
             ("Player", "TakeInput", 0, 0x3DECB72C, Feature.KeysKeptFromGame),
+            ("Player", "UpdateModifiers", 0, 0x551394BF, Feature.WhatEquippingDid),
             ("RandEventSystem", "GetEvent", 1, 0x22158546, Feature.BossFightsAmongRaids),
             ("RandEventSystem", "GetForcedEvent", 0, 0x336C037F, Feature.BossFightsAmongRaids),
             ("RandEventSystem", "InValidBiome", 2, 0xFA79CFCA, Feature.WhereRaidsCome),

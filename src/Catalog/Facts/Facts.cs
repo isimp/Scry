@@ -228,7 +228,8 @@ namespace Scry
         {
             if (entry == null) return new Facts();
             // A creature's or item's facts tell what was seen dropping in play, which grows as you
-            // play, and an item's the mods' settings for it, which change as they are set.
+            // play, and an item's what equipping it was seen to change and the mods' settings for
+            // it, which change as they are set.
             if (Cache.TryGetValue(entry, out var known) && (known._toldWith == Freshness || (entry.Kind != Kind.Creature && entry.Kind != Kind.Item && entry.Kind != Kind.Mod))) return known;
 
             var facts = new Facts { _toldWith = Freshness };
@@ -320,10 +321,10 @@ namespace Scry
         }
 
         /// <summary>What had been seen in play and how the mods were set when these facts were told (<see cref="Freshness"/>).</summary>
-        private (int Drops, int Settings) _toldWith;
+        private (int Drops, int Worn, int Settings) _toldWith;
 
         /// <summary>What has been seen in play and how the mods are set now, by their counts of changes.</summary>
-        private static (int Drops, int Settings) Freshness => (DropWatch.Version, ModConfigs.Version);
+        private static (int Drops, int Worn, int Settings) Freshness => (DropWatch.Version, WornWatch.Version, ModConfigs.Version);
 
         /// <summary>What these facts link to: their values', their rows' and tables', and where it comes from; so Linked shows each link once.</summary>
         public HashSet<string> LinkedTargets()

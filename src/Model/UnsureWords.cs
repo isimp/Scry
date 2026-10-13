@@ -17,6 +17,7 @@ namespace Scry
 
         public const string Hooked = "A mod runs code of its own here, and only the mod knows what it does";
         public const string Seen = "What happened in your games, not the game's odds; a rare drop may not have come yet";
+        public const string SeenWorn = "What changed on you when you equipped it in your games, the latest seen; another world's settings or what else you wore may make it differ";
         public const string NothingFound = "Scry found nothing that gives it; a location, an event or a mod's own code still may";
         public const string NowhereFound = "Scry found nothing that places it; a location, an event, another creature or a mod's own code still may";
         public const string ModSkill = "The mod adding this skill names it nowhere Scry can read";

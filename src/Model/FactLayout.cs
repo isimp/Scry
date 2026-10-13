@@ -168,7 +168,7 @@ namespace Scry
             Label(plan, More, "Not shown");
             plan.Starts.Add((l => l.EndsWith(" damage causes", StringComparison.Ordinal), "fight"));
             Part(plan, "fight", "item stats");
-            Part(plan, "wearing", "gear", "resistances");
+            Part(plan, "wearing", "gear", "resistances", "seen equipped");
             Part(plan, "making", "recipe", "made at stations");
             Part(plan, "mods", "mod settings");
             // A weapon's damage first, by attack and by quality, then what attacking costs; its blocking after.

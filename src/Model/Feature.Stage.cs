@@ -6,6 +6,7 @@ namespace Scry
         public static readonly Feature PrefabOrigins = Listed("telling the game's prefabs from those mods add");
         public static readonly Feature StatusEffectOrigins = Listed("telling the game's status effects from those mods add");
         public static readonly Feature DropsSeenInPlay = Listed("drops seen in play");
+        public static readonly Feature WhatEquippingDid = Listed("what equipping something was seen to change in play");
         public static readonly Feature GearOnCreaturesAndPerson = Listed("gear on creatures and the person");
         public static readonly Feature WhatCreaturesCarry = Listed("what creatures carry");
         public static readonly Feature ArmourOnRagdolls = Listed("armour on ragdolls");

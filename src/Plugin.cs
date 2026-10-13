@@ -58,6 +58,8 @@ namespace Scry
             { typeof(RagdollLootSetUp), Feature.DropsSeenInPlay },
             { typeof(RagdollLoot), Feature.DropsSeenInPlay },
             { typeof(ItemMade), Feature.DropsSeenInPlay },
+            { typeof(EquipWatched), Feature.WhatEquippingDid },
+            { typeof(UnequipWatched), Feature.WhatEquippingDid },
         };
 
         /// <summary>
@@ -82,6 +84,7 @@ namespace Scry
             Guard.Run(Feature.World, "the frame", Session.Update);
             var drops = Timing.Start();
             DropWatch.Save();
+            WornWatch.Save();
             Timing.Add("update drops", drops);
             Timing.Add("update", started);
         }
@@ -121,6 +124,7 @@ namespace Scry
         private void OnDestroy()
         {
             DropWatch.Save(now: true);
+            WornWatch.Save(now: true);
             Guard.Run(Feature.Leaving, "closing down", Session.Shutdown);
             _harmony?.UnpatchSelf();
         }

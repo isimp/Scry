@@ -48,6 +48,7 @@ namespace Scry
             yield return S("mods hooking into drops, loot and spawning are named", HookingMods, 10);
             yield return S("the mod report links every mod station as the game does", ModReportLinks, 20);
             yield return S("what creatures drop in play is watched", DropsWatched, 5);
+            yield return S("what equipping something changes in play is watched", EquippingWatched, 5);
             yield return S("every mod has a page of what it adds and changes", ModPages, 10);
             yield return S("a mod's page tells what its package says and how it ties to other mods", ModPackages, 10);
             yield return S("an item a mod's settings are named after shows them", ModSettingsOfItems, 10);

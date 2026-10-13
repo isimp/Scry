@@ -105,6 +105,37 @@ namespace Scry
         }
 
         /// <summary>
+        /// Equipping is watched, and what it was seen to change in play is read back, each item
+        /// named in the log; the first one's page shows it as a table by quality. The test itself
+        /// equips nothing: taking the player's gear off and on would set mods' own hooks going.
+        /// </summary>
+        private static IEnumerator EquippingWatched(Probe p)
+        {
+            foreach (var name in new[] { "EquipItem", "UnequipItem" })
+            {
+                var method = HarmonyLib.AccessTools.DeclaredMethod(typeof(Humanoid), name);
+                p.Check(method != null && HarmonyLib.Harmony.GetPatchInfo(method)?.Owners.Contains(About.Guid) == true, $"Humanoid.{name} is watched");
+            }
+            var seen = X.Catalog.Where(e => e.Kind == Kind.Item).Select(e => (Entry: e, Seen: WornWatch.Seen.Of(e.Name))).Where(s => s.Seen.Count > 0).ToList();
+            p.Note($"{Numbers.Count(seen.Count)} items seen equipped in play");
+            foreach (var (entry, changes) in seen.Take(20))
+            {
+                var max = entry.Source is GameObject prefab ? prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_maxQuality ?? 1 : 1;
+                var (columns, lines) = WornWords.Table(changes, max);
+                p.Note($"{entry.Name} ({string.Join(", ", columns.Skip(1))}): " + string.Join("; ", lines.Select(l => string.Join(" ", l))));
+            }
+            if (seen.Count == 0)
+            {
+                p.Note("nothing seen equipped yet; put something on and run the test again to see it told");
+                yield break;
+            }
+            var first = seen[0].Entry;
+            var row = Facts.For(first).Rows.FirstOrDefault(r => r.Title == WornWords.Title);
+            p.Check(row != null && row.Lines.Count > 0 && row.Unsure == UnsureWords.SeenWorn, $"{first.Name}'s page shows what equipping it changed",
+                row == null ? "no row" : string.Join("; ", row.Lines.Select(l => string.Join(" ", l.Cells))));
+        }
+
+        /// <summary>
         /// For each kind of gear fact, the first item that has it shows it: armour's resistances
         /// while worn, a shield's while blocking, what gear changes while worn (heat, stamina,
         /// eitr, adrenaline), what full adrenaline gives, and a weapon's second attack.

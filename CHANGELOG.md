@@ -12,6 +12,8 @@ A place zoomed out on the stage keeps all its rooms; the game's level of detail 
 
 A greatsword's, an axe's or a knife's first attack plays its clip again, as do the attacks of creatures that pick one of several animations, such as Bonemass's punch or Yagluth's stomp. After looking around with the right mouse button, the pointer is back where it was rather than in the middle of the screen.
 
+What equipping something changes on you is noted as you play, whichever mod made it so, and the item's page shows it by quality under *Wearing*: the carry weight, armour, movement, resistances and effects a backpack or other mod gear gives only once worn.
+
 An item that a mod's settings are named after, such as a backpack whose size and carry bonus a mod sets in a section of its own, shows those settings on its page under *Set by mods*, as the mod's config holds them now.
 
 ## 0.2.0
