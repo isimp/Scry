@@ -73,6 +73,9 @@ namespace Scry
             p.Check(KeptHolds(path, now), "its book is kept in Scry's cache folder, all of it", path);
         }
 
+        /// <summary>Keys besides the link keys whose offered values name entries: none may name what a made-up character has not seen.</summary>
+        private static readonly string[] OfferKeys = { "playedby", "station" };
+
         /// <summary>Terms tried on a made-up character, each of which must not find what it has not met.</summary>
         private static readonly string[] CompendiumTerms = { "kind:creature", "is:boss", "biome:meadows", "drops:wood", "has:Character", "in:crypt" };
 
@@ -158,6 +161,21 @@ namespace Scry
             p.Check(leaks.Count == 0, $"no search finds what was not seen ({Numbers.Count(unmet.Count)} names and {Numbers.Count(CompendiumTerms.Length)} terms tried)", string.Join(", ", leaks.Take(10)));
             X.SearchEverything("has:Character");
             p.Check(!X.Results.Contains(spotted), $"a term telling what a page holds does not find {spotted.Name}, only seen");
+
+            // Nor does the search box offer a term naming what was not seen.
+            yield return Until(() => ScryPanel.Offered(X, SearchHelp.Term("drops", "")) != null, 10);
+            var seenNames = new HashSet<string>(X.Catalog.Where(e => view.Of(e) >= KnownLevel.Seen).SelectMany(e => new[] { e.Name, e.ShownName }), StringComparer.Ordinal);
+            var unmetNames = new HashSet<string>(X.Catalog.Where(e => view.Of(e) < KnownLevel.Seen).SelectMany(e => new[] { e.Name, e.ShownName }).Where(n => !seenNames.Contains(n)), StringComparer.Ordinal);
+            var offered = 0;
+            var named = new List<string>();
+            foreach (var key in Search.LinkKeys.Concat(OfferKeys))
+            {
+                var found = ScryPanel.Offered(X, SearchHelp.Term(key, "")) ?? new List<Suggestion>();
+                offered += found.Count;
+                named.AddRange(found.Where(s => unmetNames.Contains(s.Label)).Select(s => SearchHelp.Term(key, s.Label)));
+            }
+            p.Check(ScryPanel.Offered(X, SearchHelp.Term("drops", "")) != null, "the search box has its terms");
+            p.Check(named.Count == 0, $"the search box offers no term naming what was not seen ({Numbers.Count(offered)} offered)", string.Join(", ", named.Take(10)));
 
             // Not seen: no link leads to it, and picked some other way its page is closed with nothing on the stage.
             var unseen = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && X.LevelOf(e) == KnownLevel.Unknown && e.Source is GameObject);

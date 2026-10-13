@@ -240,6 +240,21 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatIsMadeFromWhatTheCharacterKnowsCanTellWhenItChanged()
+        {
+            // The search box's terms are read again from it.
+            var world = new World().Rule(CompendiumRule.Loose);
+            var stamp = world.Explorer.KnowStamp;
+
+            world.Explorer.Know(world.View);
+            Assert.Equal(stamp, world.Explorer.KnowStamp);
+
+            world.Book.Raise(world.Fenring.Key, KnownLevel.Seen);
+            world.Rule(CompendiumRule.Loose);
+            Assert.NotEqual(stamp, world.Explorer.KnowStamp);
+        }
+
+        [Fact]
         public void WithTheCompendiumOffAPageLeadsToEverythingInTheCatalog()
         {
             var world = new World().Rule(CompendiumRule.Off);

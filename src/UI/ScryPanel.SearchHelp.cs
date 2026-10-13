@@ -15,6 +15,13 @@ namespace Scry
         /// <summary>The search box's help: its index of terms, and what it offers while typing.</summary>
         private static readonly SearchAssist Assist = new SearchAssist();
 
+        /// <summary>What the search box offers to finish a word, from the terms it has in; null while they are still being read. For the self-test.</summary>
+        public static List<Suggestion> Offered(Explorer explorer, string word)
+        {
+            var terms = Assist.TermsFor(explorer);
+            return Assist.HasTermsFor(explorer) ? SearchHelp.Suggest(word, terms, 50) : null;
+        }
+
         /// <summary>
         /// The search box's help as an object of its own: the index of what each search key can
         /// take, read on a worker thread, the suggestions for the word at the caret, Tab's cycling,
@@ -22,8 +29,8 @@ namespace Scry
         /// </summary>
         private sealed class SearchAssist
         {
-            /// <summary>Whether the terms for this catalog, with the locations as they are read, are in.</summary>
-            public bool HasTermsFor(Explorer explorer) => _terms != null && ReferenceEquals(_termsFor, explorer) && _termsAt == Locations.Applied;
+            /// <summary>Whether the terms for this catalog, with the locations as they are read and what the character knows, are in.</summary>
+            public bool HasTermsFor(Explorer explorer) => _terms != null && ReferenceEquals(_termsFor, explorer) && _termsAt == Locations.Applied && _termsKnow == explorer.KnowStamp;
 
             /// <summary>Ends Tab's cycling.</summary>
             public void ResetCycle() => _cycle.Reset();
@@ -46,28 +53,33 @@ namespace Scry
             private TermIndex _terms;
             private Explorer _termsFor;
             private int _termsAt;
+            private int _termsKnow;
 
             private System.Threading.Tasks.Task<TermIndex> _termsJob;
             private Explorer _jobFor;
             private int _jobAt;
+            private int _jobKnow;
             private static readonly TermIndex NoTerms = new TermIndex(Array.Empty<Entry>());
 
             /// <summary>
             /// Every value the search keys can take, read once per catalog and again once the
             /// locations are read. Reading thousands of entries took most of a frame (80 ms and more),
             /// so it is done on a worker thread; until it is done the terms of before serve, or none
-            /// right after the catalog is read. The catalog's entries are only read there.
+            /// right after the catalog is read. The catalog's entries are only read there; what
+            /// the character has met is read here, before, and read again when it changes.
             /// </summary>
             public TermIndex TermsFor(Explorer explorer)
             {
-                if (_terms != null && ReferenceEquals(explorer, _termsFor) && _termsAt == Locations.Applied) return _terms;
+                if (HasTermsFor(explorer)) return _terms;
 
-                if (_termsJob == null || !ReferenceEquals(_jobFor, explorer) || _jobAt != Locations.Applied)
+                if (_termsJob == null || !ReferenceEquals(_jobFor, explorer) || _jobAt != Locations.Applied || _jobKnow != explorer.KnowStamp)
                 {
                     var catalog = explorer.Catalog;
+                    var met = Met(explorer);
                     _jobFor = explorer;
                     _jobAt = Locations.Applied;
-                    _termsJob = System.Threading.Tasks.Task.Run(() => new TermIndex(catalog));
+                    _jobKnow = explorer.KnowStamp;
+                    _termsJob = System.Threading.Tasks.Task.Run(() => new TermIndex(catalog, met));
                 }
 
                 if (_termsJob.IsCompleted)
@@ -81,16 +93,31 @@ namespace Scry
                     {
                         // Told as a failure, then read here on the main thread instead.
                         Faults.Tell(Feature.SearchSuggestions, "reading the search terms on a worker thread", _termsJob.Exception?.GetBaseException());
-                        _terms = new TermIndex(explorer.Catalog);
+                        _terms = new TermIndex(explorer.Catalog, Met(explorer));
                     }
                     _termsFor = _jobFor;
                     _termsAt = _jobAt;
+                    _termsKnow = _jobKnow;
                     _termsJob = null;
                     _suggestFor = null;
                     Timing.Add("search terms", started);
                     return _terms;
                 }
-                return _terms != null && ReferenceEquals(_termsFor, explorer) ? _terms : NoTerms;
+                // Terms of what the character knew before would offer what it does not know now.
+                return _terms != null && ReferenceEquals(_termsFor, explorer) && _termsKnow == explorer.KnowStamp ? _terms : NoTerms;
+            }
+
+            /// <summary>What the character has seen or knows, for the index to hold only what the search can find; none while the compendium is off.</summary>
+            private static Dictionary<Entry, KnownLevel> Met(Explorer explorer)
+            {
+                if (!explorer.CompendiumOn) return null;
+                var met = new Dictionary<Entry, KnownLevel>();
+                foreach (var entry in explorer.Catalog)
+                {
+                    var level = explorer.LevelOf(entry);
+                    if (level >= KnownLevel.Seen) met[entry] = level;
+                }
+                return met;
             }
 
             // ----- Suggestions while typing -----
@@ -102,7 +129,7 @@ namespace Scry
             /// <summary>What could finish the word, kept while the word stays the same.</summary>
             private List<Suggestion> SuggestFor(Explorer explorer, string word)
             {
-                if (word != _suggestFor || !ReferenceEquals(_termsFor, explorer) || _termsAt != Locations.Applied)
+                if (word != _suggestFor || !HasTermsFor(explorer))
                 {
                     var terms = TermsFor(explorer);
                     _suggested = SearchHelp.Suggest(word, terms);

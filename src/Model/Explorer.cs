@@ -167,6 +167,9 @@ namespace Scry
         /// <summary>The view of what the character knows the explorer was last handed; none before.</summary>
         public CompendiumView Compendium => _view;
 
+        /// <summary>Counts up each time what the character knows is handed over anew, so what is made from it can tell it is out of date.</summary>
+        public int KnowStamp { get; private set; }
+
         /// <summary>Whether the compendium is on: the list shows only what the character has seen or knows.</summary>
         public bool CompendiumOn => _view != null && _view.Rule != CompendiumRule.Off;
 
@@ -200,6 +203,7 @@ namespace Scry
             if (ReferenceEquals(view, _view) && version == _viewVersion) return;
             _view = view;
             _viewVersion = version;
+            KnowStamp++;
             _slipWords = null;
             _visible = null;
             Array.Clear(_found, 0, _found.Length);

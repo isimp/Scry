@@ -34,7 +34,10 @@ namespace Scry
     /// Every value each search key can take in the catalog, read in one pass: the kinds, the
     /// component types, biomes, mods, the players of effects, stations and places. Each value is
     /// kept as the one word the search takes ("blackforest", "byhand") and as its name, with how
-    /// many entries have it.
+    /// many entries have it. Given what the character has met (the compendium on), it holds only
+    /// what the search can find: an entry known gives every value, one only seen its kind, and a
+    /// value naming another entry (a drop, a player, a biome, a station, a place) is left out
+    /// where that entry was not seen.
     /// </summary>
     internal sealed class TermIndex
     {
@@ -55,15 +58,39 @@ namespace Scry
         private int[] _counted;
         private int _round;
 
+        // By place in the catalog, whether the entry is known, not only seen: only those are found by a station.
+        private readonly bool[] _whole;
+
         private readonly Dictionary<string, Dictionary<string, Value>> _byKey = new Dictionary<string, Dictionary<string, Value>>(StringComparer.Ordinal);
         private readonly Dictionary<string, List<Value>> _lists = new Dictionary<string, List<Value>>(StringComparer.Ordinal);
 
         internal readonly IReadOnlyList<Entry> Catalog;
 
-        public TermIndex(IEnumerable<Entry> catalog)
+        /// <summary>
+        /// Reads the values of a catalog: of all of it, or, given what the character has met (the
+        /// entries seen or known, read on the main thread before), of what the search can find.
+        /// </summary>
+        public TermIndex(IEnumerable<Entry> catalog, IReadOnlyDictionary<Entry, KnownLevel> met = null)
         {
-            Catalog = catalog as IReadOnlyList<Entry> ?? catalog.ToList();
+            var all = catalog as IReadOnlyList<Entry> ?? catalog.ToList();
+            Catalog = met == null ? all : all.Where(met.ContainsKey).ToList();
+            _whole = Catalog.Select(e => met == null || met[e] == KnownLevel.Known).ToArray();
             foreach (var key in Search.Keys) _byKey[key] = new Dictionary<string, Value>(StringComparer.Ordinal);
+
+            // A value naming an entry is offered where that entry was seen, or where the catalog has none of it.
+            var byKey = new Dictionary<string, Entry>(StringComparer.Ordinal);
+            var placesMet = new Dictionary<string, bool>(StringComparer.Ordinal);
+            if (met != null)
+            {
+                foreach (var entry in all)
+                {
+                    if (!byKey.ContainsKey(entry.Key)) byKey[entry.Key] = entry;
+                    var label = Places.LabelOf(entry);
+                    if (label != null) placesMet[label] = (placesMet.TryGetValue(label, out var had) && had) || met.ContainsKey(entry);
+                }
+            }
+            bool Offered(string key) => met == null || !byKey.TryGetValue(key, out var named) || met.ContainsKey(named);
+            bool PlaceOffered(string label) => met == null || !placesMet.TryGetValue(label, out var seen) || seen;
 
             // The kinds are a fixed set, offered whether any are listed or not.
             foreach (Kind kind in Enum.GetValues(typeof(Kind))) Intern("kind", kind.ToString(), Kinds.Label(kind));
@@ -83,19 +110,27 @@ namespace Scry
                 }
 
                 Add("kind", entry.Kind.ToString(), Kinds.Label(entry.Kind));
+                // Only seen, its page is closed: the search finds it by its kind and names alone.
+                if (!_whole[at]) continue;
                 foreach (var part in entry.Components ?? Array.Empty<string>()) Add("has", part, part);
-                foreach (var biome in entry.Biomes ?? Array.Empty<string>()) Add("biome", biome, Naming.FieldLabel(biome));
+                foreach (var biome in entry.Biomes ?? Array.Empty<string>())
+                {
+                    if (Offered(EntryKeys.For(Kind.Biome, biome))) Add("biome", biome, Naming.FieldLabel(biome));
+                }
                 Add("mod", entry.ModName, entry.ModName);
-                foreach (var user in entry.UsedBy) Add("playedby", user, user);
-                foreach (var station in entry.Stations ?? Array.Empty<StationUse>()) Add("station", station.Shown.Length > 0 ? station.Shown : station.Name, station.Shown.Length > 0 ? station.Shown : station.Name);
-                foreach (var place in entry.FoundIn ?? Array.Empty<string>()) Add("in", Places.NameOf(place), Places.NameOf(place));
+                foreach (var user in entry.UsedBy) if (Offered(user)) Add("playedby", user, user);
+                foreach (var station in entry.Stations ?? Array.Empty<StationUse>())
+                {
+                    if (Offered(station.Name)) Add("station", station.Shown.Length > 0 ? station.Shown : station.Name, station.Shown.Length > 0 ? station.Shown : station.Name);
+                }
+                foreach (var place in entry.FoundIn ?? Array.Empty<string>()) if (PlaceOffered(place)) Add("in", Places.NameOf(place), Places.NameOf(place));
                 foreach (var key in Search.WordKeys)
                 {
                     foreach (var word in entry.TermWords(key)) Add(key, word, Naming.Capital(word));
                 }
                 foreach (var key in Search.LinkKeys)
                 {
-                    foreach (var other in entry.TermLinks(key)) Add(key, other.ShownName, other.ShownName);
+                    foreach (var other in entry.TermLinks(key)) if (met == null || met.ContainsKey(other)) Add(key, other.ShownName, other.ShownName);
                 }
             }
         }
@@ -134,7 +169,10 @@ namespace Scry
             {
                 var parsed = Search.Parse(term);
                 count = 0;
-                foreach (var entry in Catalog) if (Search.Matches(entry, parsed)) count++;
+                for (var at = 0; at < Catalog.Count; at++)
+                {
+                    if ((key == "kind" || _whole[at]) && Search.Matches(Catalog[at], parsed)) count++;
+                }
             }
             else
             {
