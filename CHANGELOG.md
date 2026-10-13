@@ -10,6 +10,8 @@ Where a place's floors are is kept too, so a dungeon's rooms no longer each stal
 
 A place zoomed out on the stage keeps all its rooms; the game's level of detail dropped their pieces one by one as they grew small. Locations and dungeon rooms no longer list animations, which were their creatures' or their doors' rather than their own.
 
+A greatsword's, an axe's or a knife's first attack plays its clip again, as do the attacks of creatures that pick one of several animations, such as Bonemass's punch or Yagluth's stomp. After looking around with the right mouse button, the pointer is back where it was rather than in the middle of the screen.
+
 ## 0.2.0
 
 Locations have a tab of their own: every location and dungeon room the world can place, grouped by biome, each telling where it is placed and what it holds. A location stands on the turntable as a new zone would roll it, its creatures included, and *Roll again* rolls it anew.

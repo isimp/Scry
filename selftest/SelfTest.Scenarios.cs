@@ -98,6 +98,8 @@ namespace Scry
                 Looks.OnPerson = _before?.OnPerson ?? false;
                 Previews.StopClip();
             });
+            yield return S("a greatsword's, an axe's and a knife's first attack begins with the combo's first step", CombosStartWithTheirFirstStep, 70,
+                () => Looks.OnPerson = _before?.OnPerson ?? false);
             yield return S("a tree felled leaves what it leaves, which goes again", TreeFalls, 40);
             yield return S("a model stands in the world and goes again", ModelInWorld, 10);
             yield return S("a projectile flies where you look", ProjectileFlies, 15);

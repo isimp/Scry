@@ -45,6 +45,17 @@ namespace Scry
         /// </summary>
         public static bool Looking { get; private set; }
 
+        /// <summary>Where the pointer goes back to once looking around ends.</summary>
+        private static readonly PointerReturn Pointer = new PointerReturn();
+
+        /// <summary>Where the pointer is to be put back after looking around, once; false when it is not to be moved.</summary>
+        public static bool PointerDue(out Vector2 at)
+        {
+            var due = Pointer.TakeDue(out var x, out var y);
+            at = new Vector2(x, y);
+            return due;
+        }
+
         /// <summary>
         /// Whether the character can walk while the panel is open: whenever none of its text boxes
         /// has the keyboard, so typing a search never moves anyone.
@@ -118,6 +129,7 @@ namespace Scry
             // Looking starts only from a press outside the panel, so a right click on it stays a click.
             if (!IsOpen || !Input.GetMouseButton(1)) Looking = false;
             else if (Input.GetMouseButtonDown(1) && Settings.LookWithRightMouse && !Covers(Input.mousePosition)) Looking = true;
+            Pointer.Frame(Looking, IsOpen, Input.mousePosition.x, Input.mousePosition.y);
 
             // The mouse's own back and forward buttons step through jumps, as in a browser.
             if (IsOpen && _explorer != null && Input.GetKeyDown(KeyCode.Mouse3)) Step(_explorer, true);

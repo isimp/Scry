@@ -151,5 +151,46 @@ namespace Scry.Tests
             Assert.False(ClipAttacks.SameName("", "Idle"));
             Assert.False(ClipAttacks.SameName("_", "-"));
         }
+
+        // The triggers an attack starts by, as the game pulls them (Attack.Start).
+
+        private static System.Func<string, bool> Has(params string[] triggers) => t => System.Array.IndexOf(triggers, t) >= 0;
+
+        [Fact]
+        public void AGreatswordsComboStartsWithItsFirstStepThoughItsBareNameIsATriggerToo()
+        {
+            // The person's animator has a greatsword trigger that leads nowhere besides the three steps.
+            var has = Has("greatsword", "greatsword0", "greatsword1", "greatsword2", "greatsword_secondary");
+
+            Assert.Equal(new[] { "greatsword0" }, ClipAttacks.StartTriggers("greatsword", 3, 0, has));
+            Assert.Equal(new[] { "swing_axe0" }, ClipAttacks.StartTriggers("swing_axe", 3, 0, Has("swing_axe", "swing_axe0")));
+        }
+
+        [Fact]
+        public void AComboWhoseFirstStepTheAnimatorLacksStartsByNone() =>
+            Assert.Empty(ClipAttacks.StartTriggers("swing_club", 2, 0, Has("swing_club")));
+
+        [Fact]
+        public void AnAttackOfRandomAnimationsStartsByAnyOfThose()
+        {
+            // Bonemass punches with one of two, a boar with one of four; the game picks one each time.
+            Assert.Equal(new[] { "punch0", "punch1" }, ClipAttacks.StartTriggers("punch", 0, 2, Has("punch", "punch0", "punch1", "punch2")));
+            Assert.Equal(new[] { "base_attack0", "base_attack2" }, ClipAttacks.StartTriggers("base_attack", 0, 4, Has("base_attack0", "base_attack2")));
+        }
+
+        [Fact]
+        public void APlainAttackStartsByItsName()
+        {
+            Assert.Equal(new[] { "attack_claws" }, ClipAttacks.StartTriggers("attack_claws", 0, 0, Has("attack_claws", "attack_claws0")));
+            Assert.Equal(new[] { "atgeir_secondary" }, ClipAttacks.StartTriggers("atgeir_secondary", 1, 1, Has("atgeir_secondary")));
+            Assert.Empty(ClipAttacks.StartTriggers("attack_claws", 0, 0, Has("attack_claws0")));
+        }
+
+        [Fact]
+        public void AnAttackWithoutAnAnimationStartsByNone()
+        {
+            Assert.Empty(ClipAttacks.StartTriggers("", 3, 0, Has("", "0")));
+            Assert.Empty(ClipAttacks.StartTriggers(null, 0, 0, Has("")));
+        }
     }
 }

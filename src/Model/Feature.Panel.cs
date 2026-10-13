@@ -8,6 +8,7 @@ namespace Scry
         public static readonly Feature LookAndWalkWhileOpen = Listed("looking around and walking while the panel is open");
         public static readonly Feature NoCombatWhileOpen = Listed("keeping attacks, blocks and dodges from going off while the panel is open");
         public static readonly Feature CursorHeldWhileLooking = Listed("holding the cursor while looking around");
+        public static readonly Feature PointerBackAfterLooking = Listed("putting the pointer back where looking around began");
         public static readonly Feature WheelKeptFromCamera = Listed("keeping the mouse wheel from zooming the game camera while over the panel");
         public static readonly Feature Command = Listed("the /scry command");
         public static readonly Feature Panel = Listed("the panel");

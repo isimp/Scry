@@ -82,7 +82,7 @@ An attack is watched as the game watches one (`Humanoid.InAttack`): every clip p
 
 ### Attacks and what clips play
 
-The game gives creatures their attacks as items and starts each by an animator trigger, so an attack plays through its clips. As its first clip starts, its start and trail effects play where the attack comes from (`Attack.GetAttackOrigin`); when a clip says it strikes, its trigger plays, and its hit plays where it lands: a swing's where a target within its attack range would stand, an area attack's in its middle, a throw's where the thrown thing lands. An attack none of whose clips says when it strikes strikes halfway through its first.
+The game gives creatures their attacks as items and starts each by an animator trigger, so an attack plays through its clips. The triggers are those `Attack.Start` pulls (`ClipAttacks.StartTriggers`): a combo's first step, its name and 0, even where a trigger of the bare name is there too (the person's greatsword, axe and knife ones lead nowhere); any of an attack's random animations, its name and 0 up to their count; any other attack's name. As its first clip starts, its start and trail effects play where the attack comes from (`Attack.GetAttackOrigin`); when a clip says it strikes, its trigger plays, and its hit plays where it lands: a swing's where a target within its attack range would stand, an area attack's in its middle, a throw's where the thrown thing lands. An attack none of whose clips says when it strikes strikes halfway through its first.
 
 A clip one of the game's actions leads to plays the effects the game plays with that action. Some clips the game plays nothing with, yet something is heard around them, and those are listed under *Heard around it*: an alert call after waking, the idle sound with idle clips (`BaseAI.DoIdleSound`), and a hit with a stagger.
 
@@ -282,7 +282,7 @@ Sounds are copies on the camera, kept while they play, so long clips such as mus
 
 While the panel is open, `TextInput.IsVisible` answers yes. The game already stops moving, looking, attacking and opening its menu while a text box is up, and frees the cursor. The camera zoom reads the wheel regardless, so `ZInput.Internal_GetMouseScrollWheel`, through which every wheel read of the game passes, answers nothing while the panel is open. The block lasts one frame past closing, so the Escape that closed the panel does not open the game's menu.
 
-The game asks for mouse look apart from movement (`PlayerController.TakeInput`), so holding the right mouse button outside the panel answers only that question yes and captures the cursor as in play. Walking is allowed whenever none of the panel's boxes has the keyboard, and `Player.SetControls` never receives attack, block or dodge while the panel is open. `WalkWhileOpen` and `LookWithRightMouse` turn these off.
+The game asks for mouse look apart from movement (`PlayerController.TakeInput`), so holding the right mouse button outside the panel answers only that question yes and captures the cursor as in play. Locked, the cursor is kept in the middle of the window, so once the button is let go and the game frees it, it is put back where the look began (`PointerReturn`, `ZInput.SetMousePosition`). Walking is allowed whenever none of the panel's boxes has the keyboard, and `Player.SetControls` never receives attack, block or dodge while the panel is open. `WalkWhileOpen` and `LookWithRightMouse` turn these off.
 
 ## Files and settings
 

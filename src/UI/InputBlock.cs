@@ -112,16 +112,30 @@ namespace Scry
         private static bool Open() => ScryPanel.IsOpen;
     }
 
-    /// <summary>While looking around, the cursor is captured as in normal play.</summary>
+    /// <summary>
+    /// While looking around, the cursor is captured as in normal play. Let go, the game frees it in
+    /// the middle of the window, where a locked cursor is kept; it is put back where the look
+    /// began (<see cref="PointerReturn"/>).
+    /// </summary>
     [HarmonyPatch(typeof(GameCamera), nameof(GameCamera.UpdateMouseCapture))]
     internal static class LookCapture
     {
         private static bool _off;
+        private static bool _backOff;
 
         private static void Postfix()
         {
             if (_off) return;
             if (!Guard.Run(Feature.CursorHeldWhileLooking, "holding the cursor", Capture)) _off = true;
+            else if (!_backOff && !Guard.Run(Feature.PointerBackAfterLooking, "putting the pointer back", PutBack)) _backOff = true;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void PutBack()
+        {
+            // Only once the game has freed it: a locked cursor cannot be moved (ZInput.SetMousePosition).
+            if (ZCursor.LockState == UnityEngine.CursorLockMode.Locked || !ScryPanel.PointerDue(out var at)) return;
+            ZInput.SetMousePosition(at);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

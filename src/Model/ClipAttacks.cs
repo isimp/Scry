@@ -34,6 +34,24 @@ namespace Scry
         /// <summary>The trigger a chain attack starts with, its animation's name and 0, as the game numbers a chain's steps (<c>Attack.m_attackChainLevels</c>).</summary>
         public static string ChainStart(string animation) => animation + "0";
 
+        /// <summary>
+        /// The triggers an attack starts by, as <c>Attack.Start</c> pulls them, those of them the
+        /// animator has: a chain attack its first step (<see cref="ChainStart"/>), even where a
+        /// trigger of the bare name is there too (the person's greatsword one leads nowhere); an
+        /// attack of random animations any of them, its name and 0 up to their count; any other its
+        /// name. None for an attack without an animation.
+        /// </summary>
+        public static List<string> StartTriggers(string animation, int chainLevels, int randomAnimations, Func<string, bool> has)
+        {
+            var triggers = new List<string>();
+            if (string.IsNullOrEmpty(animation)) return triggers;
+            if (chainLevels > 1) triggers.Add(ChainStart(animation));
+            else if (randomAnimations >= 2) for (var i = 0; i < randomAnimations; i++) triggers.Add(animation + Stored.Count(i));
+            else triggers.Add(animation);
+            triggers.RemoveAll(t => !has(t));
+            return triggers;
+        }
+
         /// <param name="attacks">Each attack's trigger and a key to it, what the creature has now first.</param>
         /// <param name="seen">The clips each trigger was seen to play, in order, by trigger.</param>
         /// <param name="clips">The names of all the clips the creature has.</param>

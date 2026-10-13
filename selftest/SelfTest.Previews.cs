@@ -61,6 +61,26 @@ namespace Scry
             }
         }
 
+        /// <summary>
+        /// Weapons whose combo the person's animator has a trigger of the bare name for besides its
+        /// steps (a greatsword's, an axe's and a knife's lead nowhere), worn by the person: each
+        /// one's first attack finds the clip that begins it, as the game starts it with its first step.
+        /// </summary>
+        private static IEnumerator CombosStartWithTheirFirstStep(Probe p)
+        {
+            var weapons = new[] { Pick(Kind.Item, "THSwordKrom", "THSwordSlayer"), Pick(Kind.Item, "AxeIron", "AxeBronze"), Pick(Kind.Item, "KnifeFlint", "KnifeCopper") }
+                .Where(w => w != null).ToList();
+            if (weapons.Count == 0) p.Skip("there is no greatsword, axe or knife");
+            Looks.OnPerson = true;
+            foreach (var weapon in weapons)
+            {
+                Select(weapon);
+                yield return Until(() => Previews.ClipOfAttackItem(weapon.Name) != null, 20);
+                var clip = Previews.ClipOfAttackItem(weapon.Name);
+                p.Check(clip != null, $"{weapon.Name}'s first attack finds the clip that begins it", clip != null ? clip.name : "no clip known");
+            }
+        }
+
         private static IEnumerator CreatureAttacks(Probe p)
         {
             var troll = Pick(Kind.Creature, "Troll", "Greydwarf");

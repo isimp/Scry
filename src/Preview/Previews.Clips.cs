@@ -375,10 +375,10 @@ namespace Scry
                 if (shared == null) continue;
                 foreach (var attack in new[] { shared.m_attack, shared.m_secondaryAttack })
                 {
-                    var trigger = attack != null ? TriggerOf(animator, attack) : null;
-                    if (trigger == null) continue;
+                    var triggers = attack != null ? TriggersOf(animator, attack) : null;
+                    if (triggers == null || triggers.Count == 0) continue;
                     WeaponOf[attack] = shared;
-                    attacks.Add((trigger, attack));
+                    foreach (var trigger in triggers) attacks.Add((trigger, attack));
                     var name = (CatalogBuilder.GameName(item) ?? WeaponChoices.Readable(item.name, prefab.name)).ToLowerInvariant();
                     names[attack] = ClipWords.Attack(name, attack == shared.m_secondaryAttack);
                 }
@@ -481,15 +481,9 @@ namespace Scry
             Log.Note($"Scry: {prefab.name} keeps going in water {Of(body.m_waterEffects)}; flying {Of(body.m_flyingContinuousEffect)}{(body.m_flying ? ", and it flies from birth" : "")}; its own scale {Numbers.Amount(prefab.transform.localScale.x, 2)}.");
         }
 
-        /// <summary>The trigger an attack starts by on this animator, as <c>Attack.Start</c> pulls it, or null when it has none.</summary>
-        private static string TriggerOf(Animator animator, Attack attack)
-        {
-            var anim = attack.m_attackAnimation;
-            if (string.IsNullOrEmpty(anim)) return null;
-            if (HasTrigger(animator, anim)) return anim;
-            var first = ClipAttacks.ChainStart(anim);
-            return attack.m_attackChainLevels > 1 && HasTrigger(animator, first) ? first : null;
-        }
+        /// <summary>The triggers an attack starts by on this animator, as <c>Attack.Start</c> pulls them; none when it has none.</summary>
+        private static List<string> TriggersOf(Animator animator, Attack attack) =>
+            ClipAttacks.StartTriggers(attack.m_attackAnimation, attack.m_attackChainLevels, attack.m_attackRandomAnimations, t => HasTrigger(animator, t));
 
         private static bool HasTrigger(Animator animator, string name)
         {
