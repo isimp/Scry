@@ -7,14 +7,23 @@ namespace Scry
     /// An item's tooltip as the game builds it with every mod's hooks (<c>ItemData.GetTooltip</c>,
     /// asked as the inventory asks) for a fresh one of the prefab at a quality, durability full, in
     /// this world, each line marked where a mod added it against the game's own
-    /// (<see cref="UnmoddedTooltip"/>, <see cref="TooltipText"/>), with the mods hooking it. Kept
-    /// until the world is left or what mods were seen or set to give changes.
+    /// (<see cref="UnmoddedTooltip"/>, <see cref="TooltipText"/>), laid out as a card
+    /// (<see cref="TooltipLayout"/>), with the mods hooking it. Kept until the world is left or
+    /// what mods were seen or set to give changes.
     /// </summary>
     internal static class Tooltips
     {
         internal sealed class Shown
         {
+            /// <summary>The item's name as the game shows it, heading the card.</summary>
+            public string Name = "";
+
             public List<(string Line, bool FromMods)> Lines = new List<(string, bool)>();
+            public List<TooltipPart> Parts = new List<TooltipPart>();
+
+            /// <summary>Each run of parts a mod added, first and last.</summary>
+            public List<(int First, int Last)> Runs = new List<(int, int)>();
+
             public IReadOnlyList<string> Mods = new List<string>();
             public bool FromMods => TooltipText.AnyFromMods(Lines);
         }
@@ -54,9 +63,14 @@ namespace Scry
             var withMods = item.GetTooltip();
             string own = null;
             Guard.Each(Feature.TooltipFromMods, "the game's own tooltip", prefab.name, () => own = UnmoddedTooltip.Of(item, quality, false, Game.m_worldLevel, -1, false));
+            var lines = TooltipText.Marked(Localized(withMods), own != null ? Localized(own) : null);
+            var parts = TooltipLayout.Parts(lines, Localized(item.m_shared.m_description));
             return new Shown
             {
-                Lines = TooltipText.Marked(Localized(withMods), own != null ? Localized(own) : null),
+                Name = Localized(item.m_shared.m_name),
+                Lines = lines,
+                Parts = parts,
+                Runs = TooltipLayout.ModRuns(parts),
                 Mods = _mods ?? (_mods = ModHooks.Hooking(typeof(ItemDrop.ItemData), nameof(ItemDrop.ItemData.GetTooltip))),
             };
         }

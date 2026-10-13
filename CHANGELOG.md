@@ -16,7 +16,7 @@ What equipping something changes on you is noted as you play, whichever mod made
 
 An item that a mod's settings are named after, such as a backpack whose size and carry bonus a mod sets in a section of its own, shows those settings on its page under *Set by mods*, as the mod's config holds them now.
 
-An item whose tooltip in the game mods add lines to shows that tooltip on its page under *Tooltip in the game*, at each quality, with the lines the mods added marked by a bar beside them.
+An item whose tooltip in the game mods add lines to shows that tooltip on its page under *Tooltip in the game*, at each quality, as a card laid out like the details, the lines the mods added tinted, and the mods hooking the tooltip named under it, each going to its page.
 
 ## 0.2.0
 

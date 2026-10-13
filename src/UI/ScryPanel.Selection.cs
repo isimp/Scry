@@ -151,7 +151,7 @@ namespace Scry
             // hundreds of clips.
             y = Section("side adjust", y, at => Adjust(explorer, entry, cw, at, withStage));
             y = Section("side facts", y, at => FactsSection(explorer, entry, cw, at));
-            y = Section("side tooltip", y, at => TooltipSection(entry, cw, at));
+            y = Section("side tooltip", y, at => TooltipSection(explorer, entry, cw, at));
             y = Section("side runes", y, at => RunesSection(entry, cw, at));
             y = Section("side readme", y, at => ReadmeSection(entry, cw, at));
             y = Section("side animations", y, at => Animations(explorer, entry, cw, at, withStage));

@@ -198,6 +198,8 @@ namespace Scry
             var item = found[0];
             var shown = Tooltips.Of((GameObject)item.Source, 1);
             p.Note($"{item.Name}: " + string.Join(" | ", shown.Lines.Where(l => l.Line.Length > 0).Select(l => (l.FromMods ? "+ " : "") + l.Line)));
+            p.Note($"{item.Name}'s card: " + string.Join(" | ", shown.Parts.Select(part => part.Kind + (part.FromMods ? "+" : ""))));
+            p.Check(shown.Runs.Count > 0 && shown.Runs.All(run => shown.Parts[run.First].FromMods && shown.Parts[run.Last].FromMods), $"{item.Name}'s card holds its mods' lines in runs of their own", $"{Numbers.Count(shown.Runs.Count)} runs");
             Select(item);
             ScryPanel.TooltipFolded = false;
             var drawn = ScryPanel.Drawn(PanelPart.Tooltip);

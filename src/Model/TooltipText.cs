@@ -54,10 +54,17 @@ namespace Scry
     {
         public const string Heading = "TOOLTIP IN THE GAME";
 
-        public static string Level(int quality) => "Level " + Numbers.Count(quality);
+        public const string Quality = "Quality";
 
-        /// <summary>The note over the lines: which are the mods', and the mods hooking the tooltip where they are known.</summary>
-        public static string FromMods(IReadOnlyCollection<string> mods) =>
-            "Lines with a bar beside them come from mods hooking the tooltip" + (mods.Count > 0 ? ": " + string.Join(", ", mods) : "") + ".";
+        /// <summary>The qualities the tooltip can be shown at, one to the item's most.</summary>
+        public static List<string> Qualities(int most)
+        {
+            var names = new List<string>();
+            for (var q = 1; q <= most; q++) names.Add(Numbers.Count(q));
+            return names;
+        }
+
+        /// <summary>The legend under the card: what its tint means, leading into the mods hooking the tooltip where any are named.</summary>
+        public static string Legend(bool modsNamed) => modsNamed ? "Tinted lines come from the mods hooking the tooltip:" : "Tinted lines come from mods hooking the tooltip.";
     }
 }

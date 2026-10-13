@@ -58,17 +58,5 @@ namespace Scry.Tests
             Assert.True(TooltipText.AnyFromMods(TooltipText.Marked("Weight: 4\nArmour: 1", "Weight: 4")));
             Assert.False(TooltipText.AnyFromMods(TooltipText.Marked("Weight: 4", "Weight: 4")));
         }
-
-        // How it is told.
-
-        [Fact]
-        public void TheNoteNamesTheModsHookingTheTooltip()
-        {
-            Assert.Equal("Lines with a bar beside them come from mods hooking the tooltip: Adventure Backpacks, MyLittleUI.", TooltipWords.FromMods(new[] { "Adventure Backpacks", "MyLittleUI" }));
-            Assert.Equal("Lines with a bar beside them come from mods hooking the tooltip.", TooltipWords.FromMods(new string[0]));
-        }
-
-        [Fact]
-        public void ALevelChipNamesItsQuality() => Assert.Equal("Level 3", TooltipWords.Level(3));
     }
 }
