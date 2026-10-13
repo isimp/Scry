@@ -193,9 +193,14 @@ namespace Scry
         /// <paramref name="only"/> can match when it is given. <paramref name="kindCounts"/>, when
         /// given, is added to: for each kind, how many would match with any kind let through, so
         /// the kind chips count across every kind while one is picked.
+        /// With the compendium (<paramref name="view"/>), only what the character has met or heard
+        /// of matches, and what it has not fully come to know only by its name and kind, since any
+        /// other term would tell what its closed page holds. With <paramref name="silhouettes"/>,
+        /// what it has not met of a kind shown as silhouettes (<see cref="CompendiumView.Silhouetted"/>)
+        /// is listed too, uncounted.
         /// </summary>
         public static List<Entry> Run(IReadOnlyList<Entry> all, Query query, ICollection<string> favourites,
-            ICollection<string> only, int[] kindCounts)
+            ICollection<string> only, int[] kindCounts, CompendiumView view = null, bool silhouettes = false)
         {
             var search = Parse(query.Text).Matcher;
             var found = new List<Entry>();
@@ -208,7 +213,16 @@ namespace Scry
                 if (!PassesAnyKind(entry, query, favourites)) continue;
                 if (only != null && !only.Contains(entry.Key)) continue;
 
-                var score = Score(entry, search);
+                var level = view != null ? view.Of(entry) : KnownLevel.Known;
+                if (level == KnownLevel.Unknown)
+                {
+                    if (!silhouettes || !CompendiumView.Silhouetted(entry.Kind) || (query.Kind.HasValue && entry.Kind != query.Kind.Value)) continue;
+                    found.Add(entry);
+                    scores.Add(0);
+                    continue;
+                }
+
+                var score = Score(entry, search, level == KnownLevel.Known);
                 if (score == Miss) continue;
 
                 if (kindCounts != null) kindCounts[(int)entry.Kind]++;
@@ -322,8 +336,16 @@ namespace Scry
         /// The sum of each word's best match over both names, or <see cref="Miss"/> when any word
         /// matches neither, a term fails, or something left out matches. Lower is better.
         /// </summary>
-        private static int Score(Entry entry, Matcher search)
+        private static int Score(Entry entry, Matcher search) => Score(entry, search, true);
+
+        /// <summary>How well an entry matches; one not <paramref name="whole"/>ly known matches no term but its kind.</summary>
+        private static int Score(Entry entry, Matcher search, bool whole)
         {
+            if (!whole)
+            {
+                foreach (var term in search.Terms) if (term.Key != "kind") return Miss;
+                foreach (var term in search.NotTerms) if (term.Key != "kind") return Miss;
+            }
             foreach (var name in search.Names) if (!NamedExactly(entry, name)) return Miss;
             foreach (var name in search.NotNames) if (NamedExactly(entry, name)) return Miss;
             foreach (var term in search.Terms) if (!TermMatches(entry, term)) return Miss;

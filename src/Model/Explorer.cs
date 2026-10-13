@@ -16,6 +16,15 @@ namespace Scry
         private readonly Modifiers _modifiers = new Modifiers();
         private readonly Query _query = new Query();
         private readonly int[] _counts = new int[Enum.GetValues(typeof(Kind)).Length];
+        private readonly int[] _found = new int[Enum.GetValues(typeof(Kind)).Length];
+        private readonly int[] _total = new int[Enum.GetValues(typeof(Kind)).Length];
+
+        /// <summary>What the character knows of each entry, for the compendium; none while it is off.</summary>
+        private CompendiumView _view;
+        private int _viewVersion = -1;
+
+        /// <summary>The entries the character has met or heard of, while the compendium is on.</summary>
+        private List<Entry> _visible;
 
         private List<Entry> _results = new List<Entry>();
 
@@ -155,6 +164,46 @@ namespace Scry
         /// <summary>How many the text and the other filters let through, all kinds together.</summary>
         public int CountAll => _countAll;
 
+        /// <summary>Whether the compendium is on: the list shows only what the character has met or heard of.</summary>
+        public bool CompendiumOn => _view != null && _view.Rule != CompendiumRule.Off;
+
+        /// <summary>How much the character knows of an entry; all of it while the compendium is off.</summary>
+        public KnownLevel LevelOf(Entry entry) => CompendiumOn ? _view.Of(entry) : KnownLevel.Known;
+
+        /// <summary>How many of a kind the character has met (seen or known), whatever is typed.</summary>
+        public int FoundOf(Kind kind) => _found[(int)kind];
+
+        /// <summary>How many of a kind there are in all, whatever is typed.</summary>
+        public int TotalOf(Kind kind) => _total[(int)kind];
+
+        /// <summary>
+        /// Shows what the character knows (<see cref="CompendiumView"/>): the list again, with what
+        /// was found of each kind counted, whenever the view or what it holds changed.
+        /// </summary>
+        public void Know(CompendiumView view)
+        {
+            var version = view?.Version ?? -1;
+            if (ReferenceEquals(view, _view) && version == _viewVersion) return;
+            _view = view;
+            _viewVersion = version;
+            _slipWords = null;
+            _visible = null;
+            Array.Clear(_found, 0, _found.Length);
+            Array.Clear(_total, 0, _total.Length);
+            if (CompendiumOn)
+            {
+                _visible = new List<Entry>();
+                foreach (var entry in _catalog)
+                {
+                    var level = _view.Of(entry);
+                    _total[(int)entry.Kind]++;
+                    if (level >= KnownLevel.Seen) _found[(int)entry.Kind]++;
+                    if (level >= KnownLevel.HeardOf) _visible.Add(entry);
+                }
+            }
+            Refresh();
+        }
+
         /// <summary>
         /// The picked kind has nothing the text and the other filters let through while other
         /// kinds do, so the list shows those, as the All tab would; the kind stays picked and
@@ -225,7 +274,7 @@ namespace Scry
         public bool Jump(string key)
         {
             var target = Find(key);
-            if (target == null) return false;
+            if (target == null || LevelOf(target) == KnownLevel.Unknown) return false;
             if (target != _selected && _here != null)
             {
                 Remember(_back);
@@ -419,8 +468,11 @@ namespace Scry
 
             // One pass over the catalog lists what matches and counts it by kind for the chips,
             // across every kind, so picking one still shows what the others hold.
+            // With the compendium on, a kind's tab with nothing typed lists what is not met yet too.
+            var view = CompendiumOn ? _view : null;
+            var silhouettes = view != null && _query.Kind != null && string.IsNullOrEmpty(_query.Text);
             Array.Clear(_counts, 0, _counts.Length);
-            _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, _counts);
+            _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, _counts, view, silhouettes);
             _countAll = 0;
             foreach (var count in _counts) _countAll += count;
 
@@ -431,15 +483,17 @@ namespace Scry
             _mended.Clear();
             if (_countAll == 0 && !string.IsNullOrEmpty(_query.Text))
             {
-                if (_slipWords == null) _slipWords = SearchSlip.Words(_catalog);
-                var mended = SearchSlip.Mend(_query.Text, _catalog, _slipWords, _mended);
+                // Only names the character knows are offered for a slip.
+                var named = (IReadOnlyList<Entry>)_visible ?? _catalog;
+                if (_slipWords == null) _slipWords = SearchSlip.Words(named);
+                var mended = SearchSlip.Mend(_query.Text, named, _slipWords, _mended);
                 if (mended != null)
                 {
                     _mendedQuery.Text = mended;
                     _mendedQuery.Kind = _query.Kind;
                     _mendedQuery.FavouritesOnly = _query.FavouritesOnly;
                     _mendedQuery.Origin = _query.Origin;
-                    _results = Search.Run(_catalog, _mendedQuery, _favourites.Keys, order?.Keys, _counts);
+                    _results = Search.Run(_catalog, _mendedQuery, _favourites.Keys, order?.Keys, _counts, view);
                     foreach (var count in _counts) _countAll += count;
                     if (_countAll > 0)
                     {
@@ -457,7 +511,7 @@ namespace Scry
             {
                 var kind = query.Kind;
                 query.Kind = null;
-                _results = Search.Run(_catalog, query, _favourites.Keys, order?.Keys, null);
+                _results = Search.Run(_catalog, query, _favourites.Keys, order?.Keys, null, view);
                 query.Kind = kind;
             }
 

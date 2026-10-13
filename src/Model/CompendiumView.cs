@@ -47,6 +47,9 @@ namespace Scry
         /// <summary>Counts up each time the levels are told anew.</summary>
         public int Version { get; private set; }
 
+        /// <summary>The ruleset last told; with it off, everything is known.</summary>
+        public CompendiumRule Rule => _rule;
+
         /// <summary>Whether a kind shows an entry not known as a silhouette in its place; the others leave it out.</summary>
         public static bool Silhouetted(Kind kind) =>
             kind == Kind.Creature || kind == Kind.Item || kind == Kind.Piece || kind == Kind.Resource || kind == Kind.Spawner
