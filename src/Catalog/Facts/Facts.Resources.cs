@@ -174,7 +174,8 @@ namespace Scry
             var cells = Cells(resists);
             var immune = SearchFight.Taking(cells, Tone.Immune);
             var taken = cells.Select(c => c.Type.ToLowerInvariant()).Where(t => !immune.Contains(t));
-            var row = new Row { Title = GatherWords.BrokenWithTitle };
+            // Every tool there is that breaks it: a list, showing only those seen with the compendium on.
+            var row = new Row { Title = GatherWords.BrokenWithTitle, Lists = true };
             foreach (var tool in GatherWords.BreaksIt(toolTier, taken, Tools())) row.Items.Add(Chip(tool, ""));
             if (row.Items.Count > 0) Rows.Add(row);
         }

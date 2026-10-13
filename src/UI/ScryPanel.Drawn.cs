@@ -29,6 +29,7 @@ namespace Scry
         ViewMenu,
         ClosedPage,
         UnseenName,
+        ListLeftOut,
     }
 
     internal static partial class ScryPanel

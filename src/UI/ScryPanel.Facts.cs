@@ -288,7 +288,11 @@ namespace Scry
             // A list of what there is shows only what the character has seen, and nothing where it saw none.
             var listing = row.Lists && explorer.CompendiumOn;
             var items = row.Lists ? Listed(explorer, row.Items, i => i.Prefab) : row.Items;
-            if (listing && items.Count == 0) return y;
+            if (listing && items.Count == 0)
+            {
+                CountDrawn(PanelPart.ListLeftOut);
+                return y;
+            }
             var title = listing ? CompendiumWords.Found(row.Title, items.Count) : row.Title;
             var key = "facts:" + row.Title;
             var count = ShownOf(key, items.Count);

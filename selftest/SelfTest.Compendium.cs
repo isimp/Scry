@@ -216,6 +216,19 @@ namespace Scry
             p.Check(drop != null && !X.Reaches(drop.Key), $"what it drops, not seen, is no link: {drop?.Name}");
             p.Check(ScryPanel.Drawn(PanelPart.UnseenName) > unseenNames, "its page tells the names of what was not seen as plain text");
 
+            // A tree known lists only the tools seen that break it: none here, so its Broken with is left out.
+            var tree = Pick(Kind.Resource, "Beech1", "Birch1", "Pinetree_01");
+            if (p.Check(tree != null, "a tree to know"))
+            {
+                book.Raise(tree.Key, KnownLevel.Known);
+                view.Tell(book, CompendiumRule.Loose);
+                var leftOut = ScryPanel.Drawn(PanelPart.ListLeftOut);
+                X.Select(tree);
+                repaints = ScryPanel.Repaints;
+                yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
+                p.Check(X.Selected == tree && ScryPanel.Drawn(PanelPart.ListLeftOut) > leftOut, $"{tree.Name}, known, names no tool not seen that breaks it");
+            }
+
             // A mod's page and the mod report list only what the character has seen of what a mod adds.
             var adder = X.Catalog.Where(e => e.Kind != Kind.Mod && e.ModName.Length > 0).GroupBy(e => e.ModName).OrderByDescending(g => g.Count())
                 .Select(g => X.Find(EntryKeys.For(Kind.Mod, g.Key))).FirstOrDefault(m => m != null);
