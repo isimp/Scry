@@ -186,7 +186,7 @@ namespace Scry
                 _selectionVersion = explorer.SelectionVersion;
                 _modifierVersion = modifiers.Version;
                 _stageStale = false;
-                Guard.Run(Feature.Previews, "showing the selection", e => Selected(e.Selected, e.Modifiers), explorer, "update selection");
+                Guard.Run(Feature.Previews, "showing the selection", e => Selected(e.Shown, e.Modifiers), explorer, "update selection");
             }
             else if (modifiers.Version != _modifierVersion)
             {
@@ -219,14 +219,14 @@ namespace Scry
         /// <summary>The selected location's or room's bundle held and loaded, what it holds read once it is in.</summary>
         private static void LoadPlace(Explorer explorer)
         {
-            if (PlaceAssets.Hold(explorer.Selected?.Source as PlaceSource)) Learned.About(explorer.Selected);
+            if (PlaceAssets.Hold(explorer.Shown?.Source as PlaceSource)) Learned.About(explorer.Shown);
             switch (PlaceAssets.Update())
             {
                 case PlaceLoad.Ready:
-                    PlaceLoaded(explorer, explorer.Selected);
+                    PlaceLoaded(explorer, explorer.Shown);
                     break;
                 case PlaceLoad.Failed:
-                    Learned.About(explorer.Selected);
+                    Learned.About(explorer.Shown);
                     break;
             }
             ReadPlaceOn(explorer);
@@ -253,7 +253,7 @@ namespace Scry
             if (_readSteps == null) return;
             var place = _readingEntry?.Source as PlaceSource;
             var asset = place != null ? PlaceAssets.Asset(place) : null;
-            if (!ReferenceEquals(explorer.Selected, _readingEntry) || asset == null)
+            if (!ReferenceEquals(explorer.Shown, _readingEntry) || asset == null)
             {
                 _readSteps = null;
                 return;

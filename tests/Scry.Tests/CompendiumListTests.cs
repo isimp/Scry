@@ -182,6 +182,51 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheStageShowsOnlyWhatTheCharacterHasSeen()
+        {
+            var world = new World().Rule(CompendiumRule.Loose);
+            var explorer = world.Explorer;
+
+            explorer.Select(world.Boar);
+            Assert.Same(world.Boar, explorer.Shown);
+            explorer.Select(world.Hide);
+            Assert.Null(explorer.Shown);
+            explorer.KindFilter = Kind.Creature;
+            explorer.Select(world.Fenring);
+            Assert.Null(explorer.Shown);
+
+            world.Rule(CompendiumRule.Off);
+            Assert.Same(world.Fenring, explorer.Shown);
+        }
+
+        [Fact]
+        public void ASilhouetteSelectedComesOnStageOnceTheCharacterSeesIt()
+        {
+            var world = new World().Rule(CompendiumRule.Loose);
+            var explorer = world.Explorer;
+            explorer.KindFilter = Kind.Creature;
+            explorer.Select(world.Fenring);
+            var version = explorer.SelectionVersion;
+
+            world.Book.Raise(world.Troll.Key, KnownLevel.Known);
+            world.Book.Raise(world.Splash.Key, KnownLevel.Seen);
+            world.Rule(CompendiumRule.Loose);
+            Assert.Equal(version, explorer.SelectionVersion);
+
+            world.Book.Raise(world.Fenring.Key, KnownLevel.Seen);
+            world.Rule(CompendiumRule.Loose);
+            Assert.NotEqual(version, explorer.SelectionVersion);
+            Assert.Same(world.Fenring, explorer.Shown);
+
+            // Something else picked meanwhile is shown once, not again when more is learned.
+            explorer.Select(world.Boar);
+            version = explorer.SelectionVersion;
+            world.Book.Raise(world.Splash.Key, KnownLevel.Known);
+            world.Rule(CompendiumRule.Loose);
+            Assert.Equal(version, explorer.SelectionVersion);
+        }
+
+        [Fact]
         public void GoingToSomethingNotMetLeadsNowhereButWhatWasHeardOfOpens()
         {
             var world = new World().Rule(CompendiumRule.Loose);

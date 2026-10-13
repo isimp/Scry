@@ -99,18 +99,16 @@ namespace Scry
                 return;
             }
 
-            var top = rect.y;
-            if (withStage)
+            // With the compendium on, a page opens once the character knows its entry.
+            var level = explorer.LevelOf(entry);
+            if (level != KnownLevel.Known)
             {
-                // A sound or a status effect with nothing to show on a person gets a card only as
-                // tall as what it holds, so its details start higher; a model gets the stage.
-                var card = CardHeight(entry);
-                _stageBaseH = Mathf.Round(Mathf.Min(rect.width * 0.60f, rect.height * 0.50f));
-                var stageH = card > 0f ? card : Mathf.Round(Mathf.Clamp(_stageBaseH * _stageScale, U(120f), rect.height * 0.85f));
-                Section("side stage", 0f, _ => { StageArea(explorer, entry, new Rect(rect.x, rect.y, rect.width, stageH)); return 0f; });
-                if (card <= 0f) StageHandle(new Rect(rect.x, rect.y + stageH, rect.width, U(12f)));
-                top += stageH + U(12f);
+                ClosedPage(explorer, entry, level, rect, withStage);
+                return;
             }
+
+            var top = rect.y;
+            if (withStage) top += SideStage(explorer, entry, rect);
 
             // The name stays in sight while what is below it scrolls, so a long section scrolled
             // to never leaves the selection unnamed; under it a line of the sections goes to each.
@@ -168,6 +166,39 @@ namespace Scry
             var maxScroll = Mathf.Max(0f, _sideHeight - below.height);
             if (ArriveAtSection(maxScroll) is float section) _sideScroll.y = section;
             _sideScroll.y = Mathf.Clamp(_sideScroll.y, 0f, maxScroll);
+        }
+
+        /// <summary>
+        /// The stage at the top of the side; how much of the side it takes. A sound or a status
+        /// effect with nothing to show on a person gets a card only as tall as what it holds, so
+        /// its details start higher; a model gets the stage.
+        /// </summary>
+        private static float SideStage(Explorer explorer, Entry entry, Rect rect)
+        {
+            var card = CardHeight(entry);
+            _stageBaseH = Mathf.Round(Mathf.Min(rect.width * 0.60f, rect.height * 0.50f));
+            var stageH = card > 0f ? card : Mathf.Round(Mathf.Clamp(_stageBaseH * _stageScale, U(120f), rect.height * 0.85f));
+            Section("side stage", 0f, _ => { StageArea(explorer, entry, new Rect(rect.x, rect.y, rect.width, stageH)); return 0f; });
+            if (card <= 0f) StageHandle(new Rect(rect.x, rect.y + stageH, rect.width, U(12f)));
+            return stageH + U(12f);
+        }
+
+        /// <summary>
+        /// A page the character has not opened yet: what it is named (a silhouette only by its
+        /// kind), how much is known of it and what would open it. What was seen stands on the
+        /// stage; nothing else does.
+        /// </summary>
+        private static void ClosedPage(Explorer explorer, Entry entry, KnownLevel level, Rect rect, bool withStage)
+        {
+            var top = rect.y;
+            if (withStage && level == KnownLevel.Seen && CardHeight(entry) <= 0f) top += SideStage(explorer, entry, rect);
+            Skin.Box(new Rect(rect.x, top, rect.width, rect.yMax - top), Skin.Panel);
+            var x = rect.x + U(16f);
+            var width = rect.width - U(32f);
+            var name = level == KnownLevel.Unknown ? CompendiumWords.Unknown(entry.Kind) : entry.ShownName;
+            FitLabel(new Rect(x, top + U(12f), width, U(30f)), name, Skin.Big, 13f);
+            GUI.Label(new Rect(x, top + U(46f), width, U(22f)), CompendiumWords.Closed(level), Skin.DimLabel);
+            GUI.Label(new Rect(x, top + U(70f), width, U(22f)), CompendiumWords.HowToKnow(entry.Kind), Skin.FaintLabel);
         }
 
         /// <summary>

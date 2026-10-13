@@ -122,6 +122,19 @@ namespace Scry
             if (!Guard.Run(Feature.Locations, "reading the locations", Locations.Update, "update locations")) Locations.Forget();
             Step(Feature.FloorsKept, "the floors kept", null, FloorRecords.Update);
             Step(Feature.CompendiumCatchUp, "what the character knows", "update compendium", CompendiumKeeper.Update);
+            Step(Feature.CompendiumShown, "showing what the character knows", "update compendium list", ShowKnown);
+        }
+
+        /// <summary>What the character knows of the explorer's catalog, for the compendium; made with the explorer.</summary>
+        private static CompendiumView _known;
+
+        /// <summary>Hands the explorer what the character knows under the rules set, which lists again only when either changed.</summary>
+        private static void ShowKnown()
+        {
+            if (Explorer == null) return;
+            if (_known == null || !ReferenceEquals(_known.Catalog, Explorer.Entries)) _known = new CompendiumView(Explorer.Entries);
+            _known.Tell(CompendiumKeeper.Book, Settings.Compendium);
+            Explorer.Know(_known);
         }
 
         /// <summary>Scry's code compiled ahead (<see cref="CodeWarmup"/>), once a session, made once a world's catalog is read; for the self-test to see it done.</summary>
@@ -279,6 +292,7 @@ namespace Scry
             Guard.Run(Feature.Leaving, "letting go of the selection", () => Explorer?.Select(null));
             if (Explorer != null) _carried = (Explorer.Text, Explorer.KindFilter, Explorer.Origin, Explorer.FavouritesOnly);
             Explorer = null;
+            _known = null;
         }
     }
 }

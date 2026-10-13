@@ -81,7 +81,7 @@ namespace Scry
         /// <summary>Keeps to the selected location, reading its rooms a little each frame until the example is laid out.</summary>
         public static void Update(Explorer explorer)
         {
-            var entry = explorer.Selected;
+            var entry = explorer.Shown;
             var place = entry?.Source as PlaceSource;
             var plan = place != null && !place.IsRoom ? place.Contents?.Dungeon : null;
             if (plan == null)

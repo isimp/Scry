@@ -66,7 +66,7 @@ namespace Scry
                     // or shows the selection.
                     if (FocusedFilter == EffectControl) PlayFirstEffect();
                     else if (FocusedFilter == ClipControl) PlayFirstClip();
-                    else if (!Assist.TakeEnter(explorer)) Primary(explorer.Selected);
+                    else if (!Assist.TakeEnter(explorer) && explorer.LevelOf(explorer.Selected) == KnownLevel.Known) Primary(explorer.Selected);
                     e.Use();
                     break;
                 case KeyCode.F:

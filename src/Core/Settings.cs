@@ -18,6 +18,7 @@ namespace Scry
         private static ConfigEntry<bool> _lightDimmedRooms;
         private static ConfigEntry<float> _uiScale;
         private static ConfigEntry<bool> _logPreviews;
+        private static ConfigEntry<CompendiumRule> _compendium;
         private static ConfigEntry<bool> _showMonitor;
         private static ConfigEntry<bool> _focusSearch;
         private static ConfigEntry<float> _catalogDelay;
@@ -64,6 +65,9 @@ namespace Scry
 
         /// <summary>Whether the log tells what previews play and what Scry saw of each prefab, for finding out why something looks or sounds wrong.</summary>
         public static bool LogPreviews => _logPreviews?.Value ?? false;
+
+        /// <summary>Whether the panel shows only what the character has come to know, and by which rules.</summary>
+        public static CompendiumRule Compendium => _compendium?.Value ?? CompendiumRule.Off;
 
         /// <summary>Whether the rooms dimmed below a dungeon's opened floor keep their own lights; settable for the self-test to see both.</summary>
         public static bool LightDimmedRooms
@@ -124,6 +128,8 @@ namespace Scry
                     new AcceptableValueRange<float>(0f, 120f)));
             _readLocations = config.Bind("1 - General", "ReadLocationsAutomatically", false,
                 "Reads where things are found in each world's locations and dungeons by itself, in the background once the prefabs are read, taking a few minutes. Off, they are read only when asked, with Read all locations or /scry locations.");
+            _compendium = config.Bind("1 - General", "Compendium", CompendiumRule.Off,
+                "Shows only what your character has come to know. Off shows everything. Loose lists what your character has met, its page open once it has fought, held, built, used or entered it, and in each kind's tab what it has not met yet as silhouettes. What your character learns is kept either way, so turning this on later shows everything met meanwhile.");
             _autoSpin = config.Bind("2 - Preview", "AutoSpin", true,
                 "Turns the model in the preview slowly while you are not dragging it.");
             _spinSpeed = config.Bind("2 - Preview", "SpinSpeed", 14f,

@@ -26,6 +26,9 @@ namespace Scry
         /// <summary>The entries the character has met or heard of, while the compendium is on.</summary>
         private List<Entry> _visible;
 
+        /// <summary>What the stage could show of the selection when the explorer was last told what the character knows.</summary>
+        private Entry _shownKnown;
+
         private List<Entry> _results = new List<Entry>();
 
         /// <summary>The results moved right under what leaves them behind, for the list to indent (<see cref="Leftovers.UnderOwners"/>).</summary>
@@ -201,8 +204,14 @@ namespace Scry
                     if (level >= KnownLevel.HeardOf) _visible.Add(entry);
                 }
             }
+            // The selection coming into sight, or out of it, is shown anew.
+            if (!ReferenceEquals(Shown, _shownKnown)) _selectionVersion++;
+            _shownKnown = Shown;
             Refresh();
         }
+
+        /// <summary>The selection as the stage may show it: none while the character has not seen it.</summary>
+        public Entry Shown => _selected != null && LevelOf(_selected) >= KnownLevel.Seen ? _selected : null;
 
         /// <summary>
         /// The picked kind has nothing the text and the other filters let through while other
@@ -240,6 +249,7 @@ namespace Scry
             }
 
             _selected = entry;
+            _shownKnown = Shown;
             _selectedIndex = entry == null ? -1 : _results.IndexOf(entry);
             _selectionVersion++;
             _modifiers.ResetFor(entry);

@@ -364,6 +364,10 @@ namespace Scry
             var e = Event.current;
             var hover = rect.Contains(e.mousePosition) && visible.Contains(e.mousePosition) && _drag == Drag.None;
             var inner = new Rect(rect.x + U(2f), rect.y + U(1f), rect.width - U(4f), rect.height - U(2f));
+            // With the compendium on, what is not met yet is a silhouette named by its kind alone,
+            // and what is only heard of is named faintly.
+            var level = explorer.LevelOf(entry);
+            var unknown = level == KnownLevel.Unknown;
 
             if (selected) Skin.Box(inner, Skin.AccentSoft);
             else if (hover) Skin.Box(inner, Skin.Hover);
@@ -375,7 +379,7 @@ namespace Scry
             var icon = new Rect(inner.x + U(10f), inner.y + (inner.height - U(24f)) / 2f, U(24f), U(24f));
             var oneKind = Grouped(explorer);
             var drawn = Timing.Start();
-            if (HasIcon(entry)) DrawIcon(entry, icon);
+            if (HasIcon(entry)) DrawIcon(entry, icon, unknown);
             else if (!oneKind)
             {
                 var dot = U(8f);
@@ -383,26 +387,26 @@ namespace Scry
             }
             Timing.Add("list icons", drawn);
 
-            var favourite = explorer.Favourites.Contains(entry);
+            var favourite = !unknown && explorer.Favourites.Contains(entry);
             var star = new Rect(inner.xMax - U(28f), inner.y + (inner.height - U(18f)) / 2f, U(18f), U(18f));
             if (favourite) Skin.Icon(star, Skin.Star, Skin.Accent);
-            else if (hover) Skin.Icon(star, Skin.StarHollow, star.Contains(e.mousePosition) ? Skin.Accent : Skin.Faint);
+            else if (hover && !unknown) Skin.Icon(star, Skin.StarHollow, star.Contains(e.mousePosition) ? Skin.Accent : Skin.Faint);
 
             var named = Timing.Start();
             var textX = oneKind && !_listHasIcons ? inner.x + U(12f) : icon.xMax + U(10f);
             // A room sits indented under its dungeon in its dungeon's group.
             if ((entry.Indent || explorer.UnderOwner(entry)) && oneKind) textX += U(20f);
             var textW = star.x - U(8f) - textX;
-            var primary = entry.ShownName;
-            var secondary = entry.Tag ?? (primary == entry.Name ? "" : entry.Name);
+            var primary = unknown ? CompendiumWords.Unknown(entry.Kind) : entry.ShownName;
+            var secondary = unknown ? "" : entry.Tag ?? (primary == entry.Name ? "" : entry.Name);
 
             var nameStyle = Skin.RowName;
             var fullW = Skin.Width(nameStyle, primary);
             var nameW = Mathf.Min(textW, fullW);
             var nameRect = new Rect(textX, inner.y, nameW, inner.height);
             var lit = ReadLit(explorer.MendedText ?? explorer.Text);
-            if (lit) LightMatches(nameRect, primary, nameStyle);
-            Skin.LabelIn(nameRect, primary, nameStyle, entry.Empty ? Skin.Faint : Skin.Text);
+            if (lit && !unknown) LightMatches(nameRect, primary, nameStyle);
+            Skin.LabelIn(nameRect, primary, nameStyle, entry.Empty || unknown || level == KnownLevel.HeardOf ? Skin.Faint : Skin.Text);
 
             var cut = fullW > textW;
             if (secondary.Length > 0)
@@ -422,7 +426,7 @@ namespace Scry
             }
 
             // A cut name shows whole on hover, and a faint row says why it is faint.
-            if (hover && (cut || entry.Empty) && !star.Contains(e.mousePosition))
+            if (hover && !unknown && (cut || entry.Empty) && !star.Contains(e.mousePosition))
             {
                 AskTip(entry.Key, Naming.Lines(primary, secondary, entry.Empty ? ListWords.Silent : null));
             }
@@ -430,20 +434,20 @@ namespace Scry
 
             if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition) && visible.Contains(e.mousePosition))
             {
-                if (star.Contains(e.mousePosition))
+                if (star.Contains(e.mousePosition) && !unknown)
                 {
                     explorer.ToggleFavourite(entry);
                 }
                 else
                 {
                     explorer.Select(entry);
-                    if (e.clickCount == 2) Primary(entry);
+                    if (e.clickCount == 2 && explorer.LevelOf(entry) == KnownLevel.Known) Primary(entry);
                 }
                 e.Use();
             }
         }
 
-        private static void DrawIcon(Entry entry, Rect rect)
+        private static void DrawIcon(Entry entry, Rect rect, bool silhouette = false)
         {
             // A sprite packed in a way that has no simple rectangle has the mark below stand in.
             if (entry.Icon is Sprite sprite && sprite != null && sprite.texture != null && Event.current.type == EventType.Repaint
@@ -453,7 +457,16 @@ namespace Scry
                 var fit = aspect >= 1f
                     ? new Rect(rect.x, rect.y + (rect.height - rect.height / aspect) / 2f, rect.width, rect.height / aspect)
                     : new Rect(rect.x + (rect.width - rect.width * aspect) / 2f, rect.y, rect.width * aspect, rect.height);
+                if (!silhouette)
+                {
+                    GUI.DrawTextureWithTexCoords(fit, sprite.texture, uv, true);
+                    return;
+                }
+                Skin.Box(rect, Skin.Alpha(Skin.KindColor(entry.Kind), 0.20f));
+                var was = GUI.color;
+                GUI.color = Skin.Silhouette;
                 GUI.DrawTextureWithTexCoords(fit, sprite.texture, uv, true);
+                GUI.color = was;
                 return;
             }
 

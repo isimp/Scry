@@ -24,6 +24,9 @@ namespace Scry
         public static readonly Color Text = new Color(0.930f, 0.910f, 0.870f, 1f);
         public static readonly Color Dim = new Color(0.840f, 0.835f, 0.855f, 1f);
         public static readonly Color Faint = new Color(0.700f, 0.705f, 0.740f, 1f);
+
+        /// <summary>What an icon is drawn in for something not met yet: its shape alone, dark on a box of its kind's colour.</summary>
+        public static readonly Color Silhouette = new Color(0f, 0f, 0f, 0.85f);
         public static readonly Color Accent = new Color(0.960f, 0.720f, 0.340f, 1f);
         public static readonly Color AccentSoft = new Color(0.960f, 0.720f, 0.340f, 0.16f);
 

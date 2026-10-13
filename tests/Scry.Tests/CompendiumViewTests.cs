@@ -244,6 +244,24 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WithTheCompendiumOffWhatTheCharacterLearnsChangesNothingShown()
+        {
+            var troll = E(Kind.Creature, "Troll");
+            var view = View(troll);
+            var book = new CompendiumBook();
+
+            view.Tell(book, CompendiumRule.Off);
+            var first = view.Version;
+            book.Raise(troll.Key, KnownLevel.Seen);
+            view.Tell(book, CompendiumRule.Off);
+            view.Tell(new CompendiumBook(), CompendiumRule.Off);
+
+            Assert.Equal(first, view.Version);
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Seen, view.Of(troll));
+        }
+
+        [Fact]
         public void AnotherCharactersBookIsToldAnewThoughItsVersionIsTheSame()
         {
             var troll = E(Kind.Creature, "Troll");

@@ -232,18 +232,20 @@ namespace Scry
         private static readonly Kind[] EveryKind = (Kind[])Enum.GetValues(typeof(Kind));
 
         /// <summary>
-        /// Each tab's text by its name, count and whether it is picked, so drawing the tabs, which
-        /// happens several times a frame, makes no new text while the counts stay the same.
+        /// Each tab's text by its name, count, the total it is counted of (none below zero) and
+        /// whether it is picked, so drawing the tabs, which happens several times a frame, makes no
+        /// new text while the counts stay the same.
         /// </summary>
-        private static readonly Dictionary<(string Label, int Count, bool On), string> TabTexts =
-            new Dictionary<(string, int, bool), string>();
+        private static readonly Dictionary<(string Label, int Count, int Total, bool On), string> TabTexts =
+            new Dictionary<(string, int, int, bool), string>();
 
-        private static string TabText(string label, int count, bool on)
+        private static string TabText(string label, int count, int total, bool on)
         {
-            if (TabTexts.TryGetValue((label, count, on), out var text)) return text;
+            if (TabTexts.TryGetValue((label, count, total, on), out var text)) return text;
             if (TabTexts.Count > 2000) TabTexts.Clear();
-            text = ListWords.Tab(label, count, on ? Skin.TabCountOn : Skin.TabCountOff);
-            TabTexts[(label, count, on)] = text;
+            var colour = on ? Skin.TabCountOn : Skin.TabCountOff;
+            text = total >= 0 ? CompendiumWords.Tab(label, count, total, colour) : ListWords.Tab(label, count, colour);
+            TabTexts[(label, count, total, on)] = text;
             return text;
         }
 
@@ -252,10 +254,10 @@ namespace Scry
         {
             var flow = new ChipFlow(rect.x, rect.xMax, rect.y, rect.height, U(4f), U(4f));
 
-            bool Tab(string label, int count, Color dot, bool on)
+            bool Tab(string label, int count, int total, Color dot, bool on)
             {
                 var style = on ? Skin.TabOn : Skin.Tab;
-                var text = TabText(label, count, on);
+                var text = TabText(label, count, total, on);
                 var width = Skin.Width(style, text) + U(2f);
                 var at = flow.Place(width);
                 var tab = new Rect(at.X, at.Y, width, flow.RowHeight);
@@ -265,12 +267,17 @@ namespace Scry
                 return clicked;
             }
 
-            if (Tab("All", explorer.CountAll, Skin.Text, explorer.KindFilter == null)) Filter(explorer, null);
+            if (Tab("All", explorer.CountAll, -1, Skin.Text, explorer.KindFilter == null)) Filter(explorer, null);
+            // With the compendium on and nothing narrowing the list, a kind shown as silhouettes
+            // counts what was found of all there is, and has its tab before anything is found.
+            var collecting = explorer.CompendiumOn && string.IsNullOrEmpty(explorer.Text) && !explorer.FavouritesOnly && !explorer.RecentOnly && explorer.Origin == OriginFilter.All;
             foreach (var kind in EveryKind)
             {
-                var count = explorer.CountOf(kind);
-                if (count == 0 && explorer.KindFilter != kind) continue;
-                if (Tab(Kinds.Label(kind), count, Skin.KindColor(kind), explorer.KindFilter == kind)) Filter(explorer, kind);
+                var collected = collecting && CompendiumView.Silhouetted(kind);
+                var count = collected ? explorer.FoundOf(kind) : explorer.CountOf(kind);
+                var total = collected ? explorer.TotalOf(kind) : -1;
+                if ((collected ? total : count) == 0 && explorer.KindFilter != kind) continue;
+                if (Tab(Kinds.Label(kind), count, total, Skin.KindColor(kind), explorer.KindFilter == kind)) Filter(explorer, kind);
             }
 
             return flow.RowBottom;

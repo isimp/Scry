@@ -17,7 +17,8 @@ namespace Scry
     /// known with it: the effects and sounds it plays (<see cref="Entry.UsedBy"/>), what it leaves
     /// behind, and the status effects, effects, sounds and projectiles it links to. Whatever else
     /// a known entry's page names, by its links, its link terms, its stations or the places it is
-    /// found in, is heard of. Told again only when the book, its version or the rule changes.
+    /// found in, is heard of. Told again only when the book, its version or the rule changes; while
+    /// it stays off, only when the rule does.
     /// </summary>
     internal sealed class CompendiumView
     {
@@ -47,6 +48,9 @@ namespace Scry
         /// <summary>Counts up each time the levels are told anew.</summary>
         public int Version { get; private set; }
 
+        /// <summary>The catalog it tells of.</summary>
+        public EntryCatalog Catalog => _catalog;
+
         /// <summary>The ruleset last told; with it off, everything is known.</summary>
         public CompendiumRule Rule => _rule;
 
@@ -68,9 +72,12 @@ namespace Scry
         {
             if (book == null) book = new CompendiumBook();
             if (ReferenceEquals(book, _book) && book.Version == _bookVersion && rule == _rule) return;
+            // Off, everything is known whatever the book holds: nothing to tell again.
+            var stillOff = rule == CompendiumRule.Off && _rule == CompendiumRule.Off && Version > 0;
             _book = book;
             _bookVersion = book.Version;
             _rule = rule;
+            if (stillOff) return;
             Version++;
             _levels.Clear();
             if (rule == CompendiumRule.Off) return;

@@ -7,5 +7,6 @@ namespace Scry
         public static readonly Feature CompendiumFought = Listed("knowing a creature once fought, for the compendium");
         public static readonly Feature CompendiumHit = Listed("knowing a resource once hit, for the compendium");
         public static readonly Feature CompendiumSeen = Listed("knowing what a character sees, for the compendium");
+        public static readonly Feature CompendiumShown = Listed("showing only what a character knows");
     }
 }
