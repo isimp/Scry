@@ -109,8 +109,11 @@ namespace Scry
 
             // As a server: a map sent to this game comes back answered, as a player's would.
             var answered = CompendiumLink.Answered;
-            CompendiumLink.Ask(world);
-            yield return Until(() => CompendiumLink.Answered > answered && CompendiumLink.LastTold >= 0, 10);
+            yield return Until(() =>
+            {
+                CompendiumLink.Ask(world);
+                return CompendiumLink.Answered > answered && CompendiumLink.LastTold >= 0;
+            }, 10);
             p.Check(CompendiumLink.Answered > answered && CompendiumLink.LastTold == kinds.Count, "a map sent to the world's server is answered with the same kinds", $"{Numbers.Count(CompendiumLink.LastTold)} told, {Numbers.Count(kinds.Count)} read here");
         }
 

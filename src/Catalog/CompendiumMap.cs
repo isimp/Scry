@@ -81,6 +81,13 @@ namespace Scry
         /// <summary>Gives up on this world for the session, as when its server has no Scry to ask.</summary>
         public static void GiveUp(string world) => _failedFor = world;
 
+        /// <summary>The explored map of the character played, packed on a worker thread from a copy taken now; none before it is in.</summary>
+        public static Task<byte[]> PackOnWorker()
+        {
+            var (size, pixel, words) = Copy();
+            return words == null ? null : Task.Run(() => Grid(size, pixel, words).Pack());
+        }
+
         /// <summary>The explored map of the character played, packed; none before it is in.</summary>
         public static byte[] PackedMap()
         {

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace Scry
@@ -26,6 +27,7 @@ namespace Scry
         private static ZRoutedRpc _registeredOn;
         private static string _askedFor;
         private static float _askedAt;
+        private static Task<byte[]> _packing;
 
         /// <summary>How many maps this game has answered, as a server; for the self-test.</summary>
         public static int Answered { get; private set; }
@@ -40,12 +42,13 @@ namespace Scry
             if (rpc == _registeredOn) return;
             _registeredOn = rpc;
             _askedFor = null;
+            _packing = null;
             if (rpc == null) return;
             rpc.Register<ZPackage>(AskRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "answering a player's explored map", () => Answer(sender, package)));
             rpc.Register<ZPackage>(AnswerRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "taking the server's answer on the explored map", () => Take(package)));
         }
 
-        /// <summary>A client asks the server once which kinds of place lie in its explored map, and gives up after a while without an answer.</summary>
+        /// <summary>A client asks the server once which kinds of place lie in its explored map, packed on a worker thread first, and gives up after a while without an answer.</summary>
         public static void Ask(string world)
         {
             var rpc = ZRoutedRpc.instance;
@@ -58,11 +61,19 @@ namespace Scry
                 Log.Report(CompendiumWords.MapNoServerScry);
                 return;
             }
-            var packed = CompendiumMap.PackedMap();
-            if (packed == null) return;
+            if (_packing == null) _packing = CompendiumMap.PackOnWorker();
+            if (_packing == null || !_packing.IsCompleted) return;
+            var packing = _packing;
+            _packing = null;
+            if (packing.Status != TaskStatus.RanToCompletion)
+            {
+                CompendiumMap.GiveUp(world);
+                Faults.Tell(Feature.CompendiumMap, "packing the explored map", packing.Exception?.GetBaseException());
+                return;
+            }
             var package = new ZPackage();
             package.Write(world);
-            package.Write(Utils.Compress(packed));
+            package.Write(Utils.Compress(packing.Result));
             _askedFor = world;
             _askedAt = Time.unscaledTime;
             rpc.InvokeRoutedRPC(AskRpc, package);
@@ -101,6 +112,7 @@ namespace Scry
         private static void Forget()
         {
             _askedFor = null;
+            _packing = null;
         }
     }
 }
