@@ -50,6 +50,20 @@ namespace Scry
             var unknown = carried.Where(n => CompendiumKeeper.Book.Level(n) != KnownLevel.Known).ToList();
             p.Check(unknown.Count == 0, $"all {Numbers.Count(carried.Count)} kinds of thing it carries are known", string.Join(", ", unknown.Take(10)));
 
+            // Why what the book does not hold counts as known: what brought most along, and each
+            // thing named after a creature never met, with what brought it.
+            var loose = new CompendiumView(X.Entries);
+            loose.Tell(CompendiumKeeper.Book, CompendiumRule.Loose);
+            var brought = X.Catalog.Where(e => loose.Of(e) == KnownLevel.Known && loose.Because(e) != null).ToList();
+            var roots = brought.GroupBy(e => loose.Chain(e).Last()).OrderByDescending(g => g.Count()).Take(15);
+            p.Note($"{Numbers.Count(brought.Count)} entries known along with others; most brought by: "
+                + string.Join("; ", roots.Select(g => $"{g.Key.Name} {Numbers.Count(g.Count())} ({string.Join(", ", g.Take(4).Select(e => e.Name))})")));
+            var unmetNames = X.Catalog.Where(e => e.Kind == Kind.Creature && loose.Of(e) < KnownLevel.Seen).Select(e => e.Name).Where(n => n.Length >= 4).Distinct().ToList();
+            foreach (var odd in brought.Where(e => e.Kind != Kind.Creature && unmetNames.Any(n => e.Name.IndexOf(n, StringComparison.OrdinalIgnoreCase) >= 0)).Take(30))
+            {
+                p.Note($"{odd.Name} is known by way of {string.Join(" <- ", loose.Chain(odd).Select(o => o.Name))}");
+            }
+
             // Kept on disk, as it is now.
             CompendiumKeeper.Save(now: true);
             var now = CompendiumKeeper.Book.All.ToDictionary(e => e.Key, e => e.Value, StringComparer.Ordinal);

@@ -29,6 +29,7 @@ namespace Scry
         private readonly Dictionary<string, List<Entry>> _leftovers = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
         private readonly Dictionary<string, List<Entry>> _places = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
         private readonly Dictionary<Entry, KnownLevel> _levels = new Dictionary<Entry, KnownLevel>();
+        private readonly Dictionary<Entry, Entry> _because = new Dictionary<Entry, Entry>();
 
         private CompendiumBook _book;
         private int _bookVersion = -1;
@@ -67,6 +68,16 @@ namespace Scry
             return _levels.TryGetValue(entry, out var level) ? level : KnownLevel.Unknown;
         }
 
+        /// <summary>What made an entry known or heard of along with it: the entry owning it or naming it; none for what the book holds itself.</summary>
+        public Entry Because(Entry entry) => entry != null && _rule != CompendiumRule.Off && _because.TryGetValue(entry, out var owner) ? owner : null;
+
+        /// <summary>What made an entry known, then what made that known, back to what the book holds itself.</summary>
+        public IEnumerable<Entry> Chain(Entry entry)
+        {
+            var seen = new HashSet<Entry>();
+            for (var owner = Because(entry); owner != null && seen.Add(owner); owner = Because(owner)) yield return owner;
+        }
+
         /// <summary>Works out every entry's level for this book and rule, unless nothing changed since last time.</summary>
         public void Tell(CompendiumBook book, CompendiumRule rule)
         {
@@ -80,6 +91,7 @@ namespace Scry
             if (stillOff) return;
             Version++;
             _levels.Clear();
+            _because.Clear();
             if (rule == CompendiumRule.Off) return;
 
             var met = new Queue<Entry>();
@@ -94,22 +106,26 @@ namespace Scry
             // What a seen or known entry owns is known, and owns in turn: an effect's own sounds.
             while (met.Count > 0)
             {
-                foreach (var owned in Owned(met.Dequeue()))
+                var owner = met.Dequeue();
+                foreach (var owned in Owned(owner))
                 {
                     if (Of(owned) == KnownLevel.Known) continue;
                     _levels[owned] = KnownLevel.Known;
+                    _because[owned] = owner;
                     met.Enqueue(owned);
                 }
             }
 
-            var heard = new List<Entry>();
+            var heard = new List<(Entry Named, Entry By)>();
             foreach (var pair in _levels)
             {
-                if (pair.Value == KnownLevel.Known) heard.AddRange(Named(pair.Key));
+                if (pair.Value == KnownLevel.Known) foreach (var named in Named(pair.Key)) heard.Add((named, pair.Key));
             }
-            foreach (var entry in heard)
+            foreach (var (named, by) in heard)
             {
-                if (Of(entry) == KnownLevel.Unknown) _levels[entry] = KnownLevel.HeardOf;
+                if (Of(named) != KnownLevel.Unknown) continue;
+                _levels[named] = KnownLevel.HeardOf;
+                _because[named] = by;
             }
         }
 

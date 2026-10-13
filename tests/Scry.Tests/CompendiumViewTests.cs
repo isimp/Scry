@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace Scry.Tests
@@ -116,6 +117,33 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.Known, view.Of(hitSound));
             Assert.Equal(KnownLevel.Known, view.Of(ragdoll));
             Assert.Equal(KnownLevel.Unknown, view.Of(dwarfSound));
+        }
+
+        [Fact]
+        public void WhatIsKnownWithSomethingElseTellsWhatThatWas()
+        {
+            // So whoever looks after Scry can see why an effect counts as known.
+            var troll = E(Kind.Creature, "Troll");
+            var hit = E(Kind.Effect, "fx_troll_hit");
+            var hitSound = E(Kind.Sound, "sfx_troll_hit");
+            var hide = E(Kind.Item, "TrollHide");
+            hit.UsedBy.Add("Troll");
+            hitSound.UsedBy.Add("fx_troll_hit");
+            troll.AddTermLink("drops", hide);
+            var view = View(troll, hit, hitSound, hide);
+            var book = new CompendiumBook();
+            book.Raise(troll.Key, KnownLevel.Known);
+
+            view.Tell(book, CompendiumRule.Loose);
+
+            Assert.Same(troll, view.Because(hit));
+            Assert.Same(hit, view.Because(hitSound));
+            Assert.Same(troll, view.Because(hide));
+            Assert.Null(view.Because(troll));
+            Assert.Equal(new[] { hit, troll }, view.Chain(hitSound).ToArray());
+
+            view.Tell(book, CompendiumRule.Off);
+            Assert.Null(view.Because(hit));
         }
 
         [Fact]
