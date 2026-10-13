@@ -43,6 +43,42 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ASectionBehindAnotherKindOfThingIsThatThingsNotAnItemsOfItsName()
+        {
+            // A backpack mod's "Effect: Demister" sets which packs give the effect; the item whose
+            // prefab is called Demister is not what it is about, nor is any item named after an effect.
+            Assert.False(ConfigSections.About("Effect: Demister", "Wisplight", "Demister"));
+            Assert.False(ConfigSections.About("Effect: Feather Fall", "Feather Fall", "FeatherFall"));
+            Assert.False(ConfigSections.About("Status Effects - Frost Resistance", "Frost Resistance", "FrostResistance"));
+            Assert.False(ConfigSections.About("Creature: Boar", "Boar", "Boar"));
+            Assert.False(ConfigSections.About("Pieces | Lantern", "Lantern", "Lantern"));
+            Assert.False(ConfigSections.About("Spawner: Greydwarf nest", "Greydwarf nest", "Spawner_GreydwarfNest"));
+            Assert.False(ConfigSections.About("Projectile: Arrow", "Arrow", "Arrow"));
+            Assert.False(ConfigSections.About("Sound: Horn", "Horn", "Horn"));
+            Assert.False(ConfigSections.About("Biome: Mistlands", "Mistlands", "Mistlands"));
+            Assert.False(ConfigSections.About("Location: Crypt", "Crypt", "Crypt"));
+            Assert.False(ConfigSections.About("Raid – Army of the dead", "Army of the dead", "Army"));
+            Assert.Empty(ConfigSections.NamesOf("Effect: Demister"));
+            // The kind ends at the first mark, whichever it is.
+            Assert.False(ConfigSections.About("Effect | Demister: lights", "Demister", "Demister"));
+            // A mark opening the name ends no kind.
+            Assert.False(ConfigSections.About("|Effect: Demister", "Demister", "Demister"));
+        }
+
+        [Fact]
+        public void ASectionBehindItemsOrResourcesOrAnyOtherWordStaysTheItems()
+        {
+            // Mods call materials resources, and a kind of their own is no other thing's.
+            Assert.True(ConfigSections.About("Item: Wisplight", "Wisplight", "Demister"));
+            Assert.True(ConfigSections.About("Resources: Copper", "Copper", "Copper"));
+            Assert.True(ConfigSections.About("6 - Cultivator", "Cultivator", "Cultivator"));
+            // A kind's word that only ends a section's name is no kind it is behind.
+            Assert.True(ConfigSections.About("Lantern: Effect", "Lantern", "Lantern"));
+            // A kind's word alone is a name, not a kind something is behind.
+            Assert.True(ConfigSections.About("Sounds", "Sounds", "Sounds"));
+        }
+
+        [Fact]
         public void ANameTooShortToTellOrNoneIsNoSectionsOwn()
         {
             Assert.False(ConfigSections.About("General: Ax", "Ax", "Ax"));

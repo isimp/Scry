@@ -154,6 +154,8 @@ namespace Scry
                 p.Note($"{entry.Name}: {string.Join("; ", sections.Select(s => $"{s.Mod}, {s.Section}, {Naming.Count(s.Settings.Count, "setting", "settings")}"))}");
             }
             if (named.Count == 0) p.Skip("no mod has a section of settings named after an item");
+            var behind = named.SelectMany(f => f.Sections.Where(s => ConfigSections.BehindAnotherKind(s.Section)).Select(s => $"{f.Entry.Name}: {s.Section}")).ToList();
+            p.Check(behind.Count == 0, "no item shows a section about another kind of thing, such as an effect it shares a name with", string.Join("; ", behind));
 
             var (item, found) = named[0];
             var rows = Facts.For(item).Rows.Where(r => r.Columns == ModSettingWords.Columns).ToList();

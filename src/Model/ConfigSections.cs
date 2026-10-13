@@ -8,9 +8,10 @@ namespace Scry
     /// <summary>
     /// Which sections of the mods' settings are about an item, by their names: a section named
     /// after it, whole or as one of the parts its name is made of ("Backpack: Arctic Sherpa Pack",
-    /// "2 - Satchel"), by the name the game shows or its prefab's. Names are compared as plain
-    /// words, case, spaces and punctuation aside. A section holding the name among other words
-    /// ("Wood farm") is not the item's, nor is a name too short to tell by.
+    /// "2 - Satchel"), by the name the game shows or its prefab's, unless it is behind another
+    /// kind of thing ("Effect: Demister" is an effect's). Names are compared as plain words, case,
+    /// spaces and punctuation aside. A section holding the name among other words ("Wood farm")
+    /// is not the item's, nor is a name too short to tell by.
     /// </summary>
     internal static class ConfigSections
     {
@@ -39,11 +40,38 @@ namespace Scry
             return plain.ToString();
         }
 
-        /// <summary>The names a section goes by: its whole name and each of its parts, as plain words.</summary>
+        /// <summary>What ends the kind a section's name begins with: a colon, a spaced dash or a bar.</summary>
+        private static readonly string[] KindEnds = { ":", " - ", " – ", "|" };
+
+        /// <summary>
+        /// The kinds of thing besides items a section can be about, as plain words: a section
+        /// behind one ("Effect: Demister") is about that thing, whatever item shares its name.
+        /// Resources are not among them, as mods call materials so.
+        /// </summary>
+        private static readonly HashSet<string> OtherKinds = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "creature", "piece", "spawner", "projectile", "effect", "sound", "status effect", "biome", "location", "raid",
+        };
+
+        /// <summary>Whether a section's name begins with another kind of thing than items, one or many, before a colon, a spaced dash or a bar.</summary>
+        public static bool BehindAnotherKind(string section)
+        {
+            var end = -1;
+            foreach (var mark in KindEnds)
+            {
+                var at = section.IndexOf(mark, StringComparison.Ordinal);
+                if (at > 0 && (end < 0 || at < end)) end = at;
+            }
+            if (end < 0) return false;
+            // One or many alike, as no kind's word ends in s.
+            return OtherKinds.Contains(Plain(section.Substring(0, end)).TrimEnd('s'));
+        }
+
+        /// <summary>The names a section goes by: its whole name and each of its parts, as plain words; none for one behind another kind of thing.</summary>
         public static List<string> NamesOf(string section)
         {
             var names = new List<string>();
-            if (string.IsNullOrEmpty(section)) return names;
+            if (string.IsNullOrEmpty(section) || BehindAnotherKind(section)) return names;
             foreach (var name in new[] { section }.Concat(section.Split(Splits, StringSplitOptions.RemoveEmptyEntries)).Select(Plain))
             {
                 if (name.Length > 0 && !names.Contains(name)) names.Add(name);
