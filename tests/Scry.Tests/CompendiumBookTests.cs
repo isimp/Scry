@@ -1,0 +1,213 @@
+using System.Linq;
+using Xunit;
+
+namespace Scry.Tests
+{
+    public class CompendiumBookTests
+    {
+        // What a character has come to know, entry by entry: unknown, heard of, seen or known,
+        // only ever rising, kept from session to session.
+
+        [Fact]
+        public void WhatWasNeverMetIsUnknown()
+        {
+            var book = new CompendiumBook();
+
+            Assert.Equal(KnownLevel.Unknown, book.Level("Troll"));
+            Assert.Equal(KnownLevel.Unknown, book.Level(null));
+            Assert.Equal(KnownLevel.Unknown, book.Level(""));
+        }
+
+        [Fact]
+        public void KnowledgeOnlyRises()
+        {
+            var book = new CompendiumBook();
+
+            Assert.True(book.Raise("Troll", KnownLevel.Seen));
+            Assert.True(book.Raise("Troll", KnownLevel.Known));
+            Assert.False(book.Raise("Troll", KnownLevel.HeardOf));
+            Assert.False(book.Raise("Troll", KnownLevel.Known));
+
+            Assert.Equal(KnownLevel.Known, book.Level("Troll"));
+        }
+
+        [Fact]
+        public void NothingIsLearnedOfNoEntryOrAtNoLevel()
+        {
+            var book = new CompendiumBook();
+
+            Assert.False(book.Raise(null, KnownLevel.Known));
+            Assert.False(book.Raise("", KnownLevel.Known));
+            Assert.False(book.Raise("Troll", KnownLevel.Unknown));
+            Assert.Equal(0, book.Version);
+            Assert.False(book.Changed);
+        }
+
+        [Fact]
+        public void EachThingLearnedIsCountedAndMarksTheBookToBeKept()
+        {
+            var book = new CompendiumBook();
+
+            book.Raise("Troll", KnownLevel.Seen);
+            book.Raise("Troll", KnownLevel.Seen);
+            book.Raise("Wood", KnownLevel.Known);
+
+            Assert.Equal(2, book.Version);
+            Assert.True(book.Changed);
+            book.Save();
+            Assert.False(book.Changed);
+        }
+
+        [Fact]
+        public void WhatWasLearnedLatelyComesNewestFirstAndOnlyTheLatestAreKept()
+        {
+            var book = new CompendiumBook();
+            for (var i = 0; i < CompendiumBook.LatelyKept + 5; i++) book.Raise("Item" + i, KnownLevel.Known);
+            book.Raise("Item3", KnownLevel.Known);
+            book.Raise("Item" + (CompendiumBook.LatelyKept + 4), KnownLevel.Known);
+            book.Raise("Troll", KnownLevel.Seen);
+            book.Raise("Troll", KnownLevel.Known);
+
+            var lately = book.Lately.ToList();
+
+            Assert.Equal(CompendiumBook.LatelyKept, lately.Count);
+            Assert.Equal("Troll", lately[0]);
+            Assert.Equal("Item" + (CompendiumBook.LatelyKept + 4), lately[1]);
+            Assert.Single(lately, k => k == "Troll");
+            Assert.DoesNotContain("Item0", lately);
+        }
+
+        [Fact]
+        public void HowManyAreKnownAtLeastSoFar()
+        {
+            var book = new CompendiumBook();
+            book.Raise("Troll", KnownLevel.Known);
+            book.Raise("Boar", KnownLevel.Seen);
+            book.Raise("Wood", KnownLevel.HeardOf);
+
+            Assert.Equal(3, book.Count(KnownLevel.HeardOf));
+            Assert.Equal(2, book.Count(KnownLevel.Seen));
+            Assert.Equal(1, book.Count(KnownLevel.Known));
+        }
+
+        [Fact]
+        public void AWorldsMapIsCaughtUpOnceAndTheServerAskedOnlyWithLeave()
+        {
+            var book = new CompendiumBook();
+
+            Assert.False(book.Mapped("123"));
+            book.MarkMapped("123");
+            Assert.True(book.Mapped("123"));
+            Assert.False(book.Mapped("456"));
+
+            Assert.Null(book.ServerAnswer("123"));
+            book.Answer("123", true);
+            book.Answer("456", false);
+            Assert.True(book.ServerAnswer("123"));
+            Assert.False(book.ServerAnswer("456"));
+            Assert.True(book.Changed);
+        }
+
+        [Fact]
+        public void MarkingAWorldOrAnsweringForItMarksTheBookToBeKeptOnlyWhenItChangesSomething()
+        {
+            var book = new CompendiumBook();
+            book.MarkMapped("123");
+            Assert.True(book.Changed);
+            book.Save();
+            book.MarkMapped("123");
+            Assert.False(book.Changed);
+            book.Answer("123", true);
+            Assert.True(book.Changed);
+            book.Save();
+            book.Unmap("123");
+            Assert.True(book.Changed);
+
+            // A world caught up with but never asked about is forgotten as well.
+            book.MarkMapped("456");
+            book.Save();
+            book.Unmap("456");
+            Assert.True(book.Changed);
+        }
+
+        [Fact]
+        public void AWorldsCatchUpAndItsAnswerCanBeForgottenToRunAndAskAgain()
+        {
+            var book = new CompendiumBook();
+            book.MarkMapped("123");
+            book.Answer("123", false);
+            book.Answer("456", true);
+            book.Save();
+
+            book.Unmap("123");
+
+            Assert.False(book.Mapped("123"));
+            Assert.Null(book.ServerAnswer("123"));
+            Assert.True(book.ServerAnswer("456"));
+            Assert.True(book.Changed);
+
+            book.Save();
+            book.Unmap("999");
+            book.Unmap(null);
+            Assert.False(book.Changed);
+        }
+
+        [Fact]
+        public void WhatIsKeptReadsBackTheSame()
+        {
+            var book = new CompendiumBook();
+            book.Raise("Troll", KnownLevel.Known);
+            book.Raise("se:Rested", KnownLevel.Seen);
+            book.Raise("odd\tname", KnownLevel.HeardOf);
+            book.Raise("Boar", KnownLevel.Known);
+            book.MarkMapped("123");
+            book.Answer("456", true);
+            book.Answer("789", false);
+
+            var back = CompendiumBook.Load(book.Save());
+
+            Assert.Equal(KnownLevel.Known, back.Level("Troll"));
+            Assert.Equal(KnownLevel.Seen, back.Level("se:Rested"));
+            Assert.Equal(KnownLevel.HeardOf, back.Level("odd\tname"));
+            Assert.Equal(book.Lately, back.Lately);
+            Assert.True(back.Mapped("123"));
+            Assert.True(back.ServerAnswer("456"));
+            Assert.False(back.ServerAnswer("789"));
+            Assert.False(back.Changed);
+            Assert.Equal(book.Save(), back.Save());
+        }
+
+        [Fact]
+        public void ALineThatCannotBeReadIsPassedOver()
+        {
+            var back = CompendiumBook.Load("know\tTroll\t3\nknow\tBoar\tlots\nknow\t\t2\nknow\tWood\t9\nknow\tStone\t0\nsomething\nmapped\t\nasked\t1\tmaybe\nknow\tDeer\t2");
+
+            Assert.Equal(KnownLevel.Known, back.Level("Troll"));
+            Assert.Equal(KnownLevel.Seen, back.Level("Deer"));
+            Assert.Equal(KnownLevel.Unknown, back.Level("Boar"));
+            Assert.Equal(KnownLevel.Unknown, back.Level("Wood"));
+            Assert.Equal(KnownLevel.Unknown, back.Level("Stone"));
+            Assert.Null(back.ServerAnswer("1"));
+            Assert.Equal(2, back.Count(KnownLevel.HeardOf));
+            Assert.DoesNotContain(back.All, p => p.Key == "Stone");
+        }
+
+        [Fact]
+        public void TheLatestReadBackHoldEachEntryOnceAndNoMoreThanAreKept()
+        {
+            var text = "lately\tTroll\nlately\tTroll\n" + string.Concat(Enumerable.Range(0, CompendiumBook.LatelyKept + 10).Select(i => $"lately\tItem{i}\n"));
+
+            var lately = CompendiumBook.Load(text).Lately.ToList();
+
+            Assert.Equal(CompendiumBook.LatelyKept, lately.Count);
+            Assert.Single(lately, k => k == "Troll");
+        }
+
+        [Fact]
+        public void NothingKeptIsAnEmptyBook()
+        {
+            Assert.Equal(0, CompendiumBook.Load(null).Count(KnownLevel.HeardOf));
+            Assert.Equal(0, CompendiumBook.Load("").Count(KnownLevel.HeardOf));
+        }
+    }
+}
