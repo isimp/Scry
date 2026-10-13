@@ -73,7 +73,7 @@ namespace Scry
             if (book == null) book = new CompendiumBook();
             if (ReferenceEquals(book, _book) && book.Version == _bookVersion && rule == _rule) return;
             // Off, everything is known whatever the book holds: nothing to tell again.
-            var stillOff = rule == CompendiumRule.Off && _rule == CompendiumRule.Off && Version > 0;
+            var stillOff = rule == CompendiumRule.Off && _rule == CompendiumRule.Off;
             _book = book;
             _bookVersion = book.Version;
             _rule = rule;

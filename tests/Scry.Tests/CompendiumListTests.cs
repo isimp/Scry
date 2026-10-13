@@ -218,6 +218,12 @@ namespace Scry.Tests
             Assert.NotEqual(version, explorer.SelectionVersion);
             Assert.Same(world.Fenring, explorer.Shown);
 
+            // Shown once: learning something else leaves it as it is.
+            version = explorer.SelectionVersion;
+            world.Book.Raise(world.Hide.Key, KnownLevel.Seen);
+            world.Rule(CompendiumRule.Loose);
+            Assert.Equal(version, explorer.SelectionVersion);
+
             // Something else picked meanwhile is shown once, not again when more is learned.
             explorer.Select(world.Boar);
             version = explorer.SelectionVersion;
