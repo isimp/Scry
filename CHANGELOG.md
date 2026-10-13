@@ -18,6 +18,8 @@ An item that a mod's settings are named after, such as a backpack whose size and
 
 An item whose tooltip in the game mods add lines to shows that tooltip on its page under *Tooltip in the game*, at each quality, as a card laid out like the details, the lines the mods added tinted, and the mods hooking the tooltip named under it, each going to its page.
 
+A mod's website opened from its page no longer keeps Steam showing Valheim as running after the game is closed when the browser was not open before.
+
 ## 0.2.0
 
 Locations have a tab of their own: every location and dungeon room the world can place, grouped by biome, each telling where it is placed and what it holds. A location stands on the turntable as a new zone would roll it, its creatures included, and *Roll again* rolls it anew.

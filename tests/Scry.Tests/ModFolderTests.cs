@@ -73,6 +73,14 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AWebsiteGoesToTheDesktopAsOneWholeArgument()
+        {
+            // Explorer ends an argument out of quotes at a comma; a website holds no quote, so in quotes it stays whole.
+            Assert.Equal("\"https://example.com/a,b?c=1&d=2\"", ModWords.Argument("https://example.com/a,b?c=1&d=2"));
+            Assert.Equal("\"https://github.com/ASharpPen/Valheim.DropThat\"", ModWords.Argument("https://github.com/ASharpPen/Valheim.DropThat"));
+        }
+
+        [Fact]
         public void ADependencyNamesItsPackageWithoutItsVersion()
         {
             Assert.Equal("denikson-BepInExPack_Valheim", ModManifest.Package("denikson-BepInExPack_Valheim-5.4.2333"));

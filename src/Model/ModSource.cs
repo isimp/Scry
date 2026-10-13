@@ -36,5 +36,8 @@ namespace Scry
         public static bool IsWebsite(string url) =>
             !string.IsNullOrEmpty(url) && (url.StartsWith("https://", System.StringComparison.OrdinalIgnoreCase) || url.StartsWith("http://", System.StringComparison.OrdinalIgnoreCase))
             && url.IndexOfAny(NotInAddress) < 0;
+
+        /// <summary>A website as one argument of a command line: in quotes, as Explorer ends an argument out of quotes at a comma; one <see cref="IsWebsite"/> passes holds no quote to end them early.</summary>
+        public static string Argument(string url) => "\"" + url + "\"";
     }
 }

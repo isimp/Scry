@@ -83,7 +83,7 @@ namespace Scry
                 var webRect = new Rect(valueRect.x, valueRect.y, webW, height);
                 LinkLabel(webRect, pair.Value, Skin.Wrap, Skin.Accent);
                 if (webRect.Contains(Event.current.mousePosition)) AskTip("web:" + entry.Key, "Open it in your browser");
-                if (GUI.Button(webRect, GUIContent.none, GUIStyle.none)) Application.OpenURL(url);
+                if (GUI.Button(webRect, GUIContent.none, GUIStyle.none)) Shell.OpenWebsite(url);
             }
             // A link only to what is in the catalog: a creature's own attack items are not.
             else if (facts.Links.TryGetValue(pair.Key, out var link) && InCatalog(explorer, link))
