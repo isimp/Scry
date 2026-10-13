@@ -250,6 +250,21 @@ namespace Scry
                 p.Check(beesView.Of(bile) < KnownLevel.Known && fader.Count == 0, "but no bile bomb, nor anything of Fader's", string.Join(", ", fader.Take(5).Select(e => e.Name)));
             }
 
+            // A dungeon known makes its rooms known, every one, once the places are read.
+            var roomLabels = new HashSet<string>(X.Catalog.Where(e => e.Kind == Kind.Location && e.Components.Contains("Room")).SelectMany(e => e.FoundIn), StringComparer.Ordinal);
+            var dungeon = X.Catalog.FirstOrDefault(e => Places.LabelOf(e) != null && roomLabels.Contains(Places.LabelOf(e)));
+            if (dungeon != null)
+            {
+                var delver = new CompendiumBook();
+                delver.Raise(dungeon.Key, KnownLevel.Known);
+                var delverView = new CompendiumView(X.Entries);
+                delverView.Tell(delver, CompendiumRule.Loose);
+                var rooms = X.Catalog.Where(e => e.Kind == Kind.Location && e.Components.Contains("Room") && e.FoundIn.Contains(Places.LabelOf(dungeon))).ToList();
+                var shut = rooms.Where(r => delverView.Of(r) != KnownLevel.Known).ToList();
+                p.Check(shut.Count == 0, $"a character that knows {dungeon.Name} knows its {Numbers.Count(rooms.Count)} kinds of room", string.Join(", ", shut.Take(5).Select(r => r.Name)));
+            }
+            else p.Note("no dungeon with rooms read: rooms known with their dungeon not tried");
+
             // Off: everything as before.
             view.Tell(book, CompendiumRule.Off);
             yield return Until(() => !X.CompendiumOn, 3);

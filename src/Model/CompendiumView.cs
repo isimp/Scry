@@ -17,9 +17,10 @@ namespace Scry
     /// known with it: the effects and sounds it plays (<see cref="Entry.UsedBy"/>), what it leaves
     /// behind, and the status effects, effects, sounds and projectiles it links to, never what
     /// links to it (<see cref="Link.Back"/>: knowing Poison does not make known all that gives
-    /// it). Whatever else a known entry's page names, by its links, its link terms, its stations
-    /// or the places it is found in, is heard of. Told again only when the book, its version or
-    /// the rule changes; while it stays off, only when the rule does.
+    /// it). A dungeon known owns its rooms. Whatever else a known entry's page names, by its
+    /// links, its link terms, its stations or the places it is found in, is heard of. Told again
+    /// only when the book, its version, the rule or the catalog's groups change (the places read,
+    /// which tell where things are found); while it stays off, only when the rule does.
     /// </summary>
     internal sealed class CompendiumView
     {
@@ -29,21 +30,37 @@ namespace Scry
         private readonly Dictionary<string, List<Entry>> _played = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
         private readonly Dictionary<string, List<Entry>> _leftovers = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
         private readonly Dictionary<string, List<Entry>> _places = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<Entry>> _rooms = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
         private readonly Dictionary<Entry, KnownLevel> _levels = new Dictionary<Entry, KnownLevel>();
         private readonly Dictionary<Entry, Entry> _because = new Dictionary<Entry, Entry>();
 
         private CompendiumBook _book;
         private int _bookVersion = -1;
         private CompendiumRule _rule;
+        private int _indexedAt = -1;
 
         public CompendiumView(EntryCatalog catalog)
         {
             _catalog = catalog;
-            foreach (var entry in catalog.All)
+        }
+
+        /// <summary>Indexes what plays, leaves behind and goes by each name, and the rooms by their dungeons' labels, as the catalog's groups are now.</summary>
+        private void Index()
+        {
+            _indexedAt = _catalog.Regroups;
+            _played.Clear();
+            _leftovers.Clear();
+            _places.Clear();
+            _rooms.Clear();
+            foreach (var entry in _catalog.All)
             {
                 foreach (var owner in entry.UsedBy) Add(_played, owner, entry);
                 foreach (var owner in entry.LeftBy) Add(_leftovers, owner, entry);
                 Add(_places, Places.LabelOf(entry), entry);
+                if (entry.Kind == Kind.Location && entry.Components != null && Array.IndexOf(entry.Components, "Room") >= 0)
+                {
+                    foreach (var label in entry.FoundIn) Add(_rooms, label, entry);
+                }
             }
         }
 
@@ -83,13 +100,15 @@ namespace Scry
         public void Tell(CompendiumBook book, CompendiumRule rule)
         {
             if (book == null) book = new CompendiumBook();
-            if (ReferenceEquals(book, _book) && book.Version == _bookVersion && rule == _rule) return;
+            var regrouped = _indexedAt != _catalog.Regroups;
+            if (ReferenceEquals(book, _book) && book.Version == _bookVersion && rule == _rule && !regrouped) return;
             // Off, everything is known whatever the book holds: nothing to tell again.
             var stillOff = rule == CompendiumRule.Off && _rule == CompendiumRule.Off;
             _book = book;
             _bookVersion = book.Version;
             _rule = rule;
             if (stillOff) return;
+            if (regrouped) Index();
             Version++;
             _levels.Clear();
             _because.Clear();
@@ -130,7 +149,7 @@ namespace Scry
             }
         }
 
-        /// <summary>What an entry owns: what it plays, what it leaves behind, and what it links to that is not a thing of its own, by its own links, not those back from what links to it.</summary>
+        /// <summary>What an entry owns: what it plays, what it leaves behind, a known dungeon's rooms, and what it links to that is not a thing of its own, by its own links, not those back from what links to it.</summary>
         private IEnumerable<Entry> Owned(Entry owner)
         {
             if (_played.TryGetValue(owner.Name, out var played)) foreach (var entry in played) yield return entry;
@@ -139,6 +158,12 @@ namespace Scry
             {
                 var entry = _catalog.Find(name);
                 if (entry != null) yield return entry;
+            }
+            // A dungeon known: every one of its rooms.
+            var label = Places.LabelOf(owner);
+            if (label != null && Of(owner) == KnownLevel.Known && _rooms.TryGetValue(label, out var rooms))
+            {
+                foreach (var room in rooms) yield return room;
             }
             foreach (var link in owner.Links)
             {

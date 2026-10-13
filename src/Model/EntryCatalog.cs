@@ -29,7 +29,14 @@ namespace Scry
         /// <summary>Told after entries changed their groups.</summary>
         public event Action Regrouped;
 
+        /// <summary>Counts up each time the entries' groups changed, so what is made from them can tell without listening.</summary>
+        public int Regroups { get; private set; }
+
         /// <summary>Says the entries' groups have changed, so what lists them lists them again.</summary>
-        public void Regroup() => Regrouped?.Invoke();
+        public void Regroup()
+        {
+            Regroups++;
+            Regrouped?.Invoke();
+        }
     }
 }

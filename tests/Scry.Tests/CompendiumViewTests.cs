@@ -200,6 +200,57 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.Unknown, view.Of(fire));
         }
 
+        private static Entry Place(string name, string label) => new Entry { Kind = Kind.Location, Name = name, Components = new[] { "Location" }, FoundIn = new[] { label } };
+
+        private static Entry Room(string name, params string[] labels) => new Entry { Kind = Kind.Location, Name = name, Components = new[] { "Room" }, FoundIn = labels };
+
+        [Fact]
+        public void ADungeonKnownMakesItsRoomsKnownButOneOnlySeenDoesNot()
+        {
+            var crypt = Place("Crypt2", "Burial chambers");
+            var cryptRoom = Room("sunkencrypt_Room1", "Burial chambers");
+            var cave = Place("TrollCave02", "Troll cave");
+            var caveRoom = Room("TrollCave_Room1", "Troll cave");
+            var frostRoom = Room("Frostcave_Room1", "Frost caves");
+            var otherCrypt = Place("Crypt3", "Burial chambers");
+            var view = View(crypt, cryptRoom, cave, caveRoom, frostRoom, otherCrypt);
+            var book = new CompendiumBook();
+            book.Raise(crypt.Key, KnownLevel.Known);
+            book.Raise(cave.Key, KnownLevel.Seen);
+
+            view.Tell(book, CompendiumRule.Loose);
+
+            Assert.Equal(KnownLevel.Known, view.Of(cryptRoom));
+            Assert.Same(crypt, view.Because(cryptRoom));
+            Assert.Equal(KnownLevel.Unknown, view.Of(caveRoom));
+            Assert.Equal(KnownLevel.Unknown, view.Of(frostRoom));
+            Assert.Equal(KnownLevel.HeardOf, view.Of(otherCrypt));
+        }
+
+        [Fact]
+        public void WhatIsToldFollowsThePlacesReadAfterTheViewWasMade()
+        {
+            // Reading the world's places names where things are found and what each place goes by.
+            var troll = E(Kind.Creature, "Troll");
+            var crypt = Place("Crypt2", "");
+            var room = Room("sunkencrypt_Room1");
+            var catalog = new EntryCatalog(new[] { troll, crypt, room });
+            var view = new CompendiumView(catalog);
+            var book = new CompendiumBook();
+            book.Raise(troll.Key, KnownLevel.Known);
+            book.Raise(crypt.Key, KnownLevel.Known);
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Unknown, view.Of(room));
+
+            troll.FoundIn = new[] { "Burial chambers" };
+            crypt.FoundIn = new[] { "Burial chambers" };
+            room.FoundIn = new[] { "Burial chambers" };
+            catalog.Regroup();
+            view.Tell(book, CompendiumRule.Loose);
+
+            Assert.Equal(KnownLevel.Known, view.Of(room));
+        }
+
         [Fact]
         public void WhatAKnownPageNamesIsHeardOfButNotWhatOnlyASeenOneNames()
         {
