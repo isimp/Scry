@@ -156,7 +156,7 @@ namespace Scry
             }
             var flow = new ChipFlow(0f, width, y, U(26f), U(5f), U(5f));
             var key = MembersKey(title, list);
-            members = Kept(explorer, members, m => m);
+            members = ShownStrictly(explorer, members, m => m);
             var count = ShownOf(key, members.Count);
             for (var i = 0; i < count; i++)
             {

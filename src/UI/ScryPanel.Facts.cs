@@ -131,7 +131,7 @@ namespace Scry
         /// <summary>Where it lives, comes from, or what gives it: a line naming a prefab in the catalog a chip that goes there.</summary>
         private static float WhereBlock(Explorer explorer, Facts facts, bool titled, float width, float y)
         {
-            var where = Kept(explorer, facts.Where, s => s.Prefab);
+            var where = ShownStrictly(explorer, facts.Where, s => s.Prefab);
             if (where.Count == 0) return y;
             if (titled)
             {
@@ -299,7 +299,7 @@ namespace Scry
                 CountDrawn(PanelPart.ListLeftOut);
                 return y;
             }
-            var items = Kept(explorer, listed, i => i.Prefab);
+            var items = ShownStrictly(explorer, listed, i => i.Prefab);
             if (items.Count == 0) return y;
             var title = listing ? CompendiumWords.Found(row.Title, items.Count) : items.Count < listed.Count ? CompendiumWords.Uncounted(row.Title) : row.Title;
             var key = "facts:" + row.Title;
