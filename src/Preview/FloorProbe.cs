@@ -43,11 +43,12 @@ namespace Scry
 
         /// <summary>
         /// For the self-test: while set, a copy whose floors the record tells is probed too, and
-        /// given with the record, what its rays found, the parts there, its spawn points' keys, and
-        /// every part each ray met by its place in the grid's list.
+        /// given with the record, what its rays found, the parts there, its spawn points' keys,
+        /// every part each ray met by its place in the grid's list, and the copy's root, to look at
+        /// a part that differs as it stands.
         /// </summary>
         [Diagnostic]
-        public static Action<FloorRecord, FloorRecord, HashSet<int>, List<string>, Dictionary<int, List<(float Height, int Part)>>> Checked { get; set; }
+        public static Action<FloorRecord, FloorRecord, HashSet<int>, List<string>, Dictionary<int, List<(float Height, int Part)>>, Transform> Checked { get; set; }
 
         /// <summary>
         /// Notes which of a sleeping copy's colliders are on none of the layers the game finds a
@@ -131,7 +132,7 @@ namespace Scry
                     Timing.Add("floor probe rays", timed);
                     if (covered)
                     {
-                        Checked?.Invoke(kept, FloorRecord.New(prefab, room, stamp, kept.MinX, kept.MaxX, kept.MinZ, kept.MaxZ, kept.Top, kept.Bottom, parts).With(seen), present, keys, met);
+                        Checked?.Invoke(kept, FloorRecord.New(prefab, room, stamp, kept.MinX, kept.MaxX, kept.MinZ, kept.MaxZ, kept.Top, kept.Bottom, parts).With(seen), present, keys, met, root);
                         Tell(kept, present, root, space, patch, hits, names, placed, keys);
                         return kept.Ground;
                     }

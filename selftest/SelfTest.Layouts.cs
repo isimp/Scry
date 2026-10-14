@@ -102,6 +102,29 @@ namespace Scry
         }
 
         /// <summary>
+        /// How the parts a floor check names stand in the copy: whether each is there, and each of
+        /// its colliders on or off, a trigger or not, its layer and its top over the copy's root, to
+        /// tell why a ray met a surface the record keeps, or not.
+        /// </summary>
+        private static string PartsNow(Transform root, IEnumerable<string> parts)
+        {
+            if (root == null) return "";
+            var told = new List<string>();
+            var all = root.GetComponentsInChildren<Transform>(true);
+            foreach (var name in parts.Take(3))
+            {
+                var found = all.Where(t => t.parent != null && t.parent.name + "/" + t.name == name).ToList();
+                if (found.Count == 0) told.Add(name + ": not in the copy");
+                foreach (var t in found)
+                {
+                    var colliders = t.GetComponents<Collider>().Select(c => $"{c.GetType().Name} {(c.enabled ? "on" : "off")}{(c.isTrigger ? " trigger" : "")} layer {LayerMask.LayerToName(c.gameObject.layer)} top {Numbers.Fixed(root.InverseTransformPoint(c.bounds.max).y, 3)}");
+                    told.Add($"{name}: {(t.gameObject.activeInHierarchy ? "there" : "not there")}, {string.Join(", ", colliders)}");
+                }
+            }
+            return told.Count == 0 ? "" : "; in the copy now: " + string.Join("; ", told);
+        }
+
+        /// <summary>
         /// The floors of a spread of places and a dungeon's rooms, shown twice: the first time
         /// found by rays and kept, the second told from what was kept, which is checked against
         /// rays cast over the same roll; then a dungeon's next layout told from what was kept
@@ -121,7 +144,7 @@ namespace Scry
             var lastDiffered = "";
             var minor = 0;
             var lastMinor = "";
-            FloorProbe.Checked = (kept, rays, present, keys, met) =>
+            FloorProbe.Checked = (kept, rays, present, keys, met, root) =>
             {
                 verified++;
                 var check = FloorCheck.Of(kept, rays, present, keys, met);
@@ -133,7 +156,7 @@ namespace Scry
                     return;
                 }
                 differed++;
-                lastDiffered = check.Told;
+                lastDiffered = check.Told + PartsNow(root, check.Parts);
             };
             for (var pass = 0; pass < 2; pass++)
             {
