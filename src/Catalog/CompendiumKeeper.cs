@@ -96,7 +96,8 @@ namespace Scry
         /// <summary>
         /// What the character has and is in, as news: what it carries, the status effects on it,
         /// the raid around it (<c>RandEventSystem.GetActiveEvent</c>, the one the game plays for
-        /// it) and the place it stands in are known; what it points at is seen.
+        /// it), paired with the creatures it brings that the character met, and the place it
+        /// stands in are known; what it points at is seen.
         /// </summary>
         private static void Look(Player player)
         {
@@ -109,7 +110,14 @@ namespace Scry
                 if (effect != null) _catchUp.Met(EntryKeys.For(Kind.StatusEffect, Utils.GetPrefabName(effect.name)), KnownLevel.Known, _book);
             }
             var raid = RandEventSystem.instance.OrNull()?.GetActiveEvent();
-            if (raid != null) _catchUp.Met(EntryKeys.For(Kind.Raid, raid.m_name), KnownLevel.Known, _book);
+            if (raid != null)
+            {
+                var key = EntryKeys.For(Kind.Raid, raid.m_name);
+                _catchUp.Met(key, KnownLevel.Known, _book);
+                // Lived through with the creatures it brings that the character met.
+                var brings = WorldCatalog.Find(key)?.TermLinks("spawns");
+                if (brings != null) foreach (var creature in brings) if (_book.Level(creature.Key) >= KnownLevel.Seen) _book.Witness(key, creature.Key);
+            }
             var place = Location.GetLocation(player.transform.position);
             if (place != null) _catchUp.Met(EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)), KnownLevel.Known, _book);
             var hovered = player.GetHoverObject();
