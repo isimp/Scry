@@ -15,6 +15,17 @@ namespace Scry.Tests
         private static CompendiumView View(params Entry[] entries) => new CompendiumView(new EntryCatalog(entries));
 
         [Fact]
+        public void TheModeStepsThroughTheRulesAndStopsAtEitherEnd()
+        {
+            Assert.Equal(CompendiumRule.Loose, CompendiumRules.Step(CompendiumRule.Off, 1));
+            Assert.Equal(CompendiumRule.Strict, CompendiumRules.Step(CompendiumRule.Loose, 1));
+            Assert.Equal(CompendiumRule.Strict, CompendiumRules.Step(CompendiumRule.Strict, 1));
+            Assert.Equal(CompendiumRule.Loose, CompendiumRules.Step(CompendiumRule.Strict, -1));
+            Assert.Equal(CompendiumRule.Off, CompendiumRules.Step(CompendiumRule.Loose, -1));
+            Assert.Equal(CompendiumRule.Off, CompendiumRules.Step(CompendiumRule.Off, -1));
+        }
+
+        [Fact]
         public void WithTheCompendiumOffEverythingIsKnown()
         {
             var troll = E(Kind.Creature, "Troll");

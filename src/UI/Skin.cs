@@ -75,6 +75,9 @@ namespace Scry
         public static GUIStyle WarnLabel, Mark, CellType, CellValue, Ghost;
         public static GUIStyle RowName, RowSub, Glyph, Center, CenterDim;
         public static GUIStyle Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close;
+
+        /// <summary>The compendium's own controls at the front of the tabs row, outlined so they read as settings, not filters: lit while it is on, and their arrows.</summary>
+        public static GUIStyle Mode, ModeOn, ModeArrow;
         public static GUIStyle Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross;
         public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat;
 
@@ -409,6 +412,9 @@ namespace Scry
             ChipOn = Boxed(Style(12f, OnAccent, FontStyle.Normal, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Pill, scale);
             Segment = Boxed(Style(12f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Rounded, scale);
             SegmentOn = Boxed(Style(12f, OnAccent, FontStyle.Bold, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Rounded, scale);
+            Mode = Outlined(Style(12f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Alpha(Accent, 0.45f), scale);
+            ModeOn = Outlined(Style(12f, Accent, FontStyle.Normal, TextAnchor.MiddleCenter), Alpha(Accent, 0.14f), Alpha(Accent, 0.22f), Alpha(Accent, 0.30f), Accent, scale);
+            ModeArrow = Outlined(Style(12f, Accent, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Alpha(Accent, 0.45f), scale);
             Close = Boxed(Style(20f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Color.clear, RaisedHover, Shade(RaisedHover, 1.3f), Rounded, scale);
             Close.hover.textColor = Skin.Text;
             Close.padding = new RectOffset(0, 0, 0, 0);
@@ -648,6 +654,16 @@ namespace Scry
             style.normal.background = Tint(shape, normal, null);
             style.hover.background = Tint(shape, hover, null);
             style.active.background = Tint(shape, active, null);
+            return style;
+        }
+
+        /// <summary>A rounded box with an outline around its fill, in each state.</summary>
+        private static GUIStyle Outlined(GUIStyle text, Color normal, Color hover, Color active, Color outline, float scale)
+        {
+            var style = Boxed(text, normal, hover, active, Rounded, scale);
+            style.normal.background = Tint(Rounded, normal, outline);
+            style.hover.background = Tint(Rounded, hover, outline);
+            style.active.background = Tint(Rounded, active, outline);
             return style;
         }
 

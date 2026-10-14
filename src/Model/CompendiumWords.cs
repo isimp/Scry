@@ -32,16 +32,19 @@ namespace Scry
         /// <summary>The title of a list of what there is (what a mod adds) with the compendium on: how many of it the character has seen, which are all it shows.</summary>
         public static string Found(string title, int found) => $"{title}, {Numbers.Count(found)} found";
 
-        /// <summary>The label of the switch choosing the compendium's rules, in the tabs row.</summary>
-        public const string Switch = "Compendium";
+        /// <summary>The compendium's mode at the front of the tabs row: the rules chosen for this character.</summary>
+        public static string Mode(CompendiumRule rule) => "Compendium: " + RuleName(rule);
 
-        /// <summary>That label's tip.</summary>
-        public const string SwitchTip = "Show only what this character has come to know, chosen for each character. Once a boss has fallen for it, the Floor beside the tabs can show everything of its biome and those before as known";
+        /// <summary>The mode's tip.</summary>
+        public const string ModeTip = "Show only what this character has come to know, by the rules chosen for it here; each character keeps its own";
 
-        /// <summary>The rules the switch offers, in its order.</summary>
+        /// <summary>The tip of the arrow stepping the mode to a rule: its name and what it shows.</summary>
+        public static string StepTip(CompendiumRule rule) => RuleName(rule) + ": " + RuleTip(rule);
+
+        /// <summary>The rules the mode goes through, in its order.</summary>
         public static readonly IReadOnlyList<CompendiumRule> Rules = new[] { CompendiumRule.Off, CompendiumRule.Loose, CompendiumRule.Strict };
 
-        /// <summary>A rule's name on its segment of the switch.</summary>
+        /// <summary>A rule's name in the mode.</summary>
         public static string RuleName(CompendiumRule rule) => rule switch
         {
             CompendiumRule.Loose => "Loose",
@@ -49,12 +52,12 @@ namespace Scry
             _ => "Off",
         };
 
-        /// <summary>What a rule shows, the tip of its segment.</summary>
+        /// <summary>What a rule shows, told after its name when stepping to it.</summary>
         public static string RuleTip(CompendiumRule rule) => rule switch
         {
-            CompendiumRule.Loose => "List only what this character has seen, a page open once it has fought, held, built, used or entered it, and count in each kind's tab what was found of all there is",
-            CompendiumRule.Strict => "List the same as Loose, but a page shows of how its entry connects (drops, places, recipes, attacks) only what this character saw go together, and keeps back the names of what it has not seen",
-            _ => "Show everything. What this character learns is kept all the same, so turning the compendium on later shows everything met meanwhile",
+            CompendiumRule.Loose => "list only what this character has seen, a page open once it has fought, held, built, used or entered it, and count in each kind's tab what was found of all there is",
+            CompendiumRule.Strict => "list the same as Loose, but a page shows of how its entry connects (drops, places, recipes, attacks) only what this character saw go together, and keeps back the names of what it has not seen",
+            _ => "show everything. What this character learns is kept all the same, so turning the compendium on later shows everything met meanwhile",
         };
 
         /// <summary>The chip that shows everything for now, though the compendium is on.</summary>
@@ -104,7 +107,10 @@ namespace Scry
         /// <summary>The log's line when the server never answered.</summary>
         public static string MapNoServerScry => "the server did not answer on the explored map (it has no Scry, or one too old): places count as the character meets them";
 
-        /// <summary>The chip reading the explored map again, with the Locations tab picked.</summary>
+        /// <summary>The line above the Locations tab's list with the compendium on, beside the button reading the explored map again.</summary>
+        public const string MapBar = "Places in the ground this character explored count as seen";
+
+        /// <summary>The button reading the explored map again, in the Locations tab's bar.</summary>
         public const string ReadMap = "Read the map again";
 
         /// <summary>That chip's tip.</summary>

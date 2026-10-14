@@ -267,6 +267,9 @@ namespace Scry
                 return clicked;
             }
 
+            // The compendium's mode, and its floor while it is on, lead the row: settings, not filters.
+            CompendiumFront(explorer, ref flow);
+
             if (Tab("All", explorer.CountAll, -1, Skin.Text, explorer.KindFilter == null)) Filter(explorer, null);
             // With the compendium on and nothing narrowing the list, a kind counted so tells what
             // was found of all there is.
@@ -280,21 +283,9 @@ namespace Scry
                 if (Tab(Kinds.Label(kind), count, total, Skin.KindColor(kind), explorer.KindFilter == kind)) Filter(explorer, kind);
             }
 
-            CompendiumSwitch(ref flow);
-
             // With the compendium on: what was learned lately, and Peek, to show everything for now.
             if (explorer.CompendiumSet)
             {
-                // With the places' tab picked: reading the explored map again.
-                if (explorer.KindFilter == Kind.Location)
-                {
-                    var mapW = Skin.Width(Skin.Chip, CompendiumWords.ReadMap) + U(16f);
-                    var mapAt = flow.Place(mapW);
-                    var map = new Rect(mapAt.X, mapAt.Y, mapW, flow.RowHeight);
-                    if (GUI.Button(map, CompendiumWords.ReadMap, Skin.Fitted(Skin.Chip, map))) Say(CompendiumMap.Again(CompendiumKeeper.Book));
-                    if (map.Contains(Event.current.mousePosition)) AskTip("readmap", CompendiumWords.ReadMapTip);
-                }
-                FloorControl(explorer, ref flow);
                 var learnedW = Skin.Width(Skin.Chip, CompendiumWords.LearnedLately) + U(16f);
                 var place = flow.Place(learnedW);
                 var learned = new Rect(place.X, place.Y, learnedW, flow.RowHeight);
@@ -312,35 +303,49 @@ namespace Scry
         }
 
         /// <summary>
-        /// The milestone floor, once a boss fell for the character or a floor is set: its label
-        /// between a chip lowering it and one raising it, tier by tier, as far as the bosses that
-        /// fell in a row reach (<see cref="CompendiumKeeper.Ceiling"/>).
+        /// The compendium's controls at the front of the tabs row, once the character's book is
+        /// read: its mode (the rules chosen for this character) and, while it is on, the floor.
         /// </summary>
-        private static void FloorControl(Explorer explorer, ref ChipFlow flow)
+        private static void CompendiumFront(Explorer explorer, ref ChipFlow flow)
         {
             var book = CompendiumKeeper.Book;
+            if (book == null) return;
+            ModeControl(book, ref flow);
+            if (book.Rule != CompendiumRule.Off) FloorControl(explorer, book, ref flow);
+        }
+
+        /// <summary>The mode: the rules chosen, between arrows stepping to the ones before and after.</summary>
+        private static void ModeControl(CompendiumBook book, ref ChipFlow flow)
+        {
+            CountDrawn(PanelPart.CompendiumSwitch);
+            var rule = book.Rule;
+            var before = CompendiumRules.Step(rule, -1);
+            var after = CompendiumRules.Step(rule, 1);
+            var (step, lower, middle, raise) = Stepper(ref flow, CompendiumWords.Mode(rule), rule != CompendiumRule.Off, before != rule, after != rule);
+            if (step != 0) Choose(step < 0 ? before : after);
+
+            var mouse = Event.current.mousePosition;
+            if (before != rule && lower.Contains(mouse)) AskTip("mode-down", CompendiumWords.StepTip(before));
+            if (after != rule && raise.Contains(mouse)) AskTip("mode-up", CompendiumWords.StepTip(after));
+            if (middle.Contains(mouse)) AskTip("mode", CompendiumWords.ModeTip);
+        }
+
+        /// <summary>
+        /// The milestone floor, once a boss fell for the character or a floor is set: its label
+        /// between arrows lowering and raising it, tier by tier, as far as the bosses that fell in
+        /// a row reach (<see cref="CompendiumKeeper.Ceiling"/>).
+        /// </summary>
+        private static void FloorControl(Explorer explorer, CompendiumBook book, ref ChipFlow flow)
+        {
             var ceiling = CompendiumKeeper.Ceiling;
-            if (book == null || (ceiling == 0 && book.Floor == 0)) return;
+            if (ceiling == 0 && book.Floor == 0) return;
             CountDrawn(PanelPart.FloorControl);
             var floor = book.Floor;
-            var label = CompendiumWords.Floor(floor);
-            var arrowW = U(26f);
-            var labelW = Skin.Width(Skin.Chip, label) + U(16f);
-            var at = flow.Place(arrowW * 2f + labelW + U(4f));
-            var lower = new Rect(at.X, at.Y, arrowW, flow.RowHeight);
-            var middle = new Rect(lower.xMax + U(2f), at.Y, labelW, flow.RowHeight);
-            var raise = new Rect(middle.xMax + U(2f), at.Y, arrowW, flow.RowHeight);
             var canRaise = floor < ceiling && floor < Tiers.Last;
+            var (step, lower, middle, raise) = Stepper(ref flow, CompendiumWords.Floor(floor), floor > 0, floor > 0, canRaise);
+            if (step != 0) SetFloor(book, floor + step);
+
             var mouse = Event.current.mousePosition;
-
-            var was = GUI.enabled;
-            GUI.enabled = was && floor > 0;
-            if (GUI.Button(lower, "\u2039", Skin.Fitted(Skin.Chip, lower))) SetFloor(book, floor - 1);
-            GUI.enabled = was && canRaise;
-            if (GUI.Button(raise, "\u203A", Skin.Fitted(Skin.Chip, raise))) SetFloor(book, floor + 1);
-            GUI.enabled = was;
-            GUI.Label(middle, label, Skin.Fitted(floor > 0 ? Skin.ChipOn : Skin.Chip, middle));
-
             if (floor > 0 && lower.Contains(mouse)) AskTip("floor-down", CompendiumWords.LowerFloor(floor - 1));
             if (floor < Tiers.Last && (raise.Contains(mouse) || middle.Contains(mouse)))
             {
@@ -350,47 +355,31 @@ namespace Scry
         }
 
         /// <summary>
-        /// The switch choosing the compendium's rules for the character played, once its book is
-        /// read: its label, then a segment for each rule, the chosen one lit.
+        /// A setting stepped with arrows, drawn as the compendium's own: its label, lit or not,
+        /// between an arrow down and one up, each only clickable where it leads somewhere. Which
+        /// arrow was clicked (-1, 1, or 0 for none), and where each part was drawn.
         /// </summary>
-        private static void CompendiumSwitch(ref ChipFlow flow)
+        private static (int Step, Rect Lower, Rect Middle, Rect Raise) Stepper(ref ChipFlow flow, string label, bool lit, bool canLower, bool canRaise)
         {
-            var book = CompendiumKeeper.Book;
-            if (book == null) return;
-            CountDrawn(PanelPart.CompendiumSwitch);
-            var rules = CompendiumWords.Rules;
-            var gap = U(2f);
-            var labelW = Skin.Width(Skin.FaintLabel, CompendiumWords.Switch) + U(8f);
-            var width = labelW;
-            for (var i = 0; i < rules.Count; i++) width += SegmentWidth(rules[i]) + (i > 0 ? gap : 0f);
-            var at = flow.Place(width);
-            var mouse = Event.current.mousePosition;
+            var arrowW = U(26f);
+            var labelW = Skin.Width(Skin.Mode, label) + U(16f);
+            var at = flow.Place(arrowW * 2f + labelW + U(4f));
+            var lower = new Rect(at.X, at.Y, arrowW, flow.RowHeight);
+            var middle = new Rect(lower.xMax + U(2f), at.Y, labelW, flow.RowHeight);
+            var raise = new Rect(middle.xMax + U(2f), at.Y, arrowW, flow.RowHeight);
+            var step = 0;
 
-            var label = new Rect(at.X, at.Y, labelW, flow.RowHeight);
-            GUI.Label(label, CompendiumWords.Switch, Skin.Fitted(Skin.FaintLabel, label));
-            if (label.Contains(mouse)) AskTip("compendium", CompendiumWords.SwitchTip);
-            var x = label.xMax;
-            for (var i = 0; i < rules.Count; i++)
-            {
-                var rule = rules[i];
-                var segment = new Rect(x, at.Y, SegmentWidth(rule), flow.RowHeight);
-                var on = book.Rule == rule;
-                if (GUI.Button(segment, CompendiumWords.RuleName(rule), Skin.Fitted(on ? Skin.SegmentOn : Skin.Segment, segment)) && !on) Choose(rule);
-                if (segment.Contains(mouse)) AskTip(RuleTipKey(rule), CompendiumWords.RuleTip(rule));
-                x = segment.xMax + gap;
-            }
+            var was = GUI.enabled;
+            GUI.enabled = was && canLower;
+            if (GUI.Button(lower, "\u2039", Skin.Fitted(Skin.ModeArrow, lower))) step = -1;
+            GUI.enabled = was && canRaise;
+            if (GUI.Button(raise, "\u203A", Skin.Fitted(Skin.ModeArrow, raise))) step = 1;
+            GUI.enabled = was;
+            GUI.Label(middle, label, Skin.Fitted(lit ? Skin.ModeOn : Skin.Mode, middle));
+            return (step, lower, middle, raise);
         }
 
-        private static float SegmentWidth(CompendiumRule rule) => Skin.Width(Skin.Segment, CompendiumWords.RuleName(rule)) + U(12f);
-
-        private static string RuleTipKey(CompendiumRule rule) => rule switch
-        {
-            CompendiumRule.Loose => "rule-loose",
-            CompendiumRule.Strict => "rule-strict",
-            _ => "rule-off",
-        };
-
-        /// <summary>Chooses the compendium's rules for the character played and keeps them at once: a choice of the player's. The switch's click, and the self-test's.</summary>
+        /// <summary>Chooses the compendium's rules for the character played and keeps them at once: a choice of the player's. The mode's arrows, and the self-test.</summary>
         public static void Choose(CompendiumRule rule)
         {
             var book = CompendiumKeeper.Book;

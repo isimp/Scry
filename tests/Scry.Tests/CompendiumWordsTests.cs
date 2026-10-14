@@ -32,14 +32,16 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheSwitchNamesEachRuleAndTellsWhatItShows()
+        public void TheModeNamesItsRulesAndTellsWhatEachShows()
         {
-            Assert.Equal("Compendium", CompendiumWords.Switch);
-            Assert.Equal("Show only what this character has come to know, chosen for each character. Once a boss has fallen for it, the Floor beside the tabs can show everything of its biome and those before as known", CompendiumWords.SwitchTip);
             Assert.Equal(new[] { "Off", "Loose", "Strict" }, CompendiumWords.Rules.Select(CompendiumWords.RuleName));
-            Assert.Equal("Show everything. What this character learns is kept all the same, so turning the compendium on later shows everything met meanwhile", CompendiumWords.RuleTip(CompendiumRule.Off));
-            Assert.Equal("List only what this character has seen, a page open once it has fought, held, built, used or entered it, and count in each kind's tab what was found of all there is", CompendiumWords.RuleTip(CompendiumRule.Loose));
-            Assert.Equal("List the same as Loose, but a page shows of how its entry connects (drops, places, recipes, attacks) only what this character saw go together, and keeps back the names of what it has not seen", CompendiumWords.RuleTip(CompendiumRule.Strict));
+            Assert.Equal("Compendium: Strict", CompendiumWords.Mode(CompendiumRule.Strict));
+            Assert.Equal("Compendium: Off", CompendiumWords.Mode(CompendiumRule.Off));
+            Assert.Equal("Loose: list only what this character has seen, a page open once it has fought, held, built, used or entered it, and count in each kind's tab what was found of all there is", CompendiumWords.StepTip(CompendiumRule.Loose));
+            Assert.Equal("Show only what this character has come to know, by the rules chosen for it here; each character keeps its own", CompendiumWords.ModeTip);
+            Assert.Equal("show everything. What this character learns is kept all the same, so turning the compendium on later shows everything met meanwhile", CompendiumWords.RuleTip(CompendiumRule.Off));
+            Assert.Equal("list only what this character has seen, a page open once it has fought, held, built, used or entered it, and count in each kind's tab what was found of all there is", CompendiumWords.RuleTip(CompendiumRule.Loose));
+            Assert.Equal("list the same as Loose, but a page shows of how its entry connects (drops, places, recipes, attacks) only what this character saw go together, and keeps back the names of what it has not seen", CompendiumWords.RuleTip(CompendiumRule.Strict));
         }
 
         [Fact]
@@ -72,6 +74,7 @@ namespace Scry.Tests
             Assert.Equal("answered a player's explored map: 12 kinds of place lie in it", CompendiumWords.MapAnswered(12));
             Assert.Equal("the server did not answer on the explored map (it has no Scry, or one too old): places count as the character meets them", CompendiumWords.MapNoServerScry);
             Assert.Equal("Read the map again", CompendiumWords.ReadMap);
+            Assert.Equal("Places in the ground this character explored count as seen", CompendiumWords.MapBar);
             Assert.Equal("Counts the kinds of place in the ground this character explored in this world as seen, as on its first visit with Scry", CompendiumWords.ReadMapTip);
             Assert.Equal("on a dedicated server Scry only answers players' explored maps, for their compendium", CompendiumWords.ServerPart);
         }

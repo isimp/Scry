@@ -206,6 +206,13 @@ namespace Scry
                 _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
             }
 
+            // With the compendium on: that the explored map counts, and reading it again.
+            if (explorer.KindFilter == Kind.Location && explorer.CompendiumSet)
+            {
+                inner = MapBar(inner);
+                _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
+            }
+
             // A search whose slips were mended says what it shows instead.
             if (explorer.Mended.Count > 0)
             {

@@ -11,6 +11,17 @@ namespace Scry
         Strict,
     }
 
+    /// <summary>Going through the rulesets in their order, as the panel's mode does.</summary>
+    internal static class CompendiumRules
+    {
+        /// <summary>The ruleset a step after or before (a negative step) another; the first or last stays where it is.</summary>
+        public static CompendiumRule Step(CompendiumRule rule, int by)
+        {
+            var at = Math.Max((int)CompendiumRule.Off, Math.Min((int)CompendiumRule.Strict, (int)rule + Math.Sign(by)));
+            return (CompendiumRule)at;
+        }
+    }
+
     /// <summary>
     /// What each entry shows as, from what the character knows (<see cref="CompendiumBook"/>) and
     /// the ruleset. Off, everything is known. Under <see cref="CompendiumRule.Loose"/> an entry is

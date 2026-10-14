@@ -94,12 +94,19 @@ namespace Scry
 
             var drawn = ScryPanel.Drawn(PanelPart.CompendiumSwitch);
             yield return Until(() => ScryPanel.Drawn(PanelPart.CompendiumSwitch) > drawn + 1, 3);
-            p.Check(ScryPanel.Drawn(PanelPart.CompendiumSwitch) > drawn, $"the switch is drawn in the tabs row, at {chosen}");
+            p.Check(ScryPanel.Drawn(PanelPart.CompendiumSwitch) > drawn, $"its mode leads the tabs row, at {chosen}");
 
             var other = chosen == CompendiumRule.Strict ? CompendiumRule.Loose : CompendiumRule.Strict;
             ScryPanel.Choose(other);
             yield return Until(() => X.Compendium?.Rule == other && KeptRule(path) == other, 3);
             p.Check(X.Compendium?.Rule == other && KeptRule(path) == other, $"choosing {other} shows the list by it and keeps it in the character's book", $"shown {X.Compendium?.Rule}, kept {KeptRule(path)}");
+            // On, the floor stands beside the mode, once a boss fell for the character or a floor is set.
+            if (CompendiumKeeper.Ceiling > 0 || book.Floor > 0)
+            {
+                var floors = ScryPanel.Drawn(PanelPart.FloorControl);
+                yield return Until(() => ScryPanel.Drawn(PanelPart.FloorControl) > floors + 1, 3);
+                p.Check(ScryPanel.Drawn(PanelPart.FloorControl) > floors, "the floor stands beside it");
+            }
 
             ScryPanel.Choose(chosen);
             yield return Until(() => X.Compendium?.Rule == chosen && KeptRule(path) == chosen, 3);
@@ -479,6 +486,13 @@ namespace Scry
             var learned = view.Lately.Select(k => X.Find(k)).Where(e => e != null && view.Of(e) >= KnownLevel.Seen).ToList();
             p.Check(learned.Count > 0 && X.Results.SequenceEqual(learned), $"learned lately lists the {Numbers.Count(learned.Count)} things it met, newest first", string.Join(", ", X.Results.Take(10).Select(e => e.Name)));
             X.LearnedOnly = false;
+
+            // The places' tab says the explored map counts, and offers to read it again.
+            var mapBars = ScryPanel.Drawn(PanelPart.MapBar);
+            X.KindFilter = Kind.Location;
+            yield return Until(() => ScryPanel.Drawn(PanelPart.MapBar) > mapBars + 1, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.MapBar) > mapBars, "the places' tab tells that the explored map counts, with Read the map again");
+            X.KindFilter = null;
 
             // Peek: everything shows, with a warning, until stopped or the panel closes.
             var strip = ScryPanel.Drawn(PanelPart.PeekStrip);
