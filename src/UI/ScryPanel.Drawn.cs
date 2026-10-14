@@ -33,6 +33,7 @@ namespace Scry
         PeekStrip,
         LearnedStrip,
         FloorControl,
+        CompendiumSwitch,
     }
 
     internal static partial class ScryPanel

@@ -32,6 +32,17 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheSwitchNamesEachRuleAndTellsWhatItShows()
+        {
+            Assert.Equal("Compendium", CompendiumWords.Switch);
+            Assert.Equal("Show only what this character has come to know, chosen for each character. Once a boss has fallen for it, the Floor beside the tabs can show everything of its biome and those before as known", CompendiumWords.SwitchTip);
+            Assert.Equal(new[] { "Off", "Loose", "Strict" }, CompendiumWords.Rules.Select(CompendiumWords.RuleName));
+            Assert.Equal("Show everything. What this character learns is kept all the same, so turning the compendium on later shows everything met meanwhile", CompendiumWords.RuleTip(CompendiumRule.Off));
+            Assert.Equal("List only what this character has seen, a page open once it has fought, held, built, used or entered it, and count in each kind's tab what was found of all there is", CompendiumWords.RuleTip(CompendiumRule.Loose));
+            Assert.Equal("List the same as Loose, but a page shows of how its entry connects (drops, places, recipes, attacks) only what this character saw go together, and keeps back the names of what it has not seen", CompendiumWords.RuleTip(CompendiumRule.Strict));
+        }
+
+        [Fact]
         public void PeekingWarnsThatEverythingShowsAndUntilWhen()
         {
             Assert.Equal("Peek", CompendiumWords.Peek);

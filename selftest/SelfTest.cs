@@ -123,7 +123,7 @@ namespace Scry
             Write("");
             Write($"==== Scry {About.Version} {(full ? "full" : "quick")} self-test, {DateTime.Now:yyyy-MM-dd HH:mm:ss}, started because {why} ====");
             Write($"World {ZNet.instance.OrNull()?.GetWorldName()}, {Numbers.Count(Session.Explorer.Catalog.Count)} entries, {Numbers.Count(BepInEx.Bootstrap.Chainloader.PluginInfos.Count)} mods loaded, panel {(Session.IsOpen ? "open" : "closed")}" +
-                  $"{(ScryPanel.Compact ? " in its compact view" : "")}, locations {Locations.Now}, LogPreviews {(Settings.LogPreviews ? "on" : "off")}, Compendium {Settings.Compendium} (shown off while the test runs).");
+                  $"{(ScryPanel.Compact ? " in its compact view" : "")}, locations {Locations.Now}, LogPreviews {(Settings.LogPreviews ? "on" : "off")}, Compendium {CompendiumKeeper.Book?.Rule ?? CompendiumRule.Off} (shown off while the test runs).");
             Write("Each part uses Scry as a player would and checks what it did. START and PASS, FAIL or SKIP frame a part; within it, PASS is a check that held,");
             Write("FAIL one that did not (with what was found), and note is something worth knowing. The summary at the end lists every failed check again.");
 

@@ -136,7 +136,7 @@ namespace Scry
         /// <summary>Shows a made-up character's knowledge in place of the one played, for the self-test; none puts the played one back.</summary>
         public static void ShowKnownInstead(CompendiumView view) => _knownInstead = view;
 
-        /// <summary>Hands the explorer what the character knows under the rules set, which lists again only when either changed.</summary>
+        /// <summary>Hands the explorer what the character knows under the rules chosen for it, which lists again only when either changed.</summary>
         private static void ShowKnown()
         {
             if (Explorer == null) return;
@@ -144,7 +144,7 @@ namespace Scry
             // The floor as far as the character's bosses fell; the tiers worked out only once one is set.
             var floor = System.Math.Min(CompendiumKeeper.Book?.Floor ?? 0, CompendiumKeeper.Ceiling);
             _known.Milestones(floor > 0 ? CompendiumTiers.Of(Explorer.Entries) : null, floor);
-            _known.Tell(CompendiumKeeper.Book, Settings.Compendium);
+            _known.Tell(CompendiumKeeper.Book, CompendiumKeeper.Book?.Rule ?? CompendiumRule.Off);
             Explorer.Know(_knownInstead ?? _known);
         }
 

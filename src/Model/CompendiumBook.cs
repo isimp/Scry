@@ -24,8 +24,8 @@ namespace Scry
     /// <summary>
     /// What one character has come to know, entry by entry (by <see cref="Entry.Key"/>), each
     /// only ever rising; the latest learned, newest first; the worlds whose explored map was
-    /// caught up with; and, for each server world, whether the player let the server be asked
-    /// where its places are. Kept from session to session as text (<see cref="Save"/>,
+    /// caught up with; the rules the player chose for the compendium and the floor they raised
+    /// it to; and the pairs seen together. Kept from session to session as text (<see cref="Save"/>,
     /// <see cref="Load"/>).
     /// </summary>
     internal sealed class CompendiumBook
@@ -37,6 +37,7 @@ namespace Scry
         private readonly List<string> _lately = new List<string>();
         private readonly HashSet<string> _mapped = new HashSet<string>(StringComparer.Ordinal);
         private int _floor;
+        private CompendiumRule _rule;
         private readonly HashSet<(string, string)> _pairs = new HashSet<(string, string)>();
 
         /// <summary>Counts up with every entry learned more of, so what tells the compendium tells it again.</summary>
@@ -111,6 +112,21 @@ namespace Scry
         }
 
         /// <summary>
+        /// The rules the player chose in the panel for this character's compendium; off, the
+        /// panel shows everything. It changes what is shown, never what is known.
+        /// </summary>
+        public CompendiumRule Rule
+        {
+            get => _rule;
+            set
+            {
+                if (value == _rule || !Enum.IsDefined(typeof(CompendiumRule), value)) return;
+                _rule = value;
+                Changed = true;
+            }
+        }
+
+        /// <summary>
         /// Notes that the character saw two entries go together, either way round: a drop fall
         /// from a creature, a creature in a biome or a place, an item made at a station, a chest's
         /// loot, a creature's attack hit it. True when it was not noted before. What the strict
@@ -138,7 +154,7 @@ namespace Scry
             if (world != null && _mapped.Remove(world)) Changed = true;
         }
 
-        /// <summary>Everything known, a line an entry, then the latest learned in order, the worlds mapped, the floor and the pairs seen together.</summary>
+        /// <summary>Everything known, a line an entry, then the latest learned in order, the worlds mapped, the rules, the floor and the pairs seen together.</summary>
         public string Save()
         {
             var text = new StringBuilder();
@@ -148,6 +164,7 @@ namespace Scry
             }
             foreach (var key in _lately) text.Append("lately\t").Append(Stored.Escaped(key)).Append('\n');
             foreach (var world in _mapped.OrderBy(w => w, StringComparer.Ordinal)) text.Append("mapped\t").Append(Stored.Escaped(world)).Append('\n');
+            if (_rule != CompendiumRule.Off) text.Append("rule\t").Append(_rule).Append('\n');
             if (_floor > 0) text.Append("floor\t").Append(Stored.Count(_floor)).Append('\n');
             foreach (var (a, b) in _pairs.OrderBy(p => p.Item1, StringComparer.Ordinal).ThenBy(p => p.Item2, StringComparer.Ordinal))
             {
@@ -179,6 +196,9 @@ namespace Scry
                         break;
                     case "mapped" when parts.Length == 2:
                         book._mapped.Add(name);
+                        break;
+                    case "rule" when parts.Length == 2 && (name == nameof(CompendiumRule.Loose) || name == nameof(CompendiumRule.Strict)):
+                        book._rule = name == nameof(CompendiumRule.Loose) ? CompendiumRule.Loose : CompendiumRule.Strict;
                         break;
                     case "floor" when parts.Length == 2 && Stored.TryCount(parts[1], out var floor):
                         book._floor = Math.Max(0, Math.Min(Tiers.Last, floor));

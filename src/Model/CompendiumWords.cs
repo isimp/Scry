@@ -32,6 +32,31 @@ namespace Scry
         /// <summary>The title of a list of what there is (what a mod adds) with the compendium on: how many of it the character has seen, which are all it shows.</summary>
         public static string Found(string title, int found) => $"{title}, {Numbers.Count(found)} found";
 
+        /// <summary>The label of the switch choosing the compendium's rules, in the tabs row.</summary>
+        public const string Switch = "Compendium";
+
+        /// <summary>That label's tip.</summary>
+        public const string SwitchTip = "Show only what this character has come to know, chosen for each character. Once a boss has fallen for it, the Floor beside the tabs can show everything of its biome and those before as known";
+
+        /// <summary>The rules the switch offers, in its order.</summary>
+        public static readonly IReadOnlyList<CompendiumRule> Rules = new[] { CompendiumRule.Off, CompendiumRule.Loose, CompendiumRule.Strict };
+
+        /// <summary>A rule's name on its segment of the switch.</summary>
+        public static string RuleName(CompendiumRule rule) => rule switch
+        {
+            CompendiumRule.Loose => "Loose",
+            CompendiumRule.Strict => "Strict",
+            _ => "Off",
+        };
+
+        /// <summary>What a rule shows, the tip of its segment.</summary>
+        public static string RuleTip(CompendiumRule rule) => rule switch
+        {
+            CompendiumRule.Loose => "List only what this character has seen, a page open once it has fought, held, built, used or entered it, and count in each kind's tab what was found of all there is",
+            CompendiumRule.Strict => "List the same as Loose, but a page shows of how its entry connects (drops, places, recipes, attacks) only what this character saw go together, and keeps back the names of what it has not seen",
+            _ => "Show everything. What this character learns is kept all the same, so turning the compendium on later shows everything met meanwhile",
+        };
+
         /// <summary>The chip that shows everything for now, though the compendium is on.</summary>
         public const string Peek = "Peek";
 

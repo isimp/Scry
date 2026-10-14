@@ -201,6 +201,35 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheRulesChosenForTheCompendiumAreKeptWithTheCharacter()
+        {
+            // Chosen in the panel, each character its own: a new one starts off, and off is not written down.
+            var book = new CompendiumBook();
+            Assert.Equal(CompendiumRule.Off, book.Rule);
+            Assert.DoesNotContain("rule", book.Save());
+
+            book.Rule = CompendiumRule.Strict;
+            Assert.True(book.Changed);
+            var back = CompendiumBook.Load(book.Save());
+            Assert.Equal(CompendiumRule.Strict, back.Rule);
+            Assert.False(book.Changed);
+
+            book.Rule = CompendiumRule.Strict;
+            Assert.False(book.Changed);
+            book.Rule = CompendiumRule.Loose;
+            Assert.Equal(CompendiumRule.Loose, CompendiumBook.Load(book.Save()).Rule);
+            book.Rule = CompendiumRule.Off;
+            Assert.True(book.Changed);
+            Assert.DoesNotContain("rule", book.Save());
+
+            // Only a rule's own name reads back; anything else leaves it off.
+            Assert.Equal(CompendiumRule.Off, CompendiumBook.Load("rule\tlots").Rule);
+            Assert.Equal(CompendiumRule.Off, CompendiumBook.Load("rule\t2").Rule);
+            Assert.Equal(CompendiumRule.Off, CompendiumBook.Load("rule\tstrict").Rule);
+            Assert.Equal(CompendiumRule.Off, CompendiumBook.Load("rule\t99").Rule);
+        }
+
+        [Fact]
         public void ALineThatCannotBeReadIsPassedOver()
         {
             // "asked" lines kept a question no longer asked: read past and not written again.

@@ -73,6 +73,55 @@ namespace Scry
             p.Check(KeptHolds(path, now), "its book is kept in Scry's cache folder, all of it", path);
         }
 
+        /// <summary>The rules the character played had before the test chose others, put back after it.</summary>
+        private static CompendiumRule? _ruleBefore;
+
+        /// <summary>
+        /// The switch in the tabs row chooses the rules for the character played: the list
+        /// follows, and the choice is kept in its book at once. The rules it had are put back.
+        /// </summary>
+        private static IEnumerator CompendiumChosen(Probe p)
+        {
+            yield return Until(() => CompendiumKeeper.Book != null, 10);
+            var book = CompendiumKeeper.Book;
+            if (!p.Check(book != null, "the character's book is read")) yield break;
+            var path = CompendiumKeeper.FilePath;
+            var chosen = book.Rule;
+            _ruleBefore = chosen;
+            Session.ShowKnownInstead(null);
+            if (!Session.IsOpen) Session.Show(null);
+            KeepView();
+
+            var drawn = ScryPanel.Drawn(PanelPart.CompendiumSwitch);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.CompendiumSwitch) > drawn + 1, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.CompendiumSwitch) > drawn, $"the switch is drawn in the tabs row, at {chosen}");
+
+            var other = chosen == CompendiumRule.Strict ? CompendiumRule.Loose : CompendiumRule.Strict;
+            ScryPanel.Choose(other);
+            yield return Until(() => X.Compendium?.Rule == other && KeptRule(path) == other, 3);
+            p.Check(X.Compendium?.Rule == other && KeptRule(path) == other, $"choosing {other} shows the list by it and keeps it in the character's book", $"shown {X.Compendium?.Rule}, kept {KeptRule(path)}");
+
+            ScryPanel.Choose(chosen);
+            yield return Until(() => X.Compendium?.Rule == chosen && KeptRule(path) == chosen, 3);
+            p.Check(X.Compendium?.Rule == chosen && KeptRule(path) == chosen, $"choosing {chosen} again puts it back", $"shown {X.Compendium?.Rule}, kept {KeptRule(path)}");
+            _ruleBefore = null;
+        }
+
+        /// <summary>Puts back the rules the character played had, should the part have stopped before it did.</summary>
+        private static void PutRuleBack()
+        {
+            if (_ruleBefore.HasValue) ScryPanel.Choose(_ruleBefore.Value);
+            _ruleBefore = null;
+        }
+
+        /// <summary>The rules kept in the file; none while it cannot be read.</summary>
+        private static CompendiumRule? KeptRule(string path)
+        {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return null;
+            if (Steps.Run(() => CompendiumBook.Load(File.ReadAllText(path)), out var kept, null) != null) return null;
+            return kept.Rule;
+        }
+
         /// <summary>Keys besides the link keys whose offered values name entries: none may name what a made-up character has not seen.</summary>
         private static readonly string[] OfferKeys = { "playedby", "station" };
 

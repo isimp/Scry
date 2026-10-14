@@ -280,6 +280,8 @@ namespace Scry
                 if (Tab(Kinds.Label(kind), count, total, Skin.KindColor(kind), explorer.KindFilter == kind)) Filter(explorer, kind);
             }
 
+            CompendiumSwitch(ref flow);
+
             // With the compendium on: what was learned lately, and Peek, to show everything for now.
             if (explorer.CompendiumSet)
             {
@@ -345,6 +347,57 @@ namespace Scry
                 var boss = explorer.Find(Tiers.BossOf(floor + 1))?.ShownName ?? Tiers.BossOf(floor + 1);
                 AskTip("floor-up", canRaise ? CompendiumWords.RaiseFloor(floor + 1, boss) : CompendiumWords.FloorWaits(boss));
             }
+        }
+
+        /// <summary>
+        /// The switch choosing the compendium's rules for the character played, once its book is
+        /// read: its label, then a segment for each rule, the chosen one lit.
+        /// </summary>
+        private static void CompendiumSwitch(ref ChipFlow flow)
+        {
+            var book = CompendiumKeeper.Book;
+            if (book == null) return;
+            CountDrawn(PanelPart.CompendiumSwitch);
+            var rules = CompendiumWords.Rules;
+            var gap = U(2f);
+            var labelW = Skin.Width(Skin.FaintLabel, CompendiumWords.Switch) + U(8f);
+            var width = labelW;
+            for (var i = 0; i < rules.Count; i++) width += SegmentWidth(rules[i]) + (i > 0 ? gap : 0f);
+            var at = flow.Place(width);
+            var mouse = Event.current.mousePosition;
+
+            var label = new Rect(at.X, at.Y, labelW, flow.RowHeight);
+            GUI.Label(label, CompendiumWords.Switch, Skin.Fitted(Skin.FaintLabel, label));
+            if (label.Contains(mouse)) AskTip("compendium", CompendiumWords.SwitchTip);
+            var x = label.xMax;
+            for (var i = 0; i < rules.Count; i++)
+            {
+                var rule = rules[i];
+                var segment = new Rect(x, at.Y, SegmentWidth(rule), flow.RowHeight);
+                var on = book.Rule == rule;
+                if (GUI.Button(segment, CompendiumWords.RuleName(rule), Skin.Fitted(on ? Skin.SegmentOn : Skin.Segment, segment)) && !on) Choose(rule);
+                if (segment.Contains(mouse)) AskTip(RuleTipKey(rule), CompendiumWords.RuleTip(rule));
+                x = segment.xMax + gap;
+            }
+        }
+
+        private static float SegmentWidth(CompendiumRule rule) => Skin.Width(Skin.Segment, CompendiumWords.RuleName(rule)) + U(12f);
+
+        private static string RuleTipKey(CompendiumRule rule) => rule switch
+        {
+            CompendiumRule.Loose => "rule-loose",
+            CompendiumRule.Strict => "rule-strict",
+            _ => "rule-off",
+        };
+
+        /// <summary>Chooses the compendium's rules for the character played and keeps them at once: a choice of the player's. The switch's click, and the self-test's.</summary>
+        public static void Choose(CompendiumRule rule)
+        {
+            var book = CompendiumKeeper.Book;
+            if (book == null) return;
+            book.Rule = rule;
+            CompendiumKeeper.Save(now: true);
+            ListFiltered();
         }
 
         /// <summary>Sets the character's floor and keeps it at once: a choice of the player's.</summary>
