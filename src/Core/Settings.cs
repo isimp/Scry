@@ -129,7 +129,7 @@ namespace Scry
             _readLocations = config.Bind("1 - General", "ReadLocationsAutomatically", false,
                 "Reads where things are found in each world's locations and dungeons by itself, in the background once the prefabs are read, taking a few minutes. Off, they are read only when asked, with Read all locations or /scry locations.");
             _compendium = config.Bind("1 - General", "Compendium", CompendiumRule.Off,
-                "Shows only what your character has come to know. Off shows everything. Loose lists only what your character has seen, its page open once it has fought, held, built, used or entered it, and counts in each kind's tab what was found of all there is. What your character learns is kept either way, so turning this on later shows everything met meanwhile.");
+                "Shows only what your character has come to know. Off shows everything. Loose lists only what your character has seen, its page open once it has fought, held, built, used or entered it, and counts in each kind's tab what was found of all there is. Strict lists the same, but a page shows of how its entry connects (drops, places, recipes, attacks) only what your character saw go together, and keeps back the names of what it has not seen. Once a boss has fallen for your character, the Floor beside the tabs can show everything of its biome and those before as known. What your character learns is kept either way, so turning this on later shows everything met meanwhile.");
             _autoSpin = config.Bind("2 - Preview", "AutoSpin", true,
                 "Turns the model in the preview slowly while you are not dragging it.");
             _spinSpeed = config.Bind("2 - Preview", "SpinSpeed", 14f,
