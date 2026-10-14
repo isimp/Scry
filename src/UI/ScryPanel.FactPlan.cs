@@ -256,7 +256,7 @@ namespace Scry
                             if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + to, PanelWords.GoTo(cells[c]));
                             if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, to);
                         }
-                        else GUI.Label(cell, cells[c], Skin.SmallWrap);
+                        else GUI.Label(cell, Masked(explorer, cells[c]), Skin.SmallWrap);
                         x += ColumnWidths[c] + gap;
                     }
                     Skin.Fill(new Rect(0f, y + height + U(2f), width, U(1f)), Skin.Outline);

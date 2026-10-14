@@ -21,8 +21,9 @@ namespace Scry
 
             if (facts.Description.Length > 0)
             {
-                var height = Skin.Height(Skin.Wrap, facts.Description, width);
-                GUI.Label(new Rect(0f, y, width, height), facts.Description, Skin.Wrap);
+                var description = Masked(explorer, facts.Description);
+                var height = Skin.Height(Skin.Wrap, description, width);
+                GUI.Label(new Rect(0f, y, width, height), description, Skin.Wrap);
                 y += height + U(10f);
             }
 
@@ -56,12 +57,14 @@ namespace Scry
             // A line only naming what the page lists waits until the character has seen it; under
             // the strict rules a line naming what was not seen together with the page is left out.
             if (facts.Links.TryGetValue(pair.Key, out var linked) && ((facts.Listing.Contains(pair.Key) && LeftOut(explorer, linked)) || explorer.LeavesOut(linked))) return y;
+            // Under the strict rules the names of what was not seen are kept back in its text.
+            var value = Masked(explorer, pair.Value);
             var valueW = width - labelW - U(10f);
             // A line Scry is not sure of is marked, softer, and says why on hover.
             var unsure = facts.Unsure.TryGetValue(pair.Key, out var why);
             var label = unsure ? UnsureWords.Marked(pair.Key) : pair.Key;
             var labelH = Skin.Height(Skin.DimWrap, label, labelW);
-            var height = Mathf.Max(U(20f), Mathf.Max(labelH, Skin.Height(Skin.Wrap, pair.Value, valueW)));
+            var height = Mathf.Max(U(20f), Mathf.Max(labelH, Skin.Height(Skin.Wrap, value, valueW)));
             GUI.Label(new Rect(0f, y, labelW, labelH), label, Skin.DimWrap);
             var valueRect = new Rect(labelW + U(10f), y, valueW, height);
             if (unsure && new Rect(0f, y, width, height).Contains(Event.current.mousePosition)) AskTip("unsure:" + pair.Key, why);
@@ -69,9 +72,9 @@ namespace Scry
             if (facts.Links.TryGetValue(pair.Key, out var music) && EntryKeys.PlaysMusic(music, out var named))
             {
                 var playing = MusicPreview.PlayingFor == entry && (named == null || MusicPreview.Playing == named);
-                var musicW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
+                var musicW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, value) + U(4f));
                 var musicRect = new Rect(valueRect.x, valueRect.y, musicW, height);
-                LinkLabel(musicRect, pair.Value, Skin.Wrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);
+                LinkLabel(musicRect, value, Skin.Wrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);
                 if (musicRect.Contains(Event.current.mousePosition)) AskTip("music:" + entry.Key + ":" + named, MusicWords.Tip(playing));
                 if (GUI.Button(musicRect, GUIContent.none, GUIStyle.none))
                 {
@@ -82,24 +85,24 @@ namespace Scry
             // A mod's website opens in the browser.
             else if (facts.Links.TryGetValue(pair.Key, out var web) && EntryKeys.WebsiteOf(web) is string url)
             {
-                var webW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
+                var webW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, value) + U(4f));
                 var webRect = new Rect(valueRect.x, valueRect.y, webW, height);
-                LinkLabel(webRect, pair.Value, Skin.Wrap, Skin.Accent);
+                LinkLabel(webRect, value, Skin.Wrap, Skin.Accent);
                 if (webRect.Contains(Event.current.mousePosition)) AskTip("web:" + entry.Key, "Open it in your browser");
                 if (GUI.Button(webRect, GUIContent.none, GUIStyle.none)) Shell.OpenWebsite(url);
             }
             // A link only to what is in the catalog: a creature's own attack items are not.
             else if (facts.Links.TryGetValue(pair.Key, out var link) && Goes(explorer, link))
             {
-                var linkW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, pair.Value) + U(4f));
+                var linkW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, value) + U(4f));
                 var linkRect = new Rect(valueRect.x, valueRect.y, linkW, height);
-                LinkLabel(linkRect, pair.Value, Skin.Wrap, LinkText(KindOf(explorer, link), false));
-                if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, PanelWords.GoTo(ShownName(explorer, link, pair.Value)));
+                LinkLabel(linkRect, value, Skin.Wrap, LinkText(KindOf(explorer, link), false));
+                if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, PanelWords.GoTo(ShownName(explorer, link, value)));
                 if (GUI.Button(linkRect, GUIContent.none, GUIStyle.none)) Go(explorer, link);
             }
             else
             {
-                GUI.Label(valueRect, pair.Value, unsure ? Skin.DimWrap : Skin.Wrap);
+                GUI.Label(valueRect, value, unsure ? Skin.DimWrap : Skin.Wrap);
             }
             return y + height + U(6f);
         }
@@ -142,7 +145,7 @@ namespace Scry
             {
                 // A line naming a prefab in the catalog is a chip that goes there; the rest is text.
                 // A line Scry is not sure of is marked and says why on hover.
-                var text = source.Unsure != null ? UnsureWords.Marked(source.Text) : source.Text;
+                var text = Masked(explorer, source.Unsure != null ? UnsureWords.Marked(source.Text) : source.Text);
                 if (string.IsNullOrEmpty(source.Prefab) || !Goes(explorer, source.Prefab))
                 {
                     var style = source.Unsure != null ? Skin.DimWrap : Skin.Wrap;

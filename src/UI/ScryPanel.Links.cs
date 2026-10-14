@@ -334,6 +334,37 @@ namespace Scry
         /// <summary>Whether a list of what there is leaves out the entry a key names: one in the catalog the character has not seen.</summary>
         private static bool LeftOut(Explorer explorer, string key) => InCatalog(explorer, key) && !explorer.Reaches(key);
 
+        /// <summary>A text as the page shown would draw it (<see cref="Masked"/>), for the self-test.</summary>
+        public static string AsDrawn(Explorer explorer, string text) => Masked(explorer, text);
+
+        private static NameMask _mask;
+        private static Explorer _maskIn;
+        private static int _maskStamp = -1;
+        private static readonly Dictionary<string, string> MaskedTexts = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// A known page's text under the strict rules, the names of what the character has not
+        /// seen kept back (<see cref="NameMask"/>); as it is otherwise. The mask is made again when
+        /// what the character knows changes, each text masked once.
+        /// </summary>
+        private static string Masked(Explorer explorer, string text)
+        {
+            if (string.IsNullOrEmpty(text) || !explorer.LeavingOut) return text;
+            if (!ReferenceEquals(_maskIn, explorer) || _maskStamp != explorer.KnowStamp)
+            {
+                _maskIn = explorer;
+                _maskStamp = explorer.KnowStamp;
+                MaskedTexts.Clear();
+                var unseen = new List<string>();
+                var seen = new List<string>();
+                foreach (var entry in explorer.Catalog) (explorer.LevelOf(entry) >= KnownLevel.Seen ? seen : unseen).Add(entry.ShownName);
+                _mask = new NameMask(unseen, seen);
+            }
+            if (MaskedTexts.TryGetValue(text, out var masked)) return masked;
+            if (MaskedTexts.Count > 4000) MaskedTexts.Clear();
+            return MaskedTexts[text] = _mask.Apply(text);
+        }
+
         private static readonly Dictionary<object, object> KeptLists = new Dictionary<object, object>();
         private static Explorer _keptIn;
         private static int _keptStamp;
@@ -440,6 +471,9 @@ namespace Scry
             _listedIn = null;
             KeptLists.Clear();
             _keptIn = null;
+            MaskedTexts.Clear();
+            _mask = null;
+            _maskIn = null;
         }
     }
 }
