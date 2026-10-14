@@ -215,6 +215,9 @@ namespace Scry
         /// <summary>How much the character knows of an entry; all of it while the compendium is off.</summary>
         public KnownLevel LevelOf(Entry entry) => CompendiumOn ? _view.Of(entry) : KnownLevel.Known;
 
+        /// <summary>Whether an entry shows as known only because of the compendium's floor (<see cref="CompendiumView.ByFloor"/>).</summary>
+        public bool ByFloor(Entry entry) => CompendiumOn && _view.ByFloor(entry);
+
         /// <summary>
         /// Whether a page may go to the entry a key names (<see cref="EntryKeys"/>): one in the
         /// catalog the character has seen or knows, any of them while the compendium is off. A

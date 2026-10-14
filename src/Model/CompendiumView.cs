@@ -46,6 +46,7 @@ namespace Scry
         private readonly Dictionary<Entry, KnownLevel> _levels = new Dictionary<Entry, KnownLevel>();
         private readonly Dictionary<Entry, Entry> _because = new Dictionary<Entry, Entry>();
         private readonly HashSet<(Entry, Entry)> _owns = new HashSet<(Entry, Entry)>();
+        private readonly HashSet<Entry> _byFloor = new HashSet<Entry>();
 
         private CompendiumBook _book;
         private int _bookVersion = -1;
@@ -147,6 +148,12 @@ namespace Scry
         /// <summary>Whether an entry's tier is at or below the floor, so it shows whatever the book holds of it.</summary>
         public bool BelowFloor(Entry entry) => entry != null && _floor > 0 && _tiers != null && _tiers.TryGetValue(entry.Key, out var tier) && tier <= _floor;
 
+        /// <summary>The floor shown by, the last tier it opens; none at 0.</summary>
+        public int Floor => _floor;
+
+        /// <summary>Whether an entry shows as known only because of the floor: neither the character knows it nor anything it knows brings it along.</summary>
+        public bool ByFloor(Entry entry) => entry != null && _byFloor.Contains(entry);
+
         /// <summary>Works out every entry's level for this book and rule, unless nothing changed since last time.</summary>
         public void Tell(CompendiumBook book, CompendiumRule rule)
         {
@@ -165,31 +172,31 @@ namespace Scry
             _levels.Clear();
             _because.Clear();
             _owns.Clear();
+            _byFloor.Clear();
             if (rule == CompendiumRule.Off) return;
 
+            // What the character knows itself, with all it brings along; then what the floor adds,
+            // and all that brings, told apart as the floor's (ByFloor).
             var met = new Queue<Entry>();
+            var floored = new List<Entry>();
             foreach (var entry in _catalog.All)
             {
-                var level = entry.Kind == Kind.Mod || BelowFloor(entry) ? KnownLevel.Known : book.Level(entry.Key);
+                var level = entry.Kind == Kind.Mod ? KnownLevel.Known : book.Level(entry.Key);
+                if (level < KnownLevel.Known && BelowFloor(entry)) floored.Add(entry);
                 if (level == KnownLevel.Unknown) continue;
                 _levels[entry] = level;
                 // Strict: only what is known brings its parts along, not what was only seen.
                 if (level >= (rule == CompendiumRule.Strict ? KnownLevel.Known : KnownLevel.Seen)) met.Enqueue(entry);
             }
-
-            // What a seen or known entry owns is known, and owns in turn: an effect's own sounds.
-            while (met.Count > 0)
+            Spread(met, false);
+            foreach (var entry in floored)
             {
-                var owner = met.Dequeue();
-                foreach (var owned in Owned(owner))
-                {
-                    _owns.Add((owner, owned));
-                    if (Of(owned) == KnownLevel.Known) continue;
-                    _levels[owned] = KnownLevel.Known;
-                    _because[owned] = owner;
-                    met.Enqueue(owned);
-                }
+                if (Of(entry) == KnownLevel.Known) continue;
+                _levels[entry] = KnownLevel.Known;
+                _byFloor.Add(entry);
+                met.Enqueue(entry);
             }
+            Spread(met, true);
 
             var heard = new List<(Entry Named, Entry By)>();
             foreach (var pair in _levels)
@@ -201,6 +208,27 @@ namespace Scry
                 if (Of(named) != KnownLevel.Unknown) continue;
                 _levels[named] = KnownLevel.HeardOf;
                 _because[named] = by;
+            }
+        }
+
+        /// <summary>
+        /// What a seen or known entry owns is known, and owns in turn (an effect's own sounds):
+        /// each owner waiting in the queue, and what it brings along; by the floor, told so.
+        /// </summary>
+        private void Spread(Queue<Entry> met, bool byFloor)
+        {
+            while (met.Count > 0)
+            {
+                var owner = met.Dequeue();
+                foreach (var owned in Owned(owner))
+                {
+                    _owns.Add((owner, owned));
+                    if (Of(owned) == KnownLevel.Known) continue;
+                    _levels[owned] = KnownLevel.Known;
+                    _because[owned] = owner;
+                    if (byFloor) _byFloor.Add(owned);
+                    met.Enqueue(owned);
+                }
             }
         }
 

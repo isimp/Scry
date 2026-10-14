@@ -72,6 +72,47 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatShowsKnownOnlyBecauseOfTheFloorIsToldApart()
+        {
+            // The floor shows things as known that the character never met: the panel marks them.
+            var troll = new Entry { Kind = Kind.Creature, Name = "Troll" };
+            var boar = new Entry { Kind = Kind.Creature, Name = "Boar" };
+            var neck = new Entry { Kind = Kind.Creature, Name = "Neck" };
+            var greydwarf = new Entry { Kind = Kind.Creature, Name = "Greydwarf" };
+            var trollSound = new Entry { Kind = Kind.Sound, Name = "sfx_troll_idle" };
+            var hit = new Entry { Kind = Kind.Sound, Name = "sfx_hit" };
+            trollSound.UsedBy.Add("Troll");
+            hit.UsedBy.Add("Troll");
+            hit.UsedBy.Add("Boar");
+            var view = new CompendiumView(new EntryCatalog(new[] { troll, boar, neck, greydwarf, trollSound, hit }));
+            var tiers = new Dictionary<string, int> { { troll.Key, 2 }, { boar.Key, 1 }, { neck.Key, 1 }, { greydwarf.Key, 3 }, { hit.Key, 1 } };
+            var book = new CompendiumBook();
+            book.Raise(boar.Key, KnownLevel.Known);
+            book.Raise(neck.Key, KnownLevel.Seen);
+
+            view.Milestones(tiers, 2);
+            view.Tell(book, CompendiumRule.Loose);
+
+            Assert.True(view.ByFloor(troll));
+            Assert.True(view.ByFloor(trollSound));
+            // Seen, its page opens only by the floor.
+            Assert.True(view.ByFloor(neck));
+            // Known by the character, or along with what it knows, below the floor or not: not the floor's doing.
+            Assert.False(view.ByFloor(boar));
+            Assert.False(view.ByFloor(hit));
+            Assert.False(view.ByFloor(greydwarf));
+            Assert.Equal(KnownLevel.Unknown, view.Of(greydwarf));
+
+            view.Milestones(tiers, 0);
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.False(view.ByFloor(troll));
+            Assert.False(view.ByFloor(neck));
+            view.Milestones(tiers, 2);
+            view.Tell(book, CompendiumRule.Off);
+            Assert.False(view.ByFloor(troll));
+        }
+
+        [Fact]
         public void EverythingOfATierAtOrBelowTheFloorShowsAsKnown()
         {
             var troll = new Entry { Kind = Kind.Creature, Name = "Troll" };

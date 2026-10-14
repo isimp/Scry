@@ -395,11 +395,20 @@ namespace Scry
             if (favourite) Skin.Icon(star, Skin.Star, Skin.Accent);
             else if (hover) Skin.Icon(star, Skin.StarHollow, star.Contains(e.mousePosition) ? Skin.Accent : Skin.Faint);
 
+            // Shown as known only by the compendium's floor: a mark before the star.
+            var byFloor = explorer.ByFloor(entry);
+            var floorMark = new Rect(star.x - U(22f), star.y, star.width, star.height);
+            if (byFloor)
+            {
+                CountDrawn(PanelPart.FloorMark);
+                Skin.Icon(floorMark, Skin.Steps, Skin.Faint);
+            }
+
             var named = Timing.Start();
             var textX = oneKind && !_listHasIcons ? inner.x + U(12f) : icon.xMax + U(10f);
             // A room sits indented under its dungeon in its dungeon's group.
             if ((entry.Indent || explorer.UnderOwner(entry)) && oneKind) textX += U(20f);
-            var textW = star.x - U(8f) - textX;
+            var textW = (byFloor ? floorMark.x : star.x) - U(8f) - textX;
             var primary = entry.ShownName;
             var secondary = entry.Tag ?? (primary == entry.Name ? "" : entry.Name);
 
@@ -429,7 +438,8 @@ namespace Scry
             }
 
             // A cut name shows whole on hover, and a faint row says why it is faint.
-            if (hover && (cut || entry.Empty) && !star.Contains(e.mousePosition))
+            if (hover && byFloor && floorMark.Contains(e.mousePosition)) AskTip("floor-mark", CompendiumWords.ByFloor(explorer.Compendium.Floor));
+            else if (hover && (cut || entry.Empty) && !star.Contains(e.mousePosition))
             {
                 AskTip(entry.Key, Naming.Lines(primary, secondary, entry.Empty ? ListWords.Silent : null));
             }

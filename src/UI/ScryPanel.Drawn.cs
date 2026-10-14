@@ -35,6 +35,8 @@ namespace Scry
         FloorControl,
         CompendiumSwitch,
         MapBar,
+        FloorMark,
+        FloorLine,
     }
 
     internal static partial class ScryPanel

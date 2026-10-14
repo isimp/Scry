@@ -79,7 +79,7 @@ namespace Scry
         /// <summary>The compendium's own controls at the front of the tabs row, outlined so they read as settings, not filters: lit while it is on, and their arrows.</summary>
         public static GUIStyle Mode, ModeOn, ModeArrow;
         public static GUIStyle Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross;
-        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat;
+        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps;
 
         private static float _builtScale = -1f;
         private static bool _warmed;
@@ -731,6 +731,14 @@ namespace Scry
             Roof = Shape(32, 32, RoofCoverage);
             Speed = Shape(32, 32, SpeedCoverage);
             Repeat = Shape(32, 32, RepeatCoverage);
+            Steps = Shape(32, 32, StepsCoverage);
+        }
+
+        /// <summary>Three steps rising to the right: the compendium's floor, tier upon tier.</summary>
+        private static bool StepsCoverage(float x, float y)
+        {
+            if (x < 4f || x > 28f || y < 4f) return false;
+            return y <= (x < 12f ? 12f : x < 20f ? 20f : 28f);
         }
 
         /// <summary>Two arrowheads pointing on, one after the other: faster or slower.</summary>

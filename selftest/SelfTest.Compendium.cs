@@ -224,6 +224,25 @@ namespace Scry
             p.Check(meadows.Count > 0 && shut.Count == 0, $"with the floor at the Meadows, all {Numbers.Count(meadows.Count)} things of them show as known", string.Join(", ", shut.Take(5).Select(e => e.Name)));
             var lox = X.Find("Lox");
             p.Check(lox == null || floored.Of(lox) < KnownLevel.Seen, "and nothing of the Plains", lox != null ? floored.Of(lox).ToString() : null);
+
+            // Shown, what the floor alone shows is marked on its row and says so on its page.
+            var marked = meadows.FirstOrDefault(e => e.Kind == Kind.Creature && floored.ByFloor(e)) ?? meadows.FirstOrDefault(floored.ByFloor);
+            if (p.Check(marked != null, "the floor alone shows them, the made-up character knowing nothing"))
+            {
+                Session.ShowKnownInstead(floored);
+                if (!Session.IsOpen) Session.Show(null);
+                KeepView();
+                yield return Until(() => ReferenceEquals(X.Compendium, floored), 3);
+                X.SearchEverything("");
+                X.KindFilter = marked.Kind;
+                X.Select(marked);
+                var marks = ScryPanel.Drawn(PanelPart.FloorMark);
+                var lines = ScryPanel.Drawn(PanelPart.FloorLine);
+                var repaints = ScryPanel.Repaints;
+                yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
+                p.Check(ScryPanel.Drawn(PanelPart.FloorMark) > marks && ScryPanel.Drawn(PanelPart.FloorLine) > lines, $"{marked.Name} is marked in the list and its page says the floor shows it",
+                    $"marks {Numbers.Count(ScryPanel.Drawn(PanelPart.FloorMark) - marks)}, lines {Numbers.Count(ScryPanel.Drawn(PanelPart.FloorLine) - lines)}");
+            }
             p.Note($"the character played may raise its floor to tier {Numbers.Count(CompendiumKeeper.Ceiling)}, it stands at {Numbers.Count(CompendiumKeeper.Book?.Floor ?? 0)}");
         }
 

@@ -122,6 +122,9 @@ namespace Scry
         /// <summary>The milestone floor's label: the last tier it shows, by its biome, or none.</summary>
         public static string Floor(int floor) => "Floor: " + (floor > 0 ? Naming.FieldLabel(Tiers.BiomeOf(floor)) : "none");
 
+        /// <summary>The tip of the mark on a row, and the line under a page's title, of what shows as known only by the floor.</summary>
+        public static string ByFloor(int floor) => $"Shown by the {Floor(floor)}, not yet come to know by this character";
+
         /// <summary>The tip of raising the floor to a tier, with the boss that fell for it where known.</summary>
         public static string RaiseFloor(int to, string boss) =>
             $"Show everything of the {Naming.FieldLabel(Tiers.BiomeOf(to))} as known" + (string.IsNullOrEmpty(boss) ? "" : $": {boss} fell for this character");

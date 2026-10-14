@@ -84,6 +84,8 @@ namespace Scry.Tests
         {
             Assert.Equal("Floor: none", CompendiumWords.Floor(0));
             Assert.Equal("Floor: Black forest", CompendiumWords.Floor(2));
+            // What it shows that the character never came to know is marked, on its row and page.
+            Assert.Equal("Shown by the Floor: Black forest, not yet come to know by this character", CompendiumWords.ByFloor(2));
             Assert.Equal("Show everything of the Swamp as known: Bonemass fell for this character", CompendiumWords.RaiseFloor(3, "Bonemass"));
             Assert.Equal("Show everything of the Swamp as known", CompendiumWords.RaiseFloor(3, null));
             Assert.Equal("Show the Meadows and what came before as known, not the Black forest", CompendiumWords.LowerFloor(1));

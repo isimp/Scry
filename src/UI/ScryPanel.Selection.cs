@@ -277,6 +277,18 @@ namespace Scry
                 y += U(26f);
             }
 
+            // Shown as known only by the compendium's floor: said under the title, with the list's mark.
+            if (explorer.ByFloor(entry))
+            {
+                CountDrawn(PanelPart.FloorLine);
+                var mark = U(16f);
+                Skin.Icon(new Rect(0f, y + (U(22f) - mark) / 2f, mark, mark), Skin.Steps, Skin.Faint);
+                var line = new Rect(mark + U(6f), y, width - mark - U(6f), U(22f));
+                var said = CompendiumWords.ByFloor(explorer.Compendium.Floor);
+                if (!FitLabel(line, said, Skin.DimLabel, 10f) && line.Contains(Event.current.mousePosition)) AskTip("floor-line", said);
+                y += U(24f);
+            }
+
             return y + U(8f);
         }
 
