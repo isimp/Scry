@@ -84,7 +84,8 @@ namespace Scry
                 foreach (var owner in entry.LeftBy) pass.Add(WayFrom.LeftBehind, key, 0, owner);
                 foreach (var link in entry.Links)
                 {
-                    if (link.Group == Relations.GivenBy) pass.Add(WayFrom.Given, key, 0, link.Target);
+                    // A boss stone gives its power only for the trophy it takes.
+                    if (link.Group == Relations.GivenBy) TierWays.Given(pass, key, link.Target, Knowledge.TrophiesFor(link.Target, entry.Name), KeyOf);
                 }
                 foreach (var brought in entry.TermLinks("spawns")) pass.Add(WayFrom.Spawned, brought.Key, 0, key);
 

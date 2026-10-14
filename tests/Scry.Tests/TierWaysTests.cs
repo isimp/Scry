@@ -278,5 +278,59 @@ namespace Scry.Tests
             // A way added without saying where it comes from says so.
             Assert.Equal(WayFrom.Unnamed, pass.WayIn("Wood", tiers).Value.From);
         }
+
+        [Fact]
+        public void AGuardianPowerComesNoSoonerThanTheTrophyItsStoneTakes()
+        {
+            // Every boss stone stands in the Meadows' start temple; the power waits for the boss's trophy.
+            var (pass, keyOf) = Known(("BossStone_DragonQueen", 1), ("TrophyDragonQueen", 4));
+            TierWays.Given(pass, "se:GP_Moder", "BossStone_DragonQueen", new[] { "TrophyDragonQueen" }, keyOf);
+
+            var tiers = pass.Work();
+            Assert.Equal(4, tiers["se:GP_Moder"]);
+            var way = pass.WayIn("se:GP_Moder", tiers).Value;
+            Assert.Equal(WayFrom.Given, way.From);
+            Assert.Contains("TrophyDragonQueen", way.Needs);
+        }
+
+        [Fact]
+        public void AStoneTakingAnyOfSeveralThingsGivesByTheCheapest()
+        {
+            var (pass, keyOf) = Known(("ModStone", 1), ("TrophyA", 5), ("TrophyB", 3));
+            TierWays.Given(pass, "se:ModPower", "ModStone", new[] { "TrophyA", "TrophyB" }, keyOf);
+
+            Assert.Equal(3, pass.Work()["se:ModPower"]);
+        }
+
+        [Fact]
+        public void AGiverTakingNothingGivesByItself()
+        {
+            var (pass, keyOf) = Known(("piece_bed", 2));
+            TierWays.Given(pass, "se:Resting", "piece_bed", Array.Empty<string>(), keyOf);
+            TierWays.Given(pass, "se:Rested", "piece_bed", null, keyOf);
+
+            var tiers = pass.Work();
+            Assert.Equal(2, tiers["se:Resting"]);
+            Assert.Equal(2, tiers["se:Rested"]);
+        }
+
+        [Fact]
+        public void WhatAGiverTakesThatIsNoThingOfItsOwnIsLeftOut()
+        {
+            // A stone whose only trophy was not read gives as a giver taking nothing would.
+            var (pass, keyOf) = Known(("BossStone_Mod", 1));
+            TierWays.Given(pass, "se:GP_Mod", "BossStone_Mod", new[] { "ModsSecretString" }, keyOf);
+
+            Assert.Equal(1, pass.Work()["se:GP_Mod"]);
+        }
+
+        [Fact]
+        public void AGiverNoThingOfItsOwnGivesNothing()
+        {
+            var (pass, keyOf) = Known(("TrophyEikthyr", 1));
+            TierWays.Given(pass, "se:GP_Eikthyr", "workbench", new[] { "TrophyEikthyr" }, keyOf);
+
+            Assert.False(pass.Work().ContainsKey("se:GP_Eikthyr"));
+        }
     }
 }

@@ -79,6 +79,15 @@ namespace Scry
         public static (string Power, string Stone) PowerOf(string trophy) =>
             trophy != null && Powers.TryGetValue(trophy, out var power) ? power : (null, null);
 
+        /// <summary>The trophies a boss stone takes to give a power, by the stone's prefab and the power's name; none for any other giver.</summary>
+        public static IEnumerable<string> TrophiesFor(string stone, string power)
+        {
+            foreach (var pair in Powers)
+            {
+                if (pair.Value.Stone == stone && pair.Value.Power == power) yield return pair.Key;
+            }
+        }
+
         /// <summary>What a fish bites on, a door is opened with, and a boss stone's stand gives for a trophy, each told from the other side too.</summary>
         private static void BaitsKeysAndPowers(GameObject prefab, List<Component> components)
         {

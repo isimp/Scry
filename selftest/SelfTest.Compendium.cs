@@ -183,10 +183,18 @@ namespace Scry
             p.Check(CompendiumLink.Answered > answered && CompendiumLink.LastTold == kinds.Count, "a map sent to the world's server is answered with the same kinds", $"{Numbers.Count(CompendiumLink.LastTold)} told, {Numbers.Count(kinds.Count)} read here");
         }
 
-        /// <summary>Things whose tier the game's progression fixes: iron gear in the Swamp's, black metal in the Plains', each boss in its own, Fulings, hens and cloudberries the Plains', eitr mead the Mistlands', the workbench, built with the hammer, the Meadows'.</summary>
+        /// <summary>
+        /// Things whose tier the game's progression fixes: each boss in its own, and its guardian
+        /// power, which its stone in the Meadows gives only for its trophy; a metal or a drop of
+        /// each biome; iron gear in the Swamp's, black metal in the Plains'; Fulings, hens and
+        /// cloudberries the Plains', eitr mead the Mistlands'; the workbench, built with the
+        /// hammer, the Meadows'. A name the catalog does not hold is passed over.
+        /// </summary>
         private static readonly (string Name, int Tier)[] KnownTiers =
         {
             ("Eikthyr", 1), ("gd_king", 2), ("Bonemass", 3), ("Dragon", 4), ("GoblinKing", 5), ("SeekerQueen", 6), ("Fader", 7),
+            ("se:GP_Eikthyr", 1), ("se:GP_TheElder", 2), ("se:GP_Bonemass", 3), ("se:GP_Moder", 4), ("se:GP_Yagluth", 5), ("se:GP_Queen", 6), ("se:GP_Ashlands", 7),
+            ("Bronze", 2), ("Silver", 4), ("Carapace", 6), ("Grausten", 7), ("FlametalNew", 7),
             ("Troll", 2), ("SwordIron", 3), ("SwordBlackmetal", 5), ("Lox", 5), ("Wood", 1),
             ("Goblin", 5), ("Hen", 5), ("Egg", 5), ("Cloudberry", 5), ("MeadEitrMinor", 6), ("piece_workbench", 1),
         };
@@ -215,7 +223,8 @@ namespace Scry
                 wrong.Add($"{name} {(got == Tiers.None ? "none" : Numbers.Count(got))}, not {Numbers.Count(tier)}");
                 wrongKeys.Add(entry.Key);
             }
-            p.Check(wrong.Count == 0, "they follow the game's progression: each boss its own, iron gear the Swamp's, black metal the Plains'", string.Join("; ", wrong));
+            p.Note($"{Numbers.Count(KnownTiers.Count(k => X.Find(k.Name) != null))} of {Numbers.Count(KnownTiers.Length)} things of known tier are in the catalog");
+            p.Check(wrong.Count == 0, "they follow the game's progression: each boss and its power its own, iron gear the Swamp's, black metal the Plains'", string.Join("; ", wrong));
             if (wrongKeys.Count > 0)
             {
                 // Why: the way that set each, followed through its dearest need.

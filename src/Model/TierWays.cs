@@ -72,6 +72,27 @@ namespace Scry
             foreach (var tool in tools ?? Array.Empty<string>()) Make(pass, way, keyOf, WayFrom.Crafted, tool);
         }
 
+        /// <summary>
+        /// Adds the ways a giver gives a status effect: with each thing it takes before it gives,
+        /// a way of its own for each, as a boss stone gives its guardian power only for the boss's
+        /// trophy; by itself where it takes nothing that is a thing of its own. A giver that is no
+        /// thing of its own gives no way.
+        /// </summary>
+        public static void Given(TierPass pass, string effect, string giver, IEnumerable<string> takes, Func<string, string> keyOf)
+        {
+            var by = keyOf(giver);
+            if (by == null) return;
+            var any = false;
+            foreach (var taken in takes ?? Array.Empty<string>())
+            {
+                var need = keyOf(taken);
+                if (need == null || need == effect) continue;
+                pass.Add(WayFrom.Given, effect, 0, need == by ? new[] { by } : new[] { by, need });
+                any = true;
+            }
+            if (!any) pass.Add(WayFrom.Given, effect, 0, by);
+        }
+
         private static void Make(TierPass pass, MakingWay way, Func<string, string> keyOf, WayFrom from, string tool)
         {
             var target = keyOf(way.Target);
