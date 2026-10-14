@@ -381,6 +381,8 @@ namespace Scry
             {
                 var strict = new CompendiumView(X.Entries);
                 var ownFloor = Math.Min(own.Floor, CompendiumKeeper.Ceiling);
+                // With a floor, the tiers tell what lies below it: wait for them to be worked out.
+                if (ownFloor > 0) yield return Until(() => CompendiumTiers.Of(X.Entries) != null, 20);
                 strict.Milestones(ownFloor > 0 ? CompendiumTiers.Of(X.Entries) : null, ownFloor);
                 strict.Tell(own, CompendiumRule.Strict);
                 var pages = X.Entries.All.Where(e => e.Kind != Kind.Mod && strict.Of(e) == KnownLevel.Known && !strict.BelowFloor(e)).ToList();
