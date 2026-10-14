@@ -84,6 +84,7 @@ namespace Scry.Tests
             Assert.Equal("Played by", CompendiumWords.Uncounted("Played by (1,200)"));
             Assert.Equal("Drops", CompendiumWords.Uncounted("Drops"));
             Assert.Equal("Raids (in the Plains)", CompendiumWords.Uncounted("Raids (in the Plains)"));
+            Assert.Equal("Drops (12a", CompendiumWords.Uncounted("Drops (12a"));
             Assert.Equal("???", CompendiumWords.Hidden);
         }
 
