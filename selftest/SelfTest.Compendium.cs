@@ -467,6 +467,9 @@ namespace Scry
                 book.Raise(tree.Key, KnownLevel.Known);
                 view.Tell(book, CompendiumRule.Loose);
                 var leftOut = ScryPanel.Drawn(PanelPart.ListLeftOut);
+                // Listed as a player would find it: the list kept to creatures above would drop it again.
+                X.SearchEverything("");
+                X.KindFilter = tree.Kind;
                 X.Select(tree);
                 yield return Until(() => Stage.Showing == tree, 5);
                 repaints = ScryPanel.Repaints;
