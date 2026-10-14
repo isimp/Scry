@@ -226,6 +226,21 @@ namespace Scry
             return entry != null && LevelOf(entry) >= KnownLevel.Seen;
         }
 
+        /// <summary>
+        /// Whether the page shown leaves out a fact naming the entry a key names: under the strict
+        /// rules, on a known page above the milestone floor, what the character never saw go
+        /// together with it and is no part of it (its sounds, effects, projectiles). Silently: no
+        /// count, no stand-in.
+        /// </summary>
+        public bool LeavesOut(string key)
+        {
+            if (!CompendiumOn || _view.Rule != CompendiumRule.Strict || _selected == null) return false;
+            if (_view.Of(_selected) != KnownLevel.Known || _view.BelowFloor(_selected)) return false;
+            var other = Find(key);
+            if (other == null || other == _selected) return false;
+            return !_view.Owns(_selected, other) && !_view.Witnessed(_selected, other);
+        }
+
         /// <summary>How many of a kind the character has met (seen or known), whatever is typed.</summary>
         public int FoundOf(Kind kind) => _found[(int)kind];
 

@@ -37,6 +37,7 @@ namespace Scry
         private readonly List<string> _lately = new List<string>();
         private readonly HashSet<string> _mapped = new HashSet<string>(StringComparer.Ordinal);
         private int _floor;
+        private readonly HashSet<(string, string)> _pairs = new HashSet<(string, string)>();
 
         /// <summary>Counts up with every entry learned more of, so what tells the compendium tells it again.</summary>
         public int Version { get; private set; }
@@ -109,13 +110,35 @@ namespace Scry
             }
         }
 
+        /// <summary>
+        /// Notes that the character saw two entries go together, either way round: a drop fall
+        /// from a creature, a creature in a biome or a place, an item made at a station, a chest's
+        /// loot, a creature's attack hit it. True when it was not noted before. What the strict
+        /// rules show of how a known entry connects.
+        /// </summary>
+        public bool Witness(string a, string b)
+        {
+            if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) || a == b || !_pairs.Add(Pair(a, b))) return false;
+            Version++;
+            Changed = true;
+            return true;
+        }
+
+        /// <summary>Whether the character saw two entries go together, either way round.</summary>
+        public bool Witnessed(string a, string b) => !string.IsNullOrEmpty(a) && !string.IsNullOrEmpty(b) && _pairs.Contains(Pair(a, b));
+
+        /// <summary>How many pairs the character saw go together.</summary>
+        public int Pairs => _pairs.Count;
+
+        private static (string, string) Pair(string a, string b) => string.CompareOrdinal(a, b) <= 0 ? (a, b) : (b, a);
+
         /// <summary>Forgets that a world's map was caught up with, so the catch-up runs again.</summary>
         public void Unmap(string world)
         {
             if (world != null && _mapped.Remove(world)) Changed = true;
         }
 
-        /// <summary>Everything known, a line an entry, then the latest learned in order, the worlds mapped and the floor.</summary>
+        /// <summary>Everything known, a line an entry, then the latest learned in order, the worlds mapped, the floor and the pairs seen together.</summary>
         public string Save()
         {
             var text = new StringBuilder();
@@ -126,6 +149,10 @@ namespace Scry
             foreach (var key in _lately) text.Append("lately\t").Append(Stored.Escaped(key)).Append('\n');
             foreach (var world in _mapped.OrderBy(w => w, StringComparer.Ordinal)) text.Append("mapped\t").Append(Stored.Escaped(world)).Append('\n');
             if (_floor > 0) text.Append("floor\t").Append(Stored.Count(_floor)).Append('\n');
+            foreach (var (a, b) in _pairs.OrderBy(p => p.Item1, StringComparer.Ordinal).ThenBy(p => p.Item2, StringComparer.Ordinal))
+            {
+                text.Append("saw\t").Append(Stored.Escaped(a)).Append('\t').Append(Stored.Escaped(b)).Append('\n');
+            }
             Changed = false;
             return text.ToString();
         }
@@ -155,6 +182,9 @@ namespace Scry
                         break;
                     case "floor" when parts.Length == 2 && Stored.TryCount(parts[1], out var floor):
                         book._floor = Math.Max(0, Math.Min(Tiers.Last, floor));
+                        break;
+                    case "saw" when parts.Length == 3 && Stored.TryUnescaped(parts[2], out var other) && other.Length > 0 && other != name:
+                        book._pairs.Add(Pair(name, other));
                         break;
                 }
             }

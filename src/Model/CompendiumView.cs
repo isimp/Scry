@@ -3,11 +3,12 @@ using System.Collections.Generic;
 
 namespace Scry
 {
-    /// <summary>Which ruleset the compendium follows: none, or a known entry shown whole.</summary>
+    /// <summary>Which ruleset the compendium follows: none, a known entry shown whole, or of how it connects only what the character witnessed.</summary>
     internal enum CompendiumRule
     {
         Off,
         Loose,
+        Strict,
     }
 
     /// <summary>
@@ -33,6 +34,7 @@ namespace Scry
         private readonly Dictionary<string, List<Entry>> _rooms = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
         private readonly Dictionary<Entry, KnownLevel> _levels = new Dictionary<Entry, KnownLevel>();
         private readonly Dictionary<Entry, Entry> _because = new Dictionary<Entry, Entry>();
+        private readonly HashSet<(Entry, Entry)> _owns = new HashSet<(Entry, Entry)>();
 
         private CompendiumBook _book;
         private int _bookVersion = -1;
@@ -118,6 +120,12 @@ namespace Scry
             _floorMoved = true;
         }
 
+        /// <summary>Whether an entry is one of a known owner's own parts: what it plays, leaves behind or links to as its own.</summary>
+        public bool Owns(Entry owner, Entry owned) => owner != null && owned != null && _owns.Contains((owner, owned));
+
+        /// <summary>Whether the character saw two entries go together, either way round (<see cref="CompendiumBook.Witness"/>).</summary>
+        public bool Witnessed(Entry a, Entry b) => a != null && b != null && _book != null && _book.Witnessed(a.Key, b.Key);
+
         /// <summary>Whether an entry's tier is at or below the floor, so it shows whatever the book holds of it.</summary>
         public bool BelowFloor(Entry entry) => entry != null && _floor > 0 && _tiers != null && _tiers.TryGetValue(entry.Key, out var tier) && tier <= _floor;
 
@@ -138,6 +146,7 @@ namespace Scry
             Version++;
             _levels.Clear();
             _because.Clear();
+            _owns.Clear();
             if (rule == CompendiumRule.Off) return;
 
             var met = new Queue<Entry>();
@@ -146,7 +155,8 @@ namespace Scry
                 var level = entry.Kind == Kind.Mod || BelowFloor(entry) ? KnownLevel.Known : book.Level(entry.Key);
                 if (level == KnownLevel.Unknown) continue;
                 _levels[entry] = level;
-                if (level >= KnownLevel.Seen) met.Enqueue(entry);
+                // Strict: only what is known brings its parts along, not what was only seen.
+                if (level >= (rule == CompendiumRule.Strict ? KnownLevel.Known : KnownLevel.Seen)) met.Enqueue(entry);
             }
 
             // What a seen or known entry owns is known, and owns in turn: an effect's own sounds.
@@ -155,6 +165,7 @@ namespace Scry
                 var owner = met.Dequeue();
                 foreach (var owned in Owned(owner))
                 {
+                    _owns.Add((owner, owned));
                     if (Of(owned) == KnownLevel.Known) continue;
                     _levels[owned] = KnownLevel.Known;
                     _because[owned] = owner;
