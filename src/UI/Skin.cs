@@ -76,8 +76,8 @@ namespace Scry
         public static GUIStyle RowName, RowSub, Glyph, Center, CenterDim;
         public static GUIStyle Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close;
 
-        /// <summary>The compendium's own controls at the front of the tabs row, outlined so they read as settings, not filters: lit while it is on, and their arrows.</summary>
-        public static GUIStyle Mode, ModeOn, ModeArrow;
+        /// <summary>The compendium's own controls in the title row, outlined so they read as settings, not filters: lit while it is on, their label, and the arrows inside the outline.</summary>
+        public static GUIStyle Mode, ModeOn, ModeText, ModeTextOn, ModeArrow;
         public static GUIStyle Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross;
         public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps;
 
@@ -414,7 +414,9 @@ namespace Scry
             SegmentOn = Boxed(Style(12f, OnAccent, FontStyle.Bold, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Rounded, scale);
             Mode = Outlined(Style(12f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Alpha(Accent, 0.45f), scale);
             ModeOn = Outlined(Style(12f, Accent, FontStyle.Normal, TextAnchor.MiddleCenter), Alpha(Accent, 0.14f), Alpha(Accent, 0.22f), Alpha(Accent, 0.30f), Accent, scale);
-            ModeArrow = Outlined(Style(12f, Accent, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Alpha(Accent, 0.45f), scale);
+            ModeText = Style(12f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
+            ModeTextOn = Style(12f, Accent, FontStyle.Normal, TextAnchor.MiddleCenter);
+            ModeArrow = Boxed(Style(17f, Accent, FontStyle.Bold, TextAnchor.MiddleCenter), Color.clear, Alpha(Accent, 0.20f), Alpha(Accent, 0.32f), Rounded, scale);
             Close = Boxed(Style(20f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Color.clear, RaisedHover, Shade(RaisedHover, 1.3f), Rounded, scale);
             Close.hover.textColor = Skin.Text;
             Close.padding = new RectOffset(0, 0, 0, 0);

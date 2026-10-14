@@ -267,9 +267,6 @@ namespace Scry
                 return clicked;
             }
 
-            // The compendium's mode, and its floor while it is on, lead the row: settings, not filters.
-            CompendiumFront(explorer, ref flow);
-
             if (Tab("All", explorer.CountAll, -1, Skin.Text, explorer.KindFilter == null)) Filter(explorer, null);
             // With the compendium on and nothing narrowing the list, a kind counted so tells what
             // was found of all there is.
@@ -302,26 +299,45 @@ namespace Scry
             return flow.RowBottom;
         }
 
+        private static float _frontScale = -1f, _modeW, _floorW;
+
         /// <summary>
-        /// The compendium's controls at the front of the tabs row, once the character's book is
-        /// read: its mode (the rules chosen for this character) and, while it is on, the floor.
+        /// The compendium's controls in the title row, right of everything else there but the
+        /// view button, once the character's book is read and only in the full view: its mode (the
+        /// rules chosen for this character) beside the view button, and while it is on the floor
+        /// to the mode's left, so the mode never moves. Each keeps one width whatever it says, so
+        /// its arrows stay under the pointer while stepped. Left out where they would reach past
+        /// <paramref name="leftmost"/>. Where the drawn controls begin, else <paramref name="right"/>.
         /// </summary>
-        private static void CompendiumFront(Explorer explorer, ref ChipFlow flow)
+        private static float CompendiumFront(Explorer explorer, float right, float y, float height, float leftmost)
         {
             var book = CompendiumKeeper.Book;
-            if (book == null) return;
-            ModeControl(book, ref flow);
-            if (book.Rule != CompendiumRule.Off) FloorControl(explorer, book, ref flow);
+            if (book == null || _compact) return right;
+            if (_frontScale != U(1f))
+            {
+                // The widest each can say, measured once for each size of the panel.
+                _frontScale = U(1f);
+                _modeW = new[] { CompendiumRule.Off, CompendiumRule.Loose, CompendiumRule.Strict }.Max(r => Skin.Width(Skin.ModeText, CompendiumWords.Mode(r)));
+                _floorW = Enumerable.Range(0, Tiers.Last + 1).Max(f => Skin.Width(Skin.ModeText, CompendiumWords.Floor(f)));
+            }
+            var mode = new Rect(right - U(8f) - StepperWidth(_modeW), y, StepperWidth(_modeW), height);
+            if (mode.x < leftmost) return right;
+            ModeControl(book, mode);
+            if (book.Rule == CompendiumRule.Off || CompendiumKeeper.Ceiling == 0 && book.Floor == 0) return mode.x;
+            var floor = new Rect(mode.x - U(6f) - StepperWidth(_floorW), y, StepperWidth(_floorW), height);
+            if (floor.x < leftmost) return mode.x;
+            FloorControl(explorer, book, floor);
+            return floor.x;
         }
 
         /// <summary>The mode: the rules chosen, between arrows stepping to the ones before and after.</summary>
-        private static void ModeControl(CompendiumBook book, ref ChipFlow flow)
+        private static void ModeControl(CompendiumBook book, Rect rect)
         {
             CountDrawn(PanelPart.CompendiumSwitch);
             var rule = book.Rule;
             var before = CompendiumRules.Step(rule, -1);
             var after = CompendiumRules.Step(rule, 1);
-            var (step, lower, middle, raise) = Stepper(ref flow, CompendiumWords.Mode(rule), rule != CompendiumRule.Off, before != rule, after != rule);
+            var (step, lower, middle, raise) = Stepper(rect, CompendiumWords.Mode(rule), rule != CompendiumRule.Off, before != rule, after != rule);
             if (step != 0) Choose(step < 0 ? before : after);
 
             var mouse = Event.current.mousePosition;
@@ -335,14 +351,12 @@ namespace Scry
         /// between arrows lowering and raising it, tier by tier, as far as the bosses that fell in
         /// a row reach (<see cref="CompendiumKeeper.Ceiling"/>).
         /// </summary>
-        private static void FloorControl(Explorer explorer, CompendiumBook book, ref ChipFlow flow)
+        private static void FloorControl(Explorer explorer, CompendiumBook book, Rect rect)
         {
-            var ceiling = CompendiumKeeper.Ceiling;
-            if (ceiling == 0 && book.Floor == 0) return;
             CountDrawn(PanelPart.FloorControl);
             var floor = book.Floor;
-            var canRaise = floor < ceiling && floor < Tiers.Last;
-            var (step, lower, middle, raise) = Stepper(ref flow, CompendiumWords.Floor(floor), floor > 0, floor > 0, canRaise);
+            var canRaise = floor < CompendiumKeeper.Ceiling && floor < Tiers.Last;
+            var (step, lower, middle, raise) = Stepper(rect, CompendiumWords.Floor(floor), floor > 0, floor > 0, canRaise);
             if (step != 0) SetFloor(book, floor + step);
 
             var mouse = Event.current.mousePosition;
@@ -354,28 +368,32 @@ namespace Scry
             }
         }
 
+        /// <summary>The width of a stepped setting whose label is at most so wide: the label, its margins and both arrows.</summary>
+        private static float StepperWidth(float labelW) => labelW + U(12f) + StepperArrow * 2f;
+
+        private static float StepperArrow => U(24f);
+
         /// <summary>
-        /// A setting stepped with arrows, drawn as the compendium's own: its label, lit or not,
-        /// between an arrow down and one up, each only clickable where it leads somewhere. Which
-        /// arrow was clicked (-1, 1, or 0 for none), and where each part was drawn.
+        /// A setting stepped with arrows, drawn as the compendium's own: one outlined box, lit or
+        /// not, holding its label between an arrow down and one up, each only clickable where it
+        /// leads somewhere. Which arrow was clicked (-1, 1, or 0 for none), and where each part was drawn.
         /// </summary>
-        private static (int Step, Rect Lower, Rect Middle, Rect Raise) Stepper(ref ChipFlow flow, string label, bool lit, bool canLower, bool canRaise)
+        private static (int Step, Rect Lower, Rect Middle, Rect Raise) Stepper(Rect rect, string label, bool lit, bool canLower, bool canRaise)
         {
-            var arrowW = U(26f);
-            var labelW = Skin.Width(Skin.Mode, label) + U(16f);
-            var at = flow.Place(arrowW * 2f + labelW + U(4f));
-            var lower = new Rect(at.X, at.Y, arrowW, flow.RowHeight);
-            var middle = new Rect(lower.xMax + U(2f), at.Y, labelW, flow.RowHeight);
-            var raise = new Rect(middle.xMax + U(2f), at.Y, arrowW, flow.RowHeight);
+            var inset = U(2f);
+            var lower = new Rect(rect.x + inset, rect.y + inset, StepperArrow, rect.height - inset * 2f);
+            var raise = new Rect(rect.xMax - inset - StepperArrow, lower.y, StepperArrow, lower.height);
+            var middle = new Rect(lower.xMax, rect.y, raise.x - lower.xMax, rect.height);
             var step = 0;
 
+            GUI.Box(rect, GUIContent.none, Skin.Fitted(lit ? Skin.ModeOn : Skin.Mode, rect));
             var was = GUI.enabled;
             GUI.enabled = was && canLower;
             if (GUI.Button(lower, "\u2039", Skin.Fitted(Skin.ModeArrow, lower))) step = -1;
             GUI.enabled = was && canRaise;
             if (GUI.Button(raise, "\u203A", Skin.Fitted(Skin.ModeArrow, raise))) step = 1;
             GUI.enabled = was;
-            GUI.Label(middle, label, Skin.Fitted(lit ? Skin.ModeOn : Skin.Mode, middle));
+            GUI.Label(middle, label, lit ? Skin.ModeTextOn : Skin.ModeText);
             return (step, lower, middle, raise);
         }
 

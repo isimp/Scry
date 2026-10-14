@@ -77,7 +77,7 @@ namespace Scry
         private static CompendiumRule? _ruleBefore;
 
         /// <summary>
-        /// The switch in the tabs row chooses the rules for the character played: the list
+        /// The mode in the title row chooses the rules for the character played: the list
         /// follows, and the choice is kept in its book at once. The rules it had are put back.
         /// </summary>
         private static IEnumerator CompendiumChosen(Probe p)
@@ -92,9 +92,19 @@ namespace Scry
             if (!Session.IsOpen) Session.Show(null);
             KeepView();
 
+            // In the compact view the title row holds no mode; in the full view it does.
+            ScryPanel.Compact = true;
+            var repaints = ScryPanel.Repaints;
+            yield return Until(() => ScryPanel.Repaints >= repaints + 2, 3);
             var drawn = ScryPanel.Drawn(PanelPart.CompendiumSwitch);
+            repaints = ScryPanel.Repaints;
+            yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
+            p.Check(ScryPanel.Repaints >= repaints + 3 && ScryPanel.Drawn(PanelPart.CompendiumSwitch) == drawn, "in the compact view the title row holds no mode",
+                $"drawn {Numbers.Count(ScryPanel.Drawn(PanelPart.CompendiumSwitch) - drawn)} times in {Numbers.Count(ScryPanel.Repaints - repaints)} repaints");
+            ScryPanel.Compact = false;
+            drawn = ScryPanel.Drawn(PanelPart.CompendiumSwitch);
             yield return Until(() => ScryPanel.Drawn(PanelPart.CompendiumSwitch) > drawn + 1, 3);
-            p.Check(ScryPanel.Drawn(PanelPart.CompendiumSwitch) > drawn, $"its mode leads the tabs row, at {chosen}");
+            p.Check(ScryPanel.Drawn(PanelPart.CompendiumSwitch) > drawn, $"in the full view its mode stands in the title row, at {chosen}");
 
             var other = chosen == CompendiumRule.Strict ? CompendiumRule.Loose : CompendiumRule.Strict;
             ScryPanel.Choose(other);

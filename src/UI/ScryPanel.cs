@@ -259,7 +259,9 @@ namespace Scry
             var clearText = ClearText(outLines);
             var clearW = outLines > 0 ? Skin.Width(Skin.Button, clearText) + U(10f) : 0f;
             var viewRect = new Rect(w - pad - U(40f) - viewW, U(15f), viewW, U(28f));
-            var clearRect = new Rect(viewRect.x - (outLines > 0 ? U(8f) + clearW : 0f), viewRect.y, clearW, viewRect.height);
+            // The compendium's mode and floor beside the view button, what else the row holds to their left.
+            var front = CompendiumFront(explorer, viewRect.x, viewRect.y, viewRect.height, pad + U(98f));
+            var clearRect = new Rect(front - (outLines > 0 ? U(8f) + clearW : 0f), viewRect.y, clearW, viewRect.height);
 
             // Reading the locations completes what the search and the details know, so it is
             // offered here too until it is done; while reading it shows how far it has got. Its

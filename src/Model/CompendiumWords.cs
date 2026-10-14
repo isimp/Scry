@@ -32,7 +32,7 @@ namespace Scry
         /// <summary>The title of a list of what there is (what a mod adds) with the compendium on: how many of it the character has seen, which are all it shows.</summary>
         public static string Found(string title, int found) => $"{title}, {Numbers.Count(found)} found";
 
-        /// <summary>The compendium's mode at the front of the tabs row: the rules chosen for this character.</summary>
+        /// <summary>The compendium's mode in the title row: the rules chosen for this character.</summary>
         public static string Mode(CompendiumRule rule) => "Compendium: " + RuleName(rule);
 
         /// <summary>The mode's tip.</summary>
