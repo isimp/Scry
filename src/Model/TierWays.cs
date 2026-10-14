@@ -17,11 +17,18 @@ namespace Scry
             Needs = needs ?? Array.Empty<(string, int)>();
         }
 
+        /// <summary>A piece's cost: built with a tool, not made at a station alone (<see cref="TierWays.Building"/>).</summary>
+        public static MakingWay Piece(string target, string place, params (string Name, int Amount)[] needs) =>
+            new MakingWay(target, place, needs) { Built = true };
+
         public string Target { get; }
 
         public string Place { get; }
 
         public IReadOnlyList<(string Name, int Amount)> Needs { get; }
+
+        /// <summary>Whether it is a piece's cost, so a tool builds it.</summary>
+        public bool Built { get; private set; }
     }
 
     /// <summary>One way a raid comes to be ready: the keys it waits for and the items it waits to be known.</summary>
@@ -51,13 +58,26 @@ namespace Scry
         /// Adds a way to make a thing: every ingredient making it once takes (one asked for in
         /// no amount is only asked for by an upgrade), and its station where that is a thing of
         /// its own. What is no thing of its own (<paramref name="keyOf"/> gives none) is left out.
-        /// <paramref name="from"/> tells a recipe or piece cost from a station's making.
+        /// <paramref name="from"/> tells a recipe from a station's making; a piece's cost goes by <see cref="Building"/>.
         /// </summary>
-        public static void Making(TierPass pass, MakingWay way, Func<string, string> keyOf, WayFrom from = WayFrom.Crafted)
+        public static void Making(TierPass pass, MakingWay way, Func<string, string> keyOf, WayFrom from = WayFrom.Crafted) => Make(pass, way, keyOf, from, null);
+
+        /// <summary>
+        /// Adds the ways to build a piece: its cost and station with each of the tools that build
+        /// it, a way of its own for each. A piece no tool builds, as the world's chests and the
+        /// like are, is no way in: its cost only tells what breaking it gives back.
+        /// </summary>
+        public static void Building(TierPass pass, MakingWay way, IEnumerable<string> tools, Func<string, string> keyOf)
+        {
+            foreach (var tool in tools ?? Array.Empty<string>()) Make(pass, way, keyOf, WayFrom.Crafted, tool);
+        }
+
+        private static void Make(TierPass pass, MakingWay way, Func<string, string> keyOf, WayFrom from, string tool)
         {
             var target = keyOf(way.Target);
             if (target == null) return;
             var needs = new List<string>();
+            if (tool != null) Need(needs, keyOf(tool), target);
             foreach (var (name, amount) in way.Needs)
             {
                 if (amount <= 0) continue;

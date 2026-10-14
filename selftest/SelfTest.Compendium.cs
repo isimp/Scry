@@ -183,12 +183,12 @@ namespace Scry
             p.Check(CompendiumLink.Answered > answered && CompendiumLink.LastTold == kinds.Count, "a map sent to the world's server is answered with the same kinds", $"{Numbers.Count(CompendiumLink.LastTold)} told, {Numbers.Count(kinds.Count)} read here");
         }
 
-        /// <summary>Things whose tier the game's progression fixes: iron gear in the Swamp's, black metal in the Plains', each boss in its own, Fulings, hens and cloudberries the Plains', eitr mead the Mistlands'.</summary>
+        /// <summary>Things whose tier the game's progression fixes: iron gear in the Swamp's, black metal in the Plains', each boss in its own, Fulings, hens and cloudberries the Plains', eitr mead the Mistlands', the workbench, built with the hammer, the Meadows'.</summary>
         private static readonly (string Name, int Tier)[] KnownTiers =
         {
             ("Eikthyr", 1), ("gd_king", 2), ("Bonemass", 3), ("Dragon", 4), ("GoblinKing", 5), ("SeekerQueen", 6), ("Fader", 7),
             ("Troll", 2), ("SwordIron", 3), ("SwordBlackmetal", 5), ("Lox", 5), ("Wood", 1),
-            ("Goblin", 5), ("Hen", 5), ("Egg", 5), ("Cloudberry", 5), ("MeadEitrMinor", 6),
+            ("Goblin", 5), ("Hen", 5), ("Egg", 5), ("Cloudberry", 5), ("MeadEitrMinor", 6), ("piece_workbench", 1),
         };
 
         /// <summary>

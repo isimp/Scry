@@ -316,7 +316,7 @@ namespace Scry
                             Uses.Add(need.m_resItem.gameObject.name, UseKind.Builds, prefab.name, need.m_amount, near);
                             cost.Add((need.m_resItem.gameObject.name, need.m_amount));
                         }
-                        if (cost.Count > 0) Crafted.Add(new MakingWay(prefab.name, near, cost.ToArray()));
+                        if (cost.Count > 0) Crafted.Add(MakingWay.Piece(prefab.name, near, cost.ToArray()));
                         break;
                     case CraftingStation craft when craft.m_upgrader && UpgradeStation == null:
                         UpgradeStation = prefab.name;

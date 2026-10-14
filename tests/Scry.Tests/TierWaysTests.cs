@@ -189,6 +189,28 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APieceIsMadeOnlyWithAToolThatBuildsItSoAWorldChestsCostGivesNothing()
+        {
+            var (pass, keyOf) = Known(("Wood", 1), ("Hammer", 1), ("piece_workbench", 1), ("Cultivator", 2), ("HammerOfMods", 4));
+            // Built with the hammer at a workbench: its cost, its station and the hammer.
+            TierWays.Building(pass, MakingWay.Piece("piece_chest", "piece_workbench", ("Wood", 10)), new[] { "Hammer" }, keyOf);
+            // A world chest's cost only tells what breaking it gives back: no tool builds it.
+            TierWays.Building(pass, MakingWay.Piece("TreasureChest_heath_hildir", "piece_workbench", ("Wood", 10)), Array.Empty<string>(), keyOf);
+            // Planted with the cultivator; built with either of two tools, the cheaper one.
+            TierWays.Building(pass, MakingWay.Piece("sapling", null, ("Wood", 1)), new[] { "Cultivator" }, keyOf);
+            TierWays.Building(pass, MakingWay.Piece("bench", null, ("Wood", 4)), new[] { "HammerOfMods", "Hammer" }, keyOf);
+            var tiers = pass.Work();
+
+            Assert.Equal(1, tiers["piece_chest"]);
+            Assert.False(tiers.ContainsKey("TreasureChest_heath_hildir"));
+            Assert.Equal(2, tiers["sapling"]);
+            Assert.Equal(1, tiers["bench"]);
+            Assert.Contains("Hammer", pass.WayIn("piece_chest", tiers).Value.Needs);
+            Assert.True(MakingWay.Piece("bench", null).Built);
+            Assert.False(new MakingWay("SwordIron", "forge").Built);
+        }
+
+        [Fact]
         public void ARaidComesNoSoonerThanTheWeakestCreatureItBrings()
         {
             var (pass, keyOf) = Known(("Boar", 1), ("Goblin", 5), ("Seeker", 6));

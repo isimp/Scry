@@ -105,8 +105,12 @@ namespace Scry
                 }
             }
 
-            // Each recipe and piece cost a way of its own: all it takes to make it once, and its station.
-            foreach (var way in Knowledge.CraftWays) TierWays.Making(pass, way, KeyOf);
+            // Each recipe and piece cost a way of its own: all it takes to make it once and its station; a piece with each tool that builds it.
+            foreach (var way in Knowledge.CraftWays)
+            {
+                if (way.Built) TierWays.Building(pass, way, Knowledge.Tools.ToolsOf(way.Target).Select(u => u.Tool), KeyOf);
+                else TierWays.Making(pass, way, KeyOf);
+            }
             return pass;
         }
 
