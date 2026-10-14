@@ -39,6 +39,7 @@ namespace Scry
         MapBar,
         FloorMark,
         FloorLine,
+        StrictLeftOut,
     }
 
     internal static partial class ScryPanel

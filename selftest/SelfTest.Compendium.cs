@@ -512,13 +512,21 @@ namespace Scry
                 view.Tell(book, CompendiumRule.Strict);
                 X.Select(fought);
                 var strictFaults = Faults.Count;
+                var leftLines = ScryPanel.Drawn(PanelPart.StrictLeftOut);
                 repaints = ScryPanel.Repaints;
                 yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
                 p.Check(X.LeavingOut && !X.LeavesOut(drops[0].Key) && X.LeavesOut(drops[1].Key), $"under the strict rules its page keeps {drops[0].Name}, seen fall, and leaves out {drops[1].Name}");
+                p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) > leftLines, "and says faintly at the end of its loot how many more were not yet seen fall");
                 p.Check(Faults.Count == strictFaults, "and draws without fault", Faults.Latest);
                 var drawn = ScryPanel.AsDrawn(X, $"Feared by {unseen.ShownName} alone.");
                 p.Check(drawn.Contains(CompendiumWords.Hidden) && !drawn.Contains(unseen.ShownName), $"its text keeps back the name of {unseen.Name}, never met", drawn);
                 view.Tell(book, CompendiumRule.Loose);
+                // Under the loose rules nothing is left out, so no section says so.
+                yield return Until(() => !X.LeavingOut, 3);
+                var looseLines = ScryPanel.Drawn(PanelPart.StrictLeftOut);
+                repaints = ScryPanel.Repaints;
+                yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
+                p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) == looseLines, "under the loose rules no section says anything was left out");
             }
 
             // A tree known lists only the tools seen that break it: none here, so its Broken with is left out.

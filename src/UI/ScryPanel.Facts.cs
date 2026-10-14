@@ -56,7 +56,15 @@ namespace Scry
         {
             // A line only naming what the page lists waits until the character has seen it; under
             // the strict rules a line naming what was not seen together with the page is left out.
-            if (facts.Links.TryGetValue(pair.Key, out var linked) && ((facts.Listing.Contains(pair.Key) && LeftOut(explorer, linked)) || explorer.LeavesOut(linked))) return y;
+            if (facts.Links.TryGetValue(pair.Key, out var linked))
+            {
+                if (facts.Listing.Contains(pair.Key) && LeftOut(explorer, linked)) return y;
+                if (explorer.LeavesOut(linked))
+                {
+                    StrictLeft(1);
+                    return y;
+                }
+            }
             // Under the strict rules the names of what was not seen are kept back in its text.
             var value = Masked(explorer, pair.Value);
             var valueW = width - labelW - U(10f);
@@ -188,6 +196,7 @@ namespace Scry
             // searching; a biome's own page names none.
             if (entry.Biomes.Length > 0 && entry.Kind != Kind.Biome)
             {
+                StrictLeft(entry.Biomes.Count(b => explorer.LeavesOut(EntryKeys.For(Kind.Biome, b))));
                 y = ChipRow("Biomes", entry.Biomes.Where(b => !explorer.LeavesOut(EntryKeys.For(Kind.Biome, b))).Select(b =>
                 {
                     var page = EntryKeys.For(Kind.Biome, b);
@@ -377,7 +386,11 @@ namespace Scry
         /// <summary>A chain's steps, an arrow between each, the page's own lit and each other one going to its page.</summary>
         private static float ChainRow(Explorer explorer, Facts.Row row, float width, float y)
         {
-            if (explorer.LeavingOut && row.Chain.Steps.Any(step => step.Any(explorer.LeavesOut))) return y;
+            if (explorer.LeavingOut && row.Chain.Steps.Any(step => step.Any(explorer.LeavesOut)))
+            {
+                StrictLeft(1);
+                return y;
+            }
             y += U(6f);
             GUI.Label(new Rect(0f, y, width, U(20f)), row.Title, Skin.DimLabel);
             y += U(24f);
@@ -587,18 +600,27 @@ namespace Scry
         private static List<(string Key, string Text, string Tip, Action Click)> FoundInLinks(Explorer explorer, Entry entry)
         {
             var strict = explorer.LeavingOut;
-            if (ReferenceEquals(_foundInFor, entry) && ReferenceEquals(_foundInOf, entry.FoundIn) && ReferenceEquals(_foundInIn, explorer) && strict == _foundInStrict) return FoundInItems;
+            if (ReferenceEquals(_foundInFor, entry) && ReferenceEquals(_foundInOf, entry.FoundIn) && ReferenceEquals(_foundInIn, explorer) && strict == _foundInStrict)
+            {
+                StrictLeft(_foundInLeft);
+                return FoundInItems;
+            }
             _foundInFor = entry;
             _foundInOf = entry.FoundIn;
             _foundInIn = explorer;
             _foundInStrict = strict;
+            _foundInLeft = 0;
             FoundInItems.Clear();
             foreach (var place in entry.FoundIn)
             {
                 var name = Places.NameOf(place);
                 var location = Places.LocationNamed(explorer.Catalog, place);
                 // A place with no entry of its own can never be seen together with the page: the strict rules leave it out.
-                if (location == null && strict) continue;
+                if (location == null && strict)
+                {
+                    _foundInLeft++;
+                    continue;
+                }
                 if (location != null)
                 {
                     var key = location.Key;
@@ -617,6 +639,7 @@ namespace Scry
         private static Entry _foundInFor;
         private static string[] _foundInOf;
         private static bool _foundInStrict;
+        private static int _foundInLeft;
         private static Explorer _foundInIn;
 
         private const string LocationsButtonText = "Read all locations";

@@ -29,6 +29,14 @@ namespace Scry.Tests
         private static string Bit(FactBit bit) => bit.Pair >= 0 ? Pair(bit.Pair) : bit.Row >= 0 ? "row " + TrollRows[bit.Row].Title : "block " + bit.Block;
 
         [Fact]
+        public void EachTopicKnowsWhatItIsAboutSoWhatTheStrictRulesLeaveOutCanBeToldByIt()
+        {
+            var plan = Troll();
+            Assert.Equal(new[] { "overview", "taming", "riding", "fight", "loot", "lives", "senses", "after", "more", "hooks" }, plan.Select(t => t.Id));
+            Assert.Equal("2 more not yet seen fall", CompendiumWords.LeftOutOf(plan.First(t => t.Heading == "Loot").Id, 2));
+        }
+
+        [Fact]
         public void ATameableCreatureTellsItsTamingFirstThenItsFightLootHomeAndSenses()
         {
             // Taming is why a tameable one's page is opened: right under its tiles.

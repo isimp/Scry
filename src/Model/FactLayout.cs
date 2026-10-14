@@ -30,6 +30,8 @@ namespace Scry
     /// <summary>A topic of the page: its small heading (none for the first, the headline tiles), its tiles and what follows them.</summary>
     internal sealed class FactTopicPlan
     {
+        /// <summary>What the topic is about, as the layout names it ("loot", "fight", "lives"), whether or not it has a heading.</summary>
+        public string Id;
         public string Heading;
         public readonly List<int> Tiles = new List<int>();
         public readonly List<FactBit> Bits = new List<FactBit>();
@@ -443,7 +445,7 @@ namespace Scry
         {
             if (!Kinds.TryGetValue(kind, out var plan)) return null;
             var topics = new Dictionary<string, FactTopicPlan>(StringComparer.Ordinal);
-            foreach (var (id, heading) in plan.Topics) topics[id] = new FactTopicPlan { Heading = heading };
+            foreach (var (id, heading) in plan.Topics) topics[id] = new FactTopicPlan { Id = id, Heading = heading };
 
             string TopicOf(string label, string part)
             {

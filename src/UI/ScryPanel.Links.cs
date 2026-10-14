@@ -365,6 +365,35 @@ namespace Scry
             return MaskedTexts[text] = _mask.Apply(text);
         }
 
+        /// <summary>How many things the strict rules left out of the section being drawn, for its last line (<see cref="StrictLeftLine"/>).</summary>
+        private static int _strictLeft;
+
+        /// <summary>A section begins: what the strict rules leave out is counted afresh.</summary>
+        private static void StrictSectionStarts() => _strictLeft = 0;
+
+        /// <summary>Counts things the strict rules left out of the section being drawn.</summary>
+        private static void StrictLeft(int count)
+        {
+            if (count > 0) _strictLeft += count;
+        }
+
+        /// <summary>
+        /// Under the strict rules, what the section just drawn left out, said faintly at its end
+        /// by what the section is about (<see cref="CompendiumWords.LeftOutOf"/>); nothing where
+        /// nothing was. Starts the count afresh for the next section.
+        /// </summary>
+        private static float StrictLeftLine(Explorer explorer, string topic, float width, float y)
+        {
+            var left = _strictLeft;
+            _strictLeft = 0;
+            var said = explorer.LeavingOut ? CompendiumWords.LeftOutOf(topic, left) : null;
+            if (said == null) return y;
+            CountDrawn(PanelPart.StrictLeftOut);
+            var line = new Rect(U(6f), y + U(2f), width - U(6f), U(20f));
+            if (!FitLabel(line, said, Skin.FaintLabel, 10f) && line.Contains(Event.current.mousePosition)) AskTip("strict-left:" + topic, said);
+            return y + U(24f);
+        }
+
         private static readonly Dictionary<object, object> StrictLists = new Dictionary<object, object>();
         private static Explorer _strictIn;
         private static int _strictStamp;
@@ -373,7 +402,8 @@ namespace Scry
         /// <summary>
         /// What a list on the page shown keeps under the strict rules (<see cref="Explorer.LeavesOut"/>):
         /// what was seen together with the page or is part of it; all of it otherwise. Worked out
-        /// once for each list while what the character knows and the page stay the same.
+        /// once for each list while what the character knows and the page stay the same. What it
+        /// leaves out is counted for the section's last line (<see cref="StrictLeft"/>).
         /// </summary>
         private static IReadOnlyList<T> ShownStrictly<T>(Explorer explorer, IReadOnlyList<T> items, Func<T, string> key)
         {
@@ -385,11 +415,16 @@ namespace Scry
                 _strictSelection = explorer.SelectionVersion;
                 StrictLists.Clear();
             }
-            if (StrictLists.TryGetValue(items, out var had)) return (IReadOnlyList<T>)had;
+            if (StrictLists.TryGetValue(items, out var had))
+            {
+                StrictLeft(items.Count - ((IReadOnlyList<T>)had).Count);
+                return (IReadOnlyList<T>)had;
+            }
             var kept = new List<T>();
             foreach (var item in items) if (!explorer.LeavesOut(key(item))) kept.Add(item);
             IReadOnlyList<T> shown = kept.Count == items.Count ? items : kept;
             StrictLists[items] = shown;
+            StrictLeft(items.Count - shown.Count);
             return shown;
         }
 

@@ -66,9 +66,11 @@ namespace Scry
             for (var i = 0; i < plan.Count; i++)
             {
                 var topic = plan[i];
+                StrictSectionStarts();
                 if (topic.Heading == null)
                 {
                     y = TopicBody(explorer, entry, facts, topic, places, width, Mathf.Min(U(130f), width * 0.36f), y);
+                    y = StrictLeftLine(explorer, topic.Id, width, y);
                     continue;
                 }
 
@@ -80,6 +82,7 @@ namespace Scry
                 try
                 {
                     y = TopicBody(explorer, entry, facts, topic, places, inner, labelW, y);
+                    y = StrictLeftLine(explorer, topic.Id, inner, y);
                 }
                 finally
                 {
@@ -189,7 +192,11 @@ namespace Scry
             {
                 var (cells, link) = row.Lines[l];
                 // A line of what was not seen together with the page (an attack never seen) is left out.
-                if (!string.IsNullOrEmpty(link) && explorer.LeavesOut(link)) continue;
+                if (!string.IsNullOrEmpty(link) && explorer.LeavesOut(link))
+                {
+                    StrictLeft(1);
+                    continue;
+                }
                 var height = U(20f);
                 for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++) height = Mathf.Max(height, Skin.Height(Skin.SmallWrap, cells[c], ColumnWidths[c]));
                 var line = new Rect(0f, y, width, height);

@@ -106,6 +106,27 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatTheStrictRulesLeaveOutOfASectionIsToldAtItsEndByWhatTheSectionIsAbout()
+        {
+            // Drops not seen fall, attacks not seen hit, places a creature lives not met in, givers not seen give it.
+            Assert.Equal("2 more not yet seen fall", CompendiumWords.LeftOutOf("loot", 2));
+            Assert.Equal("1 more not yet seen hit", CompendiumWords.LeftOutOf("fight", 1));
+            Assert.Equal("1 more place it lives not yet met in", CompendiumWords.LeftOutOf("lives", 1));
+            Assert.Equal("3 more places it lives not yet met in", CompendiumWords.LeftOutOf("lives", 3));
+            Assert.Equal("2 more not yet seen give it", CompendiumWords.LeftOutOf("from", 2));
+            // Any other section, or one with no name of its own, says it of being seen together.
+            Assert.Equal("4 more not yet seen together", CompendiumWords.LeftOutOf("making", 4));
+            Assert.Equal("1,200 more not yet seen together", CompendiumWords.LeftOutOf(null, 1200));
+        }
+
+        [Fact]
+        public void ASectionTheStrictRulesLeftNothingOutOfTellsNothing()
+        {
+            Assert.Null(CompendiumWords.LeftOutOf("loot", 0));
+            Assert.Null(CompendiumWords.LeftOutOf("lives", -1));
+        }
+
+        [Fact]
         public void TheListOfWhatWasLearnedLatelySaysWhatItHolds()
         {
             Assert.Equal("Learned", CompendiumWords.LearnedTab);

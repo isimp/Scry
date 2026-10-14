@@ -45,6 +45,7 @@ namespace Scry
 
             y = SectionHeading("EFFECTS", width, y, null, "effects", lists.Count);
             if (IsFolded("effects")) return y;
+            StrictSectionStarts();
             var rowH = U(26f);
 
             if (lists.Count > 12 || _effectFilter.Length > 0)
@@ -101,6 +102,7 @@ namespace Scry
                 }
             }
 
+            y = StrictLeftLine(explorer, null, width, y);
             return y + U(14f);
         }
 
@@ -228,6 +230,7 @@ namespace Scry
 
             y = SectionHeading("PLAYS IN", width, y, null, "playsin", rows.Count);
             if (IsFolded("playsin")) return y;
+            StrictSectionStarts();
             // Each row is a list of its own, so fewer show before the rest are asked for.
             const int firstRows = 8;
             var rowH = U(26f);
@@ -268,7 +271,11 @@ namespace Scry
                 for (var o = 0; o < shownOwners; o++)
                 {
                     var owner = row.Owners[o];
-                    if (owner.Key != null && explorer.LeavesOut(owner.Key)) continue;
+                    if (owner.Key != null && explorer.LeavesOut(owner.Key))
+                    {
+                        StrictLeft(1);
+                        continue;
+                    }
                     var shown = row.Names != null && o < row.Names.Length ? row.Names[o] : ShownName(explorer, owner.Key, owner.Shown);
                     var go = owner.Key != null && Goes(explorer, owner.Key);
                     var w = Mathf.Min(width, LinkChipWidth(shown, go));
@@ -286,6 +293,7 @@ namespace Scry
                 y += U(6f);
             }
 
+            y = StrictLeftLine(explorer, null, width, y);
             var more = new ChipFlow(0f, width, y, rowH, U(5f), U(5f));
             MoreChip("playsin", rows.Count, firstRows, width, ref more);
             return more.Below + U(14f);
