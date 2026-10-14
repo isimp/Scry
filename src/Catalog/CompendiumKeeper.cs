@@ -35,6 +35,7 @@ namespace Scry
         private static CompendiumCatchUp _catchUp;
         private static EntryCatalog _catchUpOf;
         private static int _recordsSize = -1;
+        private static string _recordsPower;
         private static float _lookedAt;
         private static float _savedAt;
 
@@ -74,9 +75,11 @@ namespace Scry
             {
                 _lookedAt = Time.unscaledTime;
                 var size = CharacterRecords.Size(player, profile);
-                if (size != _recordsSize)
+                var power = CharacterRecords.Power(player);
+                if (size != _recordsSize || power != _recordsPower)
                 {
                     _recordsSize = size;
+                    _recordsPower = power;
                     CharacterRecords.Read(player, profile, Records);
                     _catchUp.Fill(Records, _book, quietly: !_caughtUp);
                     if (!ReferenceEquals(_bossesOf, catalog))
@@ -110,14 +113,7 @@ namespace Scry
                 if (effect != null) _catchUp.Met(EntryKeys.For(Kind.StatusEffect, Utils.GetPrefabName(effect.name)), KnownLevel.Known, _book);
             }
             var raid = RandEventSystem.instance.OrNull()?.GetActiveEvent();
-            if (raid != null)
-            {
-                var key = EntryKeys.For(Kind.Raid, raid.m_name);
-                _catchUp.Met(key, KnownLevel.Known, _book);
-                // Lived through with the creatures it brings that the character met.
-                var brings = WorldCatalog.Find(key)?.TermLinks("spawns");
-                if (brings != null) foreach (var creature in brings) if (_book.Level(creature.Key) >= KnownLevel.Seen) _book.Witness(key, creature.Key);
-            }
+            if (raid != null) _catchUp.LivedThrough(EntryKeys.For(Kind.Raid, raid.m_name), _book);
             var place = Location.GetLocation(player.transform.position);
             if (place != null) _catchUp.Met(EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)), KnownLevel.Known, _book);
             var hovered = player.GetHoverObject();

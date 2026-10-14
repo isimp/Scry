@@ -56,6 +56,9 @@ namespace Scry
             known.AddRange(Named(records.Biomes.SelectMany(area => area.Split(' ')), Kind.Biome));
             var givers = Givers(known);
             known.AddRange(givers.Keys);
+            // The guardian power chosen: its stone told of it, and the character carries it.
+            var powers = records.Powers.Select(p => _catalog.Find(EntryKeys.For(Kind.StatusEffect, p))).Where(e => e != null && e.Kind == Kind.StatusEffect).ToList();
+            known.AddRange(powers);
 
             var raised = Raise(book, known, KnownLevel.Known, quietly)
                 + Raise(book, Named(records.Materials, Kind.Item), KnownLevel.Seen, quietly)
@@ -64,6 +67,11 @@ namespace Scry
             foreach (var given in givers)
             {
                 foreach (var giver in given.Value) book.Witness(given.Key.Key, giver);
+            }
+            // A power is chosen at its stone: paired with the stones that give it the character has seen.
+            foreach (var power in powers)
+            {
+                foreach (var link in power.Links) if (link.Group == LinkWords.GivenBy && book.Level(link.Target) >= KnownLevel.Seen) book.Witness(power.Key, link.Target);
             }
             return raised;
         }
@@ -120,6 +128,22 @@ namespace Scry
 
         /// <summary>Learns of an entry met in play, by its key, as news; true when that is more than was known. What the catalog has no entry for is passed over.</summary>
         public bool Met(string key, KnownLevel level, CompendiumBook book) => _catalog.Find(key) != null && book.Raise(key, level);
+
+        /// <summary>
+        /// The raid the character is in, as news: known, and paired with the creatures it brings
+        /// that the character has met, for the strict rules. True when it was learned more of.
+        /// </summary>
+        public bool LivedThrough(string raid, CompendiumBook book)
+        {
+            var entry = _catalog.Find(raid);
+            if (entry == null) return false;
+            var raised = book.Raise(entry.Key, KnownLevel.Known);
+            foreach (var creature in entry.TermLinks("spawns"))
+            {
+                if (book.Level(creature.Key) >= KnownLevel.Seen) book.Witness(entry.Key, creature.Key);
+            }
+            return raised;
+        }
 
         /// <summary>The entries of a kind going by any of these names.</summary>
         private IEnumerable<Entry> Named(IEnumerable<string> tokens, Kind kind)

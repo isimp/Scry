@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using HarmonyLib;
 
@@ -6,7 +7,7 @@ namespace Scry
     /// <summary>
     /// Reads what the game keeps of the character being played into <see cref="CompendiumRecords"/>:
     /// the player's own sets, private to it (<c>Player.m_knownMaterial</c>, <c>m_knownRecipes</c>,
-    /// <c>m_knownStations</c>, <c>m_knownBiome</c>, <c>m_trophies</c>, <c>m_uniques</c>), and the statistics its
+    /// <c>m_knownStations</c>, <c>m_knownBiome</c>, <c>m_trophies</c>, <c>m_uniques</c>, the guardian power chosen), and the statistics its
     /// profile counts (<c>PlayerProfile.m_playerStats</c>, the first set, which counts everything).
     /// </summary>
     internal static class CharacterRecords
@@ -18,14 +19,15 @@ namespace Scry
         private static AccessTools.FieldRef<Player, HashSet<string>> _trophies;
         private static AccessTools.FieldRef<Player, HashSet<string>> _uniques;
 
-        /// <summary>How many records there are in all; it grows whenever any of them does.</summary>
+        /// <summary>How many records there are in all, the power chosen one of them; it grows whenever any of them does, but a power chosen in place of another (<see cref="Power"/>).</summary>
         public static int Size(Player player, PlayerProfile profile)
         {
             Bind();
             var stats = profile.m_playerStats[0];
             return _materials(player).Count + _recipes(player).Count + _stations(player).Count + _biomes(player).Count + _trophies(player).Count + _uniques(player).Count
                 + stats.m_enemyStats[0].Count + stats.m_itemPickupStats.Count + stats.m_itemCraftStats.Count + stats.m_foodEatenStats.Count
-                + stats.m_pickableStats.Count + stats.m_piecesPlacedStats.Count;
+                + stats.m_pickableStats.Count + stats.m_piecesPlacedStats.Count
+                + (Power(player).Length > 0 ? 1 : 0);
         }
 
         /// <summary>Puts every record into <paramref name="into"/>, in place of what it held.</summary>
@@ -45,7 +47,12 @@ namespace Scry
             Copy(stats.m_foodEatenStats.Keys, into.Eaten);
             Copy(stats.m_pickableStats.Keys, into.Picked);
             Copy(stats.m_piecesPlacedStats.Keys, into.Placed);
+            var power = Power(player);
+            Copy(power.Length > 0 ? new[] { power } : Array.Empty<string>(), into.Powers);
         }
+
+        /// <summary>The guardian power the character chose at a boss stone, by its status effect's prefab; empty before one is chosen.</summary>
+        public static string Power(Player player) => player.GetGuardianPowerName() ?? "";
 
         private static void Bind()
         {

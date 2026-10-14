@@ -6,9 +6,9 @@ namespace Scry
     /// <summary>
     /// What the game itself keeps of a character, as plain names, for the compendium to catch up
     /// with (<see cref="CompendiumCatchUp"/>): the player's own records (<c>Player.m_knownMaterial</c>,
-    /// <c>m_knownRecipes</c>, <c>m_knownStations</c>, <c>m_knownBiome</c>, <c>m_trophies</c>) and
+    /// <c>m_knownRecipes</c>, <c>m_knownStations</c>, <c>m_knownBiome</c>, <c>m_trophies</c>), the guardian power it chose and
     /// what its statistics count (<c>PlayerProfile.m_playerStats</c>). All are the game's name
-    /// tokens (<c>$item_wood</c>) but trophies and things picked, which are prefab names.
+    /// tokens (<c>$item_wood</c>) but trophies, things picked and the power, which are prefab names.
     /// </summary>
     internal sealed class CompendiumRecords
     {
@@ -47,6 +47,9 @@ namespace Scry
 
         /// <summary>The character's own keys: what it has done once, a boss's fall among them.</summary>
         public readonly HashSet<string> Uniques = Names();
+
+        /// <summary>The guardian power chosen at a boss stone, by its status effect's prefab; none before one is chosen.</summary>
+        public readonly HashSet<string> Powers = Names();
 
         private static HashSet<string> Names() => new HashSet<string>(StringComparer.Ordinal);
     }

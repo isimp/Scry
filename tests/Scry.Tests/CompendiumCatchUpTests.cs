@@ -332,5 +332,82 @@ namespace Scry.Tests
             Assert.False(book.Witnessed(mead.Key, troll.Key));
             Assert.False(book.Witnessed(mead.Key, axe.Key));
         }
+
+        [Fact]
+        public void TheGuardianPowerChosenAtAStoneIsKnownAndPairedWithTheStoneSeen()
+        {
+            // Chosen at its boss stone, a power is the character's own even before its first use.
+            var eikthyrStone = E(Kind.Piece, "BossStone_Eikthyr");
+            var elderStone = E(Kind.Piece, "BossStone_TheElder");
+            var eikthyr = new Entry { Kind = Kind.StatusEffect, Name = "GP_Eikthyr" };
+            var elder = new Entry { Kind = Kind.StatusEffect, Name = "GP_TheElder" };
+            eikthyr.Links.Add(new Link { Group = LinkWords.GivenBy, Target = eikthyrStone.Key, Back = true });
+            elder.Links.Add(new Link { Group = LinkWords.GivenBy, Target = elderStone.Key, Back = true });
+            var (catchUp, book) = Fresh(eikthyrStone, elderStone, eikthyr, elder);
+            book.Raise(eikthyrStone.Key, KnownLevel.Seen);
+            var records = new CompendiumRecords();
+            records.Powers.Add("GP_Eikthyr");
+
+            catchUp.Fill(records, book, quietly: false);
+
+            Assert.Equal(KnownLevel.Known, book.Level(eikthyr.Key));
+            Assert.Equal(eikthyr.Key, book.Lately.First());
+            Assert.True(book.Witnessed(eikthyr.Key, eikthyrStone.Key));
+            // Only the power chosen, and its stone stays as it was.
+            Assert.Equal(KnownLevel.Unknown, book.Level(elder.Key));
+            Assert.Equal(KnownLevel.Seen, book.Level(eikthyrStone.Key));
+        }
+
+        [Fact]
+        public void ARaidLivedThroughIsKnownAndPairedWithTheCreaturesItBringsThatWereMet()
+        {
+            var greydwarf = E(Kind.Creature, "Greydwarf");
+            var shaman = E(Kind.Creature, "Greydwarf_Shaman");
+            var raid = new Entry { Kind = Kind.Raid, Name = "foresttrolls" };
+            raid.AddTermLink("spawns", greydwarf);
+            raid.AddTermLink("spawns", shaman);
+            var (catchUp, book) = Fresh(greydwarf, shaman, raid);
+            book.Raise(greydwarf.Key, KnownLevel.Seen);
+
+            Assert.True(catchUp.LivedThrough(raid.Key, book));
+
+            Assert.Equal(KnownLevel.Known, book.Level(raid.Key));
+            Assert.Equal(raid.Key, book.Lately.First());
+            Assert.True(book.Witnessed(raid.Key, greydwarf.Key));
+            // A creature it brings that the character never met is no part of what it lived through.
+            Assert.False(book.Witnessed(raid.Key, shaman.Key));
+            // Lived through again, it is no news, and what was met meanwhile is paired.
+            book.Raise(shaman.Key, KnownLevel.Known);
+            Assert.False(catchUp.LivedThrough(raid.Key, book));
+            Assert.True(book.Witnessed(raid.Key, shaman.Key));
+        }
+
+        [Fact]
+        public void ARaidTheCatalogLacksIsPassedOver()
+        {
+            var (catchUp, book) = Fresh(E(Kind.Creature, "Greydwarf"));
+
+            Assert.False(catchUp.LivedThrough("raid:modsraid", book));
+            Assert.Equal(0, book.Pairs);
+            Assert.Empty(book.Lately);
+        }
+
+        [Fact]
+        public void APowerChosenWhoseStoneWasNeverSeenIsKnownButPairedWithNothing()
+        {
+            var stone = E(Kind.Piece, "BossStone_Bonemass");
+            var power = new Entry { Kind = Kind.StatusEffect, Name = "GP_Bonemass" };
+            power.Links.Add(new Link { Group = LinkWords.GivenBy, Target = stone.Key, Back = true });
+            var (catchUp, book) = Fresh(stone, power);
+            var records = new CompendiumRecords();
+            records.Powers.Add("GP_Bonemass");
+            records.Powers.Add("GP_NotInTheCatalog");
+
+            catchUp.Fill(records, book, quietly: true);
+
+            Assert.Equal(KnownLevel.Known, book.Level(power.Key));
+            Assert.False(book.Witnessed(power.Key, stone.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(stone.Key));
+        }
     }
 }

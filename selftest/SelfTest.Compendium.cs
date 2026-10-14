@@ -32,10 +32,19 @@ namespace Scry
             // The records as the game keeps them, read whole.
             var records = new CompendiumRecords();
             CharacterRecords.Read(player, profile, records);
-            var sets = new[] { records.Materials, records.Recipes, records.Stations, records.Biomes, records.Trophies, records.Uniques, records.Killed, records.PickedUp, records.Crafted, records.Eaten, records.Picked, records.Placed };
+            var sets = new[] { records.Materials, records.Recipes, records.Stations, records.Biomes, records.Trophies, records.Uniques, records.Killed, records.PickedUp, records.Crafted, records.Eaten, records.Picked, records.Placed, records.Powers };
             var size = CharacterRecords.Size(player, profile);
             p.Check(sets.Sum(s => s.Count) == size, "the character's records are read whole", $"{Numbers.Count(sets.Sum(s => s.Count))} of {Numbers.Count(size)}");
             p.Note($"records: {Numbers.Count(records.Materials.Count)} items had, {Numbers.Count(records.Recipes.Count)} recipes, {Numbers.Count(records.Stations.Count)} stations, {Numbers.Count(records.Biomes.Count)} biomes, {Numbers.Count(records.Trophies.Count)} trophies, {Numbers.Count(records.Uniques.Count)} marks of what was done, {Numbers.Count(records.Killed.Count)} kinds killed, {Numbers.Count(records.PickedUp.Count)} picked up, {Numbers.Count(records.Crafted.Count)} crafted, {Numbers.Count(records.Eaten.Count)} eaten, {Numbers.Count(records.Picked.Count)} picked, {Numbers.Count(records.Placed.Count)} placed");
+
+            var power = CharacterRecords.Power(player);
+            p.Check(power.Length == 0 ? records.Powers.Count == 0 : records.Powers.SetEquals(new[] { power }), "the guardian power chosen is read", power.Length == 0 ? "none chosen" : power);
+            var powerEntry = power.Length > 0 ? X.Find(EntryKeys.For(Kind.StatusEffect, power)) : null;
+            if (powerEntry != null)
+            {
+                yield return Until(() => CompendiumKeeper.Book.Level(powerEntry.Key) == KnownLevel.Known, 3);
+                p.Check(CompendiumKeeper.Book.Level(powerEntry.Key) == KnownLevel.Known, $"and {power} is known");
+            }
 
             // Everything they tell is in the book: the catch-up ran on this catalog.
             var told = new CompendiumBook();
