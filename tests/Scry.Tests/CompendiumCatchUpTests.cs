@@ -258,6 +258,43 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheStatusEffectsWhatTheRecordsMakeKnownGivesAreKnownAndPairedWithIt()
+        {
+            // A character played before rested by its bed and got wet in its biomes long before
+            // the compendium watched; the game keeps no record of status effects themselves.
+            var bed = E(Kind.Piece, "bed", "$piece_bed");
+            var meadows = E(Kind.Biome, "Meadows", "$biome_meadows");
+            var throne = E(Kind.Piece, "piece_throne", "$piece_throne");
+            var fire = E(Kind.Piece, "fire_pit", "$piece_firepit");
+            var rested = new Entry { Kind = Kind.StatusEffect, Name = "Rested" };
+            var wet = new Entry { Kind = Kind.StatusEffect, Name = "Wet" };
+            var royal = new Entry { Kind = Kind.StatusEffect, Name = "Royal" };
+            var smoked = new Entry { Kind = Kind.StatusEffect, Name = "Smoked" };
+            rested.Links.Add(new Link { Group = LinkWords.GivenBy, Target = bed.Key, Back = true });
+            rested.Links.Add(new Link { Group = LinkWords.GivenBy, Target = throne.Key, Back = true });
+            wet.Links.Add(new Link { Group = LinkWords.GivenBy, Target = meadows.Key, Back = true });
+            royal.Links.Add(new Link { Group = LinkWords.GivenBy, Target = throne.Key, Back = true });
+            smoked.Links.Add(new Link { Group = LinkWords.Upgrades, Target = fire.Key, Back = true });
+            var (catchUp, book) = Fresh(bed, meadows, throne, fire, rested, wet, royal, smoked);
+            var records = new CompendiumRecords();
+            records.Placed.Add("$piece_bed");
+            records.Placed.Add("$piece_firepit");
+            records.Biomes.Add("$biome_meadows");
+
+            catchUp.Fill(records, book, quietly: true);
+
+            Assert.Equal(KnownLevel.Known, book.Level(rested.Key));
+            Assert.Equal(KnownLevel.Known, book.Level(wet.Key));
+            // Only what gives it counts, and only what the records show.
+            Assert.Equal(KnownLevel.Unknown, book.Level(royal.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(smoked.Key));
+            Assert.Empty(book.Lately);
+            Assert.True(book.Witnessed(rested.Key, bed.Key));
+            Assert.False(book.Witnessed(rested.Key, throne.Key));
+            Assert.True(book.Witnessed(wet.Key, meadows.Key));
+        }
+
+        [Fact]
         public void ATrophyAFoodEatenAndAThingPickedPairWithWhereTheyCameFrom()
         {
             var troll = E(Kind.Creature, "Troll", "$enemy_troll");

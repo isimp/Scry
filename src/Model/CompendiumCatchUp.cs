@@ -9,8 +9,10 @@ namespace Scry
     /// records of it tell (<see cref="CompendiumRecords"/>), so a character played before does
     /// not start from nothing. Read by the loose rules: a creature killed, an item picked up,
     /// crafted or eaten, a piece unlocked, used or placed and a biome entered are known, as are a
-    /// trophy held and the creatures it falls from, and every resource giving an item so known;
-    /// an item only had or offered is seen, and one whose recipe is unlocked is heard of. A
+    /// trophy held and the creatures it falls from, every resource giving an item so known, and
+    /// every status effect something so known gives (a bed's Rested, a biome's weather), paired
+    /// with its givers among them; an item only had or offered is seen, and one whose recipe is
+    /// unlocked is heard of. A
     /// record counts only for the kinds it is about, and for every entry going by its name
     /// (<see cref="Entry.Tokens"/>). For the strict rules it pairs what the records show went
     /// together: a recipe unlocked, an item crafted or a piece placed with its ingredients and
@@ -52,12 +54,40 @@ namespace Scry
             foreach (var item in items) known.AddRange(item.TermLinks("from").Where(e => e.Kind == Kind.Resource));
             known.AddRange(Named(records.Recipes.Concat(records.Stations).Concat(records.Placed), Kind.Piece));
             known.AddRange(Named(records.Biomes.SelectMany(area => area.Split(' ')), Kind.Biome));
+            var givers = Givers(known);
+            known.AddRange(givers.Keys);
 
             var raised = Raise(book, known, KnownLevel.Known, quietly)
                 + Raise(book, Named(records.Materials, Kind.Item), KnownLevel.Seen, quietly)
                 + Raise(book, Named(records.Recipes, Kind.Item), KnownLevel.HeardOf, quietly);
             Pair(records, book);
+            foreach (var given in givers)
+            {
+                foreach (var giver in given.Value) book.Witness(given.Key.Key, giver);
+            }
             return raised;
+        }
+
+        /// <summary>
+        /// The status effects something known gives (a bed's Rested, a fire's Resting, a biome's
+        /// weather), with the givers among the known: the game keeps no record of status effects,
+        /// only of what gives them.
+        /// </summary>
+        private Dictionary<Entry, List<string>> Givers(IEnumerable<Entry> known)
+        {
+            var keys = new HashSet<string>(known.Select(e => e.Key), StringComparer.Ordinal);
+            var givers = new Dictionary<Entry, List<string>>();
+            foreach (var effect in _catalog.All)
+            {
+                if (effect.Kind != Kind.StatusEffect) continue;
+                foreach (var link in effect.Links)
+                {
+                    if (link.Group != LinkWords.GivenBy || !keys.Contains(link.Target)) continue;
+                    if (!givers.TryGetValue(effect, out var list)) givers[effect] = list = new List<string>();
+                    list.Add(link.Target);
+                }
+            }
+            return givers;
         }
 
         /// <summary>Pairs in the book what the records show went together, for the strict rules.</summary>
