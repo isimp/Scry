@@ -9,5 +9,6 @@ namespace Scry
         public static readonly Feature CompendiumSeen = Listed("knowing what a character sees, for the compendium");
         public static readonly Feature CompendiumShown = Listed("showing only what a character knows");
         public static readonly Feature CompendiumMap = Listed("catching up from the explored map, for the compendium");
+        public static readonly Feature CompendiumTiers = Listed("working out what each boss's fall opens, for the compendium's floor");
     }
 }

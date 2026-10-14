@@ -117,6 +117,39 @@ namespace Scry
             p.Check(CompendiumLink.Answered > answered && CompendiumLink.LastTold == kinds.Count, "a map sent to the world's server is answered with the same kinds", $"{Numbers.Count(CompendiumLink.LastTold)} told, {Numbers.Count(kinds.Count)} read here");
         }
 
+        /// <summary>Things whose tier the game's progression fixes: iron gear in the Swamp's, black metal in the Plains', each boss in its own.</summary>
+        private static readonly (string Name, int Tier)[] KnownTiers =
+        {
+            ("Eikthyr", 1), ("gd_king", 2), ("Bonemass", 3), ("Dragon", 4), ("GoblinKing", 5), ("SeekerQueen", 6), ("Fader", 7),
+            ("Troll", 2), ("SwordIron", 3), ("SwordBlackmetal", 5), ("Lox", 5), ("Wood", 1),
+        };
+
+        /// <summary>
+        /// The tiers are worked out over the whole catalog without fault, and land where the
+        /// game's progression puts things; how many entries each tier holds is noted.
+        /// </summary>
+        private static IEnumerator CompendiumTierRead(Probe p)
+        {
+            var faults = Faults.Count;
+            yield return Until(() => CompendiumTiers.Of(X.Entries) != null, 20);
+            var tiers = CompendiumTiers.Of(X.Entries);
+            if (!p.Check(tiers != null, "the tiers are worked out")) yield break;
+            p.Check(Faults.Count == faults, "without fault", Faults.Latest);
+            var counts = Enumerable.Range(1, Tiers.Last).Select(t => $"{Tiers.BiomeOf(t)} {Numbers.Count(tiers.Count(p2 => p2.Value == t))}");
+            p.Note($"{Numbers.Count(tiers.Count)} of {Numbers.Count(X.Catalog.Count)} entries have a tier: {string.Join(", ", counts)}, {Numbers.Count(tiers.Count(p2 => p2.Value == 0))} need nothing");
+            var wrong = new List<string>();
+            foreach (var (name, tier) in KnownTiers)
+            {
+                var entry = X.Find(name);
+                if (entry == null) continue;
+                var got = tiers.TryGetValue(entry.Key, out var t) ? t : Tiers.None;
+                if (got != tier) wrong.Add($"{name} {(got == Tiers.None ? "none" : Numbers.Count(got))}, not {Numbers.Count(tier)}");
+            }
+            p.Check(wrong.Count == 0, "they follow the game's progression: each boss its own, iron gear the Swamp's, black metal the Plains'", string.Join("; ", wrong));
+            var serpent = X.Find("Serpent");
+            p.Check(serpent == null || !tiers.ContainsKey(serpent.Key), "and what lives only at sea has none");
+        }
+
         /// <summary>Terms tried on a made-up character, each of which must not find what it has not met.</summary>
         private static readonly string[] CompendiumTerms = { "kind:creature", "is:boss", "biome:meadows", "drops:wood", "has:Character", "in:crypt" };
 
