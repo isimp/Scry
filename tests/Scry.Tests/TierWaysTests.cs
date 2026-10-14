@@ -175,6 +175,65 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AThingMadeFromItselfIsNoWayToItSoAModsRecipeCannotMakeItFree()
+        {
+            var (pass, keyOf) = Known(("MeadBaseEitrMinor", 6));
+            TierWays.Making(pass, new MakingWay("MeadEitrMinor", null, ("MeadEitrMinor", 1)), keyOf);
+            TierWays.Making(pass, new MakingWay("MeadEitrMinor", "workbench", ("MeadBaseEitrMinor", 1)), keyOf, WayFrom.Station);
+            Assert.Equal(6, pass.Work()["MeadEitrMinor"]);
+
+            // Made from itself alone, nothing leads to it.
+            var (alone, aloneKeyOf) = Known();
+            TierWays.Making(alone, new MakingWay("MeadTrollPheromones", null, ("MeadTrollPheromones", 1)), aloneKeyOf);
+            Assert.False(alone.Work().ContainsKey("MeadTrollPheromones"));
+        }
+
+        [Fact]
+        public void ARaidComesNoSoonerThanTheWeakestCreatureItBrings()
+        {
+            var (pass, keyOf) = Known(("Boar", 1), ("Goblin", 5), ("Seeker", 6));
+            // Started by a place, not by conditions of its own: it seems open in every biome, its creatures tell when it is met.
+            var open = TierWays.Ready(false, Array.Empty<string>(), null, null, null);
+            TierWays.Raid(pass, "hildirboss3", new[] { 1 }, open, BossKeys, keyOf, new[] { "Goblin", "Seeker" });
+            TierWays.Raid(pass, "mixed", new[] { 1 }, open, BossKeys, keyOf, new[] { "Seeker", "Boar" });
+            // Its conditions still hold it back where they wait longer than its creatures.
+            var late = TierWays.Ready(false, new[] { "defeated_bonemass" }, null, null, null);
+            TierWays.Raid(pass, "boars_late", new[] { 1 }, late, BossKeys, keyOf, new[] { "Boar" });
+            // One whose creatures were not read keeps the tier its conditions give.
+            TierWays.Raid(pass, "nobody", new[] { 2 }, open, BossKeys, keyOf, Array.Empty<string>());
+            // A creature met only in that raid leaves it no way in.
+            pass.Add(WayFrom.Spawned, "Brute", 0, "onlyhere");
+            TierWays.Raid(pass, "onlyhere", new[] { 1 }, open, BossKeys, keyOf, new[] { "Brute" });
+            var tiers = pass.Work();
+
+            Assert.Equal(5, tiers["hildirboss3"]);
+            Assert.Equal(1, tiers["mixed"]);
+            Assert.Equal(3, tiers["boars_late"]);
+            Assert.Equal(2, tiers["nobody"]);
+            Assert.False(tiers.ContainsKey("onlyhere"));
+            Assert.False(tiers.ContainsKey("Brute"));
+        }
+
+        [Fact]
+        public void ATierSetThroughALoopTracesToTheWayThatSetItNotTheLoop()
+        {
+            var pass = new TierPass();
+            // Berries come from the bush and the bush is planted with berries; the forest is the way in.
+            pass.Add(WayFrom.Source, "Berries", 0, "Bush");
+            pass.Add(WayFrom.Biome, "Berries", 2);
+            pass.Add(WayFrom.Crafted, "Bush", 0, "Berries");
+            pass.Add(WayFrom.Biome, "Bush", 2);
+            var tiers = pass.Work();
+
+            Assert.Equal((2, 2), (tiers["Berries"], tiers["Bush"]));
+            Assert.Equal(WayFrom.Biome, pass.WayIn("Berries", tiers).Value.From);
+            // From the bush, the ways that set the tiers end at the forest within the two of them.
+            var key = "Bush";
+            for (var step = 0; step < 2 && pass.WayIn(key, tiers).Value.Needs.Length > 0; step++) key = pass.WayIn(key, tiers).Value.Needs[0];
+            Assert.Equal(WayFrom.Biome, pass.WayIn(key, tiers).Value.From);
+        }
+
+        [Fact]
         public void TheWayInTellsWhereItComesFromSoAThingTooEarlyCanBeTracedToIt()
         {
             var (pass, keyOf) = Known(("Wood", 1), ("forge", 2), ("Iron", 3));

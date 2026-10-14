@@ -73,7 +73,7 @@ namespace Scry
             {
                 var key = entry.Key;
                 if (entry.Kind == Kind.Biome) pass.Add(WayFrom.Biome, key, Tiers.OfBiome(entry.Name));
-                if (entry.Kind == Kind.Raid && entry.Source is RandomEvent raid) TierWays.Raid(pass, key, entry.Biomes.Select(Tiers.OfBiome), Ready(raid), keyTiers, KeyOf);
+                if (entry.Kind == Kind.Raid && entry.Source is RandomEvent raid) TierWays.Raid(pass, key, entry.Biomes.Select(Tiers.OfBiome), Ready(raid), keyTiers, KeyOf, entry.TermLinks("spawns").Select(b => b.Key));
                 else foreach (var biome in entry.Biomes) pass.Add(WayFrom.Biome, key, Tiers.OfBiome(biome));
                 foreach (var label in entry.FoundIn)
                 {

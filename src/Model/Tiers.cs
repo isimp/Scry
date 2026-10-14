@@ -97,10 +97,15 @@ namespace Scry
             ways.Add(new Way { Tier = tier, Needs = needs ?? Array.Empty<string>(), From = from });
         }
 
+        // The way that last lowered each entry's tier as worked out: what it needed was already as
+        // cheap, so following it never leads round a loop of ways needing each other.
+        private readonly Dictionary<string, Way> _setBy = new Dictionary<string, Way>(StringComparer.Ordinal);
+
         /// <summary>The tier of every entry some way reaches.</summary>
         public Dictionary<string, int> Work()
         {
             var tiers = new Dictionary<string, int>(StringComparer.Ordinal);
+            _setBy.Clear();
             bool lowered;
             do
             {
@@ -114,6 +119,7 @@ namespace Scry
                         if (cost >= best) continue;
                         best = cost;
                         tiers[pair.Key] = cost;
+                        _setBy[pair.Key] = way;
                         lowered = true;
                     }
                 }
@@ -125,11 +131,13 @@ namespace Scry
         /// <summary>
         /// The way that gives an entry its tier, as worked out: its own tier, what it needs and
         /// where it was read from; none for an entry no way reaches. Tells why a thing has the
-        /// tier it has.
+        /// tier it has: the way that set it in the last <see cref="Work"/>, where those are the
+        /// tiers given.
         /// </summary>
         public (int Tier, string[] Needs, WayFrom From)? WayIn(string key, Dictionary<string, int> tiers)
         {
             if (key == null || !_ways.TryGetValue(key, out var ways) || !tiers.TryGetValue(key, out var tier)) return null;
+            if (_setBy.TryGetValue(key, out var set) && Cost(set, tiers) == tier) return (set.Tier, set.Needs, set.From);
             foreach (var way in ways)
             {
                 if (Cost(way, tiers) == tier) return (way.Tier, way.Needs, way.From);

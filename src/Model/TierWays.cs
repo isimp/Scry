@@ -61,7 +61,10 @@ namespace Scry
             foreach (var (name, amount) in way.Needs)
             {
                 if (amount <= 0) continue;
-                Need(needs, keyOf(name), target);
+                var need = keyOf(name);
+                // Made from itself, as some mods' recipes are: it takes the thing already had, so it is no way in.
+                if (need == target) return;
+                Need(needs, need, target);
             }
             if (way.Place != null) Need(needs, keyOf(way.Place), target);
             pass.Add(from, target, 0, needs.ToArray());
@@ -110,11 +113,16 @@ namespace Scry
         /// <summary>
         /// Adds the ways a raid comes: in each biome it comes to, once a way it becomes ready is
         /// open: the tier of each boss whose fall a key marks (a key marking none adds nothing),
-        /// and the items it waits to be known.
+        /// and the items it waits to be known. A raid comes no sooner than the weakest creature it
+        /// <paramref name="brings"/> (by key), each a way of its own: one started by a place or
+        /// a mod, not by conditions of its own, seems open in every biome, and what it brings tells
+        /// when it is met. One whose creatures were not read keeps what its conditions give.
         /// </summary>
-        public static void Raid(TierPass pass, string raid, IEnumerable<int> biomeTiers, IEnumerable<RaidReady> ready, IReadOnlyDictionary<string, int> keyTiers, Func<string, string> keyOf)
+        public static void Raid(TierPass pass, string raid, IEnumerable<int> biomeTiers, IEnumerable<RaidReady> ready, IReadOnlyDictionary<string, int> keyTiers, Func<string, string> keyOf, IEnumerable<string> brings = null)
         {
             var ways = new List<RaidReady>(ready);
+            var creatures = new List<string>();
+            foreach (var creature in brings ?? Array.Empty<string>()) Need(creatures, creature, raid);
             foreach (var biome in biomeTiers)
             {
                 foreach (var way in ways)
@@ -126,7 +134,13 @@ namespace Scry
                     }
                     var needs = new List<string>();
                     foreach (var item in way.Items) Need(needs, keyOf(item), raid);
-                    pass.Add(WayFrom.Raid, raid, tier, needs.ToArray());
+                    if (creatures.Count == 0) pass.Add(WayFrom.Raid, raid, tier, needs.ToArray());
+                    foreach (var creature in creatures)
+                    {
+                        var met = new List<string>(needs);
+                        Need(met, creature, raid);
+                        pass.Add(WayFrom.Raid, raid, tier, met.ToArray());
+                    }
                 }
             }
         }
