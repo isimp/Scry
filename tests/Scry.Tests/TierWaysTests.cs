@@ -173,5 +173,29 @@ namespace Scry.Tests
             Assert.Equal(3, pass.WayIn("Iron", tiers).Value.Tier);
             Assert.Null(pass.WayIn("Nothing", tiers));
         }
+
+        [Fact]
+        public void TheWayInTellsWhereItComesFromSoAThingTooEarlyCanBeTracedToIt()
+        {
+            var (pass, keyOf) = Known(("Wood", 1), ("forge", 2), ("Iron", 3));
+            pass.Add(WayFrom.Biome, "Boar", 1);
+            TierWays.Making(pass, new MakingWay("Club", null, ("Wood", 6)), keyOf, WayFrom.Crafted);
+            TierWays.Making(pass, new MakingWay("Coal", "forge", ("Wood", 1)), keyOf, WayFrom.Station);
+            // Every ingredient asked for in no amount: nothing is needed, so the way is free.
+            TierWays.Making(pass, new MakingWay("Freebie", null, ("Iron", 0)), keyOf, WayFrom.Crafted);
+            var ready = TierWays.Ready(false, new[] { "defeated_gdking" }, null, null, null);
+            TierWays.Raid(pass, "army_theelder", new[] { 1 }, ready, BossKeys, keyOf);
+            var tiers = pass.Work();
+
+            Assert.Equal(WayFrom.Biome, pass.WayIn("Boar", tiers).Value.From);
+            Assert.Equal(WayFrom.Crafted, pass.WayIn("Club", tiers).Value.From);
+            Assert.Equal(WayFrom.Station, pass.WayIn("Coal", tiers).Value.From);
+            Assert.Equal(WayFrom.Raid, pass.WayIn("army_theelder", tiers).Value.From);
+            var free = pass.WayIn("Freebie", tiers).Value;
+            Assert.Equal((0, WayFrom.Crafted), (free.Tier, free.From));
+            Assert.Empty(free.Needs);
+            // A way added without saying where it comes from says so.
+            Assert.Equal(WayFrom.Unnamed, pass.WayIn("Wood", tiers).Value.From);
+        }
     }
 }

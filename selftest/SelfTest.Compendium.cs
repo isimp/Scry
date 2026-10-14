@@ -173,11 +173,12 @@ namespace Scry
             p.Check(CompendiumLink.Answered > answered && CompendiumLink.LastTold == kinds.Count, "a map sent to the world's server is answered with the same kinds", $"{Numbers.Count(CompendiumLink.LastTold)} told, {Numbers.Count(kinds.Count)} read here");
         }
 
-        /// <summary>Things whose tier the game's progression fixes: iron gear in the Swamp's, black metal in the Plains', each boss in its own.</summary>
+        /// <summary>Things whose tier the game's progression fixes: iron gear in the Swamp's, black metal in the Plains', each boss in its own, Fulings, hens and cloudberries the Plains', eitr mead the Mistlands'.</summary>
         private static readonly (string Name, int Tier)[] KnownTiers =
         {
             ("Eikthyr", 1), ("gd_king", 2), ("Bonemass", 3), ("Dragon", 4), ("GoblinKing", 5), ("SeekerQueen", 6), ("Fader", 7),
             ("Troll", 2), ("SwordIron", 3), ("SwordBlackmetal", 5), ("Lox", 5), ("Wood", 1),
+            ("Goblin", 5), ("Hen", 5), ("Egg", 5), ("Cloudberry", 5), ("MeadEitrMinor", 6),
         };
 
         /// <summary>
@@ -249,21 +250,38 @@ namespace Scry
         /// <summary>Terms tried on a made-up character, each of which must not find what it has not met.</summary>
         private static readonly string[] CompendiumTerms = { "kind:creature", "is:boss", "biome:meadows", "drops:wood", "has:Character", "in:crypt" };
 
-        /// <summary>The way that sets an entry's tier, then the way of its dearest need, as long as that need sets the tier.</summary>
+        /// <summary>
+        /// The way that sets an entry's tier and where it was read from, then the way of its
+        /// dearest need, as long as that need is no cheaper than the way's own tier, down to a way
+        /// needing nothing; a making needing nothing is told with its ingredients as read.
+        /// </summary>
         private static string TierChain(TierPass pass, Dictionary<string, int> tiers, string key)
         {
             var steps = new List<string>();
-            for (var i = 0; i < 8 && key != null; i++)
+            var been = new HashSet<string>(StringComparer.Ordinal);
+            for (var i = 0; i < 8 && key != null && been.Add(key); i++)
             {
                 var way = pass.WayIn(key, tiers);
                 if (way == null) break;
-                var (own, needs) = way.Value;
+                var (own, needs, from) = way.Value;
                 int TierOf(string n) => tiers.TryGetValue(n, out var t) ? t : 0;
-                steps.Add($"{key} {Numbers.Count(tiers[key])} (own {Numbers.Count(own)}{(needs.Length > 0 ? ", needs " + string.Join(", ", needs.Take(6).Select(n => $"{n} {Numbers.Count(TierOf(n))}")) : "")})");
+                var free = needs.Length == 0 && (from == WayFrom.Crafted || from == WayFrom.Station) ? ", made of " + MakingsOf(key) : "";
+                steps.Add($"{key} {Numbers.Count(tiers[key])} ({from}, own {Numbers.Count(own)}{(needs.Length > 0 ? ", needs " + string.Join(", ", needs.Take(6).Select(n => $"{n} {Numbers.Count(TierOf(n))}")) : "")}{free})");
                 var dearest = needs.OrderByDescending(TierOf).FirstOrDefault();
-                key = dearest != null && TierOf(dearest) > own ? dearest : null;
+                key = dearest != null && TierOf(dearest) >= own ? dearest : null;
             }
             return string.Join(" <- ", steps);
+        }
+
+        /// <summary>The recipes, piece costs and station makings that make an entry, each ingredient with its amount as read, marked where it is no thing of its own.</summary>
+        private static string MakingsOf(string key)
+        {
+            var entry = X.Entries.Find(key);
+            if (entry == null) return "nothing read";
+            var ways = Knowledge.CraftWays.Where(w => w.Target == entry.Name).Concat(Knowledge.MadeOf(entry.Name).SelectMany(TierWays.Of)).Take(4).ToList();
+            if (ways.Count == 0) return "nothing read";
+            string Need((string Name, int Amount) n) => $"{n.Name} {Numbers.Count(n.Amount)}{(X.Entries.Find(n.Name) == null ? " (no thing of its own)" : "")}";
+            return string.Join("; ", ways.Select(w => $"{(string.IsNullOrEmpty(w.Place) ? "anywhere" : w.Place)}: {(w.Needs.Count > 0 ? string.Join(", ", w.Needs.Select(Need)) : "no ingredients")}"));
         }
 
         /// <summary>The keys one book knows more of than another.</summary>

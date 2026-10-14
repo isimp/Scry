@@ -40,6 +40,33 @@ namespace Scry
         public static string BiomeOf(int tier) => tier >= 1 && tier <= Last ? BiomeOrder[tier - 1] : null;
     }
 
+    /// <summary>Where a way to come by an entry was read from, so a tier can be traced to what set it.</summary>
+    internal enum WayFrom
+    {
+        /// <summary>Not told.</summary>
+        Unnamed,
+        /// <summary>A biome it lives in, or the biome itself.</summary>
+        Biome,
+        /// <summary>A place that holds it.</summary>
+        Place,
+        /// <summary>What plays it.</summary>
+        Played,
+        /// <summary>What leaves it behind.</summary>
+        LeftBehind,
+        /// <summary>What gives it, of a status effect.</summary>
+        Given,
+        /// <summary>What spawns it.</summary>
+        Spawned,
+        /// <summary>What drops, yields, grows, bears or sells it.</summary>
+        Source,
+        /// <summary>A station's making.</summary>
+        Station,
+        /// <summary>A recipe or a piece's cost.</summary>
+        Crafted,
+        /// <summary>A raid once it is ready.</summary>
+        Raid,
+    }
+
     /// <summary>
     /// Works out each entry's tier the way progression works (the design's milestone tiers): an
     /// entry's tier is the lowest over the ways to come by it, and a way costs the highest of its
@@ -54,16 +81,20 @@ namespace Scry
         {
             public int Tier;
             public string[] Needs;
+            public WayFrom From;
         }
 
         private readonly Dictionary<string, List<Way>> _ways = new Dictionary<string, List<Way>>(StringComparer.Ordinal);
 
         /// <summary>Adds a way to come by an entry: at least its own tier (0 for none of its own), and what it needs.</summary>
-        public void Add(string key, int tier, params string[] needs)
+        public void Add(string key, int tier, params string[] needs) => Add(WayFrom.Unnamed, key, tier, needs);
+
+        /// <summary>Adds a way to come by an entry, telling where it was read from.</summary>
+        public void Add(WayFrom from, string key, int tier, params string[] needs)
         {
             if (string.IsNullOrEmpty(key) || tier == Tiers.None) return;
             if (!_ways.TryGetValue(key, out var ways)) _ways[key] = ways = new List<Way>();
-            ways.Add(new Way { Tier = tier, Needs = needs ?? Array.Empty<string>() });
+            ways.Add(new Way { Tier = tier, Needs = needs ?? Array.Empty<string>(), From = from });
         }
 
         /// <summary>The tier of every entry some way reaches.</summary>
@@ -92,15 +123,16 @@ namespace Scry
         }
 
         /// <summary>
-        /// The way that gives an entry its tier, as worked out: its own tier and what it needs;
-        /// none for an entry no way reaches. Tells why a thing has the tier it has.
+        /// The way that gives an entry its tier, as worked out: its own tier, what it needs and
+        /// where it was read from; none for an entry no way reaches. Tells why a thing has the
+        /// tier it has.
         /// </summary>
-        public (int Tier, string[] Needs)? WayIn(string key, Dictionary<string, int> tiers)
+        public (int Tier, string[] Needs, WayFrom From)? WayIn(string key, Dictionary<string, int> tiers)
         {
             if (key == null || !_ways.TryGetValue(key, out var ways) || !tiers.TryGetValue(key, out var tier)) return null;
             foreach (var way in ways)
             {
-                if (Cost(way, tiers) == tier) return (way.Tier, way.Needs);
+                if (Cost(way, tiers) == tier) return (way.Tier, way.Needs, way.From);
             }
             return null;
         }

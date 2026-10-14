@@ -72,21 +72,21 @@ namespace Scry
             foreach (var entry in catalog.All)
             {
                 var key = entry.Key;
-                if (entry.Kind == Kind.Biome) pass.Add(key, Tiers.OfBiome(entry.Name));
+                if (entry.Kind == Kind.Biome) pass.Add(WayFrom.Biome, key, Tiers.OfBiome(entry.Name));
                 if (entry.Kind == Kind.Raid && entry.Source is RandomEvent raid) TierWays.Raid(pass, key, entry.Biomes.Select(Tiers.OfBiome), Ready(raid), keyTiers, KeyOf);
-                else foreach (var biome in entry.Biomes) pass.Add(key, Tiers.OfBiome(biome));
+                else foreach (var biome in entry.Biomes) pass.Add(WayFrom.Biome, key, Tiers.OfBiome(biome));
                 foreach (var label in entry.FoundIn)
                 {
                     if (label == null || !places.TryGetValue(label, out var holders)) continue;
-                    foreach (var place in holders) if (place != entry) pass.Add(key, 0, place.Key);
+                    foreach (var place in holders) if (place != entry) pass.Add(WayFrom.Place, key, 0, place.Key);
                 }
-                foreach (var owner in entry.UsedBy) pass.Add(key, 0, owner);
-                foreach (var owner in entry.LeftBy) pass.Add(key, 0, owner);
+                foreach (var owner in entry.UsedBy) pass.Add(WayFrom.Played, key, 0, owner);
+                foreach (var owner in entry.LeftBy) pass.Add(WayFrom.LeftBehind, key, 0, owner);
                 foreach (var link in entry.Links)
                 {
-                    if (link.Group == Relations.GivenBy) pass.Add(key, 0, link.Target);
+                    if (link.Group == Relations.GivenBy) pass.Add(WayFrom.Given, key, 0, link.Target);
                 }
-                foreach (var brought in entry.TermLinks("spawns")) pass.Add(brought.Key, 0, key);
+                foreach (var brought in entry.TermLinks("spawns")) pass.Add(WayFrom.Spawned, brought.Key, 0, key);
 
                 if (EntryKeys.HasOwnNamespace(entry.Kind)) continue;
                 foreach (var source in Knowledge.SourceLines(entry.Name))
@@ -96,12 +96,12 @@ namespace Scry
                     if (giver == null || giver == entry) continue;
                     var tier = 0;
                     if (record.Way == SourceWay.Sold && record.Key.Length > 0 && !keyTiers.TryGetValue(record.Key, out tier)) continue;
-                    pass.Add(key, tier, giver.Key);
+                    pass.Add(WayFrom.Source, key, tier, giver.Key);
                 }
                 // What stations turn into it, each item they take a way of its own where any one will do.
                 foreach (var making in Knowledge.MadeOf(entry.Name))
                 {
-                    foreach (var way in TierWays.Of(making)) TierWays.Making(pass, way, KeyOf);
+                    foreach (var way in TierWays.Of(making)) TierWays.Making(pass, way, KeyOf, WayFrom.Station);
                 }
             }
 

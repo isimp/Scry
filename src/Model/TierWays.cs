@@ -51,8 +51,9 @@ namespace Scry
         /// Adds a way to make a thing: every ingredient making it once takes (one asked for in
         /// no amount is only asked for by an upgrade), and its station where that is a thing of
         /// its own. What is no thing of its own (<paramref name="keyOf"/> gives none) is left out.
+        /// <paramref name="from"/> tells a recipe or piece cost from a station's making.
         /// </summary>
-        public static void Making(TierPass pass, MakingWay way, Func<string, string> keyOf)
+        public static void Making(TierPass pass, MakingWay way, Func<string, string> keyOf, WayFrom from = WayFrom.Crafted)
         {
             var target = keyOf(way.Target);
             if (target == null) return;
@@ -63,7 +64,7 @@ namespace Scry
                 Need(needs, keyOf(name), target);
             }
             if (way.Place != null) Need(needs, keyOf(way.Place), target);
-            pass.Add(target, 0, needs.ToArray());
+            pass.Add(from, target, 0, needs.ToArray());
         }
 
         /// <summary>The ways a station's making is a way to make its output: one for each item where any one will do, else one taking them all.</summary>
@@ -125,7 +126,7 @@ namespace Scry
                     }
                     var needs = new List<string>();
                     foreach (var item in way.Items) Need(needs, keyOf(item), raid);
-                    pass.Add(raid, tier, needs.ToArray());
+                    pass.Add(WayFrom.Raid, raid, tier, needs.ToArray());
                 }
             }
         }
