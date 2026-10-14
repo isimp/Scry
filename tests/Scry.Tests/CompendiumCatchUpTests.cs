@@ -231,5 +231,69 @@ namespace Scry.Tests
             catchUp.Fill(records, book, quietly: false);
             Assert.Equal(new[] { stone.Key }, book.Lately.ToArray());
         }
+
+        [Fact]
+        public void ARecipeUnlockedPairsWhatItMakesWithItsIngredientsAndStation()
+        {
+            // For the strict rules: the character knows what goes into it, as the game showed it.
+            var sword = E(Kind.Item, "SwordIron", "$item_sword_iron");
+            var iron = E(Kind.Item, "Iron", "$item_iron");
+            var forge = E(Kind.Piece, "forge", "$piece_forge");
+            var wall = E(Kind.Piece, "wood_wall", "$piece_woodwall");
+            var wood = E(Kind.Item, "Wood", "$item_wood");
+            sword.AddTermLink("needs", iron);
+            sword.Stations = new[] { new StationUse("forge", "Forge", 1) };
+            wall.AddTermLink("needs", wood);
+            var (catchUp, book) = Fresh(sword, iron, forge, wall, wood);
+            var records = new CompendiumRecords();
+            records.Recipes.Add("$item_sword_iron");
+            records.Placed.Add("$piece_woodwall");
+
+            catchUp.Fill(records, book, quietly: true);
+
+            Assert.True(book.Witnessed(sword.Key, iron.Key));
+            Assert.True(book.Witnessed(sword.Key, forge.Key));
+            Assert.True(book.Witnessed(wall.Key, wood.Key));
+            Assert.False(book.Witnessed(iron.Key, forge.Key));
+        }
+
+        [Fact]
+        public void ATrophyAFoodEatenAndAThingPickedPairWithWhereTheyCameFrom()
+        {
+            var troll = E(Kind.Creature, "Troll", "$enemy_troll");
+            var trophy = E(Kind.Item, "TrophyFrostTroll", "$item_trophy_troll");
+            var berries = E(Kind.Item, "Raspberry", "$item_raspberries");
+            var bush = E(Kind.Resource, "RaspberryBush", "$piece_raspberrybush");
+            var far = E(Kind.Resource, "RaspberryBush_far", "$piece_raspberrybush_far");
+            var mead = E(Kind.Item, "MeadHealthMinor", "$item_mead_hp_minor");
+            var rested = new Entry { Kind = Kind.StatusEffect, Name = "Potion_health_minor" };
+            var chest = E(Kind.Piece, "TreasureChest_forest", "$piece_chest");
+            var axe = E(Kind.Item, "AxeStone", "$item_axe_stone");
+            trophy.AddTermLink("from", troll);
+            trophy.AddTermLink("from", chest);
+            berries.AddTermLink("from", bush);
+            berries.AddTermLink("from", far);
+            berries.AddTermLink("from", troll);
+            mead.Links.Add(new Link { Group = LinkWords.StatusEffects, Target = rested.Key });
+            mead.Links.Add(new Link { Group = LinkWords.GivenBy, Target = troll.Key, Back = true });
+            mead.Links.Add(new Link { Group = LinkWords.Upgrades, Target = axe.Key });
+            var (catchUp, book) = Fresh(troll, trophy, berries, bush, far, mead, rested, chest, axe);
+            var records = new CompendiumRecords();
+            records.Trophies.Add("TrophyFrostTroll");
+            records.Picked.Add("Raspberry");
+            records.Eaten.Add("$item_mead_hp_minor");
+
+            catchUp.Fill(records, book, quietly: true);
+
+            Assert.True(book.Witnessed(trophy.Key, troll.Key));
+            Assert.False(book.Witnessed(trophy.Key, chest.Key));
+            // The records cannot tell which bush: each that gives it, as the loose rules know them all.
+            Assert.True(book.Witnessed(berries.Key, bush.Key));
+            Assert.True(book.Witnessed(berries.Key, far.Key));
+            Assert.False(book.Witnessed(berries.Key, troll.Key));
+            Assert.True(book.Witnessed(mead.Key, rested.Key));
+            Assert.False(book.Witnessed(mead.Key, troll.Key));
+            Assert.False(book.Witnessed(mead.Key, axe.Key));
+        }
     }
 }

@@ -12,7 +12,10 @@ namespace Scry
     /// trophy held and the creatures it falls from, and every resource giving an item so known;
     /// an item only had or offered is seen, and one whose recipe is unlocked is heard of. A
     /// record counts only for the kinds it is about, and for every entry going by its name
-    /// (<see cref="Entry.Tokens"/>).
+    /// (<see cref="Entry.Tokens"/>). For the strict rules it pairs what the records show went
+    /// together: a recipe unlocked, an item crafted or a piece placed with its ingredients and
+    /// station, a trophy with the creatures it falls from, a thing picked or picked up with the
+    /// resources giving it, a food eaten with the status effects it gives.
     /// </summary>
     internal sealed class CompendiumCatchUp
     {
@@ -50,9 +53,39 @@ namespace Scry
             known.AddRange(Named(records.Recipes.Concat(records.Stations).Concat(records.Placed), Kind.Piece));
             known.AddRange(Named(records.Biomes.SelectMany(area => area.Split(' ')), Kind.Biome));
 
-            return Raise(book, known, KnownLevel.Known, quietly)
+            var raised = Raise(book, known, KnownLevel.Known, quietly)
                 + Raise(book, Named(records.Materials, Kind.Item), KnownLevel.Seen, quietly)
                 + Raise(book, Named(records.Recipes, Kind.Item), KnownLevel.HeardOf, quietly);
+            Pair(records, book);
+            return raised;
+        }
+
+        /// <summary>Pairs in the book what the records show went together, for the strict rules.</summary>
+        private void Pair(CompendiumRecords records, CompendiumBook book)
+        {
+            var made = Named(records.Recipes.Concat(records.Crafted).Concat(records.Placed), Kind.Item)
+                .Concat(Named(records.Recipes.Concat(records.Placed), Kind.Piece));
+            foreach (var thing in made)
+            {
+                foreach (var part in thing.TermLinks("needs")) book.Witness(thing.Key, part.Key);
+                foreach (var station in thing.Stations)
+                {
+                    var place = _catalog.Find(station.Name);
+                    if (place != null) book.Witness(thing.Key, place.Key);
+                }
+            }
+            foreach (var trophy in Prefabs(records.Trophies, Kind.Item))
+            {
+                foreach (var creature in trophy.TermLinks("from")) if (creature.Kind == Kind.Creature) book.Witness(trophy.Key, creature.Key);
+            }
+            foreach (var item in Prefabs(records.Picked, Kind.Item).Concat(Named(records.PickedUp, Kind.Item)))
+            {
+                foreach (var resource in item.TermLinks("from")) if (resource.Kind == Kind.Resource) book.Witness(item.Key, resource.Key);
+            }
+            foreach (var food in Named(records.Eaten, Kind.Item))
+            {
+                foreach (var link in food.Links) if (link.Group == LinkWords.StatusEffects) book.Witness(food.Key, link.Target);
+            }
         }
 
         /// <summary>Learns of an entry met in play, by its key, as news; true when that is more than was known. What the catalog has no entry for is passed over.</summary>
