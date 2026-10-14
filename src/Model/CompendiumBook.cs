@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -181,8 +182,30 @@ namespace Scry
             return text.ToString();
         }
 
-        /// <summary>The file a character's book is kept in: by the character's own file and where that lives (on this PC or in the cloud), so two characters never share one.</summary>
-        public static string FileName(string characterFile, string source) => $"{characterFile}-{source}.dat";
+        /// <summary>
+        /// The file a character's book is kept in: by the character's own file, where that lives
+        /// (on this PC or in the cloud) and its id, which the game draws anew for each character
+        /// made, so two characters never share one, not even one made under the name of one deleted.
+        /// </summary>
+        public static string FileName(string characterFile, string source, long id) => $"{characterFile}-{source}-{Stored.Count(id)}.dat";
+
+        /// <summary>The file a character's book was kept in before its id was part of the name (<see cref="TakeOver"/>).</summary>
+        public static string OldFileName(string characterFile, string source) => $"{characterFile}-{source}.dat";
+
+        /// <summary>
+        /// Moves a book kept under the name without the character's id to the name with it, for
+        /// the character playing, unless one is kept there already; true when it did. Taken over
+        /// once, it is gone from the old name, a copy left aside mid-write with it (<see cref="FileSwap"/>),
+        /// so a character made later under the same name starts with an empty book.
+        /// </summary>
+        public static bool TakeOver(string oldPath, string path)
+        {
+            var from = FileSwap.ToRead(oldPath);
+            if (from == null || FileSwap.ToRead(path) != null) return false;
+            File.Move(from, path);
+            FileSwap.Remove(oldPath);
+            return true;
+        }
 
         /// <summary>What was saved; a line that cannot be read is passed over, as are those of a question no longer asked ("asked").</summary>
         public static CompendiumBook Load(string text)

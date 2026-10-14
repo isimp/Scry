@@ -59,8 +59,8 @@ namespace Scry
             var profile = Game.instance != null ? Game.instance.GetPlayerProfile() : null;
             if (player == null || profile == null) return;
 
-            var file = CompendiumBook.FileName(profile.m_filename, profile.m_fileSource.ToString());
-            if (file != _file) Begin(file);
+            var file = CompendiumBook.FileName(profile.m_filename, profile.m_fileSource.ToString(), profile.GetPlayerID());
+            if (file != _file) Begin(file, CompendiumBook.OldFileName(profile.m_filename, profile.m_fileSource.ToString()));
             if (_reading != null && !Opened()) return;
 
             var catalog = WorldCatalog.Current;
@@ -181,7 +181,7 @@ namespace Scry
         }
 
         /// <summary>Starts reading another character's book, once the one held is written.</summary>
-        private static void Begin(string file)
+        private static void Begin(string file, string oldFile)
         {
             Save(now: true);
             _file = file;
@@ -190,7 +190,8 @@ namespace Scry
             _caughtUp = false;
             _recordsSize = -1;
             var path = PathOf(file);
-            _reading = Files.Then(() => Read(path));
+            var oldPath = PathOf(oldFile);
+            _reading = Files.Then(() => Read(path, oldPath));
         }
 
         /// <summary>Takes the book read, once it is; an empty one where it could not be read, never written over.</summary>
@@ -211,10 +212,15 @@ namespace Scry
             return true;
         }
 
-        /// <summary>The book kept for a character; an empty one for a character never kept. On a worker thread.</summary>
-        private static CompendiumBook Read(string path)
+        /// <summary>
+        /// The book kept for a character; an empty one for a character never kept. One kept before
+        /// the character's id was in its name is taken over first (<see cref="CompendiumBook.TakeOver"/>);
+        /// where it cannot be moved, it is read where it is. On a worker thread.
+        /// </summary>
+        private static CompendiumBook Read(string path, string oldPath)
         {
-            var file = FileSwap.ToRead(path);
+            var failed = Steps.Run(() => CompendiumBook.TakeOver(oldPath, path), null);
+            var file = FileSwap.ToRead(path) ?? (failed != null ? FileSwap.ToRead(oldPath) : null);
             return CompendiumBook.Load(file != null ? File.ReadAllText(file) : null);
         }
 
