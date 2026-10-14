@@ -299,15 +299,16 @@ namespace Scry
             return flow.RowBottom;
         }
 
-        private static float _frontScale = -1f, _modeW, _floorW;
+        private static float _frontScale = -1f, _floorValueW;
 
         /// <summary>
         /// The compendium's controls in the title row, right of everything else there but the
-        /// view button, once the character's book is read and only in the full view: its mode (the
-        /// rules chosen for this character) beside the view button, and while it is on the floor
-        /// to the mode's left, so the mode never moves. Each keeps one width whatever it says, so
-        /// its arrows stay under the pointer while stepped. Left out where they would reach past
-        /// <paramref name="leftmost"/>. Where the drawn controls begin, else <paramref name="right"/>.
+        /// view button, once the character's book is read and only in the full view, drawn as the
+        /// origin switch is: its mode captioned, its rules as segments beside the view button, and
+        /// while it is on the floor captioned to the mode's left, its biome between the search
+        /// row's arrow buttons, so the mode never moves. The floor's biome keeps the width of the
+        /// widest, so its arrows stay under the pointer while stepped. Left out where they would
+        /// reach past <paramref name="leftmost"/>. Where the drawn controls begin, else <paramref name="right"/>.
         /// </summary>
         private static float CompendiumFront(Explorer explorer, float right, float y, float height, float leftmost)
         {
@@ -315,86 +316,74 @@ namespace Scry
             if (book == null || _compact) return right;
             if (_frontScale != U(1f))
             {
-                // The widest each can say, measured once for each size of the panel.
+                // The widest biome the floor can say, measured once for each size of the panel.
                 _frontScale = U(1f);
-                _modeW = new[] { CompendiumRule.Off, CompendiumRule.Loose, CompendiumRule.Strict }.Max(r => Skin.Width(Skin.ModeText, CompendiumWords.Mode(r)));
-                _floorW = Enumerable.Range(0, Tiers.Last + 1).Max(f => Skin.Width(Skin.ModeText, CompendiumWords.Floor(f)));
+                _floorValueW = Enumerable.Range(0, Tiers.Last + 1).Max(f => Skin.Width(Skin.Button, CompendiumWords.FloorName(f))) + U(16f);
             }
-            var mode = new Rect(right - U(8f) - StepperWidth(_modeW), y, StepperWidth(_modeW), height);
+            var segmentWs = CompendiumWords.Rules.Select(r => Skin.Width(Skin.Segment, CompendiumWords.RuleName(r)) + U(6f)).ToArray();
+            var modeCaptionW = Skin.Width(Skin.FaintLabel, CompendiumWords.ModeCaption) + U(8f);
+            var modeW = modeCaptionW + segmentWs.Sum() + U(4f) * (segmentWs.Length - 1);
+            var mode = new Rect(right - U(12f) - modeW, y, modeW, height);
             if (mode.x < leftmost) return right;
-            ModeControl(book, mode);
+            ModeControl(book, mode, modeCaptionW, segmentWs);
             if (book.Rule == CompendiumRule.Off || CompendiumKeeper.Ceiling == 0 && book.Floor == 0) return mode.x;
-            var floor = new Rect(mode.x - U(6f) - StepperWidth(_floorW), y, StepperWidth(_floorW), height);
+            var floorCaptionW = Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption) + U(8f);
+            var floorW = floorCaptionW + height * 2f + _floorValueW + U(4f) * 2f;
+            var floor = new Rect(mode.x - U(16f) - floorW, y, floorW, height);
             if (floor.x < leftmost) return mode.x;
-            FloorControl(explorer, book, floor);
+            FloorControl(explorer, book, floor, floorCaptionW);
             return floor.x;
         }
 
-        /// <summary>The mode: the rules chosen, between arrows stepping to the ones before and after.</summary>
-        private static void ModeControl(CompendiumBook book, Rect rect)
+        /// <summary>The mode: its caption, then a segment for each of the rules, the chosen one lit.</summary>
+        private static void ModeControl(CompendiumBook book, Rect rect, float captionW, float[] segmentWs)
         {
             CountDrawn(PanelPart.CompendiumSwitch);
-            var rule = book.Rule;
-            var before = CompendiumRules.Step(rule, -1);
-            var after = CompendiumRules.Step(rule, 1);
-            var (step, lower, middle, raise) = Stepper(rect, CompendiumWords.Mode(rule), rule != CompendiumRule.Off, before != rule, after != rule);
-            if (step != 0) Choose(step < 0 ? before : after);
-
             var mouse = Event.current.mousePosition;
-            if (before != rule && lower.Contains(mouse)) AskTip("mode-down", CompendiumWords.StepTip(before));
-            if (after != rule && raise.Contains(mouse)) AskTip("mode-up", CompendiumWords.StepTip(after));
-            if (middle.Contains(mouse)) AskTip("mode", CompendiumWords.ModeTip);
+            var caption = new Rect(rect.x, rect.y, captionW, rect.height);
+            GUI.Label(caption, CompendiumWords.ModeCaption, Skin.FaintLabel);
+            if (caption.Contains(mouse)) AskTip("mode", CompendiumWords.ModeTip);
+            var x = caption.xMax;
+            for (var i = 0; i < segmentWs.Length; i++)
+            {
+                var rule = CompendiumWords.Rules[i];
+                var segment = new Rect(x, rect.y, segmentWs[i], rect.height);
+                if (GUI.Button(segment, CompendiumWords.RuleName(rule), book.Rule == rule ? Skin.SegmentOn : Skin.Segment) && book.Rule != rule) Choose(rule);
+                if (segment.Contains(mouse)) AskTip("mode-" + CompendiumWords.RuleName(rule), CompendiumWords.StepTip(rule));
+                x = segment.xMax + U(4f);
+            }
         }
 
         /// <summary>
-        /// The milestone floor, once a boss fell for the character or a floor is set: its label
-        /// between arrows lowering and raising it, tier by tier, as far as the bosses that fell in
-        /// a row reach (<see cref="CompendiumKeeper.Ceiling"/>).
+        /// The milestone floor, once a boss fell for the character or a floor is set: its caption,
+        /// then its biome between arrows lowering and raising it, tier by tier, as far as the
+        /// bosses that fell in a row reach (<see cref="CompendiumKeeper.Ceiling"/>).
         /// </summary>
-        private static void FloorControl(Explorer explorer, CompendiumBook book, Rect rect)
+        private static void FloorControl(Explorer explorer, CompendiumBook book, Rect rect, float captionW)
         {
             CountDrawn(PanelPart.FloorControl);
             var floor = book.Floor;
             var canRaise = floor < CompendiumKeeper.Ceiling && floor < Tiers.Last;
-            var (step, lower, middle, raise) = Stepper(rect, CompendiumWords.Floor(floor), floor > 0, floor > 0, canRaise);
-            if (step != 0) SetFloor(book, floor + step);
+            GUI.Label(new Rect(rect.x, rect.y, captionW, rect.height), CompendiumWords.FloorCaption, Skin.FaintLabel);
+            var lower = new Rect(rect.x + captionW, rect.y, rect.height, rect.height);
+            var value = new Rect(lower.xMax + U(4f), rect.y, _floorValueW, rect.height);
+            var raise = new Rect(value.xMax + U(4f), rect.y, rect.height, rect.height);
+
+            var was = GUI.enabled;
+            GUI.enabled = was && floor > 0;
+            if (GUI.Button(lower, "\u2039", Skin.IconButton)) SetFloor(book, floor - 1);
+            GUI.enabled = was && canRaise;
+            if (GUI.Button(raise, "\u203A", Skin.IconButton)) SetFloor(book, floor + 1);
+            GUI.enabled = was;
+            GUI.Label(value, CompendiumWords.FloorName(floor), Skin.Button);
 
             var mouse = Event.current.mousePosition;
             if (floor > 0 && lower.Contains(mouse)) AskTip("floor-down", CompendiumWords.LowerFloor(floor - 1));
-            if (floor < Tiers.Last && (raise.Contains(mouse) || middle.Contains(mouse)))
+            if (floor < Tiers.Last && (raise.Contains(mouse) || value.Contains(mouse)))
             {
                 var boss = explorer.Find(Tiers.BossOf(floor + 1))?.ShownName ?? Tiers.BossOf(floor + 1);
                 AskTip("floor-up", canRaise ? CompendiumWords.RaiseFloor(floor + 1, boss) : CompendiumWords.FloorWaits(boss));
             }
-        }
-
-        /// <summary>The width of a stepped setting whose label is at most so wide: the label, its margins and both arrows.</summary>
-        private static float StepperWidth(float labelW) => labelW + U(12f) + StepperArrow * 2f;
-
-        private static float StepperArrow => U(24f);
-
-        /// <summary>
-        /// A setting stepped with arrows, drawn as the compendium's own: one outlined box, lit or
-        /// not, holding its label between an arrow down and one up, each only clickable where it
-        /// leads somewhere. Which arrow was clicked (-1, 1, or 0 for none), and where each part was drawn.
-        /// </summary>
-        private static (int Step, Rect Lower, Rect Middle, Rect Raise) Stepper(Rect rect, string label, bool lit, bool canLower, bool canRaise)
-        {
-            var inset = U(2f);
-            var lower = new Rect(rect.x + inset, rect.y + inset, StepperArrow, rect.height - inset * 2f);
-            var raise = new Rect(rect.xMax - inset - StepperArrow, lower.y, StepperArrow, lower.height);
-            var middle = new Rect(lower.xMax, rect.y, raise.x - lower.xMax, rect.height);
-            var step = 0;
-
-            GUI.Box(rect, GUIContent.none, Skin.Fitted(lit ? Skin.ModeOn : Skin.Mode, rect));
-            var was = GUI.enabled;
-            GUI.enabled = was && canLower;
-            if (GUI.Button(lower, "\u2039", Skin.Fitted(Skin.ModeArrow, lower))) step = -1;
-            GUI.enabled = was && canRaise;
-            if (GUI.Button(raise, "\u203A", Skin.Fitted(Skin.ModeArrow, raise))) step = 1;
-            GUI.enabled = was;
-            GUI.Label(middle, label, lit ? Skin.ModeTextOn : Skin.ModeText);
-            return (step, lower, middle, raise);
         }
 
         /// <summary>Chooses the compendium's rules for the character played and keeps them at once: a choice of the player's. The mode's arrows, and the self-test.</summary>

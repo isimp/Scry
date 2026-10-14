@@ -35,8 +35,8 @@ namespace Scry.Tests
         public void TheModeNamesItsRulesAndTellsWhatEachShows()
         {
             Assert.Equal(new[] { "Off", "Loose", "Strict" }, CompendiumWords.Rules.Select(CompendiumWords.RuleName));
-            Assert.Equal("Compendium: Strict", CompendiumWords.Mode(CompendiumRule.Strict));
-            Assert.Equal("Compendium: Off", CompendiumWords.Mode(CompendiumRule.Off));
+            // Captioned as the origin switch is, its rules beside it.
+            Assert.Equal("Compendium", CompendiumWords.ModeCaption);
             Assert.Equal("Loose: list only what this character has seen, a page open once it has fought, held, built, used or entered it, and count in each kind's tab what was found of all there is", CompendiumWords.StepTip(CompendiumRule.Loose));
             Assert.Equal("Show only what this character has come to know, by the rules chosen for it here; each character keeps its own", CompendiumWords.ModeTip);
             Assert.Equal("show everything. What this character learns is kept all the same, so turning the compendium on later shows everything met meanwhile", CompendiumWords.RuleTip(CompendiumRule.Off));
@@ -84,6 +84,8 @@ namespace Scry.Tests
         {
             Assert.Equal("Floor: none", CompendiumWords.Floor(0));
             Assert.Equal("Floor: Black forest", CompendiumWords.Floor(2));
+            // In the title row, a caption and the biome stepped between arrows.
+            Assert.Equal(("Floor", "none", "Black forest"), (CompendiumWords.FloorCaption, CompendiumWords.FloorName(0), CompendiumWords.FloorName(2)));
             // What it shows that the character never came to know is marked, on its row and page.
             Assert.Equal("Shown by the Floor: Black forest, not yet come to know by this character", CompendiumWords.ByFloor(2));
             Assert.Equal("Show everything of the Swamp as known: Bonemass fell for this character", CompendiumWords.RaiseFloor(3, "Bonemass"));

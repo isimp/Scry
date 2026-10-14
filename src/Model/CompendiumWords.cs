@@ -32,8 +32,8 @@ namespace Scry
         /// <summary>The title of a list of what there is (what a mod adds) with the compendium on: how many of it the character has seen, which are all it shows.</summary>
         public static string Found(string title, int found) => $"{title}, {Numbers.Count(found)} found";
 
-        /// <summary>The compendium's mode in the title row: the rules chosen for this character.</summary>
-        public static string Mode(CompendiumRule rule) => "Compendium: " + RuleName(rule);
+        /// <summary>The caption of the compendium's mode in the title row, its rules beside it as segments.</summary>
+        public const string ModeCaption = "Compendium";
 
         /// <summary>The mode's tip.</summary>
         public const string ModeTip = "Show only what this character has come to know, by the rules chosen for it here; each character keeps its own";
@@ -119,8 +119,14 @@ namespace Scry
         /// <summary>The log's line on a dedicated server.</summary>
         public static string ServerPart => "on a dedicated server Scry only answers players' explored maps, for their compendium";
 
-        /// <summary>The milestone floor's label: the last tier it shows, by its biome, or none.</summary>
-        public static string Floor(int floor) => "Floor: " + (floor > 0 ? Naming.FieldLabel(Tiers.BiomeOf(floor)) : "none");
+        /// <summary>The caption of the milestone floor in the title row.</summary>
+        public const string FloorCaption = "Floor";
+
+        /// <summary>The milestone floor as stepped: the last tier it shows, by its biome, or none.</summary>
+        public static string FloorName(int floor) => floor > 0 ? Naming.FieldLabel(Tiers.BiomeOf(floor)) : "none";
+
+        /// <summary>The milestone floor named in a sentence.</summary>
+        public static string Floor(int floor) => FloorCaption + ": " + FloorName(floor);
 
         /// <summary>The tip of the mark on a row, and the line under a page's title, of what shows as known only by the floor.</summary>
         public static string ByFloor(int floor) => $"Shown by the {Floor(floor)}, not yet come to know by this character";
