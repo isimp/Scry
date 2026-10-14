@@ -35,7 +35,9 @@ namespace Scry
                 var centre = creature.GetCenterPoint();
                 if (Vector3.Distance(player.transform.position, centre) <= CreatureReach && InView(view, centre) && Clear(view.position, centre))
                 {
-                    catchUp.Met(Utils.GetPrefabName(creature.gameObject), KnownLevel.Seen, book);
+                    var key = Utils.GetPrefabName(creature.gameObject);
+                    catchUp.Met(key, KnownLevel.Seen, book);
+                    CompendiumKeeper.MetIn(key, creature.transform.position);
                 }
             }
             foreach (var place in _places())
@@ -57,10 +59,17 @@ namespace Scry
             var gui = InventoryGui.instance;
             var container = gui != null && gui.IsContainerOpen() ? _container(gui) : null;
             if (container == null) return;
-            catchUp.Met(Utils.GetPrefabName(container.gameObject), KnownLevel.Known, book);
+            var chest = Utils.GetPrefabName(container.gameObject);
+            catchUp.Met(chest, KnownLevel.Known, book);
+            CompendiumKeeper.MetIn(chest, container.transform.position);
+            var chestPlace = Location.GetLocation(container.transform.position);
             foreach (var held in container.GetInventory().GetAllItems())
             {
-                if (held?.m_dropPrefab != null) catchUp.Met(held.m_dropPrefab.name, KnownLevel.Seen, book);
+                if (held?.m_dropPrefab == null) continue;
+                catchUp.Met(held.m_dropPrefab.name, KnownLevel.Seen, book);
+                // Its loot was found in it, and in the place it stands in.
+                CompendiumKeeper.Saw(chest, held.m_dropPrefab.name);
+                if (chestPlace != null) CompendiumKeeper.Saw(held.m_dropPrefab.name, EntryKeys.For(Kind.Location, Utils.GetPrefabName(chestPlace.gameObject)));
             }
         }
 

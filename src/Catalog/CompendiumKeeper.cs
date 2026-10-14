@@ -118,18 +118,45 @@ namespace Scry
             Guard.Run(Feature.CompendiumSeen, "looking at what the character sees", () => CompendiumSight.Look(player, _catchUp, _book));
         }
 
-        /// <summary>Learns of a creature the character fought, hitting it or hit by it, as news.</summary>
+        /// <summary>Learns of a creature the character fought, hitting it or hit by it, as news, and that it met it where it stands.</summary>
         public static void Fought(Character creature)
         {
             if (_book == null || _catchUp == null || creature == null || creature == Player.m_localPlayer) return;
-            _catchUp.Met(Utils.GetPrefabName(creature.gameObject), KnownLevel.Known, _book);
+            var key = Utils.GetPrefabName(creature.gameObject);
+            _catchUp.Met(key, KnownLevel.Known, _book);
+            MetIn(key, creature.transform.position);
         }
 
-        /// <summary>Learns of a resource the character hit, as news.</summary>
+        /// <summary>A creature's attack hit the character: the two seen together, for the strict rules' attack table.</summary>
+        public static void HitBy(Character creature)
+        {
+            if (_book == null || creature == null || creature == Player.m_localPlayer) return;
+            var weapon = (creature as Humanoid).OrNull()?.GetCurrentWeapon()?.m_dropPrefab.OrNull();
+            if (weapon != null) _book.Witness(Utils.GetPrefabName(creature.gameObject), weapon.name);
+        }
+
+        /// <summary>Learns of a resource the character hit, as news, what it hit it with and where it stands.</summary>
         public static void Hit(Component resource)
         {
             if (_book == null || _catchUp == null || resource == null) return;
-            _catchUp.Met(Utils.GetPrefabName(resource.gameObject), KnownLevel.Known, _book);
+            var key = Utils.GetPrefabName(resource.gameObject);
+            _catchUp.Met(key, KnownLevel.Known, _book);
+            var tool = Player.m_localPlayer.OrNull()?.GetCurrentWeapon()?.m_dropPrefab.OrNull();
+            if (tool != null) _book.Witness(key, tool.name);
+            MetIn(key, resource.transform.position);
+        }
+
+        /// <summary>The character saw two things go together, by their entries' keys (<see cref="CompendiumBook.Witness"/>).</summary>
+        public static void Saw(string a, string b) => _book?.Witness(a, b);
+
+        /// <summary>The character met a thing where it stands: with the biome there, and the place it is in.</summary>
+        public static void MetIn(string key, Vector3 at)
+        {
+            if (_book == null || string.IsNullOrEmpty(key)) return;
+            var biome = Heightmap.FindBiome(at);
+            if (biome != Heightmap.Biome.None) _book.Witness(key, EntryKeys.For(Kind.Biome, biome.ToString()));
+            var place = Location.GetLocation(at);
+            if (place != null) _book.Witness(key, EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)));
         }
 
         /// <summary>Writes the book once it changed, at most every half minute unless asked to now, on a worker thread.</summary>

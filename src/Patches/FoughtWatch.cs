@@ -30,7 +30,11 @@ namespace Scry
         private static void Prefix(Character __instance, HitData hit)
         {
             if (hit == null || Player.m_localPlayer == null || __instance != Player.m_localPlayer) return;
-            Guard.Run(Feature.CompendiumFought, "noting a creature fought", () => CompendiumKeeper.Fought(hit.GetAttacker()));
+            Guard.Run(Feature.CompendiumFought, "noting a creature fought", () =>
+            {
+                CompendiumKeeper.Fought(hit.GetAttacker());
+                CompendiumKeeper.HitBy(hit.GetAttacker());
+            });
         }
     }
 }

@@ -194,6 +194,13 @@ namespace Scry
             var sightings = new CompendiumBook();
             var failed = Steps.Run(() => CompendiumSight.Look(player, new CompendiumCatchUp(X.Entries), sightings), null);
             p.Check(failed == null, "looking around the character finds no fault", failed?.Message);
+
+            // What is met is paired with the biome and place it stands in, under keys that name entries.
+            var biome = Heightmap.FindBiome(player.transform.position);
+            p.Check(biome == Heightmap.Biome.None || X.Find(EntryKeys.For(Kind.Biome, biome.ToString())) != null, $"the biome stood in ({biome}) has an entry for what is met in it to pair with");
+            var stoodIn = Location.GetLocation(player.transform.position);
+            p.Check(stoodIn == null || X.Find(EntryKeys.For(Kind.Location, Utils.GetPrefabName(stoodIn.gameObject))) != null, "and so has the place stood in", stoodIn != null ? Utils.GetPrefabName(stoodIn.gameObject) : "none");
+            p.Note($"the character saw {Numbers.Count(CompendiumKeeper.Book?.Pairs ?? 0)} pairs go together");
             p.Note(sightings.Count(KnownLevel.HeardOf) == 0 ? "nothing in sight now" : $"in sight now: {string.Join(", ", sightings.All.Select(e => $"{e.Key} ({e.Value})").Take(20))}");
             yield return Until(() => false, 2);
             p.Check(Faults.Count == faults, "nothing the compendium watches told a fault meanwhile", Faults.Latest);
