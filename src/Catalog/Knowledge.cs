@@ -218,6 +218,12 @@ namespace Scry
         /// <summary>What an item is used for: recipes, pieces, what stations turn it into, what burns it and what eats it.</summary>
         public static IReadOnlyList<UseGroup> UsesOf(string item) => Uses.Of(item);
 
+        /// <summary>Each recipe and each piece's cost, a way to make its thing apiece, noted as the catalog is read.</summary>
+        private static readonly List<MakingWay> Crafted = new List<MakingWay>();
+
+        /// <summary>Every recipe and piece cost: what it makes, where, and what making it once takes.</summary>
+        public static IReadOnlyList<MakingWay> CraftWays => Crafted;
+
         /// <summary>Starts reading it all again for the current world.</summary>
         public static void Begin()
         {
@@ -228,6 +234,7 @@ namespace Scry
             DropLines.Clear();
             Made.Clear();
             Uses.Clear();
+            Crafted.Clear();
             Tools.Clear();
             Bosses.Clear();
             BossEvents.Clear();
@@ -302,10 +309,14 @@ namespace Scry
                         continue;
                     case Piece piece when piece.m_enabled && piece.m_resources != null:
                         var near = piece.m_craftingStation != null ? piece.m_craftingStation.gameObject.name : null;
+                        var cost = new List<(string, int)>();
                         foreach (var need in piece.m_resources)
                         {
-                            if (need?.m_resItem != null) Uses.Add(need.m_resItem.gameObject.name, UseKind.Builds, prefab.name, need.m_amount, near);
+                            if (need?.m_resItem == null) continue;
+                            Uses.Add(need.m_resItem.gameObject.name, UseKind.Builds, prefab.name, need.m_amount, near);
+                            cost.Add((need.m_resItem.gameObject.name, need.m_amount));
                         }
+                        if (cost.Count > 0) Crafted.Add(new MakingWay(prefab.name, near, cost.ToArray()));
                         break;
                     case CraftingStation craft when craft.m_upgrader && UpgradeStation == null:
                         UpgradeStation = prefab.name;
@@ -362,13 +373,19 @@ namespace Scry
                 if (recipe == null || !recipe.m_enabled || recipe.m_item == null || recipe.m_resources == null) continue;
                 var at = recipe.m_craftingStation != null ? recipe.m_craftingStation.gameObject.name : "hand";
                 var maxQuality = recipe.m_item.m_itemData?.m_shared?.m_maxQuality ?? 1;
+                var takes = new List<(string, int)>();
                 foreach (var need in recipe.m_resources)
                 {
                     if (need?.m_resItem == null) continue;
                     // An upgrade kit is asked for only at an upgrade station, and only for what can be upgraded.
-                    if (!need.m_upgraderResource) Uses.Add(need.m_resItem.gameObject.name, UseKind.Crafts, recipe.m_item.gameObject.name, need.m_amount, at);
+                    if (!need.m_upgraderResource)
+                    {
+                        Uses.Add(need.m_resItem.gameObject.name, UseKind.Crafts, recipe.m_item.gameObject.name, need.m_amount, at);
+                        takes.Add((need.m_resItem.gameObject.name, need.m_amount));
+                    }
                     else if (maxQuality > 1) Uses.Add(need.m_resItem.gameObject.name, UseKind.UpgradesPastTop, recipe.m_item.gameObject.name, need.GetAmount(maxQuality + 1));
                 }
+                if (takes.Count > 0) Crafted.Add(new MakingWay(recipe.m_item.gameObject.name, at, takes.ToArray()));
             }
         }
 

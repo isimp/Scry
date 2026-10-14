@@ -32,10 +32,10 @@ namespace Scry
             // The records as the game keeps them, read whole.
             var records = new CompendiumRecords();
             CharacterRecords.Read(player, profile, records);
-            var sets = new[] { records.Materials, records.Recipes, records.Stations, records.Biomes, records.Trophies, records.Killed, records.PickedUp, records.Crafted, records.Eaten, records.Picked, records.Placed };
+            var sets = new[] { records.Materials, records.Recipes, records.Stations, records.Biomes, records.Trophies, records.Uniques, records.Killed, records.PickedUp, records.Crafted, records.Eaten, records.Picked, records.Placed };
             var size = CharacterRecords.Size(player, profile);
             p.Check(sets.Sum(s => s.Count) == size, "the character's records are read whole", $"{Numbers.Count(sets.Sum(s => s.Count))} of {Numbers.Count(size)}");
-            p.Note($"records: {Numbers.Count(records.Materials.Count)} items had, {Numbers.Count(records.Recipes.Count)} recipes, {Numbers.Count(records.Stations.Count)} stations, {Numbers.Count(records.Biomes.Count)} biomes, {Numbers.Count(records.Trophies.Count)} trophies, {Numbers.Count(records.Killed.Count)} kinds killed, {Numbers.Count(records.PickedUp.Count)} picked up, {Numbers.Count(records.Crafted.Count)} crafted, {Numbers.Count(records.Eaten.Count)} eaten, {Numbers.Count(records.Picked.Count)} picked, {Numbers.Count(records.Placed.Count)} placed");
+            p.Note($"records: {Numbers.Count(records.Materials.Count)} items had, {Numbers.Count(records.Recipes.Count)} recipes, {Numbers.Count(records.Stations.Count)} stations, {Numbers.Count(records.Biomes.Count)} biomes, {Numbers.Count(records.Trophies.Count)} trophies, {Numbers.Count(records.Uniques.Count)} marks of what was done, {Numbers.Count(records.Killed.Count)} kinds killed, {Numbers.Count(records.PickedUp.Count)} picked up, {Numbers.Count(records.Crafted.Count)} crafted, {Numbers.Count(records.Eaten.Count)} eaten, {Numbers.Count(records.Picked.Count)} picked, {Numbers.Count(records.Placed.Count)} placed");
 
             // Everything they tell is in the book: the catch-up ran on this catalog.
             var told = new CompendiumBook();
@@ -187,14 +187,24 @@ namespace Scry
             var counts = Enumerable.Range(1, Tiers.Last).Select(t => $"{Tiers.BiomeOf(t)} {Numbers.Count(tiers.Count(p2 => p2.Value == t))}");
             p.Note($"{Numbers.Count(tiers.Count)} of {Numbers.Count(X.Catalog.Count)} entries have a tier: {string.Join(", ", counts)}, {Numbers.Count(tiers.Count(p2 => p2.Value == 0))} need nothing");
             var wrong = new List<string>();
+            var wrongKeys = new List<string>();
             foreach (var (name, tier) in KnownTiers)
             {
                 var entry = X.Find(name);
                 if (entry == null) continue;
                 var got = tiers.TryGetValue(entry.Key, out var t) ? t : Tiers.None;
-                if (got != tier) wrong.Add($"{name} {(got == Tiers.None ? "none" : Numbers.Count(got))}, not {Numbers.Count(tier)}");
+                if (got == tier) continue;
+                wrong.Add($"{name} {(got == Tiers.None ? "none" : Numbers.Count(got))}, not {Numbers.Count(tier)}");
+                wrongKeys.Add(entry.Key);
             }
             p.Check(wrong.Count == 0, "they follow the game's progression: each boss its own, iron gear the Swamp's, black metal the Plains'", string.Join("; ", wrong));
+            if (wrongKeys.Count > 0)
+            {
+                // Why: the way that set each, followed through its dearest need.
+                var pass = CompendiumTiers.Gather(X.Entries);
+                var worked = pass.Work();
+                foreach (var key in wrongKeys) p.Note($"{key}'s tier comes by way of {TierChain(pass, worked, key)}");
+            }
             var serpent = X.Find("Serpent");
             p.Check(serpent == null || !tiers.ContainsKey(serpent.Key), "and what lives only at sea has none");
 
@@ -212,6 +222,23 @@ namespace Scry
 
         /// <summary>Terms tried on a made-up character, each of which must not find what it has not met.</summary>
         private static readonly string[] CompendiumTerms = { "kind:creature", "is:boss", "biome:meadows", "drops:wood", "has:Character", "in:crypt" };
+
+        /// <summary>The way that sets an entry's tier, then the way of its dearest need, as long as that need sets the tier.</summary>
+        private static string TierChain(TierPass pass, Dictionary<string, int> tiers, string key)
+        {
+            var steps = new List<string>();
+            for (var i = 0; i < 8 && key != null; i++)
+            {
+                var way = pass.WayIn(key, tiers);
+                if (way == null) break;
+                var (own, needs) = way.Value;
+                int TierOf(string n) => tiers.TryGetValue(n, out var t) ? t : 0;
+                steps.Add($"{key} {Numbers.Count(tiers[key])} (own {Numbers.Count(own)}{(needs.Length > 0 ? ", needs " + string.Join(", ", needs.Take(6).Select(n => $"{n} {Numbers.Count(TierOf(n))}")) : "")})");
+                var dearest = needs.OrderByDescending(TierOf).FirstOrDefault();
+                key = dearest != null && TierOf(dearest) > own ? dearest : null;
+            }
+            return string.Join(" <- ", steps);
+        }
 
         /// <summary>The keys one book knows more of than another.</summary>
         private static List<string> Short(CompendiumBook wanted, CompendiumBook have) =>
@@ -387,9 +414,14 @@ namespace Scry
                 view.Tell(book, CompendiumRule.Loose);
                 var leftOut = ScryPanel.Drawn(PanelPart.ListLeftOut);
                 X.Select(tree);
+                yield return Until(() => Stage.Showing == tree, 5);
                 repaints = ScryPanel.Repaints;
                 yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
-                p.Check(X.Selected == tree && ScryPanel.Drawn(PanelPart.ListLeftOut) > leftOut, $"{tree.Name}, known, names no tool not seen that breaks it");
+                // Why not, where it fails: the row the page holds, and the tools on it the made-up character reaches.
+                var broken = Facts.For(tree).Rows.FirstOrDefault(r => r.Title == GatherWords.BrokenWithTitle);
+                var reached = broken?.Items.Where(i => X.Reaches(i.Prefab)).Select(i => i.Prefab).ToList() ?? new List<string>();
+                p.Check(X.Selected == tree && ScryPanel.Drawn(PanelPart.ListLeftOut) > leftOut, $"{tree.Name}, known, names no tool not seen that breaks it",
+                    $"selected {X.Selected?.Name}, shown {X.LevelOf(tree)}, row {(broken == null ? "none" : $"of {Numbers.Count(broken.Items.Count)} tools, {Numbers.Count(reached.Count)} reached: {string.Join(", ", reached.Take(8))}")}");
             }
 
             // A mod's page and the mod report list only what the character has seen of what a mod adds.

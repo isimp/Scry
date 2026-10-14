@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -9,8 +10,9 @@ namespace Scry
     /// Each entry's milestone tier (<see cref="TierPass"/>), from what Scry knows of how things are
     /// come by: the biomes a thing lives in; the places that hold it (a room the dungeons it is
     /// built into); whatever drops, yields, grows, makes or bears it, and a trader with the boss
-    /// whose fall it waits for (its defeat key); each recipe's ingredients with its station; the
-    /// spawners and raids that bring a creature; the owners of what is played or left behind; the
+    /// whose fall it waits for (its defeat key); each recipe, piece cost and station's making a
+    /// way of its own (<see cref="TierWays"/>); the spawners and raids that bring a creature, a
+    /// raid no sooner than what it waits for; the owners of what is played or left behind; the
     /// givers of a status effect. Gathered on the main thread, worked out on a worker, again
     /// whenever the catalog's groups change, as when the world's places are read.
     /// </summary>
@@ -18,7 +20,6 @@ namespace Scry
     {
         static CompendiumTiers() => WorldCaches.Register(nameof(CompendiumTiers), Forget);
 
-        private static readonly UseKind[] Recipes = { UseKind.Crafts, UseKind.Builds, UseKind.TurnsInto };
 
         private static EntryCatalog _for;
         private static int _forRegroups = -1;
@@ -66,13 +67,14 @@ namespace Scry
                 list.Add(entry);
             }
             var keyTiers = DefeatKeys(catalog);
-            var recipes = new Dictionary<(string Target, string Place), List<string>>();
+            string KeyOf(string name) => catalog.Find(name)?.Key;
 
             foreach (var entry in catalog.All)
             {
                 var key = entry.Key;
                 if (entry.Kind == Kind.Biome) pass.Add(key, Tiers.OfBiome(entry.Name));
-                foreach (var biome in entry.Biomes) pass.Add(key, Tiers.OfBiome(biome));
+                if (entry.Kind == Kind.Raid && entry.Source is RandomEvent raid) TierWays.Raid(pass, key, entry.Biomes.Select(Tiers.OfBiome), Ready(raid), keyTiers, KeyOf);
+                else foreach (var biome in entry.Biomes) pass.Add(key, Tiers.OfBiome(biome));
                 foreach (var label in entry.FoundIn)
                 {
                     if (label == null || !places.TryGetValue(label, out var holders)) continue;
@@ -96,26 +98,21 @@ namespace Scry
                     if (record.Way == SourceWay.Sold && record.Key.Length > 0 && !keyTiers.TryGetValue(record.Key, out tier)) continue;
                     pass.Add(key, tier, giver.Key);
                 }
-                foreach (var use in Knowledge.UsesOf(entry.Name))
+                // What stations turn into it, each item they take a way of its own where any one will do.
+                foreach (var making in Knowledge.MadeOf(entry.Name))
                 {
-                    if (Array.IndexOf(Recipes, use.Kind) < 0) continue;
-                    foreach (var (target, _) in use.Targets)
-                    {
-                        if (!recipes.TryGetValue((target, use.Place), out var needs)) recipes[(target, use.Place)] = needs = new List<string>();
-                        needs.Add(key);
-                    }
+                    foreach (var way in TierWays.Of(making)) TierWays.Making(pass, way, KeyOf);
                 }
             }
 
-            // A recipe needs all its ingredients and its station, where that is a thing of its own.
-            foreach (var recipe in recipes)
-            {
-                var station = recipe.Key.Place != null ? catalog.Find(recipe.Key.Place) : null;
-                if (station != null) recipe.Value.Add(station.Key);
-                pass.Add(recipe.Key.Target, 0, recipe.Value.ToArray());
-            }
+            // Each recipe and piece cost a way of its own: all it takes to make it once, and its station.
+            foreach (var way in Knowledge.CraftWays) TierWays.Making(pass, way, KeyOf);
             return pass;
         }
+
+        /// <summary>The ways a raid becomes ready, read from what it waits for.</summary>
+        private static List<RaidReady> Ready(RandomEvent raid) => TierWays.Ready(Knowledge.ByEachPlayer(raid), raid.m_requiredGlobalKeys,
+            raid.m_altRequiredKnownItems?.Where(i => i != null).Select(i => i.gameObject.name), raid.m_altRequiredPlayerKeysAny, raid.m_altRequiredPlayerKeysAll);
 
         /// <summary>Each tier's boss as a character's records know it, the first tier first: its name as kills are counted, its defeat key, its trophy (what it drops named Trophy).</summary>
         public static List<BossMarks> Bosses(EntryCatalog catalog)

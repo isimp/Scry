@@ -297,6 +297,7 @@ namespace Scry
             ("RandEventSystem", "GetEvent", 1, 0x22158546, Feature.BossFightsAmongRaids),
             ("RandEventSystem", "GetForcedEvent", 0, 0x336C037F, Feature.BossFightsAmongRaids),
             ("RandEventSystem", "InValidBiome", 2, 0xFA79CFCA, Feature.WhereRaidsCome),
+            ("RandEventSystem", "PlayerIsReadyForEvent", 2, 0xF3BBA83A, Feature.CompendiumTiers),
             ("Room", "GetConnections", 0, 0xB3701829, Feature.ExampleDungeonAndCampLayouts),
             ("RuneStone", "GetRandomText", 0, 0x309CE075, Feature.RunestoneTexts),
             ("RuneStone", "Interact", 3, 0xB26864BA, Feature.RunestoneTexts),

@@ -91,6 +91,20 @@ namespace Scry
             return tiers;
         }
 
+        /// <summary>
+        /// The way that gives an entry its tier, as worked out: its own tier and what it needs;
+        /// none for an entry no way reaches. Tells why a thing has the tier it has.
+        /// </summary>
+        public (int Tier, string[] Needs)? WayIn(string key, Dictionary<string, int> tiers)
+        {
+            if (key == null || !_ways.TryGetValue(key, out var ways) || !tiers.TryGetValue(key, out var tier)) return null;
+            foreach (var way in ways)
+            {
+                if (Cost(way, tiers) == tier) return (way.Tier, way.Needs);
+            }
+            return null;
+        }
+
         private static int Cost(Way way, Dictionary<string, int> tiers)
         {
             var cost = way.Tier;
