@@ -229,15 +229,15 @@ namespace Scry
         /// <summary>
         /// Whether the page shown leaves out a fact naming the entry a key names: under the strict
         /// rules, on a known page above the milestone floor, what the character never saw go
-        /// together with it and is no part of it (its sounds, effects, projectiles). Silently: no
-        /// count, no stand-in.
+        /// together with it, is no part of it (its sounds, effects, projectiles) and owns it not.
+        /// Silently: no count, no stand-in.
         /// </summary>
         public bool LeavesOut(string key)
         {
             if (!LeavingOut) return false;
             var other = Find(key);
             if (other == null || other == _selected || other.Kind == Kind.Mod) return false;
-            return !_view.Owns(_selected, other) && !_view.Witnessed(_selected, other);
+            return !_view.Related(_selected, other);
         }
 
         /// <summary>

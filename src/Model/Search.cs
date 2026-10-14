@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -195,7 +196,9 @@ namespace Scry
         /// the kind chips count across every kind while one is picked.
         /// With the compendium (<paramref name="view"/>), only what the character has seen or knows
         /// matches, and what it has only seen only by its name and kind, since any other term would
-        /// tell what its closed page holds.
+        /// tell what its closed page holds. Under the strict rules a known entry above the milestone
+        /// floor matches a term naming what it goes with (drops, biomes, places, stations, owners)
+        /// only through what the character saw go together with it, as its page shows.
         /// </summary>
         public static List<Entry> Run(IReadOnlyList<Entry> all, Query query, ICollection<string> favourites,
             ICollection<string> only, int[] kindCounts, CompendiumView view = null)
@@ -214,7 +217,8 @@ namespace Scry
                 var level = view != null ? view.Of(entry) : KnownLevel.Known;
                 if (level < KnownLevel.Seen) continue;
 
-                var score = Score(entry, search, level == KnownLevel.Known);
+                var guard = view != null && view.Rule == CompendiumRule.Strict && level == KnownLevel.Known && !view.BelowFloor(entry) ? view : null;
+                var score = Score(entry, search, level == KnownLevel.Known, guard);
                 if (score == Miss) continue;
 
                 if (kindCounts != null) kindCounts[(int)entry.Kind]++;
@@ -328,10 +332,14 @@ namespace Scry
         /// The sum of each word's best match over both names, or <see cref="Miss"/> when any word
         /// matches neither, a term fails, or something left out matches. Lower is better.
         /// </summary>
-        private static int Score(Entry entry, Matcher search) => Score(entry, search, true);
+        private static int Score(Entry entry, Matcher search) => Score(entry, search, true, null);
 
-        /// <summary>How well an entry matches; one not <paramref name="whole"/>ly known matches no term but its kind.</summary>
-        private static int Score(Entry entry, Matcher search, bool whole)
+        /// <summary>
+        /// How well an entry matches; one not <paramref name="whole"/>ly known matches no term but
+        /// its kind; under the strict rules (<paramref name="strict"/>) a term naming what it goes
+        /// with matches only what was seen together with it.
+        /// </summary>
+        private static int Score(Entry entry, Matcher search, bool whole, CompendiumView strict)
         {
             if (!whole)
             {
@@ -340,8 +348,8 @@ namespace Scry
             }
             foreach (var name in search.Names) if (!NamedExactly(entry, name)) return Miss;
             foreach (var name in search.NotNames) if (NamedExactly(entry, name)) return Miss;
-            foreach (var term in search.Terms) if (!TermMatches(entry, term)) return Miss;
-            foreach (var term in search.NotTerms) if (TermMatches(entry, term)) return Miss;
+            foreach (var term in search.Terms) if (!TermMatches(entry, term, strict)) return Miss;
+            foreach (var term in search.NotTerms) if (TermMatches(entry, term, strict)) return Miss;
             foreach (var word in search.NotWords)
             {
                 if (Rank(entry.Name, entry.NameUpper, word) != Miss || Rank(entry.DisplayName, entry.DisplayNameUpper, word) != Miss) return Miss;
@@ -358,7 +366,7 @@ namespace Scry
         }
 
         /// <summary>Whether any of a term's values matches the entry.</summary>
-        private static bool TermMatches(Entry entry, Term term)
+        private static bool TermMatches(Entry entry, Term term, CompendiumView strict)
         {
             if (term.Key == "kind")
             {
@@ -367,22 +375,31 @@ namespace Scry
             }
             for (var i = 0; i < term.Values.Length; i++)
             {
-                if (term.Key == "station" ? StationMatches(entry.Stations, term.Stations[i], term.Levels[i]) : ValueMatches(entry, term.Key, term.Values[i])) return true;
+                if (term.Key == "station" ? StationMatches(Related(entry, entry.Stations, s => s.Name, strict), term.Stations[i], term.Levels[i]) : ValueMatches(entry, term.Key, term.Values[i], strict)) return true;
             }
             return false;
         }
 
-        private static bool ValueMatches(Entry entry, string key, string value)
+        private static bool ValueMatches(Entry entry, string key, string value, CompendiumView strict)
         {
             switch (key)
             {
                 case "has": return AnyContains(entry.Components, value);
-                case "biome": return AnyContains(entry.Biomes, value);
-                case "in": return AnyPlaceNamed(entry.FoundIn, value);
+                case "biome": return AnyContains(Related(entry, entry.Biomes, b => EntryKeys.For(Kind.Biome, b), strict), value);
+                case "in": return AnyPlaceNamed(strict == null ? entry.FoundIn : entry.FoundIn.Where(label => strict.PlacesLabelled(label).Any(place => strict.Related(entry, place))).ToArray(), value);
                 case "mod": return ContainsLeavingOutSpaces(entry.ModName, value);
-                case "playedby": return AnyContainsLeavingOutSpaces(entry.UsedBy, value);
-                default: return Array.IndexOf(LinkKeys, key) >= 0 ? AnyLinked(entry.TermLinks(key), value) : AnyWordStarts(entry.TermWords(key), value);
+                case "playedby": return AnyContainsLeavingOutSpaces(strict == null ? entry.UsedBy : Related(entry, entry.UsedBy.ToArray(), u => u, strict).ToList(), value);
+                default:
+                    if (Array.IndexOf(LinkKeys, key) < 0) return AnyWordStarts(entry.TermWords(key), value);
+                    return AnyLinked(strict == null ? entry.TermLinks(key) : entry.TermLinks(key).Where(other => strict.Related(entry, other)).ToList(), value);
             }
+        }
+
+        /// <summary>What an entry goes with, each named by a key: all of it, or under the strict rules only what was seen together with it.</summary>
+        private static T[] Related<T>(Entry entry, T[] values, Func<T, string> key, CompendiumView strict)
+        {
+            if (strict == null) return values;
+            return values.Where(v => strict.Related(entry, strict.Catalog.Find(key(v)))).ToArray();
         }
 
         /// <summary>A kind by its name or the start of it, singular or plural; "se" is a status effect.</summary>

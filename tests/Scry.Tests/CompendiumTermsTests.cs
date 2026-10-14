@@ -58,6 +58,8 @@ namespace Scry.Tests
             public List<Suggestion> Suggest(string word) => SearchHelp.Suggest(word, new TermIndex(All, Met), 20);
 
             public List<Suggestion> SuggestAll(string word) => SearchHelp.Suggest(word, new TermIndex(All), 20);
+
+            public List<Suggestion> SuggestStrict(string word) => SearchHelp.Suggest(word, new TermIndex(All, Met, new HashSet<Entry> { Troll, Club }), 20);
         }
 
         private static string[] Labels(List<Suggestion> found) => found.Select(s => s.Label).OrderBy(l => l).ToArray();
@@ -88,6 +90,22 @@ namespace Scry.Tests
             Assert.Equal(1, world.Suggest("station:").Single().Count);
             Assert.DoesNotContain(world.Suggest("drops:"), s => s.Label == "RawMeat");
             Assert.Equal(3, world.Suggest("kind:creature").Single(s => s.Label == Kinds.Label(Kind.Creature)).Count);
+        }
+
+        [Fact]
+        public void UnderStrictAKnownEntryOffersWhatItIsNotWhatItGoesWith()
+        {
+            // Its relations show on its page only as far as they were seen; suggestions leave them out.
+            var world = new World();
+
+            Assert.Empty(world.SuggestStrict("drops:"));
+            Assert.Empty(world.SuggestStrict("biome:"));
+            Assert.Empty(world.SuggestStrict("in:"));
+            Assert.Empty(world.SuggestStrict("station:"));
+            Assert.Equal(new[] { "Wolf" }, Labels(world.SuggestStrict("playedby:")));
+            var has = world.SuggestStrict("has:");
+            Assert.Equal(new[] { "Character" }, Labels(has));
+            Assert.Equal(1, has[0].Count);
         }
 
         [Fact]

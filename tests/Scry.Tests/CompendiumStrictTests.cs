@@ -64,6 +64,54 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APartsPageKeepsTheOwnerItIsPartOf()
+        {
+            var world = new World().Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Grunt);
+
+            Assert.True(world.Explorer.LeavingOut);
+            Assert.False(world.Explorer.LeavesOut(world.Troll.Key));
+            Assert.True(world.Explorer.LeavesOut(world.Coins.Key));
+        }
+
+        [Fact]
+        public void UnderStrictASearchFindsAKnownEntryOnlyByWhatWasSeenGoTogether()
+        {
+            // The troll was seen to drop its hide, never coins; its kind and parts are plain to see.
+            var world = new World();
+            world.Troll.Biomes = new[] { "BlackForest", "Mountain" };
+            world.Troll.Components = new[] { "Character" };
+            var forest = E("BlackForest", Kind.Biome);
+            var all = new[] { world.Troll, world.Hide, world.Coins, world.Grunt, forest }.ToList();
+            var explorer = new Explorer(all, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            world.Book.Witness(world.Troll.Key, world.Hide.Key);
+            world.Book.Witness(world.Troll.Key, forest.Key);
+            view.Tell(world.Book, CompendiumRule.Strict);
+            explorer.Know(view);
+
+            explorer.Text = "drops:trollhide";
+            Assert.Contains(world.Troll, explorer.Results);
+            explorer.Text = "drops:coins";
+            Assert.DoesNotContain(world.Troll, explorer.Results);
+            explorer.Text = "biome:blackforest";
+            Assert.Contains(world.Troll, explorer.Results);
+            explorer.Text = "biome:mountain";
+            Assert.DoesNotContain(world.Troll, explorer.Results);
+            explorer.Text = "has:character";
+            Assert.Contains(world.Troll, explorer.Results);
+            explorer.Text = "playedby:troll";
+            Assert.Contains(world.Grunt, explorer.Results);
+
+            // Below the floor it is found as the loose rules find it.
+            view.Milestones(new Dictionary<string, int> { { world.Troll.Key, 2 } }, 2);
+            view.Tell(world.Book, CompendiumRule.Strict);
+            explorer.Know(view);
+            explorer.Text = "drops:coins";
+            Assert.Contains(world.Troll, explorer.Results);
+        }
+
+        [Fact]
         public void LooseOffAndAClosedPageLeaveNothingOut()
         {
             var world = new World().Rule(CompendiumRule.Loose);

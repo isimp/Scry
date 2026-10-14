@@ -76,10 +76,11 @@ namespace Scry
                 {
                     var catalog = explorer.Catalog;
                     var met = Met(explorer);
+                    var guarded = Guarded(explorer);
                     _jobFor = explorer;
                     _jobAt = Locations.Applied;
                     _jobKnow = explorer.KnowStamp;
-                    _termsJob = System.Threading.Tasks.Task.Run(() => new TermIndex(catalog, met));
+                    _termsJob = System.Threading.Tasks.Task.Run(() => new TermIndex(catalog, met, guarded));
                 }
 
                 if (_termsJob.IsCompleted)
@@ -93,7 +94,7 @@ namespace Scry
                     {
                         // Told as a failure, then read here on the main thread instead.
                         Faults.Tell(Feature.SearchSuggestions, "reading the search terms on a worker thread", _termsJob.Exception?.GetBaseException());
-                        _terms = new TermIndex(explorer.Catalog, Met(explorer));
+                        _terms = new TermIndex(explorer.Catalog, Met(explorer), Guarded(explorer));
                     }
                     _termsFor = _jobFor;
                     _termsAt = _jobAt;
@@ -105,6 +106,19 @@ namespace Scry
                 }
                 // Terms of what the character knew before would offer what it does not know now.
                 return _terms != null && ReferenceEquals(_termsFor, explorer) && _termsKnow == explorer.KnowStamp ? _terms : NoTerms;
+            }
+
+            /// <summary>Under the strict rules, what is known above the milestone floor: it gives the index what it is, not what it goes with; none otherwise.</summary>
+            private static HashSet<Entry> Guarded(Explorer explorer)
+            {
+                var view = explorer.Compendium;
+                if (!explorer.CompendiumOn || view.Rule != CompendiumRule.Strict) return null;
+                var guarded = new HashSet<Entry>();
+                foreach (var entry in explorer.Catalog)
+                {
+                    if (view.Of(entry) == KnownLevel.Known && !view.BelowFloor(entry)) guarded.Add(entry);
+                }
+                return guarded;
             }
 
             /// <summary>What the character has seen or knows, for the index to hold only what the search can find; none while the compendium is off.</summary>
