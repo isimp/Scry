@@ -29,10 +29,15 @@ namespace Scry
     /// known with it: the effects and sounds it plays (<see cref="Entry.UsedBy"/>), what it leaves
     /// behind, and the status effects, effects, sounds and projectiles it links to, never what
     /// links to it (<see cref="Link.Back"/>: knowing Poison does not make known all that gives
-    /// it). A dungeon known owns its rooms. Whatever else a known entry's page names, by its
-    /// links, its link terms, its stations or the places it is found in, is heard of. Told again
-    /// only when the book, its version, the rule or the catalog's groups change (the places read,
-    /// which tell where things are found); while it stays off, only when the rule does.
+    /// it). A dungeon known owns its rooms. Under <see cref="CompendiumRule.Strict"/> only what is
+    /// known brings its parts along, and a known page keeps of how it connects only what is
+    /// <see cref="Related"/> to it. With a milestone floor (<see cref="Milestones"/>) everything of
+    /// a tier at or below it is known too, told apart (<see cref="ByFloor"/>), and shows whole
+    /// under either rules (<see cref="BelowFloor"/>). Whatever else a known entry's page names,
+    /// by its links, its link terms, its stations or the places it is found in, is heard of.
+    /// Told again only when the book's levels, the rule, the floor or the catalog's groups change
+    /// (the places read, which tell where things are found); a pair seen changes no level
+    /// (<see cref="CompendiumBook.PairsVersion"/>); while it stays off, only when the rule does.
     /// </summary>
     internal sealed class CompendiumView
     {

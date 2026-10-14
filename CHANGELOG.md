@@ -2,6 +2,16 @@
 
 ## 0.3.0
 
+The compendium shows only what the character playing has come to know. *Compendium* in the title row switches it *Off*, *Loose* or *Strict*, chosen for each character and kept with it, and a new character starts with it off. A creature is known once fought, an item once picked up, made or eaten, a piece once built, used or unlocked, a resource once hit or picked, a place once stepped into, a raid once lived through, and what it plays, leaves behind or gives comes along with it. What was only seen stands on the turntable with its page closed, telling how to come to know it. Lists and search hold only what was met, each tab counting what was found of all there is.
+
+*Loose* shows a known page whole. *Strict* shows of how a known thing connects only what the character saw go together: the drops it saw fall, where it met a creature, what it made at a station, what hit it. Names of things never met read ??? in a page's text.
+
+*Floor* shows everything of a biome as known once its boss has fallen for the character, tier by tier as far as the bosses beaten in a row, and can be lowered again; what it shows is marked in the list and on the page. Each thing's tier is worked out from how it is come by, so iron gear belongs to the Swamp, black metal to the Plains and a guardian power to its boss.
+
+A character played before is caught up from what the game keeps of it: what it carried, made, ate and picked, the recipes and pieces it unlocked, its kills, trophies and biomes, and the guardian power it chose. Its explored map counts too, the kinds of place lying in ground it explored counting as seen; on a dedicated server that needs Scry on the server, which tells only which kinds of place lie there, never where. *Read the map again* above the Locations list, or `/scry map`, reads it anew. What a character learns is collected even while the compendium is off, so turning it on later shows everything met meanwhile, and each character's knowledge is kept in `BepInEx/cache/isimp.Scry/compendium`.
+
+*Learned* lists what the character learned lately, newest first, and the eye beside the mode shows everything until the panel closes.
+
 What *Read all locations* reads is kept, so the next time it is known as soon as the world's catalog is. After an update of the game only the locations it changed are read again, and after a change of mods or of Scry all of them, in the background, with what was known shown meanwhile. `/scry locations` reads them all again.
 
 Where a place's floors are is kept too, so a dungeon's rooms no longer each stall a frame to be measured when its example is built again, in this session or the next. Showing what the locations hold is spread over a few frames, so neither entering a world nor finishing a reading stalls one.
