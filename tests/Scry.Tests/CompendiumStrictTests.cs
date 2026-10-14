@@ -80,6 +80,28 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AModsPageAndTheModThatAddedSomethingAreNeverLeftOut()
+        {
+            // A mod is always known; no pair is ever seen with one.
+            var world = new World();
+            var mod = E("Monstrum", Kind.Mod);
+            var all = new[] { world.Troll, world.Coins, mod }.ToList();
+            var explorer = new Explorer(all, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            view.Tell(world.Book, CompendiumRule.Strict);
+            explorer.Know(view);
+
+            explorer.Select(world.Troll);
+            Assert.True(explorer.LeavingOut);
+            Assert.False(explorer.LeavesOut(mod.Key));
+            Assert.True(explorer.LeavesOut(world.Coins.Key));
+
+            explorer.Select(mod);
+            Assert.False(explorer.LeavingOut);
+            Assert.False(explorer.LeavesOut(world.Coins.Key));
+        }
+
+        [Fact]
         public void BelowTheFloorAPageShowsWhole()
         {
             var world = new World();
@@ -87,6 +109,7 @@ namespace Scry.Tests
             world.Rule(CompendiumRule.Strict);
             world.Explorer.Select(world.Troll);
 
+            Assert.False(world.Explorer.LeavingOut);
             Assert.False(world.Explorer.LeavesOut(world.Coins.Key));
         }
 

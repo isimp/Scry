@@ -188,6 +188,8 @@ namespace Scry
             for (var l = 0; l < row.Lines.Count; l++)
             {
                 var (cells, link) = row.Lines[l];
+                // A line of what was not seen together with the page (an attack never seen) is left out.
+                if (!string.IsNullOrEmpty(link) && explorer.LeavesOut(link)) continue;
                 var height = U(20f);
                 for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++) height = Mathf.Max(height, Skin.Height(Skin.SmallWrap, cells[c], ColumnWidths[c]));
                 var line = new Rect(0f, y, width, height);
@@ -241,6 +243,11 @@ namespace Scry
                             LinkLabel(cell, cells[c], Skin.SmallWrap, LinkText(KindOf(explorer, link), false));
                             if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + link, PanelWords.GoTo(cells[c]));
                             if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, link);
+                        }
+                        // A cell naming what was not seen together with the page keeps the name back.
+                        else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var hidden) && explorer.LeavesOut(hidden))
+                        {
+                            GUI.Label(cell, CompendiumWords.Hidden, Skin.SmallWrap);
                         }
                         // A later cell naming something in the catalog goes there: an attack's projectile, what it puts on you.
                         else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var to) && Goes(explorer, to))

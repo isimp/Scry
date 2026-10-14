@@ -53,8 +53,9 @@ namespace Scry
         /// <summary>One labelled fact: its label in the left column, its value at its right, a link, music or a website where it is one.</summary>
         private static float FactPair(Explorer explorer, Entry entry, Facts facts, KeyValuePair<string, string> pair, float width, float labelW, float y)
         {
-            // A line only naming what the page lists waits until the character has seen it.
-            if (facts.Listing.Contains(pair.Key) && facts.Links.TryGetValue(pair.Key, out var listed) && LeftOut(explorer, listed)) return y;
+            // A line only naming what the page lists waits until the character has seen it; under
+            // the strict rules a line naming what was not seen together with the page is left out.
+            if (facts.Links.TryGetValue(pair.Key, out var linked) && ((facts.Listing.Contains(pair.Key) && LeftOut(explorer, linked)) || explorer.LeavesOut(linked))) return y;
             var valueW = width - labelW - U(10f);
             // A line Scry is not sure of is marked, softer, and says why on hover.
             var unsure = facts.Unsure.TryGetValue(pair.Key, out var why);
@@ -127,6 +128,8 @@ namespace Scry
         /// <summary>Where it lives, comes from, or what gives it: a line naming a prefab in the catalog a chip that goes there.</summary>
         private static float WhereBlock(Explorer explorer, Facts facts, bool titled, float width, float y)
         {
+            var where = Kept(explorer, facts.Where, s => s.Prefab);
+            if (where.Count == 0) return y;
             if (titled)
             {
                 y += U(6f);
@@ -134,8 +137,8 @@ namespace Scry
                 y += U(24f);
             }
             const int firstLines = 8;
-            var lines = ShownOf("where", facts.Where.Count, firstLines);
-            foreach (var source in facts.Where.Take(lines))
+            var lines = ShownOf("where", where.Count, firstLines);
+            foreach (var source in where.Take(lines))
             {
                 // A line naming a prefab in the catalog is a chip that goes there; the rest is text.
                 // A line Scry is not sure of is marked and says why on hover.
@@ -170,7 +173,7 @@ namespace Scry
                 y += chipH + U(5f);
             }
             var more = new ChipFlow(0f, width, y, U(26f), U(5f), U(5f));
-            MoreChip("where", facts.Where.Count, firstLines, width, ref more);
+            MoreChip("where", where.Count, firstLines, width, ref more);
             if (more.InRow) y = more.RowBottom + U(5f);
             return y;
         }
@@ -182,7 +185,7 @@ namespace Scry
             // searching; a biome's own page names none.
             if (entry.Biomes.Length > 0 && entry.Kind != Kind.Biome)
             {
-                y = ChipRow("Biomes", entry.Biomes.Select(b =>
+                y = ChipRow("Biomes", entry.Biomes.Where(b => !explorer.LeavesOut(EntryKeys.For(Kind.Biome, b))).Select(b =>
                 {
                     var page = EntryKeys.For(Kind.Biome, b);
                     Action go = Unseen(explorer, page) ? null
@@ -287,13 +290,15 @@ namespace Scry
             if (row.Chain != null) return ChainRow(explorer, row, width, y);
             // A list of what there is shows only what the character has seen, and nothing where it saw none.
             var listing = row.Lists && explorer.CompendiumOn;
-            var items = row.Lists ? Listed(explorer, row.Items, i => i.Prefab) : row.Items;
-            if (listing && items.Count == 0)
+            var listed = row.Lists ? Listed(explorer, row.Items, i => i.Prefab) : row.Items;
+            if (listing && listed.Count == 0)
             {
                 CountDrawn(PanelPart.ListLeftOut);
                 return y;
             }
-            var title = listing ? CompendiumWords.Found(row.Title, items.Count) : row.Title;
+            var items = Kept(explorer, listed, i => i.Prefab);
+            if (items.Count == 0) return y;
+            var title = listing ? CompendiumWords.Found(row.Title, items.Count) : items.Count < listed.Count ? CompendiumWords.Uncounted(row.Title) : row.Title;
             var key = "facts:" + row.Title;
             var count = ShownOf(key, items.Count);
             y += U(6f);
@@ -369,6 +374,7 @@ namespace Scry
         /// <summary>A chain's steps, an arrow between each, the page's own lit and each other one going to its page.</summary>
         private static float ChainRow(Explorer explorer, Facts.Row row, float width, float y)
         {
+            if (explorer.LeavingOut && row.Chain.Steps.Any(step => step.Any(explorer.LeavesOut))) return y;
             y += U(6f);
             GUI.Label(new Rect(0f, y, width, U(20f)), row.Title, Skin.DimLabel);
             y += U(24f);
@@ -577,15 +583,19 @@ namespace Scry
         /// </summary>
         private static List<(string Key, string Text, string Tip, Action Click)> FoundInLinks(Explorer explorer, Entry entry)
         {
-            if (ReferenceEquals(_foundInFor, entry) && ReferenceEquals(_foundInOf, entry.FoundIn) && ReferenceEquals(_foundInIn, explorer)) return FoundInItems;
+            var strict = explorer.LeavingOut;
+            if (ReferenceEquals(_foundInFor, entry) && ReferenceEquals(_foundInOf, entry.FoundIn) && ReferenceEquals(_foundInIn, explorer) && strict == _foundInStrict) return FoundInItems;
             _foundInFor = entry;
             _foundInOf = entry.FoundIn;
             _foundInIn = explorer;
+            _foundInStrict = strict;
             FoundInItems.Clear();
             foreach (var place in entry.FoundIn)
             {
                 var name = Places.NameOf(place);
                 var location = Places.LocationNamed(explorer.Catalog, place);
+                // A place with no entry of its own can never be seen together with the page: the strict rules leave it out.
+                if (location == null && strict) continue;
                 if (location != null)
                 {
                     var key = location.Key;
@@ -603,6 +613,7 @@ namespace Scry
         private static readonly List<(string Key, string Text, string Tip, Action Click)> FoundInItems = new List<(string, string, string, Action)>();
         private static Entry _foundInFor;
         private static string[] _foundInOf;
+        private static bool _foundInStrict;
         private static Explorer _foundInIn;
 
         private const string LocationsButtonText = "Read all locations";

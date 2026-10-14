@@ -234,12 +234,20 @@ namespace Scry
         /// </summary>
         public bool LeavesOut(string key)
         {
-            if (!CompendiumOn || _view.Rule != CompendiumRule.Strict || _selected == null) return false;
-            if (_view.Of(_selected) != KnownLevel.Known || _view.BelowFloor(_selected)) return false;
+            if (!LeavingOut) return false;
             var other = Find(key);
-            if (other == null || other == _selected) return false;
+            if (other == null || other == _selected || other.Kind == Kind.Mod) return false;
             return !_view.Owns(_selected, other) && !_view.Witnessed(_selected, other);
         }
+
+        /// <summary>
+        /// Whether the page shown leaves anything out (<see cref="LeavesOut"/>): under the strict
+        /// rules, a known page above the milestone floor; never a mod's page, which lists only
+        /// what was seen of what it adds.
+        /// </summary>
+        public bool LeavingOut =>
+            CompendiumOn && _view.Rule == CompendiumRule.Strict && _selected != null && _selected.Kind != Kind.Mod
+            && _view.Of(_selected) == KnownLevel.Known && !_view.BelowFloor(_selected);
 
         /// <summary>How many of a kind the character has met (seen or known), whatever is typed.</summary>
         public int FoundOf(Kind kind) => _found[(int)kind];

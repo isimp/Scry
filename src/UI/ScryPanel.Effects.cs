@@ -156,6 +156,7 @@ namespace Scry
             }
             var flow = new ChipFlow(0f, width, y, U(26f), U(5f), U(5f));
             var key = MembersKey(title, list);
+            members = Kept(explorer, members, m => m);
             var count = ShownOf(key, members.Count);
             for (var i = 0; i < count; i++)
             {
@@ -267,6 +268,7 @@ namespace Scry
                 for (var o = 0; o < shownOwners; o++)
                 {
                     var owner = row.Owners[o];
+                    if (owner.Key != null && explorer.LeavesOut(owner.Key)) continue;
                     var shown = row.Names != null && o < row.Names.Length ? row.Names[o] : ShownName(explorer, owner.Key, owner.Shown);
                     var go = owner.Key != null && Goes(explorer, owner.Key);
                     var w = Mathf.Min(width, LinkChipWidth(shown, go));

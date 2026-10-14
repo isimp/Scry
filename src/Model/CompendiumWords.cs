@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -101,6 +102,22 @@ namespace Scry
 
         /// <summary>The floor's tip while the next boss has not fallen.</summary>
         public static string FloorWaits(string boss) => $"The next tier opens once {boss} falls for this character";
+
+        /// <summary>A title without the count it ends with, for a row some of whose items were left out: nothing tells how many.</summary>
+        public static string Uncounted(string title)
+        {
+            if (string.IsNullOrEmpty(title) || !title.EndsWith(")", StringComparison.Ordinal)) return title;
+            var open = title.LastIndexOf(" (", StringComparison.Ordinal);
+            if (open < 0) return title;
+            for (var i = open + 2; i < title.Length - 1; i++)
+            {
+                if (!char.IsDigit(title[i]) && title[i] != ',') return title;
+            }
+            return title.Substring(0, open);
+        }
+
+        /// <summary>A name the strict rules keep back where it stands in a page's text.</summary>
+        public const string Hidden = "???";
 
         /// <summary>The chip listing what the character learned lately.</summary>
         public const string LearnedLately = "Learned lately";

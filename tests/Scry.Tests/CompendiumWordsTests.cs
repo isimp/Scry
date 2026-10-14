@@ -78,6 +78,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ATitleWhoseItemsWereLeftOutLosesItsCount()
+        {
+            // Under the strict rules nothing tells how much was left out.
+            Assert.Equal("Played by", CompendiumWords.Uncounted("Played by (1,200)"));
+            Assert.Equal("Drops", CompendiumWords.Uncounted("Drops"));
+            Assert.Equal("Raids (in the Plains)", CompendiumWords.Uncounted("Raids (in the Plains)"));
+            Assert.Equal("???", CompendiumWords.Hidden);
+        }
+
+        [Fact]
         public void TheListOfWhatWasLearnedLatelySaysWhatItHolds()
         {
             Assert.Equal("Learned lately", CompendiumWords.LearnedLately);

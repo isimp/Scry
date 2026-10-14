@@ -306,6 +306,21 @@ namespace Scry
             p.Check(drop != null && !X.Reaches(drop.Key), $"what it drops, not seen, is no link: {drop?.Name}");
             p.Check(ScryPanel.Drawn(PanelPart.UnseenName) > unseenNames, "its page tells the names of what was not seen as plain text");
 
+            // Strict: the fought creature's page keeps the drop seen fall, leaves out one that was not, and draws without fault.
+            var drops = fought.TermLinks("drops").ToList();
+            if (p.Check(drops.Count >= 2, $"{fought.Name} drops two things at least"))
+            {
+                book.Witness(fought.Key, drops[0].Key);
+                view.Tell(book, CompendiumRule.Strict);
+                X.Select(fought);
+                var strictFaults = Faults.Count;
+                repaints = ScryPanel.Repaints;
+                yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
+                p.Check(X.LeavingOut && !X.LeavesOut(drops[0].Key) && X.LeavesOut(drops[1].Key), $"under the strict rules its page keeps {drops[0].Name}, seen fall, and leaves out {drops[1].Name}");
+                p.Check(Faults.Count == strictFaults, "and draws without fault", Faults.Latest);
+                view.Tell(book, CompendiumRule.Loose);
+            }
+
             // A tree known lists only the tools seen that break it: none here, so its Broken with is left out.
             var tree = Pick(Kind.Resource, "Beech1", "Birch1", "Pinetree_01");
             if (p.Check(tree != null, "a tree to know"))

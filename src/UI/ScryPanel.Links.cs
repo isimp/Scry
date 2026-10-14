@@ -100,7 +100,10 @@ namespace Scry
         {
             if (titled) GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
             var flow = new ChipFlow(0f, width, titled ? y + U(24f) : y, U(26f), U(5f), U(5f));
-            var all = items as IList<(string Key, string Text, string Tip, Action Click)> ?? items.ToList();
+            var given = items as IReadOnlyList<(string Key, string Text, string Tip, Action Click)> ?? items.ToList();
+            var all = Kept(explorer, given, i => i.Key);
+            if (all.Count == 0) return y;
+            if (all.Count < given.Count) title = CompendiumWords.Uncounted(title);
             var key = "links:" + title;
             var count = ShownOf(key, all.Count);
             for (var i = 0; i < count; i++)
@@ -331,6 +334,34 @@ namespace Scry
         /// <summary>Whether a list of what there is leaves out the entry a key names: one in the catalog the character has not seen.</summary>
         private static bool LeftOut(Explorer explorer, string key) => InCatalog(explorer, key) && !explorer.Reaches(key);
 
+        private static readonly Dictionary<object, object> KeptLists = new Dictionary<object, object>();
+        private static Explorer _keptIn;
+        private static int _keptStamp;
+        private static int _keptSelection;
+
+        /// <summary>
+        /// What a list on the page shown keeps under the strict rules (<see cref="Explorer.LeavesOut"/>):
+        /// what was seen together with the page or is part of it; all of it otherwise. Worked out
+        /// once for each list while what the character knows and the page stay the same.
+        /// </summary>
+        private static IReadOnlyList<T> Kept<T>(Explorer explorer, IReadOnlyList<T> items, Func<T, string> key)
+        {
+            if (!explorer.LeavingOut) return items;
+            if (!ReferenceEquals(_keptIn, explorer) || _keptStamp != explorer.KnowStamp || _keptSelection != explorer.SelectionVersion || KeptLists.Count > 256)
+            {
+                _keptIn = explorer;
+                _keptStamp = explorer.KnowStamp;
+                _keptSelection = explorer.SelectionVersion;
+                KeptLists.Clear();
+            }
+            if (KeptLists.TryGetValue(items, out var had)) return (IReadOnlyList<T>)had;
+            var kept = new List<T>();
+            foreach (var item in items) if (!explorer.LeavesOut(key(item))) kept.Add(item);
+            IReadOnlyList<T> shown = kept.Count == items.Count ? items : kept;
+            KeptLists[items] = shown;
+            return shown;
+        }
+
         private static readonly Dictionary<object, object> ListedLists = new Dictionary<object, object>();
         private static Explorer _listedIn;
         private static int _listedStamp;
@@ -407,6 +438,8 @@ namespace Scry
             _namesFor = null;
             ListedLists.Clear();
             _listedIn = null;
+            KeptLists.Clear();
+            _keptIn = null;
         }
     }
 }
