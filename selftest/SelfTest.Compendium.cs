@@ -325,6 +325,26 @@ namespace Scry
         }
 
         /// <summary>
+        /// With the panel closed nothing shows what the character knows, so it is not told again
+        /// (telling it goes through the whole catalog, a frame's worth while it is learned in
+        /// play); the panel opening tells it at once.
+        /// </summary>
+        private static IEnumerator CompendiumWaitsForPanel(Probe p)
+        {
+            yield return Until(() => CompendiumKeeper.Book != null, 10);
+            var book = CompendiumKeeper.Book;
+            if (!p.Check(book != null, "the character's book is read")) yield break;
+            Session.Hide();
+            Session.ShowKnownInstead(null);
+            yield return Until(() => false, 0.5f);
+            p.Check(!ReferenceEquals(X.Compendium?.Book, book), "with the panel closed, the character's knowledge waits");
+            Session.Show(null);
+            KeepView();
+            yield return Until(() => ReferenceEquals(X.Compendium?.Book, book), 3);
+            p.Check(ReferenceEquals(X.Compendium?.Book, book), "and is told once the panel opens");
+        }
+
+        /// <summary>
         /// The watchers sit on the game's methods they rely on, and looking around the character
         /// finds no fault; what is in sight now is told, learned into a book of the test's own.
         /// </summary>

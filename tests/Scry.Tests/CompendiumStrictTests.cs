@@ -64,6 +64,57 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void SeeingTwoThingsGoTogetherTellsNoLevelAgain()
+        {
+            // A pair seen in play makes nothing more or less known, so the whole catalog is not
+            // gone through again for it, as it is for something learned.
+            var world = new World().Rule(CompendiumRule.Strict);
+            var version = world.View.Version;
+
+            world.Book.Witness(world.Coins.Key, world.Troll.Key);
+            world.Rule(CompendiumRule.Strict);
+            Assert.Equal(version, world.View.Version);
+
+            world.Book.Raise(world.Squeal.Key, KnownLevel.Known);
+            world.Rule(CompendiumRule.Strict);
+            Assert.NotEqual(version, world.View.Version);
+        }
+
+        [Fact]
+        public void UnderStrictAPairSeenShowsAtOnceOnThePageOpenAndInSearch()
+        {
+            var world = new World().Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Troll);
+            Assert.True(world.Explorer.LeavesOut(world.Coins.Key));
+            var stamp = world.Explorer.KnowStamp;
+
+            world.Book.Witness(world.Coins.Key, world.Troll.Key);
+            world.Rule(CompendiumRule.Strict);
+
+            Assert.False(world.Explorer.LeavesOut(world.Coins.Key));
+            // What the panel keeps of the page by the explorer's stamp is made again.
+            Assert.NotEqual(stamp, world.Explorer.KnowStamp);
+
+            world.Explorer.Text = "drops:trollhide";
+            Assert.DoesNotContain(world.Troll, world.Explorer.Results);
+            world.Book.Witness(world.Hide.Key, world.Troll.Key);
+            world.Rule(CompendiumRule.Strict);
+            Assert.Contains(world.Troll, world.Explorer.Results);
+        }
+
+        [Fact]
+        public void UnderLooseAPairSeenChangesNothingShown()
+        {
+            var world = new World().Rule(CompendiumRule.Loose);
+            var stamp = world.Explorer.KnowStamp;
+
+            world.Book.Witness(world.Coins.Key, world.Troll.Key);
+            world.Rule(CompendiumRule.Loose);
+
+            Assert.Equal(stamp, world.Explorer.KnowStamp);
+        }
+
+        [Fact]
         public void APartsPageKeepsTheOwnerItIsPartOf()
         {
             var world = new World().Rule(CompendiumRule.Strict);
@@ -188,9 +239,12 @@ namespace Scry.Tests
             Assert.False(book.Witness("Troll", "Troll"));
             Assert.False(book.Witness("", "Troll"));
 
+            // A new pair is noticed by what shows the strict rules, without telling every level again.
             var version = book.Version;
+            var pairs = book.PairsVersion;
             book.Witness("Odd\tname", "Troll");
-            Assert.NotEqual(version, book.Version);
+            Assert.NotEqual(pairs, book.PairsVersion);
+            Assert.Equal(version, book.Version);
             var back = CompendiumBook.Load(book.Save());
             Assert.True(back.Witnessed("Troll", "TrollHide"));
             Assert.True(back.Witnessed("Troll", "Odd\tname"));

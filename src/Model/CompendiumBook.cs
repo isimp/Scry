@@ -43,6 +43,13 @@ namespace Scry
         /// <summary>Counts up with every entry learned more of, so what tells the compendium tells it again.</summary>
         public int Version { get; private set; }
 
+        /// <summary>
+        /// Counts up with every pair seen go together (<see cref="Witness"/>). Kept apart from
+        /// <see cref="Version"/> because a pair makes nothing more or less known: only what the
+        /// strict rules leave out of a page or a search changes.
+        /// </summary>
+        public int PairsVersion { get; private set; }
+
         /// <summary>Whether anything changed since it was last saved.</summary>
         public bool Changed { get; private set; }
 
@@ -135,7 +142,7 @@ namespace Scry
         public bool Witness(string a, string b)
         {
             if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) || a == b || !_pairs.Add(Pair(a, b))) return false;
-            Version++;
+            PairsVersion++;
             Changed = true;
             return true;
         }

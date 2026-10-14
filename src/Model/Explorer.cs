@@ -22,6 +22,7 @@ namespace Scry
         /// <summary>What the character knows of each entry, for the compendium; none while it is off.</summary>
         private CompendiumView _view;
         private int _viewVersion = -1;
+        private int _pairsVersion = -1;
 
         /// <summary>The entries the character has seen or knows, while the compendium is on.</summary>
         private List<Entry> _visible;
@@ -265,14 +266,28 @@ namespace Scry
         /// <summary>
         /// Shows what the character knows (<see cref="CompendiumView"/>): the list again, with what
         /// was found of each kind counted, and the steps back and forward without what it has not
-        /// seen, whenever the view or what it holds changed.
+        /// seen, whenever the view or what it holds changed. A pair seen go together, which makes
+        /// nothing more or less known, only lists again under the strict rules.
         /// </summary>
         public void Know(CompendiumView view)
         {
             var version = view?.Version ?? -1;
-            if (ReferenceEquals(view, _view) && version == _viewVersion) return;
+            var pairs = view?.Book?.PairsVersion ?? -1;
+            if (ReferenceEquals(view, _view) && version == _viewVersion)
+            {
+                if (pairs == _pairsVersion) return;
+                _pairsVersion = pairs;
+                // A pair seen changes no level, only what the strict rules leave out of the page and the search.
+                if (CompendiumOn && _view.Rule == CompendiumRule.Strict)
+                {
+                    KnowStamp++;
+                    Refresh();
+                }
+                return;
+            }
             _view = view;
             _viewVersion = version;
+            _pairsVersion = pairs;
             // A peek ends with the compendium turned off.
             if (!CompendiumSet) _peeking = false;
             Retell();
