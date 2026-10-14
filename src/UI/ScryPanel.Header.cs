@@ -292,6 +292,7 @@ namespace Scry
                     if (GUI.Button(map, CompendiumWords.ReadMap, Skin.Fitted(Skin.Chip, map))) Say(CompendiumMap.Again(CompendiumKeeper.Book));
                     if (map.Contains(Event.current.mousePosition)) AskTip("readmap", CompendiumWords.ReadMapTip);
                 }
+                FloorControl(explorer, ref flow);
                 var learnedW = Skin.Width(Skin.Chip, CompendiumWords.LearnedLately) + U(16f);
                 var place = flow.Place(learnedW);
                 var learned = new Rect(place.X, place.Y, learnedW, flow.RowHeight);
@@ -306,6 +307,52 @@ namespace Scry
             }
 
             return flow.RowBottom;
+        }
+
+        /// <summary>
+        /// The milestone floor, once a boss fell for the character or a floor is set: its label
+        /// between a chip lowering it and one raising it, tier by tier, as far as the bosses that
+        /// fell in a row reach (<see cref="CompendiumKeeper.Ceiling"/>).
+        /// </summary>
+        private static void FloorControl(Explorer explorer, ref ChipFlow flow)
+        {
+            var book = CompendiumKeeper.Book;
+            var ceiling = CompendiumKeeper.Ceiling;
+            if (book == null || (ceiling == 0 && book.Floor == 0)) return;
+            CountDrawn(PanelPart.FloorControl);
+            var floor = book.Floor;
+            var label = CompendiumWords.Floor(floor);
+            var arrowW = U(26f);
+            var labelW = Skin.Width(Skin.Chip, label) + U(16f);
+            var at = flow.Place(arrowW * 2f + labelW + U(4f));
+            var lower = new Rect(at.X, at.Y, arrowW, flow.RowHeight);
+            var middle = new Rect(lower.xMax + U(2f), at.Y, labelW, flow.RowHeight);
+            var raise = new Rect(middle.xMax + U(2f), at.Y, arrowW, flow.RowHeight);
+            var canRaise = floor < ceiling && floor < Tiers.Last;
+            var mouse = Event.current.mousePosition;
+
+            var was = GUI.enabled;
+            GUI.enabled = was && floor > 0;
+            if (GUI.Button(lower, "\u2039", Skin.Fitted(Skin.Chip, lower))) SetFloor(book, floor - 1);
+            GUI.enabled = was && canRaise;
+            if (GUI.Button(raise, "\u203A", Skin.Fitted(Skin.Chip, raise))) SetFloor(book, floor + 1);
+            GUI.enabled = was;
+            GUI.Label(middle, label, Skin.Fitted(floor > 0 ? Skin.ChipOn : Skin.Chip, middle));
+
+            if (floor > 0 && lower.Contains(mouse)) AskTip("floor-down", CompendiumWords.LowerFloor(floor - 1));
+            if (floor < Tiers.Last && (raise.Contains(mouse) || middle.Contains(mouse)))
+            {
+                var boss = explorer.Find(Tiers.BossOf(floor + 1))?.ShownName ?? Tiers.BossOf(floor + 1);
+                AskTip("floor-up", canRaise ? CompendiumWords.RaiseFloor(floor + 1, boss) : CompendiumWords.FloorWaits(boss));
+            }
+        }
+
+        /// <summary>Sets the character's floor and keeps it at once: a choice of the player's.</summary>
+        private static void SetFloor(CompendiumBook book, int floor)
+        {
+            book.Floor = floor;
+            CompendiumKeeper.Save(now: true);
+            ListFiltered();
         }
 
         private static void Filter(Explorer explorer, Kind? kind)

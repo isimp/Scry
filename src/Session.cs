@@ -141,6 +141,9 @@ namespace Scry
         {
             if (Explorer == null) return;
             if (_known == null || !ReferenceEquals(_known.Catalog, Explorer.Entries)) _known = new CompendiumView(Explorer.Entries);
+            // The floor as far as the character's bosses fell; the tiers worked out only once one is set.
+            var floor = System.Math.Min(CompendiumKeeper.Book?.Floor ?? 0, CompendiumKeeper.Ceiling);
+            _known.Milestones(floor > 0 ? CompendiumTiers.Of(Explorer.Entries) : null, floor);
             _known.Tell(CompendiumKeeper.Book, Settings.Compendium);
             Explorer.Know(_knownInstead ?? _known);
         }

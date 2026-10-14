@@ -66,6 +66,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheFloorSaysHowFarItReachesAndWhatRaisingOrLoweringItDoes()
+        {
+            Assert.Equal("Floor: none", CompendiumWords.Floor(0));
+            Assert.Equal("Floor: Black forest", CompendiumWords.Floor(2));
+            Assert.Equal("Show everything of the Swamp as known: Bonemass fell for this character", CompendiumWords.RaiseFloor(3, "Bonemass"));
+            Assert.Equal("Show everything of the Swamp as known", CompendiumWords.RaiseFloor(3, null));
+            Assert.Equal("Show the Meadows and what came before as known, not the Black forest", CompendiumWords.LowerFloor(1));
+            Assert.Equal("Show only what this character has met again", CompendiumWords.LowerFloor(0));
+            Assert.Equal("The next tier opens once The Elder falls for this character", CompendiumWords.FloorWaits("The Elder"));
+        }
+
+        [Fact]
         public void TheListOfWhatWasLearnedLatelySaysWhatItHolds()
         {
             Assert.Equal("Learned lately", CompendiumWords.LearnedLately);

@@ -32,6 +32,7 @@ namespace Scry
         ListLeftOut,
         PeekStrip,
         LearnedStrip,
+        FloorControl,
     }
 
     internal static partial class ScryPanel

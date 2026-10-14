@@ -117,6 +117,27 @@ namespace Scry
             return pass;
         }
 
+        /// <summary>Each tier's boss as a character's records know it, the first tier first: its name as kills are counted, its defeat key, its trophy (what it drops named Trophy).</summary>
+        public static List<BossMarks> Bosses(EntryCatalog catalog)
+        {
+            var bosses = new List<BossMarks>();
+            for (var tier = 1; tier <= Tiers.Last; tier++)
+            {
+                var boss = catalog.Find(Tiers.BossOf(tier));
+                var character = boss?.Source is GameObject prefab ? prefab.GetComponent<Character>().OrNull() : null;
+                string trophy = null;
+                if (boss != null)
+                {
+                    foreach (var drop in boss.TermLinks("drops"))
+                    {
+                        if (drop.Name.StartsWith("Trophy", StringComparison.Ordinal)) trophy = drop.Name;
+                    }
+                }
+                bosses.Add(character != null ? new BossMarks(character.m_name, character.m_defeatSetGlobalKey, trophy) : new BossMarks(null, null, trophy));
+            }
+            return bosses;
+        }
+
         /// <summary>The tier each boss's defeat key closes, read from the bosses' own creatures.</summary>
         public static Dictionary<string, int> DefeatKeys(EntryCatalog catalog)
         {

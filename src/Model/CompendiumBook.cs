@@ -36,6 +36,7 @@ namespace Scry
         private readonly Dictionary<string, KnownLevel> _levels = new Dictionary<string, KnownLevel>(StringComparer.Ordinal);
         private readonly List<string> _lately = new List<string>();
         private readonly HashSet<string> _mapped = new HashSet<string>(StringComparer.Ordinal);
+        private int _floor;
 
         /// <summary>Counts up with every entry learned more of, so what tells the compendium tells it again.</summary>
         public int Version { get; private set; }
@@ -92,13 +93,29 @@ namespace Scry
             Changed = true;
         }
 
+        /// <summary>
+        /// The milestone floor the player raised it to: everything of a tier at or below it shows
+        /// as known (none at 0). It changes what is shown, never what is known.
+        /// </summary>
+        public int Floor
+        {
+            get => _floor;
+            set
+            {
+                var floor = Math.Max(0, Math.Min(Tiers.Last, value));
+                if (floor == _floor) return;
+                _floor = floor;
+                Changed = true;
+            }
+        }
+
         /// <summary>Forgets that a world's map was caught up with, so the catch-up runs again.</summary>
         public void Unmap(string world)
         {
             if (world != null && _mapped.Remove(world)) Changed = true;
         }
 
-        /// <summary>Everything known, a line an entry, then the latest learned in order and the worlds mapped.</summary>
+        /// <summary>Everything known, a line an entry, then the latest learned in order, the worlds mapped and the floor.</summary>
         public string Save()
         {
             var text = new StringBuilder();
@@ -108,6 +125,7 @@ namespace Scry
             }
             foreach (var key in _lately) text.Append("lately\t").Append(Stored.Escaped(key)).Append('\n');
             foreach (var world in _mapped.OrderBy(w => w, StringComparer.Ordinal)) text.Append("mapped\t").Append(Stored.Escaped(world)).Append('\n');
+            if (_floor > 0) text.Append("floor\t").Append(Stored.Count(_floor)).Append('\n');
             Changed = false;
             return text.ToString();
         }
@@ -134,6 +152,9 @@ namespace Scry
                         break;
                     case "mapped" when parts.Length == 2:
                         book._mapped.Add(name);
+                        break;
+                    case "floor" when parts.Length == 2 && Stored.TryCount(parts[1], out var floor):
+                        book._floor = Math.Max(0, Math.Min(Tiers.Last, floor));
                         break;
                 }
             }

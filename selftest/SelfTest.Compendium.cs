@@ -148,6 +148,17 @@ namespace Scry
             p.Check(wrong.Count == 0, "they follow the game's progression: each boss its own, iron gear the Swamp's, black metal the Plains'", string.Join("; ", wrong));
             var serpent = X.Find("Serpent");
             p.Check(serpent == null || !tiers.ContainsKey(serpent.Key), "and what lives only at sea has none");
+
+            // A made-up character with the floor at the Meadows knows all of them, and nothing of the Plains.
+            var floored = new CompendiumView(X.Entries);
+            floored.Milestones(tiers, 1);
+            floored.Tell(new CompendiumBook(), CompendiumRule.Loose);
+            var meadows = X.Catalog.Where(e => tiers.TryGetValue(e.Key, out var t) && t <= 1).ToList();
+            var shut = meadows.Where(e => floored.Of(e) != KnownLevel.Known).ToList();
+            p.Check(meadows.Count > 0 && shut.Count == 0, $"with the floor at the Meadows, all {Numbers.Count(meadows.Count)} things of them show as known", string.Join(", ", shut.Take(5).Select(e => e.Name)));
+            var lox = X.Find("Lox");
+            p.Check(lox == null || floored.Of(lox) < KnownLevel.Seen, "and nothing of the Plains", lox != null ? floored.Of(lox).ToString() : null);
+            p.Note($"the character played may raise its floor to tier {Numbers.Count(CompendiumKeeper.Ceiling)}, it stands at {Numbers.Count(CompendiumKeeper.Book?.Floor ?? 0)}");
         }
 
         /// <summary>Terms tried on a made-up character, each of which must not find what it has not met.</summary>

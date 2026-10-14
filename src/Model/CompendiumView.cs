@@ -38,6 +38,9 @@ namespace Scry
         private int _bookVersion = -1;
         private CompendiumRule _rule;
         private int _indexedAt = -1;
+        private IReadOnlyDictionary<string, int> _tiers;
+        private int _floor;
+        private bool _floorMoved;
 
         public CompendiumView(EntryCatalog catalog)
         {
@@ -102,12 +105,29 @@ namespace Scry
             for (var owner = Because(entry); owner != null && seen.Add(owner); owner = Because(owner)) yield return owner;
         }
 
+        /// <summary>
+        /// The milestone floor to show by: each entry's tier (<see cref="TierPass"/>) and the floor
+        /// reached, none at 0. Everything of a tier at or below it is known; told on the next
+        /// <see cref="Tell"/> when either changed.
+        /// </summary>
+        public void Milestones(IReadOnlyDictionary<string, int> tiers, int floor)
+        {
+            if (ReferenceEquals(tiers, _tiers) && floor == _floor) return;
+            _tiers = tiers;
+            _floor = floor;
+            _floorMoved = true;
+        }
+
+        /// <summary>Whether an entry's tier is at or below the floor, so it shows whatever the book holds of it.</summary>
+        public bool BelowFloor(Entry entry) => entry != null && _floor > 0 && _tiers != null && _tiers.TryGetValue(entry.Key, out var tier) && tier <= _floor;
+
         /// <summary>Works out every entry's level for this book and rule, unless nothing changed since last time.</summary>
         public void Tell(CompendiumBook book, CompendiumRule rule)
         {
             if (book == null) book = new CompendiumBook();
             var regrouped = _indexedAt != _catalog.Regroups;
-            if (ReferenceEquals(book, _book) && book.Version == _bookVersion && rule == _rule && !regrouped) return;
+            if (ReferenceEquals(book, _book) && book.Version == _bookVersion && rule == _rule && !regrouped && !_floorMoved) return;
+            _floorMoved = false;
             // Off, everything is known whatever the book holds: nothing to tell again.
             var stillOff = rule == CompendiumRule.Off && _rule == CompendiumRule.Off;
             _book = book;
@@ -123,7 +143,7 @@ namespace Scry
             var met = new Queue<Entry>();
             foreach (var entry in _catalog.All)
             {
-                var level = entry.Kind == Kind.Mod ? KnownLevel.Known : book.Level(entry.Key);
+                var level = entry.Kind == Kind.Mod || BelowFloor(entry) ? KnownLevel.Known : book.Level(entry.Key);
                 if (level == KnownLevel.Unknown) continue;
                 _levels[entry] = level;
                 if (level >= KnownLevel.Seen) met.Enqueue(entry);

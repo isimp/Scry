@@ -6,7 +6,7 @@ namespace Scry
     /// <summary>
     /// Reads what the game keeps of the character being played into <see cref="CompendiumRecords"/>:
     /// the player's own sets, private to it (<c>Player.m_knownMaterial</c>, <c>m_knownRecipes</c>,
-    /// <c>m_knownStations</c>, <c>m_knownBiome</c>, <c>m_trophies</c>), and the statistics its
+    /// <c>m_knownStations</c>, <c>m_knownBiome</c>, <c>m_trophies</c>, <c>m_uniques</c>), and the statistics its
     /// profile counts (<c>PlayerProfile.m_playerStats</c>, the first set, which counts everything).
     /// </summary>
     internal static class CharacterRecords
@@ -16,13 +16,14 @@ namespace Scry
         private static AccessTools.FieldRef<Player, Dictionary<string, int>> _stations;
         private static AccessTools.FieldRef<Player, HashSet<string>> _biomes;
         private static AccessTools.FieldRef<Player, HashSet<string>> _trophies;
+        private static AccessTools.FieldRef<Player, HashSet<string>> _uniques;
 
         /// <summary>How many records there are in all; it grows whenever any of them does.</summary>
         public static int Size(Player player, PlayerProfile profile)
         {
             Bind();
             var stats = profile.m_playerStats[0];
-            return _materials(player).Count + _recipes(player).Count + _stations(player).Count + _biomes(player).Count + _trophies(player).Count
+            return _materials(player).Count + _recipes(player).Count + _stations(player).Count + _biomes(player).Count + _trophies(player).Count + _uniques(player).Count
                 + stats.m_enemyStats[0].Count + stats.m_itemPickupStats.Count + stats.m_itemCraftStats.Count + stats.m_foodEatenStats.Count
                 + stats.m_pickableStats.Count + stats.m_piecesPlacedStats.Count;
         }
@@ -37,6 +38,7 @@ namespace Scry
             Copy(_stations(player).Keys, into.Stations);
             Copy(_biomes(player), into.Biomes);
             Copy(_trophies(player), into.Trophies);
+            Copy(_uniques(player), into.Uniques);
             Copy(stats.m_enemyStats[0].Keys, into.Killed);
             Copy(stats.m_itemPickupStats.Keys, into.PickedUp);
             Copy(stats.m_itemCraftStats.Keys, into.Crafted);
@@ -53,6 +55,7 @@ namespace Scry
             _stations = AccessTools.FieldRefAccess<Player, Dictionary<string, int>>("m_knownStations");
             _biomes = AccessTools.FieldRefAccess<Player, HashSet<string>>("m_knownBiome");
             _trophies = AccessTools.FieldRefAccess<Player, HashSet<string>>("m_trophies");
+            _uniques = AccessTools.FieldRefAccess<Player, HashSet<string>>("m_uniques");
         }
 
         private static void Copy(IEnumerable<string> from, HashSet<string> into)

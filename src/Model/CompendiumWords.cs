@@ -87,6 +87,21 @@ namespace Scry
         /// <summary>The log's line on a dedicated server.</summary>
         public static string ServerPart => "on a dedicated server Scry only answers players' explored maps, for their compendium";
 
+        /// <summary>The milestone floor's label: the last tier it shows, by its biome, or none.</summary>
+        public static string Floor(int floor) => "Floor: " + (floor > 0 ? Naming.FieldLabel(Tiers.BiomeOf(floor)) : "none");
+
+        /// <summary>The tip of raising the floor to a tier, with the boss that fell for it where known.</summary>
+        public static string RaiseFloor(int to, string boss) =>
+            $"Show everything of the {Naming.FieldLabel(Tiers.BiomeOf(to))} as known" + (string.IsNullOrEmpty(boss) ? "" : $": {boss} fell for this character");
+
+        /// <summary>The tip of lowering the floor to a tier, or off.</summary>
+        public static string LowerFloor(int to) => to > 0
+            ? $"Show the {Naming.FieldLabel(Tiers.BiomeOf(to))} and what came before as known, not the {Naming.FieldLabel(Tiers.BiomeOf(to + 1))}"
+            : "Show only what this character has met again";
+
+        /// <summary>The floor's tip while the next boss has not fallen.</summary>
+        public static string FloorWaits(string boss) => $"The next tier opens once {boss} falls for this character";
+
         /// <summary>The chip listing what the character learned lately.</summary>
         public const string LearnedLately = "Learned lately";
 

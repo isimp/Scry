@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -40,6 +41,12 @@ namespace Scry
         /// <summary>What the character being played knows; none before its file is read.</summary>
         public static CompendiumBook Book => _book;
 
+        /// <summary>How far the character's milestone floor may be raised: the tiers whose bosses fell for it, in a row (<see cref="Milestones"/>).</summary>
+        public static int Ceiling { get; private set; }
+
+        private static List<BossMarks> _bosses;
+        private static EntryCatalog _bossesOf;
+
         /// <summary>Where the book of the character being played is kept; none before a character is played.</summary>
         public static string FilePath => _file != null ? PathOf(_file) : null;
 
@@ -72,6 +79,12 @@ namespace Scry
                     _recordsSize = size;
                     CharacterRecords.Read(player, profile, Records);
                     _catchUp.Fill(Records, _book, quietly: !_caughtUp);
+                    if (!ReferenceEquals(_bossesOf, catalog))
+                    {
+                        _bosses = CompendiumTiers.Bosses(catalog);
+                        _bossesOf = catalog;
+                    }
+                    Ceiling = Milestones.Ceiling(Records, _bosses);
                     _caughtUp = true;
                 }
                 Look(player);
@@ -183,6 +196,9 @@ namespace Scry
             _catchUp = null;
             _catchUpOf = null;
             _recordsSize = -1;
+            _bosses = null;
+            _bossesOf = null;
+            Ceiling = 0;
         }
     }
 }

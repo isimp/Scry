@@ -45,6 +45,9 @@ namespace Scry
         /// <summary>Build pieces placed.</summary>
         public readonly HashSet<string> Placed = Names();
 
+        /// <summary>The character's own keys: what it has done once, a boss's fall among them.</summary>
+        public readonly HashSet<string> Uniques = Names();
+
         private static HashSet<string> Names() => new HashSet<string>(StringComparer.Ordinal);
     }
 }
