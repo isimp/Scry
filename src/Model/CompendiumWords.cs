@@ -60,10 +60,7 @@ namespace Scry
             _ => "show everything. What this character learns is kept all the same, so turning the compendium on later shows everything met meanwhile",
         };
 
-        /// <summary>The chip that shows everything for now, though the compendium is on.</summary>
-        public const string Peek = "Peek";
-
-        /// <summary>The peek chip's tip, by whether it is peeking.</summary>
+        /// <summary>The tip of the eye beside the mode that peeks at everything, by whether it is peeking.</summary>
         public static string PeekTip(bool peeking) => peeking
             ? "Show only what this character has met again"
             : "Show everything for now, not only what this character has met; it stops when the panel closes";
@@ -159,10 +156,10 @@ namespace Scry
         /// <summary>A name the strict rules keep back where it stands in a page's text.</summary>
         public const string Hidden = "???";
 
-        /// <summary>The chip listing what the character learned lately.</summary>
-        public const string LearnedLately = "Learned lately";
+        /// <summary>The tab after All listing what the character learned lately.</summary>
+        public const string LearnedTab = "Learned";
 
-        /// <summary>That chip's tip, by whether the list shows it.</summary>
+        /// <summary>That tab's tip, by whether the list shows it.</summary>
         public static string LearnedTip(bool on) => (on ? "Showing" : "Show") + " what this character learned lately, newest first";
 
         /// <summary>The first line of a page not yet open, by how much the character knows of it.</summary>

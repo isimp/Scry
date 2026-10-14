@@ -32,6 +32,7 @@ namespace Scry
         private readonly HashSet<Entry> _underOwner = new HashSet<Entry>();
 
         private int _countAll;
+        private int _learnedCount;
 
         /// <summary>The catalog's name words, for mending slips (<see cref="SearchSlip"/>), read when first needed.</summary>
         private HashSet<string> _slipWords;
@@ -180,6 +181,9 @@ namespace Scry
 
         /// <summary>How many the text and the other filters let through, all kinds together.</summary>
         public int CountAll => _countAll;
+
+        /// <summary>How many the learned list holds, whatever is shown now: what the character learned lately and has seen or come to know; none while the compendium is off.</summary>
+        public int LearnedCount => _learnedCount;
 
         /// <summary>The view of what the character knows the explorer was last handed; none before.</summary>
         public CompendiumView Compendium => _view;
@@ -582,9 +586,21 @@ namespace Scry
             // across every kind, so picking one still shows what the others hold.
             var view = CompendiumOn ? _view : null;
             Array.Clear(_counts, 0, _counts.Length);
-            _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, _counts, view);
+            _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, _learnedOnly ? null : _counts, view);
+            // The learned list is a tab of its own: the others count what each would show.
+            if (_learnedOnly) Search.Run(_catalog, _query, _favourites.Keys, null, _counts, view);
             _countAll = 0;
             foreach (var count in _counts) _countAll += count;
+            _learnedCount = 0;
+            if (CompendiumSet)
+            {
+                var learned = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var key in _view.Lately)
+                {
+                    var entry = Find(key);
+                    if (entry != null && _view.Of(entry) >= KnownLevel.Seen && learned.Add(key)) _learnedCount++;
+                }
+            }
 
             // Nothing found at all: a word one slip from a name's word is read as that word, if
             // that finds anything; the list says so.

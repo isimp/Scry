@@ -254,7 +254,7 @@ namespace Scry
         {
             var flow = new ChipFlow(rect.x, rect.xMax, rect.y, rect.height, U(4f), U(4f));
 
-            bool Tab(string label, int count, int total, Color dot, bool on)
+            bool Tab(string label, int count, int total, Color dot, bool on, string tipKey = null, string tip = null)
             {
                 var style = on ? Skin.TabOn : Skin.Tab;
                 var text = TabText(label, count, total, on);
@@ -264,36 +264,33 @@ namespace Scry
                 var clicked = GUI.Button(tab, text, Skin.Fitted(style, tab));
                 var size = U(8f);
                 Skin.Icon(new Rect(tab.x + U(10f), tab.y + (tab.height - size) / 2f, size, size), Skin.Circle, on ? Skin.OnAccent : dot);
+                if (tip != null && tab.Contains(Event.current.mousePosition)) AskTip(tipKey, tip);
                 return clicked;
             }
 
-            if (Tab("All", explorer.CountAll, -1, Skin.Text, explorer.KindFilter == null)) Filter(explorer, null);
+            // The learned list is a tab of its own after All, with the compendium on and while it
+            // holds anything: picking it, or All or a kind, leaves the others.
+            var learned = explorer.LearnedOnly;
+            if (Tab("All", explorer.CountAll, -1, Skin.Text, explorer.KindFilter == null && !learned)) Filter(explorer, null);
+            if (explorer.CompendiumSet && (explorer.LearnedCount > 0 || learned))
+            {
+                CountDrawn(PanelPart.LearnedTab);
+                if (Tab(CompendiumWords.LearnedTab, explorer.LearnedCount, -1, Skin.Accent, learned, "learned", CompendiumWords.LearnedTip(learned)) && !learned)
+                {
+                    explorer.KindFilter = null;
+                    ShowLearned(explorer, true);
+                }
+            }
             // With the compendium on and nothing narrowing the list, a kind counted so tells what
             // was found of all there is.
-            var collecting = explorer.CompendiumOn && string.IsNullOrEmpty(explorer.Text) && !explorer.FavouritesOnly && !explorer.RecentOnly && !explorer.LearnedOnly && explorer.Origin == OriginFilter.All;
+            var collecting = explorer.CompendiumOn && string.IsNullOrEmpty(explorer.Text) && !explorer.FavouritesOnly && !explorer.RecentOnly && !learned && explorer.Origin == OriginFilter.All;
             foreach (var kind in EveryKind)
             {
                 var collected = collecting && CompendiumView.Counted(kind);
                 var count = collected ? explorer.FoundOf(kind) : explorer.CountOf(kind);
                 var total = collected ? explorer.TotalOf(kind) : -1;
                 if (count == 0 && explorer.KindFilter != kind) continue;
-                if (Tab(Kinds.Label(kind), count, total, Skin.KindColor(kind), explorer.KindFilter == kind)) Filter(explorer, kind);
-            }
-
-            // With the compendium on: what was learned lately, and Peek, to show everything for now.
-            if (explorer.CompendiumSet)
-            {
-                var learnedW = Skin.Width(Skin.Chip, CompendiumWords.LearnedLately) + U(16f);
-                var place = flow.Place(learnedW);
-                var learned = new Rect(place.X, place.Y, learnedW, flow.RowHeight);
-                if (GUI.Button(learned, CompendiumWords.LearnedLately, Skin.Fitted(explorer.LearnedOnly ? Skin.ChipOn : Skin.Chip, learned))) ShowLearned(explorer, !explorer.LearnedOnly);
-                if (learned.Contains(Event.current.mousePosition)) AskTip("learned", CompendiumWords.LearnedTip(explorer.LearnedOnly));
-
-                var peekW = Skin.Width(Skin.Chip, CompendiumWords.Peek) + U(16f);
-                var at = flow.Place(peekW);
-                var peek = new Rect(at.X, at.Y, peekW, flow.RowHeight);
-                if (GUI.Button(peek, CompendiumWords.Peek, Skin.Fitted(explorer.Peeking ? Skin.ChipOn : Skin.Chip, peek))) Peek(explorer, !explorer.Peeking);
-                if (peek.Contains(Event.current.mousePosition)) AskTip("peek", CompendiumWords.PeekTip(explorer.Peeking));
+                if (Tab(Kinds.Label(kind), count, total, Skin.KindColor(kind), explorer.KindFilter == kind && !learned)) Filter(explorer, kind);
             }
 
             return flow.RowBottom;
@@ -323,9 +320,11 @@ namespace Scry
             var segmentWs = CompendiumWords.Rules.Select(r => Skin.Width(Skin.Segment, CompendiumWords.RuleName(r)) + U(6f)).ToArray();
             var modeCaptionW = Skin.Width(Skin.FaintLabel, CompendiumWords.ModeCaption) + U(8f);
             var modeW = modeCaptionW + segmentWs.Sum() + U(4f) * (segmentWs.Length - 1);
-            var mode = new Rect(right - U(12f) - modeW, y, modeW, height);
+            var peek = new Rect(right - U(12f) - height, y, height, height);
+            var mode = new Rect(peek.x - U(4f) - modeW, y, modeW, height);
             if (mode.x < leftmost) return right;
             ModeControl(book, mode, modeCaptionW, segmentWs);
+            PeekButton(explorer, peek);
             if (book.Rule == CompendiumRule.Off || CompendiumKeeper.Ceiling == 0 && book.Floor == 0) return mode.x;
             var floorCaptionW = Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption) + U(8f);
             var floorW = floorCaptionW + height * 2f + _floorValueW + U(4f) * 2f;
@@ -333,6 +332,23 @@ namespace Scry
             if (floor.x < leftmost) return mode.x;
             FloorControl(explorer, book, floor, floorCaptionW);
             return floor.x;
+        }
+
+        /// <summary>
+        /// The eye after the mode's segments, peeking at everything for now, lit while it does;
+        /// it keeps its place while the compendium is off, so the segments never move, but only
+        /// peeks while it is on.
+        /// </summary>
+        private static void PeekButton(Explorer explorer, Rect rect)
+        {
+            CountDrawn(PanelPart.PeekButton);
+            var was = GUI.enabled;
+            GUI.enabled = was && explorer.CompendiumSet;
+            if (GUI.Button(rect, GUIContent.none, explorer.Peeking ? Skin.On : Skin.IconButton)) Peek(explorer, !explorer.Peeking);
+            var icon = new Rect(rect.x + rect.width * 0.2f, rect.y + rect.height * 0.2f, rect.width * 0.6f, rect.height * 0.6f);
+            Skin.Icon(icon, Skin.Eye, explorer.Peeking ? Skin.Accent : explorer.CompendiumSet ? Skin.Dim : Skin.Alpha(Skin.Dim, 0.4f));
+            GUI.enabled = was;
+            if (explorer.CompendiumSet && rect.Contains(Event.current.mousePosition)) AskTip("peek", CompendiumWords.PeekTip(explorer.Peeking));
         }
 
         /// <summary>The mode: its caption, then a segment for each of the rules, the chosen one lit.</summary>
@@ -406,6 +422,8 @@ namespace Scry
 
         private static void Filter(Explorer explorer, Kind? kind)
         {
+            // The learned list is a tab of its own, so All or a kind leaves it.
+            explorer.LearnedOnly = false;
             explorer.KindFilter = kind;
             ListFiltered();
             RevealSelected();

@@ -530,11 +530,15 @@ namespace Scry
             }
             else p.Note("no dungeon with rooms read: rooms known with their dungeon not tried");
 
-            // Learned lately: what it met, newest first, nothing only heard of.
+            // Learned lately: what it met, newest first, nothing only heard of; a tab after All.
+            ScryPanel.Compact = false;
             X.SearchEverything("");
+            var learnedTabs = ScryPanel.Drawn(PanelPart.LearnedTab);
             X.LearnedOnly = true;
             var learned = view.Lately.Select(k => X.Find(k)).Where(e => e != null && view.Of(e) >= KnownLevel.Seen).ToList();
             p.Check(learned.Count > 0 && X.Results.SequenceEqual(learned), $"learned lately lists the {Numbers.Count(learned.Count)} things it met, newest first", string.Join(", ", X.Results.Take(10).Select(e => e.Name)));
+            yield return Until(() => ScryPanel.Drawn(PanelPart.LearnedTab) > learnedTabs + 1, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.LearnedTab) > learnedTabs && X.LearnedCount == learned.Count, $"its tab stands after All, counting {Numbers.Count(learned.Count)}", $"counted {Numbers.Count(X.LearnedCount)}");
             X.LearnedOnly = false;
 
             // The places' tab says the explored map counts, and offers to read it again.
@@ -546,11 +550,13 @@ namespace Scry
 
             // Peek: everything shows, with a warning, until stopped or the panel closes.
             var strip = ScryPanel.Drawn(PanelPart.PeekStrip);
+            var eyes = ScryPanel.Drawn(PanelPart.PeekButton);
             X.Peeking = true;
             X.SearchEverything("");
             X.KindFilter = Kind.Creature;
             yield return Until(() => ScryPanel.Drawn(PanelPart.PeekStrip) > strip + 1, 3);
             p.Check(X.Peeking && X.Results.Contains(unseen) && ScryPanel.Drawn(PanelPart.PeekStrip) > strip, $"peeking, {unseen.Name} is listed, under a warning");
+            p.Check(CompendiumKeeper.Book == null || ScryPanel.Drawn(PanelPart.PeekButton) > eyes, "the eye that peeks stands beside the mode in the title row");
             X.Peeking = false;
             p.Check(!X.Results.Contains(unseen), "stopped, it is not");
             X.Peeking = true;

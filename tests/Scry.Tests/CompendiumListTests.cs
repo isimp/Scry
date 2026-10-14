@@ -383,6 +383,43 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhileTheLearnedListIsShownEachOtherTabCountsWhatItWouldShow()
+        {
+            var world = new World().Rule(CompendiumRule.Loose);
+            // Seen long ago: listed, but not among what was learned lately.
+            world.Book.Raise(world.Fenring.Key, KnownLevel.Seen, quietly: true);
+            world.Rule(CompendiumRule.Loose);
+            var explorer = world.Explorer;
+            var all = explorer.CountAll;
+            var creatures = explorer.CountOf(Kind.Creature);
+
+            explorer.LearnedOnly = true;
+            Assert.Equal(new[] { world.Boar, world.Troll }, explorer.Results.ToArray());
+            Assert.True(all > explorer.Results.Count);
+            Assert.Equal((all, creatures), (explorer.CountAll, explorer.CountOf(Kind.Creature)));
+        }
+
+        [Fact]
+        public void TheLearnedTabCountsWhatItWouldListWhicheverTabIsShown()
+        {
+            var world = new World().Rule(CompendiumRule.Loose);
+            var explorer = world.Explorer;
+            Assert.Equal(2, explorer.LearnedCount);
+            explorer.KindFilter = Kind.Item;
+            Assert.Equal(2, explorer.LearnedCount);
+
+            // Only heard of, it is not counted, as it is not listed.
+            world.Book.Raise(world.Fenring.Key, KnownLevel.Seen);
+            world.Book.Raise(world.Hide.Key, KnownLevel.HeardOf);
+            world.Rule(CompendiumRule.Loose);
+            Assert.Equal(3, explorer.LearnedCount);
+
+            // With the compendium off there is no such tab.
+            world.Rule(CompendiumRule.Off);
+            Assert.Equal(0, explorer.LearnedCount);
+        }
+
+        [Fact]
         public void ANoticeTellsWhatWasLearnedSinceItLastToldOfWhatWasMet()
         {
             // What was only heard of is not named; with the compendium off or peeking, nothing is told.

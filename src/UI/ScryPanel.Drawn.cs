@@ -34,6 +34,8 @@ namespace Scry
         LearnedStrip,
         FloorControl,
         CompendiumSwitch,
+        LearnedTab,
+        PeekButton,
         MapBar,
         FloorMark,
         FloorLine,

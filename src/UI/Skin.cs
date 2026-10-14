@@ -77,7 +77,7 @@ namespace Scry
         public static GUIStyle Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close;
 
         public static GUIStyle Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross;
-        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps;
+        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps, Eye;
 
         private static float _builtScale = -1f;
         private static bool _warmed;
@@ -717,6 +717,7 @@ namespace Scry
             Speed = Shape(32, 32, SpeedCoverage);
             Repeat = Shape(32, 32, RepeatCoverage);
             Steps = Shape(32, 32, StepsCoverage);
+            Eye = Shape(32, 32, EyeCoverage);
         }
 
         /// <summary>Three steps rising to the right: the compendium's floor, tier upon tier.</summary>
@@ -724,6 +725,18 @@ namespace Scry
         {
             if (x < 4f || x > 28f || y < 4f) return false;
             return y <= (x < 12f ? 12f : x < 20f ? 20f : 28f);
+        }
+
+        /// <summary>An eye: an almond outline around a round pupil, the compendium's peek at everything.</summary>
+        private static bool EyeCoverage(float x, float y)
+        {
+            var dx = x - 16f;
+            var dy = Mathf.Abs(y - 16f);
+            if (dx * dx + dy * dy <= 4.8f * 4.8f) return true;
+            var t = dx / 14.5f;
+            if (t <= -1f || t >= 1f) return false;
+            var outer = 10f * (1f - t * t);
+            return dy <= outer && dy >= outer - 2.8f;
         }
 
         /// <summary>Two arrowheads pointing on, one after the other: faster or slower.</summary>
