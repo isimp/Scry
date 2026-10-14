@@ -257,7 +257,7 @@ namespace Scry
         }
 
         /// <summary>What a known entry's page names; what it owns is among them, already known.</summary>
-        private IEnumerable<Entry> Named(Entry entry)
+        internal IEnumerable<Entry> Named(Entry entry)
         {
             foreach (var link in entry.Links)
             {

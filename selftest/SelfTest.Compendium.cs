@@ -331,6 +331,21 @@ namespace Scry
             var stoodIn = Location.GetLocation(player.transform.position);
             p.Check(stoodIn == null || X.Find(EntryKeys.For(Kind.Location, Utils.GetPrefabName(stoodIn.gameObject))) != null, "and so has the place stood in", stoodIn != null ? Utils.GetPrefabName(stoodIn.gameObject) : "none");
             p.Note($"the character saw {Numbers.Count(CompendiumKeeper.Book?.Pairs ?? 0)} pairs go together");
+            // How much the strict rules take from the character's own known pages, to tell whether they look different from the loose ones.
+            var own = CompendiumKeeper.Book;
+            if (own != null)
+            {
+                var strict = new CompendiumView(X.Entries);
+                var ownFloor = Math.Min(own.Floor, CompendiumKeeper.Ceiling);
+                strict.Milestones(ownFloor > 0 ? CompendiumTiers.Of(X.Entries) : null, ownFloor);
+                strict.Tell(own, CompendiumRule.Strict);
+                var pages = X.Entries.All.Where(e => e.Kind != Kind.Mod && strict.Of(e) == KnownLevel.Known && !strict.BelowFloor(e)).ToList();
+                var trimmed = pages
+                    .Select(e => (entry: e, left: strict.Named(e).Distinct().Where(o => !ReferenceEquals(o, e) && o.Kind != Kind.Mod && !strict.Related(e, o)).ToList()))
+                    .Where(t => t.left.Count > 0).OrderByDescending(t => t.left.Count).ToList();
+                p.Note($"under the strict rules {Numbers.Count(trimmed.Count)} of {Numbers.Count(pages.Count)} known pages above the floor (tier {Numbers.Count(ownFloor)}) leave something out, {Numbers.Count(trimmed.Sum(t => t.left.Count))} names in all"
+                    + (trimmed.Count == 0 ? "" : "; most: " + string.Join("; ", trimmed.Take(8).Select(t => $"{t.entry.Name} ({t.entry.Kind}) {Numbers.Count(t.left.Count)}: {string.Join(", ", t.left.Take(4).Select(o => o.Name))}"))));
+            }
             p.Note(sightings.Count(KnownLevel.HeardOf) == 0 ? "nothing in sight now" : $"in sight now: {string.Join(", ", sightings.All.Select(e => $"{e.Key} ({e.Value})").Take(20))}");
             yield return Until(() => false, 2);
             p.Check(Faults.Count == faults, "nothing the compendium watches told a fault meanwhile", Faults.Latest);
