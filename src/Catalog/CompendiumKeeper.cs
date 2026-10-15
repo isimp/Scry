@@ -295,14 +295,14 @@ namespace Scry
             if (place != null) _book.Witness(key, EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)));
         }
 
-        /// <summary>Writes the book once it changed, at most every half minute unless asked to now, on a worker thread.</summary>
+        /// <summary>Writes the book once it changed, at most every half minute unless asked to now, its text worked out and written on a worker thread.</summary>
         public static void Save(bool now = false)
         {
             if (_book == null || _unreadable || !_book.Changed || (!now && Time.unscaledTime - _savedAt < 30f)) return;
             _savedAt = Time.unscaledTime;
-            var text = _book.Save();
+            var text = _book.ToSave();
             var path = PathOf(_file);
-            Files.Then("keeping what the character knows", () => FileSwap.Write(path, aside => File.WriteAllText(aside, text)));
+            Files.Then("keeping what the character knows", () => FileSwap.Write(path, aside => File.WriteAllText(aside, text())));
         }
 
         /// <summary>Writes the book and waits a moment for it to be written, as the game quits.</summary>

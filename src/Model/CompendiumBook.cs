@@ -204,28 +204,45 @@ namespace Scry
         }
 
         /// <summary>Everything known, a line an entry, then the latest learned in order, the worlds mapped, the rules, the floor, the pairs seen together and how each thing came to be known.</summary>
-        public string Save()
+        public string Save() => ToSave()();
+
+        /// <summary>
+        /// The book's text (<see cref="Save"/>) as it stands now, worked out when called: what it
+        /// holds is copied now and sorted and written out then, on a worker thread while more is
+        /// learned. The book counts as saved from now until it changes again.
+        /// </summary>
+        public Func<string> ToSave()
         {
-            var text = new StringBuilder();
-            foreach (var pair in _levels.OrderBy(p => p.Key, StringComparer.Ordinal))
-            {
-                text.Append("know\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count((int)pair.Value)).Append('\n');
-            }
-            foreach (var key in _lately) text.Append("lately\t").Append(Stored.Escaped(key)).Append('\n');
-            foreach (var world in _mapped.OrderBy(w => w, StringComparer.Ordinal)) text.Append("mapped\t").Append(Stored.Escaped(world)).Append('\n');
-            if (_rule != CompendiumRule.Off) text.Append("rule\t").Append(_rule).Append('\n');
-            if (_floor > 0) text.Append("floor\t").Append(Stored.Count(_floor)).Append('\n');
-            foreach (var (a, b) in _pairs.OrderBy(p => p.Item1, StringComparer.Ordinal).ThenBy(p => p.Item2, StringComparer.Ordinal))
-            {
-                text.Append("saw\t").Append(Stored.Escaped(a)).Append('\t').Append(Stored.Escaped(b)).Append('\n');
-            }
-            foreach (var pair in _came.OrderBy(p => p.Key, StringComparer.Ordinal))
-            {
-                var (way, day, biome) = pair.Value;
-                text.Append("came\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(way).Append('\t').Append(Stored.Count(day)).Append('\t').Append(Stored.Escaped(biome ?? "")).Append('\n');
-            }
+            var levels = _levels.ToArray();
+            var lately = _lately.ToArray();
+            var mapped = _mapped.ToArray();
+            var rule = _rule;
+            var floor = _floor;
+            var pairs = _pairs.ToArray();
+            var came = _came.ToArray();
             Changed = false;
-            return text.ToString();
+            return () =>
+            {
+                var text = new StringBuilder();
+                foreach (var pair in levels.OrderBy(p => p.Key, StringComparer.Ordinal))
+                {
+                    text.Append("know\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count((int)pair.Value)).Append('\n');
+                }
+                foreach (var key in lately) text.Append("lately\t").Append(Stored.Escaped(key)).Append('\n');
+                foreach (var world in mapped.OrderBy(w => w, StringComparer.Ordinal)) text.Append("mapped\t").Append(Stored.Escaped(world)).Append('\n');
+                if (rule != CompendiumRule.Off) text.Append("rule\t").Append(rule).Append('\n');
+                if (floor > 0) text.Append("floor\t").Append(Stored.Count(floor)).Append('\n');
+                foreach (var (a, b) in pairs.OrderBy(p => p.Item1, StringComparer.Ordinal).ThenBy(p => p.Item2, StringComparer.Ordinal))
+                {
+                    text.Append("saw\t").Append(Stored.Escaped(a)).Append('\t').Append(Stored.Escaped(b)).Append('\n');
+                }
+                foreach (var pair in came.OrderBy(p => p.Key, StringComparer.Ordinal))
+                {
+                    var (way, day, biome) = pair.Value;
+                    text.Append("came\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(way).Append('\t').Append(Stored.Count(day)).Append('\t').Append(Stored.Escaped(biome ?? "")).Append('\n');
+                }
+                return text.ToString();
+            };
         }
 
         /// <summary>

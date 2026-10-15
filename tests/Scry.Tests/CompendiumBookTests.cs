@@ -61,6 +61,49 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ABookWrittenOnAWorkerIsTheBookAsItStoodWhenItWasHandedOver()
+        {
+            // Writing the text costs a few milliseconds, so it is worked out on a worker thread
+            // while play goes on; what is learned meanwhile waits for the next save.
+            var book = Learned();
+            var twin = Learned();
+
+            var later = book.ToSave();
+            Assert.False(book.Changed);
+            book.Raise("Troll", KnownLevel.Known, way: CameBy.Fought);
+            book.Raise("Boar", KnownLevel.Known);
+            book.Witness("Troll", "BlackForest");
+            book.MarkMapped("Other");
+            book.Rule = CompendiumRule.Loose;
+            book.Floor = 2;
+            Assert.True(book.Changed);
+
+            var read = CompendiumBook.Load(later());
+            Assert.Equal(KnownLevel.Seen, read.Level("Neck"));
+            Assert.Equal(KnownLevel.Unknown, read.Level("Troll"));
+            Assert.Equal(new[] { "Neck", "Boar" }, read.Lately);
+            Assert.False(read.Witnessed("Troll", "BlackForest"));
+            Assert.False(read.Mapped("Other"));
+            Assert.Equal(CompendiumRule.Strict, read.Rule);
+            Assert.Equal(1, read.Floor);
+            Assert.Null(read.Came("Troll"));
+            // Everything else as a save made then would have it.
+            Assert.Equal(twin.Save(), later());
+
+            static CompendiumBook Learned()
+            {
+                var learned = new CompendiumBook { Now = () => (3, "Meadows") };
+                learned.Raise("Boar", KnownLevel.Known, way: CameBy.Killed);
+                learned.Raise("Neck", KnownLevel.Seen);
+                learned.Witness("Boar", "Meadows");
+                learned.MarkMapped("World");
+                learned.Rule = CompendiumRule.Strict;
+                learned.Floor = 1;
+                return learned;
+            }
+        }
+
+        [Fact]
         public void WhatWasLearnedSinceACountTakenBeforeIsToldNewestFirst()
         {
             // The panel tells what is new since it last told; what was known before, only written
