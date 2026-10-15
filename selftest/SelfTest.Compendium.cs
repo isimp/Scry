@@ -442,7 +442,7 @@ namespace Scry
             foreach (var (type, name) in new[] { (typeof(Character), "Damage"), (typeof(Character), "RPC_Damage"), (typeof(Destructible), "Damage"), (typeof(TreeBase), "Damage"), (typeof(TreeLog), "Damage"), (typeof(MineRock), "Damage"), (typeof(MineRock5), "Damage"),
                 (typeof(Humanoid), "Pickup"), (typeof(Player), "PlacePiece"), (typeof(Tameable), "Tame"), (typeof(Tameable), "Interact"), (typeof(Tameable), "OnConsumedItem"),
                 (typeof(Humanoid), "DoInteractAnimation"), (typeof(UITooltip), "OnHoverStart"), (typeof(Vegvisir), "Interact"),
-                (typeof(Player), "Interact"), (typeof(Humanoid), "UseItem"), (typeof(OfferingBowl), "InitiateSpawnBoss"), (typeof(FishingFloat), "Catch"), (typeof(ItemDrop), "Awake"), (typeof(Pickable), "Awake"), (typeof(SpawnArea), "Awake") })
+                (typeof(Player), "Interact"), (typeof(Humanoid), "UseItem"), (typeof(OfferingBowl), "InitiateSpawnBoss"), (typeof(FishingFloat), "Catch"), (typeof(ItemDrop), "Awake"), (typeof(ZNetView), "Awake") })
             {
                 var method = AccessTools.DeclaredMethod(type, name);
                 p.Check(method != null && Harmony.GetPatchInfo(method)?.Owners.Contains(About.Guid) == true, $"{type.Name}.{name} is watched");
@@ -481,22 +481,41 @@ namespace Scry
             p.Check(reaches.Count > 0, "creatures are seen as far as their size makes them out", string.Join(", ", reaches));
             var faults = Faults.Count;
             var sightings = new CompendiumBook();
-            var failed = Steps.Run(() => CompendiumSight.Look(player, CompendiumKeeper.CatchUpFor(X.Entries), sightings, letGo: false), null);
+            var lookUp = CompendiumKeeper.CatchUpFor(X.Entries);
+            var failed = Steps.Run(() =>
+            {
+                CompendiumSight.Look(player, lookUp, sightings);
+                CompendiumSight.LookAtAll(player, lookUp, sightings);
+            }, null);
             p.Check(failed == null, "looking around the character finds no fault", failed?.Message);
 
-            // Pickables and nests in view are seen, as creatures are: how many are kept to look at
-            // against those loaded, and how long one look around takes, all it sees included.
-            var pickables = UnityEngine.Object.FindObjectsByType<Pickable>(FindObjectsSortMode.None);
-            var nests = UnityEngine.Object.FindObjectsByType<SpawnArea>(FindObjectsSortMode.None);
+            // Everything the game keeps in the world is seen by the one rule creatures are: how
+            // many are kept to look at against those loaded, the nearest of each kind kept or
+            // seen already, and how long a whole round of them takes, all it sees included.
+            var loaded = ZNetScene.instance != null ? ZNetScene.instance.NrOfInstances() : 0;
+            p.Check(CompendiumSight.ThingCount + CompendiumSight.ThingsLetGo + CompendiumSight.ThingsDropped >= loaded, $"the {Numbers.Count(loaded)} things loaded in the world are all kept to look at, let go or passed over",
+                $"{Numbers.Count(CompendiumSight.ThingCount)} kept, {Numbers.Count(CompendiumSight.ThingsLetGo)} let go, {Numbers.Count(CompendiumSight.ThingsDropped)} passed over");
+            foreach (var (kind, nearest) in new (string, Component)[]
+            {
+                ("tree", Nearest<TreeBase>(player)), ("rock", Nearest<MineRock5>(player)), ("small rock or stump", Nearest<Destructible>(player)),
+                ("building piece", Nearest<WearNTear>(player)), ("pickable", Nearest<Pickable>(player)),
+            })
+            {
+                var thing = nearest != null ? nearest.GetComponentInParent<ZNetView>() : null;
+                if (thing == null || thing.GetZDO() == null) continue;
+                var key = Utils.GetPrefabName(thing.gameObject);
+                var level = CompendiumKeeper.Book?.Level(key) ?? KnownLevel.Unknown;
+                p.Check(CompendiumSight.Keeps(thing) || level >= KnownLevel.Seen || X.Find(key) == null, $"the nearest {kind}, {key}, is kept to look at or seen already", level.ToString());
+            }
             yield return null;
-            p.Check(CompendiumSight.LookoutCount + CompendiumSight.LookoutsSeen >= pickables.Length + nests.Length, $"the {Numbers.Count(pickables.Length)} pickables and {Numbers.Count(nests.Length)} nests loaded are all kept to look at or were seen",
-                $"{Numbers.Count(CompendiumSight.LookoutCount)} kept, {Numbers.Count(CompendiumSight.LookoutsSeen)} seen and let go");
             var scratch = new CompendiumBook();
-            var lookUp = CompendiumKeeper.CatchUpFor(X.Entries);
             var clock = System.Diagnostics.Stopwatch.StartNew();
-            for (var round = 0; round < 10; round++) CompendiumSight.Look(player, lookUp, scratch, letGo: false);
-            clock.Stop();
-            p.Note($"one look around, once a second, takes {Numbers.Amount(clock.Elapsed.TotalMilliseconds / 10, 3)} ms among {Numbers.Count(ZNetScene.instance != null ? ZNetScene.instance.NrOfInstances() : 0)} networked things; it saw {Numbers.Count(scratch.Count(KnownLevel.Seen))} things");
+            for (var round = 0; round < 10; round++) CompendiumSight.Look(player, lookUp, scratch);
+            var lookMs = clock.Elapsed.TotalMilliseconds / 10;
+            clock.Restart();
+            for (var round = 0; round < 10; round++) CompendiumSight.LookAtAll(player, lookUp, scratch);
+            var roundMs = clock.Elapsed.TotalMilliseconds / 10;
+            p.Note($"one look at the creatures and places, once a second, takes {Numbers.Amount(lookMs, 3)} ms; a whole round of the {Numbers.Count(CompendiumSight.ThingCount)} things kept takes {Numbers.Amount(roundMs, 3)} ms, spread over a second's frames (about {Numbers.Amount(roundMs / 60, 3)} ms a frame at 60 frames a second), every one looked through as for a character who saw none; it saw {Numbers.Count(scratch.Count(KnownLevel.Seen))} things");
 
             // What is met is paired with the biome and place it stands in, under keys that name entries.
             var biome = Heightmap.FindBiome(player.transform.position);
@@ -525,6 +544,10 @@ namespace Scry
             yield return Until(() => false, 2);
             p.Check(Faults.Count == faults, "nothing the compendium watches told a fault meanwhile", Faults.Latest);
         }
+
+        /// <summary>The loaded thing of a kind nearest the character; none where none is loaded.</summary>
+        private static T Nearest<T>(Player player) where T : Component =>
+            UnityEngine.Object.FindObjectsByType<T>(FindObjectsSortMode.None).OrderBy(t => (t.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
 
         /// <summary>
         /// With the compendium on, a made-up character who has fought one creature and seen

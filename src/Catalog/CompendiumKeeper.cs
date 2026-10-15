@@ -95,8 +95,12 @@ namespace Scry
                 Look(player);
                 Guard.Run(Feature.CompendiumMap, "catching up from the explored map", () => CompendiumMap.Update(_book));
             }
+            Guard.Run(Feature.CompendiumSeen, "looking at what the character sees", Sweeping, player);
             Save();
         }
+
+        /// <summary>The share of the things in the world looked at this frame (<see cref="CompendiumSight.Sweep"/>), made once.</summary>
+        private static readonly System.Action<Player> Sweeping = player => CompendiumSight.Sweep(player, _catchUp, _book, Time.unscaledDeltaTime);
 
         /// <summary>
         /// What catches a character up in a catalog, told what the game knows besides: the tools
@@ -143,7 +147,12 @@ namespace Scry
             if (place != null) _catchUp.StoodIn(EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)), place.m_hasInterior, player.InInterior(), _book);
             var hovered = player.GetHoverObject();
             var thing = hovered != null ? hovered.GetComponentInParent<ZNetView>() : null;
-            if (thing != null) _catchUp.Met(Utils.GetPrefabName(thing.gameObject), KnownLevel.Seen, _book);
+            if (thing != null)
+            {
+                var key = Utils.GetPrefabName(thing.gameObject);
+                _catchUp.Met(key, KnownLevel.Seen, _book);
+                MetIn(key, thing.transform.position);
+            }
             Guard.Run(Feature.CompendiumSeen, "looking at what the character sees", () => CompendiumSight.Look(player, _catchUp, _book));
         }
 
@@ -289,10 +298,41 @@ namespace Scry
         public static void MetIn(string key, Vector3 at)
         {
             if (_book == null || string.IsNullOrEmpty(key)) return;
+            var biome = BiomeKeyAt(at);
+            if (biome != null) _book.Witness(key, biome);
+            var place = PlaceKeyAt(at);
+            if (place != null) _book.Witness(key, place);
+        }
+
+        /// <summary>Whether a thing was paired with the biome where it stands and the place it is in already: nothing more is learned by meeting it there.</summary>
+        public static bool PairedIn(string key, Vector3 at)
+        {
+            if (_book == null || string.IsNullOrEmpty(key)) return false;
+            var biome = BiomeKeyAt(at);
+            if (biome != null && !_book.Witnessed(key, biome)) return false;
+            var place = PlaceKeyAt(at);
+            return place == null || _book.Witnessed(key, place);
+        }
+
+        private static readonly Dictionary<int, string> BiomeKeys = new Dictionary<int, string>();
+        private static readonly Dictionary<Location, string> PlaceKeys = new Dictionary<Location, string>();
+
+        /// <summary>The key of the biome at a point, made once a biome; none where there is none.</summary>
+        private static string BiomeKeyAt(Vector3 at)
+        {
             var biome = Heightmap.FindBiome(at);
-            if (biome != Heightmap.Biome.None) _book.Witness(key, EntryKeys.For(Kind.Biome, biome.ToString()));
+            if (biome == Heightmap.Biome.None) return null;
+            if (!BiomeKeys.TryGetValue((int)biome, out var key)) BiomeKeys[(int)biome] = key = EntryKeys.For(Kind.Biome, biome.ToString());
+            return key;
+        }
+
+        /// <summary>The key of the place a point is in, made once a place in this world; none outside any.</summary>
+        private static string PlaceKeyAt(Vector3 at)
+        {
             var place = Location.GetLocation(at);
-            if (place != null) _book.Witness(key, EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)));
+            if (place == null) return null;
+            if (!PlaceKeys.TryGetValue(place, out var key)) PlaceKeys[place] = key = EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject));
+            return key;
         }
 
         /// <summary>Writes the book once it changed, at most every half minute unless asked to now, its text worked out and written on a worker thread.</summary>
@@ -379,6 +419,7 @@ namespace Scry
             _bossesOf = null;
             Ceiling = 0;
             Acted.Clear();
+            PlaceKeys.Clear();
         }
     }
 }

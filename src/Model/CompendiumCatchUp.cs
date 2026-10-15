@@ -170,7 +170,10 @@ namespace Scry
         }
 
         /// <summary>Learns of an entry met in play, by its key, as news; true when that is more than was known. What the catalog has no entry for is passed over.</summary>
-        public bool Met(string key, KnownLevel level, CompendiumBook book, CameBy? way = null) => _catalog.Find(key) != null && book.Raise(key, level, way: way);
+        public bool Met(string key, KnownLevel level, CompendiumBook book, CameBy? way = null) => Lists(key) && book.Raise(key, level, way: way);
+
+        /// <summary>Whether the catalog has an entry by a key, for anything to be learned of it at all.</summary>
+        public bool Lists(string key) => _catalog.Find(key) != null;
 
         /// <summary>
         /// Something the character used, by its prefab, as news: known, as a portal, bed, ship or

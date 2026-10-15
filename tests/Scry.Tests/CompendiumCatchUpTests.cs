@@ -320,6 +320,10 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.Seen, book.Level(troll.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level("SomethingNoCatalogHas"));
             Assert.Equal(new[] { rested.Key, troll.Key }, book.Lately.ToArray());
+            // What sight looks at in the world is let go at once where nothing could be learned of it.
+            Assert.True(catchUp.Lists(troll.Key));
+            Assert.False(catchUp.Lists("SomethingNoCatalogHas"));
+            Assert.False(catchUp.Lists(null));
         }
 
         [Fact]
