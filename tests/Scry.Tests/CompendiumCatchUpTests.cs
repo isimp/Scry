@@ -132,21 +132,32 @@ namespace Scry.Tests
         [Fact]
         public void ATrophyHeldIsKnownAndSoIsTheCreatureItFallsFrom()
         {
-            // Not the chest it can also be found in.
-            var trophy = E(Kind.Item, "TrophyTroll", "$item_trophy_troll");
-            var troll = E(Kind.Creature, "Troll", "$enemy_troll");
-            var chest = E(Kind.Piece, "TreasureChest_trollcave", "$piece_chest");
-            trophy.AddTermLink("from", troll);
+            // Not the chest it can also be found in, nor a creature it falls from that lives in
+            // no biome the character entered: the game's own TheHive, placed nowhere in the world,
+            // drops the drake's trophy too.
+            var trophy = E(Kind.Item, "TrophyHatchling", "$item_trophy_hatchling");
+            var drake = E(Kind.Creature, "Hatchling", "$enemy_drake");
+            var hive = E(Kind.Creature, "TheHive", "$enemy_thehive");
+            var chest = E(Kind.Piece, "TreasureChest_mountains", "$piece_chest");
+            var mountain = E(Kind.Biome, "Mountain", "$biome_mountain");
+            mountain.Biomes = new[] { "Mountain" };
+            drake.Biomes = new[] { "Mountain" };
+            trophy.AddTermLink("from", drake);
+            trophy.AddTermLink("from", hive);
             trophy.AddTermLink("from", chest);
-            var (catchUp, book) = Fresh(trophy, troll, chest);
+            var (catchUp, book) = Fresh(trophy, drake, hive, chest, mountain);
             var records = new CompendiumRecords();
-            records.Trophies.Add("TrophyTroll");
+            records.Trophies.Add("TrophyHatchling");
+            records.Biomes.Add("$biome_mountain");
 
             catchUp.Fill(records, book, quietly: false);
 
             Assert.Equal(KnownLevel.Known, book.Level(trophy.Key));
-            Assert.Equal(KnownLevel.Known, book.Level(troll.Key));
+            Assert.Equal(KnownLevel.Known, book.Level(drake.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(chest.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(hive.Key));
+            Assert.True(book.Witnessed(trophy.Key, drake.Key));
+            Assert.False(book.Witnessed(trophy.Key, hive.Key));
         }
 
         [Fact]
@@ -406,6 +417,7 @@ namespace Scry.Tests
             meadows.Biomes = new[] { "Meadows" };
             bush.Biomes = new[] { "Meadows" };
             far.Biomes = new[] { "Meadows" };
+            troll.Biomes = new[] { "Meadows" };
             var mead = E(Kind.Item, "MeadHealthMinor", "$item_mead_hp_minor");
             var rested = new Entry { Kind = Kind.StatusEffect, Name = "Potion_health_minor" };
             var chest = E(Kind.Piece, "TreasureChest_forest", "$piece_chest");

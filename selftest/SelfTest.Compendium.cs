@@ -77,6 +77,11 @@ namespace Scry
                 .Select(e => Localization.instance.Localize(BiomeWords.Token(e.Name))).ToList();
             var unmatched = records.Biomes.Where(area => !biomesKnown.Any(shown => (" " + area + " ").IndexOf(" " + shown + " ", StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
             p.Check(unmatched.Count == 0, $"each of the {Numbers.Count(records.Biomes.Count)} biomes it entered is known by the name the game keeps it under", string.Join(", ", unmatched.Take(5)));
+            // A trophy held makes known only the creatures it falls from that live where the
+            // character went: the game's own TheHive, placed nowhere, drops the drake's trophy too.
+            var hive = X.Find("TheHive");
+            if (hive != null && records.Trophies.Contains("TrophyHatchling"))
+                p.Check(told.Level(hive.Key) != KnownLevel.Known, "the drake's trophy held does not make known TheHive, which the world never places", $"its biomes: {string.Join(", ", hive.Biomes)}");
             var wood = X.Find("Wood");
             if (wood != null)
             {

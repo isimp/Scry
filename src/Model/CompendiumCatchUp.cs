@@ -72,10 +72,12 @@ namespace Scry
             Add(Named(records.PickedUp, Kind.Item), CameBy.Held);
             Add(Prefabs(records.Picked, Kind.Item), CameBy.Picked);
             Add(Prefabs(records.Trophies, Kind.Item), CameBy.Held);
-            foreach (var trophy in Prefabs(records.Trophies, Kind.Item)) Add(trophy.TermLinks("from").Where(e => e.Kind == Kind.Creature), CameBy.Trophy);
+            // The creatures a trophy held falls from, those living in a biome the character entered:
+            // not the game's own TheHive, placed nowhere, which drops the drake's trophy too.
+            var entered = Entered(records);
+            foreach (var trophy in Prefabs(records.Trophies, Kind.Item)) Add(CreaturesDropping(trophy, entered), CameBy.Trophy);
             // What gives an item: only where it grows in a biome the character entered, as Wood
             // picked up in the Meadows says nothing of the Ashlands' logs.
-            var entered = Entered(records);
             foreach (var item in items) Add(ResourcesGiving(item, entered), CameBy.Gives);
             Add(Named(records.Placed, Kind.Piece), CameBy.Built);
             Add(Named(records.Stations, Kind.Piece), CameBy.Used);
@@ -145,7 +147,7 @@ namespace Scry
             }
             foreach (var trophy in Prefabs(records.Trophies, Kind.Item))
             {
-                foreach (var creature in trophy.TermLinks("from")) if (creature.Kind == Kind.Creature) book.Witness(trophy.Key, creature.Key);
+                foreach (var creature in CreaturesDropping(trophy, entered)) book.Witness(trophy.Key, creature.Key);
             }
             foreach (var item in Prefabs(records.Picked, Kind.Item).Concat(Named(records.PickedUp, Kind.Item)))
             {
@@ -264,6 +266,10 @@ namespace Scry
         /// <summary>The resources giving an item that grow in a biome the character entered; one growing nowhere the world places it is left to be met.</summary>
         private static IEnumerable<Entry> ResourcesGiving(Entry item, HashSet<string> entered) =>
             item.TermLinks("from").Where(e => e.Kind == Kind.Resource && e.Biomes.Any(entered.Contains));
+
+        /// <summary>The creatures an item falls from that live in a biome the character entered.</summary>
+        private static IEnumerable<Entry> CreaturesDropping(Entry item, HashSet<string> entered) =>
+            item.TermLinks("from").Where(e => e.Kind == Kind.Creature && e.Biomes.Any(entered.Contains));
 
         /// <summary>The entries of a kind going by any of these names.</summary>
         private IEnumerable<Entry> Named(IEnumerable<string> tokens, Kind kind)
