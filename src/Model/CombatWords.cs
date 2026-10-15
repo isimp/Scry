@@ -34,7 +34,7 @@ namespace Scry
         /// That table's lines: its health at no star and each star, the base once more for each
         /// (<c>Character.SetupMaxHealth</c>), how much harder it hits, half again for each
         /// (<c>Attack.GetLevelDamageFactor</c>), and where its drops grow with stars, their amount
-        /// and chance, doubled for each (<c>CharacterDrop.GenerateDropList</c>); none without stars.
+        /// and chance, doubled for each (<c>CharacterDrop.GenerateDropList</c>; drops that only get likelier have a line each, <see cref="StarChance"/>); none without stars.
         /// </summary>
         public static List<string[]> StarLines(float health, int maxStars, bool dropsGrow = false)
         {
@@ -56,6 +56,19 @@ namespace Scry
                 lines.Add(drops.ToArray());
             }
             return lines;
+        }
+
+        /// <summary>
+        /// A line of that table for a drop that only gets likelier with stars (<see cref="StarDrop.Likelier"/>):
+        /// its name, then its chance at no star and each star, doubled for each and sure past a
+        /// whole one (<c>CharacterDrop.GenerateDropList</c>); null without stars.
+        /// </summary>
+        public static string[] StarChance(string name, float chance, int maxStars)
+        {
+            if (maxStars <= 0) return null;
+            var line = new List<string> { name };
+            for (var s = 0; s <= maxStars; s++) line.Add(DropWords.Share(Math.Min(1f, chance * (1 << s))));
+            return line.ToArray();
         }
 
         /// <summary>The damage of a hit by type, the biggest first; null when it does none.</summary>

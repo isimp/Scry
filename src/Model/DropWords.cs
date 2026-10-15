@@ -35,6 +35,19 @@ namespace Scry
         public List<DropInfo> Drops = new List<DropInfo>();
     }
 
+    /// <summary>What stars do to a creature's drop (<see cref="DropWords.WithStars"/>).</summary>
+    internal enum StarDrop
+    {
+        /// <summary>Its amount and chance double for each star.</summary>
+        Grows,
+
+        /// <summary>Only its chance doubles for each star.</summary>
+        Likelier,
+
+        /// <summary>Stars leave it as it is.</summary>
+        Same,
+    }
+
     /// <summary>
     /// A drop table in words, the same for every tree, rock, bush and creature: how many times it
     /// is rolled and how often, and for each item how many it gives and its share of a roll. A
@@ -143,6 +156,19 @@ namespace Scry
         {
             if (maxStars <= 0 || unchanged == null || unchanged.Count == 0) return null;
             return $"{Naming.Joined(new List<string>(unchanged))} {Naming.Noun(unchanged.Count, "stays", "stay")} the same";
+        }
+
+        /// <summary>
+        /// What stars do to a creature's drop (<c>CharacterDrop.GenerateDropList</c>): with
+        /// <c>m_levelMultiplier</c> its chance doubles for each star, and its amount too unless
+        /// <c>m_levelMultiplierNotAmount</c> is set or it drops one per player; a sure drop whose
+        /// amount stays, or one without the multiplier, stays the same.
+        /// </summary>
+        public static StarDrop WithStars(bool levelMultiplier, bool amountStays, bool onePerPlayer, float chance)
+        {
+            if (!levelMultiplier) return StarDrop.Same;
+            if (!amountStays && !onePerPlayer) return StarDrop.Grows;
+            return chance < 1f ? StarDrop.Likelier : StarDrop.Same;
         }
 
         /// <summary>A drop row's title led by when it drops ("When felled, drops 3 times"); the title as it is for no lead.</summary>

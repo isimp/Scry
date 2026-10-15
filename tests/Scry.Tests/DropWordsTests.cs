@@ -159,5 +159,36 @@ namespace Scry.Tests
             Assert.Equal("1–4", Numbers.CountRange(1, 4));
             Assert.Equal("2", Numbers.CountRange(2, 1));
         }
+
+        [Fact]
+        public void ADropWithTheLevelMultiplierGrowsInAmountAndChanceWithStars()
+        {
+            Assert.Equal(StarDrop.Grows, DropWords.WithStars(levelMultiplier: true, amountStays: false, onePerPlayer: false, chance: 1f));
+            Assert.Equal(StarDrop.Grows, DropWords.WithStars(levelMultiplier: true, amountStays: false, onePerPlayer: false, chance: 0.5f));
+        }
+
+        [Fact]
+        public void ATrophyOnlyGetsLikelierWithStars()
+        {
+            // m_levelMultiplierNotAmount (1.0.20): the chance doubles for each star, the amount stays.
+            Assert.Equal(StarDrop.Likelier, DropWords.WithStars(levelMultiplier: true, amountStays: true, onePerPlayer: false, chance: 0.1f));
+        }
+
+        [Fact]
+        public void ADropOnePerPlayerOnlyGetsLikelierWithStars()
+        {
+            // Its amount is the number of players, set after the stars' multiplier; its chance still doubles.
+            Assert.Equal(StarDrop.Likelier, DropWords.WithStars(levelMultiplier: true, amountStays: false, onePerPlayer: true, chance: 0.5f));
+        }
+
+        [Fact]
+        public void ADropThatStarsLeaveAloneStaysTheSame()
+        {
+            Assert.Equal(StarDrop.Same, DropWords.WithStars(levelMultiplier: false, amountStays: false, onePerPlayer: false, chance: 0.5f));
+            Assert.Equal(StarDrop.Same, DropWords.WithStars(levelMultiplier: false, amountStays: true, onePerPlayer: false, chance: 0.1f));
+            // A sure drop whose amount stays has nothing that could grow.
+            Assert.Equal(StarDrop.Same, DropWords.WithStars(levelMultiplier: true, amountStays: true, onePerPlayer: false, chance: 1f));
+            Assert.Equal(StarDrop.Same, DropWords.WithStars(levelMultiplier: true, amountStays: false, onePerPlayer: true, chance: 1f));
+        }
     }
 }

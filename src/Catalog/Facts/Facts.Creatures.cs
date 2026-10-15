@@ -14,6 +14,20 @@ namespace Scry
         /// <summary>How many stars a creature can have, for what they add.</summary>
         private int _stars = 2;
 
+        /// <summary>
+        /// The drop's flag that stars leave its amount alone, read by name: the game has it since
+        /// 1.0.20 and sets it on every creature's trophy; null in a game before it.
+        /// </summary>
+        internal static FieldInfo AmountStaysField => TypeFields.Named(typeof(CharacterDrop.Drop), "m_levelMultiplierNotAmount");
+
+        /// <summary>What stars do to a creature's drop (<see cref="DropWords.WithStars"/>).</summary>
+        internal static StarDrop WithStars(CharacterDrop.Drop drop)
+        {
+            var field = AmountStaysField;
+            var amountStays = field != null && TypeFields.Value(field, drop) is bool stays && stays;
+            return DropWords.WithStars(drop.m_levelMultiplier, amountStays, drop.m_onePerPlayer, drop.m_chance);
+        }
+
         private void Creature(GameObject prefab, Character character)
         {
             Add("Health", Numbers.Amount(character.m_health));
@@ -28,8 +42,15 @@ namespace Scry
             if (!character.m_boss)
             {
                 var stars = new Row { Title = CombatWords.StarsTitle, Columns = CombatWords.StarColumns(_stars) };
-                var grow = prefab.GetComponent<CharacterDrop>().OrNull()?.m_drops?.Any(d => d?.m_prefab != null && d.m_levelMultiplier && !d.m_onePerPlayer) == true;
+                var told = (prefab.GetComponent<CharacterDrop>().OrNull()?.m_drops ?? new List<CharacterDrop.Drop>()).Where(d => d?.m_prefab != null).ToList();
+                var grow = told.Any(d => WithStars(d) == StarDrop.Grows);
                 foreach (var line in CombatWords.StarLines(character.m_health, _stars, grow)) stars.Lines.Add((line, null));
+                // A drop that only gets likelier, such as every trophy, has a line of its chances.
+                foreach (var drop in told.Where(d => WithStars(d) == StarDrop.Likelier).OrderBy(d => d.m_chance))
+                {
+                    var line = CombatWords.StarChance(ItemName(drop.m_prefab), drop.m_chance, _stars);
+                    if (line != null) stars.Lines.Add((line, EntryKeys.For(Kind.Item, drop.m_prefab.name)));
+                }
                 if (stars.Lines.Count > 0) Rows.Add(stars);
             }
 
@@ -88,9 +109,9 @@ namespace Scry
                     Rows.Add(row);
                     _drops = true;
                     // A boss is not spawned with stars; any other creature's drops grow with them.
-                    if (!character.m_boss && drops.m_drops.Any(d => d?.m_prefab != null && d.m_levelMultiplier && !d.m_onePerPlayer))
+                    if (!character.m_boss && drops.m_drops.Any(d => d?.m_prefab != null && WithStars(d) != StarDrop.Same))
                     {
-                        var same = drops.m_drops.Where(d => d?.m_prefab != null && !d.m_levelMultiplier).Select(d => ItemName(d.m_prefab)).Distinct().ToList();
+                        var same = drops.m_drops.Where(d => d?.m_prefab != null && WithStars(d) == StarDrop.Same).Select(d => ItemName(d.m_prefab)).Distinct().ToList();
                         Add("Drops with stars", DropWords.StarDrops(_stars, same));
                     }
                 }

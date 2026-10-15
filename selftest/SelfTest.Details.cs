@@ -22,6 +22,20 @@ namespace Scry
             var head = Value(told, "Hit on the head");
             if (p.Check(head != null, "the troll tells its head as a weak spot", Pairs(told))) p.Check(head.Contains("pierce"), "a hit there is told by its own resistances", head);
 
+            // Since 1.0.20 a trophy only gets likelier with stars: its own line of chances in the
+            // stars table, and not among what stays the same.
+            if (p.Check(Facts.AmountStaysField != null, "the game tells which drops stars leave the amount of (m_levelMultiplierNotAmount)"))
+            {
+                var stars = told.Rows.FirstOrDefault(r => r.Title == CombatWords.StarsTitle);
+                var trophy = stars?.Lines.FirstOrDefault(l => l.Link == "TrophyFrostTroll").Cells;
+                if (p.Check(trophy != null, "the troll's stars table has a line for its trophy", stars == null ? "no stars table" : string.Join(" | ", stars.Lines.Select(l => l.Cells[0]))))
+                {
+                    p.Check(trophy.Length == stars.Columns.Length && trophy.Skip(1).All(c => c.EndsWith("%", StringComparison.Ordinal)), "that line tells the trophy's chance at each star", string.Join(" ", trophy));
+                }
+                var same = Value(told, "Drops with stars");
+                p.Check(same == null || !same.Contains(trophy?[0] ?? "\u0001"), "the trophy is not among the drops that stay the same", same);
+            }
+
             // Counted over the game's own creatures, a few a frame, as each creature's details take a while.
             var creatures = X.Catalog.Where(e => e.Kind == Kind.Creature && e.Origin == Origin.Vanilla && e.Source is GameObject).ToList();
             int alert = 0, chase = 0, weak = 0, n = 0;

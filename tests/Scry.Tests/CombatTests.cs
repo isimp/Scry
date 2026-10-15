@@ -24,11 +24,28 @@ namespace Scry.Tests
         public void ACreatureWhoseDropsGrowWithStarsHasThemInItsStarsTable()
         {
             // CharacterDrop.GenerateDropList doubles a drop's amount and chance for each star,
-            // for each drop with m_levelMultiplier set.
+            // for each drop with m_levelMultiplier set whose amount stars do not leave (DropWords.WithStars).
             var lines = CombatWords.StarLines(200f, 2, dropsGrow: true);
             Assert.Equal(3, lines.Count);
             Assert.Equal(new[] { "Drops", "×1", "×2", "×4" }, lines[2]);
             Assert.Equal(new[] { "Drops", "×1", "×2", "×4", "×8" }, CombatWords.StarLines(200f, 3, dropsGrow: true)[2]);
+        }
+
+        [Fact]
+        public void ADropThatOnlyGetsLikelierWithStarsHasItsChanceAtEachStar()
+        {
+            // CharacterDrop.GenerateDropList doubles the chance of a drop with m_levelMultiplier for
+            // each star, but leaves its amount where m_levelMultiplierNotAmount is set, as on every
+            // creature's trophy since 1.0.20; a chance past a whole one is a sure drop.
+            Assert.Equal(new[] { "Frost troll trophy", "50%", "100%", "100%" }, CombatWords.StarChance("Frost troll trophy", 0.5f, 2));
+            Assert.Equal(new[] { "Wolf trophy", "10%", "20%", "40%", "80%" }, CombatWords.StarChance("Wolf trophy", 0.1f, 3));
+            Assert.Equal(new[] { "Neck trophy", "5%", "10%", "20%" }, CombatWords.StarChance("Neck trophy", 0.05f, 2));
+        }
+
+        [Fact]
+        public void WithoutStarsNoDropGetsAChanceLine()
+        {
+            Assert.Null(CombatWords.StarChance("Frost troll trophy", 0.5f, 0));
         }
 
         [Fact]
