@@ -8,12 +8,16 @@ namespace Scry
     /// What the character sees, for the compendium, looked at once a second: creatures in the
     /// camera's view with nothing solid between, as far as their size makes them out
     /// (<see cref="Sighting.Reach"/>, 30 m for one of a person's size), places whose
-    /// centre is in view within their own reach and <see cref="CreatureReach"/> beyond it, and
+    /// centre is in view within their own reach and <see cref="CreatureReach"/> beyond it,
+    /// pickables and nests in view within <see cref="Sighting.PersonReach"/> with nothing solid
+    /// between (kept as they wake, as the game keeps no list of them), and
     /// items on the ground within the character's reach (<c>Player.m_maxInteractDistance</c>) are
     /// seen; a container opened shows what it holds, seen, and the container itself is known.
     /// </summary>
     internal static class CompendiumSight
     {
+        static CompendiumSight() => WorldCaches.Register(nameof(CompendiumSight), () => Lookouts.Clear());
+
         /// <summary>How far beyond its own reach a place in view is seen, as far as a creature of a person's size.</summary>
         private const float CreatureReach = Sighting.PersonReach;
 
@@ -24,6 +28,18 @@ namespace Scry
         private static AccessTools.FieldRef<List<Location>> _places;
         private static AccessTools.FieldRef<InventoryGui, Container> _container;
         private static int _solid;
+
+        /// <summary>The pickables and nests loaded, kept as they wake; one gone reads as null and is dropped when next looked at.</summary>
+        private static readonly List<Component> Lookouts = new List<Component>();
+
+        /// <summary>How many pickables and nests are kept to look at now.</summary>
+        public static int LookoutCount => Lookouts.Count;
+
+        /// <summary>A pickable or nest woke: kept to be looked at.</summary>
+        public static void Woke(Component thing)
+        {
+            if (thing != null) Lookouts.Add(thing);
+        }
 
         /// <summary>Looks around the character, learning what it sees.</summary>
         public static void Look(Player player, CompendiumCatchUp catchUp, CompendiumBook book)
@@ -49,6 +65,20 @@ namespace Scry
                 {
                     catchUp.Met(EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)), KnownLevel.Seen, book);
                 }
+            }
+            for (var i = Lookouts.Count - 1; i >= 0; i--)
+            {
+                var thing = Lookouts[i];
+                if (thing == null)
+                {
+                    Lookouts.RemoveAt(i);
+                    continue;
+                }
+                var at = thing.transform.position;
+                if (Vector3.Distance(player.transform.position, at) > Sighting.PersonReach || !InView(view, at) || !Clear(view.position, at + Vector3.up * 0.5f)) continue;
+                var key = Utils.GetPrefabName(thing.gameObject);
+                catchUp.Met(key, KnownLevel.Seen, book);
+                CompendiumKeeper.MetIn(key, at);
             }
             foreach (var item in _items())
             {

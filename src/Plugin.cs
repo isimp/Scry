@@ -90,6 +90,8 @@ namespace Scry
             { typeof(BossCalled), Feature.CompendiumTogether },
             { typeof(FishCaught), Feature.CompendiumTogether },
             { typeof(UsingWatched), Feature.CompendiumUse },
+            { typeof(PickableWoke), Feature.CompendiumSeen },
+            { typeof(NestWoke), Feature.CompendiumSeen },
             { typeof(CardWatched), Feature.CompendiumUse },
             { typeof(VegvisirWatched), Feature.CompendiumUse },
             { typeof(UnmoddedTooltip), Feature.TooltipFromMods },
