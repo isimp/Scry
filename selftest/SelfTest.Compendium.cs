@@ -205,6 +205,22 @@ namespace Scry
             p.Check(grid != null && grid.Explored(player.transform.position.x, player.transform.position.z), "the ground it stands on is explored", grid != null ? $"cells of {Numbers.Count(grid.Factor)} pixels a side" : null);
             var world = CompendiumMap.World;
             var book = CompendiumKeeper.Book;
+
+            // The biomes under the explored ground are seen at least, the one stood in among them.
+            if (grid != null && WorldGenerator.instance != null)
+            {
+                var generator = WorldGenerator.instance;
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                var biomes = MapCatchUp.Biomes(grid, (x, z) => generator.GetBiome(x, z).ToString());
+                watch.Stop();
+                var here = generator.GetBiome(player.transform.position).ToString();
+                p.Check(biomes.Contains(here), $"the biomes under its explored ground ({string.Join(", ", biomes)}) hold the one it stands in, {here}", $"worked out in {Numbers.Amount(watch.Elapsed.TotalMilliseconds)} ms");
+                yield return Until(() => book != null && biomes.All(b => book.Level(EntryKeys.For(Kind.Biome, b)) >= KnownLevel.Seen), 15);
+                var unseen = biomes.Where(b => book == null || book.Level(EntryKeys.For(Kind.Biome, b)) < KnownLevel.Seen).ToList();
+                p.Check(unseen.Count == 0, "and each is seen at least in the character's book", string.Join(", ", unseen));
+                p.Check(biomes.All(b => X.Find(EntryKeys.For(Kind.Biome, b)) != null), "each has an entry");
+            }
+
             if (!ZNet.instance.IsServer())
             {
                 // A client asks the Scry on its world's server, which tells only which kinds of place lie in the map.

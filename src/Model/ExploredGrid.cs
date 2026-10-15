@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Scry
 {
@@ -67,6 +68,18 @@ namespace Scry
             return _cells[py / Factor * Side + px / Factor];
         }
 
+        /// <summary>A world position in each explored cell, its middle, as <see cref="Explored"/> reads it back.</summary>
+        public IEnumerable<(float X, float Z)> ExploredCentres()
+        {
+            for (var i = 0; i < _cells.Length; i++)
+            {
+                if (!_cells[i]) continue;
+                var px = Math.Min(MapSize - 1, i % Side * Factor + Factor / 2);
+                var py = Math.Min(MapSize - 1, i / Side * Factor + Factor / 2);
+                yield return ((px - MapSize / 2) * PixelSize, (py - MapSize / 2) * PixelSize);
+            }
+        }
+
         /// <summary>The grid as bytes: what it is, the map's size and pixel width, the cells' factor, then a bit for each cell.</summary>
         public byte[] Pack()
         {
@@ -125,6 +138,30 @@ namespace Scry
             }
             return kinds;
         }
+
+        /// <summary>
+        /// The biomes under the explored ground, each once, by the biome at a point in each
+        /// explored cell as the world generator tells it; ground of no biome is passed over.
+        /// </summary>
+        public static List<string> Biomes(ExploredGrid grid, Func<float, float, string> biomeAt)
+        {
+            var biomes = new List<string>();
+            var told = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var (x, z) in grid.ExploredCentres())
+            {
+                var biome = biomeAt(x, z);
+                if (string.IsNullOrEmpty(biome) || biome == NoBiome || !told.Add(biome)) continue;
+                biomes.Add(biome);
+            }
+            return biomes;
+        }
+
+        /// <summary>What the game calls ground of no biome.</summary>
+        private const string NoBiome = "None";
+
+        /// <summary>Writes the biomes under the explored ground as seen, quietly; how many were new.</summary>
+        public static int ApplyBiomes(CompendiumBook book, IEnumerable<string> biomes) =>
+            biomes.Count(biome => book.Raise(EntryKeys.For(Kind.Biome, biome), KnownLevel.Seen, quietly: true));
 
         /// <summary>Writes the kinds of place as seen, quietly, and the world as caught up; how many were new.</summary>
         public static int Apply(CompendiumBook book, string world, IEnumerable<string> kinds)

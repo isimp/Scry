@@ -121,5 +121,43 @@ namespace Scry.Tests
             Assert.True(book.Mapped("123"));
             Assert.False(book.Mapped("456"));
         }
+
+        [Fact]
+        public void EveryExploredCellIsToldByAPointInItAndNoOtherIs()
+        {
+            var grid = Explored((5, 5), (40, 9));
+            var centres = grid.ExploredCentres().ToList();
+            Assert.Equal(2, centres.Count);
+            Assert.All(centres, c => Assert.True(grid.Explored(c.X, c.Z)));
+            Assert.Empty(Explored().ExploredCentres());
+        }
+
+        [Fact]
+        public void TheBiomesUnderExploredGroundAreEachToldOnce()
+        {
+            // Biomes the character's own exploring crossed are seen, as the map shows their ground.
+            var grid = Explored((5, 5), (6, 6), (20, 20), (40, 9), (50, 50));
+            string BiomeAt(float x, float z) => x < 0f ? "Meadows" : z < 0f ? "BlackForest" : "Swamp";
+
+            var biomes = MapCatchUp.Biomes(grid, BiomeAt);
+
+            Assert.Equal(new[] { "BlackForest", "Meadows", "Swamp" }, biomes.OrderBy(b => b, System.StringComparer.Ordinal));
+            Assert.Empty(MapCatchUp.Biomes(Explored(), BiomeAt));
+            Assert.DoesNotContain("None", MapCatchUp.Biomes(grid, (x, z) => "None"));
+        }
+
+        [Fact]
+        public void TheBiomesUnderExploredGroundAreWrittenAsSeenQuietly()
+        {
+            var book = new CompendiumBook();
+            book.Raise(EntryKeys.For(Kind.Biome, "Meadows"), KnownLevel.Known, quietly: true);
+            book.Save();
+
+            Assert.Equal(1, MapCatchUp.ApplyBiomes(book, new[] { "Meadows", "Swamp" }));
+
+            Assert.Equal(KnownLevel.Known, book.Level(EntryKeys.For(Kind.Biome, "Meadows")));
+            Assert.Equal(KnownLevel.Seen, book.Level(EntryKeys.For(Kind.Biome, "Swamp")));
+            Assert.Empty(book.Lately);
+        }
     }
 }

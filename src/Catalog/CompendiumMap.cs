@@ -30,6 +30,8 @@ namespace Scry
         private static string _failedFor;
         private static Player _player;
         private static float _playerSince;
+        private static Task<List<string>> _biomes;
+        private static string _biomesFor;
 
         /// <summary>The world as the book knows it: its id, as the game keeps the character's map of it; none outside a world.</summary>
         public static string World => ZNet.instance != null ? Stored.Count(ZNet.instance.GetWorldUID()) : null;
@@ -40,12 +42,6 @@ namespace Scry
         /// <summary>Once a second: catches the book up when its world has not been, or takes in what was worked out.</summary>
         public static void Update(CompendiumBook book)
         {
-            if (_reading != null)
-            {
-                if (_reading.IsCompleted) Take(book);
-                return;
-            }
-
             var player = Player.m_localPlayer;
             if (player != _player)
             {
@@ -53,8 +49,16 @@ namespace Scry
                 _playerSince = Time.unscaledTime;
             }
             var world = World;
+            var settled = player != null && Time.unscaledTime - _playerSince >= SettleSeconds;
+            UpdateBiomes(book, world, settled);
+
+            if (_reading != null)
+            {
+                if (_reading.IsCompleted) Take(book);
+                return;
+            }
             if (book == null || player == null || world == null || book.Mapped(world) || world == _failedFor) return;
-            if (Time.unscaledTime - _playerSince < SettleSeconds) return;
+            if (!settled) return;
 
             if (ZNet.instance.IsServer()) Start(world, Places());
             else CompendiumLink.Ask(world);
@@ -67,6 +71,7 @@ namespace Scry
             if (book == null || world == null) return CompendiumWords.MapNoWorld;
             book.Unmap(world);
             _failedFor = null;
+            _biomesFor = null;
             return CompendiumWords.MapAgain;
         }
 
@@ -137,6 +142,35 @@ namespace Scry
             Log.Report(CompendiumWords.MapRead(reading.Result.Count, raised, fromServer: false));
         }
 
+        /// <summary>
+        /// The biomes under the ground the character explored are seen (<see cref="MapCatchUp.Biomes"/>),
+        /// worked out once per world each session on a worker thread, as the game's own heightmap
+        /// builder asks the world generator from its thread; client or server alike, the world
+        /// generator being the same everywhere.
+        /// </summary>
+        private static void UpdateBiomes(CompendiumBook book, string world, bool settled)
+        {
+            if (_biomes != null)
+            {
+                if (!_biomes.IsCompleted) return;
+                var done = _biomes;
+                _biomes = null;
+                if (done.Status != TaskStatus.RanToCompletion)
+                {
+                    Faults.Tell(Feature.CompendiumMap, "reading the biomes of the explored map", done.Exception?.GetBaseException());
+                    return;
+                }
+                if (book != null && world == _biomesFor) MapCatchUp.ApplyBiomes(book, done.Result);
+                return;
+            }
+            var generator = WorldGenerator.instance;
+            if (book == null || world == null || world == _biomesFor || !settled || generator == null) return;
+            var (size, pixel, words) = Copy();
+            if (words == null) return;
+            _biomesFor = world;
+            _biomes = Task.Run(() => MapCatchUp.Biomes(Grid(size, pixel, words), (x, z) => generator.GetBiome(x, z).ToString()));
+        }
+
         /// <summary>The map's size, its pixels' width and a copy of its explored bits; no bits before the character's map is in (it always has the ground it stands on explored).</summary>
         private static (int Size, float Pixel, int[] Words) Copy()
         {
@@ -160,6 +194,8 @@ namespace Scry
             _readingFor = null;
             _failedFor = null;
             _player = null;
+            _biomes = null;
+            _biomesFor = null;
         }
     }
 }
