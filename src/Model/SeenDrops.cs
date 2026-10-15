@@ -153,6 +153,22 @@ namespace Scry
 
         /// <summary>The faint line under such a row where an amount is not yet known.</summary>
         public static string NotYetCounted(Tally tally) => "How many shows once you have seen it " + (tally == Tally.Fell ? "fall" : "given");
+
+        /// <summary>
+        /// An item's chip in such a row, in the game's own form with the count where the game puts
+        /// its chance: how many at a time, and in how many of the kills or breaks the title counts.
+        /// </summary>
+        public static string Chip(SeenDrop drop, int times) => $"{Numbers.CountRange(drop.Least, drop.Most)} ({Numbers.Count(drop.Times)} of {Numbers.Count(times)})";
+
+        /// <summary>The same in a line of where an item comes from, which no title counts for: the kills or times said.</summary>
+        public static string Line(Tally tally, SeenDrop drop, int times) =>
+            $"{Numbers.CountRange(drop.Least, drop.Most)} ({Numbers.Count(drop.Times)} of {(tally == Tally.Fell ? Naming.Count(times, "kill", "kills") : Naming.Count(times, "time", "times"))})";
+
+        /// <summary>What a line's amount held back says on hover: how it comes to show, or that nothing counts it; none for a way not counted.</summary>
+        public static string HeldTip(Tally? by) => by == null ? null : by == Tally.None ? NeverCounted : NotYetCounted(by.Value);
+
+        /// <summary>The tip of an amount held back that nothing counts, as what a chest holds.</summary>
+        public const string NeverCounted = "Held back: what falls and what breaks are counted, not this";
     }
 
     /// <summary>How what was seen dropping is told.</summary>

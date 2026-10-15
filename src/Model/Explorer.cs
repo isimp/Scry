@@ -295,7 +295,23 @@ namespace Scry
             if (tally == Tally.None || !LeavingOut) return null;
             var counted = _view.Book.Tallied(tally);
             var drop = counted.Of(of).FirstOrDefault(d => d.Item == item);
-            return drop != null ? SeenWords.Chip(drop, counted.Kills(of)) : CompendiumWords.Hidden;
+            return drop != null ? TallyWords.Chip(drop, counted.Kills(of)) : CompendiumWords.Hidden;
+        }
+
+        /// <summary>
+        /// A line of where the item shown comes from under the strict rules, on a known page above
+        /// the milestone floor: a way with a chance in it told with the character's count in its
+        /// place (<see cref="SourceWords.CountedBy"/>), ??? where nothing was counted or nothing
+        /// counts; none otherwise, when the game's own line shows.
+        /// </summary>
+        public string StrictSourceLine(SourceFacts source)
+        {
+            var by = SourceWords.CountedBy(source);
+            if (by == null || !LeavingOut) return null;
+            // A way nothing counts reads an empty count (CompendiumBook.Tallied), so ???.
+            var counted = _view.Book.Tallied(by.Value);
+            var drop = counted.Of(source.Giver).FirstOrDefault(d => d.Item == _selected.Name);
+            return SourceWords.Counted(source, drop != null ? TallyWords.Line(by.Value, drop, counted.Kills(source.Giver)) : CompendiumWords.Hidden);
         }
 
         /// <summary>Such a row's title, after how it is given (<paramref name="lead"/>): how many times it was seen; none where the game's own title shows (<see cref="StrictAmount"/>).</summary>

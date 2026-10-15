@@ -53,6 +53,19 @@ namespace Scry
                 Facts.For(entry).Proofs.TryGetValue(fact, out var proof);
                 p.Check(proof == EntryKeys.Did(deed), $"{name}'s {fact.ToLowerInvariant()} shows once it was seen ({deed})", proof);
             }
+            // An item's lines of where it comes from are counted from what the character saw under the strict rules.
+            var hide = Pick(Kind.Item, "TrollHide");
+            if (hide != null)
+            {
+                var fromTroll = Facts.For(hide).Where.FirstOrDefault(s => s.Record?.Giver == troll.Name);
+                p.Check(SourceWords.CountedBy(fromTroll.Record) == Tally.Fell, "the troll hide's line from the troll is counted from what the character saw fall", fromTroll.Text);
+            }
+            var wood = Pick(Kind.Item, "Wood");
+            if (wood != null)
+            {
+                var fromTree = Facts.For(wood).Where.FirstOrDefault(s => s.Record?.Table == TableOf.Tree);
+                p.Check(SourceWords.CountedBy(fromTree.Record) == Tally.Gave, "wood's line from a tree is counted from what the character saw it give", fromTree.Text);
+            }
             var beech = Pick(Kind.Resource, "Beech1");
             var felled = beech != null ? Facts.For(beech).Rows.FirstOrDefault(r => r.Tally == Tally.Gave) : null;
             if (beech != null) p.Check(felled != null && felled.TallyOf == "Beech1", "what a beech gives is counted from what the character saw it give", felled?.Title);

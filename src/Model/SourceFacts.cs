@@ -159,6 +159,33 @@ namespace Scry
             }
         }
 
+        /// <summary>
+        /// What a way of coming by a thing is counted from under the strict rules, in place of the
+        /// game's chance: what a creature was seen to drop, what a tree, log, rock or anything
+        /// broken was seen to give; none (<see cref="Tally.None"/>) for a drop table nothing counts,
+        /// as a chest's, held back all the same; null for a way with no chance in it, told as the game tells it.
+        /// </summary>
+        public static Tally? CountedBy(SourceFacts source)
+        {
+            if (source == null) return null;
+            if (source.Way == SourceWay.Dropped) return Tally.Fell;
+            if (source.Way != SourceWay.Table) return null;
+            switch (source.Table)
+            {
+                case TableOf.Tree:
+                case TableOf.Log:
+                case TableOf.Rock:
+                case TableOf.Broken:
+                    return Tally.Gave;
+                default:
+                    return Tally.None;
+            }
+        }
+
+        /// <summary>A line of a way counted (<see cref="CountedBy"/>), its amount the character's count or ???, in the game's form.</summary>
+        public static string Counted(SourceFacts source, string amount) =>
+            source.Way == SourceWay.Dropped ? $"Dropped by {source.Shown}, {amount}" : $"{Verb(source.Table)} {source.Shown}, {amount}";
+
         /// <summary>A producer's pace: one every so long, holding up to so many.</summary>
         public static string Pace(float everySeconds, int holdsUpTo) => $"one every {Numbers.Duration(everySeconds)}, holding up to {Numbers.Count(holdsUpTo)}";
 

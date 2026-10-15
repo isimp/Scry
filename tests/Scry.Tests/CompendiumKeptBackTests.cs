@@ -273,8 +273,9 @@ namespace Scry.Tests
             world.Rule(CompendiumRule.Strict);
             world.Explorer.Select(world.Troll);
 
-            Assert.Equal("1 to 2, 3 of 3", world.Explorer.StrictAmount(Tally.Fell, "Troll", "TrollHide"));
-            Assert.Equal("10, 1 of 3", world.Explorer.StrictAmount(Tally.Fell, "Troll", "Coins"));
+            // In the game's own form, the count in the bracket where the game puts its chance.
+            Assert.Equal("1–2 (3 of 3)", world.Explorer.StrictAmount(Tally.Fell, "Troll", "TrollHide"));
+            Assert.Equal("10 (1 of 3)", world.Explorer.StrictAmount(Tally.Fell, "Troll", "Coins"));
             Assert.Equal("???", world.Explorer.StrictAmount(Tally.Fell, "Troll", "Wood"));
             Assert.Equal("Drops you saw fall (3 kills)", world.Explorer.StrictTitle(Tally.Fell, "Troll", null));
             Assert.Null(world.Explorer.StrictAmount(Tally.None, "Troll", "TrollHide"));
@@ -295,12 +296,66 @@ namespace Scry.Tests
             world.Rule(CompendiumRule.Strict);
             world.Explorer.Select(world.Beech);
 
-            Assert.Equal("3 to 5, 2 of 2", world.Explorer.StrictAmount(Tally.Gave, "Beech1", "Wood"));
+            Assert.Equal("3–5 (2 of 2)", world.Explorer.StrictAmount(Tally.Gave, "Beech1", "Wood"));
             Assert.Equal("When felled, gave you (2 times)", world.Explorer.StrictTitle(Tally.Gave, "Beech1", "When felled, "));
             Assert.Equal("Each piece gave you (none yet)", world.Explorer.StrictTitle(Tally.Gave, "rock4_copper_frac", "Each piece "));
             Assert.Equal("Drops you saw fall (none yet)", TallyWords.Title(Tally.Fell, null, 0));
             Assert.Equal("How many shows once you have seen it fall", TallyWords.NotYetCounted(Tally.Fell));
             Assert.Equal("How many shows once you have seen it given", TallyWords.NotYetCounted(Tally.Gave));
+        }
+
+        [Fact]
+        public void AnItemsLinesOfWhereItComesFromShowWhatTheCharacterSawInsteadOfTheGamesChances()
+        {
+            var world = new World();
+            // The troll dropped coins more often than its hide: the hide's line counts the hide.
+            world.Book.Dropped("Troll", new[] { ("TrollHide", 2), ("Coins", 20) });
+            world.Book.Dropped("Troll", new[] { ("TrollHide", 3), ("Coins", 10) });
+            world.Book.Dropped("Troll", new[] { ("Coins", 5) });
+            world.Book.Yielded("Beech1", new[] { ("Wood", 3) });
+            world.Rule(CompendiumRule.Strict);
+            var oneRoll = new DropTableInfo();
+            oneRoll.Drops.Add(new DropInfo("Wood", 1, 3, 1f));
+
+            world.Explorer.Select(world.Hide);
+            Assert.Equal("Dropped by Troll, 2–3 (2 of 3 kills)", world.Explorer.StrictSourceLine(SourceFacts.Dropped("Troll", "Troll", 5, 9, false, 1f)));
+            Assert.Equal("Dropped by Greydwarf, ???", world.Explorer.StrictSourceLine(SourceFacts.Dropped("Greydwarf", "Greydwarf", 1, 2, false, 0.25f)));
+            // What a chest holds is never counted: held back all the same.
+            Assert.Equal("Found in Treasure chest, ???", world.Explorer.StrictSourceLine(SourceFacts.FromTable("TreasureChest", "Treasure chest", TableOf.Container, oneRoll, oneRoll.Drops[0])));
+            // A way with no chance in it stays as the game tells it.
+            Assert.Null(world.Explorer.StrictSourceLine(SourceFacts.Of(SourceWay.Picked, "RaspberryBush", "Raspberry bush")));
+
+            world.Explorer.Select(world.Wood);
+            Assert.Equal("Felled from Beech, 3 (1 of 1 time)", world.Explorer.StrictSourceLine(SourceFacts.FromTable("Beech1", "Beech", TableOf.Tree, oneRoll, oneRoll.Drops[0])));
+            Assert.Equal("Chopped from Beech log, ???", world.Explorer.StrictSourceLine(SourceFacts.FromTable("BeechLog", "Beech log", TableOf.Log, oneRoll, oneRoll.Drops[0])));
+
+            world.Rule(CompendiumRule.Loose);
+            Assert.Null(world.Explorer.StrictSourceLine(SourceFacts.Dropped("Troll", "Troll", 5, 9, false, 1f)));
+        }
+
+        [Fact]
+        public void EachWayOfComingByAThingIsCountedOrNot()
+        {
+            Assert.Equal(Tally.Fell, SourceWords.CountedBy(SourceFacts.Dropped("Troll", "Troll", 1, 2, false, 1f)));
+            foreach (var table in new[] { TableOf.Tree, TableOf.Log, TableOf.Rock, TableOf.Broken })
+            {
+                Assert.Equal(Tally.Gave, SourceWords.CountedBy(SourceFacts.FromTable("x", "x", table, new DropTableInfo(), new DropInfo("y", 1, 1, 1f))));
+            }
+            // Counted nowhere: what a chest holds, what a bush gives besides, a mod's own part.
+            foreach (var table in new[] { TableOf.Container, TableOf.Pickable, TableOf.Other })
+            {
+                Assert.Equal(Tally.None, SourceWords.CountedBy(SourceFacts.FromTable("x", "x", table, new DropTableInfo(), new DropInfo("y", 1, 1, 1f))));
+            }
+            // No chance to hold back: as the game tells it.
+            Assert.Null(SourceWords.CountedBy(SourceFacts.Of(SourceWay.Picked, "x", "x")));
+            Assert.Null(SourceWords.CountedBy(SourceFacts.Made("x", "x", 60f, 4, "")));
+            Assert.Null(SourceWords.CountedBy(null));
+            Assert.Equal("Held back: what falls and what breaks are counted, not this", TallyWords.NeverCounted);
+            // What a line held back says on hover: how it comes to show, or that nothing counts it.
+            Assert.Equal(TallyWords.NeverCounted, TallyWords.HeldTip(Tally.None));
+            Assert.Equal("How many shows once you have seen it fall", TallyWords.HeldTip(Tally.Fell));
+            Assert.Equal("How many shows once you have seen it given", TallyWords.HeldTip(Tally.Gave));
+            Assert.Null(TallyWords.HeldTip(null));
         }
 
         [Fact]
