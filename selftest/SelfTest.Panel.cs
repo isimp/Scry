@@ -188,6 +188,8 @@ namespace Scry
                 : "frames were not measured");
             // By part, an outer one with the inner ones in it, to tell which allocates.
             p.Note("by part: " + Timing.BytesByPartTold(8));
+            // A frame above a millisecond while idling is one to account for: every part of it.
+            if (idle != null && idle.Max >= 1.0 && idle.PartsOfSlowest(1)[0] is string slowest) p.Note("its slowest idle frame: " + slowest);
             p.Note("it keeps: " + KeptTold());
             if (idle != null) p.Check(idle.Mean < 0.25, "idling, Scry's own work is a quarter of a millisecond a frame at the most on average", $"{Numbers.Fixed(idle.Mean, 3)} ms");
             p.Check(allocated / count < 1024, "idling, Scry allocates under a kilobyte a frame", $"{Numbers.Count(allocated / count)} bytes");
