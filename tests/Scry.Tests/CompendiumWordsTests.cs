@@ -5,6 +5,15 @@ namespace Scry.Tests
 {
     public class CompendiumWordsTests
     {
+        [Fact]
+        public void ADamageGridKeepingTypesBackSaysFaintlyHowMany()
+        {
+            Assert.Equal("1 more not yet hit with", CompendiumWords.NotYetHitWith(1));
+            Assert.Equal("3 more not yet hit with", CompendiumWords.NotYetHitWith(3));
+            Assert.Null(CompendiumWords.NotYetHitWith(0));
+            Assert.Equal("Fire: how it lands shows once you hit it with fire", CompendiumWords.NotYetHitWithTip("Fire"));
+        }
+
         // A page not yet open names something not met only by its kind, and says how much the
         // character knows and what would open it.
 

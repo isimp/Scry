@@ -150,6 +150,9 @@ namespace Scry
         /// <summary>Whether the character saw two entries go together, either way round (<see cref="CompendiumBook.Witness"/>).</summary>
         public bool Witnessed(Entry a, Entry b) => a != null && b != null && _book != null && _book.Witnessed(a.Key, b.Key);
 
+        /// <summary>Whether the game told the character how a creature takes a damage type, on a hit of it (<see cref="HitTold"/>).</summary>
+        public bool HitWith(Entry creature, string type) => creature != null && _book != null && _book.Witnessed(creature.Key, EntryKeys.Damage(type));
+
         /// <summary>Whether an entry's tier is at or below the floor, so it shows whatever the book holds of it.</summary>
         public bool BelowFloor(Entry entry) => entry != null && _floor > 0 && _tiers != null && _tiers.TryGetValue(entry.Key, out var tier) && tier <= _floor;
 

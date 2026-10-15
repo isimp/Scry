@@ -54,7 +54,7 @@ namespace Scry
                 if (stars.Lines.Count > 0) Rows.Add(stars);
             }
 
-            Part("resistances", () => Rows.Add(new Row { Title = "Damage it takes", Cells = ResistWords.ForCreature(Cells(character.m_damageModifiers)) }));
+            Part("resistances", () => Rows.Add(new Row { Title = "Damage it takes", HitReveals = true, Cells = ResistWords.ForCreature(Cells(character.m_damageModifiers)) }));
             Part("weak spots", () => WeakSpots(character));
             Part("attacks", () => Attacks(prefab));
             Part("what to bring", () => Bring(prefab, character));

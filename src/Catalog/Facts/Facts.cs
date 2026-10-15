@@ -43,6 +43,9 @@ namespace Scry
             /// <summary>A grid in place of chips: every damage type and the share of it taken (<see cref="ResistWords"/>).</summary>
             public List<ResistCell> Cells;
 
+            /// <summary>A creature's grid of how it takes each damage type: under the strict rules each type is kept back until a hit of it told the character (<see cref="HitTold"/>).</summary>
+            public bool HitReveals;
+
             /// <summary>A table in place of chips: its columns' headings, and its lines, each its cells and what its first cell goes to; null for none.</summary>
             public string[] Columns;
             public readonly List<(string[] Cells, string Link)> Lines = new List<(string[], string)>();

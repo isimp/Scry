@@ -627,6 +627,11 @@ namespace Scry
                 p.Check(X.LeavingOut && !X.LeavesOut(drops[0].Key) && X.LeavesOut(drops[1].Key), $"under the strict rules its page keeps {drops[0].Name}, seen fall, and leaves out {drops[1].Name}");
                 p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) > leftLines, "and says faintly at the end of its loot how many more were not yet seen fall");
                 p.Check(Faults.Count == strictFaults, "and draws without fault", Faults.Latest);
+                // How it takes each damage type stays back until a hit told it.
+                p.Check(X.HidesDamage("Fire") && X.HidesDamage("Blunt"), "its damage grid keeps back how it takes each type, never hit with any");
+                p.Check(ScryPanel.Drawn(PanelPart.DamageKeptBack) > 0, "and says faintly under it how many it keeps back");
+                book.Witness(fought.Key, EntryKeys.Damage("Fire"));
+                p.Check(!X.HidesDamage("Fire") && X.HidesDamage("Blunt"), "a hit the game told how fire lands shows fire alone");
                 var drawn = ScryPanel.AsDrawn(X, $"Feared by {unseen.ShownName} alone.");
                 p.Check(drawn.Contains(CompendiumWords.Hidden) && !drawn.Contains(unseen.ShownName), $"its text keeps back the name of {unseen.Name}, never met", drawn);
                 var card = new Tooltips.Shown { Name = fought.ShownName };
@@ -640,6 +645,7 @@ namespace Scry
                 repaints = ScryPanel.Repaints;
                 yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
                 p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) == looseLines, "under the loose rules no section says anything was left out");
+                p.Check(!X.HidesDamage("Blunt"), "nor keeps back how a damage type lands");
             }
 
             // A tree known lists only the tools seen that break it: none here, so its Broken with is left out.

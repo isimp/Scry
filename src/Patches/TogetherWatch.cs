@@ -87,6 +87,34 @@ namespace Scry
             });
         }
 
+        /// <summary>
+        /// The character hit a creature: the damage types the game's popup will tell how it takes
+        /// (<see cref="HitTold"/>), worked out as the game works it out on receiving the hit, by
+        /// its own <c>HitData.ApplyResistance</c> on a copy; paired with the creature. A hit on a
+        /// weak spot is passed over, as it lands by the weak spot's own modifiers.
+        /// </summary>
+        public static void Hit(Character target, HitData hit)
+        {
+            if (target == null || hit == null || target.IsPlayer() || hit.m_weakSpot >= 0 || hit.GetAttacker() != Player.m_localPlayer || Player.m_localPlayer == null) return;
+            Guard.Run(Feature.CompendiumTogether, "noting how a creature took a hit", () =>
+            {
+                var mods = target.GetDamageModifiers();
+                var copy = hit.Clone();
+                copy.ApplyResistance(mods, out var shown);
+                var d = hit.m_damage;
+                var parts = new[]
+                {
+                    (ResistWords.Types[0], d.m_blunt, (Degree)(int)mods.m_blunt), (ResistWords.Types[1], d.m_slash, (Degree)(int)mods.m_slash),
+                    (ResistWords.Types[2], d.m_pierce, (Degree)(int)mods.m_pierce), (ResistWords.Types[3], d.m_chop, (Degree)(int)mods.m_chop),
+                    (ResistWords.Types[4], d.m_pickaxe, (Degree)(int)mods.m_pickaxe), (ResistWords.Types[5], d.m_fire, (Degree)(int)mods.m_fire),
+                    (ResistWords.Types[6], d.m_frost, (Degree)(int)mods.m_frost), (ResistWords.Types[7], d.m_lightning, (Degree)(int)mods.m_lightning),
+                    (ResistWords.Types[8], d.m_poison, (Degree)(int)mods.m_poison), (ResistWords.Types[9], d.m_spirit, (Degree)(int)mods.m_spirit),
+                };
+                var key = Utils.GetPrefabName(target.gameObject);
+                foreach (var type in HitTold.Types(parts, (Degree)(int)shown)) CompendiumKeeper.Saw(key, EntryKeys.Damage(type));
+            });
+        }
+
         /// <summary>The bait on the line a fish is caught with, before the catch takes the float away.</summary>
         public static string Bait(Fish fish) => fish != null ? FishingFloat.FindFloat(fish).OrNull()?.GetBait() : null;
 
@@ -166,6 +194,13 @@ namespace Scry
             __state = fromInventoryGui ? (null, null) : (TogetherWatch.Carried(__instance), __instance.GetHoverObject());
 
         private static void Postfix(Humanoid __instance, (Dictionary<string, int> Before, GameObject Target) __state) => TogetherWatch.UsedWith(__instance, __state.Target, __state.Before);
+    }
+
+    [HarmonyPatch(typeof(Character), nameof(Character.Damage))]
+    internal static class HitToldWatched
+    {
+        // After the game found which weak spot was hit, before the hit is sent on.
+        private static void Postfix(Character __instance, HitData hit) => TogetherWatch.Hit(__instance, hit);
     }
 
     [HarmonyPatch(typeof(OfferingBowl), "InitiateSpawnBoss")]

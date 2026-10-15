@@ -40,6 +40,7 @@ namespace Scry
         FloorMark,
         FloorLine,
         StrictLeftOut,
+        DamageKeptBack,
     }
 
     internal static partial class ScryPanel

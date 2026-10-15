@@ -261,9 +261,11 @@ namespace Scry
         /// <summary>
         /// A grid of every damage type: up to five cells a row, fewer where the side is narrow so
         /// none is cut, each its type over the share taken, coloured by how it lands, with the
-        /// game's word on hover.
+        /// game's word on hover. Under the strict rules a creature's grid keeps back each type the
+        /// game never told the character on a hit, ??? in its cell, and says faintly under it how
+        /// many it keeps back.
         /// </summary>
-        private static float GridRow(Facts.Row row, float width, float y)
+        private static float GridRow(Explorer explorer, Facts.Row row, float width, float y)
         {
             y += U(6f);
             var titleRect = new Rect(0f, y, width, U(20f));
@@ -275,20 +277,30 @@ namespace Scry
             var columns = Mathf.Clamp(Mathf.FloorToInt((width + gap) / (U(62f) + gap)), 2, 5);
             var cellW = (width - gap * (columns - 1)) / columns;
             var cellH = U(38f);
+            var keptBack = 0;
             for (var i = 0; i < row.Cells.Count; i++)
             {
                 var cell = row.Cells[i];
+                // A tool's cell is no secret: tools are for trees and rocks.
+                var hidden = row.HitReveals && cell.Tone != Tone.Quiet && explorer.HidesDamage(cell.Type);
+                if (hidden) keptBack++;
                 var at = new Rect((i % columns) * (cellW + gap), y + (i / columns) * (cellH + gap), cellW, cellH);
                 if (OutOfSight(at)) continue;
                 // A quiet cell (tools' damage a creature takes none of) keeps its place but stands back.
                 Skin.Box(at, cell.Tone == Tone.Quiet ? Skin.Panel : Skin.Raised);
                 GUI.Label(new Rect(at.x + U(2f), at.y + U(3f), at.width - U(4f), U(16f)), cell.Type, Skin.CellType);
-                Skin.LabelIn(new Rect(at.x + U(2f), at.y, at.width - U(4f), at.height - U(4f)), cell.Value, Skin.CellValue, ToneColor(cell.Tone));
-                if (at.Contains(Event.current.mousePosition)) AskTip("cell:" + row.Title + cell.Type, cell.Tip);
+                Skin.LabelIn(new Rect(at.x + U(2f), at.y, at.width - U(4f), at.height - U(4f)), hidden ? CompendiumWords.Hidden : cell.Value, Skin.CellValue, ToneColor(hidden ? Tone.Plain : cell.Tone));
+                if (at.Contains(Event.current.mousePosition)) AskTip("cell:" + row.Title + cell.Type + hidden, hidden ? CompendiumWords.NotYetHitWithTip(cell.Type) : cell.Tip);
             }
             CountDrawn(PanelPart.ResistanceGrid);
             var lines = (row.Cells.Count + columns - 1) / columns;
-            return y + lines * (cellH + gap) + U(4f);
+            y += lines * (cellH + gap) + U(4f);
+            var said = CompendiumWords.NotYetHitWith(keptBack);
+            if (said == null) return y;
+            CountDrawn(PanelPart.DamageKeptBack);
+            var line = new Rect(U(6f), y + U(2f), width - U(6f), U(20f));
+            if (!FitLabel(line, said, Skin.FaintLabel, 10f) && line.Contains(Event.current.mousePosition)) AskTip("damage-kept-back", said);
+            return y + U(24f);
         }
 
         /// <summary>
@@ -297,7 +309,7 @@ namespace Scry
         /// </summary>
         private static float FactRow(Explorer explorer, Facts.Row row, float width, float y)
         {
-            if (row.Cells != null) return GridRow(row, width, y);
+            if (row.Cells != null) return GridRow(explorer, row, width, y);
             if (row.Columns != null) return TableRow(explorer, row, width, y);
             if (row.Chain != null) return ChainRow(explorer, row, width, y);
             // A list of what there is shows only what the character has seen, and nothing where it saw none.

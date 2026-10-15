@@ -249,6 +249,13 @@ namespace Scry
         }
 
         /// <summary>
+        /// Whether a creature's page shown keeps back how it takes a damage type: under the strict
+        /// rules, on a known page above the milestone floor, a type the game never told the
+        /// character on a hit of it (<see cref="HitTold"/>).
+        /// </summary>
+        public bool HidesDamage(string type) => LeavingOut && _selected.Kind == Kind.Creature && !_view.HitWith(_selected, type);
+
+        /// <summary>
         /// Whether the page shown leaves anything out (<see cref="LeavesOut"/>): under the strict
         /// rules, a known page above the milestone floor; never a mod's page, which lists only
         /// what was seen of what it adds.

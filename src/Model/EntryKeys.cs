@@ -16,6 +16,12 @@ namespace Scry
         public const string Mod = "mod:";
         public const string Biome = "biome:";
 
+        /// <summary>A damage type, kept only as what a creature was seen hit with (<see cref="Damage"/>); no entry goes by it.</summary>
+        private const string DamageType = "dmg:";
+
+        /// <summary>The key a damage type is paired under with a creature the game told how it takes it (<see cref="HitTold"/>).</summary>
+        public static string Damage(string type) => DamageType + type;
+
         /// <summary>A value's link that plays the entry's own music rather than going to an entry.</summary>
         public const string PlayMusic = "play:music";
 

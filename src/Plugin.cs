@@ -88,6 +88,7 @@ namespace Scry
             { typeof(InteractingWatched), Feature.CompendiumTogether },
             { typeof(UsingItemWatched), Feature.CompendiumTogether },
             { typeof(BossCalled), Feature.CompendiumTogether },
+            { typeof(HitToldWatched), Feature.CompendiumTogether },
             { typeof(FishCaught), Feature.CompendiumTogether },
             { typeof(UsingWatched), Feature.CompendiumUse },
             { typeof(PickableWoke), Feature.CompendiumSeen },

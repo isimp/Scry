@@ -140,6 +140,12 @@ namespace Scry
         /// <summary>The floor's tip while the next boss has not fallen.</summary>
         public static string FloorWaits(string boss) => $"The next tier opens once {boss} falls for this character";
 
+        /// <summary>How many damage types a creature's grid keeps back under the strict rules, told faintly under it; none where it keeps none back.</summary>
+        public static string NotYetHitWith(int count) => count > 0 ? $"{Numbers.Count(count)} more not yet hit with" : null;
+
+        /// <summary>The tip of a damage type a creature's grid keeps back.</summary>
+        public static string NotYetHitWithTip(string type) => $"{type}: how it lands shows once you hit it with {type.ToLowerInvariant()}";
+
         /// <summary>
         /// What the strict rules left out of a section of a known page, told in a faint line at
         /// its end by what the section is about (its topic in the page's plan): drops not seen
