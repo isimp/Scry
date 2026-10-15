@@ -465,6 +465,29 @@ namespace Scry
             var failed = Steps.Run(() => CompendiumSight.Look(player, new CompendiumCatchUp(X.Entries), sightings), null);
             p.Check(failed == null, "looking around the character finds no fault", failed?.Message);
 
+            // What seeing pickables and nests in view would cost, as creatures are seen: how many
+            // are loaded, and how long one look at them all takes, a distance each and a line of
+            // sight for those near and in view (not built; measured for the decision).
+            var pickables = UnityEngine.Object.FindObjectsByType<Pickable>(FindObjectsSortMode.None);
+            var nests = UnityEngine.Object.FindObjectsByType<SpawnArea>(FindObjectsSortMode.None);
+            var eye = GameCamera.instance != null ? GameCamera.instance.transform : player.transform;
+            var solid = LayerMask.GetMask("Default", "static_solid", "Default_small", "piece", "terrain");
+            var lines = 0;
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            for (var round = 0; round < 10; round++)
+            {
+                foreach (var thing in pickables.Cast<Component>().Concat(nests))
+                {
+                    if (thing == null) continue;
+                    var at = thing.transform.position;
+                    if (Vector3.Distance(player.transform.position, at) > Sighting.PersonReach || Vector3.Angle(eye.forward, at - eye.position) > 50f) continue;
+                    lines++;
+                    Physics.Linecast(eye.position, at + Vector3.up * 0.5f, solid);
+                }
+            }
+            clock.Stop();
+            p.Note($"seeing pickables and nests: {Numbers.Count(pickables.Length)} pickables and {Numbers.Count(nests.Length)} nests loaded of {Numbers.Count(ZNetScene.instance != null ? ZNetScene.instance.NrOfInstances() : 0)} networked things; one look at them all takes {Numbers.Amount(clock.Elapsed.TotalMilliseconds / 10, 3)} ms, {Numbers.Count(lines / 10)} lines of sight");
+
             // What is met is paired with the biome and place it stands in, under keys that name entries.
             var biome = Heightmap.FindBiome(player.transform.position);
             p.Check(biome == Heightmap.Biome.None || X.Find(EntryKeys.For(Kind.Biome, biome.ToString())) != null, $"the biome stood in ({biome}) has an entry for what is met in it to pair with");
