@@ -25,7 +25,7 @@ namespace Scry
     /// <summary>
     /// What each entry shows as, from what the character knows (<see cref="CompendiumBook"/>) and
     /// the ruleset. Off, everything is known. Under <see cref="CompendiumRule.Loose"/> an entry is
-    /// what the book holds of it, mods are always known, and what an entry seen or known owns is
+    /// what the book holds of it, mods are always known, and what a known entry owns is
     /// known with it: the effects and sounds it plays (<see cref="Entry.UsedBy"/>), what it leaves
     /// behind, and the status effects, effects, sounds and projectiles it links to, never what
     /// links to it (<see cref="Link.Back"/>: knowing Poison does not make known all that gives
@@ -190,8 +190,8 @@ namespace Scry
                 if (level < KnownLevel.Known && BelowFloor(entry)) floored.Add(entry);
                 if (level == KnownLevel.Unknown) continue;
                 _levels[entry] = level;
-                // Strict: only what is known brings its parts along, not what was only seen.
-                if (level >= (rule == CompendiumRule.Strict ? KnownLevel.Known : KnownLevel.Seen)) met.Enqueue(entry);
+                // Only what is known brings its parts along, not what was only seen, as a creature seen from afar.
+                if (level >= KnownLevel.Known) met.Enqueue(entry);
             }
             Spread(met, false);
             foreach (var entry in floored)
@@ -217,7 +217,7 @@ namespace Scry
         }
 
         /// <summary>
-        /// What a seen or known entry owns is known, and owns in turn (an effect's own sounds):
+        /// What a known entry owns is known, and owns in turn (an effect's own sounds):
         /// each owner waiting in the queue, and what it brings along; by the floor, told so.
         /// </summary>
         private void Spread(Queue<Entry> met, bool byFloor)

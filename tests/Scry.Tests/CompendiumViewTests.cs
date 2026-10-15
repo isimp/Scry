@@ -106,7 +106,7 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void WhatAKnownOrSeenEntryPlaysOrLeavesBehindIsKnownWithIt()
+        public void WhatAKnownEntryPlaysOrLeavesBehindIsKnownWithIt()
         {
             var troll = E(Kind.Creature, "Troll");
             var greydwarf = E(Kind.Creature, "Greydwarf");
@@ -120,7 +120,7 @@ namespace Scry.Tests
             dwarfSound.UsedBy.Add("Greydwarf");
             var view = View(troll, greydwarf, hit, hitSound, ragdoll, dwarfSound);
             var book = new CompendiumBook();
-            book.Raise(troll.Key, KnownLevel.Seen);
+            book.Raise(troll.Key, KnownLevel.Known);
 
             view.Tell(book, CompendiumRule.Loose);
 
@@ -128,6 +128,29 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.Known, view.Of(hitSound));
             Assert.Equal(KnownLevel.Known, view.Of(ragdoll));
             Assert.Equal(KnownLevel.Unknown, view.Of(dwarfSound));
+        }
+
+        [Fact]
+        public void WhatASeenEntryPlaysOrLeavesBehindStaysUnknownUnderEitherRules()
+        {
+            // A creature only seen from afar does not open its attacks, effects and sounds: only
+            // one the character came to know brings its parts along, as under the strict rules.
+            var fader = E(Kind.Creature, "Fader");
+            var flames = E(Kind.Effect, "fx_fader_flames");
+            var ragdoll = E(Kind.Other, "Fader_ragdoll");
+            flames.UsedBy.Add("Fader");
+            ragdoll.LeftBy.Add("Fader");
+            var view = View(fader, flames, ragdoll);
+            var book = new CompendiumBook();
+            book.Raise(fader.Key, KnownLevel.Seen);
+
+            foreach (var rule in new[] { CompendiumRule.Loose, CompendiumRule.Strict })
+            {
+                view.Tell(book, rule);
+                Assert.Equal(KnownLevel.Seen, view.Of(fader));
+                Assert.Equal(KnownLevel.Unknown, view.Of(flames));
+                Assert.Equal(KnownLevel.Unknown, view.Of(ragdoll));
+            }
         }
 
         [Fact]

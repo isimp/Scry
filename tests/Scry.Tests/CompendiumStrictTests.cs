@@ -213,10 +213,10 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void UnderStrictOnlyAKnownOwnerBringsItsPartsAlong()
+        public void OnlyAKnownOwnerBringsItsPartsAlongUnderEitherRules()
         {
             var world = new World().Rule(CompendiumRule.Loose);
-            Assert.Equal(KnownLevel.Known, world.View.Of(world.Squeal));
+            Assert.Equal(KnownLevel.Unknown, world.View.Of(world.Squeal));
 
             world.Rule(CompendiumRule.Strict);
             Assert.Equal(KnownLevel.Unknown, world.View.Of(world.Squeal));
