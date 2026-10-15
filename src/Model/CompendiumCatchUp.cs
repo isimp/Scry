@@ -26,16 +26,20 @@ namespace Scry
         private readonly EntryCatalog _catalog;
         private readonly Func<string, IReadOnlyList<string>> _toolsOf;
         private readonly Func<string, bool> _soldByTrader;
+        private readonly IReadOnlyDictionary<string, string> _biomesShown;
         private readonly Dictionary<string, List<Entry>> _byToken = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
 
         /// <param name="catalog">The entries the records are told in.</param>
         /// <param name="toolsOf">The tools that build a piece, by its prefab; none where not told.</param>
         /// <param name="soldByTrader">Whether a trader sells an item, by its prefab; where not told, any might be.</param>
-        public CompendiumCatchUp(EntryCatalog catalog, Func<string, IReadOnlyList<string>> toolsOf = null, Func<string, bool> soldByTrader = null)
+        /// <param name="biomesShown">Each biome's name as the game shows it in the player's language, by the biome's entry name.</param>
+        public CompendiumCatchUp(EntryCatalog catalog, Func<string, IReadOnlyList<string>> toolsOf = null, Func<string, bool> soldByTrader = null,
+            IReadOnlyDictionary<string, string> biomesShown = null)
         {
             _catalog = catalog;
             _toolsOf = toolsOf;
             _soldByTrader = soldByTrader;
+            _biomesShown = biomesShown;
             foreach (var entry in catalog.All)
             {
                 foreach (var token in entry.Tokens)
@@ -76,7 +80,7 @@ namespace Scry
             Add(Named(records.Placed, Kind.Piece), CameBy.Built);
             Add(Named(records.Stations, Kind.Piece), CameBy.Used);
             Add(Named(records.Recipes, Kind.Piece), CameBy.Recipe);
-            Add(Named(records.Biomes.SelectMany(area => area.Split(' ')), Kind.Biome), CameBy.StoodIn);
+            Add(BiomesEntered(records), CameBy.StoodIn);
             var givers = Givers(known.Select(k => k.Entry));
             Add(givers.Keys, CameBy.Given);
             // The guardian power chosen: its stone told of it, and the character carries it.
@@ -237,7 +241,25 @@ namespace Scry
 
         /// <summary>The biomes the character entered, as the game names them (<see cref="Entry.Biomes"/>).</summary>
         private HashSet<string> Entered(CompendiumRecords records) =>
-            new HashSet<string>(Named(records.Biomes.SelectMany(area => area.Split(' ')), Kind.Biome).SelectMany(b => b.Biomes), StringComparer.Ordinal);
+            new HashSet<string>(BiomesEntered(records).SelectMany(b => b.Biomes), StringComparer.Ordinal);
+
+        /// <summary>
+        /// The biomes the character entered, from the areas the game keeps (<c>Player.m_knownBiome</c>):
+        /// each is the biome's name as the game shows it in the player's language, an area's prefix
+        /// before it where there is one ("Dunkler Sumpf"), so a biome counts where its shown name
+        /// stands in an area as whole words; an area kept by its name token counts too.
+        /// </summary>
+        private List<Entry> BiomesEntered(CompendiumRecords records)
+        {
+            var entered = Named(records.Biomes.SelectMany(area => area.Split(' ')), Kind.Biome).ToList();
+            if (_biomesShown == null) return entered;
+            foreach (var biome in _catalog.All)
+            {
+                if (biome.Kind != Kind.Biome || entered.Contains(biome) || !_biomesShown.TryGetValue(biome.Name, out var shown) || string.IsNullOrEmpty(shown)) continue;
+                if (records.Biomes.Any(area => (" " + area + " ").IndexOf(" " + shown + " ", StringComparison.OrdinalIgnoreCase) >= 0)) entered.Add(biome);
+            }
+            return entered;
+        }
 
         /// <summary>The resources giving an item that grow in a biome the character entered; one growing nowhere the world places it is left to be met.</summary>
         private static IEnumerable<Entry> ResourcesGiving(Entry item, HashSet<string> entered) =>

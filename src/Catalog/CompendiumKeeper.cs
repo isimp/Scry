@@ -69,8 +69,7 @@ namespace Scry
             if (catalog == null) return;
             if (!ReferenceEquals(catalog, _catchUpOf))
             {
-                _catchUp = new CompendiumCatchUp(catalog, piece => Knowledge.Tools.ToolsOf(piece).Select(u => u.Tool).Distinct().ToList(),
-                    item => Knowledge.SourceLines(item).Any(line => line.Record?.Way == SourceWay.Sold));
+                _catchUp = CatchUpFor(catalog);
                 _catchUpOf = catalog;
                 _recordsSize = -1;
             }
@@ -97,6 +96,22 @@ namespace Scry
                 Guard.Run(Feature.CompendiumMap, "catching up from the explored map", () => CompendiumMap.Update(_book));
             }
             Save();
+        }
+
+        /// <summary>
+        /// What catches a character up in a catalog, told what the game knows besides: the tools
+        /// that build a piece, whether a trader sells an item, and each biome's name as the game
+        /// shows it in the player's language (<c>BiomeSector.GetName</c>), as the entered biomes are kept.
+        /// </summary>
+        internal static CompendiumCatchUp CatchUpFor(EntryCatalog catalog)
+        {
+            var shown = new Dictionary<string, string>(System.StringComparer.Ordinal);
+            if (Localization.instance != null)
+            {
+                foreach (var biome in catalog.All) if (biome.Kind == Kind.Biome) shown[biome.Name] = Localization.instance.Localize(BiomeWords.Token(biome.Name));
+            }
+            return new CompendiumCatchUp(catalog, piece => Knowledge.Tools.ToolsOf(piece).Select(u => u.Tool).Distinct().ToList(),
+                item => Knowledge.SourceLines(item).Any(line => line.Record?.Way == SourceWay.Sold), shown);
         }
 
         /// <summary>The trader whose store is open.</summary>
@@ -233,8 +248,15 @@ namespace Scry
             foreach (var item in items) _book.Witness(thing, item);
         }
 
-        /// <summary>Whether a thing gives an item, as the catalog tells it: drops it, makes it over time, or turns something into it.</summary>
-        internal static bool Gives(string thing, string item)
+        /// <summary>
+        /// Whether a thing gives an item, as the catalog tells it: drops it, makes it over time, or
+        /// turns something into it, itself or through what it leaves behind (<see cref="ActedOn.GivesThrough"/>).
+        /// </summary>
+        internal static bool Gives(string thing, string item) =>
+            ActedOn.GivesThrough(thing, item, at => WorldCatalog.Current?.Find(at)?.LeavesBehind ?? (IEnumerable<string>)System.Array.Empty<string>(), GivesItself);
+
+        /// <summary>Whether a thing itself gives an item, as the catalog tells it.</summary>
+        private static bool GivesItself(string thing, string item)
         {
             var entry = WorldCatalog.Current?.Find(thing);
             if (entry != null && entry.TermLinks("drops").Any(e => e.Name == item)) return true;

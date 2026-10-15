@@ -54,7 +54,7 @@ namespace Scry
 
             // Everything they tell is in the book: the catch-up ran on this catalog.
             var told = new CompendiumBook();
-            new CompendiumCatchUp(X.Entries).Fill(records, told, quietly: true);
+            CompendiumKeeper.CatchUpFor(X.Entries).Fill(records, told, quietly: true);
             yield return Until(() => Short(told, CompendiumKeeper.Book).Count == 0, 5);
             var shortOf = Short(told, CompendiumKeeper.Book);
             p.Check(shortOf.Count == 0, $"everything its records tell is in its book ({Numbers.Count(told.Count(KnownLevel.HeardOf))} entries)", string.Join(", ", shortOf.Take(10)));
@@ -71,6 +71,12 @@ namespace Scry
             var sold = held.Where(e => Knowledge.SourceLines(e.Name).Any(line => line.Record?.Way == SourceWay.Sold)).ToList();
             var notKnown = held.Except(sold).Where(e => CompendiumKeeper.Book.Level(e.Key) != KnownLevel.Known).Select(e => e.Name).ToList();
             p.Check(notKnown.Count == 0, $"the {Numbers.Count(held.Count - sold.Count)} kinds of thing it ever held are known, {Numbers.Count(sold.Count)} a trader sells left to its offer", string.Join(", ", notKnown.Take(10)));
+            // The game keeps each biome entered by its name in the player's language (BiomeSector.GetName):
+            // every one names a biome its records make known.
+            var biomesKnown = X.Catalog.Where(e => e.Kind == Kind.Biome && told.Level(e.Key) == KnownLevel.Known)
+                .Select(e => Localization.instance.Localize(BiomeWords.Token(e.Name))).ToList();
+            var unmatched = records.Biomes.Where(area => !biomesKnown.Any(shown => (" " + area + " ").IndexOf(" " + shown + " ", StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
+            p.Check(unmatched.Count == 0, $"each of the {Numbers.Count(records.Biomes.Count)} biomes it entered is known by the name the game keeps it under", string.Join(", ", unmatched.Take(5)));
             var wood = X.Find("Wood");
             if (wood != null)
             {
@@ -448,15 +454,19 @@ namespace Scry
             p.Check(CompendiumKeeper.TurnedInto("smelter", "Copper").Contains("CopperOre"), "the smelter turns copper ore into copper", string.Join(", ", CompendiumKeeper.TurnedInto("smelter", "Copper")));
             p.Check(!CompendiumKeeper.Gives("smelter", "Wood"), "and gives no wood");
 
-            // An item's card is topped by its name token, which names its entry; a Vegvisir marks
-            // places the catalog has.
+            // An item's card is topped by its name token, which names its entry (one without a
+            // name, as a creature's own attack, never shows a card); a Vegvisir marks places the
+            // catalog has.
             var cardless = X.Catalog.Where(e => e.Kind == Kind.Item && e.Source is GameObject go && go.GetComponent<ItemDrop>() != null
+                && !string.IsNullOrEmpty(((GameObject)e.Source).GetComponent<ItemDrop>().m_itemData.m_shared.m_name)
                 && Array.IndexOf(e.Tokens, ((GameObject)e.Source).GetComponent<ItemDrop>().m_itemData.m_shared.m_name) < 0).Select(e => e.Name).ToList();
             p.Check(cardless.Count == 0, "every item goes by the name its tooltip card is topped with", string.Join(", ", cardless.Take(5)));
-            var marks = X.Catalog.Where(e => e.Source is GameObject go && go.GetComponent<Vegvisir>() != null)
-                .SelectMany(e => ((GameObject)e.Source).GetComponent<Vegvisir>().m_locations.Select(l => l.m_locationName)).Distinct().ToList();
+            // Vegvisirs are parts of the places that hold them, there only while those are loaded.
+            var marks = UnityEngine.Object.FindObjectsByType<Vegvisir>(FindObjectsSortMode.None)
+                .SelectMany(v => v.m_locations.Select(l => l.m_locationName)).Where(n => !string.IsNullOrEmpty(n)).Distinct().ToList();
             var unmarked = marks.Where(name => X.Find(EntryKeys.For(Kind.Location, name)) == null).ToList();
-            p.Check(marks.Count > 0 && unmarked.Count == 0, $"the {Numbers.Count(marks.Count)} places Vegvisirs mark are all in the catalog", string.Join(", ", unmarked.Take(5)));
+            if (marks.Count == 0) p.Note("no Vegvisir is loaded near the character, to check the places it marks");
+            else p.Check(unmarked.Count == 0, $"the {Numbers.Count(marks.Count)} places the Vegvisirs near mark are all in the catalog", string.Join(", ", unmarked.Take(5)));
             var player = Player.m_localPlayer;
             if (!p.Check(player != null, "a character is played")) yield break;
             // A creature is seen as far as its size makes it out: how far some of the game's are.
@@ -466,7 +476,7 @@ namespace Scry
             p.Check(reaches.Count > 0, "creatures are seen as far as their size makes them out", string.Join(", ", reaches));
             var faults = Faults.Count;
             var sightings = new CompendiumBook();
-            var failed = Steps.Run(() => CompendiumSight.Look(player, new CompendiumCatchUp(X.Entries), sightings), null);
+            var failed = Steps.Run(() => CompendiumSight.Look(player, CompendiumKeeper.CatchUpFor(X.Entries), sightings, letGo: false), null);
             p.Check(failed == null, "looking around the character finds no fault", failed?.Message);
 
             // Pickables and nests in view are seen, as creatures are: how many are kept to look at
@@ -474,11 +484,12 @@ namespace Scry
             var pickables = UnityEngine.Object.FindObjectsByType<Pickable>(FindObjectsSortMode.None);
             var nests = UnityEngine.Object.FindObjectsByType<SpawnArea>(FindObjectsSortMode.None);
             yield return null;
-            p.Check(CompendiumSight.LookoutCount >= pickables.Length + nests.Length, $"the {Numbers.Count(pickables.Length)} pickables and {Numbers.Count(nests.Length)} nests loaded are all kept to look at", $"{Numbers.Count(CompendiumSight.LookoutCount)} kept");
+            p.Check(CompendiumSight.LookoutCount + CompendiumSight.LookoutsSeen >= pickables.Length + nests.Length, $"the {Numbers.Count(pickables.Length)} pickables and {Numbers.Count(nests.Length)} nests loaded are all kept to look at or were seen",
+                $"{Numbers.Count(CompendiumSight.LookoutCount)} kept, {Numbers.Count(CompendiumSight.LookoutsSeen)} seen and let go");
             var scratch = new CompendiumBook();
-            var lookUp = new CompendiumCatchUp(X.Entries);
+            var lookUp = CompendiumKeeper.CatchUpFor(X.Entries);
             var clock = System.Diagnostics.Stopwatch.StartNew();
-            for (var round = 0; round < 10; round++) CompendiumSight.Look(player, lookUp, scratch);
+            for (var round = 0; round < 10; round++) CompendiumSight.Look(player, lookUp, scratch, letGo: false);
             clock.Stop();
             p.Note($"one look around, once a second, takes {Numbers.Amount(clock.Elapsed.TotalMilliseconds / 10, 3)} ms among {Numbers.Count(ZNetScene.instance != null ? ZNetScene.instance.NrOfInstances() : 0)} networked things; it saw {Numbers.Count(scratch.Count(KnownLevel.Seen))} things");
 

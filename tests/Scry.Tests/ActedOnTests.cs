@@ -82,5 +82,28 @@ namespace Scry.Tests
 
             Assert.Equal(new[] { "CopperOre" }, from);
         }
+
+        [Fact]
+        public void AThingGivesWhatWhatItLeavesBehindGives()
+        {
+            // A copper deposit breaks into its fractured copy, which drops the ore; a tree falls
+            // into a log, which gives the wood.
+            var behind = new System.Collections.Generic.Dictionary<string, string[]>
+            {
+                ["rock4_copper"] = new[] { "rock4_copper_frac" },
+                ["Beech1"] = new[] { "Beech_log" },
+                ["Beech_log"] = new[] { "beech_log_half" },
+                ["loop_a"] = new[] { "loop_b" },
+                ["loop_b"] = new[] { "loop_a" },
+            };
+            bool Direct(string thing, string item) => (thing == "rock4_copper_frac" && item == "CopperOre") || (thing == "beech_log_half" && item == "Wood");
+            System.Collections.Generic.IEnumerable<string> Behind(string thing) => behind.TryGetValue(thing, out var left) ? left : new string[0];
+
+            Assert.True(ActedOn.GivesThrough("rock4_copper", "CopperOre", Behind, Direct));
+            Assert.True(ActedOn.GivesThrough("rock4_copper_frac", "CopperOre", Behind, Direct));
+            Assert.True(ActedOn.GivesThrough("Beech1", "Wood", Behind, Direct));
+            Assert.False(ActedOn.GivesThrough("rock4_copper", "Wood", Behind, Direct));
+            Assert.False(ActedOn.GivesThrough("loop_a", "Wood", Behind, Direct));
+        }
     }
 }

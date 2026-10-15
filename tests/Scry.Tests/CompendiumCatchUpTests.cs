@@ -225,6 +225,39 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ABiomeEnteredIsKnownByTheNameTheGameShowsInThePlayersLanguage()
+        {
+            // Player.AddKnownBiome keeps BiomeSector.GetName(), which is translated, an area's
+            // prefix before the biome's own name: "Schwarzwald", "Dunkler Sumpf". What grows
+            // there then counts as in a biome entered.
+            var meadows = E(Kind.Biome, "Meadows", "$biome_meadows");
+            var forest = E(Kind.Biome, "BlackForest", "$biome_blackforest");
+            var swamp = E(Kind.Biome, "Swamp", "$biome_swamp");
+            var plains = E(Kind.Biome, "Plains", "$biome_plains");
+            foreach (var biome in new[] { meadows, forest, swamp, plains }) biome.Biomes = new[] { biome.Name };
+            var wood = E(Kind.Item, "Wood", "$item_wood");
+            var beech = E(Kind.Resource, "Beech1", "$prop_beech");
+            beech.Biomes = new[] { "BlackForest" };
+            wood.AddTermLink("from", beech);
+            var shown = new Dictionary<string, string> { ["Meadows"] = "Wiesen", ["BlackForest"] = "Schwarzwald", ["Swamp"] = "Sumpf", ["Plains"] = "Ebenen" };
+            var catchUp = new CompendiumCatchUp(new EntryCatalog(new[] { meadows, forest, swamp, plains, wood, beech }), biomesShown: shown);
+            var book = new CompendiumBook();
+            var records = new CompendiumRecords();
+            records.Biomes.Add("Wiesen");
+            records.Biomes.Add("Schwarzwald");
+            records.Biomes.Add("Dunkler Sumpf");
+            records.PickedUp.Add("$item_wood");
+
+            catchUp.Fill(records, book, quietly: false);
+
+            Assert.Equal(KnownLevel.Known, book.Level(meadows.Key));
+            Assert.Equal(KnownLevel.Known, book.Level(forest.Key));
+            Assert.Equal(KnownLevel.Known, book.Level(swamp.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(plains.Key));
+            Assert.Equal(KnownLevel.Known, book.Level(beech.Key));
+        }
+
+        [Fact]
         public void ABiomeEnteredIsKnownUnderTheNameItsAreaWasGiven()
         {
             // The game records an area by its biome's name, a prefix or a name of its own put

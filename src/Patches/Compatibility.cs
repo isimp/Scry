@@ -165,6 +165,8 @@ namespace Scry
             ("Windmill", "CheckCover", 0, 0x18BCDE3E, Feature.WindmillWind),
             ("Windmill", "Update", 0, 0x5B823CE2, Feature.WindmillWind),
             ("Smelter", "UpdateSmelter", 0, 0xFCD2B82E, Feature.WindmillWind),
+            ("Player", "AddKnownBiome", 1, 0xF483E90C, Feature.CompendiumCatchUp),
+            ("BiomeSector", "GetName", 1, 0x2BE3144A, Feature.CompendiumCatchUp),
             ("CharacterDrop", "OnDeath", 0, 0x15143844, Feature.DropsSeenInPlay),
             ("Ragdoll", "Setup", 7, 0x7D29C725, Feature.DropsSeenInPlay),
             ("Ragdoll", "SpawnLoot", 1, 0x515425F4, Feature.DropsSeenInPlay),

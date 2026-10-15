@@ -229,7 +229,8 @@ namespace Scry
             p.Check(Previews.SoundPosition(out var time, out _) && Mathf.Abs(time - 1f) < 0.2f, "it seeks", $"{Numbers.Fixed(time, 2)} s");
             p.Note("plays through " + Previews.SoundSourceTold());
             Previews.PauseSound(false);
-            yield return new Wait(0.3);
+            // A streamed clip may take a moment to start again under load: given two seconds to move on.
+            yield return Until(() => Previews.SoundPosition(out var moved, out _) && moved > time + 0.1f, 2);
             p.Check(Previews.SoundPosition(out var later, out _) && later > time, "and goes on from there", $"{Numbers.Fixed(later, 2)} s");
             yield return new Wait(1.0);
             Previews.SoundPosition(out var after, out _);

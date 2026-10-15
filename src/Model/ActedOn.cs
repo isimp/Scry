@@ -39,6 +39,26 @@ namespace Scry
         public List<string> Givers(string item, float x, float z, float at, Func<string, string, bool> gives) =>
             _things.Where(t => at >= t.At && at - t.At <= Lately && Distance(t, x, z) <= Near && gives(t.Key, item)).Select(t => t.Key).Distinct().ToList();
 
+        /// <summary>
+        /// Whether a thing gives an item itself (<paramref name="gives"/>), or through what it leaves
+        /// behind, and that in turn (<paramref name="leavesBehind"/>): a copper deposit breaks into
+        /// its fractured copy, which drops the ore; a tree falls into a log, which gives the wood.
+        /// </summary>
+        public static bool GivesThrough(string thing, string item, Func<string, IEnumerable<string>> leavesBehind, Func<string, string, bool> gives)
+        {
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var next = new Queue<string>();
+            next.Enqueue(thing);
+            while (next.Count > 0)
+            {
+                var at = next.Dequeue();
+                if (string.IsNullOrEmpty(at) || !seen.Add(at)) continue;
+                if (gives(at, item)) return true;
+                foreach (var left in leavesBehind(at)) next.Enqueue(left);
+            }
+            return false;
+        }
+
         /// <summary>Forgets everything acted on, as on leaving a world.</summary>
         public void Clear() => _things.Clear();
 

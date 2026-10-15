@@ -16,7 +16,11 @@ namespace Scry
     /// </summary>
     internal static class CompendiumSight
     {
-        static CompendiumSight() => WorldCaches.Register(nameof(CompendiumSight), () => Lookouts.Clear());
+        static CompendiumSight() => WorldCaches.Register(nameof(CompendiumSight), () =>
+        {
+            Lookouts.Clear();
+            LookoutsSeen = 0;
+        });
 
         /// <summary>How far beyond its own reach a place in view is seen, as far as a creature of a person's size.</summary>
         private const float CreatureReach = Sighting.PersonReach;
@@ -35,14 +39,17 @@ namespace Scry
         /// <summary>How many pickables and nests are kept to look at now.</summary>
         public static int LookoutCount => Lookouts.Count;
 
+        /// <summary>How many pickables and nests were seen and let go, in this world.</summary>
+        public static int LookoutsSeen { get; private set; }
+
         /// <summary>A pickable or nest woke: kept to be looked at.</summary>
         public static void Woke(Component thing)
         {
             if (thing != null) Lookouts.Add(thing);
         }
 
-        /// <summary>Looks around the character, learning what it sees.</summary>
-        public static void Look(Player player, CompendiumCatchUp catchUp, CompendiumBook book)
+        /// <summary>Looks around the character, learning what it sees; letting go of the pickables and nests seen, unless asked only to look, as by the self-test.</summary>
+        public static void Look(Player player, CompendiumCatchUp catchUp, CompendiumBook book, bool letGo = true)
         {
             Bind();
             var view = GameCamera.instance != null ? GameCamera.instance.transform : player.transform;
@@ -79,6 +86,11 @@ namespace Scry
                 var key = Utils.GetPrefabName(thing.gameObject);
                 catchUp.Met(key, KnownLevel.Seen, book);
                 CompendiumKeeper.MetIn(key, at);
+                // It stays where it is: seen and paired once, it is let go, so a farm of crops in
+                // view costs nothing the next second.
+                if (!letGo) continue;
+                Lookouts.RemoveAt(i);
+                LookoutsSeen++;
             }
             foreach (var item in _items())
             {
