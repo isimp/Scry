@@ -53,6 +53,8 @@ namespace Scry
             yield return S("the compendium's rules are chosen in the panel, for the character played", CompendiumChosen, 10, () => { PutRuleBack(); AllKnown(); });
             yield return S("what the character learns waits for the panel to open before it is told again", CompendiumWaitsForPanel, 10, AllKnown);
             yield return S("the compendium watches fights, hits and sight without fault", CompendiumWatched, 10);
+            yield return S("made-up events through the real hooks are recorded, the world and the character's book left alone", CompendiumHooksFed, 10, () => CompendiumKeeper.RecordInto(null));
+            yield return S("a made-up character's pages read under the strict rules as a player sees them", CompendiumStrictRead, 30, () => { AllKnown(); ResetList(); });
             yield return S("with the compendium on, a made-up character sees only what it met", CompendiumShown, 60, () => { AllKnown(); ResetList(); });
             yield return S("the explored map tells which kinds of place were seen", CompendiumMapRead, 30);
             yield return S("each boss's fall opens its tier, worked out from how things are come by", CompendiumTierRead, 30, () => { AllKnown(); ResetList(); });

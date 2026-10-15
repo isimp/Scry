@@ -44,6 +44,27 @@ namespace Scry
         /// <summary>What the character being played knows; none before its file is read.</summary>
         public static CompendiumBook Book => _book;
 
+        /// <summary>
+        /// The book what the hooks see in play is recorded into: the self-test's own while it feeds
+        /// made-up events through them (<see cref="RecordInto"/>), else the character's. The
+        /// keeper's own looking, catching up and saving keep to the character's.
+        /// </summary>
+        private static CompendiumBook Into => _into ?? _book;
+
+        private static CompendiumBook _into;
+
+        /// <summary>Records what the hooks see into a book of the self-test's own until given none again; the character's book and the play counts are left alone meanwhile.</summary>
+        public static void RecordInto(CompendiumBook book) => _into = book;
+
+        /// <summary>How often each hook fired this session (<see cref="PlayCounts"/>), what the self-test feeds them left out.</summary>
+        public static PlayCounts Play { get; } = new PlayCounts();
+
+        /// <summary>Counts a hook firing in play, unless the self-test is feeding it (<see cref="RecordInto"/>).</summary>
+        public static void Noted(PlayEvent what)
+        {
+            if (_into == null) Play.Note(what);
+        }
+
         /// <summary>How far the character's milestone floor may be raised: the tiers whose bosses fell for it, in a row (<see cref="Milestones"/>).</summary>
         public static int Ceiling { get; private set; }
 
@@ -159,104 +180,118 @@ namespace Scry
         /// <summary>Learns of a creature the character fought, hitting it or hit by it, as news, and that it met it where it stands.</summary>
         public static void Fought(Character creature)
         {
-            if (_book == null || _catchUp == null || creature == null || creature == Player.m_localPlayer) return;
+            if (Into == null || _catchUp == null || creature == null || creature == Player.m_localPlayer) return;
             var key = Utils.GetPrefabName(creature.gameObject);
-            _catchUp.Met(key, KnownLevel.Known, _book, CameBy.Fought);
+            _catchUp.Met(key, KnownLevel.Known, Into, CameBy.Fought);
             MetIn(key, creature.transform.position);
         }
 
         /// <summary>A creature's attack hit the character: the two seen together, for the strict rules' attack table.</summary>
         public static void HitBy(Character creature)
         {
-            if (_book == null || creature == null || creature == Player.m_localPlayer) return;
+            if (Into == null || creature == null || creature == Player.m_localPlayer) return;
             var weapon = (creature as Humanoid).OrNull()?.GetCurrentWeapon()?.m_dropPrefab.OrNull();
-            if (weapon != null) _book.FoundOut(Utils.GetPrefabName(creature.gameObject), weapon.name);
+            if (weapon == null) return;
+            Into.FoundOut(Utils.GetPrefabName(creature.gameObject), weapon.name);
+            Noted(PlayEvent.HitTaken);
         }
 
         /// <summary>Learns of a resource the character hit, as news, what it hit it with and where it stands.</summary>
         public static void Hit(Component resource)
         {
-            if (_book == null || _catchUp == null || resource == null) return;
+            if (Into == null || _catchUp == null || resource == null) return;
             var key = Utils.GetPrefabName(resource.gameObject);
-            _catchUp.Met(key, KnownLevel.Known, _book, CameBy.Hit);
+            _catchUp.Met(key, KnownLevel.Known, Into, CameBy.Hit);
             ActedOnThing(key, resource.transform.position);
             var tool = Player.m_localPlayer.OrNull()?.GetCurrentWeapon()?.m_dropPrefab.OrNull();
-            if (tool != null) _book.Witness(key, tool.name);
+            if (tool != null) Into.Witness(key, tool.name);
             MetIn(key, resource.transform.position);
         }
 
         /// <summary>A piece the character placed, as news: known, and paired with the tool in hand that built it.</summary>
         public static void Placed(string piece, string tool)
         {
-            if (_book == null || _catchUp == null || string.IsNullOrEmpty(piece)) return;
-            _catchUp.Met(piece, KnownLevel.Known, _book, CameBy.Built);
-            if (!string.IsNullOrEmpty(tool)) _book.Witness(piece, tool);
+            if (Into == null || _catchUp == null || string.IsNullOrEmpty(piece)) return;
+            _catchUp.Met(piece, KnownLevel.Known, Into, CameBy.Built);
+            if (!string.IsNullOrEmpty(tool)) Into.Witness(piece, tool);
         }
 
         /// <summary>A creature the character tamed or petted, as news: known, and met where it stands; one tamed shows how long taming takes.</summary>
         public static void Tamed(Character creature, bool tamedNow)
         {
-            if (_book == null || _catchUp == null || creature == null) return;
+            if (Into == null || _catchUp == null || creature == null) return;
             var key = Utils.GetPrefabName(creature.gameObject);
-            _catchUp.Met(key, KnownLevel.Known, _book, CameBy.Tamed);
+            _catchUp.Met(key, KnownLevel.Known, Into, CameBy.Tamed);
             MetIn(key, creature.transform.position);
-            if (tamedNow) _book.FoundOut(key, EntryKeys.Did(Deed.Tamed));
+            if (!tamedNow) return;
+            Into.FoundOut(key, EntryKeys.Did(Deed.Tamed));
+            Noted(PlayEvent.Tamed);
         }
 
         /// <summary>Something the character saw done to a thing, which shows a number the game never does (<see cref="Deed"/>).</summary>
         public static void SawDone(GameObject thing, Deed deed)
         {
-            if (_book == null || thing == null) return;
-            _book.FoundOut(Utils.GetPrefabName(thing), EntryKeys.Did(deed));
+            if (Into == null || thing == null) return;
+            Into.FoundOut(Utils.GetPrefabName(thing), EntryKeys.Did(deed));
+            if (deed == Deed.Born) Noted(PlayEvent.Born);
+            else if (deed == Deed.GrewUp) Noted(PlayEvent.GrewUp);
+            else if (deed == Deed.GrewBack) Noted(PlayEvent.GrewBack);
         }
 
         /// <summary>Something the strict rules keep back of an entry, found out in play, as news (<see cref="CompendiumBook.FoundOut"/>).</summary>
-        public static void FoundOut(string key, string proof) => _book?.FoundOut(key, proof);
+        public static void FoundOut(string key, string proof) => Into?.FoundOut(key, proof);
 
         /// <summary>A weak spot a hit of the character found on a creature, by the part it is on.</summary>
         public static void FoundWeakSpot(Character creature, string part)
         {
-            if (_book == null || creature == null || string.IsNullOrEmpty(part)) return;
-            _book.FoundOut(Utils.GetPrefabName(creature.gameObject), EntryKeys.WeakSpot(part));
+            if (Into == null || creature == null || string.IsNullOrEmpty(part)) return;
+            Into.FoundOut(Utils.GetPrefabName(creature.gameObject), EntryKeys.WeakSpot(part));
+            Noted(PlayEvent.WeakSpotHit);
         }
 
         /// <summary>A creature's loot seen to fall as it died, counted for the character.</summary>
-        public static void Dropped(string creature, List<(string Item, int Amount)> loot) => _book?.Dropped(creature, loot);
+        public static void Dropped(string creature, List<(string Item, int Amount)> loot)
+        {
+            if (Into == null) return;
+            Into.Dropped(creature, loot);
+            Noted(PlayEvent.LootCounted);
+        }
 
         /// <summary>What a tree, rock or other thing was seen to give as it broke, counted for the character, and each seen to come from it.</summary>
         public static void Yielded(string thing, List<(string Item, int Amount)> loot)
         {
-            if (_book == null) return;
-            _book.Yielded(thing, loot);
-            foreach (var (item, _) in loot) _book.Witness(thing, item);
+            if (Into == null) return;
+            Into.Yielded(thing, loot);
+            foreach (var (item, _) in loot) Into.Witness(thing, item);
+            Noted(PlayEvent.BreakCounted);
         }
 
         /// <summary>Something the character used, as news: known, and met where it stands.</summary>
         public static void Used(GameObject used)
         {
-            if (_book == null || _catchUp == null || used == null) return;
+            if (Into == null || _catchUp == null || used == null) return;
             var thing = used.GetComponentInParent<ZNetView>();
             if (thing == null) return;
             var key = Utils.GetPrefabName(thing.gameObject);
             ActedOnThing(key, thing.transform.position);
-            if (_catchUp.Used(key, _book)) MetIn(key, thing.transform.position);
+            if (_catchUp.Used(key, Into)) MetIn(key, thing.transform.position);
         }
 
         /// <summary>An item's tooltip card the game showed, by the item's name token, as news: known.</summary>
         public static void CardShown(string token)
         {
-            if (_book == null || _catchUp == null) return;
-            _catchUp.CardShown(token, _book);
+            if (Into == null || _catchUp == null) return;
+            _catchUp.CardShown(token, Into);
         }
 
         /// <summary>A place a Vegvisir marked on the character's map, as news: seen, and paired with the Vegvisir.</summary>
         public static void Marked(GameObject vegvisir, string place)
         {
-            if (_book == null || _catchUp == null || vegvisir == null) return;
+            if (Into == null || _catchUp == null || vegvisir == null) return;
             var key = EntryKeys.For(Kind.Location, place);
-            _catchUp.Met(key, KnownLevel.Seen, _book);
+            _catchUp.Met(key, KnownLevel.Seen, Into);
             var stone = vegvisir.GetComponentInParent<ZNetView>();
-            _book.Witness(Utils.GetPrefabName((stone != null ? stone.gameObject : vegvisir)), key);
+            Into.Witness(Utils.GetPrefabName((stone != null ? stone.gameObject : vegvisir)), key);
         }
 
         /// <summary>What the character used or hit lately, for what comes from it (<see cref="ActedOn"/>).</summary>
@@ -271,19 +306,19 @@ namespace Scry
         /// </summary>
         public static void Arrived(string item, Vector3 at)
         {
-            if (_book == null || string.IsNullOrEmpty(item) || Acted.Count == 0) return;
+            if (Into == null || string.IsNullOrEmpty(item) || Acted.Count == 0) return;
             foreach (var giver in Acted.Givers(item, at.x, at.z, Time.unscaledTime, Gives))
             {
-                _book.Witness(giver, item);
-                foreach (var input in ActedOn.TurnedFrom(giver, TurnedInto(giver, item), _book.Witnessed)) _book.Witness(input, item);
+                Into.Witness(giver, item);
+                foreach (var input in ActedOn.TurnedFrom(giver, TurnedInto(giver, item), Into.Witnessed)) Into.Witness(input, item);
             }
         }
 
         /// <summary>What the character put into a thing it used: each paired with it.</summary>
         public static void PutInto(string thing, IEnumerable<string> items)
         {
-            if (_book == null || string.IsNullOrEmpty(thing)) return;
-            foreach (var item in items) _book.Witness(thing, item);
+            if (Into == null || string.IsNullOrEmpty(thing)) return;
+            foreach (var item in items) Into.Witness(thing, item);
         }
 
         /// <summary>
@@ -316,31 +351,31 @@ namespace Scry
         /// <summary>A creature the character saw eat: paired with what it ate, for the strict rules.</summary>
         public static void Fed(Character creature, string food)
         {
-            if (_book == null || creature == null || string.IsNullOrEmpty(food)) return;
-            _book.Witness(Utils.GetPrefabName(creature.gameObject), food);
+            if (Into == null || creature == null || string.IsNullOrEmpty(food)) return;
+            Into.Witness(Utils.GetPrefabName(creature.gameObject), food);
         }
 
         /// <summary>The character saw two things go together, by their entries' keys (<see cref="CompendiumBook.Witness"/>).</summary>
-        public static void Saw(string a, string b) => _book?.Witness(a, b);
+        public static void Saw(string a, string b) => Into?.Witness(a, b);
 
         /// <summary>The character met a thing where it stands: with the biome there, and the place it is in.</summary>
         public static void MetIn(string key, Vector3 at)
         {
-            if (_book == null || string.IsNullOrEmpty(key)) return;
+            if (Into == null || string.IsNullOrEmpty(key)) return;
             var biome = BiomeKeyAt(at);
-            if (biome != null) _book.Witness(key, biome);
+            if (biome != null) Into.Witness(key, biome);
             var place = PlaceKeyAt(at);
-            if (place != null) _book.Witness(key, place);
+            if (place != null) Into.Witness(key, place);
         }
 
         /// <summary>Whether a thing was paired with the biome where it stands and the place it is in already: nothing more is learned by meeting it there.</summary>
         public static bool PairedIn(string key, Vector3 at)
         {
-            if (_book == null || string.IsNullOrEmpty(key)) return false;
+            if (Into == null || string.IsNullOrEmpty(key)) return false;
             var biome = BiomeKeyAt(at);
-            if (biome != null && !_book.Witnessed(key, biome)) return false;
+            if (biome != null && !Into.Witnessed(key, biome)) return false;
             var place = PlaceKeyAt(at);
-            return place == null || _book.Witnessed(key, place);
+            return place == null || Into.Witnessed(key, place);
         }
 
         private static readonly Dictionary<int, string> BiomeKeys = new Dictionary<int, string>();

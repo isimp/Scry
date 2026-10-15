@@ -123,6 +123,7 @@ namespace Scry
                 };
                 var key = Utils.GetPrefabName(target.gameObject);
                 foreach (var type in HitTold.Types(parts, (Degree)(int)shown)) CompendiumKeeper.FoundOut(key, EntryKeys.Damage(type));
+                CompendiumKeeper.Noted(PlayEvent.HitTold);
             });
         }
 

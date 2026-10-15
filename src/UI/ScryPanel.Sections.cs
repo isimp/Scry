@@ -202,6 +202,9 @@ namespace Scry
         private static List<Entry> _newsFor;
         private static string _newsLine;
 
+        /// <summary>The notice's line as last drawn, for the self-test.</summary>
+        internal static string NewsLine => _newsLine;
+
         /// <summary>Lets go of the book and entries the notice of what was learned holds, as on leaving a world.</summary>
         private static void ForgetNews()
         {

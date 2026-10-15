@@ -91,6 +91,7 @@ namespace Scry
         {
             if (book == null || world == null || world != World || book.Mapped(world)) return;
             var raised = MapCatchUp.Apply(book, world, kinds);
+            CompendiumKeeper.Noted(PlayEvent.MapRead);
             Log.Report(CompendiumWords.MapRead(kinds.Count, raised, fromServer: true));
         }
 
@@ -150,6 +151,7 @@ namespace Scry
             }
             if (book == null || world != World || book.Mapped(world)) return;
             var raised = MapCatchUp.Apply(book, world, reading.Result);
+            CompendiumKeeper.Noted(PlayEvent.MapRead);
             Log.Report(CompendiumWords.MapRead(reading.Result.Count, raised, fromServer: false));
         }
 
