@@ -216,7 +216,7 @@ namespace Scry
                 var attackKept = row.AttackCells != null && explorer.HidesAttack(link);
                 if (attackKept) attacksKept++;
                 var lineKept = row.LineProofs.TryGetValue(l, out var lineProof) && explorer.KeepsBack(lineProof);
-                if (lineKept && cells.Length > 0) KeptLines.Add(CompendiumWords.ShowsOnce(cells[0], lineProof));
+                if (lineKept && cells.Length > 0) KeptLines.Add((explorer.ShowsOnce(cells[0], lineProof), explorer.MayRunElsewhere(lineProof)));
                 var height = U(20f);
                 for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++) height = Mathf.Max(height, Skin.Height(Skin.SmallWrap, cells[c], ColumnWidths[c]));
                 var line = new Rect(0f, y, width, height);
@@ -290,7 +290,7 @@ namespace Scry
                         else if (c > 0 && (lineKept || (attackKept && Array.IndexOf(row.AttackCells, c) >= 0)))
                         {
                             GUI.Label(cell, CompendiumWords.Hidden, Skin.SmallWrap);
-                            if (cell.Contains(Event.current.mousePosition)) AskTip("kept:" + row.Title + cells[0] + row.Columns[c], lineKept ? CompendiumWords.ShowsOnce(cells[0], lineProof) : CompendiumWords.NotYetTakenTip);
+                            if (cell.Contains(Event.current.mousePosition)) AskTip("kept:" + row.Title + cells[0] + row.Columns[c], lineKept ? KeptTip(explorer, cells[0], lineProof) : CompendiumWords.NotYetTakenTip);
                         }
                         // A cell naming what was not seen together with the page keeps the name back.
                         else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var hidden) && explorer.LeavesOut(hidden))
@@ -315,8 +315,9 @@ namespace Scry
             CountDrawn(PanelPart.FactTable);
             y += U(4f);
             y = FaintLine(CompendiumWords.NotYetTaken(attacksKept), "attacks-kept:", row.Title, PanelPart.TableKeptBack, width, y);
-            if (notCounted) y = FaintLine(TallyWords.NotYetCounted(row.Tally), "not-counted:", row.Title, PanelPart.TallyCounted, width, y);
-            foreach (var said in KeptLines) y = FaintLine(said, "line-kept:", said, PanelPart.TableKeptBack, width, y);
+            if (notCounted) y = FaintLine(explorer.NotYetCounted(row.Tally), explorer.MayRunElsewhere(row.Tally) ? ElsewhereWords.Tip : null, "not-counted:", row.Title, PanelPart.TallyCounted, width, y);
+            foreach (var said in explorer.ElsewhereLines(row.Tally, row.TallyOf)) y = FaintLine(said, ElsewhereWords.Tip, "elsewhere:", said, PanelPart.RanElsewhere, width, y);
+            foreach (var (said, elsewhere) in KeptLines) y = FaintLine(said, elsewhere ? ElsewhereWords.Tip : null, "line-kept:", said, PanelPart.TableKeptBack, width, y);
             return y;
         }
 
@@ -334,7 +335,14 @@ namespace Scry
         private static float FloorMarkX(Rect cell, string text) => cell.x + Mathf.Min(Skin.Width(Skin.Small, text) + U(4f), cell.width - FloorRoom);
 
         /// <summary>What shows each line of the table being drawn whose numbers are kept back, for its faint lines.</summary>
-        private static readonly List<string> KeptLines = new List<string>();
+        private static readonly List<(string Said, bool Elsewhere)> KeptLines = new List<(string, bool)>();
+
+        /// <summary>The tip of a number kept back in a table's line: what shows it, and why where another player's game may run that.</summary>
+        private static string KeptTip(Explorer explorer, string what, string proof)
+        {
+            var shows = explorer.ShowsOnce(what, proof);
+            return explorer.MayRunElsewhere(proof) ? Naming.Lines(shows, ElsewhereWords.Tip) : shows;
+        }
 
         /// <summary>A fact that qualifies what stands above it, told under it in a soft line.</summary>
         private static float FactNote(Facts facts, KeyValuePair<string, string> pair, float width, float y)

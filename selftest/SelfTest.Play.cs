@@ -15,8 +15,9 @@ namespace Scry
         /// Made-up events through the real hooks, recorded into a book of the test's own
         /// (<see cref="CompendiumKeeper.RecordInto"/>): a hit of the character's on a loaded
         /// creature, on its weak spot, an armed creature's hit taken, a birth, a regrowth and a
-        /// taming near by, a tree breaking with an item come to be, a map read. Nothing in the
-        /// world changes, and neither the character's book nor the play counts do.
+        /// taming near by, a tree breaking with an item come to be, a kill, a break and a pick
+        /// that ran in another player's game, a map read. Nothing in the world changes, and
+        /// neither the character's book nor the play counts do.
         /// </summary>
         private static IEnumerator CompendiumHooksFed(Probe p)
         {
@@ -52,6 +53,13 @@ namespace Scry
                     p.Check(book.Witnessed(key, EntryKeys.WeakSpot(spots[0].gameObject.name)), $"a hit on its weak spot finds it ({spots[0].gameObject.name})");
                 }
                 else p.Note($"{key} has no weak spot to hit");
+
+                // A kill another player's game tells of, for the creature hit just now; one this game ran is no such kill.
+                CompendiumKeeper.Struck(creature);
+                ElsewhereWatch.KillTold(ZNet.GetUID() + 1, creature.m_name);
+                ElsewhereWatch.KillTold(0L, creature.m_name);
+                ElsewhereWatch.KillTold(ZNet.GetUID(), creature.m_name);
+                p.Check(book.CountElsewhere(Elsewhere.Kill, key) == 1, $"a kill of {key} told by another player's game is counted as run there, those this game ran are not");
             }
 
             // An armed creature's hit taken: its attack's damage found out.
@@ -108,6 +116,21 @@ namespace Scry
                 p.Check(book.Tallied(Tally.Gave).Kills(treeKey) == 1 && book.Witnessed(treeKey, Utils.GetPrefabName(item.gameObject)), $"{treeKey} breaking is counted with what came of it");
             }
 
+            // A tree hit that another player's game runs, gone: a break there, once; one this game ran is no such break.
+            var treeView = tree != null ? tree.GetComponent<ZNetView>() : null;
+            if (treeView == null || !treeView.IsValid()) p.Note("no tree is loaded to see break in another player's game");
+            else
+            {
+                var treeKey = Utils.GetPrefabName(tree.gameObject);
+                var id = treeView.GetZDO().m_uid;
+                CompendiumKeeper.HitRunElsewhere(tree);
+                CompendiumKeeper.Gone(id, ranHere: false);
+                CompendiumKeeper.Gone(id, ranHere: false);
+                CompendiumKeeper.HitRunElsewhere(tree);
+                CompendiumKeeper.Gone(id, ranHere: true);
+                p.Check(book.CountElsewhere(Elsewhere.Break, treeKey) == 1, $"{treeKey} hit and gone in another player's game is counted as a break there, once");
+            }
+
             // A pick with an item come to be: counted as what it gave, no break.
             var picked = Nearest<Pickable>(player);
             if (picked == null || item == null) p.Note("no pickable and item are loaded to count a pick with");
@@ -118,6 +141,12 @@ namespace Scry
                 YieldWatch.End();
                 var pickKey = Utils.GetPrefabName(picked.gameObject);
                 p.Check(book.Tallied(Tally.Gave).Kills(pickKey) == 1 && !book.Witnessed(pickKey, EntryKeys.Did(Deed.Broke)), $"picking {pickKey} is counted as what it gave, and is no break");
+
+                // A pick sent to another player's game is counted as such; one of a thing this game runs is not sent there.
+                ElsewhereWatch.Picked(picked, elsewhere: true);
+                p.Check(book.CountElsewhere(Elsewhere.Pick, pickKey) == 1, $"a pick of {pickKey} sent to another player's game is counted as run there");
+                var pickView = picked.GetComponent<ZNetView>();
+                if (pickView != null && pickView.IsValid() && pickView.IsOwner()) p.Check(!ElsewhereWatch.Picking(picked, player), $"a pick of {pickKey}, which this game runs, stays here");
             }
 
             // A chest the world fills, opened: counted the first time only.
@@ -219,6 +248,21 @@ namespace Scry
             var line = Facts.For(hide).Where.FirstOrDefault(s => s.Record?.Giver == troll.Name);
             var counted = X.StrictSourceLine(line.Record);
             p.Check(counted == $"Dropped by {line.Record?.Shown}, 2 (1 of 1 kill)", "the hide's page counts the troll's line", counted);
+
+            // Played with others: a kill another player's game ran is told under the troll's drops
+            // and after its kills, and what shows a starred one's stars says it is seen only where
+            // the character's game runs it.
+            X.Select(troll);
+            var elsewhere = ScryPanel.Drawn(PanelPart.RanElsewhere);
+            book.PlayedWithOthers();
+            book.RanElsewhere(Elsewhere.Kill, troll.Key);
+            view.Tell(book, CompendiumRule.Strict);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.RanElsewhere) > elsewhere, 3);
+            var lines = X.ElsewhereLines(Tally.Fell, troll.Name);
+            p.Check(ScryPanel.Drawn(PanelPart.RanElsewhere) > elsewhere && lines.Count == 1, "a kill another player's game ran is told under its drops", lines.Count > 0 ? lines[0] : null);
+            p.Check(X.KilledElsewhere(troll.Key) == ElsewhereWords.Killed(1), "and after its kills", X.KilledElsewhere(troll.Key));
+            var stars = X.ShowsOnce("Health by stars", EntryKeys.Did(Deed.StarredFell));
+            p.Check(stars.EndsWith(ElsewhereWords.Suffix, System.StringComparison.Ordinal), "what shows its stars says it is seen only where your game runs it", stars);
 
             // A map read brings places as news, counted in the notice rather than named.
             var place = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Location && Places.LabelOf(e) != null);

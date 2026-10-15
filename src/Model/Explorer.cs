@@ -322,6 +322,48 @@ namespace Scry
             return SourceWords.Counted(source, drop != null ? TallyWords.Line(by.Value, drop, counted.Kills(source.Giver)) : CompendiumWords.Hidden);
         }
 
+        /// <summary>Whether, under the strict rules on a page that leaves things out, the character played with others, so another player's game may have run what it saw.</summary>
+        public bool WithOthers => LeavingOut && _view.Book.WithOthers;
+
+        /// <summary>Whether what shows a number kept back may have run in another player's game (<see cref="OtherGames"/>), the character having played with others.</summary>
+        public bool MayRunElsewhere(string proof) => WithOthers && OtherGames.MayRun(proof);
+
+        /// <summary>Whether a count may have run in another player's game, the character having played with others.</summary>
+        public bool MayRunElsewhere(Tally tally) => WithOthers && OtherGames.MayRun(tally);
+
+        /// <summary>The value of a fact kept back, as this character reads it (<see cref="CompendiumWords.KeptBack"/>).</summary>
+        public string KeptBack(string proof) => CompendiumWords.KeptBack(proof, MayRunElsewhere(proof));
+
+        /// <summary>What follows its ???, drawn faint (<see cref="CompendiumWords.KeptBackHint"/>).</summary>
+        public string KeptBackHint(string proof) => CompendiumWords.KeptBackHint(proof, MayRunElsewhere(proof));
+
+        /// <summary>A faint line saying what shows a line of a table kept back (<see cref="CompendiumWords.ShowsOnce(string, string, bool)"/>).</summary>
+        public string ShowsOnce(string what, string proof) => CompendiumWords.ShowsOnce(what, proof, MayRunElsewhere(proof));
+
+        /// <summary>The faint line under a counted row where an amount is not yet known (<see cref="TallyWords.NotYetCounted"/>).</summary>
+        public string NotYetCounted(Tally tally) => TallyWords.NotYetCounted(tally, MayRunElsewhere(tally));
+
+        /// <summary>
+        /// The faint lines under a counted row on a page that leaves things out: how many more of
+        /// the character's own kills, breaks or picks of the thing ran in another player's game,
+        /// so went uncounted (<see cref="Elsewhere"/>); none otherwise.
+        /// </summary>
+        public IReadOnlyList<string> ElsewhereLines(Tally tally, string of)
+        {
+            if (!LeavingOut || !OtherGames.MayRun(tally)) return NoLines;
+            var book = _view.Book;
+            var kills = tally == Tally.Fell ? ElsewhereWords.Line(Elsewhere.Kill, book.CountElsewhere(Elsewhere.Kill, of)) : null;
+            var breaks = tally == Tally.Gave ? ElsewhereWords.Line(Elsewhere.Break, book.CountElsewhere(Elsewhere.Break, of)) : null;
+            var picks = tally == Tally.Gave ? ElsewhereWords.Line(Elsewhere.Pick, book.CountElsewhere(Elsewhere.Pick, of)) : null;
+            if (kills == null && breaks == null && picks == null) return NoLines;
+            return new[] { kills, breaks, picks }.Where(l => l != null).ToList();
+        }
+
+        private static readonly string[] NoLines = Array.Empty<string>();
+
+        /// <summary>What follows the character's kills of a creature in its You box on a page that leaves things out: how many ran in another player's game; none otherwise.</summary>
+        public string KilledElsewhere(string key) => LeavingOut ? ElsewhereWords.Killed(_view.Book.CountElsewhere(Elsewhere.Kill, key)) : null;
+
         /// <summary>Such a row's title, after how it is given (<paramref name="lead"/>): how many times it was seen; none where the game's own title shows (<see cref="StrictAmount"/>).</summary>
         public string StrictTitle(Tally tally, string of, string lead) =>
             tally == Tally.None || !LeavingOut ? null : TallyWords.Title(tally, lead, _view.Book.Tallied(tally).Kills(of));

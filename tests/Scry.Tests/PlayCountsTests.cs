@@ -32,7 +32,8 @@ namespace Scry.Tests
 
             Assert.Equal("this session: 2 hits told, 1 weak spot hit, 0 hits taken, 1 kill's loot counted, 0 breaks counted, "
                 + "0 births seen, 0 seen grow up, 0 seen grow back, 0 tamed, 0 map reads, "
-                + "0 picks counted, 0 chests counted, 0 starred falls seen, 0 spawns seen, 0 collected from, 0 weathers seen", play.Told());
+                + "0 picks counted, 0 chests counted, 0 starred falls seen, 0 spawns seen, 0 collected from, 0 weathers seen, "
+                + "0 kills in another player's game, 0 breaks in another player's game, 0 picks in another player's game", play.Told());
         }
     }
 }

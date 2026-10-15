@@ -162,15 +162,16 @@ namespace Scry
             }
         }
 
-        /// <summary>The faint line under such a row where an amount is not yet known.</summary>
-        public static string NotYetCounted(Tally tally)
+        /// <summary>The faint line under such a row where an amount is not yet known; where another player's game may run it, that only where yours does.</summary>
+        public static string NotYetCounted(Tally tally, bool mayRunElsewhere = false)
         {
+            var elsewhere = mayRunElsewhere ? ElsewhereWords.Suffix : "";
             switch (tally)
             {
-                case Tally.Fell: return "How many shows once you have seen it fall";
-                case Tally.Held: return "How many shows once you have opened one";
-                case Tally.Weather: return "How often shows as you see its weathers";
-                default: return "How many shows once you have seen it given";
+                case Tally.Fell: return "How many shows once you have seen it fall" + elsewhere;
+                case Tally.Held: return "How many shows once you have opened one" + elsewhere;
+                case Tally.Weather: return "How often shows as you see its weathers" + elsewhere;
+                default: return "How many shows once you have seen it given" + elsewhere;
             }
         }
 

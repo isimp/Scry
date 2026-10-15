@@ -44,6 +44,7 @@ namespace Scry
         FactKeptBack,
         FloorLink,
         StillToFindOut,
+        RanElsewhere,
         WeakSpotsLeftOut,
         TableKeptBack,
         TallyCounted,

@@ -84,7 +84,7 @@ namespace Scry
                 var food = ai.OrNull()?.m_consumeItems?.Where(i => i != null).ToList();
                 if (food != null && food.Count > 0)
                 {
-                    var eats = new Row { Title = "Eats" };
+                    var eats = new Row { Title = "Eats", SeenWhereRun = true };
                     foreach (var item in food) eats.Items.Add(new Ingredient { Icon = Icon(item.gameObject), Name = ItemName(item.gameObject), Amount = "", Prefab = item.gameObject.name });
                     Rows.Add(eats);
                 }

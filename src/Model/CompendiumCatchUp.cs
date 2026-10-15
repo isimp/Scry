@@ -51,6 +51,20 @@ namespace Scry
             }
         }
 
+        /// <summary>The key of the one entry of a kind going by a name (<see cref="Entry.Tokens"/>); none where none or more than one do.</summary>
+        public string OnlyNamed(string token, Kind kind)
+        {
+            if (token == null || !_byToken.TryGetValue(token, out var entries)) return null;
+            string key = null;
+            foreach (var entry in entries)
+            {
+                if (entry.Kind != kind || entry.Key == key) continue;
+                if (key != null) return null;
+                key = entry.Key;
+            }
+            return key;
+        }
+
         /// <summary>
         /// Raises in the book what the records tell, as news; how many entries it learned more of.
         /// On the first reading as a character loads (<paramref name="firstLoad"/>) the records do

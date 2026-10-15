@@ -59,6 +59,7 @@ namespace Scry
         private static float _youHeight;
         private static List<(string Label, string Value)> _you = new List<(string, string)>();
         private static List<(string Label, string Value)> _still = new List<(string, string)>();
+        private static string _killedElsewhere;
 
         /// <summary>
         /// The box a page opens with, titled "You": what the game counted of the thing for the
@@ -82,6 +83,7 @@ namespace Scry
                     came = CompendiumWords.CameLine(record?.Way, record?.Day ?? -1, biome, explorer.Compendium.Because(entry)?.ShownName, explorer.ByFloor(entry), explorer.LevelOf(entry) == KnownLevel.Known);
                 }
                 _you = CompendiumWords.You(CharacterRecords.Counts(entry), came);
+                _killedElsewhere = entry.Kind == Kind.Creature ? explorer.KilledElsewhere(entry.Key) : null;
                 _still = StillToFindOut(explorer, facts);
             }
             if (_you.Count == 0 && _still.Count == 0) return y;
@@ -98,15 +100,28 @@ namespace Scry
             {
                 var height = Mathf.Max(U(20f), Skin.Height(Skin.Wrap, value, valueW));
                 GUI.Label(new Rect(pad, y, labelW, height), label, Skin.DimWrap);
-                GUI.Label(new Rect(pad + labelW + U(10f), y, valueW, height), value, Skin.Wrap);
+                var valueRect = new Rect(pad + labelW + U(10f), y, valueW, height);
+                // Kills another player's game ran follow the count, faint, saying why on hover.
+                if (label == CompendiumWords.KilledLabel && _killedElsewhere != null)
+                {
+                    var said = Skin.Width(Skin.Wrap, value);
+                    GUI.Label(new Rect(valueRect.x, y, said + U(2f), height), value, Skin.Wrap);
+                    Skin.LabelIn(new Rect(valueRect.x + said, y, valueRect.width - said, height), _killedElsewhere, Skin.Wrap, Skin.Faint);
+                    if (valueRect.Contains(Event.current.mousePosition)) AskTip("killed-elsewhere", ElsewhereWords.Tip);
+                    CountDrawn(PanelPart.RanElsewhere);
+                }
+                else GUI.Label(valueRect, value, Skin.Wrap);
                 y += height + U(6f);
             }
-            // What is still to find out: what to do on the left, what it shows faint on the right.
+            // What is still to find out: what to do on the left, what it shows faint on the right,
+            // why on hover where it shows only where the character's game runs it.
             foreach (var (label, value) in _still)
             {
                 var height = Mathf.Max(U(20f), Skin.Height(Skin.Wrap, value, valueW));
                 GUI.Label(new Rect(pad, y, labelW, height), label, Skin.DimWrap);
-                Skin.LabelIn(new Rect(pad + labelW + U(10f), y, valueW, height), value, Skin.Wrap, Skin.Faint);
+                var valueRect = new Rect(pad + labelW + U(10f), y, valueW, height);
+                Skin.LabelIn(valueRect, value, Skin.Wrap, Skin.Faint);
+                if (value.EndsWith(ElsewhereWords.Suffix, System.StringComparison.Ordinal) && new Rect(pad, y, inner, height).Contains(Event.current.mousePosition)) AskTip("still:" + label, ElsewhereWords.Tip);
                 y += height + U(6f);
             }
             if (_still.Count > 0) CountDrawn(PanelPart.StillToFindOut);
@@ -146,7 +161,7 @@ namespace Scry
                 if (row.Tally != Tally.None && (row.Items.Any(i => !explorer.LeavesOut(i.Prefab) && explorer.StrictAmount(row.Tally, row.TallyOf, i.Prefab) == CompendiumWords.Hidden)
                     || row.LineItems.Any(i => explorer.StrictAmount(row.Tally, row.TallyOf, i) == CompendiumWords.Hidden))) uncounted.Add(row.Tally);
             }
-            return CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted);
+            return CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted, explorer.WithOthers);
         }
 
         private static readonly List<(string Label, string Value)> NothingStill = new List<(string, string)>();
@@ -157,6 +172,7 @@ namespace Scry
             _youOf = null;
             _you.Clear();
             _still = NothingStill;
+            _killedElsewhere = null;
             _youHeight = 0f;
         }
 
@@ -189,7 +205,7 @@ namespace Scry
                     return y;
                 }
                 keptBack = proof;
-                value = CompendiumWords.KeptBack(proof);
+                value = explorer.KeptBack(proof);
                 CountDrawn(PanelPart.FactKeptBack);
             }
             var valueW = width - labelW - U(10f);
@@ -240,7 +256,8 @@ namespace Scry
             {
                 var hidden = Skin.Width(Skin.Wrap, CompendiumWords.Hidden);
                 GUI.Label(new Rect(valueRect.x, valueRect.y, hidden + U(2f), height), CompendiumWords.Hidden, Skin.Wrap);
-                Skin.LabelIn(new Rect(valueRect.x + hidden, valueRect.y, valueRect.width - hidden, height), CompendiumWords.KeptBackHint(keptBack), Skin.Wrap, Skin.Faint);
+                Skin.LabelIn(new Rect(valueRect.x + hidden, valueRect.y, valueRect.width - hidden, height), explorer.KeptBackHint(keptBack), Skin.Wrap, Skin.Faint);
+                if (explorer.MayRunElsewhere(keptBack) && valueRect.Contains(Event.current.mousePosition)) AskTip("elsewhere:" + pair.Key, ElsewhereWords.Tip);
             }
             else
             {
@@ -469,6 +486,8 @@ namespace Scry
                 return y;
             }
             var items = ShownStrictly(explorer, listed, i => i.Prefab);
+            // What a creature eats, some not yet seen, is seen only where its game runs it.
+            var eatenElsewhere = row.SeenWhereRun && explorer.WithOthers && items.Count < listed.Count;
             // A thing to bring shows once what suggests it was found out; left out quietly, as a suggestion.
             if (explorer.LeavingOut && Suggests(items))
             {
@@ -476,7 +495,7 @@ namespace Scry
                 foreach (var item in items) if (!explorer.KeepsBackAll(item.ShownBy)) Suggested.Add(item);
                 items = Suggested;
             }
-            if (items.Count == 0) return y;
+            if (items.Count == 0) return eatenElsewhere ? FaintLine(ElsewhereWords.Eating, ElsewhereWords.Tip, "eating:", row.Title, PanelPart.RanElsewhere, width, y) : y;
             var title = listing ? CompendiumWords.Found(row.Title, items.Count) : items.Count < listed.Count ? CompendiumWords.Uncounted(row.Title) : row.Title;
             // Under the strict rules drops and yields are told as the character saw them, not by the game's chances.
             var counted = explorer.StrictTitle(row.Tally, row.TallyOf, row.TallyLead);
@@ -560,7 +579,10 @@ namespace Scry
             }
             MoreChip(key, items.Count, FirstChips, width, ref flow);
             y = flow.RowBottom + U(6f);
-            return notCounted ? FaintLine(TallyWords.NotYetCounted(row.Tally), "not-counted:", row.Title, PanelPart.TallyCounted, width, y - U(2f)) : y;
+            if (notCounted) y = FaintLine(explorer.NotYetCounted(row.Tally), explorer.MayRunElsewhere(row.Tally) ? ElsewhereWords.Tip : null, "not-counted:", row.Title, PanelPart.TallyCounted, width, y - U(2f));
+            foreach (var said in explorer.ElsewhereLines(row.Tally, row.TallyOf)) y = FaintLine(said, ElsewhereWords.Tip, "elsewhere:", said, PanelPart.RanElsewhere, width, y);
+            if (eatenElsewhere) y = FaintLine(ElsewhereWords.Eating, ElsewhereWords.Tip, "eating:", row.Title, PanelPart.RanElsewhere, width, y);
+            return y;
         }
 
         /// <summary>What shows the amounts held back in the block of where a thing comes from being drawn, each once.</summary>

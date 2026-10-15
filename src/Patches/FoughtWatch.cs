@@ -15,7 +15,9 @@ namespace Scry
             if (hit == null || Player.m_localPlayer == null || __instance == Player.m_localPlayer) return;
             Guard.Run(Feature.CompendiumFought, "noting a creature fought", () =>
             {
-                if (hit.GetAttacker() == Player.m_localPlayer) CompendiumKeeper.Fought(__instance);
+                if (hit.GetAttacker() != Player.m_localPlayer) return;
+                CompendiumKeeper.Fought(__instance);
+                CompendiumKeeper.Struck(__instance);
             });
         }
     }

@@ -449,6 +449,18 @@ namespace Scry
             return y + U(24f);
         }
 
+        /// <summary>The same, saying why on hover where a tip is given, its whole text first where it does not fit.</summary>
+        private static float FaintLine(string said, string tip, string tipKind, string tipOf, PanelPart part, float width, float y)
+        {
+            if (tip == null) return FaintLine(said, tipKind, tipOf, part, width, y);
+            if (said == null) return y;
+            CountDrawn(part);
+            var line = new Rect(U(6f), y + U(2f), width - U(6f), U(20f));
+            var fits = FitLabel(line, said, Skin.FaintLabel, 10f);
+            if (line.Contains(Event.current.mousePosition)) AskTip(tipKind + tipOf, fits ? tip : Naming.Lines(said, tip));
+            return y + U(24f);
+        }
+
         private static readonly Dictionary<object, object> StrictLists = new Dictionary<object, object>();
         private static Explorer _strictIn;
         private static int _strictStamp;

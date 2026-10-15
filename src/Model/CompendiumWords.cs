@@ -201,6 +201,9 @@ namespace Scry
         /// <summary>The title of the box a page opens with, of what the character itself did with the thing.</summary>
         public const string YouTitle = "You";
 
+        /// <summary>The You box's row of the character's kills of a creature.</summary>
+        public const string KilledLabel = "Killed";
+
         /// <summary>
         /// That box's lines: the game's counts for the character, each where there is one, how
         /// often for kills, foods, picks and pieces, how many for things made and picked up; then
@@ -219,7 +222,7 @@ namespace Scry
                 {
                     if (count > 0) lines.Add((label, Numbers.Count(count)));
                 }
-                Often("Killed", counts.Killed);
+                Often(KilledLabel, counts.Killed);
                 Often("Built", counts.Built);
                 Often("Eaten", counts.Eaten);
                 Often("Picked", counts.Picked);
@@ -266,28 +269,35 @@ namespace Scry
         /// What a known page under the strict rules still keeps back, for the You box at its top,
         /// a row for each thing to do and what it shows: the deeds whose numbers it keeps back
         /// (each once), the damage types whose landing it keeps back, the attacks not yet taken,
-        /// the weak spots not yet found, and the counts of drops or yields not yet seen.
+        /// the weak spots not yet found, and the counts of drops or yields not yet seen. Once the
+        /// character played with others, what another player's game may run says that it shows
+        /// only where yours runs it (<see cref="ElsewhereWords.Suffix"/>).
         /// </summary>
-        public static List<(string Label, string Value)> StillToFindOut(IEnumerable<string> deeds, IReadOnlyList<string> types, int attacks, int spots, IEnumerable<Tally> uncounted)
+        public static List<(string Label, string Value)> StillToFindOut(IEnumerable<string> deeds, IReadOnlyList<string> types, int attacks, int spots, IEnumerable<Tally> uncounted, bool withOthers = false)
         {
             var rows = new List<(string, string)>();
             var pending = new HashSet<Deed>();
             foreach (var proof in deeds) if (EntryKeys.IsDeed(proof, out var deed)) pending.Add(deed);
-            if (pending.Contains(Deed.Killed)) rows.Add(("Kill one", "shows its health"));
-            if (pending.Contains(Deed.Tamed)) rows.Add(("Tame one", "shows how long taming and a meal take"));
-            if (pending.Contains(Deed.Born)) rows.Add(("See one born", "shows how long it is pregnant"));
-            if (pending.Contains(Deed.GrewUp)) rows.Add(("See one grow up", "shows how long that takes"));
-            if (pending.Contains(Deed.GrewBack)) rows.Add(("See one grow back", "shows how long that takes"));
-            if (pending.Contains(Deed.Broke)) rows.Add(("Break one", "shows its health"));
-            if (pending.Contains(Deed.StarredFell)) rows.Add(("See a starred one fall", "shows what stars change"));
-            if (pending.Contains(Deed.Spawned)) rows.Add(("See it spawn", "shows its pool and pace"));
-            if (pending.Contains(Deed.Collected)) rows.Add(("Collect from one", "shows its pace"));
+            void Pending(Deed what, string label, string value)
+            {
+                if (pending.Contains(what)) rows.Add((label, withOthers && OtherGames.MayRun(what) ? value + ElsewhereWords.Suffix : value));
+            }
+            Pending(Deed.Killed, "Kill one", "shows its health");
+            Pending(Deed.Tamed, "Tame one", "shows how long taming and a meal take");
+            Pending(Deed.Born, "See one born", "shows how long it is pregnant");
+            Pending(Deed.GrewUp, "See one grow up", "shows how long that takes");
+            Pending(Deed.GrewBack, "See one grow back", "shows how long that takes");
+            Pending(Deed.Broke, "Break one", "shows its health");
+            Pending(Deed.StarredFell, "See a starred one fall", "shows what stars change");
+            Pending(Deed.Spawned, "See it spawn", "shows its pool and pace");
+            Pending(Deed.Collected, "Collect from one", "shows its pace");
             if (types.Count > 0) rows.Add(("Hit it with", Naming.Commas(types) + (types.Count == 1 ? ": how it lands" : ": how they land")));
             if (attacks > 0) rows.Add(("Let it hit you", Naming.Count(attacks, "attack's", "attacks'") + " damage"));
             if (spots > 0) rows.Add((spots == 1 ? "Hit its weak spot" : "Hit its weak spots", Numbers.Count(spots) + " not yet found"));
             var tallies = new HashSet<Tally>(uncounted);
-            if (tallies.Contains(Tally.Fell)) rows.Add(("See it drop", "how many of each"));
-            if (tallies.Contains(Tally.Gave)) rows.Add(("Break one", "how many of each it gives"));
+            var elsewhere = withOthers ? ElsewhereWords.Suffix : "";
+            if (tallies.Contains(Tally.Fell)) rows.Add(("See it drop", "how many of each" + elsewhere));
+            if (tallies.Contains(Tally.Gave)) rows.Add(("Break one", "how many of each it gives" + elsewhere));
             if (tallies.Contains(Tally.Held)) rows.Add(("Open one", "how many of each it holds"));
             if (tallies.Contains(Tally.Weather)) rows.Add(("Spend time in it", "how often each weather comes"));
             return rows;
@@ -317,17 +327,20 @@ namespace Scry
             return "an attack's damage found out";
         }
 
-        /// <summary>The value of a fact the strict rules keep back (<see cref="EntryKeys.Did"/>): ??? and what shows it (<see cref="ShowsOnce(string)"/>).</summary>
-        public static string KeptBack(string proof) => Hidden + KeptBackHint(proof);
+        /// <summary>The value of a fact the strict rules keep back (<see cref="EntryKeys.Did"/>): ??? and what shows it (<see cref="ShowsOnce(string, bool)"/>).</summary>
+        public static string KeptBack(string proof, bool mayRunElsewhere = false) => Hidden + KeptBackHint(proof, mayRunElsewhere);
 
         /// <summary>What follows the ??? of a fact kept back, drawn faint: what shows it.</summary>
-        public static string KeptBackHint(string proof) => " · " + ShowsOnce(proof);
+        public static string KeptBackHint(string proof, bool mayRunElsewhere = false) => " · " + ShowsOnce(proof, mayRunElsewhere);
 
-        /// <summary>What shows a number kept back, the one form every such hint takes: "shows once you have ...".</summary>
-        public static string ShowsOnce(string proof) => "shows once you have " + Seen(proof);
+        /// <summary>
+        /// What shows a number kept back, the one form every such hint takes: "shows once you have
+        /// ...", and where another player's game may run it, that only where yours does (<see cref="ElsewhereWords.Suffix"/>).
+        /// </summary>
+        public static string ShowsOnce(string proof, bool mayRunElsewhere = false) => "shows once you have " + Seen(proof) + (mayRunElsewhere ? ElsewhereWords.Suffix : "");
 
         /// <summary>A faint line saying what shows a line of a table kept back, as a creature's health by its stars.</summary>
-        public static string ShowsOnce(string what, string proof) => $"{what} {ShowsOnce(proof)}";
+        public static string ShowsOnce(string what, string proof, bool mayRunElsewhere = false) => $"{what} {ShowsOnce(proof, mayRunElsewhere)}";
 
         private static string Seen(string proof)
         {

@@ -68,6 +68,9 @@ namespace Scry
             /// <summary>Counted over all your play, every character's (<see cref="DropWatch"/>): left out under the strict rules, where the page counts this character's own.</summary>
             public bool AllPlay;
 
+            /// <summary>Its items are seen with the page only where the game running the thing sees them, as a creature eating: told so under the strict rules once the character played with others.</summary>
+            public bool SeenWhereRun;
+
             /// <summary>
             /// A table counted under the strict rules (<see cref="Tally"/>): which of its columns
             /// tells the game's share, and what each line counts, as a biome's weathers by name.
