@@ -57,6 +57,15 @@ namespace Scry
             }
         }
 
+        /// <summary>Takes over all another holds, in place of what this one held, as a book read from its file does.</summary>
+        public void Take(SeenDrops other)
+        {
+            _kills.Clear();
+            _drops.Clear();
+            foreach (var pair in other._kills) _kills[pair.Key] = pair.Value;
+            foreach (var pair in other._drops) _drops[pair.Key] = pair.Value;
+        }
+
         public int Kills(string creature) => creature != null && _kills.TryGetValue(creature, out var kills) ? kills : 0;
 
         /// <summary>What a creature was seen to drop, the most often first.</summary>
@@ -118,6 +127,32 @@ namespace Scry
         }
 
         private static bool Int(string text, out int value) => Stored.TryCount(text, out value) && value >= 0;
+    }
+
+    /// <summary>
+    /// What a row's amounts are counted from on a known page under the strict rules: none (the
+    /// game's own), what a creature was seen to drop, or what a tree, rock or other resource was
+    /// seen to give, each kept for the character (<see cref="CompendiumBook.Tallied"/>).
+    /// </summary>
+    internal enum Tally
+    {
+        None,
+        Fell,
+        Gave,
+    }
+
+    /// <summary>How a row counted from what the character saw is told (<see cref="Tally"/>).</summary>
+    internal static class TallyWords
+    {
+        /// <summary>The row's title, after how it is given (<paramref name="lead"/>, "When felled, "), with how many times it was seen.</summary>
+        public static string Title(Tally tally, string lead, int times)
+        {
+            var count = times > 0 ? (tally == Tally.Fell ? Naming.Count(times, "kill", "kills") : Naming.Count(times, "time", "times")) : "none yet";
+            return tally == Tally.Fell ? $"Drops you saw fall ({count})" : DropWords.Led(lead, $"Gave you ({count})");
+        }
+
+        /// <summary>The faint line under such a row where an amount is not yet known.</summary>
+        public static string NotYetCounted(Tally tally) => "How many shows once you have seen it " + (tally == Tally.Fell ? "fall" : "given");
     }
 
     /// <summary>How what was seen dropping is told.</summary>

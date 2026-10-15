@@ -256,6 +256,51 @@ namespace Scry
         public bool HidesDamage(string type) => LeavingOut && _selected.Kind == Kind.Creature && !_view.HitWith(_selected, type);
 
         /// <summary>
+        /// Whether a creature's page shown keeps back the damage of one of its attacks (a line of
+        /// its attacks table, <see cref="EntryKeys.PlayAttack"/>): under the strict rules, on a
+        /// known page above the milestone floor, one that never hit the character.
+        /// </summary>
+        public bool HidesAttack(string link) =>
+            LeavingOut && _selected.Kind == Kind.Creature && EntryKeys.PlaysAttack(link, out var item, out _) && !_view.Book.Witnessed(_selected.Key, item);
+
+        /// <summary>
+        /// Whether the page shown keeps back what only something seen done tells (a deed,
+        /// <see cref="EntryKeys.Did"/>, or a weak spot a hit found, <see cref="EntryKeys.WeakSpot"/>):
+        /// under the strict rules, on a known page above the milestone floor, until it was seen.
+        /// </summary>
+        public bool KeepsBack(string proof) => LeavingOut && proof != null && !_view.Book.Witnessed(_selected.Key, proof);
+
+        /// <summary>
+        /// An item's amount in a row counted from what the character saw (<see cref="Tally"/>) of
+        /// a creature or resource: under the strict rules, on a known page above the milestone
+        /// floor, how many came and how often, ??? where it was never counted; none otherwise,
+        /// when the game's own amount shows.
+        /// </summary>
+        public string StrictAmount(Tally tally, string of, string item)
+        {
+            if (tally == Tally.None || !LeavingOut) return null;
+            var counted = _view.Book.Tallied(tally);
+            var drop = counted.Of(of).FirstOrDefault(d => d.Item == item);
+            return drop != null ? SeenWords.Chip(drop, counted.Kills(of)) : CompendiumWords.Hidden;
+        }
+
+        /// <summary>Such a row's title, after how it is given (<paramref name="lead"/>): how many times it was seen; none where the game's own title shows (<see cref="StrictAmount"/>).</summary>
+        public string StrictTitle(Tally tally, string of, string lead) =>
+            tally == Tally.None || !LeavingOut ? null : TallyWords.Title(tally, lead, _view.Book.Tallied(tally).Kills(of));
+
+        /// <summary>
+        /// Whether the page shown leaves out a line naming entries all of which it leaves out
+        /// (<see cref="LeavesOut"/>), as a creature's spawn line for biomes it was never met in;
+        /// never one naming none.
+        /// </summary>
+        public bool LeavesOutAll(IReadOnlyList<string> keys)
+        {
+            if (keys == null || keys.Count == 0) return false;
+            foreach (var key in keys) if (!LeavesOut(key)) return false;
+            return true;
+        }
+
+        /// <summary>
         /// Whether the page shown leaves anything out (<see cref="LeavesOut"/>): under the strict
         /// rules, a known page above the milestone floor; never a mod's page, which lists only
         /// what was seen of what it adds.

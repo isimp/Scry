@@ -97,8 +97,9 @@ namespace Scry
                 loot.Add((Utils.GetPrefabName(item.gameObject), Mathf.Max(1, item.m_itemData?.m_stack ?? 1)));
             }
             Seen.Record(_creature, loot);
-            // The character saw each drop fall from the creature, for the strict rules.
+            // The character saw each drop fall from the creature, and how many, for the strict rules.
             foreach (var (item, _) in loot) CompendiumKeeper.Saw(_creature, item);
+            CompendiumKeeper.Dropped(_creature, loot);
             _creature = null;
             Made.Clear();
             Version++;

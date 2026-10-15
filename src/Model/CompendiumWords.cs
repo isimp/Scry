@@ -235,6 +235,35 @@ namespace Scry
         /// <summary>How many damage types a creature's grid keeps back under the strict rules, told faintly under it; none where it keeps none back.</summary>
         public static string NotYetHitWith(int count) => count > 0 ? $"{Numbers.Count(count)} more not yet hit with" : null;
 
+        /// <summary>The faint line under a creature's attacks some of whose damage is kept back, until each hit the character.</summary>
+        public static string NotYetTaken(int count) => count > 0 ? $"{Numbers.Count(count)} more not yet taken" : null;
+
+        /// <summary>The tip of an attack's damage kept back.</summary>
+        public const string NotYetTakenTip = "Its damage shows once this attack has hit you";
+
+        /// <summary>The faint line where the weak spots a hit has not yet found are left out.</summary>
+        public static string WeakSpotsNotFound(int count) =>
+            count <= 0 ? null : $"{Numbers.Count(count)} more {(count == 1 ? "weak spot" : "weak spots")} not yet found";
+
+        /// <summary>The value of a fact the strict rules keep back (<see cref="EntryKeys.Did"/>), saying what shows it.</summary>
+        public static string KeptBack(string proof) => Hidden + " until you have " + Seen(proof);
+
+        /// <summary>A faint line saying what shows a line of a table kept back, as a creature's health by its stars.</summary>
+        public static string ShowsOnce(string what, string proof) => $"{what} shows once you have {Seen(proof)}";
+
+        private static string Seen(string proof)
+        {
+            EntryKeys.IsDeed(proof, out var deed);
+            switch (deed)
+            {
+                case Deed.Tamed: return "tamed one";
+                case Deed.Born: return "seen one born";
+                case Deed.GrewUp: return "seen one grow up";
+                case Deed.GrewBack: return "seen one grow back";
+                default: return "killed one";
+            }
+        }
+
         /// <summary>The tip of a damage type a creature's grid keeps back.</summary>
         public static string NotYetHitWithTip(string type) => $"{type}: how it lands shows once you hit it with {type.ToLowerInvariant()}";
 

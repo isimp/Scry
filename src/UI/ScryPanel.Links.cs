@@ -379,8 +379,18 @@ namespace Scry
         /// <summary>How many things the strict rules left out of the section being drawn, for its last line (<see cref="StrictLeftLine"/>).</summary>
         private static int _strictLeft;
 
+        /// <summary>How many weak spots no hit has found the strict rules left out of the section being drawn, for a line of their own.</summary>
+        private static int _spotsLeft;
+
+        /// <summary>Counts a weak spot no hit has found, left out of the section being drawn.</summary>
+        private static void SpotLeft() => _spotsLeft++;
+
         /// <summary>A section begins: what the strict rules leave out is counted afresh.</summary>
-        private static void StrictSectionStarts() => _strictLeft = 0;
+        private static void StrictSectionStarts()
+        {
+            _strictLeft = 0;
+            _spotsLeft = 0;
+        }
 
         /// <summary>Counts things the strict rules left out of the section being drawn.</summary>
         private static void StrictLeft(int count)
@@ -396,12 +406,24 @@ namespace Scry
         private static float StrictLeftLine(Explorer explorer, string topic, float width, float y)
         {
             var left = _strictLeft;
+            var spots = _spotsLeft;
             _strictLeft = 0;
-            var said = explorer.LeavingOut ? CompendiumWords.LeftOutOf(topic, left) : null;
+            _spotsLeft = 0;
+            if (!explorer.LeavingOut) return y;
+            y = FaintLine(CompendiumWords.LeftOutOf(topic, left), "strict-left:", topic, PanelPart.StrictLeftOut, width, y);
+            return FaintLine(CompendiumWords.WeakSpotsNotFound(spots), "spots-left:", topic, PanelPart.WeakSpotsLeftOut, width, y);
+        }
+
+        /// <summary>
+        /// A faint line saying what the strict rules keep back, its whole text on hover where it
+        /// does not fit, the tip told apart by its kind and what it is of; nothing for none.
+        /// </summary>
+        private static float FaintLine(string said, string tipKind, string tipOf, PanelPart part, float width, float y)
+        {
             if (said == null) return y;
-            CountDrawn(PanelPart.StrictLeftOut);
+            CountDrawn(part);
             var line = new Rect(U(6f), y + U(2f), width - U(6f), U(20f));
-            if (!FitLabel(line, said, Skin.FaintLabel, 10f) && line.Contains(Event.current.mousePosition)) AskTip("strict-left:" + topic, said);
+            if (!FitLabel(line, said, Skin.FaintLabel, 10f) && line.Contains(Event.current.mousePosition)) AskTip(tipKind + tipOf, said);
             return y + U(24f);
         }
 
@@ -416,7 +438,11 @@ namespace Scry
         /// once for each list while what the character knows and the page stay the same. What it
         /// leaves out is counted for the section's last line (<see cref="StrictLeft"/>).
         /// </summary>
-        private static IReadOnlyList<T> ShownStrictly<T>(Explorer explorer, IReadOnlyList<T> items, Func<T, string> key)
+        private static IReadOnlyList<T> ShownStrictly<T>(Explorer explorer, IReadOnlyList<T> items, Func<T, string> key) =>
+            ShownStrictly(explorer, items, item => explorer.LeavesOut(key(item)));
+
+        /// <summary>What a list keeps under the strict rules, each item left out as it says (<see cref="ShownStrictly{T}(Explorer, IReadOnlyList{T}, Func{T, string})"/>).</summary>
+        private static IReadOnlyList<T> ShownStrictly<T>(Explorer explorer, IReadOnlyList<T> items, Func<T, bool> leftOut)
         {
             if (!explorer.LeavingOut) return items;
             if (!ReferenceEquals(_strictIn, explorer) || _strictStamp != explorer.KnowStamp || _strictSelection != explorer.SelectionVersion || StrictLists.Count > 256)
@@ -432,7 +458,7 @@ namespace Scry
                 return (IReadOnlyList<T>)had;
             }
             var kept = new List<T>();
-            foreach (var item in items) if (!explorer.LeavesOut(key(item))) kept.Add(item);
+            foreach (var item in items) if (!leftOut(item)) kept.Add(item);
             IReadOnlyList<T> shown = kept.Count == items.Count ? items : kept;
             StrictLists[items] = shown;
             StrictLeft(items.Count - shown.Count);

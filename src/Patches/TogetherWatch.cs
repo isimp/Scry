@@ -95,7 +95,18 @@ namespace Scry
         /// </summary>
         public static void Hit(Character target, HitData hit)
         {
-            if (target == null || hit == null || target.IsPlayer() || hit.m_weakSpot >= 0 || hit.GetAttacker() != Player.m_localPlayer || Player.m_localPlayer == null) return;
+            if (target == null || hit == null || target.IsPlayer() || hit.GetAttacker() != Player.m_localPlayer || Player.m_localPlayer == null) return;
+            // A weak spot hit shows how that spot takes it, not the creature: the spot is found, no more.
+            if (hit.m_weakSpot >= 0)
+            {
+                Guard.Run(Feature.CompendiumTogether, "noting a weak spot found", () =>
+                {
+                    var spots = target.m_weakSpots;
+                    var spot = spots != null && hit.m_weakSpot < spots.Length ? spots[hit.m_weakSpot] : null;
+                    if (spot != null) CompendiumKeeper.FoundWeakSpot(target, spot.gameObject.name);
+                });
+                return;
+            }
             Guard.Run(Feature.CompendiumTogether, "noting how a creature took a hit", () =>
             {
                 var mods = target.GetDamageModifiers();
@@ -141,14 +152,14 @@ namespace Scry
         {
             var creature = tameable != null ? tameable.GetComponent<Character>() : null;
             if (!NearBy(creature)) return;
-            Guard.Run(Feature.CompendiumTogether, "noting a creature tamed", () => CompendiumKeeper.Tamed(creature));
+            Guard.Run(Feature.CompendiumTogether, "noting a creature tamed", () => CompendiumKeeper.Tamed(creature, tamedNow: true));
         }
 
         public static void Petted(Tameable tameable, Humanoid user)
         {
             var creature = tameable != null ? tameable.GetComponent<Character>() : null;
             if (user == null || user != Player.m_localPlayer || creature == null || !creature.IsTamed()) return;
-            Guard.Run(Feature.CompendiumTogether, "noting a creature petted", () => CompendiumKeeper.Tamed(creature));
+            Guard.Run(Feature.CompendiumTogether, "noting a creature petted", () => CompendiumKeeper.Tamed(creature, tamedNow: false));
         }
 
         public static void Ate(Tameable tameable, ItemDrop food)

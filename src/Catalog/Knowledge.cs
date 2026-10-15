@@ -19,6 +19,9 @@ namespace Scry
         /// <summary>The figures the line was told from, where it tells a way something gives a thing; null for other lines.</summary>
         public SourceFacts Record;
 
+        /// <summary>The biomes a line says it spawns or grows in, as entry keys: under the strict rules it shows only where it was met in one of them.</summary>
+        public string[] MetIn;
+
         public Source(string text, string prefab, string unsure = null, double chance = 1.0)
         {
             Text = text;

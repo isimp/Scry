@@ -125,8 +125,20 @@ namespace Scry
                     return y;
                 }
             }
-            // Under the strict rules the names of what was not seen are kept back in its text.
+            // Under the strict rules the names of what was not seen are kept back in its text, and
+            // a number the game never shows until what shows it was seen: a weak spot no hit found
+            // is left out and counted, anything else reads ??? and says what shows it.
             var value = Masked(explorer, pair.Value);
+            if (facts.Proofs.TryGetValue(pair.Key, out var proof) && explorer.KeepsBack(proof))
+            {
+                if (EntryKeys.IsWeakSpot(proof))
+                {
+                    SpotLeft();
+                    return y;
+                }
+                value = CompendiumWords.KeptBack(proof);
+                CountDrawn(PanelPart.FactKeptBack);
+            }
             var valueW = width - labelW - U(10f);
             // A line Scry is not sure of is marked, softer, and says why on hover.
             var unsure = facts.Unsure.TryGetValue(pair.Key, out var why);
@@ -199,7 +211,8 @@ namespace Scry
         /// <summary>Where it lives, comes from, or what gives it: a line naming a prefab in the catalog a chip that goes there.</summary>
         private static float WhereBlock(Explorer explorer, Facts facts, bool titled, float width, float y)
         {
-            var where = ShownStrictly(explorer, facts.Where, s => s.Prefab);
+            // A line of where it spawns or grows shows only where it was met in one of its biomes.
+            var where = ShownStrictly(explorer, facts.Where, s => explorer.LeavesOut(s.Prefab) || explorer.LeavesOutAll(s.MetIn));
             if (where.Count == 0) return y;
             if (titled)
             {
@@ -383,6 +396,10 @@ namespace Scry
             var items = ShownStrictly(explorer, listed, i => i.Prefab);
             if (items.Count == 0) return y;
             var title = listing ? CompendiumWords.Found(row.Title, items.Count) : items.Count < listed.Count ? CompendiumWords.Uncounted(row.Title) : row.Title;
+            // Under the strict rules drops and yields are told as the character saw them, not by the game's chances.
+            var counted = explorer.StrictTitle(row.Tally, row.TallyOf, row.TallyLead);
+            if (counted != null) title = counted;
+            var notCounted = false;
             var key = "facts:" + row.Title;
             var count = ShownOf(key, items.Count);
             y += U(6f);
@@ -411,7 +428,9 @@ namespace Scry
             for (var i = 0; i < count; i++)
             {
                 var item = items[i];
-                var text = DetailWords.Amounted(item.Amount, item.Name);
+                var amount = explorer.StrictAmount(row.Tally, row.TallyOf, item.Prefab) ?? item.Amount;
+                if (amount == CompendiumWords.Hidden) notCounted = true;
+                var text = DetailWords.Amounted(amount, item.Name);
                 // A mark (only here, what a trader pays) in a pill of its own at the chip's end.
                 var markW = item.Mark != null ? Skin.Width(Skin.Badge, item.Mark) + U(16f) : 0f;
                 var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(30f) + markW);
@@ -452,7 +471,8 @@ namespace Scry
                 }
             }
             MoreChip(key, items.Count, FirstChips, width, ref flow);
-            return flow.RowBottom + U(6f);
+            y = flow.RowBottom + U(6f);
+            return notCounted ? FaintLine(TallyWords.NotYetCounted(row.Tally), "not-counted:", row.Title, PanelPart.TallyCounted, width, y - U(2f)) : y;
         }
 
         /// <summary>A chain's steps, an arrow between each, the page's own lit and each other one going to its page.</summary>

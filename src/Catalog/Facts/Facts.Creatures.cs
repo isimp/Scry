@@ -31,6 +31,7 @@ namespace Scry
         private void Creature(GameObject prefab, Character character)
         {
             Add("Health", Numbers.Amount(character.m_health));
+            Proofs["Health"] = EntryKeys.Did(Deed.Killed);
             Add("Faction", Groups.FactionName(character.m_faction.ToString()));
             if (character.m_boss) Add("Boss", "yes");
             if (!string.IsNullOrEmpty(character.m_bossEvent) && Knowledge.BossOfEvent(character.m_bossEvent) == prefab)
@@ -45,6 +46,8 @@ namespace Scry
                 var told = (prefab.GetComponent<CharacterDrop>().OrNull()?.m_drops ?? new List<CharacterDrop.Drop>()).Where(d => d?.m_prefab != null).ToList();
                 var grow = told.Any(d => WithStars(d) == StarDrop.Grows);
                 foreach (var line in CombatWords.StarLines(character.m_health, _stars, grow)) stars.Lines.Add((line, null));
+                // Its health by its stars, the first line, shows when its health does.
+                if (stars.Lines.Count > 0) stars.LineProofs[0] = EntryKeys.Did(Deed.Killed);
                 // A drop that only gets likelier, such as every trophy, has a line of its chances.
                 foreach (var drop in told.Where(d => WithStars(d) == StarDrop.Likelier).OrderBy(d => d.m_chance))
                 {
@@ -88,7 +91,7 @@ namespace Scry
             var drops = prefab.GetComponent<CharacterDrop>();
             if (drops != null && drops.m_drops.Count > 0)
             {
-                var row = new Row { Title = "Drops" };
+                var row = new Row { Title = "Drops", Tally = Tally.Fell, TallyOf = prefab.name };
                 // What only it drops first, then what a trader pays for, then the rest, each the least likely first.
                 var here = new[] { prefab.name };
                 var told = drops.m_drops.Where(d => d?.m_prefab != null).Select(d => (Drop: d, Notable: Notable(d.m_prefab.name, here)));
@@ -159,7 +162,7 @@ namespace Scry
                 attacks.Add((cells, item.name, fires, shared.m_attackStatusEffect));
             }
             var onHit = attacks.Any(a => a.OnHit != null);
-            var table = new Row { Title = CombatWords.AttacksTitle, Columns = CombatWords.AttackColumnsFor(onHit) };
+            var table = new Row { Title = CombatWords.AttacksTitle, Columns = CombatWords.AttackColumnsFor(onHit), AttackCells = onHit ? new[] { 1, 3 } : new[] { 1 } };
             foreach (var (cells, item, fires, effect) in attacks)
             {
                 var line = table.Lines.Count;
@@ -215,6 +218,7 @@ namespace Scry
             {
                 Add("Takes to tame", Numbers.Duration(tame.m_tamingTime));
                 Add("Stays fed", Numbers.Duration(tame.m_fedDuration));
+                Proofs["Takes to tame"] = Proofs["Stays fed"] = EntryKeys.Did(Deed.Tamed);
                 Part("riding", () => Riding(tame));
                 var breed = prefab.GetComponent<Procreation>();
                 if (breed != null) Part("breeding", () => Breeding(breed));
@@ -267,6 +271,7 @@ namespace Scry
             Add("Breeds when", BreedWords.Needs(breed.m_partnerCheckRange, partner, breed.m_noPartnerOffspring != null));
             Add("Love", BreedWords.Love(breed.m_updateInterval, breed.m_pregnancyChance, breed.m_requiredLovePoints));
             Add("Pregnant for", Numbers.Duration(breed.m_pregnancyDuration));
+            Proofs["Pregnant for"] = EntryKeys.Did(Deed.Born);
             Add("Stops breeding", BreedWords.Crowd(breed.m_maxCreatures, breed.m_totalCheckRange));
             if (breed.m_offspring != null) Rows.Add(new Row { Title = BreedWords.Young(breed.m_minOffspringLevel), Items = { Chip(breed.m_offspring.name, "") } });
             if (breed.m_noPartnerOffspring != null) Rows.Add(new Row { Title = "With no partner near, has", Items = { Chip(breed.m_noPartnerOffspring.name, "") } });
@@ -276,6 +281,7 @@ namespace Scry
         private void GrowingUp(Growup grow)
         {
             Add("Grows up in", Numbers.Duration(grow.m_growTime));
+            Proofs["Grows up in"] = EntryKeys.Did(Deed.GrewUp);
             var grown = Knowledge.GrownOf(grow);
             if (grown.Count == 0) return;
             var row = new Row { Title = BreedWords.GrowsInto(grown.Count > 1, grow.m_inheritTame) };
@@ -338,6 +344,7 @@ namespace Scry
                 var key = CombatWords.WeakSpot(spot.gameObject.name);
                 if (Pairs.Any(p => p.Key == key)) continue;
                 Add(key, CombatWords.Resistances(ByDegree(spot.m_damageModifiers)));
+                Proofs[key] = EntryKeys.WeakSpot(spot.gameObject.name);
             }
         }
     }

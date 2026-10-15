@@ -46,6 +46,25 @@ namespace Scry
             /// <summary>A creature's grid of how it takes each damage type: under the strict rules each type is kept back until a hit of it told the character (<see cref="HitTold"/>).</summary>
             public bool HitReveals;
 
+            /// <summary>
+            /// A table's lines kept back under the strict rules until something was seen done
+            /// (<see cref="EntryKeys.Did"/>), by line: their cells past the first read ???, as a
+            /// creature's health by its stars until one was killed.
+            /// </summary>
+            public readonly Dictionary<int, string> LineProofs = new Dictionary<int, string>();
+
+            /// <summary>The cells of a creature's attack line kept back until it hit the character (<see cref="Explorer.HidesAttack"/>): its damage and what it puts on you.</summary>
+            public int[] AttackCells;
+
+            /// <summary>
+            /// What a row's amounts are counted from under the strict rules, of which prefab, and
+            /// how its title begins ("When felled, "): what the character saw fall or given, in
+            /// place of the game's chances (<see cref="Explorer.StrictAmount"/>).
+            /// </summary>
+            public Tally Tally;
+            public string TallyOf;
+            public string TallyLead;
+
             /// <summary>A table in place of chips: its columns' headings, and its lines, each its cells and what its first cell goes to; null for none.</summary>
             public string[] Columns;
             public readonly List<(string[] Cells, string Link)> Lines = new List<(string[], string)>();
@@ -229,6 +248,13 @@ namespace Scry
 
         /// <summary>Why Scry is not sure of a pair, by its label (<see cref="UnsureWords"/>).</summary>
         public readonly Dictionary<string, string> Unsure = new Dictionary<string, string>();
+
+        /// <summary>
+        /// What shows a pair under the strict rules, by its label: a deed seen (<see cref="EntryKeys.Did"/>),
+        /// the pair reading ??? until then and saying so, or a weak spot a hit found
+        /// (<see cref="EntryKeys.WeakSpot"/>), the pair left out until then and counted.
+        /// </summary>
+        public readonly Dictionary<string, string> Proofs = new Dictionary<string, string>();
 
         /// <summary>A pair Scry is not sure of, with why.</summary>
         private void AddUnsure(string label, string value, string why, string link = null)

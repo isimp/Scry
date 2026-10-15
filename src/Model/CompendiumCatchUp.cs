@@ -97,6 +97,8 @@ namespace Scry
             var raised = known.Count(k => book.Raise(k.Entry.Key, KnownLevel.Known, quietly, k.Way))
                 + Raise(book, materials.Except(held), KnownLevel.Seen, quietly);
             Pair(records, book, entered);
+            // A creature the character killed shows its health under the strict rules.
+            foreach (var killed in Named(records.Killed, Kind.Creature)) book.Witness(killed.Key, EntryKeys.Did(Deed.Killed));
             foreach (var given in givers)
             {
                 foreach (var giver in given.Value) book.Witness(given.Key.Key, giver);

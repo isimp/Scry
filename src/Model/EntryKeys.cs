@@ -2,6 +2,25 @@ using System;
 
 namespace Scry
 {
+    /// <summary>What the character can be seen to do, or see done, that shows a number the game never does (<see cref="EntryKeys.Did"/>).</summary>
+    internal enum Deed
+    {
+        /// <summary>Killed a creature: its health.</summary>
+        Killed,
+
+        /// <summary>Tamed a creature: how long taming and a meal take.</summary>
+        Tamed,
+
+        /// <summary>Saw a creature born: how long it is pregnant.</summary>
+        Born,
+
+        /// <summary>Saw a young creature grow up: how long that takes.</summary>
+        GrewUp,
+
+        /// <summary>Saw a pickable grow back: how long that takes.</summary>
+        GrewBack,
+    }
+
     /// <summary>
     /// The key an entry is kept under in favourites, recent and links. A prefab goes by its name;
     /// what is no prefab has a namespace of its own, since it may share a name with one: a status
@@ -21,6 +40,28 @@ namespace Scry
 
         /// <summary>The key a damage type is paired under with a creature the game told how it takes it (<see cref="HitTold"/>).</summary>
         public static string Damage(string type) => DamageType + type;
+
+        /// <summary>Something the character saw done, kept only as paired with what it was done to (<see cref="Did"/>); no entry goes by it.</summary>
+        private const string Deeds = "did:";
+
+        /// <summary>The key a deed is paired under with what it was seen done to: a creature killed, tamed, born or grown up, a pickable grown back.</summary>
+        public static string Did(Deed deed) => Deeds + deed;
+
+        /// <summary>Whether a key is a deed's (<see cref="Did"/>), and which.</summary>
+        public static bool IsDeed(string key, out Deed deed)
+        {
+            deed = default;
+            return key != null && key.StartsWith(Deeds, StringComparison.Ordinal) && Enum.TryParse(key.Substring(Deeds.Length), out deed);
+        }
+
+        /// <summary>A creature's weak spot, kept only as paired with a creature a hit of the character found it on; no entry goes by it.</summary>
+        private const string Spot = "spot:";
+
+        /// <summary>The key a weak spot is paired under, by the name of the part it is on.</summary>
+        public static string WeakSpot(string part) => Spot + part;
+
+        /// <summary>Whether a key is a weak spot's (<see cref="WeakSpot"/>).</summary>
+        public static bool IsWeakSpot(string key) => key != null && key.StartsWith(Spot, StringComparison.Ordinal);
 
         /// <summary>A value's link that plays the entry's own music rather than going to an entry.</summary>
         public const string PlayMusic = "play:music";

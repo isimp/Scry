@@ -195,6 +195,8 @@ namespace Scry
             }
             y += U(22f);
 
+            var attacksKept = 0;
+            KeptLines.Clear();
             for (var l = 0; l < row.Lines.Count; l++)
             {
                 var (cells, link) = row.Lines[l];
@@ -204,6 +206,12 @@ namespace Scry
                     StrictLeft(1);
                     continue;
                 }
+                // Under the strict rules an attack that never hit the character keeps its damage
+                // back, and a line only something seen done tells (health by stars) all its numbers.
+                var attackKept = row.AttackCells != null && explorer.HidesAttack(link);
+                if (attackKept) attacksKept++;
+                var lineKept = row.LineProofs.TryGetValue(l, out var lineProof) && explorer.KeepsBack(lineProof);
+                if (lineKept && cells.Length > 0) KeptLines.Add(CompendiumWords.ShowsOnce(cells[0], lineProof));
                 var height = U(20f);
                 for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++) height = Mathf.Max(height, Skin.Height(Skin.SmallWrap, cells[c], ColumnWidths[c]));
                 var line = new Rect(0f, y, width, height);
@@ -266,6 +274,12 @@ namespace Scry
                             if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + link, PanelWords.GoTo(cells[c]));
                             if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, link);
                         }
+                        // A number kept back reads ??? and says on hover what shows it.
+                        else if (c > 0 && (lineKept || (attackKept && Array.IndexOf(row.AttackCells, c) >= 0)))
+                        {
+                            GUI.Label(cell, CompendiumWords.Hidden, Skin.SmallWrap);
+                            if (cell.Contains(Event.current.mousePosition)) AskTip("kept:" + row.Title + cells[0] + row.Columns[c], lineKept ? CompendiumWords.ShowsOnce(cells[0], lineProof) : CompendiumWords.NotYetTakenTip);
+                        }
                         // A cell naming what was not seen together with the page keeps the name back.
                         else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var hidden) && explorer.LeavesOut(hidden))
                         {
@@ -286,8 +300,14 @@ namespace Scry
                 y += height + U(6f);
             }
             CountDrawn(PanelPart.FactTable);
-            return y + U(4f);
+            y += U(4f);
+            y = FaintLine(CompendiumWords.NotYetTaken(attacksKept), "attacks-kept:", row.Title, PanelPart.TableKeptBack, width, y);
+            foreach (var said in KeptLines) y = FaintLine(said, "line-kept:", said, PanelPart.TableKeptBack, width, y);
+            return y;
         }
+
+        /// <summary>What shows each line of the table being drawn whose numbers are kept back, for its faint lines.</summary>
+        private static readonly List<string> KeptLines = new List<string>();
 
         /// <summary>A fact that qualifies what stands above it, told under it in a soft line.</summary>
         private static float FactNote(Facts facts, KeyValuePair<string, string> pair, float width, float y)

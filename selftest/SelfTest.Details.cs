@@ -22,6 +22,36 @@ namespace Scry
             var head = Value(told, "Hit on the head");
             if (p.Check(head != null, "the troll tells its head as a weak spot", Pairs(told))) p.Check(head.Contains("pierce"), "a hit there is told by its own resistances", head);
 
+            // What the strict rules keep back until the character found it out, and what shows it.
+            told.Proofs.TryGetValue("Hit on the head", out var spot);
+            p.Check(EntryKeys.IsWeakSpot(spot), "under the strict rules its head is left out until a hit finds it", spot);
+            told.Proofs.TryGetValue("Health", out var health);
+            p.Check(health == EntryKeys.Did(Deed.Killed), "its health until one is killed", health);
+            var starred = told.Rows.FirstOrDefault(r => r.Title == CombatWords.StarsTitle);
+            p.Check(starred != null && starred.LineProofs.TryGetValue(0, out var byStars) && byStars == health && starred.Lines[0].Cells[0] == "Health", "and its health by stars with it");
+            var attacks = told.Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle);
+            p.Check(attacks?.AttackCells != null && attacks.AttackCells.All(c => c < attacks.Columns.Length && (attacks.Columns[c] == "Damage" || attacks.Columns[c] == "On hit")),
+                "its attacks keep back their damage and what they put on you until each hit the character", attacks == null ? "no attacks" : string.Join(", ", attacks.AttackCells?.Select(c => attacks.Columns[c]) ?? Enumerable.Empty<string>()));
+            var drops = told.Rows.FirstOrDefault(r => r.Title == "Drops");
+            p.Check(drops != null && drops.Tally == Tally.Fell && drops.TallyOf == troll.Name, "its drops are counted from what the character saw fall", drops == null ? "no drops" : drops.Tally + " of " + drops.TallyOf);
+            var forest = EntryKeys.For(Kind.Biome, "BlackForest");
+            p.Check(told.Where.Any(s => s.MetIn != null && s.MetIn.Contains(forest)) && X.Find(forest) != null, "its spawn line names the biome it shows for once met there, an entry of the catalog",
+                string.Join(" | ", told.Where.Where(s => s.MetIn != null).Select(s => string.Join(",", s.MetIn))));
+            foreach (var (kind, name, fact, deed) in new[]
+            {
+                (Kind.Creature, "Boar", "Takes to tame", Deed.Tamed), (Kind.Creature, "Boar", "Pregnant for", Deed.Born),
+                (Kind.Creature, "Boar_piggy", "Grows up in", Deed.GrewUp), (Kind.Resource, "RaspberryBush", "Grows back in", Deed.GrewBack),
+            })
+            {
+                var entry = Pick(kind, name);
+                if (entry == null) continue;
+                Facts.For(entry).Proofs.TryGetValue(fact, out var proof);
+                p.Check(proof == EntryKeys.Did(deed), $"{name}'s {fact.ToLowerInvariant()} shows once it was seen ({deed})", proof);
+            }
+            var beech = Pick(Kind.Resource, "Beech1");
+            var felled = beech != null ? Facts.For(beech).Rows.FirstOrDefault(r => r.Tally == Tally.Gave) : null;
+            if (beech != null) p.Check(felled != null && felled.TallyOf == "Beech1", "what a beech gives is counted from what the character saw it give", felled?.Title);
+
             // Since 1.0.20 a trophy only gets likelier with stars: its own line of chances in the
             // stars table, and not among what stays the same.
             if (p.Check(Facts.AmountStaysField != null, "the game tells which drops stars leave the amount of (m_levelMultiplierNotAmount)"))

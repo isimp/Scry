@@ -30,7 +30,7 @@ namespace Scry
             if (tree != null)
             {
                 Hits(tree.m_health, false, tree.m_minToolTier, tree.m_damageModifiers);
-                Drops(tree.m_dropWhenDestroyed, GatherWords.WhenFelled);
+                Drops(tree.m_dropWhenDestroyed, GatherWords.WhenFelled, tallied: prefab.name);
                 Leads("Felled, falls as", new[] { (tree.m_logPrefab, 1) });
                 Leads("Leaves", new[] { (tree.m_stubPrefab, 1) });
             }
@@ -39,7 +39,7 @@ namespace Scry
             if (log != null)
             {
                 Hits(log.m_health, false, log.m_minToolTier, log.m_damages);
-                Drops(log.m_dropWhenDestroyed, null);
+                Drops(log.m_dropWhenDestroyed, null, tallied: prefab.name);
                 Leads("Splits into", new[] { (log.m_subLogPrefab, log.m_subLogPoints?.Count(p => p != null) ?? 0) });
             }
 
@@ -48,13 +48,13 @@ namespace Scry
             if (rock != null)
             {
                 Hits(rock.m_health, true, rock.m_minToolTier, rock.m_damageModifiers);
-                Drops(rock.m_dropItems, GatherWords.EachPiece);
+                Drops(rock.m_dropItems, GatherWords.EachPiece, tallied: prefab.name);
             }
             var vein = prefab.GetComponent<MineRock5>();
             if (vein != null)
             {
                 Hits(vein.m_health, true, vein.m_minToolTier, vein.m_damageModifiers);
-                Drops(vein.m_dropItems, GatherWords.EachPiece);
+                Drops(vein.m_dropItems, GatherWords.EachPiece, tallied: prefab.name);
             }
 
             var breaks = prefab.GetComponent<Destructible>();
@@ -69,19 +69,19 @@ namespace Scry
                 if (innerVein != null)
                 {
                     Hits(innerVein.m_health, true, Math.Max(breaks.m_minToolTier, innerVein.m_minToolTier), innerVein.m_damageModifiers);
-                    Drops(innerVein.m_dropItems, GatherWords.EachPiece);
+                    Drops(innerVein.m_dropItems, GatherWords.EachPiece, tallied: inside.name);
                 }
                 else if (innerRock != null)
                 {
                     Hits(innerRock.m_health, true, Math.Max(breaks.m_minToolTier, innerRock.m_minToolTier), innerRock.m_damageModifiers);
-                    Drops(innerRock.m_dropItems, GatherWords.EachPiece);
+                    Drops(innerRock.m_dropItems, GatherWords.EachPiece, tallied: inside.name);
                 }
             }
             else if (breaks != null && tree == null && log == null)
             {
                 Hits(breaks.m_health, false, breaks.m_minToolTier, breaks.m_damages);
                 var dropping = prefab.GetComponent<DropOnDestroyed>();
-                if (dropping != null) Drops(dropping.m_dropWhenDestroyed, GatherWords.WhenBroken);
+                if (dropping != null) Drops(dropping.m_dropWhenDestroyed, GatherWords.WhenBroken, tallied: prefab.name);
             }
             // What breaks and gives nothing says so.
             if (broken && Gives() == giving) Add("Gives", GatherWords.NothingWhenBroken);
@@ -98,6 +98,7 @@ namespace Scry
                 Rows.Add(picked);
                 _drops = true;
                 if (pickable.m_respawnTimeMinutes > 0f) Add("Grows back in", Numbers.Duration(pickable.m_respawnTimeMinutes * 60f));
+                Proofs["Grows back in"] = EntryKeys.Did(Deed.GrewBack);
                 var day = EnvMan.instance != null ? EnvMan.instance.m_dayLengthSec : 1200L;
                 var yields = Yield.PerDay(pickable.m_amount, pickable.m_respawnTimeMinutes, day);
                 if (yields != null) Add("Gives", GatherWords.PerDay(yields, day));
@@ -203,9 +204,11 @@ namespace Scry
 
         /// <summary>
         /// A drop table as a row: its title says how often and how many times, each chip how many
-        /// and its share. A chest's is told as what it holds.
+        /// and its share. A chest's is told as what it holds. One a resource gives as it breaks is
+        /// counted, under the strict rules, from what the character saw the prefab it names give
+        /// (<see cref="Row.Tally"/>).
         /// </summary>
-        private void Drops(DropTable table, string lead, bool holds = false)
+        private void Drops(DropTable table, string lead, bool holds = false, string tallied = null)
         {
             if (table?.m_drops == null) return;
             var info = Knowledge.InfoOf(table);
@@ -216,7 +219,7 @@ namespace Scry
             // The rarest first: within one table, the least weight.
             var title = holds ? DropWords.HoldsTitle(info) : DropWords.Title(info);
             title = DropWords.Led(lead, title);
-            var row = new Row { Title = title };
+            var row = new Row { Title = title, Tally = tallied != null ? Tally.Gave : Tally.None, TallyOf = tallied, TallyLead = lead };
             // What only this gives first, then what a trader pays for, then the rest, each the least likely first.
             var here = new[] { _entry?.Name ?? "" };
             foreach (var (each, item, notable) in ContentOrder.LootFirst(items.Select(i => (i.Drop, i.Item, Notable: Notable(i.Item.name, here))), i => i.Drop.Weight, i => i.Notable.Only, i => i.Notable.Worth))

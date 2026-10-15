@@ -193,13 +193,39 @@ namespace Scry
             if (!string.IsNullOrEmpty(tool)) _book.Witness(piece, tool);
         }
 
-        /// <summary>A creature the character tamed or petted, as news: known, and met where it stands.</summary>
-        public static void Tamed(Character creature)
+        /// <summary>A creature the character tamed or petted, as news: known, and met where it stands; one tamed shows how long taming takes.</summary>
+        public static void Tamed(Character creature, bool tamedNow)
         {
             if (_book == null || _catchUp == null || creature == null) return;
             var key = Utils.GetPrefabName(creature.gameObject);
             _catchUp.Met(key, KnownLevel.Known, _book, CameBy.Tamed);
             MetIn(key, creature.transform.position);
+            if (tamedNow) _book.Witness(key, EntryKeys.Did(Deed.Tamed));
+        }
+
+        /// <summary>Something the character saw done to a thing, which shows a number the game never does (<see cref="Deed"/>).</summary>
+        public static void SawDone(GameObject thing, Deed deed)
+        {
+            if (_book == null || thing == null) return;
+            _book.Witness(Utils.GetPrefabName(thing), EntryKeys.Did(deed));
+        }
+
+        /// <summary>A weak spot a hit of the character found on a creature, by the part it is on.</summary>
+        public static void FoundWeakSpot(Character creature, string part)
+        {
+            if (_book == null || creature == null || string.IsNullOrEmpty(part)) return;
+            _book.Witness(Utils.GetPrefabName(creature.gameObject), EntryKeys.WeakSpot(part));
+        }
+
+        /// <summary>A creature's loot seen to fall as it died, counted for the character.</summary>
+        public static void Dropped(string creature, List<(string Item, int Amount)> loot) => _book?.Dropped(creature, loot);
+
+        /// <summary>What a tree, rock or other thing was seen to give as it broke, counted for the character, and each seen to come from it.</summary>
+        public static void Yielded(string thing, List<(string Item, int Amount)> loot)
+        {
+            if (_book == null) return;
+            _book.Yielded(thing, loot);
+            foreach (var (item, _) in loot) _book.Witness(thing, item);
         }
 
         /// <summary>Something the character used, as news: known, and met where it stands.</summary>

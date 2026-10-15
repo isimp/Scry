@@ -41,6 +41,10 @@ namespace Scry
         FloorLine,
         StrictLeftOut,
         DamageKeptBack,
+        FactKeptBack,
+        WeakSpotsLeftOut,
+        TableKeptBack,
+        TallyCounted,
         YouBox,
         EmptyRowLeftOut,
     }

@@ -128,6 +128,32 @@ namespace Scry
         /// <summary>How many of the latest raises the book remembers, for what is counted on top (<see cref="RaisedSince"/>); the older half is forgotten past it.</summary>
         public const int RaisesKept = 4096;
 
+        /// <summary>What creatures were seen to drop, kill by kill, and what trees, rocks and other resources were seen to give, for the strict rules' amounts.</summary>
+        private readonly SeenDrops _fell = new SeenDrops();
+        private readonly SeenDrops _gave = new SeenDrops();
+
+        /// <summary>What was counted of a kind (<see cref="Tally"/>); an empty count for none.</summary>
+        public SeenDrops Tallied(Tally tally) => tally == Tally.Fell ? _fell : tally == Tally.Gave ? _gave : NoTally;
+
+        private static readonly SeenDrops NoTally = new SeenDrops();
+
+        /// <summary>A creature's loot seen to fall as it died, counted as one kill.</summary>
+        public void Dropped(string creature, IEnumerable<(string Item, int Amount)> loot)
+        {
+            if (string.IsNullOrEmpty(creature)) return;
+            _fell.Record(creature, loot);
+            Changed = true;
+        }
+
+        /// <summary>What a resource was seen to give as it broke, counted as one time where it gave anything.</summary>
+        public void Yielded(string resource, IEnumerable<(string Item, int Amount)> loot)
+        {
+            var given = (loot ?? Enumerable.Empty<(string, int)>()).Where(l => !string.IsNullOrEmpty(l.Item) && l.Amount > 0).ToList();
+            if (string.IsNullOrEmpty(resource) || given.Count == 0) return;
+            _gave.Record(resource, given);
+            Changed = true;
+        }
+
         /// <summary>The keys raised, oldest first: the one at i raised to <see cref="Version"/> <c>_raisedFrom + i + 1</c>. Not kept.</summary>
         private readonly List<string> _raised = new List<string>();
         private int _raisedFrom;
@@ -246,6 +272,8 @@ namespace Scry
             var floor = _floor;
             var pairs = _pairs.ToArray();
             var came = _came.ToArray();
+            var fell = _fell.Save();
+            var gave = _gave.Save();
             Changed = false;
             return () =>
             {
@@ -267,6 +295,8 @@ namespace Scry
                     var (way, day, biome) = pair.Value;
                     text.Append("came\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(way).Append('\t').Append(Stored.Count(day)).Append('\t').Append(Stored.Escaped(biome ?? "")).Append('\n');
                 }
+                foreach (var line in fell.Split('\n')) if (line.Length > 0) text.Append("fell\t").Append(line).Append('\n');
+                foreach (var line in gave.Split('\n')) if (line.Length > 0) text.Append("gave\t").Append(line).Append('\n');
                 return text.ToString();
             };
         }
@@ -301,6 +331,16 @@ namespace Scry
         {
             var book = new CompendiumBook();
             if (string.IsNullOrEmpty(text)) return book;
+            // The counts of what fell and was given, each its own text inside the book's.
+            var fell = new StringBuilder();
+            var gave = new StringBuilder();
+            foreach (var line in text.Split('\n'))
+            {
+                if (line.StartsWith("fell\t", StringComparison.Ordinal)) fell.Append(line, 5, line.Length - 5).Append('\n');
+                else if (line.StartsWith("gave\t", StringComparison.Ordinal)) gave.Append(line, 5, line.Length - 5).Append('\n');
+            }
+            book._fell.Take(SeenDrops.Load(fell.ToString()));
+            book._gave.Take(SeenDrops.Load(gave.ToString()));
             foreach (var line in text.Split('\n'))
             {
                 var parts = line.TrimEnd('\r').Split('\t');

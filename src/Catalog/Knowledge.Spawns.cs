@@ -178,6 +178,9 @@ namespace Scry
             return shown.Length > 0 ? shown : Naming.FieldLabel(biome ?? "");
         }
 
+        /// <summary>The single biomes in a set of flags as the keys of their entries, for a line to show only where it was met in one.</summary>
+        private static string[] BiomeEntryKeys(Heightmap.Biome biome) => Singles(biome).Select(b => EntryKeys.For(Kind.Biome, b.ToString())).ToArray();
+
         /// <summary>Biomes by the names the game shows, joined.</summary>
         public static string BiomeNames(Heightmap.Biome biome)
         {
@@ -260,7 +263,7 @@ namespace Scry
                         Keys = new[] { data.m_requiredGlobalKey },
                         Event = EventName(data.m_requiredPersistentEvent),
                     };
-                    Add(name, SpawnWords.Line("Spawns in", spawn, BossOf), BossPrefabOf(data.m_requiredGlobalKey));
+                    Add(name, new Source(SpawnWords.Line("Spawns in", spawn, BossOf), BossPrefabOf(data.m_requiredGlobalKey)) { MetIn = BiomeEntryKeys(data.m_biome) });
                     Unlocks.Add(data.m_requiredGlobalKey, Unlock.Spawns, name);
                 });
             }
@@ -383,8 +386,8 @@ namespace Scry
                 AddBiomes(name, veg.m_biome);
                 PlacedByWorld.Add(name);
 
-                Add(name, SpawnWords.Grows(BiomeNames(veg.m_biome), veg.m_minAltitude, veg.m_maxAltitude,
-                    veg.m_minOceanDepth > 0f || veg.m_maxOceanDepth > 0f, veg.m_inForest, veg.m_groupSizeMin, veg.m_groupSizeMax));
+                Add(name, new Source(SpawnWords.Grows(BiomeNames(veg.m_biome), veg.m_minAltitude, veg.m_maxAltitude,
+                    veg.m_minOceanDepth > 0f || veg.m_maxOceanDepth > 0f, veg.m_inForest, veg.m_groupSizeMin, veg.m_groupSizeMax), null) { MetIn = BiomeEntryKeys(veg.m_biome) });
             });
         }
 
