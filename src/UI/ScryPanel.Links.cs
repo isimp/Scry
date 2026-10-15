@@ -98,11 +98,16 @@ namespace Scry
         /// <summary>A small heading and a wrapping row of link chips, each with its own text, tip and doing; without the heading where the topic it stands in names it already.</summary>
         private static float LinkItems(Explorer explorer, string title, IEnumerable<(string Key, string Text, string Tip, Action Click)> items, float width, float y, bool titled = true)
         {
-            if (titled) GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
-            var flow = new ChipFlow(0f, width, titled ? y + U(24f) : y, U(26f), U(5f), U(5f));
             var given = items as IReadOnlyList<(string Key, string Text, string Tip, Action Click)> ?? items.ToList();
             var all = ShownStrictly(explorer, given, i => i.Key);
-            if (all.Count == 0) return y;
+            // A row left with nothing draws nothing, its title neither, so the next one takes its place.
+            if (all.Count == 0)
+            {
+                if (given.Count > 0) CountDrawn(PanelPart.EmptyRowLeftOut);
+                return y;
+            }
+            if (titled) GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
+            var flow = new ChipFlow(0f, width, titled ? y + U(24f) : y, U(26f), U(5f), U(5f));
             if (all.Count < given.Count) title = CompendiumWords.Uncounted(title);
             var key = "links:" + title;
             var count = ShownOf(key, all.Count);
@@ -248,9 +253,15 @@ namespace Scry
         /// <summary>A small heading and a wrapping row of chips, each doing its own thing when clicked; one with nothing to do is plain.</summary>
         private static float ChipRow(string title, IEnumerable<KeyValuePair<string, Action>> chips, float width, float y)
         {
+            var all = chips.ToList();
+            // A row left with nothing, as biomes the strict rules leave out, draws nothing.
+            if (all.Count == 0)
+            {
+                CountDrawn(PanelPart.EmptyRowLeftOut);
+                return y;
+            }
             GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
             var flow = new ChipFlow(0f, width, y + U(24f), U(26f), U(5f), U(5f));
-            var all = chips.ToList();
             var key = "chips:" + title;
             foreach (var chip in all.Take(ShownOf(key, all.Count)))
             {

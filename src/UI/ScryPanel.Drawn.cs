@@ -42,6 +42,7 @@ namespace Scry
         StrictLeftOut,
         DamageKeptBack,
         YouBox,
+        EmptyRowLeftOut,
     }
 
     internal static partial class ScryPanel

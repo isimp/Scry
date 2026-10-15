@@ -151,6 +151,13 @@ namespace Scry
         /// </summary>
         private static float Members(Explorer explorer, string title, object list, IReadOnlyList<string> members, string self, float width, float y)
         {
+            // A titled row the strict rules leave with nothing draws nothing, its title neither.
+            if (title != null && members.Count > 0 && explorer.LeavingOut && members.All(explorer.LeavesOut))
+            {
+                StrictLeft(members.Count);
+                CountDrawn(PanelPart.EmptyRowLeftOut);
+                return y;
+            }
             if (title != null)
             {
                 GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);

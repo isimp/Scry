@@ -163,6 +163,13 @@ namespace Scry
         /// </summary>
         private static float TableRow(Explorer explorer, Facts.Row row, float width, float y)
         {
+            // A table the strict rules leave every line out of draws nothing, its title and headings neither.
+            if (row.Lines.Count > 0 && explorer.LeavingOut && row.Lines.TrueForAll(l => !string.IsNullOrEmpty(l.Link) && explorer.LeavesOut(l.Link)))
+            {
+                StrictLeft(row.Lines.Count);
+                CountDrawn(PanelPart.EmptyRowLeftOut);
+                return y;
+            }
             y += U(6f);
             GUI.Label(new Rect(0f, y, width, U(20f)), row.Title, Skin.DimLabel);
             y += U(24f);

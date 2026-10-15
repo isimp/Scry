@@ -638,10 +638,13 @@ namespace Scry
                 X.Select(fought);
                 var strictFaults = Faults.Count;
                 var leftLines = ScryPanel.Drawn(PanelPart.StrictLeftOut);
+                var emptyRows = ScryPanel.Drawn(PanelPart.EmptyRowLeftOut);
                 repaints = ScryPanel.Repaints;
                 yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
                 p.Check(X.LeavingOut && !X.LeavesOut(drops[0].Key) && X.LeavesOut(drops[1].Key), $"under the strict rules its page keeps {drops[0].Name}, seen fall, and leaves out {drops[1].Name}");
                 p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) > leftLines, "and says faintly at the end of its loot how many more were not yet seen fall");
+                // Its biomes, none seen with it, leave their row with nothing: it draws nothing, its title neither.
+                p.Check(ScryPanel.Drawn(PanelPart.EmptyRowLeftOut) > emptyRows, "a row the strict rules leave with nothing draws nothing, not even its title");
                 p.Check(Faults.Count == strictFaults, "and draws without fault", Faults.Latest);
                 // How it takes each damage type stays back until a hit told it.
                 p.Check(X.HidesDamage("Fire") && X.HidesDamage("Blunt"), "its damage grid keeps back how it takes each type, never hit with any");
