@@ -30,6 +30,8 @@ An item whose tooltip in the game mods add lines to shows that tooltip on its pa
 
 A creature's *With stars* table gives each drop that stars make only likelier a line of its chance at each star, as Valheim 1.0.20 does for every trophy, where it said they doubled in number.
 
+A weapon's attacks table has a line for each step of its combo, the last as the game deals it, each playing its own swing, and says how the combo goes and what starts it over. A windmill's page tells what wind it needs: none below the least, full at the strongest, any facing; what blocks it within 30 m of its hub; when its blades hurt; and how much time away it makes up.
+
 A mod's website opened from its page no longer keeps Steam showing Valheim as running after the game is closed when the browser was not open before.
 
 ## 0.2.0
