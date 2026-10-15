@@ -100,7 +100,8 @@ namespace Scry
         /// What the character has and is in, as news: what it carries, the status effects on it,
         /// the raid around it (<c>RandEventSystem.GetActiveEvent</c>, the one the game plays for
         /// it), paired with the creatures it brings that the character met, and the place it
-        /// stands in are known; what it points at is seen.
+        /// stands in are known, a dungeon only once inside it (seen at its entrance); what it
+        /// points at is seen.
         /// </summary>
         private static void Look(Player player)
         {
@@ -115,7 +116,7 @@ namespace Scry
             var raid = RandEventSystem.instance.OrNull()?.GetActiveEvent();
             if (raid != null) _catchUp.LivedThrough(EntryKeys.For(Kind.Raid, raid.m_name), _book);
             var place = Location.GetLocation(player.transform.position);
-            if (place != null) _catchUp.Met(EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)), KnownLevel.Known, _book);
+            if (place != null) _catchUp.StoodIn(EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)), place.m_hasInterior, player.InInterior(), _book);
             var hovered = player.GetHoverObject();
             var thing = hovered != null ? hovered.GetComponentInParent<ZNetView>() : null;
             if (thing != null) _catchUp.Met(Utils.GetPrefabName(thing.gameObject), KnownLevel.Seen, _book);

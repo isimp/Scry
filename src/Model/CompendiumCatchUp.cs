@@ -130,6 +130,14 @@ namespace Scry
         public bool Met(string key, KnownLevel level, CompendiumBook book) => _catalog.Find(key) != null && book.Raise(key, level);
 
         /// <summary>
+        /// The place the character stands in, as news: known, but a place with an inside (a
+        /// dungeon, whose rooms come along with it) only once the character is inside it; standing
+        /// at its entrance it is seen. True when it was learned more of.
+        /// </summary>
+        public bool StoodIn(string place, bool hasInside, bool inside, CompendiumBook book) =>
+            Met(place, !hasInside || inside ? KnownLevel.Known : KnownLevel.Seen, book);
+
+        /// <summary>
         /// The raid the character is in, as news: known, and paired with the creatures it brings
         /// that the character has met, for the strict rules. True when it was learned more of.
         /// </summary>

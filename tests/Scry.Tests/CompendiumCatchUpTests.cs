@@ -360,6 +360,34 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ADungeonIsKnownOnlyOnceInsideAndSeenFromItsEntrance()
+        {
+            // A known dungeon makes all its rooms known, so standing by its door is not enough.
+            var crypt = new Entry { Kind = Kind.Location, Name = "Crypt2" };
+            var (catchUp, book) = Fresh(crypt);
+
+            Assert.True(catchUp.StoodIn(crypt.Key, hasInside: true, inside: false, book));
+            Assert.Equal(KnownLevel.Seen, book.Level(crypt.Key));
+
+            Assert.True(catchUp.StoodIn(crypt.Key, hasInside: true, inside: true, book));
+            Assert.Equal(KnownLevel.Known, book.Level(crypt.Key));
+            Assert.Equal(crypt.Key, book.Lately.First());
+        }
+
+        [Fact]
+        public void APlaceWithoutAnInsideIsKnownByStandingInIt()
+        {
+            var dolmen = new Entry { Kind = Kind.Location, Name = "Dolmen01" };
+            var (catchUp, book) = Fresh(dolmen);
+
+            Assert.True(catchUp.StoodIn(dolmen.Key, hasInside: false, inside: false, book));
+            Assert.Equal(KnownLevel.Known, book.Level(dolmen.Key));
+            // Again it is no news, and a place the catalog lacks is passed over.
+            Assert.False(catchUp.StoodIn(dolmen.Key, hasInside: false, inside: false, book));
+            Assert.False(catchUp.StoodIn("loc:ModsPlace", hasInside: true, inside: true, book));
+        }
+
+        [Fact]
         public void ARaidLivedThroughIsKnownAndPairedWithTheCreaturesItBringsThatWereMet()
         {
             var greydwarf = E(Kind.Creature, "Greydwarf");

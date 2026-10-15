@@ -59,6 +59,17 @@ namespace Scry
             var shortOf = Short(told, CompendiumKeeper.Book);
             p.Check(shortOf.Count == 0, $"everything its records tell is in its book ({Numbers.Count(told.Count(KnownLevel.HeardOf))} entries)", string.Join(", ", shortOf.Take(10)));
 
+            // The place stood in: known, a dungeon only once inside it, seen at its entrance.
+            var standing = Location.GetLocation(player.transform.position);
+            var standingEntry = standing != null ? X.Find(EntryKeys.For(Kind.Location, Utils.GetPrefabName(standing.gameObject))) : null;
+            if (standingEntry != null)
+            {
+                var want = !standing.m_hasInterior || player.InInterior() ? KnownLevel.Known : KnownLevel.Seen;
+                yield return Until(() => CompendiumKeeper.Book.Level(standingEntry.Key) >= want, 3);
+                p.Check(CompendiumKeeper.Book.Level(standingEntry.Key) >= want, $"the place stood in, {standingEntry.Name}, is {(want == KnownLevel.Known ? "known" : "seen at least, as a dungeon not entered")}");
+            }
+            else p.Note("no place of the catalog is stood in now");
+
             // What it carries is known within a moment.
             var carried = player.GetInventory().GetAllItems().Where(i => i?.m_dropPrefab != null).Select(i => i.m_dropPrefab.name).Where(n => X.Find(n) != null).Distinct().ToList();
             yield return Until(() => carried.All(n => CompendiumKeeper.Book.Level(n) == KnownLevel.Known), 3);
