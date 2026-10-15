@@ -479,6 +479,58 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatTheCharacterUsesIsKnown()
+        {
+            // A portal, bed, ship or chest a friend built: using it (Player.Interact, or an item
+            // used on it) shows what it does, as building it would.
+            var portal = E(Kind.Piece, "portal_wood", "$piece_portal");
+            var vegvisir = E(Kind.Piece, "Vegvisir_Eikthyr", "$piece_vegvisir");
+            var bush = E(Kind.Resource, "RaspberryBush", "$piece_raspberrybush");
+            var haldor = E(Kind.Creature, "Haldor", "$npc_haldor");
+            var wolf = E(Kind.Creature, "Wolf", "$enemy_wolf");
+            var berries = E(Kind.Item, "Raspberry", "$item_raspberries");
+            var (catchUp, book) = Fresh(portal, vegvisir, bush, haldor, wolf, berries);
+
+            Assert.True(catchUp.Used("portal_wood", book));
+            Assert.True(catchUp.Used("Vegvisir_Eikthyr", book));
+            Assert.True(catchUp.Used("RaspberryBush", book));
+            Assert.False(catchUp.Used("portal_wood", book));
+            Assert.Equal(KnownLevel.Known, book.Level(portal.Key));
+            Assert.Equal(KnownLevel.Known, book.Level(vegvisir.Key));
+            Assert.Equal(KnownLevel.Known, book.Level(bush.Key));
+
+            // A creature is known by fighting or taming it, an item by holding it: talking to one
+            // or touching the other is not using it.
+            Assert.False(catchUp.Used("Haldor", book));
+            Assert.False(catchUp.Used("Wolf", book));
+            Assert.False(catchUp.Used("Raspberry", book));
+            Assert.Equal(KnownLevel.Unknown, book.Level(wolf.Key));
+            Assert.False(catchUp.Used("NotInTheCatalog", book));
+        }
+
+        [Fact]
+        public void AnItemWhoseCardTheGameShowedIsKnown()
+        {
+            // Hovering an item in a chest, the inventory or a trader's store shows its whole
+            // tooltip card, by its name token: every item going by that name is known.
+            var sword = E(Kind.Item, "SwordIron", "$item_sword_iron");
+            var lantern = E(Kind.Item, "Lantern", "$item_lantern");
+            var piece = E(Kind.Piece, "piece_lantern", "$item_lantern");
+            var (catchUp, book) = Fresh(sword, lantern, piece);
+
+            Assert.True(catchUp.CardShown("$item_sword_iron", book));
+            Assert.False(catchUp.CardShown("$item_sword_iron", book));
+            Assert.True(catchUp.CardShown("$item_lantern", book));
+            Assert.Equal(KnownLevel.Known, book.Level(sword.Key));
+            Assert.Equal(KnownLevel.Known, book.Level(lantern.Key));
+            // Only items: a piece or a skill going by a name is not an item's card.
+            Assert.Equal(KnownLevel.Unknown, book.Level(piece.Key));
+            Assert.False(catchUp.CardShown("$skill_swords", book));
+            Assert.False(catchUp.CardShown("", book));
+            Assert.False(catchUp.CardShown(null, book));
+        }
+
+        [Fact]
         public void ADungeonIsKnownOnlyOnceInsideAndSeenFromItsEntrance()
         {
             // A known dungeon makes all its rooms known, so standing by its door is not enough.

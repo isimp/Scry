@@ -84,6 +84,9 @@ namespace Scry
             { typeof(TamingWatched), Feature.CompendiumTogether },
             { typeof(PettingWatched), Feature.CompendiumTogether },
             { typeof(EatingWatched), Feature.CompendiumTogether },
+            { typeof(UsingWatched), Feature.CompendiumUse },
+            { typeof(CardWatched), Feature.CompendiumUse },
+            { typeof(VegvisirWatched), Feature.CompendiumUse },
             { typeof(UnmoddedTooltip), Feature.TooltipFromMods },
         };
 

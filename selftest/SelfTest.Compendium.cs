@@ -398,13 +398,24 @@ namespace Scry
         private static IEnumerator CompendiumWatched(Probe p)
         {
             foreach (var (type, name) in new[] { (typeof(Character), "Damage"), (typeof(Character), "RPC_Damage"), (typeof(Destructible), "Damage"), (typeof(TreeBase), "Damage"), (typeof(TreeLog), "Damage"), (typeof(MineRock), "Damage"), (typeof(MineRock5), "Damage"),
-                (typeof(Humanoid), "Pickup"), (typeof(Player), "PlacePiece"), (typeof(Tameable), "Tame"), (typeof(Tameable), "Interact"), (typeof(Tameable), "OnConsumedItem") })
+                (typeof(Humanoid), "Pickup"), (typeof(Player), "PlacePiece"), (typeof(Tameable), "Tame"), (typeof(Tameable), "Interact"), (typeof(Tameable), "OnConsumedItem"),
+                (typeof(Humanoid), "DoInteractAnimation"), (typeof(UITooltip), "OnHoverStart"), (typeof(Vegvisir), "Interact") })
             {
                 var method = AccessTools.DeclaredMethod(type, name);
                 p.Check(method != null && Harmony.GetPatchInfo(method)?.Owners.Contains(About.Guid) == true, $"{type.Name}.{name} is watched");
             }
 
             p.Check(AccessTools.Field(typeof(StoreGui), "m_trader") != null, "a trader's open store tells whose it is");
+
+            // An item's card is topped by its name token, which names its entry; a Vegvisir marks
+            // places the catalog has.
+            var cardless = X.Catalog.Where(e => e.Kind == Kind.Item && e.Source is GameObject go && go.GetComponent<ItemDrop>() != null
+                && Array.IndexOf(e.Tokens, ((GameObject)e.Source).GetComponent<ItemDrop>().m_itemData.m_shared.m_name) < 0).Select(e => e.Name).ToList();
+            p.Check(cardless.Count == 0, "every item goes by the name its tooltip card is topped with", string.Join(", ", cardless.Take(5)));
+            var marks = X.Catalog.Where(e => e.Source is GameObject go && go.GetComponent<Vegvisir>() != null)
+                .SelectMany(e => ((GameObject)e.Source).GetComponent<Vegvisir>().m_locations.Select(l => l.m_locationName)).Distinct().ToList();
+            var unmarked = marks.Where(name => X.Find(EntryKeys.For(Kind.Location, name)) == null).ToList();
+            p.Check(marks.Count > 0 && unmarked.Count == 0, $"the {Numbers.Count(marks.Count)} places Vegvisirs mark are all in the catalog", string.Join(", ", unmarked.Take(5)));
             var player = Player.m_localPlayer;
             if (!p.Check(player != null, "a character is played")) yield break;
             var faults = Faults.Count;

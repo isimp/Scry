@@ -1,0 +1,55 @@
+using HarmonyLib;
+using UnityEngine;
+
+namespace Scry
+{
+    /// <summary>
+    /// What the character uses and what the game shows it, for the compendium: whatever it uses
+    /// with success, pressing use on it or using an item on it (both end in
+    /// <c>Humanoid.DoInteractAnimation</c>), is known; an item whose tooltip card shows, in the
+    /// inventory, a chest or a trader's store, is known; and the places a Vegvisir marks on the
+    /// map are seen.
+    /// </summary>
+    internal static class UseWatch
+    {
+        public static void Used(Humanoid who, GameObject go)
+        {
+            if (who == null || who != Player.m_localPlayer || go == null) return;
+            Guard.Run(Feature.CompendiumUse, "noting what the character used", () => CompendiumKeeper.Used(go));
+        }
+
+        public static void Hovered(UITooltip tooltip)
+        {
+            // A card has a text under its topic; a bare name is no card.
+            if (tooltip == null || string.IsNullOrEmpty(tooltip.m_topic) || string.IsNullOrEmpty(tooltip.m_text)) return;
+            Guard.Run(Feature.CompendiumUse, "noting an item's card shown", () => CompendiumKeeper.CardShown(tooltip.m_topic));
+        }
+
+        public static void Read(Vegvisir vegvisir, Humanoid who, bool done)
+        {
+            if (!done || vegvisir == null || who == null || who != Player.m_localPlayer) return;
+            Guard.Run(Feature.CompendiumUse, "noting the places a Vegvisir marks", () =>
+            {
+                foreach (var place in vegvisir.m_locations) if (!string.IsNullOrEmpty(place?.m_locationName)) CompendiumKeeper.Marked(vegvisir.gameObject, place.m_locationName);
+            });
+        }
+    }
+
+    [HarmonyPatch(typeof(Humanoid), "DoInteractAnimation")]
+    internal static class UsingWatched
+    {
+        private static void Postfix(Humanoid __instance, GameObject obj) => UseWatch.Used(__instance, obj);
+    }
+
+    [HarmonyPatch(typeof(UITooltip), nameof(UITooltip.OnHoverStart))]
+    internal static class CardWatched
+    {
+        private static void Postfix(UITooltip __instance) => UseWatch.Hovered(__instance);
+    }
+
+    [HarmonyPatch(typeof(Vegvisir), nameof(Vegvisir.Interact))]
+    internal static class VegvisirWatched
+    {
+        private static void Postfix(Vegvisir __instance, Humanoid character, bool __result) => UseWatch.Read(__instance, character, __result);
+    }
+}

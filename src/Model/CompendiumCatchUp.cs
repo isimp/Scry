@@ -157,6 +157,31 @@ namespace Scry
         public bool Met(string key, KnownLevel level, CompendiumBook book) => _catalog.Find(key) != null && book.Raise(key, level);
 
         /// <summary>
+        /// Something the character used, by its prefab, as news: known, as a portal, bed, ship or
+        /// chest a friend built shows what it does in use. A creature is known by fighting or
+        /// taming it and an item by holding it, so neither counts. True when it was learned more of.
+        /// </summary>
+        public bool Used(string key, CompendiumBook book)
+        {
+            var entry = _catalog.Find(key);
+            if (entry == null || entry.Kind == Kind.Creature || entry.Kind == Kind.Item) return false;
+            return book.Raise(entry.Key, KnownLevel.Known);
+        }
+
+        /// <summary>
+        /// An item's tooltip card the game showed, in the inventory, a chest or a trader's store,
+        /// by the item's name token, as news: every item going by it is known, the card telling
+        /// all its page would. True when any was learned more of.
+        /// </summary>
+        public bool CardShown(string token, CompendiumBook book)
+        {
+            if (string.IsNullOrEmpty(token)) return false;
+            var raised = false;
+            foreach (var item in Named(new[] { token }, Kind.Item)) raised |= book.Raise(item.Key, KnownLevel.Known);
+            return raised;
+        }
+
+        /// <summary>
         /// A trader the character trades with, as news: known, its wares on show seen, and each
         /// paired with it, for the strict rules. True when it was learned more of; a trader the
         /// catalog lacks gives nothing.

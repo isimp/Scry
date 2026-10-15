@@ -177,6 +177,33 @@ namespace Scry
             MetIn(key, creature.transform.position);
         }
 
+        /// <summary>Something the character used, as news: known, and met where it stands.</summary>
+        public static void Used(GameObject used)
+        {
+            if (_book == null || _catchUp == null || used == null) return;
+            var thing = used.GetComponentInParent<ZNetView>();
+            if (thing == null) return;
+            var key = Utils.GetPrefabName(thing.gameObject);
+            if (_catchUp.Used(key, _book)) MetIn(key, thing.transform.position);
+        }
+
+        /// <summary>An item's tooltip card the game showed, by the item's name token, as news: known.</summary>
+        public static void CardShown(string token)
+        {
+            if (_book == null || _catchUp == null) return;
+            _catchUp.CardShown(token, _book);
+        }
+
+        /// <summary>A place a Vegvisir marked on the character's map, as news: seen, and paired with the Vegvisir.</summary>
+        public static void Marked(GameObject vegvisir, string place)
+        {
+            if (_book == null || _catchUp == null || vegvisir == null) return;
+            var key = EntryKeys.For(Kind.Location, place);
+            _catchUp.Met(key, KnownLevel.Seen, _book);
+            var stone = vegvisir.GetComponentInParent<ZNetView>();
+            _book.Witness(Utils.GetPrefabName((stone != null ? stone.gameObject : vegvisir)), key);
+        }
+
         /// <summary>A creature the character saw eat: paired with what it ate, for the strict rules.</summary>
         public static void Fed(Character creature, string food)
         {
