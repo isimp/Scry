@@ -329,6 +329,7 @@ namespace Scry
             _sideFor = null;
             ForgetSectionLine();
             ForgetFactPlan();
+            ForgetYou();
         }
     }
 }

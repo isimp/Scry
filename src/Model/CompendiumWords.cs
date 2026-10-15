@@ -181,6 +181,51 @@ namespace Scry
             }
         }
 
+        /// <summary>The title of the box a page opens with, of what the character itself did with the thing.</summary>
+        public const string YouTitle = "You";
+
+        /// <summary>
+        /// That box's lines: the game's counts for the character, each where there is one, how
+        /// often for kills, foods, picks and pieces, how many for things made and picked up; then
+        /// how it came to know it, where told.
+        /// </summary>
+        public static List<(string Label, string Value)> You(CharacterCounts counts, string came)
+        {
+            var lines = new List<(string, string)>();
+            if (counts != null)
+            {
+                void Often(string label, int count)
+                {
+                    if (count > 0) lines.Add((label, count == 1 ? "once" : Naming.Count(count, "time", "times")));
+                }
+                void Many(string label, int count)
+                {
+                    if (count > 0) lines.Add((label, Numbers.Count(count)));
+                }
+                Often("Killed", counts.Killed);
+                Often("Built", counts.Built);
+                Often("Eaten", counts.Eaten);
+                Often("Picked", counts.Picked);
+                Many("Made", counts.Made);
+                Many("Picked up", counts.PickedUp);
+            }
+            if (!string.IsNullOrEmpty(came)) lines.Add(("Came to know it", came));
+            return lines;
+        }
+
+        /// <summary>
+        /// How a known thing came to be known, for that box: the way kept in its book, else what
+        /// known brought it along, else the floor, else known before the book was kept; none for
+        /// one not known.
+        /// </summary>
+        public static string CameLine(CameBy? way, int day, string biome, string owner, bool byFloor, bool known)
+        {
+            if (way is CameBy by) return CameToKnow(by, day, biome);
+            if (!string.IsNullOrEmpty(owner)) return CameWith(owner);
+            if (byFloor) return "shown by the floor";
+            return known ? KnownBefore : null;
+        }
+
         /// <summary>A thing known because something known brings it along, as a creature its attacks.</summary>
         public static string CameWith(string owner) => "with " + owner;
 

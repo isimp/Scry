@@ -27,6 +27,9 @@ namespace Scry
                 y += height + U(10f);
             }
 
+            // What the character itself did with it opens the facts, in a box of its own.
+            y = YouBox(explorer, entry, width, y);
+
             // A two-column table: what it is on the left, its value on the right.
             var labelW = Mathf.Min(U(130f), width * 0.36f);
 
@@ -49,6 +52,63 @@ namespace Scry
             y = Topics(explorer, entry, facts, plan, places, width, y);
             Timing.Add("side facts drawn", step);
             return y + U(14f);
+        }
+
+        private static Entry _youOf;
+        private static float _youAt = -1f;
+        private static float _youHeight;
+        private static List<(string Label, string Value)> _you = new List<(string, string)>();
+
+        /// <summary>
+        /// The box a page opens with, titled "You": what the game counted of the thing for the
+        /// character (<see cref="CharacterRecords.Counts"/>) and, with the compendium on, how it
+        /// came to know it (<see cref="CompendiumWords.CameLine"/>). Read again once a second and
+        /// on another page; drawn behind what it holds at the height that held last time.
+        /// </summary>
+        private static float YouBox(Explorer explorer, Entry entry, float width, float y)
+        {
+            if (entry != _youOf || Time.unscaledTime - _youAt > 1f)
+            {
+                _youOf = entry;
+                _youAt = Time.unscaledTime;
+                string came = null;
+                if (explorer.CompendiumOn)
+                {
+                    var record = CompendiumKeeper.Book?.Came(entry.Key);
+                    var biome = record?.Biome != null ? explorer.Find(EntryKeys.For(Kind.Biome, record.Value.Biome))?.ShownName ?? record.Value.Biome : null;
+                    came = CompendiumWords.CameLine(record?.Way, record?.Day ?? -1, biome, explorer.Compendium.Because(entry)?.ShownName, explorer.ByFloor(entry), explorer.LevelOf(entry) == KnownLevel.Known);
+                }
+                _you = CompendiumWords.You(CharacterRecords.Counts(entry), came);
+            }
+            if (_you.Count == 0) return y;
+
+            var top = y;
+            if (_youHeight > 0f) Skin.Box(new Rect(0f, top, width, _youHeight), Skin.TopicFill);
+            var pad = U(10f);
+            var inner = width - pad * 2f;
+            GUI.Label(new Rect(pad, top + U(6f), inner, U(20f)), CompendiumWords.YouTitle, Skin.TopicName);
+            y = top + U(30f);
+            var labelW = Mathf.Min(U(130f), inner * 0.36f);
+            var valueW = inner - labelW - U(10f);
+            foreach (var (label, value) in _you)
+            {
+                var height = Mathf.Max(U(20f), Skin.Height(Skin.Wrap, value, valueW));
+                GUI.Label(new Rect(pad, y, labelW, height), label, Skin.DimWrap);
+                GUI.Label(new Rect(pad + labelW + U(10f), y, valueW, height), value, Skin.Wrap);
+                y += height + U(6f);
+            }
+            y += U(4f);
+            if (Event.current.type == EventType.Repaint) _youHeight = y - top;
+            CountDrawn(PanelPart.YouBox);
+            return y + U(10f);
+        }
+
+        /// <summary>Lets go of the page the You box was read for, for another world.</summary>
+        private static void ForgetYou()
+        {
+            _youOf = null;
+            _you.Clear();
+            _youHeight = 0f;
         }
 
         /// <summary>One labelled fact: its label in the left column, its value at its right, a link, music or a website where it is one.</summary>

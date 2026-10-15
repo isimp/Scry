@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using HarmonyLib;
 
 namespace Scry
@@ -49,6 +50,41 @@ namespace Scry
             Copy(stats.m_piecesPlacedStats.Keys, into.Placed);
             var power = Power(player);
             Copy(power.Length > 0 ? new[] { power } : Array.Empty<string>(), into.Powers);
+        }
+
+        /// <summary>
+        /// What the game counted of an entry for the character playing, by the names it goes by:
+        /// a creature's kills, a piece's builds, an item's meals, crafts and pickups by its name,
+        /// and its picks by its prefab, as the game counts each; none outside a game.
+        /// </summary>
+        public static CharacterCounts Counts(Entry entry)
+        {
+            var profile = Game.instance != null ? Game.instance.GetPlayerProfile() : null;
+            if (profile == null || entry == null) return null;
+            var stats = profile.m_playerStats[0];
+            int Sum(Dictionary<string, float> counted)
+            {
+                var sum = 0f;
+                foreach (var token in entry.Tokens.Distinct()) if (!string.IsNullOrEmpty(token) && counted.TryGetValue(token, out var count)) sum += count;
+                return (int)sum;
+            }
+            var counts = new CharacterCounts();
+            switch (entry.Kind)
+            {
+                case Kind.Creature:
+                    counts.Killed = Sum(stats.m_enemyStats[0]);
+                    break;
+                case Kind.Piece:
+                    counts.Built = Sum(stats.m_piecesPlacedStats);
+                    break;
+                case Kind.Item:
+                    counts.Eaten = Sum(stats.m_foodEatenStats);
+                    counts.Made = Sum(stats.m_itemCraftStats);
+                    counts.PickedUp = Sum(stats.m_itemPickupStats);
+                    counts.Picked = stats.m_pickableStats.TryGetValue(entry.Name, out var picked) ? (int)picked : 0;
+                    break;
+            }
+            return counts;
         }
 
         /// <summary>The guardian power the character chose at a boss stone, by its status effect's prefab; empty before one is chosen.</summary>

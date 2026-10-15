@@ -95,6 +95,10 @@ namespace Scry
             yield return Until(() => carried.All(n => CompendiumKeeper.Book.Level(n) == KnownLevel.Known), 3);
             var unknown = carried.Where(n => CompendiumKeeper.Book.Level(n) != KnownLevel.Known).ToList();
             p.Check(unknown.Count == 0, $"all {Numbers.Count(carried.Count)} kinds of thing it carries are known", string.Join(", ", unknown.Take(10)));
+            var cameTold = carried.Select(n => (Name: n, Came: CompendiumKeeper.Book.Came(n))).Where(c => c.Came != null).ToList();
+            p.Note($"{Numbers.Count(cameTold.Count)} of them tell how they came to be known" + (cameTold.Count > 0 ? $", as {cameTold[0].Name}: {CompendiumWords.CameToKnow(cameTold[0].Came.Value.Way, cameTold[0].Came.Value.Day, cameTold[0].Came.Value.Biome)}" : ""));
+            var counted = carried.Select(X.Find).Where(e => e != null).Select(e => (e, Counts: CharacterRecords.Counts(e))).FirstOrDefault(c => c.Counts != null && c.Counts.PickedUp > 0);
+            p.Check(carried.Count == 0 || counted.e != null, "the game's counts tell how many of what it carries it picked up", counted.e != null ? $"{counted.e.Name}: {Numbers.Count(counted.Counts.PickedUp)}" : null);
 
             // Why what the book does not hold counts as known: what brought most along, and each
             // thing named after a creature never met, with what brought it.
@@ -612,6 +616,7 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.ClosedPage) == closed, $"{fought.Name}, fought, shows its whole page");
             p.Check(drop != null && !X.Reaches(drop.Key), $"what it drops, not seen, is no link: {drop?.Name}");
             p.Check(ScryPanel.Drawn(PanelPart.UnseenName) > unseenNames, "its page tells the names of what was not seen as plain text");
+            p.Check(ScryPanel.Drawn(PanelPart.YouBox) > 0, "and opens with a box of what the character did with it and how it came to know it");
 
             // Strict: the fought creature's page keeps the drop seen fall, leaves out one that was not, and draws without fault.
             var drops = fought.TermLinks("drops").ToList();
