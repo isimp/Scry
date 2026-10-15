@@ -407,6 +407,14 @@ namespace Scry
             p.Check(ReferenceEquals(X.Compendium?.Book, book), "and is told once the panel opens");
         }
 
+        /// <summary>Things and what they give, each a different way: a station turning it, a producer making it, a deposit's table.</summary>
+        private static readonly (string Thing, string Item, string How)[] GivenThings =
+        {
+            ("smelter", "Copper", "turns ore into it"),
+            ("piece_beehive", "Honey", "makes it over time"),
+            ("rock4_copper", "CopperOre", "drops it when mined"),
+        };
+
         /// <summary>Creatures from small to the biggest, for how far each is seen.</summary>
         private static readonly string[] BigAndSmall = { "Greydwarf", "Troll", "Serpent", "Dragon", "GoblinKing", "SeekerQueen", "Fader" };
 
@@ -418,13 +426,23 @@ namespace Scry
         {
             foreach (var (type, name) in new[] { (typeof(Character), "Damage"), (typeof(Character), "RPC_Damage"), (typeof(Destructible), "Damage"), (typeof(TreeBase), "Damage"), (typeof(TreeLog), "Damage"), (typeof(MineRock), "Damage"), (typeof(MineRock5), "Damage"),
                 (typeof(Humanoid), "Pickup"), (typeof(Player), "PlacePiece"), (typeof(Tameable), "Tame"), (typeof(Tameable), "Interact"), (typeof(Tameable), "OnConsumedItem"),
-                (typeof(Humanoid), "DoInteractAnimation"), (typeof(UITooltip), "OnHoverStart"), (typeof(Vegvisir), "Interact") })
+                (typeof(Humanoid), "DoInteractAnimation"), (typeof(UITooltip), "OnHoverStart"), (typeof(Vegvisir), "Interact"),
+                (typeof(Player), "Interact"), (typeof(Humanoid), "UseItem"), (typeof(OfferingBowl), "InitiateSpawnBoss"), (typeof(FishingFloat), "Catch"), (typeof(ItemDrop), "Awake") })
             {
                 var method = AccessTools.DeclaredMethod(type, name);
                 p.Check(method != null && Harmony.GetPatchInfo(method)?.Owners.Contains(About.Guid) == true, $"{type.Name}.{name} is watched");
             }
 
             p.Check(AccessTools.Field(typeof(StoreGui), "m_trader") != null, "a trader's open store tells whose it is");
+
+            // What comes from a thing acted on is paired only where the catalog says the thing gives it.
+            foreach (var (thing, item, how) in GivenThings)
+            {
+                if (X.Find(thing) == null || X.Find(item) == null) { p.Note($"no {thing} or {item} in the catalog"); continue; }
+                p.Check(CompendiumKeeper.Gives(thing, item), $"{thing} gives {item}, as it {how}");
+            }
+            p.Check(CompendiumKeeper.TurnedInto("smelter", "Copper").Contains("CopperOre"), "the smelter turns copper ore into copper", string.Join(", ", CompendiumKeeper.TurnedInto("smelter", "Copper")));
+            p.Check(!CompendiumKeeper.Gives("smelter", "Wood"), "and gives no wood");
 
             // An item's card is topped by its name token, which names its entry; a Vegvisir marks
             // places the catalog has.

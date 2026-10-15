@@ -155,6 +155,7 @@ namespace Scry
             if (_book == null || _catchUp == null || resource == null) return;
             var key = Utils.GetPrefabName(resource.gameObject);
             _catchUp.Met(key, KnownLevel.Known, _book);
+            ActedOnThing(key, resource.transform.position);
             var tool = Player.m_localPlayer.OrNull()?.GetCurrentWeapon()?.m_dropPrefab.OrNull();
             if (tool != null) _book.Witness(key, tool.name);
             MetIn(key, resource.transform.position);
@@ -184,6 +185,7 @@ namespace Scry
             var thing = used.GetComponentInParent<ZNetView>();
             if (thing == null) return;
             var key = Utils.GetPrefabName(thing.gameObject);
+            ActedOnThing(key, thing.transform.position);
             if (_catchUp.Used(key, _book)) MetIn(key, thing.transform.position);
         }
 
@@ -202,6 +204,53 @@ namespace Scry
             _catchUp.Met(key, KnownLevel.Seen, _book);
             var stone = vegvisir.GetComponentInParent<ZNetView>();
             _book.Witness(Utils.GetPrefabName((stone != null ? stone.gameObject : vegvisir)), key);
+        }
+
+        /// <summary>What the character used or hit lately, for what comes from it (<see cref="ActedOn"/>).</summary>
+        private static readonly ActedOn Acted = new ActedOn();
+
+        /// <summary>The character acted on a thing, used or hit, where it stands: an item coming to be near it soon after may be from it.</summary>
+        public static void ActedOnThing(string key, Vector3 at) => Acted.Add(key, at.x, at.z, Time.unscaledTime);
+
+        /// <summary>
+        /// An item came to be or was picked up: paired with each thing acted on lately near it that
+        /// gives it, and with what the character put into a station that turned into it.
+        /// </summary>
+        public static void Arrived(string item, Vector3 at)
+        {
+            if (_book == null || string.IsNullOrEmpty(item) || Acted.Count == 0) return;
+            foreach (var giver in Acted.Givers(item, at.x, at.z, Time.unscaledTime, Gives))
+            {
+                _book.Witness(giver, item);
+                foreach (var input in ActedOn.TurnedFrom(giver, TurnedInto(giver, item), _book.Witnessed)) _book.Witness(input, item);
+            }
+        }
+
+        /// <summary>What the character put into a thing it used: each paired with it.</summary>
+        public static void PutInto(string thing, IEnumerable<string> items)
+        {
+            if (_book == null || string.IsNullOrEmpty(thing)) return;
+            foreach (var item in items) _book.Witness(thing, item);
+        }
+
+        /// <summary>Whether a thing gives an item, as the catalog tells it: drops it, makes it over time, or turns something into it.</summary>
+        internal static bool Gives(string thing, string item)
+        {
+            var entry = WorldCatalog.Current?.Find(thing);
+            if (entry != null && entry.TermLinks("drops").Any(e => e.Name == item)) return true;
+            if (Knowledge.SourceLines(item).Any(line => line.Record?.Way == SourceWay.Made && line.Record.Giver == thing)) return true;
+            return TurnedInto(thing, item).Any();
+        }
+
+        /// <summary>What a station turns into an item, by prefab (<c>UseKind.TurnsInto</c> at it).</summary>
+        internal static IEnumerable<string> TurnedInto(string station, string item)
+        {
+            var made = WorldCatalog.Current?.Find(item);
+            if (made == null) yield break;
+            foreach (var input in made.TermLinks("needs"))
+            {
+                if (Knowledge.UsesOf(input.Name).Any(g => g.Kind == UseKind.TurnsInto && g.Place == station && g.Targets.Any(t => t.Target == item))) yield return input.Name;
+            }
         }
 
         /// <summary>A creature the character saw eat: paired with what it ate, for the strict rules.</summary>
@@ -297,6 +346,7 @@ namespace Scry
             _bosses = null;
             _bossesOf = null;
             Ceiling = 0;
+            Acted.Clear();
         }
     }
 }
