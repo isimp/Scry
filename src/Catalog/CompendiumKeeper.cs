@@ -512,6 +512,9 @@ namespace Scry
             Files.Then("keeping what the character knows", () => FileSwap.Write(path, aside => File.WriteAllText(aside, text())));
         }
 
+        /// <summary>Done once every write of the book asked for before it is, for what reads the file back.</summary>
+        internal static Task<bool> Written() => Files.Then(() => true);
+
         /// <summary>Writes the book and waits a moment for it to be written, as the game quits.</summary>
         public static void Finish()
         {

@@ -125,13 +125,14 @@ namespace Scry
                 p.Note($"{odd.Name} is known by way of {string.Join(" <- ", loose.Chain(odd).Select(o => o.Name))}");
             }
 
-            // Kept on disk, as it is now.
+            // Kept on disk, as it is now, read back once written: the book is written on a worker.
             CompendiumKeeper.Save(now: true);
+            var written = CompendiumKeeper.Written();
             var now = CompendiumKeeper.Book.All.ToDictionary(e => e.Key, e => e.Value, StringComparer.Ordinal);
             var path = CompendiumKeeper.FilePath;
             p.Note($"kept in {path}");
-            yield return Until(() => KeptHolds(path, now), 5);
-            p.Check(KeptHolds(path, now), "its book is kept in Scry's cache folder, all of it", path);
+            yield return Until(() => written.IsCompleted, 5);
+            p.Check(written.IsCompleted && KeptHolds(path, now), "its book is kept in Scry's cache folder, all of it", path);
         }
 
         /// <summary>The rules the character played had before the test chose others, put back after it.</summary>

@@ -65,7 +65,7 @@ namespace Scry
             var wood = Pick(Kind.Item, "Wood");
             if (wood != null)
             {
-                var fromTree = Facts.For(wood).Where.FirstOrDefault(s => s.Record?.Table == TableOf.Tree);
+                var fromTree = Facts.For(wood).Where.FirstOrDefault(s => s.Record?.Way == SourceWay.Table && s.Record.Table == TableOf.Tree);
                 p.Check(SourceWords.CountedBy(fromTree.Record) == Tally.Gave, "wood's line from a tree is counted from what the character saw it give", fromTree.Text);
             }
             // The other numbers the game never shows wait for their own deed, on real pages.

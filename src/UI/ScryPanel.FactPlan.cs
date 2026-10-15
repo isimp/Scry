@@ -98,7 +98,7 @@ namespace Scry
         /// <summary>What a topic holds: its tiles, then its facts, rows, blocks and links, each with the notes under it.</summary>
         private static float TopicBody(Explorer explorer, Entry entry, Facts facts, FactTopicPlan topic, bool places, float width, float labelW, float y)
         {
-            if (topic.Tiles.Count > 0) y = Tiles(facts, topic.Tiles, width, y);
+            if (topic.Tiles.Count > 0) y = Tiles(explorer, facts, topic.Tiles, width, y);
             foreach (var bit in topic.Bits)
             {
                 if (bit.Pair >= 0) y = FactPair(explorer, entry, facts, facts.Pairs[bit.Pair], width, labelW, y);
@@ -120,9 +120,11 @@ namespace Scry
 
         /// <summary>
         /// A topic's headline numbers as tiles, a small label over each value, up to four in a
-        /// row and fewer where the side is narrow, each row as tall as its tallest value.
+        /// row and fewer where the side is narrow, each row as tall as its tallest value. Under
+        /// the strict rules a number kept back reads ??? and says on hover what shows it, as a
+        /// table's cell does, and names never met read ???.
         /// </summary>
-        private static float Tiles(Facts facts, List<int> tiles, float width, float y)
+        private static float Tiles(Explorer explorer, Facts facts, List<int> tiles, float width, float y)
         {
             y += U(2f);
             var gap = U(6f);
@@ -133,7 +135,7 @@ namespace Scry
             {
                 var last = Mathf.Min(tiles.Count, first + columns);
                 var valueH = U(20f);
-                for (var i = first; i < last; i++) valueH = Mathf.Max(valueH, Skin.Height(Skin.Wrap, facts.Pairs[tiles[i]].Value, valueW));
+                for (var i = first; i < last; i++) valueH = Mathf.Max(valueH, Skin.Height(Skin.Wrap, TileValue(explorer, facts, facts.Pairs[tiles[i]], out _), valueW));
                 var tileH = U(26f) + valueH + U(6f);
                 for (var i = first; i < last; i++)
                 {
@@ -144,13 +146,24 @@ namespace Scry
                     var unsure = facts.Unsure.TryGetValue(pair.Key, out var why);
                     Skin.Box(at, Skin.Raised);
                     GUI.Label(new Rect(at.x + U(8f), at.y + U(4f), valueW, U(20f)), unsure ? UnsureWords.Marked(pair.Key) : pair.Key, Skin.DimLabel);
-                    GUI.Label(new Rect(at.x + U(8f), at.y + U(24f), valueW, valueH), pair.Value, unsure ? Skin.DimWrap : Skin.Wrap);
+                    var value = TileValue(explorer, facts, pair, out var kept);
+                    GUI.Label(new Rect(at.x + U(8f), at.y + U(24f), valueW, valueH), value, unsure ? Skin.DimWrap : Skin.Wrap);
                     if (unsure && at.Contains(Event.current.mousePosition)) AskTip("unsure:" + pair.Key, why);
+                    if (kept == null) continue;
+                    CountDrawn(PanelPart.FactKeptBack);
+                    if (at.Contains(Event.current.mousePosition)) AskTip("tile-kept:" + pair.Key, KeptTip(explorer, pair.Key, kept));
                 }
                 y += tileH + gap;
             }
             CountDrawn(PanelPart.FactTiles);
             return y + U(2f);
+        }
+
+        /// <summary>What a tile shows: ??? for a number kept back, with what shows it (<paramref name="kept"/>), else its value with names never met kept back.</summary>
+        private static string TileValue(Explorer explorer, Facts facts, KeyValuePair<string, string> pair, out string kept)
+        {
+            kept = facts.Proofs.TryGetValue(pair.Key, out var proof) && explorer.KeepsBack(proof) ? proof : null;
+            return kept != null ? CompendiumWords.Hidden : Masked(explorer, pair.Value);
         }
 
         /// <summary>The widths of a table's columns as it is drawn, kept for every table so none makes a new list each frame.</summary>
