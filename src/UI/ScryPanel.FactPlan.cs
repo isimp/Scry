@@ -180,7 +180,11 @@ namespace Scry
             for (var c = 0; c < row.Columns.Length; c++)
             {
                 var w = Skin.Width(Skin.DimLabel, row.Columns[c]);
-                foreach (var (cells, _) in row.Lines) if (c < cells.Length) w = Mathf.Max(w, Skin.Width(Skin.Small, cells[c]));
+                for (var l = 0; l < row.Lines.Count; l++)
+                {
+                    var cells = row.Lines[l].Cells;
+                    if (c < cells.Length) w = Mathf.Max(w, Skin.Width(Skin.Small, cells[c]) + (explorer.ShownByFloor(CellLink(row, l, c)) ? FloorRoom : 0f));
+                }
                 ColumnWidths.Add(w + U(2f));
                 sum += w + U(2f);
             }
@@ -271,7 +275,8 @@ namespace Scry
                         else if (c == 0 && !string.IsNullOrEmpty(link) && Goes(explorer, link))
                         {
                             LinkLabel(cell, cells[c], Skin.SmallWrap, LinkText(KindOf(explorer, link), false));
-                            if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + link, PanelWords.GoTo(cells[c]));
+                            if (explorer.ShownByFloor(link)) FloorMark(FloorMarkX(cell, cells[c]), cell);
+                            if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + link, FloorTip(explorer, link, PanelWords.GoTo(cells[c])));
                             if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, link);
                         }
                         // A number kept back reads ??? and says on hover what shows it.
@@ -289,7 +294,8 @@ namespace Scry
                         else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var to) && Goes(explorer, to))
                         {
                             LinkLabel(cell, cells[c], Skin.SmallWrap, LinkText(KindOf(explorer, to), false));
-                            if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + to, PanelWords.GoTo(cells[c]));
+                            if (explorer.ShownByFloor(to)) FloorMark(FloorMarkX(cell, cells[c]), cell);
+                            if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + to, FloorTip(explorer, to, PanelWords.GoTo(cells[c])));
                             if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, to);
                         }
                         else GUI.Label(cell, Masked(explorer, cells[c]), Skin.SmallWrap);
@@ -305,6 +311,13 @@ namespace Scry
             foreach (var said in KeptLines) y = FaintLine(said, "line-kept:", said, PanelPart.TableKeptBack, width, y);
             return y;
         }
+
+        /// <summary>What a table's cell goes to: its line's link for the first, its own for a later one; none for none.</summary>
+        private static string CellLink(Facts.Row row, int line, int cell) =>
+            cell == 0 ? row.Lines[line].Link : row.CellLinks.TryGetValue((line, cell), out var to) ? to : null;
+
+        /// <summary>Where the floor's mark goes after a cell's link: right after its text, within the cell.</summary>
+        private static float FloorMarkX(Rect cell, string text) => cell.x + Mathf.Min(Skin.Width(Skin.Small, text) + U(4f), cell.width - FloorRoom);
 
         /// <summary>What shows each line of the table being drawn whose numbers are kept back, for its faint lines.</summary>
         private static readonly List<string> KeptLines = new List<string>();

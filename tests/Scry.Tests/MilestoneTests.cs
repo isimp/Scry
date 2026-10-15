@@ -72,6 +72,36 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ALinkOnAPageToWhatOnlyTheFloorShowsIsToldApartByItsKey()
+        {
+            // A chip or link on another page naming it is marked as its row and page are.
+            var troll = new Entry { Kind = Kind.Creature, Name = "Troll" };
+            var boar = new Entry { Kind = Kind.Creature, Name = "Boar" };
+            var all = new List<Entry> { troll, boar };
+            var explorer = new Explorer(all, new Favourites(System.IO.Path.Combine(TestCatalog.TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            var book = new CompendiumBook();
+            book.Raise(boar.Key, KnownLevel.Known);
+            view.Milestones(new Dictionary<string, int> { { troll.Key, 2 }, { boar.Key, 1 } }, 2);
+            view.Tell(book, CompendiumRule.Loose);
+            explorer.Know(view);
+
+            Assert.True(explorer.ShownByFloor(troll.Key));
+            Assert.False(explorer.ShownByFloor(boar.Key));
+            Assert.False(explorer.ShownByFloor("NotInTheCatalog"));
+            Assert.False(explorer.ShownByFloor(null));
+
+            // Peeking at everything, nothing is told apart; off, the floor shows nothing.
+            explorer.Peeking = true;
+            Assert.False(explorer.ShownByFloor(troll.Key));
+            explorer.Peeking = false;
+            Assert.True(explorer.ShownByFloor(troll.Key));
+            view.Tell(book, CompendiumRule.Off);
+            explorer.Know(view);
+            Assert.False(explorer.ShownByFloor(troll.Key));
+        }
+
+        [Fact]
         public void WhatShowsKnownOnlyBecauseOfTheFloorIsToldApart()
         {
             // The floor shows things as known that the character never met: the panel marks them.

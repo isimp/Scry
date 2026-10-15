@@ -37,15 +37,36 @@ namespace Scry
         /// kind of entry it goes to, with an arrow. Brighter while what it names is playing. One
         /// that goes nowhere (the entry itself, or something not in the catalog) is plain.
         /// </summary>
-        private static bool LinkChip(Rect rect, string text, Kind? kind, bool lit, bool go)
+        private static bool LinkChip(Rect rect, string text, Kind? kind, bool lit, bool go, bool floor = false)
         {
             var hover = go && rect.Contains(Event.current.mousePosition);
             Skin.PillBox(rect, go || lit ? LinkFill(kind, hover, lit) : Skin.Unlinked);
 
-            Skin.LabelIn(rect, go ? GoText(text) : text, Skin.SmallCenter, go || lit ? LinkText(kind, hover || lit) : Skin.Dim);
+            // One going to what only the floor shows keeps the floor's mark at its end.
+            var label = floor ? new Rect(rect.x, rect.y, rect.width - FloorRoom, rect.height) : rect;
+            Skin.LabelIn(label, go ? GoText(text) : text, Skin.SmallCenter, go || lit ? LinkText(kind, hover || lit) : Skin.Dim);
+            if (floor) FloorMark(rect.xMax - FloorRoom, rect);
 
             return go && GUI.Button(rect, GUIContent.none, GUIStyle.none);
         }
+
+        /// <summary>The room the floor's mark takes at the end of a chip or after a link (<see cref="FloorMark"/>).</summary>
+        private static float FloorRoom => U(18f);
+
+        /// <summary>
+        /// The floor's mark, faint, as on a list row and under a page's title: what a chip or link
+        /// goes to shows as known only because of the floor (<see cref="Explorer.ShownByFloor"/>).
+        /// </summary>
+        private static void FloorMark(float x, Rect line)
+        {
+            CountDrawn(PanelPart.FloorLink);
+            var size = U(14f);
+            Skin.Icon(new Rect(x, line.y + (Mathf.Min(line.height, U(26f)) - size) / 2f, size, size), Skin.Steps, Skin.Faint);
+        }
+
+        /// <summary>A chip's or link's tip, the floor's line above it where what it goes to shows as known only by the floor.</summary>
+        private static string FloorTip(Explorer explorer, string key, string tip) =>
+            explorer.ShownByFloor(key) ? CompendiumWords.FloorTip(explorer.Compendium.Floor, tip) : tip;
 
         /// <summary>The fill of anything that goes to an entry: a dark shade of its kind's colour.</summary>
         private static Color LinkFill(Kind? kind, bool hover, bool lit = false)
@@ -67,7 +88,7 @@ namespace Scry
         /// guessed from its length past it, so opening a long list measures its names over a few
         /// frames rather than all in one.
         /// </summary>
-        private static float LinkChipWidth(string text, bool go) => Skin.WidthSoon(Skin.Small, go ? GoText(text) : text) + U(16f);
+        private static float LinkChipWidth(string text, bool go, bool floor = false) => Skin.WidthSoon(Skin.Small, go ? GoText(text) : text) + U(16f) + (floor ? FloorRoom : 0f);
 
         private static readonly Dictionary<string, string> GoTexts = new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -115,12 +136,13 @@ namespace Scry
             {
                 var item = all[i];
                 var go = !Unseen(explorer, item.Key);
-                var w = Mathf.Min(width, LinkChipWidth(item.Text, go));
+                var floor = go && explorer.ShownByFloor(item.Key);
+                var w = Mathf.Min(width, LinkChipWidth(item.Text, go, floor));
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
                 if (OutOfSight(chip)) continue;
-                if (LinkChip(chip, item.Text, go ? KindOf(explorer, item.Key) : null, false, go)) item.Click();
-                if (go && chip.Contains(Event.current.mousePosition)) AskTip("link:" + title + item.Key + item.Text, item.Tip ?? PanelWords.GoTo(item.Text));
+                if (LinkChip(chip, item.Text, go ? KindOf(explorer, item.Key) : null, false, go, floor)) item.Click();
+                if (go && chip.Contains(Event.current.mousePosition)) AskTip("link:" + title + item.Key + item.Text, FloorTip(explorer, item.Key, item.Tip ?? PanelWords.GoTo(item.Text)));
             }
             MoreChip(key, all.Count, FirstChips, width, ref flow);
             return flow.RowBottom + U(10f);

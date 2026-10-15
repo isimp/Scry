@@ -223,6 +223,9 @@ namespace Scry
         /// <summary>Whether an entry shows as known only because of the compendium's floor (<see cref="CompendiumView.ByFloor"/>).</summary>
         public bool ByFloor(Entry entry) => CompendiumOn && _view.ByFloor(entry);
 
+        /// <summary>Whether what a link or chip on a page goes to, by its key, shows as known only because of the floor (<see cref="ByFloor"/>), to be marked as its row is.</summary>
+        public bool ShownByFloor(string key) => ByFloor(Find(key));
+
         /// <summary>
         /// Whether a page may go to the entry a key names (<see cref="EntryKeys"/>): one in the
         /// catalog the character has seen or knows, any of them while the compendium is off. A

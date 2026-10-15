@@ -128,6 +128,9 @@ namespace Scry
         /// <summary>The tip of the mark on a row, and the line under a page's title, of what shows as known only by the floor.</summary>
         public static string ByFloor(int floor) => $"Shown by the {Floor(floor)}, not yet come to know by this character";
 
+        /// <summary>The tip of a link or chip on a page going to what shows as known only by the floor: that, above its own tip.</summary>
+        public static string FloorTip(int floor, string tip) => Naming.Lines(ByFloor(floor), tip);
+
         /// <summary>The tip of raising the floor to a tier, with the boss that fell for it where known.</summary>
         public static string RaiseFloor(int to, string boss) =>
             $"Show everything of the {Naming.FieldLabel(Tiers.BiomeOf(to))} as known" + (string.IsNullOrEmpty(boss) ? "" : $": {boss} fell for this character");

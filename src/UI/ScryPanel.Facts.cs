@@ -174,10 +174,12 @@ namespace Scry
             // A link only to what is in the catalog: a creature's own attack items are not.
             else if (facts.Links.TryGetValue(pair.Key, out var link) && Goes(explorer, link))
             {
-                var linkW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, value) + U(4f));
+                var floor = explorer.ShownByFloor(link);
+                var linkW = Mathf.Min(valueW - (floor ? FloorRoom : 0f), Skin.Width(Skin.Wrap, value) + U(4f));
                 var linkRect = new Rect(valueRect.x, valueRect.y, linkW, height);
                 LinkLabel(linkRect, value, Skin.Wrap, LinkText(KindOf(explorer, link), false));
-                if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, PanelWords.GoTo(ShownName(explorer, link, value)));
+                if (floor) FloorMark(linkRect.xMax, linkRect);
+                if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, FloorTip(explorer, link, PanelWords.GoTo(ShownName(explorer, link, value))));
                 if (GUI.Button(linkRect, GUIContent.none, GUIStyle.none)) Go(explorer, link);
             }
             else
@@ -239,8 +241,9 @@ namespace Scry
                 }
 
                 var icon = PrefabIcon(source.Prefab);
+                var floor = explorer.ShownByFloor(source.Prefab);
                 var textX = icon != null ? U(34f) : U(12f);
-                var textW = width - textX - U(10f);
+                var textW = width - textX - U(10f) - (floor ? FloorRoom : 0f);
                 var wrapped = Skin.SmallWrap;
                 var chipH = Mathf.Max(U(30f), Skin.Height(wrapped, text, textW) + U(10f));
                 var chip = new Rect(0f, y, width, chipH);
@@ -249,7 +252,8 @@ namespace Scry
                 Skin.Box(chip, LinkFill(kind, hover));
                 if (icon != null) DrawSprite(icon, new Rect(U(6f), y + (chipH - U(22f)) / 2f, U(22f), U(22f)));
                 Skin.LabelIn(new Rect(textX, y, textW, chipH), text, wrapped, LinkText(kind, hover));
-                if (hover) AskTip("src:" + source.Prefab + source.Unsure, Naming.Lines(source.Unsure, PanelWords.GoTo(ShownName(explorer, source.Prefab, source.Prefab))));
+                if (floor) FloorMark(chip.xMax - FloorRoom - U(4f), chip);
+                if (hover) AskTip("src:" + source.Prefab + source.Unsure, FloorTip(explorer, source.Prefab, Naming.Lines(source.Unsure, PanelWords.GoTo(ShownName(explorer, source.Prefab, source.Prefab)))));
                 if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(source.Prefab))
                 {
                     AfterGoing();
@@ -412,10 +416,12 @@ namespace Scry
             }
             else if (!string.IsNullOrEmpty(row.TitleLink) && Goes(explorer, row.TitleLink))
             {
-                var titleW = Mathf.Min(width, Skin.Width(Skin.DimLabel, title) + U(4f));
+                var titleFloor = explorer.ShownByFloor(row.TitleLink);
+                var titleW = Mathf.Min(width - (titleFloor ? FloorRoom : 0f), Skin.Width(Skin.DimLabel, title) + U(4f));
                 var titleRect = new Rect(0f, y, titleW, U(20f));
                 LinkLabel(titleRect, title, Skin.DimLabel, LinkText(KindOf(explorer, row.TitleLink), false));
-                if (titleRect.Contains(Event.current.mousePosition)) AskTip("row-title:" + row.TitleLink, PanelWords.GoTo(ShownName(explorer, row.TitleLink, row.TitleLink)));
+                if (titleFloor) FloorMark(titleRect.xMax, titleRect);
+                if (titleRect.Contains(Event.current.mousePosition)) AskTip("row-title:" + row.TitleLink, FloorTip(explorer, row.TitleLink, PanelWords.GoTo(ShownName(explorer, row.TitleLink, row.TitleLink))));
                 if (GUI.Button(titleRect, GUIContent.none, GUIStyle.none)) Go(explorer, row.TitleLink);
             }
             else
@@ -433,6 +439,8 @@ namespace Scry
                 var text = DetailWords.Amounted(amount, item.Name);
                 // A mark (only here, what a trader pays) in a pill of its own at the chip's end.
                 var markW = item.Mark != null ? Skin.Width(Skin.Badge, item.Mark) + U(16f) : 0f;
+                var floorW = !string.IsNullOrEmpty(item.Prefab) && explorer.ShownByFloor(item.Prefab) ? FloorRoom : 0f;
+                markW += floorW;
                 var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(30f) + markW);
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
@@ -455,15 +463,17 @@ namespace Scry
                 if (item.Mark != null)
                 {
                     // A solid accent pill, its words dark on it.
-                    var mark = new Rect(chip.xMax - markW - U(4f), chip.y + U(5f), markW, chip.height - U(10f));
+                    var mark = new Rect(chip.xMax - markW - U(4f), chip.y + U(5f), markW - floorW, chip.height - U(10f));
                     Skin.PillBox(mark, Skin.Accent);
                     GUI.Label(mark, item.Mark, Skin.Badge);
                 }
+                // What only the floor shows keeps the floor's mark at the chip's end.
+                if (floorW > 0f) FloorMark(chip.xMax - floorW - U(2f), chip);
 
                 // Clicking an ingredient or a drop goes to it.
                 if (!string.IsNullOrEmpty(item.Prefab))
                 {
-                    if (hover && goes) AskTip("goto:" + item.Prefab + item.Mark, item.MarkTip != null ? Naming.Lines(item.MarkTip, PanelWords.GoTo(item.Name)) : PanelWords.GoTo(item.Name));
+                    if (hover && goes) AskTip("goto:" + item.Prefab + item.Mark, FloorTip(explorer, item.Prefab, item.MarkTip != null ? Naming.Lines(item.MarkTip, PanelWords.GoTo(item.Name)) : PanelWords.GoTo(item.Name)));
                     if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(item.Prefab))
                     {
                         AfterGoing();
@@ -500,7 +510,8 @@ namespace Scry
                 {
                     var name = ShownName(explorer, key, key);
                     var here = shown != null && (shown.Name == key || shown.Key == key);
-                    var w = Mathf.Min(width, LinkChipWidth(name, true));
+                    var floor = !here && explorer.ShownByFloor(key);
+                    var w = Mathf.Min(width, LinkChipWidth(name, true, floor));
                     var at = flow.Place(w);
                     var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
                     if (OutOfSight(chip)) continue;
@@ -510,8 +521,8 @@ namespace Scry
                         continue;
                     }
                     var goes = Goes(explorer, key);
-                    if (LinkChip(chip, name, goes ? KindOf(explorer, key) : null, false, goes) && goes) Go(explorer, key);
-                    if (goes && chip.Contains(Event.current.mousePosition)) AskTip("chain:" + key, PanelWords.GoTo(name));
+                    if (LinkChip(chip, name, goes ? KindOf(explorer, key) : null, false, goes, floor && goes) && goes) Go(explorer, key);
+                    if (goes && chip.Contains(Event.current.mousePosition)) AskTip("chain:" + key, FloorTip(explorer, key, PanelWords.GoTo(name)));
                 }
             }
             return flow.RowBottom + U(6f);

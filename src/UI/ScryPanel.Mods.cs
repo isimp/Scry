@@ -139,12 +139,13 @@ namespace Scry
             if (LeftOut(explorer, entry.Key)) return y;
             var rowH = U(26f);
             var go = Goes(explorer, entry.Key);
-            var w = Mathf.Min(width * 0.5f, LinkChipWidth(entry.Shown, go));
+            var floor = go && explorer.ShownByFloor(entry.Key);
+            var w = Mathf.Min(width * 0.5f, LinkChipWidth(entry.Shown, go, floor));
             var chip = new Rect(x, y, w, rowH);
             if (!OutOfSight(chip, visible))
             {
-                if (LinkChip(chip, entry.Shown, go ? entry.Kind : (Kind?)null, false, go)) Go(explorer, entry.Key);
-                if (go && chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, PanelWords.GoTo(entry.Shown));
+                if (LinkChip(chip, entry.Shown, go ? entry.Kind : (Kind?)null, false, go, floor)) Go(explorer, entry.Key);
+                if (go && chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, FloorTip(explorer, entry.Key, PanelWords.GoTo(entry.Shown)));
                 GUI.Label(new Rect(x + w + U(8f), y + U(3f), width - w - U(8f), U(22f)), told, Skin.DimLabel);
             }
             return y + rowH + U(5f);
@@ -168,12 +169,13 @@ namespace Scry
             {
                 var entry = entries[i];
                 var go = Goes(explorer, entry.Key);
-                var w = Mathf.Min(width, LinkChipWidth(entry.Shown, go));
+                var floor = go && explorer.ShownByFloor(entry.Key);
+                var w = Mathf.Min(width, LinkChipWidth(entry.Shown, go, floor));
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
                 if (OutOfSight(chip, visible)) continue;
-                if (LinkChip(chip, entry.Shown, go ? entry.Kind : (Kind?)null, false, go)) Go(explorer, entry.Key);
-                if (go && chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, PanelWords.GoTo(entry.Shown));
+                if (LinkChip(chip, entry.Shown, go ? entry.Kind : (Kind?)null, false, go, floor)) Go(explorer, entry.Key);
+                if (go && chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, FloorTip(explorer, entry.Key, PanelWords.GoTo(entry.Shown)));
             }
             // The rest behind a chip of their own, as the details' long rows have, against the
             // report's own scrolling.

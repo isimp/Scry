@@ -345,10 +345,14 @@ namespace Scry
                 X.Select(marked);
                 var marks = ScryPanel.Drawn(PanelPart.FloorMark);
                 var lines = ScryPanel.Drawn(PanelPart.FloorLine);
+                var links = ScryPanel.Drawn(PanelPart.FloorLink);
                 var repaints = ScryPanel.Repaints;
                 yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
                 p.Check(ScryPanel.Drawn(PanelPart.FloorMark) > marks && ScryPanel.Drawn(PanelPart.FloorLine) > lines, $"{marked.Name} is marked in the list and its page says the floor shows it",
                     $"marks {Numbers.Count(ScryPanel.Drawn(PanelPart.FloorMark) - marks)}, lines {Numbers.Count(ScryPanel.Drawn(PanelPart.FloorLine) - lines)}");
+                // Its page names more the floor alone shows (its drops, its sounds), each chip and link marked so.
+                p.Check(ScryPanel.Drawn(PanelPart.FloorLink) > links, $"the chips and links on {marked.Name}'s page to what the floor alone shows carry the floor's mark",
+                    $"{Numbers.Count(ScryPanel.Drawn(PanelPart.FloorLink) - links)} drawn");
             }
             p.Note($"the character played may raise its floor to tier {Numbers.Count(CompendiumKeeper.Ceiling)}, it stands at {Numbers.Count(CompendiumKeeper.Book?.Floor ?? 0)}");
         }
