@@ -141,6 +141,7 @@ namespace Scry.Tests
             Assert.Equal("Heard of, not met yet", CompendiumWords.Closed(KnownLevel.HeardOf));
             Assert.Equal("Seen, not yet come to know", CompendiumWords.Closed(KnownLevel.Seen));
             Assert.Equal("Fight it to learn all about it.", CompendiumWords.HowToKnow(Kind.Creature));
+            Assert.Equal("Pick it up, make it, eat it or unlock its recipe to learn all about it.", CompendiumWords.HowToKnow(Kind.Item));
             Assert.Equal(Counted.Length, Counted.Select(CompendiumWords.HowToKnow).Distinct().Count());
         }
     }

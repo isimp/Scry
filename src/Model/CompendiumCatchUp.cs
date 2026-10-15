@@ -45,7 +45,8 @@ namespace Scry
         /// </summary>
         public int Fill(CompendiumRecords records, CompendiumBook book, bool quietly)
         {
-            var items = Named(records.PickedUp, Kind.Item).Concat(Named(records.Crafted, Kind.Item)).Concat(Named(records.Eaten, Kind.Item)).ToList();
+            // An unlocked recipe's item is known: the crafting menu shows it whole, its look, stats and what it takes.
+            var items = Named(records.PickedUp, Kind.Item).Concat(Named(records.Crafted, Kind.Item)).Concat(Named(records.Eaten, Kind.Item)).Concat(Named(records.Recipes, Kind.Item)).ToList();
             items.AddRange(Prefabs(records.Trophies.Concat(records.Picked), Kind.Item));
 
             var known = new List<Entry>(items);
@@ -61,8 +62,7 @@ namespace Scry
             known.AddRange(powers);
 
             var raised = Raise(book, known, KnownLevel.Known, quietly)
-                + Raise(book, Named(records.Materials, Kind.Item), KnownLevel.Seen, quietly)
-                + Raise(book, Named(records.Recipes, Kind.Item), KnownLevel.HeardOf, quietly);
+                + Raise(book, Named(records.Materials, Kind.Item), KnownLevel.Seen, quietly);
             Pair(records, book);
             foreach (var given in givers)
             {

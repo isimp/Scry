@@ -55,7 +55,7 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void APieceUnlockedUsedOrPlacedIsKnownAndAnItemWhoseRecipeIsUnlockedIsHeardOf()
+        public void APieceUnlockedUsedOrPlacedIsKnownAndSoIsAnItemWhoseRecipeIsUnlocked()
         {
             var bench = E(Kind.Piece, "piece_workbench", "$piece_workbench");
             var forge = E(Kind.Piece, "forge", "$piece_forge");
@@ -73,7 +73,8 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.Known, book.Level(bench.Key));
             Assert.Equal(KnownLevel.Known, book.Level(forge.Key));
             Assert.Equal(KnownLevel.Known, book.Level(wall.Key));
-            Assert.Equal(KnownLevel.HeardOf, book.Level(bow.Key));
+            // The crafting menu shows an unlocked recipe's item whole: its name, look, stats and what it takes.
+            Assert.Equal(KnownLevel.Known, book.Level(bow.Key));
         }
 
         [Fact]

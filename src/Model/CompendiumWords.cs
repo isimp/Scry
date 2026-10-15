@@ -199,7 +199,7 @@ namespace Scry
             switch (kind)
             {
                 case Kind.Creature: return "Fight it to learn all about it.";
-                case Kind.Item: return "Pick it up, make it or eat it to learn all about it.";
+                case Kind.Item: return "Pick it up, make it, eat it or unlock its recipe to learn all about it.";
                 case Kind.Piece: return "Build it, use it or unlock it to learn all about it.";
                 case Kind.Resource: return "Hit it or pick it to learn all about it.";
                 case Kind.Spawner: return "Hit it to learn all about it.";
