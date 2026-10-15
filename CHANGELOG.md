@@ -28,6 +28,8 @@ An item that a mod's settings are named after, such as a backpack whose size and
 
 An item whose tooltip in the game mods add lines to shows that tooltip on its page under *Tooltip in the game*, at each quality, as a card laid out like the details, the lines the mods added tinted, and the mods hooking the tooltip named under it, each going to its page.
 
+A creature's *With stars* table gives each drop that stars make only likelier a line of its chance at each star, as Valheim 1.0.20 does for every trophy, where it said they doubled in number.
+
 A mod's website opened from its page no longer keeps Steam showing Valheim as running after the game is closed when the browser was not open before.
 
 ## 0.2.0
