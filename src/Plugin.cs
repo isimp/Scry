@@ -81,7 +81,6 @@ namespace Scry
             { typeof(VeinHitWatched), Feature.CompendiumHit },
             { typeof(PickupWatched), Feature.CompendiumTogether },
             { typeof(PlacingWatched), Feature.CompendiumTogether },
-            { typeof(TamingWatched), Feature.CompendiumTogether },
             { typeof(PettingWatched), Feature.CompendiumTogether },
             { typeof(EatingWatched), Feature.CompendiumTogether },
             { typeof(ItemArrived), Feature.CompendiumTogether },

@@ -82,13 +82,16 @@ namespace Scry
                 DeedWatch.SetPicked(bush, wasPicked: true, picked: false);
                 p.Check(book.Witnessed(Utils.GetPrefabName(bush.gameObject), EntryKeys.Did(Deed.GrewBack)), "a pickable seen growing back shows how long that takes");
             }
+            // A taming: one creature near by told wild, then tame; every other as the game has it.
             var tame = UnityEngine.Object.FindObjectsByType<Tameable>(FindObjectsSortMode.None)
-                .FirstOrDefault(t => t != null && Vector3.Distance(t.transform.position, player.transform.position) <= near);
+                .Select(t => t != null ? t.GetComponent<Character>() : null)
+                .FirstOrDefault(c => c != null && Vector3.Distance(c.transform.position, player.transform.position) <= near);
             if (tame == null) p.Note("no tameable creature is near to tame");
             else
             {
-                TogetherWatch.Tamed(tame);
-                p.Check(book.Witnessed(Utils.GetPrefabName(tame.gameObject), EntryKeys.Did(Deed.Tamed)), "a taming near by shows how long taming takes");
+                CompendiumKeeper.Tamings(player, c => c != tame && c.IsTamed());
+                CompendiumKeeper.Tamings(player, c => c == tame || c.IsTamed());
+                p.Check(book.Witnessed(Utils.GetPrefabName(tame.gameObject), EntryKeys.Did(Deed.Tamed)), "a creature near by seen wild, then tame, shows how long taming takes");
             }
             p.Note("growing up is seen in play only, as a young creature has to be gone for it");
 

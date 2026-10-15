@@ -7,17 +7,18 @@ namespace Scry
     /// <summary>
     /// What the character does that ties two things together, for the compendium's strict rules:
     /// an item picked up with the biome and place it lay in, a piece placed with the tool that
-    /// built it, a creature tamed or petted, which makes it known, and one seen eat with what it
+    /// built it, a creature petted, which makes it known, and one seen eat with what it
     /// ate; what the character put into a thing it used (ore, fuel, food, an offering) with it, and
     /// an item coming to be near a thing it used or hit lately with that thing, where it gives it
     /// (<see cref="ActedOn"/>); a boss called at its altar with the altar, its offering and its
-    /// place; a fish caught with its bait and where it swam. Picking up and placing run on the
-    /// client of the character doing it; taming and eating on the client that owns the creature,
-    /// so they count only near the character.
+    /// place; a fish caught with its bait and where it swam. Picking up, placing and petting run
+    /// on the client of the character doing it; eating only on the client that owns the creature,
+    /// where its mind runs, so it counts only near the character, where its game owns the
+    /// creature. A taming is seen otherwise (<see cref="CompendiumKeeper"/>).
     /// </summary>
     internal static class TogetherWatch
     {
-        /// <summary>How near the character a creature tames or eats for the character to see it, as far as a creature in view is seen.</summary>
+        /// <summary>How near the character a creature eats for the character to see it, as far as a creature in view is seen.</summary>
         private const float Near = 30f;
 
         public static (string Key, Vector3 At) PickingUp(Humanoid who, GameObject go) =>
@@ -149,13 +150,6 @@ namespace Scry
                 CompendiumKeeper.Placed(Utils.GetPrefabName(piece.gameObject), who.GetCurrentWeapon()?.m_dropPrefab.OrNull()?.name));
         }
 
-        public static void Tamed(Tameable tameable)
-        {
-            var creature = tameable != null ? tameable.GetComponent<Character>() : null;
-            if (!NearBy(creature)) return;
-            Guard.Run(Feature.CompendiumTogether, "noting a creature tamed", () => CompendiumKeeper.Tamed(creature, tamedNow: true));
-        }
-
         public static void Petted(Tameable tameable, Humanoid user)
         {
             var creature = tameable != null ? tameable.GetComponent<Character>() : null;
@@ -233,12 +227,6 @@ namespace Scry
     internal static class PlacingWatched
     {
         private static void Postfix(Player __instance, Piece piece) => TogetherWatch.Placed(__instance, piece);
-    }
-
-    [HarmonyPatch(typeof(Tameable), "Tame")]
-    internal static class TamingWatched
-    {
-        private static void Postfix(Tameable __instance) => TogetherWatch.Tamed(__instance);
     }
 
     [HarmonyPatch(typeof(Tameable), nameof(Tameable.Interact))]

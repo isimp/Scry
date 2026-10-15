@@ -165,6 +165,7 @@ namespace Scry
             var trader = StoreGui.IsVisible() && StoreGui.instance != null ? TraderOf(StoreGui.instance) : null;
             if (trader != null) _catchUp.Traded(Utils.GetPrefabName(trader.gameObject), trader.GetAvailableItems().Where(t => t?.m_prefab != null).Select(t => t.m_prefab.name), _book);
             Weather();
+            Tamings(player, creature => creature.IsTamed());
             var place = Location.GetLocation(player.transform.position);
             if (place != null) _catchUp.StoodIn(EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)), place.m_hasInterior, player.InInterior(), _book);
             var hovered = player.GetHoverObject();
@@ -217,7 +218,7 @@ namespace Scry
             if (!string.IsNullOrEmpty(tool)) Into.Witness(piece, tool);
         }
 
-        /// <summary>A creature the character tamed or petted, as news: known, and met where it stands; one tamed shows how long taming takes.</summary>
+        /// <summary>A creature seen tamed near the character, or one it petted, as news: known, and met where it stands; one tamed shows how long taming takes.</summary>
         public static void Tamed(Character creature, bool tamedNow)
         {
             if (Into == null || _catchUp == null || creature == null) return;
@@ -531,11 +532,39 @@ namespace Scry
             Noted(PlayEvent.WeatherSeen);
         }
 
+        /// <summary>The tameable creatures seen wild near the character (<see cref="Tamings"/>).</summary>
+        private static readonly TameWatch<ZDOID> WildNear = new TameWatch<ZDOID>();
+
+        /// <summary>The tameable creatures near the character at the last look, by their place in the world's data.</summary>
+        private static readonly Dictionary<ZDOID, Character> TameableNear = new Dictionary<ZDOID, Character>();
+
+        /// <summary>
+        /// A taming seen happen: a tameable creature near the character seen wild, then tame.
+        /// Whether a creature is tame is kept on it for every player to see (<c>Character.IsTamed</c>),
+        /// so a taming is seen whichever player's game tames it; the game tames a creature only
+        /// in the game that owns it. Whether each is tame is told by <paramref name="tame"/>, the
+        /// game's own flag in play.
+        /// </summary>
+        internal static void Tamings(Player player, System.Func<Character, bool> tame)
+        {
+            TameableNear.Clear();
+            foreach (var creature in Character.GetAllCharacters())
+            {
+                if (creature == null || creature.IsPlayer() || creature.GetComponent<Tameable>() == null) continue;
+                if (Vector3.Distance(player.transform.position, creature.transform.position) > Sighting.PersonReach) continue;
+                var id = creature.GetZDOID();
+                if (id != ZDOID.None) TameableNear[id] = creature;
+            }
+            foreach (var id in WildNear.Look(TameableNear.Select(c => (c.Key, tame(c.Value))))) Tamed(TameableNear[id], tamedNow: true);
+        }
+
         /// <summary>On leaving a world: writes the book, and lets go of the catalog it was caught up with.</summary>
         private static void Forget()
         {
             Save(now: true);
             _weatherSeen = default;
+            WildNear.Forget();
+            TameableNear.Clear();
             _catchUp = null;
             _catchUpOf = null;
             _recordsSize = -1;
