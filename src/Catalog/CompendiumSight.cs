@@ -5,16 +5,17 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// What the character sees, for the compendium, looked at once a second: creatures within
-    /// <see cref="CreatureReach"/> in the camera's view with nothing solid between, places whose
+    /// What the character sees, for the compendium, looked at once a second: creatures in the
+    /// camera's view with nothing solid between, as far as their size makes them out
+    /// (<see cref="Sighting.Reach"/>, 30 m for one of a person's size), places whose
     /// centre is in view within their own reach and <see cref="CreatureReach"/> beyond it, and
     /// items on the ground within the character's reach (<c>Player.m_maxInteractDistance</c>) are
     /// seen; a container opened shows what it holds, seen, and the container itself is known.
     /// </summary>
     internal static class CompendiumSight
     {
-        /// <summary>How far a creature in view is seen.</summary>
-        private const float CreatureReach = 30f;
+        /// <summary>How far beyond its own reach a place in view is seen, as far as a creature of a person's size.</summary>
+        private const float CreatureReach = Sighting.PersonReach;
 
         /// <summary>Half the angle of the view taken as seen, about the width the game's camera shows.</summary>
         private const float HalfView = 50f;
@@ -33,7 +34,7 @@ namespace Scry
             {
                 if (creature == null || creature.IsPlayer()) continue;
                 var centre = creature.GetCenterPoint();
-                if (Vector3.Distance(player.transform.position, centre) <= CreatureReach && InView(view, centre) && Clear(view.position, centre))
+                if (Vector3.Distance(player.transform.position, centre) <= Sighting.Reach(creature.GetHeight()) && InView(view, centre) && Clear(view.position, centre))
                 {
                     var key = Utils.GetPrefabName(creature.gameObject);
                     catchUp.Met(key, KnownLevel.Seen, book);

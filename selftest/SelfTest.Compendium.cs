@@ -407,6 +407,9 @@ namespace Scry
             p.Check(ReferenceEquals(X.Compendium?.Book, book), "and is told once the panel opens");
         }
 
+        /// <summary>Creatures from small to the biggest, for how far each is seen.</summary>
+        private static readonly string[] BigAndSmall = { "Greydwarf", "Troll", "Serpent", "Dragon", "GoblinKing", "SeekerQueen", "Fader" };
+
         /// <summary>
         /// The watchers sit on the game's methods they rely on, and looking around the character
         /// finds no fault; what is in sight now is told, learned into a book of the test's own.
@@ -434,6 +437,11 @@ namespace Scry
             p.Check(marks.Count > 0 && unmarked.Count == 0, $"the {Numbers.Count(marks.Count)} places Vegvisirs mark are all in the catalog", string.Join(", ", unmarked.Take(5)));
             var player = Player.m_localPlayer;
             if (!p.Check(player != null, "a character is played")) yield break;
+            // A creature is seen as far as its size makes it out: how far some of the game's are.
+            var reaches = BigAndSmall
+                .Select(n => X.Find(n)?.Source as GameObject).Where(go => go != null && go.GetComponent<CapsuleCollider>() != null)
+                .Select(go => { var c = go.GetComponent<CapsuleCollider>(); return $"{go.name} {Numbers.Amount(Sighting.Reach(Mathf.Max(c.height, c.radius * 2f) * go.transform.localScale.y))} m"; }).ToList();
+            p.Check(reaches.Count > 0, "creatures are seen as far as their size makes them out", string.Join(", ", reaches));
             var faults = Faults.Count;
             var sightings = new CompendiumBook();
             var failed = Steps.Run(() => CompendiumSight.Look(player, new CompendiumCatchUp(X.Entries), sightings), null);
