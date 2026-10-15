@@ -1,3 +1,4 @@
+using System.Linq;
 using Xunit;
 
 namespace Scry.Tests
@@ -231,6 +232,59 @@ namespace Scry.Tests
             Assert.Equal(new[] { "Secondary", "105 slash", "80", "×3", "16 stamina, 4 eitr" }, CombatWords.WeaponAttack(true, "105 slash", 80f, 3f, "16 stamina, 4 eitr"));
             // A dash where an attack tells none.
             Assert.Equal(new[] { "Primary", "–", "–", "×1", "–" }, CombatWords.WeaponAttack(false, null, 0f, 1f, null));
+        }
+
+        [Fact]
+        public void AWeaponsComboHasALineForEachSwingItsLastOneDoublingDamageAndStaggerAndPushingHarder()
+        {
+            // Attack.DoMeleeAttack: the last step of a chain deals double and pushes 1.2 times as
+            // far; stagger is taken from the damage dealt, so it doubles too.
+            var lines = CombatWords.WeaponCombo(3, false, new[] { ("slash", 60f) }, 40f, 1f, 2f, "8 stamina");
+
+            Assert.Equal(3, lines.Count);
+            Assert.Equal(new[] { "Primary 1", "60 slash", "40", "×1", "8 stamina" }, lines[0]);
+            Assert.Equal(new[] { "Primary 2", "60 slash", "40", "×1", "8 stamina" }, lines[1]);
+            Assert.Equal(new[] { "Primary 3", "120 slash", "48", "×2", "8 stamina" }, lines[2]);
+            Assert.Equal("Secondary 2", CombatWords.WeaponCombo(2, true, new[] { ("blunt", 10f) }, 0f, 1f, 1f, null)[1][0]);
+        }
+
+        [Fact]
+        public void AComboWithoutABonusEndsAsItBegan()
+        {
+            var lines = CombatWords.WeaponCombo(2, false, new[] { ("fire", 50f) }, 20f, 1f, 1f, "20 eitr");
+
+            Assert.Equal(lines[0].Skip(1), lines[1].Skip(1));
+        }
+
+        [Fact]
+        public void AMeleeSwingsLastHitDoublesWhateverTheItemSaysAndAnAreaAttackTakesTheItemsWord()
+        {
+            // DoMeleeAttack doubles the last step outright; DoAreaAttack takes m_lastChainDamageMultiplier
+            // where it is more than 1; a projectile's chain is its animation alone.
+            Assert.Equal(2f, CombatWords.LastSwingMultiplier(melee: true, area: false, itemSays: 1f));
+            Assert.Equal(2f, CombatWords.LastSwingMultiplier(melee: true, area: false, itemSays: 3f));
+            Assert.Equal(1.5f, CombatWords.LastSwingMultiplier(melee: false, area: true, itemSays: 1.5f));
+            Assert.Equal(1f, CombatWords.LastSwingMultiplier(melee: false, area: true, itemSays: 1f));
+            Assert.Equal(1f, CombatWords.LastSwingMultiplier(melee: false, area: true, itemSays: 0.5f));
+            Assert.Equal(1f, CombatWords.LastSwingMultiplier(melee: false, area: false, itemSays: 2f));
+        }
+
+        [Fact]
+        public void HowAComboIsKeptGoingIsSaid()
+        {
+            Assert.Equal("3 swings, the next pressed in time; a pause of 0.2 s starts over; follow-ups keep the first one's facing", CombatWords.Combo(3, swings: true));
+            Assert.Equal("Combo", CombatWords.ComboTitle(second: false));
+            Assert.Equal("Second combo", CombatWords.ComboTitle(second: true));
+            Assert.Equal("2 attacks in turn, the next pressed in time; a pause of 0.2 s starts over; follow-ups keep the first one's facing", CombatWords.Combo(2, swings: false));
+        }
+
+        [Fact]
+        public void WhatStartsAComboOverIsSaidForEachThingItCanHit()
+        {
+            // Attack.m_resetChainIfHit, by DestructibleType: Default 1, Tree 2, Character 4.
+            Assert.Equal(new[] { ("On a tree", "starts the combo over") }, CombatWords.ComboResets(2));
+            Assert.Empty(CombatWords.ComboResets(0));
+            Assert.Equal(new[] { ("On a rock or piece", "starts the combo over"), ("On a creature", "starts the combo over") }, CombatWords.ComboResets(5));
         }
     }
 }

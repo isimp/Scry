@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Scry
@@ -9,6 +10,32 @@ namespace Scry
     /// </summary>
     internal static class StationWords
     {
+        /// <summary>How long a windmill takes for each, at full wind (<c>Windmill.GetPowerOutput</c> paces its <c>Smelter</c>).</summary>
+        public static string InFullWind(float seconds) => Numbers.Duration(seconds) + " in full wind, longer as the wind weakens or is blocked";
+
+        /// <summary>
+        /// What a windmill runs on (<c>Windmill.GetPowerOutput</c>): the wind's strength stepped
+        /// from its least to full, whichever way the windmill faces, as its turning cap is for show.
+        /// </summary>
+        public static string RunsOnWind(float least) => $"wind: none below {Numbers.Percent(least)} strength, full at 100%, whichever way it faces";
+
+        /// <summary>
+        /// What blocks a windmill's wind (<c>Windmill.CheckCover</c>, the game's cover at the
+        /// propeller's hub): 17 rays of 30 m from it, one up, eight level and eight halfway up,
+        /// none down, each that hits something solid taking its share.
+        /// </summary>
+        public const string WindBlockedBy = "anything solid within 30 m of its hub, level with it or above; each of 17 directions blocked takes 6%";
+
+        /// <summary>From what share of power a windmill's blades hurt (<c>Windmill.Update</c>: the propeller's harm is on above its least speed); none where they never turn.</summary>
+        public static string BladesHurt(float leastSpeed, float turnSpeed) =>
+            turnSpeed == 0f ? null : $"hurt what they touch above {Numbers.Percent(Math.Min(1f, leastSpeed / Math.Abs(turnSpeed)))} power";
+
+        /// <summary>The most time away a smelter makes up for when its ground loads again, in seconds (<c>Smelter.UpdateSmelter</c>).</summary>
+        public const float SmelterCatchUp = 3600f;
+
+        /// <summary>How much time away a windmill makes up for when its ground loads again (<c>Smelter.UpdateSmelter</c>), at the wind of that moment.</summary>
+        public static string CatchesUp(float seconds) => (seconds == 3600f ? "an hour" : Numbers.Duration(seconds)) + " at most, at the wind blowing on return";
+
         public const string Roof = "a roof";
         public const string FireUnder = "a fire under it";
 

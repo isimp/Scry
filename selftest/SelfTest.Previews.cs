@@ -25,8 +25,10 @@ namespace Scry
             var weapon = Pick(Kind.Item, "AtgeirBlackmetal", "SwordIron", "AxeBronze");
             if (weapon == null) p.Skip("there is no weapon with two attacks");
             var table = Facts.For(weapon).Rows.FirstOrDefault(r => r.Title == CombatWords.WeaponAttacksTitle);
-            p.Check(table != null && table.Lines.Count == 2 && table.Lines.All(l => EntryKeys.PlaysAttack(l.Link, out var item, out _) && item == weapon.Name),
-                $"{weapon.Name}'s attacks each play from its table");
+            // A combo has a line for each step, its second attack one more.
+            p.Check(table != null && table.Lines.Count >= 2 && table.Lines.All(l => EntryKeys.PlaysAttack(l.Link, out var item, out _) && item == weapon.Name)
+                && table.Lines.Count(l => EntryKeys.PlaysAttack(l.Link, out _, out var second) && second) == 1,
+                $"{weapon.Name}'s attacks each play from its table", table != null ? string.Join(" | ", table.Lines.Select(l => l.Cells[0])) : "no table");
 
             Looks.OnPerson = false;
             Select(weapon);
@@ -78,6 +80,26 @@ namespace Scry
                 yield return Until(() => Previews.ClipOfAttackItem(weapon.Name) != null, 20);
                 var clip = Previews.ClipOfAttackItem(weapon.Name);
                 p.Check(clip != null, $"{weapon.Name}'s first attack finds the clip that begins it", clip != null ? clip.name : "no clip known");
+
+                // Its table has a line for each step, the last dealing double (Attack.DoMeleeAttack,
+                // whatever the item says), and its combo is told; each step finds a clip of its own.
+                var attack = (weapon.Source as GameObject).OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_attack;
+                var levels = attack?.m_attackChainLevels ?? 0;
+                var lines = Facts.For(weapon).Rows.FirstOrDefault(r => r.Title == CombatWords.WeaponAttacksTitle)?.Lines
+                    .Where(l => EntryKeys.PlaysAttack(l.Link, out _, out var second) && !second).ToList();
+                if (!p.Check(levels > 1 && lines != null && lines.Count == levels, $"{weapon.Name}'s table has a line for each of its {Numbers.Count(levels)} steps", lines != null ? string.Join(" | ", lines.Select(l => string.Join(" ", l.Cells))) : "no table")) continue;
+                p.Check(lines[0].Cells[1] != lines[levels - 1].Cells[1], "and its last step deals more than its first", $"{lines[0].Cells[1]} then {lines[levels - 1].Cells[1]}");
+                var facts = Facts.For(weapon);
+                p.Check(Tells(facts, "Combo"), "and tells how its combo goes", Value(facts, "Combo"));
+                var stepClips = new List<AnimationClip> { clip };
+                for (var step = 1; step < levels; step++)
+                {
+                    var at = step;
+                    yield return Until(() => Previews.ClipOfAttackItem(weapon.Name, false, at) != null, 10);
+                    stepClips.Add(Previews.ClipOfAttackItem(weapon.Name, false, at));
+                }
+                var found = stepClips.Where(c => c != null).ToList();
+                p.Check(found.Count == levels && found.Distinct().Count() == levels, $"each of its steps finds a clip of its own", string.Join(", ", stepClips.Select(c => c != null ? c.name : "none")));
             }
         }
 

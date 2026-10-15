@@ -71,6 +71,60 @@ namespace Scry
             return line.ToArray();
         }
 
+        /// <summary>
+        /// A weapon's chained attack as its attacks table tells it, a line for each step: its
+        /// damage, knockback, stagger and cost, the last step's damage and stagger times
+        /// <paramref name="lastMultiplier"/> (<see cref="LastSwingMultiplier"/>), its knockback 1.2
+        /// times where that is more than 1 (<c>Attack.DoMeleeAttack</c>, <c>DoAreaAttack</c>).
+        /// </summary>
+        public static List<string[]> WeaponCombo(int steps, bool secondary, IList<(string Type, float Amount)> damage, float knockback, float stagger, float lastMultiplier, string costs)
+        {
+            var lines = new List<string[]>();
+            for (var step = 0; step < steps; step++)
+            {
+                var times = step == steps - 1 ? lastMultiplier : 1f;
+                var push = times > 1f ? 1.2f : 1f;
+                var line = WeaponAttack(secondary, Damage(damage.Select(d => (d.Type, d.Amount * times))), knockback * push, stagger * times, costs);
+                line[0] += " " + Numbers.Count(step + 1);
+                lines.Add(line);
+            }
+            return lines;
+        }
+
+        /// <summary>
+        /// What a chain's last step multiplies damage by: a melee swing doubles it whatever the
+        /// item says (<c>Attack.DoMeleeAttack</c>), an area attack takes the item's
+        /// <c>m_lastChainDamageMultiplier</c> where that is more than 1 (<c>DoAreaAttack</c>), and
+        /// any other attack's chain is its animation alone.
+        /// </summary>
+        public static float LastSwingMultiplier(bool melee, bool area, float itemSays)
+        {
+            if (melee) return 2f;
+            return area && itemSays > 1f ? itemSays : 1f;
+        }
+
+        /// <summary>
+        /// How a chain is kept going (<c>Humanoid.StartAttack</c>, <c>Attack.Start</c>): the next
+        /// step only within the clip's chain window, a pause of 0.2 s out of attacking starts it
+        /// over, and only the first step turns to where the character looks.
+        /// </summary>
+        public static string Combo(int steps, bool swings) =>
+            (swings ? $"{Numbers.Count(steps)} swings" : $"{Numbers.Count(steps)} attacks in turn") + ", the next pressed in time; a pause of 0.2 s starts over; follow-ups keep the first one's facing";
+
+        /// <summary>The fact telling how a weapon's combo goes, its first attack's or its second's.</summary>
+        public static string ComboTitle(bool second) => second ? "Second combo" : "Combo";
+
+        /// <summary>What starts a chain over when hit (<c>Attack.m_resetChainIfHit</c>, by <c>DestructibleType</c>: Default 1, Tree 2, Character 4), each a line.</summary>
+        public static List<(string Label, string Value)> ComboResets(int flags)
+        {
+            var lines = new List<(string, string)>();
+            const string over = "starts the combo over";
+            if ((flags & 1) != 0) lines.Add(("On a rock or piece", over));
+            if ((flags & 2) != 0) lines.Add(("On a tree", over));
+            if ((flags & 4) != 0) lines.Add(("On a creature", over));
+            return lines;
+        }
+
         /// <summary>The damage of a hit by type, the biggest first; null when it does none.</summary>
         public static string Damage(IEnumerable<(string Type, float Amount)> damage)
         {

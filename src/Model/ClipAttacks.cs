@@ -4,6 +4,16 @@ using System.Linq;
 
 namespace Scry
 {
+    /// <summary>A later step of a chained attack, as a clip's attack is keyed: the attack, and its step from 0.</summary>
+    internal sealed class ComboStep
+    {
+        /// <summary>The attack the step is part of.</summary>
+        public object Attack;
+
+        /// <summary>Which step, from 0, the attack's first.</summary>
+        public int Step;
+    }
+
     /// <summary>What a clip plays of the attack it is part of.</summary>
     internal sealed class ClipAttack
     {
@@ -50,6 +60,23 @@ namespace Scry
             else triggers.Add(animation);
             triggers.RemoveAll(t => !has(t));
             return triggers;
+        }
+
+        /// <summary>
+        /// The later steps of a chained attack and the triggers they are pulled by, its animation's
+        /// name and the step's number (<c>Attack.Start</c>), those the animator has; none for an
+        /// attack without a chain.
+        /// </summary>
+        public static List<(int Step, string Trigger)> ComboSteps(string animation, int chainLevels, Func<string, bool> has)
+        {
+            var steps = new List<(int, string)>();
+            if (string.IsNullOrEmpty(animation)) return steps;
+            for (var step = 1; step < chainLevels; step++)
+            {
+                var trigger = animation + Stored.Count(step);
+                if (has(trigger)) steps.Add((step, trigger));
+            }
+            return steps;
         }
 
         /// <param name="attacks">Each attack's trigger and a key to it, what the creature has now first.</param>

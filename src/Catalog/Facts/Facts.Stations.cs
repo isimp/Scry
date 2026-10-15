@@ -49,7 +49,18 @@ namespace Scry
                 var fuel = smelter.m_fuelItem;
                 if (fuel != null) Add("Burns", StationWords.BurnsForEach(ItemName(fuel.gameObject), smelter.m_fuelPerProduct), fuel.gameObject.name);
                 Add("Holds", StationWords.Holds(smelter.m_maxOre, fuel != null ? smelter.m_maxFuel : (int?)null));
-                Add("Each takes", Numbers.Duration(smelter.m_secPerProduct));
+                // A windmill paces it by its wind (Windmill.GetPowerOutput), blocked around its hub (Windmill.CheckCover).
+                var windmill = smelter.m_windmill != null ? smelter.m_windmill : prefab.GetComponentInChildren<Windmill>(true);
+                if (windmill != null)
+                {
+                    Add("Each takes", StationWords.InFullWind(smelter.m_secPerProduct));
+                    Add("Runs on", StationWords.RunsOnWind(windmill.m_minWindSpeed));
+                    Add("Blocked by", StationWords.WindBlockedBy);
+                    var blades = StationWords.BladesHurt(windmill.m_minAOEPropellerSpeed, windmill.m_propellerRotationSpeed);
+                    if (blades != null && windmill.m_propellerAOE != null) Add("Its blades", blades);
+                    Add("While away", StationWords.CatchesUp(StationWords.SmelterCatchUp));
+                }
+                else Add("Each takes", Numbers.Duration(smelter.m_secPerProduct));
                 if (smelter.m_requiresRoof) Add("Needs", StationWords.Roof);
                 Hooked(HookedRule.Smelting);
             }

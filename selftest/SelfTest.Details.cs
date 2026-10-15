@@ -54,6 +54,16 @@ namespace Scry
 
         private static IEnumerator PieceFacts(Probe p)
         {
+            // A windmill tells what wind it needs and what blocks it (Windmill.GetPowerOutput, CheckCover).
+            var mill = Pick(Kind.Piece, "windmill");
+            if (mill != null)
+            {
+                var wind = Facts.For(mill);
+                foreach (var row in new[] { "Runs on", "Blocked by", "Its blades", "While away" }) p.Check(Tells(wind, row), $"the windmill tells {row.ToLowerInvariant()}", Pairs(wind));
+                p.Check(Value(wind, "Each takes")?.Contains("in full wind") == true, "and how long each takes in full wind", Value(wind, "Each takes"));
+                p.Note($"windmill: {Value(wind, "Runs on")}; blades {Value(wind, "Its blades")}");
+            }
+
             var bench = Pick(Kind.Piece, "piece_workbench");
             if (bench == null) p.Skip("there is no workbench");
             var told = Facts.For(bench);

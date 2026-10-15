@@ -196,11 +196,26 @@ namespace Scry
                 var table = new Row { Title = CombatWords.WeaponAttacksTitle, Columns = CombatWords.WeaponAttackColumns };
                 foreach (var (each, isSecond) in twoAttacks ? new[] { (attack, false), (second, true) } : new[] { (attack, false) })
                 {
-                    var dealt = CombatWords.Damage(DamageFigures(shared.m_damages).Select(d => (d.Type, d.Amount * each.m_damageMultiplier)));
+                    var figures = DamageFigures(shared.m_damages).Select(d => (d.Type, d.Amount * each.m_damageMultiplier)).ToList();
                     var costs = CombatWords.Costs(each.m_attackStamina, each.m_attackEitr, each.m_attackHealth, each.m_attackHealthPercentage);
+                    var knockback = shared.m_attackForce * each.m_forceMultiplier;
+                    var plays = !string.IsNullOrEmpty(each.m_attackAnimation);
+                    // A chained attack a line for each step, the last as the game deals it (Attack.DoMeleeAttack,
+                    // DoAreaAttack); each step's name plays that step on the person wearing it.
+                    if (each.m_attackChainLevels > 1)
+                    {
+                        var melee = each.m_attackType == Attack.AttackType.Horizontal || each.m_attackType == Attack.AttackType.Vertical;
+                        var area = each.m_attackType == Attack.AttackType.Area;
+                        var last = CombatWords.LastSwingMultiplier(melee, area, each.m_lastChainDamageMultiplier);
+                        var steps = CombatWords.WeaponCombo(each.m_attackChainLevels, isSecond, figures, knockback, each.m_staggerMultiplier, last, costs);
+                        for (var step = 0; step < steps.Count; step++) table.Lines.Add((steps[step], plays ? EntryKeys.PlayAttack(prefab.name, isSecond, step) : null));
+                        Add(CombatWords.ComboTitle(isSecond), CombatWords.Combo(each.m_attackChainLevels, melee || area));
+                        foreach (var (label, value) in CombatWords.ComboResets((int)each.m_resetChainIfHit)) Add(label, value);
+                        continue;
+                    }
                     // Its name plays it on the person wearing it, as a creature's attack plays from its table; one with no animation plays nothing.
-                    table.Lines.Add((CombatWords.WeaponAttack(isSecond, dealt, shared.m_attackForce * each.m_forceMultiplier, each.m_staggerMultiplier, costs),
-                        string.IsNullOrEmpty(each.m_attackAnimation) ? null : EntryKeys.PlayAttack(prefab.name, isSecond)));
+                    table.Lines.Add((CombatWords.WeaponAttack(isSecond, CombatWords.Damage(figures), knockback, each.m_staggerMultiplier, costs),
+                        plays ? EntryKeys.PlayAttack(prefab.name, isSecond) : null));
                 }
                 Rows.Add(table);
                 if (!twoAttacks) Add("Secondary attack", "none");

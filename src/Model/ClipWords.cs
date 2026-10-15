@@ -24,6 +24,9 @@ namespace Scry
         /// <summary>The clip of an attack, by the weapon it is made with, and whether it is the weapon's second.</summary>
         public static string Attack(string weapon, bool second) => AttackStart + weapon + (second ? ", second" : "");
 
+        /// <summary>The clip of a later step of an attack's combo, by the attack's own name and the step from 0.</summary>
+        public static string Swing(string attack, int step) => attack + ", swing " + Numbers.Count(step + 1);
+
         /// <summary>Whether a clip's tag is an attack's (<see cref="Attack"/>).</summary>
         public static bool IsAttack(string tag) => tag != null && tag.StartsWith(AttackStart, StringComparison.Ordinal);
 

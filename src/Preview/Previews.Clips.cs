@@ -229,14 +229,15 @@ namespace Scry
         /// Asked without waiting, it is null while the animator is still watched, rather than
         /// watching the rest of it in this one frame.
         /// </summary>
-        private static AnimationClip AttackClipOf(Attack attack, bool wait = true)
+        private static AnimationClip AttackClipOf(Attack attack, bool wait = true, int step = 0)
         {
             var ears = ClipPlayer.AnimatorOf(Stage.Subject).OrNull()?.GetComponent<AnimationEars>();
             var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject, wait) : null;
             if (plays == null) return null;
             foreach (var part in plays.Attacks)
             {
-                if (part.Value.Key == attack && part.Value.Begins) return ClipNamed(part.Key);
+                if (!part.Value.Begins) continue;
+                if (step == 0 ? part.Value.Key == attack : part.Value.Key is ComboStep at && at.Attack == attack && at.Step == step) return ClipNamed(part.Key);
             }
             return null;
         }
@@ -246,7 +247,7 @@ namespace Scry
         /// creature carries, or a weapon the person on the stage wears, its first attack or its
         /// second; null where it has none of that name or the clip is not known yet.
         /// </summary>
-        public static AnimationClip ClipOfAttackItem(string item, bool secondary = false)
+        public static AnimationClip ClipOfAttackItem(string item, bool secondary = false, int step = 0)
         {
             // Asked for each line of the table on every event the panel draws: found once for the copy.
             if (!ReferenceEquals(_attackClipsOf, Stage.Subject))
@@ -254,7 +255,7 @@ namespace Scry
                 _attackClipsOf = Stage.Subject;
                 AttackClips.Clear();
             }
-            var key = item + (secondary ? "#2" : "");
+            var key = item + (secondary ? "#2" : "") + (step > 0 ? "#" + Stored.Count(step) : "");
             if (AttackClips.TryGetValue(key, out var known)) return known;
             var prefab = ClipPlayer.AnimatorOf(Stage.Subject).OrNull()?.GetComponent<AnimationEars>().OrNull()?.Prefab;
             var worn = Looks.IsWorn(_entry) && _entry.Source is GameObject source ? Looks.WornWith(source) : null;
@@ -263,7 +264,7 @@ namespace Scry
             var attack = secondary ? shared?.m_secondaryAttack : shared?.m_attack;
             // Asked for every line of a table each time the panel draws: never made to watch the
             // rest of the animator in one frame (a troll's took 380 ms); known once watched.
-            var clip = attack != null ? AttackClipOf(attack, wait: false) : null;
+            var clip = attack != null ? AttackClipOf(attack, wait: false, step) : null;
             // Not kept until found: the clips are worked out a while after the copy is shown.
             if (clip != null) AttackClips[key] = clip;
             return clip;
@@ -274,13 +275,13 @@ namespace Scry
         /// known, after a click on its attacks table while it is shown on its own put it on the
         /// person; given up when something else is selected or after a while.
         /// </summary>
-        public static void PlayAttackWhenKnown(string item, bool secondary)
+        public static void PlayAttackWhenKnown(string item, bool secondary, int step = 0)
         {
-            _attackAsked = (item, secondary, _entry, Time.unscaledTime + AttackWait);
+            _attackAsked = (item, secondary, step, _entry, Time.unscaledTime + AttackWait);
         }
 
-        /// <summary>An attack asked for before its clip was known, for whom and until when; null item for none.</summary>
-        private static (string Item, bool Secondary, Entry For, float Until) _attackAsked;
+        /// <summary>An attack asked for before its clip was known, which step of it, for whom and until when; null item for none.</summary>
+        private static (string Item, bool Secondary, int Step, Entry For, float Until) _attackAsked;
 
         private const float AttackWait = 20f;
 
@@ -293,7 +294,7 @@ namespace Scry
                 _attackAsked = default;
                 return;
             }
-            var clip = ClipOfAttackItem(_attackAsked.Item, _attackAsked.Secondary);
+            var clip = ClipOfAttackItem(_attackAsked.Item, _attackAsked.Secondary, _attackAsked.Step);
             if (clip == null) return;
             _attackAsked = default;
             PlayClip(clip);
@@ -368,6 +369,7 @@ namespace Scry
             var items = worn ?? Relations.CarriedItems(prefab);
             if (carried != null) items = items.Where(carried.Contains).Concat(items.Where(i => !carried.Contains(i))).ToList();
             var attacks = new List<(string, object)>();
+            var steps = new List<(string, object)>();
             var names = new Dictionary<Attack, string>();
             foreach (var item in items)
             {
@@ -379,11 +381,17 @@ namespace Scry
                     if (triggers == null || triggers.Count == 0) continue;
                     WeaponOf[attack] = shared;
                     foreach (var trigger in triggers) attacks.Add((trigger, attack));
+                    // A chain's later steps after every attack's start, so a start keeps its own clip.
+                    foreach (var (step, trigger) in ClipAttacks.ComboSteps(attack.m_attackAnimation, attack.m_attackChainLevels, t => HasTrigger(animator, t)))
+                    {
+                        steps.Add((trigger, new ComboStep { Attack = attack, Step = step }));
+                    }
                     var name = (CatalogBuilder.GameName(item) ?? WeaponChoices.Readable(item.name, prefab.name)).ToLowerInvariant();
                     names[attack] = ClipWords.Attack(name, attack == shared.m_secondaryAttack);
                 }
             }
 
+            attacks.AddRange(steps);
             var actions = GameLists(prefab).ToList();
             if (attacks.Count == 0 && actions.Count == 0 && prefab.GetComponent<BaseAI>() == null) return plays;
             var clips = animator.runtimeAnimatorController.animationClips.Where(c => c != null).ToList();
@@ -430,7 +438,11 @@ namespace Scry
 
             // What each clip is: the attack it plays, what the animator was seen to do there,
             // what it was named for, or idling.
-            foreach (var part in plays.Attacks) if (part.Value.Key is Attack attack && names.TryGetValue(attack, out var name)) plays.Tags[part.Key] = name;
+            foreach (var part in plays.Attacks)
+            {
+                if (part.Value.Key is Attack attack && names.TryGetValue(attack, out var name)) plays.Tags[part.Key] = name;
+                else if (part.Value.Key is ComboStep step && step.Attack is Attack stepped && names.TryGetValue(stepped, out var steppedName)) plays.Tags[part.Key] = ClipWords.Swing(steppedName, step.Step);
+            }
             foreach (var pair in seen.Actions)
             {
                 if (pair.Value.Count > 0 && ClipWords.Action(pair.Key, out var word) && !plays.Tags.ContainsKey(pair.Value[0])) plays.Tags[pair.Value[0]] = word;

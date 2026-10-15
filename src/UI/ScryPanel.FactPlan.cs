@@ -209,9 +209,9 @@ namespace Scry
                         // An attack's name plays its animation on the stage and stops it again, lit
                         // while it plays, as its clip's chip does: a creature's, or a weapon's on the
                         // person wearing it, put on the person first where it is shown on its own.
-                        if (c == 0 && EntryKeys.PlaysAttack(link, out var item, out var second))
+                        if (c == 0 && EntryKeys.PlaysAttack(link, out var item, out var second, out var step))
                         {
-                            var clip = Previews.ClipOfAttackItem(item, second);
+                            var clip = Previews.ClipOfAttackItem(item, second, step);
                             var playing = clip != null && Previews.PlayingClip() == clip;
                             var wearFirst = clip == null && explorer.Selected is Entry weapon && weapon.Kind == Kind.Item && weapon.Name == item && !Looks.IsWorn(weapon);
                             LinkLabel(cell, cells[c], Skin.SmallWrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);
@@ -228,7 +228,7 @@ namespace Scry
                                 {
                                     Looks.OnPerson = true;
                                     Previews.Rebuild();
-                                    Previews.PlayAttackWhenKnown(item, second);
+                                    Previews.PlayAttackWhenKnown(item, second, step);
                                     SaveRects();
                                 }
                             }

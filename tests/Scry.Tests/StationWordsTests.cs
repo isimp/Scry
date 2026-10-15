@@ -73,5 +73,19 @@ namespace Scry.Tests
             Assert.Equal("Summoned at Mystical altar with", StationWords.SummonedAt("Mystical altar", onStands: false));
             Assert.Equal("Summoned at Mystical altar with these on its item stands", StationWords.SummonedAt("Mystical altar", onStands: true));
         }
+
+        [Fact]
+        public void AWindmillSaysWhatWindItNeedsAndWhatBlocksIt()
+        {
+            // Windmill.GetPowerOutput: (1 - cover) times the wind's strength stepped from its least
+            // to full; Cover.GetCoverForPoint: 17 rays of 30 m from the propeller's hub, none down.
+            Assert.Equal("10 s in full wind, longer as the wind weakens or is blocked", StationWords.InFullWind(10f));
+            Assert.Equal("wind: none below 10% strength, full at 100%, whichever way it faces", StationWords.RunsOnWind(0.1f));
+            Assert.Equal("anything solid within 30 m of its hub, level with it or above; each of 17 directions blocked takes 6%", StationWords.WindBlockedBy);
+            Assert.Equal("hurt what they touch above 30% power", StationWords.BladesHurt(180f, -600f));
+            Assert.Null(StationWords.BladesHurt(180f, 0f));
+            Assert.Equal("an hour at most, at the wind blowing on return", StationWords.CatchesUp(3600f));
+            Assert.Equal("10 min at most, at the wind blowing on return", StationWords.CatchesUp(600f));
+        }
     }
 }

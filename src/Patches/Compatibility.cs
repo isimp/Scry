@@ -157,6 +157,14 @@ namespace Scry
 
             // What the details tell the game's rules from: if one changes, its words may be off.
             ("CharacterDrop", "GenerateDropList", 0, 0xA416B8DA, Feature.CreatureDrops),
+            ("Humanoid", "StartAttack", 2, 0xE6B6F5F8, Feature.WeaponCombos),
+            ("Attack", "Start", 9, 0xF77DB3EE, Feature.WeaponCombos),
+            ("Attack", "DoMeleeAttack", 0, 0x02E4B054, Feature.WeaponCombos),
+            ("Attack", "DoAreaAttack", 0, 0x8E76EA3A, Feature.WeaponCombos),
+            ("Windmill", "GetPowerOutput", 0, 0xB1FEA767, Feature.WindmillWind),
+            ("Windmill", "CheckCover", 0, 0x18BCDE3E, Feature.WindmillWind),
+            ("Windmill", "Update", 0, 0x5B823CE2, Feature.WindmillWind),
+            ("Smelter", "UpdateSmelter", 0, 0xFCD2B82E, Feature.WindmillWind),
             ("CharacterDrop", "OnDeath", 0, 0x15143844, Feature.DropsSeenInPlay),
             ("Ragdoll", "Setup", 7, 0x7D29C725, Feature.DropsSeenInPlay),
             ("Ragdoll", "SpawnLoot", 1, 0x515425F4, Feature.DropsSeenInPlay),

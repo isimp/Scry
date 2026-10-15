@@ -9,7 +9,7 @@ namespace Scry
         private void StartAttack(AnimationClip clip)
         {
             var part = clip != null ? AttackFor(clip.name) : null;
-            _clipAttack = part?.Key as Attack;
+            _clipAttack = part?.Key as Attack ?? (part?.Key as ComboStep)?.Attack as Attack;
             _clipTrigger = null;
             _clipHit = null;
             _strikeAt = -1f;

@@ -164,7 +164,7 @@ namespace Scry
 
             AddList(Previews.ListOfClip(_prefab, _copy, clip.name));
             var part = AttackFor(clip.name);
-            if (part?.Key is Attack attack)
+            if ((part?.Key as Attack ?? (part?.Key as ComboStep)?.Attack as Attack) is Attack attack)
             {
                 Previews.AttackParts(attack, out var begin, out var trigger, out var hit);
                 if (part.Begins) AddList(begin);

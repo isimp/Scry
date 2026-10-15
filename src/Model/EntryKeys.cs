@@ -38,12 +38,23 @@ namespace Scry
         }
 
         /// <summary>A table line's link that plays an attack on the stage, by the item it is made with: a creature's, or a weapon's first or second on the person wearing it.</summary>
-        public static string PlayAttack(string item, bool secondary = false) => AttackPlay + item + (secondary ? SecondAttack : "");
+        public static string PlayAttack(string item, bool secondary = false, int step = 0) =>
+            AttackPlay + item + (secondary ? SecondAttack : "") + (step > 0 ? AttackStep + Stored.Count(step) : "");
 
         /// <summary>Whether a link plays an attack, by which item, and whether its second.</summary>
-        public static bool PlaysAttack(string link, out string item, out bool secondary)
+        public static bool PlaysAttack(string link, out string item, out bool secondary) => PlaysAttack(link, out item, out secondary, out _);
+
+        /// <summary>Whether a link plays an attack, by which item, whether its second, and which step of its combo from 0.</summary>
+        public static bool PlaysAttack(string link, out string item, out bool secondary, out int step)
         {
             item = link != null && link.StartsWith(AttackPlay, StringComparison.Ordinal) ? link.Substring(AttackPlay.Length) : null;
+            step = 0;
+            var at = item != null ? item.LastIndexOf(AttackStep, StringComparison.Ordinal) : -1;
+            if (at >= 0 && Stored.TryCount(item.Substring(at + AttackStep.Length), out var counted) && counted > 0)
+            {
+                step = counted;
+                item = item.Substring(0, at);
+            }
             secondary = item != null && item.EndsWith(SecondAttack, StringComparison.Ordinal);
             if (secondary) item = item.Substring(0, item.Length - SecondAttack.Length);
             return item != null;
@@ -51,6 +62,7 @@ namespace Scry
 
         private const string AttackPlay = "play-attack:";
         private const string SecondAttack = "#2";
+        private const string AttackStep = "#step";
 
         /// <summary>A chip's link that runs a search, such as for what to bring against a creature.</summary>
         public static string Search(string query) => RunSearch + query;
