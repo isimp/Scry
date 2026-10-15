@@ -32,6 +32,9 @@ namespace Scry
         /// <summary>How many maps this game has answered, as a server; for the self-test.</summary>
         public static int Answered { get; private set; }
 
+        /// <summary>How many answers this game took from its world's server, as a client; for the self-test.</summary>
+        public static int Taken { get; private set; }
+
         /// <summary>How many kinds of place the last answer taken named; for the self-test.</summary>
         public static int LastTold { get; private set; } = -1;
 
@@ -106,6 +109,7 @@ namespace Scry
             if (world != _askedFor) return;
             _askedFor = null;
             LastTold = kinds.Count;
+            Taken++;
             CompendiumMap.Told(CompendiumKeeper.Book, world, kinds);
         }
 

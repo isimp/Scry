@@ -160,8 +160,9 @@ namespace Scry
         /// <summary>
         /// The explored map is read: the ground the character stands on is explored, the places
         /// this game holds lie partly in it, and where this game is the world's server it answers
-        /// a map sent to itself as it would a player's, with as many kinds as read here. The book
-        /// of the character played is caught up once, after a while in the world.
+        /// a map sent to itself as it would a player's, with as many kinds as read here; as a
+        /// client of a dedicated server it asks the Scry there, which answers. The book of the
+        /// character played is caught up once, after a while in the world.
         /// </summary>
         private static IEnumerator CompendiumMapRead(Probe p)
         {
@@ -175,7 +176,16 @@ namespace Scry
             var book = CompendiumKeeper.Book;
             if (!ZNet.instance.IsServer())
             {
-                p.Note(book != null && book.Mapped(world) ? "a server world, caught up with its server's answer" : "a server world not caught up: its server answers no map (no Scry there)");
+                // A client asks the Scry on its world's server, which tells only which kinds of place lie in the map.
+                p.Note(book != null && book.Mapped(world) ? "a server world, caught up with its server's answer on entering it" : "a server world not caught up on entering it");
+                var taken = CompendiumLink.Taken;
+                yield return Until(() =>
+                {
+                    CompendiumLink.Ask(world);
+                    return CompendiumLink.Taken > taken;
+                }, 20);
+                p.Check(CompendiumLink.Taken > taken, "a map sent to the world's server is answered by the Scry there", CompendiumLink.Taken > taken ? $"{Numbers.Count(CompendiumLink.LastTold)} kinds of place told" : "no answer: no Scry on the server, or one too old");
+                p.Check(book != null && book.Mapped(world), "the character's book is caught up from its server's answer");
                 yield break;
             }
 
