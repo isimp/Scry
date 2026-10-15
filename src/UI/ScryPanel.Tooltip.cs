@@ -59,7 +59,7 @@ namespace Scry
                 if (chosen >= 0) _tooltipLevel = chosen + 1;
             }
 
-            var shown = Tooltips.Of(prefab, Mathf.Clamp(_tooltipLevel, 1, most)) ?? first;
+            var shown = CardShown(explorer, Tooltips.Of(prefab, Mathf.Clamp(_tooltipLevel, 1, most)) ?? first);
             y = TooltipCard(shown, width, y);
             return TooltipMods(explorer, shown.Mods, width, y) + U(10f);
         }
@@ -69,6 +69,29 @@ namespace Scry
         /// a mod's lines on a tint with a bar of the mods' colour down its left. Heights are worked
         /// out first, so the box and the tints are drawn behind what they hold the first time.
         /// </summary>
+        private static Tooltips.Shown _cardOf;
+        private static Explorer _cardIn;
+        private static int _cardStamp = -1;
+        private static Tooltips.Shown _cardMasked;
+
+        /// <summary>
+        /// The card as the page shows it: under the strict rules with the names of what the
+        /// character never met kept back, as in the rest of the page's text (<see cref="Masked"/>);
+        /// the game's card as it is otherwise. Made once while the card and what is known stay the same.
+        /// </summary>
+        internal static Tooltips.Shown CardShown(Explorer explorer, Tooltips.Shown shown)
+        {
+            if (shown == null || !explorer.LeavingOut) return shown;
+            if (ReferenceEquals(_cardOf, shown) && ReferenceEquals(_cardIn, explorer) && _cardStamp == explorer.KnowStamp) return _cardMasked;
+            var masked = new Tooltips.Shown { Name = shown.Name, Lines = shown.Lines, Runs = shown.Runs, Mods = shown.Mods };
+            foreach (var part in shown.Parts) masked.Parts.Add(new TooltipPart(part.Kind, Masked(explorer, part.Label), Masked(explorer, part.Value), Masked(explorer, part.Extra), part.FromMods));
+            _cardOf = shown;
+            _cardIn = explorer;
+            _cardStamp = explorer.KnowStamp;
+            _cardMasked = masked;
+            return masked;
+        }
+
         private static float TooltipCard(Tooltips.Shown shown, float width, float y)
         {
             var pad = U(12f);
@@ -217,6 +240,10 @@ namespace Scry
         {
             _tooltipOf = null;
             _tooltipLevel = 1;
+            _cardOf = null;
+            _cardIn = null;
+            _cardStamp = -1;
+            _cardMasked = null;
         }
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
@@ -357,6 +358,54 @@ namespace Scry.Tests
             // Only the power chosen, and its stone stays as it was.
             Assert.Equal(KnownLevel.Unknown, book.Level(elder.Key));
             Assert.Equal(KnownLevel.Seen, book.Level(eikthyrStone.Key));
+        }
+
+        [Fact]
+        public void TradingWithATraderKnowsItAndShowsItsWaresPairedWithIt()
+        {
+            var haldor = E(Kind.Creature, "Haldor");
+            var hat = E(Kind.Item, "HelmetYule");
+            var lantern = E(Kind.Item, "Lantern");
+            var (catchUp, book) = Fresh(haldor, hat, lantern);
+
+            Assert.True(catchUp.Traded(haldor.Key, new[] { hat.Key, lantern.Key, "ModsSecretWare" }, book));
+
+            Assert.Equal(KnownLevel.Known, book.Level(haldor.Key));
+            Assert.Equal(KnownLevel.Seen, book.Level(hat.Key));
+            Assert.Equal(KnownLevel.Seen, book.Level(lantern.Key));
+            Assert.True(book.Witnessed(haldor.Key, hat.Key));
+            Assert.True(book.Witnessed(lantern.Key, haldor.Key));
+            Assert.False(book.Witnessed(haldor.Key, "ModsSecretWare"));
+            // Trading again is no news; a trader the catalog lacks gives nothing.
+            Assert.False(catchUp.Traded(haldor.Key, new[] { hat.Key }, book));
+            Assert.False(catchUp.Traded("ModsTrader", new[] { hat.Key }, book));
+            Assert.False(book.Witnessed("ModsTrader", hat.Key));
+        }
+
+        [Fact]
+        public void APiecePlacedIsPairedWithTheOneToolThatBuildsIt()
+        {
+            // The records keep what was placed, not with what: only a piece one tool alone builds is sure.
+            var hammer = E(Kind.Item, "Hammer");
+            var hoe = E(Kind.Item, "Hoe");
+            var wall = E(Kind.Piece, "wood_wall_half", "$piece_woodwallhalf");
+            var path = E(Kind.Piece, "path", "$piece_path");
+            var tools = new Dictionary<string, IReadOnlyList<string>>
+            {
+                ["wood_wall_half"] = new[] { "Hammer" },
+                ["path"] = new[] { "Hoe", "Hammer" },
+            };
+            var catchUp = new CompendiumCatchUp(new EntryCatalog(new[] { hammer, hoe, wall, path }), piece => tools.TryGetValue(piece, out var t) ? t : null);
+            var book = new CompendiumBook();
+            var records = new CompendiumRecords();
+            records.Placed.Add("$piece_woodwallhalf");
+            records.Placed.Add("$piece_path");
+
+            catchUp.Fill(records, book, quietly: true);
+
+            Assert.True(book.Witnessed(wall.Key, hammer.Key));
+            Assert.False(book.Witnessed(path.Key, hoe.Key));
+            Assert.False(book.Witnessed(path.Key, hammer.Key));
         }
 
         [Fact]

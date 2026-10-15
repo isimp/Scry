@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
+using HarmonyLib;
 using UnityEngine;
 
 namespace Scry
@@ -67,7 +69,7 @@ namespace Scry
             if (catalog == null) return;
             if (!ReferenceEquals(catalog, _catchUpOf))
             {
-                _catchUp = new CompendiumCatchUp(catalog);
+                _catchUp = new CompendiumCatchUp(catalog, piece => Knowledge.Tools.ToolsOf(piece).Select(u => u.Tool).Distinct().ToList());
                 _catchUpOf = catalog;
                 _recordsSize = -1;
             }
@@ -96,12 +98,15 @@ namespace Scry
             Save();
         }
 
+        /// <summary>The trader whose store is open.</summary>
+        private static readonly AccessTools.FieldRef<StoreGui, Trader> TraderOf = AccessTools.FieldRefAccess<StoreGui, Trader>("m_trader");
+
         /// <summary>
         /// What the character has and is in, as news: what it carries, the status effects on it,
         /// the raid around it (<c>RandEventSystem.GetActiveEvent</c>, the one the game plays for
         /// it), paired with the creatures it brings that the character met, and the place it
-        /// stands in are known, a dungeon only once inside it (seen at its entrance); what it
-        /// points at is seen.
+        /// stands in are known, a dungeon only once inside it (seen at its entrance); a trader
+        /// whose store is open is known, its wares seen; what it points at is seen.
         /// </summary>
         private static void Look(Player player)
         {
@@ -115,6 +120,9 @@ namespace Scry
             }
             var raid = RandEventSystem.instance.OrNull()?.GetActiveEvent();
             if (raid != null) _catchUp.LivedThrough(EntryKeys.For(Kind.Raid, raid.m_name), _book);
+            // A trader's store open: the trader known, its wares on show seen and paired with it.
+            var trader = StoreGui.IsVisible() && StoreGui.instance != null ? TraderOf(StoreGui.instance) : null;
+            if (trader != null) _catchUp.Traded(Utils.GetPrefabName(trader.gameObject), trader.GetAvailableItems().Where(t => t?.m_prefab != null).Select(t => t.m_prefab.name), _book);
             var place = Location.GetLocation(player.transform.position);
             if (place != null) _catchUp.StoodIn(EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)), place.m_hasInterior, player.InInterior(), _book);
             var hovered = player.GetHoverObject();
@@ -149,6 +157,30 @@ namespace Scry
             var tool = Player.m_localPlayer.OrNull()?.GetCurrentWeapon()?.m_dropPrefab.OrNull();
             if (tool != null) _book.Witness(key, tool.name);
             MetIn(key, resource.transform.position);
+        }
+
+        /// <summary>A piece the character placed, as news: known, and paired with the tool in hand that built it.</summary>
+        public static void Placed(string piece, string tool)
+        {
+            if (_book == null || _catchUp == null || string.IsNullOrEmpty(piece)) return;
+            _catchUp.Met(piece, KnownLevel.Known, _book);
+            if (!string.IsNullOrEmpty(tool)) _book.Witness(piece, tool);
+        }
+
+        /// <summary>A creature the character tamed or petted, as news: known, and met where it stands.</summary>
+        public static void Tamed(Character creature)
+        {
+            if (_book == null || _catchUp == null || creature == null) return;
+            var key = Utils.GetPrefabName(creature.gameObject);
+            _catchUp.Met(key, KnownLevel.Known, _book);
+            MetIn(key, creature.transform.position);
+        }
+
+        /// <summary>A creature the character saw eat: paired with what it ate, for the strict rules.</summary>
+        public static void Fed(Character creature, string food)
+        {
+            if (_book == null || creature == null || string.IsNullOrEmpty(food)) return;
+            _book.Witness(Utils.GetPrefabName(creature.gameObject), food);
         }
 
         /// <summary>The character saw two things go together, by their entries' keys (<see cref="CompendiumBook.Witness"/>).</summary>

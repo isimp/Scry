@@ -377,12 +377,14 @@ namespace Scry
         /// </summary>
         private static IEnumerator CompendiumWatched(Probe p)
         {
-            foreach (var (type, name) in new[] { (typeof(Character), "Damage"), (typeof(Character), "RPC_Damage"), (typeof(Destructible), "Damage"), (typeof(TreeBase), "Damage"), (typeof(TreeLog), "Damage"), (typeof(MineRock), "Damage"), (typeof(MineRock5), "Damage") })
+            foreach (var (type, name) in new[] { (typeof(Character), "Damage"), (typeof(Character), "RPC_Damage"), (typeof(Destructible), "Damage"), (typeof(TreeBase), "Damage"), (typeof(TreeLog), "Damage"), (typeof(MineRock), "Damage"), (typeof(MineRock5), "Damage"),
+                (typeof(Humanoid), "Pickup"), (typeof(Player), "PlacePiece"), (typeof(Tameable), "Tame"), (typeof(Tameable), "Interact"), (typeof(Tameable), "OnConsumedItem") })
             {
                 var method = AccessTools.DeclaredMethod(type, name);
                 p.Check(method != null && Harmony.GetPatchInfo(method)?.Owners.Contains(About.Guid) == true, $"{type.Name}.{name} is watched");
             }
 
+            p.Check(AccessTools.Field(typeof(StoreGui), "m_trader") != null, "a trader's open store tells whose it is");
             var player = Player.m_localPlayer;
             if (!p.Check(player != null, "a character is played")) yield break;
             var faults = Faults.Count;
@@ -541,6 +543,10 @@ namespace Scry
                 p.Check(Faults.Count == strictFaults, "and draws without fault", Faults.Latest);
                 var drawn = ScryPanel.AsDrawn(X, $"Feared by {unseen.ShownName} alone.");
                 p.Check(drawn.Contains(CompendiumWords.Hidden) && !drawn.Contains(unseen.ShownName), $"its text keeps back the name of {unseen.Name}, never met", drawn);
+                var card = new Tooltips.Shown { Name = fought.ShownName };
+                card.Parts.Add(new TooltipPart(TooltipPartKind.Row, "Feared by", unseen.ShownName, "", true));
+                var cardShown = ScryPanel.CardShown(X, card).Parts[0].Value;
+                p.Check(cardShown.Contains(CompendiumWords.Hidden) && !cardShown.Contains(unseen.ShownName), $"and so does the game's tooltip card", cardShown);
                 view.Tell(book, CompendiumRule.Loose);
                 // Under the loose rules nothing is left out, so no section says so.
                 yield return Until(() => !X.LeavingOut, 3);

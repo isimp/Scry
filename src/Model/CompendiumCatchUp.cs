@@ -17,16 +17,21 @@ namespace Scry
     /// (<see cref="Entry.Tokens"/>). For the strict rules it pairs what the records show went
     /// together: a recipe unlocked, an item crafted or a piece placed with its ingredients and
     /// station, a trophy with the creatures it falls from, a thing picked or picked up with the
-    /// resources giving it, a food eaten with the status effects it gives.
+    /// resources giving it, a food eaten with the status effects it gives, a piece placed with
+    /// the one tool that builds it.
     /// </summary>
     internal sealed class CompendiumCatchUp
     {
         private readonly EntryCatalog _catalog;
+        private readonly Func<string, IReadOnlyList<string>> _toolsOf;
         private readonly Dictionary<string, List<Entry>> _byToken = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
 
-        public CompendiumCatchUp(EntryCatalog catalog)
+        /// <param name="catalog">The entries the records are told in.</param>
+        /// <param name="toolsOf">The tools that build a piece, by its prefab; none where not told.</param>
+        public CompendiumCatchUp(EntryCatalog catalog, Func<string, IReadOnlyList<string>> toolsOf = null)
         {
             _catalog = catalog;
+            _toolsOf = toolsOf;
             foreach (var entry in catalog.All)
             {
                 foreach (var token in entry.Tokens)
@@ -120,6 +125,16 @@ namespace Scry
             {
                 foreach (var resource in item.TermLinks("from")) if (resource.Kind == Kind.Resource) book.Witness(item.Key, resource.Key);
             }
+            // The records keep what was placed, not with what: a piece one tool alone builds was built with it.
+            if (_toolsOf != null)
+            {
+                foreach (var piece in Named(records.Placed, Kind.Piece))
+                {
+                    var tools = _toolsOf(piece.Name);
+                    var tool = tools != null && tools.Count == 1 ? _catalog.Find(tools[0]) : null;
+                    if (tool != null) book.Witness(piece.Key, tool.Key);
+                }
+            }
             foreach (var food in Named(records.Eaten, Kind.Item))
             {
                 foreach (var link in food.Links) if (link.Group == LinkWords.StatusEffects) book.Witness(food.Key, link.Target);
@@ -128,6 +143,26 @@ namespace Scry
 
         /// <summary>Learns of an entry met in play, by its key, as news; true when that is more than was known. What the catalog has no entry for is passed over.</summary>
         public bool Met(string key, KnownLevel level, CompendiumBook book) => _catalog.Find(key) != null && book.Raise(key, level);
+
+        /// <summary>
+        /// A trader the character trades with, as news: known, its wares on show seen, and each
+        /// paired with it, for the strict rules. True when it was learned more of; a trader the
+        /// catalog lacks gives nothing.
+        /// </summary>
+        public bool Traded(string trader, IEnumerable<string> wares, CompendiumBook book)
+        {
+            var entry = _catalog.Find(trader);
+            if (entry == null) return false;
+            var raised = book.Raise(entry.Key, KnownLevel.Known);
+            foreach (var ware in wares ?? Array.Empty<string>())
+            {
+                var item = _catalog.Find(ware);
+                if (item == null) continue;
+                raised |= book.Raise(item.Key, KnownLevel.Seen);
+                book.Witness(entry.Key, item.Key);
+            }
+            return raised;
+        }
 
         /// <summary>
         /// The place the character stands in, as news: known, but a place with an inside (a
