@@ -139,6 +139,12 @@ namespace Scry
         None,
         Fell,
         Gave,
+
+        /// <summary>What a chest held the first time the character opened each one.</summary>
+        Held,
+
+        /// <summary>The weathers seen in a biome, each change of weather one.</summary>
+        Weather,
     }
 
     /// <summary>How a row counted from what the character saw is told (<see cref="Tally"/>).</summary>
@@ -148,11 +154,25 @@ namespace Scry
         public static string Title(Tally tally, string lead, int times)
         {
             var count = times > 0 ? (tally == Tally.Fell ? Naming.Count(times, "kill", "kills") : Naming.Count(times, "time", "times")) : "none yet";
-            return tally == Tally.Fell ? $"Drops you saw fall ({count})" : DropWords.Led(lead, $"Gave you ({count})");
+            switch (tally)
+            {
+                case Tally.Fell: return $"Drops you saw fall ({count})";
+                case Tally.Held: return $"Held when you opened it ({count})";
+                default: return DropWords.Led(lead, $"Gave you ({count})");
+            }
         }
 
         /// <summary>The faint line under such a row where an amount is not yet known.</summary>
-        public static string NotYetCounted(Tally tally) => "How many shows once you have seen it " + (tally == Tally.Fell ? "fall" : "given");
+        public static string NotYetCounted(Tally tally)
+        {
+            switch (tally)
+            {
+                case Tally.Fell: return "How many shows once you have seen it fall";
+                case Tally.Held: return "How many shows once you have opened one";
+                case Tally.Weather: return "How often shows as you see its weathers";
+                default: return "How many shows once you have seen it given";
+            }
+        }
 
         /// <summary>
         /// An item's chip in such a row, in the game's own form with the count where the game puts
@@ -162,7 +182,20 @@ namespace Scry
 
         /// <summary>The same in a line of where an item comes from, which no title counts for: the kills or times said.</summary>
         public static string Line(Tally tally, SeenDrop drop, int times) =>
-            $"{Numbers.CountRange(drop.Least, drop.Most)} ({Numbers.Count(drop.Times)} of {(tally == Tally.Fell ? Naming.Count(times, "kill", "kills") : Naming.Count(times, "time", "times"))})";
+            $"{Numbers.CountRange(drop.Least, drop.Most)} ({Numbers.Count(drop.Times)} of {Of(tally, times)})";
+
+        /// <summary>How often a weather was seen in a biome, of all the weathers seen there.</summary>
+        public static string Seen(SeenDrop weather, int times) => $"{Numbers.Count(weather.Times)} of {Numbers.Count(times)} seen";
+
+        private static string Of(Tally tally, int times)
+        {
+            switch (tally)
+            {
+                case Tally.Fell: return Naming.Count(times, "kill", "kills");
+                case Tally.Held: return Numbers.Count(times) + " opened";
+                default: return Naming.Count(times, "time", "times");
+            }
+        }
 
         /// <summary>What a line's amount held back says on hover: how it comes to show, or that nothing counts it; none for a way not counted.</summary>
         public static string HeldTip(Tally? by) => by == null ? null : by == Tally.None ? NeverCounted : NotYetCounted(by.Value);

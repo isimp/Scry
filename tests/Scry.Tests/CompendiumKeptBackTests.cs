@@ -261,6 +261,94 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheOtherNumbersTheGameNeverShowsWaitForADeedOfTheirOwn()
+        {
+            // A tree's or rock's health until one broke, what stars change until a starred one
+            // fell, a spawner's pool and pace until it spawned, a producer's pace until collected from.
+            Assert.Equal("??? · shows once you have broken one", CompendiumWords.KeptBack(EntryKeys.Did(Deed.Broke)));
+            Assert.Equal("shows once you have seen a starred one fall", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.StarredFell)));
+            Assert.Equal("shows once you have seen it spawn", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Spawned)));
+            Assert.Equal("shows once you have collected from one", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Collected)));
+            Assert.Equal("its health found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Broke)));
+            Assert.Equal("what stars change found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.StarredFell)));
+            Assert.Equal("its spawning found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Spawned)));
+            Assert.Equal("its pace found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Collected)));
+
+            var rows = CompendiumWords.StillToFindOut(
+                new[] { EntryKeys.Did(Deed.Broke), EntryKeys.Did(Deed.StarredFell), EntryKeys.Did(Deed.Spawned), EntryKeys.Did(Deed.Collected) },
+                new string[0], 0, 0, new[] { Tally.Held, Tally.Weather });
+            Assert.Equal(new[]
+            {
+                ("Break one", "shows its health"),
+                ("See a starred one fall", "shows what stars change"),
+                ("See it spawn", "shows its pool and pace"),
+                ("Collect from one", "shows its pace"),
+                ("Open one", "how many of each it holds"),
+                ("Spend time in it", "how often each weather comes"),
+            }, rows);
+        }
+
+        [Fact]
+        public void AChestIsCountedTheFirstTimeTheCharacterOpensEachOne()
+        {
+            var book = new CompendiumBook();
+            Assert.True(book.FirstOpen("world:1:2"));
+            Assert.False(book.FirstOpen("world:1:2"));
+            Assert.True(book.FirstOpen("world:1:3"));
+            book.Held("TreasureChest", new[] { ("Coins", 30), ("Amber", 1) });
+            book.Held("TreasureChest", new[] { ("Coins", 50) });
+
+            var read = CompendiumBook.Load(book.Save());
+            Assert.False(read.FirstOpen("world:1:2"));
+            Assert.Equal(2, read.Tallied(Tally.Held).Kills("TreasureChest"));
+            Assert.Equal("30–50 (2 of 2 opened)", TallyWords.Line(Tally.Held, read.Tallied(Tally.Held).Of("TreasureChest").First(d => d.Item == "Coins"), 2));
+            Assert.Equal("How many shows once you have opened one", TallyWords.NotYetCounted(Tally.Held));
+            Assert.Equal("Held when you opened it (2 times)", TallyWords.Title(Tally.Held, null, 2));
+        }
+
+        [Fact]
+        public void TheWeathersOfABiomeAreCountedAsTheCharacterSeesThem()
+        {
+            var world = new World();
+            world.Book.Weathered("Meadows", "Clear");
+            world.Book.Weathered("Meadows", "Rain");
+            world.Book.Weathered("Meadows", "Clear");
+            world.Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Meadows);
+
+            Assert.Equal("2 of 3 seen", world.Explorer.StrictAmount(Tally.Weather, "Meadows", "Clear"));
+            Assert.Equal("???", world.Explorer.StrictAmount(Tally.Weather, "Meadows", "Misty"));
+            Assert.Equal("How often shows as you see its weathers", TallyWords.NotYetCounted(Tally.Weather));
+            Assert.Equal(3, CompendiumBook.Load(world.Book.Save()).Tallied(Tally.Weather).Kills("Meadows"));
+        }
+
+        [Fact]
+        public void AChestsLootABushsExtrasAndAProducersPaceAreHeldBackOnAnItemsPage()
+        {
+            var world = new World();
+            world.Book.Held("TreasureChest", new[] { ("Coins", 30) });
+            world.Rule(CompendiumRule.Strict);
+            var roll = new DropTableInfo();
+            roll.Drops.Add(new DropInfo("Coins", 10, 50, 1f));
+            world.Explorer.Select(world.Coins);
+
+            Assert.Equal(Tally.Held, SourceWords.CountedBy(SourceFacts.FromTable("TreasureChest", "Treasure chest", TableOf.Container, roll, roll.Drops[0])));
+            Assert.Equal(Tally.Gave, SourceWords.CountedBy(SourceFacts.FromTable("RaspberryBush", "Raspberry bush", TableOf.Pickable, roll, roll.Drops[0])));
+            Assert.Equal("Found in Treasure chest, 30 (1 of 1 opened)", world.Explorer.StrictSourceLine(SourceFacts.FromTable("TreasureChest", "Treasure chest", TableOf.Container, roll, roll.Drops[0])));
+
+            // A producer's pace until collected from.
+            var hive = SourceFacts.Made("piece_beehive", "Beehive", 1200f, 4, "");
+            Assert.Equal("Made by Beehive, ???", world.Explorer.StrictSourceLine(hive));
+            Assert.Equal("Its pace shows once you have collected from one", SourceWords.HeldTip(hive));
+            world.Book.Witness("piece_beehive", EntryKeys.Did(Deed.Collected));
+            world.Rule(CompendiumRule.Strict);
+            Assert.Null(world.Explorer.StrictSourceLine(hive));
+            Assert.Equal(TallyWords.NeverCounted, SourceWords.HeldTip(SourceFacts.FromTable("x", "x", TableOf.Other, roll, roll.Drops[0])));
+            Assert.Equal(TallyWords.NotYetCounted(Tally.Fell), SourceWords.HeldTip(SourceFacts.Dropped("Troll", "Troll", 1, 2, false, 1f)));
+            Assert.Null(SourceWords.HeldTip(SourceFacts.Of(SourceWay.Picked, "x", "x")));
+        }
+
+        [Fact]
         public void AWeakSpotIsLeftOutUntilAHitFoundIt()
         {
             var world = new World().Rule(CompendiumRule.Strict);
@@ -334,7 +422,7 @@ namespace Scry.Tests
             world.Explorer.Select(world.Hide);
             Assert.Equal("Dropped by Troll, 2–3 (2 of 3 kills)", world.Explorer.StrictSourceLine(SourceFacts.Dropped("Troll", "Troll", 5, 9, false, 1f)));
             Assert.Equal("Dropped by Greydwarf, ???", world.Explorer.StrictSourceLine(SourceFacts.Dropped("Greydwarf", "Greydwarf", 1, 2, false, 0.25f)));
-            // What a chest holds is never counted: held back all the same.
+            // A chest never opened: held back until it is.
             Assert.Equal("Found in Treasure chest, ???", world.Explorer.StrictSourceLine(SourceFacts.FromTable("TreasureChest", "Treasure chest", TableOf.Container, oneRoll, oneRoll.Drops[0])));
             // A way with no chance in it stays as the game tells it.
             Assert.Null(world.Explorer.StrictSourceLine(SourceFacts.Of(SourceWay.Picked, "RaspberryBush", "Raspberry bush")));
@@ -355,11 +443,8 @@ namespace Scry.Tests
             {
                 Assert.Equal(Tally.Gave, SourceWords.CountedBy(SourceFacts.FromTable("x", "x", table, new DropTableInfo(), new DropInfo("y", 1, 1, 1f))));
             }
-            // Counted nowhere: what a chest holds, what a bush gives besides, a mod's own part.
-            foreach (var table in new[] { TableOf.Container, TableOf.Pickable, TableOf.Other })
-            {
-                Assert.Equal(Tally.None, SourceWords.CountedBy(SourceFacts.FromTable("x", "x", table, new DropTableInfo(), new DropInfo("y", 1, 1, 1f))));
-            }
+            // Counted nowhere: a mod's own part.
+            Assert.Equal(Tally.None, SourceWords.CountedBy(SourceFacts.FromTable("x", "x", TableOf.Other, new DropTableInfo(), new DropInfo("y", 1, 1, 1f))));
             // No chance to hold back: as the game tells it.
             Assert.Null(SourceWords.CountedBy(SourceFacts.Of(SourceWay.Picked, "x", "x")));
             Assert.Null(SourceWords.CountedBy(SourceFacts.Made("x", "x", 60f, 4, "")));

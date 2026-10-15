@@ -130,8 +130,51 @@ namespace Scry
         private readonly SeenDrops _fell = new SeenDrops();
         private readonly SeenDrops _gave = new SeenDrops();
 
+        private readonly SeenDrops _held = new SeenDrops();
+        private readonly SeenDrops _weathers = new SeenDrops();
+
         /// <summary>What was counted of a kind (<see cref="Tally"/>); an empty count for none.</summary>
-        public SeenDrops Tallied(Tally tally) => tally == Tally.Fell ? _fell : tally == Tally.Gave ? _gave : NoTally;
+        public SeenDrops Tallied(Tally tally)
+        {
+            switch (tally)
+            {
+                case Tally.Fell: return _fell;
+                case Tally.Gave: return _gave;
+                case Tally.Held: return _held;
+                case Tally.Weather: return _weathers;
+                default: return NoTally;
+            }
+        }
+
+        /// <summary>The chests the character opened, by an id of each in its world, so each is counted only the first time.</summary>
+        private readonly HashSet<string> _opened = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>A chest's id for <see cref="FirstOpen"/>: its world's and its own in that world.</summary>
+        public static string ChestId(string world, string chest) => world + "/" + chest;
+
+        /// <summary>Whether this is the first time the character opens a chest, by its id; it is the last time it is.</summary>
+        public bool FirstOpen(string id)
+        {
+            if (string.IsNullOrEmpty(id) || !_opened.Add(id)) return false;
+            Changed = true;
+            return true;
+        }
+
+        /// <summary>What a chest held the first time the character opened it, counted as one opening.</summary>
+        public void Held(string chest, IEnumerable<(string Item, int Amount)> loot)
+        {
+            if (string.IsNullOrEmpty(chest)) return;
+            _held.Record(chest, loot);
+            Changed = true;
+        }
+
+        /// <summary>A weather seen come in a biome, counted as one of the weathers seen there.</summary>
+        public void Weathered(string biome, string weather)
+        {
+            if (string.IsNullOrEmpty(biome) || string.IsNullOrEmpty(weather)) return;
+            _weathers.Record(biome, new[] { (weather, 1) });
+            Changed = true;
+        }
 
         private static readonly SeenDrops NoTally = new SeenDrops();
 
@@ -310,6 +353,9 @@ namespace Scry
             var found = _found.ToArray();
             var fell = _fell.Save();
             var gave = _gave.Save();
+            var held = _held.Save();
+            var weathers = _weathers.Save();
+            var opened = _opened.ToArray();
             Changed = false;
             return () =>
             {
@@ -337,6 +383,9 @@ namespace Scry
                 }
                 foreach (var line in fell.Split('\n')) if (line.Length > 0) text.Append("fell\t").Append(line).Append('\n');
                 foreach (var line in gave.Split('\n')) if (line.Length > 0) text.Append("gave\t").Append(line).Append('\n');
+                foreach (var line in held.Split('\n')) if (line.Length > 0) text.Append("held\t").Append(line).Append('\n');
+                foreach (var line in weathers.Split('\n')) if (line.Length > 0) text.Append("weather\t").Append(line).Append('\n');
+                foreach (var id in opened.OrderBy(o => o, StringComparer.Ordinal)) text.Append("opened\t").Append(Stored.Escaped(id)).Append('\n');
                 return text.ToString();
             };
         }
@@ -374,19 +423,28 @@ namespace Scry
             // The counts of what fell and was given, each its own text inside the book's.
             var fell = new StringBuilder();
             var gave = new StringBuilder();
+            var held = new StringBuilder();
+            var weathers = new StringBuilder();
             foreach (var line in text.Split('\n'))
             {
                 if (line.StartsWith("fell\t", StringComparison.Ordinal)) fell.Append(line, 5, line.Length - 5).Append('\n');
                 else if (line.StartsWith("gave\t", StringComparison.Ordinal)) gave.Append(line, 5, line.Length - 5).Append('\n');
+                else if (line.StartsWith("held\t", StringComparison.Ordinal)) held.Append(line, 5, line.Length - 5).Append('\n');
+                else if (line.StartsWith("weather\t", StringComparison.Ordinal)) weathers.Append(line, 8, line.Length - 8).Append('\n');
             }
             book._fell.Take(SeenDrops.Load(fell.ToString()));
             book._gave.Take(SeenDrops.Load(gave.ToString()));
+            book._held.Take(SeenDrops.Load(held.ToString()));
+            book._weathers.Take(SeenDrops.Load(weathers.ToString()));
             foreach (var line in text.Split('\n'))
             {
                 var parts = line.TrimEnd('\r').Split('\t');
                 if (parts.Length < 2 || !Stored.TryUnescaped(parts[1], out var name) || name.Length == 0) continue;
                 switch (parts[0])
                 {
+                    case "opened" when parts.Length == 2:
+                        book._opened.Add(name);
+                        break;
                     case "found" when parts.Length == 3 && Stored.TryUnescaped(parts[2], out var proof) && proof.Length > 0:
                         book._found[name] = proof;
                         break;

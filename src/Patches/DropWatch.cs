@@ -23,7 +23,10 @@ namespace Scry
         private static readonly List<ItemDrop> Made = new List<ItemDrop>();
 
         /// <summary>The ragdolls lying with loot to come, and the creature each was.</summary>
-        private static readonly Dictionary<Ragdoll, string> Ragdolls = new Dictionary<Ragdoll, string>();
+        private static readonly Dictionary<Ragdoll, (string Creature, int Level)> Ragdolls = new Dictionary<Ragdoll, (string, int)>();
+
+        /// <summary>The stars of the creature whose loot is coming out, a level above 1 for each.</summary>
+        private static int _level;
 
         private static float _savedAt;
         private static string File => Path.Combine(Settings.DataFolder, "seen-drops.txt");
@@ -56,27 +59,28 @@ namespace Scry
                 _triedField = true;
                 Guard.Each(Feature.DropsSeenInPlay, "drops seen in play", "CharacterDrop.m_dropsEnabled", () => _dropsEnabled = AccessTools.FieldRefAccess<CharacterDrop, bool>("m_dropsEnabled"));
             }
-            if (_dropsEnabled != null && _dropsEnabled(drops)) Begin(Utils.GetPrefabName(drops.gameObject));
+            if (_dropsEnabled != null && _dropsEnabled(drops)) Begin(Utils.GetPrefabName(drops.gameObject), drops.GetComponent<Character>().OrNull()?.GetLevel() ?? 1);
         }
 
         /// <summary>A ragdoll given a creature's loot to drop when it goes.</summary>
-        public static void RagdollSetUp(Ragdoll ragdoll, CharacterDrop drops)
+        public static void RagdollSetUp(Ragdoll ragdoll, CharacterDrop drops, int level)
         {
             if (ragdoll == null || drops == null || !ragdoll.m_dropItems) return;
             if (Ragdolls.Count > 256) Prune();
-            Ragdolls[ragdoll] = Utils.GetPrefabName(drops.gameObject);
+            Ragdolls[ragdoll] = (Utils.GetPrefabName(drops.gameObject), level);
         }
 
         public static void BeginRagdoll(Ragdoll ragdoll)
         {
-            if (ragdoll == null || !Ragdolls.TryGetValue(ragdoll, out var creature)) return;
+            if (ragdoll == null || !Ragdolls.TryGetValue(ragdoll, out var dead)) return;
             Ragdolls.Remove(ragdoll);
-            Begin(creature);
+            Begin(dead.Creature, dead.Level);
         }
 
-        private static void Begin(string creature)
+        private static void Begin(string creature, int level)
         {
             _creature = creature;
+            _level = level;
             Made.Clear();
         }
 
@@ -100,6 +104,8 @@ namespace Scry
             // The character saw each drop fall from the creature, and how many, for the strict rules.
             foreach (var (item, _) in loot) CompendiumKeeper.Saw(_creature, item);
             CompendiumKeeper.Dropped(_creature, loot);
+            // A starred one fallen shows what stars change.
+            if (_level > 1) CompendiumKeeper.StarredFell(_creature);
             _creature = null;
             Made.Clear();
             Version++;
@@ -145,9 +151,9 @@ namespace Scry
     [HarmonyPatch(typeof(Ragdoll), "Setup")]
     internal static class RagdollLootSetUp
     {
-        private static void Postfix(Ragdoll __instance, CharacterDrop characterDrop)
+        private static void Postfix(Ragdoll __instance, CharacterDrop characterDrop, int level)
         {
-            Guard.Run(Feature.DropsSeenInPlay, "watching what creatures drop", () => DropWatch.RagdollSetUp(__instance, characterDrop));
+            Guard.Run(Feature.DropsSeenInPlay, "watching what creatures drop", () => DropWatch.RagdollSetUp(__instance, characterDrop, level));
         }
     }
 

@@ -68,6 +68,13 @@ namespace Scry
             /// <summary>Counted over all your play, every character's (<see cref="DropWatch"/>): left out under the strict rules, where the page counts this character's own.</summary>
             public bool AllPlay;
 
+            /// <summary>
+            /// A table counted under the strict rules (<see cref="Tally"/>): which of its columns
+            /// tells the game's share, and what each line counts, as a biome's weathers by name.
+            /// </summary>
+            public int TallyColumn;
+            public readonly List<string> LineItems = new List<string>();
+
             /// <summary>A table in place of chips: its columns' headings, and its lines, each its cells and what its first cell goes to; null for none.</summary>
             public string[] Columns;
             public readonly List<(string[] Cells, string Link)> Lines = new List<(string[], string)>();
@@ -466,7 +473,7 @@ namespace Scry
             // What a chest is filled with when the game first opens it (Container.AddDefaultItems);
             // one players build has nothing.
             var container = prefab.GetComponent<Container>();
-            if (container != null) Part("chest", () => Drops(container.m_defaultItems, null, holds: true));
+            if (container != null) Part("chest", () => Drops(container.m_defaultItems, null, holds: true, tallied: prefab.name));
 
             // What a fish bites on, and what a bait catches.
             var fish = prefab.GetComponent<Fish>();

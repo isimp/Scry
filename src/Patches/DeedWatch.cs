@@ -46,12 +46,66 @@ namespace Scry
             Guard.Run(Feature.CompendiumTogether, "noting one grown up", () => CompendiumKeeper.SawDone(young.gameObject, Deed.GrewUp));
         }
 
+        /// <summary>A spawner that spawned in this call, within sight.</summary>
+        public static void Spawned(SpawnArea area, bool spawned)
+        {
+            if (!spawned || !InSight(area)) return;
+            Guard.Run(Feature.CompendiumTogether, "noting a spawn seen", () => CompendiumKeeper.SawDone(area.gameObject, Deed.Spawned));
+        }
+
+        /// <summary>Whether a producer holds anything to collect, as the game keeps it on its object.</summary>
+        public static bool Holding(Component producer) =>
+            Guard.Run(Feature.CompendiumTogether, "noting a producer collected from", () =>
+            {
+                var zdo = producer != null ? producer.GetComponent<ZNetView>().OrNull()?.GetZDO() : null;
+                return zdo != null && zdo.GetInt(ZDOVars.s_level) > 0;
+            }, out var holding) && holding;
+
+        /// <summary>A producer that held something used by the character: collected from.</summary>
+        public static void Collected(Component producer, Humanoid user, bool held)
+        {
+            if (!held || user == null || user != Player.m_localPlayer) return;
+            Guard.Run(Feature.CompendiumTogether, "noting a producer collected from", () => CompendiumKeeper.SawDone(producer.gameObject, Deed.Collected));
+        }
+
         /// <summary>A picked pickable set back to not picked: grown back.</summary>
         public static void SetPicked(Pickable pickable, bool wasPicked, bool picked)
         {
             if (!wasPicked || picked || !InSight(pickable)) return;
             Guard.Run(Feature.CompendiumTogether, "noting one grown back", () => CompendiumKeeper.SawDone(pickable.gameObject, Deed.GrewBack));
         }
+    }
+
+    /// <summary>A spawner that spawned within sight shows its pool, star chance and pace (<c>SpawnArea.SpawnOne</c>).</summary>
+    [HarmonyPatch(typeof(SpawnArea), "SpawnOne")]
+    internal static class SpawnSeen
+    {
+        private static void Postfix(SpawnArea __instance, bool __result) => DeedWatch.Spawned(__instance, __result);
+    }
+
+    /// <summary>A producer collected from by the character shows its pace: one holding anything, used not held (<c>Beehive.Interact</c>).</summary>
+    [HarmonyPatch(typeof(Beehive), nameof(Beehive.Interact))]
+    internal static class HiveCollected
+    {
+        private static void Prefix(Beehive __instance, bool repeat, out bool __state) => __state = !repeat && DeedWatch.Holding(__instance);
+
+        private static void Postfix(Beehive __instance, Humanoid character, bool __state) => DeedWatch.Collected(__instance, character, __state);
+    }
+
+    /// <summary>The same for a sap collector (<c>SapCollector.Interact</c>).</summary>
+    [HarmonyPatch(typeof(SapCollector), nameof(SapCollector.Interact))]
+    internal static class TapCollected
+    {
+        private static void Prefix(SapCollector __instance, bool repeat, out bool __state) => __state = !repeat && DeedWatch.Holding(__instance);
+
+        private static void Postfix(SapCollector __instance, Humanoid character, bool __state) => DeedWatch.Collected(__instance, character, __state);
+    }
+
+    /// <summary>A chest the character opens is counted the first time (<c>InventoryGui.Show</c>).</summary>
+    [HarmonyPatch(typeof(InventoryGui), nameof(InventoryGui.Show))]
+    internal static class ChestOpened
+    {
+        private static void Postfix(Container container) => Guard.Run(Feature.CompendiumTogether, "counting what a chest held", () => CompendiumKeeper.Opened(container));
     }
 
     [HarmonyPatch(typeof(Procreation), "Procreate")]

@@ -164,6 +164,7 @@ namespace Scry
             // A trader's store open: the trader known, its wares on show seen and paired with it.
             var trader = StoreGui.IsVisible() && StoreGui.instance != null ? TraderOf(StoreGui.instance) : null;
             if (trader != null) _catchUp.Traded(Utils.GetPrefabName(trader.gameObject), trader.GetAvailableItems().Where(t => t?.m_prefab != null).Select(t => t.m_prefab.name), _book);
+            Weather();
             var place = Location.GetLocation(player.transform.position);
             if (place != null) _catchUp.StoodIn(EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)), place.m_hasInterior, player.InInterior(), _book);
             var hovered = player.GetHoverObject();
@@ -236,6 +237,8 @@ namespace Scry
             if (deed == Deed.Born) Noted(PlayEvent.Born);
             else if (deed == Deed.GrewUp) Noted(PlayEvent.GrewUp);
             else if (deed == Deed.GrewBack) Noted(PlayEvent.GrewBack);
+            else if (deed == Deed.Spawned) Noted(PlayEvent.Spawned);
+            else if (deed == Deed.Collected) Noted(PlayEvent.Collected);
         }
 
         /// <summary>Something the strict rules keep back of an entry, found out in play, as news (<see cref="CompendiumBook.FoundOut"/>).</summary>
@@ -257,13 +260,52 @@ namespace Scry
             Noted(PlayEvent.LootCounted);
         }
 
-        /// <summary>What a tree, rock or other thing was seen to give as it broke, counted for the character, and each seen to come from it.</summary>
-        public static void Yielded(string thing, List<(string Item, int Amount)> loot)
+        /// <summary>
+        /// What a tree, rock or other thing was seen to give as it broke, or a pickable as it was
+        /// picked, counted for the character, and each seen to come from it; broken, its health shows.
+        /// </summary>
+        public static void Yielded(string thing, List<(string Item, int Amount)> loot, bool picked = false)
         {
             if (Into == null) return;
             Into.Yielded(thing, loot);
             foreach (var (item, _) in loot) Into.Witness(thing, item);
+            if (picked)
+            {
+                Noted(PlayEvent.PickCounted);
+                return;
+            }
+            Into.FoundOut(thing, EntryKeys.Did(Deed.Broke));
             Noted(PlayEvent.BreakCounted);
+        }
+
+        /// <summary>A starred creature seen to fall, as its loot came out: what its stars change shows.</summary>
+        public static void StarredFell(string creature)
+        {
+            if (Into == null || string.IsNullOrEmpty(creature)) return;
+            Into.FoundOut(creature, EntryKeys.Did(Deed.StarredFell));
+            Noted(PlayEvent.StarredFell);
+        }
+
+        /// <summary>
+        /// A chest the character opened: the first time for each one, what it holds then is counted
+        /// as what it held, each item seen in it. Only a chest the world fills (<c>Container.m_defaultItems</c>), not one built.
+        /// </summary>
+        public static void Opened(Container container)
+        {
+            if (Into == null || container == null || container.m_defaultItems?.m_drops == null || container.m_defaultItems.m_drops.Count == 0) return;
+            var zdo = container.GetComponent<ZNetView>().OrNull()?.GetZDO();
+            if (zdo == null || !Into.FirstOpen(CompendiumBook.ChestId(CompendiumMap.World, zdo.m_uid.ToString()))) return;
+            var chest = Utils.GetPrefabName(container.gameObject);
+            var loot = new Dictionary<string, int>(System.StringComparer.Ordinal);
+            foreach (var held in container.GetInventory().GetAllItems())
+            {
+                if (held?.m_dropPrefab == null) continue;
+                loot.TryGetValue(held.m_dropPrefab.name, out var so);
+                loot[held.m_dropPrefab.name] = so + held.m_stack;
+            }
+            Into.Held(chest, loot.Select(l => (l.Key, l.Value)));
+            foreach (var item in loot.Keys) Into.Witness(chest, item);
+            Noted(PlayEvent.ChestCounted);
         }
 
         /// <summary>Something the character used, as news: known, and met where it stands.</summary>
@@ -472,10 +514,28 @@ namespace Scry
 
         private static string PathOf(string file) => Path.Combine(Settings.CacheFolder, "compendium", file);
 
+        /// <summary>The weather last seen and the biome it was seen in, so each change of weather is counted once.</summary>
+        private static (Heightmap.Biome Biome, string Weather) _weatherSeen;
+
+        /// <summary>The weather now in the biome the character stands in, counted where it changed (<see cref="CompendiumBook.Weathered"/>).</summary>
+        private static void Weather()
+        {
+            var env = EnvMan.instance;
+            var now = env != null ? env.GetCurrentEnvironment() : null;
+            if (now == null) return;
+            var biome = env.GetCurrentBiome();
+            if (biome == Heightmap.Biome.None) return;
+            if (_weatherSeen.Biome == biome && _weatherSeen.Weather == now.m_name) return;
+            _weatherSeen = (biome, now.m_name);
+            _book.Weathered(biome.ToString(), now.m_name);
+            Noted(PlayEvent.WeatherSeen);
+        }
+
         /// <summary>On leaving a world: writes the book, and lets go of the catalog it was caught up with.</summary>
         private static void Forget()
         {
             Save(now: true);
+            _weatherSeen = default;
             _catchUp = null;
             _catchUpOf = null;
             _recordsSize = -1;

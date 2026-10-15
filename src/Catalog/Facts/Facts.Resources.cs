@@ -102,7 +102,7 @@ namespace Scry
                 var day = EnvMan.instance != null ? EnvMan.instance.m_dayLengthSec : 1200L;
                 var yields = Yield.PerDay(pickable.m_amount, pickable.m_respawnTimeMinutes, day);
                 if (yields != null) Add("Gives", GatherWords.PerDay(yields, day));
-                Drops(pickable.m_extraDrops, GatherWords.AlsoDrops);
+                Drops(pickable.m_extraDrops, GatherWords.AlsoDrops, tallied: prefab.name);
                 if (pickable.m_respawnTimeMinutes > 0f) Hooked(HookedRule.Growth);
             }
 
@@ -167,6 +167,7 @@ namespace Scry
         private void Hits(float health, bool perPiece, int toolTier, HitData.DamageModifiers resists)
         {
             if (health > 0f) Add("Health", GatherWords.Health(health, perPiece));
+            Proofs["Health"] = EntryKeys.Did(Deed.Broke);
             Add("Needs tool tier", GatherWords.ToolTier(toolTier));
             Resists(resists);
 
@@ -219,7 +220,7 @@ namespace Scry
             // The rarest first: within one table, the least weight.
             var title = holds ? DropWords.HoldsTitle(info) : DropWords.Title(info);
             title = DropWords.Led(lead, title);
-            var row = new Row { Title = title, Tally = tallied != null ? Tally.Gave : Tally.None, TallyOf = tallied, TallyLead = lead };
+            var row = new Row { Title = title, Tally = tallied == null ? Tally.None : holds ? Tally.Held : Tally.Gave, TallyOf = tallied, TallyLead = lead };
             // What only this gives first, then what a trader pays for, then the rest, each the least likely first.
             var here = new[] { _entry?.Name ?? "" };
             foreach (var (each, item, notable) in ContentOrder.LootFirst(items.Select(i => (i.Drop, i.Item, Notable: Notable(i.Item.name, here))), i => i.Drop.Weight, i => i.Notable.Only, i => i.Notable.Worth))

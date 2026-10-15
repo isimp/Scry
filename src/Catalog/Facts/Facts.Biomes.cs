@@ -14,13 +14,15 @@ namespace Scry
     {
         private void Biome(BiomeSource biome)
         {
-            var weathers = new Row { Title = BiomeWords.WeathersTitle, Columns = BiomeWords.WeatherColumns };
+            // Under the strict rules each weather's share is how often it was seen come here.
+            var weathers = new Row { Title = BiomeWords.WeathersTitle, Columns = BiomeWords.WeatherColumns, Tally = Tally.Weather, TallyOf = biome.Name, TallyColumn = 1 };
             var known = new List<WeatherFacts>();
             foreach (var (weather, share) in BiomeWords.Weathers(biome.Weathers))
             {
                 var facts = WeatherFactsOf(weather);
                 if (facts is WeatherFacts each) known.Add(each);
                 weathers.Lines.Add((new[] { Naming.FieldLabel(weather), share, facts is WeatherFacts read ? WeatherWords.Effects(read) : "" }, null));
+                weathers.LineItems.Add(weather);
             }
             if (weathers.Lines.Count > 0) Rows.Add(weathers);
             if (known.Count > 0) Add("Puts on you", WeatherWords.PutsOnYou(known));

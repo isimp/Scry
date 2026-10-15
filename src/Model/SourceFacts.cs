@@ -176,15 +176,36 @@ namespace Scry
                 case TableOf.Log:
                 case TableOf.Rock:
                 case TableOf.Broken:
+                case TableOf.Pickable:
                     return Tally.Gave;
+                case TableOf.Container:
+                    return Tally.Held;
                 default:
                     return Tally.None;
             }
         }
 
+        /// <summary>What shows a producer's pace on the line of what it makes under the strict rules: collecting from one (<see cref="Deed.Collected"/>); none for any other way.</summary>
+        public static string ShownBy(SourceFacts source) => source?.Way == SourceWay.Made ? EntryKeys.Did(Deed.Collected) : null;
+
+        /// <summary>What a line whose amount is held back says on hover: how it comes to show, or that nothing counts it; none for a line told as the game tells it.</summary>
+        public static string HeldTip(SourceFacts source)
+        {
+            if (ShownBy(source) != null) return "Its pace shows once you have collected from one";
+            var by = CountedBy(source);
+            return by == null ? null : by == Tally.None ? TallyWords.NeverCounted : TallyWords.NotYetCounted(by.Value);
+        }
+
         /// <summary>A line of a way counted (<see cref="CountedBy"/>), its amount the character's count or ???, in the game's form.</summary>
-        public static string Counted(SourceFacts source, string amount) =>
-            source.Way == SourceWay.Dropped ? $"Dropped by {source.Shown}, {amount}" : $"{Verb(source.Table)} {source.Shown}, {amount}";
+        public static string Counted(SourceFacts source, string amount)
+        {
+            switch (source.Way)
+            {
+                case SourceWay.Dropped: return $"Dropped by {source.Shown}, {amount}";
+                case SourceWay.Made: return $"Made by {source.Shown}, {amount}";
+                default: return $"{Verb(source.Table)} {source.Shown}, {amount}";
+            }
+        }
 
         /// <summary>A producer's pace: one every so long, holding up to so many.</summary>
         public static string Pace(float everySeconds, int holdsUpTo) => $"one every {Numbers.Duration(everySeconds)}, holding up to {Numbers.Count(holdsUpTo)}";

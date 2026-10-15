@@ -19,6 +19,18 @@ namespace Scry
 
         /// <summary>Saw a pickable grow back: how long that takes.</summary>
         GrewBack,
+
+        /// <summary>Broke a tree, log, rock or anything that breaks: its health.</summary>
+        Broke,
+
+        /// <summary>Saw a starred creature fall: what its stars change.</summary>
+        StarredFell,
+
+        /// <summary>Saw a spawner spawn: its pool, its star chance and its pace.</summary>
+        Spawned,
+
+        /// <summary>Collected from a producer: how often it makes what it makes.</summary>
+        Collected,
     }
 
     /// <summary>

@@ -43,8 +43,6 @@ namespace Scry.Tests
         [InlineData(false, false, null)]
         public void CraftingTellsWhatItNeedsOrNothing(bool roof, bool fire, string needs) => Assert.Equal(needs, StationWords.CraftingNeeds(roof, fire));
 
-        [Fact]
-        public void WhatItMakesIsToldWithItsPace() => Assert.Equal("Honey, one every 20 min", StationWords.Makes("Honey", "one every 20 min"));
 
         [Fact]
         public void AnIncineratorTellsWhatAnythingElseBecomes() => Assert.Equal("becomes Coal, one for every 3", StationWords.Incinerates("Coal", 3));

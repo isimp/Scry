@@ -22,10 +22,13 @@ namespace Scry
             {
                 var name = AnyName(data.m_prefab, data.m_prefab.name);
                 if (table.Lines.Any(l => l.Cells[0] == name)) continue;
+                // Its share and levels show once it was seen to spawn.
+                table.LineProofs[table.Lines.Count] = EntryKeys.Did(Deed.Spawned);
                 table.Lines.Add((SpawnWords.PoolLine(name, data.m_weight, total, data.m_minLevel, data.m_maxLevel), data.m_prefab.name));
             }
             if (table.Lines.Count > 0) Rows.Add(table);
             if (pool.Any(p => p.m_maxLevel > p.m_minLevel)) Add("Star chance", SpawnWords.StarChance(area.m_levelupChance));
+            Proofs["Star chance"] = Proofs["Pace"] = EntryKeys.Did(Deed.Spawned);
             Add("Works", SpawnWords.SpawnerWakes(area.m_triggerDistance));
             Add("Pace", SpawnWords.SpawnerPace(area.m_spawnIntervalSec));
             Add("Keeps alive", SpawnWords.SpawnerCaps(area.m_maxNear, area.m_nearRadius, area.m_maxTotal, area.m_farRadius));

@@ -298,7 +298,8 @@ namespace Scry
             if (tally == Tally.None || !LeavingOut) return null;
             var counted = _view.Book.Tallied(tally);
             var drop = counted.Of(of).FirstOrDefault(d => d.Item == item);
-            return drop != null ? TallyWords.Chip(drop, counted.Kills(of)) : CompendiumWords.Hidden;
+            if (drop == null) return CompendiumWords.Hidden;
+            return tally == Tally.Weather ? TallyWords.Seen(drop, counted.Kills(of)) : TallyWords.Chip(drop, counted.Kills(of));
         }
 
         /// <summary>
@@ -309,8 +310,12 @@ namespace Scry
         /// </summary>
         public string StrictSourceLine(SourceFacts source)
         {
+            if (!LeavingOut) return null;
+            // A producer's pace: as the game tells it once collected from, ??? before.
+            var shownBy = SourceWords.ShownBy(source);
+            if (shownBy != null) return _view.Book.Witnessed(source.Giver, shownBy) ? null : SourceWords.Counted(source, CompendiumWords.Hidden);
             var by = SourceWords.CountedBy(source);
-            if (by == null || !LeavingOut) return null;
+            if (by == null) return null;
             // A way nothing counts reads an empty count (CompendiumBook.Tallied), so ???.
             var counted = _view.Book.Tallied(by.Value);
             var drop = counted.Of(source.Giver).FirstOrDefault(d => d.Item == _selected.Name);

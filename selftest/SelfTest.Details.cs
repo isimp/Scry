@@ -29,6 +29,8 @@ namespace Scry
             p.Check(health == EntryKeys.Did(Deed.Killed), "its health until one is killed", health);
             var starred = told.Rows.FirstOrDefault(r => r.Title == CombatWords.StarsTitle);
             p.Check(starred != null && starred.LineProofs.TryGetValue(0, out var byStars) && byStars == health && starred.Lines[0].Cells[0] == "Health", "and its health by stars with it");
+            p.Check(starred != null && starred.Lines.Count > 1 && Enumerable.Range(1, starred.Lines.Count - 1).All(l => starred.LineProofs.TryGetValue(l, out var proof) && proof == EntryKeys.Did(Deed.StarredFell)),
+                "what else stars change waits until a starred one was seen to fall");
             var attacks = told.Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle);
             p.Check(attacks?.AttackCells != null && attacks.AttackCells.All(c => c < attacks.Columns.Length && (attacks.Columns[c] == "Damage" || attacks.Columns[c] == "On hit")),
                 "its attacks keep back their damage and what they put on you until each hit the character", attacks == null ? "no attacks" : string.Join(", ", attacks.AttackCells?.Select(c => attacks.Columns[c]) ?? Enumerable.Empty<string>()));
@@ -66,6 +68,26 @@ namespace Scry
                 var fromTree = Facts.For(wood).Where.FirstOrDefault(s => s.Record?.Table == TableOf.Tree);
                 p.Check(SourceWords.CountedBy(fromTree.Record) == Tally.Gave, "wood's line from a tree is counted from what the character saw it give", fromTree.Text);
             }
+            // The other numbers the game never shows wait for their own deed, on real pages.
+            foreach (var (kind, name, fact, deed) in new[]
+            {
+                (Kind.Resource, "Beech1", "Health", Deed.Broke), (Kind.Piece, "piece_beehive", "Pace", Deed.Collected), (Kind.Spawner, "Spawner_GreydwarfNest", "Pace", Deed.Spawned),
+            })
+            {
+                var entry = Pick(kind, name);
+                if (entry == null) continue;
+                Facts.For(entry).Proofs.TryGetValue(fact, out var proof);
+                p.Check(proof == EntryKeys.Did(deed), $"{name}'s {fact.ToLowerInvariant()} shows once it was seen ({deed})", proof);
+            }
+            var nest = Pick(Kind.Spawner, "Spawner_GreydwarfNest");
+            var pool = nest != null ? Facts.For(nest).Rows.FirstOrDefault(r => r.Title == SpawnWords.PoolTitle) : null;
+            if (pool != null) p.Check(pool.LineProofs.Count == pool.Lines.Count, "a nest's pool waits until it was seen to spawn");
+            var meadows = Pick(Kind.Biome, "Meadows");
+            var weathers = meadows != null ? Facts.For(meadows).Rows.FirstOrDefault(r => r.Title == BiomeWords.WeathersTitle) : null;
+            if (weathers != null) p.Check(weathers.Tally == Tally.Weather && weathers.LineItems.Count == weathers.Lines.Count, "the Meadows' weathers are counted as seen");
+            var bush = Pick(Kind.Resource, "RaspberryBush");
+            var extras = bush != null ? Facts.For(bush).Rows.FirstOrDefault(r => r.Tally == Tally.Gave) : null;
+            if (extras != null) p.Check(extras.TallyOf == "RaspberryBush", "what a bush gives besides is counted from picking it");
             var beech = Pick(Kind.Resource, "Beech1");
             var felled = beech != null ? Facts.For(beech).Rows.FirstOrDefault(r => r.Tally == Tally.Gave) : null;
             if (beech != null) p.Check(felled != null && felled.TallyOf == "Beech1", "what a beech gives is counted from what the character saw it give", felled?.Title);

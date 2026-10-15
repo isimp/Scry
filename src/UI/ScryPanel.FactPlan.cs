@@ -183,7 +183,7 @@ namespace Scry
                 for (var l = 0; l < row.Lines.Count; l++)
                 {
                     var cells = row.Lines[l].Cells;
-                    if (c < cells.Length) w = Mathf.Max(w, Skin.Width(Skin.Small, cells[c]) + (explorer.ShownByFloor(CellLink(row, l, c)) ? FloorRoom : 0f));
+                    if (c < cells.Length) w = Mathf.Max(w, Skin.Width(Skin.Small, CellShown(explorer, row, l, c, cells[c])) + (explorer.ShownByFloor(CellLink(row, l, c)) ? FloorRoom : 0f));
                 }
                 ColumnWidths.Add(w + U(2f));
                 sum += w + U(2f);
@@ -200,6 +200,7 @@ namespace Scry
             y += U(22f);
 
             var attacksKept = 0;
+            var notCounted = false;
             KeptLines.Clear();
             for (var l = 0; l < row.Lines.Count; l++)
             {
@@ -279,6 +280,12 @@ namespace Scry
                             if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + link, FloorTip(explorer, link, PanelWords.GoTo(cells[c])));
                             if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, link);
                         }
+                        // Counted under the strict rules (a biome's weathers): how often it was seen, or ???.
+                        else if (c > 0 && CellShown(explorer, row, l, c, cells[c]) is string counted && !ReferenceEquals(counted, cells[c]))
+                        {
+                            GUI.Label(cell, counted, Skin.SmallWrap);
+                            if (counted == CompendiumWords.Hidden) notCounted = true;
+                        }
                         // A number kept back reads ??? and says on hover what shows it.
                         else if (c > 0 && (lineKept || (attackKept && Array.IndexOf(row.AttackCells, c) >= 0)))
                         {
@@ -308,9 +315,16 @@ namespace Scry
             CountDrawn(PanelPart.FactTable);
             y += U(4f);
             y = FaintLine(CompendiumWords.NotYetTaken(attacksKept), "attacks-kept:", row.Title, PanelPart.TableKeptBack, width, y);
+            if (notCounted) y = FaintLine(TallyWords.NotYetCounted(row.Tally), "not-counted:", row.Title, PanelPart.TallyCounted, width, y);
             foreach (var said in KeptLines) y = FaintLine(said, "line-kept:", said, PanelPart.TableKeptBack, width, y);
             return y;
         }
+
+        /// <summary>A table's cell as the page shows it: under the strict rules, a counted one's count in place of the game's share (<see cref="Facts.Row.Tally"/>); else the cell itself.</summary>
+        private static string CellShown(Explorer explorer, Facts.Row row, int line, int cell, string text) =>
+            row.Tally != Tally.None && cell == row.TallyColumn && line < row.LineItems.Count
+                ? explorer.StrictAmount(row.Tally, row.TallyOf, row.LineItems[line]) ?? text
+                : text;
 
         /// <summary>What a table's cell goes to: its line's link for the first, its own for a later one; none for none.</summary>
         private static string CellLink(Facts.Row row, int line, int cell) =>

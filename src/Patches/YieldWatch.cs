@@ -8,8 +8,8 @@ namespace Scry
     /// What trees, logs, rocks and other things that break are seen to give, for the strict
     /// rules' amounts (<see cref="CompendiumBook.Yielded"/>): every item that comes to be while
     /// one breaks or loses a piece (<c>TreeBase.RPC_Damage</c>, <c>TreeLog.Destroy</c>,
-    /// <c>MineRock.RPC_Hit</c>, <c>MineRock5.DamageArea</c>, <c>DropOnDestroyed.OnDestroyed</c>)
-    /// is counted for it, a time where it gave anything. Only what breaks on this machine is
+    /// <c>MineRock.RPC_Hit</c>, <c>MineRock5.DamageArea</c>, <c>DropOnDestroyed.OnDestroyed</c>),
+    /// or a pickable is picked (<c>Pickable.RPC_Pick</c>), is counted for it, a time where it gave anything. Only what breaks on this machine is
     /// seen, as for the thing's owner. The hooks only watch.
     /// </summary>
     internal static class YieldWatch
@@ -19,13 +19,13 @@ namespace Scry
         /// innermost last, as one breaking may break another. One from an earlier frame never
         /// ended, its game method having failed, and is let go.
         /// </summary>
-        private static readonly List<(string Thing, List<ItemDrop> Made, int Frame)> Breaking = new List<(string, List<ItemDrop>, int)>();
+        private static readonly List<(string Thing, List<ItemDrop> Made, int Frame, bool Picked)> Breaking = new List<(string, List<ItemDrop>, int, bool)>();
 
         public static void Begin(Component thing)
         {
             Breaking.RemoveAll(b => b.Frame != Time.frameCount);
             if (thing == null) return;
-            Breaking.Add((Utils.GetPrefabName(thing.gameObject), new List<ItemDrop>(), Time.frameCount));
+            Breaking.Add((Utils.GetPrefabName(thing.gameObject), new List<ItemDrop>(), Time.frameCount, thing is Pickable));
         }
 
         /// <summary>An item come to be: kept for what is breaking now, if anything is.</summary>
@@ -38,7 +38,7 @@ namespace Scry
         public static void End()
         {
             if (Breaking.Count == 0 || Breaking[Breaking.Count - 1].Frame != Time.frameCount) return;
-            var (thing, made, _) = Breaking[Breaking.Count - 1];
+            var (thing, made, _, picked) = Breaking[Breaking.Count - 1];
             Breaking.RemoveAt(Breaking.Count - 1);
             if (made.Count == 0) return;
             var loot = new List<(string, int)>();
@@ -46,7 +46,7 @@ namespace Scry
             {
                 if (item != null) loot.Add((Utils.GetPrefabName(item.gameObject), Mathf.Max(1, item.m_itemData?.m_stack ?? 1)));
             }
-            CompendiumKeeper.Yielded(thing, loot);
+            CompendiumKeeper.Yielded(thing, loot, picked);
         }
     }
 
@@ -86,6 +86,14 @@ namespace Scry
     internal static class BrokenYield
     {
         private static void Prefix(DropOnDestroyed __instance) => Guard.Run(Feature.CompendiumTogether, "watching what breaks give", () => YieldWatch.Begin(__instance));
+
+        private static void Postfix() => Guard.Run(Feature.CompendiumTogether, "watching what breaks give", YieldWatch.End);
+    }
+
+    [HarmonyPatch(typeof(Pickable), "RPC_Pick")]
+    internal static class PickYield
+    {
+        private static void Prefix(Pickable __instance) => Guard.Run(Feature.CompendiumTogether, "watching what breaks give", () => YieldWatch.Begin(__instance));
 
         private static void Postfix() => Guard.Run(Feature.CompendiumTogether, "watching what breaks give", YieldWatch.End);
     }

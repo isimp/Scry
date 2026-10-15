@@ -46,8 +46,10 @@ namespace Scry
                 var told = (prefab.GetComponent<CharacterDrop>().OrNull()?.m_drops ?? new List<CharacterDrop.Drop>()).Where(d => d?.m_prefab != null).ToList();
                 var grow = told.Any(d => WithStars(d) == StarDrop.Grows);
                 foreach (var line in CombatWords.StarLines(character.m_health, _stars, grow)) stars.Lines.Add((line, null));
-                // Its health by its stars, the first line, shows when its health does.
+                // Its health by its stars, the first line, shows when its health does; what else
+                // stars change, once a starred one was seen to fall.
                 if (stars.Lines.Count > 0) stars.LineProofs[0] = EntryKeys.Did(Deed.Killed);
+                for (var line = 1; line < stars.Lines.Count; line++) stars.LineProofs[line] = EntryKeys.Did(Deed.StarredFell);
                 // A drop that only gets likelier, such as every trophy, has a line of its chances.
                 foreach (var drop in told.Where(d => WithStars(d) == StarDrop.Likelier).OrderBy(d => d.m_chance))
                 {
@@ -116,6 +118,7 @@ namespace Scry
                     {
                         var same = drops.m_drops.Where(d => d?.m_prefab != null && WithStars(d) == StarDrop.Same).Select(d => ItemName(d.m_prefab)).Distinct().ToList();
                         Add("Drops with stars", DropWords.StarDrops(_stars, same));
+                        Proofs["Drops with stars"] = EntryKeys.Did(Deed.StarredFell);
                     }
                 }
             }

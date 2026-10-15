@@ -107,7 +107,10 @@ namespace Scry
             var hive = prefab.GetComponent<Beehive>();
             if (hive != null && hive.m_honeyItem != null)
             {
-                Add("Makes", StationWords.Makes(ItemName(hive.m_honeyItem.gameObject), SourceWords.Pace(hive.m_secPerUnit, hive.m_maxHoney)), hive.m_honeyItem.gameObject.name);
+                // What it makes, and apart from that its pace, which shows under the strict rules once collected from.
+                Add("Makes", ItemName(hive.m_honeyItem.gameObject), hive.m_honeyItem.gameObject.name);
+                Add("Pace", SourceWords.Pace(hive.m_secPerUnit, hive.m_maxHoney));
+                Proofs["Pace"] = EntryKeys.Did(Deed.Collected);
                 if (hive.m_biome != 0) BiomeRow("Works in", hive.m_biome);
                 // Beehive.HaveFreeSpace: it makes nothing while more of the sky around it is covered.
                 if (hive.m_maxCover > 0f) Add("Needs", StationWords.OpenSky(hive.m_maxCover));
@@ -117,7 +120,9 @@ namespace Scry
             var tap = prefab.GetComponent<SapCollector>();
             if (tap != null && tap.m_spawnItem != null)
             {
-                Add("Makes", StationWords.Makes(ItemName(tap.m_spawnItem.gameObject), SourceWords.Pace(tap.m_secPerUnit, tap.m_maxLevel)), tap.m_spawnItem.gameObject.name);
+                Add("Makes", ItemName(tap.m_spawnItem.gameObject), tap.m_spawnItem.gameObject.name);
+                Add("Pace", SourceWords.Pace(tap.m_secPerUnit, tap.m_maxLevel));
+                Proofs["Pace"] = EntryKeys.Did(Deed.Collected);
                 // SapCollector.UpdateTick: it makes only while on its root, and no more than the root has left.
                 var root = tap.m_mustConnectTo != null ? tap.m_mustConnectTo.gameObject : null;
                 if (root != null) Add("Needs", StationWords.BuiltOn(AnyName(root, root.name)), root.name);

@@ -59,8 +59,6 @@ namespace Scry
 
         public static string AtATime(int slots) => $"{Numbers.Count(slots)} at a time";
 
-        /// <summary>What a producer makes, with its pace (<see cref="SourceWords.Pace"/>).</summary>
-        public static string Makes(string product, string pace) => $"{product}, {pace}";
 
         /// <summary>What a hive needs: no more of the sky around it covered than this share.</summary>
         public static string OpenSky(float maxCover) => $"open sky, less than {Numbers.Percent(maxCover)} covered";

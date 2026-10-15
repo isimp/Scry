@@ -143,7 +143,8 @@ namespace Scry
                 }
                 foreach (var proof in row.LineProofs.Values) if (explorer.KeepsBack(proof)) deeds.Add(proof);
                 if (row.AttackCells != null) foreach (var (_, link) in row.Lines) if (explorer.HidesAttack(link)) attacks++;
-                if (row.Tally != Tally.None && row.Items.Any(i => !explorer.LeavesOut(i.Prefab) && explorer.StrictAmount(row.Tally, row.TallyOf, i.Prefab) == CompendiumWords.Hidden)) uncounted.Add(row.Tally);
+                if (row.Tally != Tally.None && (row.Items.Any(i => !explorer.LeavesOut(i.Prefab) && explorer.StrictAmount(row.Tally, row.TallyOf, i.Prefab) == CompendiumWords.Hidden)
+                    || row.LineItems.Any(i => explorer.StrictAmount(row.Tally, row.TallyOf, i) == CompendiumWords.Hidden))) uncounted.Add(row.Tally);
             }
             return CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted);
         }
@@ -285,17 +286,15 @@ namespace Scry
             }
             const int firstLines = 8;
             var lines = ShownOf("where", where.Count, firstLines);
-            var fellNotCounted = false;
-            var gaveNotCounted = false;
+            HeldHints.Clear();
             foreach (var source in where.Take(lines))
             {
                 // A line naming a prefab in the catalog is a chip that goes there; the rest is text.
                 // A line Scry is not sure of is marked and says why on hover. Under the strict rules
                 // a way with a chance in it tells the character's count in its place, or ???.
                 var counted = explorer.StrictSourceLine(source.Record);
-                var held = counted != null && counted.EndsWith(CompendiumWords.Hidden, StringComparison.Ordinal) ? SourceWords.CountedBy(source.Record) : null;
-                if (held == Tally.Fell) fellNotCounted = true;
-                if (held == Tally.Gave) gaveNotCounted = true;
+                var held = counted != null && counted.EndsWith(CompendiumWords.Hidden, StringComparison.Ordinal) ? SourceWords.HeldTip(source.Record) : null;
+                if (held != null && held != TallyWords.NeverCounted && !HeldHints.Contains(held)) HeldHints.Add(held);
                 var text = Masked(explorer, counted ?? (source.Unsure != null ? UnsureWords.Marked(source.Text) : source.Text));
                 if (string.IsNullOrEmpty(source.Prefab) || !Goes(explorer, source.Prefab))
                 {
@@ -321,7 +320,7 @@ namespace Scry
                 if (icon != null) DrawSprite(icon, new Rect(U(6f), y + (chipH - U(22f)) / 2f, U(22f), U(22f)));
                 Skin.LabelIn(new Rect(textX, y, textW, chipH), text, wrapped, LinkText(kind, hover));
                 if (floor) FloorMark(chip.xMax - FloorRoom - U(4f), chip);
-                if (hover) AskTip("src:" + source.Prefab + source.Unsure + text, FloorTip(explorer, source.Prefab, Naming.Lines(TallyWords.HeldTip(held), source.Unsure, PanelWords.GoTo(ShownName(explorer, source.Prefab, source.Prefab)))));
+                if (hover) AskTip("src:" + source.Prefab + source.Unsure + text, FloorTip(explorer, source.Prefab, Naming.Lines(held, source.Unsure, PanelWords.GoTo(ShownName(explorer, source.Prefab, source.Prefab)))));
                 if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(source.Prefab))
                 {
                     AfterGoing();
@@ -332,8 +331,8 @@ namespace Scry
             MoreChip("where", where.Count, firstLines, width, ref more);
             if (more.InRow) y = more.RowBottom + U(5f);
             // What shows a count not yet seen, faintly under the lines, once for each way of counting.
-            if (fellNotCounted) y = FaintLine(TallyWords.NotYetCounted(Tally.Fell), "not-counted:", "where fell", PanelPart.TallyCounted, width, y);
-            if (gaveNotCounted) y = FaintLine(TallyWords.NotYetCounted(Tally.Gave), "not-counted:", "where gave", PanelPart.TallyCounted, width, y);
+            // What shows each amount held back, faintly under the lines, once each; what nothing counts says so on hover only.
+            foreach (var hint in HeldHints) y = FaintLine(hint, "not-counted:", hint, PanelPart.TallyCounted, width, y);
             return y;
         }
 
@@ -563,6 +562,9 @@ namespace Scry
             y = flow.RowBottom + U(6f);
             return notCounted ? FaintLine(TallyWords.NotYetCounted(row.Tally), "not-counted:", row.Title, PanelPart.TallyCounted, width, y - U(2f)) : y;
         }
+
+        /// <summary>What shows the amounts held back in the block of where a thing comes from being drawn, each once.</summary>
+        private static readonly List<string> HeldHints = new List<string>();
 
         /// <summary>The lines of where a thing comes from the block being drawn shows under the strict rules, those counted over every character's play left out.</summary>
         private static readonly List<Source> OwnPlay = new List<Source>();

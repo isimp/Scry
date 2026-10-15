@@ -105,6 +105,47 @@ namespace Scry
                 p.Check(book.Tallied(Tally.Gave).Kills(treeKey) == 1 && book.Witnessed(treeKey, Utils.GetPrefabName(item.gameObject)), $"{treeKey} breaking is counted with what came of it");
             }
 
+            // A pick with an item come to be: counted as what it gave, no break.
+            var picked = Nearest<Pickable>(player);
+            if (picked == null || item == null) p.Note("no pickable and item are loaded to count a pick with");
+            else
+            {
+                YieldWatch.Begin(picked);
+                YieldWatch.ItemMade(item);
+                YieldWatch.End();
+                var pickKey = Utils.GetPrefabName(picked.gameObject);
+                p.Check(book.Tallied(Tally.Gave).Kills(pickKey) == 1 && !book.Witnessed(pickKey, EntryKeys.Did(Deed.Broke)), $"picking {pickKey} is counted as what it gave, and is no break");
+            }
+
+            // A chest the world fills, opened: counted the first time only.
+            var chest = UnityEngine.Object.FindObjectsByType<Container>(FindObjectsSortMode.None)
+                .Where(c => c != null && c.m_defaultItems?.m_drops != null && c.m_defaultItems.m_drops.Count > 0 && c.GetInventory() != null)
+                .OrderBy(c => (c.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
+            if (chest == null) p.Note("no chest the world fills is loaded to open");
+            else
+            {
+                CompendiumKeeper.Opened(chest);
+                CompendiumKeeper.Opened(chest);
+                p.Check(book.Tallied(Tally.Held).Kills(Utils.GetPrefabName(chest.gameObject)) == 1, $"{Utils.GetPrefabName(chest.gameObject)} opened is counted the first time only");
+            }
+
+            // A spawner spawning near by, a hive collected from.
+            var spawner = UnityEngine.Object.FindObjectsByType<SpawnArea>(FindObjectsSortMode.None)
+                .FirstOrDefault(a => a != null && Vector3.Distance(a.transform.position, player.transform.position) <= near);
+            if (spawner == null) p.Note("no spawner is near to see spawn");
+            else
+            {
+                DeedWatch.Spawned(spawner, spawned: true);
+                p.Check(book.Witnessed(Utils.GetPrefabName(spawner.gameObject), EntryKeys.Did(Deed.Spawned)), "a spawn seen near by shows its pool and pace");
+            }
+            var hive = Nearest<Beehive>(player);
+            if (hive == null) p.Note("no beehive is loaded to collect from");
+            else
+            {
+                DeedWatch.Collected(hive, player, held: true);
+                p.Check(book.Witnessed(Utils.GetPrefabName(hive.gameObject), EntryKeys.Did(Deed.Collected)), "collecting from a beehive shows its pace");
+            }
+
             // A map read: what it brings is news noted as off the map.
             var place = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Location && Places.LabelOf(e) != null);
             if (place != null)

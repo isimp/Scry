@@ -278,12 +278,18 @@ namespace Scry
             if (pending.Contains(Deed.Born)) rows.Add(("See one born", "shows how long it is pregnant"));
             if (pending.Contains(Deed.GrewUp)) rows.Add(("See one grow up", "shows how long that takes"));
             if (pending.Contains(Deed.GrewBack)) rows.Add(("See one grow back", "shows how long that takes"));
+            if (pending.Contains(Deed.Broke)) rows.Add(("Break one", "shows its health"));
+            if (pending.Contains(Deed.StarredFell)) rows.Add(("See a starred one fall", "shows what stars change"));
+            if (pending.Contains(Deed.Spawned)) rows.Add(("See it spawn", "shows its pool and pace"));
+            if (pending.Contains(Deed.Collected)) rows.Add(("Collect from one", "shows its pace"));
             if (types.Count > 0) rows.Add(("Hit it with", Naming.Commas(types) + (types.Count == 1 ? ": how it lands" : ": how they land")));
             if (attacks > 0) rows.Add(("Let it hit you", Naming.Count(attacks, "attack's", "attacks'") + " damage"));
             if (spots > 0) rows.Add((spots == 1 ? "Hit its weak spot" : "Hit its weak spots", Numbers.Count(spots) + " not yet found"));
             var tallies = new HashSet<Tally>(uncounted);
             if (tallies.Contains(Tally.Fell)) rows.Add(("See it drop", "how many of each"));
             if (tallies.Contains(Tally.Gave)) rows.Add(("Break one", "how many of each it gives"));
+            if (tallies.Contains(Tally.Held)) rows.Add(("Open one", "how many of each it holds"));
+            if (tallies.Contains(Tally.Weather)) rows.Add(("Spend time in it", "how often each weather comes"));
             return rows;
         }
 
@@ -300,6 +306,9 @@ namespace Scry
                     case Deed.Born: return "its pregnancy found out";
                     case Deed.GrewUp: return "its growing up found out";
                     case Deed.GrewBack: return "its growing back found out";
+                    case Deed.StarredFell: return "what stars change found out";
+                    case Deed.Spawned: return "its spawning found out";
+                    case Deed.Collected: return "its pace found out";
                     default: return "its health found out";
                 }
             }
@@ -329,6 +338,10 @@ namespace Scry
                 case Deed.Born: return "seen one born";
                 case Deed.GrewUp: return "seen one grow up";
                 case Deed.GrewBack: return "seen one grow back";
+                case Deed.Broke: return "broken one";
+                case Deed.StarredFell: return "seen a starred one fall";
+                case Deed.Spawned: return "seen it spawn";
+                case Deed.Collected: return "collected from one";
                 default: return "killed one";
             }
         }

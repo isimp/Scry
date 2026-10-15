@@ -35,6 +35,24 @@ namespace Scry
 
         /// <summary>The explored map read for the compendium.</summary>
         MapRead,
+
+        /// <summary>A pickable picked and what it gave counted.</summary>
+        PickCounted,
+
+        /// <summary>A chest opened for the first time and what it held counted.</summary>
+        ChestCounted,
+
+        /// <summary>A starred creature seen to fall.</summary>
+        StarredFell,
+
+        /// <summary>A spawner seen spawning.</summary>
+        Spawned,
+
+        /// <summary>A producer collected from.</summary>
+        Collected,
+
+        /// <summary>A weather seen coming in a biome.</summary>
+        WeatherSeen,
     }
 
     /// <summary>
@@ -73,7 +91,13 @@ namespace Scry
                 case PlayEvent.GrewUp: return Numbers.Count(n) + " seen grow up";
                 case PlayEvent.GrewBack: return Numbers.Count(n) + " seen grow back";
                 case PlayEvent.Tamed: return Numbers.Count(n) + " tamed";
-                default: return Naming.Count(n, "map read", "map reads");
+                case PlayEvent.MapRead: return Naming.Count(n, "map read", "map reads");
+                case PlayEvent.PickCounted: return Naming.Count(n, "pick", "picks") + " counted";
+                case PlayEvent.ChestCounted: return Naming.Count(n, "chest", "chests") + " counted";
+                case PlayEvent.StarredFell: return Naming.Count(n, "starred fall", "starred falls") + " seen";
+                case PlayEvent.Spawned: return Naming.Count(n, "spawn", "spawns") + " seen";
+                case PlayEvent.Collected: return Numbers.Count(n) + " collected from";
+                default: return Naming.Count(n, "weather", "weathers") + " seen";
             }
         }
     }
