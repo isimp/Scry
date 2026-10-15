@@ -34,6 +34,11 @@ namespace Scry
                 "its attacks keep back their damage and what they put on you until each hit the character", attacks == null ? "no attacks" : string.Join(", ", attacks.AttackCells?.Select(c => attacks.Columns[c]) ?? Enumerable.Empty<string>()));
             var drops = told.Rows.FirstOrDefault(r => r.Title == "Drops");
             p.Check(drops != null && drops.Tally == Tally.Fell && drops.TallyOf == troll.Name, "its drops are counted from what the character saw fall", drops == null ? "no drops" : drops.Tally + " of " + drops.TallyOf);
+            var bring = told.Rows.FirstOrDefault(r => r.Title == SearchFight.BringTitle);
+            p.Check(bring == null || bring.Items.All(i => i.ShownBy != null && i.ShownBy.Length > 0), "each thing to bring against it says what shows it under the strict rules",
+                bring == null ? "nothing to bring" : string.Join(" | ", bring.Items.Select(i => i.Name + ": " + string.Join(",", i.ShownBy ?? Array.Empty<string>()))));
+            p.Check(troll.Attacks.Length > 0 && troll.Attacks.All(a => a.Types.Length > 0), "its entry keeps what each attack deals, for the strict search",
+                string.Join(" | ", troll.Attacks.Select(a => a.Item + ": " + string.Join(",", a.Types))));
             var forest = EntryKeys.For(Kind.Biome, "BlackForest");
             p.Check(told.Where.Any(s => s.MetIn != null && s.MetIn.Contains(forest)) && X.Find(forest) != null, "its spawn line names the biome it shows for once met there, an entry of the catalog",
                 string.Join(" | ", told.Where.Where(s => s.MetIn != null).Select(s => string.Join(",", s.MetIn))));

@@ -18,18 +18,32 @@ namespace Scry
         private static readonly string[] Elements = { "fire", "frost", "lightning", "poison", "spirit" };
 
         /// <summary>
-        /// What to bring against a creature, each a search with its words: the weapons dealing a
-        /// type it takes more of, and the gear resisting an element its attacks deal.
+        /// What to bring against a creature, each a search with its words and what shows it under
+        /// the strict rules: the weapons dealing a type it takes more of, once a hit told how that
+        /// type lands (<see cref="EntryKeys.Damage"/>), and the gear resisting an element its
+        /// attacks deal, once one of the attacks dealing it hit the character (their items).
         /// </summary>
         /// <param name="weakTo">The types it takes more of (<see cref="Taking"/>).</param>
-        /// <param name="dealt">The types its attacks deal (<see cref="Dealt"/>).</param>
-        public static List<(string Text, string Query)> Bring(IEnumerable<string> weakTo, IEnumerable<string> dealt)
+        /// <param name="attacks">Its attacks, each by its item and the types it deals (<see cref="Dealt"/>).</param>
+        public static List<(string Text, string Query, string[] ShownBy)> Bring(IEnumerable<string> weakTo, IEnumerable<(string Item, string[] Types)> attacks)
         {
-            var bring = new List<(string, string)>();
-            foreach (var type in weakTo.Distinct()) bring.Add(("Weapons dealing " + type, SearchHelp.Term("damage", type) + " " + SearchHelp.Term("is", "weapon")));
-            foreach (var type in dealt.Distinct().Where(t => Elements.Contains(t))) bring.Add(("Gear resisting " + type, SearchHelp.Term("resists", type) + " " + SearchHelp.Term("is", "wearable")));
+            var bring = new List<(string, string, string[])>();
+            foreach (var type in weakTo.Distinct())
+            {
+                bring.Add(("Weapons dealing " + type, SearchHelp.Term("damage", type) + " " + SearchHelp.Term("is", "weapon"), new[] { EntryKeys.Damage(ResistWords.TypeNamed(type)) }));
+            }
+            var all = attacks.ToList();
+            foreach (var type in all.SelectMany(a => a.Types).Distinct().Where(t => Elements.Contains(t)))
+            {
+                var dealing = all.Where(a => a.Types.Contains(type)).Select(a => a.Item).Distinct().ToArray();
+                bring.Add(("Gear resisting " + type, SearchHelp.Term("resists", type) + " " + SearchHelp.Term("is", "wearable"), dealing));
+            }
             return bring;
         }
+
+        /// <summary>The damage types a creature's attacks deal, each once in the order given, of those attacks <paramref name="taken"/> says hit the character.</summary>
+        public static string[] DealtBy(IEnumerable<(string Item, string[] Types)> attacks, Func<string, bool> taken) =>
+            attacks.Where(a => taken(a.Item)).SelectMany(a => a.Types).Distinct().ToArray();
 
         /// <summary>The damage types of a grid's cells in one tone, in the grid's order; a creature's quiet tool cells (<see cref="ResistWords.ForCreature"/>) are in none.</summary>
         public static string[] Taking(IEnumerable<ResistCell> cells, Tone tone) => cells.Where(c => c.Tone == tone).Select(c => c.Type.ToLowerInvariant()).ToArray();

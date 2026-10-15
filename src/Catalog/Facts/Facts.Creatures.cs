@@ -173,19 +173,32 @@ namespace Scry
             if (table.Lines.Count > 0) Rows.Add(table);
         }
 
-        /// <summary>What to bring against it, each a search: weapons dealing what it is weak to, gear resisting the elements its attacks deal.</summary>
+        /// <summary>
+        /// What to bring against it, each a search: weapons dealing what it is weak to, gear
+        /// resisting the elements its attacks deal, each with what shows it under the strict rules.
+        /// </summary>
         private void Bring(GameObject prefab, Character character)
         {
             var weak = SearchFight.Taking(ResistWords.ForCreature(Cells(character.m_damageModifiers)), Tone.Weak);
-            var dealt = new List<(string, float)>();
+            var row = new Row { Title = SearchFight.BringTitle };
+            foreach (var (text, query, shownBy) in SearchFight.Bring(weak, AttacksOf(prefab)))
+            {
+                row.Items.Add(new Ingredient { Name = text, Amount = "", Prefab = EntryKeys.Search(query), ShownBy = shownBy });
+            }
+            if (row.Items.Count > 0) Rows.Add(row);
+        }
+
+        /// <summary>A creature's attacks, each by its item and the damage types it deals (<see cref="Entry.Attacks"/>): what it carries that is an attack, not what it wears.</summary>
+        internal static (string Item, string[] Types)[] AttacksOf(GameObject prefab)
+        {
+            var attacks = new List<(string, string[])>();
             foreach (var item in Relations.CarriedItems(prefab))
             {
-                var carried = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
-                if (carried?.m_attack != null) dealt.AddRange(DamageFigures(carried.m_damages));
+                var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
+                if (shared?.m_attack == null || !CombatWords.IsCreatureAttack(shared.m_itemType.ToString(), shared.m_attack.m_attackAnimation)) continue;
+                attacks.Add((item.name, SearchFight.Dealt(DamageFigures(shared.m_damages))));
             }
-            var row = new Row { Title = SearchFight.BringTitle };
-            foreach (var (text, query) in SearchFight.Bring(weak, SearchFight.Dealt(dealt))) row.Items.Add(new Ingredient { Name = text, Amount = "", Prefab = EntryKeys.Search(query) });
-            if (row.Items.Count > 0) Rows.Add(row);
+            return attacks.ToArray();
         }
 
         /// <summary>How it moves, sees and hears, what it fears, when it flees, and how long it takes to tame.</summary>

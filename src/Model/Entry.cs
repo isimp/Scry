@@ -124,6 +124,13 @@ namespace Scry
         public string[] Components = Array.Empty<string>();
 
         /// <summary>
+        /// A creature's attacks, each by the item it is made with and the damage types it deals,
+        /// in small letters; for the strict rules' search, which finds a creature by what it deals
+        /// only through the attacks that hit the character.
+        /// </summary>
+        public (string Item, string[] Types)[] Attacks = Array.Empty<(string, string[])>();
+
+        /// <summary>
         /// The names the game's own records of a character know it by (<c>$item_wood</c>,
         /// <c>$enemy_troll</c>, <c>$piece_forge</c>, <c>$biome_meadows</c>); several prefabs can
         /// share one, a skeleton and its variant without a bow.

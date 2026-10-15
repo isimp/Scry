@@ -46,13 +46,37 @@ namespace Scry.Tests
         public void ACreatureSaysWhatToBringAsSearchesForWeaponsItIsWeakToAndGearAgainstItsAttacks()
         {
             // The weapons dealing what it takes more of; the gear resisting the elements its attacks deal.
-            var bring = SearchFight.Bring(new[] { "fire", "spirit" }, new[] { "blunt", "poison", "true", "frost" });
+            var bring = SearchFight.Bring(new[] { "fire", "spirit" }, new[] { ("Club", new[] { "blunt", "poison" }), ("Breath", new[] { "true", "frost" }) });
             Assert.Equal(new[] { "Weapons dealing fire", "Weapons dealing spirit", "Gear resisting poison", "Gear resisting frost" }, bring.Select(b => b.Text));
             Assert.Equal(SearchHelp.Term("damage", "fire") + " " + SearchHelp.Term("is", "weapon"), bring[0].Query);
             Assert.Equal(SearchHelp.Term("resists", "poison") + " " + SearchHelp.Term("is", "wearable"), bring[2].Query);
             Assert.Equal("What to bring", SearchFight.BringTitle);
             // Nothing it is weak to and nothing elemental dealt: nothing to say.
-            Assert.Empty(SearchFight.Bring(new string[0], new[] { "slash", "pierce" }));
+            Assert.Empty(SearchFight.Bring(new string[0], new[] { ("Sword", new[] { "slash", "pierce" }) }));
+        }
+
+        [Fact]
+        public void EachThingToBringSaysWhatShowsItUnderTheStrictRules()
+        {
+            // A weapon against what it takes more of once a hit told that; gear against an
+            // element once one of the attacks dealing it hit the character.
+            var bring = SearchFight.Bring(new[] { "fire" }, new[] { ("Log", new[] { "blunt" }), ("Breath", new[] { "frost" }), ("Frostlog", new[] { "frost", "blunt" }) });
+
+            Assert.Equal(new[] { "Weapons dealing fire", "Gear resisting frost" }, bring.Select(b => b.Text));
+            Assert.Equal(new[] { EntryKeys.Damage("Fire") }, bring[0].ShownBy);
+            Assert.Equal(new[] { "Breath", "Frostlog" }, bring[1].ShownBy);
+        }
+
+        [Fact]
+        public void WhatACreatureIsSeenToDealIsWhatItsAttacksThatHitDeal()
+        {
+            var attacks = new[] { ("Log", new[] { "blunt" }), ("Breath", new[] { "frost", "blunt" }), ("Stomp", new[] { "pierce" }) };
+            Assert.Equal(new[] { "frost", "blunt" }, SearchFight.DealtBy(attacks, item => item == "Breath"));
+            Assert.Equal(new[] { "blunt", "frost", "pierce" }, SearchFight.DealtBy(attacks, _ => true));
+            Assert.Empty(SearchFight.DealtBy(attacks, _ => false));
+            Assert.Equal("Fire", ResistWords.TypeNamed("fire"));
+            Assert.Equal("Lightning", ResistWords.TypeNamed("LIGHTNING"));
+            Assert.Equal("true", ResistWords.TypeNamed("true"));
         }
 
         [Fact]

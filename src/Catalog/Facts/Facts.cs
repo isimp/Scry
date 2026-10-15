@@ -107,6 +107,9 @@ namespace Scry
             /// <summary>What marks it as worth having beyond its odds, and why, or nulls (<see cref="LootMarks"/>).</summary>
             public string Mark;
             public string MarkTip;
+
+            /// <summary>Under the strict rules, what of the page's shows it, any one of them (<see cref="Explorer.KeepsBackAll"/>), as a thing to bring against a creature; null for always.</summary>
+            public string[] ShownBy;
         }
 
         /// <summary>The text the game describes it with, if any.</summary>

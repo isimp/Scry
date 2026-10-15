@@ -94,6 +94,7 @@ namespace Scry
                     if (carried?.m_attack != null) dealt.AddRange(Facts.DamageFigures(carried.m_damages));
                 }
                 entry.SetTermWords("damage", SearchFight.Dealt(dealt));
+                entry.Attacks = Facts.AttacksOf(prefab);
             }
 
             var shared = prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;

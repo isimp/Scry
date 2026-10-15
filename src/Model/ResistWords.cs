@@ -90,6 +90,13 @@ namespace Scry
         /// <summary>The damage types, in the order of the game's <c>HitData.DamageModifiers</c>.</summary>
         public static readonly string[] Types = { "Blunt", "Slash", "Pierce", "Chop", "Pickaxe", "Fire", "Frost", "Lightning", "Poison", "Spirit" };
 
+        /// <summary>A damage type by its name in any letters, as the search's words keep it small; the word itself for one that is no type ("true").</summary>
+        public static string TypeNamed(string word)
+        {
+            foreach (var type in Types) if (string.Equals(type, word, StringComparison.OrdinalIgnoreCase)) return type;
+            return word;
+        }
+
         /// <summary>The damage of tools, which fell trees and break rocks.</summary>
         private static readonly string[] ToolTypes = { "Chop", "Pickaxe" };
 

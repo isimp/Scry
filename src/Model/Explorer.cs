@@ -273,6 +273,14 @@ namespace Scry
         /// </summary>
         public bool KeepsBack(string proof) => LeavingOut && proof != null && !_view.Book.Witnessed(_selected.Key, proof);
 
+        /// <summary>Whether the page shown keeps back what any one of several things seen would show (<see cref="KeepsBack"/>), as a thing to bring against a creature; never for none.</summary>
+        public bool KeepsBackAll(IReadOnlyList<string> proofs)
+        {
+            if (proofs == null || proofs.Count == 0 || !LeavingOut) return false;
+            foreach (var proof in proofs) if (_view.Book.Witnessed(_selected.Key, proof)) return false;
+            return true;
+        }
+
         /// <summary>
         /// An item's amount in a row counted from what the character saw (<see cref="Tally"/>) of
         /// a creature or resource: under the strict rules, on a known page above the milestone

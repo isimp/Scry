@@ -398,6 +398,13 @@ namespace Scry
                 return y;
             }
             var items = ShownStrictly(explorer, listed, i => i.Prefab);
+            // A thing to bring shows once what suggests it was found out; left out quietly, as a suggestion.
+            if (explorer.LeavingOut && Suggests(items))
+            {
+                Suggested.Clear();
+                foreach (var item in items) if (!explorer.KeepsBackAll(item.ShownBy)) Suggested.Add(item);
+                items = Suggested;
+            }
             if (items.Count == 0) return y;
             var title = listing ? CompendiumWords.Found(row.Title, items.Count) : items.Count < listed.Count ? CompendiumWords.Uncounted(row.Title) : row.Title;
             // Under the strict rules drops and yields are told as the character saw them, not by the game's chances.
@@ -483,6 +490,16 @@ namespace Scry
             MoreChip(key, items.Count, FirstChips, width, ref flow);
             y = flow.RowBottom + U(6f);
             return notCounted ? FaintLine(TallyWords.NotYetCounted(row.Tally), "not-counted:", row.Title, PanelPart.TallyCounted, width, y - U(2f)) : y;
+        }
+
+        /// <summary>The things to bring the row being drawn shows, the rest kept back (<see cref="Facts.Ingredient.ShownBy"/>).</summary>
+        private static readonly List<Facts.Ingredient> Suggested = new List<Facts.Ingredient>();
+
+        /// <summary>Whether a row's chips are things to bring, shown by what was found out.</summary>
+        private static bool Suggests(IReadOnlyList<Facts.Ingredient> items)
+        {
+            for (var i = 0; i < items.Count; i++) if (items[i].ShownBy != null) return true;
+            return false;
         }
 
         /// <summary>A chain's steps, an arrow between each, the page's own lit and each other one going to its page.</summary>

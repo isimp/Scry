@@ -68,6 +68,60 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void UnderStrictASearchFindsACreatureByHowItTakesOrDealsDamageOnlyAsFoundOut()
+        {
+            // The grid keeps back how a type lands and the attacks table an attack's damage; a
+            // search must not find the creature by either before the page shows it.
+            var world = new World();
+            world.Troll.SetTermWords("weak", new[] { "fire", "pierce" });
+            world.Troll.SetTermWords("resists", new[] { "frost" });
+            world.Troll.SetTermWords("damage", new[] { "blunt", "frost" });
+            world.Troll.Attacks = new[] { ("Troll_log", new[] { "blunt" }), ("Troll_breath", new[] { "frost" }) };
+            world.Book.Witness(world.Troll.Key, EntryKeys.Damage("Fire"));
+            world.Book.Witness(world.Troll.Key, "Troll_log");
+            world.Rule(CompendiumRule.Strict);
+
+            bool Finds(string text)
+            {
+                world.Explorer.Text = text;
+                return world.Explorer.Results.Contains(world.Troll);
+            }
+            Assert.True(Finds("weak:fire"));
+            Assert.False(Finds("weak:pierce"));
+            Assert.False(Finds("resists:frost"));
+            Assert.True(Finds("damage:blunt"));
+            Assert.False(Finds("damage:frost"));
+            // Gear says what it resists on its card: no hit needed to find it by that.
+            world.Hide.SetTermWords("resists", new[] { "frost" });
+            world.Explorer.Text = "resists:frost";
+            Assert.Contains(world.Hide, world.Explorer.Results);
+
+            world.Rule(CompendiumRule.Loose);
+            Assert.True(Finds("weak:pierce"));
+            Assert.True(Finds("damage:frost"));
+        }
+
+        [Fact]
+        public void WhatToBringShowsOnlyOnceWhatSuggestsItWasFoundOut()
+        {
+            var world = new World();
+            world.Book.Witness(world.Troll.Key, EntryKeys.Damage("Fire"));
+            world.Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Troll);
+
+            Assert.False(world.Explorer.KeepsBackAll(new[] { EntryKeys.Damage("Fire") }));
+            Assert.True(world.Explorer.KeepsBackAll(new[] { EntryKeys.Damage("Pierce") }));
+            Assert.True(world.Explorer.KeepsBackAll(new[] { "Troll_breath", "Troll_frostlog" }));
+            world.Book.Witness(world.Troll.Key, "Troll_frostlog");
+            Assert.False(world.Explorer.KeepsBackAll(new[] { "Troll_breath", "Troll_frostlog" }));
+            Assert.False(world.Explorer.KeepsBackAll(null));
+            Assert.False(world.Explorer.KeepsBackAll(new string[0]));
+
+            world.Rule(CompendiumRule.Loose);
+            Assert.False(world.Explorer.KeepsBackAll(new[] { EntryKeys.Damage("Pierce") }));
+        }
+
+        [Fact]
         public void ANumberTheGameNeverShowsIsKeptBackUntilWhatTellsItWasSeen()
         {
             var world = new World().Rule(CompendiumRule.Strict);
