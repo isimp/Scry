@@ -192,7 +192,15 @@ namespace Scry
             return true;
         }
 
-        /// <summary>What was last found out of an entry (<see cref="FoundOut"/>), while that is the latest news of it; none otherwise.</summary>
+        /// <summary>Notes where the latest news of an entry came from, as off the explored map (<see cref="EntryKeys.OnMap"/>), told beside it in the learned list.</summary>
+        public void NoteNews(string key, string note)
+        {
+            if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(note)) return;
+            _found[key] = note;
+            Changed = true;
+        }
+
+        /// <summary>What was last found out of an entry (<see cref="FoundOut"/>), or where its news came from (<see cref="NoteNews"/>), while that is the latest news of it; none otherwise.</summary>
         public string FoundOutOf(string key) => key != null && _found.TryGetValue(key, out var proof) ? proof : null;
 
         private readonly Dictionary<string, string> _found = new Dictionary<string, string>(StringComparer.Ordinal);

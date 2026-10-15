@@ -25,7 +25,7 @@ namespace Scry.Tests
             var records = new CompendiumRecords();
             records.Killed.Add("$enemy_skeleton");
 
-            catchUp.Fill(records, book, quietly: false);
+            catchUp.Fill(records, book, firstLoad: false);
 
             Assert.Equal(KnownLevel.Known, book.Level(skeleton.Key));
             Assert.Equal(KnownLevel.Known, book.Level(noArcher.Key));
@@ -35,11 +35,12 @@ namespace Scry.Tests
             Assert.True(book.Witnessed(noArcher.Key, EntryKeys.Did(Deed.Killed)));
             Assert.False(book.Witnessed(troll.Key, EntryKeys.Did(Deed.Killed)));
             Assert.Equal(EntryKeys.Did(Deed.Killed), book.FoundOutOf(skeleton.Key));
-            // Read quietly, as a character loads, what was known before is no news.
-            var (quiet, quietBook) = Fresh(skeleton, noArcher, troll);
-            quiet.Fill(records, quietBook, quietly: true);
-            Assert.True(quietBook.Witnessed(skeleton.Key, EntryKeys.Did(Deed.Killed)));
-            Assert.Null(quietBook.FoundOutOf(skeleton.Key));
+            // Read as a character loads, its kills are news by the creatures learned, not by their health as well.
+            var (first, firstBook) = Fresh(skeleton, noArcher, troll);
+            first.Fill(records, firstBook, firstLoad: true);
+            Assert.True(firstBook.Witnessed(skeleton.Key, EntryKeys.Did(Deed.Killed)));
+            Assert.Null(firstBook.FoundOutOf(skeleton.Key));
+            Assert.Contains(skeleton.Key, firstBook.Lately);
         }
 
         [Fact]
@@ -64,7 +65,7 @@ namespace Scry.Tests
             records.Materials.Add("$item_wood");
             records.Materials.Add("$item_lantern");
 
-            catchUp.Fill(records, book, quietly: false);
+            catchUp.Fill(records, book, firstLoad: false);
 
             Assert.Equal(KnownLevel.Known, book.Level(wood.Key));
             Assert.Equal(KnownLevel.Known, book.Level(club.Key));
@@ -81,7 +82,7 @@ namespace Scry.Tests
             var records = new CompendiumRecords();
             records.Materials.Add("$item_sword_iron");
 
-            catchUp.Fill(records, book, quietly: false);
+            catchUp.Fill(records, book, firstLoad: false);
 
             Assert.Equal(KnownLevel.Seen, book.Level(sword.Key));
         }
@@ -100,7 +101,7 @@ namespace Scry.Tests
             records.Stations.Add("$piece_forge");
             records.Placed.Add("$piece_woodwallhalf");
 
-            catchUp.Fill(records, book, quietly: false);
+            catchUp.Fill(records, book, firstLoad: false);
 
             Assert.Equal(KnownLevel.Known, book.Level(bench.Key));
             Assert.Equal(KnownLevel.Known, book.Level(forge.Key));
@@ -119,7 +120,7 @@ namespace Scry.Tests
             records.PickedUp.Add("");
             records.PickedUp.Add("$item_wood");
 
-            Assert.Equal(1, catchUp.Fill(records, book, quietly: false));
+            Assert.Equal(1, catchUp.Fill(records, book, firstLoad: false));
             Assert.Equal(KnownLevel.Unknown, book.Level(odd.Key));
         }
 
@@ -133,7 +134,7 @@ namespace Scry.Tests
             var records = new CompendiumRecords();
             records.Killed.Add("$shared_name");
 
-            catchUp.Fill(records, book, quietly: false);
+            catchUp.Fill(records, book, firstLoad: false);
 
             Assert.Equal(KnownLevel.Known, book.Level(creature.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(item.Key));
@@ -160,7 +161,7 @@ namespace Scry.Tests
             records.Trophies.Add("TrophyHatchling");
             records.Biomes.Add("$biome_mountain");
 
-            catchUp.Fill(records, book, quietly: false);
+            catchUp.Fill(records, book, firstLoad: false);
 
             Assert.Equal(KnownLevel.Known, book.Level(trophy.Key));
             Assert.Equal(KnownLevel.Known, book.Level(drake.Key));
@@ -198,7 +199,7 @@ namespace Scry.Tests
             records.PickedUp.Add("$item_wood");
             records.Materials.Add("$item_resin");
 
-            catchUp.Fill(records, book, quietly: false);
+            catchUp.Fill(records, book, firstLoad: false);
 
             Assert.Equal(KnownLevel.Known, book.Level(berries.Key));
             Assert.Equal(KnownLevel.Known, book.Level(bush.Key));
@@ -228,7 +229,7 @@ namespace Scry.Tests
             records.PickedUp.Add("$item_wood");
             records.Biomes.Add("$biome_meadows");
 
-            catchUp.Fill(records, book, quietly: false);
+            catchUp.Fill(records, book, firstLoad: false);
 
             Assert.Equal(KnownLevel.Known, book.Level(beech.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(ashLog.Key));
@@ -240,7 +241,7 @@ namespace Scry.Tests
 
             // Once the character enters the Ashlands, its logs count.
             records.Biomes.Add("$biome_ashlands");
-            catchUp.Fill(records, book, quietly: false);
+            catchUp.Fill(records, book, firstLoad: false);
             Assert.Equal(KnownLevel.Known, book.Level(ashLog.Key));
             Assert.True(book.Witnessed(wood.Key, ashLog.Key));
         }
@@ -269,7 +270,7 @@ namespace Scry.Tests
             records.Biomes.Add("Dunkler Sumpf");
             records.PickedUp.Add("$item_wood");
 
-            catchUp.Fill(records, book, quietly: false);
+            catchUp.Fill(records, book, firstLoad: false);
 
             Assert.Equal(KnownLevel.Known, book.Level(meadows.Key));
             Assert.Equal(KnownLevel.Known, book.Level(forest.Key));
@@ -291,7 +292,7 @@ namespace Scry.Tests
             records.Biomes.Add("$biome_meadows");
             records.Biomes.Add("$area_dark $biome_swamp");
 
-            catchUp.Fill(records, book, quietly: false);
+            catchUp.Fill(records, book, firstLoad: false);
 
             Assert.Equal(KnownLevel.Known, book.Level(meadows.Key));
             Assert.Equal(KnownLevel.Known, book.Level(swamp.Key));
@@ -309,9 +310,9 @@ namespace Scry.Tests
             records.Materials.Add("$item_sword_iron");
             records.Materials.Add("$item_bow");
 
-            Assert.Equal(1, catchUp.Fill(records, book, quietly: false));
+            Assert.Equal(1, catchUp.Fill(records, book, firstLoad: false));
             Assert.Equal(KnownLevel.Known, book.Level(sword.Key));
-            Assert.Equal(0, catchUp.Fill(records, book, quietly: false));
+            Assert.Equal(0, catchUp.Fill(records, book, firstLoad: false));
         }
 
         [Fact]
@@ -337,24 +338,29 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void WhatTheCharacterKnewBeforeIsNoNewsWhenReadQuietly()
+        public void WhatAFirstLoadBringsIsNewsThoughNotWhenOrWhereItCameToBeKnown()
         {
-            // The first reading after a character loads: all of it was known before, none of it
-            // is learned lately; what grows later is.
+            // The first reading as a character loads: what it brings the book did not hold is news
+            // all the same, in Learned; when and where it came to be known the records do not
+            // say, so none is kept. What grows later is news, with the day and biome of now.
             var wood = E(Kind.Item, "Wood", "$item_wood");
             var stone = E(Kind.Item, "Stone", "$item_stone");
             var (catchUp, book) = Fresh(wood, stone);
+            book.Now = () => (12, "Meadows");
             var records = new CompendiumRecords();
             records.PickedUp.Add("$item_wood");
 
-            catchUp.Fill(records, book, quietly: true);
+            var mark = book.Learned;
+            catchUp.Fill(records, book, firstLoad: true);
             Assert.Equal(KnownLevel.Known, book.Level(wood.Key));
-            Assert.Empty(book.Lately);
+            Assert.Equal(new[] { wood.Key }, book.LearnedSince(mark).ToArray());
+            Assert.Null(book.Came(wood.Key));
             Assert.True(book.Changed);
 
             records.PickedUp.Add("$item_stone");
-            catchUp.Fill(records, book, quietly: false);
-            Assert.Equal(new[] { stone.Key }, book.Lately.ToArray());
+            catchUp.Fill(records, book, firstLoad: false);
+            Assert.Equal(new[] { stone.Key, wood.Key }, book.Lately.ToArray());
+            Assert.Equal((CameBy.Held, 12, "Meadows"), book.Came(stone.Key));
         }
 
         [Fact]
@@ -374,7 +380,7 @@ namespace Scry.Tests
             records.Recipes.Add("$item_sword_iron");
             records.Placed.Add("$piece_woodwall");
 
-            catchUp.Fill(records, book, quietly: true);
+            catchUp.Fill(records, book, firstLoad: true);
 
             Assert.True(book.Witnessed(sword.Key, iron.Key));
             Assert.True(book.Witnessed(sword.Key, forge.Key));
@@ -406,14 +412,16 @@ namespace Scry.Tests
             records.Placed.Add("$piece_firepit");
             records.Biomes.Add("$biome_meadows");
 
-            catchUp.Fill(records, book, quietly: true);
+            catchUp.Fill(records, book, firstLoad: true);
 
             Assert.Equal(KnownLevel.Known, book.Level(rested.Key));
             Assert.Equal(KnownLevel.Known, book.Level(wet.Key));
             // Only what gives it counts, and only what the records show.
             Assert.Equal(KnownLevel.Unknown, book.Level(royal.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(smoked.Key));
-            Assert.Empty(book.Lately);
+            // News as the character loads, as everything the first reading brings.
+            Assert.Contains(rested.Key, book.Lately);
+            Assert.Contains(wet.Key, book.Lately);
             Assert.True(book.Witnessed(rested.Key, bed.Key));
             Assert.False(book.Witnessed(rested.Key, throne.Key));
             Assert.True(book.Witnessed(wet.Key, meadows.Key));
@@ -451,7 +459,7 @@ namespace Scry.Tests
             records.Picked.Add("Raspberry");
             records.Eaten.Add("$item_mead_hp_minor");
 
-            catchUp.Fill(records, book, quietly: true);
+            catchUp.Fill(records, book, firstLoad: true);
 
             Assert.True(book.Witnessed(trophy.Key, troll.Key));
             Assert.False(book.Witnessed(trophy.Key, chest.Key));
@@ -479,7 +487,7 @@ namespace Scry.Tests
             var records = new CompendiumRecords();
             records.Powers.Add("GP_Eikthyr");
 
-            catchUp.Fill(records, book, quietly: false);
+            catchUp.Fill(records, book, firstLoad: false);
 
             Assert.Equal(KnownLevel.Known, book.Level(eikthyr.Key));
             Assert.Equal(eikthyr.Key, book.Lately.First());
@@ -530,7 +538,7 @@ namespace Scry.Tests
             records.Placed.Add("$piece_woodwallhalf");
             records.Placed.Add("$piece_path");
 
-            catchUp.Fill(records, book, quietly: true);
+            catchUp.Fill(records, book, firstLoad: true);
 
             Assert.True(book.Witnessed(wall.Key, hammer.Key));
             Assert.False(book.Witnessed(path.Key, hoe.Key));
@@ -662,7 +670,7 @@ namespace Scry.Tests
             records.Powers.Add("GP_Bonemass");
             records.Powers.Add("GP_NotInTheCatalog");
 
-            catchUp.Fill(records, book, quietly: true);
+            catchUp.Fill(records, book, firstLoad: true);
 
             Assert.Equal(KnownLevel.Known, book.Level(power.Key));
             Assert.False(book.Witnessed(power.Key, stone.Key));

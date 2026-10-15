@@ -12,7 +12,7 @@ namespace Scry
     /// cache folder when the character is first played (a file per character,
     /// <see cref="CompendiumBook.FileName"/>, which Gale's profile sync leaves alone), caught up
     /// with what the game keeps of the character (<see cref="CharacterRecords"/>) once the catalog
-    /// is read, quietly the first time and then whenever those records grow, looked at once a
+    /// is read, as news, the first time and then whenever those records grow, looked at once a
     /// second along with what the character has, is in, points at and sees (<see cref="Look"/>,
     /// <see cref="CompendiumSight"/>), and fed what it fights and hits as it happens; and
     /// written back once it changed, at most every half minute, on leaving a world and on
@@ -83,7 +83,7 @@ namespace Scry
                     _recordsSize = size;
                     _recordsPower = power;
                     CharacterRecords.Read(player, profile, Records);
-                    _catchUp.Fill(Records, _book, quietly: !_caughtUp);
+                    _catchUp.Fill(Records, _book, firstLoad: !_caughtUp);
                     if (!ReferenceEquals(_bossesOf, catalog))
                     {
                         _bosses = CompendiumTiers.Bosses(catalog);

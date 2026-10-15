@@ -54,7 +54,7 @@ namespace Scry
 
             // Everything they tell is in the book: the catch-up ran on this catalog.
             var told = new CompendiumBook();
-            CompendiumKeeper.CatchUpFor(X.Entries).Fill(records, told, quietly: true);
+            CompendiumKeeper.CatchUpFor(X.Entries).Fill(records, told, firstLoad: true);
             yield return Until(() => Short(told, CompendiumKeeper.Book).Count == 0, 5);
             var shortOf = Short(told, CompendiumKeeper.Book);
             p.Check(shortOf.Count == 0, $"everything its records tell is in its book ({Numbers.Count(told.Count(KnownLevel.HeardOf))} entries)", string.Join(", ", shortOf.Take(10)));
@@ -220,6 +220,8 @@ namespace Scry
             p.Check(grid != null && grid.Explored(player.transform.position.x, player.transform.position.z), "the ground it stands on is explored", grid != null ? $"cells of {Numbers.Count(grid.Factor)} pixels a side" : null);
             var world = CompendiumMap.World;
             var book = CompendiumKeeper.Book;
+            // Read again each session, so ground explored since counts, as news.
+            p.Check(CompendiumMap.ReadAgainThisSession, "this world's map is read again this session");
 
             // The biomes under the explored ground are seen at least, the one stood in among them.
             if (grid != null && WorldGenerator.instance != null)

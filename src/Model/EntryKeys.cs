@@ -61,6 +61,9 @@ namespace Scry
             return key != null && key.StartsWith(Deeds, StringComparison.Ordinal) && Enum.TryParse(key.Substring(Deeds.Length), out deed);
         }
 
+        /// <summary>The note of what a reading of the explored map brought (<see cref="CompendiumBook.NoteNews"/>); no entry goes by it.</summary>
+        public const string OnMap = "map:explored";
+
         /// <summary>A creature's weak spot, kept only as paired with a creature a hit of the character found it on; no entry goes by it.</summary>
         private const string Spot = "spot:";
 

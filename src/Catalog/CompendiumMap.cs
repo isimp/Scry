@@ -39,7 +39,17 @@ namespace Scry
         /// <summary>Whether the explored map is being read now.</summary>
         public static bool Reading => _reading != null;
 
-        /// <summary>Once a second: catches the book up when its world has not been, or takes in what was worked out.</summary>
+        /// <summary>The worlds whose map was read again this session, each once; kept across worlds left, until the game closes.</summary>
+        private static readonly HashSet<string> ReadThisSession = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>Whether this world's map is read again this session (<see cref="Update"/>), for the self-test.</summary>
+        public static bool ReadAgainThisSession => World != null && ReadThisSession.Contains(World);
+
+        /// <summary>
+        /// Once a second: catches the book up when its world has not been, or takes in what was
+        /// worked out. Each session reads a world's map once again, so ground explored since
+        /// counts too, what it brings news in Learned.
+        /// </summary>
         public static void Update(CompendiumBook book)
         {
             var player = Player.m_localPlayer;
@@ -49,6 +59,7 @@ namespace Scry
                 _playerSince = Time.unscaledTime;
             }
             var world = World;
+            if (book != null && player != null && world != null && ReadThisSession.Add(world)) book.Unmap(world);
             var settled = player != null && Time.unscaledTime - _playerSince >= SettleSeconds;
             UpdateBiomes(book, world, settled);
 

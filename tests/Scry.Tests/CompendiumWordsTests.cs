@@ -82,7 +82,7 @@ namespace Scry.Tests
             Assert.Equal("answered a player's explored map: 12 kinds of place lie in it", CompendiumWords.MapAnswered(12));
             Assert.Equal("the server did not answer on the explored map (it has no Scry, or one too old): places count as the character meets them", CompendiumWords.MapNoServerScry);
             Assert.Equal("Read the map again", CompendiumWords.ReadMap);
-            Assert.Equal("Places in the ground this character explored count as seen", CompendiumWords.MapBar);
+            Assert.Equal("Places in the ground this character explored count as seen, read again each session", CompendiumWords.MapBar);
             Assert.Equal("Counts the kinds of place in the ground this character explored in this world as seen, as on its first visit with Scry", CompendiumWords.ReadMapTip);
             Assert.Equal("on a dedicated server Scry only answers players' explored maps, for their compendium", CompendiumWords.ServerPart);
         }

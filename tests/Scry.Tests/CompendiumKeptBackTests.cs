@@ -227,6 +227,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatTheExploredMapBroughtIsToldApartForTheNotice()
+        {
+            var world = new World();
+            world.Book.NoteNews(world.Meadows.Key, EntryKeys.OnMap);
+            world.Rule(CompendiumRule.Loose);
+
+            Assert.True(world.Explorer.FromMap(world.Meadows));
+            Assert.False(world.Explorer.FromMap(world.Troll));
+            Assert.Equal("seen on your explored map", world.Explorer.FoundOutNote(world.Meadows));
+            world.Rule(CompendiumRule.Off);
+            Assert.False(world.Explorer.FromMap(world.Meadows));
+        }
+
+        [Fact]
         public void TheLearnedListSaysWhatWasFoundOut()
         {
             var world = new World();

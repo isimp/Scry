@@ -223,6 +223,9 @@ namespace Scry
         /// <summary>Whether an entry shows as known only because of the compendium's floor (<see cref="CompendiumView.ByFloor"/>).</summary>
         public bool ByFloor(Entry entry) => CompendiumOn && _view.ByFloor(entry);
 
+        /// <summary>Whether an entry's latest news is what a reading of the explored map brought (<see cref="EntryKeys.OnMap"/>), counted rather than named in the notice.</summary>
+        public bool FromMap(Entry entry) => CompendiumOn && entry != null && _view.Book?.FoundOutOf(entry.Key) == EntryKeys.OnMap;
+
         /// <summary>What was found out of an entry as its latest news (<see cref="CompendiumBook.FoundOutOf"/>), in a few words for its row in the learned list; none with the compendium off.</summary>
         public string FoundOutNote(Entry entry) => CompendiumOn && entry != null ? CompendiumWords.FoundOutNote(_view.Book?.FoundOutOf(entry.Key)) : null;
 

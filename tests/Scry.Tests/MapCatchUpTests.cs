@@ -105,21 +105,25 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void WhatTheMapTellsIsWrittenAsSeenQuietlyOncePerWorld()
+        public void WhatTheMapTellsIsWrittenAsSeenAsNewsSayingWhereFrom()
         {
-            // Seen before the book was kept: nothing newly learned, and what is known stays known.
+            // Each reading of the map, the first too: what it adds is news in Learned, saying it
+            // came off the explored map; what is known stays known and is no news.
             var book = new CompendiumBook();
             book.Raise(EntryKeys.For(Kind.Location, "TrollCave02"), KnownLevel.Known);
-            var learned = book.Learned;
+            var mark = book.Learned;
 
             var raised = MapCatchUp.Apply(book, "123", new[] { "Crypt2", "TrollCave02" });
 
             Assert.Equal(1, raised);
             Assert.Equal(KnownLevel.Seen, book.Level(EntryKeys.For(Kind.Location, "Crypt2")));
             Assert.Equal(KnownLevel.Known, book.Level(EntryKeys.For(Kind.Location, "TrollCave02")));
-            Assert.Equal(learned, book.Learned);
+            Assert.Equal(new[] { EntryKeys.For(Kind.Location, "Crypt2") }, book.LearnedSince(mark).ToArray());
+            Assert.Equal(EntryKeys.OnMap, book.FoundOutOf(EntryKeys.For(Kind.Location, "Crypt2")));
+            Assert.Null(book.FoundOutOf(EntryKeys.For(Kind.Location, "TrollCave02")));
             Assert.True(book.Mapped("123"));
             Assert.False(book.Mapped("456"));
+            Assert.Equal("seen on your explored map", CompendiumWords.FoundOutNote(EntryKeys.OnMap));
         }
 
         [Fact]
@@ -147,7 +151,7 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheBiomesUnderExploredGroundAreWrittenAsSeenQuietly()
+        public void TheBiomesUnderExploredGroundAreWrittenAsSeenAsNews()
         {
             var book = new CompendiumBook();
             book.Raise(EntryKeys.For(Kind.Biome, "Meadows"), KnownLevel.Known, quietly: true);
@@ -157,7 +161,19 @@ namespace Scry.Tests
 
             Assert.Equal(KnownLevel.Known, book.Level(EntryKeys.For(Kind.Biome, "Meadows")));
             Assert.Equal(KnownLevel.Seen, book.Level(EntryKeys.For(Kind.Biome, "Swamp")));
-            Assert.Empty(book.Lately);
+            Assert.Equal(new[] { EntryKeys.For(Kind.Biome, "Swamp") }, book.Lately.ToArray());
+            Assert.Equal(EntryKeys.OnMap, book.FoundOutOf(EntryKeys.For(Kind.Biome, "Swamp")));
+        }
+
+        [Fact]
+        public void TheNoticeCountsWhatTheMapShowedInOneLine()
+        {
+            // A map read can bring hundreds of places: counted, not named; the rest named as ever.
+            Assert.Equal("Your explored map showed 240 places", CompendiumWords.News(new string[0], 240, 0));
+            Assert.Equal("Your explored map showed 1 place and 2 biomes", CompendiumWords.News(new string[0], 1, 2));
+            Assert.Equal("Your explored map showed 1 biome", CompendiumWords.News(new string[0], 0, 1));
+            Assert.Equal("Newly learned: Troll and Wood", CompendiumWords.News(new[] { "Troll", "Wood" }, 0, 0));
+            Assert.Equal("Newly learned: Troll; your explored map showed 12 places", CompendiumWords.News(new[] { "Troll" }, 12, 0));
         }
     }
 }

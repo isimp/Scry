@@ -52,11 +52,12 @@ namespace Scry
         }
 
         /// <summary>
-        /// Raises in the book what the records tell; how many entries it learned more of. Quietly
-        /// when what the records hold was known before, as on first reading them after a
-        /// character loads, so none of it counts among the latest learned.
+        /// Raises in the book what the records tell, as news; how many entries it learned more of.
+        /// On the first reading as a character loads (<paramref name="firstLoad"/>) the records do
+        /// not say when or where a thing came to be known, so no such record is kept of it, and
+        /// its kills are news by the creatures learned rather than their health found out as well.
         /// </summary>
-        public int Fill(CompendiumRecords records, CompendiumBook book, bool quietly)
+        public int Fill(CompendiumRecords records, CompendiumBook book, bool firstLoad)
         {
             // An unlocked recipe's item is known: the crafting menu shows it whole, its look, stats and what it takes.
             var items = Named(records.PickedUp, Kind.Item).Concat(Named(records.Crafted, Kind.Item)).Concat(Named(records.Eaten, Kind.Item)).Concat(Named(records.Recipes, Kind.Item)).ToList();
@@ -94,13 +95,13 @@ namespace Scry
             var materials = Named(records.Materials, Kind.Item).ToList();
             var held = materials.Where(e => _soldByTrader != null && !_soldByTrader(e.Name)).ToList();
             Add(held, CameBy.Held);
-            var raised = known.Count(k => book.Raise(k.Entry.Key, KnownLevel.Known, quietly, k.Way))
-                + Raise(book, materials.Except(held), KnownLevel.Seen, quietly);
+            var raised = known.Count(k => book.Raise(k.Entry.Key, KnownLevel.Known, way: firstLoad ? null : k.Way))
+                + Raise(book, materials.Except(held), KnownLevel.Seen);
             Pair(records, book, entered);
-            // A creature the character killed shows its health under the strict rules: news, unless read quietly.
+            // A creature the character killed shows its health under the strict rules: found out, as news after the first reading.
             foreach (var killed in Named(records.Killed, Kind.Creature))
             {
-                if (quietly) book.Witness(killed.Key, EntryKeys.Did(Deed.Killed));
+                if (firstLoad) book.Witness(killed.Key, EntryKeys.Did(Deed.Killed));
                 else book.FoundOut(killed.Key, EntryKeys.Did(Deed.Killed));
             }
             foreach (var given in givers)
@@ -294,7 +295,7 @@ namespace Scry
         private IEnumerable<Entry> Prefabs(IEnumerable<string> names, Kind kind) =>
             names.Select(_catalog.Find).Where(e => e != null && e.Kind == kind);
 
-        private static int Raise(CompendiumBook book, IEnumerable<Entry> entries, KnownLevel level, bool quietly) =>
-            entries.Count(e => book.Raise(e.Key, level, quietly));
+        private static int Raise(CompendiumBook book, IEnumerable<Entry> entries, KnownLevel level) =>
+            entries.Count(e => book.Raise(e.Key, level));
     }
 }

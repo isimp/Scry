@@ -82,6 +82,20 @@ namespace Scry
             return "Newly learned: " + listed;
         }
 
+        /// <summary>
+        /// The notice of what was learned since last told: the things learned named
+        /// (<see cref="NewlyLearned"/>), what a reading of the explored map brought counted, as it
+        /// may be hundreds of places at once.
+        /// </summary>
+        public static string News(IReadOnlyList<string> named, int places, int biomes)
+        {
+            if (places + biomes == 0) return NewlyLearned(named);
+            var counted = places > 0 && biomes > 0 ? $"{Naming.Count(places, "place", "places")} and {Naming.Count(biomes, "biome", "biomes")}"
+                : places > 0 ? Naming.Count(places, "place", "places") : Naming.Count(biomes, "biome", "biomes");
+            var map = "explored map showed " + counted;
+            return named.Count == 0 ? "Your " + map : NewlyLearned(named) + "; your " + map;
+        }
+
         /// <summary>The tip of the notice's cross.</summary>
         public const string PutNewsAway = "Put this away until more is learned";
 
@@ -105,7 +119,7 @@ namespace Scry
         public static string MapNoServerScry => "the server did not answer on the explored map (it has no Scry, or one too old): places count as the character meets them";
 
         /// <summary>The line above the Locations tab's list with the compendium on, beside the button reading the explored map again.</summary>
-        public const string MapBar = "Places in the ground this character explored count as seen";
+        public const string MapBar = "Places in the ground this character explored count as seen, read again each session";
 
         /// <summary>The button reading the explored map again, in the Locations tab's bar.</summary>
         public const string ReadMap = "Read the map again";
@@ -277,6 +291,7 @@ namespace Scry
         public static string FoundOutNote(string proof)
         {
             if (string.IsNullOrEmpty(proof)) return null;
+            if (proof == EntryKeys.OnMap) return "seen on your explored map";
             if (EntryKeys.IsDeed(proof, out var deed))
             {
                 switch (deed)

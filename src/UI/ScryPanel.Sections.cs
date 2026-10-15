@@ -230,7 +230,9 @@ namespace Scry
             if (!ReferenceEquals(news, _newsFor))
             {
                 _newsFor = news;
-                _newsLine = CompendiumWords.NewlyLearned(news.Select(e => e.ShownName).ToList());
+                // What the explored map brought is counted, as it may be hundreds of places at once; the rest is named.
+                _newsLine = CompendiumWords.News(news.Where(e => !explorer.FromMap(e)).Select(e => e.ShownName).ToList(),
+                    news.Count(e => explorer.FromMap(e) && e.Kind != Kind.Biome), news.Count(e => explorer.FromMap(e) && e.Kind == Kind.Biome));
             }
             CountDrawn(PanelPart.LearnedStrip);
             switch (NoticeStrip(rect, Skin.Accent, _newsLine, Skin.Label, false, CompendiumWords.ShowLearned, explorer.LearnedOnly, true,

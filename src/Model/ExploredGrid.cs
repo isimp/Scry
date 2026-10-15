@@ -121,7 +121,7 @@ namespace Scry
 
     /// <summary>
     /// Catching up from the explored map: the kinds of place lying where the character explored
-    /// count as seen, written quietly (known before, only not yet written down) once per world.
+    /// count as seen, as news noted as off the explored map (<see cref="EntryKeys.OnMap"/>).
     /// </summary>
     internal static class MapCatchUp
     {
@@ -159,20 +159,28 @@ namespace Scry
         /// <summary>What the game calls ground of no biome.</summary>
         private const string NoBiome = "None";
 
-        /// <summary>Writes the biomes under the explored ground as seen, quietly; how many were new.</summary>
+        /// <summary>Writes the biomes under the explored ground as seen, as news off the map; how many were new.</summary>
         public static int ApplyBiomes(CompendiumBook book, IEnumerable<string> biomes) =>
-            biomes.Count(biome => book.Raise(EntryKeys.For(Kind.Biome, biome), KnownLevel.Seen, quietly: true));
+            biomes.Count(biome => Seen(book, EntryKeys.For(Kind.Biome, biome)));
 
-        /// <summary>Writes the kinds of place as seen, quietly, and the world as caught up; how many were new.</summary>
+        /// <summary>Writes the kinds of place as seen, as news off the map, and the world as caught up; how many were new.</summary>
         public static int Apply(CompendiumBook book, string world, IEnumerable<string> kinds)
         {
             var raised = 0;
             foreach (var kind in kinds)
             {
-                if (book.Raise(EntryKeys.For(Kind.Location, kind), KnownLevel.Seen, quietly: true)) raised++;
+                if (Seen(book, EntryKeys.For(Kind.Location, kind))) raised++;
             }
             book.MarkMapped(world);
             return raised;
+        }
+
+        /// <summary>An entry the map shows, as news noted as off the map; true when it was new.</summary>
+        private static bool Seen(CompendiumBook book, string key)
+        {
+            if (!book.Raise(key, KnownLevel.Seen)) return false;
+            book.NoteNews(key, EntryKeys.OnMap);
+            return true;
         }
     }
 }

@@ -120,7 +120,7 @@ namespace Scry.Tests
             records.Placed.Add("$piece_workbench");
             records.Biomes.Add("$biome_meadows");
 
-            catchUp.Fill(records, book, quietly: false);
+            catchUp.Fill(records, book, firstLoad: false);
 
             Assert.Equal(CameBy.Killed, book.Came(troll.Key)?.Way);
             Assert.Equal(CameBy.Made, book.Came(club.Key)?.Way);
