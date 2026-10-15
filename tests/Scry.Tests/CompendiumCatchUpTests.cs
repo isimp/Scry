@@ -139,12 +139,18 @@ namespace Scry.Tests
             var greydwarf = E(Kind.Creature, "Greydwarf", "$enemy_greydwarf");
             var resin = E(Kind.Item, "Resin", "$item_resin");
             var fir = E(Kind.Resource, "FirTree", "$prop_fir");
+            var meadows = E(Kind.Biome, "Meadows", "$biome_meadows");
+            meadows.Biomes = new[] { "Meadows" };
+            bush.Biomes = new[] { "Meadows" };
+            beech.Biomes = new[] { "Meadows" };
+            fir.Biomes = new[] { "Meadows", "BlackForest" };
             berries.AddTermLink("from", bush);
             wood.AddTermLink("from", beech);
             wood.AddTermLink("from", greydwarf);
             resin.AddTermLink("from", fir);
-            var (catchUp, book) = Fresh(berries, bush, wood, beech, greydwarf, resin, fir);
+            var (catchUp, book) = Fresh(berries, bush, wood, beech, greydwarf, resin, fir, meadows);
             var records = new CompendiumRecords();
+            records.Biomes.Add("$biome_meadows");
             records.Picked.Add("Raspberry");
             records.Picked.Add("Greydwarf");
             records.PickedUp.Add("$item_wood");
@@ -157,6 +163,44 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.Known, book.Level(beech.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(greydwarf.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(fir.Key));
+        }
+
+        [Fact]
+        public void WhatGivesAnItemIsKnownOnlyWhereItGrowsInABiomeTheCharacterEntered()
+        {
+            // Wood picked up in the Meadows does not make the Ashlands' logs and rocks known: the
+            // game drops Wood from some 84 kinds of thing, across every biome.
+            var wood = E(Kind.Item, "Wood", "$item_wood");
+            var beech = E(Kind.Resource, "Beech1", "$prop_beech");
+            var ashLog = E(Kind.Resource, "AshlandsTreeLogHalf1", "$prop_ashlog");
+            var nowhere = E(Kind.Resource, "dvergrprops_wood_beam", "$prop_beam");
+            var meadows = E(Kind.Biome, "Meadows", "$biome_meadows");
+            var ashlands = E(Kind.Biome, "AshLands", "$biome_ashlands");
+            meadows.Biomes = new[] { "Meadows" };
+            ashlands.Biomes = new[] { "AshLands" };
+            beech.Biomes = new[] { "Meadows", "BlackForest" };
+            ashLog.Biomes = new[] { "AshLands" };
+            foreach (var giver in new[] { beech, ashLog, nowhere }) wood.AddTermLink("from", giver);
+            var (catchUp, book) = Fresh(wood, beech, ashLog, nowhere, meadows, ashlands);
+            var records = new CompendiumRecords();
+            records.PickedUp.Add("$item_wood");
+            records.Biomes.Add("$biome_meadows");
+
+            catchUp.Fill(records, book, quietly: false);
+
+            Assert.Equal(KnownLevel.Known, book.Level(beech.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(ashLog.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(nowhere.Key));
+            // Under the strict rules the item is paired only with those givers too.
+            Assert.True(book.Witnessed(wood.Key, beech.Key));
+            Assert.False(book.Witnessed(wood.Key, ashLog.Key));
+            Assert.False(book.Witnessed(wood.Key, nowhere.Key));
+
+            // Once the character enters the Ashlands, its logs count.
+            records.Biomes.Add("$biome_ashlands");
+            catchUp.Fill(records, book, quietly: false);
+            Assert.Equal(KnownLevel.Known, book.Level(ashLog.Key));
+            Assert.True(book.Witnessed(wood.Key, ashLog.Key));
         }
 
         [Fact]
@@ -304,6 +348,10 @@ namespace Scry.Tests
             var berries = E(Kind.Item, "Raspberry", "$item_raspberries");
             var bush = E(Kind.Resource, "RaspberryBush", "$piece_raspberrybush");
             var far = E(Kind.Resource, "RaspberryBush_far", "$piece_raspberrybush_far");
+            var meadows = E(Kind.Biome, "Meadows", "$biome_meadows");
+            meadows.Biomes = new[] { "Meadows" };
+            bush.Biomes = new[] { "Meadows" };
+            far.Biomes = new[] { "Meadows" };
             var mead = E(Kind.Item, "MeadHealthMinor", "$item_mead_hp_minor");
             var rested = new Entry { Kind = Kind.StatusEffect, Name = "Potion_health_minor" };
             var chest = E(Kind.Piece, "TreasureChest_forest", "$piece_chest");
@@ -316,8 +364,9 @@ namespace Scry.Tests
             mead.Links.Add(new Link { Group = LinkWords.StatusEffects, Target = rested.Key });
             mead.Links.Add(new Link { Group = LinkWords.GivenBy, Target = troll.Key, Back = true });
             mead.Links.Add(new Link { Group = LinkWords.Upgrades, Target = axe.Key });
-            var (catchUp, book) = Fresh(troll, trophy, berries, bush, far, mead, rested, chest, axe);
+            var (catchUp, book) = Fresh(troll, trophy, berries, bush, far, mead, rested, chest, axe, meadows);
             var records = new CompendiumRecords();
+            records.Biomes.Add("$biome_meadows");
             records.Trophies.Add("TrophyFrostTroll");
             records.Picked.Add("Raspberry");
             records.Eaten.Add("$item_mead_hp_minor");

@@ -8,17 +8,17 @@ namespace Scry
     /// Writes into what a character knows (<see cref="CompendiumBook"/>) what the game's own
     /// records of it tell (<see cref="CompendiumRecords"/>), so a character played before does
     /// not start from nothing. Read by the loose rules: a creature killed, an item picked up,
-    /// crafted or eaten, a piece unlocked, used or placed and a biome entered are known, as are a
-    /// trophy held and the creatures it falls from, every resource giving an item so known, and
-    /// every status effect something so known gives (a bed's Rested, a biome's weather), paired
-    /// with its givers among them; an item only had or offered is seen, and one whose recipe is
-    /// unlocked is heard of. A
-    /// record counts only for the kinds it is about, and for every entry going by its name
-    /// (<see cref="Entry.Tokens"/>). For the strict rules it pairs what the records show went
-    /// together: a recipe unlocked, an item crafted or a piece placed with its ingredients and
-    /// station, a trophy with the creatures it falls from, a thing picked or picked up with the
-    /// resources giving it, a food eaten with the status effects it gives, a piece placed with
-    /// the one tool that builds it.
+    /// crafted, eaten or whose recipe is unlocked, a piece unlocked, used or placed and a biome
+    /// entered are known, as are a trophy held and the creatures it falls from, every resource
+    /// giving an item so known that grows in a biome the character entered, and every status
+    /// effect something so known gives (a bed's Rested, a biome's weather), paired with its
+    /// givers among them; an item only had or offered is seen. A record counts only for the
+    /// kinds it is about, and for every entry going by its name (<see cref="Entry.Tokens"/>).
+    /// For the strict rules it pairs what the records show went together: a recipe unlocked, an
+    /// item crafted or a piece placed with its ingredients and station, a trophy with the
+    /// creatures it falls from, a thing picked or picked up with the resources giving it in the
+    /// biomes entered, a food eaten with the status effects it gives, a piece placed with the one
+    /// tool that builds it.
     /// </summary>
     internal sealed class CompendiumCatchUp
     {
@@ -57,7 +57,10 @@ namespace Scry
             var known = new List<Entry>(items);
             known.AddRange(Named(records.Killed, Kind.Creature));
             foreach (var trophy in Prefabs(records.Trophies, Kind.Item)) known.AddRange(trophy.TermLinks("from").Where(e => e.Kind == Kind.Creature));
-            foreach (var item in items) known.AddRange(item.TermLinks("from").Where(e => e.Kind == Kind.Resource));
+            // What gives an item: only where it grows in a biome the character entered, as Wood
+            // picked up in the Meadows says nothing of the Ashlands' logs.
+            var entered = Entered(records);
+            foreach (var item in items) known.AddRange(ResourcesGiving(item, entered));
             known.AddRange(Named(records.Recipes.Concat(records.Stations).Concat(records.Placed), Kind.Piece));
             known.AddRange(Named(records.Biomes.SelectMany(area => area.Split(' ')), Kind.Biome));
             var givers = Givers(known);
@@ -68,7 +71,7 @@ namespace Scry
 
             var raised = Raise(book, known, KnownLevel.Known, quietly)
                 + Raise(book, Named(records.Materials, Kind.Item), KnownLevel.Seen, quietly);
-            Pair(records, book);
+            Pair(records, book, entered);
             foreach (var given in givers)
             {
                 foreach (var giver in given.Value) book.Witness(given.Key.Key, giver);
@@ -104,7 +107,7 @@ namespace Scry
         }
 
         /// <summary>Pairs in the book what the records show went together, for the strict rules.</summary>
-        private void Pair(CompendiumRecords records, CompendiumBook book)
+        private void Pair(CompendiumRecords records, CompendiumBook book, HashSet<string> entered)
         {
             var made = Named(records.Recipes.Concat(records.Crafted).Concat(records.Placed), Kind.Item)
                 .Concat(Named(records.Recipes.Concat(records.Placed), Kind.Piece));
@@ -123,7 +126,7 @@ namespace Scry
             }
             foreach (var item in Prefabs(records.Picked, Kind.Item).Concat(Named(records.PickedUp, Kind.Item)))
             {
-                foreach (var resource in item.TermLinks("from")) if (resource.Kind == Kind.Resource) book.Witness(item.Key, resource.Key);
+                foreach (var resource in ResourcesGiving(item, entered)) book.Witness(item.Key, resource.Key);
             }
             // The records keep what was placed, not with what: a piece one tool alone builds was built with it.
             if (_toolsOf != null)
@@ -187,6 +190,14 @@ namespace Scry
             }
             return raised;
         }
+
+        /// <summary>The biomes the character entered, as the game names them (<see cref="Entry.Biomes"/>).</summary>
+        private HashSet<string> Entered(CompendiumRecords records) =>
+            new HashSet<string>(Named(records.Biomes.SelectMany(area => area.Split(' ')), Kind.Biome).SelectMany(b => b.Biomes), StringComparer.Ordinal);
+
+        /// <summary>The resources giving an item that grow in a biome the character entered; one growing nowhere the world places it is left to be met.</summary>
+        private static IEnumerable<Entry> ResourcesGiving(Entry item, HashSet<string> entered) =>
+            item.TermLinks("from").Where(e => e.Kind == Kind.Resource && e.Biomes.Any(entered.Contains));
 
         /// <summary>The entries of a kind going by any of these names.</summary>
         private IEnumerable<Entry> Named(IEnumerable<string> tokens, Kind kind)

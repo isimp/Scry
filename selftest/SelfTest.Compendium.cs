@@ -59,6 +59,19 @@ namespace Scry
             var shortOf = Short(told, CompendiumKeeper.Book);
             p.Check(shortOf.Count == 0, $"everything its records tell is in its book ({Numbers.Count(told.Count(KnownLevel.HeardOf))} entries)", string.Join(", ", shortOf.Take(10)));
 
+            // What gives an item counts only in the biomes entered, so the biomes a resource grows
+            // in must be named as the biomes' own entries name them.
+            var biomeNames = new HashSet<string>(X.Catalog.Where(e => e.Kind == Kind.Biome).SelectMany(e => e.Biomes), StringComparer.Ordinal);
+            var strays = X.Catalog.Where(e => e.Kind == Kind.Resource).SelectMany(e => e.Biomes).Where(b => !biomeNames.Contains(b)).Distinct().ToList();
+            p.Check(strays.Count == 0, "every biome a resource grows in is one of the biomes' own", string.Join(", ", strays.Take(5)));
+            var wood = X.Find("Wood");
+            if (wood != null)
+            {
+                var givers = wood.TermLinks("from").Where(e => e.Kind == Kind.Resource).ToList();
+                var woodKnown = givers.Count(e => told.Level(e.Key) == KnownLevel.Known);
+                p.Note($"of the {Numbers.Count(givers.Count)} resources giving wood, its records make {Numbers.Count(woodKnown)} known, those in the biomes it entered");
+            }
+
             // The place stood in: known, a dungeon only once inside it, seen at its entrance.
             var standing = Location.GetLocation(player.transform.position);
             var standingEntry = standing != null ? X.Find(EntryKeys.For(Kind.Location, Utils.GetPrefabName(standing.gameObject))) : null;
