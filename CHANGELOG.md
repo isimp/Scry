@@ -10,7 +10,7 @@ The compendium shows only what the character playing has come to know. *Compendi
 
 A character played before is caught up from what the game keeps of it: what it carried, made, ate and picked, the recipes and pieces it unlocked, its kills, trophies and biomes, and the guardian power it chose. Its explored map counts too, the kinds of place lying in ground it explored counting as seen; on a dedicated server that needs Scry on the server, which tells only which kinds of place lie there, never where. *Read the map again* above the Locations list, or `/scry map`, reads it anew. What a character learns is collected even while the compendium is off, so turning it on later shows everything met meanwhile, and each character's knowledge is kept in `BepInEx/cache/isimp.Scry/compendium`.
 
-*Learned* lists what the character learned lately, newest first, and the eye beside the mode shows everything until the panel closes.
+*Learned* lists what the character learned lately, newest first, including what it found out of something *Strict* held back, and the eye beside the mode shows everything until the panel closes. Under *Strict* a page's *You* box ends with what is still to find out and what to do for each.
 
 What *Read all locations* reads is kept, so the next time it is known as soon as the world's catalog is. After an update of the game only the locations it changed are read again, and after a change of mods or of Scry all of them, in the background, with what was known shown meanwhile. `/scry locations` reads them all again.
 

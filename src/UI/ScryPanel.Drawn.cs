@@ -43,6 +43,7 @@ namespace Scry
         DamageKeptBack,
         FactKeptBack,
         FloorLink,
+        StillToFindOut,
         WeakSpotsLeftOut,
         TableKeptBack,
         TallyCounted,

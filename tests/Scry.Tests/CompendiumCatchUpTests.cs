@@ -30,10 +30,16 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.Known, book.Level(skeleton.Key));
             Assert.Equal(KnownLevel.Known, book.Level(noArcher.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(troll.Key));
-            // Killed by the character, so the strict rules show its health.
+            // Killed by the character, so the strict rules show its health, found out as news.
             Assert.True(book.Witnessed(skeleton.Key, EntryKeys.Did(Deed.Killed)));
             Assert.True(book.Witnessed(noArcher.Key, EntryKeys.Did(Deed.Killed)));
             Assert.False(book.Witnessed(troll.Key, EntryKeys.Did(Deed.Killed)));
+            Assert.Equal(EntryKeys.Did(Deed.Killed), book.FoundOutOf(skeleton.Key));
+            // Read quietly, as a character loads, what was known before is no news.
+            var (quiet, quietBook) = Fresh(skeleton, noArcher, troll);
+            quiet.Fill(records, quietBook, quietly: true);
+            Assert.True(quietBook.Witnessed(skeleton.Key, EntryKeys.Did(Deed.Killed)));
+            Assert.Null(quietBook.FoundOutOf(skeleton.Key));
         }
 
         [Fact]

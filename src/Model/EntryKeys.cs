@@ -41,6 +41,13 @@ namespace Scry
         /// <summary>The key a damage type is paired under with a creature the game told how it takes it (<see cref="HitTold"/>).</summary>
         public static string Damage(string type) => DamageType + type;
 
+        /// <summary>Whether a key is a damage type's (<see cref="Damage"/>), and which.</summary>
+        public static bool IsDamage(string key, out string type)
+        {
+            type = key != null && key.StartsWith(DamageType, StringComparison.Ordinal) ? key.Substring(DamageType.Length) : null;
+            return type != null;
+        }
+
         /// <summary>Something the character saw done, kept only as paired with what it was done to (<see cref="Did"/>); no entry goes by it.</summary>
         private const string Deeds = "did:";
 

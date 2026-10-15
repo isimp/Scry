@@ -28,7 +28,7 @@ namespace Scry
             }
 
             // What the character itself did with it opens the facts, in a box of its own.
-            y = YouBox(explorer, entry, width, y);
+            y = YouBox(explorer, entry, facts, width, y);
 
             // A two-column table: what it is on the left, its value on the right.
             var labelW = Mathf.Min(U(130f), width * 0.36f);
@@ -58,14 +58,17 @@ namespace Scry
         private static float _youAt = -1f;
         private static float _youHeight;
         private static List<(string Label, string Value)> _you = new List<(string, string)>();
+        private static List<(string Label, string Value)> _still = new List<(string, string)>();
 
         /// <summary>
         /// The box a page opens with, titled "You": what the game counted of the thing for the
         /// character (<see cref="CharacterRecords.Counts"/>) and, with the compendium on, how it
-        /// came to know it (<see cref="CompendiumWords.CameLine"/>). Read again once a second and
-        /// on another page; drawn behind what it holds at the height that held last time.
+        /// came to know it (<see cref="CompendiumWords.CameLine"/>); under the strict rules, what
+        /// the page still keeps back, a row for each thing to do (<see cref="CompendiumWords.StillToFindOut"/>).
+        /// Read again once a second and on another page; drawn behind what it holds at the height
+        /// that held last time.
         /// </summary>
-        private static float YouBox(Explorer explorer, Entry entry, float width, float y)
+        private static float YouBox(Explorer explorer, Entry entry, Facts facts, float width, float y)
         {
             if (entry != _youOf || Time.unscaledTime - _youAt > 1f)
             {
@@ -79,8 +82,9 @@ namespace Scry
                     came = CompendiumWords.CameLine(record?.Way, record?.Day ?? -1, biome, explorer.Compendium.Because(entry)?.ShownName, explorer.ByFloor(entry), explorer.LevelOf(entry) == KnownLevel.Known);
                 }
                 _you = CompendiumWords.You(CharacterRecords.Counts(entry), came);
+                _still = StillToFindOut(explorer, facts);
             }
-            if (_you.Count == 0) return y;
+            if (_you.Count == 0 && _still.Count == 0) return y;
 
             var top = y;
             if (_youHeight > 0f) Skin.Box(new Rect(0f, top, width, _youHeight), Skin.TopicFill);
@@ -97,23 +101,69 @@ namespace Scry
                 GUI.Label(new Rect(pad + labelW + U(10f), y, valueW, height), value, Skin.Wrap);
                 y += height + U(6f);
             }
+            // What is still to find out: what to do on the left, what it shows faint on the right.
+            foreach (var (label, value) in _still)
+            {
+                var height = Mathf.Max(U(20f), Skin.Height(Skin.Wrap, value, valueW));
+                GUI.Label(new Rect(pad, y, labelW, height), label, Skin.DimWrap);
+                Skin.LabelIn(new Rect(pad + labelW + U(10f), y, valueW, height), value, Skin.Wrap, Skin.Faint);
+                y += height + U(6f);
+            }
+            if (_still.Count > 0) CountDrawn(PanelPart.StillToFindOut);
             y += U(4f);
             if (Event.current.type == EventType.Repaint) _youHeight = y - top;
             CountDrawn(PanelPart.YouBox);
             return y + U(10f);
         }
 
+        /// <summary>
+        /// What a page under the strict rules still keeps back, gathered from what it draws: the
+        /// facts whose numbers wait for a deed, the weak spots not found, the damage types not told,
+        /// the attacks not taken, and the drops or yields not counted; none otherwise.
+        /// </summary>
+        private static List<(string Label, string Value)> StillToFindOut(Explorer explorer, Facts facts)
+        {
+            if (!explorer.LeavingOut || facts == null) return NothingStill;
+            var deeds = new List<string>();
+            var spots = 0;
+            foreach (var pair in facts.Pairs)
+            {
+                if (!facts.Proofs.TryGetValue(pair.Key, out var proof) || !explorer.KeepsBack(proof)) continue;
+                if (EntryKeys.IsWeakSpot(proof)) spots++;
+                else deeds.Add(proof);
+            }
+            var types = new List<string>();
+            var attacks = 0;
+            var uncounted = new List<Tally>();
+            foreach (var row in facts.Rows)
+            {
+                if (row.HitReveals && row.Cells != null)
+                {
+                    foreach (var cell in row.Cells) if (cell.Tone != Tone.Quiet && explorer.HidesDamage(cell.Type)) types.Add(cell.Type);
+                }
+                foreach (var proof in row.LineProofs.Values) if (explorer.KeepsBack(proof)) deeds.Add(proof);
+                if (row.AttackCells != null) foreach (var (_, link) in row.Lines) if (explorer.HidesAttack(link)) attacks++;
+                if (row.Tally != Tally.None && row.Items.Any(i => !explorer.LeavesOut(i.Prefab) && explorer.StrictAmount(row.Tally, row.TallyOf, i.Prefab) == CompendiumWords.Hidden)) uncounted.Add(row.Tally);
+            }
+            return CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted);
+        }
+
+        private static readonly List<(string Label, string Value)> NothingStill = new List<(string, string)>();
+
         /// <summary>Lets go of the page the You box was read for, for another world.</summary>
         private static void ForgetYou()
         {
             _youOf = null;
             _you.Clear();
+            _still = NothingStill;
             _youHeight = 0f;
         }
 
         /// <summary>One labelled fact: its label in the left column, its value at its right, a link, music or a website where it is one.</summary>
         private static float FactPair(Explorer explorer, Entry entry, Facts facts, KeyValuePair<string, string> pair, float width, float labelW, float y)
         {
+            // Counted over every character's play: under the strict rules the page counts this character's own.
+            if (explorer.LeavingOut && facts.AllPlay.Contains(pair.Key)) return y;
             // A line only naming what the page lists waits until the character has seen it; under
             // the strict rules a line naming what was not seen together with the page is left out.
             if (facts.Links.TryGetValue(pair.Key, out var linked))
@@ -129,6 +179,7 @@ namespace Scry
             // a number the game never shows until what shows it was seen: a weak spot no hit found
             // is left out and counted, anything else reads ??? and says what shows it.
             var value = Masked(explorer, pair.Value);
+            string keptBack = null;
             if (facts.Proofs.TryGetValue(pair.Key, out var proof) && explorer.KeepsBack(proof))
             {
                 if (EntryKeys.IsWeakSpot(proof))
@@ -136,6 +187,7 @@ namespace Scry
                     SpotLeft();
                     return y;
                 }
+                keptBack = proof;
                 value = CompendiumWords.KeptBack(proof);
                 CountDrawn(PanelPart.FactKeptBack);
             }
@@ -182,6 +234,13 @@ namespace Scry
                 if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, FloorTip(explorer, link, PanelWords.GoTo(ShownName(explorer, link, value))));
                 if (GUI.Button(linkRect, GUIContent.none, GUIStyle.none)) Go(explorer, link);
             }
+            // Kept back: ??? as any value, what shows it faint, as every other hint of the strict rules.
+            else if (keptBack != null)
+            {
+                var hidden = Skin.Width(Skin.Wrap, CompendiumWords.Hidden);
+                GUI.Label(new Rect(valueRect.x, valueRect.y, hidden + U(2f), height), CompendiumWords.Hidden, Skin.Wrap);
+                Skin.LabelIn(new Rect(valueRect.x + hidden, valueRect.y, valueRect.width - hidden, height), CompendiumWords.KeptBackHint(keptBack), Skin.Wrap, Skin.Faint);
+            }
             else
             {
                 GUI.Label(valueRect, value, unsure ? Skin.DimWrap : Skin.Wrap);
@@ -213,8 +272,10 @@ namespace Scry
         /// <summary>Where it lives, comes from, or what gives it: a line naming a prefab in the catalog a chip that goes there.</summary>
         private static float WhereBlock(Explorer explorer, Facts facts, bool titled, float width, float y)
         {
-            // A line of where it spawns or grows shows only where it was met in one of its biomes.
-            var where = ShownStrictly(explorer, facts.Where, s => explorer.LeavesOut(s.Prefab) || explorer.LeavesOutAll(s.MetIn));
+            // A line of where it spawns or grows shows only where it was met in one of its biomes;
+            // one counted over every character's play is left out quietly, the page counting this character's own.
+            var where = ShownStrictly(explorer, facts.Where, s => !s.AllPlay && (explorer.LeavesOut(s.Prefab) || explorer.LeavesOutAll(s.MetIn)));
+            if (explorer.LeavingOut && OwnPlayOnly(where)) where = OwnPlay;
             if (where.Count == 0) return y;
             if (titled)
             {
@@ -386,6 +447,7 @@ namespace Scry
         /// </summary>
         private static float FactRow(Explorer explorer, Facts.Row row, float width, float y)
         {
+            if (row.AllPlay && explorer.LeavingOut) return y;
             if (row.Cells != null) return GridRow(explorer, row, width, y);
             if (row.Columns != null) return TableRow(explorer, row, width, y);
             if (row.Chain != null) return ChainRow(explorer, row, width, y);
@@ -490,6 +552,20 @@ namespace Scry
             MoreChip(key, items.Count, FirstChips, width, ref flow);
             y = flow.RowBottom + U(6f);
             return notCounted ? FaintLine(TallyWords.NotYetCounted(row.Tally), "not-counted:", row.Title, PanelPart.TallyCounted, width, y - U(2f)) : y;
+        }
+
+        /// <summary>The lines of where a thing comes from the block being drawn shows under the strict rules, those counted over every character's play left out.</summary>
+        private static readonly List<Source> OwnPlay = new List<Source>();
+
+        /// <summary>Whether lines hold any counted over every character's play; if so, the rest are put in <see cref="OwnPlay"/>.</summary>
+        private static bool OwnPlayOnly(IReadOnlyList<Source> lines)
+        {
+            var any = false;
+            for (var i = 0; i < lines.Count && !any; i++) any = lines[i].AllPlay;
+            if (!any) return false;
+            OwnPlay.Clear();
+            for (var i = 0; i < lines.Count; i++) if (!lines[i].AllPlay) OwnPlay.Add(lines[i]);
+            return true;
         }
 
         /// <summary>The things to bring the row being drawn shows, the rest kept back (<see cref="Facts.Ingredient.ShownBy"/>).</summary>

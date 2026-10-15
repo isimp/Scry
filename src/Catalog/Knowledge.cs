@@ -22,6 +22,9 @@ namespace Scry
         /// <summary>The biomes a line says it spawns or grows in, as entry keys: under the strict rules it shows only where it was met in one of them.</summary>
         public string[] MetIn;
 
+        /// <summary>A line counted over all your play, every character's: left out under the strict rules, which count this character's own.</summary>
+        public bool AllPlay;
+
         public Source(string text, string prefab, string unsure = null, double chance = 1.0)
         {
             Text = text;

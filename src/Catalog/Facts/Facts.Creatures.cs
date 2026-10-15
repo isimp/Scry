@@ -128,10 +128,14 @@ namespace Scry
             var kills = DropWatch.Seen.Kills(prefab.name);
             if (kills > 0)
             {
-                var seen = new Row { Title = SeenWords.Title(kills), Unsure = UnsureWords.Seen };
+                var seen = new Row { Title = SeenWords.Title(kills), Unsure = UnsureWords.Seen, AllPlay = true };
                 foreach (var drop in DropWatch.Seen.Of(prefab.name)) seen.Items.Add(Chip(drop.Item, SeenWords.Chip(drop, kills)));
                 if (seen.Items.Count > 0) Rows.Add(seen);
-                else AddUnsure(SeenWords.Title(kills), "nothing", UnsureWords.Seen);
+                else
+                {
+                    AddUnsure(SeenWords.Title(kills), "nothing", UnsureWords.Seen);
+                    AllPlay.Add(SeenWords.Title(kills));
+                }
             }
             if (drops == null || !drops.m_drops.Any(d => d?.m_prefab != null)) Add("Drops", "nothing");
             Hooked(HookedRule.Drops);

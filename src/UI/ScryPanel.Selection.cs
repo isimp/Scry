@@ -200,6 +200,8 @@ namespace Scry
             FitLabel(new Rect(x, top + U(12f), width, U(30f)), name, Skin.Big, 13f);
             GUI.Label(new Rect(x, top + U(46f), width, U(22f)), CompendiumWords.Closed(level), Skin.DimLabel);
             GUI.Label(new Rect(x, top + U(70f), width, U(22f)), CompendiumWords.HowToKnow(entry.Kind), Skin.FaintLabel);
+            // Under the strict rules, coming to know it opens its page, but not all of it at once.
+            if (explorer.CompendiumOn && explorer.Compendium.Rule == CompendiumRule.Strict) GUI.Label(new Rect(x, top + U(92f), width, U(22f)), CompendiumWords.ClosedStrict, Skin.FaintLabel);
         }
 
         /// <summary>

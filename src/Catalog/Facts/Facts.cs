@@ -65,6 +65,9 @@ namespace Scry
             public string TallyOf;
             public string TallyLead;
 
+            /// <summary>Counted over all your play, every character's (<see cref="DropWatch"/>): left out under the strict rules, where the page counts this character's own.</summary>
+            public bool AllPlay;
+
             /// <summary>A table in place of chips: its columns' headings, and its lines, each its cells and what its first cell goes to; null for none.</summary>
             public string[] Columns;
             public readonly List<(string[] Cells, string Link)> Lines = new List<(string[], string)>();
@@ -259,6 +262,9 @@ namespace Scry
         /// </summary>
         public readonly Dictionary<string, string> Proofs = new Dictionary<string, string>();
 
+        /// <summary>The labels of pairs counted over all your play, every character's (<see cref="Row.AllPlay"/>).</summary>
+        public readonly HashSet<string> AllPlay = new HashSet<string>();
+
         /// <summary>A pair Scry is not sure of, with why.</summary>
         private void AddUnsure(string label, string value, string why, string link = null)
         {
@@ -335,7 +341,7 @@ namespace Scry
                     facts.Where.AddRange(ContentOrder.SurestFirst(lines, l => l.Line.Chance, l => l.Biome).Select(l => l.Line));
                     foreach (var (creature, drop, kills) in DropWatch.Seen.Sources(entry.Name))
                     {
-                        facts.Where.Add(new Source(SeenWords.Line(AnyName(GamePrefabs.Item(creature), creature), drop, kills), creature, UnsureWords.Seen));
+                        facts.Where.Add(new Source(SeenWords.Line(AnyName(GamePrefabs.Item(creature), creature), drop, kills), creature, UnsureWords.Seen) { AllPlay = true });
                     }
 
                     // An item nothing makes, drops, sells or spawns here comes from somewhere Scry cannot

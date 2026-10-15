@@ -48,9 +48,9 @@ namespace Scry.Tests
             Assert.Equal("Compendium", CompendiumWords.ModeCaption);
             Assert.Equal("Loose: list only what this character has seen, a page open once it has fought, held, built, used or entered it, and count in each kind's tab what was found of all there is", CompendiumWords.StepTip(CompendiumRule.Loose));
             Assert.Equal("Show only what this character has come to know, by the rules chosen for it here; each character keeps its own", CompendiumWords.ModeTip);
-            Assert.Equal("show everything. What this character learns is kept all the same, so turning the compendium on later shows everything met meanwhile", CompendiumWords.RuleTip(CompendiumRule.Off));
+            Assert.Equal("show everything. What this character comes to know is kept all the same, so turning the compendium on later shows everything met meanwhile", CompendiumWords.RuleTip(CompendiumRule.Off));
             Assert.Equal("list only what this character has seen, a page open once it has fought, held, built, used or entered it, and count in each kind's tab what was found of all there is", CompendiumWords.RuleTip(CompendiumRule.Loose));
-            Assert.Equal("list the same as Loose, but a page shows of how its entry connects (drops, places, recipes, attacks) only what this character saw go together, and keeps back the names of what it has not seen", CompendiumWords.RuleTip(CompendiumRule.Strict));
+            Assert.Equal("list the same as Loose, but a page shows of how its entry connects (drops, places, recipes, attacks) only what this character saw go together, keeps back the names of what it has not seen, and the numbers the game never shows until you find them out", CompendiumWords.RuleTip(CompendiumRule.Strict));
         }
 
         [Fact]
@@ -121,7 +121,8 @@ namespace Scry.Tests
         {
             // Drops not seen fall, attacks not seen hit, places a creature lives not met in, givers not seen give it.
             Assert.Equal("2 more not yet seen fall", CompendiumWords.LeftOutOf("loot", 2));
-            Assert.Equal("1 more not yet seen hit", CompendiumWords.LeftOutOf("fight", 1));
+            // What a fight section leaves out is no attack (an attack's damage reads ??? instead): seen together, as anything else.
+            Assert.Equal("1 more not yet seen together", CompendiumWords.LeftOutOf("fight", 1));
             Assert.Equal("1 more place it lives not yet met in", CompendiumWords.LeftOutOf("lives", 1));
             Assert.Equal("3 more places it lives not yet met in", CompendiumWords.LeftOutOf("lives", 3));
             Assert.Equal("2 more not yet seen give it", CompendiumWords.LeftOutOf("from", 2));
@@ -151,9 +152,15 @@ namespace Scry.Tests
             Assert.Equal("Not met yet", CompendiumWords.Closed(KnownLevel.Unknown));
             Assert.Equal("Heard of, not met yet", CompendiumWords.Closed(KnownLevel.HeardOf));
             Assert.Equal("Seen, not yet come to know", CompendiumWords.Closed(KnownLevel.Seen));
-            Assert.Equal("Fight it to learn all about it.", CompendiumWords.HowToKnow(Kind.Creature));
-            Assert.Equal("Pick it up, make it, eat it or unlock its recipe to learn all about it.", CompendiumWords.HowToKnow(Kind.Item));
+            // Every way that makes it known, by one verb for a page: come to know.
+            Assert.Equal("Fight it, tame it or hold its trophy to come to know it.", CompendiumWords.HowToKnow(Kind.Creature));
+            Assert.Equal("Hold it, make it, eat it, unlock its recipe or read its card to come to know it.", CompendiumWords.HowToKnow(Kind.Item));
+            Assert.Equal("Have it on you or choose it at its stone to come to know it.", CompendiumWords.HowToKnow(Kind.StatusEffect));
+            Assert.Equal("It comes along once you come to know what it belongs to.", CompendiumWords.HowToKnow(Kind.Sound));
             Assert.Equal(Counted.Length, Counted.Select(CompendiumWords.HowToKnow).Distinct().Count());
+            Assert.All(Counted, kind => Assert.EndsWith("to come to know it.", CompendiumWords.HowToKnow(kind)));
+            // Under the strict rules a page known still keeps some back: said too.
+            Assert.Equal("Some of its page shows only once you find it out.", CompendiumWords.ClosedStrict);
         }
     }
 }

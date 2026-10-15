@@ -141,12 +141,109 @@ namespace Scry.Tests
         [Fact]
         public void WhatKeepsANumberBackSaysWhatShowsIt()
         {
-            Assert.Equal("??? until you have killed one", CompendiumWords.KeptBack(EntryKeys.Did(Deed.Killed)));
-            Assert.Equal("??? until you have tamed one", CompendiumWords.KeptBack(EntryKeys.Did(Deed.Tamed)));
-            Assert.Equal("??? until you have seen one born", CompendiumWords.KeptBack(EntryKeys.Did(Deed.Born)));
-            Assert.Equal("??? until you have seen one grow up", CompendiumWords.KeptBack(EntryKeys.Did(Deed.GrewUp)));
-            Assert.Equal("??? until you have seen one grow back", CompendiumWords.KeptBack(EntryKeys.Did(Deed.GrewBack)));
+            // One form for every hint of what shows a number: "shows once you have ...", after its ???.
+            Assert.Equal("shows once you have killed one", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Killed)));
+            Assert.Equal("shows once you have tamed one", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Tamed)));
+            Assert.Equal("shows once you have seen one born", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Born)));
+            Assert.Equal("shows once you have seen one grow up", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.GrewUp)));
+            Assert.Equal("shows once you have seen one grow back", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.GrewBack)));
+            Assert.Equal("??? · shows once you have killed one", CompendiumWords.KeptBack(EntryKeys.Did(Deed.Killed)));
             Assert.Equal("Health shows once you have killed one", CompendiumWords.ShowsOnce("Health", EntryKeys.Did(Deed.Killed)));
+        }
+
+        [Fact]
+        public void APageSaysAtItsTopWhatIsStillToFindOutByWhatToDo()
+        {
+            // The You box gathers every hint the page gives further down: what to do, and what it shows.
+            var rows = CompendiumWords.StillToFindOut(
+                new[] { EntryKeys.Did(Deed.Tamed), EntryKeys.Did(Deed.Killed), EntryKeys.Did(Deed.Tamed) },
+                new[] { "Pierce", "Frost" }, attacks: 2, spots: 1, new[] { Tally.Fell });
+
+            Assert.Equal(new[]
+            {
+                ("Kill one", "shows its health"),
+                ("Tame one", "shows how long taming and a meal take"),
+                ("Hit it with", "Pierce, Frost: how they land"),
+                ("Let it hit you", "2 attacks' damage"),
+                ("Hit its weak spot", "1 not yet found"),
+                ("See it drop", "how many of each"),
+            }, rows);
+
+            var one = CompendiumWords.StillToFindOut(new[] { EntryKeys.Did(Deed.Born), EntryKeys.Did(Deed.GrewUp), EntryKeys.Did(Deed.GrewBack) },
+                new[] { "Fire" }, attacks: 1, spots: 2, new[] { Tally.Gave });
+            Assert.Equal(new[]
+            {
+                ("See one born", "shows how long it is pregnant"),
+                ("See one grow up", "shows how long that takes"),
+                ("See one grow back", "shows how long that takes"),
+                ("Hit it with", "Fire: how it lands"),
+                ("Let it hit you", "1 attack's damage"),
+                ("Hit its weak spots", "2 not yet found"),
+                ("Break one", "how many of each it gives"),
+            }, one);
+
+            Assert.Empty(CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0]));
+        }
+
+        [Fact]
+        public void WhatIsFoundOutComesBackToTheTopOfWhatWasLearnedLatelySayingWhat()
+        {
+            var book = new CompendiumBook();
+            book.Raise("Troll", KnownLevel.Known);
+            book.Raise("Boar", KnownLevel.Known);
+            var mark = book.Learned;
+
+            Assert.True(book.FoundOut("Troll", EntryKeys.Did(Deed.Killed)));
+            Assert.Equal(new[] { "Troll", "Boar" }, book.Lately);
+            Assert.Equal(new[] { "Troll" }, book.LearnedSince(mark));
+            Assert.Equal(EntryKeys.Did(Deed.Killed), book.FoundOutOf("Troll"));
+            Assert.True(book.Witnessed("Troll", EntryKeys.Did(Deed.Killed)));
+            Assert.True(book.Changed);
+            // Found out once; again is nothing new.
+            Assert.False(book.FoundOut("Troll", EntryKeys.Did(Deed.Killed)));
+            Assert.Null(book.FoundOutOf("Boar"));
+
+            // Kept with the book; a level learned since is the newer news.
+            var read = CompendiumBook.Load(book.Save());
+            Assert.Equal(EntryKeys.Did(Deed.Killed), read.FoundOutOf("Troll"));
+            Assert.Equal(new[] { "Troll", "Boar" }, read.Lately);
+            book.FoundOut("Neck", EntryKeys.WeakSpot("head"));
+            book.Raise("Neck", KnownLevel.Known);
+            Assert.Null(book.FoundOutOf("Neck"));
+        }
+
+        [Fact]
+        public void WhatWasFoundOutIsToldInAFewWords()
+        {
+            Assert.Equal("its health found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Killed)));
+            Assert.Equal("its taming found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Tamed)));
+            Assert.Equal("its pregnancy found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Born)));
+            Assert.Equal("its growing up found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.GrewUp)));
+            Assert.Equal("its growing back found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.GrewBack)));
+            Assert.Equal("a weak spot found", CompendiumWords.FoundOutNote(EntryKeys.WeakSpot("head")));
+            Assert.Equal("how Fire lands found out", CompendiumWords.FoundOutNote(EntryKeys.Damage("Fire")));
+            Assert.Equal("an attack's damage found out", CompendiumWords.FoundOutNote("Troll_log"));
+            Assert.Null(CompendiumWords.FoundOutNote(null));
+        }
+
+        [Fact]
+        public void TheLearnedListSaysWhatWasFoundOut()
+        {
+            var world = new World();
+            world.Book.FoundOut(world.Troll.Key, EntryKeys.Did(Deed.Killed));
+            world.Rule(CompendiumRule.Strict);
+
+            Assert.Equal("its health found out", world.Explorer.FoundOutNote(world.Troll));
+            Assert.Null(world.Explorer.FoundOutNote(world.Hide));
+
+            // Open, the list puts what was just found out first, under either rules.
+            world.Rule(CompendiumRule.Loose);
+            world.Explorer.LearnedOnly = true;
+            world.Book.FoundOut(world.Hide.Key, "TrollHide_kept");
+            world.Rule(CompendiumRule.Loose);
+            Assert.Same(world.Hide, world.Explorer.Results[0]);
+            world.Rule(CompendiumRule.Off);
+            Assert.Null(world.Explorer.FoundOutNote(world.Troll));
         }
 
         [Fact]

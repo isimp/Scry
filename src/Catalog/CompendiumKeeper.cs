@@ -170,7 +170,7 @@ namespace Scry
         {
             if (_book == null || creature == null || creature == Player.m_localPlayer) return;
             var weapon = (creature as Humanoid).OrNull()?.GetCurrentWeapon()?.m_dropPrefab.OrNull();
-            if (weapon != null) _book.Witness(Utils.GetPrefabName(creature.gameObject), weapon.name);
+            if (weapon != null) _book.FoundOut(Utils.GetPrefabName(creature.gameObject), weapon.name);
         }
 
         /// <summary>Learns of a resource the character hit, as news, what it hit it with and where it stands.</summary>
@@ -200,21 +200,24 @@ namespace Scry
             var key = Utils.GetPrefabName(creature.gameObject);
             _catchUp.Met(key, KnownLevel.Known, _book, CameBy.Tamed);
             MetIn(key, creature.transform.position);
-            if (tamedNow) _book.Witness(key, EntryKeys.Did(Deed.Tamed));
+            if (tamedNow) _book.FoundOut(key, EntryKeys.Did(Deed.Tamed));
         }
 
         /// <summary>Something the character saw done to a thing, which shows a number the game never does (<see cref="Deed"/>).</summary>
         public static void SawDone(GameObject thing, Deed deed)
         {
             if (_book == null || thing == null) return;
-            _book.Witness(Utils.GetPrefabName(thing), EntryKeys.Did(deed));
+            _book.FoundOut(Utils.GetPrefabName(thing), EntryKeys.Did(deed));
         }
+
+        /// <summary>Something the strict rules keep back of an entry, found out in play, as news (<see cref="CompendiumBook.FoundOut"/>).</summary>
+        public static void FoundOut(string key, string proof) => _book?.FoundOut(key, proof);
 
         /// <summary>A weak spot a hit of the character found on a creature, by the part it is on.</summary>
         public static void FoundWeakSpot(Character creature, string part)
         {
             if (_book == null || creature == null || string.IsNullOrEmpty(part)) return;
-            _book.Witness(Utils.GetPrefabName(creature.gameObject), EntryKeys.WeakSpot(part));
+            _book.FoundOut(Utils.GetPrefabName(creature.gameObject), EntryKeys.WeakSpot(part));
         }
 
         /// <summary>A creature's loot seen to fall as it died, counted for the character.</summary>

@@ -223,6 +223,9 @@ namespace Scry
         /// <summary>Whether an entry shows as known only because of the compendium's floor (<see cref="CompendiumView.ByFloor"/>).</summary>
         public bool ByFloor(Entry entry) => CompendiumOn && _view.ByFloor(entry);
 
+        /// <summary>What was found out of an entry as its latest news (<see cref="CompendiumBook.FoundOutOf"/>), in a few words for its row in the learned list; none with the compendium off.</summary>
+        public string FoundOutNote(Entry entry) => CompendiumOn && entry != null ? CompendiumWords.FoundOutNote(_view.Book?.FoundOutOf(entry.Key)) : null;
+
         /// <summary>Whether what a link or chip on a page goes to, by its key, shows as known only because of the floor (<see cref="ByFloor"/>), to be marked as its row is.</summary>
         public bool ShownByFloor(string key) => ByFloor(Find(key));
 
@@ -340,8 +343,9 @@ namespace Scry
             {
                 if (pairs == _pairsVersion) return;
                 _pairsVersion = pairs;
-                // A pair seen changes no level, only what the strict rules leave out of the page and the search.
-                if (CompendiumOn && _view.Rule == CompendiumRule.Strict)
+                // A pair seen changes no level, only what the strict rules leave out of the page and
+                // the search, and, found out, the order of the learned list.
+                if (CompendiumOn && (_view.Rule == CompendiumRule.Strict || _learnedOnly))
                 {
                     KnowStamp++;
                     Refresh();

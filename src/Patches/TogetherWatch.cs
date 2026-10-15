@@ -122,7 +122,7 @@ namespace Scry
                     (ResistWords.Types[8], d.m_poison, (Degree)(int)mods.m_poison), (ResistWords.Types[9], d.m_spirit, (Degree)(int)mods.m_spirit),
                 };
                 var key = Utils.GetPrefabName(target.gameObject);
-                foreach (var type in HitTold.Types(parts, (Degree)(int)shown)) CompendiumKeeper.Saw(key, EntryKeys.Damage(type));
+                foreach (var type in HitTold.Types(parts, (Degree)(int)shown)) CompendiumKeeper.FoundOut(key, EntryKeys.Damage(type));
             });
         }
 

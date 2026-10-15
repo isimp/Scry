@@ -56,8 +56,8 @@ namespace Scry
         public static string RuleTip(CompendiumRule rule) => rule switch
         {
             CompendiumRule.Loose => "list only what this character has seen, a page open once it has fought, held, built, used or entered it, and count in each kind's tab what was found of all there is",
-            CompendiumRule.Strict => "list the same as Loose, but a page shows of how its entry connects (drops, places, recipes, attacks) only what this character saw go together, and keeps back the names of what it has not seen",
-            _ => "show everything. What this character learns is kept all the same, so turning the compendium on later shows everything met meanwhile",
+            CompendiumRule.Strict => "list the same as Loose, but a page shows of how its entry connects (drops, places, recipes, attacks) only what this character saw go together, keeps back the names of what it has not seen, and the numbers the game never shows until you find them out",
+            _ => "show everything. What this character comes to know is kept all the same, so turning the compendium on later shows everything met meanwhile",
         };
 
         /// <summary>The tip of the eye beside the mode that peeks at everything, by whether it is peeking.</summary>
@@ -248,11 +248,62 @@ namespace Scry
         public static string WeakSpotsNotFound(int count) =>
             count <= 0 ? null : $"{Numbers.Count(count)} more {(count == 1 ? "weak spot" : "weak spots")} not yet found";
 
-        /// <summary>The value of a fact the strict rules keep back (<see cref="EntryKeys.Did"/>), saying what shows it.</summary>
-        public static string KeptBack(string proof) => Hidden + " until you have " + Seen(proof);
+        /// <summary>
+        /// What a known page under the strict rules still keeps back, for the You box at its top,
+        /// a row for each thing to do and what it shows: the deeds whose numbers it keeps back
+        /// (each once), the damage types whose landing it keeps back, the attacks not yet taken,
+        /// the weak spots not yet found, and the counts of drops or yields not yet seen.
+        /// </summary>
+        public static List<(string Label, string Value)> StillToFindOut(IEnumerable<string> deeds, IReadOnlyList<string> types, int attacks, int spots, IEnumerable<Tally> uncounted)
+        {
+            var rows = new List<(string, string)>();
+            var pending = new HashSet<Deed>();
+            foreach (var proof in deeds) if (EntryKeys.IsDeed(proof, out var deed)) pending.Add(deed);
+            if (pending.Contains(Deed.Killed)) rows.Add(("Kill one", "shows its health"));
+            if (pending.Contains(Deed.Tamed)) rows.Add(("Tame one", "shows how long taming and a meal take"));
+            if (pending.Contains(Deed.Born)) rows.Add(("See one born", "shows how long it is pregnant"));
+            if (pending.Contains(Deed.GrewUp)) rows.Add(("See one grow up", "shows how long that takes"));
+            if (pending.Contains(Deed.GrewBack)) rows.Add(("See one grow back", "shows how long that takes"));
+            if (types.Count > 0) rows.Add(("Hit it with", Naming.Commas(types) + (types.Count == 1 ? ": how it lands" : ": how they land")));
+            if (attacks > 0) rows.Add(("Let it hit you", Naming.Count(attacks, "attack's", "attacks'") + " damage"));
+            if (spots > 0) rows.Add((spots == 1 ? "Hit its weak spot" : "Hit its weak spots", Numbers.Count(spots) + " not yet found"));
+            var tallies = new HashSet<Tally>(uncounted);
+            if (tallies.Contains(Tally.Fell)) rows.Add(("See it drop", "how many of each"));
+            if (tallies.Contains(Tally.Gave)) rows.Add(("Break one", "how many of each it gives"));
+            return rows;
+        }
+
+        /// <summary>What was found out of an entry (<see cref="CompendiumBook.FoundOut"/>), in a few words beside its name in the learned list; none for nothing.</summary>
+        public static string FoundOutNote(string proof)
+        {
+            if (string.IsNullOrEmpty(proof)) return null;
+            if (EntryKeys.IsDeed(proof, out var deed))
+            {
+                switch (deed)
+                {
+                    case Deed.Tamed: return "its taming found out";
+                    case Deed.Born: return "its pregnancy found out";
+                    case Deed.GrewUp: return "its growing up found out";
+                    case Deed.GrewBack: return "its growing back found out";
+                    default: return "its health found out";
+                }
+            }
+            if (EntryKeys.IsWeakSpot(proof)) return "a weak spot found";
+            if (EntryKeys.IsDamage(proof, out var type)) return $"how {type} lands found out";
+            return "an attack's damage found out";
+        }
+
+        /// <summary>The value of a fact the strict rules keep back (<see cref="EntryKeys.Did"/>): ??? and what shows it (<see cref="ShowsOnce(string)"/>).</summary>
+        public static string KeptBack(string proof) => Hidden + KeptBackHint(proof);
+
+        /// <summary>What follows the ??? of a fact kept back, drawn faint: what shows it.</summary>
+        public static string KeptBackHint(string proof) => " · " + ShowsOnce(proof);
+
+        /// <summary>What shows a number kept back, the one form every such hint takes: "shows once you have ...".</summary>
+        public static string ShowsOnce(string proof) => "shows once you have " + Seen(proof);
 
         /// <summary>A faint line saying what shows a line of a table kept back, as a creature's health by its stars.</summary>
-        public static string ShowsOnce(string what, string proof) => $"{what} shows once you have {Seen(proof)}";
+        public static string ShowsOnce(string what, string proof) => $"{what} {ShowsOnce(proof)}";
 
         private static string Seen(string proof)
         {
@@ -273,7 +324,7 @@ namespace Scry
         /// <summary>
         /// What the strict rules left out of a section of a known page, told in a faint line at
         /// its end by what the section is about (its topic in the page's plan): drops not seen
-        /// fall, attacks not seen hit, places a creature lives not met in, givers not seen give it,
+        /// fall, places a creature lives not met in, givers not seen give it,
         /// anything else not seen together. None where nothing was left out.
         /// </summary>
         public static string LeftOutOf(string topic, int count)
@@ -283,7 +334,6 @@ namespace Scry
             switch (topic)
             {
                 case "loot": return more + " not yet seen fall";
-                case "fight": return more + " not yet seen hit";
                 case "lives": return more + (count == 1 ? " place" : " places") + " it lives not yet met in";
                 case "from": return more + " not yet seen give it";
                 default: return more + " not yet seen together";
@@ -323,21 +373,24 @@ namespace Scry
             }
         }
 
-        /// <summary>What opens a page of this kind under the loose rules.</summary>
+        /// <summary>Said under that on a closed page under the strict rules, where a page known still keeps some back until found out.</summary>
+        public const string ClosedStrict = "Some of its page shows only once you find it out.";
+
+        /// <summary>What opens a page of this kind: every way that makes it known, by the one verb for a page.</summary>
         public static string HowToKnow(Kind kind)
         {
             switch (kind)
             {
-                case Kind.Creature: return "Fight it to learn all about it.";
-                case Kind.Item: return "Pick it up, make it, eat it or unlock its recipe to learn all about it.";
-                case Kind.Piece: return "Build it, use it or unlock it to learn all about it.";
-                case Kind.Resource: return "Hit it or pick it to learn all about it.";
-                case Kind.Spawner: return "Hit it to learn all about it.";
-                case Kind.StatusEffect: return "Have it on you to learn all about it.";
-                case Kind.Biome: return "Set foot in it to learn all about it.";
-                case Kind.Location: return "Step inside to learn all about it.";
-                case Kind.Raid: return "Live through it to learn all about it.";
-                default: return "Meet it in the world to learn all about it.";
+                case Kind.Creature: return "Fight it, tame it or hold its trophy to come to know it.";
+                case Kind.Item: return "Hold it, make it, eat it, unlock its recipe or read its card to come to know it.";
+                case Kind.Piece: return "Build it, use it or unlock it to come to know it.";
+                case Kind.Resource: return "Hit it, pick it or hold what it gives to come to know it.";
+                case Kind.Spawner: return "Hit it to come to know it.";
+                case Kind.StatusEffect: return "Have it on you or choose it at its stone to come to know it.";
+                case Kind.Biome: return "Set foot in it to come to know it.";
+                case Kind.Location: return "Step inside to come to know it.";
+                case Kind.Raid: return "Live through it to come to know it.";
+                default: return "It comes along once you come to know what it belongs to.";
             }
         }
     }

@@ -108,10 +108,8 @@ namespace Scry
             }
             if (!quietly)
             {
-                _learnedAt[key] = ++Learned;
-                _lately.Remove(key);
-                _lately.Insert(0, key);
-                if (_lately.Count > LatelyKept) _lately.RemoveRange(LatelyKept, _lately.Count - LatelyKept);
+                Newest(key);
+                _found.Remove(key);
             }
             Version++;
             _raised.Add(key);
@@ -169,6 +167,35 @@ namespace Scry
             for (var i = version - _raisedFrom; i < _raised.Count; i++) into.Add(_raised[i]);
             return true;
         }
+
+        /// <summary>A key learned more of now: counted, and first among the latest learned.</summary>
+        private void Newest(string key)
+        {
+            _learnedAt[key] = ++Learned;
+            _lately.Remove(key);
+            _lately.Insert(0, key);
+            if (_lately.Count > LatelyKept) _lately.RemoveRange(LatelyKept, _lately.Count - LatelyKept);
+        }
+
+        /// <summary>
+        /// Something the strict rules kept back of an entry was found out in play (a deed seen,
+        /// a weak spot found, how a damage type lands, an attack's damage), as news: paired with
+        /// it, the entry first among the latest learned again, saying what (<see cref="FoundOutOf"/>).
+        /// True when it was not found out before.
+        /// </summary>
+        public bool FoundOut(string key, string proof)
+        {
+            if (!Witness(key, proof)) return false;
+            Newest(key);
+            _found[key] = proof;
+            Changed = true;
+            return true;
+        }
+
+        /// <summary>What was last found out of an entry (<see cref="FoundOut"/>), while that is the latest news of it; none otherwise.</summary>
+        public string FoundOutOf(string key) => key != null && _found.TryGetValue(key, out var proof) ? proof : null;
+
+        private readonly Dictionary<string, string> _found = new Dictionary<string, string>(StringComparer.Ordinal);
 
         /// <summary>The keys learned more of lately, newest first.</summary>
         public IEnumerable<string> Lately => _lately;
@@ -272,6 +299,7 @@ namespace Scry
             var floor = _floor;
             var pairs = _pairs.ToArray();
             var came = _came.ToArray();
+            var found = _found.ToArray();
             var fell = _fell.Save();
             var gave = _gave.Save();
             Changed = false;
@@ -294,6 +322,10 @@ namespace Scry
                 {
                     var (way, day, biome) = pair.Value;
                     text.Append("came\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(way).Append('\t').Append(Stored.Count(day)).Append('\t').Append(Stored.Escaped(biome ?? "")).Append('\n');
+                }
+                foreach (var pair in found.OrderBy(p => p.Key, StringComparer.Ordinal))
+                {
+                    text.Append("found\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Escaped(pair.Value)).Append('\n');
                 }
                 foreach (var line in fell.Split('\n')) if (line.Length > 0) text.Append("fell\t").Append(line).Append('\n');
                 foreach (var line in gave.Split('\n')) if (line.Length > 0) text.Append("gave\t").Append(line).Append('\n');
@@ -347,6 +379,9 @@ namespace Scry
                 if (parts.Length < 2 || !Stored.TryUnescaped(parts[1], out var name) || name.Length == 0) continue;
                 switch (parts[0])
                 {
+                    case "found" when parts.Length == 3 && Stored.TryUnescaped(parts[2], out var proof) && proof.Length > 0:
+                        book._found[name] = proof;
+                        break;
                     case "know" when parts.Length == 3 && Stored.TryCount(parts[2], out var level) && level > (int)KnownLevel.Unknown && level <= (int)KnownLevel.Known:
                         book._levels[name] = (KnownLevel)level;
                         break;

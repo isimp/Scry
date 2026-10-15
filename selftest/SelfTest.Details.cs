@@ -159,6 +159,9 @@ namespace Scry
             }
             var told = Facts.For(seen);
             p.Check(told.Rows.Any(r => r.Title == SeenWords.Title(DropWatch.Seen.Kills(seen.Name))), $"{seen.Name} shows what it was seen to drop");
+            // Counted over every character's play: left out under the strict rules, which count the character's own.
+            p.Check(told.Rows.Where(r => r.Title == SeenWords.Title(DropWatch.Seen.Kills(seen.Name))).All(r => r.AllPlay) && told.Rows.Any(r => r.Tally == Tally.Fell),
+                "that row counts every character's play and gives way under the strict rules to the character's own count");
             var item = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && e.Name == DropWatch.Seen.Of(seen.Name)[0].Item);
             if (item != null) p.Check(Facts.For(item).Where.Any(l => l.Prefab == seen.Name && l.Text.StartsWith("Seen dropped by", StringComparison.Ordinal)), $"{item.Name} names {seen.Name} as seen dropping it");
         }

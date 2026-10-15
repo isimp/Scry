@@ -683,6 +683,10 @@ namespace Scry
                 // How it takes each damage type stays back until a hit told it.
                 p.Check(X.HidesDamage("Fire") && X.HidesDamage("Blunt"), "its damage grid keeps back how it takes each type, never hit with any");
                 p.Check(ScryPanel.Drawn(PanelPart.DamageKeptBack) > 0, "and says faintly under it how many it keeps back");
+                // The You box gathers what is still to find out at the page's top (read again once a second).
+                var still = ScryPanel.Drawn(PanelPart.StillToFindOut);
+                yield return Until(() => ScryPanel.Drawn(PanelPart.StillToFindOut) > still, 3);
+                p.Check(ScryPanel.Drawn(PanelPart.StillToFindOut) > still, "its You box says what is still to find out and what to do for it");
                 book.Witness(fought.Key, EntryKeys.Damage("Fire"));
                 p.Check(!X.HidesDamage("Fire") && X.HidesDamage("Blunt"), "a hit the game told how fire lands shows fire alone");
                 var drawn = ScryPanel.AsDrawn(X, $"Feared by {unseen.ShownName} alone.");
