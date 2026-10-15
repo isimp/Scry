@@ -149,7 +149,8 @@ namespace Scry
             {
                 var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
                 var attack = shared?.m_attack;
-                if (attack == null) continue;
+                // What it wears, its armor and shield, is no attack of its.
+                if (attack == null || !CombatWords.IsCreatureAttack(shared.m_itemType.ToString(), attack.m_attackAnimation)) continue;
                 var name = ItemName(item);
                 if (attacks.Any(a => a.Cells[0] == name)) continue;
                 var fires = attack.m_attackProjectile;

@@ -107,6 +107,17 @@ namespace Scry
         {
             var troll = Pick(Kind.Creature, "Troll", "Greydwarf");
             if (troll == null) p.Skip("there is no creature");
+
+            // What a creature wears is no attack of its: a draugr's shield, a goblin's armor.
+            foreach (var wearer in new[] { Pick(Kind.Creature, "Draugr"), Pick(Kind.Creature, "Goblin") }.Where(w => w != null))
+            {
+                var attackLines = Facts.For(wearer).Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle)?.Lines ?? new List<(string[] Cells, string Link)>();
+                var worn = attackLines.Where(l => EntryKeys.PlaysAttack(l.Link, out var carried, out _) && X.Find(carried)?.Source is GameObject go
+                    && go.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared is ItemDrop.ItemData.SharedData shared
+                    && !CombatWords.IsCreatureAttack(shared.m_itemType.ToString(), shared.m_attack?.m_attackAnimation)).Select(l => l.Cells[0]).ToList();
+                p.Check(attackLines.Count > 0 && worn.Count == 0, $"{wearer.Name}'s attacks list none of what it wears", string.Join(", ", attackLines.Select(l => l.Cells[0])));
+            }
+
             Select(troll);
             yield return Until(() => CopyOf(troll) != null, 10);
             p.Check(CopyOf(troll) != null, "the creature stands on the stage");

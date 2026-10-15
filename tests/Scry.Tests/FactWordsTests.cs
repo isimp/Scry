@@ -59,6 +59,8 @@ namespace Scry.Tests
             Assert.Equal("Play this attack", ClipWords.PlayAttackTip(known: true, playing: false));
             Assert.Equal("Stop this attack", ClipWords.PlayAttackTip(known: true, playing: true));
             Assert.Equal("Its animations are still being worked out; this plays once they are", ClipWords.PlayAttackTip(known: false, playing: false));
+            // Once they are worked out, an attack with no clip of its own is no link, and says so.
+            Assert.Equal("No animation of its own was found for this attack", ClipWords.NoAttackClip);
             // A weapon shown on its own is put on the person first.
             Assert.Equal("Put it on the person and play this attack", ClipWords.PlayAttackTip(known: false, playing: false, wearFirst: true));
             Assert.False(EntryKeys.PlaysMusic(null, out _));

@@ -40,6 +40,9 @@ namespace Scry
             !known ? (wearFirst ? "Put it on the person and play this attack" : "Its animations are still being worked out; this plays once they are")
             : playing ? "Stop this attack" : "Play this attack";
 
+        /// <summary>The tip of an attack's name where its animations are worked out and none is its own: plain, no link.</summary>
+        public const string NoAttackClip = "No animation of its own was found for this attack";
+
         /// <summary>A clip's chip: its name, and what it is where that is known and says more than the name does.</summary>
         public static string Row(string name, string what) => string.IsNullOrEmpty(what) || !SaysMore(name, what) ? name : name + "  \u00B7  " + what;
 

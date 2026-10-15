@@ -306,6 +306,16 @@ namespace Scry
         private static readonly Dictionary<string, AnimationClip> AttackClips = new Dictionary<string, AnimationClip>();
 
         /// <summary>
+        /// Whether what the stage copy's clips play is known (<see cref="ClipsKnown"/>): an attack
+        /// with no clip of its own then plays nothing, and its name is no link.
+        /// </summary>
+        public static bool StageClipsKnown()
+        {
+            var ears = ClipPlayer.AnimatorOf(Stage.Subject).OrNull()?.GetComponent<AnimationEars>();
+            return ears != null && ClipsKnown(ears.Prefab, Stage.Subject);
+        }
+
+        /// <summary>
         /// Whether what a copy's clips play is known, without waiting for it: false while its
         /// animator is still being watched, when a clip started now has to wait for its attack and
         /// lists rather than stall the game until the watching is done.

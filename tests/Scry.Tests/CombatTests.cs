@@ -286,5 +286,26 @@ namespace Scry.Tests
             Assert.Empty(CombatWords.ComboResets(0));
             Assert.Equal(new[] { ("On a rock or piece", "starts the combo over"), ("On a creature", "starts the combo over") }, CombatWords.ComboResets(5));
         }
+
+        [Fact]
+        public void ACreaturesAttackIsAnItemItSwingsNotItsArmorOrShield()
+        {
+            // A creature may carry armor and a shield too (a draugr's shield, a goblin's armband,
+            // a dverger's suit): only an item with an attack animation that is no armor is one of
+            // its attacks (Attack.Start pulls the animation's trigger).
+            Assert.True(CombatWords.IsCreatureAttack("OneHandedWeapon", "swing_longsword"));
+            Assert.True(CombatWords.IsCreatureAttack("Misc", "attack"));
+            Assert.True(CombatWords.IsCreatureAttack("Bow", "bow_fire"));
+            Assert.True(CombatWords.IsCreatureAttack("Attach_Atgeir", "atgeir_attack"));
+            Assert.False(CombatWords.IsCreatureAttack("Shield", ""));
+            Assert.False(CombatWords.IsCreatureAttack("Chest", ""));
+            Assert.False(CombatWords.IsCreatureAttack("Trophy", ""));
+            Assert.False(CombatWords.IsCreatureAttack("Tool", ""));
+            Assert.False(CombatWords.IsCreatureAttack("OneHandedWeapon", ""));
+            // The game's own test dverger wears headdresses with an animation set: armor still.
+            Assert.False(CombatWords.IsCreatureAttack("Helmet", "swing_longsword"));
+            Assert.False(CombatWords.IsCreatureAttack("Shoulder", "swing_longsword"));
+            Assert.False(CombatWords.IsCreatureAttack("Shield", "swing_longsword"));
+        }
     }
 }

@@ -221,6 +221,14 @@ namespace Scry
                             var clip = Previews.ClipOfAttackItem(item, second, step);
                             var playing = clip != null && Previews.PlayingClip() == clip;
                             var wearFirst = clip == null && explorer.Selected is Entry weapon && weapon.Kind == Kind.Item && weapon.Name == item && !Looks.IsWorn(weapon);
+                            // Its clips worked out and none of them its own: it plays nothing, so its name is no link.
+                            if (clip == null && !wearFirst && Previews.StageClipsKnown())
+                            {
+                                GUI.Label(cell, Masked(explorer, cells[c]), Skin.SmallWrap);
+                                if (cell.Contains(Event.current.mousePosition)) AskTip("table-attack-none:" + link, ClipWords.NoAttackClip);
+                                x += ColumnWidths[c] + gap;
+                                continue;
+                            }
                             LinkLabel(cell, cells[c], Skin.SmallWrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);
                             if (cell.Contains(Event.current.mousePosition)) AskTip("table-attack:" + link + (clip != null) + playing + wearFirst, ClipWords.PlayAttackTip(clip != null, playing, wearFirst));
                             if (GUI.Button(cell, GUIContent.none, GUIStyle.none))

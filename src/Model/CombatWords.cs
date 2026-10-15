@@ -142,6 +142,17 @@ namespace Scry
         public static string[] WeaponAttack(bool secondary, string damage, float knockback, float stagger, string costs) =>
             new[] { secondary ? "Secondary" : "Primary", damage ?? None, knockback > 0f ? Numbers.Amount(knockback) : None, Numbers.Times(stagger), costs ?? None };
 
+        /// <summary>
+        /// Whether an item a creature may carry is one of its attacks: one with an attack
+        /// animation (<c>Attack.Start</c> pulls its trigger), and no armor or shield, which a
+        /// creature wears (a draugr's shield, a goblin's armband, a dverger's suit).
+        /// </summary>
+        public static bool IsCreatureAttack(string itemType, string animation) =>
+            !string.IsNullOrEmpty(animation) && Array.IndexOf(Worn, itemType) < 0;
+
+        /// <summary>The kinds of item a creature wears rather than attacks with, by the game's item type names.</summary>
+        private static readonly string[] Worn = { "Shield", "Helmet", "Chest", "Legs", "Shoulder", "Hands", "Utility", "Trinket", "Customization" };
+
         /// <summary>The title of a creature's attacks table.</summary>
         public const string AttacksTitle = "Attacks";
 
