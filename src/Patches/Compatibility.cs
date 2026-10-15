@@ -27,7 +27,7 @@ namespace Scry
 
         /// <summary>
         /// The game methods whose rules Scry follows, with the shape of their code in
-        /// Valheim 1.0.17, read from the game's own assembly.
+        /// Valheim 1.0.20, read from the game's own assembly.
         /// </summary>
         private static readonly (string Type, string Method, int Params, uint Shape, Feature Feature)[] Watched =
         {
@@ -43,13 +43,13 @@ namespace Scry
             ("ItemStyle", "Setup", 1, 0xB6778751, Feature.ItemStyles),
             ("Plant", "Grow", 0, 0x387B2C65, Feature.PlantsGrown),
             ("Pickable", "SetPicked", 1, 0xD43BD169, Feature.PickedLooks),
-            ("Character", "OnDeath", 0, 0x63009BD2, Feature.RagdollDeaths),
-            ("Ragdoll", "Setup", 7, 0xD56D1722, Feature.RagdollDeaths),
+            ("Character", "OnDeath", 0, 0xE8638E7F, Feature.RagdollDeaths),
+            ("Ragdoll", "Setup", 7, 0x7D29C725, Feature.RagdollDeaths),
             ("Destructible", "CreateFragments", 2, 0x2A65B522, Feature.PiecesBreakingApart),
             ("WearNTear", "RPC_CreateFragments", 1, 0x2724FEDC, Feature.PiecesBreakingApart),
             ("TreeBase", "SpawnLog", 1, 0xBF8E65F4, Feature.TreesFalling),
             ("TreeLog", "Destroy", 2, 0xD6731DC4, Feature.LogsSplittingIntoHalves),
-            ("Destructible", "Destroy", 1, 0xD9E62863, Feature.WhatThingsLeaveWhenBroken),
+            ("Destructible", "Destroy", 1, 0x425F1C63, Feature.WhatThingsLeaveWhenBroken),
             ("TreeBase", "Shake", 0, 0x60417B85, Feature.TreesShakingWhenStruck),
             ("TreeBase", "ShakeAnimation", 0, 0xBA9F74EE, Feature.TreesShakingWhenStruck),
             ("EffectList", "Create", 6, 0xA8985D0C, Feature.WhereEffectsAppearOnModel),
@@ -114,7 +114,7 @@ namespace Scry
             ("CreatureSpawner", "Spawn", 0, 0xF64EBBF9, Feature.SpawnRoarsAndLevels),
             ("SpawnAbility", "Spawn", 0, 0xD3A37693, Feature.SpawnRoars),
             ("Player", "SetupAwake", 0, 0x38272BB3, Feature.PersonStandingFromStart),
-            ("ZoneSystem", "SpawnLocation", 7, 0xDC30DC06, Feature.LocationsAsBuilt),
+            ("ZoneSystem", "SpawnLocation", 7, 0x6EADFE29, Feature.LocationsAsBuilt),
             ("RandomSpawn", "Randomize", 3, 0x36081587, Feature.ChancePartsOfLocationsAndRooms),
             ("RandomSpawn", "SetSpawned", 1, 0xEEAF5E83, Feature.ChancePartsOfLocationsAndRooms),
             ("RandomObject", "Randomize", 3, 0x7EF8F11A, Feature.ChancePartsOfLocationsAndRooms),
@@ -156,10 +156,10 @@ namespace Scry
             ("ZoneSystem", "PlaceLocations", 7, 0x6BD1B2B1, Feature.ExampleDungeonAndCampLayouts),
 
             // What the details tell the game's rules from: if one changes, its words may be off.
-            ("CharacterDrop", "GenerateDropList", 0, 0x1D58F486, Feature.CreatureDrops),
+            ("CharacterDrop", "GenerateDropList", 0, 0xA416B8DA, Feature.CreatureDrops),
             ("CharacterDrop", "OnDeath", 0, 0x15143844, Feature.DropsSeenInPlay),
-            ("Ragdoll", "Setup", 7, 0xD56D1722, Feature.DropsSeenInPlay),
-            ("Ragdoll", "SpawnLoot", 1, 0x1CB6DE81, Feature.DropsSeenInPlay),
+            ("Ragdoll", "Setup", 7, 0x7D29C725, Feature.DropsSeenInPlay),
+            ("Ragdoll", "SpawnLoot", 1, 0x515425F4, Feature.DropsSeenInPlay),
             ("DropTable", "AddItemToList", 2, 0xAECEE75C, Feature.DropTableAmounts),
             ("DropTable", "GetDropList", 1, 0xBF6963CC, Feature.DropTableRolls),
             ("BaseAI", "CanSeeTarget", 7, 0xDE5EBD88, Feature.WhatCreaturesSee),
@@ -248,7 +248,7 @@ namespace Scry
             ("Catapult", "CanItemBeLoaded", 1, 0xF252ADEF, Feature.WhatCatapultLoads),
             ("Vagon", "UpdateMass", 0, 0xF4168EF2, Feature.WhatCartWeighs),
             ("Ship", "TakeAshlandsDamage", 1, 0xE4A305CB, Feature.ShipsInAshlands),
-            ("Container", "AddDefaultItems", 0, 0xD14D7482, Feature.WhatChestsHold),
+            ("Container", "AddDefaultItems", 0, 0x28A3FD37, Feature.WhatChestsHold),
             ("MineRock5", "DamageArea", 2, 0x80C15677, Feature.RockHealthPerPiece),
             ("Plant", "GetGrowTime", 0, 0x424F2EF8, Feature.HowPlantsGrow),
             ("Plant", "UpdateHealth", 1, 0xC5AAD837, Feature.HowPlantsGrow),
