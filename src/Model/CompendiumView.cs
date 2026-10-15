@@ -162,12 +162,36 @@ namespace Scry
         /// <summary>Whether an entry shows as known only because of the floor: neither the character knows it nor anything it knows brings it along.</summary>
         public bool ByFloor(Entry entry) => entry != null && _byFloor.Contains(entry);
 
-        /// <summary>Works out every entry's level for this book and rule, unless nothing changed since last time.</summary>
+        /// <summary>How many times every entry's level was worked out afresh, the catalog gone through whole.</summary>
+        public int WholeCounts { get; private set; }
+
+        /// <summary>
+        /// Whether all that changed since the levels were last told is more learned in the same
+        /// book: the rules, the floor and the catalog's groups as they were. Told on top
+        /// (<see cref="Tell"/>), and with the panel open at most once a second.
+        /// </summary>
+        public bool OnlyLearnedSince(CompendiumBook book, CompendiumRule rule) =>
+            book != null && ReferenceEquals(book, _book) && book.Version != _bookVersion && rule == _rule && !_floorMoved && _indexedAt == _catalog.Regroups;
+
+        /// <summary>
+        /// Works out every entry's level for this book and rule, unless nothing changed since last
+        /// time. Where only more was learned in the same book (<see cref="OnlyLearnedSince"/>),
+        /// as levels only rise, just what was raised since and what it brings along are told on
+        /// top, as a count afresh would have them; otherwise the whole catalog is gone through.
+        /// </summary>
         public void Tell(CompendiumBook book, CompendiumRule rule)
         {
             if (book == null) book = new CompendiumBook();
             var regrouped = _indexedAt != _catalog.Regroups;
             if (ReferenceEquals(book, _book) && book.Version == _bookVersion && rule == _rule && !regrouped && !_floorMoved) return;
+            if (rule != CompendiumRule.Off && OnlyLearnedSince(book, rule) && book.RaisedSince(_bookVersion, Raised))
+            {
+                _bookVersion = book.Version;
+                TellRaised();
+                Raised.Clear();
+                Version++;
+                return;
+            }
             _floorMoved = false;
             // Off, everything is known whatever the book holds: nothing to tell again.
             var stillOff = rule == CompendiumRule.Off && _rule == CompendiumRule.Off;
@@ -177,6 +201,7 @@ namespace Scry
             if (stillOff) return;
             if (regrouped) Index();
             Version++;
+            WholeCounts++;
             _levels.Clear();
             _because.Clear();
             _owns.Clear();
@@ -217,6 +242,66 @@ namespace Scry
                 _levels[named] = KnownLevel.HeardOf;
                 _because[named] = by;
             }
+        }
+
+        private readonly List<string> Raised = new List<string>();
+        private readonly Queue<Entry> Bringing = new Queue<Entry>();
+        private readonly List<Entry> NewlyKnown = new List<Entry>();
+
+        /// <summary>
+        /// Tells on top what the book raised since it was last told (<see cref="Raised"/>), as the
+        /// whole count would have it. Raised to known, an entry is the book's own, no longer the
+        /// floor's nor anything's part, and brings along what it owns; what showed only by the
+        /// floor among that is the book's too now, and brings its own along again. Raised to less,
+        /// it shows what the book holds, unless something known already brings it along. What
+        /// becomes known names what was unknown, heard of.
+        /// </summary>
+        private void TellRaised()
+        {
+            foreach (var key in Raised)
+            {
+                var entry = _catalog.Find(key);
+                if (entry == null || entry.Kind == Kind.Mod) continue;
+                var level = _book.Level(key);
+                var now = Of(entry);
+                if (level == KnownLevel.Known)
+                {
+                    _because.Remove(entry);
+                    if (now == KnownLevel.Known && !_byFloor.Remove(entry)) continue;
+                    _levels[entry] = KnownLevel.Known;
+                    if (now != KnownLevel.Known) NewlyKnown.Add(entry);
+                    Bringing.Enqueue(entry);
+                }
+                else if (now != KnownLevel.Known)
+                {
+                    _levels[entry] = level;
+                    _because.Remove(entry);
+                }
+            }
+            while (Bringing.Count > 0)
+            {
+                var owner = Bringing.Dequeue();
+                foreach (var owned in Owned(owner))
+                {
+                    _owns.Add((owner, owned));
+                    var was = Of(owned);
+                    if (was == KnownLevel.Known && !_byFloor.Remove(owned)) continue;
+                    _levels[owned] = KnownLevel.Known;
+                    _because[owned] = owner;
+                    if (was != KnownLevel.Known) NewlyKnown.Add(owned);
+                    Bringing.Enqueue(owned);
+                }
+            }
+            foreach (var known in NewlyKnown)
+            {
+                foreach (var named in Named(known))
+                {
+                    if (Of(named) != KnownLevel.Unknown) continue;
+                    _levels[named] = KnownLevel.HeardOf;
+                    _because[named] = known;
+                }
+            }
+            NewlyKnown.Clear();
         }
 
         /// <summary>

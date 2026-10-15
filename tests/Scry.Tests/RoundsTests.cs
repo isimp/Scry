@@ -120,6 +120,30 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AFrameWhoseTimeIsSpentLeavesTheRestForTheFramesAfter()
+        {
+            // However costly the things due, one frame never pays for more than its time; the
+            // rest are owed and looked at in the frames after, each still once.
+            var rounds = new Rounds<Thing>(1f);
+            var things = Fill(rounds, 10);
+            var shares = new List<int>();
+
+            for (var frame = 0; frame < 5; frame++)
+            {
+                var looks = 0;
+                rounds.Look(frame == 0 ? 1f : 0f, thing =>
+                {
+                    looks++;
+                    return Keep(thing);
+                }, () => looks >= 3);
+                shares.Add(looks);
+            }
+
+            Assert.Equal(new[] { 3, 3, 3, 1, 0 }, shares);
+            Assert.All(things, t => Assert.Equal(1, t.Looks));
+        }
+
+        [Fact]
         public void AThingAddedMidRoundIsLookedAtWithinTheRound()
         {
             var rounds = new Rounds<Thing>(1f);

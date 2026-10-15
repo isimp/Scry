@@ -140,18 +140,30 @@ namespace Scry
         /// Hands the explorer what the character knows under the rules chosen for it, which lists
         /// again only when either changed. Not while the panel is closed: nothing shows it then,
         /// and telling it goes through the whole catalog, so what is learned in play waits for the
-        /// panel to open. A view the self-test shows in its place is handed over at once.
+        /// panel to open. A view the self-test shows in its place is handed over at once. What is
+        /// learned while the panel is open is told at most once a second, so things seen one frame
+        /// after another do not each cost a listing again; a rule or floor picked shows at once.
         /// </summary>
         private static void ShowKnown()
         {
             if (Explorer == null || (!IsOpen && _knownInstead == null)) return;
             if (_known == null || !ReferenceEquals(_known.Catalog, Explorer.Entries)) _known = new CompendiumView(Explorer.Entries);
             // The floor as far as the character's bosses fell; the tiers worked out only once one is set.
-            var floor = System.Math.Min(CompendiumKeeper.Book?.Floor ?? 0, CompendiumKeeper.Ceiling);
+            var book = CompendiumKeeper.Book;
+            var rule = book?.Rule ?? CompendiumRule.Off;
+            var floor = System.Math.Min(book?.Floor ?? 0, CompendiumKeeper.Ceiling);
             _known.Milestones(floor > 0 ? CompendiumTiers.Of(Explorer.Entries) : null, floor);
-            _known.Tell(CompendiumKeeper.Book, CompendiumKeeper.Book?.Rule ?? CompendiumRule.Off);
+            if (!_known.OnlyLearnedSince(book, rule) || Time.unscaledTime - _knownToldAt >= 1f)
+            {
+                var version = _known.Version;
+                _known.Tell(book, rule);
+                if (_known.Version != version) _knownToldAt = Time.unscaledTime;
+            }
             Explorer.Know(_knownInstead ?? _known);
         }
+
+        /// <summary>When what the character knows was last told to the list, by the unscaled clock.</summary>
+        private static float _knownToldAt = float.NegativeInfinity;
 
         /// <summary>Scry's code compiled ahead (<see cref="CodeWarmup"/>), once a session, made once a world's catalog is read; for the self-test to see it done.</summary>
         public static CodeWarmup Warmup { get; private set; }

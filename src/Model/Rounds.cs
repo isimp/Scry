@@ -59,13 +59,17 @@ namespace Scry
             Dropped = 0;
         }
 
-        /// <summary>Looks at the share of the things due after a frame of so many seconds, each told what became of it.</summary>
-        public void Look(float seconds, Func<T, Looked> look)
+        /// <summary>
+        /// Looks at the share of the things due after a frame of so many seconds, each told what
+        /// became of it; where the frame's time is spent first, the rest stay owed to the frames after.
+        /// </summary>
+        public void Look(float seconds, Func<T, Looked> look, Func<bool> spent = null)
         {
             var count = _things.Count;
             _owed = Math.Min(_owed + count * Math.Max(0.0, seconds) / _round, count);
             for (; _owed >= 1.0 && _things.Count > 0; _owed -= 1.0)
             {
+                if (spent != null && spent()) break;
                 if (_next >= _things.Count) _next = 0;
                 switch (look(_things[_next]))
                 {

@@ -61,6 +61,32 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatWasRaisedSinceAVersionIsToldOldestFirstWhileTheBookRemembersIt()
+        {
+            // What the panel counts on top of what it counted before (CompendiumView.Tell).
+            var book = new CompendiumBook();
+            book.Raise("Troll", KnownLevel.Seen);
+            var version = book.Version;
+            book.Raise("Boar", KnownLevel.Known);
+            book.Raise("Troll", KnownLevel.Known);
+            book.Raise("Troll", KnownLevel.Known);
+
+            var raised = new System.Collections.Generic.List<string>();
+            Assert.True(book.RaisedSince(version, raised));
+            Assert.Equal(new[] { "Boar", "Troll" }, raised);
+            raised.Clear();
+            Assert.True(book.RaisedSince(book.Version, raised));
+            Assert.Empty(raised);
+            Assert.False(book.RaisedSince(book.Version + 1, raised));
+
+            for (var i = 0; i < CompendiumBook.RaisesKept; i++) book.Raise("thing" + i, KnownLevel.Seen);
+            Assert.False(book.RaisedSince(version, raised));
+            Assert.Empty(raised);
+            Assert.True(book.RaisedSince(book.Version - 10, raised));
+            Assert.Equal(10, raised.Count);
+        }
+
+        [Fact]
         public void ABookWrittenOnAWorkerIsTheBookAsItStoodWhenItWasHandedOver()
         {
             // Writing the text costs a few milliseconds, so it is worked out on a worker thread

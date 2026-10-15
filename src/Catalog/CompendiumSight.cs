@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using HarmonyLib;
 using UnityEngine;
 
@@ -119,12 +120,26 @@ namespace Scry
             }
         }
 
-        /// <summary>Looks at the share of the things kept that a frame of so many seconds is due; called each frame.</summary>
+        /// <summary>
+        /// Looks at the share of the things kept that a frame of so many seconds is due, within
+        /// <see cref="FrameBudgetMs"/> of the frame; called each frame.
+        /// </summary>
         public static void Sweep(Player player, CompendiumCatchUp catchUp, CompendiumBook book, float seconds)
         {
             if (!Ready(player, catchUp, book, letGo: true)) return;
-            Things.Look(seconds, LookAtThing);
+            _sweepStarted = Stopwatch.GetTimestamp();
+            Things.Look(seconds, LookAtThing, Spent);
         }
+
+        /// <summary>
+        /// The most of a frame looking at things may take, as after a world or a stretch of it
+        /// loads, when thousands are new; the rest wait for the frames after, a round then
+        /// taking longer than a second.
+        /// </summary>
+        private const double FrameBudgetMs = 0.2;
+
+        private static long _sweepStarted;
+        private static readonly Func<bool> Spent = () => (Stopwatch.GetTimestamp() - _sweepStarted) * 1000.0 / Stopwatch.Frequency >= FrameBudgetMs;
 
         /// <summary>
         /// Looks at every thing kept once, into a book of its own, letting none go; how the

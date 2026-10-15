@@ -114,7 +114,33 @@ namespace Scry
                 if (_lately.Count > LatelyKept) _lately.RemoveRange(LatelyKept, _lately.Count - LatelyKept);
             }
             Version++;
+            _raised.Add(key);
+            if (_raised.Count > RaisesKept)
+            {
+                var dropped = _raised.Count / 2;
+                _raised.RemoveRange(0, dropped);
+                _raisedFrom += dropped;
+            }
             Changed = true;
+            return true;
+        }
+
+        /// <summary>How many of the latest raises the book remembers, for what is counted on top (<see cref="RaisedSince"/>); the older half is forgotten past it.</summary>
+        public const int RaisesKept = 4096;
+
+        /// <summary>The keys raised, oldest first: the one at i raised to <see cref="Version"/> <c>_raisedFrom + i + 1</c>. Not kept.</summary>
+        private readonly List<string> _raised = new List<string>();
+        private int _raisedFrom;
+
+        /// <summary>
+        /// Adds the keys raised after a version to a list, oldest first, for what was counted at
+        /// that version to have them counted on top; false, adding none, where the book no longer
+        /// remembers that far back, or the version is still to come.
+        /// </summary>
+        public bool RaisedSince(int version, List<string> into)
+        {
+            if (version < _raisedFrom || version > Version) return false;
+            for (var i = version - _raisedFrom; i < _raised.Count; i++) into.Add(_raised[i]);
             return true;
         }
 
