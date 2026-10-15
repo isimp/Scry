@@ -33,25 +33,46 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void AnItemPickedUpCraftedOrEatenIsKnownAndOneOnlyHeldOrOfferedIsSeen()
+        public void AnItemPickedUpCraftedEatenOrHeldIsKnownAndOneOnlyATraderOffersIsSeen()
         {
+            // The game's known materials (Player.m_knownMaterial) hold everything ever in the
+            // inventory, and also what a trader offers (Trader.DiscoverItems): so one only there
+            // is known unless a trader sells it, as a sword taken out of a chest.
             var wood = E(Kind.Item, "Wood", "$item_wood");
             var club = E(Kind.Item, "Club", "$item_club");
             var berries = E(Kind.Item, "Raspberry", "$item_raspberries");
             var sword = E(Kind.Item, "SwordIron", "$item_sword_iron");
-            var (catchUp, book) = Fresh(wood, club, berries, sword);
+            var lantern = E(Kind.Item, "Lantern", "$item_lantern");
+            var catalog = new EntryCatalog(new[] { wood, club, berries, sword, lantern });
+            var catchUp = new CompendiumCatchUp(catalog, soldByTrader: name => name == "Lantern");
+            var book = new CompendiumBook();
             var records = new CompendiumRecords();
             records.PickedUp.Add("$item_wood");
             records.Crafted.Add("$item_club");
             records.Eaten.Add("$item_raspberries");
             records.Materials.Add("$item_sword_iron");
             records.Materials.Add("$item_wood");
+            records.Materials.Add("$item_lantern");
 
             catchUp.Fill(records, book, quietly: false);
 
             Assert.Equal(KnownLevel.Known, book.Level(wood.Key));
             Assert.Equal(KnownLevel.Known, book.Level(club.Key));
             Assert.Equal(KnownLevel.Known, book.Level(berries.Key));
+            Assert.Equal(KnownLevel.Known, book.Level(sword.Key));
+            Assert.Equal(KnownLevel.Seen, book.Level(lantern.Key));
+        }
+
+        [Fact]
+        public void WithoutKnowingWhatTradersSellAnItemOnlyHeldIsSeen()
+        {
+            var sword = E(Kind.Item, "SwordIron", "$item_sword_iron");
+            var (catchUp, book) = Fresh(sword);
+            var records = new CompendiumRecords();
+            records.Materials.Add("$item_sword_iron");
+
+            catchUp.Fill(records, book, quietly: false);
+
             Assert.Equal(KnownLevel.Seen, book.Level(sword.Key));
         }
 

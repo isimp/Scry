@@ -12,7 +12,8 @@ namespace Scry
     /// entered are known, as are a trophy held and the creatures it falls from, every resource
     /// giving an item so known that grows in a biome the character entered, and every status
     /// effect something so known gives (a bed's Rested, a biome's weather), paired with its
-    /// givers among them; an item only had or offered is seen. A record counts only for the
+    /// givers among them; an item ever held is known, but one a trader sells only seen, as the
+    /// game counts what a trader offers among what was held. A record counts only for the
     /// kinds it is about, and for every entry going by its name (<see cref="Entry.Tokens"/>).
     /// For the strict rules it pairs what the records show went together: a recipe unlocked, an
     /// item crafted or a piece placed with its ingredients and station, a trophy with the
@@ -24,14 +25,17 @@ namespace Scry
     {
         private readonly EntryCatalog _catalog;
         private readonly Func<string, IReadOnlyList<string>> _toolsOf;
+        private readonly Func<string, bool> _soldByTrader;
         private readonly Dictionary<string, List<Entry>> _byToken = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
 
         /// <param name="catalog">The entries the records are told in.</param>
         /// <param name="toolsOf">The tools that build a piece, by its prefab; none where not told.</param>
-        public CompendiumCatchUp(EntryCatalog catalog, Func<string, IReadOnlyList<string>> toolsOf = null)
+        /// <param name="soldByTrader">Whether a trader sells an item, by its prefab; where not told, any might be.</param>
+        public CompendiumCatchUp(EntryCatalog catalog, Func<string, IReadOnlyList<string>> toolsOf = null, Func<string, bool> soldByTrader = null)
         {
             _catalog = catalog;
             _toolsOf = toolsOf;
+            _soldByTrader = soldByTrader;
             foreach (var entry in catalog.All)
             {
                 foreach (var token in entry.Tokens)
@@ -69,8 +73,13 @@ namespace Scry
             var powers = records.Powers.Select(p => _catalog.Find(EntryKeys.For(Kind.StatusEffect, p))).Where(e => e != null && e.Kind == Kind.StatusEffect).ToList();
             known.AddRange(powers);
 
+            // The game's known materials: everything ever in the inventory, and what a trader
+            // offered too; one no trader sells was held, so known, the rest seen.
+            var materials = Named(records.Materials, Kind.Item).ToList();
+            var held = materials.Where(e => _soldByTrader != null && !_soldByTrader(e.Name)).ToList();
             var raised = Raise(book, known, KnownLevel.Known, quietly)
-                + Raise(book, Named(records.Materials, Kind.Item), KnownLevel.Seen, quietly);
+                + Raise(book, held, KnownLevel.Known, quietly)
+                + Raise(book, materials.Except(held), KnownLevel.Seen, quietly);
             Pair(records, book, entered);
             foreach (var given in givers)
             {

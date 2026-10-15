@@ -64,6 +64,13 @@ namespace Scry
             var biomeNames = new HashSet<string>(X.Catalog.Where(e => e.Kind == Kind.Biome).SelectMany(e => e.Biomes), StringComparer.Ordinal);
             var strays = X.Catalog.Where(e => e.Kind == Kind.Resource).SelectMany(e => e.Biomes).Where(b => !biomeNames.Contains(b)).Distinct().ToList();
             p.Check(strays.Count == 0, "every biome a resource grows in is one of the biomes' own", string.Join(", ", strays.Take(5)));
+            // What the character ever held is known, but what a trader sells, which the game also
+            // counts as held once offered, only seen.
+            var heldNames = new HashSet<string>(records.Materials, StringComparer.Ordinal);
+            var held = X.Catalog.Where(e => e.Kind == Kind.Item && e.Tokens.Any(heldNames.Contains)).ToList();
+            var sold = held.Where(e => Knowledge.SourceLines(e.Name).Any(line => line.Record?.Way == SourceWay.Sold)).ToList();
+            var notKnown = held.Except(sold).Where(e => CompendiumKeeper.Book.Level(e.Key) != KnownLevel.Known).Select(e => e.Name).ToList();
+            p.Check(notKnown.Count == 0, $"the {Numbers.Count(held.Count - sold.Count)} kinds of thing it ever held are known, {Numbers.Count(sold.Count)} a trader sells left to its offer", string.Join(", ", notKnown.Take(10)));
             var wood = X.Find("Wood");
             if (wood != null)
             {

@@ -69,7 +69,8 @@ namespace Scry
             if (catalog == null) return;
             if (!ReferenceEquals(catalog, _catchUpOf))
             {
-                _catchUp = new CompendiumCatchUp(catalog, piece => Knowledge.Tools.ToolsOf(piece).Select(u => u.Tool).Distinct().ToList());
+                _catchUp = new CompendiumCatchUp(catalog, piece => Knowledge.Tools.ToolsOf(piece).Select(u => u.Tool).Distinct().ToList(),
+                    item => Knowledge.SourceLines(item).Any(line => line.Record?.Way == SourceWay.Sold));
                 _catchUpOf = catalog;
                 _recordsSize = -1;
             }
