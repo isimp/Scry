@@ -140,6 +140,53 @@ namespace Scry
         /// <summary>The floor's tip while the next boss has not fallen.</summary>
         public static string FloorWaits(string boss) => $"The next tier opens once {boss} falls for this character";
 
+        /// <summary>
+        /// How the character came to know a thing, on its page: the game's day, the way, and the
+        /// biome it stood in, each where known ("day 12, fighting it in the Black Forest").
+        /// </summary>
+        public static string CameToKnow(CameBy way, int day, string biome)
+        {
+            var said = CameWay(way);
+            if (!string.IsNullOrEmpty(biome)) said += " in the " + biome;
+            return day >= 0 ? $"day {Numbers.Count(day)}, {said}" : said;
+        }
+
+        /// <summary>The way a thing came to be known, as the character did it.</summary>
+        private static string CameWay(CameBy way)
+        {
+            switch (way)
+            {
+                case CameBy.Fought: return "fighting it";
+                case CameBy.Killed: return "killing it";
+                case CameBy.Tamed: return "taming it";
+                case CameBy.Held: return "holding it";
+                case CameBy.Made: return "making it";
+                case CameBy.Eaten: return "eating it";
+                case CameBy.Recipe: return "unlocking its recipe";
+                case CameBy.Card: return "reading its card";
+                case CameBy.Used: return "using it";
+                case CameBy.Built: return "building it";
+                case CameBy.Hit: return "hitting it";
+                case CameBy.Picked: return "picking it";
+                case CameBy.Trophy: return "holding its trophy";
+                case CameBy.StoodIn: return "standing in it";
+                case CameBy.WentInside: return "going inside";
+                case CameBy.LivedThrough: return "living through it";
+                case CameBy.Traded: return "trading with it";
+                case CameBy.OnYou: return "having it on you";
+                case CameBy.Given: return "from what gives it";
+                case CameBy.Gives: return "taking what it gives";
+                case CameBy.Chosen: return "choosing it at its stone";
+                default: return "meeting it";
+            }
+        }
+
+        /// <summary>A thing known because something known brings it along, as a creature its attacks.</summary>
+        public static string CameWith(string owner) => "with " + owner;
+
+        /// <summary>A thing known before its character's book was kept, from what the game kept of it.</summary>
+        public const string KnownBefore = "before this book was kept";
+
         /// <summary>How many damage types a creature's grid keeps back under the strict rules, told faintly under it; none where it keeps none back.</summary>
         public static string NotYetHitWith(int count) => count > 0 ? $"{Numbers.Count(count)} more not yet hit with" : null;
 

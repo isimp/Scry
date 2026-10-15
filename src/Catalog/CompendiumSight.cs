@@ -91,7 +91,7 @@ namespace Scry
             var container = gui != null && gui.IsContainerOpen() ? _container(gui) : null;
             if (container == null) return;
             var chest = Utils.GetPrefabName(container.gameObject);
-            catchUp.Met(chest, KnownLevel.Known, book);
+            catchUp.Met(chest, KnownLevel.Known, book, CameBy.Used);
             CompendiumKeeper.MetIn(chest, container.transform.position);
             var chestPlace = Location.GetLocation(container.transform.position);
             foreach (var held in container.GetInventory().GetAllItems())

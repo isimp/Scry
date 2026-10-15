@@ -113,11 +113,11 @@ namespace Scry
         {
             foreach (var item in player.GetInventory().GetAllItems())
             {
-                if (item?.m_dropPrefab != null) _catchUp.Met(item.m_dropPrefab.name, KnownLevel.Known, _book);
+                if (item?.m_dropPrefab != null) _catchUp.Met(item.m_dropPrefab.name, KnownLevel.Known, _book, CameBy.Held);
             }
             foreach (var effect in player.GetSEMan().GetStatusEffects())
             {
-                if (effect != null) _catchUp.Met(EntryKeys.For(Kind.StatusEffect, Utils.GetPrefabName(effect.name)), KnownLevel.Known, _book);
+                if (effect != null) _catchUp.Met(EntryKeys.For(Kind.StatusEffect, Utils.GetPrefabName(effect.name)), KnownLevel.Known, _book, CameBy.OnYou);
             }
             var raid = RandEventSystem.instance.OrNull()?.GetActiveEvent();
             if (raid != null) _catchUp.LivedThrough(EntryKeys.For(Kind.Raid, raid.m_name), _book);
@@ -137,7 +137,7 @@ namespace Scry
         {
             if (_book == null || _catchUp == null || creature == null || creature == Player.m_localPlayer) return;
             var key = Utils.GetPrefabName(creature.gameObject);
-            _catchUp.Met(key, KnownLevel.Known, _book);
+            _catchUp.Met(key, KnownLevel.Known, _book, CameBy.Fought);
             MetIn(key, creature.transform.position);
         }
 
@@ -154,7 +154,7 @@ namespace Scry
         {
             if (_book == null || _catchUp == null || resource == null) return;
             var key = Utils.GetPrefabName(resource.gameObject);
-            _catchUp.Met(key, KnownLevel.Known, _book);
+            _catchUp.Met(key, KnownLevel.Known, _book, CameBy.Hit);
             ActedOnThing(key, resource.transform.position);
             var tool = Player.m_localPlayer.OrNull()?.GetCurrentWeapon()?.m_dropPrefab.OrNull();
             if (tool != null) _book.Witness(key, tool.name);
@@ -165,7 +165,7 @@ namespace Scry
         public static void Placed(string piece, string tool)
         {
             if (_book == null || _catchUp == null || string.IsNullOrEmpty(piece)) return;
-            _catchUp.Met(piece, KnownLevel.Known, _book);
+            _catchUp.Met(piece, KnownLevel.Known, _book, CameBy.Built);
             if (!string.IsNullOrEmpty(tool)) _book.Witness(piece, tool);
         }
 
@@ -174,7 +174,7 @@ namespace Scry
         {
             if (_book == null || _catchUp == null || creature == null) return;
             var key = Utils.GetPrefabName(creature.gameObject);
-            _catchUp.Met(key, KnownLevel.Known, _book);
+            _catchUp.Met(key, KnownLevel.Known, _book, CameBy.Tamed);
             MetIn(key, creature.transform.position);
         }
 
@@ -319,7 +319,17 @@ namespace Scry
                 _unreadable = true;
             }
             _reading = null;
+            _book.Now = Moment;
             return true;
+        }
+
+        /// <summary>The game's day and the biome the character stands in, for what it comes to know now.</summary>
+        private static (int Day, string Biome) Moment()
+        {
+            var player = Player.m_localPlayer;
+            var day = EnvMan.instance != null ? EnvMan.instance.GetDay() : -1;
+            var biome = player != null ? Heightmap.FindBiome(player.transform.position) : Heightmap.Biome.None;
+            return (day, biome == Heightmap.Biome.None ? null : biome.ToString());
         }
 
         /// <summary>

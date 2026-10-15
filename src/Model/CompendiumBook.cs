@@ -22,11 +22,38 @@ namespace Scry
         Known = 3,
     }
 
+    /// <summary>How a character came to know a thing in play, told on its page (<see cref="CompendiumWords.CameToKnow"/>).</summary>
+    internal enum CameBy
+    {
+        Fought,
+        Killed,
+        Tamed,
+        Held,
+        Made,
+        Eaten,
+        Recipe,
+        Card,
+        Used,
+        Built,
+        Hit,
+        Picked,
+        Trophy,
+        StoodIn,
+        WentInside,
+        LivedThrough,
+        Traded,
+        OnYou,
+        Given,
+        Gives,
+        Chosen,
+    }
+
     /// <summary>
     /// What one character has come to know, entry by entry (by <see cref="Entry.Key"/>), each
     /// only ever rising; the latest learned, newest first; the worlds whose explored map was
     /// caught up with; the rules the player chose for the compendium and the floor they raised
-    /// it to; and the pairs seen together. Kept from session to session as text (<see cref="Save"/>,
+    /// it to; the pairs seen together; and how, on which day and in which biome each thing came
+    /// to be known in play. Kept from session to session as text (<see cref="Save"/>,
     /// <see cref="Load"/>).
     /// </summary>
     internal sealed class CompendiumBook
@@ -40,6 +67,13 @@ namespace Scry
         private int _floor;
         private CompendiumRule _rule;
         private readonly HashSet<(string, string)> _pairs = new HashSet<(string, string)>();
+        private readonly Dictionary<string, (CameBy Way, int Day, string Biome)> _came = new Dictionary<string, (CameBy, int, string)>(StringComparer.Ordinal);
+
+        /// <summary>The game's day and the biome the character stands in now, for what it comes to know; none outside a game. Not kept.</summary>
+        public Func<(int Day, string Biome)> Now { get; set; }
+
+        /// <summary>How, on which day and in which biome the character came to know a thing in play; none for one known before the book, or not by a way of its own.</summary>
+        public (CameBy Way, int Day, string Biome)? Came(string key) => !string.IsNullOrEmpty(key) && _came.TryGetValue(key, out var came) ? came : ((CameBy, int, string)?)null;
 
         /// <summary>Counts up with every entry learned more of, so what tells the compendium tells it again.</summary>
         public int Version { get; private set; }
@@ -60,11 +94,18 @@ namespace Scry
         /// <summary>
         /// Learns of an entry up to a level; true when that is more than was known. Quietly, it is
         /// not counted among the latest learned: it was known before, only not yet written down.
+        /// Come to know in play by a way of its own, that way is kept with the day and the biome
+        /// (<see cref="Now"/>), once, as a thing is come to know once.
         /// </summary>
-        public bool Raise(string key, KnownLevel level, bool quietly = false)
+        public bool Raise(string key, KnownLevel level, bool quietly = false, CameBy? way = null)
         {
             if (string.IsNullOrEmpty(key) || level <= Level(key)) return false;
             _levels[key] = level;
+            if (!quietly && level == KnownLevel.Known && way is CameBy by)
+            {
+                var now = Now?.Invoke();
+                _came[key] = (by, now?.Day ?? -1, string.IsNullOrEmpty(now?.Biome) ? null : now?.Biome);
+            }
             if (!quietly)
             {
                 _learnedAt[key] = ++Learned;
@@ -162,7 +203,7 @@ namespace Scry
             if (world != null && _mapped.Remove(world)) Changed = true;
         }
 
-        /// <summary>Everything known, a line an entry, then the latest learned in order, the worlds mapped, the rules, the floor and the pairs seen together.</summary>
+        /// <summary>Everything known, a line an entry, then the latest learned in order, the worlds mapped, the rules, the floor, the pairs seen together and how each thing came to be known.</summary>
         public string Save()
         {
             var text = new StringBuilder();
@@ -177,6 +218,11 @@ namespace Scry
             foreach (var (a, b) in _pairs.OrderBy(p => p.Item1, StringComparer.Ordinal).ThenBy(p => p.Item2, StringComparer.Ordinal))
             {
                 text.Append("saw\t").Append(Stored.Escaped(a)).Append('\t').Append(Stored.Escaped(b)).Append('\n');
+            }
+            foreach (var pair in _came.OrderBy(p => p.Key, StringComparer.Ordinal))
+            {
+                var (way, day, biome) = pair.Value;
+                text.Append("came\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(way).Append('\t').Append(Stored.Count(day)).Append('\t').Append(Stored.Escaped(biome ?? "")).Append('\n');
             }
             Changed = false;
             return text.ToString();
@@ -235,6 +281,9 @@ namespace Scry
                         break;
                     case "saw" when parts.Length == 3 && Stored.TryUnescaped(parts[2], out var other) && other.Length > 0 && other != name:
                         book._pairs.Add(Pair(name, other));
+                        break;
+                    case "came" when parts.Length == 5 && Enum.TryParse(parts[2], out CameBy way) && Enum.IsDefined(typeof(CameBy), way) && Stored.TryCount(parts[3], out var day) && Stored.TryUnescaped(parts[4], out var biome):
+                        book._came[name] = (way, day, biome.Length > 0 ? biome : null);
                         break;
                 }
             }

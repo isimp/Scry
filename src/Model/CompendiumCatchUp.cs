@@ -58,27 +58,37 @@ namespace Scry
             var items = Named(records.PickedUp, Kind.Item).Concat(Named(records.Crafted, Kind.Item)).Concat(Named(records.Eaten, Kind.Item)).Concat(Named(records.Recipes, Kind.Item)).ToList();
             items.AddRange(Prefabs(records.Trophies.Concat(records.Picked), Kind.Item));
 
-            var known = new List<Entry>(items);
-            known.AddRange(Named(records.Killed, Kind.Creature));
-            foreach (var trophy in Prefabs(records.Trophies, Kind.Item)) known.AddRange(trophy.TermLinks("from").Where(e => e.Kind == Kind.Creature));
+            // Each record raises what it tells by its own way, the first way to tell a thing kept with it.
+            var known = new List<(Entry Entry, CameBy Way)>();
+            void Add(IEnumerable<Entry> entries, CameBy way) => known.AddRange(entries.Select(e => (e, way)));
+            Add(Named(records.Killed, Kind.Creature), CameBy.Killed);
+            Add(Named(records.Crafted, Kind.Item), CameBy.Made);
+            Add(Named(records.Eaten, Kind.Item), CameBy.Eaten);
+            Add(Named(records.Recipes, Kind.Item), CameBy.Recipe);
+            Add(Named(records.PickedUp, Kind.Item), CameBy.Held);
+            Add(Prefabs(records.Picked, Kind.Item), CameBy.Picked);
+            Add(Prefabs(records.Trophies, Kind.Item), CameBy.Held);
+            foreach (var trophy in Prefabs(records.Trophies, Kind.Item)) Add(trophy.TermLinks("from").Where(e => e.Kind == Kind.Creature), CameBy.Trophy);
             // What gives an item: only where it grows in a biome the character entered, as Wood
             // picked up in the Meadows says nothing of the Ashlands' logs.
             var entered = Entered(records);
-            foreach (var item in items) known.AddRange(ResourcesGiving(item, entered));
-            known.AddRange(Named(records.Recipes.Concat(records.Stations).Concat(records.Placed), Kind.Piece));
-            known.AddRange(Named(records.Biomes.SelectMany(area => area.Split(' ')), Kind.Biome));
-            var givers = Givers(known);
-            known.AddRange(givers.Keys);
+            foreach (var item in items) Add(ResourcesGiving(item, entered), CameBy.Gives);
+            Add(Named(records.Placed, Kind.Piece), CameBy.Built);
+            Add(Named(records.Stations, Kind.Piece), CameBy.Used);
+            Add(Named(records.Recipes, Kind.Piece), CameBy.Recipe);
+            Add(Named(records.Biomes.SelectMany(area => area.Split(' ')), Kind.Biome), CameBy.StoodIn);
+            var givers = Givers(known.Select(k => k.Entry));
+            Add(givers.Keys, CameBy.Given);
             // The guardian power chosen: its stone told of it, and the character carries it.
             var powers = records.Powers.Select(p => _catalog.Find(EntryKeys.For(Kind.StatusEffect, p))).Where(e => e != null && e.Kind == Kind.StatusEffect).ToList();
-            known.AddRange(powers);
+            Add(powers, CameBy.Chosen);
 
             // The game's known materials: everything ever in the inventory, and what a trader
             // offered too; one no trader sells was held, so known, the rest seen.
             var materials = Named(records.Materials, Kind.Item).ToList();
             var held = materials.Where(e => _soldByTrader != null && !_soldByTrader(e.Name)).ToList();
-            var raised = Raise(book, known, KnownLevel.Known, quietly)
-                + Raise(book, held, KnownLevel.Known, quietly)
+            Add(held, CameBy.Held);
+            var raised = known.Count(k => book.Raise(k.Entry.Key, KnownLevel.Known, quietly, k.Way))
                 + Raise(book, materials.Except(held), KnownLevel.Seen, quietly);
             Pair(records, book, entered);
             foreach (var given in givers)
@@ -154,7 +164,7 @@ namespace Scry
         }
 
         /// <summary>Learns of an entry met in play, by its key, as news; true when that is more than was known. What the catalog has no entry for is passed over.</summary>
-        public bool Met(string key, KnownLevel level, CompendiumBook book) => _catalog.Find(key) != null && book.Raise(key, level);
+        public bool Met(string key, KnownLevel level, CompendiumBook book, CameBy? way = null) => _catalog.Find(key) != null && book.Raise(key, level, way: way);
 
         /// <summary>
         /// Something the character used, by its prefab, as news: known, as a portal, bed, ship or
@@ -165,7 +175,7 @@ namespace Scry
         {
             var entry = _catalog.Find(key);
             if (entry == null || entry.Kind == Kind.Creature || entry.Kind == Kind.Item) return false;
-            return book.Raise(entry.Key, KnownLevel.Known);
+            return book.Raise(entry.Key, KnownLevel.Known, way: CameBy.Used);
         }
 
         /// <summary>
@@ -177,7 +187,7 @@ namespace Scry
         {
             if (string.IsNullOrEmpty(token)) return false;
             var raised = false;
-            foreach (var item in Named(new[] { token }, Kind.Item)) raised |= book.Raise(item.Key, KnownLevel.Known);
+            foreach (var item in Named(new[] { token }, Kind.Item)) raised |= book.Raise(item.Key, KnownLevel.Known, way: CameBy.Card);
             return raised;
         }
 
@@ -190,7 +200,7 @@ namespace Scry
         {
             var entry = _catalog.Find(trader);
             if (entry == null) return false;
-            var raised = book.Raise(entry.Key, KnownLevel.Known);
+            var raised = book.Raise(entry.Key, KnownLevel.Known, way: CameBy.Traded);
             foreach (var ware in wares ?? Array.Empty<string>())
             {
                 var item = _catalog.Find(ware);
@@ -207,7 +217,7 @@ namespace Scry
         /// at its entrance it is seen. True when it was learned more of.
         /// </summary>
         public bool StoodIn(string place, bool hasInside, bool inside, CompendiumBook book) =>
-            Met(place, !hasInside || inside ? KnownLevel.Known : KnownLevel.Seen, book);
+            Met(place, !hasInside || inside ? KnownLevel.Known : KnownLevel.Seen, book, hasInside ? CameBy.WentInside : CameBy.StoodIn);
 
         /// <summary>
         /// The raid the character is in, as news: known, and paired with the creatures it brings
@@ -217,7 +227,7 @@ namespace Scry
         {
             var entry = _catalog.Find(raid);
             if (entry == null) return false;
-            var raised = book.Raise(entry.Key, KnownLevel.Known);
+            var raised = book.Raise(entry.Key, KnownLevel.Known, way: CameBy.LivedThrough);
             foreach (var creature in entry.TermLinks("spawns"))
             {
                 if (book.Level(creature.Key) >= KnownLevel.Seen) book.Witness(entry.Key, creature.Key);
