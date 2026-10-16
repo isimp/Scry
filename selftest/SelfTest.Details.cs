@@ -735,7 +735,10 @@ namespace Scry
                 var items = attacks.Lines.Select(l => EntryKeys.PlaysAttack(l.Link, out var item, out _) ? item : null).ToList();
                 p.Check(items.All(i => i != null), "each attack's name plays it");
                 p.Note("attack links: " + string.Join(", ", attacks.CellLinks.Select(kv => $"{attacks.Lines[kv.Key.Line].Cells[0]} {attacks.Columns[kv.Key.Cell]} {kv.Value}")));
-                yield return Until(() => items.Any(i => i != null && Previews.ClipOfAttackItem(i) != null), 15);
+                // The clips are worked out a while after the copy is shown, longer while the game is busy.
+                var asked = Time.unscaledTime;
+                yield return Until(() => items.Any(i => i != null && Previews.ClipOfAttackItem(i) != null), 25);
+                p.Note($"its attacks' clips were found after {Numbers.Fixed(Time.unscaledTime - asked, 1)} s");
                 p.Note("attack clips: " + string.Join(", ", items.Select(i => i + " " + (i != null ? Previews.ClipOfAttackItem(i).OrNull()?.name ?? "none" : "none"))));
                 p.Check(items.Any(i => i != null && Previews.ClipOfAttackItem(i) != null), "its attacks find the clips that play them");
             }
@@ -779,6 +782,8 @@ namespace Scry
             Every("buildable piece", built, "Build cost|Built near", "Built with");
 
             var missing = new Dictionary<string, List<string>>();
+            // A few a frame, so the time it takes grows with the catalog and the game's frame rate; told, to see it grow.
+            var began = Time.unscaledTime;
             yield return Budgeted(checks, check =>
             {
                 var told = Facts.For(check.Entry);
@@ -789,6 +794,7 @@ namespace Scry
                     list.Add($"{check.Entry.Name} {label}");
                 }
             }, 8);
+            p.Note($"{Numbers.Count(checks.Count)} entries told in {Numbers.Fixed(Time.unscaledTime - began, 1)} s");
             foreach (var (what, count, labels) in groups)
             {
                 var gaps = missing.TryGetValue(what, out var list) ? list : new List<string>();
