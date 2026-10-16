@@ -25,9 +25,6 @@ namespace Scry
         /// <summary>A node's depth in the tree: its ground's whole metres from the entrance's, signed.</summary>
         public static string Depth(float rise) => Numbers.Count((long)Math.Round(rise, MidpointRounding.AwayFromZero), signed: true);
 
-        /// <summary>A node's label in the grown tree: its room's name, then its depth.</summary>
-        public static string Node(string name, string depth) => name + "  " + depth;
-
         public static string ViewName(PlanView view) => view == PlanView.Map ? "Map" : view == PlanView.Tree ? "Tree" : "Above";
 
         public static string ViewTip(PlanView view)
@@ -35,7 +32,7 @@ namespace Scry
             switch (view)
             {
                 case PlanView.Map: return "Each room across against its depth, the ground at the top; drag across it to turn it";
-                case PlanView.Tree: return "Each room by its ways, from its spot seen from above, pushed apart where rooms crowd";
+                case PlanView.Tree: return "Each room by its ways, a row for each room more in from the entrance, under the room it is reached from";
                 default: return "Seen from above, turned with the view, each room shaded by its depth";
             }
         }

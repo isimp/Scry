@@ -267,7 +267,6 @@ namespace Scry.Tests
             Assert.Equal("0", PlanBoxWords.Depth(0.3f));
             Assert.Equal("-12", PlanBoxWords.Depth(-12.4f));
             Assert.Equal("+3", PlanBoxWords.Depth(3.2f));
-            Assert.Equal("Burial chamber  -12", PlanBoxWords.Node("Burial chamber", "-12"));
         }
     }
 }

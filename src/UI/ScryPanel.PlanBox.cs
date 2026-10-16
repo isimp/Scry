@@ -72,6 +72,10 @@ namespace Scry
 
         /// <summary>The tree as last laid out (<see cref="TreeRows"/>), kept until the rooms or the view's turn change.</summary>
         private static TreeRows _treeRows;
+
+        /// <summary>How many rooms each row of the tree holds, and how wide its rows were last drawn, for its names to fit.</summary>
+        private static readonly List<int> TreeRowSizes = new List<int>();
+        private static float _treeInnerWidth;
         private static float _treeYaw = float.NaN;
         private static int _treeRead = -1;
         private static DungeonWays _treeWays;
@@ -643,9 +647,17 @@ namespace Scry
                 _treeRead = _boxRead;
                 _treeYaw = yaw;
                 _treeRows = TreeRows.Of(_boxWays, room => ExamplePlan.Turn(room.Position.X, room.Position.Z, yaw).Right);
+                TreeRowSizes.Clear();
+                for (var r = 0; r < _treeRows.Rows; r++) TreeRowSizes.Add(0);
+                foreach (var room in BoxRooms)
+                {
+                    var r = _treeRows.RowOf(room);
+                    if (r >= 0 && r < TreeRowSizes.Count) TreeRowSizes[r]++;
+                }
             }
             var node = new Vector2(U(18f), U(12f));
             var inner = new Rect(area.x + node.x, area.y + node.y, area.width - node.x * 2f, area.height - node.y * 2f);
+            _treeInnerWidth = inner.width;
             var rowGap = _treeRows.Rows > 1 ? inner.height / (_treeRows.Rows - 1) : 0f;
             var at = TreeAt;
             at.Clear();
@@ -680,22 +692,42 @@ namespace Scry
         /// <summary>A node's label, its depth and, grown, its room's name, where it covers nothing already drawn.</summary>
         private static void TreeLabel(Explorer explorer, BoxSpot spot, Rect area, float entranceGround)
         {
-            var depth = PlanBoxWords.Depth(GroundOf(spot.Room) - entranceGround);
-            var label = _planBig ? PlanBoxWords.Node(BoxRoomName(explorer, spot.Room), depth) : depth;
-            var labelW = Skin.Width(Skin.FaintLabel, label);
-            var right = new Rect(spot.Centre.x + spot.Half.x + U(3f), spot.Centre.y - U(8f), labelW, U(16f));
-            var left = new Rect(spot.Centre.x - spot.Half.x - U(3f) - labelW, right.y, labelW, U(16f));
             bool Clear(Rect r)
             {
-                if (r.x < area.x || r.xMax > area.xMax) return false;
+                if (r.x < area.x || r.xMax > area.xMax || r.y < area.y - U(8f) || r.yMax > area.yMax + U(8f)) return false;
                 foreach (var written in WrittenNames) if (written.Overlaps(r)) return false;
                 foreach (var other in BoxSpots) if (new Rect(other.Centre - other.Half, other.Half * 2f).Overlaps(r)) return false;
                 return true;
             }
-            var at = Clear(right) ? right : Clear(left) ? left : (Rect?)null;
-            if (!(at is Rect place)) return;
-            WrittenNames.Add(place);
-            GUI.Label(place, label, Skin.FaintLabel);
+
+            // Its depth beside it, right of it else left.
+            var depth = PlanBoxWords.Depth(GroundOf(spot.Room) - entranceGround);
+            var depthW = Skin.Width(Skin.FaintLabel, depth);
+            var right = new Rect(spot.Centre.x + spot.Half.x + U(3f), spot.Centre.y - U(8f), depthW, U(16f));
+            var left = new Rect(spot.Centre.x - spot.Half.x - U(3f) - depthW, right.y, depthW, U(16f));
+            if ((Clear(right) ? right : Clear(left) ? left : (Rect?)null) is Rect beside)
+            {
+                WrittenNames.Add(beside);
+                GUI.Label(beside, depth, Skin.FaintLabel);
+            }
+            if (!_planBig || _treeRows == null) return;
+
+            // Grown, its name under it, or over it for every other node of its row, as wide as two
+            // places of the row, its type made smaller to fit; left out where it still does not.
+            var row = _treeRows.RowOf(spot.Room);
+            var inRow = row >= 0 && row < TreeRowSizes.Count ? TreeRowSizes[row] : 1;
+            var place = _treeInnerWidth / Mathf.Max(1, inRow);
+            var order = Mathf.RoundToInt(_treeRows.AcrossOf(spot.Room) * inRow - 0.5f);
+            var name = BoxRoomName(explorer, spot.Room);
+            var nameW = Skin.Width(Skin.FaintLabel, name);
+            var room = Mathf.Min(nameW, place * 2f - U(4f));
+            var smallest = Mathf.Max(1, Mathf.RoundToInt(10f * _s)) / (float)Mathf.Max(1, Skin.FaintLabel.fontSize);
+            if (nameW * smallest > room) return;
+            var over = order % 2 == 1;
+            var under = new Rect(spot.Centre.x - room / 2f, over ? spot.Centre.y - spot.Half.y - U(15f) : spot.Centre.y + spot.Half.y + U(1f), room, U(14f));
+            if (!Clear(under)) return;
+            WrittenNames.Add(under);
+            FitLabel(under, name, Skin.FaintLabel, 10f);
         }
 
         // ----- The trail -----
@@ -771,6 +803,7 @@ namespace Scry
             BoxGrounds.Clear();
             RouteWays.Clear();
             _treeRows = null;
+            TreeRowSizes.Clear();
             _boxWays = null;
             _treeWays = null;
             _routeOf = null;
