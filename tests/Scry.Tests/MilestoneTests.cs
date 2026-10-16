@@ -143,6 +143,84 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheFloorBringsAlongNothingOfATierAboveIt()
+        {
+            // A torch of the first tier is known by a floor of the second, and the sound it plays
+            // with it; the status effect it links to, of the third tier, waits for its own tier.
+            // What the character knows itself still brings along all it owns.
+            var torch = new Entry { Kind = Kind.Item, Name = "Torch" };
+            var lantern = new Entry { Kind = Kind.Item, Name = "Lantern" };
+            var warmth = new Entry { Kind = Kind.StatusEffect, Name = "Warm" };
+            var glow = new Entry { Kind = Kind.StatusEffect, Name = "Glow" };
+            var crackle = new Entry { Kind = Kind.Sound, Name = "sfx_torch" };
+            crackle.UsedBy.Add("Torch");
+            torch.Links.Add(new Link { Group = "Status effects", Target = warmth.Key });
+            lantern.Links.Add(new Link { Group = "Status effects", Target = glow.Key });
+            var view = new CompendiumView(new EntryCatalog(new[] { torch, lantern, warmth, glow, crackle }));
+            var tiers = new Dictionary<string, int> { { torch.Key, 1 }, { warmth.Key, 3 }, { lantern.Key, 4 }, { glow.Key, 4 } };
+            var book = new CompendiumBook();
+            book.Raise(lantern.Key, KnownLevel.Known);
+
+            view.Milestones(tiers, 2);
+            view.Tell(book, CompendiumRule.Loose);
+
+            Assert.Equal(KnownLevel.Known, view.Of(torch));
+            Assert.Equal(KnownLevel.Known, view.Of(crackle));
+            Assert.True(view.ByFloor(crackle));
+            Assert.NotEqual(KnownLevel.Known, view.Of(warmth));
+            Assert.Equal(KnownLevel.Known, view.Of(glow));
+
+            Assert.False(view.Owns(torch, warmth));
+
+            // A floor reaching the effect's tier: the torch owns it again.
+            view.Milestones(tiers, 3);
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Known, view.Of(warmth));
+            Assert.True(view.ByFloor(warmth));
+            Assert.True(view.Owns(torch, warmth));
+        }
+
+        [Fact]
+        public void ABossStoneNeverBringsAlongItsPower()
+        {
+            // A stone gives its power only for the boss's trophy: knowing the stone, by the
+            // character or by the floor, tells of the power without making it known. The power
+            // is known once chosen, or by a floor that reaches its own tier.
+            var stone = new Entry { Kind = Kind.Piece, Name = "BossStone_Bonemass" };
+            var power = new Entry { Kind = Kind.StatusEffect, Name = "GP_Bonemass" };
+            var fire = new Entry { Kind = Kind.Piece, Name = "fire_pit" };
+            var burning = new Entry { Kind = Kind.StatusEffect, Name = "Burning" };
+            stone.Links.Add(new Link { Group = "Status effects", Target = power.Key, Notes = { "guardian power" } });
+            fire.Links.Add(new Link { Group = "Status effects", Target = burning.Key, Notes = { "fire" } });
+            var view = new CompendiumView(new EntryCatalog(new[] { stone, power, fire, burning }));
+            var book = new CompendiumBook();
+            book.Raise(stone.Key, KnownLevel.Known);
+            book.Raise(fire.Key, KnownLevel.Known);
+
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.HeardOf, view.Of(power));
+            Assert.Equal(KnownLevel.Known, view.Of(burning));
+
+            var floored = new CompendiumView(new EntryCatalog(new[] { stone, power }));
+            var tiers = new Dictionary<string, int> { { stone.Key, 1 }, { power.Key, 3 } };
+            floored.Milestones(tiers, 2);
+            floored.Tell(new CompendiumBook(), CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Known, floored.Of(stone));
+            Assert.Equal(KnownLevel.HeardOf, floored.Of(power));
+            floored.Milestones(tiers, 3);
+            floored.Tell(new CompendiumBook(), CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Known, floored.Of(power));
+
+            // Raised to known while the view stands, the stone tells of its power and no more.
+            var raised = new CompendiumView(new EntryCatalog(new[] { stone, power }));
+            var later = new CompendiumBook();
+            raised.Tell(later, CompendiumRule.Loose);
+            later.Raise(stone.Key, KnownLevel.Known);
+            raised.Tell(later, CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.HeardOf, raised.Of(power));
+        }
+
+        [Fact]
         public void EverythingOfATierAtOrBelowTheFloorShowsAsKnown()
         {
             var troll = new Entry { Kind = Kind.Creature, Name = "Troll" };

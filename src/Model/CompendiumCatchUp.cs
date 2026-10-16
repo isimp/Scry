@@ -80,7 +80,9 @@ namespace Scry
             // Each record raises what it tells by its own way, the first way to tell a thing kept with it.
             var known = new List<(Entry Entry, CameBy Way)>();
             void Add(IEnumerable<Entry> entries, CameBy way) => known.AddRange(entries.Select(e => (e, way)));
-            Add(Named(records.Killed, Kind.Creature), CameBy.Killed);
+            var entered = Entered(records);
+            var killed = Killed(records, entered).ToList();
+            Add(killed, CameBy.Killed);
             Add(Named(records.Crafted, Kind.Item), CameBy.Made);
             Add(Named(records.Eaten, Kind.Item), CameBy.Eaten);
             Add(Named(records.Recipes, Kind.Item), CameBy.Recipe);
@@ -89,7 +91,6 @@ namespace Scry
             Add(Prefabs(records.Trophies, Kind.Item), CameBy.Held);
             // The creatures a trophy held falls from, those living in a biome the character entered:
             // not the game's own TheHive, placed nowhere, which drops the drake's trophy too.
-            var entered = Entered(records);
             foreach (var trophy in Prefabs(records.Trophies, Kind.Item)) Add(CreaturesDropping(trophy, entered), CameBy.Trophy);
             // What gives an item: only where it grows in a biome the character entered, as Wood
             // picked up in the Meadows says nothing of the Ashlands' logs.
@@ -113,10 +114,10 @@ namespace Scry
                 + Raise(book, materials.Except(held), KnownLevel.Seen);
             Pair(records, book, entered);
             // A creature the character killed shows its health under the strict rules: found out, as news after the first reading.
-            foreach (var killed in Named(records.Killed, Kind.Creature))
+            foreach (var creature in killed)
             {
-                if (firstLoad) book.Witness(killed.Key, EntryKeys.Did(Deed.Killed));
-                else book.FoundOut(killed.Key, EntryKeys.Did(Deed.Killed));
+                if (firstLoad) book.Witness(creature.Key, EntryKeys.Did(Deed.Killed));
+                else book.FoundOut(creature.Key, EntryKeys.Did(Deed.Killed));
             }
             foreach (var given in givers)
             {
@@ -290,6 +291,26 @@ namespace Scry
         /// <summary>The resources giving an item that grow in a biome the character entered; one growing nowhere the world places it is left to be met.</summary>
         private static IEnumerable<Entry> ResourcesGiving(Entry item, HashSet<string> entered) =>
             item.TermLinks("from").Where(e => e.Kind == Kind.Resource && e.Biomes.Any(entered.Contains));
+
+        /// <summary>
+        /// The creatures the kills counted stand for. The game counts a kill by the name a creature
+        /// shows, which several can share, as the frozen greydwarf, placed nowhere in the world,
+        /// shows the greydwarf's: of those, the ones living in a biome the character entered;
+        /// where none does, a kill was still one of them, and all count.
+        /// </summary>
+        private IEnumerable<Entry> Killed(CompendiumRecords records, HashSet<string> entered)
+        {
+            foreach (var token in records.Killed)
+            {
+                if (token == null || !_byToken.TryGetValue(token, out var entries)) continue;
+                var lived = false;
+                foreach (var entry in entries) lived |= entry.Kind == Kind.Creature && entry.Biomes.Any(entered.Contains);
+                foreach (var entry in entries)
+                {
+                    if (entry.Kind == Kind.Creature && (!lived || entry.Biomes.Any(entered.Contains))) yield return entry;
+                }
+            }
+        }
 
         /// <summary>The creatures an item falls from that live in a biome the character entered.</summary>
         private static IEnumerable<Entry> CreaturesDropping(Entry item, HashSet<string> entered) =>

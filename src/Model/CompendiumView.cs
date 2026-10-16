@@ -29,10 +29,12 @@ namespace Scry
     /// known with it: the effects and sounds it plays (<see cref="Entry.UsedBy"/>), what it leaves
     /// behind, and the status effects, effects, sounds and projectiles it links to, never what
     /// links to it (<see cref="Link.Back"/>: knowing Poison does not make known all that gives
-    /// it). A dungeon known owns its rooms. Under <see cref="CompendiumRule.Strict"/> only what is
+    /// it), and a boss stone does not own its guardian power, which it gives only for the boss's
+    /// trophy. A dungeon known owns its rooms. Under <see cref="CompendiumRule.Strict"/> only what is
     /// known brings its parts along, and a known page keeps of how it connects only what is
     /// <see cref="Related"/> to it. With a milestone floor (<see cref="Milestones"/>) everything of
-    /// a tier at or below it is known too, told apart (<see cref="ByFloor"/>), and shows whole
+    /// a tier at or below it is known too, with what it owns that is no higher, told apart
+    /// (<see cref="ByFloor"/>), and shows whole
     /// under either rules (<see cref="BelowFloor"/>). Whatever else a known entry's page names,
     /// by its links, its link terms, its stations or the places it is found in, is heard of.
     /// Told again only when the book's levels, the rule, the floor or the catalog's groups change
@@ -155,6 +157,9 @@ namespace Scry
 
         /// <summary>Whether an entry's tier is at or below the floor, so it shows whatever the book holds of it.</summary>
         public bool BelowFloor(Entry entry) => entry != null && _floor > 0 && _tiers != null && _tiers.TryGetValue(entry.Key, out var tier) && tier <= _floor;
+
+        /// <summary>Whether an entry's own tier is above the floor, so the floor does not bring it along; none is for one of no tier.</summary>
+        private bool AboveFloor(Entry entry) => _tiers != null && _tiers.TryGetValue(entry.Key, out var tier) && tier > _floor;
 
         /// <summary>The floor shown by, the last tier it opens; none at 0.</summary>
         public int Floor => _floor;
@@ -306,7 +311,8 @@ namespace Scry
 
         /// <summary>
         /// What a known entry owns is known, and owns in turn (an effect's own sounds):
-        /// each owner waiting in the queue, and what it brings along; by the floor, told so.
+        /// each owner waiting in the queue, and what it brings along; by the floor, told so, and
+        /// only what is of no higher a tier than the floor.
         /// </summary>
         private void Spread(Queue<Entry> met, bool byFloor)
         {
@@ -315,6 +321,7 @@ namespace Scry
                 var owner = met.Dequeue();
                 foreach (var owned in Owned(owner))
                 {
+                    if (byFloor && AboveFloor(owned)) continue;
                     _owns.Add((owner, owned));
                     if (Of(owned) == KnownLevel.Known) continue;
                     _levels[owned] = KnownLevel.Known;
@@ -343,10 +350,17 @@ namespace Scry
             }
             foreach (var link in owner.Links)
             {
-                if (link.Back) continue;
+                if (link.Back || GivesGuardianPower(link)) continue;
                 var entry = _catalog.Find(link.Target);
                 if (entry != null && Belongs(entry.Kind)) yield return entry;
             }
+        }
+
+        /// <summary>Whether a link is a boss stone's to its guardian power, which the stone gives only for the boss's trophy.</summary>
+        private static bool GivesGuardianPower(Link link)
+        {
+            foreach (var note in link.Notes) if (Giver.IsGuardianPower(note)) return true;
+            return false;
         }
 
         /// <summary>What a known entry's page names; what it owns is among them, already known.</summary>

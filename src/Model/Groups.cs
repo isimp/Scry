@@ -26,6 +26,9 @@ namespace Scry
             Kind = kind;
             How = how ?? "";
         }
+
+        /// <summary>Whether a giver gives the status effect as a boss stone gives its guardian power, only for the boss's trophy, by how the link noted it.</summary>
+        public static bool IsGuardianPower(string how) => how != null && how.IndexOf("guardian", System.StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     /// <summary>What fires a projectile: its kind, the skill of the weapon, and whether only creatures carry that weapon.</summary>
@@ -348,7 +351,7 @@ namespace Scry
             {
                 var how = (giver.How ?? "").ToLowerInvariant();
                 Group group;
-                if (how.Contains("guardian")) group = new Group("Guardian powers", 1);
+                if (Giver.IsGuardianPower(how)) group = new Group("Guardian powers", 1);
                 else if (how.Contains("consume")) group = new Group("Food and meads", 2);
                 else if (how.Contains("set")) group = new Group("Set bonuses", 3);
                 else if (how.Contains("equip")) group = new Group("Worn equipment", 4);

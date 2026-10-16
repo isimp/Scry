@@ -44,6 +44,55 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AKillCountedUnderANameSeveralCreaturesShareIsTheOnesLivingWhereTheCharacterWent()
+        {
+            // The game counts kills by the name a creature shows, and the frozen greydwarf, placed
+            // nowhere in the world, shows the greydwarf's: killing greydwarfs in the Black Forest
+            // says nothing of it. Where none of them lives where the character went, a kill was
+            // still one of them, and all count.
+            var greydwarf = E(Kind.Creature, "Greydwarf", "$enemy_greydwarf");
+            var frozen = E(Kind.Creature, "Greydwarf_Frozen", "$enemy_greydwarf");
+            var shaman = E(Kind.Creature, "Greydwarf_Shaman", "$enemy_greydwarfshaman");
+            var frozenShaman = E(Kind.Creature, "Greydwarf_Shaman_Frozen", "$enemy_greydwarfshaman");
+            var forest = E(Kind.Biome, "BlackForest", "$biome_blackforest");
+            forest.Biomes = new[] { "BlackForest" };
+            greydwarf.Biomes = new[] { "Meadows", "BlackForest" };
+            shaman.Biomes = new[] { "BlackForest" };
+            var (catchUp, book) = Fresh(greydwarf, frozen, shaman, frozenShaman, forest);
+            var records = new CompendiumRecords();
+            records.Killed.Add("$enemy_greydwarf");
+            records.Killed.Add("$enemy_greydwarfshaman");
+            records.Biomes.Add("$biome_blackforest");
+
+            catchUp.Fill(records, book, firstLoad: false);
+
+            Assert.Equal(KnownLevel.Known, book.Level(greydwarf.Key));
+            Assert.True(book.Witnessed(greydwarf.Key, EntryKeys.Did(Deed.Killed)));
+            Assert.Equal(KnownLevel.Known, book.Level(shaman.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(frozen.Key));
+            Assert.False(book.Witnessed(frozen.Key, EntryKeys.Did(Deed.Killed)));
+            Assert.Equal(KnownLevel.Unknown, book.Level(frozenShaman.Key));
+
+            // Only creatures tell where the kill was: a ragdoll going by the name, in the forest, does not.
+            var ragdoll = E(Kind.Other, "Greydwarf_ragdoll", "$enemy_greydwarf");
+            ragdoll.Biomes = new[] { "BlackForest" };
+            var (withRagdoll, ragdollBook) = Fresh(frozen, ragdoll, forest);
+            var forestKill = new CompendiumRecords();
+            forestKill.Killed.Add("$enemy_greydwarf");
+            forestKill.Biomes.Add("$biome_blackforest");
+            withRagdoll.Fill(forestKill, ragdollBook, firstLoad: false);
+            Assert.Equal(KnownLevel.Known, ragdollBook.Level(frozen.Key));
+
+            // Before the character entered the Black Forest, a greydwarf killed was still one of them.
+            var (before, beforeBook) = Fresh(greydwarf, frozen, forest);
+            var early = new CompendiumRecords();
+            early.Killed.Add("$enemy_greydwarf");
+            before.Fill(early, beforeBook, firstLoad: false);
+            Assert.Equal(KnownLevel.Known, beforeBook.Level(greydwarf.Key));
+            Assert.Equal(KnownLevel.Known, beforeBook.Level(frozen.Key));
+        }
+
+        [Fact]
         public void AnItemPickedUpCraftedEatenOrHeldIsKnownAndOneOnlyATraderOffersIsSeen()
         {
             // The game's known materials (Player.m_knownMaterial) hold everything ever in the
