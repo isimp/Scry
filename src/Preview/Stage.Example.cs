@@ -123,7 +123,7 @@ namespace Scry
                 // What is kept of a dungeon's rooms' floors is found while they are made.
                 if (TheExample.IsDungeon) foreach (var room in TheExample.Placed.Rooms) FloorRecords.Want(room.Room.Name, true);
             }
-            TheExample.KeepToFloor(ExamplePlanFloor);
+            TheExample.KeepToFloor(ExamplePlanFloor, ExampleFloors);
             var placedRooms = TheExample.Placed.Rooms;
             if (TheExample.Next >= placedRooms.Count) return;
 
@@ -182,7 +182,7 @@ namespace Scry
         public static int ExampleRoomsDimmed => TheExample.DimmedCount;
 
         /// <summary>Whether every room of the example stands, is dimmed or is put away as the floor opened has it, for the self-test.</summary>
-        public static bool ExampleRoomsKept => TheExample.Kept(ExamplePlanFloor);
+        public static bool ExampleRoomsKept => TheExample.Kept(ExamplePlanFloor, ExampleFloors);
 
         /// <summary>How many of the example's rooms are put away, above the floor opened, for the self-test.</summary>
         public static int ExampleRoomsAway => TheExample.Away;
@@ -194,7 +194,7 @@ namespace Scry
             {
                 var floor = ExampleOpenFloor;
                 if (floor == null || TheExample.Placed == null) return -1;
-                return TheExample.OnFloorCount(floor.Value);
+                return TheExample.OnFloorCount(floor.Value, ExampleFloors);
             }
         }
 
@@ -211,7 +211,7 @@ namespace Scry
         private static Vector3? ExampleFloorAcross()
         {
             if (!TheExample.IsDungeon || TheExample.Holder == null || !TheExample.Holder.activeInHierarchy || TheExample.Placed == null) return null;
-            return TheExample.FloorAcross(ExamplePlanFloor);
+            return TheExample.FloorAcross(ExamplePlanFloor, ExampleFloors);
         }
 
         /// <summary>The lights switched on in the example's rooms dimmed below the floor opened, for the self-test.</summary>
@@ -245,8 +245,8 @@ namespace Scry
             }
         }
 
-        /// <summary>How a room of the example shows with the floor opened: whole on it, else as its box says, below faintly or above not at all.</summary>
-        public static PlanRoomShown ExampleRoomShown(PlacedRoom room) => TheExample.RoomShown(room, ExamplePlanFloor);
+        /// <summary>How a room of the example shows with the floor opened, by the plan's rule (<see cref="StageExample.RoomShown"/>): whole on it, else dimmed, or put away above it.</summary>
+        public static PlanRoomShown ExampleRoomShown(PlacedRoom room) => TheExample.RoomShown(room, ExamplePlanFloor, ExampleFloors);
 
         /// <summary>Whether a room's copy of the example is dimmed, for its creatures to be dimmed with it.</summary>
         private static bool ExampleRoomDimmed(GameObject room) => TheExample.IsDimmed(room);

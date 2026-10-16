@@ -53,15 +53,19 @@ namespace Scry
         private readonly List<GameObject> _outside = new List<GameObject>();
 
 
-        /// <summary>What each room's rays found and the ground they were cast over; the rays of the room being read.</summary>
+        /// <summary>What each room's rays found; the rays of the room being read.</summary>
         private readonly List<FloorPatch> _patches = new List<FloorPatch>();
         private readonly List<FloorHit> _hits = new List<FloorHit>();
-        private float _ground;
 
         /// <summary>The rooms counted on the floor opened, worked out once a frame.</summary>
         private int _countedAt = -1;
         private float? _countedFloor;
         private int _countedRooms;
+
+        /// <summary>The rooms with a floor of their own at one of the floors (<see cref="HasFloorAt"/>), worked out again as the floors change or more rooms are read.</summary>
+        private readonly HashSet<PlacedRoom> _ownFloor = new HashSet<PlacedRoom>();
+        private readonly List<float> _ownFloorOf = new List<float>();
+        private int _ownFloorRead = -1;
 
         /// <summary>The middle across of the rooms on the floor opened, kept until the floor or the rooms change.</summary>
         private Vector3? _across;
@@ -120,10 +124,11 @@ namespace Scry
 
         /// <summary>
         /// With a floor opened inside a dungeon's example, that floor's rooms stand as they are,
-        /// those below dimmed (<see cref="Dim"/>) and those above put away, as they are cut away;
-        /// with none opened every room stands as it is. A few each frame, as a big example changes many at once.
+        /// the rest dimmed (<see cref="Dim"/>), or put away above it, by the plan's rule
+        /// (<see cref="RoomShown"/>); with none opened every room stands as it is. A few each
+        /// frame, as a big example changes many at once.
         /// </summary>
-        public void KeepToFloor(float? planFloor)
+        public void KeepToFloor(float? planFloor, IReadOnlyList<float> floors)
         {
             if (!IsDungeon || Holder == null || _rooms.Count == 0) return;
             KeepDimmedLights();
@@ -132,7 +137,7 @@ namespace Scry
             {
                 var copy = pair.Value;
                 if (copy == null) continue;
-                var shown = RoomShown(pair.Key, planFloor);
+                var shown = RoomShown(pair.Key, planFloor, floors);
                 var standing = shown != PlanRoomShown.None;
                 var dimmed = shown == PlanRoomShown.Faint;
                 if (copy.activeSelf == standing && _dimmed.Contains(copy) == dimmed) continue;
@@ -204,12 +209,12 @@ namespace Scry
         public int DimmedCount => _dimmed.Count;
 
         /// <summary>Whether every room stands, is dimmed or is put away as the floor opened has it, for the self-test.</summary>
-        public bool Kept(float? planFloor)
+        public bool Kept(float? planFloor, IReadOnlyList<float> floors)
         {
             foreach (var pair in _rooms)
             {
                 if (pair.Value == null) continue;
-                var shown = RoomShown(pair.Key, planFloor);
+                var shown = RoomShown(pair.Key, planFloor, floors);
                 if (pair.Value.activeSelf != (shown != PlanRoomShown.None) || _dimmed.Contains(pair.Value) != (shown == PlanRoomShown.Faint)) return false;
             }
             return true;
@@ -226,16 +231,14 @@ namespace Scry
             }
         }
 
-        /// <summary>How many rooms stand on a floor, end caps and dividers left out; worked out once a frame for one floor.</summary>
-        public int OnFloorCount(float floor)
+        /// <summary>How many rooms stand on a floor by the plan's rule (<see cref="RoomShown"/>), end caps and dividers left out; worked out once a frame for one floor.</summary>
+        public int OnFloorCount(float floor, IReadOnlyList<float> floors)
         {
             if (_countedAt == Time.frameCount && _countedFloor == floor) return _countedRooms;
-            // A room by its box or a floor of its own there; an end cap or divider only by a floor of its own.
             var count = 0;
             foreach (var room in Placed.Rooms)
             {
-                if (_roomGround.TryGetValue(room, out var ground) && FloorFinder.StandsOn(ground, floor)) count++;
-                else if (!room.Room.EndCap && !room.Room.Divider && ExamplePlan.Shown(room, floor) == PlanRoomShown.Whole) count++;
+                if (!room.Room.EndCap && !room.Room.Divider && RoomShown(room, floor, floors) == PlanRoomShown.Whole) count++;
             }
             _countedAt = Time.frameCount;
             _countedFloor = floor;
@@ -259,15 +262,42 @@ namespace Scry
         /// <summary>How many of the example's rooms have had their ground read.</summary>
         public int GroundRead => _roomGround.Count;
 
-        /// <summary>Whether a room stands on a floor: its box says so, or its rays found a floor of its own there (<see cref="FloorFinder.StandsOn"/>), not merely a slope, a landing or a lid near it.</summary>
-        public bool StandsOn(PlacedRoom room, float floor) =>
-            ExamplePlan.Shown(room, floor) == PlanRoomShown.Whole || _roomGround.TryGetValue(room, out var ground) && FloorFinder.StandsOn(ground, floor);
-
-        /// <summary>How a room shows with a floor opened: whole where it stands on it, else as its box says, below faintly or above not at all; whole with none.</summary>
-        public PlanRoomShown RoomShown(PlacedRoom room, float? planFloor)
+        /// <summary>
+        /// How a room shows with a floor of <paramref name="floors"/> opened, by the plan's rule
+        /// (<see cref="ExamplePlan.OnStage"/>): whole on a floor of its own there (<see cref="HasFloorAt"/>),
+        /// or with none of its own at any floor where its box reaches it; else dimmed, or put
+        /// away above the floor; whole with none opened.
+        /// </summary>
+        public PlanRoomShown RoomShown(PlacedRoom room, float? planFloor, IReadOnlyList<float> floors)
         {
             if (planFloor == null) return PlanRoomShown.Whole;
-            return StandsOn(room, planFloor.Value) ? PlanRoomShown.Whole : ExamplePlan.Shown(room, planFloor);
+            KnowOwnFloors(floors);
+            return ExamplePlan.OnStage(room, planFloor, _ownFloor.Contains(room), HasFloor);
+        }
+
+        private System.Func<PlacedRoom, float, bool> _hasFloor;
+        private System.Func<PlacedRoom, float, bool> HasFloor => _hasFloor ?? (_hasFloor = HasFloorAt);
+
+        /// <summary>Works out again which rooms have a floor of their own at one of the floors, as the floors change or more rooms are read.</summary>
+        private void KnowOwnFloors(IReadOnlyList<float> floors)
+        {
+            var same = _ownFloorRead == _roomGround.Count && _ownFloorOf.Count == floors.Count;
+            for (var i = 0; same && i < floors.Count; i++) same = _ownFloorOf[i] == floors[i];
+            if (same) return;
+            _ownFloor.Clear();
+            _ownFloorOf.Clear();
+            for (var i = 0; i < floors.Count; i++) _ownFloorOf.Add(floors[i]);
+            _ownFloorRead = _roomGround.Count;
+            if (Placed == null) return;
+            foreach (var room in Placed.Rooms)
+            {
+                for (var i = 0; i < floors.Count; i++)
+                {
+                    if (!HasFloorAt(room, floors[i])) continue;
+                    _ownFloor.Add(room);
+                    break;
+                }
+            }
         }
 
         /// <summary>
@@ -275,7 +305,7 @@ namespace Scry
         /// they reach from it (x, z and reach); null for none. Worked out again as the floor or
         /// the rooms change.
         /// </summary>
-        public Vector3? FloorAcross(float? planFloor)
+        public Vector3? FloorAcross(float? planFloor, IReadOnlyList<float> floors)
         {
             if (planFloor == null) return null;
             if (_acrossFloor == planFloor && _acrossRooms == Copies && ReferenceEquals(_acrossOf, Placed)) return _across;
@@ -284,7 +314,7 @@ namespace Scry
             var corners = new List<Vec3>();
             foreach (var room in Placed.Rooms)
             {
-                if (RoomShown(room, planFloor) != PlanRoomShown.Whole) continue;
+                if (RoomShown(room, planFloor, floors) != PlanRoomShown.Whole) continue;
                 foreach (var corner in room.Corners())
                 {
                     var at = holder.TransformPoint(new Vector3(corner.X, corner.Y, corner.Z));
@@ -316,7 +346,7 @@ namespace Scry
             foreach (var room in Placed.Rooms)
             {
                 if (!_roomGround.TryGetValue(room, out var ground)) continue;
-                var alone = FloorFinder.Floors(new[] { ground }, ground.Ground, PlaceView.Storey);
+                var alone = FloorFinder.RoomFloors(new[] { ground });
                 told.Add($"{room.Room.Name} at {Numbers.Fixed(room.Position.Y, 1)} m: {(alone.Count > 0 ? string.Join(", ", alone.Select(f => Numbers.Fixed(f, 1))) : "none")}");
             }
             return told;
@@ -326,7 +356,8 @@ namespace Scry
         /// Each room read so far as the floors are found from it: the height its box stands over,
         /// its doorways' heights, the ground its own rays found (each height with its square
         /// metres, ! where that is a level of the room's own, ~ where no ray landed in the band
-        /// itself), and the floors it stands on, by its box or by its ground, for the self-test.
+        /// itself), and the floors it stands on by the plan's rule, by its box where it has no
+        /// floor of its own, for the self-test.
         /// </summary>
         [Diagnostic]
         public List<string> RoomGroundTold(IReadOnlyList<float> floors)
@@ -352,8 +383,8 @@ namespace Scry
                         $"{Numbers.Fixed((float)(b.Value.Sum / b.Value.Count), 1)}:{Numbers.Amount(b.Value.Room, 0)}{(b.Value.Room >= own ? "!" : "")}{(b.Value.Landed ? "" : "~")}");
                     line += $", ground {Numbers.Amount(ground.Ground, 0)} m\u00b2: {string.Join(" ", bands)}";
                 }
-                var on = floors.Where(f => StandsOn(room, f)).Select(f => Numbers.Fixed(f, 1) + (ExamplePlan.Shown(room, f) == PlanRoomShown.Whole ? "" : " by ground"));
-                var touched = floors.Where(f => Reaches(room, f) && !StandsOn(room, f)).Select(f => Numbers.Fixed(f, 1));
+                var on = floors.Where(f => RoomShown(room, f, floors) == PlanRoomShown.Whole).Select(f => Numbers.Fixed(f, 1) + (_ownFloor.Contains(room) ? "" : " by box"));
+                var touched = floors.Where(f => Reaches(room, f) && RoomShown(room, f, floors) != PlanRoomShown.Whole).Select(f => Numbers.Fixed(f, 1));
                 told.Add(line + $", on {string.Join(" ", on)}" + (touched.Any() ? $", touching {string.Join(" ", touched)}" : ""));
             }
             return told;
@@ -386,7 +417,6 @@ namespace Scry
             var start = room.Room.Doorways.Count > 0 ? FloorWalk.Start.At(room.Room.Doorways.Select(d => d.Position)) : null;
             var cast = FloorProbe.Read(copy, subject, layer, _hits, Copies, room.Room.Name, true, roll, wake: asleep ? Wake : (System.Action)null, sleep: asleep ? Sleep : (System.Action)null,
                 start: start, top: t => Top = float.IsNaN(Top) ? t : Mathf.Max(Top, t));
-            _ground += cast;
             // Its doorway out, the entrance's, and its highest, where its ground was measured: by
             // and high over them the entrance's ground is the world's.
             float Measured(Vec3 at) => subject.InverseTransformPoint(Holder.transform.TransformPoint(new Vector3(at.X, at.Y, at.Z))).y;
@@ -415,10 +445,14 @@ namespace Scry
         /// <summary>The ceiling over a floor of the example, from its rooms' rays (<see cref="FloorFinder.CeilingOver(IEnumerable{FloorPatch}, float)"/>).</summary>
         public float? CeilingOver(float floor) => FloorFinder.CeilingOver(_patches, floor);
 
-        /// <summary>The example's floors: found in its rooms, with one for each room no floor reaches, or where their doorways are while none are found.</summary>
+        /// <summary>
+        /// The example's floors: one at each room's main ground and at each big level of one
+        /// (<see cref="FloorFinder.RoomFloors"/>), end caps and dividers left out, with one for
+        /// each room no floor reaches, or where their doorways are while none are found.
+        /// </summary>
         public List<float> FloorsNow()
         {
-            var found = FloorFinder.Floors(_patches, _ground, PlaceView.Storey);
+            var found = FloorFinder.RoomFloors(_roomGround.Where(pair => !pair.Key.Room.EndCap && !pair.Key.Room.Divider).Select(pair => pair.Value));
             if (found.Count == 0) return PlaceView.ExampleFloors(Placed);
             // A room standing whole on none of them, a sloping corridor with no flat ground, gets
             // a floor where it is walked into, so every room built can be opened.
@@ -445,7 +479,9 @@ namespace Scry
             _unlit.Clear();
             _roomGround.Clear();
             _countedAt = -1;
-            _ground = 0f;
+            _ownFloor.Clear();
+            _ownFloorOf.Clear();
+            _ownFloorRead = -1;
             Top = float.NaN;
             _outside.Clear();
         }

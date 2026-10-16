@@ -172,6 +172,31 @@ namespace Scry
             return patch;
         }
 
+        /// <summary>How much room a level of a room's own beside its main ground needs to be a floor of an example, in square metres: a gallery or a deep chamber, not a ledge or a landing.</summary>
+        public const float BigLevel = 60f;
+
+        /// <summary>
+        /// An example's floors from the top down, one at each room's main ground
+        /// (<see cref="MainFloor"/>) and at each level of its own as big as <see cref="BigLevel"/>;
+        /// ground less than <see cref="PlaceView.SameFloor"/> apart is one floor. A cave whose rooms
+        /// step down a few metres at a time has a floor at each step, as one walks it.
+        /// </summary>
+        public static List<float> RoomFloors(IEnumerable<FloorPatch> patches)
+        {
+            var heights = new List<float>();
+            foreach (var patch in patches)
+            {
+                if (MainFloor(patch) is float main) heights.Add(main);
+                foreach (var band in patch.Bands.Values)
+                {
+                    if (!band.Landed || band.Count == 0 || band.Room < BigLevel) continue;
+                    var height = (float)(band.Sum / band.Count);
+                    if (StandsOn(patch, height)) heights.Add(height);
+                }
+            }
+            return PlaceView.Floors(heights);
+        }
+
         /// <summary>
         /// Where a patch has the most room to stand, on average, with at least <see cref="MinRoom"/>
         /// of it: a room's own main floor. Null where it has nowhere so big.

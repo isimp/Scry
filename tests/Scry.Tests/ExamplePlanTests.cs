@@ -91,6 +91,30 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void OnTheStageTheFloorsOwnRoomsStandAndTheRestAreDimmedOrPutAway()
+        {
+            // By the plan's rule: a room on the floor opened stands as it is; a tall room from the
+            // floor under it reaching up through it is dimmed with the rooms below; a room above
+            // it is put away. With the roof on, every room stands.
+            var hall = On("hall", 5.5f, 3f);
+            var tall = On("tall", 4f, 8f);
+            var cellar = On("cellar", 1.5f, 3f);
+            var attic = On("attic", 9.5f, 3f);
+            var tunnel = On("tunnel", 4.5f, 3f);
+            var stands = new Dictionary<PlacedRoom, float> { { hall, 4f }, { tall, 0f }, { cellar, 0f }, { attic, 8f } };
+            bool StandsOn(PlacedRoom room, float floor) => stands.TryGetValue(room, out var on) && on == floor;
+
+            Assert.Equal(PlanRoomShown.Whole, ExamplePlan.OnStage(hall, 4f, true, StandsOn));
+            Assert.Equal(PlanRoomShown.Faint, ExamplePlan.OnStage(tall, 4f, true, StandsOn));
+            Assert.Equal(PlanRoomShown.Faint, ExamplePlan.OnStage(cellar, 4f, true, StandsOn));
+            Assert.Equal(PlanRoomShown.None, ExamplePlan.OnStage(attic, 4f, true, StandsOn));
+            // A room with no floor of its own anywhere stands where its box reaches.
+            Assert.Equal(PlanRoomShown.Whole, ExamplePlan.OnStage(tunnel, 4f, false, StandsOn));
+            Assert.Equal(PlanRoomShown.None, ExamplePlan.OnStage(tunnel, 0f, false, StandsOn));
+            Assert.Equal(PlanRoomShown.Whole, ExamplePlan.OnStage(attic, null, true, StandsOn));
+        }
+
+        [Fact]
         public void ADoorwayToARoomOnAnotherFloorIsMarkedUpOrDown()
         {
             var floors = new[] { 8f, 4f, 0f };

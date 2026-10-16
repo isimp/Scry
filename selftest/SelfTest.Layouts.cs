@@ -472,6 +472,7 @@ namespace Scry
             var unreached = new List<string>();
             var footless = new List<string>();
             var untiled = new List<string>();
+            var unlike = new List<string>();
             ScryPanel.PlanFolded = false;
             var gaps = new List<string>();
             string Told(IEnumerable<float> floors) => string.Join(", ", floors.Select(f => Numbers.Fixed(f, 1)));
@@ -536,6 +537,9 @@ namespace Scry
                         var opened = level;
                         yield return Until(() => ScryPanel.PlanDrawnFor(Stage.ExampleShown, opened), 2);
                         foreach (var room in Stage.ExampleShown.Rooms) if (ScryPanel.PlanTilesRoom(room)) tiled.Add(room);
+                        // The stage stands whole the rooms the plan tiles, by one rule.
+                        var odd = Stage.ExampleShown.Rooms.Where(r => ScryPanel.PlanTilesRoom(r) != (Stage.ExampleRoomShown(r) == PlanRoomShown.Whole)).Select(r => r.Room.Name).ToList();
+                        if (odd.Count > 0) unlike.Add($"{entry.Name} at {Numbers.Fixed(Stage.FloorHeights[level], 1)} m: {string.Join(", ", odd.Take(4))}");
                         told[told.Count - 1] += $", plan {Numbers.Count(ScryPanel.PlanTilesOn)} tiled, {Numbers.Count(ScryPanel.PlanTilesBelow)} dashed under it, {Numbers.Count(ScryPanel.PlanDoorsMarked)} doors marked up or down";
                         if (example == 0) yield return Picture(p, $"floors {entry.Name} inside {Numbers.Count(level + 1)} of {Numbers.Count(Stage.FloorHeights.Count)}");
                     }
@@ -561,6 +565,7 @@ namespace Scry
             p.Check(footless.Count == 0, "every M\u00f6rkhalla room has a floor at its foot, none over its gate", string.Join("; ", footless));
             p.Check(gaps.Count == 0, "the sealed tower's floors are a storey apart, none missing", string.Join("; ", gaps));
             p.Check(untiled.Count == 0, "every room is tiled on the plan of some floor", string.Join("; ", untiled.Take(8)));
+            p.Check(unlike.Count == 0, "on each floor the stage stands whole the rooms the plan tiles, the rest dimmed or put away", string.Join("; ", unlike.Take(8)));
         }
 
         /// <summary>The setting for the dimmed rooms' lights as it was before the self-test set it; null while it is as it was.</summary>

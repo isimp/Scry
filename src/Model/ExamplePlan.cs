@@ -120,6 +120,19 @@ namespace Scry
         }
 
         /// <summary>
+        /// How a room shows on the stage with the floor at that height opened, by the plan's rule
+        /// (<see cref="IsOn"/>): whole on that floor; dimmed below it, as a tall room from a floor
+        /// under it reaching up through it; put away above it. With <paramref name="ownFloor"/>,
+        /// the room has a floor of its own at one of the example's floors. With none opened (the
+        /// roof on), whole.
+        /// </summary>
+        public static PlanRoomShown OnStage(PlacedRoom room, float? floor, bool ownFloor, Func<PlacedRoom, float, bool> standsOn)
+        {
+            if (floor == null || IsOn(room, floor.Value, ownFloor, standsOn)) return PlanRoomShown.Whole;
+            return Shown(room, floor) == PlanRoomShown.None ? PlanRoomShown.None : PlanRoomShown.Faint;
+        }
+
+        /// <summary>
         /// How a room shows on the plan with floor <paramref name="level"/> of <paramref name="floors"/>
         /// (from the top down) opened, by the floors it is on (<see cref="IsOn"/>): a tile on that
         /// floor; dashed on the floor under it, as a tall room from there reaching up through the

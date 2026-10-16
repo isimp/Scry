@@ -213,6 +213,28 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AnExampleHasAFloorAtEachRoomsMainGroundAndEachBigLevelOfOne()
+        {
+            // A cave whose rooms step down two or three metres at a time has a floor at each
+            // room's main ground, however near; a ledge of a room is none, but a gallery as big
+            // as a room's floor is. Ground less than a floor's thickness apart is one floor.
+            var upper = Room(200f, (0f, 120f), (1.5f, 8f));
+            var lower = Room(200f, (-2.5f, 150f));
+            var near = Room(150f, (-2.8f, 90f));
+            var hall = Room(400f, (-12f, 300f), (-5f, 80f), (-8f, 20f));
+            // A floor is in a band some ray landed in, not one only its neighbours' rays reach.
+            hall.Bands[(int)System.Math.Round(-16f / FloorFinder.Band)] = new FloorPatch.Band { Room = 100f, Sum = -16f, Count = 1 };
+            // A small room's main ground is a floor however small; a big level that is a sliver of a vast cave is none.
+            var crypt = Room(60f, (-20f, 40f));
+            var cave = Room(6000f, (-30f, 900f), (-26f, 70f));
+
+            Assert.Equal(new[] { 0f, -2.5f, -5f, -12f, -20f, -30f }, FloorFinder.RoomFloors(new[] { upper, lower, near, hall, crypt, cave }));
+            // A room with no ground found adds none.
+            Assert.Equal(new[] { 0f }, FloorFinder.RoomFloors(new[] { upper, Room(50f) }));
+            Assert.Empty(FloorFinder.RoomFloors(new FloorPatch[0]));
+        }
+
+        [Fact]
         public void ASunkenCryptsOneLevelOfRoomsIsOneFloor()
         {
             // As a sunken crypt's rooms were read in game: all on one level, walked into at -2 m
