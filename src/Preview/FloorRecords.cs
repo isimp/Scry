@@ -57,8 +57,8 @@ namespace Scry
         /// <summary>Tells any listing, finding or writing that failed; called each frame.</summary>
         public static void Update()
         {
-            if (_kept != null) foreach (var (doing, error) in _kept.Failures()) Faults.Tell(Feature.FloorsKept, doing, error);
-            foreach (var (doing, error) in Files.Failures()) Faults.Tell(Feature.FloorsKept, doing, error);
+            if (_kept != null) Faults.TellEach(Feature.FloorsKept, _kept.Failures());
+            Faults.TellEach(Feature.FloorsKept, Files.Failures());
         }
     }
 }

@@ -36,17 +36,22 @@ namespace Scry
             _writes.Add((job, doing));
         }
 
-        /// <summary>The writes that failed since last asked, each told once; those still running are told once done.</summary>
-        public List<(string Doing, Exception Error)> Failures()
+        /// <summary>
+        /// The writes that failed since last asked, each told once; those still running are told
+        /// once done. Asked every frame, it makes nothing unless one failed: read it by index, as
+        /// going through it by <c>foreach</c> makes an enumerator in the game's runtime.
+        /// </summary>
+        public IReadOnlyList<(string Doing, Exception Error)> Failures()
         {
-            var failed = new List<(string, Exception)>();
-            _writes.RemoveAll(w =>
+            List<(string, Exception)> failed = null;
+            for (var i = _writes.Count - 1; i >= 0; i--)
             {
-                if (!w.Job.IsCompleted) return false;
-                if (w.Job.IsFaulted) failed.Add((w.Doing, w.Job.Exception?.GetBaseException()));
-                return true;
-            });
-            return failed;
+                var (job, doing) = _writes[i];
+                if (!job.IsCompleted) continue;
+                if (job.IsFaulted) (failed ?? (failed = new List<(string, Exception)>())).Insert(0, (doing, job.Exception?.GetBaseException()));
+                _writes.RemoveAt(i);
+            }
+            return failed ?? (IReadOnlyList<(string, Exception)>)Array.Empty<(string, Exception)>();
         }
     }
 }

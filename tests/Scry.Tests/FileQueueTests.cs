@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Xunit;
 
@@ -96,6 +97,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void FailedWritesAreToldInTheOrderAsked()
+        {
+            var queue = new FileQueue();
+            queue.Then("writing the first", () => throw new InvalidOperationException("one"));
+            queue.Then("writing well", () => { });
+            queue.Then("writing the third", () => throw new InvalidOperationException("three"));
+            Done(queue);
+
+            Assert.Equal(new[] { "writing the first", "writing the third" }, queue.Failures().Select(f => f.Doing));
+        }
+
+        [Fact]
         public void AFailedFindingIsLeftToWhoAskedForIt()
         {
             var queue = new FileQueue();
@@ -114,6 +127,30 @@ namespace Scry.Tests
             var queue = new FileQueue();
 
             Assert.False(queue.Busy);
+            Assert.Empty(queue.Failures());
+        }
+
+        [Fact]
+        public void AskingEveryFrameWithNothingFailedMakesNothing()
+        {
+            // Each keeper asks once a frame; a frame where nothing failed must cost no memory,
+            // whether nothing was written, a write finished well, or one is still running.
+            var queue = new FileQueue();
+            queue.Then("writing well", () => { });
+            Done(queue);
+            Assert.Empty(queue.Failures());
+            var writing = new ManualResetEventSlim();
+            queue.Then("writing", () => writing.Wait(Long));
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            var told = 0;
+            for (var frame = 0; frame < 1000; frame++) told += queue.Failures().Count;
+            var made = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            writing.Set();
+            Done(queue);
+            Assert.Equal(0, told);
+            Assert.Equal(0, made);
             Assert.Empty(queue.Failures());
         }
 

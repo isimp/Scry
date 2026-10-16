@@ -44,6 +44,12 @@ namespace Scry
         /// <summary>A failure told whole: one found by checking by its words alone, one thrown with where it came from.</summary>
         private static string Whole(Exception ex) => ex is Failure ? ex.Message : ex.ToString();
 
+        /// <summary>Tells each write of a file queue that failed (<see cref="FileQueue.Failures"/>), read by index so a frame with none makes nothing.</summary>
+        public static void TellEach(Feature feature, IReadOnlyList<(string Doing, Exception Error)> failures)
+        {
+            for (var i = 0; i < failures.Count; i++) Tell(feature, failures[i].Doing, failures[i].Error);
+        }
+
         /// <summary>A part failed, found by checking rather than thrown; told as <see cref="Tell(Feature, string, Exception)"/> tells.</summary>
         public static void Tell(Feature feature, string part, string why) => Tell(feature, part, new Failure(why));
 

@@ -122,7 +122,7 @@ namespace Scry
         /// <summary>Tells any writing that failed; called each frame.</summary>
         public static void Update()
         {
-            foreach (var (doing, error) in Files.Failures()) Faults.Tell(Feature.PlacesKept, doing, error);
+            Faults.TellEach(Feature.PlacesKept, Files.Failures());
         }
 
         /// <summary>What was kept in the cache folder; nothing for a file of another kind or none. On a worker thread.</summary>

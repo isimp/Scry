@@ -30,6 +30,13 @@ namespace Scry
 
         /// <summary>The file of the character whose book is held or being read.</summary>
         private static string _file;
+
+        /// <summary>The character's file, and the one kept before its id was in the name, as last worked out from what names it; worked out again only when one of those changes, not each frame.</summary>
+        private static string _fileOf;
+        private static string _oldFileOf;
+        private static string _namedBy;
+        private static FileHelpers.FileSource _sourceOf;
+        private static long _idOf;
         private static Task<CompendiumBook> _reading;
         private static CompendiumBook _book;
         private static bool _unreadable;
@@ -77,13 +84,20 @@ namespace Scry
         /// <summary>Reads, catches up and writes as due; called each frame.</summary>
         public static void Update()
         {
-            foreach (var (doing, error) in Files.Failures()) Faults.Tell(Feature.CompendiumCatchUp, doing, error);
+            Faults.TellEach(Feature.CompendiumCatchUp, Files.Failures());
             var player = Player.m_localPlayer;
             var profile = Game.instance != null ? Game.instance.GetPlayerProfile() : null;
             if (player == null || profile == null) return;
 
-            var file = CompendiumBook.FileName(profile.m_filename, profile.m_fileSource.ToString(), profile.GetPlayerID());
-            if (file != _file) Begin(file, CompendiumBook.OldFileName(profile.m_filename, profile.m_fileSource.ToString()));
+            if (_fileOf == null || !ReferenceEquals(profile.m_filename, _namedBy) || profile.m_fileSource != _sourceOf || profile.GetPlayerID() != _idOf)
+            {
+                _namedBy = profile.m_filename;
+                _sourceOf = profile.m_fileSource;
+                _idOf = profile.GetPlayerID();
+                _fileOf = CompendiumBook.FileName(_namedBy, _sourceOf.ToString(), _idOf);
+                _oldFileOf = CompendiumBook.OldFileName(_namedBy, _sourceOf.ToString());
+            }
+            if (_fileOf != _file) Begin(_fileOf, _oldFileOf);
             if (_reading != null && !Opened()) return;
 
             var catalog = WorldCatalog.Current;
