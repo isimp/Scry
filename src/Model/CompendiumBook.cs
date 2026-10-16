@@ -452,23 +452,6 @@ namespace Scry
         /// </summary>
         public static string FileName(string characterFile, string source, long id) => $"{characterFile}-{source}-{Stored.Count(id)}.dat";
 
-        /// <summary>The file a character's book was kept in before its id was part of the name (<see cref="TakeOver"/>).</summary>
-        public static string OldFileName(string characterFile, string source) => $"{characterFile}-{source}.dat";
-
-        /// <summary>
-        /// Moves a book kept under the name without the character's id to the name with it, for
-        /// the character playing, unless one is kept there already; true when it did. Taken over
-        /// once, it is gone from the old name, a copy left aside mid-write with it (<see cref="FileSwap"/>),
-        /// so a character made later under the same name starts with an empty book.
-        /// </summary>
-        public static bool TakeOver(string oldPath, string path)
-        {
-            var from = FileSwap.ToRead(oldPath);
-            if (from == null || FileSwap.ToRead(path) != null) return false;
-            File.Move(from, path);
-            FileSwap.Remove(oldPath);
-            return true;
-        }
 
         /// <summary>The line saying the character played with others.</summary>
         private const string WithOthersLine = "with-others";

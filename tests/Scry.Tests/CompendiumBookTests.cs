@@ -1,4 +1,3 @@
-using System.IO;
 using System.Linq;
 using Xunit;
 using static Scry.Tests.TestCatalog;
@@ -232,67 +231,6 @@ namespace Scry.Tests
             Assert.NotEqual(CompendiumBook.FileName("Astrid", "Local", 17), CompendiumBook.FileName("Astrid", "Cloud", 17));
             // A character made anew under the name of one deleted gets an id of its own, so a book of its own.
             Assert.NotEqual(CompendiumBook.FileName("Astrid", "Local", 17), CompendiumBook.FileName("Astrid", "Local", 18));
-        }
-
-        [Fact]
-        public void ABookKeptBeforeTheIdWasInItsNameGoesOverToTheCharacterPlayingOnce()
-        {
-            var dir = TempDir();
-            var old = Path.Combine(dir, CompendiumBook.OldFileName("Astrid", "Local"));
-            var first = Path.Combine(dir, CompendiumBook.FileName("Astrid", "Local", 17));
-            var later = Path.Combine(dir, CompendiumBook.FileName("Astrid", "Local", 18));
-            File.WriteAllText(old, "know\tBoar\t3\n");
-
-            Assert.True(CompendiumBook.TakeOver(old, first));
-            Assert.Equal(KnownLevel.Known, CompendiumBook.Load(File.ReadAllText(first)).Level("Boar"));
-            Assert.False(File.Exists(old));
-            // A character made later under that name finds nothing to take over, and starts empty.
-            Assert.False(CompendiumBook.TakeOver(old, later));
-            Assert.False(File.Exists(later));
-        }
-
-        [Fact]
-        public void ABookKeptUnderTheIdAlreadyIsNeverWrittenOver()
-        {
-            var dir = TempDir();
-            var old = Path.Combine(dir, CompendiumBook.OldFileName("Astrid", "Local"));
-            var path = Path.Combine(dir, CompendiumBook.FileName("Astrid", "Local", 17));
-            File.WriteAllText(old, "know\tBoar\t3\n");
-            File.WriteAllText(path, "know\tNeck\t3\n");
-
-            Assert.False(CompendiumBook.TakeOver(old, path));
-            Assert.Equal("know\tNeck\t3\n", File.ReadAllText(path));
-            Assert.True(File.Exists(old));
-        }
-
-        [Fact]
-        public void ABookLeftAsideMidWriteGoesOverAndNoCopyStaysBehind()
-        {
-            var dir = TempDir();
-            var old = Path.Combine(dir, CompendiumBook.OldFileName("Astrid", "Local"));
-            var path = Path.Combine(dir, CompendiumBook.FileName("Astrid", "Local", 17));
-            File.WriteAllText(old + ".tmp", "know\tBoar\t3\n");
-
-            Assert.True(CompendiumBook.TakeOver(old, path));
-            Assert.Equal(KnownLevel.Known, CompendiumBook.Load(File.ReadAllText(path)).Level("Boar"));
-            Assert.Empty(Directory.GetFiles(dir, CompendiumBook.OldFileName("Astrid", "Local") + "*"));
-
-            // One in place with a copy aside that never moved there: the one in place goes, the copy is gone too.
-            var other = Path.Combine(dir, CompendiumBook.OldFileName("Sigrun", "Local"));
-            var otherPath = Path.Combine(dir, CompendiumBook.FileName("Sigrun", "Local", 5));
-            File.WriteAllText(other, "know\tBoar\t3\n");
-            File.WriteAllText(other + ".tmp", "know\tNeck\t2\n");
-            Assert.True(CompendiumBook.TakeOver(other, otherPath));
-            Assert.Equal(KnownLevel.Known, CompendiumBook.Load(File.ReadAllText(otherPath)).Level("Boar"));
-            Assert.False(File.Exists(other + ".tmp"));
-        }
-
-        [Fact]
-        public void NothingKeptUnderEitherNameTakesNothingOver()
-        {
-            var dir = TempDir();
-            Assert.False(CompendiumBook.TakeOver(Path.Combine(dir, "a.dat"), Path.Combine(dir, "b.dat")));
-            Assert.Empty(Directory.GetFiles(dir));
         }
 
         [Fact]

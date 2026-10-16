@@ -25,12 +25,10 @@ namespace Scry
             yield return Until(() => CompendiumKeeper.Book != null, 10);
             var book = CompendiumKeeper.Book;
             if (!p.Check(book != null, "its book is read")) yield break;
-            // Kept under the character's id, so one made anew under a deleted one's name starts empty; nothing stays under the name without it.
+            // Kept under the character's id, so one made anew under a deleted one's name starts empty.
             var file = CompendiumKeeper.FilePath;
             var source = profile.m_fileSource.ToString();
             p.Check(file != null && Path.GetFileName(file) == CompendiumBook.FileName(profile.m_filename, source, profile.GetPlayerID()), "its book is kept under the character's id", file);
-            var oldFile = file != null ? Path.Combine(Path.GetDirectoryName(file), CompendiumBook.OldFileName(profile.m_filename, source)) : null;
-            p.Check(oldFile != null && FileSwap.ToRead(oldFile) == null, "and none under its name alone", oldFile);
             var known = book.Count(KnownLevel.Known);
             var seen = book.Count(KnownLevel.Seen);
             p.Note($"it knows {Numbers.Count(known)} entries, has seen {Numbers.Count(seen - known)} more and heard of {Numbers.Count(book.Count(KnownLevel.HeardOf) - seen)}; learned lately: {string.Join(", ", book.Lately.Take(12))}");

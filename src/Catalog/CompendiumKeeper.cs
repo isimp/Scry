@@ -31,9 +31,8 @@ namespace Scry
         /// <summary>The file of the character whose book is held or being read.</summary>
         private static string _file;
 
-        /// <summary>The character's file, and the one kept before its id was in the name, as last worked out from what names it; worked out again only when one of those changes, not each frame.</summary>
+        /// <summary>The character's file as last worked out from what names it; worked out again only when one of those changes, not each frame.</summary>
         private static string _fileOf;
-        private static string _oldFileOf;
         private static string _namedBy;
         private static FileHelpers.FileSource _sourceOf;
         private static long _idOf;
@@ -95,9 +94,8 @@ namespace Scry
                 _sourceOf = profile.m_fileSource;
                 _idOf = profile.GetPlayerID();
                 _fileOf = CompendiumBook.FileName(_namedBy, _sourceOf.ToString(), _idOf);
-                _oldFileOf = CompendiumBook.OldFileName(_namedBy, _sourceOf.ToString());
             }
-            if (_fileOf != _file) Begin(_fileOf, _oldFileOf);
+            if (_fileOf != _file) Begin(_fileOf);
             if (_reading != null && !Opened()) return;
 
             var catalog = WorldCatalog.Current;
@@ -537,7 +535,7 @@ namespace Scry
         }
 
         /// <summary>Starts reading another character's book, once the one held is written.</summary>
-        private static void Begin(string file, string oldFile)
+        private static void Begin(string file)
         {
             Save(now: true);
             _file = file;
@@ -546,8 +544,7 @@ namespace Scry
             _caughtUp = false;
             _recordsSize = -1;
             var path = PathOf(file);
-            var oldPath = PathOf(oldFile);
-            _reading = Files.Then(() => Read(path, oldPath));
+            _reading = Files.Then(() => Read(path));
         }
 
         /// <summary>Takes the book read, once it is; an empty one where it could not be read, never written over.</summary>
@@ -578,15 +575,10 @@ namespace Scry
             return (day, biome == Heightmap.Biome.None ? null : biome.ToString());
         }
 
-        /// <summary>
-        /// The book kept for a character; an empty one for a character never kept. One kept before
-        /// the character's id was in its name is taken over first (<see cref="CompendiumBook.TakeOver"/>);
-        /// where it cannot be moved, it is read where it is. On a worker thread.
-        /// </summary>
-        private static CompendiumBook Read(string path, string oldPath)
+        /// <summary>The book kept for a character; an empty one for a character never kept. On a worker thread.</summary>
+        private static CompendiumBook Read(string path)
         {
-            var failed = Steps.Run(() => CompendiumBook.TakeOver(oldPath, path), null);
-            var file = FileSwap.ToRead(path) ?? (failed != null ? FileSwap.ToRead(oldPath) : null);
+            var file = FileSwap.ToRead(path);
             return CompendiumBook.Load(file != null ? File.ReadAllText(file) : null);
         }
 
