@@ -28,6 +28,7 @@ namespace Scry
             var unseen = new List<string>();
             var stillIn = new List<string>();
             var unmarked = new List<string>();
+            var unlevelled = new List<string>();
             foreach (var entry in places)
             {
                 Select(entry);
@@ -101,9 +102,33 @@ namespace Scry
                 yield return Until(() => Stage.RoomGoneInto == null && Stage.ExampleRoomsKept, 5);
                 if (Stage.RoomGoneInto != null || Stage.Cutting || Stage.ExampleRoomsAway > 0 || Stage.ExampleRoomsDimmed > 0)
                     stillIn.Add($"{entry.Name}: {Numbers.Count(Stage.ExampleRoomsAway)} away, {Numbers.Count(Stage.ExampleRoomsDimmed)} dimmed");
+
+                // A room with levels of its own: each is opened in turn, the cut at head height over it.
+                var tiered = rooms.FirstOrDefault(r => !r.Room.EndCap && !r.Room.Divider && Stage.ExampleRoomLevels(r).Count > 1);
+                if (tiered == null)
+                {
+                    p.Note($"{entry.Name}: no room of this layout has levels of its own");
+                    continue;
+                }
+                var levels = Stage.ExampleRoomLevels(tiered);
+                ScryPanel.ClickRoomForTest(X, tiered);
+                yield return Until(() => Stage.RoomGoneInto == tiered && Stage.ExampleRoomsKept, 5);
+                foreach (var level in levels)
+                {
+                    Stage.OpenRoomLevel(level);
+                    yield return Until(() => !Stage.Gliding, 5);
+                    var expected = Stage.RoomLevelCut(tiered, level);
+                    if (Stage.RoomLevelOpen != level || Math.Abs(Stage.CutAt - expected) > 0.01f)
+                        unlevelled.Add($"{entry.Name}'s {tiered.Room.Name} at {Numbers.Fixed(level, 1)} m cut at {Numbers.Fixed(Stage.CutAt, 2)} m, not {Numbers.Fixed(expected, 2)}");
+                }
+                p.Note($"{entry.Name}'s {tiered.Room.Name}: levels at " + string.Join(", ", levels.Select(l => Numbers.Fixed(l, 1) + " m")));
+                yield return Picture(p, $"go into {entry.Name} room's top level");
+                Stage.ComeOut();
+                yield return Until(() => Stage.RoomGoneInto == null && Stage.ExampleRoomsKept, 5);
             }
             Stage.Inside = wasInside;
             StageAsItWas();
+            p.Check(unlevelled.Count == 0, "each level of a room gone into opens, cut at head height over it", string.Join("; ", unlevelled));
             p.Check(notIn.Count == 0, "a click on a dungeon's room goes into it", string.Join("; ", notIn));
             p.Check(miscut.Count == 0, "the stage is cut at head height over the room's ground", string.Join("; ", miscut));
             p.Check(misdrawn.Count == 0, "rooms on its level stand half dimmed, those below dimmed, those above put away", string.Join("; ", misdrawn));

@@ -289,6 +289,28 @@ namespace Scry
             return RoomFocus.Cut(ground, TheExample.CeilingOver(room, ground)) + lift;
         }
 
+        /// <summary>A room's levels from the lowest up, its ground among them (<see cref="RoomLevels"/>).</summary>
+        public static List<float> ExampleRoomLevels(PlacedRoom room) => TheExample.LevelsOf(room);
+
+        /// <summary>The level of the room gone into that is open; none outside a room.</summary>
+        public static float? RoomLevelOpen => TheExample.Focused != null ? TheExample.FocusLevel : (float?)null;
+
+        /// <summary>Where the stage cuts over a level of a room, above the location's root: head height over it, under the room's own ceiling over it where lower.</summary>
+        public static float RoomLevelCut(PlacedRoom room, float level)
+        {
+            var lift = TheExample.Holder != null ? TheExample.Holder.transform.localPosition.y : 0f;
+            return RoomFocus.Cut(level, TheExample.CeilingOver(room, level)) + lift;
+        }
+
+        /// <summary>Opens a level of the room gone into: the cut stands at head height over it and the camera looks at it.</summary>
+        public static void OpenRoomLevel(float level)
+        {
+            var room = TheExample.Focused;
+            if (room == null) return;
+            TheExample.OpenLevelOfFocused(level);
+            TheCut.Hold(RoomLevelCut(room, level));
+        }
+
         /// <summary>
         /// Goes into a room of a dungeon's example: the room stands whole, cut at head height over
         /// its own ground, the rooms on its level half dimmed, those below dimmed and those above

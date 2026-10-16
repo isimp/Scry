@@ -277,7 +277,7 @@ namespace Scry
             {
                 if (TheExample.Focused == null || !(TheExample.FocusAcross() is Vector3 room)) return null;
                 var lift = TheExample.Holder != null ? TheExample.Holder.transform.localPosition.y : 0f;
-                var ground = Origin.y + (TheExample.FocusGround + lift) * _scale;
+                var ground = Origin.y + (TheExample.FocusLevel + lift) * _scale;
                 return new Vector4(room.x, ground, room.y, StageFraming.FloorReach(room.z));
             }
             if (TheCut.Level >= Floors.Count) return null;

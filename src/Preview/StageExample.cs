@@ -124,11 +124,21 @@ namespace Scry
         /// <summary>The ground of the room gone into, in the example's own space.</summary>
         public float FocusGround { get; private set; }
 
+        /// <summary>The level of the room gone into it is cut over (<see cref="RoomLevels"/>), its ground on going in.</summary>
+        public float FocusLevel { get; private set; }
+
+        /// <summary>A room's levels from the lowest up, its ground among them (<see cref="RoomLevels.Of"/>).</summary>
+        public List<float> LevelsOf(PlacedRoom room) => RoomLevels.Of(_roomGround.TryGetValue(room, out var patch) ? patch : null, GroundOf(room));
+
+        /// <summary>Opens a level of the room gone into, which the cut and the camera follow; the rooms around keep their looks by its ground.</summary>
+        public void OpenLevelOfFocused(float level) => FocusLevel = level;
+
         /// <summary>Goes into a room: it stands whole and the rest as <see cref="RoomFocus.Look"/> has them.</summary>
         public void Focus(PlacedRoom room)
         {
             Focused = room;
             FocusGround = GroundOf(room);
+            FocusLevel = FocusGround;
             _focusLooks.Clear();
             _focusRead = -1;
             _focusAcross = null;
