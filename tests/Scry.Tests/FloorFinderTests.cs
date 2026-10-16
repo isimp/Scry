@@ -391,6 +391,39 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ARoomStandsOnAFloorOnlyWhereItHasRoomToStandThere()
+        {
+            // A stair's slope, a landing or a chest's top near a floor touches it, but the room
+            // does not stand on it: opened there, it would stand whole and pull the view toward it.
+            var hall = FloorFinder.Patch(Patch(0, 0, 12, 12, 0f).Concat(Patch(4, 4, 5, 5, 3f)));
+            hall.Ground = 144 * Cell;
+            Assert.True(FloorFinder.StandsOn(hall, 0f));
+            Assert.False(FloorFinder.StandsOn(hall, 3f));
+            // It still reaches that floor, so no floor of its own is added for it.
+            Assert.True(FloorFinder.Holds(hall, 3f));
+
+            // A gallery round a hall is a floor of the room's own, which it stands on.
+            var galleried = FloorFinder.Patch(Patch(0, 0, 20, 20, 0f).Concat(Patch(0, 0, 20, 6, 4f)));
+            galleried.Ground = 400 * Cell;
+            Assert.True(FloorFinder.StandsOn(galleried, 4f));
+            Assert.True(FloorFinder.StandsOn(galleried, 0.5f));
+            Assert.False(FloorFinder.StandsOn(galleried, 2f));
+
+            // A small room stands on its main ground however little it is, as an end cap does.
+            var cap = FloorFinder.Patch(Patch(0, 0, 6, 6, -1f));
+            cap.Ground = 36 * Cell;
+            Assert.True(FloorFinder.StandsOn(cap, -1f));
+
+            // Ground high over its doorways, or open to the sky, is none it stands on.
+            var rock = FloorFinder.Patch(Patch(0, 0, 12, 12, 0f).Concat(Patch(0, 0, 12, 12, 8f)));
+            rock.Ground = 144 * Cell;
+            rock.Door = 0f;
+            Assert.False(FloorFinder.StandsOn(rock, 8f));
+            Assert.False(FloorFinder.StandsOn(FloorFinder.Patch(Patch(0, 0, 12, 12, 6f, open: true)), 6f));
+            Assert.False(FloorFinder.StandsOn(FloorFinder.Patch(new FloorHit[0]), 0f));
+        }
+
+        [Fact]
         public void AnExamplesGroundSteppingDownLessThanAStoreyAtATimeIsOneFloorAsFarAsItsCutReaches()
         {
             // A cave's ground at -3.5, -4.2 and -5 m, each less than a storey below the last and all

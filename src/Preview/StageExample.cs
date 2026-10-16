@@ -230,11 +230,11 @@ namespace Scry
         public int OnFloorCount(float floor)
         {
             if (_countedAt == Time.frameCount && _countedFloor == floor) return _countedRooms;
-            // A room by its box or its own ground; an end cap or divider only by ground of its own there.
+            // A room by its box or a floor of its own there; an end cap or divider only by a floor of its own.
             var count = 0;
             foreach (var room in Placed.Rooms)
             {
-                if (_roomGround.TryGetValue(room, out var ground) && FloorFinder.Holds(ground, floor)) count++;
+                if (_roomGround.TryGetValue(room, out var ground) && FloorFinder.StandsOn(ground, floor)) count++;
                 else if (!room.Room.EndCap && !room.Room.Divider && ExamplePlan.Shown(room, floor) == PlanRoomShown.Whole) count++;
             }
             _countedAt = Time.frameCount;
@@ -243,15 +243,19 @@ namespace Scry
             return count;
         }
 
-        /// <summary>Whether a room stands on a floor: its box says so (<see cref="ExamplePlan.Shown"/>), or its own rays found ground there (<see cref="FloorFinder.Holds"/>), as its meshes can reach past its box.</summary>
-        public bool OnFloor(PlacedRoom room, float floor) =>
+        /// <summary>Whether a floor reaches a room: its box says the room stands on it (<see cref="ExamplePlan.Shown"/>), or its own rays found any ground there (<see cref="FloorFinder.Holds"/>), as its meshes can reach past its box; a room no floor reaches gets one of its own.</summary>
+        public bool Reaches(PlacedRoom room, float floor) =>
             ExamplePlan.Shown(room, floor) == PlanRoomShown.Whole || _roomGround.TryGetValue(room, out var ground) && FloorFinder.Holds(ground, floor);
 
-        /// <summary>How a room shows with a floor opened: whole on it, else as its box says, below faintly or above not at all; whole with none.</summary>
+        /// <summary>Whether a room stands on a floor: its box says so, or its rays found a floor of its own there (<see cref="FloorFinder.StandsOn"/>), not merely a slope, a landing or a lid near it.</summary>
+        public bool StandsOn(PlacedRoom room, float floor) =>
+            ExamplePlan.Shown(room, floor) == PlanRoomShown.Whole || _roomGround.TryGetValue(room, out var ground) && FloorFinder.StandsOn(ground, floor);
+
+        /// <summary>How a room shows with a floor opened: whole where it stands on it, else as its box says, below faintly or above not at all; whole with none.</summary>
         public PlanRoomShown RoomShown(PlacedRoom room, float? planFloor)
         {
             if (planFloor == null) return PlanRoomShown.Whole;
-            return OnFloor(room, planFloor.Value) ? PlanRoomShown.Whole : ExamplePlan.Shown(room, planFloor);
+            return StandsOn(room, planFloor.Value) ? PlanRoomShown.Whole : ExamplePlan.Shown(room, planFloor);
         }
 
         /// <summary>
@@ -336,8 +340,9 @@ namespace Scry
                         $"{Numbers.Fixed((float)(b.Value.Sum / b.Value.Count), 1)}:{Numbers.Amount(b.Value.Room, 0)}{(b.Value.Room >= own ? "!" : "")}{(b.Value.Landed ? "" : "~")}");
                     line += $", ground {Numbers.Amount(ground.Ground, 0)} m\u00b2: {string.Join(" ", bands)}";
                 }
-                var on = floors.Where(f => OnFloor(room, f)).Select(f => Numbers.Fixed(f, 1) + (ExamplePlan.Shown(room, f) == PlanRoomShown.Whole ? "" : " by ground"));
-                told.Add(line + $", on {string.Join(" ", on)}");
+                var on = floors.Where(f => StandsOn(room, f)).Select(f => Numbers.Fixed(f, 1) + (ExamplePlan.Shown(room, f) == PlanRoomShown.Whole ? "" : " by ground"));
+                var touched = floors.Where(f => Reaches(room, f) && !StandsOn(room, f)).Select(f => Numbers.Fixed(f, 1));
+                told.Add(line + $", on {string.Join(" ", on)}" + (touched.Any() ? $", touching {string.Join(" ", touched)}" : ""));
             }
             return told;
         }
@@ -397,7 +402,7 @@ namespace Scry
             if (found.Count == 0) return PlaceView.ExampleFloors(Placed);
             // A room standing whole on none of them, a sloping corridor with no flat ground, gets
             // a floor where it is walked into, so every room built can be opened.
-            return PlaceView.ReachingEveryRoom(found, Placed.Rooms.Take(Next), OnFloor);
+            return PlaceView.ReachingEveryRoom(found, Placed.Rooms.Take(Next), Reaches);
         }
 
         /// <summary>Takes down the example's copies and lets go of everything kept of it, as another entry or another example is shown.</summary>

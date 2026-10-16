@@ -200,8 +200,9 @@ namespace Scry
 
         /// <summary>
         /// Whether a patch's rays found ground one can stand on within <see cref="Holding"/> of a
-        /// floor: a room of an example stands on a floor its own rays found ground on, whatever
-        /// box the game sizes the room by, but not on the top of its rock.
+        /// floor, however little: a room of an example reaches a floor it touches so, whatever box
+        /// the game sizes the room by, but not the top of its rock. Every room an example builds
+        /// is reached by one of its floors.
         /// </summary>
         public static bool Holds(FloorPatch patch, float floor)
         {
@@ -209,6 +210,24 @@ namespace Scry
             foreach (var band in patch.Bands.Values)
             {
                 if (Stands(patch, band) && Math.Abs(band.Sum / band.Count - floor) <= Holding) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Whether a room of an example stands on a floor: within <see cref="Holding"/> of it, its
+        /// rays found a floor of the room's own, its main ground (<see cref="MainFloor"/>) or a
+        /// level of its own (<see cref="OwnLevelRoom"/> and its share of the room's ground), as
+        /// the example's floors are made of each room. A stair's slope, a landing or a chest's lid
+        /// near a floor touches it (<see cref="Holds"/>) but is none to stand on.
+        /// </summary>
+        public static bool StandsOn(FloorPatch patch, float floor)
+        {
+            var main = MainBand(patch);
+            foreach (var pair in patch.Bands)
+            {
+                if (pair.Key != main && !OwnLevel(patch, pair.Value)) continue;
+                if (Math.Abs(pair.Value.Sum / pair.Value.Count - floor) <= Holding) return true;
             }
             return false;
         }
