@@ -69,12 +69,14 @@ namespace Scry
                 StrictSectionStarts();
                 if (topic.Heading == null)
                 {
+                    NoteTopic(topic.Id, y);
                     y = TopicBody(explorer, entry, facts, topic, places, width, Mathf.Min(U(130f), width * 0.36f), y);
                     y = StrictLeftLine(explorer, topic.Id, width, y);
                     continue;
                 }
 
                 var top = y + U(6f);
+                NoteTopic(topic.Id, top);
                 if (TopicHeights[i] > 0f) Skin.Box(new Rect(0f, top, width, TopicHeights[i]), Skin.TopicFill);
                 GUI.Label(new Rect(pad, top + U(6f), inner, U(20f)), topic.Heading, Skin.TopicName);
                 y = top + U(30f);

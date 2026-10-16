@@ -32,7 +32,8 @@ namespace Scry
             }
         }
 
-        private static bool ListHidden
+        /// <summary>Whether the list is folded away in the view shown.</summary>
+        internal static bool ListHidden
         {
             get => _compact ? _listHiddenCompact : _listHiddenFull;
             set
@@ -51,6 +52,13 @@ namespace Scry
 
         /// <summary>The stage's height against its usual one, set by dragging its bottom edge.</summary>
         private static float _stageScale = 1f;
+
+        /// <summary>The stage's height against its usual one, as a drag of its edge sets it; for the self-test's pictures.</summary>
+        internal static float StageScale
+        {
+            get => _stageScale;
+            set => _stageScale = Mathf.Clamp(value, 0.4f, 2.4f);
+        }
 
         private enum Drag { None, Move, Resize, Orbit, StageSize, Pan, ListSize, Ruler }
 

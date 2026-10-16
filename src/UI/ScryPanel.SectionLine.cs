@@ -26,6 +26,13 @@ namespace Scry
 
         private static readonly List<float> MarkTops = new List<float>();
 
+        /// <summary>
+        /// Where each topic of In the game starts, by its id, as the draw of the details going on
+        /// found it: gone to as a section is (<see cref="GoToSection"/>), though the line names
+        /// only the sections.
+        /// </summary>
+        private static readonly Dictionary<string, float> TopicTops = new Dictionary<string, float>();
+
         /// <summary>Whether the details' sections are being drawn, so their headings are noted.</summary>
         private static bool _marking;
 
@@ -56,6 +63,7 @@ namespace Scry
         private static void StartMarking()
         {
             Marking.Clear();
+            TopicTops.Clear();
             _marking = true;
         }
 
@@ -90,13 +98,26 @@ namespace Scry
                 _wentToScroll = SectionLine.JumpTo(mark.Top, U(4f), maxScroll);
                 return _wentToScroll;
             }
+            if (TopicTops.TryGetValue(key, out var topic))
+            {
+                _wentTo = key;
+                _wentToScroll = SectionLine.JumpTo(topic, U(4f), maxScroll);
+                return _wentToScroll;
+            }
             return null;
+        }
+
+        /// <summary>Notes where a topic of In the game starts while the details are drawn, so going to it scrolls there.</summary>
+        private static void NoteTopic(string id, float top)
+        {
+            if (_marking && id != null) TopicTops[id] = top;
         }
 
         /// <summary>Lets go of the sections found, for another entry or world.</summary>
         private static void ForgetSectionLine()
         {
             Marks.Clear();
+            TopicTops.Clear();
             _goingTo = null;
             _wentTo = null;
         }
@@ -113,6 +134,9 @@ namespace Scry
 
         /// <summary>The section lit on the line, by its key, or null; for the self-test.</summary>
         public static string SectionLit { get; private set; }
+
+        /// <summary>Whether the details stand where going to a section or topic put them, for the self-test; a topic is never lit on the line.</summary>
+        public static bool StandsAt(string key) => key != null && _wentTo == key && Mathf.Abs(_sideScroll.y - _wentToScroll) < 1f;
 
         private static ChipFlow LineFlow(float width, float y) => new ChipFlow(0f, width, y, U(20f), U(14f), U(2f));
 

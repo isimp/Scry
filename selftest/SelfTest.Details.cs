@@ -65,8 +65,12 @@ namespace Scry
             var wood = Pick(Kind.Item, "Wood");
             if (wood != null)
             {
-                var fromTree = Facts.For(wood).Where.FirstOrDefault(s => s.Record?.Way == SourceWay.Table && s.Record.Table == TableOf.Tree);
-                p.Check(SourceWords.CountedBy(fromTree.Record) == Tally.Gave, "wood's line from a tree is counted from what the character saw it give", fromTree.Text);
+                // A felled tree leaves logs, which give the wood; some trees give it themselves.
+                var lines = Facts.For(wood).Where;
+                var fromTrees = lines.Where(s => s.Record?.Way == SourceWay.Table && (s.Record.Table == TableOf.Tree || s.Record.Table == TableOf.Log)).ToList();
+                var ways = string.Join(", ", lines.Select(s => s.Record == null ? "unrecorded" : s.Record.Way == SourceWay.Table ? "table of " + s.Record.Table : s.Record.Way.ToString()).Distinct());
+                p.Check(fromTrees.Count > 0 && fromTrees.All(s => SourceWords.CountedBy(s.Record) == Tally.Gave), "wood's lines from trees and their logs are counted from what the character saw them give",
+                    fromTrees.Count == 0 ? "none from a tree or log among " + ways : string.Join("; ", fromTrees.Where(s => SourceWords.CountedBy(s.Record) != Tally.Gave).Select(s => s.Text).Take(3)));
             }
             // The other numbers the game never shows wait for their own deed, on real pages.
             foreach (var (kind, name, fact, deed) in new[]

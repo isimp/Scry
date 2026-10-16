@@ -3,6 +3,7 @@ using System.Collections;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using UnityEngine;
 
 namespace Scry
 {
@@ -43,10 +44,12 @@ namespace Scry
 
         /// <summary>
         /// Takes a picture of the screen, named for what it shows, once the stage's view stands
-        /// still, and notes the file; notes why when none came.
+        /// still, and notes the file; notes why when none came. The search box is left first, so
+        /// its help does not cover the list.
         /// </summary>
         private static IEnumerator Picture(Probe p, string what)
         {
+            GUIUtility.keyboardControl = 0;
             yield return Until(() => !Stage.Gliding, 3);
             yield return null;
             if (Capture == null)
@@ -70,13 +73,43 @@ namespace Scry
             p.Note(File.Exists(file) && File.GetLastWriteTimeUtc(file) > before ? $"pictured {what}: {Path.GetFileName(file)}" : $"no picture of {what} came");
         }
 
-        /// <summary>Goes to a section of the page shown, as a click on its name on the section line does, and takes a picture of it.</summary>
+        /// <summary>Goes to a section or a topic of In the game on the page shown, as a click on a section's name on the line does, and takes a picture of it.</summary>
         private static IEnumerator PictureOf(Probe p, string section, string what)
         {
-            ScryPanel.GoToSection(section);
-            yield return Until(() => ScryPanel.SectionLit == section, 2);
-            if (ScryPanel.SectionLit != section) p.Note($"{what}: its section ({section}) was not gone to");
+            yield return GoTo(section);
+            if (!ScryPanel.StandsAt(section)) p.Note($"{what}: {section} was not gone to");
             yield return Picture(p, what);
+        }
+
+        /// <summary>Goes to a section or a topic of In the game on the page shown, and waits for the details to stand there.</summary>
+        private static IEnumerator GoTo(string section)
+        {
+            ScryPanel.GoToSection(section);
+            yield return Until(() => ScryPanel.StandsAt(section), 2);
+        }
+
+        private static float? _stageScaleWas;
+        private static bool? _listHiddenWas;
+
+        /// <summary>Draws the stage as tall as it goes, the list folded away, for pictures of what it shows; <see cref="StageAsItWas"/> puts both back.</summary>
+        private static void BigStage()
+        {
+            if (_stageScaleWas == null)
+            {
+                _stageScaleWas = ScryPanel.StageScale;
+                _listHiddenWas = ScryPanel.ListHidden;
+            }
+            ScryPanel.StageScale = 2.4f;
+            ScryPanel.ListHidden = true;
+        }
+
+        /// <summary>Puts the stage's height and the list back as they were before <see cref="BigStage"/>.</summary>
+        private static void StageAsItWas()
+        {
+            if (_stageScaleWas is float scale) ScryPanel.StageScale = scale;
+            if (_listHiddenWas is bool hidden) ScryPanel.ListHidden = hidden;
+            _stageScaleWas = null;
+            _listHiddenWas = null;
         }
     }
 }

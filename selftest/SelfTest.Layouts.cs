@@ -105,12 +105,13 @@ namespace Scry
         private static readonly string[] PicturedPlaces = { "Bonemass", "CharredTowerRuins3", "WoodHouse12", "WoodHouse2", "Mistlands_GuardTower1_new", "SwampHut1", "SunkenCrypt4" };
 
         /// <summary>
-        /// The places looked at for their floors, each shown alone with every floor opened in
-        /// turn and pictured: each floor is cut under the ceiling found over it; Bonemass's altar,
-        /// whose top no one walks to, is no floor; the low roof of a house is found over its floor
-        /// and the floor cut under it; and the swamp hut's raised floor is one. Each floor is told
-        /// with its cut, its ceiling and what its rays landed on, and each place with its top and
-        /// the ruler's roof over the top floor's cut.
+        /// The places looked at for their floors, each shown alone on a stage as tall as it goes
+        /// with every floor opened in turn and pictured: each floor is cut under the ceiling found
+        /// over it; Bonemass's altar, whose top no one walks to, is no floor; the low roof of a
+        /// house is found over its floor and the floor cut under it; and the swamp hut's raised
+        /// floor is one, rolled again until the hut stands on its stilts, as a roll may leave only
+        /// them. Each floor is told with its cut, its ceiling and what its rays landed on, and each
+        /// place with its top and the ruler's roof over the top floor's cut.
         /// </summary>
         private static IEnumerator FloorsPictured(Probe p)
         {
@@ -119,9 +120,11 @@ namespace Scry
             var wasInside = Stage.Inside;
             Stage.Inside = false;
             ScryPanel.Compact = false;
+            BigStage();
             var over = new List<string>();
             List<float> altar = null;
             List<float> hut = null;
+            var hutStood = false;
             string house = null;
             string Fixed(float metres) => Numbers.Fixed(metres, 1);
             foreach (var entry in places)
@@ -135,6 +138,15 @@ namespace Scry
                     continue;
                 }
                 yield return null;
+                // A roll of the swamp hut may stand only its stilts and ladder; the hut on them reaches past HutStands.
+                for (var roll = 0; entry.Name == "SwampHut1" && Stage.ModelTop < HutStands && roll < 8; roll++)
+                {
+                    var was = CopyOf(entry);
+                    Previews.Rebuild();
+                    yield return Until(() => CopyOf(entry) != null && CopyOf(entry) != was, 10);
+                    yield return null;
+                }
+                if (entry.Name == "SwampHut1") hutStood = Stage.ModelTop >= HutStands;
                 var floors = Stage.FloorHeights.ToList();
                 var cuts = Stage.CutHeights.ToList();
                 var ceilings = Enumerable.Range(0, floors.Count).Select(Stage.CeilingOver).ToList();
@@ -167,11 +179,16 @@ namespace Scry
                 }
             }
             Stage.Inside = wasInside;
+            StageAsItWas();
             p.Check(over.Count == 0, "each floor is cut under the ceiling found over it", string.Join("; ", over.Take(8)));
             if (altar != null) p.Check(!altar.Any(f => f > 3f), "Bonemass's altar, whose top no one walks to, is no floor", string.Join(", ", altar.Select(Fixed)) + " m");
             if (places.Any(e => e.Name == "WoodHouse12")) p.Check(house == null, "a house's low roof is found over its floor, and the floor cut under it", house);
-            if (hut != null) p.Check(hut.Any(f => Math.Abs(f - 3.1f) < 0.4f), "the swamp hut's raised floor, about 3 m up, is a floor", string.Join(", ", hut.Select(Fixed)) + " m");
+            if (hut != null && hutStood) p.Check(hut.Any(f => Math.Abs(f - 3.1f) < 0.4f), "the swamp hut's raised floor, about 3 m up, is a floor", string.Join(", ", hut.Select(Fixed)) + " m");
+            else if (hut != null) p.Note("no roll of the swamp hut of nine stood the hut on its stilts");
         }
+
+        /// <summary>How high the swamp hut reaches over its root with the hut on its stilts; its stilts and ladder alone reach about 5 m.</summary>
+        private const float HutStands = 6f;
 
         /// <summary>
         /// How the parts a floor check names stand in the copy: whether each is there, and each of
@@ -449,6 +466,7 @@ namespace Scry
             if (caves.Count == 0) p.Skip("none of " + string.Join(", ", named) + " is in the catalog");
             var wasInside = Stage.Inside;
             Stage.Inside = true;
+            BigStage();
             var empty = new List<string>();
             var blank = new List<string>();
             var unreached = new List<string>();
@@ -526,6 +544,7 @@ namespace Scry
                 }
             }
             Stage.Inside = wasInside;
+            StageAsItWas();
             p.Check(empty.Count == 0, "every floor found in their examples has rooms on it", string.Join("; ", empty));
             p.Check(blank.Count == 0, "and some room stands on the stage on every floor", string.Join("; ", blank));
             p.Check(unreached.Count == 0, "and every room stands whole on some floor", string.Join("; ", unreached));

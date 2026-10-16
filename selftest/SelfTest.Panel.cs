@@ -102,7 +102,7 @@ namespace Scry
         /// The line under a page's title names its sections, the animations with their count, and
         /// lights the first at the top; going to a section lights it, the last one too, where the
         /// page scrolls no further than its end. Only open sections are gone to, so the folds
-        /// a player keeps are left as they were.
+        /// a player keeps are left as they were. A topic of In the game is gone to the same way.
         /// </summary>
         private static IEnumerator SectionLineGoes(Probe p)
         {
@@ -127,6 +127,11 @@ namespace Scry
                 ScryPanel.GoToSection(key);
                 yield return Until(() => ScryPanel.SectionLit == key, 2);
                 p.Check(ScryPanel.SectionLit == key, $"going to {key} lights it", ScryPanel.SectionLit ?? "none lit");
+            }
+            if (ScryPanel.SectionOpen("facts"))
+            {
+                yield return GoTo("fight");
+                p.Check(ScryPanel.StandsAt("fight"), "going to its fight, a topic of In the game, brings it to the top");
             }
         }
 

@@ -222,6 +222,9 @@ namespace Scry
             ScryPanel.Compact = false;
             yield return Until(() => ReferenceEquals(X.Compendium, view), 3);
             X.Select(troll);
+            // Its tiles are drawn only in view: the page is brought to them first.
+            yield return null;
+            yield return GoTo("overview");
 
             var facts = ScryPanel.Drawn(PanelPart.FactKeptBack);
             var still = ScryPanel.Drawn(PanelPart.StillToFindOut);
@@ -235,7 +238,7 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.WeakSpotsLeftOut) > spots, "its weak spot is left out and counted");
             p.Check(X.StrictAmount(Tally.Fell, troll.Name, hide.Name) == CompendiumWords.Hidden && ScryPanel.Drawn(PanelPart.TallyCounted) > tally,
                 "how many hides it drops reads ??? until counted, a faint line saying what shows it");
-            yield return Picture(p, "strict Troll, nothing found out");
+            yield return PictureOf(p, "overview", "strict Troll, nothing found out");
             yield return PictureOf(p, "fight", "strict Troll's fight, nothing found out");
             yield return PictureOf(p, "loot", "strict Troll's drops, nothing counted");
 
@@ -248,6 +251,7 @@ namespace Scry
             p.Check(X.StrictAmount(Tally.Fell, troll.Name, hide.Name) == "2 (1 of 1)", "counted, its hide shows how many fell and how often", X.StrictAmount(Tally.Fell, troll.Name, hide.Name));
             p.Check(X.FoundOutNote(troll) == "its health found out", "and Learned says what was found out", X.FoundOutNote(troll));
             p.Check(X.KeepsBack(EntryKeys.Did(Deed.StarredFell)), "what its stars change waits for a starred one to fall");
+            yield return PictureOf(p, "overview", "strict Troll, killed");
             yield return PictureOf(p, "fight", "strict Troll's fight, killed");
             yield return PictureOf(p, "loot", "strict Troll's drops, counted");
 
@@ -272,7 +276,7 @@ namespace Scry
             p.Check(X.KilledElsewhere(troll.Key) == ElsewhereWords.Killed(1), "and after its kills", X.KilledElsewhere(troll.Key));
             var stars = X.ShowsOnce("Health by stars", EntryKeys.Did(Deed.StarredFell));
             p.Check(stars.EndsWith(ElsewhereWords.Suffix, System.StringComparison.Ordinal), "what shows its stars says it is seen only where your game runs it", stars);
-            yield return Picture(p, "strict Troll, a kill run in another player's game");
+            yield return PictureOf(p, "facts", "strict Troll, a kill run in another player's game");
             yield return PictureOf(p, "fight", "strict Troll's fight, played with others");
             yield return PictureOf(p, "loot", "strict Troll's drops, a kill run in another player's game");
 
