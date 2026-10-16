@@ -145,7 +145,8 @@ namespace Scry
         /// <summary>
         /// What catches a character up in a catalog, told what the game knows besides: the tools
         /// that build a piece, whether a trader sells an item, and each biome's name as the game
-        /// shows it in the player's language (<c>BiomeSector.GetName</c>), as the entered biomes are kept.
+        /// shows it in the player's language (<c>BiomeSector.GetName</c>), as the entered biomes are kept
+        /// but those of a save from before that, kept by their name tokens.
         /// </summary>
         internal static CompendiumCatchUp CatchUpFor(EntryCatalog catalog)
         {

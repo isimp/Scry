@@ -22,6 +22,13 @@ namespace Scry
         /// <summary>The name a biome goes by before it is translated, by its enum name, as the game's records keep the biomes a character entered (<c>BiomeSector.GetBiomeName</c>).</summary>
         public static string Token(string biome) => "$biome_" + (biome ?? "").ToLowerInvariant();
 
+        /// <summary>
+        /// The name token of the game's no-biome (<c>Heightmap.Biome.None</c>), which a save from
+        /// before the game kept biomes by their shown names may hold among the biomes entered: no
+        /// biome a character enters, and none of the biomes' entries goes by it.
+        /// </summary>
+        public static readonly string NoBiome = Token("None");
+
         /// <summary>Each weather once, with its share of the weights, the most likely first; none weighing nothing.</summary>
         public static List<(string Weather, string Share)> Weathers(IEnumerable<(string Name, float Weight)> weathers)
         {

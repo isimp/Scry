@@ -21,7 +21,11 @@ namespace Scry
         /// <summary>Crafting stations used.</summary>
         public readonly HashSet<string> Stations = Names();
 
-        /// <summary>The areas entered, each by its biome's name, with a name of its own or a prefix where the world gives one.</summary>
+        /// <summary>
+        /// The areas entered, each by its biome's name as the game showed it, with a name of its own or a
+        /// prefix where the world gives one; those a save from before that kept by the biome's name token,
+        /// the no-biome among them (<see cref="BiomeWords.NoBiome"/>).
+        /// </summary>
         public readonly HashSet<string> Biomes = Names();
 
         /// <summary>Trophies held, by prefab.</summary>

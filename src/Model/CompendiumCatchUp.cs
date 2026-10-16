@@ -28,6 +28,7 @@ namespace Scry
         private readonly Func<string, bool> _soldByTrader;
         private readonly IReadOnlyDictionary<string, string> _biomesShown;
         private readonly Dictionary<string, List<Entry>> _byToken = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
+        private readonly List<Entry> _biomes = new List<Entry>();
 
         /// <param name="catalog">The entries the records are told in.</param>
         /// <param name="toolsOf">The tools that build a piece, by its prefab; none where not told.</param>
@@ -42,6 +43,7 @@ namespace Scry
             _biomesShown = biomesShown;
             foreach (var entry in catalog.All)
             {
+                if (entry.Kind == Kind.Biome) _biomes.Add(entry);
                 foreach (var token in entry.Tokens)
                 {
                     if (string.IsNullOrEmpty(token)) continue;
@@ -271,23 +273,37 @@ namespace Scry
         private HashSet<string> Entered(CompendiumRecords records) =>
             new HashSet<string>(BiomesEntered(records).SelectMany(b => b.Biomes), StringComparer.Ordinal);
 
+        /// <summary>The biomes the character entered, from the areas the game keeps (<see cref="BiomesIn"/>).</summary>
+        private List<Entry> BiomesEntered(CompendiumRecords records) => records.Biomes.SelectMany(BiomesIn).ToList();
+
         /// <summary>
-        /// The biomes the character entered, from the areas the game keeps (<c>Player.m_knownBiome</c>):
-        /// each is the biome's name as the game shows it in the player's language, an area's prefix
+        /// The biomes an area the game keeps as entered names (<c>Player.m_knownBiome</c>). The game
+        /// keeps an area by the name it showed then, in the player's language, an area's prefix
         /// before it where there is one ("Dunkler Sumpf"), so a biome counts where its shown name
-        /// stands in an area as whole words; an area kept by its name token counts too.
+        /// stands in an area as whole words. A save from before the game kept those has each biome
+        /// turned into its name token as the character loads (<c>BiomeSector.GetBiomeName</c>,
+        /// "$biome_meadows") and saved so again, so an area going by a token counts too.
         /// </summary>
-        private List<Entry> BiomesEntered(CompendiumRecords records)
+        private List<Entry> BiomesIn(string area)
         {
-            var entered = Named(records.Biomes.SelectMany(area => area.Split(' ')), Kind.Biome).ToList();
-            if (_biomesShown == null) return entered;
-            foreach (var biome in _catalog.All)
+            var named = Named(area.Split(' '), Kind.Biome).ToList();
+            if (_biomesShown == null) return named;
+            foreach (var biome in _biomes)
             {
-                if (biome.Kind != Kind.Biome || entered.Contains(biome) || !_biomesShown.TryGetValue(biome.Name, out var shown) || string.IsNullOrEmpty(shown)) continue;
-                if (records.Biomes.Any(area => (" " + area + " ").IndexOf(" " + shown + " ", StringComparison.OrdinalIgnoreCase) >= 0)) entered.Add(biome);
+                if (named.Contains(biome) || !_biomesShown.TryGetValue(biome.Name, out var shown) || string.IsNullOrEmpty(shown)) continue;
+                if ((" " + area + " ").IndexOf(" " + shown + " ", StringComparison.OrdinalIgnoreCase) >= 0) named.Add(biome);
             }
-            return entered;
+            return named;
         }
+
+        /// <summary>
+        /// The areas the records keep as entered whose biome the book does not know: once the
+        /// records are read in, only an area naming no biome of the catalog, as one given a name of
+        /// its own in place of its biome's or kept in a language not played in now. The game's
+        /// no-biome (<see cref="BiomeWords.NoBiome"/>) is left out, being no biome a character enters.
+        /// </summary>
+        public List<string> AreasNotKnown(CompendiumRecords records, CompendiumBook book) =>
+            records.Biomes.Where(area => area != BiomeWords.NoBiome && !BiomesIn(area).Any(b => book.Level(b.Key) == KnownLevel.Known)).ToList();
 
         /// <summary>The resources giving an item that grow in a biome the character entered; one growing nowhere the world places it is left to be met.</summary>
         private static IEnumerable<Entry> ResourcesGiving(Entry item, HashSet<string> entered) =>
