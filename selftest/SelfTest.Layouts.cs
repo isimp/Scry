@@ -85,7 +85,7 @@ namespace Scry
                 // counted once every room stands.
                 if (PlaceOf(entry)?.Contents?.Dungeon != null)
                 {
-                    yield return Until(() => ExampleLayouts.Of(entry) && ExampleLayouts.Example != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 30);
+                    yield return Until(() => ExampleLayouts.Of(entry) && ExampleLayouts.Example != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0, 30);
                     yield return null;
                 }
                 var left = CopyOf(entry) != null ? CopyOf(entry).GetComponentsInChildren<Collider>(true) : Array.Empty<Collider>();
@@ -259,7 +259,7 @@ namespace Scry
                 if (crypt == null) continue;
                 Select(crypt);
                 yield return Until(() => CopyOf(crypt) != null && ExampleLayouts.Of(crypt) && ExampleLayouts.Example != null
-                                         && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 90);
+                                         && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0, 90);
             }
             FloorProbe.Checked = null;
             p.Note($"{Numbers.Count(FloorRecords.Count)} kinds of place have their floors kept; {Numbers.Count(verified)} told from what was kept and checked against their rays");
@@ -276,7 +276,7 @@ namespace Scry
             // The stage takes up the new layout on its next frames.
             yield return null;
             yield return null;
-            yield return Until(() => Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 90);
+            yield return Until(() => Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0, 90);
             var told = FloorProbe.FromKept - fromKept;
             var cast = FloorProbe.Probed - probed;
             p.Note($"{crypt.Name}'s next layout: {Numbers.Count(told)} rooms' floors from what was kept, {Numbers.Count(cast)} probed (a roll bringing a part not yet seen)");
@@ -487,7 +487,7 @@ namespace Scry
                         yield return null;
                         yield return null;
                     }
-                    yield return Until(() => CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.CreaturesWaiting == 0, 60);
+                    yield return Until(() => CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0 && Stage.CreaturesWaiting == 0, 60);
                     if (CopyOf(entry) == null || Stage.ExampleRoomsTotal == 0)
                     {
                         p.Note($"{entry.Name}: no example stood on the stage");
@@ -610,7 +610,7 @@ namespace Scry
             var wasInside = Stage.Inside;
             Stage.Inside = true;
             Select(entry);
-            yield return Until(() => CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
+            yield return Until(() => CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0, 60);
             if (!p.Check(CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.HasFloors, "its example stands on the stage", $"{entry.Name}, {Numbers.Count(Stage.ExampleRoomsShown)} rooms"))
             {
                 Stage.Inside = wasInside;

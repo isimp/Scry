@@ -379,7 +379,7 @@ namespace Scry
                 // Counted once its example's rooms stand too, as they are built after the copy.
                 Select(shown);
                 yield return Until(() => CopyOf(shown) != null && ExampleLayouts.Of(shown) && ExampleLayouts.Example != null
-                                         && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
+                                         && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0, 60);
                 copy = CopyOf(shown);
                 brokenBefore = Broken(copy);
                 if (brokenBefore > 0) p.Note($"before reading, {shown.Name} stands with {Numbers.Count(brokenBefore)} missing: {string.Join(", ", BrokenParts(copy).Take(8))}; {OwnMissing(copy)}");

@@ -54,6 +54,9 @@ namespace Scry
         public static int ExampleRoomsShown => TheExample.Holder != null ? TheExample.Next : 0;
         public static int ExampleRoomsTotal => TheExample.Holder != null && TheExample.Placed != null ? TheExample.Placed.Rooms.Count : 0;
 
+        /// <summary>How many of the example's rooms made still have their floors to read, one a frame.</summary>
+        public static int ExampleFloorsToRead => TheExample.FloorsToRead;
+
         /// <summary>The example as it stands on the stage, in its own space, for its plan; null before it is begun.</summary>
         public static DungeonExample ExampleShown => TheExample.Holder != null ? TheExample.Placed : null;
 
@@ -125,6 +128,13 @@ namespace Scry
                 if (TheExample.IsDungeon) foreach (var room in TheExample.Placed.Rooms) FloorRecords.Want(room.Room.Name, true);
             }
             TheExample.KeepToFloor(ExamplePlanFloor, ExampleFloors);
+            // A room's floors are read in a frame of their own: reading a big room takes as long
+            // as a frame should, and making one beside it ran a frame past a quarter of a second.
+            if (TheExample.IsDungeon && TheExample.ReadNext(_subject.transform, _layer))
+            {
+                if (InsideWanted && TheExample.Copies > 1) RefreshFloors(TheExample.FloorsNow(), TheExample.CeilingOver, TheExample.Top);
+                return;
+            }
             var placedRooms = TheExample.Placed.Rooms;
             if (TheExample.Next >= placedRooms.Count) return;
 
@@ -162,8 +172,8 @@ namespace Scry
                 placedAny = true;
                 TheExample.Add(placed, copy);
 
-                // A dungeon room's floors; a camp keeps its location's.
-                if (TheExample.IsDungeon) TheExample.ReadFloors(copy, placed, TheExample.BuildRoll, _subject.transform, _layer);
+                // A dungeon room's floors, read in a later frame; a camp keeps its location's.
+                if (TheExample.IsDungeon) TheExample.ReadLater(copy, placed, TheExample.BuildRoll);
                 Tune(copy, audible: false);
                 Populate(TheExample.BuildRoll.Spawns, copy);
                 TheExample.BuildRoll = null;

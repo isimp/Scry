@@ -30,7 +30,7 @@ namespace Scry
             }
 
             Select(stack);
-            yield return Until(() => CopyOf(stack) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.CreaturesWaiting == 0, 60);
+            yield return Until(() => CopyOf(stack) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0 && Stage.CreaturesWaiting == 0, 60);
             if (!p.Check(Stage.ExampleShown != null && Stage.CutFromSide && Stage.SideCutting, "Mörkhalla, one stack of rooms, opens cut from the side", $"side {Stage.CutFromSide}, laid {Stage.SideCutting}"))
             {
                 Stage.Inside = wasInside;

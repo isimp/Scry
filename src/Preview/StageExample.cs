@@ -108,6 +108,24 @@ namespace Scry
         /// <summary>A room's copy standing.</summary>
         public void Add(PlacedRoom room, GameObject copy) => _rooms.Add(new KeyValuePair<PlacedRoom, GameObject>(room, copy));
 
+        /// <summary>The rooms made whose floors are still to be read, each in a frame of its own, so no frame both makes a room and reads one's floors.</summary>
+        private readonly Queue<(GameObject Copy, PlacedRoom Room, PlaceRoll Roll)> _toRead = new Queue<(GameObject, PlacedRoom, PlaceRoll)>();
+
+        /// <summary>How many rooms made still have their floors to read.</summary>
+        public int FloorsToRead => _toRead.Count;
+
+        /// <summary>Has a room's floors read in a later frame (<see cref="ReadNext"/>).</summary>
+        public void ReadLater(GameObject copy, PlacedRoom room, PlaceRoll roll) => _toRead.Enqueue((copy, room, roll));
+
+        /// <summary>Reads the floors of the next room waiting (<see cref="ReadFloors"/>); false with none waiting.</summary>
+        public bool ReadNext(Transform subject, int layer)
+        {
+            if (_toRead.Count == 0) return false;
+            var (copy, room, roll) = _toRead.Dequeue();
+            if (copy != null) ReadFloors(copy, room, roll, subject, layer);
+            return true;
+        }
+
         /// <summary>The share of its colours a room's copy keeps as dimmed (<see cref="Dim"/>); none where it is not.</summary>
         public float? DimShareOf(GameObject room) => _dimmed.TryGetValue(room, out var look) ? Dim.ShareOf(look) : null;
 
@@ -609,6 +627,7 @@ namespace Scry
             _ownFloorOf.Clear();
             _ownFloorRead = -1;
             _heldLook = null;
+            _toRead.Clear();
             Unfocus();
             Top = float.NaN;
             _outside.Clear();

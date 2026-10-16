@@ -33,7 +33,7 @@ namespace Scry
             foreach (var entry in places)
             {
                 Select(entry);
-                yield return Until(() => CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.CreaturesWaiting == 0, 60);
+                yield return Until(() => CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0 && Stage.CreaturesWaiting == 0, 60);
                 if (CopyOf(entry) == null || Stage.ExampleRoomsTotal == 0)
                 {
                     p.Note($"{entry.Name}: no example stood on the stage");
