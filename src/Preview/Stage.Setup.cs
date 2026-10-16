@@ -137,18 +137,7 @@ namespace Scry
             if (light == null) return;
             light.transform.localRotation = Quaternion.Euler(angle);
             light.color = color;
-            light.intensity = power * _lightShare;
-        }
-
-        /// <summary>The share of their power the stage's three lights shine with; all of it but while the self-test compares ways of dimming.</summary>
-        private static float _lightShare = 1f;
-
-        /// <summary>Has the stage's three lights shine with a share of their power, its ambient as it is, for the self-test to film rooms lit as weaker lights would light them.</summary>
-        [Diagnostic]
-        public static void ShareOfLight(float share)
-        {
-            _lightShare = share;
-            ApplyLighting();
+            light.intensity = power;
         }
 
         private static Light AddLight(Transform parent)

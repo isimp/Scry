@@ -5,8 +5,8 @@ namespace Scry
 {
     /// <summary>
     /// For the self-test: the shaders a dungeon example's rooms are drawn with, each with how many
-    /// of their parts the dimming reached (<see cref="Dim"/> darkens a tint and a glow) and how many
-    /// it left as they were, and for those it left, the colours the shader takes instead. The
+    /// of their parts the dimming reached (<see cref="Dim"/> darkens every colour a shader takes)
+    /// and how many it left as they were, and for those it left, any colours the shader takes. The
     /// shaders leaving the most parts as they were come first.
     /// </summary>
     internal sealed class ShaderTally
