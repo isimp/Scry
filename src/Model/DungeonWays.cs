@@ -19,6 +19,9 @@ namespace Scry
         private readonly List<PlacedRoom> _rooms = new List<PlacedRoom>();
         private readonly Dictionary<PlacedRoom, List<PlacedRoom>> _ways = new Dictionary<PlacedRoom, List<PlacedRoom>>();
         private readonly Dictionary<PlacedRoom, PlacedRoom> _cameFrom = new Dictionary<PlacedRoom, PlacedRoom>();
+
+        /// <summary>Where each two rooms joined meet: the doorway they share.</summary>
+        private readonly Dictionary<(PlacedRoom, PlacedRoom), Vec3> _doors = new Dictionary<(PlacedRoom, PlacedRoom), Vec3>();
         private readonly Dictionary<PlacedRoom, int> _steps = new Dictionary<PlacedRoom, int>();
         private readonly Dictionary<PlacedRoom, int> _placed = new Dictionary<PlacedRoom, int>();
 
@@ -95,6 +98,10 @@ namespace Scry
         /// <summary>The room a room is reached from on its way from the entrance through the fewest; none for the entrance or a room no way reaches.</summary>
         public PlacedRoom CameFrom(PlacedRoom room) => room != null && _cameFrom.TryGetValue(room, out var from) ? from : null;
 
+        /// <summary>The doorway two rooms joined share, where the way between them goes through; none for two rooms not joined.</summary>
+        public Vec3? DoorBetween(PlacedRoom a, PlacedRoom b) =>
+            _doors.TryGetValue((a, b), out var at) || _doors.TryGetValue((b, a), out at) ? at : (Vec3?)null;
+
         /// <summary>Whether the way between two rooms is on neither's way from the entrance, so it closes a loop.</summary>
         public bool IsLoop(PlacedRoom a, PlacedRoom b) => CameFrom(a) != b && CameFrom(b) != a;
 
@@ -126,6 +133,7 @@ namespace Scry
                     if (dividers.Any(d => Vec3.Distance(d, at) < Meeting)) continue;
                     if (_ways[room].Contains(other)) continue;
                     _ways[room].Add(other);
+                    _doors[(room, other)] = at;
                     _ways[other].Add(room);
                     joins++;
                 }

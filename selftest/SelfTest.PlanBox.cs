@@ -32,6 +32,7 @@ namespace Scry
             p.Check(missing.Length == 0, "the panel's font holds every sign the plan box and the card draw", $"{Skin.FontName} lacks {missing}");
 
             var unspotted = new List<string>();
+            var unwayed = new List<string>();
             var unfound = new List<string>();
             var unframed = new List<string>();
             var unturned = new List<string>();
@@ -63,6 +64,8 @@ namespace Scry
                         var name = $"{entry.Name} {PlanBoxWords.ViewName(view)} {(big ? "grown" : "compact")}";
                         var spots = ScryPanel.PlanBoxSpotsForTest();
                         if (spots.Count != ways.Rooms.Count) unspotted.Add($"{name}: {Numbers.Count(spots.Count)} spots for {Numbers.Count(ways.Rooms.Count)} rooms");
+                        var pairs = ways.Rooms.Sum(r => ways.WaysOf(r).Count(o => ways.Rooms.Contains(o))) / 2;
+                        if (ScryPanel.PlanBoxWaysDrawn != pairs) unwayed.Add($"{name}: {Numbers.Count(ScryPanel.PlanBoxWaysDrawn)} of {Numbers.Count(pairs)} ways drawn");
 
                         // Each room under the mouse at its spot; from above and on the map one drawn over it may stand there.
                         var found = 0;
@@ -88,11 +91,12 @@ namespace Scry
                 ScryPanel.DragMapForTest(25f);
                 if (System.Math.Abs(ScryPanel.MapAngleShown - 30f) > 0.01f) unturned.Add($"{entry.Name}: at {Numbers.Fixed(ScryPanel.MapAngleShown, 1)} after a drag from 10");
                 var rooms = ways.Rooms.ToList();
-                var expected = PlanMap.LeastOverlap(rooms, ScryPanel.MapAngleShown);
+                var grounds = rooms.Select(Stage.ExampleRoomGround).ToList();
+                var expected = PlanMap.LeastOverlap(rooms, grounds, ScryPanel.MapAngleShown);
                 ScryPanel.LeastOverlapForTest();
                 var drawnMap = ScryPanel.Drawn(PanelPart.PlanBox);
                 yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnMap + 1, 3);
-                var fewest = Enumerable.Range(0, 36).Min(i => PlanMap.Overlaps(rooms, i * PlanMap.Step));
+                var fewest = Enumerable.Range(0, 36).Min(i => PlanMap.Overlaps(rooms, grounds, i * PlanMap.Step));
                 if (System.Math.Abs(ScryPanel.MapAngleShown - expected) > 0.01f || ScryPanel.MapOverlapsShown != fewest)
                     notLeast.Add($"{entry.Name}: {PlanBoxWords.Angle(ScryPanel.MapAngleShown)} with {Numbers.Count(ScryPanel.MapOverlapsShown)} overlapping, the model picks {PlanBoxWords.Angle(expected)} with {Numbers.Count(fewest)}");
                 p.Note($"{entry.Name}: Least overlap turned the map to {PlanBoxWords.Angle(ScryPanel.MapAngleShown)}, {Numbers.Count(ScryPanel.MapOverlapsShown)} overlapping");
@@ -128,6 +132,7 @@ namespace Scry
             Stage.Inside = wasInside;
             StageAsItWas();
             p.Check(unspotted.Count == 0, "each view of the plan box has a spot for every room, compact and grown", string.Join("; ", unspotted.Take(6)));
+            p.Check(unwayed.Count == 0, "every view of the plan box draws every way between its rooms", string.Join("; ", unwayed.Take(6)));
             p.Check(unfound.Count == 0, "every room is found under the mouse at its spot, unless a room drawn over it stands there", string.Join("; ", unfound.Take(6)));
             p.Check(unframed.Count == 0, "grown, the stage is framed beside the plan box; compact, in its middle", string.Join("; ", unframed.Take(6)));
             p.Check(unturned.Count == 0, "dragging across the map turns it", string.Join("; ", unturned));

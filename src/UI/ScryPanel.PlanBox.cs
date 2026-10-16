@@ -8,12 +8,14 @@ namespace Scry
     /// <summary>
     /// The plan box of a dungeon's example inside, in the stage's lower left corner: its rooms
     /// seen from above, turned with the view and shaded by depth (<see cref="PlanView.Above"/>);
-    /// each room across against its depth, turned to any angle (<see cref="PlanMap"/>); or a tree
-    /// of its ways, each room at its spot from above, pushed apart where rooms crowd
-    /// (<see cref="PinnedLayout"/>). A room under the mouse is named and lit on the stage, and a
-    /// click goes into it; the way from the entrance to the room gone into is an amber line and a
-    /// trail of names under the plan, each going into its room. It grows and names its rooms, the
-    /// stage framed beside it; which view and whether grown are remembered with the panel.
+    /// each room across against its depth, a storey tall from its ground, turned to any angle
+    /// (<see cref="PlanMap"/>); or a tree of its ways, a row for each room more in from the
+    /// entrance (<see cref="TreeRows"/>). In every view the ways go through the doorways they
+    /// pass, and the way from the entrance to the room under the mouse, else the room gone into,
+    /// is amber. A room under the mouse is named and lit on the stage, and a click goes into it;
+    /// a trail of names under the plan leads to the room gone into, each going into its room. It
+    /// grows and names its rooms, the stage framed beside it; which view and whether grown are
+    /// remembered with the panel.
     /// </summary>
     internal static partial class ScryPanel
     {
@@ -55,7 +57,6 @@ namespace Scry
         /// <summary>What each drawing of the box works with, kept between drawings rather than made each time.</summary>
         private static readonly List<Rect> WrittenNames = new List<Rect>();
         private static readonly List<(float Min, float Max)> MapAcross = new List<(float, float)>();
-        private static readonly List<int> MapOrder = new List<int>();
         private static readonly Dictionary<PlacedRoom, Vector2> TreeAt = new Dictionary<PlacedRoom, Vector2>();
 
         /// <summary>Each room's place among the rooms, lowest first, to draw each way once.</summary>
@@ -66,15 +67,21 @@ namespace Scry
         private static int _boxRead = -1, _boxShown = -1;
         private static readonly List<PlacedRoom> BoxRooms = new List<PlacedRoom>();
         private static readonly Dictionary<PlacedRoom, float> BoxGround = new Dictionary<PlacedRoom, float>();
+        private static readonly List<float> BoxGrounds = new List<float>();
         private static float _boxHighest, _boxDeepest, _boxWidest;
 
-        /// <summary>The tree as last laid out, kept until the rooms, the view's turn or the box's size change.</summary>
-        private static readonly List<(float X, float Y)> TreeHomes = new List<(float, float)>();
-        private static List<(float X, float Y)> _treeLaid = new List<(float, float)>();
-        private static Rect _treeArea;
+        /// <summary>The tree as last laid out (<see cref="TreeRows"/>), kept until the rooms or the view's turn change.</summary>
+        private static TreeRows _treeRows;
         private static float _treeYaw = float.NaN;
         private static int _treeRead = -1;
         private static DungeonWays _treeWays;
+
+        /// <summary>The room the way from the entrance is drawn to: the one under the mouse in the box when last drawn, else the room gone into.</summary>
+        private static PlacedRoom _planHoverShown;
+
+        /// <summary>How many ways the box drew the last time it was drawn, for the self-test.</summary>
+        [Diagnostic]
+        public static int PlanBoxWaysDrawn { get; private set; }
 
         /// <summary>The map's overlaps at the angle they were last counted at.</summary>
         private static int _mapOverlaps;
@@ -182,7 +189,7 @@ namespace Scry
         private static void LeastOverlap()
         {
             KnowBoxRooms();
-            _mapAngle = PlanMap.LeastOverlap(BoxRooms, MapAngleShown);
+            _mapAngle = PlanMap.LeastOverlap(BoxRooms, BoxGrounds, MapAngleShown);
             _mapFollow = false;
         }
 
@@ -210,7 +217,12 @@ namespace Scry
             // Lowest first, so the higher rooms are drawn over them.
             BoxRooms.Sort((a, b) => BoxGround[a].CompareTo(BoxGround[b]));
             BoxIndex.Clear();
-            for (var i = 0; i < BoxRooms.Count; i++) BoxIndex[BoxRooms[i]] = i;
+            BoxGrounds.Clear();
+            for (var i = 0; i < BoxRooms.Count; i++)
+            {
+                BoxIndex[BoxRooms[i]] = i;
+                BoxGrounds.Add(BoxGround[BoxRooms[i]]);
+            }
             _boxWidest = Mathf.Max(1f, ExamplePlan.Widest(BoxRooms));
             _treeRead = -1;
             _overlapsAt = float.NaN;
@@ -315,16 +327,18 @@ namespace Scry
             BoxSpots.Clear();
             var gone = Stage.RoomGoneInto;
             var route = gone != null && _boxWays != null ? _boxWays.Route(gone) : null;
+            // The way from the entrance drawn in the plan: to the room under the mouse, else to the room gone into.
+            KnowRoute(_planHoverShown ?? gone);
             switch (_planView)
             {
                 case PlanView.Map:
-                    MapView(explorer, area, gone, route);
+                    MapView(explorer, area, gone);
                     break;
                 case PlanView.Tree:
-                    TreeView(explorer, area, gone, route);
+                    TreeView(explorer, area, gone);
                     break;
                 default:
-                    AboveView(explorer, area, gone, route);
+                    AboveView(explorer, area, gone);
                     break;
             }
 
@@ -346,6 +360,7 @@ namespace Scry
                 StartDrag(Drag.MapTurn);
                 e.Use();
             }
+            if (repaint) _planHoverShown = hovered;
             var caption = hovered != null ? BoxRoomName(explorer, hovered) : PlanBoxWords.Caption(BoxRooms.Count);
             var captionRect = oneRow ? new Rect(x, y, Mathf.Max(U(20f), segX - x - U(4f)), rowH) : new Rect(x, controlsY, Mathf.Max(U(20f), grow.x - U(6f) - x), rowH);
             FitLabel(captionRect, caption, Skin.FaintLabel, 10f);
@@ -413,7 +428,7 @@ namespace Scry
         /// tile shaded by its depth, the room gone into in the accent and those above it in
         /// dashes, so the rooms under them show.
         /// </summary>
-        private static void AboveView(Explorer explorer, Rect area, PlacedRoom gone, List<PlacedRoom> route)
+        private static void AboveView(Explorer explorer, Rect area, PlacedRoom gone)
         {
             var repaint = Event.current.type == EventType.Repaint;
             var yaw = Stage.ExampleViewYaw;
@@ -440,8 +455,8 @@ namespace Scry
             if (!repaint) return;
             foreach (var spot in BoxSpots) if (!spot.Dashed) BoxTile(spot, spot.Room == gone ? Skin.Alpha(Skin.Accent, 0.75f) : DepthTone(spot.Room), Skin.Alpha(Skin.Text, 0.3f), 1f);
             foreach (var spot in BoxSpots) if (spot.Dashed) BoxTile(spot, null, Skin.Alpha(Skin.Faint, 0.6f), 1f, dashed: true);
+            Ways(room => At(room.Position), At);
             foreach (var spot in BoxSpots) if (BoxLit(spot.Room) || spot.Room == gone) BoxTile(spot, null, Skin.Accent, 2f);
-            RouteLine(route, room => At(room.Position));
             if (_planBig) Names(explorer, area);
         }
 
@@ -457,11 +472,58 @@ namespace Scry
             GUI.matrix = was;
         }
 
-        /// <summary>The way from the entrance to the room gone into, an amber line through each room's spot.</summary>
-        private static void RouteLine(List<PlacedRoom> route, Func<PlacedRoom, Vector2> at)
+        /// <summary>The room the way from the entrance is drawn to, and the ways it takes, worked out again only as either changes.</summary>
+        private static PlacedRoom _routeTo;
+        private static DungeonWays _routeOf;
+        private static readonly HashSet<(PlacedRoom, PlacedRoom)> RouteWays = new HashSet<(PlacedRoom, PlacedRoom)>();
+
+        private static void KnowRoute(PlacedRoom to)
         {
-            if (route == null || route.Count < 2) return;
-            for (var i = 1; i < route.Count; i++) PlanLine(at(route[i - 1]), at(route[i]), Skin.Accent, U(2f));
+            if (ReferenceEquals(to, _routeTo) && ReferenceEquals(_routeOf, _boxWays)) return;
+            _routeTo = to;
+            _routeOf = _boxWays;
+            RouteWays.Clear();
+            if (to == null || _boxWays == null) return;
+            var route = _boxWays.Route(to);
+            for (var i = 1; i < route.Count; i++)
+            {
+                RouteWays.Add((route[i - 1], route[i]));
+                RouteWays.Add((route[i], route[i - 1]));
+            }
+        }
+
+        /// <summary>
+        /// The ways between the rooms: each a line from one room's spot through the doorway they
+        /// share, where <paramref name="door"/> places it, to the other's, with a dot at the
+        /// doorway; those on the way from the entrance in the accent and bolder, loops in dashes.
+        /// </summary>
+        private static void Ways(Func<PlacedRoom, Vector2> at, Func<Vec3, Vector2> door)
+        {
+            var drawn = 0;
+            foreach (var room in BoxRooms)
+            {
+                foreach (var other in _boxWays.WaysOf(room))
+                {
+                    if (!BoxIndex.TryGetValue(other, out var index) || index <= BoxIndex[room]) continue;
+                    drawn++;
+                    var onRoute = RouteWays.Contains((room, other));
+                    var colour = onRoute ? Skin.Accent : Skin.Alpha(Skin.Text, 0.8f);
+                    var width = U(onRoute ? 2.5f : 1.6f);
+                    var dash = _boxWays.IsLoop(room, other) ? U(4f) : 0f;
+                    var a = at(room);
+                    var b = at(other);
+                    if (door != null && _boxWays.DoorBetween(room, other) is Vec3 shared)
+                    {
+                        var through = door(shared);
+                        PlanLine(a, through, colour, width, dash);
+                        PlanLine(through, b, colour, width, dash);
+                        var dot = U(onRoute ? 5f : 4f);
+                        Skin.Icon(new Rect(through.x - dot / 2f, through.y - dot / 2f, dot, dot), Skin.Circle, onRoute ? Skin.Accent : Skin.Text);
+                    }
+                    else PlanLine(a, b, colour, width, dash);
+                }
+            }
+            PlanBoxWaysDrawn = drawn;
         }
 
         /// <summary>Grown, each room's name on its spot, where it does not run into a name already written.</summary>
@@ -486,11 +548,12 @@ namespace Scry
         // ----- Map -----
 
         /// <summary>
-        /// Each room across against its depth at the map's angle, the ground at the top: a tile
-        /// from its foot to its top, the ways between rooms lines from ground to ground, loops in
-        /// dashes, crossroads outlined, and a dial telling the angle.
+        /// Each room across against its depth at the map's angle, the ground at the top: a tile a
+        /// storey tall from its ground (<see cref="PlanMap.Tile"/>), the ways between rooms lines
+        /// through the doorways they share, loops in dashes, crossroads outlined, a scale of metres
+        /// from the entrance's ground down the left, and a dial telling the angle.
         /// </summary>
-        private static void MapView(Explorer explorer, Rect area, PlacedRoom gone, List<PlacedRoom> route)
+        private static void MapView(Explorer explorer, Rect area, PlacedRoom gone)
         {
             var repaint = Event.current.type == EventType.Repaint;
             var angle = MapAngleShown;
@@ -498,7 +561,7 @@ namespace Scry
             {
                 _overlapsOf = _boxWays;
                 _overlapsAt = angle;
-                _mapOverlaps = PlanMap.Overlaps(BoxRooms, angle);
+                _mapOverlaps = PlanMap.Overlaps(BoxRooms, BoxGrounds, angle);
             }
             float lo = float.PositiveInfinity, hi = float.NegativeInfinity;
             var across = MapAcross;
@@ -509,36 +572,30 @@ namespace Scry
                 lo = Mathf.Min(lo, across[i].Min);
                 hi = Mathf.Max(hi, across[i].Max);
             }
-            var (top, bottom) = PlanMap.Heights(BoxRooms);
+            var (top, bottom) = PlanMap.Heights(BoxGrounds);
             var inset = U(6f);
+            var ruler = U(24f);
             var dial = U(30f);
-            float X(float v) => area.x + inset + (v - lo) / Mathf.Max(0.01f, hi - lo) * (area.width - inset * 2f);
+            float X(float v) => area.x + ruler + (v - lo) / Mathf.Max(0.01f, hi - lo) * (area.width - ruler - inset);
             float Y(float h) => area.y + inset + (top - h) / Mathf.Max(0.01f, top - bottom) * (area.height - inset * 2f - dial * 0.5f);
 
-            // Tall rooms first, so the small ones are drawn over them.
-            var order = MapOrder;
-            order.Clear();
-            for (var i = 0; i < BoxRooms.Count; i++) order.Add(i);
-            order.Sort((a, b) => BoxRooms[b].Room.Size.Y.CompareTo(BoxRooms[a].Room.Size.Y));
-            foreach (var i in order)
+            for (var i = 0; i < BoxRooms.Count; i++)
             {
-                var (foot, roof) = PlanMap.Upright(BoxRooms[i]);
-                var rect = Rect.MinMaxRect(X(across[i].Min), Y(roof), Mathf.Max(X(across[i].Max), X(across[i].Min) + U(3f)), Y(foot));
+                var (ground, roof) = PlanMap.Tile(BoxGrounds[i]);
+                var rect = Rect.MinMaxRect(X(across[i].Min), Y(roof), Mathf.Max(X(across[i].Max), X(across[i].Min) + U(3f)), Y(ground));
                 BoxSpots.Add(new BoxSpot { Room = BoxRooms[i], Centre = rect.center, Half = rect.size / 2f });
             }
             if (!repaint) return;
 
-            // The entrance's ground, dashed across.
-            var entrance = _boxWays.Entrance;
-            if (entrance != null)
+            // Every ten metres from the entrance's ground, its own dashed.
+            var entranceGround = _boxWays.Entrance != null ? GroundOf(_boxWays.Entrance) : 0f;
+            for (var metres = Mathf.CeilToInt((bottom - entranceGround) / 10f) * 10; metres <= top - entranceGround; metres += 10)
             {
-                var groundY = Y(GroundOf(entrance));
-                PlanLine(new Vector2(area.x, groundY), new Vector2(area.xMax, groundY), Skin.Alpha(Skin.Faint, 0.5f), 1f, U(3f));
-            }
-            Vector2 Spot(PlacedRoom room)
-            {
-                var (min, max) = PlanMap.Across(room, angle);
-                return new Vector2((X(min) + X(max)) / 2f, Y(GroundOf(room) + 0.8f));
+                var lineY = Y(entranceGround + metres);
+                PlanLine(new Vector2(area.x + ruler - U(3f), lineY), new Vector2(area.xMax, lineY), Skin.Alpha(Skin.Faint, metres == 0 ? 0.5f : 0.18f), 1f, metres == 0 ? U(3f) : 0f);
+                var said = PlanBoxWords.Depth(metres);
+                var saidW = Skin.Width(Skin.FaintLabel, said);
+                GUI.Label(new Rect(area.x + ruler - U(4f) - saidW, lineY - U(8f), saidW, U(16f)), said, Skin.FaintLabel);
             }
             foreach (var spot in BoxSpots)
             {
@@ -547,9 +604,13 @@ namespace Scry
                 Skin.Fill(rect, spot.Room == gone ? Skin.Alpha(Skin.Accent, 0.75f) : DepthTone(spot.Room));
                 PlanFrame(rect, crossroads ? Skin.Alpha(Skin.Text, 0.85f) : Skin.Alpha(Skin.Text, 0.3f), crossroads ? 2f : 1f);
             }
-            Ways(Spot);
+            var middle = PlanMap.Storey / 2f;
+            Ways(room =>
+            {
+                var (min, max) = PlanMap.Across(room, angle);
+                return new Vector2((X(min) + X(max)) / 2f, Y(GroundOf(room) + middle));
+            }, door => new Vector2(X(PlanMap.AcrossAt(door, angle)), Y(door.Y + middle)));
             foreach (var spot in BoxSpots) if (BoxLit(spot.Room) || spot.Room == gone) PlanFrame(new Rect(spot.Centre - spot.Half, spot.Half * 2f), Skin.Accent, 2f);
-            RouteLine(route, Spot);
             if (_planBig) Names(explorer, area);
 
             // The dial, in the corner: a circle, a needle at the angle, the angle over it.
@@ -558,76 +619,46 @@ namespace Scry
             Skin.Icon(new Rect(centre.x - radius, centre.y - radius, radius * 2f, radius * 2f), Skin.Circle, Skin.Raised);
             var a = (angle - 90f) * Mathf.Deg2Rad;
             PlanLine(centre, centre + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (radius - U(3f)), Skin.Accent, U(2f));
-            var said = PlanBoxWords.Angle(angle);
-            var saidW = Skin.Width(Skin.FaintLabel, said);
-            GUI.Label(new Rect(centre.x - saidW / 2f, centre.y - radius - U(16f), saidW, U(16f)), said, Skin.FaintLabel);
-        }
-
-        /// <summary>The ways between the rooms, each a line between their spots, a loop in dashes.</summary>
-        private static void Ways(Func<PlacedRoom, Vector2> at)
-        {
-            foreach (var room in BoxRooms)
-            {
-                foreach (var other in _boxWays.WaysOf(room))
-                {
-                    if (!BoxIndex.TryGetValue(other, out var index) || index <= BoxIndex[room]) continue;
-                    var loop = _boxWays.IsLoop(room, other);
-                    PlanLine(at(room), at(other), Skin.Alpha(Skin.Text, loop ? 0.35f : 0.5f), U(1.2f), loop ? U(3f) : 0f);
-                }
-            }
+            var angleSaid = PlanBoxWords.Angle(angle);
+            var angleW = Skin.Width(Skin.FaintLabel, angleSaid);
+            GUI.Label(new Rect(centre.x - angleW / 2f, centre.y - radius - U(16f), angleW, U(16f)), angleSaid, Skin.FaintLabel);
         }
 
         // ----- Tree -----
 
         /// <summary>
-        /// Each room a node at its spot seen from above, pushed apart where rooms crowd, with a
-        /// dotted line back to its spot when moved off it: the ways between them lines, loops
-        /// dashed and bent, crossroads outlined, and each node's depth beside it.
+        /// The tree of the ways (<see cref="TreeRows"/>): a row for each room more in from the
+        /// entrance, the entrance at the top, each room under the room it is reached from and
+        /// rooms under one room in the order they lie across the plan turned with the view; the
+        /// ways lines between the nodes, loops in dashes, crossroads outlined, and each node's depth
+        /// beside it, and grown, its name.
         /// </summary>
-        private static void TreeView(Explorer explorer, Rect area, PlacedRoom gone, List<PlacedRoom> route)
+        private static void TreeView(Explorer explorer, Rect area, PlacedRoom gone)
         {
             var repaint = Event.current.type == EventType.Repaint;
             var yaw = Stage.ExampleViewYaw;
-            var node = new Vector2(U(18f), U(12f));
-            var inner = new Rect(area.x + node.x, area.y + node.y, area.width - node.x * 2f, area.height - node.y * 2f);
-            if (!ReferenceEquals(_treeWays, _boxWays) || _treeRead != _boxRead || !Mathf.Approximately(_treeYaw, yaw) || _treeArea != inner)
+            if (_treeRows == null || !ReferenceEquals(_treeWays, _boxWays) || _treeRead != _boxRead || !Mathf.Approximately(_treeYaw, yaw))
             {
                 _treeWays = _boxWays;
                 _treeRead = _boxRead;
                 _treeYaw = yaw;
-                _treeArea = inner;
-                var extent = ExamplePlan.Extent(BoxRooms, yaw);
-                var midRight = (extent.MinRight + extent.MaxRight) / 2f;
-                var midUp = (extent.MinUp + extent.MaxUp) / 2f;
-                var scale = Mathf.Min(inner.width, inner.height) / _boxWidest;
-                TreeHomes.Clear();
-                foreach (var room in BoxRooms)
-                {
-                    var (right, up) = ExamplePlan.Turn(room.Position.X, room.Position.Z, yaw);
-                    TreeHomes.Add((inner.center.x + (right - midRight) * scale, inner.center.y - (up - midUp) * scale));
-                }
-                _treeLaid = PinnedLayout.Of(TreeHomes, U(_planBig ? 34f : 24f), inner.x, inner.y, inner.xMax, inner.yMax);
+                _treeRows = TreeRows.Of(_boxWays, room => ExamplePlan.Turn(room.Position.X, room.Position.Z, yaw).Right);
             }
+            var node = new Vector2(U(18f), U(12f));
+            var inner = new Rect(area.x + node.x, area.y + node.y, area.width - node.x * 2f, area.height - node.y * 2f);
+            var rowGap = _treeRows.Rows > 1 ? inner.height / (_treeRows.Rows - 1) : 0f;
             var at = TreeAt;
             at.Clear();
-            for (var i = 0; i < BoxRooms.Count; i++)
+            foreach (var room in BoxRooms)
             {
-                var spot = new Vector2(_treeLaid[i].X, _treeLaid[i].Y);
-                at[BoxRooms[i]] = spot;
-                BoxSpots.Add(new BoxSpot { Room = BoxRooms[i], Centre = spot, Half = node / 2f });
+                var row = _treeRows.RowOf(room);
+                var spot = new Vector2(inner.x + _treeRows.AcrossOf(room) * inner.width, _treeRows.Rows > 1 ? inner.y + row * rowGap : inner.center.y);
+                at[room] = spot;
+                BoxSpots.Add(new BoxSpot { Room = room, Centre = spot, Half = node / 2f });
             }
             if (!repaint) return;
 
-            // Back to its spot, where moved off it.
-            for (var i = 0; i < BoxRooms.Count; i++)
-            {
-                if (!PinnedLayout.Moved(TreeHomes[i], _treeLaid[i])) continue;
-                var home = new Vector2(TreeHomes[i].X, TreeHomes[i].Y);
-                PlanLine(home, at[BoxRooms[i]], Skin.Alpha(Skin.Faint, 0.45f), 1f, U(1.5f));
-                Skin.Icon(new Rect(home.x - U(2f), home.y - U(2f), U(4f), U(4f)), Skin.Circle, Skin.Alpha(Skin.Faint, 0.7f));
-            }
-            Ways(room => at[room]);
-            RouteLine(route, room => at[room]);
+            Ways(room => at[room], null);
             var entranceGround = _boxWays.Entrance != null ? GroundOf(_boxWays.Entrance) : 0f;
             foreach (var spot in BoxSpots)
             {
@@ -737,10 +768,14 @@ namespace Scry
             BoxGround.Clear();
             BoxIndex.Clear();
             TreeAt.Clear();
-            TreeHomes.Clear();
-            _treeLaid = new List<(float, float)>();
+            BoxGrounds.Clear();
+            RouteWays.Clear();
+            _treeRows = null;
             _boxWays = null;
             _treeWays = null;
+            _routeOf = null;
+            _routeTo = null;
+            _planHoverShown = null;
             _overlapsOf = null;
             _planLit = null;
             _planLitForTest = null;

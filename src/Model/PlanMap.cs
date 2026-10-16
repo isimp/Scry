@@ -4,11 +4,12 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>
-    /// The plan box's map of a dungeon's example: each room across against its depth, the ground
-    /// at the top and the deepest room at the bottom. Across is one way round the level, at an
-    /// angle that can be turned to any; the other way round the level is flattened, so rooms
-    /// standing one behind the other at one height cover each other. Least overlap turns it to
-    /// the angle where the fewest do; following the view turns it with the stage.
+    /// The plan box's map of a dungeon's example: each room across against its depth, a storey
+    /// tall from its ground, the ground at the top and the deepest room at the bottom. Across is
+    /// one way round the level, at an angle that can be turned to any; the other way round the
+    /// level is flattened, so rooms standing one behind the other on one level cover each other.
+    /// Least overlap turns it to the angle where the fewest do; following the view turns it with
+    /// the stage.
     /// </summary>
     internal static class PlanMap
     {
@@ -44,40 +45,46 @@ namespace Scry
             return (min, max);
         }
 
-        /// <summary>How high a room reaches: its box's foot and top.</summary>
-        public static (float Foot, float Top) Upright(PlacedRoom room) =>
-            (room.Position.Y - room.Room.Size.Y / 2f, room.Position.Y + room.Room.Size.Y / 2f);
+        /// <summary>
+        /// How tall each room stands on the map, from its ground, in metres: a storey, where its
+        /// whole box, 12 to 30 m tall in the caves, would cover the rooms above and below it.
+        /// </summary>
+        public const float Storey = 3f;
 
-        /// <summary>How high and how deep the rooms reach together: the highest top and the lowest foot.</summary>
-        public static (float Top, float Bottom) Heights(IEnumerable<PlacedRoom> rooms)
+        /// <summary>Where a point, such as a doorway, stands across at an angle.</summary>
+        public static float AcrossAt(Vec3 point, float angle)
+        {
+            var a = angle * Math.PI / 180.0;
+            return (float)(point.X * Math.Cos(a) + point.Z * Math.Sin(a));
+        }
+
+        /// <summary>How high a room stands on the map: from its ground up a storey.</summary>
+        public static (float Ground, float Top) Tile(float ground) => (ground, ground + Storey);
+
+        /// <summary>How high and how deep the rooms stand together, by their grounds: the highest storey's top and the lowest ground.</summary>
+        public static (float Top, float Bottom) Heights(IEnumerable<float> grounds)
         {
             float top = float.NegativeInfinity, bottom = float.PositiveInfinity;
-            foreach (var room in rooms)
+            foreach (var ground in grounds)
             {
-                var (foot, roof) = Upright(room);
-                top = Math.Max(top, roof);
-                bottom = Math.Min(bottom, foot);
+                top = Math.Max(top, Tile(ground).Top);
+                bottom = Math.Min(bottom, ground);
             }
             return float.IsNegativeInfinity(top) ? (0f, 0f) : (top, bottom);
         }
 
-        /// <summary>How many two rooms cover each other on the map at an angle: reaching into each other across, and sharing heights.</summary>
-        public static int Overlaps(IReadOnlyList<PlacedRoom> rooms, float angle)
+        /// <summary>How many two rooms cover each other on the map at an angle: reaching into each other across, and sharing their storeys.</summary>
+        public static int Overlaps(IReadOnlyList<PlacedRoom> rooms, IReadOnlyList<float> grounds, float angle)
         {
             var across = new (float Min, float Max)[rooms.Count];
-            var upright = new (float Foot, float Top)[rooms.Count];
-            for (var i = 0; i < rooms.Count; i++)
-            {
-                across[i] = Across(rooms[i], angle);
-                upright[i] = Upright(rooms[i]);
-            }
+            for (var i = 0; i < rooms.Count; i++) across[i] = Across(rooms[i], angle);
             var count = 0;
             for (var a = 0; a < rooms.Count; a++)
             {
                 for (var b = a + 1; b < rooms.Count; b++)
                 {
                     var sideBySide = across[a].Max - Touch <= across[b].Min || across[b].Max - Touch <= across[a].Min;
-                    var oneAbove = upright[a].Top <= upright[b].Foot || upright[b].Top <= upright[a].Foot;
+                    var oneAbove = Tile(grounds[a]).Top <= grounds[b] || Tile(grounds[b]).Top <= grounds[a];
                     if (!sideBySide && !oneAbove) count++;
                 }
             }
@@ -89,7 +96,7 @@ namespace Scry
         /// round; of those as good, the nearest the angle shown, then the smaller. Half a turn
         /// round shows as many, so only half a turn is counted.
         /// </summary>
-        public static float LeastOverlap(IReadOnlyList<PlacedRoom> rooms, float current)
+        public static float LeastOverlap(IReadOnlyList<PlacedRoom> rooms, IReadOnlyList<float> grounds, float current)
         {
             current = Normal(current);
             var best = current;
@@ -97,7 +104,7 @@ namespace Scry
             var nearest = float.MaxValue;
             for (var angle = 0f; angle < 180f; angle += Step)
             {
-                var count = Overlaps(rooms, angle);
+                var count = Overlaps(rooms, grounds, angle);
                 foreach (var candidate in new[] { angle, angle + 180f })
                 {
                     var off = Apart(candidate, current);

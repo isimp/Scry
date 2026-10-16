@@ -47,6 +47,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AWayGoesThroughTheDoorwayItsTwoRoomsShare()
+        {
+            var entrance = Room("entrance", 0f, 0f, 0f, 0, At(5f, 0f, 0f));
+            var hall = Room("hall", 10f, 0f, 0f, 1, At(5f, 0f, 0f), At(15f, 0f, 0f));
+            var east = Room("east", 20f, 0f, 0f, 2, At(15f, 0f, 0f));
+
+            var ways = DungeonWays.Of(new[] { entrance, hall, east });
+
+            Assert.Equal(At(5f, 0f, 0f), ways.DoorBetween(entrance, hall));
+            Assert.Equal(At(15f, 0f, 0f), ways.DoorBetween(east, hall));
+            Assert.Null(ways.DoorBetween(entrance, east));
+        }
+
+        [Fact]
         public void TheWayNotOnAnyRoomsRouteFromTheEntranceIsTheLoop()
         {
             // A ring of four: east is reached first, so the corner is reached through east, and west's way to it closes the loop.
