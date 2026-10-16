@@ -57,6 +57,7 @@ namespace Scry
             yield return S("a made-up character's pages read under the strict rules as a player sees them", CompendiumStrictRead, 30, () => { AllKnown(); ResetList(); });
             yield return S("with the compendium on, a made-up character sees only what it met", CompendiumShown, 60, () => { AllKnown(); ResetList(); });
             yield return S("the explored map tells which kinds of place were seen", CompendiumMapRead, 30);
+            yield return S("which kinds of place show a banner the game keeps once walked into", BannerPlaces, 300);
             yield return S("each boss's fall opens its tier, worked out from how things are come by", CompendiumTierRead, 30, () => { AllKnown(); ResetList(); });
             yield return S("every mod has a page of what it adds and changes", ModPages, 10);
             yield return S("a mod's page tells what its package says and how it ties to other mods", ModPackages, 10);
