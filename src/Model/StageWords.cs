@@ -13,6 +13,14 @@ namespace Scry
         /// <summary>A room's tip: its name, and where it can be gone to, that a click does.</summary>
         public static string RoomTip(string name, bool canGo) => canGo ? name + "\nClick to go to it" : name;
 
+        /// <summary>A chip choosing how a dungeon's inside is cut: from above or from the side.</summary>
+        public static string CutChip(bool side) => side ? "Side" : "Above";
+
+        /// <summary>What each way of cutting a dungeon's inside takes away.</summary>
+        public static string CutTip(bool side) => side
+            ? "Cut from the side: the half of every room facing you taken away"
+            : "Cut from above: the roof off over a floor or the room gone into";
+
         /// <summary>A room of a dungeon's example's tip: its name, and that a click goes into it, or, gone into, how to come back out.</summary>
         public static string GoIntoTip(string name, bool inside) => name + (inside ? "\nEsc or the roof button comes back out" : "\nClick to go in");
 

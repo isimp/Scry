@@ -288,6 +288,12 @@ namespace Scry
             var texts = new List<string> { "View" };
             if (Stage.HasOutside && !Stage.InsideUnknown) texts.Add(StageWords.Inside(Stage.Inside));
             if (Stage.HasCreatures) texts.Add("Creatures");
+            var cutChips = Stage.HasInside && Stage.ShowsInside;
+            if (cutChips)
+            {
+                texts.Add(StageWords.CutChip(false));
+                texts.Add(StageWords.CutChip(true));
+            }
             var total = texts.Sum(t => Skin.Width(Skin.Chip, t) + U(10f));
             if (x - total < rect.x + U(10f) + _badgeWidth + U(10f)) y += h + U(8f);
 
@@ -325,7 +331,24 @@ namespace Scry
             {
                 Stage.Inside = !Stage.Inside;
             }
+            // Inside a dungeon, how it is cut: from the side or from above, the side's chip nearer Inside.
+            if (cutChips)
+            {
+                CountDrawn(PanelPart.CutChip);
+                if (Chip(StageWords.CutChip(true), Stage.CutFromSide, StageWords.CutTip(true))) ChooseCut(true);
+                if (Chip(StageWords.CutChip(false), !Stage.CutFromSide, StageWords.CutTip(false))) ChooseCut(false);
+            }
         }
+
+        /// <summary>Cuts a dungeon's inside from the side or from above, as its chips do.</summary>
+        private static void ChooseCut(bool side)
+        {
+            if (Stage.CutFromSide != side) Stage.SetCutFromSide(side);
+        }
+
+        /// <summary>Chooses the cut as a click on its chip does, for the self-test.</summary>
+        [Diagnostic]
+        public static void ChooseCutForTest(bool side) => ChooseCut(side);
 
     }
 }

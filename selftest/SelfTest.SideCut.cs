@@ -39,6 +39,9 @@ namespace Scry
             }
             yield return Until(() => !Stage.Gliding, 5);
             yield return Picture(p, "side MorkBorg whole");
+            var chips = ScryPanel.Drawn(PanelPart.CutChip);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.CutChip) > chips + 1, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.CutChip) > chips, "inside a dungeon, the Above and Side chips stand beside Inside");
 
             var deepest = DungeonWays.Of(Stage.ExampleShown.Rooms).Deepest;
             ScryPanel.ClickRoomForTest(X, deepest);
@@ -53,10 +56,10 @@ namespace Scry
             yield return Picture(p, "side MorkBorg deepest room");
 
             // Switched to the cut from above, the room is cut at head height over its level; and back.
-            Stage.SetCutFromSide(false);
+            ScryPanel.ChooseCutForTest(false);
             yield return Until(() => Stage.ExampleRoomsKept, 5);
             var above = Stage.Cutting && System.Math.Abs(Stage.CutAt - Stage.RoomLevelCut(deepest, Stage.RoomLevelOpen ?? 0f)) < 0.01f && !Stage.SideCutting;
-            Stage.SetCutFromSide(true);
+            ScryPanel.ChooseCutForTest(true);
             yield return Until(() => Stage.ExampleRoomsKept, 5);
             p.Check(above && Stage.SideCutting && !Stage.Cutting, "switched from the side to above and back, the cut follows", $"above {above}, side {Stage.SideCutting}");
 

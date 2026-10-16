@@ -17,6 +17,15 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheCutsTwoChipsSayWhichWayEachCutsAndWhatGoes()
+        {
+            Assert.Equal("Above", StageWords.CutChip(side: false));
+            Assert.Equal("Side", StageWords.CutChip(side: true));
+            Assert.Equal("Cut from above: the roof off over a floor or the room gone into", StageWords.CutTip(side: false));
+            Assert.Equal("Cut from the side: the half of every room facing you taken away", StageWords.CutTip(side: true));
+        }
+
+        [Fact]
         public void ACampsRoomStillGoesToItsPage()
         {
             Assert.Equal("Tent\nClick to go to it", StageWords.RoomTip("Tent", true));
