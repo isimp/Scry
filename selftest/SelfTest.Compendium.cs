@@ -203,56 +203,6 @@ namespace Scry
         private static readonly string[] OfferKeys = { "playedby", "station" };
 
         /// <summary>
-        /// Which kinds of place show a name banner the first time a character walks in
-        /// (<c>Location.m_discoverLabel</c>), a label the game keeps with the character among the
-        /// tutorials it showed (<c>Player.HaveSeenTutorial</c>): each label with the kinds showing
-        /// it, the labels several kinds share, and those the character played has walked into.
-        /// Each place's bundle is loaded in turn and let go of, as reading the places does. Told
-        /// only, to decide whether the compendium reads them.
-        /// </summary>
-        private static IEnumerator BannerPlaces(Probe p)
-        {
-            var zones = ZoneSystem.instance;
-            var player = Player.m_localPlayer;
-            if (zones == null || player == null) p.Skip("no world's places or character to read");
-            var byLabel = new SortedDictionary<string, List<string>>(StringComparer.Ordinal);
-            var kinds = new HashSet<string>(StringComparer.Ordinal);
-            var notLoaded = new List<string>();
-            var read = 0;
-            foreach (var location in zones.m_locations.ToList())
-            {
-                if (location == null || !location.m_enable || !location.m_prefab.IsValid) continue;
-                var name = string.IsNullOrEmpty(location.m_prefabName) ? location.m_prefab.Name : location.m_prefabName;
-                if (!kinds.Add(name)) continue;
-                var reference = location.m_prefab;
-                // Holds the bundle until released, as reading the places does; one held already stays held.
-                reference.LoadAsync();
-                yield return Until(() => reference.IsLoaded, 10);
-                var prefab = reference.IsLoaded ? reference.Asset : null;
-                if (prefab == null) notLoaded.Add(name);
-                else
-                {
-                    read++;
-                    foreach (var label in prefab.GetComponentsInChildren<Location>(true).Where(l => l != null && !string.IsNullOrEmpty(l.m_discoverLabel)).Select(l => l.m_discoverLabel).Distinct())
-                    {
-                        if (!byLabel.TryGetValue(label, out var showing)) byLabel[label] = showing = new List<string>();
-                        showing.Add(name);
-                    }
-                }
-                reference.Release();
-            }
-            string Told(KeyValuePair<string, List<string>> label) => $"{label.Key} \"{CatalogBuilder.Localize(label.Key)}\": {string.Join(", ", label.Value)}";
-            var banners = byLabel.Values.Sum(l => l.Count);
-            p.Note($"of {Numbers.Count(read)} kinds of place read, {Numbers.Count(banners)} show a banner on walking in, under {Numbers.Count(byLabel.Count)} labels: {string.Join("; ", byLabel.Select(Told))}");
-            var shared = byLabel.Where(l => l.Value.Count > 1).ToList();
-            p.Note(shared.Count > 0 ? $"labels several kinds share ({Numbers.Count(shared.Count)}): {string.Join("; ", shared.Select(Told))}" : "no label is shared by several kinds");
-            var walked = byLabel.Keys.Where(player.HaveSeenTutorial).ToList();
-            p.Note($"the character played has walked into {Numbers.Count(walked.Count)} of the labels: {string.Join(", ", walked)}");
-            if (notLoaded.Count > 0) p.Note($"{Numbers.Count(notLoaded.Count)} kinds of place did not load: {string.Join(", ", notLoaded.Take(12))}");
-            p.Check(read > 0, "the world's places were read for their banners", $"{Numbers.Count(notLoaded.Count)} did not load");
-        }
-
-        /// <summary>
         /// The explored map is read: the ground the character stands on is explored, the places
         /// this game holds lie partly in it, and where this game is the world's server it answers
         /// a map sent to itself as it would a player's, with as many kinds as read here; as a
