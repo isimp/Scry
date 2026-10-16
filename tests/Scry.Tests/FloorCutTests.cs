@@ -20,6 +20,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void EachFloorIsCutUnderTheCeilingOverIt()
+        {
+            var cut = new FloorCut();
+            cut.Take(E("Hildir_plainsfortress", Kind.Location), new[] { 40f, 36f }, open: true, ceilingOver: floor => floor == 40f ? 42f : (float?)null);
+            Assert.Equal(new[] { 41.9f, 38.5f }, cut.Cuts.Select(c => (float)System.Math.Round(c, 3)));
+            Assert.Equal(41.9f, cut.At, 3);
+
+            // Floors found anew keep cutting under their ceilings.
+            cut.Refresh(new[] { 44f, 40f }, floor => floor == 40f ? 42f : (float?)null);
+            Assert.Equal(new[] { 46.5f, 41.9f }, cut.Cuts.Select(c => (float)System.Math.Round(c, 3)));
+        }
+
+        [Fact]
         public void NothingTakenHasNoFloorsAndIsNotCut()
         {
             var cut = new FloorCut();

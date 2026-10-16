@@ -55,6 +55,7 @@ namespace Scry
         /// Floors are found in the places themselves: a spread of locations and rooms, and the
         /// towers and caves among them, each with floors from the top down and a cut over each,
         /// no collider left on its copy once read, and the floor ruler drawn beside the stage.
+        /// Only ground one walks to is a floor: Bonemass's altar, whose top no one climbs, is none.
         /// </summary>
         private static IEnumerator FloorsFound(Probe p)
         {
@@ -62,8 +63,10 @@ namespace Scry
             if (places.Count == 0) p.Skip("there are no locations");
             var picks = Spread(places, 16);
             picks.AddRange(places.Where(e => e.Name.IndexOf("Tower", StringComparison.OrdinalIgnoreCase) >= 0 || e.Name.IndexOf("Cave", StringComparison.OrdinalIgnoreCase) >= 0).Take(8));
+            picks.AddRange(places.Where(e => e.Name == "Bonemass"));
             var wrong = new List<string>();
             var several = new List<string>();
+            List<float> altar = null;
             foreach (var entry in picks.Distinct().ToList())
             {
                 var place = PlaceOf(entry);
@@ -77,6 +80,7 @@ namespace Scry
                 yield return null;
                 var floors = Stage.FloorHeights.ToList();
                 var cuts = Stage.CutHeights.ToList();
+                if (entry.Name == "Bonemass") altar = floors;
                 if (floors.Count == 0) wrong.Add($"{entry.Name} has no floor");
                 else if (floors.Zip(floors.Skip(1), (above, below) => above > below).Any(ordered => !ordered)) wrong.Add($"{entry.Name}'s floors are out of order: {string.Join(", ", floors.Select(f => Numbers.Amount(f)))}");
                 else if (cuts.Zip(floors, (cut, floor) => cut > floor).Any(over => !over)) wrong.Add($"{entry.Name} is cut below a floor");
@@ -96,6 +100,7 @@ namespace Scry
             }
             p.Note(several.Count > 0 ? "with several floors: " + string.Join("; ", several) : "none with several floors");
             p.Check(wrong.Count == 0, "each has floors from the top down, cut over each, with no collider left on its copy", string.Join("; ", wrong.Take(8)));
+            if (altar != null) p.Check(!altar.Any(f => f > 3f), "Bonemass's altar, whose top no one walks to, is no floor", string.Join(", ", altar.Select(f => Numbers.Fixed(f, 1))) + " m");
             var drawn = ScryPanel.Drawn(PanelPart.Ruler);
             yield return Until(() => ScryPanel.Drawn(PanelPart.Ruler) > drawn, 3);
             p.Check(ScryPanel.Drawn(PanelPart.Ruler) > drawn, "the floor ruler draws beside the stage");

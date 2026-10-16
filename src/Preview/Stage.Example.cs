@@ -153,7 +153,7 @@ namespace Scry
                 if (TheExample.Copies == 1 && TheExample.IsDungeon) ShowInsideOrOut();
                 else if (TheExample.Holder.activeInHierarchy) _bounds.Encapsulate(Unscaled(Measure(copy)));
             }
-            if (placedAny && TheExample.IsDungeon && _inside && TheExample.Copies > 1) RefreshFloors(TheExample.FloorsNow());
+            if (placedAny && TheExample.IsDungeon && _inside && TheExample.Copies > 1) RefreshFloors(TheExample.FloorsNow(), TheExample.CeilingOver, TheExample.Top);
             Timing.Add("stage example", made);
         }
 
@@ -233,7 +233,8 @@ namespace Scry
             var outside = _lastShown?.Source is PlaceSource place ? PlaceView.Ground(place.Contents, place.IsRoom) : 0f;
             MeasureStanding(Origin.y + (inside ? floors[floors.Count - 1] : outside) * _baseScale.y);
             TheCut.ForgetEntry();
-            SetFloors(_lastShown, floors, open: inside);
+            if (inside) SetFloors(_lastShown, floors, true, TheExample.CeilingOver, TheExample.Top);
+            else SetFloors(_lastShown, floors, false, PlaceCeiling, _placeTop);
             FrameAnew();
             CenterView();
         }

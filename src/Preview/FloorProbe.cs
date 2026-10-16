@@ -83,10 +83,13 @@ namespace Scry
         /// noted as it was made); the ground the rays were cast over, 0 for a copy with
         /// nothing to land on. From what was kept of the place where that tells the copy's roll,
         /// else by rays cast over the copy, woken for them by <paramref name="wake"/> and put back
-        /// by <paramref name="sleep"/> where it sleeps; its colliders go either way.
+        /// by <paramref name="sleep"/> where it sleeps; its colliders go either way. Only ground
+        /// walked to from <paramref name="start"/> lands (<see cref="FloorWalk"/>), every flat
+        /// surface where none is given; the highest its rays met is told to <paramref name="top"/>.
+        /// A copy not standing upright is read as it stands, every flat surface, nothing told.
         /// </summary>
         public static float Read(GameObject copy, Transform space, int layer, List<FloorHit> hits, int patch, string prefab, bool room, PlaceRoll roll,
-            List<string> names = null, Action wake = null, Action sleep = null)
+            List<string> names = null, Action wake = null, Action sleep = null, FloorWalk.Start start = null, Action<float> top = null)
         {
             if (copy == null) return 0f;
             var root = copy.transform;
@@ -109,7 +112,7 @@ namespace Scry
                 {
                     FromKept++;
                     timed = Timing.Start();
-                    Tell(kept, present, root, space, patch, hits, names, placed, keys);
+                    Tell(kept, present, root, space, patch, hits, names, placed, keys, start, top);
                     Timing.Add("floor probe kept", timed);
                     return kept.Ground;
                 }
@@ -133,12 +136,12 @@ namespace Scry
                     if (covered)
                     {
                         Checked?.Invoke(kept, FloorRecord.New(prefab, room, stamp, kept.MinX, kept.MaxX, kept.MinZ, kept.MaxZ, kept.Top, kept.Bottom, parts).With(seen), present, keys, met, root);
-                        Tell(kept, present, root, space, patch, hits, names, placed, keys);
+                        Tell(kept, present, root, space, patch, hits, names, placed, keys, start, top);
                         return kept.Ground;
                     }
                     var grown = record.With(seen);
                     FloorRecords.Put(grown);
-                    Tell(grown, present, root, space, patch, hits, names, placed, keys);
+                    Tell(grown, present, root, space, patch, hits, names, placed, keys, start, top);
                     return grown.Ground;
                 }
                 finally
@@ -322,16 +325,25 @@ namespace Scry
             return seen;
         }
 
-        /// <summary>Tells the copy's floors and where its creatures stand from a record, for the parts there.</summary>
-        private static void Tell(FloorRecord record, HashSet<int> present, Transform root, Transform space, int patch, List<FloorHit> hits, List<string> names, List<Stage.SpawnHere> placed, List<string> keys)
+        /// <summary>
+        /// Tells the copy's floors and where its creatures stand from a record, for the parts
+        /// there: its ground walked to from <paramref name="start"/>, each with how far over it what
+        /// hides it from above is, and the highest its rays met, in the space given.
+        /// </summary>
+        private static void Tell(FloorRecord record, HashSet<int> present, Transform root, Transform space, int patch, List<FloorHit> hits, List<string> names, List<Stage.SpawnHere> placed, List<string> keys,
+            FloorWalk.Start start, Action<float> top)
         {
             var cell = record.Cell;
-            foreach (var landing in record.Landings(present))
+            float Height(float x, float y, float z) => space.InverseTransformPoint(root.TransformPoint(new Vector3(x, y, z))).y;
+            foreach (var landing in start != null ? FloorWalk.Landings(record, present, start) : record.Landings(present))
             {
-                var at = root.TransformPoint(new Vector3(landing.X, landing.Height, landing.Z));
-                hits.Add(new FloorHit { Patch = patch, I = landing.I, J = landing.J, Height = space.InverseTransformPoint(at).y, Area = cell, Open = landing.Open });
+                var height = Height(landing.X, landing.Height, landing.Z);
+                var over = landing.Over > 0f ? Height(landing.X, landing.Height + landing.Over, landing.Z) - height : 0f;
+                hits.Add(new FloorHit { Patch = patch, I = landing.I, J = landing.J, Height = height, Area = cell, Over = over, Open = landing.Open });
                 names?.Add(record.Parts[landing.Part].Name);
             }
+            var highest = record.Highest(present);
+            if (top != null && !float.IsNaN(highest)) top(Height((record.MinX + record.MaxX) / 2f, highest, (record.MinZ + record.MaxZ) / 2f));
             for (var i = 0; i < placed.Count; i++)
             {
                 if (!record.GroundUnder(keys[i], present, out var ground)) continue;

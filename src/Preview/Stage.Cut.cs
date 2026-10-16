@@ -46,9 +46,16 @@ namespace Scry
         /// <summary>Which floor is opened, from the top; <see cref="FloorHeights"/>' count for the roof on.</summary>
         public static int CutLevel => TheCut.Level;
 
-        /// <summary>How low and how high the model reaches, above its root as if at size one.</summary>
+        /// <summary>
+        /// How low and how high the model reaches, above its root as if at size one: high, as
+        /// high as its rays met where its floors were found (<see cref="FloorRecord.Highest"/>),
+        /// whatever of it is drawn, else as high as it draws.
+        /// </summary>
         public static float ModelBottom => _subject == null ? 0f : _bounds.min.y - Origin.y;
-        public static float ModelTop => _subject == null ? 0f : _bounds.max.y - Origin.y;
+        public static float ModelTop => _subject == null ? 0f : float.IsNaN(_floorTop) ? _bounds.max.y - Origin.y : _floorTop;
+
+        /// <summary>The highest the rays met over the place whose floors the cut holds, above its root; NaN where not known.</summary>
+        private static float _floorTop = float.NaN;
 
         // Opening or stepping to a floor leaves the camera where it was put, so the view moves
         // only when it is moved by hand and stepping through floors keeps the angle chosen. A
@@ -78,13 +85,18 @@ namespace Scry
         /// its top floor and looked down into, and a location keeps its roof; a new copy of the
         /// same (rolled again, or loaded) keeps the cut it had.
         /// </summary>
-        private static void SetFloors(Entry entry, IEnumerable<float> floors, bool open)
+        private static void SetFloors(Entry entry, IEnumerable<float> floors, bool open, System.Func<float, float?> ceilingOver, float top)
         {
-            if (TheCut.Take(entry, floors, open) && TheCut.Cutting) TurnTo(Yaw, CutPitch);
+            _floorTop = top;
+            if (TheCut.Take(entry, floors, open, ceilingOver) && TheCut.Cutting) TurnTo(Yaw, CutPitch);
         }
 
         /// <summary>Takes floors found anew for the place shown (an example's, as its rooms come in), keeping the floor opened where it can.</summary>
-        private static void RefreshFloors(IEnumerable<float> floors) => TheCut.Refresh(floors);
+        private static void RefreshFloors(IEnumerable<float> floors, System.Func<float, float?> ceilingOver, float top)
+        {
+            _floorTop = top;
+            TheCut.Refresh(floors, ceilingOver);
+        }
 
         /// <summary>
         /// The floors of a place's copy, made with its colliders: found in the model, a location's
@@ -93,6 +105,12 @@ namespace Scry
         private static List<FloorHit> _floorHits = new List<FloorHit>();
         private static List<string> _floorNames = new List<string>();
 
+        /// <summary>The highest the rays met over the place shown alone, above its root; NaN where none met it.</summary>
+        private static float _placeTop = float.NaN;
+
+        /// <summary>The ceiling over a floor of the place shown alone, from its rays (<see cref="FloorFinder.CeilingOver(IEnumerable{FloorHit}, float)"/>).</summary>
+        private static readonly System.Func<float, float?> PlaceCeiling = floor => FloorFinder.CeilingOver(_floorHits, floor);
+
         /// <summary>What each floor of the location or room shown stands on, from its rays, for the self-test to tell (<see cref="FloorMakers"/>).</summary>
         public static List<string> FloorMakersNow() => FloorMakers.Tell(_floorHits.Select(h => h.Height).ToList(), _floorNames, Floors);
 
@@ -100,7 +118,11 @@ namespace Scry
         {
             var hits = new List<FloorHit>();
             var names = new List<string>();
-            var found = FloorFinder.Floors(hits, FloorProbe.Read(copy, copy.transform, _layer, hits, 0, place.Prefab, place.IsRoom, roll, names));
+            // A room is walked into by its doorways, a location from its ground and the open sky.
+            var doorways = place.Contents?.Room?.Doorways;
+            var start = !place.IsRoom ? FloorWalk.Start.Outdoors : doorways != null && doorways.Count > 0 ? FloorWalk.Start.At(doorways.Select(d => d.Position)) : null;
+            _placeTop = float.NaN;
+            var found = FloorFinder.Floors(hits, FloorProbe.Read(copy, copy.transform, _layer, hits, 0, place.Prefab, place.IsRoom, roll, names, start: start, top: t => _placeTop = t));
             _floorHits = hits;
             _floorNames = names;
             if (place.IsRoom) return found.Count > 0 ? found : PlaceView.RoomFloors(place.Contents?.Room);

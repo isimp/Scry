@@ -33,25 +33,34 @@ namespace Scry
         /// <summary>The lowest the cut goes over its floor, to keep what stands on it.</summary>
         public const float LeastHeadroom = 1.4f;
 
+        /// <summary>How far under the ceiling over a floor the cut stays, to take it away.</summary>
+        public const float UnderCeiling = 0.1f;
+
         /// <summary>Where the stage cuts to open a floor.</summary>
         public static float CutHeight(float floor) => CutHeight(floor, null);
 
-        /// <summary>Where the stage cuts to open a floor: head height over it, or just under the floor above where that is lower, but never lower than <see cref="LeastHeadroom"/>.</summary>
-        public static float CutHeight(float floor, float? above)
+        /// <summary>
+        /// Where the stage cuts to open a floor: head height over it, or just under the floor above
+        /// or under the ceiling over it (<see cref="FloorFinder.CeilingOver(System.Collections.Generic.IEnumerable{FloorHit}, float)"/>)
+        /// where either is lower, so neither is left over it, but never lower than <see cref="LeastHeadroom"/>.
+        /// </summary>
+        public static float CutHeight(float floor, float? above, float? ceiling = null)
         {
             var cut = floor + CutAboveFloor;
-            if (above.HasValue && cut > above.Value - UnderFloorAbove) cut = Math.Max(floor + LeastHeadroom, above.Value - UnderFloorAbove);
-            return cut;
+            if (above.HasValue) cut = Math.Min(cut, above.Value - UnderFloorAbove);
+            if (ceiling.HasValue) cut = Math.Min(cut, ceiling.Value - UnderCeiling);
+            return Math.Max(floor + LeastHeadroom, cut);
         }
 
-        /// <summary>Where each of the floors (from the top down) is cut, each with the one above it.</summary>
-        public static List<float> CutHeights(IReadOnlyList<float> floors) =>
-            floors.Select((floor, i) => CutHeight(floor, i == 0 ? (float?)null : floors[i - 1])).ToList();
+        /// <summary>Where each of the floors (from the top down) is cut, each with the one above it and the ceiling over it where one is known.</summary>
+        public static List<float> CutHeights(IReadOnlyList<float> floors, Func<float, float?> ceilingOver = null) =>
+            floors.Select((floor, i) => CutHeight(floor, i == 0 ? (float?)null : floors[i - 1], ceilingOver?.Invoke(floor))).ToList();
 
         /// <summary>
         /// The height on the floor ruler above which a click puts the roof on: half a metre over
         /// the top floor's cut, or the place's top where it stands higher (a sunken crypt's upper
-        /// part, found as no floor of its own), so all it has can be cut into by hand.
+        /// part, found as no floor of its own), so all it has can be cut into by hand. The top is
+        /// the highest its rays met (<see cref="FloorRecord.Highest"/>), whatever is drawn.
         /// </summary>
         public static float RoofAbove(float topCut, float modelTop) => Math.Max(topCut + 0.5f, modelTop);
 

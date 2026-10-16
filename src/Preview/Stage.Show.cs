@@ -185,7 +185,7 @@ namespace Scry
             MeasureNew(entry);
 
             // A room opens on its top floor to be looked into; a location keeps its roof.
-            if (entry.Source is PlaceSource shown) SetFloors(entry, _placeFloors, open: shown.IsRoom);
+            if (entry.Source is PlaceSource shown) SetFloors(entry, _placeFloors, shown.IsRoom, PlaceCeiling, _placeTop);
             else
             {
                 ClearFloors();

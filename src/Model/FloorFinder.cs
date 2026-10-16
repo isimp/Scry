@@ -7,12 +7,13 @@ namespace Scry
     /// <summary>
     /// Where a ray cast straight down landed on something flat: the patch of rays it belongs to
     /// (each room of an example is probed on its own grid), its place on that grid, the height,
-    /// the ground it stands for, and whether it is open, with nothing of the place above it.
+    /// the ground it stands for, whether it is open, with nothing of the place above it, and how
+    /// far over it what hides it from above is (<see cref="FloorLanding.Over"/>; 0 for nothing).
     /// </summary>
     internal struct FloorHit
     {
         public int Patch, I, J;
-        public float Height, Area;
+        public float Height, Area, Over;
         public bool Open;
     }
 
@@ -37,16 +38,15 @@ namespace Scry
         /// <summary>The ground its rays were cast over, in square metres; 0 where it is not known.</summary>
         public float Ground;
 
-        /// <summary>
-        /// The highest doorway of the dungeon room its rays were cast over: ground more than
-        /// <see cref="FloorFinder.AboveDoors"/> over it is out of the room's reach. None for a location.
-        /// </summary>
-        public float Door = float.PositiveInfinity;
+        /// <summary>Each of its flat spots' height and how far over it what hides it from above is (<see cref="FloorHit.Over"/>), for the ceiling over a floor.</summary>
+        public readonly List<(float Height, float Over)> Spots = new List<(float, float)>();
     }
 
     /// <summary>
     /// A place's floors found in the place itself: rays cast straight down over it on a grid land
-    /// on what is flat, floors, landings and platforms, but also tables, beds and beams. Only
+    /// on what is flat, floors, landings and platforms, but also tables, beds and beams; the
+    /// rays given are of ground one can walk to (<see cref="FloorWalk"/>), so the tops of pillars,
+    /// walls and rock are none of them. Only
     /// ground one can stand on makes a floor: a spot counts where the spots beside it, all four
     /// ways, landed at the same height too, so a beam, a table or a bed adds nothing; those spots
     /// must hold <see cref="MinRoom"/> and a share of the place's ground. What is open, with
@@ -70,35 +70,36 @@ namespace Scry
         /// </summary>
         public const float OwnLevelRoom = 6f;
 
-        /// <summary>
-        /// How far over a dungeon room's highest doorway its ground is its own, in metres: a sealed
-        /// tower's storey stands by its doorway up, while a frost cave's rock top, a sunken crypt's
-        /// ledge or the ground round M&#xF6;rkhalla's gate is far over every one.
-        /// </summary>
-        public const float AboveDoors = 2f;
-
         /// <summary>How far under an entrance's doorway out open ground is still the ground outside, in metres.</summary>
         public const float Outdoors = 1f;
 
-        /// <summary>Whether a band of a patch is ground of its room: no more than <see cref="AboveDoors"/> over its highest doorway.</summary>
-        private static bool Stands(FloorPatch patch, FloorPatch.Band band) =>
-            band.Count > 0 && band.Sum / band.Count <= patch.Door + AboveDoors;
+        /// <summary>
+        /// How far over an entrance's highest doorway its ground is still its own, in metres:
+        /// higher, it is the world's round its gate (M&#xF6;rkhalla's, 9 m over its doorway out),
+        /// while a sealed tower's entrance keeps its storey by its doorway up.
+        /// </summary>
+        public const float AboveDoors = 2f;
+
+        /// <summary>Whether a band of a patch holds ground its rays found.</summary>
+        private static bool Stands(FloorPatch patch, FloorPatch.Band band) => band.Count > 0;
 
         /// <summary>
-        /// A dungeon room's hits with what is open, nothing of the room over it, taken as its
-        /// ground where it is inside: read alone, a room whose ceiling is the room above (each of
-        /// M&#xF6;rkhalla's) has nothing of its own over its floor. Open ground stays open high over
-        /// every doorway (<see cref="AboveDoors"/>, the top of its rock) and, in the entrance, near
-        /// or over its doorway out (<see cref="Outdoors"/>, the ground outside); none for a room
-        /// with no doorway out (<paramref name="outerDoor"/> infinite).
+        /// A dungeon room's hits, walked to from its doorways (<see cref="FloorWalk"/>), with what
+        /// is open, nothing of the room over it, taken as its ground: read alone, a room whose
+        /// ceiling is the room above (each of M&#xF6;rkhalla's) has nothing of its own over its
+        /// floor, but inside a dungeon all of it is indoors. In the entrance the world's ground
+        /// is outdoors: open near or over its doorway out (<see cref="Outdoors"/>), and any more
+        /// than <see cref="AboveDoors"/> over its highest doorway, round its gate; nothing is in a
+        /// room with no doorway out (<paramref name="outerDoor"/> infinite).
         /// </summary>
-        public static List<FloorHit> Inside(IEnumerable<FloorHit> hits, float door, float outerDoor)
+        public static List<FloorHit> Inside(IEnumerable<FloorHit> hits, float outerDoor, float highestDoor)
         {
+            var entrance = !float.IsPositiveInfinity(outerDoor);
             var inside = new List<FloorHit>();
             foreach (var hit in hits)
             {
                 var each = hit;
-                if (each.Open && each.Height <= door + AboveDoors && each.Height < outerDoor - Outdoors) each.Open = false;
+                each.Open = entrance && (each.Open && each.Height >= outerDoor - Outdoors || each.Height > highestDoor + AboveDoors);
                 inside.Add(each);
             }
             return inside;
@@ -124,10 +125,12 @@ namespace Scry
         /// </summary>
         public static FloorPatch Patch(IEnumerable<FloorHit> hits)
         {
+            var patch = new FloorPatch();
             var byBand = new Dictionary<int, List<FloorHit>>();
             var spots = new Dictionary<int, HashSet<(int, int)>>();
             foreach (var hit in hits)
             {
+                patch.Spots.Add((hit.Height, hit.Over));
                 if (hit.Open) continue;
                 var band = (int)Math.Round(hit.Height / Band);
                 if (!byBand.TryGetValue(band, out var held))
@@ -142,7 +145,6 @@ namespace Scry
             var bands = new HashSet<int>();
             foreach (var band in byBand.Keys) for (var b = band - 1; b <= band + 1; b++) bands.Add(b);
 
-            var patch = new FloorPatch();
             var counted = new HashSet<(int, int)>();
             foreach (var band in bands)
             {
@@ -201,8 +203,7 @@ namespace Scry
         /// <summary>
         /// Whether a patch's rays found ground one can stand on within <see cref="Holding"/> of a
         /// floor, however little: a room of an example reaches a floor it touches so, whatever box
-        /// the game sizes the room by, but not the top of its rock. Every room an example builds
-        /// is reached by one of its floors.
+        /// the game sizes the room by. Every room an example builds is reached by one of its floors.
         /// </summary>
         public static bool Holds(FloorPatch patch, float floor)
         {
@@ -243,8 +244,8 @@ namespace Scry
         /// (<see cref="MainFloor"/>), and with its own ground known, each level with its share of
         /// that, as big as <see cref="OwnLevelRoom"/>. In a big example, a deep chamber's floor or
         /// a hall's gallery is a sliver of the ground of all its rooms, but a level of its own
-        /// room. A dungeon room's ground more than <see cref="AboveDoors"/> over its highest
-        /// doorway is none of it (<see cref="FloorPatch.Door"/>).
+        /// room. Its rays are of ground walked to (<see cref="FloorWalk"/>), so the top of a room's
+        /// rock or a tomb's lid is none of it.
         /// </summary>
         public static List<float> Floors(IEnumerable<FloorPatch> patches, float footprint, float storey = 0f)
         {
@@ -310,6 +311,40 @@ namespace Scry
                 taken.Add(candidate.Height);
             }
             return taken.OrderByDescending(h => h).ToList();
+        }
+
+        /// <summary>How near a floor its spots are, in metres, for the ceiling over it.</summary>
+        public const float CeilingNear = 0.3f;
+
+        /// <summary>The share of a floor's spots, from the lowest ceiling up, that a cut under its ceiling opens to view at the least.</summary>
+        public const float CeilingShare = 0.3f;
+
+        /// <summary>The share of a floor's spots that must have something over them for it to have a ceiling at all.</summary>
+        public const float Hidden = 0.25f;
+
+        /// <summary>
+        /// The ceiling over a floor, from its flat spots within <see cref="CeilingNear"/> of it:
+        /// what hides them from above, low among them (<see cref="CeilingShare"/>), so a cut under
+        /// it takes most of it away; none where too few have anything over them (<see cref="Hidden"/>).
+        /// </summary>
+        public static float? CeilingOver(IEnumerable<FloorHit> hits, float floor) => CeilingOver(hits.Select(h => (h.Height, h.Over)), floor);
+
+        /// <summary>The same from the spots of each patch.</summary>
+        public static float? CeilingOver(IEnumerable<FloorPatch> patches, float floor) => CeilingOver(patches.SelectMany(p => p.Spots), floor);
+
+        private static float? CeilingOver(IEnumerable<(float Height, float Over)> spots, float floor)
+        {
+            var near = 0;
+            var ceilings = new List<float>();
+            foreach (var (height, over) in spots)
+            {
+                if (Math.Abs(height - floor) > CeilingNear) continue;
+                near++;
+                if (over > 0f) ceilings.Add(height + over);
+            }
+            if (near == 0 || ceilings.Count < Hidden * near) return null;
+            ceilings.Sort();
+            return ceilings[(int)(CeilingShare * (ceilings.Count - 1))];
         }
 
         /// <summary>Where to cast the rays over a footprint, with each one's place on the grid: every half metre, spread out to at most forty along its longer side, its corners included.</summary>

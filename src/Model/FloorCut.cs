@@ -18,6 +18,7 @@ namespace Scry
         private int _level;
         private float _shift;
         private Entry _for;
+        private Func<float, float?> _ceilingOver;
 
         public IReadOnlyList<float> Floors => _floors;
         public IReadOnlyList<float> Cuts => _cuts;
@@ -70,12 +71,13 @@ namespace Scry
         /// its top floor and a location keeps its roof; a new copy of the same keeps its cut: the
         /// roof on, or the floor opened where it still has it. True when the floors are another entry's.
         /// </summary>
-        public bool Take(Entry entry, IEnumerable<float> floors, bool open)
+        public bool Take(Entry entry, IEnumerable<float> floors, bool open, Func<float, float?> ceilingOver = null)
         {
             var roofOn = !Cutting;
             _floors.Clear();
             if (floors != null) _floors.AddRange(floors);
-            _cuts = PlaceView.CutHeights(_floors);
+            _ceilingOver = ceilingOver;
+            _cuts = PlaceView.CutHeights(_floors, _ceilingOver);
             if (ReferenceEquals(_for, entry))
             {
                 _level = roofOn ? _floors.Count : Math.Min(_level, _floors.Count);
@@ -88,13 +90,14 @@ namespace Scry
             return true;
         }
 
-        /// <summary>Takes floors found anew for the place shown (an example's, as its rooms come in), keeping the floor opened where it can and the roof on where it was.</summary>
-        public void Refresh(IEnumerable<float> floors)
+        /// <summary>Takes floors found anew for the place shown (an example's, as its rooms come in), keeping the floor opened where it can and the roof on where it was; each cut under the ceiling over its floor where one is known.</summary>
+        public void Refresh(IEnumerable<float> floors, Func<float, float?> ceilingOver = null)
         {
             var roofOn = !Cutting;
             _floors.Clear();
             _floors.AddRange(floors);
-            _cuts = PlaceView.CutHeights(_floors);
+            _ceilingOver = ceilingOver;
+            _cuts = PlaceView.CutHeights(_floors, _ceilingOver);
             _level = roofOn ? _floors.Count : Math.Min(_level, Math.Max(0, _floors.Count - 1));
         }
 
@@ -106,6 +109,7 @@ namespace Scry
         {
             _floors.Clear();
             _cuts.Clear();
+            _ceilingOver = null;
             _for = null;
             _level = 0;
         }

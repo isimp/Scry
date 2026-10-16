@@ -88,6 +88,38 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void EachLandingKnowsHowFarOverItItsCeilingIs()
+        {
+            // A roof 4 m up over a floor with a rug on it: the rug is too near to hide the floor,
+            // the roof hides both; under the open sky nothing does.
+            var record = Empty(Parts).With(Seen(new[] { Floor, Platform, Roof }, new[] { At(4f, Roof, flat: false), At(0.02f, Platform), At(0f, Floor) }));
+            var landings = record.Landings(Roll(Floor, Platform, Roof));
+            Assert.All(landings.Where(l => l.Height == 0f), l => Assert.Equal(4f, l.Over, 3));
+            Assert.All(landings.Where(l => l.Height == 0.02f), l => Assert.Equal(3.98f, l.Over, 3));
+            Assert.All(record.Landings(Roll(Floor, Platform)), l => Assert.Equal(0f, l.Over));
+
+            // Under a platform 2 m up and the roof over it, the nearer hides it.
+            var under = Empty(Parts).With(Seen(new[] { Floor, Platform, Roof }, new[] { At(4f, Roof, flat: false), At(2f, Platform), At(0f, Floor) }));
+            Assert.All(under.Landings(Roll(Floor, Platform, Roof)).Where(l => l.Height == 0f), l => Assert.Equal(2f, l.Over, 3));
+        }
+
+        [Fact]
+        public void APlacesTopIsTheHighestItsRaysMetOfTheRoll()
+        {
+            var record = Empty(Parts).With(Seen(new[] { Floor, Platform, Roof }, new[] { At(4f, Roof, flat: false), At(2f, Platform), At(0f, Floor) }));
+            Assert.Equal(4f, record.Highest(Roll(Floor, Platform, Roof)));
+            Assert.Equal(2f, record.Highest(Roll(Floor, Platform)));
+            Assert.True(float.IsNaN(record.Highest(Roll(Cobweb))));
+
+            // Over a place whose rays meet it at different heights, the highest of them all.
+            var tower = new ProbeSeen();
+            tower.Present.UnionWith(new[] { Floor, Roof });
+            tower.Rays[0] = new List<RaySurface> { At(9f, Roof, flat: false), At(0f, Floor) };
+            tower.Rays[1] = new List<RaySurface> { At(3f, Roof, flat: false), At(0f, Floor) };
+            Assert.Equal(9f, Empty(Parts).With(tower).Highest(Roll(Floor, Roof)));
+        }
+
+        [Fact]
         public void LandingsKeepTheirPlaceOnTheGridAndItsGround()
         {
             var record = Empty(Parts).With(Seen(new[] { Floor }, new[] { At(0f, Floor) }));

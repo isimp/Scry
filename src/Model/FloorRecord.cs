@@ -20,11 +20,16 @@ namespace Scry
         public bool Solid = true;
     }
 
-    /// <summary>Where a ray of a kept place lands on something flat for a roll: its place on the grid, the height, whether nothing of the place is above it, and the part it is on.</summary>
+    /// <summary>
+    /// Where a ray of a kept place lands on something flat for a roll: its place on the grid, the
+    /// height, whether nothing of the place is above it, the part it is on, and how far over it
+    /// the first thing of the place at a person's head height or higher is
+    /// (<see cref="PlaceView.LeastHeadroom"/>), what hides it from above; 0 for nothing.
+    /// </summary>
     internal struct FloorLanding
     {
         public int I, J, Part;
-        public float X, Z, Height;
+        public float X, Z, Height, Over;
         public bool Open;
     }
 
@@ -148,20 +153,51 @@ namespace Scry
         public List<FloorLanding> Landings(ISet<int> present)
         {
             var landings = new List<FloorLanding>();
+            var over = new List<float>();
             for (var ray = 0; ray < Grid.Count; ray++)
             {
                 if (!_rays.TryGetValue(ray, out var surfaces)) continue;
                 var highest = float.NaN;
+                over.Clear();
                 foreach (var surface in surfaces)
                 {
                     if (!present.Contains(surface.Part)) continue;
                     if (float.IsNaN(highest)) highest = surface.Height;
-                    if (!surface.Flat) continue;
-                    var at = Grid[ray];
-                    landings.Add(new FloorLanding { I = at.I, J = at.J, X = at.X, Z = at.Z, Height = surface.Height, Open = highest - surface.Height < Covered, Part = surface.Part });
+                    if (surface.Flat)
+                    {
+                        var at = Grid[ray];
+                        landings.Add(new FloorLanding { I = at.I, J = at.J, X = at.X, Z = at.Z, Height = surface.Height, Over = Ceiling(over, surface.Height), Open = highest - surface.Height < Covered, Part = surface.Part });
+                    }
+                    over.Add(surface.Height);
                 }
             }
             return landings;
+        }
+
+        /// <summary>How far over a height the lowest of the heights above it at a person's head height or more is; 0 for none.</summary>
+        private static float Ceiling(List<float> above, float height)
+        {
+            for (var k = above.Count - 1; k >= 0; k--)
+            {
+                if (above[k] - height >= PlaceView.LeastHeadroom) return above[k] - height;
+            }
+            return 0f;
+        }
+
+        /// <summary>The highest anything of a roll with these parts there is, in the place's own frame, where any ray met it; NaN for nothing.</summary>
+        public float Highest(ISet<int> present)
+        {
+            var highest = float.NaN;
+            foreach (var surfaces in _rays.Values)
+            {
+                foreach (var surface in surfaces)
+                {
+                    if (!present.Contains(surface.Part)) continue;
+                    if (float.IsNaN(highest) || surface.Height > highest) highest = surface.Height;
+                    break;
+                }
+            }
+            return highest;
         }
 
         /// <summary>What a ray (by its place in the grid's list) met of any roll probed, top down.</summary>

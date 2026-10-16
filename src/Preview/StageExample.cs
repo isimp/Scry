@@ -370,30 +370,38 @@ namespace Scry
                 Timing.Add("example floors sleep", slept);
             }
             _hits.Clear();
-            var cast = FloorProbe.Read(copy, subject, layer, _hits, Copies, room.Room.Name, true, roll, wake: asleep ? Wake : (System.Action)null, sleep: asleep ? Sleep : (System.Action)null);
+            // Walked into by its doorways, in its own frame as its rays were kept.
+            var start = room.Room.Doorways.Count > 0 ? FloorWalk.Start.At(room.Room.Doorways.Select(d => d.Position)) : null;
+            var cast = FloorProbe.Read(copy, subject, layer, _hits, Copies, room.Room.Name, true, roll, wake: asleep ? Wake : (System.Action)null, sleep: asleep ? Sleep : (System.Action)null,
+                start: start, top: t => Top = float.IsNaN(Top) ? t : Mathf.Max(Top, t));
             _ground += cast;
-            // Its highest doorway and its doorway out, the entrance's, where its ground was measured:
-            // ground high over the one is out of its reach, open ground by the other the ground outside.
+            // Its doorway out, the entrance's, and its highest, where its ground was measured: by
+            // and high over them the entrance's ground is the world's.
             float Measured(Vec3 at) => subject.InverseTransformPoint(Holder.transform.TransformPoint(new Vector3(at.X, at.Y, at.Z))).y;
-            var door = float.PositiveInfinity;
             var outerDoor = float.PositiveInfinity;
+            var highestDoor = float.NegativeInfinity;
             for (var i = 0; i < room.Room.Doorways.Count; i++)
             {
                 var height = Measured(room.DoorwayAt(i));
-                door = float.IsPositiveInfinity(door) ? height : Mathf.Max(door, height);
+                highestDoor = Mathf.Max(highestDoor, height);
                 if (room.Room.Doorways[i].Entrance) outerDoor = height;
             }
             // Read alone, a room whose ceiling is the room above has nothing of its own over its floor.
             var step = Timing.Start();
-            var ground = FloorFinder.Patch(FloorFinder.Inside(_hits, door, outerDoor));
+            var ground = FloorFinder.Patch(FloorFinder.Inside(_hits, outerDoor, highestDoor));
             Timing.Add("example floors found", step);
             ground.Ground = cast;
-            ground.Door = door;
             _patches.Add(ground);
             _roomGround[room] = ground;
             _hits.Clear();
             Timing.Add("example floors", read);
         }
+
+        /// <summary>The highest the rays met over the rooms read so far, above the location's root; NaN for none.</summary>
+        public float Top { get; private set; } = float.NaN;
+
+        /// <summary>The ceiling over a floor of the example, from its rooms' rays (<see cref="FloorFinder.CeilingOver(IEnumerable{FloorPatch}, float)"/>).</summary>
+        public float? CeilingOver(float floor) => FloorFinder.CeilingOver(_patches, floor);
 
         /// <summary>The example's floors: found in its rooms, with one for each room no floor reaches, or where their doorways are while none are found.</summary>
         public List<float> FloorsNow()
@@ -426,6 +434,7 @@ namespace Scry
             _roomGround.Clear();
             _countedAt = -1;
             _ground = 0f;
+            Top = float.NaN;
             _outside.Clear();
         }
     }

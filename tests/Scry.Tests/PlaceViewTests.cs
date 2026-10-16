@@ -82,6 +82,23 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheCutGoesUnderTheCeilingOverItsFloor()
+        {
+            // A sealed tower's top floor at 40 m under its roof at 42 m: cut at head height it
+            // would leave the roof over it; under the roof it opens it, never lower than to keep
+            // what stands on the floor, never higher than head height.
+            Assert.Equal(41.9f, PlaceView.CutHeight(40f, null, 42f), 3);
+            Assert.Equal(41.4f, PlaceView.CutHeight(40f, null, 41.2f), 3);
+            Assert.Equal(42.5f, PlaceView.CutHeight(40f, null, 50f), 3);
+            Assert.Equal(42.5f, PlaceView.CutHeight(40f, null, null), 3);
+            // Under a low storey, whichever is lower.
+            Assert.Equal(2.4f, PlaceView.CutHeight(0f, 3f, 3.5f), 3);
+            Assert.Equal(1.9f, PlaceView.CutHeight(0f, 3f, 2f), 3);
+            float? Ceiling(float floor) => floor == 8f ? 9.6f : (float?)null;
+            Assert.Equal(new[] { 9.5f, 6.7f, 2.5f }, PlaceView.CutHeights(new List<float> { 8f, 4.2f, 0f }, Ceiling).Select(c => (float)System.Math.Round(c, 3)));
+        }
+
+        [Fact]
         public void UnderALowStoreyTheCutStaysBelowTheFloorAbove()
         {
             // Head height over the floor, or just under the floor above where that is lower, so
