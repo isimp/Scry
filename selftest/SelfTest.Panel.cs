@@ -167,7 +167,12 @@ namespace Scry
         /// <summary>
         /// What Scry costs idling with the panel closed, as between looks: its own work each frame
         /// and what it allocates over five seconds, and what it keeps, the textures, render
-        /// textures and meshes it made, beside the game's whole managed memory for scale.
+        /// textures and meshes it made, beside the game's whole managed memory for scale. Where
+        /// the runtime keeps no count of what a thread allocates, as the game's does not, what
+        /// Scry allocates is told by the memory in use, which grows by what other threads allocate
+        /// while Scry works too; as long a wait each frame as Scry's work took the frame before,
+        /// doing nothing, tells how much of that is theirs (<see cref="OtherThreads"/>), and it is
+        /// left out of what is checked.
         /// </summary>
         private static IEnumerator IdleCost(Probe p)
         {
@@ -184,20 +189,32 @@ namespace Scry
             var bytes = Timing.ScryBytes;
             var frames = Time.frameCount;
             Timing.ForgetBytesByPart();
-            yield return new Wait(5.0);
+            var others = new OtherThreads(() => GC.GetTotalMemory(false), () => GC.CollectionCount(0), () => System.Diagnostics.Stopwatch.GetTimestamp() * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
+            var until = Time.unscaledTime + 5f;
+            while (Time.unscaledTime < until)
+            {
+                if (!Timing.CountsPerThread && Timing.Measuring != null) others.Wait(Timing.Measuring.Last);
+                yield return null;
+            }
             var idle = Timing.Measuring?.Since(first);
             var count = Math.Max(1, Time.frameCount - frames);
             var allocated = Timing.ScryBytes - bytes;
+            var own = Timing.CountsPerThread ? allocated : Math.Max(0, allocated - others.Bytes);
+            var counted = Timing.CountsPerThread
+                ? "counted for Scry's thread alone"
+                : $"told by the memory in use, every thread's, in 4 KB steps, as the runtime keeps no count of a thread's own; as long a wait each frame doing nothing, {Numbers.Fixed(others.Ms, 1)} ms in all, saw it grow {Numbers.Count(others.Bytes / 1024)} KB, what other threads allocated meanwhile, which leaves Scry's own about {Numbers.Count(own / 1024)} KB, {Numbers.Count(own / count)} bytes a frame";
             p.Note(idle != null
-                ? $"idling {Numbers.Count(idle.Frames)} frames: Scry's own work {Numbers.Fixed(idle.Mean, 3)} ms a frame on average, {Numbers.Fixed(idle.Percentile(0.95), 3)} ms at the 95th percentile, {Numbers.Fixed(idle.Max, 3)} ms at the most; it allocated about {Numbers.Count(allocated / 1024)} KB, {Numbers.Count(allocated / count)} bytes a frame, {(Timing.CountsPerThread ? "counted for Scry's thread alone" : "told by the memory in use, every thread's")}"
+                ? $"idling {Numbers.Count(idle.Frames)} frames: Scry's own work {Numbers.Fixed(idle.Mean, 3)} ms a frame on average, {Numbers.Fixed(idle.Percentile(0.95), 3)} ms at the 95th percentile, {Numbers.Fixed(idle.Max, 3)} ms at the most; it allocated about {Numbers.Count(allocated / 1024)} KB, {Numbers.Count(allocated / count)} bytes a frame, {counted}"
                 : "frames were not measured");
             // By part, an outer one with the inner ones in it, to tell which allocates.
-            p.Note("by part: " + Timing.BytesByPartTold(8));
+            p.Note((Timing.CountsPerThread ? "by part: " : "by part, other threads' allocations while each ran in it too: ") + Timing.BytesByPartTold(8));
+            // Standing still, the compendium's sight looks only at what can move.
+            p.Note($"the compendium's sight keeps {Numbers.Count(CompendiumSight.ThingCount)} things to look at, {Numbers.Count(CompendiumSight.ThingsResting)} of them resting as the character and the eye stood still");
             // A frame above a millisecond while idling is one to account for: every part of it.
             if (idle != null && idle.Max >= 1.0 && idle.PartsOfSlowest(1)[0] is string slowest) p.Note("its slowest idle frame: " + slowest);
             p.Note("it keeps: " + KeptTold());
             if (idle != null) p.Check(idle.Mean < 0.25, "idling, Scry's own work is a quarter of a millisecond a frame at the most on average", $"{Numbers.Fixed(idle.Mean, 3)} ms");
-            p.Check(allocated / count < 1024, "idling, Scry allocates under a kilobyte a frame", $"{Numbers.Count(allocated / count)} bytes");
+            p.Check(own / count < 1024, "idling, Scry allocates under a kilobyte a frame", Timing.CountsPerThread ? $"{Numbers.Count(own / count)} bytes" : $"{Numbers.Count(own / count)} bytes, other threads' share left out");
             if (wasOpen) Session.Show(null);
         }
 

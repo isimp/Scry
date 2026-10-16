@@ -14,7 +14,10 @@ namespace Scry
     /// second; everything else the game keeps in the world (trees, logs, rocks, deposits,
     /// buildings, pickables, nests, items on the ground) is kept as it wakes and looked at in
     /// rounds, a share each frame and all once a second (<see cref="Rounds{T}"/>), and let go once
-    /// seen or once nothing more is to be learned of it there. A place is seen with its centre in
+    /// seen or once nothing more is to be learned of it there. One that stands still rests while
+    /// out of reach, out of view or hidden by more than a move of the character or the eye could
+    /// change, passed over without a look until either moves (<see cref="Viewpoint"/>), so standing
+    /// still costs only what can move. A place is seen with its centre in
     /// view within its own reach and <see cref="CreatureReach"/> beyond it. A container opened
     /// shows what it holds, seen, and the container itself is known.
     /// </summary>
@@ -42,10 +45,13 @@ namespace Scry
         /// <summary>Everything the game keeps in the world, as it wakes, to be looked at in rounds of a second.</summary>
         private static readonly Rounds<ZNetView> Things = new Rounds<ZNetView>(1f);
 
+        /// <summary>Where the character and the eye were when the things resting last woke.</summary>
+        private static readonly Viewpoint Eye = new Viewpoint();
+
         /// <summary>
         /// What each kind of thing is, by its prefab: its key, whether it is a creature (looked at
-        /// on its own), whether it shows anything, how far it is seen, how high its middle is, and
-        /// whether the catalog looked with lists it.
+        /// on its own), whether it shows anything, how far it is seen, how high its middle is,
+        /// whether it can move, and whether the catalog looked with lists it.
         /// </summary>
         private static readonly Dictionary<int, Shape> Shapes = new Dictionary<int, Shape>();
 
@@ -56,12 +62,16 @@ namespace Scry
             public bool Shows;
             public float Reach;
             public float Height;
+            public bool Moves;
             public CompendiumCatchUp ListedBy;
             public bool Listed;
         }
 
-        /// <summary>How many things are kept to look at now.</summary>
+        /// <summary>How many things are kept to look at now, those resting among them.</summary>
         public static int ThingCount => Things.Count;
+
+        /// <summary>How many of the things kept rest now, one by one; for the self-test.</summary>
+        public static int ThingsResting => Things.Resting;
 
         /// <summary>How many things were seen, or had nothing more to tell, and were let go, in this world.</summary>
         public static int ThingsLetGo => Things.LetGo;
@@ -122,14 +132,18 @@ namespace Scry
 
         /// <summary>
         /// Looks at the share of the things kept that a frame of so many seconds is due, within
-        /// <see cref="FrameBudgetMs"/> of the frame; called each frame.
+        /// <see cref="FrameBudgetMs"/> of the frame, the things resting woken first where the
+        /// character or the eye moved; called each frame.
         /// </summary>
         public static void Sweep(Player player, CompendiumCatchUp catchUp, CompendiumBook book, float seconds)
         {
             if (!Ready(player, catchUp, book, letGo: true)) return;
+            if (Eye.Moved(V(_from), V(_eye), V(_forward))) Things.Wake();
             _sweepStarted = Stopwatch.GetTimestamp();
             Things.Look(seconds, LookAtThing, Spent);
         }
+
+        private static Vec3 V(Vector3 v) => new Vec3(v.x, v.y, v.z);
 
         /// <summary>
         /// The most of a frame looking at things may take, as after a world or a stretch of it
@@ -178,7 +192,8 @@ namespace Scry
         /// One thing, by the rule: dropped when gone, a creature, showing nothing or not in the
         /// catalog; kept while out of reach; let go when seen before and paired with the biome and
         /// place it stands in; kept while out of view or hidden; seen and paired, then let go.
-        /// One out of reach costs only where it stands, as most do most of the time.
+        /// One out of reach costs only where it stands, as most do most of the time. One kept that
+        /// stands still rests (<see cref="Unchanged"/>).
         /// </summary>
         private static Looked LookAt(ZNetView thing)
         {
@@ -194,9 +209,22 @@ namespace Scry
             if (shape.Creature || !shape.Shows || !shape.Listed) return Looked.Dropped;
             var at = thing.transform.position;
             var middle = at + Vector3.up * shape.Height;
-            if ((middle - _from).sqrMagnitude > shape.Reach * shape.Reach) return Looked.Kept;
+            var away = (middle - _from).sqrMagnitude;
+            if (away > shape.Reach * shape.Reach)
+            {
+                var beyond = shape.Reach + Viewpoint.Step;
+                return Unchanged(shape, away > beyond * beyond);
+            }
             if (_letGo && _book.Level(shape.Key) >= KnownLevel.Seen && CompendiumKeeper.PairedIn(shape.Key, at)) return Looked.LetGo;
-            if (Vector3.Angle(_forward, middle - _eye) > HalfView || !Clear(_eye, middle, thing.transform)) return Looked.Kept;
+            var toward = middle - _eye;
+            var angle = Vector3.Angle(_forward, toward);
+            if (angle > HalfView)
+            {
+                // The eye's step turns the line to a near thing more than the view's own turn does.
+                var near = toward.magnitude;
+                return Unchanged(shape, near > Viewpoint.Step && angle > HalfView + Viewpoint.Turn + Mathf.Asin(Viewpoint.Step / near) * Mathf.Rad2Deg);
+            }
+            if (!Clear(_eye, middle, thing.transform)) return Unchanged(shape, true);
             _catchUp.Met(shape.Key, KnownLevel.Seen, _book);
             CompendiumKeeper.MetIn(shape.Key, at);
             // It stays where it is: seen and paired once, it is let go, so a farm of crops or a
@@ -204,13 +232,21 @@ namespace Scry
             return _letGo ? Looked.LetGo : Looked.Kept;
         }
 
+        /// <summary>
+        /// A thing kept, not seen this time: resting where it stands still and no move short of
+        /// one the viewpoint tells (<see cref="Viewpoint.Step"/>, <see cref="Viewpoint.Turn"/>) could
+        /// bring it into reach or view, else kept to be looked at next round. One hidden rests
+        /// too: what hides it stands still as well, as the ground, rock and buildings mostly do.
+        /// </summary>
+        private static Looked Unchanged(Shape shape, bool beyondAMove) => beyondAMove && !shape.Moves ? Looked.Rests : Looked.Kept;
+
         /// <summary>A kind of thing's shape, worked out from the first of it looked at; none for a prefab the game does not know.</summary>
         private static Shape ShapeOf(int prefab, ZNetView thing)
         {
             if (Shapes.TryGetValue(prefab, out var shape)) return shape;
             var source = GamePrefabs.Hashed(prefab);
             if (source == null) return null;
-            shape = new Shape { Key = source.name, Creature = thing.GetComponent<Character>() != null };
+            shape = new Shape { Key = source.name, Creature = thing.GetComponent<Character>() != null, Moves = Moves(thing) };
             if (Measure(thing.transform, out var bounds))
             {
                 var size = bounds.size;
@@ -220,6 +256,30 @@ namespace Scry
             }
             Shapes[prefab] = shape;
             return shape;
+        }
+
+        private static readonly List<Rigidbody> Bodies = new List<Rigidbody>();
+
+        /// <summary>
+        /// Whether a kind of thing can move: the game syncs a moving thing's place
+        /// (<c>ZSyncTransform</c>: items on the ground, ships, carts, logs), physics moves a body
+        /// in it (<c>Rigidbody</c>, not kinematic: fish, ragdolls), or it is a bird flying its
+        /// rounds (<c>RandomFlyingBird</c>); else it stands where it is, as trees, rocks,
+        /// buildings and pickables do.
+        /// </summary>
+        private static bool Moves(ZNetView thing)
+        {
+            if (thing.GetComponent<ZSyncTransform>() != null || thing.GetComponent<RandomFlyingBird>() != null) return true;
+            thing.GetComponentsInChildren(true, Bodies);
+            try
+            {
+                foreach (var body in Bodies) if (body != null && !body.isKinematic) return true;
+                return false;
+            }
+            finally
+            {
+                Bodies.Clear();
+            }
         }
 
         private static readonly List<MeshFilter> Meshes = new List<MeshFilter>();
