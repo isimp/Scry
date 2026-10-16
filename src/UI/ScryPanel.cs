@@ -260,8 +260,8 @@ namespace Scry
             var clearText = ClearText(outLines);
             var clearW = outLines > 0 ? Skin.Width(Skin.Button, clearText) + U(10f) : 0f;
             var viewRect = new Rect(w - pad - U(40f) - viewW, U(15f), viewW, U(28f));
-            // The compendium's mode and floor beside the view button, what else the row holds to their left.
-            var front = CompendiumFront(explorer, viewRect.x, viewRect.y, viewRect.height, pad + U(98f));
+            // The compendium's button beside the view button, its box under it, what else the row holds to their left.
+            var front = CompendiumFront(explorer, viewRect.x, viewRect.y, viewRect.height, pad + U(98f), new Rect(pad, 0f, w - pad * 2f, h - pad));
             var clearRect = new Rect(front - (outLines > 0 ? U(8f) + clearW : 0f), viewRect.y, clearW, viewRect.height);
 
             // Reading the locations completes what the search and the details know, so it is
@@ -290,6 +290,7 @@ namespace Scry
             if (outLines > 0 && GUI.Button(clearRect, clearText, Skin.Primary)) ClearWorld();
             OutHover(clearRect, outLines, e, new Rect(pad, 0f, w - pad * 2f, h - pad));
             OutClicks(explorer, e);
+            CompendiumBoxClicks(e);
 
             if (GUI.Button(viewRect, viewText, Skin.Button)) ToggleCompact();
             if (GUI.Button(new Rect(w - pad - U(32f), U(12f), U(32f), U(32f)), "×", Skin.Close)) AskClose();
@@ -374,6 +375,7 @@ namespace Scry
             // Over everything below the search box; its clicks were taken before any of it drew.
             Assist.Draw();
             DrawOutList(explorer);
+            DrawCompendiumBox(explorer);
 
             // Resize grip in the corner.
             var grip = new Rect(w - U(22f), h - U(22f), U(20f), U(20f));

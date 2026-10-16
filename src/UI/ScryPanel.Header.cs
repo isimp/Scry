@@ -320,104 +320,176 @@ namespace Scry
 
         private static float _frontScale = -1f, _floorValueW;
 
+        /// <summary>Whether the compendium's box is open: while the mouse is on its button or on the box, or while the self-test holds it.</summary>
+        private static bool _bookOpen;
+        private static bool _bookHeld;
+
+        /// <summary>Where the box and its controls stand, worked out with the title row each event, for its clicks taken early and its drawing last.</summary>
+        private static Rect _bookBox, _bookLower, _bookValue, _bookRaise;
+        private static readonly Rect[] BookSegments = new Rect[CompendiumWords.Rules.Count];
+        private static bool _bookFloorShown;
+        private static float _bookCaptionW;
+
+        /// <summary>Holds the compendium's box open, or lets it close again; for the self-test.</summary>
+        internal static void HoldCompendiumBox(bool open) => _bookHeld = open;
+
         /// <summary>
-        /// The compendium's controls in the title row, right of everything else there but the
-        /// view button, once the character's book is read and only in the full view, drawn as the
-        /// origin switch is: its mode captioned, its rules as segments beside the view button, and
-        /// while it is on the floor captioned to the mode's left, its biome between the search
-        /// row's arrow buttons, so the mode never moves. The floor's biome keeps the width of the
-        /// widest, so its arrows stay under the pointer while stepped. Left out where they would
-        /// reach past <paramref name="leftmost"/>. Where the drawn controls begin, else <paramref name="right"/>.
+        /// The compendium in the title row, once the character's book is read and only in the full
+        /// view: a button naming the rules chosen, the box under it opening while the mouse is on
+        /// either, as Clear world's list does, with the rules as segments and, while it is on, the
+        /// floor between arrows; and while it is on, the eye peeking at everything for now beside
+        /// the button. Left out where it would reach past <paramref name="leftmost"/>. Where the
+        /// drawn controls begin, else <paramref name="right"/>.
         /// </summary>
-        private static float CompendiumFront(Explorer explorer, float right, float y, float height, float leftmost)
+        private static float CompendiumFront(Explorer explorer, float right, float y, float height, float leftmost, Rect room)
         {
             var book = CompendiumKeeper.Book;
-            if (book == null || _compact) return right;
+            if (book == null || _compact)
+            {
+                _bookOpen = false;
+                return right;
+            }
             if (_frontScale != U(1f))
             {
                 // The widest biome the floor can say, measured once for each size of the panel.
                 _frontScale = U(1f);
                 _floorValueW = Enumerable.Range(0, Tiers.Last + 1).Max(f => Skin.Width(Skin.Button, CompendiumWords.FloorName(f))) + U(16f);
             }
-            var segmentWs = CompendiumWords.Rules.Select(r => Skin.Width(Skin.Segment, CompendiumWords.RuleName(r)) + U(6f)).ToArray();
-            var modeCaptionW = Skin.Width(Skin.FaintLabel, CompendiumWords.ModeCaption) + U(8f);
-            var modeW = modeCaptionW + segmentWs.Sum() + U(4f) * (segmentWs.Length - 1);
+            var on = explorer.CompendiumSet;
             var peek = new Rect(right - U(12f) - height, y, height, height);
-            var mode = new Rect(peek.x - U(4f) - modeW, y, modeW, height);
-            if (mode.x < leftmost) return right;
-            ModeControl(book, mode, modeCaptionW, segmentWs);
-            PeekButton(explorer, peek);
-            if (book.Rule == CompendiumRule.Off || CompendiumKeeper.Ceiling == 0 && book.Floor == 0) return mode.x;
-            var floorCaptionW = Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption) + U(8f);
-            var floorW = floorCaptionW + height * 2f + _floorValueW + U(4f) * 2f;
-            var floor = new Rect(mode.x - U(16f) - floorW, y, floorW, height);
-            if (floor.x < leftmost) return mode.x;
-            FloorControl(explorer, book, floor, floorCaptionW);
-            return floor.x;
+            var label = CompendiumWords.Button(book.Rule);
+            var buttonW = Skin.Width(Skin.Button, label) + U(10f);
+            var button = new Rect((on ? peek.x - U(4f) : right - U(12f)) - buttonW, y, buttonW, height);
+            if (button.x < leftmost)
+            {
+                _bookOpen = false;
+                return right;
+            }
+            CountDrawn(PanelPart.CompendiumSwitch);
+            var e = Event.current;
+            GUI.Button(button, label, _bookOpen ? Skin.On : Skin.Button);
+            if (!_bookOpen && button.Contains(e.mousePosition)) AskTip("mode", CompendiumWords.ModeTip);
+            if (on) PeekButton(explorer, peek);
+            BookLayout(book, button, height, room, e);
+            return button.x;
         }
 
-        /// <summary>
-        /// The eye after the mode's segments, peeking at everything for now, lit while it does;
-        /// it keeps its place while the compendium is off, so the segments never move, but only
-        /// peeks while it is on.
-        /// </summary>
+        /// <summary>The eye beside the compendium's button while it is on, peeking at everything for now, lit while it does.</summary>
         private static void PeekButton(Explorer explorer, Rect rect)
         {
             CountDrawn(PanelPart.PeekButton);
-            var was = GUI.enabled;
-            GUI.enabled = was && explorer.CompendiumSet;
             if (GUI.Button(rect, GUIContent.none, explorer.Peeking ? Skin.On : Skin.IconButton)) Peek(explorer, !explorer.Peeking);
             var icon = new Rect(rect.x + rect.width * 0.2f, rect.y + rect.height * 0.2f, rect.width * 0.6f, rect.height * 0.6f);
-            Skin.Icon(icon, Skin.Eye, explorer.Peeking ? Skin.Accent : explorer.CompendiumSet ? Skin.Dim : Skin.Alpha(Skin.Dim, 0.4f));
-            GUI.enabled = was;
-            if (explorer.CompendiumSet && rect.Contains(Event.current.mousePosition)) AskTip("peek", CompendiumWords.PeekTip(explorer.Peeking));
-        }
-
-        /// <summary>The mode: its caption, then a segment for each of the rules, the chosen one lit.</summary>
-        private static void ModeControl(CompendiumBook book, Rect rect, float captionW, float[] segmentWs)
-        {
-            CountDrawn(PanelPart.CompendiumSwitch);
-            var mouse = Event.current.mousePosition;
-            var caption = new Rect(rect.x, rect.y, captionW, rect.height);
-            GUI.Label(caption, CompendiumWords.ModeCaption, Skin.FaintLabel);
-            if (caption.Contains(mouse)) AskTip("mode", CompendiumWords.ModeTip);
-            var x = caption.xMax;
-            for (var i = 0; i < segmentWs.Length; i++)
-            {
-                var rule = CompendiumWords.Rules[i];
-                var segment = new Rect(x, rect.y, segmentWs[i], rect.height);
-                if (GUI.Button(segment, CompendiumWords.RuleName(rule), book.Rule == rule ? Skin.SegmentOn : Skin.Segment) && book.Rule != rule) Choose(rule);
-                if (segment.Contains(mouse)) AskTip("mode-" + CompendiumWords.RuleName(rule), CompendiumWords.StepTip(rule));
-                x = segment.xMax + U(4f);
-            }
+            Skin.Icon(icon, Skin.Eye, explorer.Peeking ? Skin.Accent : Skin.Dim);
+            if (rect.Contains(Event.current.mousePosition)) AskTip("peek", CompendiumWords.PeekTip(explorer.Peeking));
         }
 
         /// <summary>
-        /// The milestone floor, once a boss fell for the character or a floor is set: its caption,
-        /// then its biome between arrows lowering and raising it, tier by tier, as far as the
-        /// bosses that fell in a row reach (<see cref="CompendiumKeeper.Ceiling"/>).
+        /// Where the box and its controls stand under the button, kept inside the panel: its
+        /// caption, the rules' segments and, while the compendium is on and a floor can be set,
+        /// the floor between its arrows; and whether it is open, while the mouse is on the button
+        /// or the box, with a little room between them.
         /// </summary>
-        private static void FloorControl(Explorer explorer, CompendiumBook book, Rect rect, float captionW)
+        private static void BookLayout(CompendiumBook book, Rect button, float height, Rect room, Event e)
         {
+            var pad = U(10f);
+            var gap = U(4f);
+            _bookCaptionW = Mathf.Max(Skin.Width(Skin.FaintLabel, CompendiumWords.RulesCaption), Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption)) + U(10f);
+            _bookFloorShown = book.Rule != CompendiumRule.Off && (CompendiumKeeper.Ceiling > 0 || book.Floor > 0);
+            var segmentsW = 0f;
+            for (var i = 0; i < CompendiumWords.Rules.Count; i++) segmentsW += Skin.Width(Skin.Segment, CompendiumWords.RuleName(CompendiumWords.Rules[i])) + U(6f) + (i > 0 ? gap : 0f);
+            var floorW = _bookFloorShown ? height * 2f + _floorValueW + gap * 2f : 0f;
+            var width = Mathf.Min(room.width, Mathf.Max(Skin.Width(Skin.FaintLabel, CompendiumWords.BoxCaption), _bookCaptionW + Mathf.Max(segmentsW, floorW)) + pad * 2f);
+            var rows = _bookFloorShown ? 2 : 1;
+            var x = Mathf.Clamp(button.xMax - width, room.x, room.xMax - width);
+            _bookBox = new Rect(x, button.yMax + gap, width, pad + U(26f) + rows * height + (rows - 1) * U(6f) + pad);
+
+            var rowY = _bookBox.y + pad + U(26f);
+            var sx = _bookBox.x + pad + _bookCaptionW;
+            for (var i = 0; i < CompendiumWords.Rules.Count; i++)
+            {
+                var w = Skin.Width(Skin.Segment, CompendiumWords.RuleName(CompendiumWords.Rules[i])) + U(6f);
+                BookSegments[i] = new Rect(sx, rowY, w, height);
+                sx += w + gap;
+            }
+            var floorY = rowY + height + U(6f);
+            _bookLower = new Rect(_bookBox.x + pad + _bookCaptionW, floorY, height, height);
+            _bookValue = new Rect(_bookLower.xMax + gap, floorY, _floorValueW, height);
+            _bookRaise = new Rect(_bookValue.xMax + gap, floorY, height, height);
+
+            var zone = button;
+            if (_bookOpen)
+            {
+                var left = Mathf.Min(button.x, _bookBox.x) - U(6f);
+                var right = Mathf.Max(button.xMax, _bookBox.xMax) + U(6f);
+                zone = new Rect(left, button.y - U(6f), right - left, _bookBox.yMax - button.y + U(12f));
+            }
+            _bookOpen = _bookHeld || zone.Contains(e.mousePosition);
+        }
+
+        /// <summary>Whether the floor can be raised from where it is, as far as the bosses that fell in a row reach (<see cref="CompendiumKeeper.Ceiling"/>).</summary>
+        private static bool CanRaise(int floor) => floor < CompendiumKeeper.Ceiling && floor < Tiers.Last;
+
+        /// <summary>Before anything under the box is drawn: a click on one of its rules, or on the floor's arrows.</summary>
+        private static void CompendiumBoxClicks(Event e)
+        {
+            var book = CompendiumKeeper.Book;
+            if (!_bookOpen || book == null || e.type != EventType.MouseDown || !_bookBox.Contains(e.mousePosition)) return;
+            if (e.button == 0)
+            {
+                for (var i = 0; i < CompendiumWords.Rules.Count; i++)
+                {
+                    var rule = CompendiumWords.Rules[i];
+                    if (BookSegments[i].Contains(e.mousePosition) && book.Rule != rule) Choose(rule);
+                }
+                if (_bookFloorShown && _bookLower.Contains(e.mousePosition) && book.Floor > 0) SetFloor(book, book.Floor - 1);
+                else if (_bookFloorShown && _bookRaise.Contains(e.mousePosition) && CanRaise(book.Floor)) SetFloor(book, book.Floor + 1);
+            }
+            e.Use();
+        }
+
+        /// <summary>
+        /// Drawn last, over what lies below the button: the box's caption, the rules with the one
+        /// chosen lit, and the floor's biome between arrows lowering and raising it, tier by tier;
+        /// each with its tip.
+        /// </summary>
+        private static void DrawCompendiumBox(Explorer explorer)
+        {
+            var book = CompendiumKeeper.Book;
+            if (!_bookOpen || book == null || _compact) return;
+            var mouse = Event.current.mousePosition;
+            var pad = U(10f);
+            var repaint = Event.current.type == EventType.Repaint;
+            if (repaint)
+            {
+                CountDrawn(PanelPart.CompendiumBox);
+                Skin.Box(_bookBox, Skin.Backdrop, Skin.Outline);
+                GUI.Label(new Rect(_bookBox.x + pad, _bookBox.y + pad, _bookBox.width - pad * 2f, U(20f)), CompendiumWords.BoxCaption, Skin.FaintLabel);
+                GUI.Label(new Rect(_bookBox.x + pad, BookSegments[0].y, _bookCaptionW, BookSegments[0].height), CompendiumWords.RulesCaption, Skin.FaintLabel);
+            }
+            for (var i = 0; i < CompendiumWords.Rules.Count; i++)
+            {
+                var rule = CompendiumWords.Rules[i];
+                if (repaint) GUI.Button(BookSegments[i], CompendiumWords.RuleName(rule), book.Rule == rule ? Skin.SegmentOn : Skin.Segment);
+                if (BookSegments[i].Contains(mouse)) AskTip("mode-" + CompendiumWords.RuleName(rule), CompendiumWords.StepTip(rule));
+            }
+            if (!_bookFloorShown) return;
             CountDrawn(PanelPart.FloorControl);
             var floor = book.Floor;
-            var canRaise = floor < CompendiumKeeper.Ceiling && floor < Tiers.Last;
-            GUI.Label(new Rect(rect.x, rect.y, captionW, rect.height), CompendiumWords.FloorCaption, Skin.FaintLabel);
-            var lower = new Rect(rect.x + captionW, rect.y, rect.height, rect.height);
-            var value = new Rect(lower.xMax + U(4f), rect.y, _floorValueW, rect.height);
-            var raise = new Rect(value.xMax + U(4f), rect.y, rect.height, rect.height);
-
-            var was = GUI.enabled;
-            GUI.enabled = was && floor > 0;
-            if (GUI.Button(lower, "\u2039", Skin.IconButton)) SetFloor(book, floor - 1);
-            GUI.enabled = was && canRaise;
-            if (GUI.Button(raise, "\u203A", Skin.IconButton)) SetFloor(book, floor + 1);
-            GUI.enabled = was;
-            GUI.Label(value, CompendiumWords.FloorName(floor), Skin.Button);
-
-            var mouse = Event.current.mousePosition;
-            if (floor > 0 && lower.Contains(mouse)) AskTip("floor-down", CompendiumWords.LowerFloor(floor - 1));
-            if (floor < Tiers.Last && (raise.Contains(mouse) || value.Contains(mouse)))
+            var canRaise = CanRaise(floor);
+            if (repaint)
+            {
+                GUI.Label(new Rect(_bookBox.x + pad, _bookLower.y, _bookCaptionW, _bookLower.height), CompendiumWords.FloorCaption, Skin.FaintLabel);
+                var was = GUI.enabled;
+                GUI.enabled = was && floor > 0;
+                GUI.Button(_bookLower, "\u2039", Skin.IconButton);
+                GUI.enabled = was && canRaise;
+                GUI.Button(_bookRaise, "\u203A", Skin.IconButton);
+                GUI.enabled = was;
+                GUI.Label(_bookValue, CompendiumWords.FloorName(floor), Skin.Button);
+            }
+            if (floor > 0 && _bookLower.Contains(mouse)) AskTip("floor-down", CompendiumWords.LowerFloor(floor - 1));
+            if (floor < Tiers.Last && (_bookRaise.Contains(mouse) || _bookValue.Contains(mouse)))
             {
                 var boss = explorer.Find(Tiers.BossOf(floor + 1))?.ShownName ?? Tiers.BossOf(floor + 1);
                 AskTip("floor-up", canRaise ? CompendiumWords.RaiseFloor(floor + 1, boss) : CompendiumWords.FloorWaits(boss));

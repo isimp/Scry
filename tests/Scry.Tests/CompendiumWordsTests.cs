@@ -44,8 +44,13 @@ namespace Scry.Tests
         public void TheModeNamesItsRulesAndTellsWhatEachShows()
         {
             Assert.Equal(new[] { "Off", "Loose", "Strict" }, CompendiumWords.Rules.Select(CompendiumWords.RuleName));
-            // Captioned as the origin switch is, its rules beside it.
+            // A button in the title row names the rules chosen; the box under it holds them.
             Assert.Equal("Compendium", CompendiumWords.ModeCaption);
+            Assert.Equal("Compendium · Off  ▾", CompendiumWords.Button(CompendiumRule.Off));
+            Assert.Equal("Compendium · Loose  ▾", CompendiumWords.Button(CompendiumRule.Loose));
+            Assert.Equal("Compendium · Strict  ▾", CompendiumWords.Button(CompendiumRule.Strict));
+            Assert.Equal("What your character knows, shown in the catalog", CompendiumWords.BoxCaption);
+            Assert.Equal("Rules", CompendiumWords.RulesCaption);
             Assert.Equal("Loose: list only what this character has seen, a page open once it has fought, held, built, used or entered it, and count in each kind's tab what was found of all there is", CompendiumWords.StepTip(CompendiumRule.Loose));
             Assert.Equal("Show only what this character has come to know, by the rules chosen for it here; each character keeps its own", CompendiumWords.ModeTip);
             Assert.Equal("show everything. What this character comes to know is kept all the same, so turning the compendium on later shows everything met meanwhile", CompendiumWords.RuleTip(CompendiumRule.Off));

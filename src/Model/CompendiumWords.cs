@@ -32,8 +32,17 @@ namespace Scry
         /// <summary>The title of a list of what there is (what a mod adds) with the compendium on: how many of it the character has seen, which are all it shows.</summary>
         public static string Found(string title, int found) => $"{title}, {Numbers.Count(found)} found";
 
-        /// <summary>The caption of the compendium's mode in the title row, its rules beside it as segments.</summary>
+        /// <summary>What the compendium is called in the title row.</summary>
         public const string ModeCaption = "Compendium";
+
+        /// <summary>The compendium's button in the title row: the rules chosen, and that a box of its settings opens under it.</summary>
+        public static string Button(CompendiumRule rule) => ModeCaption + " · " + RuleName(rule) + "  ▾";
+
+        /// <summary>The caption over the compendium's box.</summary>
+        public const string BoxCaption = "What your character knows, shown in the catalog";
+
+        /// <summary>The caption of the rules' segments in the compendium's box.</summary>
+        public const string RulesCaption = "Rules";
 
         /// <summary>The mode's tip.</summary>
         public const string ModeTip = "Show only what this character has come to know, by the rules chosen for it here; each character keeps its own";

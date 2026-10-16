@@ -164,19 +164,26 @@ namespace Scry
             ScryPanel.Compact = false;
             drawn = ScryPanel.Drawn(PanelPart.CompendiumSwitch);
             yield return Until(() => ScryPanel.Drawn(PanelPart.CompendiumSwitch) > drawn + 1, 3);
-            p.Check(ScryPanel.Drawn(PanelPart.CompendiumSwitch) > drawn, $"in the full view its mode stands in the title row, at {chosen}");
+            p.Check(ScryPanel.Drawn(PanelPart.CompendiumSwitch) > drawn, $"in the full view its button stands in the title row, at {chosen}");
+            // Its box opens under the button with the rules.
+            var boxes = ScryPanel.Drawn(PanelPart.CompendiumBox);
+            ScryPanel.HoldCompendiumBox(true);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.CompendiumBox) > boxes + 1, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.CompendiumBox) > boxes, "its box opens under the button with the rules");
 
             var other = chosen == CompendiumRule.Strict ? CompendiumRule.Loose : CompendiumRule.Strict;
             ScryPanel.Choose(other);
             yield return Until(() => X.Compendium?.Rule == other && KeptRule(path) == other, 3);
             p.Check(X.Compendium?.Rule == other && KeptRule(path) == other, $"choosing {other} shows the list by it and keeps it in the character's book", $"shown {X.Compendium?.Rule}, kept {KeptRule(path)}");
-            // On, the floor stands beside the mode, once a boss fell for the character or a floor is set.
+            // On, the floor stands in the box under the rules, once a boss fell for the character or a floor is set.
             if (CompendiumKeeper.Ceiling > 0 || book.Floor > 0)
             {
                 var floors = ScryPanel.Drawn(PanelPart.FloorControl);
                 yield return Until(() => ScryPanel.Drawn(PanelPart.FloorControl) > floors + 1, 3);
-                p.Check(ScryPanel.Drawn(PanelPart.FloorControl) > floors, "the floor stands beside it");
+                p.Check(ScryPanel.Drawn(PanelPart.FloorControl) > floors, "the floor stands in the box under the rules");
             }
+            yield return Picture(p, "compendium box");
+            ScryPanel.HoldCompendiumBox(false);
 
             ScryPanel.Choose(chosen);
             yield return Until(() => X.Compendium?.Rule == chosen && KeptRule(path) == chosen, 3);
@@ -845,7 +852,7 @@ namespace Scry
             X.KindFilter = Kind.Creature;
             yield return Until(() => ScryPanel.Drawn(PanelPart.PeekStrip) > strip + 1, 3);
             p.Check(X.Peeking && X.Results.Contains(unseen) && ScryPanel.Drawn(PanelPart.PeekStrip) > strip, $"peeking, {unseen.Name} is listed, under a warning");
-            p.Check(CompendiumKeeper.Book == null || ScryPanel.Drawn(PanelPart.PeekButton) > eyes, "the eye that peeks stands beside the mode in the title row");
+            p.Check(CompendiumKeeper.Book == null || ScryPanel.Drawn(PanelPart.PeekButton) > eyes, "the eye that peeks stands beside the compendium's button in the title row");
             X.Peeking = false;
             p.Check(!X.Results.Contains(unseen), "stopped, it is not");
             X.Peeking = true;
