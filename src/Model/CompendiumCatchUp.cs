@@ -119,6 +119,7 @@ namespace Scry
                 if (firstLoad) book.Witness(creature.Key, EntryKeys.Did(Deed.Killed));
                 else book.FoundOut(creature.Key, EntryKeys.Did(Deed.Killed));
             }
+            foreach (var stray in Unkilled(records, book, known.Select(k => k.Entry))) book.TakeBack(stray.Key, EntryKeys.Did(Deed.Killed));
             foreach (var given in givers)
             {
                 foreach (var giver in given.Value) book.Witness(given.Key.Key, giver);
@@ -294,7 +295,7 @@ namespace Scry
 
         /// <summary>
         /// The creatures the kills counted stand for. The game counts a kill by the name a creature
-        /// shows, which several can share, as the frozen greydwarf, placed nowhere in the world,
+        /// shows, which several can share, as the frozen greydwarf, living only in the Deep North,
         /// shows the greydwarf's: of those, the ones living in a biome the character entered;
         /// where none does, a kill was still one of them, and all count.
         /// </summary>
@@ -310,6 +311,30 @@ namespace Scry
                     if (entry.Kind == Kind.Creature && (!lived || entry.Biomes.Any(entered.Contains))) yield return entry;
                 }
             }
+        }
+
+        /// <summary>
+        /// The creatures a kill was once counted for that it does not stand for now (<see cref="Killed"/>),
+        /// known and killed in the book only by that: nothing in the records tells of them now, and the character never met them in play, which keeps the way it came to know one
+        /// or pairs it with the biome it stood in.
+        /// </summary>
+        private List<Entry> Unkilled(CompendiumRecords records, CompendiumBook book, IEnumerable<Entry> known)
+        {
+            var told = new HashSet<Entry>(known);
+            var biomes = _catalog.All.Where(e => e.Kind == Kind.Biome).ToList();
+            var stray = new List<Entry>();
+            foreach (var token in records.Killed)
+            {
+                if (token == null || !_byToken.TryGetValue(token, out var entries)) continue;
+                foreach (var entry in entries)
+                {
+                    if (entry.Kind != Kind.Creature || told.Contains(entry) || stray.Contains(entry)) continue;
+                    if (!book.Witnessed(entry.Key, EntryKeys.Did(Deed.Killed)) || book.Came(entry.Key) != null) continue;
+                    if (biomes.Any(b => book.Witnessed(entry.Key, b.Key))) continue;
+                    stray.Add(entry);
+                }
+            }
+            return stray;
         }
 
         /// <summary>The creatures an item falls from that live in a biome the character entered.</summary>

@@ -261,6 +261,28 @@ namespace Scry
             return true;
         }
 
+        /// <summary>
+        /// Takes back an entry that only a record no longer telling of it made known, as a kill
+        /// once counted for a creature it never stood for: its level, what it was found out by
+        /// (<paramref name="proof"/>), and its news. A count on top only raises levels, so what was
+        /// counted before this is counted whole again (<see cref="RaisedSince"/>). True when the
+        /// book held it.
+        /// </summary>
+        public bool TakeBack(string key, string proof)
+        {
+            if (string.IsNullOrEmpty(key) || !_levels.Remove(key)) return false;
+            if (!string.IsNullOrEmpty(proof) && _pairs.Remove(Pair(key, proof))) PairsVersion++;
+            _came.Remove(key);
+            _found.Remove(key);
+            _learnedAt.Remove(key);
+            _lately.Remove(key);
+            Version++;
+            _raised.Clear();
+            _raisedFrom = Version;
+            Changed = true;
+            return true;
+        }
+
         /// <summary>Notes where the latest news of an entry came from, as off the explored map (<see cref="EntryKeys.OnMap"/>), told beside it in the learned list.</summary>
         public void NoteNews(string key, string note)
         {

@@ -46,8 +46,8 @@ namespace Scry.Tests
         [Fact]
         public void AKillCountedUnderANameSeveralCreaturesShareIsTheOnesLivingWhereTheCharacterWent()
         {
-            // The game counts kills by the name a creature shows, and the frozen greydwarf, placed
-            // nowhere in the world, shows the greydwarf's: killing greydwarfs in the Black Forest
+            // The game counts kills by the name a creature shows, and the frozen greydwarf, living
+            // only in the Deep North, shows the greydwarf's: killing greydwarfs in the Black Forest
             // says nothing of it. Where none of them lives where the character went, a kill was
             // still one of them, and all count.
             var greydwarf = E(Kind.Creature, "Greydwarf", "$enemy_greydwarf");
@@ -90,6 +90,62 @@ namespace Scry.Tests
             before.Fill(early, beforeBook, firstLoad: false);
             Assert.Equal(KnownLevel.Known, beforeBook.Level(greydwarf.Key));
             Assert.Equal(KnownLevel.Known, beforeBook.Level(frozen.Key));
+        }
+
+        [Fact]
+        public void AKillOnceCountedForACreatureItNeverStoodForIsTakenBack()
+        {
+            // Read before kills counted under a shared name stood only for the creatures living
+            // where the character went, a book holds the frozen greydwarf known and killed. It is
+            // taken back, but not one the character met in play: fought (its way kept), or seen
+            // in a biome after the records had made it known (paired with that biome).
+            var killed = EntryKeys.Did(Deed.Killed);
+            var greydwarf = E(Kind.Creature, "Greydwarf", "$enemy_greydwarf");
+            var frozen = E(Kind.Creature, "Greydwarf_Frozen", "$enemy_greydwarf");
+            var shaman = E(Kind.Creature, "Greydwarf_Shaman", "$enemy_greydwarfshaman");
+            var frozenShaman = E(Kind.Creature, "Greydwarf_Shaman_Frozen", "$enemy_greydwarfshaman");
+            var skeleton = E(Kind.Creature, "Skeleton", "$enemy_skeleton");
+            var northSkeleton = E(Kind.Creature, "Skeleton_DeepNorth", "$enemy_skeleton");
+            var hildirSkeleton = E(Kind.Creature, "Skeleton_Hildir", "$enemy_skeleton");
+            var forest = E(Kind.Biome, "BlackForest", "$biome_blackforest");
+            forest.Biomes = new[] { "BlackForest" };
+            greydwarf.Biomes = shaman.Biomes = skeleton.Biomes = new[] { "BlackForest" };
+            frozen.Biomes = frozenShaman.Biomes = northSkeleton.Biomes = new[] { "DeepNorth" };
+            var (catchUp, book) = Fresh(greydwarf, frozen, shaman, frozenShaman, skeleton, northSkeleton, hildirSkeleton, forest);
+            // Known some other way the records no longer tell, never counted a kill: not the kill's to take back.
+            book.Raise(hildirSkeleton.Key, KnownLevel.Known);
+            foreach (var creature in new[] { greydwarf, frozen, northSkeleton })
+            {
+                book.Raise(creature.Key, KnownLevel.Known);
+                book.Witness(creature.Key, killed);
+            }
+            book.Raise(frozenShaman.Key, KnownLevel.Known, way: CameBy.Fought);
+            book.Witness(frozenShaman.Key, killed);
+            book.Witness(northSkeleton.Key, forest.Key);
+            var records = new CompendiumRecords();
+            records.Killed.Add("$enemy_greydwarf");
+            records.Killed.Add("$enemy_greydwarfshaman");
+            records.Killed.Add("$enemy_skeleton");
+            records.Biomes.Add("$biome_blackforest");
+
+            catchUp.Fill(records, book, firstLoad: false);
+
+            Assert.Equal(KnownLevel.Unknown, book.Level(frozen.Key));
+            Assert.False(book.Witnessed(frozen.Key, killed));
+            Assert.Equal(KnownLevel.Known, book.Level(greydwarf.Key));
+            Assert.Equal(KnownLevel.Known, book.Level(frozenShaman.Key));
+            Assert.True(book.Witnessed(frozenShaman.Key, killed));
+            Assert.Equal(KnownLevel.Known, book.Level(northSkeleton.Key));
+            Assert.Equal(KnownLevel.Known, book.Level(hildirSkeleton.Key));
+
+            // Where none sharing the name lives where the character went, the kill was still one of them: none is taken back.
+            var (early, earlyBook) = Fresh(greydwarf, frozen, forest);
+            earlyBook.Raise(frozen.Key, KnownLevel.Known);
+            earlyBook.Witness(frozen.Key, killed);
+            var before = new CompendiumRecords();
+            before.Killed.Add("$enemy_greydwarf");
+            early.Fill(before, earlyBook, firstLoad: false);
+            Assert.Equal(KnownLevel.Known, earlyBook.Level(frozen.Key));
         }
 
         [Fact]

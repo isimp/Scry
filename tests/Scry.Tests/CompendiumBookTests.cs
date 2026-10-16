@@ -61,6 +61,46 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AnEntryNoRecordTellsAnyLongerIsTakenBackWhole()
+        {
+            // A kill once counted for a creature it never stood for: its level, the kill and its
+            // news go, the rest stays, and it stays gone once the book is kept and read again.
+            var killed = EntryKeys.Did(Deed.Killed);
+            var book = new CompendiumBook();
+            book.Raise("Greydwarf", KnownLevel.Known);
+            book.FoundOut("Greydwarf", killed);
+            book.Raise("Greydwarf_Frozen", KnownLevel.Known);
+            book.FoundOut("Greydwarf_Frozen", killed);
+            var version = book.Version;
+            var pairs = book.PairsVersion;
+
+            Assert.True(book.TakeBack("Greydwarf_Frozen", killed));
+
+            Assert.Equal(KnownLevel.Unknown, book.Level("Greydwarf_Frozen"));
+            Assert.False(book.Witnessed("Greydwarf_Frozen", killed));
+            Assert.Null(book.FoundOutOf("Greydwarf_Frozen"));
+            Assert.DoesNotContain("Greydwarf_Frozen", book.Lately);
+            Assert.Equal(KnownLevel.Known, book.Level("Greydwarf"));
+            Assert.True(book.Witnessed("Greydwarf", killed));
+            Assert.True(book.Version > version && book.PairsVersion > pairs && book.Changed);
+            Assert.False(book.TakeBack("Greydwarf_Frozen", killed));
+            Assert.False(book.TakeBack(null, killed));
+
+            // Counted on top, a level only rises: what was counted before is counted whole again.
+            var raised = new System.Collections.Generic.List<string>();
+            Assert.False(book.RaisedSince(version, raised));
+            var after = book.Version;
+            book.Raise("Boar", KnownLevel.Known);
+            Assert.True(book.RaisedSince(after, raised));
+            Assert.Equal(new[] { "Boar" }, raised);
+
+            var kept = CompendiumBook.Load(book.Save());
+            Assert.Equal(KnownLevel.Unknown, kept.Level("Greydwarf_Frozen"));
+            Assert.False(kept.Witnessed("Greydwarf_Frozen", killed));
+            Assert.Equal(KnownLevel.Known, kept.Level("Greydwarf"));
+        }
+
+        [Fact]
         public void WhatWasRaisedSinceAVersionIsToldOldestFirstWhileTheBookRemembersIt()
         {
             // What the panel counts on top of what it counted before (CompendiumView.Tell).
