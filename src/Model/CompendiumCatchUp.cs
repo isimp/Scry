@@ -27,6 +27,8 @@ namespace Scry
         private readonly Func<string, IReadOnlyList<string>> _toolsOf;
         private readonly Func<string, bool> _soldByTrader;
         private readonly IReadOnlyDictionary<string, string> _biomesShown;
+        private Func<IReadOnlyDictionary<string, IReadOnlyList<string>>> _readEveryLanguage;
+        private IReadOnlyDictionary<string, IReadOnlyList<string>> _everyLanguage;
         private readonly Dictionary<string, List<Entry>> _byToken = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
         private readonly List<Entry> _biomes = new List<Entry>();
 
@@ -34,13 +36,15 @@ namespace Scry
         /// <param name="toolsOf">The tools that build a piece, by its prefab; none where not told.</param>
         /// <param name="soldByTrader">Whether a trader sells an item, by its prefab; where not told, any might be.</param>
         /// <param name="biomesShown">Each biome's name as the game shows it in the player's language, by the biome's entry name.</param>
+        /// <param name="biomesInEveryLanguage">Each biome's names in every language the game ships, by the biome's entry name; asked for once, only when an area names no biome in the player's language.</param>
         public CompendiumCatchUp(EntryCatalog catalog, Func<string, IReadOnlyList<string>> toolsOf = null, Func<string, bool> soldByTrader = null,
-            IReadOnlyDictionary<string, string> biomesShown = null)
+            IReadOnlyDictionary<string, string> biomesShown = null, Func<IReadOnlyDictionary<string, IReadOnlyList<string>>> biomesInEveryLanguage = null)
         {
             _catalog = catalog;
             _toolsOf = toolsOf;
             _soldByTrader = soldByTrader;
             _biomesShown = biomesShown;
+            _readEveryLanguage = biomesInEveryLanguage;
             foreach (var entry in catalog.All)
             {
                 if (entry.Kind == Kind.Biome) _biomes.Add(entry);
@@ -278,28 +282,71 @@ namespace Scry
 
         /// <summary>
         /// The biomes an area the game keeps as entered names (<c>Player.m_knownBiome</c>). The game
-        /// keeps an area by the name it showed then, in the player's language, an area's prefix
-        /// before it where there is one ("Dunkler Sumpf"), so a biome counts where its shown name
-        /// stands in an area as whole words. A save from before the game kept those has each biome
-        /// turned into its name token as the character loads (<c>BiomeSector.GetBiomeName</c>,
-        /// "$biome_meadows") and saved so again, so an area going by a token counts too.
+        /// keeps an area by the name it showed then, in the language played in then, an area's
+        /// prefix before it where there is one ("Dunkler Sumpf"), so a biome counts where its shown
+        /// name stands in an area as whole words: in the player's language first, in any other the
+        /// game ships where that names none (<see cref="InAnyLanguage"/>). A save from before the
+        /// game kept those has each biome turned into its name token as the character loads
+        /// (<c>BiomeSector.GetBiomeName</c>, "$biome_meadows") and saved so again, so an area going
+        /// by a token counts too, and is no language's.
         /// </summary>
         private List<Entry> BiomesIn(string area)
         {
             var named = Named(area.Split(' '), Kind.Biome).ToList();
-            if (_biomesShown == null) return named;
-            foreach (var biome in _biomes)
+            if (_biomesShown != null)
             {
-                if (named.Contains(biome) || !_biomesShown.TryGetValue(biome.Name, out var shown) || string.IsNullOrEmpty(shown)) continue;
-                if ((" " + area + " ").IndexOf(" " + shown + " ", StringComparison.OrdinalIgnoreCase) >= 0) named.Add(biome);
+                foreach (var biome in _biomes)
+                {
+                    if (named.Contains(biome) || !_biomesShown.TryGetValue(biome.Name, out var shown) || string.IsNullOrEmpty(shown)) continue;
+                    if (StandsIn(area, shown)) named.Add(biome);
+                }
             }
+            if (named.Count == 0 && !area.StartsWith("$", StringComparison.Ordinal)) named.AddRange(InAnyLanguage(area));
             return named;
         }
 
         /// <summary>
+        /// The biome an area kept while the game ran in another language names: the biomes whose
+        /// name in a language the game ships stands in the area, a name standing inside a longer
+        /// one found being part of that one (the Black Forest in Bulgarian, "Черна Гора", holds the
+        /// Mountain in Russian, "Гора"). Names left standing for more than one biome tell none for
+        /// certain, so none is told.
+        /// </summary>
+        private IEnumerable<Entry> InAnyLanguage(string area)
+        {
+            var everyLanguage = EveryLanguage();
+            if (everyLanguage == null) return Enumerable.Empty<Entry>();
+            var found = new List<(Entry Biome, string Name)>();
+            foreach (var biome in _biomes)
+            {
+                if (!everyLanguage.TryGetValue(biome.Name, out var names)) continue;
+                foreach (var name in names)
+                {
+                    if (StandsIn(area, name)) found.Add((biome, name));
+                }
+            }
+            var biomes = found.Where(f => !found.Any(g => g.Name.Length > f.Name.Length && StandsIn(g.Name, f.Name))).Select(f => f.Biome).Distinct().ToList();
+            return biomes.Count == 1 ? biomes : Enumerable.Empty<Entry>();
+        }
+
+        /// <summary>Each biome's names in every language, asked for once and only once needed; none where not told.</summary>
+        private IReadOnlyDictionary<string, IReadOnlyList<string>> EveryLanguage()
+        {
+            if (_readEveryLanguage == null) return _everyLanguage;
+            // Let go first, so a reading that fails is not tried again on every look at the records.
+            var read = _readEveryLanguage;
+            _readEveryLanguage = null;
+            return _everyLanguage = read();
+        }
+
+        /// <summary>Whether a name stands in an area's name as whole words.</summary>
+        private static bool StandsIn(string area, string name) => (" " + area + " ").IndexOf(" " + name + " ", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        /// <summary>
         /// The areas the records keep as entered whose biome the book does not know: once the
         /// records are read in, only an area naming no biome of the catalog, as one given a name of
-        /// its own in place of its biome's or kept in a language not played in now. The game's
+        /// its own in place of its biome's, one whose words name different biomes in different
+        /// languages, or one of a biome a mod adds kept in a language not played in now. The game's
         /// no-biome (<see cref="BiomeWords.NoBiome"/>) is left out, being no biome a character enters.
         /// </summary>
         public List<string> AreasNotKnown(CompendiumRecords records, CompendiumBook book) =>

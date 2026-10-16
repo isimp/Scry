@@ -146,7 +146,8 @@ namespace Scry
         /// What catches a character up in a catalog, told what the game knows besides: the tools
         /// that build a piece, whether a trader sells an item, and each biome's name as the game
         /// shows it in the player's language (<c>BiomeSector.GetName</c>), as the entered biomes are kept
-        /// but those of a save from before that, kept by their name tokens.
+        /// but those of a save from before that, kept by their name tokens, and in every other
+        /// language the game ships, for those entered while the game ran in another.
         /// </summary>
         internal static CompendiumCatchUp CatchUpFor(EntryCatalog catalog)
         {
@@ -156,7 +157,24 @@ namespace Scry
                 foreach (var biome in catalog.All) if (biome.Kind == Kind.Biome) shown[biome.Name] = Localization.instance.Localize(BiomeWords.Token(biome.Name));
             }
             return new CompendiumCatchUp(catalog, piece => Knowledge.Tools.ToolsOf(piece).Select(u => u.Tool).Distinct().ToList(),
-                item => Knowledge.SourceLines(item).Any(line => line.Record?.Way == SourceWay.Sold), shown);
+                item => Knowledge.SourceLines(item).Any(line => line.Record?.Way == SourceWay.Sold), shown, () => BiomesInEveryLanguage(catalog));
+        }
+
+        /// <summary>
+        /// Each biome's names in every language the game ships, by the biome's entry name, read from
+        /// the tables <c>Localization</c> reads the language played in from
+        /// (<c>LocalizationSettings.Localizations</c>, every language in each), the words going by
+        /// their name tokens without the "$". A biome a mod adds has none there.
+        /// </summary>
+        internal static IReadOnlyDictionary<string, IReadOnlyList<string>> BiomesInEveryLanguage(EntryCatalog catalog)
+        {
+            var biomeOf = new Dictionary<string, string>(System.StringComparer.Ordinal);
+            foreach (var biome in catalog.All) if (biome.Kind == Kind.Biome) biomeOf[BiomeWords.Token(biome.Name).Substring(1)] = biome.Name;
+            var settings = Resources.Load<LocalizationSettings>("LocalizationSettings");
+            var tables = settings != null && settings.Localizations != null ? settings.Localizations.Where(t => t != null).Select(t => t.text) : Enumerable.Empty<string>();
+            var names = new Dictionary<string, IReadOnlyList<string>>(System.StringComparer.Ordinal);
+            foreach (var word in LanguageTable.Read(tables, biomeOf.Keys)) names[biomeOf[word.Key]] = word.Value.Values.Distinct().ToList();
+            return names;
         }
 
         /// <summary>The trader whose store is open.</summary>

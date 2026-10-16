@@ -27,7 +27,7 @@ namespace Scry
 
         /// <summary>
         /// The game methods whose rules Scry follows, with the shape of their code in
-        /// Valheim 1.0.20, read from the game's own assembly.
+        /// Valheim 1.0.20, read from the game's own assemblies.
         /// </summary>
         private static readonly (string Type, string Method, int Params, uint Shape, Feature Feature)[] Watched =
         {
@@ -299,6 +299,8 @@ namespace Scry
             ("InstanceRenderer", "AddInstance", 3, 0x960E6F20, Feature.GrassOnStageGround),
             ("ItemDrop+ItemData", "GetTooltip", 6, 0xE717E1A4, Feature.WhatGearChangesWhileWorn),
             ("ItemDrop+ItemData", "HaveSecondaryAttack", 0, 0x924F9983, Feature.SecondAttacks),
+            ("Localization", "LoadCSV", 2, 0x3D8CF610, Feature.CompendiumCatchUp),
+            ("Localization", "DoQuoteLineSplit", 1, 0xAB9EC07E, Feature.CompendiumCatchUp),
             ("Menu", "Update", 0, 0x0A30DC16, Feature.KeysKeptFromGame),
             ("OfferingBowl", "Interact", 3, 0xE0D1BB7B, Feature.AltarsItemStands),
             ("Player", "HaveRequirements", 4, 0x23C01547, Feature.UpgradeKits),
@@ -421,11 +423,13 @@ namespace Scry
         }
 
         /// <summary>
-        /// One of the game's own types by name, from the game's assembly, where every script the
-        /// copies keep is. Looking through all assemblies instead loads every mod's types, and
-        /// logs the errors of those that cannot be.
+        /// One of the game's own types by name, from the game's own assemblies: its main one, where
+        /// every script the copies keep is, then those of its input and its words
+        /// (<c>Localization</c>). Looking through all assemblies instead loads every mod's types,
+        /// and logs the errors of those that cannot be.
         /// </summary>
-        private static Type GameType(string name) => typeof(ZNetScene).Assembly.GetType(name, false);
+        private static Type GameType(string name) =>
+            typeof(ZNetScene).Assembly.GetType(name, false) ?? typeof(ZInput).Assembly.GetType(name, false) ?? typeof(Localization).Assembly.GetType(name, false);
 
         private const BindingFlags All = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
 
