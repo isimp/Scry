@@ -267,11 +267,20 @@ namespace Scry
         /// <summary>
         /// With a floor opened, what the camera looks at: the floor's height, over the middle of
         /// what stands on it (a dungeon example's rooms on that floor, else the whole model),
-        /// framed on how far that reaches (<see cref="StageCamera.Across"/>); null for none.
+        /// framed on how far that reaches (<see cref="StageCamera.Across"/>); with a room gone
+        /// into, that room's ground over its middle; null for none.
         /// </summary>
         private static Vector4? FloorFrame()
         {
-            if (!Cutting || _subject == null || TheCut.Level >= Floors.Count) return null;
+            if (!Cutting || _subject == null) return null;
+            if (TheCut.Held)
+            {
+                if (TheExample.Focused == null || !(TheExample.FocusAcross() is Vector3 room)) return null;
+                var lift = TheExample.Holder != null ? TheExample.Holder.transform.localPosition.y : 0f;
+                var ground = Origin.y + (TheExample.FocusGround + lift) * _scale;
+                return new Vector4(room.x, ground, room.y, StageFraming.FloorReach(room.z));
+            }
+            if (TheCut.Level >= Floors.Count) return null;
             var y = Origin.y + Floors[TheCut.Level] * _scale;
             var across = ExampleFloorAcross();
             if (across == null)

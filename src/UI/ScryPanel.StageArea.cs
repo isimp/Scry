@@ -33,6 +33,25 @@ namespace Scry
         /// <summary>The room of the stage's example the left button went down on, gone to if it comes up without a drag.</summary>
         private static string _stageRoomDown;
 
+        /// <summary>The same room as placed, gone into if it comes up without a drag inside a dungeon's example.</summary>
+        private static PlacedRoom _stageRoomDownAt;
+
+        /// <summary>
+        /// A click on a room of the stage's example: inside a dungeon's, it goes into the room
+        /// (<see cref="Stage.GoInto"/>), its page a click away on the plan; in a camp's, it goes
+        /// to its entry where that is known.
+        /// </summary>
+        private static void ClickRoom(Explorer explorer, PlacedRoom room, string key)
+        {
+            if (Stage.HasInside && room != null) Stage.GoInto(room);
+            else if (key != null) Go(explorer, key);
+        }
+
+        /// <summary>Clicks a room of the stage's example as the mouse does, for the self-test.</summary>
+        [Diagnostic]
+        public static void ClickRoomForTest(Explorer explorer, PlacedRoom room) =>
+            ClickRoom(explorer, room, room == null ? null : EntryKeys.For(Kind.Location, room.Room.Name));
+
         /// <summary>Where the stage's picture was last drawn, on the screen, for a drag to tell where on it the mouse is.</summary>
         private static Rect _pictureScreen;
 
@@ -78,8 +97,9 @@ namespace Scry
                 var plan = Stage.Subject != null ? PlanOverlay(explorer, entry, inner) : Rect.zero;
 
                 // A room of the example under the mouse is named, and a click on it that is not a
-                // drag goes to its entry.
+                // drag goes into it inside a dungeon's example, and to its entry in a camp's.
                 string roomKey = null;
+                PlacedRoom pointed = null;
                 _stageRoom = null;
                 var still = _drag == Drag.None || (_drag == Drag.Orbit && _dragMoved < U(5f));
                 if (Stage.ExampleRoomsShown > 0 && still && inner.Contains(e.mousePosition) && !plan.Contains(e.mousePosition))
@@ -91,16 +111,19 @@ namespace Scry
                         var key = EntryKeys.For(Kind.Location, room.Room.Name);
                         var known = Goes(explorer, key);
                         var name = ShownName(explorer, key, LocationWords.RoomName(room.Room.Name));
-                        AskTip("stageroom:" + room.Room.Name, StageWords.RoomTip(name, known));
+                        AskTip("stageroom:" + room.Room.Name, Stage.HasInside ? StageWords.GoIntoTip(name, room == Stage.RoomGoneInto) : StageWords.RoomTip(name, known));
                         if (known) roomKey = key;
+                        pointed = room;
                         _stageRoom = room.Room.Name;
                     }
                 }
-                if (e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _stageRoomDown != null && _dragMoved < U(5f))
+                if (e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _dragMoved < U(5f) && (_stageRoomDown != null || _stageRoomDownAt != null))
                 {
                     var go = _stageRoomDown;
+                    var into = _stageRoomDownAt;
                     _stageRoomDown = null;
-                    Go(explorer, go);
+                    _stageRoomDownAt = null;
+                    ClickRoom(explorer, into, go);
                 }
 
                 // An effect that has played out plays again on a click of its stage that is not a drag.
@@ -118,7 +141,7 @@ namespace Scry
                 }
                 else if (over)
                 {
-                    PictureNote(inner, textW, Stage.Cutting ? StageHintCut : StageHint);
+                    PictureNote(inner, textW, Stage.RoomGoneInto != null ? StageHintInRoom : Stage.Cutting ? StageHintCut : StageHint);
                 }
                 else if (ExampleProgress(entry) is string progress)
                 {
@@ -140,6 +163,7 @@ namespace Scry
                 {
                     if (e.clickCount == 2) Stage.ResetView();
                     _stageRoomDown = e.clickCount == 2 ? null : roomKey;
+                    _stageRoomDownAt = e.clickCount == 2 ? null : pointed;
                     StartDrag(Drag.Orbit);
                     Stage.Dragging = true;
                     e.Use();
@@ -250,6 +274,8 @@ namespace Scry
         private const string StageHint = "Drag to turn, right-drag to move, scroll to zoom where you point, double-click to reset";
 
         private const string StageHintCut = "Drag to turn, right-drag to move, scroll to zoom where you point, Page Up/Down or the ruler for floors, Shift-scroll to move the cut";
+
+        private const string StageHintInRoom = "Drag to turn around the room, scroll to zoom where you point, Shift-scroll to move the cut, Esc or the roof button to come back out";
 
         private static void StageButtons(Entry entry, Rect rect)
         {

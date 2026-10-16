@@ -20,6 +20,121 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ARoomGoneIntoIsCutAtItsOwnHeightWhateverTheFloors()
+        {
+            // A dungeon's room focused is cut at head height over its own ground, no floor of the place's.
+            var cut = Taken(open: true);
+
+            cut.Hold(1.2f);
+
+            Assert.True(cut.Cutting);
+            Assert.True(cut.Held);
+            Assert.Equal(1.2f, cut.At, 3);
+            Assert.Equal(Three.Length, cut.Level);
+            cut.CutBy(0.5f);
+            Assert.Equal(1.7f, cut.At, 3);
+        }
+
+        [Fact]
+        public void ARoomGoneIntoIsCutEvenWhereThePlaceHasNoFloors()
+        {
+            var cut = new FloorCut();
+            cut.Take(E("MorkBorg", Kind.Location), new float[0], open: false);
+
+            cut.Hold(-40f);
+
+            Assert.True(cut.Cutting);
+            Assert.Equal(-40f, cut.At, 3);
+        }
+
+        [Fact]
+        public void ComingOutOfTheRoomPutsTheRoofBackOn()
+        {
+            var cut = Taken();
+            cut.Hold(1.2f);
+            cut.CutBy(0.5f);
+
+            cut.Hold(null);
+
+            Assert.False(cut.Held);
+            Assert.False(cut.Cutting);
+            cut.Open(1);
+            Assert.Equal(4f + PlaceView.CutAboveFloor, cut.At, 3);
+        }
+
+        [Fact]
+        public void OpeningAFloorOrTheRoofComesOutOfTheRoom()
+        {
+            var opened = Taken();
+            opened.Hold(1.2f);
+            opened.Open(0);
+            Assert.False(opened.Held);
+            Assert.Equal(0, opened.Level);
+
+            var roofed = Taken();
+            roofed.Hold(1.2f);
+            roofed.ToggleRoof();
+            Assert.False(roofed.Held);
+            Assert.False(roofed.Cutting);
+
+            var bare = new FloorCut();
+            bare.Take(E("MorkBorg", Kind.Location), new float[0], open: false);
+            bare.Hold(-40f);
+            bare.ToggleRoof();
+            Assert.False(bare.Cutting);
+        }
+
+        [Fact]
+        public void FloorsFoundAnewKeepTheRoomGoneInto()
+        {
+            // An example's floors come in as its rooms do; the room gone into stays cut.
+            var cut = Taken();
+            cut.Hold(1.2f);
+
+            cut.Refresh(new[] { 8f, 4f, 0f, -4f });
+
+            Assert.True(cut.Held);
+            Assert.Equal(1.2f, cut.At, 3);
+            Assert.Equal(4, cut.Level);
+        }
+
+        [Fact]
+        public void GoingIntoAnotherRoomCutsAtItsHeightNotWhereTheLastCutWasMoved()
+        {
+            var cut = Taken();
+            cut.Hold(1.2f);
+            cut.CutBy(0.5f);
+
+            cut.Hold(-3f);
+
+            Assert.Equal(-3f, cut.At, 3);
+        }
+
+        [Fact]
+        public void LettingGoOfEverythingComesOutOfTheRoom()
+        {
+            var cut = Taken();
+            cut.Hold(1.2f);
+
+            cut.Clear();
+
+            Assert.False(cut.Held);
+            Assert.False(cut.Cutting);
+        }
+
+        [Fact]
+        public void AnotherPlaceShownComesOutOfTheRoom()
+        {
+            var cut = Taken();
+            cut.Hold(1.2f);
+
+            cut.Take(E("Crypt3", Kind.Location), Three, open: false);
+
+            Assert.False(cut.Held);
+            Assert.False(cut.Cutting);
+        }
+
+        [Fact]
         public void EachFloorIsCutUnderTheCeilingOverIt()
         {
             var cut = new FloorCut();

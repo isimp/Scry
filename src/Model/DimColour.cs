@@ -10,6 +10,9 @@ namespace Scry
         /// <summary>The share of its own colour a dimmed part keeps.</summary>
         public const float Share = 0.3f;
 
+        /// <summary>The share a part of a room on the level of the room gone into keeps: half dimmed, as near it.</summary>
+        public const float NearShare = 0.6f;
+
         /// <summary>A colour darkened: each channel at <see cref="Share"/> of its own, its alpha as it was.</summary>
         public static (float R, float G, float B, float A) Darker(float r, float g, float b, float a) => Darker(r, g, b, a, Share);
 

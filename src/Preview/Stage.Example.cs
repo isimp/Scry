@@ -77,7 +77,7 @@ namespace Scry
             get
             {
                 var holder = TheExample.Holder;
-                if (holder == null || !Cutting || TheExample.IsDungeon && !holder.activeSelf) return null;
+                if (holder == null || !Cutting || TheCut.Held || TheExample.IsDungeon && !holder.activeSelf) return null;
                 return Floors[TheCut.Level] - holder.transform.localPosition.y;
             }
         }
@@ -186,7 +186,7 @@ namespace Scry
 
         /// <summary>Holds every room of the example whole, dimmed or put away, for the self-test to film each; null lets the floor opened decide again.</summary>
         [Diagnostic]
-        public static void ExampleHoldLook(PlanRoomShown? look) => TheExample.HoldLook(look);
+        public static void ExampleHoldLook(RoomLook? look) => TheExample.HoldLook(look);
 
         /// <summary>The example's rooms' copies standing, for the self-test to tell what they are drawn with.</summary>
         [Diagnostic]
@@ -256,12 +256,64 @@ namespace Scry
         /// <summary>How a room of the example shows with the floor opened, by the plan's rule (<see cref="StageExample.RoomShown"/>): whole on it, else dimmed, or put away above it.</summary>
         public static PlanRoomShown ExampleRoomShown(PlacedRoom room) => TheExample.RoomShown(room, ExamplePlanFloor, ExampleFloors);
 
-        /// <summary>Whether a room's copy of the example is dimmed, for its creatures to be dimmed with it.</summary>
-        private static bool ExampleRoomDimmed(GameObject room) => TheExample.IsDimmed(room);
+        /// <summary>The share of its colours a room's copy of the example keeps as dimmed, for its creatures to be dimmed with it; none where it is not.</summary>
+        private static float? ExampleRoomDim(GameObject room) => TheExample.DimShareOf(room);
+
+        /// <summary>How a room of the example shows: as the room gone into has it, else as the floor opened has it (<see cref="StageExample.LookOf"/>).</summary>
+        public static RoomLook ExampleRoomLook(PlacedRoom room) => TheExample.LookOf(room, ExamplePlanFloor, ExampleFloors);
+
+        /// <summary>Whether a room's copy of the example stands and the share of its colours it keeps as dimmed, for the self-test.</summary>
+        [Diagnostic]
+        public static (bool Standing, float? Keep)? ExampleRoomDrawn(PlacedRoom room) => TheExample.Drawn(room);
+
+        /// <summary>Where a room's middle falls in the stage camera's view (x and y from 0 to 1 across it, z in front of the camera), for the self-test; null without a camera or example.</summary>
+        [Diagnostic]
+        public static Vector3? ExampleRoomInView(PlacedRoom room)
+        {
+            if (_camera == null || TheExample.Holder == null || room == null) return null;
+            var middle = TheExample.Holder.transform.TransformPoint(new Vector3(room.Position.X, room.Position.Y, room.Position.Z));
+            return _camera.WorldToViewportPoint(middle);
+        }
+
+        /// <summary>The room of a dungeon's example gone into; none while the whole example or a floor of it is shown.</summary>
+        public static PlacedRoom RoomGoneInto => TheExample.Focused;
+
+        /// <summary>A room's ground in the example's own space (<see cref="StageExample.GroundOf"/>), for the self-test.</summary>
+        public static float ExampleRoomGround(PlacedRoom room) => TheExample.GroundOf(room);
+
+        /// <summary>Where the stage cuts with a room gone into, above the location's root: head height over its ground, under its own ceiling where lower (<see cref="RoomFocus.Cut"/>).</summary>
+        public static float RoomCut(PlacedRoom room)
+        {
+            var ground = TheExample.GroundOf(room);
+            var lift = TheExample.Holder != null ? TheExample.Holder.transform.localPosition.y : 0f;
+            return RoomFocus.Cut(ground, TheExample.CeilingOver(room, ground)) + lift;
+        }
+
+        /// <summary>
+        /// Goes into a room of a dungeon's example: the room stands whole, cut at head height over
+        /// its own ground, the rooms on its level half dimmed, those below dimmed and those above
+        /// put away; the camera glides to frame it, looking down into it.
+        /// </summary>
+        public static void GoInto(PlacedRoom room)
+        {
+            if (room == null || !TheExample.IsDungeon || TheExample.Placed == null || !TheExample.Placed.Rooms.Contains(room)) return;
+            TheExample.Focus(room);
+            TheCut.Hold(RoomCut(room));
+            TurnTo(Yaw, CutPitch);
+        }
+
+        /// <summary>Comes out of the room gone into, back to the whole example with the roof on.</summary>
+        public static void ComeOut()
+        {
+            if (TheExample.Focused == null) return;
+            TheExample.Unfocus();
+            TheCut.Hold(null);
+        }
 
         /// <summary>Takes down the example's copies, as another entry or another example is shown, its rooms' creatures and paints with them.</summary>
         private static void ForgetExample()
         {
+            if (TheExample.Focused != null) TheCut.Hold(null);
             TheExample.Forget();
             ForgetRoomCreatures();
             ForgetGroundPaints(rooms: true);
@@ -309,9 +361,9 @@ namespace Scry
             var from = holder.InverseTransformPoint(eye.position);
             var direction = holder.InverseTransformVector(ray);
             var below = Cutting ? holder.InverseTransformPoint(new Vector3(eye.position.x, Origin.y + CutAt * _scale, eye.position.z)).y : float.PositiveInfinity;
-            // Rooms put away with a floor opened are passed by.
+            // Rooms put away are passed by; with a room gone into, those dimmed around it can be gone into next.
             var room = placed.Pick(new Vec3(from.x, from.y, from.z), new Vec3(direction.x, direction.y, direction.z), below,
-                TheExample.IsDungeon ? r => ExampleRoomShown(r) == PlanRoomShown.Whole : (Func<PlacedRoom, bool>)null);
+                TheExample.IsDungeon ? r => TheExample.Focused != null ? ExampleRoomLook(r) != RoomLook.Away : ExampleRoomShown(r) == PlanRoomShown.Whole : (Func<PlacedRoom, bool>)null);
             return room != null && placed.Rooms.IndexOf(room) < TheExample.Next ? room : null;
         }
 

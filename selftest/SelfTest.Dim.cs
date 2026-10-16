@@ -29,6 +29,7 @@ namespace Scry
             Stage.Inside = true;
             BigStage();
             var pale = new List<string>();
+            var unlike = new List<string>();
             foreach (var entry in places)
             {
                 Select(entry);
@@ -55,35 +56,42 @@ namespace Scry
                 }
                 p.Note($"{entry.Name} ({entry.DisplayName}) is drawn with: " + string.Join("; ", tally.Lines()));
 
-                float[] empty = null, whole = null, dimmed = null;
-                yield return Film(PlanRoomShown.None, film => empty = film);
-                yield return Film(PlanRoomShown.Whole, film => whole = film);
+                float[] empty = null, whole = null, dimmed = null, half = null;
+                yield return Film(RoomLook.Away, film => empty = film);
+                yield return Film(RoomLook.Whole, film => whole = film);
                 yield return Picture(p, $"dim {entry.Name} whole");
-                yield return Film(PlanRoomShown.Faint, film => dimmed = film);
+                yield return Film(RoomLook.Below, film => dimmed = film);
                 yield return Picture(p, $"dim {entry.Name} dimmed");
+                yield return Film(RoomLook.Near, film => half = film);
+                yield return Picture(p, $"dim {entry.Name} half dimmed");
 
                 // Every colour black: what is still bright, fog and highlights, no dimming takes away.
                 float[] floor = null;
-                yield return Film(PlanRoomShown.Whole, film => { });
+                yield return Film(RoomLook.Whole, film => { });
                 Dim.HoldShare(0f);
-                yield return Film(PlanRoomShown.Faint, film => floor = film);
+                yield return Film(RoomLook.Below, film => floor = film);
                 yield return Picture(p, $"dim {entry.Name} every colour black");
-                yield return Film(PlanRoomShown.Whole, film => { });
+                yield return Film(RoomLook.Whole, film => { });
                 Dim.HoldShare(null);
                 Stage.ExampleHoldLook(null);
 
                 var (pixels, share) = DimLook.Read(empty, whole, dimmed, floor);
                 var all = DimLook.Read(empty, whole, dimmed).Share;
+                var halfShare = DimLook.Read(empty, whole, half, floor).Share;
                 var told = share is float kept
                     ? $"{entry.Name}: dimmed, its rooms keep {Numbers.Percent(kept)} of the brightness their colours give them, over {Numbers.Count(pixels)} pixels"
                       + (all is float ofAll ? $" ({Numbers.Percent(ofAll)} of all of it)" : "")
+                      + (halfShare is float halfKept ? $"; half dimmed, {Numbers.Percent(halfKept)}" : "")
                     : $"{entry.Name}: none of its rooms' pixels were read";
                 p.Note(told);
                 if (!DimLook.DarkEnough(share)) pale.Add(told);
+                // Half dimmed, on the level of a room gone into: darker than whole, lighter than below.
+                if (!(halfShare is float h && share is float d && h > d && h < 0.95f)) unlike.Add(told);
             }
             Stage.Inside = wasInside;
             StageAsItWas();
             p.Check(pale.Count == 0, "dimmed rooms keep at most 60% of the brightness their colours give them", string.Join("; ", pale));
+            p.Check(unlike.Count == 0, "rooms half dimmed are darker than whole and lighter than those dimmed", string.Join("; ", unlike));
         }
 
         /// <summary>Puts the example's rooms back to what the floor opened has, dimmed as the dimming does, after <see cref="DimShows"/>.</summary>
@@ -94,7 +102,7 @@ namespace Scry
         }
 
         /// <summary>Holds the example's rooms to a look, waits until every room has it and the stage has been filmed twice since, and hands over the film's brightness.</summary>
-        private static IEnumerator Film(PlanRoomShown look, Action<float[]> read)
+        private static IEnumerator Film(RoomLook look, Action<float[]> read)
         {
             Stage.ExampleHoldLook(look);
             yield return Until(() => Stage.ExampleRoomsKept, 5);

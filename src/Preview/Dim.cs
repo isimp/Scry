@@ -33,11 +33,15 @@ namespace Scry
         /// <summary>Whether dimming darkens a material: its shader takes a colour.</summary>
         public static bool Reaches(Material material) => material != null && material.shader != null && Colours(material.shader).Length > 0;
 
-        /// <summary>Dims a copy, or takes the dimming off.</summary>
-        public static void Set(GameObject copy, bool dim)
+        /// <summary>The share of its colours a room's copy keeps as it is dimmed: half on the level of the room gone into, less below.</summary>
+        public static float ShareOf(RoomLook look) => look == RoomLook.Near ? DimColour.NearShare : DimColour.Share;
+
+        /// <summary>Dims a copy to keep a share of its colours (<see cref="ShareOf"/>), or with none takes the dimming off.</summary>
+        public static void Set(GameObject copy, float? keep)
         {
             if (copy == null) return;
-            var share = _heldShare ?? DimColour.Share;
+            var dim = keep.HasValue;
+            var share = _heldShare ?? keep ?? 1f;
             copy.GetComponentsInChildren(true, Renderers);
             try
             {

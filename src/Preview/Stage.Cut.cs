@@ -65,19 +65,37 @@ namespace Scry
         // room shown alone is looked down into the first time it opens (SetFloors), as nothing
         // has framed it yet.
 
-        /// <summary>Opens the floor below, or the top floor from the roof; goes up a floor, or puts the roof back from the top floor.</summary>
-        public static void StepCut(bool down) => TheCut.Step(down);
+        /// <summary>Opens the floor below, or the top floor from the roof; goes up a floor, or puts the roof back from the top floor; out of a room gone into.</summary>
+        public static void StepCut(bool down)
+        {
+            TheExample.Unfocus();
+            TheCut.Step(down);
+        }
 
-        /// <summary>Takes the roof off, opening the floor last opened, or puts it back.</summary>
-        public static void ToggleRoof() => TheCut.ToggleRoof();
+        /// <summary>Takes the roof off, opening the floor last opened, or puts it back; from a room gone into, back to the whole example.</summary>
+        public static void ToggleRoof()
+        {
+            if (TheExample.Focused != null)
+            {
+                ComeOut();
+                return;
+            }
+            TheCut.ToggleRoof();
+        }
 
-        /// <summary>Opens a floor (from the top), or puts the roof on past the last.</summary>
-        public static void OpenLevel(int level) => TheCut.Open(level);
+        /// <summary>Opens a floor (from the top), or puts the roof on past the last; out of a room gone into.</summary>
+        public static void OpenLevel(int level)
+        {
+            TheExample.Unfocus();
+            TheCut.Open(level);
+        }
 
-        /// <summary>Cuts at a height set by hand, opening the floor it is over (<see cref="PlaceView.LevelAt"/>).</summary>
+        /// <summary>Cuts at a height set by hand, opening the floor it is over (<see cref="PlaceView.LevelAt"/>); out of a room gone into.</summary>
         public static void CutTo(float height)
         {
-            if (TheCut.HasFloors) TheCut.CutTo(height);
+            if (!TheCut.HasFloors) return;
+            TheExample.Unfocus();
+            TheCut.CutTo(height);
         }
 
         /// <summary>Moves the cut up or down.</summary>

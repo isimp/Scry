@@ -24,12 +24,13 @@ namespace Scry
             {
                 case KeyCode.Escape:
                     // Out of a text box first, handing the keys back to the list and to walking;
-                    // from anywhere else the panel closes.
+                    // then out of a room of a dungeon's example gone into; from anywhere else the panel closes.
                     if (Typing)
                     {
                         GUIUtility.keyboardControl = 0;
                         Assist.ResetCycle();
                     }
+                    else if (Stage.RoomGoneInto != null) Stage.ComeOut();
                     else AskClose();
                     e.Use();
                     break;

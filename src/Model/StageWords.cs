@@ -13,6 +13,9 @@ namespace Scry
         /// <summary>A room's tip: its name, and where it can be gone to, that a click does.</summary>
         public static string RoomTip(string name, bool canGo) => canGo ? name + "\nClick to go to it" : name;
 
+        /// <summary>A room of a dungeon's example's tip: its name, and that a click goes into it, or, gone into, how to come back out.</summary>
+        public static string GoIntoTip(string name, bool inside) => name + (inside ? "\nEsc or the roof button comes back out" : "\nClick to go in");
+
         /// <summary>The chip of a place with an inside, by which side is shown.</summary>
         public static string Inside(bool inside) => inside ? "Inside" : "Outside";
 

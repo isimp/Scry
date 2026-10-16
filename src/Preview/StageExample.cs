@@ -43,8 +43,13 @@ namespace Scry
         /// <summary>The rooms standing, each with its copy, to dim or put away those off the floor opened.</summary>
         private readonly List<KeyValuePair<PlacedRoom, GameObject>> _rooms = new List<KeyValuePair<PlacedRoom, GameObject>>();
 
-        /// <summary>The rooms' copies dimmed, below the floor opened (<see cref="Dim"/>).</summary>
-        private readonly HashSet<GameObject> _dimmed = new HashSet<GameObject>();
+        /// <summary>The rooms' copies dimmed (<see cref="Dim"/>), each as it is: half, on the level of the room gone into, or below.</summary>
+        private readonly Dictionary<GameObject, RoomLook> _dimmed = new Dictionary<GameObject, RoomLook>();
+
+        /// <summary>How each room shows with the room gone into, worked out again as more rooms are read.</summary>
+        private readonly Dictionary<PlacedRoom, RoomLook> _focusLooks = new Dictionary<PlacedRoom, RoomLook>();
+        private int _focusRead = -1;
+        private Vector3? _focusAcross;
 
         /// <summary>What each dungeon room's own rays found, to tell the floors it stands on (<see cref="FloorFinder.Holds"/>).</summary>
         private readonly Dictionary<PlacedRoom, FloorPatch> _roomGround = new Dictionary<PlacedRoom, FloorPatch>();
@@ -103,15 +108,105 @@ namespace Scry
         /// <summary>A room's copy standing.</summary>
         public void Add(PlacedRoom room, GameObject copy) => _rooms.Add(new KeyValuePair<PlacedRoom, GameObject>(room, copy));
 
-        /// <summary>Whether a room's copy is dimmed, below the floor opened.</summary>
-        public bool IsDimmed(GameObject room) => _dimmed.Contains(room);
+        /// <summary>The share of its colours a room's copy keeps as dimmed (<see cref="Dim"/>); none where it is not.</summary>
+        public float? DimShareOf(GameObject room) => _dimmed.TryGetValue(room, out var look) ? Dim.ShareOf(look) : null;
 
-        /// <summary>The look every room is held to for the self-test, whole, dimmed or put away, over what the floor opened has; null to follow the floor.</summary>
-        private PlanRoomShown? _heldLook;
+        /// <summary>The look every room is held to for the self-test, over what the room gone into or the floor opened has; null to follow them.</summary>
+        private RoomLook? _heldLook;
 
-        /// <summary>Holds every room whole, dimmed or put away, for the self-test to picture each; null lets the floor opened decide again.</summary>
+        /// <summary>Holds every room to one look for the self-test to picture each; null lets the room gone into or the floor opened decide again.</summary>
         [Diagnostic]
-        public void HoldLook(PlanRoomShown? look) => _heldLook = look;
+        public void HoldLook(RoomLook? look) => _heldLook = look;
+
+        /// <summary>The room gone into; none while the whole example or a floor of it is shown.</summary>
+        public PlacedRoom Focused { get; private set; }
+
+        /// <summary>The ground of the room gone into, in the example's own space.</summary>
+        public float FocusGround { get; private set; }
+
+        /// <summary>Goes into a room: it stands whole and the rest as <see cref="RoomFocus.Look"/> has them.</summary>
+        public void Focus(PlacedRoom room)
+        {
+            Focused = room;
+            FocusGround = GroundOf(room);
+            _focusLooks.Clear();
+            _focusRead = -1;
+            _focusAcross = null;
+        }
+
+        /// <summary>Comes out of the room gone into.</summary>
+        public void Unfocus()
+        {
+            Focused = null;
+            _focusLooks.Clear();
+            _focusRead = -1;
+            _focusAcross = null;
+        }
+
+        /// <summary>A room's ground in the example's own space (<see cref="RoomFocus.Ground"/>): its main floor where its rays were read, else its lowest doorway.</summary>
+        public float GroundOf(PlacedRoom room)
+        {
+            var main = _roomGround.TryGetValue(room, out var patch) ? FloorFinder.MainFloor(patch) : null;
+            var doorways = new List<float>();
+            for (var i = 0; i < room.Room.Doorways.Count; i++) doorways.Add(room.DoorwayAt(i).Y);
+            return RoomFocus.Ground(main, doorways, room.Position.Y - room.Room.Size.Y / 2f);
+        }
+
+        /// <summary>The ceiling over a level of a room, from its own rays; none where they found none or it was not read.</summary>
+        public float? CeilingOver(PlacedRoom room, float level) => _roomGround.TryGetValue(room, out var patch) ? FloorFinder.CeilingOver(new[] { patch }, level) : null;
+
+        /// <summary>How a room shows: as held for the self-test, else as the room gone into has it, else as the floor opened has it (<see cref="RoomShown"/>).</summary>
+        public RoomLook LookOf(PlacedRoom room, float? planFloor, IReadOnlyList<float> floors)
+        {
+            if (_heldLook is RoomLook held) return held;
+            if (Focused != null)
+            {
+                KnowFocusLooks();
+                return _focusLooks.TryGetValue(room, out var look) ? look : RoomLook.Whole;
+            }
+            switch (RoomShown(room, planFloor, floors))
+            {
+                case PlanRoomShown.Whole: return RoomLook.Whole;
+                case PlanRoomShown.None: return RoomLook.Away;
+                default: return RoomLook.Below;
+            }
+        }
+
+        /// <summary>Works out again how each room shows with the room gone into, as more rooms are read.</summary>
+        private void KnowFocusLooks()
+        {
+            if (_focusRead == _roomGround.Count || Placed == null) return;
+            _focusRead = _roomGround.Count;
+            _focusLooks.Clear();
+            foreach (var room in Placed.Rooms) _focusLooks[room] = RoomFocus.Look(room == Focused, GroundOf(room), FocusGround);
+        }
+
+        /// <summary>The middle across of the room gone into, on the stage, and how far it reaches from it (x, z and reach); null with none.</summary>
+        public Vector3? FocusAcross()
+        {
+            if (Focused == null || Holder == null) return null;
+            if (_focusAcross != null) return _focusAcross;
+            var holder = Holder.transform;
+            var corners = new List<Vec3>();
+            foreach (var corner in Focused.Corners())
+            {
+                var at = holder.TransformPoint(new Vector3(corner.X, corner.Y, corner.Z));
+                corners.Add(new Vec3(at.x, at.y, at.z));
+            }
+            _focusAcross = StageCamera.Across(corners) is (float x, float z, float reach) ? new Vector3(x, z, reach) : (Vector3?)null;
+            return _focusAcross;
+        }
+
+        /// <summary>Whether a room's copy stands and the share of its colours it keeps as dimmed (none where it is not), for the self-test; null for a room with no copy yet.</summary>
+        [Diagnostic]
+        public (bool Standing, float? Keep)? Drawn(PlacedRoom room)
+        {
+            foreach (var pair in _rooms)
+            {
+                if (pair.Key == room && pair.Value != null) return (pair.Value.activeSelf, DimShareOf(pair.Value));
+            }
+            return null;
+        }
 
         /// <summary>The rooms' copies standing, for the self-test to tell what they are drawn with.</summary>
         [Diagnostic]
@@ -121,7 +216,7 @@ namespace Scry
         public List<Light> DimmedLights()
         {
             var lights = new List<Light>();
-            foreach (var room in _dimmed) if (room != null) lights.AddRange(room.GetComponentsInChildren<Light>());
+            foreach (var room in _dimmed.Keys) if (room != null) lights.AddRange(room.GetComponentsInChildren<Light>());
             lights.RemoveAll(l => !l.enabled);
             return lights;
         }
@@ -134,10 +229,10 @@ namespace Scry
         }
 
         /// <summary>
-        /// With a floor opened inside a dungeon's example, that floor's rooms stand as they are,
-        /// the rest dimmed (<see cref="Dim"/>), or put away above it, by the plan's rule
-        /// (<see cref="RoomShown"/>); with none opened every room stands as it is. A few each
-        /// frame, as a big example changes many at once.
+        /// Inside a dungeon's example, each room stands as it is, dimmed (<see cref="Dim"/>), half
+        /// on the level of the room gone into, or put away (<see cref="LookOf"/>): as the room gone
+        /// into has it, else as the floor opened has it; with neither every room stands as it is.
+        /// A few each frame, as a big example changes many at once.
         /// </summary>
         public void KeepToFloor(float? planFloor, IReadOnlyList<float> floors)
         {
@@ -148,17 +243,18 @@ namespace Scry
             {
                 var copy = pair.Value;
                 if (copy == null) continue;
-                var shown = _heldLook ?? RoomShown(pair.Key, planFloor, floors);
-                var standing = shown != PlanRoomShown.None;
-                var dimmed = shown == PlanRoomShown.Faint;
-                if (copy.activeSelf == standing && _dimmed.Contains(copy) == dimmed) continue;
+                var look = LookOf(pair.Key, planFloor, floors);
+                var standing = look != RoomLook.Away;
+                var dimAs = Dimmed(look);
+                var was = _dimmed.TryGetValue(copy, out var dimmedAs) ? dimmedAs : (RoomLook?)null;
+                if (copy.activeSelf == standing && was == dimAs) continue;
                 if (copy.activeSelf != standing) copy.SetActive(standing);
-                if (_dimmed.Contains(copy) != dimmed)
+                if (was != dimAs)
                 {
-                    Dim.Set(copy, dimmed);
-                    if (dimmed)
+                    Dim.Set(copy, dimAs is RoomLook dim ? Dim.ShareOf(dim) : (float?)null);
+                    if (dimAs is RoomLook now)
                     {
-                        _dimmed.Add(copy);
+                        _dimmed[copy] = now;
                         if (!_lightsKept) Unlight(copy);
                     }
                     else
@@ -170,6 +266,9 @@ namespace Scry
                 if (watch.Elapsed.TotalMilliseconds >= KeepBudgetMs) break;
             }
         }
+
+        /// <summary>How a room is dimmed in a look: half on the level of the room gone into, more below; not at all whole or put away.</summary>
+        private static RoomLook? Dimmed(RoomLook look) => look == RoomLook.Near || look == RoomLook.Below ? look : (RoomLook?)null;
 
         /// <summary>
         /// The lights each dimmed room had switched on, switched off while it is dimmed: a big
@@ -188,7 +287,7 @@ namespace Scry
             var kept = Settings.LightDimmedRooms;
             if (kept == _lightsKept) return;
             _lightsKept = kept;
-            foreach (var room in _dimmed)
+            foreach (var room in _dimmed.Keys)
             {
                 if (room == null) continue;
                 if (kept) Relight(room);
@@ -219,14 +318,15 @@ namespace Scry
         /// <summary>How many of the rooms are dimmed, for the self-test.</summary>
         public int DimmedCount => _dimmed.Count;
 
-        /// <summary>Whether every room stands, is dimmed or is put away as the floor opened has it, for the self-test.</summary>
+        /// <summary>Whether every room stands, is dimmed as it should be or is put away as <see cref="LookOf"/> has it, for the self-test.</summary>
         public bool Kept(float? planFloor, IReadOnlyList<float> floors)
         {
             foreach (var pair in _rooms)
             {
                 if (pair.Value == null) continue;
-                var shown = _heldLook ?? RoomShown(pair.Key, planFloor, floors);
-                if (pair.Value.activeSelf != (shown != PlanRoomShown.None) || _dimmed.Contains(pair.Value) != (shown == PlanRoomShown.Faint)) return false;
+                var look = LookOf(pair.Key, planFloor, floors);
+                var was = _dimmed.TryGetValue(pair.Value, out var dimmedAs) ? dimmedAs : (RoomLook?)null;
+                if (pair.Value.activeSelf != (look != RoomLook.Away) || was != Dimmed(look)) return false;
             }
             return true;
         }
@@ -494,6 +594,7 @@ namespace Scry
             _ownFloorOf.Clear();
             _ownFloorRead = -1;
             _heldLook = null;
+            Unfocus();
             Top = float.NaN;
             _outside.Clear();
         }
