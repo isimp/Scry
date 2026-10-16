@@ -78,7 +78,8 @@ namespace Scry
                 p.Note($"{name}: ground {Numbers.Fixed(ground, 1)} m, cut {Numbers.Fixed(cut, 1)} m; {Numbers.Count(whole)} whole, {Numbers.Count(near)} half dimmed, {Numbers.Count(below)} dimmed, {Numbers.Count(away)} put away");
                 yield return Picture(p, $"go into {entry.Name} deepest room");
 
-                // Its outline: what it adds to the film, against the same film without it, is amber.
+                // Its outline: the amber it adds to the film, against the same film without it; counted
+                // by colour, as water or flames moving between the two films change pixels too.
                 yield return Until(() => Stage.OutlineShown, 3);
                 var shown = Stage.OutlineShown;
                 var filmed = Stage.Filmed;
@@ -90,10 +91,10 @@ namespace Scry
                 var withoutLine = StageColours();
                 Stage.OutlineAwayForTest(false);
                 var (changed, average) = withLine != null && withoutLine != null ? AccentPixels.Changed(withLine, withoutLine, 30) : (0, -1);
-                var amberish = average >= 0 && AccentPixels.Count(new[] { average }, Accent, 60) == 1;
+                var amber = withLine != null && withoutLine != null ? AccentPixels.Count(withLine, Accent, 40) - AccentPixels.Count(withoutLine, Accent, 40) : 0;
                 var colour = average < 0 ? "none" : $"red {Numbers.Count((average >> 16) & 0xFF)}, green {Numbers.Count((average >> 8) & 0xFF)}, blue {Numbers.Count(average & 0xFF)}";
-                p.Note($"{name}: outlined with {Stage.OutlineDrawnWith ?? "nothing"}, {Numbers.Count(changed)} pixels changed by it, on average {colour}");
-                if (!shown || changed < 100 || !amberish) unmarked.Add($"{name}: {(shown ? "shown" : "not shown")}, {Numbers.Count(changed)} pixels");
+                p.Note($"{name}: outlined with {Stage.OutlineDrawnWith ?? "nothing"}, {Numbers.Count(amber)} amber pixels added; {Numbers.Count(changed)} pixels changed in all, on average {colour}");
+                if (!shown || amber < 100) unmarked.Add($"{name}: {(shown ? "shown" : "not shown")}, {Numbers.Count(amber)} amber pixels added");
 
                 // Coming back out, as Esc and the roof button do.
                 Stage.ComeOut();
