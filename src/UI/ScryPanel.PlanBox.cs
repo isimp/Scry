@@ -257,7 +257,14 @@ namespace Scry
             var width = Mathf.Min(U(_planBig ? 400f : 236f), inner.width - U(16f));
             var planH = U(_planBig ? 330f : 150f);
             var mapBar = _planView == PlanView.Map;
-            var rows = pad + rowH + gap + gap + rowH + gap + rowH + (mapBar ? rowH + gap : 0f) + pad;
+            // The header holds the three views, grow and fold, and the caption beside them where
+            // it has room; else the caption shares a second row with grow and fold.
+            var segmentsW = 0f;
+            foreach (var view in ViewsRightToLeft) segmentsW += Skin.Width(Skin.SegmentOn, PlanBoxWords.ViewName(view)) + U(12f);
+            var controlsW = U(6f) + rowH + U(4f) + U(16f);
+            var oneRow = width - pad * 2f >= segmentsW + controlsW + U(90f);
+            var headerH = oneRow ? rowH : rowH * 2f + U(2f);
+            var rows = pad + headerH + gap + gap + rowH + gap + rowH + (mapBar ? rowH + gap : 0f) + pad;
             planH = Mathf.Max(U(60f), Mathf.Min(planH, inner.height - U(48f) - rows));
             var height = rows + planH;
             var box = new Rect(inner.x + U(8f), inner.yMax - U(34f) - height, width, height);
@@ -271,10 +278,11 @@ namespace Scry
             var w = box.width - pad * 2f;
             var y = box.y + pad;
 
-            // The header: the caption, the three views, grow and fold.
-            var fold = new Rect(box.xMax - pad - U(16f), y + U(3f), U(16f), U(16f));
-            var grow = new Rect(fold.x - U(4f) - rowH, y, rowH, rowH);
-            var segX = grow.x - U(6f);
+            // The header: the three views, grow and fold, and the caption.
+            var controlsY = oneRow ? y : y + rowH + U(2f);
+            var fold = new Rect(box.xMax - pad - U(16f), controlsY + U(3f), U(16f), U(16f));
+            var grow = new Rect(fold.x - U(4f) - rowH, controlsY, rowH, rowH);
+            var segX = oneRow ? grow.x - U(6f) : x + segmentsW;
             foreach (var view in ViewsRightToLeft)
             {
                 var name = PlanBoxWords.ViewName(view);
@@ -303,7 +311,7 @@ namespace Scry
             if (repaint) GUI.Label(fold, "–", fold.Contains(e.mousePosition) ? Skin.Label : Skin.DimLabel);
 
             // The plan itself.
-            var area = new Rect(x, y + rowH + gap, w, planH);
+            var area = new Rect(x, y + headerH + gap, w, planH);
             BoxSpots.Clear();
             var gone = Stage.RoomGoneInto;
             var route = gone != null && _boxWays != null ? _boxWays.Route(gone) : null;
@@ -339,7 +347,8 @@ namespace Scry
                 e.Use();
             }
             var caption = hovered != null ? BoxRoomName(explorer, hovered) : PlanBoxWords.Caption(BoxRooms.Count);
-            FitLabel(new Rect(x, y, Mathf.Max(U(20f), segX - x - U(4f)), rowH), caption, Skin.FaintLabel, 10f);
+            var captionRect = oneRow ? new Rect(x, y, Mathf.Max(U(20f), segX - x - U(4f)), rowH) : new Rect(x, controlsY, Mathf.Max(U(20f), grow.x - U(6f) - x), rowH);
+            FitLabel(captionRect, caption, Skin.FaintLabel, 10f);
             y = area.yMax + gap;
 
             // The map's own controls: the angle with the fewest rooms over each other, following the view, and how many overlap now.
@@ -627,13 +636,35 @@ namespace Scry
                 var lit = BoxLit(spot.Room) || spot.Room == gone;
                 Skin.Fill(rect, spot.Room == gone ? Skin.Alpha(Skin.Accent, 0.75f) : DepthTone(spot.Room));
                 PlanFrame(rect, lit ? Skin.Accent : crossroads ? Skin.Alpha(Skin.Text, 0.85f) : Skin.Alpha(Skin.Text, 0.3f), lit || crossroads ? 2f : 1f);
-                var depth = PlanBoxWords.Depth(GroundOf(spot.Room) - entranceGround);
-                var label = _planBig ? PlanBoxWords.Node(BoxRoomName(explorer, spot.Room), depth) : depth;
-                var labelW = Skin.Width(Skin.FaintLabel, label);
-                var labelX = rect.xMax + U(3f);
-                if (labelX + labelW > area.xMax) labelX = rect.x - U(3f) - labelW;
-                GUI.Label(new Rect(labelX, spot.Centre.y - U(8f), labelW, U(16f)), label, Skin.FaintLabel);
             }
+
+            // Each node's label beside it, the room gone into's and those lit first: right of it, else
+            // left, where it covers no other label or node; else left out, the caption naming the
+            // room under the mouse.
+            WrittenNames.Clear();
+            foreach (var spot in BoxSpots) if (spot.Room == gone || BoxLit(spot.Room)) TreeLabel(explorer, spot, area, entranceGround);
+            foreach (var spot in BoxSpots) if (spot.Room != gone && !BoxLit(spot.Room)) TreeLabel(explorer, spot, area, entranceGround);
+        }
+
+        /// <summary>A node's label, its depth and, grown, its room's name, where it covers nothing already drawn.</summary>
+        private static void TreeLabel(Explorer explorer, BoxSpot spot, Rect area, float entranceGround)
+        {
+            var depth = PlanBoxWords.Depth(GroundOf(spot.Room) - entranceGround);
+            var label = _planBig ? PlanBoxWords.Node(BoxRoomName(explorer, spot.Room), depth) : depth;
+            var labelW = Skin.Width(Skin.FaintLabel, label);
+            var right = new Rect(spot.Centre.x + spot.Half.x + U(3f), spot.Centre.y - U(8f), labelW, U(16f));
+            var left = new Rect(spot.Centre.x - spot.Half.x - U(3f) - labelW, right.y, labelW, U(16f));
+            bool Clear(Rect r)
+            {
+                if (r.x < area.x || r.xMax > area.xMax) return false;
+                foreach (var written in WrittenNames) if (written.Overlaps(r)) return false;
+                foreach (var other in BoxSpots) if (new Rect(other.Centre - other.Half, other.Half * 2f).Overlaps(r)) return false;
+                return true;
+            }
+            var at = Clear(right) ? right : Clear(left) ? left : (Rect?)null;
+            if (!(at is Rect place)) return;
+            WrittenNames.Add(place);
+            GUI.Label(place, label, Skin.FaintLabel);
         }
 
         // ----- The trail -----
