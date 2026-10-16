@@ -190,8 +190,17 @@ namespace Scry
         /// <summary>The same, made once, for finding the room under the mouse.</summary>
         private static readonly Func<PlacedRoom, bool> OnPlanRoom = OnPlan;
 
-        /// <summary>Whether a room is lit on the plan: under the mouse on it, or on the stage while the mouse is on no room of the plan.</summary>
-        private static bool Lit(PlacedRoom room, PlacedRoom hovered) => room == hovered || (hovered == null && _stageRoom != null && _stageRoom == room.Room.Name);
+        /// <summary>
+        /// Whether a room is lit on the plan: under the mouse on it; or while the mouse is on no
+        /// room of the plan, the room a way chip of the room gone into's card is hovered for, else
+        /// rooms of the name under the mouse on the stage.
+        /// </summary>
+        private static bool Lit(PlacedRoom room, PlacedRoom hovered)
+        {
+            if (hovered != null) return room == hovered;
+            if (_cardLit != null) return room == _cardLit;
+            return _stageRoom != null && _stageRoom == room.Room.Name;
+        }
 
         /// <summary>What of a room the plan draws, in the order drawn: one under the floor, a tile of it, its outline over the tiles.</summary>
         private enum RoomDraw

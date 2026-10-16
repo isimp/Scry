@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -88,6 +89,7 @@ namespace Scry
             Of = example;
             Placed = example.FromGenerator();
             IsDungeon = plan.Algorithm == "Dungeon";
+            Ways = IsDungeon ? DungeonWays.Of(Placed.Rooms) : null;
 
             Holder = new GameObject("Scry example") { layer = layer };
             var holder = Holder.transform;
@@ -107,6 +109,26 @@ namespace Scry
 
         /// <summary>A room's copy standing.</summary>
         public void Add(PlacedRoom room, GameObject copy) => _rooms.Add(new KeyValuePair<PlacedRoom, GameObject>(room, copy));
+
+        /// <summary>The ways between a dungeon's rooms (<see cref="DungeonWays"/>); none for a camp's.</summary>
+        public DungeonWays Ways { get; private set; }
+
+        /// <summary>The chests and pickups each dungeon room's roll left in its copy, each with the chance its page gives it.</summary>
+        private readonly Dictionary<PlacedRoom, List<(string Prefab, float Chance)>> _loot = new Dictionary<PlacedRoom, List<(string, float)>>();
+
+        /// <summary>Keeps the chests and pickups a room's roll left in its copy.</summary>
+        public void KeepLoot(PlacedRoom room, List<(string Prefab, float Chance)> loot) => _loot[room] = loot;
+
+        /// <summary>The chests and pickups a room's roll left in its copy; none for a room not yet standing.</summary>
+        public IReadOnlyList<(string Prefab, float Chance)> LootOf(PlacedRoom room) =>
+            room != null && _loot.TryGetValue(room, out var loot) ? loot : (IReadOnlyList<(string, float)>)Array.Empty<(string, float)>();
+
+        /// <summary>A room's copy standing, or none.</summary>
+        public GameObject CopyOf(PlacedRoom room)
+        {
+            foreach (var pair in _rooms) if (pair.Key == room) return pair.Value;
+            return null;
+        }
 
         /// <summary>The rooms made whose floors are still to be read, each in a frame of its own, so no frame both makes a room and reads one's floors.</summary>
         private readonly Queue<(GameObject Copy, PlacedRoom Room, PlaceRoll Roll)> _toRead = new Queue<(GameObject, PlacedRoom, PlaceRoll)>();
@@ -614,6 +636,8 @@ namespace Scry
             Holder = null;
             Of = null;
             Placed = null;
+            Ways = null;
+            _loot.Clear();
             NothingOutside = false;
             Next = 0;
             Copies = 0;

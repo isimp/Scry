@@ -44,6 +44,9 @@ namespace Scry
             return inner != null ? (Math.Max(breaks.m_minToolTier, inner.Value.Tier), inner.Value.Health) : (breaks.m_minToolTier, breaks.m_health);
         }
 
+        /// <summary>Whether a place's part, by its prefab's name, is told among its chests and pickups (<see cref="PartRole.Loot"/>).</summary>
+        public static bool IsLoot(string prefab) => PlaceParts.RoleOf(TraitsOf(GamePrefabs.Item(prefab))) == PartRole.Loot;
+
         /// <summary>What a place's part has, as its components tell, for the row it is told in (<see cref="PlaceParts.RoleOf"/>).</summary>
         private static PartTraits TraitsOf(GameObject prefab)
         {

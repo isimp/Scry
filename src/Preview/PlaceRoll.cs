@@ -8,12 +8,19 @@ namespace Scry
     /// and read with the copy once it stands: its creature spawn points that are there, and for
     /// its floors (<see cref="FloorProbe"/>), every object its rolls switched on or off, the parts
     /// another roll can bring, and the colliders the game's floor rays for what it drops pass
-    /// through, known by their own layers, which the copy loses once awake.
+    /// through, known by their own layers, which the copy loses once awake. Where wanted, as for
+    /// the card of a dungeon's room gone into, the chests and pickups the rolls left there, each
+    /// with the chance its page gives it.
     /// </summary>
     internal sealed class PlaceRoll
     {
         public readonly List<Stage.SpawnHere> Spawns = new List<Stage.SpawnHere>();
         public readonly HashSet<Transform> Switched = new HashSet<Transform>();
         public readonly HashSet<Collider> NotSolid = new HashSet<Collider>();
+
+        /// <summary>Whether the chests and pickups left there are noted (<see cref="Loot"/>).</summary>
+        public bool WantsLoot;
+
+        public readonly List<(string Prefab, float Chance)> Loot = new List<(string, float)>();
     }
 }

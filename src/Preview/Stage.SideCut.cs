@@ -39,7 +39,7 @@ namespace Scry
         /// <summary>Starts a dungeon's example cut from the side where it is mostly one stack of rooms, else from above.</summary>
         private static void ChooseCutForExample()
         {
-            CutFromSide = TheExample.IsDungeon && TheExample.Placed != null && DungeonWays.Of(TheExample.Placed.Rooms).IsStack;
+            CutFromSide = TheExample.Ways != null && TheExample.Ways.IsStack;
             TheExample.FromSide = CutFromSide;
         }
 

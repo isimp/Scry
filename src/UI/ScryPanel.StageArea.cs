@@ -95,6 +95,8 @@ namespace Scry
 
                 // The example's plan in the corner, which takes the mouse where it is.
                 var plan = Stage.Subject != null ? PlanOverlay(explorer, entry, inner) : Rect.zero;
+                // The card of the room gone into in the other corner, which takes the mouse too.
+                var card = Stage.Subject != null ? RoomCardBox(explorer, inner, plan) : Rect.zero;
 
                 // A room of the example under the mouse is named, and a click on it that is not a
                 // drag goes into it inside a dungeon's example, and to its entry in a camp's.
@@ -102,7 +104,7 @@ namespace Scry
                 PlacedRoom pointed = null;
                 _stageRoom = null;
                 var still = _drag == Drag.None || (_drag == Drag.Orbit && _dragMoved < U(5f));
-                if (Stage.ExampleRoomsShown > 0 && still && inner.Contains(e.mousePosition) && !plan.Contains(e.mousePosition))
+                if (Stage.ExampleRoomsShown > 0 && still && inner.Contains(e.mousePosition) && !plan.Contains(e.mousePosition) && !card.Contains(e.mousePosition))
                 {
                     var point = new Vector2((e.mousePosition.x - inner.x) / inner.width, 1f - (e.mousePosition.y - inner.y) / inner.height);
                     var room = Stage.ExampleRoomAt(point);

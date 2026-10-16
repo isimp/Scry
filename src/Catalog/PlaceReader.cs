@@ -131,7 +131,7 @@ namespace Scry
         /// a <c>RandomObject</c> picks it by, and for a <c>RandomSpawn</c>'s object shown when it is off,
         /// the chance that it is off.
         /// </summary>
-        private static Dictionary<Transform, float> Factors(GameObject prefab)
+        private static Dictionary<Transform, float> Factors(GameObject prefab, bool asleep = false)
         {
             var factors = new Dictionary<Transform, float>();
             void Times(Transform t, float factor)
@@ -139,7 +139,13 @@ namespace Scry
                 if (t == null) return;
                 factors[t] = (factors.TryGetValue(t, out var was) ? was : 1f) * factor;
             }
-            foreach (var pick in prefab.GetComponentsInChildren<RandomObject>(false))
+            var root = prefab.transform;
+            // A copy asleep under a holder switched off has nothing switched on in the scene: its
+            // parts are taken as its prefab has them switched, as its rolls take them.
+            T[] On<T>() where T : Component => asleep
+                ? prefab.GetComponentsInChildren<T>(true).Where(c => c != null && Animators.SwitchedOn(c.transform, root)).ToArray()
+                : prefab.GetComponentsInChildren<T>(false);
+            foreach (var pick in On<RandomObject>())
             {
                 if (pick.OrNull()?.m_objects == null) continue;
                 // An entry without an object weighs in too; picking it leaves the whole pick out.
@@ -153,11 +159,30 @@ namespace Scry
                 }
                 if (nothing > 0f) Times(pick.transform, 1f - nothing);
             }
-            foreach (var spawn in prefab.GetComponentsInChildren<RandomSpawn>(false))
+            foreach (var spawn in On<RandomSpawn>())
             {
                 if (spawn != null && spawn.m_OffObject != null) Times(spawn.m_OffObject.transform, 1f - Mathf.Clamp01(spawn.m_chanceToSpawn / 100f));
             }
             return factors;
+        }
+
+        /// <summary>
+        /// The chests and pickups of a copy of a place, read while it still sleeps and before its
+        /// rolls (<see cref="PlaceCopy"/>), each with the chance its page gives it, worked out as
+        /// <see cref="Read"/> works it out from the prefab.
+        /// </summary>
+        public static List<(Transform At, string Prefab, float Chance)> LootChances(GameObject copy)
+        {
+            var root = copy.transform;
+            var factors = Factors(copy, asleep: true);
+            var loot = new List<(Transform, string, float)>();
+            foreach (var view in copy.GetComponentsInChildren<ZNetView>(true))
+            {
+                if (view == null || view.transform == root || !Animators.SwitchedOn(view.transform, root)) continue;
+                var prefab = PrefabName(view.gameObject.name);
+                if (LootParts.Is(prefab)) loot.Add((view.transform, prefab, ChanceOf(view.transform, root, factors)));
+            }
+            return loot;
         }
 
         /// <summary>Which of the rolls its copy is made with can come out otherwise (<see cref="PlaceCopy"/>): its parts, its creatures' stars and its spawn groups.</summary>

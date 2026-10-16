@@ -127,7 +127,13 @@ namespace Scry
 
         private static void Prepare(GameObject copy, PlaceRoll roll, Location rules, List<GroundPaintAt> paints = null)
         {
+            // Its chests and pickups with their chances before the rolls, those left after them.
+            var loot = roll != null && roll.WantsLoot ? PlaceReader.LootChances(copy) : null;
             Roll(copy, roll != null ? roll.Switched : new HashSet<Transform>());
+            if (loot != null)
+            {
+                foreach (var (at, prefab, chance) in loot) if (Animators.SwitchedOn(at, copy.transform)) roll.Loot.Add((prefab, chance));
+            }
             LeaveOutInterior(copy);
             if (roll != null)
             {

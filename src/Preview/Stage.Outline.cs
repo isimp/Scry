@@ -49,34 +49,84 @@ namespace Scry
             if (_outline != null && _outline.gameObject.activeSelf && ReferenceEquals(room, _outlinedRoom) && top == _outlinedTop) return;
             if (!EnsureOutline()) return;
 
-            var path = RoomOutline.Path(room.Corners(), TheExample.FocusGround, top);
-            var points = new Vector3[path.Count];
-            for (var i = 0; i < path.Count; i++) points[i] = holder.transform.TransformPoint(new Vector3(path[i].X, path[i].Y, path[i].Z));
-            _outline.positionCount = points.Length;
-            _outline.SetPositions(points);
-            var reach = TheExample.FocusAcross() is Vector3 across ? across.z : 5f;
-            _outline.widthMultiplier = Mathf.Max(0.02f, reach * 0.012f);
-            _outline.gameObject.SetActive(true);
+            Lay(_outline, holder.transform, room, TheExample.FocusGround, top, 1f);
             _outlinedRoom = room;
             _outlinedTop = top;
         }
 
-        /// <summary>Makes the outline the first time a room is gone into; false where no shader to draw it with is loaded.</summary>
-        private static bool EnsureOutline()
+        /// <summary>
+        /// The room a way on the card of the room gone into points at, lit on the stage by a
+        /// fainter, thinner line of the same amber; none. Set again each time the panel is drawn.
+        /// </summary>
+        public static PlacedRoom LitRoom { get; set; }
+
+        /// <summary>The same amber, fainter, round the room lit from the card.</summary>
+        private static readonly Color LitColour = new Color(OutlineColour.r, OutlineColour.g, OutlineColour.b, 0.6f);
+
+        private static LineRenderer _litOutline;
+        private static PlacedRoom _litDrawn;
+        private static float _litTop = float.NaN;
+
+        /// <summary>Whether the room lit from the card is outlined, for the self-test.</summary>
+        [Diagnostic]
+        public static bool LitOutlineShown => _litOutline != null && _litOutline.gameObject.activeSelf;
+
+        /// <summary>
+        /// Each film: stands the fainter line round the room lit from the card, from its ground to
+        /// its top or just under the cut; one wholly above the cut, put away, shows its outline
+        /// just under the cut, where it lies above. Puts it away with none lit.
+        /// </summary>
+        private static void KeepLitOutline()
         {
-            if (_outline != null) return true;
+            var room = LitRoom;
+            var holder = TheExample.Holder;
+            if (room == null || room == TheExample.Focused || TheExample.Focused == null || holder == null || !holder.activeInHierarchy || !Cutting && !SideCutting || _outlineAway)
+            {
+                if (_litOutline != null && _litOutline.gameObject.activeSelf) _litOutline.gameObject.SetActive(false);
+                return;
+            }
+            var lift = holder.transform.localPosition.y;
+            var roomTop = room.Position.Y + room.Room.Size.Y / 2f;
+            var top = TheCut.Held ? RoomOutline.Top(CutAt - lift, roomTop) : roomTop;
+            if (_litOutline != null && _litOutline.gameObject.activeSelf && ReferenceEquals(room, _litDrawn) && top == _litTop) return;
+            if (!EnsureLine(ref _litOutline, "Scry lit room outline", LitColour)) return;
+            Lay(_litOutline, holder.transform, room, Mathf.Min(TheExample.GroundOf(room), top), top, 0.7f);
+            _litDrawn = room;
+            _litTop = top;
+        }
+
+        /// <summary>Lays a line round a room's box from a ground to a top, in the example's space, as wide as the view of the room gone into has it.</summary>
+        private static void Lay(LineRenderer line, Transform holder, PlacedRoom room, float ground, float top, float width)
+        {
+            var path = RoomOutline.Path(room.Corners(), ground, top);
+            var points = new Vector3[path.Count];
+            for (var i = 0; i < path.Count; i++) points[i] = holder.TransformPoint(new Vector3(path[i].X, path[i].Y, path[i].Z));
+            line.positionCount = points.Length;
+            line.SetPositions(points);
+            var reach = TheExample.FocusAcross() is Vector3 across ? across.z : 5f;
+            line.widthMultiplier = Mathf.Max(0.02f, reach * 0.012f) * width;
+            line.gameObject.SetActive(true);
+        }
+
+        /// <summary>Makes the outline the first time a room is gone into; false where no shader to draw it with is loaded.</summary>
+        private static bool EnsureOutline() => EnsureLine(ref _outline, "Scry room outline", OutlineColour);
+
+        /// <summary>Makes a line drawn over everything in a colour, the first time it is wanted; false where no shader to draw it with is loaded.</summary>
+        private static bool EnsureLine(ref LineRenderer line, string name, Color colour)
+        {
+            if (line != null) return true;
             if (_root == null || OutlineMaterial() == null) return false;
-            var line = new GameObject("Scry room outline") { layer = _layer };
-            line.transform.SetParent(_root.transform, false);
-            _outline = line.AddComponent<LineRenderer>();
-            _outline.useWorldSpace = true;
-            _outline.sharedMaterial = _outlineMaterial;
-            _outline.startColor = _outline.endColor = OutlineColour;
-            _outline.numCornerVertices = 2;
-            _outline.numCapVertices = 2;
-            _outline.shadowCastingMode = ShadowCastingMode.Off;
-            _outline.receiveShadows = false;
-            _outline.alignment = LineAlignment.View;
+            var made = new GameObject(name) { layer = _layer };
+            made.transform.SetParent(_root.transform, false);
+            line = made.AddComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.sharedMaterial = _outlineMaterial;
+            line.startColor = line.endColor = colour;
+            line.numCornerVertices = 2;
+            line.numCapVertices = 2;
+            line.shadowCastingMode = ShadowCastingMode.Off;
+            line.receiveShadows = false;
+            line.alignment = LineAlignment.View;
             return true;
         }
 
@@ -110,6 +160,10 @@ namespace Scry
             _outline = null;
             _outlinedRoom = null;
             _outlinedTop = float.NaN;
+            _litOutline = null;
+            _litDrawn = null;
+            _litTop = float.NaN;
+            LitRoom = null;
         }
     }
 }

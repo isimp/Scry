@@ -156,7 +156,7 @@ namespace Scry
                     var at = new Vector3(room.Position.X, room.Position.Y, room.Position.Z);
                     var turn = new Quaternion(room.Rotation.X, room.Rotation.Y, room.Rotation.Z, room.Rotation.W);
                     // A room's spawn points go by the rules of the location it is built in.
-                    TheExample.BuildRoll = new PlaceRoll();
+                    TheExample.BuildRoll = new PlaceRoll { WantsLoot = TheExample.IsDungeon };
                     TheExample.BuildPaints = TheExample.IsDungeon ? null : new List<GroundPaintAt>();
                     var rules = _lastShown?.Source is PlaceSource shown ? PlaceAssets.Asset(shown).OrNull()?.GetComponent<Location>() : null;
                     TheExample.Build = PlaceCopy.Begin(prefab, TheExample.Holder.transform, at, turn, _layer, keepColliders: TheExample.IsDungeon, local: true,
@@ -176,6 +176,7 @@ namespace Scry
                 if (TheExample.IsDungeon) TheExample.ReadLater(copy, placed, TheExample.BuildRoll);
                 Tune(copy, audible: false);
                 Populate(TheExample.BuildRoll.Spawns, copy);
+                if (TheExample.IsDungeon) TheExample.KeepLoot(placed, TheExample.BuildRoll.Loot);
                 TheExample.BuildRoll = null;
                 // A camp's rooms paint the ground around it; a dungeon's stand under it.
                 TakeGroundPaints(TheExample.BuildPaints, copy);
@@ -302,6 +303,18 @@ namespace Scry
 
         /// <summary>A room's levels from the lowest up, its ground among them (<see cref="RoomLevels"/>).</summary>
         public static List<float> ExampleRoomLevels(PlacedRoom room) => TheExample.LevelsOf(room);
+
+        /// <summary>The ways between a dungeon example's rooms (<see cref="DungeonWays"/>); none for a camp's or with no example.</summary>
+        public static DungeonWays ExampleWays => TheExample.Ways;
+
+        /// <summary>How many of the example's rooms have had their rays read, which their grounds and levels come from.</summary>
+        public static int ExampleRoomsRead => TheExample.GroundRead;
+
+        /// <summary>The creatures this copy rolled in a room of the example, by their prefab's name, made or still waiting.</summary>
+        public static IReadOnlyList<string> RoomCreatures(PlacedRoom room) => Creatures.RolledIn(TheExample.CopyOf(room));
+
+        /// <summary>The chests and pickups this copy's rolls left in a room of a dungeon's example, each with the chance its page gives it.</summary>
+        public static IReadOnlyList<(string Prefab, float Chance)> RoomLoot(PlacedRoom room) => TheExample.LootOf(room);
 
         /// <summary>The level of the room gone into that is open; none outside a room.</summary>
         public static float? RoomLevelOpen => TheExample.Focused != null ? TheExample.FocusLevel : (float?)null;

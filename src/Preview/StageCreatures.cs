@@ -33,6 +33,9 @@ namespace Scry
         /// <summary>The creatures standing, each with the example's room it stands in, if any.</summary>
         private readonly List<KeyValuePair<GameObject, GameObject>> _copies = new List<KeyValuePair<GameObject, GameObject>>();
 
+        /// <summary>The creatures rolled in each of an example's rooms, by their prefab's name, made or waiting.</summary>
+        private readonly Dictionary<GameObject, List<string>> _rolledIn = new Dictionary<GameObject, List<string>>();
+
         private bool _shown = true;
         private float _cutAt = float.NaN;
         private int _cutCount = -1;
@@ -88,8 +91,15 @@ namespace Scry
                 _toMake.Add(new Waiting { At = here.At, Rise = here.Rise, Lift = here.Grounded ? here.Lift : 0f, Creature = here.Creature, Level = level, Room = room });
                 if (here.Lift > 0f) Flying++;
                 else if (here.Grounded && here.Drop > 0.05f) Dropped++;
+                if (room == null || here.Creature == null) continue;
+                if (!_rolledIn.TryGetValue(room, out var names)) _rolledIn[room] = names = new List<string>();
+                names.Add(here.Creature.name);
             }
         }
+
+        /// <summary>The creatures rolled in one of an example's rooms, by their prefab's name, made or still waiting; none for a room with none.</summary>
+        public IReadOnlyList<string> RolledIn(GameObject room) =>
+            room != null && _rolledIn.TryGetValue(room, out var names) ? names : (IReadOnlyList<string>)Array.Empty<string>();
 
         /// <summary>Makes a few of the creatures waiting, for a share of the frame and at least one, each as the stage makes it; one put away stays so.</summary>
         public void Step(double budgetMs, Func<Waiting, GameObject> make)
@@ -145,6 +155,7 @@ namespace Scry
             _toMake.RemoveAll(c => c.Room != null);
             foreach (var pair in _copies) if (pair.Value != null) _lift.Remove(pair.Key);
             _copies.RemoveAll(pair => pair.Value != null);
+            _rolledIn.Clear();
             Dropped = 0;
             Flying = 0;
         }
@@ -155,6 +166,7 @@ namespace Scry
             _toMake.Clear();
             _copies.Clear();
             _lift.Clear();
+            _rolledIn.Clear();
             Dropped = 0;
             Flying = 0;
         }

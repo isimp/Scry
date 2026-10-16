@@ -52,6 +52,9 @@ namespace Scry
         TallyCounted,
         YouBox,
         EmptyRowLeftOut,
+        RoomCard,
+        RoomCardWay,
+        RoomCardLevel,
     }
 
     internal static partial class ScryPanel
