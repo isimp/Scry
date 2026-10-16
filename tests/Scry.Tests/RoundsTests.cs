@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -205,6 +206,179 @@ namespace Scry.Tests
             var rounds = new Rounds<Thing>(1f);
             rounds.Add(null);
             Assert.Equal(0, rounds.Count);
+        }
+
+        // Standing still, most things kept cannot show anything new: one out of reach stays out of
+        // reach and one out of view or hidden stays so until the eye moves. Such a thing rests: it
+        // is passed over without a look, and looked at again in its turn once the eye moves.
+
+        private static Looked Rest(Thing thing)
+        {
+            thing.Looks++;
+            return Looked.Rests;
+        }
+
+        [Fact]
+        public void AThingRestingIsNotLookedAtAgainUntilTheEyeMoves()
+        {
+            var rounds = new Rounds<Thing>(1f);
+            var things = Fill(rounds, 10);
+
+            for (var round = 0; round < 4; round++) rounds.Look(1f, Rest);
+
+            Assert.All(things, t => Assert.Equal(1, t.Looks));
+            Assert.Equal(10, rounds.Count);
+            Assert.Equal(10, rounds.Resting);
+            Assert.All(things, t => Assert.True(rounds.Contains(t)));
+
+            rounds.Wake();
+            rounds.Look(1f, Rest);
+
+            Assert.All(things, t => Assert.Equal(2, t.Looks));
+        }
+
+        [Fact]
+        public void ThingsRestingCostNoLookWhileTheOthersAreLookedAtOnceARound()
+        {
+            var rounds = new Rounds<Thing>(1f);
+            var resting = Fill(rounds, 1000);
+            var kept = Fill(rounds, 6).ToHashSet();
+            Looked Look(Thing thing) => kept.Contains(thing) ? Keep(thing) : Rest(thing);
+            rounds.Look(1f, Look);
+
+            for (var frame = 0; frame < 60; frame++) rounds.Look(1f / 60, Look);
+
+            Assert.All(resting, t => Assert.Equal(1, t.Looks));
+            Assert.All(kept, t => Assert.Equal(2, t.Looks));
+            Assert.Equal(1000, rounds.Resting);
+        }
+
+        [Fact]
+        public void AThingAddedWhileTheOthersRestIsLookedAtWithinTheRound()
+        {
+            var rounds = new Rounds<Thing>(1f);
+            var things = Fill(rounds, 20);
+            rounds.Look(1f, Rest);
+
+            var late = new Thing();
+            rounds.Add(late);
+            rounds.Look(0.5f, Rest);
+            rounds.Look(0.5f, Rest);
+
+            Assert.Equal(1, late.Looks);
+            Assert.All(things, t => Assert.Equal(1, t.Looks));
+        }
+
+        [Fact]
+        public void ThingsWokenMidRoundAreEachLookedAtOnceWithinTheRoundAfter()
+        {
+            var rounds = new Rounds<Thing>(1f);
+            var things = Fill(rounds, 30);
+            rounds.Look(1f, Rest);
+            for (var frame = 0; frame < 30; frame++) rounds.Look(1f / 60, Rest);
+            Assert.All(things, t => Assert.Equal(1, t.Looks));
+
+            rounds.Wake();
+            for (var frame = 0; frame < 60; frame++) rounds.Look(1f / 60, Rest);
+
+            Assert.All(things, t => Assert.Equal(2, t.Looks));
+            Assert.Equal(30, rounds.Resting);
+        }
+
+        [Fact]
+        public void WhileTheEyeKeepsMovingEachThingIsStillLookedAtOnceARound()
+        {
+            // Walking wakes the things resting every frame or so: each is looked at in its turn,
+            // once a round, none looked at again before the others and none passed over.
+            var rounds = new Rounds<Thing>(1f);
+            var things = Fill(rounds, 120);
+
+            for (var frame = 0; frame < 60; frame++)
+            {
+                rounds.Wake();
+                rounds.Look(1f / 60, Rest);
+            }
+
+            Assert.All(things, t => Assert.Equal(1, t.Looks));
+        }
+
+        [Fact]
+        public void AThingRestingThatIsLetGoOrDroppedOnceWokenLeavesAsAnyOther()
+        {
+            var rounds = new Rounds<Thing>(1f);
+            var things = Fill(rounds, 4);
+            rounds.Look(1f, Rest);
+
+            rounds.Wake();
+            rounds.Look(1f, thing => thing == things[0] ? Looked.LetGo : thing == things[1] ? Looked.Dropped : Rest(thing));
+
+            Assert.Equal(2, rounds.Count);
+            Assert.Equal(2, rounds.Resting);
+            Assert.Equal(1, rounds.LetGo);
+            Assert.Equal(1, rounds.Dropped);
+            Assert.False(rounds.Contains(things[0]));
+            Assert.False(rounds.Contains(things[1]));
+        }
+
+        [Fact]
+        public void LookingAtEverythingAtOnceTakesInTheRestingAndLeavesThemResting()
+        {
+            var rounds = new Rounds<Thing>(1f);
+            var things = Fill(rounds, 5);
+            rounds.Look(1f, Rest);
+
+            rounds.LookAtAll(Keep);
+
+            Assert.All(things, t => Assert.Equal(2, t.Looks));
+            Assert.Equal(5, rounds.Resting);
+        }
+
+        [Fact]
+        public void ClearedRoundsForgetTheThingsResting()
+        {
+            var rounds = new Rounds<Thing>(1f);
+            Fill(rounds, 3);
+            rounds.Look(1f, Rest);
+
+            rounds.Clear();
+
+            Assert.Equal(0, rounds.Count);
+            Assert.Equal(0, rounds.Resting);
+            var fresh = Fill(rounds, 2);
+            rounds.Look(1f, Keep);
+            Assert.All(fresh, t => Assert.Equal(1, t.Looks));
+        }
+
+        private static Looked RestEveryOther(Thing thing)
+        {
+            thing.Looks++;
+            return thing.Looks % 2 == 0 ? Looked.Rests : Looked.Kept;
+        }
+
+        [Fact]
+        public void LookingAShareAFrameRestingAndWakingMakeNothing()
+        {
+            // Looked at every frame inside the update the self-test measures, so what the rounds
+            // made would be counted as Scry's own: once they hold their things they make nothing.
+            var rounds = new Rounds<Thing>(1f);
+            Fill(rounds, 1000);
+            Func<Thing, Looked> look = RestEveryOther;
+            Func<bool> spent = () => false;
+            for (var frame = 0; frame < 120; frame++)
+            {
+                if (frame % 10 == 0) rounds.Wake();
+                rounds.Look(1f / 60, look, spent);
+            }
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var frame = 0; frame < 600; frame++)
+            {
+                if (frame % 10 == 0) rounds.Wake();
+                rounds.Look(1f / 60, look, spent);
+            }
+            var made = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            Assert.Equal(0, made);
         }
     }
 }

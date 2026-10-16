@@ -52,6 +52,9 @@ namespace Scry
 
         public int Frames => _frames.Count;
 
+        /// <summary>The time of the frame noted last, 0 before any.</summary>
+        public double Last => _frames.Count == 0 ? 0 : _frames[_frames.Count - 1].Ms;
+
         public double Mean => _frames.Count == 0 ? 0 : _frames.Average(f => f.Ms);
 
         public double Max => _frames.Count == 0 ? 0 : _frames.Max(f => f.Ms);

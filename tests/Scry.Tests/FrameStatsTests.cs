@@ -29,6 +29,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheLastFrameNotedIsToldNoneBeforeAny()
+        {
+            // The self-test waits as long as Scry's work took in the frame before, to tell how much
+            // other threads allocate meanwhile.
+            var stats = new FrameStats();
+            Assert.Equal(0, stats.Last);
+
+            stats.Add(1.5, "update", 1);
+            stats.Add(0.25, "update compendium", 0.2);
+
+            Assert.Equal(0.25, stats.Last, 6);
+        }
+
+        [Fact]
         public void ItTellsTheAverageThe95thPercentileAndTheMost()
         {
             var stats = OneToAHundred();
