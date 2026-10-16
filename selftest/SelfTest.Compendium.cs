@@ -52,7 +52,8 @@ namespace Scry
 
             // Everything they tell is in the book: the catch-up ran on this catalog.
             var told = new CompendiumBook();
-            CompendiumKeeper.CatchUpFor(X.Entries).Fill(records, told, firstLoad: true);
+            var catchUp = CompendiumKeeper.CatchUpFor(X.Entries);
+            catchUp.Fill(records, told, firstLoad: true);
             yield return Until(() => Short(told, CompendiumKeeper.Book).Count == 0, 5);
             var shortOf = Short(told, CompendiumKeeper.Book);
             p.Check(shortOf.Count == 0, $"everything its records tell is in its book ({Numbers.Count(told.Count(KnownLevel.HeardOf))} entries)", string.Join(", ", shortOf.Take(10)));
@@ -69,12 +70,12 @@ namespace Scry
             var sold = held.Where(e => Knowledge.SourceLines(e.Name).Any(line => line.Record?.Way == SourceWay.Sold)).ToList();
             var notKnown = held.Except(sold).Where(e => CompendiumKeeper.Book.Level(e.Key) != KnownLevel.Known).Select(e => e.Name).ToList();
             p.Check(notKnown.Count == 0, $"the {Numbers.Count(held.Count - sold.Count)} kinds of thing it ever held are known, {Numbers.Count(sold.Count)} a trader sells left to its offer", string.Join(", ", notKnown.Take(10)));
-            // The game keeps each biome entered by its name in the player's language (BiomeSector.GetName):
-            // every one names a biome its records make known.
-            var biomesKnown = X.Catalog.Where(e => e.Kind == Kind.Biome && told.Level(e.Key) == KnownLevel.Known)
-                .Select(e => Localization.instance.Localize(BiomeWords.Token(e.Name))).ToList();
-            var unmatched = records.Biomes.Where(area => !biomesKnown.Any(shown => (" " + area + " ").IndexOf(" " + shown + " ", StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
-            p.Check(unmatched.Count == 0, $"each of the {Numbers.Count(records.Biomes.Count)} biomes it entered is known by the name the game keeps it under", string.Join(", ", unmatched.Take(5)));
+            // The game keeps each biome entered by its name in the player's language (BiomeSector.GetName),
+            // a save from before that by its name token ($biome_meadows), the no-biome among them:
+            // every one but that names a biome its records make known.
+            p.Note($"areas kept as entered: {string.Join(", ", records.Biomes)}");
+            var unmatched = catchUp.AreasNotKnown(records, told);
+            p.Check(unmatched.Count == 0, $"each of the {Numbers.Count(records.Biomes.Count)} areas it entered is known by the name the game keeps it under, the game's no-biome left out", string.Join(", ", unmatched.Take(5)));
             // A trophy held makes known only the creatures it falls from that live where the
             // character went: the game's own TheHive, placed nowhere, drops the drake's trophy too.
             var hive = X.Find("TheHive");

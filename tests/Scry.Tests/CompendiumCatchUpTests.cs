@@ -405,6 +405,63 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void EveryAreaACharacterSavedBeforeBiomesWereKeptByTheirShownNameEnteredIsKnown()
+        {
+            // A save from before the game kept biomes by their shown names has each turned into its
+            // untranslated name as the character loads (BiomeSector.GetBiomeName), the no-biome
+            // among them, and keeps them so. Entering a biome again adds its shown name as well, as the game
+            // compares shown names (Player.IsBiomeKnown). Every area of both kinds is known.
+            var meadows = E(Kind.Biome, "Meadows", "$biome_meadows");
+            var forest = E(Kind.Biome, "BlackForest", "$biome_blackforest");
+            var swamp = E(Kind.Biome, "Swamp", "$biome_swamp");
+            var plains = E(Kind.Biome, "Plains", "$biome_plains");
+            foreach (var biome in new[] { meadows, forest, swamp, plains }) biome.Biomes = new[] { biome.Name };
+            var shown = new Dictionary<string, string> { ["Meadows"] = "Meadows", ["BlackForest"] = "Black Forest", ["Swamp"] = "Swamp", ["Plains"] = "Plains" };
+            var catchUp = new CompendiumCatchUp(new EntryCatalog(new[] { meadows, forest, swamp, plains }), biomesShown: shown);
+            var book = new CompendiumBook();
+            var records = new CompendiumRecords();
+            records.Biomes.Add("$biome_meadows");
+            records.Biomes.Add("$biome_blackforest");
+            records.Biomes.Add("$biome_none");
+            records.Biomes.Add("Meadows");
+            records.Biomes.Add("Dark Swamp");
+            // Before the records are read in, every area naming a biome is one the book lacks, but the no-biome.
+            Assert.Equal(new[] { "$biome_meadows", "$biome_blackforest", "Meadows", "Dark Swamp" }, catchUp.AreasNotKnown(records, book));
+
+            Assert.Equal(3, catchUp.Fill(records, book, firstLoad: false));
+
+            Assert.Equal(KnownLevel.Known, book.Level(meadows.Key));
+            Assert.Equal(KnownLevel.Known, book.Level(forest.Key));
+            Assert.Equal(KnownLevel.Known, book.Level(swamp.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(plains.Key));
+            Assert.Empty(catchUp.AreasNotKnown(records, book));
+        }
+
+        [Fact]
+        public void TheNoBiomeAnOlderSaveKeepsIsNoBiomeEnteredAndAnAreaNamingNoneOfTheCatalogsIsTold()
+        {
+            // The game's Heightmap.Biome.None, kept as "$biome_none" by older saves, is no biome a
+            // character enters: nothing is learned from it and no area is missing for it. An area
+            // naming no biome of the catalog (a name of its own replacing the biome's, or one shown
+            // in a language not played in now) is told as one the catch-up could not place.
+            var meadows = E(Kind.Biome, "Meadows", "$biome_meadows");
+            meadows.Biomes = new[] { "Meadows" };
+            var shown = new Dictionary<string, string> { ["Meadows"] = "Meadows" };
+            var catchUp = new CompendiumCatchUp(new EntryCatalog(new[] { meadows }), biomesShown: shown);
+            var book = new CompendiumBook();
+            var records = new CompendiumRecords();
+            records.Biomes.Add("$biome_none");
+
+            Assert.Equal(0, catchUp.Fill(records, book, firstLoad: false));
+            Assert.Empty(catchUp.AreasNotKnown(records, book));
+
+            records.Biomes.Add("Wiesen");
+            catchUp.Fill(records, book, firstLoad: false);
+            Assert.Equal(KnownLevel.Unknown, book.Level(meadows.Key));
+            Assert.Equal(new[] { "Wiesen" }, catchUp.AreasNotKnown(records, book));
+        }
+
+        [Fact]
         public void ReadingTheRecordsNeverLowersWhatIsKnownAndTellsHowManyWereLearnedMoreOf()
         {
             var sword = E(Kind.Item, "SwordIron", "$item_sword_iron");
