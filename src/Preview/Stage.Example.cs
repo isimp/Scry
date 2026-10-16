@@ -57,6 +57,10 @@ namespace Scry
         /// <summary>How many of the example's rooms made still have their floors to read, one a frame.</summary>
         public static int ExampleFloorsToRead => TheExample.FloorsToRead;
 
+        /// <summary>How many rooms of examples had their rays cast with their copy switched off this session, for the self-test.</summary>
+        [Diagnostic]
+        public static int ExampleReadsSwitchedOff => TheExample.ReadSwitchedOff;
+
         /// <summary>The example as it stands on the stage, in its own space, for its plan; null before it is begun.</summary>
         public static DungeonExample ExampleShown => TheExample.Holder != null ? TheExample.Placed : null;
 
@@ -278,12 +282,18 @@ namespace Scry
         [Diagnostic]
         public static (bool Standing, float? Keep)? ExampleRoomDrawn(PlacedRoom room) => TheExample.Drawn(room);
 
-        /// <summary>Where a room's middle falls in the stage camera's view (x and y from 0 to 1 across it, z in front of the camera), for the self-test; null without a camera or example.</summary>
+        /// <summary>
+        /// Where a room's middle across falls in the stage camera's view a metre over its level
+        /// open, or over its ground (x and y from 0 to 1 across it, z in front of the camera), for
+        /// the self-test: what is seen of it under the cut, as a tall room's box reaches far above
+        /// it. Null without a camera or example.
+        /// </summary>
         [Diagnostic]
         public static Vector3? ExampleRoomInView(PlacedRoom room)
         {
             if (_camera == null || TheExample.Holder == null || room == null) return null;
-            var middle = TheExample.Holder.transform.TransformPoint(new Vector3(room.Position.X, room.Position.Y, room.Position.Z));
+            var level = room == TheExample.Focused ? TheExample.FocusLevel : TheExample.GroundOf(room);
+            var middle = TheExample.Holder.transform.TransformPoint(new Vector3(room.Position.X, level + 1f, room.Position.Z));
             return _camera.WorldToViewportPoint(middle);
         }
 
@@ -344,8 +354,9 @@ namespace Scry
         {
             if (room == null || !TheExample.IsDungeon || TheExample.Placed == null || !TheExample.Placed.Rooms.Contains(room)) return;
             TheExample.Focus(room);
-            // Cut from the side, the cut goes through the room's middle; from above, at head height over its ground.
-            if (!CutFromSide) TheCut.Hold(RoomCut(room));
+            // Cut from the side, the cut goes through the room's middle, any floor opened let go
+            // of; from above, at head height over its ground.
+            TheCut.Hold(CutFromSide ? (float?)null : RoomCut(room));
             TurnTo(Yaw, CutFromSide ? SidePitch : CutPitch);
         }
 

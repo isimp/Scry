@@ -61,7 +61,7 @@ namespace Scry
         public static PlacedRoom LitRoom { get; set; }
 
         /// <summary>The same amber, fainter, round the room lit from the card.</summary>
-        private static readonly Color LitColour = new Color(OutlineColour.r, OutlineColour.g, OutlineColour.b, 0.6f);
+        private static readonly Color LitColour = new Color(OutlineColour.r, OutlineColour.g, OutlineColour.b, 0.7f);
 
         private static LineRenderer _litOutline;
         private static PlacedRoom _litDrawn;
@@ -72,7 +72,7 @@ namespace Scry
         public static bool LitOutlineShown => _litOutline != null && _litOutline.gameObject.activeSelf;
 
         /// <summary>
-        /// Each film: stands the fainter line round the room lit from the card, from its ground to
+        /// Each film: stands the fainter line, half as wide, round the room lit from the card, from its ground to
         /// its top or just under the cut; one wholly above the cut, put away, shows its outline
         /// just under the cut, where it lies above. Puts it away with none lit.
         /// </summary>
@@ -90,7 +90,7 @@ namespace Scry
             var top = TheCut.Held ? RoomOutline.Top(CutAt - lift, roomTop) : roomTop;
             if (_litOutline != null && _litOutline.gameObject.activeSelf && ReferenceEquals(room, _litDrawn) && top == _litTop) return;
             if (!EnsureLine(ref _litOutline, "Scry lit room outline", LitColour)) return;
-            Lay(_litOutline, holder.transform, room, Mathf.Min(TheExample.GroundOf(room), top), top, 0.7f);
+            Lay(_litOutline, holder.transform, room, Mathf.Min(TheExample.GroundOf(room), top), top, 0.5f);
             _litDrawn = room;
             _litTop = top;
         }

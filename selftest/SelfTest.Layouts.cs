@@ -210,7 +210,9 @@ namespace Scry
                     told.Add($"{name}: {(t.gameObject.activeInHierarchy ? "there" : "not there")}, {string.Join(", ", colliders)}");
                 }
             }
-            return told.Count == 0 ? "" : "; in the copy now: " + string.Join("; ", told);
+            // Rays meet only what is switched on: the copy itself, and what it hangs under.
+            told.Add($"the copy {(root.gameObject.activeSelf ? "on" : "off")}, {(root.gameObject.activeInHierarchy ? "standing" : "under something off")}");
+            return "; in the copy now: " + string.Join("; ", told);
         }
 
         /// <summary>
@@ -228,6 +230,7 @@ namespace Scry
             picks = picks.Distinct().ToList();
             var crypt = Crypt();
             var begun = DateTime.UtcNow.AddSeconds(-1);
+            var readOff = Stage.ExampleReadsSwitchedOff;
             var verified = 0;
             var differed = 0;
             var lastDiffered = "";
@@ -267,6 +270,10 @@ namespace Scry
             p.Check(verified > 0, "shown again, places' floors are told from what was kept");
             p.Check(differed == 0, "what was kept tells each roll's floors and creatures' ground as its own rays find them", $"{Numbers.Count(differed)} of {Numbers.Count(verified)} differ; {lastDiffered}");
             if (minor > 0) p.Note($"{Numbers.Count(minor)} of {Numbers.Count(verified)} differ by a cell or two, as a ray meets a curved part's seam or not; {lastMinor}");
+            // A dungeon's example opens on a floor, which puts away the rooms above it as they are
+            // made; each is read a frame later, switched on for its rays.
+            p.Check(Stage.ExampleReadsSwitchedOff == readOff, "every room of an example is read switched on, whatever the floor opened put away",
+                $"{Numbers.Count(Stage.ExampleReadsSwitchedOff - readOff)} read switched off");
 
             // The dungeon's next layout: every room's floors from what was kept, none woken.
             if (crypt == null) yield break;
@@ -356,13 +363,16 @@ namespace Scry
                 Stage.Inside = true;
                 yield return null;
 
-                // Its row holds only View, Inside and Creatures; the roof is over the ruler.
+                // Beside the Above and Side chips (two each time they are drawn), its row holds only
+                // View, Inside and Creatures; the roof is over the ruler.
                 var chips = ScryPanel.Drawn(PanelPart.StageChip);
+                var cutChips = ScryPanel.Drawn(PanelPart.CutChip);
                 var roofs = ScryPanel.Drawn(PanelPart.RoofButton);
                 var frames = Time.frameCount;
                 yield return Until(() => Time.frameCount > frames + 1 && ScryPanel.Drawn(PanelPart.RoofButton) > roofs, 3);
-                var perFrame = (ScryPanel.Drawn(PanelPart.StageChip) - chips) / Mathf.Max(1, ScryPanel.Drawn(PanelPart.RoofButton) - roofs);
-                p.Check(perFrame > 0 && perFrame <= 3 && ScryPanel.Drawn(PanelPart.RoofButton) > roofs, "its stage shows three chips at the most, the roof over its ruler", $"{Numbers.Count(perFrame)} chips a frame");
+                var others = ScryPanel.Drawn(PanelPart.StageChip) - chips - 2 * (ScryPanel.Drawn(PanelPart.CutChip) - cutChips);
+                var perFrame = others / Mathf.Max(1, ScryPanel.Drawn(PanelPart.RoofButton) - roofs);
+                p.Check(perFrame > 0 && perFrame <= 3 && ScryPanel.Drawn(PanelPart.RoofButton) > roofs, "beside the Above and Side chips, its stage shows three chips at the most, the roof over its ruler", $"{Numbers.Count(perFrame)} chips a frame");
                 p.Check(Stage.Cutting, "opened on its top floor", Stage.CutLabel);
                 var cuts = new List<float> { Stage.CutAt };
                 while (Stage.CutLevel < Stage.FloorHeights.Count - 1 && cuts.Count < 40)

@@ -136,6 +136,9 @@ namespace Scry
         /// <summary>How many rooms made still have their floors to read.</summary>
         public int FloorsToRead => _toRead.Count;
 
+        /// <summary>How many rooms had their rays cast with their copy switched off this session, which meet nothing; for the self-test, which expects none.</summary>
+        public int ReadSwitchedOff { get; private set; }
+
         /// <summary>Has a room's floors read in a later frame (<see cref="ReadNext"/>).</summary>
         public void ReadLater(GameObject copy, PlacedRoom room, PlaceRoll roll) => _toRead.Enqueue((copy, room, roll));
 
@@ -566,22 +569,28 @@ namespace Scry
         {
             var read = Timing.Start();
             var asleep = !Holder.activeSelf;
+            // Read a frame after it was made, a room the floor opened has put away meanwhile is
+            // switched on for its rays, which meet only what is switched on, and off again after.
+            var away = !copy.activeSelf;
             void Wake()
             {
                 var woken = Timing.Start();
-                copy.transform.SetParent(subject, false);
+                if (asleep) copy.transform.SetParent(subject, false);
+                if (away) copy.SetActive(true);
+                if (!copy.activeInHierarchy) ReadSwitchedOff++;
                 Timing.Add("example floors wake", woken);
             }
             void Sleep()
             {
                 var slept = Timing.Start();
-                copy.transform.SetParent(Holder.transform, false);
+                if (away) copy.SetActive(false);
+                if (asleep) copy.transform.SetParent(Holder.transform, false);
                 Timing.Add("example floors sleep", slept);
             }
             _hits.Clear();
             // Walked into by its doorways, in its own frame as its rays were kept.
             var start = room.Room.Doorways.Count > 0 ? FloorWalk.Start.At(room.Room.Doorways.Select(d => d.Position)) : null;
-            var cast = FloorProbe.Read(copy, subject, layer, _hits, Copies, room.Room.Name, true, roll, wake: asleep ? Wake : (System.Action)null, sleep: asleep ? Sleep : (System.Action)null,
+            var cast = FloorProbe.Read(copy, subject, layer, _hits, Copies, room.Room.Name, true, roll, wake: Wake, sleep: Sleep,
                 start: start, top: t => Top = float.IsNaN(Top) ? t : Mathf.Max(Top, t));
             // Its doorway out, the entrance's, and its highest, where its ground was measured: by
             // and high over them the entrance's ground is the world's.
