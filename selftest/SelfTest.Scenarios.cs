@@ -134,6 +134,7 @@ namespace Scry
             yield return S("a dungeon's room is gone into with a click and come back out of", GoesIntoRooms, 300, () => { ComeOutOfRoom(); StageAsItWas(); }, bearsSkips: true);
             yield return S("a stack of rooms opens cut from the side, and a room is gone into so", SideCutShows, 180, () => { SideCutAsItWas(); StageAsItWas(); }, bearsSkips: true);
             yield return S("a room gone into shows its card: where it is, what this copy rolled in it, its ways on and its levels", RoomCardShows, 240, () => { RoomCardAsItWas(); StageAsItWas(); }, bearsSkips: true);
+            yield return S("the plan box shows a dungeon from above, as a map turned to any angle, and as a tree of its ways", PlanBoxShows, 360, () => { PlanBoxAsItWas(); StageAsItWas(); }, bearsSkips: true);
             yield return S("places' floors are kept and told again from what was kept, as their rays find them", FloorsKept, 300, KeptFloorsUnverified, bearsSkips: true);
             yield return S("a place's creatures stand on the stage with it", PlaceCreatures, 60, bearsSkips: true);
             yield return S("the stage's camera looks at the floor opened, zooms toward the pointer and drags with it", CameraMoves, 90, LightsAsTheyWere, bearsSkips: true);

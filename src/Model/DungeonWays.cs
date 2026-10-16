@@ -92,6 +92,12 @@ namespace Scry
             return route;
         }
 
+        /// <summary>The room a room is reached from on its way from the entrance through the fewest; none for the entrance or a room no way reaches.</summary>
+        public PlacedRoom CameFrom(PlacedRoom room) => room != null && _cameFrom.TryGetValue(room, out var from) ? from : null;
+
+        /// <summary>Whether the way between two rooms is on neither's way from the entrance, so it closes a loop.</summary>
+        public bool IsLoop(PlacedRoom a, PlacedRoom b) => CameFrom(a) != b && CameFrom(b) != a;
+
         private static float Foot(PlacedRoom room) => room.Position.Y - room.Room.Size.Y / 2f;
 
         /// <summary>Joins each two rooms with doorways meeting where no divider stands, and counts the ways round.</summary>

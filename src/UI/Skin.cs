@@ -313,6 +313,21 @@ namespace Scry
         }
 
         /// <summary>
+        /// Whether the panel's text font draws a character itself, for the self-test: the game's
+        /// font where it was found, else Unity's own.
+        /// </summary>
+        [Diagnostic]
+        public static bool FontHolds(char character)
+        {
+            var font = _body != null ? _body : GUI.skin != null ? GUI.skin.font : null;
+            return font != null && font.HasCharacter(character);
+        }
+
+        /// <summary>The name of the panel's text font, for the self-test.</summary>
+        [Diagnostic]
+        public static string FontName => _body != null ? _body.name : "Unity's own";
+
+        /// <summary>
         /// Looks for the game's fonts again the next time the styles are needed, when they were not
         /// loaded yet at the main menu. Once both are found this does nothing.
         /// </summary>

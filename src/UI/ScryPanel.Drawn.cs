@@ -55,6 +55,7 @@ namespace Scry
         RoomCard,
         RoomCardWay,
         RoomCardLevel,
+        PlanBox,
     }
 
     internal static partial class ScryPanel

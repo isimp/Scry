@@ -112,6 +112,9 @@ namespace Scry
         /// <summary>What the camera looks at, moved off what it frames by <see cref="_pan"/>.</summary>
         private static Vector3 _lookAt;
 
+        /// <summary>How far right of the picture's middle what is framed stands, as a share of the picture's width, to stand clear of the grown plan box; 0 for the middle. Set by the panel as it draws.</summary>
+        public static float ViewShift { get; set; }
+
         /// <summary>The middle of what is framed, gliding to what is to be framed.</summary>
         private static Vector3 _frameCenter;
 
@@ -205,6 +208,12 @@ namespace Scry
             var distance = StageFraming.Distance(radius, FieldOfView, Zoom, OverCutDistance());
 
             var rotation = Quaternion.Euler(Pitch, Yaw, 0f);
+            // Beside a grown plan box, what is framed stands that far right of the picture's middle.
+            if (ViewShift > 0f && _height > 0)
+            {
+                var wide = 2f * distance * Mathf.Tan(FieldOfView * 0.5f * Mathf.Deg2Rad) * _width / _height;
+                _lookAt -= rotation * Vector3.right * (ViewShift * wide);
+            }
             var t = _camera.transform;
             t.rotation = rotation;
             t.position = _lookAt - rotation * Vector3.forward * distance;

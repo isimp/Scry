@@ -150,7 +150,7 @@ namespace Scry
             }
             if (room == null || !Stage.HasInside || !Stage.ShowsInside)
             {
-                if (repaint) Stage.LitRoom = null;
+                if (repaint && Stage.RoomGoneInto != null) Stage.LitRoom = null;
                 return Rect.zero;
             }
             var card = CardOf(explorer, room);
@@ -285,7 +285,7 @@ namespace Scry
             GUI.enabled = enabled;
             var backOut = GUI.Button(whole, RoomCardWords.Whole, Skin.Fitted(Skin.Button, whole));
 
-            if (repaint) Stage.LitRoom = _cardLit;
+            if (repaint) Stage.LitRoom = _cardLit ?? _planLit;
             if (goTo != null) Stage.GoInto(goTo);
             else if (backOut) Stage.ComeOut();
             else if (openPage) Go(explorer, card.Key);

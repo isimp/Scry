@@ -60,7 +60,7 @@ namespace Scry
             set => _stageScale = Mathf.Clamp(value, 0.4f, 2.4f);
         }
 
-        private enum Drag { None, Move, Resize, Orbit, StageSize, Pan, ListSize, Ruler }
+        private enum Drag { None, Move, Resize, Orbit, StageSize, Pan, ListSize, Ruler, MapTurn }
 
         private static Drag _drag;
 
@@ -212,6 +212,9 @@ namespace Scry
                     var now = GUIUtility.GUIToScreenPoint(e.mousePosition);
                     Stage.Pan(OnPicture(now - e.delta), OnPicture(now));
                     break;
+                case Drag.MapTurn:
+                    TurnMap(e.delta.x / _s);
+                    break;
                 case Drag.Ruler:
                     RulerAt(GUIUtility.GUIToScreenPoint(e.mousePosition).y);
                     break;
@@ -255,6 +258,7 @@ namespace Scry
             if (place.ListShareCompact.HasValue) _listShareCompact = Mathf.Clamp(place.ListShareCompact.Value, ListNarrowest, ListWidest);
             if (place.ListHiddenCompact.HasValue) _listHiddenCompact = place.ListHiddenCompact.Value;
             if (place.Repeat.HasValue) Previews.Repeat = place.Repeat.Value;
+            TakePlanBoxPlace(place);
         });
 
         private static void SaveRects() => Guard.Run(Feature.PanelPlace, "remembering where the panel is", () =>
@@ -279,6 +283,8 @@ namespace Scry
                 ListShareCompact = _listShareCompact,
                 ListHiddenCompact = _listHiddenCompact,
                 Repeat = Previews.Repeat,
+                PlanView = _planView,
+                PlanBig = _planBig,
             };
             Directory.CreateDirectory(Settings.DataFolder);
             File.WriteAllLines(RectFile, place.Lines());

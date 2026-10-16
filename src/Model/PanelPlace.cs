@@ -42,6 +42,10 @@ namespace Scry
         /// <summary>Whether what plays (clips, effects, sounds) plays again each time it ends.</summary>
         public bool? Repeat;
 
+        /// <summary>How the plan box shows a dungeon's example, and whether it is grown.</summary>
+        public PlanView? PlanView;
+        public bool? PlanBig;
+
         /// <summary>The settings in the file's lines.</summary>
         public static PanelPlace Read(IEnumerable<string> lines)
         {
@@ -70,6 +74,8 @@ namespace Scry
                     case "clist" when Stored.TryNumber(value, out var compactList): place.ListShareCompact = compactList; break;
                     case "clisthidden" when value != null: place.ListHiddenCompact = value == "1"; break;
                     case "repeat" when value != null: place.Repeat = value == "1"; break;
+                    case "planview" when value != null: place.PlanView = ViewOf(value) ?? place.PlanView; break;
+                    case "planbig" when value != null: place.PlanBig = value == "1"; break;
                 }
             }
             return place;
@@ -96,6 +102,21 @@ namespace Scry
             if (ListShareCompact.HasValue) yield return "clist " + Stored.Number(ListShareCompact.Value);
             if (ListHiddenCompact.HasValue) yield return "clisthidden " + Flag(ListHiddenCompact.Value);
             if (Repeat.HasValue) yield return "repeat " + Flag(Repeat.Value);
+            if (PlanView.HasValue) yield return "planview " + WordOf(PlanView.Value);
+            if (PlanBig.HasValue) yield return "planbig " + Flag(PlanBig.Value);
+        }
+
+        private static string WordOf(PlanView view) => view == Scry.PlanView.Map ? "map" : view == Scry.PlanView.Tree ? "tree" : "above";
+
+        private static PlanView? ViewOf(string word)
+        {
+            switch (word)
+            {
+                case "above": return Scry.PlanView.Above;
+                case "map": return Scry.PlanView.Map;
+                case "tree": return Scry.PlanView.Tree;
+                default: return null;
+            }
         }
 
         private static Area? AreaOf(string[] parts)

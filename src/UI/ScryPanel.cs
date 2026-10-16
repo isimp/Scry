@@ -86,6 +86,7 @@ namespace Scry
             ForgetMods();
             ForgetPlan();
             ForgetRoomCard();
+            ForgetPlanBox();
             ForgetSlide();
             ForgetViewMenu();
 

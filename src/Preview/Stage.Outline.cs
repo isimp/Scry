@@ -55,8 +55,8 @@ namespace Scry
         }
 
         /// <summary>
-        /// The room a way on the card of the room gone into points at, lit on the stage by a
-        /// fainter, thinner line of the same amber; none. Set again each time the panel is drawn.
+        /// The room a way on the card of the room gone into, or the plan box, points at, lit on the
+        /// stage by a fainter, thinner line of the same amber; none. Set again each time the panel is drawn.
         /// </summary>
         public static PlacedRoom LitRoom { get; set; }
 
@@ -72,7 +72,7 @@ namespace Scry
         public static bool LitOutlineShown => _litOutline != null && _litOutline.gameObject.activeSelf;
 
         /// <summary>
-        /// Each film: stands the fainter line, half as wide, round the room lit from the card, from its ground to
+        /// Each film: stands the fainter line, half as wide, round the room lit from the card or the plan box, from its ground to
         /// its top or just under the cut; one wholly above the cut, put away, shows its outline
         /// just under the cut, where it lies above. Puts it away with none lit.
         /// </summary>
@@ -80,14 +80,14 @@ namespace Scry
         {
             var room = LitRoom;
             var holder = TheExample.Holder;
-            if (room == null || room == TheExample.Focused || TheExample.Focused == null || holder == null || !holder.activeInHierarchy || !Cutting && !SideCutting || _outlineAway)
+            if (room == null || room == TheExample.Focused || holder == null || !holder.activeInHierarchy || _outlineAway)
             {
                 if (_litOutline != null && _litOutline.gameObject.activeSelf) _litOutline.gameObject.SetActive(false);
                 return;
             }
             var lift = holder.transform.localPosition.y;
             var roomTop = room.Position.Y + room.Room.Size.Y / 2f;
-            var top = TheCut.Held ? RoomOutline.Top(CutAt - lift, roomTop) : roomTop;
+            var top = Cutting ? RoomOutline.Top(CutAt - lift, roomTop) : roomTop;
             if (_litOutline != null && _litOutline.gameObject.activeSelf && ReferenceEquals(room, _litDrawn) && top == _litTop) return;
             if (!EnsureLine(ref _litOutline, "Scry lit room outline", LitColour)) return;
             Lay(_litOutline, holder.transform, room, Mathf.Min(TheExample.GroundOf(room), top), top, 0.5f);
@@ -103,7 +103,9 @@ namespace Scry
             for (var i = 0; i < path.Count; i++) points[i] = holder.TransformPoint(new Vector3(path[i].X, path[i].Y, path[i].Z));
             line.positionCount = points.Length;
             line.SetPositions(points);
-            var reach = TheExample.FocusAcross() is Vector3 across ? across.z : 5f;
+            // As wide as the room gone into's framing has it; with none, as wide on the picture by the camera's distance.
+            var reach = TheExample.FocusAcross() is Vector3 across ? across.z
+                : _camera != null ? Vector3.Distance(_camera.transform.position, holder.TransformPoint(new Vector3(room.Position.X, room.Position.Y, room.Position.Z))) * 0.27f : 5f;
             line.widthMultiplier = Mathf.Max(0.02f, reach * 0.012f) * width;
             line.gameObject.SetActive(true);
         }

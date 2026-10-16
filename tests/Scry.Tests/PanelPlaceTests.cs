@@ -30,6 +30,19 @@ namespace Scry.Tests
         };
 
         [Fact]
+        public void ThePlanBoxOpensInTheViewAndSizeItWasLeftIn()
+        {
+            var read = PanelPlace.Read(new PanelPlace { PlanView = PlanView.Map, PlanBig = true }.Lines());
+            Assert.Equal(PlanView.Map, read.PlanView);
+            Assert.True(read.PlanBig);
+            var tree = PanelPlace.Read(new PanelPlace { PlanView = PlanView.Tree, PlanBig = false }.Lines());
+            Assert.Equal(PlanView.Tree, tree.PlanView);
+            Assert.False(tree.PlanBig);
+            // A view the file does not know leaves the box as it opens anyway.
+            Assert.Null(PanelPlace.Read(new[] { "planview sideways" }).PlanView);
+        }
+
+        [Fact]
         public void WhatIsWrittenReadsBackTheSame()
         {
             var read = PanelPlace.Read(Everything().Lines());

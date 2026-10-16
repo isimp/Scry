@@ -94,7 +94,11 @@ namespace Scry
                 }
 
                 // The example's plan in the corner, which takes the mouse where it is.
-                var plan = Stage.Subject != null ? PlanOverlay(explorer, entry, inner) : Rect.zero;
+                // Inside a dungeon, the plan box with its views; a camp keeps its plan from above.
+                if (e.type == EventType.Repaint) Stage.ViewShift = 0f;
+                var plan = Stage.Subject == null ? Rect.zero
+                    : Stage.HasInside && Stage.ShowsInside && ExampleOf(entry) != null ? DungeonPlanBox(explorer, inner)
+                    : PlanOverlay(explorer, entry, inner);
                 // The card of the room gone into in the other corner, which takes the mouse too.
                 var card = Stage.Subject != null ? RoomCardBox(explorer, inner, plan) : Rect.zero;
 

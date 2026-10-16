@@ -47,6 +47,25 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheWayNotOnAnyRoomsRouteFromTheEntranceIsTheLoop()
+        {
+            // A ring of four: east is reached first, so the corner is reached through east, and west's way to it closes the loop.
+            var entrance = Room("entrance", 0f, 0f, 0f, 0, At(5f, 0f, 0f), At(0f, 0f, 5f));
+            var east = Room("east", 10f, 0f, 0f, 1, At(5f, 0f, 0f), At(10f, 0f, 5f));
+            var corner = Room("corner", 10f, 0f, 10f, 2, At(10f, 0f, 5f), At(5f, 0f, 10f));
+            var west = Room("west", 0f, 0f, 10f, 3, At(5f, 0f, 10f), At(0f, 0f, 5f));
+
+            var ways = DungeonWays.Of(new[] { entrance, east, corner, west });
+
+            Assert.Same(east, ways.CameFrom(corner));
+            Assert.Null(ways.CameFrom(entrance));
+            Assert.True(ways.IsLoop(west, corner));
+            Assert.True(ways.IsLoop(corner, west));
+            Assert.False(ways.IsLoop(east, corner));
+            Assert.False(ways.IsLoop(entrance, west));
+        }
+
+        [Fact]
         public void TwoOpenDoorwaysMeetingAreASecondWayRound()
         {
             // At the end the game leaves two open doorways at one spot open: a loop.
