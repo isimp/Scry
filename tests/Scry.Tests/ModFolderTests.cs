@@ -60,7 +60,7 @@ namespace Scry.Tests
         [Fact]
         public void AWebsiteIsLinkedOnlyWhenOnTheWeb()
         {
-            // A click opens it in the browser, so it must be a web address and nothing else.
+            // A click copies it for the player to open, so it must be a web address and nothing else.
             Assert.True(ModWords.IsWebsite("https://github.com/ASharpPen/Valheim.DropThat"));
             Assert.True(ModWords.IsWebsite("HTTP://example.com"));
             Assert.False(ModWords.IsWebsite("file:///C:/Windows/system32/calc.exe"));
@@ -70,14 +70,6 @@ namespace Scry.Tests
             Assert.False(ModWords.IsWebsite("https://example.com/\"&calc"));
             Assert.False(ModWords.IsWebsite(""));
             Assert.False(ModWords.IsWebsite(null));
-        }
-
-        [Fact]
-        public void AWebsiteGoesToTheDesktopAsOneWholeArgument()
-        {
-            // Explorer ends an argument out of quotes at a comma; a website holds no quote, so in quotes it stays whole.
-            Assert.Equal("\"https://example.com/a,b?c=1&d=2\"", ModWords.Argument("https://example.com/a,b?c=1&d=2"));
-            Assert.Equal("\"https://github.com/ASharpPen/Valheim.DropThat\"", ModWords.Argument("https://github.com/ASharpPen/Valheim.DropThat"));
         }
 
         [Fact]

@@ -135,10 +135,10 @@ namespace Scry
 
         private const string RunSearch = "search:";
 
-        /// <summary>A value's link that opens a website in the browser.</summary>
+        /// <summary>A value's link that copies a website's address.</summary>
         public static string Website(string url) => Web + url;
 
-        /// <summary>The address a website's link opens; null for a link that opens none.</summary>
+        /// <summary>The address a website's link copies; null for a link to none.</summary>
         public static string WebsiteOf(string link) => link != null && link.StartsWith(Web, StringComparison.Ordinal) ? link.Substring(Web.Length) : null;
 
         private const string Web = "web:";

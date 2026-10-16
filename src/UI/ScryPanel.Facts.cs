@@ -231,14 +231,18 @@ namespace Scry
                     if (said != null) Say(said);
                 }
             }
-            // A mod's website opens in the browser.
+            // A mod's website is copied for the player to open: Scry opens nothing outside the game.
             else if (facts.Links.TryGetValue(pair.Key, out var web) && EntryKeys.WebsiteOf(web) is string url)
             {
                 var webW = Mathf.Min(valueW, Skin.Width(Skin.Wrap, value) + U(4f));
                 var webRect = new Rect(valueRect.x, valueRect.y, webW, height);
                 LinkLabel(webRect, value, Skin.Wrap, Skin.Accent);
-                if (webRect.Contains(Event.current.mousePosition)) AskTip("web:" + entry.Key, "Open it in your browser");
-                if (GUI.Button(webRect, GUIContent.none, GUIStyle.none)) Shell.OpenWebsite(url);
+                if (webRect.Contains(Event.current.mousePosition)) AskTip("web:" + entry.Key, "Copy its address");
+                if (GUI.Button(webRect, GUIContent.none, GUIStyle.none))
+                {
+                    GUIUtility.systemCopyBuffer = url;
+                    Say(PanelWords.Copied(url));
+                }
             }
             // A link only to what is in the catalog: a creature's own attack items are not.
             else if (facts.Links.TryGetValue(pair.Key, out var link) && Goes(explorer, link))
