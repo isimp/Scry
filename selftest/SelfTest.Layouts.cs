@@ -55,7 +55,6 @@ namespace Scry
         /// Floors are found in the places themselves: a spread of locations and rooms, and the
         /// towers and caves among them, each with floors from the top down and a cut over each,
         /// no collider left on its copy once read, and the floor ruler drawn beside the stage.
-        /// Only ground one walks to is a floor: Bonemass's altar, whose top no one climbs, is none.
         /// </summary>
         private static IEnumerator FloorsFound(Probe p)
         {
@@ -63,10 +62,8 @@ namespace Scry
             if (places.Count == 0) p.Skip("there are no locations");
             var picks = Spread(places, 16);
             picks.AddRange(places.Where(e => e.Name.IndexOf("Tower", StringComparison.OrdinalIgnoreCase) >= 0 || e.Name.IndexOf("Cave", StringComparison.OrdinalIgnoreCase) >= 0).Take(8));
-            picks.AddRange(places.Where(e => e.Name == "Bonemass"));
             var wrong = new List<string>();
             var several = new List<string>();
-            List<float> altar = null;
             foreach (var entry in picks.Distinct().ToList())
             {
                 var place = PlaceOf(entry);
@@ -80,7 +77,6 @@ namespace Scry
                 yield return null;
                 var floors = Stage.FloorHeights.ToList();
                 var cuts = Stage.CutHeights.ToList();
-                if (entry.Name == "Bonemass") altar = floors;
                 if (floors.Count == 0) wrong.Add($"{entry.Name} has no floor");
                 else if (floors.Zip(floors.Skip(1), (above, below) => above > below).Any(ordered => !ordered)) wrong.Add($"{entry.Name}'s floors are out of order: {string.Join(", ", floors.Select(f => Numbers.Amount(f)))}");
                 else if (cuts.Zip(floors, (cut, floor) => cut > floor).Any(over => !over)) wrong.Add($"{entry.Name} is cut below a floor");
@@ -100,10 +96,81 @@ namespace Scry
             }
             p.Note(several.Count > 0 ? "with several floors: " + string.Join("; ", several) : "none with several floors");
             p.Check(wrong.Count == 0, "each has floors from the top down, cut over each, with no collider left on its copy", string.Join("; ", wrong.Take(8)));
-            if (altar != null) p.Check(!altar.Any(f => f > 3f), "Bonemass's altar, whose top no one walks to, is no floor", string.Join(", ", altar.Select(f => Numbers.Fixed(f, 1))) + " m");
             var drawn = ScryPanel.Drawn(PanelPart.Ruler);
             yield return Until(() => ScryPanel.Drawn(PanelPart.Ruler) > drawn, 3);
             p.Check(ScryPanel.Drawn(PanelPart.Ruler) > drawn, "the floor ruler draws beside the stage");
+        }
+
+        /// <summary>The places looked at for their floors, shown alone: an altar, towers, houses, a hut on stilts and a crypt's gate.</summary>
+        private static readonly string[] PicturedPlaces = { "Bonemass", "CharredTowerRuins3", "WoodHouse12", "WoodHouse2", "Mistlands_GuardTower1_new", "SwampHut1", "SunkenCrypt4" };
+
+        /// <summary>
+        /// The places looked at for their floors, each shown alone with every floor opened in
+        /// turn and pictured: each floor is cut under the ceiling found over it; Bonemass's altar,
+        /// whose top no one walks to, is no floor; the low roof of a house is found over its floor
+        /// and the floor cut under it; and the swamp hut's raised floor is one. Each floor is told
+        /// with its cut, its ceiling and what its rays landed on, and each place with its top and
+        /// the ruler's roof over the top floor's cut.
+        /// </summary>
+        private static IEnumerator FloorsPictured(Probe p)
+        {
+            var places = X.Catalog.Where(e => PlaceOf(e) != null && PicturedPlaces.Contains(e.Name)).OrderBy(e => Array.IndexOf(PicturedPlaces, e.Name)).ToList();
+            if (places.Count == 0) p.Skip("none of " + string.Join(", ", PicturedPlaces) + " is in the catalog");
+            var wasInside = Stage.Inside;
+            Stage.Inside = false;
+            ScryPanel.Compact = false;
+            var over = new List<string>();
+            List<float> altar = null;
+            List<float> hut = null;
+            string house = null;
+            string Fixed(float metres) => Numbers.Fixed(metres, 1);
+            foreach (var entry in places)
+            {
+                var place = PlaceOf(entry);
+                Select(entry);
+                yield return Until(() => PlaceAssets.State(place) != PlaceLoad.Loading && CopyOf(entry) != null, 20);
+                if (CopyOf(entry) == null)
+                {
+                    p.Note($"{entry.Name} stood nowhere");
+                    continue;
+                }
+                yield return null;
+                var floors = Stage.FloorHeights.ToList();
+                var cuts = Stage.CutHeights.ToList();
+                var ceilings = Enumerable.Range(0, floors.Count).Select(Stage.CeilingOver).ToList();
+                var makers = Stage.FloorMakersNow();
+                for (var i = 0; i < floors.Count; i++)
+                {
+                    // Under the ceiling, unless that leaves less than a head's room over the floor.
+                    if (ceilings[i] is float ceiling && cuts[i] > Math.Max(ceiling - PlaceView.UnderCeiling, floors[i] + PlaceView.LeastHeadroom) + 0.01f)
+                        over.Add($"{entry.Name}'s floor at {Fixed(floors[i])} m cut at {Fixed(cuts[i])} m, its ceiling at {Fixed(ceiling)} m");
+                }
+                if (entry.Name == "Bonemass") altar = floors;
+                if (entry.Name == "SwampHut1") hut = floors;
+                if (entry.Name == "WoodHouse12" && floors.Count > 0)
+                {
+                    var ground = floors.Count - 1;
+                    house = ceilings[ground] is float roof && cuts[ground] < roof ? null : $"its floor at {Fixed(floors[ground])} m cut at {Fixed(cuts[ground])} m, {(ceilings[ground] is float c ? $"its ceiling at {Fixed(c)} m" : "no ceiling found")}";
+                }
+                if (floors.Count == 0)
+                {
+                    p.Note($"{entry.Name}: no floor");
+                    continue;
+                }
+                p.Note($"{entry.Name}: " + string.Join("; ", floors.Select((f, i) => $"{Fixed(f)} m cut at {Fixed(cuts[i])} m{(ceilings[i] is float c ? $" under a ceiling at {Fixed(c)} m" : "")} on {(i < makers.Count ? makers[i] : "?")}"))
+                       + $"; its top {Fixed(Stage.ModelTop)} m, the ruler's roof above {Fixed(PlaceView.RoofAbove(cuts[0], Stage.ModelTop))} m");
+                for (var level = 0; level < floors.Count; level++)
+                {
+                    Stage.OpenLevel(level);
+                    yield return null;
+                    yield return Picture(p, $"floors {entry.Name} {Numbers.Count(level + 1)} of {Numbers.Count(floors.Count)}");
+                }
+            }
+            Stage.Inside = wasInside;
+            p.Check(over.Count == 0, "each floor is cut under the ceiling found over it", string.Join("; ", over.Take(8)));
+            if (altar != null) p.Check(!altar.Any(f => f > 3f), "Bonemass's altar, whose top no one walks to, is no floor", string.Join(", ", altar.Select(Fixed)) + " m");
+            if (places.Any(e => e.Name == "WoodHouse12")) p.Check(house == null, "a house's low roof is found over its floor, and the floor cut under it", house);
+            if (hut != null) p.Check(hut.Any(f => Math.Abs(f - 3.1f) < 0.4f), "the swamp hut's raised floor, about 3 m up, is a floor", string.Join(", ", hut.Select(Fixed)) + " m");
         }
 
         /// <summary>
@@ -367,7 +434,8 @@ namespace Scry
         /// how many rooms stand on each floor; a floor no room stands on is a floor found where
         /// there is none, some room always stands on the stage, and every room stands whole on
         /// some floor, so it can be opened and gone to. M&#xF6;rkhalla, whose floors come out
-        /// differently example to example, is laid out three times. Its creatures are told: how
+        /// differently example to example, is laid out three times, each floor of its first
+        /// example pictured, as each other's is. Its creatures are told: how
         /// many dropped to the ground under their points and how many fly. Every M&#xF6;rkhalla room
         /// has a floor at its foot and none lies over its gate, and the sealed tower's floors are
         /// a storey apart from its top room to its foot.
@@ -443,6 +511,7 @@ namespace Scry
                         if (rooms == 0) empty.Add($"{entry.Name} at {Numbers.Fixed(Stage.FloorHeights[level], 1)} m");
                         if (Stage.ExampleRoomsAway >= Stage.ExampleRoomsShown) blank.Add($"{entry.Name} at {Numbers.Fixed(Stage.FloorHeights[level], 1)} m");
                         if (rooms > 0) foreach (var room in Stage.ExampleShown.Rooms) if (Stage.ExampleRoomShown(room) == PlanRoomShown.Whole) reached.Add(room);
+                        if (example == 0) yield return Picture(p, $"floors {entry.Name} inside {Numbers.Count(level + 1)} of {Numbers.Count(Stage.FloorHeights.Count)}");
                     }
                     // What stands above the top floor's cut is reached only by moving the cut up by hand.
                     if (Stage.CutHeights.Count > 0) p.Note($"{entry.Name}: top floor's cut {Numbers.Fixed(Stage.CutHeights[0], 1)} m, the place's top {Numbers.Fixed(Stage.ModelTop, 1)} m, the ruler's roof above {Numbers.Fixed(PlaceView.RoofAbove(Stage.CutHeights[0], Stage.ModelTop), 1)} m");

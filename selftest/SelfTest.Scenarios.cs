@@ -125,6 +125,7 @@ namespace Scry
             yield return S("a dungeon room shows its shape", RoomShows, 30);
             yield return S("the roof's cut moves, starts afresh, and a location keeps its roof", CutMoves, 60);
             yield return S("places' floors are found in the places themselves", FloorsFound, 240, bearsSkips: true);
+            yield return S("the places looked at for their floors open each floor, cut under its ceiling, pictured", FloorsPictured, 240, bearsSkips: true);
             yield return S("a dungeon lays out an example, drawn, its rooms going to their entries", DungeonExample, 200, bearsSkips: true);
             yield return S("a camp lays out an example, drawn", CampExample, 150, bearsSkips: true);
             yield return S("the cave and tower dungeons find floors with rooms on each", CaveFloors, 300, bearsSkips: true);

@@ -24,6 +24,9 @@ namespace Scry
         public IReadOnlyList<float> Cuts => _cuts;
         public bool HasFloors => _floors.Count > 0;
 
+        /// <summary>The ceiling over a floor, from the top, as found; null with none found over it or past the floors.</summary>
+        public float? CeilingOver(int level) => level >= 0 && level < _floors.Count ? _ceilingOver?.Invoke(_floors[level]) : null;
+
         /// <summary>Whether a floor is opened.</summary>
         public bool Cutting => _level < _floors.Count;
 

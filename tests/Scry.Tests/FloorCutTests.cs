@@ -33,6 +33,26 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheCeilingOverEachFloorIsToldAsFound()
+        {
+            var cut = new FloorCut();
+            cut.Take(E("WoodHouse12", Kind.Location), new[] { 3f, 0f }, open: true, ceilingOver: floor => floor == 0f ? 1.8f : (float?)null);
+
+            Assert.Null(cut.CeilingOver(0));
+            Assert.Equal(1.8f, cut.CeilingOver(1));
+            Assert.Null(cut.CeilingOver(2));
+            Assert.Null(cut.CeilingOver(-1));
+
+            // Taken without ceilings, or let go of, none is told.
+            cut.Take(E("Crypt2", Kind.Location), Three, open: true);
+            Assert.Null(cut.CeilingOver(2));
+            cut.Take(E("WoodHouse12", Kind.Location), new[] { 0f }, open: true, ceilingOver: floor => 1.8f);
+            Assert.Equal(1.8f, cut.CeilingOver(0));
+            cut.Clear();
+            Assert.Null(cut.CeilingOver(0));
+        }
+
+        [Fact]
         public void NothingTakenHasNoFloorsAndIsNotCut()
         {
             var cut = new FloorCut();

@@ -43,6 +43,9 @@ namespace Scry
         public static IReadOnlyList<float> FloorHeights => TheCut.Floors;
         public static IReadOnlyList<float> CutHeights => TheCut.Cuts;
 
+        /// <summary>The ceiling over a floor, from the top, as found; null with none found over it.</summary>
+        public static float? CeilingOver(int level) => TheCut.CeilingOver(level);
+
         /// <summary>Which floor is opened, from the top; <see cref="FloorHeights"/>' count for the roof on.</summary>
         public static int CutLevel => TheCut.Level;
 

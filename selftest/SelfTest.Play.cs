@@ -196,8 +196,10 @@ namespace Scry
         /// A made-up character's pages read as a player sees them under the strict rules: the
         /// troll it fought keeps back its health, its attacks' damage, its weak spot and how many
         /// of its hide fall, says so faintly, and its You box tells what is still to find out;
-        /// killed and counted, they show and Learned says what was found out. Its hide's page
-        /// counts the troll's line, and a map read is counted in the notice.
+        /// killed and counted, they show and Learned says what was found out, while what its
+        /// stars change waits for a starred one to fall. Its hide's page counts the troll's line,
+        /// a boar's page keeps back how long taming takes until one is tamed, and a map read is
+        /// counted in the notice. Each page is pictured as it reads.
         /// </summary>
         private static IEnumerator CompendiumStrictRead(Probe p)
         {
@@ -233,6 +235,9 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.WeakSpotsLeftOut) > spots, "its weak spot is left out and counted");
             p.Check(X.StrictAmount(Tally.Fell, troll.Name, hide.Name) == CompendiumWords.Hidden && ScryPanel.Drawn(PanelPart.TallyCounted) > tally,
                 "how many hides it drops reads ??? until counted, a faint line saying what shows it");
+            yield return Picture(p, "strict Troll, nothing found out");
+            yield return PictureOf(p, "fight", "strict Troll's fight, nothing found out");
+            yield return PictureOf(p, "loot", "strict Troll's drops, nothing counted");
 
             // Killed and its loot counted: its health and its hide's count show, and Learned says what was found out.
             book.FoundOut(troll.Key, EntryKeys.Did(Deed.Killed));
@@ -242,12 +247,16 @@ namespace Scry
             p.Check(!X.KeepsBack(EntryKeys.Did(Deed.Killed)), "killed, its health shows");
             p.Check(X.StrictAmount(Tally.Fell, troll.Name, hide.Name) == "2 (1 of 1)", "counted, its hide shows how many fell and how often", X.StrictAmount(Tally.Fell, troll.Name, hide.Name));
             p.Check(X.FoundOutNote(troll) == "its health found out", "and Learned says what was found out", X.FoundOutNote(troll));
+            p.Check(X.KeepsBack(EntryKeys.Did(Deed.StarredFell)), "what its stars change waits for a starred one to fall");
+            yield return PictureOf(p, "fight", "strict Troll's fight, killed");
+            yield return PictureOf(p, "loot", "strict Troll's drops, counted");
 
             // The hide's page tells the troll's line with the character's count.
             X.Select(hide);
             var line = Facts.For(hide).Where.FirstOrDefault(s => s.Record?.Giver == troll.Name);
             var counted = X.StrictSourceLine(line.Record);
             p.Check(counted == $"Dropped by {line.Record?.Shown}, 2 (1 of 1 kill)", "the hide's page counts the troll's line", counted);
+            yield return PictureOf(p, "from", "strict TrollHide, where it comes from");
 
             // Played with others: a kill another player's game ran is told under the troll's drops
             // and after its kills, and what shows a starred one's stars says it is seen only where
@@ -263,6 +272,28 @@ namespace Scry
             p.Check(X.KilledElsewhere(troll.Key) == ElsewhereWords.Killed(1), "and after its kills", X.KilledElsewhere(troll.Key));
             var stars = X.ShowsOnce("Health by stars", EntryKeys.Did(Deed.StarredFell));
             p.Check(stars.EndsWith(ElsewhereWords.Suffix, System.StringComparison.Ordinal), "what shows its stars says it is seen only where your game runs it", stars);
+            yield return Picture(p, "strict Troll, a kill run in another player's game");
+            yield return PictureOf(p, "fight", "strict Troll's fight, played with others");
+            yield return PictureOf(p, "loot", "strict Troll's drops, a kill run in another player's game");
+
+            // A tame creature's page keeps back how long taming takes until one is tamed.
+            var boar = Pick(Kind.Creature, "Boar");
+            var tamed = EntryKeys.Did(Deed.Tamed);
+            if (boar != null && Facts.For(boar).Proofs.TryGetValue("Takes to tame", out var proof) && proof == tamed)
+            {
+                book.Raise(boar.Key, KnownLevel.Known);
+                view.Tell(book, CompendiumRule.Strict);
+                X.Select(boar);
+                yield return null;
+                p.Check(X.KeepsBack(tamed), "a boar's page keeps back how long taming takes");
+                yield return PictureOf(p, "taming", "strict Boar's taming, none tamed");
+                book.FoundOut(boar.Key, tamed);
+                view.Tell(book, CompendiumRule.Strict);
+                yield return Until(() => !X.KeepsBack(tamed), 3);
+                p.Check(!X.KeepsBack(tamed), "until one is tamed");
+                yield return PictureOf(p, "taming", "strict Boar's taming, one tamed");
+            }
+            else p.Note("no boar whose page tells how long taming takes");
 
             // A map read brings places as news, counted in the notice rather than named.
             var place = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Location && Places.LabelOf(e) != null);
