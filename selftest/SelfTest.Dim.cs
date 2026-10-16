@@ -114,6 +114,26 @@ namespace Scry
         /// <summary>Each pixel's brightness in the stage's last film, row by row; null without one.</summary>
         private static float[] StageBrightness()
         {
+            var pixels = StagePixels();
+            if (pixels == null) return null;
+            var brightness = new float[pixels.Length];
+            for (var i = 0; i < pixels.Length; i++) brightness[i] = DimLook.Brightness(pixels[i].r, pixels[i].g, pixels[i].b);
+            return brightness;
+        }
+
+        /// <summary>Each pixel's colour in the stage's last film as 0xRRGGBB, row by row; null without one.</summary>
+        private static int[] StageColours()
+        {
+            var pixels = StagePixels();
+            if (pixels == null) return null;
+            var colours = new int[pixels.Length];
+            for (var i = 0; i < pixels.Length; i++) colours[i] = (pixels[i].r << 16) | (pixels[i].g << 8) | pixels[i].b;
+            return colours;
+        }
+
+        /// <summary>The stage's last film, pixel by pixel, row by row; null without one.</summary>
+        private static Color32[] StagePixels()
+        {
             if (!(Stage.Texture is RenderTexture film)) return null;
             var was = RenderTexture.active;
             var picture = new Texture2D(film.width, film.height, TextureFormat.RGBA32, false);
@@ -121,10 +141,7 @@ namespace Scry
             {
                 RenderTexture.active = film;
                 picture.ReadPixels(new Rect(0, 0, film.width, film.height), 0, 0, false);
-                var pixels = picture.GetPixels32();
-                var brightness = new float[pixels.Length];
-                for (var i = 0; i < pixels.Length; i++) brightness[i] = DimLook.Brightness(pixels[i].r, pixels[i].g, pixels[i].b);
-                return brightness;
+                return picture.GetPixels32();
             }
             finally
             {

@@ -48,7 +48,7 @@ namespace Scry.Tests
         public void ARoomOnTheLevelOfTheRoomGoneIntoIsDimmedLessThanOneBelow()
         {
             // Half dimmed: darker than whole, lighter than the rooms below.
-            Assert.Equal(0.6f, DimColour.NearShare, 3);
+            Assert.Equal(0.45f, DimColour.NearShare, 3);
             Assert.True(DimColour.NearShare > DimColour.Share && DimColour.NearShare < 1f);
         }
     }

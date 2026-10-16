@@ -41,6 +41,7 @@ namespace Scry
             _sky = null;
             _key = _fill = _rim = null;
             ForgetShown();
+            ForgetOutline();
             ForgetPerson();
             Floor.Release();
             if (_texture != null)

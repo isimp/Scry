@@ -45,6 +45,7 @@ namespace Scry
             Timing.Add("render ground", step);
             step = Timing.Start();
             Frame();
+            KeepOutline();
             Timing.Add("render frame", step);
             step = Timing.Start();
             KeepCreaturesToCut();

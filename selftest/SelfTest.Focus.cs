@@ -27,6 +27,7 @@ namespace Scry
             var misdrawn = new List<string>();
             var unseen = new List<string>();
             var stillIn = new List<string>();
+            var unmarked = new List<string>();
             foreach (var entry in places)
             {
                 Select(entry);
@@ -77,6 +78,23 @@ namespace Scry
                 p.Note($"{name}: ground {Numbers.Fixed(ground, 1)} m, cut {Numbers.Fixed(cut, 1)} m; {Numbers.Count(whole)} whole, {Numbers.Count(near)} half dimmed, {Numbers.Count(below)} dimmed, {Numbers.Count(away)} put away");
                 yield return Picture(p, $"go into {entry.Name} deepest room");
 
+                // Its outline: what it adds to the film, against the same film without it, is amber.
+                yield return Until(() => Stage.OutlineShown, 3);
+                var shown = Stage.OutlineShown;
+                var filmed = Stage.Filmed;
+                yield return Until(() => Stage.Filmed >= filmed + 2, 3);
+                var withLine = StageColours();
+                Stage.OutlineAwayForTest(true);
+                filmed = Stage.Filmed;
+                yield return Until(() => Stage.Filmed >= filmed + 2, 3);
+                var withoutLine = StageColours();
+                Stage.OutlineAwayForTest(false);
+                var (changed, average) = withLine != null && withoutLine != null ? AccentPixels.Changed(withLine, withoutLine, 30) : (0, -1);
+                var amberish = average >= 0 && AccentPixels.Count(new[] { average }, Accent, 60) == 1;
+                var colour = average < 0 ? "none" : $"red {Numbers.Count((average >> 16) & 0xFF)}, green {Numbers.Count((average >> 8) & 0xFF)}, blue {Numbers.Count(average & 0xFF)}";
+                p.Note($"{name}: outlined with {Stage.OutlineDrawnWith ?? "nothing"}, {Numbers.Count(changed)} pixels changed by it, on average {colour}");
+                if (!shown || changed < 100 || !amberish) unmarked.Add($"{name}: {(shown ? "shown" : "not shown")}, {Numbers.Count(changed)} pixels");
+
                 // Coming back out, as Esc and the roof button do.
                 Stage.ComeOut();
                 yield return Until(() => Stage.RoomGoneInto == null && Stage.ExampleRoomsKept, 5);
@@ -89,10 +107,20 @@ namespace Scry
             p.Check(miscut.Count == 0, "the stage is cut at head height over the room's ground", string.Join("; ", miscut));
             p.Check(misdrawn.Count == 0, "rooms on its level stand half dimmed, those below dimmed, those above put away", string.Join("; ", misdrawn));
             p.Check(unseen.Count == 0, "the camera has the room gone into in view", string.Join("; ", unseen));
+            p.Check(unmarked.Count == 0, "the room gone into is outlined in amber", string.Join("; ", unmarked));
             p.Check(stillIn.Count == 0, "coming back out puts the roof back on with every room as it is", string.Join("; ", stillIn));
         }
 
-        /// <summary>Comes out of a room gone into, after <see cref="GoesIntoRooms"/>.</summary>
-        private static void ComeOutOfRoom() => Stage.ComeOut();
+        /// <summary>Comes out of a room gone into, its outline back, after <see cref="GoesIntoRooms"/>.</summary>
+        private static void ComeOutOfRoom()
+        {
+            Stage.OutlineAwayForTest(false);
+            Stage.ComeOut();
+        }
+
+        /// <summary>The accent colour the outline is drawn in, as 0xRRGGBB.</summary>
+        private static int Accent => (Channel(Stage.OutlineColour.r) << 16) | (Channel(Stage.OutlineColour.g) << 8) | Channel(Stage.OutlineColour.b);
+
+        private static int Channel(float share) => (int)System.Math.Round(share * 255f);
     }
 }
