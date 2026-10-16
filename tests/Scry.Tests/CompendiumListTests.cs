@@ -43,6 +43,37 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APlaceSeenOnlyFromOutsideKeepsItsInsideBack()
+        {
+            // A dungeon seen from outside, by sight or on the explored map, shows its outside
+            // alone; once entered it is known, and its inside shows. Off or peeking, every one does.
+            var crypt = E("Crypt2", Kind.Location);
+            var sunken = E("SunkenCrypt4", Kind.Location);
+            var explorer = new Explorer(new[] { crypt, sunken }.ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            var book = new CompendiumBook();
+            book.Raise(crypt.Key, KnownLevel.Seen);
+            book.Raise(sunken.Key, KnownLevel.Known);
+
+            view.Tell(book, CompendiumRule.Off);
+            explorer.Know(view);
+            Assert.True(explorer.InsideKnown(crypt));
+
+            foreach (var rule in new[] { CompendiumRule.Loose, CompendiumRule.Strict })
+            {
+                view.Tell(book, rule);
+                explorer.Know(view);
+                Assert.False(explorer.InsideKnown(crypt));
+                Assert.True(explorer.InsideKnown(sunken));
+            }
+
+            explorer.Peeking = true;
+            Assert.True(explorer.InsideKnown(crypt));
+            explorer.Peeking = false;
+            Assert.False(explorer.InsideKnown(null));
+        }
+
+        [Fact]
         public void WithTheCompendiumOffEverythingIsListedAsBefore()
         {
             var world = new World().Rule(CompendiumRule.Off);

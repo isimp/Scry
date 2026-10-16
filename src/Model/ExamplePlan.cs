@@ -121,28 +121,45 @@ namespace Scry
 
         /// <summary>
         /// How a room shows on the plan with floor <paramref name="level"/> of <paramref name="floors"/>
-        /// (from the top down) opened, by where it stands as the stage reads it
-        /// (<paramref name="standsOn"/>): a tile where it stands on that floor, an end cap or a
-        /// divider wherever its box reaches it, as it closes that floor's rooms; dashed where it
-        /// stands on the floor under it, as a tall room from there reaching up through the floor
-        /// opened, which is not a room of it. With the roof on, every room is a tile.
+        /// (from the top down) opened, by the floors it is on (<see cref="IsOn"/>): a tile on that
+        /// floor; dashed on the floor under it, as a tall room from there reaching up through the
+        /// floor opened, which is not a room of it. With the roof on, every room is a tile.
         /// </summary>
         public static PlanTile Tile(PlacedRoom room, IReadOnlyList<float> floors, int level, Func<PlacedRoom, float, bool> standsOn)
         {
             if (level < 0 || level >= floors.Count) return PlanTile.On;
-            if (standsOn(room, floors[level])) return PlanTile.On;
+            var own = HasOwnFloor(room, floors, standsOn);
+            if (IsOn(room, floors[level], own, standsOn)) return PlanTile.On;
             var closing = room.Room.EndCap || room.Room.Divider;
-            if (closing) return Shown(room, floors[level]) == PlanRoomShown.Whole ? PlanTile.On : PlanTile.Off;
-            return level + 1 < floors.Count && standsOn(room, floors[level + 1]) ? PlanTile.Below : PlanTile.Off;
+            return !closing && level + 1 < floors.Count && IsOn(room, floors[level + 1], own, standsOn) ? PlanTile.Below : PlanTile.Off;
+        }
+
+        /// <summary>
+        /// Whether a room is on a floor, as the plan shows it: by a floor of its own there
+        /// (<paramref name="standsOn"/>, as its rays found it); a room with no floor of its own at
+        /// any of the floors, a tunnel sloping between them, a passage of rock or an end cap
+        /// closing the rooms of the floors it reaches, by its box reaching it.
+        /// </summary>
+        private static bool IsOn(PlacedRoom room, float floor, bool own, Func<PlacedRoom, float, bool> standsOn) =>
+            own ? standsOn(room, floor) : Shown(room, floor) == PlanRoomShown.Whole;
+
+        /// <summary>Whether a room has a floor of its own at any of the floors.</summary>
+        private static bool HasOwnFloor(PlacedRoom room, IReadOnlyList<float> floors, Func<PlacedRoom, float, bool> standsOn)
+        {
+            for (var i = 0; i < floors.Count; i++)
+            {
+                if (standsOn(room, floors[i])) return true;
+            }
+            return false;
         }
 
         /// <summary>How near a room's doorway must be to a door for the room to be joined there.</summary>
         private const float DoorReach = 0.5f;
 
         /// <summary>
-        /// Where a door on floor <paramref name="level"/> leads: where a room of that floor is
-        /// joined there to one standing on no floor of it but on one above or below, up or down
-        /// to the nearest such floor; along the floor otherwise, or with the roof on.
+        /// Where a door on floor <paramref name="level"/> leads: where a room on that floor is
+        /// joined there to one not on it but on one above or below (<see cref="IsOn"/>), up or
+        /// down to the nearest such floor; along the floor otherwise, or with the roof on.
         /// </summary>
         public static DoorLeads Leads(Vec3 door, IEnumerable<PlacedRoom> rooms, IReadOnlyList<float> floors, int level, Func<PlacedRoom, float, bool> standsOn)
         {
@@ -153,14 +170,15 @@ namespace Scry
             foreach (var room in rooms)
             {
                 if (!JoinedAt(room, door)) continue;
-                if (standsOn(room, floors[level]))
+                var own = HasOwnFloor(room, floors, standsOn);
+                if (IsOn(room, floors[level], own, standsOn))
                 {
                     fromHere = true;
                     continue;
                 }
                 for (var i = 0; i < floors.Count; i++)
                 {
-                    if (i == level || !standsOn(room, floors[i]) || Math.Abs(i - level) >= nearest) continue;
+                    if (i == level || !IsOn(room, floors[i], own, standsOn) || Math.Abs(i - level) >= nearest) continue;
                     nearest = Math.Abs(i - level);
                     leads = i < level ? DoorLeads.Up : DoorLeads.Down;
                 }

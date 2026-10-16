@@ -29,6 +29,27 @@ namespace Scry
         /// <summary>Whether a dungeon's example is shown rather than its entrance; kept from one dungeon to the next.</summary>
         private static bool _inside = true;
 
+        private static bool _insideUnknown;
+
+        /// <summary>
+        /// Whether the place shown is only seen from outside (<see cref="Explorer.InsideKnown"/>):
+        /// its entrance shows whatever the switch says, and a place with nothing outside, whose
+        /// rooms are what is seen of it, shows them with no floors inside to open.
+        /// </summary>
+        public static bool InsideUnknown
+        {
+            get => _insideUnknown;
+            set
+            {
+                if (value == _insideUnknown) return;
+                _insideUnknown = value;
+                ShowInsideOrOut();
+            }
+        }
+
+        /// <summary>Whether the switch, and what is known of the place, show its inside.</summary>
+        private static bool InsideWanted => _inside && !_insideUnknown;
+
         /// <summary>How many of the example's rooms stand on the stage, and how many it has.</summary>
         public static int ExampleRoomsShown => TheExample.Holder != null ? TheExample.Next : 0;
         public static int ExampleRoomsTotal => TheExample.Holder != null && TheExample.Placed != null ? TheExample.Placed.Rooms.Count : 0;
@@ -68,7 +89,7 @@ namespace Scry
         public static bool HasOutside => HasInside && !TheExample.NothingOutside;
 
         /// <summary>Whether its inside is shown: as the switch is left, or always where it has nothing outside.</summary>
-        public static bool ShowsInside => HasInside && (_inside || TheExample.NothingOutside);
+        public static bool ShowsInside => HasInside && (InsideWanted || TheExample.NothingOutside);
 
         /// <summary>What the location draws outside, for the self-test to tell.</summary>
         public static string OutsideTold() => TheExample.OutsideTold();
@@ -153,7 +174,7 @@ namespace Scry
                 if (TheExample.Copies == 1 && TheExample.IsDungeon) ShowInsideOrOut();
                 else if (TheExample.Holder.activeInHierarchy) _bounds.Encapsulate(Unscaled(Measure(copy)));
             }
-            if (placedAny && TheExample.IsDungeon && _inside && TheExample.Copies > 1) RefreshFloors(TheExample.FloorsNow(), TheExample.CeilingOver, TheExample.Top);
+            if (placedAny && TheExample.IsDungeon && InsideWanted && TheExample.Copies > 1) RefreshFloors(TheExample.FloorsNow(), TheExample.CeilingOver, TheExample.Top);
             Timing.Add("stage example", made);
         }
 
@@ -245,17 +266,20 @@ namespace Scry
         private static void ShowInsideOrOut()
         {
             if (TheExample.Holder == null || !TheExample.IsDungeon || _subject == null) return;
-            var inside = (_inside || TheExample.NothingOutside) && TheExample.Copies > 0;
+            var inside = (InsideWanted || TheExample.NothingOutside) && TheExample.Copies > 0;
             TheExample.ShowInside(inside);
 
-            var floors = inside ? TheExample.FloorsNow() : new List<float>(_placeFloors);
+            // Seen only from outside, a place with nothing outside shows its rooms as the outside
+            // they are, with the floors of the place alone, none inside to open.
+            var floorsInside = inside && !_insideUnknown;
+            var floors = floorsInside ? TheExample.FloorsNow() : new List<float>(_placeFloors);
             if (floors.Count == 0) floors.Add(0f);
             // Inside, the example stands on its lowest floor; outside, the location stands on the
             // ground the game stands it on, not on a sunken part of it.
             var outside = _lastShown?.Source is PlaceSource place ? PlaceView.Ground(place.Contents, place.IsRoom) : 0f;
             MeasureStanding(Origin.y + (inside ? floors[floors.Count - 1] : outside) * _baseScale.y);
             TheCut.ForgetEntry();
-            if (inside) SetFloors(_lastShown, floors, true, TheExample.CeilingOver, TheExample.Top);
+            if (floorsInside) SetFloors(_lastShown, floors, true, TheExample.CeilingOver, TheExample.Top);
             else SetFloors(_lastShown, floors, false, PlaceCeiling, _placeTop);
             FrameAnew();
             CenterView();

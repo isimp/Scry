@@ -42,8 +42,11 @@ namespace Scry
         /// <summary>How many rooms the plan outlines in dashes, standing on the floor under the one opened; for the self-test.</summary>
         public static int PlanTilesBelow { get; private set; }
 
-        /// <summary>Whether the plan was drawn for an example, for the self-test to wait on what it worked out.</summary>
-        public static bool PlanDrawnFor(DungeonExample example) => example != null && ReferenceEquals(example, _marksOf);
+        /// <summary>Whether the plan was drawn for an example with a floor opened (its count from the top, the floors' count with the roof on), for the self-test to wait on what it worked out.</summary>
+        public static bool PlanDrawnFor(DungeonExample example, int level) => example != null && ReferenceEquals(example, _marksOf) && level == _marksLevel;
+
+        /// <summary>Whether the plan tiles a room with the floor last drawn opened, for the self-test.</summary>
+        public static bool PlanTilesRoom(PlacedRoom room) => OnPlan(room);
 
         /// <summary>Whether the plan is put away, by the fold on it, and brought back by its tab; remembered.</summary>
         public static bool PlanFolded
@@ -65,7 +68,7 @@ namespace Scry
             // The example as the stage holds it, so the plan turns as the stage is looked at; a
             // dungeon's plan is of its inside, so none while its entrance is shown from outside.
             var example = ExampleOf(entry) != null ? Stage.ExampleShown : null;
-            if (example == null || example.Rooms.Count == 0 || Stage.HasInside && !Stage.ShowsInside) return Rect.zero;
+            if (example == null || example.Rooms.Count == 0 || Stage.HasInside && !Stage.ShowsInside || Stage.InsideUnknown) return Rect.zero;
             var e = Event.current;
 
             // Folded, a small tab where it stands, which brings it back.

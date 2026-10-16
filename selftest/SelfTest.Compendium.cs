@@ -559,6 +559,47 @@ namespace Scry
             UnityEngine.Object.FindObjectsByType<T>(FindObjectsSortMode.None).OrderBy(t => (t.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
 
         /// <summary>
+        /// A dungeon a made-up character saw only from outside shows its entrance, the stage's
+        /// switch on its inside or not, with no plan of its inside; once it went inside, the inside
+        /// shows again.
+        /// </summary>
+        private static IEnumerator SeenFromOutside(Probe p)
+        {
+            var crypt = Pick(Kind.Location, "Crypt2");
+            if (crypt == null || PlaceOf(crypt)?.Contents?.Dungeon == null)
+            {
+                p.Skip("there are no Burial Chambers with an example to lay out");
+                yield break;
+            }
+            var book = new CompendiumBook();
+            book.Raise(crypt.Key, KnownLevel.Seen);
+            var view = new CompendiumView(X.Entries);
+            view.Tell(book, CompendiumRule.Strict);
+            Session.ShowKnownInstead(view);
+            if (!Session.IsOpen) Session.Show(null);
+            KeepView();
+            ScryPanel.Compact = false;
+            yield return Until(() => ReferenceEquals(X.Compendium, view), 3);
+            Stage.Inside = true;
+            X.Select(crypt);
+            yield return Until(() => Stage.InsideUnknown && Stage.HasInside, 30);
+            p.Check(Stage.InsideUnknown && Stage.HasInside && !Stage.ShowsInside, "a dungeon only seen from outside shows its entrance, its inside chosen or not",
+                $"inside unknown {Stage.InsideUnknown}, has an inside {Stage.HasInside}, shows it {Stage.ShowsInside}");
+            var plan = ScryPanel.Drawn(PanelPart.Plan);
+            yield return null;
+            yield return null;
+            p.Check(ScryPanel.Drawn(PanelPart.Plan) == plan, "and no plan of its inside");
+            yield return Picture(p, "strict Burial Chambers, seen from outside");
+
+            // Gone inside, it is known, and its inside shows again.
+            book.Raise(crypt.Key, KnownLevel.Known);
+            view.Tell(book, CompendiumRule.Strict);
+            yield return Until(() => !Stage.InsideUnknown && Stage.ShowsInside, 10);
+            p.Check(!Stage.InsideUnknown && Stage.ShowsInside, "gone inside, its inside shows again");
+            Session.ShowKnownInstead(null);
+        }
+
+        /// <summary>
         /// With the compendium on, a made-up character who has fought one creature and seen
         /// another sees only that: its creatures' tab lists those two, counted as found of all; no
         /// search finds anything not seen, and nothing not seen can be gone to; a creature only

@@ -86,10 +86,13 @@ namespace Scry
             var plan = place != null && !place.IsRoom ? place.Contents?.Dungeon : null;
             if (plan == null)
             {
+                Stage.InsideUnknown = false;
                 if (_entry != null) Forget();
                 return;
             }
             if (entry != _entry) Start(explorer, entry, plan);
+            // A dungeon only seen from outside shows its outside alone; a camp's example is its outside.
+            Stage.InsideUnknown = plan.Algorithm == "Dungeon" && !explorer.InsideKnown(entry);
             if (Example == null) ReadRooms();
             if (Example == null) return;
 

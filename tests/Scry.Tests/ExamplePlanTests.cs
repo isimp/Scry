@@ -61,6 +61,36 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ARoomWithNoFloorOfItsOwnShowsWhereItsBoxReaches()
+        {
+            // A tunnel sloping from one floor to the next, or a cave passage of rock, has no flat
+            // ground of its own anywhere: it shows on the floors its box reaches, as a room did
+            // before its rays were read, tiled where it reaches the floor opened, dashed under it.
+            var floors = new[] { 8f, 4f, 0f };
+            var tunnel = On("tunnel", 4.5f, 3f);
+            var ramp = On("ramp", 4f, 6f);
+            bool StandsOn(PlacedRoom room, float floor) => false;
+
+            Assert.Equal(PlanTile.On, ExamplePlan.Tile(tunnel, floors, 1, StandsOn));
+            Assert.Equal(PlanTile.Below, ExamplePlan.Tile(tunnel, floors, 0, StandsOn));
+            Assert.Equal(PlanTile.Off, ExamplePlan.Tile(tunnel, floors, 2, StandsOn));
+            Assert.Equal(PlanTile.On, ExamplePlan.Tile(ramp, floors, 1, StandsOn));
+            Assert.Equal(PlanTile.On, ExamplePlan.Tile(ramp, floors, 2, StandsOn));
+
+            // A doorway from a hall of the middle floor into a tunnel reaching only the floor under it leads down.
+            var door = new Vec3(5f, 4f, 0f);
+            var hall = On("hall", 5.5f, 3f, false, door);
+            var shaft = On("shaft", 1f, 2f, false, door);
+            bool HallOnly(PlacedRoom room, float floor) => room == hall && floor == 4f;
+            Assert.Equal(DoorLeads.Down, ExamplePlan.Leads(door, new List<PlacedRoom> { hall, shaft }, floors, 1, HallOnly));
+            // One its box still reaches on the floor opened leads along it.
+            var passage = On("passage", 4f, 4f, false, door);
+            Assert.Equal(DoorLeads.Level, ExamplePlan.Leads(door, new List<PlacedRoom> { hall, passage }, floors, 1, HallOnly));
+            // From a passage on the floor opened by its box alone, a doorway down into the shaft leads down too.
+            Assert.Equal(DoorLeads.Down, ExamplePlan.Leads(door, new List<PlacedRoom> { passage, shaft }, floors, 1, StandsOn));
+        }
+
+        [Fact]
         public void ADoorwayToARoomOnAnotherFloorIsMarkedUpOrDown()
         {
             var floors = new[] { 8f, 4f, 0f };

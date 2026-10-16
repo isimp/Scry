@@ -220,6 +220,13 @@ namespace Scry
         /// <summary>How much the character knows of an entry; all of it while the compendium is off.</summary>
         public KnownLevel LevelOf(Entry entry) => CompendiumOn ? _view.Of(entry) : KnownLevel.Known;
 
+        /// <summary>
+        /// Whether a place's inside shows: one only seen from outside, by sight or on the explored
+        /// map, shows its outside alone, its inside once entered and known; every one with the
+        /// compendium off or peeking. None for no place.
+        /// </summary>
+        public bool InsideKnown(Entry place) => place != null && LevelOf(place) == KnownLevel.Known;
+
         /// <summary>Whether an entry shows as known only because of the compendium's floor (<see cref="CompendiumView.ByFloor"/>).</summary>
         public bool ByFloor(Entry entry) => CompendiumOn && _view.ByFloor(entry);
 
