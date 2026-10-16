@@ -204,6 +204,58 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AStackOfRoomsOneUnderAnotherIsOneStack()
+        {
+            // As Mörkhalla stands: tall rooms straight down, each joined to the next, no crossroads.
+            var top = Room("top", 0f, 0f, 0f, 0, At(0f, -2f, 0f));
+            var second = Room("second", 0f, -10f, 0f, 1, At(0f, -2f, 0f), At(0f, -12f, 0f));
+            var third = Room("third", 0f, -20f, 0f, 2, At(0f, -12f, 0f), At(0f, -22f, 0f));
+            var bottom = Room("bottom", 0f, -30f, 0f, 3, At(0f, -22f, 0f));
+
+            Assert.True(DungeonWays.Of(new[] { top, second, third, bottom }).IsStack);
+        }
+
+        [Fact]
+        public void ADungeonWithCrossroadsOrRoomsSideBySideIsNoStack()
+        {
+            // A cave branching at a crossroads, though most of its rooms lie under others.
+            var entrance = Room("entrance", 0f, 0f, 0f, 0, At(5f, 0f, 0f));
+            var hall = Room("hall", 10f, 0f, 0f, 1, At(5f, 0f, 0f), At(15f, 0f, 0f), At(10f, -5f, 0f));
+            var east = Room("east", 20f, 0f, 0f, 2, At(15f, 0f, 0f));
+            var under = Room("under", 10f, -8f, 0f, 2, At(10f, -5f, 0f), At(10f, -13f, 0f));
+            var deeper = Room("deeper", 10f, -16f, 0f, 3, At(10f, -13f, 0f), At(10f, -21f, 0f));
+            var deeper2 = Room("deeper2", 10f, -24f, 0f, 4, At(10f, -21f, 0f), At(10f, -29f, 0f));
+            var deepest = Room("deepest", 10f, -32f, 0f, 5, At(10f, -29f, 0f));
+            Assert.False(DungeonWays.Of(new[] { entrance, hall, east, under, deeper, deeper2, deepest }).IsStack);
+
+            // Rooms stepping down sideways are lower but under nothing.
+            var s1 = Room("s1", 0f, 0f, 0f, 0, At(5f, -2f, 0f));
+            var s2 = Room("s2", 10f, -5f, 0f, 1, At(5f, -2f, 0f), At(15f, -7f, 0f));
+            var s3 = Room("s3", 20f, -10f, 0f, 2, At(15f, -7f, 0f), At(25f, -12f, 0f));
+            var s4 = Room("s4", 30f, -15f, 0f, 3, At(25f, -12f, 0f));
+            Assert.False(DungeonWays.Of(new[] { s1, s2, s3, s4 }).IsStack);
+
+            // Rooms overlapping on one level stand beside each other, not over.
+            var near = Room("near", 0f, 0f, 0f, 0, At(0.5f, 0f, 0f));
+            var niche = Room("niche", 1f, 0.5f, 0f, 1, At(0.5f, 0f, 0f), At(1.5f, 0f, 0f));
+            var alcove = Room("alcove", 2f, 1f, 0f, 2, At(1.5f, 0f, 0f));
+            Assert.False(DungeonWays.Of(new[] { near, niche, alcove }).IsStack);
+
+            // Half its rooms under another is not most of them.
+            var upper = Room("upper", 0f, 0f, 0f, 0, At(0f, -2f, 0f));
+            var lower = Room("lower", 0f, -10f, 0f, 1, At(0f, -2f, 0f));
+            Assert.False(DungeonWays.Of(new[] { upper, lower }).IsStack);
+
+            // A crypt in a line on one level: nothing under anything.
+            var a = Room("a", 0f, 0f, 0f, 0, At(5f, 0f, 0f));
+            var b = Room("b", 10f, 0f, 0f, 1, At(5f, 0f, 0f), At(15f, 0f, 0f));
+            var c = Room("c", 20f, 0f, 0f, 2, At(15f, 0f, 0f));
+            Assert.False(DungeonWays.Of(new[] { a, b, c }).IsStack);
+
+            Assert.False(DungeonWays.Of(new PlacedRoom[0]).IsStack);
+        }
+
+        [Fact]
         public void AnExampleWithNoRoomsHasNoWays()
         {
             var ways = DungeonWays.Of(new PlacedRoom[0]);

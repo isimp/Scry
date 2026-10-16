@@ -38,13 +38,14 @@ namespace Scry
         {
             var room = TheExample.Focused;
             var holder = TheExample.Holder;
-            if (room == null || holder == null || !holder.activeInHierarchy || !Cutting || _outlineAway)
+            if (room == null || holder == null || !holder.activeInHierarchy || !Cutting && !SideCutting || _outlineAway)
             {
                 if (_outline != null && _outline.gameObject.activeSelf) _outline.gameObject.SetActive(false);
                 return;
             }
             var lift = holder.transform.localPosition.y;
-            var top = RoomOutline.Top(CutAt - lift, room.Position.Y + room.Room.Size.Y / 2f);
+            var roomTop = room.Position.Y + room.Room.Size.Y / 2f;
+            var top = TheCut.Held ? RoomOutline.Top(CutAt - lift, roomTop) : roomTop;
             if (_outline != null && _outline.gameObject.activeSelf && ReferenceEquals(room, _outlinedRoom) && top == _outlinedTop) return;
             if (!EnsureOutline()) return;
 

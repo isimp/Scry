@@ -120,6 +120,7 @@ namespace Scry
             {
                 ForgetExample();
                 TheExample.Begin(example, plan, _subject.transform, _layer);
+                ChooseCutForExample();
                 // What is kept of a dungeon's rooms' floors is found while they are made.
                 if (TheExample.IsDungeon) foreach (var room in TheExample.Placed.Rooms) FloorRecords.Want(room.Room.Name, true);
             }
@@ -308,7 +309,7 @@ namespace Scry
             var room = TheExample.Focused;
             if (room == null) return;
             TheExample.OpenLevelOfFocused(level);
-            TheCut.Hold(RoomLevelCut(room, level));
+            if (!CutFromSide) TheCut.Hold(RoomLevelCut(room, level));
         }
 
         /// <summary>
@@ -320,8 +321,9 @@ namespace Scry
         {
             if (room == null || !TheExample.IsDungeon || TheExample.Placed == null || !TheExample.Placed.Rooms.Contains(room)) return;
             TheExample.Focus(room);
-            TheCut.Hold(RoomCut(room));
-            TurnTo(Yaw, CutPitch);
+            // Cut from the side, the cut goes through the room's middle; from above, at head height over its ground.
+            if (!CutFromSide) TheCut.Hold(RoomCut(room));
+            TurnTo(Yaw, CutFromSide ? SidePitch : CutPitch);
         }
 
         /// <summary>Comes out of the room gone into, back to the whole example with the roof on.</summary>
@@ -380,8 +382,8 @@ namespace Scry
             var ray = RayAt(point);
 
             var holder = holderObject.transform;
-            var from = holder.InverseTransformPoint(eye.position);
             var direction = holder.InverseTransformVector(ray);
+            var from = PickFrom(holder, holder.InverseTransformPoint(eye.position), direction);
             var below = Cutting ? holder.InverseTransformPoint(new Vector3(eye.position.x, Origin.y + CutAt * _scale, eye.position.z)).y : float.PositiveInfinity;
             // Rooms put away are passed by; with a room gone into, those dimmed around it can be gone into next.
             var room = placed.Pick(new Vec3(from.x, from.y, from.z), new Vec3(direction.x, direction.y, direction.z), below,

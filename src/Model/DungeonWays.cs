@@ -60,6 +60,19 @@ namespace Scry
         /// <summary>The rooms a room is joined to, in the order they were placed.</summary>
         public IReadOnlyList<PlacedRoom> WaysOf(PlacedRoom room) => _ways.TryGetValue(room, out var ways) ? ways : new List<PlacedRoom>();
 
+        /// <summary>How much higher a room's foot must be than another's to stand over it, in metres.</summary>
+        public const float Over = 2f;
+
+        /// <summary>
+        /// Whether the example is mostly one stack of rooms, as Mörkhalla is: no crossroads, and
+        /// more than half its rooms under one whose foot is at least <see cref="Over"/> higher.
+        /// Such an example is seen best cut from the side (<see cref="SideCut"/>).
+        /// </summary>
+        public bool IsStack => !_rooms.Any(IsCrossroads) && _rooms.Count(Hidden) * 2 > _rooms.Count;
+
+        /// <summary>Whether a room stands under another, its middle seen from above inside the other's floor.</summary>
+        private bool Hidden(PlacedRoom room) => _rooms.Any(other => other != room && Foot(other) >= Foot(room) + Over && other.Covers(room.Position.X, room.Position.Z));
+
         /// <summary>Whether a room has three ways or more.</summary>
         public bool IsCrossroads(PlacedRoom room) => WaysOf(room).Count >= 3;
 

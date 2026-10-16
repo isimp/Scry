@@ -160,7 +160,13 @@ namespace Scry
         {
             _camera.ResetProjectionMatrix();
             _aboveCut = null;
-            if (!Cutting || _subject == null) return;
+            if (_subject == null) return;
+            if (SideCutting && SideCutThrough() is Vector3 through)
+            {
+                ApplySideCut(through);
+                return;
+            }
+            if (!Cutting) return;
 
             var y = Origin.y + CutAt * _scale;
             var eye = _camera.transform.position;

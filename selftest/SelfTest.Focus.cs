@@ -38,6 +38,7 @@ namespace Scry
                     p.Note($"{entry.Name}: no example stood on the stage");
                     continue;
                 }
+                Stage.SetCutFromSide(false);
                 Stage.OpenLevel(Stage.FloorHeights.Count);
                 var rooms = Stage.ExampleShown.Rooms;
                 var deepest = DungeonWays.Of(rooms).Deepest;

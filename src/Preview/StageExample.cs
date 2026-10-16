@@ -121,6 +121,9 @@ namespace Scry
         /// <summary>The room gone into; none while the whole example or a floor of it is shown.</summary>
         public PlacedRoom Focused { get; private set; }
 
+        /// <summary>Whether the example is cut from the side (<see cref="Stage.CutFromSide"/>), so the rooms above the room gone into are dimmed, not put away.</summary>
+        public bool FromSide { get; set; }
+
         /// <summary>The ground of the room gone into, in the example's own space.</summary>
         public float FocusGround { get; private set; }
 
@@ -172,7 +175,9 @@ namespace Scry
             if (Focused != null)
             {
                 KnowFocusLooks();
-                return _focusLooks.TryGetValue(room, out var look) ? look : RoomLook.Whole;
+                var look = _focusLooks.TryGetValue(room, out var known) ? known : RoomLook.Whole;
+                // Cut from the side, the rooms above stand in the section too, dimmed.
+                return FromSide && look == RoomLook.Away ? RoomLook.Below : look;
             }
             switch (RoomShown(room, planFloor, floors))
             {

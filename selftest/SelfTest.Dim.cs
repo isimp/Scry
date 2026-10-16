@@ -39,6 +39,7 @@ namespace Scry
                     p.Note($"{entry.Name}: no example stood on the stage");
                     continue;
                 }
+                Stage.SetCutFromSide(false);
                 Stage.OpenLevel(Stage.FloorHeights.Count);
                 yield return Until(() => !Stage.Gliding, 5);
 
