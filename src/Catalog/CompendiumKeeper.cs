@@ -106,9 +106,11 @@ namespace Scry
                 _catchUpOf = catalog;
                 _recordsSize = -1;
             }
+            // Each part timed apart, so the monitor and the self-test tell which one costs what.
             if (Time.unscaledTime - _lookedAt >= 1f)
             {
                 _lookedAt = Time.unscaledTime;
+                var records = Timing.Start();
                 var size = CharacterRecords.Size(player, profile);
                 var power = CharacterRecords.Power(player);
                 if (size != _recordsSize || power != _recordsPower)
@@ -125,11 +127,16 @@ namespace Scry
                     Ceiling = Milestones.Ceiling(Records, _bosses);
                     _caughtUp = true;
                 }
+                Timing.Add("update compendium records", records);
+                var looked = Timing.Start();
                 Look(player);
-                Guard.Run(Feature.CompendiumMap, "catching up from the explored map", () => CompendiumMap.Update(_book));
+                Timing.Add("update compendium look", looked);
+                Guard.Run(Feature.CompendiumMap, "catching up from the explored map", () => CompendiumMap.Update(_book), "update compendium map");
             }
-            Guard.Run(Feature.CompendiumSeen, "looking at what the character sees", Sweeping, player);
+            Guard.Run(Feature.CompendiumSeen, "looking at what the character sees", Sweeping, player, "update compendium sight");
+            var saved = Timing.Start();
             Save();
+            Timing.Add("update compendium save", saved);
         }
 
         /// <summary>The share of the things in the world looked at this frame (<see cref="CompendiumSight.Sweep"/>), made once.</summary>

@@ -16,6 +16,28 @@ namespace Scry
         /// <summary>Gives the search box the keyboard at its next repaint, or not.</summary>
         private static void FocusSearch(bool focus) => _focusSearch = focus;
 
+        /// <summary>Whether the panel lets go of the keyboard at its next draw (<see cref="LeaveBoxes"/>).</summary>
+        private static bool _leaveBoxes;
+
+        /// <summary>
+        /// Lets go of the keyboard at the panel's next draw, as Esc in a text box does: the
+        /// keyboard can only be handed over while the panel draws. For the self-test's pictures,
+        /// so the search's help does not cover the list.
+        /// </summary>
+        internal static void LeaveBoxes()
+        {
+            _leaveBoxes = true;
+            _focusSearch = false;
+        }
+
+        /// <summary>Lets go of the keyboard while the panel draws, where <see cref="LeaveBoxes"/> asked for it.</summary>
+        private static void LeaveBoxesIfAsked()
+        {
+            if (!_leaveBoxes) return;
+            GUIUtility.keyboardControl = 0;
+            _leaveBoxes = false;
+        }
+
         /// <summary>
         /// Puts new text in the search, however it came (typed, cleared, completed): the list is
         /// filtered anew from its top, the search's help and the mod report give way to it, and

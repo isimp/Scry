@@ -150,6 +150,7 @@ namespace Scry
             // A click anywhere lets go of the keyboard; a click on a text box takes it straight
             // back. So clicking the list or a button after typing hands the keys back to walking.
             if (Event.current.type == EventType.MouseDown) GUIUtility.keyboardControl = 0;
+            LeaveBoxesIfAsked();
 
             Keys(explorer);
             if (!IsOpen) return;

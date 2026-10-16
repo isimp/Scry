@@ -3,7 +3,6 @@ using System.Collections;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using UnityEngine;
 
 namespace Scry
 {
@@ -49,7 +48,7 @@ namespace Scry
         /// </summary>
         private static IEnumerator Picture(Probe p, string what)
         {
-            GUIUtility.keyboardControl = 0;
+            ScryPanel.LeaveBoxes();
             yield return Until(() => !Stage.Gliding, 3);
             yield return null;
             if (Capture == null)
