@@ -11,6 +11,9 @@ namespace Scry
         public const float Share = 0.3f;
 
         /// <summary>A colour darkened: each channel at <see cref="Share"/> of its own, its alpha as it was.</summary>
-        public static (float R, float G, float B, float A) Darker(float r, float g, float b, float a) => (r * Share, g * Share, b * Share, a);
+        public static (float R, float G, float B, float A) Darker(float r, float g, float b, float a) => Darker(r, g, b, a, Share);
+
+        /// <summary>A colour darkened to another share of its own, its alpha as it was: at none, black, as the self-test films what no colour lights.</summary>
+        public static (float R, float G, float B, float A) Darker(float r, float g, float b, float a, float share) => (r * share, g * share, b * share, a);
     }
 }

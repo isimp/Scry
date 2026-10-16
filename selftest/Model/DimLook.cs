@@ -15,7 +15,7 @@ namespace Scry
         /// <summary>How much a pixel must differ from the picture without the rooms to be of the rooms.</summary>
         public const float Backdrop = 0.02f;
 
-        /// <summary>How bright a room's pixel must be when whole to tell how much darker dimming makes it.</summary>
+        /// <summary>How much brighter a room's pixel must be whole than on its floor (or than black, with none) to tell how much darker dimming makes it.</summary>
         public const float Darkest = 0.02f;
 
         /// <summary>The share of their brightness dimmed rooms keep at the most, to look dimmed.</summary>
@@ -24,15 +24,24 @@ namespace Scry
         /// <summary>A pixel's brightness from its colour, 0 to 1, as the eye weighs red, green and blue.</summary>
         public static float Brightness(byte r, byte g, byte b) => (0.2126f * r + 0.7152f * g + 0.0722f * b) / 255f;
 
-        /// <summary>How many of the rooms' pixels were read, and the middle share of their brightness the dimmed picture keeps; none where no pixel counts or the pictures differ in size.</summary>
-        public static (int Pixels, float? Share) Read(float[] empty, float[] whole, float[] dimmed)
+        /// <summary>
+        /// How many of the rooms' pixels were read, and the middle share of their brightness the
+        /// dimmed picture keeps; none where no pixel counts or the pictures differ in size. With a
+        /// <paramref name="floor"/>, the rooms filmed with every colour black, only the brightness
+        /// above it counts, what their colours give them: fog and highlights stay however dark the
+        /// colours, so dark stone is read by what dimming can take away. A pixel no brighter whole
+        /// than on the floor has nothing to take and is left out; one dimmed below it reads as none kept.
+        /// </summary>
+        public static (int Pixels, float? Share) Read(float[] empty, float[] whole, float[] dimmed, float[] floor = null)
         {
             if (empty == null || whole == null || dimmed == null || empty.Length != whole.Length || whole.Length != dimmed.Length) return (0, null);
+            if (floor != null && floor.Length != whole.Length) return (0, null);
             var shares = new List<float>();
             for (var i = 0; i < whole.Length; i++)
             {
-                if (System.Math.Abs(whole[i] - empty[i]) <= Backdrop || whole[i] <= Darkest) continue;
-                shares.Add(dimmed[i] / whole[i]);
+                var under = floor?[i] ?? 0f;
+                if (System.Math.Abs(whole[i] - empty[i]) <= Backdrop || whole[i] - under <= Darkest) continue;
+                shares.Add(System.Math.Max(0f, (dimmed[i] - under) / (whole[i] - under)));
             }
             if (shares.Count == 0) return (0, null);
             shares.Sort();

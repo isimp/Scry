@@ -14,10 +14,12 @@ namespace Scry
 
         /// <summary>
         /// Dimmed rooms show darker on the stage. For each reference dungeon, with the roof on, the
-        /// stage is filmed with every room put away, whole and dimmed, and the rooms' pixels read
-        /// (<see cref="DimLook"/>); each must keep at most 60% of its brightness. The shaders its
-        /// rooms are drawn with are told, each with how many of their parts the dimming reached,
-        /// those whose shaders take a colour (<see cref="ShaderTally"/>).
+        /// stage is filmed with every room put away, whole, dimmed, and dimmed with every colour
+        /// black, and the rooms' pixels read (<see cref="DimLook"/>): dimmed, each must keep at most
+        /// 60% of the brightness its colours give it, what is above the film with every colour
+        /// black, as fog and highlights stay however dark the colours, most of dark stone's. The
+        /// shaders its rooms are drawn with are told, each with how many of their parts the
+        /// dimming reached, those whose shaders take a colour (<see cref="ShaderTally"/>).
         /// </summary>
         private static IEnumerator DimShows(Probe p)
         {
@@ -60,21 +62,36 @@ namespace Scry
                 yield return Film(PlanRoomShown.Faint, film => dimmed = film);
                 yield return Picture(p, $"dim {entry.Name} dimmed");
 
-                var (pixels, share) = DimLook.Read(empty, whole, dimmed);
+                // Every colour black: what is still bright, fog and highlights, no dimming takes away.
+                float[] floor = null;
+                yield return Film(PlanRoomShown.Whole, film => { });
+                Dim.HoldShare(0f);
+                yield return Film(PlanRoomShown.Faint, film => floor = film);
+                yield return Picture(p, $"dim {entry.Name} every colour black");
+                yield return Film(PlanRoomShown.Whole, film => { });
+                Dim.HoldShare(null);
+                Stage.ExampleHoldLook(null);
+
+                var (pixels, share) = DimLook.Read(empty, whole, dimmed, floor);
+                var all = DimLook.Read(empty, whole, dimmed).Share;
                 var told = share is float kept
-                    ? $"{entry.Name}: dimmed, its rooms keep {Numbers.Percent(kept)} of their brightness, over {Numbers.Count(pixels)} pixels"
+                    ? $"{entry.Name}: dimmed, its rooms keep {Numbers.Percent(kept)} of the brightness their colours give them, over {Numbers.Count(pixels)} pixels"
+                      + (all is float ofAll ? $" ({Numbers.Percent(ofAll)} of all of it)" : "")
                     : $"{entry.Name}: none of its rooms' pixels were read";
                 p.Note(told);
                 if (!DimLook.DarkEnough(share)) pale.Add(told);
-                Stage.ExampleHoldLook(null);
             }
             Stage.Inside = wasInside;
             StageAsItWas();
-            p.Check(pale.Count == 0, "dimmed rooms show at least 40% darker on the stage", string.Join("; ", pale));
+            p.Check(pale.Count == 0, "dimmed rooms keep at most 60% of the brightness their colours give them", string.Join("; ", pale));
         }
 
-        /// <summary>Puts the example's rooms back to what the floor opened has, after <see cref="DimShows"/>.</summary>
-        private static void LookAsItWas() => Stage.ExampleHoldLook(null);
+        /// <summary>Puts the example's rooms back to what the floor opened has, dimmed as the dimming does, after <see cref="DimShows"/>.</summary>
+        private static void LookAsItWas()
+        {
+            Dim.HoldShare(null);
+            Stage.ExampleHoldLook(null);
+        }
 
         /// <summary>Holds the example's rooms to a look, waits until every room has it and the stage has been filmed twice since, and hands over the film's brightness.</summary>
         private static IEnumerator Film(PlanRoomShown look, Action<float[]> read)

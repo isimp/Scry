@@ -114,6 +114,64 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void DarkStoneIsReadByTheBrightnessItsColoursGiveIt()
+        {
+            // Fog and highlights stay with every colour black: only what is above them can be dimmed.
+            var empty = Picture(100, 0, 0.1f, 0f);
+            var whole = Picture(100, 40, 0.1f, 0.2f);
+            var floor = Picture(100, 40, 0.1f, 0.15f);
+            var dimmed = Picture(100, 40, 0.1f, 0.165f);
+
+            var (pixels, share) = DimLook.Read(empty, whole, dimmed, floor);
+
+            Assert.Equal(40, pixels);
+            Assert.Equal(0.3f, share.Value, 3);
+            Assert.True(DimLook.DarkEnough(share));
+            // Read against all of its brightness, the same stone looks barely dimmed.
+            Assert.False(DimLook.DarkEnough(DimLook.Read(empty, whole, dimmed).Share));
+        }
+
+        [Fact]
+        public void PartsNoColourDarkensAreLeftOutOfTheReading()
+        {
+            // A particle as bright with every colour black has nothing the dimming can take away.
+            var empty = Picture(10, 0, 0f, 0f);
+            var whole = Picture(10, 10, 0f, 0.5f);
+            var floor = Picture(10, 10, 0f, 0.5f);
+            floor[0] = 0f;
+            var dimmed = Picture(10, 10, 0f, 0.5f);
+            dimmed[0] = 0.15f;
+
+            var (pixels, share) = DimLook.Read(empty, whole, dimmed, floor);
+
+            Assert.Equal(1, pixels);
+            Assert.Equal(0.3f, share.Value, 3);
+        }
+
+        [Fact]
+        public void APixelDimmedBelowItsFloorReadsAsFullyDimmed()
+        {
+            var empty = Picture(10, 0, 0f, 0f);
+            var whole = Picture(10, 10, 0f, 0.5f);
+            var floor = Picture(10, 10, 0f, 0.2f);
+            var dimmed = Picture(10, 10, 0f, 0.18f);
+
+            Assert.Equal(0f, DimLook.Read(empty, whole, dimmed, floor).Share.Value, 3);
+        }
+
+        [Fact]
+        public void AFloorOfAnotherSizeHasNoReading()
+        {
+            var whole = Enumerable.Repeat(0.5f, 4).ToArray();
+            var dimmed = Enumerable.Repeat(0.25f, 4).ToArray();
+
+            var (pixels, share) = DimLook.Read(new float[4], whole, dimmed, new float[5]);
+
+            Assert.Equal(0, pixels);
+            Assert.Null(share);
+        }
+
+        [Fact]
         public void BrightnessWeighsGreenMostAndBlueLeast()
         {
             Assert.Equal(1f, DimLook.Brightness(255, 255, 255), 3);

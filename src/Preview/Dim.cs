@@ -23,6 +23,13 @@ namespace Scry
         /// <summary>Lets go of the shaders of a world left, which the next may not have.</summary>
         private static void Forget() => ColoursOf.Clear();
 
+        /// <summary>The share of their colours the self-test holds dimmed parts to; null for the dimming's own (<see cref="DimColour.Share"/>).</summary>
+        private static float? _heldShare;
+
+        /// <summary>Has parts dimmed from now on keep another share of their colours, none for black, for the self-test to film what no colour lights; null for the dimming's own.</summary>
+        [Diagnostic]
+        public static void HoldShare(float? share) => _heldShare = share;
+
         /// <summary>Whether dimming darkens a material: its shader takes a colour.</summary>
         public static bool Reaches(Material material) => material != null && material.shader != null && Colours(material.shader).Length > 0;
 
@@ -30,6 +37,7 @@ namespace Scry
         public static void Set(GameObject copy, bool dim)
         {
             if (copy == null) return;
+            var share = _heldShare ?? DimColour.Share;
             copy.GetComponentsInChildren(true, Renderers);
             try
             {
@@ -52,7 +60,7 @@ namespace Scry
                         foreach (var id in colours)
                         {
                             var own = material.GetColor(id);
-                            var (r, g, b, a) = DimColour.Darker(own.r, own.g, own.b, own.a);
+                            var (r, g, b, a) = DimColour.Darker(own.r, own.g, own.b, own.a, share);
                             Block.SetColor(id, new Color(r, g, b, a));
                         }
                         renderer.SetPropertyBlock(Block, i);

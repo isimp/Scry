@@ -25,6 +25,14 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void EveryColourCanBeDarkenedToBlackForTheSelfTestsFloor()
+        {
+            // What is still bright with every colour black is what no dimming takes away.
+            Assert.Equal((0f, 0f, 0f, 0.4f), DimColour.Darker(0.9f, 0.8f, 0.5f, 0.4f, 0f));
+            Assert.Equal((0.45f, 0.4f, 0.25f, 0.4f), DimColour.Darker(0.9f, 0.8f, 0.5f, 0.4f, 0.5f));
+        }
+
+        [Fact]
         public void BlackStaysBlack()
         {
             Assert.Equal((0f, 0f, 0f, 1f), DimColour.Darker(0f, 0f, 0f, 1f));
