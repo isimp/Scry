@@ -471,6 +471,8 @@ namespace Scry
             var blank = new List<string>();
             var unreached = new List<string>();
             var footless = new List<string>();
+            var planWrong = new List<string>();
+            ScryPanel.PlanFolded = false;
             var gaps = new List<string>();
             string Told(IEnumerable<float> floors) => string.Join(", ", floors.Select(f => Numbers.Fixed(f, 1)));
             foreach (var entry in caves)
@@ -529,6 +531,10 @@ namespace Scry
                         if (rooms == 0) empty.Add($"{entry.Name} at {Numbers.Fixed(Stage.FloorHeights[level], 1)} m");
                         if (Stage.ExampleRoomsAway >= Stage.ExampleRoomsShown) blank.Add($"{entry.Name} at {Numbers.Fixed(Stage.FloorHeights[level], 1)} m");
                         if (rooms > 0) foreach (var room in Stage.ExampleShown.Rooms) if (Stage.ExampleRoomShown(room) == PlanRoomShown.Whole) reached.Add(room);
+                        // The plan tiles the rooms standing on the floor, as many as the ruler counts, and dashes those of the floor under it.
+                        yield return Until(() => ScryPanel.PlanDrawnFor(Stage.ExampleShown) && ScryPanel.PlanTilesOn == Stage.ExampleRoomsOnFloor, 2);
+                        if (rooms > 0 && ScryPanel.PlanTilesOn != rooms) planWrong.Add($"{entry.Name} at {Numbers.Fixed(Stage.FloorHeights[level], 1)} m: {Numbers.Count(ScryPanel.PlanTilesOn)} tiled of {Numbers.Count(rooms)}");
+                        told[told.Count - 1] += $", plan {Numbers.Count(ScryPanel.PlanTilesOn)} tiled, {Numbers.Count(ScryPanel.PlanTilesBelow)} dashed under it, {Numbers.Count(ScryPanel.PlanDoorsMarked)} doors marked up or down";
                         if (example == 0) yield return Picture(p, $"floors {entry.Name} inside {Numbers.Count(level + 1)} of {Numbers.Count(Stage.FloorHeights.Count)}");
                     }
                     // What stands above the top floor's cut is reached only by moving the cut up by hand.
@@ -550,6 +556,7 @@ namespace Scry
             p.Check(unreached.Count == 0, "and every room stands whole on some floor", string.Join("; ", unreached));
             p.Check(footless.Count == 0, "every M\u00f6rkhalla room has a floor at its foot, none over its gate", string.Join("; ", footless));
             p.Check(gaps.Count == 0, "the sealed tower's floors are a storey apart, none missing", string.Join("; ", gaps));
+            p.Check(planWrong.Count == 0, "each floor's plan tiles the rooms standing on it, as many as the ruler counts", string.Join("; ", planWrong.Take(8)));
         }
 
         /// <summary>The setting for the dimmed rooms' lights as it was before the self-test set it; null while it is as it was.</summary>

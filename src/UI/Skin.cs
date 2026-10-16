@@ -77,7 +77,7 @@ namespace Scry
         public static GUIStyle Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close;
 
         public static GUIStyle Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross;
-        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps, Eye;
+        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps, Eye, Up, Down;
 
         private static float _builtScale = -1f;
         private static bool _warmed;
@@ -676,6 +676,9 @@ namespace Scry
         /// <summary>A colour lifted toward white by a share: text in its kind's colour, brighter under the mouse.</summary>
         public static Color Lift(Color color, float share) => Color.Lerp(color, Color.white, share);
 
+        /// <summary>A colour laid over the stage's at a share, opaque, so shapes of it overlapping are no darker than one alone.</summary>
+        public static Color OverStage(Color color, float share) => Color.Lerp(Stage, color, share);
+
         /// <summary>
         /// The game's own fonts when they are loaded: its serif for text and its runic face for
         /// the title. Unity's default font stands in for either one that is not.
@@ -718,6 +721,8 @@ namespace Scry
             Repeat = Shape(32, 32, RepeatCoverage);
             Steps = Shape(32, 32, StepsCoverage);
             Eye = Shape(32, 32, EyeCoverage);
+            Up = Shape(32, 32, (x, y) => y >= 6f && y <= 26f && Mathf.Abs(x - 16f) <= (26f - y) * 0.6f);
+            Down = Shape(32, 32, (x, y) => y >= 6f && y <= 26f && Mathf.Abs(x - 16f) <= (y - 6f) * 0.6f);
         }
 
         /// <summary>Three steps rising to the right: the compendium's floor, tier upon tier.</summary>

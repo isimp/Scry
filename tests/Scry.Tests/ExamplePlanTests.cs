@@ -15,6 +15,86 @@ namespace Scry.Tests
         private static PlacedRoom Room(float x, float y, float z, float wide, float high, float deep, float yaw = 0f) =>
             new PlacedRoom { Room = new RoomShape { Name = "room", Size = new Vec3(wide, high, deep) }, Position = new Vec3(x, y, z), Rotation = Quat.Yaw(yaw) };
 
+        /// <summary>A room on its floors, where it stands as the stage reads it, with doorways where given.</summary>
+        private static PlacedRoom On(string name, float y, float high, bool endCap = false, params Vec3[] doorways)
+        {
+            var shape = new RoomShape { Name = name, Size = new Vec3(10f, high, 10f), EndCap = endCap };
+            foreach (var at in doorways) shape.Doorways.Add(new Doorway { Position = at - new Vec3(0f, y, 0f) });
+            return new PlacedRoom { Room = shape, Position = new Vec3(0f, y, 0f) };
+        }
+
+        [Fact]
+        public void OnAFloorThePlanTilesItsOwnRoomsAndDashesThoseOfTheFloorBelow()
+        {
+            // Floors from the top down. A tall hall standing on the lowest floor reaches up
+            // through the middle one: on the middle floor's plan it is beneath, dashed, not a
+            // room of that floor. An end cap reaching the floor closes its rooms, so it shows.
+            var floors = new[] { 8f, 4f, 0f };
+            var hall = On("hall", 5.5f, 3f);
+            var attic = On("attic", 9.5f, 3f);
+            var cellar = On("cellar", 1.5f, 3f);
+            var tall = On("tall", 4f, 8f);
+            var cap = On("cap", 5f, 4f, endCap: true);
+            var lowCap = On("lowcap", 1f, 2f, endCap: true);
+            var stands = new Dictionary<PlacedRoom, float[]> { { hall, new[] { 4f } }, { attic, new[] { 8f } }, { cellar, new[] { 0f } }, { tall, new[] { 0f } } };
+            bool StandsOn(PlacedRoom room, float floor) => stands.TryGetValue(room, out var on) && on.Contains(floor);
+
+            Assert.Equal(PlanTile.On, ExamplePlan.Tile(hall, floors, 1, StandsOn));
+            Assert.Equal(PlanTile.Below, ExamplePlan.Tile(tall, floors, 1, StandsOn));
+            Assert.Equal(PlanTile.Below, ExamplePlan.Tile(cellar, floors, 1, StandsOn));
+            Assert.Equal(PlanTile.Off, ExamplePlan.Tile(attic, floors, 1, StandsOn));
+            Assert.Equal(PlanTile.On, ExamplePlan.Tile(cap, floors, 1, StandsOn));
+            Assert.Equal(PlanTile.Off, ExamplePlan.Tile(lowCap, floors, 1, StandsOn));
+            var divider = On("divider", 5f, 4f);
+            divider.Room.Divider = true;
+            Assert.Equal(PlanTile.On, ExamplePlan.Tile(divider, floors, 1, StandsOn));
+
+            // The top floor dashes the middle one's rooms; the lowest has nothing under it.
+            Assert.Equal(PlanTile.On, ExamplePlan.Tile(attic, floors, 0, StandsOn));
+            Assert.Equal(PlanTile.Below, ExamplePlan.Tile(hall, floors, 0, StandsOn));
+            Assert.Equal(PlanTile.Off, ExamplePlan.Tile(cellar, floors, 0, StandsOn));
+            Assert.Equal(PlanTile.On, ExamplePlan.Tile(cellar, floors, 2, StandsOn));
+            Assert.Equal(PlanTile.Off, ExamplePlan.Tile(hall, floors, 2, StandsOn));
+
+            // With the roof on every room shows.
+            foreach (var room in new[] { hall, attic, cellar, tall, lowCap }) Assert.Equal(PlanTile.On, ExamplePlan.Tile(room, floors, floors.Length, StandsOn));
+        }
+
+        [Fact]
+        public void ADoorwayToARoomOnAnotherFloorIsMarkedUpOrDown()
+        {
+            var floors = new[] { 8f, 4f, 0f };
+            var stairDoor = new Vec3(5f, 4f, 0f);
+            var sideDoor = new Vec3(-5f, 4f, 0f);
+            var hall = On("hall", 5.5f, 3f, false, stairDoor, sideDoor);
+            var stairs = On("stairs", 2f, 5f, false, stairDoor);
+            var side = On("side", 5.5f, 3f, false, sideDoor);
+            var lost = On("lost", 9f, 2f, false, new Vec3(0f, 9f, 9f));
+            var attic = On("attic", 9.5f, 3f, false, new Vec3(0f, 9f, 9f));
+            var stands = new Dictionary<PlacedRoom, float[]> { { hall, new[] { 4f } }, { stairs, new[] { 0f } }, { side, new[] { 4f } }, { attic, new[] { 8f } } };
+            bool StandsOn(PlacedRoom room, float floor) => stands.TryGetValue(room, out var on) && on.Contains(floor);
+            var rooms = new List<PlacedRoom> { hall, stairs, side, lost, attic };
+
+            Assert.Equal(DoorLeads.Down, ExamplePlan.Leads(stairDoor, rooms, floors, 1, StandsOn));
+            Assert.Equal(DoorLeads.Up, ExamplePlan.Leads(stairDoor, rooms, floors, 2, StandsOn));
+            Assert.Equal(DoorLeads.Level, ExamplePlan.Leads(sideDoor, rooms, floors, 1, StandsOn));
+            // A doorway no room of the floor opened stands at leads nowhere from it.
+            Assert.Equal(DoorLeads.Level, ExamplePlan.Leads(new Vec3(0f, 9f, 9f), rooms, floors, 1, StandsOn));
+            // A room joined there standing on no floor at all says nothing of where it leads.
+            Assert.Equal(DoorLeads.Level, ExamplePlan.Leads(new Vec3(0f, 9f, 9f), rooms, floors, 0, StandsOn));
+            // With the roof on no doorway is marked.
+            Assert.Equal(DoorLeads.Level, ExamplePlan.Leads(stairDoor, rooms, floors, floors.Length, StandsOn));
+
+            // A shaft standing on floors both above and below leads to the nearer one.
+            var four = new[] { 12f, 8f, 4f, 0f };
+            var landing = new Vec3(5f, 8f, 0f);
+            var gallery = On("gallery", 9.5f, 3f, false, landing);
+            var shaft = On("shaft", 6f, 14f, false, landing);
+            var levels = new Dictionary<PlacedRoom, float[]> { { gallery, new[] { 8f } }, { shaft, new[] { 12f, 0f } } };
+            bool Level(PlacedRoom room, float floor) => levels.TryGetValue(room, out var on) && on.Contains(floor);
+            Assert.Equal(DoorLeads.Up, ExamplePlan.Leads(landing, new List<PlacedRoom> { gallery, shaft }, four, 1, Level));
+        }
+
         [Fact]
         public void LookingNorthThePlanIsNorthUp()
         {

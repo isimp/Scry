@@ -202,6 +202,28 @@ namespace Scry
         /// <summary>Each room of the example read so far with its box, doorways, ground and the floors it stands on, for the self-test to tell.</summary>
         public static List<string> ExampleRoomGroundTold() => TheExample.RoomGroundTold(FloorHeights);
 
+        /// <summary>Whether a room of the example has a floor of its own at a height in the example's space, as the plan tiles it (<see cref="StageExample.HasFloorAt"/>).</summary>
+        public static bool ExampleRoomHasFloorAt(PlacedRoom room, float floor) => TheExample.HasFloorAt(room, floor);
+
+        /// <summary>How many of the example's rooms have had their ground read, so what depends on it is worked out again as more are.</summary>
+        public static int ExampleGroundRead => TheExample.GroundRead;
+
+        private static readonly List<float> ExampleFloorsNow = new List<float>();
+
+        /// <summary>The floors, from the top down, as heights in the example's own space, as the floor opened is (<see cref="ExampleOpenFloor"/>); none without an example standing.</summary>
+        public static IReadOnlyList<float> ExampleFloors
+        {
+            get
+            {
+                ExampleFloorsNow.Clear();
+                var holder = TheExample.Holder;
+                if (holder == null) return ExampleFloorsNow;
+                var lift = holder.transform.localPosition.y;
+                for (var i = 0; i < Floors.Count; i++) ExampleFloorsNow.Add(Floors[i] - lift);
+                return ExampleFloorsNow;
+            }
+        }
+
         /// <summary>How a room of the example shows with the floor opened: whole on it, else as its box says, below faintly or above not at all.</summary>
         public static PlanRoomShown ExampleRoomShown(PlacedRoom room) => TheExample.RoomShown(room, ExamplePlanFloor);
 

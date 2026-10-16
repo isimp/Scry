@@ -17,6 +17,27 @@ namespace Scry
         Whole,
     }
 
+    /// <summary>How a room of an example shows on its plan with a floor opened.</summary>
+    internal enum PlanTile
+    {
+        /// <summary>Not on the plan: above the floor opened, or below the floor under it.</summary>
+        Off,
+
+        /// <summary>Standing on the floor under the one opened: outlined, dashed, to see what lies beneath.</summary>
+        Below,
+
+        /// <summary>A room of the floor opened, a tile; every room while the roof is on.</summary>
+        On,
+    }
+
+    /// <summary>Where a doorway on the floor opened leads, marked on the plan: up, down, or along the floor.</summary>
+    internal enum DoorLeads
+    {
+        Level,
+        Up,
+        Down,
+    }
+
     /// <summary>
     /// An example's plan in the stage's corner, as seen from above. It turns with the view, what
     /// lies ahead of the camera up on the plan, and is framed on its rooms alone, at a scale that
@@ -96,6 +117,65 @@ namespace Scry
             if (room.Position.Y + half <= floor.Value + Slack) return PlanRoomShown.Faint;
             if (room.Position.Y - half >= floor.Value + Headroom) return PlanRoomShown.None;
             return PlanRoomShown.Whole;
+        }
+
+        /// <summary>
+        /// How a room shows on the plan with floor <paramref name="level"/> of <paramref name="floors"/>
+        /// (from the top down) opened, by where it stands as the stage reads it
+        /// (<paramref name="standsOn"/>): a tile where it stands on that floor, an end cap or a
+        /// divider wherever its box reaches it, as it closes that floor's rooms; dashed where it
+        /// stands on the floor under it, as a tall room from there reaching up through the floor
+        /// opened, which is not a room of it. With the roof on, every room is a tile.
+        /// </summary>
+        public static PlanTile Tile(PlacedRoom room, IReadOnlyList<float> floors, int level, Func<PlacedRoom, float, bool> standsOn)
+        {
+            if (level < 0 || level >= floors.Count) return PlanTile.On;
+            if (standsOn(room, floors[level])) return PlanTile.On;
+            var closing = room.Room.EndCap || room.Room.Divider;
+            if (closing) return Shown(room, floors[level]) == PlanRoomShown.Whole ? PlanTile.On : PlanTile.Off;
+            return level + 1 < floors.Count && standsOn(room, floors[level + 1]) ? PlanTile.Below : PlanTile.Off;
+        }
+
+        /// <summary>How near a room's doorway must be to a door for the room to be joined there.</summary>
+        private const float DoorReach = 0.5f;
+
+        /// <summary>
+        /// Where a door on floor <paramref name="level"/> leads: where a room of that floor is
+        /// joined there to one standing on no floor of it but on one above or below, up or down
+        /// to the nearest such floor; along the floor otherwise, or with the roof on.
+        /// </summary>
+        public static DoorLeads Leads(Vec3 door, IEnumerable<PlacedRoom> rooms, IReadOnlyList<float> floors, int level, Func<PlacedRoom, float, bool> standsOn)
+        {
+            if (level < 0 || level >= floors.Count) return DoorLeads.Level;
+            var fromHere = false;
+            var nearest = int.MaxValue;
+            var leads = DoorLeads.Level;
+            foreach (var room in rooms)
+            {
+                if (!JoinedAt(room, door)) continue;
+                if (standsOn(room, floors[level]))
+                {
+                    fromHere = true;
+                    continue;
+                }
+                for (var i = 0; i < floors.Count; i++)
+                {
+                    if (i == level || !standsOn(room, floors[i]) || Math.Abs(i - level) >= nearest) continue;
+                    nearest = Math.Abs(i - level);
+                    leads = i < level ? DoorLeads.Up : DoorLeads.Down;
+                }
+            }
+            return fromHere ? leads : DoorLeads.Level;
+        }
+
+        /// <summary>Whether one of a room's doorways is at a door.</summary>
+        private static bool JoinedAt(PlacedRoom room, Vec3 door)
+        {
+            for (var i = 0; i < room.Room.Doorways.Count; i++)
+            {
+                if (Vec3.Distance(room.DoorwayAt(i), door) < DoorReach) return true;
+            }
+            return false;
         }
 
         /// <summary>Whether a door shows: one opening on the floor opened, or every one with the roof on.</summary>

@@ -247,6 +247,18 @@ namespace Scry
         public bool Reaches(PlacedRoom room, float floor) =>
             ExamplePlan.Shown(room, floor) == PlanRoomShown.Whole || _roomGround.TryGetValue(room, out var ground) && FloorFinder.Holds(ground, floor);
 
+        /// <summary>
+        /// Whether a room has a floor of its own at a height, as its rays found it
+        /// (<see cref="FloorFinder.StandsOn"/>), not merely its box reaching there, as a tall hall
+        /// reaches up through the floors over the one it stands on; a room not read yet by its box.
+        /// What the plan tiles as a room of a floor.
+        /// </summary>
+        public bool HasFloorAt(PlacedRoom room, float floor) =>
+            _roomGround.TryGetValue(room, out var ground) ? FloorFinder.StandsOn(ground, floor) : ExamplePlan.Shown(room, floor) == PlanRoomShown.Whole;
+
+        /// <summary>How many of the example's rooms have had their ground read.</summary>
+        public int GroundRead => _roomGround.Count;
+
         /// <summary>Whether a room stands on a floor: its box says so, or its rays found a floor of its own there (<see cref="FloorFinder.StandsOn"/>), not merely a slope, a landing or a lid near it.</summary>
         public bool StandsOn(PlacedRoom room, float floor) =>
             ExamplePlan.Shown(room, floor) == PlanRoomShown.Whole || _roomGround.TryGetValue(room, out var ground) && FloorFinder.StandsOn(ground, floor);
