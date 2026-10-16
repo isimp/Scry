@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -71,6 +72,85 @@ namespace Scry
                 bottom = Math.Min(bottom, ground);
             }
             return float.IsNegativeInfinity(top) ? (0f, 0f) : (top, bottom);
+        }
+
+        /// <summary>
+        /// How high each room stands on the map at an angle, so each shows whole: a room covering
+        /// no other its storey from its ground (<see cref="Tile"/>); rooms covering each other on
+        /// one level, and those covering them in turn, share a band from their lowest ground to
+        /// their highest storey's top, each in a lane of it. Lanes go from the highest room down,
+        /// a room under every lane of the rooms above it that it covers, else in the first lane no
+        /// room it covers holds, so a deeper room stands under a higher one it covers.
+        /// </summary>
+        public static List<(float Bottom, float Top)> Tiles(IReadOnlyList<PlacedRoom> rooms, IReadOnlyList<float> grounds, float angle)
+        {
+            var count = rooms.Count;
+            var across = new (float Min, float Max)[count];
+            for (var i = 0; i < count; i++) across[i] = Across(rooms[i], angle);
+            bool SideBySide(int a, int b) => across[a].Max - Touch <= across[b].Min || across[b].Max - Touch <= across[a].Min;
+
+            // Rooms across from each other whose heights meet are one band, a room's height its
+            // storey and a band's from its lowest ground to its highest storey's top; a band takes
+            // in any room across from one of its rooms whose height its own reaches, until none is
+            // left that a lane of the band would cover.
+            var band = new int[count];
+            for (var i = 0; i < count; i++) band[i] = i;
+            int Find(int i) => band[i] == i ? i : band[i] = Find(band[i]);
+            var bottoms = new float[count];
+            var tops = new float[count];
+            for (var joined = true; joined;)
+            {
+                joined = false;
+                for (var i = 0; i < count; i++)
+                {
+                    bottoms[i] = float.PositiveInfinity;
+                    tops[i] = float.NegativeInfinity;
+                }
+                for (var i = 0; i < count; i++)
+                {
+                    var root = Find(i);
+                    bottoms[root] = Math.Min(bottoms[root], grounds[i]);
+                    tops[root] = Math.Max(tops[root], Tile(grounds[i]).Top);
+                }
+                for (var a = 0; a < count && !joined; a++)
+                {
+                    for (var b = a + 1; b < count && !joined; b++)
+                    {
+                        int ra = Find(a), rb = Find(b);
+                        if (ra == rb || SideBySide(a, b) || tops[ra] <= bottoms[rb] || tops[rb] <= bottoms[ra]) continue;
+                        band[ra] = rb;
+                        joined = true;
+                    }
+                }
+            }
+
+            var tiles = new List<(float Bottom, float Top)>(count);
+            for (var i = 0; i < count; i++) tiles.Add(Tile(grounds[i]));
+            foreach (var group in Enumerable.Range(0, count).GroupBy(Find))
+            {
+                var members = group.OrderByDescending(i => grounds[i]).ThenBy(i => across[i].Min).ThenBy(i => i).ToList();
+                if (members.Count < 2) continue;
+                var lane = new Dictionary<int, int>();
+                foreach (var room in members)
+                {
+                    var under = 0;
+                    var taken = new HashSet<int>();
+                    foreach (var placed in lane.Keys)
+                    {
+                        if (SideBySide(room, placed)) continue;
+                        if (grounds[placed] > grounds[room] + Touch) under = Math.Max(under, lane[placed] + 1);
+                        else taken.Add(lane[placed]);
+                    }
+                    while (taken.Contains(under)) under++;
+                    lane[room] = under;
+                }
+                var lanes = lane.Values.Max() + 1;
+                var top = members.Max(i => Tile(grounds[i]).Top);
+                var bottom = members.Min(i => grounds[i]);
+                var height = (top - bottom) / lanes;
+                foreach (var room in members) tiles[room] = (top - (lane[room] + 1) * height, top - lane[room] * height);
+            }
+            return tiles;
         }
 
         /// <summary>How many two rooms cover each other on the map at an angle: reaching into each other across, and sharing their storeys.</summary>

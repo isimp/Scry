@@ -64,6 +64,91 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ARoomCoveringNoOtherStandsItsWholeStoreyFromItsGround()
+        {
+            var tiles = PlanMap.Tiles(new[] { Room(0f, 0f, 0f), Room(10f, 0f, 0f) }, new[] { -2f, -2f }, 0f);
+            Assert.Equal((-2f, -2f + PlanMap.Storey), tiles[0]);
+            Assert.Equal((-2f, -2f + PlanMap.Storey), tiles[1]);
+        }
+
+        [Fact]
+        public void RoomsCoveringEachOtherOnOneLevelEachTakeALaneOfTheStorey()
+        {
+            var tiles = PlanMap.Tiles(new[] { Room(0f, 0f, 0f), Room(1f, 0f, 0f) }, new[] { 0f, 0f }, 0f);
+            var half = PlanMap.Storey / 2f;
+            Assert.Equal(new[] { (half, PlanMap.Storey), (0f, half) }, tiles.Select(Rounded).ToArray());
+        }
+
+        [Fact]
+        public void ARoomBesideTheCrowdKeepsItsWholeStorey()
+        {
+            var tiles = PlanMap.Tiles(new[] { Room(0f, 0f, 0f), Room(1f, 0f, 0f), Room(20f, 0f, 0f) }, new[] { 0f, 0f, 0f }, 0f);
+            Assert.Equal((0f, PlanMap.Storey), tiles[2]);
+        }
+
+        [Fact]
+        public void ADeeperRoomTakesALaneUnderTheRoomsItCovers()
+        {
+            // A chain along the level: the first covers the second, the second the third, each 2 m deeper.
+            var rooms = new[] { Room(0f, 0f, 0f), Room(3f, 0f, 0f), Room(6f, 0f, 0f) };
+            var grounds = new[] { 0f, -2f, -4f };
+            var tiles = PlanMap.Tiles(rooms, grounds, 0f);
+            Assert.True(tiles[0].Bottom >= tiles[1].Top - 0.001f);
+            Assert.True(tiles[1].Bottom >= tiles[2].Top - 0.001f);
+            // The lanes share the band from the lowest ground to the highest storey's top.
+            Assert.Equal(PlanMap.Storey, tiles[0].Top, 3);
+            Assert.Equal(-4f, tiles[2].Bottom, 3);
+        }
+
+        [Fact]
+        public void RoomsAStoreyApartAtOneSpotKeepTheirOwnStoreys()
+        {
+            var tiles = PlanMap.Tiles(new[] { Room(0f, 0f, 0f), Room(1f, 0f, 0f) }, new[] { 0f, -PlanMap.Storey }, 0f);
+            Assert.Equal((0f, PlanMap.Storey), tiles[0]);
+            Assert.Equal((-PlanMap.Storey, 0f), tiles[1]);
+        }
+
+        [Fact]
+        public void ARoomAStoreyUnderACrowdKeepsItsWholeStorey()
+        {
+            var tiles = PlanMap.Tiles(new[] { Room(0f, 0f, 0f), Room(1f, 0f, 0f), Room(0.5f, 0f, 0f) }, new[] { 0f, 0f, -PlanMap.Storey }, 0f);
+            Assert.Equal((-PlanMap.Storey, 0f), tiles[2]);
+            var half = PlanMap.Storey / 2f;
+            Assert.Equal(new[] { (half, PlanMap.Storey), (0f, half) }, tiles.Take(2).Select(Rounded).ToArray());
+        }
+
+        [Fact]
+        public void RoomsSideBySideUnderOneHallShareALane()
+        {
+            var hall = new PlacedRoom { Room = new RoomShape { Name = "hall", Size = new Vec3(12f, 4f, 4f) }, Position = new Vec3(0f, 0f, 0f) };
+            var tiles = PlanMap.Tiles(new[] { hall, Room(-3f, 0f, 0f), Room(3f, 0f, 0f) }, new[] { 0f, 0f, 0f }, 0f);
+            var half = PlanMap.Storey / 2f;
+            Assert.Equal(new[] { (half, PlanMap.Storey), (0f, half), (0f, half) }, tiles.Select(Rounded).ToArray());
+        }
+
+        [Fact]
+        public void NoTwoRoomsSideBySideAcrossCoverEachOtherOnceInLanes()
+        {
+            var rooms = new[] { Room(0f, 0f, 0f), Room(2f, 0f, 3f), Room(1f, 0f, 9f), Room(-2f, 0f, 4f), Room(3f, 0f, -6f), Room(5f, 0f, 1f), Room(-1f, 0f, -3f) };
+            var grounds = new[] { 0f, -1f, 0f, -2f, 1f, -0.5f, -2.5f };
+            foreach (var angle in new[] { 0f, 35f, 90f, 160f })
+            {
+                var tiles = PlanMap.Tiles(rooms, grounds, angle);
+                for (var a = 0; a < rooms.Length; a++)
+                {
+                    for (var b = a + 1; b < rooms.Length; b++)
+                    {
+                        var (aMin, aMax) = PlanMap.Across(rooms[a], angle);
+                        var (bMin, bMax) = PlanMap.Across(rooms[b], angle);
+                        var side = aMax - PlanMap.Touch <= bMin || bMax - PlanMap.Touch <= aMin;
+                        var apart = tiles[a].Top <= tiles[b].Bottom + 0.001f || tiles[b].Top <= tiles[a].Bottom + 0.001f;
+                        Assert.True(side || apart, $"rooms {a} and {b} cover each other at {angle}");
+                    }
+                }
+            }
+        }
+
+        [Fact]
         public void HalfATurnRoundShowsAsManyOverlapping()
         {
             var rooms = new[] { Room(0f, 0f, 0f), Room(6f, -1f, 3f), Room(3f, 0f, 9f), Room(-5f, -2f, 4f), Room(8f, 1f, -6f) };

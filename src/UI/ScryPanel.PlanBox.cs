@@ -57,6 +57,9 @@ namespace Scry
         /// <summary>What each drawing of the box works with, kept between drawings rather than made each time.</summary>
         private static readonly List<Rect> WrittenNames = new List<Rect>();
         private static readonly List<(float Min, float Max)> MapAcross = new List<(float, float)>();
+
+        /// <summary>How high each room stands on the map at the angle last counted, in lanes where rooms on one level would cover each other (<see cref="PlanMap.Tiles"/>).</summary>
+        private static List<(float Bottom, float Top)> _mapTiles = new List<(float, float)>();
         private static readonly Dictionary<PlacedRoom, Vector2> TreeAt = new Dictionary<PlacedRoom, Vector2>();
 
         /// <summary>Each room's place among the rooms, lowest first, to draw each way once.</summary>
@@ -566,6 +569,7 @@ namespace Scry
                 _overlapsOf = _boxWays;
                 _overlapsAt = angle;
                 _mapOverlaps = PlanMap.Overlaps(BoxRooms, BoxGrounds, angle);
+                _mapTiles = PlanMap.Tiles(BoxRooms, BoxGrounds, angle);
             }
             float lo = float.PositiveInfinity, hi = float.NegativeInfinity;
             var across = MapAcross;
@@ -585,7 +589,7 @@ namespace Scry
 
             for (var i = 0; i < BoxRooms.Count; i++)
             {
-                var (ground, roof) = PlanMap.Tile(BoxGrounds[i]);
+                var (ground, roof) = _mapTiles[i];
                 var rect = Rect.MinMaxRect(X(across[i].Min), Y(roof), Mathf.Max(X(across[i].Max), X(across[i].Min) + U(3f)), Y(ground));
                 BoxSpots.Add(new BoxSpot { Room = BoxRooms[i], Centre = rect.center, Half = rect.size / 2f });
             }
@@ -612,7 +616,8 @@ namespace Scry
             Ways(room =>
             {
                 var (min, max) = PlanMap.Across(room, angle);
-                return new Vector2((X(min) + X(max)) / 2f, Y(GroundOf(room) + middle));
+                var (bottomOf, topOf) = _mapTiles[BoxIndex[room]];
+                return new Vector2((X(min) + X(max)) / 2f, Y((bottomOf + topOf) / 2f));
             }, door => new Vector2(X(PlanMap.AcrossAt(door, angle)), Y(door.Y + middle)));
             foreach (var spot in BoxSpots) if (BoxLit(spot.Room) || spot.Room == gone) PlanFrame(new Rect(spot.Centre - spot.Half, spot.Half * 2f), Skin.Accent, 2f);
             if (_planBig) Names(explorer, area);
@@ -810,6 +815,7 @@ namespace Scry
             _routeTo = null;
             _planHoverShown = null;
             _overlapsOf = null;
+            _mapTiles = new List<(float, float)>();
             _planLit = null;
             _planLitForTest = null;
             _boxRead = _boxShown = _treeRead = -1;
