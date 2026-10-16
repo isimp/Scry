@@ -88,12 +88,34 @@ namespace Scry
             if (!On || started.Ticks == 0) return;
             var ms = (Stopwatch.GetTimestamp() - started.Ticks) * 1000.0 / Stopwatch.Frequency;
             // All it allocated, inner parts and all, so what it asked of Scry is left out with it.
-            var bytes = GC.CollectionCount(0) > started.Cleanups ? 0 : GC.GetTotalMemory(false) - started.Bytes;
+            var bytes = GC.CollectionCount(0) > started.Cleanups && !CountsPerThread ? 0 : Allocated() - started.Bytes;
             Roll();
             Frame.Add(part, Math.Max(0, ms - (Frame.InnerMs - innerBefore)), Math.Max(0, bytes), 0);
         }
 
         private static bool On => Settings.LogPreviews || Measuring != null || Settings.ShowMonitor;
+
+        /// <summary>
+        /// How much Scry's thread has allocated, read before and after each part: the runtime's
+        /// count of the thread where it keeps one, so other mods' threads allocating meanwhile are
+        /// not counted as Scry's, else the memory in use (<see cref="AllocationMeter"/>).
+        /// </summary>
+        private static readonly Func<long> Allocated = AllocationMeter.Pick(PerThread, () => GC.GetTotalMemory(false));
+
+        /// <summary>The runtime's count of what the thread asking allocated, where it has one.</summary>
+        private static Func<long> PerThread => _perThread ?? (_perThread = ThreadCount());
+
+        private static Func<long> _perThread;
+
+        /// <summary>Whether what each part allocates is counted for Scry's thread alone; for the monitor and the self-test.</summary>
+        public static bool CountsPerThread => _perThread != null && ReferenceEquals(Allocated, _perThread);
+
+        /// <summary>The runtime's count of what the thread asking allocated, found by name as the game's runtime has it and its reference assemblies do not; none without it.</summary>
+        private static Func<long> ThreadCount()
+        {
+            var method = typeof(GC).GetMethod("GetAllocatedBytesForCurrentThread", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static, null, Type.EmptyTypes, null);
+            return method != null ? (Func<long>)Delegate.CreateDelegate(typeof(Func<long>), method) : null;
+        }
 
         /// <summary>Told each frame of Scry's work as the next begins, with the frame's whole time, while the resource monitor shows.</summary>
         public static event Action<FrameTimes, double> FrameDone;
@@ -101,19 +123,20 @@ namespace Scry
         public static Mark Start()
         {
             if (!On) return default;
-            return new Mark { Ticks = Stopwatch.GetTimestamp(), Bytes = GC.GetTotalMemory(false), Cleanups = GC.CollectionCount(0), Rebuilds = _fontRebuilds };
+            return new Mark { Ticks = Stopwatch.GetTimestamp(), Bytes = Allocated(), Cleanups = GC.CollectionCount(0), Rebuilds = _fontRebuilds };
         }
 
         /// <summary>
         /// Adds the time since <paramref name="started"/> to a part of this frame, and what it
-        /// allocated, which the memory in use tells only roughly and not at all across a cleanup.
+        /// allocated: counted for Scry's thread where the runtime keeps that count, else told only
+        /// roughly by the memory in use, and not at all across a cleanup.
         /// </summary>
         public static void Add(string part, Mark started)
         {
             if (!On || started.Ticks == 0) return;
             var ms = (Stopwatch.GetTimestamp() - started.Ticks) * 1000.0 / Stopwatch.Frequency;
             var cleanups = GC.CollectionCount(0) - started.Cleanups;
-            var bytes = cleanups > 0 ? 0 : GC.GetTotalMemory(false) - started.Bytes;
+            var bytes = cleanups > 0 && !CountsPerThread ? 0 : Allocated() - started.Bytes;
             Roll();
             Frame.Add(part, ms, bytes, cleanups, _fontRebuilds - started.Rebuilds);
         }
