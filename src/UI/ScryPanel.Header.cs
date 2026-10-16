@@ -333,6 +333,14 @@ namespace Scry
         /// <summary>Holds the compendium's box open, or lets it close again; for the self-test.</summary>
         internal static void HoldCompendiumBox(bool open) => _bookHeld = open;
 
+        /// <summary>The compendium's button as last drawn: its width and its label, for the self-test to see the label fits.</summary>
+        private static float _bookButtonW;
+        private static string _bookLabel;
+
+        /// <summary>How wide the compendium's button was last drawn, and how wide its label is plain and open (bold); for the self-test.</summary>
+        internal static (float Width, float Plain, float Open) CompendiumButtonRoom() =>
+            _bookLabel == null ? (0f, 0f, 0f) : (_bookButtonW, Skin.Width(Skin.Button, _bookLabel), Skin.Width(Skin.On, _bookLabel));
+
         /// <summary>
         /// The compendium in the title row, once the character's book is read and only in the full
         /// view: a button naming the rules chosen, the box under it opening while the mouse is on
@@ -358,7 +366,8 @@ namespace Scry
             var on = explorer.CompendiumSet;
             var peek = new Rect(right - U(12f) - height, y, height, height);
             var label = CompendiumWords.Button(book.Rule);
-            var buttonW = Skin.Width(Skin.Button, label) + U(10f);
+            // Drawn bold while its box is open: as wide as the bold label, so it is never clipped.
+            var buttonW = ButtonSize.Fitting(Skin.Width(Skin.Button, label), Skin.Width(Skin.On, label), U(10f));
             var button = new Rect((on ? peek.x - U(4f) : right - U(12f)) - buttonW, y, buttonW, height);
             if (button.x < leftmost)
             {
@@ -366,6 +375,8 @@ namespace Scry
                 return right;
             }
             CountDrawn(PanelPart.CompendiumSwitch);
+            _bookButtonW = buttonW;
+            _bookLabel = label;
             var e = Event.current;
             GUI.Button(button, label, _bookOpen ? Skin.On : Skin.Button);
             if (!_bookOpen && button.Contains(e.mousePosition)) AskTip("mode", CompendiumWords.ModeTip);

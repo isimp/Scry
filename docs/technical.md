@@ -286,7 +286,7 @@ Sounds are copies on the camera, kept while they play, so long clips such as mus
 
 ## The compendium
 
-With the compendium on, the panel shows only what the character playing has come to know (`CompendiumView`, `Explorer.Know`). Its rules are chosen in a box under the *Compendium* button in the title row, which names the rules chosen and opens its box while the mouse is on it, as *Clear world* opens its list: *Off*, *Loose* or *Strict* (`CompendiumRule`), the floor under them while it is on, and the eye that peeks beside the button while it is on, and kept in the character's own book rather than in the settings, so a profile's sync never carries one player's choice to another; a new character starts *Off*. What a character learns is collected whatever the rules, so turning the compendium on later shows everything met meanwhile.
+With the compendium on, the panel shows only what the character playing has come to know (`CompendiumView`, `Explorer.Know`). Its rules are chosen in a box under the *Compendium* button in the title row, which names the rules chosen and opens its box while the mouse is on it, as *Clear world* opens its list, as wide as its label drawn bold while the box is open, so it neither clips nor changes width (`ButtonSize`): *Off*, *Loose* or *Strict* (`CompendiumRule`), the floor under them while it is on, and the eye that peeks beside the button while it is on, and kept in the character's own book rather than in the settings, so a profile's sync never carries one player's choice to another; a new character starts *Off*. What a character learns is collected whatever the rules, so turning the compendium on later shows everything met meanwhile.
 
 ### The book
 

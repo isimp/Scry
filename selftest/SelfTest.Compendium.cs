@@ -166,6 +166,10 @@ namespace Scry
             drawn = ScryPanel.Drawn(PanelPart.CompendiumSwitch);
             yield return Until(() => ScryPanel.Drawn(PanelPart.CompendiumSwitch) > drawn + 1, 3);
             p.Check(ScryPanel.Drawn(PanelPart.CompendiumSwitch) > drawn, $"in the full view its button stands in the title row, at {chosen}");
+            // Its label is drawn bold while its box is open: the button holds it whole either way.
+            var (buttonW, plainW, openW) = ScryPanel.CompendiumButtonRoom();
+            p.Check(buttonW > 0f && plainW <= buttonW && openW <= buttonW, "its button holds its label whole, plain and open",
+                $"{Numbers.Fixed(buttonW, 1)} wide, its label {Numbers.Fixed(plainW, 1)} plain and {Numbers.Fixed(openW, 1)} open");
             // Its box opens under the button with the rules.
             var boxes = ScryPanel.Drawn(PanelPart.CompendiumBox);
             ScryPanel.HoldCompendiumBox(true);
