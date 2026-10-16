@@ -17,7 +17,11 @@ namespace Scry
         /// stage is filmed with every room put away, whole and dimmed, and the rooms' pixels read
         /// (<see cref="DimLook"/>); each must keep at most 60% of its brightness. The shaders its
         /// rooms are drawn with are told, each with how many of their parts the dimming reached
-        /// and, for those it left, the colours the shader takes (<see cref="ShaderTally"/>).
+        /// and, for those it left, the colours the shader takes (<see cref="ShaderTally"/>). The
+        /// other ways of dimming (<see cref="DimWay"/>) are filmed and pictured too, each told
+        /// with what it leaves of the rooms' brightness, and those dark enough in every place
+        /// named (<see cref="DimWays"/>); the light's way is filmed with the stage's three lights
+        /// at the share a dimmed part keeps, its ambient as it is.
         /// </summary>
         private static IEnumerator DimShows(Probe p)
         {
@@ -27,6 +31,7 @@ namespace Scry
             Stage.Inside = true;
             BigStage();
             var pale = new List<string>();
+            var compared = new List<IReadOnlyDictionary<DimWay, float?>>();
             foreach (var entry in places)
             {
                 Select(entry);
@@ -59,7 +64,6 @@ namespace Scry
                 yield return Picture(p, $"dim {entry.Name} whole");
                 yield return Film(PlanRoomShown.Faint, film => dimmed = film);
                 yield return Picture(p, $"dim {entry.Name} dimmed");
-                Stage.ExampleHoldLook(null);
 
                 var (pixels, share) = DimLook.Read(empty, whole, dimmed);
                 var told = share is float kept
@@ -67,14 +71,39 @@ namespace Scry
                     : $"{entry.Name}: none of its rooms' pixels were read";
                 p.Note(told);
                 if (!DimLook.DarkEnough(share)) pale.Add(told);
+
+                // The other ways of dimming, each filmed and pictured from whole, to choose one by.
+                var ways = new Dictionary<DimWay, float?> { { DimWay.Tint, share } };
+                foreach (var way in DimWays.All.Where(w => w != DimWay.Tint))
+                {
+                    yield return Film(PlanRoomShown.Whole, film => { });
+                    Dim.UseWay(way);
+                    if (way == DimWay.Light) Stage.ShareOfLight(Dim.Share);
+                    float[] dimmedSo = null;
+                    yield return Film(PlanRoomShown.Faint, film => dimmedSo = film);
+                    yield return Picture(p, $"dim {entry.Name} {DimWays.Name(way)}");
+                    ways[way] = DimLook.Read(empty, whole, dimmedSo).Share;
+                    Stage.ShareOfLight(1f);
+                }
+                yield return Film(PlanRoomShown.Whole, film => { });
+                Dim.UseWay(DimWay.Tint);
+                Stage.ExampleHoldLook(null);
+                compared.Add(ways);
+                p.Note(DimWays.Line(entry.DisplayName, ways));
             }
             Stage.Inside = wasInside;
             StageAsItWas();
+            if (compared.Count > 0) p.Note(DimWays.Summary(compared));
             p.Check(pale.Count == 0, "dimmed rooms show at least 40% darker on the stage", string.Join("; ", pale));
         }
 
-        /// <summary>Puts the example's rooms back to what the floor opened has, after <see cref="DimShows"/>.</summary>
-        private static void LookAsItWas() => Stage.ExampleHoldLook(null);
+        /// <summary>Puts the example's rooms back to what the floor opened has, dimmed by tint under the stage's full light, after <see cref="DimShows"/>.</summary>
+        private static void LookAsItWas()
+        {
+            Stage.ExampleHoldLook(null);
+            Dim.UseWay(DimWay.Tint);
+            Stage.ShareOfLight(1f);
+        }
 
         /// <summary>Holds the example's rooms to a look, waits until every room has it and the stage has been filmed twice since, and hands over the film's brightness.</summary>
         private static IEnumerator Film(PlanRoomShown look, Action<float[]> read)
