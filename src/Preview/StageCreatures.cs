@@ -121,25 +121,30 @@ namespace Scry
         }
 
         /// <summary>
-        /// With a floor's cut laid at a height, a creature standing above it, on a floor above, is
+        /// With a floor's cut laid at a height, or along a slope, a creature standing above it, on a floor above, is
         /// cut away with that floor rather than drawn again over the picture: it stands on the
-        /// stage's own layer while the cut is above its feet. Put right as the cut moves or
+        /// stage's own layer while the cut is above its feet, where it stands (<paramref name="cutAt"/>). Put right as the cut moves or
         /// creatures come.
         /// </summary>
-        public void KeepToCut(float cut, int stageLayer, int creatureLayer)
+        public void KeepToCut(float cut, object slope, Func<Vector3, float> cutAt, int stageLayer, int creatureLayer)
         {
-            if (cut.Equals(_cutAt) && _copies.Count == _cutCount) return;
+            if (cut.Equals(_cutAt) && ReferenceEquals(slope, _cutSlope) && _copies.Count == _cutCount) return;
             _cutAt = cut;
+            _cutSlope = slope;
             _cutCount = _copies.Count;
             foreach (var pair in _copies)
             {
                 var creature = pair.Key;
                 if (creature == null) continue;
                 _lift.TryGetValue(creature, out var lift);
-                var layer = SpawnPoints.AboveCut(creature.transform.position.y, lift, cut) ? stageLayer : creatureLayer;
+                var at = creature.transform.position;
+                var layer = SpawnPoints.AboveCut(at.y, lift, cutAt(at)) ? stageLayer : creatureLayer;
                 if (creature.layer != layer) Ghost.SetLayer(creature.transform, layer);
             }
         }
+
+        /// <summary>The room whose sloping cut the creatures were last kept to; none for a level cut.</summary>
+        private object _cutSlope;
 
         /// <summary>How many creatures stand on a layer, for those cut away above a floor's cut.</summary>
         public int OnLayer(int layer) => _copies.Count(pair => pair.Key != null && pair.Key.layer == layer);

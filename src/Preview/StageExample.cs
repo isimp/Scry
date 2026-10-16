@@ -199,13 +199,26 @@ namespace Scry
             _focusAcross = null;
         }
 
-        /// <summary>A room's ground in the example's own space (<see cref="RoomFocus.Ground"/>): its main floor where its rays were read, else its lowest doorway.</summary>
+        /// <summary>A room's ground in the example's own space (<see cref="RoomFocus.Ground"/>): its main floor where its rays were read and found one to stand about on, else its lowest doorway.</summary>
         public float GroundOf(PlacedRoom room)
         {
-            var main = _roomGround.TryGetValue(room, out var patch) ? FloorFinder.MainFloor(patch) : null;
+            var read = _roomGround.TryGetValue(room, out var patch);
+            var main = read ? FloorFinder.MainFloor(patch) : null;
             var doorways = new List<float>();
             for (var i = 0; i < room.Room.Doorways.Count; i++) doorways.Add(room.DoorwayAt(i).Y);
-            return RoomFocus.Ground(main, doorways, room.Position.Y - room.Room.Size.Y / 2f);
+            return RoomFocus.Ground(main, read ? FloorFinder.MainFloorRoom(patch) : 0f, doorways, room.Position.Y - room.Room.Size.Y / 2f);
+        }
+
+        /// <summary>
+        /// The cut over a room gone into that has no real floor and climbs (<see cref="SlopeCut"/>),
+        /// in the example's own space; none for a room cut over its ground, or one not yet read.
+        /// </summary>
+        public RoomCutPlane? SlopeOf(PlacedRoom room)
+        {
+            if (!_roomGround.TryGetValue(room, out var patch)) return null;
+            var doorways = new List<Vec3>();
+            for (var i = 0; i < room.Room.Doorways.Count; i++) doorways.Add(room.DoorwayAt(i));
+            return SlopeCut.Of(doorways, RoomFocus.RealFloor(FloorFinder.MainFloor(patch), FloorFinder.MainFloorRoom(patch)));
         }
 
         /// <summary>The ceiling over a level of a room, from its own rays; none where they found none or it was not read.</summary>

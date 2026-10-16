@@ -23,18 +23,22 @@ namespace Scry
     /// <summary>
     /// A dungeon example with one room gone into: that room stands whole, cut at head height over
     /// its own ground, the rooms on its level half dimmed, those below dimmed and those above put
-    /// away. A room's ground is its own main floor where its rays were read, as a room's box
-    /// reaches past its floor, else its lowest doorway, where it is walked into.
+    /// away. A room's ground is its own main floor where its rays were read and it has room to
+    /// stand about, as a room's box reaches past its floor, else its lowest doorway, where it is
+    /// walked into.
     /// </summary>
     internal static class RoomFocus
     {
         /// <summary>How near another room's ground must be to that of the room gone into to be on its level, in metres.</summary>
         public const float SameLevel = 1.5f;
 
-        /// <summary>A room's ground: its own main floor where its rays found one, else its lowest doorway, else the foot of its box.</summary>
-        public static float Ground(float? mainFloor, IReadOnlyList<float> doorways, float foot)
+        /// <summary>Whether a room's main floor is one to stand about on: as much room as a level of its own needs (<see cref="RoomLevels.LeastRoom"/>), where a tunnel's scrap of flat rock has a few square metres.</summary>
+        public static bool RealFloor(float? mainFloor, float room) => mainFloor.HasValue && room >= RoomLevels.LeastRoom;
+
+        /// <summary>A room's ground: its own main floor where that is a real floor (<see cref="RealFloor"/>), else its lowest doorway, else the foot of its box.</summary>
+        public static float Ground(float? mainFloor, float room, IReadOnlyList<float> doorways, float foot)
         {
-            if (mainFloor is float main) return main;
+            if (RealFloor(mainFloor, room)) return mainFloor.Value;
             return doorways.Count > 0 ? doorways.Min() : foot;
         }
 

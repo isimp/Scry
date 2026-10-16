@@ -32,7 +32,7 @@ namespace Scry
             CutFromSide = side;
             TheExample.FromSide = side;
             var room = TheExample.Focused;
-            if (room != null) TheCut.Hold(side ? (float?)null : RoomLevelCut(room, TheExample.FocusLevel));
+            if (room != null) HoldRoomCut(room, TheExample.FocusLevel);
             if (ExampleInside) TurnTo(Yaw, side ? SidePitch : CutPitch);
         }
 
@@ -91,6 +91,17 @@ namespace Scry
         /// <summary>Where a pick ray starts in the example's own space: at the side cut where it is laid, as nothing between the camera and the cut is drawn.</summary>
         private static Vector3 PickFrom(Transform holder, Vector3 from, Vector3 direction)
         {
+            // Under a sloping cut, from where the ray crosses the slope.
+            if (SlopeLaid(out var slope))
+            {
+                var low = new Vector3(slope.Low.X, slope.Low.Y, slope.Low.Z);
+                var rise = new Vector3(slope.High.X, slope.High.Y, slope.High.Z) - low;
+                var up = Vector3.Cross(new Vector3(-rise.z, 0f, rise.x), rise).normalized;
+                var across = Vector3.Dot(direction, up);
+                if (Mathf.Abs(across) < 1e-5f) return from;
+                var crossing = Vector3.Dot(low - from, up) / across;
+                return crossing > 0f ? from + direction * crossing : from;
+            }
             if (!SideCutting || !(SideCutThrough() is Vector3 through)) return from;
             var at = holder.InverseTransformPoint(through);
             var facing = holder.InverseTransformDirection(SideCutFacing());

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -43,15 +44,35 @@ namespace Scry
                 if (_outline != null && _outline.gameObject.activeSelf) _outline.gameObject.SetActive(false);
                 return;
             }
-            var lift = holder.transform.localPosition.y;
-            var roomTop = room.Position.Y + room.Room.Size.Y / 2f;
-            var top = TheCut.Held ? RoomOutline.Top(CutAt - lift, roomTop) : roomTop;
-            if (_outline != null && _outline.gameObject.activeSelf && ReferenceEquals(room, _outlinedRoom) && top == _outlinedTop) return;
+            var key = TheCut.Held ? CutAt : room.Position.Y + room.Room.Size.Y / 2f;
+            if (_outline != null && _outline.gameObject.activeSelf && ReferenceEquals(room, _outlinedRoom) && key == _outlinedTop) return;
             if (!EnsureOutline()) return;
 
-            Lay(_outline, holder.transform, room, TheExample.FocusGround, top, 1f);
+            Lay(_outline, holder.transform, room, TheExample.FocusGround, TopsOf(room, TheCut.Held), 1f);
             _outlinedRoom = room;
-            _outlinedTop = top;
+            _outlinedTop = key;
+        }
+
+        /// <summary>A room's top at each corner of its box, worked out each time it is laid.</summary>
+        private static readonly float[] CornerTops = new float[4];
+
+        /// <summary>
+        /// A room's top at each corner of its box: its own top, or under the cut where that is
+        /// lower, the cut's height at that corner along the slope where one is laid.
+        /// </summary>
+        private static float[] TopsOf(PlacedRoom room, bool underCut)
+        {
+            var roomTop = room.Position.Y + room.Room.Size.Y / 2f;
+            var lift = TheExample.Holder != null ? TheExample.Holder.transform.localPosition.y : 0f;
+            var corners = room.Corners();
+            var sloped = SlopeLaid(out var slope);
+            for (var i = 0; i < CornerTops.Length; i++)
+            {
+                var corner = corners[i % corners.Length];
+                var cut = sloped ? slope.HeightAt(corner.X, corner.Z) : CutAt - lift;
+                CornerTops[i] = underCut ? RoomOutline.Top(cut, roomTop) : roomTop;
+            }
+            return CornerTops;
         }
 
         /// <summary>
@@ -85,20 +106,20 @@ namespace Scry
                 if (_litOutline != null && _litOutline.gameObject.activeSelf) _litOutline.gameObject.SetActive(false);
                 return;
             }
-            var lift = holder.transform.localPosition.y;
-            var roomTop = room.Position.Y + room.Room.Size.Y / 2f;
-            var top = Cutting ? RoomOutline.Top(CutAt - lift, roomTop) : roomTop;
-            if (_litOutline != null && _litOutline.gameObject.activeSelf && ReferenceEquals(room, _litDrawn) && top == _litTop) return;
+            var key = Cutting ? CutAt : room.Position.Y + room.Room.Size.Y / 2f;
+            if (_litOutline != null && _litOutline.gameObject.activeSelf && ReferenceEquals(room, _litDrawn) && key == _litTop) return;
             if (!EnsureLine(ref _litOutline, "Scry lit room outline", LitColour)) return;
-            Lay(_litOutline, holder.transform, room, Mathf.Min(TheExample.GroundOf(room), top), top, 0.5f);
+            var tops = TopsOf(room, Cutting);
+            var lowest = Mathf.Min(Mathf.Min(tops[0], tops[1]), Mathf.Min(tops[2], tops[3]));
+            Lay(_litOutline, holder.transform, room, Mathf.Min(TheExample.GroundOf(room), lowest), tops, 0.5f);
             _litDrawn = room;
-            _litTop = top;
+            _litTop = key;
         }
 
-        /// <summary>Lays a line round a room's box from a ground to a top, in the example's space, as wide as the view of the room gone into has it.</summary>
-        private static void Lay(LineRenderer line, Transform holder, PlacedRoom room, float ground, float top, float width)
+        /// <summary>Lays a line round a room's box from a ground to its top at each corner, in the example's space, as wide as the view of the room gone into has it.</summary>
+        private static void Lay(LineRenderer line, Transform holder, PlacedRoom room, float ground, IReadOnlyList<float> tops, float width)
         {
-            var path = RoomOutline.Path(room.Corners(), ground, top);
+            var path = RoomOutline.Path(room.Corners(), ground, tops);
             var points = new Vector3[path.Count];
             for (var i = 0; i < path.Count; i++) points[i] = holder.TransformPoint(new Vector3(path[i].X, path[i].Y, path[i].Z));
             line.positionCount = points.Length;

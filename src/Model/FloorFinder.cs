@@ -208,6 +208,9 @@ namespace Scry
             return (float)(band.Sum / band.Count);
         }
 
+        /// <summary>How much room to stand about the main floor has, in square metres; none where there is no main floor.</summary>
+        public static float MainFloorRoom(FloorPatch patch) => MainBand(patch) is int main ? patch.Bands[main].Room : 0f;
+
         private static int? MainBand(FloorPatch patch)
         {
             int? best = null;

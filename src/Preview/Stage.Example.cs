@@ -303,12 +303,96 @@ namespace Scry
         /// <summary>A room's ground in the example's own space (<see cref="StageExample.GroundOf"/>), for the self-test.</summary>
         public static float ExampleRoomGround(PlacedRoom room) => TheExample.GroundOf(room);
 
-        /// <summary>Where the stage cuts with a room gone into, above the location's root: head height over its ground, under its own ceiling where lower (<see cref="RoomFocus.Cut"/>).</summary>
+        /// <summary>
+        /// Where the stage cuts with a room gone into from above, above the location's root: for a
+        /// room with no real floor that climbs, a head's height over its lowest doorways, where
+        /// its slope starts, or over its top where it is a shaft (<see cref="SlopeCut"/>); else
+        /// head height over its ground, under its own ceiling where lower (<see cref="RoomFocus.Cut"/>).
+        /// </summary>
         public static float RoomCut(PlacedRoom room)
         {
-            var ground = TheExample.GroundOf(room);
             var lift = TheExample.Holder != null ? TheExample.Holder.transform.localPosition.y : 0f;
+            if (TheExample.SlopeOf(room) is RoomCutPlane plane) return plane.Low.Y + lift;
+            var ground = TheExample.GroundOf(room);
             return RoomFocus.Cut(ground, TheExample.CeilingOver(room, ground)) + lift;
+        }
+
+        /// <summary>The cut over a room as it would be gone into (<see cref="SlopeCut"/>), in the example's own space, for the self-test; none for one cut over its ground.</summary>
+        [Diagnostic]
+        public static RoomCutPlane? ExampleRoomSlope(PlacedRoom room) => TheExample.SlopeOf(room);
+
+        /// <summary>The sloping cut over the room gone into, in the example's own space, before the cut is moved by hand; none while it is cut flat or from the side.</summary>
+        private static RoomCutPlane? _slope;
+        private static PlacedRoom _slopeOf;
+
+        /// <summary>
+        /// Holds the cut over a room gone into: from the side, none; from above, along its slope
+        /// where it climbs with no real floor, else at the height <see cref="RoomCut"/> or a level
+        /// of it gives.
+        /// </summary>
+        private static void HoldRoomCut(PlacedRoom room, float level)
+        {
+            _slope = null;
+            _slopeOf = null;
+            if (CutFromSide)
+            {
+                TheCut.Hold(null);
+                return;
+            }
+            var lift = TheExample.Holder != null ? TheExample.Holder.transform.localPosition.y : 0f;
+            if (TheExample.SlopeOf(room) is RoomCutPlane plane)
+            {
+                if (plane.Sloping)
+                {
+                    _slope = plane;
+                    _slopeOf = room;
+                }
+                TheCut.Hold(plane.Low.Y + lift);
+                return;
+            }
+            TheCut.Hold(RoomLevelCut(room, level));
+        }
+
+        /// <summary>Lets go of the cut over a room gone into, the roof back on.</summary>
+        private static void LetGoOfRoomCut()
+        {
+            _slope = null;
+            _slopeOf = null;
+            TheCut.Hold(null);
+        }
+
+        /// <summary>
+        /// The sloping cut laid now, in the example's own space, moved up or down as the cut has
+        /// been by hand; false while the room gone into is cut flat, from the side, or not at all.
+        /// </summary>
+        private static bool SlopeLaid(out RoomCutPlane plane)
+        {
+            plane = default;
+            if (!(_slope is RoomCutPlane slope) || _slopeOf == null || _slopeOf != TheExample.Focused || !TheCut.Held || CutFromSide || TheExample.Holder == null) return false;
+            plane = slope.Raised(CutAt - TheExample.Holder.transform.localPosition.y - slope.Low.Y);
+            return true;
+        }
+
+        /// <summary>Whether the cut laid over the room gone into slopes, for the self-test.</summary>
+        [Diagnostic]
+        public static bool SlopeCutLaid => SlopeLaid(out _);
+
+        /// <summary>How many of a room's drawn parts reach under the cut where each stands, of how many it has, for the self-test to tell a room cut away from one shown.</summary>
+        [Diagnostic]
+        public static (int Under, int All) ExampleRoomPartsUnderCut(PlacedRoom room)
+        {
+            var copy = TheExample.CopyOf(room);
+            if (copy == null) return (0, 0);
+            var under = 0;
+            var all = 0;
+            foreach (var part in copy.GetComponentsInChildren<Renderer>())
+            {
+                if (part == null || !part.enabled) continue;
+                all++;
+                var bounds = part.bounds;
+                if (bounds.min.y < CutHeightAt(bounds.center)) under++;
+            }
+            return (under, all);
         }
 
         /// <summary>A room's levels from the lowest up, its ground among them (<see cref="RoomLevels"/>).</summary>
@@ -342,7 +426,7 @@ namespace Scry
             var room = TheExample.Focused;
             if (room == null) return;
             TheExample.OpenLevelOfFocused(level);
-            if (!CutFromSide) TheCut.Hold(RoomLevelCut(room, level));
+            HoldRoomCut(room, level);
         }
 
         /// <summary>
@@ -355,8 +439,8 @@ namespace Scry
             if (room == null || !TheExample.IsDungeon || TheExample.Placed == null || !TheExample.Placed.Rooms.Contains(room)) return;
             TheExample.Focus(room);
             // Cut from the side, the cut goes through the room's middle, any floor opened let go
-            // of; from above, at head height over its ground.
-            TheCut.Hold(CutFromSide ? (float?)null : RoomCut(room));
+            // of; from above, at head height over its ground, or along its slope where it climbs with no real floor.
+            HoldRoomCut(room, TheExample.FocusLevel);
             TurnTo(Yaw, CutFromSide ? SidePitch : CutPitch);
         }
 
@@ -365,13 +449,13 @@ namespace Scry
         {
             if (TheExample.Focused == null) return;
             TheExample.Unfocus();
-            TheCut.Hold(null);
+            LetGoOfRoomCut();
         }
 
         /// <summary>Takes down the example's copies, as another entry or another example is shown, its rooms' creatures and paints with them.</summary>
         private static void ForgetExample()
         {
-            if (TheExample.Focused != null) TheCut.Hold(null);
+            if (TheExample.Focused != null) LetGoOfRoomCut();
             TheExample.Forget();
             ForgetRoomCreatures();
             ForgetGroundPaints(rooms: true);
@@ -418,7 +502,7 @@ namespace Scry
             var holder = holderObject.transform;
             var direction = holder.InverseTransformVector(ray);
             var from = PickFrom(holder, holder.InverseTransformPoint(eye.position), direction);
-            var below = Cutting ? holder.InverseTransformPoint(new Vector3(eye.position.x, Origin.y + CutAt * _scale, eye.position.z)).y : float.PositiveInfinity;
+            var below = Cutting && !SlopeLaid(out _) ? holder.InverseTransformPoint(new Vector3(eye.position.x, Origin.y + CutAt * _scale, eye.position.z)).y : float.PositiveInfinity;
             // Rooms put away are passed by; with a room gone into, those dimmed around it can be gone into next.
             var room = placed.Pick(new Vec3(from.x, from.y, from.z), new Vec3(direction.x, direction.y, direction.z), below,
                 TheExample.IsDungeon ? r => TheExample.Focused != null ? ExampleRoomLook(r) != RoomLook.Away : ExampleRoomShown(r) == PlanRoomShown.Whole : (Func<PlacedRoom, bool>)null);

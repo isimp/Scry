@@ -153,6 +153,34 @@ namespace Scry
         private static void ClearFloors() => TheCut.Clear();
 
         /// <summary>
+        /// A sloping cut in the world: a point of it, at the head of its slope's low end, and the
+        /// way to what it keeps, down from it and square to it.
+        /// </summary>
+        private static (Vector3 At, Vector3 Kept) SlopeInWorld(RoomCutPlane slope)
+        {
+            var holder = TheExample.Holder.transform;
+            var low = holder.TransformPoint(new Vector3(slope.Low.X, slope.Low.Y, slope.Low.Z));
+            var high = holder.TransformPoint(new Vector3(slope.High.X, slope.High.Y, slope.High.Z));
+            var side = holder.TransformDirection(new Vector3(-(slope.High.Z - slope.Low.Z), 0f, slope.High.X - slope.Low.X));
+            var up = Vector3.Cross(side, high - low).normalized;
+            if (up.y < 0f) up = -up;
+            return (low, -up);
+        }
+
+        /// <summary>How high the cut is at a point of the world, along the slope where one is laid; out of reach with none.</summary>
+        private static float CutHeightAt(Vector3 point)
+        {
+            if (!Cutting || _subject == null) return float.PositiveInfinity;
+            if (!SlopeLaid(out var slope)) return Origin.y + CutAt * _scale;
+            var holder = TheExample.Holder.transform;
+            var local = holder.InverseTransformPoint(point);
+            return holder.TransformPoint(new Vector3(local.x, slope.HeightAt(local.x, local.z), local.z)).y;
+        }
+
+        /// <summary>The same, made once, for the creatures to be kept to the cut by.</summary>
+        private static readonly System.Func<Vector3, float> CutHeightAtPoint = CutHeightAt;
+
+        /// <summary>
         /// Lays the camera's near plane along the cut, once the camera is placed for the frame,
         /// when the camera is above it; otherwise the camera's own projection stands.
         /// </summary>
@@ -168,16 +196,27 @@ namespace Scry
             }
             if (!Cutting) return;
 
-            var y = Origin.y + CutAt * _scale;
+            // A point of the cut and the way to what it keeps, in the world: level at the cut's
+            // height, or along the slope over the room gone into.
             var eye = _camera.transform.position;
-            if (eye.y <= y + 0.05f) return;
+            Vector3 at, kept;
+            if (SlopeLaid(out var slope))
+            {
+                (at, kept) = SlopeInWorld(slope);
+            }
+            else
+            {
+                at = new Vector3(eye.x, Origin.y + CutAt * _scale, eye.z);
+                kept = Vector3.down;
+            }
+            if (Vector3.Dot(eye - at, kept) >= -0.05f) return;
 
             // The oblique projection tilts the far plane too, so it is pushed out to keep the
             // backdrop in the picture.
             _camera.farClipPlane *= 4f;
             var toCamera = _camera.worldToCameraMatrix;
-            var point = toCamera.MultiplyPoint(new Vector3(eye.x, y, eye.z));
-            var normal = toCamera.MultiplyVector(Vector3.down).normalized;
+            var point = toCamera.MultiplyPoint(at);
+            var normal = toCamera.MultiplyVector(kept).normalized;
             var plane = new Vector4(normal.x, normal.y, normal.z, -Vector3.Dot(point, normal));
             _camera.projectionMatrix = _camera.CalculateObliqueMatrix(plane);
 

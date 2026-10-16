@@ -159,7 +159,7 @@ namespace Scry
         {
             if (CreatureLayer == _layer) return;
             var cut = Cutting && _subject != null ? Origin.y + CutAt * _scale : float.PositiveInfinity;
-            Creatures.KeepToCut(cut, _layer, CreatureLayer);
+            Creatures.KeepToCut(cut, SlopeLaid(out _) ? _slopeOf : null, CutHeightAtPoint, _layer, CreatureLayer);
         }
 
         /// <summary>Lets go of the example's rooms' creatures, as its rooms go; the location's own stay.</summary>

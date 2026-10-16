@@ -57,6 +57,33 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void UnderASlopingCutTheOutlinesTopFollowsTheSlopeCornerByCorner()
+        {
+            // Each corner's top under the cut there, or the room's own top where that is lower.
+            var tops = new[] { 2f, 3f, 9f, 4f };
+            var path = RoomOutline.Path(Square, 1f, tops);
+            var edges = Edges(path);
+            for (var i = 0; i < 4; i++)
+            {
+                var a = Square[i];
+                var b = Square[(i + 1) % 4];
+                Assert.Contains(Edge(new Vec3(a.X, 1f, a.Z), new Vec3(a.X, tops[i], a.Z)), edges);
+                Assert.Contains(Edge(new Vec3(a.X, tops[i], a.Z), new Vec3(b.X, tops[(i + 1) % 4], b.Z)), edges);
+                Assert.Contains(Edge(new Vec3(a.X, 1f, a.Z), new Vec3(b.X, 1f, b.Z)), edges);
+            }
+            Assert.Equal(12, edges.Count);
+        }
+
+        [Fact]
+        public void WhereTheSlopeMeetsTheFloorAtOneCornerTheOtherCornersStillStandUp()
+        {
+            // The cut reaches the ground at the first corner only.
+            var path = RoomOutline.Path(Square, 1f, new[] { 0.5f, 3f, 3f, 3f });
+            Assert.Contains(path, p => p.Y == 3f);
+            Assert.DoesNotContain(path, p => p.Y < 1f);
+        }
+
+        [Fact]
         public void TheOutlinesTopRunsJustUnderTheCutSoTheCutNeverClipsIt()
         {
             Assert.Equal(2.5f - RoomOutline.UnderCut, RoomOutline.Top(2.5f, 10f), 4);
