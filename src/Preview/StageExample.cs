@@ -106,6 +106,17 @@ namespace Scry
         /// <summary>Whether a room's copy is dimmed, below the floor opened.</summary>
         public bool IsDimmed(GameObject room) => _dimmed.Contains(room);
 
+        /// <summary>The look every room is held to for the self-test, whole, dimmed or put away, over what the floor opened has; null to follow the floor.</summary>
+        private PlanRoomShown? _heldLook;
+
+        /// <summary>Holds every room whole, dimmed or put away, for the self-test to picture each; null lets the floor opened decide again.</summary>
+        [Diagnostic]
+        public void HoldLook(PlanRoomShown? look) => _heldLook = look;
+
+        /// <summary>The rooms' copies standing, for the self-test to tell what they are drawn with.</summary>
+        [Diagnostic]
+        public List<GameObject> RoomCopies() => _rooms.Select(pair => pair.Value).Where(copy => copy != null).ToList();
+
         /// <summary>The lights switched on in the rooms dimmed below the floor opened.</summary>
         public List<Light> DimmedLights()
         {
@@ -137,7 +148,7 @@ namespace Scry
             {
                 var copy = pair.Value;
                 if (copy == null) continue;
-                var shown = RoomShown(pair.Key, planFloor, floors);
+                var shown = _heldLook ?? RoomShown(pair.Key, planFloor, floors);
                 var standing = shown != PlanRoomShown.None;
                 var dimmed = shown == PlanRoomShown.Faint;
                 if (copy.activeSelf == standing && _dimmed.Contains(copy) == dimmed) continue;
@@ -214,7 +225,7 @@ namespace Scry
             foreach (var pair in _rooms)
             {
                 if (pair.Value == null) continue;
-                var shown = RoomShown(pair.Key, planFloor, floors);
+                var shown = _heldLook ?? RoomShown(pair.Key, planFloor, floors);
                 if (pair.Value.activeSelf != (shown != PlanRoomShown.None) || _dimmed.Contains(pair.Value) != (shown == PlanRoomShown.Faint)) return false;
             }
             return true;
@@ -482,6 +493,7 @@ namespace Scry
             _ownFloor.Clear();
             _ownFloorOf.Clear();
             _ownFloorRead = -1;
+            _heldLook = null;
             Top = float.NaN;
             _outside.Clear();
         }

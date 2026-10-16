@@ -184,6 +184,14 @@ namespace Scry
         /// <summary>Whether every room of the example stands, is dimmed or is put away as the floor opened has it, for the self-test.</summary>
         public static bool ExampleRoomsKept => TheExample.Kept(ExamplePlanFloor, ExampleFloors);
 
+        /// <summary>Holds every room of the example whole, dimmed or put away, for the self-test to film each; null lets the floor opened decide again.</summary>
+        [Diagnostic]
+        public static void ExampleHoldLook(PlanRoomShown? look) => TheExample.HoldLook(look);
+
+        /// <summary>The example's rooms' copies standing, for the self-test to tell what they are drawn with.</summary>
+        [Diagnostic]
+        public static List<GameObject> ExampleRoomCopies() => TheExample.RoomCopies();
+
         /// <summary>How many of the example's rooms are put away, above the floor opened, for the self-test.</summary>
         public static int ExampleRoomsAway => TheExample.Away;
 

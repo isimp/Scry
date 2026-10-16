@@ -18,6 +18,9 @@ namespace Scry
         private static readonly MaterialPropertyBlock Block = new MaterialPropertyBlock();
         private static readonly List<Renderer> Renderers = new List<Renderer>();
 
+        /// <summary>Whether dimming darkens a material: its shader takes a tint or a glow.</summary>
+        public static bool Reaches(Material material) => material != null && (material.HasProperty(Tint) || material.HasProperty(Glow));
+
         /// <summary>Dims a copy, or takes the dimming off.</summary>
         public static void Set(GameObject copy, bool dim)
         {
@@ -37,21 +40,15 @@ namespace Scry
                             continue;
                         }
                         var material = materials[i];
-                        if (material == null) continue;
+                        if (!Reaches(material)) continue;
                         Block.Clear();
-                        var tinted = false;
                         if (material.HasProperty(Tint))
                         {
                             var own = material.GetColor(Tint);
                             Block.SetColor(Tint, new Color(own.r * Share, own.g * Share, own.b * Share, own.a));
-                            tinted = true;
                         }
-                        if (material.HasProperty(Glow))
-                        {
-                            Block.SetColor(Glow, material.GetColor(Glow) * Share);
-                            tinted = true;
-                        }
-                        if (tinted) renderer.SetPropertyBlock(Block, i);
+                        if (material.HasProperty(Glow)) Block.SetColor(Glow, material.GetColor(Glow) * Share);
+                        renderer.SetPropertyBlock(Block, i);
                     }
                 }
             }
