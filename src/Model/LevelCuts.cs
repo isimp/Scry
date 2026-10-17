@@ -3,14 +3,6 @@ using System.Collections.Generic;
 
 namespace Scry
 {
-    /// <summary>How the whole of a dungeon's example opens from above: by its floors, or, tried beside them, by the plan's levels a group of rooms one cut opens at a time, or a whole level filmed in as many cuts as it needs.</summary>
-    internal enum InsideLevels
-    {
-        Floors,
-        Steps,
-        Films,
-    }
-
     /// <summary>
     /// The groups of a dungeon's rooms that one cut opens, level by level as the plan box lays
     /// the levels out (<see cref="PlanLevels"/>). The stage cuts with one height at a time, and a

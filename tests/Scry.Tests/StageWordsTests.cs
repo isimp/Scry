@@ -35,21 +35,11 @@ namespace Scry.Tests
         // ----- The whole dungeon opened by the plan's levels -----
 
         [Fact]
-        public void AMarkOfTheRulerNamesItsLevelAndOfSeveralGroupsWhichOrHowManyCuts()
+        public void AMarkOfTheRulerNamesItsLevelByItsDepthAlone()
         {
-            Assert.Equal("Level -17 m", StageWords.LevelMark("-17 m", 1, 1, films: false));
-            Assert.Equal("Level +1 m, 2 of 3", StageWords.LevelMark("+1 m", 2, 3, films: false));
-            Assert.Equal("Level +1 m, 3 cuts", StageWords.LevelMark("+1 m", 1, 3, films: true));
-            Assert.Equal("Level -17 m", StageWords.LevelMark("-17 m", 1, 1, films: true));
-        }
-
-        [Fact]
-        public void TheChipTellsHowTheWholeDungeonOpens()
-        {
-            Assert.Equal("Floors", StageWords.LevelsChip(InsideLevels.Floors));
-            Assert.Equal("Level steps", StageWords.LevelsChip(InsideLevels.Steps));
-            Assert.Equal("Level films", StageWords.LevelsChip(InsideLevels.Films));
-            Assert.Contains("click for the next", StageWords.LevelsTip);
+            // However many cuts a level is filmed in, its mark is the level.
+            Assert.Equal("Level -17 m", StageWords.LevelMark("-17 m"));
+            Assert.Equal("Level +1 m", StageWords.LevelMark("+1 m"));
         }
 
         // ----- The ruler in a room gone into -----

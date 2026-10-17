@@ -130,7 +130,7 @@ namespace Scry
             yield return S("the places looked at for their floors open each floor, cut under its ceiling, pictured", FloorsPictured, 300, StageAsItWas, bearsSkips: true);
             yield return S("a dungeon lays out an example, drawn, its rooms going to their entries", DungeonExample, 200, bearsSkips: true);
             yield return S("a camp lays out an example, drawn", CampExample, 150, bearsSkips: true);
-            yield return S("the cave and tower dungeons find floors with rooms on each", CaveFloors, 300, StageAsItWas, bearsSkips: true);
+            yield return S("the cave and tower dungeons open level by level with rooms on each", CaveFloors, 300, StageAsItWas, bearsSkips: true);
             yield return S("dimmed rooms show darker on the stage, and what the rooms are drawn with is told", DimShows, 300, () => { LookAsItWas(); StageAsItWas(); }, bearsSkips: true);
             yield return S("a dungeon's room is gone into with a click and come back out of", GoesIntoRooms, 300, () => { ComeOutOfRoom(); StageAsItWas(); }, bearsSkips: true);
             yield return S("a stack of rooms opens cut from the side, and a room is gone into so", SideCutShows, 180, () => { SideCutAsItWas(); StageAsItWas(); }, bearsSkips: true);
@@ -138,7 +138,7 @@ namespace Scry
             yield return S("a room gone into shows its card: where it is, what this copy rolled in it, its ways on and its levels", RoomCardShows, 240, () => { RoomCardAsItWas(); StageAsItWas(); }, bearsSkips: true);
             yield return S("the plan box shows a dungeon from above, as a map turned to any angle, and as a tree of its ways", PlanBoxShows, 360, () => { PlanBoxAsItWas(); StageAsItWas(); }, bearsSkips: true);
             yield return S("nothing drawn over the stage covers anything else, whatever its size and the plan box's", NothingOverlapsOnStage, 180, () => { OverlapsAsTheyWere(); StageAsItWas(); }, bearsSkips: true);
-            yield return S("the whole of a dungeon opens by the plan's levels, stepped a group at a time and filmed a level at a time, as tried beside the floors", LevelsTried, 300, () => { Stage.LevelsMode = InsideLevels.Floors; StageAsItWas(); }, bearsSkips: true);
+            yield return S("the whole of a dungeon opens by the plan's levels, each filmed in as many cuts as it needs", LevelsTried, 300, StageAsItWas, bearsSkips: true);
             yield return S("places' floors are kept and told again from what was kept, as their rays find them", FloorsKept, 300, KeptFloorsUnverified, bearsSkips: true);
             yield return S("a place whose kept floors are still being found waits for them over frames, none of them long", FloorsWaitedFor, 300, FloorFilesFreed, bearsSkips: true);
             yield return S("a place's creatures stand on the stage with it", PlaceCreatures, 60, bearsSkips: true);

@@ -456,16 +456,16 @@ namespace Scry
                 Stage.Inside = true;
                 yield return null;
 
-                // Beside the Top cut and Side cut chips and the one for how the whole dungeon opens (three each time they are drawn), its row holds only
+                // Beside the Top cut and Side cut chips (two each time they are drawn), its row holds only
                 // View, Inside and Creatures; the roof is over the ruler.
                 var chips = ScryPanel.Drawn(PanelPart.StageChip);
                 var cutChips = ScryPanel.Drawn(PanelPart.CutChip);
                 var roofs = ScryPanel.Drawn(PanelPart.RoofButton);
                 var frames = Time.frameCount;
                 yield return Until(() => Time.frameCount > frames + 1 && ScryPanel.Drawn(PanelPart.RoofButton) > roofs, 3);
-                var others = ScryPanel.Drawn(PanelPart.StageChip) - chips - 3 * (ScryPanel.Drawn(PanelPart.CutChip) - cutChips);
+                var others = ScryPanel.Drawn(PanelPart.StageChip) - chips - 2 * (ScryPanel.Drawn(PanelPart.CutChip) - cutChips);
                 var perFrame = others / Mathf.Max(1, ScryPanel.Drawn(PanelPart.RoofButton) - roofs);
-                p.Check(perFrame > 0 && perFrame <= 3 && ScryPanel.Drawn(PanelPart.RoofButton) > roofs, "beside the Top cut and Side cut chips and the one for how the whole dungeon opens, its stage shows three chips at the most, the roof over its ruler", $"{Numbers.Count(perFrame)} chips a frame");
+                p.Check(perFrame > 0 && perFrame <= 3 && ScryPanel.Drawn(PanelPart.RoofButton) > roofs, "beside the Top cut and Side cut chips, its stage shows three chips at the most, the roof over its ruler", $"{Numbers.Count(perFrame)} chips a frame");
                 p.Check(Stage.Cutting, "opened on its top floor", Stage.CutLabel);
                 var cuts = new List<float> { Stage.CutAt };
                 while (Stage.CutLevel < Stage.FloorHeights.Count - 1 && cuts.Count < 40)
@@ -474,22 +474,22 @@ namespace Scry
                     cuts.Add(Stage.CutAt);
                 }
                 var down = cuts.Zip(cuts.Skip(1), (above, below) => below < above).All(lower => lower);
-                p.Note($"{Numbers.Count(Stage.FloorHeights.Count)} floors found in its rooms");
-                p.Check(cuts.Count > 0 && down, "it steps down floor by floor", string.Join(", ", cuts.Select(c => Numbers.Fixed(c, 1))) + " m");
+                p.Note($"{Numbers.Count(Stage.FloorHeights.Count)} levels on its ruler");
+                p.Check(cuts.Count > 0 && down, "it steps down level by level", string.Join(", ", cuts.Select(c => Numbers.Fixed(c, 1))) + " m");
                 if (Stage.FloorHeights.Count > 1)
                 {
-                    // On its lowest floor the rooms above are put away; with the roof on, all stand again.
+                    // On its lowest level the rooms above are put away; with the roof on, all stand again.
                     yield return Until(() => Stage.ExampleRoomsAway > 0, 3);
-                    var label = PlaceView.FloorLabel(Stage.CutLevel, Stage.FloorHeights.Count, Stage.ExampleRoomsOnFloor);
-                    p.Check(Stage.ExampleRoomsAway > 0 && label != null, "on its lowest floor the rooms above are put away, the floor named by the ruler", $"{Numbers.Count(Stage.ExampleRoomsAway)} rooms put away; {label ?? "no label"}");
+                    var label = Stage.ExampleMark(Stage.CutLevel);
+                    p.Check(Stage.ExampleRoomsAway > 0 && label != null, "on its lowest level the rooms above are put away, the level named by the ruler", $"{Numbers.Count(Stage.ExampleRoomsAway)} rooms put away; {label ?? "no label"}");
                     Stage.OpenLevel(Stage.FloorHeights.Count);
                     yield return Until(() => Stage.ExampleRoomsAway == 0, 3);
                     p.Check(Stage.ExampleRoomsAway == 0, "with the roof on every room stands", $"{Numbers.Count(Stage.ExampleRoomsAway)} still away");
                 }
                 Stage.OpenLevel(0);
                 yield return Until(() => Stage.ExampleRoomsKept, 3);
-                if (Stage.FloorHeights.Count > 1) p.Check(Stage.ExampleRoomsDimmed > 0, "on its top floor the rooms below stand dimmed", $"{Numbers.Count(Stage.ExampleRoomsDimmed)} dimmed, {Numbers.Count(Stage.ExampleRoomsAway)} put away");
-                // A room of the top floor, which stands while it is opened.
+                if (Stage.FloorHeights.Count > 1) p.Check(Stage.ExampleRoomsDimmed > 0, "on its top level the rooms below stand dimmed", $"{Numbers.Count(Stage.ExampleRoomsDimmed)} dimmed, {Numbers.Count(Stage.ExampleRoomsAway)} put away");
+                // A room of the top level, which stands while it is opened.
                 var top = Stage.ExampleShown?.Rooms.FindIndex(r => !r.Room.EndCap && !r.Room.Divider && Stage.ExampleRoomShown(r) == PlanRoomShown.Whole) ?? -1;
                 var point = Stage.ExamplePointOf(Math.Max(0, top));
                 p.Check(point.HasValue && Stage.ExampleRoomAt(point.Value) != null, "a room on the stage is found under the mouse", (point.HasValue ? Figures.Point(point.Value) : "not in view"));
@@ -550,15 +550,12 @@ namespace Scry
 
         /// <summary>
         /// The dungeons whose rooms are rock or stacked high, the Frost Caves, the M&#xF6;rkhalla ones and
-        /// Hildir's sealed tower: each one's example is built and opened floor by floor, told with
-        /// how many rooms stand on each floor; a floor no room stands on is a floor found where
-        /// there is none, some room always stands on the stage, and every room stands whole on
-        /// some floor, so it can be opened and gone to. M&#xF6;rkhalla, whose floors come out
-        /// differently example to example, is laid out three times, each floor of its first
-        /// example pictured, as each other's is. Its creatures are told: how
-        /// many dropped to the ground under their points and how many fly. Every M&#xF6;rkhalla room
-        /// has a floor at its foot and none lies over its gate, and the sealed tower's floors are
-        /// a storey apart from its top room to its foot.
+        /// Hildir's sealed tower: each one's example is built and opened level by level, told with
+        /// how many rooms stand on each level; every level has rooms on it, some room always
+        /// stands on the stage, and every room stands whole on some level, so it can be opened and
+        /// gone to. M&#xF6;rkhalla, whose levels come out differently example to example, is laid
+        /// out three times. Its creatures are told: how many dropped to the ground under their
+        /// points and how many fly.
         /// </summary>
         private static IEnumerator CaveFloors(Probe p)
         {
@@ -573,10 +570,7 @@ namespace Scry
             var empty = new List<string>();
             var blank = new List<string>();
             var unreached = new List<string>();
-            var footless = new List<string>();
             ScryPanel.PlanFolded = false;
-            var gaps = new List<string>();
-            string Told(IEnumerable<float> floors) => string.Join(", ", floors.Select(f => Numbers.Fixed(f, 1)));
             foreach (var entry in caves)
             {
                 Select(entry);
@@ -604,24 +598,6 @@ namespace Scry
                         Stage.Inside = true;
                         yield return null;
                     }
-                    var now = Stage.FloorHeights.ToList();
-                    if (entry.Name == "Hildir_plainsfortress")
-                    {
-                        // Its rooms stand a storey (4 m) on another, each with a floor. A floor found
-                        // under a deck's top rather than on it sits up to 0.7 m lower, so floors stand
-                        // 3.3 to 4.7 m apart; a storey without one leaves 8 m.
-                        var apart = now.Zip(now.Skip(1), (above, below) => (above, below)).Where(f => f.above - f.below > 6f).ToList();
-                        if (apart.Count > 0) gaps.Add($"{entry.Name}: {string.Join(", ", apart.Select(f => $"{Numbers.Fixed(f.above, 1)} to {Numbers.Fixed(f.below, 1)} m"))}");
-                    }
-                    if (entry.Name == "MorkBorg")
-                    {
-                        // Each room stands on a floor at its foot, and none lies over its gate, the ground outside.
-                        var missing = Stage.ExampleShown.Rooms.Where(r => !now.Any(f => f >= r.Position.Y - r.Room.Size.Y / 2f - 0.5f && f <= r.Position.Y - r.Room.Size.Y / 2f + 3f))
-                            .Select(r => $"{r.Room.Name} from {Numbers.Fixed(r.Position.Y - r.Room.Size.Y / 2f, 1)} m").ToList();
-                        if (missing.Count > 0) footless.Add($"layout {Numbers.Count(example + 1)}: {string.Join(", ", missing)}");
-                        if (now.Any(f => f > 0.5f)) footless.Add($"layout {Numbers.Count(example + 1)}: a floor over its gate at {Told(now.Where(f => f > 0.5f).ToList())} m");
-                        if (missing.Count > 0) p.Note("its rooms: " + string.Join("; ", Stage.ExampleRoomGroundTold()));
-                    }
                     var told = new List<string>();
                     var reached = new HashSet<PlacedRoom>();
                     for (var level = 0; level < Stage.FloorHeights.Count; level++)
@@ -633,15 +609,13 @@ namespace Scry
                         if (rooms == 0) empty.Add($"{entry.Name} at {Numbers.Fixed(Stage.FloorHeights[level], 1)} m");
                         if (Stage.ExampleRoomsAway >= Stage.ExampleRoomsShown) blank.Add($"{entry.Name} at {Numbers.Fixed(Stage.FloorHeights[level], 1)} m");
                         if (rooms > 0) foreach (var room in Stage.ExampleShown.Rooms) if (Stage.ExampleRoomShown(room) == PlanRoomShown.Whole) reached.Add(room);
-                        if (example == 0) yield return Picture(p, $"floors {entry.Name} inside {Numbers.Count(level + 1)} of {Numbers.Count(Stage.FloorHeights.Count)}");
                     }
-                    // What stands above the top floor's cut is reached only by moving the cut up by hand.
-                    if (Stage.CutHeights.Count > 0) p.Note($"{entry.Name}: top floor's cut {Numbers.Fixed(Stage.CutHeights[0], 1)} m, the place's top {Numbers.Fixed(Stage.ModelTop, 1)} m, the ruler's roof above {Numbers.Fixed(PlaceView.RoofAbove(Stage.CutHeights[0], Stage.ModelTop), 1)} m");
+                    // What stands above the top level's cut is reached only by moving the cut up by hand.
+                    if (Stage.CutHeights.Count > 0) p.Note($"{entry.Name}: top level's cut {Numbers.Fixed(Stage.CutHeights[0], 1)} m, the place's top {Numbers.Fixed(Stage.ModelTop, 1)} m, the ruler's roof above {Numbers.Fixed(PlaceView.RoofAbove(Stage.CutHeights[0], Stage.ModelTop), 1)} m");
                     var never = Stage.ExampleShown?.Rooms.Where(r => !r.Room.EndCap && !r.Room.Divider && !reached.Contains(r)).Select(r => $"{r.Room.Name} at {Numbers.Fixed(r.Position.Y, 1)} m").ToList() ?? new List<string>();
                     if (never.Count > 0) unreached.Add($"{entry.Name}: {string.Join(", ", never.Take(6))}");
-                    p.Note($"{entry.Name} ({entry.DisplayName}), {Numbers.Count(Stage.ExampleRoomsTotal)} rooms, {Numbers.Count(Stage.FloorHeights.Count)} floors: " + string.Join("; ", told)
+                    p.Note($"{entry.Name} ({entry.DisplayName}), {Numbers.Count(Stage.ExampleRoomsTotal)} rooms, {Numbers.Count(Stage.FloorHeights.Count)} levels: " + string.Join("; ", told)
                            + $"; creatures {Numbers.Count(Stage.CreaturesMade)}, {Numbers.Count(Stage.CreaturesDropped)} dropped to the ground under their points, {Numbers.Count(Stage.CreaturesFlying)} flying ({Stage.FlyersTold()})");
-                    if (example == 0 && entry.Name == "MorkBorg") p.Note("its rooms' own floors, as each is shown alone: " + string.Join("; ", Stage.ExampleRoomFloorsTold()));
                     // A sunken crypt's and a frost cave's rooms each with its box, doorways, ground and floors,
                     // which tell why each of their floors is found.
                     if (example == 0 && (entry.Name == "SunkenCrypt4" || entry.Name == "MountainCave02")) p.Note("its rooms: " + string.Join("; ", Stage.ExampleRoomGroundTold()));
@@ -649,11 +623,9 @@ namespace Scry
             }
             Stage.Inside = wasInside;
             StageAsItWas();
-            p.Check(empty.Count == 0, "every floor found in their examples has rooms on it", string.Join("; ", empty));
-            p.Check(blank.Count == 0, "and some room stands on the stage on every floor", string.Join("; ", blank));
-            p.Check(unreached.Count == 0, "and every room stands whole on some floor", string.Join("; ", unreached));
-            p.Check(footless.Count == 0, "every M\u00f6rkhalla room has a floor at its foot, none over its gate", string.Join("; ", footless));
-            p.Check(gaps.Count == 0, "the sealed tower's floors are a storey apart, none missing", string.Join("; ", gaps));
+            p.Check(empty.Count == 0, "every level of their examples has rooms on it", string.Join("; ", empty));
+            p.Check(blank.Count == 0, "and some room stands on the stage on every level", string.Join("; ", blank));
+            p.Check(unreached.Count == 0, "and every room stands whole on some level", string.Join("; ", unreached));
         }
 
         /// <summary>The setting for the dimmed rooms' lights as it was before the self-test set it; null while it is as it was.</summary>

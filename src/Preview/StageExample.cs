@@ -483,21 +483,19 @@ namespace Scry
         public int GroundRead => _roomGround.Count;
 
         /// <summary>
-        /// How a room shows with a floor of <paramref name="floors"/> opened, by the plan's rule
-        /// (<see cref="ExamplePlan.OnStage"/>): whole on a floor of its own there (<see cref="HasFloorAt"/>),
-        /// or with none of its own at any floor where its box reaches it; else dimmed, or put
-        /// away above the floor; whole with none opened.
+        /// How a room shows with a mark of <paramref name="floors"/> opened: a dungeon's by the
+        /// plan's levels (<see cref="ShownByLevels"/>); a camp's by the plan's rule
+        /// (<see cref="ExamplePlan.OnStage"/>), whole on a floor of its own there (<see cref="HasFloorAt"/>),
+        /// or with none of its own at any floor where its box reaches it, else dimmed, or put away
+        /// above the floor; whole with none opened.
         /// </summary>
         public PlanRoomShown RoomShown(PlacedRoom room, float? planFloor, IReadOnlyList<float> floors)
         {
             if (planFloor == null) return PlanRoomShown.Whole;
-            if (LevelsMode != InsideLevels.Floors && IsDungeon) return ShownByLevels(room, planFloor.Value, floors);
+            if (IsDungeon) return ShownByLevels(room, planFloor.Value, floors);
             KnowOwnFloors(floors);
             return ExamplePlan.OnStage(room, planFloor, _ownFloor.Contains(room), HasFloor);
         }
-
-        /// <summary>How the whole example opens from above: by its floors, or by the plan's levels, stepped a group at a time or filmed whole (<see cref="InsideLevels"/>).</summary>
-        public InsideLevels LevelsMode { get; set; } = InsideLevels.Floors;
 
         /// <summary>The groups of the example's rooms one cut opens, level by level (<see cref="LevelCuts"/>), and each room's place among them, worked out again as the ways change or more rooms are read.</summary>
         private LevelCuts _levelCuts;
@@ -539,99 +537,86 @@ namespace Scry
         /// <summary>A room's place among the rooms the level cuts were worked out of, an end cap's or divider's the room it closes'; -1 for none.</summary>
         private int LevelRoomOf(PlacedRoom room) => _levelRoom.TryGetValue(ExamplePlan.LooksAs(room), out var index) ? index : -1;
 
-        /// <summary>By the plan's levels, the level a mark opens; none by floors or for no mark.</summary>
-        public int? LevelOpenBy(float planFloor, IReadOnlyList<float> floors)
-        {
-            if (LevelsMode == InsideLevels.Floors || !IsDungeon) return null;
-            var cuts = LevelCutsNow();
-            var opened = MarkGroup(planFloor, floors);
-            return cuts != null && opened >= 0 ? cuts.Groups[opened].Level : (int?)null;
-        }
+        /// <summary>The level of a dungeon's plan a mark opens; none for a camp or no mark.</summary>
+        public int? LevelOpenBy(float planFloor, IReadOnlyList<float> floors) =>
+            IsDungeon && MarkLevel(planFloor, floors) is var level && level >= 0 ? level : (int?)null;
 
-        /// <summary>By the plan's levels, the highest ground of the level a mark opens, in the example's own space, where every step of the level is framed; none by floors.</summary>
+        /// <summary>The highest ground of the level of a dungeon's plan a mark opens, in the example's own space, where the level is framed; none for a camp.</summary>
         public float? LevelTop(float planFloor, IReadOnlyList<float> floors) =>
             LevelOpenBy(planFloor, floors) is int level ? LevelCutsNow().TopOf(level) : (float?)null;
 
         /// <summary>
-        /// The marks the ruler opens the example by, from the top down, in its own space, each with
-        /// the lowest ceiling over it for its cut: stepped, each group's highest ground; filmed,
-        /// each level's first group's. None by floors.
+        /// The marks the ruler opens a dungeon's example by, from the top down, in its own space:
+        /// each level's highest ground, with the lowest ceiling over its first group for its cut,
+        /// and that group. None for a camp.
         /// </summary>
         public List<(float Floor, float Ceiling, int Group)> LevelMarks()
         {
             var marks = new List<(float, float, int)>();
             var cuts = LevelCutsNow();
-            if (cuts == null || LevelsMode == InsideLevels.Floors) return marks;
-            for (var i = 0; i < cuts.Groups.Count; i++)
+            if (cuts == null || !IsDungeon) return marks;
+            for (var level = 0; level < cuts.Levels; level++)
             {
-                var group = cuts.Groups[i];
-                if (LevelsMode == InsideLevels.Films && cuts.FirstOf(group.Level) != i) continue;
-                marks.Add((group.Top, group.Ceiling, i));
+                var first = cuts.FirstOf(level);
+                if (first < 0) continue;
+                marks.Add((cuts.Groups[first].Top, cuts.Groups[first].Ceiling, first));
             }
             return marks;
         }
 
-        /// <summary>The group a mark opens: stepped, that group; filmed, its level's first group.</summary>
-        private int MarkGroup(float planFloor, IReadOnlyList<float> floors)
+        /// <summary>The level a mark of <paramref name="floors"/> opens, by its place among them; -1 for none.</summary>
+        private int MarkLevel(float planFloor, IReadOnlyList<float> floors)
         {
             var cuts = LevelCutsNow();
             if (cuts == null) return -1;
             var mark = -1;
             for (var i = 0; i < floors.Count; i++) if (Mathf.Abs(floors[i] - planFloor) < 0.001f) mark = i;
             if (mark < 0) return -1;
-            if (LevelsMode == InsideLevels.Steps) return mark < cuts.Groups.Count ? mark : -1;
-            var level = 0;
-            for (var i = 0; i < cuts.Groups.Count; i++)
+            var seen = 0;
+            for (var level = 0; level < cuts.Levels; level++)
             {
-                if (cuts.FirstOf(cuts.Groups[i].Level) != i) continue;
-                if (level++ == mark) return i;
+                if (cuts.FirstOf(level) < 0) continue;
+                if (seen++ == mark) return level;
             }
             return -1;
         }
 
         /// <summary>
-        /// How a room shows with a mark opened by the plan's levels: stepped, the group opened
-        /// whole, the groups above put away and those below dimmed; filmed, the level opened whole,
-        /// each group in a film of its own, the levels above put away and those below dimmed. A
-        /// tall room of a level below rising into the group or level opened stands whole with it
-        /// (<see cref="LevelCuts.Reaches"/>), cut with it.
+        /// How a room of a dungeon's example shows with a mark opened: the level opened whole, each
+        /// group of it in a film of its own, with the tall rooms of the levels below rising into it
+        /// (<see cref="LevelCuts.StandsWith"/>), cut with it; the levels above put away and the
+        /// rest below dimmed.
         /// </summary>
         private PlanRoomShown ShownByLevels(PlacedRoom room, float planFloor, IReadOnlyList<float> floors)
         {
             var cuts = LevelCutsNow();
-            var opened = MarkGroup(planFloor, floors);
+            var opened = MarkLevel(planFloor, floors);
             if (cuts == null || opened < 0) return PlanRoomShown.Whole;
-            var group = LevelGroupOf(room);
-            if (group < 0) return PlanRoomShown.Faint;
-            if (LevelsMode == InsideLevels.Steps) return group == opened ? PlanRoomShown.Whole : group < opened ? PlanRoomShown.None : cuts.Reaches(LevelRoomOf(room), opened) ? PlanRoomShown.Whole : PlanRoomShown.Faint;
-            var level = cuts.Groups[group].Level;
-            var openedLevel = cuts.Groups[opened].Level;
-            return cuts.StandsWith(LevelRoomOf(room), openedLevel) ? PlanRoomShown.Whole : level < openedLevel ? PlanRoomShown.None : PlanRoomShown.Faint;
+            var index = LevelRoomOf(room);
+            var level = cuts.LevelOf(index);
+            if (level < 0) return PlanRoomShown.Faint;
+            return cuts.StandsWith(index, opened) ? PlanRoomShown.Whole : level < opened ? PlanRoomShown.None : PlanRoomShown.Faint;
         }
 
-        /// <summary>The groups of the level a mark opens, filmed whole, from its lowest up; none but by levels filmed, or where the level is one group.</summary>
+        /// <summary>The groups of the level of a dungeon's plan a mark opens, from its lowest up, each filmed on its own; none where one cut opens the level, or for a camp.</summary>
         public List<int> FilmGroups(float planFloor, IReadOnlyList<float> floors)
         {
-            if (LevelsMode != InsideLevels.Films) return null;
             var cuts = LevelCutsNow();
-            var opened = MarkGroup(planFloor, floors);
-            if (cuts == null || opened < 0) return null;
-            var level = cuts.Groups[opened].Level;
-            if (cuts.GroupsOf(level) < 2) return null;
+            var level = IsDungeon ? MarkLevel(planFloor, floors) : -1;
+            if (cuts == null || level < 0 || cuts.GroupsOf(level) < 2) return null;
             var groups = new List<int>();
             for (var i = cuts.Groups.Count - 1; i >= 0; i--) if (cuts.Groups[i].Level == level) groups.Add(i);
             return groups;
         }
 
-        /// <summary>The lowest ground of the rooms a mark opens, for the plan to leave out only what lies below them; none but by levels.</summary>
+        /// <summary>The lowest ground of the rooms of the level a mark opens, for the plan to leave out only what lies below them; none for a camp.</summary>
         public float? MarkLow(float planFloor, IReadOnlyList<float> floors)
         {
             var cuts = LevelCutsNow();
-            var opened = MarkGroup(planFloor, floors);
-            if (cuts == null || opened < 0 || LevelsMode == InsideLevels.Floors) return null;
-            if (LevelsMode == InsideLevels.Steps) return cuts.Groups[opened].Low;
+            var level = IsDungeon ? MarkLevel(planFloor, floors) : -1;
+            if (cuts == null || level < 0) return null;
             var low = float.PositiveInfinity;
-            foreach (var group in cuts.Groups) if (group.Level == cuts.Groups[opened].Level) low = Mathf.Min(low, group.Low);
+            foreach (var group in cuts.Groups) if (group.Level == level) low = Mathf.Min(low, group.Low);
             return low;
         }
 
@@ -696,17 +681,13 @@ namespace Scry
 
         /// <summary>
         /// The middle across of the rooms standing on the floor opened, on the stage, and how far
-        /// they reach from it (x, z and reach); null for none. By the plan's levels, those of the
-        /// whole level the mark opens, so every step of a level keeps one frame. Worked out again
-        /// as the floor or the rooms change.
+        /// they reach from it (x, z and reach); null for none. A dungeon's, those of the whole level
+        /// the mark opens. Worked out again as the floor or the rooms change.
         /// </summary>
-        private InsideLevels _acrossMode;
-
         public Vector3? FloorAcross(float? planFloor, IReadOnlyList<float> floors)
         {
             if (planFloor == null) return null;
-            if (_acrossFloor == planFloor && _acrossRooms == Copies && ReferenceEquals(_acrossOf, Placed) && _acrossMode == LevelsMode) return _across;
-            _acrossMode = LevelsMode;
+            if (_acrossFloor == planFloor && _acrossRooms == Copies && ReferenceEquals(_acrossOf, Placed)) return _across;
 
             var holder = Holder.transform;
             var corners = new List<Vec3>();

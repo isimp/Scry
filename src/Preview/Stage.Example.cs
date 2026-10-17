@@ -437,27 +437,13 @@ namespace Scry
         }
 
         /// <summary>
-        /// How the whole of a dungeon's example opens from above (<see cref="InsideLevels"/>): by its
-        /// floors, or, tried beside them, by the plan's levels, a group of rooms one cut opens at a
-        /// time or a whole level filmed in as many cuts as it needs; the ruler's marks follow it.
+        /// The floors the ruler opens the example by, above the location's root as the cut holds
+        /// them, with the ceiling over each: a dungeon's, the marks of its plan's levels, its floors
+        /// only until its levels are known; a camp's, its floors.
         /// </summary>
-        public static InsideLevels LevelsMode
+        private static (List<float> Floors, System.Func<float, float?> Ceiling) ExampleMarksNow()
         {
-            get => TheExample.LevelsMode;
-            set
-            {
-                if (TheExample.LevelsMode == value) return;
-                TheExample.LevelsMode = value;
-                if (TheExample.Holder == null || !TheExample.IsDungeon) return;
-                RefreshExampleFloors();
-                FreshView();
-            }
-        }
-
-        /// <summary>The floors the ruler opens a dungeon's example by, above the location's root as the cut holds them, with the ceiling over each: its floors, or the marks of the plan's levels.</summary>
-        private static (List<float> Floors, System.Func<float, float?> Ceiling) ExampleFloorsForMode()
-        {
-            if (TheExample.LevelsMode == InsideLevels.Floors || !TheExample.IsDungeon) return (TheExample.FloorsNow(), TheExample.CeilingOver);
+            if (!TheExample.IsDungeon) return (TheExample.FloorsNow(), TheExample.CeilingOver);
             var lift = ExampleLift;
             var marks = TheExample.LevelMarks();
             var floors = marks.Select(m => m.Floor + lift).ToList();
@@ -474,45 +460,37 @@ namespace Scry
         /// <summary>Hands the cut the example's floors anew, as more of it is read or how it opens changes.</summary>
         private static void RefreshExampleFloors()
         {
-            var (floors, ceiling) = ExampleFloorsForMode();
+            var (floors, ceiling) = ExampleMarksNow();
             RefreshFloors(floors, ceiling, TheExample.Top);
         }
 
-        /// <summary>The lowest ground of the rooms the mark opened opens, in the example's own space, for the plan to leave out only what lies below them; none by floors or with none opened.</summary>
+        /// <summary>The lowest ground of the rooms of the level opened, in the example's own space, for the plan to leave out only what lies below them; none for a camp or with none opened.</summary>
         public static float? ExampleOpenMarkLow => ExampleOpenFloor is float floor ? TheExample.MarkLow(floor, ExampleFloors) : null;
 
-        /// <summary>What a mark of the ruler is, opened by the plan's levels: whether it begins a level, and its words, the level's depth from the entrance and, of several, which group; none by floors.</summary>
-        public static (bool Begins, string Words)? ExampleMark(int index)
+        /// <summary>The words of a mark of the ruler over a dungeon's example: its level by its depth from the entrance; none for a camp or a place.</summary>
+        public static string ExampleMark(int index)
         {
-            if (TheExample.LevelsMode == InsideLevels.Floors || !TheExample.IsDungeon || TheExample.Ways?.Entrance == null) return null;
+            if (!TheExample.IsDungeon || TheExample.Ways?.Entrance == null) return null;
             var cuts = TheExample.LevelCutsNow();
             if (cuts == null) return null;
-            // Worked out again only as the groups or the way they open change, as the ruler asks each frame.
-            if (!ReferenceEquals(cuts, _marksOf) || _marksMode != TheExample.LevelsMode)
+            // Worked out again only as the groups change, as the ruler asks each frame.
+            if (!ReferenceEquals(cuts, _marksOf))
             {
                 _marksOf = cuts;
-                _marksMode = TheExample.LevelsMode;
                 Marks.Clear();
                 var entrance = TheExample.GroundOf(TheExample.Ways.Entrance);
-                foreach (var mark in TheExample.LevelMarks())
-                {
-                    var group = cuts.Groups[mark.Group];
-                    var first = cuts.FirstOf(group.Level);
-                    var depth = PlanBoxWords.LevelDepth(cuts.Groups[first].Top - entrance);
-                    Marks.Add((first == mark.Group, StageWords.LevelMark(depth, mark.Group - first + 1, cuts.GroupsOf(group.Level), _marksMode == InsideLevels.Films)));
-                }
+                foreach (var mark in TheExample.LevelMarks()) Marks.Add(StageWords.LevelMark(PlanBoxWords.LevelDepth(mark.Floor - entrance)));
             }
-            return index >= 0 && index < Marks.Count ? Marks[index] : ((bool, string)?)null;
+            return index >= 0 && index < Marks.Count ? Marks[index] : null;
         }
 
-        private static readonly List<(bool Begins, string Words)> Marks = new List<(bool, string)>();
+        private static readonly List<string> Marks = new List<string>();
         private static LevelCuts _marksOf;
-        private static InsideLevels _marksMode;
 
-        /// <summary>The films a level opened whole takes, from its lowest group up: each group's cut above the location's root; none but by levels filmed, or a level one cut opens.</summary>
+        /// <summary>The films a level opened takes, from its lowest group up: each group's cut above the location's root; none where one cut opens the level, in a room gone into, cut from the side, or for a camp.</summary>
         private static List<(int Group, float Cut)> FilmsNow()
         {
-            if (TheExample.LevelsMode != InsideLevels.Films || !TheExample.IsDungeon || TheCut.Held || CutFromSide || !(ExampleOpenFloor is float floor)) return null;
+            if (!TheExample.IsDungeon || TheCut.Held || CutFromSide || !(ExampleOpenFloor is float floor)) return null;
             var groups = TheExample.FilmGroups(floor, ExampleFloors);
             var cuts = TheExample.LevelCutsNow();
             if (groups == null || cuts == null) return null;
@@ -720,7 +698,7 @@ namespace Scry
             // Seen only from outside, a place with nothing outside shows its rooms as the outside
             // they are, with the floors of the place alone, none inside to open.
             var floorsInside = inside && !_insideUnknown;
-            var (insideFloors, insideCeiling) = ExampleFloorsForMode();
+            var (insideFloors, insideCeiling) = ExampleMarksNow();
             var floors = floorsInside ? insideFloors : new List<float>(_placeFloors);
             if (floors.Count == 0) floors.Add(0f);
             // Inside, the example stands on its lowest floor; outside, the location stands on the

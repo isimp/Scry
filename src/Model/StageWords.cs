@@ -50,14 +50,8 @@ namespace Scry
             ? "Click to put the roof on"
             : "Click or drag to cut here; the wheel or Page Up and Down step a floor";
 
-        /// <summary>A mark of the ruler opening the whole dungeon by the plan's levels: the level by its depth, and where one cut does not open it whole, which group stepped to, or how many cuts filmed.</summary>
-        public static string LevelMark(string depth, int group, int groups, bool films) =>
-            groups < 2 ? $"Level {depth}" : films ? $"Level {depth}, {Numbers.Count(groups)} cuts" : $"Level {depth}, {Numbers.Count(group)} of {Numbers.Count(groups)}";
-
-        /// <summary>The chip choosing how the whole dungeon opens from above, as tried.</summary>
-        public static string LevelsChip(InsideLevels mode) => mode == InsideLevels.Steps ? "Level steps" : mode == InsideLevels.Films ? "Level films" : "Floors";
-
-        public const string LevelsTip = "How the whole dungeon opens from above, tried three ways: by its floors, by the plan's levels a cut at a time, or by whole levels in as many cuts as they need; click for the next";
+        /// <summary>A mark of the ruler opening the whole dungeon by the plan's levels: the level by its depth, however many cuts it is filmed in.</summary>
+        public static string LevelMark(string depth) => $"Level {depth}";
 
         /// <summary>A mark of the ruler in a room gone into for the rooms above on a level: how many, and how far up from its ground in whole metres.</summary>
         public static string RoomsAboveMark(int rooms, float rise) =>
