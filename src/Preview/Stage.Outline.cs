@@ -201,6 +201,7 @@ namespace Scry
             _litDrawn = null;
             _litTop = float.NaN;
             LitRoom = null;
+            ForgetGhosts();
         }
     }
 }

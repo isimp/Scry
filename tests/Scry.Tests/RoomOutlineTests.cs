@@ -8,6 +8,27 @@ namespace Scry.Tests
     {
         private static readonly Vec3[] Square = { new Vec3(0f, 5f, 0f), new Vec3(4f, 5f, 0f), new Vec3(4f, 5f, 4f), new Vec3(0f, 5f, 4f) };
 
+        // A room put away above what is open stands as a ghost: its footprint at its floor, four
+        // lines closing its corners, so it never just vanishes.
+
+        [Fact]
+        public void AGhostIsTheRoomsFootprintAtItsFloorFourLinesRoundItsCorners()
+        {
+            var lines = RoomOutline.Ghost(Square, ground: 2f);
+            Assert.Equal(8, lines.Count);
+            Assert.All(lines, p => Assert.Equal(2f, p.Y));
+            var edges = new HashSet<string>();
+            for (var i = 0; i < lines.Count; i += 2) edges.Add(Edge(lines[i], lines[i + 1]));
+            var want = new HashSet<string>();
+            for (var i = 0; i < 4; i++)
+            {
+                var a = Square[i];
+                var b = Square[(i + 1) % 4];
+                want.Add(Edge(new Vec3(a.X, 2f, a.Z), new Vec3(b.X, 2f, b.Z)));
+            }
+            Assert.Equal(want, edges);
+        }
+
         private static string Edge(Vec3 a, Vec3 b)
         {
             var one = $"{a.X},{a.Y},{a.Z}";

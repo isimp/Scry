@@ -12,6 +12,20 @@ namespace Scry
     /// </summary>
     internal static class RoomOutline
     {
+        /// <summary>A room's ghost, standing for it where it is put away above what is open: its footprint at its floor, four lines round its corners, each as its two ends.</summary>
+        public static List<Vec3> Ghost(IReadOnlyList<Vec3> corners, float ground)
+        {
+            var lines = new List<Vec3>(8);
+            for (var i = 0; i < 4; i++)
+            {
+                var a = corners[i % corners.Count];
+                var b = corners[(i + 1) % corners.Count];
+                lines.Add(new Vec3(a.X, ground, a.Z));
+                lines.Add(new Vec3(b.X, ground, b.Z));
+            }
+            return lines;
+        }
+
         /// <summary>How far under the cut the outline's top runs, in metres, drawn with the cut.</summary>
         public const float UnderCut = 0.05f;
 

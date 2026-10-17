@@ -381,6 +381,17 @@ namespace Scry
             }
         }
 
+        /// <summary>The rooms whose copies are put away now, end caps and dividers left out, in the order they were made, into a list given.</summary>
+        public void PutAway(List<PlacedRoom> into)
+        {
+            into.Clear();
+            foreach (var pair in _rooms)
+            {
+                if (pair.Value == null || pair.Value.activeSelf || pair.Key.Room.EndCap || pair.Key.Room.Divider) continue;
+                into.Add(pair.Key);
+            }
+        }
+
         /// <summary>How a room is dimmed in a look: half on the level of the room gone into, more below; not at all whole or put away.</summary>
         private static RoomLook? Dimmed(RoomLook look) => look == RoomLook.Near || look == RoomLook.Below ? look : (RoomLook?)null;
 

@@ -35,6 +35,7 @@ namespace Scry
             var unrisen = new List<string>();
             var unmoved = new List<string>();
             var misplaced = new List<string>();
+            var unghosted = new List<string>();
             var unkept = new List<string>();
             var keptTried = 0;
             var uncarried = new List<string>();
@@ -117,6 +118,10 @@ namespace Scry
                         }
                         costs.Add($"{words} {Numbers.Fixed(AverageFilmMs, 1)} ms in {Numbers.Count(films)} {(films == 1 ? "film" : "films")}" + (risen.Count > 0 ? $", {Numbers.Count(risen.Count)} risen from below: {string.Join(", ", risen.Take(4))}" : "") + (beside.Count > 0 ? $", {Numbers.Count(beside.Count)} of the levels above standing beside it: {string.Join(", ", beside.Take(4))}" : ""));
                         yield return Picture(p, $"levels {entry.Name} {words}");
+
+                        // Every room put away stands as a ghost, its footprint at its floor.
+                        var away = Stage.ExampleShown?.Rooms.Count(r => !r.Room.EndCap && !r.Room.Divider && Stage.ExampleRoomShown(r) == PlanRoomShown.None) ?? 0;
+                        if (away > 0 && Stage.GhostsDrawn != away) unghosted.Add($"{entry.Name} {words}: {Numbers.Count(Stage.GhostsDrawn)} ghosts for {Numbers.Count(away)} rooms put away");
 
                         // Shift and the wheel raise the level's cut half a metre: its first group's film with
                         // it, every other as far as its own ceiling lets it.
@@ -233,6 +238,7 @@ namespace Scry
                 p.Check(unstepped.Count == 0, "Back comes out of a room to the view it was gone into from, as it was left, Forward goes in again, the entry kept", string.Join("; ", unstepped));
                 p.Check(uncarried.Count == 0, "Page Down past a room's lowest tick comes out to the level below, Page Up past its roof to the level above", string.Join("; ", uncarried));
             }
+            p.Check(unghosted.Count == 0, "every room put away above a level stands as a ghost, its footprint at its floor", string.Join("; ", unghosted));
             p.Check(misplaced.Count == 0, "a room of a level above is put away only where it stands over the level or its floor is not under the cut, else it stands dimmed", string.Join("; ", misplaced));
             if (movedTried == 0) p.Note("no level of several cuts came up to move by hand");
             else p.Check(unmoved.Count == 0, "Shift and the wheel move every film's cut of a level together, each under its own ceiling", string.Join("; ", unmoved));

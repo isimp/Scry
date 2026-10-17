@@ -57,7 +57,7 @@ namespace Scry
                 _outlineBufferOn = _camera;
             }
             _outlineBuffer.Clear();
-            if (!draw || !OutlinesPastCut || _outlineMaterial == null || !OutlineShown && !LitOutlineShown) return;
+            if (!draw || !OutlinesPastCut || _outlineMaterial == null || !OutlineShown && !LitOutlineShown && !GhostsShown) return;
 
             // The projection the camera has without a cut, its own put back after.
             var projection = _camera.projectionMatrix;
@@ -67,6 +67,7 @@ namespace Scry
             _outlineBuffer.SetViewProjectionMatrices(_camera.worldToCameraMatrix, plain);
             if (OutlineShown) _outlineBuffer.DrawRenderer(_outline, _outlineMaterial);
             if (LitOutlineShown) _outlineBuffer.DrawRenderer(_litOutline, _outlineMaterial);
+            if (GhostsShown) _outlineBuffer.DrawRenderer(_ghostRenderer, _outlineMaterial);
             OutlinesFilmed++;
         }
 
@@ -95,6 +96,7 @@ namespace Scry
             Frame();
             KeepOutline();
             KeepLitOutline();
+            KeepGhosts();
             Timing.Add("render frame", step);
             step = Timing.Start();
             KeepCreaturesToCut();
