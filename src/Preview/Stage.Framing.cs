@@ -77,7 +77,31 @@ namespace Scry
         }
 
         /// <summary>Frames what is shown anew, from its whole size, rather than easing from what was framed.</summary>
-        private static void FrameAnew() => _frameRadius = -1f;
+        private static void FrameAnew()
+        {
+            _frameRadius = -1f;
+            ForgetLevelFrame();
+        }
+
+        /// <summary>What the camera framed with a floor opened, outside a room gone into, as last filmed: the middle across, the height looked at and the reach; none with the roof on or in a room.</summary>
+        private static Vector4? ShownLevelFrame { get; set; }
+
+        /// <summary>
+        /// The middle across and the reach (x, z and reach) a change of the floor opened keeps, so
+        /// the view stays on the spot it looked at, at its zoom, only the height looked at following
+        /// the floor; none frames each floor on what stands on it.
+        /// </summary>
+        private static Vector3? _keptLevelFrame;
+
+        /// <summary>Keeps the frame the view had on a floor for the floor opened next (<see cref="_keptLevelFrame"/>).</summary>
+        private static void KeepLevelFrame(Vector4 framed) => _keptLevelFrame = new Vector3(framed.x, framed.z, framed.w);
+
+        /// <summary>Lets go of the frame kept across floors, so the next floor is framed on what stands on it.</summary>
+        private static void ForgetLevelFrame() => _keptLevelFrame = null;
+
+        /// <summary>Whether a change of the floor opened keeps the frame the view had, for the self-test.</summary>
+        [Diagnostic]
+        public static bool LevelFrameKept => _keptLevelFrame != null;
 
         /// <summary>Has the grid tiled again for its size at the next frame, as a new grid is.</summary>
         private static void TileGridAnew() => _gridMetres = -1f;
@@ -141,6 +165,7 @@ namespace Scry
             // With a floor opened, the camera looks at that floor, framed on what stands on it.
             var step = Timing.Start();
             var floor = FloorFrame();
+            ShownLevelFrame = TheCut.Held ? null : floor;
             Timing.Add("render frame floor", step);
             Vector3 target;
             float wantRadius;
@@ -291,6 +316,7 @@ namespace Scry
             }
             if (!Cutting || TheCut.Level >= Floors.Count) return null;
             var y = Origin.y + LookedFloorHeight() * _scale;
+            if (_keptLevelFrame is Vector3 kept) return new Vector4(kept.x, y, kept.y, kept.z);
             var across = ExampleFloorAcross();
             if (across == null)
             {

@@ -15,7 +15,9 @@ namespace Scry
         /// that the ruler has a mark for each level, that each mark stands its rooms whole, that a
         /// level of several groups is filmed in as many films and that the tall rooms of the levels
         /// below rising into a level stand whole with it, that a room of a level above is put away
-        /// only where it stands over the level or its floor is not under the cut, and that Shift and the wheel move every
+        /// only where it stands over the level or its floor is not under the cut, that opening
+        /// another level keeps the view on the spot it looked at, at its zoom, until Fit frames it
+        /// afresh, and that Shift and the wheel move every
         /// film's cut of a level filmed in several, notes how long the films take, and pictures
         /// each mark.
         /// </summary>
@@ -33,6 +35,8 @@ namespace Scry
             var unrisen = new List<string>();
             var unmoved = new List<string>();
             var misplaced = new List<string>();
+            var unkept = new List<string>();
+            var keptTried = 0;
             var movedTried = 0;
             var tried = 0;
             try
@@ -138,6 +142,31 @@ namespace Scry
                         }
                     }
                     p.Note($"{entry.Name}: {string.Join("; ", costs)}");
+
+                    // Zoomed in on its top level, the next level opened keeps the spot looked at and
+                    // the zoom, only the height following; Fit frames the level afresh.
+                    if (Stage.FloorHeights.Count > 1)
+                    {
+                        keptTried++;
+                        Stage.OpenLevel(0);
+                        yield return LevelSettled();
+                        Stage.ZoomBy(-3f);
+                        var zoom = Stage.Zoom;
+                        var before = Stage.FloorFrameForTest;
+                        Stage.OpenLevel(1);
+                        yield return LevelSettled();
+                        var after = Stage.FloorFrameForTest;
+                        if (!(before is Vector4 b) || !(after is Vector4 a)) unkept.Add($"{entry.Name}: no frame on a level");
+                        else
+                        {
+                            var across = new Vector3(a.x - b.x, a.z - b.z, a.w - b.w).magnitude;
+                            if (across > 0.01f || Mathf.Abs(Stage.Zoom - zoom) > 0.001f || Mathf.Approximately(a.y, b.y))
+                                unkept.Add($"{entry.Name}: moved {Numbers.Fixed(across, 2)} across, zoom {Numbers.Fixed(zoom, 2)} became {Numbers.Fixed(Stage.Zoom, 2)}, height {Numbers.Fixed(b.y, 1)} to {Numbers.Fixed(a.y, 1)} m");
+                        }
+                        Stage.View("Fit");
+                        yield return LevelSettled();
+                        if (Stage.LevelFrameKept || Mathf.Abs(Stage.Zoom - 1f) > 0.001f) unkept.Add($"{entry.Name}: Fit kept the frame, zoom {Numbers.Fixed(Stage.Zoom, 2)}");
+                    }
                     Stage.OpenLevel(Stage.FloorHeights.Count);
                 }
             }
@@ -149,6 +178,8 @@ namespace Scry
             p.Check(empty.Count == 0, "every mark stands the rooms it opens whole", string.Join("; ", empty));
             p.Check(unfilmed.Count == 0, "a level one cut cannot open is filmed in as many films as it has groups", string.Join("; ", unfilmed));
             p.Check(unrisen.Count == 0, "a tall room of a level below rising into the level opened stands whole with it", string.Join("; ", unrisen));
+            if (keptTried == 0) p.Note("no dungeon had two levels to keep the view across");
+            else p.Check(unkept.Count == 0, "opening another level keeps the view on the spot it looked at, at its zoom, until Fit frames the level afresh", string.Join("; ", unkept));
             p.Check(misplaced.Count == 0, "a room of a level above is put away only where it stands over the level or its floor is not under the cut, else it stands dimmed", string.Join("; ", misplaced));
             if (movedTried == 0) p.Note("no level of several cuts came up to move by hand");
             else p.Check(unmoved.Count == 0, "Shift and the wheel move every film's cut of a level together, each under its own ceiling", string.Join("; ", unmoved));

@@ -68,10 +68,10 @@ namespace Scry
         /// <summary>Opens the floor below, or the top floor from the roof; goes up a floor, or puts the roof back from the top floor; out of a room gone into.</summary>
         public static void StepCut(bool down)
         {
-            var was = ExampleLevelOpen;
+            var framed = LevelFramed();
             TheExample.Unfocus();
             TheCut.Step(down);
-            FreshViewOffLevel(was);
+            KeepOrFreshView(framed);
         }
 
         /// <summary>Takes the roof off, opening the floor last opened, or puts it back; in a room gone into, its own roof, the room still gone into.</summary>
@@ -89,16 +89,24 @@ namespace Scry
         /// <summary>Opens a floor (from the top), or puts the roof on past the last; out of a room gone into.</summary>
         public static void OpenLevel(int level)
         {
-            var was = ExampleLevelOpen;
+            var framed = LevelFramed();
             TheExample.Unfocus();
             TheCut.Open(level);
-            FreshViewOffLevel(was);
+            KeepOrFreshView(framed);
         }
 
-        /// <summary>Frames afresh what a step or a mark opened, unless by the plan's levels it is a step within the level open before: that keeps its frame and the view moved on it.</summary>
-        private static void FreshViewOffLevel(int? was)
+        /// <summary>The frame the view has on the floor opened, outside a room gone into; none with the roof on or in a room.</summary>
+        private static Vector4? LevelFramed() => TheExample.Focused == null && !TheCut.Held ? ShownLevelFrame : null;
+
+        /// <summary>
+        /// After the floor opened changed: from a floor to another the view stays on the spot it
+        /// looked at, at its zoom and as dragged, its height following the floor (<see cref="KeepLevelFrame"/>);
+        /// from or to the roof, or out of a room, it frames afresh.
+        /// </summary>
+        private static void KeepOrFreshView(Vector4? framed)
         {
-            if (was == null || ExampleLevelOpen != was) FreshView();
+            if (framed is Vector4 kept && TheCut.Cutting && !TheCut.Held) KeepLevelFrame(kept);
+            else FreshView();
         }
 
         /// <summary>Cuts at a height set by hand, opening the floor it is over (<see cref="PlaceView.LevelAt"/>); out of a room gone into.</summary>
@@ -116,8 +124,12 @@ namespace Scry
         public static void WheelCut(float metres)
         {
             if (TheExample.Focused != null && CutFromSide) return;
+            var framed = LevelFramed();
+            var was = TheCut.Level;
             if (!TheCut.Held) TheExample.Unfocus();
             TheCut.Wheel(metres);
+            // Moved into another floor, the view stays on the spot it looked at; the wheel frames nothing afresh.
+            if (framed is Vector4 kept && TheCut.Level != was && TheCut.Cutting && !TheCut.Held) KeepLevelFrame(kept);
         }
 
         /// <summary>

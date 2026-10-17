@@ -513,9 +513,6 @@ namespace Scry
         [Diagnostic]
         public static List<float> FilmCutsForTest => FilmsNow()?.Select(f => f.Cut).ToList();
 
-        /// <summary>By the plan's levels, the level the mark opened opens; none by floors, with a room gone into, or none opened.</summary>
-        private static int? ExampleLevelOpen => TheExample.Focused == null && ExampleOpenFloor is float floor ? TheExample.LevelOpenBy(floor, ExampleFloors) : null;
-
         /// <summary>
         /// The height the camera looks at with a floor opened, above the location's root: by the
         /// plan's levels, the highest ground of the level the mark opens, so every step of a level
