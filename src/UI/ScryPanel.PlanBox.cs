@@ -181,9 +181,9 @@ namespace Scry
         [Diagnostic]
         public static string PlanBoxRoomNameForTest(Explorer explorer, PlacedRoom room) => BoxRoomName(explorer, room);
 
-        /// <summary>Clicks a room in the box as the mouse does, for the self-test.</summary>
+        /// <summary>Double-clicks a room in the box as the mouse does, going into it, for the self-test.</summary>
         [Diagnostic]
-        public static void ClickPlanRoomForTest(PlacedRoom room) => Stage.GoInto(room);
+        public static void DoubleClickPlanRoomForTest(PlacedRoom room) => Stage.GoInto(room);
 
         /// <summary>What the panel's file remembers now, for the self-test.</summary>
         [Diagnostic]
@@ -309,7 +309,7 @@ namespace Scry
             var repaint = e.type == EventType.Repaint;
             // The room lit as the box is drawn, from what was under the mouse when last looked, as the
             // box finds its own only once its rooms are drawn.
-            _boxLit = RoomLight.Lit(_cardLit, _boxHover, _stageHover);
+            _boxLit = RoomLight.Lit(_cardLit, _boxHover, _stageHover) ?? Stage.PickedRoom;
             _boxHover = null;
             if (!KnowBoxRooms() || BoxRooms.Count == 0) return PlanBoxRect = Rect.zero;
 
@@ -330,7 +330,7 @@ namespace Scry
             var headerH = oneRow ? rowH : rowH * 2f + U(2f);
             // Whole, with its trail and its Entrance and Deepest, where the stage holds it so; else
             // without them; else, with a room gone into, folded to its tab (CornerFit).
-            var card = Stage.RoomGoneInto != null && Stage.HasInside && Stage.ShowsInside;
+            var card = (Stage.RoomGoneInto != null || Stage.PickedRoom != null) && Stage.HasInside && Stage.ShowsInside;
             // The header and the plan, nothing under it: where the view is stands on the stage's breadcrumb.
             var leanRows = pad + headerH + gap + pad;
             var wholeRows = leanRows;
@@ -425,16 +425,17 @@ namespace Scry
                 foreach (var spot in BoxSpots) if (BoxLit(spot.Room)) PlanBoxLitShown.Add(spot.Room);
             }
 
-            // The room under the mouse: lit here and on the stage, gone into on a click.
+            // The room under the mouse: lit here and on the stage, picked on a click, gone into on a double-click.
             var mouse = BoxMouse(e);
             var hovered = area.Contains(mouse) && (_drag == Drag.None || _drag == Drag.Orbit) ? BoxRoomAt(mouse) : null;
             if (hovered != null)
             {
                 _boxHover = hovered;
-                AskTip("planbox:" + hovered.Room.Name, StageWords.GoIntoTip(BoxRoomName(explorer, hovered), hovered == gone));
+                AskTip("planbox:" + hovered.Room.Name, Peek(explorer, hovered));
                 if (e.type == EventType.MouseDown && e.button == 0)
                 {
-                    Stage.GoInto(hovered);
+                    if (e.clickCount == 2) Stage.GoInto(hovered);
+                    else Stage.Pick(hovered);
                     e.Use();
                 }
             }

@@ -51,7 +51,7 @@ namespace Scry
             {
                 if (goneInto)
                 {
-                    ScryPanel.ClickPlanRoomForTest(ways.Deepest);
+                    ScryPanel.DoubleClickPlanRoomForTest(ways.Deepest);
                     yield return Until(() => Stage.RoomGoneInto == ways.Deepest && !Stage.Gliding, 5);
                 }
                 foreach (var compact in new[] { false, true })

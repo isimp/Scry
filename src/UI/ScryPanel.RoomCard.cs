@@ -113,6 +113,27 @@ namespace Scry
             return card;
         }
 
+        /// <summary>The peek last worked out, for the room it is of, as the mouse rests on a room.</summary>
+        private static PlacedRoom _peekFor;
+        private static string _peekText;
+        private static int _peekRead = -1;
+        private static bool _peekInside;
+
+        /// <summary>The peek on a room of a dungeon's example under the mouse (<see cref="StageWords.RoomPeek"/>), worked out again only for another room, more of the example read, or the room gone into or come out of.</summary>
+        private static string Peek(Explorer explorer, PlacedRoom room)
+        {
+            var inside = room == Stage.RoomGoneInto;
+            if (room == _peekFor && _peekRead == Stage.ExampleRoomsRead && _peekInside == inside && _peekText != null) return _peekText;
+            _peekFor = room;
+            _peekRead = Stage.ExampleRoomsRead;
+            _peekInside = inside;
+            var ways = Stage.ExampleWays;
+            var rise = ways?.Entrance != null ? Stage.ExampleRoomGround(room) - Stage.ExampleRoomGround(ways.Entrance) : 0f;
+            var where = RoomCardWords.Where(rise, ways != null ? ways.StepsIn(room) : -1, ways != null ? ways.WaysOf(room).Count : 0);
+            _peekText = StageWords.RoomPeek(BoxRoomName(explorer, room), where, Stage.RoomCreatures(room).Count, Stage.RoomLoot(room).Count, inside);
+            return _peekText;
+        }
+
         /// <summary>Whether a list of the card stands open, its creatures or its chests and pickups: folded to its count until opened, remembered with the panel's folds by a key standing while it is open.</summary>
         private static bool CardListOpen(string list) => IsFolded("card" + list + "open");
 
@@ -170,7 +191,9 @@ namespace Scry
         {
             var e = Event.current;
             var repaint = e.type == EventType.Repaint;
-            var room = Stage.RoomGoneInto;
+            // The room picked, where the view is, else the room gone into.
+            var room = Stage.PickedRoom ?? Stage.RoomGoneInto;
+            var picked = Stage.PickedRoom != null;
             if (repaint)
             {
                 CardLines.Clear();
@@ -189,7 +212,8 @@ namespace Scry
             var lineH = U(17f);
             var headH = U(18f);
             var chipH = U(22f);
-            var levels = card.Levels.Count > 1;
+            // Its levels open only in the room gone into.
+            var levels = card.Levels.Count > 1 && !picked;
 
             // Its lines of creatures and of chests and pickups, at most six of each.
             float Tall(int most)
@@ -280,11 +304,20 @@ namespace Scry
                 y += headH;
             }
 
-            // Its name, its page a link at the line's end where it has one.
+            // Its name, its page a link at the line's end where it has one, picked a link going into it before.
             var openPage = false;
+            var goIn = false;
             var pageW = card.Goes ? Skin.Width(Skin.Small, RoomCardWords.PageLink) + U(8f) : 0f;
+            var inW = picked ? Skin.Width(Skin.Small, StageWords.GoInLink) + U(8f) : 0f;
             if (repaint) CardLines.Add(card.Name);
-            FitLabel(new Rect(x, y, textW - pageW, nameH), card.Name, Skin.TopicName, 10f);
+            FitLabel(new Rect(x, y, textW - pageW - inW, nameH), card.Name, Skin.TopicName, 10f);
+            if (picked)
+            {
+                var link = new Rect(x + textW - pageW - inW + U(8f), y + U(2f), inW - U(8f), nameH - U(2f));
+                if (link.Contains(e.mousePosition)) AskTip("card:in", StageWords.GoInTip);
+                if (GUI.Button(link, GUIContent.none, GUIStyle.none)) goIn = true;
+                LinkLabel(link, StageWords.GoInLink, Skin.Small, Skin.Accent);
+            }
             if (card.Goes)
             {
                 var link = new Rect(x + textW - pageW + U(8f), y + U(2f), pageW - U(8f), nameH - U(2f));
@@ -310,7 +343,7 @@ namespace Scry
                 var chip = new Rect(cx, cy, w, chipH);
                 CountDrawn(PanelPart.RoomCardWay);
                 if (repaint) CardLines.Add(way.Words);
-                if (chip.Contains(e.mousePosition)) AskTip("card-way:" + way.Words, StageWords.GoIntoTip(way.Words, false));
+                if (chip.Contains(e.mousePosition)) AskTip("card-way:" + way.Words, StageWords.GoIntoTip(way.Words));
                 if (repaint && chip.Contains(OwnMouse(e))) _cardLit = way.To;
                 if (GUI.Button(chip, way.Words, Skin.Fitted(Skin.Chip, chip))) goTo = way.To;
             }
@@ -341,6 +374,7 @@ namespace Scry
             if (scrolls) GUI.EndScrollView();
 
             if (goTo != null) Stage.GoInto(goTo);
+            else if (goIn) Stage.GoInto(room);
             else if (openPage) Go(explorer, card.Key);
             else if (goPage != null) Go(explorer, goPage);
 

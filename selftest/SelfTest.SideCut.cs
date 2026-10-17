@@ -44,7 +44,7 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.CutChip) > chips, "inside a dungeon, the cut control with its Side stands beside Inside");
 
             var deepest = DungeonWays.Of(Stage.ExampleShown.Rooms).Deepest;
-            ScryPanel.ClickRoomForTest(X, deepest);
+            ScryPanel.DoubleClickRoomForTest(X, deepest);
             yield return Until(() => Stage.RoomGoneInto == deepest && Stage.ExampleRoomsKept && Stage.OutlineShown, 5);
             yield return Until(() => !Stage.Gliding, 5);
             var view = Stage.ExampleRoomInView(deepest);

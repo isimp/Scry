@@ -284,7 +284,7 @@ namespace Scry
                 // The switch for the rooms below, in the entrance, which has rooms below it: off, the
                 // plan from above leaves them out, its ways down marked, the stage showing them as
                 // before; on, back. Whole dungeon stands under the plan meanwhile.
-                ScryPanel.ClickPlanRoomForTest(ways.Entrance);
+                ScryPanel.DoubleClickPlanRoomForTest(ways.Entrance);
                 yield return Until(() => Stage.RoomGoneInto == ways.Entrance && !Stage.Gliding, 5);
                 ScryPanel.ShowPlanViewForTest(PlanView.Above);
                 var belowRooms = ways.Rooms.Where(r => Stage.ExampleRoomLook(r) == RoomLook.Below).ToList();
@@ -331,7 +331,7 @@ namespace Scry
                 var zoomedTo = Stage.Zoom;
                 var filmedOutlines = Stage.OutlinesFilmed;
                 var deepestTop = deepest.Position.Y + deepest.Room.Size.Y / 2f;
-                ScryPanel.ClickPlanRoomForTest(deepest);
+                ScryPanel.DoubleClickPlanRoomForTest(deepest);
                 // Its own outline, not the one of the room left a moment before, laid and filmed.
                 yield return Until(() => Stage.RoomGoneInto == deepest && Stage.OutlineShown
                     && (!Stage.OutlinesPastCutForTest || Mathf.Abs(Stage.OutlineTopLaid - deepestTop) <= 0.01f && Stage.OutlinesFilmed > filmedOutlines), 3);

@@ -35,6 +35,7 @@ namespace Scry
             var noLevels = new List<string>();
             var stayed = new List<string>();
             var unfolded = new List<string>();
+            var unpicked = new List<string>();
             var oddsChecked = 0;
             // The card's lists stand open while their rows are read, folded again after as they were.
             var listsWere = ScryPanel.OpenCardListsForTest(true, true);
@@ -57,7 +58,18 @@ namespace Scry
                     continue;
                 }
 
-                ScryPanel.ClickRoomForTest(X, room);
+                // A click picks the room: outlined and on the card where the view is, not gone into.
+                ScryPanel.PickRoomForTest(X, room);
+                var pickDrawn = ScryPanel.Drawn(PanelPart.RoomCard);
+                yield return Until(() => ScryPanel.Drawn(PanelPart.RoomCard) > pickDrawn + 1 && Stage.LitRoom == room, 3);
+                var pickedName = ScryPanel.PlanBoxRoomNameForTest(X, room);
+                var pickedCard = ScryPanel.RoomCardLines.Count > 0 ? ScryPanel.RoomCardLines[0] : "none";
+                if (Stage.PickedRoom != room || Stage.RoomGoneInto != null || pickedCard != pickedName || Stage.LitRoom != room)
+                    unpicked.Add($"{entry.Name}'s {room.Room.Name}: picked {Stage.PickedRoom?.Room.Name ?? "none"}, gone into {Stage.RoomGoneInto?.Room.Name ?? "none"}, card {pickedCard}, lit {Stage.LitRoom?.Room.Name ?? "none"}");
+
+                // A double-click goes into it, the pick let go of.
+                ScryPanel.DoubleClickRoomForTest(X, room);
+                if (Stage.PickedRoom != null) unpicked.Add($"{entry.Name}'s {room.Room.Name}: still picked once gone into");
                 var drawn = ScryPanel.Drawn(PanelPart.RoomCard);
                 var linesDrawn = ScryPanel.Drawn(PanelPart.RoomCardLine);
                 yield return Until(() => Stage.RoomGoneInto == room && ScryPanel.Drawn(PanelPart.RoomCard) > drawn + 1 && ScryPanel.RoomCardLines.Count > 0, 5);
@@ -143,7 +155,7 @@ namespace Scry
                 var tiered = ways.Rooms.FirstOrDefault(r => Stage.ExampleRoomLevels(r).Count > 1);
                 if (tiered != null)
                 {
-                    ScryPanel.ClickRoomForTest(X, tiered);
+                    ScryPanel.DoubleClickRoomForTest(X, tiered);
                     var levelChips = ScryPanel.Drawn(PanelPart.RoomCardLevel);
                     yield return Until(() => Stage.RoomGoneInto == tiered && ScryPanel.Drawn(PanelPart.RoomCardLevel) > levelChips + 1, 5);
                     var offered = ScryPanel.RoomCardLines.ToList();
@@ -164,6 +176,7 @@ namespace Scry
             Stage.Inside = wasInside;
             StageAsItWas();
             p.Note($"{Numbers.Count(oddsChecked)} chests' and pickups' chances checked against their rooms' pages");
+            p.Check(unpicked.Count == 0, "a click picks a room, outlined and shown on the card where the view is, and a double-click goes into it", string.Join("; ", unpicked));
             p.Check(unfolded.Count == 0, "folded, the card's lists keep their headings and counts and none of their rows", string.Join("; ", unfolded));
             if (linkable > 0) p.Check(linked == linkable, "each creature and chest on the card with a page of its own is a line that goes to it", $"{Numbers.Count(linked)} of {Numbers.Count(linkable)} cards drew them so");
             p.Check(unshown.Count == 0, "a room gone into shows its card", string.Join("; ", unshown));

@@ -37,21 +37,50 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void InsideADungeonTheKeySheetSaysAClickPicksARoomAndADoubleClickGoesIn()
+        {
+            foreach (var inRoom in new[] { false, true })
+            {
+                var sheet = StageWords.KeySheet(cut: true, inRoom: inRoom, rooms: true);
+                Assert.Contains("Click a room: pick it, Esc letting go of it", sheet);
+                Assert.Contains("Double-click a room or Enter: go into it", sheet);
+            }
+            Assert.DoesNotContain("Click a room", StageWords.KeySheet(cut: true, inRoom: false));
+        }
+
+        [Fact]
         public void TheKeySheetsMarkSaysWhatItShows()
         {
             Assert.Equal("?", StageWords.KeysMark);
         }
 
+        // A room of a dungeon's example under the mouse peeks: its name, where it is, what this
+        // copy rolled in it, and what a click and a double-click do.
+
         [Fact]
-        public void ARoomOfADungeonsExampleSaysAClickGoesIntoIt()
+        public void ARoomPeeksWithWhereItIsWhatItHoldsAndThatAClickPicksIt()
         {
-            Assert.Equal("Burial chamber\nClick to go in", StageWords.GoIntoTip("Burial chamber", inside: false));
+            Assert.Equal("Burial chamber\n12 m below the entrance  ·  4 rooms in  ·  3 ways\nCreatures 2  ·  Chests and pickups 5\nClick to pick it, double-click to go in",
+                StageWords.RoomPeek("Burial chamber", "12 m below the entrance  ·  4 rooms in  ·  3 ways", creatures: 2, chests: 5, goneInto: false));
         }
 
         [Fact]
-        public void TheRoomGoneIntoSaysHowToComeBackOut()
+        public void TheRoomGoneIntoPeeksWithHowToComeBackOut()
         {
-            Assert.Equal("Burial chamber\nEsc or Whole dungeon comes back out", StageWords.GoIntoTip("Burial chamber", inside: true));
+            Assert.EndsWith("\nEsc or the breadcrumb's level comes back out", StageWords.RoomPeek("Burial chamber", "Entrance", creatures: 0, chests: 0, goneInto: true));
+        }
+
+        [Fact]
+        public void AWayOnOfTheCardSaysAClickGoesIntoItsRoom()
+        {
+            Assert.Equal("Shrine hole 01, 2 m up\nClick to go in", StageWords.GoIntoTip("Shrine hole 01, 2 m up"));
+        }
+
+        [Fact]
+        public void ARoomPickedSaysADoubleClickGoesIn()
+        {
+            Assert.Equal("Go in", StageWords.GoInLink);
+            Assert.Equal("Goes into the room picked, as a double-click on it does", StageWords.GoInTip);
         }
 
         [Fact]

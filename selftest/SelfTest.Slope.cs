@@ -49,7 +49,7 @@ namespace Scry
                 {
                     if (room == null) continue;
                     var plane = Stage.ExampleRoomSlope(room).Value;
-                    ScryPanel.ClickRoomForTest(X, room);
+                    ScryPanel.DoubleClickRoomForTest(X, room);
                     yield return Until(() => Stage.RoomGoneInto == room && Stage.ExampleRoomsKept, 5);
                     yield return Until(() => !Stage.Gliding, 5);
                     var name = $"{entry.Name}'s {room.Room.Name}";

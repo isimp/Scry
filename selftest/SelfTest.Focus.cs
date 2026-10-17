@@ -48,7 +48,7 @@ namespace Scry
                     continue;
                 }
 
-                ScryPanel.ClickRoomForTest(X, deepest);
+                ScryPanel.DoubleClickRoomForTest(X, deepest);
                 yield return Until(() => Stage.RoomGoneInto == deepest && Stage.ExampleRoomsKept, 5);
                 yield return Until(() => !Stage.Gliding, 5);
                 var name = $"{entry.Name}'s {deepest.Room.Name}";
@@ -115,7 +115,7 @@ namespace Scry
                     continue;
                 }
                 var levels = Stage.ExampleRoomLevels(tiered);
-                ScryPanel.ClickRoomForTest(X, tiered);
+                ScryPanel.DoubleClickRoomForTest(X, tiered);
                 yield return Until(() => Stage.RoomGoneInto == tiered && Stage.ExampleRoomsKept, 5);
                 foreach (var level in levels)
                 {

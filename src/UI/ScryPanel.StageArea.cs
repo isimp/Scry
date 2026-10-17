@@ -82,19 +82,30 @@ namespace Scry
         private static Vector2? _cameOutMouse;
 
         /// <summary>
-        /// A click on a room of the stage's example: inside a dungeon's, it goes into the room
-        /// (<see cref="Stage.GoInto"/>), its page a click away on the plan; in a camp's, it goes
-        /// to its entry where that is known.
+        /// A click on a room of the stage's example: inside a dungeon's, it picks the room
+        /// (<see cref="Stage.Pick"/>), outlined and shown on the card, a double-click going into
+        /// it; in a camp's, it goes to its entry where that is known.
         /// </summary>
         private static void ClickRoom(Explorer explorer, PlacedRoom room, string key)
         {
-            if (Stage.HasInside && room != null) Stage.GoInto(room);
+            if (Stage.HasInside && room != null) Stage.Pick(room);
             else if (key != null) Go(explorer, key);
         }
 
-        /// <summary>Clicks a room of the stage's example as the mouse does, for the self-test.</summary>
+        /// <summary>Whether a press on the stage came down on no room, so that, not a drag, it lets go of the room picked.</summary>
+        private static bool _stageUnpick;
+
+        /// <summary>Double-clicks a room of the stage's example as the mouse does, going into it, for the self-test; in a camp's, a click going to its entry.</summary>
         [Diagnostic]
-        public static void ClickRoomForTest(Explorer explorer, PlacedRoom room) =>
+        public static void DoubleClickRoomForTest(Explorer explorer, PlacedRoom room)
+        {
+            if (Stage.HasInside && room != null) Stage.GoInto(room);
+            else ClickRoom(explorer, room, room == null ? null : EntryKeys.For(Kind.Location, room.Room.Name));
+        }
+
+        /// <summary>Clicks a room of the stage's example once, picking it, for the self-test.</summary>
+        [Diagnostic]
+        public static void PickRoomForTest(Explorer explorer, PlacedRoom room) =>
             ClickRoom(explorer, room, room == null ? null : EntryKeys.For(Kind.Location, room.Room.Name));
 
         /// <summary>Where the stage's picture was last drawn, on the screen, for a drag to tell where on it the mouse is.</summary>
@@ -170,7 +181,7 @@ namespace Scry
                         var key = EntryKeys.For(Kind.Location, room.Room.Name);
                         var known = Goes(explorer, key);
                         var name = ShownName(explorer, key, LocationWords.RoomName(room.Room.Name));
-                        AskTip("stageroom:" + room.Room.Name, Stage.HasInside ? StageWords.GoIntoTip(name, room == Stage.RoomGoneInto) : StageWords.RoomTip(name, known));
+                        AskTip("stageroom:" + room.Room.Name, Stage.HasInside ? Peek(explorer, room) : StageWords.RoomTip(name, known));
                         if (known) roomKey = key;
                         pointed = room;
                         _stageRoom = room.Room.Name;
@@ -186,7 +197,13 @@ namespace Scry
                     if (_cameOutMouse == null) _cameOutMouse = e.mousePosition;
                     else if ((e.mousePosition - _cameOutMouse.Value).sqrMagnitude > U(4f) * U(4f)) Stage.LetGoOfCameOut();
                 }
-                if (e.type == EventType.Repaint) Stage.LitRoom = Stage.HasInside && Stage.ShowsInside ? RoomLight.Lit(_cardLit, _boxHover, _stageHover) ?? Stage.CameOutOf : null;
+                if (e.type == EventType.Repaint) Stage.LitRoom = Stage.HasInside && Stage.ShowsInside ? RoomLight.Lit(_cardLit, _boxHover, _stageHover) ?? Stage.PickedRoom ?? Stage.CameOutOf : null;
+                // A click on no room, not a drag, lets go of the room picked.
+                if (e.type == EventType.MouseUp && e.button == 0 && _stageUnpick)
+                {
+                    _stageUnpick = false;
+                    if (_drag == Drag.Orbit && _dragMoved < U(5f)) Stage.Pick(null);
+                }
                 if (e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _dragMoved < U(5f) && (_stageRoomDown != null || _stageRoomDownAt != null))
                 {
                     var go = _stageRoomDown;
@@ -229,9 +246,12 @@ namespace Scry
 
                 if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
                 {
-                    if (e.clickCount == 2) Stage.ResetView();
+                    // A double-click goes into the room under it inside a dungeon, else frames the view afresh.
+                    if (e.clickCount == 2 && Stage.HasInside && pointed != null) Stage.GoInto(pointed);
+                    else if (e.clickCount == 2) Stage.ResetView();
                     _stageRoomDown = e.clickCount == 2 ? null : roomKey;
                     _stageRoomDownAt = e.clickCount == 2 ? null : pointed;
+                    _stageUnpick = e.clickCount == 1 && pointed == null && Stage.PickedRoom != null;
                     StartDrag(Drag.Orbit);
                     Stage.Dragging = true;
                     e.Use();
@@ -347,7 +367,7 @@ namespace Scry
             var mark = new Rect(inner.xMax - U(8f) - size, inner.yMax - U(8f) - size, size, size);
             StagePiece("keys", mark);
             CountDrawn(PanelPart.StageKeys);
-            if (mark.Contains(Event.current.mousePosition)) AskTip("stage-keys", StageWords.KeySheet(Stage.HasFloors, Stage.RoomGoneInto != null));
+            if (mark.Contains(Event.current.mousePosition)) AskTip("stage-keys", StageWords.KeySheet(Stage.HasFloors, Stage.RoomGoneInto != null, Stage.HasInside && Stage.ShowsInside));
             GUI.Label(mark, StageWords.KeysMark, Skin.IconButton);
             return size + U(4f);
         }

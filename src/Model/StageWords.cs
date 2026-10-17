@@ -33,8 +33,21 @@ namespace Scry
             }
         }
 
-        /// <summary>A room of a dungeon's example's tip: its name, and that a click goes into it, or, gone into, how to come back out.</summary>
-        public static string GoIntoTip(string name, bool inside) => name + (inside ? "\nEsc or Whole dungeon comes back out" : "\nClick to go in");
+        /// <summary>A way on's tip on the room card: its words, and that a click goes into its room.</summary>
+        public static string GoIntoTip(string name) => name + "\nClick to go in";
+
+        /// <summary>
+        /// The peek on a room of a dungeon's example under the mouse, on the stage or in the plan
+        /// box: its name, where it is, how many creatures and chests and pickups this copy rolled
+        /// in it, and what a click and a double-click do; the room gone into, how to come back out.
+        /// </summary>
+        public static string RoomPeek(string name, string where, int creatures, int chests, bool goneInto) =>
+            name + "\n" + where + "\nCreatures " + Numbers.Count(creatures) + "  ·  Chests and pickups " + Numbers.Count(chests)
+            + (goneInto ? "\nEsc or the breadcrumb's level comes back out" : "\nClick to pick it, double-click to go in");
+
+        /// <summary>The link on the card of a room picked, not gone into, and its tip.</summary>
+        public const string GoInLink = "Go in";
+        public const string GoInTip = "Goes into the room picked, as a double-click on it does";
 
         /// <summary>The chip of a place with an inside, by which side is shown.</summary>
         public static string Inside(bool inside) => inside ? "Inside" : "Outside";
@@ -55,13 +68,14 @@ namespace Scry
         /// <summary>
         /// What the stage answers to, a control a line, as its ? shows: turning, moving and
         /// zooming; with floors, stepping them and moving the cut; in a room gone into, its cut,
-        /// on past its ends, and coming back out.
+        /// on past its ends, and coming back out; inside a dungeon, picking a room and going into it.
         /// </summary>
-        public static string KeySheet(bool cut, bool inRoom)
+        public static string KeySheet(bool cut, bool inRoom, bool rooms = false)
         {
-            if (inRoom) return "Drag: turn around the room\nWheel: zoom toward the pointer\nShift and the wheel, Page Up and Down: the room's cut; past its ends, the next level\nEsc, the breadcrumb's level or the mouse's back button: come back out";
-            const string sheet = "Drag: turn it\nRight-drag: move it\nWheel: zoom toward the pointer\nDouble-click: frame it again";
-            return cut ? sheet + "\nPage Up and Down, the ruler: the next floor or level\nShift and the wheel: move the cut" : sheet;
+            var sheet = inRoom
+                ? "Drag: turn around the room\nWheel: zoom toward the pointer\nShift and the wheel, Page Up and Down: the room's cut; past its ends, the next level\nEsc, the breadcrumb's level or the mouse's back button: come back out"
+                : "Drag: turn it\nRight-drag: move it\nWheel: zoom toward the pointer\nDouble-click: frame it again" + (cut ? "\nPage Up and Down, the ruler: the next floor or level\nShift and the wheel: move the cut" : "");
+            return rooms ? sheet + "\nClick a room: pick it, Esc letting go of it\nDouble-click a room or Enter: go into it" : sheet;
         }
 
         /// <summary>The floor ruler's tip over a floor's mark.</summary>

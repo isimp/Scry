@@ -24,12 +24,13 @@ namespace Scry
             {
                 case KeyCode.Escape:
                     // Out of a text box first, handing the keys back to the list and to walking;
-                    // then out of a room of a dungeon's example gone into; from anywhere else the panel closes.
+                    // then let go of a room picked, then out of a room gone into; from anywhere else the panel closes.
                     if (Typing)
                     {
                         GUIUtility.keyboardControl = 0;
                         Assist.ResetCycle();
                     }
+                    else if (Stage.PickedRoom != null) Stage.Pick(null);
                     else if (Stage.RoomGoneInto != null) Stage.ComeOut();
                     else AskClose();
                     e.Use();
@@ -67,6 +68,7 @@ namespace Scry
                     // or shows the selection.
                     if (FocusedFilter == EffectControl) PlayFirstEffect();
                     else if (FocusedFilter == ClipControl) PlayFirstClip();
+                    else if (!Typing && Stage.PickedRoom != null) Stage.GoInto(Stage.PickedRoom);
                     else if (!Assist.TakeEnter(explorer) && explorer.LevelOf(explorer.Selected) == KnownLevel.Known) Primary(explorer.Selected);
                     e.Use();
                     break;

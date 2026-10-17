@@ -686,6 +686,7 @@ namespace Scry
         /// <summary>Goes into a room of the example, as <see cref="GoInto"/> does, without a step of the history.</summary>
         private static void EnterRoom(PlacedRoom room)
         {
+            PickedRoom = null;
             // From the whole example, the zoom and the reach the view had, which coming back out takes up again.
             if (TheExample.Focused == null)
             {
@@ -730,6 +731,12 @@ namespace Scry
             KeepLevelFrame(new Vector4(middle.x, 0f, middle.y, _reachBeforeRoom ?? float.NaN));
         }
 
+        /// <summary>The room of the dungeon's example picked by a click, outlined and shown on the card where the view is, not gone into; none.</summary>
+        public static PlacedRoom PickedRoom { get; private set; }
+
+        /// <summary>Picks a room as a click on it does; the room gone into, or none, lets go of the pick.</summary>
+        public static void Pick(PlacedRoom room) => PickedRoom = room == TheExample.Focused ? null : room;
+
         /// <summary>Shows the whole of the dungeon's example with the roof on, out of any room gone into, as the breadcrumb's dungeon does; coming out of a room is a step of the history.</summary>
         public static void WholeDungeon()
         {
@@ -744,6 +751,7 @@ namespace Scry
         /// <summary>Comes out of the room gone into, which stays outlined until the mouse moves, the cut let go of.</summary>
         private static void LeaveRoom()
         {
+            PickedRoom = null;
             CameOutOf = TheExample.Focused;
             TheExample.Unfocus();
             LetGoOfRoomCut();
@@ -766,6 +774,7 @@ namespace Scry
         /// <summary>Takes down the example's copies, as another entry or another example is shown, its rooms' creatures and paints with them.</summary>
         private static void ForgetExample()
         {
+            PickedRoom = null;
             ForgetSteps();
             if (TheExample.Focused != null) LetGoOfRoomCut();
             TheExample.Forget();
