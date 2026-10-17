@@ -41,7 +41,7 @@ namespace Scry
             yield return Picture(p, "side MorkBorg whole");
             var chips = ScryPanel.Drawn(PanelPart.CutChip);
             yield return Until(() => ScryPanel.Drawn(PanelPart.CutChip) > chips + 1, 3);
-            p.Check(ScryPanel.Drawn(PanelPart.CutChip) > chips, "inside a dungeon, the Above and Side chips stand beside Inside");
+            p.Check(ScryPanel.Drawn(PanelPart.CutChip) > chips, "inside a dungeon, the cut control with its Side stands beside Inside");
 
             var deepest = DungeonWays.Of(Stage.ExampleShown.Rooms).Deepest;
             ScryPanel.ClickRoomForTest(X, deepest);
@@ -62,6 +62,28 @@ namespace Scry
             ScryPanel.ChooseCutForTest(true);
             yield return Until(() => Stage.ExampleRoomsKept, 5);
             p.Check(above && Stage.SideCutting && !Stage.Cutting, "switched from the side to above and back, the cut follows", $"above {above}, side {Stage.SideCutting}");
+
+            // The cut control: in the room, Closed puts its own roof on and Top takes it off, Side cuts
+            // from the side again, the room kept; out of it, Closed puts the roof on, Top takes it off.
+            Stage.ChooseCut(CutMode.Closed);
+            yield return null;
+            var closedIn = Stage.RoomGoneInto == deepest && Stage.RoomRoofOn && !Stage.CutFromSide;
+            Stage.ChooseCut(CutMode.Top);
+            yield return null;
+            var topIn = Stage.RoomGoneInto == deepest && !Stage.RoomRoofOn && Stage.Cutting && !Stage.CutFromSide;
+            Stage.ChooseCut(CutMode.Side);
+            yield return null;
+            var sideIn = Stage.RoomGoneInto == deepest && Stage.SideCutting;
+            Stage.ComeOut();
+            yield return null;
+            Stage.ChooseCut(CutMode.Closed);
+            yield return null;
+            var closedOut = !Stage.Cutting && !Stage.CutFromSide;
+            Stage.ChooseCut(CutMode.Top);
+            yield return null;
+            var topOut = Stage.Cutting && !Stage.CutFromSide;
+            p.Check(closedIn && topIn && sideIn && closedOut && topOut, "the cut control closes, cuts from above and cuts from the side, in a room its own roof with the room kept",
+                $"in the room closed {closedIn}, top {topIn}, side {sideIn}; out of it closed {closedOut}, top {topOut}");
 
             Stage.ComeOut();
             Stage.Inside = wasInside;

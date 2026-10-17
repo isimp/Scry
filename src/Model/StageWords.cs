@@ -13,13 +13,25 @@ namespace Scry
         /// <summary>A room's tip: its name, and where it can be gone to, that a click does.</summary>
         public static string RoomTip(string name, bool canGo) => canGo ? name + "\nClick to go to it" : name;
 
-        /// <summary>A chip choosing how a dungeon's inside is cut: from above or from the side.</summary>
-        public static string CutChip(bool side) => side ? "Side cut" : "Top cut";
+        /// <summary>The label of the stage's cut control.</summary>
+        public const string CutLabel = "Cut";
 
-        /// <summary>What each way of cutting a dungeon's inside takes away.</summary>
-        public static string CutTip(bool side) => side
-            ? "Cut from the side: the half of every room facing you taken away"
-            : "Cut from above: the roof off over a floor or the room gone into";
+        /// <summary>A part of the stage's cut control.</summary>
+        public static string CutModeName(CutMode mode) => mode == CutMode.Closed ? "Closed" : mode == CutMode.Top ? "Top" : "Side";
+
+        /// <summary>What a part of the cut control does, in a room gone into to the room alone.</summary>
+        public static string CutModeTip(CutMode mode, bool inRoom)
+        {
+            switch (mode)
+            {
+                case CutMode.Closed:
+                    return inRoom ? "Closed: the room's roof on, the rooms above it back, the room still gone into" : "Closed: the roof on";
+                case CutMode.Top:
+                    return inRoom ? "Cut from above: the room's roof off at head height over its floor" : "Cut from above: the roof off over a floor or level";
+                default:
+                    return "Cut from the side: the half of every room facing you taken away";
+            }
+        }
 
         /// <summary>A room of a dungeon's example's tip: its name, and that a click goes into it, or, gone into, how to come back out.</summary>
         public static string GoIntoTip(string name, bool inside) => name + (inside ? "\nEsc or Whole dungeon comes back out" : "\nClick to go in");
@@ -52,11 +64,6 @@ namespace Scry
             return cut ? sheet + "\nPage Up and Down, the ruler: the next floor or level\nShift and the wheel: move the cut" : sheet;
         }
 
-        /// <summary>The roof button's tip.</summary>
-        public static string RoofTip(bool cutting) => cutting
-            ? "Cut open over a floor: click to put the roof back on"
-            : "Roof on: click to take it off, cutting away what is above head height over a floor";
-
         /// <summary>The floor ruler's tip over a floor's mark.</summary>
         public static string FloorTip(string floor) => floor + ": click to open it";
 
@@ -74,11 +81,6 @@ namespace Scry
 
         /// <summary>The tip of a mark of the rooms above on the room's ruler.</summary>
         public static string RoomsAboveTip(string mark) => mark + ": click to cut over them, bringing them back";
-
-        /// <summary>The roof button's tip in a room gone into, its own roof.</summary>
-        public static string RoomRoofTip(bool on) => on
-            ? "The room's roof on, the rooms above it back: click to take it off"
-            : "Cut open over the room: click to put its roof on, the rooms above it back";
 
         /// <summary>What the room's ruler says beside its bar with the room's roof on.</summary>
         public const string RoomRoofOn = "Roof on";

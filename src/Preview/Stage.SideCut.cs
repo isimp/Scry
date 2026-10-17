@@ -36,6 +36,25 @@ namespace Scry
             if (ExampleInside) TurnTo(Yaw, side ? SidePitch : CutPitch);
         }
 
+        /// <summary>
+        /// Cuts as a part of the stage's cut control asks (<see cref="CutControl"/>): from the side;
+        /// from above, taking the roof off; or closed, putting it on; in a room gone into, its own
+        /// roof, the room still gone into.
+        /// </summary>
+        public static void ChooseCut(CutMode mode)
+        {
+            var side = mode == CutMode.Side;
+            if (CutFromSide != side) SetCutFromSide(side);
+            if (side) return;
+            var closed = mode == CutMode.Closed;
+            if (TheExample.Focused != null)
+            {
+                if (TheCut.HeldRoofOn != closed) TheCut.ToggleRoof();
+                return;
+            }
+            if (TheCut.Cutting == closed) ToggleRoof();
+        }
+
         /// <summary>Starts a dungeon's example cut from the side where it is mostly one stack of rooms, else from above.</summary>
         private static void ChooseCutForExample()
         {

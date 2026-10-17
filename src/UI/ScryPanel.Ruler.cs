@@ -73,16 +73,8 @@ namespace Scry
             if (Event.current.type == EventType.Repaint) RoomRulerShown = false;
 
             var e = Event.current;
-            var rect = RulerRect(stage, out var roof);
-            // The roof over the ruler: lit while it is on, a click takes it off or puts it back.
-            var roofOver = roof.Contains(e.mousePosition);
-            if (e.type == EventType.Repaint)
-            {
-                Skin.Icon(roof, Skin.Roof, !Stage.Cutting ? Skin.Accent : roofOver ? Skin.Text : Skin.Dim);
-                CountDrawn(PanelPart.RoofButton);
-            }
-            if (roofOver) AskTip("roof", StageWords.RoofTip(Stage.Cutting));
-            if (GUI.Button(roof, GUIContent.none, GUIStyle.none)) Stage.ToggleRoof();
+            // The roof is put on and taken off by the cut control in the stage's row of chips.
+            var rect = RulerRect(stage, out _);
 
             var low = Mathf.Min(floors[floors.Count - 1], Stage.ModelBottom) - 0.5f;
             var high = Mathf.Max(cuts[0], Stage.ModelTop) + 1f;
@@ -95,7 +87,7 @@ namespace Scry
             if (e.type == EventType.Repaint)
             {
                 CountDrawn(PanelPart.Ruler);
-                StagePiece("ruler", new Rect(rect.x - U(4f), roof.y, rect.width + U(8f), rect.yMax - roof.y));
+                StagePiece("ruler", new Rect(rect.x - U(4f), rect.y - U(4f), rect.width + U(8f), rect.height + U(4f)));
                 Skin.Fill(new Rect(rect.center.x - U(1f), rect.y, U(2f), rect.height), Skin.Light(0.22f));
                 for (var i = 0; i < floors.Count; i++)
                 {
@@ -107,7 +99,8 @@ namespace Scry
                 RulerBarForTest = (cutY, rect.y, rect.yMax);
 
                 // The floor opened named beside the cut, with an example's rooms on it.
-                var named = Stage.Cutting ? Stage.ExampleMark(Stage.CutLevel) ?? PlaceView.FloorLabel(Stage.CutLevel, floors.Count, Stage.ExampleRoomsOnFloor) : null;
+                // A dungeon's level is named on its breadcrumb; a place's floor beside the bar.
+                var named = Stage.Cutting && Stage.ExampleMark(Stage.CutLevel) == null ? PlaceView.FloorLabel(Stage.CutLevel, floors.Count, Stage.ExampleRoomsOnFloor) : null;
                 if (named != null) RulerLabel(stage, rect, cutY, named);
             }
 
@@ -142,17 +135,9 @@ namespace Scry
         private static void RoomRulerDrawn(Rect stage, RoomRuler ruler)
         {
             var e = Event.current;
-            var rect = RulerRect(stage, out var roof);
+            var rect = RulerRect(stage, out _);
             var roofOn = Stage.RoomRoofOn;
-            var roofOver = roof.Contains(e.mousePosition);
-            if (e.type == EventType.Repaint)
-            {
-                RoomRulerShown = true;
-                Skin.Icon(roof, Skin.Roof, roofOn ? Skin.Accent : roofOver ? Skin.Text : Skin.Dim);
-                CountDrawn(PanelPart.RoofButton);
-            }
-            if (roofOver) AskTip("roof", StageWords.RoomRoofTip(roofOn));
-            if (GUI.Button(roof, GUIContent.none, GUIStyle.none)) Stage.ToggleRoof();
+            if (e.type == EventType.Repaint) RoomRulerShown = true;
 
             var low = ruler.Low - 0.5f;
             var high = ruler.High + 0.5f;
@@ -165,7 +150,7 @@ namespace Scry
             if (e.type == EventType.Repaint)
             {
                 CountDrawn(PanelPart.Ruler);
-                StagePiece("ruler", new Rect(rect.x - U(4f), roof.y, rect.width + U(8f), rect.yMax - roof.y));
+                StagePiece("ruler", new Rect(rect.x - U(4f), rect.y - U(4f), rect.width + U(8f), rect.height + U(4f)));
                 Skin.Fill(new Rect(rect.center.x - U(1f), rect.y, U(2f), rect.height), Skin.Light(0.22f));
                 for (var i = 0; i < ruler.Ticks.Count; i++)
                 {

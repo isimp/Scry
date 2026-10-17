@@ -55,13 +55,22 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheCutsTwoChipsSayWhichWayEachCutsAndWhatGoes()
+        public void TheCutControlNamesItsPartsAndSaysWhatEachCuts()
         {
-            // Named apart from the plan's Above and the camera's Side.
-            Assert.Equal("Top cut", StageWords.CutChip(side: false));
-            Assert.Equal("Side cut", StageWords.CutChip(side: true));
-            Assert.Equal("Cut from above: the roof off over a floor or the room gone into", StageWords.CutTip(side: false));
-            Assert.Equal("Cut from the side: the half of every room facing you taken away", StageWords.CutTip(side: true));
+            Assert.Equal("Cut", StageWords.CutLabel);
+            Assert.Equal("Closed", StageWords.CutModeName(CutMode.Closed));
+            Assert.Equal("Top", StageWords.CutModeName(CutMode.Top));
+            Assert.Equal("Side", StageWords.CutModeName(CutMode.Side));
+            Assert.Equal("Closed: the roof on", StageWords.CutModeTip(CutMode.Closed, inRoom: false));
+            Assert.Equal("Cut from above: the roof off over a floor or level", StageWords.CutModeTip(CutMode.Top, inRoom: false));
+            Assert.Equal("Cut from the side: the half of every room facing you taken away", StageWords.CutModeTip(CutMode.Side, inRoom: false));
+        }
+
+        [Fact]
+        public void InARoomTheCutControlActsOnTheRoomAndStaysInIt()
+        {
+            Assert.Equal("Closed: the room's roof on, the rooms above it back, the room still gone into", StageWords.CutModeTip(CutMode.Closed, inRoom: true));
+            Assert.Equal("Cut from above: the room's roof off at head height over its floor", StageWords.CutModeTip(CutMode.Top, inRoom: true));
         }
 
         [Fact]
@@ -91,10 +100,8 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheRoomsRoofAndRulerSayTheyStayInTheRoom()
+        public void TheRoomsRulerSaysItStaysInTheRoom()
         {
-            Assert.Contains("click to put its roof on", StageWords.RoomRoofTip(on: false));
-            Assert.Contains("click to take it off", StageWords.RoomRoofTip(on: true));
             Assert.Equal("Roof on", StageWords.RoomRoofOn);
             Assert.Contains("stays in the room", StageWords.RoomRulerTip(aboveTop: false));
             Assert.Equal("Click to put the room's roof on", StageWords.RoomRulerTip(aboveTop: true));

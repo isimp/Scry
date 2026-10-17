@@ -456,17 +456,15 @@ namespace Scry
                 Stage.Inside = true;
                 yield return null;
 
-                // Beside the Top cut and Side cut chips (two each time they are drawn), its row holds only
-                // View, Inside and Creatures; the roof is over the ruler.
+                // Beside the cut control, drawn once a frame, its row holds only View, Inside and Creatures.
                 var chips = ScryPanel.Drawn(PanelPart.StageChip);
                 var keysDrawn = ScryPanel.Drawn(PanelPart.StageKeys);
-                var cutChips = ScryPanel.Drawn(PanelPart.CutChip);
-                var roofs = ScryPanel.Drawn(PanelPart.RoofButton);
+                var cutControls = ScryPanel.Drawn(PanelPart.CutChip);
                 var frames = Time.frameCount;
-                yield return Until(() => Time.frameCount > frames + 1 && ScryPanel.Drawn(PanelPart.RoofButton) > roofs, 3);
-                var others = ScryPanel.Drawn(PanelPart.StageChip) - chips - 2 * (ScryPanel.Drawn(PanelPart.CutChip) - cutChips);
-                var perFrame = others / Mathf.Max(1, ScryPanel.Drawn(PanelPart.RoofButton) - roofs);
-                p.Check(perFrame > 0 && perFrame <= 3 && ScryPanel.Drawn(PanelPart.RoofButton) > roofs, "beside the Top cut and Side cut chips, its stage shows three chips at the most, the roof over its ruler", $"{Numbers.Count(perFrame)} chips a frame");
+                yield return Until(() => Time.frameCount > frames + 1 && ScryPanel.Drawn(PanelPart.CutChip) > cutControls, 3);
+                var others = ScryPanel.Drawn(PanelPart.StageChip) - chips;
+                var perFrame = others / Mathf.Max(1, ScryPanel.Drawn(PanelPart.CutChip) - cutControls);
+                p.Check(perFrame > 0 && perFrame <= 3 && ScryPanel.Drawn(PanelPart.CutChip) > cutControls, "beside the cut control, its stage shows three chips at the most", $"{Numbers.Count(perFrame)} chips a frame");
                 p.Check(ScryPanel.Drawn(PanelPart.StageKeys) > keysDrawn, "the stage keeps its key sheet's ? in its corner, in place of a line of hints");
                 p.Check(Stage.Cutting, "opened on its top floor", Stage.CutLabel);
                 var cuts = new List<float> { Stage.CutAt };

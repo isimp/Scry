@@ -369,13 +369,16 @@ namespace Scry
             var texts = new List<string> { "View" };
             if (Stage.HasOutside && !Stage.InsideUnknown) texts.Add(StageWords.Inside(Stage.Inside));
             if (Stage.HasCreatures) texts.Add("Creatures");
-            var cutChips = Stage.HasInside && Stage.ShowsInside;
-            if (cutChips)
+            // How it is cut, for a place with floors: closed, from above, and inside a dungeon from the side.
+            var inside = Stage.HasInside && Stage.ShowsInside;
+            var cutModes = Stage.HasFloors && Stage.Subject != null ? CutControl.Offered(inside) : null;
+            var cutW = 0f;
+            if (cutModes != null)
             {
-                texts.Add(StageWords.CutChip(false));
-                texts.Add(StageWords.CutChip(true));
+                cutW = Skin.Width(Skin.FaintLabel, StageWords.CutLabel) + U(8f);
+                foreach (var mode in cutModes) cutW += Skin.Width(Skin.SegmentOn, StageWords.CutModeName(mode)) + U(12f);
             }
-            var total = texts.Sum(t => Skin.Width(Skin.Chip, t) + U(10f));
+            var total = texts.Sum(t => Skin.Width(Skin.Chip, t) + U(10f)) + cutW;
             if (x - total < rect.x + U(10f) + _badgeWidth + U(10f)) y += h + U(8f);
 
             Rect last = default;
@@ -413,16 +416,34 @@ namespace Scry
             {
                 Stage.Inside = !Stage.Inside;
             }
-            // Inside a dungeon, how it is cut: from the side or from above, the side's chip nearer Inside.
-            if (cutChips)
+            // How it is cut, one control left of the chips: Closed, Top and inside a dungeon Side,
+            // in a room gone into acting on the room.
+            if (cutModes != null)
             {
                 CountDrawn(PanelPart.CutChip);
-                if (Chip(StageWords.CutChip(true), Stage.CutFromSide, StageWords.CutTip(true))) ChooseCut(true);
-                if (Chip(StageWords.CutChip(false), !Stage.CutFromSide, StageWords.CutTip(false))) ChooseCut(false);
+                var inRoom = inside && Stage.RoomGoneInto != null;
+                var shown = CutControl.Shown(inside && Stage.CutFromSide, inRoom ? !Stage.RoomRoofOn : Stage.Cutting);
+                for (var i = cutModes.Count - 1; i >= 0; i--)
+                {
+                    var mode = cutModes[i];
+                    var name = StageWords.CutModeName(mode);
+                    var on = mode == shown;
+                    var style = on ? Skin.SegmentOn : Skin.Segment;
+                    var w = Skin.Width(style, name) + U(10f);
+                    x -= w;
+                    var part = new Rect(x, y, w, h);
+                    x -= U(2f);
+                    StagePiece("chips", part);
+                    if (part.Contains(Event.current.mousePosition)) AskTip("stage:cut:" + name, StageWords.CutModeTip(mode, inRoom));
+                    if (GUI.Button(part, name, Skin.Fitted(style, part)) && !on) Stage.ChooseCut(mode);
+                }
+                var labelW = Skin.Width(Skin.FaintLabel, StageWords.CutLabel);
+                x -= labelW + U(2f);
+                GUI.Label(new Rect(x, y, labelW, h), StageWords.CutLabel, Skin.FaintLabel);
             }
         }
 
-        /// <summary>Cuts a dungeon's inside from the side or from above, as its chips do.</summary>
+        /// <summary>Cuts a dungeon's inside from the side or from above, the roof as it is.</summary>
         private static void ChooseCut(bool side)
         {
             if (Stage.CutFromSide != side) Stage.SetCutFromSide(side);
