@@ -92,7 +92,7 @@ namespace Scry
                     var column = columns[ray];
                     for (var k = 0; k < column.Count; k++)
                     {
-                        var open = column[0].Height - column[k].Height < FloorRecord.Covered;
+                        var open = FloorRecord.IsOpen(column[0].Height, column[k].Height);
                         if (Stands(column, k) && (open || Math.Abs(column[k].Height) <= RootReach)) seeds.Add((ray, k));
                     }
                 }

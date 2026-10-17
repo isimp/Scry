@@ -27,9 +27,8 @@ namespace Scry
 
         private static readonly List<Collider> Colliders = new List<Collider>();
 
-        /// <summary>How many surfaces one ray goes through at the most, and how far past each it goes on.</summary>
+        /// <summary>How many surfaces one ray goes through at the most; it goes on <see cref="FloorRecord.Past"/> past each.</summary>
         private const int MostSurfaces = 48;
-        private const float Past = 0.02f;
 
         private static int _solidLayers;
 
@@ -287,7 +286,7 @@ namespace Scry
         /// <summary>
         /// Casts the record's rays over the copy, and one down from a metre above each spawn point
         /// the game drops its creature from (<c>ZoneSystem.FindFloor</c>), noting every surface of
-        /// a part each meets, in the copy's own frame; into <paramref name="met"/>, when given,
+        /// a part each meets or passes just under one, in the copy's own frame; into <paramref name="met"/>, when given,
         /// every part each of the record's rays met. The rays pass through other copies on the
         /// stage (<see cref="OwnDown"/>), so what is kept of a kind of place is the same whatever
         /// stood beside the copy it was probed on.
@@ -301,10 +300,12 @@ namespace Scry
             for (var i = 0; i < transforms.Count; i++) index[transforms[i]] = i;
             var mask = layer >= 0 ? 1 << layer : Physics.DefaultRaycastLayers;
 
+            System.Func<Collider, int> partOf = c => index.TryGetValue(c.transform, out var part) ? part : -1;
             List<RaySurface> Surfaces(Vector3 from, float length, List<(float Height, int Part)> all = null)
             {
                 var surfaces = new List<RaySurface>();
-                foreach (var hit in OwnDown(from, length, mask, c => index.ContainsKey(c.transform)))
+                OwnDown(from, length, mask, partOf, RayHits);
+                foreach (var hit in RayHits)
                 {
                     var part = index[hit.collider.transform];
                     var height = root.InverseTransformPoint(hit.point).y;
@@ -364,7 +365,7 @@ namespace Scry
             for (var step = 0; step < MostSurfaces && top > bottom; step++)
             {
                 if (!Physics.Raycast(new Vector3(from.x, top, from.z), Vector3.down, out var hit, top - bottom, mask, QueryTriggerInteraction.Ignore)) yield break;
-                top = hit.point.y - Past;
+                top = hit.point.y - FloorRecord.Past;
                 yield return hit;
             }
         }
@@ -372,15 +373,23 @@ namespace Scry
         /// <summary>Every hit of one step of <see cref="OwnDown"/>; more than this, and that step goes one hit at a time.</summary>
         private static readonly RaycastHit[] StepHits = new RaycastHit[128];
 
+        /// <summary>One step's hits by how far along each is and its part, which of them are kept, and all a ray kept, for <see cref="OwnDown"/>.</summary>
+        private static readonly List<(float Distance, int Part)> StepParts = new List<(float, int)>();
+        private static readonly List<int> StepKept = new List<int>();
+        private static readonly List<RaycastHit> RayHits = new List<RaycastHit>();
+
         /// <summary>
-        /// Each surface of the copy's own (<paramref name="own"/>) a ray straight down from
-        /// <paramref name="from"/> meets within <paramref name="length"/>, top down, as
-        /// <see cref="Down"/> meets them but passing through every other collider: each step takes
-        /// the nearest of all it hits that is the copy's own, so another room's floor beside or
-        /// over the copy's, even at the same height, neither ends the ray nor hides what is under it.
+        /// Into <paramref name="into"/>, each surface of a part of the copy (<paramref name="partOf"/>,
+        /// -1 for none) a ray straight down from <paramref name="from"/> meets within
+        /// <paramref name="length"/>, top down, as <see cref="Down"/> meets them but passing
+        /// through every other collider: each step takes the nearest of all it hits that is the
+        /// copy's own, so another room's floor beside or over the copy's, even at the same height,
+        /// neither ends the ray nor hides what is under it. With each it takes what of other parts
+        /// the step past it passes (<see cref="FloorRecord.StepKeeps"/>).
         /// </summary>
-        private static IEnumerable<RaycastHit> OwnDown(Vector3 from, float length, int mask, System.Func<Collider, bool> own)
+        private static void OwnDown(Vector3 from, float length, int mask, System.Func<Collider, int> partOf, List<RaycastHit> into)
         {
+            into.Clear();
             var top = from.y;
             var bottom = from.y - length;
             for (var step = 0; step < MostSurfaces && top > bottom; step++)
@@ -390,26 +399,25 @@ namespace Scry
                 RaycastHit? nearest = null;
                 if (count < StepHits.Length)
                 {
-                    for (var i = 0; i < count; i++)
-                    {
-                        var hit = StepHits[i];
-                        if (hit.collider == null || !own(hit.collider)) continue;
-                        if (nearest == null || hit.distance < nearest.Value.distance) nearest = hit;
-                    }
+                    StepParts.Clear();
+                    for (var i = 0; i < count; i++) StepParts.Add((StepHits[i].distance, StepHits[i].collider != null ? partOf(StepHits[i].collider) : -1));
+                    FloorRecord.StepKeeps(StepParts, StepKept);
+                    if (StepKept.Count > 0) nearest = StepHits[StepKept[0]];
+                    foreach (var kept in StepKept) into.Add(StepHits[kept]);
                 }
                 else
                 {
                     // Too many to be sure of the nearest: one hit at a time, past the others.
                     foreach (var hit in Down(origin, top - bottom, mask))
                     {
-                        if (hit.collider == null || !own(hit.collider)) continue;
+                        if (hit.collider == null || partOf(hit.collider) < 0) continue;
                         nearest = hit;
+                        into.Add(hit);
                         break;
                     }
                 }
-                if (nearest == null) yield break;
-                top = nearest.Value.point.y - Past;
-                yield return nearest.Value;
+                if (nearest == null) return;
+                top = nearest.Value.point.y - FloorRecord.Past;
             }
         }
 
@@ -456,7 +464,7 @@ namespace Scry
                     hits.Add(new FloorHit
                     {
                         Patch = patch, I = i, J = j, Height = space.InverseTransformPoint(hit.point).y, Area = cell,
-                        Open = highest - hit.point.y < FloorRecord.Covered,
+                        Open = FloorRecord.IsOpen(highest, hit.point.y),
                     });
                     names?.Add(PartName(hit.collider.transform));
                 }

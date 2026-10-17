@@ -10,17 +10,17 @@ namespace Scry
     /// the same height, and each spawn point's creature on about the same ground. A ray's hit is
     /// off by a millimetre or so where a dungeon's rooms stand, high over the world, and the copy
     /// stands elsewhere each time, so heights within <see cref="SameHeight"/> are the same. A ray
-    /// steps two centimetres past each surface it meets, so a surface less than that under another
-    /// part goes unmet; a record keeps what the rolls it was probed on met, with other parts about
-    /// it, so a surface found by one of them only, within <see cref="Hidden"/> under something of
-    /// another part the other met (or, given, another copy's collider: -1), is the same floor.
+    /// steps two centimetres past each surface it meets, passing what lies less than that under
+    /// it; whether a surface lies that near is read from heights off by the rays' error, so a
+    /// surface found by one of them only, within <see cref="Hidden"/> under something of another
+    /// part the other met (or, given, another copy's collider: -1), is the same floor.
     /// </summary>
     internal sealed class FloorCheck
     {
         public const float SameHeight = 0.01f;
 
         /// <summary>How far under something else a ray met a surface can go unmet: the ray's step past a surface, with the rays' error.</summary>
-        public const float Hidden = 0.02f + SameHeight;
+        public const float Hidden = FloorRecord.Past + SameHeight;
 
         /// <summary>What only the record told, and only the rays found, each to the millimetre.</summary>
         public readonly List<string> OnlyKept = new List<string>();
@@ -77,8 +77,8 @@ namespace Scry
             bool Under(FloorLanding l, IEnumerable<(float Height, int Part)> others) =>
                 others.Any(o => o.Part != l.Part && o.Height - l.Height >= 0f && o.Height - l.Height <= Hidden);
             bool HiddenFromRays(FloorLanding l) => met != null && rayOf.TryGetValue((l.I, l.J), out var ray) && met.TryGetValue(ray, out var hits) && Under(l, hits);
-            // The record keeps a part from the roll it was first seen in, where another part may
-            // have hidden it, whether or not that one is there now.
+            // The record may pass what these rays met a hair over a step under another part, or
+            // lack it where a ray went one hit at a time, whether or not that part is there now.
             bool HiddenFromKept(FloorLanding l) => met != null && rayOf.TryGetValue((l.I, l.J), out var ray) && Under(l, kept.On(ray).Select(s => (s.Height, s.Part)));
 
             var unmatched = rays.Landings(present);

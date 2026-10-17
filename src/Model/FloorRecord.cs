@@ -47,17 +47,34 @@ namespace Scry
     /// ray met, each surface with its part, as probes of its rolls saw them (<see cref="With"/>).
     /// A roll whose parts were all seen tells its floors from the record (<see cref="Covers"/>,
     /// <see cref="Landings"/>) as its own rays would: each ray's flat surfaces among the parts
-    /// there, open where nothing of them is over it. What a spawn point's creature drops onto is
+    /// there, open where nothing of them is over it. A ray passes what lies just under a surface
+    /// it meets; that is kept too, so a roll without the part over it tells it as its rays meet
+    /// it, whichever roll its part was first seen in. What a spawn point's creature drops onto is
     /// kept the same way, each spawn point by the parts it was probed with. Stamped as the place
     /// is (<see cref="PlaceStamps"/>), and kept as text (<see cref="Save"/>, <see cref="Load"/>).
     /// A record is never changed once made: what a probe adds makes a new one.
     /// </summary>
     internal sealed class FloorRecord
     {
-        /// <summary>How far under the topmost thing on a ray a surface must be for something to be above it.</summary>
+        /// <summary>
+        /// How far under the topmost thing on a ray a surface must be for something to be above
+        /// it. Parts often stand just this far apart, as a wall's half-metre logs do, so the line
+        /// is drawn <see cref="Settle"/> short of it: the log under the top one is covered however
+        /// the last digits of their heights fall, as rays read them or as kept to the millimetre.
+        /// </summary>
         public const float Covered = 0.5f;
 
-        private const string Header = "Scry floors 1";
+        /// <summary>How far a height may be off: a ray's error where a copy stands high over the world, and the millimetre it is kept to.</summary>
+        public const float Settle = 0.01f;
+
+        /// <summary>Whether a surface at <paramref name="height"/> is open under the topmost thing on its ray, at <paramref name="highest"/>: less than <see cref="Covered"/> under it.</summary>
+        public static bool IsOpen(float highest, float height) => highest - height < Covered - Settle;
+
+        /// <summary>How far past each surface it meets a ray goes on down: what lies less than this under it, the ray passes without meeting.</summary>
+        public const float Past = 0.02f;
+
+        /// <summary>The file's kind and version. Version 2 keeps what each ray passes just under a surface it meets; a file of any other is read as none, and its place probed afresh.</summary>
+        private const string Header = "Scry floors 2";
 
         public string Prefab = "", Stamp = "";
         public bool Room;
@@ -147,41 +164,78 @@ namespace Scry
             return next;
         }
 
+        /// <summary>
+        /// Which of one cast's hits down a ray are kept, by how far along each is and its part (-1
+        /// for nothing of the copy's), into <paramref name="kept"/> nearest first: the nearest of
+        /// the copy's, which the ray meets and goes on <see cref="Past"/> past, then each other
+        /// part's less than that under it, which the ray passes without meeting. Those are kept
+        /// too, so a roll without the part over them tells them as its own rays meet them
+        /// (<see cref="On(int, ISet{int})"/>).
+        /// </summary>
+        public static void StepKeeps(IReadOnlyList<(float Distance, int Part)> hits, List<int> kept)
+        {
+            kept.Clear();
+            var nearest = -1;
+            for (var i = 0; i < hits.Count; i++)
+            {
+                if (hits[i].Part >= 0 && (nearest < 0 || hits[i].Distance < hits[nearest].Distance)) nearest = i;
+            }
+            if (nearest < 0) return;
+            kept.Add(nearest);
+            for (var i = 0; i < hits.Count; i++)
+            {
+                if (hits[i].Part < 0 || hits[i].Part == hits[nearest].Part || hits[i].Distance - hits[nearest].Distance >= Past) continue;
+                var at = kept.Count;
+                while (at > 1 && hits[kept[at - 1]].Distance > hits[i].Distance) at--;
+                kept.Insert(at, i);
+            }
+        }
+
         private static List<RaySurface> TopDown(IEnumerable<RaySurface> surfaces) => surfaces.OrderByDescending(s => s.Height).ToList();
 
-        /// <summary>Where the rays land on something flat for a roll with these parts there, each open where nothing of them is <see cref="Covered"/> over it.</summary>
+        /// <summary>Where the rays land on something flat for a roll with these parts there, each open where nothing of them is <see cref="Covered"/> over it (<see cref="IsOpen"/>).</summary>
         public List<FloorLanding> Landings(ISet<int> present)
         {
             var landings = new List<FloorLanding>();
-            var over = new List<float>();
+            var met = new List<RaySurface>();
             for (var ray = 0; ray < Grid.Count; ray++)
             {
-                if (!_rays.TryGetValue(ray, out var surfaces)) continue;
-                var highest = float.NaN;
-                over.Clear();
-                foreach (var surface in surfaces)
+                Meets(ray, present, met);
+                for (var k = 0; k < met.Count; k++)
                 {
-                    if (!present.Contains(surface.Part)) continue;
-                    if (float.IsNaN(highest)) highest = surface.Height;
-                    if (surface.Flat)
-                    {
-                        var at = Grid[ray];
-                        landings.Add(new FloorLanding { I = at.I, J = at.J, X = at.X, Z = at.Z, Height = surface.Height, Over = Ceiling(over, surface.Height), Open = highest - surface.Height < Covered, Part = surface.Part });
-                    }
-                    over.Add(surface.Height);
+                    if (!met[k].Flat) continue;
+                    var at = Grid[ray];
+                    landings.Add(new FloorLanding { I = at.I, J = at.J, X = at.X, Z = at.Z, Height = met[k].Height, Over = Ceiling(met, k), Open = IsOpen(met[0].Height, met[k].Height), Part = met[k].Part });
                 }
             }
             return landings;
         }
 
-        /// <summary>How far over a height the lowest of the heights above it at a person's head height or more is; 0 for none.</summary>
-        private static float Ceiling(List<float> above, float height)
+        /// <summary>How far over the surface a ray met <paramref name="k"/>th the lowest of those it met above it at a person's head height or more is; 0 for none.</summary>
+        private static float Ceiling(List<RaySurface> met, int k)
         {
-            for (var k = above.Count - 1; k >= 0; k--)
+            for (var above = k - 1; above >= 0; above--)
             {
-                if (above[k] - height >= PlaceView.LeastHeadroom) return above[k] - height;
+                if (met[above].Height - met[k].Height >= PlaceView.LeastHeadroom) return met[above].Height - met[k].Height;
             }
             return 0f;
+        }
+
+        /// <summary>
+        /// Fills <paramref name="met"/> with what a ray (by its place in the grid's list) meets of a
+        /// roll with these parts there, top down: each of their surfaces but one less than
+        /// <see cref="Past"/> under the last it met, which it passes (<see cref="StepKeeps"/>).
+        /// </summary>
+        private void Meets(int ray, ISet<int> present, List<RaySurface> met)
+        {
+            met.Clear();
+            if (!_rays.TryGetValue(ray, out var surfaces)) return;
+            foreach (var surface in surfaces)
+            {
+                if (!present.Contains(surface.Part)) continue;
+                if (met.Count > 0 && met[met.Count - 1].Height - surface.Height < Past) continue;
+                met.Add(surface);
+            }
         }
 
         /// <summary>The highest anything of a roll with these parts there is, in the place's own frame, where any ray met it; NaN for nothing.</summary>
@@ -203,9 +257,13 @@ namespace Scry
         /// <summary>What a ray (by its place in the grid's list) met of any roll probed, top down.</summary>
         public IEnumerable<RaySurface> On(int ray) => _rays.TryGetValue(ray, out var surfaces) ? surfaces : Enumerable.Empty<RaySurface>();
 
-        /// <summary>What a ray (by its place in the grid's list) met of a roll with these parts there, top down.</summary>
-        public IEnumerable<RaySurface> On(int ray, ISet<int> present) =>
-            _rays.TryGetValue(ray, out var surfaces) ? surfaces.Where(s => present.Contains(s.Part)) : Enumerable.Empty<RaySurface>();
+        /// <summary>What a ray (by its place in the grid's list) meets of a roll with these parts there, top down, passing what lies just under each surface it meets.</summary>
+        public IEnumerable<RaySurface> On(int ray, ISet<int> present)
+        {
+            var met = new List<RaySurface>();
+            Meets(ray, present, met);
+            return met;
+        }
 
         /// <summary>The height a spawn point's creature drops onto for a roll with these parts there: the first solid part under it; false where none is.</summary>
         public bool GroundUnder(string spawn, ISet<int> present, out float height)
