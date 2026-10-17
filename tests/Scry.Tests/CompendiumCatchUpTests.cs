@@ -443,7 +443,7 @@ namespace Scry.Tests
             // The game's Heightmap.Biome.None, kept as "$biome_none" by older saves, is no biome a
             // character enters: nothing is learned from it and no area is missing for it. An area
             // naming no biome of the catalog (a name of its own replacing the biome's, or one shown
-            // in a language not played in now) is told as one the catch-up could not place.
+            // in a language the catch-up has no names in) is told as one it could not place.
             var meadows = E(Kind.Biome, "Meadows", "$biome_meadows");
             meadows.Biomes = new[] { "Meadows" };
             var shown = new Dictionary<string, string> { ["Meadows"] = "Meadows" };
@@ -459,6 +459,151 @@ namespace Scry.Tests
             catchUp.Fill(records, book, firstLoad: false);
             Assert.Equal(KnownLevel.Unknown, book.Level(meadows.Key));
             Assert.Equal(new[] { "Wiesen" }, catchUp.AreasNotKnown(records, book));
+        }
+
+        private static Dictionary<string, IReadOnlyList<string>> Every(params (string Biome, string[] Names)[] biomes)
+        {
+            var all = new Dictionary<string, IReadOnlyList<string>>();
+            foreach (var (biome, names) in biomes) all[biome] = names;
+            return all;
+        }
+
+        [Fact]
+        public void ABiomeEnteredWhileTheGameRanInAnotherLanguageIsKnownByThatLanguagesName()
+        {
+            // The game keeps a biome entered by its name in the language played in then
+            // (BiomeSector.GetName): a character who entered the Meadows in German keeps
+            // "Grasland", and the game played in English now shows "Meadows". The game's tables
+            // name every biome in every language it ships, so the area is placed by them.
+            var meadows = E(Kind.Biome, "Meadows", "$biome_meadows");
+            var swamp = E(Kind.Biome, "Swamp", "$biome_swamp");
+            var plains = E(Kind.Biome, "Plains", "$biome_plains");
+            foreach (var biome in new[] { meadows, swamp, plains }) biome.Biomes = new[] { biome.Name };
+            var raspberry = E(Kind.Item, "Raspberry", "$item_raspberries");
+            var bush = E(Kind.Resource, "RaspberryBush", "$prop_raspberrybush");
+            bush.Biomes = new[] { "Meadows" };
+            raspberry.AddTermLink("from", bush);
+            var shown = new Dictionary<string, string> { ["Meadows"] = "Meadows", ["Swamp"] = "Swamp", ["Plains"] = "Plains" };
+            var every = Every(("Meadows", new[] { "Meadows", "Äng", "Grasland" }), ("Swamp", new[] { "Swamp", "Träsk", "Sumpfland" }), ("Plains", new[] { "Plains", "Slätt", "Ebenen" }));
+            var catchUp = new CompendiumCatchUp(new EntryCatalog(new[] { meadows, swamp, plains, raspberry, bush }), biomesShown: shown, biomesInEveryLanguage: () => every);
+            var book = new CompendiumBook();
+            var records = new CompendiumRecords();
+            records.Biomes.Add("Grasland");
+            records.Biomes.Add("Dunkles Sumpfland");
+            records.PickedUp.Add("$item_raspberries");
+
+            catchUp.Fill(records, book, firstLoad: false);
+
+            Assert.Equal(KnownLevel.Known, book.Level(meadows.Key));
+            Assert.Equal(KnownLevel.Known, book.Level(swamp.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(plains.Key));
+            Assert.Equal(KnownLevel.Known, book.Level(bush.Key));
+            Assert.Empty(catchUp.AreasNotKnown(records, book));
+        }
+
+        [Fact]
+        public void ABiomesNameStandingInsideAnotherBiomesLongerNameIsPartOfThatName()
+        {
+            // The Black Forest in Bulgarian is "Черна Гора", and "Гора" is the Mountain in Russian
+            // and Ukrainian: an area kept as "Черна Гора" is the Black Forest only.
+            var forest = E(Kind.Biome, "BlackForest", "$biome_blackforest");
+            var mountain = E(Kind.Biome, "Mountain", "$biome_mountain");
+            foreach (var biome in new[] { forest, mountain }) biome.Biomes = new[] { biome.Name };
+            var shown = new Dictionary<string, string> { ["BlackForest"] = "Black Forest", ["Mountain"] = "Mountain" };
+            var every = Every(("BlackForest", new[] { "Black Forest", "Черна Гора" }), ("Mountain", new[] { "Mountain", "Гора", "Планина" }));
+            var catchUp = new CompendiumCatchUp(new EntryCatalog(new[] { forest, mountain }), biomesShown: shown, biomesInEveryLanguage: () => every);
+            var book = new CompendiumBook();
+            var records = new CompendiumRecords();
+            records.Biomes.Add("Черна Гора");
+
+            catchUp.Fill(records, book, firstLoad: false);
+
+            Assert.Equal(KnownLevel.Known, book.Level(forest.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(mountain.Key));
+
+            // Its own name in a language that has it alone is the Mountain still.
+            records.Biomes.Add("Гора");
+            catchUp.Fill(records, book, firstLoad: false);
+            Assert.Equal(KnownLevel.Known, book.Level(mountain.Key));
+        }
+
+        [Fact]
+        public void AnAreaWhoseWordsNameDifferentBiomesInDifferentLanguagesIsLeftToBeTold()
+        {
+            // "Eng" is the Meadows in Danish and Norwegian, "Berg" the Mountain in Swedish: an
+            // area holding both names neither biome for certain, so nothing is learned from it
+            // and it is told as one the catch-up could not place.
+            var meadows = E(Kind.Biome, "Meadows", "$biome_meadows");
+            var mountain = E(Kind.Biome, "Mountain", "$biome_mountain");
+            foreach (var biome in new[] { meadows, mountain }) biome.Biomes = new[] { biome.Name };
+            var shown = new Dictionary<string, string> { ["Meadows"] = "Meadows", ["Mountain"] = "Mountain" };
+            var every = Every(("Meadows", new[] { "Meadows", "Eng", "Äng" }), ("Mountain", new[] { "Mountain", "Berg" }));
+            var catchUp = new CompendiumCatchUp(new EntryCatalog(new[] { meadows, mountain }), biomesShown: shown, biomesInEveryLanguage: () => every);
+            var book = new CompendiumBook();
+            var records = new CompendiumRecords();
+            records.Biomes.Add("Eng Berg");
+
+            Assert.Equal(0, catchUp.Fill(records, book, firstLoad: false));
+
+            Assert.Equal(KnownLevel.Unknown, book.Level(meadows.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(mountain.Key));
+            Assert.Equal(new[] { "Eng Berg" }, catchUp.AreasNotKnown(records, book));
+
+            // Words naming one biome in two languages are that biome.
+            records.Biomes.Add("Äng Eng");
+            catchUp.Fill(records, book, firstLoad: false);
+            Assert.Equal(KnownLevel.Known, book.Level(meadows.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(mountain.Key));
+        }
+
+        [Fact]
+        public void ABiomesNameThatIsOnlyPartOfAWordInAnAreaDoesNotCount()
+        {
+            // "Hav" is the Ocean in Swedish, and only a part of a prefix such as "Havsnära" put
+            // before "Slätt", the Plains: the area is the Plains.
+            var ocean = E(Kind.Biome, "Ocean", "$biome_ocean");
+            var plains = E(Kind.Biome, "Plains", "$biome_plains");
+            foreach (var biome in new[] { ocean, plains }) biome.Biomes = new[] { biome.Name };
+            var shown = new Dictionary<string, string> { ["Ocean"] = "Ocean", ["Plains"] = "Plains" };
+            var every = Every(("Ocean", new[] { "Ocean", "Hav" }), ("Plains", new[] { "Plains", "Slätt" }));
+            var catchUp = new CompendiumCatchUp(new EntryCatalog(new[] { ocean, plains }), biomesShown: shown, biomesInEveryLanguage: () => every);
+            var book = new CompendiumBook();
+            var records = new CompendiumRecords();
+            records.Biomes.Add("Havsnära Slätt");
+
+            catchUp.Fill(records, book, firstLoad: false);
+
+            Assert.Equal(KnownLevel.Known, book.Level(plains.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(ocean.Key));
+        }
+
+        [Fact]
+        public void TheGamesLanguageTablesAreReadOnlyForAnAreaThePlayersLanguageCannotPlaceAndThenOnce()
+        {
+            // The tables hold every word of the game in every language, so reading them costs:
+            // a character whose areas are all named by token or in the language played now never
+            // has them read, and one with an area kept in another language has them read once.
+            var meadows = E(Kind.Biome, "Meadows", "$biome_meadows");
+            meadows.Biomes = new[] { "Meadows" };
+            var shown = new Dictionary<string, string> { ["Meadows"] = "Meadows" };
+            var reads = 0;
+            var catchUp = new CompendiumCatchUp(new EntryCatalog(new[] { meadows }), biomesShown: shown,
+                biomesInEveryLanguage: () => { reads++; return Every(("Meadows", new[] { "Meadows", "Grasland" })); });
+            var book = new CompendiumBook();
+            var records = new CompendiumRecords();
+            records.Biomes.Add("$biome_meadows");
+            records.Biomes.Add("Meadows");
+            records.Biomes.Add("$biome_none");
+
+            catchUp.Fill(records, book, firstLoad: true);
+            catchUp.AreasNotKnown(records, book);
+            Assert.Equal(0, reads);
+
+            records.Biomes.Add("Grasland");
+            catchUp.Fill(records, book, firstLoad: false);
+            catchUp.Fill(records, book, firstLoad: false);
+            Assert.Empty(catchUp.AreasNotKnown(records, book));
+            Assert.Equal(1, reads);
         }
 
         [Fact]

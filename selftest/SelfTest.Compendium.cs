@@ -70,12 +70,20 @@ namespace Scry
             var sold = held.Where(e => Knowledge.SourceLines(e.Name).Any(line => line.Record?.Way == SourceWay.Sold)).ToList();
             var notKnown = held.Except(sold).Where(e => CompendiumKeeper.Book.Level(e.Key) != KnownLevel.Known).Select(e => e.Name).ToList();
             p.Check(notKnown.Count == 0, $"the {Numbers.Count(held.Count - sold.Count)} kinds of thing it ever held are known, {Numbers.Count(sold.Count)} a trader sells left to its offer", string.Join(", ", notKnown.Take(10)));
-            // The game keeps each biome entered by its name in the player's language (BiomeSector.GetName),
+            // The game keeps each biome entered by its name in the language played in then (BiomeSector.GetName),
             // a save from before that by its name token ($biome_meadows), the no-biome among them:
             // every one but that names a biome its records make known.
             p.Note($"areas kept as entered: {string.Join(", ", records.Biomes)}");
             var unmatched = catchUp.AreasNotKnown(records, told);
             p.Check(unmatched.Count == 0, $"each of the {Numbers.Count(records.Biomes.Count)} areas it entered is known by the name the game keeps it under, the game's no-biome left out", string.Join(", ", unmatched.Take(5)));
+            // An area kept in another language is placed by the biomes' names in every language,
+            // read from the game's own tables: each biome's name in the language played now is
+            // among them, and the Meadows, where every character starts, has names in others too.
+            var everyLanguage = CompendiumKeeper.BiomesInEveryLanguage(X.Entries);
+            var amiss = everyLanguage.Where(b => !b.Value.Contains(Localization.instance.Localize(BiomeWords.Token(b.Key)))).Select(b => b.Key).ToList();
+            p.Check(everyLanguage.TryGetValue("Meadows", out var meadowsNames) && meadowsNames.Count > 1 && amiss.Count == 0,
+                $"the names of {Numbers.Count(everyLanguage.Count)} biomes in the game's {Numbers.Count(Localization.instance.GetLanguages().Count)} languages are read, each one's name in the language played now among them",
+                string.Join(", ", amiss.Take(5)));
             // A trophy held makes known only the creatures it falls from that live where the
             // character went: the game's own TheHive, placed nowhere, drops the drake's trophy too.
             var hive = X.Find("TheHive");

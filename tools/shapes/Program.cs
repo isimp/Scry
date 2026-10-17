@@ -1,4 +1,5 @@
-// Reads the code shapes of game methods from assembly_valheim.dll, for Compatibility.Watched.
+// Reads the code shapes of game methods from assembly_valheim.dll and, beside it,
+// assembly_utils.dll and assembly_guiutils.dll, for Compatibility.Watched.
 //
 // From the repository's folder, after a game update:
 //   dotnet run --project tools/shapes -c Release -- --check    lists what changed or is missing
@@ -57,9 +58,14 @@ class Program
             return 2;
         }
 
-        using var pe = new PEReader(File.OpenRead(dll));
-        var md = pe.GetMetadataReader();
-        var methods = Methods(pe, md);
+        // The game's main assembly, then those beside it the check looks in too (Compatibility.GameType).
+        var methods = new List<Found>();
+        foreach (var path in new[] { dll, Path.Combine(Path.GetDirectoryName(dll), "assembly_utils.dll"), Path.Combine(Path.GetDirectoryName(dll), "assembly_guiutils.dll") })
+        {
+            if (!File.Exists(path)) continue;
+            using var pe = new PEReader(File.OpenRead(path));
+            methods.AddRange(Methods(pe, pe.GetMetadataReader()));
+        }
 
         var source = File.ReadAllText(ListFile);
         var count = ShapeList.Parse(source).Count;
