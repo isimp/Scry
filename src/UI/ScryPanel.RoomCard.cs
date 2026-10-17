@@ -269,11 +269,8 @@ namespace Scry
                 var chip = new Rect(cx, cy, w, chipH);
                 CountDrawn(PanelPart.RoomCardWay);
                 if (repaint) CardLines.Add(way.Words);
-                if (chip.Contains(e.mousePosition))
-                {
-                    AskTip("card-way:" + way.Words, StageWords.GoIntoTip(way.Words, false));
-                    if (repaint) _cardLit = way.To;
-                }
+                if (chip.Contains(e.mousePosition)) AskTip("card-way:" + way.Words, StageWords.GoIntoTip(way.Words, false));
+                if (repaint && chip.Contains(OwnMouse(e))) _cardLit = way.To;
                 if (GUI.Button(chip, way.Words, Skin.Fitted(Skin.Chip, chip))) goTo = way.To;
             }
             y += card.WaysTall;

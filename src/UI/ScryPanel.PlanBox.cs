@@ -181,8 +181,8 @@ namespace Scry
         /// <summary>The point of the box the self-test points the mouse at; none.</summary>
         private static Vector2? _boxPointForTest;
 
-        /// <summary>Where the mouse is for finding the room under it in the box: the self-test's point while it points at the box, nowhere while it points at the stage, else the mouse's own.</summary>
-        private static Vector2 BoxMouse(Event e) => _boxPointForTest ?? (_stagePointForTest.HasValue ? Nowhere : e.mousePosition);
+        /// <summary>Where the mouse is for finding the room under it in the box: the self-test's point while it points at the box, nowhere while it points at the stage, else the player's own.</summary>
+        private static Vector2 BoxMouse(Event e) => _boxPointForTest ?? (_stagePointForTest.HasValue ? Nowhere : OwnMouse(e));
 
         /// <summary>Takes the view and size the box was left in, as remembered with the panel.</summary>
         private static void TakePlanBoxPlace(PanelPlace place)

@@ -503,7 +503,8 @@ namespace Scry
 
         /// <summary>
         /// The room of the example at a point of the stage's picture (0 to 1 across, 0 to 1 up),
-        /// what is cut away left out; null where there is none.
+        /// what is cut away left out, an end cap or a divider taken as the room it closes; null
+        /// where there is none.
         /// </summary>
         public static PlacedRoom ExampleRoomAt(Vector2 point)
         {
@@ -520,7 +521,8 @@ namespace Scry
             // Rooms put away are passed by; those dimmed, around a room gone into or below a floor opened, can be gone into next.
             var room = placed.Pick(new Vec3(from.x, from.y, from.z), new Vec3(direction.x, direction.y, direction.z), below,
                 TheExample.IsDungeon ? ChoosableOnStage : null);
-            return room != null && placed.Rooms.IndexOf(room) < TheExample.Next ? room : null;
+            // An end cap or a divider is part of the room it closes: that room is the one under the mouse.
+            return room != null && placed.Rooms.IndexOf(room) < TheExample.Next ? ExamplePlan.LooksAs(room) : null;
         }
 
         /// <summary>Where a room of the example is in the stage's picture (0 to 1 across, 0 to 1 up), for the self-test to point at it; null when it is not in front of the camera.</summary>

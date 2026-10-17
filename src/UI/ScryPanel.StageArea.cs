@@ -29,6 +29,16 @@ namespace Scry
         /// <summary>Nowhere on the panel, for the mouse while the self-test points it elsewhere.</summary>
         private static readonly Vector2 Nowhere = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
 
+        /// <summary>Whether the player's own mouse counts for nothing in lighting a room, while the self-test points it where it wants.</summary>
+        private static bool _mouseAwayForTest;
+
+        /// <summary>Takes the player's own mouse out of lighting rooms on the stage, in the plan box and on the card, as the self-test runs, or lets it back.</summary>
+        [Diagnostic]
+        public static void MouseAwayForTest(bool away) => _mouseAwayForTest = away;
+
+        /// <summary>The player's own mouse for lighting a room: nowhere while the self-test takes it out.</summary>
+        private static Vector2 OwnMouse(Event e) => _mouseAwayForTest ? Nowhere : e.mousePosition;
+
         /// <summary>Points the mouse at a point of the stage's picture (0 to 1 across, 0 to 1 up), as the self-test does, until let go with none; the mouse in the plan box counts for nothing meanwhile.</summary>
         [Diagnostic]
         public static void HoverStageForTest(Vector2? point) => _stagePointForTest = point;
@@ -37,10 +47,10 @@ namespace Scry
         [Diagnostic]
         public static PlacedRoom StageRoomHovered => _stageHover;
 
-        /// <summary>Where the mouse is for finding the room under it on the stage: the self-test's point of the picture while it points at the stage, nowhere while it points at the plan box, else the mouse's own.</summary>
+        /// <summary>Where the mouse is for finding the room under it on the stage: the self-test's point of the picture while it points at the stage, nowhere while it points at the plan box, else the player's own.</summary>
         private static Vector2 StageMouse(Event e, Rect inner) =>
             _stagePointForTest is Vector2 at ? new Vector2(inner.x + at.x * inner.width, inner.y + (1f - at.y) * inner.height)
-            : _boxPointForTest.HasValue ? Nowhere : e.mousePosition;
+            : _boxPointForTest.HasValue ? Nowhere : OwnMouse(e);
 
         /// <summary>
         /// The strip under the stage: dragged, it makes the stage taller or shorter; double-clicked,

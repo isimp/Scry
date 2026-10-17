@@ -133,6 +133,8 @@ namespace Scry
             ScryPanel.ListsHidden = (false, false);
             // The rooms below stand dimmed while the test runs, as its parts look at them so.
             Stage.BelowShown = true;
+            // Only where the test points the mouse lights a room, wherever the player's own stands.
+            ScryPanel.MouseAwayForTest(true);
             AllKnown();
             Frames.Clear();
             Timing.Measuring = Frames;
@@ -263,6 +265,8 @@ namespace Scry
 
         private static void PutBack()
         {
+            // The player's mouse first, so it works again whatever else fails to be put back.
+            ScryPanel.MouseAwayForTest(false);
             var before = _before;
             if (before == null) return;
             Previews.StopSound();
