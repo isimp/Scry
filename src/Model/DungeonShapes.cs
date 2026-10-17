@@ -52,6 +52,18 @@ namespace Scry
             return new Quat(0f, (float)Math.Sin(half), 0f, (float)Math.Cos(half));
         }
 
+        /// <summary>A turn by angles in degrees, as <c>Quaternion.Euler</c> makes one: about z first, then x, then y.</summary>
+        public static Quat Euler(float x, float y, float z)
+        {
+            Quat About(float degrees, float ax, float ay, float az)
+            {
+                var half = degrees * (float)Math.PI / 360f;
+                var sin = (float)Math.Sin(half);
+                return new Quat(ax * sin, ay * sin, az * sin, (float)Math.Cos(half));
+            }
+            return About(y, 0f, 1f, 0f) * About(x, 1f, 0f, 0f) * About(z, 0f, 0f, 1f);
+        }
+
         public static Quat operator *(Quat a, Quat b) => new Quat(
             a.W * b.X + a.X * b.W + a.Y * b.Z - a.Z * b.Y,
             a.W * b.Y + a.Y * b.W + a.Z * b.X - a.X * b.Z,

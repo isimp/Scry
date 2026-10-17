@@ -67,6 +67,18 @@ namespace Scry
 
         /// <summary>The mark of the menu beside the breadcrumb's dungeon, and its tip.</summary>
         public const string TrailMenuMark = "▾";
-        public const string TrailMenuTip = "Goes into the entrance or the deepest room";
+        public static string TrailMenuTip(bool switches) => switches
+            ? "Goes into the entrance or the deepest room, or switches between this dungeon and an example"
+            : "Goes into the entrance or the deepest room";
+
+        /// <summary>The tag at the head of the breadcrumb over the world's own dungeon, and its tip.</summary>
+        public const string ThisDungeon = "This dungeon";
+        public const string ThisDungeonTip = "The rooms as they stand in your world; the menu beside the dungeon shows an example instead";
+
+        /// <summary>The menu's switch from the world's own dungeon to an example and back.</summary>
+        public const string ShowExample = "Show an example";
+        public const string ShowExampleTip = "Lays out an example in place of this dungeon, as the game might in another world";
+        public const string ShowThisDungeon = "Show this dungeon";
+        public const string ShowThisDungeonTip = "Shows this dungeon as it stands in your world, in place of the example";
     }
 }

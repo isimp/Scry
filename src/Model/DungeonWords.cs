@@ -146,6 +146,10 @@ namespace Scry
             return text;
         }
 
+        /// <summary>The note under the world's own dungeon: what it holds, the rooms of kinds Scry has not read left out.</summary>
+        public static string WorldsNote(string holds, int unread) =>
+            holds + (unread > 0 ? "; " + Naming.Count(unread, "room Scry has not read is", "rooms Scry has not read are") + " left out" : "") + ". This dungeon as it stands in your world.";
+
         /// <summary>What an example holds (<see cref="Example"/>), and that it is one way of many where it has rooms.</summary>
         public static string ExampleNote(string holds, bool hasRooms) => holds + (hasRooms ? ". One way it can come out; each world lays out its own." : ".");
 

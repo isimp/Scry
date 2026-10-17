@@ -89,7 +89,8 @@ namespace Scry
                         var example = ExampleOf(entry);
                         if (Shown("Another layout", Skin.Button, example != null, ActionWords.AnotherLayout)) ExampleLayouts.Another();
                         note = example != null
-                            ? DungeonWords.ExampleNote(DungeonWords.Example(example, ExampleLayouts.Failed), example.Rooms.Count > 0)
+                            ? ExampleLayouts.ShowsWorlds ? DungeonWords.WorldsNote(DungeonWords.Example(example, ExampleLayouts.Failed), ExampleLayouts.Unread)
+                            : DungeonWords.ExampleNote(DungeonWords.Example(example, ExampleLayouts.Failed), example.Rooms.Count > 0)
                             : ExampleLayouts.Of(entry) ? DungeonWords.Reading(ExampleLayouts.Read, ExampleLayouts.Total) : null;
                     }
                     break;

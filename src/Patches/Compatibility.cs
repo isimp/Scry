@@ -147,6 +147,8 @@ namespace Scry
             ("DungeonGenerator", "GenerateCampRadial", 1, 0x097BF9B1, Feature.ExampleDungeonAndCampLayouts),
             ("DungeonGenerator", "GetCampRoomRotation", 2, 0x586BF423, Feature.ExampleDungeonAndCampLayouts),
             ("DungeonGenerator", "PlaceWall", 3, 0x6403B4E0, Feature.ExampleDungeonAndCampLayouts),
+            ("DungeonGenerator", "Save", 0, 0xA15A15AB, Feature.DungeonMaps),
+            ("DungeonGenerator", "Load", 0, 0x0B13E9E7, Feature.DungeonMaps),
             ("Room", "GetConnection", 1, 0x1059F108, Feature.ExampleDungeonAndCampLayouts),
             ("Room", "GetEntrance", 0, 0x328B4909, Feature.ExampleDungeonAndCampLayouts),
             ("Room", "HaveConnection", 1, 0xB3A7BAC1, Feature.ExampleDungeonAndCampLayouts),

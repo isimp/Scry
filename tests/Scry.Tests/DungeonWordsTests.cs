@@ -171,6 +171,14 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheWorldsOwnDungeonSaysSoAndWhatOfItScryCouldNotRead()
+        {
+            Assert.Equal("18 rooms, 6 end caps. This dungeon as it stands in your world.", DungeonWords.WorldsNote("18 rooms, 6 end caps", 0));
+            Assert.Equal("18 rooms; 1 room Scry has not read is left out. This dungeon as it stands in your world.", DungeonWords.WorldsNote("18 rooms", 1));
+            Assert.Equal("18 rooms; 2 rooms Scry has not read are left out. This dungeon as it stands in your world.", DungeonWords.WorldsNote("18 rooms", 2));
+        }
+
+        [Fact]
         public void ARoomsDoorwaysAreCountedByType()
         {
             var room = new RoomShape();

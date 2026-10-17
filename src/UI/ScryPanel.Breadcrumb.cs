@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -9,7 +11,8 @@ namespace Scry
     /// with the roof on, a menu beside it going into the entrance or the deepest room; the level
     /// open or the one the room gone into is on, a click on it coming back out of the room to it;
     /// and the room gone into, a click on it framing it again. The part where the view is stands
-    /// lit. The menu takes the mouse before anything under it and is drawn over everything;
+    /// lit. Over the world's own dungeon a tag heads it, and the menu switches to an example and
+    /// back. The menu takes the mouse before anything under it and is drawn over everything;
     /// Escape, a click elsewhere or another selection closes it.
     /// </summary>
     internal static partial class ScryPanel
@@ -20,6 +23,10 @@ namespace Scry
         /// <summary>The parts the breadcrumb was last drawn with, for the self-test.</summary>
         [Diagnostic]
         public static List<(TrailPart Part, string Text, bool Current)> TrailForTest { get; private set; } = new List<(TrailPart, string, bool)>();
+
+        /// <summary>Whether the breadcrumb was last drawn with the tag of the world's own dungeon, for the self-test.</summary>
+        [Diagnostic]
+        public static bool TrailTaggedForTest { get; private set; }
 
         /// <summary>Draws the breadcrumb in the stage's top left, taking the room the kind badge would.</summary>
         private static void Breadcrumb(Explorer explorer, Entry entry, Rect rect)
@@ -33,7 +40,20 @@ namespace Scry
             var mark = gone != null ? Stage.ExampleMarkOfRoom(gone) : Stage.Cutting ? Stage.CutLevel : -1;
             var level = mark >= 0 ? Stage.ExampleMark(mark) : null;
             var trail = DungeonTrail.Of(ShownName(explorer, entry.Key, entry.DisplayName), level, gone != null ? BoxRoomName(explorer, gone) : null);
-            if (e.type == EventType.Repaint) TrailForTest = trail;
+            if (e.type == EventType.Repaint)
+            {
+                TrailForTest = trail;
+                TrailTaggedForTest = ExampleLayouts.ShowsWorlds;
+            }
+            if (ExampleLayouts.ShowsWorlds)
+            {
+                // The world's own dungeon, tagged as the kind badge is drawn.
+                var tag = new Rect(x, y, Skin.Width(Skin.Glyph, PlanBoxWords.ThisDungeon) + U(20f), h);
+                if (tag.Contains(e.mousePosition)) AskTip("trail:worlds", PlanBoxWords.ThisDungeonTip);
+                Skin.PillBox(tag, Skin.Worlds);
+                Skin.LabelIn(tag, PlanBoxWords.ThisDungeon, Skin.Glyph, Skin.Text);
+                x = tag.xMax + U(6f);
+            }
             var stepW = Skin.Width(Skin.FaintLabel, PlanBoxWords.TrailStep);
             for (var i = 0; i < trail.Count; i++)
             {
@@ -51,7 +71,7 @@ namespace Scry
                 if (part != TrailPart.Dungeon) continue;
                 // Beside the dungeon, the menu going into its entrance or its deepest room.
                 var menu = new Rect(x, y, h, h);
-                if (menu.Contains(e.mousePosition)) AskTip("trail:menu", PlanBoxWords.TrailMenuTip);
+                if (menu.Contains(e.mousePosition)) AskTip("trail:menu", PlanBoxWords.TrailMenuTip(TrailMenuRows().Length > 2));
                 if (GUI.Button(menu, PlanBoxWords.TrailMenuMark, Skin.IconButton)) TrailMenuToggle(entry, OnScreen(menu));
                 x = menu.xMax + U(2f);
             }
@@ -101,12 +121,23 @@ namespace Scry
         [Diagnostic]
         public static bool TrailMenuOpen => _trailMenuOpen;
 
-        /// <summary>The menu's rows: what each says, its tip, and the room it goes into, none where the example has none.</summary>
-        private static (string Name, string Tip, PlacedRoom Room)[] TrailMenuRows() => new[]
+        /// <summary>The menu's rows (<see cref="DungeonTrail.MenuRows"/>): what each says, its tip, and what it does, none where there is nothing to do.</summary>
+        private static (string Name, string Tip, Action Do)[] TrailMenuRows() =>
+            DungeonTrail.MenuRows(ExampleLayouts.ShowsWorlds, ExampleLayouts.WorldsAtHand).Select(TrailMenuRowOf).ToArray();
+
+        private static (string Name, string Tip, Action Do) TrailMenuRowOf(TrailMenuRow row)
         {
-            (PlanBoxWords.Entrance, PlanBoxWords.EntranceTip, Stage.ExampleWays?.Entrance),
-            (PlanBoxWords.Deepest, PlanBoxWords.DeepestTip, Stage.ExampleWays?.Deepest),
-        };
+            switch (row)
+            {
+                case TrailMenuRow.Entrance: return (PlanBoxWords.Entrance, PlanBoxWords.EntranceTip, GoingInto(Stage.ExampleWays?.Entrance));
+                case TrailMenuRow.Deepest: return (PlanBoxWords.Deepest, PlanBoxWords.DeepestTip, GoingInto(Stage.ExampleWays?.Deepest));
+                case TrailMenuRow.ShowExample: return (PlanBoxWords.ShowExample, PlanBoxWords.ShowExampleTip, ExampleLayouts.ShowExample);
+                default: return (PlanBoxWords.ShowThisDungeon, PlanBoxWords.ShowThisDungeonTip, ExampleLayouts.ShowThisDungeon);
+            }
+        }
+
+        /// <summary>Going into a room, none where there is no room.</summary>
+        private static Action GoingInto(PlacedRoom room) => room != null ? () => Stage.GoInto(room) : (Action)null;
 
         /// <summary>Opens or closes the menu under its mark, its left edge on the mark's.</summary>
         private static void TrailMenuToggle(Entry entry, Rect markScreen)
@@ -119,8 +150,9 @@ namespace Scry
             _trailMenuOpen = true;
             _trailMenuFor = entry;
             _trailMenuChip = markScreen;
-            var w = Mathf.Max(Skin.Width(Skin.Label, PlanBoxWords.Entrance), Skin.Width(Skin.Label, PlanBoxWords.Deepest)) + U(32f);
-            _trailMenuBox = new Rect(markScreen.x, markScreen.yMax + U(4f), w, TrailMenuRows().Length * TrailMenuRowHeight + U(8f));
+            var rows = TrailMenuRows();
+            var w = rows.Max(r => Skin.Width(Skin.Label, r.Name)) + U(32f);
+            _trailMenuBox = new Rect(markScreen.x, markScreen.yMax + U(4f), w, rows.Length * TrailMenuRowHeight + U(8f));
         }
 
         /// <summary>Lets go of the entry the menu was last opened for.</summary>
@@ -130,13 +162,13 @@ namespace Scry
             _trailMenuFor = null;
         }
 
-        /// <summary>Goes into a row's room as a click on it does, for the self-test.</summary>
+        /// <summary>Does what a row does as a click on it does, for the self-test.</summary>
         [Diagnostic]
         public static void ChooseTrailMenuForTest(int row)
         {
             var rows = TrailMenuRows();
             _trailMenuOpen = false;
-            if (row >= 0 && row < rows.Length && rows[row].Room != null) Stage.GoInto(rows[row].Room);
+            if (row >= 0 && row < rows.Length) rows[row].Do?.Invoke();
         }
 
         /// <summary>
@@ -195,7 +227,7 @@ namespace Scry
                 if (hover) AskTip("trail-menu:" + rows[i].Name, rows[i].Tip);
                 if (e.type != EventType.Repaint) continue;
                 if (hover) Skin.Fill(row, Skin.Alpha(Skin.Text, 0.08f));
-                GUI.Label(new Rect(row.x + U(8f), row.y, row.width - U(8f), row.height), rows[i].Name, rows[i].Room != null ? Skin.Label : Skin.DimLabel);
+                GUI.Label(new Rect(row.x + U(8f), row.y, row.width - U(8f), row.height), rows[i].Name, rows[i].Do != null ? Skin.Label : Skin.DimLabel);
             }
             CountDrawn(PanelPart.TrailMenu);
         }

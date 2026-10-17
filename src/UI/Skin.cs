@@ -58,6 +58,9 @@ namespace Scry
 
         public static readonly Color Immune = new Color(0.52f, 0.76f, 0.98f);
 
+        /// <summary>The tag over a dungeon shown as it stands in the player's world.</summary>
+        public static readonly Color Worlds = new Color(0.184f, 0.369f, 0.549f, 1f);
+
         public static GUISkin Gui;
         public static GUIStyle Title, Subtitle, Label, Small, SmallCenter, SmallWrap, DimLabel, DimRight, FaintLabel, Heading, Big, Wrap, WrapBold, DimWrap;
 

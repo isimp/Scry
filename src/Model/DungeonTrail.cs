@@ -10,6 +10,15 @@ namespace Scry
         Room,
     }
 
+    /// <summary>What a row of the menu beside the breadcrumb's dungeon does.</summary>
+    internal enum TrailMenuRow
+    {
+        Entrance,
+        Deepest,
+        ShowExample,
+        ShowThisDungeon,
+    }
+
     /// <summary>
     /// The breadcrumb in the stage's top left inside a dungeon's example: the dungeon, the level
     /// open or the one the room gone into is on, and the room gone into, the last being where the
@@ -27,5 +36,15 @@ namespace Scry
             parts[parts.Count - 1] = (last.Item1, last.Item2, true);
             return parts;
         }
+
+        /// <summary>
+        /// The rows of the menu beside the dungeon: into its entrance and its deepest room; from the
+        /// world's own dungeon (<see cref="RealDungeon"/>) to an example of it, and from an example
+        /// back to the world's where it is at hand.
+        /// </summary>
+        public static TrailMenuRow[] MenuRows(bool showsWorlds, bool worldsAtHand) =>
+            showsWorlds ? new[] { TrailMenuRow.Entrance, TrailMenuRow.Deepest, TrailMenuRow.ShowExample }
+            : worldsAtHand ? new[] { TrailMenuRow.Entrance, TrailMenuRow.Deepest, TrailMenuRow.ShowThisDungeon }
+            : new[] { TrailMenuRow.Entrance, TrailMenuRow.Deepest };
     }
 }

@@ -15,6 +15,9 @@ namespace Scry
     /// on the stage from copies of its rooms (<see cref="Stage.StepExample"/>), so the bundles of
     /// the kinds it uses are held while it is shown, and the rest let go of a frame after the
     /// stage has let go of their copies. Closing the panel or leaving the location lets go of all.
+    /// Where the player is in or at the dungeon, its rooms are laid out as the world has them
+    /// (<see cref="WorldDungeons"/>, <see cref="RealDungeon"/>) in place of an example, until an
+    /// example is asked for.
     /// </summary>
     internal static class ExampleLayouts
     {
@@ -36,6 +39,28 @@ namespace Scry
 
         /// <summary>How many of its rooms could not be loaded, left out of the example.</summary>
         public static int Failed { get; private set; }
+
+        /// <summary>Whether what is shown is the world's own dungeon, not an example.</summary>
+        public static bool ShowsWorlds { get; private set; }
+
+        /// <summary>How many of the world's rooms are of kinds Scry has not read, left out.</summary>
+        public static int Unread { get; private set; }
+
+        /// <summary>Whether the world's own dungeon is at hand, the player in or at it.</summary>
+        public static bool WorldsAtHand => _world != null;
+
+        /// <summary>The world's own dungeon where the player is in or at it, looked for once a second.</summary>
+        private static WorldDungeon _world;
+        private static float _lookAgain;
+
+        /// <summary>Whether an example was asked for in place of the world's own dungeon.</summary>
+        private static bool _wantExample;
+
+        /// <summary>A dungeon the self-test hands in as the world's own, looked for in place of it.</summary>
+        private static WorldDungeon _standIn;
+
+        /// <summary>How often the world's own dungeon is looked for, in seconds.</summary>
+        private const float LookEvery = 1f;
 
         /// <summary>How many kinds of room it is built of, and how many have been read.</summary>
         public static int Total => Rooms.Count;
@@ -66,15 +91,46 @@ namespace Scry
             _next = 0;
             Failed = 0;
             Example = null;
+            ShowsWorlds = false;
+            Unread = 0;
+            _world = null;
+            _lookAgain = 0f;
+            _wantExample = false;
+            _standIn = null;
+        }
+
+        /// <summary>Hands in a dungeon as the world's own, as if the player stood in it, looked for at once; null ends it.</summary>
+        [Diagnostic]
+        public static void StandInForTest(WorldDungeon world)
+        {
+            _standIn = world;
+            _lookAgain = 0f;
         }
 
         /// <summary>Lets go of every room held, loaded again when the panel opens; the example stays.</summary>
         public static void Pause() => LetGoOfAll();
 
-        /// <summary>Lays out another example of the same.</summary>
+        /// <summary>Lays out another example of the same, in place of the world's own dungeon too.</summary>
         public static void Another()
         {
             if (_entry == null || Example == null) return;
+            _wantExample = true;
+            Build();
+        }
+
+        /// <summary>Lays out an example in place of the world's own dungeon.</summary>
+        public static void ShowExample()
+        {
+            if (_entry == null || Example == null || !ShowsWorlds) return;
+            _wantExample = true;
+            Build();
+        }
+
+        /// <summary>Shows the world's own dungeon again in place of the example, where it is at hand.</summary>
+        public static void ShowThisDungeon()
+        {
+            if (_entry == null || Example == null || ShowsWorlds || _world == null) return;
+            _wantExample = false;
             Build();
         }
 
@@ -91,6 +147,7 @@ namespace Scry
                 return;
             }
             if (entry != _entry) Start(explorer, entry, plan);
+            if (plan.Algorithm == "Dungeon") LookForWorlds(place);
             // A dungeon only seen from outside shows its outside alone; a camp's example is its outside.
             Stage.InsideUnknown = plan.Algorithm == "Dungeon" && !explorer.InsideKnown(entry);
             if (Example == null) ReadRooms();
@@ -100,6 +157,20 @@ namespace Scry
             HoldFor(Example);
             Stage.StepExample(_entry, Example, plan, RoomModel);
             if (_releaseFrom >= 0 && Time.frameCount >= _releaseFrom) LetGoOfUnused();
+        }
+
+        /// <summary>
+        /// Looks for the world's own dungeon once a second; found while an example is shown that was
+        /// not asked for, it is shown in its place.
+        /// </summary>
+        private static void LookForWorlds(PlaceSource place)
+        {
+            if (Time.unscaledTime < _lookAgain) return;
+            _lookAgain = Time.unscaledTime + LookEvery;
+            if (!Guard.Run(Feature.DungeonMaps, "reading the dungeon the player is in", () => _standIn ?? WorldDungeons.Here(place.Prefab), out var found)) found = null;
+            if (ReferenceEquals(found, _world)) return;
+            _world = found;
+            if (Example != null && found != null && !ShowsWorlds && !_wantExample) Build();
         }
 
         /// <summary>Loads and reads the rooms not read yet, a few milliseconds a frame, one bundle at a time, and lays out the example once all are in.</summary>
@@ -226,18 +297,35 @@ namespace Scry
             }
         }
 
-        /// <summary>Lays out an example with dice of its own, in a zone of its own.</summary>
+        /// <summary>
+        /// Lays out the world's own dungeon where it is at hand and no example was asked for, each
+        /// room by its name's hash among the rooms read; else an example with dice of its own, in a
+        /// zone of its own.
+        /// </summary>
         private static void Build()
         {
             var place = (PlaceSource)_entry.Source;
             var plan = place.Contents.Dungeon;
             var shapes = Rooms.Select(e => ((PlaceSource)e.Source).Contents?.Room).Where(r => r != null).ToList();
-            var rules = place.Rules.FirstOrDefault();
-            var radius = rules != null ? Mathf.Max(rules.m_exteriorRadius, rules.m_interiorRadius) : 0f;
-            var turned = rules == null || rules.m_randomRotation || rules.m_slopeRotation;
-            var dice = new Dice(Seeds.Next());
             var wasNone = Example == null;
-            Example = DungeonLayout.Build(plan, shapes, DungeonLayout.Site(plan, radius, turned, dice), dice);
+            if (_world != null && !_wantExample)
+            {
+                var byHash = new Dictionary<int, RoomShape>();
+                foreach (var shape in shapes) byHash[shape.Name.GetStableHashCode()] = shape;
+                Example = RealDungeon.Of(_world.Saved, hash => byHash.TryGetValue(hash, out var shape) ? shape : null, _world.Generator, _world.Turn, out var unread);
+                ShowsWorlds = true;
+                Unread = unread;
+            }
+            else
+            {
+                var rules = place.Rules.FirstOrDefault();
+                var radius = rules != null ? Mathf.Max(rules.m_exteriorRadius, rules.m_interiorRadius) : 0f;
+                var turned = rules == null || rules.m_randomRotation || rules.m_slopeRotation;
+                var dice = new Dice(Seeds.Next());
+                Example = DungeonLayout.Build(plan, shapes, DungeonLayout.Site(plan, radius, turned, dice), dice);
+                ShowsWorlds = false;
+                Unread = 0;
+            }
 
             // The kinds of room it is built of are listed by what each is, known now, and ranked
             // under their dungeon as entrances, rooms and end caps.
