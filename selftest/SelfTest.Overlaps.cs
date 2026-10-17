@@ -73,7 +73,7 @@ namespace Scry
                             if (box != "folded" && shape == BoxShape.Lean) lean++;
                             if (box != "folded" && shape == BoxShape.Folded) selfFolded++;
                             if (goneInto && ScryPanel.RoomCardScrolls) scrolled++;
-                            // The row of buttons under the plan stands inside the box.
+                            // The buttons under the plan stand inside the box.
                             if (ScryPanel.PlanBoxRowRight > ScryPanel.PlanBoxRect.xMax + 0.5f && overflow.Count < 6) overflow.Add($"{(compact ? "compact" : "full")} view, stage at {Numbers.Fixed(height, 1)}, plan box {box}, {(goneInto ? "a room gone into" : "no room gone into")}: ends {Numbers.Fixed(ScryPanel.PlanBoxRowRight - ScryPanel.PlanBoxRect.xMax, 0)} past it");
                             // Whole, lean or folded, the way back out of the room stands where the plan is.
                             if (goneInto && !ScryPanel.PlanWholeShown && noWayBack.Count < 6) noWayBack.Add($"{(compact ? "compact" : "full")} view, stage at {Numbers.Fixed(height, 1)}, plan box {box}, {shape}");
@@ -98,7 +98,7 @@ namespace Scry
                     }
                 }
             }
-            p.Check(overflow.Count == 0, "the plan box's row of Whole dungeon, Entrance and Deepest stands inside it", string.Join("; ", overflow));
+            p.Check(overflow.Count == 0, "the plan box's Entrance and Deepest stand inside it", string.Join("; ", overflow));
             p.Check(noWayBack.Count == 0, "with a room gone into, Whole dungeon stands under the plan or beside its tab in every shape the box takes", string.Join("; ", noWayBack));
             p.Note($"{entry.Name}: looked at {Numbers.Count(looked)} ways of showing it, {Numbers.Count(overlaps.Count)} overlaps found; the card scrolled in {Numbers.Count(scrolled)} of them, giving way to the plan box; the plan box dropped its trail and buttons in {Numbers.Count(lean)} and folded itself in {Numbers.Count(selfFolded)}, the stage too short");
 

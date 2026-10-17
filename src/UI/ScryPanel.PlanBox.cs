@@ -97,7 +97,7 @@ namespace Scry
         [Diagnostic]
         public static Rect PlanBoxRect { get; private set; }
 
-        /// <summary>Where the box's row of Whole dungeon, Entrance and Deepest last ended, for the self-test to tell it stays inside the box; none without the row.</summary>
+        /// <summary>Where the box's row of Entrance and Deepest last ended, for the self-test to tell it stays inside the box; none without the row.</summary>
         [Diagnostic]
         public static float PlanBoxRowRight { get; private set; }
 
@@ -458,22 +458,9 @@ namespace Scry
                 Trail(explorer, new Rect(x, y, w, rowH), route, gone != null);
                 y += rowH + gap;
 
-                // The way back out while a room is gone into, the entrance and the deepest room, a
-                // click away; narrowed alike where the box is too narrow for them as wide as they want.
-                var wholeW = gone != null ? Skin.Width(Skin.Segment, PlanBoxWords.Whole) + U(12f) : 0f;
-                var entranceW = Skin.Width(Skin.Segment, PlanBoxWords.Entrance) + U(12f);
-                var deepestW = Skin.Width(Skin.Segment, PlanBoxWords.Deepest) + U(12f);
-                var gaps = U(4f) * (gone != null ? 2f : 1f);
-                var narrow = Mathf.Min(1f, (w - gaps) / Mathf.Max(1f, wholeW + entranceW + deepestW));
-                var rowX = x;
-                if (gone != null)
-                {
-                    var whole = new Rect(x, y, wholeW * narrow, rowH);
-                    WholeButton(whole);
-                    rowX = whole.xMax + U(4f);
-                }
-                var entrance = new Rect(rowX, y, entranceW * narrow, rowH);
-                var deepest = new Rect(entrance.xMax + U(4f), y, deepestW * narrow, rowH);
+                // The entrance and the deepest room, a click away.
+                var entrance = new Rect(x, y, Skin.Width(Skin.Segment, PlanBoxWords.Entrance) + U(12f), rowH);
+                var deepest = new Rect(entrance.xMax + U(4f), y, Skin.Width(Skin.Segment, PlanBoxWords.Deepest) + U(12f), rowH);
                 if (repaint) PlanBoxRowRight = deepest.xMax;
                 if (entrance.Contains(e.mousePosition)) AskTip("plan:entrance", PlanBoxWords.EntranceTip);
                 if (deepest.Contains(e.mousePosition)) AskTip("plan:deepest", PlanBoxWords.DeepestTip);
@@ -973,35 +960,26 @@ namespace Scry
 
         // ----- The trail -----
 
-        /// <summary>The way from the entrance to the room gone into, its names going into their rooms; as many of the last as fit.</summary>
+        /// <summary>
+        /// The way from the entrance to the room gone into, its names going into their rooms; as many
+        /// of the last as fit, the last shrunk to fit where it must. In a room it begins with the
+        /// way back out, a button of its own, so it stands under the plan however narrow the box.
+        /// </summary>
         private static void Trail(Explorer explorer, Rect line, List<PlacedRoom> route, bool fromWhole)
         {
             var e = Event.current;
+            var stepW = Skin.Width(Skin.FaintLabel, PlanBoxWords.TrailStep);
+            if (fromWhole)
+            {
+                var whole = new Rect(line.x, line.y, Mathf.Min(line.width, Skin.Width(Skin.Segment, PlanBoxWords.Whole) + U(12f)), line.height);
+                WholeButton(whole);
+                GUI.Label(new Rect(whole.xMax + U(2f), line.y, stepW, line.height), PlanBoxWords.TrailStep, Skin.FaintLabel);
+                line = new Rect(whole.xMax + U(2f) + stepW, line.y, Mathf.Max(0f, line.xMax - whole.xMax - U(2f) - stepW), line.height);
+            }
             if (route == null || route.Count == 0)
             {
-                FitLabel(line, PlanBoxWords.NoTrail, Skin.FaintLabel, 10f);
+                if (!fromWhole) FitLabel(line, PlanBoxWords.NoTrail, Skin.FaintLabel, 10f);
                 return;
-            }
-            var stepW = Skin.Width(Skin.FaintLabel, PlanBoxWords.TrailStep);
-            // In a room, the trail begins at the whole dungeon, which a click comes back out to,
-            // where that leaves room for the room's own name; the button under it is there anyway.
-            var lastW = Skin.Width(Skin.Small, BoxRoomName(explorer, route[route.Count - 1]));
-            if (fromWhole && Skin.Width(Skin.Small, PlanBoxWords.Whole) + stepW + lastW <= line.width)
-            {
-                var wholeW = Skin.Width(Skin.Small, PlanBoxWords.Whole);
-                var whole = new Rect(line.x, line.y, wholeW, line.height);
-                LinkLabel(whole, PlanBoxWords.Whole, Skin.Small, Skin.Text);
-                if (whole.Contains(e.mousePosition))
-                {
-                    AskTip("plan:trail-whole", PlanBoxWords.WholeTip);
-                    if (e.type == EventType.MouseDown && e.button == 0)
-                    {
-                        Stage.ComeOut();
-                        e.Use();
-                    }
-                }
-                GUI.Label(new Rect(whole.xMax, line.y, stepW, line.height), PlanBoxWords.TrailStep, Skin.FaintLabel);
-                line = new Rect(whole.xMax + stepW, line.y, Mathf.Max(0f, line.xMax - whole.xMax - stepW), line.height);
             }
             var first = route.Count - 1;
             var total = Skin.Width(Skin.Small, BoxRoomName(explorer, route[first]));
@@ -1021,9 +999,17 @@ namespace Scry
                     x += stepW;
                 }
                 var name = BoxRoomName(explorer, route[i]);
-                var nameW = Skin.Width(Skin.Small, name);
+                var nameW = Mathf.Min(Skin.Width(Skin.Small, name), line.xMax - x);
                 var rect = new Rect(x, line.y, nameW, line.height);
+                // The last, alone where even it is too wide, shrunk to fit and cut at the box's edge.
+                var size = Skin.Small.fontSize;
+                var clipping = Skin.Small.clipping;
+                var floor = Mathf.Max(1, Mathf.RoundToInt(9f * _s));
+                while (Skin.Width(Skin.Small, name) > rect.width && Skin.Small.fontSize > floor) Skin.Small.fontSize -= 1;
+                Skin.Small.clipping = TextClipping.Clip;
                 LinkLabel(rect, name, Skin.Small, i == route.Count - 1 ? Skin.Accent : Skin.Text);
+                Skin.Small.fontSize = size;
+                Skin.Small.clipping = clipping;
                 if (rect.Contains(e.mousePosition))
                 {
                     _boxHover = route[i];
