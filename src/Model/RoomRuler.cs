@@ -70,15 +70,16 @@ namespace Scry
             return ruler;
         }
 
-        /// <summary>The highest tick the cut stands at or over, as the one lit; -1 under them all.</summary>
-        public int TickUnder(float cut)
+        /// <summary>The tick lit: the highest of the room's own levels the cut stands at or over, or of the rooms above once they are back (<see cref="RoomFocus.WithCut"/>), the room first cut at <paramref name="from"/>; -1 under them all.</summary>
+        public int TickLit(float cut, float from)
         {
-            var under = -1;
+            var lit = -1;
             for (var i = 0; i < _ticks.Count; i++)
             {
-                if (_ticks[i].Height <= cut) under = i;
+                var tick = _ticks[i];
+                if (tick.Own ? tick.Height <= cut : RoomFocus.WithCut(RoomLook.Away, tick.Height, cut, from) == RoomLook.Near) lit = i;
             }
-            return under;
+            return lit;
         }
     }
 }

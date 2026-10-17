@@ -97,6 +97,10 @@ namespace Scry
         [Diagnostic]
         public static Rect PlanBoxRect { get; private set; }
 
+        /// <summary>Where the box's row of Whole dungeon, Entrance and Deepest last ended, for the self-test to tell it stays inside the box; none without the row.</summary>
+        [Diagnostic]
+        public static float PlanBoxRowRight { get; private set; }
+
         [Diagnostic]
         public static PlanView PlanBoxView => _planView;
 
@@ -314,7 +318,11 @@ namespace Scry
             // box finds its own only once its rooms are drawn.
             _boxLit = RoomLight.Lit(_cardLit, _boxHover, _stageHover);
             _boxHover = null;
-            if (repaint) PlanWholeShown = false;
+            if (repaint)
+            {
+                PlanWholeShown = false;
+                PlanBoxRowRight = 0f;
+            }
             if (!KnowBoxRooms() || BoxRooms.Count == 0) return PlanBoxRect = Rect.zero;
 
             // Folded, a small tab where it stands, which brings it back.
@@ -450,22 +458,29 @@ namespace Scry
                 Trail(explorer, new Rect(x, y, w, rowH), route, gone != null);
                 y += rowH + gap;
 
-                // The way back out while a room is gone into, the entrance and the deepest room, a click away.
+                // The way back out while a room is gone into, the entrance and the deepest room, a
+                // click away; narrowed alike where the box is too narrow for them as wide as they want.
+                var wholeW = gone != null ? Skin.Width(Skin.Segment, PlanBoxWords.Whole) + U(12f) : 0f;
+                var entranceW = Skin.Width(Skin.Segment, PlanBoxWords.Entrance) + U(12f);
+                var deepestW = Skin.Width(Skin.Segment, PlanBoxWords.Deepest) + U(12f);
+                var gaps = U(4f) * (gone != null ? 2f : 1f);
+                var narrow = Mathf.Min(1f, (w - gaps) / Mathf.Max(1f, wholeW + entranceW + deepestW));
                 var rowX = x;
                 if (gone != null)
                 {
-                    var whole = new Rect(x, y, Skin.Width(Skin.Segment, PlanBoxWords.Whole) + U(12f), rowH);
+                    var whole = new Rect(x, y, wholeW * narrow, rowH);
                     WholeButton(whole);
                     rowX = whole.xMax + U(4f);
                 }
-                var entrance = new Rect(rowX, y, Skin.Width(Skin.Segment, PlanBoxWords.Entrance) + U(12f), rowH);
-                var deepest = new Rect(entrance.xMax + U(4f), y, Skin.Width(Skin.Segment, PlanBoxWords.Deepest) + U(12f), rowH);
+                var entrance = new Rect(rowX, y, entranceW * narrow, rowH);
+                var deepest = new Rect(entrance.xMax + U(4f), y, deepestW * narrow, rowH);
+                if (repaint) PlanBoxRowRight = deepest.xMax;
                 if (entrance.Contains(e.mousePosition)) AskTip("plan:entrance", PlanBoxWords.EntranceTip);
                 if (deepest.Contains(e.mousePosition)) AskTip("plan:deepest", PlanBoxWords.DeepestTip);
                 if (GUI.Button(entrance, PlanBoxWords.Entrance, Skin.Fitted(Skin.Segment, entrance)) && _boxWays?.Entrance != null) Stage.GoInto(_boxWays.Entrance);
                 if (GUI.Button(deepest, PlanBoxWords.Deepest, Skin.Fitted(Skin.Segment, deepest)) && _boxWays?.Deepest != null) Stage.GoInto(_boxWays.Deepest);
             }
-            else if (gone != null) WholeButton(new Rect(x, y, Skin.Width(Skin.Segment, PlanBoxWords.Whole) + U(12f), rowH));
+            else if (gone != null) WholeButton(new Rect(x, y, Mathf.Min(w, Skin.Width(Skin.Segment, PlanBoxWords.Whole) + U(12f)), rowH));
 
             // The box is not the stage: a click or the wheel on it neither turns nor zooms it.
             if (box.Contains(e.mousePosition) && (e.type == EventType.MouseDown || e.type == EventType.ScrollWheel)) e.Use();
@@ -638,6 +653,9 @@ namespace Scry
                     if (hiddenHere != hiddenThere)
                     {
                         PlanBoxWaysDown++;
+                        // On a ground of the stage's colour, so it shows on the room gone into's own amber too.
+                        var ground = U(11f);
+                        Skin.Icon(new Rect(door.x - ground / 2f, door.y - ground / 2f, ground, ground), Skin.Circle, Skin.Stage);
                         var mark = U(9f);
                         Skin.Icon(new Rect(door.x - mark / 2f, door.y - mark / 2f, mark, mark), Skin.Down, Skin.Accent);
                         continue;
@@ -965,8 +983,10 @@ namespace Scry
                 return;
             }
             var stepW = Skin.Width(Skin.FaintLabel, PlanBoxWords.TrailStep);
-            // In a room, the trail begins at the whole dungeon, which a click comes back out to.
-            if (fromWhole)
+            // In a room, the trail begins at the whole dungeon, which a click comes back out to,
+            // where that leaves room for the room's own name; the button under it is there anyway.
+            var lastW = Skin.Width(Skin.Small, BoxRoomName(explorer, route[route.Count - 1]));
+            if (fromWhole && Skin.Width(Skin.Small, PlanBoxWords.Whole) + stepW + lastW <= line.width)
             {
                 var wholeW = Skin.Width(Skin.Small, PlanBoxWords.Whole);
                 var whole = new Rect(line.x, line.y, wholeW, line.height);

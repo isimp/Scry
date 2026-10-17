@@ -51,14 +51,24 @@ namespace Scry.Tests
         [Fact]
         public void ARoomAboveComesBackHalfDimmedOnceTheCutRisesPastItsGround()
         {
-            Assert.Equal(RoomLook.Away, RoomFocus.WithCut(RoomLook.Away, ground: 8f, cut: 8f + RoomFocus.BackOver - 0.1f));
-            Assert.Equal(RoomLook.Near, RoomFocus.WithCut(RoomLook.Away, ground: 8f, cut: 8f + RoomFocus.BackOver + 0.1f));
+            Assert.Equal(RoomLook.Away, RoomFocus.WithCut(RoomLook.Away, ground: 8f, cut: 8f + RoomFocus.BackOver - 0.1f, from: 2.5f));
+            Assert.Equal(RoomLook.Near, RoomFocus.WithCut(RoomLook.Away, ground: 8f, cut: 8f + RoomFocus.BackOver + 0.1f, from: 2.5f));
+        }
+
+        [Fact]
+        public void ARoomAboveStaysAwayWhileTheCutStandsWhereTheRoomWasFirstCut()
+        {
+            // A shaft is cut a head's height over its highest doorway, past the ground of the room
+            // that doorway leads into: that room stays away until the cut is raised from there.
+            Assert.Equal(RoomLook.Away, RoomFocus.WithCut(RoomLook.Away, ground: 18f, cut: 20.5f, from: 20.5f));
+            Assert.Equal(RoomLook.Away, RoomFocus.WithCut(RoomLook.Away, ground: 18f, cut: 20.5f + RoomFocus.BackOver - 0.1f, from: 20.5f));
+            Assert.Equal(RoomLook.Near, RoomFocus.WithCut(RoomLook.Away, ground: 18f, cut: 20.5f + RoomFocus.BackOver + 0.1f, from: 20.5f));
         }
 
         [Fact]
         public void WithTheRoomsRoofOnEveryRoomAboveIsBack()
         {
-            Assert.Equal(RoomLook.Near, RoomFocus.WithCut(RoomLook.Away, ground: 120f, cut: float.PositiveInfinity));
+            Assert.Equal(RoomLook.Near, RoomFocus.WithCut(RoomLook.Away, ground: 120f, cut: float.PositiveInfinity, from: 2.5f));
         }
 
         [Fact]
@@ -66,8 +76,8 @@ namespace Scry.Tests
         {
             foreach (var look in new[] { RoomLook.Whole, RoomLook.Near, RoomLook.Below })
             {
-                Assert.Equal(look, RoomFocus.WithCut(look, ground: -20f, cut: 0f));
-                Assert.Equal(look, RoomFocus.WithCut(look, ground: -20f, cut: float.PositiveInfinity));
+                Assert.Equal(look, RoomFocus.WithCut(look, ground: -20f, cut: 0f, from: -30f));
+                Assert.Equal(look, RoomFocus.WithCut(look, ground: -20f, cut: float.PositiveInfinity, from: -30f));
             }
         }
 

@@ -39,6 +39,9 @@ namespace Scry
         /// <summary>Whether the cut is held at a height of its own, a room's gone into, whatever the floors.</summary>
         public bool Held => _held.HasValue;
 
+        /// <summary>Where the room gone into was first cut, however the cut has moved since; NaN outside a room.</summary>
+        public float HeldFrom => _held ?? float.NaN;
+
         /// <summary>Whether the room gone into has its roof on: the cut off, the room still gone into.</summary>
         public bool HeldRoofOn => _held.HasValue && _heldRoof;
 

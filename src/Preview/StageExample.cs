@@ -247,6 +247,9 @@ namespace Scry
         /// </summary>
         public float FocusCut { get; set; } = float.NegativeInfinity;
 
+        /// <summary>Where the room gone into was first cut, in the example's own space: a room above comes back only once the cut is raised from there.</summary>
+        public float FocusCutFrom { get; set; } = float.PositiveInfinity;
+
         /// <summary>
         /// How a room shows: as held for the self-test, else as the room gone into has it, those
         /// above coming back as the cut rises past their ground, else as the floor opened has it
@@ -262,7 +265,7 @@ namespace Scry
                 var look = _focusLooks.TryGetValue(room, out var known) ? known : RoomLook.Whole;
                 // Cut from the side, the rooms above stand in the section too, dimmed.
                 if (FromSide) return look == RoomLook.Away ? RoomLook.Below : look;
-                return _focusGrounds.TryGetValue(room, out var ground) ? RoomFocus.WithCut(look, ground, FocusCut) : look;
+                return _focusGrounds.TryGetValue(room, out var ground) ? RoomFocus.WithCut(look, ground, FocusCut, FocusCutFrom) : look;
             }
             switch (RoomShown(room, planFloor, floors))
             {

@@ -199,6 +199,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhereARoomWasFirstCutStaysKnownAsItsCutMoves()
+        {
+            var cut = Taken();
+            cut.Hold(1.2f, least: -0.5f, most: 9f);
+            cut.Wheel(3f);
+            cut.ToggleRoof();
+            Assert.Equal(1.2f, cut.HeldFrom, 3);
+            cut.Hold(null);
+            Assert.True(float.IsNaN(cut.HeldFrom));
+        }
+
+        [Fact]
         public void ComingOutOfARoomWithItsRoofOnPutsTheWholeRoofOn()
         {
             var cut = Taken();

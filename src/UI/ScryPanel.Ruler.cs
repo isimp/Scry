@@ -160,7 +160,7 @@ namespace Scry
             _rulerHigh = high;
             _rulerScreen = OnScreen(rect);
             float Y(float height) => rect.yMax - (height - low) / Mathf.Max(0.01f, high - low) * rect.height;
-            var lit = roofOn ? -1 : ruler.TickUnder(Stage.CutAt);
+            var lit = roofOn ? -1 : ruler.TickLit(Stage.CutAt, Stage.RoomCutFrom);
 
             if (e.type == EventType.Repaint)
             {

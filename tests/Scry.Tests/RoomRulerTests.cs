@@ -76,11 +76,20 @@ namespace Scry.Tests
         public void TheTickLitIsTheHighestTheCutStandsOver()
         {
             var ruler = RoomRuler.Of(ground: 0f, levels: new[] { 0f, 3f }, top: 7f, above: new[] { (8f, 16f) });
-            Assert.Equal(0, ruler.TickUnder(2.5f));
-            Assert.Equal(1, ruler.TickUnder(5.5f));
-            Assert.Equal(2, ruler.TickUnder(10f));
-            Assert.Equal(0, ruler.TickUnder(0f));
-            Assert.Equal(-1, ruler.TickUnder(-1f));
+            Assert.Equal(0, ruler.TickLit(2.5f, from: 2.5f));
+            Assert.Equal(1, ruler.TickLit(5.5f, from: 2.5f));
+            Assert.Equal(2, ruler.TickLit(10f, from: 2.5f));
+            Assert.Equal(0, ruler.TickLit(0f, from: 2.5f));
+            Assert.Equal(-1, ruler.TickLit(-1f, from: 2.5f));
+        }
+
+        [Fact]
+        public void AMarkOfTheRoomsAboveIsLitOnlyOnceTheyAreBack()
+        {
+            // A shaft first cut over the ground of the room above: its own mark lit, not that room's.
+            var ruler = RoomRuler.Of(ground: 0f, levels: new[] { 0f }, top: 22f, above: new[] { (18f, 26f) });
+            Assert.Equal(0, ruler.TickLit(20.5f, from: 20.5f));
+            Assert.Equal(1, ruler.TickLit(21.5f, from: 20.5f));
         }
     }
 }

@@ -304,6 +304,9 @@ namespace Scry
                     var back = ScryPanel.PlanBoxSpotsForTest().Select(s => s.Room).ToList();
                     if (belowRooms.Any(r => !back.Contains(r))) unswitched.Add($"{entry.Name}: rooms below not back in the plan");
                 }
+                // Read once the box has been drawn with the room gone into.
+                var drawnWhole = ScryPanel.Drawn(PanelPart.PlanBox);
+                yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnWhole + 1 && ScryPanel.PlanWholeShown, 3);
                 if (!ScryPanel.PlanWholeShown) noWayBack.Add($"{entry.Name}: {ways.Entrance.Room.Name}");
                 ScryPanel.ClickPlanWholeForTest();
 

@@ -136,6 +136,7 @@ namespace Scry
             {
                 // The rooms above come back as the room's cut rises past their ground.
                 TheExample.FocusCut = TheCut.At - ExampleLift;
+                TheExample.FocusCutFrom = TheCut.HeldFrom - ExampleLift;
                 KeepRoomBounds();
             }
             TheExample.KeepToFloor(ExamplePlanFloor, ExampleFloors);
@@ -483,9 +484,10 @@ namespace Scry
             if (ruler != null && !ReferenceEquals(ruler, before) && TheCut.Held) TheCut.Bound(ruler.Least, ruler.High);
         }
 
-        /// <summary>Where the stage cuts over a tick of the room's ruler: a level of its own as its chip cuts it, the rooms above on one at head height over it.</summary>
+        /// <summary>Where the stage cuts over a tick of the room's ruler: a level of its own as its chip cuts it, the rooms above on one at head height over it, and past where the room was first cut, so they come back.</summary>
         private static float RoomTickCut(RoomRuler.Tick tick) =>
-            tick.Own ? RoomLevelCut(TheExample.Focused, tick.Height - ExampleLift) : RoomFocus.Cut(tick.Height, null);
+            tick.Own ? RoomLevelCut(TheExample.Focused, tick.Height - ExampleLift)
+                : Mathf.Max(RoomFocus.Cut(tick.Height, null), TheCut.HeldFrom + RoomFocus.BackOver + 0.1f);
 
         /// <summary>Opens a tick of the room's ruler: a level of its own as its chip does, or the rooms above on one, cut at head height over it as they come back.</summary>
         public static void OpenRoomTick(int index)
@@ -536,6 +538,17 @@ namespace Scry
             }
             TheCut.HoldAt(float.PositiveInfinity);
         }
+
+        /// <summary>The height the room gone into is cut at, in the example's own space, as the rooms above come back by, for the self-test.</summary>
+        [Diagnostic]
+        public static float ExampleCutForTest => TheExample.FocusCut;
+
+        /// <summary>Where the room gone into was first cut, in the example's own space, for the self-test.</summary>
+        [Diagnostic]
+        public static float ExampleCutFromForTest => TheExample.FocusCutFrom;
+
+        /// <summary>Where the room gone into was first cut, in the stage's heights, as its ruler lights the rooms above by.</summary>
+        public static float RoomCutFrom => TheCut.HeldFrom;
 
         /// <summary>Whether the room gone into has its roof on, the rooms above it back.</summary>
         public static bool RoomRoofOn => TheExample.Focused != null && TheCut.HeldRoofOn;

@@ -62,7 +62,10 @@ namespace Scry
                 int whole = 0, near = 0, below = 0, away = 0;
                 foreach (var room in rooms.Where(r => !r.Room.EndCap && !r.Room.Divider))
                 {
-                    var look = RoomFocus.Look(room == deepest, Stage.ExampleRoomGround(room), ground);
+                    // A room above is back, half dimmed, only once the cut is raised from where the room was first cut and over its ground.
+                    var roomGround = Stage.ExampleRoomGround(room);
+                    var look = RoomFocus.Look(room == deepest, roomGround, ground);
+                    if (!Stage.CutFromSide) look = RoomFocus.WithCut(look, roomGround, Stage.ExampleCutForTest, Stage.ExampleCutFromForTest);
                     var drawn = Stage.ExampleRoomDrawn(room);
                     if (drawn == null) continue;
                     var (standing, keep) = drawn.Value;
@@ -132,7 +135,7 @@ namespace Scry
             p.Check(unlevelled.Count == 0, "each level of a room gone into opens, cut at head height over it", string.Join("; ", unlevelled));
             p.Check(notIn.Count == 0, "a click on a dungeon's room goes into it", string.Join("; ", notIn));
             p.Check(miscut.Count == 0, "the stage is cut at head height over the room's ground", string.Join("; ", miscut));
-            p.Check(misdrawn.Count == 0, "rooms on its level stand half dimmed, those below dimmed, those above put away", string.Join("; ", misdrawn));
+            p.Check(misdrawn.Count == 0, "rooms on its level stand half dimmed, those below dimmed, those above put away until the cut stands over their ground", string.Join("; ", misdrawn));
             p.Check(unseen.Count == 0, "the camera has the room gone into in view", string.Join("; ", unseen));
             p.Check(unmarked.Count == 0, "the room gone into is outlined in amber", string.Join("; ", unmarked));
             p.Check(stillIn.Count == 0, "coming back out puts the roof back on with every room as it is", string.Join("; ", stillIn));

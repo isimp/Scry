@@ -50,11 +50,18 @@ namespace Scry
             return ground < groundGoneInto ? RoomLook.Below : RoomLook.Away;
         }
 
-        /// <summary>How far the cut must rise past the ground of a room above the room gone into for it to come back, in metres.</summary>
+        /// <summary>How far the cut must rise past the ground of a room above the room gone into, and past where the room was first cut, for it to come back, in metres.</summary>
         public const float BackOver = 0.5f;
 
-        /// <summary>A room's look as the cut over the room gone into is raised: one above, put away, comes back half dimmed once the cut is over its ground, every one with the room's roof on; no other look changes.</summary>
-        public static RoomLook WithCut(RoomLook look, float ground, float cut) => look == RoomLook.Away && cut > ground + BackOver ? RoomLook.Near : look;
+        /// <summary>
+        /// A room's look as the cut over the room gone into is raised: one above, put away, comes
+        /// back half dimmed once the cut is over its ground and raised from where the room was first
+        /// cut (<paramref name="from"/>), so a shaft cut a head's height over its highest doorway
+        /// does not bring back the room that doorway leads into; every one with the room's roof on;
+        /// no other look changes.
+        /// </summary>
+        public static RoomLook WithCut(RoomLook look, float ground, float cut, float from) =>
+            look == RoomLook.Away && cut > ground + BackOver && cut > from + BackOver ? RoomLook.Near : look;
 
         /// <summary>Whether the plan from above, its switch for the rooms below off, leaves a room out: one whose ground lies below the level looked at, the room gone into's or the floor opened; none with neither.</summary>
         public static bool HiddenBelow(float ground, float? level) => level is float at && ground < at - SameLevel;
