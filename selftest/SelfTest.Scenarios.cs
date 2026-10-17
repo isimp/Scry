@@ -57,6 +57,7 @@ namespace Scry
             yield return S("a made-up character's pages read under the strict rules as a player sees them", CompendiumStrictRead, 30, () => { AllKnown(); ResetList(); });
             yield return S("with the compendium on, a made-up character sees only what it met", CompendiumShown, 60, () => { AllKnown(); ResetList(); });
             yield return S("a dungeon only seen from outside shows its outside alone", SeenFromOutside, 60, () => { AllKnown(); ResetList(); });
+            yield return S("a dungeon's page is told again quickly, however many parts its rooms hold", DungeonPagesQuick, 20);
             yield return S("the explored map tells which kinds of place were seen", CompendiumMapRead, 30);
             yield return S("each boss's fall opens its tier, worked out from how things are come by", CompendiumTierRead, 30, () => { AllKnown(); ResetList(); });
             yield return S("every mod has a page of what it adds and changes", ModPages, 10);

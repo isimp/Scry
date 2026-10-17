@@ -109,7 +109,7 @@ namespace Scry
                 foreach (var label in _entry.FoundIn)
                 {
                     var location = catalog != null ? Places.LocationNamed(catalog, label) : null;
-                    if (location != null && row.Items.All(i => i.Prefab != location.Key)) row.Items.Add(EntryChip(location));
+                    if (location != null && !row.Items.Exists(i => i.Prefab == location.Key)) row.Items.Add(EntryChip(location));
                 }
                 if (row.Items.Count > 0) Rows.Add(row);
                 else Add("Built into", Naming.Commas(_entry.FoundIn.Select(Places.NameOf)));
@@ -134,16 +134,18 @@ namespace Scry
             if (contents.NoBuild && contents.NoBuildRadius > 0f) Add("Building", LocationWords.NoBuild(contents.NoBuildRadius));
             Add("Music", LocationWords.Music(contents.Music), contents.Music.Count > 0 ? EntryKeys.PlayMusic : null);
 
-            foreach (var role in PlaceParts.Roles)
+            var here = new HashSet<string>(contents.Parts.Select(p => p.Prefab).Where(p => p != null)) { entry.Name, entry.Key };
+            var byRow = ByRow(contents.Parts, p => p.Prefab);
+            for (var r = 0; r < PlaceParts.Roles.Length; r++)
             {
+                var role = PlaceParts.Roles[r];
                 if (role == PartRole.Built && contents.Creatures.Count > 0)
                 {
                     var creatures = new Row { Title = "Its spawn points place" };
                     foreach (var part in ContentOrder.ToughestFirst(contents.Creatures, c => FoeOf(c.Prefab))) creatures.Items.Add(PartChip(part));
                     Rows.Add(creatures);
                 }
-                var here = new HashSet<string>(contents.Parts.Select(p => p.Prefab).Where(p => p != null)) { entry.Name, entry.Key };
-                var parts = InRow(contents.Parts, p => p.Prefab, p => p.Chance, role, here);
+                var parts = InRow(byRow[r], p => p.Prefab, p => p.Chance, role, here);
                 if (parts.Count == 0) continue;
                 var row = new Row { Title = PlaceParts.Title(role, false) };
                 foreach (var part in parts)
@@ -219,28 +221,30 @@ namespace Scry
 
             var parts = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Parts));
             var inDungeon = new HashSet<string>(parts.Select(p => p.Prefab).Where(p => p != null)) { _entry?.Name ?? "", _entry?.Key ?? "" };
-            foreach (var role in PlaceParts.Roles)
+            var byRow = ByRow(parts, p => p.Prefab);
+            for (var r = 0; r < PlaceParts.Roles.Length; r++)
             {
+                var role = PlaceParts.Roles[r];
                 if (role == PartRole.Built)
                 {
                     var creatures = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Creatures));
                     if (creatures.Count > 0)
                     {
                         var spawned = new Row { Title = Read("Its rooms' spawn points place") };
-                        foreach (var (creature, count) in ContentOrder.ToughestFirst(creatures, c => FoeOf(c.Prefab))) spawned.Items.Add(Chip(creature, PlaceParts.InRooms(count)));
+                        foreach (var creature in ContentOrder.ToughestFirst(creatures, c => FoeOf(c.Prefab))) spawned.Items.Add(Chip(creature.Prefab, PlaceParts.InRooms(creature.Rooms)));
                         Rows.Add(spawned);
                     }
                 }
-                var inRow = InRow(parts, p => p.Prefab, p => p.Rooms, role, inDungeon);
+                var inRow = InRow(byRow[r], p => p.Prefab, p => p.Rooms, role, inDungeon);
                 if (inRow.Count > 0)
                 {
                     var row = new Row { Title = Read(PlaceParts.Title(role, true)) };
-                    foreach (var (prefab, count) in inRow)
+                    foreach (var part in inRow)
                     {
-                        var chip = Chip(prefab, PlaceParts.InRooms(count));
+                        var chip = Chip(part.Prefab, PlaceParts.InRooms(part.Rooms));
                         if (role == PartRole.Loot)
                         {
-                            var gives = Gives(prefab, inDungeon);
+                            var gives = Gives(part.Prefab, inDungeon);
                             chip = Marked(chip, (gives.Only, gives.Worth), gives: true);
                         }
                         row.Items.Add(chip);
@@ -252,25 +256,43 @@ namespace Scry
                 // The loot in them: what only this dungeon gives first, then what a trader pays
                 // for, then the rest, each by the best chance a chest or pickup in its rooms gives it.
                 var givers = read.SelectMany(c => c.Parts).Select(p => p.Prefab).Where(p => p != null).Distinct().ToList();
-                var loot = PlaceParts.Across(read.Select(c => (IReadOnlyList<PlacePart>)c.Parts
-                    .SelectMany(p => Knowledge.LootOf(GamePrefabs.Named(p.Prefab)))
-                    .Distinct()
-                    .Select(item => new PlacePart { Prefab = item, Count = 1, Chance = 1f })
-                    .ToList()));
+                var loot = PlaceParts.LootAcross(read.Select(c => (IReadOnlyList<PlacePart>)c.Parts), LootOf);
                 if (loot.Count > 0)
                 {
                     var here = new HashSet<string>(givers) { _entry?.Name ?? "", _entry?.Key ?? "" };
                     var giving = new HashSet<string>(givers, StringComparer.Ordinal);
-                    double Best(string item) => Knowledge.SourceLines(item).Where(s => s.Prefab != null && giving.Contains(s.Prefab)).Select(s => s.Chance).DefaultIfEmpty(0.0).Max();
-                    var told = loot.Select(l => (l.Prefab, l.Rooms, Best: Best(l.Prefab), Notable: Notable(l.Prefab, here)));
+                    var told = new List<RoomsLoot>(loot.Count);
+                    foreach (var item in loot) told.Add(new RoomsLoot { Item = item, Best = Best(item.Prefab, giving), Notable = Notable(item.Prefab, here) });
                     var row = new Row { Title = Read("Loot in its rooms") };
-                    foreach (var (item, count, best, notable) in ContentOrder.LootFirst(told, l => l.Best, l => l.Notable.Only, l => l.Notable.Worth))
+                    foreach (var each in ContentOrder.LootFirst(told, l => l.Best, l => l.Notable.Only, l => l.Notable.Worth))
                     {
-                        row.Items.Add(Marked(Chip(item, PlaceParts.InRooms(count, best)), notable));
+                        row.Items.Add(Marked(Chip(each.Item.Prefab, PlaceParts.InRooms(each.Item.Rooms, each.Best)), each.Notable));
                     }
                     Rows.Add(row);
                 }
             }
+        }
+
+        /// <summary>An item of the loot in a dungeon's rooms as its row tells it: in how many of its kinds of room, the best chance there, and what marks it.</summary>
+        private sealed class RoomsLoot
+        {
+            public PartInRooms Item;
+            public double Best;
+            public (bool Only, int Worth) Notable;
+        }
+
+        /// <summary>The best chance any of the givers gives an item at; 0 where none of them gives it.</summary>
+        private static double Best(string item, HashSet<string> giving)
+        {
+            var best = 0.0;
+            var any = false;
+            foreach (var source in Knowledge.SourceLines(item))
+            {
+                if (source.Prefab == null || !giving.Contains(source.Prefab)) continue;
+                if (!any || source.Chance > best) best = source.Chance;
+                any = true;
+            }
+            return best;
         }
 
         /// <summary>The room entries of the kinds a dungeon is built of, entrances first, then rooms, then end caps.</summary>

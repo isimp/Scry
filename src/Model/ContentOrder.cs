@@ -23,18 +23,30 @@ namespace Scry
     /// gathered hardest first. Each keeps the order it was given among equals, so a list handed
     /// over by name stays by name where nothing else tells its items apart.
     /// </summary>
+    /// <remarks>
+    /// Every order reads its keys as numbers into one table and sorts the items' places in it
+    /// (<see cref="Ordered{T}"/>). The game's runtime compiles generic code anew for each value
+    /// type it is given, so LINQ's ordering over a tuple of each item and its key brought its own
+    /// sorters and comparers to compile the first time each kind of list was told; this way an
+    /// order of any class of item shares the code of every other.
+    /// </remarks>
     internal static class ContentOrder
     {
         /// <summary>Loot, the least likely first.</summary>
         public static List<T> RarestFirst<T>(IEnumerable<T> items, Func<T, double> chance) =>
-            items.OrderBy(chance).ToList();
+            Ordered(items, Least, (item, keys, at) => keys[at] = chance(item));
 
         /// <summary>
         /// Loot by what it is worth having: what nothing else gives first, then what a trader
         /// pays for, the most first, then the rest; each the least likely first.
         /// </summary>
         public static List<T> LootFirst<T>(IEnumerable<T> items, Func<T, double> chance, Func<T, bool> onlyHere, Func<T, int> worth) =>
-            items.OrderBy(i => onlyHere(i) ? 0 : 1).ThenByDescending(worth).ThenBy(chance).ToList();
+            Ordered(items, LeastMostLeast, (item, keys, at) =>
+            {
+                keys[at] = onlyHere(item) ? 0 : 1;
+                keys[at + 1] = worth(item);
+                keys[at + 2] = chance(item);
+            });
 
         /// <summary>
         /// What gives loot, a place's chests and pickups, by what it can give: what gives what
@@ -42,47 +54,112 @@ namespace Scry
         /// more kinds of loot (a chest before barley), each the least likely first.
         /// </summary>
         public static List<T> GiversFirst<T>(IEnumerable<T> items, Func<T, double> chance, Func<T, bool> onlyHere, Func<T, int> worth, Func<T, int> kinds) =>
-            items.OrderBy(i => onlyHere(i) ? 0 : 1).ThenByDescending(worth).ThenByDescending(kinds).ThenBy(chance).ToList();
+            Ordered(items, LeastMostMostLeast, (item, keys, at) =>
+            {
+                keys[at] = onlyHere(item) ? 0 : 1;
+                keys[at + 1] = worth(item);
+                keys[at + 2] = kinds(item);
+                keys[at + 3] = chance(item);
+            });
 
         /// <summary>Creatures, bosses first, then the most health; what is no creature (null) after them all.</summary>
-        public static List<T> ToughestFirst<T>(IEnumerable<T> items, Func<T, Foe?> foe)
-        {
-            return items.Select(i => (Item: i, Foe: foe(i)))
-                .OrderBy(x => x.Foe == null ? 2 : x.Foe.Value.Boss ? 0 : 1)
-                .ThenByDescending(x => x.Foe?.Health ?? 0f)
-                .Select(x => x.Item)
-                .ToList();
-        }
+        public static List<T> ToughestFirst<T>(IEnumerable<T> items, Func<T, Foe?> foe) =>
+            Ordered(items, LeastMost, (item, keys, at) =>
+            {
+                var found = foe(item);
+                keys[at] = found == null ? 2 : found.Value.Boss ? 0 : 1;
+                keys[at + 1] = found?.Health ?? 0f;
+            });
 
         /// <summary>
         /// Where a thing comes from, the surest first; among equally sure ones, the one whose
         /// biome players reach first (<see cref="Earliest"/>).
         /// </summary>
         public static List<T> SurestFirst<T>(IEnumerable<T> items, Func<T, double> chance, Func<T, int> biome) =>
-            items.OrderByDescending(chance).ThenBy(biome).ToList();
+            Ordered(items, MostLeast, (item, keys, at) =>
+            {
+                keys[at] = chance(item);
+                keys[at + 1] = biome(item);
+            });
 
         /// <summary>
         /// What is gathered, the highest tool tier it needs first, then the most health; what
         /// needs no tool at all (null: picked) after them all.
         /// </summary>
-        public static List<T> HardestFirst<T>(IEnumerable<T> items, Func<T, (int Tier, float Health)?> toGather)
-        {
-            return items.Select(i => (Item: i, Hard: toGather(i)))
-                .OrderBy(x => x.Hard == null ? 1 : 0)
-                .ThenByDescending(x => x.Hard?.Tier ?? 0)
-                .ThenByDescending(x => x.Hard?.Health ?? 0f)
-                .Select(x => x.Item)
-                .ToList();
-        }
+        public static List<T> HardestFirst<T>(IEnumerable<T> items, Func<T, (int Tier, float Health)?> toGather) =>
+            Ordered(items, LeastMostMost, (item, keys, at) =>
+            {
+                var hard = toGather(item);
+                keys[at] = hard == null ? 1 : 0;
+                keys[at + 1] = hard?.Tier ?? 0;
+                keys[at + 2] = hard?.Health ?? 0f;
+            });
 
         /// <summary>Places, the fewest the world places first; one it never places by itself (0 or less) after them all.</summary>
-        public static List<T> FewestFirst<T>(IEnumerable<T> items, Func<T, int> placed)
+        public static List<T> FewestFirst<T>(IEnumerable<T> items, Func<T, int> placed) =>
+            Ordered(items, LeastLeast, (item, keys, at) =>
+            {
+                var times = placed(item);
+                keys[at] = times > 0 ? 0 : 1;
+                keys[at + 1] = Math.Max(0, times);
+            });
+
+        // Which way each key of an order goes, key by key: true where the most comes first.
+        private static readonly bool[] Least = { false };
+        private static readonly bool[] LeastLeast = { false, false };
+        private static readonly bool[] LeastMost = { false, true };
+        private static readonly bool[] MostLeast = { true, false };
+        private static readonly bool[] LeastMostLeast = { false, true, false };
+        private static readonly bool[] LeastMostMost = { false, true, true };
+        private static readonly bool[] LeastMostMostLeast = { false, true, true, false };
+
+        /// <summary>
+        /// The items ordered by their keys, as LINQ's <c>OrderBy</c> and <c>ThenBy</c> order them:
+        /// the first key decides, each next one only among items equal in all before it, and
+        /// equals keep the order they came in. <paramref name="keys"/> writes an item's keys, one
+        /// for each of <paramref name="most"/>, into the table at the place given; each is read once.
+        /// </summary>
+        private static List<T> Ordered<T>(IEnumerable<T> items, bool[] most, Action<T, double[], int> keys)
         {
-            return items.Select(i => (Item: i, Placed: placed(i)))
-                .OrderBy(x => x.Placed > 0 ? 0 : 1)
-                .ThenBy(x => Math.Max(0, x.Placed))
-                .Select(x => x.Item)
-                .ToList();
+            var given = new List<T>(items);
+            var width = most.Length;
+            var table = new double[given.Count * width];
+            var order = new int[given.Count];
+            for (var i = 0; i < given.Count; i++)
+            {
+                keys(given[i], table, i * width);
+                order[i] = i;
+            }
+            Array.Sort(order, new ByKeys(table, most));
+            var ordered = new List<T>(given.Count);
+            foreach (var i in order) ordered.Add(given[i]);
+            return ordered;
+        }
+
+        /// <summary>Compares two items by their places in a table of keys: key by key, each its own way, then the order they came in.</summary>
+        private sealed class ByKeys : IComparer<int>
+        {
+            private readonly double[] _table;
+            private readonly bool[] _most;
+
+            public ByKeys(double[] table, bool[] most)
+            {
+                _table = table;
+                _most = most;
+            }
+
+            public int Compare(int a, int b)
+            {
+                var width = _most.Length;
+                for (var k = 0; k < width; k++)
+                {
+                    var x = _table[a * width + k];
+                    var y = _table[b * width + k];
+                    var told = _most[k] ? y.CompareTo(x) : x.CompareTo(y);
+                    if (told != 0) return told;
+                }
+                return a.CompareTo(b);
+            }
         }
 
         /// <summary>

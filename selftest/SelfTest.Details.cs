@@ -866,6 +866,46 @@ namespace Scry
         }
 
         /// <summary>
+        /// A dungeon's page is told again within a few milliseconds however many parts its rooms
+        /// hold, as it is each time something read changes it while it is picked: the three whose
+        /// read rooms name the most parts, each the quicker of two tellings, so a memory cleanup
+        /// in one does not count. What each kind of part gives and which row it goes in are read
+        /// once a telling, where a dungeon's rooms name the same chests and pickups again and again.
+        /// </summary>
+        private static IEnumerator DungeonPagesQuick(Probe p)
+        {
+            int Lines(Entry dungeon) => Facts.RoomsOf(PlaceOf(dungeon).Contents.Dungeon.Themes).Sum(room => PlaceOf(room).Contents?.Parts.Count ?? 0);
+            var biggest = X.Catalog.Where(e => PlaceOf(e)?.Contents?.Dungeon != null)
+                .Select(e => (Dungeon: e, Lines: Lines(e)))
+                .Where(d => d.Lines > 0)
+                .OrderByDescending(d => d.Lines)
+                .Take(3)
+                .ToList();
+            if (biggest.Count == 0)
+            {
+                p.Skip("no dungeon's rooms have been read");
+                yield break;
+            }
+            var told = new List<(string Name, int Lines, double Ms)>();
+            foreach (var (dungeon, lines) in biggest)
+            {
+                var quickest = double.MaxValue;
+                for (var time = 0; time < 2; time++)
+                {
+                    Facts.Forget(dungeon);
+                    var watch = System.Diagnostics.Stopwatch.StartNew();
+                    Facts.For(dungeon);
+                    quickest = Math.Min(quickest, watch.Elapsed.TotalMilliseconds);
+                    yield return null;
+                }
+                told.Add((dungeon.Name, lines, quickest));
+            }
+            var slowest = told.OrderByDescending(t => t.Ms).First();
+            p.Check(slowest.Ms < 25.0, "told again, a dungeon's page takes under 25 ms however many parts its rooms hold",
+                string.Join(", ", told.Select(t => $"{t.Name} {Numbers.Count(t.Lines)} parts' lines in {Numbers.Amount(t.Ms, 1)} ms")));
+        }
+
+        /// <summary>
         /// Content lists in their order, once every location is read: each location's parts told
         /// once, in a row by what each is, building pieces apart; creatures' drops rarest first;
         /// each biome's creatures toughest first; where things come from surest first. Examples

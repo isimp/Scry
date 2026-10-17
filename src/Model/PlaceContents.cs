@@ -14,6 +14,13 @@ namespace Scry
         public float Chance;
     }
 
+    /// <summary>One kind of thing across a dungeon's or camp's kinds of room: its prefab, and in how many of them it is (<see cref="PlaceParts.Across"/>).</summary>
+    internal sealed class PartInRooms
+    {
+        public string Prefab = "";
+        public int Rooms;
+    }
+
     /// <summary>What a place's part is, which row of its page it is told in, in the order the rows come.</summary>
     internal enum PartRole
     {
@@ -153,19 +160,62 @@ namespace Scry
         /// in (once for a room however often it is there), the most widespread first, then by
         /// name; a room not read yet adds nothing.
         /// </summary>
-        public static List<(string Prefab, int Rooms)> Across(IEnumerable<IReadOnlyList<PlacePart>> rooms)
+        public static List<PartInRooms> Across(IEnumerable<IReadOnlyList<PlacePart>> rooms)
         {
-            var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+            var counted = new Dictionary<string, PartInRooms>(StringComparer.Ordinal);
+            var found = new List<PartInRooms>();
             foreach (var room in rooms)
             {
                 if (room == null) continue;
                 foreach (var prefab in room.Where(p => p != null && !string.IsNullOrEmpty(p.Prefab)).Select(p => p.Prefab).Distinct())
                 {
-                    counts.TryGetValue(prefab, out var n);
-                    counts[prefab] = n + 1;
+                    if (!counted.TryGetValue(prefab, out var part))
+                    {
+                        counted[prefab] = part = new PartInRooms { Prefab = prefab };
+                        found.Add(part);
+                    }
+                    part.Rooms++;
                 }
             }
-            return counts.OrderByDescending(c => c.Value).ThenBy(c => c.Key, StringComparer.OrdinalIgnoreCase).Select(c => (c.Key, c.Value)).ToList();
+
+            // The most widespread first, then by name; what is alike in both keeps the order found.
+            var order = new int[found.Count];
+            for (var i = 0; i < order.Length; i++) order[i] = i;
+            Array.Sort(order, (a, b) =>
+            {
+                var told = found[b].Rooms.CompareTo(found[a].Rooms);
+                if (told == 0) told = StringComparer.OrdinalIgnoreCase.Compare(found[a].Prefab, found[b].Prefab);
+                return told != 0 ? told : a.CompareTo(b);
+            });
+            var across = new List<PartInRooms>(found.Count);
+            foreach (var i in order) across.Add(found[i]);
+            return across;
+        }
+
+        /// <summary>
+        /// The loot a dungeon's or camp's kinds of room give, counted as <see cref="Across"/>
+        /// counts what they hold: each item with how many of them give it. What a kind of part
+        /// gives (<paramref name="lootOf"/>, by its prefab) is asked once, however many rooms and
+        /// lines name it.
+        /// </summary>
+        public static List<PartInRooms> LootAcross(IEnumerable<IReadOnlyList<PlacePart>> rooms, Func<string, IReadOnlyList<string>> lootOf)
+        {
+            var asked = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+            var given = new List<IReadOnlyList<PlacePart>>();
+            foreach (var room in rooms)
+            {
+                if (room == null) continue;
+                // An item given by several of the room's parts is one item there: Across counts a room once.
+                var items = new List<PlacePart>();
+                foreach (var part in room)
+                {
+                    if (part == null || string.IsNullOrEmpty(part.Prefab)) continue;
+                    if (!asked.TryGetValue(part.Prefab, out var loot)) asked[part.Prefab] = loot = lootOf(part.Prefab);
+                    foreach (var item in loot) items.Add(new PlacePart { Prefab = item, Count = 1, Chance = 1f });
+                }
+                given.Add(items);
+            }
+            return Across(given);
         }
 
         /// <summary>How widespread a thing is among a dungeon's kinds of room, as a chip's amount.</summary>

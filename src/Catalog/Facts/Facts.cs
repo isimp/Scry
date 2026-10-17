@@ -217,6 +217,22 @@ namespace Scry
         /// </summary>
         private static Dictionary<string, (ICollection<string> Here, bool Only, int Worth)> _notables;
 
+        /// <summary>
+        /// The items a part gives, by its prefab's name (<see cref="Knowledge.LootOf"/>), read
+        /// once while one page is told: a dungeon's rooms name the same chests and pickups again
+        /// and again, and each reading goes through all the part's components.
+        /// </summary>
+        private static IReadOnlyList<string> LootOf(string part)
+        {
+            if (_loot != null && _loot.TryGetValue(part ?? "", out var known)) return known;
+            var loot = Knowledge.LootOf(GamePrefabs.Named(part));
+            if (_loot != null) _loot[part ?? ""] = loot;
+            return loot;
+        }
+
+        /// <summary>While one page is told, what <see cref="LootOf"/> read of each part. Null between pages.</summary>
+        private static Dictionary<string, List<string>> _loot;
+
         private static (bool Only, int Worth) NotableNow(string item, ICollection<string> here)
         {
             var givers = Knowledge.SourceLines(item).Select(s => s.Prefab).Where(p => p != null).Distinct().ToList();
@@ -250,7 +266,7 @@ namespace Scry
         /// </summary>
         private static (bool Only, int Worth, int Kinds) Gives(string part, ICollection<string> here)
         {
-            var loot = Knowledge.LootOf(GamePrefabs.Named(part));
+            var loot = LootOf(part);
             var only = false;
             var worth = 0;
             foreach (var item in loot)
@@ -295,6 +311,7 @@ namespace Scry
 
             var facts = new Facts { _toldWith = Freshness };
             _notables = new Dictionary<string, (ICollection<string>, bool, int)>(StringComparer.Ordinal);
+            _loot = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             try
             {
                 facts.Tell(entry);
@@ -302,6 +319,7 @@ namespace Scry
             finally
             {
                 _notables = null;
+                _loot = null;
             }
             Cache[entry] = facts;
             return facts;
