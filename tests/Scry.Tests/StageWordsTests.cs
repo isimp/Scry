@@ -32,6 +32,26 @@ namespace Scry.Tests
             Assert.Equal("Tent\nClick to go to it", StageWords.RoomTip("Tent", true));
         }
 
+        // ----- The whole dungeon opened by the plan's levels -----
+
+        [Fact]
+        public void AMarkOfTheRulerNamesItsLevelAndOfSeveralGroupsWhichOrHowManyCuts()
+        {
+            Assert.Equal("Level -17 m", StageWords.LevelMark("-17 m", 1, 1, films: false));
+            Assert.Equal("Level +1 m, 2 of 3", StageWords.LevelMark("+1 m", 2, 3, films: false));
+            Assert.Equal("Level +1 m, 3 cuts", StageWords.LevelMark("+1 m", 1, 3, films: true));
+            Assert.Equal("Level -17 m", StageWords.LevelMark("-17 m", 1, 1, films: true));
+        }
+
+        [Fact]
+        public void TheChipTellsHowTheWholeDungeonOpens()
+        {
+            Assert.Equal("Floors", StageWords.LevelsChip(InsideLevels.Floors));
+            Assert.Equal("Level steps", StageWords.LevelsChip(InsideLevels.Steps));
+            Assert.Equal("Level films", StageWords.LevelsChip(InsideLevels.Films));
+            Assert.Contains("click for the next", StageWords.LevelsTip);
+        }
+
         // ----- The ruler in a room gone into -----
 
         [Fact]

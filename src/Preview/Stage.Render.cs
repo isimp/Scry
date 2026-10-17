@@ -20,6 +20,10 @@ namespace Scry
         /// <summary>How often the stage has been filmed, for the self-test to tell it still is.</summary>
         public static int Filmed { get; private set; }
 
+        /// <summary>How many films the last frame took and how long they took together, for the self-test.</summary>
+        [Diagnostic]
+        public static (int Films, double Ms) LastFilms { get; private set; }
+
         /// <summary>How long the camera took to film the stage the last time, for the self-test.</summary>
         public static double LastFilmMs { get; private set; }
 
@@ -129,12 +133,19 @@ namespace Scry
                 Timing.Add("render grass", step);
                 // The outlines are drawn at the end of the frame's last film.
                 var creaturesAgain = _aboveCut != null && CreatureLayer != _layer && Creatures.AnyMade;
-                OutlinesInFilm(!creaturesAgain);
+                // A dungeon's level opened whole that one cut cannot open is filmed a group at a time.
+                var films = FilmsNow();
                 step = Timing.Start();
                 var filming = System.Diagnostics.Stopwatch.GetTimestamp();
-                _camera.Render();
+                if (films != null) FilmGroups(films, creaturesAgain);
+                else
+                {
+                    OutlinesInFilm(!creaturesAgain);
+                    _camera.Render();
+                }
                 LastFilmMs = (System.Diagnostics.Stopwatch.GetTimestamp() - filming) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                Timing.Add("render film", step);
+                LastFilms = (films?.Count ?? 1, LastFilmMs);
+                Timing.Add(films != null ? "render films" : "render film", step);
                 Filmed++;
 
                 // A floor's cut is the near plane laid along it, which cut the creatures with all
@@ -176,6 +187,37 @@ namespace Scry
                 RenderSettings.ambientEquatorColor = equator;
                 RenderSettings.ambientGroundColor = ground;
                 LetWorldLightsBack();
+            }
+        }
+
+        /// <summary>
+        /// Films a level of a dungeon's example opened whole, a film for each group of its rooms one
+        /// cut opens (<see cref="LevelCuts"/>), from its lowest group up: each with the near plane at
+        /// its own cut and only its own rooms, the rooms of the levels below going with the lowest,
+        /// each painted over the one before, as the creatures above the cut are; the outlines go
+        /// with the last.
+        /// </summary>
+        private static void FilmGroups(List<(int Group, float Cut)> films, bool creaturesAgain)
+        {
+            var projection = _camera.projectionMatrix;
+            var clear = _camera.clearFlags;
+            try
+            {
+                for (var i = 0; i < films.Count; i++)
+                {
+                    TheExample.FilmOnly(films[i].Group, withBelow: i == 0);
+                    LayCutAt(films[i].Cut);
+                    _camera.clearFlags = i == 0 ? clear : CameraClearFlags.Depth;
+                    OutlinesInFilm(i == films.Count - 1 && !creaturesAgain);
+                    _camera.Render();
+                    TheExample.FilmAll();
+                }
+            }
+            finally
+            {
+                TheExample.FilmAll();
+                _camera.clearFlags = clear;
+                _camera.projectionMatrix = projection;
             }
         }
 

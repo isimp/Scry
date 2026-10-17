@@ -221,6 +221,7 @@ namespace Scry
 
             /// <summary>Whether the rooms below stood dimmed, as the plan box's switch had it.</summary>
             public bool BelowShown;
+            public InsideLevels LevelsMode;
 
             /// <summary>The view the panel was in when the test first opened it, for the full view the stage is drawn in.</summary>
             public bool? Compact;
@@ -241,6 +242,7 @@ namespace Scry
                 StageScale = ScryPanel.StageScale,
                 ListsHidden = ScryPanel.ListsHidden,
                 BelowShown = ScryPanel.PlanBelowShown,
+                LevelsMode = Stage.LevelsMode,
             };
         }
 
@@ -285,6 +287,7 @@ namespace Scry
             ScryPanel.StageScale = before.StageScale;
             ScryPanel.ListsHidden = before.ListsHidden;
             ScryPanel.PlanBelowShown = before.BelowShown;
+            Stage.LevelsMode = before.LevelsMode;
             ScryPanel.RememberPlaceForTest();
             Session.ShowKnownInstead(null);
             if (Session.Explorer != null) Session.Explorer.Peeking = false;

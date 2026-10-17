@@ -100,14 +100,16 @@ namespace Scry
                 for (var i = 0; i < floors.Count; i++)
                 {
                     var y = Y(floors[i]);
-                    Skin.Fill(new Rect(rect.x, y - U(1f), rect.width, U(2f)), i == Stage.CutLevel ? Skin.Accent : Skin.Light(0.6f));
+                    // Opened by the plan's levels, a level's first mark whole, the rest of its groups shorter.
+                    var tickW = Stage.ExampleMark(i) is (bool begins, string _) && !begins ? rect.width * 0.6f : rect.width;
+                    Skin.Fill(new Rect(rect.center.x - tickW / 2f, y - U(1f), tickW, U(2f)), i == Stage.CutLevel ? Skin.Accent : Skin.Light(0.6f));
                 }
                 var cutY = Stage.Cutting ? Y(Stage.CutAt) : rect.y;
                 Skin.Fill(new Rect(rect.x - U(4f), cutY - U(1.5f), rect.width + U(8f), U(3f)), Skin.Accent);
                 RulerBarForTest = (cutY, rect.y, rect.yMax);
 
                 // The floor opened named beside the cut, with an example's rooms on it.
-                var named = Stage.Cutting ? PlaceView.FloorLabel(Stage.CutLevel, floors.Count, Stage.ExampleRoomsOnFloor) : null;
+                var named = Stage.Cutting ? Stage.ExampleMark(Stage.CutLevel)?.Words ?? PlaceView.FloorLabel(Stage.CutLevel, floors.Count, Stage.ExampleRoomsOnFloor) : null;
                 if (named != null) RulerLabel(stage, rect, cutY, named);
             }
 
@@ -118,7 +120,7 @@ namespace Scry
             {
                 if (Mathf.Abs(Y(floors[i]) - e.mousePosition.y) <= U(6f)) near = i;
             }
-            AskTip("ruler", near >= 0 ? StageWords.FloorTip(PlaceView.CutLabel(near, floors.Count)) : StageWords.RulerTip(e.mousePosition.y < roofY));
+            AskTip("ruler", near >= 0 ? StageWords.FloorTip(Stage.ExampleMark(near)?.Words ?? PlaceView.CutLabel(near, floors.Count)) : StageWords.RulerTip(e.mousePosition.y < roofY));
             if (e.type == EventType.MouseDown && e.button == 0)
             {
                 if (near >= 0) Stage.OpenLevel(near);

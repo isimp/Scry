@@ -356,6 +356,7 @@ namespace Scry
             {
                 texts.Add(StageWords.CutChip(false));
                 texts.Add(StageWords.CutChip(true));
+                texts.Add(StageWords.LevelsChip(Stage.LevelsMode));
             }
             var total = texts.Sum(t => Skin.Width(Skin.Chip, t) + U(10f));
             if (x - total < rect.x + U(10f) + _badgeWidth + U(10f)) y += h + U(8f);
@@ -401,6 +402,9 @@ namespace Scry
                 CountDrawn(PanelPart.CutChip);
                 if (Chip(StageWords.CutChip(true), Stage.CutFromSide, StageWords.CutTip(true))) ChooseCut(true);
                 if (Chip(StageWords.CutChip(false), !Stage.CutFromSide, StageWords.CutTip(false))) ChooseCut(false);
+                // How the whole dungeon opens from above, tried three ways for now.
+                if (Chip(StageWords.LevelsChip(Stage.LevelsMode), Stage.LevelsMode != InsideLevels.Floors, StageWords.LevelsTip))
+                    Stage.LevelsMode = Stage.LevelsMode == InsideLevels.Floors ? InsideLevels.Steps : Stage.LevelsMode == InsideLevels.Steps ? InsideLevels.Films : InsideLevels.Floors;
             }
         }
 

@@ -235,6 +235,19 @@ namespace Scry
             _aboveCut = StageCamera.AboveCutRow(up.x, up.y, up.z, -Vector3.Dot(point, up), _camera.nearClipPlane);
         }
 
+        /// <summary>Lays the camera's near plane level at a height above the location's root, as one film of a level's group of rooms takes it; the camera's own projection where it is not above it.</summary>
+        private static void LayCutAt(float cut)
+        {
+            _camera.ResetProjectionMatrix();
+            var eye = _camera.transform.position;
+            var at = new Vector3(eye.x, Origin.y + cut * _scale, eye.z);
+            if (Vector3.Dot(eye - at, Vector3.down) >= -0.05f) return;
+            var toCamera = _camera.worldToCameraMatrix;
+            var point = toCamera.MultiplyPoint(at);
+            var normal = toCamera.MultiplyVector(Vector3.down).normalized;
+            _camera.projectionMatrix = _camera.CalculateObliqueMatrix(new Vector4(normal.x, normal.y, normal.z, -Vector3.Dot(point, normal)));
+        }
+
         /// <summary>
         /// While a cut is laid, the depth row the creatures are drawn again with, keeping what of
         /// them is above it (<see cref="StageCamera.AboveCutRow"/>); null while nothing is cut.

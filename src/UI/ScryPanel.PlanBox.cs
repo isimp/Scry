@@ -230,7 +230,7 @@ namespace Scry
 
         /// <summary>The level the plan from above leaves out the rooms below of, its switch off: the room gone into's ground, else the floor opened; none with neither, or with the switch on.</summary>
         private static float? PlanBelowLevel(PlacedRoom gone) =>
-            PlanBelowShown ? (float?)null : gone != null ? GroundOf(gone) : Stage.ExampleOpenFloor;
+            PlanBelowShown ? (float?)null : gone != null ? GroundOf(gone) : Stage.ExampleOpenMarkLow ?? Stage.ExampleOpenFloor;
 
         /// <summary>Comes back out of the room gone into, as the box's Whole dungeon does, for the self-test.</summary>
         [Diagnostic]
