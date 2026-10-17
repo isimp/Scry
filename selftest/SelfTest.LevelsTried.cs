@@ -14,8 +14,9 @@ namespace Scry
         /// rooms' measured ceilings and how many rooms keep their roof, opens every mark, checks
         /// that the ruler has a mark for each level, that each mark stands its rooms whole, that a
         /// level of several groups is filmed in as many films and that the tall rooms of the levels
-        /// below rising into a level stand whole with it, notes how long the films take, and
-        /// pictures each mark.
+        /// below rising into a level stand whole with it and that Shift and the wheel move every
+        /// film's cut of a level filmed in several, notes how long the films take, and pictures
+        /// each mark.
         /// </summary>
         private static IEnumerator LevelsTried(Probe p)
         {
@@ -29,6 +30,8 @@ namespace Scry
             var empty = new List<string>();
             var unfilmed = new List<string>();
             var unrisen = new List<string>();
+            var unmoved = new List<string>();
+            var movedTried = 0;
             var tried = 0;
             try
             {
@@ -93,6 +96,31 @@ namespace Scry
                         }
                         costs.Add($"{words} {Numbers.Fixed(AverageFilmMs, 1)} ms in {Numbers.Count(films)} {(films == 1 ? "film" : "films")}" + (risen.Count > 0 ? $", {Numbers.Count(risen.Count)} risen from below: {string.Join(", ", risen.Take(4))}" : ""));
                         yield return Picture(p, $"levels {entry.Name} {words}");
+
+                        // Shift and the wheel raise the level's cut half a metre: its first group's film with
+                        // it, every other as far as its own ceiling lets it.
+                        if (films > 1 && Stage.FilmCutsForTest is List<float> before && before.Count == films)
+                        {
+                            var filmGroups = Enumerable.Range(0, cuts.Groups.Count).Where(g => cuts.Groups[g].Level == level).Reverse().ToList();
+                            Stage.WheelCut(0.5f);
+                            yield return null;
+                            var after = Stage.FilmCutsForTest;
+                            if (Stage.CutLevel == mark && after != null && after.Count == films)
+                            {
+                                movedTried++;
+                                var told = new List<string>();
+                                for (var f = 0; f < films; f++)
+                                {
+                                    var group = cuts.Groups[filmGroups[f]];
+                                    var want = f == films - 1 ? 0.5f : group.CutBy(0.5f) - group.Cut;
+                                    told.Add($"{Numbers.Fixed(after[f] - before[f], 2)} m of {Numbers.Fixed(want, 2)}");
+                                    if (Mathf.Abs(after[f] - before[f] - want) > 0.01f) unmoved.Add($"{entry.Name} {words} film {Numbers.Count(f + 1)}: moved {Numbers.Fixed(after[f] - before[f], 2)} m for {Numbers.Fixed(want, 2)}");
+                                }
+                                p.Note($"{entry.Name} {words}, cut raised half a metre: films moved {string.Join(", ", told)}");
+                            }
+                            Stage.WheelCut(-0.5f);
+                            yield return null;
+                        }
                     }
                     p.Note($"{entry.Name}: {string.Join("; ", costs)}");
                     Stage.OpenLevel(Stage.FloorHeights.Count);
@@ -106,6 +134,8 @@ namespace Scry
             p.Check(empty.Count == 0, "every mark stands the rooms it opens whole", string.Join("; ", empty));
             p.Check(unfilmed.Count == 0, "a level one cut cannot open is filmed in as many films as it has groups", string.Join("; ", unfilmed));
             p.Check(unrisen.Count == 0, "a tall room of a level below rising into the level opened stands whole with it", string.Join("; ", unrisen));
+            if (movedTried == 0) p.Note("no level of several cuts came up to move by hand");
+            else p.Check(unmoved.Count == 0, "Shift and the wheel move every film's cut of a level together, each under its own ceiling", string.Join("; ", unmoved));
         }
 
         /// <summary>The dungeons whose floors are checked beside the reference dungeons, opened by the levels too.</summary>

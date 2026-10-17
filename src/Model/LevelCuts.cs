@@ -33,6 +33,14 @@ namespace Scry
 
             /// <summary>Whether its cut opens every room in it: over each floor and under each ceiling.</summary>
             public bool OpensAll => Opens(Top, Ceiling);
+
+            /// <summary>
+            /// Its cut moved by hand by so much, as its level's is with Shift and the wheel: no higher
+            /// than under its lowest ceiling, where its own cut does not already stand over it, nor
+            /// lower than <see cref="FloorCut.LeastOver"/> over its highest floor.
+            /// </summary>
+            public float CutBy(float shift) =>
+                Math.Min(Math.Max(Cut + shift, Top + FloorCut.LeastOver), Math.Max(Cut, Ceiling - PlaceView.UnderCeiling));
         }
 
         private readonly List<Group> _groups = new List<Group>();

@@ -495,10 +495,18 @@ namespace Scry
             var cuts = TheExample.LevelCutsNow();
             if (groups == null || cuts == null) return null;
             var lift = ExampleLift;
+            // Moved by hand with Shift and the wheel, the level's first group is cut where the cut
+            // stands, the others moved as much, each over its floor and under its ceiling.
+            var first = cuts.FirstOf(cuts.Groups[groups[0]].Level);
+            var shift = TheCut.At - TheCut.Cuts[TheCut.Level];
             var films = new List<(int, float)>();
-            foreach (var group in groups) films.Add((group, cuts.Groups[group].Cut + lift));
+            foreach (var group in groups) films.Add((group, group == first ? TheCut.At : cuts.Groups[group].CutBy(shift) + lift));
             return films;
         }
+
+        /// <summary>The cut of each film of the level opened, from its lowest group up, above the location's root; null for a level one cut opens, for the self-test.</summary>
+        [Diagnostic]
+        public static List<float> FilmCutsForTest => FilmsNow()?.Select(f => f.Cut).ToList();
 
         /// <summary>By the plan's levels, the level the mark opened opens; none by floors, with a room gone into, or none opened.</summary>
         private static int? ExampleLevelOpen => TheExample.Focused == null && ExampleOpenFloor is float floor ? TheExample.LevelOpenBy(floor, ExampleFloors) : null;

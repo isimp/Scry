@@ -183,6 +183,41 @@ namespace Scry.Tests
             Assert.False(cuts.Reaches(3, 3));
         }
 
+        // Shift and the wheel move a level's cut by hand; filmed in several cuts, every film's cut
+        // moves with it, each stopping under its own ceiling and over its own floor.
+
+        [Fact]
+        public void AGroupsCutMovedByHandStopsUnderItsOwnCeiling()
+        {
+            // The corridor at -5.3 m under a ceiling at -3.1 m is cut 0.1 m under it already.
+            var corridor = new LevelCuts.Group { Top = -5.3f, Low = -5.3f, Ceiling = -3.1f };
+            Assert.Equal(-3.2f, corridor.Cut, 3);
+            Assert.Equal(-3.2f, corridor.CutBy(1f), 3);
+            Assert.Equal(-3.7f, corridor.CutBy(-0.5f), 3);
+            Assert.Equal(corridor.Cut, corridor.CutBy(0f), 3);
+        }
+
+        [Fact]
+        public void AGroupsCutMovedDownByHandStopsHalfAMetreOverItsFloor()
+        {
+            var hall = new LevelCuts.Group { Top = 0f, Low = -1f, Ceiling = 6f };
+            Assert.Equal(2.5f, hall.Cut, 3);
+            Assert.Equal(1.5f, hall.CutBy(-1f), 3);
+            Assert.Equal(FloorCut.LeastOver, hall.CutBy(-3f), 3);
+            Assert.Equal(3.5f, hall.CutBy(1f), 3);
+        }
+
+        [Fact]
+        public void ARoomTooLowToStandInKeepsItsCutWhereItIsRaisedAndCanBeLowered()
+        {
+            // Its cut stands over its ceiling, so the roof stays on; raising it changes nothing.
+            var low = new LevelCuts.Group { Top = 0f, Low = 0f, Ceiling = 1f };
+            Assert.False(low.OpensAll);
+            Assert.Equal(PlaceView.LeastHeadroom, low.Cut, 3);
+            Assert.Equal(low.Cut, low.CutBy(1f), 3);
+            Assert.Equal(0.9f, low.CutBy(-0.5f), 3);
+        }
+
         [Fact]
         public void EveryStepOfALevelIsFramedAtTheLevelsHighestGround()
         {
