@@ -59,13 +59,13 @@ namespace Scry
                 }
                 p.Note($"{entry.Name} ({entry.DisplayName}) is drawn with: " + string.Join("; ", tally.Lines()));
 
-                // Its rooms holding the game's water, the camera gives it the depth it reads.
-                if (Stage.ExampleRoomCopies().Any(WaterParts.In))
+                // Its rooms' water, where they hold any, drawn as a faint sheet rather than the game's slab.
+                var water = Stage.ExampleRoomCopies().Select(WaterParts.Counted).Aggregate((Sheets: 0, Game: 0), (sum, one) => (sum.Sheets + one.Sheets, sum.Game + one.Game));
+                if (water.Sheets + water.Game > 0)
                 {
                     watered++;
-                    var filmedWater = Stage.Filmed;
-                    yield return Until(() => Stage.Filmed > filmedWater + 1, 3);
-                    if (!Stage.DepthForWater) undepthed.Add(entry.Name);
+                    p.Note($"{entry.Name}: {Numbers.Count(water.Sheets)} parts of water drawn as a faint sheet, {Numbers.Count(water.Game)} as the game draws them");
+                    if (water.Game > 0 || water.Sheets == 0) undepthed.Add($"{entry.Name}: {Numbers.Count(water.Game)} parts still the game's slab");
                 }
 
                 float[] empty = null, whole = null, dimmed = null, half = null;
@@ -102,7 +102,7 @@ namespace Scry
             }
             Stage.Inside = wasInside;
             StageAsItWas();
-            if (watered > 0) p.Check(undepthed.Count == 0, "a dungeon whose rooms hold the game's water gives it the camera's depth, so it shows as water rather than a flat slab", string.Join("; ", undepthed));
+            if (watered > 0) p.Check(undepthed.Count == 0, "a dungeon's water is drawn as a faint sheet at its level, the floor under it showing, rather than a slab like a floor of its own", string.Join("; ", undepthed));
             else p.Note("no dungeon shown held the game's water");
             p.Check(pale.Count == 0, "dimmed rooms keep at most 60% of the brightness their colours give them", string.Join("; ", pale));
             p.Check(unlike.Count == 0, "rooms half dimmed are darker than whole and lighter than those dimmed", string.Join("; ", unlike));

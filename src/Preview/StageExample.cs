@@ -107,14 +107,14 @@ namespace Scry
             if (IsDungeon) Holder.SetActive(false);
         }
 
-        /// <summary>A room's copy standing, noting whether it holds the game's water (<see cref="HoldsWater"/>).</summary>
+        /// <summary>A room's copy standing, its water drawn as a faint sheet (<see cref="HoldsWater"/>).</summary>
         public void Add(PlacedRoom room, GameObject copy)
         {
             _rooms.Add(new KeyValuePair<PlacedRoom, GameObject>(room, copy));
-            if (!HoldsWater && WaterParts.In(copy)) HoldsWater = true;
+            if (WaterParts.MakeFaint(copy)) HoldsWater = true;
         }
 
-        /// <summary>Whether a room's copy holds the game's water, which the camera's depth shows as it should (<see cref="WaterParts"/>).</summary>
+        /// <summary>Whether a room's copy holds the game's water, drawn as a faint sheet (<see cref="WaterParts"/>).</summary>
         public bool HoldsWater { get; private set; }
 
         /// <summary>The ways between a dungeon's rooms (<see cref="DungeonWays"/>); none for a camp's.</summary>
