@@ -9,6 +9,9 @@ namespace Scry
     {
         private static float _badgeWidth;
 
+        /// <summary>Takes the room the kind badge would, for what stands in its place, as the breadcrumb over a dungeon's inside.</summary>
+        private static void BadgeTakes(float width) => _badgeWidth = width;
+
         /// <summary>The kind, in its colour, as a small pill.</summary>
         private static float KindBadge(Entry entry, Vector2 at)
         {

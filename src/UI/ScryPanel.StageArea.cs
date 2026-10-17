@@ -222,6 +222,8 @@ namespace Scry
 
                 // The stage's own buttons and its floor ruler come before its dragging, which would otherwise take their clicks.
                 NoteStage(rect);
+                // Inside a dungeon, the breadcrumb where the kind badge stands, before the chips that keep clear of it.
+                if (TrailShown(entry)) Breadcrumb(explorer, entry, rect);
                 StageButtons(entry, rect);
                 FloorRuler(rect);
 
@@ -286,8 +288,11 @@ namespace Scry
                     "It has no model, particles, light or sound. Often a spawner or a controller.", Skin.CenterDim);
             }
 
-            KindBadge(entry, new Vector2(rect.x + U(10f), rect.y + U(10f)));
-            StagePiece("kind", new Rect(rect.x + U(10f), rect.y + U(10f), _badgeWidth, U(22f)));
+            if (!Stage.IsStaged(entry) || !TrailShown(entry))
+            {
+                KindBadge(entry, new Vector2(rect.x + U(10f), rect.y + U(10f)));
+                StagePiece("kind", new Rect(rect.x + U(10f), rect.y + U(10f), _badgeWidth, U(22f)));
+            }
         }
 
         /// <summary>

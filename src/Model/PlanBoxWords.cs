@@ -13,9 +13,6 @@ namespace Scry
     /// <summary>What the plan box of a dungeon's example says: its caption, views, buttons and their tips, how deep each level is, and how deep each node of the tree is.</summary>
     internal static class PlanBoxWords
     {
-        /// <summary>What the caption says with no room under the mouse.</summary>
-        public static string Caption(int rooms) => "Whole dungeon, " + Naming.Count(rooms, "room", "rooms");
-
         /// <summary>A node's depth in the tree: its ground's whole metres from the entrance's, signed.</summary>
         public static string Depth(float rise) => Numbers.Count((long)Math.Round(rise, MidpointRounding.AwayFromZero), signed: true);
 
@@ -47,10 +44,6 @@ namespace Scry
             ? "The plan from above shows the rooms below this level too; click to leave them out of it"
             : "The plan from above leaves out the rooms below this level, its ways down marked; click to show them";
 
-        /// <summary>The way back out of a room gone into, under the plan.</summary>
-        public const string Whole = "Whole dungeon";
-        public const string WholeTip = "Whole dungeon: comes back out to it, as Esc does";
-
         public static string GrowTip(bool big) => big ? "Shrinks the plan back" : "Grows the plan and names its rooms";
 
         /// <summary>The tip of the box folded as the stage is too short for it under the room's card.</summary>
@@ -61,10 +54,19 @@ namespace Scry
         public const string Deepest = "Deepest";
         public const string DeepestTip = "Goes into the deepest room";
 
-        /// <summary>What stands between the rooms of the way from the entrance under the plan.</summary>
+        /// <summary>What stands between the parts of the breadcrumb over a dungeon's inside.</summary>
         public const string TrailStep = "  ›  ";
 
-        /// <summary>What the trail says with no room gone into.</summary>
-        public const string NoTrail = "The way from the entrance shows here";
+        /// <summary>The tip of the breadcrumb's dungeon: how many rooms, and what a click does.</summary>
+        public static string TrailDungeonTip(int rooms) => "The whole dungeon, " + Naming.Count(rooms, "room", "rooms") + ": click to see it all, the roof on";
+
+        /// <summary>The tip of the breadcrumb's level: in a room, what a click does.</summary>
+        public static string TrailLevelTip(bool inRoom) => inRoom ? "Click to come back out of the room to this level, as Esc does" : "The level open";
+
+        public const string TrailRoomTip = "Click to frame the room again";
+
+        /// <summary>The mark of the menu beside the breadcrumb's dungeon, and its tip.</summary>
+        public const string TrailMenuMark = "▾";
+        public const string TrailMenuTip = "Goes into the entrance or the deepest room";
     }
 }

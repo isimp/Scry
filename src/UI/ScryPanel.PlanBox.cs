@@ -102,10 +102,6 @@ namespace Scry
         [Diagnostic]
         public static Rect PlanBoxRect { get; private set; }
 
-        /// <summary>Where the box's row of Entrance and Deepest last ended, for the self-test to tell it stays inside the box; none without the row.</summary>
-        [Diagnostic]
-        public static float PlanBoxRowRight { get; private set; }
-
         [Diagnostic]
         public static PlanView PlanBoxView => _planView;
 
@@ -149,11 +145,7 @@ namespace Scry
                 GUI.Button(tab, "Plan", Skin.Fitted(Skin.Chip, tab));
                 GUI.enabled = enabled;
             }
-            // Folded, the way back out of a room gone into stands beside the tab.
-            if (Stage.RoomGoneInto == null || !Stage.HasInside || !Stage.ShowsInside) return tab;
-            var whole = new Rect(tab.xMax + U(4f), tab.y, tab.height, tab.height);
-            WholeButton(whole);
-            return Rect.MinMaxRect(tab.x, tab.y, whole.xMax, tab.yMax);
+            return tab;
         }
 
         /// <summary>How many levels the box last laid out, for the self-test.</summary>
@@ -180,10 +172,6 @@ namespace Scry
         /// <summary>The rooms the box framed as lit the last time it was drawn, for the self-test.</summary>
         [Diagnostic]
         public static List<PlacedRoom> PlanBoxLitShown { get; } = new List<PlacedRoom>();
-
-        /// <summary>What the box's caption said the last time it was drawn, for the self-test.</summary>
-        [Diagnostic]
-        public static string PlanBoxCaptionShown { get; private set; }
 
         /// <summary>The room the way from the entrance was last drawn to, for the self-test.</summary>
         [Diagnostic]
@@ -252,24 +240,6 @@ namespace Scry
         /// <summary>The level the plan from above leaves out the rooms below of, its switch off: the room gone into's ground, else the floor opened; none with neither, or with the switch on.</summary>
         private static float? PlanBelowLevel(PlacedRoom gone) =>
             PlanBelowShown ? (float?)null : gone != null ? GroundOf(gone) : Stage.ExampleOpenMarkLow ?? Stage.ExampleOpenFloor;
-
-        /// <summary>Comes back out of the room gone into, as the box's Whole dungeon does, for the self-test.</summary>
-        [Diagnostic]
-        public static void ClickPlanWholeForTest() => Stage.ComeOut();
-
-        /// <summary>Whether the box drew its Whole dungeon last, in whatever shape it stood, for the self-test.</summary>
-        [Diagnostic]
-        public static bool PlanWholeShown { get; private set; }
-
-        /// <summary>The way back out to the whole dungeon, under the plan or beside its tab, while a room is gone into.</summary>
-        private static void WholeButton(Rect at)
-        {
-            var repaint = Event.current.type == EventType.Repaint;
-            if (repaint) PlanWholeShown = true;
-            if (at.Contains(Event.current.mousePosition)) AskTip("plan:whole", PlanBoxWords.WholeTip);
-            if (GUI.Button(at, GUIContent.none, Skin.IconButton)) Stage.ComeOut();
-            if (repaint) Skin.Icon(new Rect(at.x + U(4f), at.y + U(4f), at.width - U(8f), at.height - U(8f)), Skin.Up, Skin.Text);
-        }
 
         /// <summary>Flips the switch for the rooms below as its button does, for the self-test.</summary>
         [Diagnostic]
@@ -341,11 +311,6 @@ namespace Scry
             // box finds its own only once its rooms are drawn.
             _boxLit = RoomLight.Lit(_cardLit, _boxHover, _stageHover);
             _boxHover = null;
-            if (repaint)
-            {
-                PlanWholeShown = false;
-                PlanBoxRowRight = 0f;
-            }
             if (!KnowBoxRooms() || BoxRooms.Count == 0) return PlanBoxRect = Rect.zero;
 
             // Folded, a small tab where it stands, which brings it back.
@@ -356,19 +321,19 @@ namespace Scry
             var gap = U(4f);
             var width = Mathf.Min(U(_planBig ? 400f : 236f), inner.width - U(16f));
             var planH = U(_planBig ? 330f : 150f);
-            // The header holds the three views, grow and fold, and the caption beside them where
-            // it has room; else the caption shares a second row with grow and fold.
+            // The header holds the three views and the box's switches, grow and fold in one row where
+            // it has room; else the switches, grow and fold in a second row under the views.
             var segmentsW = 0f;
             foreach (var view in ViewsRightToLeft) segmentsW += Skin.Width(Skin.SegmentOn, PlanBoxWords.ViewName(view)) + U(12f);
             var controlsW = U(6f) + rowH + U(4f) + rowH + U(4f) + rowH + U(4f) + U(16f);
-            var oneRow = width - pad * 2f >= segmentsW + controlsW + U(90f);
+            var oneRow = width - pad * 2f >= segmentsW + controlsW;
             var headerH = oneRow ? rowH : rowH * 2f + U(2f);
             // Whole, with its trail and its Entrance and Deepest, where the stage holds it so; else
             // without them; else, with a room gone into, folded to its tab (CornerFit).
             var card = Stage.RoomGoneInto != null && Stage.HasInside && Stage.ShowsInside;
-            // Lean, a room gone into keeps the way back out under the plan.
-            var leanRows = pad + headerH + gap + pad + (card ? gap + rowH : 0f);
-            var wholeRows = pad + headerH + gap + pad + gap + rowH + gap + rowH;
+            // The header and the plan, nothing under it: where the view is stands on the stage's breadcrumb.
+            var leanRows = pad + headerH + gap + pad;
+            var wholeRows = leanRows;
             var shape = CornerFit.Shape(inner.height, wholeRows, leanRows, card, _s);
             if (repaint) PlanBoxShapeShown = shape;
             if (shape == BoxShape.Folded) return PlanBoxRect = PlanTab(inner, byPlayer: false);
@@ -439,7 +404,6 @@ namespace Scry
             var area = new Rect(x, y + headerH + gap, w, planH);
             BoxSpots.Clear();
             var gone = Stage.RoomGoneInto;
-            var route = gone != null && _boxWays != null ? _boxWays.Route(gone) : null;
             // The way from the entrance drawn in the plan: to the room lit, else to the room gone into.
             KnowRoute(RoomLight.RouteTo(_boxLit, gone));
             ViewLabels.Clear();
@@ -474,28 +438,6 @@ namespace Scry
                     e.Use();
                 }
             }
-            var caption = _boxLit != null ? BoxRoomName(explorer, _boxLit) : gone != null ? BoxRoomName(explorer, gone) : PlanBoxWords.Caption(BoxRooms.Count);
-            if (repaint) PlanBoxCaptionShown = caption;
-            var captionRect = oneRow ? new Rect(x, y, Mathf.Max(U(20f), segX - x - U(4f)), rowH) : new Rect(x, controlsY, Mathf.Max(U(20f), below.x - U(6f) - x), rowH);
-            FitLabel(captionRect, caption, Skin.FaintLabel, 10f);
-            y = area.yMax + gap;
-
-            if (shape == BoxShape.Whole)
-            {
-                // The way from the entrance to the room gone into, each name going into its room.
-                Trail(explorer, new Rect(x, y, w, rowH), route, gone != null);
-                y += rowH + gap;
-
-                // The entrance and the deepest room, a click away.
-                var entrance = new Rect(x, y, Skin.Width(Skin.Segment, PlanBoxWords.Entrance) + U(12f), rowH);
-                var deepest = new Rect(entrance.xMax + U(4f), y, Skin.Width(Skin.Segment, PlanBoxWords.Deepest) + U(12f), rowH);
-                if (repaint) PlanBoxRowRight = deepest.xMax;
-                if (entrance.Contains(e.mousePosition)) AskTip("plan:entrance", PlanBoxWords.EntranceTip);
-                if (deepest.Contains(e.mousePosition)) AskTip("plan:deepest", PlanBoxWords.DeepestTip);
-                if (GUI.Button(entrance, PlanBoxWords.Entrance, Skin.Fitted(Skin.Segment, entrance)) && _boxWays?.Entrance != null) Stage.GoInto(_boxWays.Entrance);
-                if (GUI.Button(deepest, PlanBoxWords.Deepest, Skin.Fitted(Skin.Segment, deepest)) && _boxWays?.Deepest != null) Stage.GoInto(_boxWays.Deepest);
-            }
-            else if (gone != null) WholeButton(new Rect(x, y, rowH, rowH));
 
             // The box is not the stage: a click or the wheel on it neither turns nor zooms it.
             if (box.Contains(e.mousePosition) && (e.type == EventType.MouseDown || e.type == EventType.ScrollWheel)) e.Use();
@@ -1002,71 +944,6 @@ namespace Scry
             WrittenNames.Add(under);
             CountDrawn(PanelPart.PlanName);
             FitLabel(under, name, Skin.FaintLabel, 10f);
-        }
-
-        // ----- The trail -----
-
-        /// <summary>
-        /// The way from the entrance to the room gone into, its names going into their rooms; as many
-        /// of the last as fit, the last shrunk to fit where it must. In a room it begins with the
-        /// way back out, a button of its own, so it stands under the plan however narrow the box.
-        /// </summary>
-        private static void Trail(Explorer explorer, Rect line, List<PlacedRoom> route, bool fromWhole)
-        {
-            var e = Event.current;
-            var stepW = Skin.Width(Skin.FaintLabel, PlanBoxWords.TrailStep);
-            if (fromWhole)
-            {
-                var whole = new Rect(line.x, line.y, line.height, line.height);
-                WholeButton(whole);
-                GUI.Label(new Rect(whole.xMax + U(2f), line.y, stepW, line.height), PlanBoxWords.TrailStep, Skin.FaintLabel);
-                line = new Rect(whole.xMax + U(2f) + stepW, line.y, Mathf.Max(0f, line.xMax - whole.xMax - U(2f) - stepW), line.height);
-            }
-            if (route == null || route.Count == 0)
-            {
-                if (!fromWhole) FitLabel(line, PlanBoxWords.NoTrail, Skin.FaintLabel, 10f);
-                return;
-            }
-            var first = route.Count - 1;
-            var total = Skin.Width(Skin.Small, BoxRoomName(explorer, route[first]));
-            while (first > 0)
-            {
-                var more = total + stepW + Skin.Width(Skin.Small, BoxRoomName(explorer, route[first - 1]));
-                if (more > line.width) break;
-                total = more;
-                first--;
-            }
-            var x = line.x;
-            for (var i = first; i < route.Count; i++)
-            {
-                if (i > first)
-                {
-                    GUI.Label(new Rect(x, line.y, stepW, line.height), PlanBoxWords.TrailStep, Skin.FaintLabel);
-                    x += stepW;
-                }
-                var name = BoxRoomName(explorer, route[i]);
-                var nameW = Mathf.Min(Skin.Width(Skin.Small, name), line.xMax - x);
-                var rect = new Rect(x, line.y, nameW, line.height);
-                // The last, alone where even it is too wide, shrunk to fit and cut at the box's edge.
-                var size = Skin.Small.fontSize;
-                var clipping = Skin.Small.clipping;
-                var floor = Mathf.Max(1, Mathf.RoundToInt(9f * _s));
-                while (Skin.Width(Skin.Small, name) > rect.width && Skin.Small.fontSize > floor) Skin.Small.fontSize -= 1;
-                Skin.Small.clipping = TextClipping.Clip;
-                LinkLabel(rect, name, Skin.Small, i == route.Count - 1 ? Skin.Accent : Skin.Text);
-                Skin.Small.fontSize = size;
-                Skin.Small.clipping = clipping;
-                if (rect.Contains(e.mousePosition))
-                {
-                    _boxHover = route[i];
-                    if (e.type == EventType.MouseDown && e.button == 0)
-                    {
-                        Stage.GoInto(route[i]);
-                        e.Use();
-                    }
-                }
-                x += nameW;
-            }
         }
 
         /// <summary>A straight line between two points, in dashes where a dash's length is given.</summary>

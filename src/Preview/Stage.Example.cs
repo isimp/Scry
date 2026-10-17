@@ -730,6 +730,17 @@ namespace Scry
             KeepLevelFrame(new Vector4(middle.x, 0f, middle.y, _reachBeforeRoom ?? float.NaN));
         }
 
+        /// <summary>Shows the whole of the dungeon's example with the roof on, out of any room gone into, as the breadcrumb's dungeon does; coming out of a room is a step of the history.</summary>
+        public static void WholeDungeon()
+        {
+            if (TheExample.Focused != null)
+            {
+                TookStep();
+                LeaveRoom();
+            }
+            OpenLevel(Floors.Count);
+        }
+
         /// <summary>Comes out of the room gone into, which stays outlined until the mouse moves, the cut let go of.</summary>
         private static void LeaveRoom()
         {

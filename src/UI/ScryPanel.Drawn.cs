@@ -59,6 +59,8 @@ namespace Scry
         PlanBox,
         PlanName,
         StageKeys,
+        Trail,
+        TrailMenu,
     }
 
     internal static partial class ScryPanel

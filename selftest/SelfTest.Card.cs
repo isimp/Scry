@@ -140,8 +140,8 @@ namespace Scry
                     else yield return Picture(p, $"room card {entry.Name} room with levels");
                 }
 
-                // Whole dungeon under the plan comes back out, and the card goes.
-                ScryPanel.ClickPlanWholeForTest();
+                // The breadcrumb's level comes back out, and the card goes.
+                ScryPanel.ClickTrailForTest(TrailPart.Level);
                 yield return Until(() => Stage.RoomGoneInto == null && ScryPanel.RoomCardLines.Count == 0, 5);
                 if (Stage.RoomGoneInto != null || ScryPanel.RoomCardLines.Count > 0) stayed.Add(entry.Name);
             }

@@ -102,6 +102,7 @@ namespace Scry
             ForgetPlanBox();
             ForgetSlide();
             ForgetViewMenu();
+            ForgetTrailMenu();
 
             // The search help's index holds the whole catalog.
             Assist.Forget();
@@ -160,7 +161,7 @@ namespace Scry
             var explorer = _explorer;
 
             // A header slider's box, or the stage's View box, takes the mouse over it before anything under it does.
-            if (SlideInput(explorer) || ViewInput(explorer)) return;
+            if (SlideInput(explorer) || ViewInput(explorer) || TrailMenuInput(explorer)) return;
 
             // A click anywhere lets go of the keyboard; a click on a text box takes it straight
             // back. So clicking the list or a button after typing hands the keys back to walking.
@@ -187,6 +188,7 @@ namespace Scry
             Drags();
             SlideDraw(explorer);
             ViewDraw();
+            TrailMenuDraw();
             Tooltip();
             PointerNote();
 

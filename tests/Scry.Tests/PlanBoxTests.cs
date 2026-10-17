@@ -508,19 +508,9 @@ namespace Scry.Tests
         [Fact]
         public void TheBoxSaysWhatItShows()
         {
-            Assert.Equal("Whole dungeon, 12 rooms", PlanBoxWords.Caption(12));
-            Assert.Equal("Whole dungeon, 1 room", PlanBoxWords.Caption(1));
             Assert.Equal("Above", PlanBoxWords.ViewName(PlanView.Above));
             Assert.Equal("Levels", PlanBoxWords.ViewName(PlanView.Levels));
             Assert.Equal("Tree", PlanBoxWords.ViewName(PlanView.Tree));
-        }
-
-        [Fact]
-        public void TheWayBackOutIsCalledWholeDungeonWhereverItStands()
-        {
-            Assert.Equal("Whole dungeon", PlanBoxWords.Whole);
-            // An icon under the plan, its tip names it.
-            Assert.StartsWith("Whole dungeon: comes back out", PlanBoxWords.WholeTip);
         }
 
         [Fact]
