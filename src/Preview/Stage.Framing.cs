@@ -290,7 +290,7 @@ namespace Scry
                 return new Vector4(room.x, ground, room.y, StageFraming.FloorReach(room.z));
             }
             if (!Cutting || TheCut.Level >= Floors.Count) return null;
-            var y = Origin.y + Floors[TheCut.Level] * _scale;
+            var y = Origin.y + LookedFloorHeight() * _scale;
             var across = ExampleFloorAcross();
             if (across == null)
             {
@@ -302,6 +302,10 @@ namespace Scry
             var a = across.Value;
             return new Vector4(a.x, y, a.y, StageFraming.FloorReach(a.z));
         }
+
+        /// <summary>What the camera frames with a floor opened, on the stage: the middle across, the height it looks at, and the reach; null for none, for the self-test.</summary>
+        [Diagnostic]
+        public static Vector4? FloorFrameForTest => FloorFrame();
 
         /// <summary>Takes in what the model draws while its animation first plays, as if at size one.</summary>
         private static void Settle()

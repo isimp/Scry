@@ -68,9 +68,10 @@ namespace Scry
         /// <summary>Opens the floor below, or the top floor from the roof; goes up a floor, or puts the roof back from the top floor; out of a room gone into.</summary>
         public static void StepCut(bool down)
         {
+            var was = ExampleLevelOpen;
             TheExample.Unfocus();
             TheCut.Step(down);
-            FreshView();
+            FreshViewOffLevel(was);
         }
 
         /// <summary>Takes the roof off, opening the floor last opened, or puts it back; in a room gone into, its own roof, the room still gone into.</summary>
@@ -88,9 +89,16 @@ namespace Scry
         /// <summary>Opens a floor (from the top), or puts the roof on past the last; out of a room gone into.</summary>
         public static void OpenLevel(int level)
         {
+            var was = ExampleLevelOpen;
             TheExample.Unfocus();
             TheCut.Open(level);
-            FreshView();
+            FreshViewOffLevel(was);
+        }
+
+        /// <summary>Frames afresh what a step or a mark opened, unless by the plan's levels it is a step within the level open before: that keeps its frame and the view moved on it.</summary>
+        private static void FreshViewOffLevel(int? was)
+        {
+            if (was == null || ExampleLevelOpen != was) FreshView();
         }
 
         /// <summary>Cuts at a height set by hand, opening the floor it is over (<see cref="PlaceView.LevelAt"/>); out of a room gone into.</summary>

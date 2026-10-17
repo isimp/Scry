@@ -19,7 +19,9 @@ namespace Scry
     /// a few metres, a low corridor under higher rooms cannot be opened with them. Going down
     /// each level from its highest room, a room joins the group above it while one cut still
     /// opens them all, else begins a group of its own; a room too low to stand in stands alone
-    /// and keeps its roof. The groups come highest first, level by level.
+    /// and keeps its roof. The groups come highest first, level by level. A tall room of a level
+    /// below, a shaft or a high cave, reaches into the groups over it where one could stand in it
+    /// over their lowest floor (<see cref="Reaches"/>), and opens with them.
     /// </summary>
     internal sealed class LevelCuts
     {
@@ -43,6 +45,7 @@ namespace Scry
 
         private readonly List<Group> _groups = new List<Group>();
         private int[] _groupOf = Array.Empty<int>();
+        private float[] _ceilingOf = Array.Empty<float>();
 
         /// <summary>The groups, highest first, level by level.</summary>
         public IReadOnlyList<Group> Groups => _groups;
@@ -62,13 +65,38 @@ namespace Scry
         /// <summary>How many groups a level holds.</summary>
         public int GroupsOf(int level) => _groups.FindAll(g => g.Level == level).Count;
 
+        /// <summary>A level's highest ground, its first group's, where every step of it is framed; NaN for a level with none.</summary>
+        public float TopOf(int level) => FirstOf(level) is var first && first >= 0 ? _groups[first].Top : float.NaN;
+
+        /// <summary>
+        /// Whether a room of a level below a group's rises into it: its ceiling a head height over
+        /// the group's lowest floor, as a shaft or a high cave does; never a room of the group's
+        /// own level, a level above it, or none.
+        /// </summary>
+        public bool Reaches(int room, int group)
+        {
+            if (group < 0 || group >= _groups.Count || LevelOf(room) <= _groups[group].Level) return false;
+            return Opens(_groups[group].Low, _ceilingOf[room]);
+        }
+
+        /// <summary>Whether a room of a level below rises into a level, into any of its groups (<see cref="Reaches"/>).</summary>
+        public bool ReachesLevel(int room, int level)
+        {
+            for (var i = 0; i < _groups.Count; i++) if (_groups[i].Level == level && Reaches(room, i)) return true;
+            return false;
+        }
+
+        /// <summary>Whether a room stands whole with a level opened: on it, or rising into it from below (<see cref="ReachesLevel"/>).</summary>
+        public bool StandsWith(int room, int level) => LevelOf(room) == level || ReachesLevel(room, level);
+
         /// <summary>Whether one cut opens rooms whose highest ground and lowest ceiling these are.</summary>
         private static bool Opens(float top, float ceiling) => ceiling - PlaceView.UnderCeiling >= top + PlaceView.LeastHeadroom;
 
         /// <summary>The groups of rooms by each one's ground, ceiling over it and level (-1 for none), each at the same place in all three.</summary>
         public static LevelCuts Of(IReadOnlyList<float> grounds, IReadOnlyList<float> ceilings, IReadOnlyList<int> levels)
         {
-            var cuts = new LevelCuts { _groupOf = new int[grounds.Count] };
+            var cuts = new LevelCuts { _groupOf = new int[grounds.Count], _ceilingOf = new float[grounds.Count] };
+            for (var i = 0; i < cuts._ceilingOf.Length; i++) cuts._ceilingOf[i] = ceilings[i];
             for (var i = 0; i < cuts._groupOf.Length; i++) cuts._groupOf[i] = -1;
             var top = -1;
             for (var i = 0; i < levels.Count; i++) top = Math.Max(top, levels[i]);

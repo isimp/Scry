@@ -533,8 +533,24 @@ namespace Scry
         public int LevelGroupOf(PlacedRoom room)
         {
             var cuts = LevelCutsNow();
-            return cuts != null && _levelRoom.TryGetValue(ExamplePlan.LooksAs(room), out var index) ? cuts.GroupOf(index) : -1;
+            return cuts != null ? cuts.GroupOf(LevelRoomOf(room)) : -1;
         }
+
+        /// <summary>A room's place among the rooms the level cuts were worked out of, an end cap's or divider's the room it closes'; -1 for none.</summary>
+        private int LevelRoomOf(PlacedRoom room) => _levelRoom.TryGetValue(ExamplePlan.LooksAs(room), out var index) ? index : -1;
+
+        /// <summary>By the plan's levels, the level a mark opens; none by floors or for no mark.</summary>
+        public int? LevelOpenBy(float planFloor, IReadOnlyList<float> floors)
+        {
+            if (LevelsMode == InsideLevels.Floors || !IsDungeon) return null;
+            var cuts = LevelCutsNow();
+            var opened = MarkGroup(planFloor, floors);
+            return cuts != null && opened >= 0 ? cuts.Groups[opened].Level : (int?)null;
+        }
+
+        /// <summary>By the plan's levels, the highest ground of the level a mark opens, in the example's own space, where every step of the level is framed; none by floors.</summary>
+        public float? LevelTop(float planFloor, IReadOnlyList<float> floors) =>
+            LevelOpenBy(planFloor, floors) is int level ? LevelCutsNow().TopOf(level) : (float?)null;
 
         /// <summary>
         /// The marks the ruler opens the example by, from the top down, in its own space, each with
@@ -576,7 +592,9 @@ namespace Scry
         /// <summary>
         /// How a room shows with a mark opened by the plan's levels: stepped, the group opened
         /// whole, the groups above put away and those below dimmed; filmed, the level opened whole,
-        /// each group in a film of its own, the levels above put away and those below dimmed.
+        /// each group in a film of its own, the levels above put away and those below dimmed. A
+        /// tall room of a level below rising into the group or level opened stands whole with it
+        /// (<see cref="LevelCuts.Reaches"/>), cut with it.
         /// </summary>
         private PlanRoomShown ShownByLevels(PlacedRoom room, float planFloor, IReadOnlyList<float> floors)
         {
@@ -585,10 +603,10 @@ namespace Scry
             if (cuts == null || opened < 0) return PlanRoomShown.Whole;
             var group = LevelGroupOf(room);
             if (group < 0) return PlanRoomShown.Faint;
-            if (LevelsMode == InsideLevels.Steps) return group == opened ? PlanRoomShown.Whole : group < opened ? PlanRoomShown.None : PlanRoomShown.Faint;
+            if (LevelsMode == InsideLevels.Steps) return group == opened ? PlanRoomShown.Whole : group < opened ? PlanRoomShown.None : cuts.Reaches(LevelRoomOf(room), opened) ? PlanRoomShown.Whole : PlanRoomShown.Faint;
             var level = cuts.Groups[group].Level;
             var openedLevel = cuts.Groups[opened].Level;
-            return level == openedLevel ? PlanRoomShown.Whole : level < openedLevel ? PlanRoomShown.None : PlanRoomShown.Faint;
+            return cuts.StandsWith(LevelRoomOf(room), openedLevel) ? PlanRoomShown.Whole : level < openedLevel ? PlanRoomShown.None : PlanRoomShown.Faint;
         }
 
         /// <summary>The groups of the level a mark opens, filmed whole, from its lowest up; none but by levels filmed, or where the level is one group.</summary>
@@ -678,8 +696,9 @@ namespace Scry
 
         /// <summary>
         /// The middle across of the rooms standing on the floor opened, on the stage, and how far
-        /// they reach from it (x, z and reach); null for none. Worked out again as the floor or
-        /// the rooms change.
+        /// they reach from it (x, z and reach); null for none. By the plan's levels, those of the
+        /// whole level the mark opens, so every step of a level keeps one frame. Worked out again
+        /// as the floor or the rooms change.
         /// </summary>
         private InsideLevels _acrossMode;
 
@@ -693,7 +712,7 @@ namespace Scry
             var corners = new List<Vec3>();
             foreach (var room in Placed.Rooms)
             {
-                if (RoomShown(room, planFloor, floors) != PlanRoomShown.Whole) continue;
+                if (!Framed(room, planFloor.Value, floors)) continue;
                 foreach (var corner in room.Corners())
                 {
                     var at = holder.TransformPoint(new Vector3(corner.X, corner.Y, corner.Z));
@@ -706,6 +725,13 @@ namespace Scry
             _acrossRooms = Copies;
             _acrossOf = Placed;
             return _across;
+        }
+
+        /// <summary>Whether a room is framed with a floor opened: standing whole on it, or by the plan's levels standing with the whole level the mark opens (<see cref="LevelCuts.StandsWith"/>).</summary>
+        private bool Framed(PlacedRoom room, float planFloor, IReadOnlyList<float> floors)
+        {
+            if (!(LevelOpenBy(planFloor, floors) is int level)) return RoomShown(room, planFloor, floors) == PlanRoomShown.Whole;
+            return LevelCutsNow().StandsWith(LevelRoomOf(room), level);
         }
 
         /// <summary>What the location draws outside, its parts with something drawn and how many, for the self-test to tell.</summary>
