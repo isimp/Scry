@@ -13,8 +13,9 @@ namespace Scry
         /// map's rooms on one level in lanes; from above unless a room drawn over it stands there),
         /// and every way is drawn; grown, the stage is framed beside it.
         /// Dragging across the map turns it, and Least overlap turns it to the angle the model
-        /// picks. A room lit from the box is outlined on the stage with no room gone into, and a
-        /// click on one goes into it. The view and size chosen are remembered in the panel's file.
+        /// picks. A room under the mouse, pointed at in the box and then on the stage, is framed in
+        /// the box alone and named there, the way drawn to it, and outlined on the stage with no
+        /// room gone into; it goes out as the mouse leaves; a click on one goes into it. The view and size chosen are remembered in the panel's file.
         /// The panel's font holds every sign the box and card draw. Each view is pictured.
         /// </summary>
         private static IEnumerator PlanBoxShows(Probe p)
@@ -38,7 +39,9 @@ namespace Scry
             var unframed = new List<string>();
             var unturned = new List<string>();
             var notLeast = new List<string>();
-            var unlit = new List<string>();
+            var unlitBox = new List<string>();
+            var unlitStage = new List<string>();
+            var stayedLit = new List<string>();
             var notIn = new List<string>();
             foreach (var entry in places)
             {
@@ -103,13 +106,56 @@ namespace Scry
                 p.Note($"{entry.Name}: Least overlap turned the map to {PlanBoxWords.Angle(ScryPanel.MapAngleShown)}, {Numbers.Count(ScryPanel.MapOverlapsShown)} overlapping");
                 yield return Picture(p, $"plan {entry.Name} Map least overlap");
 
-                // A room lit from the box is outlined on the stage with no room gone into; a click goes into it.
+                // A room under the mouse in the box is framed there alone and named, the way drawn to
+                // it, and outlined on the stage with no room gone into; the mouse is pointed through
+                // the box's own finding of the room under it.
                 var deepest = ways.Deepest;
-                ScryPanel.LightPlanRoomForTest(deepest);
-                yield return Until(() => Stage.LitOutlineShown, 3);
-                if (!Stage.LitOutlineShown) unlit.Add(entry.Name);
-                else yield return Picture(p, $"plan {entry.Name} room lit");
-                ScryPanel.LightPlanRoomForTest(null);
+                var deepestAt = ScryPanel.PlanBoxSpotsForTest().FirstOrDefault(s => s.Room == deepest);
+                if (deepestAt.Room == null) unlitBox.Add($"{entry.Name}: the deepest room has no spot");
+                else
+                {
+                    ScryPanel.HoverPlanBoxForTest(deepestAt.At);
+                    var drawnHover = ScryPanel.Drawn(PanelPart.PlanBox);
+                    yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnHover + 1 && Stage.LitOutlineShown, 3);
+                    var miss = LitMiss(deepest);
+                    if (miss != null) unlitBox.Add($"{entry.Name}: {miss}");
+                    else yield return Picture(p, $"plan {entry.Name} room lit");
+                    ScryPanel.HoverPlanBoxForTest(null);
+                }
+
+                // A room under the mouse on the stage is so too, in every view: the first room the
+                // stage finds under the middle of one in view, outside the box.
+                ScryPanel.ShowPlanViewForTest(PlanView.Above);
+                PlacedRoom onStage = null;
+                var standing = Stage.ExampleShown?.Rooms;
+                for (var i = 0; standing != null && i < standing.Count && onStage == null; i++)
+                {
+                    var point = Stage.ExamplePointOf(i);
+                    if (!point.HasValue || point.Value.x < 0.05f || point.Value.x > 0.95f || point.Value.y < 0.05f || point.Value.y > 0.95f) continue;
+                    ScryPanel.HoverStageForTest(point);
+                    var drawnStage = ScryPanel.Drawn(PanelPart.PlanBox);
+                    yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnStage + 1, 3);
+                    onStage = ScryPanel.StageRoomHovered;
+                }
+                if (onStage == null) unlitStage.Add($"{entry.Name}: no room found under the mouse on the stage");
+                else
+                {
+                    foreach (var view in new[] { PlanView.Map, PlanView.Tree, PlanView.Above })
+                    {
+                        ScryPanel.ShowPlanViewForTest(view);
+                        var drawnView = ScryPanel.Drawn(PanelPart.PlanBox);
+                        yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnView + 1 && Stage.LitOutlineShown, 3);
+                        var miss = LitMiss(onStage);
+                        if (miss != null) unlitStage.Add($"{entry.Name} {PlanBoxWords.ViewName(view)}: {miss}");
+                    }
+                    yield return Picture(p, $"plan {entry.Name} stage room lit");
+                }
+                ScryPanel.HoverStageForTest(null);
+                var drawnLeft = ScryPanel.Drawn(PanelPart.PlanBox);
+                yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnLeft + 1 && !Stage.LitOutlineShown, 3);
+                if (Stage.LitOutlineShown || ScryPanel.PlanBoxLitShown.Count > 0) stayedLit.Add(entry.Name);
+
+                // A click goes into it.
                 ScryPanel.ClickPlanRoomForTest(deepest);
                 yield return Until(() => Stage.RoomGoneInto == deepest, 3);
                 if (Stage.RoomGoneInto != deepest) notIn.Add(entry.Name);
@@ -126,7 +172,8 @@ namespace Scry
             var kept = ScryPanel.RememberedForTest();
             p.Check(kept.PlanView == PlanView.Tree && kept.PlanBig == true, "the plan box's view and size are remembered with the panel", $"{kept.PlanView}, grown {kept.PlanBig}");
 
-            ScryPanel.LightPlanRoomForTest(null);
+            ScryPanel.HoverPlanBoxForTest(null);
+            ScryPanel.HoverStageForTest(null);
             ScryPanel.ShowPlanViewForTest(wasView);
             ScryPanel.GrowPlanForTest(wasBig);
             ScryPanel.PlanFolded = wasFolded;
@@ -138,14 +185,33 @@ namespace Scry
             p.Check(unframed.Count == 0, "grown, the stage is framed beside the plan box; compact, in its middle", string.Join("; ", unframed.Take(6)));
             p.Check(unturned.Count == 0, "dragging across the map turns it", string.Join("; ", unturned));
             p.Check(notLeast.Count == 0, "Least overlap turns the map to the angle with the fewest rooms over each other", string.Join("; ", notLeast));
-            p.Check(unlit.Count == 0, "a room lit from the plan box is outlined on the stage with no room gone into", string.Join("; ", unlit));
+            p.Check(unlitBox.Count == 0, "a room under the mouse in the plan box is framed there alone and named, the way drawn to it, and outlined on the stage", string.Join("; ", unlitBox.Take(6)));
+            p.Check(unlitStage.Count == 0, "a room under the mouse on the stage is framed in the plan box alone and named in every view, the way drawn to it, and outlined on the stage", string.Join("; ", unlitStage.Take(6)));
+            p.Check(stayedLit.Count == 0, "the room lit goes out as the mouse leaves it", string.Join("; ", stayedLit));
             p.Check(notIn.Count == 0, "a click on a room in the plan box goes into it", string.Join("; ", notIn));
+        }
+
+        /// <summary>
+        /// What is amiss with a room lit from the mouse: it should be framed in the plan box alone,
+        /// named in its caption, the way from the entrance drawn to it, and outlined on the stage;
+        /// null when nothing is.
+        /// </summary>
+        private static string LitMiss(PlacedRoom room)
+        {
+            var amiss = new List<string>();
+            var framed = ScryPanel.PlanBoxLitShown;
+            if (framed.Count != 1 || framed[0] != room) amiss.Add("framed in the box: " + (framed.Count == 0 ? "none" : string.Join(", ", framed.Select(r => r.Room.Name))));
+            if (ScryPanel.PlanBoxCaptionShown != ScryPanel.PlanBoxRoomNameForTest(X, room)) amiss.Add("caption " + ScryPanel.PlanBoxCaptionShown);
+            if (ScryPanel.PlanBoxRouteShown != room) amiss.Add("way drawn to " + (ScryPanel.PlanBoxRouteShown?.Room.Name ?? "none"));
+            if (Stage.LitRoom != room || !Stage.LitOutlineShown) amiss.Add("outlined on the stage: " + (Stage.LitOutlineShown ? Stage.LitRoom?.Room.Name : "none"));
+            return amiss.Count == 0 ? null : room.Room.Name + ": " + string.Join("; ", amiss);
         }
 
         /// <summary>Puts the plan box back as the player had it, after <see cref="PlanBoxShows"/>.</summary>
         private static void PlanBoxAsItWas()
         {
-            ScryPanel.LightPlanRoomForTest(null);
+            ScryPanel.HoverPlanBoxForTest(null);
+            ScryPanel.HoverStageForTest(null);
             ScryPanel.GrowPlanForTest(false);
             Stage.ComeOut();
         }

@@ -76,24 +76,25 @@ namespace Scry
         }
 
         /// <summary>
-        /// The room a way on the card of the room gone into, or the plan box, points at, lit on the
-        /// stage by a fainter, thinner line of the same amber; none. Set again each time the panel is drawn.
+        /// The room a way on the card of the room gone into points at, or the mouse in the plan box
+        /// or on the stage (<see cref="RoomLight"/>), lit on the stage by a fainter, thinner line of
+        /// the same amber; none. Set again each time the panel is drawn.
         /// </summary>
         public static PlacedRoom LitRoom { get; set; }
 
-        /// <summary>The same amber, fainter, round the room lit from the card.</summary>
+        /// <summary>The same amber, fainter, round the room lit.</summary>
         private static readonly Color LitColour = new Color(OutlineColour.r, OutlineColour.g, OutlineColour.b, 0.7f);
 
         private static LineRenderer _litOutline;
         private static PlacedRoom _litDrawn;
         private static float _litTop = float.NaN;
 
-        /// <summary>Whether the room lit from the card is outlined, for the self-test.</summary>
+        /// <summary>Whether the room lit is outlined, for the self-test.</summary>
         [Diagnostic]
         public static bool LitOutlineShown => _litOutline != null && _litOutline.gameObject.activeSelf;
 
         /// <summary>
-        /// Each film: stands the fainter line, half as wide, round the room lit from the card or the plan box, from its ground to
+        /// Each film: stands the fainter line, half as wide, round the room lit, from its ground to
         /// its top or just under the cut; one wholly above the cut, put away, shows its outline
         /// just under the cut, where it lies above. Puts it away with none lit.
         /// </summary>

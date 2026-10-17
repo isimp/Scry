@@ -11,8 +11,9 @@ namespace Scry
     /// each room across against its depth, a storey tall from its ground, turned to any angle
     /// (<see cref="PlanMap"/>); or a tree of its ways, a row for each room more in from the
     /// entrance (<see cref="TreeRows"/>). In every view the ways go through the doorways they
-    /// pass, and the way from the entrance to the room under the mouse, else the room gone into,
-    /// is amber. A room under the mouse is named and lit on the stage, and a click goes into it;
+    /// pass, and the way from the entrance to the room lit, else the room gone into, is amber. A
+    /// room under the mouse, in the box or on the stage, is lit in both (<see cref="RoomLight"/>):
+    /// framed and named in the box and outlined on the stage; a click on it goes into it;
     /// a trail of names under the plan leads to the room gone into, each going into its room. It
     /// grows and names its rooms, the stage framed beside it; which view and whether grown are
     /// remembered with the panel.
@@ -26,8 +27,11 @@ namespace Scry
         private static float _mapAngle;
         private static bool _mapFollow;
 
-        /// <summary>The room under the mouse in the box, lit on the stage; none.</summary>
-        private static PlacedRoom _planLit;
+        /// <summary>The room under the mouse in the box or its trail, as last looked; none.</summary>
+        private static PlacedRoom _boxHover;
+
+        /// <summary>The room lit as the box is drawn (<see cref="RoomLight"/>), from what was under the mouse when last looked; none.</summary>
+        private static PlacedRoom _boxLit;
 
         /// <summary>A room as the box last drew it: its middle, half its size each way, how it is turned, and whether it stands only as dashes, above the room gone into.</summary>
         private struct BoxSpot
@@ -82,9 +86,6 @@ namespace Scry
         private static float _treeYaw = float.NaN;
         private static int _treeRead = -1;
         private static DungeonWays _treeWays;
-
-        /// <summary>The room the way from the entrance is drawn to: the one under the mouse in the box when last drawn, else the room gone into.</summary>
-        private static PlacedRoom _planHoverShown;
 
         /// <summary>How many ways the box drew the last time it was drawn, for the self-test.</summary>
         [Diagnostic]
@@ -150,9 +151,25 @@ namespace Scry
         [Diagnostic]
         public static PlacedRoom PlanBoxRoomAtForTest(Vector2 point) => BoxRoomAt(point);
 
-        /// <summary>Lights a room as the mouse over it in the box does, kept lit until put out with none, for the self-test.</summary>
+        /// <summary>Points the mouse at a point of the box, as the self-test does, until let go with none; the mouse on the stage counts for nothing meanwhile.</summary>
         [Diagnostic]
-        public static void LightPlanRoomForTest(PlacedRoom room) => _planLitForTest = room;
+        public static void HoverPlanBoxForTest(Vector2? point) => _boxPointForTest = point;
+
+        /// <summary>The rooms the box framed as lit the last time it was drawn, for the self-test.</summary>
+        [Diagnostic]
+        public static List<PlacedRoom> PlanBoxLitShown { get; } = new List<PlacedRoom>();
+
+        /// <summary>What the box's caption said the last time it was drawn, for the self-test.</summary>
+        [Diagnostic]
+        public static string PlanBoxCaptionShown { get; private set; }
+
+        /// <summary>The room the way from the entrance was last drawn to, for the self-test.</summary>
+        [Diagnostic]
+        public static PlacedRoom PlanBoxRouteShown => _routeTo;
+
+        /// <summary>A room's name as the box gives it, for the self-test.</summary>
+        [Diagnostic]
+        public static string PlanBoxRoomNameForTest(Explorer explorer, PlacedRoom room) => BoxRoomName(explorer, room);
 
         /// <summary>Clicks a room in the box as the mouse does, for the self-test.</summary>
         [Diagnostic]
@@ -162,8 +179,11 @@ namespace Scry
         [Diagnostic]
         public static PanelPlace RememberedForTest() => File.Exists(RectFile) ? PanelPlace.Read(File.ReadAllLines(RectFile)) : new PanelPlace();
 
-        /// <summary>The room the self-test lights as the mouse over the box would; none.</summary>
-        private static PlacedRoom _planLitForTest;
+        /// <summary>The point of the box the self-test points the mouse at; none.</summary>
+        private static Vector2? _boxPointForTest;
+
+        /// <summary>Where the mouse is for finding the room under it in the box: the self-test's point while it points at the box, nowhere while it points at the stage, else the mouse's own.</summary>
+        private static Vector2 BoxMouse(Event e) => _boxPointForTest ?? (_stagePointForTest.HasValue ? Nowhere : e.mousePosition);
 
         /// <summary>Takes the view and size the box was left in, as remembered with the panel.</summary>
         private static void TakePlanBoxPlace(PanelPlace place)
@@ -255,7 +275,10 @@ namespace Scry
         {
             var e = Event.current;
             var repaint = e.type == EventType.Repaint;
-            if (repaint) _planLit = _planLitForTest;
+            // The room lit as the box is drawn, from what was under the mouse when last looked, as the
+            // box finds its own only once its rooms are drawn.
+            _boxLit = RoomLight.Lit(_cardLit, _boxHover, _stageHover);
+            _boxHover = null;
             if (!KnowBoxRooms() || BoxRooms.Count == 0) return PlanBoxRect = Rect.zero;
 
             // Folded, a small tab where it stands, which brings it back.
@@ -334,8 +357,8 @@ namespace Scry
             BoxSpots.Clear();
             var gone = Stage.RoomGoneInto;
             var route = gone != null && _boxWays != null ? _boxWays.Route(gone) : null;
-            // The way from the entrance drawn in the plan: to the room under the mouse, else to the room gone into.
-            KnowRoute(_planHoverShown ?? gone);
+            // The way from the entrance drawn in the plan: to the room lit, else to the room gone into.
+            KnowRoute(RoomLight.RouteTo(_boxLit, gone));
             switch (_planView)
             {
                 case PlanView.Map:
@@ -348,12 +371,18 @@ namespace Scry
                     AboveView(explorer, area, gone);
                     break;
             }
+            if (repaint)
+            {
+                PlanBoxLitShown.Clear();
+                foreach (var spot in BoxSpots) if (BoxLit(spot.Room)) PlanBoxLitShown.Add(spot.Room);
+            }
 
-            // The room under the mouse: named in the caption, lit on the stage, gone into on a click.
-            var hovered = area.Contains(e.mousePosition) && (_drag == Drag.None || _drag == Drag.Orbit) ? BoxRoomAt(e.mousePosition) : null;
+            // The room under the mouse: lit here and on the stage, gone into on a click.
+            var mouse = BoxMouse(e);
+            var hovered = area.Contains(mouse) && (_drag == Drag.None || _drag == Drag.Orbit) ? BoxRoomAt(mouse) : null;
             if (hovered != null)
             {
-                _planLit = hovered;
+                _boxHover = hovered;
                 AskTip("planbox:" + hovered.Room.Name, StageWords.GoIntoTip(BoxRoomName(explorer, hovered), hovered == gone));
                 if (e.type == EventType.MouseDown && e.button == 0)
                 {
@@ -367,8 +396,8 @@ namespace Scry
                 StartDrag(Drag.MapTurn);
                 e.Use();
             }
-            if (repaint) _planHoverShown = hovered;
-            var caption = hovered != null ? BoxRoomName(explorer, hovered) : PlanBoxWords.Caption(BoxRooms.Count);
+            var caption = _boxLit != null ? BoxRoomName(explorer, _boxLit) : PlanBoxWords.Caption(BoxRooms.Count);
+            if (repaint) PlanBoxCaptionShown = caption;
             var captionRect = oneRow ? new Rect(x, y, Mathf.Max(U(20f), segX - x - U(4f)), rowH) : new Rect(x, controlsY, Mathf.Max(U(20f), grow.x - U(6f) - x), rowH);
             FitLabel(captionRect, caption, Skin.FaintLabel, 10f);
             y = area.yMax + gap;
@@ -400,8 +429,6 @@ namespace Scry
             if (GUI.Button(entrance, PlanBoxWords.Entrance, Skin.Fitted(Skin.Segment, entrance)) && _boxWays?.Entrance != null) Stage.GoInto(_boxWays.Entrance);
             if (GUI.Button(deepest, PlanBoxWords.Deepest, Skin.Fitted(Skin.Segment, deepest)) && _boxWays?.Deepest != null) Stage.GoInto(_boxWays.Deepest);
 
-            if (repaint && Stage.RoomGoneInto == null) Stage.LitRoom = _cardLit ?? _planLit;
-
             // The box is not the stage: a click or the wheel on it neither turns nor zooms it.
             if (box.Contains(e.mousePosition) && (e.type == EventType.MouseDown || e.type == EventType.ScrollWheel)) e.Use();
             return box;
@@ -424,9 +451,8 @@ namespace Scry
             return dashed;
         }
 
-        /// <summary>Whether a room is lit in the box: under the mouse there, a way chip of the card is hovered for it, or rooms of its name are under the mouse on the stage.</summary>
-        private static bool BoxLit(PlacedRoom room) =>
-            room == _planLit || room == _cardLit || _cardLit == null && _planLit == null && _stageRoom != null && _stageRoom == room.Room.Name;
+        /// <summary>Whether a room is the one lit in the box: under the mouse there or on the stage, or a way chip of the card hovered for it (<see cref="RoomLight"/>).</summary>
+        private static bool BoxLit(PlacedRoom room) => RoomLight.Lights(_boxLit, room);
 
         // ----- Above -----
 
@@ -770,7 +796,7 @@ namespace Scry
                 LinkLabel(rect, name, Skin.Small, i == route.Count - 1 ? Skin.Accent : Skin.Text);
                 if (rect.Contains(e.mousePosition))
                 {
-                    _planLit = route[i];
+                    _boxHover = route[i];
                     if (e.type == EventType.MouseDown && e.button == 0)
                     {
                         Stage.GoInto(route[i]);
@@ -813,11 +839,11 @@ namespace Scry
             _treeWays = null;
             _routeOf = null;
             _routeTo = null;
-            _planHoverShown = null;
             _overlapsOf = null;
             _mapTiles = new List<(float, float)>();
-            _planLit = null;
-            _planLitForTest = null;
+            _boxHover = null;
+            _boxLit = null;
+            _boxPointForTest = null;
             _boxRead = _boxShown = _treeRead = -1;
         }
     }

@@ -148,11 +148,7 @@ namespace Scry
                 CardLines.Clear();
                 _cardLit = _cardLitForTest;
             }
-            if (room == null || !Stage.HasInside || !Stage.ShowsInside)
-            {
-                if (repaint && Stage.RoomGoneInto != null) Stage.LitRoom = null;
-                return Rect.zero;
-            }
+            if (room == null || !Stage.HasInside || !Stage.ShowsInside) return Rect.zero;
             var card = CardOf(explorer, room);
 
             var pad = U(8f);
@@ -285,7 +281,6 @@ namespace Scry
             GUI.enabled = enabled;
             var backOut = GUI.Button(whole, RoomCardWords.Whole, Skin.Fitted(Skin.Button, whole));
 
-            if (repaint) Stage.LitRoom = _cardLit ?? _planLit;
             if (goTo != null) Stage.GoInto(goTo);
             else if (backOut) Stage.ComeOut();
             else if (openPage) Go(explorer, card.Key);

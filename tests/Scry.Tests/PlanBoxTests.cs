@@ -329,6 +329,59 @@ namespace Scry.Tests
             Assert.All(ways.Rooms, r => Assert.Equal(one.AcrossOf(r), two.AcrossOf(r)));
         }
 
+        // ----- What the mouse lights: one room, in the box and on the stage alike -----
+
+        [Fact]
+        public void ARoomUnderTheMouseOnTheStageIsLitInTheBoxAndOnTheStage()
+        {
+            var hall = Room(0f, 0f, 0f, "hall");
+            Assert.Same(hall, RoomLight.Lit(null, null, hall));
+        }
+
+        [Fact]
+        public void ARoomUnderTheMouseInTheBoxOrItsTrailIsLit()
+        {
+            var hall = Room(0f, 0f, 0f, "hall");
+            Assert.Same(hall, RoomLight.Lit(null, hall, null));
+        }
+
+        [Fact]
+        public void AWayChipOfTheCardLightsItsRoomBeforeAnyUnderTheMouse()
+        {
+            var card = Room(0f, 0f, 0f, "card");
+            var box = Room(5f, 0f, 0f, "box");
+            var stage = Room(10f, 0f, 0f, "stage");
+            Assert.Same(card, RoomLight.Lit(card, box, stage));
+            Assert.Same(box, RoomLight.Lit(null, box, stage));
+        }
+
+        [Fact]
+        public void NothingUnderTheMouseLightsNoRoom()
+        {
+            Assert.Null(RoomLight.Lit(null, null, null));
+        }
+
+        [Fact]
+        public void OnlyTheRoomLitIsLitNotOthersOfItsName()
+        {
+            var lit = Room(0f, 0f, 0f, "corridor");
+            var twin = Room(5f, 0f, 0f, "corridor");
+            Assert.True(RoomLight.Lights(lit, lit));
+            Assert.False(RoomLight.Lights(lit, twin));
+            Assert.False(RoomLight.Lights(null, twin));
+            Assert.False(RoomLight.Lights(null, null));
+        }
+
+        [Fact]
+        public void TheWayFromTheEntranceGoesToTheRoomLitElseTheRoomGoneInto()
+        {
+            var lit = Room(0f, 0f, 0f, "lit");
+            var gone = Room(5f, 0f, 0f, "gone");
+            Assert.Same(lit, RoomLight.RouteTo(lit, gone));
+            Assert.Same(gone, RoomLight.RouteTo(null, gone));
+            Assert.Null(RoomLight.RouteTo(null, null));
+        }
+
         // ----- What the box says -----
 
         [Fact]

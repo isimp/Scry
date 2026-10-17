@@ -7,8 +7,30 @@ namespace Scry
     /// <summary>The selected entry's stage in the panel: the picture, its handle, the input over it, and the chips and buttons on it.</summary>
     internal static partial class ScryPanel
     {
-        /// <summary>The room of the example the mouse is on the stage over, lit on the plan too.</summary>
+        /// <summary>The name of the room of the example the mouse is on the stage over, lit by its name on a camp's plan.</summary>
         private static string _stageRoom;
+
+        /// <summary>The room of the example the mouse is on the stage over, as last looked; inside a dungeon, lit in the plan box and on the stage; none.</summary>
+        private static PlacedRoom _stageHover;
+
+        /// <summary>The point of the stage's picture the self-test points the mouse at (0 to 1 across, 0 to 1 up); none.</summary>
+        private static Vector2? _stagePointForTest;
+
+        /// <summary>Nowhere on the panel, for the mouse while the self-test points it elsewhere.</summary>
+        private static readonly Vector2 Nowhere = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
+
+        /// <summary>Points the mouse at a point of the stage's picture (0 to 1 across, 0 to 1 up), as the self-test does, until let go with none; the mouse in the plan box counts for nothing meanwhile.</summary>
+        [Diagnostic]
+        public static void HoverStageForTest(Vector2? point) => _stagePointForTest = point;
+
+        /// <summary>The room the stage found under the mouse when last looked, for the self-test.</summary>
+        [Diagnostic]
+        public static PlacedRoom StageRoomHovered => _stageHover;
+
+        /// <summary>Where the mouse is for finding the room under it on the stage: the self-test's point of the picture while it points at the stage, nowhere while it points at the plan box, else the mouse's own.</summary>
+        private static Vector2 StageMouse(Event e, Rect inner) =>
+            _stagePointForTest is Vector2 at ? new Vector2(inner.x + at.x * inner.width, inner.y + (1f - at.y) * inner.height)
+            : _boxPointForTest.HasValue ? Nowhere : e.mousePosition;
 
         /// <summary>
         /// The strip under the stage: dragged, it makes the stage taller or shorter; double-clicked,
@@ -107,10 +129,12 @@ namespace Scry
                 string roomKey = null;
                 PlacedRoom pointed = null;
                 _stageRoom = null;
+                _stageHover = null;
                 var still = _drag == Drag.None || (_drag == Drag.Orbit && _dragMoved < U(5f));
-                if (Stage.ExampleRoomsShown > 0 && still && inner.Contains(e.mousePosition) && !plan.Contains(e.mousePosition) && !card.Contains(e.mousePosition))
+                var mouse = StageMouse(e, inner);
+                if (Stage.ExampleRoomsShown > 0 && still && inner.Contains(mouse) && !plan.Contains(mouse) && !card.Contains(mouse))
                 {
-                    var point = new Vector2((e.mousePosition.x - inner.x) / inner.width, 1f - (e.mousePosition.y - inner.y) / inner.height);
+                    var point = new Vector2((mouse.x - inner.x) / inner.width, 1f - (mouse.y - inner.y) / inner.height);
                     var room = Stage.ExampleRoomAt(point);
                     if (room != null)
                     {
@@ -121,8 +145,12 @@ namespace Scry
                         if (known) roomKey = key;
                         pointed = room;
                         _stageRoom = room.Room.Name;
+                        _stageHover = room;
                     }
                 }
+                // Inside a dungeon, the room lit is outlined on the stage (RoomLight): a way chip of
+                // the card hovered for it, else one under the mouse in the plan box or on the stage.
+                if (e.type == EventType.Repaint) Stage.LitRoom = Stage.HasInside && Stage.ShowsInside ? RoomLight.Lit(_cardLit, _boxHover, _stageHover) : null;
                 if (e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _dragMoved < U(5f) && (_stageRoomDown != null || _stageRoomDownAt != null))
                 {
                     var go = _stageRoomDown;
