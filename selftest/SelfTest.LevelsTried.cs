@@ -10,7 +10,8 @@ namespace Scry
         /// <summary>
         /// The whole of a dungeon's example opened from above by the plan's levels, the two ways
         /// tried beside the floors: a group of rooms one cut opens at a time (steps), and a whole
-        /// level filmed in as many cuts as it needs (films). For each reference dungeon it tells
+        /// level filmed in as many cuts as it needs (films). For each reference dungeon, and the
+        /// sealed tower and a forest crypt whose floors are checked beside them, it tells
         /// how its levels split into groups by its rooms' measured ceilings and how many rooms keep
         /// their roof, opens every mark each way, checks that the ruler has a mark for each group
         /// (steps) or each level (films), that each mark stands its rooms whole and that a level
@@ -21,7 +22,7 @@ namespace Scry
         /// </summary>
         private static IEnumerator LevelsTried(Probe p)
         {
-            var places = ReferenceDungeons.Select(n => X.Catalog.FirstOrDefault(e => e.Name == n && PlaceOf(e) != null && !PlaceOf(e).IsRoom)).Where(e => e != null).ToList();
+            var places = ReferenceDungeons.Concat(LevelsAlso).Select(n => X.Catalog.FirstOrDefault(e => e.Name == n && PlaceOf(e) != null && !PlaceOf(e).IsRoom)).Where(e => e != null).ToList();
             if (places.Count == 0) p.Skip("none of " + string.Join(", ", ReferenceDungeons) + " is in the catalog");
             var wasInside = Stage.Inside;
             var wasMode = Stage.LevelsMode;
@@ -169,6 +170,9 @@ namespace Scry
             if (zoomTried == 0) p.Note("no reference dungeon has a level of two groups to step within");
             else p.Check(unkept.Count == 0, "stepping within a level keeps the zoom, going to another level frames afresh", string.Join("; ", unkept));
         }
+
+        /// <summary>The dungeons whose floors are checked beside the reference dungeons, opened by the levels too.</summary>
+        private static readonly string[] LevelsAlso = { "Hildir_plainsfortress", "Crypt2" };
 
         /// <summary>How long the stage's films took on average over the frames last counted, in milliseconds.</summary>
         private static double AverageFilmMs;
