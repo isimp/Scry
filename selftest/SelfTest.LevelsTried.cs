@@ -57,6 +57,15 @@ namespace Scry
                         split.Add($"level {Numbers.Count(level + 1)}: {Numbers.Count(groups.Sum(g => g.Rooms.Count))} rooms in {Numbers.Count(groups.Count)} {(groups.Count == 1 ? "group" : "groups")}" + (roofed > 0 ? $", {Numbers.Count(roofed)} too low to open" : ""));
                     }
                     p.Note($"{entry.Name}: {Numbers.Count(cuts.Levels)} levels, {Numbers.Count(cuts.Groups.Count)} groups one cut opens each; {string.Join("; ", split)}");
+                    // Each group's rooms by name, ground and ceiling over the entrance's ground, and its cut, to tell why a level stands where it does.
+                    var rooms = Stage.ExampleWays.Rooms;
+                    var entranceGround = Stage.ExampleRoomGround(Stage.ExampleWays.Entrance);
+                    for (var g = 0; g < cuts.Groups.Count; g++)
+                    {
+                        var group = cuts.Groups[g];
+                        var named = group.Rooms.Select(i => $"{rooms[i].Room.Name} {Numbers.Fixed(Stage.ExampleRoomGround(rooms[i]) - entranceGround, 1)} m");
+                        p.Note($"{entry.Name} level {Numbers.Count(group.Level + 1)} group {Numbers.Count(g + 1)}: cut {Numbers.Fixed(group.Cut - entranceGround, 1)} m under a ceiling at {Numbers.Fixed(group.Ceiling - entranceGround, 1)} m; {string.Join(", ", named)}");
+                    }
 
                     // The floors' film, for its cost beside the others.
                     var floorsMs = 0.0;
