@@ -298,6 +298,99 @@ namespace Scry
         /// <summary>Puts the floor probe back to telling from what was kept alone.</summary>
         private static void KeptFloorsUnverified() => FloorProbe.Checked = null;
 
+        /// <summary>Set while the floors' files may go on; reset to hold them.</summary>
+        private static readonly System.Threading.ManualResetEvent FloorFilesGo = new System.Threading.ManualResetEvent(true);
+
+        /// <summary>Lets the floors' files go on, should the part holding them stop early.</summary>
+        private static void FloorFilesFreed() => FloorFilesGo.Set();
+
+        /// <summary>
+        /// A location whose roll leaves nothing to chance, and a dungeon's next layout, shown again
+        /// while what is kept of their floors is still being found: the files are held behind a
+        /// long job, as a run of places shown one after another holds them, and nothing is held
+        /// yet, as on entering a world. The stage goes on meanwhile, no frame waiting for the
+        /// files, and once they are found tells the floors from what was kept, the same as before.
+        /// </summary>
+        private static IEnumerator FloorsWaitedFor(Probe p)
+        {
+            int PartsOf(Entry e) => PlaceOf(e)?.Contents?.Parts.Sum(part => part.Count) ?? 0;
+            string Fixed(float metres) => Numbers.Fixed(metres, 2);
+            var fixedRoll = X.Catalog.Where(e => PlaceOf(e) != null && !PlaceOf(e).IsRoom && PlaceOf(e).Contents != null && !PlaceOf(e).Contents.LeftToChance && PartsOf(e) >= 10)
+                .OrderBy(PartsOf).ThenBy(e => e.Name, StringComparer.Ordinal).FirstOrDefault();
+            if (fixedRoll == null) p.Skip("no location's roll leaves nothing to chance");
+            const int HeldFrames = 30;
+            // A frame that waited for the files would last until they are let go, which only a later frame does.
+            const double Quarter = 250;
+
+            Select(fixedRoll);
+            yield return Until(() => PlaceAssets.State(PlaceOf(fixedRoll)) != PlaceLoad.Loading && CopyOf(fixedRoll) != null, 20);
+            if (CopyOf(fixedRoll) == null) p.Skip($"{fixedRoll.Name} stands nowhere");
+            var floors = Stage.FloorHeights.ToList();
+            yield return Until(() => !FloorRecords.Busy, 10);
+
+            FloorFilesGo.Reset();
+            FloorRecords.HoldFiles(FloorFilesGo);
+            FloorRecords.Begin();
+            var fromKept = FloorProbe.FromKept;
+            var probed = FloorProbe.Probed;
+            var before = Stage.Subject;
+            var from = Frames.Frames;
+            Previews.Rebuild();
+            yield return Until(() => Stage.WaitingForFloors, 20);
+            var waited = Stage.WaitingForFloors;
+            var shownMeanwhile = false;
+            for (var i = 0; i < HeldFrames; i++)
+            {
+                yield return null;
+                shownMeanwhile |= Stage.Subject != null && Stage.Subject != before;
+            }
+            var frames = Frames.Since(from);
+            FloorFilesGo.Set();
+            yield return Until(() => Stage.Subject != null && Stage.Subject != before, 20);
+            p.Note($"{fixedRoll.Name}, {Numbers.Count(PartsOf(fixedRoll))} parts, made and waiting for its floors over {Numbers.Count(frames.Frames)} frames: {frames.Line(Budget)}{Slowest(frames, 1)}");
+            p.Check(waited && !shownMeanwhile, "a location made while its kept floors are still being found waits for them", waited ? "shown before they were found" : "it never waited");
+            p.Check(frames.Max < Quarter, "no frame waits for the files meanwhile", $"{Numbers.Amount(frames.Max, 0)} ms");
+            p.Check(Stage.Subject != null && Stage.Subject != before, "once found, the location is shown");
+            p.Check(FloorProbe.FromKept > fromKept && FloorProbe.Probed == probed, "its floors told from what was kept", $"{Numbers.Count(FloorProbe.FromKept - fromKept)} told, {Numbers.Count(FloorProbe.Probed - probed)} probed");
+            var again = Stage.FloorHeights.ToList();
+            p.Check(again.SequenceEqual(floors), "the same floors as before", $"{string.Join(", ", floors.Select(Fixed))} m before, {string.Join(", ", again.Select(Fixed))} m now");
+
+            var crypt = Crypt();
+            if (crypt == null) yield break;
+            Select(crypt);
+            yield return Until(() => CopyOf(crypt) != null && ExampleLayouts.Of(crypt) && ExampleLayouts.Example != null
+                                     && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0, 90);
+            if (Stage.ExampleRoomsTotal == 0) yield break;
+            yield return Until(() => !FloorRecords.Busy, 10);
+
+            FloorFilesGo.Reset();
+            FloorRecords.HoldFiles(FloorFilesGo);
+            FloorRecords.Begin();
+            fromKept = FloorProbe.FromKept;
+            probed = FloorProbe.Probed;
+            from = Frames.Frames;
+            ExampleLayouts.Another();
+            // The stage takes up the new layout on its next frames.
+            yield return null;
+            yield return null;
+            yield return Until(() => Stage.ExampleRoomsShown >= 2 && Stage.ExampleFloorsToRead >= 2, 30);
+            var made = Stage.ExampleRoomsShown;
+            for (var i = 0; i < HeldFrames; i++) yield return null;
+            var madeMeanwhile = Stage.ExampleRoomsShown - made;
+            var readMeanwhile = FloorProbe.FromKept - fromKept + FloorProbe.Probed - probed;
+            frames = Frames.Since(from);
+            FloorFilesGo.Set();
+            yield return Until(() => Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0, 90);
+            var told = FloorProbe.FromKept - fromKept;
+            var cast = FloorProbe.Probed - probed;
+            p.Note($"{crypt.Name}'s next layout, its rooms' kept floors still being found over {Numbers.Count(frames.Frames)} frames: {Numbers.Count(madeMeanwhile)} more rooms made meanwhile; {frames.Line(Budget)}{Slowest(frames, 1)}");
+            p.Check(made >= 2 && readMeanwhile == 0, "a dungeon's rooms are made while their kept floors are still being found, none read before they are", $"{Numbers.Count(readMeanwhile)} read meanwhile");
+            p.Check(madeMeanwhile > 0 || Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, "and more rooms are made as they wait");
+            p.Check(frames.Max < Quarter, "no frame waits for the files meanwhile", $"{Numbers.Amount(frames.Max, 0)} ms");
+            p.Check(Stage.ExampleFloorsToRead == 0, "once found, every room's floors are read", $"{Numbers.Count(Stage.ExampleFloorsToRead)} still to read");
+            p.Check(told > 0 && told >= cast, "most of them told from what was kept", $"{Numbers.Count(told)} kept, {Numbers.Count(cast)} probed");
+        }
+
         private static IEnumerator DungeonExample(Probe p) => Layout(p, Crypt(), "Dungeon");
 
         private static IEnumerator CampExample(Probe p) => Layout(p, Camp(), "CampRadial");

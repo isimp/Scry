@@ -12,6 +12,9 @@ namespace Scry.Tests
     // read only once its kind of place is wanted: on the worker thread when wanted ahead, as a
     // place's copy starts to be made, and waited for when asked for still being found. A record
     // made meanwhile is kept over the file's, and forgetting what was kept leaves no file.
+    // The stage asks each frame whether a kind's file is found yet, and goes on with other work
+    // until it is: the files are read one job after another, so a place shown after many others
+    // waits behind every file they wanted, and no frame may wait that out.
     public sealed class FloorFilesTests : IDisposable
     {
         private static readonly TimeSpan Long = TimeSpan.FromSeconds(10);
@@ -74,6 +77,92 @@ namespace Scry.Tests
 
             Assert.NotNull(found);
             Assert.Equal(4f, found.MaxX);
+        }
+
+        [Fact]
+        public void AKindStillBeingFoundIsNotReadyAndAskingWaitsForNothing()
+        {
+            Kept(Record("crypt2_Room_skull"));
+            var until = new ManualResetEventSlim();
+            var queue = Held(until);
+            var files = new FloorFiles(_folder, queue);
+            files.Want("crypt2_Room_skull", true);
+
+            var asked = System.Diagnostics.Stopwatch.StartNew();
+            Assert.False(files.Ready("crypt2_Room_skull", true));
+            Assert.True(asked.Elapsed < TimeSpan.FromSeconds(2), asked.Elapsed.ToString());
+            until.Set();
+            Assert.True(SpinWait.SpinUntil(() => files.Ready("crypt2_Room_skull", true), Long));
+            Assert.Equal(1, files.Held);
+        }
+
+        [Fact]
+        public void AKindIsReadyOnceFoundAndTakenWithoutWaitingForTheFilesWantedAfterIt()
+        {
+            Kept(Record("crypt2_Room_skull", width: 4f), Record("crypt2_Corridor"));
+            var until = new ManualResetEventSlim();
+            var queue = new FileQueue();
+            var files = new FloorFiles(_folder, queue);
+            files.Want("crypt2_Room_skull", true);
+            // Wanted after it, behind a long job: the files stay busy long after its own is found.
+            queue.Then("holding", () => until.Wait(Long));
+            files.Want("crypt2_Corridor", true);
+
+            Assert.True(SpinWait.SpinUntil(() => files.Ready("crypt2_Room_skull", true), Long));
+            Assert.True(queue.Busy);
+            var asked = System.Diagnostics.Stopwatch.StartNew();
+            var found = files.Find("crypt2_Room_skull", true, "stamp");
+            Assert.True(asked.Elapsed < TimeSpan.FromSeconds(2), asked.Elapsed.ToString());
+            Assert.Equal(4f, found.MaxX);
+            Assert.False(files.Ready("crypt2_Corridor", true));
+            until.Set();
+            Done(queue);
+        }
+
+        [Fact]
+        public void AKindWithNoFileIsReadyAtOnceWhileFilesAreBeingWritten()
+        {
+            Kept(Record("crypt2_Room_skull"));
+            var until = new ManualResetEventSlim();
+            var queue = new FileQueue();
+            var files = new FloorFiles(_folder, queue);
+            Done(queue);
+            queue.Then("holding", () => until.Wait(Long));
+
+            Assert.True(files.Ready("cave_Hall", true));
+            Assert.Null(files.Find("cave_Hall", true, "stamp"));
+            until.Set();
+        }
+
+        [Fact]
+        public void AskingWhetherAKindNotWantedAheadIsReadyStartsFindingIt()
+        {
+            Kept(Record("crypt2_Room_skull", width: 5f));
+            var until = new ManualResetEventSlim();
+            var queue = Held(until);
+            var files = new FloorFiles(_folder, queue);
+
+            Assert.False(files.Ready("crypt2_Room_skull", true));
+            until.Set();
+            Assert.True(SpinWait.SpinUntil(() => files.Ready("crypt2_Room_skull", true), Long));
+            Assert.Equal(5f, files.Find("crypt2_Room_skull", true, "stamp").MaxX);
+        }
+
+        [Fact]
+        public void ARecordMadeWhileItsFileIsStillBeingFoundIsReadyAtOnce()
+        {
+            Kept(Record("crypt2_Room_skull", width: 2f));
+            var until = new ManualResetEventSlim();
+            var queue = Held(until);
+            var files = new FloorFiles(_folder, queue);
+            files.Want("crypt2_Room_skull", true);
+
+            files.Put(Record("crypt2_Room_skull", width: 8f));
+
+            Assert.True(files.Ready("crypt2_Room_skull", true));
+            Assert.Equal(8f, files.Find("crypt2_Room_skull", true, "stamp").MaxX);
+            until.Set();
+            Done(queue);
         }
 
         [Fact]
@@ -209,6 +298,22 @@ namespace Scry.Tests
 
             Assert.Null(files.Find("crypt2_Corridor", true, "stamp"));
             Assert.NotNull(files.Find("crypt2_Room_skull", true, "stamp"));
+            Assert.Empty(files.Failures());
+        }
+
+        [Fact]
+        public void AFileThatCannotBeOpenedIsNoneAndToldOnceHoweverOftenItIsAskedFor()
+        {
+            Kept(Record("crypt2_Room_skull"));
+            // Held open by another, as an editor or a backup can: reading it fails.
+            using var held = new FileStream(Path.Combine(_folder, FloorRecord.FileName("crypt2_Room_skull", true)), FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            var files = new FloorFiles(_folder, new FileQueue());
+
+            Assert.True(SpinWait.SpinUntil(() => files.Ready("crypt2_Room_skull", true), Long));
+            for (var frame = 0; frame < 3; frame++) Assert.True(files.Ready("crypt2_Room_skull", true));
+            Assert.Null(files.Find("crypt2_Room_skull", true, "stamp"));
+
+            Assert.Single(files.Failures());
             Assert.Empty(files.Failures());
         }
 

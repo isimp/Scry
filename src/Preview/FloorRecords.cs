@@ -38,6 +38,13 @@ namespace Scry
         /// <summary>Starts finding what is kept of a kind of place on a worker thread, as a copy of it starts to be made.</summary>
         public static void Want(string prefab, bool room) => _kept?.Want(prefab, room);
 
+        /// <summary>
+        /// Whether what is kept of a kind of place is found, so finding it waits for nothing; asked
+        /// each frame before its floors are read, the stage going on meanwhile, as the files are
+        /// read one after another and one wanted after many others waits behind them all.
+        /// </summary>
+        public static bool Ready(string prefab, bool room) => _kept == null || _kept.Ready(prefab, room);
+
         /// <summary>What is kept of a kind of place with this stamp, waited for while still being found; null for none, or none known yet.</summary>
         public static FloorRecord Find(string prefab, bool room, string stamp)
         {
@@ -47,6 +54,14 @@ namespace Scry
             Timing.Add("floors kept found", timed);
             return record;
         }
+
+        /// <summary>
+        /// For the self-test: holds the files' work behind a job that waits until
+        /// <paramref name="until"/> is set, a minute at the most, as a long run of files wanted
+        /// before them holds them.
+        /// </summary>
+        [Diagnostic]
+        public static void HoldFiles(System.Threading.WaitHandle until) => Files.Then("holding the floors kept", () => until.WaitOne(System.TimeSpan.FromMinutes(1)));
 
         /// <summary>Keeps a record, and writes it to its file on a worker thread.</summary>
         public static void Put(FloorRecord record) => _kept?.Put(record);

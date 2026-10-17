@@ -31,6 +31,8 @@ namespace Scry
         /// <summary>Takes the copy shown off the stage, with what plays on it and a place still being built.</summary>
         public static void ClearSubject()
         {
+            // A place made but still waiting for what is kept of its floors was never handed over.
+            if (_building?.Result != null) Object.Destroy(_building.Result);
             _building?.Cancel();
             _buildingRoll = null;
             ForgetCreatures();
@@ -133,6 +135,10 @@ namespace Scry
         /// <summary>Whether a location or room is still being made, shown once it is.</summary>
         public static bool Building => _building != null;
 
+        /// <summary>Whether the location or room shown is made and waits for what is kept of its floors to be found, for the self-test.</summary>
+        [Diagnostic]
+        public static bool WaitingForFloors => _building != null && _building.Result != null;
+
         /// <summary>How many frames the last location or room took to make, and how many parts it has, for the self-test to tell.</summary>
         public static int LastBuildFrames { get; private set; }
 
@@ -140,13 +146,16 @@ namespace Scry
 
         /// <summary>
         /// Goes on making the location or room shown, a few milliseconds a frame, and shows it
-        /// once all of it is awake, with its floors read from its colliders.
+        /// once all of it is awake and what is kept of its floors is found, with its floors read
+        /// from its colliders.
         /// </summary>
         public static void StepBuild()
         {
             if (_building == null || _builtInFrame == Time.frameCount) return;
             _builtInFrame = Time.frameCount;
             if (!_building.Go(BuildBudgetMs)) return;
+            // Its floors are read once what is kept of them is found, waited for over frames.
+            if (_building.Result != null && _lastShown?.Source is PlaceSource waiting && !FloorRecords.Ready(waiting.Prefab, waiting.IsRoom)) return;
 
             var built = _building;
             var modifiers = _buildingWith;
