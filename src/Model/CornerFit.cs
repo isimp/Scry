@@ -1,0 +1,54 @@
+using System;
+
+namespace Scry
+{
+    /// <summary>
+    /// How the card of the room gone into, in the stage's upper left corner, and the plan box, in
+    /// its lower left, share that side so neither covers the other: the plan box stands as tall as
+    /// it wants where the stage has room; the card gives way to it, as tall as it wants or as
+    /// much as is left over the box, scrolling the rest, down to its least; only then does the
+    /// plan give way, down to its own least. Lengths are the panel's, each constant scaled with it.
+    /// </summary>
+    internal static class CornerFit
+    {
+        /// <summary>How far under the stage's top the card begins, under the kind's tag.</summary>
+        public const float Top = 37f;
+
+        /// <summary>How far over the stage's bottom the plan box ends, over the note under the picture.</summary>
+        public const float Bottom = 34f;
+
+        /// <summary>How far under the stage's top the plan box may reach with no card.</summary>
+        public const float Above = 14f;
+
+        /// <summary>The gap between the card and the plan box.</summary>
+        public const float Gap = 8f;
+
+        /// <summary>The card's least height: its name, where it is and a couple of lines to scroll.</summary>
+        public const float CardLeast = 96f;
+
+        /// <summary>The plan's least height.</summary>
+        public const float PlanLeast = 60f;
+
+        /// <summary>
+        /// The plan's height in the plan box: as wanted, else what the stage leaves over the box's
+        /// other rows, under the stage's top or, with a card, under the card at its least; never
+        /// under its own least.
+        /// </summary>
+        public static float Plan(float stage, float rows, float wanted, bool card, float scale)
+        {
+            var over = card ? Top + CardLeast + Gap : Above;
+            var room = stage - (Bottom + over) * scale - rows;
+            return Math.Max(PlanLeast * scale, Math.Min(wanted, room));
+        }
+
+        /// <summary>The card's height: as wanted, else what is left between its top and the gap over the plan box; never under its least.</summary>
+        public static float Card(float wanted, float stageTop, float boxTop, float scale)
+        {
+            var room = boxTop - Gap * scale - (stageTop + Top * scale);
+            return Math.Min(wanted, Math.Max(room, CardLeast * scale));
+        }
+
+        /// <summary>Whether the card scrolls, wanting more than it has.</summary>
+        public static bool Scrolls(float wanted, float height) => wanted > height + 0.5f;
+    }
+}

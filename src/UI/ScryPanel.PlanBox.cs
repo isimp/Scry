@@ -8,9 +8,9 @@ namespace Scry
     /// <summary>
     /// The plan box of a dungeon's example inside, in the stage's lower left corner: its rooms
     /// seen from above, turned with the view and shaded by depth (<see cref="PlanView.Above"/>);
-    /// each room across against its depth, a storey tall from its ground, turned to any angle
-    /// (<see cref="PlanMap"/>); or a tree of its ways, a row for each room more in from the
-    /// entrance (<see cref="TreeRows"/>). In every view the ways go through the doorways they
+    /// each of its levels seen so, one under the other, rooms over each other lined up
+    /// (<see cref="PlanLevels"/>); or a tree of its ways, a row for each room more in from the
+    /// entrance, each room where it lies across (<see cref="TreeRows"/>). In every view the ways go through the doorways they
     /// pass, and the way from the entrance to the room lit, else the room gone into, is amber. A
     /// room under the mouse, in the box or on the stage, is lit in both (<see cref="RoomLight"/>):
     /// framed and named in the box and outlined on the stage; a click on it goes into it;
@@ -22,10 +22,6 @@ namespace Scry
     {
         private static PlanView _planView = PlanView.Above;
         private static bool _planBig;
-
-        /// <summary>The map's angle, and whether it turns with the stage instead.</summary>
-        private static float _mapAngle;
-        private static bool _mapFollow;
 
         /// <summary>The room under the mouse in the box or its trail, as last looked; none.</summary>
         private static PlacedRoom _boxHover;
@@ -56,14 +52,10 @@ namespace Scry
         private static readonly List<BoxSpot> BoxSpots = new List<BoxSpot>();
 
         /// <summary>The segments in the header, from the right.</summary>
-        private static readonly PlanView[] ViewsRightToLeft = { PlanView.Tree, PlanView.Map, PlanView.Above };
+        private static readonly PlanView[] ViewsRightToLeft = { PlanView.Tree, PlanView.Levels, PlanView.Above };
 
         /// <summary>What each drawing of the box works with, kept between drawings rather than made each time.</summary>
         private static readonly List<Rect> WrittenNames = new List<Rect>();
-        private static readonly List<(float Min, float Max)> MapAcross = new List<(float, float)>();
-
-        /// <summary>How high each room stands on the map at the angle last counted, in lanes where rooms on one level would cover each other (<see cref="PlanMap.Tiles"/>).</summary>
-        private static List<(float Bottom, float Top)> _mapTiles = new List<(float, float)>();
         private static readonly Dictionary<PlacedRoom, Vector2> TreeAt = new Dictionary<PlacedRoom, Vector2>();
 
         /// <summary>Each room's place among the rooms, lowest first, to draw each way once.</summary>
@@ -91,11 +83,6 @@ namespace Scry
         [Diagnostic]
         public static int PlanBoxWaysDrawn { get; private set; }
 
-        /// <summary>The map's overlaps at the angle they were last counted at.</summary>
-        private static int _mapOverlaps;
-        private static float _overlapsAt = float.NaN;
-        private static DungeonWays _overlapsOf;
-
         /// <summary>Where the box last stood, for the self-test; none while it is not drawn.</summary>
         [Diagnostic]
         public static Rect PlanBoxRect { get; private set; }
@@ -106,14 +93,6 @@ namespace Scry
         [Diagnostic]
         public static bool PlanBoxBig => _planBig;
 
-        /// <summary>The map's angle shown, for the self-test.</summary>
-        [Diagnostic]
-        public static float MapAngleShown => _mapFollow ? PlanMap.Following(Stage.ExampleViewYaw) : _mapAngle;
-
-        /// <summary>How many rooms cover each other on the map at the angle shown, for the self-test.</summary>
-        [Diagnostic]
-        public static int MapOverlapsShown => _mapOverlaps;
-
         /// <summary>Shows a view of the box as its segment does, for the self-test.</summary>
         [Diagnostic]
         public static void ShowPlanViewForTest(PlanView view) => ChoosePlanView(view);
@@ -122,21 +101,9 @@ namespace Scry
         [Diagnostic]
         public static void GrowPlanForTest(bool big) => GrowPlan(big);
 
-        /// <summary>Turns the map as dragging it across by so many pixels does, for the self-test.</summary>
+        /// <summary>How many levels the box last laid out, for the self-test.</summary>
         [Diagnostic]
-        public static void DragMapForTest(float pixels) => TurnMap(pixels);
-
-        /// <summary>Turns the map to an angle, for the self-test.</summary>
-        [Diagnostic]
-        public static void SetMapAngleForTest(float angle)
-        {
-            _mapFollow = false;
-            _mapAngle = PlanMap.Normal(angle);
-        }
-
-        /// <summary>Presses Least overlap, for the self-test.</summary>
-        [Diagnostic]
-        public static void LeastOverlapForTest() => LeastOverlap();
+        public static int PlanBoxLevelsShown => _levels?.Levels.Count ?? 0;
 
         /// <summary>Each room's middle as the box last drew it, for the self-test to point at.</summary>
         [Diagnostic]
@@ -206,20 +173,6 @@ namespace Scry
             SaveRects();
         }
 
-        private static void TurnMap(float pixels)
-        {
-            if (_mapFollow) _mapAngle = PlanMap.Following(Stage.ExampleViewYaw);
-            _mapFollow = false;
-            _mapAngle = PlanMap.Turned(_mapAngle, pixels);
-        }
-
-        private static void LeastOverlap()
-        {
-            KnowBoxRooms();
-            _mapAngle = PlanMap.LeastOverlap(BoxRooms, BoxGrounds, MapAngleShown);
-            _mapFollow = false;
-        }
-
         /// <summary>The rooms of the example and their grounds, again only as the example or what is read of it changes.</summary>
         private static bool KnowBoxRooms()
         {
@@ -252,7 +205,7 @@ namespace Scry
             }
             _boxWidest = Mathf.Max(1f, ExamplePlan.Widest(BoxRooms));
             _treeRead = -1;
-            _overlapsAt = float.NaN;
+            _levelsRead = -1;
             return true;
         }
 
@@ -298,7 +251,6 @@ namespace Scry
             var gap = U(4f);
             var width = Mathf.Min(U(_planBig ? 400f : 236f), inner.width - U(16f));
             var planH = U(_planBig ? 330f : 150f);
-            var mapBar = _planView == PlanView.Map;
             // The header holds the three views, grow and fold, and the caption beside them where
             // it has room; else the caption shares a second row with grow and fold.
             var segmentsW = 0f;
@@ -306,8 +258,9 @@ namespace Scry
             var controlsW = U(6f) + rowH + U(4f) + U(16f);
             var oneRow = width - pad * 2f >= segmentsW + controlsW + U(90f);
             var headerH = oneRow ? rowH : rowH * 2f + U(2f);
-            var rows = pad + headerH + gap + gap + rowH + gap + rowH + (mapBar ? rowH + gap : 0f) + pad;
-            planH = Mathf.Max(U(60f), Mathf.Min(planH, inner.height - U(48f) - rows));
+            var rows = pad + headerH + gap + gap + rowH + gap + rowH + pad;
+            // As tall as wanted where the stage has room; with a room gone into, the card over it gives way first (CornerFit).
+            planH = CornerFit.Plan(inner.height, rows, planH, Stage.RoomGoneInto != null && Stage.HasInside && Stage.ShowsInside, _s);
             var height = rows + planH;
             var box = new Rect(inner.x + U(8f), inner.yMax - U(34f) - height, width, height);
             PlanBoxRect = box;
@@ -361,8 +314,8 @@ namespace Scry
             KnowRoute(RoomLight.RouteTo(_boxLit, gone));
             switch (_planView)
             {
-                case PlanView.Map:
-                    MapView(explorer, area, gone);
+                case PlanView.Levels:
+                    LevelsView(explorer, area, gone);
                     break;
                 case PlanView.Tree:
                     TreeView(explorer, area, gone);
@@ -390,32 +343,11 @@ namespace Scry
                     e.Use();
                 }
             }
-            else if (_planView == PlanView.Map && area.Contains(e.mousePosition) && e.type == EventType.MouseDown && e.button == 0)
-            {
-                // A drag across the map, not on a room, turns it.
-                StartDrag(Drag.MapTurn);
-                e.Use();
-            }
             var caption = _boxLit != null ? BoxRoomName(explorer, _boxLit) : PlanBoxWords.Caption(BoxRooms.Count);
             if (repaint) PlanBoxCaptionShown = caption;
             var captionRect = oneRow ? new Rect(x, y, Mathf.Max(U(20f), segX - x - U(4f)), rowH) : new Rect(x, controlsY, Mathf.Max(U(20f), grow.x - U(6f) - x), rowH);
             FitLabel(captionRect, caption, Skin.FaintLabel, 10f);
             y = area.yMax + gap;
-
-            // The map's own controls: the angle with the fewest rooms over each other, following the view, and how many overlap now.
-            if (mapBar)
-            {
-                var least = new Rect(x, y, Skin.Width(Skin.Segment, PlanBoxWords.LeastOverlap) + U(10f), rowH);
-                var follow = new Rect(least.xMax + U(4f), y, Skin.Width(Skin.SegmentOn, PlanBoxWords.Follow) + U(10f), rowH);
-                if (least.Contains(e.mousePosition)) AskTip("plan:least", PlanBoxWords.LeastOverlapTip);
-                if (follow.Contains(e.mousePosition)) AskTip("plan:follow", PlanBoxWords.FollowTip);
-                if (GUI.Button(least, PlanBoxWords.LeastOverlap, Skin.Fitted(Skin.Segment, least))) LeastOverlap();
-                if (GUI.Button(follow, PlanBoxWords.Follow, Skin.Fitted(_mapFollow ? Skin.SegmentOn : Skin.Segment, follow))) _mapFollow = !_mapFollow;
-                var counted = PlanBoxWords.Overlapping(_mapOverlaps);
-                var countW = Skin.Width(Skin.FaintLabel, counted);
-                if (follow.xMax + U(6f) + countW <= x + w) GUI.Label(new Rect(x + w - countW, y, countW, rowH), counted, Skin.FaintLabel);
-                y += rowH + gap;
-            }
 
             // The way from the entrance to the room gone into, each name going into its room.
             Trail(explorer, new Rect(x, y, w, rowH), route);
@@ -488,7 +420,7 @@ namespace Scry
             if (!repaint) return;
             foreach (var spot in BoxSpots) if (!spot.Dashed) BoxTile(spot, spot.Room == gone ? Skin.Alpha(Skin.Accent, 0.75f) : DepthTone(spot.Room), Skin.Alpha(Skin.Text, 0.3f), 1f);
             foreach (var spot in BoxSpots) if (spot.Dashed) BoxTile(spot, null, Skin.Alpha(Skin.Faint, 0.6f), 1f, dashed: true);
-            Ways(room => At(room.Position), At);
+            Ways(room => At(room.Position), (room, door) => At(door));
             foreach (var spot in BoxSpots) if (BoxLit(spot.Room) || spot.Room == gone) BoxTile(spot, null, Skin.Accent, 2f);
             if (_planBig) Names(explorer, area);
         }
@@ -527,10 +459,12 @@ namespace Scry
 
         /// <summary>
         /// The ways between the rooms: each a line from one room's spot through the doorway they
-        /// share, where <paramref name="door"/> places it, to the other's, with a dot at the
-        /// doorway; those on the way from the entrance in the accent and bolder, loops in dashes.
+        /// share, where <paramref name="door"/> places it as seen with each of the two rooms, to the
+        /// other's, with a dot at the doorway, and where the two places differ, as on two levels, a
+        /// line between them; those on the way from the entrance in the accent and bolder, loops in
+        /// dashes.
         /// </summary>
-        private static void Ways(Func<PlacedRoom, Vector2> at, Func<Vec3, Vector2> door)
+        private static void Ways(Func<PlacedRoom, Vector2> at, Func<PlacedRoom, Vec3, Vector2> door)
         {
             var drawn = 0;
             foreach (var room in BoxRooms)
@@ -547,11 +481,14 @@ namespace Scry
                     var b = at(other);
                     if (door != null && _boxWays.DoorBetween(room, other) is Vec3 shared)
                     {
-                        var through = door(shared);
-                        PlanLine(a, through, colour, width, dash);
-                        PlanLine(through, b, colour, width, dash);
+                        var from = door(room, shared);
+                        var to = door(other, shared);
+                        PlanLine(a, from, colour, width, dash);
+                        PlanLine(from, to, colour, width, dash);
+                        PlanLine(to, b, colour, width, dash);
                         var dot = U(onRoute ? 5f : 4f);
-                        Skin.Icon(new Rect(through.x - dot / 2f, through.y - dot / 2f, dot, dot), Skin.Circle, onRoute ? Skin.Accent : Skin.Text);
+                        Skin.Icon(new Rect(from.x - dot / 2f, from.y - dot / 2f, dot, dot), Skin.Circle, onRoute ? Skin.Accent : Skin.Text);
+                        if ((to - from).sqrMagnitude > 1f) Skin.Icon(new Rect(to.x - dot / 2f, to.y - dot / 2f, dot, dot), Skin.Circle, onRoute ? Skin.Accent : Skin.Text);
                     }
                     else PlanLine(a, b, colour, width, dash);
                 }
@@ -578,85 +515,105 @@ namespace Scry
             }
         }
 
-        // ----- Map -----
+        // ----- Levels -----
+
+        /// <summary>The levels as last laid out (<see cref="PlanLevels"/>), again only as the example or what is read of it changes.</summary>
+        private static PlanLevels _levels;
+        private static DungeonWays _levelsOf;
+        private static int _levelsRead = -1;
+
+        /// <summary>The whole example's and each level's reach across and up on the plan turned with the view, and each level's depth as said, again only as the levels or the view's turn change.</summary>
+        private static float _levelsYaw = float.NaN;
+        private static PlanLevels _levelsSpanned;
+        private static (float MinRight, float MaxRight, float MinUp, float MaxUp) _levelsWhole;
+        private static readonly List<(float MinUp, float MaxUp)> LevelSpans = new List<(float, float)>();
+        private static readonly List<string> LevelSaid = new List<string>();
+
+        /// <summary>Where each level's plan stood as last drawn.</summary>
+        private static readonly List<Rect> LevelFrames = new List<Rect>();
 
         /// <summary>
-        /// Each room across against its depth at the map's angle, the ground at the top: a tile a
-        /// storey tall from its ground (<see cref="PlanMap.Tile"/>), the ways between rooms lines
-        /// through the doorways they share, loops in dashes, crossroads outlined, a scale of metres
-        /// from the entrance's ground down the left, and a dial telling the angle.
+        /// Each level a plan from above (<see cref="PlanLevels"/>), the highest first, one under the
+        /// other at one scale and turned with the view as Above is, in one frame across, so rooms
+        /// over each other line up; each room a tile shaded by its depth, the room gone into in the
+        /// accent; each level's depth beside it; the ways lines through the doorways they share, a
+        /// way down dropping straight from its doorway on the level above to the same doorway on
+        /// the level below.
         /// </summary>
-        private static void MapView(Explorer explorer, Rect area, PlacedRoom gone)
+        private static void LevelsView(Explorer explorer, Rect area, PlacedRoom gone)
         {
             var repaint = Event.current.type == EventType.Repaint;
-            var angle = MapAngleShown;
-            if (!ReferenceEquals(_overlapsOf, _boxWays) || !Mathf.Approximately(_overlapsAt, angle))
+            if (_levels == null || !ReferenceEquals(_levelsOf, _boxWays) || _levelsRead != _boxRead)
             {
-                _overlapsOf = _boxWays;
-                _overlapsAt = angle;
-                _mapOverlaps = PlanMap.Overlaps(BoxRooms, BoxGrounds, angle);
-                _mapTiles = PlanMap.Tiles(BoxRooms, BoxGrounds, angle);
+                _levelsOf = _boxWays;
+                _levelsRead = _boxRead;
+                _levels = PlanLevels.Of(BoxRooms, BoxGrounds);
             }
-            float lo = float.PositiveInfinity, hi = float.NegativeInfinity;
-            var across = MapAcross;
-            across.Clear();
-            for (var i = 0; i < BoxRooms.Count; i++)
+            var levels = _levels.Levels;
+            var yaw = Stage.ExampleViewYaw;
+            if (!ReferenceEquals(_levelsSpanned, _levels) || !Mathf.Approximately(_levelsYaw, yaw))
             {
-                across.Add(PlanMap.Across(BoxRooms[i], angle));
-                lo = Mathf.Min(lo, across[i].Min);
-                hi = Mathf.Max(hi, across[i].Max);
+                _levelsSpanned = _levels;
+                _levelsYaw = yaw;
+                _levelsWhole = ExamplePlan.Extent(BoxRooms, yaw);
+                LevelSpans.Clear();
+                LevelSaid.Clear();
+                var entranceGround = _boxWays.Entrance != null ? GroundOf(_boxWays.Entrance) : 0f;
+                foreach (var level in levels)
+                {
+                    var span = ExamplePlan.Extent(level.Rooms, yaw);
+                    LevelSpans.Add((span.MinUp, span.MaxUp));
+                    LevelSaid.Add(PlanBoxWords.LevelDepth(level.Top - entranceGround));
+                }
             }
-            var (top, bottom) = PlanMap.Heights(BoxGrounds);
-            var inset = U(6f);
-            var ruler = U(24f);
-            var dial = U(30f);
-            float X(float v) => area.x + ruler + (v - lo) / Mathf.Max(0.01f, hi - lo) * (area.width - ruler - inset);
-            float Y(float h) => area.y + inset + (top - h) / Mathf.Max(0.01f, top - bottom) * (area.height - inset * 2f - dial * 0.5f);
-
-            for (var i = 0; i < BoxRooms.Count; i++)
+            var labelW = 0f;
+            foreach (var said in LevelSaid) labelW = Mathf.Max(labelW, Skin.Width(Skin.FaintLabel, said));
+            labelW += U(8f);
+            var tall = 0f;
+            foreach (var (minUp, maxUp) in LevelSpans) tall += Mathf.Max(1f, maxUp - minUp);
+            var gapY = U(10f);
+            var inset = U(3f);
+            var wide = Mathf.Max(1f, _levelsWhole.MaxRight - _levelsWhole.MinRight);
+            var scale = Mathf.Min((area.width - labelW - inset * 2f) / wide, (area.height - inset * 2f - gapY * Mathf.Max(0, levels.Count - 1)) / Mathf.Max(1f, tall));
+            var planW = wide * scale;
+            var left = area.x + labelW + (area.width - labelW - planW) / 2f;
+            var top = area.y + (area.height - (tall * scale + gapY * Mathf.Max(0, levels.Count - 1))) / 2f;
+            LevelFrames.Clear();
+            foreach (var (minUp, maxUp) in LevelSpans)
             {
-                var (ground, roof) = _mapTiles[i];
-                var rect = Rect.MinMaxRect(X(across[i].Min), Y(roof), Mathf.Max(X(across[i].Max), X(across[i].Min) + U(3f)), Y(ground));
-                BoxSpots.Add(new BoxSpot { Room = BoxRooms[i], Centre = rect.center, Half = rect.size / 2f });
+                var high = Mathf.Max(1f, maxUp - minUp) * scale;
+                LevelFrames.Add(new Rect(left, top, planW, high));
+                top += high + gapY;
+            }
+            Vector2 At(PlacedRoom room, Vec3 p)
+            {
+                var level = Mathf.Max(0, _levels.LevelOf(room));
+                var (right, up) = ExamplePlan.Turn(p.X, p.Z, yaw);
+                var frame = LevelFrames[level];
+                return new Vector2(frame.x + (right - _levelsWhole.MinRight) * scale, frame.y + (LevelSpans[level].MaxUp - up) * scale);
+            }
+            foreach (var room in BoxRooms)
+            {
+                if (_levels.LevelOf(room) < 0) continue;
+                BoxSpots.Add(new BoxSpot
+                {
+                    Room = room, Centre = At(room, room.Position), Angle = room.Rotation.YawDegrees - yaw,
+                    Half = new Vector2(Mathf.Max(U(1f), room.Room.Size.X * scale / 2f), Mathf.Max(U(1f), room.Room.Size.Z * scale / 2f)),
+                });
             }
             if (!repaint) return;
 
-            // Every ten metres from the entrance's ground, its own dashed.
-            var entranceGround = _boxWays.Entrance != null ? GroundOf(_boxWays.Entrance) : 0f;
-            for (var metres = Mathf.CeilToInt((bottom - entranceGround) / 10f) * 10; metres <= top - entranceGround; metres += 10)
+            for (var i = 0; i < LevelFrames.Count; i++)
             {
-                var lineY = Y(entranceGround + metres);
-                PlanLine(new Vector2(area.x + ruler - U(3f), lineY), new Vector2(area.xMax, lineY), Skin.Alpha(Skin.Faint, metres == 0 ? 0.5f : 0.18f), 1f, metres == 0 ? U(3f) : 0f);
-                var said = PlanBoxWords.Depth(metres);
-                var saidW = Skin.Width(Skin.FaintLabel, said);
-                GUI.Label(new Rect(area.x + ruler - U(4f) - saidW, lineY - U(8f), saidW, U(16f)), said, Skin.FaintLabel);
+                var frame = LevelFrames[i];
+                PlanFrame(new Rect(frame.x - inset, frame.y - inset, frame.width + inset * 2f, frame.height + inset * 2f), Skin.Alpha(Skin.Text, 0.1f), 1f);
+                var saidW = Skin.Width(Skin.FaintLabel, LevelSaid[i]);
+                GUI.Label(new Rect(frame.x - inset - U(4f) - saidW, frame.center.y - U(8f), saidW, U(16f)), LevelSaid[i], Skin.FaintLabel);
             }
-            foreach (var spot in BoxSpots)
-            {
-                var crossroads = _boxWays.IsCrossroads(spot.Room);
-                var rect = new Rect(spot.Centre - spot.Half, spot.Half * 2f);
-                Skin.Fill(rect, spot.Room == gone ? Skin.Alpha(Skin.Accent, 0.75f) : DepthTone(spot.Room));
-                PlanFrame(rect, crossroads ? Skin.Alpha(Skin.Text, 0.85f) : Skin.Alpha(Skin.Text, 0.3f), crossroads ? 2f : 1f);
-            }
-            var middle = PlanMap.Storey / 2f;
-            Ways(room =>
-            {
-                var (min, max) = PlanMap.Across(room, angle);
-                var (bottomOf, topOf) = _mapTiles[BoxIndex[room]];
-                return new Vector2((X(min) + X(max)) / 2f, Y((bottomOf + topOf) / 2f));
-            }, door => new Vector2(X(PlanMap.AcrossAt(door, angle)), Y(door.Y + middle)));
-            foreach (var spot in BoxSpots) if (BoxLit(spot.Room) || spot.Room == gone) PlanFrame(new Rect(spot.Centre - spot.Half, spot.Half * 2f), Skin.Accent, 2f);
+            foreach (var spot in BoxSpots) BoxTile(spot, spot.Room == gone ? Skin.Alpha(Skin.Accent, 0.75f) : DepthTone(spot.Room), Skin.Alpha(Skin.Text, 0.3f), 1f);
+            Ways(room => At(room, room.Position), At);
+            foreach (var spot in BoxSpots) if (BoxLit(spot.Room) || spot.Room == gone) BoxTile(spot, null, Skin.Accent, 2f);
             if (_planBig) Names(explorer, area);
-
-            // The dial, in the corner: a circle, a needle at the angle, the angle over it.
-            var radius = U(12f);
-            var centre = new Vector2(area.xMax - radius - U(4f), area.yMax - radius - U(4f));
-            Skin.Icon(new Rect(centre.x - radius, centre.y - radius, radius * 2f, radius * 2f), Skin.Circle, Skin.Raised);
-            var a = (angle - 90f) * Mathf.Deg2Rad;
-            PlanLine(centre, centre + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (radius - U(3f)), Skin.Accent, U(2f));
-            var angleSaid = PlanBoxWords.Angle(angle);
-            var angleW = Skin.Width(Skin.FaintLabel, angleSaid);
-            GUI.Label(new Rect(centre.x - angleW / 2f, centre.y - radius - U(16f), angleW, U(16f)), angleSaid, Skin.FaintLabel);
         }
 
         // ----- Tree -----
@@ -839,8 +796,9 @@ namespace Scry
             _treeWays = null;
             _routeOf = null;
             _routeTo = null;
-            _overlapsOf = null;
-            _mapTiles = new List<(float, float)>();
+            _levels = null;
+            _levelsOf = null;
+            _levelsRead = -1;
             _boxHover = null;
             _boxLit = null;
             _boxPointForTest = null;

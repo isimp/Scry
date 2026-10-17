@@ -39,6 +39,17 @@ namespace Scry
         /// <summary>The room a way chip of the card is under the mouse for, lit on the stage and the plan; none.</summary>
         private static PlacedRoom _cardLit;
 
+        /// <summary>How far the card is scrolled, and the room it is scrolled for, so another room's card opens at its top.</summary>
+        private static Vector2 _cardScroll;
+        private static PlacedRoom _cardScrollFor;
+
+        /// <summary>How wide the card's scrollbar is with its margin.</summary>
+        private static float CardScrollbar => U(12f);
+
+        /// <summary>Whether the card scrolled when last drawn, wanting more than it had over the plan box, for the self-test.</summary>
+        [Diagnostic]
+        public static bool RoomCardScrolls { get; private set; }
+
         /// <summary>The room the self-test lights as hovering a way chip does, kept lit until it puts it out.</summary>
         private static PlacedRoom _cardLitForTest;
 
@@ -154,8 +165,8 @@ namespace Scry
             var pad = U(8f);
             var width = Mathf.Min(U(260f), inner.width * 0.45f);
             var textW = width - pad * 2f;
-            var top = inner.y + U(37f);
-            var bottom = (plan.width > 0f ? plan.y : inner.yMax - U(34f)) - U(8f);
+            var top = inner.y + U(CornerFit.Top);
+            var boxTop = plan.width > 0f ? plan.y : inner.yMax - U(CornerFit.Bottom);
             var nameH = U(20f);
             var whereH = U(18f);
             var lineH = U(17f);
@@ -164,7 +175,7 @@ namespace Scry
             var buttonH = U(24f);
             var levels = card.Levels.Count > 1;
 
-            // As many lines of creatures and of chests and pickups as fit above the plan.
+            // Its lines of creatures and of chests and pickups, at most six of each.
             float Tall(int most)
             {
                 LayCard(card, most, textW, chipH);
@@ -175,17 +186,27 @@ namespace Scry
                 if (levels) h += headH + card.LevelsTall;
                 return h + U(2f) + buttonH + pad;
             }
-            var lines = 6;
-            var tall = Tall(lines);
-            while (lines > 1 && top + tall > bottom)
+            // As tall as it wants, else as much as is left over the plan box, giving way to it and
+            // scrolling the rest (CornerFit), its text narrower by the scrollbar then.
+            if (!ReferenceEquals(room, _cardScrollFor))
             {
-                lines = lines > 3 ? 3 : 1;
-                tall = Tall(lines);
+                _cardScrollFor = room;
+                _cardScroll = Vector2.zero;
             }
+            var wanted = Tall(6);
+            var tall = CornerFit.Card(wanted, inner.y, boxTop, _s);
+            var scrolls = CornerFit.Scrolls(wanted, tall);
+            if (scrolls)
+            {
+                textW -= CardScrollbar;
+                wanted = Tall(6);
+            }
+            if (repaint) RoomCardScrolls = scrolls;
             var area = new Rect(inner.x + U(8f), top, width, tall);
 
             CountDrawn(PanelPart.RoomCard);
             Skin.Box(area, Skin.Alpha(Skin.Stage, 0.88f), Skin.Outline);
+            if (scrolls) _cardScroll = GUI.BeginScrollView(area, _cardScroll, new Rect(area.x, area.y, area.width - CardScrollbar, wanted), false, false, GUIStyle.none, Skin.Gui.verticalScrollbar);
             var x = area.x + pad;
             var y = area.y + pad;
 
@@ -280,6 +301,7 @@ namespace Scry
             var openPage = GUI.Button(page, RoomCardWords.OpenPage, Skin.Fitted(Skin.Button, page)) && card.Goes;
             GUI.enabled = enabled;
             var backOut = GUI.Button(whole, RoomCardWords.Whole, Skin.Fitted(Skin.Button, whole));
+            if (scrolls) GUI.EndScrollView();
 
             if (goTo != null) Stage.GoInto(goTo);
             else if (backOut) Stage.ComeOut();
@@ -302,6 +324,8 @@ namespace Scry
         private static void ForgetRoomCard()
         {
             _roomCard = null;
+            _cardScrollFor = null;
+            _cardScroll = Vector2.zero;
             _cardLit = null;
             _cardLitForTest = null;
             CardLines.Clear();

@@ -106,14 +106,16 @@ namespace Scry
             if (PlanBig.HasValue) yield return "planbig " + Flag(PlanBig.Value);
         }
 
-        private static string WordOf(PlanView view) => view == Scry.PlanView.Map ? "map" : view == Scry.PlanView.Tree ? "tree" : "above";
+        private static string WordOf(PlanView view) => view == Scry.PlanView.Levels ? "levels" : view == Scry.PlanView.Tree ? "tree" : "above";
 
         private static PlanView? ViewOf(string word)
         {
             switch (word)
             {
                 case "above": return Scry.PlanView.Above;
-                case "map": return Scry.PlanView.Map;
+                case "levels": return Scry.PlanView.Levels;
+                // The map the box once had, whose place the levels took.
+                case "map": return Scry.PlanView.Levels;
                 case "tree": return Scry.PlanView.Tree;
                 default: return null;
             }

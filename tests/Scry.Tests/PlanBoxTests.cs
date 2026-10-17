@@ -11,221 +11,127 @@ namespace Scry.Tests
         private static PlacedRoom Room(float x, float y, float z, string name = "room", float tall = 4f) =>
             new PlacedRoom { Room = new RoomShape { Name = name, Size = new Vec3(4f, tall, 4f) }, Position = new Vec3(x, y, z) };
 
-        // ----- The map: each room across against its depth, a storey tall from its ground, at any angle -----
+        // ----- Levels: each a plan from above, stacked by depth, rooms that would cover each other on levels apart -----
 
         [Fact]
-        public void TheMapPutsEachRoomAcrossByWhereItStandsAlongItsAngle()
+        public void RoomsSteppingDownLessThanTwoStoreysAtATimeShareALevel()
         {
-            var west = Room(0f, 0f, 0f);
-            var east = Room(10f, 0f, 0f);
-            Assert.Equal((-2f, 2f), Rounded(PlanMap.Across(west, 0f)));
-            Assert.Equal((8f, 12f), Rounded(PlanMap.Across(east, 0f)));
-            // Turned a quarter, the two stand at one spot across, as both stand at the same z.
-            Assert.Equal((-2f, 2f), Rounded(PlanMap.Across(east, 90f)));
+            // The upper caves: grounds stepping down a little at a time, side by side, further in all than two storeys.
+            var rooms = new[] { Room(0f, 0f, 0f), Room(10f, 0f, 0f), Room(20f, 0f, 0f), Room(30f, 0f, 0f) };
+            var levels = PlanLevels.Of(rooms, new[] { -3.3f, -6.6f, -9.9f, -3.2f });
+            Assert.Single(levels.Levels);
+            Assert.Equal(-3.2f, levels.Levels[0].Top, 3);
+            Assert.Equal(-9.9f, levels.Levels[0].Bottom, 3);
         }
 
         [Fact]
-        public void ADoorwayStandsAcrossTheMapWhereItIsAlongTheAngle()
+        public void ARoomMoreThanTwoStoreysUnderTheRestStandsOnALevelOfItsOwnBelowThem()
         {
-            Assert.Equal(3f, PlanMap.AcrossAt(new Vec3(3f, -5f, 4f), 0f), 3);
-            Assert.Equal(4f, PlanMap.AcrossAt(new Vec3(3f, -5f, 4f), 90f), 3);
+            var rooms = new[] { Room(0f, 0f, 0f), Room(10f, 0f, 0f), Room(20f, 0f, 0f) };
+            var levels = PlanLevels.Of(rooms, new[] { -3f, -20f, -4f });
+            Assert.Equal(2, levels.Levels.Count);
+            Assert.Equal(new[] { 0, 1, 0 }, rooms.Select(levels.LevelOf).ToArray());
+            Assert.Equal(-20f, levels.Levels[1].Top, 3);
         }
 
         [Fact]
-        public void EachRoomStandsOnTheMapAStoreyTallFromItsGround()
+        public void ARoomThatWouldCoverOneOfItsLevelFromAboveStandsOnALevelBelowIt()
         {
-            Assert.Equal((-10f, -10f + PlanMap.Storey), PlanMap.Tile(-10f));
+            // A shaft: two rooms one over the other, a storey and a half apart, and one beside them.
+            var rooms = new[] { Room(0f, 0f, 0f), Room(1f, 0f, 1f), Room(10f, 0f, 0f) };
+            var levels = PlanLevels.Of(rooms, new[] { 0f, -4f, -1f });
+            Assert.Equal(2, levels.Levels.Count);
+            Assert.Equal(new[] { 0, 1, 0 }, rooms.Select(levels.LevelOf).ToArray());
         }
 
         [Fact]
-        public void TwoRoomsOverlapOnTheMapOnlyWhereTheyShareSpotAcrossAndTheirStorey()
+        public void RoomsWallToWallShareALevel()
         {
-            var a = Room(0f, 0f, 0f);
-            var sameSpot = Room(1f, 0f, 0f);
-            var beside = Room(4f, 0f, 0f);
-            Assert.Equal(1, PlanMap.Overlaps(new[] { a, sameSpot }, new[] { 0f, 0f }, 0f));
-            Assert.Equal(1, PlanMap.Overlaps(new[] { a, sameSpot }, new[] { 0f, -2.9f }, 0f));
-            Assert.Equal(0, PlanMap.Overlaps(new[] { a, sameSpot }, new[] { 0f, -10f }, 0f));
-            Assert.Equal(0, PlanMap.Overlaps(new[] { a, sameSpot }, new[] { -10f, 0f }, 0f));
-            // A storey right over another is not over it.
-            Assert.Equal(0, PlanMap.Overlaps(new[] { a, sameSpot }, new[] { 0f, -PlanMap.Storey }, 0f));
-            Assert.Equal(0, PlanMap.Overlaps(new[] { a, sameSpot }, new[] { -PlanMap.Storey, 0f }, 0f));
-            // Wall to wall is not over each other.
-            Assert.Equal(0, PlanMap.Overlaps(new[] { a, beside }, new[] { 0f, 0f }, 0f));
+            // Each 4 m wide, their walls touching.
+            Assert.Single(PlanLevels.Of(new[] { Room(0f, 0f, 0f), Room(4f, 0f, 0f) }, new[] { 0f, -1f }).Levels);
+            // And north to south.
+            Assert.Single(PlanLevels.Of(new[] { Room(0f, 0f, 0f), Room(0f, 0f, 4f) }, new[] { 0f, -1f }).Levels);
         }
 
         [Fact]
-        public void TallBoxesDoNotCoverEachOtherWhereTheirGroundsLieAStoreyApart()
-        {
-            // Two of the caves' shafts, 30 m tall, one under the other at one spot.
-            var upper = Room(0f, 0f, 0f, tall: 30f);
-            var lower = Room(1f, -10f, 0f, tall: 30f);
-            Assert.Equal(0, PlanMap.Overlaps(new[] { upper, lower }, new[] { -12f, -22f }, 0f));
-        }
-
-        [Fact]
-        public void ARoomCoveringNoOtherStandsItsWholeStoreyFromItsGround()
-        {
-            var tiles = PlanMap.Tiles(new[] { Room(0f, 0f, 0f), Room(10f, 0f, 0f) }, new[] { -2f, -2f }, 0f);
-            Assert.Equal((-2f, -2f + PlanMap.Storey), tiles[0]);
-            Assert.Equal((-2f, -2f + PlanMap.Storey), tiles[1]);
-        }
-
-        [Fact]
-        public void RoomsCoveringEachOtherOnOneLevelEachTakeALaneOfTheStorey()
-        {
-            var tiles = PlanMap.Tiles(new[] { Room(0f, 0f, 0f), Room(1f, 0f, 0f) }, new[] { 0f, 0f }, 0f);
-            var half = PlanMap.Storey / 2f;
-            Assert.Equal(new[] { (half, PlanMap.Storey), (0f, half) }, tiles.Select(Rounded).ToArray());
-        }
-
-        [Fact]
-        public void ARoomBesideTheCrowdKeepsItsWholeStorey()
-        {
-            var tiles = PlanMap.Tiles(new[] { Room(0f, 0f, 0f), Room(1f, 0f, 0f), Room(20f, 0f, 0f) }, new[] { 0f, 0f, 0f }, 0f);
-            Assert.Equal((0f, PlanMap.Storey), tiles[2]);
-        }
-
-        [Fact]
-        public void ADeeperRoomTakesALaneUnderTheRoomsItCovers()
-        {
-            // A chain along the level: the first covers the second, the second the third, each 2 m deeper.
-            var rooms = new[] { Room(0f, 0f, 0f), Room(3f, 0f, 0f), Room(6f, 0f, 0f) };
-            var grounds = new[] { 0f, -2f, -4f };
-            var tiles = PlanMap.Tiles(rooms, grounds, 0f);
-            Assert.True(tiles[0].Bottom >= tiles[1].Top - 0.001f);
-            Assert.True(tiles[1].Bottom >= tiles[2].Top - 0.001f);
-            // The lanes share the band from the lowest ground to the highest storey's top.
-            Assert.Equal(PlanMap.Storey, tiles[0].Top, 3);
-            Assert.Equal(-4f, tiles[2].Bottom, 3);
-        }
-
-        [Fact]
-        public void RoomsAStoreyApartAtOneSpotKeepTheirOwnStoreys()
-        {
-            var tiles = PlanMap.Tiles(new[] { Room(0f, 0f, 0f), Room(1f, 0f, 0f) }, new[] { 0f, -PlanMap.Storey }, 0f);
-            Assert.Equal((0f, PlanMap.Storey), tiles[0]);
-            Assert.Equal((-PlanMap.Storey, 0f), tiles[1]);
-        }
-
-        [Fact]
-        public void ARoomAStoreyUnderACrowdKeepsItsWholeStorey()
-        {
-            var tiles = PlanMap.Tiles(new[] { Room(0f, 0f, 0f), Room(1f, 0f, 0f), Room(0.5f, 0f, 0f) }, new[] { 0f, 0f, -PlanMap.Storey }, 0f);
-            Assert.Equal((-PlanMap.Storey, 0f), tiles[2]);
-            var half = PlanMap.Storey / 2f;
-            Assert.Equal(new[] { (half, PlanMap.Storey), (0f, half) }, tiles.Take(2).Select(Rounded).ToArray());
-        }
-
-        [Fact]
-        public void RoomsSideBySideUnderOneHallShareALane()
-        {
-            var hall = new PlacedRoom { Room = new RoomShape { Name = "hall", Size = new Vec3(12f, 4f, 4f) }, Position = new Vec3(0f, 0f, 0f) };
-            var tiles = PlanMap.Tiles(new[] { hall, Room(-3f, 0f, 0f), Room(3f, 0f, 0f) }, new[] { 0f, 0f, 0f }, 0f);
-            var half = PlanMap.Storey / 2f;
-            Assert.Equal(new[] { (half, PlanMap.Storey), (0f, half), (0f, half) }, tiles.Select(Rounded).ToArray());
-        }
-
-        [Fact]
-        public void NoTwoRoomsSideBySideAcrossCoverEachOtherOnceInLanes()
+        public void LevelsStandHighestFirstEachRoomOnOneAndNoRoomOfALevelCoversAnotherFromAbove()
         {
             var rooms = new[] { Room(0f, 0f, 0f), Room(2f, 0f, 3f), Room(1f, 0f, 9f), Room(-2f, 0f, 4f), Room(3f, 0f, -6f), Room(5f, 0f, 1f), Room(-1f, 0f, -3f) };
             var grounds = new[] { 0f, -1f, 0f, -2f, 1f, -0.5f, -2.5f };
-            foreach (var angle in new[] { 0f, 35f, 90f, 160f })
+            var levels = PlanLevels.Of(rooms, grounds);
+            Assert.Equal(rooms.Length, levels.Levels.Sum(l => l.Rooms.Count));
+            Assert.All(rooms, r => Assert.Single(levels.Levels, l => l.Rooms.Contains(r)));
+            for (var i = 1; i < levels.Levels.Count; i++) Assert.True(levels.Levels[i - 1].Top >= levels.Levels[i].Top);
+            foreach (var level in levels.Levels)
             {
-                var tiles = PlanMap.Tiles(rooms, grounds, angle);
-                for (var a = 0; a < rooms.Length; a++)
+                for (var a = 0; a < level.Rooms.Count; a++)
                 {
-                    for (var b = a + 1; b < rooms.Length; b++)
-                    {
-                        var (aMin, aMax) = PlanMap.Across(rooms[a], angle);
-                        var (bMin, bMax) = PlanMap.Across(rooms[b], angle);
-                        var side = aMax - PlanMap.Touch <= bMin || bMax - PlanMap.Touch <= aMin;
-                        var apart = tiles[a].Top <= tiles[b].Bottom + 0.001f || tiles[b].Top <= tiles[a].Bottom + 0.001f;
-                        Assert.True(side || apart, $"rooms {a} and {b} cover each other at {angle}");
-                    }
+                    for (var b = a + 1; b < level.Rooms.Count; b++) Assert.False(PlanLevels.Covers(level.Rooms[a], level.Rooms[b]), $"{level.Rooms[a].Position.X},{level.Rooms[a].Position.Z} and {level.Rooms[b].Position.X},{level.Rooms[b].Position.Z} share a level");
                 }
             }
         }
 
+        // ----- The card of the room gone into and the plan box share the stage's left side, neither covering the other -----
+
         [Fact]
-        public void HalfATurnRoundShowsAsManyOverlapping()
+        public void WithNoRoomGoneIntoThePlanTakesWhatTheStageLeaves()
         {
-            var rooms = new[] { Room(0f, 0f, 0f), Room(6f, -1f, 3f), Room(3f, 0f, 9f), Room(-5f, -2f, 4f), Room(8f, 1f, -6f) };
-            var grounds = new[] { 0f, -1f, 0f, -2f, 1f };
-            for (var angle = 0f; angle < 180f; angle += 5f)
+            Assert.Equal(330f, CornerFit.Plan(700f, 100f, 330f, card: false, scale: 1f), 3);
+            Assert.Equal(300f - CornerFit.Bottom - CornerFit.Above - 100f, CornerFit.Plan(300f, 100f, 330f, card: false, scale: 1f), 3);
+        }
+
+        [Fact]
+        public void TheCardGivesWayToThePlanBoxAndScrollsTheRest()
+        {
+            // The plan box's top 400 under the stage's: the card stands under the kind's tag, a gap over the box.
+            var card = CornerFit.Card(500f, stageTop: 0f, boxTop: 400f, scale: 1f);
+            Assert.Equal(400f - CornerFit.Gap - CornerFit.Top, card, 3);
+            Assert.True(CornerFit.Scrolls(500f, card));
+            Assert.Equal(200f, CornerFit.Card(200f, stageTop: 0f, boxTop: 400f, scale: 1f), 3);
+            Assert.False(CornerFit.Scrolls(200f, 200f));
+        }
+
+        [Fact]
+        public void ThePlanGivesWayOnlyOnceTheCardIsAtItsLeast()
+        {
+            var plan = CornerFit.Plan(400f, 100f, 330f, card: true, scale: 1f);
+            Assert.Equal(400f - CornerFit.Bottom - 100f - CornerFit.Top - CornerFit.CardLeast - CornerFit.Gap, plan, 3);
+            var boxTop = 400f - CornerFit.Bottom - 100f - plan;
+            Assert.Equal(CornerFit.CardLeast, CornerFit.Card(500f, stageTop: 0f, boxTop: boxTop, scale: 1f), 3);
+        }
+
+        [Fact]
+        public void NeitherThePlanNorTheCardShrinksUnderItsLeast()
+        {
+            Assert.Equal(CornerFit.PlanLeast, CornerFit.Plan(100f, 100f, 330f, card: true, scale: 1f), 3);
+            Assert.Equal(CornerFit.CardLeast * 2f, CornerFit.Card(500f, stageTop: 0f, boxTop: 20f, scale: 2f), 3);
+        }
+
+        [Fact]
+        public void TheCardAndThePlanBoxNeverCoverEachOtherWhereBothFitAtTheirLeast()
+        {
+            foreach (var scale in new[] { 1f, 1.5f })
             {
-                Assert.Equal(PlanMap.Overlaps(rooms, grounds, angle), PlanMap.Overlaps(rooms, grounds, angle + 180f));
+                for (var stage = 150f; stage <= 1200f; stage += 25f)
+                {
+                    foreach (var rows in new[] { 80f, 124f })
+                    {
+                        foreach (var wanted in new[] { 150f, 330f })
+                        {
+                            foreach (var cardWanted in new[] { 60f, 200f, 600f })
+                            {
+                                var plan = CornerFit.Plan(stage, rows * scale, wanted * scale, card: true, scale: scale);
+                                var boxTop = stage - CornerFit.Bottom * scale - rows * scale - plan;
+                                var card = CornerFit.Card(cardWanted * scale, stageTop: 0f, boxTop: boxTop, scale: scale);
+                                Assert.True(plan >= CornerFit.PlanLeast * scale - 0.01f);
+                                if (stage < (CornerFit.Top + CornerFit.CardLeast + CornerFit.Gap + CornerFit.PlanLeast + CornerFit.Bottom + rows) * scale) continue;
+                                Assert.True(CornerFit.Top * scale + card + CornerFit.Gap * scale <= boxTop + 0.01f, $"stage {stage} at {scale}: card {card} over the box at {boxTop}");
+                            }
+                        }
+                    }
+                }
             }
         }
-
-        /// <summary>Three rooms 10 m apart in a line north, on one ground.</summary>
-        private static PlacedRoom[] Row() => new[] { Room(0f, 0f, 0f), Room(0f, 0f, 10f), Room(0f, 0f, 20f) };
-
-        private static readonly float[] Level = { 0f, 0f, 0f };
-
-        [Fact]
-        public void LeastOverlapTurnsTheMapToTheNearestAngleWhereTheFewestRoomsCoverEachOther()
-        {
-            // Facing along the row every room covers the others; from 35 degrees round they stand apart.
-            Assert.Equal(3, PlanMap.Overlaps(Row(), Level, 0f));
-            Assert.Equal(0, PlanMap.Overlaps(Row(), Level, 35f));
-            Assert.True(PlanMap.Overlaps(Row(), Level, 30f) > 0);
-            Assert.Equal(35f, PlanMap.LeastOverlap(Row(), Level, 0f));
-        }
-
-        [Fact]
-        public void OnATieTheAngleNearestTheOneShownIsKept()
-        {
-            // 100 degrees already shows none overlapping: the map stays where it was put.
-            Assert.Equal(100f, PlanMap.LeastOverlap(Row(), Level, 100f));
-            Assert.Equal(100f, PlanMap.LeastOverlap(Row(), Level, 102f));
-            // The far side of the turn is as good, and nearer the angle shown.
-            Assert.Equal(215f, PlanMap.LeastOverlap(Row(), Level, 200f));
-        }
-
-        [Fact]
-        public void AnglesAreApartTheShortWayRound()
-        {
-            Assert.Equal(30f, PlanMap.Apart(350f, 20f), 3);
-            Assert.Equal(30f, PlanMap.Apart(20f, 350f), 3);
-            Assert.Equal(180f, PlanMap.Apart(0f, 180f), 3);
-            Assert.Equal(10f, PlanMap.Apart(-5f, 5f), 3);
-        }
-
-        [Fact]
-        public void FollowingTheViewTheMapShowsOnTheRightWhatTheStageShowsOnTheRight()
-        {
-            var p = Room(10f, 0f, 0f);
-            var q = Room(0f, 0f, 10f);
-            foreach (var yaw in new[] { 0f, 30f, 135f, 250f, 330f })
-            {
-                var (pRight, _) = ExamplePlan.Turn(p.Position.X, p.Position.Z, yaw);
-                var (qRight, _) = ExamplePlan.Turn(q.Position.X, q.Position.Z, yaw);
-                var angle = PlanMap.Following(yaw);
-                Assert.Equal(Math.Sign(pRight - qRight), Math.Sign(Middle(PlanMap.Across(p, angle)) - Middle(PlanMap.Across(q, angle))));
-            }
-        }
-
-        [Fact]
-        public void DraggingAcrossTheMapTurnsItAndGoesOnRound()
-        {
-            Assert.Equal(20f, PlanMap.Turned(0f, 25f), 3);
-            Assert.Equal(10f, PlanMap.Turned(350f, 25f), 3);
-            Assert.Equal(350f, PlanMap.Turned(10f, -25f), 3);
-        }
-
-        [Fact]
-        public void TheMapStandsTheHighestRoomsStoreyAtTheTopAndTheDeepestGroundAtTheBottom()
-        {
-            var (top, bottom) = PlanMap.Heights(new[] { -2f, -20f, 1f });
-            Assert.Equal(1f + PlanMap.Storey, top, 3);
-            Assert.Equal(-20f, bottom, 3);
-        }
-
-        private static (float, float) Rounded((float Min, float Max) span) => ((float)Math.Round(span.Min, 3), (float)Math.Round(span.Max, 3));
-
-        private static float Middle((float Min, float Max) span) => (span.Min + span.Max) / 2f;
 
         // ----- The tree: rows by rooms in from the entrance, each room under the room it is reached from -----
 
@@ -241,7 +147,8 @@ namespace Scry.Tests
 
         /// <summary>
         /// An entrance with a branch to the west and one to the east; the west room leads on to one
-        /// room, standing far east of everything; the east room to two, the nearer west first.
+        /// room, standing far east of everything; the east room to two, the nearer west first. The
+        /// rooms lie from 10 m west to 40 m east.
         /// </summary>
         private static (DungeonWays Ways, PlacedRoom Entrance, PlacedRoom West, PlacedRoom East, PlacedRoom FarOff, PlacedRoom Near, PlacedRoom Far) Branches()
         {
@@ -266,39 +173,58 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheEntranceStandsInTheMiddleAndARowSpreadsEvenlyAcross()
+        public void ARowsRoomsStandInTheOrderTheyLieAcrossTheDungeonWhereverTheyAreReachedFrom()
         {
-            var (ways, entrance, west, east, _, _, _) = Branches();
+            // The west branch's room stands far east: it stands at the east end of its row.
+            var (ways, _, west, east, farOff, near, far) = Branches();
             var tree = TreeRows.Of(ways, r => r.Position.X);
-            Assert.Equal(0.5f, tree.AcrossOf(entrance), 3);
-            Assert.Equal(0.25f, tree.AcrossOf(west), 3);
-            Assert.Equal(0.75f, tree.AcrossOf(east), 3);
+            Assert.True(tree.AcrossOf(west) < tree.AcrossOf(east));
+            Assert.True(tree.AcrossOf(near) < tree.AcrossOf(far));
+            Assert.True(tree.AcrossOf(far) < tree.AcrossOf(farOff));
         }
 
         [Fact]
-        public void EachRoomStandsUnderTheRoomItIsReachedFromWhereverItLies()
+        public void TheFullestRowSpreadsEvenlyAcross()
         {
-            // The west branch's room stands far east, yet stays under the west room, so no way crosses.
             var (ways, _, _, _, farOff, near, far) = Branches();
             var tree = TreeRows.Of(ways, r => r.Position.X);
-            Assert.True(tree.AcrossOf(farOff) < tree.AcrossOf(near));
-            Assert.True(tree.AcrossOf(near) < tree.AcrossOf(far));
-            Assert.Equal(1f / 6f, tree.AcrossOf(farOff), 3);
+            Assert.Equal(1f / 6f, tree.AcrossOf(near), 3);
+            Assert.Equal(0.5f, tree.AcrossOf(far), 3);
+            Assert.Equal(5f / 6f, tree.AcrossOf(farOff), 3);
         }
 
         [Fact]
-        public void ARoomReachedFromTwoRoomsStandsBetweenThem()
+        public void ARoomWithRoomInItsRowStandsWhereItLiesAcross()
+        {
+            // The rooms lie from 10 m west to 40 m east; the fullest row holds three, so the tree's
+            // ends stand a sixth in. The entrance, alone in its row, stands where it lies, at 0 m,
+            // rather than in the middle.
+            var (ways, entrance, _, _, _, _, _) = Branches();
+            var tree = TreeRows.Of(ways, r => r.Position.X);
+            Assert.Equal(1f / 6f + 10f / 50f * (2f / 3f), tree.AcrossOf(entrance), 3);
+        }
+
+        [Fact]
+        public void NoTwoRoomsOfARowStandNearerThanTheFullestRowSpreadsItsOwn()
         {
             // A loop: the middle room joins both the west and the east room; each also leads to one of its own.
             var entrance = Placed("entrance", 0f, 0f, 0, At(-5f, 0f), At(5f, 0f));
             var west = Placed("west", -10f, 0f, 1, At(-5f, 0f), At(-10f, 5f), At(-6f, 5f));
             var east = Placed("east", 10f, 0f, 2, At(5f, 0f), At(10f, 5f), At(6f, 5f));
-            var middle = Placed("middle", 100f, 10f, 3, At(-6f, 5f), At(6f, 5f));
-            var westOwn = Placed("west's own", -10f, 10f, 4, At(-10f, 5f));
-            var eastOwn = Placed("east's own", 10f, 10f, 5, At(10f, 5f));
-            var tree = TreeRows.Of(DungeonWays.Of(new[] { entrance, west, east, middle, westOwn, eastOwn }), r => r.Position.X);
-            Assert.True(tree.AcrossOf(westOwn) < tree.AcrossOf(middle));
-            Assert.True(tree.AcrossOf(middle) < tree.AcrossOf(eastOwn));
+            var middle = Placed("middle", 1f, 10f, 3, At(-6f, 5f), At(6f, 5f));
+            var westOwn = Placed("west's own", -9f, 10f, 4, At(-10f, 5f));
+            var eastOwn = Placed("east's own", 0f, 10f, 5, At(10f, 5f));
+            foreach (var ways in new[] { DungeonWays.Of(new[] { entrance, west, east, middle, westOwn, eastOwn }), Branches().Ways })
+            {
+                var tree = TreeRows.Of(ways, r => r.Position.X);
+                var rows = ways.Rooms.GroupBy(tree.RowOf).Select(g => g.Select(tree.AcrossOf).OrderBy(a => a).ToList()).ToList();
+                var gap = 1f / rows.Max(r => r.Count);
+                foreach (var row in rows)
+                {
+                    Assert.All(row, a => Assert.InRange(a, gap / 2f - 0.001f, 1f - gap / 2f + 0.001f));
+                    for (var i = 1; i < row.Count; i++) Assert.True(row[i] - row[i - 1] >= gap - 0.001f, $"{row[i - 1]} and {row[i]} nearer than {gap}");
+                }
+            }
         }
 
         [Fact]
@@ -411,14 +337,16 @@ namespace Scry.Tests
         {
             Assert.Equal("Whole dungeon, 12 rooms", PlanBoxWords.Caption(12));
             Assert.Equal("Whole dungeon, 1 room", PlanBoxWords.Caption(1));
-            Assert.Equal("3 overlapping", PlanBoxWords.Overlapping(3));
-            Assert.Equal("None overlapping", PlanBoxWords.Overlapping(0));
-            Assert.Equal("35°", PlanBoxWords.Angle(35.4f));
-            Assert.Equal("33°", PlanBoxWords.Angle(32.5f));
-            Assert.Equal("0°", PlanBoxWords.Angle(359.6f));
             Assert.Equal("Above", PlanBoxWords.ViewName(PlanView.Above));
-            Assert.Equal("Map", PlanBoxWords.ViewName(PlanView.Map));
+            Assert.Equal("Levels", PlanBoxWords.ViewName(PlanView.Levels));
             Assert.Equal("Tree", PlanBoxWords.ViewName(PlanView.Tree));
+        }
+
+        [Fact]
+        public void ALevelTellsHowDeepItsHighestRoomIs()
+        {
+            Assert.Equal("-16 m", PlanBoxWords.LevelDepth(-15.6f));
+            Assert.Equal("0 m", PlanBoxWords.LevelDepth(0.2f));
         }
 
         [Fact]

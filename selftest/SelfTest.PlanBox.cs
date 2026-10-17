@@ -9,12 +9,10 @@ namespace Scry
     {
         /// <summary>
         /// The plan box of a dungeon's example inside. For each reference dungeon, each of its
-        /// views, Above, Map and Tree, is drawn compact and grown, with a spot for every room;
-        /// each room is found under the mouse at its spot (in the tree and on the map always, the
-        /// map's rooms on one level in lanes; from above unless a room drawn over it stands there),
-        /// and every way is drawn; grown, the stage is framed beside it.
-        /// Dragging across the map turns it, and Least overlap turns it to the angle the model
-        /// picks. A room under the mouse, pointed at in the box and then on the stage, is framed in
+        /// views, Above, Levels and Tree, is drawn compact and grown, with a spot for every room;
+        /// each room is found under the mouse at its spot (in the levels and the tree always; from
+        /// above unless a room drawn over it stands there), and every way is drawn; grown, the stage
+        /// is framed beside it. The levels are as many as the model lays out. A room under the mouse, pointed at in the box and then on the stage, is framed in
         /// the box alone and named there, the way drawn to it, and outlined on the stage with no
         /// room gone into; it goes out as the mouse leaves; a click on one goes into it. The view and size chosen are remembered in the panel's file.
         /// The panel's font holds every sign the box and card draw. Each view is pictured.
@@ -38,8 +36,7 @@ namespace Scry
             var unwayed = new List<string>();
             var unfound = new List<string>();
             var unframed = new List<string>();
-            var unturned = new List<string>();
-            var notLeast = new List<string>();
+            var unlevelled = new List<string>();
             var unlitBox = new List<string>();
             var unlitStage = new List<string>();
             var stayedLit = new List<string>();
@@ -64,7 +61,7 @@ namespace Scry
 
                 foreach (var big in new[] { false, true })
                 {
-                    foreach (var view in new[] { PlanView.Above, PlanView.Map, PlanView.Tree })
+                    foreach (var view in new[] { PlanView.Above, PlanView.Levels, PlanView.Tree })
                     {
                         ScryPanel.GrowPlanForTest(big);
                         ScryPanel.ShowPlanViewForTest(view);
@@ -76,7 +73,7 @@ namespace Scry
                         var pairs = ways.Rooms.Sum(r => ways.WaysOf(r).Count(o => ways.Rooms.Contains(o))) / 2;
                         if (ScryPanel.PlanBoxWaysDrawn != pairs) unwayed.Add($"{name}: {Numbers.Count(ScryPanel.PlanBoxWaysDrawn)} of {Numbers.Count(pairs)} ways drawn");
 
-                        // Each room under the mouse at its spot; from above one drawn over it may stand there, on the map and in the tree none.
+                        // Each room under the mouse at its spot; from above one drawn over it may stand there, in the levels and the tree none.
                         var found = 0;
                         var covered = 0;
                         foreach (var (room, at) in spots)
@@ -86,30 +83,22 @@ namespace Scry
                             else if (view == PlanView.Above && under != null && spots.FindIndex(s => s.Room == under) > spots.FindIndex(s => s.Room == room)) covered++;
                             else unfound.Add($"{name}: {room.Room.Name} found as {(under != null ? under.Room.Name : "nothing")}");
                         }
-                        p.Note($"{name}: {Numbers.Count(found)} of {Numbers.Count(spots.Count)} rooms found at their spots, {Numbers.Count(covered)} under a room drawn over them" + (view == PlanView.Map ? $", {Numbers.Count(ScryPanel.MapOverlapsShown)} overlapping at {PlanBoxWords.Angle(ScryPanel.MapAngleShown)}" : ""));
+                        p.Note($"{name}: {Numbers.Count(found)} of {Numbers.Count(spots.Count)} rooms found at their spots, {Numbers.Count(covered)} under a room drawn over them" + (view == PlanView.Levels ? $", on {Numbers.Count(ScryPanel.PlanBoxLevelsShown)} levels" : ""));
 
                         if (big != Stage.ViewShift > 0f) unframed.Add($"{name}: the stage framed {Numbers.Fixed(Stage.ViewShift, 2)} of its width aside");
                         yield return Picture(p, $"plan {name}");
                     }
                 }
 
-                // The map: dragged across, it turns; Least overlap turns it to the angle the model picks.
+                // The levels: as many as the model lays out from the rooms' grounds.
                 ScryPanel.GrowPlanForTest(false);
-                ScryPanel.ShowPlanViewForTest(PlanView.Map);
-                ScryPanel.SetMapAngleForTest(10f);
-                ScryPanel.DragMapForTest(25f);
-                if (System.Math.Abs(ScryPanel.MapAngleShown - 30f) > 0.01f) unturned.Add($"{entry.Name}: at {Numbers.Fixed(ScryPanel.MapAngleShown, 1)} after a drag from 10");
-                var rooms = ways.Rooms.ToList();
-                var grounds = rooms.Select(Stage.ExampleRoomGround).ToList();
-                var expected = PlanMap.LeastOverlap(rooms, grounds, ScryPanel.MapAngleShown);
-                ScryPanel.LeastOverlapForTest();
-                var drawnMap = ScryPanel.Drawn(PanelPart.PlanBox);
-                yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnMap + 1, 3);
-                var fewest = Enumerable.Range(0, 36).Min(i => PlanMap.Overlaps(rooms, grounds, i * PlanMap.Step));
-                if (System.Math.Abs(ScryPanel.MapAngleShown - expected) > 0.01f || ScryPanel.MapOverlapsShown != fewest)
-                    notLeast.Add($"{entry.Name}: {PlanBoxWords.Angle(ScryPanel.MapAngleShown)} with {Numbers.Count(ScryPanel.MapOverlapsShown)} overlapping, the model picks {PlanBoxWords.Angle(expected)} with {Numbers.Count(fewest)}");
-                p.Note($"{entry.Name}: Least overlap turned the map to {PlanBoxWords.Angle(ScryPanel.MapAngleShown)}, {Numbers.Count(ScryPanel.MapOverlapsShown)} overlapping");
-                yield return Picture(p, $"plan {entry.Name} Map least overlap");
+                ScryPanel.ShowPlanViewForTest(PlanView.Levels);
+                var drawnLevels = ScryPanel.Drawn(PanelPart.PlanBox);
+                yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnLevels + 1, 3);
+                var placedRooms = ways.Rooms.ToList();
+                var laidOut = PlanLevels.Of(placedRooms, placedRooms.Select(Stage.ExampleRoomGround).ToList()).Levels;
+                p.Note($"{entry.Name}: {Numbers.Count(ScryPanel.PlanBoxLevelsShown)} levels shown, of {string.Join(", ", laidOut.Select(l => Numbers.Count(l.Rooms.Count)))} rooms");
+                if (ScryPanel.PlanBoxLevelsShown != laidOut.Count) unlevelled.Add($"{entry.Name}: {Numbers.Count(ScryPanel.PlanBoxLevelsShown)} levels shown, {Numbers.Count(laidOut.Count)} laid out");
 
                 // A room under the mouse in the box is framed there alone and named, the way drawn to
                 // it, and outlined on the stage with no room gone into; the mouse is pointed through
@@ -159,7 +148,7 @@ namespace Scry
                 if (onStage == null) unlitStage.Add($"{entry.Name}: no room found under the mouse on the stage");
                 else
                 {
-                    foreach (var view in new[] { PlanView.Map, PlanView.Tree, PlanView.Above })
+                    foreach (var view in new[] { PlanView.Levels, PlanView.Tree, PlanView.Above })
                     {
                         ScryPanel.ShowPlanViewForTest(view);
                         var drawnView = ScryPanel.Drawn(PanelPart.PlanBox);
@@ -271,10 +260,9 @@ namespace Scry
             StageAsItWas();
             p.Check(unspotted.Count == 0, "each view of the plan box has a spot for every room, compact and grown", string.Join("; ", unspotted.Take(6)));
             p.Check(unwayed.Count == 0, "every view of the plan box draws every way between its rooms", string.Join("; ", unwayed.Take(6)));
-            p.Check(unfound.Count == 0, "every room is found under the mouse at its spot, on the map and in the tree whole, from above unless a room drawn over it stands there", string.Join("; ", unfound.Take(6)));
+            p.Check(unfound.Count == 0, "every room is found under the mouse at its spot, in the levels and the tree whole, from above unless a room drawn over it stands there", string.Join("; ", unfound.Take(6)));
             p.Check(unframed.Count == 0, "grown, the stage is framed beside the plan box; compact, in its middle", string.Join("; ", unframed.Take(6)));
-            p.Check(unturned.Count == 0, "dragging across the map turns it", string.Join("; ", unturned));
-            p.Check(notLeast.Count == 0, "Least overlap turns the map to the angle with the fewest rooms over each other", string.Join("; ", notLeast));
+            p.Check(unlevelled.Count == 0, "the Levels view shows as many levels as the rooms' grounds lay out", string.Join("; ", unlevelled));
             p.Check(unlitBox.Count == 0, "a room under the mouse in the plan box is framed there alone and named, the way drawn to it, and outlined on the stage", string.Join("; ", unlitBox.Take(6)));
             p.Check(unlitStage.Count == 0, "a room under the mouse on the stage is framed in the plan box alone and named in every view, the way drawn to it, and outlined on the stage", string.Join("; ", unlitStage.Take(6)));
             p.Check(stayedLit.Count == 0, "the room lit goes out as the mouse leaves it", string.Join("; ", stayedLit));

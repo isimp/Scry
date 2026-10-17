@@ -76,7 +76,7 @@ namespace Scry
             set => _stageScale = Mathf.Clamp(value, 0.4f, 2.4f);
         }
 
-        private enum Drag { None, Move, Resize, Orbit, StageSize, Pan, ListSize, Ruler, MapTurn }
+        private enum Drag { None, Move, Resize, Orbit, StageSize, Pan, ListSize, Ruler }
 
         private static Drag _drag;
 
@@ -227,9 +227,6 @@ namespace Scry
                     // What was under the pointer goes with it.
                     var now = GUIUtility.GUIToScreenPoint(e.mousePosition);
                     Stage.Pan(OnPicture(now - e.delta), OnPicture(now));
-                    break;
-                case Drag.MapTurn:
-                    TurnMap(e.delta.x / _s);
                     break;
                 case Drag.Ruler:
                     RulerAt(GUIUtility.GUIToScreenPoint(e.mousePosition).y);

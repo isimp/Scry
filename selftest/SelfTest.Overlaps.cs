@@ -43,6 +43,7 @@ namespace Scry
             var overlaps = new List<string>();
             var looked = 0;
             var pictured = 0;
+            var scrolled = 0;
             foreach (var goneInto in new[] { false, true })
             {
                 if (goneInto)
@@ -64,6 +65,7 @@ namespace Scry
                             var repaints = ScryPanel.Repaints;
                             yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
                             looked++;
+                            if (goneInto && ScryPanel.RoomCardScrolls) scrolled++;
                             var name = $"{(compact ? "compact" : "full")} view, stage at {Numbers.Fixed(height, 1)}, plan box {box}, {(goneInto ? "deepest room gone into" : "no room gone into")}";
                             var pieces = ScryPanel.StagePieces.ToList();
                             var found = false;
@@ -85,7 +87,7 @@ namespace Scry
                     }
                 }
             }
-            p.Note($"{entry.Name}: looked at {Numbers.Count(looked)} ways of showing it, {Numbers.Count(overlaps.Count)} overlaps found");
+            p.Note($"{entry.Name}: looked at {Numbers.Count(looked)} ways of showing it, {Numbers.Count(overlaps.Count)} overlaps found; the card scrolled in {Numbers.Count(scrolled)} of them, giving way to the plan box");
 
             ScryPanel.HoverStageForTest(null);
             Stage.ComeOut();
