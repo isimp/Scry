@@ -41,7 +41,7 @@ namespace Scry
 
         /// <summary>The way back out of a room gone into, under the plan.</summary>
         public const string Whole = "Whole dungeon";
-        public const string WholeTip = "Comes back out to the whole dungeon, as Esc does";
+        public const string WholeTip = "Whole dungeon: comes back out to it, as Esc does";
 
         public static string GrowTip(bool big) => big ? "Shrinks the plan back" : "Grows the plan and names its rooms";
 

@@ -65,13 +65,21 @@ namespace Scry
         public List<Vec3> Route(IReadOnlyList<PlacedRoom> rooms)
         {
             var points = new List<Vec3>();
+            foreach (var (point, _) in RouteIn(rooms)) points.Add(point);
+            return points;
+        }
+
+        /// <summary>The same walkway, each point with the room it runs in: a doorway two rooms share with the first, where the way leaves it.</summary>
+        public List<(Vec3 Point, PlacedRoom Room)> RouteIn(IReadOnlyList<PlacedRoom> rooms)
+        {
+            var points = new List<(Vec3, PlacedRoom)>();
             for (var i = 0; i < rooms.Count; i++)
             {
                 var entry = i > 0 ? _ways.DoorBetween(rooms[i - 1], rooms[i]) : null;
                 var exit = i < rooms.Count - 1 ? _ways.DoorBetween(rooms[i], rooms[i + 1]) : null;
                 foreach (var point in RoomWalkway.Through(rooms[i], entry, exit))
                 {
-                    if (points.Count == 0 || Vec3.Distance(points[points.Count - 1], point) > 0.001f) points.Add(point);
+                    if (points.Count == 0 || Vec3.Distance(points[points.Count - 1].Item1, point) > 0.001f) points.Add((point, rooms[i]));
                 }
             }
             return points;

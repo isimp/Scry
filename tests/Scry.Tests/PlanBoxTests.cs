@@ -519,7 +519,8 @@ namespace Scry.Tests
         public void TheWayBackOutIsCalledWholeDungeonWhereverItStands()
         {
             Assert.Equal("Whole dungeon", PlanBoxWords.Whole);
-            Assert.StartsWith("Comes back out", PlanBoxWords.WholeTip);
+            // An icon under the plan, its tip names it.
+            Assert.StartsWith("Whole dungeon: comes back out", PlanBoxWords.WholeTip);
         }
 
         [Fact]

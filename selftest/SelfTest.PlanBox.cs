@@ -298,6 +298,10 @@ namespace Scry
                     if (leftIn > 0 || belowStanding != belowRooms.Count || ScryPanel.PlanBoxWaysDown == 0 || remembered != false)
                         unswitched.Add($"{entry.Name}: {Numbers.Count(leftIn)} of {Numbers.Count(belowRooms.Count)} rooms below still in the plan, {Numbers.Count(belowStanding)} standing on the stage, {Numbers.Count(ScryPanel.PlanBoxWaysDown)} ways down marked, the file saying {remembered?.ToString() ?? "nothing"}");
                     else yield return Picture(p, $"plan {entry.Name} rooms below left out of the plan");
+                    // A way down's mark stands for the room it leads to: the mouse on it finds that room.
+                    var marks = ScryPanel.PlanBoxWayDownMarksForTest.ToList();
+                    if (marks.Count > 0 && ScryPanel.PlanBoxRoomAtForTest(marks[0].At.center) != marks[0].Room)
+                        unswitched.Add($"{entry.Name}: the mark of the way down to {marks[0].Room.Room.Name} finds {ScryPanel.PlanBoxRoomAtForTest(marks[0].At.center)?.Room.Name ?? "nothing"}");
                     ScryPanel.ShowBelowForTest(true);
                     var drawnOn = ScryPanel.Drawn(PanelPart.PlanBox);
                     yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnOn + 1, 3);
@@ -405,7 +409,7 @@ namespace Scry
             p.Check(stayedLit.Count == 0, "the room lit goes out as the mouse leaves it", string.Join("; ", stayedLit));
             p.Check(slowFollow.Count == 0, "going from room to room on the stage, the outline and the plan box follow within three frames", string.Join("; ", slowFollow));
             p.Check(foundBelow > 0 && unchosen.Count == 0, "with a floor opened, a room dimmed below it is found under the mouse on the stage and outlined", foundBelow == 0 ? "no room dimmed below a floor was found in any dungeon" : string.Join("; ", unchosen));
-            p.Check(switchTried > 0 && unswitched.Count == 0, "the box's switch leaves the rooms below the room gone into out of the plan from above, its ways down marked, and back, the stage showing them as before; remembered with the panel", switchTried == 0 ? "no entrance had rooms below it to try the switch on" : string.Join("; ", unswitched));
+            p.Check(switchTried > 0 && unswitched.Count == 0, "the box's switch leaves the rooms below the room gone into out of the plan from above, its ways down marked, each mark finding the room it leads to, and back, the stage showing them as before; remembered with the panel", switchTried == 0 ? "no entrance had rooms below it to try the switch on" : string.Join("; ", unswitched));
             p.Check(noWayBack.Count == 0, "in a room, Whole dungeon stands under the plan", string.Join("; ", noWayBack));
             p.Check(roomRulerTried > 0 && unruled.Count == 0, "in a room the ruler is its own: Shift and the wheel keep the cut within it, past its top its roof on and the rooms above back, down from there cut again, the roof button too, never leaving the room; cut from the side, none", roomRulerTried == 0 ? "no deepest room was cut from above" : string.Join("; ", unruled.Take(6)));
             p.Check(unfresh.Count == 0, "going into a room and coming back out frame it afresh, a zoom or drag on what was framed before let go of", string.Join("; ", unfresh));

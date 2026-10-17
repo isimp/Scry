@@ -307,5 +307,25 @@ namespace Scry.Tests
             var walkway = PlanWalkways.Of(ways).Route(new List<PlacedRoom> { entrance });
             Same(new[] { entrance.Position }, walkway);
         }
+
+        [Fact]
+        public void EachPointOfTheWayFromTheEntranceKnowsTheRoomItRunsIn()
+        {
+            // So the levels can drop the way from one plate to the next at the doorway it goes through.
+            var (ways, entrance, east, _, corner) = Loop();
+            var route = new List<PlacedRoom> { entrance, east, corner };
+            var walkways = PlanWalkways.Of(ways);
+            var walkway = walkways.RouteIn(route);
+            Same(walkways.Route(route), walkway.Select(p => p.Point).ToList());
+            Assert.Same(entrance, walkway[0].Room);
+            Assert.Same(corner, walkway[walkway.Count - 1].Room);
+            // The doorway two rooms share is the first room's, where the way leaves it.
+            var door = ways.DoorBetween(entrance, east).Value;
+            Assert.Same(entrance, walkway.First(p => Vec3.Distance(p.Point, door) < 0.001f).Room);
+            // The rooms come in the route's order, each once, a run of points each.
+            var runs = new List<PlacedRoom>();
+            foreach (var point in walkway) if (runs.Count == 0 || runs[runs.Count - 1] != point.Room) runs.Add(point.Room);
+            Assert.Equal(route, runs);
+        }
     }
 }
