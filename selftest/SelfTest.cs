@@ -131,6 +131,8 @@ namespace Scry
             // The list is shown while the test runs, as parts read what it draws: the search's
             // help, the mod report and the floor's marks stand in it.
             ScryPanel.ListsHidden = (false, false);
+            // The rooms below stand dimmed while the test runs, as its parts look at them so.
+            Stage.BelowShown = true;
             AllKnown();
             Frames.Clear();
             Timing.Measuring = Frames;
@@ -215,6 +217,9 @@ namespace Scry
             public float StageScale;
             public (bool Full, bool Compact) ListsHidden;
 
+            /// <summary>Whether the rooms below stood dimmed, as the plan box's switch had it.</summary>
+            public bool BelowShown;
+
             /// <summary>The view the panel was in when the test first opened it, for the full view the stage is drawn in.</summary>
             public bool? Compact;
 
@@ -233,6 +238,7 @@ namespace Scry
                 LocationsWere = Locations.Now,
                 StageScale = ScryPanel.StageScale,
                 ListsHidden = ScryPanel.ListsHidden,
+                BelowShown = Stage.BelowShown,
             };
         }
 
@@ -274,6 +280,7 @@ namespace Scry
             StageAsItWas();
             ScryPanel.StageScale = before.StageScale;
             ScryPanel.ListsHidden = before.ListsHidden;
+            Stage.BelowShown = before.BelowShown;
             ScryPanel.RememberPlaceForTest();
             Session.ShowKnownInstead(null);
             if (Session.Explorer != null) Session.Explorer.Peeking = false;

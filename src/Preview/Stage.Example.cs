@@ -278,6 +278,13 @@ namespace Scry
         /// <summary>How a room of the example shows: as the room gone into has it, else as the floor opened has it (<see cref="StageExample.LookOf"/>).</summary>
         public static RoomLook ExampleRoomLook(PlacedRoom room) => TheExample.LookOf(room, ExamplePlanFloor, ExampleFloors);
 
+        /// <summary>Whether the rooms below the floor opened or the room gone into stand dimmed on the stage, as the plan box's switch has it; else they are put away.</summary>
+        public static bool BelowShown
+        {
+            get => TheExample.BelowShown;
+            set => TheExample.BelowShown = value;
+        }
+
         /// <summary>Whether a room's copy of the example stands and the share of its colours it keeps as dimmed, for the self-test.</summary>
         [Diagnostic]
         public static (bool Standing, float? Keep)? ExampleRoomDrawn(PlacedRoom room) => TheExample.Drawn(room);

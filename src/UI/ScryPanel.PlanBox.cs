@@ -189,6 +189,7 @@ namespace Scry
         {
             if (place.PlanView.HasValue) _planView = place.PlanView.Value;
             if (place.PlanBig.HasValue) _planBig = place.PlanBig.Value;
+            if (place.PlanBelow.HasValue) Stage.BelowShown = place.PlanBelow.Value;
         }
 
         private static void ChoosePlanView(PlanView view)
@@ -197,6 +198,18 @@ namespace Scry
             _planView = view;
             SaveRects();
         }
+
+        /// <summary>Shows the rooms below dimmed on the stage, or puts them away, as the box's switch does; remembered with the panel.</summary>
+        private static void ShowBelow(bool shown)
+        {
+            if (shown == Stage.BelowShown) return;
+            Stage.BelowShown = shown;
+            SaveRects();
+        }
+
+        /// <summary>Flips the switch for the rooms below as its button does, for the self-test.</summary>
+        [Diagnostic]
+        public static void ShowBelowForTest(bool shown) => ShowBelow(shown);
 
         private static void GrowPlan(bool big)
         {
@@ -278,7 +291,7 @@ namespace Scry
             // it has room; else the caption shares a second row with grow and fold.
             var segmentsW = 0f;
             foreach (var view in ViewsRightToLeft) segmentsW += Skin.Width(Skin.SegmentOn, PlanBoxWords.ViewName(view)) + U(12f);
-            var controlsW = U(6f) + rowH + U(4f) + U(16f);
+            var controlsW = U(6f) + rowH + U(4f) + rowH + U(4f) + U(16f);
             var oneRow = width - pad * 2f >= segmentsW + controlsW + U(90f);
             var headerH = oneRow ? rowH : rowH * 2f + U(2f);
             // Whole, with its trail and its Entrance and Deepest, where the stage holds it so; else
@@ -308,7 +321,8 @@ namespace Scry
             var controlsY = oneRow ? y : y + rowH + U(2f);
             var fold = new Rect(box.xMax - pad - U(16f), controlsY + U(3f), U(16f), U(16f));
             var grow = new Rect(fold.x - U(4f) - rowH, controlsY, rowH, rowH);
-            var segX = oneRow ? grow.x - U(6f) : x + segmentsW;
+            var below = new Rect(grow.x - U(4f) - rowH, controlsY, rowH, rowH);
+            var segX = oneRow ? below.x - U(6f) : x + segmentsW;
             foreach (var view in ViewsRightToLeft)
             {
                 var name = PlanBoxWords.ViewName(view);
@@ -321,6 +335,11 @@ namespace Scry
                 if (segment.Contains(e.mousePosition)) AskTip("plan-view:" + name, PlanBoxWords.ViewTip(view));
                 if (GUI.Button(segment, name, Skin.Fitted(style, segment)) && !on) ChoosePlanView(view);
             }
+            // The rooms below the floor opened or the room gone into, dimmed on the stage or put away.
+            var belowShown = Stage.BelowShown;
+            if (below.Contains(e.mousePosition)) AskTip("plan:below", PlanBoxWords.BelowTip(belowShown));
+            if (GUI.Button(below, GUIContent.none, belowShown ? Skin.On : Skin.IconButton)) ShowBelow(!belowShown);
+            if (repaint) Skin.Icon(new Rect(below.x + U(4f), below.y + U(4f), below.width - U(8f), below.height - U(8f)), Skin.Down, belowShown ? Skin.Accent : Skin.Dim);
             if (grow.Contains(e.mousePosition)) AskTip("plan:grow", PlanBoxWords.GrowTip(_planBig));
             if (GUI.Button(grow, GUIContent.none, _planBig ? Skin.On : Skin.IconButton)) GrowPlan(!_planBig);
             if (repaint) Skin.Icon(new Rect(grow.x + U(4f), grow.y + U(4f), grow.width - U(8f), grow.height - U(8f)), Skin.Resize, _planBig ? Skin.Accent : Skin.Dim);
@@ -377,7 +396,7 @@ namespace Scry
             }
             var caption = _boxLit != null ? BoxRoomName(explorer, _boxLit) : PlanBoxWords.Caption(BoxRooms.Count);
             if (repaint) PlanBoxCaptionShown = caption;
-            var captionRect = oneRow ? new Rect(x, y, Mathf.Max(U(20f), segX - x - U(4f)), rowH) : new Rect(x, controlsY, Mathf.Max(U(20f), grow.x - U(6f) - x), rowH);
+            var captionRect = oneRow ? new Rect(x, y, Mathf.Max(U(20f), segX - x - U(4f)), rowH) : new Rect(x, controlsY, Mathf.Max(U(20f), below.x - U(6f) - x), rowH);
             FitLabel(captionRect, caption, Skin.FaintLabel, 10f);
             y = area.yMax + gap;
 

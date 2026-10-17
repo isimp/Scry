@@ -42,9 +42,10 @@ namespace Scry
         /// <summary>Whether what plays (clips, effects, sounds) plays again each time it ends.</summary>
         public bool? Repeat;
 
-        /// <summary>How the plan box shows a dungeon's example, and whether it is grown.</summary>
+        /// <summary>How the plan box shows a dungeon's example, whether it is grown, and whether the rooms below stand dimmed on the stage.</summary>
         public PlanView? PlanView;
         public bool? PlanBig;
+        public bool? PlanBelow;
 
         /// <summary>The settings in the file's lines.</summary>
         public static PanelPlace Read(IEnumerable<string> lines)
@@ -76,6 +77,7 @@ namespace Scry
                     case "repeat" when value != null: place.Repeat = value == "1"; break;
                     case "planview" when value != null: place.PlanView = ViewOf(value) ?? place.PlanView; break;
                     case "planbig" when value != null: place.PlanBig = value == "1"; break;
+                    case "planbelow" when value != null: place.PlanBelow = value == "1"; break;
                 }
             }
             return place;
@@ -104,6 +106,7 @@ namespace Scry
             if (Repeat.HasValue) yield return "repeat " + Flag(Repeat.Value);
             if (PlanView.HasValue) yield return "planview " + WordOf(PlanView.Value);
             if (PlanBig.HasValue) yield return "planbig " + Flag(PlanBig.Value);
+            if (PlanBelow.HasValue) yield return "planbelow " + Flag(PlanBelow.Value);
         }
 
         private static string WordOf(PlanView view) => view == Scry.PlanView.Levels ? "levels" : view == Scry.PlanView.Tree ? "tree" : "above";

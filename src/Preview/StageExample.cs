@@ -235,6 +235,15 @@ namespace Scry
         public RoomLook LookOf(PlacedRoom room, float? planFloor, IReadOnlyList<float> floors)
         {
             if (_heldLook is RoomLook held) return held;
+            return RoomFocus.WithBelow(OwnLookOf(room, planFloor, floors), BelowShown);
+        }
+
+        /// <summary>Whether the rooms below the floor opened or the room gone into stand dimmed; else they are put away (<see cref="RoomFocus.WithBelow"/>).</summary>
+        public bool BelowShown { get; set; } = true;
+
+        /// <summary>How a room shows before the switch for the rooms below: as the room gone into has it, else as the floor opened has it.</summary>
+        private RoomLook OwnLookOf(PlacedRoom room, float? planFloor, IReadOnlyList<float> floors)
+        {
             room = ExamplePlan.LooksAs(room);
             if (Focused != null)
             {

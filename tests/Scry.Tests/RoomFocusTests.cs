@@ -45,5 +45,27 @@ namespace Scry.Tests
             // Never so low that what stands on the ground is cut through.
             Assert.True(RoomFocus.Cut(-10f, -9.5f) >= -10f + 1.4f - 0.001f);
         }
+
+        // ----- The plan box's switch for the rooms below -----
+
+        [Fact]
+        public void WithTheRoomsBelowSwitchedOffThoseDimmedBelowArePutAway()
+        {
+            Assert.Equal(RoomLook.Away, RoomFocus.WithBelow(RoomLook.Below, belowShown: false));
+        }
+
+        [Fact]
+        public void TheRoomItselfAndThoseOnItsLevelStandWhateverTheSwitch()
+        {
+            Assert.Equal(RoomLook.Whole, RoomFocus.WithBelow(RoomLook.Whole, belowShown: false));
+            Assert.Equal(RoomLook.Near, RoomFocus.WithBelow(RoomLook.Near, belowShown: false));
+            Assert.Equal(RoomLook.Away, RoomFocus.WithBelow(RoomLook.Away, belowShown: false));
+        }
+
+        [Fact]
+        public void WithTheRoomsBelowSwitchedOnEveryLookIsAsItWas()
+        {
+            foreach (var look in new[] { RoomLook.Whole, RoomLook.Near, RoomLook.Below, RoomLook.Away }) Assert.Equal(look, RoomFocus.WithBelow(look, belowShown: true));
+        }
     }
 }

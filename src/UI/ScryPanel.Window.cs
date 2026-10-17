@@ -298,6 +298,7 @@ namespace Scry
                 Repeat = Previews.Repeat,
                 PlanView = _planView,
                 PlanBig = _planBig,
+                PlanBelow = Stage.BelowShown,
             };
             Directory.CreateDirectory(Settings.DataFolder);
             File.WriteAllLines(RectFile, place.Lines());

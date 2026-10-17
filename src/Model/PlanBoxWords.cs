@@ -34,6 +34,11 @@ namespace Scry
             }
         }
 
+        /// <summary>The tip of the switch for the rooms below the floor opened or the room gone into.</summary>
+        public static string BelowTip(bool shown) => shown
+            ? "The rooms below stand dimmed on the stage; click to put them away"
+            : "The rooms below are put away on the stage; click to show them dimmed";
+
         public static string GrowTip(bool big) => big ? "Shrinks the plan back" : "Grows the plan and names its rooms";
 
         /// <summary>The tip of the box folded as the stage is too short for it under the room's card.</summary>
