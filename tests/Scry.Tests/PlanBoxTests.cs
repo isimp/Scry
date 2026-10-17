@@ -77,7 +77,22 @@ namespace Scry.Tests
         public void WithNoRoomGoneIntoThePlanTakesWhatTheStageLeaves()
         {
             Assert.Equal(330f, CornerFit.Plan(700f, 100f, 330f, card: false, scale: 1f), 3);
-            Assert.Equal(300f - CornerFit.Bottom - CornerFit.Above - 100f, CornerFit.Plan(300f, 100f, 330f, card: false, scale: 1f), 3);
+            Assert.Equal(300f - CornerFit.Bottom - CornerFit.Top - 100f, CornerFit.Plan(300f, 100f, 330f, card: false, scale: 1f), 3);
+        }
+
+        [Fact]
+        public void ThePlanBoxStaysUnderTheKindsTagWhereTheStageHoldsItAtItsLeast()
+        {
+            foreach (var card in new[] { false, true })
+            {
+                for (var stage = 150f; stage <= 1200f; stage += 25f)
+                {
+                    var plan = CornerFit.Plan(stage, 90f, 330f, card, scale: 1f);
+                    var boxTop = stage - CornerFit.Bottom - 90f - plan;
+                    if (stage < CornerFit.Top + CornerFit.PlanLeast + 90f + CornerFit.Bottom) continue;
+                    Assert.True(boxTop >= CornerFit.Top - 0.01f, $"a stage {stage} tall: the box's top at {boxTop}");
+                }
+            }
         }
 
         [Fact]

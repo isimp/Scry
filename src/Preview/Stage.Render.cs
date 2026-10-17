@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Scry
 {
@@ -22,38 +23,47 @@ namespace Scry
         /// <summary>How long the camera took to film the stage the last time, for the self-test.</summary>
         public static double LastFilmMs { get; private set; }
 
-        /// <summary>Whether the outlines are filmed past the cut, on a layer of their own, for the self-test.</summary>
+        /// <summary>Whether the outlines are drawn past the cut, on a layer of their own, for the self-test.</summary>
         [Diagnostic]
         public static bool OutlinesPastCutForTest => OutlinesPastCut;
 
-        /// <summary>How often the outlines have been filmed past the cut, for the self-test.</summary>
+        /// <summary>How often the outlines have been drawn past the cut, for the self-test.</summary>
         [Diagnostic]
         public static int OutlinesFilmed { get; private set; }
 
+        /// <summary>The command buffer that draws the outlines at the end of a film, and the camera it is laid on.</summary>
+        private static CommandBuffer _outlineBuffer;
+        private static Camera _outlineBufferOn;
+
         /// <summary>
-        /// The outlines of the room gone into and the room lit, filmed over the picture by the
-        /// camera with no cut, on their own layer, so a room's whole box shows however low the cut
-        /// is; the line draws over everything as it did with the rest.
+        /// Lays the outlines of the room gone into and the room lit in the camera's next film, drawn
+        /// at its very end with the camera's view and its projection without the cut, so a room's
+        /// whole box shows however low the cut is, at no cost of filming again; the line draws over
+        /// everything as it did with the rest. With none to draw, or none past the cut, the film
+        /// draws none.
         /// </summary>
-        private static void FilmOutlines(int mask)
+        private static void OutlinesInFilm(bool draw)
         {
-            if (!OutlinesPastCut || !OutlineShown && !LitOutlineShown) return;
+            if (_camera == null) return;
+            if (_outlineBufferOn != _camera)
+            {
+                if (_outlineBuffer == null) _outlineBuffer = new CommandBuffer { name = "Scry room outlines" };
+                if (_outlineBufferOn != null) _outlineBufferOn.RemoveCommandBuffer(CameraEvent.AfterEverything, _outlineBuffer);
+                _camera.AddCommandBuffer(CameraEvent.AfterEverything, _outlineBuffer);
+                _outlineBufferOn = _camera;
+            }
+            _outlineBuffer.Clear();
+            if (!draw || !OutlinesPastCut || _outlineMaterial == null || !OutlineShown && !LitOutlineShown) return;
+
+            // The projection the camera has without a cut, its own put back after.
             var projection = _camera.projectionMatrix;
-            var clear = _camera.clearFlags;
-            try
-            {
-                _camera.ResetProjectionMatrix();
-                _camera.cullingMask = 1 << OutlineLayer;
-                _camera.clearFlags = CameraClearFlags.Nothing;
-                _camera.Render();
-                OutlinesFilmed++;
-            }
-            finally
-            {
-                _camera.cullingMask = mask;
-                _camera.clearFlags = clear;
-                _camera.projectionMatrix = projection;
-            }
+            _camera.ResetProjectionMatrix();
+            var plain = _camera.projectionMatrix;
+            if (projection != plain) _camera.projectionMatrix = projection;
+            _outlineBuffer.SetViewProjectionMatrices(_camera.worldToCameraMatrix, plain);
+            if (OutlineShown) _outlineBuffer.DrawRenderer(_outline, _outlineMaterial);
+            if (LitOutlineShown) _outlineBuffer.DrawRenderer(_litOutline, _outlineMaterial);
+            OutlinesFilmed++;
         }
 
         /// <summary>Films the stage, when the panel showed it in the last couple of frames.</summary>
@@ -117,6 +127,9 @@ namespace Scry
                 step = Timing.Start();
                 DrawGrass();
                 Timing.Add("render grass", step);
+                // The outlines are drawn at the end of the frame's last film.
+                var creaturesAgain = _aboveCut != null && CreatureLayer != _layer && Creatures.AnyMade;
+                OutlinesInFilm(!creaturesAgain);
                 step = Timing.Start();
                 var filming = System.Diagnostics.Stopwatch.GetTimestamp();
                 _camera.Render();
@@ -128,8 +141,9 @@ namespace Scry
                 // else. What of them is above it is drawn again over the picture, by a projection
                 // that keeps only what is above the cut (StageCamera.AboveCutRow): nothing below
                 // the cut can stand before it, as the camera looks from above.
-                if (_aboveCut != null && CreatureLayer != _layer && Creatures.AnyMade)
+                if (creaturesAgain)
                 {
+                    OutlinesInFilm(true);
                     var projection = _camera.projectionMatrix;
                     var clear = _camera.clearFlags;
                     try
@@ -152,9 +166,7 @@ namespace Scry
                         _camera.projectionMatrix = projection;
                     }
                 }
-                step = Timing.Start();
-                FilmOutlines(mask);
-                Timing.Add("render outlines", step);
+                OutlinesInFilm(false);
             }
             finally
             {

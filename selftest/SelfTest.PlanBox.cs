@@ -43,7 +43,8 @@ namespace Scry
             var slowFollow = new List<string>();
             var unchosen = new List<string>();
             var unwhole = new List<string>();
-            p.Note(Stage.OutlinesPastCutForTest ? "the outlines are filmed past the cut, on a layer of their own" : "the outlines are drawn with the cut, to just under it, for want of a free layer");
+            var foundBelow = 0;
+            p.Note(Stage.OutlinesPastCutForTest ? "the outlines are drawn past the cut, on a layer of their own" : "the outlines are drawn with the cut, to just under it, for want of a free layer");
             var notIn = new List<string>();
             foreach (var entry in places)
             {
@@ -121,6 +122,10 @@ namespace Scry
                 // stage finds under the middle of one in view, outside the box; and a second one,
                 // for the mouse to go from one to the other.
                 ScryPanel.ShowPlanViewForTest(PlanView.Above);
+                // The camera settled first, as the box's size moves what it frames.
+                yield return Until(() => !Stage.Gliding, 5);
+                var settling = Time.frameCount;
+                yield return Until(() => Time.frameCount >= settling + 10, 2);
                 PlacedRoom onStage = null, other = null;
                 Vector2? onStageAt = null, otherAt = null;
                 var standing = Stage.ExampleShown?.Rooms;
@@ -171,11 +176,13 @@ namespace Scry
                     var slowest = 0;
                     for (var i = 0; i < 8; i++)
                     {
-                        var target = i % 2 == 0 ? other : onStage;
                         ScryPanel.HoverStageForTest(i % 2 == 0 ? otherAt : onStageAt);
                         var from = Time.frameCount;
-                        yield return Until(() => Stage.LitRoom == target && Stage.LitOutlineShown && ScryPanel.PlanBoxLitShown.Contains(target), 3);
-                        slowest = System.Math.Max(slowest, Time.frameCount - from);
+                        // Whatever room the stage finds there, lit on the stage and framed in the box.
+                        yield return Until(() => ScryPanel.StageRoomHovered is PlacedRoom hovered && Stage.LitRoom == hovered && Stage.LitOutlineShown && ScryPanel.PlanBoxLitShown.Contains(hovered), 3);
+                        var took = Time.frameCount - from;
+                        if (took > 3 && slowFollow.Count < 6) slowFollow.Add($"{entry.Name}: {Numbers.Count(took)} frames, found {ScryPanel.StageRoomHovered?.Room.Name ?? "nothing"}, lit {Stage.LitRoom?.Room.Name ?? "nothing"}, outlined {Stage.LitOutlineShown}, framed in the box {Numbers.Count(ScryPanel.PlanBoxLitShown.Count)}");
+                        slowest = System.Math.Max(slowest, took);
                         var resting = Time.frameCount;
                         yield return Until(() => Time.frameCount >= resting + 10, 2);
                     }
@@ -184,7 +191,6 @@ namespace Scry
                     p.Note($"{entry.Name}: going from room to room on the stage, the outline and the box followed within {Numbers.Count(slowest)} frames; frames took {Numbers.Fixed((Time.unscaledTime - timeBefore) * 1000f / frameCount, 1)} ms on average"
                         + (hovering != null ? $", Scry's own work {Numbers.Fixed(hovering.Mean, 2)} ms of it, {Numbers.Fixed(hovering.Percentile(0.95), 2)} ms at the 95th percentile, {Numbers.Fixed(hovering.Max, 2)} ms at the most" : "")
                         + $"; Scry allocated about {Numbers.Count((Timing.ScryBytes - bytesBefore) / frameCount)} bytes a frame, by part: {Timing.BytesByPartTold(6)}");
-                    if (slowest > 3) slowFollow.Add($"{entry.Name}: {Numbers.Count(slowest)} frames");
                 }
 
                 ScryPanel.HoverStageForTest(null);
@@ -200,20 +206,30 @@ namespace Scry
                     yield return Until(() => Stage.Cutting && Stage.ExampleRoomsKept, 3);
                     PlacedRoom below = null;
                     var placedNow = Stage.ExampleShown?.Rooms;
-                    for (var i = 0; placedNow != null && i < placedNow.Count && below == null; i++)
+                    // Each dimmed room's middle first, then points across the whole picture, as a
+                    // stack's lower rooms stand only where the floor opened leaves them in view.
+                    var points = new List<Vector2>();
+                    for (var i = 0; placedNow != null && i < placedNow.Count; i++)
                     {
-                        if (Stage.ExampleRoomShown(placedNow[i]) != PlanRoomShown.Faint) continue;
-                        var point = Stage.ExamplePointOf(i);
-                        if (!InPicture(point)) continue;
+                        if (Stage.ExampleRoomShown(placedNow[i]) == PlanRoomShown.Faint && Stage.ExamplePointOf(i) is Vector2 middle && InPicture(middle)) points.Add(middle);
+                    }
+                    for (var gx = 1; gx < 10; gx++)
+                    {
+                        for (var gy = 1; gy < 8; gy++) points.Add(new Vector2(gx / 10f, gy / 8f));
+                    }
+                    foreach (var point in points)
+                    {
+                        if (below != null) break;
                         ScryPanel.HoverStageForTest(point);
                         var drawnBelow = ScryPanel.Drawn(PanelPart.PlanBox);
                         yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnBelow + 1, 3);
                         var found = ScryPanel.StageRoomHovered;
                         if (found != null && Stage.ExampleRoomShown(found) == PlanRoomShown.Faint) below = found;
                     }
-                    if (below == null) unchosen.Add($"{entry.Name}: no room dimmed below the top floor found under the mouse");
+                    if (below == null) p.Note($"{entry.Name}: no room dimmed below the top floor stands in view outside the floor opened");
                     else
                     {
+                        foundBelow++;
                         yield return Until(() => Stage.LitRoom == below && Stage.LitOutlineShown, 3);
                         var top = below.Position.Y + below.Room.Size.Y / 2f;
                         if (Stage.LitRoom != below || !Stage.LitOutlineShown) unchosen.Add($"{entry.Name}: {below.Room.Name} found but not outlined");
@@ -267,7 +283,7 @@ namespace Scry
             p.Check(unlitStage.Count == 0, "a room under the mouse on the stage is framed in the plan box alone and named in every view, the way drawn to it, and outlined on the stage", string.Join("; ", unlitStage.Take(6)));
             p.Check(stayedLit.Count == 0, "the room lit goes out as the mouse leaves it", string.Join("; ", stayedLit));
             p.Check(slowFollow.Count == 0, "going from room to room on the stage, the outline and the plan box follow within three frames", string.Join("; ", slowFollow));
-            p.Check(unchosen.Count == 0, "with a floor opened, a room dimmed below it is found under the mouse on the stage and outlined", string.Join("; ", unchosen));
+            p.Check(foundBelow > 0 && unchosen.Count == 0, "with a floor opened, a room dimmed below it is found under the mouse on the stage and outlined", foundBelow == 0 ? "no room dimmed below a floor was found in any dungeon" : string.Join("; ", unchosen));
             p.Check(unwhole.Count == 0, "the outlines of the room gone into and of the room lit stand their whole box however low the cut", string.Join("; ", unwhole));
             p.Check(notIn.Count == 0, "a click on a room in the plan box goes into it", string.Join("; ", notIn));
         }

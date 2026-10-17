@@ -59,7 +59,7 @@ namespace Scry
         private static readonly float[] CornerTops = new float[4];
 
         /// <summary>
-        /// A room's top at each corner of its box: its own top, filmed past the cut; else under the
+        /// A room's top at each corner of its box: its own top, drawn past the cut; else under the
         /// cut where that is lower, the cut's height at that corner along the slope where one is laid.
         /// </summary>
         private static float[] TopsOf(PlacedRoom room, bool underCut)
@@ -106,7 +106,7 @@ namespace Scry
 
         /// <summary>
         /// Each film: stands the fainter line, half as wide, round the room lit, from its ground to
-        /// its top, filmed past the cut (<see cref="FilmOutlines"/>); drawn with the cut, to just
+        /// its top, drawn past the cut (<see cref="OutlinesInFilm"/>); drawn with the cut, to just
         /// under it, and one wholly above the cut, put away, just under the cut where it lies
         /// above. Puts it away with none lit.
         /// </summary>

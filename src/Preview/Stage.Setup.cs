@@ -198,8 +198,8 @@ namespace Scry
         }
 
         /// <summary>
-        /// The layer the outlines of rooms stand on, filmed after the rest with no cut so a room's
-        /// whole box shows however low the cut is (<see cref="FilmOutlines"/>): the next free one
+        /// The layer the outlines of rooms stand on, which the film leaves out, drawn at its end with no cut so a room's
+        /// whole box shows however low the cut is (<see cref="OutlinesInFilm"/>): the next free one
         /// after the stage's and the creatures'; the stage's own where there is none, and then
         /// the outlines are drawn with the cut, to just under it.
         /// </summary>
@@ -217,7 +217,7 @@ namespace Scry
             }
         }
 
-        /// <summary>Whether the outlines of rooms are filmed past the cut, on a layer of their own.</summary>
+        /// <summary>Whether the outlines of rooms are drawn past the cut, on a layer of their own.</summary>
         private static bool OutlinesPastCut => OutlineLayer != _layer;
 
         /// <summary>

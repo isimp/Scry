@@ -11,14 +11,11 @@ namespace Scry
     /// </summary>
     internal static class CornerFit
     {
-        /// <summary>How far under the stage's top the card begins, under the kind's tag.</summary>
+        /// <summary>How far under the stage's top the card begins, and the plan box at the highest, under the kind's tag.</summary>
         public const float Top = 37f;
 
         /// <summary>How far over the stage's bottom the plan box ends, over the note under the picture.</summary>
         public const float Bottom = 34f;
-
-        /// <summary>How far under the stage's top the plan box may reach with no card.</summary>
-        public const float Above = 14f;
 
         /// <summary>The gap between the card and the plan box.</summary>
         public const float Gap = 8f;
@@ -31,12 +28,12 @@ namespace Scry
 
         /// <summary>
         /// The plan's height in the plan box: as wanted, else what the stage leaves over the box's
-        /// other rows, under the stage's top or, with a card, under the card at its least; never
+        /// other rows, under the kind's tag or, with a card, under the card at its least; never
         /// under its own least.
         /// </summary>
         public static float Plan(float stage, float rows, float wanted, bool card, float scale)
         {
-            var over = card ? Top + CardLeast + Gap : Above;
+            var over = card ? Top + CardLeast + Gap : Top;
             var room = stage - (Bottom + over) * scale - rows;
             return Math.Max(PlanLeast * scale, Math.Min(wanted, room));
         }
