@@ -38,8 +38,12 @@ namespace Scry
             public float Angle;
             public bool Dashed;
 
+            /// <summary>Its four corners where it is drawn as a four-sided shape, as on a plate seen at a slant; none for a turned rectangle.</summary>
+            public Vector2[] Quad;
+
             public bool Contains(Vector2 point)
             {
+                if (Quad != null) return InQuad(Quad, point);
                 var d = point - Centre;
                 var a = -Angle * Mathf.Deg2Rad;
                 var x = d.x * Mathf.Cos(a) - d.y * Mathf.Sin(a);
@@ -400,6 +404,22 @@ namespace Scry
         private static string BoxRoomName(Explorer explorer, PlacedRoom room) =>
             ShownName(explorer, EntryKeys.For(Kind.Location, room.Room.Name), LocationWords.RoomName(room.Room.Name));
 
+        /// <summary>Whether a point lies inside a four-sided shape with no corner bent in, its corners in order round it.</summary>
+        private static bool InQuad(Vector2[] quad, Vector2 point)
+        {
+            var sign = 0f;
+            for (var i = 0; i < 4; i++)
+            {
+                var a = quad[i];
+                var b = quad[(i + 1) % 4];
+                var cross = (b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x);
+                if (Mathf.Abs(cross) < 1e-4f) continue;
+                if (sign == 0f) sign = Mathf.Sign(cross);
+                else if (Mathf.Sign(cross) != sign) return false;
+            }
+            return true;
+        }
+
         /// <summary>The room under a point of the box: the topmost drawn whole there, else the topmost drawn in dashes.</summary>
         private static PlacedRoom BoxRoomAt(Vector2 point)
         {
@@ -459,6 +479,12 @@ namespace Scry
         /// <summary>A room's tile, turned as it is: filled, outlined, or outlined in dashes.</summary>
         private static void BoxTile(BoxSpot spot, Color? fill, Color outline, float thickness, bool dashed = false)
         {
+            if (spot.Quad != null)
+            {
+                if (fill is Color shade) QuadFill(spot.Quad, shade);
+                for (var c = 0; c < 4; c++) PlanLine(spot.Quad[c], spot.Quad[(c + 1) % 4], outline, thickness, dashed ? U(3f) : 0f);
+                return;
+            }
             var was = GUI.matrix;
             GUIUtility.RotateAroundPivot(spot.Angle, spot.Centre);
             var rect = new Rect(spot.Centre - spot.Half, spot.Half * 2f);
@@ -564,16 +590,23 @@ namespace Scry
         /// <summary>The labels a view writes of its own, as each level's depth, which room names keep clear of.</summary>
         private static readonly List<Rect> ViewLabels = new List<Rect>();
 
-        /// <summary>Where each level's plan stood as last drawn.</summary>
-        private static readonly List<Rect> LevelFrames = new List<Rect>();
+        /// <summary>The corners of a level's plate on the turned plan, kept between drawings.</summary>
+        private static readonly Vector2[] PlateCorners = new Vector2[4];
+
+        /// <summary>The plates and the rooms' tiles on them as last laid out, and what they were laid out for.</summary>
+        private static LevelPlates _plates;
+        private static PlanLevels _platesOf;
+        private static Rect _platesArea;
+        private static float _platesYaw = float.NaN;
+        private static readonly List<BoxSpot> PlateSpots = new List<BoxSpot>();
 
         /// <summary>
-        /// Each level a plan from above (<see cref="PlanLevels"/>), the highest first, one under the
-        /// other at one scale and turned with the view as Above is, in one frame across, so rooms
-        /// over each other line up; each room a tile shaded by its depth, the room gone into in the
-        /// accent; each level's depth beside it; the ways lines through the doorways they share, a
-        /// way down dropping straight from its doorway on the level above to the same doorway on
-        /// the level below.
+        /// Each level a floor plate seen at a slant (<see cref="PlanLevels"/>, <see cref="LevelPlates"/>),
+        /// the highest first, one under the other at one scale and turned with the view as Above
+        /// is, so a spot over another on the next level stands straight above it; each room a tile
+        /// on its plate shaded by its depth, the room gone into in the accent; each level's depth
+        /// beside its plate; the ways lines through the doorways they share, a way down dropping
+        /// straight from its doorway on the plate above to the same doorway on the plate below.
         /// </summary>
         private static void LevelsView(Explorer explorer, Rect area, PlacedRoom gone)
         {
@@ -604,46 +637,58 @@ namespace Scry
             var labelW = 0f;
             foreach (var said in LevelSaid) labelW = Mathf.Max(labelW, Skin.Width(Skin.FaintLabel, said));
             labelW += U(8f);
-            var tall = 0f;
-            foreach (var (minUp, maxUp) in LevelSpans) tall += Mathf.Max(1f, maxUp - minUp);
-            var gapY = U(10f);
             var inset = U(3f);
-            var wide = Mathf.Max(1f, _levelsWhole.MaxRight - _levelsWhole.MinRight);
-            var scale = Mathf.Min((area.width - labelW - inset * 2f) / wide, (area.height - inset * 2f - gapY * Mathf.Max(0, levels.Count - 1)) / Mathf.Max(1f, tall));
-            var planW = wide * scale;
-            var left = area.x + labelW + (area.width - labelW - planW) / 2f;
-            var top = area.y + (area.height - (tall * scale + gapY * Mathf.Max(0, levels.Count - 1))) / 2f;
-            LevelFrames.Clear();
-            foreach (var (minUp, maxUp) in LevelSpans)
+            // The plates and the rooms' tiles on them, again only as the levels, the turn or the box change.
+            var fresh = !ReferenceEquals(_platesOf, _levels) || _platesArea != area || !Mathf.Approximately(_platesYaw, yaw) || _plates == null;
+            if (fresh)
             {
-                var high = Mathf.Max(1f, maxUp - minUp) * scale;
-                LevelFrames.Add(new Rect(left, top, planW, high));
-                top += high + gapY;
+                _platesOf = _levels;
+                _platesArea = area;
+                _platesYaw = yaw;
+                _plates = LevelPlates.Lay(area.x + labelW, area.y + inset, area.width - labelW - inset, area.height - inset * 2f, U(10f), _levelsWhole, LevelSpans);
+            }
+            var plates = _plates;
+            Vector2 OnPlate(int level, float right, float up)
+            {
+                var (x, y) = plates.At(level, right, up);
+                return new Vector2(x, y);
             }
             Vector2 At(PlacedRoom room, Vec3 p)
             {
-                var level = Mathf.Max(0, _levels.LevelOf(room));
                 var (right, up) = ExamplePlan.Turn(p.X, p.Z, yaw);
-                var frame = LevelFrames[level];
-                return new Vector2(frame.x + (right - _levelsWhole.MinRight) * scale, frame.y + (LevelSpans[level].MaxUp - up) * scale);
+                return OnPlate(Mathf.Max(0, _levels.LevelOf(room)), right, up);
             }
-            foreach (var room in BoxRooms)
+            if (fresh)
             {
-                if (_levels.LevelOf(room) < 0) continue;
-                BoxSpots.Add(new BoxSpot
+                PlateSpots.Clear();
+                foreach (var room in BoxRooms)
                 {
-                    Room = room, Centre = At(room, room.Position), Angle = room.Rotation.YawDegrees - yaw,
-                    Half = new Vector2(Mathf.Max(U(1f), room.Room.Size.X * scale / 2f), Mathf.Max(U(1f), room.Room.Size.Z * scale / 2f)),
-                });
+                    if (_levels.LevelOf(room) < 0) continue;
+                    var corners = room.Corners();
+                    var quad = new Vector2[4];
+                    for (var i = 0; i < 4; i++) quad[i] = At(room, corners[i % corners.Length]);
+                    var min = Vector2.Min(Vector2.Min(quad[0], quad[1]), Vector2.Min(quad[2], quad[3]));
+                    var max = Vector2.Max(Vector2.Max(quad[0], quad[1]), Vector2.Max(quad[2], quad[3]));
+                    PlateSpots.Add(new BoxSpot { Room = room, Centre = At(room, room.Position), Half = (max - min) / 2f, Quad = quad });
+                }
             }
+            BoxSpots.AddRange(PlateSpots);
             if (!repaint) return;
 
-            for (var i = 0; i < LevelFrames.Count; i++)
+            // Each plate, faintly, its depth beside it.
+            for (var i = 0; i < levels.Count; i++)
             {
-                var frame = LevelFrames[i];
-                PlanFrame(new Rect(frame.x - inset, frame.y - inset, frame.width + inset * 2f, frame.height + inset * 2f), Skin.Alpha(Skin.Text, 0.1f), 1f);
+                var (minUp, maxUp) = LevelSpans[i];
+                PlateCorners[0] = OnPlate(i, _levelsWhole.MinRight, maxUp);
+                PlateCorners[1] = OnPlate(i, _levelsWhole.MaxRight, maxUp);
+                PlateCorners[2] = OnPlate(i, _levelsWhole.MaxRight, minUp);
+                PlateCorners[3] = OnPlate(i, _levelsWhole.MinRight, minUp);
+                QuadFill(PlateCorners, Skin.Alpha(Skin.Text, 0.04f));
+                for (var c = 0; c < 4; c++) PlanLine(PlateCorners[c], PlateCorners[(c + 1) % 4], Skin.Alpha(Skin.Text, 0.12f), 1f);
                 var saidW = Skin.Width(Skin.FaintLabel, LevelSaid[i]);
-                var said = new Rect(frame.x - inset - U(4f) - saidW, frame.center.y - U(8f), saidW, U(16f));
+                var middleY = (plates.PlateTop(i) + plates.PlateBottom(i)) / 2f;
+                var leftX = Mathf.Min(PlateCorners[0].x, PlateCorners[3].x);
+                var said = new Rect(leftX - U(4f) - saidW, middleY - U(8f), saidW, U(16f));
                 ViewLabels.Add(said);
                 GUI.Label(said, LevelSaid[i], Skin.FaintLabel);
             }
@@ -651,6 +696,25 @@ namespace Scry
             Ways(room => At(room, room.Position), At);
             foreach (var spot in BoxSpots) if (BoxLit(spot.Room) || spot.Room == gone) BoxTile(spot, null, Skin.Accent, 2f);
             if (_planBig) Names(explorer, area);
+        }
+
+        /// <summary>A four-sided shape filled, its sides two by two alike, as a tile seen at a slant is: from its first corner along the next and the last.</summary>
+        private static void QuadFill(Vector2[] quad, Color colour)
+        {
+            const float side = 100f;
+            var along = (quad[1] - quad[0]) / side;
+            var across = (quad[3] - quad[0]) / side;
+            var shape = Matrix4x4.identity;
+            shape.m00 = along.x;
+            shape.m10 = along.y;
+            shape.m01 = across.x;
+            shape.m11 = across.y;
+            shape.m03 = quad[0].x;
+            shape.m13 = quad[0].y;
+            var was = GUI.matrix;
+            GUI.matrix = was * shape;
+            Skin.Fill(new Rect(0f, 0f, side, side), colour);
+            GUI.matrix = was;
         }
 
         // ----- Tree -----
@@ -824,6 +888,9 @@ namespace Scry
             _levels = null;
             _levelsOf = null;
             _levelsRead = -1;
+            _plates = null;
+            _platesOf = null;
+            PlateSpots.Clear();
             _boxHover = null;
             _boxLit = null;
             _boxPointForTest = null;

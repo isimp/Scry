@@ -71,6 +71,74 @@ namespace Scry.Tests
             }
         }
 
+        // ----- Levels drawn as plates seen at a slant, one under the other -----
+
+        /// <summary>Three levels each as deep as the whole example, 60 m across and 60 m deep, in a box 400 by 330 with 10 between plates.</summary>
+        private static LevelPlates ThreePlates() =>
+            LevelPlates.Lay(10f, 20f, 400f, 330f, 10f, (0f, 60f, 0f, 60f), new[] { (0f, 60f), (0f, 60f), (0f, 60f) });
+
+        [Fact]
+        public void AFarPointOfAPlateStandsHigherAndLeftOfANearOne()
+        {
+            var plates = ThreePlates();
+            var far = plates.At(0, 30f, 50f);
+            var near = plates.At(0, 30f, 10f);
+            Assert.True(far.Y < near.Y);
+            Assert.True(far.X < near.X);
+        }
+
+        [Fact]
+        public void ASpotOverAnotherOnTheNextLevelStandsStraightAboveIt()
+        {
+            var plates = LevelPlates.Lay(10f, 20f, 400f, 330f, 10f, (0f, 60f, -10f, 60f), new[] { (20f, 60f), (-10f, 40f) });
+            var upper = plates.At(0, 25f, 30f);
+            var lower = plates.At(1, 25f, 30f);
+            Assert.Equal(upper.X, lower.X, 3);
+            Assert.True(lower.Y > upper.Y);
+        }
+
+        [Fact]
+        public void PlatesStandHighestFirstOneUnderTheOtherAllInTheBox()
+        {
+            var plates = ThreePlates();
+            for (var i = 1; i < 3; i++) Assert.True(plates.PlateBottom(i - 1) + 10f <= plates.PlateTop(i) + 0.01f);
+            Assert.True(plates.PlateTop(0) >= 20f - 0.01f);
+            Assert.True(plates.PlateBottom(2) <= 20f + 330f + 0.01f);
+            // Standing in the middle of the box across, as the height decides their scale.
+            var xs = new[] { plates.At(0, 0f, 60f).X, plates.At(0, 60f, 0f).X };
+            Assert.Equal(xs.Min() - 10f, 410f - xs.Max(), 1);
+            foreach (var level in new[] { 0, 1, 2 })
+            {
+                foreach (var (right, up) in new[] { (0f, 0f), (60f, 0f), (0f, 60f), (60f, 60f) })
+                {
+                    var at = plates.At(level, right, up);
+                    Assert.InRange(at.X, 10f - 0.01f, 410f + 0.01f);
+                    Assert.InRange(at.Y, 20f - 0.01f, 350f + 0.01f);
+                }
+            }
+        }
+
+        [Fact]
+        public void AWideShallowDungeonsPlateStandsInTheMiddleOfTheBoxAcrossAndInsideIt()
+        {
+            // 200 m across and 20 m deep: the box's width decides the scale.
+            var plates = LevelPlates.Lay(10f, 20f, 400f, 330f, 10f, (0f, 200f, 0f, 20f), new[] { (0f, 20f) });
+            var corners = new[] { plates.At(0, 0f, 0f), plates.At(0, 200f, 0f), plates.At(0, 0f, 20f), plates.At(0, 200f, 20f) };
+            var left = corners.Min(c => c.X);
+            var right = corners.Max(c => c.X);
+            Assert.InRange(left, 10f - 0.01f, 410f);
+            Assert.InRange(right, 10f, 410f + 0.01f);
+            Assert.Equal(left - 10f, 410f - right, 1);
+        }
+
+        [Fact]
+        public void TiltedPlatesDrawTheDungeonBiggerThanFlatPlansOneUnderTheOther()
+        {
+            // Flat, three plans 60 m deep one under the other fit 310 over 180 m.
+            var flat = Math.Min(400f / 60f, (330f - 20f) / 180f);
+            Assert.True(ThreePlates().Scale > flat * 1.5f);
+        }
+
         // ----- The card of the room gone into and the plan box share the stage's left side, neither covering the other -----
 
         [Fact]
