@@ -312,6 +312,11 @@ namespace Scry
                     if (Stage.OutlinesPastCutForTest && (Mathf.Abs(Stage.OutlineTopLaid - deepestTop) > 0.01f || Stage.OutlinesFilmed == filmedOutlines))
                         unwhole.Add($"{entry.Name}: {deepest.Room.Name} gone into, outlined to {Numbers.Fixed(Stage.OutlineTopLaid, 1)} m of its top at {Numbers.Fixed(deepestTop, 1)} m, outlines filmed {Numbers.Count(Stage.OutlinesFilmed - filmedOutlines)} times");
                 }
+                // From above, the walkway to it in the accent along the halls of the rooms on the way.
+                ScryPanel.ShowPlanViewForTest(PlanView.Above);
+                var drawnAbove = ScryPanel.Drawn(PanelPart.PlanBox);
+                yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnAbove + 1 && !Stage.Gliding, 5);
+                yield return Picture(p, $"plan {entry.Name} Above deepest gone into");
                 ScryPanel.ShowPlanViewForTest(PlanView.Tree);
                 var drawnTree = ScryPanel.Drawn(PanelPart.PlanBox);
                 yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnTree + 1 && !Stage.Gliding, 5);
