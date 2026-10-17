@@ -37,6 +37,21 @@ namespace Scry
             ? "Puts away the creatures its spawn points put here"
             : "Shows the creatures its spawn points put here, rolled anew with every copy";
 
+        /// <summary>The mark of the stage's key sheet, in its corner.</summary>
+        public const string KeysMark = "?";
+
+        /// <summary>
+        /// What the stage answers to, a control a line, as its ? shows: turning, moving and
+        /// zooming; with floors, stepping them and moving the cut; in a room gone into, its cut,
+        /// on past its ends, and coming back out.
+        /// </summary>
+        public static string KeySheet(bool cut, bool inRoom)
+        {
+            if (inRoom) return "Drag: turn around the room\nWheel: zoom toward the pointer\nShift and the wheel, Page Up and Down: the room's cut; past its ends, the next level\nEsc, Whole dungeon or the mouse's back button: come back out";
+            const string sheet = "Drag: turn it\nRight-drag: move it\nWheel: zoom toward the pointer\nDouble-click: frame it again";
+            return cut ? sheet + "\nPage Up and Down, the ruler: the next floor or level\nShift and the wheel: move the cut" : sheet;
+        }
+
         /// <summary>The roof button's tip.</summary>
         public static string RoofTip(bool cutting) => cutting
             ? "Cut open over a floor: click to put the roof back on"

@@ -200,18 +200,14 @@ namespace Scry
                 var playedOut = entry.Kind == Kind.Effect && !Previews.Repeat && Stage.Finished;
                 if (playedOut && e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _dragMoved < U(5f) && rect.Contains(e.mousePosition)) Previews.Replay();
 
-                // The camera's buttons show only while the mouse is on the stage, as its hint does,
-                // so the model is not framed by controls while it is looked at.
+                // The camera's buttons show only while the mouse is on the stage, so the model is not
+                // framed by controls while it is looked at; the key sheet's ? stays in the corner.
                 var over = rect.Contains(StageMouse(e, inner)) || _drag == Drag.Orbit;
-                var viewsW = over ? ViewButtons(inner) : 0f;
+                var viewsW = KeysMark(inner) + (over ? ViewButtons(inner) : 0f);
                 var textW = inner.width - U(24f) - viewsW;
                 if (playedOut)
                 {
                     PictureNote(inner, textW, StageWords.PlayedOut);
-                }
-                else if (over)
-                {
-                    PictureNote(inner, textW, Stage.RoomGoneInto != null ? StageHintInRoom : Stage.Cutting ? StageHintCut : StageHint);
                 }
                 else if (ExampleProgress(entry) is string progress)
                 {
@@ -316,7 +312,8 @@ namespace Scry
         {
             var h = U(22f);
             var y = inner.yMax - U(8f) - h;
-            var x = inner.xMax - U(8f);
+            // Left of the key sheet's ?.
+            var x = inner.xMax - U(8f) - h - U(4f);
             var views = new[] { ("Fit", "Frame it whole again"), ("Top", "Look down on it"), ("Side", "Look at it from the side"), ("Front", "Look at it from the front") };
             foreach (var (name, tip) in views)
             {
@@ -335,7 +332,19 @@ namespace Scry
                     SaveRects();
                 }
             }
-            return inner.xMax - U(8f) - x;
+            return inner.xMax - U(8f) - h - U(4f) - x;
+        }
+
+        /// <summary>The ? in the stage's bottom right corner, whose tip is its key sheet for what is shown now (<see cref="StageWords.KeySheet"/>). Returns the width it takes.</summary>
+        private static float KeysMark(Rect inner)
+        {
+            var size = U(22f);
+            var mark = new Rect(inner.xMax - U(8f) - size, inner.yMax - U(8f) - size, size, size);
+            StagePiece("keys", mark);
+            CountDrawn(PanelPart.StageKeys);
+            if (mark.Contains(Event.current.mousePosition)) AskTip("stage-keys", StageWords.KeySheet(Stage.HasFloors, Stage.RoomGoneInto != null));
+            GUI.Label(mark, StageWords.KeysMark, Skin.IconButton);
+            return size + U(4f);
         }
 
         /// <summary>
@@ -344,12 +353,6 @@ namespace Scry
         /// example inside or its entrance, and its creatures. Its roof is put on and taken off
         /// above the ruler, and its plan folds on the plan itself.
         /// </summary>
-        private const string StageHint = "Drag to turn, right-drag to move, scroll to zoom where you point, double-click to reset";
-
-        private const string StageHintCut = "Drag to turn, right-drag to move, scroll to zoom where you point, Page Up/Down or the ruler for floors, Shift-scroll to move the cut";
-
-        private const string StageHintInRoom = "Drag to turn around the room, scroll to zoom where you point, Shift-scroll to move the cut, Esc or the roof button to come back out";
-
         private static void StageButtons(Entry entry, Rect rect)
         {
             var h = U(24f);

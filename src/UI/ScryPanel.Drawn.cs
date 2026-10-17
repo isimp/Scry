@@ -58,6 +58,7 @@ namespace Scry
         RoomCardLine,
         PlanBox,
         PlanName,
+        StageKeys,
     }
 
     internal static partial class ScryPanel

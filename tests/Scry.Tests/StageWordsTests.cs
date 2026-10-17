@@ -4,6 +4,44 @@ namespace Scry.Tests
 {
     public class StageWordsTests
     {
+        // ----- The stage's key sheet, behind its ? in the corner -----
+
+        [Fact]
+        public void TheKeySheetListsWhatTheStageAnswersToForAModel()
+        {
+            var sheet = StageWords.KeySheet(cut: false, inRoom: false);
+            Assert.Contains("Drag: turn", sheet);
+            Assert.Contains("Right-drag: move", sheet);
+            Assert.Contains("Wheel: zoom", sheet);
+            Assert.Contains("Double-click: frame it again", sheet);
+            Assert.DoesNotContain("Page Up", sheet);
+        }
+
+        [Fact]
+        public void OpenedTheKeySheetAddsTheFloorsAndTheCut()
+        {
+            var sheet = StageWords.KeySheet(cut: true, inRoom: false);
+            Assert.Contains("Page Up and Down", sheet);
+            Assert.Contains("Shift and the wheel: move the cut", sheet);
+        }
+
+        [Fact]
+        public void InARoomTheKeySheetSaysHowToComeBackOut()
+        {
+            var sheet = StageWords.KeySheet(cut: true, inRoom: true);
+            Assert.Contains("Esc", sheet);
+            Assert.Contains("back button", sheet);
+            Assert.Contains("past its ends", sheet);
+            // The roof button puts the room's own roof on, it does not leave the room.
+            Assert.DoesNotContain("roof button to come back out", sheet);
+        }
+
+        [Fact]
+        public void TheKeySheetsMarkSaysWhatItShows()
+        {
+            Assert.Equal("?", StageWords.KeysMark);
+        }
+
         [Fact]
         public void ARoomOfADungeonsExampleSaysAClickGoesIntoIt()
         {
