@@ -723,16 +723,20 @@ namespace Scry
             const float side = 100f;
             var along = (quad[1] - quad[0]) / side;
             var across = (quad[3] - quad[0]) / side;
+            // Laid about its first corner where the groups the panel draws in put it, as the GUI's own
+            // turn about a point is, since the GUI's transform works on where things stand in them.
+            var was = GUI.matrix;
+            GUI.matrix = Matrix4x4.identity;
+            var corner = GUIUtility.GUIToScreenPoint(quad[0]);
             var shape = Matrix4x4.identity;
             shape.m00 = along.x;
             shape.m10 = along.y;
             shape.m01 = across.x;
             shape.m11 = across.y;
-            shape.m03 = quad[0].x;
-            shape.m13 = quad[0].y;
-            var was = GUI.matrix;
-            GUI.matrix = was * shape;
-            Skin.Fill(new Rect(0f, 0f, side, side), colour);
+            shape.m03 = corner.x - (along.x * corner.x + across.x * corner.y);
+            shape.m13 = corner.y - (along.y * corner.x + across.y * corner.y);
+            GUI.matrix = shape * was;
+            Skin.Fill(new Rect(quad[0].x, quad[0].y, side, side), colour);
             GUI.matrix = was;
         }
 
@@ -794,7 +798,8 @@ namespace Scry
             bool Clear(Rect r)
             {
                 if (r.x < area.x || r.xMax > area.xMax || r.y < area.y - U(8f) || r.yMax > area.yMax + U(8f)) return false;
-                foreach (var written in WrittenNames) if (written.Overlaps(r)) return false;
+                var spaced = new Rect(r.x - U(3f), r.y, r.width + U(6f), r.height);
+                foreach (var written in WrittenNames) if (written.Overlaps(spaced)) return false;
                 foreach (var other in BoxSpots) if (new Rect(other.Centre - other.Half, other.Half * 2f).Overlaps(r)) return false;
                 return true;
             }

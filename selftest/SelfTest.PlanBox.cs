@@ -47,6 +47,7 @@ namespace Scry
             var foundBelow = 0;
             var unfresh = new List<string>();
             var unswitched = new List<string>();
+            var switchTried = 0;
             var unwheeled = new List<string>();
             var apartCaps = new List<string>();
             p.Note(Stage.OutlinesPastCutForTest ? "the outlines are drawn past the cut, on a layer of their own" : "the outlines are drawn with the cut, to just under it, for want of a free layer");
@@ -261,6 +262,26 @@ namespace Scry
                     Stage.OpenLevel(Stage.FloorHeights.Count);
                 }
 
+                // The switch for the rooms below, in the entrance, which has rooms below it: off, those
+                // dimmed below are put away; on, back.
+                ScryPanel.ClickPlanRoomForTest(ways.Entrance);
+                yield return Until(() => Stage.RoomGoneInto == ways.Entrance && !Stage.Gliding, 5);
+                var belowRooms = (Stage.ExampleShown?.Rooms ?? new List<PlacedRoom>()).Where(r => Stage.ExampleRoomLook(r) == RoomLook.Below).ToList();
+                if (belowRooms.Count > 0)
+                {
+                    switchTried++;
+                    ScryPanel.ShowBelowForTest(false);
+                    yield return Until(() => belowRooms.All(r => Stage.ExampleRoomDrawn(r)?.Standing == false), 3);
+                    var away = belowRooms.Count(r => Stage.ExampleRoomDrawn(r)?.Standing == false);
+                    var remembered = ScryPanel.RememberedForTest().PlanBelow;
+                    if (away != belowRooms.Count || remembered != false) unswitched.Add($"{entry.Name}: {Numbers.Count(away)} of {Numbers.Count(belowRooms.Count)} rooms below put away, the file saying {remembered?.ToString() ?? "nothing"}");
+                    else yield return Picture(p, $"plan {entry.Name} rooms below put away");
+                    ScryPanel.ShowBelowForTest(true);
+                    yield return Until(() => belowRooms.All(r => Stage.ExampleRoomDrawn(r)?.Standing == true), 3);
+                    if (belowRooms.Any(r => Stage.ExampleRoomDrawn(r)?.Standing != true)) unswitched.Add($"{entry.Name}: rooms below not back on");
+                }
+                Stage.ComeOut();
+
                 // A click goes into it, outlined whole however low the cut, framed afresh: a zoom
                 // toward a point of the whole example before let go of.
                 Stage.ZoomBy(-6f, new Vector2(0.3f, 0.6f));
@@ -275,20 +296,6 @@ namespace Scry
                     var deepestTop = deepest.Position.Y + deepest.Room.Size.Y / 2f;
                     if (Stage.OutlinesPastCutForTest && (Mathf.Abs(Stage.OutlineTopLaid - deepestTop) > 0.01f || Stage.OutlinesFilmed == filmedOutlines))
                         unwhole.Add($"{entry.Name}: {deepest.Room.Name} gone into, outlined to {Numbers.Fixed(Stage.OutlineTopLaid, 1)} m of its top at {Numbers.Fixed(deepestTop, 1)} m, outlines filmed {Numbers.Count(Stage.OutlinesFilmed - filmedOutlines)} times");
-                }
-                // The switch for the rooms below: off, those dimmed below the room are put away; on, back.
-                var belowRooms = (Stage.ExampleShown?.Rooms ?? new List<PlacedRoom>()).Where(r => Stage.ExampleRoomLook(r) == RoomLook.Below).ToList();
-                if (belowRooms.Count > 0)
-                {
-                    ScryPanel.ShowBelowForTest(false);
-                    yield return Until(() => belowRooms.All(r => Stage.ExampleRoomDrawn(r)?.Standing == false), 3);
-                    var away = belowRooms.Count(r => Stage.ExampleRoomDrawn(r)?.Standing == false);
-                    var remembered = ScryPanel.RememberedForTest().PlanBelow;
-                    if (away != belowRooms.Count || remembered != false) unswitched.Add($"{entry.Name}: {Numbers.Count(away)} of {Numbers.Count(belowRooms.Count)} rooms below put away, the file saying {remembered?.ToString() ?? "nothing"}");
-                    else yield return Picture(p, $"plan {entry.Name} rooms below put away");
-                    ScryPanel.ShowBelowForTest(true);
-                    yield return Until(() => belowRooms.All(r => Stage.ExampleRoomDrawn(r)?.Standing == true), 3);
-                    if (belowRooms.Any(r => Stage.ExampleRoomDrawn(r)?.Standing != true)) unswitched.Add($"{entry.Name}: rooms below not back on");
                 }
                 ScryPanel.ShowPlanViewForTest(PlanView.Tree);
                 var drawnTree = ScryPanel.Drawn(PanelPart.PlanBox);
@@ -324,7 +331,7 @@ namespace Scry
             p.Check(stayedLit.Count == 0, "the room lit goes out as the mouse leaves it", string.Join("; ", stayedLit));
             p.Check(slowFollow.Count == 0, "going from room to room on the stage, the outline and the plan box follow within three frames", string.Join("; ", slowFollow));
             p.Check(foundBelow > 0 && unchosen.Count == 0, "with a floor opened, a room dimmed below it is found under the mouse on the stage and outlined", foundBelow == 0 ? "no room dimmed below a floor was found in any dungeon" : string.Join("; ", unchosen));
-            p.Check(unswitched.Count == 0, "the box's switch puts the rooms below the room gone into away and back, and is remembered with the panel", string.Join("; ", unswitched));
+            p.Check(switchTried > 0 && unswitched.Count == 0, "the box's switch puts the rooms below the room gone into away and back, and is remembered with the panel", switchTried == 0 ? "no entrance had rooms below it to try the switch on" : string.Join("; ", unswitched));
             p.Check(unfresh.Count == 0, "going into a room and coming back out frame it afresh, a zoom or drag on what was framed before let go of", string.Join("; ", unfresh));
             p.Check(unwheeled.Count == 0, "Shift and the wheel open the top floor from the roof and take the cut no lower than the lowest floor", string.Join("; ", unwheeled));
             p.Check(apartCaps.Count == 0, "with a floor opened, each end cap and divider is drawn as the room it closes", string.Join("; ", apartCaps));
