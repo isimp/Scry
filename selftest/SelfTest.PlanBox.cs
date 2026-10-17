@@ -25,6 +25,7 @@ namespace Scry
             var wasView = ScryPanel.PlanBoxView;
             var wasBig = ScryPanel.PlanBoxBig;
             var wasBelow = ScryPanel.PlanBelowShown;
+            var wasNames = ScryPanel.PlanNamesShown;
             var wasFolded = ScryPanel.PlanFolded;
             ScryPanel.PlanFolded = false;
             Stage.Inside = true;
@@ -400,6 +401,32 @@ namespace Scry
             ScryPanel.GrowPlanForTest(true);
             var kept = ScryPanel.RememberedForTest();
             p.Check(kept.PlanView == PlanView.Tree && kept.PlanBig == true, "the plan box's view and size are remembered with the panel", $"{kept.PlanView}, grown {kept.PlanBig}");
+
+            // Grown, every view names its rooms with the names switch on, and none with it off; remembered.
+            var unnamed = new List<string>();
+            var namesTried = 0;
+            foreach (var view in new[] { PlanView.Above, PlanView.Levels, PlanView.Tree })
+            {
+                ScryPanel.ShowPlanViewForTest(view);
+                ScryPanel.ShowNamesForTest(true);
+                var named = ScryPanel.Drawn(PanelPart.PlanName);
+                var boxes = ScryPanel.Drawn(PanelPart.PlanBox);
+                yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > boxes + 2, 3);
+                if (ScryPanel.Drawn(PanelPart.PlanBox) <= boxes + 2) continue;
+                namesTried++;
+                if (ScryPanel.Drawn(PanelPart.PlanName) == named) unnamed.Add($"{PlanBoxWords.ViewName(view)}: no name with the names on");
+                ScryPanel.ShowNamesForTest(false);
+                yield return null;
+                named = ScryPanel.Drawn(PanelPart.PlanName);
+                boxes = ScryPanel.Drawn(PanelPart.PlanBox);
+                yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > boxes + 2, 3);
+                if (ScryPanel.Drawn(PanelPart.PlanName) != named) unnamed.Add($"{PlanBoxWords.ViewName(view)}: {Numbers.Count(ScryPanel.Drawn(PanelPart.PlanName) - named)} names with the names off");
+                if (view == PlanView.Levels) yield return Picture(p, "plan Levels grown names off");
+            }
+            var namesKept = ScryPanel.RememberedForTest().PlanNames;
+            ScryPanel.ShowNamesForTest(wasNames);
+            if (namesTried == 0) p.Note("the plan box was not drawn to switch its names");
+            else p.Check(unnamed.Count == 0 && namesKept == false, "grown, every view names its rooms with the names switch on and none with it off, remembered with the panel", string.Join("; ", unnamed) + (namesKept == false ? "" : " not remembered"));
 
             ScryPanel.HoverPlanBoxForTest(null);
             ScryPanel.HoverStageForTest(null);

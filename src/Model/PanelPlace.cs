@@ -47,6 +47,9 @@ namespace Scry
         public bool? PlanBig;
         public bool? PlanBelow;
 
+        /// <summary>Whether the grown plan box names its rooms.</summary>
+        public bool? PlanNames;
+
         /// <summary>The settings in the file's lines.</summary>
         public static PanelPlace Read(IEnumerable<string> lines)
         {
@@ -78,6 +81,7 @@ namespace Scry
                     case "planview" when value != null: place.PlanView = ViewOf(value) ?? place.PlanView; break;
                     case "planbig" when value != null: place.PlanBig = value == "1"; break;
                     case "planbelow" when value != null: place.PlanBelow = value == "1"; break;
+                    case "plannames" when value != null: place.PlanNames = value == "1"; break;
                 }
             }
             return place;
@@ -107,6 +111,7 @@ namespace Scry
             if (PlanView.HasValue) yield return "planview " + WordOf(PlanView.Value);
             if (PlanBig.HasValue) yield return "planbig " + Flag(PlanBig.Value);
             if (PlanBelow.HasValue) yield return "planbelow " + Flag(PlanBelow.Value);
+            if (PlanNames.HasValue) yield return "plannames " + Flag(PlanNames.Value);
         }
 
         private static string WordOf(PlanView view) => view == Scry.PlanView.Levels ? "levels" : view == Scry.PlanView.Tree ? "tree" : "above";

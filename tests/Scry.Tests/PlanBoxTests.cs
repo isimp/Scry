@@ -535,6 +535,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheNamesSwitchSaysWhetherThePlanNamesItsRoomsAndWhatAClickDoes()
+        {
+            Assert.Equal("Aa", PlanBoxWords.NamesMark);
+            Assert.Contains("names its rooms", PlanBoxWords.NamesTip(true));
+            Assert.Contains("click to leave them off", PlanBoxWords.NamesTip(true));
+            Assert.Contains("names no room", PlanBoxWords.NamesTip(false));
+            Assert.Contains("click to name them", PlanBoxWords.NamesTip(false));
+        }
+
+        [Fact]
         public void ALevelTellsHowDeepItsHighestRoomIs()
         {
             Assert.Equal("-16 m", PlanBoxWords.LevelDepth(-15.6f));

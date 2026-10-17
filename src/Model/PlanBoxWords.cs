@@ -34,6 +34,14 @@ namespace Scry
             }
         }
 
+        /// <summary>The mark on the switch for the rooms' names on the grown plan.</summary>
+        public const string NamesMark = "Aa";
+
+        /// <summary>The tip of the switch for the rooms' names on the grown plan, in every view.</summary>
+        public static string NamesTip(bool shown) => shown
+            ? "The grown plan names its rooms; click to leave them off"
+            : "The plan names no room; click to name them on the grown plan";
+
         /// <summary>The tip of the switch for the rooms below the room gone into or the floor opened, in the plan from above.</summary>
         public static string BelowTip(bool shown) => shown
             ? "The plan from above shows the rooms below this level too; click to leave them out of it"

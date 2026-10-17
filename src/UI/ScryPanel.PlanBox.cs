@@ -213,7 +213,23 @@ namespace Scry
             if (place.PlanView.HasValue) _planView = place.PlanView.Value;
             if (place.PlanBig.HasValue) _planBig = place.PlanBig.Value;
             if (place.PlanBelow.HasValue) PlanBelowShown = place.PlanBelow.Value;
+            if (place.PlanNames.HasValue) PlanNamesShown = place.PlanNames.Value;
         }
+
+        /// <summary>Whether the grown plan names its rooms, in every view; else it names none.</summary>
+        public static bool PlanNamesShown { get; set; } = true;
+
+        /// <summary>Names the rooms on the grown plan, or leaves the names off, as the box's switch does; remembered with the panel.</summary>
+        private static void ShowNames(bool shown)
+        {
+            if (shown == PlanNamesShown) return;
+            PlanNamesShown = shown;
+            SaveRects();
+        }
+
+        /// <summary>Names the rooms or leaves the names off, as the box's switch does, for the self-test.</summary>
+        [Diagnostic]
+        public static void ShowNamesForTest(bool shown) => ShowNames(shown);
 
         private static void ChoosePlanView(PlanView view)
         {
@@ -344,7 +360,7 @@ namespace Scry
             // it has room; else the caption shares a second row with grow and fold.
             var segmentsW = 0f;
             foreach (var view in ViewsRightToLeft) segmentsW += Skin.Width(Skin.SegmentOn, PlanBoxWords.ViewName(view)) + U(12f);
-            var controlsW = U(6f) + rowH + U(4f) + rowH + U(4f) + U(16f);
+            var controlsW = U(6f) + rowH + U(4f) + rowH + U(4f) + rowH + U(4f) + U(16f);
             var oneRow = width - pad * 2f >= segmentsW + controlsW + U(90f);
             var headerH = oneRow ? rowH : rowH * 2f + U(2f);
             // Whole, with its trail and its Entrance and Deepest, where the stage holds it so; else
@@ -371,13 +387,14 @@ namespace Scry
             var w = box.width - pad * 2f;
             var y = box.y + pad;
 
-            // The header: the three views, grow and fold, and the caption.
+            // The header: the three views, the names, grow and fold, and the caption.
             var controlsY = oneRow ? y : y + rowH + U(2f);
             var fold = new Rect(box.xMax - pad - U(16f), controlsY + U(3f), U(16f), U(16f));
             var grow = new Rect(fold.x - U(4f) - rowH, controlsY, rowH, rowH);
+            var names = new Rect(grow.x - U(4f) - rowH, controlsY, rowH, rowH);
             // The switch for the rooms below acts on the plan from above, and stands only with it.
             var switchShown = _planView == PlanView.Above;
-            var below = switchShown ? new Rect(grow.x - U(4f) - rowH, controlsY, rowH, rowH) : new Rect(grow.x - U(4f), controlsY, 0f, rowH);
+            var below = switchShown ? new Rect(names.x - U(4f) - rowH, controlsY, rowH, rowH) : new Rect(names.x - U(4f), controlsY, 0f, rowH);
             var segX = oneRow ? below.x - U(6f) : x + segmentsW;
             foreach (var view in ViewsRightToLeft)
             {
@@ -399,6 +416,10 @@ namespace Scry
                 if (GUI.Button(below, GUIContent.none, belowShown ? Skin.On : Skin.IconButton)) ShowBelow(!belowShown);
                 if (repaint) Skin.Icon(new Rect(below.x + U(4f), below.y + U(4f), below.width - U(8f), below.height - U(8f)), Skin.Down, belowShown ? Skin.Accent : Skin.Dim);
             }
+            // The rooms' names on the grown plan, in every view.
+            var namesShown = PlanNamesShown;
+            if (names.Contains(e.mousePosition)) AskTip("plan:names", PlanBoxWords.NamesTip(namesShown));
+            if (GUI.Button(names, PlanBoxWords.NamesMark, namesShown ? Skin.On : Skin.IconButton)) ShowNames(!namesShown);
             if (grow.Contains(e.mousePosition)) AskTip("plan:grow", PlanBoxWords.GrowTip(_planBig));
             if (GUI.Button(grow, GUIContent.none, _planBig ? Skin.On : Skin.IconButton)) GrowPlan(!_planBig);
             if (repaint) Skin.Icon(new Rect(grow.x + U(4f), grow.y + U(4f), grow.width - U(8f), grow.height - U(8f)), Skin.Resize, _planBig ? Skin.Accent : Skin.Dim);
@@ -557,7 +578,7 @@ namespace Scry
             foreach (var spot in BoxSpots) if (spot.Dashed) BoxTile(spot, null, Skin.Alpha(Skin.Faint, 0.6f), 1f, dashed: true);
             Walkways((room, p) => At(p), hideBelow, drops: false);
             foreach (var spot in BoxSpots) if (BoxLit(spot.Room) || spot.Room == gone) BoxTile(spot, null, Skin.Accent, 2f);
-            if (_planBig) Names(explorer, area);
+            if (_planBig && PlanNamesShown) Names(explorer, area);
         }
 
         /// <summary>A room's tile, turned as it is: filled, outlined, or outlined in dashes.</summary>
@@ -736,6 +757,7 @@ namespace Scry
                 var rect = new Rect(spot.Centre.x - nameW / 2f, spot.Centre.y - U(8f), nameW, U(16f));
                 if (rect.x < area.x || rect.xMax > area.xMax || rect.y < area.y || rect.yMax > area.yMax || written.Exists(r => r.Overlaps(rect))) continue;
                 written.Add(rect);
+                CountDrawn(PanelPart.PlanName);
                 Skin.Fill(rect, Skin.Alpha(Skin.Stage, 0.6f));
                 GUI.Label(rect, name, Skin.FaintLabel);
             }
@@ -863,7 +885,7 @@ namespace Scry
             foreach (var spot in BoxSpots) BoxTile(spot, spot.Room == gone ? Skin.Alpha(Skin.Accent, 0.75f) : DepthTone(spot.Room), Skin.Alpha(Skin.Text, 0.3f), 1f);
             Walkways(At, null, drops: true);
             foreach (var spot in BoxSpots) if (BoxLit(spot.Room) || spot.Room == gone) BoxTile(spot, null, Skin.Accent, 2f);
-            if (_planBig) Names(explorer, area);
+            if (_planBig && PlanNamesShown) Names(explorer, area);
         }
 
         /// <summary>A four-sided shape filled, its sides two by two alike, as a tile seen at a slant is: from its first corner along the next and the last.</summary>
@@ -963,7 +985,7 @@ namespace Scry
                 WrittenNames.Add(beside);
                 GUI.Label(beside, depth, Skin.FaintLabel);
             }
-            if (!_planBig || _treeRows == null) return;
+            if (!_planBig || _treeRows == null || !PlanNamesShown) return;
 
             // Grown, its name under it, or over it for every other node of its row, as wide as twice
             // the room it has in its row, its type made smaller to fit; left out where it still does not.
@@ -978,6 +1000,7 @@ namespace Scry
             var under = new Rect(spot.Centre.x - room / 2f, over ? spot.Centre.y - spot.Half.y - U(15f) : spot.Centre.y + spot.Half.y + U(1f), room, U(14f));
             if (!Clear(under)) return;
             WrittenNames.Add(under);
+            CountDrawn(PanelPart.PlanName);
             FitLabel(under, name, Skin.FaintLabel, 10f);
         }
 

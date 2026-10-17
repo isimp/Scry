@@ -136,6 +136,8 @@ namespace Scry
             ScryPanel.ListsHidden = (false, false);
             // The rooms below stand dimmed while the test runs, as its parts look at them so.
             ScryPanel.PlanBelowShown = true;
+            // The grown plan names its rooms while the test runs, as its parts read the names.
+            ScryPanel.PlanNamesShown = true;
             // Only where the test points the mouse lights a room, wherever the player's own stands.
             ScryPanel.MouseAwayForTest(true);
             AllKnown();
@@ -224,6 +226,7 @@ namespace Scry
 
             /// <summary>Whether the rooms below stood dimmed, as the plan box's switch had it.</summary>
             public bool BelowShown;
+            public bool NamesShown;
 
             /// <summary>The view the panel was in when the test first opened it, for the full view the stage is drawn in.</summary>
             public bool? Compact;
@@ -244,6 +247,7 @@ namespace Scry
                 StageScale = ScryPanel.StageScale,
                 ListsHidden = ScryPanel.ListsHidden,
                 BelowShown = ScryPanel.PlanBelowShown,
+                NamesShown = ScryPanel.PlanNamesShown,
             };
         }
 
@@ -288,6 +292,7 @@ namespace Scry
             ScryPanel.StageScale = before.StageScale;
             ScryPanel.ListsHidden = before.ListsHidden;
             ScryPanel.PlanBelowShown = before.BelowShown;
+            ScryPanel.PlanNamesShown = before.NamesShown;
             ScryPanel.RememberPlaceForTest();
             Session.ShowKnownInstead(null);
             if (Session.Explorer != null) Session.Explorer.Peeking = false;

@@ -303,6 +303,7 @@ namespace Scry
                 PlanView = _planView,
                 PlanBig = _planBig,
                 PlanBelow = PlanBelowShown,
+                PlanNames = PlanNamesShown,
             };
             Directory.CreateDirectory(Settings.DataFolder);
             File.WriteAllLines(RectFile, place.Lines());

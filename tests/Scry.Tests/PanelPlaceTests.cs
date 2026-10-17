@@ -30,6 +30,15 @@ namespace Scry.Tests
         };
 
         [Fact]
+        public void ThePlanBoxRemembersWhetherItNamesItsRooms()
+        {
+            Assert.False(PanelPlace.Read(new PanelPlace { PlanNames = false }.Lines()).PlanNames);
+            Assert.True(PanelPlace.Read(new PanelPlace { PlanNames = true }.Lines()).PlanNames);
+            // A file from before the switch leaves the names as they stand.
+            Assert.Null(PanelPlace.Read(new PanelPlace { PlanBig = true }.Lines()).PlanNames);
+        }
+
+        [Fact]
         public void ThePlanBoxOpensInTheViewAndSizeItWasLeftIn()
         {
             var read = PanelPlace.Read(new PanelPlace { PlanView = PlanView.Levels, PlanBig = true, PlanBelow = false }.Lines());
