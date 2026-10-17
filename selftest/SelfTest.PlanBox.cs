@@ -46,6 +46,7 @@ namespace Scry
             var unwhole = new List<string>();
             var foundBelow = 0;
             var unfresh = new List<string>();
+            var unreturned = new List<string>();
             var unswitched = new List<string>();
             var switchTried = 0;
             var unwheeled = new List<string>();
@@ -379,10 +380,19 @@ namespace Scry
                 var drawnTree = ScryPanel.Drawn(PanelPart.PlanBox);
                 yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnTree + 1 && !Stage.Gliding, 5);
                 yield return Picture(p, $"plan {entry.Name} Tree deepest gone into");
-                // Coming back out frames the whole example afresh, a zoom toward a point of the room let go of.
+                // Coming back out opens the level the room is on, the view on the room at the zoom it
+                // had before it was gone into, a zoom in the room let go of, the room outlined.
                 Stage.ZoomBy(3f, new Vector2(0.6f, 0.4f));
+                var mark = Stage.ExampleMarkOfRoom(deepest);
                 Stage.ComeOut();
-                if (Mathf.Abs(Stage.Zoom - 1f) > 0.001f || Stage.PanOffset.sqrMagnitude > 1e-6f) unfresh.Add($"{entry.Name}: come out at zoom {Numbers.Fixed(Stage.Zoom, 2)}, moved off {Numbers.Fixed(Stage.PanOffset.magnitude, 2)} m");
+                if (Stage.RoomGoneInto != null || !Stage.Cutting || Stage.CutLevel != mark || Mathf.Abs(Stage.Zoom - zoomedTo) > 0.001f || Stage.PanOffset.sqrMagnitude > 1e-6f || Stage.CameOutOf != deepest || !Stage.LevelFrameKept)
+                    unreturned.Add($"{entry.Name}: out to mark {Numbers.Count(Stage.CutLevel + 1)} of {Numbers.Count(mark + 1)}, zoom {Numbers.Fixed(Stage.Zoom, 2)} for {Numbers.Fixed(zoomedTo, 2)}, moved off {Numbers.Fixed(Stage.PanOffset.magnitude, 2)} m, outlined {Stage.CameOutOf?.Room.Name ?? "none"}, frame kept {Stage.LevelFrameKept}");
+                else
+                {
+                    yield return Until(() => !Stage.Gliding, 5);
+                    yield return Picture(p, $"plan {entry.Name} came out of the deepest room");
+                }
+                Stage.OpenLevel(Stage.FloorHeights.Count);
             }
 
             // What was chosen is remembered in the panel's file.
@@ -412,7 +422,8 @@ namespace Scry
             p.Check(switchTried > 0 && unswitched.Count == 0, "the box's switch leaves the rooms below the room gone into out of the plan from above, its ways down marked, each mark finding the room it leads to, and back, the stage showing them as before; remembered with the panel", switchTried == 0 ? "no entrance had rooms below it to try the switch on" : string.Join("; ", unswitched));
             p.Check(noWayBack.Count == 0, "in a room, Whole dungeon stands under the plan", string.Join("; ", noWayBack));
             p.Check(roomRulerTried > 0 && unruled.Count == 0, "in a room the ruler is its own: Shift and the wheel keep the cut within it, past its top its roof on and the rooms above back, down from there cut again, the roof button too, never leaving the room; cut from the side, none", roomRulerTried == 0 ? "no deepest room was cut from above" : string.Join("; ", unruled.Take(6)));
-            p.Check(unfresh.Count == 0, "going into a room and coming back out frame it afresh, a zoom or drag on what was framed before let go of", string.Join("; ", unfresh));
+            p.Check(unfresh.Count == 0, "going into a room frames it afresh, a zoom or drag on what was framed before let go of", string.Join("; ", unfresh));
+            p.Check(unreturned.Count == 0, "coming back out opens the level the room is on, the view on it at the zoom from before it was gone into, the room outlined", string.Join("; ", unreturned));
             p.Check(unwheeled.Count == 0, "Shift and the wheel open the top floor from the roof and take the cut no lower than the lowest floor", string.Join("; ", unwheeled));
             p.Check(apartCaps.Count == 0, "with a floor opened, each end cap and divider is drawn as the room it closes", string.Join("; ", apartCaps));
             p.Check(unwalked.Count == 0, "from above, every way runs along its rooms' walls inside them, and the walkway to a room lit runs from the entrance's middle to its own", string.Join("; ", unwalked.Take(6)));

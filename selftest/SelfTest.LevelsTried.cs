@@ -37,6 +37,7 @@ namespace Scry
             var misplaced = new List<string>();
             var unkept = new List<string>();
             var keptTried = 0;
+            var uncarried = new List<string>();
             var movedTried = 0;
             var tried = 0;
             try
@@ -166,6 +167,27 @@ namespace Scry
                         Stage.View("Fit");
                         yield return LevelSettled();
                         if (Stage.LevelFrameKept || Mathf.Abs(Stage.Zoom - 1f) > 0.001f) unkept.Add($"{entry.Name}: Fit kept the frame, zoom {Numbers.Fixed(Stage.Zoom, 2)}");
+
+                        // In a room of the top level, Page Down past its ruler's lowest tick comes out to the
+                        // level below, on the room; in one of the level below, Page Up past its roof to the top level.
+                        var topRoom = rooms[cuts.Groups[cuts.FirstOf(0)].Rooms[0]];
+                        Stage.GoInto(topRoom);
+                        yield return LevelSettled();
+                        for (var s = 0; s < 12 && Stage.RoomGoneInto != null; s++)
+                        {
+                            Stage.StepRoomCut(true);
+                            yield return null;
+                        }
+                        if (Stage.RoomGoneInto != null || Stage.CutLevel != 1 || Stage.CameOutOf != topRoom) uncarried.Add($"{entry.Name}: down from {topRoom.Room.Name}, in a room {Stage.RoomGoneInto != null}, mark {Numbers.Count(Stage.CutLevel + 1)}");
+                        var lowerRoom = rooms[cuts.Groups[cuts.FirstOf(1)].Rooms[0]];
+                        Stage.GoInto(lowerRoom);
+                        yield return LevelSettled();
+                        for (var s = 0; s < 12 && Stage.RoomGoneInto != null; s++)
+                        {
+                            Stage.StepRoomCut(false);
+                            yield return null;
+                        }
+                        if (Stage.RoomGoneInto != null || Stage.CutLevel != 0 || Stage.CameOutOf != lowerRoom) uncarried.Add($"{entry.Name}: up from {lowerRoom.Room.Name}, in a room {Stage.RoomGoneInto != null}, mark {Numbers.Count(Stage.CutLevel + 1)}");
                     }
                     Stage.OpenLevel(Stage.FloorHeights.Count);
                 }
@@ -179,7 +201,11 @@ namespace Scry
             p.Check(unfilmed.Count == 0, "a level one cut cannot open is filmed in as many films as it has groups", string.Join("; ", unfilmed));
             p.Check(unrisen.Count == 0, "a tall room of a level below rising into the level opened stands whole with it", string.Join("; ", unrisen));
             if (keptTried == 0) p.Note("no dungeon had two levels to keep the view across");
-            else p.Check(unkept.Count == 0, "opening another level keeps the view on the spot it looked at, at its zoom, until Fit frames the level afresh", string.Join("; ", unkept));
+            else
+            {
+                p.Check(unkept.Count == 0, "opening another level keeps the view on the spot it looked at, at its zoom, until Fit frames the level afresh", string.Join("; ", unkept));
+                p.Check(uncarried.Count == 0, "Page Down past a room's lowest tick comes out to the level below, Page Up past its roof to the level above", string.Join("; ", uncarried));
+            }
             p.Check(misplaced.Count == 0, "a room of a level above is put away only where it stands over the level or its floor is not under the cut, else it stands dimmed", string.Join("; ", misplaced));
             if (movedTried == 0) p.Note("no level of several cuts came up to move by hand");
             else p.Check(unmoved.Count == 0, "Shift and the wheel move every film's cut of a level together, each under its own ceiling", string.Join("; ", unmoved));

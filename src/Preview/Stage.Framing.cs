@@ -89,7 +89,8 @@ namespace Scry
         /// <summary>
         /// The middle across and the reach (x, z and reach) a change of the floor opened keeps, so
         /// the view stays on the spot it looked at, at its zoom, only the height looked at following
-        /// the floor; none frames each floor on what stands on it.
+        /// the floor; a reach not a number takes the floor's own; none frames each floor on what
+        /// stands on it.
         /// </summary>
         private static Vector3? _keptLevelFrame;
 
@@ -316,7 +317,7 @@ namespace Scry
             }
             if (!Cutting || TheCut.Level >= Floors.Count) return null;
             var y = Origin.y + LookedFloorHeight() * _scale;
-            if (_keptLevelFrame is Vector3 kept) return new Vector4(kept.x, y, kept.y, kept.z);
+            if (_keptLevelFrame is Vector3 kept && !float.IsNaN(kept.z)) return new Vector4(kept.x, y, kept.y, kept.z);
             var across = ExampleFloorAcross();
             if (across == null)
             {
@@ -326,6 +327,8 @@ namespace Scry
                 across = new Vector3(middle.x, middle.z, StageCamera.HalfAcross(extents.x * 2f, extents.z * 2f));
             }
             var a = across.Value;
+            // Kept with no reach, on a room come out of, the level's own reach about it.
+            if (_keptLevelFrame is Vector3 on) return new Vector4(on.x, y, on.y, StageFraming.FloorReach(a.z));
             return new Vector4(a.x, y, a.y, StageFraming.FloorReach(a.z));
         }
 

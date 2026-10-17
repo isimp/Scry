@@ -78,6 +78,9 @@ namespace Scry
         /// <summary>The same room as placed, gone into if it comes up without a drag inside a dungeon's example.</summary>
         private static PlacedRoom _stageRoomDownAt;
 
+        /// <summary>Where the mouse was as the room last come out of was first outlined, which it stays until the mouse moves from there.</summary>
+        private static Vector2? _cameOutMouse;
+
         /// <summary>
         /// A click on a room of the stage's example: inside a dungeon's, it goes into the room
         /// (<see cref="Stage.GoInto"/>), its page a click away on the plan; in a camp's, it goes
@@ -176,7 +179,14 @@ namespace Scry
                 }
                 // Inside a dungeon, the room lit is outlined on the stage (RoomLight): a way chip of
                 // the card hovered for it, else one under the mouse in the plan box or on the stage.
-                if (e.type == EventType.Repaint) Stage.LitRoom = Stage.HasInside && Stage.ShowsInside ? RoomLight.Lit(_cardLit, _boxHover, _stageHover) : null;
+                // The room last come out of stays outlined until the mouse moves.
+                if (Stage.CameOutOf == null) _cameOutMouse = null;
+                else if (e.type == EventType.Repaint)
+                {
+                    if (_cameOutMouse == null) _cameOutMouse = e.mousePosition;
+                    else if ((e.mousePosition - _cameOutMouse.Value).sqrMagnitude > U(4f) * U(4f)) Stage.LetGoOfCameOut();
+                }
+                if (e.type == EventType.Repaint) Stage.LitRoom = Stage.HasInside && Stage.ShowsInside ? RoomLight.Lit(_cardLit, _boxHover, _stageHover) ?? Stage.CameOutOf : null;
                 if (e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _dragMoved < U(5f) && (_stageRoomDown != null || _stageRoomDownAt != null))
                 {
                     var go = _stageRoomDown;

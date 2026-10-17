@@ -218,6 +218,34 @@ namespace Scry.Tests
             Assert.Equal(0.9f, low.CutBy(-0.5f), 3);
         }
 
+        // Coming out of a room gone into opens a level of the plan: the room's own, or, stepping
+        // past the ends of the room's ruler, the level below or above it.
+
+        [Fact]
+        public void ComingOutOfARoomOpensTheLevelItIsOn()
+        {
+            Assert.Equal(2, LevelCuts.ComeOutTo(level: 2, step: 0, levels: 4));
+            Assert.Equal(0, LevelCuts.ComeOutTo(level: 0, step: 0, levels: 4));
+        }
+
+        [Fact]
+        public void SteppingPastARoomsRulerOpensTheLevelBelowOrAbove()
+        {
+            Assert.Equal(3, LevelCuts.ComeOutTo(level: 2, step: 1, levels: 4));
+            Assert.Equal(1, LevelCuts.ComeOutTo(level: 2, step: -1, levels: 4));
+            // No level under the lowest: it stays on it.
+            Assert.Equal(3, LevelCuts.ComeOutTo(level: 3, step: 1, levels: 4));
+        }
+
+        [Fact]
+        public void SteppingUpPastTheTopLevelOrOutOfARoomOnNoLevelPutsTheRoofOn()
+        {
+            Assert.Null(LevelCuts.ComeOutTo(level: 0, step: -1, levels: 4));
+            Assert.Null(LevelCuts.ComeOutTo(level: -1, step: 0, levels: 4));
+            Assert.Null(LevelCuts.ComeOutTo(level: -1, step: 1, levels: 4));
+            Assert.Null(LevelCuts.ComeOutTo(level: 1, step: 0, levels: 0));
+        }
+
         [Fact]
         public void EveryStepOfALevelIsFramedAtTheLevelsHighestGround()
         {

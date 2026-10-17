@@ -65,6 +65,17 @@ namespace Scry
         /// <summary>How many groups a level holds.</summary>
         public int GroupsOf(int level) => _groups.FindAll(g => g.Level == level).Count;
 
+        /// <summary>
+        /// The level of the plan a room gone into is come out to: the one it is on (step 0), or,
+        /// stepping past the ends of its ruler, the one below (1) or above (-1), no lower than the
+        /// lowest; null past the top, or for a room on no level, for the roof on.
+        /// </summary>
+        public static int? ComeOutTo(int level, int step, int levels)
+        {
+            if (level < 0 || levels <= 0 || level + step < 0) return null;
+            return Math.Min(level + step, levels - 1);
+        }
+
         /// <summary>A level's highest ground, its first group's, where every step of it is framed; NaN for a level with none.</summary>
         public float TopOf(int level) => FirstOf(level) is var first && first >= 0 ? _groups[first].Top : float.NaN;
 

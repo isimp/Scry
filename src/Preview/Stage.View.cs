@@ -118,6 +118,14 @@ namespace Scry
             ForgetLevelFrame();
         }
 
+        /// <summary>Frames at a zoom again, on the middle of what is framed, as coming back out of a room takes up the zoom it had before.</summary>
+        private static void ViewAgainAt(float zoom)
+        {
+            Zoom = zoom;
+            CenterView();
+            ForgetLevelFrame();
+        }
+
         /// <summary>How far the view is moved off what it frames, by a drag or a zoom toward the pointer, for the self-test.</summary>
         [Diagnostic]
         public static Vector3 PanOffset => _pan;

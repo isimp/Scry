@@ -604,7 +604,9 @@ namespace Scry
             if (ruler == null || !TheCut.Held || ruler.Ticks.Count == 0) return;
             if (TheCut.HeldRoofOn)
             {
+                // Up past the room's roof, out to the level above it.
                 if (down) OpenRoomTick(ruler.Ticks.Count - 1);
+                else ComeOutTo(-1);
                 return;
             }
             var at = TheCut.At;
@@ -618,6 +620,9 @@ namespace Scry
                         return;
                     }
                 }
+                // Down past its lowest tick, out to the level below it, where there is one.
+                var cuts = TheExample.LevelCutsNow();
+                if (cuts != null && !CutFromSide && TheExample.LevelOfRoom(TheExample.Focused) is var level && level >= 0 && level + 1 < cuts.Levels) ComeOutTo(1);
                 return;
             }
             for (var i = 0; i < ruler.Ticks.Count; i++)
@@ -673,6 +678,13 @@ namespace Scry
         public static void GoInto(PlacedRoom room)
         {
             if (room == null || !TheExample.IsDungeon || TheExample.Placed == null || !TheExample.Placed.Rooms.Contains(room)) return;
+            // From the whole example, the zoom and the reach the view had, which coming back out takes up again.
+            if (TheExample.Focused == null)
+            {
+                _zoomBeforeRoom = Zoom;
+                _reachBeforeRoom = ShownLevelFrame?.w;
+            }
+            CameOutOf = null;
             TheExample.Focus(room);
             // Cut from the side, the cut goes through the room's middle, any floor opened let go
             // of; from above, at head height over its ground, or along its slope where it climbs with no real floor.
@@ -681,14 +693,49 @@ namespace Scry
             FreshView();
         }
 
-        /// <summary>Comes out of the room gone into, back to the whole example with the roof on.</summary>
-        public static void ComeOut()
+        /// <summary>Comes out of the room gone into to the level it is on (<see cref="ComeOutTo"/>), as Esc and *Whole dungeon* do.</summary>
+        public static void ComeOut() => ComeOutTo(0);
+
+        /// <summary>
+        /// Comes out of the room gone into to a level of the plan, opened: the one it is on (step
+        /// 0), or the one below (1) or above (-1) it (<see cref="LevelCuts.ComeOutTo"/>); the view on
+        /// the room, at the zoom and reach it had before the room was gone into, the room outlined
+        /// until the mouse moves (<see cref="CameOutOf"/>). Past the top level, cut from the side, or
+        /// out of a room on no level, back to the whole example with the roof on, framed afresh.
+        /// </summary>
+        public static void ComeOutTo(int step)
         {
-            if (TheExample.Focused == null) return;
+            var room = TheExample.Focused;
+            if (room == null) return;
+            var across = TheExample.FocusAcross();
+            var cuts = TheExample.LevelCutsNow();
+            var level = CutFromSide || cuts == null ? null : LevelCuts.ComeOutTo(TheExample.LevelOfRoom(room), step, cuts.Levels);
             TheExample.Unfocus();
             LetGoOfRoomCut();
-            FreshView();
+            CameOutOf = room;
+            if (!(level is int open) || !(across is Vector3 middle))
+            {
+                FreshView();
+                return;
+            }
+            TheCut.Open(TheExample.MarkOfLevel(open));
+            ViewAgainAt(_zoomBeforeRoom);
+            KeepLevelFrame(new Vector4(middle.x, 0f, middle.y, _reachBeforeRoom ?? float.NaN));
         }
+
+        /// <summary>The zoom the view had when a room was gone into from the whole example, and the reach it framed a level with there (none with the roof on), which coming back out takes up again.</summary>
+        private static float _zoomBeforeRoom = 1f;
+        private static float? _reachBeforeRoom;
+
+        /// <summary>The room last come out of, outlined on the stage until the mouse moves; none once it has, or a room is gone into.</summary>
+        public static PlacedRoom CameOutOf { get; private set; }
+
+        /// <summary>Lets go of the room last come out of, as the mouse moves.</summary>
+        public static void LetGoOfCameOut() => CameOutOf = null;
+
+        /// <summary>The ruler's mark opening the level of the plan a room is on, for the self-test; -1 for a room on none.</summary>
+        [Diagnostic]
+        public static int ExampleMarkOfRoom(PlacedRoom room) => TheExample.LevelOfRoom(room) is var level && level >= 0 ? TheExample.MarkOfLevel(level) : -1;
 
         /// <summary>Takes down the example's copies, as another entry or another example is shown, its rooms' creatures and paints with them.</summary>
         private static void ForgetExample()

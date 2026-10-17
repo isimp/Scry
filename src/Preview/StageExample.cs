@@ -568,6 +568,18 @@ namespace Scry
             return _overLevel.Contains(room);
         }
 
+        /// <summary>The level of the plan a room is on, an end cap's or divider's the room it closes; -1 for none.</summary>
+        public int LevelOfRoom(PlacedRoom room) => LevelCutsNow()?.LevelOf(LevelRoomOf(room)) ?? -1;
+
+        /// <summary>The ruler's mark opening a level of the plan, by its place among the levels with rooms on them.</summary>
+        public int MarkOfLevel(int level)
+        {
+            var cuts = LevelCutsNow();
+            var mark = 0;
+            for (var j = 0; cuts != null && j < level; j++) if (cuts.FirstOf(j) >= 0) mark++;
+            return mark;
+        }
+
         /// <summary>A room's group among the level cuts, an end cap's or divider's the room it closes; -1 for none.</summary>
         public int LevelGroupOf(PlacedRoom room)
         {
