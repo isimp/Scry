@@ -62,10 +62,10 @@ namespace Scry
                 int whole = 0, near = 0, below = 0, away = 0;
                 foreach (var room in rooms.Where(r => !r.Room.EndCap && !r.Room.Divider))
                 {
-                    // A room above is back, half dimmed, only once the cut is raised from where the room was first cut and over its ground.
+                    // A room above is back, half dimmed, once the cut is over its ground; one over the room gone into only once the cut is raised from where the room was first cut too.
                     var roomGround = Stage.ExampleRoomGround(room);
                     var look = RoomFocus.Look(room == deepest, roomGround, ground);
-                    if (!Stage.CutFromSide) look = RoomFocus.WithCut(look, roomGround, Stage.ExampleCutForTest, Stage.ExampleCutFromForTest);
+                    if (!Stage.CutFromSide) look = RoomFocus.WithCut(look, roomGround, Stage.ExampleCutForTest, Stage.ExampleCutFromForTest, room != deepest && PlanLevels.Covers(room, deepest));
                     var drawn = Stage.ExampleRoomDrawn(room);
                     if (drawn == null) continue;
                     var (standing, keep) = drawn.Value;

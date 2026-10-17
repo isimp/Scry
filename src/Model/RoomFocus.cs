@@ -55,13 +55,21 @@ namespace Scry
 
         /// <summary>
         /// A room's look as the cut over the room gone into is raised: one above, put away, comes
-        /// back half dimmed once the cut is over its ground and raised from where the room was first
-        /// cut (<paramref name="from"/>), so a shaft cut a head's height over its highest doorway
-        /// does not bring back the room that doorway leads into; every one with the room's roof on;
-        /// no other look changes.
+        /// back half dimmed once the cut is half a metre over its ground; one standing over the room
+        /// gone into (<paramref name="over"/>, by its box seen from above) only once the cut is also
+        /// raised from where the room was first cut (<paramref name="from"/>), so a shaft cut a head's
+        /// height over its highest doorway does not bring back a room over it there; every one with
+        /// the room's roof on; no other look changes.
         /// </summary>
-        public static RoomLook WithCut(RoomLook look, float ground, float cut, float from) =>
-            look == RoomLook.Away && cut > ground + BackOver && cut > from + BackOver ? RoomLook.Near : look;
+        public static RoomLook WithCut(RoomLook look, float ground, float cut, float from, bool over) =>
+            look == RoomLook.Away && cut > ground + BackOver && (!over || cut > from + BackOver) ? RoomLook.Near : look;
+
+        /// <summary>
+        /// Whether a room higher than the level opened would hide it, and is put away: one standing
+        /// over a room of it (<paramref name="over"/>, by its box seen from above), or one whose floor
+        /// is not half a metre under the cut, of which only what is under its floor would show.
+        /// </summary>
+        public static bool HidesFromAbove(bool over, float ground, float cut) => over || cut <= ground + BackOver;
 
         /// <summary>Whether the plan from above, its switch for the rooms below off, leaves a room out: one whose ground lies below the level looked at, the room gone into's or the floor opened; none with neither.</summary>
         public static bool HiddenBelow(float ground, float? level) => level is float at && ground < at - SameLevel;

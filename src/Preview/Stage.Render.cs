@@ -207,7 +207,7 @@ namespace Scry
                 {
                     // The stage's ground goes with the first film alone, so a later one does not paint it over the rooms before.
                     if (i == 1) FilmWithoutStageParts();
-                    TheExample.FilmOnly(films[i].Group, withBelow: i == 0);
+                    TheExample.FilmOnly(films[i].Group, withBelow: i == 0, withAbove: i == films.Count - 1);
                     LayCutAt(films[i].Cut);
                     _camera.clearFlags = i == 0 ? clear : CameraClearFlags.Depth;
                     OutlinesInFilm(i == films.Count - 1 && !creaturesAgain);

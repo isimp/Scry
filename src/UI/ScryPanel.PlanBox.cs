@@ -540,12 +540,12 @@ namespace Scry
                 var (right, up) = ExamplePlan.Turn(p.X, p.Z, yaw);
                 return new Vector2(area.center.x + (right - midRight) * scale, area.center.y - (up - midUp) * scale);
             }
-            var goneGround = gone != null ? GroundOf(gone) : 0f;
             var hideBelow = PlanBelowLevel(gone);
             foreach (var room in BoxRooms)
             {
                 if (RoomFocus.HiddenBelow(GroundOf(room), hideBelow)) continue;
-                var above = gone != null && room != gone && RoomFocus.Look(false, GroundOf(room), goneGround) == RoomLook.Away;
+                // A room put away on the stage over the room gone into is dashed.
+                var above = gone != null && room != gone && Stage.ExampleRoomAway(room);
                 BoxSpots.Add(new BoxSpot
                 {
                     Room = room, Centre = At(room.Position), Angle = room.Rotation.YawDegrees - yaw, Dashed = above,

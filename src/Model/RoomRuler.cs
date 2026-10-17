@@ -77,7 +77,7 @@ namespace Scry
             for (var i = 0; i < _ticks.Count; i++)
             {
                 var tick = _ticks[i];
-                if (tick.Own ? tick.Height <= cut : RoomFocus.WithCut(RoomLook.Away, tick.Height, cut, from) == RoomLook.Near) lit = i;
+                if (tick.Own ? tick.Height <= cut : RoomFocus.WithCut(RoomLook.Away, tick.Height, cut, from, over: true) == RoomLook.Near) lit = i;
             }
             return lit;
         }

@@ -52,6 +52,9 @@ namespace Scry
 
         /// <summary>Each room's ground as last worked out with the room gone into, for the rooms above to come back by as the cut rises.</summary>
         private readonly Dictionary<PlacedRoom, float> _focusGrounds = new Dictionary<PlacedRoom, float>();
+
+        /// <summary>The rooms standing over the room gone into, by their boxes seen from above, which come back only once its cut is raised from where it was first cut.</summary>
+        private readonly HashSet<PlacedRoom> _focusOver = new HashSet<PlacedRoom>();
         private int _focusRead = -1;
         private Vector3? _focusAcross;
 
@@ -265,7 +268,7 @@ namespace Scry
                 var look = _focusLooks.TryGetValue(room, out var known) ? known : RoomLook.Whole;
                 // Cut from the side, the rooms above stand in the section too, dimmed.
                 if (FromSide) return look == RoomLook.Away ? RoomLook.Below : look;
-                return _focusGrounds.TryGetValue(room, out var ground) ? RoomFocus.WithCut(look, ground, FocusCut, FocusCutFrom) : look;
+                return _focusGrounds.TryGetValue(room, out var ground) ? RoomFocus.WithCut(look, ground, FocusCut, FocusCutFrom, _focusOver.Contains(room)) : look;
             }
             switch (RoomShown(room, planFloor, floors))
             {
@@ -282,10 +285,12 @@ namespace Scry
             _focusRead = _roomGround.Count;
             _focusLooks.Clear();
             _focusGrounds.Clear();
+            _focusOver.Clear();
             foreach (var room in Placed.Rooms)
             {
                 var ground = GroundOf(room);
                 _focusGrounds[room] = ground;
+                if (room != Focused && PlanLevels.Covers(room, Focused)) _focusOver.Add(room);
                 _focusLooks[room] = RoomFocus.Look(room == Focused, ground, FocusGround);
             }
         }
@@ -524,7 +529,43 @@ namespace Scry
             var levels = PlanLevels.Of(rooms, grounds);
             var levelOf = new List<int>(rooms.Count);
             for (var i = 0; i < rooms.Count; i++) levelOf.Add(levels.LevelOf(rooms[i]));
+            _levelGrounds = grounds;
             return _levelCuts = LevelCuts.Of(grounds, ceilings, levelOf);
+        }
+
+        /// <summary>Each room's ground as the level cuts were worked out with it, by its place among the rooms.</summary>
+        private List<float> _levelGrounds = new List<float>();
+
+        /// <summary>The cut over the level opened, in the example's own space, as the stage last set it: a room of a higher level stands only where its floor is under it (<see cref="RoomFocus.HidesFromAbove"/>); over every room before it is first set.</summary>
+        public float OpenCut { get; set; } = float.NegativeInfinity;
+
+        /// <summary>The rooms of the levels above a level that stand over a room of it, by their boxes seen from above, by their places among the rooms; worked out again as the level or the groups change.</summary>
+        private readonly HashSet<int> _overLevel = new HashSet<int>();
+        private LevelCuts _overOf;
+        private int _overFor = -1;
+
+        /// <summary>Whether a room stands over a room of a level, by their boxes seen from above, as a room of a level above it.</summary>
+        private bool OverLevel(LevelCuts cuts, int room, int level)
+        {
+            if (!ReferenceEquals(cuts, _overOf) || level != _overFor)
+            {
+                _overOf = cuts;
+                _overFor = level;
+                _overLevel.Clear();
+                var rooms = Ways.Rooms;
+                for (var r = 0; r < rooms.Count; r++)
+                {
+                    var its = cuts.LevelOf(r);
+                    if (its < 0 || its >= level) continue;
+                    for (var q = 0; q < rooms.Count; q++)
+                    {
+                        if (!cuts.StandsWith(q, level) || !PlanLevels.Covers(rooms[r], rooms[q])) continue;
+                        _overLevel.Add(r);
+                        break;
+                    }
+                }
+            }
+            return _overLevel.Contains(room);
         }
 
         /// <summary>A room's group among the level cuts, an end cap's or divider's the room it closes; -1 for none.</summary>
@@ -584,8 +625,9 @@ namespace Scry
         /// <summary>
         /// How a room of a dungeon's example shows with a mark opened: the level opened whole, each
         /// group of it in a film of its own, with the tall rooms of the levels below rising into it
-        /// (<see cref="LevelCuts.StandsWith"/>), cut with it; the levels above put away and the
-        /// rest below dimmed.
+        /// (<see cref="LevelCuts.StandsWith"/>), cut with it; the rest below dimmed; a room of a
+        /// level above put away where it would hide the level (<see cref="RoomFocus.HidesFromAbove"/>),
+        /// else dimmed too.
         /// </summary>
         private PlanRoomShown ShownByLevels(PlacedRoom room, float planFloor, IReadOnlyList<float> floors)
         {
@@ -595,7 +637,9 @@ namespace Scry
             var index = LevelRoomOf(room);
             var level = cuts.LevelOf(index);
             if (level < 0) return PlanRoomShown.Faint;
-            return cuts.StandsWith(index, opened) ? PlanRoomShown.Whole : level < opened ? PlanRoomShown.None : PlanRoomShown.Faint;
+            if (cuts.StandsWith(index, opened)) return PlanRoomShown.Whole;
+            if (level > opened) return PlanRoomShown.Faint;
+            return RoomFocus.HidesFromAbove(OverLevel(cuts, index, opened), _levelGrounds[index], OpenCut) ? PlanRoomShown.None : PlanRoomShown.Faint;
         }
 
         /// <summary>The groups of the level of a dungeon's plan a mark opens, from its lowest up, each filmed on its own; none where one cut opens the level, or for a camp.</summary>
@@ -624,8 +668,8 @@ namespace Scry
         private readonly Dictionary<GameObject, Renderer[]> _renderersOf = new Dictionary<GameObject, Renderer[]>();
         private readonly List<Renderer> _filmedOff = new List<Renderer>();
 
-        /// <summary>Leaves out of the next film every room but those of a group, and with the lowest film the rooms of the levels below too.</summary>
-        public void FilmOnly(int group, bool withBelow)
+        /// <summary>Leaves out of the next film every room but those of a group, with the lowest film the rooms of the levels below too, and with the level's first group the rooms of the levels above still standing.</summary>
+        public void FilmOnly(int group, bool withBelow, bool withAbove)
         {
             var cuts = LevelCutsNow();
             if (cuts == null || group < 0) return;
@@ -635,7 +679,7 @@ namespace Scry
                 var copy = pair.Value;
                 if (copy == null || !copy.activeSelf) continue;
                 var its = LevelGroupOf(pair.Key);
-                var kept = its == group || withBelow && (its < 0 || cuts.Groups[its].Level > level);
+                var kept = its == group || withBelow && (its < 0 || cuts.Groups[its].Level > level) || withAbove && its >= 0 && cuts.Groups[its].Level < level;
                 if (kept) continue;
                 if (!_renderersOf.TryGetValue(copy, out var renderers)) _renderersOf[copy] = renderers = copy.GetComponentsInChildren<Renderer>(true);
                 foreach (var renderer in renderers)

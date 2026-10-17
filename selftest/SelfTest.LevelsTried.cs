@@ -14,7 +14,8 @@ namespace Scry
         /// rooms' measured ceilings and how many rooms keep their roof, opens every mark, checks
         /// that the ruler has a mark for each level, that each mark stands its rooms whole, that a
         /// level of several groups is filmed in as many films and that the tall rooms of the levels
-        /// below rising into a level stand whole with it and that Shift and the wheel move every
+        /// below rising into a level stand whole with it, that a room of a level above is put away
+        /// only where it stands over the level or its floor is not under the cut, and that Shift and the wheel move every
         /// film's cut of a level filmed in several, notes how long the films take, and pictures
         /// each mark.
         /// </summary>
@@ -31,6 +32,7 @@ namespace Scry
             var unfilmed = new List<string>();
             var unrisen = new List<string>();
             var unmoved = new List<string>();
+            var misplaced = new List<string>();
             var movedTried = 0;
             var tried = 0;
             try
@@ -94,7 +96,20 @@ namespace Scry
                             risen.Add(rooms[i].Room.Name);
                             if (Stage.ExampleRoomShown(rooms[i]) != PlanRoomShown.Whole) unrisen.Add($"{entry.Name} {words}: {rooms[i].Room.Name} {Stage.ExampleRoomShown(rooms[i])}");
                         }
-                        costs.Add($"{words} {Numbers.Fixed(AverageFilmMs, 1)} ms in {Numbers.Count(films)} {(films == 1 ? "film" : "films")}" + (risen.Count > 0 ? $", {Numbers.Count(risen.Count)} risen from below: {string.Join(", ", risen.Take(4))}" : ""));
+                        // A room of a level above stands dimmed beside the level, put away where it stands over it or its floor is not under the cut.
+                        var beside = new List<string>();
+                        var openCut = Stage.ExampleOpenCutForTest;
+                        for (var i = 0; i < rooms.Count; i++)
+                        {
+                            var its = cuts.LevelOf(i);
+                            if (its < 0 || its >= level) continue;
+                            var over = Enumerable.Range(0, rooms.Count).Any(q => cuts.StandsWith(q, level) && PlanLevels.Covers(rooms[i], rooms[q]));
+                            var want = RoomFocus.HidesFromAbove(over, Stage.ExampleRoomGround(rooms[i]), openCut) ? PlanRoomShown.None : PlanRoomShown.Faint;
+                            var shown = Stage.ExampleRoomShown(rooms[i]);
+                            if (shown != want) misplaced.Add($"{entry.Name} {words}: {rooms[i].Room.Name} {shown}, not {want}");
+                            if (shown == PlanRoomShown.Faint) beside.Add(rooms[i].Room.Name);
+                        }
+                        costs.Add($"{words} {Numbers.Fixed(AverageFilmMs, 1)} ms in {Numbers.Count(films)} {(films == 1 ? "film" : "films")}" + (risen.Count > 0 ? $", {Numbers.Count(risen.Count)} risen from below: {string.Join(", ", risen.Take(4))}" : "") + (beside.Count > 0 ? $", {Numbers.Count(beside.Count)} of the levels above standing beside it: {string.Join(", ", beside.Take(4))}" : ""));
                         yield return Picture(p, $"levels {entry.Name} {words}");
 
                         // Shift and the wheel raise the level's cut half a metre: its first group's film with
@@ -134,6 +149,7 @@ namespace Scry
             p.Check(empty.Count == 0, "every mark stands the rooms it opens whole", string.Join("; ", empty));
             p.Check(unfilmed.Count == 0, "a level one cut cannot open is filmed in as many films as it has groups", string.Join("; ", unfilmed));
             p.Check(unrisen.Count == 0, "a tall room of a level below rising into the level opened stands whole with it", string.Join("; ", unrisen));
+            p.Check(misplaced.Count == 0, "a room of a level above is put away only where it stands over the level or its floor is not under the cut, else it stands dimmed", string.Join("; ", misplaced));
             if (movedTried == 0) p.Note("no level of several cuts came up to move by hand");
             else p.Check(unmoved.Count == 0, "Shift and the wheel move every film's cut of a level together, each under its own ceiling", string.Join("; ", unmoved));
         }

@@ -139,6 +139,8 @@ namespace Scry
                 TheExample.FocusCutFrom = TheCut.HeldFrom - ExampleLift;
                 KeepRoomBounds();
             }
+            // A room of a level above the one opened stands where its floor is under the cut.
+            TheExample.OpenCut = TheCut.At - ExampleLift;
             TheExample.KeepToFloor(ExamplePlanFloor, ExampleFloors);
             // A room's floors are read in a frame of their own: reading a big room takes as long
             // as a frame should, and making one beside it ran a frame past a quarter of a second.
@@ -279,6 +281,9 @@ namespace Scry
 
         /// <summary>How a room of the example shows with the floor opened, by the plan's rule (<see cref="StageExample.RoomShown"/>): whole on it, else dimmed, or put away above it.</summary>
         public static PlanRoomShown ExampleRoomShown(PlacedRoom room) => TheExample.RoomShown(room, ExamplePlanFloor, ExampleFloors);
+
+        /// <summary>Whether a room of the example is put away on the stage now, as its look has it: above the level opened, or over the room gone into.</summary>
+        public static bool ExampleRoomAway(PlacedRoom room) => TheExample.LookOf(room, ExamplePlanFloor, ExampleFloors) == RoomLook.Away;
 
         /// <summary>The share of its colours a room's copy of the example keeps as dimmed, for its creatures to be dimmed with it; none where it is not.</summary>
         private static float? ExampleRoomDim(GameObject room) => TheExample.DimShareOf(room);
@@ -632,6 +637,10 @@ namespace Scry
         /// <summary>The height the room gone into is cut at, in the example's own space, as the rooms above come back by, for the self-test.</summary>
         [Diagnostic]
         public static float ExampleCutForTest => TheExample.FocusCut;
+
+        /// <summary>The cut over the level opened, in the example's own space, as the rooms of the levels above stand by it, for the self-test.</summary>
+        [Diagnostic]
+        public static float ExampleOpenCutForTest => TheExample.OpenCut;
 
         /// <summary>Where the room gone into was first cut, in the example's own space, for the self-test.</summary>
         [Diagnostic]
