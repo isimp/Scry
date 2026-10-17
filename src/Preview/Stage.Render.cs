@@ -205,6 +205,8 @@ namespace Scry
             {
                 for (var i = 0; i < films.Count; i++)
                 {
+                    // The stage's ground goes with the first film alone, so a later one does not paint it over the rooms before.
+                    if (i == 1) FilmWithoutStageParts();
                     TheExample.FilmOnly(films[i].Group, withBelow: i == 0);
                     LayCutAt(films[i].Cut);
                     _camera.clearFlags = i == 0 ? clear : CameraClearFlags.Depth;
@@ -216,9 +218,40 @@ namespace Scry
             finally
             {
                 TheExample.FilmAll();
+                FilmStagePartsBack();
                 _camera.clearFlags = clear;
                 _camera.projectionMatrix = projection;
             }
+        }
+
+        /// <summary>The stage's own parts left out of a film, its ground and floor, to be let back after.</summary>
+        private static readonly List<Renderer> StagePartsOff = new List<Renderer>();
+        private static readonly List<Renderer> StageParts = new List<Renderer>();
+
+        /// <summary>Leaves the stage's own parts on its layer, everything under its root but the copy shown, out of the films that follow.</summary>
+        private static void FilmWithoutStageParts()
+        {
+            if (_root == null || _subject == null) return;
+            var root = _root.transform;
+            for (var c = 0; c < root.childCount; c++)
+            {
+                var child = root.GetChild(c);
+                if (!child.gameObject.activeInHierarchy || _subject.transform.IsChildOf(child)) continue;
+                child.GetComponentsInChildren(false, StageParts);
+                foreach (var part in StageParts)
+                {
+                    if (part == null || part.forceRenderingOff || part.gameObject.layer != _layer) continue;
+                    part.forceRenderingOff = true;
+                    StagePartsOff.Add(part);
+                }
+            }
+            StageParts.Clear();
+        }
+
+        private static void FilmStagePartsBack()
+        {
+            foreach (var part in StagePartsOff) if (part != null) part.forceRenderingOff = false;
+            StagePartsOff.Clear();
         }
 
         /// <summary>
