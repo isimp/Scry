@@ -149,11 +149,17 @@ namespace Scry
         /// <summary>Has a room's floors read in a later frame (<see cref="ReadNext"/>).</summary>
         public void ReadLater(GameObject copy, PlacedRoom room, PlaceRoll roll) => _toRead.Enqueue((copy, room, roll));
 
-        /// <summary>Reads the floors of the next room waiting (<see cref="ReadFloors"/>); false with none waiting.</summary>
+        /// <summary>
+        /// Reads the floors of the next room waiting (<see cref="ReadFloors"/>), once what is kept
+        /// of its kind is found; false with none read, none waiting or its kind still being found,
+        /// so rooms go on being made meanwhile.
+        /// </summary>
         public bool ReadNext(Transform subject, int layer)
         {
             if (_toRead.Count == 0) return false;
-            var (copy, room, roll) = _toRead.Dequeue();
+            var (copy, room, roll) = _toRead.Peek();
+            if (copy != null && !FloorRecords.Ready(room.Room.Name, true)) return false;
+            _toRead.Dequeue();
             if (copy != null) ReadFloors(copy, room, roll, subject, layer);
             return true;
         }

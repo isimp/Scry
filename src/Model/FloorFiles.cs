@@ -16,6 +16,7 @@ namespace Scry
     /// file's; each record put is written aside and swapped into place (<see cref="FileSwap"/>).
     /// Asked for on the main thread; its files are read and written one job after another on the
     /// queue given (<see cref="FileQueue"/>), whose writing failures are for its owner to tell.
+    /// Whether a kind is found yet is asked without waiting (<see cref="Ready"/>).
     /// </summary>
     internal sealed class FloorFiles
     {
@@ -96,6 +97,23 @@ namespace Scry
         }
 
         /// <summary>
+        /// Whether what is kept of a kind of place is found, so asking for it (<see cref="Find"/>)
+        /// waits for nothing: held, known to have no file, or its file found or failed to be; its
+        /// file starts being found where it was not wanted ahead. The files are read one job after
+        /// another, so a kind wanted after many others waits behind every one of them: whatever
+        /// needs it asks this each frame and goes on with other work until it is.
+        /// </summary>
+        public bool Ready(string prefab, bool room)
+        {
+            var key = (prefab, room);
+            Want(prefab, room);
+            if (!_finding.TryGetValue(key, out var finding)) return true;
+            if (!finding.IsCompleted) return false;
+            Take(key, finding);
+            return true;
+        }
+
+        /// <summary>
         /// The record kept of a kind of place with this stamp, its file found first where it was not
         /// wanted ahead, and waited for while still being found; null for none, one kept with
         /// another stamp, or a stamp not known.
@@ -107,17 +125,23 @@ namespace Scry
             Want(prefab, room);
             if (_finding.TryGetValue(key, out var finding))
             {
-                _finding.Remove(key);
-                // A finding that failed is told below, from the job's own state.
+                // A finding that failed is told from the job's own state.
                 Steps.Run(finding.Wait, null);
-                if (finding.Status == TaskStatus.RanToCompletion) _held[key] = finding.Result;
-                else
-                {
-                    _held[key] = null;
-                    _failed.Add(("finding the floors kept of " + prefab, finding.Exception?.GetBaseException()));
-                }
+                Take(key, finding);
             }
             return _held.TryGetValue(key, out var record) && record != null && record.Stamp == stamp ? record : null;
+        }
+
+        /// <summary>Holds what a finding that is done found, or nothing where it failed, its failure told once asked (<see cref="Failures"/>).</summary>
+        private void Take((string Prefab, bool Room) key, Task<FloorRecord> finding)
+        {
+            _finding.Remove(key);
+            if (finding.Status == TaskStatus.RanToCompletion) _held[key] = finding.Result;
+            else
+            {
+                _held[key] = null;
+                _failed.Add(("finding the floors kept of " + key.Prefab, finding.Exception?.GetBaseException()));
+            }
         }
 
         /// <summary>Holds a record, over any being found of its kind, and writes it, unless its stamp is not known.</summary>
