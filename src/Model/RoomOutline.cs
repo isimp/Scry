@@ -5,17 +5,18 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>
-    /// The amber line round the room gone into on the stage: every edge of its box, from its
-    /// ground to its top or to just under the cut where that is lower, so the room can be found
-    /// among others that look alike, and the cut never clips the line.
+    /// The amber line round a room on the stage: every edge of its box, from its ground to its
+    /// top, so the room can be found among others that look alike and its whole size shows
+    /// however low the cut is; drawn with the cut, where the stage has no layer to draw it past
+    /// the cut, to just under the cut where that is lower, so the cut never clips the line.
     /// </summary>
     internal static class RoomOutline
     {
-        /// <summary>How far under the cut the outline's top runs, in metres.</summary>
+        /// <summary>How far under the cut the outline's top runs, in metres, drawn with the cut.</summary>
         public const float UnderCut = 0.05f;
 
-        /// <summary>The outline's top: the room's own top, or just under the cut where that is lower.</summary>
-        public static float Top(float cut, float roomTop) => Math.Min(cut - UnderCut, roomTop);
+        /// <summary>The outline's top: the room's own top where the line is drawn past the cut, else just under the cut where that is lower.</summary>
+        public static float Top(float cut, float roomTop, bool pastCut) => pastCut ? roomTop : Math.Min(cut - UnderCut, roomTop);
 
         /// <summary>
         /// One line through every edge of a room's box, from the corners of its floor seen from

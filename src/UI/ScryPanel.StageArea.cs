@@ -16,6 +16,16 @@ namespace Scry
         /// <summary>The point of the stage's picture the self-test points the mouse at (0 to 1 across, 0 to 1 up); none.</summary>
         private static Vector2? _stagePointForTest;
 
+        /// <summary>What stands over the stage, by name, where the panel last drew it, for the self-test to find any two that overlap.</summary>
+        [Diagnostic]
+        public static List<(string Name, Rect At)> StagePieces { get; } = new List<(string, Rect)>();
+
+        /// <summary>Notes a piece standing over the stage where it is drawn, as the panel paints it.</summary>
+        private static void StagePiece(string name, Rect at)
+        {
+            if (Event.current.type == EventType.Repaint && at.width > 0f && at.height > 0f) StagePieces.Add((name, at));
+        }
+
         /// <summary>Nowhere on the panel, for the mouse while the self-test points it elsewhere.</summary>
         private static readonly Vector2 Nowhere = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
 
@@ -98,7 +108,11 @@ namespace Scry
             if (Stage.IsStaged(entry))
             {
                 var inner = new Rect(rect.x + U(3f), rect.y + U(3f), rect.width - U(6f), rect.height - U(6f));
-                if (e.type == EventType.Repaint) Stage.Request((int)inner.width, (int)inner.height);
+                if (e.type == EventType.Repaint)
+                {
+                    Stage.Request((int)inner.width, (int)inner.height);
+                    StagePieces.Clear();
+                }
                 _pictureScreen = OnScreen(inner);
 
                 // An effect's stage stands once its copy has played out, empty.
@@ -123,6 +137,8 @@ namespace Scry
                     : PlanOverlay(explorer, entry, inner);
                 // The card of the room gone into in the other corner, which takes the mouse too.
                 var card = Stage.Subject != null ? RoomCardBox(explorer, inner, plan) : Rect.zero;
+                StagePiece("plan box", plan);
+                StagePiece("room card", card);
 
                 // A room of the example under the mouse is named, and a click on it that is not a
                 // drag goes into it inside a dungeon's example, and to its entry in a camp's.
@@ -166,7 +182,7 @@ namespace Scry
 
                 // The camera's buttons show only while the mouse is on the stage, as its hint does,
                 // so the model is not framed by controls while it is looked at.
-                var over = rect.Contains(e.mousePosition) || _drag == Drag.Orbit;
+                var over = rect.Contains(StageMouse(e, inner)) || _drag == Drag.Orbit;
                 var viewsW = over ? ViewButtons(inner) : 0f;
                 var textW = inner.width - U(24f) - viewsW;
                 if (playedOut)
@@ -255,6 +271,7 @@ namespace Scry
             }
 
             KindBadge(entry, new Vector2(rect.x + U(10f), rect.y + U(10f)));
+            StagePiece("kind", new Rect(rect.x + U(10f), rect.y + U(10f), _badgeWidth, U(22f)));
         }
 
         /// <summary>
@@ -266,6 +283,7 @@ namespace Scry
             var textW = Mathf.Min(width - U(12f), Skin.Width(Skin.PictureNote, text) + U(2f));
             var h = Skin.Height(Skin.PictureNote, text, textW);
             var box = new Rect(inner.x + U(8f), inner.yMax - U(8f) - h - U(6f), textW + U(12f), h + U(6f));
+            StagePiece("note", box);
             if (Event.current.type == EventType.Repaint) Skin.Fill(box, Skin.PictureBacking);
             GUI.Label(new Rect(box.x + U(6f), box.y + U(3f), textW, h), text, Skin.PictureNote);
         }
@@ -285,6 +303,7 @@ namespace Scry
                 var w = Skin.Width(Skin.Chip, name) + U(2f);
                 x -= w;
                 var chip = new Rect(x, y, w, h);
+                StagePiece("view buttons", chip);
                 x -= U(4f);
                 if (chip.Contains(Event.current.mousePosition)) AskTip("view:" + name, tip);
                 if (!GUI.Button(chip, name, Skin.Fitted(Skin.Chip, chip))) continue;
@@ -339,6 +358,7 @@ namespace Scry
                 x -= w;
                 var chip = new Rect(x, y, w, h);
                 last = chip;
+                StagePiece("chips", chip);
                 x -= U(6f);
                 CountDrawn(PanelPart.StageChip);
                 if (chip.Contains(Event.current.mousePosition)) AskTip("stage:" + tip, tip);

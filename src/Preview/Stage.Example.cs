@@ -487,6 +487,11 @@ namespace Scry
             CenterView();
         }
 
+        /// <summary>Whether a room of a dungeon's example can be chosen on the stage (<see cref="RoomLight.Choosable"/>), only what decides it looked at.</summary>
+        private static readonly Func<PlacedRoom, bool> ChoosableOnStage = r => TheExample.Focused != null
+            ? RoomLight.Choosable(true, ExampleRoomLook(r), PlanRoomShown.Whole)
+            : RoomLight.Choosable(false, RoomLook.Whole, ExampleRoomShown(r));
+
         /// <summary>
         /// The room of the example at a point of the stage's picture (0 to 1 across, 0 to 1 up),
         /// what is cut away left out; null where there is none.
@@ -503,9 +508,9 @@ namespace Scry
             var direction = holder.InverseTransformVector(ray);
             var from = PickFrom(holder, holder.InverseTransformPoint(eye.position), direction);
             var below = Cutting && !SlopeLaid(out _) ? holder.InverseTransformPoint(new Vector3(eye.position.x, Origin.y + CutAt * _scale, eye.position.z)).y : float.PositiveInfinity;
-            // Rooms put away are passed by; with a room gone into, those dimmed around it can be gone into next.
+            // Rooms put away are passed by; those dimmed, around a room gone into or below a floor opened, can be gone into next.
             var room = placed.Pick(new Vec3(from.x, from.y, from.z), new Vec3(direction.x, direction.y, direction.z), below,
-                TheExample.IsDungeon ? r => TheExample.Focused != null ? ExampleRoomLook(r) != RoomLook.Away : ExampleRoomShown(r) == PlanRoomShown.Whole : (Func<PlacedRoom, bool>)null);
+                TheExample.IsDungeon ? ChoosableOnStage : null);
             return room != null && placed.Rooms.IndexOf(room) < TheExample.Next ? room : null;
         }
 

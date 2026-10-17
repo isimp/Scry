@@ -43,6 +43,22 @@ namespace Scry
             }
         }
 
+        /// <summary>Whether the list is folded away in the full view and in the compact one, for the self-test to show it while it runs and put it back after.</summary>
+        [Diagnostic]
+        internal static (bool Full, bool Compact) ListsHidden
+        {
+            get => (_listHiddenFull, _listHiddenCompact);
+            set
+            {
+                _listHiddenFull = value.Full;
+                _listHiddenCompact = value.Compact;
+            }
+        }
+
+        /// <summary>Writes the panel's place as it stands, for the self-test once it has put back what it changed, as saves while it ran wrote the changes.</summary>
+        [Diagnostic]
+        internal static void RememberPlaceForTest() => SaveRects();
+
         /// <summary>Where a drag of the gap has got to, below the list's smallest when it would fold away.</summary>
         private static float _listDragged;
 

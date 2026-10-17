@@ -189,22 +189,53 @@ namespace Scry
             get
             {
                 if (_creatureLayer != -2) return _creatureLayer;
-                _creatureLayer = _layer;
-                if (_layer < 0) return _creatureLayer;
-                var candidates = new List<int>();
-                for (var i = _layer - 1; i >= 8; i--) candidates.Add(i);
-                candidates.AddRange(SpareLayers);
-                foreach (var i in candidates)
-                {
-                    if (!string.IsNullOrEmpty(LayerMask.LayerToName(i))) continue;
-                    _creatureLayer = i;
-                    break;
-                }
+                _creatureLayer = NextFreeLayer();
                 Log.Note(_creatureLayer != _layer
                     ? $"Scry is using layer {Numbers.Count(_creatureLayer)} for the creatures standing on its stage."
                     : "Scry found no second free layer for the creatures standing on its stage, so a floor's cut cuts them too.");
                 return _creatureLayer;
             }
+        }
+
+        /// <summary>
+        /// The layer the outlines of rooms stand on, filmed after the rest with no cut so a room's
+        /// whole box shows however low the cut is (<see cref="FilmOutlines"/>): the next free one
+        /// after the stage's and the creatures'; the stage's own where there is none, and then
+        /// the outlines are drawn with the cut, to just under it.
+        /// </summary>
+        private static int _outlineLayer = -2;
+        private static int OutlineLayer
+        {
+            get
+            {
+                if (_outlineLayer != -2) return _outlineLayer;
+                _outlineLayer = NextFreeLayer(CreatureLayer);
+                Log.Note(_outlineLayer != _layer
+                    ? $"Scry is using layer {Numbers.Count(_outlineLayer)} for the outlines of rooms on its stage."
+                    : "Scry found no third free layer for the outlines of rooms on its stage, so they are drawn to just under a floor's cut.");
+                return _outlineLayer;
+            }
+        }
+
+        /// <summary>Whether the outlines of rooms are filmed past the cut, on a layer of their own.</summary>
+        private static bool OutlinesPastCut => OutlineLayer != _layer;
+
+        /// <summary>
+        /// The next free layer below the stage's, else one of those Unity keeps spare under 8,
+        /// other than those already taken; the stage's own where there is none.
+        /// </summary>
+        private static int NextFreeLayer(params int[] taken)
+        {
+            if (_layer < 0) return _layer;
+            var candidates = new List<int>();
+            for (var i = _layer - 1; i >= 8; i--) candidates.Add(i);
+            candidates.AddRange(SpareLayers);
+            foreach (var i in candidates)
+            {
+                if (System.Array.IndexOf(taken, i) >= 0 || !string.IsNullOrEmpty(LayerMask.LayerToName(i))) continue;
+                return i;
+            }
+            return _layer;
         }
 
         /// <summary>The layers under 8 that Unity keeps spare, unnamed.</summary>
@@ -214,8 +245,11 @@ namespace Scry
         [Diagnostic]
         public static string CreatureLayerTold => _layer < 0 ? "no stage layer" : CreatureLayer == _layer ? $"the stage's own, {Numbers.Count(_layer)}: no second free layer" : $"{Numbers.Count(CreatureLayer)}, the stage's {Numbers.Count(_layer)}";
 
-        /// <summary>The stage's layers: its own and its creatures'.</summary>
+        /// <summary>The stage's layers filmed with the cut: its own and its creatures'.</summary>
         private static int StageMask => _layer < 0 ? 0 : (1 << _layer) | (1 << CreatureLayer);
+
+        /// <summary>Every layer of the stage, the outlines' too, which the game's own camera is kept from.</summary>
+        private static int HiddenMask => _layer < 0 ? 0 : StageMask | (1 << OutlineLayer);
 
         /// <summary>The highest layer without a name, which nothing in the game draws on.</summary>
         private static int FreeLayer()

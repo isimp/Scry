@@ -84,11 +84,18 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheOutlinesTopRunsJustUnderTheCutSoTheCutNeverClipsIt()
+        public void TheOutlineTracesTheRoomsWholeBoxHoweverLowTheCutWhereItIsDrawnPastTheCut()
         {
-            Assert.Equal(2.5f - RoomOutline.UnderCut, RoomOutline.Top(2.5f, 10f), 4);
+            Assert.Equal(10f, RoomOutline.Top(2.5f, 10f, pastCut: true), 4);
+            Assert.Equal(10f, RoomOutline.Top(12f, 10f, pastCut: true), 4);
+        }
+
+        [Fact]
+        public void DrawnWithTheCutTheOutlinesTopRunsJustUnderItSoTheCutNeverClipsIt()
+        {
+            Assert.Equal(2.5f - RoomOutline.UnderCut, RoomOutline.Top(2.5f, 10f, pastCut: false), 4);
             // A room lower than the cut is outlined to its own top.
-            Assert.Equal(10f, RoomOutline.Top(12f, 10f), 4);
+            Assert.Equal(10f, RoomOutline.Top(12f, 10f, pastCut: false), 4);
         }
 
         [Fact]

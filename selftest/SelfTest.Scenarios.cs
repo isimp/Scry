@@ -136,6 +136,7 @@ namespace Scry
             yield return S("a room that climbs with no real floor is cut along its slope, a shaft flat over its top", SlopeCutShows, 240, () => { ComeOutOfRoom(); StageAsItWas(); }, bearsSkips: true);
             yield return S("a room gone into shows its card: where it is, what this copy rolled in it, its ways on and its levels", RoomCardShows, 240, () => { RoomCardAsItWas(); StageAsItWas(); }, bearsSkips: true);
             yield return S("the plan box shows a dungeon from above, as a map turned to any angle, and as a tree of its ways", PlanBoxShows, 360, () => { PlanBoxAsItWas(); StageAsItWas(); }, bearsSkips: true);
+            yield return S("nothing drawn over the stage covers anything else, whatever its size and the plan box's", NothingOverlapsOnStage, 180, () => { OverlapsAsTheyWere(); StageAsItWas(); }, bearsSkips: true);
             yield return S("places' floors are kept and told again from what was kept, as their rays find them", FloorsKept, 300, KeptFloorsUnverified, bearsSkips: true);
             yield return S("a place's creatures stand on the stage with it", PlaceCreatures, 60, bearsSkips: true);
             yield return S("the stage's camera looks at the floor opened, zooms toward the pointer and drags with it", CameraMoves, 90, LightsAsTheyWere, bearsSkips: true);

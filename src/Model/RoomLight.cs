@@ -15,6 +15,14 @@ namespace Scry
         /// <summary>Whether a room is the one lit: that very room, not another of its name.</summary>
         public static bool Lights(PlacedRoom lit, PlacedRoom room) => lit != null && ReferenceEquals(lit, room);
 
+        /// <summary>
+        /// Whether a room of a dungeon's example can be lit and gone into from the stage: with a
+        /// room gone into, any but those put away over it; else any the cut leaves, those on the
+        /// floor opened and those dimmed below it.
+        /// </summary>
+        public static bool Choosable(bool goneInto, RoomLook look, PlanRoomShown shown) =>
+            goneInto ? look != RoomLook.Away : shown != PlanRoomShown.None;
+
         /// <summary>The room the way from the entrance is drawn to: the one lit, else the one gone into.</summary>
         public static PlacedRoom RouteTo(PlacedRoom lit, PlacedRoom gone) => lit ?? gone;
     }

@@ -12,7 +12,7 @@ namespace Scry
         /// <summary>The main camera sees the stage's layer again, as it did before Scry took it, as the stage is taken down.</summary>
         private static void GiveLayerBack()
         {
-            if (_hiddenFrom != null && _layer >= 0) _hiddenFrom.cullingMask |= StageMask;
+            if (_hiddenFrom != null && _layer >= 0) _hiddenFrom.cullingMask |= HiddenMask;
             _hiddenFrom = null;
         }
 
@@ -21,6 +21,40 @@ namespace Scry
 
         /// <summary>How long the camera took to film the stage the last time, for the self-test.</summary>
         public static double LastFilmMs { get; private set; }
+
+        /// <summary>Whether the outlines are filmed past the cut, on a layer of their own, for the self-test.</summary>
+        [Diagnostic]
+        public static bool OutlinesPastCutForTest => OutlinesPastCut;
+
+        /// <summary>How often the outlines have been filmed past the cut, for the self-test.</summary>
+        [Diagnostic]
+        public static int OutlinesFilmed { get; private set; }
+
+        /// <summary>
+        /// The outlines of the room gone into and the room lit, filmed over the picture by the
+        /// camera with no cut, on their own layer, so a room's whole box shows however low the cut
+        /// is; the line draws over everything as it did with the rest.
+        /// </summary>
+        private static void FilmOutlines(int mask)
+        {
+            if (!OutlinesPastCut || !OutlineShown && !LitOutlineShown) return;
+            var projection = _camera.projectionMatrix;
+            var clear = _camera.clearFlags;
+            try
+            {
+                _camera.ResetProjectionMatrix();
+                _camera.cullingMask = 1 << OutlineLayer;
+                _camera.clearFlags = CameraClearFlags.Nothing;
+                _camera.Render();
+                OutlinesFilmed++;
+            }
+            finally
+            {
+                _camera.cullingMask = mask;
+                _camera.clearFlags = clear;
+                _camera.projectionMatrix = projection;
+            }
+        }
 
         /// <summary>Films the stage, when the panel showed it in the last couple of frames.</summary>
         public static void Render()
@@ -53,10 +87,11 @@ namespace Scry
             Timing.Add("render creatures", step);
 
             var mask = StageMask;
+            var hidden = HiddenMask;
             var main = GameCamera.instance != null ? GameCamera.instance.GetComponent<Camera>() : null;
-            if (main != null && (main.cullingMask & mask) != 0)
+            if (main != null && (main.cullingMask & hidden) != 0)
             {
-                main.cullingMask &= ~mask;
+                main.cullingMask &= ~hidden;
                 _hiddenFrom = main;
             }
 
@@ -117,6 +152,9 @@ namespace Scry
                         _camera.projectionMatrix = projection;
                     }
                 }
+                step = Timing.Start();
+                FilmOutlines(mask);
+                Timing.Add("render outlines", step);
             }
             finally
             {

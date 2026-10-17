@@ -48,7 +48,9 @@ namespace Scry
             if (_outline != null && _outline.gameObject.activeSelf && ReferenceEquals(room, _outlinedRoom) && key == _outlinedTop) return;
             if (!EnsureOutline()) return;
 
-            Lay(_outline, holder.transform, room, TheExample.FocusGround, TopsOf(room, TheCut.Held), 1f);
+            var tops = TopsOf(room, TheCut.Held);
+            Lay(_outline, holder.transform, room, TheExample.FocusGround, tops, 1f);
+            OutlineTopLaid = Highest(tops);
             _outlinedRoom = room;
             _outlinedTop = key;
         }
@@ -57,8 +59,8 @@ namespace Scry
         private static readonly float[] CornerTops = new float[4];
 
         /// <summary>
-        /// A room's top at each corner of its box: its own top, or under the cut where that is
-        /// lower, the cut's height at that corner along the slope where one is laid.
+        /// A room's top at each corner of its box: its own top, filmed past the cut; else under the
+        /// cut where that is lower, the cut's height at that corner along the slope where one is laid.
         /// </summary>
         private static float[] TopsOf(PlacedRoom room, bool underCut)
         {
@@ -70,7 +72,7 @@ namespace Scry
             {
                 var corner = corners[i % corners.Length];
                 var cut = sloped ? slope.HeightAt(corner.X, corner.Z) : CutAt - lift;
-                CornerTops[i] = underCut ? RoomOutline.Top(cut, roomTop) : roomTop;
+                CornerTops[i] = underCut ? RoomOutline.Top(cut, roomTop, OutlinesPastCut) : roomTop;
             }
             return CornerTops;
         }
@@ -89,14 +91,24 @@ namespace Scry
         private static PlacedRoom _litDrawn;
         private static float _litTop = float.NaN;
 
+        /// <summary>How high the outline of the room gone into and that of the room lit were last laid, in the example's metres, for the self-test.</summary>
+        [Diagnostic]
+        public static float OutlineTopLaid { get; private set; } = float.NaN;
+        [Diagnostic]
+        public static float LitOutlineTopLaid { get; private set; } = float.NaN;
+
+        /// <summary>The highest of a box's tops at its corners.</summary>
+        private static float Highest(float[] tops) => Mathf.Max(Mathf.Max(tops[0], tops[1]), Mathf.Max(tops[2], tops[3]));
+
         /// <summary>Whether the room lit is outlined, for the self-test.</summary>
         [Diagnostic]
         public static bool LitOutlineShown => _litOutline != null && _litOutline.gameObject.activeSelf;
 
         /// <summary>
         /// Each film: stands the fainter line, half as wide, round the room lit, from its ground to
-        /// its top or just under the cut; one wholly above the cut, put away, shows its outline
-        /// just under the cut, where it lies above. Puts it away with none lit.
+        /// its top, filmed past the cut (<see cref="FilmOutlines"/>); drawn with the cut, to just
+        /// under it, and one wholly above the cut, put away, just under the cut where it lies
+        /// above. Puts it away with none lit.
         /// </summary>
         private static void KeepLitOutline()
         {
@@ -113,6 +125,7 @@ namespace Scry
             var tops = TopsOf(room, Cutting);
             var lowest = Mathf.Min(Mathf.Min(tops[0], tops[1]), Mathf.Min(tops[2], tops[3]));
             Lay(_litOutline, holder.transform, room, Mathf.Min(TheExample.GroundOf(room), lowest), tops, 0.5f);
+            LitOutlineTopLaid = Highest(tops);
             _litDrawn = room;
             _litTop = key;
         }
@@ -140,7 +153,7 @@ namespace Scry
         {
             if (line != null) return true;
             if (_root == null || OutlineMaterial() == null) return false;
-            var made = new GameObject(name) { layer = _layer };
+            var made = new GameObject(name) { layer = OutlineLayer };
             made.transform.SetParent(_root.transform, false);
             line = made.AddComponent<LineRenderer>();
             line.useWorldSpace = true;

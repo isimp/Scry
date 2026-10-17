@@ -59,6 +59,7 @@ namespace Scry
             if (e.type == EventType.Repaint)
             {
                 CountDrawn(PanelPart.Ruler);
+                StagePiece("ruler", new Rect(rect.x - U(4f), roof.y, rect.width + U(8f), rect.yMax - roof.y));
                 Skin.Fill(new Rect(rect.center.x - U(1f), rect.y, U(2f), rect.height), Skin.Light(0.22f));
                 for (var i = 0; i < floors.Count; i++)
                 {
@@ -75,6 +76,7 @@ namespace Scry
                     var labelW = Skin.Width(Skin.DimLabel, named) + U(12f);
                     var label = new Rect(rect.x - U(8f) - labelW, Mathf.Clamp(cutY - U(11f), stage.y, stage.yMax - U(22f)), labelW, U(22f));
                     Skin.Fill(label, Skin.Alpha(Skin.Stage, 0.75f));
+                    StagePiece("floor name", label);
                     GUI.Label(new Rect(label.x + U(6f), label.y, label.width - U(6f), label.height), named, Skin.DimLabel);
                 }
             }

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace Scry
 {
@@ -42,6 +43,10 @@ namespace Scry
             var unlitBox = new List<string>();
             var unlitStage = new List<string>();
             var stayedLit = new List<string>();
+            var slowFollow = new List<string>();
+            var unchosen = new List<string>();
+            var unwhole = new List<string>();
+            p.Note(Stage.OutlinesPastCutForTest ? "the outlines are filmed past the cut, on a layer of their own" : "the outlines are drawn with the cut, to just under it, for want of a free layer");
             var notIn = new List<string>();
             foreach (var entry in places)
             {
@@ -124,19 +129,33 @@ namespace Scry
                 }
 
                 // A room under the mouse on the stage is so too, in every view: the first room the
-                // stage finds under the middle of one in view, outside the box.
+                // stage finds under the middle of one in view, outside the box; and a second one,
+                // for the mouse to go from one to the other.
                 ScryPanel.ShowPlanViewForTest(PlanView.Above);
-                PlacedRoom onStage = null;
+                PlacedRoom onStage = null, other = null;
+                Vector2? onStageAt = null, otherAt = null;
                 var standing = Stage.ExampleShown?.Rooms;
-                for (var i = 0; standing != null && i < standing.Count && onStage == null; i++)
+                for (var i = 0; standing != null && i < standing.Count && other == null; i++)
                 {
                     var point = Stage.ExamplePointOf(i);
-                    if (!point.HasValue || point.Value.x < 0.05f || point.Value.x > 0.95f || point.Value.y < 0.05f || point.Value.y > 0.95f) continue;
+                    if (!InPicture(point)) continue;
                     ScryPanel.HoverStageForTest(point);
                     var drawnStage = ScryPanel.Drawn(PanelPart.PlanBox);
                     yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnStage + 1, 3);
-                    onStage = ScryPanel.StageRoomHovered;
+                    var found = ScryPanel.StageRoomHovered;
+                    if (found == null) continue;
+                    if (onStage == null)
+                    {
+                        onStage = found;
+                        onStageAt = point;
+                    }
+                    else if (found != onStage)
+                    {
+                        other = found;
+                        otherAt = point;
+                    }
                 }
+                ScryPanel.HoverStageForTest(onStageAt);
                 if (onStage == null) unlitStage.Add($"{entry.Name}: no room found under the mouse on the stage");
                 else
                 {
@@ -150,15 +169,86 @@ namespace Scry
                     }
                     yield return Picture(p, $"plan {entry.Name} stage room lit");
                 }
+
+                // Going from room to room on the stage, the outline and the box follow within a
+                // few frames; Scry's own work and what it allocates meanwhile are told by part.
+                if (other != null)
+                {
+                    var firstFrame = Timing.Measuring?.Frames ?? 0;
+                    var bytesBefore = Timing.ScryBytes;
+                    var framesBefore = Time.frameCount;
+                    var timeBefore = Time.unscaledTime;
+                    Timing.ForgetBytesByPart();
+                    var slowest = 0;
+                    for (var i = 0; i < 8; i++)
+                    {
+                        var target = i % 2 == 0 ? other : onStage;
+                        ScryPanel.HoverStageForTest(i % 2 == 0 ? otherAt : onStageAt);
+                        var from = Time.frameCount;
+                        yield return Until(() => Stage.LitRoom == target && Stage.LitOutlineShown && ScryPanel.PlanBoxLitShown.Contains(target), 3);
+                        slowest = System.Math.Max(slowest, Time.frameCount - from);
+                        var resting = Time.frameCount;
+                        yield return Until(() => Time.frameCount >= resting + 10, 2);
+                    }
+                    var hovering = Timing.Measuring?.Since(firstFrame);
+                    var frameCount = System.Math.Max(1, Time.frameCount - framesBefore);
+                    p.Note($"{entry.Name}: going from room to room on the stage, the outline and the box followed within {Numbers.Count(slowest)} frames; frames took {Numbers.Fixed((Time.unscaledTime - timeBefore) * 1000f / frameCount, 1)} ms on average"
+                        + (hovering != null ? $", Scry's own work {Numbers.Fixed(hovering.Mean, 2)} ms of it, {Numbers.Fixed(hovering.Percentile(0.95), 2)} ms at the 95th percentile, {Numbers.Fixed(hovering.Max, 2)} ms at the most" : "")
+                        + $"; Scry allocated about {Numbers.Count((Timing.ScryBytes - bytesBefore) / frameCount)} bytes a frame, by part: {Timing.BytesByPartTold(6)}");
+                    if (slowest > 3) slowFollow.Add($"{entry.Name}: {Numbers.Count(slowest)} frames");
+                }
+
                 ScryPanel.HoverStageForTest(null);
                 var drawnLeft = ScryPanel.Drawn(PanelPart.PlanBox);
                 yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnLeft + 1 && !Stage.LitOutlineShown, 3);
                 if (Stage.LitOutlineShown || ScryPanel.PlanBoxLitShown.Count > 0) stayedLit.Add(entry.Name);
 
-                // A click goes into it.
+                // With a floor opened, a room dimmed below it can be chosen on the stage too, and
+                // its outline stands its whole box.
+                if (Stage.FloorHeights.Count > 1)
+                {
+                    Stage.OpenLevel(0);
+                    yield return Until(() => Stage.Cutting && Stage.ExampleRoomsKept, 3);
+                    PlacedRoom below = null;
+                    var placedNow = Stage.ExampleShown?.Rooms;
+                    for (var i = 0; placedNow != null && i < placedNow.Count && below == null; i++)
+                    {
+                        if (Stage.ExampleRoomShown(placedNow[i]) != PlanRoomShown.Faint) continue;
+                        var point = Stage.ExamplePointOf(i);
+                        if (!InPicture(point)) continue;
+                        ScryPanel.HoverStageForTest(point);
+                        var drawnBelow = ScryPanel.Drawn(PanelPart.PlanBox);
+                        yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnBelow + 1, 3);
+                        var found = ScryPanel.StageRoomHovered;
+                        if (found != null && Stage.ExampleRoomShown(found) == PlanRoomShown.Faint) below = found;
+                    }
+                    if (below == null) unchosen.Add($"{entry.Name}: no room dimmed below the top floor found under the mouse");
+                    else
+                    {
+                        yield return Until(() => Stage.LitRoom == below && Stage.LitOutlineShown, 3);
+                        var top = below.Position.Y + below.Room.Size.Y / 2f;
+                        if (Stage.LitRoom != below || !Stage.LitOutlineShown) unchosen.Add($"{entry.Name}: {below.Room.Name} found but not outlined");
+                        else
+                        {
+                            if (Stage.OutlinesPastCutForTest && Mathf.Abs(Stage.LitOutlineTopLaid - top) > 0.01f) unwhole.Add($"{entry.Name}: {below.Room.Name} lit to {Numbers.Fixed(Stage.LitOutlineTopLaid, 1)} m of its top at {Numbers.Fixed(top, 1)} m");
+                            yield return Picture(p, $"plan {entry.Name} room below the floor lit");
+                        }
+                    }
+                    ScryPanel.HoverStageForTest(null);
+                    Stage.ComeOut();
+                }
+
+                // A click goes into it, outlined whole however low the cut.
+                var filmedOutlines = Stage.OutlinesFilmed;
                 ScryPanel.ClickPlanRoomForTest(deepest);
-                yield return Until(() => Stage.RoomGoneInto == deepest, 3);
+                yield return Until(() => Stage.RoomGoneInto == deepest && Stage.OutlineShown, 3);
                 if (Stage.RoomGoneInto != deepest) notIn.Add(entry.Name);
+                else
+                {
+                    var deepestTop = deepest.Position.Y + deepest.Room.Size.Y / 2f;
+                    if (Stage.OutlinesPastCutForTest && (Mathf.Abs(Stage.OutlineTopLaid - deepestTop) > 0.01f || Stage.OutlinesFilmed == filmedOutlines))
+                        unwhole.Add($"{entry.Name}: {deepest.Room.Name} gone into, outlined to {Numbers.Fixed(Stage.OutlineTopLaid, 1)} m of its top at {Numbers.Fixed(deepestTop, 1)} m, outlines filmed {Numbers.Count(Stage.OutlinesFilmed - filmedOutlines)} times");
+                }
                 ScryPanel.ShowPlanViewForTest(PlanView.Tree);
                 var drawnTree = ScryPanel.Drawn(PanelPart.PlanBox);
                 yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnTree + 1 && !Stage.Gliding, 5);
@@ -188,6 +278,9 @@ namespace Scry
             p.Check(unlitBox.Count == 0, "a room under the mouse in the plan box is framed there alone and named, the way drawn to it, and outlined on the stage", string.Join("; ", unlitBox.Take(6)));
             p.Check(unlitStage.Count == 0, "a room under the mouse on the stage is framed in the plan box alone and named in every view, the way drawn to it, and outlined on the stage", string.Join("; ", unlitStage.Take(6)));
             p.Check(stayedLit.Count == 0, "the room lit goes out as the mouse leaves it", string.Join("; ", stayedLit));
+            p.Check(slowFollow.Count == 0, "going from room to room on the stage, the outline and the plan box follow within three frames", string.Join("; ", slowFollow));
+            p.Check(unchosen.Count == 0, "with a floor opened, a room dimmed below it is found under the mouse on the stage and outlined", string.Join("; ", unchosen));
+            p.Check(unwhole.Count == 0, "the outlines of the room gone into and of the room lit stand their whole box however low the cut", string.Join("; ", unwhole));
             p.Check(notIn.Count == 0, "a click on a room in the plan box goes into it", string.Join("; ", notIn));
         }
 
@@ -206,6 +299,10 @@ namespace Scry
             if (Stage.LitRoom != room || !Stage.LitOutlineShown) amiss.Add("outlined on the stage: " + (Stage.LitOutlineShown ? Stage.LitRoom?.Room.Name : "none"));
             return amiss.Count == 0 ? null : room.Room.Name + ": " + string.Join("; ", amiss);
         }
+
+        /// <summary>Whether a point of the stage's picture lies well inside it, not at its edge.</summary>
+        private static bool InPicture(Vector2? point) =>
+            point.HasValue && point.Value.x >= 0.05f && point.Value.x <= 0.95f && point.Value.y >= 0.05f && point.Value.y <= 0.95f;
 
         /// <summary>Puts the plan box back as the player had it, after <see cref="PlanBoxShows"/>.</summary>
         private static void PlanBoxAsItWas()

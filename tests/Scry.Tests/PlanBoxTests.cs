@@ -373,6 +373,28 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WithAFloorOpenedARoomBelowItCanBeChosenOnTheStage()
+        {
+            Assert.True(RoomLight.Choosable(goneInto: false, RoomLook.Whole, PlanRoomShown.Faint));
+            Assert.True(RoomLight.Choosable(goneInto: false, RoomLook.Whole, PlanRoomShown.Whole));
+        }
+
+        [Fact]
+        public void WithAFloorOpenedARoomAboveItCutAwayCannotBeChosen()
+        {
+            Assert.False(RoomLight.Choosable(goneInto: false, RoomLook.Whole, PlanRoomShown.None));
+        }
+
+        [Fact]
+        public void WithARoomGoneIntoEveryRoomDimmedAroundItCanBeChosenButNotThosePutAway()
+        {
+            Assert.True(RoomLight.Choosable(goneInto: true, RoomLook.Below, PlanRoomShown.None));
+            Assert.True(RoomLight.Choosable(goneInto: true, RoomLook.Near, PlanRoomShown.None));
+            Assert.True(RoomLight.Choosable(goneInto: true, RoomLook.Whole, PlanRoomShown.None));
+            Assert.False(RoomLight.Choosable(goneInto: true, RoomLook.Away, PlanRoomShown.Whole));
+        }
+
+        [Fact]
         public void TheWayFromTheEntranceGoesToTheRoomLitElseTheRoomGoneInto()
         {
             var lit = Room(0f, 0f, 0f, "lit");

@@ -128,6 +128,9 @@ namespace Scry
             Write("FAIL one that did not (with what was found), and note is something worth knowing. The summary at the end lists every failed check again.");
 
             _before = Before.Take();
+            // The list is shown while the test runs, as parts read what it draws: the search's
+            // help, the mod report and the floor's marks stand in it.
+            ScryPanel.ListsHidden = (false, false);
             AllKnown();
             Frames.Clear();
             Timing.Measuring = Frames;
@@ -208,6 +211,10 @@ namespace Scry
             public bool Open, InWorld, Repeat, OnPerson, PlanFolded, RunesFolded, ReadmeFolded, TooltipFolded;
             public Locations.State LocationsWere;
 
+            /// <summary>The stage's height and whether the list was folded in each view, which the pictures' parts change.</summary>
+            public float StageScale;
+            public (bool Full, bool Compact) ListsHidden;
+
             /// <summary>The view the panel was in when the test first opened it, for the full view the stage is drawn in.</summary>
             public bool? Compact;
 
@@ -224,6 +231,8 @@ namespace Scry
                 ReadmeFolded = ScryPanel.ReadmeFolded,
                 TooltipFolded = ScryPanel.TooltipFolded,
                 LocationsWere = Locations.Now,
+                StageScale = ScryPanel.StageScale,
+                ListsHidden = ScryPanel.ListsHidden,
             };
         }
 
@@ -261,6 +270,11 @@ namespace Scry
             ScryPanel.TooltipFolded = before.TooltipFolded;
             ScryPanel.HideModReport();
             if (before.Compact.HasValue) ScryPanel.Compact = before.Compact.Value;
+            // A part stopped between making the stage big and putting it back leaves both to here.
+            StageAsItWas();
+            ScryPanel.StageScale = before.StageScale;
+            ScryPanel.ListsHidden = before.ListsHidden;
+            ScryPanel.RememberPlaceForTest();
             Session.ShowKnownInstead(null);
             if (Session.Explorer != null) Session.Explorer.Peeking = false;
             if (Session.Explorer != null && Session.Explorer == before.Explorer) before.Explorer.Restore(before.Kept);
