@@ -51,6 +51,7 @@ namespace Scry
             var unwheeled = new List<string>();
             var apartCaps = new List<string>();
             var capsFound = new List<string>();
+            var unwalked = new List<string>();
             p.Note(Stage.OutlinesPastCutForTest ? "the outlines are drawn past the cut, on a layer of their own" : "the outlines are drawn with the cut, to just under it, for want of a free layer");
             var notIn = new List<string>();
             foreach (var entry in places)
@@ -122,6 +123,16 @@ namespace Scry
                     var miss = LitMiss(deepest);
                     if (miss != null) unlitBox.Add($"{entry.Name}: {miss}");
                     else yield return Picture(p, $"plan {entry.Name} room lit");
+
+                    // From above, the walkway to it runs from the entrance's middle to its own, and
+                    // every line of the ways runs along its room's walls, inside it.
+                    var walk = ScryPanel.PlanBoxRouteWalkForTest;
+                    if (walk.Count == 0 || Vec3.Distance(walk[0], ways.Entrance.Position) > 0.01f || Vec3.Distance(walk[walk.Count - 1], deepest.Position) > 0.01f)
+                        unwalked.Add($"{entry.Name}: the walkway to {deepest.Room.Name} runs from {(walk.Count > 0 ? walk[0].ToString() : "nowhere")} to {(walk.Count > 0 ? walk[walk.Count - 1].ToString() : "nowhere")}");
+                    var astray = (ScryPanel.PlanBoxWalkwaysForTest?.Lines ?? new List<PlanWalkways.Line>())
+                        .Where(l => !InRoom(l.Room, l.From) || !InRoom(l.Room, l.To) || !AlongWalls(l.Room, l.From, l.To))
+                        .Select(l => $"{l.Room.Room.Name} {l.From} to {l.To}").ToList();
+                    if (astray.Count > 0) unwalked.Add($"{entry.Name}: {Numbers.Count(astray.Count)} lines astray, as {string.Join(", ", astray.Take(3))}");
                     ScryPanel.HoverPlanBoxForTest(null);
                 }
 
@@ -339,9 +350,24 @@ namespace Scry
             p.Check(unfresh.Count == 0, "going into a room and coming back out frame it afresh, a zoom or drag on what was framed before let go of", string.Join("; ", unfresh));
             p.Check(unwheeled.Count == 0, "Shift and the wheel open the top floor from the roof and take the cut no lower than the lowest floor", string.Join("; ", unwheeled));
             p.Check(apartCaps.Count == 0, "with a floor opened, each end cap and divider is drawn as the room it closes", string.Join("; ", apartCaps));
+            p.Check(unwalked.Count == 0, "from above, every way runs along its rooms' walls inside them, and the walkway to a room lit runs from the entrance's middle to its own", string.Join("; ", unwalked.Take(6)));
             p.Check(capsFound.Count == 0, "the mouse on an end cap or divider on the stage finds the room it closes", string.Join("; ", capsFound));
             p.Check(unwhole.Count == 0, "the outlines of the room gone into and of the room lit stand their whole box however low the cut", string.Join("; ", unwhole));
             p.Check(notIn.Count == 0, "a click on a room in the plan box goes into it", string.Join("; ", notIn));
+        }
+
+        /// <summary>Whether a point stands on a room's floor as seen from above, its doorways' width of leeway at its walls.</summary>
+        private static bool InRoom(PlacedRoom room, Vec3 point)
+        {
+            var local = room.Rotation.Inverse() * (point - room.Position);
+            return Mathf.Abs(local.X) <= room.Room.Size.X / 2f + RoomWalkway.Near && Mathf.Abs(local.Z) <= room.Room.Size.Z / 2f + RoomWalkway.Near;
+        }
+
+        /// <summary>Whether a line runs along one of a room's walls, as seen from above.</summary>
+        private static bool AlongWalls(PlacedRoom room, Vec3 a, Vec3 b)
+        {
+            var d = room.Rotation.Inverse() * (b - a);
+            return Mathf.Abs(d.X) < 0.01f || Mathf.Abs(d.Z) < 0.01f;
         }
 
         /// <summary>

@@ -85,6 +85,14 @@ namespace Scry
         [Diagnostic]
         public static int PlanBoxWaysDrawn { get; private set; }
 
+        /// <summary>The walkways the plan from above draws its ways with, for the self-test.</summary>
+        [Diagnostic]
+        public static PlanWalkways PlanBoxWalkwaysForTest => WalkwaysNow();
+
+        /// <summary>The walkway along the way from the entrance to the room lit or gone into, for the self-test.</summary>
+        [Diagnostic]
+        public static IReadOnlyList<Vec3> PlanBoxRouteWalkForTest => RouteWalk;
+
         /// <summary>Where the box last stood, for the self-test; none while it is not drawn.</summary>
         [Diagnostic]
         public static Rect PlanBoxRect { get; private set; }
@@ -461,7 +469,7 @@ namespace Scry
         /// <summary>
         /// Seen from above, turned as the view is and at one scale whichever way, each room a
         /// tile shaded by its depth, the room gone into in the accent and those above it in
-        /// dashes, so the rooms under them show.
+        /// dashes, so the rooms under them show; the ways between them walkways along the rooms' walls.
         /// </summary>
         private static void AboveView(Explorer explorer, Rect area, PlacedRoom gone)
         {
@@ -490,7 +498,7 @@ namespace Scry
             if (!repaint) return;
             foreach (var spot in BoxSpots) if (!spot.Dashed) BoxTile(spot, spot.Room == gone ? Skin.Alpha(Skin.Accent, 0.75f) : DepthTone(spot.Room), Skin.Alpha(Skin.Text, 0.3f), 1f);
             foreach (var spot in BoxSpots) if (spot.Dashed) BoxTile(spot, null, Skin.Alpha(Skin.Faint, 0.6f), 1f, dashed: true);
-            Ways(room => At(room.Position), (room, door) => At(door));
+            Walkways(At);
             foreach (var spot in BoxSpots) if (BoxLit(spot.Room) || spot.Room == gone) BoxTile(spot, null, Skin.Accent, 2f);
             if (_planBig) Names(explorer, area);
         }
@@ -518,12 +526,16 @@ namespace Scry
         private static DungeonWays _routeOf;
         private static readonly HashSet<(PlacedRoom, PlacedRoom)> RouteWays = new HashSet<(PlacedRoom, PlacedRoom)>();
 
+        /// <summary>The walkway along the way from the entrance to that room, for the plan from above.</summary>
+        private static readonly List<Vec3> RouteWalk = new List<Vec3>();
+
         private static void KnowRoute(PlacedRoom to)
         {
             if (ReferenceEquals(to, _routeTo) && ReferenceEquals(_routeOf, _boxWays)) return;
             _routeTo = to;
             _routeOf = _boxWays;
             RouteWays.Clear();
+            RouteWalk.Clear();
             if (to == null || _boxWays == null) return;
             var route = _boxWays.Route(to);
             for (var i = 1; i < route.Count; i++)
@@ -531,6 +543,49 @@ namespace Scry
                 RouteWays.Add((route[i - 1], route[i]));
                 RouteWays.Add((route[i], route[i - 1]));
             }
+            RouteWalk.AddRange(WalkwaysNow().Route(route));
+        }
+
+        /// <summary>The walkways of the box's example from above, worked out again only as its ways change.</summary>
+        private static PlanWalkways _walkways;
+        private static DungeonWays _walkwaysOf;
+
+        private static PlanWalkways WalkwaysNow()
+        {
+            if (ReferenceEquals(_walkwaysOf, _boxWays)) return _walkways;
+            _walkwaysOf = _boxWays;
+            return _walkways = _boxWays != null ? PlanWalkways.Of(_boxWays) : null;
+        }
+
+        /// <summary>
+        /// The ways between the rooms from above as walkways (<see cref="PlanWalkways"/>): each
+        /// room's hall along its longer side and each doorway it shares joined to it square to its
+        /// walls, a dot at each such doorway; the walkway from the entrance in the accent and bolder
+        /// over them, ways closing a loop in dashes.
+        /// </summary>
+        private static void Walkways(Func<Vec3, Vector2> at)
+        {
+            var walkways = WalkwaysNow();
+            if (walkways == null) return;
+            var colour = Skin.Alpha(Skin.Text, 0.8f);
+            var width = U(1.6f);
+            foreach (var line in walkways.Lines) PlanLine(at(line.From), at(line.To), colour, width, line.Loop ? U(4f) : 0f);
+            for (var i = 1; i < RouteWalk.Count; i++) PlanLine(at(RouteWalk[i - 1]), at(RouteWalk[i]), Skin.Accent, U(2.5f));
+            var drawn = 0;
+            foreach (var room in BoxRooms)
+            {
+                foreach (var other in _boxWays.WaysOf(room))
+                {
+                    if (!BoxIndex.TryGetValue(other, out var index) || index <= BoxIndex[room]) continue;
+                    drawn++;
+                    if (!(_boxWays.DoorBetween(room, other) is Vec3 shared)) continue;
+                    var onRoute = RouteWays.Contains((room, other));
+                    var dot = U(onRoute ? 5f : 4f);
+                    var door = at(shared);
+                    Skin.Icon(new Rect(door.x - dot / 2f, door.y - dot / 2f, dot, dot), Skin.Circle, onRoute ? Skin.Accent : Skin.Text);
+                }
+            }
+            PlanBoxWaysDrawn = drawn;
         }
 
         /// <summary>
@@ -904,6 +959,9 @@ namespace Scry
             TreeAt.Clear();
             BoxGrounds.Clear();
             RouteWays.Clear();
+            RouteWalk.Clear();
+            _walkways = null;
+            _walkwaysOf = null;
             _treeRows = null;
             _boxWays = null;
             _treeWays = null;
