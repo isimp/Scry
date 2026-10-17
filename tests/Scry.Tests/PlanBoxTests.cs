@@ -327,13 +327,62 @@ namespace Scry.Tests
             Assert.Equal(5f / 6f, tree.AcrossOf(far), 3);
         }
 
-        [Fact]
-        public void RoomsReachedFromOneRoomStandInTheOrderTheyWerePlaced()
+        /// <summary>
+        /// An entrance walked into from the south through its own door out, with a door west,
+        /// one north and one east, each to a room; placed east, west, north, so the order placed
+        /// is not the order walked.
+        /// </summary>
+        private static (DungeonWays Ways, PlacedRoom Entrance, PlacedRoom West, PlacedRoom North, PlacedRoom East) Crossing(bool withEast = true)
         {
-            var (ways, _, west, east, _, near, far) = Branches();
+            var entrance = Placed("entrance", 0f, 0f, 0, At(0f, -5f), At(-5f, 0f), At(0f, 5f), At(5f, 0f));
+            var east = Placed("east", 10f, 0f, 1, At(5f, 0f));
+            var west = Placed("west", -10f, 0f, 2, At(-5f, 0f));
+            var north = Placed("north", 0f, 10f, 3, At(0f, 5f));
+            var rooms = withEast ? new[] { entrance, east, west, north } : new[] { entrance, west, north };
+            return (DungeonWays.Of(rooms), entrance, west, north, east);
+        }
+
+        [Fact]
+        public void RoomsBehindALeftDoorStandLeftThoseStraightOnBelowAndARightDoorsRight()
+        {
+            var (ways, _, west, north, east) = Crossing();
             var tree = TreeRows.Of(ways);
+            Assert.True(tree.AcrossOf(west) < tree.AcrossOf(north));
+            Assert.True(tree.AcrossOf(north) < tree.AcrossOf(east));
+        }
+
+        [Fact]
+        public void ARoomStandsOverTheRoomStraightOnFromItSoACorridorKeepsItsLine()
+        {
+            // With only a left door and one straight on, the entrance stands over the room straight on, not between the two.
+            var (ways, entrance, west, north, _) = Crossing(withEast: false);
+            var tree = TreeRows.Of(ways);
+            Assert.Equal(tree.AcrossOf(north), tree.AcrossOf(entrance), 3);
+            Assert.True(tree.AcrossOf(west) < tree.AcrossOf(north));
+        }
+
+        [Fact]
+        public void LeftAndRightAreAsTheWayIsWalkedNotAsTheCompassHasThem()
+        {
+            // Walked into from the east, heading west: the door north is on the right, the door south on the left.
+            // Its door out listed last, among those its rooms share.
+            var entrance = Placed("entrance", 0f, 0f, 0, At(0f, 5f), At(0f, -5f), At(5f, 0f));
+            var north = Placed("north", 0f, 10f, 1, At(0f, 5f));
+            var south = Placed("south", 0f, -10f, 2, At(0f, -5f));
+            var tree = TreeRows.Of(DungeonWays.Of(new[] { entrance, north, south }));
+            Assert.True(tree.AcrossOf(south) < tree.AcrossOf(north));
+        }
+
+        [Fact]
+        public void AWayOnTurnsAsWalkedFromTheDoorTheRoomWasEnteredBy()
+        {
+            // From the entrance north into a hall, then the hall's doors: west is left, east is right.
+            var entrance = Placed("entrance", 0f, 0f, 0, At(0f, -5f), At(0f, 5f));
+            var hall = Placed("hall", 0f, 10f, 1, At(0f, 5f), At(5f, 10f), At(-5f, 10f));
+            var east = Placed("east", 10f, 10f, 2, At(5f, 10f));
+            var west = Placed("west", -10f, 10f, 3, At(-5f, 10f));
+            var tree = TreeRows.Of(DungeonWays.Of(new[] { entrance, hall, east, west }));
             Assert.True(tree.AcrossOf(west) < tree.AcrossOf(east));
-            Assert.True(tree.AcrossOf(near) < tree.AcrossOf(far));
         }
 
         [Fact]
