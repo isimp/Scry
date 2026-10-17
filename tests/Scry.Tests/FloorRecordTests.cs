@@ -88,6 +88,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void UnderARoofAFloorWithARugOnItIsCoveredLikeTheRug()
+        {
+            // Whether a surface is open is told by the topmost thing on its ray, not by what lies on it.
+            var record = Empty(Parts).With(Seen(new[] { Floor, Platform, Roof }, new[] { At(4f, Roof, flat: false), At(0.1f, Platform), At(0f, Floor) }));
+            var landings = record.Landings(Roll(Floor, Platform, Roof));
+            Assert.Equal(50, landings.Count);
+            Assert.All(landings, l => Assert.False(l.Open));
+        }
+
+        [Fact]
         public void EachLandingKnowsHowFarOverItItsCeilingIs()
         {
             // A roof 4 m up over a floor with a rug on it: the rug is too near to hide the floor,
@@ -101,6 +111,88 @@ namespace Scry.Tests
             // Under a platform 2 m up and the roof over it, the nearer hides it.
             var under = Empty(Parts).With(Seen(new[] { Floor, Platform, Roof }, new[] { At(4f, Roof, flat: false), At(2f, Platform), At(0f, Floor) }));
             Assert.All(under.Landings(Roll(Floor, Platform, Roof)).Where(l => l.Height == 0f), l => Assert.Equal(2f, l.Over, 3));
+        }
+
+        // A cabin's wall of half-metre logs under its roof: rolled with the roof or without it.
+        private static readonly (string, bool)[] Cabin = { ("log", true), ("top log", true), ("roof", true), ("rug", true) };
+        private const int Log = 0, TopLog = 1, CabinRoof = 2, Rug = 3;
+
+        [Fact]
+        public void WhatARayPassesJustUnderAPartIsToldOnlyInARollWithoutThatPart()
+        {
+            // A ray goes on two centimetres past each surface it meets, so it passes over the top
+            // log 7 mm under the roof resting on it. A probe keeps what its rays pass over too.
+            var record = Empty(Cabin).With(Seen(new[] { Log, TopLog, CabinRoof }, new[] { At(2.507f, CabinRoof, flat: false), At(2.5f, TopLog), At(2f, Log) }));
+
+            // With the roof the ray meets the roof and the log under the top one, as its rays do.
+            var roofed = Roll(Log, TopLog, CabinRoof);
+            Assert.Equal(new[] { 2.507f, 2f }, record.On(0, roofed).Select(s => s.Height));
+            Assert.All(record.Landings(roofed), l => Assert.Equal(2f, l.Height));
+            Assert.All(record.Landings(roofed), l => Assert.False(l.Open));
+            Assert.All(record.Landings(roofed), l => Assert.Equal(0f, l.Over));
+
+            // Without it the top log is met, open, and the log under it covered.
+            var bare = Roll(Log, TopLog);
+            Assert.Equal(new[] { 2.5f, 2f }, record.On(0, bare).Select(s => s.Height));
+            var landings = record.Landings(bare);
+            Assert.Equal(50, landings.Count);
+            Assert.All(landings.Where(l => l.Part == TopLog), l => Assert.True(l.Open));
+            Assert.All(landings.Where(l => l.Part == Log), l => Assert.False(l.Open));
+        }
+
+        [Fact]
+        public void WhatLiesMoreThanARaysStepUnderAPartIsMetUnderIt()
+        {
+            // A rug 3 cm under a table top is met under it; a board 1 cm under the rug is passed,
+            // as the ray steps past the rug it met, not past the table top.
+            var record = Empty(Cabin).With(Seen(new[] { Log, Rug, TopLog }, new[] { At(0.53f, Log), At(0.5f, Rug), At(0.49f, TopLog) }));
+            Assert.Equal(new[] { 0.53f, 0.5f }, record.On(0, Roll(Log, Rug, TopLog)).Select(s => s.Height));
+            Assert.Equal(50, record.Landings(Roll(Log, Rug, TopLog)).Count);
+        }
+
+        [Theory]
+        [InlineData(2.5f, 2f)]
+        [InlineData(2.4999f, 2.0001f)]
+        [InlineData(2.5002f, 1.9999f)]
+        [InlineData(2.4996f, 2f)]
+        public void ALogRightUnderTheTopOneIsCoveredHoweverItsHeightsLastDigitsFall(float top, float under)
+        {
+            // A wall's logs are half a metre high, as far as a surface must be under the topmost
+            // on its ray to be covered: the log under the top one is covered whichever way the
+            // rays' error falls, and as kept to the millimetre.
+            var record = Empty(Cabin).With(Seen(new[] { Log, TopLog }, new[] { At(top, TopLog), At(under, Log) }));
+            foreach (var told in new[] { record, FloorRecord.Load(record.Save()) })
+            {
+                var landings = told.Landings(Roll(Log, TopLog));
+                Assert.Equal(50, landings.Count);
+                Assert.All(landings.Where(l => l.Part == TopLog), l => Assert.True(l.Open));
+                Assert.All(landings.Where(l => l.Part == Log), l => Assert.False(l.Open));
+            }
+        }
+
+        [Fact]
+        public void WhatStandsLessThanHalfAMetreOverAFloorLeavesItOpen()
+        {
+            // A bench 48 cm high.
+            var record = Empty(Cabin).With(Seen(new[] { Log, Rug }, new[] { At(0.48f, Rug), At(0f, Log) }));
+            Assert.All(record.Landings(Roll(Log, Rug)), l => Assert.True(l.Open));
+        }
+
+        [Fact]
+        public void ARayKeepsWhatItPassesJustUnderTheSurfaceItMeets()
+        {
+            // One cast hits each collider under it once. By how far along each hit is and its part:
+            // the log, a rug 15 mm under the roof, the top log 7 mm under it, the roof, another
+            // room's floor beside the copy (-1), and the roof's second collider.
+            var hits = new List<(float Distance, int Part)> { (1f, Log), (0.515f, Rug), (0.507f, TopLog), (0.5f, CabinRoof), (0.49f, -1), (0.51f, CabinRoof) };
+            var kept = new List<int> { 9 };
+            FloorRecord.StepKeeps(hits, kept);
+
+            // The roof is met; the top log and the rug, passed, kept after it nearest first.
+            Assert.Equal(new[] { 3, 2, 1 }, kept);
+
+            FloorRecord.StepKeeps(new List<(float, int)> { (0.3f, -1) }, kept);
+            Assert.Empty(kept);
         }
 
         [Fact]
@@ -241,6 +333,15 @@ namespace Scry.Tests
         public void AFileOfAnotherKindOrNoneGivesNoRecord(string text)
         {
             Assert.Null(FloorRecord.Load(text));
+        }
+
+        [Fact]
+        public void ARecordKeptBeforeRaysKeptWhatTheyPassIsProbedAfresh()
+        {
+            // Such a record lacks what its rays passed just under another part.
+            var text = Empty(Parts).With(Seen(new[] { Floor }, new[] { At(0f, Floor) })).Save();
+            Assert.NotNull(FloorRecord.Load(text));
+            Assert.Null(FloorRecord.Load("Scry floors 1" + text.Substring(text.IndexOf('\n'))));
         }
 
         [Fact]

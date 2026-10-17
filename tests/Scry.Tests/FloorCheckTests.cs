@@ -218,6 +218,33 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AWallUnderARoofSomeRollsLeaveOutIsToldAsItsRaysFindIt()
+        {
+            // A cabin's wall of half-metre logs, its top log 7 mm under the roof: probed with the
+            // roof, whose ray passed the top log, then shown in a roll without the roof, its rays'
+            // heights off by a tenth of a millimetre.
+            var cabin = new[] { new RayPart { Name = "log", Solid = true }, new RayPart { Name = "top log", Solid = true }, new RayPart { Name = "roof", Solid = true } };
+            const int log = 0, top = 1, roof = 2;
+            FloorRecord Seen(int[] present, params RaySurface[] everyRay)
+            {
+                var seen = new ProbeSeen();
+                seen.Present.UnionWith(present);
+                for (var ray = 0; ray < 25; ray++) seen.Rays[ray] = everyRay.ToList();
+                return FloorRecord.New("AbandonedLogCabin02", false, "stamp", 0f, 2f, 0f, 2f, 6f, -2f, cabin).With(seen);
+            }
+            var kept = Seen(new[] { log, top, roof }, new RaySurface { Height = 2.507f, Part = roof }, At(2.5f, top), At(2f, log));
+
+            var bare = new HashSet<int> { log, top };
+            var rays = Seen(new[] { log, top }, At(2.4999f, top), At(2.0001f, log));
+            Assert.True(FloorCheck.Of(kept, rays, bare, new string[0]).Same, FloorCheck.Of(kept, rays, bare, new string[0]).Told);
+            Assert.True(FloorCheck.Of(FloorRecord.Load(kept.Save()), rays, bare, new string[0]).Same);
+
+            var roofed = new HashSet<int> { log, top, roof };
+            rays = Seen(new[] { log, top, roof }, new RaySurface { Height = 2.5071f, Part = roof }, At(2.5001f, top), At(2f, log));
+            Assert.True(FloorCheck.Of(kept, rays, roofed, new string[0]).Same, FloorCheck.Of(kept, rays, roofed, new string[0]).Told);
+        }
+
+        [Fact]
         public void ACellOrTwoOfDifferenceIsMinorAndMoreIsNot()
         {
             // A ray meets a curved part's mesh, or misses it, by its last digit at a seam: a cell
