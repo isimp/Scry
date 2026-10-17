@@ -6,6 +6,24 @@ namespace Scry.Tests
 {
     public class RoomCardTests
     {
+        // The card is compact: its creatures and its chests and pickups fold to their counts
+        // until opened, as a page's sections do, and its page is a link on its name's line.
+
+        [Fact]
+        public void AFoldedListOfTheCardSaysHowManyItHoldsAndThatItOpens()
+        {
+            Assert.Equal("Creatures in this roll 3  ▸", RoomCardWords.ListHeading(RoomCardWords.Creatures, 3, open: false));
+            Assert.Equal("Chests and pickups 12  ▾", RoomCardWords.ListHeading(RoomCardWords.Loot, 12, open: true));
+            Assert.Equal(RoomCardWords.CreaturesTip + "\nOpens the list", RoomCardWords.ListTip(RoomCardWords.CreaturesTip, open: false));
+            Assert.Equal(RoomCardWords.LootTip + "\nFolds the list away to its count", RoomCardWords.ListTip(RoomCardWords.LootTip, open: true));
+        }
+
+        [Fact]
+        public void TheCardsPageIsALinkOnItsNamesLine()
+        {
+            Assert.Equal("Its page", RoomCardWords.PageLink);
+        }
+
         [Fact]
         public void TheCardSaysHowFarBelowTheEntranceTheRoomIsHowManyRoomsInAndHowManyWays()
         {

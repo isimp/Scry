@@ -34,7 +34,10 @@ namespace Scry
             var notThrough = new List<string>();
             var noLevels = new List<string>();
             var stayed = new List<string>();
+            var unfolded = new List<string>();
             var oddsChecked = 0;
+            // The card's lists stand open while their rows are read, folded again after as they were.
+            var listsWere = ScryPanel.OpenCardListsForTest(true, true);
             foreach (var entry in places)
             {
                 Select(entry);
@@ -66,6 +69,18 @@ namespace Scry
                     continue;
                 }
                 p.Note($"{name}'s card: " + string.Join(" | ", lines));
+
+                // Folded, its lists keep their headings with their counts, and none of their rows.
+                ScryPanel.OpenCardListsForTest(false, false);
+                var foldedDrawn = ScryPanel.Drawn(PanelPart.RoomCard);
+                yield return Until(() => ScryPanel.Drawn(PanelPart.RoomCard) > foldedDrawn + 1, 3);
+                var folded = ScryPanel.RoomCardLines.ToList();
+                var foldedCreatures = Section(folded, RoomCardWords.Creatures, RoomCardWords.Loot);
+                if (!folded.Contains(RoomCardWords.Creatures) || !folded.Contains(RoomCardWords.Loot) || foldedCreatures.Count > 0 || folded.Count >= lines.Count && lines.Count > 4)
+                    unfolded.Add($"{name}: " + string.Join(" | ", folded));
+                ScryPanel.OpenCardListsForTest(true, true);
+                var openDrawn = ScryPanel.Drawn(PanelPart.RoomCard);
+                yield return Until(() => ScryPanel.Drawn(PanelPart.RoomCard) > openDrawn + 1, 3);
 
                 // Where it is, as the ways and the rooms' grounds have it.
                 var rise = Stage.ExampleRoomGround(room) - Stage.ExampleRoomGround(ways.Entrance);
@@ -145,9 +160,11 @@ namespace Scry
                 yield return Until(() => Stage.RoomGoneInto == null && ScryPanel.RoomCardLines.Count == 0, 5);
                 if (Stage.RoomGoneInto != null || ScryPanel.RoomCardLines.Count > 0) stayed.Add(entry.Name);
             }
+            ScryPanel.OpenCardListsForTest(listsWere.Creatures, listsWere.Loot);
             Stage.Inside = wasInside;
             StageAsItWas();
             p.Note($"{Numbers.Count(oddsChecked)} chests' and pickups' chances checked against their rooms' pages");
+            p.Check(unfolded.Count == 0, "folded, the card's lists keep their headings and counts and none of their rows", string.Join("; ", unfolded));
             if (linkable > 0) p.Check(linked == linkable, "each creature and chest on the card with a page of its own is a line that goes to it", $"{Numbers.Count(linked)} of {Numbers.Count(linkable)} cards drew them so");
             p.Check(unshown.Count == 0, "a room gone into shows its card", string.Join("; ", unshown));
             p.Check(misplaced.Count == 0, "the card says how far below the entrance, how many rooms in and how many ways", string.Join("; ", misplaced));

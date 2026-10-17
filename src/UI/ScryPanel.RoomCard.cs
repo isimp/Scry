@@ -22,6 +22,9 @@ namespace Scry
             public List<(string Line, string Page)> Creatures = new List<(string, string)>();
             public List<(string Name, string Odds, string Page)> Loot = new List<(string, string, string)>();
             public int CreaturesLeft, LootLeft;
+
+            /// <summary>How many creatures and how many chests and pickups this copy rolled in the room, those left out with them, as its folded lists say.</summary>
+            public int CreatureCount, LootCount;
             public List<WayOn> Ways = new List<WayOn>();
             public List<float> Levels = new List<float>();
             public List<string> LevelWords = new List<string>();
@@ -94,11 +97,13 @@ namespace Scry
             var creatures = Stage.RoomCreatures(room);
             var kept = creatures.Where(c => !explorer.LeavesOut(c)).ToList();
             card.CreaturesLeft = creatures.Count - kept.Count;
+            card.CreatureCount = creatures.Count;
             card.Creatures = RoomCardWords.CountedPages(kept.Select(c => (ShownName(explorer, c, CreatureName(c)), c)));
 
             var loot = Stage.RoomLoot(room);
             var shown = loot.Where(l => !explorer.LeavesOut(l.Prefab)).ToList();
             card.LootLeft = loot.Count - shown.Count;
+            card.LootCount = loot.Count;
             card.Loot = RoomCardWords.OddsPages(shown.Select(l => (ShownName(explorer, l.Prefab, PartName(l.Prefab)), l.Prefab, l.Chance)));
 
             if (ways != null) card.Ways = RoomCard.WaysOn(ways, room, Stage.ExampleRoomGround, RoomName);
@@ -106,6 +111,21 @@ namespace Scry
             card.LevelWords = card.Levels.Select(l => RoomCardWords.Level(l, card.Ground)).ToList();
             _roomCard = card;
             return card;
+        }
+
+        /// <summary>Whether a list of the card stands open, its creatures or its chests and pickups: folded to its count until opened, remembered with the panel's folds by a key standing while it is open.</summary>
+        private static bool CardListOpen(string list) => IsFolded("card" + list + "open");
+
+        private static void OpenCardList(string list, bool open) => SetFolded("card" + list + "open", open);
+
+        /// <summary>Opens or folds the card's lists, for the self-test; returns whether each stood open.</summary>
+        [Diagnostic]
+        public static (bool Creatures, bool Loot) OpenCardListsForTest(bool creatures, bool loot)
+        {
+            var was = (CardListOpen("creatures"), CardListOpen("loot"));
+            OpenCardList("creatures", creatures);
+            OpenCardList("loot", loot);
+            return was;
         }
 
         /// <summary>Lays the card's rows out for so many lines of each list and a width, kept until either changes.</summary>
@@ -139,10 +159,11 @@ namespace Scry
         }
 
         /// <summary>
-        /// The card of a dungeon's room gone into, in the stage's top left under the kind badge
-        /// and above the plan: its name and where it is, the creatures and the chests and pickups
-        /// this copy rolled in it, its ways on as chips that go into their rooms and light them
-        /// while hovered, its levels as segments that open them, its page and the way back out.
+        /// The card of a dungeon's room gone into, in the stage's top left under the breadcrumb
+        /// and above the plan: its name with its page a link beside it and where it is, the
+        /// creatures and the chests and pickups this copy rolled in it, each list folded to its
+        /// count until opened, its ways on as chips that go into their rooms and light them while
+        /// hovered, and its levels as segments that open them.
         /// It takes the mouse where it stands. Returns where it stands; none outside a room.
         /// </summary>
         private static Rect RoomCardBox(Explorer explorer, Rect inner, Rect plan)
@@ -168,7 +189,6 @@ namespace Scry
             var lineH = U(17f);
             var headH = U(18f);
             var chipH = U(22f);
-            var buttonH = U(24f);
             var levels = card.Levels.Count > 1;
 
             // Its lines of creatures and of chests and pickups, at most six of each.
@@ -176,11 +196,11 @@ namespace Scry
             {
                 LayCard(card, most, textW, chipH);
                 var h = pad + nameH + whereH;
-                h += headH + lineH * (Mathf.Max(1, card.CreatureRows.Count) + (card.CreaturesLeft > 0 ? 1 : 0));
-                h += headH + lineH * (Mathf.Max(1, card.LootRows.Count) + (card.LootLeft > 0 ? 1 : 0));
+                h += headH + (CardListOpen("creatures") ? lineH * (Mathf.Max(1, card.CreatureRows.Count) + (card.CreaturesLeft > 0 ? 1 : 0)) : 0f);
+                h += headH + (CardListOpen("loot") ? lineH * (Mathf.Max(1, card.LootRows.Count) + (card.LootLeft > 0 ? 1 : 0)) : 0f);
                 h += headH + card.WaysTall;
                 if (levels) h += headH + card.LevelsTall;
-                return h + U(2f) + buttonH + pad;
+                return h + pad;
             }
             // As tall as it wants, else as much as is left over the plan box, giving way to it and
             // scrolling the rest (CornerFit), its text narrower by the scrollbar then.
@@ -247,12 +267,37 @@ namespace Scry
                 if (left > 0) Line(lineH, CompendiumWords.LeftOutOf(null, left), Skin.FaintLabel);
             }
 
-            Line(nameH, card.Name, Skin.TopicName);
+            // A list's heading says how many it holds, and a click on it opens it or folds it away.
+            void ListHeading(string list, string text, int count, Color colour, string tip)
+            {
+                var open = CardListOpen(list);
+                var shown = RoomCardWords.ListHeading(text, count, open);
+                if (repaint) CardLines.Add(text);
+                Skin.LabelIn(new Rect(x, y, textW, headH), shown, Skin.Heading, colour);
+                var head = new Rect(x, y, Mathf.Min(textW, Skin.Width(Skin.Heading, shown) + U(4f)), headH);
+                if (head.Contains(e.mousePosition)) AskTip("card:" + text, RoomCardWords.ListTip(tip, open));
+                if (GUI.Button(head, GUIContent.none, GUIStyle.none)) OpenCardList(list, !open);
+                y += headH;
+            }
+
+            // Its name, its page a link at the line's end where it has one.
+            var openPage = false;
+            var pageW = card.Goes ? Skin.Width(Skin.Small, RoomCardWords.PageLink) + U(8f) : 0f;
+            if (repaint) CardLines.Add(card.Name);
+            FitLabel(new Rect(x, y, textW - pageW, nameH), card.Name, Skin.TopicName, 10f);
+            if (card.Goes)
+            {
+                var link = new Rect(x + textW - pageW + U(8f), y + U(2f), pageW - U(8f), nameH - U(2f));
+                if (link.Contains(e.mousePosition)) AskTip("card:page", RoomCardWords.OpenPageTip);
+                if (GUI.Button(link, GUIContent.none, GUIStyle.none)) openPage = true;
+                LinkLabel(link, RoomCardWords.PageLink, Skin.Small, Skin.Accent);
+            }
+            y += nameH;
             Line(whereH, card.Where, Skin.FaintLabel);
-            Heading(RoomCardWords.Creatures, Skin.KindColor(Kind.Creature), RoomCardWords.CreaturesTip);
-            Rows(card.CreatureRows, card.CreaturesLeft);
-            Heading(RoomCardWords.Loot, Skin.KindColor(Kind.Item), RoomCardWords.LootTip);
-            Rows(card.LootRows, card.LootLeft);
+            ListHeading("creatures", RoomCardWords.Creatures, card.CreatureCount, Skin.KindColor(Kind.Creature), RoomCardWords.CreaturesTip);
+            if (CardListOpen("creatures")) Rows(card.CreatureRows, card.CreaturesLeft);
+            ListHeading("loot", RoomCardWords.Loot, card.LootCount, Skin.KindColor(Kind.Item), RoomCardWords.LootTip);
+            if (CardListOpen("loot")) Rows(card.LootRows, card.LootLeft);
 
             // Its ways on: each goes into its room, and lights it on the stage and the plan while hovered.
             Heading(RoomCardWords.Ways, Skin.Faint, null);
@@ -293,14 +338,6 @@ namespace Scry
                 y += card.LevelsTall;
             }
 
-            // Its page, as a click on a room once went to; the way back out stands under the plan, where it never scrolls away.
-            y += U(2f);
-            var page = new Rect(x, y, textW, buttonH);
-            if (page.Contains(e.mousePosition)) AskTip("card:page", RoomCardWords.OpenPageTip);
-            var enabled = GUI.enabled;
-            GUI.enabled = enabled && card.Goes;
-            var openPage = GUI.Button(page, RoomCardWords.OpenPage, Skin.Fitted(Skin.Button, page)) && card.Goes;
-            GUI.enabled = enabled;
             if (scrolls) GUI.EndScrollView();
 
             if (goTo != null) Stage.GoInto(goTo);

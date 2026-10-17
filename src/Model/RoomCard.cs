@@ -17,7 +17,14 @@ namespace Scry
         public const string Loot = "Chests and pickups";
         public const string Ways = "Ways on";
         public const string Levels = "Levels in this room";
-        public const string OpenPage = "Open its page";
+        /// <summary>The link on the card's name's line going to the room's page.</summary>
+        public const string PageLink = "Its page";
+
+        /// <summary>The heading of a list of the card, its creatures or its chests and pickups: how many it holds, and whether it stands open, as a page's section says it.</summary>
+        public static string ListHeading(string heading, int count, bool open) => PanelWords.SectionTitle(heading + " " + Numbers.Count(count), !open);
+
+        /// <summary>A list's heading's tip: what the list holds, and what a click on it does.</summary>
+        public static string ListTip(string about, bool open) => about + "\n" + (open ? "Folds the list away to its count" : "Opens the list");
 
         /// <summary>What a section with nothing in it says.</summary>
         public const string None = "None in this roll";

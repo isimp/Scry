@@ -59,7 +59,7 @@ namespace Scry
         /// </summary>
         public static string KeySheet(bool cut, bool inRoom)
         {
-            if (inRoom) return "Drag: turn around the room\nWheel: zoom toward the pointer\nShift and the wheel, Page Up and Down: the room's cut; past its ends, the next level\nEsc, Whole dungeon or the mouse's back button: come back out";
+            if (inRoom) return "Drag: turn around the room\nWheel: zoom toward the pointer\nShift and the wheel, Page Up and Down: the room's cut; past its ends, the next level\nEsc, the breadcrumb's level or the mouse's back button: come back out";
             const string sheet = "Drag: turn it\nRight-drag: move it\nWheel: zoom toward the pointer\nDouble-click: frame it again";
             return cut ? sheet + "\nPage Up and Down, the ruler: the next floor or level\nShift and the wheel: move the cut" : sheet;
         }
