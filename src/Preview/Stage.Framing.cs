@@ -97,6 +97,9 @@ namespace Scry
         /// <summary>Keeps the frame the view had on a floor for the floor opened next (<see cref="_keptLevelFrame"/>).</summary>
         private static void KeepLevelFrame(Vector4 framed) => _keptLevelFrame = new Vector3(framed.x, framed.z, framed.w);
 
+        /// <summary>The frame kept across floors now, as a view stepped back to takes it up again.</summary>
+        private static Vector3? KeptLevelFrame => _keptLevelFrame;
+
         /// <summary>Lets go of the frame kept across floors, so the next floor is framed on what stands on it.</summary>
         private static void ForgetLevelFrame() => _keptLevelFrame = null;
 

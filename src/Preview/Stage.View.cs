@@ -118,6 +118,25 @@ namespace Scry
             ForgetLevelFrame();
         }
 
+        /// <summary>The view of a dungeon's example now, as a step into or out of a room is taken from it.</summary>
+        private static ExampleView ViewNow() => new ExampleView { Room = TheExample.Focused, Level = TheCut.Level, Zoom = Zoom, Pan = _pan, Kept = KeptLevelFrame };
+
+        /// <summary>Shows a view stepped back or forward to: the room, gone into afresh; else out of any room, the floor opened and the view on it as it stood.</summary>
+        private static void ShowView(ExampleView view)
+        {
+            if (view.Room != null)
+            {
+                EnterRoom(view.Room);
+                return;
+            }
+            if (TheExample.Focused != null) LeaveRoom();
+            TheCut.Open(view.Level);
+            Zoom = view.Zoom;
+            _pan = view.Pan;
+            if (view.Kept is Vector3 kept) KeepLevelFrame(new Vector4(kept.x, 0f, kept.y, kept.z));
+            else ForgetLevelFrame();
+        }
+
         /// <summary>Frames at a zoom again, on the middle of what is framed, as coming back out of a room takes up the zoom it had before.</summary>
         private static void ViewAgainAt(float zoom)
         {

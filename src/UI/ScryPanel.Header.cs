@@ -145,13 +145,13 @@ namespace Scry
         private static void BackAndForward(Explorer explorer, Rect back, Rect forward)
         {
             var was = GUI.enabled;
-            GUI.enabled = was && explorer.CanGoBack;
+            GUI.enabled = was && (explorer.CanGoBack || Stage.CanStepBack);
             if (GUI.Button(back, "\u2039", Skin.IconButton)) Step(explorer, true);
-            GUI.enabled = was && explorer.CanGoForward;
+            GUI.enabled = was && (explorer.CanGoForward || Stage.CanStepForward);
             if (GUI.Button(forward, "\u203A", Skin.IconButton)) Step(explorer, false);
             GUI.enabled = was;
-            if (back.Contains(Event.current.mousePosition)) AskTip("back", "Back to the entry shown before (Alt+← or the mouse's back button)");
-            if (forward.Contains(Event.current.mousePosition)) AskTip("forward", "Forward again (Alt+→ or the mouse's forward button)");
+            if (back.Contains(Event.current.mousePosition)) AskTip("back", "Back out of a room gone into, or to the entry shown before (Alt+← or the mouse's back button)");
+            if (forward.Contains(Event.current.mousePosition)) AskTip("forward", "Forward again, into a room come out of or to an entry (Alt+→ or the mouse's forward button)");
         }
 
         /// <summary>Goes back or forward, and shows where it lands.</summary>
@@ -160,6 +160,8 @@ namespace Scry
             // The same press can arrive both as a key and as a panel event; it counts once.
             if (explorer == null || _steppedFrame == Time.frameCount) return;
             _steppedFrame = Time.frameCount;
+            // Inside a dungeon's example, out of and between the rooms gone into first.
+            if (back ? Stage.StepBack() : Stage.StepForward()) return;
             if (!(back ? explorer.Back() : explorer.Forward())) return;
             AfterGoing();
         }

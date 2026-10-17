@@ -678,6 +678,14 @@ namespace Scry
         public static void GoInto(PlacedRoom room)
         {
             if (room == null || !TheExample.IsDungeon || TheExample.Placed == null || !TheExample.Placed.Rooms.Contains(room)) return;
+            // A step of the history, but going into the room gone into again.
+            if (room != TheExample.Focused) TookStep();
+            EnterRoom(room);
+        }
+
+        /// <summary>Goes into a room of the example, as <see cref="GoInto"/> does, without a step of the history.</summary>
+        private static void EnterRoom(PlacedRoom room)
+        {
             // From the whole example, the zoom and the reach the view had, which coming back out takes up again.
             if (TheExample.Focused == null)
             {
@@ -707,12 +715,11 @@ namespace Scry
         {
             var room = TheExample.Focused;
             if (room == null) return;
+            TookStep();
             var across = TheExample.FocusAcross();
             var cuts = TheExample.LevelCutsNow();
             var level = CutFromSide || cuts == null ? null : LevelCuts.ComeOutTo(TheExample.LevelOfRoom(room), step, cuts.Levels);
-            TheExample.Unfocus();
-            LetGoOfRoomCut();
-            CameOutOf = room;
+            LeaveRoom();
             if (!(level is int open) || !(across is Vector3 middle))
             {
                 FreshView();
@@ -721,6 +728,14 @@ namespace Scry
             TheCut.Open(TheExample.MarkOfLevel(open));
             ViewAgainAt(_zoomBeforeRoom);
             KeepLevelFrame(new Vector4(middle.x, 0f, middle.y, _reachBeforeRoom ?? float.NaN));
+        }
+
+        /// <summary>Comes out of the room gone into, which stays outlined until the mouse moves, the cut let go of.</summary>
+        private static void LeaveRoom()
+        {
+            CameOutOf = TheExample.Focused;
+            TheExample.Unfocus();
+            LetGoOfRoomCut();
         }
 
         /// <summary>The zoom the view had when a room was gone into from the whole example, and the reach it framed a level with there (none with the roof on), which coming back out takes up again.</summary>
@@ -740,6 +755,7 @@ namespace Scry
         /// <summary>Takes down the example's copies, as another entry or another example is shown, its rooms' creatures and paints with them.</summary>
         private static void ForgetExample()
         {
+            ForgetSteps();
             if (TheExample.Focused != null) LetGoOfRoomCut();
             TheExample.Forget();
             ForgetRoomCreatures();

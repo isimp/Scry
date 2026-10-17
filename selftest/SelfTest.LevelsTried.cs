@@ -38,6 +38,7 @@ namespace Scry
             var unkept = new List<string>();
             var keptTried = 0;
             var uncarried = new List<string>();
+            var unstepped = new List<string>();
             var movedTried = 0;
             var tried = 0;
             try
@@ -188,6 +189,31 @@ namespace Scry
                             yield return null;
                         }
                         if (Stage.RoomGoneInto != null || Stage.CutLevel != 0 || Stage.CameOutOf != lowerRoom) uncarried.Add($"{entry.Name}: up from {lowerRoom.Room.Name}, in a room {Stage.RoomGoneInto != null}, mark {Numbers.Count(Stage.CutLevel + 1)}");
+
+                        // Back, as the mouse's back button, comes out of a room to the view it was gone
+                        // into from, as it was left, the entry kept; Forward goes in again; Back after
+                        // coming out goes back into the room.
+                        var shownEntry = X.Selected;
+                        Stage.OpenLevel(1);
+                        yield return LevelSettled();
+                        Stage.ZoomBy(-3f);
+                        var zoomBefore = Stage.Zoom;
+                        Stage.GoInto(lowerRoom);
+                        yield return LevelSettled();
+                        ScryPanel.Step(X, true);
+                        yield return null;
+                        if (Stage.RoomGoneInto != null || Stage.CutLevel != 1 || Mathf.Abs(Stage.Zoom - zoomBefore) > 0.001f || X.Selected != shownEntry)
+                            unstepped.Add($"{entry.Name}: back from {lowerRoom.Room.Name} in a room {Stage.RoomGoneInto != null}, mark {Numbers.Count(Stage.CutLevel + 1)}, zoom {Numbers.Fixed(Stage.Zoom, 2)} for {Numbers.Fixed(zoomBefore, 2)}, entry {X.Selected?.Name}");
+                        ScryPanel.Step(X, false);
+                        yield return null;
+                        if (Stage.RoomGoneInto != lowerRoom) unstepped.Add($"{entry.Name}: forward went to {Stage.RoomGoneInto?.Room.Name ?? "no room"}");
+                        Stage.ComeOut();
+                        yield return null;
+                        ScryPanel.Step(X, true);
+                        yield return null;
+                        if (Stage.RoomGoneInto != lowerRoom || X.Selected != shownEntry) unstepped.Add($"{entry.Name}: back after coming out went to {Stage.RoomGoneInto?.Room.Name ?? "no room"}, entry {X.Selected?.Name}");
+                        Stage.ComeOut();
+                        yield return LevelSettled();
                     }
                     Stage.OpenLevel(Stage.FloorHeights.Count);
                 }
@@ -204,6 +230,7 @@ namespace Scry
             else
             {
                 p.Check(unkept.Count == 0, "opening another level keeps the view on the spot it looked at, at its zoom, until Fit frames the level afresh", string.Join("; ", unkept));
+                p.Check(unstepped.Count == 0, "Back comes out of a room to the view it was gone into from, as it was left, Forward goes in again, the entry kept", string.Join("; ", unstepped));
                 p.Check(uncarried.Count == 0, "Page Down past a room's lowest tick comes out to the level below, Page Up past its roof to the level above", string.Join("; ", uncarried));
             }
             p.Check(misplaced.Count == 0, "a room of a level above is put away only where it stands over the level or its floor is not under the cut, else it stands dimmed", string.Join("; ", misplaced));
