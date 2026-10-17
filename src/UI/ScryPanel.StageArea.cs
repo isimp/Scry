@@ -227,7 +227,7 @@ namespace Scry
                 {
                     // With Shift the wheel moves the cut of a place opened, down as it scrolls down;
                     // held, the turn can come sideways. Otherwise it zooms toward what is under the pointer.
-                    if (e.shift && Stage.Cutting) Stage.CutBy(-StageCamera.WheelTurn(e.delta.x, e.delta.y) * 0.25f);
+                    if (e.shift && (Stage.Cutting || Stage.HasFloors)) Stage.WheelCut(-StageCamera.WheelTurn(e.delta.x, e.delta.y) * 0.25f);
                     else Stage.ZoomBy(e.delta.y, OnPicture(GUIUtility.GUIToScreenPoint(e.mousePosition)));
                     e.Use();
                 }

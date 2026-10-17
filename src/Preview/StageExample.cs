@@ -107,8 +107,15 @@ namespace Scry
             if (IsDungeon) Holder.SetActive(false);
         }
 
-        /// <summary>A room's copy standing.</summary>
-        public void Add(PlacedRoom room, GameObject copy) => _rooms.Add(new KeyValuePair<PlacedRoom, GameObject>(room, copy));
+        /// <summary>A room's copy standing, noting whether it holds the game's water (<see cref="HoldsWater"/>).</summary>
+        public void Add(PlacedRoom room, GameObject copy)
+        {
+            _rooms.Add(new KeyValuePair<PlacedRoom, GameObject>(room, copy));
+            if (!HoldsWater && WaterParts.In(copy)) HoldsWater = true;
+        }
+
+        /// <summary>Whether a room's copy holds the game's water, which the camera's depth shows as it should (<see cref="WaterParts"/>).</summary>
+        public bool HoldsWater { get; private set; }
 
         /// <summary>The ways between a dungeon's rooms (<see cref="DungeonWays"/>); none for a camp's.</summary>
         public DungeonWays Ways { get; private set; }
@@ -228,6 +235,7 @@ namespace Scry
         public RoomLook LookOf(PlacedRoom room, float? planFloor, IReadOnlyList<float> floors)
         {
             if (_heldLook is RoomLook held) return held;
+            room = ExamplePlan.LooksAs(room);
             if (Focused != null)
             {
                 KnowFocusLooks();
@@ -665,6 +673,7 @@ namespace Scry
             Copies = 0;
             _patches.Clear();
             _rooms.Clear();
+            HoldsWater = false;
             _dimmed.Clear();
             _unlit.Clear();
             _roomGround.Clear();

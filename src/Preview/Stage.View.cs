@@ -106,6 +106,21 @@ namespace Scry
         /// <summary>Takes the view back onto what it frames, undoing a drag or a zoom toward the pointer.</summary>
         private static void CenterView() => _pan = Vector3.zero;
 
+        /// <summary>
+        /// Frames what is to be seen afresh, as a room is gone into or come out of, or a floor or
+        /// the roof is chosen: at the framing's own distance and on its middle, a zoom or a drag
+        /// on what was framed before let go of; the camera's turn kept.
+        /// </summary>
+        private static void FreshView()
+        {
+            Zoom = 1f;
+            CenterView();
+        }
+
+        /// <summary>How far the view is moved off what it frames, by a drag or a zoom toward the pointer, for the self-test.</summary>
+        [Diagnostic]
+        public static Vector3 PanOffset => _pan;
+
         /// <summary>Turns the camera to a view: "Front", "Side", "Top", or "Fit" to frame it whole again.</summary>
         public static void View(string name)
         {

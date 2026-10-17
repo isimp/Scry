@@ -44,6 +44,9 @@ namespace Scry
             var unchosen = new List<string>();
             var unwhole = new List<string>();
             var foundBelow = 0;
+            var unfresh = new List<string>();
+            var unwheeled = new List<string>();
+            var apartCaps = new List<string>();
             p.Note(Stage.OutlinesPastCutForTest ? "the outlines are drawn past the cut, on a layer of their own" : "the outlines are drawn with the cut, to just under it, for want of a free layer");
             var notIn = new List<string>();
             foreach (var entry in places)
@@ -204,6 +207,11 @@ namespace Scry
                 {
                     Stage.OpenLevel(0);
                     yield return Until(() => Stage.Cutting && Stage.ExampleRoomsKept, 3);
+                    // Each end cap and divider drawn as the room it closes: standing, dimmed or put away with it.
+                    var capsApart = (Stage.ExampleShown?.Rooms ?? new List<PlacedRoom>())
+                        .Where(r => (r.Room.EndCap || r.Room.Divider) && r.JoinedTo != null && !Equals(Stage.ExampleRoomDrawn(r), Stage.ExampleRoomDrawn(r.JoinedTo)))
+                        .Select(r => r.Room.Name + " beside " + r.JoinedTo.Room.Name).ToList();
+                    if (capsApart.Count > 0) apartCaps.Add($"{entry.Name}: {string.Join(", ", capsApart.Take(4))}");
                     PlacedRoom below = null;
                     var placedNow = Stage.ExampleShown?.Rooms;
                     // Each dimmed room's middle first, then points across the whole picture, as a
@@ -241,13 +249,25 @@ namespace Scry
                     }
                     ScryPanel.HoverStageForTest(null);
                     Stage.ComeOut();
+
+                    // Shift and the wheel: down with the roof on, the top floor opened; far down, no lower than the lowest.
+                    Stage.OpenLevel(Stage.FloorHeights.Count);
+                    Stage.WheelCut(-0.75f);
+                    var topOpened = Stage.Cutting && Stage.CutLevel == 0;
+                    Stage.WheelCut(-1000f);
+                    if (!topOpened || Stage.CutLevel != Stage.FloorHeights.Count - 1) unwheeled.Add($"{entry.Name}: top floor opened {topOpened}, at floor {Numbers.Count(Stage.CutLevel + 1)} of {Numbers.Count(Stage.FloorHeights.Count)} after far down");
+                    Stage.OpenLevel(Stage.FloorHeights.Count);
                 }
 
-                // A click goes into it, outlined whole however low the cut.
+                // A click goes into it, outlined whole however low the cut, framed afresh: a zoom
+                // toward a point of the whole example before let go of.
+                Stage.ZoomBy(-6f, new Vector2(0.3f, 0.6f));
+                var zoomedTo = Stage.Zoom;
                 var filmedOutlines = Stage.OutlinesFilmed;
                 ScryPanel.ClickPlanRoomForTest(deepest);
                 yield return Until(() => Stage.RoomGoneInto == deepest && Stage.OutlineShown, 3);
                 if (Stage.RoomGoneInto != deepest) notIn.Add(entry.Name);
+                else if (Mathf.Abs(Stage.Zoom - 1f) > 0.001f || Stage.PanOffset.sqrMagnitude > 1e-6f) unfresh.Add($"{entry.Name}: gone into at zoom {Numbers.Fixed(Stage.Zoom, 2)} (zoomed to {Numbers.Fixed(zoomedTo, 2)}), moved off {Numbers.Fixed(Stage.PanOffset.magnitude, 2)} m");
                 else
                 {
                     var deepestTop = deepest.Position.Y + deepest.Room.Size.Y / 2f;
@@ -258,7 +278,10 @@ namespace Scry
                 var drawnTree = ScryPanel.Drawn(PanelPart.PlanBox);
                 yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnTree + 1 && !Stage.Gliding, 5);
                 yield return Picture(p, $"plan {entry.Name} Tree deepest gone into");
+                // Coming back out frames the whole example afresh, a zoom toward a point of the room let go of.
+                Stage.ZoomBy(3f, new Vector2(0.6f, 0.4f));
                 Stage.ComeOut();
+                if (Mathf.Abs(Stage.Zoom - 1f) > 0.001f || Stage.PanOffset.sqrMagnitude > 1e-6f) unfresh.Add($"{entry.Name}: come out at zoom {Numbers.Fixed(Stage.Zoom, 2)}, moved off {Numbers.Fixed(Stage.PanOffset.magnitude, 2)} m");
             }
 
             // What was chosen is remembered in the panel's file.
@@ -284,6 +307,9 @@ namespace Scry
             p.Check(stayedLit.Count == 0, "the room lit goes out as the mouse leaves it", string.Join("; ", stayedLit));
             p.Check(slowFollow.Count == 0, "going from room to room on the stage, the outline and the plan box follow within three frames", string.Join("; ", slowFollow));
             p.Check(foundBelow > 0 && unchosen.Count == 0, "with a floor opened, a room dimmed below it is found under the mouse on the stage and outlined", foundBelow == 0 ? "no room dimmed below a floor was found in any dungeon" : string.Join("; ", unchosen));
+            p.Check(unfresh.Count == 0, "going into a room and coming back out frame it afresh, a zoom or drag on what was framed before let go of", string.Join("; ", unfresh));
+            p.Check(unwheeled.Count == 0, "Shift and the wheel open the top floor from the roof and take the cut no lower than the lowest floor", string.Join("; ", unwheeled));
+            p.Check(apartCaps.Count == 0, "with a floor opened, each end cap and divider is drawn as the room it closes", string.Join("; ", apartCaps));
             p.Check(unwhole.Count == 0, "the outlines of the room gone into and of the room lit stand their whole box however low the cut", string.Join("; ", unwhole));
             p.Check(notIn.Count == 0, "a click on a room in the plan box goes into it", string.Join("; ", notIn));
         }

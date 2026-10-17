@@ -442,6 +442,7 @@ namespace Scry
             // of; from above, at head height over its ground, or along its slope where it climbs with no real floor.
             HoldRoomCut(room, TheExample.FocusLevel);
             TurnTo(Yaw, CutFromSide ? SidePitch : CutPitch);
+            FreshView();
         }
 
         /// <summary>Comes out of the room gone into, back to the whole example with the roof on.</summary>
@@ -450,6 +451,7 @@ namespace Scry
             if (TheExample.Focused == null) return;
             TheExample.Unfocus();
             LetGoOfRoomCut();
+            FreshView();
         }
 
         /// <summary>Takes down the example's copies, as another entry or another example is shown, its rooms' creatures and paints with them.</summary>

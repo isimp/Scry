@@ -27,6 +27,13 @@ namespace Scry
         [Diagnostic]
         public static bool OutlinesPastCutForTest => OutlinesPastCut;
 
+        /// <summary>Whether a dungeon's example holding the game's water stands on the stage.</summary>
+        private static bool ExampleWaterShown => TheExample.HoldsWater && TheExample.Holder != null && TheExample.Holder.activeInHierarchy;
+
+        /// <summary>Whether the camera gives the water the depth it reads, for the self-test.</summary>
+        [Diagnostic]
+        public static bool DepthForWater => _camera != null && (_camera.depthTextureMode & DepthTextureMode.Depth) != 0;
+
         /// <summary>How often the outlines have been drawn past the cut, for the self-test.</summary>
         [Diagnostic]
         public static int OutlinesFilmed { get; private set; }
@@ -122,8 +129,9 @@ namespace Scry
                 KeepWorldLightsOff(mask);
 
                 _camera.cullingMask = mask;
-                // The water reads the depth of what is under it.
-                _camera.depthTextureMode = WaterShown ? DepthTextureMode.Depth : DepthTextureMode.None;
+                // The water reads the depth of what is under it: the sea over the ground, and the game's
+                // water in a dungeon's rooms, as a sunken crypt's flood.
+                _camera.depthTextureMode = WaterShown || ExampleWaterShown ? DepthTextureMode.Depth : DepthTextureMode.None;
                 step = Timing.Start();
                 DrawGrass();
                 Timing.Add("render grass", step);

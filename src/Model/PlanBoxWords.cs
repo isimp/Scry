@@ -29,7 +29,7 @@ namespace Scry
             switch (view)
             {
                 case PlanView.Levels: return "Each level from above, the highest first, turned with the view; rooms over each other line up, and ways down drop at their doorways";
-                case PlanView.Tree: return "Each room by its ways, a row for each room more in from the entrance, standing where it lies across the dungeon";
+                case PlanView.Tree: return "Each room by its ways, a row for each room more in from the entrance, hanging under the room it is first reached from";
                 default: return "Seen from above, turned with the view, each room shaded by its depth";
             }
         }

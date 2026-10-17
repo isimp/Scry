@@ -89,6 +89,40 @@ namespace Scry
         /// <summary>Moves the cut up or down; it shows while a floor is opened, and a floor opened starts it at its height.</summary>
         public void CutBy(float metres) => _shift += metres;
 
+        /// <summary>How far over its lowest floor Shift and the wheel leave the cut at the lowest.</summary>
+        public const float LeastOver = 0.5f;
+
+        /// <summary>How far over the top floor's cut Shift and the wheel raise it before the roof goes back on.</summary>
+        public const float RoofOver = 2f;
+
+        /// <summary>
+        /// Moves the cut as Shift and the wheel do: a room's cut up or down in the room gone into;
+        /// else up or down through the floors, opening the floor it is over (<see cref="CutTo"/>),
+        /// never under the lowest floor; down with the roof on, the top floor opened at its cut;
+        /// raised well over the top floor's cut, the roof back on.
+        /// </summary>
+        public void Wheel(float metres)
+        {
+            if (_held.HasValue)
+            {
+                _shift += metres;
+                return;
+            }
+            if (_floors.Count == 0) return;
+            if (_level >= _floors.Count)
+            {
+                if (metres < 0f) Open(0);
+                return;
+            }
+            var height = At + metres;
+            if (height > _cuts[0] + RoofOver)
+            {
+                Open(_floors.Count);
+                return;
+            }
+            CutTo(Math.Max(height, _floors[_floors.Count - 1] + LeastOver));
+        }
+
         /// <summary>
         /// Takes the floors of the entry shown. The first time for an entry, a room is opened on
         /// its top floor and a location keeps its roof; a new copy of the same keeps its cut: the

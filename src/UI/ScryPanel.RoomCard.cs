@@ -19,8 +19,8 @@ namespace Scry
 
             public string Name, Key, Where;
             public bool Goes;
-            public List<string> Creatures = new List<string>();
-            public List<(string Name, string Odds)> Loot = new List<(string, string)>();
+            public List<(string Line, string Page)> Creatures = new List<(string, string)>();
+            public List<(string Name, string Odds, string Page)> Loot = new List<(string, string, string)>();
             public int CreaturesLeft, LootLeft;
             public List<WayOn> Ways = new List<WayOn>();
             public List<float> Levels = new List<float>();
@@ -30,7 +30,7 @@ namespace Scry
             /// <summary>The rows as laid out for so many lines and a width: each list fitted, the last line saying how many more.</summary>
             public int LaidMost = -1;
             public float LaidWidth = -1f;
-            public List<(string Name, string Odds, bool More)> CreatureRows, LootRows;
+            public List<(string Name, string Odds, bool More, string Page)> CreatureRows, LootRows;
             public float WaysTall, LevelsTall;
         }
 
@@ -98,12 +98,12 @@ namespace Scry
             var creatures = Stage.RoomCreatures(room);
             var kept = creatures.Where(c => !explorer.LeavesOut(c)).ToList();
             card.CreaturesLeft = creatures.Count - kept.Count;
-            card.Creatures = RoomCardWords.Counted(kept.Select(c => ShownName(explorer, c, CreatureName(c))));
+            card.Creatures = RoomCardWords.CountedPages(kept.Select(c => (ShownName(explorer, c, CreatureName(c)), c)));
 
             var loot = Stage.RoomLoot(room);
             var shown = loot.Where(l => !explorer.LeavesOut(l.Prefab)).ToList();
             card.LootLeft = loot.Count - shown.Count;
-            card.Loot = RoomCardWords.Odds(shown.Select(l => (ShownName(explorer, l.Prefab, PartName(l.Prefab)), l.Chance)));
+            card.Loot = RoomCardWords.OddsPages(shown.Select(l => (ShownName(explorer, l.Prefab, PartName(l.Prefab)), l.Prefab, l.Chance)));
 
             if (ways != null) card.Ways = RoomCard.WaysOn(ways, room, Stage.ExampleRoomGround, RoomName);
             card.Levels = Stage.ExampleRoomLevels(room);
@@ -118,8 +118,8 @@ namespace Scry
             if (card.LaidMost == most && Mathf.Approximately(card.LaidWidth, width)) return;
             card.LaidMost = most;
             card.LaidWidth = width;
-            card.CreatureRows = RoomCardWords.Fit(card.Creatures.Select(c => (c, (string)null, false)).ToList(), most, more => (more, (string)null, true));
-            card.LootRows = RoomCardWords.Fit(card.Loot.Select(l => (l.Name, l.Odds, false)).ToList(), most, more => (more, (string)null, true));
+            card.CreatureRows = RoomCardWords.Fit(card.Creatures.Select(c => (c.Line, (string)null, false, c.Page)).ToList(), most, more => (more, (string)null, true, (string)null));
+            card.LootRows = RoomCardWords.Fit(card.Loot.Select(l => (l.Name, l.Odds, false, l.Page)).ToList(), most, more => (more, (string)null, true, (string)null));
             card.WaysTall = ChipRowsTall(card.Ways.Select(w => w.Words), Skin.Chip, width, chipH);
             card.LevelsTall = ChipRowsTall(card.LevelWords, Skin.Segment, width, chipH);
         }
@@ -210,11 +210,22 @@ namespace Scry
             var x = area.x + pad;
             var y = area.y + pad;
 
-            void Line(float h, string text, GUIStyle style, string odds = null)
+            // A creature's or a chest's line goes to its page on a click, where it has one.
+            string goPage = null;
+            void Line(float h, string text, GUIStyle style, string odds = null, string page = null)
             {
                 var oddsW = odds != null ? Skin.Width(Skin.FaintLabel, odds) + U(4f) : 0f;
                 if (repaint) CardLines.Add(RoomCardWords.Row(text, odds));
-                FitLabel(new Rect(x, y, textW - oddsW, h), text, style, 10f);
+                var rect = new Rect(x, y, textW - oddsW, h);
+                if (page != null && Goes(explorer, page))
+                {
+                    var link = new Rect(rect.x, rect.y, Mathf.Min(rect.width, Skin.Width(style, text)), rect.height);
+                    CountDrawn(PanelPart.RoomCardLine);
+                    if (link.Contains(e.mousePosition)) AskTip("card-line:" + page, RoomCardWords.LineTip);
+                    if (GUI.Button(link, GUIContent.none, GUIStyle.none)) goPage = page;
+                    LinkLabel(rect, text, style, Skin.Text);
+                }
+                else FitLabel(rect, text, style, 10f);
                 if (odds != null) GUI.Label(new Rect(x + textW - oddsW + U(4f), y, oddsW, h), odds, Skin.FaintLabel);
                 y += h;
             }
@@ -228,14 +239,14 @@ namespace Scry
                 y += headH;
             }
 
-            void Rows(List<(string Name, string Odds, bool More)> rows, int left)
+            void Rows(List<(string Name, string Odds, bool More, string Page)> rows, int left)
             {
                 if (rows.Count == 0) Line(lineH, RoomCardWords.None, Skin.FaintLabel);
                 // The line saying how many more stands faint, without odds.
-                foreach (var (name, odds, more) in rows)
+                foreach (var (name, odds, more, page) in rows)
                 {
                     if (more) Line(lineH, name, Skin.FaintLabel);
-                    else Line(lineH, name, Skin.Small, odds);
+                    else Line(lineH, name, Skin.Small, odds, page);
                 }
                 if (left > 0) Line(lineH, CompendiumWords.LeftOutOf(null, left), Skin.FaintLabel);
             }
@@ -306,6 +317,7 @@ namespace Scry
             if (goTo != null) Stage.GoInto(goTo);
             else if (backOut) Stage.ComeOut();
             else if (openPage) Go(explorer, card.Key);
+            else if (goPage != null) Go(explorer, goPage);
 
             // The card is not the stage: a click or the wheel on it neither turns nor zooms it.
             if (area.Contains(e.mousePosition) && (e.type == EventType.MouseDown || e.type == EventType.ScrollWheel)) e.Use();

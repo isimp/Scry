@@ -70,6 +70,7 @@ namespace Scry
         {
             TheExample.Unfocus();
             TheCut.Step(down);
+            FreshView();
         }
 
         /// <summary>Takes the roof off, opening the floor last opened, or puts it back; from a room gone into, back to the whole example.</summary>
@@ -81,6 +82,7 @@ namespace Scry
                 return;
             }
             TheCut.ToggleRoof();
+            FreshView();
         }
 
         /// <summary>Opens a floor (from the top), or puts the roof on past the last; out of a room gone into.</summary>
@@ -88,6 +90,7 @@ namespace Scry
         {
             TheExample.Unfocus();
             TheCut.Open(level);
+            FreshView();
         }
 
         /// <summary>Cuts at a height set by hand, opening the floor it is over (<see cref="PlaceView.LevelAt"/>); out of a room gone into.</summary>
@@ -100,6 +103,13 @@ namespace Scry
 
         /// <summary>Moves the cut up or down.</summary>
         public static void CutBy(float metres) => TheCut.CutBy(metres);
+
+        /// <summary>Moves the cut as Shift and the wheel do (<see cref="FloorCut.Wheel"/>): a room's cut in the room gone into, else through the floors, opening the one it is over.</summary>
+        public static void WheelCut(float metres)
+        {
+            if (!TheCut.Held) TheExample.Unfocus();
+            TheCut.Wheel(metres);
+        }
 
         /// <summary>
         /// Takes the floors of the place shown. The first time for an entry, a room is opened on

@@ -24,6 +24,8 @@ namespace Scry
             Stage.Inside = true;
             BigStage();
             var unshown = new List<string>();
+            var linked = 0;
+            var linkable = 0;
             var misplaced = new List<string>();
             var miscounted = new List<string>();
             var misodds = new List<string>();
@@ -54,6 +56,7 @@ namespace Scry
 
                 ScryPanel.ClickRoomForTest(X, room);
                 var drawn = ScryPanel.Drawn(PanelPart.RoomCard);
+                var linesDrawn = ScryPanel.Drawn(PanelPart.RoomCardLine);
                 yield return Until(() => Stage.RoomGoneInto == room && ScryPanel.Drawn(PanelPart.RoomCard) > drawn + 1 && ScryPanel.RoomCardLines.Count > 0, 5);
                 var name = $"{entry.Name}'s {room.Room.Name}";
                 var lines = ScryPanel.RoomCardLines.ToList();
@@ -88,6 +91,11 @@ namespace Scry
                         misodds.Add($"{name}'s {prefab} at {DropWords.Share(chance)}, its page: " + string.Join(", ", page.Parts.Where(part => part.Prefab == prefab).Select(part => DropWords.Share(part.Chance))));
                 }
                 if (page == null) p.Note($"{name}: its page was not read, so its chests' chances go unchecked");
+
+                // Each creature and chest with a page of its own is a line that goes to it.
+                var withPages = Stage.RoomCreatures(room).Concat(Stage.RoomLoot(room).Select(l => l.Prefab)).Any(key => !X.LeavesOut(key) && X.Find(key) != null);
+                if (withPages) linked += ScryPanel.Drawn(PanelPart.RoomCardLine) > linesDrawn ? 1 : 0;
+                if (withPages) linkable++;
 
                 // A chip for each way on.
                 var chips = ScryPanel.RoomCardWays;
@@ -140,6 +148,7 @@ namespace Scry
             Stage.Inside = wasInside;
             StageAsItWas();
             p.Note($"{Numbers.Count(oddsChecked)} chests' and pickups' chances checked against their rooms' pages");
+            if (linkable > 0) p.Check(linked == linkable, "each creature and chest on the card with a page of its own is a line that goes to it", $"{Numbers.Count(linked)} of {Numbers.Count(linkable)} cards drew them so");
             p.Check(unshown.Count == 0, "a room gone into shows its card", string.Join("; ", unshown));
             p.Check(misplaced.Count == 0, "the card says how far below the entrance, how many rooms in and how many ways", string.Join("; ", misplaced));
             p.Check(miscounted.Count == 0, "the card counts every creature this copy rolled in the room", string.Join("; ", miscounted));

@@ -73,9 +73,7 @@ namespace Scry
         private static TreeRows _treeRows;
 
         /// <summary>How many rooms each row of the tree holds, and how wide its rows were last drawn, for its names to fit.</summary>
-        private static readonly List<int> TreeRowSizes = new List<int>();
         private static float _treeInnerWidth;
-        private static float _treeYaw = float.NaN;
         private static int _treeRead = -1;
         private static DungeonWays _treeWays;
 
@@ -341,6 +339,7 @@ namespace Scry
             var route = gone != null && _boxWays != null ? _boxWays.Route(gone) : null;
             // The way from the entrance drawn in the plan: to the room lit, else to the room gone into.
             KnowRoute(RoomLight.RouteTo(_boxLit, gone));
+            ViewLabels.Clear();
             switch (_planView)
             {
                 case PlanView.Levels:
@@ -528,11 +527,12 @@ namespace Scry
             PlanBoxWaysDrawn = drawn;
         }
 
-        /// <summary>Grown, each room's name on its spot, where it does not run into a name already written.</summary>
+        /// <summary>Grown, each room's name on its spot, where it does not run into a name already written or a label of the view's own (<see cref="ViewLabels"/>).</summary>
         private static void Names(Explorer explorer, Rect area)
         {
             var written = WrittenNames;
             written.Clear();
+            written.AddRange(ViewLabels);
             for (var i = BoxSpots.Count - 1; i >= 0; i--)
             {
                 var spot = BoxSpots[i];
@@ -560,6 +560,9 @@ namespace Scry
         private static (float MinRight, float MaxRight, float MinUp, float MaxUp) _levelsWhole;
         private static readonly List<(float MinUp, float MaxUp)> LevelSpans = new List<(float, float)>();
         private static readonly List<string> LevelSaid = new List<string>();
+
+        /// <summary>The labels a view writes of its own, as each level's depth, which room names keep clear of.</summary>
+        private static readonly List<Rect> ViewLabels = new List<Rect>();
 
         /// <summary>Where each level's plan stood as last drawn.</summary>
         private static readonly List<Rect> LevelFrames = new List<Rect>();
@@ -640,7 +643,9 @@ namespace Scry
                 var frame = LevelFrames[i];
                 PlanFrame(new Rect(frame.x - inset, frame.y - inset, frame.width + inset * 2f, frame.height + inset * 2f), Skin.Alpha(Skin.Text, 0.1f), 1f);
                 var saidW = Skin.Width(Skin.FaintLabel, LevelSaid[i]);
-                GUI.Label(new Rect(frame.x - inset - U(4f) - saidW, frame.center.y - U(8f), saidW, U(16f)), LevelSaid[i], Skin.FaintLabel);
+                var said = new Rect(frame.x - inset - U(4f) - saidW, frame.center.y - U(8f), saidW, U(16f));
+                ViewLabels.Add(said);
+                GUI.Label(said, LevelSaid[i], Skin.FaintLabel);
             }
             foreach (var spot in BoxSpots) BoxTile(spot, spot.Room == gone ? Skin.Alpha(Skin.Accent, 0.75f) : DepthTone(spot.Room), Skin.Alpha(Skin.Text, 0.3f), 1f);
             Ways(room => At(room, room.Position), At);
@@ -652,28 +657,19 @@ namespace Scry
 
         /// <summary>
         /// The tree of the ways (<see cref="TreeRows"/>): a row for each room more in from the
-        /// entrance, the entrance at the top, each room under the room it is reached from and
-        /// rooms under one room in the order they lie across the plan turned with the view; the
+        /// entrance, the entrance at the top, each room hanging under the room it is first reached
+        /// from, standing over the middle of its own, the same whichever way the view turns; the
         /// ways lines between the nodes, loops in dashes, crossroads outlined, and each node's depth
         /// beside it, and grown, its name.
         /// </summary>
         private static void TreeView(Explorer explorer, Rect area, PlacedRoom gone)
         {
             var repaint = Event.current.type == EventType.Repaint;
-            var yaw = Stage.ExampleViewYaw;
-            if (_treeRows == null || !ReferenceEquals(_treeWays, _boxWays) || _treeRead != _boxRead || !Mathf.Approximately(_treeYaw, yaw))
+            if (_treeRows == null || !ReferenceEquals(_treeWays, _boxWays) || _treeRead != _boxRead)
             {
                 _treeWays = _boxWays;
                 _treeRead = _boxRead;
-                _treeYaw = yaw;
-                _treeRows = TreeRows.Of(_boxWays, room => ExamplePlan.Turn(room.Position.X, room.Position.Z, yaw).Right);
-                TreeRowSizes.Clear();
-                for (var r = 0; r < _treeRows.Rows; r++) TreeRowSizes.Add(0);
-                foreach (var room in BoxRooms)
-                {
-                    var r = _treeRows.RowOf(room);
-                    if (r >= 0 && r < TreeRowSizes.Count) TreeRowSizes[r]++;
-                }
+                _treeRows = TreeRows.Of(_boxWays);
             }
             var node = new Vector2(U(18f), U(12f));
             var inner = new Rect(area.x + node.x, area.y + node.y, area.width - node.x * 2f, area.height - node.y * 2f);
@@ -732,12 +728,10 @@ namespace Scry
             }
             if (!_planBig || _treeRows == null) return;
 
-            // Grown, its name under it, or over it for every other node of its row, as wide as two
-            // places of the row, its type made smaller to fit; left out where it still does not.
-            var row = _treeRows.RowOf(spot.Room);
-            var inRow = row >= 0 && row < TreeRowSizes.Count ? TreeRowSizes[row] : 1;
-            var place = _treeInnerWidth / Mathf.Max(1, inRow);
-            var order = Mathf.RoundToInt(_treeRows.AcrossOf(spot.Room) * inRow - 0.5f);
+            // Grown, its name under it, or over it for every other node of its row, as wide as twice
+            // the room it has in its row, its type made smaller to fit; left out where it still does not.
+            var place = _treeRows.RoomInRow(spot.Room) * _treeInnerWidth;
+            var order = _treeRows.OrderInRow(spot.Room);
             var name = BoxRoomName(explorer, spot.Room);
             var nameW = Skin.Width(Skin.FaintLabel, name);
             var room = Mathf.Min(nameW, place * 2f - U(4f));
@@ -823,7 +817,6 @@ namespace Scry
             BoxGrounds.Clear();
             RouteWays.Clear();
             _treeRows = null;
-            TreeRowSizes.Clear();
             _boxWays = null;
             _treeWays = null;
             _routeOf = null;

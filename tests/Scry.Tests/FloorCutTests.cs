@@ -421,5 +421,66 @@ namespace Scry.Tests
             Assert.Equal(0, cut.Level);
             Assert.Equal(Three, cut.Floors.ToArray());
         }
+
+        // ----- Shift and the wheel: the cut up and down through the floors, opening the one it is over -----
+
+        [Fact]
+        public void ShiftAndTheWheelDownWithTheRoofOnOpensTheTopFloorAtItsCut()
+        {
+            var cut = Taken();
+            Assert.False(cut.Cutting);
+            cut.Wheel(-0.75f);
+            Assert.Equal(0, cut.Level);
+            Assert.Equal(cut.Cuts[0], cut.At, 3);
+            // Up with the roof on, nothing happens.
+            var roofed = Taken();
+            roofed.Wheel(0.75f);
+            Assert.False(roofed.Cutting);
+        }
+
+        [Fact]
+        public void ShiftAndTheWheelMoveTheCutAndOpenTheFloorItIsOver()
+        {
+            var cut = Taken();
+            cut.Open(0);
+            cut.Wheel(cut.Cuts[1] - cut.Cuts[0]);
+            Assert.Equal(1, cut.Level);
+            Assert.Equal(cut.Cuts[1], cut.At, 3);
+            // A little up from there keeps the floor under it opened.
+            cut.Wheel(0.25f);
+            Assert.Equal(1, cut.Level);
+            Assert.Equal(cut.Cuts[1] + 0.25f, cut.At, 3);
+        }
+
+        [Fact]
+        public void ShiftAndTheWheelNeverTakeTheCutUnderTheLowestFloor()
+        {
+            var cut = Taken();
+            cut.Open(2);
+            cut.Wheel(-10f);
+            Assert.Equal(2, cut.Level);
+            Assert.Equal(Three[2] + FloorCut.LeastOver, cut.At, 3);
+        }
+
+        [Fact]
+        public void RaisedWellOverTheTopFloorsCutTheRoofGoesBackOn()
+        {
+            var cut = Taken();
+            cut.Open(0);
+            cut.Wheel(FloorCut.RoofOver - 0.5f);
+            Assert.True(cut.Cutting);
+            cut.Wheel(1f);
+            Assert.False(cut.Cutting);
+        }
+
+        [Fact]
+        public void WithARoomGoneIntoShiftAndTheWheelMoveItsOwnCut()
+        {
+            var cut = Taken();
+            cut.Hold(3f);
+            cut.Wheel(-1f);
+            Assert.True(cut.Held);
+            Assert.Equal(2f, cut.At, 3);
+        }
     }
 }

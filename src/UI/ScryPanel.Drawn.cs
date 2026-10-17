@@ -55,6 +55,7 @@ namespace Scry
         RoomCard,
         RoomCardWay,
         RoomCardLevel,
+        RoomCardLine,
         PlanBox,
     }
 

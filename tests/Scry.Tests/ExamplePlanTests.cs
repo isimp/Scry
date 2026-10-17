@@ -271,5 +271,36 @@ namespace Scry.Tests
             Assert.Same(ground, ExamplePlan.RoomAt(rooms, 1f, 1f, 0f));
             Assert.Null(ExamplePlan.RoomAt(rooms, 30f, 1f, 0f));
         }
+
+        // ----- How a room looks on the stage: an end cap or a divider as the room it closes -----
+
+        [Fact]
+        public void AnEndCapLooksAsTheRoomItClosesSoItIsNeverLitApartFromIt()
+        {
+            var hall = On("hall", 0f, 6f);
+            var cap = On("cap", 3f, 4f, endCap: true);
+            cap.JoinedTo = hall;
+            Assert.Same(hall, ExamplePlan.LooksAs(cap));
+        }
+
+        [Fact]
+        public void ADividerLooksAsTheRoomItWasSetAgainst()
+        {
+            var hall = On("hall", 0f, 6f);
+            var divider = new PlacedRoom { Room = new RoomShape { Name = "divider", Divider = true }, JoinedTo = hall };
+            Assert.Same(hall, ExamplePlan.LooksAs(divider));
+        }
+
+        [Fact]
+        public void AnyOtherRoomLooksAsItselfWhateverItIsJoinedTo()
+        {
+            var hall = On("hall", 0f, 6f);
+            var corridor = On("corridor", -4f, 4f);
+            corridor.JoinedTo = hall;
+            Assert.Same(corridor, ExamplePlan.LooksAs(corridor));
+            // An end cap the layout joined to nothing looks as itself.
+            var loose = On("loose cap", 0f, 4f, endCap: true);
+            Assert.Same(loose, ExamplePlan.LooksAs(loose));
+        }
     }
 }

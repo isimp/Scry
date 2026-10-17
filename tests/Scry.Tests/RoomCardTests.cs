@@ -45,6 +45,22 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void EachCreatureLineOpensThePageOfTheCreaturesItCounts()
+        {
+            var lines = RoomCardWords.CountedPages(new[] { ("Skeleton", "skeleton"), ("Draugr", "draugr"), ("Draugr", "draugr"), ("Ghost", "ghost") });
+            Assert.Equal(new[] { ("Draugr ×2", "draugr"), ("Ghost", "ghost"), ("Skeleton", "skeleton") }, lines);
+            // Two of one name from two pages: the line opens the first one's.
+            Assert.Equal(new[] { ("Draugr ×2", "draugr") }, RoomCardWords.CountedPages(new[] { ("Draugr", "draugr"), ("Draugr", "draugr_elite") }));
+        }
+
+        [Fact]
+        public void EachChestOrPickupLineOpensThePageOfWhatItCounts()
+        {
+            var lines = RoomCardWords.OddsPages(new[] { ("Chest", "chest", 0.6f), ("Chest", "chest", 0.6f), ("Amber", "amber", 0.3f) });
+            Assert.Equal(new[] { ("Chest ×2", "60% each", "chest"), ("Amber", "30%", "amber") }, lines);
+        }
+
+        [Fact]
         public void CreaturesAsManyAsEachOtherComeInTheOrderOfTheirNames()
         {
             Assert.Equal(new[] { "Ghost", "rat" }, RoomCardWords.Counted(new[] { "rat", "Ghost" }));

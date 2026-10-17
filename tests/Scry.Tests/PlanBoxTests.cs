@@ -231,7 +231,7 @@ namespace Scry.Tests
         public void EachRowOfTheTreeIsOneMoreRoomInFromTheEntrance()
         {
             var (ways, entrance, west, east, farOff, near, far) = Branches();
-            var tree = TreeRows.Of(ways, r => r.Position.X);
+            var tree = TreeRows.Of(ways);
             Assert.Equal(3, tree.Rows);
             Assert.Equal(0, tree.RowOf(entrance));
             Assert.Equal(new[] { 1, 1 }, new[] { tree.RowOf(west), tree.RowOf(east) });
@@ -239,39 +239,37 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ARowsRoomsStandInTheOrderTheyLieAcrossTheDungeonWhereverTheyAreReachedFrom()
+        public void EachRoomStandsOverTheMiddleOfTheRoomsFirstReachedFromIt()
         {
-            // The west branch's room stands far east: it stands at the east end of its row.
-            var (ways, _, west, east, farOff, near, far) = Branches();
-            var tree = TreeRows.Of(ways, r => r.Position.X);
+            var (ways, entrance, west, east, farOff, near, far) = Branches();
+            var tree = TreeRows.Of(ways);
+            Assert.Equal((tree.AcrossOf(near) + tree.AcrossOf(far)) / 2f, tree.AcrossOf(east), 3);
+            Assert.Equal(tree.AcrossOf(farOff), tree.AcrossOf(west), 3);
+            Assert.Equal((tree.AcrossOf(west) + tree.AcrossOf(east)) / 2f, tree.AcrossOf(entrance), 3);
+        }
+
+        [Fact]
+        public void EachRoomWithNoneReachedFromItHasAPlaceOfItsOwnEvenlyAcross()
+        {
+            // Three rooms lead nowhere further: each a third of the tree's width.
+            var (ways, _, _, _, farOff, near, far) = Branches();
+            var tree = TreeRows.Of(ways);
+            Assert.Equal(1f / 6f, tree.AcrossOf(farOff), 3);
+            Assert.Equal(0.5f, tree.AcrossOf(near), 3);
+            Assert.Equal(5f / 6f, tree.AcrossOf(far), 3);
+        }
+
+        [Fact]
+        public void RoomsReachedFromOneRoomStandInTheOrderTheyWerePlaced()
+        {
+            var (ways, _, west, east, _, near, far) = Branches();
+            var tree = TreeRows.Of(ways);
             Assert.True(tree.AcrossOf(west) < tree.AcrossOf(east));
             Assert.True(tree.AcrossOf(near) < tree.AcrossOf(far));
-            Assert.True(tree.AcrossOf(far) < tree.AcrossOf(farOff));
         }
 
         [Fact]
-        public void TheFullestRowSpreadsEvenlyAcross()
-        {
-            var (ways, _, _, _, farOff, near, far) = Branches();
-            var tree = TreeRows.Of(ways, r => r.Position.X);
-            Assert.Equal(1f / 6f, tree.AcrossOf(near), 3);
-            Assert.Equal(0.5f, tree.AcrossOf(far), 3);
-            Assert.Equal(5f / 6f, tree.AcrossOf(farOff), 3);
-        }
-
-        [Fact]
-        public void ARoomWithRoomInItsRowStandsWhereItLiesAcross()
-        {
-            // The rooms lie from 10 m west to 40 m east; the fullest row holds three, so the tree's
-            // ends stand a sixth in. The entrance, alone in its row, stands where it lies, at 0 m,
-            // rather than in the middle.
-            var (ways, entrance, _, _, _, _, _) = Branches();
-            var tree = TreeRows.Of(ways, r => r.Position.X);
-            Assert.Equal(1f / 6f + 10f / 50f * (2f / 3f), tree.AcrossOf(entrance), 3);
-        }
-
-        [Fact]
-        public void NoTwoRoomsOfARowStandNearerThanTheFullestRowSpreadsItsOwn()
+        public void TheBranchesOfTheTreeNeverCross()
         {
             // A loop: the middle room joins both the west and the east room; each also leads to one of its own.
             var entrance = Placed("entrance", 0f, 0f, 0, At(-5f, 0f), At(5f, 0f));
@@ -282,23 +280,15 @@ namespace Scry.Tests
             var eastOwn = Placed("east's own", 0f, 10f, 5, At(10f, 5f));
             foreach (var ways in new[] { DungeonWays.Of(new[] { entrance, west, east, middle, westOwn, eastOwn }), Branches().Ways })
             {
-                var tree = TreeRows.Of(ways, r => r.Position.X);
-                var rows = ways.Rooms.GroupBy(tree.RowOf).Select(g => g.Select(tree.AcrossOf).OrderBy(a => a).ToList()).ToList();
-                var gap = 1f / rows.Max(r => r.Count);
-                foreach (var row in rows)
+                var tree = TreeRows.Of(ways);
+                // In each row, the rooms stand in the order of the rooms they are first reached from.
+                foreach (var row in ways.Rooms.Where(r => ways.CameFrom(r) != null).GroupBy(tree.RowOf))
                 {
-                    Assert.All(row, a => Assert.InRange(a, gap / 2f - 0.001f, 1f - gap / 2f + 0.001f));
-                    for (var i = 1; i < row.Count; i++) Assert.True(row[i] - row[i - 1] >= gap - 0.001f, $"{row[i - 1]} and {row[i]} nearer than {gap}");
+                    var under = row.OrderBy(tree.AcrossOf).Select(r => tree.AcrossOf(ways.CameFrom(r))).ToList();
+                    for (var i = 1; i < under.Count; i++) Assert.True(under[i] >= under[i - 1] - 0.001f);
                 }
+                Assert.All(ways.Rooms, r => Assert.InRange(tree.AcrossOf(r), 0f, 1f));
             }
-        }
-
-        [Fact]
-        public void RoomsUnderOneRoomStandInTheOrderTheyLieAcrossThePlan()
-        {
-            var (ways, _, _, _, _, near, far) = Branches();
-            var flipped = TreeRows.Of(ways, r => -r.Position.X);
-            Assert.True(flipped.AcrossOf(far) < flipped.AcrossOf(near));
         }
 
         [Fact]
@@ -307,17 +297,17 @@ namespace Scry.Tests
             var entrance = Placed("entrance", 0f, 0f, 0, At(5f, 0f));
             var hall = Placed("hall", 10f, 0f, 1, At(5f, 0f));
             var apart = Placed("apart", 50f, 50f, 2, At(60f, 50f));
-            var tree = TreeRows.Of(DungeonWays.Of(new[] { entrance, hall, apart }), r => r.Position.X);
+            var tree = TreeRows.Of(DungeonWays.Of(new[] { entrance, hall, apart }));
             Assert.Equal(3, tree.Rows);
             Assert.Equal(2, tree.RowOf(apart));
         }
 
         [Fact]
-        public void TheSameWaysLayOutTheSameEachTime()
+        public void TheSameWaysLayOutTheSameEachTimeWhicheverWayTheViewTurns()
         {
             var (ways, _, _, _, _, _, _) = Branches();
-            var one = TreeRows.Of(ways, r => r.Position.X);
-            var two = TreeRows.Of(ways, r => r.Position.X);
+            var one = TreeRows.Of(ways);
+            var two = TreeRows.Of(ways);
             Assert.All(ways.Rooms, r => Assert.Equal(one.AcrossOf(r), two.AcrossOf(r)));
         }
 

@@ -27,6 +27,9 @@ namespace Scry
         public const string LootTip = "The chests and pickups this copy's rolls put in the room, each with how likely a room of its kind holds it";
         public const string LevelTip = "Click to cut at head height over this level";
         public const string OpenPageTip = "The page of this kind of room";
+
+        /// <summary>The tip of a creature's or a chest's line on the card, which goes to its page.</summary>
+        public const string LineTip = "Goes to its page";
         public const string WholeTip = "Back out to the whole dungeon with the roof on";
 
         /// <summary>
@@ -49,20 +52,27 @@ namespace Scry
         }
 
         /// <summary>Names counted together, "Draugr ×3", the most first, as many in the order of their names.</summary>
-        public static List<string> Counted(IEnumerable<string> names) => names
-            .GroupBy(n => n, StringComparer.Ordinal)
+        public static List<string> Counted(IEnumerable<string> names) => CountedPages(names.Select(n => (n, (string)null))).Select(l => l.Line).ToList();
+
+        /// <summary>The same, each line with the page of the creatures it counts, that of the first.</summary>
+        public static List<(string Line, string Page)> CountedPages(IEnumerable<(string Name, string Page)> named) => named
+            .GroupBy(n => n.Name, StringComparer.Ordinal)
             .OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
-            .Select(g => Naming.Repeated(g.Key, g.Count()))
+            .Select(g => (Naming.Repeated(g.Key, g.Count()), g.First().Page))
             .ToList();
 
         /// <summary>
         /// Chests and pickups with how likely each is there, counted together by name and chance
         /// to a tenth of a percent: what is always there first, then the likeliest, then by name.
         /// </summary>
-        public static List<(string Name, string Odds)> Odds(IEnumerable<(string Name, float Chance)> parts) => parts
+        public static List<(string Name, string Odds)> Odds(IEnumerable<(string Name, float Chance)> parts) =>
+            OddsPages(parts.Select(p => (p.Name, (string)null, p.Chance))).Select(l => (l.Name, l.Odds)).ToList();
+
+        /// <summary>The same, each line with the page of what it counts, that of the first.</summary>
+        public static List<(string Name, string Odds, string Page)> OddsPages(IEnumerable<(string Name, string Page, float Chance)> parts) => parts
             .GroupBy(p => (p.Name, Tenths: (int)Math.Round(p.Chance * 1000f)))
             .OrderByDescending(g => g.Key.Tenths).ThenBy(g => g.Key.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(g => (Naming.Repeated(g.Key.Name, g.Count()), Chance(g.First().Chance, g.Count())))
+            .Select(g => (Naming.Repeated(g.Key.Name, g.Count()), Chance(g.First().Chance, g.Count()), g.First().Page))
             .ToList();
 
         /// <summary>A line of a list as it reads: its name, then its odds where it has any.</summary>

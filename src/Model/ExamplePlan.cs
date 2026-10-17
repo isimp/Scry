@@ -156,6 +156,14 @@ namespace Scry
         private static bool IsOn(PlacedRoom room, float floor, bool own, Func<PlacedRoom, float, bool> standsOn) =>
             own ? standsOn(room, floor) : Shown(room, floor) == PlanRoomShown.Whole;
 
+        /// <summary>
+        /// The room whose look a room takes on the stage: an end cap or a divider takes that of the
+        /// room it closes, the room the layout joined it to, so it is never lit, dimmed or put away
+        /// apart from it; any other room, or one joined to none, its own.
+        /// </summary>
+        public static PlacedRoom LooksAs(PlacedRoom room) =>
+            room != null && (room.Room.EndCap || room.Room.Divider) && room.JoinedTo != null ? room.JoinedTo : room;
+
         /// <summary>Whether a room has a floor of its own at any of the floors.</summary>
         private static bool HasOwnFloor(PlacedRoom room, IReadOnlyList<float> floors, Func<PlacedRoom, float, bool> standsOn)
         {
