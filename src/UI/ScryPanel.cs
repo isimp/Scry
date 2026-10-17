@@ -67,6 +67,19 @@ namespace Scry
         private static float Scale() => Mathf.Clamp(Screen.height / 1080f, 0.75f, 3f) * Settings.UiScale;
 
         /// <summary>
+        /// Reads the place the panel was left in now, where it has not been drawn yet, for the
+        /// self-test to keep it before changing anything: read on the first draw instead, it would
+        /// undo what the test set up and be put back as it was never read.
+        /// </summary>
+        [Diagnostic]
+        internal static void PlacedForTest()
+        {
+            if (_placed) return;
+            _s = Scale();
+            PlaceFirst();
+        }
+
+        /// <summary>
         /// Lets go of what the panel keeps of the world left, which points at its prefabs: each
         /// part lets go of its own lists, and of what it last drew for, which would keep the world
         /// left alive until drawn again.

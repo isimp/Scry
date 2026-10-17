@@ -127,6 +127,9 @@ namespace Scry
             Write("Each part uses Scry as a player would and checks what it did. START and PASS, FAIL or SKIP frame a part; within it, PASS is a check that held,");
             Write("FAIL one that did not (with what was found), and note is something worth knowing. The summary at the end lists every failed check again.");
 
+            // The panel's saved place is read on its first draw; read before anything is kept, so a
+            // test started with the panel never opened keeps the player's place and sets up over it.
+            ScryPanel.PlacedForTest();
             _before = Before.Take();
             // The list is shown while the test runs, as parts read what it draws: the search's
             // help, the mod report and the floor's marks stand in it.

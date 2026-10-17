@@ -119,16 +119,7 @@ namespace Scry
 
         private static void Place()
         {
-            if (!_placed)
-            {
-                _placed = true;
-                var w = Mathf.Min(U(1180f), Screen.width - U(40f));
-                var h = Mathf.Min(U(760f), Screen.height - U(40f));
-                _full = new Rect((Screen.width - w) / 2f, (Screen.height - h) / 2f, w, h);
-                var cw = Mathf.Min(U(500f), Screen.width - U(40f));
-                _compactRect = new Rect(Screen.width - cw - U(20f), U(40f), cw, Screen.height - U(80f));
-                LoadRects();
-            }
+            PlaceFirst();
 
             var win = Win;
             var minW = Mathf.Min(U(_compact ? 420f : 820f), Screen.width);
@@ -146,6 +137,19 @@ namespace Scry
             DetailsFromTop();
             RevealSelected();
             SaveRects();
+        }
+
+        /// <summary>The panel's first place, the first time it is drawn: centred, then the place it was left in read back.</summary>
+        private static void PlaceFirst()
+        {
+            if (_placed) return;
+            _placed = true;
+            var w = Mathf.Min(U(1180f), Screen.width - U(40f));
+            var h = Mathf.Min(U(760f), Screen.height - U(40f));
+            _full = new Rect((Screen.width - w) / 2f, (Screen.height - h) / 2f, w, h);
+            var cw = Mathf.Min(U(500f), Screen.width - U(40f));
+            _compactRect = new Rect(Screen.width - cw - U(20f), U(40f), cw, Screen.height - U(80f));
+            LoadRects();
         }
 
         /// <summary>Folds the list away or brings it back, in the view in use.</summary>
