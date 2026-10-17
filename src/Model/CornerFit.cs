@@ -2,12 +2,22 @@ using System;
 
 namespace Scry
 {
+    /// <summary>How the plan box stands on the stage: whole, without its trail and its Entrance and Deepest, or folded to its tab.</summary>
+    internal enum BoxShape
+    {
+        Whole,
+        Lean,
+        Folded,
+    }
+
     /// <summary>
     /// How the card of the room gone into, in the stage's upper left corner, and the plan box, in
     /// its lower left, share that side so neither covers the other: the plan box stands as tall as
     /// it wants where the stage has room; the card gives way to it, as tall as it wants or as
     /// much as is left over the box, scrolling the rest, down to its least; only then does the
-    /// plan give way, down to its own least. Lengths are the panel's, each constant scaled with it.
+    /// plan give way, down to its own least. On a stage too short for the box whole at its least,
+    /// the box drops its trail and its Entrance and Deepest, and with a room gone into, still too
+    /// short, folds to its tab. Lengths are the panel's, each constant scaled with it.
     /// </summary>
     internal static class CornerFit
     {
@@ -43,6 +53,19 @@ namespace Scry
         {
             var room = boxTop - Gap * scale - (stageTop + Top * scale);
             return Math.Min(wanted, Math.Max(room, CardLeast * scale));
+        }
+
+        /// <summary>
+        /// How the plan box stands: whole where the stage holds it so at its least, under the
+        /// kind's tag or, with a room gone into, under the card at its least; else without its
+        /// trail and its Entrance and Deepest; else, with a room gone into, folded to its tab.
+        /// </summary>
+        public static BoxShape Shape(float stage, float wholeRows, float leanRows, bool card, float scale)
+        {
+            var over = card ? Top + CardLeast + Gap : Top;
+            var room = stage - (over + Bottom + PlanLeast) * scale;
+            if (room >= wholeRows) return BoxShape.Whole;
+            return room >= leanRows || !card ? BoxShape.Lean : BoxShape.Folded;
         }
 
         /// <summary>Whether the card scrolls, wanting more than it has.</summary>

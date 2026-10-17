@@ -36,6 +36,9 @@ namespace Scry
 
         public static string GrowTip(bool big) => big ? "Shrinks the plan back" : "Grows the plan and names its rooms";
 
+        /// <summary>The tip of the box folded as the stage is too short for it under the room's card.</summary>
+        public const string TooShortTip = "The stage is too short for the plan under the room's card: drag the stage taller, or come back out of the room";
+
         public const string Entrance = "Entrance";
         public const string EntranceTip = "Goes into the entrance";
         public const string Deepest = "Deepest";

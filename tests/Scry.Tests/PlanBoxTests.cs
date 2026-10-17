@@ -80,6 +80,57 @@ namespace Scry.Tests
             Assert.Equal(300f - CornerFit.Bottom - CornerFit.Top - 100f, CornerFit.Plan(300f, 100f, 330f, card: false, scale: 1f), 3);
         }
 
+        // A box whose other rows, its trail and Entrance and Deepest among them, take 110, and 62 without those.
+        private const float WholeRows = 110f, LeanRows = 62f;
+
+        [Fact]
+        public void OnAStageTallEnoughThePlanBoxKeepsItsTrailAndButtons()
+        {
+            Assert.Equal(BoxShape.Whole, CornerFit.Shape(600f, WholeRows, LeanRows, card: true, scale: 1f));
+            Assert.Equal(BoxShape.Whole, CornerFit.Shape(CornerFit.Top + CornerFit.PlanLeast + WholeRows + CornerFit.Bottom, WholeRows, LeanRows, card: false, scale: 1f));
+        }
+
+        [Fact]
+        public void OnAStageTooShortThePlanBoxDropsItsTrailAndButtonsFirst()
+        {
+            // With a room gone into, the card's least stands over the box too.
+            var withCard = CornerFit.Top + CornerFit.CardLeast + CornerFit.Gap + CornerFit.PlanLeast + LeanRows + CornerFit.Bottom;
+            Assert.Equal(BoxShape.Lean, CornerFit.Shape(withCard, WholeRows, LeanRows, card: true, scale: 1f));
+            Assert.Equal(BoxShape.Lean, CornerFit.Shape(CornerFit.Top + CornerFit.PlanLeast + LeanRows + CornerFit.Bottom, WholeRows, LeanRows, card: false, scale: 1f));
+            Assert.Equal(BoxShape.Lean, CornerFit.Shape(2f * (CornerFit.Top + CornerFit.PlanLeast + CornerFit.Bottom) + LeanRows * 2f, WholeRows * 2f, LeanRows * 2f, card: false, scale: 2f));
+        }
+
+        [Fact]
+        public void WithARoomGoneIntoAndStillNoRoomThePlanBoxFoldsToItsTab()
+        {
+            var withCard = CornerFit.Top + CornerFit.CardLeast + CornerFit.Gap + CornerFit.PlanLeast + LeanRows + CornerFit.Bottom;
+            Assert.Equal(BoxShape.Folded, CornerFit.Shape(withCard - 1f, WholeRows, LeanRows, card: true, scale: 1f));
+            Assert.Equal(BoxShape.Folded, CornerFit.Shape(240f, WholeRows, LeanRows, card: true, scale: 1f));
+        }
+
+        [Fact]
+        public void WithNoRoomGoneIntoThePlanBoxNeverFoldsItself()
+        {
+            Assert.Equal(BoxShape.Lean, CornerFit.Shape(100f, WholeRows, LeanRows, card: false, scale: 1f));
+        }
+
+        [Fact]
+        public void TheShapeChosenHoldsTheBoxAndTheCardAtTheirLeast()
+        {
+            foreach (var card in new[] { false, true })
+            {
+                for (var stage = 150f; stage <= 700f; stage += 5f)
+                {
+                    var shape = CornerFit.Shape(stage, WholeRows, LeanRows, card, scale: 1f);
+                    if (shape == BoxShape.Folded) continue;
+                    var rows = shape == BoxShape.Whole ? WholeRows : LeanRows;
+                    var over = card ? CornerFit.Top + CornerFit.CardLeast + CornerFit.Gap : CornerFit.Top;
+                    if (shape == BoxShape.Lean && stage < over + CornerFit.PlanLeast + LeanRows + CornerFit.Bottom) continue;
+                    Assert.True(over + CornerFit.PlanLeast + rows + CornerFit.Bottom <= stage + 0.01f, $"a stage {stage} tall, {shape}, card {card}");
+                }
+            }
+        }
+
         [Fact]
         public void ThePlanBoxStaysUnderTheKindsTagWhereTheStageHoldsItAtItsLeast()
         {

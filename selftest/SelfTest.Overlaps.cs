@@ -44,6 +44,8 @@ namespace Scry
             var looked = 0;
             var pictured = 0;
             var scrolled = 0;
+            var lean = 0;
+            var selfFolded = 0;
             foreach (var goneInto in new[] { false, true })
             {
                 if (goneInto)
@@ -65,8 +67,11 @@ namespace Scry
                             var repaints = ScryPanel.Repaints;
                             yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
                             looked++;
+                            var shape = ScryPanel.PlanBoxShapeShown;
+                            if (box != "folded" && shape == BoxShape.Lean) lean++;
+                            if (box != "folded" && shape == BoxShape.Folded) selfFolded++;
                             if (goneInto && ScryPanel.RoomCardScrolls) scrolled++;
-                            var name = $"{(compact ? "compact" : "full")} view, stage at {Numbers.Fixed(height, 1)}, plan box {box}, {(goneInto ? "deepest room gone into" : "no room gone into")}";
+                            var name = $"{(compact ? "compact" : "full")} view, stage at {Numbers.Fixed(height, 1)}, plan box {box}{(box != "folded" && shape != BoxShape.Whole ? (shape == BoxShape.Lean ? " without its trail" : " folding itself") : "")}, {(goneInto ? "deepest room gone into" : "no room gone into")}";
                             var pieces = ScryPanel.StagePieces.ToList();
                             var found = false;
                             for (var a = 0; a < pieces.Count; a++)
@@ -87,7 +92,7 @@ namespace Scry
                     }
                 }
             }
-            p.Note($"{entry.Name}: looked at {Numbers.Count(looked)} ways of showing it, {Numbers.Count(overlaps.Count)} overlaps found; the card scrolled in {Numbers.Count(scrolled)} of them, giving way to the plan box");
+            p.Note($"{entry.Name}: looked at {Numbers.Count(looked)} ways of showing it, {Numbers.Count(overlaps.Count)} overlaps found; the card scrolled in {Numbers.Count(scrolled)} of them, giving way to the plan box; the plan box dropped its trail and buttons in {Numbers.Count(lean)} and folded itself in {Numbers.Count(selfFolded)}, the stage too short");
 
             ScryPanel.HoverStageForTest(null);
             Stage.ComeOut();

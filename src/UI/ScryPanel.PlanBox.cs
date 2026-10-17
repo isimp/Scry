@@ -101,6 +101,36 @@ namespace Scry
         [Diagnostic]
         public static void GrowPlanForTest(bool big) => GrowPlan(big);
 
+        /// <summary>How the box last stood as the stage held it, whole, lean or folded (<see cref="CornerFit.Shape"/>), for the self-test.</summary>
+        [Diagnostic]
+        public static BoxShape PlanBoxShapeShown { get; private set; }
+
+        /// <summary>
+        /// The box folded to a small tab where it stands: folded by the player, a click brings it
+        /// back; folded as the stage is too short for it under the card of the room gone into, it
+        /// says so, unlit, and the box comes back as the stage grows or the room is come out of.
+        /// </summary>
+        private static Rect PlanTab(Rect inner, bool byPlayer)
+        {
+            var e = Event.current;
+            Stage.ViewShift = 0f;
+            var tabW = Skin.Width(Skin.Chip, "Plan") + U(4f);
+            var tab = new Rect(inner.x + U(8f), inner.yMax - U(CornerFit.Bottom) - U(22f), tabW, U(22f));
+            CountDrawn(PanelPart.PlanTab);
+            if (byPlayer)
+            {
+                if (tab.Contains(e.mousePosition)) AskTip("plan:tab", "Shows the example's plan");
+                if (GUI.Button(tab, "Plan", Skin.Fitted(Skin.Chip, tab))) PlanFolded = false;
+                return tab;
+            }
+            if (tab.Contains(e.mousePosition)) AskTip("plan:short", PlanBoxWords.TooShortTip);
+            var enabled = GUI.enabled;
+            GUI.enabled = false;
+            GUI.Button(tab, "Plan", Skin.Fitted(Skin.Chip, tab));
+            GUI.enabled = enabled;
+            return tab;
+        }
+
         /// <summary>How many levels the box last laid out, for the self-test.</summary>
         [Diagnostic]
         public static int PlanBoxLevelsShown => _levels?.Levels.Count ?? 0;
@@ -235,16 +265,7 @@ namespace Scry
             if (!KnowBoxRooms() || BoxRooms.Count == 0) return PlanBoxRect = Rect.zero;
 
             // Folded, a small tab where it stands, which brings it back.
-            if (PlanFolded)
-            {
-                Stage.ViewShift = 0f;
-                var tabW = Skin.Width(Skin.Chip, "Plan") + U(4f);
-                var tab = new Rect(inner.x + U(8f), inner.yMax - U(34f) - U(22f), tabW, U(22f));
-                if (tab.Contains(e.mousePosition)) AskTip("plan:tab", "Shows the example's plan");
-                CountDrawn(PanelPart.PlanTab);
-                if (GUI.Button(tab, "Plan", Skin.Fitted(Skin.Chip, tab))) PlanFolded = false;
-                return PlanBoxRect = tab;
-            }
+            if (PlanFolded) return PlanBoxRect = PlanTab(inner, byPlayer: true);
 
             var pad = U(6f);
             var rowH = U(22f);
@@ -258,9 +279,17 @@ namespace Scry
             var controlsW = U(6f) + rowH + U(4f) + U(16f);
             var oneRow = width - pad * 2f >= segmentsW + controlsW + U(90f);
             var headerH = oneRow ? rowH : rowH * 2f + U(2f);
-            var rows = pad + headerH + gap + gap + rowH + gap + rowH + pad;
-            // As tall as wanted where the stage has room; with a room gone into, the card over it gives way first (CornerFit).
-            planH = CornerFit.Plan(inner.height, rows, planH, Stage.RoomGoneInto != null && Stage.HasInside && Stage.ShowsInside, _s);
+            // Whole, with its trail and its Entrance and Deepest, where the stage holds it so; else
+            // without them; else, with a room gone into, folded to its tab (CornerFit).
+            var leanRows = pad + headerH + gap + pad;
+            var wholeRows = leanRows + gap + rowH + gap + rowH;
+            var card = Stage.RoomGoneInto != null && Stage.HasInside && Stage.ShowsInside;
+            var shape = CornerFit.Shape(inner.height, wholeRows, leanRows, card, _s);
+            if (repaint) PlanBoxShapeShown = shape;
+            if (shape == BoxShape.Folded) return PlanBoxRect = PlanTab(inner, byPlayer: false);
+            var rows = shape == BoxShape.Whole ? wholeRows : leanRows;
+            // As tall as wanted where the stage has room; with a room gone into, the card over it gives way first.
+            planH = CornerFit.Plan(inner.height, rows, planH, card, _s);
             var height = rows + planH;
             var box = new Rect(inner.x + U(8f), inner.yMax - U(34f) - height, width, height);
             PlanBoxRect = box;
@@ -349,17 +378,20 @@ namespace Scry
             FitLabel(captionRect, caption, Skin.FaintLabel, 10f);
             y = area.yMax + gap;
 
-            // The way from the entrance to the room gone into, each name going into its room.
-            Trail(explorer, new Rect(x, y, w, rowH), route);
-            y += rowH + gap;
+            if (shape == BoxShape.Whole)
+            {
+                // The way from the entrance to the room gone into, each name going into its room.
+                Trail(explorer, new Rect(x, y, w, rowH), route);
+                y += rowH + gap;
 
-            // The entrance and the deepest room, a click away.
-            var entrance = new Rect(x, y, Skin.Width(Skin.Segment, PlanBoxWords.Entrance) + U(12f), rowH);
-            var deepest = new Rect(entrance.xMax + U(4f), y, Skin.Width(Skin.Segment, PlanBoxWords.Deepest) + U(12f), rowH);
-            if (entrance.Contains(e.mousePosition)) AskTip("plan:entrance", PlanBoxWords.EntranceTip);
-            if (deepest.Contains(e.mousePosition)) AskTip("plan:deepest", PlanBoxWords.DeepestTip);
-            if (GUI.Button(entrance, PlanBoxWords.Entrance, Skin.Fitted(Skin.Segment, entrance)) && _boxWays?.Entrance != null) Stage.GoInto(_boxWays.Entrance);
-            if (GUI.Button(deepest, PlanBoxWords.Deepest, Skin.Fitted(Skin.Segment, deepest)) && _boxWays?.Deepest != null) Stage.GoInto(_boxWays.Deepest);
+                // The entrance and the deepest room, a click away.
+                var entrance = new Rect(x, y, Skin.Width(Skin.Segment, PlanBoxWords.Entrance) + U(12f), rowH);
+                var deepest = new Rect(entrance.xMax + U(4f), y, Skin.Width(Skin.Segment, PlanBoxWords.Deepest) + U(12f), rowH);
+                if (entrance.Contains(e.mousePosition)) AskTip("plan:entrance", PlanBoxWords.EntranceTip);
+                if (deepest.Contains(e.mousePosition)) AskTip("plan:deepest", PlanBoxWords.DeepestTip);
+                if (GUI.Button(entrance, PlanBoxWords.Entrance, Skin.Fitted(Skin.Segment, entrance)) && _boxWays?.Entrance != null) Stage.GoInto(_boxWays.Entrance);
+                if (GUI.Button(deepest, PlanBoxWords.Deepest, Skin.Fitted(Skin.Segment, deepest)) && _boxWays?.Deepest != null) Stage.GoInto(_boxWays.Deepest);
+            }
 
             // The box is not the stage: a click or the wheel on it neither turns nor zooms it.
             if (box.Contains(e.mousePosition) && (e.type == EventType.MouseDown || e.type == EventType.ScrollWheel)) e.Use();
