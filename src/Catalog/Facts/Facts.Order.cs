@@ -67,25 +67,41 @@ namespace Scry
         }
 
         /// <summary>
+        /// The parts of a place by the row each is told in (<see cref="PlaceParts.RoleOf"/>), in
+        /// the order of <see cref="PlaceParts.Roles"/>, each part's components read once.
+        /// </summary>
+        private static List<T>[] ByRow<T>(IEnumerable<T> parts, Func<T, string> prefab)
+        {
+            var rows = new List<T>[PlaceParts.Roles.Length];
+            for (var r = 0; r < rows.Length; r++) rows[r] = new List<T>();
+            foreach (var part in parts)
+            {
+                var role = PlaceParts.RoleOf(TraitsOf(GamePrefabs.Item(prefab(part))));
+                for (var r = 0; r < rows.Length; r++)
+                {
+                    if (PlaceParts.Roles[r] == role) rows[r].Add(part);
+                }
+            }
+            return rows;
+        }
+
+        /// <summary>
         /// The parts of a place told in one row, in that row's order: chests and pickups by what
         /// they can give (<see cref="ContentOrder.GiversFirst"/>), what is gathered hardest first,
         /// the rest and building pieces as given.
         /// </summary>
-        /// <param name="parts">The place's parts.</param>
+        /// <param name="mine">The place's parts told in the row (<see cref="ByRow{T}"/>).</param>
         /// <param name="prefab">Each part's prefab.</param>
         /// <param name="chance">How likely each is there, or how widespread among a dungeon's rooms.</param>
         /// <param name="role">The row's kind of part.</param>
         /// <param name="here">The place and all it holds, for what only it gives.</param>
-        private static List<T> InRow<T>(IEnumerable<T> parts, Func<T, string> prefab, Func<T, double> chance, PartRole role, ICollection<string> here)
+        private static List<T> InRow<T>(List<T> mine, Func<T, string> prefab, Func<T, double> chance, PartRole role, ICollection<string> here)
         {
-            var mine = parts.Where(p => PlaceParts.RoleOf(TraitsOf(GamePrefabs.Item(prefab(p)))) == role);
             switch (role)
             {
-                case PartRole.Loot:
-                    var gives = mine.Select(p => (Part: p, Gives: Gives(prefab(p), here))).ToList();
-                    return ContentOrder.GiversFirst(gives, g => chance(g.Part), g => g.Gives.Only, g => g.Gives.Worth, g => g.Gives.Kinds).Select(g => g.Part).ToList();
+                case PartRole.Loot: return ContentOrder.GiversFirst(mine, chance, p => Gives(prefab(p), here).Only, p => Gives(prefab(p), here).Worth, p => Gives(prefab(p), here).Kinds);
                 case PartRole.Gather: return ContentOrder.HardestFirst(mine, p => ToGather(GamePrefabs.Item(prefab(p))));
-                default: return mine.ToList();
+                default: return mine;
             }
         }
     }

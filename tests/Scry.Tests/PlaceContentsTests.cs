@@ -20,7 +20,7 @@ namespace Scry.Tests
         {
             var across = PlaceParts.Across(new[] { Room("TreasureChest_forestcrypt", "Spawner_Skeleton"), Room("Spawner_Skeleton", "Pickable_ForestCryptRemains"), Room("Spawner_Skeleton") });
 
-            Assert.Equal(new[] { ("Spawner_Skeleton", 3), ("Pickable_ForestCryptRemains", 1), ("TreasureChest_forestcrypt", 1) }, across.ToArray());
+            Assert.Equal(new[] { ("Spawner_Skeleton", 3), ("Pickable_ForestCryptRemains", 1), ("TreasureChest_forestcrypt", 1) }, Told(across));
         }
 
         [Fact]
@@ -29,7 +29,23 @@ namespace Scry.Tests
             var room = Room("Spawner_Skeleton");
             room.Add(new PlacePart { Prefab = "Spawner_Skeleton", Count = 2, Chance = 0.5f });
 
-            Assert.Equal(new[] { ("Spawner_Skeleton", 1) }, PlaceParts.Across(new[] { room }).ToArray());
+            Assert.Equal(new[] { ("Spawner_Skeleton", 1) }, Told(PlaceParts.Across(new[] { room })));
+        }
+
+        [Fact]
+        public void EquallyWidespreadThingsGoByNameWhateverTheirCase()
+        {
+            var across = PlaceParts.Across(new[] { Room("Skull1", "beehive", "Amber") });
+
+            Assert.Equal(new[] { "Amber", "beehive", "Skull1" }, across.Select(p => p.Prefab));
+        }
+
+        [Fact]
+        public void ThingsNamedAlikeButForCaseKeepTheOrderTheyWereFound()
+        {
+            // Two mods can name their prefabs alike but for case; neither goes first by name.
+            Assert.Equal(new[] { "skull", "Skull" }, PlaceParts.Across(new[] { Room("skull", "Skull") }).Select(p => p.Prefab));
+            Assert.Equal(new[] { "Skull", "skull" }, PlaceParts.Across(new[] { Room("Skull"), Room("skull") }).Select(p => p.Prefab));
         }
 
         [Fact]
@@ -37,6 +53,50 @@ namespace Scry.Tests
         {
             Assert.Empty(PlaceParts.Across(new List<PlacePart>[] { null, new List<PlacePart>() }));
         }
+
+        // The loot in its rooms is counted the same way: in how many kinds of room something
+        // gives it. What a kind of part gives is asked once, however many rooms and lines name
+        // it: each asking reads the part's components, and a dungeon's rooms can name thousands.
+
+        private static readonly Dictionary<string, string[]> CryptGives = new Dictionary<string, string[]>
+        {
+            ["TreasureChest_forestcrypt"] = new[] { "Coins", "Amber" },
+            ["Pickable_ForestCryptRemains"] = new[] { "BoneFragments", "Coins" },
+            ["Spawner_Skeleton"] = new string[0],
+        };
+
+        [Fact]
+        public void TheLootInADungeonsRoomsIsCountedByTheKindsOfRoomThatGiveIt()
+        {
+            var loot = PlaceParts.LootAcross(new[] { Room("TreasureChest_forestcrypt", "Spawner_Skeleton"), Room("Pickable_ForestCryptRemains", "TreasureChest_forestcrypt"), Room("Spawner_Skeleton") }, p => CryptGives[p]);
+
+            Assert.Equal(new[] { ("Amber", 2), ("Coins", 2), ("BoneFragments", 1) }, Told(loot));
+        }
+
+        [Fact]
+        public void WhatAKindOfPartGivesIsAskedOnceHoweverManyRoomsAndLinesNameIt()
+        {
+            var asked = new List<string>();
+            var twice = Room("TreasureChest_forestcrypt");
+            twice.Add(new PlacePart { Prefab = "TreasureChest_forestcrypt", Count = 1, Chance = 0.5f });
+
+            var loot = PlaceParts.LootAcross(new[] { twice, Room("TreasureChest_forestcrypt", ""), Room("Pickable_ForestCryptRemains") }, p =>
+            {
+                asked.Add(p);
+                return CryptGives[p];
+            });
+
+            Assert.Equal(new[] { "TreasureChest_forestcrypt", "Pickable_ForestCryptRemains" }, asked);
+            Assert.Equal(new[] { ("Coins", 3), ("Amber", 2), ("BoneFragments", 1) }, Told(loot));
+        }
+
+        [Fact]
+        public void RoomsNotReadAndPartsThatGiveNothingAddNoLoot()
+        {
+            Assert.Empty(PlaceParts.LootAcross(new List<PlacePart>[] { null, new List<PlacePart>(), Room("Spawner_Skeleton") }, p => CryptGives[p]));
+        }
+
+        private static (string, int)[] Told(IEnumerable<PartInRooms> across) => across.Select(p => (p.Prefab, p.Rooms)).ToArray();
 
         [Theory]
         [InlineData(1, "in 1 kind of room")]

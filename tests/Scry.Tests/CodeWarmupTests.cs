@@ -38,6 +38,10 @@ namespace Scry.Tests
 
             public T Any<T>() => default;
 
+            public T Valued<T>() where T : struct => default;
+
+            public T Drawn<T>() where T : Sample => default;
+
             [DllImport("nowhere")]
             private static extern void Outside();
         }
@@ -45,6 +49,15 @@ namespace Scry.Tests
         private sealed class Open<T>
         {
             public void Held()
+            {
+            }
+
+            public T Kept<TOther>(TOther other) => default;
+        }
+
+        private sealed class Counted<T> where T : struct
+        {
+            public void Count()
             {
             }
         }
@@ -68,14 +81,43 @@ namespace Scry.Tests
             Assert.Contains("Shared", names);
             Assert.Contains("get_Value", names);
             Assert.Contains("Later", names);
-            // What has no body of its own, or none until it is given types, waits for its first call.
+            // What has no body of its own waits for its first call.
             Assert.DoesNotContain("Left", names);
-            Assert.DoesNotContain("Any", names);
             Assert.DoesNotContain("Outside", names);
-            Assert.DoesNotContain("Held", names);
             Assert.DoesNotContain("Invoke", names);
             // A type's static setup runs as the type is first used, never by the warming.
             Assert.DoesNotContain(".cctor", names);
+        }
+
+        // Generic code is compiled once for every class and anew for each value type it is
+        // given. Compiled over object, it is the code any class it is first called with shares,
+        // so a page's first sort or count of its classes finds it compiled.
+
+        [Fact]
+        public void GenericCodeEveryClassSharesIsCompiledAheadOnce()
+        {
+            var methods = CodeWarmup.MethodsOf(new[] { typeof(Sample), typeof(Open<>) }).ToList();
+
+            var any = Assert.Single(methods, m => m.Name == "Any");
+            Assert.Equal(new[] { typeof(object) }, ((MethodInfo)any).GetGenericArguments());
+            var held = Assert.Single(methods, m => m.Name == "Held");
+            Assert.Equal(typeof(Open<object>), held.DeclaringType);
+            var kept = Assert.Single(methods, m => m.Name == "Kept");
+            Assert.Equal(typeof(Open<object>), kept.DeclaringType);
+            Assert.Equal(new[] { typeof(object) }, ((MethodInfo)kept).GetGenericArguments());
+            Assert.All(methods, m => Assert.False(m.ContainsGenericParameters, m.Name + " still waits for types"));
+        }
+
+        [Fact]
+        public void GenericCodeForAValueTypeOrAParticularClassWaitsForItsFirstCall()
+        {
+            // Object cannot stand for a value type, nor for a class it is not.
+            var names = CodeWarmup.MethodsOf(new[] { typeof(Sample), typeof(Counted<>) }).Select(m => m.Name).ToList();
+
+            Assert.DoesNotContain("Valued", names);
+            Assert.DoesNotContain("Drawn", names);
+            Assert.DoesNotContain("Count", names);
+            Assert.Contains("Any", names);
         }
 
         [Fact]

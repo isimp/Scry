@@ -28,7 +28,9 @@ namespace Scry
             }
 
             // What the character itself did with it opens the facts, in a box of its own.
+            var you = Timing.Start();
             y = YouBox(explorer, entry, facts, width, y);
+            Timing.Add("facts drawn you", you);
 
             // A two-column table: what it is on the left, its value on the right.
             var labelW = Mathf.Min(U(130f), width * 0.36f);
@@ -42,9 +44,15 @@ namespace Scry
             step = Timing.Start();
             if (plan == null)
             {
+                var kind = Timing.Start();
                 foreach (var pair in facts.Pairs) y = FactPair(explorer, entry, facts, pair, width, labelW, y);
+                Timing.Add("facts drawn pairs", kind);
+                kind = Timing.Start();
                 foreach (var row in facts.Rows) y = FactRow(explorer, row, width, y);
+                Timing.Add("facts drawn rows", kind);
+                kind = Timing.Start();
                 foreach (var block in EveryBlock) y = FactBlockOf(explorer, entry, facts, block, places, true, width, y);
+                Timing.Add("facts drawn blocks", kind);
                 Timing.Add("side facts drawn", step);
                 return y + U(14f);
             }

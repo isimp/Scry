@@ -27,6 +27,21 @@ namespace Scry.Tests
             Assert.Equal(new[] { "Stone", "Wood", "Resin" }, ContentOrder.RarestFirst(drops, d => d.Item2).Select(d => d.Item1));
         }
 
+        [Fact]
+        public void EqualsInALongListKeepTheOrderGiven()
+        {
+            // A long list is sorted by splitting it, which mixes equals unless the order given
+            // decides between them: a chest's forty kinds of loot, every other one as rare.
+            var drops = Enumerable.Range(0, 40).Select(i => (Name: "Item" + i, Chance: i % 2 == 0 ? 0.5 : 0.25)).ToArray();
+            var rare = drops.Where(d => d.Chance < 0.5).Select(d => d.Name);
+            var common = drops.Where(d => d.Chance >= 0.5).Select(d => d.Name);
+
+            Assert.Equal(rare.Concat(common), ContentOrder.RarestFirst(drops, d => d.Chance).Select(d => d.Name));
+
+            var parts = drops.Select(d => (d.Name, d.Chance, Only: false, Worth: 0, Kinds: 1)).ToArray();
+            Assert.Equal(rare.Concat(common), ContentOrder.GiversFirst(parts, p => p.Chance, p => p.Only, p => p.Worth, p => p.Kinds).Select(p => p.Name));
+        }
+
         // Creatures are told toughest first: bosses, then the most health; what is no creature
         // comes after them all, in the order given.
 

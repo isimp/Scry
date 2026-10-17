@@ -14,7 +14,7 @@ A character played before is caught up from what the game keeps of it: what it c
 
 What *Read all locations* reads is kept, so the next time it is known as soon as the world's catalog is. After an update of the game only the locations it changed are read again, and after a change of mods or of Scry all of them, in the background, with what was known shown meanwhile. `/scry locations` reads them all again.
 
-Where a place's floors are is kept too, so a dungeon's rooms no longer each stall a frame to be measured when its example is built again, in this session or the next. Showing what the locations hold is spread over a few frames, so neither entering a world nor finishing a reading stalls one.
+Where a place's floors are is kept too, so a dungeon's rooms no longer each stall a frame to be measured when its example is built again, in this session or the next. Showing what the locations hold is spread over a few frames, so neither entering a world nor finishing a reading stalls one. The first dungeon or location picked in a session puts its page together in a fraction of the time it took, and a dungeon whose rooms name thousands of parts, as some mods' do, tells its page again in a few milliseconds.
 
 *Read again* above the Locations tab's list, or `/scry forget`, forgets everything Scry kept and reads the locations afresh, for when what is shown seems out of date.
 

@@ -100,14 +100,40 @@ namespace Scry
         /// <summary>What a topic holds: its tiles, then its facts, rows, blocks and links, each with the notes under it.</summary>
         private static float TopicBody(Explorer explorer, Entry entry, Facts facts, FactTopicPlan topic, bool places, float width, float labelW, float y)
         {
-            if (topic.Tiles.Count > 0) y = Tiles(explorer, facts, topic.Tiles, width, y);
+            // Each kind of bit is timed apart, so the first page of a kind tells what its drawing costs.
+            var step = Timing.Start();
+            if (topic.Tiles.Count > 0)
+            {
+                y = Tiles(explorer, facts, topic.Tiles, width, y);
+                Timing.Add("facts drawn tiles", step);
+            }
             foreach (var bit in topic.Bits)
             {
-                if (bit.Pair >= 0) y = FactPair(explorer, entry, facts, facts.Pairs[bit.Pair], width, labelW, y);
-                else if (bit.Row >= 0) y = FactRow(explorer, facts.Rows[bit.Row], width, y);
-                else if (bit.Block is FactBlock block) y = FactBlockOf(explorer, entry, facts, block, places, false, width, y);
-                else if (bit.LinkGroup != null) y = PlacedLinks(explorer, entry, bit.LinkGroup, topic.Bits.Count > 1, width, y);
+                step = Timing.Start();
+                if (bit.Pair >= 0)
+                {
+                    y = FactPair(explorer, entry, facts, facts.Pairs[bit.Pair], width, labelW, y);
+                    Timing.Add("facts drawn pairs", step);
+                }
+                else if (bit.Row >= 0)
+                {
+                    y = FactRow(explorer, facts.Rows[bit.Row], width, y);
+                    Timing.Add("facts drawn rows", step);
+                }
+                else if (bit.Block is FactBlock block)
+                {
+                    y = FactBlockOf(explorer, entry, facts, block, places, false, width, y);
+                    Timing.Add("facts drawn blocks", step);
+                }
+                else if (bit.LinkGroup != null)
+                {
+                    y = PlacedLinks(explorer, entry, bit.LinkGroup, topic.Bits.Count > 1, width, y);
+                    Timing.Add("facts drawn links", step);
+                }
+                if (bit.Notes.Count == 0) continue;
+                step = Timing.Start();
                 foreach (var note in bit.Notes) y = FactNote(facts, facts.Pairs[note], width, y);
+                Timing.Add("facts drawn notes", step);
             }
             return y;
         }

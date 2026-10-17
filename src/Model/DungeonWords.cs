@@ -54,14 +54,40 @@ namespace Scry
         /// </summary>
         public static List<(string Title, List<(string Prefab, string Chance)> Doors)> DoorRows(DungeonPlan plan)
         {
+            // Gone through door by door rather than with LINQ: each door is a tuple, and the game's
+            // runtime compiles LINQ's code anew for each value type, in the frame that tells the
+            // first dungeon's page.
             var rows = new List<(string, List<(string, string)>)>();
-            foreach (var type in plan.Doors.Select(d => d.Type ?? "").Distinct())
+            var types = new List<string>();
+            for (var i = 0; i < plan.Doors.Count; i++)
             {
-                var listed = plan.Doors.Where(d => (d.Type ?? "") == type).ToList();
-                float Chance((string Type, float Chance, string Prefab) d) => d.Chance > 0f ? d.Chance : plan.DoorChance;
-                var alike = listed.All(d => Chance(d) == Chance(listed[0]));
-                var doors = listed.GroupBy(d => d.Prefab).Select(g => (g.Key, alike ? "" : DropWords.Share(Chance(g.First())))).ToList();
-                var share = DropWords.Share(listed.Average(d => Chance(d)));
+                var type = plan.Doors[i].Type ?? "";
+                if (!types.Contains(type)) types.Add(type);
+            }
+            foreach (var type in types)
+            {
+                // The doors of the type, each the chance it is placed at: its own, else the dungeon's.
+                var prefabs = new List<string>();
+                var chances = new List<float>();
+                for (var i = 0; i < plan.Doors.Count; i++)
+                {
+                    var door = plan.Doors[i];
+                    if ((door.Type ?? "") != type) continue;
+                    prefabs.Add(door.Prefab);
+                    chances.Add(door.Chance > 0f ? door.Chance : plan.DoorChance);
+                }
+                var alike = chances.TrueForAll(c => c == chances[0]);
+                var doors = new List<(string, string)>();
+                var told = new List<string>();
+                var sum = 0.0;
+                for (var i = 0; i < prefabs.Count; i++)
+                {
+                    sum += chances[i];
+                    if (told.Contains(prefabs[i])) continue;
+                    told.Add(prefabs[i]);
+                    doors.Add((prefabs[i], alike ? "" : DropWords.Share(chances[i])));
+                }
+                var share = DropWords.Share((float)(sum / prefabs.Count));
                 var typed = type.Length > 0 ? type + " " : "";
                 var title = doors.Count == 1
                     ? $"Door in {share} of {typed}doorways that allow one"
