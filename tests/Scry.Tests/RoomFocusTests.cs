@@ -46,26 +46,45 @@ namespace Scry.Tests
             Assert.True(RoomFocus.Cut(-10f, -9.5f) >= -10f + 1.4f - 0.001f);
         }
 
-        // ----- The plan box's switch for the rooms below -----
+        // ----- The rooms above coming back as the cut rises -----
 
         [Fact]
-        public void WithTheRoomsBelowSwitchedOffThoseDimmedBelowArePutAway()
+        public void ARoomAboveComesBackHalfDimmedOnceTheCutRisesPastItsGround()
         {
-            Assert.Equal(RoomLook.Away, RoomFocus.WithBelow(RoomLook.Below, belowShown: false));
+            Assert.Equal(RoomLook.Away, RoomFocus.WithCut(RoomLook.Away, ground: 8f, cut: 8f + RoomFocus.BackOver - 0.1f));
+            Assert.Equal(RoomLook.Near, RoomFocus.WithCut(RoomLook.Away, ground: 8f, cut: 8f + RoomFocus.BackOver + 0.1f));
         }
 
         [Fact]
-        public void TheRoomItselfAndThoseOnItsLevelStandWhateverTheSwitch()
+        public void WithTheRoomsRoofOnEveryRoomAboveIsBack()
         {
-            Assert.Equal(RoomLook.Whole, RoomFocus.WithBelow(RoomLook.Whole, belowShown: false));
-            Assert.Equal(RoomLook.Near, RoomFocus.WithBelow(RoomLook.Near, belowShown: false));
-            Assert.Equal(RoomLook.Away, RoomFocus.WithBelow(RoomLook.Away, belowShown: false));
+            Assert.Equal(RoomLook.Near, RoomFocus.WithCut(RoomLook.Away, ground: 120f, cut: float.PositiveInfinity));
         }
 
         [Fact]
-        public void WithTheRoomsBelowSwitchedOnEveryLookIsAsItWas()
+        public void TheCutChangesNoOtherLook()
         {
-            foreach (var look in new[] { RoomLook.Whole, RoomLook.Near, RoomLook.Below, RoomLook.Away }) Assert.Equal(look, RoomFocus.WithBelow(look, belowShown: true));
+            foreach (var look in new[] { RoomLook.Whole, RoomLook.Near, RoomLook.Below })
+            {
+                Assert.Equal(look, RoomFocus.WithCut(look, ground: -20f, cut: 0f));
+                Assert.Equal(look, RoomFocus.WithCut(look, ground: -20f, cut: float.PositiveInfinity));
+            }
+        }
+
+        // ----- The plan box's switch for the rooms below, on the plan from above -----
+
+        [Fact]
+        public void SwitchedOffThePlanFromAboveHidesTheRoomsBelowTheLevelLookedAt()
+        {
+            Assert.True(RoomFocus.HiddenBelow(ground: -10f, level: 0f));
+            Assert.False(RoomFocus.HiddenBelow(ground: -RoomFocus.SameLevel + 0.1f, level: 0f));
+            Assert.False(RoomFocus.HiddenBelow(ground: 6f, level: 0f));
+        }
+
+        [Fact]
+        public void WithNoLevelLookedAtThePlanHidesNothing()
+        {
+            Assert.False(RoomFocus.HiddenBelow(ground: -100f, level: null));
         }
     }
 }

@@ -34,10 +34,14 @@ namespace Scry
             }
         }
 
-        /// <summary>The tip of the switch for the rooms below the floor opened or the room gone into.</summary>
+        /// <summary>The tip of the switch for the rooms below the room gone into or the floor opened, in the plan from above.</summary>
         public static string BelowTip(bool shown) => shown
-            ? "The rooms below stand dimmed on the stage; click to put them away"
-            : "The rooms below are put away on the stage; click to show them dimmed";
+            ? "The plan from above shows the rooms below this level too; click to leave them out of it"
+            : "The plan from above leaves out the rooms below this level, its ways down marked; click to show them";
+
+        /// <summary>The way back out of a room gone into, under the plan.</summary>
+        public const string Whole = "Whole dungeon";
+        public const string WholeTip = "Comes back out to the whole dungeon, as Esc does";
 
         public static string GrowTip(bool big) => big ? "Shrinks the plan back" : "Grows the plan and names its rooms";
 

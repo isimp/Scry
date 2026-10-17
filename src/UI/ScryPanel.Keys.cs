@@ -50,13 +50,13 @@ namespace Scry
                     e.Use();
                     break;
                 case KeyCode.PageUp:
-                    // Over a place's stage they step its floors; elsewhere they page the list.
-                    if (Stage.HasFloors && MouseOverStage(e.mousePosition)) Stage.StepCut(false);
+                    // Over a place's stage they step its floors, in a room gone into its ruler's ticks; elsewhere they page the list.
+                    if (Stage.HasFloors && MouseOverStage(e.mousePosition)) StepCutOrRoom(false);
                     else Step(explorer, -Math.Max(1, _rowsInView - 1));
                     e.Use();
                     break;
                 case KeyCode.PageDown:
-                    if (Stage.HasFloors && MouseOverStage(e.mousePosition)) Stage.StepCut(true);
+                    if (Stage.HasFloors && MouseOverStage(e.mousePosition)) StepCutOrRoom(true);
                     else Step(explorer, Math.Max(1, _rowsInView - 1));
                     e.Use();
                     break;

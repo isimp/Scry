@@ -49,6 +49,9 @@ namespace Scry
 
         /// <summary>How each room shows with the room gone into, worked out again as more rooms are read.</summary>
         private readonly Dictionary<PlacedRoom, RoomLook> _focusLooks = new Dictionary<PlacedRoom, RoomLook>();
+
+        /// <summary>Each room's ground as last worked out with the room gone into, for the rooms above to come back by as the cut rises.</summary>
+        private readonly Dictionary<PlacedRoom, float> _focusGrounds = new Dictionary<PlacedRoom, float>();
         private int _focusRead = -1;
         private Vector3? _focusAcross;
 
@@ -237,26 +240,29 @@ namespace Scry
         /// <summary>The ceiling over a level of a room, from its own rays; none where they found none or it was not read.</summary>
         public float? CeilingOver(PlacedRoom room, float level) => _roomGround.TryGetValue(room, out var patch) ? FloorFinder.CeilingOver(new[] { patch }, level) : null;
 
-        /// <summary>How a room shows: as held for the self-test, else as the room gone into has it, else as the floor opened has it (<see cref="RoomShown"/>).</summary>
+        /// <summary>
+        /// The height the room gone into is cut at, in the example's own space, as the stage last
+        /// set it: the rooms above come back as it rises past their ground (<see cref="RoomFocus.WithCut"/>),
+        /// every one with the room's roof on (infinite); under them all before it is first set.
+        /// </summary>
+        public float FocusCut { get; set; } = float.NegativeInfinity;
+
+        /// <summary>
+        /// How a room shows: as held for the self-test, else as the room gone into has it, those
+        /// above coming back as the cut rises past their ground, else as the floor opened has it
+        /// (<see cref="RoomShown"/>).
+        /// </summary>
         public RoomLook LookOf(PlacedRoom room, float? planFloor, IReadOnlyList<float> floors)
         {
             if (_heldLook is RoomLook held) return held;
-            return RoomFocus.WithBelow(OwnLookOf(room, planFloor, floors), BelowShown);
-        }
-
-        /// <summary>Whether the rooms below the floor opened or the room gone into stand dimmed; else they are put away (<see cref="RoomFocus.WithBelow"/>).</summary>
-        public bool BelowShown { get; set; } = true;
-
-        /// <summary>How a room shows before the switch for the rooms below: as the room gone into has it, else as the floor opened has it.</summary>
-        private RoomLook OwnLookOf(PlacedRoom room, float? planFloor, IReadOnlyList<float> floors)
-        {
             room = ExamplePlan.LooksAs(room);
             if (Focused != null)
             {
                 KnowFocusLooks();
                 var look = _focusLooks.TryGetValue(room, out var known) ? known : RoomLook.Whole;
                 // Cut from the side, the rooms above stand in the section too, dimmed.
-                return FromSide && look == RoomLook.Away ? RoomLook.Below : look;
+                if (FromSide) return look == RoomLook.Away ? RoomLook.Below : look;
+                return _focusGrounds.TryGetValue(room, out var ground) ? RoomFocus.WithCut(look, ground, FocusCut) : look;
             }
             switch (RoomShown(room, planFloor, floors))
             {
@@ -272,7 +278,13 @@ namespace Scry
             if (_focusRead == _roomGround.Count || Placed == null) return;
             _focusRead = _roomGround.Count;
             _focusLooks.Clear();
-            foreach (var room in Placed.Rooms) _focusLooks[room] = RoomFocus.Look(room == Focused, GroundOf(room), FocusGround);
+            _focusGrounds.Clear();
+            foreach (var room in Placed.Rooms)
+            {
+                var ground = GroundOf(room);
+                _focusGrounds[room] = ground;
+                _focusLooks[room] = RoomFocus.Look(room == Focused, ground, FocusGround);
+            }
         }
 
         /// <summary>The middle across of the room gone into, on the stage, and how far it reaches from it (x, z and reach); null with none.</summary>

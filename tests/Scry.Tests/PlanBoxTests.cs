@@ -516,6 +516,24 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheWayBackOutIsCalledWholeDungeonWhereverItStands()
+        {
+            Assert.Equal("Whole dungeon", PlanBoxWords.Whole);
+            Assert.StartsWith("Comes back out", PlanBoxWords.WholeTip);
+        }
+
+        [Fact]
+        public void TheSwitchForTheRoomsBelowTellsItActsOnThePlanNotTheStage()
+        {
+            foreach (var shown in new[] { true, false })
+            {
+                var tip = PlanBoxWords.BelowTip(shown);
+                Assert.Contains("plan", tip);
+                Assert.DoesNotContain("stage", tip);
+            }
+        }
+
+        [Fact]
         public void ALevelTellsHowDeepItsHighestRoomIs()
         {
             Assert.Equal("-16 m", PlanBoxWords.LevelDepth(-15.6f));

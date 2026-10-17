@@ -68,10 +68,6 @@ namespace Scry
         [Diagnostic]
         public static void ClickCardWayForTest(WayOn way) => Stage.GoInto(way.To);
 
-        /// <summary>Clicks the card's Whole dungeon button as the mouse does, for the self-test.</summary>
-        [Diagnostic]
-        public static void ClickCardWholeForTest() => Stage.ComeOut();
-
         /// <summary>Lights a room as hovering a way chip does, for the self-test; none puts it out.</summary>
         [Diagnostic]
         public static void LightCardWayForTest(PlacedRoom room) => _cardLitForTest = room;
@@ -297,22 +293,17 @@ namespace Scry
                 y += card.LevelsTall;
             }
 
-            // Its page, as a click on a room once went to, and the way back out.
+            // Its page, as a click on a room once went to; the way back out stands under the plan, where it never scrolls away.
             y += U(2f);
-            var half = (textW - U(6f)) / 2f;
-            var page = new Rect(x, y, half, buttonH);
-            var whole = new Rect(x + half + U(6f), y, half, buttonH);
+            var page = new Rect(x, y, textW, buttonH);
             if (page.Contains(e.mousePosition)) AskTip("card:page", RoomCardWords.OpenPageTip);
-            if (whole.Contains(e.mousePosition)) AskTip("card:whole", RoomCardWords.WholeTip);
             var enabled = GUI.enabled;
             GUI.enabled = enabled && card.Goes;
             var openPage = GUI.Button(page, RoomCardWords.OpenPage, Skin.Fitted(Skin.Button, page)) && card.Goes;
             GUI.enabled = enabled;
-            var backOut = GUI.Button(whole, RoomCardWords.Whole, Skin.Fitted(Skin.Button, whole));
             if (scrolls) GUI.EndScrollView();
 
             if (goTo != null) Stage.GoInto(goTo);
-            else if (backOut) Stage.ComeOut();
             else if (openPage) Go(explorer, card.Key);
             else if (goPage != null) Go(explorer, goPage);
 

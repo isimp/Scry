@@ -46,6 +46,7 @@ namespace Scry
             var scrolled = 0;
             var lean = 0;
             var selfFolded = 0;
+            var noWayBack = new List<string>();
             foreach (var goneInto in new[] { false, true })
             {
                 if (goneInto)
@@ -71,6 +72,8 @@ namespace Scry
                             if (box != "folded" && shape == BoxShape.Lean) lean++;
                             if (box != "folded" && shape == BoxShape.Folded) selfFolded++;
                             if (goneInto && ScryPanel.RoomCardScrolls) scrolled++;
+                            // Whole, lean or folded, the way back out of the room stands where the plan is.
+                            if (goneInto && !ScryPanel.PlanWholeShown && noWayBack.Count < 6) noWayBack.Add($"{(compact ? "compact" : "full")} view, stage at {Numbers.Fixed(height, 1)}, plan box {box}, {shape}");
                             var name = $"{(compact ? "compact" : "full")} view, stage at {Numbers.Fixed(height, 1)}, plan box {box}{(box != "folded" && shape != BoxShape.Whole ? (shape == BoxShape.Lean ? " without its trail" : " folding itself") : "")}, {(goneInto ? "deepest room gone into" : "no room gone into")}";
                             var pieces = ScryPanel.StagePieces.ToList();
                             var found = false;
@@ -92,6 +95,7 @@ namespace Scry
                     }
                 }
             }
+            p.Check(noWayBack.Count == 0, "with a room gone into, Whole dungeon stands under the plan or beside its tab in every shape the box takes", string.Join("; ", noWayBack));
             p.Note($"{entry.Name}: looked at {Numbers.Count(looked)} ways of showing it, {Numbers.Count(overlaps.Count)} overlaps found; the card scrolled in {Numbers.Count(scrolled)} of them, giving way to the plan box; the plan box dropped its trail and buttons in {Numbers.Count(lean)} and folded itself in {Numbers.Count(selfFolded)}, the stage too short");
 
             ScryPanel.HoverStageForTest(null);

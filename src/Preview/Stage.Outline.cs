@@ -39,7 +39,7 @@ namespace Scry
         {
             var room = TheExample.Focused;
             var holder = TheExample.Holder;
-            if (room == null || holder == null || !holder.activeInHierarchy || !Cutting && !SideCutting || _outlineAway)
+            if (room == null || holder == null || !holder.activeInHierarchy || !Cutting && !SideCutting && !TheCut.Held || _outlineAway)
             {
                 if (_outline != null && _outline.gameObject.activeSelf) _outline.gameObject.SetActive(false);
                 return;

@@ -131,14 +131,20 @@ namespace Scry
             {
                 if (tab.Contains(e.mousePosition)) AskTip("plan:tab", "Shows the example's plan");
                 if (GUI.Button(tab, "Plan", Skin.Fitted(Skin.Chip, tab))) PlanFolded = false;
-                return tab;
             }
-            if (tab.Contains(e.mousePosition)) AskTip("plan:short", PlanBoxWords.TooShortTip);
-            var enabled = GUI.enabled;
-            GUI.enabled = false;
-            GUI.Button(tab, "Plan", Skin.Fitted(Skin.Chip, tab));
-            GUI.enabled = enabled;
-            return tab;
+            else
+            {
+                if (tab.Contains(e.mousePosition)) AskTip("plan:short", PlanBoxWords.TooShortTip);
+                var enabled = GUI.enabled;
+                GUI.enabled = false;
+                GUI.Button(tab, "Plan", Skin.Fitted(Skin.Chip, tab));
+                GUI.enabled = enabled;
+            }
+            // Folded, the way back out of a room gone into stands beside the tab.
+            if (Stage.RoomGoneInto == null || !Stage.HasInside || !Stage.ShowsInside) return tab;
+            var whole = new Rect(tab.xMax + U(4f), tab.y, Skin.Width(Skin.Segment, PlanBoxWords.Whole) + U(12f), tab.height);
+            WholeButton(whole);
+            return Rect.MinMaxRect(tab.x, tab.y, whole.xMax, tab.yMax);
         }
 
         /// <summary>How many levels the box last laid out, for the self-test.</summary>
@@ -197,7 +203,7 @@ namespace Scry
         {
             if (place.PlanView.HasValue) _planView = place.PlanView.Value;
             if (place.PlanBig.HasValue) _planBig = place.PlanBig.Value;
-            if (place.PlanBelow.HasValue) Stage.BelowShown = place.PlanBelow.Value;
+            if (place.PlanBelow.HasValue) PlanBelowShown = place.PlanBelow.Value;
         }
 
         private static void ChoosePlanView(PlanView view)
@@ -207,12 +213,35 @@ namespace Scry
             SaveRects();
         }
 
-        /// <summary>Shows the rooms below dimmed on the stage, or puts them away, as the box's switch does; remembered with the panel.</summary>
+        /// <summary>Whether the plan from above shows the rooms below the room gone into or the floor opened; else it leaves them out, their ways down marked. The stage shows them as it does either way.</summary>
+        public static bool PlanBelowShown { get; set; } = true;
+
+        /// <summary>Shows the rooms below in the plan from above, or leaves them out, as the box's switch does; remembered with the panel.</summary>
         private static void ShowBelow(bool shown)
         {
-            if (shown == Stage.BelowShown) return;
-            Stage.BelowShown = shown;
+            if (shown == PlanBelowShown) return;
+            PlanBelowShown = shown;
             SaveRects();
+        }
+
+        /// <summary>The level the plan from above leaves out the rooms below of, its switch off: the room gone into's ground, else the floor opened; none with neither, or with the switch on.</summary>
+        private static float? PlanBelowLevel(PlacedRoom gone) =>
+            PlanBelowShown ? (float?)null : gone != null ? GroundOf(gone) : Stage.ExampleOpenFloor;
+
+        /// <summary>Comes back out of the room gone into, as the box's Whole dungeon does, for the self-test.</summary>
+        [Diagnostic]
+        public static void ClickPlanWholeForTest() => Stage.ComeOut();
+
+        /// <summary>Whether the box drew its Whole dungeon last, in whatever shape it stood, for the self-test.</summary>
+        [Diagnostic]
+        public static bool PlanWholeShown { get; private set; }
+
+        /// <summary>The way back out to the whole dungeon, under the plan or beside its tab, while a room is gone into.</summary>
+        private static void WholeButton(Rect at)
+        {
+            if (Event.current.type == EventType.Repaint) PlanWholeShown = true;
+            if (at.Contains(Event.current.mousePosition)) AskTip("plan:whole", PlanBoxWords.WholeTip);
+            if (GUI.Button(at, PlanBoxWords.Whole, Skin.Fitted(Skin.Segment, at))) Stage.ComeOut();
         }
 
         /// <summary>Flips the switch for the rooms below as its button does, for the self-test.</summary>
@@ -285,6 +314,7 @@ namespace Scry
             // box finds its own only once its rooms are drawn.
             _boxLit = RoomLight.Lit(_cardLit, _boxHover, _stageHover);
             _boxHover = null;
+            if (repaint) PlanWholeShown = false;
             if (!KnowBoxRooms() || BoxRooms.Count == 0) return PlanBoxRect = Rect.zero;
 
             // Folded, a small tab where it stands, which brings it back.
@@ -304,9 +334,10 @@ namespace Scry
             var headerH = oneRow ? rowH : rowH * 2f + U(2f);
             // Whole, with its trail and its Entrance and Deepest, where the stage holds it so; else
             // without them; else, with a room gone into, folded to its tab (CornerFit).
-            var leanRows = pad + headerH + gap + pad;
-            var wholeRows = leanRows + gap + rowH + gap + rowH;
             var card = Stage.RoomGoneInto != null && Stage.HasInside && Stage.ShowsInside;
+            // Lean, a room gone into keeps the way back out under the plan.
+            var leanRows = pad + headerH + gap + pad + (card ? gap + rowH : 0f);
+            var wholeRows = pad + headerH + gap + pad + gap + rowH + gap + rowH;
             var shape = CornerFit.Shape(inner.height, wholeRows, leanRows, card, _s);
             if (repaint) PlanBoxShapeShown = shape;
             if (shape == BoxShape.Folded) return PlanBoxRect = PlanTab(inner, byPlayer: false);
@@ -329,7 +360,9 @@ namespace Scry
             var controlsY = oneRow ? y : y + rowH + U(2f);
             var fold = new Rect(box.xMax - pad - U(16f), controlsY + U(3f), U(16f), U(16f));
             var grow = new Rect(fold.x - U(4f) - rowH, controlsY, rowH, rowH);
-            var below = new Rect(grow.x - U(4f) - rowH, controlsY, rowH, rowH);
+            // The switch for the rooms below acts on the plan from above, and stands only with it.
+            var switchShown = _planView == PlanView.Above;
+            var below = switchShown ? new Rect(grow.x - U(4f) - rowH, controlsY, rowH, rowH) : new Rect(grow.x - U(4f), controlsY, 0f, rowH);
             var segX = oneRow ? below.x - U(6f) : x + segmentsW;
             foreach (var view in ViewsRightToLeft)
             {
@@ -343,11 +376,14 @@ namespace Scry
                 if (segment.Contains(e.mousePosition)) AskTip("plan-view:" + name, PlanBoxWords.ViewTip(view));
                 if (GUI.Button(segment, name, Skin.Fitted(style, segment)) && !on) ChoosePlanView(view);
             }
-            // The rooms below the floor opened or the room gone into, dimmed on the stage or put away.
-            var belowShown = Stage.BelowShown;
-            if (below.Contains(e.mousePosition)) AskTip("plan:below", PlanBoxWords.BelowTip(belowShown));
-            if (GUI.Button(below, GUIContent.none, belowShown ? Skin.On : Skin.IconButton)) ShowBelow(!belowShown);
-            if (repaint) Skin.Icon(new Rect(below.x + U(4f), below.y + U(4f), below.width - U(8f), below.height - U(8f)), Skin.Down, belowShown ? Skin.Accent : Skin.Dim);
+            // The rooms below the room gone into or the floor opened, shown in the plan from above or left out of it.
+            if (switchShown)
+            {
+                var belowShown = PlanBelowShown;
+                if (below.Contains(e.mousePosition)) AskTip("plan:below", PlanBoxWords.BelowTip(belowShown));
+                if (GUI.Button(below, GUIContent.none, belowShown ? Skin.On : Skin.IconButton)) ShowBelow(!belowShown);
+                if (repaint) Skin.Icon(new Rect(below.x + U(4f), below.y + U(4f), below.width - U(8f), below.height - U(8f)), Skin.Down, belowShown ? Skin.Accent : Skin.Dim);
+            }
             if (grow.Contains(e.mousePosition)) AskTip("plan:grow", PlanBoxWords.GrowTip(_planBig));
             if (GUI.Button(grow, GUIContent.none, _planBig ? Skin.On : Skin.IconButton)) GrowPlan(!_planBig);
             if (repaint) Skin.Icon(new Rect(grow.x + U(4f), grow.y + U(4f), grow.width - U(8f), grow.height - U(8f)), Skin.Resize, _planBig ? Skin.Accent : Skin.Dim);
@@ -402,7 +438,7 @@ namespace Scry
                     e.Use();
                 }
             }
-            var caption = _boxLit != null ? BoxRoomName(explorer, _boxLit) : PlanBoxWords.Caption(BoxRooms.Count);
+            var caption = _boxLit != null ? BoxRoomName(explorer, _boxLit) : gone != null ? BoxRoomName(explorer, gone) : PlanBoxWords.Caption(BoxRooms.Count);
             if (repaint) PlanBoxCaptionShown = caption;
             var captionRect = oneRow ? new Rect(x, y, Mathf.Max(U(20f), segX - x - U(4f)), rowH) : new Rect(x, controlsY, Mathf.Max(U(20f), below.x - U(6f) - x), rowH);
             FitLabel(captionRect, caption, Skin.FaintLabel, 10f);
@@ -411,17 +447,25 @@ namespace Scry
             if (shape == BoxShape.Whole)
             {
                 // The way from the entrance to the room gone into, each name going into its room.
-                Trail(explorer, new Rect(x, y, w, rowH), route);
+                Trail(explorer, new Rect(x, y, w, rowH), route, gone != null);
                 y += rowH + gap;
 
-                // The entrance and the deepest room, a click away.
-                var entrance = new Rect(x, y, Skin.Width(Skin.Segment, PlanBoxWords.Entrance) + U(12f), rowH);
+                // The way back out while a room is gone into, the entrance and the deepest room, a click away.
+                var rowX = x;
+                if (gone != null)
+                {
+                    var whole = new Rect(x, y, Skin.Width(Skin.Segment, PlanBoxWords.Whole) + U(12f), rowH);
+                    WholeButton(whole);
+                    rowX = whole.xMax + U(4f);
+                }
+                var entrance = new Rect(rowX, y, Skin.Width(Skin.Segment, PlanBoxWords.Entrance) + U(12f), rowH);
                 var deepest = new Rect(entrance.xMax + U(4f), y, Skin.Width(Skin.Segment, PlanBoxWords.Deepest) + U(12f), rowH);
                 if (entrance.Contains(e.mousePosition)) AskTip("plan:entrance", PlanBoxWords.EntranceTip);
                 if (deepest.Contains(e.mousePosition)) AskTip("plan:deepest", PlanBoxWords.DeepestTip);
                 if (GUI.Button(entrance, PlanBoxWords.Entrance, Skin.Fitted(Skin.Segment, entrance)) && _boxWays?.Entrance != null) Stage.GoInto(_boxWays.Entrance);
                 if (GUI.Button(deepest, PlanBoxWords.Deepest, Skin.Fitted(Skin.Segment, deepest)) && _boxWays?.Deepest != null) Stage.GoInto(_boxWays.Deepest);
             }
+            else if (gone != null) WholeButton(new Rect(x, y, Skin.Width(Skin.Segment, PlanBoxWords.Whole) + U(12f), rowH));
 
             // The box is not the stage: a click or the wheel on it neither turns nor zooms it.
             if (box.Contains(e.mousePosition) && (e.type == EventType.MouseDown || e.type == EventType.ScrollWheel)) e.Use();
@@ -486,8 +530,10 @@ namespace Scry
                 return new Vector2(area.center.x + (right - midRight) * scale, area.center.y - (up - midUp) * scale);
             }
             var goneGround = gone != null ? GroundOf(gone) : 0f;
+            var hideBelow = PlanBelowLevel(gone);
             foreach (var room in BoxRooms)
             {
+                if (RoomFocus.HiddenBelow(GroundOf(room), hideBelow)) continue;
                 var above = gone != null && room != gone && RoomFocus.Look(false, GroundOf(room), goneGround) == RoomLook.Away;
                 BoxSpots.Add(new BoxSpot
                 {
@@ -498,7 +544,7 @@ namespace Scry
             if (!repaint) return;
             foreach (var spot in BoxSpots) if (!spot.Dashed) BoxTile(spot, spot.Room == gone ? Skin.Alpha(Skin.Accent, 0.75f) : DepthTone(spot.Room), Skin.Alpha(Skin.Text, 0.3f), 1f);
             foreach (var spot in BoxSpots) if (spot.Dashed) BoxTile(spot, null, Skin.Alpha(Skin.Faint, 0.6f), 1f, dashed: true);
-            Walkways(At);
+            Walkways(At, hideBelow);
             foreach (var spot in BoxSpots) if (BoxLit(spot.Room) || spot.Room == gone) BoxTile(spot, null, Skin.Accent, 2f);
             if (_planBig) Names(explorer, area);
         }
@@ -563,30 +609,50 @@ namespace Scry
         /// walls, a dot at each such doorway; the walkway from the entrance in the accent and bolder
         /// over them, ways closing a loop in dashes.
         /// </summary>
-        private static void Walkways(Func<Vec3, Vector2> at)
+        private static void Walkways(Func<Vec3, Vector2> at, float? hideBelow)
         {
             var walkways = WalkwaysNow();
             if (walkways == null) return;
             var colour = Skin.Alpha(Skin.Text, 0.8f);
             var width = U(1.6f);
-            foreach (var line in walkways.Lines) PlanLine(at(line.From), at(line.To), colour, width, line.Loop ? U(4f) : 0f);
+            foreach (var line in walkways.Lines)
+            {
+                if (RoomFocus.HiddenBelow(GroundOf(line.Room), hideBelow)) continue;
+                PlanLine(at(line.From), at(line.To), colour, width, line.Loop ? U(4f) : 0f);
+            }
             for (var i = 1; i < RouteWalk.Count; i++) PlanLine(at(RouteWalk[i - 1]), at(RouteWalk[i]), Skin.Accent, U(2.5f));
+            // A dot at each doorway two rooms shown share; where one of them is left out below, a mark of the way down.
             var drawn = 0;
+            PlanBoxWaysDown = 0;
             foreach (var room in BoxRooms)
             {
                 foreach (var other in _boxWays.WaysOf(room))
                 {
                     if (!BoxIndex.TryGetValue(other, out var index) || index <= BoxIndex[room]) continue;
+                    var hiddenHere = RoomFocus.HiddenBelow(GroundOf(room), hideBelow);
+                    var hiddenThere = RoomFocus.HiddenBelow(GroundOf(other), hideBelow);
+                    if (hiddenHere && hiddenThere) continue;
                     drawn++;
                     if (!(_boxWays.DoorBetween(room, other) is Vec3 shared)) continue;
+                    var door = at(shared);
+                    if (hiddenHere != hiddenThere)
+                    {
+                        PlanBoxWaysDown++;
+                        var mark = U(9f);
+                        Skin.Icon(new Rect(door.x - mark / 2f, door.y - mark / 2f, mark, mark), Skin.Down, Skin.Accent);
+                        continue;
+                    }
                     var onRoute = RouteWays.Contains((room, other));
                     var dot = U(onRoute ? 5f : 4f);
-                    var door = at(shared);
                     Skin.Icon(new Rect(door.x - dot / 2f, door.y - dot / 2f, dot, dot), Skin.Circle, onRoute ? Skin.Accent : Skin.Text);
                 }
             }
             PlanBoxWaysDrawn = drawn;
         }
+
+        /// <summary>How many ways down to rooms left out below the plan from above last marked, for the self-test.</summary>
+        [Diagnostic]
+        public static int PlanBoxWaysDown { get; private set; }
 
         /// <summary>
         /// The ways between the rooms: each a line from one room's spot through the doorway they
@@ -890,7 +956,7 @@ namespace Scry
         // ----- The trail -----
 
         /// <summary>The way from the entrance to the room gone into, its names going into their rooms; as many of the last as fit.</summary>
-        private static void Trail(Explorer explorer, Rect line, List<PlacedRoom> route)
+        private static void Trail(Explorer explorer, Rect line, List<PlacedRoom> route, bool fromWhole)
         {
             var e = Event.current;
             if (route == null || route.Count == 0)
@@ -899,6 +965,24 @@ namespace Scry
                 return;
             }
             var stepW = Skin.Width(Skin.FaintLabel, PlanBoxWords.TrailStep);
+            // In a room, the trail begins at the whole dungeon, which a click comes back out to.
+            if (fromWhole)
+            {
+                var wholeW = Skin.Width(Skin.Small, PlanBoxWords.Whole);
+                var whole = new Rect(line.x, line.y, wholeW, line.height);
+                LinkLabel(whole, PlanBoxWords.Whole, Skin.Small, Skin.Text);
+                if (whole.Contains(e.mousePosition))
+                {
+                    AskTip("plan:trail-whole", PlanBoxWords.WholeTip);
+                    if (e.type == EventType.MouseDown && e.button == 0)
+                    {
+                        Stage.ComeOut();
+                        e.Use();
+                    }
+                }
+                GUI.Label(new Rect(whole.xMax, line.y, stepW, line.height), PlanBoxWords.TrailStep, Skin.FaintLabel);
+                line = new Rect(whole.xMax + stepW, line.y, Mathf.Max(0f, line.xMax - whole.xMax - stepW), line.height);
+            }
             var first = route.Count - 1;
             var total = Skin.Width(Skin.Small, BoxRoomName(explorer, route[first]));
             while (first > 0)

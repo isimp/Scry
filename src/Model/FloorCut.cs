@@ -30,19 +30,56 @@ namespace Scry
         /// <summary>The height the cut is held at, a room's gone into; none while the floors decide.</summary>
         private float? _held;
 
+        /// <summary>How low and how high the cut held at a room may be moved; past the highest its roof goes on.</summary>
+        private float _least = float.NegativeInfinity, _most = float.PositiveInfinity;
+
+        /// <summary>Whether the room gone into has its roof on, the cut off it and the rooms above it, as where it was cut is kept.</summary>
+        private bool _heldRoof;
+
         /// <summary>Whether the cut is held at a height of its own, a room's gone into, whatever the floors.</summary>
         public bool Held => _held.HasValue;
 
-        /// <summary>Holds the cut at a height of its own, a room's gone into, the floor opened let go of; none puts the roof back on.</summary>
-        public void Hold(float? height)
+        /// <summary>Whether the room gone into has its roof on: the cut off, the room still gone into.</summary>
+        public bool HeldRoofOn => _held.HasValue && _heldRoof;
+
+        /// <summary>
+        /// Holds the cut at a height of its own, a room's gone into, the floor opened let go of,
+        /// moved by hand no lower than <paramref name="least"/> and no higher than
+        /// <paramref name="most"/>, past which the room's roof goes on; none puts the roof back on.
+        /// </summary>
+        public void Hold(float? height, float least = float.NegativeInfinity, float most = float.PositiveInfinity)
         {
             _held = height;
+            _least = least;
+            _most = most;
+            _heldRoof = false;
             _shift = 0f;
             _level = _floors.Count;
         }
 
-        /// <summary>Whether a floor is opened or the cut is held at a room.</summary>
-        public bool Cutting => _held.HasValue || _level < _floors.Count;
+        /// <summary>Sets anew how low and how high the room gone into may be cut, as more of it is read, its cut kept within them.</summary>
+        public void Bound(float least, float most)
+        {
+            _least = least;
+            _most = most;
+            if (_held is float held) _shift = Math.Min(Math.Max(held + _shift, least), most) - held;
+        }
+
+        /// <summary>Cuts the room gone into at a height set by hand: no lower than its least, and over its most, its roof on.</summary>
+        public void HoldAt(float height)
+        {
+            if (!(_held is float held)) return;
+            if (height > _most)
+            {
+                _heldRoof = true;
+                return;
+            }
+            _heldRoof = false;
+            _shift = Math.Max(height, _least) - held;
+        }
+
+        /// <summary>Whether a floor is opened or the cut is held at a room with its roof off.</summary>
+        public bool Cutting => _held.HasValue ? !_heldRoof : _level < _floors.Count;
 
         /// <summary>Which floor is opened, from the top; the floors' count for the roof on.</summary>
         public int Level => _level;
@@ -51,17 +88,17 @@ namespace Scry
         public string Label => PlaceView.CutLabel(_level, _floors.Count);
 
         /// <summary>Where it is cut, above the root as if at size one; out of reach with the roof on.</summary>
-        public float At => _held is float held ? held + _shift : _level < _floors.Count ? _cuts[_level] + _shift : float.PositiveInfinity;
+        public float At => _held is float held ? (_heldRoof ? float.PositiveInfinity : held + _shift) : _level < _floors.Count ? _cuts[_level] + _shift : float.PositiveInfinity;
 
         /// <summary>Opens the floor below, or the top floor from the roof; goes up a floor, or puts the roof back from the top floor.</summary>
         public void Step(bool down) => Open(PlaceView.StepCut(_level, _floors.Count, down));
 
-        /// <summary>Takes the roof off, opening the floor last opened, or puts it back, coming out of a room gone into.</summary>
+        /// <summary>Takes the roof off, opening the floor last opened, or puts it back; in a room gone into, its own roof, the room still gone into and cut where it was after.</summary>
         public void ToggleRoof()
         {
             if (_held.HasValue)
             {
-                Hold(null);
+                _heldRoof = !_heldRoof;
                 return;
             }
             if (_floors.Count == 0) return;
@@ -96,16 +133,28 @@ namespace Scry
         public const float RoofOver = 2f;
 
         /// <summary>
-        /// Moves the cut as Shift and the wheel do: a room's cut up or down in the room gone into;
-        /// else up or down through the floors, opening the floor it is over (<see cref="CutTo"/>),
-        /// never under the lowest floor; down with the roof on, the top floor opened at its cut;
-        /// raised well over the top floor's cut, the roof back on.
+        /// Moves the cut as Shift and the wheel do: in the room gone into, its cut up or down,
+        /// never under its least, raised past its most its roof on, and down from there cut where
+        /// it was; else up or down through the floors, opening the floor it is over
+        /// (<see cref="CutTo"/>), never under the lowest floor; down with the roof on, the top
+        /// floor opened at its cut; raised well over the top floor's cut, the roof back on.
         /// </summary>
         public void Wheel(float metres)
         {
-            if (_held.HasValue)
+            if (_held is float held)
             {
-                _shift += metres;
+                if (_heldRoof)
+                {
+                    if (metres < 0f) _heldRoof = false;
+                    return;
+                }
+                var next = held + _shift + metres;
+                if (next > _most)
+                {
+                    _heldRoof = true;
+                    return;
+                }
+                _shift = Math.Max(next, _least) - held;
                 return;
             }
             if (_floors.Count == 0) return;

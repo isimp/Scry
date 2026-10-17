@@ -18,7 +18,6 @@ namespace Scry
         public const string Ways = "Ways on";
         public const string Levels = "Levels in this room";
         public const string OpenPage = "Open its page";
-        public const string Whole = "Whole dungeon";
 
         /// <summary>What a section with nothing in it says.</summary>
         public const string None = "None in this roll";
@@ -30,7 +29,6 @@ namespace Scry
 
         /// <summary>The tip of a creature's or a chest's line on the card, which goes to its page.</summary>
         public const string LineTip = "Goes to its page";
-        public const string WholeTip = "Back out to the whole dungeon with the roof on";
 
         /// <summary>
         /// Where a room is: how far its ground lies below or above the entrance's, in whole

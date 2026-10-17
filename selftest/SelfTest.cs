@@ -132,7 +132,7 @@ namespace Scry
             // help, the mod report and the floor's marks stand in it.
             ScryPanel.ListsHidden = (false, false);
             // The rooms below stand dimmed while the test runs, as its parts look at them so.
-            Stage.BelowShown = true;
+            ScryPanel.PlanBelowShown = true;
             // Only where the test points the mouse lights a room, wherever the player's own stands.
             ScryPanel.MouseAwayForTest(true);
             AllKnown();
@@ -240,7 +240,7 @@ namespace Scry
                 LocationsWere = Locations.Now,
                 StageScale = ScryPanel.StageScale,
                 ListsHidden = ScryPanel.ListsHidden,
-                BelowShown = Stage.BelowShown,
+                BelowShown = ScryPanel.PlanBelowShown,
             };
         }
 
@@ -284,7 +284,7 @@ namespace Scry
             StageAsItWas();
             ScryPanel.StageScale = before.StageScale;
             ScryPanel.ListsHidden = before.ListsHidden;
-            Stage.BelowShown = before.BelowShown;
+            ScryPanel.PlanBelowShown = before.BelowShown;
             ScryPanel.RememberPlaceForTest();
             Session.ShowKnownInstead(null);
             if (Session.Explorer != null) Session.Explorer.Peeking = false;

@@ -73,12 +73,12 @@ namespace Scry
             FreshView();
         }
 
-        /// <summary>Takes the roof off, opening the floor last opened, or puts it back; from a room gone into, back to the whole example.</summary>
+        /// <summary>Takes the roof off, opening the floor last opened, or puts it back; in a room gone into, its own roof, the room still gone into.</summary>
         public static void ToggleRoof()
         {
             if (TheExample.Focused != null)
             {
-                ComeOut();
+                if (!CutFromSide) TheCut.ToggleRoof();
                 return;
             }
             TheCut.ToggleRoof();
@@ -104,9 +104,10 @@ namespace Scry
         /// <summary>Moves the cut up or down.</summary>
         public static void CutBy(float metres) => TheCut.CutBy(metres);
 
-        /// <summary>Moves the cut as Shift and the wheel do (<see cref="FloorCut.Wheel"/>): a room's cut in the room gone into, else through the floors, opening the one it is over.</summary>
+        /// <summary>Moves the cut as Shift and the wheel do (<see cref="FloorCut.Wheel"/>): a room's cut in the room gone into, within its ruler, else through the floors, opening the one it is over; a room cut from the side has no height to move.</summary>
         public static void WheelCut(float metres)
         {
+            if (TheExample.Focused != null && CutFromSide) return;
             if (!TheCut.Held) TheExample.Unfocus();
             TheCut.Wheel(metres);
         }

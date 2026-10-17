@@ -24,7 +24,7 @@ namespace Scry
             var wasInside = Stage.Inside;
             var wasView = ScryPanel.PlanBoxView;
             var wasBig = ScryPanel.PlanBoxBig;
-            var wasBelow = Stage.BelowShown;
+            var wasBelow = ScryPanel.PlanBelowShown;
             var wasFolded = ScryPanel.PlanFolded;
             ScryPanel.PlanFolded = false;
             Stage.Inside = true;
@@ -52,6 +52,9 @@ namespace Scry
             var apartCaps = new List<string>();
             var capsFound = new List<string>();
             var unwalked = new List<string>();
+            var noWayBack = new List<string>();
+            var unruled = new List<string>();
+            var roomRulerTried = 0;
             p.Note(Stage.OutlinesPastCutForTest ? "the outlines are drawn past the cut, on a layer of their own" : "the outlines are drawn with the cut, to just under it, for want of a free layer");
             var notIn = new List<string>();
             foreach (var entry in places)
@@ -275,25 +278,34 @@ namespace Scry
                     Stage.OpenLevel(Stage.FloorHeights.Count);
                 }
 
-                // The switch for the rooms below, in the entrance, which has rooms below it: off, those
-                // dimmed below are put away; on, back.
+                // The switch for the rooms below, in the entrance, which has rooms below it: off, the
+                // plan from above leaves them out, its ways down marked, the stage showing them as
+                // before; on, back. Whole dungeon stands under the plan meanwhile.
                 ScryPanel.ClickPlanRoomForTest(ways.Entrance);
                 yield return Until(() => Stage.RoomGoneInto == ways.Entrance && !Stage.Gliding, 5);
-                var belowRooms = (Stage.ExampleShown?.Rooms ?? new List<PlacedRoom>()).Where(r => Stage.ExampleRoomLook(r) == RoomLook.Below).ToList();
+                ScryPanel.ShowPlanViewForTest(PlanView.Above);
+                var belowRooms = ways.Rooms.Where(r => Stage.ExampleRoomLook(r) == RoomLook.Below).ToList();
                 if (belowRooms.Count > 0)
                 {
                     switchTried++;
                     ScryPanel.ShowBelowForTest(false);
-                    yield return Until(() => belowRooms.All(r => Stage.ExampleRoomDrawn(r)?.Standing == false), 3);
-                    var away = belowRooms.Count(r => Stage.ExampleRoomDrawn(r)?.Standing == false);
+                    var drawnOff = ScryPanel.Drawn(PanelPart.PlanBox);
+                    yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnOff + 1 && belowRooms.All(r => Stage.ExampleRoomDrawn(r)?.Standing == true), 3);
+                    var spotted = ScryPanel.PlanBoxSpotsForTest().Select(s => s.Room).ToList();
+                    var leftIn = belowRooms.Count(spotted.Contains);
+                    var belowStanding = belowRooms.Count(r => Stage.ExampleRoomDrawn(r)?.Standing == true);
                     var remembered = ScryPanel.RememberedForTest().PlanBelow;
-                    if (away != belowRooms.Count || remembered != false) unswitched.Add($"{entry.Name}: {Numbers.Count(away)} of {Numbers.Count(belowRooms.Count)} rooms below put away, the file saying {remembered?.ToString() ?? "nothing"}");
-                    else yield return Picture(p, $"plan {entry.Name} rooms below put away");
+                    if (leftIn > 0 || belowStanding != belowRooms.Count || ScryPanel.PlanBoxWaysDown == 0 || remembered != false)
+                        unswitched.Add($"{entry.Name}: {Numbers.Count(leftIn)} of {Numbers.Count(belowRooms.Count)} rooms below still in the plan, {Numbers.Count(belowStanding)} standing on the stage, {Numbers.Count(ScryPanel.PlanBoxWaysDown)} ways down marked, the file saying {remembered?.ToString() ?? "nothing"}");
+                    else yield return Picture(p, $"plan {entry.Name} rooms below left out of the plan");
                     ScryPanel.ShowBelowForTest(true);
-                    yield return Until(() => belowRooms.All(r => Stage.ExampleRoomDrawn(r)?.Standing == true), 3);
-                    if (belowRooms.Any(r => Stage.ExampleRoomDrawn(r)?.Standing != true)) unswitched.Add($"{entry.Name}: rooms below not back on");
+                    var drawnOn = ScryPanel.Drawn(PanelPart.PlanBox);
+                    yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnOn + 1, 3);
+                    var back = ScryPanel.PlanBoxSpotsForTest().Select(s => s.Room).ToList();
+                    if (belowRooms.Any(r => !back.Contains(r))) unswitched.Add($"{entry.Name}: rooms below not back in the plan");
                 }
-                Stage.ComeOut();
+                if (!ScryPanel.PlanWholeShown) noWayBack.Add($"{entry.Name}: {ways.Entrance.Room.Name}");
+                ScryPanel.ClickPlanWholeForTest();
 
                 // A click goes into it, outlined whole however low the cut, framed afresh: a zoom
                 // toward a point of the whole example before let go of.
@@ -317,6 +329,45 @@ namespace Scry
                 var drawnAbove = ScryPanel.Drawn(PanelPart.PlanBox);
                 yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnAbove + 1 && !Stage.Gliding, 5);
                 yield return Picture(p, $"plan {entry.Name} Above deepest gone into");
+
+                // In the room the ruler is its own: Shift and the wheel keep the cut within it, raised
+                // past its top put its roof on and bring the rooms above back, and down from there
+                // cut it again; the roof button too; none of it leaves the room.
+                if (Stage.RoomGoneInto == deepest && Stage.RoomRulerNow is RoomRuler ruler)
+                {
+                    roomRulerTried++;
+                    var aboveRooms = ways.Rooms.Where(r => Stage.ExampleRoomLook(r) == RoomLook.Away).ToList();
+                    Stage.WheelCut(-1000f);
+                    var rulerDrawn = ScryPanel.Drawn(PanelPart.Ruler);
+                    yield return Until(() => ScryPanel.Drawn(PanelPart.Ruler) > rulerDrawn + 1, 3);
+                    var lowest = Stage.CutAt;
+                    var bar = ScryPanel.RulerBarForTest;
+                    var barOn = bar.Bar >= bar.Top - 0.5f && bar.Bar <= bar.Bottom + 0.5f;
+                    var shown = ScryPanel.RoomRulerShown;
+                    Stage.WheelCut(1000f);
+                    var roofOn = Stage.RoomRoofOn;
+                    yield return Until(() => aboveRooms.All(r => Stage.ExampleRoomDrawn(r)?.Standing == true), 3);
+                    var back = aboveRooms.Count(r => Stage.ExampleRoomDrawn(r)?.Standing == true);
+                    if (aboveRooms.Count > 0 && back == aboveRooms.Count) yield return Picture(p, $"plan {entry.Name} deepest with its roof on, the rooms above back");
+                    Stage.WheelCut(-0.5f);
+                    var cutAgain = !Stage.RoomRoofOn && Stage.Cutting && Mathf.Abs(Stage.CutAt - lowest) < 0.01f;
+                    Stage.ToggleRoof();
+                    var buttonRoof = Stage.RoomRoofOn;
+                    Stage.ToggleRoof();
+                    var stillIn = Stage.RoomGoneInto == deepest;
+                    if (!shown || Mathf.Abs(lowest - ruler.Least) > 0.01f || !barOn || !roofOn || back != aboveRooms.Count || !cutAgain || !buttonRoof || !stillIn)
+                        unruled.Add($"{entry.Name}: ruler shown {shown}, cut down to {Numbers.Fixed(lowest, 1)} m of its least {Numbers.Fixed(ruler.Least, 1)} m, bar on the ruler {barOn}, roof on {roofOn}, {Numbers.Count(back)} of {Numbers.Count(aboveRooms.Count)} rooms above back, cut again {cutAgain}, roof button {buttonRoof}, still in the room {stillIn}");
+
+                    // Cut from the side, there is no height to move: the wheel leaves the room as it is, and no ruler stands.
+                    Stage.SetCutFromSide(true);
+                    Stage.WheelCut(-3f);
+                    var sideRulerDrawn = ScryPanel.Drawn(PanelPart.Ruler);
+                    var sideFrame = Time.frameCount;
+                    yield return Until(() => Time.frameCount >= sideFrame + 3, 2);
+                    if (Stage.RoomGoneInto != deepest || Stage.RoomRulerNow != null || ScryPanel.Drawn(PanelPart.Ruler) > sideRulerDrawn)
+                        unruled.Add($"{entry.Name}: cut from the side, still in the room {Stage.RoomGoneInto == deepest}, a ruler {Stage.RoomRulerNow != null || ScryPanel.Drawn(PanelPart.Ruler) > sideRulerDrawn}");
+                    Stage.SetCutFromSide(false);
+                }
                 ScryPanel.ShowPlanViewForTest(PlanView.Tree);
                 var drawnTree = ScryPanel.Drawn(PanelPart.PlanBox);
                 yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnTree + 1 && !Stage.Gliding, 5);
@@ -351,7 +402,9 @@ namespace Scry
             p.Check(stayedLit.Count == 0, "the room lit goes out as the mouse leaves it", string.Join("; ", stayedLit));
             p.Check(slowFollow.Count == 0, "going from room to room on the stage, the outline and the plan box follow within three frames", string.Join("; ", slowFollow));
             p.Check(foundBelow > 0 && unchosen.Count == 0, "with a floor opened, a room dimmed below it is found under the mouse on the stage and outlined", foundBelow == 0 ? "no room dimmed below a floor was found in any dungeon" : string.Join("; ", unchosen));
-            p.Check(switchTried > 0 && unswitched.Count == 0, "the box's switch puts the rooms below the room gone into away and back, and is remembered with the panel", switchTried == 0 ? "no entrance had rooms below it to try the switch on" : string.Join("; ", unswitched));
+            p.Check(switchTried > 0 && unswitched.Count == 0, "the box's switch leaves the rooms below the room gone into out of the plan from above, its ways down marked, and back, the stage showing them as before; remembered with the panel", switchTried == 0 ? "no entrance had rooms below it to try the switch on" : string.Join("; ", unswitched));
+            p.Check(noWayBack.Count == 0, "in a room, Whole dungeon stands under the plan", string.Join("; ", noWayBack));
+            p.Check(roomRulerTried > 0 && unruled.Count == 0, "in a room the ruler is its own: Shift and the wheel keep the cut within it, past its top its roof on and the rooms above back, down from there cut again, the roof button too, never leaving the room; cut from the side, none", roomRulerTried == 0 ? "no deepest room was cut from above" : string.Join("; ", unruled.Take(6)));
             p.Check(unfresh.Count == 0, "going into a room and coming back out frame it afresh, a zoom or drag on what was framed before let go of", string.Join("; ", unfresh));
             p.Check(unwheeled.Count == 0, "Shift and the wheel open the top floor from the roof and take the cut no lower than the lowest floor", string.Join("; ", unwheeled));
             p.Check(apartCaps.Count == 0, "with a floor opened, each end cap and divider is drawn as the room it closes", string.Join("; ", apartCaps));

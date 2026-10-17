@@ -63,7 +63,7 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void OpeningAFloorOrTheRoofComesOutOfTheRoom()
+        public void OpeningAFloorComesOutOfTheRoomAndTheRoofButtonPutsOnlyTheRoomsRoofOn()
         {
             var opened = Taken();
             opened.Hold(1.2f);
@@ -74,7 +74,8 @@ namespace Scry.Tests
             var roofed = Taken();
             roofed.Hold(1.2f);
             roofed.ToggleRoof();
-            Assert.False(roofed.Held);
+            Assert.True(roofed.Held);
+            Assert.True(roofed.HeldRoofOn);
             Assert.False(roofed.Cutting);
 
             var bare = new FloorCut();
@@ -82,6 +83,131 @@ namespace Scry.Tests
             bare.Hold(-40f);
             bare.ToggleRoof();
             Assert.False(bare.Cutting);
+        }
+
+        // ----- Shift and the wheel, the ruler and the roof in a room gone into -----
+
+        [Fact]
+        public void ShiftAndTheWheelInARoomNeverTakeTheCutUnderItsLeast()
+        {
+            var cut = Taken();
+            cut.Hold(1.2f, least: -0.5f, most: 9f);
+            cut.Wheel(-5f);
+            Assert.True(cut.Held);
+            Assert.True(cut.Cutting);
+            Assert.Equal(-0.5f, cut.At, 3);
+        }
+
+        [Fact]
+        public void ShiftAndTheWheelInARoomRaisedPastItsMostPutItsRoofOnAndStayInIt()
+        {
+            var cut = Taken();
+            cut.Hold(1.2f, least: -0.5f, most: 9f);
+            cut.Wheel(7f);
+            Assert.Equal(8.2f, cut.At, 3);
+            Assert.False(cut.HeldRoofOn);
+
+            cut.Wheel(1f);
+            Assert.True(cut.Held);
+            Assert.True(cut.HeldRoofOn);
+            Assert.False(cut.Cutting);
+            Assert.True(float.IsPositiveInfinity(cut.At));
+
+            cut.Wheel(3f);
+            Assert.True(cut.HeldRoofOn);
+        }
+
+        [Fact]
+        public void ShiftAndTheWheelDownFromTheRoomsRoofOpenItWhereItWasCut()
+        {
+            var cut = Taken();
+            cut.Hold(1.2f, least: -0.5f, most: 9f);
+            cut.Wheel(7f);
+            cut.Wheel(1f);
+            Assert.True(cut.HeldRoofOn);
+
+            cut.Wheel(-0.5f);
+            Assert.False(cut.HeldRoofOn);
+            Assert.True(cut.Cutting);
+            Assert.Equal(8.2f, cut.At, 3);
+        }
+
+        [Fact]
+        public void TheRoofButtonInARoomPutsItsRoofOnAndOffWithoutLeavingIt()
+        {
+            var cut = Taken();
+            cut.Hold(1.2f, least: -0.5f, most: 9f);
+            cut.Wheel(2f);
+
+            cut.ToggleRoof();
+            Assert.True(cut.Held);
+            Assert.True(cut.HeldRoofOn);
+
+            cut.ToggleRoof();
+            Assert.True(cut.Held);
+            Assert.False(cut.HeldRoofOn);
+            Assert.Equal(3.2f, cut.At, 3);
+        }
+
+        [Fact]
+        public void ARoomCutByHandStaysWithinItsBoundsAndOverThemPutsItsRoofOn()
+        {
+            var cut = Taken();
+            cut.Hold(1.2f, least: -0.5f, most: 9f);
+
+            cut.HoldAt(4f);
+            Assert.Equal(4f, cut.At, 3);
+            cut.HoldAt(-3f);
+            Assert.Equal(-0.5f, cut.At, 3);
+            cut.HoldAt(9.5f);
+            Assert.True(cut.HeldRoofOn);
+            cut.HoldAt(2f);
+            Assert.False(cut.HeldRoofOn);
+            Assert.Equal(2f, cut.At, 3);
+            Assert.True(cut.Held);
+        }
+
+        [Fact]
+        public void GoingIntoAnotherRoomLetsGoOfTheLastRoomsRoofAndBounds()
+        {
+            var cut = Taken();
+            cut.Hold(1.2f, least: -0.5f, most: 9f);
+            cut.ToggleRoof();
+
+            cut.Hold(-3f, least: -10f, most: 0f);
+            Assert.False(cut.HeldRoofOn);
+            Assert.Equal(-3f, cut.At, 3);
+            cut.Wheel(-20f);
+            Assert.Equal(-10f, cut.At, 3);
+        }
+
+        [Fact]
+        public void ARoomsBoundsFoundAnewKeepItsCutWhereItIsOrWithinThem()
+        {
+            // More of the example read moves where the room's ruler begins and ends.
+            var cut = Taken();
+            cut.Hold(1.2f, least: -0.5f, most: 9f);
+            cut.Wheel(5f);
+
+            cut.Bound(-2f, 12f);
+            Assert.Equal(6.2f, cut.At, 3);
+            cut.Bound(-2f, 5f);
+            Assert.Equal(5f, cut.At, 3);
+            Assert.False(cut.HeldRoofOn);
+            cut.Wheel(0.5f);
+            Assert.True(cut.HeldRoofOn);
+        }
+
+        [Fact]
+        public void ComingOutOfARoomWithItsRoofOnPutsTheWholeRoofOn()
+        {
+            var cut = Taken();
+            cut.Hold(1.2f, least: -0.5f, most: 9f);
+            cut.ToggleRoof();
+            cut.Hold(null);
+            Assert.False(cut.Held);
+            Assert.False(cut.HeldRoofOn);
+            Assert.False(cut.Cutting);
         }
 
         [Fact]

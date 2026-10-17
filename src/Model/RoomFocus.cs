@@ -50,8 +50,14 @@ namespace Scry
             return ground < groundGoneInto ? RoomLook.Below : RoomLook.Away;
         }
 
-        /// <summary>A room's look with the plan box's switch for the rooms below: switched off, those dimmed below are put away; the room itself and those on its level stand whatever it is.</summary>
-        public static RoomLook WithBelow(RoomLook look, bool belowShown) => !belowShown && look == RoomLook.Below ? RoomLook.Away : look;
+        /// <summary>How far the cut must rise past the ground of a room above the room gone into for it to come back, in metres.</summary>
+        public const float BackOver = 0.5f;
+
+        /// <summary>A room's look as the cut over the room gone into is raised: one above, put away, comes back half dimmed once the cut is over its ground, every one with the room's roof on; no other look changes.</summary>
+        public static RoomLook WithCut(RoomLook look, float ground, float cut) => look == RoomLook.Away && cut > ground + BackOver ? RoomLook.Near : look;
+
+        /// <summary>Whether the plan from above, its switch for the rooms below off, leaves a room out: one whose ground lies below the level looked at, the room gone into's or the floor opened; none with neither.</summary>
+        public static bool HiddenBelow(float ground, float? level) => level is float at && ground < at - SameLevel;
 
         /// <summary>Where the stage is cut with a room gone into: head height over the level opened, under the ceiling over it where that is lower (<see cref="PlaceView.CutHeight(float, float?, float?)"/>).</summary>
         public static float Cut(float level, float? ceiling) => PlaceView.CutHeight(level, null, ceiling);

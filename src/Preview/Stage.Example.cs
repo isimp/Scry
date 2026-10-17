@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -130,6 +131,12 @@ namespace Scry
                 ChooseCutForExample();
                 // What is kept of a dungeon's rooms' floors is found while they are made.
                 if (TheExample.IsDungeon) foreach (var room in TheExample.Placed.Rooms) FloorRecords.Want(room.Room.Name, true);
+            }
+            if (TheExample.Focused != null)
+            {
+                // The rooms above come back as the room's cut rises past their ground.
+                TheExample.FocusCut = TheCut.At - ExampleLift;
+                KeepRoomBounds();
             }
             TheExample.KeepToFloor(ExamplePlanFloor, ExampleFloors);
             // A room's floors are read in a frame of their own: reading a big room takes as long
@@ -278,13 +285,6 @@ namespace Scry
         /// <summary>How a room of the example shows: as the room gone into has it, else as the floor opened has it (<see cref="StageExample.LookOf"/>).</summary>
         public static RoomLook ExampleRoomLook(PlacedRoom room) => TheExample.LookOf(room, ExamplePlanFloor, ExampleFloors);
 
-        /// <summary>Whether the rooms below the floor opened or the room gone into stand dimmed on the stage, as the plan box's switch has it; else they are put away.</summary>
-        public static bool BelowShown
-        {
-            get => TheExample.BelowShown;
-            set => TheExample.BelowShown = value;
-        }
-
         /// <summary>Whether a room's copy of the example stands and the share of its colours it keeps as dimmed, for the self-test.</summary>
         [Diagnostic]
         public static (bool Standing, float? Keep)? ExampleRoomDrawn(PlacedRoom room) => TheExample.Drawn(room);
@@ -346,7 +346,11 @@ namespace Scry
                 TheCut.Hold(null);
                 return;
             }
-            var lift = TheExample.Holder != null ? TheExample.Holder.transform.localPosition.y : 0f;
+            var lift = ExampleLift;
+            // Within the room's ruler: no lower than over its lowest level, raised past its top its roof on.
+            var ruler = RoomRulerNow;
+            var least = ruler?.Least ?? float.NegativeInfinity;
+            var most = ruler?.High ?? float.PositiveInfinity;
             if (TheExample.SlopeOf(room) is RoomCutPlane plane)
             {
                 if (plane.Sloping)
@@ -354,10 +358,10 @@ namespace Scry
                     _slope = plane;
                     _slopeOf = room;
                 }
-                TheCut.Hold(plane.Low.Y + lift);
+                TheCut.Hold(plane.Low.Y + lift, least, most);
                 return;
             }
-            TheCut.Hold(RoomLevelCut(room, level));
+            TheCut.Hold(RoomLevelCut(room, level), least, most);
         }
 
         /// <summary>Lets go of the cut over a room gone into, the roof back on.</summary>
@@ -375,7 +379,7 @@ namespace Scry
         private static bool SlopeLaid(out RoomCutPlane plane)
         {
             plane = default;
-            if (!(_slope is RoomCutPlane slope) || _slopeOf == null || _slopeOf != TheExample.Focused || !TheCut.Held || CutFromSide || TheExample.Holder == null) return false;
+            if (!(_slope is RoomCutPlane slope) || _slopeOf == null || _slopeOf != TheExample.Focused || !TheCut.Held || TheCut.HeldRoofOn || CutFromSide || TheExample.Holder == null) return false;
             plane = slope.Raised(CutAt - TheExample.Holder.transform.localPosition.y - slope.Low.Y);
             return true;
         }
@@ -417,8 +421,124 @@ namespace Scry
         /// <summary>The chests and pickups this copy's rolls left in a room of a dungeon's example, each with the chance its page gives it.</summary>
         public static IReadOnlyList<(string Prefab, float Chance)> RoomLoot(PlacedRoom room) => TheExample.LootOf(room);
 
-        /// <summary>The level of the room gone into that is open; none outside a room.</summary>
-        public static float? RoomLevelOpen => TheExample.Focused != null ? TheExample.FocusLevel : (float?)null;
+        /// <summary>The level of the room gone into the cut stands over, as its ruler lights it: the highest of its own levels under the cut; none with its roof on or outside a room.</summary>
+        public static float? RoomLevelOpen
+        {
+            get
+            {
+                if (TheExample.Focused == null || TheCut.HeldRoofOn) return null;
+                if (RoomRulerNow == null || !TheCut.Cutting) return TheExample.FocusLevel;
+                var cut = TheCut.At - ExampleLift;
+                float? open = null;
+                foreach (var level in _roomRulerLevels) if (level <= cut + 0.01f) open = level;
+                return open ?? TheExample.FocusLevel;
+            }
+        }
+
+        /// <summary>How high the example stands over the location's root, its own space to the stage's.</summary>
+        private static float ExampleLift => TheExample.Holder != null ? TheExample.Holder.transform.localPosition.y : 0f;
+
+        /// <summary>The ruler of the room gone into, cut from above, in the stage's heights; worked out again as the room or what is read of the example changes; none outside a room or cut from the side.</summary>
+        public static RoomRuler RoomRulerNow
+        {
+            get
+            {
+                var room = TheExample.Focused;
+                if (room == null || CutFromSide || TheExample.Placed == null) return null;
+                if (ReferenceEquals(room, _roomRulerOf) && _roomRulerRead == ExampleRoomsRead) return _roomRuler;
+                _roomRulerOf = room;
+                _roomRulerRead = ExampleRoomsRead;
+                _roomRulerLevels = TheExample.LevelsOf(room);
+                _roomRuler = RulerOf(room, _roomRulerLevels);
+                return _roomRuler;
+            }
+        }
+
+        private static RoomRuler _roomRuler;
+        private static PlacedRoom _roomRulerOf;
+        private static int _roomRulerRead = -1;
+        private static List<float> _roomRulerLevels = new List<float>();
+
+        /// <summary>The ruler of a room: its ground and own levels, its top, and the ground and top of each room above it, which come back as the cut rises past them.</summary>
+        private static RoomRuler RulerOf(PlacedRoom room, List<float> levels)
+        {
+            var lift = ExampleLift;
+            var ground = TheExample.GroundOf(room);
+            var above = new List<(float, float)>();
+            foreach (var other in TheExample.Placed.Rooms)
+            {
+                if (other == room || other.Room.EndCap || other.Room.Divider) continue;
+                var otherGround = TheExample.GroundOf(other);
+                if (RoomFocus.Look(false, otherGround, ground) != RoomLook.Away) continue;
+                above.Add((otherGround + lift, other.Position.Y + other.Room.Size.Y / 2f + lift));
+            }
+            return RoomRuler.Of(ground + lift, levels.Select(l => l + lift), room.Position.Y + room.Room.Size.Y / 2f + lift, above);
+        }
+
+        /// <summary>Keeps the room's cut within its ruler as more of the example is read.</summary>
+        private static void KeepRoomBounds()
+        {
+            var before = _roomRuler;
+            var ruler = RoomRulerNow;
+            if (ruler != null && !ReferenceEquals(ruler, before) && TheCut.Held) TheCut.Bound(ruler.Least, ruler.High);
+        }
+
+        /// <summary>Where the stage cuts over a tick of the room's ruler: a level of its own as its chip cuts it, the rooms above on one at head height over it.</summary>
+        private static float RoomTickCut(RoomRuler.Tick tick) =>
+            tick.Own ? RoomLevelCut(TheExample.Focused, tick.Height - ExampleLift) : RoomFocus.Cut(tick.Height, null);
+
+        /// <summary>Opens a tick of the room's ruler: a level of its own as its chip does, or the rooms above on one, cut at head height over it as they come back.</summary>
+        public static void OpenRoomTick(int index)
+        {
+            var ruler = RoomRulerNow;
+            if (ruler == null || index < 0 || index >= ruler.Ticks.Count) return;
+            var tick = ruler.Ticks[index];
+            if (tick.Own) OpenRoomLevel(tick.Height - ExampleLift);
+            else TheCut.HoldAt(RoomTickCut(tick));
+        }
+
+        /// <summary>Cuts the room gone into at a height set on its ruler: kept within it, over its top its roof on.</summary>
+        public static void CutRoomAt(float height)
+        {
+            if (RoomRulerNow != null && TheCut.Held) TheCut.HoldAt(height);
+        }
+
+        /// <summary>Steps the room's cut to the tick above or below, as the wheel over its ruler and Page Up and Down do: over the top tick its roof on, down from there the top tick again.</summary>
+        public static void StepRoomCut(bool down)
+        {
+            var ruler = RoomRulerNow;
+            if (ruler == null || !TheCut.Held || ruler.Ticks.Count == 0) return;
+            if (TheCut.HeldRoofOn)
+            {
+                if (down) OpenRoomTick(ruler.Ticks.Count - 1);
+                return;
+            }
+            var at = TheCut.At;
+            if (down)
+            {
+                for (var i = ruler.Ticks.Count - 1; i >= 0; i--)
+                {
+                    if (RoomTickCut(ruler.Ticks[i]) < at - 0.01f)
+                    {
+                        OpenRoomTick(i);
+                        return;
+                    }
+                }
+                return;
+            }
+            for (var i = 0; i < ruler.Ticks.Count; i++)
+            {
+                if (RoomTickCut(ruler.Ticks[i]) > at + 0.01f)
+                {
+                    OpenRoomTick(i);
+                    return;
+                }
+            }
+            TheCut.HoldAt(float.PositiveInfinity);
+        }
+
+        /// <summary>Whether the room gone into has its roof on, the rooms above it back.</summary>
+        public static bool RoomRoofOn => TheExample.Focused != null && TheCut.HeldRoofOn;
 
         /// <summary>Where the stage cuts over a level of a room, above the location's root: head height over it, under the room's own ceiling over it where lower.</summary>
         public static float RoomLevelCut(PlacedRoom room, float level)
