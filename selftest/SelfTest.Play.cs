@@ -260,6 +260,9 @@ namespace Scry
             var line = Facts.For(hide).Where.FirstOrDefault(s => s.Record?.Giver == troll.Name);
             var counted = X.StrictSourceLine(line.Record);
             p.Check(counted == $"Dropped by {line.Record?.Shown}, 2 (1 of 1 kill)", "the hide's page counts the troll's line", counted);
+            // Drawn as the troll's own chip, as under the loose rules, its count after its name.
+            var chip = ScryPanel.WhereRowsForTest(X, hide).SelectMany(r => r.Items).FirstOrDefault(i => i.Prefab == troll.Name);
+            p.Check(chip.Amount == "2 (1 of 1 kill)", "and draws the troll as a chip with that count", chip.Name + " " + chip.Amount);
             yield return PictureOf(p, "from", "strict TrollHide, where it comes from");
 
             // Played with others: a kill another player's game ran is told under the troll's drops
