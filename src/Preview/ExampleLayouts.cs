@@ -84,6 +84,13 @@ namespace Scry
         /// <summary>What the fog was last laid by: the maps' stamp, the compendium set on, and peeking.</summary>
         private static (int Stamp, bool Fogged, bool Peeking) _fogOf;
 
+        /// <summary>How often rooms newly walked lay the dungeon out again while it is shown, in seconds, as the stage builds it afresh.</summary>
+        private const float RefogEvery = 5f;
+
+        /// <summary>When the fog was last laid, and the room gone into then, by its place in the saved rooms, gone into again once the stage stands it afresh; -1 for none.</summary>
+        private static float _refoggedAt = float.NegativeInfinity;
+        private static int _reenter = -1;
+
         /// <summary>The rooms shown only as peeked, by their place in the saved rooms.</summary>
         private static readonly HashSet<int> PeekedAt = new HashSet<int>();
 
@@ -175,6 +182,8 @@ namespace Scry
             _whole = null;
             _wholeId = null;
             _fogOf = default;
+            _refoggedAt = float.NegativeInfinity;
+            _reenter = -1;
             PeekedAt.Clear();
             PeekedRooms = 0;
             Fogged = false;
@@ -233,7 +242,9 @@ namespace Scry
             if (plan.Algorithm == "Dungeon") LookForWorlds(place);
             _fogged = explorer.CompendiumSet;
             _peeking = explorer.Peeking;
-            if (ShowsWorlds && _whole != null && _fogOf != (DungeonWalks.Maps.Stamp, _fogged, _peeking)) Refog();
+            // A peek or the compendium changed lays it out at once; rooms walked while it is shown, now and then.
+            if (ShowsWorlds && _whole != null && _fogOf != (DungeonWalks.Maps.Stamp, _fogged, _peeking)
+                && (_fogOf.Fogged != _fogged || _fogOf.Peeking != _peeking || Time.unscaledTime - _refoggedAt >= RefogEvery)) Refog();
             // A dungeon only seen from outside shows its outside alone; a camp's example is its outside.
             Stage.InsideUnknown = plan.Algorithm == "Dungeon" && !explorer.InsideKnown(entry);
             if (Example == null) ReadRooms();
@@ -242,6 +253,7 @@ namespace Scry
             // Its rooms' copies on the stage, from the bundles of the kinds it uses.
             HoldFor(Example);
             Stage.StepExample(_entry, Example, plan, RoomModel);
+            if (_reenter >= 0 && Stage.StandsExample(Example)) GoBackInto();
             if (_releaseFrom >= 0 && Time.frameCount >= _releaseFrom) LetGoOfUnused();
         }
 
@@ -404,6 +416,8 @@ namespace Scry
                 ShowsWorlds = true;
                 Unread = unread;
                 Refog();
+                // Laid out afresh, no room of another layout is gone into again.
+                _reenter = -1;
             }
             else
             {
@@ -431,6 +445,15 @@ namespace Scry
             }
         }
 
+        /// <summary>Goes into the room gone into before the fog was laid again, where it still stands.</summary>
+        private static void GoBackInto()
+        {
+            var ways = Stage.ExampleWays;
+            var room = ways?.Rooms.FirstOrDefault(r => r.SavedAt == _reenter);
+            _reenter = -1;
+            if (room != null) Stage.GoInto(room);
+        }
+
         /// <summary>The kinds of room read for the location shown, by their names' hashes, as a world saves its rooms.</summary>
         private static Dictionary<int, RoomShape> RoomsByHash()
         {
@@ -453,6 +476,8 @@ namespace Scry
         private static void Refog()
         {
             _fogOf = (DungeonWalks.Maps.Stamp, _fogged, _peeking);
+            _refoggedAt = Time.unscaledTime;
+            _reenter = Stage.RoomGoneInto?.SavedAt ?? -1;
             var walked = DungeonWalks.Maps.Of(_wholeId)?.Walked;
             bool IsWalked(PlacedRoom room) => walked != null && walked.Contains(room.SavedAt);
             Example = DungeonFog.Shown(_whole, IsWalked, _fogged, _peeking, out var peeked);

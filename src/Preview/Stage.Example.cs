@@ -418,6 +418,9 @@ namespace Scry
         /// <summary>The ways between a dungeon example's rooms (<see cref="DungeonWays"/>); none for a camp's or with no example.</summary>
         public static DungeonWays ExampleWays => TheExample.Ways;
 
+        /// <summary>Whether the example the stage stands is this one.</summary>
+        public static bool StandsExample(DungeonExample example) => example != null && ReferenceEquals(TheExample.Of, example);
+
         /// <summary>How many of the example's rooms have had their rays read, which their grounds and levels come from.</summary>
         public static int ExampleRoomsRead => TheExample.GroundRead;
 
