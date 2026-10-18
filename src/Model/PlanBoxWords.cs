@@ -88,8 +88,9 @@ namespace Scry
         /// <summary>How much of the world's own dungeon the player has walked, over the plan.</summary>
         public static string Walked(int walked, int rooms) => Numbers.Count(walked) + " of " + Naming.Count(rooms, "room", "rooms") + " walked";
 
-        /// <summary>The warning over the plan while peeking shows the rooms not walked.</summary>
-        public static string PeekingRooms(int rooms) => "Peeking: " + Naming.Count(rooms, "room not walked is", "rooms not walked are") + " shown";
+        /// <summary>The warning over the plan while peeking shows the rooms not walked, short enough for the box; the rest in its tip.</summary>
+        public static string PeekingRooms(int rooms) => "Peeking: " + Naming.Count(rooms, "room not walked", "rooms not walked") + " shown";
+        public const string PeekingRoomsTip = "The rooms of this dungeon not walked yet show while you peek, and hide again once peeking stops";
 
         /// <summary>The tip of a doorway marked as leading on to a room not walked.</summary>
         public const string OpenWayTip = "A way on to a room not walked yet";

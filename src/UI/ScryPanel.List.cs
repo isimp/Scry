@@ -429,10 +429,12 @@ namespace Scry
                 var room = textW - nameW - U(8f);
                 if (room > U(40f))
                 {
+                    // Too wide, it keeps its last part, what tells it from rows alike, and is cut with an ellipsis, never mid-word without one.
                     var subRect = new Rect(textX + nameW + U(8f), inner.y + U(1f), room, inner.height);
-                    if (lit) LightMatches(subRect, secondary, Skin.RowSub);
-                    GUI.Label(subRect, secondary, Skin.RowSub);
-                    cut |= Skin.Width(Skin.RowSub, secondary) > room;
+                    var fitted = Skin.FitTag(Skin.RowSub, secondary, room);
+                    if (lit) LightMatches(subRect, fitted, Skin.RowSub);
+                    GUI.Label(subRect, fitted, Skin.RowSub);
+                    cut |= fitted != secondary;
                 }
                 else
                 {

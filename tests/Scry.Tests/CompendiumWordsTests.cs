@@ -64,7 +64,9 @@ namespace Scry.Tests
             // Peeking shows the page looked at whole, not the whole catalog: the list stays as the character knows it.
             Assert.Equal("Show each page whole for now, its links leading anywhere and a whole name in quotes finding what this character has not met; the list stays as it knows it, and it stops when the panel closes", CompendiumWords.PeekTip(false));
             Assert.Equal("Show only what this character has met again", CompendiumWords.PeekTip(true));
-            Assert.Equal("Peeking: each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it, until the panel closes", CompendiumWords.Peeking);
+            // The strip says it short; the rest in the tip of its line.
+            Assert.Equal("Peeking: pages show whole until the panel closes", CompendiumWords.Peeking);
+            Assert.Equal("Each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it", CompendiumWords.PeekingTip);
             Assert.Equal("Stop", CompendiumWords.StopPeeking);
         }
 

@@ -167,8 +167,10 @@ namespace Scry.Tests
         {
             Assert.Equal("6 of 18 rooms walked", PlanBoxWords.Walked(6, 18));
             Assert.Equal("1 of 1 room walked", PlanBoxWords.Walked(1, 1));
-            Assert.Equal("Peeking: 12 rooms not walked are shown", PlanBoxWords.PeekingRooms(12));
-            Assert.Equal("Peeking: 1 room not walked is shown", PlanBoxWords.PeekingRooms(1));
+            // Short enough for the plan box's strip; the rest in its tip.
+            Assert.Equal("Peeking: 12 rooms not walked shown", PlanBoxWords.PeekingRooms(12));
+            Assert.Equal("Peeking: 1 room not walked shown", PlanBoxWords.PeekingRooms(1));
+            Assert.Equal("The rooms of this dungeon not walked yet show while you peek, and hide again once peeking stops", PlanBoxWords.PeekingRoomsTip);
             Assert.Equal("The rooms as they stand in your world, as far as you have walked them; the menu beside the dungeon shows an example instead", PlanBoxWords.ThisDungeonTipFogged);
             Assert.Equal("18 rooms; 1 room Scry has not read is left out. This dungeon as it stands in your world, 6 of 20 rooms walked.", DungeonWords.WorldsNote("18 rooms", 1, PlanBoxWords.Walked(6, 20)));
             Assert.Equal("A way on to a room not walked yet", PlanBoxWords.OpenWayTip);

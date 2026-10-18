@@ -75,8 +75,9 @@ namespace Scry
             ? "Show only what this character has met again"
             : "Show each page whole for now, its links leading anywhere and a whole name in quotes finding what this character has not met; the list stays as it knows it, and it stops when the panel closes";
 
-        /// <summary>The warning strip while peeking.</summary>
-        public const string Peeking = "Peeking: each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it, until the panel closes";
+        /// <summary>The warning strip while peeking, short; the rest in its tip.</summary>
+        public const string Peeking = "Peeking: pages show whole until the panel closes";
+        public const string PeekingTip = "Each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it";
 
         /// <summary>The strip's chip that stops peeking.</summary>
         public const string StopPeeking = "Stop";
@@ -379,12 +380,13 @@ namespace Scry
         /// What the strict rules left out of a section of a known page, told in a faint line at
         /// its end by what the section is about (its topic in the page's plan): drops not seen
         /// fall, places a creature lives not met in, givers not seen give it,
-        /// anything else not seen together. None where nothing was left out.
+        /// anything else not seen together; without "more" where nothing else is listed
+        /// (<paramref name="alone"/>). None where nothing was left out.
         /// </summary>
-        public static string LeftOutOf(string topic, int count)
+        public static string LeftOutOf(string topic, int count, bool alone = false)
         {
             if (count <= 0) return null;
-            var more = Numbers.Count(count) + " more";
+            var more = Numbers.Count(count) + (alone ? "" : " more");
             switch (topic)
             {
                 case "loot": return more + " not yet seen fall";
@@ -408,13 +410,14 @@ namespace Scry
 
         /// <summary>
         /// What the loose rules left out of a section, said at its end: how many more things the
-        /// character has not met, a creature's places by what they are; null for none.
+        /// character has not met, a creature's places by what they are; without "more" where
+        /// nothing else is listed (<paramref name="alone"/>); null for none.
         /// </summary>
-        public static string NotYetMet(string topic, int count)
+        public static string NotYetMet(string topic, int count, bool alone = false)
         {
             if (count <= 0) return null;
-            if (topic == "lives") return LeftOutOf(topic, count);
-            return Numbers.Count(count) + " more not yet met";
+            if (topic == "lives") return LeftOutOf(topic, count, alone);
+            return Numbers.Count(count) + (alone ? "" : " more") + " not yet met";
         }
 
         /// <summary>A title without the count it ends with, for a row some of whose items were left out: nothing tells how many.</summary>

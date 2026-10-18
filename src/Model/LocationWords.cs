@@ -226,15 +226,27 @@ namespace Scry
             return parts.Count > 0 ? string.Join("; ", parts) : null;
         }
 
+        /// <summary>The words the game runs together in room names, each as it reads.</summary>
+        private static readonly Dictionary<string, string> RunTogether = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "sloperoom", "slope room" }, { "deeproom", "deep room" }, { "bossroom", "boss room" },
+            { "icecorridor", "ice corridor" }, { "iceendcap", "ice end cap" }, { "endcap", "end cap" }, { "lootencap", "loot end cap" },
+        };
+
         /// <summary>
         /// A room's name from its prefab's, without the tag of its dungeon ("forestcrypt_") that
-        /// its group already says, in words: "Corridor2" as "Corridor 2".
+        /// its group already says, in words: "Corridor2" as "Corridor 2"; the words it runs
+        /// together apart ("sloperoom" as "slope room"), and without a leading "new" where no room
+        /// of the name without it is there (<paramref name="isRoom"/>, every one where none is
+        /// told).
         /// </summary>
-        public static string RoomName(string prefab)
+        public static string RoomName(string prefab, Func<string, bool> isRoom = null)
         {
             var name = prefab ?? "";
             var tag = name.IndexOf('_');
             if (tag >= 0 && tag < name.Length - 1) name = name.Substring(tag + 1);
+            if (name.Length > 4 && name.StartsWith("new_", StringComparison.OrdinalIgnoreCase)
+                && (isRoom == null || !isRoom(prefab.Substring(0, tag + 1) + name.Substring(4)))) name = name.Substring(4);
 
             var words = new StringBuilder();
             for (var i = 0; i < name.Length; i++)
@@ -251,7 +263,17 @@ namespace Scry
                 if (breaks) words.Append(' ');
                 words.Append(words.Length == 0 ? char.ToUpperInvariant(c) : char.ToLowerInvariant(c));
             }
-            return words.ToString();
+            var parts = words.ToString().Split(' ');
+            var apart = false;
+            for (var i = 0; i < parts.Length; i++)
+            {
+                if (!RunTogether.TryGetValue(parts[i], out var split)) continue;
+                parts[i] = split;
+                apart = true;
+            }
+            if (!apart) return words.ToString();
+            var named = string.Join(" ", parts);
+            return Naming.Capital(named);
         }
 
         /// <summary>The game's biomes in the order players meet them; a biome a mod adds comes after.</summary>

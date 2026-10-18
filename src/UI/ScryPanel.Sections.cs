@@ -225,7 +225,7 @@ namespace Scry
             if (explorer.Peeking)
             {
                 CountDrawn(PanelPart.PeekStrip);
-                if (NoticeStrip(rect, Skin.Warn, CompendiumWords.Peeking, Skin.WarnLabel, true, CompendiumWords.StopPeeking, false, false) == StripClick.Chip) Peek(explorer, false);
+                if (NoticeStrip(rect, Skin.Warn, CompendiumWords.Peeking, Skin.WarnLabel, true, CompendiumWords.StopPeeking, false, false, lineTip: CompendiumWords.PeekingTip) == StripClick.Chip) Peek(explorer, false);
                 return;
             }
 
@@ -276,10 +276,11 @@ namespace Scry
 
         /// <summary>
         /// A notice under the header (the self-test's, what is off): tinted in its tone with a bar
-        /// at its left, a mark where it warns, its line sliding where it is longer than the strip,
-        /// a chip, and a cross that puts it away where it can be. Returns what was clicked.
+        /// at its left, a mark where it warns, its line sliding where it is longer than the strip
+        /// and the rest of what it says in the line's tip where it has one, a chip, and a cross
+        /// that puts it away where it can be. Returns what was clicked.
         /// </summary>
-        internal static StripClick NoticeStrip(Rect rect, Color tone, string line, GUIStyle lineStyle, bool mark, string chip, bool chipOn, bool cross, string chipTip = null, string crossTip = null)
+        internal static StripClick NoticeStrip(Rect rect, Color tone, string line, GUIStyle lineStyle, bool mark, string chip, bool chipOn, bool cross, string chipTip = null, string crossTip = null, string lineTip = null)
         {
             Skin.Fill(rect, Skin.Alpha(tone, 0.13f));
             Skin.Fill(new Rect(rect.x, rect.y, U(3f), rect.height), tone);
@@ -298,7 +299,9 @@ namespace Scry
             var chipW = Skin.Width(Skin.Chip, chip) + U(12f);
             var chipH = U(24f);
             var button = new Rect((cross ? away.x - U(6f) : rect.xMax - U(4f)) - chipW, rect.y + (rect.height - chipH) / 2f, chipW, chipH);
-            Ticker(new Rect(left, rect.y, button.x - left - U(8f), rect.height), line, lineStyle);
+            var lineRect = new Rect(left, rect.y, button.x - left - U(8f), rect.height);
+            Ticker(lineRect, line, lineStyle);
+            if (lineTip != null && lineRect.Contains(Event.current.mousePosition)) AskTip("strip-line:" + chip, lineTip);
 
             var clicked = StripClick.None;
             if (GUI.Button(button, chip, Skin.Fitted(chipOn ? Skin.ChipOn : Skin.Chip, button))) clicked = StripClick.Chip;

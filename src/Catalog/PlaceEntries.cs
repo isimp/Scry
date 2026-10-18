@@ -92,11 +92,14 @@ namespace Scry
                 Arrange(entries);
                 return;
             }
+            // Every room's name, so one is named without a leading "new" only where no room of that name without it is there.
+            var named = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var room in rooms) if (room != null && room.m_prefab.IsValid) named.Add(room.m_prefab.Name);
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var room in rooms)
             {
                 if (room == null || !room.m_enabled || !room.m_prefab.IsValid || !seen.Add(room.m_prefab.Name)) continue;
-                Guard.Each(Feature.Locations, "dungeon room entries", room.m_prefab.Name, () => entries.Add(RoomEntry(new PlaceSource { Prefab = room.m_prefab.Name, Reference = room.m_prefab, Room = room }, creatures)));
+                Guard.Each(Feature.Locations, "dungeon room entries", room.m_prefab.Name, () => entries.Add(RoomEntry(new PlaceSource { Prefab = room.m_prefab.Name, Reference = room.m_prefab, Room = room }, creatures, named.Contains)));
             }
             Arrange(entries);
         }
@@ -124,14 +127,14 @@ namespace Scry
             };
         }
 
-        private static Entry RoomEntry(PlaceSource source, IReadOnlyDictionary<string, string> creatures)
+        private static Entry RoomEntry(PlaceSource source, IReadOnlyDictionary<string, string> creatures, Func<string, bool> isRoom)
         {
             var dungeons = ThemeNames(source.Room.m_theme, creatures);
             var group = LocationWords.RoomGroup(dungeons[0]);
             return new Entry
             {
                 Name = source.Prefab,
-                DisplayName = LocationWords.RoomName(source.Prefab),
+                DisplayName = LocationWords.RoomName(source.Prefab, isRoom),
                 Kind = Kind.Location,
                 Group = group.Name,
                 GroupOrder = group.Order,

@@ -126,7 +126,8 @@ namespace Scry
 
                 // A chip for each way on.
                 var chips = ScryPanel.RoomCardWays;
-                if (chips.Count != ways.WaysOf(room).Count || chips.Any(w => !lines.Contains(w.Words)))
+                // Each chip shows its room's name, whole or cut at its end.
+                if (chips.Count != ways.WaysOf(room).Count || chips.Any(w => !lines.Any(l => l.Length > 0 && w.Name.StartsWith(l.TrimEnd('…'), StringComparison.Ordinal))))
                     waysWrong.Add($"{name}: {Numbers.Count(chips.Count)} chips for {Numbers.Count(ways.WaysOf(room).Count)} ways");
                 yield return Picture(p, $"room card {entry.Name} deepest room");
 

@@ -103,14 +103,14 @@ namespace Scry
             var creatures = Stage.RoomCreatures(room);
             var kept = creatures.Where(c => !explorer.LeavesOut(c)).ToList();
             card.CreaturesLeft = creatures.Count - kept.Count;
-            card.CreaturesLeftLine = explorer.LeftOutLine(null, card.CreaturesLeft);
+            card.CreaturesLeftLine = explorer.LeftOutLine(null, card.CreaturesLeft, alone: kept.Count == 0);
             card.CreatureCount = creatures.Count;
             card.Creatures = RoomCardWords.CountedPages(kept.Select(c => (ShownName(explorer, c, CreatureName(c)), c)));
 
             var loot = Stage.RoomLoot(room);
             var shown = loot.Where(l => !explorer.LeavesOut(l.Prefab)).ToList();
             card.LootLeft = loot.Count - shown.Count;
-            card.LootLeftLine = explorer.LeftOutLine(null, card.LootLeft);
+            card.LootLeftLine = explorer.LeftOutLine(null, card.LootLeft, alone: shown.Count == 0);
             card.LootCount = loot.Count;
             card.Loot = RoomCardWords.OddsPages(shown.Select(l => (ShownName(explorer, l.Prefab, PartName(l.Prefab)), l.Prefab, l.Chance)));
 
@@ -165,7 +165,7 @@ namespace Scry
             card.LaidWidth = width;
             card.CreatureRows = RoomCardWords.Fit(card.Creatures.Select(c => (c.Line, (string)null, false, c.Page)).ToList(), most, more => (more, (string)null, true, (string)null));
             card.LootRows = RoomCardWords.Fit(card.Loot.Select(l => (l.Name, l.Odds, false, l.Page)).ToList(), most, more => (more, (string)null, true, (string)null));
-            card.WaysTall = ChipRowsTall(card.Ways.Select(w => w.Words), Skin.Chip, width, chipH);
+            card.WaysTall = ChipRowsTall(card.Ways.Select(w => Skin.Fit(Skin.Chip, w.Name, width - U(6f))), Skin.Chip, width, chipH);
             card.LevelsTall = ChipRowsTall(card.LevelWords, Skin.Segment, width, chipH);
         }
 
@@ -230,8 +230,8 @@ namespace Scry
                 var h = pad + nameH + whereH;
                 if (!card.LayoutOnly)
                 {
-                    h += headH + (CardListOpen("creatures") ? lineH * (Mathf.Max(1, card.CreatureRows.Count) + (card.CreaturesLeft > 0 ? 1 : 0)) : 0f);
-                    h += headH + (CardListOpen("loot") ? lineH * (Mathf.Max(1, card.LootRows.Count) + (card.LootLeft > 0 ? 1 : 0)) : 0f);
+                    h += headH + (CardListOpen("creatures") ? lineH * RoomCardWords.ListLines(card.CreatureRows.Select(r => r.Name), card.CreaturesLeftLine).Count : 0f);
+                    h += headH + (CardListOpen("loot") ? lineH * RoomCardWords.ListLines(card.LootRows.Select(r => r.Name), card.LootLeftLine).Count : 0f);
                 }
                 h += headH + card.WaysTall;
                 if (levels) h += headH + card.LevelsTall;
@@ -292,7 +292,7 @@ namespace Scry
 
             void Rows(List<(string Name, string Odds, bool More, string Page)> rows, string left)
             {
-                if (rows.Count == 0) Line(lineH, RoomCardWords.None, Skin.FaintLabel);
+                if (rows.Count == 0 && left == null) Line(lineH, RoomCardWords.None, Skin.FaintLabel);
                 // The line saying how many more stands faint, without odds.
                 foreach (var (name, odds, more, page) in rows)
                 {
@@ -351,16 +351,18 @@ namespace Scry
             Heading(RoomCardWords.Ways, Skin.Faint, null);
             var flow = new ChipFlow(x, x + textW, y, chipH, U(4f), U(4f));
             PlacedRoom goTo = null;
+            // Each chip its room's name alone, cut at its end where too long; how far and whether a dead end in its tip.
             foreach (var way in card.Ways)
             {
-                var w = Mathf.Min(Skin.Width(Skin.Chip, way.Words) + U(6f), textW);
+                var label = Skin.Fit(Skin.Chip, way.Name, textW - U(6f));
+                var w = Mathf.Min(Skin.Width(Skin.Chip, label) + U(6f), textW);
                 var (cx, cy) = flow.Place(w);
                 var chip = new Rect(cx, cy, w, chipH);
                 CountDrawn(PanelPart.RoomCardWay);
-                if (repaint) CardLines.Add(way.Words);
+                if (repaint) CardLines.Add(label);
                 if (chip.Contains(e.mousePosition)) AskTip("card-way:" + way.Words, StageWords.GoIntoTip(way.Words));
                 if (repaint && chip.Contains(OwnMouse(e))) _cardLit = way.To;
-                if (GUI.Button(chip, way.Words, Skin.Fitted(Skin.Chip, chip))) goTo = way.To;
+                if (GUI.Button(chip, label, Skin.Fitted(Skin.Chip, chip))) goTo = way.To;
             }
             y += card.WaysTall;
 

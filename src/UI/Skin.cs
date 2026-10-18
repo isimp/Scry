@@ -237,6 +237,25 @@ namespace Scry
             return width;
         }
 
+        /// <summary>A text as it fits a width in a style, cut with an ellipsis where it is too wide (<see cref="TextFit.Cut"/>); worked out once for each width.</summary>
+        public static string Fit(GUIStyle style, string text, float width) => FitText(style, text, width, false);
+
+        /// <summary>A list row's tag as it fits a width, its last part kept before it is cut (<see cref="TextFit.Tag"/>).</summary>
+        public static string FitTag(GUIStyle style, string text, float width) => FitText(style, text, width, true);
+
+        private static readonly Dictionary<(GUIStyle Style, string Text, int Width, bool Tag), string> Fits = new Dictionary<(GUIStyle, string, int, bool), string>();
+
+        private static string FitText(GUIStyle style, string text, float width, bool tag)
+        {
+            if (string.IsNullOrEmpty(text)) return text ?? "";
+            var key = (style, text, Mathf.FloorToInt(width), tag);
+            if (Fits.TryGetValue(key, out var fitted)) return fitted;
+            if (Fits.Count >= 4000) Fits.Clear();
+            fitted = tag ? TextFit.Tag(text, key.Item3, t => Width(style, t)) : TextFit.Cut(text, key.Item3, t => Width(style, t));
+            Fits[key] = fitted;
+            return fitted;
+        }
+
         /// <summary>
         /// How wide a text is, for one that is out of sight: measured if it was before, or while
         /// this frame's share for such texts lasts; otherwise told from the style's usual letter

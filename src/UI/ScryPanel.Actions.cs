@@ -125,8 +125,10 @@ namespace Scry
                     break;
 
                 case Kind.Location:
-                    // What the game leaves to chance, rolled again on a new copy; only where something is.
+                    // What the game leaves to chance, rolled again on a new copy; only where something is, and
+                    // not on the world's own dungeon, shown by its layout alone.
                     if (withStage && entry.Source is PlaceSource place && place.Contents != null && place.Contents.LeftToChance
+                        && !(ExampleLayouts.ShowsWorlds && ExampleLayouts.Of(entry))
                         && Shown("Roll again", ActionLook.Leading, Stage.Subject != null, ActionWords.RollPlace))
                     {
                         Previews.Rebuild();

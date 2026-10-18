@@ -760,13 +760,15 @@ namespace Scry
                 var spot = BoxSpots[i];
                 if (spot.Dashed) continue;
                 var name = BoxRoomName(explorer, spot.Room);
-                var nameW = Skin.Width(Skin.FaintLabel, name);
+                // On a dark backing a little wider than the name, so it reads on the light level plates as on the dark plan.
+                var pad = U(3f);
+                var nameW = Skin.Width(Skin.DimLabel, name) + pad * 2f;
                 var rect = new Rect(spot.Centre.x - nameW / 2f, spot.Centre.y - U(8f), nameW, U(16f));
                 if (rect.x < area.x || rect.xMax > area.xMax || rect.y < area.y || rect.yMax > area.yMax || written.Exists(r => r.Overlaps(rect))) continue;
                 written.Add(rect);
                 CountDrawn(PanelPart.PlanName);
-                Skin.Fill(rect, Skin.Alpha(Skin.Stage, 0.6f));
-                GUI.Label(rect, name, Skin.FaintLabel);
+                Skin.Fill(rect, Skin.Alpha(Skin.Stage, 0.85f));
+                GUI.Label(new Rect(rect.x + pad, rect.y, rect.width - pad * 2f, rect.height), name, Skin.DimLabel);
             }
         }
 

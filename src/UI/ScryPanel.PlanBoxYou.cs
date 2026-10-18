@@ -52,6 +52,7 @@ namespace Scry
         /// <summary>The peek's warning over the plan, while rooms not walked show.</summary>
         private static void PeekStrip(Rect row)
         {
+            if (row.Contains(Event.current.mousePosition)) AskTip("peek-rooms", PlanBoxWords.PeekingRoomsTip);
             if (Event.current.type != EventType.Repaint) return;
             Skin.Fill(row, Skin.WarnSoft);
             GUI.Label(new Rect(row.x + U(6f), row.y, row.width - U(12f), row.height), PlanBoxWords.PeekingRooms(ExampleLayouts.PeekedRooms), Skin.Fitted(Skin.WarnLabel, row));

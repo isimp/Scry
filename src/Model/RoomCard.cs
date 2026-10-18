@@ -29,6 +29,18 @@ namespace Scry
         /// <summary>What a section with nothing in it says.</summary>
         public const string None = "None in this roll";
 
+        /// <summary>
+        /// The lines an open list of the card shows: its own, then how many were left out; where
+        /// nothing was rolled at all, that it holds none.
+        /// </summary>
+        public static List<string> ListLines(IEnumerable<string> rows, string leftOut)
+        {
+            var lines = rows.ToList();
+            if (leftOut != null) lines.Add(leftOut);
+            if (lines.Count == 0) lines.Add(None);
+            return lines;
+        }
+
         public const string CreaturesTip = "The creatures this copy's spawn points put in the room; another copy rolls them anew";
         public const string LootTip = "The chests and pickups this copy's rolls put in the room, each with how likely a room of its kind holds it";
         public const string FloorTip = "Click to cut at head height over this floor";
@@ -56,26 +68,27 @@ namespace Scry
             return string.Join(Apart, parts);
         }
 
-        /// <summary>Names counted together, "Draugr ×3", the most first, as many in the order of their names.</summary>
+        /// <summary>Names counted together, "Draugr ×3", copies numbered apart as one ("Draugr (1)"), the most first, as many in the order of their names.</summary>
         public static List<string> Counted(IEnumerable<string> names) => CountedPages(names.Select(n => (n, (string)null))).Select(l => l.Line).ToList();
 
         /// <summary>The same, each line with the page of the creatures it counts, that of the first.</summary>
         public static List<(string Line, string Page)> CountedPages(IEnumerable<(string Name, string Page)> named) => named
-            .GroupBy(n => n.Name, StringComparer.Ordinal)
+            .GroupBy(n => Naming.WithoutVariant(n.Name), StringComparer.Ordinal)
             .OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
             .Select(g => (Naming.Repeated(g.Key, g.Count()), g.First().Page))
             .ToList();
 
         /// <summary>
         /// Chests and pickups with how likely each is there, counted together by name and chance
-        /// to a tenth of a percent: what is always there first, then the likeliest, then by name.
+        /// to a tenth of a percent, copies numbered apart as one ("Morkhalla Eye (4)"): what is
+        /// always there first, then the likeliest, then by name.
         /// </summary>
         public static List<(string Name, string Odds)> Odds(IEnumerable<(string Name, float Chance)> parts) =>
             OddsPages(parts.Select(p => (p.Name, (string)null, p.Chance))).Select(l => (l.Name, l.Odds)).ToList();
 
         /// <summary>The same, each line with the page of what it counts, that of the first.</summary>
         public static List<(string Name, string Odds, string Page)> OddsPages(IEnumerable<(string Name, string Page, float Chance)> parts) => parts
-            .GroupBy(p => (p.Name, Tenths: (int)Math.Round(p.Chance * 1000f)))
+            .GroupBy(p => (Name: Naming.WithoutVariant(p.Name), Tenths: (int)Math.Round(p.Chance * 1000f)))
             .OrderByDescending(g => g.Key.Tenths).ThenBy(g => g.Key.Name, StringComparer.OrdinalIgnoreCase)
             .Select(g => (Naming.Repeated(g.Key.Name, g.Count()), Chance(g.First().Chance, g.Count()), g.First().Page))
             .ToList();
@@ -121,10 +134,11 @@ namespace Scry
         private static int WholeMetres(float metres) => (int)Math.Round(metres, MidpointRounding.AwayFromZero);
     }
 
-    /// <summary>A way on from a room gone into, as its card lists it: the room it leads to and what its chip says.</summary>
+    /// <summary>A way on from a room gone into, as its card lists it: the room it leads to, its name on the chip, and all it says of it, how far up or down and whether a dead end, in the chip's tip.</summary>
     internal struct WayOn
     {
         public PlacedRoom To;
+        public string Name;
         public string Words;
     }
 
@@ -140,7 +154,7 @@ namespace Scry
         {
             var from = ground(room);
             return ways.WaysOf(room)
-                .Select(to => (Steps: ways.StepsIn(to), Way: new WayOn { To = to, Words = RoomCardWords.Way(name(to), ground(to) - from, ways.IsDeadEnd(to)) }))
+                .Select(to => (Steps: ways.StepsIn(to), Way: new WayOn { To = to, Name = name(to), Words = RoomCardWords.Way(name(to), ground(to) - from, ways.IsDeadEnd(to)) }))
                 .OrderBy(w => w.Steps < 0 ? int.MaxValue : w.Steps).ThenBy(w => w.Way.Words, StringComparer.OrdinalIgnoreCase)
                 .Select(w => w.Way)
                 .ToList();

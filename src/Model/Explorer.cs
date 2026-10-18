@@ -291,9 +291,10 @@ namespace Scry
         /// <summary>
         /// The faint line at a section's end telling how many things its page left out, in the
         /// words of the rules leaving them out: what the character has not met, or under the
-        /// strict rules what it has not seen together (<see cref="CompendiumWords.LeftOutOf"/>).
+        /// strict rules what it has not seen together (<see cref="CompendiumWords.LeftOutOf"/>);
+        /// without "more" where the section lists nothing else (<paramref name="alone"/>).
         /// </summary>
-        public string LeftOutLine(string topic, int count) => LeavingOut ? CompendiumWords.LeftOutOf(topic, count) : CompendiumWords.NotYetMet(topic, count);
+        public string LeftOutLine(string topic, int count, bool alone = false) => LeavingOut ? CompendiumWords.LeftOutOf(topic, count, alone) : CompendiumWords.NotYetMet(topic, count, alone);
 
         /// <summary>
         /// Whether a creature's page shown keeps back how it takes a damage type: under the strict

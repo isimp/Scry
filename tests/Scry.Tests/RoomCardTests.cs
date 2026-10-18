@@ -19,6 +19,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AListWhoseEveryLineWasLeftOutSaysOnlyHowManyAreNotYetMet()
+        {
+            // Five creatures rolled, none met: the list says "5 not yet met", not also that the roll put none there.
+            Assert.Equal(new[] { "5 not yet met" }, RoomCardWords.ListLines(new string[0], CompendiumWords.NotYetMet(null, 5, alone: true)));
+            Assert.Equal(new[] { "5 not yet seen together" }, RoomCardWords.ListLines(new string[0], CompendiumWords.LeftOutOf(null, 5, alone: true)));
+            // Some listed, the rest counted as more.
+            Assert.Equal(new[] { "Draugr ×2", "3 more not yet met" }, RoomCardWords.ListLines(new[] { "Draugr ×2" }, CompendiumWords.NotYetMet(null, 3)));
+            // Nothing rolled at all.
+            Assert.Equal(new[] { RoomCardWords.None }, RoomCardWords.ListLines(new string[0], null));
+        }
+
+        [Fact]
         public void TheCardsPageIsALinkOnItsNamesLine()
         {
             Assert.Equal("Its page", RoomCardWords.PageLink);
@@ -109,6 +121,15 @@ namespace Scry.Tests
         {
             var lines = RoomCardWords.Odds(new[] { ("Chest", 0.6f), ("Chest", 0.3f), ("Chest", 0.6f) });
             Assert.Equal(new[] { ("Chest ×2", "60% each"), ("Chest", "30%") }, lines);
+        }
+
+        [Fact]
+        public void CopiesOfOneThingNumberedApartAreCountedAsOne()
+        {
+            // A room's copies keep the number Unity gives each, "Morkhalla Eye (4)"; the card counts them as one thing.
+            var lines = RoomCardWords.Odds(new[] { ("Morkhalla Eye (4)", 0.18f), ("Morkhalla Eye (1)", 0.18f), ("Morkhalla Eye Gemstone (6)", 0.5f) });
+            Assert.Equal(new[] { ("Morkhalla Eye Gemstone", "50%"), ("Morkhalla Eye ×2", "18% each") }, lines);
+            Assert.Equal(new[] { "Draugr ×2" }, RoomCardWords.Counted(new[] { "Draugr (1)", "Draugr" }));
         }
 
         [Fact]

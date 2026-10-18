@@ -322,6 +322,28 @@ namespace Scry.Tests
             Assert.Equal(name, LocationWords.RoomName(prefab));
         }
 
+        [Theory]
+        [InlineData("cave_new_sloperoom01", "Slope room 01")]
+        [InlineData("cave_new_iceendcap02", "Ice end cap 02")]
+        [InlineData("cave_new_deeproom_bottom", "Deep room bottom")]
+        [InlineData("cave_new_icecorridor03", "Ice corridor 03")]
+        [InlineData("cave_shrine_lootencap01", "Shrine loot end cap 01")]
+        [InlineData("dvergr_new_bossroom_bottom_endcap_stair01", "Boss room bottom end cap stair 01")]
+        [InlineData("cave_shrine_mushroom", "Shrine mushroom")]
+        public void AFrostCavesRoomDropsTheWordNewAndSplitsTheWordsItRunsTogether(string prefab, string name)
+        {
+            // The Frost Caves name every room "new_…" and run words together: "New sloperoom 01" reads "Slope room 01".
+            Assert.Equal(name, LocationWords.RoomName(prefab, room => false));
+        }
+
+        [Fact]
+        public void ARoomKeepsTheWordNewWhereARoomOfItsNameWithoutItIsThere()
+        {
+            // The Burial Chambers hold both BurialChamber01 and new_BurialChamber01: two names, not one twice.
+            Assert.Equal("New burial chamber 01", LocationWords.RoomName("forestcrypt_new_BurialChamber01", room => room == "forestcrypt_BurialChamber01"));
+            Assert.Equal("Burial chamber 01", LocationWords.RoomName("forestcrypt_BurialChamber01", room => room == "forestcrypt_new_BurialChamber01"));
+        }
+
         [Fact]
         public void LocationsAreGroupedByBiomeInTheOrderPlayersMeetThem()
         {
