@@ -108,7 +108,7 @@ namespace Scry
 
             if (ways != null) card.Ways = RoomCard.WaysOn(ways, room, Stage.ExampleRoomGround, RoomName);
             card.Levels = Stage.ExampleRoomLevels(room);
-            card.LevelWords = card.Levels.Select(l => RoomCardWords.Level(l, card.Ground)).ToList();
+            card.LevelWords = card.Levels.Select(l => RoomCardWords.Floor(l, card.Ground)).ToList();
             _roomCard = card;
             return card;
         }
@@ -352,7 +352,7 @@ namespace Scry
             // Its own levels, the one open lit; opening one cuts at head height over it.
             if (levels)
             {
-                Heading(RoomCardWords.Levels, Skin.Faint, null);
+                Heading(RoomCardWords.Floors, Skin.Faint, null);
                 var open = Stage.RoomLevelOpen;
                 var steps = new ChipFlow(x, x + textW, y, chipH, U(4f), U(4f));
                 for (var i = 0; i < card.Levels.Count; i++)
@@ -365,7 +365,7 @@ namespace Scry
                     var segment = new Rect(cx, cy, w, chipH);
                     CountDrawn(PanelPart.RoomCardLevel);
                     if (repaint) CardLines.Add(words);
-                    if (segment.Contains(e.mousePosition)) AskTip("card-level:" + words, RoomCardWords.LevelTip);
+                    if (segment.Contains(e.mousePosition)) AskTip("card-level:" + words, RoomCardWords.FloorTip);
                     if (GUI.Button(segment, words, Skin.Fitted(style, segment)) && !on) Stage.OpenRoomLevel(card.Levels[i]);
                 }
                 y += card.LevelsTall;

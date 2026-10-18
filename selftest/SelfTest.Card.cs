@@ -161,7 +161,7 @@ namespace Scry
                     var offered = ScryPanel.RoomCardLines.ToList();
                     var levels = Stage.ExampleRoomLevels(tiered);
                     var ground = Stage.ExampleRoomGround(tiered);
-                    var missing = levels.Select(l => RoomCardWords.Level(l, ground)).Where(words => !offered.Contains(words)).ToList();
+                    var missing = levels.Select(l => RoomCardWords.Floor(l, ground)).Where(words => !offered.Contains(words)).ToList();
                     if (ScryPanel.Drawn(PanelPart.RoomCardLevel) <= levelChips || missing.Count > 0)
                         noLevels.Add($"{entry.Name}'s {tiered.Room.Name}: " + (missing.Count > 0 ? "no " + string.Join(", ", missing) : "no level chips drawn"));
                     else yield return Picture(p, $"room card {entry.Name} room with levels");

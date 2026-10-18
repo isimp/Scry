@@ -37,17 +37,22 @@ namespace Scry
         /// <summary>The tip of the switch for the rooms' names on the grown plan, in every view.</summary>
         public static string NamesTip(bool shown) => shown
             ? "The grown plan names its rooms; click to leave them off"
-            : "The plan names no room; click to name them on the grown plan";
+            : "The plan names no room; click to name them";
 
         /// <summary>The tip of the switch for the rooms below the room gone into or the floor opened, in the plan from above.</summary>
         public static string BelowTip(bool shown) => shown
             ? "The plan from above shows the rooms below this level too; click to leave them out of it"
             : "The plan from above leaves out the rooms below this level, its ways down marked; click to show them";
 
-        public static string GrowTip(bool big) => big ? "Shrinks the plan back" : "Grows the plan and names its rooms";
+        /// <summary>The tip of the button that grows the plan, or shrinks it back; growing names no room by itself, the names switch on the grown plan does.</summary>
+        public static string GrowTip(bool big) => big ? "Shrinks the plan back" : "Grows the plan";
 
         /// <summary>The tip of the button that puts the plan away.</summary>
         public const string FoldTip = "Puts the plan away";
+
+        /// <summary>The tab the plan is folded to, and its tip, for an example and the world's own dungeon alike.</summary>
+        public const string Tab = "Plan";
+        public const string TabTip = "Brings the plan back";
 
         /// <summary>The tip of the box folded as the stage is too short for it under the room's card.</summary>
         public const string TooShortTip = "The stage is too short for the plan under the room's card: drag the stage taller, or come back out of the room";
@@ -63,8 +68,8 @@ namespace Scry
         /// <summary>The tip of the breadcrumb's dungeon: how many rooms, and what a click does.</summary>
         public static string TrailDungeonTip(int rooms) => "The whole dungeon, " + Naming.Count(rooms, "room", "rooms") + ": click to see it all, the roof on";
 
-        /// <summary>The tip of the breadcrumb's level: in a room, what a click does.</summary>
-        public static string TrailLevelTip(bool inRoom) => inRoom ? "Click to come back out of the room to this level, as Esc does" : "The level open";
+        /// <summary>The tip of the breadcrumb's level: in a room, coming back out to it; on it, framing it again.</summary>
+        public static string TrailLevelTip(bool inRoom) => inRoom ? "Click to come back out of the room to this level, as Esc does" : "Click to frame the level again";
 
         public const string TrailRoomTip = "Click to frame the room again";
 

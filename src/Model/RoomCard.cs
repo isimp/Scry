@@ -16,7 +16,7 @@ namespace Scry
         public const string Creatures = "Creatures in this roll";
         public const string Loot = "Chests and pickups";
         public const string Ways = "Ways on";
-        public const string Levels = "Levels in this room";
+        public const string Floors = "Floors in this room";
         /// <summary>The link on the card's name's line going to the room's page.</summary>
         public const string PageLink = "Its page";
 
@@ -31,7 +31,7 @@ namespace Scry
 
         public const string CreaturesTip = "The creatures this copy's spawn points put in the room; another copy rolls them anew";
         public const string LootTip = "The chests and pickups this copy's rolls put in the room, each with how likely a room of its kind holds it";
-        public const string LevelTip = "Click to cut at head height over this level";
+        public const string FloorTip = "Click to cut at head height over this floor";
         public const string OpenPageTip = "The page of this kind of room";
 
         /// <summary>The tip of a creature's or a chest's line on the card, which goes to its page.</summary>
@@ -98,10 +98,10 @@ namespace Scry
             return words;
         }
 
-        /// <summary>A level of a room: its ground, or how far up or down from it.</summary>
-        public static string Level(float level, float ground)
+        /// <summary>A floor of a room (a level is the dungeon's): its ground, or how far up or down from it.</summary>
+        public static string Floor(float floor, float ground)
         {
-            var metres = WholeMetres(level - ground);
+            var metres = WholeMetres(floor - ground);
             return metres == 0 ? "Ground" : $"{Numbers.Count(Math.Abs(metres))} m {(metres > 0 ? "up" : "down")}";
         }
 

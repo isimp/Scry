@@ -67,7 +67,9 @@ namespace Scry.Tests
         [Fact]
         public void TheRoomGoneIntoPeeksWithHowToComeBackOut()
         {
-            Assert.EndsWith("\nEsc or the breadcrumb's level comes back out", StageWords.RoomPeek("Burial chamber", "Entrance", creatures: 0, chests: 0, goneInto: true));
+            // As the key sheet says: Esc, the breadcrumb's level or the mouse's back button.
+            Assert.EndsWith("\nEsc, the breadcrumb's level or the mouse's back button comes back out", StageWords.RoomPeek("Burial chamber", "Entrance", creatures: 0, chests: 0, goneInto: true));
+            Assert.Contains("Esc, the breadcrumb's level or the mouse's back button", StageWords.KeySheet(cut: true, inRoom: true));
         }
 
         [Fact]
@@ -129,10 +131,11 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheRoomsRulerSaysItStaysInTheRoom()
+        public void TheRoomsRulerSaysItsMarksStepAndPastItsEndsTheNextLevel()
         {
             Assert.Equal("Roof on", StageWords.RoomRoofOn);
-            Assert.Contains("stays in the room", StageWords.RoomRulerTip(aboveTop: false));
+            Assert.Contains("past its ends, the next level", StageWords.RoomRulerTip(aboveTop: false));
+            Assert.DoesNotContain("stays in the room", StageWords.RoomRulerTip(aboveTop: false));
             Assert.Equal("Click to put the room's roof on", StageWords.RoomRulerTip(aboveTop: true));
         }
     }

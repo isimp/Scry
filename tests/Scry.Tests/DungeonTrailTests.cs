@@ -51,7 +51,7 @@ namespace Scry.Tests
             Assert.Equal("The whole dungeon, 31 rooms: click to see it all, the roof on", PlanBoxWords.TrailDungeonTip(31));
             Assert.Equal("The whole dungeon, 1 room: click to see it all, the roof on", PlanBoxWords.TrailDungeonTip(1));
             Assert.Equal("Click to come back out of the room to this level, as Esc does", PlanBoxWords.TrailLevelTip(inRoom: true));
-            Assert.Equal("The level open", PlanBoxWords.TrailLevelTip(inRoom: false));
+            Assert.Equal("Click to frame the level again", PlanBoxWords.TrailLevelTip(inRoom: false));
             Assert.Equal("Click to frame the room again", PlanBoxWords.TrailRoomTip);
             Assert.Equal("Goes into the entrance or the deepest room", PlanBoxWords.TrailMenuTip(switches: false));
             Assert.Equal("Goes into the entrance or the deepest room, or switches between this dungeon and an example", PlanBoxWords.TrailMenuTip(switches: true));

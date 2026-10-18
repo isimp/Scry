@@ -148,11 +148,19 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ARoomsLevelsAreItsGroundAndHowFarEachOtherIsFromIt()
+        public void ARoomsFloorsAreItsGroundAndHowFarEachOtherIsFromIt()
         {
-            Assert.Equal("Ground", RoomCardWords.Level(2f, 2f));
-            Assert.Equal("10 m up", RoomCardWords.Level(12.3f, 2f));
-            Assert.Equal("3 m down", RoomCardWords.Level(-1f, 2f));
+            Assert.Equal("Ground", RoomCardWords.Floor(2f, 2f));
+            Assert.Equal("10 m up", RoomCardWords.Floor(12.3f, 2f));
+            Assert.Equal("3 m down", RoomCardWords.Floor(-1f, 2f));
+        }
+
+        [Fact]
+        public void ARoomsOwnStoreysAreItsFloorsTheDungeonsAreLevels()
+        {
+            // "Level" names the dungeon's levels (the plan, the breadcrumb, the ruler); a room's own storeys are floors.
+            Assert.Equal("Floors in this room", RoomCardWords.Floors);
+            Assert.Equal("Click to cut at head height over this floor", RoomCardWords.FloorTip);
         }
 
         [Fact]

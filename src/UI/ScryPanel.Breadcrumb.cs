@@ -40,7 +40,7 @@ namespace Scry
             var mark = gone != null ? Stage.ExampleMarkOfRoom(gone) : Stage.Cutting ? Stage.CutLevel : -1;
             var level = mark >= 0 ? Stage.ExampleMark(mark) : null;
             var yours = YourRoom();
-            var trail = DungeonTrail.Of(ShownName(explorer, entry.Key, entry.DisplayName), level, gone != null ? BoxRoomName(explorer, gone) : null,
+            var trail = DungeonTrail.Of(entry.ShownName, level, gone != null ? BoxRoomName(explorer, gone) : null,
                 roomIsYours: gone != null && ExampleLayouts.IsYours(gone), you: gone == null && yours != null ? BoxRoomName(explorer, yours) : null);
             if (e.type == EventType.Repaint)
             {
@@ -92,7 +92,7 @@ namespace Scry
             : part == TrailPart.You ? PlanBoxWords.TrailYouTip
             : PlanBoxWords.TrailRoomTip;
 
-        /// <summary>What a click on a part of the breadcrumb does: the whole dungeon with the roof on, back out of the room to its level, the room framed again, or into the room the player stands in.</summary>
+        /// <summary>What a click on a part of the breadcrumb does: the whole dungeon with the roof on, back out of the room to its level or the level framed again, the room framed again, or into the room the player stands in.</summary>
         private static void Follow(TrailPart part, PlacedRoom gone, PlacedRoom yours)
         {
             switch (part)
@@ -102,6 +102,7 @@ namespace Scry
                     break;
                 case TrailPart.Level:
                     if (gone != null) Stage.ComeOut();
+                    else Stage.View("Fit");
                     break;
                 case TrailPart.You:
                     if (yours != null) Stage.GoInto(yours);

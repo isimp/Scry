@@ -102,7 +102,7 @@ namespace Scry
                         p.Note($"{name}: {Numbers.Count(found)} of {Numbers.Count(spots.Count)} rooms found at their spots, {Numbers.Count(covered)} under a room drawn over them" + (view == PlanView.Levels ? $", on {Numbers.Count(ScryPanel.PlanBoxLevelsShown)} levels" : ""));
 
                         if (big != Stage.ViewShift > 0f) unframed.Add($"{name}: the stage framed {Numbers.Fixed(Stage.ViewShift, 2)} of its width aside");
-                        unlaid.AddRange(PlanBoxLaidOut(name, view));
+                        unlaid.AddRange(PlanBoxLaidOut(name, view, big));
                         yield return Picture(p, $"plan {name}");
                     }
                 }
@@ -318,7 +318,19 @@ namespace Scry
                 var drawnWhole = ScryPanel.Drawn(PanelPart.PlanBox);
                 yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnWhole + 1 && TrailNamesRoom(ways.Entrance), 3);
                 if (!TrailNamesRoom(ways.Entrance)) noWayBack.Add($"{entry.Name}: {ways.Entrance.Room.Name}, the breadcrumb {string.Join(" › ", ScryPanel.TrailForTest.Select(t => t.Text))}");
+                var trailNamed = ScryPanel.TrailForTest.Count > 0 ? ScryPanel.TrailForTest[0].Text : "nothing";
+                if (trailNamed != entry.ShownName) untrailed.Add($"{entry.Name}: the breadcrumb names it {trailNamed}, its page {entry.ShownName}");
                 ScryPanel.ClickTrailForTest(TrailPart.Level);
+
+                // Out on the level, its chip frames the level again, the view moved off it first.
+                if (Stage.Cutting && Stage.RoomGoneInto == null)
+                {
+                    var levelOpen = Stage.CutLevel;
+                    Stage.ZoomBy(-3f, new Vector2(0.3f, 0.6f));
+                    ScryPanel.ClickTrailForTest(TrailPart.Level);
+                    if (Mathf.Abs(Stage.Zoom - 1f) > 0.001f || Stage.PanOffset.sqrMagnitude > 1e-6f || Stage.CutLevel != levelOpen || Stage.RoomGoneInto != null)
+                        untrailed.Add($"{entry.Name}: the level's chip left the view at zoom {Numbers.Fixed(Stage.Zoom, 2)}, {Stage.CutLabel}");
+                }
 
                 // The breadcrumb's menu goes into the deepest room; its dungeon shows the whole of it, the roof on.
                 ScryPanel.ChooseTrailMenuForTest(1);
@@ -452,7 +464,7 @@ namespace Scry
             p.Check(unwayed.Count == 0, "every view of the plan box draws every way between its rooms", string.Join("; ", unwayed.Take(6)));
             p.Check(unfound.Count == 0, "every room is found under the mouse at its spot, in the levels and the tree whole, from above unless a room drawn over it stands there", string.Join("; ", unfound.Take(6)));
             p.Check(unframed.Count == 0, "grown, the stage is framed beside the plan box; compact, in its middle", string.Join("; ", unframed.Take(6)));
-            p.Check(unlaid.Count == 0, "the plan box's views stand left, grow and fold beside them in its top right corner, a line under them, its own switches joined over the plan's top right corner under it, none over another", string.Join("; ", unlaid.Take(6)));
+            p.Check(unlaid.Count == 0, "the plan box's views stand left, grow and fold beside them in its top right corner, a line under them, its own switches over the plan's top right corner under it, the names only grown, joined where both stand, none over another", string.Join("; ", unlaid.Take(6)));
             p.Check(unlevelled.Count == 0, "the Levels view shows as many levels as the rooms' grounds lay out", string.Join("; ", unlevelled));
             p.Check(unlitBox.Count == 0, "a room under the mouse in the plan box is framed there alone and named, the way drawn to it, and outlined on the stage", string.Join("; ", unlitBox.Take(6)));
             p.Check(unlitStage.Count == 0, "a room under the mouse on the stage is framed in the plan box alone and named in every view, the way drawn to it, and outlined on the stage", string.Join("; ", unlitStage.Take(6)));
@@ -461,7 +473,7 @@ namespace Scry
             p.Check(foundBelow > 0 && unchosen.Count == 0, "with a floor opened, a room dimmed below it is found under the mouse on the stage and outlined", foundBelow == 0 ? "no room dimmed below a floor was found in any dungeon" : string.Join("; ", unchosen));
             p.Check(switchTried > 0 && unswitched.Count == 0, "the box's switch leaves the rooms below the room gone into out of the plan from above, its ways down marked, each mark finding the room it leads to, and back, the stage showing them as before; remembered with the panel", switchTried == 0 ? "no entrance had rooms below it to try the switch on" : string.Join("; ", unswitched));
             p.Check(noWayBack.Count == 0, "in a room, the stage's breadcrumb ends at the room, after its dungeon and level", string.Join("; ", noWayBack));
-            p.Check(untrailed.Count == 0, "the breadcrumb's menu goes into the deepest room, and its dungeon shows the whole of it with the roof on", string.Join("; ", untrailed));
+            p.Check(untrailed.Count == 0, "the breadcrumb names the dungeon as its page does, its level frames the level again, its menu goes into the deepest room, and its dungeon shows the whole of it with the roof on", string.Join("; ", untrailed));
             p.Check(roomRulerTried > 0 && unruled.Count == 0, "in a room the ruler is its own: Shift and the wheel keep the cut within it, past its top its roof on and the rooms above back, down from there cut again, the roof button too, never leaving the room; cut from the side, none", roomRulerTried == 0 ? "no deepest room was cut from above" : string.Join("; ", unruled.Take(6)));
             p.Check(unfresh.Count == 0, "going into a room frames it afresh, a zoom or drag on what was framed before let go of", string.Join("; ", unfresh));
             p.Check(unreturned.Count == 0, "coming back out opens the level the room is on, the view on it at the zoom from before it was gone into, the room outlined", string.Join("; ", unreturned));

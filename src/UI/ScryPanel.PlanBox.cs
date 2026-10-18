@@ -133,20 +133,20 @@ namespace Scry
         {
             var e = Event.current;
             Stage.ViewShift = 0f;
-            var tabW = Skin.Width(Skin.Chip, "Plan") + U(4f);
+            var tabW = Skin.Width(Skin.Chip, PlanBoxWords.Tab) + U(4f);
             var tab = new Rect(inner.x + U(8f), inner.yMax - U(CornerFit.Bottom) - U(22f), tabW, U(22f));
             CountDrawn(PanelPart.PlanTab);
             if (byPlayer)
             {
-                if (tab.Contains(e.mousePosition)) AskTip("plan:tab", "Shows the example's plan");
-                if (GUI.Button(tab, "Plan", Skin.Fitted(Skin.Chip, tab))) PlanFolded = false;
+                if (tab.Contains(e.mousePosition)) AskTip("plan:tab", PlanBoxWords.TabTip);
+                if (GUI.Button(tab, PlanBoxWords.Tab, Skin.Fitted(Skin.Chip, tab))) PlanFolded = false;
             }
             else
             {
                 if (tab.Contains(e.mousePosition)) AskTip("plan:short", PlanBoxWords.TooShortTip);
                 var enabled = GUI.enabled;
                 GUI.enabled = false;
-                GUI.Button(tab, "Plan", Skin.Fitted(Skin.Chip, tab));
+                GUI.Button(tab, PlanBoxWords.Tab, Skin.Fitted(Skin.Chip, tab));
                 GUI.enabled = enabled;
             }
             return tab;
@@ -435,7 +435,7 @@ namespace Scry
 
             // The room under the mouse: lit here and on the stage, picked on a click, gone into on a double-click.
             var mouse = BoxMouse(e);
-            var hovered = area.Contains(mouse) && !corner.Contains(e.mousePosition) && (_drag == Drag.None || _drag == Drag.Orbit) ? BoxRoomAt(mouse) : null;
+            var hovered = area.Contains(mouse) && !corner.Contains(mouse) && (_drag == Drag.None || _drag == Drag.Orbit) ? BoxRoomAt(mouse) : null;
             if (hovered != null)
             {
                 _boxHover = hovered;
@@ -454,34 +454,41 @@ namespace Scry
         }
 
         /// <summary>
-        /// The plan's own switches, joined over its top right corner (<see cref="PlanBoxHeader.Corner"/>):
+        /// The plan's own switches over its top right corner (<see cref="PlanBoxHeader.Corner"/>):
         /// the rooms below the room gone into or the floor opened, from above only, and the rooms'
-        /// names, in every view. Drawn over the plan and taking the mouse before it; where they stand.
+        /// names, on the grown plan only as only it names rooms; joined where both stand. Drawn over
+        /// the plan and taking the mouse before it; where they stand, none where neither does.
         /// </summary>
         private static Rect PlanSwitches(Rect area, float size)
         {
             var e = Event.current;
             var repaint = e.type == EventType.Repaint;
             var belowOn = _planView == PlanView.Above;
-            var (namesX, belowX, left) = PlanBoxHeader.Corner(area.width, size, belowOn);
+            var namesOn = _planBig;
+            var (namesX, belowX, left) = PlanBoxHeader.Corner(area.width, size, belowOn, namesOn);
             // Both shown, they are one piece, rounded at its ends only, a point's seam between them.
+            var joined = belowOn && namesOn;
             if (belowOn)
             {
-                var below = new Rect(area.x + belowX, area.y, size - U(1f), size);
+                var below = new Rect(area.x + belowX, area.y, joined ? size - U(1f) : size, size);
                 var belowShown = PlanBelowShown;
                 if (repaint) PlanBoxPartsForTest.Add(("below", below));
                 if (below.Contains(e.mousePosition)) AskTip("plan:below", PlanBoxWords.BelowTip(belowShown));
-                if (GUI.Button(below, GUIContent.none, belowShown ? Skin.JoinedLeftOn : Skin.JoinedLeft)) ShowBelow(!belowShown);
+                var belowStyle = joined ? (belowShown ? Skin.JoinedLeftOn : Skin.JoinedLeft) : belowShown ? Skin.On : Skin.IconButton;
+                if (GUI.Button(below, GUIContent.none, belowStyle)) ShowBelow(!belowShown);
                 if (repaint) Skin.Icon(new Rect(below.x + U(4f), below.y + U(4f), size - U(8f), below.height - U(8f)), Skin.Down, belowShown ? Skin.Accent : Skin.Dim);
             }
-            var names = new Rect(area.x + namesX, area.y, size, size);
-            var namesShown = PlanNamesShown;
-            if (repaint) PlanBoxPartsForTest.Add(("names", names));
-            if (names.Contains(e.mousePosition)) AskTip("plan:names", PlanBoxWords.NamesTip(namesShown));
-            // Its mark drawn over the button as the rooms below's icon is, in the accent while on.
-            var namesStyle = belowOn ? (namesShown ? Skin.JoinedRightOn : Skin.JoinedRight) : namesShown ? Skin.On : Skin.IconButton;
-            if (GUI.Button(names, GUIContent.none, namesStyle)) ShowNames(!namesShown);
-            if (repaint) Skin.LabelIn(names, PlanBoxWords.NamesMark, Skin.Glyph, namesShown ? Skin.Accent : Skin.Dim);
+            if (namesOn)
+            {
+                var names = new Rect(area.x + namesX, area.y, size, size);
+                var namesShown = PlanNamesShown;
+                if (repaint) PlanBoxPartsForTest.Add(("names", names));
+                if (names.Contains(e.mousePosition)) AskTip("plan:names", PlanBoxWords.NamesTip(namesShown));
+                // Its mark drawn over the button as the rooms below's icon is, in the accent while on.
+                var namesStyle = joined ? (namesShown ? Skin.JoinedRightOn : Skin.JoinedRight) : namesShown ? Skin.On : Skin.IconButton;
+                if (GUI.Button(names, GUIContent.none, namesStyle)) ShowNames(!namesShown);
+                if (repaint) Skin.LabelIn(names, PlanBoxWords.NamesMark, Skin.Glyph, namesShown ? Skin.Accent : Skin.Dim);
+            }
             return new Rect(area.x + left, area.y, area.width - left, size);
         }
 

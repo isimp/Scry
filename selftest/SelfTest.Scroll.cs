@@ -11,16 +11,17 @@ namespace Scry
         /// <summary>
         /// What is wrong with where the plan box's controls were last drawn: grow and fold not in the
         /// box's top right corner on the views' row, no line under the header across the box over the
-        /// plan, the plan's own switches not joined over its top right corner under that line (the
-        /// rooms below only from above), or two controls over each other.
+        /// plan, the plan's own switches not in its top right corner under that line (the rooms below
+        /// from above only, the names grown only, joined where both stand), or two controls over each
+        /// other.
         /// </summary>
-        private static List<string> PlanBoxLaidOut(string name, PlanView view)
+        private static List<string> PlanBoxLaidOut(string name, PlanView view, bool big)
         {
             var wrong = new List<string>();
             var parts = ScryPanel.PlanBoxPartsForTest.ToList();
             var box = ScryPanel.PlanBoxRect;
             Rect? Of(string part) => parts.Any(q => q.Part == part) ? parts.First(q => q.Part == part).At : (Rect?)null;
-            if (!(Of("fold") is Rect fold) || !(Of("grow") is Rect grow) || !(Of("names") is Rect names) || !(Of("plan") is Rect plan))
+            if (!(Of("fold") is Rect fold) || !(Of("grow") is Rect grow) || !(Of("plan") is Rect plan))
             {
                 wrong.Add($"{name}: {string.Join(", ", parts.Select(q => q.Part))} drawn");
                 return wrong;
@@ -29,14 +30,20 @@ namespace Scry
             if (grow.xMax > fold.x || fold.x - grow.xMax > grow.width || Mathf.Abs(grow.y - fold.y) > 0.5f) wrong.Add($"{name}: grow at {Said(grow)} beside fold at {Said(fold)}");
             var views = parts.Where(q => q.Part == "view").Select(q => q.At).ToList();
             if (views.Count > 0 && (Mathf.Abs(grow.y - views[0].y) > 0.5f || views.Max(v => v.xMax) > grow.x)) wrong.Add($"{name}: grow at {Said(grow)} not beside the views, the last at {Said(views[views.Count - 1])}");
+
+            // The plan's own switches: the rooms below from above only, the names grown only, the outer one in the plan's corner.
+            var names = Of("names");
+            var below = Of("below");
+            if (big != names.HasValue) wrong.Add($"{name}: the names' switch {(names.HasValue ? "shown" : "missing")}");
+            if ((view == PlanView.Above) != below.HasValue) wrong.Add($"{name}: the rooms below's switch {(below.HasValue ? "shown" : "missing")}");
+            var outer = names ?? below;
+            if (outer is Rect corner && (Mathf.Abs(corner.xMax - plan.xMax) > 1f || Mathf.Abs(corner.y - plan.y) > 1f)) wrong.Add($"{name}: the corner's switch at {Said(corner)} in the plan {Said(plan)}");
+            if (names is Rect n && below is Rect b && (Mathf.Abs(b.xMax - n.x) > 1f || Mathf.Abs(b.y - n.y) > 0.5f)) wrong.Add($"{name}: the rooms below's switch at {Said(b)} not joined to the names' at {Said(n)}");
+
             var header = parts.Where(q => q.Part == "view" || q.Part == "grow" || q.Part == "fold").Max(q => q.At.yMax);
             if (!(Of("line") is Rect line)) wrong.Add($"{name}: no line under the header");
-            else if (line.xMin > plan.xMin + 1f || line.xMax < plan.xMax - 1f || line.yMin < header - 0.5f || line.yMax > plan.y + 0.5f || line.yMax > names.y + 0.5f)
-                wrong.Add($"{name}: the line at {Said(line)}, the header to {Numbers.Fixed(header, 0)}, the plan at {Said(plan)}, the names' switch at {Said(names)}");
-            if (Mathf.Abs(names.xMax - plan.xMax) > 1f || Mathf.Abs(names.y - plan.y) > 1f) wrong.Add($"{name}: the names' switch at {Said(names)} in the plan {Said(plan)}");
-            var below = Of("below");
-            if ((view == PlanView.Above) != below.HasValue) wrong.Add($"{name}: the rooms below's switch {(below.HasValue ? "shown" : "missing")}");
-            else if (below is Rect b && (Mathf.Abs(b.xMax - names.x) > 1f || Mathf.Abs(b.y - names.y) > 0.5f)) wrong.Add($"{name}: the rooms below's switch at {Said(b)} not joined to the names' at {Said(names)}");
+            else if (line.xMin > plan.xMin + 1f || line.xMax < plan.xMax - 1f || line.yMin < header - 0.5f || line.yMax > plan.y + 0.5f || (outer is Rect under && line.yMax > under.y + 0.5f))
+                wrong.Add($"{name}: the line at {Said(line)}, the header to {Numbers.Fixed(header, 0)}, the plan at {Said(plan)}");
             var controls = parts.Where(q => q.Part != "plan" && q.Part != "line").ToList();
             for (var i = 0; i < controls.Count; i++)
             {

@@ -50,7 +50,7 @@ namespace Scry.Tests
         [Fact]
         public void ThePlansSwitchesStandJoinedInItsTopRightCornerTheNamesOutermost()
         {
-            var corner = PlanBoxHeader.Corner(planWidth: 220f, button: 22f, below: true);
+            var corner = PlanBoxHeader.Corner(planWidth: 220f, button: 22f, below: true, names: true);
             Assert.Equal(220f - 22f, corner.NamesX);
             Assert.Equal(220f - 22f - 22f, corner.BelowX);
             Assert.Equal(220f - 22f - 22f, corner.Left);
@@ -59,10 +59,23 @@ namespace Scry.Tests
         [Fact]
         public void WithoutTheSwitchForTheRoomsBelowTheNamesStandAlone()
         {
-            var corner = PlanBoxHeader.Corner(planWidth: 220f, button: 22f, below: false);
+            var corner = PlanBoxHeader.Corner(planWidth: 220f, button: 22f, below: false, names: true);
             Assert.Equal(220f - 22f, corner.NamesX);
             Assert.True(float.IsNaN(corner.BelowX));
             Assert.Equal(220f - 22f, corner.Left);
+        }
+
+        [Fact]
+        public void InTheCompactBoxTheNamesSwitchIsLeftOutTheRoomsBelowStandingAloneInTheCorner()
+        {
+            var corner = PlanBoxHeader.Corner(planWidth: 220f, button: 22f, below: true, names: false);
+            Assert.True(float.IsNaN(corner.NamesX));
+            Assert.Equal(220f - 22f, corner.BelowX);
+            Assert.Equal(220f - 22f, corner.Left);
+            // Neither shown: nothing stands in the corner.
+            var none = PlanBoxHeader.Corner(220f, 22f, below: false, names: false);
+            Assert.True(float.IsNaN(none.NamesX) && float.IsNaN(none.BelowX));
+            Assert.Equal(220f, none.Left);
         }
     }
 }

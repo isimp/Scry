@@ -111,7 +111,7 @@ namespace Scry
             {
                 if (Mathf.Abs(Y(floors[i]) - e.mousePosition.y) <= U(6f)) near = i;
             }
-            AskTip("ruler", near >= 0 ? StageWords.FloorTip(Stage.ExampleMark(near) ?? PlaceView.CutLabel(near, floors.Count)) : StageWords.RulerTip(e.mousePosition.y < roofY));
+            AskTip("ruler", near >= 0 ? StageWords.FloorTip(Stage.ExampleMark(near) ?? PlaceView.CutLabel(near, floors.Count)) : StageWords.RulerTip(e.mousePosition.y < roofY, Stage.ExampleMark(0) != null));
             if (e.type == EventType.MouseDown && e.button == 0)
             {
                 if (near >= 0) Stage.OpenLevel(near);
@@ -196,7 +196,7 @@ namespace Scry
         private static string MarkWords(RoomRuler ruler, int index)
         {
             var tick = ruler.Ticks[index];
-            return tick.Own ? RoomCardWords.Level(tick.Height, ruler.Ground) : StageWords.RoomsAboveMark(tick.Rooms, tick.Height - ruler.Ground);
+            return tick.Own ? RoomCardWords.Floor(tick.Height, ruler.Ground) : StageWords.RoomsAboveMark(tick.Rooms, tick.Height - ruler.Ground);
         }
 
         /// <summary>A name beside the ruler's bar, on a ground of the stage's colour.</summary>

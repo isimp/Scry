@@ -43,7 +43,7 @@ namespace Scry
         /// </summary>
         public static string RoomPeek(string name, string where, int creatures, int chests, bool goneInto) =>
             name + "\n" + where + "\nCreatures " + Numbers.Count(creatures) + "  ·  Chests and pickups " + Numbers.Count(chests)
-            + (goneInto ? "\nEsc or the breadcrumb's level comes back out" : "\nClick to pick it, double-click to go in");
+            + (goneInto ? "\nEsc, the breadcrumb's level or the mouse's back button comes back out" : "\nClick to pick it, double-click to go in");
 
         /// <summary>The link on the card of a room picked, not gone into, and its tip.</summary>
         public const string GoInLink = "Go in";
@@ -81,10 +81,10 @@ namespace Scry
         /// <summary>The floor ruler's tip over a floor's mark.</summary>
         public static string FloorTip(string floor) => floor + ": click to open it";
 
-        /// <summary>The floor ruler's tip elsewhere: above the roof's mark, or between floors.</summary>
-        public static string RulerTip(bool aboveRoof) => aboveRoof
+        /// <summary>The floor ruler's tip elsewhere: above the roof's mark, or between its marks, a dungeon's named levels, a place's floors.</summary>
+        public static string RulerTip(bool aboveRoof, bool levels) => aboveRoof
             ? "Click to put the roof on"
-            : "Click or drag to cut here; the wheel or Page Up and Down step a floor";
+            : "Click or drag to cut here; the wheel or Page Up and Down step a " + (levels ? "level" : "floor");
 
         /// <summary>A mark of the ruler opening the whole dungeon by the plan's levels: the level by its depth, however many cuts it is filmed in.</summary>
         public static string LevelMark(string depth) => $"Level {depth}";
@@ -102,7 +102,7 @@ namespace Scry
         /// <summary>The ruler's tip in a room gone into: above its top, or along it.</summary>
         public static string RoomRulerTip(bool aboveTop) => aboveTop
             ? "Click to put the room's roof on"
-            : "Click or drag to cut the room here; the wheel or Page Up and Down step a mark; the view stays in the room";
+            : "Click or drag to cut the room here; the wheel or Page Up and Down step a mark, past its ends, the next level";
 
         /// <summary>The spin's tip.</summary>
         public static string SpinTip(bool spinning) => spinning ? "Turning; click to hold it still" : "Held still; click to turn it";

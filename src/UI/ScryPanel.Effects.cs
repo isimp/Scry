@@ -308,23 +308,14 @@ namespace Scry
             return more.Below + U(14f);
         }
 
-        private static readonly Dictionary<string, string> ShownNames = new Dictionary<string, string>();
-        private static Explorer _shownFor;
-
-        /// <summary>A prefab's name as the game shows it, or the name given when it has none.</summary>
+        /// <summary>
+        /// A prefab's name as the game shows it, or the name given when it has none; read from its
+        /// entry each time, as a location is given its game name only once the places are read.
+        /// </summary>
         private static string ShownName(Explorer explorer, string key, string fallback)
         {
-            if (key == null) return fallback;
-            if (_shownFor != explorer)
-            {
-                _shownFor = explorer;
-                ShownNames.Clear();
-                foreach (var e in explorer.Catalog)
-                {
-                    if (!string.IsNullOrEmpty(e.DisplayName) && !ShownNames.ContainsKey(e.Key)) ShownNames[e.Key] = e.DisplayName;
-                }
-            }
-            return ShownNames.TryGetValue(key, out var shown) ? shown : fallback;
+            var shown = key != null ? explorer.Find(key)?.DisplayName : null;
+            return string.IsNullOrEmpty(shown) ? fallback : shown;
         }
 
         /// <summary>Lets go of the effect lists made of the world left, and of what they were last drawn for.</summary>
@@ -334,10 +325,8 @@ namespace Scry
             _effectsEntry = null;
             _effectsCarried = null;
             _effects = null;
-            ShownNames.Clear();
             _playsInRows = new List<PlaysInRow>();
             _playsInFor = null;
-            _shownFor = null;
             MemberKeys.Clear();
             _firstEffect = default;
         }

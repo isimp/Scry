@@ -5,8 +5,9 @@ namespace Scry
     /// box's top right corner, grow and fold beside them, the views at their width where that
     /// leaves room, else drawn tighter; only where even that leaves none do grow and fold take a
     /// row of their own under the views, still in the corner. The plan's own switches, the rooms
-    /// below (from above only) and the names, stand joined in the plan's top right corner, the
-    /// names outermost. Places are from the left edge of the box's inside, or of the plan's.
+    /// below (from above only) and the names (on the grown plan only, as only it names rooms),
+    /// stand joined in the plan's top right corner, the names outermost. Places are from the left
+    /// edge of the box's inside, or of the plan's.
     /// </summary>
     internal static class PlanBoxHeader
     {
@@ -33,12 +34,16 @@ namespace Scry
             return new Laid { Rows = oneRow ? 1 : 2, Tight = oneRow && !wide, ControlsRow = oneRow ? 0 : 1, FoldX = fold, GrowX = fold - gap - button };
         }
 
-        /// <summary>The plan's own switches in its top right corner, joined: the names outermost, the rooms below (none where it is not shown, NaN) inside it, and the group's left edge.</summary>
-        public static (float NamesX, float BelowX, float Left) Corner(float planWidth, float button, bool below)
+        /// <summary>
+        /// The plan's own switches in its top right corner, joined where both stand: the names
+        /// outermost (on the grown plan only), the rooms below (from above only) inside it, or alone
+        /// in the corner; NaN for one not shown, and the group's left edge, the plan's width with none.
+        /// </summary>
+        public static (float NamesX, float BelowX, float Left) Corner(float planWidth, float button, bool below, bool names)
         {
-            var names = planWidth - button;
-            var belowX = below ? names - button : float.NaN;
-            return (names, belowX, below ? belowX : names);
+            var namesX = names ? planWidth - button : float.NaN;
+            var belowX = below ? (names ? namesX : planWidth) - button : float.NaN;
+            return (namesX, belowX, below ? belowX : names ? namesX : planWidth);
         }
     }
 }

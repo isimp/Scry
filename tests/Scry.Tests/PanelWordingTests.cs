@@ -264,8 +264,11 @@ namespace Scry.Tests
             Assert.StartsWith("Puts away the creatures", StageWords.CreaturesTip(shown: true));
             Assert.StartsWith("Shows the creatures", StageWords.CreaturesTip(shown: false));
             Assert.Equal("Floor 2: click to open it", StageWords.FloorTip("Floor 2"));
-            Assert.Equal("Click to put the roof on", StageWords.RulerTip(aboveRoof: true));
-            Assert.StartsWith("Click or drag to cut here", StageWords.RulerTip(aboveRoof: false));
+            Assert.Equal("Click to put the roof on", StageWords.RulerTip(aboveRoof: true, levels: false));
+            Assert.StartsWith("Click or drag to cut here", StageWords.RulerTip(aboveRoof: false, levels: false));
+            // A dungeon's ruler steps the levels its marks name; a place's, its floors.
+            Assert.EndsWith("step a level", StageWords.RulerTip(aboveRoof: false, levels: true));
+            Assert.EndsWith("step a floor", StageWords.RulerTip(aboveRoof: false, levels: false));
         }
 
         [Fact]

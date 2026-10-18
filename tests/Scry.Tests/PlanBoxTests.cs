@@ -535,6 +535,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void GrowFoldAndTheFoldedTabSayWhatAClickDoesWhicheverDungeonIsShown()
+        {
+            // Growing names no room by itself: the Aa switch, shown on the grown plan, does.
+            Assert.Equal("Grows the plan", PlanBoxWords.GrowTip(false));
+            Assert.Equal("Shrinks the plan back", PlanBoxWords.GrowTip(true));
+            Assert.Equal("Puts the plan away", PlanBoxWords.FoldTip);
+            // Folded to its tab, the plan of an example or of the world's own dungeon alike.
+            Assert.Equal("Plan", PlanBoxWords.Tab);
+            Assert.Equal("Brings the plan back", PlanBoxWords.TabTip);
+        }
+
+        [Fact]
         public void ALevelTellsHowDeepItsHighestRoomIs()
         {
             Assert.Equal("-16 m", PlanBoxWords.LevelDepth(-15.6f));
