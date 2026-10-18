@@ -61,9 +61,10 @@ namespace Scry.Tests
         [Fact]
         public void PeekingWarnsThatEverythingShowsAndUntilWhen()
         {
-            Assert.Equal("Show everything for now, not only what this character has met; it stops when the panel closes", CompendiumWords.PeekTip(false));
+            // Peeking shows the page looked at whole, not the whole catalog: the list stays as the character knows it.
+            Assert.Equal("Show each page whole for now, its links leading anywhere and a whole name in quotes finding what this character has not met; the list stays as it knows it, and it stops when the panel closes", CompendiumWords.PeekTip(false));
             Assert.Equal("Show only what this character has met again", CompendiumWords.PeekTip(true));
-            Assert.Equal("Peeking: everything shows, not only what this character has met, until the panel closes", CompendiumWords.Peeking);
+            Assert.Equal("Peeking: each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it, until the panel closes", CompendiumWords.Peeking);
             Assert.Equal("Stop", CompendiumWords.StopPeeking);
         }
 

@@ -349,9 +349,12 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void PeekingShowsEverythingUntilItStops()
+        public void PeekingShowsOnlyThePageLookedAtWholeTheListStaysAsTheCharacterKnowsIt()
         {
-            // For checking something, or helping a friend; what was looked at meanwhile is no step back after.
+            // For checking something, or helping a friend: the page in front of you shows whole and
+            // its links go anywhere, while the list, its counts and the search stay as the character
+            // knows them, an unmet thing found only by its whole name in quotes. What was looked at
+            // meanwhile is no step back after.
             var world = new World().Rule(CompendiumRule.Loose);
             var explorer = world.Explorer;
             explorer.Select(world.Troll);
@@ -360,9 +363,18 @@ namespace Scry.Tests
             Assert.True(explorer.Peeking);
             Assert.False(explorer.CompendiumOn);
             Assert.True(explorer.CompendiumSet);
-            Assert.Equal(5, explorer.Results.Count);
+            Assert.Equal(2, explorer.Results.Count);
+            Assert.Equal(2, explorer.FoundOf(Kind.Creature));
             Assert.True(explorer.Reaches(world.Fenring.Key));
+            Assert.Equal(KnownLevel.Known, explorer.LevelOf(world.Fenring));
+            explorer.Text = "fenr";
+            Assert.Empty(explorer.Results);
+            explorer.Text = "\"fenring\"";
+            Assert.Equal(new[] { world.Fenring }, explorer.Results);
+            explorer.Text = "";
+            // A link followed opens the page of what was not met, whole.
             explorer.Select(world.Fenring);
+            Assert.Same(world.Fenring, explorer.Selected);
             explorer.Select(world.Boar);
 
             explorer.Peeking = false;

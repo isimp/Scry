@@ -112,7 +112,7 @@ namespace Scry
             private static HashSet<Entry> Guarded(Explorer explorer)
             {
                 var view = explorer.Compendium;
-                if (!explorer.CompendiumOn || view.Rule != CompendiumRule.Strict) return null;
+                if (!explorer.CompendiumSet || view.Rule != CompendiumRule.Strict) return null;
                 var guarded = new HashSet<Entry>();
                 foreach (var entry in explorer.Catalog)
                 {
@@ -124,7 +124,7 @@ namespace Scry
             /// <summary>What the character has seen or knows, for the index to hold only what the search can find; none while the compendium is off.</summary>
             private static Dictionary<Entry, KnownLevel> Met(Explorer explorer)
             {
-                if (!explorer.CompendiumOn) return null;
+                if (!explorer.CompendiumSet) return null;
                 var met = new Dictionary<Entry, KnownLevel>();
                 foreach (var entry in explorer.Catalog)
                 {

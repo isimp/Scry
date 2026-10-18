@@ -316,9 +316,9 @@ namespace Scry
                     ShowLearned(explorer, true);
                 }
             }
-            // With the compendium on and nothing narrowing the list, a kind counted so tells what
+            // With the compendium set, peeking or not, and nothing narrowing the list, a kind counted so tells what
             // was found of all there is.
-            var collecting = explorer.CompendiumOn && string.IsNullOrEmpty(explorer.Text) && !explorer.FavouritesOnly && !explorer.RecentOnly && !learned && explorer.Origin == OriginFilter.All;
+            var collecting = explorer.CompendiumSet && string.IsNullOrEmpty(explorer.Text) && !explorer.FavouritesOnly && !explorer.RecentOnly && !learned && explorer.Origin == OriginFilter.All;
             foreach (var kind in EveryKind)
             {
                 var collected = collecting && CompendiumView.Counted(kind);

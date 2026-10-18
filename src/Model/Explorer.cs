@@ -192,18 +192,20 @@ namespace Scry
         /// <summary>Counts up each time what the character knows is handed over anew, so what is made from it can tell it is out of date.</summary>
         public int KnowStamp { get; private set; }
 
-        /// <summary>Whether the compendium is on: the list shows only what the character has seen or knows. Not while peeking.</summary>
+        /// <summary>Whether the compendium is on for the page shown: it shows only what the character has seen or knows. Not while peeking, when each page shows whole and its links lead anywhere; the list goes with <see cref="CompendiumSet"/>.</summary>
         public bool CompendiumOn => CompendiumSet && !_peeking;
 
-        /// <summary>Whether the compendium is set on, peeking or not: what Peek and the list of what was learned lately go with.</summary>
+        /// <summary>Whether the compendium is set on, peeking or not: what the list, its counts and the search go with, and Peek and the list of what was learned lately.</summary>
         public bool CompendiumSet => _view != null && _view.Rule != CompendiumRule.Off;
 
         private bool _peeking;
 
         /// <summary>
-        /// Whether everything shows for now though the compendium is on, for checking something or
-        /// helping a friend, until it is stopped; what was looked at meanwhile and not seen is no
-        /// step back after. Never with the compendium off.
+        /// Whether each page shows whole for now though the compendium is on, its links leading
+        /// anywhere and a whole name in quotes finding what the character has not met, the list and
+        /// its counts staying as it knows them, for checking something or helping a friend, until it
+        /// is stopped; what was looked at meanwhile and not seen is no step back after. Never with
+        /// the compendium off.
         /// </summary>
         public bool Peeking
         {
@@ -418,7 +420,7 @@ namespace Scry
                 _pairsVersion = pairs;
                 // A pair seen changes no level, only what the strict rules leave out of the page and
                 // the search, and, found out, the order of the learned list.
-                if (CompendiumOn && (_view.Rule == CompendiumRule.Strict || _learnedOnly))
+                if (CompendiumSet && (_view.Rule == CompendiumRule.Strict || _learnedOnly))
                 {
                     KnowStamp++;
                     Refresh();
@@ -441,7 +443,7 @@ namespace Scry
             _visible = null;
             Array.Clear(_found, 0, _found.Length);
             Array.Clear(_total, 0, _total.Length);
-            if (CompendiumOn)
+            if (CompendiumSet)
             {
                 _visible = new List<Entry>();
                 foreach (var entry in _catalog)
@@ -739,11 +741,12 @@ namespace Scry
 
             // One pass over the catalog lists what matches and counts it by kind for the chips,
             // across every kind, so picking one still shows what the others hold.
-            var view = CompendiumOn ? _view : null;
+            // Peeking, the list stays as the character knows it; only a page shows whole.
+            var view = CompendiumSet ? _view : null;
             Array.Clear(_counts, 0, _counts.Length);
-            _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, _learnedOnly ? null : _counts, view);
+            _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, _learnedOnly ? null : _counts, view, _peeking);
             // The learned list is a tab of its own: the others count what each would show.
-            if (_learnedOnly) Search.Run(_catalog, _query, _favourites.Keys, null, _counts, view);
+            if (_learnedOnly) Search.Run(_catalog, _query, _favourites.Keys, null, _counts, view, _peeking);
             _countAll = 0;
             foreach (var count in _counts) _countAll += count;
             _learnedCount = 0;

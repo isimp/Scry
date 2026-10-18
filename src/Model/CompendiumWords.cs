@@ -69,13 +69,13 @@ namespace Scry
             _ => "show everything. What this character comes to know is kept all the same, so turning the compendium on later shows everything met meanwhile",
         };
 
-        /// <summary>The tip of the eye beside the mode that peeks at everything, by whether it is peeking.</summary>
+        /// <summary>The tip of the eye beside the mode that peeks at each page whole, by whether it is peeking.</summary>
         public static string PeekTip(bool peeking) => peeking
             ? "Show only what this character has met again"
-            : "Show everything for now, not only what this character has met; it stops when the panel closes";
+            : "Show each page whole for now, its links leading anywhere and a whole name in quotes finding what this character has not met; the list stays as it knows it, and it stops when the panel closes";
 
         /// <summary>The warning strip while peeking.</summary>
-        public const string Peeking = "Peeking: everything shows, not only what this character has met, until the panel closes";
+        public const string Peeking = "Peeking: each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it, until the panel closes";
 
         /// <summary>The strip's chip that stops peeking.</summary>
         public const string StopPeeking = "Stop";

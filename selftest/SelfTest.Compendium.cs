@@ -343,6 +343,19 @@ namespace Scry
             var serpent = X.Find("Serpent");
             p.Check(serpent == null || !tiers.ContainsKey(serpent.Key), "and what lives only at sea has none");
 
+            // Odin, glimpsed from afar and gone as one comes near: his tier and the way it comes,
+            // what plays or leaves him behind, and what brought him along where the floor shows him.
+            var odin = X.Find("odin");
+            if (odin != null)
+            {
+                var odinPass = CompendiumTiers.Gather(X.Entries);
+                var odinTiers = odinPass.Work();
+                var view = X.Compendium;
+                var told = odinTiers.TryGetValue(odin.Key, out var odinTier) ? $"tier {Numbers.Count(odinTier)} by way of {TierChain(odinPass, odinTiers, odin.Key)}" : "no tier";
+                p.Note($"odin: {told}; played or left behind by {(odin.UsedBy.Count > 0 ? string.Join(", ", odin.UsedBy.Take(6)) : "nothing")}; "
+                    + $"{(view == null ? "no compendium" : $"{view.Of(odin)}, by the floor {view.ByFloor(odin)}, brought along by {view.Because(odin)?.Name ?? "nothing"}")}");
+            }
+
             // A made-up character with the floor at the Meadows knows all of them, and nothing of the Plains.
             var floored = new CompendiumView(X.Entries);
             floored.Milestones(tiers, 1);
@@ -857,17 +870,24 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.MapBar) > mapBars, "the places' tab tells that the explored map counts, with Read the map again");
             X.KindFilter = null;
 
-            // Peek: everything shows, with a warning, until stopped or the panel closes.
+            // Peek: each page whole, its links leading anywhere, a whole name in quotes finding what
+            // was not met, the list as the character knows it, under a warning, until stopped or the
+            // panel closes.
             var strip = ScryPanel.Drawn(PanelPart.PeekStrip);
             var eyes = ScryPanel.Drawn(PanelPart.PeekButton);
             X.Peeking = true;
             X.SearchEverything("");
             X.KindFilter = Kind.Creature;
             yield return Until(() => ScryPanel.Drawn(PanelPart.PeekStrip) > strip + 1, 3);
-            p.Check(X.Peeking && X.Results.Contains(unseen) && ScryPanel.Drawn(PanelPart.PeekStrip) > strip, $"peeking, {unseen.Name} is listed, under a warning");
+            p.Check(X.Peeking && !X.Results.Contains(unseen) && ScryPanel.Drawn(PanelPart.PeekStrip) > strip, $"peeking, the list stays as the character knows it, {unseen.Name} not in it, under a warning");
+            X.SearchEverything("\"" + unseen.Name + "\"");
+            p.Check(X.Results.Contains(unseen), $"a whole name in quotes finds {unseen.Name}", $"{Numbers.Count(X.Results.Count)} found");
+            X.Select(unseen);
+            p.Check(X.Selected == unseen && X.LevelOf(unseen) == KnownLevel.Known && X.Reaches(unseen.Key), "and its page shows whole");
+            X.SearchEverything("");
             p.Check(CompendiumKeeper.Book == null || ScryPanel.Drawn(PanelPart.PeekButton) > eyes, "the eye that peeks stands beside the compendium's button in the title row");
             X.Peeking = false;
-            p.Check(!X.Results.Contains(unseen), "stopped, it is not");
+            p.Check(!X.Results.Contains(unseen) && X.LevelOf(unseen) < KnownLevel.Seen, "stopped, it is not listed and its page is closed again");
             X.Peeking = true;
             Session.Hide();
             p.Check(!X.Peeking, "closing the panel ends a peek");

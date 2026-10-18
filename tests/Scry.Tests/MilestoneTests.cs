@@ -157,7 +157,8 @@ namespace Scry.Tests
             torch.Links.Add(new Link { Group = "Status effects", Target = warmth.Key });
             lantern.Links.Add(new Link { Group = "Status effects", Target = glow.Key });
             var view = new CompendiumView(new EntryCatalog(new[] { torch, lantern, warmth, glow, crackle }));
-            var tiers = new Dictionary<string, int> { { torch.Key, 1 }, { warmth.Key, 3 }, { lantern.Key, 4 }, { glow.Key, 4 } };
+            // The sound has the torch's tier, as the tiers give what is played its owner's.
+            var tiers = new Dictionary<string, int> { { torch.Key, 1 }, { crackle.Key, 1 }, { warmth.Key, 3 }, { lantern.Key, 4 }, { glow.Key, 4 } };
             var book = new CompendiumBook();
             book.Raise(lantern.Key, KnownLevel.Known);
 
@@ -178,6 +179,40 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.Known, view.Of(warmth));
             Assert.True(view.ByFloor(warmth));
             Assert.True(view.Owns(torch, warmth));
+        }
+
+        [Fact]
+        public void TheFloorNeverBringsAlongACreatureALinkNamesWithNoTierOfItsOwn()
+        {
+            // A creature with no tier of its own, named by a link of something the floor opens, is
+            // never brought along by the floor: a creature is a thing of its own. The character
+            // meeting it does, and what the character knows itself still brings along what it owns.
+            var torch = new Entry { Kind = Kind.Item, Name = "Torch" };
+            var lantern = new Entry { Kind = Kind.Item, Name = "Lantern" };
+            var odin = new Entry { Kind = Kind.Creature, Name = "odin" };
+            var glint = new Entry { Kind = Kind.Effect, Name = "vfx_glint" };
+            torch.Links.Add(new Link { Group = "Creatures", Target = odin.Key });
+            glint.UsedBy.Add("Lantern");
+            var view = new CompendiumView(new EntryCatalog(new[] { torch, lantern, odin, glint }));
+            var tiers = new Dictionary<string, int> { { torch.Key, 1 }, { lantern.Key, 4 } };
+            var book = new CompendiumBook();
+            book.Raise(lantern.Key, KnownLevel.Known);
+
+            view.Milestones(tiers, 2);
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Known, view.Of(torch));
+            Assert.NotEqual(KnownLevel.Known, view.Of(odin));
+            Assert.False(view.ByFloor(odin));
+            Assert.False(view.Owns(torch, odin));
+            // Known by the character itself, the lantern still brings along what it plays.
+            Assert.Equal(KnownLevel.Known, view.Of(glint));
+            Assert.False(view.ByFloor(glint));
+
+            // Met, it is known like anything else.
+            book.Raise(odin.Key, KnownLevel.Known);
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Known, view.Of(odin));
+            Assert.False(view.ByFloor(odin));
         }
 
         [Fact]

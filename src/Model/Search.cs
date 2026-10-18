@@ -198,10 +198,12 @@ namespace Scry
         /// matches, and what it has only seen only by its name and kind, since any other term would
         /// tell what its closed page holds. Under the strict rules a known entry above the milestone
         /// floor matches a term naming what it goes with (drops, biomes, places, stations, owners)
-        /// only through what the character saw go together with it, as its page shows.
+        /// only through what the character saw go together with it, as its page shows. While
+        /// <paramref name="peeking"/>, a thing the character has not met is found only by its whole
+        /// name in quotes, every name in quotes its own.
         /// </summary>
         public static List<Entry> Run(IReadOnlyList<Entry> all, Query query, ICollection<string> favourites,
-            ICollection<string> only, int[] kindCounts, CompendiumView view = null)
+            ICollection<string> only, int[] kindCounts, CompendiumView view = null, bool peeking = false)
         {
             var search = Parse(query.Text).Matcher;
             var found = new List<Entry>();
@@ -215,7 +217,11 @@ namespace Scry
                 if (only != null && !only.Contains(entry.Key)) continue;
 
                 var level = view != null ? view.Of(entry) : KnownLevel.Known;
-                if (level < KnownLevel.Seen) continue;
+                if (level < KnownLevel.Seen)
+                {
+                    if (!peeking || search.Names.Count == 0 || !search.Names.TrueForAll(name => NamedExactly(entry, name))) continue;
+                    level = KnownLevel.Known;
+                }
 
                 var guard = view != null && view.Rule == CompendiumRule.Strict && level == KnownLevel.Known && !view.BelowFloor(entry) ? view : null;
                 var score = Score(entry, search, level == KnownLevel.Known, guard);
