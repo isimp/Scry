@@ -80,6 +80,9 @@ namespace Scry
         /// <summary>Where the book of the character being played is kept; none before a character is played.</summary>
         public static string FilePath => _file != null ? PathOf(_file) : null;
 
+        /// <summary>The name of the file of the character whose book is held or being read, which their dungeon maps are kept under too; none before a character plays.</summary>
+        public static string CharacterFile => _file;
+
         /// <summary>Reads, catches up and writes as due; called each frame.</summary>
         public static void Update()
         {

@@ -184,6 +184,7 @@ namespace Scry
             DropWatch.Save(now: true);
             WornWatch.Save(now: true);
             Guard.Run(Feature.CompendiumCatchUp, "keeping what the character knows", CompendiumKeeper.Finish);
+            Guard.Run(Feature.DungeonMaps, "keeping the maps of the dungeons walked", DungeonWalks.Finish);
             Guard.Run(Feature.Leaving, "closing down", Session.Shutdown);
             _harmony?.UnpatchSelf();
         }

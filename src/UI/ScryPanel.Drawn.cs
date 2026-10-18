@@ -61,6 +61,7 @@ namespace Scry
         StageKeys,
         Trail,
         TrailMenu,
+        MapLine,
     }
 
     internal static partial class ScryPanel

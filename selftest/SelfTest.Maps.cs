@@ -117,7 +117,7 @@ namespace Scry
             const string id = "self-test:fog";
             var maps = new DungeonMaps();
             var saved = SavedAsTheGameSaves(rolled);
-            maps.Keep(id, PlaceOf(entry).Prefab, saved, new Vec3(0f, 0f, 0f));
+            maps.Keep(id, PlaceOf(entry).Prefab, saved, new Vec3(0f, 0f, 0f), rolled.Site.Generator, rolled.Site.Turn);
             maps.Walk(id, first);
             maps.Walk(id, second);
             DungeonWalks.MapsInsteadForTest(maps);
@@ -163,6 +163,53 @@ namespace Scry
             X.Peeking = false;
             yield return Until(() => ExampleLayouts.Example.Rooms.Count == fogged.Rooms.Count, 10);
             p.Check(ExampleLayouts.PeekedRooms == 0 && ExampleLayouts.Example.Rooms.Count == fogged.Rooms.Count, "the peek ended, the fog is back");
+            DungeonFogAsItWas();
+        }
+
+        /// <summary>
+        /// Two maps of a crypt kept in the world played, on maps of the self-test's own: the crypt's
+        /// page has a line for each, how far it was walked, Open map showing it on the stage though
+        /// the player stands nowhere near, and Forget taking it away, an example in its place.
+        /// </summary>
+        private static IEnumerator MapsKept(Probe p)
+        {
+            var entry = Crypt();
+            if (entry == null) p.Skip("there is no such location");
+            var world = CompendiumMap.World;
+            if (world == null) p.Skip("no world is played");
+            var noCompendium = new CompendiumView(X.Entries);
+            noCompendium.Tell(new CompendiumBook(), CompendiumRule.Off);
+            Session.ShowKnownInstead(noCompendium);
+            Select(entry);
+            Stage.Inside = true;
+            yield return Until(() => ReferenceEquals(X.Compendium, noCompendium) && ExampleLayouts.Of(entry) && ExampleLayouts.Example != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 150);
+            var rolled = ExampleLayouts.Of(entry) ? ExampleLayouts.Example : null;
+            if (!p.Check(rolled != null && !ExampleLayouts.ShowsWorlds, "an example has been laid out")) yield break;
+
+            var maps = new DungeonMaps();
+            var saved = SavedAsTheGameSaves(rolled);
+            var first = DungeonMaps.IdOf(world, 1L, 1u);
+            var second = DungeonMaps.IdOf(world, 1L, 2u);
+            maps.Keep(first, PlaceOf(entry).Prefab, saved, new Vec3(0f, 0f, 0f), rolled.Site.Generator, rolled.Site.Turn);
+            maps.Keep(second, PlaceOf(entry).Prefab, saved, new Vec3(0f, 0f, 0f), rolled.Site.Generator, rolled.Site.Turn);
+            maps.Walk(second, 0);
+            maps.Keep(DungeonMaps.IdOf("another world", 1L, 3u), PlaceOf(entry).Prefab, saved, new Vec3(0f, 0f, 0f), rolled.Site.Generator, rolled.Site.Turn);
+            DungeonWalks.MapsInsteadForTest(maps);
+            var lines = ScryPanel.Drawn(PanelPart.MapLine);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.MapLine) > lines + 1, 5);
+            p.Check(ScryPanel.MapLinesDrawn == 2, "its page has a line for each map of this world", $"{Numbers.Count(ScryPanel.MapLinesDrawn)} lines");
+            yield return Picture(p, $"maps of {entry.Name} on its page");
+
+            ScryPanel.OpenMapForTest(second);
+            yield return Until(() => ExampleLayouts.ShownMap == second && Stage.ExampleRoomsTotal == rolled.Rooms.Count && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
+            p.Check(ExampleLayouts.ShownMap == second && ExampleLayouts.Example.Rooms.Count == rolled.Rooms.Count, "Open map shows it on the stage, the player nowhere near", ExampleLayouts.ShownMap ?? "an example");
+
+            DungeonWalks.ForgetMap(second);
+            yield return Until(() => !ExampleLayouts.ShowsWorlds, 5);
+            lines = ScryPanel.Drawn(PanelPart.MapLine);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.MapLine) > lines + 1, 5);
+            p.Check(!ExampleLayouts.ShowsWorlds && ScryPanel.MapLinesDrawn == 1 && maps.Of(second) == null, "Forget takes the map away, an example in its place", $"{Numbers.Count(ScryPanel.MapLinesDrawn)} lines");
+            p.Check(maps.All.Count() == 2, "the map of another world stays");
             DungeonFogAsItWas();
         }
 

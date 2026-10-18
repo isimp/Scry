@@ -158,6 +158,8 @@ namespace Scry
                 GUI.Label(new Rect(0f, y + U(8f), width, height), note, Skin.DimWrap);
                 y += height + U(8f);
             }
+            // A dungeon's maps kept, each with its buttons.
+            if (withStage && entry.Kind == Kind.Location) y = MapLines(entry, width, y);
 
             return y + U(14f);
         }

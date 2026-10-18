@@ -60,6 +60,20 @@ namespace Scry
         /// <summary>A dungeon the self-test hands in as the world's own, looked for in place of it.</summary>
         private static WorldDungeon _standIn;
 
+        /// <summary>The map opened from the location's page, shown though its dungeon is not at hand, and the dungeon read from it.</summary>
+        private static string _opened;
+        private static WorldDungeon _openedWorld;
+
+        /// <summary>The id of the map of the world's own dungeon shown; none for an example.</summary>
+        public static string ShownMap => ShowsWorlds ? _wholeId : null;
+
+        /// <summary>How many of a kept map's rooms were walked, of how many, by the kinds of room read for the location shown.</summary>
+        public static (int Walked, int Rooms) Count(DungeonMap map)
+        {
+            var byHash = RoomsByHash();
+            return DungeonMaps.Walked(map, hash => byHash.TryGetValue(hash, out var shape) ? shape : null);
+        }
+
         /// <summary>The world's own dungeon whole, before the fog, and the id of its map.</summary>
         private static DungeonExample _whole;
         private static string _wholeId;
@@ -132,7 +146,28 @@ namespace Scry
             _lookAgain = 0f;
             _wantExample = false;
             _standIn = null;
+            _opened = null;
+            _openedWorld = null;
+            _byHash = null;
+            _byHashOf = -1;
             ForgetWhole();
+        }
+
+        /// <summary>Shows a kept map of the location shown, as far as it was walked, wherever the player is; the dungeon at hand comes first.</summary>
+        public static void OpenMap(string id)
+        {
+            _opened = id;
+            _openedWorld = null;
+            _wantExample = false;
+            _lookAgain = 0f;
+        }
+
+        /// <summary>The map opened as a dungeon of the world, the same each time; none where it is not of the location shown or was forgotten.</summary>
+        private static WorldDungeon Opened(string location)
+        {
+            var map = DungeonWalks.Maps.Of(_opened);
+            if (map == null || map.Location != location) return null;
+            return _openedWorld ?? (_openedWorld = new WorldDungeon { Saved = map.Rooms, Generator = map.Generator, Turn = map.Turn, Id = _opened, Location = map.Location, Entrance = map.Entrance });
         }
 
         private static void ForgetWhole()
@@ -218,10 +253,12 @@ namespace Scry
         {
             if (Time.unscaledTime < _lookAgain) return;
             _lookAgain = Time.unscaledTime + LookEvery;
-            if (!Guard.Run(Feature.DungeonMaps, "reading the dungeon the player is in", () => _standIn ?? WorldDungeons.Here(place.Prefab), out var found)) found = null;
+            if (!Guard.Run(Feature.DungeonMaps, "reading the dungeon the player is in", () => _standIn ?? WorldDungeons.Here(place.Prefab) ?? Opened(place.Prefab), out var found)) found = null;
             if (ReferenceEquals(found, _world)) return;
             _world = found;
-            if (Example != null && found != null && !ShowsWorlds && !_wantExample) Build();
+            if (Example != null && found != null && (!ShowsWorlds || _wholeId != found.Id) && !_wantExample) Build();
+            // Its map forgotten and the dungeon not at hand, an example stands in its place.
+            else if (Example != null && found == null && ShowsWorlds && DungeonWalks.Maps.Of(_wholeId) == null) Build();
         }
 
         /// <summary>Loads and reads the rooms not read yet, a few milliseconds a frame, one bundle at a time, and lays out the example once all are in.</summary>
@@ -361,8 +398,7 @@ namespace Scry
             var wasNone = Example == null;
             if (_world != null && !_wantExample)
             {
-                var byHash = new Dictionary<int, RoomShape>();
-                foreach (var shape in shapes) byHash[shape.Name.GetStableHashCode()] = shape;
+                var byHash = RoomsByHash();
                 _whole = RealDungeon.Of(_world.Saved, hash => byHash.TryGetValue(hash, out var shape) ? shape : null, _world.Generator, _world.Turn, out var unread);
                 _wholeId = _world.Id;
                 ShowsWorlds = true;
@@ -394,6 +430,24 @@ namespace Scry
                 }
             }
         }
+
+        /// <summary>The kinds of room read for the location shown, by their names' hashes, as a world saves its rooms.</summary>
+        private static Dictionary<int, RoomShape> RoomsByHash()
+        {
+            var read = Read;
+            if (_byHashOf == read && _byHash != null) return _byHash;
+            _byHash = new Dictionary<int, RoomShape>();
+            foreach (var e in Rooms)
+            {
+                var shape = ((PlaceSource)e.Source).Contents?.Room;
+                if (shape != null) _byHash[shape.Name.GetStableHashCode()] = shape;
+            }
+            _byHashOf = read;
+            return _byHash;
+        }
+
+        private static Dictionary<int, RoomShape> _byHash;
+        private static int _byHashOf = -1;
 
         /// <summary>The world's own dungeon as the fog shows it, the stage building it afresh: its rooms walked, the rest only while peeking; every one with the compendium off.</summary>
         private static void Refog()
