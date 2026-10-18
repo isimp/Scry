@@ -150,6 +150,74 @@ namespace Scry.Tests
             Assert.False(cuts.StandsWith(0, 1));
         }
 
+        // A room of one level with a floor of its own on another, a hall with a pit or a room with
+        // stairs down inside it, stands whole on that level too, as the cut there meets its floor.
+
+        [Fact]
+        public void ARoomWithAFloorOfItsOwnDownOnALevelBelowStandsWithThatLevelToo()
+        {
+            // Rooms at 0 m and -8 m; a third on the top level with a pit floor down at -7.5 m.
+            var cuts = LevelCuts.Of(
+                grounds: new[] { 0f, -8f, 0f },
+                ceilings: new[] { 4f, -4f, 4f },
+                levels: new[] { 0, 1, 0 },
+                floors: new[] { new[] { 0f }, new[] { -8f }, new[] { 0f, -7.5f } });
+            Assert.True(cuts.StandsWith(2, 0));
+            Assert.True(cuts.StandsWith(2, 1));
+            Assert.False(cuts.StandsWith(0, 1));
+            Assert.False(cuts.StandsWith(1, 0));
+            // It stays in its own level's group alone.
+            Assert.Equal(0, cuts.LevelOf(2));
+            Assert.DoesNotContain(2, cuts.Groups.Where(g => g.Level == 1).SelectMany(g => g.Rooms));
+        }
+
+        [Fact]
+        public void AFloorOfARoomsOwnUpOnALevelAboveStandsWithIt()
+        {
+            // A low ceiling would not reach the level above; its gallery's floor does.
+            var cuts = LevelCuts.Of(
+                grounds: new[] { 0f, -8f },
+                ceilings: new[] { 4f, -6f },
+                levels: new[] { 0, 1 },
+                floors: new[] { new[] { 0f }, new[] { -8f, 1f } });
+            Assert.True(cuts.StandsWith(1, 0));
+            Assert.True(cuts.StandsWith(1, 1));
+        }
+
+        [Fact]
+        public void AFloorOfARoomsOwnBetweenTheLevelsStandsWithNeither()
+        {
+            var cuts = LevelCuts.Of(
+                grounds: new[] { 0f, -8f, 0f },
+                ceilings: new[] { 4f, -4f, 4f },
+                levels: new[] { 0, 1, 0 },
+                floors: new[] { new[] { 0f }, new[] { -8f }, new[] { 0f, -4f } });
+            Assert.False(cuts.StandsWith(2, 1));
+            Assert.False(cuts.OnLevelByFloor(2, 1));
+            // Within a level's grounds by as much as the plan holds rooms of one level.
+            var near = LevelCuts.Of(
+                grounds: new[] { 0f, -8f, 0f },
+                ceilings: new[] { 4f, -4f, 4f },
+                levels: new[] { 0, 1, 0 },
+                floors: new[] { new[] { 0f }, new[] { -8f }, new[] { 0f, -8f + RoomFocus.SameLevel } });
+            Assert.True(near.OnLevelByFloor(2, 1));
+        }
+
+        [Fact]
+        public void ARoomsLowestFloorIsTheLowestOfItsOwnElseItsGround()
+        {
+            var cuts = LevelCuts.Of(
+                grounds: new[] { 0f, -8f, 0f },
+                ceilings: new[] { 4f, -4f, 4f },
+                levels: new[] { 0, 1, 0 },
+                floors: new[] { new float[0], new[] { -8f }, new[] { 0f, -7.5f } });
+            Assert.Equal(-7.5f, cuts.LowestFloor(2));
+            Assert.Equal(0f, cuts.LowestFloor(0));
+            var none = LevelCuts.Of(new[] { 2f }, new[] { 6f }, new[] { 0 });
+            Assert.Equal(2f, none.LowestFloor(0));
+            Assert.False(none.OnLevelByFloor(0, 0));
+        }
+
         [Fact]
         public void ARoomFromBelowReachesAGroupOnlyWhereOneCouldStandInItOverTheGroupsLowestFloor()
         {

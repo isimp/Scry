@@ -536,10 +536,13 @@ namespace Scry
             var rooms = Ways.Rooms;
             var grounds = new List<float>(rooms.Count);
             var ceilings = new List<float>(rooms.Count);
+            var floors = new List<IReadOnlyList<float>>(rooms.Count);
             for (var i = 0; i < rooms.Count; i++)
             {
                 var ground = GroundOf(rooms[i]);
                 grounds.Add(ground);
+                // Each of its own levels too, so it stands whole on a level one of them lies on.
+                floors.Add(LevelsOf(rooms[i]));
                 // Its ceiling as its rays found it over its ground, else the top of its box.
                 ceilings.Add(CeilingOver(rooms[i], ground) ?? rooms[i].Position.Y + rooms[i].Room.Size.Y / 2f);
                 _levelRoom[rooms[i]] = i;
@@ -548,8 +551,21 @@ namespace Scry
             var levelOf = new List<int>(rooms.Count);
             for (var i = 0; i < rooms.Count; i++) levelOf.Add(levels.LevelOf(rooms[i]));
             _levelGrounds = grounds;
-            return _levelCuts = LevelCuts.Of(grounds, ceilings, levelOf);
+            _levelCuts = LevelCuts.Of(grounds, ceilings, levelOf, floors);
+            _lowestFloor = null;
+            for (var i = 0; i < rooms.Count; i++)
+            {
+                var low = _levelCuts.LowestFloor(i);
+                if (!float.IsNaN(low) && (_lowestFloor == null || low < _lowestFloor)) _lowestFloor = low;
+            }
+            return _levelCuts;
         }
+
+        /// <summary>The lowest floor any room has, its own lower levels among them, in the example's own space; none with no rooms.</summary>
+        private float? _lowestFloor;
+
+        /// <summary>The lowest floor any room of the example has, which the cut may go down to; none with no rooms or no ways.</summary>
+        public float? LowestFloor() => LevelCutsNow() != null ? _lowestFloor : null;
 
         /// <summary>Each room's ground as the level cuts were worked out with it, by its place among the rooms.</summary>
         private List<float> _levelGrounds = new List<float>();
@@ -669,7 +685,8 @@ namespace Scry
             if (level < 0) return PlanRoomShown.Faint;
             if (cuts.StandsWith(index, opened)) return PlanRoomShown.Whole;
             if (level > opened) return PlanRoomShown.Faint;
-            return RoomFocus.HidesFromAbove(OverLevel(cuts, index, opened), _levelGrounds[index], OpenCut) ? PlanRoomShown.None : PlanRoomShown.Faint;
+            // Put away only with every floor of its own over the cut.
+            return RoomFocus.HidesFromAbove(OverLevel(cuts, index, opened), cuts.LowestFloor(index), OpenCut) ? PlanRoomShown.None : PlanRoomShown.Faint;
         }
 
         /// <summary>The groups of the level of a dungeon's plan a mark opens, from its lowest up, each filmed on its own; none where one cut opens the level, or for a camp.</summary>

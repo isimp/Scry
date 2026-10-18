@@ -127,7 +127,13 @@ namespace Scry
             var framed = LevelFramed();
             var was = TheCut.Level;
             if (!TheCut.Held) TheExample.Unfocus();
-            TheCut.Wheel(metres);
+            var past = TheCut.Wheel(metres);
+            // Past the ends of the room gone into, on to the level below or above, as Page Up and Down go.
+            if (past != 0 && TheExample.Focused != null)
+            {
+                GoOnPast(past);
+                return;
+            }
             // Moved into another floor, the view stays on the spot it looked at; the wheel frames nothing afresh.
             if (framed is Vector4 kept && TheCut.Level != was && TheCut.Cutting && !TheCut.Held) KeepLevelFrame(kept);
         }

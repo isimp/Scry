@@ -418,6 +418,18 @@ namespace Scry
         /// <summary>The ways between a dungeon example's rooms (<see cref="DungeonWays"/>); none for a camp's or with no example.</summary>
         public static DungeonWays ExampleWays => TheExample.Ways;
 
+        /// <summary>The lowest floor any room of the example has, in the stage's heights, for the self-test; none without rooms.</summary>
+        [Diagnostic]
+        public static float? ExampleLowestFloorForTest => TheExample.LowestFloor() is float lowest ? lowest + ExampleLift : (float?)null;
+
+        /// <summary>The ruler's mark that opens a level of the plan, for the self-test.</summary>
+        [Diagnostic]
+        public static int ExampleMarkOfLevelForTest(int level) => TheExample.MarkOfLevel(level);
+
+        /// <summary>The level of the plan a room is on, for the self-test; -1 for none.</summary>
+        [Diagnostic]
+        public static int ExampleLevelOfRoomForTest(PlacedRoom room) => TheExample.LevelOfRoom(room);
+
         /// <summary>Whether the example the stage stands is this one.</summary>
         public static bool StandsExample(DungeonExample example) => example != null && ReferenceEquals(TheExample.Of, example);
 
@@ -470,6 +482,13 @@ namespace Scry
         {
             var (floors, ceiling) = ExampleMarksNow();
             RefreshFloors(floors, ceiling, TheExample.Top);
+            ReachExampleFloors();
+        }
+
+        /// <summary>Lets the cut go down to the lowest floor any room of a dungeon's example has, a pit under its lowest level's rooms among them.</summary>
+        private static void ReachExampleFloors()
+        {
+            if (TheExample.IsDungeon && TheExample.LowestFloor() is float lowest) TheCut.Reach(lowest + ExampleLift);
         }
 
         /// <summary>The lowest ground of the rooms of the level opened, in the example's own space, for the plan to leave out only what lies below them; none for a camp or with none opened.</summary>
@@ -600,6 +619,22 @@ namespace Scry
             if (RoomRulerNow != null && TheCut.Held) TheCut.HoldAt(height);
         }
 
+        /// <summary>
+        /// Goes on past the ends of the room gone into, as Page Up and Down and Shift and the wheel
+        /// do: down past its lowest out to the level below it, where there is one; up past its roof
+        /// out to the level above it.
+        /// </summary>
+        private static void GoOnPast(int step)
+        {
+            if (step < 0)
+            {
+                ComeOutTo(-1);
+                return;
+            }
+            var cuts = TheExample.LevelCutsNow();
+            if (cuts != null && !CutFromSide && TheExample.LevelOfRoom(TheExample.Focused) is var level && level >= 0 && level + 1 < cuts.Levels) ComeOutTo(1);
+        }
+
         /// <summary>Steps the room's cut to the tick above or below, as the wheel over its ruler and Page Up and Down do: over the top tick its roof on, down from there the top tick again.</summary>
         public static void StepRoomCut(bool down)
         {
@@ -609,7 +644,7 @@ namespace Scry
             {
                 // Up past the room's roof, out to the level above it.
                 if (down) OpenRoomTick(ruler.Ticks.Count - 1);
-                else ComeOutTo(-1);
+                else GoOnPast(-1);
                 return;
             }
             var at = TheCut.At;
@@ -623,9 +658,7 @@ namespace Scry
                         return;
                     }
                 }
-                // Down past its lowest tick, out to the level below it, where there is one.
-                var cuts = TheExample.LevelCutsNow();
-                if (cuts != null && !CutFromSide && TheExample.LevelOfRoom(TheExample.Focused) is var level && level >= 0 && level + 1 < cuts.Levels) ComeOutTo(1);
+                GoOnPast(1);
                 return;
             }
             for (var i = 0; i < ruler.Ticks.Count; i++)
@@ -690,8 +723,10 @@ namespace Scry
         private static void EnterRoom(PlacedRoom room)
         {
             PickedRoom = null;
+            var fromRoom = TheExample.Focused != null;
+            var zoom = Zoom;
             // From the whole example, the zoom and the reach the view had, which coming back out takes up again.
-            if (TheExample.Focused == null)
+            if (!fromRoom)
             {
                 _zoomBeforeRoom = Zoom;
                 _reachBeforeRoom = ShownLevelFrame?.w;
@@ -702,7 +737,8 @@ namespace Scry
             // of; from above, at head height over its ground, or along its slope where it climbs with no real floor.
             HoldRoomCut(room, TheExample.FocusLevel);
             TurnTo(Yaw, CutFromSide ? SidePitch : CutPitch);
-            FreshView();
+            // From room to room the zoom stays; from the whole dungeon the room is framed afresh.
+            ViewAgainAt(RoomFocus.ZoomGoingInto(fromRoom, zoom));
         }
 
         /// <summary>Comes out of the room gone into to the level it is on (<see cref="ComeOutTo"/>), as Esc and *Whole dungeon* do.</summary>
@@ -806,7 +842,11 @@ namespace Scry
             var outside = _lastShown?.Source is PlaceSource place ? PlaceView.Ground(place.Contents, place.IsRoom) : 0f;
             MeasureStanding(Origin.y + (inside ? floors[floors.Count - 1] : outside) * _baseScale.y);
             TheCut.ForgetEntry();
-            if (floorsInside) SetFloors(_lastShown, floors, true, insideCeiling, TheExample.Top);
+            if (floorsInside)
+            {
+                SetFloors(_lastShown, floors, true, insideCeiling, TheExample.Top);
+                ReachExampleFloors();
+            }
             else SetFloors(_lastShown, floors, false, PlaceCeiling, _placeTop);
             FrameAnew();
             CenterView();

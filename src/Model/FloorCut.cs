@@ -36,6 +36,15 @@ namespace Scry
         /// <summary>Whether the room gone into has its roof on, the cut off it and the rooms above it, as where it was cut is kept.</summary>
         private bool _heldRoof;
 
+        /// <summary>The lowest floor any room of the place has, which the cut goes down to over the lowest of the floors; none known, the lowest of the floors.</summary>
+        private float _lowest = float.PositiveInfinity;
+
+        /// <summary>How near two reaches must come to meet, the cut passing from one floor's into the next's.</summary>
+        private const float Meet = 0.01f;
+
+        /// <summary>Takes the lowest floor any room of the place has (a pit, a room's own lower floor), which the cut may go down to.</summary>
+        public void Reach(float lowest) => _lowest = lowest;
+
         /// <summary>Whether the cut is held at a height of its own, a room's gone into, whatever the floors.</summary>
         public bool Held => _held.HasValue;
 
@@ -118,13 +127,31 @@ namespace Scry
             if (Cutting) _lastOpen = _level;
         }
 
-        /// <summary>Cuts at a height set by hand, opening the floor it is over (<see cref="PlaceView.LevelAt"/>).</summary>
+        /// <summary>Cuts at a height set by hand, opening the floor it is over (<see cref="PlaceView.LevelAt"/>), within that floor's reach: between two floors far apart, the lower at the top of its.</summary>
         public void CutTo(float height)
         {
             if (_floors.Count == 0) return;
             Open(PlaceView.LevelAt(_floors, height));
-            _shift = height - _cuts[_level];
+            CutWithin(height);
         }
+
+        /// <summary>
+        /// How low the cut goes over a floor opened: half a metre over it, the lowest floor's over
+        /// the lowest floor any room has where that is lower.
+        /// </summary>
+        private float Low(int level) => (level == _floors.Count - 1 ? Math.Min(_floors[level], _lowest) : _floors[level]) + LeastOver;
+
+        /// <summary>
+        /// How high the cut goes over a floor opened: <see cref="RoofOver"/> over its own cut,
+        /// past which the top floor has its roof put on; another floor's no higher than the floor
+        /// above's lowest, where they meet, but never under its own cut.
+        /// </summary>
+        private float High(int level) => level == 0 ? _cuts[0] + RoofOver : Math.Max(_cuts[level], Math.Min(_cuts[level] + RoofOver, Low(level - 1)));
+
+        /// <summary>Whether a floor's reach and the one's under it meet, so the cut passes from one into the other.</summary>
+        private bool Meets(int upper) => Low(upper) <= High(upper + 1) + Meet;
+
+        private void CutWithin(float height) => _shift = Math.Min(Math.Max(height, Low(_level)), High(_level)) - _cuts[_level];
 
         /// <summary>Moves the cut up or down; it shows while a floor is opened, and a floor opened starts it at its height.</summary>
         public void CutBy(float metres) => _shift += metres;
@@ -136,43 +163,70 @@ namespace Scry
         public const float RoofOver = 2f;
 
         /// <summary>
-        /// Moves the cut as Shift and the wheel do: in the room gone into, its cut up or down,
-        /// never under its least, raised past its most its roof on, and down from there cut where
-        /// it was; else up or down through the floors, opening the floor it is over
-        /// (<see cref="CutTo"/>), never under the lowest floor; down with the roof on, the top
-        /// floor opened at its cut; raised well over the top floor's cut, the roof back on.
+        /// Moves the cut as Shift and the wheel do. In the room gone into: its cut up or down, never
+        /// under its least, raised past its most its roof on, and down from there cut where it was;
+        /// pushed on down from its least or up from its roof on, it tells the stage to go on to the
+        /// level below (1) or above (-1), as Page Up and Down do. Else through the floors, each
+        /// opened within its reach (<see cref="Low"/>, <see cref="High"/>): where two floors' reaches
+        /// meet the cut passes from one into the other; where they lie far apart it stops at its
+        /// floor's end, and the next turn opens the floor below at its own cut, or the floor above
+        /// just over it, so it never stops where neither is open. Down with the roof on, the top
+        /// floor opened at its cut; raised well over the top floor's cut, the roof back on. 0 but
+        /// for a room's ends.
         /// </summary>
-        public void Wheel(float metres)
+        public int Wheel(float metres)
         {
             if (_held is float held)
             {
                 if (_heldRoof)
                 {
                     if (metres < 0f) _heldRoof = false;
-                    return;
+                    return metres > 0f ? -1 : 0;
                 }
                 var next = held + _shift + metres;
                 if (next > _most)
                 {
                     _heldRoof = true;
-                    return;
+                    return 0;
                 }
+                if (next < _least && held + _shift <= _least + Meet) return 1;
                 _shift = Math.Max(next, _least) - held;
-                return;
+                return 0;
             }
-            if (_floors.Count == 0) return;
+            if (_floors.Count == 0) return 0;
             if (_level >= _floors.Count)
             {
                 if (metres < 0f) Open(0);
-                return;
+                return 0;
             }
-            var height = At + metres;
-            if (height > _cuts[0] + RoofOver)
+            var at = At;
+            var height = at + metres;
+            if (metres < 0f && height < Low(_level) && _level + 1 < _floors.Count && !Meets(_level))
+            {
+                if (at > Low(_level) + Meet) CutWithin(height);
+                else Open(_level + 1);
+                return 0;
+            }
+            if (metres > 0f && height > High(_level) && _level > 0 && !Meets(_level - 1))
+            {
+                if (at < High(_level) - Meet) CutWithin(height);
+                else
+                {
+                    Open(_level - 1);
+                    CutWithin(Low(_level));
+                }
+                return 0;
+            }
+            // Through every floor whose reach meets the next, to where the cut comes to rest or to a gap.
+            while (height < Low(_level) && _level + 1 < _floors.Count && Meets(_level)) Open(_level + 1);
+            while (height > High(_level) && _level > 0 && Meets(_level - 1)) Open(_level - 1);
+            if (_level == 0 && height > High(0))
             {
                 Open(_floors.Count);
-                return;
+                return 0;
             }
-            CutTo(Math.Max(height, _floors[_floors.Count - 1] + LeastOver));
+            CutWithin(height);
+            return 0;
         }
 
         /// <summary>
@@ -196,6 +250,7 @@ namespace Scry
             _for = entry;
             _shift = 0f;
             _lastOpen = 0;
+            _lowest = float.PositiveInfinity;
             _level = open ? 0 : _floors.Count;
             return true;
         }

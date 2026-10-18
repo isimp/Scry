@@ -590,6 +590,141 @@ namespace Scry.Tests
             Assert.Equal(cut.Cuts[1] + 0.25f, cut.At, 3);
         }
 
+        // Two floors far apart: where neither is open the cut never stops.
+        private static readonly float[] FarApart = { 20f, 0f };
+
+        private static FloorCut TakenFarApart()
+        {
+            var cut = new FloorCut();
+            cut.Take(E("Crypt2", Kind.Location), FarApart, open: true);
+            return cut;
+        }
+
+        [Fact]
+        public void ShiftAndTheWheelDownTakeTheCutToItsFloorThenTheNextFloorAtItsOwnCut()
+        {
+            var cut = TakenFarApart();
+            cut.Wheel(-1f);
+            Assert.Equal(0, cut.Level);
+            Assert.Equal(cut.Cuts[0] - 1f, cut.At, 3);
+            cut.Wheel(-5f);
+            Assert.Equal(0, cut.Level);
+            Assert.Equal(FarApart[0] + FloorCut.LeastOver, cut.At, 3);
+            cut.Wheel(-0.75f);
+            Assert.Equal(1, cut.Level);
+            Assert.Equal(cut.Cuts[1], cut.At, 3);
+        }
+
+        [Fact]
+        public void ShiftAndTheWheelUpTakeTheCutToTheTopOfItsReachThenJustOverTheFloorAbove()
+        {
+            var cut = TakenFarApart();
+            cut.Open(1);
+            cut.Wheel(10f);
+            Assert.Equal(1, cut.Level);
+            Assert.Equal(cut.Cuts[1] + FloorCut.RoofOver, cut.At, 3);
+            cut.Wheel(0.75f);
+            Assert.Equal(0, cut.Level);
+            Assert.Equal(FarApart[0] + FloorCut.LeastOver, cut.At, 3);
+        }
+
+        [Fact]
+        public void FloorsCloseTogetherAreCutThroughWithoutStopping()
+        {
+            var cut = Taken();
+            cut.Open(0);
+            // From the top floor's cut down past its floor, straight into the floor below.
+            cut.Wheel(Three[0] + FloorCut.LeastOver - cut.Cuts[0] - 0.75f);
+            Assert.Equal(1, cut.Level);
+            Assert.Equal(Three[0] + FloorCut.LeastOver - 0.75f, cut.At, 3);
+            // And back up past it into the top floor.
+            cut.Wheel(1.5f);
+            Assert.Equal(0, cut.Level);
+            Assert.Equal(Three[0] + FloorCut.LeastOver + 0.75f, cut.At, 3);
+        }
+
+        [Fact]
+        public void AFloorsReachEndsAtTheFloorAbovesLowestUpPastItTheFloorAboveOpens()
+        {
+            // Floors at 6, 4 and 0 m: the middle one is cut under the floor above, its reach up to 6.5 m.
+            var cut = new FloorCut();
+            cut.Take(E("Crypt2", Kind.Location), new[] { 6f, 4f, 0f }, open: true);
+            cut.Open(1);
+            cut.Wheel(6.9f - cut.At);
+            Assert.Equal(0, cut.Level);
+            Assert.Equal(6.9f, cut.At, 3);
+        }
+
+        [Fact]
+        public void AFloorsOwnCutStaysWithinItsReachHoweverNearTheFloorAbove()
+        {
+            // Floors half a metre apart: the lower one is cut over the floor above's lowest, and its reach goes up to its own cut.
+            var cut = new FloorCut();
+            cut.Take(E("Crypt2", Kind.Location), new[] { 4.5f, 4f }, open: true);
+            cut.Open(1);
+            var own = cut.At;
+            cut.Wheel(-10f);
+            cut.Wheel(own - 0.1f - cut.At);
+            Assert.Equal(1, cut.Level);
+            Assert.Equal(own - 0.1f, cut.At, 3);
+        }
+
+        [Fact]
+        public void ABigTurnPassesThroughFloorsThatMeetAndStopsWhereTheyLieFarApart()
+        {
+            var close = Taken(open: true);
+            close.Wheel(-1000f);
+            Assert.Equal(2, close.Level);
+            Assert.Equal(Three[2] + FloorCut.LeastOver, close.At, 3);
+            close.Wheel(1000f);
+            Assert.False(close.Cutting);
+
+            var far = TakenFarApart();
+            far.Wheel(-1000f);
+            Assert.Equal(0, far.Level);
+            Assert.Equal(FarApart[0] + FloorCut.LeastOver, far.At, 3);
+        }
+
+        [Fact]
+        public void CutByHandBetweenTwoFloorsFarApartItShowsTheLowerAtTheTopOfItsReach()
+        {
+            var cut = TakenFarApart();
+            cut.CutTo(10f);
+            Assert.Equal(1, cut.Level);
+            Assert.Equal(cut.Cuts[1] + FloorCut.RoofOver, cut.At, 3);
+            cut.CutTo(3f);
+            Assert.Equal(1, cut.Level);
+            Assert.Equal(3f, cut.At, 3);
+        }
+
+        [Fact]
+        public void TheCutGoesDownToTheLowestFloorAnyRoomHas()
+        {
+            var cut = Taken();
+            cut.Reach(-3f);
+            cut.Open(2);
+            cut.Wheel(-10f);
+            Assert.Equal(2, cut.Level);
+            Assert.Equal(-3f + FloorCut.LeastOver, cut.At, 3);
+            // A lowest floor over the lowest of the floors changes nothing.
+            var higher = Taken();
+            higher.Reach(5f);
+            higher.Open(2);
+            higher.Wheel(-10f);
+            Assert.Equal(Three[2] + FloorCut.LeastOver, higher.At, 3);
+        }
+
+        [Fact]
+        public void AnotherEntryForgetsTheLowestFloor()
+        {
+            var cut = Taken();
+            cut.Reach(-3f);
+            cut.Take(E("Crypt3", Kind.Location), Three, open: true);
+            cut.Open(2);
+            cut.Wheel(-10f);
+            Assert.Equal(Three[2] + FloorCut.LeastOver, cut.At, 3);
+        }
+
         [Fact]
         public void ShiftAndTheWheelNeverTakeTheCutUnderTheLowestFloor()
         {
@@ -616,9 +751,38 @@ namespace Scry.Tests
         {
             var cut = Taken();
             cut.Hold(3f);
-            cut.Wheel(-1f);
+            Assert.Equal(0, cut.Wheel(-1f));
             Assert.True(cut.Held);
             Assert.Equal(2f, cut.At, 3);
+        }
+
+        // Past a room's ends Shift and the wheel go on, as Page Up and Down do: the stage takes
+        // the level below or above from what the wheel tells.
+
+        [Fact]
+        public void ShiftAndTheWheelDownAtARoomsLeastGoOnToTheLevelBelow()
+        {
+            var cut = Taken();
+            cut.Hold(3f, least: 1f, most: 6f);
+            Assert.Equal(0, cut.Wheel(-5f));
+            Assert.Equal(1f, cut.At, 3);
+            Assert.Equal(1, cut.Wheel(-0.75f));
+            Assert.Equal(1f, cut.At, 3);
+        }
+
+        [Fact]
+        public void ShiftAndTheWheelUpWithARoomsRoofOnGoOnToTheLevelAbove()
+        {
+            var cut = Taken();
+            cut.Hold(3f, least: 1f, most: 6f);
+            Assert.Equal(0, cut.Wheel(7f));
+            Assert.True(cut.HeldRoofOn);
+            Assert.Equal(-1, cut.Wheel(0.75f));
+            // Outside a room the wheel never goes on.
+            var floors = Taken();
+            floors.Open(2);
+            Assert.Equal(0, floors.Wheel(-10f));
+            Assert.Equal(0, floors.Wheel(-10f));
         }
     }
 }

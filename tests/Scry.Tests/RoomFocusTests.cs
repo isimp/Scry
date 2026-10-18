@@ -5,6 +5,13 @@ namespace Scry.Tests
     public class RoomFocusTests
     {
         [Fact]
+        public void GoingFromRoomToRoomKeepsTheZoomFromTheWholeDungeonItFramesAfresh()
+        {
+            Assert.Equal(2.5f, RoomFocus.ZoomGoingInto(fromRoom: true, zoom: 2.5f));
+            Assert.Equal(1f, RoomFocus.ZoomGoingInto(fromRoom: false, zoom: 2.5f));
+        }
+
+        [Fact]
         public void TheRoomGoneIntoStandsWholeItsLevelHalfDimmedBelowFaintAboveAway()
         {
             const float ground = -10f;

@@ -272,11 +272,12 @@ namespace Scry
                     ScryPanel.HoverStageForTest(null);
                     Stage.ComeOut();
 
-                    // Shift and the wheel: down with the roof on, the top floor opened; far down, no lower than the lowest.
+                    // Shift and the wheel: down with the roof on, the top floor opened; far down, a turn at
+                    // a time over each gap between levels, the lowest, no lower.
                     Stage.OpenLevel(Stage.FloorHeights.Count);
                     Stage.WheelCut(-0.75f);
                     var topOpened = Stage.Cutting && Stage.CutLevel == 0;
-                    Stage.WheelCut(-1000f);
+                    for (var turn = 0; turn < 2 * Stage.FloorHeights.Count + 2; turn++) Stage.WheelCut(-1000f);
                     if (!topOpened || Stage.CutLevel != Stage.FloorHeights.Count - 1) unwheeled.Add($"{entry.Name}: top floor opened {topOpened}, at floor {Numbers.Count(Stage.CutLevel + 1)} of {Numbers.Count(Stage.FloorHeights.Count)} after far down");
                     Stage.OpenLevel(Stage.FloorHeights.Count);
                 }

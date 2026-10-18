@@ -74,6 +74,9 @@ namespace Scry
         /// <summary>Whether the plan from above, its switch for the rooms below off, leaves a room out: one whose ground lies below the level looked at, the room gone into's or the floor opened; none with neither.</summary>
         public static bool HiddenBelow(float ground, float? level) => level is float at && ground < at - SameLevel;
 
+        /// <summary>The zoom a room is gone into at: the one the view has, from another room; framed afresh at 1, from the whole dungeon.</summary>
+        public static float ZoomGoingInto(bool fromRoom, float zoom) => fromRoom ? zoom : 1f;
+
         /// <summary>Where the stage is cut with a room gone into: head height over the level opened, under the ceiling over it where that is lower (<see cref="PlaceView.CutHeight(float, float?, float?)"/>).</summary>
         public static float Cut(float level, float? ceiling) => PlaceView.CutHeight(level, null, ceiling);
     }
