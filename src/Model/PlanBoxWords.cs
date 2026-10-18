@@ -74,6 +74,20 @@ namespace Scry
         /// <summary>The tag at the head of the breadcrumb over the world's own dungeon, and its tip.</summary>
         public const string ThisDungeon = "This dungeon";
         public const string ThisDungeonTip = "The rooms as they stand in your world; the menu beside the dungeon shows an example instead";
+        public const string ThisDungeonTipFogged = "The rooms as they stand in your world, as far as you have walked them; the menu beside the dungeon shows an example instead";
+
+        /// <summary>What marks the room the player stands in on the breadcrumb, and the tip of their room there.</summary>
+        public const string YouMark = " · you";
+        public const string TrailYouTip = "Where you stand: click to go into it";
+
+        /// <summary>How much of the world's own dungeon the player has walked, over the plan.</summary>
+        public static string Walked(int walked, int rooms) => Numbers.Count(walked) + " of " + Naming.Count(rooms, "room", "rooms") + " walked";
+
+        /// <summary>The warning over the plan while peeking shows the rooms not walked.</summary>
+        public static string PeekingRooms(int rooms) => "Peeking: " + Naming.Count(rooms, "room not walked is", "rooms not walked are") + " shown";
+
+        /// <summary>The tip of a doorway marked as leading on to a room not walked.</summary>
+        public const string OpenWayTip = "A way on to a room not walked yet";
 
         /// <summary>The menu's switch from the world's own dungeon to an example and back.</summary>
         public const string ShowExample = "Show an example";

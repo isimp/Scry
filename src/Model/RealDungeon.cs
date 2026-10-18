@@ -30,6 +30,32 @@ namespace Scry
             return rooms;
         }
 
+        /// <summary>
+        /// The saved room a point stands in, by each room's box round its place, turned as saved and
+        /// as big as <paramref name="sizeOf"/> gives its hash (none for an end cap, a divider or a
+        /// kind not known); of boxes overlapping, the one whose foot is nearest under the point; -1
+        /// in none.
+        /// </summary>
+        public static int Holding(IReadOnlyList<(int Hash, Vec3 Position, Vec3 Angles)> saved, Func<int, Vec3?> sizeOf, Vec3 point)
+        {
+            var found = -1;
+            var highest = float.NegativeInfinity;
+            for (var i = 0; i < saved.Count; i++)
+            {
+                var (hash, position, angles) = saved[i];
+                var size = sizeOf(hash);
+                if (!size.HasValue) continue;
+                var local = Quat.Euler(angles.X, angles.Y, angles.Z).Inverse() * (point - position);
+                var half = size.Value * 0.5f;
+                if (Math.Abs(local.X) > half.X || Math.Abs(local.Y) > half.Y || Math.Abs(local.Z) > half.Z) continue;
+                var foot = position.Y - half.Y;
+                if (foot <= highest) continue;
+                highest = foot;
+                found = i;
+            }
+            return found;
+        }
+
         /// <summary>The keys an older world kept a room under instead, by its place in the list: its hash, its position and its turn.</summary>
         public static (string Hash, string Position, string Turn) OldKeys(int index)
         {
@@ -80,15 +106,16 @@ namespace Scry
         {
             unknown = 0;
             var dungeon = new DungeonExample { Site = new DungeonSite { Generator = generator, Turn = turn } };
-            foreach (var (hash, position, angles) in saved)
+            for (var i = 0; i < saved.Count; i++)
             {
+                var (hash, position, angles) = saved[i];
                 var shape = roomOf(hash);
                 if (shape == null)
                 {
                     unknown++;
                     continue;
                 }
-                dungeon.Rooms.Add(new PlacedRoom { Room = shape, Position = position, Rotation = Quat.Euler(angles.X, angles.Y, angles.Z) });
+                dungeon.Rooms.Add(new PlacedRoom { Room = shape, Position = position, Rotation = Quat.Euler(angles.X, angles.Y, angles.Z), SavedAt = i });
             }
 
             var way = dungeon.Rooms.FindIndex(r => r.Room.Entrance);

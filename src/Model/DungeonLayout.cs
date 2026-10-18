@@ -43,6 +43,9 @@ namespace Scry
         /// <summary>The room it was joined to at a doorway of that room's; none for the entrance and a camp's rooms.</summary>
         public PlacedRoom JoinedTo;
 
+        /// <summary>Its place in the list of rooms a world saved for its dungeon (<see cref="SavedRooms"/>); -1 in an example.</summary>
+        public int SavedAt = -1;
+
         public Vec3 DoorwayAt(int index) => Position + Rotation * Room.Doorways[index].Position;
 
         public Quat DoorwayTurn(int index) => Rotation * Room.Doorways[index].Rotation;
@@ -79,6 +82,12 @@ namespace Scry
         /// <summary>The room a point on the plan is in: the one drawn on top of the others there, or null.</summary>
         public PlacedRoom RoomAt(float x, float z) => BottomUp.LastOrDefault(r => r.Covers(x, z));
 
+        /// <summary>A point of the world where it stands from the generator, as <see cref="FromGenerator"/> stands the rooms.</summary>
+        public Vec3 FromGeneratorPoint(Vec3 point) => Site.Turn.Inverse() * (point - Site.Generator);
+
+        /// <summary>A heading of the world, in degrees about the upright, as it is from the generator.</summary>
+        public float FromGeneratorYaw(float yaw) => yaw - Site.Turn.YawDegrees;
+
         /// <summary>
         /// The same example as it stands from its generator: the generator at the origin and
         /// unturned, each room and door where it is from there, as a stage that holds the
@@ -99,7 +108,7 @@ namespace Scry
             var moved = new Dictionary<PlacedRoom, PlacedRoom>();
             foreach (var room in Rooms)
             {
-                var placed = new PlacedRoom { Room = room.Room, Position = Local(room.Position), Rotation = back * room.Rotation, PlaceOrder = room.PlaceOrder };
+                var placed = new PlacedRoom { Room = room.Room, Position = Local(room.Position), Rotation = back * room.Rotation, PlaceOrder = room.PlaceOrder, SavedAt = room.SavedAt };
                 moved[room] = placed;
                 staged.Rooms.Add(placed);
             }

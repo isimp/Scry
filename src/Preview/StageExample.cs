@@ -261,6 +261,13 @@ namespace Scry
         public RoomLook LookOf(PlacedRoom room, float? planFloor, IReadOnlyList<float> floors)
         {
             if (_heldLook is RoomLook held) return held;
+            var look = OwnLook(room, planFloor, floors);
+            // A room of the world's own dungeon shown only while peeking stands dimmed, but the one gone into.
+            return (look == RoomLook.Whole || look == RoomLook.Near) && room != Focused && ExampleLayouts.IsPeeked(room) ? RoomLook.Below : look;
+        }
+
+        private RoomLook OwnLook(PlacedRoom room, float? planFloor, IReadOnlyList<float> floors)
+        {
             room = ExamplePlan.LooksAs(room);
             if (Focused != null)
             {

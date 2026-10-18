@@ -124,6 +124,7 @@ namespace Scry
             if (!Guard.Run(Feature.Locations, "reading the locations", Locations.Update, "update locations")) Locations.Forget();
             Step(Feature.FloorsKept, "the floors kept", "update floors kept", FloorRecords.Update);
             Step(Feature.CompendiumCatchUp, "what the character knows", "update compendium", CompendiumKeeper.Update);
+            Step(Feature.DungeonMaps, "the rooms walked in a dungeon", "update dungeon walks", DungeonWalks.Update);
             Step(Feature.CompendiumShown, "showing what the character knows", "update compendium list", ShowKnown);
         }
 

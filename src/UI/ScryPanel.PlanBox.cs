@@ -332,7 +332,9 @@ namespace Scry
             // without them; else, with a room gone into, folded to its tab (CornerFit).
             var card = (Stage.RoomGoneInto != null || Stage.PickedRoom != null) && Stage.HasInside && Stage.ShowsInside;
             // The header and the plan, nothing under it: where the view is stands on the stage's breadcrumb.
-            var leanRows = pad + headerH + gap + pad;
+            // While peeking at the world's own dungeon, the peek's warning between them.
+            var peekH = PeekStripShown ? rowH + gap : 0f;
+            var leanRows = pad + headerH + gap + peekH + pad;
             var wholeRows = leanRows;
             var shape = CornerFit.Shape(inner.height, wholeRows, leanRows, card, _s);
             if (repaint) PlanBoxShapeShown = shape;
@@ -399,9 +401,12 @@ namespace Scry
                 }
             }
             if (repaint) GUI.Label(fold, "–", fold.Contains(e.mousePosition) ? Skin.Label : Skin.DimLabel);
+            // How much of the world's own dungeon is walked, where the header has room for it.
+            WalkedLabel(oneRow ? new Rect(x, y, segX - U(4f) - x, rowH) : new Rect(x, controlsY, (switchShown ? below.x : names.x) - U(4f) - x, rowH));
+            if (peekH > 0f) PeekStrip(new Rect(x, y + headerH + gap, w, rowH));
 
             // The plan itself.
-            var area = new Rect(x, y + headerH + gap, w, planH);
+            var area = new Rect(x, y + headerH + gap + peekH, w, planH);
             BoxSpots.Clear();
             var gone = Stage.RoomGoneInto;
             // The way from the entrance drawn in the plan: to the room lit, else to the room gone into.
@@ -516,12 +521,15 @@ namespace Scry
                     Half = new Vector2(Mathf.Max(U(1f), room.Room.Size.X * scale / 2f), Mathf.Max(U(1f), room.Room.Size.Z * scale / 2f)),
                 });
             }
-            if (!repaint) return;
-            foreach (var spot in BoxSpots) if (!spot.Dashed) BoxTile(spot, spot.Room == gone ? Skin.Alpha(Skin.Accent, 0.75f) : DepthTone(spot.Room), Skin.Alpha(Skin.Text, 0.3f), 1f);
-            foreach (var spot in BoxSpots) if (spot.Dashed) BoxTile(spot, null, Skin.Alpha(Skin.Faint, 0.6f), 1f, dashed: true);
-            Walkways((room, p) => At(p), hideBelow, drops: false);
-            foreach (var spot in BoxSpots) if (BoxLit(spot.Room) || spot.Room == gone) BoxTile(spot, null, Skin.Accent, 2f);
-            if (_planBig && PlanNamesShown) Names(explorer, area);
+            if (repaint)
+            {
+                foreach (var spot in BoxSpots) if (!spot.Dashed) RoomTile(spot, gone);
+                foreach (var spot in BoxSpots) if (spot.Dashed) BoxTile(spot, null, Skin.Alpha(Skin.Faint, 0.6f), 1f, dashed: true);
+                Walkways((room, p) => At(p), hideBelow, drops: false);
+                foreach (var spot in BoxSpots) if (BoxOutlined(spot.Room, gone)) BoxTile(spot, null, Skin.Accent, 2f);
+            }
+            YouAndWays((room, p) => At(p));
+            if (repaint && _planBig && PlanNamesShown) Names(explorer, area);
         }
 
         /// <summary>A room's tile, turned as it is: filled, outlined, or outlined in dashes.</summary>
@@ -825,9 +833,10 @@ namespace Scry
                 ViewLabels.Add(said);
                 GUI.Label(said, LevelSaid[i], Skin.FaintLabel);
             }
-            foreach (var spot in BoxSpots) BoxTile(spot, spot.Room == gone ? Skin.Alpha(Skin.Accent, 0.75f) : DepthTone(spot.Room), Skin.Alpha(Skin.Text, 0.3f), 1f);
+            foreach (var spot in BoxSpots) RoomTile(spot, gone);
             Walkways(At, null, drops: true);
-            foreach (var spot in BoxSpots) if (BoxLit(spot.Room) || spot.Room == gone) BoxTile(spot, null, Skin.Accent, 2f);
+            foreach (var spot in BoxSpots) if (BoxOutlined(spot.Room, gone)) BoxTile(spot, null, Skin.Accent, 2f);
+            YouAndWays(At);
             if (_planBig && PlanNamesShown) Names(explorer, area);
         }
 
@@ -893,10 +902,14 @@ namespace Scry
             {
                 var rect = new Rect(spot.Centre - spot.Half, spot.Half * 2f);
                 var crossroads = _boxWays.IsCrossroads(spot.Room);
-                var lit = BoxLit(spot.Room) || spot.Room == gone;
-                Skin.Fill(rect, spot.Room == gone ? Skin.Alpha(Skin.Accent, 0.75f) : DepthTone(spot.Room));
-                PlanFrame(rect, lit ? Skin.Accent : crossroads ? Skin.Alpha(Skin.Text, 0.85f) : Skin.Alpha(Skin.Text, 0.3f), lit || crossroads ? 2f : 1f);
+                var lit = BoxOutlined(spot.Room, gone);
+                var peeked = ExampleLayouts.IsPeeked(spot.Room);
+                var fill = spot.Room == gone ? Skin.Alpha(Skin.Accent, 0.75f) : DepthTone(spot.Room);
+                Skin.Fill(rect, peeked ? Skin.Alpha(fill, fill.a * PeekedShare) : fill);
+                if (peeked && !lit) PlanDashes(rect, Skin.Alpha(Skin.Faint, 0.6f));
+                else PlanFrame(rect, lit ? Skin.Accent : crossroads ? Skin.Alpha(Skin.Text, 0.85f) : Skin.Alpha(Skin.Text, 0.3f), lit || crossroads ? 2f : 1f);
             }
+            TreeYouAndWays(at, node.y / 2f);
 
             // Each node's label beside it, the room gone into's and those lit first: right of it, else
             // left, where it covers no other label or node; else left out, the caption naming the

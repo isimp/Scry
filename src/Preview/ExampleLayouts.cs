@@ -17,7 +17,8 @@ namespace Scry
     /// stage has let go of their copies. Closing the panel or leaving the location lets go of all.
     /// Where the player is in or at the dungeon, its rooms are laid out as the world has them
     /// (<see cref="WorldDungeons"/>, <see cref="RealDungeon"/>) in place of an example, until an
-    /// example is asked for.
+    /// example is asked for; with the compendium on, as far as the player has walked it
+    /// (<see cref="DungeonFog"/>, <see cref="DungeonWalks"/>), laid out again as that changes.
     /// </summary>
     internal static class ExampleLayouts
     {
@@ -59,6 +60,40 @@ namespace Scry
         /// <summary>A dungeon the self-test hands in as the world's own, looked for in place of it.</summary>
         private static WorldDungeon _standIn;
 
+        /// <summary>The world's own dungeon whole, before the fog, and the id of its map.</summary>
+        private static DungeonExample _whole;
+        private static string _wholeId;
+
+        /// <summary>Whether the compendium is set on, and peeking, as the explorer last said.</summary>
+        private static bool _fogged, _peeking;
+
+        /// <summary>What the fog was last laid by: the maps' stamp, the compendium set on, and peeking.</summary>
+        private static (int Stamp, bool Fogged, bool Peeking) _fogOf;
+
+        /// <summary>The rooms shown only as peeked, by their place in the saved rooms.</summary>
+        private static readonly HashSet<int> PeekedAt = new HashSet<int>();
+
+        /// <summary>Whether the compendium hides the rooms of the world's own dungeon not walked.</summary>
+        public static bool Fogged { get; private set; }
+
+        /// <summary>The ways on from rooms walked to rooms not, as the world has them (<see cref="DungeonFog.OpenWays"/>); none without the fog.</summary>
+        public static List<OpenWay> OpenWays { get; private set; } = new List<OpenWay>();
+
+        /// <summary>How many of the world's own dungeon's rooms were walked, of how many.</summary>
+        public static (int Walked, int Rooms) Walked { get; private set; }
+
+        /// <summary>How many rooms are shown only as peeked, end caps and dividers left out.</summary>
+        public static int PeekedRooms { get; private set; }
+
+        /// <summary>Whether a room shown is shown only as peeked.</summary>
+        public static bool IsPeeked(PlacedRoom room) => ShowsWorlds && room.SavedAt >= 0 && PeekedAt.Contains(room.SavedAt);
+
+        /// <summary>Whether the player stands in the world's own dungeon shown.</summary>
+        public static bool YouAreIn => ShowsWorlds && _wholeId != null && DungeonWalks.YouIn == _wholeId;
+
+        /// <summary>Whether a room shown is the one the player stands in.</summary>
+        public static bool IsYours(PlacedRoom room) => YouAreIn && room.SavedAt >= 0 && room.SavedAt == DungeonWalks.YouAt;
+
         /// <summary>How often the world's own dungeon is looked for, in seconds.</summary>
         private const float LookEvery = 1f;
 
@@ -97,6 +132,19 @@ namespace Scry
             _lookAgain = 0f;
             _wantExample = false;
             _standIn = null;
+            ForgetWhole();
+        }
+
+        private static void ForgetWhole()
+        {
+            _whole = null;
+            _wholeId = null;
+            _fogOf = default;
+            PeekedAt.Clear();
+            PeekedRooms = 0;
+            Fogged = false;
+            OpenWays = new List<OpenWay>();
+            Walked = default;
         }
 
         /// <summary>Hands in a dungeon as the world's own, as if the player stood in it, looked for at once; null ends it.</summary>
@@ -148,6 +196,9 @@ namespace Scry
             }
             if (entry != _entry) Start(explorer, entry, plan);
             if (plan.Algorithm == "Dungeon") LookForWorlds(place);
+            _fogged = explorer.CompendiumSet;
+            _peeking = explorer.Peeking;
+            if (ShowsWorlds && _whole != null && _fogOf != (DungeonWalks.Maps.Stamp, _fogged, _peeking)) Refog();
             // A dungeon only seen from outside shows its outside alone; a camp's example is its outside.
             Stage.InsideUnknown = plan.Algorithm == "Dungeon" && !explorer.InsideKnown(entry);
             if (Example == null) ReadRooms();
@@ -312,9 +363,11 @@ namespace Scry
             {
                 var byHash = new Dictionary<int, RoomShape>();
                 foreach (var shape in shapes) byHash[shape.Name.GetStableHashCode()] = shape;
-                Example = RealDungeon.Of(_world.Saved, hash => byHash.TryGetValue(hash, out var shape) ? shape : null, _world.Generator, _world.Turn, out var unread);
+                _whole = RealDungeon.Of(_world.Saved, hash => byHash.TryGetValue(hash, out var shape) ? shape : null, _world.Generator, _world.Turn, out var unread);
+                _wholeId = _world.Id;
                 ShowsWorlds = true;
                 Unread = unread;
+                Refog();
             }
             else
             {
@@ -325,6 +378,7 @@ namespace Scry
                 Example = DungeonLayout.Build(plan, shapes, DungeonLayout.Site(plan, radius, turned, dice), dice);
                 ShowsWorlds = false;
                 Unread = 0;
+                ForgetWhole();
             }
 
             // The kinds of room it is built of are listed by what each is, known now, and ranked
@@ -339,6 +393,21 @@ namespace Scry
                     world.Regroup();
                 }
             }
+        }
+
+        /// <summary>The world's own dungeon as the fog shows it, the stage building it afresh: its rooms walked, the rest only while peeking; every one with the compendium off.</summary>
+        private static void Refog()
+        {
+            _fogOf = (DungeonWalks.Maps.Stamp, _fogged, _peeking);
+            var walked = DungeonWalks.Maps.Of(_wholeId)?.Walked;
+            bool IsWalked(PlacedRoom room) => walked != null && walked.Contains(room.SavedAt);
+            Example = DungeonFog.Shown(_whole, IsWalked, _fogged, _peeking, out var peeked);
+            PeekedAt.Clear();
+            foreach (var room in peeked) PeekedAt.Add(room.SavedAt);
+            PeekedRooms = peeked.Count(r => !r.Room.EndCap && !r.Room.Divider);
+            Fogged = _fogged;
+            OpenWays = _fogged ? DungeonFog.OpenWays(DungeonWays.Of(_whole.Rooms), IsWalked) : new List<OpenWay>();
+            Walked = DungeonFog.Walked(_whole, IsWalked);
         }
 
         private static void LetGo()

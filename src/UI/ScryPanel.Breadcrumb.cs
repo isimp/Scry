@@ -39,7 +39,9 @@ namespace Scry
             var gone = Stage.RoomGoneInto;
             var mark = gone != null ? Stage.ExampleMarkOfRoom(gone) : Stage.Cutting ? Stage.CutLevel : -1;
             var level = mark >= 0 ? Stage.ExampleMark(mark) : null;
-            var trail = DungeonTrail.Of(ShownName(explorer, entry.Key, entry.DisplayName), level, gone != null ? BoxRoomName(explorer, gone) : null);
+            var yours = YourRoom();
+            var trail = DungeonTrail.Of(ShownName(explorer, entry.Key, entry.DisplayName), level, gone != null ? BoxRoomName(explorer, gone) : null,
+                roomIsYours: gone != null && ExampleLayouts.IsYours(gone), you: gone == null && yours != null ? BoxRoomName(explorer, yours) : null);
             if (e.type == EventType.Repaint)
             {
                 TrailForTest = trail;
@@ -49,7 +51,7 @@ namespace Scry
             {
                 // The world's own dungeon, tagged as the kind badge is drawn.
                 var tag = new Rect(x, y, Skin.Width(Skin.Glyph, PlanBoxWords.ThisDungeon) + U(20f), h);
-                if (tag.Contains(e.mousePosition)) AskTip("trail:worlds", PlanBoxWords.ThisDungeonTip);
+                if (tag.Contains(e.mousePosition)) AskTip("trail:worlds", ExampleLayouts.Fogged ? PlanBoxWords.ThisDungeonTipFogged : PlanBoxWords.ThisDungeonTip);
                 Skin.PillBox(tag, Skin.Worlds);
                 Skin.LabelIn(tag, PlanBoxWords.ThisDungeon, Skin.Glyph, Skin.Text);
                 x = tag.xMax + U(6f);
@@ -66,7 +68,7 @@ namespace Scry
                 var style = current ? Skin.ChipOn : Skin.Chip;
                 var chip = new Rect(x, y, Mathf.Min(Skin.Width(style, text) + U(4f), U(220f)), h);
                 if (chip.Contains(e.mousePosition)) AskTip("trail:" + part, TrailTip(part, gone != null));
-                if (GUI.Button(chip, text, Skin.Fitted(style, chip))) Follow(part, gone);
+                if (GUI.Button(chip, text, Skin.Fitted(style, chip))) Follow(part, gone, yours);
                 x = chip.xMax + U(2f);
                 if (part != TrailPart.Dungeon) continue;
                 // Beside the dungeon, the menu going into its entrance or its deepest room.
@@ -80,14 +82,18 @@ namespace Scry
             CountDrawn(PanelPart.Trail);
         }
 
+        /// <summary>The room of the dungeon shown the player stands in, none where they stand in none of it.</summary>
+        private static PlacedRoom YourRoom() => ExampleLayouts.YouAreIn ? Stage.ExampleWays?.Rooms.FirstOrDefault(ExampleLayouts.IsYours) : null;
+
         /// <summary>What a part of the breadcrumb says it does.</summary>
         private static string TrailTip(TrailPart part, bool inRoom) =>
             part == TrailPart.Dungeon ? PlanBoxWords.TrailDungeonTip(BoxRooms.Count)
             : part == TrailPart.Level ? PlanBoxWords.TrailLevelTip(inRoom)
+            : part == TrailPart.You ? PlanBoxWords.TrailYouTip
             : PlanBoxWords.TrailRoomTip;
 
-        /// <summary>What a click on a part of the breadcrumb does: the whole dungeon with the roof on, back out of the room to its level, or the room framed again.</summary>
-        private static void Follow(TrailPart part, PlacedRoom gone)
+        /// <summary>What a click on a part of the breadcrumb does: the whole dungeon with the roof on, back out of the room to its level, the room framed again, or into the room the player stands in.</summary>
+        private static void Follow(TrailPart part, PlacedRoom gone, PlacedRoom yours)
         {
             switch (part)
             {
@@ -97,6 +103,9 @@ namespace Scry
                 case TrailPart.Level:
                     if (gone != null) Stage.ComeOut();
                     break;
+                case TrailPart.You:
+                    if (yours != null) Stage.GoInto(yours);
+                    break;
                 default:
                     Stage.View("Fit");
                     break;
@@ -105,7 +114,7 @@ namespace Scry
 
         /// <summary>Clicks a part of the breadcrumb as the mouse does, for the self-test.</summary>
         [Diagnostic]
-        public static void ClickTrailForTest(TrailPart part) => Follow(part, Stage.RoomGoneInto);
+        public static void ClickTrailForTest(TrailPart part) => Follow(part, Stage.RoomGoneInto, YourRoom());
 
         // ----- The menu beside the dungeon -----
 

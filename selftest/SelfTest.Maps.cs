@@ -7,7 +7,8 @@ namespace Scry
 {
     /// <summary>
     /// The self-test's cases for the maps of dungeons a player is in or has been in: the world's
-    /// own dungeon read from its saved rooms and shown in place of an example.
+    /// own dungeon read from its saved rooms and shown in place of an example, and with the
+    /// compendium on as far as it was walked, the player's room and arrow marked.
     /// </summary>
     internal static partial class SelfTest
     {
@@ -21,17 +22,18 @@ namespace Scry
         {
             var entry = Crypt();
             if (entry == null) p.Skip("there is no such location");
+            // With the compendium off, as the fog would hide the rooms not walked.
+            var noCompendium = new CompendiumView(X.Entries);
+            noCompendium.Tell(new CompendiumBook(), CompendiumRule.Off);
+            Session.ShowKnownInstead(noCompendium);
             Select(entry);
             Stage.Inside = true;
+            yield return Until(() => ReferenceEquals(X.Compendium, noCompendium), 3);
             yield return Until(() => ExampleLayouts.Of(entry) && ExampleLayouts.Example != null && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleRoomsTotal > 0, 150);
             var rolled = ExampleLayouts.Of(entry) ? ExampleLayouts.Example : null;
             if (!p.Check(rolled != null && !ExampleLayouts.ShowsWorlds, "an example has been laid out")) yield break;
 
-            var saved = rolled.Rooms.Select(r =>
-            {
-                var angles = new Quaternion(r.Rotation.X, r.Rotation.Y, r.Rotation.Z, r.Rotation.W).eulerAngles;
-                return (r.Room.Name.GetStableHashCode(), r.Position, new Vec3(angles.x, angles.y, angles.z));
-            }).ToList();
+            var saved = SavedAsTheGameSaves(rolled);
             saved.Add(("not a room Scry has read".GetStableHashCode(), rolled.Rooms[0].Position, new Vec3(0f, 0f, 0f)));
             var world = new WorldDungeon { Saved = SavedRooms.Read(SavedRooms.Write(saved)), Generator = rolled.Site.Generator, Turn = rolled.Site.Turn };
             ExampleLayouts.StandInForTest(world);
@@ -77,11 +79,108 @@ namespace Scry
             ThisDungeonAsItWas();
         }
 
-        /// <summary>Ends the stand-in, an example shown again in place of it.</summary>
+        /// <summary>An example's rooms as the game saves a dungeon's: each room's name's hash, its place and its turn as angles, in the order placed.</summary>
+        private static List<(int Hash, Vec3 Position, Vec3 Angles)> SavedAsTheGameSaves(DungeonExample example) => example.Rooms.Select(r =>
+        {
+            var angles = new Quaternion(r.Rotation.X, r.Rotation.Y, r.Rotation.Z, r.Rotation.W).eulerAngles;
+            return (r.Room.Name.GetStableHashCode(), r.Position, new Vec3(angles.x, angles.y, angles.z));
+        }).ToList();
+
+        /// <summary>
+        /// A rolled example handed in as the world's own, with a made-up character for whom the
+        /// compendium is on, on maps of its own: walked in its entrance and the room next to it, only
+        /// those stand, their ways on to the rest marked; stood in the second, the breadcrumb ends at
+        /// it and goes into it, the plan box and the stage mark where the player stands; peeking,
+        /// every room stands, those not walked dimmed and dashed under the peek's warning.
+        /// </summary>
+        private static IEnumerator DungeonFogShows(Probe p)
+        {
+            var entry = Crypt();
+            if (entry == null) p.Skip("there is no such location");
+            var book = new CompendiumBook();
+            book.Raise(entry.Key, KnownLevel.Known);
+            var loose = new CompendiumView(X.Entries);
+            loose.Tell(book, CompendiumRule.Loose);
+            Session.ShowKnownInstead(loose);
+            Select(entry);
+            Stage.Inside = true;
+            yield return Until(() => ReferenceEquals(X.Compendium, loose) && ExampleLayouts.Of(entry) && ExampleLayouts.Example != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 150);
+            var rolled = ExampleLayouts.Of(entry) ? ExampleLayouts.Example : null;
+            if (!p.Check(rolled != null && X.CompendiumOn, "an example has been laid out, the compendium on")) yield break;
+
+            var ways = DungeonWays.Of(rolled.Rooms);
+            var onward = ways.Entrance != null ? ways.WaysOf(ways.Entrance) : null;
+            var next = onward != null && onward.Count > 0 ? onward[0] : null;
+            if (!p.Check(next != null, "its entrance leads on to a room")) yield break;
+            var first = rolled.Rooms.IndexOf(ways.Entrance);
+            var second = rolled.Rooms.IndexOf(next);
+            const string id = "self-test:fog";
+            var maps = new DungeonMaps();
+            var saved = SavedAsTheGameSaves(rolled);
+            maps.Keep(id, PlaceOf(entry).Prefab, saved, new Vec3(0f, 0f, 0f));
+            maps.Walk(id, first);
+            maps.Walk(id, second);
+            DungeonWalks.MapsInsteadForTest(maps);
+            ExampleLayouts.StandInForTest(new WorldDungeon { Saved = saved, Generator = rolled.Site.Generator, Turn = rolled.Site.Turn, Id = id, Location = PlaceOf(entry).Prefab });
+            yield return Until(() => ExampleLayouts.ShowsWorlds && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
+            var fogged = ExampleLayouts.Example;
+            var shownAt = fogged.Rooms.Where(r => !r.Room.EndCap && !r.Room.Divider).Select(r => r.SavedAt).OrderBy(i => i).ToList();
+            var rooms = rolled.Rooms.Count(r => !r.Room.EndCap && !r.Room.Divider);
+            p.Check(ExampleLayouts.Fogged && shownAt.SequenceEqual(new[] { first, second }.OrderBy(i => i)), "with the compendium on, only the rooms walked stand", string.Join(", ", shownAt.Select(i => Numbers.Count(i))));
+            p.Check(ExampleLayouts.Walked == (2, rooms), "it counts the rooms walked of all", $"{Numbers.Count(ExampleLayouts.Walked.Walked)} of {Numbers.Count(ExampleLayouts.Walked.Rooms)}");
+            var open = ExampleLayouts.OpenWays;
+            var walkedAt = new HashSet<int> { first, second };
+            p.Check(open.Count > 0 && open.All(w => walkedAt.Contains(w.From.SavedAt) && !walkedAt.Contains(w.To.SavedAt)), "each way on to a room not walked is marked", $"{Numbers.Count(open.Count)} ways");
+            var planned = ScryPanel.Drawn(PanelPart.PlanBox);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > planned + 1, 5);
+            p.Check(ScryPanel.PlanBoxOpenWaysDrawn > 0, "the plan box draws the ways on", $"{Numbers.Count(ScryPanel.PlanBoxOpenWaysDrawn)} drawn");
+            yield return Picture(p, $"fog {entry.Name} two rooms walked");
+
+            // Stood in the second room: the breadcrumb ends at it and goes into it, the plan and the stage mark it.
+            DungeonWalks.StandInForTest((id, second, rolled.Rooms[second].Position, 0f));
+            var trails = ScryPanel.Drawn(PanelPart.Trail);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.Trail) > trails + 1 && ScryPanel.TrailForTest.Any(t => t.Part == TrailPart.You), 5);
+            p.Check(ScryPanel.TrailForTest.Any(t => t.Part == TrailPart.You && t.Text.EndsWith(PlanBoxWords.YouMark, System.StringComparison.Ordinal)), "the breadcrumb ends at the room the player stands in", string.Join(" › ", ScryPanel.TrailForTest.Select(t => t.Text)));
+            p.Check(ScryPanel.PlanBoxYouDrawn && Stage.YouMarkShown, "the plan box and the stage mark where the player stands", $"plan {ScryPanel.PlanBoxYouDrawn}, stage {Stage.YouMarkShown}");
+            yield return Picture(p, $"fog {entry.Name} you are here");
+            ScryPanel.ClickTrailForTest(TrailPart.You);
+            yield return Until(() => Stage.RoomGoneInto != null && !Stage.Gliding, 5);
+            trails = ScryPanel.Drawn(PanelPart.Trail);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.Trail) > trails + 1, 5);
+            var trail = ScryPanel.TrailForTest;
+            var into = trail.Count > 0 ? trail[trail.Count - 1] : default;
+            p.Check(Stage.RoomGoneInto?.SavedAt == second && into.Part == TrailPart.Room && into.Text.EndsWith(PlanBoxWords.YouMark, System.StringComparison.Ordinal), "a click on it goes into it, marked as the player's", into.Text ?? "none");
+            Stage.ComeOut();
+            yield return Until(() => Stage.RoomGoneInto == null && !Stage.Gliding, 5);
+
+            // Peeking, every room stands, those not walked dimmed and dashed under the peek's warning.
+            X.Peeking = true;
+            yield return Until(() => ExampleLayouts.Example != fogged && Stage.ExampleRoomsTotal == rolled.Rooms.Count && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
+            var peekedRoom = Stage.ExampleWays?.Rooms.FirstOrDefault(ExampleLayouts.IsPeeked);
+            p.Check(ExampleLayouts.PeekedRooms == rooms - 2 && peekedRoom != null, "peeking, the rooms not walked stand, marked as peeked", $"{Numbers.Count(ExampleLayouts.PeekedRooms)} peeked of {Numbers.Count(rooms)}");
+            if (peekedRoom != null) p.Check(Stage.ExampleRoomLook(peekedRoom) != RoomLook.Whole, "and stand dimmed on the stage", Stage.ExampleRoomLook(peekedRoom).ToString());
+            yield return Picture(p, $"fog {entry.Name} peeking");
+            X.Peeking = false;
+            yield return Until(() => ExampleLayouts.Example.Rooms.Count == fogged.Rooms.Count, 10);
+            p.Check(ExampleLayouts.PeekedRooms == 0 && ExampleLayouts.Example.Rooms.Count == fogged.Rooms.Count, "the peek ended, the fog is back");
+            DungeonFogAsItWas();
+        }
+
+        /// <summary>Ends the fog's stand-ins: the peek, the made-up character, the maps and where the player stood.</summary>
+        private static void DungeonFogAsItWas()
+        {
+            X.Peeking = false;
+            DungeonWalks.StandInForTest(null);
+            DungeonWalks.MapsInsteadForTest(null);
+            ThisDungeonAsItWas();
+        }
+
+        /// <summary>Ends the stand-in, an example shown again in place of it, the character's own compendium back.</summary>
         private static void ThisDungeonAsItWas()
         {
             ExampleLayouts.ShowExample();
             ExampleLayouts.StandInForTest(null);
+            Session.ShowKnownInstead(null);
         }
     }
 }

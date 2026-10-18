@@ -97,6 +97,7 @@ namespace Scry
             KeepOutline();
             KeepLitOutline();
             KeepGhosts();
+            KeepYouMark();
             Timing.Add("render frame", step);
             step = Timing.Start();
             KeepCreaturesToCut();
