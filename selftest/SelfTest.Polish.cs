@@ -98,7 +98,7 @@ namespace Scry
             });
             report.AppendLine().AppendLine("Labels by kind, with how many of the entries looked at tell each:");
             foreach (var pair in labels.OrderBy(l => l.Key.ToString(), StringComparer.Ordinal))
-                report.AppendLine($"  {pair.Key}: " + string.Join("; ", pair.Value.OrderByDescending(l => l.Value).Select(l => $"{l.Key} ({l.Value})")));
+                report.AppendLine($"  {pair.Key}: " + string.Join("; ", pair.Value.OrderByDescending(l => l.Value).Select(l => $"{l.Key} ({Numbers.Count(l.Value)})")));
             report.AppendLine().AppendLine("Values and names that read as code:");
             foreach (var line in coded) report.AppendLine("  " + line);
             var counts = X.Catalog.Where(e => e.Alike != null && Regex.IsMatch(e.Alike, @"^\d+ of \d+$")).ToList();
@@ -130,7 +130,8 @@ namespace Scry
                 p.Note("no jump measured: the character is not standing free on the ground");
                 yield break;
             }
-            var skill = player.GetSkills()?.GetSkillList().FirstOrDefault(s => s.m_info.m_skill == Skills.SkillType.Jump);
+            var skills = player.GetSkills();
+            var skill = skills != null ? skills.GetSkillList().FirstOrDefault(s => s.m_info.m_skill == Skills.SkillType.Jump) : null;
             var level = skill != null ? skill.m_level : 0f;
             var progress = skill != null ? skill.m_accumulator : 0f;
             var stamina = player.GetStamina();
