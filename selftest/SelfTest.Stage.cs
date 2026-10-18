@@ -265,7 +265,8 @@ namespace Scry
 
         /// <summary>
         /// The world's lights stay off the stage: a directional light made in the world, as a
-        /// lightning strike's flash is, leaves the stage's picture as it was. The stage stands
+        /// lightning strike's flash is, leaves the stage's picture as it was; it reaches the
+        /// stage's layer alone, so the player's own world is never lit by it. The stage stands
         /// still on the plain backdrop meanwhile, as grass and water move with the wind; what
         /// changes between two pictures with no light made is noted, and the light may change
         /// no more than that and a hundredth.
@@ -288,9 +289,12 @@ namespace Scry
             yield return null;
             var again = PictureWithin(middle, out _, out _);
 
+            // Reaching the stage's layer alone, as the stage finds the world's lights by the layers
+            // they reach: the player's own world, drawn without that layer, is never lit by it.
             var flash = new GameObject("Scry self-test flash");
             var light = flash.AddComponent<Light>();
             light.type = LightType.Directional;
+            light.cullingMask = 1 << Stage.Layer;
             light.color = Color.red;
             light.intensity = 8f;
             flash.transform.rotation = Quaternion.Euler(30f, 200f, 0f);
