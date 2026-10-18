@@ -64,8 +64,8 @@ namespace Scry
         /// <summary>What a rule shows, told after its name when stepping to it.</summary>
         public static string RuleTip(CompendiumRule rule) => rule switch
         {
-            CompendiumRule.Loose => "list only what this character has seen, a page open once it has fought, held, built, used or entered it, and count in each kind's tab what was found of all there is",
-            CompendiumRule.Strict => "list the same as Loose, but a page shows of how its entry connects (drops, places, recipes, attacks) only what this character saw go together, keeps back the names of what it has not seen, and the numbers the game never shows until you find them out",
+            CompendiumRule.Loose => "only what this character has met shows; a page opens whole once it has fought, held, built, used or entered it",
+            CompendiumRule.Strict => "as Loose, but a page shows only what this character saw go together, and keeps back the numbers the game never shows until it finds them out",
             _ => "show everything. What this character comes to know is kept all the same, so turning the compendium on later shows everything met meanwhile",
         };
 
@@ -140,16 +140,13 @@ namespace Scry
         public static string ServerPart => "on a dedicated server Scry only answers players' explored maps, for their compendium, and keeps the group's records of the dungeons they walk";
 
         /// <summary>The caption of the milestone floor in the title row.</summary>
-        public const string FloorCaption = "Floor";
+        public const string FloorCaption = "Known up to";
 
         /// <summary>The milestone floor as stepped: the last tier it shows, by its biome, or none.</summary>
         public static string FloorName(int floor) => floor > 0 ? Naming.FieldLabel(Tiers.BiomeOf(floor)) : "none";
 
-        /// <summary>The milestone floor named in a sentence.</summary>
-        public static string Floor(int floor) => FloorCaption + ": " + FloorName(floor);
-
-        /// <summary>The tip of the mark on a row, and the line under a page's title, of what shows as known only by the floor.</summary>
-        public static string ByFloor(int floor) => $"Shown by the {Floor(floor)}, not yet come to know by this character";
+        /// <summary>The tip of the mark on a row, and the line under a page's title, of what shows as known only by the floor, named by its control: "Shown as known up to Black forest".</summary>
+        public static string ByFloor(int floor) => $"Shown as {FloorCaption.ToLowerInvariant()} {FloorName(floor)}, not yet come to know by this character";
 
         /// <summary>The tip of a link or chip on a page going to what shows as known only by the floor: that, above its own tip.</summary>
         public static string FloorTip(int floor, string tip) => Naming.Lines(ByFloor(floor), tip);
@@ -251,7 +248,7 @@ namespace Scry
         {
             if (way is CameBy by) return CameToKnow(by, day, biome);
             if (!string.IsNullOrEmpty(owner)) return CameWith(owner);
-            if (byFloor) return "shown by the floor";
+            if (byFloor) return "shown as known up to its biome";
             return known ? KnownBefore : null;
         }
 
@@ -259,7 +256,7 @@ namespace Scry
         public static string CameWith(string owner) => "with " + owner;
 
         /// <summary>A thing known before its character's book was kept, from what the game kept of it.</summary>
-        public const string KnownBefore = "before this book was kept";
+        public const string KnownBefore = "already known when this book began";
 
         /// <summary>How many damage types a creature's grid keeps back under the strict rules, told faintly under it; none where it keeps none back.</summary>
         public static string NotYetHitWith(int count) => count > 0 ? $"{Numbers.Count(count)} more not yet hit with" : null;
@@ -435,7 +432,7 @@ namespace Scry
         }
 
         /// <summary>Said under that on a closed page under the strict rules, where a page known still keeps some back until found out.</summary>
-        public const string ClosedStrict = "Some of its page shows only once you find it out.";
+        public const string ClosedStrict = "Under Strict, numbers and connections show as you see them.";
 
         /// <summary>What opens a page of this kind: every way that makes it known, by the one verb for a page.</summary>
         public static string HowToKnow(Kind kind)

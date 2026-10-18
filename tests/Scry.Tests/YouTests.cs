@@ -37,8 +37,8 @@ namespace Scry.Tests
         {
             Assert.Equal("day 12, fighting it in the Black Forest", CompendiumWords.CameLine(CameBy.Fought, 12, "Black Forest", owner: "Troll", byFloor: true, known: true));
             Assert.Equal("with Troll", CompendiumWords.CameLine(null, -1, null, owner: "Troll", byFloor: true, known: true));
-            Assert.Equal("shown by the floor", CompendiumWords.CameLine(null, -1, null, owner: null, byFloor: true, known: true));
-            Assert.Equal("before this book was kept", CompendiumWords.CameLine(null, -1, null, owner: null, byFloor: false, known: true));
+            Assert.Equal("shown as known up to its biome", CompendiumWords.CameLine(null, -1, null, owner: null, byFloor: true, known: true));
+            Assert.Equal("already known when this book began", CompendiumWords.CameLine(null, -1, null, owner: null, byFloor: false, known: true));
             Assert.Null(CompendiumWords.CameLine(null, -1, null, owner: null, byFloor: false, known: false));
         }
     }

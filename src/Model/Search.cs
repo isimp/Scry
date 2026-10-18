@@ -194,12 +194,13 @@ namespace Scry
         /// <paramref name="only"/> can match when it is given. <paramref name="kindCounts"/>, when
         /// given, is added to: for each kind, how many would match with any kind let through, so
         /// the kind chips count across every kind while one is picked.
-        /// With the compendium (<paramref name="view"/>), only what the character has seen or knows
-        /// matches, and what it has only seen only by its name and kind, since any other term would
-        /// tell what its closed page holds. A known entry matches a term naming what it goes with
-        /// (drops, biomes, places, stations, owners) only through what the character has met, and
-        /// under the strict rules above the milestone floor only through what it saw go together
-        /// with it as well, as its page shows. While
+        /// With the compendium set (<paramref name="view"/>, none off), only the world a player meets
+        /// is listed (<see cref="Kinds.ForPlayers"/>) unless <paramref name="peeking"/>, and only what
+        /// the character has seen or knows matches, and what it has only seen only by its name and
+        /// kind, since any other term would tell what its closed page holds. A known entry matches a
+        /// term naming what it goes with (drops, biomes, places, stations, owners) only through what
+        /// the character has met, and under the strict rules above the milestone floor only through
+        /// what it saw go together with it as well, as its page shows. While
         /// <paramref name="peeking"/>, a thing the character has not met is found only by its whole
         /// name in quotes, every name in quotes its own.
         /// </summary>
@@ -219,6 +220,9 @@ namespace Scry
                 if (!PassesAnyKind(entry, query, favourites)) continue;
                 if (only != null && !only.Contains(entry.Key)) continue;
 
+                // The compendium lists the world a player meets; what the game is built of, off or peeking.
+                if (view != null && !peeking && !Kinds.ForPlayers(entry.Kind)) continue;
+
                 var level = view != null ? view.Of(entry) : KnownLevel.Known;
                 if (level < KnownLevel.Seen)
                 {
@@ -226,7 +230,7 @@ namespace Scry
                     level = KnownLevel.Known;
                 }
 
-                var guard = view == null || view.Rule == CompendiumRule.Off || level != KnownLevel.Known ? null
+                var guard = view == null || level != KnownLevel.Known ? null
                     : view.Rule == CompendiumRule.Strict && !view.BelowFloor(entry) ? strictly : loosely;
                 var score = Score(entry, search, level == KnownLevel.Known, guard);
                 if (score == Miss) continue;
@@ -268,7 +272,8 @@ namespace Scry
         /// <summary>
         /// Numbers every entry by the name the list shows first (the game's, else the prefab's),
         /// then by its prefab name, ignoring case, with ties broken by the exact name and then by
-        /// place in the catalog, so the order never depends on how a sort happens to run.
+        /// place in the catalog, so the order never depends on how a sort happens to run. Entries
+        /// of one kind going by one name are told which of them each is (<see cref="Entry.Alike"/>).
         /// </summary>
         public static void OrderNames(IReadOnlyList<Entry> all)
         {
@@ -285,6 +290,27 @@ namespace Scry
                 return exact != 0 ? exact : a.Value.CompareTo(b.Value);
             });
             for (var i = 0; i < order.Count; i++) order[i].Key.NameOrder = i;
+
+            // Those of one name stand together, each kind's in the order of their prefabs.
+            for (var start = 0; start < order.Count;)
+            {
+                var end = start + 1;
+                while (end < order.Count && string.Equals(order[end].Key.ShownName, order[start].Key.ShownName, StringComparison.OrdinalIgnoreCase)) end++;
+                for (var i = start; i < end; i++)
+                {
+                    var entry = order[i].Key;
+                    var which = 0;
+                    var of = 0;
+                    for (var j = start; j < end; j++)
+                    {
+                        if (order[j].Key.Kind != entry.Kind) continue;
+                        of++;
+                        if (j <= i) which++;
+                    }
+                    entry.Alike = of > 1 ? ListWords.OneOf(which, of) : null;
+                }
+                start = end;
+            }
         }
 
         /// <summary>The filters other than the text and the kind: favourites and origin.</summary>

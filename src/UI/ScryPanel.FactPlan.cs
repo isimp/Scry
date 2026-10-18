@@ -224,6 +224,13 @@ namespace Scry
                 CountDrawn(PanelPart.EmptyRowLeftOut);
                 return y;
             }
+            // A table every line of which waits to be found out (a creature's stars before one was
+            // killed) is one faint line saying what shows it, not a table of ???.
+            var whole = explorer.KeepsBackWhole(row.LineProofs, row.Lines.Count);
+            if (whole != null)
+            {
+                return FaintLine(explorer.ShowsOnce(row.Title, whole), explorer.MayRunElsewhere(whole) ? ElsewhereWords.Tip : null, "table-kept:", row.Title, PanelPart.TableKeptBack, width, y + U(6f));
+            }
             y += U(6f);
             GUI.Label(new Rect(0f, y, width, U(20f)), row.Title, Skin.DimLabel);
             y += U(24f);

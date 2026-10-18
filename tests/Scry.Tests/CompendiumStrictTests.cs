@@ -174,8 +174,11 @@ namespace Scry.Tests
             Assert.DoesNotContain(world.Troll, explorer.Results);
             explorer.Text = "has:character";
             Assert.Contains(world.Troll, explorer.Results);
+            // A sound is listed only while peeking, the compendium listing the world a player meets.
+            explorer.Peeking = true;
             explorer.Text = "playedby:troll";
             Assert.Contains(world.Grunt, explorer.Results);
+            explorer.Peeking = false;
 
             // Below the floor it is found as the loose rules find it.
             view.Milestones(new Dictionary<string, int> { { world.Troll.Key, 2 } }, 2);
