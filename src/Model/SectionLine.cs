@@ -32,6 +32,8 @@ namespace Scry
         {
             if (headings.Count == 0) return -1;
             if (jumped >= 0 && jumped < headings.Count && Math.Abs(scroll - jumpedTo) < 1f) return jumped;
+            // At the top, the first, however short, though the next heading shows in the top third already.
+            if (scroll < 1f) return 0;
             if (maxScroll > 0f && scroll >= maxScroll - 1f) return headings.Count - 1;
             var line = scroll + shown / 3f;
             var lit = 0;
