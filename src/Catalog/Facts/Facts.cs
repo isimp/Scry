@@ -584,7 +584,7 @@ namespace Scry
         {
             var shared = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
             var name = shared != null ? CatalogBuilder.Localize(shared.m_name) : "";
-            return name.Length > 0 ? name : item != null ? item.name : "";
+            return name.Length > 0 ? name : item != null ? Naming.Readable(item.name) : "";
         }
 
         private static Sprite Icon(GameObject item)

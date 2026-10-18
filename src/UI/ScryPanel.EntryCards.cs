@@ -99,11 +99,11 @@ namespace Scry
             GUI.Label(new Rect(rect.x + U(20f), top + U(28f), rect.width - U(40f), U(40f)), Naming.Capital(adds), Skin.CenterDim);
         }
 
-        /// <summary>A creature's name as the game shows it, else its prefab's.</summary>
+        /// <summary>A creature's name as the game shows it, else its prefab's words.</summary>
         private static string ShownNameOf(GameObject prefab)
         {
             var shown = CatalogBuilder.Localize(prefab.GetComponent<Character>().OrNull()?.m_name);
-            return shown.Length > 0 ? shown : prefab.name;
+            return shown.Length > 0 ? shown : Naming.Readable(prefab.name);
         }
 
         /// <summary>What the sound is (its clips and length), and where it has got to, which can be moved.</summary>
