@@ -171,6 +171,27 @@ namespace Scry
             return string.Join(" ", kept.ToArray());
         }
 
+        /// <summary>
+        /// A name without the numbers at its end telling one variant from the next, as a mod
+        /// numbers its pieces: "Rock (4)" and "Rock 1 (3)" as "Rock", "Cliff (Creep) (1)" as
+        /// "Cliff (Creep)"; a size such as "4x2" is part of the name, and one of nothing but a
+        /// number stays as it is.
+        /// </summary>
+        public static string WithoutVariant(string named)
+        {
+            if (string.IsNullOrEmpty(named)) return named ?? "";
+            var kept = named.TrimEnd();
+            for (var cut = kept.LastIndexOf(' '); cut > 0 && IsVariantNumber(kept.Substring(cut + 1)); cut = kept.LastIndexOf(' '))
+            {
+                kept = kept.Substring(0, cut).TrimEnd();
+            }
+            return kept.Length > 0 ? kept : named;
+        }
+
+        /// <summary>A number telling a variant from the next, bare or in brackets: "1", "(01)".</summary>
+        private static bool IsVariantNumber(string word) =>
+            IsNumber(word.Length > 2 && word[0] == '(' && word[word.Length - 1] == ')' ? word.Substring(1, word.Length - 2) : word);
+
         /// <summary>A prefab's name in lower-case words: split at underscores, spaces, dashes and brackets, where a capital follows a small letter, and between letters and digits, so a copy number or "(Clone)" is a word of its own.</summary>
         private static List<string> PrefabWords(string name)
         {

@@ -350,10 +350,20 @@ namespace Scry
             {
                 var odinPass = CompendiumTiers.Gather(X.Entries);
                 var odinTiers = odinPass.Work();
-                var view = X.Compendium;
+                // Told by the character's own book under its own rules and floor (loose where it has none set),
+                // not by the view the test shows, which may have the compendium off and know everything.
+                var book = CompendiumKeeper.Book;
+                var view = book == null ? null : new CompendiumView(X.Entries);
+                if (view != null)
+                {
+                    var floor = System.Math.Min(book.Floor, CompendiumKeeper.Ceiling);
+                    view.Milestones(floor > 0 ? odinTiers : null, floor);
+                    view.SkillsLearned(YourSkills.Learned, YourSkills.LearnedVersion);
+                    view.Tell(book, book.Rule != CompendiumRule.Off ? book.Rule : CompendiumRule.Loose);
+                }
                 var told = odinTiers.TryGetValue(odin.Key, out var odinTier) ? $"tier {Numbers.Count(odinTier)} by way of {TierChain(odinPass, odinTiers, odin.Key)}" : "no tier";
                 p.Note($"odin: {told}; played or left behind by {(odin.UsedBy.Count > 0 ? string.Join(", ", odin.UsedBy.Take(6)) : "nothing")}; "
-                    + $"{(view == null ? "no compendium" : $"{view.Of(odin)}, by the floor {view.ByFloor(odin)}, brought along by {view.Because(odin)?.Name ?? "nothing"}")}");
+                    + $"{(view == null ? "no book" : $"in the character's book {view.Of(odin)}, by the floor {view.ByFloor(odin)}, brought along by {view.Because(odin)?.Name ?? "nothing"}")}");
                 // Placed only to be glimpsed, he waits to be seen however high the floor.
                 var highest = new CompendiumView(X.Entries);
                 highest.Milestones(tiers, Tiers.Last);
@@ -742,9 +752,9 @@ namespace Scry
             p.Check(Stage.Showing == spotted, $"{spotted.Name}, only seen, stands on the stage", Stage.Showing?.Name);
             p.Check(ScryPanel.Drawn(PanelPart.ClosedPage) > closed, "with its page closed");
 
-            // Fought: the whole page, naming what was not seen, its drops among them, by name only.
+            // Fought: the whole page, leaving out what was not met, its drops among them, and counting it faintly.
             var drop = fought.TermLinks("drops").FirstOrDefault(d => X.LevelOf(d) < KnownLevel.Seen);
-            var unseenNames = ScryPanel.Drawn(PanelPart.UnseenName);
+            var notMetLines = ScryPanel.Drawn(PanelPart.StrictLeftOut);
             X.Select(fought);
             yield return Until(() => Stage.Showing == fought, 5);
             closed = ScryPanel.Drawn(PanelPart.ClosedPage);
@@ -752,13 +762,17 @@ namespace Scry
             yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
             p.Check(ScryPanel.Drawn(PanelPart.ClosedPage) == closed, $"{fought.Name}, fought, shows its whole page");
             p.Check(drop != null && !X.Reaches(drop.Key), $"what it drops, not seen, is no link: {drop?.Name}");
-            p.Check(ScryPanel.Drawn(PanelPart.UnseenName) > unseenNames, "its page tells the names of what was not seen as plain text");
+            p.Check(drop != null && X.LeavesOut(drop.Key) && !X.LeavingOut, $"under the loose rules its page leaves out {drop?.Name}, not yet met");
+            p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) > notMetLines && X.LeftOutLine("Drops", 1) == CompendiumWords.NotYetMet("Drops", 1),
+                "and says faintly how many more were not yet met", X.LeftOutLine("Drops", 1));
             p.Check(ScryPanel.Drawn(PanelPart.YouBox) > 0, "and opens with a box of what the character did with it and how it came to know it");
 
             // Strict: the fought creature's page keeps the drop seen fall, leaves out one that was not, and draws without fault.
             var drops = fought.TermLinks("drops").ToList();
             if (p.Check(drops.Count >= 2, $"{fought.Name} drops two things at least"))
             {
+                // As in play, a drop seen falling is seen, and seen together with what dropped it.
+                book.Raise(drops[0].Key, KnownLevel.Seen);
                 book.Witness(fought.Key, drops[0].Key);
                 view.Tell(book, CompendiumRule.Strict);
                 X.Select(fought);
@@ -788,12 +802,15 @@ namespace Scry
                 var cardShown = ScryPanel.CardShown(X, card).Parts[0].Value;
                 p.Check(cardShown.Contains(CompendiumWords.Hidden) && !cardShown.Contains(unseen.ShownName), $"and so does the game's tooltip card", cardShown);
                 view.Tell(book, CompendiumRule.Loose);
-                // Under the loose rules nothing is left out, so no section says so.
+                // Under the loose rules only what was not met is left out, and its sections say so in those words.
                 yield return Until(() => !X.LeavingOut, 3);
                 var looseLines = ScryPanel.Drawn(PanelPart.StrictLeftOut);
                 repaints = ScryPanel.Repaints;
                 yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
-                p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) == looseLines, "under the loose rules no section says anything was left out");
+                p.Check(!X.LeavesOut(drops[0].Key) && X.LeavesOut(drops[1].Key) == (X.LevelOf(drops[1]) < KnownLevel.Seen),
+                    $"under the loose rules its page names {drops[0].Name}, seen, and leaves out only what was not met");
+                p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) > looseLines && X.LeftOutLine("Drops", 1) == CompendiumWords.NotYetMet("Drops", 1),
+                    "and its sections count what was not yet met, not what was not seen together", X.LeftOutLine("Drops", 1));
                 p.Check(!X.HidesDamage("Blunt"), "nor keeps back how a damage type lands");
             }
 

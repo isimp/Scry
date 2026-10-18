@@ -26,5 +26,18 @@ namespace Scry
 
         /// <summary>How big the mark is: as big as a pin on the large map.</summary>
         public static float Size(float pinSize) => pinSize;
+
+        /// <summary>
+        /// Whether a press let go is a click of a mark: the pointer moved no more than half a mark
+        /// since it was pressed. The game calls any press under a quarter second a click, however
+        /// far it moved (<c>Minimap.OnMapLeftUp</c>), so a quick drag of the map let go over a mark
+        /// would open it otherwise.
+        /// </summary>
+        public static bool Clicked((float X, float Y) pressed, (float X, float Y) let, float size)
+        {
+            var dx = let.X - pressed.X;
+            var dy = let.Y - pressed.Y;
+            return dx * dx + dy * dy <= size * size / 4f;
+        }
     }
 }

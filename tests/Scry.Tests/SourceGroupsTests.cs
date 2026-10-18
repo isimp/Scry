@@ -46,6 +46,46 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void VariantsTheGameOrAModNumbersShareOneChipEachToldOnHover()
+        {
+            // Names a mod's pieces go by, a number in brackets telling one from the next.
+            var groups = SourceGroups.Of(new[]
+            {
+                Mined("RockPiece_4", "Rock (4)", 1, 2, TableOf.Broken),
+                Mined("RockPiece_7", "Rock (7)", 1, 2, TableOf.Broken),
+                Mined("RockPiece_1_3", "Rock 1 (3)", 1, 1, TableOf.Broken),
+                Mined("Marker01", "Marker (01)", 1, 1, TableOf.Broken),
+                Mined("Marker02", "Marker (02)", 1, 1, TableOf.Broken),
+                Mined("CliffCreep1", "Cliff (Creep) (1)", 1, 1, TableOf.Broken),
+                Mined("GraustenStairs", "Grausten Stairs 4x2 (Reinforced)", 1, 1, TableOf.Broken),
+                Mined("Widestone2", "Widestone (2)", 1, 1, TableOf.Broken),
+                Mined("Widestone", "Widestone", 1, 1, TableOf.Broken),
+            });
+
+            Assert.Equal(new[] { "Rock ×3", "Marker ×2", "Cliff (Creep)", "Grausten Stairs 4x2 (Reinforced)", "Widestone ×2" }, groups.Select(g => g.Chip).ToArray());
+            Assert.Equal("1–2", groups[0].Amount);
+            // The hover names each variant by its own name.
+            var tip = groups[0].Tip(s => "Broken out of " + s.Shown);
+            Assert.Equal(new[] { "Broken out of Rock (4) · RockPiece_4", "Broken out of Rock (7) · RockPiece_7", "Broken out of Rock 1 (3) · RockPiece_1_3" }, tip.Split('\n'));
+        }
+
+        [Theory]
+        [InlineData("Rock (4)", "Rock")]
+        [InlineData("Rock 1 (3)", "Rock")]
+        [InlineData("Marker (01)", "Marker")]
+        [InlineData("Cliff (Creep) (1)", "Cliff (Creep)")]
+        [InlineData("Rock Bigrock (4)", "Rock Bigrock")]
+        [InlineData("Grausten Stairs 4x2 (Reinforced)", "Grausten Stairs 4x2 (Reinforced)")]
+        [InlineData("Grausten Floor 2x2", "Grausten Floor 2x2")]
+        [InlineData("Troll", "Troll")]
+        [InlineData("(4)", "(4)")]
+        [InlineData("12", "12")]
+        public void AVariantsNumberIsLeftOutOfTheNameItsChipGoesBy(string named, string kin)
+        {
+            Assert.Equal(kin, Naming.WithoutVariant(named));
+        }
+
+        [Fact]
         public void EachWayKeepsItsOwnRowInTheOrderFirstGiven()
         {
             var picked = SourceFacts.Of(SourceWay.Picked, "Pickable_Stone", "Stone");

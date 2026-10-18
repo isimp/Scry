@@ -154,7 +154,7 @@ namespace Scry.Tests
                 Assert.Contains(word, line);
                 foreach (Kind other in System.Enum.GetValues(typeof(Kind))) Assert.Equal(other == kind, Search.KindMatches(other, word));
             }
-            Assert.StartsWith("Only one kind: creature, item, piece,", line);
+            Assert.StartsWith("Only one kind: creature, trader, item, piece,", line);
             Assert.Contains("se (status effect)", line);
         }
 

@@ -67,6 +67,14 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ARoomOfTheWorldsOwnDungeonPeeksWithoutWhatItHolds()
+        {
+            // Shown by its layout alone: what lives and lies there is the world's, which Scry does not read.
+            Assert.Equal("Burial chamber\nEntrance\nClick to pick it, double-click to go in",
+                StageWords.RoomPeek("Burial chamber", "Entrance", creatures: 0, chests: 0, goneInto: false, layoutOnly: true));
+        }
+
+        [Fact]
         public void TheRoomGoneIntoPeeksWithHowToComeBackOut()
         {
             // As the key sheet says: Esc, the breadcrumb's level or the mouse's back button.

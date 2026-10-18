@@ -169,8 +169,10 @@ namespace Scry
                     }
                     var at = new Vector3(room.Position.X, room.Position.Y, room.Position.Z);
                     var turn = new Quaternion(room.Rotation.X, room.Rotation.Y, room.Rotation.Z, room.Rotation.W);
-                    // A room's spawn points go by the rules of the location it is built in.
-                    TheExample.BuildRoll = new PlaceRoll { WantsLoot = TheExample.IsDungeon };
+                    // A room's spawn points go by the rules of the location it is built in. The world's
+                    // own dungeon shows its layout alone: what lives and lies in it is the world's, not read.
+                    var layoutOnly = TheExample.IsDungeon && ExampleLayouts.ShowsWorlds;
+                    TheExample.BuildRoll = new PlaceRoll { WantsLoot = TheExample.IsDungeon && !layoutOnly, LayoutOnly = layoutOnly };
                     TheExample.BuildPaints = TheExample.IsDungeon ? null : new List<GroundPaintAt>();
                     var rules = _lastShown?.Source is PlaceSource shown ? PlaceAssets.Asset(shown).OrNull()?.GetComponent<Location>() : null;
                     TheExample.Build = PlaceCopy.Begin(prefab, TheExample.Holder.transform, at, turn, _layer, keepColliders: TheExample.IsDungeon, local: true,

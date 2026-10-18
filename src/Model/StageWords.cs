@@ -36,10 +36,11 @@ namespace Scry
         /// <summary>
         /// The peek on a room of a dungeon's example under the mouse, on the stage or in the plan
         /// box: its name, where it is, how many creatures and chests and pickups this copy rolled
-        /// in it, and what a click and a double-click do; the room gone into, how to come back out.
+        /// in it (none for a room of the world's own dungeon, shown by its layout alone), and what
+        /// a click and a double-click do; the room gone into, how to come back out.
         /// </summary>
-        public static string RoomPeek(string name, string where, int creatures, int chests, bool goneInto) =>
-            name + "\n" + where + "\nCreatures " + Numbers.Count(creatures) + "  ·  Chests and pickups " + Numbers.Count(chests)
+        public static string RoomPeek(string name, string where, int creatures, int chests, bool goneInto, bool layoutOnly = false) =>
+            name + "\n" + where + (layoutOnly ? "" : "\nCreatures " + Numbers.Count(creatures) + "  ·  Chests and pickups " + Numbers.Count(chests))
             + (goneInto ? "\nEsc, the breadcrumb's level or the mouse's back button comes back out" : "\nClick to pick it, double-click to go in");
 
         /// <summary>The link on the card of a room picked, not gone into, and its tip.</summary>

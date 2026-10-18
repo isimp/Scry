@@ -147,7 +147,7 @@ namespace Scry
 
         /// <summary>
         /// Each attack it has, from the items it may carry (a creature fights with items of its
-        /// own, as a person does): what a hit does, how, and from how near and far and how often
+        /// own, as a person does): what a hit deals as it is rolled each hit, how, and from how near and far and how often
         /// its AI uses it (<c>m_aiAttackRange</c>, <c>m_aiAttackRangeMin</c>, <c>m_aiAttackInterval</c>),
         /// a line of its attacks table each, its name playing the attack on the stage.
         /// </summary>
@@ -155,6 +155,7 @@ namespace Scry
         {
             // Each attack with the projectile it fires and what it puts on you, each a link.
             var attacks = new List<(string[] Cells, string Item, GameObject Fires, StatusEffect OnHit, (string Type, float Amount)[] Damage)>();
+            var rolls = prefab.GetComponent<Player>() == null;
             foreach (var item in Relations.CarriedItems(prefab))
             {
                 var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
@@ -165,7 +166,9 @@ namespace Scry
                 var name = !string.IsNullOrEmpty(shared.m_name) && !shared.m_name.StartsWith("$", StringComparison.Ordinal) ? Naming.Readable(shared.m_name) : ItemName(item);
                 if (attacks.Any(a => a.Cells[0] == name)) continue;
                 var fires = attack.m_attackProjectile;
-                var cells = CombatWords.AttackCells(name, Damages(shared.m_damages), attack.m_attackType.ToString(), shared.m_aiAttackRangeMin, shared.m_aiAttackRange, shared.m_aiAttackInterval,
+                // Rolled each hit as anything but a player rolls one (Character.GetRandomSkillFactor); a player rolls by its skill.
+                var dealt = rolls ? CombatWords.CreatureDamage(DamageFigures(shared.m_damages)) ?? "" : Damages(shared.m_damages);
+                var cells = CombatWords.AttackCells(name, dealt, attack.m_attackType.ToString(), shared.m_aiAttackRangeMin, shared.m_aiAttackRange, shared.m_aiAttackInterval,
                     fires != null ? AnyName(fires, fires.name) : null);
                 attacks.Add((cells, item.name, fires, shared.m_attackStatusEffect, DamageFigures(shared.m_damages)));
             }

@@ -50,6 +50,17 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AMarkTakesAClickOnlyWhereThePointerStayedOnItNotADragOfTheMap()
+        {
+            // The game calls a press under a quarter second a click however far it moved (Minimap.OnMapLeftUp):
+            // a quick drag of the map let go over a mark is no click of the mark's.
+            Assert.True(MapMarks.Clicked((100f, 100f), (104f, 98f), 48f));
+            Assert.True(MapMarks.Clicked((100f, 100f), (100f, 124f), 48f));
+            Assert.False(MapMarks.Clicked((100f, 100f), (100f, 125f), 48f));
+            Assert.False(MapMarks.Clicked((10f, 10f), (300f, 200f), 48f));
+        }
+
+        [Fact]
         public void AMarksTipSaysHowFarItWasWalkedAndWhatAClickDoes()
         {
             Assert.Equal("6 of 18 rooms walked\nClick to open its map in Scry", DungeonMapWords.MarkTip(6, 18));

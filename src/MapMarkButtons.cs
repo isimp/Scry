@@ -50,6 +50,12 @@ namespace Scry
         /// <summary>The mark the pointer rests on, whose tip is shown; none.</summary>
         private static Mark _hovered;
 
+        /// <summary>Where the pointer was as the left button was last pressed, so a drag of the map let go over a mark is no click of it (<see cref="MapMarks.Clicked"/>).</summary>
+        private static Vector2 _pressedAt;
+
+        /// <summary>The marks' size on the screen at the last frame open, for the click's reach.</summary>
+        private static float _sizeOnScreen;
+
         /// <summary>How many marks stood on the map at its last frame open, for the self-test.</summary>
         [Diagnostic]
         public static int MarksShown { get; private set; }
@@ -73,7 +79,11 @@ namespace Scry
 
         /// <summary>Clicks the map at a point of the screen, as the map's own click hands a mark its click there, for the self-test.</summary>
         [Diagnostic]
-        public static bool ClickAtForTest(Vector2 screen) => TakeClick(screen);
+        public static bool ClickAtForTest(Vector2 screen)
+        {
+            _pressedAt = screen;
+            return TakeClick(screen);
+        }
 
         /// <summary>What the pointer first meets at a mark's middle, as the game's event system finds it, for the self-test.</summary>
         [Diagnostic]
@@ -157,13 +167,28 @@ namespace Scry
                 if (Marks[i].Made.activeSelf) Marks[i].Made.SetActive(false);
             }
             MarksShown = shown;
+            _sizeOnScreen = shown > 0 ? ScreenSize(Marks[0].Rect) : 0f;
+            if (Input.GetMouseButtonDown(0)) _pressedAt = ZInput.pointerPosition;
             Hover();
         }
 
-        /// <summary>Shows the tip of the mark the pointer rests on, as the pointer comes onto it, and takes it away as it leaves.</summary>
+        /// <summary>How tall a mark stands on the screen, the canvas's scale with it.</summary>
+        private static float ScreenSize(RectTransform rect)
+        {
+            rect.GetWorldCorners(Corners);
+            return Mathf.Abs(Corners[1].y - Corners[0].y);
+        }
+
+        /// <summary>A mark's corners as read, kept so no frame makes a new array.</summary>
+        private static readonly Vector3[] Corners = new Vector3[4];
+
+        /// <summary>
+        /// Shows the tip of the mark the pointer rests on, as the pointer comes onto it, and takes it
+        /// away as it leaves; none while the map is held, as when it is dragged under the pointer.
+        /// </summary>
         private static void Hover()
         {
-            var over = MarkAt(ZInput.pointerPosition);
+            var over = Input.GetMouseButton(0) ? null : MarkAt(ZInput.pointerPosition);
             if (over == _hovered) return;
             HideTip();
             _hovered = over;
@@ -190,7 +215,7 @@ namespace Scry
         public static bool TakeClick(Vector2 screen)
         {
             var mark = MarkAt(screen);
-            if (mark == null) return false;
+            if (mark == null || !MapMarks.Clicked((_pressedAt.x, _pressedAt.y), (screen.x, screen.y), _sizeOnScreen)) return false;
             Open(mark.Id);
             return true;
         }

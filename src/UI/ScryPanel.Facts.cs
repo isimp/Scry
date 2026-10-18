@@ -652,6 +652,9 @@ namespace Scry
                 // What only the floor shows keeps the floor's mark at the chip's end.
                 if (floorW > 0f) PlateFloorMark(chip);
 
+                // One with no page to go to, as an upgrade a trader sells, says on hover what it does.
+                if (string.IsNullOrEmpty(item.Prefab) && hover && item.MarkTip != null) AskTip("chip:" + item.Name, item.MarkTip);
+
                 // Clicking an ingredient or a drop goes to it.
                 if (!string.IsNullOrEmpty(item.Prefab))
                 {

@@ -189,7 +189,10 @@ namespace Scry
             p.Check(chips.Count > 0 && chips.Count < givers, "Stone's givers alike but for their biome go into one chip", $"{Numbers.Count(chips.Count)} chips for {Numbers.Count(givers)} givers");
             // Each chip's name before its count, as the merging named it.
             var names = SourceGroups.Of(Facts.For(stone).Where.Select(s => s.Record)).Select(g => g.Name).ToList();
-            var unread = names.Where(n => n.IndexOf('_') >= 0 || n.Any(char.IsDigit) || n.Length > 0 && char.IsLower(n[0])).ToList();
+            // A prefab's name shows in an underscore, a small first letter or a word run into its number
+            // ("rock4"); a variant's number left at the end means alike variants were not merged. A size such as "4x2" is a name's own.
+            var unread = names.Where(n => n.IndexOf('_') >= 0 || n.Length > 0 && char.IsLower(n[0]) || Naming.WithoutVariant(n) != n
+                || System.Text.RegularExpressions.Regex.IsMatch(n, @"\p{L}{2}\d")).ToList();
             p.Check(unread.Count == 0, "every giver of Stone reads as words, none as its prefab", string.Join(", ", unread));
             p.Check(rows.Select(r => r.Title).Distinct().Count() == rows.Count, "each way of giving it has one row");
             X.Select(stone);

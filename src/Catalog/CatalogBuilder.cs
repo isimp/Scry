@@ -448,6 +448,9 @@ namespace Scry
                 case Container _:
                     traits.HasContainer = true;
                     break;
+                case Trader _:
+                    traits.HasTrader = true;
+                    break;
                 case Character character:
                     traits.HasCharacter = true;
                     found.Token = found.Token ?? character.m_name;

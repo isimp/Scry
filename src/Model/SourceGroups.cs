@@ -13,7 +13,7 @@ namespace Scry
         /// <summary>The way's words leading its row: "Mined from", "Dropped by".</summary>
         public string Lead;
 
-        /// <summary>The name the givers go by, without the biome some of them tell.</summary>
+        /// <summary>The name the givers go by, without the biome or the variant's number some of them tell.</summary>
         public string Name;
 
         /// <summary>The givers, in the order they were given.</summary>
@@ -37,7 +37,8 @@ namespace Scry
     /// <summary>
     /// Where a thing comes from, as rows of chips: a row for each way of giving it that tells an
     /// amount or nothing (dropped, picked, grown, out of a drop table), its givers merged into
-    /// one chip where they go by one name but for their biome, as many rocks do. A way with a
+    /// one chip where they go by one name but for their biome or a variant's number, as many
+    /// rocks do (<see cref="Naming.WithoutVariant"/>), each told by its own name on hover. A way with a
     /// pace, a price or a birth keeps its own line, which tells more than a chip could.
     /// </summary>
     internal static class SourceGroups
@@ -57,7 +58,7 @@ namespace Scry
             {
                 if (!Groups(source)) continue;
                 var lead = Lead(source);
-                var name = Naming.WithoutBiome(source.Shown);
+                var name = Naming.WithoutVariant(Naming.WithoutBiome(source.Shown));
                 var group = groups.FirstOrDefault(g => g.Lead == lead && g.Name == name);
                 if (group == null)
                 {

@@ -7,6 +7,10 @@ namespace Scry
     internal enum Kind
     {
         Creature,
+
+        /// <summary>A trader, whose store sells wares: Haldor, Hildir, the Bog Witch, a mod's.</summary>
+        Trader,
+
         Item,
         Piece,
         Resource,
@@ -63,6 +67,9 @@ namespace Scry
     {
         public bool IsStatusEffect;
         public bool HasCharacter;
+
+        /// <summary>Keeps a store (<c>Trader</c>).</summary>
+        public bool HasTrader;
         public bool HasItemDrop;
         public bool HasPiece;
         public bool HasProjectile;
@@ -119,6 +126,9 @@ namespace Scry
         public static Kind Of(PrefabTraits traits)
         {
             if (traits.IsStatusEffect) return Kind.StatusEffect;
+
+            // A store is what a trader is for, one a mod makes a creature too.
+            if (traits.HasTrader) return Kind.Trader;
 
             // What a prefab does in the game outranks how it looks: an arrow trails particles and
             // a troll makes noise, but they are a projectile and a creature.
@@ -212,6 +222,7 @@ namespace Scry
             switch (kind)
             {
                 case Kind.Creature: return "Creatures";
+                case Kind.Trader: return "Traders";
                 case Kind.Item: return "Items";
                 case Kind.Piece: return "Pieces";
                 case Kind.Resource: return "Resources";

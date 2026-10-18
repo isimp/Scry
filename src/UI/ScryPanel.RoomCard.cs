@@ -28,6 +28,9 @@ namespace Scry
 
             /// <summary>How many creatures and how many chests and pickups this copy rolled in the room, those left out with them, as its folded lists say.</summary>
             public int CreatureCount, LootCount;
+
+            /// <summary>A room of the world's own dungeon, shown by its layout alone: no lists of creatures or of chests and pickups.</summary>
+            public bool LayoutOnly;
             public List<WayOn> Ways = new List<WayOn>();
             public List<float> Levels = new List<float>();
             public List<string> LevelWords = new List<string>();
@@ -86,7 +89,7 @@ namespace Scry
                 && card.Know == explorer.KnowStamp && card.Strict == explorer.LeavingOut && card.Trims == explorer.NamesOnlyMet) return card;
 
             var ways = Stage.ExampleWays;
-            card = new RoomCardShown { Room = room, Read = Stage.ExampleRoomsRead, Rooms = Stage.ExampleRoomsShown, Know = explorer.KnowStamp, Strict = explorer.LeavingOut, Trims = explorer.NamesOnlyMet };
+            card = new RoomCardShown { Room = room, Read = Stage.ExampleRoomsRead, Rooms = Stage.ExampleRoomsShown, Know = explorer.KnowStamp, Strict = explorer.LeavingOut, Trims = explorer.NamesOnlyMet, LayoutOnly = ExampleLayouts.ShowsWorlds };
             string RoomName(PlacedRoom r) => ShownName(explorer, EntryKeys.For(Kind.Location, r.Room.Name), LocationWords.RoomName(r.Room.Name));
             card.Key = EntryKeys.For(Kind.Location, room.Room.Name);
             card.Name = RoomName(room);
@@ -135,7 +138,7 @@ namespace Scry
             var ways = Stage.ExampleWays;
             var rise = ways?.Entrance != null ? Stage.ExampleRoomGround(room) - Stage.ExampleRoomGround(ways.Entrance) : 0f;
             var where = RoomCardWords.Where(rise, ways != null ? ways.StepsIn(room) : -1, ways != null ? ways.WaysOf(room).Count : 0);
-            _peekText = StageWords.RoomPeek(BoxRoomName(explorer, room), where, Stage.RoomCreatures(room).Count, Stage.RoomLoot(room).Count, inside);
+            _peekText = StageWords.RoomPeek(BoxRoomName(explorer, room), where, Stage.RoomCreatures(room).Count, Stage.RoomLoot(room).Count, inside, ExampleLayouts.ShowsWorlds);
             return _peekText;
         }
 
@@ -225,8 +228,11 @@ namespace Scry
             {
                 LayCard(card, most, textW, chipH);
                 var h = pad + nameH + whereH;
-                h += headH + (CardListOpen("creatures") ? lineH * (Mathf.Max(1, card.CreatureRows.Count) + (card.CreaturesLeft > 0 ? 1 : 0)) : 0f);
-                h += headH + (CardListOpen("loot") ? lineH * (Mathf.Max(1, card.LootRows.Count) + (card.LootLeft > 0 ? 1 : 0)) : 0f);
+                if (!card.LayoutOnly)
+                {
+                    h += headH + (CardListOpen("creatures") ? lineH * (Mathf.Max(1, card.CreatureRows.Count) + (card.CreaturesLeft > 0 ? 1 : 0)) : 0f);
+                    h += headH + (CardListOpen("loot") ? lineH * (Mathf.Max(1, card.LootRows.Count) + (card.LootLeft > 0 ? 1 : 0)) : 0f);
+                }
                 h += headH + card.WaysTall;
                 if (levels) h += headH + card.LevelsTall;
                 return h + pad;
@@ -332,10 +338,14 @@ namespace Scry
             }
             y += nameH;
             Line(whereH, card.Where, Skin.FaintLabel);
-            ListHeading("creatures", RoomCardWords.Creatures, card.CreatureCount, Skin.KindColor(Kind.Creature), RoomCardWords.CreaturesTip);
-            if (CardListOpen("creatures")) Rows(card.CreatureRows, card.CreaturesLeftLine);
-            ListHeading("loot", RoomCardWords.Loot, card.LootCount, Skin.KindColor(Kind.Item), RoomCardWords.LootTip);
-            if (CardListOpen("loot")) Rows(card.LootRows, card.LootLeftLine);
+            // The world's own dungeon is shown by its layout alone: what lives and lies in it is the world's, not read.
+            if (!card.LayoutOnly)
+            {
+                ListHeading("creatures", RoomCardWords.Creatures, card.CreatureCount, Skin.KindColor(Kind.Creature), RoomCardWords.CreaturesTip);
+                if (CardListOpen("creatures")) Rows(card.CreatureRows, card.CreaturesLeftLine);
+                ListHeading("loot", RoomCardWords.Loot, card.LootCount, Skin.KindColor(Kind.Item), RoomCardWords.LootTip);
+                if (CardListOpen("loot")) Rows(card.LootRows, card.LootLeftLine);
+            }
 
             // Its ways on: each goes into its room, and lights it on the stage and the plan while hovered.
             Heading(RoomCardWords.Ways, Skin.Faint, null);

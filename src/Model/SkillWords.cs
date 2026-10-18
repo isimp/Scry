@@ -166,7 +166,7 @@ namespace Scry
         /// the square root of an even roll from 0.75 to 1), the rest blank.
         /// </summary>
         public static string[] SummonedLine(string at, IEnumerable<(string Type, float Amount)> damage, float strength) =>
-            new[] { at, DamageRange(damage.Select(d => (d.Type, d.Amount * strength)), (float)Math.Sqrt(0.75), 1f) ?? None, "", "", "" };
+            new[] { at, CombatWords.CreatureDamage(damage.Select(d => (d.Type, d.Amount * strength))) ?? None, "", "", "" };
 
         /// <summary>What an archery target trains (<c>ArcheryTarget</c>): the skill of what hits it, more the nearer its middle.</summary>
         public static string TargetTrains(float multiplier) =>

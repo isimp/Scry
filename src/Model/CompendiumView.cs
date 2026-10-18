@@ -109,7 +109,7 @@ namespace Scry
 
         /// <summary>Whether a kind's tab counts what was found of all there is; the others count only what was found.</summary>
         public static bool Counted(Kind kind) =>
-            kind == Kind.Creature || kind == Kind.Item || kind == Kind.Piece || kind == Kind.Resource || kind == Kind.Spawner
+            kind == Kind.Creature || kind == Kind.Trader || kind == Kind.Item || kind == Kind.Piece || kind == Kind.Resource || kind == Kind.Spawner
             || kind == Kind.StatusEffect || kind == Kind.Location || kind == Kind.Raid || kind == Kind.Biome;
 
         /// <summary>How much the character knows of an entry under the rule last told.</summary>

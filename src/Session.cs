@@ -125,7 +125,6 @@ namespace Scry
             Step(Feature.FloorsKept, "the floors kept", "update floors kept", FloorRecords.Update);
             Step(Feature.CompendiumCatchUp, "what the character knows", "update compendium", CompendiumKeeper.Update);
             Step(Feature.DungeonMaps, "the rooms walked in a dungeon", "update dungeon walks", DungeonWalks.Update);
-            Step(Feature.DungeonMarksOnMap, "the marks on Valheim's map", "update map marks", MapMarkButtons.Update);
             Step(Feature.CompendiumShown, "showing what the character knows", "update compendium list", ShowKnown);
         }
 
@@ -154,16 +153,23 @@ namespace Scry
             var book = CompendiumKeeper.Book;
             var rule = book?.Rule ?? CompendiumRule.Off;
             var floor = System.Math.Min(book?.Floor ?? 0, CompendiumKeeper.Ceiling);
+            // Each step timed apart, as a regrouped catalog costs all three at once.
+            var step = Timing.Start();
             _known.Milestones(floor > 0 ? CompendiumTiers.Of(Explorer.Entries) : null, floor);
+            Timing.Add("compendium tiers", step);
             // Only the skills the character has learned show; read only while the compendium is on.
             if (rule != CompendiumRule.Off) _known.SkillsLearned(YourSkills.Learned, YourSkills.LearnedVersion);
             if (!_known.OnlyLearnedSince(book, rule) || Time.unscaledTime - _knownToldAt >= 1f)
             {
+                step = Timing.Start();
                 var version = _known.Version;
                 _known.Tell(book, rule);
                 if (_known.Version != version) _knownToldAt = Time.unscaledTime;
+                Timing.Add("compendium told", step);
             }
+            step = Timing.Start();
             Explorer.Know(_knownInstead ?? _known);
+            Timing.Add("compendium listed", step);
         }
 
         /// <summary>When what the character knows was last told to the list, by the unscaled clock.</summary>

@@ -34,6 +34,9 @@ namespace Scry
             /// <summary>The prefab the title names, such as the crafting station, so it can be gone to.</summary>
             public string TitleLink;
 
+            /// <summary>The world key its wares wait for, a boss's fall; with the compendium on a row whose key is not set names none of them (<see cref="UnlockRows"/>); null for none.</summary>
+            public string WaitsFor;
+
             /// <summary>Why Scry is not sure of the row, or null when it is (<see cref="UnsureWords"/>).</summary>
             public string Unsure;
 
@@ -165,6 +168,9 @@ namespace Scry
 
         /// <summary>Told with figures at the character's skill levels, so told again once a level changes (<see cref="YourSkills.Version"/>).</summary>
         private bool _skilled;
+
+        /// <summary>Told with what the character has bought as keys of its own, so told again once those change (<see cref="TraderStore.KeysHeld"/>).</summary>
+        private bool _keyed;
 
         /// <summary>Values that name something in the catalog, by their label: a prefab name, or "se:" and a status effect's.</summary>
         public readonly Dictionary<string, string> Links = new Dictionary<string, string>();
@@ -326,7 +332,7 @@ namespace Scry
             // play, and an item's what equipping it was seen to change and the mods' settings for
             // it, which change as they are set.
             // What is told at the character's skill levels changes as a level does.
-            if (Cache.TryGetValue(entry, out var known) && (known._toldWith == Freshness || (!known._skilled && entry.Kind != Kind.Creature && entry.Kind != Kind.Item && entry.Kind != Kind.Mod))) return known;
+            if (Cache.TryGetValue(entry, out var known) && (known._toldWith == Freshness || (!known._skilled && !known._keyed && entry.Kind != Kind.Creature && entry.Kind != Kind.Item && entry.Kind != Kind.Mod))) return known;
 
             var facts = new Facts { _toldWith = Freshness };
             _notables = new Dictionary<string, (ICollection<string>, bool, int)>(StringComparer.Ordinal);
@@ -423,11 +429,11 @@ namespace Scry
             foreach (var row in facts.Rows.Concat(facts.UseRows)) row.TellApart();
         }
 
-        /// <summary>What had been seen in play, how the mods were set and the character's skill levels when these facts were told (<see cref="Freshness"/>).</summary>
-        private (int Drops, int Worn, int Settings, int Skills) _toldWith;
+        /// <summary>What had been seen in play, how the mods were set, the character's skill levels and the keys it held when these facts were told (<see cref="Freshness"/>).</summary>
+        private (int Drops, int Worn, int Settings, int Skills, int Keys) _toldWith;
 
-        /// <summary>What has been seen in play, how the mods are set and the character's skill levels now, by their counts of changes.</summary>
-        private static (int Drops, int Worn, int Settings, int Skills) Freshness => (DropWatch.Version, WornWatch.Version, ModConfigs.Version, YourSkills.Version);
+        /// <summary>What has been seen in play, how the mods are set, the character's skill levels and the keys it holds now, by their counts of changes.</summary>
+        private static (int Drops, int Worn, int Settings, int Skills, int Keys) Freshness => (DropWatch.Version, WornWatch.Version, ModConfigs.Version, YourSkills.Version, TraderStore.KeysHeld);
 
         /// <summary>What these facts link to: their values', their rows' and tables', and where it comes from; so Linked shows each link once.</summary>
         public HashSet<string> LinkedTargets()

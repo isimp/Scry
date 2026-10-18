@@ -24,6 +24,13 @@ namespace Scry
         /// </summary>
         public static bool Learned(float kept) => kept >= 1f;
 
+        /// <summary>
+        /// The least and most share of its damage a hit of anything but a player deals, rolled
+        /// each hit (<c>Character.GetRandomSkillFactor</c>: the square root of an even roll from
+        /// 0.75 to 1, times the factor a summon is given, 1 for any other).
+        /// </summary>
+        public static (float Least, float Most) CreatureHitShare => ((float)Math.Sqrt(0.75), 1f);
+
         /// <summary>A level as the share of the top most rules take, kept within nothing and all.</summary>
         public static float Share(float level) => Clamp01(level / Top);
 

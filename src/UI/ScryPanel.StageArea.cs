@@ -404,8 +404,9 @@ namespace Scry
             var showsInside = Stage.HasOutside && !Stage.InsideUnknown;
             var shows = new List<string>();
             if (showsInside) shows.Add(StageWords.Inside(Stage.Inside));
-            if (Stage.HasCreatures) shows.Add("Creatures");
             var inside = Stage.HasInside && Stage.ShowsInside;
+            // The world's own dungeon inside is its layout alone, with no creatures to show.
+            if (Stage.HasCreatures && !(inside && ExampleLayouts.ShowsWorlds)) shows.Add("Creatures");
             var cutModes = Stage.HasFloors && Stage.Subject != null ? CutControl.Offered(inside) : null;
             float TextW(string text) => Skin.Width(Skin.SmallCenter, text) + U(22f);
             var iconW = U(30f);

@@ -242,25 +242,28 @@ namespace Scry
             if (built.Items.Count > 0) Rows.Add(built);
         }
 
-        /// <summary>What a trader sells and for how much, a row for each world key its wares wait for.</summary>
+        /// <summary>
+        /// What a trader sells and for how much, a row for each world key its wares wait for
+        /// (<see cref="TraderStore"/>): its own list, what mods add as its store opens, and the
+        /// game's upgrades sold as keys of the character, each with the game's icon and tooltip and
+        /// no page, told bought once the character has it (so told again as its keys change).
+        /// </summary>
         private void Sells(Trader trader)
         {
-            if (trader.m_items == null) return;
-            var rows = new List<(string Key, Row Row)>();
-            foreach (var trade in trader.m_items)
+            _keyed = true;
+            var (rows, icons) = TraderStore.Rows(trader);
+            foreach (var (key, wares) in rows)
             {
-                if (trade?.m_prefab == null) continue;
-                var key = trade.m_requiredGlobalKey ?? "";
-                var at = rows.FindIndex(r => r.Key == key);
-                if (at < 0)
+                var title = StationWords.Sells(key.Length == 0 ? null : SpawnWords.Once(key, Knowledge.BossOf));
+                var row = new Row { Title = title, TitleLink = Knowledge.BossPrefabOf(key), WaitsFor = key.Length > 0 ? key : null };
+                foreach (var ware in wares)
                 {
-                    var title = StationWords.Sells(key.Length == 0 ? null : SpawnWords.Once(key, Knowledge.BossOf));
-                    rows.Add((key, new Row { Title = title, TitleLink = Knowledge.BossPrefabOf(key) }));
-                    at = rows.Count - 1;
+                    var amount = TraderWares.Amount(ware);
+                    row.Items.Add(ware.Prefab != null ? Chip(ware.Prefab, amount)
+                        : new Ingredient { Icon = icons.TryGetValue(ware, out var icon) ? icon : null, Name = ware.Name, Amount = amount, MarkTip = ware.Tip });
                 }
-                rows[at].Row.Items.Add(Chip(trade.m_prefab, SourceWords.Price(trade.m_stack, trade.m_price)));
+                Rows.Add(row);
             }
-            foreach (var (_, row) in rows) Rows.Add(row);
         }
 
         /// <summary>A boss's altars: where each stands and what is offered at it.</summary>

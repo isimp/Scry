@@ -145,6 +145,7 @@ namespace Scry
             switch (kind)
             {
                 case Kind.Creature: return new Color(0.92f, 0.47f, 0.42f);
+                case Kind.Trader: return new Color(0.96f, 0.90f, 0.60f);
                 case Kind.Item: return new Color(0.96f, 0.76f, 0.36f);
                 case Kind.Piece: return new Color(0.78f, 0.62f, 0.45f);
                 case Kind.Resource: return new Color(0.72f, 0.86f, 0.30f);
@@ -169,6 +170,7 @@ namespace Scry
             switch (kind)
             {
                 case Kind.Creature: return "C";
+                case Kind.Trader: return "T";
                 case Kind.Item: return "I";
                 case Kind.Piece: return "P";
                 case Kind.Resource: return "R";

@@ -135,9 +135,10 @@ namespace Scry
                 foreach (var (at, prefab, chance) in loot) if (Animators.SwitchedOn(at, copy.transform)) roll.Loot.Add((prefab, chance));
             }
             LeaveOutInterior(copy);
+            if (roll != null && roll.LayoutOnly) LeaveOutLoot(copy);
             if (roll != null)
             {
-                foreach (var spawn in PlaceSpawns.Of(copy, rules != null ? rules : copy.GetComponent<Location>()))
+                if (!roll.LayoutOnly) foreach (var spawn in PlaceSpawns.Of(copy, rules != null ? rules : copy.GetComponent<Location>()))
                 {
                     roll.Spawns.Add(new Stage.SpawnHere { At = spawn.At, Creature = spawn.Creature, Lift = spawn.Lift, Point = spawn.Point });
                 }
@@ -148,6 +149,17 @@ namespace Scry
             foreach (var zone in copy.GetComponentsInChildren<EnvZone>(true))
             {
                 if (zone != null && zone.m_exteriorMesh != null) zone.m_exteriorMesh.enabled = false;
+            }
+        }
+
+        /// <summary>Switches off the copy's chests and pickups (<see cref="LootParts"/>), for a room shown by its layout alone.</summary>
+        private static void LeaveOutLoot(GameObject copy)
+        {
+            var root = copy.transform;
+            foreach (var view in copy.GetComponentsInChildren<ZNetView>(true))
+            {
+                if (view == null || view.transform == root) continue;
+                if (LootParts.Is(PlaceReader.PrefabName(view.gameObject.name))) view.gameObject.SetActive(false);
             }
         }
 

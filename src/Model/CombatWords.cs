@@ -132,6 +132,10 @@ namespace Scry
             return parts.Count > 0 ? string.Join(", ", parts) : null;
         }
 
+        /// <summary>A creature's hit by type as it lands, rolled each hit (<see cref="SkillMath.CreatureHitShare"/>), the biggest first: "48–55 slash"; null for none.</summary>
+        public static string CreatureDamage(IEnumerable<(string Type, float Amount)> damage) =>
+            SkillWords.DamageRange(damage, SkillMath.CreatureHitShare.Least, SkillMath.CreatureHitShare.Most);
+
         /// <summary>The title of a weapon's table of its two attacks.</summary>
         public const string WeaponAttacksTitle = "Its attacks";
 

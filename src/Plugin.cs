@@ -147,7 +147,11 @@ namespace Scry
 
         private void LateUpdate()
         {
-            if (!_server) Guard.Run(Feature.Stage, "drawing the stage", Session.LateUpdate, "render");
+            if (_server) return;
+            // Once the game's map has moved this frame, so the dungeons' marks keep to it as it is dragged;
+            // timed as a part of the frame's own, "marks".
+            Guard.Run(Feature.DungeonMarksOnMap, "the marks on Valheim's map", MapMarkButtons.Update, "marks");
+            Guard.Run(Feature.Stage, "drawing the stage", Session.LateUpdate, "render");
         }
 
         private void OnGUI()

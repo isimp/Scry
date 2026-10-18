@@ -64,6 +64,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ACreaturesHitDealsFromAbout87To100PercentOfItsDamageRolledEachHit()
+        {
+            // Character.GetRandomSkillFactor for all but a player: the square root of an even roll from 0.75 to 1.
+            var (least, most) = SkillMath.CreatureHitShare;
+            Assert.Equal(0.866f, least, 3);
+            Assert.Equal(1f, most);
+            Assert.Equal("48–55 slash, 9–10 fire", CombatWords.CreatureDamage(new[] { ("fire", 10f), ("slash", 55f) }));
+            // Where the roll rounds to one number, one number.
+            Assert.Equal("1 blunt", CombatWords.CreatureDamage(new[] { ("blunt", 1f) }));
+            Assert.Null(CombatWords.CreatureDamage(new[] { ("blunt", 0f) }));
+        }
+
+        [Fact]
         public void AnAttackIsALineOfItsTableSayingWhatItDoesHowFarAndHowOften()
         {
             // Its name, its damage, how it is made, its reach and how often its AI uses it; a dash where it tells none.

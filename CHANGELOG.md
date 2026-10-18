@@ -36,6 +36,10 @@ A weapon's attacks table has a line for each step of its combo, the last as the 
 
 A mod's website opened from its page no longer keeps Steam showing Valheim as running after the game is closed when the browser was not open before.
 
+Traders have a tab of their own, Haldor, Hildir and the Bog Witch among them, and with the compendium on they are listed once met. A trader's page sells everything its store does: what mods add to it, such as Skald's Girdle, and the upgrades the game sells, Wider and Deeper Pockets, with their icons and prices, told bought once you have them. A creature's attacks tell the damage a hit deals as the game rolls it, from 87 to 100% of its figure, and where things come from gives the variants a mod numbers, such as rocks and markers, one chip.
+
+Inside a dungeon you have been in, its own rooms can be shown in place of an example, and the large map marks each such dungeon; a click on the mark opens its map in Scry. This dungeon shows its layout alone, its creatures and chests being the world's, which Scry does not read. The marks keep to the map as it is dragged, and a quick drag let go over one no longer opens it.
+
 ## 0.2.0
 
 Locations have a tab of their own: every location and dungeon room the world can place, grouped by biome, each telling where it is placed and what it holds. A location stands on the turntable as a new zone would roll it, its creatures included, and *Roll again* rolls it anew.

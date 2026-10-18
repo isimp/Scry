@@ -21,6 +21,13 @@ namespace Scry
         /// <summary>Whether the chests and pickups left there are noted (<see cref="Loot"/>).</summary>
         public bool WantsLoot;
 
+        /// <summary>
+        /// A room of the world's own dungeon, shown by its layout alone: its creatures, chests and
+        /// pickups are the world's, which Scry does not read, so none stands in the copy and no
+        /// creature is rolled; its chance parts still pick one look each.
+        /// </summary>
+        public bool LayoutOnly;
+
         public readonly List<(string Prefab, float Chance)> Loot = new List<(string, float)>();
     }
 }
