@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -135,6 +136,20 @@ namespace Scry.Tests
             Assert.Equal(new[] { 1.5f }, PlaceView.WithGround(new List<float> { 1.5f }));
             Assert.Equal(new[] { 3f, 0f, -6f }, PlaceView.WithGround(new List<float> { 3f, -6f }));
             Assert.Equal(new[] { 0f }, PlaceView.WithGround(new List<float>()));
+        }
+
+        [Fact]
+        public void ALocationOffersOnlyFloorsWithSomethingOfItOverThemToCutAway()
+        {
+            // A house: its loft and its ground, bare earth, both under its roof.
+            float? Roofed(float floor) => floor + 2.5f;
+            Assert.Equal(new[] { 3f, 0f }, PlaceView.LocationFloors(new List<float> { 3f }, Roofed));
+            // A hut on stilts: the ground round its stilts has nothing of it over it.
+            float? HutOnly(float floor) => Math.Abs(floor - 3f) < 0.01f ? 6f : (float?)null;
+            Assert.Equal(new[] { 3f }, PlaceView.LocationFloors(new List<float> { 3f }, HutOnly));
+            // A ring of standing stones, a wreck, a roofless ruin: nothing over any floor, nothing to cut.
+            Assert.Empty(PlaceView.LocationFloors(new List<float>(), floor => null));
+            Assert.Empty(PlaceView.LocationFloors(new List<float> { 1.2f, -0.1f }, floor => null));
         }
 
         [Theory]

@@ -84,6 +84,16 @@ namespace Scry
             return all.OrderByDescending(f => f).ToList();
         }
 
+        /// <summary>
+        /// A location's floors to cut to, from the top down: those found in it and its ground
+        /// (<see cref="WithGround"/>), each only with something of it over it to cut away
+        /// (<paramref name="ceilingOver"/>). The ground round a hut's stilts is none, and a place
+        /// with nothing over any floor (a ring of standing stones, a wreck, a roofless ruin) has
+        /// none: it keeps its roof on with nothing to cut.
+        /// </summary>
+        public static List<float> LocationFloors(IReadOnlyList<float> found, Func<float, float?> ceilingOver) =>
+            WithGround(found).Where(f => ceilingOver(f) != null).ToList();
+
         /// <summary>The floor a cut set by hand opens: the highest it is half a metre or more over; the lowest below them all.</summary>
         public static int LevelAt(IReadOnlyList<float> floors, float height)
         {

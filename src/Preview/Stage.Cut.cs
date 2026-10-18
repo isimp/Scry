@@ -140,7 +140,8 @@ namespace Scry
 
         /// <summary>
         /// The floors of a place's copy, made with its colliders: found in the model, a location's
-        /// ground among them; a room with nothing found keeps its doorways' heights, a location its root.
+        /// ground among them, a location's each with something of it over it (<see cref="PlaceView.LocationFloors"/>);
+        /// a room with nothing found keeps its doorways' heights.
         /// </summary>
         private static List<FloorHit> _floorHits = new List<FloorHit>();
         private static List<string> _floorNames = new List<string>();
@@ -166,7 +167,7 @@ namespace Scry
             _floorHits = hits;
             _floorNames = names;
             if (place.IsRoom) return found.Count > 0 ? found : PlaceView.RoomFloors(place.Contents?.Room);
-            return PlaceView.WithGround(found);
+            return PlaceView.LocationFloors(found, PlaceCeiling);
         }
 
         private static void ClearFloors() => TheCut.Clear();

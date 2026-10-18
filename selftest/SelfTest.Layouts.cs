@@ -54,7 +54,9 @@ namespace Scry
         /// <summary>
         /// Floors are found in the places themselves: a spread of locations and rooms, and the
         /// towers and caves among them, each with floors from the top down and a cut over each,
-        /// no collider left on its copy once read, and the floor ruler drawn beside the stage.
+        /// no collider left on its copy once read, and the floor ruler drawn beside the stage. A
+        /// location with nothing of it over any floor, as the stone circle, has none: no ruler
+        /// and no cut beside its stage.
         /// </summary>
         private static IEnumerator FloorsFound(Probe p)
         {
@@ -62,8 +64,12 @@ namespace Scry
             if (places.Count == 0) p.Skip("there are no locations");
             var picks = Spread(places, 16);
             picks.AddRange(places.Where(e => e.Name.IndexOf("Tower", StringComparison.OrdinalIgnoreCase) >= 0 || e.Name.IndexOf("Cave", StringComparison.OrdinalIgnoreCase) >= 0).Take(8));
+            var circle = places.FirstOrDefault(e => e.Name == NothingToCut);
+            if (circle != null) picks.Add(circle);
             var wrong = new List<string>();
             var several = new List<string>();
+            var bare = new List<string>();
+            Entry floored = null;
             foreach (var entry in picks.Distinct().ToList())
             {
                 var place = PlaceOf(entry);
@@ -77,7 +83,9 @@ namespace Scry
                 yield return null;
                 var floors = Stage.FloorHeights.ToList();
                 var cuts = Stage.CutHeights.ToList();
-                if (floors.Count == 0) wrong.Add($"{entry.Name} has no floor");
+                if (floors.Count > 0) floored = entry;
+                if (floors.Count == 0 && place.IsRoom) wrong.Add($"{entry.Name} has no floor");
+                else if (floors.Count == 0) bare.Add(entry.Name);
                 else if (floors.Zip(floors.Skip(1), (above, below) => above > below).Any(ordered => !ordered)) wrong.Add($"{entry.Name}'s floors are out of order: {string.Join(", ", floors.Select(f => Numbers.Amount(f)))}");
                 else if (cuts.Zip(floors, (cut, floor) => cut > floor).Any(over => !over)) wrong.Add($"{entry.Name} is cut below a floor");
                 // A dungeon's or camp's example is built room by room after it, each room's
@@ -95,11 +103,36 @@ namespace Scry
                 if (floors.Count > 1) several.Add($"{entry.Name} ({string.Join("; ", floors.Select((f, i) => $"{Numbers.Fixed(f, 1)} m on {(i < makers.Count ? makers[i] : "?")}"))})");
             }
             p.Note(several.Count > 0 ? "with several floors: " + string.Join("; ", several) : "none with several floors");
-            p.Check(wrong.Count == 0, "each has floors from the top down, cut over each, with no collider left on its copy", string.Join("; ", wrong.Take(8)));
+            p.Note(bare.Count > 0 ? "with nothing over any floor, nothing to cut: " + string.Join(", ", bare) : "none with nothing to cut");
+            p.Check(wrong.Count == 0, "each room has floors, and each place's floors stand from the top down, cut over each, with no collider left on its copy", string.Join("; ", wrong.Take(8)));
+            if (floored != null)
+            {
+                Select(floored);
+                yield return Until(() => CopyOf(floored) != null && Stage.HasFloors, 20);
+            }
             var drawn = ScryPanel.Drawn(PanelPart.Ruler);
             yield return Until(() => ScryPanel.Drawn(PanelPart.Ruler) > drawn, 3);
-            p.Check(ScryPanel.Drawn(PanelPart.Ruler) > drawn, "the floor ruler draws beside the stage");
+            p.Check(ScryPanel.Drawn(PanelPart.Ruler) > drawn, "the floor ruler draws beside the stage", floored?.Name);
+
+            // The stone circle has nothing over its ground: no floor, and no ruler or cut beside it.
+            if (circle == null)
+            {
+                p.Note(NothingToCut + " is not in the catalog");
+                yield break;
+            }
+            Select(circle);
+            yield return Until(() => PlaceAssets.State(PlaceOf(circle)) != PlaceLoad.Loading && CopyOf(circle) != null, 20);
+            var rulers = ScryPanel.Drawn(PanelPart.Ruler);
+            var cutControls = ScryPanel.Drawn(PanelPart.CutChip);
+            var frame = Time.frameCount;
+            yield return Until(() => Time.frameCount > frame + 2, 3);
+            p.Check(CopyOf(circle) != null && !Stage.HasFloors && ScryPanel.Drawn(PanelPart.Ruler) == rulers && ScryPanel.Drawn(PanelPart.CutChip) == cutControls,
+                $"{NothingToCut}, nothing of it over its ground, has no floor, no ruler and no cut",
+                $"{Numbers.Count(Stage.FloorHeights.Count)} floors, {Numbers.Count(ScryPanel.Drawn(PanelPart.Ruler) - rulers)} rulers and {Numbers.Count(ScryPanel.Drawn(PanelPart.CutChip) - cutControls)} cut controls drawn");
         }
+
+        /// <summary>A location with nothing of it over its ground, so nothing to cut: a ring of standing stones.</summary>
+        private const string NothingToCut = "StoneCircle";
 
         /// <summary>The places looked at for their floors, shown alone: an altar, towers, houses, a hut on stilts and a crypt's gate.</summary>
         private static readonly string[] PicturedPlaces = { "Bonemass", "CharredTowerRuins3", "WoodHouse12", "WoodHouse2", "Mistlands_GuardTower1_new", "SwampHut1", "SunkenCrypt4" };
@@ -503,6 +536,9 @@ namespace Scry
             {
                 p.Check(!Stage.HasInside, "a camp has no inside to go into");
                 p.Check(Mathf.Max(size.x, size.z) > 15f, "the camp stands around the location", $"{Numbers.Amount(size.x, 0)} × {Numbers.Amount(size.z, 0)} m");
+                // Its floors with what is over each, to see where a cut has something to take away.
+                var floors = Stage.FloorHeights;
+                p.Note("its floors: " + (floors.Count == 0 ? "none" : string.Join("; ", floors.Select((f, i) => $"{Numbers.Fixed(f, 1)} m" + (Stage.CeilingOver(i) is float c ? $" under something at {Numbers.Fixed(c, 1)} m" : ", nothing over it")))));
             }
             Stage.Inside = wasInside;
 

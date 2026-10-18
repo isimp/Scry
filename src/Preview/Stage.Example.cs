@@ -826,11 +826,12 @@ namespace Scry
             var floorsInside = inside && !_insideUnknown;
             var (insideFloors, insideCeiling) = ExampleMarksNow();
             var floors = floorsInside ? insideFloors : new List<float>(_placeFloors);
-            if (floors.Count == 0) floors.Add(0f);
+            // Inside there is always a floor to open; outside, only what the location has over its floors.
+            if (floors.Count == 0 && floorsInside) floors.Add(0f);
             // Inside, the example stands on its lowest floor; outside, the location stands on the
             // ground the game stands it on, not on a sunken part of it.
             var outside = _lastShown?.Source is PlaceSource place ? PlaceView.Ground(place.Contents, place.IsRoom) : 0f;
-            MeasureStanding(Origin.y + (inside ? floors[floors.Count - 1] : outside) * _baseScale.y);
+            MeasureStanding(Origin.y + (inside ? (floors.Count > 0 ? floors[floors.Count - 1] : 0f) : outside) * _baseScale.y);
             TheCut.ForgetEntry();
             if (floorsInside) SetFloors(_lastShown, floors, true, insideCeiling, TheExample.Top);
             else SetFloors(_lastShown, floors, false, PlaceCeiling, _placeTop);
