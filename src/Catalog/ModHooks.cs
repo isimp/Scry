@@ -145,6 +145,32 @@ namespace Scry
             (HookedRule.Trading, typeof(Trader), "Start", Fields(typeof(Trader), "m_items")),
 
             (HookedRule.Storage, typeof(Container), "Awake", Fields(typeof(Container), "m_width", "m_height")),
+
+            (HookedRule.Skills, typeof(Skills), "GetSkillFactor", Always),
+            (HookedRule.Skills, typeof(Skills), "GetSkillLevel", Always),
+            (HookedRule.Skills, typeof(Skills), "GetRandomSkillFactor", Always),
+            (HookedRule.Skills, typeof(Skills), "GetRandomSkillRange", Always),
+            (HookedRule.Skills, typeof(Skills), "RaiseSkill", Always),
+            (HookedRule.Skills, typeof(Skills), "OnDeath", Always),
+            (HookedRule.Skills, typeof(Skills), "LowerAllSkills", Always),
+            (HookedRule.Skills, typeof(Player), "GetSkillFactor", Always),
+            (HookedRule.Skills, typeof(Player), "GetRandomSkillFactor", Always),
+            (HookedRule.Skills, typeof(Player), "RaiseSkill", Always),
+            (HookedRule.Skills, typeof(Player), "CheckRun", Always),
+            (HookedRule.Skills, typeof(Player), "GetRunSpeedFactor", Always),
+            (HookedRule.Skills, typeof(Player), "OnSwimming", Always),
+            (HookedRule.Skills, typeof(Player), "GetDodgeStaminaUse", Always),
+            (HookedRule.Skills, typeof(Player), "OnSneaking", Always),
+            (HookedRule.Skills, typeof(Player), "UpdateStealth", Always),
+            (HookedRule.Skills, typeof(Player), "GetBuildStamina", Always),
+            (HookedRule.Skills, typeof(Player), "GetPlaceDurability", Always),
+            (HookedRule.Skills, typeof(Attack), "GetAttackStamina", Always),
+            (HookedRule.Skills, typeof(Attack), "GetAttackEitr", Always),
+            (HookedRule.Skills, typeof(Attack), "GetAttackHealth", Always),
+            (HookedRule.Skills, typeof(Humanoid), "GetAttackDrawPercentage", Always),
+            (HookedRule.Skills, typeof(ItemDrop.ItemData), "GetWeaponLoadingTime", Always),
+            (HookedRule.Skills, typeof(ItemDrop.ItemData), "GetDrawStaminaDrain", Always),
+            (HookedRule.Skills, typeof(ItemDrop.ItemData), "GetDrawEitrDrain", Always),
         };
 
         /// <summary>The types whose members, named in a hook's code, make it a hook into drops.</summary>

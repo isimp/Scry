@@ -262,7 +262,7 @@ namespace Scry
         {
             if (!LeavingOut) return false;
             var other = Find(key);
-            if (other == null || other == _selected || other.Kind == Kind.Mod) return false;
+            if (other == null || other == _selected || other.Kind == Kind.Mod || other.Kind == Kind.Skill) return false;
             return !_view.Related(_selected, other);
         }
 
@@ -395,7 +395,7 @@ namespace Scry
         /// what was seen of what it adds.
         /// </summary>
         public bool LeavingOut =>
-            CompendiumOn && _view.Rule == CompendiumRule.Strict && _selected != null && _selected.Kind != Kind.Mod
+            CompendiumOn && _view.Rule == CompendiumRule.Strict && _selected != null && _selected.Kind != Kind.Mod && _selected.Kind != Kind.Skill
             && _view.Of(_selected) == KnownLevel.Known && !_view.BelowFloor(_selected);
 
         /// <summary>How many of a kind the character has met (seen or known), whatever is typed.</summary>

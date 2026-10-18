@@ -284,19 +284,25 @@ namespace Scry
         /// <summary>The label of what a hit on a weak spot does, by the part of the body it sits on (<see cref="PartName"/>).</summary>
         public static string WeakSpot(string objectName) => "Hit on the " + PartName(objectName);
 
-        /// <summary>What an attack takes: stamina, eitr, health and a share of health, each only when it takes some; null for nothing.</summary>
-        public static string Costs(float stamina, float eitr, float health, float healthPercent)
+        /// <summary>What an attack takes: stamina, eitr, health and a share of health, each only when it takes some, to so many decimals; null for nothing.</summary>
+        public static string Costs(float stamina, float eitr, float health, float healthPercent, int decimals = 2)
         {
             var costs = new List<string>();
-            if (stamina > 0f) costs.Add($"{Numbers.Amount(stamina)} stamina");
-            if (eitr > 0f) costs.Add($"{Numbers.Amount(eitr)} eitr");
-            if (health > 0f) costs.Add($"{Numbers.Amount(health)} health");
-            if (healthPercent > 0f) costs.Add($"{Numbers.Amount(healthPercent)}% health");
+            if (stamina > 0f) costs.Add($"{Numbers.Amount(stamina, decimals)} stamina");
+            if (eitr > 0f) costs.Add($"{Numbers.Amount(eitr, decimals)} eitr");
+            if (health > 0f) costs.Add($"{Numbers.Amount(health, decimals)} health");
+            if (healthPercent > 0f) costs.Add($"{Numbers.Amount(healthPercent, decimals)}% health");
             return costs.Count > 0 ? string.Join(", ", costs) : null;
         }
 
-        /// <summary>What drawing a bow takes while it is drawn.</summary>
-        public static string DrawCost(float staminaPerSecond) => $"{Numbers.Amount(staminaPerSecond)} stamina a second";
+        /// <summary>What drawing a bow takes while it is drawn, to so many decimals.</summary>
+        public static string DrawCost(float staminaPerSecond, int decimals = 2) => $"{Numbers.Amount(staminaPerSecond, decimals)} stamina a second";
+
+        /// <summary>The line of how long a bow takes to draw fully (<c>Attack.m_drawDurationMin</c>).</summary>
+        public const string FullDraw = "Full draw";
+
+        /// <summary>The line of how long a crossbow takes to reload (<c>Attack.m_reloadTime</c>).</summary>
+        public const string Reloads = "Reloads in";
 
         /// <summary>A kind of damage by its type, as a link to the status effect it puts on names it: "fire damage".</summary>
         public static string OfDamage(string damageType) => damageType + " damage";

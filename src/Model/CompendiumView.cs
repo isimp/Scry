@@ -229,7 +229,8 @@ namespace Scry
             var floored = new List<Entry>();
             foreach (var entry in _catalog.All)
             {
-                var level = entry.Kind == Kind.Mod ? KnownLevel.Known : book.Level(entry.Key);
+                // A mod and a skill of the character's own are always known.
+                var level = entry.Kind == Kind.Mod || entry.Kind == Kind.Skill ? KnownLevel.Known : book.Level(entry.Key);
                 if (level < KnownLevel.Known && BelowFloor(entry)) floored.Add(entry);
                 if (level == KnownLevel.Unknown) continue;
                 _levels[entry] = level;
@@ -276,7 +277,7 @@ namespace Scry
             foreach (var key in Raised)
             {
                 var entry = _catalog.Find(key);
-                if (entry == null || entry.Kind == Kind.Mod) continue;
+                if (entry == null || entry.Kind == Kind.Mod || entry.Kind == Kind.Skill) continue;
                 var level = _book.Level(key);
                 var now = Of(entry);
                 if (level == KnownLevel.Known)

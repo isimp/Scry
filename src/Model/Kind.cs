@@ -27,6 +27,9 @@ namespace Scry
         /// <summary>A raid (the game's random event), no prefab: what it brings, when and for whom.</summary>
         Raid,
 
+        /// <summary>A skill the character can have, no prefab: what it changes at each level, what raises it and what it works on.</summary>
+        Skill,
+
         /// <summary>A mod loaded, no prefab: what it adds and which of the game's rules it hooks into.</summary>
         Mod,
         Other,
@@ -183,7 +186,7 @@ namespace Scry
         /// effect (it stands on the person), a raid (it is its creatures) or a place (its doors,
         /// gates and creatures are not it), none of whose clips are its own.
         /// </summary>
-        public static bool OffersClips(Kind kind) => kind != Kind.StatusEffect && kind != Kind.Raid && kind != Kind.Location;
+        public static bool OffersClips(Kind kind) => kind != Kind.StatusEffect && kind != Kind.Raid && kind != Kind.Location && kind != Kind.Skill;
 
         /// <summary>The word that picks a kind in a search's kind: term, as the search's help gives it.</summary>
         public static string TermWord(Kind kind) => kind == Kind.StatusEffect ? "se" : kind.ToString().ToLowerInvariant();
@@ -212,6 +215,7 @@ namespace Scry
                 case Kind.Biome: return "Biomes";
                 case Kind.Location: return "Locations";
                 case Kind.Raid: return "Raids";
+                case Kind.Skill: return "Skills";
                 case Kind.Mod: return "Mods";
                 default: return "Other";
             }

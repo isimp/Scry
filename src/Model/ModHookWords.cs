@@ -61,6 +61,9 @@ namespace Scry
 
         /// <summary>How many slots a container holds.</summary>
         Storage,
+
+        /// <summary>What a skill's level changes: a hit's damage, an attack's cost, moving, making.</summary>
+        Skills,
     }
 
     /// <summary>
@@ -92,6 +95,7 @@ namespace Scry
                 case HookedRule.Taming: return "taming";
                 case HookedRule.Trading: return "its wares";
                 case HookedRule.Storage: return "its size";
+                case HookedRule.Skills: return "what your skills change";
                 default: return "how it works";
             }
         }
@@ -164,6 +168,7 @@ namespace Scry
                 case HookedRule.Raids: return $"{who} {hook} into raids: they may come otherwise than told";
                 case HookedRule.Taming: return $"{who} {hook} into taming and breeding: it may tame or breed otherwise than told";
                 case HookedRule.Storage: return $"{who} {hook} into containers: it may hold more or less than told";
+                case HookedRule.Skills: return $"{who} {hook} into skills: what a level changes may differ from what is told";
                 default: return $"{who} {hook} into trading: what is sold may differ from what is told";
             }
         }

@@ -209,7 +209,7 @@ namespace Scry
         /// <summary>Whether an entry has something to put on the stage.</summary>
         public static bool IsStaged(Entry entry)
         {
-            if (entry == null || entry.Kind == Kind.Sound || entry.Kind == Kind.Mod || entry.Kind == Kind.Biome) return false;
+            if (entry == null || entry.Kind == Kind.Sound || entry.Kind == Kind.Mod || entry.Kind == Kind.Biome || entry.Kind == Kind.Skill) return false;
             if (entry.Kind == Kind.Raid) return RaidCrowd.Brings(entry.Source as RandomEvent);
             if (entry.Kind == Kind.StatusEffect) return Looks.ShowsOnPerson(entry);
             return !entry.Empty;

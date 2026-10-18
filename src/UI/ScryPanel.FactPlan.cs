@@ -163,8 +163,13 @@ namespace Scry
             {
                 var last = Mathf.Min(tiles.Count, first + columns);
                 var valueH = U(20f);
-                for (var i = first; i < last; i++) valueH = Mathf.Max(valueH, Skin.Height(Skin.Wrap, TileValue(explorer, facts, facts.Pairs[tiles[i]], out _), valueW));
-                var tileH = U(26f) + valueH + U(6f);
+                var yoursH = 0f;
+                for (var i = first; i < last; i++)
+                {
+                    valueH = Mathf.Max(valueH, Skin.Height(Skin.Wrap, TileValue(explorer, facts, facts.Pairs[tiles[i]], out var keptHere), valueW));
+                    if (keptHere == null && facts.Yours.TryGetValue(facts.Pairs[tiles[i]].Key, out var yoursHere)) yoursH = Mathf.Max(yoursH, Skin.Height(Skin.SmallWrap, yoursHere, valueW));
+                }
+                var tileH = U(26f) + valueH + yoursH + U(6f);
                 for (var i = first; i < last; i++)
                 {
                     var pair = facts.Pairs[tiles[i]];
@@ -177,6 +182,14 @@ namespace Scry
                     var value = TileValue(explorer, facts, pair, out var kept);
                     GUI.Label(new Rect(at.x + U(8f), at.y + U(24f), valueW, valueH), value, unsure ? Skin.DimWrap : Skin.Wrap);
                     if (unsure && at.Contains(Event.current.mousePosition)) AskTip("unsure:" + pair.Key, why);
+                    // What it comes to at the character's own skill, faint under it.
+                    if (kept == null && facts.Yours.TryGetValue(pair.Key, out var yours))
+                    {
+                        var yoursRect = new Rect(at.x + U(8f), at.y + U(24f) + valueH, valueW, yoursH);
+                        Skin.LabelIn(yoursRect, yours, Skin.SmallWrap, Skin.Faint);
+                        if (facts.YoursTips.TryGetValue(pair.Key, out var tip) && yoursRect.Contains(Event.current.mousePosition)) AskTip("yours:" + pair.Key, tip);
+                        CountDrawn(PanelPart.YourSkillLine);
+                    }
                     if (kept == null) continue;
                     CountDrawn(PanelPart.FactKeptBack);
                     if (at.Contains(Event.current.mousePosition)) AskTip("tile-kept:" + pair.Key, KeptTip(explorer, pair.Key, kept));
@@ -225,6 +238,8 @@ namespace Scry
                 {
                     var cells = row.Lines[l].Cells;
                     if (c < cells.Length) w = Mathf.Max(w, Skin.Width(Skin.Small, CellShown(explorer, row, l, c, cells[c])) + (explorer.ShownByFloor(CellLink(row, l, c)) ? FloorRoom : 0f));
+                    if (!row.Yours.TryGetValue(l, out var yours)) continue;
+                    foreach (var under in yours) if (c < under.Length) w = Mathf.Max(w, Skin.Width(Skin.Small, under[c]) + (c == 0 ? YoursIndent : 0f));
                 }
                 ColumnWidths.Add(w + U(2f));
                 sum += w + U(2f);
@@ -260,7 +275,11 @@ namespace Scry
                 if (lineKept && cells.Length > 0) KeptLines.Add((explorer.ShowsOnce(cells[0], lineProof), explorer.MayRunElsewhere(lineProof)));
                 var height = U(20f);
                 for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++) height = Mathf.Max(height, Skin.Height(Skin.SmallWrap, cells[c], ColumnWidths[c]));
-                var line = new Rect(0f, y, width, height);
+                // Faint lines under it: the same at the character's skill, left out where the line keeps its numbers back.
+                var under = !lineKept && !attackKept && row.Yours.TryGetValue(l, out var yoursLines) ? yoursLines : null;
+                var underHeight = 0f;
+                if (under != null) foreach (var faint in under) underHeight += YoursHeight(faint);
+                var line = new Rect(0f, y, width, height + underHeight);
                 if (!OutOfSight(line))
                 {
                     x = 0f;
@@ -349,9 +368,14 @@ namespace Scry
                         else GUI.Label(cell, Masked(explorer, cells[c]), Skin.SmallWrap);
                         x += ColumnWidths[c] + gap;
                     }
-                    Skin.Fill(new Rect(0f, y + height + U(2f), width, U(1f)), Skin.Outline);
+                    if (under != null)
+                    {
+                        var at = y + height;
+                        foreach (var faint in under) at = YoursLine(row, faint, gap, width, at);
+                    }
+                    Skin.Fill(new Rect(0f, y + height + underHeight + U(2f), width, U(1f)), Skin.Outline);
                 }
-                y += height + U(6f);
+                y += height + underHeight + U(6f);
             }
             CountDrawn(PanelPart.FactTable);
             y += U(4f);
@@ -360,6 +384,37 @@ namespace Scry
             foreach (var said in explorer.ElsewhereLines(row.Tally, row.TallyOf)) y = FaintLine(said, ElsewhereWords.Tip, "elsewhere:", said, PanelPart.RanElsewhere, width, y);
             foreach (var (said, elsewhere) in KeptLines) y = FaintLine(said, elsewhere ? ElsewhereWords.Tip : null, "line-kept:", said, PanelPart.TableKeptBack, width, y);
             return y;
+        }
+
+        /// <summary>How far a faint line at the character's skill sits in under its table line.</summary>
+        private static float YoursIndent => U(10f);
+
+        /// <summary>How tall a faint line at the character's skill is, its cells wrapping in the table's columns.</summary>
+        private static float YoursHeight(string[] cells)
+        {
+            var height = U(18f);
+            for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++) height = Mathf.Max(height, Skin.Height(Skin.SmallWrap, cells[c], ColumnWidths[c] - (c == 0 ? YoursIndent : 0f)));
+            return height;
+        }
+
+        /// <summary>
+        /// A faint line under a table's line: the same figures at the character's own skill
+        /// (<see cref="Facts.Row.Yours"/>), in the table's columns, its first cell set in; what it
+        /// leaves out on hover.
+        /// </summary>
+        private static float YoursLine(Facts.Row row, string[] cells, float gap, float width, float y)
+        {
+            var height = YoursHeight(cells);
+            var x = 0f;
+            for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++)
+            {
+                var inset = c == 0 ? YoursIndent : 0f;
+                Skin.LabelIn(new Rect(x + inset, y, ColumnWidths[c] - inset, height), cells[c], Skin.SmallWrap, Skin.Faint);
+                x += ColumnWidths[c] + gap;
+            }
+            if (row.YoursTip != null && new Rect(0f, y, width, height).Contains(Event.current.mousePosition)) AskTip("yours:" + row.Title + cells[0], row.YoursTip);
+            CountDrawn(PanelPart.YourSkillLine);
+            return y + height;
         }
 
         /// <summary>A table's cell as the page shows it: under the strict rules, a counted one's count in place of the game's share (<see cref="Facts.Row.Tally"/>); else the cell itself.</summary>

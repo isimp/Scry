@@ -108,7 +108,7 @@ namespace Scry
                     if (shared.m_damageModifiers != null) mods.Apply(shared.m_damageModifiers);
                     SetTaking(entry, Facts.Cells(mods));
                 }
-                if (TrainsSkill(type) && shared.m_skillType != Skills.SkillType.None)
+                if (SkillReading.Trains(type) && shared.m_skillType != Skills.SkillType.None)
                 {
                     entry.SetTermWords("skill", SearchFight.Skill(SkillWords.Name(shared.m_skillType.ToString(), Localize)));
                 }
@@ -123,26 +123,6 @@ namespace Scry
             entry.SetTermWords("weak", SearchFight.Taking(cells, Tone.Weak));
             entry.SetTermWords("resists", SearchFight.Taking(cells, Tone.Resists));
             entry.SetTermWords("immune", SearchFight.Taking(cells, Tone.Immune));
-        }
-
-        /// <summary>The items whose skill the details tell: weapons, torches, ammo, shields and tools.</summary>
-        private static bool TrainsSkill(ItemDrop.ItemData.ItemType type)
-        {
-            switch (type)
-            {
-                case ItemDrop.ItemData.ItemType.OneHandedWeapon:
-                case ItemDrop.ItemData.ItemType.TwoHandedWeapon:
-                case ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft:
-                case ItemDrop.ItemData.ItemType.Bow:
-                case ItemDrop.ItemData.ItemType.Torch:
-                case ItemDrop.ItemData.ItemType.Ammo:
-                case ItemDrop.ItemData.ItemType.AmmoNonEquipable:
-                case ItemDrop.ItemData.ItemType.Shield:
-                case ItemDrop.ItemData.ItemType.Tool:
-                    return true;
-                default:
-                    return false;
-            }
         }
 
         /// <summary>What is: asks of an entry, read from its prefab as its details read it.</summary>

@@ -27,6 +27,11 @@ namespace Scry
             var upgradable = shared.m_maxQuality > 1;
             var damage = Damages(shared.m_damages);
             if (damage.Length > 0) Add("Damage", damage);
+            // What a hit deals at the character's skill, rolled between two shares of it (Skills.GetRandomSkillRange).
+            if (damage.Length > 0 && SkillReading.Trains(shared.m_itemType))
+            {
+                YoursAt("Damage", shared.m_skillType, level => SkillWords.DamageRange(DamageFigures(shared.m_damages), SkillMath.HitShare(level).Least, SkillMath.HitShare(level).Most));
+            }
 
             var type = shared.m_itemType;
             // The slots whose armour counts (Player.GetBodyArmor); gloves' does not.
@@ -166,9 +171,12 @@ namespace Scry
 
             if ((weapon || ammo || shield || type == ItemDrop.ItemData.ItemType.Tool) && shared.m_skillType != Skills.SkillType.None)
             {
-                var skill = SkillWords.Name(shared.m_skillType.ToString(), CatalogBuilder.Localize);
-                if (skill == SkillWords.ModSkill) AddUnsure("Skill", skill, UnsureWords.ModSkill);
-                else Add("Skill", skill);
+                // The skill goes to its page, named as the page names it.
+                var skill = SkillName(shared.m_skillType);
+                var page = EntryKeys.For(Kind.Skill, shared.m_skillType.ToString());
+                var link = EntryOf(page) != null ? page : null;
+                if (skill == SkillWords.ModSkill) AddUnsure("Skill", skill, UnsureWords.ModSkill, link);
+                else Add("Skill", skill, link);
             }
 
             if (weapon || shield)
@@ -176,6 +184,7 @@ namespace Scry
                 // The game tells blocking only above 1, as AddBlockTooltip does; below that it cannot block.
                 // Each at the first quality; what each level adds is in the table by quality.
                 Add("Block", ItemWords.Block(shared.m_blockPower));
+                if (shared.m_blockPower > 1f) YoursAt("Block", Skills.SkillType.Blocking, level => ItemWords.Block(SkillMath.Block(shared.m_blockPower, level)));
                 if (shared.m_deflectionForce > 1f) Add("Block force", Numbers.Amount(shared.m_deflectionForce));
                 if (shared.m_timedBlockBonus > 1f) Add("Parry bonus", Numbers.Times(shared.m_timedBlockBonus));
             }
@@ -190,10 +199,31 @@ namespace Scry
 
             if (weapon && attack != null)
             {
-                if (attack.m_drawStaminaDrain > 0f) Add("Drawing costs", CombatWords.DrawCost(attack.m_drawStaminaDrain));
+                // A bow's draw and a crossbow's reload, each faster at the character's skill (Humanoid.GetAttackDrawPercentage,
+                // ItemDrop.ItemData.GetWeaponLoadingTime), and the drain while drawing, less (ItemDrop.ItemData.GetDrawStaminaDrain).
+                if (attack.m_drawStaminaDrain > 0f)
+                {
+                    Add("Drawing costs", CombatWords.DrawCost(attack.m_drawStaminaDrain));
+                    YoursAt("Drawing costs", shared.m_skillType, level => CombatWords.DrawCost(attack.m_drawStaminaDrain * SkillMath.CostShare(level), 1));
+                }
+                if (attack.m_bowDraw && attack.m_drawDurationMin > 0f)
+                {
+                    Add(CombatWords.FullDraw, Numbers.Duration(attack.m_drawDurationMin));
+                    YoursAt(CombatWords.FullDraw, shared.m_skillType, level => Numbers.Duration(SkillMath.DrawTime(attack.m_drawDurationMin, level)));
+                }
+                if (attack.m_requiresReload && attack.m_reloadTime > 0f)
+                {
+                    Add(CombatWords.Reloads, Numbers.Duration(attack.m_reloadTime));
+                    YoursAt(CombatWords.Reloads, shared.m_skillType, level => Numbers.Duration(SkillMath.ReloadTime(attack.m_reloadTime, level)));
+                }
                 // Each attack a line, side by side: what it deals at the first quality, knocks back,
                 // staggers and costs. One with no second attack has its line too, so it can be played.
+                // Under each, faint, the same at the character's skill (Attack.DoMeleeAttack,
+                // Attack.FireProjectileBurst, Attack.GetAttackStamina), and an axe's hit on a tree
+                // where trees take another skill.
                 var table = new Row { Title = CombatWords.WeaponAttacksTitle, Columns = CombatWords.WeaponAttackColumns };
+                var you = YourAt(shared.m_skillType);
+                if (you != null) table.YoursTip = SkillWords.YoursTip(you.Value.Name);
                 foreach (var (each, isSecond) in twoAttacks ? new[] { (attack, false), (second, true) } : new[] { (attack, false) })
                 {
                     var figures = DamageFigures(shared.m_damages).Select(d => (d.Type, d.Amount * each.m_damageMultiplier)).ToList();
@@ -208,7 +238,9 @@ namespace Scry
                         var area = each.m_attackType == Attack.AttackType.Area;
                         var last = CombatWords.LastSwingMultiplier(melee, area, each.m_lastChainDamageMultiplier);
                         var steps = CombatWords.WeaponCombo(each.m_attackChainLevels, isSecond, figures, knockback, each.m_staggerMultiplier, last, costs);
+                        var first = table.Lines.Count;
                         for (var step = 0; step < steps.Count; step++) table.Lines.Add((steps[step], plays ? EntryKeys.PlayAttack(prefab.name, isSecond, step) : null));
+                        YoursUnder(table, first, each, figures, knockback, last, you);
                         Add(CombatWords.ComboTitle(isSecond), CombatWords.Combo(each.m_attackChainLevels, melee || area));
                         foreach (var (label, value) in CombatWords.ComboResets((int)each.m_resetChainIfHit)) Add(label, value);
                         continue;
@@ -216,6 +248,7 @@ namespace Scry
                     // Its name plays it on the person wearing it, as a creature's attack plays from its table; one with no animation plays nothing.
                     table.Lines.Add((CombatWords.WeaponAttack(isSecond, CombatWords.Damage(figures), knockback, each.m_staggerMultiplier, costs),
                         plays ? EntryKeys.PlayAttack(prefab.name, isSecond) : null));
+                    YoursUnder(table, table.Lines.Count - 1, each, figures, knockback, 1f, you);
                 }
                 Rows.Add(table);
                 if (!twoAttacks) Add("Secondary attack", "none");
@@ -233,6 +266,29 @@ namespace Scry
             }
             else if (IsGear(shared.m_itemType)) Add("Durability", ItemWords.NoWear);
 
+        }
+
+        /// <summary>
+        /// The faint lines under an attack's lines in the attacks table, from its first: what each
+        /// step deals and knocks back at the character's skill and what it costs, and where the
+        /// attack hits trees by another skill (<c>Attack.m_specialHitSkill</c>, an axe's Wood
+        /// Cutting), what each step deals a tree at that one.
+        /// </summary>
+        private void YoursUnder(Row table, int first, Attack attack, IList<(string Type, float Amount)> figures, float knockback, float last, (string At, float Level, string Name)? you)
+        {
+            if (you == null) return;
+            var steps = Math.Max(1, attack.m_attackChainLevels);
+            var cost = SkillMath.CostShare(you.Value.Level);
+            var costs = CombatWords.Costs(attack.m_attackStamina * cost, attack.m_attackEitr * cost, attack.m_attackHealth * cost, attack.m_attackHealthPercentage * cost, 1);
+            var lines = SkillWords.AttackLines(you.Value.At, steps, figures, knockback, last, SkillMath.HitShare(you.Value.Level), costs);
+            var trees = attack.m_specialHitSkill != Skills.SkillType.None && (attack.m_specialHitType & DestructibleType.Tree) != 0 ? YourAt(attack.m_specialHitSkill) : null;
+            var treeLines = trees != null ? SkillWords.TreeLines(SkillWords.OnTrees(trees.Value.At), steps, figures, last, SkillMath.HitShare(trees.Value.Level)) : null;
+            for (var step = 0; step < lines.Count && first + step < table.Lines.Count; step++)
+            {
+                var under = new List<string[]> { lines[step] };
+                if (treeLines != null) under.Add(treeLines[step]);
+                table.Yours[first + step] = under;
+            }
         }
 
         /// <summary>The recipe that makes an item, the first enabled one, or null.</summary>

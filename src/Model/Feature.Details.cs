@@ -93,6 +93,8 @@ namespace Scry
         public static readonly Feature BaitsKeysAndPowers = Listed("baits, keys and powers, in the details");
         public static readonly Feature TurnsInto = Listed("what things turn into, in the details");
         public static readonly Feature WeaponCombos = Listed("a weapon's combo, swing by swing, in the details");
+        public static readonly Feature YourSkillFigures = Listed("figures at your skill level, in the details");
+        public static readonly Feature SkillPages = Listed("the skills' pages");
         public static readonly Feature WindmillWind = Listed("the wind a windmill needs, in the details");
         public static readonly Feature WhereThingsGrow = Listed("where things grow, in the details");
         public static readonly Feature GameFigures = Listed("figures read from the game's data, in the details");

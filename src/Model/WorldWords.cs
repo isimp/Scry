@@ -18,5 +18,19 @@ namespace Scry
             if (drops && resourceRate > 0f && System.Math.Abs(resourceRate - 1f) > 0.001f) parts.Add($"most drops {Numbers.Times(resourceRate)} (resource rate)");
             return parts.Count > 0 ? string.Join(" and ", parts) + ", not counted in these figures" : null;
         }
+
+        /// <summary>
+        /// The note for a world that changes how skills rise and fall (<c>Game.m_skillGainRate</c>,
+        /// <c>Game.m_skillReductionRate</c>, or every skill reset on death), or null for none: a
+        /// skill's page tells the game's own figures.
+        /// </summary>
+        public static string SkillNote(float gainRate, float lossRate, bool resetOnDeath)
+        {
+            var parts = new List<string>();
+            if (gainRate > 0f && System.Math.Abs(gainRate - 1f) > 0.001f) parts.Add($"skills rise {Numbers.Times(gainRate)} as fast (skill gain)");
+            if (resetOnDeath) parts.Add("a death resets every skill");
+            else if (System.Math.Abs(lossRate - 1f) > 0.001f) parts.Add($"a death takes {Numbers.Times(lossRate)} as much (skill loss)");
+            return parts.Count > 0 ? string.Join(" and ", parts) + ", not counted in these figures" : null;
+        }
     }
 }

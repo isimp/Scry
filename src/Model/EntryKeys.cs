@@ -46,6 +46,7 @@ namespace Scry
         public const string Location = "loc:";
         public const string Mod = "mod:";
         public const string Biome = "biome:";
+        public const string Skill = "skill:";
 
         /// <summary>A damage type, kept only as what a creature was seen hit with (<see cref="Damage"/>); no entry goes by it.</summary>
         private const string DamageType = "dmg:";
@@ -153,6 +154,7 @@ namespace Scry
                 case Kind.Location: return Location + name;
                 case Kind.Mod: return Mod + name;
                 case Kind.Biome: return Biome + name;
+                case Kind.Skill: return Skill + name;
                 default: return name;
             }
         }
@@ -189,11 +191,16 @@ namespace Scry
                 kind = Kind.Biome;
                 return key.Substring(Biome.Length);
             }
+            if (key.StartsWith(Skill, StringComparison.Ordinal))
+            {
+                kind = Kind.Skill;
+                return key.Substring(Skill.Length);
+            }
             kind = null;
             return key;
         }
 
         /// <summary>Whether entries of this kind have a namespace of their own rather than the prefabs'.</summary>
-        public static bool HasOwnNamespace(Kind kind) => kind == Kind.StatusEffect || kind == Kind.Raid || kind == Kind.Location || kind == Kind.Mod || kind == Kind.Biome;
+        public static bool HasOwnNamespace(Kind kind) => kind == Kind.StatusEffect || kind == Kind.Raid || kind == Kind.Location || kind == Kind.Mod || kind == Kind.Biome || kind == Kind.Skill;
     }
 }

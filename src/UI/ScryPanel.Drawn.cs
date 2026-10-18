@@ -52,6 +52,7 @@ namespace Scry
         TableKeptBack,
         TallyCounted,
         YouBox,
+        YourSkillLine,
         EmptyRowLeftOut,
         RoomCard,
         RoomCardWay,

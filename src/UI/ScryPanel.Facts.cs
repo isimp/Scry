@@ -91,6 +91,8 @@ namespace Scry
                     came = CompendiumWords.CameLine(record?.Way, record?.Day ?? -1, biome, explorer.Compendium.Because(entry)?.ShownName, explorer.ByFloor(entry), explorer.LevelOf(entry) == KnownLevel.Known);
                 }
                 _you = CompendiumWords.You(CharacterRecords.Counts(entry), came);
+                // A skill's page opens with the character's level and the way to the next.
+                if (entry.Source is SkillSource skill) _you.AddRange(YourSkills.Lines(skill));
                 _killedElsewhere = entry.Kind == Kind.Creature ? explorer.KilledElsewhere(entry.Key) : null;
                 _still = StillToFindOut(explorer, facts);
             }
@@ -274,6 +276,16 @@ namespace Scry
             else
             {
                 GUI.Label(valueRect, value, unsure ? Skin.DimWrap : Skin.Wrap);
+            }
+            // What it comes to at the character's own skill, faint under the game's figure; none where that is kept back.
+            if (keptBack == null && facts.Yours.TryGetValue(pair.Key, out var yours))
+            {
+                var yoursH = Skin.Height(Skin.SmallWrap, yours, valueW);
+                var yoursRect = new Rect(valueRect.x, y + height, valueW, yoursH);
+                Skin.LabelIn(yoursRect, yours, Skin.SmallWrap, Skin.Faint);
+                if (facts.YoursTips.TryGetValue(pair.Key, out var tip) && yoursRect.Contains(Event.current.mousePosition)) AskTip("yours:" + pair.Key, tip);
+                CountDrawn(PanelPart.YourSkillLine);
+                height += yoursH;
             }
             return y + height + U(6f);
         }

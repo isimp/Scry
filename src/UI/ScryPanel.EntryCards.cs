@@ -52,12 +52,28 @@ namespace Scry
             if (entry == null || Stage.IsStaged(entry)) return 0f;
             if (entry.Kind == Kind.Sound) return U(118f);
             if (entry.Kind == Kind.StatusEffect) return U(150f);
-            if (entry.Kind == Kind.Mod && entry.Icon is Sprite) return U(150f);
-            if (entry.Kind == Kind.Raid || entry.Kind == Kind.Mod || entry.Kind == Kind.Biome) return U(118f);
+            if ((entry.Kind == Kind.Mod || entry.Kind == Kind.Skill) && entry.Icon is Sprite) return U(150f);
+            if (entry.Kind == Kind.Raid || entry.Kind == Kind.Mod || entry.Kind == Kind.Biome || entry.Kind == Kind.Skill) return U(118f);
             return 0f;
         }
 
         private static readonly Dictionary<Entry, (string Lasts, string Brings)> RaidCardCache = new Dictionary<Entry, (string, string)>();
+
+        /// <summary>A skill has nothing to show on the stage: its icon, the character's level and the way to the next stand in its place.</summary>
+        private static void SkillCard(Entry entry, Rect rect)
+        {
+            if (!(entry.Source is SkillSource skill)) return;
+            var top = rect.y + U(40f);
+            if (entry.Icon is Sprite icon && icon != null)
+            {
+                var size = U(56f);
+                DrawSprite(icon, new Rect(rect.center.x - size / 2f, rect.y + U(34f), size, size));
+                top = rect.y + U(96f);
+            }
+            var (level, next) = YourSkills.Card(skill);
+            GUI.Label(new Rect(rect.x + U(20f), top, rect.width - U(40f), U(24f)), level, Skin.Center);
+            if (next != null) GUI.Label(new Rect(rect.x + U(20f), top + U(28f), rect.width - U(40f), U(40f)), next, Skin.CenterDim);
+        }
 
         /// <summary>A biome has nothing to show on the stage: its weathers, music and what is there are under In the game.</summary>
         private static void BiomeCard(Entry entry, Rect rect)

@@ -80,6 +80,7 @@ namespace Scry
             [Kind.Biome] = WithChain(Biome()),
             [Kind.StatusEffect] = WithChain(StatusEffect()),
             [Kind.Mod] = WithChain(Mod()),
+            [Kind.Skill] = WithChain(Skill()),
             [Kind.Spawner] = WithChain(Spawner()),
         };
 
@@ -159,6 +160,7 @@ namespace Scry
             Tile(plan, "overview", null, "Type", "Weight", "Stacks to", "Worth");
             // The table by quality goes with what it is about, by the part that told it: a weapon's fight, armour's wearing.
             Label(plan, "fight", "Damage", CombatWords.WeaponAttacksTitle, "Secondary attack", "Block", "Block force", "Parry bonus", "Backstab", "Knockback", "Each attack costs", "Drawing costs",
+                CombatWords.FullDraw, CombatWords.Reloads,
                 "At full adrenaline", "On hit", ItemWords.DamageTaken(false), ItemWords.ResistsNothing(false));
             Label(plan, "wearing", "Armour", "Movement", "When worn", "Set bonus", "Other changes while worn", ItemWords.DamageTaken(true), ItemWords.ResistsNothing(true));
             Label(plan, "food", "Food", "Heals", "Lasts", "When used");
@@ -357,6 +359,28 @@ namespace Scry
             plan.Starts.Add((l => l.StartsWith("Will not run with", StringComparison.Ordinal) || l.StartsWith("Needs", StringComparison.Ordinal)
                 || l.StartsWith("Needed by", StringComparison.Ordinal) || l.StartsWith("Works with", StringComparison.Ordinal), "ties"));
             Part(plan, "adds", "mod");
+            plan.Blocks[FactBlock.Hooks] = "hooks";
+            return plan;
+        }
+
+        /// <summary>
+        /// A skill: what it changes at no skill, the character's level and the top, then how it
+        /// rises and what a death takes, then what it works on (<see cref="SkillPageWords"/>).
+        /// </summary>
+        private static KindPlan Skill()
+        {
+            var plan = new KindPlan
+            {
+                Topics = new[]
+                {
+                    ("overview", (string)null), ("changes", SkillPageWords.ChangesHeading), ("rises", "How it rises"), ("works", "What it works on"), (More, "More"), ("hooks", null),
+                },
+            };
+            Label(plan, "changes", SkillPageWords.ChangesTitle, SkillPageWords.ChangesHeading, "Digging the ground");
+            Lead(plan, "changes", SkillPageWords.ChangesTitle);
+            Label(plan, "rises", SkillPageWords.RisesLabel, SkillPageWords.OnDeathLabel, "In this world", SkillPageWords.AddsLevelsTitle, SkillPageWords.FasterTitle);
+            Label(plan, "works", SkillPageWords.TrainedWithTitle, SkillPageWords.ToolsTitle, SkillPageWords.StationsTitle, SkillPageWords.CookingTitle, SkillPageWords.PickedTitle);
+            Label(plan, More, "Not shown");
             plan.Blocks[FactBlock.Hooks] = "hooks";
             return plan;
         }

@@ -85,6 +85,13 @@ namespace Scry
             /// <summary>A chain the entry is a step of, drawn as its steps with the entry's lit; null for none.</summary>
             public Chain Chain;
 
+            /// <summary>
+            /// Faint lines under a table's line, by the line: the same figures at the character's
+            /// own skill (<see cref="SkillWords.AttackLine"/>), and what they say on hover.
+            /// </summary>
+            public readonly Dictionary<int, List<string[]>> Yours = new Dictionary<int, List<string[]>>();
+            public string YoursTip;
+
             /// <summary>What a table's cell past the first goes to, by its line and column: an attack's projectile and what it puts on you.</summary>
             public readonly Dictionary<(int Line, int Cell), string> CellLinks = new Dictionary<(int, int), string>();
             public readonly List<Ingredient> Items = new List<Ingredient>();
@@ -147,6 +154,16 @@ namespace Scry
         public readonly List<Row> UseRows = new List<Row>();
 
         public bool IsEmpty => Description.Length == 0 && Pairs.Count == 0 && Rows.Count == 0 && Where.Count == 0 && UseRows.Count == 0 && Hooks.Count == 0;
+
+        /// <summary>
+        /// A faint line under a pair, by its label: what it comes to at the character's own skill
+        /// (<see cref="SkillWords.Yours"/>), and what each says on hover.
+        /// </summary>
+        public readonly Dictionary<string, string> Yours = new Dictionary<string, string>(StringComparer.Ordinal);
+        public readonly Dictionary<string, string> YoursTips = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>Told with figures at the character's skill levels, so told again once a level changes (<see cref="YourSkills.Version"/>).</summary>
+        private bool _skilled;
 
         /// <summary>Values that name something in the catalog, by their label: a prefab name, or "se:" and a status effect's.</summary>
         public readonly Dictionary<string, string> Links = new Dictionary<string, string>();
@@ -307,7 +324,8 @@ namespace Scry
             // A creature's or item's facts tell what was seen dropping in play, which grows as you
             // play, and an item's what equipping it was seen to change and the mods' settings for
             // it, which change as they are set.
-            if (Cache.TryGetValue(entry, out var known) && (known._toldWith == Freshness || (entry.Kind != Kind.Creature && entry.Kind != Kind.Item && entry.Kind != Kind.Mod))) return known;
+            // What is told at the character's skill levels changes as a level does.
+            if (Cache.TryGetValue(entry, out var known) && (known._toldWith == Freshness || (!known._skilled && entry.Kind != Kind.Creature && entry.Kind != Kind.Item && entry.Kind != Kind.Mod))) return known;
 
             var facts = new Facts { _toldWith = Freshness };
             _notables = new Dictionary<string, (ICollection<string>, bool, int)>(StringComparer.Ordinal);
@@ -346,6 +364,11 @@ namespace Scry
             {
                 facts._entry = entry;
                 facts.Part("mod", () => facts.Mod(mod));
+            }
+            else if (entry.Source is SkillSource skill)
+            {
+                facts._entry = entry;
+                facts.Part("skill", () => facts.Skill(skill));
             }
             else if (entry.Source is PlaceSource place)
             {
@@ -399,11 +422,11 @@ namespace Scry
             foreach (var row in facts.Rows.Concat(facts.UseRows)) row.TellApart();
         }
 
-        /// <summary>What had been seen in play and how the mods were set when these facts were told (<see cref="Freshness"/>).</summary>
-        private (int Drops, int Worn, int Settings) _toldWith;
+        /// <summary>What had been seen in play, how the mods were set and the character's skill levels when these facts were told (<see cref="Freshness"/>).</summary>
+        private (int Drops, int Worn, int Settings, int Skills) _toldWith;
 
-        /// <summary>What has been seen in play and how the mods are set now, by their counts of changes.</summary>
-        private static (int Drops, int Worn, int Settings) Freshness => (DropWatch.Version, WornWatch.Version, ModConfigs.Version);
+        /// <summary>What has been seen in play, how the mods are set and the character's skill levels now, by their counts of changes.</summary>
+        private static (int Drops, int Worn, int Settings, int Skills) Freshness => (DropWatch.Version, WornWatch.Version, ModConfigs.Version, YourSkills.Version);
 
         /// <summary>What these facts link to: their values', their rows' and tables', and where it comes from; so Linked shows each link once.</summary>
         public HashSet<string> LinkedTargets()

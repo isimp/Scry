@@ -296,6 +296,12 @@ namespace Scry
                 BiomeCard(entry, rect);
                 Timing.Add("stage card", drawn);
             }
+            else if (entry.Kind == Kind.Skill)
+            {
+                var drawn = Timing.Start();
+                SkillCard(entry, rect);
+                Timing.Add("stage card", drawn);
+            }
             else if (entry.Kind == Kind.Raid)
             {
                 var drawn = Timing.Start();

@@ -220,6 +220,27 @@ namespace Scry
             return hooks ? new Group("Hooking into what Scry tells", 2) : new Group("Neither, as far as Scry sees", 3);
         }
 
+        /// <summary>
+        /// A skill by what it is for: fighting, magic, moving, gathering and making; one a mod
+        /// adds, which the game's list names only by a number, last.
+        /// </summary>
+        public static Group Skill(string name)
+        {
+            switch (name)
+            {
+                case "Swords": case "Knives": case "Clubs": case "Polearms": case "Spears": case "Axes": case "Bows": case "Crossbows": case "Unarmed": case "Blocking":
+                    return new Group("Fighting", 1);
+                case "ElementalMagic": case "BloodMagic":
+                    return new Group("Magic", 2);
+                case "Run": case "Jump": case "Swim": case "Sneak": case "Dodge": case "Ride":
+                    return new Group("Moving", 3);
+                case "Pickaxes": case "WoodCutting": case "Fishing": case "Cooking": case "Farming": case "Crafting":
+                    return new Group("Gathering and making", 4);
+                default:
+                    return new Group("Added by mods", 5);
+            }
+        }
+
         /// <summary>A raid by what starts it: the raid roll or its own timer, a boss being fought, or something else.</summary>
         public static Group Raid(RaidRole role)
         {

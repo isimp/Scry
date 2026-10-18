@@ -91,6 +91,7 @@ namespace Scry
             Timed("biomes", () => Guard.Run(Feature.Biomes, "the biomes", Biomes, read.Entries));
             Timed("weather givers", () => Guard.Run(Feature.CodeGiven, "what the weather gives", WeatherGivers, read.Entries));
             Timed("mods", () => Guard.Run(Feature.ModPages, "the mods' own entries", Mods, read.Entries));
+            Timed("skills", () => Guard.Run(Feature.SkillPages, "the skills", SkillEntries, read.Entries));
             foreach (var step in ModIcons(read)) yield return step;
 
             // The search's terms read what every entry is and how it ties to others, so they come last.
