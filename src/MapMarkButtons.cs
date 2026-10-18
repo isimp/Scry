@@ -17,8 +17,8 @@ namespace Scry
     /// game's map and tips read it, with no camera, and the map's own click, made on the map under
     /// it, is handed to the mark under the pointer (<see cref="MapMarkClick"/>), so a click on a mark
     /// never ticks or adds a pin of the player's. A click closes the map and opens Scry on the
-    /// dungeon's page, its map on the stage. Its tip, the game's own, gives its name and how far it
-    /// was walked, shown as the pointer rests on it. It is no pin of the game's: nothing is added to
+    /// dungeon's page, its map on the stage. Its name and how far it was walked stand under it as
+    /// the game names a pin, in a copy of the game's pin name, while the pointer rests on it. It is no pin of the game's: nothing is added to
     /// the player's pins, saved with the world or shared. No rooms are drawn on the map.
     /// <c>DungeonMarksOnMap</c> turns the marks off.
     /// </summary>
@@ -31,9 +31,15 @@ namespace Scry
         {
             public GameObject Made;
             public RectTransform Rect;
-            public UITooltip Tip;
+
+            /// <summary>The words under it, a copy of the game's own pin name, shown while the pointer rests on it; none where the map has none.</summary>
+            public GameObject Label;
+            public RectTransform LabelRect;
             public string Id;
         }
+
+        /// <summary>What the game makes a pin's name from (<c>Minimap.m_pinNamePrefab</c>), its words set as it sets them.</summary>
+        private static readonly AccessTools.FieldRef<Minimap, GameObject> PinNamePrefab = AccessTools.FieldRefAccess<Minimap, GameObject>("m_pinNamePrefab");
 
         private static readonly List<Mark> Marks = new List<Mark>();
         private static readonly List<(string Id, DungeonMap Map)> Kept = new List<(string, DungeonMap)>();
@@ -44,10 +50,7 @@ namespace Scry
         private static string _keptWorld;
         private static Sprite _sprite;
 
-        /// <summary>The look the game's tips take, from a tip of its own; found once.</summary>
-        private static GameObject _tipLook;
-
-        /// <summary>The mark the pointer rests on, whose tip is shown; none.</summary>
+        /// <summary>The mark the pointer rests on, whose words are shown; none.</summary>
         private static Mark _hovered;
 
         /// <summary>Where the pointer was as the left button was last pressed, so a drag of the map let go over a mark is no click of it (<see cref="MapMarks.Clicked"/>).</summary>
@@ -60,9 +63,9 @@ namespace Scry
         [Diagnostic]
         public static int MarksShown { get; private set; }
 
-        /// <summary>Whether the pointer rests on a mark, its tip asked for, for the self-test.</summary>
+        /// <summary>Whether the pointer rests on a mark, its words shown, for the self-test.</summary>
         [Diagnostic]
-        public static bool TipShownForTest => _hovered != null && _hovered.Tip != null;
+        public static bool NameShownForTest => _hovered?.Label != null && _hovered.Label.activeSelf;
 
         /// <summary>Where a mark's middle is on the screen, for the self-test to put the pointer on it; none for one not shown.</summary>
         [Diagnostic]
@@ -73,7 +76,7 @@ namespace Scry
             return RectTransformUtility.WorldToScreenPoint(null, rect.TransformPoint(rect.rect.center));
         }
 
-        /// <summary>Which mark a point of the screen stands on, as the pointer is read for the tip and the click; -1 for none, for the self-test.</summary>
+        /// <summary>Which mark a point of the screen stands on, as the pointer is read for its words and the click; -1 for none, for the self-test.</summary>
         [Diagnostic]
         public static int MarkAtForTest(Vector2 screen) => Marks.IndexOf(MarkAt(screen));
 
@@ -98,21 +101,21 @@ namespace Scry
 
         public static void Forget()
         {
-            HideTip();
+            HideName();
             foreach (var mark in Marks)
             {
                 if (mark.Made != null) Object.Destroy(mark.Made);
+                if (mark.Label != null) Object.Destroy(mark.Label);
             }
             Marks.Clear();
             Kept.Clear();
             _layer = null;
             _keptStamp = -1;
             _keptWorld = null;
-            _tipLook = null;
             MarksShown = 0;
         }
 
-        /// <summary>Each frame: the marks placed where the large map shows them while it is open, the tip of the one the pointer rests on; put away, and nothing more, while it is not.</summary>
+        /// <summary>Each frame: the marks placed where the large map shows them while it is open, the words of the one the pointer rests on; put away, and nothing more, while it is not.</summary>
         public static void Update()
         {
             var map = Minimap.instance;
@@ -154,12 +157,11 @@ namespace Scry
                 if (mark.Id != id)
                 {
                     mark.Id = id;
-                    if (mark.Tip != null)
-                    {
-                        var (walked, rooms) = DungeonMaps.Walked(kept, _ => null);
-                        mark.Tip.Set(Shown(kept.Location), DungeonMapWords.MarkTip(walked, rooms));
-                    }
+                    var (walked, rooms) = DungeonMaps.Walked(kept, _ => null);
+                    Name(mark, DungeonMapWords.MarkLabel(Shown(kept.Location), walked, rooms, ColorUtility.ToHtmlStringRGB(Skin.Accent)));
                 }
+                // Its words stand where it stands, as the game's pin names do, the name's own layout putting them under it.
+                if (mark.LabelRect != null) mark.LabelRect.anchoredPosition = mark.Rect.anchoredPosition;
                 if (!mark.Made.activeSelf) mark.Made.SetActive(true);
             }
             for (var i = shown; i < Marks.Count; i++)
@@ -183,22 +185,42 @@ namespace Scry
         private static readonly Vector3[] Corners = new Vector3[4];
 
         /// <summary>
-        /// Shows the tip of the mark the pointer rests on, as the pointer comes onto it, and takes it
-        /// away as it leaves; none while the map is held, as when it is dragged under the pointer.
+        /// Shows the words of the mark the pointer rests on, as the pointer comes onto it, and takes
+        /// them away as it leaves; none while the map is held, as when it is dragged under the pointer.
         /// </summary>
         private static void Hover()
         {
             var over = Input.GetMouseButton(0) ? null : MarkAt(ZInput.pointerPosition);
             if (over == _hovered) return;
-            HideTip();
+            HideName();
             _hovered = over;
-            if (over?.Tip != null) over.Tip.OnHoverStart(over.Made);
+            if (over?.Label != null) over.Label.SetActive(true);
         }
 
-        private static void HideTip()
+        private static void HideName()
         {
-            if (_hovered?.Tip != null) UITooltip.HideTooltip();
+            if (_hovered?.Label != null) _hovered.Label.SetActive(false);
             _hovered = null;
+        }
+
+        /// <summary>
+        /// Sets a mark's words (<see cref="DungeonMapWords.MarkLabel"/>), in the accent. The
+        /// game's pin name writes with TextMeshPro, which Scry does not build against, so its text
+        /// is set by the name the game's own code sets it by.
+        /// </summary>
+        private static void Name(Mark mark, string said)
+        {
+            if (mark.Label == null) return;
+            var text = mark.Label.GetComponentsInChildren<Component>(true).FirstOrDefault(c => c != null && IsText(c.GetType()));
+            if (text == null) return;
+            text.GetType().GetProperty("text")?.SetValue(text, said);
+        }
+
+        /// <summary>Whether a component writes with TextMeshPro (<c>TMP_Text</c> or what derives from it).</summary>
+        private static bool IsText(System.Type type)
+        {
+            for (var t = type; t != null; t = t.BaseType) if (t.Name == "TMP_Text") return true;
+            return false;
         }
 
         /// <summary>The mark standing at a point of the screen, read with no camera as the game's map and tips read the pointer; none.</summary>
@@ -233,7 +255,7 @@ namespace Scry
         private static void PutAway()
         {
             if (MarksShown == 0) return;
-            HideTip();
+            HideName();
             foreach (var mark in Marks)
             {
                 if (mark.Made != null && mark.Made.activeSelf) mark.Made.SetActive(false);
@@ -259,24 +281,17 @@ namespace Scry
             picture.preserveAspect = true;
             picture.raycastTarget = false;
             var mark = new Mark { Made = made, Rect = rect };
-            mark.Tip = WithTip(made, map);
+            // Its words, a copy of the game's own pin name on the same layer, hidden until the pointer rests on it.
+            var named = PinNamePrefab(map);
+            if (named != null)
+            {
+                mark.Label = Object.Instantiate(named, _layer);
+                mark.Label.name = "Scry dungeon mark name";
+                mark.LabelRect = mark.Label.transform as RectTransform;
+                mark.Label.SetActive(false);
+            }
             Marks.Add(mark);
             return mark;
-        }
-
-        /// <summary>The game's own tip for a mark, its look taken from a tip the map has, else from any of the game's; none where none is loaded.</summary>
-        private static UITooltip WithTip(GameObject made, Minimap map)
-        {
-            if (_tipLook == null)
-            {
-                var model = map.m_largeRoot != null ? map.m_largeRoot.GetComponentsInChildren<UITooltip>(true).FirstOrDefault(t => t.m_tooltipPrefab != null) : null;
-                if (model == null) model = Resources.FindObjectsOfTypeAll<UITooltip>().FirstOrDefault(t => t.m_tooltipPrefab != null);
-                _tipLook = model != null ? model.m_tooltipPrefab : null;
-            }
-            if (_tipLook == null) return null;
-            var tip = made.AddComponent<UITooltip>();
-            tip.m_tooltipPrefab = _tipLook;
-            return tip;
         }
 
         /// <summary>Closes the map and opens Scry on the dungeon's page, its map on the stage.</summary>
@@ -284,7 +299,7 @@ namespace Scry
         {
             var kept = DungeonWalks.Maps.Of(id);
             if (kept == null) return;
-            HideTip();
+            HideName();
             Minimap.instance.OrNull()?.SetMapMode(Minimap.MapMode.Small);
             Session.Show(null);
             ExampleLayouts.OpenMapWhenShown(kept.Location, id);

@@ -375,7 +375,7 @@ namespace Scry
             foreach (var row in rows) y = FactRow(explorer, row, width, y);
             // What shows a count not yet seen, faintly under the lines, once for each way of counting.
             // What shows each amount held back, faintly under the lines, once each; what nothing counts says so on hover only.
-            foreach (var hint in HeldHints) y = FaintLine(hint, "not-counted:", hint, PanelPart.TallyCounted, width, y);
+            foreach (var hint in HeldHints) y = HintLine(hint, "not-counted:", hint, PanelPart.TallyCounted, width, y);
             return y;
         }
 
@@ -542,13 +542,11 @@ namespace Scry
             CountDrawn(PanelPart.ResistanceGrid);
             var lines = (row.Cells.Count + columns - 1) / columns;
             y += lines * (cellH + gap) + U(4f);
-            var said = CompendiumWords.NotYetHitWith(keptBack);
-            if (said == null) return y;
-            CountDrawn(PanelPart.DamageKeptBack);
-            var line = new Rect(U(6f), y + U(2f), width - U(6f), U(20f));
-            if (!FitLabel(line, said, Skin.FaintLabel, 10f) && line.Contains(Event.current.mousePosition)) AskTip("damage-kept-back", said);
-            return y + U(24f);
+            return HintLine(CompendiumWords.NotYetHitWith(keptBack), "damage-kept-back", "", PanelPart.DamageKeptBack, width, y);
         }
+
+        /// <summary>Whether the world played has a key set, a boss's fall; none without a world.</summary>
+        private static readonly Func<string, bool> WorldKeySet = key => ZoneSystem.instance != null && ZoneSystem.instance.GetGlobalKey(key);
 
         /// <summary>
         /// A titled row of chips, each an item with its amount that goes to it when clicked; the
@@ -557,6 +555,23 @@ namespace Scry
         private static float FactRow(Explorer explorer, Facts.Row row, float width, float y)
         {
             if (row.AllPlay && explorer.LeavingOut) return y;
+            // Wares waiting for a boss not yet fallen are not named with the compendium on: under the
+            // loose rules the row keeps its title and how many, under the strict rules they are counted at the section's end.
+            if (row.WaitsFor != null)
+            {
+                var unlock = UnlockRows.Of(row.WaitsFor, explorer.NamesOnlyMet, explorer.LeavingOut, WorldKeySet);
+                if (unlock == UnlockShown.Folded)
+                {
+                    ToUnlock(row.Items.Count);
+                    return y;
+                }
+                if (unlock == UnlockShown.Counted)
+                {
+                    y += U(6f);
+                    GUI.Label(new Rect(0f, y, width, U(20f)), Masked(explorer, row.Title), Skin.DimLabel);
+                    return HintLine(CompendiumWords.ToUnlock(row.Items.Count), "to-unlock:", row.Title, PanelPart.ToUnlock, width, y + U(20f));
+                }
+            }
             if (row.Cells != null) return GridRow(explorer, row, width, y);
             if (row.Columns != null) return TableRow(explorer, row, width, y);
             if (row.Chain != null) return ChainRow(explorer, row, width, y);
@@ -667,7 +682,7 @@ namespace Scry
             }
             MoreChip(key, items.Count, FirstChips, width, ref flow);
             y = flow.RowBottom + U(6f);
-            if (notCounted) y = FaintLine(explorer.NotYetCounted(row.Tally), explorer.MayRunElsewhere(row.Tally) ? ElsewhereWords.Tip : null, "not-counted:", row.Title, PanelPart.TallyCounted, width, y - U(2f));
+            if (notCounted) y = HintLine(explorer.NotYetCounted(row.Tally), explorer.MayRunElsewhere(row.Tally) ? ElsewhereWords.Tip : null, "not-counted:", row.Title, PanelPart.TallyCounted, width, y - U(2f));
             foreach (var said in explorer.ElsewhereLines(row.Tally, row.TallyOf)) y = FaintLine(said, ElsewhereWords.Tip, "elsewhere:", said, PanelPart.RanElsewhere, width, y);
             if (eatenElsewhere) y = FaintLine(ElsewhereWords.Eating, ElsewhereWords.Tip, "eating:", row.Title, PanelPart.RanElsewhere, width, y);
             return y;

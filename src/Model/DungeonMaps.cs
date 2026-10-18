@@ -295,8 +295,13 @@ namespace Scry
         /// <summary>The answer to forgetting them from a game that is not the server, which answers again once done.</summary>
         public const string GroupAsked = "the server is asked to forget its records of this world.";
 
-        /// <summary>The tip of a dungeon's mark on Valheim's map, under its name.</summary>
-        public static string MarkTip(int walked, int rooms) => PlanBoxWords.Walked(walked, rooms) + "\nClick to open its map in Scry";
+        /// <summary>
+        /// The words under a dungeon's mark on Valheim's map, as the game names a pin under it: its
+        /// name, and under it how far it was walked, smaller and in a colour of its own, in the rich
+        /// text the game's pin names write.
+        /// </summary>
+        public static string MarkLabel(string name, int walked, int rooms, string walkedColour) =>
+            $"{name}\n<size=80%><color=#{walkedColour}>{PlanBoxWords.Walked(walked, rooms)}</color></size>";
 
         /// <summary>The answer to forgetting the maps of the world played.</summary>
         public static string WorldForgotten(int maps) => maps == 0

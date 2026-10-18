@@ -268,8 +268,8 @@ namespace Scry
             bool clicked;
             if (Arrived())
             {
-                yield return Until(() => MapMarkButtons.TipShownForTest, 3);
-                p.Check(MapMarkButtons.TipShownForTest, "the pointer resting on it shows the game's tip");
+                yield return Until(() => MapMarkButtons.NameShownForTest, 3);
+                p.Check(MapMarkButtons.NameShownForTest, "the pointer resting on it shows its name under it, as the game names a pin");
                 var shownAt = Time.unscaledTime;
                 yield return Until(() => Time.unscaledTime - shownAt > 1.2f, 3);
                 yield return Picture(p, $"the mark of {entry.Name} on the map with its tip");

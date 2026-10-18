@@ -423,6 +423,7 @@ namespace Scry
         {
             _strictLeft = 0;
             _spotsLeft = 0;
+            _toUnlock = 0;
         }
 
         /// <summary>Counts things the strict rules left out of the section being drawn.</summary>
@@ -440,11 +441,23 @@ namespace Scry
         {
             var left = _strictLeft;
             var spots = _spotsLeft;
+            var locked = _toUnlock;
             _strictLeft = 0;
             _spotsLeft = 0;
+            _toUnlock = 0;
             if (!explorer.NamesOnlyMet) return y;
-            y = FaintLine(explorer.LeftOutLine(topic, left), "strict-left:", topic, PanelPart.StrictLeftOut, width, y);
-            return FaintLine(CompendiumWords.WeakSpotsNotFound(spots), "spots-left:", topic, PanelPart.WeakSpotsLeftOut, width, y);
+            y = HintLine(explorer.LeftOutLine(topic, left), "strict-left:", topic, PanelPart.StrictLeftOut, width, y);
+            y = HintLine(CompendiumWords.WeakSpotsNotFound(spots), "spots-left:", topic, PanelPart.WeakSpotsLeftOut, width, y);
+            return HintLine(CompendiumWords.ToUnlockAsBossesFall(locked), "to-unlock:", topic, PanelPart.ToUnlock, width, y);
+        }
+
+        /// <summary>How many wares the section being drawn left out under the strict rules, waiting for bosses not yet fallen (<see cref="UnlockShown.Folded"/>).</summary>
+        private static int _toUnlock;
+
+        /// <summary>Counts wares the section being drawn leaves out, waiting for bosses not yet fallen, for its last line.</summary>
+        private static void ToUnlock(int count)
+        {
+            if (count > 0) _toUnlock += count;
         }
 
         /// <summary>
@@ -457,6 +470,28 @@ namespace Scry
             CountDrawn(part);
             var line = new Rect(U(6f), y + U(2f), width - U(6f), U(20f));
             if (!FitLabel(line, said, Skin.FaintLabel, 10f) && line.Contains(Event.current.mousePosition)) AskTip(tipKind + tipOf, said);
+            return y + U(24f);
+        }
+
+        /// <summary>
+        /// A line telling what is still to find with the compendium on (what was not met or seen
+        /// together, a number kept back, what is still to unlock), set apart from a page's footnotes,
+        /// which stay faint: an accent bar and a compass at its start, its words a step brighter; its
+        /// whole text on hover where it does not fit, and why where a tip is given.
+        /// </summary>
+        private static float HintLine(string said, string tipKind, string tipOf, PanelPart part, float width, float y) =>
+            HintLine(said, null, tipKind, tipOf, part, width, y);
+
+        private static float HintLine(string said, string tip, string tipKind, string tipOf, PanelPart part, float width, float y)
+        {
+            if (said == null) return y;
+            CountDrawn(part);
+            CountDrawn(PanelPart.HintLine);
+            Skin.Fill(new Rect(U(6f), y + U(4f), U(2f), U(16f)), Skin.Accent);
+            Skin.Icon(new Rect(U(12f), y + U(5f), U(14f), U(14f)), Skin.Compass, Skin.Accent);
+            var line = new Rect(U(30f), y + U(2f), width - U(30f), U(20f));
+            var fits = FitLabel(line, said, Skin.HintLabel, 10f);
+            if (line.Contains(Event.current.mousePosition) && (!fits || tip != null)) AskTip(tipKind + tipOf, tip == null ? said : fits ? tip : Naming.Lines(said, tip));
             return y + U(24f);
         }
 

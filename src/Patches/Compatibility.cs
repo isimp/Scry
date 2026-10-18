@@ -435,6 +435,7 @@ namespace Scry
             Each("InventoryGui.m_currentContainer", () => Member(list, "InventoryGui", "m_currentContainer", Feature.CompendiumSeen));
             Each("StoreGui.m_trader", () => Member(list, "StoreGui", "m_trader", Feature.CompendiumTogether));
             Each("Minimap.m_explored", () => Member(list, "Minimap", "m_explored", Feature.CompendiumMap));
+            Each("Minimap.m_pinNamePrefab", () => Member(list, "Minimap", "m_pinNamePrefab", Feature.DungeonMarksOnMap));
             Each("ZoneSystem.m_locationInstances", () => Member(list, "ZoneSystem", "m_locationInstances", Feature.CompendiumMap));
             Each("the patches", () => Patches(list));
             foreach (var watched in Watched)

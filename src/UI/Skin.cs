@@ -62,7 +62,7 @@ namespace Scry
         public static readonly Color Worlds = new Color(0.184f, 0.369f, 0.549f, 1f);
 
         public static GUISkin Gui;
-        public static GUIStyle Title, Subtitle, Label, Small, SmallCenter, SmallWrap, DimLabel, DimRight, FaintLabel, Heading, Big, Wrap, WrapBold, DimWrap;
+        public static GUIStyle Title, Subtitle, Label, Small, SmallCenter, SmallWrap, DimLabel, DimRight, FaintLabel, HintLabel, Heading, Big, Wrap, WrapBold, DimWrap;
 
         /// <summary>A topic's name in the details' In the game, bright and bold in the top left of its box.</summary>
         public static GUIStyle TopicName;
@@ -87,7 +87,7 @@ namespace Scry
         /// <summary>The halves of two icon buttons joined into one piece, each rounded only at the piece's own end: off and on, left and right.</summary>
         public static GUIStyle JoinedLeft, JoinedRight, JoinedLeftOn, JoinedRightOn;
 
-        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps, Eye, Up, Down;
+        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps, Eye, Up, Down, Compass;
 
         /// <summary>A rounded box's shape rounded only at its left, or only at its right, for joined buttons; a chevron pointing down, for folding away.</summary>
         public static Texture2D RoundedLeft, RoundedRight, FoldDown;
@@ -205,7 +205,7 @@ namespace Scry
                     // warming itself never stalls one.
                     var styles = new[]
                     {
-                        Title, Subtitle, Label, Small, DimLabel, FaintLabel, Heading, Big, Wrap, DimWrap, TopicName, PictureNote, RowName, RowSub, Glyph, Center, CenterDim,
+                        Title, Subtitle, Label, Small, DimLabel, FaintLabel, HintLabel, Heading, Big, Wrap, DimWrap, TopicName, PictureNote, RowName, RowSub, Glyph, Center, CenterDim,
                         Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close, Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross,
                     };
                     if (_warmNext >= styles.Length)
@@ -410,6 +410,8 @@ namespace Scry
             DimLabel = Style(13f, Dim);
             DimRight = Style(13f, Dim, FontStyle.Normal, TextAnchor.MiddleRight);
             FaintLabel = Style(12f, Faint);
+            // What is still to find with the compendium on: a step brighter than a footnote.
+            HintLabel = Style(12f, Dim);
             Heading = Style(11f, Faint, FontStyle.Bold);
             Big = Style(19f, Skin.Text, FontStyle.Bold);
             Wrap = Style(13f, Skin.Text);
@@ -794,6 +796,7 @@ namespace Scry
             Repeat = Shape(32, 32, RepeatCoverage);
             Steps = Shape(32, 32, StepsCoverage);
             Eye = Shape(32, 32, EyeCoverage);
+            Compass = Shape(32, 32, CompassCoverage);
             Up = Shape(32, 32, (x, y) => y >= 6f && y <= 26f && Mathf.Abs(x - 16f) <= (26f - y) * 0.6f);
             Down = Shape(32, 32, (x, y) => y >= 6f && y <= 26f && Mathf.Abs(x - 16f) <= (y - 6f) * 0.6f);
             RoundedLeft = Shape(32, 32, (x, y) => x >= 16f || RoundedCoverage(x, y, 32, 32, 8f));
@@ -863,6 +866,17 @@ namespace Scry
             if (t <= -1f || t >= 1f) return false;
             var outer = 10f * (1f - t * t);
             return dy <= outer && dy >= outer - 2.8f;
+        }
+
+        /// <summary>A compass: a ring round a needle pointing up and down, what is still to find on a page.</summary>
+        private static bool CompassCoverage(float x, float y)
+        {
+            var dx = x - 16f;
+            var dy = y - 16f;
+            var r = Mathf.Sqrt(dx * dx + dy * dy);
+            if (r <= 13f && r >= 10.6f) return true;
+            // The needle, a narrow diamond from top to bottom inside the ring.
+            return Mathf.Abs(dy) <= 8.5f && Mathf.Abs(dx) <= (8.5f - Mathf.Abs(dy)) * 0.38f;
         }
 
         /// <summary>Two arrowheads pointing on, one after the other: faster or slower.</summary>

@@ -229,7 +229,7 @@ namespace Scry
             var whole = explorer.KeepsBackWhole(row.LineProofs, row.Lines.Count);
             if (whole != null)
             {
-                return FaintLine(explorer.ShowsOnce(row.Title, whole), explorer.MayRunElsewhere(whole) ? ElsewhereWords.Tip : null, "table-kept:", row.Title, PanelPart.TableKeptBack, width, y + U(6f));
+                return HintLine(explorer.ShowsOnce(row.Title, whole), explorer.MayRunElsewhere(whole) ? ElsewhereWords.Tip : null, "table-kept:", row.Title, PanelPart.TableKeptBack, width, y + U(6f));
             }
             y += U(6f);
             GUI.Label(new Rect(0f, y, width, U(20f)), row.Title, Skin.DimLabel);
@@ -387,10 +387,10 @@ namespace Scry
             }
             CountDrawn(PanelPart.FactTable);
             y += U(4f);
-            y = FaintLine(CompendiumWords.NotYetTaken(attacksKept), "attacks-kept:", row.Title, PanelPart.TableKeptBack, width, y);
-            if (notCounted) y = FaintLine(explorer.NotYetCounted(row.Tally), explorer.MayRunElsewhere(row.Tally) ? ElsewhereWords.Tip : null, "not-counted:", row.Title, PanelPart.TallyCounted, width, y);
+            y = HintLine(CompendiumWords.NotYetTaken(attacksKept), "attacks-kept:", row.Title, PanelPart.TableKeptBack, width, y);
+            if (notCounted) y = HintLine(explorer.NotYetCounted(row.Tally), explorer.MayRunElsewhere(row.Tally) ? ElsewhereWords.Tip : null, "not-counted:", row.Title, PanelPart.TallyCounted, width, y);
             foreach (var said in explorer.ElsewhereLines(row.Tally, row.TallyOf)) y = FaintLine(said, ElsewhereWords.Tip, "elsewhere:", said, PanelPart.RanElsewhere, width, y);
-            foreach (var (said, elsewhere) in KeptLines) y = FaintLine(said, elsewhere ? ElsewhereWords.Tip : null, "line-kept:", said, PanelPart.TableKeptBack, width, y);
+            foreach (var (said, elsewhere) in KeptLines) y = HintLine(said, elsewhere ? ElsewhereWords.Tip : null, "line-kept:", said, PanelPart.TableKeptBack, width, y);
             return y;
         }
 

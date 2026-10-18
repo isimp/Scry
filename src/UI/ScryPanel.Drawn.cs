@@ -43,6 +43,12 @@ namespace Scry
         FloorMark,
         FloorLine,
         StrictLeftOut,
+
+        /// <summary>A line telling what is still to find, set apart from a page's footnotes (<see cref="ScryPanel.HintLine(string, string, string, string, PanelPart, float, float)"/>).</summary>
+        HintLine,
+
+        /// <summary>The count of wares waiting for a boss not yet fallen: under a row's title, or at a section's end.</summary>
+        ToUnlock,
         DamageKeptBack,
         FactKeptBack,
         FloorLink,
