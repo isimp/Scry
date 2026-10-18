@@ -57,7 +57,7 @@ namespace Scry
                 // A boss's fight tells when it is on; a raid how long it lasts, and what it brings when it brings anything.
                 if (BossFight(raid) != null)
                 {
-                    if (!Tells(told, "On")) wrong.Add($"{raid.Name} tells not when it is on");
+                    if (!Tells(told, "When")) wrong.Add($"{raid.Name} tells not when it is on");
                 }
                 else if (!Tells(told, "Lasts") || brings.Count > 0 && !told.Rows.Any(r => r.Title == RaidWords.BringsTitle && r.Lines.Count > 0)) wrong.Add($"{raid.Name} tells too little");
                 var missing = brings.Where(b => !keys.Contains(b)).ToList();

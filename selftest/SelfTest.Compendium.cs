@@ -899,7 +899,7 @@ namespace Scry
             var mapBars = ScryPanel.Drawn(PanelPart.MapBar);
             X.KindFilter = Kind.Location;
             yield return Until(() => ScryPanel.Drawn(PanelPart.MapBar) > mapBars + 1, 3);
-            p.Check(ScryPanel.Drawn(PanelPart.MapBar) > mapBars, "the places' tab tells that the explored map counts, with Read the map again");
+            p.Check(ScryPanel.Drawn(PanelPart.MapBar) > mapBars, "the places' tab tells that the explored map counts, with Look at the map again");
             X.KindFilter = null;
 
             // Peek: each page whole, its links leading anywhere, a whole name in quotes finding what

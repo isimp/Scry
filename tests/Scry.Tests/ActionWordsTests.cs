@@ -16,7 +16,7 @@ namespace Scry.Tests
             Assert.Contains("when you look at something else", ActionWords.Keep(kept: true));
             Assert.Equal("Puts it back", ActionWords.Ragdoll(falling: true));
             Assert.Equal("Puts it back", ActionWords.LetFall(falling: true));
-            Assert.Equal("Takes the copy out of the world", ActionWords.InWorld(shown: true));
+            Assert.Equal("Takes the preview out of the world", ActionWords.InWorld(shown: true));
             Assert.Contains("only you see", ActionWords.InWorld(shown: false));
             Assert.Equal("Stops it", ActionWords.PlayThere(playing: true));
             Assert.Equal("Stops it", ActionWords.PlayOnYou(playing: true));

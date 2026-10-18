@@ -109,7 +109,7 @@ namespace Scry.Tests
         {
             var first = Suggest("biome:swamp,bl").First();
             Assert.Equal("biome:swamp,blackforest", first.Insert);
-            Assert.Equal("Black forest", first.Label);
+            Assert.Equal("Black Forest", first.Label);
             // It finds what either finds.
             Assert.Equal(Find("biome:swamp,blackforest").Count, first.Count);
             Assert.Equal("-kind:creature,item", Suggest("-kind:creature,it").First().Insert);
@@ -143,7 +143,7 @@ namespace Scry.Tests
             Assert.Equal(new[] { "biome:swamp", "biome:blackforest" }, suggested.Select(s => s.Insert));
             Assert.Equal("Swamp", suggested[0].Label);
             Assert.Equal(3, suggested[0].Count);
-            Assert.Equal("Black forest", suggested[1].Label);
+            Assert.Equal("Black Forest", suggested[1].Label);
         }
 
         [Fact]

@@ -116,7 +116,7 @@ namespace Scry
             }
             var shape = place.Contents?.Room;
             if (shape == null) return;
-            Add("Is", DungeonWords.Role(shape));
+            Add("Role", DungeonWords.Role(shape));
             Add("Size", DungeonWords.Size(shape));
             Add("Doorways", DungeonWords.Doorways(shape));
             if (shape.MinPlaceOrder > 0) Add("Not before", DungeonWords.NotBefore(shape.MinPlaceOrder));

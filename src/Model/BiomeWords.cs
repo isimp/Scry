@@ -19,6 +19,27 @@ namespace Scry
             return at >= 0 ? at : Math.Min(63, LocationWords.BiomeCount);
         }
 
+        /// <summary>The game's own English names of its biomes, by their enum names, until the game's text names them (<see cref="NameBy"/>).</summary>
+        private static readonly Dictionary<string, string> English = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            { "Meadows", "Meadows" }, { "BlackForest", "Black Forest" }, { "Swamp", "Swamp" }, { "Mountain", "Mountain" }, { "Plains", "Plains" },
+            { "Mistlands", "Mistlands" }, { "AshLands", "Ashlands" }, { "DeepNorth", "Deep North" }, { "Ocean", "Ocean" },
+        };
+
+        private static Func<string, string> _named;
+
+        /// <summary>Has biomes named as the game shows them in its language, by their enum names (<c>Knowledge.BiomeName</c>); null goes back to its English names.</summary>
+        public static void NameBy(Func<string, string> named) => _named = named;
+
+        /// <summary>A biome by its enum name as the game shows it: "BlackForest" as "Black Forest"; one the game has no name for in its words.</summary>
+        public static string Shown(string biome)
+        {
+            if (string.IsNullOrEmpty(biome)) return biome ?? "";
+            var named = _named?.Invoke(biome);
+            if (!string.IsNullOrEmpty(named)) return named;
+            return English.TryGetValue(biome, out var english) ? english : Naming.FieldLabel(biome);
+        }
+
         /// <summary>The name a biome goes by before it is translated, by its enum name, as the game's records keep the biomes a character entered (<c>BiomeSector.GetBiomeName</c>).</summary>
         public static string Token(string biome) => "$biome_" + (biome ?? "").ToLowerInvariant();
 

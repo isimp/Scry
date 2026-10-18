@@ -337,8 +337,8 @@ namespace Scry
                 {
                     Add("With a fish on", SkillWords.Span(SkillWords.PerSecond(fishing.m_hookedStaminaPerSec), SkillWords.PerSecond(fishing.m_hookedStaminaPerSecMaxSkill)));
                     YoursAt("With a fish on", Skills.SkillType.Fishing, level => SkillWords.PerSecond(SkillMath.Between(fishing.m_hookedStaminaPerSec, fishing.m_hookedStaminaPerSecMaxSkill, level)));
-                    Add("Reels in", SkillWords.Span(SkillWords.Speed(fishing.m_pullLineSpeed), SkillWords.Speed(fishing.m_pullLineSpeedMaxSkill)));
-                    YoursAt("Reels in", Skills.SkillType.Fishing, level => SkillWords.Speed(SkillMath.Between(fishing.m_pullLineSpeed, fishing.m_pullLineSpeedMaxSkill, level)));
+                    Add("Reeling in", SkillWords.Span(SkillWords.Speed(fishing.m_pullLineSpeed), SkillWords.Speed(fishing.m_pullLineSpeedMaxSkill)));
+                    YoursAt("Reeling in", Skills.SkillType.Fishing, level => SkillWords.Speed(SkillMath.Between(fishing.m_pullLineSpeed, fishing.m_pullLineSpeedMaxSkill, level)));
                 }
                 var spawn = attack.m_attackProjectile != null ? attack.m_attackProjectile.GetComponent<SpawnAbility>() : null;
                 if (spawn != null && spawn.m_levelUpSettings != null && spawn.m_levelUpSettings.Count > 0 && !spawn.m_setMaxInstancesFromWeaponLevel && told.Add("Summons at once"))

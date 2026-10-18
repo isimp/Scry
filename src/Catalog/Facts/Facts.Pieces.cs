@@ -51,10 +51,6 @@ namespace Scry
                 Add("Sleeping in it", BuildWords.BedSleep(0.8f));
             }
 
-            // ArcheryTarget.OnProjectileHit: a projectile on it raises the skill of what fired it, less the farther from its centre.
-            var target = piece.GetComponentInChildren<ArcheryTarget>(true);
-            if (target != null && target.m_raiseSkillMultiplier > 0f) Add("Trains", BuildWords.ArcheryTarget(target.m_raiseSkillMultiplier));
-
             if (piece.m_resources != null && piece.m_resources.Length > 0)
             {
                 var station = piece.m_craftingStation != null ? CatalogBuilder.Localize(piece.m_craftingStation.m_name) : "";

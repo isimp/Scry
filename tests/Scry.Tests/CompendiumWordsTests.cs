@@ -89,7 +89,7 @@ namespace Scry.Tests
             Assert.Equal("caught up from the explored map with the server's answer: 12 kinds of place lie in explored ground, 0 of them new to the compendium", CompendiumWords.MapRead(12, 0, fromServer: true));
             Assert.Equal("answered a player's explored map: 12 kinds of place lie in it", CompendiumWords.MapAnswered(12));
             Assert.Equal("the server did not answer on the explored map (it has no Scry, or one too old): places count as the character meets them", CompendiumWords.MapNoServerScry);
-            Assert.Equal("Read the map again", CompendiumWords.ReadMap);
+            Assert.Equal("Look at the map again", CompendiumWords.ReadMap);
             Assert.Equal("Places in the ground this character explored count as seen, read again each session", CompendiumWords.MapBar);
             Assert.Equal("Counts the kinds of place in the ground this character explored in this world as seen, as on its first visit with Scry", CompendiumWords.ReadMapTip);
             Assert.Equal("on a dedicated server Scry only answers players' explored maps, for their compendium, and keeps the group's records of the dungeons they walk", CompendiumWords.ServerPart);
@@ -99,14 +99,14 @@ namespace Scry.Tests
         public void TheFloorSaysHowFarItReachesAndWhatRaisingOrLoweringItDoes()
         {
             // In the title row, a caption and the biome stepped between arrows.
-            Assert.Equal(("Known up to", "none", "Black forest"), (CompendiumWords.FloorCaption, CompendiumWords.FloorName(0), CompendiumWords.FloorName(2)));
+            Assert.Equal(("Known up to", "none", "Black Forest"), (CompendiumWords.FloorCaption, CompendiumWords.FloorName(0), CompendiumWords.FloorName(2)));
             // What it shows that the character never came to know is marked, on its row and page, named as the control is.
-            Assert.Equal("Shown as known up to Black forest, not yet come to know by this character", CompendiumWords.ByFloor(2));
+            Assert.Equal("Shown as known up to Black Forest, not yet come to know by this character", CompendiumWords.ByFloor(2));
             // A link to such a thing says so above where it goes.
-            Assert.Equal("Shown as known up to Black forest, not yet come to know by this character\nGo to Troll", CompendiumWords.FloorTip(2, "Go to Troll"));
+            Assert.Equal("Shown as known up to Black Forest, not yet come to know by this character\nGo to Troll", CompendiumWords.FloorTip(2, "Go to Troll"));
             Assert.Equal("Show everything of the Swamp as known: Bonemass fell for this character", CompendiumWords.RaiseFloor(3, "Bonemass"));
             Assert.Equal("Show everything of the Swamp as known", CompendiumWords.RaiseFloor(3, null));
-            Assert.Equal("Show the Meadows and what came before as known, not the Black forest", CompendiumWords.LowerFloor(1));
+            Assert.Equal("Show the Meadows and what came before as known, not the Black Forest", CompendiumWords.LowerFloor(1));
             Assert.Equal("Show only what this character has met again", CompendiumWords.LowerFloor(0));
             Assert.Equal("The next tier opens once The Elder falls for this character", CompendiumWords.FloorWaits("The Elder"));
         }

@@ -97,8 +97,8 @@ namespace Scry
                 });
                 Rows.Add(picked);
                 _drops = true;
-                if (pickable.m_respawnTimeMinutes > 0f) Add("Grows back in", Numbers.Duration(pickable.m_respawnTimeMinutes * 60f));
-                Proofs["Grows back in"] = EntryKeys.Did(Deed.GrewBack);
+                if (pickable.m_respawnTimeMinutes > 0f) Add("Regrows in", Numbers.Duration(pickable.m_respawnTimeMinutes * 60f));
+                Proofs["Regrows in"] = EntryKeys.Did(Deed.GrewBack);
                 var day = EnvMan.instance != null ? EnvMan.instance.m_dayLengthSec : 1200L;
                 var yields = Yield.PerDay(pickable.m_amount, pickable.m_respawnTimeMinutes, day);
                 if (yields != null) Add("Gives", GatherWords.PerDay(yields, day));
@@ -141,10 +141,10 @@ namespace Scry
             var plant = prefab.GetComponent<Plant>();
             if (plant != null)
             {
-                Add("Takes to grow", Numbers.DurationRange(plant.m_growTime, Math.Max(plant.m_growTime, plant.m_growTimeMax)));
+                Add("Grows in", Numbers.DurationRange(plant.m_growTime, Math.Max(plant.m_growTime, plant.m_growTimeMax)));
                 // The game never shows it: under the strict rules it waits for one seen grown.
-                Proofs["Takes to grow"] = EntryKeys.Did(Deed.Grew);
-                if (plant.m_biome != 0) BiomeRow("Grows in", plant.m_biome);
+                Proofs["Grows in"] = EntryKeys.Did(Deed.Grew);
+                if (plant.m_biome != 0) BiomeRow("Grows only in", plant.m_biome);
                 if (plant.m_needCultivatedGround) Add("Needs", GatherWords.CultivatedGround);
                 Hooked(HookedRule.Growth);
                 Add("Tolerates", GatherWords.Tolerates(plant.m_tolerateHeat, plant.m_tolerateCold));

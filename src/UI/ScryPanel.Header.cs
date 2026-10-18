@@ -237,7 +237,7 @@ namespace Scry
 
             if (!hasText)
             {
-                GUI.Label(rect, "Search by name or kind:, in:, has:…", Skin.Placeholder);
+                GUI.Label(rect, "Search by name, kind:, in:, has:…", Skin.Placeholder);
             }
             else
             {

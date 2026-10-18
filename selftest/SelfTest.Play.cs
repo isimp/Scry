@@ -283,7 +283,7 @@ namespace Scry
             // A tame creature's page keeps back how long taming takes until one is tamed.
             var boar = Pick(Kind.Creature, "Boar");
             var tamed = EntryKeys.Did(Deed.Tamed);
-            if (boar != null && Facts.For(boar).Proofs.TryGetValue("Takes to tame", out var proof) && proof == tamed)
+            if (boar != null && Facts.For(boar).Proofs.TryGetValue("Tames in", out var proof) && proof == tamed)
             {
                 book.Raise(boar.Key, KnownLevel.Known);
                 view.Tell(book, CompendiumRule.Strict);

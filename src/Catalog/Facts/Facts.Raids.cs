@@ -41,7 +41,7 @@ namespace Scry
             if (boss != null)
             {
                 var range = EnemyHud.instance != null ? EnemyHud.instance.m_maxShowDistanceBoss : 100f;
-                Add("On", RaidWords.WhileFighting(AnyName(boss, boss.name), range), boss.name);
+                Add("When", RaidWords.WhileFighting(AnyName(boss, boss.name), range), boss.name);
                 Add("Music", MusicWords.Name(raid.m_forceMusic), EntryKeys.PlayMusic);
                 Add("Weather", Weather(raid.m_forceEnvironment));
                 if (!string.IsNullOrEmpty(raid.m_forceEnvironment)) Hooked(HookedRule.Weather);

@@ -14,7 +14,7 @@ namespace Scry.Tests
         {
             ("Health", ""), ("Faction", ""),
             ("Attack: Club", "attacks"), ("Hit on the head", "weak spots"), ("Moves", "behaviour"), ("Sees", "behaviour"),
-            ("Gives up chasing", "behaviour"), ("Takes to tame", "behaviour"), ("Tameable", ""), ("Forsaken power", ""),
+            ("Gives up chasing", "behaviour"), ("Tames in", "behaviour"), ("Tameable", ""), ("Forsaken power", ""),
             ("Drops with stars", ""), ("In this world", "world settings"), ("Something new", "a mod's part"),
             ("Love", "breeding"), ("Ridden with", "riding"), ("Keeps its distance", "behaviour"),
         };
@@ -45,7 +45,7 @@ namespace Scry.Tests
 
             // Its headline numbers as tiles, the boss and moves among them where told.
             Assert.Equal(new[] { "Health", "Faction", "Moves", "Tameable" }, plan[0].Tiles.Select(Pair));
-            Assert.Equal(new[] { "Takes to tame", "Love", "row Eats" }, plan[1].Bits.Select(Bit));
+            Assert.Equal(new[] { "Tames in", "Love", "row Eats" }, plan[1].Bits.Select(Bit));
             Assert.Equal(new[] { "Ridden with" }, plan[2].Bits.Select(Bit));
             Assert.Equal(new[] { "row With stars", "Attack: Club", "Hit on the head", "row Damage it takes" }, plan[3].Bits.Select(Bit));
             Assert.Equal(new[] { "block Where", "block Biomes" }, plan[5].Bits.Select(Bit));
@@ -105,7 +105,7 @@ namespace Scry.Tests
             Assert.Contains(plan[0].Tiles, i => pairs[i].Item1 == "Boss");
 
             // One that is both a boss and tameable takes the boss's order, the first of the two.
-            var both = FactLayout.Plan(Kind.Creature, pairs.Append(("Takes to tame", "taming")).ToArray(), rows, new[] { FactBlock.Where });
+            var both = FactLayout.Plan(Kind.Creature, pairs.Append(("Tames in", "taming")).ToArray(), rows, new[] { FactBlock.Where });
             Assert.Equal(new[] { null, "Fight", "Where it lives", "After it falls", "Loot", "Senses and behaviour", "Taming and breeding" }, both.Select(t => t.Heading));
         }
 
@@ -324,8 +324,8 @@ namespace Scry.Tests
         {
             var pairs = new[]
             {
-                ("Health", "resource"), ("Needs tool tier", "resource"), ("Breaks into", "resource"), ("Grows back in", "resource"),
-                ("Takes to grow", "resource"), ("Needs", "resource"), ("Tolerates", "resource"),
+                ("Health", "resource"), ("Needs tool tier", "resource"), ("Breaks into", "resource"), ("Regrows in", "resource"),
+                ("Grows in", "resource"), ("Needs", "resource"), ("Tolerates", "resource"),
             };
             var rows = new[] { ("Gives", "resource"), ("Damage it takes", "resource"), (GatherWords.GrowsInto(false), "resource"), (GatherWords.GrowsInto(true), "resource") };
             var plan = FactLayout.Plan(Kind.Resource, pairs, rows, new[] { FactBlock.Where, FactBlock.Biomes, FactBlock.Hooks });
@@ -333,8 +333,8 @@ namespace Scry.Tests
             // A plant's growing apart from what gathering it gives: the farmer's facts, not the woodcutter's.
             Assert.Equal(new[] { null, "Gathering", "Growing", "Where it lives", null }, plan.Select(t => t.Heading));
             Assert.Equal(new[] { "Health", "Needs tool tier" }, plan[0].Tiles.Select(i => pairs[i].Item1));
-            Assert.Equal(new[] { "Breaks into", "Grows back in", "row Gives", "row Damage it takes" }, plan[1].Bits.Select(Name));
-            Assert.Equal(new[] { "Takes to grow", "Needs", "Tolerates", "row Grows into", "row Grows into one of" }, plan[2].Bits.Select(Name));
+            Assert.Equal(new[] { "Breaks into", "Regrows in", "row Gives", "row Damage it takes" }, plan[1].Bits.Select(Name));
+            Assert.Equal(new[] { "Grows in", "Needs", "Tolerates", "row Grows into", "row Grows into one of" }, plan[2].Bits.Select(Name));
             Assert.Equal(new[] { "block Where", "block Biomes" }, plan[3].Bits.Select(Name));
         }
 
@@ -383,15 +383,15 @@ namespace Scry.Tests
         [Fact]
         public void ARoomShowsItsSizeThenWhatItIsAndHowItJoinsTheRest()
         {
-            var pairs = new[] { ("Is", "room"), ("Size", "room"), ("Doorways", "room"), ("Not before", "room"), ("Built into", "room") };
+            var pairs = new[] { ("Role", "room"), ("Size", "room"), ("Doorways", "room"), ("Not before", "room"), ("Built into", "room") };
             var plan = FactLayout.Plan(Kind.Location, pairs, new (string, string)[0], new FactBlock[0]);
             // The dungeon it is built into comes first.
             Assert.Equal(new[] { null, "Layout", "Placement" }, plan.Select(t => t.Heading));
             Assert.Equal(new[] { "Size" }, plan[0].Tiles.Select(i => pairs[i].Item1));
             Assert.Equal(new[] { "Doorways", "Built into" }, plan[1].Bits.Select(b => pairs[b.Pair].Item1));
-            Assert.Equal(new[] { "Is", "Not before" }, plan[2].Bits.Select(b => pairs[b.Pair].Item1));
+            Assert.Equal(new[] { "Role", "Not before" }, plan[2].Bits.Select(b => pairs[b.Pair].Item1));
             // Told as a row of the dungeons it is built into, the same; before what the room holds, where a dungeon's own come first.
-            var asRow = FactLayout.Plan(Kind.Location, new[] { ("Is", "room"), ("Size", "room"), ("What it holds", "location") }, new[] { ("Built into", "room") }, new FactBlock[0]);
+            var asRow = FactLayout.Plan(Kind.Location, new[] { ("Role", "room"), ("Size", "room"), ("What it holds", "location") }, new[] { ("Built into", "room") }, new FactBlock[0]);
             Assert.Equal(new[] { null, "Layout", "Contents", "Placement" }, asRow.Select(t => t.Heading));
         }
 
@@ -467,15 +467,15 @@ namespace Scry.Tests
         {
             var pairs = new[]
             {
-                ("Spawns Greydwarf", "spawner"), ("Spawns Greydwarf brute", "spawner"), ("Star chance", "spawner"), ("Works", "spawner"), ("Pace", "spawner"),
-                ("Keeps alive", "spawner"), ("Puts them", "spawner"), ("Health", "resource"), ("Needs tool tier", "resource"),
+                ("Spawns Greydwarf", "spawner"), ("Spawns Greydwarf brute", "spawner"), ("Star chance", "spawner"), ("Wakes", "spawner"), ("Pace", "spawner"),
+                ("Keeps alive", "spawner"), ("Spawns them", "spawner"), ("Health", "resource"), ("Needs tool tier", "resource"),
             };
             var rows = new[] { ("Drops", "resource"), ("Damage it takes", "resource") };
             var plan = FactLayout.Plan(Kind.Spawner, pairs, rows, new[] { FactBlock.Where, FactBlock.Biomes, FactBlock.Hooks });
             string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
             Assert.Equal(new[] { null, "Spawns", "Breaking it", "Where it is", null }, plan.Select(t => t.Heading));
             Assert.Equal(new[] { "Pace", "Keeps alive", "Health" }, plan[0].Tiles.Select(i => pairs[i].Item1));
-            Assert.Equal(new[] { "Spawns Greydwarf", "Spawns Greydwarf brute", "Star chance", "Works", "Puts them" }, plan[1].Bits.Select(Name));
+            Assert.Equal(new[] { "Spawns Greydwarf", "Spawns Greydwarf brute", "Star chance", "Wakes", "Spawns them" }, plan[1].Bits.Select(Name));
             Assert.Equal(new[] { "Needs tool tier", "row Drops", "row Damage it takes" }, plan[2].Bits.Select(Name));
             Assert.Equal(new[] { "block Where", "block Biomes" }, plan[3].Bits.Select(Name));
         }

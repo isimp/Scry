@@ -17,7 +17,7 @@ namespace Scry
 
         public static string Portals(bool teleportable) => teleportable ? "can go through" : "cannot go through";
 
-        public static string Quality(int maxQuality) => maxQuality > 1 ? $"up to {Numbers.Count(maxQuality)}" : "1 only: it cannot be upgraded";
+        public static string Quality(int maxQuality) => maxQuality > 1 ? $"up to {Numbers.Count(maxQuality)}" : "1, it cannot be upgraded";
 
         public static string Repair(bool canBeRepaired, string station, int level)
         {
@@ -26,7 +26,7 @@ namespace Scry
             return AtLevel(station, level);
         }
 
-        public static string Coins(int coins) => $"{Numbers.Count(coins)} coins";
+        public static string Coins(int coins) => Naming.Count(coins, "coin", "coins");
 
         /// <summary>The Forsaken power a trophy gives on its boss stone.</summary>
         public static string Gives(string power) => "gives " + power;

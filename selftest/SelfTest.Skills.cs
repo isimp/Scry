@@ -49,7 +49,7 @@ namespace Scry
                 Select(run);
                 yield return null;
                 var runTable = Facts.For(run).Rows.FirstOrDefault(r => r.Title == SkillPageWords.ChangesTitle);
-                p.Check(runTable != null && runTable.Lines.Any(l => l.Cells[0] == "Running speed") && runTable.Lines.Any(l => l.Cells[0] == "Stamina running"), "Run's page tells running speed and stamina from the character's own figures",
+                p.Check(runTable != null && runTable.Lines.Any(l => l.Cells[0] == "Running speed") && runTable.Lines.Any(l => l.Cells[0] == "Stamina: running"), "Run's page tells running speed and stamina from the character's own figures",
                     runTable == null ? "" : string.Join(" | ", runTable.Lines.Select(l => string.Join(", ", l.Cells))));
                 yield return PictureOf(p, "facts", "skill Run");
             }
@@ -162,13 +162,13 @@ namespace Scry
             var shield = Pick(Kind.Item, "ShieldBronzeBuckler", "ShieldWood", "ShieldBanded");
             if (shield != null) p.Check(Facts.For(shield).Yours.ContainsKey("Block") && Facts.For(shield).Yours.ContainsKey("Parry bonus"), $"{shield.ShownName} tells its block and parry at your Blocking", Pairs(Facts.For(shield)));
             var fish = Pick(Kind.Item, "Fish1", "Fish2");
-            if (fish != null) p.Check(Facts.For(fish).Yours.ContainsKey("Reeling it in"), $"{fish.ShownName} tells what reeling it in costs at your Fishing", Pairs(Facts.For(fish)));
+            if (fish != null) p.Check(Facts.For(fish).Yours.ContainsKey("Reeling in"), $"{fish.ShownName} tells what reeling it in costs at your Fishing", Pairs(Facts.For(fish)));
             var summon = Pick(Kind.Creature, "Skeleton_Friendly");
             if (summon != null)
             {
                 var its = Facts.For(summon);
                 var hits = its.Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle);
-                p.Check(Tells(its, "Its hits train") && hits != null && hits.Yours.Count > 0, "a summoned skeleton tells whose skill its hits train and how hard it hits summoned at yours",
+                p.Check(Tells(its, "Trains") && hits != null && hits.Yours.Count > 0, "a summoned skeleton tells whose skill its hits train and how hard it hits summoned at yours",
                     Pairs(its) + (hits == null ? "" : " | " + string.Join(" | ", hits.Yours.Values.SelectMany(v => v).Select(c => string.Join(", ", c.Cells)))));
             }
             var target = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Piece && e.Source is GameObject go && go != null && go.GetComponentInChildren<ArcheryTarget>(true) != null);

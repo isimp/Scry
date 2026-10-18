@@ -127,7 +127,7 @@ namespace Scry
                 new ConfigDescription("Seconds after entering a world before Scry starts reading the game's prefabs in the background. Opening the panel sooner starts it at once.",
                     new AcceptableValueRange<float>(0f, 120f)));
             _readLocations = config.Bind("1 - General", "ReadLocationsAutomatically", false,
-                "Reads where things are found in each world's locations and dungeons by itself, in the background once the prefabs are read, taking a few minutes. Off, they are read only when asked, with Read all locations or /scry locations.");
+                "Reads where things are found in each world's locations and dungeons by itself, in the background once the prefabs are read, taking a few minutes. Off, they are read only when asked, with Find where things are or /scry locations.");
             _dungeonMarks = config.Bind("1 - General", "DungeonMarksOnMap", true,
                 "Marks each dungeon you have been in on Valheim's large map, just above its entrance, telling how much of it you walked; a click on a mark opens its map in Scry. Off, the map shows nothing of Scry's.");
             _autoSpin = config.Bind("2 - Preview", "AutoSpin", true,

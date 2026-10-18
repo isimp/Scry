@@ -57,13 +57,13 @@ namespace Scry
         public static string LetFall(bool falling) => falling ? "Puts it back" : "Lets it fall and roll, on the stage and in the world";
 
         /// <summary>The selection shown in the world.</summary>
-        public static string InWorld(bool shown) => shown ? "Takes the copy out of the world" : "Puts a copy in the world where you look, which only you see";
+        public static string InWorld(bool shown) => shown ? "Takes the preview out of the world" : "Puts a preview in the world where you look, which only you see";
 
         /// <summary>The copy in the world moved.</summary>
-        public const string MoveHere = "Moves the copy to where you look";
+        public const string MoveHere = "Moves the preview to where you look";
 
         /// <summary>The copy in the world left standing.</summary>
-        public const string Pin = "Leaves this copy standing, so the next can be shown beside it";
+        public const string Pin = "Leaves this preview standing, so the next can be shown beside it";
 
         /// <summary>A status effect's look on you.</summary>
         public static string ShowStatus(bool showing) => showing ? "Takes its look off you" : "Shows its look on you; the effect itself is never applied";

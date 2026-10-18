@@ -58,7 +58,7 @@ namespace Scry
         /// <summary>The creatures chip's tip.</summary>
         public static string CreaturesTip(bool shown) => shown
             ? "Puts away the creatures its spawn points put here"
-            : "Shows the creatures its spawn points put here, rolled anew with every copy";
+            : "Shows the creatures its spawn points put here, rolled anew with every preview";
 
         /// <summary>The mark of the stage's key sheet, in its corner.</summary>
         public const string KeysMark = "?";

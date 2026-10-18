@@ -113,13 +113,13 @@ namespace Scry
             // A boss: how to summon it (under where it lives) and what its fall opens, before its loot.
             Order(plan, "Boss", "overview", "fight", "lives", "after", "loot", "senses");
             // A tameable one: its taming and riding first.
-            Order(plan, "Takes to tame", "overview", "taming", "riding", "fight", "loot", "lives", "senses");
+            Order(plan, "Tames in", "overview", "taming", "riding", "fight", "loot", "lives", "senses");
             Tile(plan, "overview", null, "Health", "Faction", "Moves", "Tameable", "Boss");
             Tile(plan, "senses", null, "Sees", "Hears", "Turns on you", "Fire");
-            Label(plan, "fight", "Attacks", CombatWords.StarsTitle, "Its fight", "Fights", "Damage it takes", "Its hits train");
-            Label(plan, "senses", "Gives up chasing", "Flees", "Leaves alone", "With Passive enemies");
+            Label(plan, "fight", "Attacks", CombatWords.StarsTitle, "Boss fight", "Fights", "Damage it takes", "Trains");
+            Label(plan, "senses", "Gives up chasing", "Flees", "Leaves alone", "When enemies are passive");
             Label(plan, "loot", "Drops");
-            Label(plan, "taming", "Takes to tame", "Stays fed", "Eats");
+            Label(plan, "taming", "Tames in", "Fed for", "Eats");
             Label(plan, "after", "Forsaken power", "On its boss stone");
             Label(plan, More, "Not shown");
             plan.Starts.Add((l => l.StartsWith("Seen dropping", StringComparison.Ordinal), "loot"));
@@ -166,7 +166,7 @@ namespace Scry
             Label(plan, "food", "Food", "Heals", "Lasts", "When used");
             Label(plan, "hatching", "Hatches into", "Hatches in", "Hatches when");
             // What a trophy, a key, a fish, a bait or a building tool is for.
-            Label(plan, "does", "On its boss stone", "Opens", "Each use costs", "Each use wears", "Harvests within", "With a fish on", "Reels in", "Reeling it in");
+            Label(plan, "does", "On its boss stone", "Opens", "Each use costs", "Each use wears", "Harvests within", "With a fish on", "Reeling in");
             Part(plan, "does", "builds", "fishing", "bait");
             Label(plan, "making", "Type", "Weight", "Quality", "Durability", "Repaired at", "Upgrades need", "Skill", "Tool tier", "Stacks to", "Worth", "Portals");
             Label(plan, More, "Not shown");
@@ -229,7 +229,7 @@ namespace Scry
             };
             Tile(plan, "overview", null, "Health", "Needs tool tier");
             // A plant's growing, apart from what gathering it gives.
-            Label(plan, "growing", "Takes to grow", "Needs", "Tolerates", GatherWords.GrowsInto(false), GatherWords.GrowsInto(true));
+            Label(plan, "growing", "Grows in", "Needs", "Tolerates", GatherWords.GrowsInto(false), GatherWords.GrowsInto(true));
             Label(plan, More, "Not shown");
             Part(plan, "gathering", "resource");
             plan.Blocks[FactBlock.Where] = "lives";
@@ -268,7 +268,7 @@ namespace Scry
             };
             Order(plan, "Built into", "overview", "layout");
             Tile(plan, "overview", null, "Biome", "Per world", "Size");
-            Label(plan, "placement", "Is", "Not before");
+            Label(plan, "placement", "Role", "Not before");
             Label(plan, "layout", "Building", "Doorways", "Built into");
             Label(plan, "contents", "What it holds", "What its rooms hold", "Levels at its spawn points");
             Label(plan, "music", "Music");
@@ -294,7 +294,7 @@ namespace Scry
                 Topics = new[] { ("overview", (string)null), ("comes", "What comes"), ("when", "When"), ("music", "Music"), (More, "More"), ("hooks", null) },
             };
             Tile(plan, "overview", null, "Lasts", "Weather", "Comes for");
-            Label(plan, "when", "On the table", "Rolled", "Also rolled", "Ends with", "On");
+            Label(plan, "when", "On the table", "Rolled", "Also rolled", "Ends with", "When");
             Label(plan, "music", "Music");
             Label(plan, More, "Not shown");
             // What it brings is told creature by creature, each by its name.

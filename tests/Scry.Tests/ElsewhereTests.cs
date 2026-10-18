@@ -82,12 +82,12 @@ namespace Scry.Tests
         [Fact]
         public void WhatRanElsewhereIsToldInOneLineForEachWay()
         {
-            Assert.Equal("5 more of your kills ran in another player's game, so their drops weren't counted", ElsewhereWords.Line(Elsewhere.Kill, 5));
-            Assert.Equal("1 more of your kills ran in another player's game, so its drops weren't counted", ElsewhereWords.Line(Elsewhere.Kill, 1));
-            Assert.Equal("2 more you hit broke in another player's game, so what they gave wasn't counted", ElsewhereWords.Line(Elsewhere.Break, 2));
-            Assert.Equal("1 more you hit broke in another player's game, so what it gave wasn't counted", ElsewhereWords.Line(Elsewhere.Break, 1));
-            Assert.Equal("3 more of your picks ran in another player's game, so what they gave wasn't counted", ElsewhereWords.Line(Elsewhere.Pick, 3));
-            Assert.Equal("1 more of your picks ran in another player's game, so what it gave wasn't counted", ElsewhereWords.Line(Elsewhere.Pick, 1));
+            Assert.Equal("5 more of your kills ran in another player's game, so their drops were not counted", ElsewhereWords.Line(Elsewhere.Kill, 5));
+            Assert.Equal("1 more of your kills ran in another player's game, so its drops were not counted", ElsewhereWords.Line(Elsewhere.Kill, 1));
+            Assert.Equal("2 more you hit broke in another player's game, so what they gave was not counted", ElsewhereWords.Line(Elsewhere.Break, 2));
+            Assert.Equal("1 more you hit broke in another player's game, so what it gave was not counted", ElsewhereWords.Line(Elsewhere.Break, 1));
+            Assert.Equal("3 more of your picks ran in another player's game, so what they gave was not counted", ElsewhereWords.Line(Elsewhere.Pick, 3));
+            Assert.Equal("1 more of your picks ran in another player's game, so what it gave was not counted", ElsewhereWords.Line(Elsewhere.Pick, 1));
             Assert.Null(ElsewhereWords.Line(Elsewhere.Kill, 0));
             Assert.Equal(" · 5 in another player's game", ElsewhereWords.Killed(5));
             Assert.Null(ElsewhereWords.Killed(0));

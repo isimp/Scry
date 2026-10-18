@@ -128,7 +128,7 @@ namespace Scry
                 if (!_relations[at]) continue;
                 foreach (var biome in entry.Biomes ?? Array.Empty<string>())
                 {
-                    if (Offered(EntryKeys.For(Kind.Biome, biome))) Add("biome", biome, Naming.FieldLabel(biome));
+                    if (Offered(EntryKeys.For(Kind.Biome, biome))) Add("biome", biome, BiomeWords.Shown(biome));
                 }
                 foreach (var user in entry.UsedBy) if (Offered(user)) Add("playedby", user, user);
                 foreach (var station in entry.Stations ?? Array.Empty<StationUse>())
@@ -298,7 +298,7 @@ namespace Scry
             ("kind:creature", Kinds.HelpLine(), true),
             ("has:aoe", "Prefabs with a part of that type, such as has:light, has:pickable, has:fireplace.", true),
             ("biome:swamp", "What spawns or grows in that biome.", true),
-            ("in:crypt", "What is found in a location or dungeon, once they are read with Read all locations (at the top of the panel, or below).", true),
+            ("in:crypt", "What is found in a location or dungeon, once they are read with Find where things are (at the top of the panel, or below).", true),
             ("mod:epic", "What a mod added, by the start or any part of its name.", true),
             ("playedby:troll", "The sounds and effects a prefab plays.", true),
             ("is:boss", SearchFlags.HelpLine(), true),

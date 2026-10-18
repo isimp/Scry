@@ -36,7 +36,7 @@ namespace Scry
             if (character.m_boss) Add("Boss", "yes");
             if (!string.IsNullOrEmpty(character.m_bossEvent) && Knowledge.BossOfEvent(character.m_bossEvent) == prefab)
             {
-                Add("Its fight", "music and weather while its health bar shows", EntryKeys.For(Kind.Raid, character.m_bossEvent));
+                Add("Boss fight", "music and weather while its health bar shows", EntryKeys.For(Kind.Raid, character.m_bossEvent));
             }
 
             // What stars add: its health once more for each, and half as much again to each hit.
@@ -243,7 +243,7 @@ namespace Scry
                 else if (ai.m_avoidFire) Add("Fire", "keeps away from it");
                 // AnimalAI.UpdateAI only ever flees from what it senses.
                 if (ai is AnimalAI) Add("Fights", "never: it flees from what it senses");
-                if (ai.m_passiveAggresive) Add("With Passive enemies", CombatWords.PassiveEnemies(flees: ai is AnimalAI));
+                if (ai.m_passiveAggresive) Add("When enemies are passive", CombatWords.PassiveEnemies(flees: ai is AnimalAI));
                 if (ai is MonsterAI monster)
                 {
                     Add("Turns on you", CombatWords.Alerted(monster.m_alertRange));
@@ -261,15 +261,15 @@ namespace Scry
             var tame = prefab.GetComponent<Tameable>();
             if (tame != null)
             {
-                Add("Takes to tame", Numbers.Duration(tame.m_tamingTime));
+                Add("Tames in", Numbers.Duration(tame.m_tamingTime));
                 // A summon's hits train its summoner's skill, by its share of a rise (Character.RaiseSkill).
                 if (tame.m_levelUpOwnerSkill != Skills.SkillType.None && tame.m_levelUpFactor > 0f)
                 {
                     var page = EntryKeys.For(Kind.Skill, tame.m_levelUpOwnerSkill.ToString());
-                    Add("Its hits train", SkillWords.TrainsOwner(SkillName(tame.m_levelUpOwnerSkill), tame.m_levelUpFactor), EntryOf(page) != null ? page : null);
+                    Add("Trains", SkillWords.TrainsOwner(SkillName(tame.m_levelUpOwnerSkill), tame.m_levelUpFactor), EntryOf(page) != null ? page : null);
                 }
-                Add("Stays fed", Numbers.Duration(tame.m_fedDuration));
-                Proofs["Takes to tame"] = Proofs["Stays fed"] = EntryKeys.Did(Deed.Tamed);
+                Add("Fed for", Numbers.Duration(tame.m_fedDuration));
+                Proofs["Tames in"] = Proofs["Fed for"] = EntryKeys.Did(Deed.Tamed);
                 Part("riding", () => Riding(tame, character));
                 var breed = prefab.GetComponent<Procreation>();
                 if (breed != null) Part("breeding", () => Breeding(breed));

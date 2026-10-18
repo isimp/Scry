@@ -19,7 +19,7 @@ namespace Scry
         /// <summary>What a skill a mod adds changes, which only the mod knows.</summary>
         public const string OnlyItsMod = "only the mod adding it knows";
 
-        public const string RisesLabel = "Raised by";
+        public const string RisesLabel = "Trained by";
         public const string OnDeathLabel = "On death";
         public const string TrainedWithTitle = "Trained with";
         public const string ToolsTitle = "Tools it eases";
@@ -27,7 +27,7 @@ namespace Scry
         public const string CookingTitle = "Gives bonus food at";
         public const string PickedTitle = "Gives a bonus picking";
         public const string AddsLevelsTitle = "Effects adding levels";
-        public const string FasterTitle = "Rises faster with";
+        public const string FasterTitle = "Trains faster with";
 
         /// <summary>The You box's line of the character's level, and of the way to the next.</summary>
         public const string LevelLabel = "Level";
@@ -82,19 +82,19 @@ namespace Scry
                     break;
                 case "Run":
                     Line("Running speed", l => SkillWords.Speed(inputs.RunSpeed * SkillMath.RunSpeedShare(l)));
-                    Line("Stamina running", l => SkillWords.PerSecond(inputs.RunDrain * SkillMath.RunDrainShare(l)));
+                    Line("Stamina: running", l => SkillWords.PerSecond(inputs.RunDrain * SkillMath.RunDrainShare(l)));
                     break;
                 case "Swim":
-                    Line("Stamina swimming", l => SkillWords.PerSecond(SkillMath.Between(inputs.SwimAtNone, inputs.SwimAtTop, l)));
+                    Line("Stamina: swimming", l => SkillWords.PerSecond(SkillMath.Between(inputs.SwimAtNone, inputs.SwimAtTop, l)));
                     break;
                 case "Jump":
                     Line("Jump strength", l => Share(SkillMath.JumpShare(l)));
                     break;
                 case "Dodge":
-                    Line("Stamina a dodge", l => Numbers.Amount(inputs.Dodge * SkillMath.DodgeShare(l), 1));
+                    Line("Stamina: dodging", l => Numbers.Amount(inputs.Dodge * SkillMath.DodgeShare(l), 1));
                     break;
                 case "Sneak":
-                    Line("Stamina sneaking", l => SkillWords.PerSecond(inputs.Sneak * SkillMath.SneakDrainShare(l)));
+                    Line("Stamina: sneaking", l => SkillWords.PerSecond(inputs.Sneak * SkillMath.SneakDrainShare(l)));
                     Line("Seen in the dark", l => Share(SkillMath.Stealth(l, 0f)));
                     Line("Seen in full light", l => Share(SkillMath.Stealth(l, 1f)));
                     break;
@@ -103,8 +103,8 @@ namespace Scry
                     Line("Mount's stamina", l => Share(SkillMath.MountDrainShare(l)));
                     break;
                 case "Fishing":
-                    Line("Stamina, a fish on", l => SkillWords.PerSecond(SkillMath.Between(inputs.HookedAtNone, inputs.HookedAtTop, l)));
-                    Line("Stamina reeling in", l => Share(SkillMath.Between(1f, inputs.PullAtTop, l)));
+                    Line("Stamina: with a fish on", l => SkillWords.PerSecond(SkillMath.Between(inputs.HookedAtNone, inputs.HookedAtTop, l)));
+                    Line("Stamina: reeling in", l => Share(SkillMath.Between(1f, inputs.PullAtTop, l)));
                     Line("Reeling in", l => SkillWords.Speed(SkillMath.Between(inputs.LineAtNone, inputs.LineAtTop, l)));
                     break;
             }
@@ -112,10 +112,10 @@ namespace Scry
             if (inputs.Crafts)
             {
                 Line("Making time", l => Share(SkillMath.CraftTimeShare(l, inputs.CraftMostSaved)));
-                if (inputs.CraftBonus > 0f) Line("Bonus, stackables made", l => Chance(SkillMath.BonusChance(l, inputs.CraftBonus)));
+                if (inputs.CraftBonus > 0f) Line("Bonus: when making", l => Chance(SkillMath.BonusChance(l, inputs.CraftBonus)));
             }
-            if (inputs.CookBonus > 0f) Line("Bonus, food taken off", l => Chance(SkillMath.BonusChance(l, inputs.CookBonus)));
-            if (inputs.PickBonus > 0f) Line("Bonus when picking", l => Chance(SkillMath.BonusChance(l, inputs.PickBonus)));
+            if (inputs.CookBonus > 0f) Line("Bonus: taking food off", l => Chance(SkillMath.BonusChance(l, inputs.CookBonus)));
+            if (inputs.PickBonus > 0f) Line("Bonus: picking", l => Chance(SkillMath.BonusChance(l, inputs.PickBonus)));
             if (inputs.BuildStamina) Line("Building stamina", l => Share(SkillMath.BuildStaminaShare(l)));
             if (inputs.WearSaved > 0f) Line("Tool wear placing", l => Share(SkillMath.WearShare(l, inputs.WearSaved)));
             if (inputs.ScytheAtTop > 0f) Line("Scythe reach", l => Numbers.Metres(SkillMath.Between(inputs.ScytheAtNone, inputs.ScytheAtTop, l), 1));
@@ -228,7 +228,7 @@ namespace Scry
         /// What raises a skill, as the game raises each: a swing once however many it hits
         /// (<c>Attack.DoMeleeAttack</c>), a pickaxe on anything that breaks but a tree or a
         /// creature (its attacks' <c>m_skillHitType</c>), an archery target a third as much at its
-        /// centre (<c>ArcheryTarget.m_raiseSkillMultiplier</c>), summons and a broken shield for
+        /// middle (<c>ArcheryTarget.m_raiseSkillMultiplier</c>), summons and a broken shield for
         /// the one they follow or shielded (<c>Tameable.m_levelUpOwnerSkill</c>,
         /// <c>SE_Shield.m_levelUpSkillOnBreak</c>), no tired jump (<c>Character.Jump</c>), a fish
         /// on twice as fast (<c>FishingFloat</c>), each piece taken down cancelling the next one
@@ -241,7 +241,7 @@ namespace Scry
                 case "BloodMagic": return "Hitting creatures with what trains it; your summons' hits, half as much, for the one they follow; a shield it cast breaking, for the one it shielded";
                 case "Bows":
                 case "Crossbows":
-                    return "Hitting creatures with what trains it, or an archery target, up to a third as much at its centre";
+                    return "Hitting creatures with what trains it, or an archery target, up to a third as much at its middle";
                 case "Pickaxes": return "Hitting rocks, ore and other things that break, a tree or a creature aside, with a pickaxe";
                 case "WoodCutting": return "Hitting trees with an axe";
                 case "Blocking": return "Each hit blocked, twice as much for a parry";

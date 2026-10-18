@@ -72,7 +72,7 @@ namespace Scry.Tests
             Assert.Equal(new[] { "Wood" }, Labels(world.Suggest("drops:")));
             Assert.Equal(new[] { "Wolf" }, Labels(world.Suggest("playedby:")));
             // A place is offered where one of its locations was seen; a biome or place with no page of its own names nothing.
-            Assert.Equal(new[] { "Black forest", "Mountain" }, Labels(world.Suggest("biome:")));
+            Assert.Equal(new[] { "Black Forest", "Mountain" }, Labels(world.Suggest("biome:")));
             Assert.Equal(new[] { "Ruins", "Troll cave" }, Labels(world.Suggest("in:")));
             Assert.Equal(new[] { "Workbench" }, Labels(world.Suggest("station:")));
         }

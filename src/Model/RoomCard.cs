@@ -41,8 +41,8 @@ namespace Scry
             return lines;
         }
 
-        public const string CreaturesTip = "The creatures this copy's spawn points put in the room; another copy rolls them anew";
-        public const string LootTip = "The chests and pickups this copy's rolls put in the room, each with how likely a room of its kind holds it";
+        public const string CreaturesTip = "The creatures this preview's spawn points put in the room; another preview rolls them anew";
+        public const string LootTip = "The chests and pickups this preview's rolls put in the room, each with how likely a room of its kind holds it";
         public const string FloorTip = "Click to cut at head height over this floor";
         public const string OpenPageTip = "The page of this kind of room";
 

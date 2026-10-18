@@ -1009,11 +1009,11 @@ namespace Scry
         private static int _foundInLeft;
         private static Explorer _foundInIn;
 
-        private const string LocationsButtonText = "Read all locations";
-        private const string LocationsButtonTip = "Reads what every location and dungeon room in this world holds, in the background over a few minutes, so things tell where they are found and in: finds them. What is read is kept, and known at once the next time. A location selected is read by itself.";
+        private const string LocationsButtonText = "Find where things are";
+        private const string LocationsButtonTip = "Reads every location and dungeon room over a few minutes, so things tell where they are found";
 
-        private const string ReadAgainText = "Read again";
-        private const string ReadAgainTip = "Forgets what Scry kept of every location and dungeon room, what each holds and where its floors are, and reads them all afresh in the background, for when what is shown seems wrong or out of date. Until then they show as never read.";
+        private const string ReadAgainText = "Look again";
+        private const string ReadAgainTip = "Forgets what was read of every location and room and reads them afresh, for when one seems wrong";
 
         /// <summary>Above the Locations tab's list once the places are known: that they are kept, or how far reading them again has got, and Read again.</summary>
         private static Rect PlacesBar(Rect inner)

@@ -31,8 +31,8 @@ namespace Scry.Tests
         public void GearSaysHowFarItCanBeUpgraded()
         {
             Assert.Equal("up to 4", ItemWords.Quality(4));
-            Assert.Equal("1 only: it cannot be upgraded", ItemWords.Quality(1));
-            Assert.Equal("1 only: it cannot be upgraded", ItemWords.Quality(0));
+            Assert.Equal("1, it cannot be upgraded", ItemWords.Quality(1));
+            Assert.Equal("1, it cannot be upgraded", ItemWords.Quality(0));
         }
 
         [Fact]

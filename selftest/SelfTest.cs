@@ -192,7 +192,7 @@ namespace Scry
             var failure = Steps.Run(PutBack, null);
             Write(failure != null
                 ? $"FAIL putting things back threw {failure.GetType().Name}: {failure.Message}"
-                : "Everything the test changed has been put back" + (readHere ? ", except that the locations stay read, as Read all locations leaves them." : "."));
+                : "Everything the test changed has been put back" + (readHere ? ", except that the locations stay read, as Find where things are leaves them." : "."));
             Timing.Measuring = null;
             _before = null;
 

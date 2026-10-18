@@ -46,8 +46,8 @@ namespace Scry
                 string.Join(" | ", told.Where.Where(s => s.MetIn != null).Select(s => string.Join(",", s.MetIn))));
             foreach (var (kind, name, fact, deed) in new[]
             {
-                (Kind.Creature, "Boar", "Takes to tame", Deed.Tamed), (Kind.Creature, "Boar", "Pregnant for", Deed.Born),
-                (Kind.Creature, "Boar_piggy", "Grows up in", Deed.GrewUp), (Kind.Resource, "RaspberryBush", "Grows back in", Deed.GrewBack),
+                (Kind.Creature, "Boar", "Tames in", Deed.Tamed), (Kind.Creature, "Boar", "Pregnant for", Deed.Born),
+                (Kind.Creature, "Boar_piggy", "Grows up in", Deed.GrewUp), (Kind.Resource, "RaspberryBush", "Regrows in", Deed.GrewBack),
             })
             {
                 var entry = Pick(kind, name);
@@ -812,7 +812,7 @@ namespace Scry
             var points = X.Catalog.Count(e => e.Kind == Kind.Spawner && e.Group == "Spawn points");
             p.Note($"{Numbers.Count(X.Catalog.Count(e => e.Kind == Kind.Spawner))} spawners, {Numbers.Count(points)} of them spawn points");
             var told = Facts.For(nest);
-            foreach (var row in new[] { "Works", "Pace", "Keeps alive", "Puts them" }) p.Check(Tells(told, row), $"it tells {row.ToLowerInvariant()}", Pairs(told));
+            foreach (var row in new[] { "Wakes", "Pace", "Keeps alive", "Spawns them" }) p.Check(Tells(told, row), $"it tells {row.ToLowerInvariant()}", Pairs(told));
             var pool = told.Rows.FirstOrDefault(r => r.Title == SpawnWords.PoolTitle);
             p.Check(pool != null && pool.Lines.Count > 0, "it tells what it spawns and how often, a creature a line", Pairs(told));
             if (pool != null) p.Note("its creatures: " + string.Join(" | ", pool.Lines.Select(l => string.Join(", ", l.Cells))));

@@ -133,7 +133,7 @@ namespace Scry
         public const string MapBar = "Places in the ground this character explored count as seen, read again each session";
 
         /// <summary>The button reading the explored map again, in the Locations tab's bar.</summary>
-        public const string ReadMap = "Read the map again";
+        public const string ReadMap = "Look at the map again";
 
         /// <summary>That chip's tip.</summary>
         public const string ReadMapTip = "Counts the kinds of place in the ground this character explored in this world as seen, as on its first visit with Scry";
@@ -145,7 +145,7 @@ namespace Scry
         public const string FloorCaption = "Known up to";
 
         /// <summary>The milestone floor as stepped: the last tier it shows, by its biome, or none.</summary>
-        public static string FloorName(int floor) => floor > 0 ? Naming.FieldLabel(Tiers.BiomeOf(floor)) : "none";
+        public static string FloorName(int floor) => floor > 0 ? BiomeWords.Shown(Tiers.BiomeOf(floor)) : "none";
 
         /// <summary>The tip of the mark on a row, and the line under a page's title, of what shows as known only by the floor, named by its control: "Shown as known up to Black forest".</summary>
         public static string ByFloor(int floor) => $"Shown as {FloorCaption.ToLowerInvariant()} {FloorName(floor)}, not yet come to know by this character";
@@ -155,11 +155,11 @@ namespace Scry
 
         /// <summary>The tip of raising the floor to a tier, with the boss that fell for it where known.</summary>
         public static string RaiseFloor(int to, string boss) =>
-            $"Show everything of the {Naming.FieldLabel(Tiers.BiomeOf(to))} as known" + (string.IsNullOrEmpty(boss) ? "" : $": {boss} fell for this character");
+            $"Show everything of the {BiomeWords.Shown(Tiers.BiomeOf(to))} as known" + (string.IsNullOrEmpty(boss) ? "" : $": {boss} fell for this character");
 
         /// <summary>The tip of lowering the floor to a tier, or off.</summary>
         public static string LowerFloor(int to) => to > 0
-            ? $"Show the {Naming.FieldLabel(Tiers.BiomeOf(to))} and what came before as known, not the {Naming.FieldLabel(Tiers.BiomeOf(to + 1))}"
+            ? $"Show the {BiomeWords.Shown(Tiers.BiomeOf(to))} and what came before as known, not the {BiomeWords.Shown(Tiers.BiomeOf(to + 1))}"
             : "Show only what this character has met again";
 
         /// <summary>The floor's tip while the next boss has not fallen.</summary>

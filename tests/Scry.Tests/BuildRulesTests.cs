@@ -95,13 +95,5 @@ namespace Scry.Tests
             Assert.Equal("where you come back to after dying; it needs a roof and at least 80% cover", BuildWords.BedClaim(0.8f));
             Assert.Equal("at night, with no enemy sensing you, under a roof with at least 80% cover, by a fire, and dry", BuildWords.BedSleep(0.8f));
         }
-
-        // A projectile hitting an archery target raises the skill of what fired it by the target's
-        // share of a hit's rise, less the farther from its centre (ArcheryTarget: 1 - distance / size).
-        [Fact]
-        public void AnArcheryTargetSaysItTrainsWhatHitsIt()
-        {
-            Assert.Equal("the skill of what hits it, up to 35% of a hit on a creature at its centre, less the farther out", BuildWords.ArcheryTarget(0.35f));
-        }
     }
 }

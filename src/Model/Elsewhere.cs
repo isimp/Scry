@@ -66,9 +66,9 @@ namespace Scry
             var one = count == 1;
             switch (what)
             {
-                case Elsewhere.Kill: return more + "of your kills ran in another player's game, so " + (one ? "its" : "their") + " drops weren't counted";
-                case Elsewhere.Break: return more + "you hit broke in another player's game, so what " + (one ? "it" : "they") + " gave wasn't counted";
-                default: return more + "of your picks ran in another player's game, so what " + (one ? "it" : "they") + " gave wasn't counted";
+                case Elsewhere.Kill: return more + "of your kills ran in another player's game, so " + (one ? "its" : "their") + " drops were not counted";
+                case Elsewhere.Break: return more + "you hit broke in another player's game, so what " + (one ? "it" : "they") + " gave was not counted";
+                default: return more + "of your picks ran in another player's game, so what " + (one ? "it" : "they") + " gave was not counted";
             }
         }
 

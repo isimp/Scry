@@ -178,6 +178,8 @@ namespace Scry
                     if (source.Night.Length == 0) source.Night = setup.m_musicNight ?? "";
                 }
             }
+            // The panel's words name biomes as the game shows them, in its language.
+            BiomeWords.NameBy(Knowledge.BiomeName);
             foreach (var source in byName.Values)
             {
                 entries.Add(new Entry

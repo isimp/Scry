@@ -92,9 +92,9 @@ namespace Scry
         private void Reeling(Fish fish)
         {
             if (fish.m_staminaUse <= 0f && fish.m_escapeStaminaUse <= 0f) return;
-            Add("Reeling it in", SkillWords.Reeling(fish.m_staminaUse, fish.m_escapeStaminaUse, true));
+            Add("Reeling in", SkillWords.Reeling(fish.m_staminaUse, fish.m_escapeStaminaUse, true));
             var pull = SkillReading.Inputs(Skills.SkillType.Fishing).PullAtTop;
-            YoursAt("Reeling it in", Skills.SkillType.Fishing, level =>
+            YoursAt("Reeling in", Skills.SkillType.Fishing, level =>
                 SkillWords.Reeling(fish.m_staminaUse * SkillMath.Between(1f, pull, level), fish.m_escapeStaminaUse * SkillMath.Between(1f, pull, level), false));
         }
 

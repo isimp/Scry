@@ -75,15 +75,15 @@ namespace Scry.Tests
         {
             var run = new SkillInputs { Name = "Run", RunSpeed = 7f, RunDrain = 8f };
             Assert.Equal(new[] { "Running speed", "7 m/s", "7.7 m/s", "8.8 m/s" }, Line(run, 41f, "Running speed"));
-            Assert.Equal(new[] { "Stamina running", "8 a second", "6.4 a second", "4 a second" }, Line(run, 41f, "Stamina running"));
+            Assert.Equal(new[] { "Stamina: running", "8 a second", "6.4 a second", "4 a second" }, Line(run, 41f, "Stamina: running"));
         }
 
         [Fact]
         public void TheOtherWaysOfMovingTellTheirOwnFigures()
         {
-            Assert.Equal(new[] { "Stamina swimming", "6 a second", "4.5 a second", "3 a second" }, Line(new SkillInputs { Name = "Swim", SwimAtNone = 6f, SwimAtTop = 3f }, 50f, "Stamina swimming"));
+            Assert.Equal(new[] { "Stamina: swimming", "6 a second", "4.5 a second", "3 a second" }, Line(new SkillInputs { Name = "Swim", SwimAtNone = 6f, SwimAtTop = 3f }, 50f, "Stamina: swimming"));
             Assert.Equal(new[] { "Jump strength", "100%", "120%", "140%" }, Line(new SkillInputs { Name = "Jump" }, 50f, "Jump strength"));
-            Assert.Equal(new[] { "Stamina a dodge", "15", "11.3", "7.5" }, Line(new SkillInputs { Name = "Dodge", Dodge = 15f }, 50f, "Stamina a dodge"));
+            Assert.Equal(new[] { "Stamina: dodging", "15", "11.3", "7.5" }, Line(new SkillInputs { Name = "Dodge", Dodge = 15f }, 50f, "Stamina: dodging"));
             Assert.Equal(new[] { "Mount's running speed", "100%", "110%", "125%" }, Line(new SkillInputs { Name = "Ride" }, 40f, "Mount's running speed"));
             Assert.Equal(new[] { "Mount's stamina", "100%", "80%", "50%" }, Line(new SkillInputs { Name = "Ride" }, 40f, "Mount's stamina"));
         }
@@ -92,7 +92,7 @@ namespace Scry.Tests
         public void SneakingTellsItsDrainAndHowFarCreaturesSeeYou()
         {
             var sneak = new SkillInputs { Name = "Sneak", Sneak = 5f };
-            Assert.Equal(new[] { "Stamina sneaking", "5 a second", "3.1 a second", "1.3 a second" }, Line(sneak, 25f, "Stamina sneaking"));
+            Assert.Equal(new[] { "Stamina: sneaking", "5 a second", "3.1 a second", "1.3 a second" }, Line(sneak, 25f, "Stamina: sneaking"));
             Assert.Equal(new[] { "Seen in the dark", "50%", "43%", "20%" }, Line(sneak, 25f, "Seen in the dark"));
             Assert.Equal(new[] { "Seen in full light", "100%", "90%", "60%" }, Line(sneak, 25f, "Seen in full light"));
         }
@@ -101,8 +101,8 @@ namespace Scry.Tests
         public void FishingTellsItsDrainsAndReeling()
         {
             var fishing = new SkillInputs { Name = "Fishing", HookedAtNone = 1f, HookedAtTop = 0.2f, PullAtTop = 0.2f, LineAtNone = 2f, LineAtTop = 6f };
-            Assert.Equal(new[] { "Stamina, a fish on", "1 a second", "0.6 a second", "0.2 a second" }, Line(fishing, 50f, "Stamina, a fish on"));
-            Assert.Equal(new[] { "Stamina reeling in", "100%", "60%", "20%" }, Line(fishing, 50f, "Stamina reeling in"));
+            Assert.Equal(new[] { "Stamina: with a fish on", "1 a second", "0.6 a second", "0.2 a second" }, Line(fishing, 50f, "Stamina: with a fish on"));
+            Assert.Equal(new[] { "Stamina: reeling in", "100%", "60%", "20%" }, Line(fishing, 50f, "Stamina: reeling in"));
             Assert.Equal(new[] { "Reeling in", "2 m/s", "4 m/s", "6 m/s" }, Line(fishing, 50f, "Reeling in"));
         }
 
@@ -111,18 +111,18 @@ namespace Scry.Tests
         {
             var crafting = new SkillInputs { Name = "Crafting", Crafts = true, CraftMostSaved = 0.6f, CraftBonus = 0.25f, BuildStamina = true, WearSaved = 0.5f };
             Assert.Equal(new[] { "Making time", "100%", "70%", "40%" }, Line(crafting, 50f, "Making time"));
-            Assert.Equal(new[] { "Bonus, stackables made", "0%", "12.5%", "25%" }, Line(crafting, 50f, "Bonus, stackables made"));
+            Assert.Equal(new[] { "Bonus: when making", "0%", "12.5%", "25%" }, Line(crafting, 50f, "Bonus: when making"));
             Assert.Equal(new[] { "Building stamina", "100%", "75%", "50%" }, Line(crafting, 50f, "Building stamina"));
             Assert.Equal(new[] { "Tool wear placing", "100%", "75%", "50%" }, Line(crafting, 50f, "Tool wear placing"));
-            Assert.Null(Line(crafting, 50f, "Bonus, food taken off"));
+            Assert.Null(Line(crafting, 50f, "Bonus: taking food off"));
 
             // Cooking's serving tray wears less, though no build table trains it.
             var cooking = new SkillInputs { Name = "Cooking", CookBonus = 0.25f, WearSaved = 0.5f };
-            Assert.Equal(new[] { "Bonus, food taken off", "0%", "7.5%", "25%" }, Line(cooking, 30f, "Bonus, food taken off"));
+            Assert.Equal(new[] { "Bonus: taking food off", "0%", "7.5%", "25%" }, Line(cooking, 30f, "Bonus: taking food off"));
             Assert.Equal(new[] { "Tool wear placing", "100%", "85%", "50%" }, Line(cooking, 30f, "Tool wear placing"));
             Assert.Null(Line(cooking, 30f, "Building stamina"));
             var farming = new SkillInputs { Name = "Farming", PickBonus = 0.25f, ScytheAtNone = 1.5f, ScytheAtTop = 2.5f };
-            Assert.Equal(new[] { "Bonus when picking", "0%", "7.5%", "25%" }, Line(farming, 30f, "Bonus when picking"));
+            Assert.Equal(new[] { "Bonus: picking", "0%", "7.5%", "25%" }, Line(farming, 30f, "Bonus: picking"));
             Assert.Equal(new[] { "Scythe reach", "1.5 m", "1.8 m", "2.5 m" }, Line(farming, 30f, "Scythe reach"));
         }
 
@@ -218,7 +218,7 @@ namespace Scry.Tests
             // Anything that breaks but a tree or a creature trains a pickaxe (m_skillHitType Default): rocks, ore, building pieces.
             Assert.Equal("Hitting rocks, ore and other things that break, a tree or a creature aside, with a pickaxe", SkillPageWords.RisesBy("Pickaxes"));
             Assert.Equal("Hitting creatures with what trains it; your summons' hits, half as much, for the one they follow; a shield it cast breaking, for the one it shielded", SkillPageWords.RisesBy("BloodMagic"));
-            Assert.Equal("Hitting creatures with what trains it, or an archery target, up to a third as much at its centre", SkillPageWords.RisesBy("Bows"));
+            Assert.Equal("Hitting creatures with what trains it, or an archery target, up to a third as much at its middle", SkillPageWords.RisesBy("Bows"));
             Assert.Equal("Each jump with the stamina for it", SkillPageWords.RisesBy("Jump"));
             Assert.Equal("Each second reeling in, twice as much with a fish on", SkillPageWords.RisesBy("Fishing"));
             Assert.Equal("Putting food on a cooking station and taking it off, cooked or burnt, and making things where it speeds the making", SkillPageWords.RisesBy("Cooking"));

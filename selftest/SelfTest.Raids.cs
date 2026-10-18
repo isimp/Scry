@@ -38,9 +38,9 @@ namespace Scry
 
             var fight = fights[0];
             var boss = BossOf(fight);
-            p.Check(Facts.For(fight).Links.TryGetValue("On", out var toBoss) && toBoss == boss.name, $"{fight.DisplayName}'s page goes to its boss", toBoss);
+            p.Check(Facts.For(fight).Links.TryGetValue("When", out var toBoss) && toBoss == boss.name, $"{fight.DisplayName}'s page goes to its boss", toBoss);
             var bossEntry = Pick(Kind.Creature, boss.name);
-            if (bossEntry != null) p.Check(Facts.For(bossEntry).Links.TryGetValue("Its fight", out var toFight) && toFight == fight.Key, "and the boss's page to its fight", toFight);
+            if (bossEntry != null) p.Check(Facts.For(bossEntry).Links.TryGetValue("Boss fight", out var toFight) && toFight == fight.Key, "and the boss's page to its fight", toFight);
         }
 
         private static Entry BossFight(Entry entry) => entry?.Source is RandomEvent raid && Knowledge.BossOfEvent(raid.m_name) != null ? entry : null;

@@ -193,13 +193,13 @@ namespace Scry.Tests
         [Fact]
         public void ASkillsPageTellsWhatItChangesHowItRisesAndWhatItWorksOn()
         {
-            var pairs = new[] { ("Raised by", "skill"), ("Digging the ground", "skill"), ("On death", "skill"), ("In this world", "world settings") };
+            var pairs = new[] { ("Trained by", "skill"), ("Digging the ground", "skill"), ("On death", "skill"), ("In this world", "world settings") };
             var rows = new[] { (SkillPageWords.ChangesTitle, "skill"), (SkillPageWords.TrainedWithTitle, "skill"), (SkillPageWords.AddsLevelsTitle, "skill"), (SkillPageWords.StationsTitle, "skill") };
             var plan = FactLayout.Plan(Kind.Skill, pairs, rows, new[] { FactBlock.Hooks });
             string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
             Assert.Equal(new[] { "What it changes", "How it rises", "What it works on", null }, plan.Select(t => t.Heading));
             Assert.Equal(new[] { "row By level", "Digging the ground" }, plan[0].Bits.Select(Name));
-            Assert.Equal(new[] { "Raised by", "On death", "In this world", "row Effects adding levels" }, plan[1].Bits.Select(Name));
+            Assert.Equal(new[] { "Trained by", "On death", "In this world", "row Effects adding levels" }, plan[1].Bits.Select(Name));
             Assert.Equal(new[] { "row Trained with", "row Speeds making at" }, plan[2].Bits.Select(Name));
         }
     }
