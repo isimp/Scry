@@ -126,8 +126,8 @@ namespace Scry
 
         /// <summary>The tip of the report's switch to show only mods that add something.</summary>
         public static string AddingTip(bool on) => on
-            ? "Showing only mods that add something; click to show those that only hook in too"
-            : "Leaves out mods that only hook into the game's rules";
+            ? "Show the mods that only hook in too"
+            : "Leave out mods that only hook into the game's rules";
 
         /// <summary>The bar over the list of what mods add: how many mods add something.</summary>
         public static string Bar(int mods) => mods == 1 ? "What 1 mod adds" : $"What {Numbers.Count(mods)} mods add";

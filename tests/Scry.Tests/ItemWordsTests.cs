@@ -80,7 +80,7 @@ namespace Scry.Tests
             Assert.Equal("50 health, 40 stamina, 20 eitr", ItemWords.Food(50f, 40f, 20f));
             Assert.Equal("30 stamina", ItemWords.Food(0f, 30f, 0f));
             Assert.Null(ItemWords.Food(0f, 0f, 0f));
-            Assert.Equal("2.5 a tick", ItemWords.Heals(2.5f));
+            Assert.Equal("2.5 every 10 s", ItemWords.Heals(2.5f));
         }
 
         [Fact]

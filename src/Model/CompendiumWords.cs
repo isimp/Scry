@@ -20,7 +20,7 @@ namespace Scry
                 case Kind.Spawner: return "Unknown spawner";
                 case Kind.StatusEffect: return "Unknown status effect";
                 case Kind.Biome: return "Unknown biome";
-                case Kind.Location: return "Unknown place";
+                case Kind.Location: return "Unknown location";
                 case Kind.Raid: return "Unknown raid";
                 default: return "Unknown";
             }
@@ -31,7 +31,7 @@ namespace Scry
             $"{label}  <color=#{colour}>{Numbers.Count(found)}/{Numbers.Count(total)}</color>";
 
         /// <summary>The title of a list of what there is (what a mod adds) with the compendium on: how many of it the character has seen, which are all it shows.</summary>
-        public static string Found(string title, int found) => $"{title}, {Numbers.Count(found)} found";
+        public static string Found(string title, int found) => $"{title}, {Numbers.Count(found)} seen";
 
         /// <summary>What the compendium is called in the title row.</summary>
         public const string ModeCaption = "Compendium";
@@ -40,7 +40,7 @@ namespace Scry
         public static string Button(CompendiumRule rule) => ModeCaption + " · " + RuleName(rule) + "  ▾";
 
         /// <summary>The caption over the compendium's box.</summary>
-        public const string BoxCaption = "What your character knows, shown in the catalog";
+        public const string BoxCaption = "What this character knows, shown in the catalog";
 
         /// <summary>The caption of the rules' segments in the compendium's box.</summary>
         public const string RulesCaption = "Rules";
@@ -80,7 +80,7 @@ namespace Scry
         public const string PeekingTip = "Each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it";
 
         /// <summary>The strip's chip that stops peeking.</summary>
-        public const string StopPeeking = "Stop";
+        public const string StopPeeking = "Stop peeking";
 
         /// <summary>The notice of what the character learned since it was last told: the first three by name, the rest counted.</summary>
         public static string NewlyLearned(IReadOnlyList<string> names)
@@ -111,7 +111,7 @@ namespace Scry
         public const string PutNewsAway = "Put this away until more is learned";
 
         /// <summary>The notice's chip, listing what was learned lately.</summary>
-        public const string ShowLearned = "Show";
+        public const string ShowLearned = "Show what was learned";
 
         /// <summary>The reply to <c>/scry map</c> in a world.</summary>
         public const string MapAgain = "the explored map will be read again for this character in this world";
@@ -136,7 +136,7 @@ namespace Scry
         public const string ReadMap = "Look at the map again";
 
         /// <summary>That chip's tip.</summary>
-        public const string ReadMapTip = "Counts the kinds of place in the ground this character explored in this world as seen, as on its first visit with Scry";
+        public const string ReadMapTip = "Count the kinds of place in the ground this character explored in this world as seen, as on its first visit with Scry";
 
         /// <summary>The log's line on a dedicated server.</summary>
         public static string ServerPart => "on a dedicated server Scry only answers players' explored maps, for their compendium, and keeps the group's records of the dungeons they walk";
@@ -148,7 +148,7 @@ namespace Scry
         public static string FloorName(int floor) => floor > 0 ? BiomeWords.Shown(Tiers.BiomeOf(floor)) : "none";
 
         /// <summary>The tip of the mark on a row, and the line under a page's title, of what shows as known only by the floor, named by its control: "Shown as known up to Black forest".</summary>
-        public static string ByFloor(int floor) => $"Shown as {FloorCaption.ToLowerInvariant()} {FloorName(floor)}, not yet come to know by this character";
+        public static string ByFloor(int floor) => $"Shown as {FloorCaption.ToLowerInvariant()} the {FloorName(floor)} tier, not yet come to know by this character";
 
         /// <summary>The tip of a link or chip on a page going to what shows as known only by the floor: that, above its own tip.</summary>
         public static string FloorTip(int floor, string tip) => Naming.Lines(ByFloor(floor), tip);
@@ -194,8 +194,8 @@ namespace Scry
                 case CameBy.Hit: return "hitting it";
                 case CameBy.Picked: return "picking it";
                 case CameBy.Trophy: return "holding its trophy";
-                case CameBy.StoodIn: return "standing in it";
-                case CameBy.WentInside: return "going inside";
+                case CameBy.StoodIn: return "stepping into it";
+                case CameBy.WentInside: return "stepping inside";
                 case CameBy.LivedThrough: return "living through it";
                 case CameBy.Traded: return "trading with it";
                 case CameBy.OnYou: return "having it on you";
@@ -468,7 +468,7 @@ namespace Scry
                 case Kind.Resource: return "Hit it, pick it or hold what it gives to come to know it.";
                 case Kind.Spawner: return "Hit it to come to know it.";
                 case Kind.StatusEffect: return "Have it on you or choose it at its stone to come to know it.";
-                case Kind.Biome: return "Set foot in it to come to know it.";
+                case Kind.Biome: return "Step into it to come to know it.";
                 case Kind.Location: return "Step inside to come to know it.";
                 case Kind.Raid: return "Live through it to come to know it.";
                 default: return "It comes along once you come to know what it belongs to.";

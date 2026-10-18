@@ -24,7 +24,7 @@ namespace Scry
         public static string ListHeading(string heading, int count, bool open) => PanelWords.SectionTitle(heading + " " + Numbers.Count(count), !open);
 
         /// <summary>A list's heading's tip: what the list holds, and what a click on it does.</summary>
-        public static string ListTip(string about, bool open) => about + "\n" + (open ? "Folds the list away to its count" : "Opens the list");
+        public static string ListTip(string about, bool open) => about + "\n" + (open ? "Fold the list away to its count" : "Open the list");
 
         /// <summary>What a section with nothing in it says.</summary>
         public const string None = "None in this roll";
@@ -43,11 +43,11 @@ namespace Scry
 
         public const string CreaturesTip = "The creatures this preview's spawn points put in the room; another preview rolls them anew";
         public const string LootTip = "The chests and pickups this preview's rolls put in the room, each with how likely a room of its kind holds it";
-        public const string FloorTip = "Click to cut at head height over this floor";
+        public const string FloorTip = "Cut at head height over this floor";
         public const string OpenPageTip = "The page of this kind of room";
 
         /// <summary>The tip of a creature's or a chest's line on the card, which goes to its page.</summary>
-        public const string LineTip = "Goes to its page";
+        public const string LineTip = "Go to its page";
 
         /// <summary>
         /// Where a room is: how far its ground lies below or above the entrance's, in whole

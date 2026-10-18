@@ -121,7 +121,7 @@ namespace Scry
 
                 case Kind.Biome:
                     // Everything there, as the search finds it.
-                    if (Button("Everything here", ActionLook.Leading, ActionWords.EverythingHere) && _explorer != null) SearchFor(_explorer, SearchHelp.Term("biome", entry.Name));
+                    if (Button("Find everything here", ActionLook.Leading, ActionWords.EverythingHere) && _explorer != null) SearchFor(_explorer, SearchHelp.Term("biome", entry.Name));
                     break;
 
                 case Kind.Location:
@@ -137,7 +137,7 @@ namespace Scry
                     if (withStage && entry.Source is PlaceSource laid && !laid.IsRoom && laid.Contents?.Dungeon != null)
                     {
                         var example = ExampleOf(entry);
-                        if (Shown("Another layout", ActionLook.Plain, example != null, ActionWords.AnotherLayout)) ExampleLayouts.Another();
+                        if (Shown("Another example", ActionLook.Plain, example != null, ActionWords.AnotherLayout)) ExampleLayouts.Another();
                         note = example != null
                             ? ExampleLayouts.ShowsWorlds ? DungeonWords.WorldsNote(DungeonWords.Example(example, ExampleLayouts.Failed), ExampleLayouts.Unread,
                                 ExampleLayouts.Fogged ? PlanBoxWords.Walked(ExampleLayouts.Walked.Walked, ExampleLayouts.Walked.Rooms) : null)
@@ -190,7 +190,7 @@ namespace Scry
                             if (Button("Pin", ActionLook.Plain, ActionWords.Pin))
                             {
                                 Previews.Pin();
-                                Say("Pinned. It stays where it is until you press Clear.");
+                                Say("Pinned. It stays where it is until you press Clear world.");
                             }
                         }
                     }

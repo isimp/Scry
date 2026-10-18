@@ -48,15 +48,15 @@ namespace Scry.Tests
         [Fact]
         public void EachPartSaysWhatAClickOnItDoes()
         {
-            Assert.Equal("The whole dungeon, 31 rooms: click to see it all, the roof on", PlanBoxWords.TrailDungeonTip(31));
-            Assert.Equal("The whole dungeon, 1 room: click to see it all, the roof on", PlanBoxWords.TrailDungeonTip(1));
-            Assert.Equal("Click to come back out of the room to this level, as Esc does", PlanBoxWords.TrailLevelTip(inRoom: true));
-            Assert.Equal("Click to frame the level again", PlanBoxWords.TrailLevelTip(inRoom: false));
-            Assert.Equal("Click to frame the room again", PlanBoxWords.TrailRoomTip);
+            Assert.Equal("The whole dungeon, 31 rooms: see it all, the roof on", PlanBoxWords.TrailDungeonTip(31));
+            Assert.Equal("The whole dungeon, 1 room: see it all, the roof on", PlanBoxWords.TrailDungeonTip(1));
+            Assert.Equal("Come back out of the room to this level, as Esc does", PlanBoxWords.TrailLevelTip(inRoom: true));
+            Assert.Equal("Frame the level again", PlanBoxWords.TrailLevelTip(inRoom: false));
+            Assert.Equal("Frame the room again", PlanBoxWords.TrailRoomTip);
             // The deepest is the room furthest in, not one of the lowest.
-            Assert.Equal("Goes into the deepest room, the most rooms in from the entrance", PlanBoxWords.DeepestTip);
-            Assert.Equal("Goes into the entrance or the deepest room", PlanBoxWords.TrailMenuTip(switches: false));
-            Assert.Equal("Goes into the entrance or the deepest room, or switches between this dungeon and an example", PlanBoxWords.TrailMenuTip(switches: true));
+            Assert.Equal("Go into the deepest room, the most rooms in from the entrance", PlanBoxWords.DeepestTip);
+            Assert.Equal("Go into the entrance or the deepest room", PlanBoxWords.TrailMenuTip(switches: false));
+            Assert.Equal("Go into the entrance or the deepest room, or switch between your world's dungeon and an example", PlanBoxWords.TrailMenuTip(switches: true));
         }
 
         // The dungeon the player is in, or at, is shown as it stands in their world, a tag at the
@@ -85,12 +85,12 @@ namespace Scry.Tests
         [Fact]
         public void TheTagAndTheSwitchSayWhatTheyShow()
         {
-            Assert.Equal("This dungeon", PlanBoxWords.ThisDungeon);
-            Assert.Equal("The rooms as they stand in your world; the menu beside the dungeon shows an example instead", PlanBoxWords.ThisDungeonTip);
+            Assert.Equal("In your world", PlanBoxWords.ThisDungeon);
+            Assert.Equal("The rooms as they stand in your world", PlanBoxWords.ThisDungeonTip);
             Assert.Equal("Show an example", PlanBoxWords.ShowExample);
-            Assert.Equal("Lays out an example in place of this dungeon, as the game might in another world", PlanBoxWords.ShowExampleTip);
-            Assert.Equal("Show this dungeon", PlanBoxWords.ShowThisDungeon);
-            Assert.Equal("Shows this dungeon as it stands in your world, in place of the example", PlanBoxWords.ShowThisDungeonTip);
+            Assert.Equal("Lay out an example in place of your world's, as the game might in another world", PlanBoxWords.ShowExampleTip);
+            Assert.Equal("Show it in your world", PlanBoxWords.ShowThisDungeon);
+            Assert.Equal("Show the dungeon as it stands in your world, in place of the example", PlanBoxWords.ShowThisDungeonTip);
         }
     }
 }

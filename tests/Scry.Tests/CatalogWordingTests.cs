@@ -12,7 +12,7 @@ namespace Scry.Tests
         public void ReadingTheCatalogSaysWhatAndHowFar()
         {
             Assert.Equal("Reading where things live", CatalogWords.Reading("where things live"));
-            Assert.Equal("Linking entries: 1,200", CatalogWords.Progress("Linking entries", 1200));
+            Assert.Equal("Linking pages: 1,200", CatalogWords.Progress("Linking pages", 1200));
             Assert.Equal("Reading prefabs: 3 of 4,000", CatalogWords.Progress("Reading prefabs", 3, 4000));
             Assert.Equal("Making entries: 16 of about 5,000", CatalogWords.ProgressAbout("Making entries", 16, 5000));
         }

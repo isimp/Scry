@@ -166,7 +166,7 @@ namespace Scry
         /// <summary>An item's type as its facts tell it, in the words of the group it is listed under; an odd one by the game's name.</summary>
         public static string ItemTypeName(string itemType)
         {
-            return itemType != null && ItemTypeNames.TryGetValue(itemType, out var name) ? name : itemType ?? "";
+            return itemType != null && ItemTypeNames.TryGetValue(itemType, out var name) ? name : Naming.FieldLabel(itemType ?? "");
         }
 
         /// <summary>A faction as a creature's facts tell it: the name of its group, whatever the creature is.</summary>

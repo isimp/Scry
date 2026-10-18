@@ -155,10 +155,10 @@ namespace Scry.Tests
             var rules = Crypt();
             rules.MinSimilar = 3000f;
             rules.Group = "Bossstones";
-            Assert.Equal("at least 3,000 m from another of the group \"Bossstones\"", Row(rules, "Apart"));
+            Assert.Equal("at least 3,000 m from another of the group Bossstones", Row(rules, "Apart"));
             rules.MaxSimilar = 200f;
             rules.GroupMax = "Village";
-            Assert.Equal("within 200 m of one of the group \"Village\"", Row(rules, "Near"));
+            Assert.Equal("within 200 m of one of the group Village", Row(rules, "Near"));
         }
 
         [Fact]
@@ -185,12 +185,12 @@ namespace Scry.Tests
             rules.InForest = true;
             rules.ForestMin = 0.5f;
             rules.ForestMax = 1f;
-            Assert.Equal("forest factor 0.5–1" + ForestScale, Row(rules, "Woods"));
+            Assert.Equal("woods' openness 0.5–1" + ForestScale, Row(rules, "Woods"));
             rules.ForestMin = 0f;
-            Assert.Equal("forest factor at most 1" + ForestScale, Row(rules, "Woods"));
+            Assert.Equal("woods' openness at most 1" + ForestScale, Row(rules, "Woods"));
             rules.ForestMin = 1f;
             rules.ForestMax = 5f;
-            Assert.Equal("forest factor at least 1" + ForestScale, Row(rules, "Woods"));
+            Assert.Equal("woods' openness at least 1" + ForestScale, Row(rules, "Woods"));
             rules.ForestMin = 0f;
             Assert.Null(Row(rules, "Woods"));
         }
@@ -239,9 +239,9 @@ namespace Scry.Tests
         {
             var rules = In("Meadows");
             rules.MaxVegetation = 0.5f;
-            Assert.DoesNotContain(LocationWords.Rows(rules), r => r.Key == "Ground value");
+            Assert.DoesNotContain(LocationWords.Rows(rules), r => r.Key == "Lava or growth");
             rules.MinVegetation = 0.2f;
-            Assert.Equal("never met: it asks for lava or Mistlands growth, which its biome does not have", Row(rules, "Ground value"));
+            Assert.Equal("never met: it asks for lava or Mistlands growth, which its biome does not have", Row(rules, "Lava or growth"));
         }
 
         [Fact]
@@ -249,7 +249,7 @@ namespace Scry.Tests
         {
             var rules = In("AshLands", "Mistlands");
             rules.MaxVegetation = 0.1f;
-            Assert.Equal("under 0.1 (lava in the Ashlands, growth in the Mistlands, none elsewhere)", Row(rules, "Ground value"));
+            Assert.Equal("under 0.1 (lava in the Ashlands, growth in the Mistlands, none elsewhere)", Row(rules, "Lava or growth"));
         }
 
         // ZoneSystem.GenerateLocationsTimeSliced sums the ground value round a spot and keeps only
@@ -285,7 +285,7 @@ namespace Scry.Tests
             rules.SurroundCheck = true;
             var line = LocationWords.Line(rules);
             Assert.Contains("more lava within 20 m than the average spot", line);
-            Assert.Contains("forest factor at most 1", line);
+            Assert.Contains("woods' openness at most 1", line);
             Assert.Contains("on ground less than 10% lava", line);
             Assert.DoesNotContain("thickest", line);
         }

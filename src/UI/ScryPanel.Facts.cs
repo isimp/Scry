@@ -952,7 +952,7 @@ namespace Scry
                     var readChip = new Rect(0f, y, Mathf.Min(width, w), U(26f));
                     if (GUI.Button(readChip, LocationsButtonText, Skin.Fitted(Skin.Chip, readChip))) StartReadingLocations();
                     y += U(30f);
-                    const string note = "Reads each of this world's locations and dungeon rooms once, in the background, over a few minutes, and keeps what they hold for the next time.";
+                    const string note = "Read each of this world's locations and dungeon rooms once, in the background, over a few minutes, keeping what they hold for the next time.";
                     var height = Skin.Height(Skin.DimWrap, note, width);
                     GUI.Label(new Rect(0f, y, width, height), note, Skin.DimWrap);
                     return y + height + U(6f);
@@ -1010,10 +1010,10 @@ namespace Scry
         private static Explorer _foundInIn;
 
         private const string LocationsButtonText = "Find where things are";
-        private const string LocationsButtonTip = "Reads every location and dungeon room over a few minutes, so things tell where they are found";
+        private const string LocationsButtonTip = "Read every location and dungeon room over a few minutes, so things tell where they are found";
 
         private const string ReadAgainText = "Look again";
-        private const string ReadAgainTip = "Forgets what was read of every location and room and reads them afresh, for when one seems wrong";
+        private const string ReadAgainTip = "Forget what was read of every location and room and read them afresh, for when one seems wrong";
 
         /// <summary>Above the Locations tab's list once the places are known: that they are kept, or how far reading them again has got, and Read again.</summary>
         private static Rect PlacesBar(Rect inner)

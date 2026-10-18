@@ -177,7 +177,7 @@ namespace Scry
         public static (string[] Columns, List<string[]> Lines) Table(IReadOnlyList<(int Quality, WornChange Change)> seen, int maxQuality)
         {
             var columns = new List<string> { "" };
-            columns.AddRange(maxQuality > 1 ? seen.Select(s => "Level " + Numbers.Count(s.Quality)) : SeenColumn);
+            columns.AddRange(maxQuality > 1 ? seen.Select(s => "Quality " + Numbers.Count(s.Quality)) : SeenColumn);
             var lines = new List<string[]>();
 
             void Line(string label, Func<WornChange, string> cell, string none = null)

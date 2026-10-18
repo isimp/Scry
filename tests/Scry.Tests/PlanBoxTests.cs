@@ -528,22 +528,21 @@ namespace Scry.Tests
         public void TheNamesSwitchSaysWhetherThePlanNamesItsRoomsAndWhatAClickDoes()
         {
             Assert.Equal("Aa", PlanBoxWords.NamesMark);
-            Assert.Contains("names its rooms", PlanBoxWords.NamesTip(true));
-            Assert.Contains("click to leave them off", PlanBoxWords.NamesTip(true));
-            Assert.Contains("names no room", PlanBoxWords.NamesTip(false));
-            Assert.Contains("click to name them", PlanBoxWords.NamesTip(false));
+            // A tip says what a click does, as an order.
+            Assert.Equal("Leave the rooms' names off the grown plan", PlanBoxWords.NamesTip(true));
+            Assert.Equal("Name the rooms on the grown plan", PlanBoxWords.NamesTip(false));
         }
 
         [Fact]
         public void GrowFoldAndTheFoldedTabSayWhatAClickDoesWhicheverDungeonIsShown()
         {
             // Growing names no room by itself: the Aa switch, shown on the grown plan, does.
-            Assert.Equal("Grows the plan", PlanBoxWords.GrowTip(false));
-            Assert.Equal("Shrinks the plan back", PlanBoxWords.GrowTip(true));
-            Assert.Equal("Puts the plan away", PlanBoxWords.FoldTip);
+            Assert.Equal("Grow the plan", PlanBoxWords.GrowTip(false));
+            Assert.Equal("Shrink the plan back", PlanBoxWords.GrowTip(true));
+            Assert.Equal("Put the plan away", PlanBoxWords.FoldTip);
             // Folded to its tab, the plan of an example or of the world's own dungeon alike.
             Assert.Equal("Plan", PlanBoxWords.Tab);
-            Assert.Equal("Brings the plan back", PlanBoxWords.TabTip);
+            Assert.Equal("Bring the plan back", PlanBoxWords.TabTip);
         }
 
         [Fact]

@@ -73,7 +73,7 @@ namespace Scry
                     if (playing) Previews.Stop(pair.Value);
                     else Previews.PlayEffectList(pair.Key, pair.Value);
                 }
-                if (playing && chip.Contains(Event.current.mousePosition)) AskTip("fx-stop:" + pair.Key, "Playing; click to stop it");
+                if (playing && chip.Contains(Event.current.mousePosition)) AskTip("fx-stop:" + pair.Key, "Stop it");
                 if (chip.Contains(Event.current.mousePosition))
                 {
                     AskTip("fx:" + pair.Key, Naming.Lines(EffectSlots.NamesPlayed(pair.Value)));

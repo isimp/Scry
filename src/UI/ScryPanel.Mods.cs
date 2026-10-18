@@ -51,7 +51,7 @@ namespace Scry
                 _modCount = explorer.Catalog.Where(e => e.Origin == Origin.Mod && e.Kind != Kind.Mod).Select(e => e.ModName).Distinct().Count();
             }
             var barH = U(30f);
-            const string open = "Mod report";
+            const string open = "Open the mod report";
             var w = Skin.Width(Skin.Chip, open) + U(12f);
             GUI.Label(new Rect(inner.x + U(10f), inner.y + U(2f), inner.width - w - U(24f), U(24f)),
                 ModReportWords.Bar(_modCount), Skin.DimLabel);

@@ -62,7 +62,7 @@ namespace Scry.Tests
         [Fact]
         public void ARoomPeeksWithWhereItIsWhatItHoldsAndThatAClickPicksIt()
         {
-            Assert.Equal("Burial chamber\n12 m below the entrance  ·  4 rooms in  ·  3 ways\nCreatures 2  ·  Chests and pickups 5\nClick to pick it, double-click to go in",
+            Assert.Equal("Burial chamber\n12 m below the entrance  ·  4 rooms in  ·  3 ways\nCreatures 2  ·  Chests and pickups 5\nPick it, or double-click to go into it",
                 StageWords.RoomPeek("Burial chamber", "12 m below the entrance  ·  4 rooms in  ·  3 ways", creatures: 2, chests: 5, goneInto: false));
         }
 
@@ -70,7 +70,7 @@ namespace Scry.Tests
         public void ARoomOfTheWorldsOwnDungeonPeeksWithoutWhatItHolds()
         {
             // Shown by its layout alone: what lives and lies there is the world's, which Scry does not read.
-            Assert.Equal("Burial chamber\nEntrance\nClick to pick it, double-click to go in",
+            Assert.Equal("Burial chamber\nEntrance\nPick it, or double-click to go into it",
                 StageWords.RoomPeek("Burial chamber", "Entrance", creatures: 0, chests: 0, goneInto: false, layoutOnly: true));
         }
 
@@ -85,24 +85,24 @@ namespace Scry.Tests
         [Fact]
         public void AWayOnOfTheCardSaysAClickGoesIntoItsRoom()
         {
-            Assert.Equal("Shrine hole 01, 2 m up\nClick to go in", StageWords.GoIntoTip("Shrine hole 01, 2 m up"));
+            Assert.Equal("Shrine hole 01, 2 m up\nGo into it", StageWords.GoIntoTip("Shrine hole 01, 2 m up"));
         }
 
         [Fact]
         public void ARoomPickedSaysADoubleClickGoesIn()
         {
             Assert.Equal("Go in", StageWords.GoInLink);
-            Assert.Equal("Goes into the room picked, as a double-click on it does", StageWords.GoInTip);
+            Assert.Equal("Go into the room picked, as a double-click on it does", StageWords.GoInTip);
         }
 
         [Fact]
         public void TheCutControlsIconsAreNamedByTheirTipsWhichSayWhatEachCuts()
         {
             // The control is three icons, roof on, from above and from the side, with no label: each tip names its part.
-            Assert.Equal("Closed", StageWords.CutModeName(CutMode.Closed));
-            Assert.Equal("Top", StageWords.CutModeName(CutMode.Top));
-            Assert.Equal("Side", StageWords.CutModeName(CutMode.Side));
-            Assert.Equal("Closed: the roof on", StageWords.CutModeTip(CutMode.Closed, inRoom: false));
+            Assert.Equal("No cut", StageWords.CutModeName(CutMode.Closed));
+            Assert.Equal("Cut from above", StageWords.CutModeName(CutMode.Top));
+            Assert.Equal("Cut from the side", StageWords.CutModeName(CutMode.Side));
+            Assert.Equal("No cut: the roof on", StageWords.CutModeTip(CutMode.Closed, inRoom: false));
             Assert.Equal("Cut from above: the roof off over a floor or level", StageWords.CutModeTip(CutMode.Top, inRoom: false));
             Assert.Equal("Cut from the side: the half of every room facing you taken away", StageWords.CutModeTip(CutMode.Side, inRoom: false));
         }
@@ -110,7 +110,7 @@ namespace Scry.Tests
         [Fact]
         public void InARoomTheCutControlActsOnTheRoomAndStaysInIt()
         {
-            Assert.Equal("Closed: the room's roof on, the rooms above it back, the room still gone into", StageWords.CutModeTip(CutMode.Closed, inRoom: true));
+            Assert.Equal("No cut: the room's roof on, the rooms above it back, still in the room", StageWords.CutModeTip(CutMode.Closed, inRoom: true));
             Assert.Equal("Cut from above: the room's roof off at head height over its floor", StageWords.CutModeTip(CutMode.Top, inRoom: true));
         }
 
@@ -137,7 +137,7 @@ namespace Scry.Tests
         {
             Assert.Equal("1 room, 8 m up", StageWords.RoomsAboveMark(1, 8.2f));
             Assert.Equal("3 rooms, 20 m up", StageWords.RoomsAboveMark(3, 19.6f));
-            Assert.Equal("3 rooms, 20 m up: click to cut over them, bringing them back", StageWords.RoomsAboveTip("3 rooms, 20 m up"));
+            Assert.Equal("3 rooms, 20 m up: cut over them, bringing them back", StageWords.RoomsAboveTip("3 rooms, 20 m up"));
         }
 
         [Fact]
@@ -146,7 +146,7 @@ namespace Scry.Tests
             Assert.Equal("Roof on", StageWords.RoomRoofOn);
             Assert.Contains("past its ends, the next level", StageWords.RoomRulerTip(aboveTop: false));
             Assert.DoesNotContain("stays in the room", StageWords.RoomRulerTip(aboveTop: false));
-            Assert.Equal("Click to put the room's roof on", StageWords.RoomRulerTip(aboveTop: true));
+            Assert.Equal("Put the room's roof on", StageWords.RoomRulerTip(aboveTop: true));
         }
     }
 }

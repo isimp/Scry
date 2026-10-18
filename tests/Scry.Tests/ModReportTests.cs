@@ -37,7 +37,7 @@ namespace Scry.Tests
             Assert.Equal(new[] { "DropThat" }, ModReport.Narrowed(report, "  DROP that ", onlyAdding: false).Select(m => m.Mod));
             Assert.Empty(ModReport.Narrowed(report, "drop", onlyAdding: true));
             Assert.Contains("only hook", ModReportWords.AddingTip(on: false));
-            Assert.StartsWith("Showing only", ModReportWords.AddingTip(on: true));
+            Assert.Equal("Show the mods that only hook in too", ModReportWords.AddingTip(on: true));
         }
 
         [Fact]

@@ -14,8 +14,8 @@ namespace Scry.Tests
         {
             Assert.Equal("Creatures in this roll 3  ▸", RoomCardWords.ListHeading(RoomCardWords.Creatures, 3, open: false));
             Assert.Equal("Chests and pickups 12  ▾", RoomCardWords.ListHeading(RoomCardWords.Loot, 12, open: true));
-            Assert.Equal(RoomCardWords.CreaturesTip + "\nOpens the list", RoomCardWords.ListTip(RoomCardWords.CreaturesTip, open: false));
-            Assert.Equal(RoomCardWords.LootTip + "\nFolds the list away to its count", RoomCardWords.ListTip(RoomCardWords.LootTip, open: true));
+            Assert.Equal(RoomCardWords.CreaturesTip + "\nOpen the list", RoomCardWords.ListTip(RoomCardWords.CreaturesTip, open: false));
+            Assert.Equal(RoomCardWords.LootTip + "\nFold the list away to its count", RoomCardWords.ListTip(RoomCardWords.LootTip, open: true));
         }
 
         [Fact]
@@ -181,7 +181,7 @@ namespace Scry.Tests
         {
             // "Level" names the dungeon's levels (the plan, the breadcrumb, the ruler); a room's own storeys are floors.
             Assert.Equal("Floors in this room", RoomCardWords.Floors);
-            Assert.Equal("Click to cut at head height over this floor", RoomCardWords.FloorTip);
+            Assert.Equal("Cut at head height over this floor", RoomCardWords.FloorTip);
         }
 
         [Fact]

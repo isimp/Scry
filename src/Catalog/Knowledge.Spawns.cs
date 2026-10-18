@@ -311,7 +311,7 @@ namespace Scry
                     Keys = perPlayer || raid.m_requiredGlobalKeys == null ? Array.Empty<string>() : raid.m_requiredGlobalKeys.ToArray(),
                     NotKeys = perPlayer || raid.m_notRequiredGlobalKeys == null ? Array.Empty<string>() : raid.m_notRequiredGlobalKeys.ToArray(),
                 };
-                var line = SpawnWords.Raid(shown.Length > 0 ? shown : raid.m_name, facts, perPlayer, BossOf);
+                var line = SpawnWords.Raid(shown.Length > 0 ? shown : Naming.Readable(raid.m_name), facts, perPlayer, BossOf);
                 foreach (var key in facts.Keys) Unlocks.Add(key, Unlock.RaidStarts, EntryKeys.For(Kind.Raid, raid.m_name));
                 foreach (var key in facts.NotKeys) Unlocks.Add(key, Unlock.RaidEnds, EntryKeys.For(Kind.Raid, raid.m_name));
                 foreach (var data in raid.m_spawn)

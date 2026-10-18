@@ -210,6 +210,7 @@ namespace Scry
             ("SE_Stats", "ModifyRaiseSkill", 2, 0x7B679054, Feature.SkillPages),
             // What raises a skill as the pages tell it: a projectile's hit, an archery target, a shield breaking, building after taking down.
             ("Projectile", "OnHit", 4, 0x811C2E5C, Feature.SkillPages),
+            ("Player", "UpdateFood", 2, 0xA197D757, Feature.SkillPages),
             ("ArcheryTarget", "OnProjectileHit", 7, 0xB833FCA9, Feature.SkillPages),
             ("SE_Shield", "IsDone", 0, 0x7ED4CFE2, Feature.SkillPages),
             ("Player", "UpdatePlacement", 2, 0xA217A3E3, Feature.SkillPages),

@@ -150,7 +150,7 @@ namespace Scry
             GUI.enabled = was && (explorer.CanGoForward || Stage.CanStepForward);
             if (GUI.Button(forward, "\u203A", Skin.IconButton)) Step(explorer, false);
             GUI.enabled = was;
-            if (back.Contains(Event.current.mousePosition)) AskTip("back", "Back out of a room gone into, or to the entry shown before (Alt+← or the mouse's back button)");
+            if (back.Contains(Event.current.mousePosition)) AskTip("back", "Back out of the room you went into, or to the page shown before (Alt+← or the mouse's back button)");
             if (forward.Contains(Event.current.mousePosition)) AskTip("forward", "Forward again, into a room come out of or to an entry (Alt+→ or the mouse's forward button)");
         }
 
@@ -515,7 +515,7 @@ namespace Scry
             if (floor > 0 && _bookLower.Contains(mouse)) AskTip("floor-down", CompendiumWords.LowerFloor(floor - 1));
             if (floor < Tiers.Last && (_bookRaise.Contains(mouse) || _bookValue.Contains(mouse)))
             {
-                var boss = explorer.Find(Tiers.BossOf(floor + 1))?.ShownName ?? Tiers.BossOf(floor + 1);
+                var boss = explorer.Find(Tiers.BossOf(floor + 1))?.ShownName ?? Naming.Readable(Tiers.BossOf(floor + 1));
                 AskTip("floor-up", canRaise ? CompendiumWords.RaiseFloor(floor + 1, boss) : CompendiumWords.FloorWaits(boss));
             }
         }

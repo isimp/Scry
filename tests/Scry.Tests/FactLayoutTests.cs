@@ -360,7 +360,7 @@ namespace Scry.Tests
             var pairs = new[]
             {
                 ("Per world", "placement"), ("Biome", "placement"), ("Above the sea", "placement"), ("Placed", "placement"),
-                ("Levels at its spawn points", "location"), ("Building", "location"), ("Music", "location"),
+                ("Stars at its spawn points", "location"), ("Building", "location"), ("Music", "location"),
                 ("Laid out", "dungeon"), ("Picks rooms", "dungeon"), ("What its rooms hold", "dungeon"),
             };
             var rows = new[]
@@ -373,7 +373,7 @@ namespace Scry.Tests
             // What it holds first, the reason to go; where it may be placed last, for the curious.
             Assert.Equal(new[] { null, "Contents", "Layout", "Music", "Placement", null }, plan.Select(t => t.Heading));
             Assert.Equal(new[] { "Biome", "Per world" }, plan[0].Tiles.Select(i => pairs[i].Item1));
-            Assert.Equal(new[] { "Levels at its spawn points", "What its rooms hold", "row Its spawn points place", "row Chests and pickups", "row Built of",
+            Assert.Equal(new[] { "Stars at its spawn points", "What its rooms hold", "row Its spawn points place", "row Chests and pickups", "row Built of",
                 "row Its rooms hold, 3 of 12 kinds of room read", "row Loot in its rooms", "row Chests and pickups in its rooms" }, plan[1].Bits.Select(Name));
             Assert.Equal(new[] { "Building", "Laid out", "Picks rooms", "row Doors in half of doorways", "row Built of 12 kinds of room" }, plan[2].Bits.Select(Name));
             Assert.Equal(new[] { "Music" }, plan[3].Bits.Select(Name));

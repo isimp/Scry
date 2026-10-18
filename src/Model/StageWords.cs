@@ -14,7 +14,7 @@ namespace Scry
         public static string RoomTip(string name, bool canGo) => canGo ? name + "\nClick to go to it" : name;
 
         /// <summary>A part of the stage's cut control.</summary>
-        public static string CutModeName(CutMode mode) => mode == CutMode.Closed ? "Closed" : mode == CutMode.Top ? "Top" : "Side";
+        public static string CutModeName(CutMode mode) => mode == CutMode.Closed ? "No cut" : mode == CutMode.Top ? "Cut from above" : "Cut from the side";
 
         /// <summary>What a part of the cut control does, in a room gone into to the room alone.</summary>
         public static string CutModeTip(CutMode mode, bool inRoom)
@@ -22,7 +22,7 @@ namespace Scry
             switch (mode)
             {
                 case CutMode.Closed:
-                    return inRoom ? "Closed: the room's roof on, the rooms above it back, the room still gone into" : "Closed: the roof on";
+                    return inRoom ? "No cut: the room's roof on, the rooms above it back, still in the room" : "No cut: the roof on";
                 case CutMode.Top:
                     return inRoom ? "Cut from above: the room's roof off at head height over its floor" : "Cut from above: the roof off over a floor or level";
                 default:
@@ -31,7 +31,7 @@ namespace Scry
         }
 
         /// <summary>A way on's tip on the room card: its words, and that a click goes into its room.</summary>
-        public static string GoIntoTip(string name) => name + "\nClick to go in";
+        public static string GoIntoTip(string name) => name + "\nGo into it";
 
         /// <summary>
         /// The peek on a room of a dungeon's example under the mouse, on the stage or in the plan
@@ -41,24 +41,24 @@ namespace Scry
         /// </summary>
         public static string RoomPeek(string name, string where, int creatures, int chests, bool goneInto, bool layoutOnly = false) =>
             name + "\n" + where + (layoutOnly ? "" : "\nCreatures " + Numbers.Count(creatures) + "  ·  Chests and pickups " + Numbers.Count(chests))
-            + (goneInto ? "\nEsc, the breadcrumb's level or the mouse's back button comes back out" : "\nClick to pick it, double-click to go in");
+            + (goneInto ? "\nEsc, the breadcrumb's level or the mouse's back button comes back out" : "\nPick it, or double-click to go into it");
 
         /// <summary>The link on the card of a room picked, not gone into, and its tip.</summary>
         public const string GoInLink = "Go in";
-        public const string GoInTip = "Goes into the room picked, as a double-click on it does";
+        public const string GoInTip = "Go into the room picked, as a double-click on it does";
 
         /// <summary>The chip of a place with an inside, by which side is shown.</summary>
         public static string Inside(bool inside) => inside ? "Inside" : "Outside";
 
         /// <summary>The inside chip's tip.</summary>
         public static string InsideTip(bool inside) => inside
-            ? "The example dungeon, laid out as the game lays out a new one; click for its entrance outside"
-            : "Its entrance; click for the example dungeon inside";
+            ? "Show its entrance outside"
+            : "Show the example dungeon inside, laid out as the game lays out a new one";
 
         /// <summary>The creatures chip's tip.</summary>
         public static string CreaturesTip(bool shown) => shown
-            ? "Puts away the creatures its spawn points put here"
-            : "Shows the creatures its spawn points put here, rolled anew with every preview";
+            ? "Put away the creatures its spawn points put here"
+            : "Show the creatures its spawn points put here, rolled anew with every preview";
 
         /// <summary>The mark of the stage's key sheet, in its corner.</summary>
         public const string KeysMark = "?";
@@ -78,12 +78,12 @@ namespace Scry
         }
 
         /// <summary>The floor ruler's tip over a floor's mark.</summary>
-        public static string FloorTip(string floor) => floor + ": click to open it";
+        public static string FloorTip(string floor) => floor + ": open it";
 
         /// <summary>The floor ruler's tip elsewhere: above the roof's mark, or between its marks, a dungeon's named levels, a place's floors.</summary>
         public static string RulerTip(bool aboveRoof, bool levels) => aboveRoof
-            ? "Click to put the roof on"
-            : "Click or drag to cut here; the wheel or Page Up and Down step a " + (levels ? "level" : "floor");
+            ? "Put the roof on"
+            : "Cut here, or drag; the wheel or Page Up and Down step a " + (levels ? "level" : "floor");
 
         /// <summary>A mark of the ruler opening the whole dungeon by the plan's levels: the level by its depth, however many cuts it is filmed in.</summary>
         public static string LevelMark(string depth) => $"Level {depth}";
@@ -93,18 +93,18 @@ namespace Scry
             $"{Numbers.Count(rooms)} {(rooms == 1 ? "room" : "rooms")}, {Numbers.Count((int)System.Math.Round(rise))} m up";
 
         /// <summary>The tip of a mark of the rooms above on the room's ruler.</summary>
-        public static string RoomsAboveTip(string mark) => mark + ": click to cut over them, bringing them back";
+        public static string RoomsAboveTip(string mark) => mark + ": cut over them, bringing them back";
 
         /// <summary>What the room's ruler says beside its bar with the room's roof on.</summary>
         public const string RoomRoofOn = "Roof on";
 
         /// <summary>The ruler's tip in a room gone into: above its top, or along it.</summary>
         public static string RoomRulerTip(bool aboveTop) => aboveTop
-            ? "Click to put the room's roof on"
-            : "Click or drag to cut the room here; the wheel or Page Up and Down step a mark, past its ends, the next level";
+            ? "Put the room's roof on"
+            : "Cut the room here, or drag; the wheel or Page Up and Down step a mark, past its ends, the next level";
 
         /// <summary>The spin's tip.</summary>
-        public static string SpinTip(bool spinning) => spinning ? "Turning; click to hold it still" : "Held still; click to turn it";
+        public static string SpinTip(bool spinning) => spinning ? "Hold it still" : "Turn it";
 
         /// <summary>What an effect's stage says once it has played out, its stage left standing.</summary>
         public const string PlayedOut = "It has played out: click the stage to play it again";

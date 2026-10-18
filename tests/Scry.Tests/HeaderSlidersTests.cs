@@ -22,7 +22,7 @@ namespace Scry.Tests
             Assert.Equal(0f, HeaderSliders.SpeedAt(-0.1f), 3);
             Assert.Equal(0.5f, HeaderSliders.SpeedShare(1.5f), 3);
             Assert.Equal("×1.5", HeaderSliders.SpeedLabel(1.5f));
-            Assert.Equal("Animation speed ×1.0: click to change it", HeaderSliders.SpeedTip(1f));
+            Assert.Equal("Animation speed ×1.0: change it", HeaderSliders.SpeedTip(1f));
         }
 
         [Fact]

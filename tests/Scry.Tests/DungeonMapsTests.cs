@@ -195,12 +195,12 @@ namespace Scry.Tests
         [Fact]
         public void ThePageSaysHowFarEachMapWasWalked()
         {
-            Assert.Equal("Your map: 6 of 18 rooms walked", DungeonMapWords.Yours(0, 1, 6, 18));
-            Assert.Equal("Your map 2: 1 of 1 room walked", DungeonMapWords.Yours(1, 3, 1, 1));
-            Assert.Equal("Open map", DungeonMapWords.Open);
-            Assert.Equal("Shows this dungeon on the stage as far as you walked it, wherever you are", DungeonMapWords.OpenTip);
+            Assert.Equal("Your walk: 6 of 18 rooms walked", DungeonMapWords.Yours(0, 1, 6, 18));
+            Assert.Equal("Your walk 2: 1 of 1 room walked", DungeonMapWords.Yours(1, 3, 1, 1));
+            Assert.Equal("Show it", DungeonMapWords.Open);
+            Assert.Equal("Show this dungeon on the stage as far as you walked it, wherever you are", DungeonMapWords.OpenTip);
             Assert.Equal("Forget", DungeonMapWords.Forget);
-            Assert.Equal("Forgets this map: its rooms show again only as you walk them", DungeonMapWords.ForgetTip);
+            Assert.Equal("Forget this walk: its rooms show again only as you walk them", DungeonMapWords.ForgetTip);
             Assert.Equal("the maps of 3 dungeons of this world are forgotten.", DungeonMapWords.WorldForgotten(3));
             Assert.Equal("the map of 1 dungeon of this world is forgotten.", DungeonMapWords.WorldForgotten(1));
             Assert.Equal("there is no map of a dungeon of this world to forget.", DungeonMapWords.WorldForgotten(0));

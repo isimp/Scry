@@ -129,14 +129,14 @@ namespace Scry
         private static string Apart(LocationRules rules)
         {
             if (rules.MinSimilar <= 0f) return null;
-            var other = string.IsNullOrEmpty(rules.Group) ? "another of its kind" : $"another of the group \"{rules.Group}\"";
+            var other = string.IsNullOrEmpty(rules.Group) ? "another of its kind" : $"another of the group {Naming.Readable(rules.Group)}";
             return $"at least {Numbers.Metres(rules.MinSimilar)} from {other}";
         }
 
         private static string Near(LocationRules rules)
         {
             if (rules.MaxSimilar <= 0f) return null;
-            var other = string.IsNullOrEmpty(rules.GroupMax) ? "another of its kind" : $"one of the group \"{rules.GroupMax}\"";
+            var other = string.IsNullOrEmpty(rules.GroupMax) ? "another of its kind" : $"one of the group {Naming.Readable(rules.GroupMax)}";
             return $"within {Numbers.Metres(rules.MaxSimilar)} of {other}";
         }
 
@@ -152,20 +152,20 @@ namespace Scry
             return null;
         }
 
-        /// <summary>How high the forest factor goes: three layers of noise, halved in weight each time and a bit (<c>WorldGenerator.GetForestFactor</c>).</summary>
+        /// <summary>How high the woods' openness goes, the game's forest factor: three layers of noise, halved in weight each time and a bit (<c>WorldGenerator.GetForestFactor</c>).</summary>
         private const float ForestTop = 2.19f;
 
         private const string ForestScale = " (0 is the thickest woods, about 2.2 the most open; the Meadows are wooded below 1.15)";
 
-        /// <summary>The range of the forest factor it keeps to, or null when it keeps to none or to all of it.</summary>
+        /// <summary>The range of the woods' openness (the game's forest factor) it keeps to, or null when it keeps to none or to all of it.</summary>
         private static string Woods(LocationRules rules)
         {
             if (!rules.InForest) return null;
             var low = rules.ForestMin > 0f;
             var high = rules.ForestMax < ForestTop;
-            if (low && high) return $"forest factor {Numbers.Amount(rules.ForestMin)}–{Numbers.Amount(rules.ForestMax)}";
-            if (high) return "forest factor at most " + Numbers.Amount(rules.ForestMax);
-            if (low) return "forest factor at least " + Numbers.Amount(rules.ForestMin);
+            if (low && high) return $"woods' openness {Numbers.Amount(rules.ForestMin)}–{Numbers.Amount(rules.ForestMax)}";
+            if (high) return "woods' openness at most " + Numbers.Amount(rules.ForestMax);
+            if (low) return "woods' openness at least " + Numbers.Amount(rules.ForestMin);
             return null;
         }
 
@@ -184,7 +184,7 @@ namespace Scry
             if (!low && !high) return (null, null, null);
             if (!HasValue(rules))
             {
-                return low ? ("Ground value", "never met: it asks for lava or Mistlands growth, which its biome does not have", "") : (null, null, null);
+                return low ? ("Lava or growth", "never met: it asks for lava or Mistlands growth, which its biome does not have", "") : (null, null, null);
             }
             if (Only(rules, "AshLands"))
             {
@@ -195,7 +195,7 @@ namespace Scry
             var range = low && high ? $"{Numbers.Amount(rules.MinVegetation)}–{Numbers.Amount(rules.MaxVegetation)}"
                 : low ? "over " + Numbers.Amount(rules.MinVegetation) : "under " + Numbers.Amount(rules.MaxVegetation);
             if (Only(rules, "Mistlands")) return ("Growth", "only where the Mistlands' growth value, which their plants grow by, is " + range, "");
-            return ("Ground value", range, " (lava in the Ashlands, growth in the Mistlands, none elsewhere)");
+            return ("Lava or growth", range, " (lava in the Ashlands, growth in the Mistlands, none elsewhere)");
         }
 
         /// <summary>

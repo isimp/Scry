@@ -93,7 +93,11 @@ namespace Scry
             return food.Count > 0 ? string.Join(", ", food) : null;
         }
 
-        public static string Heals(float perTick) => $"{Numbers.Amount(perTick)} a tick";
+        /// <summary>How often eaten food heals, its healing added up over every food eaten (<c>Player.UpdateFood</c>): every ten seconds.</summary>
+        public const float FoodHealsEvery = 10f;
+
+        /// <summary>What a food heals each time food heals: "2.5 every 10 s".</summary>
+        public static string Heals(float perTick) => $"{Numbers.Amount(perTick)} every {Numbers.Duration(FoodHealsEvery)}";
 
         /// <summary>A set's bonus by its effect's name, with how many pieces it takes where the game says.</summary>
         public static string SetBonus(string effect, int pieces) => pieces > 0 ? $"{effect} ({Numbers.Count(pieces)} pieces)" : effect;

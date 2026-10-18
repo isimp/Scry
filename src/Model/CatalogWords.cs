@@ -5,7 +5,7 @@ namespace Scry
     {
         public static string Reading(string what) => "Reading " + what;
 
-        /// <summary>A step and how many it has done: "Linking entries: 1,200".</summary>
+        /// <summary>A step and how many it has done: "Linking pages: 1,200".</summary>
         public static string Progress(string step, int done) => $"{step}: {Numbers.Count(done)}";
 
         /// <summary>A step, how many it has done and of how many: "Reading prefabs: 3 of 4,000".</summary>

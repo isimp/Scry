@@ -23,7 +23,7 @@ namespace Scry.Tests
         public void SomethingNotMetIsNamedOnlyByItsKindEachKindInItsOwnWords()
         {
             Assert.Equal("Unknown creature", CompendiumWords.Unknown(Kind.Creature));
-            Assert.Equal("Unknown place", CompendiumWords.Unknown(Kind.Location));
+            Assert.Equal("Unknown location", CompendiumWords.Unknown(Kind.Location));
             Assert.Equal(Counted.Length, Counted.Select(CompendiumWords.Unknown).Distinct().Count());
         }
 
@@ -37,7 +37,7 @@ namespace Scry.Tests
         public void AListOfWhatThereIsSaysHowManyOfItWereFound()
         {
             // A mod's page lists what it adds; only what the character has seen is shown.
-            Assert.Equal("Adds items (1,200), 3 found", CompendiumWords.Found("Adds items (1,200)", 3));
+            Assert.Equal("Adds items (1,200), 3 seen", CompendiumWords.Found("Adds items (1,200)", 3));
         }
 
         [Fact]
@@ -49,7 +49,7 @@ namespace Scry.Tests
             Assert.Equal("Compendium · Off  ▾", CompendiumWords.Button(CompendiumRule.Off));
             Assert.Equal("Compendium · Loose  ▾", CompendiumWords.Button(CompendiumRule.Loose));
             Assert.Equal("Compendium · Strict  ▾", CompendiumWords.Button(CompendiumRule.Strict));
-            Assert.Equal("What your character knows, shown in the catalog", CompendiumWords.BoxCaption);
+            Assert.Equal("What this character knows, shown in the catalog", CompendiumWords.BoxCaption);
             Assert.Equal("Rules", CompendiumWords.RulesCaption);
             Assert.Equal("Loose: only what this character has met shows; a page opens whole once it has fought, held, built, used or entered it", CompendiumWords.StepTip(CompendiumRule.Loose));
             Assert.Equal("Show only what this character has come to know, by the rules chosen for it here; each character keeps its own", CompendiumWords.ModeTip);
@@ -67,7 +67,7 @@ namespace Scry.Tests
             // The strip says it short; the rest in the tip of its line.
             Assert.Equal("Peeking: pages show whole until the panel closes", CompendiumWords.Peeking);
             Assert.Equal("Each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it", CompendiumWords.PeekingTip);
-            Assert.Equal("Stop", CompendiumWords.StopPeeking);
+            Assert.Equal("Stop peeking", CompendiumWords.StopPeeking);
         }
 
         [Fact]
@@ -76,7 +76,7 @@ namespace Scry.Tests
             Assert.Equal("Newly learned: Troll", CompendiumWords.NewlyLearned(new[] { "Troll" }));
             Assert.Equal("Newly learned: Troll, Neck and Boar", CompendiumWords.NewlyLearned(new[] { "Troll", "Neck", "Boar" }));
             Assert.Equal("Newly learned: Troll, Neck, Boar and 1,200 more", CompendiumWords.NewlyLearned(new[] { "Troll", "Neck", "Boar" }.Concat(Enumerable.Repeat("x", 1200)).ToArray()));
-            Assert.Equal("Show", CompendiumWords.ShowLearned);
+            Assert.Equal("Show what was learned", CompendiumWords.ShowLearned);
             Assert.Equal("Put this away until more is learned", CompendiumWords.PutNewsAway);
         }
 
@@ -91,7 +91,7 @@ namespace Scry.Tests
             Assert.Equal("the server did not answer on the explored map (it has no Scry, or one too old): places count as the character meets them", CompendiumWords.MapNoServerScry);
             Assert.Equal("Look at the map again", CompendiumWords.ReadMap);
             Assert.Equal("Places in the ground this character explored count as seen, read again each session", CompendiumWords.MapBar);
-            Assert.Equal("Counts the kinds of place in the ground this character explored in this world as seen, as on its first visit with Scry", CompendiumWords.ReadMapTip);
+            Assert.Equal("Count the kinds of place in the ground this character explored in this world as seen, as on its first visit with Scry", CompendiumWords.ReadMapTip);
             Assert.Equal("on a dedicated server Scry only answers players' explored maps, for their compendium, and keeps the group's records of the dungeons they walk", CompendiumWords.ServerPart);
         }
 
@@ -101,9 +101,9 @@ namespace Scry.Tests
             // In the title row, a caption and the biome stepped between arrows.
             Assert.Equal(("Known up to", "none", "Black Forest"), (CompendiumWords.FloorCaption, CompendiumWords.FloorName(0), CompendiumWords.FloorName(2)));
             // What it shows that the character never came to know is marked, on its row and page, named as the control is.
-            Assert.Equal("Shown as known up to Black Forest, not yet come to know by this character", CompendiumWords.ByFloor(2));
+            Assert.Equal("Shown as known up to the Black Forest tier, not yet come to know by this character", CompendiumWords.ByFloor(2));
             // A link to such a thing says so above where it goes.
-            Assert.Equal("Shown as known up to Black Forest, not yet come to know by this character\nGo to Troll", CompendiumWords.FloorTip(2, "Go to Troll"));
+            Assert.Equal("Shown as known up to the Black Forest tier, not yet come to know by this character\nGo to Troll", CompendiumWords.FloorTip(2, "Go to Troll"));
             Assert.Equal("Show everything of the Swamp as known: Bonemass fell for this character", CompendiumWords.RaiseFloor(3, "Bonemass"));
             Assert.Equal("Show everything of the Swamp as known", CompendiumWords.RaiseFloor(3, null));
             Assert.Equal("Show the Meadows and what came before as known, not the Black Forest", CompendiumWords.LowerFloor(1));

@@ -70,14 +70,14 @@ namespace Scry
             yield return "Pairing leftovers";
 
             Timed("leftovers", () => Guard.Run(Feature.WhatThingsLeaveWhenBroken, "pairing what things leave behind", () => Leftovers.Pair(read.Entries, read.Leftovers)));
-            yield return "Linking entries";
+            yield return "Linking pages";
 
             LinkBook book = null;
             Timed("links finished", () => Guard.Run(Feature.Links, "linking entries", () => book = Relations.Finish(read.Prefabs)));
-            yield return "Linking entries";
+            yield return "Linking pages";
 
             var linking = book == null ? null : Stepped(() => book.ApplyInSteps(read.Entries, 400), Feature.Links, "links applied", "linking entries");
-            if (linking != null) foreach (var done in linking) yield return CatalogWords.Progress("Linking entries", done);
+            if (linking != null) foreach (var done in linking) yield return CatalogWords.Progress("Linking pages", done);
 
             yield return "Grouping entries";
             foreach (var done in Stepped(() => Grouping.Apply(read.Entries, 400), Feature.Groups, "grouping", "grouping entries"))

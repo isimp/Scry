@@ -38,7 +38,7 @@ namespace Scry
             var tone = running ? Skin.Accent : SelfTest.LastFailed ? Skin.Warn : Skin.KindColor(Kind.StatusEffect);
             if (running)
             {
-                if (NoticeStrip(rect, tone, SelfTest.Progress, Skin.Label, false, "Stop", false, false, chipTip: "Stops the self-test and puts back what it changed") == StripClick.Chip)
+                if (NoticeStrip(rect, tone, SelfTest.Progress, Skin.Label, false, "Stop", false, false, chipTip: "Stop the self-test and put back what it changed") == StripClick.Chip)
                 {
                     Say("Scry: " + SelfTest.Stop());
                 }

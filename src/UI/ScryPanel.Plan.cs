@@ -74,11 +74,11 @@ namespace Scry
             // Folded, a small tab where it stands, which brings it back.
             if (PlanFolded)
             {
-                var tabW = Skin.Width(Skin.Chip, "Plan") + U(4f);
+                var tabW = Skin.Width(Skin.Chip, PlanBoxWords.Tab) + U(4f);
                 var tab = new Rect(inner.x + U(8f), inner.yMax - U(34f) - U(22f), tabW, U(22f));
-                if (tab.Contains(e.mousePosition)) AskTip("plan:tab", "Shows the example's plan");
+                if (tab.Contains(e.mousePosition)) AskTip("plan:tab", PlanBoxWords.TabTip);
                 CountDrawn(PanelPart.PlanTab);
-                if (GUI.Button(tab, "Plan", Skin.Fitted(Skin.Chip, tab))) PlanFolded = false;
+                if (GUI.Button(tab, PlanBoxWords.Tab, Skin.Fitted(Skin.Chip, tab))) PlanFolded = false;
                 return tab;
             }
 
@@ -120,7 +120,7 @@ namespace Scry
             var fold = new Rect(area.xMax - U(18f), area.y + U(2f), U(16f), U(16f));
             if (fold.Contains(e.mousePosition))
             {
-                AskTip("plan:fold", "Puts the plan away");
+                AskTip("plan:fold", PlanBoxWords.FoldTip);
                 if (e.type == EventType.MouseDown && e.button == 0)
                 {
                     PlanFolded = true;

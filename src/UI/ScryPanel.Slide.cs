@@ -241,7 +241,7 @@ namespace Scry
             GUI.Label(value, _slide == Slide.Volume ? HeaderSliders.VolumeLabel(modifiers.Volume)
                 : _slide == Slide.Speed ? HeaderSliders.SpeedLabel(modifiers.AnimationSpeed)
                 : HeaderSliders.SizeLabel(modifiers.Scale), Skin.DimLabel);
-            if (value.Contains(Event.current.mousePosition)) AskTip("slidevalue", "Back to its own");
+            if (value.Contains(Event.current.mousePosition)) AskTip("slidevalue", "Reset");
             CountDrawn(PanelPart.Slider);
         }
 

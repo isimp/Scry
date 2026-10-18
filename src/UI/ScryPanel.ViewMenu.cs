@@ -36,13 +36,13 @@ namespace Scry
             var rows = new List<(string, string, bool, string, System.Action)>
             {
                 ("Spin", PanelWords.OnOff(Stage.Spin), Stage.Spin, StageWords.SpinTip(Stage.Spin), () => Stage.Spin = !Stage.Spin),
-                ("Backdrop", Stage.BackdropNames[Stage.BackdropIndex], false, "Click for the next backdrop", () => Stage.BackdropIndex = (Stage.BackdropIndex + 1) % Stage.BackdropNames.Length),
-                ("Light", Stage.LightingNames[Stage.LightingIndex], false, "Click for the next lighting", () => Stage.LightingIndex = (Stage.LightingIndex + 1) % Stage.LightingNames.Length),
+                ("Backdrop", Stage.BackdropNames[Stage.BackdropIndex], false, "Next backdrop", () => Stage.BackdropIndex = (Stage.BackdropIndex + 1) % Stage.BackdropNames.Length),
+                ("Light", Stage.LightingNames[Stage.LightingIndex], false, "Next lighting", () => Stage.LightingIndex = (Stage.LightingIndex + 1) % Stage.LightingNames.Length),
             };
             // With a biome's ground, which biome's: its own, or any to see it on.
             if (StageGround.Ground(Stage.BackdropIndex, underground: false))
             {
-                rows.Add(("Ground", GroundLabel(Stage.GroundChoice), false, "The ground's biome: Auto for its own; click for the next",
+                rows.Add(("Ground", GroundLabel(Stage.GroundChoice), false, "Next ground biome; Auto keeps the place's own",
                     () => Stage.GroundChoice = StageGround.Next(Stage.GroundChoice)));
             }
             if (!Looks.IsWorn(entry)) rows.Add(("Person", PanelWords.OnOff(Stage.ShowPerson), Stage.ShowPerson, "A person beside it, to judge its size", () => Stage.ShowPerson = !Stage.ShowPerson));

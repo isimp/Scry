@@ -272,18 +272,18 @@ namespace Scry
     {
         /// <summary>A map's line: numbered where the location has more than one.</summary>
         public static string Yours(int index, int count, int walked, int rooms) =>
-            (count > 1 ? "Your map " + Numbers.Count(index + 1) : "Your map") + ": " + PlanBoxWords.Walked(walked, rooms);
+            (count > 1 ? "Your walk " + Numbers.Count(index + 1) : "Your walk") + ": " + PlanBoxWords.Walked(walked, rooms);
 
-        public const string Open = "Open map";
-        public const string OpenTip = "Shows this dungeon on the stage as far as you walked it, wherever you are";
+        public const string Open = "Show it";
+        public const string OpenTip = "Show this dungeon on the stage as far as you walked it, wherever you are";
         public const string Forget = "Forget";
-        public const string ForgetTip = "Forgets this map: its rooms show again only as you walk them";
+        public const string ForgetTip = "Forget this walk: its rooms show again only as you walk them";
 
-        /// <summary>The line of a record the server gathered of a dungeon, numbered where the location has more than one, and the floor that opens it.</summary>
+        /// <summary>The line of a record the server gathered of a dungeon, numbered where the location has more than one, and the tier that opens it.</summary>
         public static string Group(int index, int count, int walked, int rooms, string floor) =>
-            (count > 1 ? "The group's map " + Numbers.Count(index + 1) : "The group's map") + ": " + PlanBoxWords.Walked(walked, rooms) + " · opened by your floor, " + floor;
+            (count > 1 ? "The group's walk " + Numbers.Count(index + 1) : "The group's walk") + ": " + PlanBoxWords.Walked(walked, rooms) + " · opened up to the " + floor + " tier";
 
-        public const string GroupOpenTip = "Shows this dungeon on the stage as far as anyone on this server walked it";
+        public const string GroupOpenTip = "Show this dungeon on the stage as far as anyone on this server walked it";
 
         /// <summary>The answer to forgetting the server's records of the world played.</summary>
         public static string GroupForgotten(int records) => records == 0

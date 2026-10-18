@@ -169,7 +169,7 @@ namespace Scry.Tests
 
             var (columns, lines) = WornWords.Table(new List<(int, WornChange)> { (2, two), (4, four) }, 4);
 
-            Assert.Equal(new[] { "", "Level 2", "Level 4" }, columns);
+            Assert.Equal(new[] { "", "Quality 2", "Quality 4" }, columns);
             Assert.Equal(new[] { "Carry weight", "+40", "+80" }, lines[0]);
             Assert.Equal(new[] { "Armour", "+2", "+4" }, lines[1]);
             Assert.Equal(new[] { "Movement", "-5%", "-5%" }, lines[2]);

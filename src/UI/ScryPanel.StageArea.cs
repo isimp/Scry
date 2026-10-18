@@ -349,16 +349,16 @@ namespace Scry
             var y = inner.yMax - U(8f) - h;
             // Left of the key sheet's ?.
             var x = inner.xMax - U(8f) - h - U(4f);
-            var views = new[] { ("Fit", "Frame it whole again"), ("Top", "Look down on it"), ("Side", "Look at it from the side"), ("Front", "Look at it from the front") };
-            foreach (var (name, tip) in views)
+            var views = new[] { ("Fit", "Fit", "Frame it whole again"), ("Top", "Look from top", "Look down on it"), ("Side", "Look from side", "Look at it from the side"), ("Front", "Look from front", "Look at it from the front") };
+            foreach (var (name, label, tip) in views)
             {
-                var w = Skin.Width(Skin.Chip, name) + U(2f);
+                var w = Skin.Width(Skin.Chip, label) + U(2f);
                 x -= w;
                 var chip = new Rect(x, y, w, h);
                 StagePiece("view buttons", chip);
                 x -= U(4f);
                 if (chip.Contains(Event.current.mousePosition)) AskTip("view:" + name, tip);
-                if (!GUI.Button(chip, name, Skin.Fitted(Skin.Chip, chip))) continue;
+                if (!GUI.Button(chip, label, Skin.Fitted(Skin.Chip, chip))) continue;
 
                 Stage.View(name);
                 if (name != "Fit" && Stage.Spin)

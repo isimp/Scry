@@ -270,7 +270,7 @@ namespace Scry
             Tile(plan, "overview", null, "Biome", "Per world", "Size");
             Label(plan, "placement", "Role", "Not before");
             Label(plan, "layout", "Building", "Doorways", "Built into");
-            Label(plan, "contents", "What it holds", "What its rooms hold", "Levels at its spawn points");
+            Label(plan, "contents", "What it holds", "What its rooms hold", "Stars at its spawn points");
             Label(plan, "music", "Music");
             Label(plan, More, "Not shown");
             // What a dungeon's rooms hold, read with its example: "Its rooms hold", "Loot in its rooms" and the like.

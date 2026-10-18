@@ -171,8 +171,8 @@ namespace Scry.Tests
             Assert.Equal("Peeking: 12 rooms not walked shown", PlanBoxWords.PeekingRooms(12));
             Assert.Equal("Peeking: 1 room not walked shown", PlanBoxWords.PeekingRooms(1));
             Assert.Equal("The rooms of this dungeon not walked yet show while you peek, and hide again once peeking stops", PlanBoxWords.PeekingRoomsTip);
-            Assert.Equal("The rooms as they stand in your world, as far as you have walked them; the menu beside the dungeon shows an example instead", PlanBoxWords.ThisDungeonTipFogged);
-            Assert.Equal("18 rooms; 1 room Scry has not read is left out. This dungeon as it stands in your world, 6 of 20 rooms walked.", DungeonWords.WorldsNote("18 rooms", 1, PlanBoxWords.Walked(6, 20)));
+            Assert.Equal("The rooms as they stand in your world, as far as you have walked them", PlanBoxWords.ThisDungeonTipFogged);
+            Assert.Equal("18 rooms; 1 room not read yet is left out. This dungeon as it stands in your world, 6 of 20 rooms walked.", DungeonWords.WorldsNote("18 rooms", 1, PlanBoxWords.Walked(6, 20)));
             Assert.Equal("A way on to a room not walked yet", PlanBoxWords.OpenWayTip);
         }
 
@@ -191,7 +191,7 @@ namespace Scry.Tests
             var elsewhere = DungeonTrail.Of("Howling Cavern", "Level 0 m", "Shrine", you: "Start corridor");
             Assert.Equal(new[] { TrailPart.Dungeon, TrailPart.Level, TrailPart.Room }, elsewhere.Select(t => t.Part));
             Assert.Equal("Shrine", elsewhere[2].Text);
-            Assert.Equal("Where you stand: click to go into it", PlanBoxWords.TrailYouTip);
+            Assert.Equal("Where you stand; go into it", PlanBoxWords.TrailYouTip);
         }
     }
 }

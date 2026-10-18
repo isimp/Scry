@@ -53,10 +53,10 @@ namespace Scry.Tests
             Assert.Equal("Compact", PanelWords.ViewButton(compact: false));
             Assert.Equal("Stop it", MusicWords.Tip(playing: true));
             Assert.Equal("Play it", MusicWords.Tip(playing: false));
-            Assert.Equal("Turning; click to hold it still", StageWords.SpinTip(spinning: true));
+            Assert.Equal("Hold it still", StageWords.SpinTip(spinning: true));
             // An effect played out leaves its stage standing, saying how to play it again.
             Assert.Equal("It has played out: click the stage to play it again", StageWords.PlayedOut);
-            Assert.Equal("Held still; click to turn it", StageWords.SpinTip(spinning: false));
+            Assert.Equal("Turn it", StageWords.SpinTip(spinning: false));
         }
 
         [Fact]
@@ -258,13 +258,13 @@ namespace Scry.Tests
             Assert.Equal("Squares of 1 m, lines every 5 m  ·  12 m tall, 2.5 × 3.0 m", StageWords.Grid(2.5f, 12.25f, 3f));
             Assert.Equal("Inside", StageWords.Inside(true));
             Assert.Equal("Outside", StageWords.Inside(false));
-            Assert.StartsWith("The example dungeon", StageWords.InsideTip(inside: true));
-            Assert.StartsWith("Its entrance", StageWords.InsideTip(inside: false));
-            Assert.StartsWith("Puts away the creatures", StageWords.CreaturesTip(shown: true));
-            Assert.StartsWith("Shows the creatures", StageWords.CreaturesTip(shown: false));
-            Assert.Equal("Floor 2: click to open it", StageWords.FloorTip("Floor 2"));
-            Assert.Equal("Click to put the roof on", StageWords.RulerTip(aboveRoof: true, levels: false));
-            Assert.StartsWith("Click or drag to cut here", StageWords.RulerTip(aboveRoof: false, levels: false));
+            Assert.Equal("Show its entrance outside", StageWords.InsideTip(inside: true));
+            Assert.StartsWith("Show the example dungeon inside", StageWords.InsideTip(inside: false));
+            Assert.StartsWith("Put away the creatures", StageWords.CreaturesTip(shown: true));
+            Assert.StartsWith("Show the creatures", StageWords.CreaturesTip(shown: false));
+            Assert.Equal("Floor 2: open it", StageWords.FloorTip("Floor 2"));
+            Assert.Equal("Put the roof on", StageWords.RulerTip(aboveRoof: true, levels: false));
+            Assert.StartsWith("Cut here, or drag", StageWords.RulerTip(aboveRoof: false, levels: false));
             // A dungeon's ruler steps the levels its marks name; a place's, its floors.
             Assert.EndsWith("step a level", StageWords.RulerTip(aboveRoof: false, levels: true));
             Assert.EndsWith("step a floor", StageWords.RulerTip(aboveRoof: false, levels: false));
@@ -277,8 +277,8 @@ namespace Scry.Tests
             Assert.Equal("1 star", CombatWords.StarChoice(1));
             Assert.Equal("3 stars", CombatWords.StarChoice(3));
             Assert.Equal("43 m/s", ProjectileWords.Speed(42.6f));
-            Assert.Equal("Size ×1.50: click to change it", HeaderSliders.SizeTip(1.5f));
-            Assert.Equal("Volume " + Numbers.Percent(0.5f) + ": click to change it", HeaderSliders.VolumeTip(0.5f));
+            Assert.Equal("Size ×1.50: change it", HeaderSliders.SizeTip(1.5f));
+            Assert.Equal("Volume " + Numbers.Percent(0.5f) + ": change it", HeaderSliders.VolumeTip(0.5f));
         }
 
         [Fact]

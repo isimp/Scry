@@ -76,7 +76,7 @@ namespace Scry.Tests
             Assert.Equal("day 12, fighting it in the Black Forest", CompendiumWords.CameToKnow(CameBy.Fought, 12, "Black Forest"));
             Assert.Equal("fighting it in the Black Forest", CompendiumWords.CameToKnow(CameBy.Fought, -1, "Black Forest"));
             Assert.Equal("day 3, unlocking its recipe", CompendiumWords.CameToKnow(CameBy.Recipe, 3, null));
-            Assert.Equal("day 1, going inside", CompendiumWords.CameToKnow(CameBy.WentInside, 1, ""));
+            Assert.Equal("day 1, stepping inside", CompendiumWords.CameToKnow(CameBy.WentInside, 1, ""));
             Assert.Equal("with Troll", CompendiumWords.CameWith("Troll"));
             Assert.Equal("known before Scry kept track of this character", CompendiumWords.KnownBefore);
         }
