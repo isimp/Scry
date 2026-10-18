@@ -12,8 +12,8 @@ namespace Scry
         /// with the roof on, its deepest room (<see cref="DungeonWays.Deepest"/>) is clicked as the
         /// mouse does: it is gone into, the stage is cut at head height over its ground, each room
         /// stands, is dimmed or is put away as its ground has it (<see cref="RoomFocus.Look"/>),
-        /// and the camera has the room's middle in view; pictured. Coming back out, as Esc and the
-        /// roof button do, puts the roof back on with every room as it is.
+        /// and the camera has the room's middle in view; pictured. Coming back out, as Esc does,
+        /// opens the level the room is on, the room outlined.
         /// </summary>
         private static IEnumerator GoesIntoRooms(Probe p)
         {
@@ -26,7 +26,7 @@ namespace Scry
             var miscut = new List<string>();
             var misdrawn = new List<string>();
             var unseen = new List<string>();
-            var stillIn = new List<string>();
+            var cameOut = new List<string>();
             var unmarked = new List<string>();
             var unlevelled = new List<string>();
             foreach (var entry in places)
@@ -101,11 +101,12 @@ namespace Scry
                 p.Note($"{name}: outlined with {Stage.OutlineDrawnWith ?? "nothing"}, {Numbers.Count(amber)} amber pixels added; {Numbers.Count(changed)} pixels changed in all, on average {colour}");
                 if (!shown || amber < 100) unmarked.Add($"{name}: {(shown ? "shown" : "not shown")}, {Numbers.Count(amber)} amber pixels added");
 
-                // Coming back out, as Esc and the roof button do.
+                // Coming back out, as Esc does: the level the room is on opened, the roof on for a room on none.
+                var itsMark = Stage.ExampleMarkOfRoom(deepest);
                 Stage.ComeOut();
                 yield return Until(() => Stage.RoomGoneInto == null && Stage.ExampleRoomsKept, 5);
-                if (Stage.RoomGoneInto != null || Stage.Cutting || Stage.ExampleRoomsAway > 0 || Stage.ExampleRoomsDimmed > 0)
-                    stillIn.Add($"{entry.Name}: {Numbers.Count(Stage.ExampleRoomsAway)} away, {Numbers.Count(Stage.ExampleRoomsDimmed)} dimmed");
+                if (Stage.RoomGoneInto != null || Stage.CutLevel != (itsMark >= 0 ? itsMark : Stage.FloorHeights.Count) || Stage.CameOutOf != deepest)
+                    cameOut.Add($"{entry.Name}: {Stage.CutLabel}, its level's mark {(itsMark >= 0 ? Numbers.Count(itsMark) : "none")}, {(Stage.CameOutOf == deepest ? "outlined" : "not outlined")}");
 
                 // A room with levels of its own: each is opened in turn, the cut at head height over it.
                 var tiered = rooms.FirstOrDefault(r => !r.Room.EndCap && !r.Room.Divider && Stage.ExampleRoomLevels(r).Count > 1);
@@ -138,7 +139,7 @@ namespace Scry
             p.Check(misdrawn.Count == 0, "rooms on its level stand half dimmed, those below dimmed, those above put away until the cut stands over their ground", string.Join("; ", misdrawn));
             p.Check(unseen.Count == 0, "the camera has the room gone into in view", string.Join("; ", unseen));
             p.Check(unmarked.Count == 0, "the room gone into is outlined in amber", string.Join("; ", unmarked));
-            p.Check(stillIn.Count == 0, "coming back out puts the roof back on with every room as it is", string.Join("; ", stillIn));
+            p.Check(cameOut.Count == 0, "coming back out opens the level the room is on, the room outlined", string.Join("; ", cameOut));
         }
 
         /// <summary>Comes out of a room gone into, its outline back, after <see cref="GoesIntoRooms"/>.</summary>

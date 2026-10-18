@@ -959,28 +959,31 @@ namespace Scry
             var depthW = Skin.Width(Skin.FaintLabel, depth);
             var right = new Rect(spot.Centre.x + spot.Half.x + U(3f), spot.Centre.y - U(8f), depthW, U(16f));
             var left = new Rect(spot.Centre.x - spot.Half.x - U(3f) - depthW, right.y, depthW, U(16f));
-            if ((Clear(right) ? right : Clear(left) ? left : (Rect?)null) is Rect beside)
-            {
-                WrittenNames.Add(beside);
-                GUI.Label(beside, depth, Skin.FaintLabel);
-            }
-            if (!_planBig || _treeRows == null || !PlanNamesShown) return;
+            var beside = Clear(right) ? right : Clear(left) ? left : (Rect?)null;
+            if (beside is Rect at) GUI.Label(at, depth, Skin.FaintLabel);
 
             // Grown, its name under it, or over it for every other node of its row, as wide as twice
             // the room it has in its row, its type made smaller to fit; left out where it still does not.
-            var place = _treeRows.RoomInRow(spot.Room) * _treeInnerWidth;
-            var order = _treeRows.OrderInRow(spot.Room);
-            var name = BoxRoomName(explorer, spot.Room);
-            var nameW = Skin.Width(Skin.FaintLabel, name);
-            var room = Mathf.Min(nameW, place * 2f - U(4f));
-            var smallest = Mathf.Max(1, Mathf.RoundToInt(10f * _s)) / (float)Mathf.Max(1, Skin.FaintLabel.fontSize);
-            if (nameW * smallest > room) return;
-            var over = order % 2 == 1;
-            var under = new Rect(spot.Centre.x - room / 2f, over ? spot.Centre.y - spot.Half.y - U(15f) : spot.Centre.y + spot.Half.y + U(1f), room, U(14f));
-            if (!Clear(under)) return;
-            WrittenNames.Add(under);
-            CountDrawn(PanelPart.PlanName);
-            FitLabel(under, name, Skin.FaintLabel, 10f);
+            // Its own depth, level with the node, is no label for the name to keep clear of, so it is
+            // written down only once the name has its place.
+            if (_planBig && _treeRows != null && PlanNamesShown)
+            {
+                var place = _treeRows.RoomInRow(spot.Room) * _treeInnerWidth;
+                var order = _treeRows.OrderInRow(spot.Room);
+                var name = BoxRoomName(explorer, spot.Room);
+                var nameW = Skin.Width(Skin.FaintLabel, name);
+                var room = Mathf.Min(nameW, place * 2f - U(4f));
+                var smallest = Mathf.Max(1, Mathf.RoundToInt(10f * _s)) / (float)Mathf.Max(1, Skin.FaintLabel.fontSize);
+                var over = order % 2 == 1;
+                var under = new Rect(spot.Centre.x - room / 2f, over ? spot.Centre.y - spot.Half.y - U(15f) : spot.Centre.y + spot.Half.y + U(1f), room, U(14f));
+                if (nameW * smallest <= room && Clear(under))
+                {
+                    WrittenNames.Add(under);
+                    CountDrawn(PanelPart.PlanName);
+                    FitLabel(under, name, Skin.FaintLabel, 10f);
+                }
+            }
+            if (beside is Rect taken) WrittenNames.Add(taken);
         }
 
         /// <summary>A straight line between two points, in dashes where a dash's length is given.</summary>

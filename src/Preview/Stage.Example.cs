@@ -814,6 +814,7 @@ namespace Scry
         private static void ForgetExample()
         {
             PickedRoom = null;
+            CameOutOf = null;
             ForgetSteps();
             if (TheExample.Focused != null) LetGoOfRoomCut();
             TheExample.Forget();

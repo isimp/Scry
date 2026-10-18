@@ -190,12 +190,13 @@ namespace Scry
                 }
                 // Inside a dungeon, the room lit is outlined on the stage (RoomLight): a way chip of
                 // the card hovered for it, else one under the mouse in the plan box or on the stage.
-                // The room last come out of stays outlined until the mouse moves.
+                // The room last come out of stays outlined until the mouse moves, the mouse the self-test points counted.
+                var moving = _boxPointForTest ?? mouse;
                 if (Stage.CameOutOf == null) _cameOutMouse = null;
                 else if (e.type == EventType.Repaint)
                 {
-                    if (_cameOutMouse == null) _cameOutMouse = e.mousePosition;
-                    else if ((e.mousePosition - _cameOutMouse.Value).sqrMagnitude > U(4f) * U(4f)) Stage.LetGoOfCameOut();
+                    if (_cameOutMouse == null) _cameOutMouse = moving;
+                    else if ((moving - _cameOutMouse.Value).sqrMagnitude > U(4f) * U(4f)) Stage.LetGoOfCameOut();
                 }
                 if (e.type == EventType.Repaint) Stage.LitRoom = Stage.HasInside && Stage.ShowsInside ? RoomLight.Lit(_cardLit, _boxHover, _stageHover) ?? Stage.PickedRoom ?? Stage.CameOutOf : null;
                 // A click on no room, not a drag, lets go of the room picked.
