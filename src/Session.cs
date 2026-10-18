@@ -155,6 +155,8 @@ namespace Scry
             var rule = book?.Rule ?? CompendiumRule.Off;
             var floor = System.Math.Min(book?.Floor ?? 0, CompendiumKeeper.Ceiling);
             _known.Milestones(floor > 0 ? CompendiumTiers.Of(Explorer.Entries) : null, floor);
+            // Only the skills the character has learned show; read only while the compendium is on.
+            if (rule != CompendiumRule.Off) _known.SkillsLearned(YourSkills.Learned, YourSkills.LearnedVersion);
             if (!_known.OnlyLearnedSince(book, rule) || Time.unscaledTime - _knownToldAt >= 1f)
             {
                 var version = _known.Version;

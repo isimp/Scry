@@ -87,10 +87,10 @@ namespace Scry
 
             /// <summary>
             /// Faint lines under a table's line, by the line: the same figures at the character's
-            /// own skill (<see cref="SkillWords.AttackLine"/>), and what they say on hover.
+            /// own skill (<see cref="SkillWords.AttackLine"/>), the key of that skill's page, and
+            /// what each says on hover.
             /// </summary>
-            public readonly Dictionary<int, List<string[]>> Yours = new Dictionary<int, List<string[]>>();
-            public string YoursTip;
+            public readonly Dictionary<int, List<(string[] Cells, string Skill, string Tip)>> Yours = new Dictionary<int, List<(string[], string, string)>>();
 
             /// <summary>What a table's cell past the first goes to, by its line and column: an attack's projectile and what it puts on you.</summary>
             public readonly Dictionary<(int Line, int Cell), string> CellLinks = new Dictionary<(int, int), string>();
@@ -157,9 +157,10 @@ namespace Scry
 
         /// <summary>
         /// A faint line under a pair, by its label: what it comes to at the character's own skill
-        /// (<see cref="SkillWords.Yours"/>), and what each says on hover.
+        /// (<see cref="SkillWords.Yours"/>), the key of that skill's page, and what each says on hover.
         /// </summary>
         public readonly Dictionary<string, string> Yours = new Dictionary<string, string>(StringComparer.Ordinal);
+        public readonly Dictionary<string, string> YoursSkills = new Dictionary<string, string>(StringComparer.Ordinal);
         public readonly Dictionary<string, string> YoursTips = new Dictionary<string, string>(StringComparer.Ordinal);
 
         /// <summary>Told with figures at the character's skill levels, so told again once a level changes (<see cref="YourSkills.Version"/>).</summary>

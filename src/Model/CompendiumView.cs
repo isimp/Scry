@@ -25,7 +25,8 @@ namespace Scry
     /// <summary>
     /// What each entry shows as, from what the character knows (<see cref="CompendiumBook"/>) and
     /// the ruleset. Off, everything is known. Under <see cref="CompendiumRule.Loose"/> an entry is
-    /// what the book holds of it, mods are always known, and what a known entry owns is
+    /// what the book holds of it, mods are always known, a skill once the character has learned
+    /// it and never named before (<see cref="SkillsLearned"/>), and what a known entry owns is
     /// known with it: the effects and sounds it plays (<see cref="Entry.UsedBy"/>), what it leaves
     /// behind, and the status effects, effects, sounds and projectiles it links to, never what
     /// links to it (<see cref="Link.Back"/>: knowing Poison does not make known all that gives
@@ -37,7 +38,7 @@ namespace Scry
     /// (<see cref="ByFloor"/>), and shows whole
     /// under either rules (<see cref="BelowFloor"/>). Whatever else a known entry's page names,
     /// by its links, its link terms, its stations or the places it is found in, is heard of.
-    /// Told again only when the book's levels, the rule, the floor or the catalog's groups change
+    /// Told again only when the book's levels, the rule, the floor, the skills learned or the catalog's groups change
     /// (the places read, which tell where things are found); a pair seen changes no level
     /// (<see cref="CompendiumBook.PairsVersion"/>); while it stays off, only when the rule does.
     /// </summary>
@@ -62,6 +63,9 @@ namespace Scry
         private IReadOnlyDictionary<string, int> _tiers;
         private int _floor;
         private bool _floorMoved;
+        private Func<int, bool> _learned;
+        private int _learnedVersion = -1;
+        private bool _skillsMoved;
 
         public CompendiumView(EntryCatalog catalog)
         {
@@ -139,6 +143,24 @@ namespace Scry
             _floorMoved = true;
         }
 
+        /// <summary>
+        /// The skills the character has learned, by their number in the game's list
+        /// (<see cref="SkillSource.Type"/>), and a count that moves each time which they are
+        /// changes. A skill shows once learned and is unknown before, never heard of nor brought
+        /// along by the floor; none is learned until they are told. Told on the next
+        /// <see cref="Tell"/> when the count moved.
+        /// </summary>
+        public void SkillsLearned(Func<int, bool> learned, int version)
+        {
+            if (version == _learnedVersion && learned == _learned) return;
+            _learned = learned;
+            _learnedVersion = version;
+            _skillsMoved = true;
+        }
+
+        /// <summary>Whether the character has learned a skill (<see cref="SkillsLearned"/>).</summary>
+        private bool Learned(Entry skill) => _learned != null && skill.Source is SkillSource source && _learned(source.Type);
+
         /// <summary>Whether an entry is one of a known owner's own parts: what it plays, leaves behind or links to as its own.</summary>
         public bool Owns(Entry owner, Entry owned) => owner != null && owned != null && _owns.Contains((owner, owned));
 
@@ -186,7 +208,7 @@ namespace Scry
         /// (<see cref="Tell"/>), and with the panel open at most once a second.
         /// </summary>
         public bool OnlyLearnedSince(CompendiumBook book, CompendiumRule rule) =>
-            book != null && ReferenceEquals(book, _book) && book.Version != _bookVersion && rule == _rule && !_floorMoved && _indexedAt == _catalog.Regroups;
+            book != null && ReferenceEquals(book, _book) && book.Version != _bookVersion && rule == _rule && !_floorMoved && !_skillsMoved && _indexedAt == _catalog.Regroups;
 
         /// <summary>
         /// Works out every entry's level for this book and rule, unless nothing changed since last
@@ -198,7 +220,7 @@ namespace Scry
         {
             if (book == null) book = new CompendiumBook();
             var regrouped = _indexedAt != _catalog.Regroups;
-            if (ReferenceEquals(book, _book) && book.Version == _bookVersion && rule == _rule && !regrouped && !_floorMoved) return;
+            if (ReferenceEquals(book, _book) && book.Version == _bookVersion && rule == _rule && !regrouped && !_floorMoved && !_skillsMoved) return;
             if (rule != CompendiumRule.Off && OnlyLearnedSince(book, rule) && book.RaisedSince(_bookVersion, Raised))
             {
                 _bookVersion = book.Version;
@@ -208,6 +230,7 @@ namespace Scry
                 return;
             }
             _floorMoved = false;
+            _skillsMoved = false;
             // Off, everything is known whatever the book holds: nothing to tell again.
             var stillOff = rule == CompendiumRule.Off && _rule == CompendiumRule.Off;
             _book = book;
@@ -229,9 +252,11 @@ namespace Scry
             var floored = new List<Entry>();
             foreach (var entry in _catalog.All)
             {
-                // A mod and a skill of the character's own are always known.
-                var level = entry.Kind == Kind.Mod || entry.Kind == Kind.Skill ? KnownLevel.Known : book.Level(entry.Key);
-                if (level < KnownLevel.Known && BelowFloor(entry)) floored.Add(entry);
+                // A mod is always known, a skill of the character's own once learned, by nothing else.
+                var level = entry.Kind == Kind.Mod ? KnownLevel.Known
+                    : entry.Kind == Kind.Skill ? (Learned(entry) ? KnownLevel.Known : KnownLevel.Unknown)
+                    : book.Level(entry.Key);
+                if (level < KnownLevel.Known && entry.Kind != Kind.Skill && BelowFloor(entry)) floored.Add(entry);
                 if (level == KnownLevel.Unknown) continue;
                 _levels[entry] = level;
                 // Only what is known brings its parts along, not what was only seen, as a creature seen from afar.
@@ -252,12 +277,15 @@ namespace Scry
             {
                 if (pair.Value == KnownLevel.Known) foreach (var named in Named(pair.Key)) heard.Add((named, pair.Key));
             }
-            foreach (var (named, by) in heard)
-            {
-                if (Of(named) != KnownLevel.Unknown) continue;
-                _levels[named] = KnownLevel.HeardOf;
-                _because[named] = by;
-            }
+            foreach (var (named, by) in heard) Hear(named, by);
+        }
+
+        /// <summary>Makes what a known entry's page names heard of where it was unknown; never a skill, which shows only once learned.</summary>
+        private void Hear(Entry named, Entry by)
+        {
+            if (named.Kind == Kind.Skill || Of(named) != KnownLevel.Unknown) return;
+            _levels[named] = KnownLevel.HeardOf;
+            _because[named] = by;
         }
 
         private readonly List<string> Raised = new List<string>();
@@ -310,12 +338,7 @@ namespace Scry
             }
             foreach (var known in NewlyKnown)
             {
-                foreach (var named in Named(known))
-                {
-                    if (Of(named) != KnownLevel.Unknown) continue;
-                    _levels[named] = KnownLevel.HeardOf;
-                    _because[named] = known;
-                }
+                foreach (var named in Named(known)) Hear(named, known);
             }
             NewlyKnown.Clear();
         }

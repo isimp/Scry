@@ -175,7 +175,6 @@ namespace Scry
             // but a player rolls a hit (Character.GetRandomSkillFactor): faint, as summoned at the character's level.
             var summoned = SkillReading.SummonedBy(prefab.name);
             var summoner = summoned != null ? YourAt(summoned.Value.Skill) : null;
-            if (summoner != null) table.YoursTip = SkillWords.YoursTip(summoner.Value.Name);
             foreach (var (cells, item, fires, effect, damage) in attacks)
             {
                 var line = table.Lines.Count;
@@ -183,7 +182,7 @@ namespace Scry
                 if (summoner != null)
                 {
                     var strength = SkillMath.SummonStrength(summoner.Value.Level, summoned.Value.PerLevel);
-                    table.Yours[line] = new List<string[]> { SkillWords.SummonedLine(SkillWords.SummonedAt(summoner.Value.At), damage, strength) };
+                    table.Yours[line] = new List<(string[], string, string)> { YourLine(SkillWords.SummonedLine(SkillWords.SummonedAt(summoner.Value.At), damage, strength), summoner.Value) };
                 }
                 if (fires != null) table.CellLinks[(line, 2)] = fires.name;
                 if (effect != null) table.CellLinks[(line, 3)] = EntryKeys.For(Kind.StatusEffect, effect.name);

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Xunit;
@@ -9,9 +10,13 @@ namespace Scry.Tests
         // Every skill the character can have is an entry of its own, a page telling what it
         // changes. It is no prefab, so it has a key of its own ("skill:" and its name in the
         // game's list), a tab of its own, and is listed by what it is for. It is the character's
-        // own, so the compendium never keeps it back, as it never keeps back a mod.
+        // own, so the compendium shows it once the character has learned it, at level 1, and
+        // until then neither shows it nor names it anywhere.
 
-        private static Entry E(string name) => new Entry { Kind = Kind.Skill, Name = name };
+        private static Entry E(string name, int type = 0) => new Entry { Kind = Kind.Skill, Name = name, Source = new SkillSource { Type = type, Name = name } };
+
+        private const int Swords = 1;
+        private const int Run = 102;
 
         [Fact]
         public void ASkillIsKeptUnderAKeyOfItsOwn()
@@ -62,28 +67,127 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ASkillIsAlwaysKnownAndItsLinksAreNeverLeftOut()
+        public void WithTheCompendiumOnASkillShowsOnlyOnceTheCharacterHasLearnedIt()
         {
             var troll = new Entry { Kind = Kind.Creature, Name = "Troll" };
-            var swords = E("Swords");
-            var view = new CompendiumView(new EntryCatalog(new[] { troll, swords }));
-            view.Tell(null, CompendiumRule.Strict);
-            Assert.Equal(KnownLevel.Unknown, view.Of(troll));
-            Assert.Equal(KnownLevel.Known, view.Of(swords));
+            var swords = E("Swords", Swords);
+            var run = E("Run", Run);
+            var view = new CompendiumView(new EntryCatalog(new[] { troll, swords, run }));
+            view.SkillsLearned(type => type == Swords, 1);
+            foreach (var rule in new[] { CompendiumRule.Loose, CompendiumRule.Strict })
+            {
+                view.Tell(null, rule);
+                Assert.Equal(KnownLevel.Unknown, view.Of(troll));
+                Assert.Equal(KnownLevel.Known, view.Of(swords));
+                Assert.Equal(KnownLevel.Unknown, view.Of(run));
+            }
+            view.Tell(null, CompendiumRule.Off);
+            Assert.Equal(KnownLevel.Known, view.Of(run));
 
+            // Without the character's skills told, none is learned.
+            var none = new CompendiumView(new EntryCatalog(new[] { swords }));
+            none.Tell(null, CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Unknown, none.Of(swords));
+        }
+
+        [Fact]
+        public void ASkillNotLearnedIsNeitherHeardOfNorBroughtAlongByTheFloor()
+        {
             var sword = new Entry { Kind = Kind.Item, Name = "SwordIron" };
-            var all = new[] { sword, swords }.ToList();
-            var explorer = new Explorer(all, new Favourites(Path.Combine(Path.GetTempPath(), "scry-skill-kind-" + System.Guid.NewGuid().ToString("N"), "favourites.txt")));
+            var axe = new Entry { Kind = Kind.Item, Name = "AxeBronze" };
+            var run = E("Run", Run);
+            var cutting = E("WoodCutting", 104);
+            sword.Links.Add(new Link { Group = "Skill", Target = run.Key });
+            axe.Links.Add(new Link { Group = "Skill", Target = cutting.Key });
+            var view = new CompendiumView(new EntryCatalog(new[] { sword, axe, run, cutting }));
+            view.SkillsLearned(_ => false, 1);
+            view.Milestones(new Dictionary<string, int> { { sword.Key, 1 }, { run.Key, 1 }, { cutting.Key, 1 } }, 1);
             var book = new CompendiumBook();
             book.Raise(sword.Key, KnownLevel.Known);
-            var strict = new CompendiumView(explorer.Entries);
-            strict.Tell(book, CompendiumRule.Strict);
-            explorer.Know(strict);
-            explorer.Select(sword);
-            Assert.True(explorer.LeavingOut);
-            Assert.False(explorer.LeavesOut(swords.Key));
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Known, view.Of(sword));
+            Assert.Equal(KnownLevel.Unknown, view.Of(run));
+
+            // Learned on top, as play goes on, names no skill either.
+            book.Raise(axe.Key, KnownLevel.Known);
+            Assert.True(view.OnlyLearnedSince(book, CompendiumRule.Loose));
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Known, view.Of(axe));
+            Assert.Equal(KnownLevel.Unknown, view.Of(cutting));
+        }
+
+        [Fact]
+        public void ASkillLearnedShowsAtTheNextTellingAndAnUnchangedOneTellsNothingAgain()
+        {
+            var sword = new Entry { Kind = Kind.Item, Name = "SwordIron" };
+            var axe = new Entry { Kind = Kind.Item, Name = "AxeBronze" };
+            var run = E("Run", Run);
+            var view = new CompendiumView(new EntryCatalog(new[] { sword, axe, run }));
+            var learned = new HashSet<int>();
+            var book = new CompendiumBook();
+            book.Raise(sword.Key, KnownLevel.Known);
+            view.SkillsLearned(learned.Contains, 1);
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Unknown, view.Of(run));
+
+            var told = view.Version;
+            view.SkillsLearned(learned.Contains, 1);
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(told, view.Version);
+
+            // Learned while the book learned more too: told whole, not only what the book raised.
+            learned.Add(Run);
+            book.Raise(axe.Key, KnownLevel.Known);
+            view.SkillsLearned(learned.Contains, 2);
+            Assert.False(view.OnlyLearnedSince(book, CompendiumRule.Loose));
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Known, view.Of(run));
+            Assert.Equal(KnownLevel.Known, view.Of(axe));
+
+            // Lost again, as a death can take a level 1 back below it.
+            learned.Clear();
+            view.SkillsLearned(learned.Contains, 3);
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Unknown, view.Of(run));
+        }
+
+        [Fact]
+        public void APageLeavesOutWhatNamesASkillNotLearnedAndKeepsOneLearnedUnderEitherRules()
+        {
+            var sword = new Entry { Kind = Kind.Item, Name = "SwordIron" };
+            var swords = E("Swords", Swords);
+            var run = E("Run", Run);
+            var explorer = new Explorer(new[] { sword, swords, run }.ToList(), new Favourites(Path.Combine(Path.GetTempPath(), "scry-skill-kind-" + System.Guid.NewGuid().ToString("N"), "favourites.txt")));
+            var book = new CompendiumBook();
+            book.Raise(sword.Key, KnownLevel.Known);
+            var view = new CompendiumView(explorer.Entries);
+            view.SkillsLearned(type => type == Swords, 1);
+            foreach (var rule in new[] { CompendiumRule.Loose, CompendiumRule.Strict })
+            {
+                view.Tell(book, rule);
+                explorer.Know(view);
+                explorer.Select(sword);
+                Assert.Equal(rule == CompendiumRule.Strict, explorer.LeavingOut);
+                // A fact naming a skill learned stays, never one naming a skill not learned; its link goes nowhere.
+                Assert.False(explorer.LeavesOut(swords.Key));
+                Assert.True(explorer.LeavesOut(run.Key));
+                Assert.True(explorer.Reaches(swords.Key));
+                Assert.False(explorer.Reaches(run.Key));
+                // A faint line told at a skill shows only at one learned.
+                Assert.False(explorer.NotMet(swords.Key));
+                Assert.True(explorer.NotMet(run.Key));
+                // The Skills tab counts the one learned.
+                Assert.Equal(1, explorer.FoundOf(Kind.Skill));
+            }
             explorer.Select(swords);
             Assert.False(explorer.LeavingOut);
+
+            // Peeking, the page shown is whole: nothing is left out.
+            explorer.Select(sword);
+            explorer.Peeking = true;
+            Assert.False(explorer.NotMet(run.Key));
+            Assert.False(explorer.LeavesOut(run.Key));
+            Assert.True(explorer.Reaches(run.Key));
         }
 
         [Fact]

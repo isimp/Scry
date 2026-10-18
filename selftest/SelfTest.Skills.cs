@@ -127,7 +127,7 @@ namespace Scry
             p.Check(quickest < 10.0, "its page, with its lines at the character's skill, is told in under 10 ms", $"{Numbers.Amount(quickest, 2)} ms");
             var attacks = told.Rows.FirstOrDefault(r => r.Title == CombatWords.WeaponAttacksTitle);
             p.Check(attacks != null && attacks.Lines.Count > 0 && Enumerable.Range(0, attacks.Lines.Count).All(attacks.Yours.ContainsKey), "each line of its attacks has a faint line at the character's skill",
-                attacks == null ? "" : string.Join(" | ", attacks.Yours.Values.SelectMany(v => v).Select(c => string.Join(", ", c))));
+                attacks == null ? "" : string.Join(" | ", attacks.Yours.Values.SelectMany(v => v).Select(c => string.Join(", ", c.Cells))));
             var drawn = ScryPanel.Drawn(PanelPart.YourSkillLine);
             yield return PictureOf(p, "fight", "skill lines SwordIron");
             p.Check(ScryPanel.Drawn(PanelPart.YourSkillLine) > drawn, "and they are drawn", Numbers.Count(ScryPanel.Drawn(PanelPart.YourSkillLine) - drawn));
@@ -136,8 +136,8 @@ namespace Scry
             if (axe != null)
             {
                 var axeAttacks = Facts.For(axe).Rows.FirstOrDefault(r => r.Title == CombatWords.WeaponAttacksTitle);
-                p.Check(axeAttacks != null && axeAttacks.Yours.Values.Any(lines => lines.Any(cells => cells[0].StartsWith(SkillWords.OnTrees(""), System.StringComparison.Ordinal))),
-                    $"{axe.ShownName} tells its hits on trees by the skill trees take", axeAttacks == null ? "" : string.Join(" | ", axeAttacks.Yours.Values.SelectMany(v => v).Select(c => c[0])));
+                p.Check(axeAttacks != null && axeAttacks.Yours.Values.Any(lines => lines.Any(line => line.Cells[0].StartsWith(SkillWords.OnTrees(""), System.StringComparison.Ordinal))),
+                    $"{axe.ShownName} tells its hits on trees by the skill trees take", axeAttacks == null ? "" : string.Join(" | ", axeAttacks.Yours.Values.SelectMany(v => v).Select(c => c.Cells[0])));
             }
             var creature = Pick(Kind.Creature, "Troll", "Greydwarf");
             if (creature != null)
@@ -158,7 +158,7 @@ namespace Scry
             // The rest of what a skill changes on other pages.
             var byQuality = told.Rows.FirstOrDefault(r => r.Title == ItemWords.ByQualityTitle);
             p.Check(byQuality != null && byQuality.Yours.Count > 0, "the sword's table by quality has its damage at your Swords at each quality",
-                byQuality == null ? "no table" : string.Join(" | ", byQuality.Yours.Values.SelectMany(v => v).Select(c => string.Join(", ", c))));
+                byQuality == null ? "no table" : string.Join(" | ", byQuality.Yours.Values.SelectMany(v => v).Select(c => string.Join(", ", c.Cells))));
             var shield = Pick(Kind.Item, "ShieldBronzeBuckler", "ShieldWood", "ShieldBanded");
             if (shield != null) p.Check(Facts.For(shield).Yours.ContainsKey("Block") && Facts.For(shield).Yours.ContainsKey("Parry bonus"), $"{shield.ShownName} tells its block and parry at your Blocking", Pairs(Facts.For(shield)));
             var fish = Pick(Kind.Item, "Fish1", "Fish2");
@@ -169,12 +169,56 @@ namespace Scry
                 var its = Facts.For(summon);
                 var hits = its.Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle);
                 p.Check(Tells(its, "Its hits train") && hits != null && hits.Yours.Count > 0, "a summoned skeleton tells whose skill its hits train and how hard it hits summoned at yours",
-                    Pairs(its) + (hits == null ? "" : " | " + string.Join(" | ", hits.Yours.Values.SelectMany(v => v).Select(c => string.Join(", ", c)))));
+                    Pairs(its) + (hits == null ? "" : " | " + string.Join(" | ", hits.Yours.Values.SelectMany(v => v).Select(c => string.Join(", ", c.Cells)))));
             }
             var target = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Piece && e.Source is GameObject go && go != null && go.GetComponentInChildren<ArcheryTarget>(true) != null);
             if (target != null) p.Check(Tells(Facts.For(target), "Trains"), $"{target.ShownName} tells what it trains", Pairs(Facts.For(target)));
             var person = Pick(Kind.Creature, GamePrefabs.PersonName);
             if (person != null) p.Check(Facts.For(person).Yours.ContainsKey("Moves"), "the player's page tells how fast you run at your Run", Pairs(Facts.For(person)));
+            p.Check(told.Yours.Keys.All(told.YoursSkills.ContainsKey) && told.Rows.All(r => r.Yours.Values.All(lines => lines.All(line => line.Skill != null && X.Find(line.Skill) != null))),
+                "every faint line names the skill's page it is told at", string.Join(", ", told.Yours.Keys.Where(k => !told.YoursSkills.ContainsKey(k))));
+        }
+
+        /// <summary>
+        /// A made-up character's iron sword under the loose rules: with Swords not learned, the
+        /// compendium names the skill nowhere, the Skills tab lists none and the sword's page
+        /// draws no faint line at it; once learned, both show. Pictured each way.
+        /// </summary>
+        private static IEnumerator SkillsUnlearned(Probe p)
+        {
+            var sword = Pick(Kind.Item, "SwordIron");
+            var swords = Pick(Kind.Skill, "Swords");
+            if (sword == null || swords == null || Player.m_localPlayer == null)
+            {
+                p.Skip("no iron sword, no Swords page or no character in the world");
+                yield break;
+            }
+            var book = new CompendiumBook();
+            book.Raise(sword.Key, KnownLevel.Known);
+            var view = new CompendiumView(X.Entries);
+            view.SkillsLearned(_ => false, 1);
+            view.Tell(book, CompendiumRule.Loose);
+            Session.ShowKnownInstead(view);
+            if (!Session.IsOpen) Session.Show(null);
+            KeepView();
+            ScryPanel.Compact = false;
+            yield return Until(() => ReferenceEquals(X.Compendium, view), 3);
+            X.Select(sword);
+            yield return null;
+            var drawn = ScryPanel.Drawn(PanelPart.YourSkillLine);
+            yield return PictureOf(p, "fight", "skills not learned SwordIron");
+            p.Check(X.NamesOnlyMet && X.LeavesOut(swords.Key) && X.NotMet(swords.Key) && X.FoundOf(Kind.Skill) == 0,
+                "with Swords not learned the compendium names it nowhere and the Skills tab lists none", $"{Numbers.Count(X.FoundOf(Kind.Skill))} skills listed");
+            p.Check(ScryPanel.Drawn(PanelPart.YourSkillLine) == drawn, "and the sword's page draws no faint line at it", Numbers.Count(ScryPanel.Drawn(PanelPart.YourSkillLine) - drawn));
+
+            view.SkillsLearned(type => type == (int)Skills.SkillType.Swords, 2);
+            view.Tell(book, CompendiumRule.Loose);
+            yield return Until(() => !X.NotMet(swords.Key), 3);
+            drawn = ScryPanel.Drawn(PanelPart.YourSkillLine);
+            yield return PictureOf(p, "fight", "skills learned SwordIron");
+            p.Check(!X.LeavesOut(swords.Key) && X.FoundOf(Kind.Skill) == 1 && ScryPanel.Drawn(PanelPart.YourSkillLine) > drawn,
+                "learned, Swords is named, listed and its faint lines drawn", $"{Numbers.Count(X.FoundOf(Kind.Skill))} skills listed, {Numbers.Count(ScryPanel.Drawn(PanelPart.YourSkillLine) - drawn)} lines drawn");
+            Session.ShowKnownInstead(null);
         }
     }
 }

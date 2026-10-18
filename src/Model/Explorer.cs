@@ -256,15 +256,16 @@ namespace Scry
         /// Whether the page shown leaves out a fact naming the entry a key names: on a known page
         /// under either rules, what the character has not met (<see cref="NotMet"/>); under the
         /// strict rules above the milestone floor also what it never saw go together with the
-        /// page, is no part of it (its sounds, effects, projectiles) and owns it not. Never a mod or a skill, always known.
+        /// page, is no part of it (its sounds, effects, projectiles) and owns it not. Never a mod,
+        /// always known, nor a skill the character has learned; always one it has not.
         /// </summary>
         public bool LeavesOut(string key)
         {
             if (!NamesOnlyMet) return false;
             var other = Find(key);
-            if (other == null || other == _selected || other.Kind == Kind.Mod || other.Kind == Kind.Skill) return false;
+            if (other == null || other == _selected || other.Kind == Kind.Mod) return false;
             if (_view.Of(other) < KnownLevel.Seen) return true;
-            return LeavingOut && !_view.Related(_selected, other);
+            return other.Kind != Kind.Skill && LeavingOut && !_view.Related(_selected, other);
         }
 
         /// <summary>

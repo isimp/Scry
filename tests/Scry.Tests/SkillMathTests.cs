@@ -18,6 +18,15 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ASkillIsLearnedAtLevelOneOfItsOwnNotBeforeAndNotByEffects()
+        {
+            Assert.False(SkillMath.Learned(0f));
+            Assert.False(SkillMath.Learned(0.95f));
+            Assert.True(SkillMath.Learned(1f));
+            Assert.True(SkillMath.Learned(38.95f));
+        }
+
+        [Fact]
         public void ALevelPastTheTopCountsAsTheTopForMostRules()
         {
             Assert.Equal(0.34f, SkillMath.Share(34f), 3);

@@ -33,8 +33,10 @@ namespace Scry
         private static readonly Dictionary<int, Read> ByType = new Dictionary<int, Read>();
         private static readonly HashSet<int> Seen = new HashSet<int>();
         private static readonly List<int> Gone = new List<int>();
+        private static readonly HashSet<int> LearnedTypes = new HashSet<int>();
         private static float _readAt = -1f;
         private static int _version;
+        private static int _learnedVersion;
         private static bool _known;
 
         /// <summary>Counts every change of a skill's level as the game works with it, so what is told at the character's levels is told again.</summary>
@@ -46,6 +48,23 @@ namespace Scry
                 return _version;
             }
         }
+
+        /// <summary>
+        /// Counts every change of which skills the character has learned (<see cref="SkillMath.Learned"/>),
+        /// for the compendium (<see cref="CompendiumView.SkillsLearned"/>). A moment without a
+        /// character, dead or loading, keeps those last read.
+        /// </summary>
+        public static int LearnedVersion
+        {
+            get
+            {
+                ReadIfDue();
+                return _learnedVersion;
+            }
+        }
+
+        /// <summary>Whether the character has learned a skill, by its number in the game's list, as last read.</summary>
+        public static readonly Func<int, bool> Learned = type => LearnedTypes.Contains(type);
 
         /// <summary>Whether there is a character to read: in a world, not on a server.</summary>
         public static bool Known
@@ -141,6 +160,22 @@ namespace Scry
             foreach (var key in ByType.Keys) if (!Seen.Contains(key)) Gone.Add(key);
             foreach (var key in Gone) ByType.Remove(key);
             if (changed || Gone.Count > 0) _version++;
+            if (skills != null) NoteLearned();
+        }
+
+        /// <summary>Keeps which skills the character has learned, counting a change.</summary>
+        private static void NoteLearned()
+        {
+            var moved = false;
+            foreach (var pair in ByType)
+            {
+                var learned = SkillMath.Learned(pair.Value.Kept);
+                if (learned == LearnedTypes.Contains(pair.Key)) continue;
+                if (learned) LearnedTypes.Add(pair.Key);
+                else LearnedTypes.Remove(pair.Key);
+                moved = true;
+            }
+            if (moved) _learnedVersion++;
         }
 
         /// <summary>Keeps one skill as read, with what the character's effects add to it now; true when its level changed.</summary>
@@ -169,9 +204,11 @@ namespace Scry
         public static void Forget()
         {
             ByType.Clear();
+            LearnedTypes.Clear();
             _readAt = -1f;
             _known = false;
             _version++;
+            _learnedVersion++;
         }
     }
 }

@@ -233,7 +233,6 @@ namespace Scry
                 // where trees take another skill.
                 var table = new Row { Title = CombatWords.WeaponAttacksTitle, Columns = CombatWords.WeaponAttackColumns };
                 var you = YourAt(shared.m_skillType);
-                if (you != null) table.YoursTip = SkillWords.YoursTip(you.Value.Name);
                 foreach (var (each, isSecond) in twoAttacks ? new[] { (attack, false), (second, true) } : new[] { (attack, false) })
                 {
                     var figures = DamageFigures(shared.m_damages).Select(d => (d.Type, d.Amount * each.m_damageMultiplier)).ToList();
@@ -284,7 +283,7 @@ namespace Scry
         /// attack hits trees by another skill (<c>Attack.m_specialHitSkill</c>, an axe's Wood
         /// Cutting), what each step deals a tree at that one.
         /// </summary>
-        private void YoursUnder(Row table, int first, Attack attack, IList<(string Type, float Amount)> figures, float knockback, float last, (string At, float Level, string Name)? you)
+        private void YoursUnder(Row table, int first, Attack attack, IList<(string Type, float Amount)> figures, float knockback, float last, (string At, float Level, string Name, string Skill)? you)
         {
             if (you == null) return;
             var steps = Math.Max(1, attack.m_attackChainLevels);
@@ -295,8 +294,8 @@ namespace Scry
             var treeLines = trees != null ? SkillWords.TreeLines(SkillWords.OnTrees(trees.Value.At), steps, figures, last, SkillMath.HitShare(trees.Value.Level)) : null;
             for (var step = 0; step < lines.Count && first + step < table.Lines.Count; step++)
             {
-                var under = new List<string[]> { lines[step] };
-                if (treeLines != null) under.Add(treeLines[step]);
+                var under = new List<(string[], string, string)> { YourLine(lines[step], you.Value) };
+                if (treeLines != null) under.Add(YourLine(treeLines[step], trees.Value));
                 table.Yours[first + step] = under;
             }
         }
@@ -400,14 +399,13 @@ namespace Scry
                 null,
                 blockAt != null ? SkillWords.BlockByQuality(blockAt.Value.At, shared.m_blockPower, shared.m_blockPowerPerLevel, most, blockAt.Value.Level) : null,
             };
+            var yoursAt = new[] { damageAt, null, blockAt };
             for (var i = 0; i < lines.Count; i++)
             {
                 if (lines[i].Cells == null) continue;
                 table.Lines.Add(lines[i]);
-                if (i < yours.Length && yours[i] != null) table.Yours[table.Lines.Count - 1] = new List<string[]> { yours[i] };
+                if (i < yours.Length && yours[i] != null) table.Yours[table.Lines.Count - 1] = new List<(string[], string, string)> { YourLine(yours[i], yoursAt[i].Value) };
             }
-            if (damageAt != null) table.YoursTip = SkillWords.YoursTip(damageAt.Value.Name);
-            else if (blockAt != null) table.YoursTip = SkillWords.YoursTip(blockAt.Value.Name);
             if (table.Lines.Count > 0) Rows.Add(table);
         }
 

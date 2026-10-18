@@ -278,7 +278,7 @@ namespace Scry
                 GUI.Label(valueRect, value, unsure ? Skin.DimWrap : Skin.Wrap);
             }
             // What it comes to at the character's own skill, faint under the game's figure; none where that is kept back.
-            if (keptBack == null && facts.Yours.TryGetValue(pair.Key, out var yours))
+            if (keptBack == null && YoursShown(explorer, facts, pair.Key, out var yours))
             {
                 var yoursH = Skin.Height(Skin.SmallWrap, yours, valueW);
                 var yoursRect = new Rect(valueRect.x, y + height, valueW, yoursH);

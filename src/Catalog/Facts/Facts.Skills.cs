@@ -51,10 +51,12 @@ namespace Scry
         }
 
         /// <summary>
-        /// The character's level of a skill and the faint label of what is told at it, marking
-        /// these facts as told at the character's levels; none without a character or a skill.
+        /// The character's level of a skill, the faint label of what is told at it, the skill's
+        /// name and the key of its page, which the panel leaves the faint lines out by where the
+        /// compendium shows no such skill; marks these facts as told at the character's levels.
+        /// None without a character or a skill.
         /// </summary>
-        private (string At, float Level, string Name)? YourAt(Skills.SkillType skill)
+        private (string At, float Level, string Name, string Skill)? YourAt(Skills.SkillType skill)
         {
             if (skill == Skills.SkillType.None || skill == Skills.SkillType.All) return null;
             _skilled = true;
@@ -62,7 +64,7 @@ namespace Scry
             if (!YourSkills.Known) return null;
             var level = YourSkills.LevelOf(skill);
             var name = SkillName(skill);
-            return (SkillWords.At(name, level), level, name);
+            return (SkillWords.At(name, level), level, name, EntryKeys.For(Kind.Skill, skill.ToString()));
         }
 
         /// <summary>A faint line under a pair: what it comes to at the character's level of a skill; none without a character, a skill or a figure.</summary>
@@ -73,8 +75,13 @@ namespace Scry
             var text = SkillWords.Yours(you.Value.At, value(you.Value.Level));
             if (text == null) return;
             Yours[label] = text;
+            YoursSkills[label] = you.Value.Skill;
             YoursTips[label] = SkillWords.YoursTip(you.Value.Name);
         }
+
+        /// <summary>A faint line under a table's line, told at the character's level of a skill.</summary>
+        private static (string[] Cells, string Skill, string Tip) YourLine(string[] cells, (string At, float Level, string Name, string Skill) you) =>
+            (cells, you.Skill, SkillWords.YoursTip(you.Name));
 
         /// <summary>
         /// What reeling a fish in drains a second while pulled in (<c>FishingFloat.FixedUpdate</c>:

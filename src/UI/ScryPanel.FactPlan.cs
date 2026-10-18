@@ -167,7 +167,7 @@ namespace Scry
                 for (var i = first; i < last; i++)
                 {
                     valueH = Mathf.Max(valueH, Skin.Height(Skin.Wrap, TileValue(explorer, facts, facts.Pairs[tiles[i]], out var keptHere), valueW));
-                    if (keptHere == null && facts.Yours.TryGetValue(facts.Pairs[tiles[i]].Key, out var yoursHere)) yoursH = Mathf.Max(yoursH, Skin.Height(Skin.SmallWrap, yoursHere, valueW));
+                    if (keptHere == null && YoursShown(explorer, facts, facts.Pairs[tiles[i]].Key, out var yoursHere)) yoursH = Mathf.Max(yoursH, Skin.Height(Skin.SmallWrap, yoursHere, valueW));
                 }
                 var tileH = U(26f) + valueH + yoursH + U(6f);
                 for (var i = first; i < last; i++)
@@ -183,7 +183,7 @@ namespace Scry
                     GUI.Label(new Rect(at.x + U(8f), at.y + U(24f), valueW, valueH), value, unsure ? Skin.DimWrap : Skin.Wrap);
                     if (unsure && at.Contains(Event.current.mousePosition)) AskTip("unsure:" + pair.Key, why);
                     // What it comes to at the character's own skill, faint under it.
-                    if (kept == null && facts.Yours.TryGetValue(pair.Key, out var yours))
+                    if (kept == null && YoursShown(explorer, facts, pair.Key, out var yours))
                     {
                         var yoursRect = new Rect(at.x + U(8f), at.y + U(24f) + valueH, valueW, yoursH);
                         Skin.LabelIn(yoursRect, yours, Skin.SmallWrap, Skin.Faint);
@@ -246,7 +246,7 @@ namespace Scry
                     var cells = row.Lines[l].Cells;
                     if (c < cells.Length) w = Mathf.Max(w, Skin.Width(Skin.Small, CellShown(explorer, row, l, c, cells[c])) + (explorer.ShownByFloor(CellLink(row, l, c)) ? FloorRoom : 0f));
                     if (!row.Yours.TryGetValue(l, out var yours)) continue;
-                    foreach (var under in yours) if (c < under.Length) w = Mathf.Max(w, Skin.Width(Skin.Small, under[c]) + (c == 0 ? YoursIndent : 0f));
+                    foreach (var under in yours) if (c < under.Cells.Length && !explorer.NotMet(under.Skill)) w = Mathf.Max(w, Skin.Width(Skin.Small, under.Cells[c]) + (c == 0 ? YoursIndent : 0f));
                 }
                 ColumnWidths.Add(w + U(2f));
                 sum += w + U(2f);
@@ -282,10 +282,11 @@ namespace Scry
                 if (lineKept && cells.Length > 0) KeptLines.Add((explorer.ShowsOnce(cells[0], lineProof), explorer.MayRunElsewhere(lineProof)));
                 var height = U(20f);
                 for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++) height = Mathf.Max(height, Skin.Height(Skin.SmallWrap, cells[c], ColumnWidths[c]));
-                // Faint lines under it: the same at the character's skill, left out where the line keeps its numbers back.
+                // Faint lines under it: the same at the character's skill, left out where the line
+                // keeps its numbers back, and each where the compendium shows no such skill.
                 var under = !lineKept && !attackKept && row.Yours.TryGetValue(l, out var yoursLines) ? yoursLines : null;
                 var underHeight = 0f;
-                if (under != null) foreach (var faint in under) underHeight += YoursHeight(faint);
+                if (under != null) foreach (var faint in under) if (!explorer.NotMet(faint.Skill)) underHeight += YoursHeight(faint.Cells);
                 var line = new Rect(0f, y, width, height + underHeight);
                 if (!OutOfSight(line))
                 {
@@ -378,7 +379,7 @@ namespace Scry
                     if (under != null)
                     {
                         var at = y + height;
-                        foreach (var faint in under) at = YoursLine(row, faint, gap, width, at);
+                        foreach (var faint in under) if (!explorer.NotMet(faint.Skill)) at = YoursLine(row, faint.Cells, faint.Tip, gap, width, at);
                     }
                     Skin.Fill(new Rect(0f, y + height + underHeight + U(2f), width, U(1f)), Skin.Outline);
                 }
@@ -404,12 +405,16 @@ namespace Scry
             return height;
         }
 
+        /// <summary>A pair's faint line at the character's skill, as the page shows it: none where the compendium shows no such skill, one not learned.</summary>
+        private static bool YoursShown(Explorer explorer, Facts facts, string label, out string yours) =>
+            facts.Yours.TryGetValue(label, out yours) && !(facts.YoursSkills.TryGetValue(label, out var skill) && explorer.NotMet(skill));
+
         /// <summary>
         /// A faint line under a table's line: the same figures at the character's own skill
         /// (<see cref="Facts.Row.Yours"/>), in the table's columns, its first cell set in; what it
         /// leaves out on hover.
         /// </summary>
-        private static float YoursLine(Facts.Row row, string[] cells, float gap, float width, float y)
+        private static float YoursLine(Facts.Row row, string[] cells, string tip, float gap, float width, float y)
         {
             var height = YoursHeight(cells);
             var x = 0f;
@@ -419,7 +424,7 @@ namespace Scry
                 Skin.LabelIn(new Rect(x + inset, y, ColumnWidths[c] - inset, height), cells[c], Skin.SmallWrap, Skin.Faint);
                 x += ColumnWidths[c] + gap;
             }
-            if (row.YoursTip != null && new Rect(0f, y, width, height).Contains(Event.current.mousePosition)) AskTip("yours:" + row.Title + cells[0], row.YoursTip);
+            if (tip != null && new Rect(0f, y, width, height).Contains(Event.current.mousePosition)) AskTip("yours:" + row.Title + cells[0], tip);
             CountDrawn(PanelPart.YourSkillLine);
             return y + height;
         }

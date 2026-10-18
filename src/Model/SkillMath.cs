@@ -18,6 +18,12 @@ namespace Scry
         /// <summary>The level the game works with: the one kept, with what effects add, counted whole.</summary>
         public static float Level(float kept, float fromEffects) => (float)Math.Floor(kept + fromEffects);
 
+        /// <summary>
+        /// Whether the character has learned a skill: kept at level 1 or more. What effects add
+        /// teaches none, and a death can take a first level back below 1 (<c>Skills.OnDeath</c>).
+        /// </summary>
+        public static bool Learned(float kept) => kept >= 1f;
+
         /// <summary>A level as the share of the top most rules take, kept within nothing and all.</summary>
         public static float Share(float level) => Clamp01(level / Top);
 
