@@ -39,6 +39,8 @@ namespace Scry
             var unfound = new List<string>();
             var unframed = new List<string>();
             var unlaid = new List<string>();
+            var mismarked = new List<string>();
+            var treesMarked = 0;
             var unlevelled = new List<string>();
             var unlitBox = new List<string>();
             var unlitStage = new List<string>();
@@ -103,6 +105,19 @@ namespace Scry
 
                         if (big != Stage.ViewShift > 0f) unframed.Add($"{name}: the stage framed {Numbers.Fixed(Stage.ViewShift, 2)} of its width aside");
                         unlaid.AddRange(PlanBoxLaidOut(name, view, big));
+                        // The tree marks only what stands out: its entrance and its deepest room named,
+                        // a dot where this roll left loot, a dead end shut at its foot; no room's depth.
+                        if (view == PlanView.Tree)
+                        {
+                            var marks = ScryPanel.TreeMarksForTest.ToList();
+                            if (marks.Count > 0) treesMarked++;
+                            foreach (var (room, word, loot, deadEnd) in marks)
+                            {
+                                var wanted = room == ways.Entrance ? PlanBoxWords.Entrance : room == ways.Deepest ? PlanBoxWords.Deepest : null;
+                                if (word != wanted || loot != Stage.RoomLoot(room).Count > 0 || deadEnd != ways.IsDeadEnd(room))
+                                    mismarked.Add($"{name}: {room.Room.Name} marked {word ?? "nothing"}, loot {loot}, dead end {deadEnd}");
+                            }
+                        }
                         yield return Picture(p, $"plan {name}");
                     }
                 }
@@ -473,6 +488,8 @@ namespace Scry
             p.Check(unfound.Count == 0, "every room is found under the mouse at its spot, in the levels and the tree whole, from above unless a room drawn over it stands there", string.Join("; ", unfound.Take(6)));
             p.Check(unframed.Count == 0, "grown, the stage is framed beside the plan box; compact, in its middle", string.Join("; ", unframed.Take(6)));
             p.Check(unlaid.Count == 0, "the plan box's views stand left, grow and fold beside them in its top right corner, a line under them, its own switches over the plan's top right corner under it, the names only grown, joined where both stand, none over another", string.Join("; ", unlaid.Take(6)));
+            if (treesMarked == 0) p.Note("no tree was drawn to read its marks");
+            else p.Check(mismarked.Count == 0, "the tree marks only what stands out: its entrance and its deepest room named, a dot where this roll left loot, a dead end shut at its foot", string.Join("; ", mismarked.Take(6)));
             p.Check(unlevelled.Count == 0, "the Levels view shows as many levels as the rooms' grounds lay out", string.Join("; ", unlevelled));
             p.Check(unlitBox.Count == 0, "a room under the mouse in the plan box is framed there alone and named, the way drawn to it, and outlined on the stage", string.Join("; ", unlitBox.Take(6)));
             p.Check(unlitStage.Count == 0, "a room under the mouse on the stage is framed in the plan box alone and named in every view, the way drawn to it, and outlined on the stage", string.Join("; ", unlitStage.Take(6)));

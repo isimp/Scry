@@ -10,12 +10,9 @@ namespace Scry
         Tree,
     }
 
-    /// <summary>What the plan box of a dungeon's example says: its caption, views, buttons and their tips, how deep each level is, and how deep each node of the tree is.</summary>
+    /// <summary>What the plan box of a dungeon's example says: its caption, views, buttons and their tips, and how deep each level is.</summary>
     internal static class PlanBoxWords
     {
-        /// <summary>A node's depth in the tree: its ground's whole metres from the entrance's, signed.</summary>
-        public static string Depth(float rise) => Numbers.Count((long)Math.Round(rise, MidpointRounding.AwayFromZero), signed: true);
-
         /// <summary>A level's depth beside its plan: its highest room's ground in whole metres from the entrance's.</summary>
         public static string LevelDepth(float rise) => Numbers.Count((long)Math.Round(rise, MidpointRounding.AwayFromZero), signed: true) + " m";
 

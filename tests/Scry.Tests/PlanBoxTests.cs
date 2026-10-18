@@ -554,11 +554,11 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ATreeNodeTellsHowDeepItsRoomIs()
+        public void TheTreeNamesOnlyItsEntranceAndItsDeepestRoom()
         {
-            Assert.Equal("0", PlanBoxWords.Depth(0.3f));
-            Assert.Equal("-12", PlanBoxWords.Depth(-12.4f));
-            Assert.Equal("+3", PlanBoxWords.Depth(3.2f));
+            // Beside the tree's rooms only what stands out: these two named, a dot for loot, a dead end shut at its foot.
+            Assert.Equal("Entrance", PlanBoxWords.Entrance);
+            Assert.Equal("Deepest", PlanBoxWords.Deepest);
         }
     }
 }

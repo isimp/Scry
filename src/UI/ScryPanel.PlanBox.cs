@@ -941,7 +941,7 @@ namespace Scry
             if (!repaint) return;
 
             TreeWays(at, rowGap > 0f ? rowGap : node.y * 2f, node.y / 2f);
-            var entranceGround = _boxWays.Entrance != null ? GroundOf(_boxWays.Entrance) : 0f;
+            TreeMarksForTest.Clear();
             foreach (var spot in BoxSpots)
             {
                 var rect = new Rect(spot.Centre - spot.Half, spot.Half * 2f);
@@ -952,19 +952,29 @@ namespace Scry
                 Skin.Fill(rect, peeked ? Skin.Alpha(fill, fill.a * PeekedShare) : fill);
                 if (peeked && !lit) PlanDashes(rect, Skin.Alpha(Skin.Faint, 0.6f));
                 else PlanFrame(rect, lit ? Skin.Accent : crossroads ? Skin.Alpha(Skin.Text, 0.85f) : Skin.Alpha(Skin.Text, 0.3f), lit || crossroads ? 2f : 1f);
+                // A dead end shut at its foot, a heavier edge along its bottom, so nothing under it is covered.
+                if (_boxWays.IsDeadEnd(spot.Room)) Skin.Fill(new Rect(rect.x, rect.yMax - U(2f), rect.width, U(2f)), Skin.Alpha(Skin.Text, 0.75f));
             }
             TreeYouAndWays(at, node.y / 2f);
 
-            // Each node's label beside it, the room gone into's and those lit first: right of it, else
+            // Each node's marks beside it, the room gone into's and those lit first: right of it, else
             // left, where it covers no other label or node; else left out, the caption naming the
             // room under the mouse.
             WrittenNames.Clear();
-            foreach (var spot in BoxSpots) if (spot.Room == gone || BoxLit(spot.Room)) TreeLabel(explorer, spot, area, entranceGround);
-            foreach (var spot in BoxSpots) if (spot.Room != gone && !BoxLit(spot.Room)) TreeLabel(explorer, spot, area, entranceGround);
+            foreach (var spot in BoxSpots) if (spot.Room == gone || BoxLit(spot.Room)) TreeLabel(explorer, spot, area);
+            foreach (var spot in BoxSpots) if (spot.Room != gone && !BoxLit(spot.Room)) TreeLabel(explorer, spot, area);
         }
 
-        /// <summary>A node's label, its depth and, grown, its room's name, where it covers nothing already drawn.</summary>
-        private static void TreeLabel(Explorer explorer, BoxSpot spot, Rect area, float entranceGround)
+        /// <summary>What the tree marked of each room as it was last drawn: its word beside it (the entrance, the deepest), a dot for what this roll left in it, and whether it is a dead end, for the self-test.</summary>
+        [Diagnostic]
+        public static List<(PlacedRoom Room, string Mark, bool Loot, bool DeadEnd)> TreeMarksForTest { get; } = new List<(PlacedRoom, string, bool, bool)>();
+
+        /// <summary>
+        /// A node's marks, only what stands out: beside it the entrance and the deepest named, and a
+        /// dot where this roll left chests or pickups in it; grown, its room's name; each where it
+        /// covers nothing already drawn.
+        /// </summary>
+        private static void TreeLabel(Explorer explorer, BoxSpot spot, Rect area)
         {
             bool Clear(Rect r)
             {
@@ -975,17 +985,30 @@ namespace Scry
                 return true;
             }
 
-            // Its depth beside it, right of it else left.
-            var depth = PlanBoxWords.Depth(GroundOf(spot.Room) - entranceGround);
-            var depthW = Skin.Width(Skin.FaintLabel, depth);
-            var right = new Rect(spot.Centre.x + spot.Half.x + U(3f), spot.Centre.y - U(8f), depthW, U(16f));
-            var left = new Rect(spot.Centre.x - spot.Half.x - U(3f) - depthW, right.y, depthW, U(16f));
-            var beside = Clear(right) ? right : Clear(left) ? left : (Rect?)null;
-            if (beside is Rect at) GUI.Label(at, depth, Skin.FaintLabel);
+            // Beside it, right of it else left: the entrance or the deepest named, and a dot where this
+            // roll left chests or pickups.
+            var mark = spot.Room == _boxWays.Entrance ? PlanBoxWords.Entrance : spot.Room == _boxWays.Deepest ? PlanBoxWords.Deepest : null;
+            var loot = Stage.RoomLoot(spot.Room).Count > 0;
+            TreeMarksForTest.Add((spot.Room, mark, loot, _boxWays.IsDeadEnd(spot.Room)));
+            var markW = mark != null ? Skin.Width(Skin.FaintLabel, mark) : 0f;
+            var dot = U(6f);
+            var besideW = markW + (loot ? (mark != null ? U(4f) : 0f) + dot : 0f);
+            Rect? beside = null;
+            if (besideW > 0f)
+            {
+                var right = new Rect(spot.Centre.x + spot.Half.x + U(3f), spot.Centre.y - U(8f), besideW, U(16f));
+                var left = new Rect(spot.Centre.x - spot.Half.x - U(3f) - besideW, right.y, besideW, U(16f));
+                beside = Clear(right) ? right : Clear(left) ? left : (Rect?)null;
+                if (beside is Rect at)
+                {
+                    if (mark != null) Skin.LabelIn(new Rect(at.x, at.y, markW, at.height), mark, Skin.FaintLabel, Skin.Accent);
+                    if (loot) Skin.Icon(new Rect(at.xMax - dot, at.center.y - dot / 2f, dot, dot), Skin.Circle, Skin.Accent);
+                }
+            }
 
             // Grown, its name under it, or over it for every other node of its row, as wide as twice
             // the room it has in its row, its type made smaller to fit; left out where it still does not.
-            // Its own depth, level with the node, is no label for the name to keep clear of, so it is
+            // Its own marks, level with the node, are no label for the name to keep clear of, so they are
             // written down only once the name has its place.
             if (_planBig && _treeRows != null && PlanNamesShown)
             {
