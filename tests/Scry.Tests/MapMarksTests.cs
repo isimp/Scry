@@ -43,10 +43,10 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void AMarkStandsJustAboveAPinAtTheEntranceSmallerThanIt()
+        public void AMarkIsAsBigAsAPinAndStandsJustAboveOneAtTheEntrance()
         {
-            Assert.Equal(36f, MapMarks.Lift(48f), 3);
-            Assert.Equal(28.8f, MapMarks.Size(48f), 3);
+            Assert.Equal(48f, MapMarks.Size(48f), 3);
+            Assert.Equal(48f, MapMarks.Lift(48f), 3);
         }
 
         [Fact]

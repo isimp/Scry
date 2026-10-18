@@ -386,7 +386,9 @@ namespace Scry
             // The rooms' names on the grown plan, in every view.
             var namesShown = PlanNamesShown;
             if (names.Contains(e.mousePosition)) AskTip("plan:names", PlanBoxWords.NamesTip(namesShown));
-            if (GUI.Button(names, PlanBoxWords.NamesMark, namesShown ? Skin.On : Skin.IconButton)) ShowNames(!namesShown);
+            // Its mark drawn over the button as the other switches' icons are, in the accent while on.
+            if (GUI.Button(names, GUIContent.none, namesShown ? Skin.On : Skin.IconButton)) ShowNames(!namesShown);
+            if (repaint) Skin.LabelIn(names, PlanBoxWords.NamesMark, Skin.Glyph, namesShown ? Skin.Accent : Skin.Dim);
             if (grow.Contains(e.mousePosition)) AskTip("plan:grow", PlanBoxWords.GrowTip(_planBig));
             if (GUI.Button(grow, GUIContent.none, _planBig ? Skin.On : Skin.IconButton)) GrowPlan(!_planBig);
             if (repaint) Skin.Icon(new Rect(grow.x + U(4f), grow.y + U(4f), grow.width - U(8f), grow.height - U(8f)), Skin.Resize, _planBig ? Skin.Accent : Skin.Dim);

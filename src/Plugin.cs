@@ -61,6 +61,8 @@ namespace Scry
             { typeof(NoCombatWhileOpen), Feature.NoCombatWhileOpen },
             { typeof(LookCapture), Feature.CursorHeldWhileLooking },
             { typeof(WheelBlock), Feature.WheelKeptFromCamera },
+            { typeof(MapMarkClick), Feature.DungeonMarksOnMap },
+            { typeof(MapMarkDoubleClick), Feature.DungeonMarksOnMap },
             { typeof(SceneOrigins), Feature.PrefabOrigins },
             { typeof(StatusEffectOrigins), Feature.StatusEffectOrigins },
             { typeof(RaidOrigins), Feature.RaidOrigins },

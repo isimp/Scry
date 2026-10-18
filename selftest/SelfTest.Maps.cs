@@ -247,9 +247,17 @@ namespace Scry
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
             yield return Until(() => MapMarkButtons.MarksShown > 0, 5);
             p.Check(MapMarkButtons.MarksShown == 1, "the large map has a mark for the map of this world alone", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
-            yield return Picture(p, $"the mark of {entry.Name} on the map");
-
-            MapMarkButtons.ClickForTest(0);
+            // The pointer put on it, as a player's: what it meets first, the game's tip shown, a click taken.
+            var center = MapMarkButtons.MarkCenterForTest(0);
+            if (!p.Check(center != null, "the mark stands on the screen")) yield break;
+            p.Note($"the pointer at the mark's middle first meets: {MapMarkButtons.RaycastForTest(0) ?? "no event system"}");
+            ZInput.SetMousePosition(center.Value);
+            yield return Until(() => MapMarkButtons.TipShownForTest, 3);
+            p.Check(MapMarkButtons.TipShownForTest, "the pointer resting on it shows the game's tip");
+            var shownAt = Time.unscaledTime;
+            yield return Until(() => Time.unscaledTime - shownAt > 1.2f, 3);
+            yield return Picture(p, $"the mark of {entry.Name} on the map with its tip");
+            p.Check(MapMarkButtons.ClickWherePointerIsForTest(), "a click on the map where the pointer is goes to the mark");
             yield return Until(() => ExampleLayouts.ShownMap == id && Stage.ExampleRoomsTotal == rolled.Rooms.Count, 60);
             p.Check(Minimap.instance.m_mode != Minimap.MapMode.Large && Session.IsOpen && X.Selected == entry && ExampleLayouts.ShownMap == id,
                 "a click on it closes the map and opens Scry on its page, its map on the stage", $"map {Minimap.instance.m_mode}, selected {X.Selected?.Name}, shown {ExampleLayouts.ShownMap ?? "an example"}");
