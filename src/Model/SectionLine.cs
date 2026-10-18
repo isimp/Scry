@@ -5,15 +5,16 @@ namespace Scry
 {
     /// <summary>
     /// The line of section names under the details' title, for going round a long page. It
-    /// shows where there is more than one section to go to; a click brings a section's heading
-    /// to the top of the details, as far as they scroll; and the section being read is lit: the
-    /// one a click went to while the details stay where it put them, else the last whose heading
-    /// has come within the top third of what shows, or the last of all at the end of the scroll.
+    /// shows on every page with a section, the icon folding every section at its end; a click
+    /// brings a section's heading to the top of the details, as far as they scroll; and the
+    /// section being read is lit: the one a click went to while the details stay where it put
+    /// them, else the last whose heading has come within the top third of what shows, or the last
+    /// of all at the end of the scroll.
     /// </summary>
     internal static class SectionLine
     {
-        /// <summary>Whether the line shows, for a page of so many sections.</summary>
-        public static bool Shows(int sections) => sections >= 2;
+        /// <summary>Whether the line shows, for a page of so many sections: on every page with one, so every page has the same rows.</summary>
+        public static bool Shows(int sections) => sections >= 1;
 
         /// <summary>Where the details scroll to for a section whose heading stands at a height: a gap over the heading, within the scroll's range.</summary>
         public static float JumpTo(float heading, float gap, float maxScroll) => Math.Min(Math.Max(heading - gap, 0f), Math.Max(maxScroll, 0f));

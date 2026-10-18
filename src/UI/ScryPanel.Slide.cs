@@ -40,58 +40,72 @@ namespace Scry
             CloseViewMenu();
         }
 
-        /// <summary>
-        /// The icons beside the name, right to left from <paramref name="right"/>: size while the
-        /// stage shows a model, volume, animation speed where it has animations, and the one
-        /// Repeat for whatever plays. Returns the width they take.
-        /// </summary>
-        private static float SlideIcons(Entry entry, Modifiers modifiers, float right, float y, bool sized)
+        /// <summary>Whether the entry has animations to set the speed of, and whether something of it plays to repeat.</summary>
+        private static (bool Animated, bool Plays) Playing(Entry entry)
         {
-            var size = U(22f);
-            var x = right;
-            if (sized)
-            {
-                x -= size;
-                SlideIcon(Slide.Size, entry, new Rect(x, y, size, size), Skin.Resize, !Mathf.Approximately(modifiers.Scale, 1f),
-                    HeaderSliders.SizeTip(modifiers.Scale));
-                x -= U(4f);
-            }
-            x -= size;
-            SlideIcon(Slide.Volume, entry, new Rect(x, y, size, size), Skin.Speaker, !Mathf.Approximately(modifiers.Volume, 1f),
-                HeaderSliders.VolumeTip(modifiers.Volume));
             var animated = Previews.Clips().Count > 0;
+            return (animated, animated || entry.Kind == Kind.Sound || entry.Kind == Kind.Effect);
+        }
+
+        /// <summary>How many slider icons the toolbar's right end holds: the one Repeat for whatever plays, animation speed where it has animations, volume, and size while the stage shows a model.</summary>
+        private static int SlideIconCount(Entry entry, bool sized)
+        {
+            var (animated, plays) = Playing(entry);
+            return (plays ? 1 : 0) + (animated ? 1 : 0) + 1 + (sized ? 1 : 0);
+        }
+
+        /// <summary>
+        /// The slider icons at the toolbar's right end, one joined group from <paramref name="x"/>,
+        /// left to right: the one Repeat for whatever plays, animation speed where it has
+        /// animations, volume, and size while the stage shows a model (<see cref="SlideIconCount"/>).
+        /// </summary>
+        private static void SlideIcons(Entry entry, Modifiers modifiers, float x, float y, bool sized)
+        {
+            var size = ToolbarRow;
+            var seam = U(1f);
+            var count = SlideIconCount(entry, sized);
+            var (animated, plays) = Playing(entry);
+            var k = 0;
+            Rect Next() => new Rect(x + k * (size + seam), y, size, size);
+            if (plays)
+            {
+                RepeatIcon(Next(), k == 0, k == count - 1);
+                k++;
+            }
             if (animated)
             {
-                x -= U(4f) + size;
-                SlideIcon(Slide.Speed, entry, new Rect(x, y, size, size), Skin.Speed, !Mathf.Approximately(modifiers.AnimationSpeed, 1f),
-                    HeaderSliders.SpeedTip(modifiers.AnimationSpeed));
+                SlideIcon(Slide.Speed, entry, Next(), Skin.Speed, !Mathf.Approximately(modifiers.AnimationSpeed, 1f), HeaderSliders.SpeedTip(modifiers.AnimationSpeed), k == 0, k == count - 1);
+                k++;
             }
-            if (animated || entry.Kind == Kind.Sound || entry.Kind == Kind.Effect)
-            {
-                x -= U(4f) + size;
-                RepeatIcon(new Rect(x, y, size, size));
-            }
-            return right - x;
+            SlideIcon(Slide.Volume, entry, Next(), Skin.Speaker, !Mathf.Approximately(modifiers.Volume, 1f), HeaderSliders.VolumeTip(modifiers.Volume), k == 0, k == count - 1);
+            k++;
+            if (sized) SlideIcon(Slide.Size, entry, Next(), Skin.Resize, !Mathf.Approximately(modifiers.Scale, 1f), HeaderSliders.SizeTip(modifiers.Scale), k == 0, k == count - 1);
+        }
+
+        /// <summary>A piece of the slider icons' group: its ground, lit as the panel's switches are while on, and its icon over it; where it stands, for the self-test.</summary>
+        private static void IconPiece(Rect rect, Texture2D icon, bool on, bool first, bool last)
+        {
+            var hover = rect.Contains(Event.current.mousePosition);
+            Skin.JoinedPiece(rect, on ? Skin.Alpha(Skin.Accent, hover ? 0.28f : 0.2f) : hover ? Skin.RaisedHover : Skin.Raised, first, last);
+            Skin.Icon(new Rect(rect.x + U(4f), rect.y + U(4f), rect.width - U(8f), rect.height - U(8f)), icon, on ? Skin.Accent : hover ? Skin.Text : Skin.Dim);
+            if (Event.current.type == EventType.Repaint) ToolbarPartsForTest.Add(("icon", rect));
         }
 
         /// <summary>The one Repeat for whatever plays: lit while on, a click switching it and remembering it.</summary>
-        private static void RepeatIcon(Rect rect)
+        private static void RepeatIcon(Rect rect, bool first, bool last)
         {
-            var hover = rect.Contains(Event.current.mousePosition);
-            if (Event.current.type == EventType.Repaint) Skin.Icon(rect, Skin.Repeat, Previews.Repeat ? Skin.Accent : hover ? Skin.Text : Skin.Dim);
-            if (hover) AskTip("repeat", ActionWords.Repeat(Previews.Repeat));
+            IconPiece(rect, Skin.Repeat, Previews.Repeat, first, last);
+            if (rect.Contains(Event.current.mousePosition)) AskTip("repeat", ActionWords.Repeat(Previews.Repeat));
             if (!GUI.Button(rect, GUIContent.none, GUIStyle.none)) return;
             Previews.Repeat = !Previews.Repeat;
             SaveRects();
         }
 
-        private static void SlideIcon(Slide kind, Entry entry, Rect rect, Texture2D icon, bool changed, string tip)
+        private static void SlideIcon(Slide kind, Entry entry, Rect rect, Texture2D icon, bool changed, string tip, bool first, bool last)
         {
             var open = _slide == kind && _slideFor == entry;
-            var hover = rect.Contains(Event.current.mousePosition);
-            if (Event.current.type == EventType.Repaint) Skin.Icon(rect, icon, open || changed ? Skin.Accent : hover ? Skin.Text : Skin.Dim);
-            if (hover && !open) AskTip("slide:" + kind, tip);
-
+            IconPiece(rect, icon, open || changed, first, last);
+            if (rect.Contains(Event.current.mousePosition) && !open) AskTip("slide:" + kind, tip);
             // Where it is on the screen each frame, so the box follows the panel.
             var screen = OnScreen(rect);
             if (open) SlidePlace(screen);

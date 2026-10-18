@@ -138,7 +138,11 @@ namespace Scry
         /// <summary>Whether the details stand where going to a section or topic put them, for the self-test; a topic is never lit on the line.</summary>
         public static bool StandsAt(string key) => key != null && _wentTo == key && Mathf.Abs(_sideScroll.y - _wentToScroll) < 1f;
 
-        private static ChipFlow LineFlow(float width, float y) => new ChipFlow(0f, width, y, U(20f), U(14f), U(2f));
+        /// <summary>The names flow across the line short of the room the fold all icon takes at its end.</summary>
+        private static ChipFlow LineFlow(float width, float y) => new ChipFlow(0f, width - FoldRoom, y, U(20f), U(14f), U(2f));
+
+        /// <summary>The room at the line's end for the icon that folds every section, and the gap before it.</summary>
+        private static float FoldRoom => U(30f);
 
         private static float LinkWidth(SectionMark mark) => Skin.Width(Skin.Small, mark.Link) + U(2f);
 
@@ -152,20 +156,24 @@ namespace Scry
         }
 
         /// <summary>
-        /// Draws the line at a height, the section being read lit and underlined; a click on a
-        /// name goes to its section (<see cref="GoToSection"/>).
+        /// Draws the line at a height, the section being read lit and underlined, the icon that
+        /// folds every section at its first line's end; a click on a name goes to its section
+        /// (<see cref="GoToSection"/>).
         /// </summary>
         /// <param name="width">How wide the line may run.</param>
         /// <param name="y">The line's top.</param>
         /// <param name="shown">How much of the details shows at once.</param>
         /// <param name="maxScroll">How far the details scroll at most.</param>
-        private static float SectionLineRow(float width, float y, float shown, float maxScroll)
+        /// <param name="anyOpen">Whether any section stands open, so the icon folds them all, else opens them all.</param>
+        private static float SectionLineRow(float width, float y, float shown, float maxScroll, bool anyOpen)
         {
             if (!SectionLine.Shows(Marks.Count))
             {
                 SectionLit = null;
                 return y;
             }
+            FoldAllIcon(new Rect(width - U(22f), y, U(22f), U(20f)), anyOpen);
+            var lineStart = y;
             MarkTops.Clear();
             var wentTo = -1;
             for (var i = 0; i < Marks.Count; i++)
@@ -189,6 +197,7 @@ namespace Scry
                 if (GUI.Button(rect, GUIContent.none, GUIStyle.none)) GoToSection(mark.Key);
             }
             CountDrawn(PanelPart.SectionLine);
+            if (Event.current.type == EventType.Repaint) ToolbarPartsForTest.Add(("line", new Rect(0f, lineStart, width - FoldRoom, flow.Below - lineStart)));
             return flow.Below + U(6f);
         }
     }

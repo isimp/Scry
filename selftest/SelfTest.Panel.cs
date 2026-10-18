@@ -135,6 +135,91 @@ namespace Scry
             }
         }
 
+        /// <summary>
+        /// The page's header in the full view and the compact one, for a creature, an effect, an
+        /// item and a camp: the name with copy and star at its row's end; the toolbar under it,
+        /// the actions joined from the left and the slider icons joined at its first line's end;
+        /// the line of sections under it with fold all at its end; none over another. Pictured.
+        /// </summary>
+        private static IEnumerator HeaderLaidOut(Probe p)
+        {
+            var picks = new[]
+            {
+                Pick(Kind.Creature, "Greydwarf", "Troll"),
+                X.Catalog.FirstOrDefault(e => e.Kind == Kind.Effect && e.Origin == Origin.Vanilla),
+                Pick(Kind.Item, "HelmetBronze", "HelmetLeather", "ArmorLeatherChest"),
+                Pick(Kind.Location, "Greydwarf_camp1", "Greydwarf_camp2"),
+            }.Where(e => e != null).ToList();
+            if (picks.Count == 0) p.Skip("there is nothing to look at");
+            KeepView();
+            var wasCompact = ScryPanel.Compact;
+            var wrong = new List<string>();
+            var looked = 0;
+            foreach (var compact in new[] { false, true })
+            {
+                ScryPanel.Compact = compact;
+                foreach (var entry in picks)
+                {
+                    Select(entry);
+                    var drawn = ScryPanel.Drawn(PanelPart.Toolbar);
+                    yield return Until(() => ScryPanel.Drawn(PanelPart.Toolbar) > drawn + 2 && ScryPanel.ToolbarPartsForTest.Any(q => q.Part == "line"), 5);
+                    var name = $"{entry.Name} {(compact ? "compact" : "full")}";
+                    looked++;
+                    wrong.AddRange(HeaderWrong(name));
+                    yield return Picture(p, $"header {name}");
+                }
+            }
+            ScryPanel.Compact = wasCompact;
+            p.Check(looked > 0 && wrong.Count == 0, "each page's header stands the same in both views: the name with copy and star at its end, the actions joined from the left under it and the slider icons at that line's end, the line of sections with fold all at its end, none over another", string.Join("; ", wrong.Take(6)));
+        }
+
+        /// <summary>What is wrong with where the page's header was last drawn (<see cref="HeaderLaidOut"/>).</summary>
+        private static List<string> HeaderWrong(string name)
+        {
+            var wrong = new List<string>();
+            var parts = ScryPanel.ToolbarPartsForTest.ToList();
+            Rect? Of(string part) => parts.Any(q => q.Part == part) ? parts.First(q => q.Part == part).At : (Rect?)null;
+            if (!(Of("name") is Rect title) || !(Of("copy") is Rect copy) || !(Of("star") is Rect star))
+            {
+                wrong.Add($"{name}: {string.Join(", ", parts.Select(q => q.Part))} drawn");
+                return wrong;
+            }
+            var right = star.xMax;
+            if (copy.xMax > star.x || Mathf.Abs(copy.y - star.y) > 0.5f || title.xMax > copy.x) wrong.Add($"{name}: the name at {Said(title)}, copy at {Said(copy)}, star at {Said(star)}");
+
+            var actions = parts.Where(q => q.Part == "action").Select(q => q.At).ToList();
+            var icons = parts.Where(q => q.Part == "icon").Select(q => q.At).ToList();
+            if (icons.Count == 0) wrong.Add($"{name}: no slider icon");
+            else
+            {
+                if (Mathf.Abs(icons.Max(i => i.xMax) - right) > 1f || icons.Any(i => Mathf.Abs(i.y - icons[0].y) > 0.5f) || icons[0].y < star.yMax)
+                    wrong.Add($"{name}: the icons not one group at the toolbar's end, the first at {Said(icons[0])}");
+                for (var i = 1; i < icons.Count; i++) if (icons[i].x - icons[i - 1].xMax > 1.5f) wrong.Add($"{name}: icon {Numbers.Count(i + 1)} apart at {Said(icons[i])}");
+            }
+            if (actions.Count > 0)
+            {
+                if (Mathf.Abs(actions[0].x) > 0.5f || (icons.Count > 0 && Mathf.Abs(actions[0].y - icons[0].y) > 0.5f)) wrong.Add($"{name}: the first action at {Said(actions[0])}");
+                for (var i = 1; i < actions.Count; i++)
+                {
+                    var sameLine = Mathf.Abs(actions[i].y - actions[i - 1].y) < 0.5f;
+                    if (sameLine ? actions[i].x - actions[i - 1].xMax > 1.5f : Mathf.Abs(actions[i].x) > 0.5f) wrong.Add($"{name}: action {Numbers.Count(i + 1)} at {Said(actions[i])}");
+                }
+            }
+            var toolbarBottom = actions.Concat(icons).Select(r => r.yMax).DefaultIfEmpty(star.yMax).Max();
+            if (!(Of("line") is Rect line) || !(Of("fold") is Rect fold)) wrong.Add($"{name}: no line of sections or no fold all");
+            else if (Mathf.Abs(fold.xMax - right) > 1f || Mathf.Abs(fold.y - line.y) > 0.5f || line.y < toolbarBottom) wrong.Add($"{name}: fold all at {Said(fold)}, the line at {Said(line)}");
+
+            for (var i = 0; i < parts.Count; i++)
+            {
+                for (var j = i + 1; j < parts.Count; j++)
+                {
+                    var overlap = Rect.MinMaxRect(Mathf.Max(parts[i].At.xMin, parts[j].At.xMin), Mathf.Max(parts[i].At.yMin, parts[j].At.yMin), Mathf.Min(parts[i].At.xMax, parts[j].At.xMax), Mathf.Min(parts[i].At.yMax, parts[j].At.yMax));
+                    if (overlap.width > 0.5f && overlap.height > 0.5f) wrong.Add($"{name}: {parts[i].Part} over {parts[j].Part}");
+                }
+            }
+            return wrong;
+        }
+
         /// <summary>An example of the search's help, clicked, goes into the search and the help gives way to what it finds.</summary>
         private static IEnumerator HelpExamplesTried(Probe p)
         {

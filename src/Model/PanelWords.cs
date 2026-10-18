@@ -38,10 +38,7 @@ namespace Scry
         /// <summary>The tip of an example in the search's help.</summary>
         public static string TryInSearch(string example) => $"Search for {example}";
 
-        /// <summary>The link that folds or opens every section, by whether any is open.</summary>
-        public static string FoldAll(bool anyOpen) => anyOpen ? "fold all" : "open all";
-
-        /// <summary>The tip of the link that folds or opens every section.</summary>
+        /// <summary>The tip of the icon at the section line's end that folds or opens every section.</summary>
         public static string FoldAllTip(bool anyOpen) => anyOpen ? "Fold every section away" : "Open every section";
 
         /// <summary>A setting's state.</summary>

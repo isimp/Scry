@@ -52,22 +52,41 @@ namespace Scry
             }
         }
 
-        /// <summary>Room kept at the end of the name's second line for the link that folds every section.</summary>
-        private static float _foldAllW;
-
         private static bool AnyOpen()
         {
             foreach (var key in Foldable) if (!Folded.Contains(key)) return true;
             return false;
         }
 
-        /// <summary>Folds or opens every section, always in the same place whatever is selected.</summary>
-        private static void FoldAllLink(Rect link, string text, bool anyOpen)
+        /// <summary>The icon at the section line's end that folds every section away, or opens every one where none is open; always in the same place whatever is selected.</summary>
+        private static void FoldAllIcon(Rect rect, bool anyOpen)
         {
-            LinkLabel(link, text, Skin.FaintLabel, Skin.Faint);
-            if (link.Contains(Event.current.mousePosition)) AskTip("fold-all", PanelWords.FoldAllTip(anyOpen));
-            if (GUI.Button(link, GUIContent.none, GUIStyle.none)) FoldAll(anyOpen);
+            var hover = rect.Contains(Event.current.mousePosition);
+            if (GUI.Button(rect, GUIContent.none, Skin.IconButton)) FoldAll(anyOpen);
+            Skin.Icon(new Rect(rect.x + U(3f), rect.y + U(2f), rect.width - U(6f), rect.height - U(4f)), anyOpen ? Skin.FoldAllMark : Skin.OpenAllMark, hover ? Skin.Text : Skin.Dim);
+            if (hover) AskTip("fold-all", PanelWords.FoldAllTip(anyOpen));
+            if (Event.current.type == EventType.Repaint) ToolbarPartsForTest.Add(("fold", rect));
         }
+
+        /// <summary>A square button's icon, inset from its edges.</summary>
+        private static Rect Inset(Rect rect) => new Rect(rect.x + U(4f), rect.y + U(4f), rect.width - U(8f), rect.height - U(8f));
+
+        /// <summary>
+        /// The toolbar under the name: the entry's actions as one joined group from the left, the
+        /// slider icons as one at the first line's right end, the actions wrapping as a group
+        /// under them where the line has no room (<see cref="PageToolbar"/>).
+        /// </summary>
+        private static float Toolbar(Explorer explorer, Entry entry, float width, float y, PageToolbar.Laid laid, bool sized, bool withStage)
+        {
+            if (laid.Lines == 0) return y;
+            CountDrawn(PanelPart.Toolbar);
+            DrawActions(entry, withStage, new Vector2(0f, y));
+            SlideIcons(entry, explorer.Modifiers, laid.IconsX, y, sized);
+            return y + ToolbarHeight(laid.Lines);
+        }
+
+        /// <summary>How tall the toolbar is for so many lines, with the gap under it; nothing for none.</summary>
+        private static float ToolbarHeight(int lines) => lines > 0 ? lines * ToolbarRow + (lines - 1) * ToolbarLineGap + U(10f) : 0f;
 
         /// <summary>The entry the side was last shown for; another starts at its top.</summary>
         private static Entry _sideFor;
@@ -110,18 +129,23 @@ namespace Scry
             var top = rect.y;
             if (withStage) top += SideStage(explorer, entry, rect);
 
-            // The name stays in sight while what is below it scrolls, so a long section scrolled
-            // to never leaves the selection unnamed; under it a line of the sections goes to each.
-            var lineH = SectionLineHeight(rect.width - U(14f));
-            var titleArea = new Rect(rect.x, top, rect.width - U(14f), U(68f) + lineH);
+            // The header stays in sight while what is below it scrolls, so a long section scrolled
+            // to never leaves the selection unnamed: the name, the toolbar under it (what it does,
+            // its sliders) and a line of the sections going to each, fold all at its end. What the
+            // toolbar holds is measured first, as it decides how tall the header is.
+            var width = rect.width - U(14f);
+            MeasureActions(entry, withStage);
+            var sized = Adjustable(entry, withStage, out var staged) && staged;
+            var laid = PageToolbar.Lay(width, ActionWidths, SlideIconCount(entry, sized), ToolbarRow, U(1f), U(8f), ActionPlaces);
+            var lineH = SectionLineHeight(width);
+            var titleArea = new Rect(rect.x, top, width, TitleHeight(explorer, entry) + ToolbarHeight(laid.Lines) + lineH);
             var shown = rect.yMax - titleArea.yMax;
             var anyOpen = AnyOpen();
-            var foldText = PanelWords.FoldAll(anyOpen);
-            _foldAllW = Skin.Width(Skin.FaintLabel, foldText) + U(16f);
+            if (Event.current.type == EventType.Repaint) ToolbarPartsForTest.Clear();
             GUI.BeginGroup(titleArea);
-            var titleH = Section("side title", 0f, at => Title(explorer, entry, titleArea.width, at, withStage));
-            FoldAllLink(new Rect(titleArea.width - _foldAllW + U(12f), U(34f), _foldAllW - U(12f), U(22f)), foldText, anyOpen);
-            titleH = Section("side sections", titleH, at => SectionLineRow(titleArea.width, at, shown, Mathf.Max(0f, _sideHeight - shown)));
+            var titleH = Section("side title", 0f, at => Title(explorer, entry, titleArea.width, at));
+            titleH = Section("side toolbar", titleH, at => Toolbar(explorer, entry, titleArea.width, at, laid, sized, withStage));
+            titleH = Section("side sections", titleH, at => SectionLineRow(titleArea.width, at, shown, Mathf.Max(0f, _sideHeight - shown), anyOpen));
             GUI.EndGroup();
             top += titleH;
 
@@ -135,7 +159,7 @@ namespace Scry
             StartMarking();
             // Without a stage a sound says what it is here; a status effect's card would only repeat In the game.
             if (!withStage && entry.Kind == Kind.Sound) y = Section("side card", y, at => CompactCard(entry, cw, at));
-            y = Section("side actions", y, at => Actions(entry, cw, at, withStage));
+            y = Section("side actions", y, at => ActionNotes(entry, cw, at, withStage));
             if (Looks.IsWorn(entry)) y = Section("side wearing", y, at => Wearing(explorer, cw, at));
             if (entry.Kind == Kind.Sound)
             {
@@ -225,30 +249,43 @@ namespace Scry
             }
         }
 
-        private static float Title(Explorer explorer, Entry entry, float width, float y, bool withStage)
+        /// <summary>How tall the name's rows are: the name, the line under it, and the floor's line where the floor shows it.</summary>
+        private static float TitleHeight(Explorer explorer, Entry entry) => U(34f) + U(26f) + (explorer.ByFloor(entry) ? U(24f) : 0f) + U(8f);
+
+        /// <summary>Where the header's parts were last drawn, by what each is: the name, copy, star, each action and slider icon, the section line and fold all; for the self-test.</summary>
+        [Diagnostic]
+        public static List<(string Part, Rect At)> ToolbarPartsForTest { get; } = new List<(string, Rect)>();
+
+        private static float Title(Explorer explorer, Entry entry, float width, float y)
         {
             var primary = entry.ShownName;
-            var copyW = U(104f);
+            var repaint = Event.current.type == EventType.Repaint;
 
-            // Volume and, while the stage shows a model, size: small icons opening their sliders.
-            var sized = Adjustable(entry, withStage, out var staged) && staged;
-            var iconsW = SlideIcons(entry, explorer.Modifiers, width - copyW - U(44f), y + U(4f), sized) + U(8f);
-            var nameRect = new Rect(0f, y, width - copyW - U(46f) - iconsW, U(30f));
+            // The name, then copying it and keeping it a favourite, square buttons at the row's end.
+            var size = ToolbarRow;
+            var starRect = new Rect(width - size, y + U(3f), size, size);
+            var copyRect = new Rect(starRect.x - U(6f) - size, starRect.y, size, size);
+            var nameRect = new Rect(0f, y, copyRect.x - U(10f), U(30f));
             var fits = FitLabel(nameRect, primary, Skin.Big, 13f);
             if (!fits && nameRect.Contains(Event.current.mousePosition)) AskTip("title", primary);
 
-            var favourite = explorer.Favourites.Contains(entry);
-            var starRect = new Rect(width - U(28f), y + U(4f), U(22f), U(22f));
-            Skin.Icon(starRect, favourite ? Skin.Star : Skin.StarHollow, favourite ? Skin.Accent : Skin.Dim);
-            if (GUI.Button(starRect, GUIContent.none, GUIStyle.none)) explorer.ToggleFavourite(entry);
-            if (starRect.Contains(Event.current.mousePosition)) AskTip("star", DetailWords.StarTip(favourite));
-
-            var copyRect = new Rect(width - copyW - U(38f), y + U(2f), copyW, U(26f));
             if (copyRect.Contains(Event.current.mousePosition)) AskTip("copy-name", ActionWords.CopyName(entry.Name));
-            if (GUI.Button(copyRect, "Copy name", Skin.Button))
+            if (GUI.Button(copyRect, GUIContent.none, Skin.IconButton))
             {
                 GUIUtility.systemCopyBuffer = entry.Name;
                 Say(PanelWords.Copied(entry.Name));
+            }
+            Skin.Icon(Inset(copyRect), Skin.CopyMark, copyRect.Contains(Event.current.mousePosition) ? Skin.Text : Skin.Dim);
+
+            var favourite = explorer.Favourites.Contains(entry);
+            if (GUI.Button(starRect, GUIContent.none, favourite ? Skin.On : Skin.IconButton)) explorer.ToggleFavourite(entry);
+            Skin.Icon(Inset(starRect), favourite ? Skin.Star : Skin.StarHollow, favourite ? Skin.Accent : starRect.Contains(Event.current.mousePosition) ? Skin.Text : Skin.Dim);
+            if (starRect.Contains(Event.current.mousePosition)) AskTip("star", DetailWords.StarTip(favourite));
+            if (repaint)
+            {
+                ToolbarPartsForTest.Add(("name", nameRect));
+                ToolbarPartsForTest.Add(("copy", copyRect));
+                ToolbarPartsForTest.Add(("star", starRect));
             }
             y += U(34f);
 
@@ -256,9 +293,8 @@ namespace Scry
             var x = _compact ? KindBadge(entry, new Vector2(0f, y)) + U(10f) : 0f;
             var origin = DetailWords.From(entry);
             var sub = entry.Name == primary ? origin : DetailWords.Sub(entry.Name, origin);
-            // The second line is kept even when empty: the link to fold every section sits at its end.
             {
-                var subRect = new Rect(x, y, width - x - _foldAllW, U(22f));
+                var subRect = new Rect(x, y, width - x, U(22f));
                 // Where a mod added it, where it comes from is a link to the mod's own page, or else
                 // shows everything it added, drawn as a link; the prefab's name before it is not.
                 var linked = entry.Origin == Origin.Mod && entry.ModName.Length > 0 && entry.Kind != Kind.Mod;

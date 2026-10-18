@@ -37,8 +37,7 @@ namespace Scry.Tests
         [Fact]
         public void FoldingEverySectionSaysWhichWayItGoes()
         {
-            Assert.Equal("fold all", PanelWords.FoldAll(anyOpen: true));
-            Assert.Equal("open all", PanelWords.FoldAll(anyOpen: false));
+            // An icon at the section line's end; its tip says which way it goes.
             Assert.Equal("Fold every section away", PanelWords.FoldAllTip(anyOpen: true));
             Assert.Equal("Open every section", PanelWords.FoldAllTip(anyOpen: false));
         }

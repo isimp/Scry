@@ -95,6 +95,9 @@ namespace Scry
         /// <summary>The cut control's icons beside <see cref="Roof"/> (the roof on): the roof lifted off the walls, cut from above; half a house beside the cut, cut from the side.</summary>
         public static Texture2D CutAbove, CutSide;
 
+        /// <summary>Two sheets, one over the other, for copying; two chevrons up for folding every section away, and down for opening every one.</summary>
+        public static Texture2D CopyMark, FoldAllMark, OpenAllMark;
+
         private static float _builtScale = -1f;
         private static bool _warmed;
         private static int _warmNext;
@@ -579,6 +582,15 @@ namespace Scry
             DrawPill(rect, color);
         }
 
+        /// <summary>A piece of buttons joined into one, as the panel's buttons are rounded: rounded at its left or right where it is the group's own end, square where it meets the next piece.</summary>
+        public static void JoinedPiece(Rect rect, Color color, bool roundLeft, bool roundRight)
+        {
+            if (Event.current.type != EventType.Repaint) return;
+            if (roundLeft && roundRight) DrawSliced(rect, Tint(Rounded, color, null), 10);
+            else if (roundLeft || roundRight) DrawSliced(rect, Tint(roundLeft ? RoundedLeft : RoundedRight, color, null), 10);
+            else Fill(rect, color);
+        }
+
         /// <summary>A piece of pills joined into one, filled with an opaque colour: a pill's round end at its left or right where it is the group's own end, square where it meets the next piece.</summary>
         public static void PillPiece(Rect rect, Color color, bool roundLeft, bool roundRight)
         {
@@ -785,6 +797,27 @@ namespace Scry
             FoldDown = Shape(32, 32, FoldDownCoverage);
             CutAbove = Shape(32, 32, CutAboveCoverage);
             CutSide = Shape(32, 32, CutSideCoverage);
+            CopyMark = Shape(32, 32, CopyCoverage);
+            FoldAllMark = Shape(32, 32, (x, y) => Chevrons(x, y, up: true));
+            OpenAllMark = Shape(32, 32, (x, y) => Chevrons(x, y, up: false));
+        }
+
+        /// <summary>Two sheets: the one behind at the top left, the one in front at the bottom right over it, each an outline.</summary>
+        private static bool CopyCoverage(float x, float y)
+        {
+            bool In(float x0, float y0, float x1, float y1) => x >= x0 && x <= x1 && y >= y0 && y <= y1;
+            if (In(12f, 5f, 27f, 20f)) return !In(14.5f, 7.5f, 24.5f, 17.5f);
+            return In(5f, 12f, 20f, 27f) && !In(7.5f, 14.5f, 17.5f, 24.5f);
+        }
+
+        /// <summary>Two chevrons one over the other, pointing up or down, as thick as the resize arrow's shaft.</summary>
+        private static bool Chevrons(float x, float y, bool up)
+        {
+            var dx = Mathf.Abs(x - 16f);
+            if (dx > 8f || y < 4f || y > 28f) return false;
+            return up
+                ? Mathf.Abs(y - (25f - dx)) <= 2.3f || Mathf.Abs(y - (15f - dx)) <= 2.3f
+                : Mathf.Abs(y - (7f + dx)) <= 2.3f || Mathf.Abs(y - (17f + dx)) <= 2.3f;
         }
 
         /// <summary>The roof's house with its roof lifted clear of its walls: open walls and a floor, the roof over them with a gap between.</summary>

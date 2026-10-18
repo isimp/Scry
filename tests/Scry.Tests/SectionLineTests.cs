@@ -26,10 +26,11 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheLineShowsOnlyWhereThereIsMoreThanOneSectionToGoTo()
+        public void TheLineShowsOnEveryPageWithASection()
         {
+            // A page of one section names it too, so every page has the same rows, fold all at the line's end.
             Assert.False(SectionLine.Shows(0));
-            Assert.False(SectionLine.Shows(1));
+            Assert.True(SectionLine.Shows(1));
             Assert.True(SectionLine.Shows(2));
         }
 

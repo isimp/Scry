@@ -23,6 +23,7 @@ namespace Scry
         FactTable,
         TopicLinks,
         SectionLine,
+        Toolbar,
         TestNotice,
         Slider,
         StageChip,

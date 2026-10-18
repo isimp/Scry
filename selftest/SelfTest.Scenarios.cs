@@ -31,6 +31,7 @@ namespace Scry
             yield return S("an example of the search's help is tried with a click", HelpExamplesTried, 5, () => { ScryPanel.ShowHelp(false); X.SearchEverything(""); });
             yield return S("the View box and the sliders open, draw, and close on another selection", BoxesOpen, 10, ScryPanel.CloseBoxes);
             yield return S("the line under a page's title names its sections and goes to each", SectionLineGoes, 10);
+            yield return S("each page's header stands the same in the full view and the compact one", HeaderLaidOut, 90, () => ScryPanel.Compact = _before?.Compact ?? ScryPanel.Compact);
             yield return S("the catalog is sound: keys, names, groups and counts", CatalogSound, 10);
             yield return S("every search is quick enough to run as you type", SearchSpeed, 10, ResetList);
 
