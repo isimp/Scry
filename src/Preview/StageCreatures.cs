@@ -38,6 +38,12 @@ namespace Scry
 
         private bool _shown = true;
         private float _cutAt = float.NaN;
+
+        /// <summary>Whether a creature, by its prefab's name, is left off the stage: one the character has not met, with the compendium on. None leaves every one on.</summary>
+        public Func<string, bool> LeftOff;
+
+        /// <summary>How many creatures rolled were left off the stage, not met yet, since the copy came.</summary>
+        public int LeftOffCount { get; private set; }
         private int _cutCount = -1;
 
         /// <summary>Whether the creatures stand on the stage or are put away, as the stage's chip has it.</summary>
@@ -111,6 +117,11 @@ namespace Scry
                 var waiting = _toMake[0];
                 _toMake.RemoveAt(0);
                 if (waiting.At == null || waiting.Creature == null) continue;
+                if (LeftOff != null && LeftOff(waiting.Creature.name))
+                {
+                    LeftOffCount++;
+                    continue;
+                }
                 any = true;
                 var copy = make(waiting);
                 if (copy == null) continue;
@@ -163,6 +174,7 @@ namespace Scry
             _rolledIn.Clear();
             Dropped = 0;
             Flying = 0;
+            LeftOffCount = 0;
         }
 
         /// <summary>Lets go of every creature, as the copy they stand on goes.</summary>
@@ -174,6 +186,7 @@ namespace Scry
             _rolledIn.Clear();
             Dropped = 0;
             Flying = 0;
+            LeftOffCount = 0;
         }
     }
 }

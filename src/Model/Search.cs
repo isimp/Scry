@@ -196,9 +196,10 @@ namespace Scry
         /// the kind chips count across every kind while one is picked.
         /// With the compendium (<paramref name="view"/>), only what the character has seen or knows
         /// matches, and what it has only seen only by its name and kind, since any other term would
-        /// tell what its closed page holds. Under the strict rules a known entry above the milestone
-        /// floor matches a term naming what it goes with (drops, biomes, places, stations, owners)
-        /// only through what the character saw go together with it, as its page shows. While
+        /// tell what its closed page holds. A known entry matches a term naming what it goes with
+        /// (drops, biomes, places, stations, owners) only through what the character has met, and
+        /// under the strict rules above the milestone floor only through what it saw go together
+        /// with it as well, as its page shows. While
         /// <paramref name="peeking"/>, a thing the character has not met is found only by its whole
         /// name in quotes, every name in quotes its own.
         /// </summary>
@@ -206,6 +207,8 @@ namespace Scry
             ICollection<string> only, int[] kindCounts, CompendiumView view = null, bool peeking = false)
         {
             var search = Parse(query.Text).Matcher;
+            var loosely = view != null ? new Guarded(view, false) : null;
+            var strictly = view != null ? new Guarded(view, true) : null;
             var found = new List<Entry>();
             var scores = new List<int>();
             var unordered = false;
@@ -223,7 +226,8 @@ namespace Scry
                     level = KnownLevel.Known;
                 }
 
-                var guard = view != null && view.Rule == CompendiumRule.Strict && level == KnownLevel.Known && !view.BelowFloor(entry) ? view : null;
+                var guard = view == null || view.Rule == CompendiumRule.Off || level != KnownLevel.Known ? null
+                    : view.Rule == CompendiumRule.Strict && !view.BelowFloor(entry) ? strictly : loosely;
                 var score = Score(entry, search, level == KnownLevel.Known, guard);
                 if (score == Miss) continue;
 
@@ -342,10 +346,10 @@ namespace Scry
 
         /// <summary>
         /// How well an entry matches; one not <paramref name="whole"/>ly known matches no term but
-        /// its kind; under the strict rules (<paramref name="strict"/>) a term naming what it goes
-        /// with matches only what was seen together with it.
+        /// its kind; with the compendium (<paramref name="guard"/>) a term naming what it goes with
+        /// matches only what its page names.
         /// </summary>
-        private static int Score(Entry entry, Matcher search, bool whole, CompendiumView strict)
+        private static int Score(Entry entry, Matcher search, bool whole, Guarded guard)
         {
             if (!whole)
             {
@@ -354,8 +358,8 @@ namespace Scry
             }
             foreach (var name in search.Names) if (!NamedExactly(entry, name)) return Miss;
             foreach (var name in search.NotNames) if (NamedExactly(entry, name)) return Miss;
-            foreach (var term in search.Terms) if (!TermMatches(entry, term, strict)) return Miss;
-            foreach (var term in search.NotTerms) if (TermMatches(entry, term, strict)) return Miss;
+            foreach (var term in search.Terms) if (!TermMatches(entry, term, guard)) return Miss;
+            foreach (var term in search.NotTerms) if (TermMatches(entry, term, guard)) return Miss;
             foreach (var word in search.NotWords)
             {
                 if (Rank(entry.Name, entry.NameUpper, word) != Miss || Rank(entry.DisplayName, entry.DisplayNameUpper, word) != Miss) return Miss;
@@ -372,7 +376,7 @@ namespace Scry
         }
 
         /// <summary>Whether any of a term's values matches the entry.</summary>
-        private static bool TermMatches(Entry entry, Term term, CompendiumView strict)
+        private static bool TermMatches(Entry entry, Term term, Guarded guard)
         {
             if (term.Key == "kind")
             {
@@ -381,13 +385,14 @@ namespace Scry
             }
             for (var i = 0; i < term.Values.Length; i++)
             {
-                if (term.Key == "station" ? StationMatches(Related(entry, entry.Stations, s => s.Name, strict), term.Stations[i], term.Levels[i]) : ValueMatches(entry, term.Key, term.Values[i], strict)) return true;
+                if (term.Key == "station" ? StationMatches(Related(entry, entry.Stations, s => s.Name, guard), term.Stations[i], term.Levels[i]) : ValueMatches(entry, term.Key, term.Values[i], guard)) return true;
             }
             return false;
         }
 
-        private static bool ValueMatches(Entry entry, string key, string value, CompendiumView strict)
+        private static bool ValueMatches(Entry entry, string key, string value, Guarded guard)
         {
+            var strict = guard != null && guard.Strict ? guard.View : null;
             // Under the strict rules a creature is found by how a type lands on it only once a hit
             // told that, and by what it deals only through the attacks that hit the character, as
             // its grid and attacks table keep the rest back.
@@ -402,21 +407,41 @@ namespace Scry
             switch (key)
             {
                 case "has": return AnyContains(entry.Components, value);
-                case "biome": return AnyContains(Related(entry, entry.Biomes, b => EntryKeys.For(Kind.Biome, b), strict), value);
-                case "in": return AnyPlaceNamed(strict == null ? entry.FoundIn : entry.FoundIn.Where(label => strict.PlacesLabelled(label).Any(place => strict.Related(entry, place))).ToArray(), value);
+                case "biome": return AnyContains(Related(entry, entry.Biomes, b => EntryKeys.For(Kind.Biome, b), guard), value);
+                case "in": return AnyPlaceNamed(guard == null ? entry.FoundIn : entry.FoundIn.Where(label => guard.View.PlacesLabelled(label).Any(place => guard.Keeps(entry, place))).ToArray(), value);
                 case "mod": return ContainsLeavingOutSpaces(entry.ModName, value);
-                case "playedby": return AnyContainsLeavingOutSpaces(strict == null ? entry.UsedBy : Related(entry, entry.UsedBy.ToArray(), u => u, strict).ToList(), value);
+                case "playedby": return AnyContainsLeavingOutSpaces(guard == null ? entry.UsedBy : Related(entry, entry.UsedBy.ToArray(), u => u, guard).ToList(), value);
                 default:
                     if (Array.IndexOf(LinkKeys, key) < 0) return AnyWordStarts(entry.TermWords(key), value);
-                    return AnyLinked(strict == null ? entry.TermLinks(key) : entry.TermLinks(key).Where(other => strict.Related(entry, other)).ToList(), value);
+                    return AnyLinked(guard == null ? entry.TermLinks(key) : entry.TermLinks(key).Where(other => guard.Keeps(entry, other)).ToList(), value);
             }
         }
 
-        /// <summary>What an entry goes with, each named by a key: all of it, or under the strict rules only what was seen together with it.</summary>
-        private static T[] Related<T>(Entry entry, T[] values, Func<T, string> key, CompendiumView strict)
+        /// <summary>What an entry goes with, each named by a key: all of it, or with the compendium only what its page names (<see cref="Guarded.Keeps"/>).</summary>
+        private static T[] Related<T>(Entry entry, T[] values, Func<T, string> key, Guarded guard)
         {
-            if (strict == null) return values;
-            return values.Where(v => strict.Related(entry, strict.Catalog.Find(key(v)))).ToArray();
+            if (guard == null) return values;
+            return values.Where(v => guard.Keeps(entry, guard.View.Catalog.Find(key(v)))).ToArray();
+        }
+
+        /// <summary>
+        /// What a known entry's page names, so what a search through it may find it by
+        /// (<see cref="Explorer.LeavesOut"/>): what the character has met, seen or come to know,
+        /// and under the strict rules only what it saw go together with the entry as well.
+        /// </summary>
+        private sealed class Guarded
+        {
+            public readonly CompendiumView View;
+            public readonly bool Strict;
+
+            public Guarded(CompendiumView view, bool strict)
+            {
+                View = view;
+                Strict = strict;
+            }
+
+            /// <summary>Whether the entry's page names another: one in the catalog that was met, and under the strict rules seen together with it; never one not in the catalog.</summary>
+            public bool Keeps(Entry entry, Entry other) => other != null && View.Of(other) >= KnownLevel.Seen && (!Strict || View.Related(entry, other));
         }
 
         /// <summary>A kind by its name or the start of it, singular or plural; "se" is a status effect.</summary>

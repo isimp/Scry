@@ -512,6 +512,8 @@ namespace Scry
             // Under the strict rules drops and yields are told as the character saw them, not by the game's chances.
             var counted = explorer.StrictTitle(row.Tally, row.TallyOf, row.TallyLead);
             if (counted != null) title = counted;
+            // A name in the title the character has not met is kept back, as in any text on the page.
+            title = Masked(explorer, title);
             var notCounted = false;
             var key = "facts:" + row.Title;
             var count = ShownOf(key, items.Count);
@@ -627,7 +629,7 @@ namespace Scry
         /// <summary>A chain's steps, an arrow between each, the page's own lit and each other one going to its page.</summary>
         private static float ChainRow(Explorer explorer, Facts.Row row, float width, float y)
         {
-            if (explorer.LeavingOut && row.Chain.Steps.Any(step => step.Any(explorer.LeavesOut)))
+            if (explorer.NamesOnlyMet && row.Chain.Steps.Any(step => step.Any(explorer.LeavesOut)))
             {
                 StrictLeft(1);
                 return y;

@@ -390,6 +390,17 @@ namespace Scry
             }
         }
 
+        /// <summary>
+        /// What the loose rules left out of a section, said at its end: how many more things the
+        /// character has not met, a creature's places by what they are; null for none.
+        /// </summary>
+        public static string NotYetMet(string topic, int count)
+        {
+            if (count <= 0) return null;
+            if (topic == "lives") return LeftOutOf(topic, count);
+            return Numbers.Count(count) + " more not yet met";
+        }
+
         /// <summary>A title without the count it ends with, for a row some of whose items were left out: nothing tells how many.</summary>
         public static string Uncounted(string title)
         {

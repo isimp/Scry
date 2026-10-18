@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -49,6 +50,19 @@ namespace Scry
             get => Creatures.Shown;
             set => Creatures.Shown = value;
         }
+
+        /// <summary>
+        /// Whether a creature, by its prefab's name, is left off a place's copy on the stage: with
+        /// the compendium on, one the character has not met (<see cref="Explorer.NotMet"/>), so the
+        /// stage shows no creature its pages would not name. Told by the session.
+        /// </summary>
+        public static Func<string, bool> CreatureLeftOff
+        {
+            set => Creatures.LeftOff = value;
+        }
+
+        /// <summary>How many creatures rolled were left off the stage, not met yet, for the self-test.</summary>
+        public static int CreaturesLeftOff => Creatures.LeftOffCount;
 
         /// <summary>Whether the place shown puts any creature there.</summary>
         public static bool HasCreatures => Creatures.Any;
