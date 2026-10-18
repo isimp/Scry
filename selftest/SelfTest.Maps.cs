@@ -343,12 +343,12 @@ namespace Scry
             ThisDungeonAsItWas();
         }
 
-        /// <summary>Ends the stand-in, an example shown again in place of it, the character's own compendium back.</summary>
+        /// <summary>Ends the stand-in, an example shown again in place of it, everything known again as the rest of the test has it.</summary>
         private static void ThisDungeonAsItWas()
         {
             ExampleLayouts.ShowExample();
             ExampleLayouts.StandInForTest(null);
-            Session.ShowKnownInstead(null);
+            AllKnown();
         }
     }
 }

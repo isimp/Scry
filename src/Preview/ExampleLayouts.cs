@@ -208,12 +208,13 @@ namespace Scry
             Walked = default;
         }
 
-        /// <summary>Hands in a dungeon as the world's own, as if the player stood in it, looked for at once; null ends it.</summary>
+        /// <summary>Hands in a dungeon as the world's own, as if the player stood in it, looked for at once and shown, whatever example was asked for before; null ends it.</summary>
         [Diagnostic]
         public static void StandInForTest(WorldDungeon world)
         {
             _standIn = world;
             _lookAgain = 0f;
+            if (world != null) _wantExample = false;
         }
 
         /// <summary>Lets go of every room held, loaded again when the panel opens; the example stays.</summary>
