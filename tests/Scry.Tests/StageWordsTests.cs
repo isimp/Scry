@@ -88,9 +88,9 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheCutControlNamesItsPartsAndSaysWhatEachCuts()
+        public void TheCutControlsIconsAreNamedByTheirTipsWhichSayWhatEachCuts()
         {
-            Assert.Equal("Cut", StageWords.CutLabel);
+            // The control is three icons, roof on, from above and from the side, with no label: each tip names its part.
             Assert.Equal("Closed", StageWords.CutModeName(CutMode.Closed));
             Assert.Equal("Top", StageWords.CutModeName(CutMode.Top));
             Assert.Equal("Side", StageWords.CutModeName(CutMode.Side));

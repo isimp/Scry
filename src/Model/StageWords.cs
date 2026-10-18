@@ -13,9 +13,6 @@ namespace Scry
         /// <summary>A room's tip: its name, and where it can be gone to, that a click does.</summary>
         public static string RoomTip(string name, bool canGo) => canGo ? name + "\nClick to go to it" : name;
 
-        /// <summary>The label of the stage's cut control.</summary>
-        public const string CutLabel = "Cut";
-
         /// <summary>A part of the stage's cut control.</summary>
         public static string CutModeName(CutMode mode) => mode == CutMode.Closed ? "Closed" : mode == CutMode.Top ? "Top" : "Side";
 

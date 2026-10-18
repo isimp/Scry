@@ -92,6 +92,9 @@ namespace Scry
         /// <summary>A rounded box's shape rounded only at its left, or only at its right, for joined buttons; a chevron pointing down, for folding away.</summary>
         public static Texture2D RoundedLeft, RoundedRight, FoldDown;
 
+        /// <summary>The cut control's icons beside <see cref="Roof"/> (the roof on): the roof lifted off the walls, cut from above; half a house beside the cut, cut from the side.</summary>
+        public static Texture2D CutAbove, CutSide;
+
         private static float _builtScale = -1f;
         private static bool _warmed;
         private static int _warmNext;
@@ -576,6 +579,18 @@ namespace Scry
             DrawPill(rect, color);
         }
 
+        /// <summary>A piece of pills joined into one, filled with an opaque colour: a pill's round end at its left or right where it is the group's own end, square where it meets the next piece.</summary>
+        public static void PillPiece(Rect rect, Color color, bool roundLeft, bool roundRight)
+        {
+            if (Event.current.type != EventType.Repaint) return;
+            var end = rect.height;
+            if (roundLeft) Icon(new Rect(rect.x, rect.y, end, end), Circle, color);
+            if (roundRight) Icon(new Rect(rect.xMax - end, rect.y, end, end), Circle, color);
+            var left = rect.x + (roundLeft ? end / 2f : 0f);
+            var right = rect.xMax - (roundRight ? end / 2f : 0f);
+            if (right > left) Fill(new Rect(left, rect.y, right - left, rect.height), color);
+        }
+
         /// <summary>
         /// A pill from the picture made for its height (<see cref="PillShape"/>): its round ends
         /// as they are, the straight between stretched; one too short for both ends is its
@@ -768,6 +783,23 @@ namespace Scry
             RoundedLeft = Shape(32, 32, (x, y) => x >= 16f || RoundedCoverage(x, y, 32, 32, 8f));
             RoundedRight = Shape(32, 32, (x, y) => x <= 16f || RoundedCoverage(x, y, 32, 32, 8f));
             FoldDown = Shape(32, 32, FoldDownCoverage);
+            CutAbove = Shape(32, 32, CutAboveCoverage);
+            CutSide = Shape(32, 32, CutSideCoverage);
+        }
+
+        /// <summary>The roof's house with its roof lifted clear of its walls: open walls and a floor, the roof over them with a gap between.</summary>
+        private static bool CutAboveCoverage(float x, float y)
+        {
+            if (y >= 20f && y <= 29f && Mathf.Abs(x - 16f) <= (29f - y) * 1.15f) return true;
+            if (y < 4f || y > 15f || x < 8f || x > 24f) return false;
+            return y <= 6.5f || x <= 10.5f || x >= 21.5f;
+        }
+
+        /// <summary>The roof's house cut through its middle: its left half whole, the cut a line beside it, the right half taken away.</summary>
+        private static bool CutSideCoverage(float x, float y)
+        {
+            if (x >= 18f && x <= 19.5f && y >= 3f && y <= 29f) return true;
+            return x <= 15.5f && RoofCoverage(x, y);
         }
 
         /// <summary>A chevron pointing down, its two arms meeting at the bottom, as thick as the resize arrow's shaft: folding away.</summary>

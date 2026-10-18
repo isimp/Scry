@@ -375,93 +375,107 @@ namespace Scry
         }
 
         /// <summary>
-        /// The stage's chips in its top right corner: View, for the spin, backdrop, lighting and
-        /// person (<see cref="ViewRows"/>), and what a place shown has to show or not, its
-        /// example inside or its entrance, and its creatures. Its roof is put on and taken off
-        /// above the ruler, and its plan folds on the plan itself.
+        /// The stage's controls in its top right corner, three groups from the right, each on a
+        /// backing of the stage's colour so it reads over any picture, its pieces joined: View, for
+        /// the spin, backdrop, lighting and person (<see cref="ViewRows"/>); what a place shown has
+        /// to show or not, its example inside or its entrance, and its creatures; and how it is cut,
+        /// three icons named by their tips (the roof on, from above, from the side). Its plan folds
+        /// on the plan itself.
         /// </summary>
         private static void StageButtons(Entry entry, Rect rect)
         {
+            var e = Event.current;
             var h = U(24f);
             var y = rect.y + U(10f);
             var x = rect.xMax - U(10f);
+            var seam = U(1f);
+            var apart = U(10f);
+            var pad = U(3f);
 
-            // Everything the row will hold, measured first, so it can move clear of the kind badge:
-            // the View chip, and what the place shown has to show or not.
-            var texts = new List<string> { "View" };
-            if (Stage.HasOutside && !Stage.InsideUnknown) texts.Add(StageWords.Inside(Stage.Inside));
-            if (Stage.HasCreatures) texts.Add("Creatures");
-            // How it is cut, for a place with floors: closed, from above, and inside a dungeon from the side.
+            // Everything the row will hold, measured first, so it can move clear of the kind badge.
+            var showsInside = Stage.HasOutside && !Stage.InsideUnknown;
+            var shows = new List<string>();
+            if (showsInside) shows.Add(StageWords.Inside(Stage.Inside));
+            if (Stage.HasCreatures) shows.Add("Creatures");
             var inside = Stage.HasInside && Stage.ShowsInside;
             var cutModes = Stage.HasFloors && Stage.Subject != null ? CutControl.Offered(inside) : null;
-            var cutW = 0f;
-            if (cutModes != null)
-            {
-                cutW = Skin.Width(Skin.FaintLabel, StageWords.CutLabel) + U(8f);
-                foreach (var mode in cutModes) cutW += Skin.Width(Skin.SegmentOn, StageWords.CutModeName(mode)) + U(12f);
-            }
-            var total = texts.Sum(t => Skin.Width(Skin.Chip, t) + U(10f)) + cutW;
+            float TextW(string text) => Skin.Width(Skin.SmallCenter, text) + U(22f);
+            var iconW = U(30f);
+            var viewW = TextW("View");
+            var showsW = shows.Sum(TextW) + seam * Mathf.Max(0, shows.Count - 1);
+            var cutW = cutModes != null ? cutModes.Count * iconW + seam * (cutModes.Count - 1) : 0f;
+            var total = viewW + pad * 2f + (showsW > 0f ? apart + showsW + pad * 2f : 0f) + (cutW > 0f ? apart + cutW + pad * 2f : 0f);
             if (x - total < rect.x + U(10f) + _badgeWidth + U(10f)) y += h + U(8f);
 
-            Rect last = default;
-            bool Chip(string text, bool on, string tip, bool can = true)
+            // A group ending where the row has come to, on its backing; the row goes on left of it.
+            Rect Group(float width)
             {
-                var style = on ? Skin.ChipOn : Skin.Chip;
-                var w = Skin.Width(style, text) + U(4f);
-                x -= w;
-                var chip = new Rect(x, y, w, h);
-                last = chip;
-                StagePiece("chips", chip);
-                x -= U(6f);
-                CountDrawn(PanelPart.StageChip);
-                if (chip.Contains(Event.current.mousePosition)) AskTip("stage:" + tip, tip);
-                var enabled = GUI.enabled;
-                GUI.enabled = enabled && can;
-                var clicked = GUI.Button(chip, text, Skin.Fitted(style, chip));
-                GUI.enabled = enabled;
-                return clicked && can;
+                var group = new Rect(x - pad - width, y, width, h);
+                Skin.PillBox(new Rect(group.x - pad, y - pad, width + pad * 2f, h + pad * 2f), Skin.PictureBacking);
+                x = group.x - pad - apart;
+                return group;
+            }
+
+            // A piece of a group, its words or its icon dark on the accent while on; true when clicked.
+            bool Piece(Rect part, bool on, bool first, bool last, string text, Texture2D icon, string tipKey, string tip)
+            {
+                var hover = part.Contains(e.mousePosition);
+                Skin.PillPiece(part, on ? (hover ? Skin.Shade(Skin.Accent, 1.08f) : Skin.Accent) : hover ? Skin.RaisedHover : Skin.Raised, first, last);
+                if (icon != null) Skin.Icon(new Rect(part.center.x - U(8f), part.center.y - U(8f), U(16f), U(16f)), icon, on ? Skin.OnAccent : Skin.Dim);
+                else Skin.LabelIn(part, text, Skin.SmallCenter, on ? Skin.OnAccent : Skin.Dim);
+                StagePiece("chips", part);
+                if (hover) AskTip(tipKey, tip);
+                return GUI.Button(part, GUIContent.none, GUIStyle.none);
             }
 
             // How it is seen, set and mostly left, in a box of its own.
+            const string viewTip = "How it is seen: spin, backdrop, lighting and a person for size";
             var viewing = _viewOpen && _viewFor == entry;
-            if (Chip("View", viewing, "How it is seen: spin, backdrop, lighting and a person for size")) ViewToggle(entry, OnScreen(last));
-            else if (viewing) ViewPlace(entry, OnScreen(last));
-            if (Stage.HasCreatures && Chip("Creatures", Stage.CreaturesShown,
-                    StageWords.CreaturesTip(Stage.CreaturesShown)))
+            var view = Group(viewW);
+            CountDrawn(PanelPart.StageChip);
+            if (Piece(view, viewing, true, true, "View", null, "stage:" + viewTip, viewTip)) ViewToggle(entry, OnScreen(view));
+            else if (viewing) ViewPlace(entry, OnScreen(view));
+
+            // What it shows: a dungeon with nothing outside shows its inside, with no switch to the
+            // outside; one only seen from outside shows its outside, with no switch to the inside.
+            if (shows.Count > 0)
             {
-                Stage.CreaturesShown = !Stage.CreaturesShown;
-                SaveRects();
+                var group = Group(showsW);
+                var px = group.x;
+                for (var i = 0; i < shows.Count; i++)
+                {
+                    var part = new Rect(px, y, TextW(shows[i]), h);
+                    px = part.xMax + seam;
+                    CountDrawn(PanelPart.StageChip);
+                    var isInside = showsInside && i == 0;
+                    var on = isInside ? Stage.Inside : Stage.CreaturesShown;
+                    var tip = isInside ? StageWords.InsideTip(Stage.Inside) : StageWords.CreaturesTip(Stage.CreaturesShown);
+                    if (!Piece(part, on, i == 0, i == shows.Count - 1, shows[i], null, "stage:" + tip, tip)) continue;
+                    if (isInside) Stage.Inside = !Stage.Inside;
+                    else
+                    {
+                        Stage.CreaturesShown = !Stage.CreaturesShown;
+                        SaveRects();
+                    }
+                }
             }
-            // A dungeon with nothing outside shows its inside, with no switch to the outside; one
-            // only seen from outside shows its outside, with no switch to the inside.
-            if (Stage.HasOutside && !Stage.InsideUnknown && Chip(StageWords.Inside(Stage.Inside), Stage.Inside, StageWords.InsideTip(Stage.Inside)))
-            {
-                Stage.Inside = !Stage.Inside;
-            }
-            // How it is cut, one control left of the chips: Closed, Top and inside a dungeon Side,
-            // in a room gone into acting on the room.
+
+            // How it is cut: the roof on, from above, and inside a dungeon from the side, in a room
+            // gone into acting on the room.
             if (cutModes != null)
             {
                 CountDrawn(PanelPart.CutChip);
                 var inRoom = inside && Stage.RoomGoneInto != null;
                 var shown = CutControl.Shown(inside && Stage.CutFromSide, inRoom ? !Stage.RoomRoofOn : Stage.Cutting);
-                for (var i = cutModes.Count - 1; i >= 0; i--)
+                var group = Group(cutW);
+                for (var i = 0; i < cutModes.Count; i++)
                 {
                     var mode = cutModes[i];
-                    var name = StageWords.CutModeName(mode);
                     var on = mode == shown;
-                    var style = on ? Skin.SegmentOn : Skin.Segment;
-                    var w = Skin.Width(style, name) + U(10f);
-                    x -= w;
-                    var part = new Rect(x, y, w, h);
-                    x -= U(2f);
-                    StagePiece("chips", part);
-                    if (part.Contains(Event.current.mousePosition)) AskTip("stage:cut:" + name, StageWords.CutModeTip(mode, inRoom));
-                    if (GUI.Button(part, name, Skin.Fitted(style, part)) && !on) Stage.ChooseCut(mode);
+                    var part = new Rect(group.x + i * (iconW + seam), y, iconW, h);
+                    var icon = mode == CutMode.Closed ? Skin.Roof : mode == CutMode.Top ? Skin.CutAbove : Skin.CutSide;
+                    if (Piece(part, on, i == 0, i == cutModes.Count - 1, null, icon, "stage:cut:" + StageWords.CutModeName(mode), StageWords.CutModeTip(mode, inRoom)) && !on) Stage.ChooseCut(mode);
                 }
-                var labelW = Skin.Width(Skin.FaintLabel, StageWords.CutLabel);
-                x -= labelW + U(2f);
-                GUI.Label(new Rect(x, y, labelW, h), StageWords.CutLabel, Skin.FaintLabel);
             }
         }
 
