@@ -723,8 +723,9 @@ namespace Scry
             var hover = prefab.GetComponent<HoverText>();
             if (token == null && hover != null) token = hover.m_text;
 
+            // A giver the game gives no name goes by its prefab's words; its prefab is told on hover.
             var shown = CatalogBuilder.Localize(token);
-            return Naming.WithPrefab(shown, prefab.name);
+            return shown.Length > 0 ? shown : Naming.Readable(prefab.name);
         }
 
         /// <summary>Lets go of where things live and what gives them, as reading starts again.</summary>

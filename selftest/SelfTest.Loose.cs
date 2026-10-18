@@ -112,5 +112,38 @@ namespace Scry
             Stage.Inside = wasInside;
             Session.ShowKnownInstead(null);
         }
+
+        /// <summary>
+        /// Names as a player reads them: where Stone comes from is a row for each way, each giver a
+        /// chip named by the game or by its prefab's words, rocks alike but for their biome one chip
+        /// saying how many; a troll's attacks read as words. Stone's page is pictured.
+        /// </summary>
+        private static IEnumerator ReadableNames(Probe p)
+        {
+            var stone = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Item && e.Name == "Stone");
+            var troll = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && e.Name == "Troll");
+            if (stone == null || troll == null)
+            {
+                p.Skip("there is no stone or troll");
+                yield break;
+            }
+            var givers = Facts.For(stone).Where.Count(s => SourceGroups.Groups(s.Record));
+            var rows = ScryPanel.WhereRowsForTest(X, stone);
+            var chips = rows.SelectMany(r => r.Items).ToList();
+            p.Note($"Stone: {Numbers.Count(givers)} givers in {Numbers.Count(chips.Count)} chips: " + string.Join("; ", rows.Select(r => r.Title + ": " + string.Join(", ", r.Items.Select(i => i.Name)))));
+            p.Check(chips.Count > 0 && chips.Count < givers, "Stone's givers alike but for their biome go into one chip", $"{Numbers.Count(chips.Count)} chips for {Numbers.Count(givers)} givers");
+            // Each chip's name before its count, as the merging named it.
+            var names = SourceGroups.Of(Facts.For(stone).Where.Select(s => s.Record)).Select(g => g.Name).ToList();
+            var unread = names.Where(n => n.IndexOf('_') >= 0 || n.Any(char.IsDigit) || n.Length > 0 && char.IsLower(n[0])).ToList();
+            p.Check(unread.Count == 0, "every giver of Stone reads as words, none as its prefab", string.Join(", ", unread));
+            p.Check(rows.Select(r => r.Title).Distinct().Count() == rows.Count, "each way of giving it has one row");
+            X.Select(stone);
+            yield return PictureOf(p, "from", "readable Stone, where it comes from");
+
+            var attacks = Facts.For(troll).Rows.Where(r => r.Title == CombatWords.AttacksTitle).SelectMany(r => r.Lines).Select(l => l.Cells[0]).ToList();
+            p.Note("Troll's attacks: " + string.Join(", ", attacks));
+            var raw = attacks.Where(a => a.IndexOf('_') >= 0 || a.Length > 0 && char.IsLower(a[0]) || a.Length > 1 && a.All(c => !char.IsLetter(c) || char.IsUpper(c))).ToList();
+            p.Check(attacks.Count > 0 && raw.Count == 0, "a troll's attacks read as words", string.Join(", ", raw));
+        }
     }
 }

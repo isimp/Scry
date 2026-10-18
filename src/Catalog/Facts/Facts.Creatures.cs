@@ -161,7 +161,8 @@ namespace Scry
                 var attack = shared?.m_attack;
                 // What it wears, its armor and shield, is no attack of its.
                 if (attack == null || !CombatWords.IsCreatureAttack(shared.m_itemType.ToString(), attack.m_attackAnimation)) continue;
-                var name = ItemName(item);
+                // The game names some attacks in its own shorthand ("slap", "LOG"), not by a name to show.
+                var name = !string.IsNullOrEmpty(shared.m_name) && !shared.m_name.StartsWith("$", StringComparison.Ordinal) ? Naming.Readable(shared.m_name) : ItemName(item);
                 if (attacks.Any(a => a.Cells[0] == name)) continue;
                 var fires = attack.m_attackProjectile;
                 var cells = CombatWords.AttackCells(name, Damages(shared.m_damages), attack.m_attackType.ToString(), shared.m_aiAttackRangeMin, shared.m_aiAttackRange, shared.m_aiAttackInterval,

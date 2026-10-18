@@ -120,6 +120,22 @@ namespace Scry
         /// <summary>What a dungeon's plan says while the rooms it is built of are read.</summary>
         public static string Reading(int read, int total) => $"Reading the {Numbers.Count(total)} kinds of room it is built of, {Numbers.Count(read)} so far";
 
+        /// <summary>
+        /// What the stage says while a dungeon's example is read (<paramref name="laidOut"/> not yet)
+        /// and built: how far, kind by kind and room by room; for one seen only from outside
+        /// (<paramref name="insideKnown"/> not), only that its entrance is built, as how many rooms it
+        /// has is for going inside to tell; null once it stands.
+        /// </summary>
+        public static string Progress(bool insideKnown, bool laidOut, int read, int kinds, int shown, int total)
+        {
+            if (!laidOut) return insideKnown ? Reading(read, kinds) : Entrance;
+            if (shown >= total) return null;
+            return insideKnown ? Building(shown, total) : Entrance;
+        }
+
+        /// <summary>What the stage says while a dungeon seen only from outside is built.</summary>
+        public const string Entrance = "Building its entrance on the stage";
+
         /// <summary>How far the example has been built on the stage, room by room.</summary>
         public static string Building(int shown, int total) => $"Building the example on the stage, {Numbers.Count(shown)} of its {Naming.Count(total, "room", "rooms")} so far";
 

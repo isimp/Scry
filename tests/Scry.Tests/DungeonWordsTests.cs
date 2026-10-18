@@ -201,5 +201,19 @@ namespace Scry.Tests
             Assert.Equal("Loot in its rooms, 3 of 1,000 kinds of room read", DungeonWords.RoomsRead("Loot in its rooms", 3, 1000));
             Assert.Equal("Loot in its rooms", DungeonWords.RoomsRead("Loot in its rooms", 12, 12));
         }
+
+        [Fact]
+        public void ADungeonSeenOnlyFromOutsideIsBuiltWithoutCountingItsRooms()
+        {
+            // How many rooms and kinds of room a dungeon has is for going inside to tell.
+            Assert.Equal(DungeonWords.Entrance, DungeonWords.Progress(false, false, 3, 12, 0, 0));
+            Assert.Equal(DungeonWords.Entrance, DungeonWords.Progress(false, true, 12, 12, 4, 20));
+            Assert.Null(DungeonWords.Progress(false, true, 12, 12, 20, 20));
+
+            Assert.Equal(DungeonWords.Reading(3, 12), DungeonWords.Progress(true, false, 3, 12, 0, 0));
+            Assert.Equal(DungeonWords.Building(4, 20), DungeonWords.Progress(true, true, 12, 12, 4, 20));
+            Assert.Null(DungeonWords.Progress(true, true, 12, 12, 20, 20));
+            Assert.Null(DungeonWords.Progress(true, true, 12, 12, 0, 0));
+        }
     }
 }

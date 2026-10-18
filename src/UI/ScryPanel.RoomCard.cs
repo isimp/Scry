@@ -169,19 +169,19 @@ namespace Scry
         private static string CreatureName(string prefab)
         {
             var go = GamePrefabs.Named(prefab);
-            return go != null ? ShownNameOf(go) : prefab;
+            return go != null ? ShownNameOf(go) : Naming.Readable(prefab);
         }
 
-        /// <summary>A chest's or pickup's name as the game shows it, from its prefab; its prefab's name where it has none.</summary>
+        /// <summary>A chest's or pickup's name as the game shows it, from its prefab; its prefab's words where it has none.</summary>
         private static string PartName(string prefab)
         {
             var go = GamePrefabs.Item(prefab);
-            if (go == null) return prefab;
+            if (go == null) return Naming.Readable(prefab);
             var token = go.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_name
                         ?? go.GetComponent<Piece>().OrNull()?.m_name
                         ?? go.GetComponent<Container>().OrNull()?.m_name;
             var shown = CatalogBuilder.Localize(token);
-            return shown.Length > 0 ? shown : prefab;
+            return shown.Length > 0 ? shown : Naming.Readable(prefab);
         }
 
         /// <summary>

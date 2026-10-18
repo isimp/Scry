@@ -213,7 +213,7 @@ namespace Scry
             return UseWords.Title(group.Kind, place, Knowledge.UpgradeStationName);
         }
 
-        /// <summary>A prefab's name as the game shows it: an item's, a piece's or a creature's, else the prefab's own.</summary>
+        /// <summary>A prefab's name as the game shows it: an item's, a piece's or a creature's, else its prefab's words (<see cref="Naming.Readable"/>).</summary>
         private static string AnyName(GameObject prefab, string fallback)
         {
             if (prefab == null) return fallback;
@@ -221,7 +221,7 @@ namespace Scry
                         ?? prefab.GetComponent<Piece>().OrNull()?.m_name
                         ?? prefab.GetComponent<Character>().OrNull()?.m_name;
             var shown = CatalogBuilder.Localize(token);
-            return shown.Length > 0 ? shown : prefab.name;
+            return shown.Length > 0 ? shown : Naming.Readable(prefab.name);
         }
 
         private static Sprite AnyIcon(GameObject prefab)

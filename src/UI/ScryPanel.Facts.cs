@@ -319,6 +319,7 @@ namespace Scry
             var where = ShownStrictly(explorer, facts.Where, s => !s.AllPlay && (explorer.LeavesOut(s.Prefab) || explorer.LeavesOutAll(s.MetIn)));
             if (explorer.LeavingOut && OwnPlayOnly(where)) where = OwnPlay;
             if (where.Count == 0) return y;
+            var (lines, rows) = SplitWhere(explorer, where);
             if (titled)
             {
                 y += U(6f);
@@ -326,9 +327,9 @@ namespace Scry
                 y += U(24f);
             }
             const int firstLines = 8;
-            var lines = ShownOf("where", where.Count, firstLines);
+            var shownLines = ShownOf("where", lines.Count, firstLines);
             HeldHints.Clear();
-            foreach (var source in where.Take(lines))
+            foreach (var source in lines.Take(shownLines))
             {
                 // A line naming a prefab in the catalog is a chip that goes there; the rest is text.
                 // A line Scry is not sure of is marked and says why on hover. Under the strict rules
@@ -369,12 +370,70 @@ namespace Scry
                 y += chipH + U(5f);
             }
             var more = new ChipFlow(0f, width, y, U(26f), U(5f), U(5f));
-            MoreChip("where", where.Count, firstLines, width, ref more);
+            MoreChip("where", lines.Count, firstLines, width, ref more);
             if (more.InRow) y = more.RowBottom + U(5f);
+            foreach (var row in rows) y = FactRow(explorer, row, width, y);
             // What shows a count not yet seen, faintly under the lines, once for each way of counting.
             // What shows each amount held back, faintly under the lines, once each; what nothing counts says so on hover only.
             foreach (var hint in HeldHints) y = FaintLine(hint, "not-counted:", hint, PanelPart.TallyCounted, width, y);
             return y;
+        }
+
+        private static readonly Dictionary<object, (IReadOnlyList<Source> Lines, IReadOnlyList<Facts.Row> Rows)> WhereSplits = new Dictionary<object, (IReadOnlyList<Source>, IReadOnlyList<Facts.Row>)>();
+        private static Explorer _splitIn;
+        private static int _splitStamp = -1;
+        private static int _splitSelection = -1;
+
+        /// <summary>The rows of chips an entry's page tells where it comes from in, under the rules as they are, for the self-test.</summary>
+        [Diagnostic]
+        public static IReadOnlyList<Facts.Row> WhereRowsForTest(Explorer explorer, Entry entry) => SplitWhere(explorer, Facts.For(entry).Where).Rows;
+
+        /// <summary>
+        /// Where a thing comes from, split into the lines told as they are and the rows of chips
+        /// the ways giving an amount or nothing go into, a row for each way, givers alike but for
+        /// their biome one chip saying how many (<see cref="SourceGroups"/>), each giver's own line
+        /// and prefab on its hover. Under the strict rules every giver keeps its own line, its
+        /// count the character's. Worked out once for each list while the page and what the
+        /// character knows stay the same.
+        /// </summary>
+        private static (IReadOnlyList<Source> Lines, IReadOnlyList<Facts.Row> Rows) SplitWhere(Explorer explorer, IReadOnlyList<Source> where)
+        {
+            if (explorer.LeavingOut) return (where, Array.Empty<Facts.Row>());
+            if (!ReferenceEquals(_splitIn, explorer) || _splitStamp != explorer.KnowStamp || _splitSelection != explorer.SelectionVersion || WhereSplits.Count > 64)
+            {
+                _splitIn = explorer;
+                _splitStamp = explorer.KnowStamp;
+                _splitSelection = explorer.SelectionVersion;
+                WhereSplits.Clear();
+            }
+            if (WhereSplits.TryGetValue(where, out var split)) return split;
+            var lines = new List<Source>();
+            var grouped = new List<SourceFacts>();
+            foreach (var source in where)
+            {
+                if (!source.AllPlay && SourceGroups.Groups(source.Record)) grouped.Add(source.Record);
+                else lines.Add(source);
+            }
+            var rows = new List<Facts.Row>();
+            foreach (var group in SourceGroups.Of(grouped))
+            {
+                var row = rows.Count > 0 && rows[rows.Count - 1].Title == group.Lead ? rows[rows.Count - 1] : null;
+                if (row == null)
+                {
+                    row = new Facts.Row { Title = group.Lead };
+                    rows.Add(row);
+                }
+                // The chip goes to the first of its givers the character can go to.
+                var first = group.Givers.FirstOrDefault(g => explorer.Reaches(g.Giver))?.Giver ?? group.Givers[0].Giver;
+                row.Items.Add(new Facts.Ingredient
+                {
+                    Icon = PrefabIcon(first), Name = group.Chip, Amount = group.Amount ?? "", Prefab = first,
+                    MarkTip = group.Tip(s => SourceWords.Line(s, Knowledge.BossOf)),
+                });
+            }
+            split = (lines.Count == where.Count ? where : lines, rows);
+            WhereSplits[where] = split;
+            return split;
         }
 
         /// <summary>Its biomes as chips.</summary>
@@ -976,6 +1035,8 @@ namespace Scry
             _foundInOf = null;
             _foundInIn = null;
             FoundInItems.Clear();
+            WhereSplits.Clear();
+            _splitIn = null;
         }
     }
 }
