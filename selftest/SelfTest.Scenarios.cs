@@ -45,6 +45,8 @@ namespace Scry
 
             yield return S("creatures tell their weak spots, when they turn on you and how far they chase", CreatureFacts, 60);
             yield return S("a piece tells its support and what wears it", PieceFacts, 10);
+            yield return S("every skill has a page telling what it changes at your level, and reading them leaves your save alone", SkillPages, 30);
+            yield return S("pages tell, faint under the game's figures, what they come to at your skills", SkillLines, 30);
             yield return S("build tools and their pieces lead to each other", ToolsAndPieces, 10);
             yield return S("mods hooking into drops, loot and spawning are named", HookingMods, 10);
             yield return S("the mod report links every mod station as the game does", ModReportLinks, 20);
