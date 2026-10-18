@@ -59,6 +59,17 @@ namespace Scry
 
         private static readonly Dictionary<Entry, (string Lasts, string Brings)> RaidCardCache = new Dictionary<Entry, (string, string)>();
 
+        private static Entry _skillCardOf;
+        private static float _skillCardAt;
+        private static (string Level, string Next) _skillCard;
+
+        /// <summary>Lets go of the skill the card was last worded for, for another world.</summary>
+        private static void ForgetSkillCard()
+        {
+            _skillCardOf = null;
+            _skillCard = default;
+        }
+
         /// <summary>A skill has nothing to show on the stage: its icon, the character's level and the way to the next stand in its place.</summary>
         private static void SkillCard(Entry entry, Rect rect)
         {
@@ -70,7 +81,14 @@ namespace Scry
                 DrawSprite(icon, new Rect(rect.center.x - size / 2f, rect.y + U(34f), size, size));
                 top = rect.y + U(96f);
             }
-            var (level, next) = YourSkills.Card(skill);
+            // Read again once a second, as the You box is, rather than worded anew each frame.
+            if (_skillCardOf != entry || Time.unscaledTime - _skillCardAt > 1f)
+            {
+                _skillCardOf = entry;
+                _skillCardAt = Time.unscaledTime;
+                _skillCard = YourSkills.Card(skill);
+            }
+            var (level, next) = _skillCard;
             GUI.Label(new Rect(rect.x + U(20f), top, rect.width - U(40f), U(24f)), level, Skin.Center);
             if (next != null) GUI.Label(new Rect(rect.x + U(20f), top + U(28f), rect.width - U(40f), U(40f)), next, Skin.CenterDim);
         }

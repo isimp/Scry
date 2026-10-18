@@ -368,6 +368,7 @@ namespace Scry
             ForgetSectionLine();
             ForgetFactPlan();
             ForgetYou();
+            ForgetSkillCard();
         }
     }
 }
