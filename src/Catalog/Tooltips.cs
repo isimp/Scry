@@ -8,8 +8,8 @@ namespace Scry
     /// asked as the inventory asks) for a fresh one of the prefab at a quality, durability full, in
     /// this world, each line marked where a mod added it against the game's own
     /// (<see cref="UnmoddedTooltip"/>, <see cref="TooltipText"/>), laid out as a card
-    /// (<see cref="TooltipLayout"/>), with the mods hooking it. Kept until the world is left or
-    /// what mods were seen or set to give changes.
+    /// (<see cref="TooltipLayout"/>), with the mods hooking it. Kept until the world is left,
+    /// what mods were seen or set to give changes, or one of the character's skill levels does.
     /// </summary>
     internal static class Tooltips
     {
@@ -29,7 +29,7 @@ namespace Scry
         }
 
         private static readonly Dictionary<(string Prefab, int Quality), Shown> Kept = new Dictionary<(string, int), Shown>();
-        private static (int Worn, int Settings) _keptWith;
+        private static (int Worn, int Settings, int Skills) _keptWith;
 
         /// <summary>The mods hooking the tooltip, named once for every tooltip kept.</summary>
         private static IReadOnlyList<string> _mods;
@@ -39,10 +39,11 @@ namespace Scry
         {
             var drop = prefab != null ? prefab.GetComponent<ItemDrop>() : null;
             if (drop.OrNull()?.m_itemData?.m_shared == null) return null;
-            if (_keptWith != (WornWatch.Version, ModConfigs.Version))
+            // The game words a tooltip at the character's skills (a block, a hit's range, a shield's absorbing), so a level changed words it again.
+            if (_keptWith != (WornWatch.Version, ModConfigs.Version, YourSkills.Version))
             {
                 Forget();
-                _keptWith = (WornWatch.Version, ModConfigs.Version);
+                _keptWith = (WornWatch.Version, ModConfigs.Version, YourSkills.Version);
             }
             if (Kept.TryGetValue((prefab.name, quality), out var kept)) return kept;
             if (!Guard.Each(Feature.TooltipFromMods, "items' tooltips", prefab.name, () => Make(prefab, drop, quality), out kept)) kept = null;
