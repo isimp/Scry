@@ -18,6 +18,19 @@ namespace Scry
         public Vec3 Generator;
         public Quat Turn = Quat.Identity;
         public readonly SortedSet<int> Walked = new SortedSet<int>();
+
+        /// <summary>The same map as it stands from its generator: its rooms placed and turned from there, the generator at the origin and unturned, no place of the world in it.</summary>
+        public DungeonMap FromGenerator()
+        {
+            var back = Turn.Inverse();
+            var local = new DungeonMap
+            {
+                Location = Location,
+                Rooms = Rooms.Select(r => (r.Hash, back * (r.Position - Generator), (back * Quat.Euler(r.Angles.X, r.Angles.Y, r.Angles.Z)).ToEuler())).ToList(),
+            };
+            foreach (var room in Walked) local.Walked.Add(room);
+            return local;
+        }
     }
 
     /// <summary>
@@ -42,6 +55,9 @@ namespace Scry
 
         /// <summary>Every map kept, by its id, in the order they were kept.</summary>
         public IEnumerable<(string Id, DungeonMap Map)> All => _order.Select(id => (id, _maps[id]));
+
+        /// <summary>The name of the file a server keeps a world's records of its dungeons in.</summary>
+        public static string ServerFile(string world) => "maps-" + world + ".dat";
 
         /// <summary>The id a map is kept by: the world's, then its generator's network id (the user who made it and its number); none outside a world.</summary>
         public static string IdOf(string world, long user, uint id) => world != null ? world + ":" + Stored.Count(user) + ":" + Stored.Count(id) : null;
@@ -89,6 +105,38 @@ namespace Scry
             if (map == null || room < 0 || room >= map.Rooms.Count || !map.Walked.Add(room)) return false;
             Stamp++;
             return true;
+        }
+
+        /// <summary>Takes in other maps: each kept as first read, its rooms walked added; how many rooms were walked anew.</summary>
+        public int Merge(DungeonMaps other) => Merge(other.All);
+
+        /// <summary>Takes in the other maps of one world alone, as a server does those its players send; none outside a world.</summary>
+        public int Merge(DungeonMaps other, string world) => Merge(other.OfWorld(world));
+
+        private int Merge(IEnumerable<(string Id, DungeonMap Map)> maps)
+        {
+            var walked = 0;
+            foreach (var (id, map) in maps.ToList())
+            {
+                Keep(id, map.Location, map.Rooms, map.Entrance, map.Generator, map.Turn);
+                foreach (var room in map.Walked) if (Walk(id, room)) walked++;
+            }
+            return walked;
+        }
+
+        /// <summary>The maps of a world's dungeons of the locations named, as they stand from their generators (<see cref="DungeonMap.FromGenerator"/>); none outside a world.</summary>
+        public DungeonMaps Only(string world, IEnumerable<string> locations)
+        {
+            var named = new HashSet<string>(locations, StringComparer.Ordinal);
+            var only = new DungeonMaps();
+            foreach (var (id, map) in OfWorld(world))
+            {
+                if (!named.Contains(map.Location)) continue;
+                var local = map.FromGenerator();
+                only.Keep(id, local.Location, local.Rooms, local.Entrance, local.Generator, local.Turn);
+                foreach (var room in local.Walked) only.Walk(id, room);
+            }
+            return only;
         }
 
         /// <summary>Forgets one dungeon's map; true when there was one.</summary>
@@ -230,6 +278,22 @@ namespace Scry
         public const string OpenTip = "Shows this dungeon on the stage as far as you walked it, wherever you are";
         public const string Forget = "Forget";
         public const string ForgetTip = "Forgets this map: its rooms show again only as you walk them";
+
+        /// <summary>The line of a record the server gathered of a dungeon, numbered where the location has more than one, and the floor that opens it.</summary>
+        public static string Group(int index, int count, int walked, int rooms, string floor) =>
+            (count > 1 ? "The group's map " + Numbers.Count(index + 1) : "The group's map") + ": " + PlanBoxWords.Walked(walked, rooms) + " · opened by your floor, " + floor;
+
+        public const string GroupOpenTip = "Shows this dungeon on the stage as far as anyone on this server walked it";
+
+        /// <summary>The answer to forgetting the server's records of the world played.</summary>
+        public static string GroupForgotten(int records) => records == 0
+            ? "the server has no record of a dungeon of this world to forget."
+            : records == 1 ? "the server's record of 1 dungeon of this world is forgotten." : "the server's records of " + Numbers.Count(records) + " dungeons of this world are forgotten.";
+
+        public const string GroupForgetRefused = "only an admin of the server can forget its records.";
+
+        /// <summary>The answer to forgetting them from a game that is not the server, which answers again once done.</summary>
+        public const string GroupAsked = "the server is asked to forget its records of this world.";
 
         /// <summary>The tip of a dungeon's mark on Valheim's map, under its name.</summary>
         public static string MarkTip(int walked, int rooms) => PlanBoxWords.Walked(walked, rooms) + "\nClick to open its map in Scry";

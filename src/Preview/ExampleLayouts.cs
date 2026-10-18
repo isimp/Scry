@@ -78,11 +78,14 @@ namespace Scry
         private static DungeonExample _whole;
         private static string _wholeId;
 
-        /// <summary>Whether the compendium is set on, and peeking, as the explorer last said.</summary>
-        private static bool _fogged, _peeking;
+        /// <summary>Whether the compendium is set on, and peeking, as the explorer last said; and whether its floor opens the group's records of the location shown.</summary>
+        private static bool _fogged, _peeking, _groupOpen;
 
-        /// <summary>What the fog was last laid by: the maps' stamp, the compendium set on, and peeking.</summary>
-        private static (int Stamp, bool Fogged, bool Peeking) _fogOf;
+        /// <summary>What the fog was last laid by: the character's maps' stamp and the group's, the compendium set on, peeking, and the group's records open.</summary>
+        private static (int Stamp, int GroupStamp, bool Fogged, bool Peeking, bool GroupOpen) _fogOf;
+
+        /// <summary>Whether the compendium's floor opens the group's records of the location shown (<see cref="GroupMapsLink"/>).</summary>
+        public static bool GroupOpen => _groupOpen;
 
         /// <summary>How often rooms newly walked lay the dungeon out again while it is shown, in seconds, as the stage builds it afresh.</summary>
         private const float RefogEvery = 5f;
@@ -186,7 +189,7 @@ namespace Scry
         /// <summary>The map opened as a dungeon of the world, the same each time; none where it is not of the location shown or was forgotten.</summary>
         private static WorldDungeon Opened(string location)
         {
-            var map = DungeonWalks.Maps.Of(_opened);
+            var map = DungeonWalks.Maps.Of(_opened) ?? (_groupOpen ? GroupMapsLink.Group.Of(_opened) : null);
             if (map == null || map.Location != location) return null;
             return _openedWorld ?? (_openedWorld = new WorldDungeon { Saved = map.Rooms, Generator = map.Generator, Turn = map.Turn, Id = _opened, Location = map.Location, Entrance = map.Entrance });
         }
@@ -256,11 +259,15 @@ namespace Scry
             if (plan.Algorithm == "Dungeon") LookForWorlds(place);
             _fogged = explorer.CompendiumSet;
             _peeking = explorer.Peeking;
-            // A peek or the compendium changed lays it out at once; rooms walked while it is shown, now and then.
-            if (ShowsWorlds && _whole != null && _fogOf != (DungeonWalks.Maps.Stamp, _fogged, _peeking)
-                && (_fogOf.Fogged != _fogged || _fogOf.Peeking != _peeking || Time.unscaledTime - _refoggedAt >= RefogEvery)) Refog();
+            // The group's records of a dungeon the floor reaches, asked for now and then.
+            _groupOpen = plan.Algorithm == "Dungeon" && _fogged && explorer.Compendium != null && explorer.Compendium.BelowFloor(entry);
+            if (_groupOpen) GroupMapsLink.Ask(place.Prefab);
+            // A peek, the compendium or the floor changed lays it out at once; rooms walked while it is shown, now and then.
+            var fogNow = (DungeonWalks.Maps.Stamp, GroupMapsLink.Group.Stamp, _fogged, _peeking, _groupOpen);
+            if (ShowsWorlds && _whole != null && _fogOf != fogNow
+                && (_fogOf.Fogged != _fogged || _fogOf.Peeking != _peeking || _fogOf.GroupOpen != _groupOpen || Time.unscaledTime - _refoggedAt >= RefogEvery)) Refog();
             // A dungeon only seen from outside shows its outside alone; a camp's example is its outside.
-            Stage.InsideUnknown = plan.Algorithm == "Dungeon" && !explorer.InsideKnown(entry);
+            Stage.InsideUnknown = plan.Algorithm == "Dungeon" && !explorer.InsideKnown(entry) && !(ShowsWorlds && _groupOpen);
             if (Example == null) ReadRooms();
             if (Example == null) return;
 
@@ -284,7 +291,7 @@ namespace Scry
             _world = found;
             if (Example != null && found != null && (!ShowsWorlds || _wholeId != found.Id) && !_wantExample) Build();
             // Its map forgotten and the dungeon not at hand, an example stands in its place.
-            else if (Example != null && found == null && ShowsWorlds && DungeonWalks.Maps.Of(_wholeId) == null) Build();
+            else if (Example != null && found == null && ShowsWorlds && DungeonWalks.Maps.Of(_wholeId) == null && GroupMapsLink.Group.Of(_wholeId) == null) Build();
         }
 
         /// <summary>Loads and reads the rooms not read yet, a few milliseconds a frame, one bundle at a time, and lays out the example once all are in.</summary>
@@ -492,11 +499,13 @@ namespace Scry
         /// <summary>The world's own dungeon as the fog shows it, the stage building it afresh: its rooms walked, the rest only while peeking; every one with the compendium off.</summary>
         private static void Refog()
         {
-            _fogOf = (DungeonWalks.Maps.Stamp, _fogged, _peeking);
+            _fogOf = (DungeonWalks.Maps.Stamp, GroupMapsLink.Group.Stamp, _fogged, _peeking, _groupOpen);
             _refoggedAt = Time.unscaledTime;
             _reenter = Stage.RoomGoneInto?.SavedAt ?? -1;
+            // The rooms the character walked, and where the floor opens them, the rooms the group walked.
             var walked = DungeonWalks.Maps.Of(_wholeId)?.Walked;
-            bool IsWalked(PlacedRoom room) => walked != null && walked.Contains(room.SavedAt);
+            var group = _groupOpen ? GroupMapsLink.Group.Of(_wholeId)?.Walked : null;
+            bool IsWalked(PlacedRoom room) => walked != null && walked.Contains(room.SavedAt) || group != null && group.Contains(room.SavedAt);
             Example = DungeonFog.Shown(_whole, IsWalked, _fogged, _peeking, out var peeked);
             PeekedAt.Clear();
             foreach (var room in peeked) PeekedAt.Add(room.SavedAt);

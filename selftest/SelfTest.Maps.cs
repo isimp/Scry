@@ -256,6 +256,76 @@ namespace Scry
             MarksAsTheyWere();
         }
 
+        /// <summary>
+        /// The group's record of a crypt, two rooms walked, in place of what a server would send, with
+        /// a made-up character whose floor reaches the crypt's tier and who never was in it: its page
+        /// has the group's line, Open map shows the rooms the group walked, peek the rest. Merging
+        /// players' walks on a real server is not tried here, as it would write a made-up record into
+        /// the server's file.
+        /// </summary>
+        private static IEnumerator GroupRecords(Probe p)
+        {
+            var entry = Crypt();
+            if (entry == null) p.Skip("there is no such location");
+            var world = CompendiumMap.World;
+            if (world == null) p.Skip("no world is played");
+            yield return Until(() => CompendiumTiers.Of(X.Entries) != null, 20);
+            var tiers = CompendiumTiers.Of(X.Entries);
+            var tier = 0;
+            if (tiers == null || !tiers.TryGetValue(entry.Key, out tier)) p.Skip("the crypt has no tier");
+            var noCompendium = new CompendiumView(X.Entries);
+            noCompendium.Tell(new CompendiumBook(), CompendiumRule.Off);
+            Session.ShowKnownInstead(noCompendium);
+            Select(entry);
+            Stage.Inside = true;
+            yield return Until(() => ReferenceEquals(X.Compendium, noCompendium) && ExampleLayouts.Of(entry) && ExampleLayouts.Example != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 150);
+            var rolled = ExampleLayouts.Of(entry) ? ExampleLayouts.Example : null;
+            if (!p.Check(rolled != null, "an example has been laid out")) yield break;
+
+            var ways = DungeonWays.Of(rolled.Rooms);
+            var onward = ways.Entrance != null ? ways.WaysOf(ways.Entrance) : null;
+            if (!p.Check(onward != null && onward.Count > 0, "its entrance leads on to a room")) yield break;
+            var first = rolled.Rooms.IndexOf(ways.Entrance);
+            var second = rolled.Rooms.IndexOf(onward[0]);
+            var id = DungeonMaps.IdOf(world, 1L, 21u);
+            var walked = new DungeonMaps();
+            var whole = walked.Keep(id, PlaceOf(entry).Prefab, SavedAsTheGameSaves(rolled), new Vec3(0f, 0f, 0f), rolled.Site.Generator, rolled.Site.Turn);
+            walked.Walk(id, first);
+            walked.Walk(id, second);
+            // As the server sends it: from its generator, no place of the world in it.
+            var group = new DungeonMaps();
+            group.Merge(walked.Only(world, new[] { PlaceOf(entry).Prefab }));
+            p.Check(group.Of(id) != null && group.Of(id).Generator.Length == 0f && group.Of(id).Walked.Count == 2, "the record goes as it stands from its generator");
+            GroupMapsLink.GroupInsteadForTest(group);
+            DungeonWalks.MapsInsteadForTest(new DungeonMaps());
+            var floored = new CompendiumView(X.Entries);
+            floored.Milestones(tiers, tier);
+            floored.Tell(new CompendiumBook(), CompendiumRule.Loose);
+            Session.ShowKnownInstead(floored);
+            var lines = ScryPanel.Drawn(PanelPart.MapLine);
+            yield return Until(() => ReferenceEquals(X.Compendium, floored) && ScryPanel.Drawn(PanelPart.MapLine) > lines + 1, 5);
+            p.Check(ExampleLayouts.GroupOpen && ScryPanel.GroupLinesDrawn == 1 && ScryPanel.MapLinesDrawn == 0, "with the floor at its tier, its page has the group's line and none of the character's",
+                $"open {ExampleLayouts.GroupOpen}, {Numbers.Count(ScryPanel.GroupLinesDrawn)} group lines, {Numbers.Count(ScryPanel.MapLinesDrawn)} own");
+            yield return Picture(p, $"the group's map of {entry.Name} on its page");
+
+            ScryPanel.OpenMapForTest(id);
+            yield return Until(() => ExampleLayouts.ShownMap == id && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
+            var rooms = rolled.Rooms.Count(r => !r.Room.EndCap && !r.Room.Divider);
+            p.Check(ExampleLayouts.ShownMap == id && ExampleLayouts.Walked == (2, rooms), "Open map shows the rooms the group walked", $"{Numbers.Count(ExampleLayouts.Walked.Walked)} of {Numbers.Count(ExampleLayouts.Walked.Rooms)}");
+            yield return Picture(p, $"the group's map of {entry.Name}");
+            X.Peeking = true;
+            yield return Until(() => ExampleLayouts.PeekedRooms > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
+            p.Check(ExampleLayouts.PeekedRooms == rooms - 2, "peek shows the rooms nobody walked", $"{Numbers.Count(ExampleLayouts.PeekedRooms)} peeked");
+            GroupRecordsAsTheyWere();
+        }
+
+        /// <summary>Ends the group's stand-in and the fog's.</summary>
+        private static void GroupRecordsAsTheyWere()
+        {
+            GroupMapsLink.GroupInsteadForTest(null);
+            DungeonFogAsItWas();
+        }
+
         /// <summary>Closes the large map the self-test opened and ends the fog's stand-ins.</summary>
         private static void MarksAsTheyWere()
         {

@@ -64,6 +64,33 @@ namespace Scry
             return About(y, 0f, 1f, 0f) * About(x, 1f, 0f, 0f) * About(z, 0f, 0f, 1f);
         }
 
+        /// <summary>
+        /// The angles in degrees, each from 0 up to 360, that <see cref="Euler"/> makes this turn
+        /// of, as <c>Quaternion.eulerAngles</c> tells them; turned a quarter up or down, none about z.
+        /// </summary>
+        public Vec3 ToEuler()
+        {
+            var m00 = 1f - 2f * (Y * Y + Z * Z);
+            var m02 = 2f * (X * Z + W * Y);
+            var m10 = 2f * (X * Y + W * Z);
+            var m11 = 1f - 2f * (X * X + Z * Z);
+            var m12 = 2f * (Y * Z - W * X);
+            var m20 = 2f * (X * Z - W * Y);
+            var m22 = 1f - 2f * (X * X + Y * Y);
+            var sinX = Math.Max(-1f, Math.Min(1f, -m12));
+            var x = (float)Math.Asin(sinX);
+            var level = Math.Abs(sinX) < 0.9999f;
+            var y = level ? (float)Math.Atan2(m02, m22) : (float)Math.Atan2(-m20, m00);
+            var z = level ? (float)Math.Atan2(m10, m11) : 0f;
+            return new Vec3(Degrees(x), Degrees(y), Degrees(z));
+        }
+
+        private static float Degrees(float radians)
+        {
+            var degrees = radians * 180f / (float)Math.PI % 360f;
+            return degrees < 0f ? degrees + 360f : degrees;
+        }
+
         public static Quat operator *(Quat a, Quat b) => new Quat(
             a.W * b.X + a.X * b.W + a.Y * b.Z - a.Z * b.Y,
             a.W * b.Y + a.Y * b.W + a.Z * b.X - a.X * b.Z,

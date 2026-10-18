@@ -10,7 +10,7 @@ namespace Scry
         {
             // The game keeps a command as it is made.
             _ = new Terminal.ConsoleCommand("scry",
-                "[text] - opens the prefab previewer, searching for the text if given. 'scry clear' removes every preview from the world; 'scry locations' reads where things are found in locations and dungeons, 'scry locations stop' stops it; 'scry forget' forgets what Scry kept of the locations and their floors and reads them afresh; 'scry forget maps' forgets this character's maps of the dungeons of this world; 'scry map' reads the explored map again for the compendium; 'scry mods' shows what each mod adds and what Scry links for it; 'scry monitor' shows or hides the resource monitor.",
+                "[text] - opens the prefab previewer, searching for the text if given. 'scry clear' removes every preview from the world; 'scry locations' reads where things are found in locations and dungeons, 'scry locations stop' stops it; 'scry forget' forgets what Scry kept of the locations and their floors and reads them afresh; 'scry forget maps' forgets this character's maps of the dungeons of this world; 'scry forget group maps' forgets the server's records of them, for an admin; 'scry map' reads the explored map again for the compendium; 'scry mods' shows what each mod adds and what Scry links for it; 'scry monitor' shows or hides the resource monitor.",
                 args =>
                 {
                     // A command that fails says so in the chat, and once in the log, rather than
@@ -45,6 +45,12 @@ namespace Scry
             if (rest.Equals("map", System.StringComparison.OrdinalIgnoreCase))
             {
                 args.Context.OrNull()?.AddString(ConsoleWords.Reply(CompendiumMap.Again(CompendiumKeeper.Book)));
+                return;
+            }
+
+            if (rest.Equals("forget group maps", System.StringComparison.OrdinalIgnoreCase))
+            {
+                args.Context.OrNull()?.AddString(ConsoleWords.Reply(GroupMapsLink.ForgetWorld()));
                 return;
             }
 

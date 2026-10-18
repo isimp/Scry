@@ -127,7 +127,7 @@ namespace Scry
             var at = player.transform.position;
             YouIn = world.Id;
             YouAt = SavedRooms.Holding(world.Saved, world.SizeOf, new Vec3(at.x, at.y, at.z));
-            if (YouAt >= 0) Maps.Walk(world.Id, YouAt);
+            if (YouAt >= 0 && Maps.Walk(world.Id, YouAt)) GroupMapsLink.Walked(world.Id);
         }
 
         /// <summary>Writes the maps once they changed, at most every half minute unless asked to now, on a worker thread.</summary>

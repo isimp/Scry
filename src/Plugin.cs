@@ -132,6 +132,7 @@ namespace Scry
         private void Update()
         {
             Guard.Run(Feature.CompendiumMap, "Scry's messages with the server", CompendiumLink.Update);
+            Guard.Run(Feature.GroupDungeonMaps, "the group's dungeon records", GroupMapsLink.Update);
             if (_server) return;
             var started = Timing.Start();
             Guard.Run(Feature.World, "the frame", Session.Update);
@@ -180,6 +181,7 @@ namespace Scry
 
         private void OnDestroy()
         {
+            Guard.Run(Feature.GroupDungeonMaps, "keeping the world's dungeon records", GroupMapsLink.Finish);
             if (_server) return;
             DropWatch.Save(now: true);
             WornWatch.Save(now: true);
