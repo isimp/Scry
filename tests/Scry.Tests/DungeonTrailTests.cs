@@ -53,6 +53,8 @@ namespace Scry.Tests
             Assert.Equal("Click to come back out of the room to this level, as Esc does", PlanBoxWords.TrailLevelTip(inRoom: true));
             Assert.Equal("Click to frame the level again", PlanBoxWords.TrailLevelTip(inRoom: false));
             Assert.Equal("Click to frame the room again", PlanBoxWords.TrailRoomTip);
+            // The deepest is the room furthest in, not one of the lowest.
+            Assert.Equal("Goes into the deepest room, the most rooms in from the entrance", PlanBoxWords.DeepestTip);
             Assert.Equal("Goes into the entrance or the deepest room", PlanBoxWords.TrailMenuTip(switches: false));
             Assert.Equal("Goes into the entrance or the deepest room, or switches between this dungeon and an example", PlanBoxWords.TrailMenuTip(switches: true));
         }

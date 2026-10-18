@@ -146,18 +146,36 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void OfTwoRoomsAsDeepTheNearerToTheEntranceIsTheDeepest()
+        public void TheDeepestIsTheRoomMostRoomsInNotTheLowest()
         {
+            // Every room of the lowest level is as low; the deepest is the one furthest in, the
+            // tree's last row, however high it stands.
             var entrance = Room("entrance", 0f, 0f, 0f, 0, At(5f, 0f, 0f));
             var hall = Room("hall", 10f, 0f, 0f, 1, At(5f, 0f, 0f), At(15f, 0f, 0f));
             var far = Room("far", 20f, 0f, 0f, 2, At(15f, 0f, 0f), At(25f, 0f, 0f));
-            var farther = Room("farther", 30f, -6f, 0f, 3, At(25f, 0f, 0f));
-            var near = Room("near", 0f, -6f, 10f, 4, At(0f, 0f, 5f));
+            var farthest = Room("farthest", 30f, 3f, 0f, 3, At(25f, 0f, 0f));
+            var low = Room("low", 0f, -10f, 10f, 4, At(0f, 0f, 5f));
             entrance.Room.Doorways.Add(new Doorway { Position = At(0f, 0f, 5f) });
 
-            var ways = DungeonWays.Of(new[] { entrance, hall, far, farther, near });
+            var ways = DungeonWays.Of(new[] { entrance, hall, far, farthest, low });
 
-            Assert.Same(near, ways.Deepest);
+            Assert.Same(farthest, ways.Deepest);
+        }
+
+        [Fact]
+        public void OfTwoRoomsAsFarInTheLowerIsTheDeepestThenThePlacedFirst()
+        {
+            var entrance = Room("entrance", 0f, 0f, 0f, 0, At(5f, 0f, 0f));
+            var hall = Room("hall", 10f, 0f, 0f, 1, At(5f, 0f, 0f), At(15f, 0f, 0f), At(10f, 0f, 5f));
+            var level = Room("level", 20f, 0f, 0f, 2, At(15f, 0f, 0f));
+            var lower = Room("lower", 10f, -4f, 10f, 3, At(10f, 0f, 5f));
+
+            Assert.Same(lower, DungeonWays.Of(new[] { entrance, hall, level, lower }).Deepest);
+
+            // As low too: the one placed first.
+            var first = Room("first", 20f, 0f, 0f, 2, At(15f, 0f, 0f));
+            var second = Room("second", 10f, 0f, 10f, 3, At(10f, 0f, 5f));
+            Assert.Same(first, DungeonWays.Of(new[] { entrance, hall, first, second }).Deepest);
         }
 
         [Fact]

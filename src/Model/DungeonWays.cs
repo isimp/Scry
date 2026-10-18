@@ -35,7 +35,7 @@ namespace Scry
         /// <summary>The room the example starts with (its place order 0), else its first room; none without rooms.</summary>
         public PlacedRoom Entrance { get; private set; }
 
-        /// <summary>The lowest room reached from the entrance, by the foot of its box; of two as low, the nearer to the entrance, then the one placed first (the sort keeps the rooms' order).</summary>
+        /// <summary>The room furthest in from the entrance, the most rooms in by the way through the fewest (the tree's last row), not merely one of the lowest; of two as far in, the lower by the foot of its box, then the one placed first (the sort keeps the rooms' order).</summary>
         public PlacedRoom Deepest { get; private set; }
 
         /// <summary>How many second ways round there are: ways beyond those joining every room once.</summary>
@@ -55,7 +55,7 @@ namespace Scry
             ways.Entrance = ways._rooms.FirstOrDefault(r => r.PlaceOrder == 0) ?? ways._rooms.FirstOrDefault();
             ways.Walk();
             ways.Deepest = ways._rooms.Where(ways._steps.ContainsKey)
-                .OrderBy(Foot).ThenBy(r => ways._steps[r])
+                .OrderByDescending(r => ways._steps[r]).ThenBy(Foot)
                 .FirstOrDefault();
             return ways;
         }

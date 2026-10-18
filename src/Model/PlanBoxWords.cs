@@ -60,7 +60,7 @@ namespace Scry
         public const string Entrance = "Entrance";
         public const string EntranceTip = "Goes into the entrance";
         public const string Deepest = "Deepest";
-        public const string DeepestTip = "Goes into the deepest room";
+        public const string DeepestTip = "Goes into the deepest room, the most rooms in from the entrance";
 
         /// <summary>What stands between the parts of the breadcrumb over a dungeon's inside.</summary>
         public const string TrailStep = "  ›  ";
