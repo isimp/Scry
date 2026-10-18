@@ -159,6 +159,8 @@ namespace Scry.Tests
             var view = new CompendiumView(explorer.Entries);
             world.Book.Witness(world.Troll.Key, world.Hide.Key);
             world.Book.Witness(world.Troll.Key, forest.Key);
+            // A biome a creature was met in was entered, so known.
+            world.Book.Raise(forest.Key, KnownLevel.Known);
             view.Tell(world.Book, CompendiumRule.Strict);
             explorer.Know(view);
 
@@ -184,7 +186,7 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void LooseOffAndAClosedPageLeaveNothingOut()
+        public void LooseKeepsWhatWasMetAndOffAndAClosedPageLeaveNothingOut()
         {
             var world = new World().Rule(CompendiumRule.Loose);
             world.Explorer.Select(world.Troll);
@@ -222,7 +224,7 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void BelowTheFloorAPageShowsWhole()
+        public void BelowTheFloorAPageShowsAsUnderTheLooseRules()
         {
             var world = new World();
             world.View.Milestones(new Dictionary<string, int> { { world.Troll.Key, 2 } }, 2);

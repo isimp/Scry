@@ -58,6 +58,7 @@ namespace Scry
             yield return S("the compendium watches fights, hits and sight without fault", CompendiumWatched, 10);
             yield return S("made-up events through the real hooks are recorded, the world and the character's book left alone", CompendiumHooksFed, 10, () => CompendiumKeeper.RecordInto(null));
             yield return S("a made-up character's pages read under the strict rules as a player sees them", CompendiumStrictRead, 30, () => { AllKnown(); ResetList(); });
+            yield return S("under the loose rules a known page names only what the character has met, and the stage stands no creature not met", CompendiumLooseRead, 90, () => { AllKnown(); ResetList(); RoomCardAsItWas(); StageAsItWas(); });
             yield return S("with the compendium on, a made-up character sees only what it met", CompendiumShown, 60, () => { AllKnown(); ResetList(); });
             yield return S("a dungeon only seen from outside shows its outside alone", SeenFromOutside, 60, () => { AllKnown(); ResetList(); });
             yield return S("a dungeon's page is told again quickly, however many parts its rooms hold", DungeonPagesQuick, 20);

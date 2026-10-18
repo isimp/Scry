@@ -166,7 +166,7 @@ namespace Scry
         /// the hooded figure standing at the edge of sight. However low its tier, no floor shows it
         /// or brings it along; it is known once the character has seen it.
         /// </summary>
-        private static bool OnlyGlimpsed(Entry entry) => Array.IndexOf(entry.Components, GlimpsedBehaviour) >= 0;
+        public static bool OnlyGlimpsed(Entry entry) => Array.IndexOf(entry.Components, GlimpsedBehaviour) >= 0;
 
         /// <summary>Whether an entry's own tier is above the floor, so the floor does not bring it along; none is for one of no tier.</summary>
         private bool AboveFloor(Entry entry) => _tiers != null && _tiers.TryGetValue(entry.Key, out var tier) && tier > _floor;

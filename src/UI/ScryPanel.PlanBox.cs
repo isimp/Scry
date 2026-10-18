@@ -343,7 +343,9 @@ namespace Scry
             // The header and the plan, nothing under it: where the view is stands on the stage's breadcrumb.
             // While peeking at the world's own dungeon, the peek's warning between them.
             var peekH = PeekStripShown ? rowH + gap : 0f;
-            var leanRows = pad + headerH + gap + peekH + pad;
+            // Over the world's own dungeon, how much of it is walked in a row under the plan, clear of its rooms.
+            var walkedH = WalkedShown ? rowH : 0f;
+            var leanRows = pad + headerH + gap + peekH + walkedH + pad;
             var wholeRows = leanRows;
             var shape = CornerFit.Shape(inner.height, wholeRows, leanRows, card, _s);
             if (repaint) PlanBoxShapeShown = shape;
@@ -429,8 +431,13 @@ namespace Scry
 
             // The plan's own switches, joined over its top right corner: the rooms below (from above only) and the names.
             var corner = PlanSwitches(area, rowH);
-            // How much of the world's own dungeon is walked, in the plan's bottom left corner.
-            WalkedLabel(new Rect(area.x + U(2f), area.yMax - rowH, area.width - U(4f), rowH));
+            // How much of the world's own dungeon is walked, in its row under the plan.
+            if (walkedH > 0f)
+            {
+                var walked = new Rect(area.x, area.yMax, area.width, walkedH);
+                WalkedLabel(walked);
+                if (repaint) PlanBoxPartsForTest.Add(("walked", walked));
+            }
             if (repaint) PlanBoxPartsForTest.Add(("plan", area));
 
             // The room under the mouse: lit here and on the stage, picked on a click, gone into on a double-click.

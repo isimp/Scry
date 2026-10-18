@@ -387,13 +387,13 @@ namespace Scry
         private static readonly Dictionary<string, string> MaskedTexts = new Dictionary<string, string>(StringComparer.Ordinal);
 
         /// <summary>
-        /// A known page's text under the strict rules, the names of what the character has not
-        /// seen kept back (<see cref="NameMask"/>); as it is otherwise. The mask is made again when
+        /// A known page's text with the compendium on, the names of what the character has not
+        /// met kept back (<see cref="NameMask"/>); as it is otherwise. The mask is made again when
         /// what the character knows changes, each text masked once.
         /// </summary>
         private static string Masked(Explorer explorer, string text)
         {
-            if (string.IsNullOrEmpty(text) || !explorer.LeavingOut) return text;
+            if (string.IsNullOrEmpty(text) || !explorer.NamesOnlyMet) return text;
             if (!ReferenceEquals(_maskIn, explorer) || _maskStamp != explorer.KnowStamp)
             {
                 _maskIn = explorer;
@@ -442,8 +442,8 @@ namespace Scry
             var spots = _spotsLeft;
             _strictLeft = 0;
             _spotsLeft = 0;
-            if (!explorer.LeavingOut) return y;
-            y = FaintLine(CompendiumWords.LeftOutOf(topic, left), "strict-left:", topic, PanelPart.StrictLeftOut, width, y);
+            if (!explorer.NamesOnlyMet) return y;
+            y = FaintLine(explorer.LeftOutLine(topic, left), "strict-left:", topic, PanelPart.StrictLeftOut, width, y);
             return FaintLine(CompendiumWords.WeakSpotsNotFound(spots), "spots-left:", topic, PanelPart.WeakSpotsLeftOut, width, y);
         }
 
@@ -478,8 +478,9 @@ namespace Scry
         private static int _strictSelection;
 
         /// <summary>
-        /// What a list on the page shown keeps under the strict rules (<see cref="Explorer.LeavesOut"/>):
-        /// what was seen together with the page or is part of it; all of it otherwise. Worked out
+        /// What a list on the page shown keeps with the compendium on (<see cref="Explorer.LeavesOut"/>):
+        /// what the character has met, under the strict rules only what was seen together with the
+        /// page or is part of it; all of it otherwise. Worked out
         /// once for each list while what the character knows and the page stay the same. What it
         /// leaves out is counted for the section's last line (<see cref="StrictLeft"/>).
         /// </summary>
@@ -489,7 +490,7 @@ namespace Scry
         /// <summary>What a list keeps under the strict rules, each item left out as it says (<see cref="ShownStrictly{T}(Explorer, IReadOnlyList{T}, Func{T, string})"/>).</summary>
         private static IReadOnlyList<T> ShownStrictly<T>(Explorer explorer, IReadOnlyList<T> items, Func<T, bool> leftOut)
         {
-            if (!explorer.LeavingOut) return items;
+            if (!explorer.NamesOnlyMet) return items;
             if (!ReferenceEquals(_strictIn, explorer) || _strictStamp != explorer.KnowStamp || _strictSelection != explorer.SelectionVersion || StrictLists.Count > 256)
             {
                 _strictIn = explorer;

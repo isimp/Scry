@@ -145,6 +145,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatTheLooseRulesLeaveOutOfASectionIsToldAsNotYetMet()
+        {
+            // The loose rules leave out only what the character has not met, whatever the section.
+            Assert.Equal("2 more not yet met", CompendiumWords.NotYetMet("loot", 2));
+            Assert.Equal("1 more not yet met", CompendiumWords.NotYetMet("making", 1));
+            Assert.Equal("1,200 more not yet met", CompendiumWords.NotYetMet(null, 1200));
+            // A place it lives says what it is, as the strict rules say it.
+            Assert.Equal("1 more place it lives not yet met in", CompendiumWords.NotYetMet("lives", 1));
+            Assert.Equal("3 more places it lives not yet met in", CompendiumWords.NotYetMet("lives", 3));
+            Assert.Null(CompendiumWords.NotYetMet("loot", 0));
+        }
+
+        [Fact]
         public void TheListOfWhatWasLearnedLatelySaysWhatItHolds()
         {
             Assert.Equal("Learned", CompendiumWords.LearnedTab);

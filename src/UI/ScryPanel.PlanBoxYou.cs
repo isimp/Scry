@@ -8,7 +8,7 @@ namespace Scry
     /// The plan box over the world's own dungeon (<see cref="ExampleLayouts.ShowsWorlds"/>): the room
     /// the player stands in outlined in the accent, their arrow where they stand and facing as they
     /// face, an accent arrow at each doorway leading on to a room not walked, the rooms shown only
-    /// while peeking dashed and faint under the peek's warning, and how much is walked in the header.
+    /// while peeking dashed and faint under the peek's warning, and how much is walked in a row under the plan.
     /// </summary>
     internal static partial class ScryPanel
     {
@@ -39,12 +39,14 @@ namespace Scry
         /// <summary>Whether a room's tile is outlined in the accent: lit, gone into, or the one the player stands in.</summary>
         private static bool BoxOutlined(PlacedRoom room, PlacedRoom gone) => BoxLit(room) || room == gone || ExampleLayouts.IsYours(room);
 
-        /// <summary>How much of the world's own dungeon is walked, in the header's room left of its views where it fits.</summary>
-        private static void WalkedLabel(Rect free)
+        /// <summary>Whether the box tells how much of the world's own dungeon is walked, in a row of its own under the plan.</summary>
+        private static bool WalkedShown => ExampleLayouts.ShowsWorlds && ExampleLayouts.Fogged;
+
+        /// <summary>How much of the world's own dungeon is walked, in its row under the plan, clear of the rooms; its type made smaller where the box is narrow.</summary>
+        private static void WalkedLabel(Rect row)
         {
-            if (!ExampleLayouts.ShowsWorlds || !ExampleLayouts.Fogged || Event.current.type != EventType.Repaint) return;
-            var text = PlanBoxWords.Walked(ExampleLayouts.Walked.Walked, ExampleLayouts.Walked.Rooms);
-            if (Skin.Width(Skin.FaintLabel, text) <= free.width) GUI.Label(free, text, Skin.FaintLabel);
+            if (!WalkedShown || Event.current.type != EventType.Repaint) return;
+            FitLabel(row, PlanBoxWords.Walked(ExampleLayouts.Walked.Walked, ExampleLayouts.Walked.Rooms), Skin.FaintLabel, 10f);
         }
 
         /// <summary>The peek's warning over the plan, while rooms not walked show.</summary>

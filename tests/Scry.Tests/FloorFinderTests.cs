@@ -379,6 +379,21 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AFloorPartlyUnderARoofIsCoveredWhereTheRoofHidesRoomToStandIn()
+        {
+            // A hut's deck of 40 spots, its roof rolled partly away: 9 spots under thatch, too few
+            // of them for a ceiling to cut under, but room enough to stand in that only a cut shows.
+            var deck = Enumerable.Range(0, 40).Select(i => new FloorHit { I = i, Height = 3f, Area = Cell, Over = i < 9 ? 2.5f : 0f }).ToList();
+            Assert.Null(FloorFinder.CeilingOver(deck, 3f));
+            Assert.True(FloorFinder.Covered(deck, 3f));
+            // Under a few beams only, less than room to stand: nothing a cut would show.
+            var beams = Enumerable.Range(0, 40).Select(i => new FloorHit { I = i, Height = 3f, Area = Cell, Over = i < 4 ? 2.5f : 0f }).ToList();
+            Assert.False(FloorFinder.Covered(beams, 3f));
+            // Bare earth, which no ray finds, has nothing over it.
+            Assert.False(FloorFinder.Covered(deck, 0f));
+        }
+
+        [Fact]
         public void ASealedTowersStoreysAreFoundAsBefore()
         {
             // As Hildir's sealed tower's rooms were read in game: each 8 m high, walked into at its

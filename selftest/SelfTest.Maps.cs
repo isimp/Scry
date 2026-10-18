@@ -134,6 +134,13 @@ namespace Scry
             var planned = ScryPanel.Drawn(PanelPart.PlanBox);
             yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > planned + 1, 5);
             p.Check(ScryPanel.PlanBoxOpenWaysDrawn > 0, "the plan box draws the ways on", $"{Numbers.Count(ScryPanel.PlanBoxOpenWaysDrawn)} drawn");
+            // How much is walked stands in its own row under the plan, clear of the rooms, inside the box.
+            var boxParts = ScryPanel.PlanBoxPartsForTest.ToList();
+            var walkedRow = boxParts.Where(q => q.Part == "walked").Select(q => (Rect?)q.At).FirstOrDefault();
+            var planArea = boxParts.Where(q => q.Part == "plan").Select(q => (Rect?)q.At).FirstOrDefault();
+            var planBox = ScryPanel.PlanBoxRect;
+            p.Check(walkedRow is Rect row && planArea is Rect plan && row.y >= plan.yMax - 0.5f && row.yMax <= planBox.yMax + 0.5f && row.x >= planBox.x && row.xMax <= planBox.xMax,
+                "how much is walked stands in a row of its own under the plan, clear of its rooms", walkedRow is Rect r ? $"row {Said(r)}, plan {(planArea is Rect a ? Said(a) : "none")}, box {Said(planBox)}" : "no row");
             yield return Picture(p, $"fog {entry.Name} two rooms walked");
 
             // Stood in the second room: the breadcrumb ends at it and goes into it, the plan and the stage mark it.

@@ -15,13 +15,16 @@ namespace Scry
         {
             public PlacedRoom Room;
             public int Read, Rooms, Know;
-            public bool Strict;
+            public bool Strict, Trims;
 
             public string Name, Key, Where;
             public bool Goes;
             public List<(string Line, string Page)> Creatures = new List<(string, string)>();
             public List<(string Name, string Odds, string Page)> Loot = new List<(string, string, string)>();
             public int CreaturesLeft, LootLeft;
+
+            /// <summary>The faint lines saying how many creatures and how many chests and pickups were left out, in the words of the rules; none for none.</summary>
+            public string CreaturesLeftLine, LootLeftLine;
 
             /// <summary>How many creatures and how many chests and pickups this copy rolled in the room, those left out with them, as its folded lists say.</summary>
             public int CreatureCount, LootCount;
@@ -80,10 +83,10 @@ namespace Scry
         {
             var card = _roomCard;
             if (card != null && card.Room == room && card.Read == Stage.ExampleRoomsRead && card.Rooms == Stage.ExampleRoomsShown
-                && card.Know == explorer.KnowStamp && card.Strict == explorer.LeavingOut) return card;
+                && card.Know == explorer.KnowStamp && card.Strict == explorer.LeavingOut && card.Trims == explorer.NamesOnlyMet) return card;
 
             var ways = Stage.ExampleWays;
-            card = new RoomCardShown { Room = room, Read = Stage.ExampleRoomsRead, Rooms = Stage.ExampleRoomsShown, Know = explorer.KnowStamp, Strict = explorer.LeavingOut };
+            card = new RoomCardShown { Room = room, Read = Stage.ExampleRoomsRead, Rooms = Stage.ExampleRoomsShown, Know = explorer.KnowStamp, Strict = explorer.LeavingOut, Trims = explorer.NamesOnlyMet };
             string RoomName(PlacedRoom r) => ShownName(explorer, EntryKeys.For(Kind.Location, r.Room.Name), LocationWords.RoomName(r.Room.Name));
             card.Key = EntryKeys.For(Kind.Location, room.Room.Name);
             card.Name = RoomName(room);
@@ -93,16 +96,18 @@ namespace Scry
             var rise = entrance != null ? card.Ground - Stage.ExampleRoomGround(entrance) : 0f;
             card.Where = RoomCardWords.Where(rise, ways != null ? ways.StepsIn(room) : -1, ways != null ? ways.WaysOf(room).Count : 0);
 
-            // Under the strict rules, what was not seen together with the page is left out and counted.
+            // What the character has not met is left out and counted, under the strict rules also what was not seen together with the page.
             var creatures = Stage.RoomCreatures(room);
             var kept = creatures.Where(c => !explorer.LeavesOut(c)).ToList();
             card.CreaturesLeft = creatures.Count - kept.Count;
+            card.CreaturesLeftLine = explorer.LeftOutLine(null, card.CreaturesLeft);
             card.CreatureCount = creatures.Count;
             card.Creatures = RoomCardWords.CountedPages(kept.Select(c => (ShownName(explorer, c, CreatureName(c)), c)));
 
             var loot = Stage.RoomLoot(room);
             var shown = loot.Where(l => !explorer.LeavesOut(l.Prefab)).ToList();
             card.LootLeft = loot.Count - shown.Count;
+            card.LootLeftLine = explorer.LeftOutLine(null, card.LootLeft);
             card.LootCount = loot.Count;
             card.Loot = RoomCardWords.OddsPages(shown.Select(l => (ShownName(explorer, l.Prefab, PartName(l.Prefab)), l.Prefab, l.Chance)));
 
@@ -279,7 +284,7 @@ namespace Scry
                 y += headH;
             }
 
-            void Rows(List<(string Name, string Odds, bool More, string Page)> rows, int left)
+            void Rows(List<(string Name, string Odds, bool More, string Page)> rows, string left)
             {
                 if (rows.Count == 0) Line(lineH, RoomCardWords.None, Skin.FaintLabel);
                 // The line saying how many more stands faint, without odds.
@@ -288,7 +293,7 @@ namespace Scry
                     if (more) Line(lineH, name, Skin.FaintLabel);
                     else Line(lineH, name, Skin.Small, odds, page);
                 }
-                if (left > 0) Line(lineH, CompendiumWords.LeftOutOf(null, left), Skin.FaintLabel);
+                if (left != null) Line(lineH, left, Skin.FaintLabel);
             }
 
             // A list's heading says how many it holds, and a click on it opens it or folds it away.
@@ -328,9 +333,9 @@ namespace Scry
             y += nameH;
             Line(whereH, card.Where, Skin.FaintLabel);
             ListHeading("creatures", RoomCardWords.Creatures, card.CreatureCount, Skin.KindColor(Kind.Creature), RoomCardWords.CreaturesTip);
-            if (CardListOpen("creatures")) Rows(card.CreatureRows, card.CreaturesLeft);
+            if (CardListOpen("creatures")) Rows(card.CreatureRows, card.CreaturesLeftLine);
             ListHeading("loot", RoomCardWords.Loot, card.LootCount, Skin.KindColor(Kind.Item), RoomCardWords.LootTip);
-            if (CardListOpen("loot")) Rows(card.LootRows, card.LootLeft);
+            if (CardListOpen("loot")) Rows(card.LootRows, card.LootLeftLine);
 
             // Its ways on: each goes into its room, and lights it on the stage and the plan while hovered.
             Heading(RoomCardWords.Ways, Skin.Faint, null);

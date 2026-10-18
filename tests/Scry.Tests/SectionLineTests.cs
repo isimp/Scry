@@ -68,6 +68,8 @@ namespace Scry.Tests
 
             // A page too short to scroll lights its first section at the top.
             Assert.Equal(0, SectionLine.InView(headings, 0f, 600f, 0f, -1, 0f));
+            // At the top the first is lit however short it is, the next heading in the top third already.
+            Assert.Equal(0, SectionLine.InView(new[] { 0f, 60f, 900f }, 0f, 600f, 1200f, -1, 0f));
             Assert.Equal(-1, SectionLine.InView(new float[0], 0f, 600f, 0f, -1, 0f));
         }
     }

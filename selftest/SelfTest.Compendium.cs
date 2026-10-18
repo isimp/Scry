@@ -362,13 +362,14 @@ namespace Scry
                     "Odin, placed only to be glimpsed, waits to be seen however high the floor", $"{highest.Of(odin)}, components {string.Join(", ", odin.Components.Take(6))}");
             }
 
-            // A made-up character with the floor at the Meadows knows all of them, and nothing of the Plains.
+            // A made-up character with the floor at the Meadows knows all of them, but what is placed
+            // only to be glimpsed, which waits to be seen, and nothing of the Plains.
             var floored = new CompendiumView(X.Entries);
             floored.Milestones(tiers, 1);
             floored.Tell(new CompendiumBook(), CompendiumRule.Loose);
-            var meadows = X.Catalog.Where(e => tiers.TryGetValue(e.Key, out var t) && t <= 1).ToList();
+            var meadows = X.Catalog.Where(e => tiers.TryGetValue(e.Key, out var t) && t <= 1 && !CompendiumView.OnlyGlimpsed(e)).ToList();
             var shut = meadows.Where(e => floored.Of(e) != KnownLevel.Known).ToList();
-            p.Check(meadows.Count > 0 && shut.Count == 0, $"with the floor at the Meadows, all {Numbers.Count(meadows.Count)} things of them show as known", string.Join(", ", shut.Take(5).Select(e => e.Name)));
+            p.Check(meadows.Count > 0 && shut.Count == 0, $"with the floor at the Meadows, all {Numbers.Count(meadows.Count)} things of them show as known, but what is placed only to be glimpsed", string.Join(", ", shut.Take(5).Select(e => e.Name)));
             var lox = X.Find("Lox");
             p.Check(lox == null || floored.Of(lox) < KnownLevel.Seen, "and nothing of the Plains", lox != null ? floored.Of(lox).ToString() : null);
 

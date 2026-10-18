@@ -270,6 +270,8 @@ namespace Scry
 
             Explorer = new Explorer(catalog, _favourites) { RecentLimit = Settings.RecentCount };
             WorldCatalog.Set(Explorer.Entries);
+            // A creature the character has not met stands on no place's copy, as no page names it.
+            Stage.CreatureLeftOff = Explorer.NotMet;
             if (_carried.HasValue)
             {
                 var carried = _carried.Value;

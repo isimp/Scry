@@ -360,6 +360,22 @@ namespace Scry
         /// <summary>The same from the spots of each patch.</summary>
         public static float? CeilingOver(IEnumerable<FloorPatch> patches, float floor) => CeilingOver(patches.SelectMany(p => p.Spots), floor);
 
+        /// <summary>
+        /// Whether something of the place hides room to stand in on a floor from above: its flat
+        /// spots within <see cref="CeilingNear"/> of it with anything over them hold <see cref="MinRoom"/>,
+        /// however small a share of it they are (a hut's deck under the half of its roof a roll left).
+        /// Bare earth, which no ray finds, has nothing over it.
+        /// </summary>
+        public static bool Covered(IEnumerable<FloorHit> hits, float floor)
+        {
+            var room = 0f;
+            foreach (var hit in hits)
+            {
+                if (hit.Over > 0f && Math.Abs(hit.Height - floor) <= CeilingNear) room += hit.Area;
+            }
+            return room >= MinRoom;
+        }
+
         private static float? CeilingOver(IEnumerable<(float Height, float Over)> spots, float floor)
         {
             var near = 0;

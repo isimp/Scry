@@ -217,8 +217,8 @@ namespace Scry
         /// </summary>
         private static float TableRow(Explorer explorer, Facts.Row row, float width, float y)
         {
-            // A table the strict rules leave every line out of draws nothing, its title and headings neither.
-            if (row.Lines.Count > 0 && explorer.LeavingOut && row.Lines.TrueForAll(l => !string.IsNullOrEmpty(l.Link) && explorer.LeavesOut(l.Link)))
+            // A table the compendium's rules leave every line out of draws nothing, its title and headings neither.
+            if (row.Lines.Count > 0 && explorer.NamesOnlyMet && row.Lines.TrueForAll(l => !string.IsNullOrEmpty(l.Link) && explorer.LeavesOut(l.Link)))
             {
                 StrictLeft(row.Lines.Count);
                 CountDrawn(PanelPart.EmptyRowLeftOut);
