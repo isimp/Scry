@@ -57,7 +57,11 @@ namespace Scry
         private static readonly List<BoxSpot> BoxSpots = new List<BoxSpot>();
 
         /// <summary>The segments in the header, from the right.</summary>
-        private static readonly PlanView[] ViewsRightToLeft = { PlanView.Tree, PlanView.Levels, PlanView.Above };
+        private static readonly PlanView[] Views = { PlanView.Above, PlanView.Levels, PlanView.Tree };
+
+        /// <summary>Where the box's controls were last drawn, by name, for the self-test: the views, grow and fold, the plan's own switches, the plan.</summary>
+        [Diagnostic]
+        public static List<(string Part, Rect At)> PlanBoxPartsForTest { get; } = new List<(string, Rect)>();
 
         /// <summary>What each drawing of the box works with, kept between drawings rather than made each time.</summary>
         private static readonly List<Rect> WrittenNames = new List<Rect>();
@@ -321,13 +325,12 @@ namespace Scry
             var gap = U(4f);
             var width = Mathf.Min(U(_planBig ? 400f : 236f), inner.width - U(16f));
             var planH = U(_planBig ? 330f : 150f);
-            // The header holds the three views and the box's switches, grow and fold in one row where
-            // it has room; else the switches, grow and fold in a second row under the views.
+            // The header holds the views from the left, and grow and fold in the box's top right corner,
+            // beside them where they fit, else on a row of their own under them (PlanBoxHeader).
             var segmentsW = 0f;
-            foreach (var view in ViewsRightToLeft) segmentsW += Skin.Width(Skin.SegmentOn, PlanBoxWords.ViewName(view)) + U(12f);
-            var controlsW = U(6f) + rowH + U(4f) + rowH + U(4f) + rowH + U(4f) + U(16f);
-            var oneRow = width - pad * 2f >= segmentsW + controlsW;
-            var headerH = oneRow ? rowH : rowH * 2f + U(2f);
+            foreach (var view in Views) segmentsW += Skin.Width(Skin.SegmentOn, PlanBoxWords.ViewName(view)) + U(10f) + U(2f);
+            var laid = PlanBoxHeader.Lay(width - pad * 2f, segmentsW, rowH, gap);
+            var headerH = laid.Rows == 1 ? rowH : rowH * 2f + U(2f);
             // Whole, with its trail and its Entrance and Deepest, where the stage holds it so; else
             // without them; else, with a room gone into, folded to its tab (CornerFit).
             var card = (Stage.RoomGoneInto != null || Stage.PickedRoom != null) && Stage.HasInside && Stage.ShowsInside;
@@ -354,57 +357,39 @@ namespace Scry
             var w = box.width - pad * 2f;
             var y = box.y + pad;
 
-            // The header: the three views, the names, grow and fold, and the caption.
-            var controlsY = oneRow ? y : y + rowH + U(2f);
-            var fold = new Rect(box.xMax - pad - U(16f), controlsY + U(3f), U(16f), U(16f));
-            var grow = new Rect(fold.x - U(4f) - rowH, controlsY, rowH, rowH);
-            var names = new Rect(grow.x - U(4f) - rowH, controlsY, rowH, rowH);
-            // The switch for the rooms below acts on the plan from above, and stands only with it.
-            var switchShown = _planView == PlanView.Above;
-            var below = switchShown ? new Rect(names.x - U(4f) - rowH, controlsY, rowH, rowH) : new Rect(names.x - U(4f), controlsY, 0f, rowH);
-            var segX = oneRow ? below.x - U(6f) : x + segmentsW;
-            foreach (var view in ViewsRightToLeft)
+            if (repaint) PlanBoxPartsForTest.Clear();
+            // The header: the views from the left; grow and fold in the box's top right corner.
+            var controlsY = y + laid.ControlsRow * (rowH + U(2f));
+            var fold = new Rect(x + laid.FoldX, controlsY, rowH, rowH);
+            var grow = new Rect(x + laid.GrowX, controlsY, rowH, rowH);
+            var segX = x;
+            foreach (var view in Views)
             {
                 var name = PlanBoxWords.ViewName(view);
                 var on = view == _planView;
                 var style = on ? Skin.SegmentOn : Skin.Segment;
                 var segW = Skin.Width(Skin.SegmentOn, name) + U(10f);
-                segX -= segW;
                 var segment = new Rect(segX, y, segW, rowH);
-                segX -= U(2f);
+                segX += segW + U(2f);
+                if (repaint) PlanBoxPartsForTest.Add(("view", segment));
                 if (segment.Contains(e.mousePosition)) AskTip("plan-view:" + name, PlanBoxWords.ViewTip(view));
                 if (GUI.Button(segment, name, Skin.Fitted(style, segment)) && !on) ChoosePlanView(view);
             }
-            // The rooms below the room gone into or the floor opened, shown in the plan from above or left out of it.
-            if (switchShown)
+            if (repaint)
             {
-                var belowShown = PlanBelowShown;
-                if (below.Contains(e.mousePosition)) AskTip("plan:below", PlanBoxWords.BelowTip(belowShown));
-                if (GUI.Button(below, GUIContent.none, belowShown ? Skin.On : Skin.IconButton)) ShowBelow(!belowShown);
-                if (repaint) Skin.Icon(new Rect(below.x + U(4f), below.y + U(4f), below.width - U(8f), below.height - U(8f)), Skin.Down, belowShown ? Skin.Accent : Skin.Dim);
+                PlanBoxPartsForTest.Add(("grow", grow));
+                PlanBoxPartsForTest.Add(("fold", fold));
             }
-            // The rooms' names on the grown plan, in every view.
-            var namesShown = PlanNamesShown;
-            if (names.Contains(e.mousePosition)) AskTip("plan:names", PlanBoxWords.NamesTip(namesShown));
-            // Its mark drawn over the button as the other switches' icons are, in the accent while on.
-            if (GUI.Button(names, GUIContent.none, namesShown ? Skin.On : Skin.IconButton)) ShowNames(!namesShown);
-            if (repaint) Skin.LabelIn(names, PlanBoxWords.NamesMark, Skin.Glyph, namesShown ? Skin.Accent : Skin.Dim);
             if (grow.Contains(e.mousePosition)) AskTip("plan:grow", PlanBoxWords.GrowTip(_planBig));
             if (GUI.Button(grow, GUIContent.none, _planBig ? Skin.On : Skin.IconButton)) GrowPlan(!_planBig);
             if (repaint) Skin.Icon(new Rect(grow.x + U(4f), grow.y + U(4f), grow.width - U(8f), grow.height - U(8f)), Skin.Resize, _planBig ? Skin.Accent : Skin.Dim);
-            if (fold.Contains(e.mousePosition))
+            if (fold.Contains(e.mousePosition)) AskTip("plan:fold", PlanBoxWords.FoldTip);
+            if (GUI.Button(fold, GUIContent.none, Skin.IconButton))
             {
-                AskTip("plan:fold", "Puts the plan away");
-                if (e.type == EventType.MouseDown && e.button == 0)
-                {
-                    PlanFolded = true;
-                    e.Use();
-                    return box;
-                }
+                PlanFolded = true;
+                return box;
             }
-            if (repaint) GUI.Label(fold, "–", fold.Contains(e.mousePosition) ? Skin.Label : Skin.DimLabel);
-            // How much of the world's own dungeon is walked, where the header has room for it.
-            WalkedLabel(oneRow ? new Rect(x, y, segX - U(4f) - x, rowH) : new Rect(x, controlsY, (switchShown ? below.x : names.x) - U(4f) - x, rowH));
+            if (repaint) Skin.LabelIn(fold, PlanBoxWords.FoldMark, Skin.Glyph, fold.Contains(e.mousePosition) ? Skin.Text : Skin.Dim);
             if (peekH > 0f) PeekStrip(new Rect(x, y + headerH + gap, w, rowH));
 
             // The plan itself.
@@ -432,9 +417,15 @@ namespace Scry
                 foreach (var spot in BoxSpots) if (BoxLit(spot.Room)) PlanBoxLitShown.Add(spot.Room);
             }
 
+            // The plan's own switches, joined over its top right corner: the rooms below (from above only) and the names.
+            var corner = PlanSwitches(area, rowH);
+            // How much of the world's own dungeon is walked, in the plan's bottom left corner.
+            WalkedLabel(new Rect(area.x + U(2f), area.yMax - rowH, area.width - U(4f), rowH));
+            if (repaint) PlanBoxPartsForTest.Add(("plan", area));
+
             // The room under the mouse: lit here and on the stage, picked on a click, gone into on a double-click.
             var mouse = BoxMouse(e);
-            var hovered = area.Contains(mouse) && (_drag == Drag.None || _drag == Drag.Orbit) ? BoxRoomAt(mouse) : null;
+            var hovered = area.Contains(mouse) && !corner.Contains(e.mousePosition) && (_drag == Drag.None || _drag == Drag.Orbit) ? BoxRoomAt(mouse) : null;
             if (hovered != null)
             {
                 _boxHover = hovered;
@@ -450,6 +441,36 @@ namespace Scry
             // The box is not the stage: a click or the wheel on it neither turns nor zooms it.
             if (box.Contains(e.mousePosition) && (e.type == EventType.MouseDown || e.type == EventType.ScrollWheel)) e.Use();
             return box;
+        }
+
+        /// <summary>
+        /// The plan's own switches, joined over its top right corner (<see cref="PlanBoxHeader.Corner"/>):
+        /// the rooms below the room gone into or the floor opened, from above only, and the rooms'
+        /// names, in every view. Drawn over the plan and taking the mouse before it; where they stand.
+        /// </summary>
+        private static Rect PlanSwitches(Rect area, float size)
+        {
+            var e = Event.current;
+            var repaint = e.type == EventType.Repaint;
+            var belowOn = _planView == PlanView.Above;
+            var (namesX, belowX, left) = PlanBoxHeader.Corner(area.width, size, belowOn);
+            if (belowOn)
+            {
+                var below = new Rect(area.x + belowX, area.y, size, size);
+                var belowShown = PlanBelowShown;
+                if (repaint) PlanBoxPartsForTest.Add(("below", below));
+                if (below.Contains(e.mousePosition)) AskTip("plan:below", PlanBoxWords.BelowTip(belowShown));
+                if (GUI.Button(below, GUIContent.none, belowShown ? Skin.On : Skin.IconButton)) ShowBelow(!belowShown);
+                if (repaint) Skin.Icon(new Rect(below.x + U(4f), below.y + U(4f), below.width - U(8f), below.height - U(8f)), Skin.Down, belowShown ? Skin.Accent : Skin.Dim);
+            }
+            var names = new Rect(area.x + namesX, area.y, size, size);
+            var namesShown = PlanNamesShown;
+            if (repaint) PlanBoxPartsForTest.Add(("names", names));
+            if (names.Contains(e.mousePosition)) AskTip("plan:names", PlanBoxWords.NamesTip(namesShown));
+            // Its mark drawn over the button as the rooms below's icon is, in the accent while on.
+            if (GUI.Button(names, GUIContent.none, namesShown ? Skin.On : Skin.IconButton)) ShowNames(!namesShown);
+            if (repaint) Skin.LabelIn(names, PlanBoxWords.NamesMark, Skin.Glyph, namesShown ? Skin.Accent : Skin.Dim);
+            return new Rect(area.x + left, area.y, area.width - left, size);
         }
 
         private static string BoxRoomName(Explorer explorer, PlacedRoom room) =>

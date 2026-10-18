@@ -38,6 +38,7 @@ namespace Scry
             var unwayed = new List<string>();
             var unfound = new List<string>();
             var unframed = new List<string>();
+            var unlaid = new List<string>();
             var unlevelled = new List<string>();
             var unlitBox = new List<string>();
             var unlitStage = new List<string>();
@@ -101,6 +102,7 @@ namespace Scry
                         p.Note($"{name}: {Numbers.Count(found)} of {Numbers.Count(spots.Count)} rooms found at their spots, {Numbers.Count(covered)} under a room drawn over them" + (view == PlanView.Levels ? $", on {Numbers.Count(ScryPanel.PlanBoxLevelsShown)} levels" : ""));
 
                         if (big != Stage.ViewShift > 0f) unframed.Add($"{name}: the stage framed {Numbers.Fixed(Stage.ViewShift, 2)} of its width aside");
+                        unlaid.AddRange(PlanBoxLaidOut(name, view));
                         yield return Picture(p, $"plan {name}");
                     }
                 }
@@ -450,6 +452,7 @@ namespace Scry
             p.Check(unwayed.Count == 0, "every view of the plan box draws every way between its rooms", string.Join("; ", unwayed.Take(6)));
             p.Check(unfound.Count == 0, "every room is found under the mouse at its spot, in the levels and the tree whole, from above unless a room drawn over it stands there", string.Join("; ", unfound.Take(6)));
             p.Check(unframed.Count == 0, "grown, the stage is framed beside the plan box; compact, in its middle", string.Join("; ", unframed.Take(6)));
+            p.Check(unlaid.Count == 0, "the plan box's views stand left, grow and fold in its top right corner, its own switches joined over the plan's top right corner, none over another", string.Join("; ", unlaid.Take(6)));
             p.Check(unlevelled.Count == 0, "the Levels view shows as many levels as the rooms' grounds lay out", string.Join("; ", unlevelled));
             p.Check(unlitBox.Count == 0, "a room under the mouse in the plan box is framed there alone and named, the way drawn to it, and outlined on the stage", string.Join("; ", unlitBox.Take(6)));
             p.Check(unlitStage.Count == 0, "a room under the mouse on the stage is framed in the plan box alone and named in every view, the way drawn to it, and outlined on the stage", string.Join("; ", unlitStage.Take(6)));

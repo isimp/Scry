@@ -5,9 +5,46 @@ using UnityEngine;
 
 namespace Scry
 {
-    /// <summary>The self-test's case for moving through a dungeon's levels and rooms with Shift and the wheel.</summary>
+    /// <summary>The self-test's cases for moving through a dungeon's levels and rooms with Shift and the wheel, and for where the plan box's controls stand.</summary>
     internal static partial class SelfTest
     {
+        /// <summary>
+        /// What is wrong with where the plan box's controls were last drawn: grow and fold not in the
+        /// box's top right corner, the plan's own switches not joined over its top right corner (the
+        /// rooms below only from above), or two controls over each other.
+        /// </summary>
+        private static List<string> PlanBoxLaidOut(string name, PlanView view)
+        {
+            var wrong = new List<string>();
+            var parts = ScryPanel.PlanBoxPartsForTest.ToList();
+            var box = ScryPanel.PlanBoxRect;
+            Rect? Of(string part) => parts.Any(q => q.Part == part) ? parts.First(q => q.Part == part).At : (Rect?)null;
+            if (!(Of("fold") is Rect fold) || !(Of("grow") is Rect grow) || !(Of("names") is Rect names) || !(Of("plan") is Rect plan))
+            {
+                wrong.Add($"{name}: {string.Join(", ", parts.Select(q => q.Part))} drawn");
+                return wrong;
+            }
+            if (fold.xMax > box.xMax || box.xMax - fold.xMax > fold.width || fold.y - box.y > fold.height * 2.5f) wrong.Add($"{name}: fold at {Said(fold)} in the box {Said(box)}");
+            if (grow.xMax > fold.x || fold.x - grow.xMax > grow.width || Mathf.Abs(grow.y - fold.y) > 0.5f) wrong.Add($"{name}: grow at {Said(grow)} beside fold at {Said(fold)}");
+            if (Mathf.Abs(names.xMax - plan.xMax) > 1f || Mathf.Abs(names.y - plan.y) > 1f) wrong.Add($"{name}: the names' switch at {Said(names)} in the plan {Said(plan)}");
+            var below = Of("below");
+            if ((view == PlanView.Above) != below.HasValue) wrong.Add($"{name}: the rooms below's switch {(below.HasValue ? "shown" : "missing")}");
+            else if (below is Rect b && (Mathf.Abs(b.xMax - names.x) > 1f || Mathf.Abs(b.y - names.y) > 0.5f)) wrong.Add($"{name}: the rooms below's switch at {Said(b)} not joined to the names' at {Said(names)}");
+            var controls = parts.Where(q => q.Part != "plan").ToList();
+            for (var i = 0; i < controls.Count; i++)
+            {
+                for (var j = i + 1; j < controls.Count; j++)
+                {
+                    var overlap = Rect.MinMaxRect(Mathf.Max(controls[i].At.xMin, controls[j].At.xMin), Mathf.Max(controls[i].At.yMin, controls[j].At.yMin), Mathf.Min(controls[i].At.xMax, controls[j].At.xMax), Mathf.Min(controls[i].At.yMax, controls[j].At.yMax));
+                    if (overlap.width > 0.5f && overlap.height > 0.5f) wrong.Add($"{name}: {controls[i].Part} over {controls[j].Part}");
+                }
+            }
+            return wrong;
+        }
+
+        /// <summary>A rectangle as a part of the panel: its corner and size in whole points.</summary>
+        private static string Said(Rect at) => $"{Numbers.Fixed(at.x, 0)}, {Numbers.Fixed(at.y, 0)} ({Numbers.Fixed(at.width, 0)} by {Numbers.Fixed(at.height, 0)})";
+
         /// <summary>
         /// The Frost Caves, whose two levels lie far apart: Shift and the wheel down keep the top
         /// level open to just over its floor, then open the level below at its own cut, never

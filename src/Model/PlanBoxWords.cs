@@ -46,6 +46,10 @@ namespace Scry
 
         public static string GrowTip(bool big) => big ? "Shrinks the plan back" : "Grows the plan and names its rooms";
 
+        /// <summary>The mark of the button that puts the plan away, and its tip.</summary>
+        public const string FoldMark = "–";
+        public const string FoldTip = "Puts the plan away";
+
         /// <summary>The tip of the box folded as the stage is too short for it under the room's card.</summary>
         public const string TooShortTip = "The stage is too short for the plan under the room's card: drag the stage taller, or come back out of the room";
 
