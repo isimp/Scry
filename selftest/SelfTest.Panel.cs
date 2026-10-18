@@ -169,7 +169,22 @@ namespace Scry
                     yield return Picture(p, $"header {name}");
                 }
             }
+            // With the stage dragged to its tallest, the stage gives way and the header stays whole in the panel.
+            var tallest = new List<string>();
+            var wasScale = ScryPanel.StageScale;
+            ScryPanel.StageScale = 2.4f;
+            foreach (var compact in new[] { false, true })
+            {
+                ScryPanel.Compact = compact;
+                Select(picks[0]);
+                var drawn = ScryPanel.Drawn(PanelPart.Toolbar);
+                yield return Until(() => ScryPanel.Drawn(PanelPart.Toolbar) > drawn + 2, 5);
+                if (!ScryPanel.HeaderInsideForTest) tallest.Add(compact ? "compact" : "full");
+                yield return Picture(p, $"header {picks[0].Name} {(compact ? "compact" : "full")} tallest stage");
+            }
+            ScryPanel.StageScale = wasScale;
             ScryPanel.Compact = wasCompact;
+            p.Check(tallest.Count == 0, "with the stage dragged to its tallest, the page's header stays whole inside the panel", "cut off in " + string.Join(", ", tallest));
             p.Check(looked > 0 && wrong.Count == 0, "each page's header stands the same in both views: the name with copy and star at its end, the actions joined from the left under it and the slider icons at that line's end, the line of sections with fold all at its end, none over another", string.Join("; ", wrong.Take(6)));
         }
 

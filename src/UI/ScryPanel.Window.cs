@@ -236,7 +236,8 @@ namespace Scry
                     RulerAt(GUIUtility.GUIToScreenPoint(e.mousePosition).y);
                     break;
                 case Drag.StageSize:
-                    _stageScale = Mathf.Clamp(_stageScale + e.delta.y / Mathf.Max(1f, _stageBaseH), 0.4f, 2.4f);
+                    // Past the most the page leaves it, a drag goes no further, so dragging back answers at once.
+                    _stageScale = Mathf.Clamp(_stageScale + e.delta.y / Mathf.Max(1f, _stageBaseH), 0.4f, Mathf.Clamp(_stageMost / Mathf.Max(1f, _stageBaseH), 0.4f, 2.4f));
                     break;
                 case Drag.ListSize:
                     // Past its narrowest the list folds away; dragged back out, it opens again.

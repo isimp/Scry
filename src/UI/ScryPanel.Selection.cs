@@ -9,6 +9,19 @@ namespace Scry
         private static float _sideHeight;
         private static float _stageBaseH = 300f;
 
+        /// <summary>The stage's height at the most as the page was last laid out, the header under it kept in the panel; a drag of its edge stops there.</summary>
+        private static float _stageMost = float.MaxValue;
+
+        /// <summary>How much of the page the stage leaves under the page's header at the least, before scaling: a row of what follows.</summary>
+        private const float PageKept = 40f;
+
+        /// <summary>How tall a page not opened yet is under its stage, before scaling: its name and the lines saying how to know it.</summary>
+        private const float ClosedPageHeight = 120f;
+
+        /// <summary>Whether the page's header was last drawn whole inside the panel, for the self-test.</summary>
+        [Diagnostic]
+        public static bool HeaderInsideForTest { get; private set; }
+
         /// <summary>Where the details are scrolled to.</summary>
         private static Vector2 _sideScroll;
 
@@ -127,19 +140,23 @@ namespace Scry
             }
 
             var top = rect.y;
-            if (withStage) top += SideStage(explorer, entry, rect);
 
             // The header stays in sight while what is below it scrolls, so a long section scrolled
             // to never leaves the selection unnamed: the name, the toolbar under it (what it does,
             // its sliders) and a line of the sections going to each, fold all at its end. What the
-            // toolbar holds is measured first, as it decides how tall the header is.
+            // toolbar holds is measured first, as it decides how tall the header is, and the stage
+            // over it gives way so the header and a little of the page stay inside the panel.
             var width = rect.width - U(14f);
             MeasureActions(entry, withStage);
             var sized = Adjustable(entry, withStage, out var staged) && staged;
             var laid = PageToolbar.Lay(width, ActionWidths, SlideIconCount(entry, sized), ToolbarRow, U(1f), U(8f), ActionPlaces);
             var lineH = SectionLineHeight(width);
-            var titleArea = new Rect(rect.x, top, width, TitleHeight(explorer, entry) + ToolbarHeight(laid.Lines) + lineH);
-            var shown = rect.yMax - titleArea.yMax;
+            var headerH = TitleHeight(explorer, entry) + ToolbarHeight(laid.Lines) + lineH;
+            if (withStage) top += SideStage(explorer, entry, rect, headerH + U(PageKept));
+            // Cut at the panel's end where even the stage's least leaves too little room.
+            var titleArea = new Rect(rect.x, top, width, Mathf.Max(0f, Mathf.Min(headerH, rect.yMax - top)));
+            if (Event.current.type == EventType.Repaint) HeaderInsideForTest = top + headerH <= rect.yMax + 0.5f;
+            var shown = Mathf.Max(0f, rect.yMax - titleArea.yMax);
             var anyOpen = AnyOpen();
             if (Event.current.type == EventType.Repaint) ToolbarPartsForTest.Clear();
             GUI.BeginGroup(titleArea);
@@ -149,7 +166,7 @@ namespace Scry
             GUI.EndGroup();
             top += titleH;
 
-            var below = new Rect(rect.x, top, rect.width, rect.yMax - top);
+            var below = new Rect(rect.x, top, rect.width, Mathf.Max(0f, rect.yMax - top));
             var content = new Rect(0f, 0f, below.width - U(14f), Mathf.Max(_sideHeight, below.height));
             _sideScroll = GUI.BeginScrollView(below, _sideScroll, content, false, false, GUIStyle.none, Skin.Gui.verticalScrollbar);
             _sideVisible = new Rect(0f, _sideScroll.y, content.width, below.height);
@@ -193,15 +210,17 @@ namespace Scry
         }
 
         /// <summary>
-        /// The stage at the top of the side; how much of the side it takes. A sound or a status
+        /// The stage at the top of the side; how much of the side it takes, leaving <paramref name="keep"/>
+        /// under it and its edge however far it is dragged (<see cref="SideSplit"/>). A sound or a status
         /// effect with nothing to show on a person gets a card only as tall as what it holds, so
         /// its details start higher; a model gets the stage.
         /// </summary>
-        private static float SideStage(Explorer explorer, Entry entry, Rect rect)
+        private static float SideStage(Explorer explorer, Entry entry, Rect rect, float keep)
         {
             var card = CardHeight(entry);
             _stageBaseH = Mathf.Round(Mathf.Min(rect.width * 0.60f, rect.height * 0.50f));
-            var stageH = card > 0f ? card : Mathf.Round(Mathf.Clamp(_stageBaseH * _stageScale, U(120f), rect.height * 0.85f));
+            _stageMost = Mathf.Max(U(120f), SideSplit.StageHeight(float.MaxValue, rect.height, U(120f), keep + U(12f)));
+            var stageH = card > 0f ? card : Mathf.Round(SideSplit.StageHeight(_stageBaseH * _stageScale, rect.height, U(120f), keep + U(12f)));
             Section("side stage", 0f, _ => { StageArea(explorer, entry, new Rect(rect.x, rect.y, rect.width, stageH)); return 0f; });
             if (card <= 0f) StageHandle(new Rect(rect.x, rect.y + stageH, rect.width, U(12f)));
             return stageH + U(12f);
@@ -216,7 +235,7 @@ namespace Scry
         {
             CountDrawn(PanelPart.ClosedPage);
             var top = rect.y;
-            if (withStage && level == KnownLevel.Seen && CardHeight(entry) <= 0f) top += SideStage(explorer, entry, rect);
+            if (withStage && level == KnownLevel.Seen && CardHeight(entry) <= 0f) top += SideStage(explorer, entry, rect, U(ClosedPageHeight));
             Skin.Box(new Rect(rect.x, top, rect.width, rect.yMax - top), Skin.Panel);
             var x = rect.x + U(16f);
             var width = rect.width - U(32f);
