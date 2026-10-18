@@ -115,13 +115,15 @@ namespace Scry
         private static Vector2 OnPicture(Vector2 screen) => _pictureScreen.width <= 0f || _pictureScreen.height <= 0f ? new Vector2(0.5f, 0.5f)
             : new Vector2((screen.x - _pictureScreen.x) / _pictureScreen.width, 1f - (screen.y - _pictureScreen.y) / _pictureScreen.height);
 
+        /// <summary>What the stage says of the example of the entry shown while it is read and built, for the self-test.</summary>
+        [Diagnostic]
+        public static string ExampleProgressForTest(Explorer explorer) => explorer.Shown != null ? ExampleProgress(explorer.Shown) : null;
+
         /// <summary>What the stage says while a dungeon's or camp's example is read and built; null once it stands.</summary>
         private static string ExampleProgress(Entry entry)
         {
             if (!(entry.Source is PlaceSource place) || place.IsRoom || place.Contents?.Dungeon == null || !ExampleLayouts.Of(entry)) return null;
-            if (ExampleLayouts.Example == null) return DungeonWords.Reading(ExampleLayouts.Read, ExampleLayouts.Total);
-            var total = Stage.ExampleRoomsTotal;
-            return total > 0 && Stage.ExampleRoomsShown < total ? DungeonWords.Building(Stage.ExampleRoomsShown, total) : null;
+            return DungeonWords.Progress(!Stage.InsideUnknown, ExampleLayouts.Example != null, ExampleLayouts.Read, ExampleLayouts.Total, Stage.ExampleRoomsShown, Stage.ExampleRoomsTotal);
         }
 
         private static void StageArea(Explorer explorer, Entry entry, Rect rect)

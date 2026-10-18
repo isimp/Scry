@@ -622,7 +622,15 @@ namespace Scry
             yield return Until(() => ReferenceEquals(X.Compendium, view), 3);
             Stage.Inside = true;
             X.Select(crypt);
-            yield return Until(() => Stage.InsideUnknown && Stage.HasInside, 30);
+            // While it is built, the stage counts none of its rooms, which only going inside tells.
+            var counted = new List<string>();
+            yield return Until(() =>
+            {
+                var progress = ScryPanel.ExampleProgressForTest(X);
+                if (progress != null && progress != DungeonWords.Entrance && !counted.Contains(progress)) counted.Add(progress);
+                return Stage.InsideUnknown && Stage.HasInside;
+            }, 30);
+            p.Check(counted.Count == 0, "while it is built the stage counts none of its rooms", string.Join(" | ", counted));
             p.Check(Stage.InsideUnknown && Stage.HasInside && !Stage.ShowsInside, "a dungeon only seen from outside shows its entrance, its inside chosen or not",
                 $"inside unknown {Stage.InsideUnknown}, has an inside {Stage.HasInside}, shows it {Stage.ShowsInside}");
             var plan = ScryPanel.Drawn(PanelPart.Plan);
