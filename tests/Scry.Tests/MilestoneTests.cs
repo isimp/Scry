@@ -216,6 +216,36 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatTheGamePlacesOnlyToVanishAsOneComesNearNeverComesByTheFloor()
+        {
+            // Odin: the game places him in the Meadows' world as it places a bush, and he is gone
+            // as one comes near (its Odin behaviour). No floor shows him, nor brings him along with
+            // what plays him; seen, he is known as anything else.
+            var odin = new Entry { Kind = Kind.Other, Name = "odin", Components = new[] { "ZNetView", "Odin" } };
+            var bush = new Entry { Kind = Kind.Other, Name = "Bush01", Components = new[] { "ZNetView" } };
+            var torch = new Entry { Kind = Kind.Item, Name = "Torch" };
+            odin.UsedBy.Add("Torch");
+            var view = new CompendiumView(new EntryCatalog(new[] { odin, bush, torch }));
+            var tiers = new Dictionary<string, int> { { odin.Key, 1 }, { bush.Key, 1 }, { torch.Key, 1 } };
+            var book = new CompendiumBook();
+
+            view.Milestones(tiers, 2);
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Known, view.Of(bush));
+            Assert.True(view.ByFloor(bush));
+            Assert.Equal(KnownLevel.Known, view.Of(torch));
+            Assert.False(view.BelowFloor(odin));
+            Assert.True(view.Of(odin) < KnownLevel.Seen);
+            Assert.False(view.ByFloor(odin));
+            Assert.False(view.Owns(torch, odin));
+
+            book.Raise(odin.Key, KnownLevel.Seen);
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Seen, view.Of(odin));
+            Assert.False(view.ByFloor(odin));
+        }
+
+        [Fact]
         public void ABossStoneNeverBringsAlongItsPower()
         {
             // A stone gives its power only for the boss's trophy: knowing the stone, by the

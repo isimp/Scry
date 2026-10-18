@@ -155,8 +155,18 @@ namespace Scry
         /// <summary>Whether the game told the character how a creature takes a damage type, on a hit of it (<see cref="HitTold"/>).</summary>
         public bool HitWith(Entry creature, string type) => creature != null && _book != null && _book.Witnessed(creature.Key, EntryKeys.Damage(type));
 
-        /// <summary>Whether an entry's tier is at or below the floor, so it shows whatever the book holds of it.</summary>
-        public bool BelowFloor(Entry entry) => entry != null && _floor > 0 && _tiers != null && _tiers.TryGetValue(entry.Key, out var tier) && tier <= _floor;
+        /// <summary>Whether an entry's tier is at or below the floor, so it shows whatever the book holds of it; never one placed only to be glimpsed (<see cref="OnlyGlimpsed"/>).</summary>
+        public bool BelowFloor(Entry entry) => entry != null && _floor > 0 && !OnlyGlimpsed(entry) && _tiers != null && _tiers.TryGetValue(entry.Key, out var tier) && tier <= _floor;
+
+        /// <summary>The game's behaviour of a thing placed only to be glimpsed: it stands far off and is gone as a player comes near, or after a while.</summary>
+        private const string GlimpsedBehaviour = "Odin";
+
+        /// <summary>
+        /// Whether the game places an entry only to be glimpsed (<see cref="GlimpsedBehaviour"/>):
+        /// the hooded figure standing at the edge of sight. However low its tier, no floor shows it
+        /// or brings it along; it is known once the character has seen it.
+        /// </summary>
+        private static bool OnlyGlimpsed(Entry entry) => Array.IndexOf(entry.Components, GlimpsedBehaviour) >= 0;
 
         /// <summary>Whether an entry's own tier is above the floor, so the floor does not bring it along; none is for one of no tier.</summary>
         private bool AboveFloor(Entry entry) => _tiers != null && _tiers.TryGetValue(entry.Key, out var tier) && tier > _floor;
@@ -321,7 +331,7 @@ namespace Scry
                 var owner = met.Dequeue();
                 foreach (var owned in Owned(owner))
                 {
-                    if (byFloor && AboveFloor(owned)) continue;
+                    if (byFloor && (AboveFloor(owned) || OnlyGlimpsed(owned))) continue;
                     _owns.Add((owner, owned));
                     if (Of(owned) == KnownLevel.Known) continue;
                     _levels[owned] = KnownLevel.Known;

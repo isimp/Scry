@@ -354,6 +354,12 @@ namespace Scry
                 var told = odinTiers.TryGetValue(odin.Key, out var odinTier) ? $"tier {Numbers.Count(odinTier)} by way of {TierChain(odinPass, odinTiers, odin.Key)}" : "no tier";
                 p.Note($"odin: {told}; played or left behind by {(odin.UsedBy.Count > 0 ? string.Join(", ", odin.UsedBy.Take(6)) : "nothing")}; "
                     + $"{(view == null ? "no compendium" : $"{view.Of(odin)}, by the floor {view.ByFloor(odin)}, brought along by {view.Because(odin)?.Name ?? "nothing"}")}");
+                // Placed only to be glimpsed, he waits to be seen however high the floor.
+                var highest = new CompendiumView(X.Entries);
+                highest.Milestones(tiers, Tiers.Last);
+                highest.Tell(new CompendiumBook(), CompendiumRule.Loose);
+                p.Check(odin.Components.Contains("Odin") && highest.Of(odin) < KnownLevel.Seen && !highest.ByFloor(odin),
+                    "Odin, placed only to be glimpsed, waits to be seen however high the floor", $"{highest.Of(odin)}, components {string.Join(", ", odin.Components.Take(6))}");
             }
 
             // A made-up character with the floor at the Meadows knows all of them, and nothing of the Plains.
