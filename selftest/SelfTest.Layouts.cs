@@ -134,8 +134,16 @@ namespace Scry
         /// <summary>A location with nothing of it over its ground, so nothing to cut: a ring of standing stones.</summary>
         private const string NothingToCut = "StoneCircle";
 
-        /// <summary>The places looked at for their floors, shown alone: an altar, towers, houses, a hut on stilts and a crypt's gate.</summary>
-        private static readonly string[] PicturedPlaces = { "Bonemass", "CharredTowerRuins3", "WoodHouse12", "WoodHouse2", "Mistlands_GuardTower1_new", "SwampHut1", "SunkenCrypt4" };
+        /// <summary>
+        /// The places looked at for their floors, shown alone: an altar, towers, houses, a hut on
+        /// stilts, a crypt's gate, ruins and a fortress whose walls and pillars step 2 m at a time,
+        /// and a ring of standing stones with nothing to cut.
+        /// </summary>
+        private static readonly string[] PicturedPlaces =
+        {
+            "Bonemass", "CharredTowerRuins3", "WoodHouse12", "WoodHouse2", "Mistlands_GuardTower1_new", "SwampHut1", "SunkenCrypt4",
+            "Mistlands_GuardTower1_ruined_new", "CharredFortress", "CharredRuins1", NothingToCut,
+        };
 
         /// <summary>
         /// The places looked at for their floors, each shown alone on a stage as tall as it goes
@@ -200,6 +208,7 @@ namespace Scry
                 if (floors.Count == 0)
                 {
                     p.Note($"{entry.Name}: no floor");
+                    yield return Picture(p, $"floors {entry.Name} none");
                     continue;
                 }
                 p.Note($"{entry.Name}: " + string.Join("; ", floors.Select((f, i) => $"{Fixed(f)} m cut at {Fixed(cuts[i])} m{(ceilings[i] is float c ? $" under a ceiling at {Fixed(c)} m" : "")} on {(i < makers.Count ? makers[i] : "?")}"))
